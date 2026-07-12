@@ -126,8 +126,8 @@ async function postEmbeddingChunkWithRetry(
     ? truncate(args.input.join("\n---\n"), PROMPT_PREVIEW_BYTES)
     : undefined;
 
-  let status: number;
-  let ok: boolean;
+  let status = 0;
+  let ok = false;
   let errorClass: ErrorClass | undefined;
   let errorMessage: string | undefined;
   let items: EmbeddingItem[] | null = null;

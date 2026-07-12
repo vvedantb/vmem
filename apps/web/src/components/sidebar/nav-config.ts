@@ -8,10 +8,13 @@ import {
   IconTerminal2,
   IconPuzzle,
   IconFileImport,
+  IconCpu,
   IconUsers,
   IconLock,
 } from "@tabler/icons-react";
 import {
+  IconChat,
+  IconVoice,
   IconMemories,
   IconFiles,
   IconCodebases,
@@ -33,6 +36,8 @@ export const navGroups: NavGroup[] = [
     title: "Workspace",
     icon: IconStack2,
     items: [
+      { href: "/$profileId/chat", label: "Chat", icon: IconChat },
+      { href: "/$profileId/voice", label: "Voice", icon: IconVoice },
       { href: "/$profileId/memories", label: "Memories", icon: IconMemories },
     ],
   },
@@ -90,6 +95,7 @@ export const settingsNavGroups: SettingsNavGroup[] = [
         icon: IconAdjustments,
       },
       { href: "/settings/profiles", label: "Profiles", icon: IconUsers },
+      { href: "/settings/models", label: "Models", icon: IconCpu },
     ],
   },
   {

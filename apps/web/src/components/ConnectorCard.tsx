@@ -68,6 +68,10 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
       connector.itemsSynced > 0 ||
       connector.lastSyncAt !== undefined);
 
+  const handleConnect = () => {
+    setShowOAuthModal(true);
+  };
+
   const handleOAuthComplete = () => {
     toast.success(`Successfully connected to ${connector.name}`);
   };

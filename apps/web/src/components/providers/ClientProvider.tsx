@@ -19,6 +19,8 @@ import { AppSkeleton } from "@/components/AppSkeleton";
 import { ThemeProvider } from "@/components/contexts/ThemeContext";
 import { NotificationProvider } from "@/components/contexts/NotificationContext";
 import { MemoryProvider } from "@/components/contexts/MemoryContext";
+import { LocalLLMProvider } from "@/components/contexts/LocalLLMContext";
+import { VoiceProvider } from "@/components/contexts/VoiceContext";
 
 import { MotionProvider } from "@/components/providers/MotionProvider";
 import { QueryProvider } from "@/components/providers/QueryProvider";
@@ -146,7 +148,11 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         <ThemeProvider>
           <TooltipProvider delayDuration={300}>
             <NotificationProvider>
-              <MemoryProvider>{children}</MemoryProvider>
+              <LocalLLMProvider>
+                <VoiceProvider>
+                  <MemoryProvider>{children}</MemoryProvider>
+                </VoiceProvider>
+              </LocalLLMProvider>
             </NotificationProvider>
           </TooltipProvider>
           <ThemedSonnerToaster />

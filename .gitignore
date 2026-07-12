@@ -34,5 +34,3 @@ scripts/
 # apps/web/src/routes/slides.tsx
 # apps/web/src/routes/_components/slides/
 # apps/web/public/slides/
-# Chrome extension build + live-verification scripts — local only
-apps/chrome-extension/scripts/

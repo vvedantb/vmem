@@ -18,7 +18,7 @@ import Svg, {
   Stop,
 } from "react-native-svg";
 
-/** Visual state of the voice persona orb. */
+/** Same states as web's Persona (packages/ui ai-elements/persona.tsx). */
 export type PersonaState =
   | "idle"
   | "listening"
@@ -85,12 +85,14 @@ const STATE_CONFIG: Record<PersonaState, StateConfig> = {
 /** Loop through scale keyframes (frames start and end at the same value). */
 function loopKeyframes(frames: number[], durationSec: number) {
   const stepMs = (durationSec * 1000) / (frames.length - 1);
-  const steps = frames.slice(1).map((value) =>
-    withTiming(value, {
-      duration: stepMs,
-      easing: Easing.inOut(Easing.ease),
-    }),
-  );
+  const steps = frames
+    .slice(1)
+    .map((value) =>
+      withTiming(value, {
+        duration: stepMs,
+        easing: Easing.inOut(Easing.ease),
+      }),
+    );
   return withRepeat(withSequence(steps[0], ...steps.slice(1)), -1, false);
 }
 

@@ -51,7 +51,7 @@ The extension uses the same Clerk auth as the web app via `ConvexHttpClient` and
 
 ## Enrichment
 
-Memories saved from the extension are enriched automatically server-side (tags, related memories, entities). See [Enrichment](/concepts/enrichment).
+When WebLLM is available in the extension background, the deferred enrichment queue is drained automatically after model init. See [Enrichment](/concepts/enrichment).
 
 ## Settings
 

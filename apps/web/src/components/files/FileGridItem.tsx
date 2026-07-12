@@ -91,6 +91,7 @@ export default function FileGridItem({
           {item.itemType === "file" &&
           item.fileCategory === "image" &&
           item.thumbnailUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={item.thumbnailUrl}
               alt={item.name}

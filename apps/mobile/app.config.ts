@@ -1,6 +1,6 @@
 import { ExpoConfig, ConfigContext } from "expo/config";
 
-export default (_context: ConfigContext): ExpoConfig => ({
+export default ({ config }: ConfigContext): ExpoConfig => ({
   name: "vmem",
   slug: "vmem-mobile",
   version: "1.0.0",

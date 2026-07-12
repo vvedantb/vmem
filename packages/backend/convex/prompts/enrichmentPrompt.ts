@@ -25,7 +25,7 @@ export function normalizeEntityName(name: string): string {
   return name
     .trim()
     .toLowerCase()
-    .replace(/[\s-]+/g, " ")
+    .replace(/[\s\-]+/g, " ")
     .trim()
     .slice(0, 100);
 }

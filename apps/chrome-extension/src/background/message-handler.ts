@@ -1,5 +1,6 @@
 import type { ContentMessage, BackgroundResponse } from "@/types/messages";
 import { createMemory, retrieveMemories, saveScreenshot } from "./api-client";
+import { savePageFromTab } from "./context-menu";
 import { importBookmarks } from "./import-bookmarks";
 import { importHistory } from "./import-history";
 import { cancelImport } from "./import-cancel";

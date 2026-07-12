@@ -457,7 +457,7 @@ export async function searchSymbols(
   try {
     // Fulltext index supports Lucene syntax — escape special chars and add a
     // wildcard so `valid` matches `validateInput`.
-    const escaped = args.query.replace(/[+\-!(){}[\]^"~*?:\\/]/g, "\\$&");
+    const escaped = args.query.replace(/[+\-!(){}\[\]^"~*?:\\\/]/g, "\\$&");
     const ftQuery = `${escaped}* OR ${escaped}~`;
     const ftResult = await session.run(
       `

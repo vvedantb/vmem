@@ -1,0 +1,479 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useAction, useMutation, useQuery } from "convex/react";
+import { useActiveProfile } from "@/components/workspace/active-profile";
+import { streamText } from "ai";
+import { useUIMessages, type UIMessage } from "@convex-dev/agent/react";
+import { api } from "@vmem/backend";
+import {
+  VMEM_LOCAL_CHAT_CORE,
+  buildLocalChatSystemPrompt,
+  parseThinkTags,
+} from "@vmem/shared";
+import { useLocalLLM } from "@/components/contexts/LocalLLMContext";
+
+/** Token-usage summary for a single assistant message bubble. */
+export interface MessageUsageSummary {
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  reasoningTokens: number;
+  cachedInputTokens: number;
+  /** Output tokens per second (local inference speed). Present for local messages only. */
+  tokensPerSecond?: number;
+}
+
+/**
+ * One memory pulled by retrieval and surfaced in a chat bubble.
+ *
+ * `trace` is optional because:
+ *   - legacy rows in `chatMessageMemoryRefs` predate hybrid search and
+ *     carry no trace payload
+ *   - and in dev we sometimes roll back schema changes without wiping rows
+ *
+ * When present the chat UI renders a popover explaining *why* the memory
+ * was pulled (fulltext + vector + recency + confidence breakdown).
+ */
+export interface ChatMemoryRef {
+  id: string;
+  title: string;
+  trace?: {
+    score: number;
+    scoreBreakdown: {
+      fulltext: number;
+      vector: number;
+      recency: number;
+      confidence: number;
+    };
+    reason: string;
+  };
+}
+
+const RETRIEVE_LIMIT = 8;
+
+function makeLocalMessage(
+  threadId: string | null,
+  role: "user" | "assistant",
+  text: string,
+  status: "success" | "streaming",
+  order: number,
+): UIMessage {
+  const id = `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const stepOrder = 0;
+  const key =
+    threadId !== null
+      ? `${threadId}-${String(order)}-${String(stepOrder)}`
+      : id;
+  return {
+    id,
+    key,
+    role,
+    text,
+    status,
+    parts: text ? [{ type: "text", text }] : [],
+    order,
+    stepOrder,
+    agentName: "vmem-local",
+    _creationTime: Date.now(),
+  };
+}
+
+/** Build parts array from accumulated text + reasoning. */
+function buildParts(text: string, reasoning: string): UIMessage["parts"] {
+  const parts: UIMessage["parts"] = [];
+  if (reasoning) {
+    parts.push({ type: "reasoning", text: reasoning, providerMetadata: {} });
+  }
+  if (text) {
+    parts.push({ type: "text", text });
+  }
+  return parts;
+}
+
+function updateMessage(
+  message: UIMessage,
+  text: string,
+  reasoning: string,
+  status?: "success" | "streaming",
+): UIMessage {
+  return {
+    ...message,
+    text,
+    parts: buildParts(text, reasoning),
+    status: status ?? message.status,
+  };
+}
+
+function getHighestOrder(messages: UIMessage[]): number {
+  return messages.reduce(
+    (highestOrder, message) =>
+      message.order > highestOrder ? message.order : highestOrder,
+    -1,
+  );
+}
+
+interface LocalChatResult {
+  messages: UIMessage[];
+  sendMessage: (text: string) => Promise<void>;
+  /**
+   * Wipe the current thread (messages + memory-ref sidecar) and swap to a
+   * fresh thread so the user can keep chatting. Resolves once the swap is
+   * applied — the cascade delete may still be running in the background.
+   */
+  clearHistory: () => Promise<void>;
+  isStreaming: boolean;
+  /** True while clearHistory is in flight (used to disable the button). */
+  isClearing: boolean;
+  /** Thread loaded (may still need a model to send messages). */
+  isThreadReady: boolean;
+  /** Thread loaded AND WebLLM engine ready. */
+  isReady: boolean;
+  usageByMessageKey: Record<string, MessageUsageSummary>;
+  memoryRefsByMessageKey: Record<string, ChatMemoryRef[]>;
+}
+
+export function useLocalChat(): LocalChatResult {
+  const { model, engineState } = useLocalLLM();
+  const [threadId, setThreadId] = useState<string | null>(null);
+  const [draftMessages, setDraftMessages] = useState<UIMessage[]>([]);
+  const [draftUsageByKey, setDraftUsageByKey] = useState<
+    Record<string, MessageUsageSummary>
+  >({});
+  const [draftMemoryRefsByKey, setDraftMemoryRefsByKey] = useState<
+    Record<string, ChatMemoryRef[]>
+  >({});
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
+  const orderRef = useRef(0);
+
+  const activeProfile = useActiveProfile();
+  const getOrCreateThread = useMutation(api.chat.getOrCreateThread);
+  const saveLocalMessages = useMutation(api.chat.saveLocalMessages);
+  const clearChatHistory = useMutation(api.chat.clearChatHistory);
+  const retrieveMemories = useAction(api.memoryApi.retrieveMemories);
+  // Effective skills (personal + installed system skills); team workspaces
+  // also surface the team's skills.
+  const effectiveSkills = useQuery(api.skills.listEffectiveSkills, {}) ?? [];
+  const teamSkills =
+    useQuery(
+      api.skills.listMy,
+      activeProfile.teamId !== undefined
+        ? { teamId: activeProfile.teamId }
+        : "skip",
+    ) ?? [];
+  const mySkills = useMemo(
+    () => [...effectiveSkills, ...teamSkills],
+    [effectiveSkills, teamSkills],
+  );
+
+  // Load or create the workspace's chat thread (one per profile).
+  useEffect(() => {
+    setThreadId(null);
+    getOrCreateThread({ profileId: activeProfile._id })
+      .then((id) => setThreadId(id))
+      .catch((error) => {
+        console.error("Failed to load chat thread:", error);
+      });
+  }, [getOrCreateThread, activeProfile._id]);
+
+  const persistedUsageByKey: Record<string, MessageUsageSummary> =
+    useQuery(
+      api.chat.getThreadMessageUsage,
+      threadId ? { threadId } : "skip",
+    ) ?? {};
+  const persistedMemoryRefsByKey: Record<string, ChatMemoryRef[]> =
+    useQuery(
+      api.chat.getThreadMessageMemoryRefs,
+      threadId ? { threadId } : "skip",
+    ) ?? {};
+  const { results: persistedMessages } = useUIMessages(
+    api.chat.listThreadMessages,
+    threadId ? { threadId } : "skip",
+    { initialNumItems: 50, stream: true },
+  );
+
+  useEffect(() => {
+    setDraftMessages([]);
+    setDraftMemoryRefsByKey({});
+    orderRef.current = 0;
+  }, [threadId]);
+
+  useEffect(() => {
+    if (draftMessages.length > 0 || isStreaming) {
+      return;
+    }
+
+    orderRef.current = Math.max(
+      orderRef.current,
+      getHighestOrder(persistedMessages) + 1,
+    );
+  }, [draftMessages.length, isStreaming, persistedMessages]);
+
+  const messages = persistedMessages.concat(draftMessages);
+
+  const sendMessage = useCallback(
+    async (text: string) => {
+      if (!text.trim() || isStreaming || !model) {
+        return;
+      }
+
+      const startingOrder = Math.max(
+        orderRef.current,
+        getHighestOrder(messages) + 1,
+      );
+      orderRef.current = startingOrder + 2;
+
+      const userMessage = makeLocalMessage(
+        threadId,
+        "user",
+        text,
+        "success",
+        startingOrder,
+      );
+      const assistantMessage = makeLocalMessage(
+        threadId,
+        "assistant",
+        "",
+        "streaming",
+        startingOrder + 1,
+      );
+
+      setDraftMessages([userMessage, assistantMessage]);
+      setIsStreaming(true);
+
+      try {
+        let memoryRefs: ChatMemoryRef[] = [];
+        let systemPrompt = VMEM_LOCAL_CHAT_CORE;
+
+        try {
+          const retrieved = await retrieveMemories({
+            query: text,
+            profileId: activeProfile._id,
+            limit: RETRIEVE_LIMIT,
+          });
+          memoryRefs = retrieved.memories.map((m) => ({
+            id: m.id,
+            title: m.title,
+            trace: {
+              score: m.trace.score,
+              scoreBreakdown: m.trace.scoreBreakdown,
+              reason: m.trace.reason,
+            },
+          }));
+          const addition = buildLocalChatSystemPrompt({
+            core: VMEM_LOCAL_CHAT_CORE,
+            memoryCandidates: retrieved.memories.map((m) => ({
+              id: m.id,
+              title: m.title,
+              content: m.content,
+              trace: { reason: m.trace.reason },
+            })),
+            skills: mySkills.map((skill) => ({
+              name: skill.name,
+              description: skill.description,
+              instructions: skill.instructions,
+              enabled: skill.enabled,
+            })),
+            userMessage: text,
+          });
+          systemPrompt = addition;
+        } catch (retrieveError) {
+          console.error("retrieveMemories failed:", retrieveError);
+          systemPrompt = buildLocalChatSystemPrompt({
+            core: VMEM_LOCAL_CHAT_CORE,
+            memoryCandidates: [],
+            skills: mySkills.map((skill) => ({
+              name: skill.name,
+              description: skill.description,
+              instructions: skill.instructions,
+              enabled: skill.enabled,
+            })),
+            userMessage: text,
+          });
+        }
+
+        setDraftMemoryRefsByKey((prev) => ({
+          ...prev,
+          [assistantMessage.key]: memoryRefs,
+        }));
+
+        const conversationHistory = messages.flatMap((message) => {
+          if (message.status !== "success") {
+            return [];
+          }
+          if (message.role !== "user" && message.role !== "assistant") {
+            return [];
+          }
+          return [{ role: message.role, content: message.text }];
+        });
+
+        const result = streamText({
+          model,
+          system: systemPrompt,
+          messages: [...conversationHistory, { role: "user", content: text }],
+        });
+
+        let rawAccumulated = "";
+        let outputTokenCount = 0;
+        const streamStartTime = performance.now();
+
+        for await (const part of result.fullStream) {
+          if (part.type === "reasoning-delta") {
+            // Native reasoning support (e.g., from providers that support it directly)
+            rawAccumulated += part.text;
+            const parsed = parseThinkTags(rawAccumulated);
+            setDraftMessages((cur) =>
+              cur.map((m) =>
+                m.key === assistantMessage.key
+                  ? updateMessage(m, parsed.text, parsed.reasoning)
+                  : m,
+              ),
+            );
+          } else if (part.type === "text-delta") {
+            rawAccumulated += part.text;
+            outputTokenCount++;
+            // Parse <think> tags from raw text (Qwen 3, DeepSeek, etc.)
+            const parsed = parseThinkTags(rawAccumulated);
+            setDraftMessages((cur) =>
+              cur.map((m) =>
+                m.key === assistantMessage.key
+                  ? updateMessage(m, parsed.text, parsed.reasoning)
+                  : m,
+              ),
+            );
+          }
+        }
+
+        // Final parse to get clean text/reasoning
+        const finalParsed = parseThinkTags(rawAccumulated);
+
+        // If model only output thinking (no response text), use thinking as the response
+        const displayText = finalParsed.text || finalParsed.reasoning;
+        const displayReasoning = finalParsed.text ? finalParsed.reasoning : "";
+
+        const streamDurationSec = (performance.now() - streamStartTime) / 1000;
+
+        // Capture token usage from the completed stream
+        const totalUsage = await result.totalUsage;
+        const inputTokens = totalUsage.inputTokens ?? 0;
+        const outputTokens = totalUsage.outputTokens ?? 0;
+        // Use SDK-reported output tokens when available, fall back to delta count
+        const finalOutputTokens =
+          outputTokens > 0 ? outputTokens : outputTokenCount;
+        const tokensPerSecond =
+          streamDurationSec > 0 ? finalOutputTokens / streamDurationSec : 0;
+
+        const summary: MessageUsageSummary = {
+          inputTokens,
+          outputTokens: finalOutputTokens,
+          totalTokens: inputTokens + finalOutputTokens,
+          reasoningTokens: 0,
+          cachedInputTokens: 0,
+          tokensPerSecond,
+        };
+        setDraftUsageByKey((prev) => ({
+          ...prev,
+          [assistantMessage.key]: summary,
+        }));
+
+        setDraftMessages((cur) =>
+          cur.map((m) =>
+            m.key === assistantMessage.key
+              ? updateMessage(m, displayText, displayReasoning, "success")
+              : m,
+          ),
+        );
+
+        if (threadId && displayText) {
+          const hasRefs = memoryRefs.length > 0;
+          await saveLocalMessages({
+            threadId,
+            userText: text,
+            assistantText: displayText,
+            usage: {
+              promptTokens: inputTokens,
+              completionTokens: finalOutputTokens,
+              totalTokens: inputTokens + finalOutputTokens,
+            },
+            ...(hasRefs
+              ? {
+                  memoryRefs,
+                  assistantOrder: assistantMessage.order,
+                  assistantStepOrder: assistantMessage.stepOrder,
+                }
+              : {}),
+          });
+          setDraftMessages([]);
+          setDraftUsageByKey({});
+          setDraftMemoryRefsByKey({});
+        }
+      } catch (error) {
+        const errorText =
+          error instanceof Error ? error.message : "Something went wrong";
+        setDraftMessages((cur) =>
+          cur.map((m) =>
+            m.key === assistantMessage.key
+              ? updateMessage(m, `Error: ${errorText}`, "", "success")
+              : m,
+          ),
+        );
+      } finally {
+        setIsStreaming(false);
+      }
+    },
+    [
+      isStreaming,
+      messages,
+      model,
+      retrieveMemories,
+      saveLocalMessages,
+      threadId,
+      mySkills,
+    ],
+  );
+
+  const clearHistory = useCallback(async () => {
+    // Need a thread to clear, and bail if a stream is mid-flight so we don't
+    // delete a thread we're actively writing to.
+    if (!threadId || isStreaming || isClearing) {
+      return;
+    }
+    setIsClearing(true);
+    try {
+      const newThreadId = await clearChatHistory({ threadId });
+      // Swap to the fresh thread. The threadId-change effect resets draft
+      // state and orderRef; explicitly clearing usage drafts here covers
+      // the (rare) case where a draft summary is still pending.
+      setDraftUsageByKey({});
+      setThreadId(newThreadId);
+    } finally {
+      setIsClearing(false);
+    }
+  }, [clearChatHistory, isClearing, isStreaming, threadId]);
+
+  const usageByMessageKey: Record<string, MessageUsageSummary> = {
+    ...persistedUsageByKey,
+    ...draftUsageByKey,
+  };
+
+  const memoryRefsByMessageKey: Record<string, ChatMemoryRef[]> = {
+    ...persistedMemoryRefsByKey,
+    ...draftMemoryRefsByKey,
+  };
+
+  const isThreadReady = threadId !== null;
+  const isModelReady = engineState === "ready" && model !== null;
+
+  return {
+    messages,
+    sendMessage,
+    clearHistory,
+    isStreaming,
+    isClearing,
+    isThreadReady,
+    isReady: isThreadReady && isModelReady,
+    usageByMessageKey,
+    memoryRefsByMessageKey,
+  };
+}

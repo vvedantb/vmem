@@ -1,81 +1,6 @@
 import { unzipSync } from "fflate";
-import { z } from "zod";
+import { isNumber, isRecord, isString } from "./guards";
 import type { ExportImportRow } from "./importRows";
-import type { ParseExportResult } from "./parseChatExport";
-
-/**
- * ChatGPT's `conversations.json` is a mapping graph: every conversation holds a
- * `mapping` of node id → node, each node pointing at its `parent`. The active
- * branch is recovered by walking parents up from `current_node`; exports that
- * omit it fall back to sorting every node by timestamp.
- *
- * Validated with zod at the `JSON.parse` boundary so the walk below is fully
- * typed. Schemas are lenient — a malformed node is dropped, not fatal.
- */
-
-/** A block inside `content.parts`: a bare string or an object holding text. */
-const partSchema = z
-  .union([
-    z.string(),
-    z.object({
-      text: z.string().optional().catch(undefined),
-      content: z.string().optional().catch(undefined),
-    }),
-  ])
-  .nullable()
-  .catch(null);
-
-const contentSchema = z
-  .union([
-    z.string(),
-    z.object({
-      parts: z.array(partSchema).optional().catch(undefined),
-      text: z.string().optional().catch(undefined),
-    }),
-  ])
-  .nullable()
-  .catch(null);
-
-const messageSchema = z
-  .object({
-    author: z
-      .object({ role: z.string().optional().catch(undefined) })
-      .nullable()
-      .catch(null)
-      .optional(),
-    role: z.string().optional().catch(undefined),
-    content: contentSchema.optional(),
-    create_time: z.number().optional().catch(undefined),
-    update_time: z.number().optional().catch(undefined),
-  })
-  .nullable()
-  .catch(null);
-
-const nodeSchema = z
-  .object({
-    message: messageSchema.optional(),
-    parent: z.string().nullable().optional().catch(null),
-  })
-  .nullable()
-  .catch(null);
-
-const conversationSchema = z
-  .object({
-    title: z.string().optional().catch(undefined),
-    conversation_id: z.string().optional().catch(undefined),
-    id: z.string().optional().catch(undefined),
-    create_time: z.number().optional().catch(undefined),
-    current_node: z.string().optional().catch(undefined),
-    mapping: z.record(z.string(), nodeSchema).optional().catch(undefined),
-  })
-  .nullable()
-  .catch(null);
-
-const rootSchema = z.array(conversationSchema);
-
-type Conversation = NonNullable<z.infer<typeof conversationSchema>>;
-type Message = NonNullable<z.infer<typeof messageSchema>>;
-type MappingNode = z.infer<typeof nodeSchema>;
 
 function textFromUtf8(data: Uint8Array): string {
   return new TextDecoder("utf-8", { fatal: false }).decode(data);
@@ -104,19 +29,24 @@ function findConversationsJsonInZip(buffer: Uint8Array): string | null {
   return null;
 }
 
-function extractTextFromContent(content: Message["content"]): string {
-  if (typeof content === "string") return content.trim();
-  if (!content) return "";
+function extractTextFromContent(content: unknown): string {
+  if (isString(content)) return content.trim();
+  if (!isRecord(content)) return "";
   const parts = content.parts;
-  if (!parts) return content.text ? content.text.trim() : "";
+  if (!Array.isArray(parts)) {
+    const nested = content.text;
+    return isString(nested) ? nested.trim() : "";
+  }
   const chunks: string[] = [];
   for (const part of parts) {
-    if (typeof part === "string") {
+    if (isString(part)) {
       chunks.push(part);
       continue;
     }
-    if (part?.text) chunks.push(part.text);
-    else if (part?.content) chunks.push(part.content);
+    if (isRecord(part)) {
+      if (isString(part.text)) chunks.push(part.text);
+      else if (isString(part.content)) chunks.push(part.content);
+    }
   }
   return chunks.join("").trim();
 }
@@ -128,54 +58,70 @@ function roleLabel(role: string): "User" | "Assistant" | "System" | "Other" {
   return "Other";
 }
 
-function messageRole(message: Message): string {
-  return message.author?.role ?? message.role ?? "";
+function messageRole(message: Record<string, unknown>): string {
+  const author = message.author;
+  if (isRecord(author) && isString(author.role)) return author.role;
+  if (isString(message.role)) return message.role;
+  return "";
 }
 
-function messageTime(message: Message): number {
-  return message.create_time ?? message.update_time ?? 0;
+function messageBody(message: Record<string, unknown>): string {
+  const c = message.content;
+  return extractTextFromContent(c);
 }
 
-/**
- * Flatten a conversation into ordered role/text lines: walk parents up from
- * `current_node` (the active branch), else fall back to every node sorted by
- * timestamp.
- */
+function messageTime(message: Record<string, unknown>): number {
+  const t = message.create_time;
+  if (isNumber(t)) return t;
+  const mt = message.update_time;
+  if (isNumber(mt)) return mt;
+  return 0;
+}
+
 function linearizeConversation(
-  conv: Conversation,
+  conv: Record<string, unknown>,
 ): { role: string; text: string }[] {
-  const mapping = conv.mapping;
-  if (!mapping) return [];
+  const mappingRaw = conv.mapping;
+  if (!isRecord(mappingRaw)) return [];
 
-  const ordered: Message[] = [];
+  const mapping = mappingRaw;
   const currentNode = conv.current_node;
+  const ordered: Record<string, unknown>[] = [];
 
-  if (currentNode) {
-    let nodeId: string | undefined = currentNode;
+  if (isString(currentNode)) {
+    let mid: string | undefined = currentNode;
     const seen = new Set<string>();
-    while (nodeId && !seen.has(nodeId)) {
-      seen.add(nodeId);
-      const node: MappingNode = mapping[nodeId];
-      if (!node) break;
-      if (node.message) ordered.push(node.message);
-      nodeId = node.parent ?? undefined;
+    while (mid && !seen.has(mid)) {
+      seen.add(mid);
+      const nodeId = mid;
+      const rawNode: unknown = mapping[nodeId];
+      if (!isRecord(rawNode)) break;
+      const msg = rawNode.message;
+      if (isRecord(msg)) ordered.push(msg);
+      const parentRaw: unknown = rawNode.parent;
+      mid = isString(parentRaw) ? parentRaw : undefined;
     }
     ordered.reverse();
   }
 
   if (ordered.length === 0) {
-    const collected: Message[] = [];
-    for (const node of Object.values(mapping)) {
-      if (node?.message) collected.push(node.message);
+    const collected: Record<string, unknown>[] = [];
+    for (const key of Object.keys(mapping)) {
+      const entry = mapping[key];
+      if (!isRecord(entry)) continue;
+      const msg = entry.message;
+      if (isRecord(msg)) collected.push(msg);
     }
     collected.sort((a, b) => messageTime(a) - messageTime(b));
-    ordered.push(...collected);
+    for (const msg of collected) {
+      ordered.push(msg);
+    }
   }
 
   const lines: { role: string; text: string }[] = [];
   for (const msg of ordered) {
     const role = messageRole(msg);
-    const text = extractTextFromContent(msg.content);
+    const text = messageBody(msg);
     if (!text) continue;
     if (role === "tool") continue;
     lines.push({ role, text });
@@ -186,52 +132,48 @@ function linearizeConversation(
 function formatTranscript(lines: { role: string; text: string }[]): string {
   const parts: string[] = [];
   for (const line of lines) {
-    parts.push(`${roleLabel(line.role)}:\n${line.text}`);
+    const label = roleLabel(line.role);
+    parts.push(`${label}:\n${line.text}`);
   }
   return parts.join("\n\n");
 }
 
-function conversationTitle(conv: Conversation): string {
-  const title = conv.title;
-  if (title && title.trim().length > 0) return title.trim();
+function conversationTitle(conv: Record<string, unknown>): string {
+  const t = conv.title;
+  if (isString(t) && t.trim().length > 0) return t.trim();
   return "Untitled conversation";
 }
 
-function conversationId(conv: Conversation, index: number): string {
+function conversationId(conv: Record<string, unknown>, index: number): string {
   const id = conv.conversation_id ?? conv.id;
-  if (id && id.length > 0) return id;
-  const createTime = conv.create_time;
-  if (createTime !== undefined) {
-    return `chatgpt-${String(createTime)}-${String(index)}`;
-  }
+  if (isString(id) && id.length > 0) return id;
+  const ct = conv.create_time;
+  if (isNumber(ct)) return `chatgpt-${String(ct)}-${String(index)}`;
   return `chatgpt-row-${String(index)}`;
 }
 
 export function parseChatGptExportJsonText(
   jsonText: string,
-): ParseExportResult {
-  const parsed = (() => {
-    try {
-      return rootSchema.safeParse(JSON.parse(jsonText));
-    } catch {
-      return null;
-    }
-  })();
-  if (!parsed) return { ok: false, error: "Invalid JSON." };
-  if (!parsed.success) {
+): { ok: true; rows: ExportImportRow[] } | { ok: false; error: string } {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(jsonText);
+  } catch {
+    return { ok: false, error: "Invalid JSON." };
+  }
+  if (!Array.isArray(parsed)) {
     return { ok: false, error: "Expected a JSON array of conversations." };
   }
-
   const rows: ExportImportRow[] = [];
-  const convs = parsed.data;
-  for (let i = 0; i < convs.length; i++) {
-    const conv = convs[i];
-    if (!conv) continue;
-    const content = formatTranscript(linearizeConversation(conv));
+  for (let i = 0; i < parsed.length; i++) {
+    const item = parsed[i];
+    if (!isRecord(item)) continue;
+    const lines = linearizeConversation(item);
+    const content = formatTranscript(lines);
     if (!content) continue;
     rows.push({
-      stableId: conversationId(conv, i),
-      title: conversationTitle(conv),
+      stableId: conversationId(item, i),
+      title: conversationTitle(item),
       content,
     });
   }
@@ -246,7 +188,7 @@ export function parseChatGptExportJsonText(
 
 export function parseChatGptExportBuffer(
   buffer: ArrayBuffer,
-): ParseExportResult {
+): { ok: true; rows: ExportImportRow[] } | { ok: false; error: string } {
   const bytes = new Uint8Array(buffer);
   const jsonText = findConversationsJsonInZip(bytes);
   if (jsonText) {

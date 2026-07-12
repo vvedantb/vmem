@@ -65,8 +65,8 @@ export async function callOpenRouterChat(
     ? truncate(joinMessagesForPreview(args.messages), PROMPT_PREVIEW_BYTES)
     : undefined;
 
-  let status: number;
-  let ok: boolean;
+  let status = 0;
+  let ok = false;
   let errorClass: ErrorClass | undefined;
   let errorMessage: string | undefined;
   let content: string | null = null;

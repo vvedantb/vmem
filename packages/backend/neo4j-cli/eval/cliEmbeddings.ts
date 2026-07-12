@@ -164,7 +164,7 @@ async function generateBatchWithRetry(
         await sleep(base * attempt);
         continue;
       }
-      throw new Error(`openRouter embedding ${lastError}`, { cause: err });
+      throw new Error(`openRouter embedding ${lastError}`);
     }
   }
   throw new Error(`openRouter embedding exhausted retries (${lastError})`);

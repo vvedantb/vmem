@@ -41,6 +41,7 @@
           {
             "group": "Features",
             "pages": [
+              "features/chat-and-voice",
               "features/chrome-extension",
               "features/mobile",
               "features/import",

@@ -80,11 +80,13 @@ function SubSidebarNavButton({
   item,
   isActive,
   isIconOnly,
+  isMobile,
   onClick,
 }: {
   item: NavItem;
   isActive: boolean;
   isIconOnly: boolean;
+  isMobile: boolean;
   onClick: () => void;
 }) {
   const Icon = item.icon as NavIcon;
@@ -215,6 +217,7 @@ function MainNav({
                       item={item}
                       isActive={isActive}
                       isIconOnly={isIconOnly}
+                      isMobile={isMobile}
                       onClick={onClick}
                     />
                   </SharedLayoutBackground.Item>
@@ -227,6 +230,7 @@ function MainNav({
                     pathname={pathname}
                     profileId={profileId}
                     isIconOnly={isIconOnly}
+                    isMobile={isMobile}
                     unreadCount={unreadCount}
                     proposalsCount={proposalsCount}
                     onNavigate={onNavigate}

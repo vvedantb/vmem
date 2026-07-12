@@ -14,7 +14,7 @@
     "android": "pnpm --filter mobile android",
     "prebuild:android": "pnpm --filter mobile prebuild:android",
     "docs:dev": "pnpm --filter docs exec mint dev --port 3001",
-    "lint": "eslint .",
+    "lint": "pnpm --filter web lint",
     "typecheck": "pnpm --filter web typecheck",
     "typecheck:all": "pnpm --parallel --filter web --filter @vmem/backend --filter mobile typecheck",
     "convex": "pnpm --filter @vmem/backend dev",
@@ -42,15 +42,10 @@
     }
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
     "baseline-browser-mapping": "^2.9.19",
-    "eslint": "^10.7.0",
-    "globals": "^17.7.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
     "prettier": "^3.8.1",
-    "syncpack": "^14.3.0",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.63.0"
+    "syncpack": "^14.3.0"
   }
 }

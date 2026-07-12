@@ -23,12 +23,15 @@ import { Route as MainSettingsUsageRouteImport } from './routes/_main/settings/u
 import { Route as MainSettingsSecretsRouteImport } from './routes/_main/settings/secrets'
 import { Route as MainSettingsProfilesRouteImport } from './routes/_main/settings/profiles'
 import { Route as MainSettingsPreferencesRouteImport } from './routes/_main/settings/preferences'
+import { Route as MainSettingsModelsRouteImport } from './routes/_main/settings/models'
 import { Route as MainSettingsExtensionRouteImport } from './routes/_main/settings/extension'
 import { Route as MainSettingsConnectorsRouteImport } from './routes/_main/settings/connectors'
+import { Route as MainProfileIdVoiceRouteImport } from './routes/_main/$profileId/voice'
 import { Route as MainProfileIdProposalsRouteImport } from './routes/_main/$profileId/proposals'
 import { Route as MainProfileIdNotificationsRouteImport } from './routes/_main/$profileId/notifications'
 import { Route as MainProfileIdHomeRouteImport } from './routes/_main/$profileId/home'
 import { Route as MainProfileIdFilesRouteImport } from './routes/_main/$profileId/files'
+import { Route as MainProfileIdChatRouteImport } from './routes/_main/$profileId/chat'
 import { Route as MainSettingsDataControlsRouteRouteImport } from './routes/_main/settings/data-controls/route'
 import { Route as MainSettingsApiRouteRouteImport } from './routes/_main/settings/api/route'
 import { Route as MainProfileIdWikiRouteRouteImport } from './routes/_main/$profileId/wiki/route'
@@ -141,6 +144,11 @@ const MainSettingsPreferencesRoute = MainSettingsPreferencesRouteImport.update({
   path: '/settings/preferences',
   getParentRoute: () => MainRouteRoute,
 } as any)
+const MainSettingsModelsRoute = MainSettingsModelsRouteImport.update({
+  id: '/settings/models',
+  path: '/settings/models',
+  getParentRoute: () => MainRouteRoute,
+} as any)
 const MainSettingsExtensionRoute = MainSettingsExtensionRouteImport.update({
   id: '/settings/extension',
   path: '/settings/extension',
@@ -150,6 +158,11 @@ const MainSettingsConnectorsRoute = MainSettingsConnectorsRouteImport.update({
   id: '/settings/connectors',
   path: '/settings/connectors',
   getParentRoute: () => MainRouteRoute,
+} as any)
+const MainProfileIdVoiceRoute = MainProfileIdVoiceRouteImport.update({
+  id: '/voice',
+  path: '/voice',
+  getParentRoute: () => MainProfileIdRouteRoute,
 } as any)
 const MainProfileIdProposalsRoute = MainProfileIdProposalsRouteImport.update({
   id: '/proposals',
@@ -170,6 +183,11 @@ const MainProfileIdHomeRoute = MainProfileIdHomeRouteImport.update({
 const MainProfileIdFilesRoute = MainProfileIdFilesRouteImport.update({
   id: '/files',
   path: '/files',
+  getParentRoute: () => MainProfileIdRouteRoute,
+} as any)
+const MainProfileIdChatRoute = MainProfileIdChatRouteImport.update({
+  id: '/chat',
+  path: '/chat',
   getParentRoute: () => MainProfileIdRouteRoute,
 } as any)
 const MainSettingsDataControlsRouteRoute =
@@ -426,12 +444,15 @@ export interface FileRoutesByFullPath {
   '/$profileId/wiki': typeof MainProfileIdWikiRouteRouteWithChildren
   '/settings/api': typeof MainSettingsApiRouteRouteWithChildren
   '/settings/data-controls': typeof MainSettingsDataControlsRouteRouteWithChildren
+  '/$profileId/chat': typeof MainProfileIdChatRoute
   '/$profileId/files': typeof MainProfileIdFilesRoute
   '/$profileId/home': typeof MainProfileIdHomeRoute
   '/$profileId/notifications': typeof MainProfileIdNotificationsRoute
   '/$profileId/proposals': typeof MainProfileIdProposalsRoute
+  '/$profileId/voice': typeof MainProfileIdVoiceRoute
   '/settings/connectors': typeof MainSettingsConnectorsRoute
   '/settings/extension': typeof MainSettingsExtensionRoute
+  '/settings/models': typeof MainSettingsModelsRoute
   '/settings/preferences': typeof MainSettingsPreferencesRoute
   '/settings/profiles': typeof MainSettingsProfilesRoute
   '/settings/secrets': typeof MainSettingsSecretsRoute
@@ -480,12 +501,15 @@ export interface FileRoutesByTo {
   '/agent-callback': typeof AgentCallbackRoute
   '/slides': typeof SlidesRoute
   '/home': typeof MainHomeRoute
+  '/$profileId/chat': typeof MainProfileIdChatRoute
   '/$profileId/files': typeof MainProfileIdFilesRoute
   '/$profileId/home': typeof MainProfileIdHomeRoute
   '/$profileId/notifications': typeof MainProfileIdNotificationsRoute
   '/$profileId/proposals': typeof MainProfileIdProposalsRoute
+  '/$profileId/voice': typeof MainProfileIdVoiceRoute
   '/settings/connectors': typeof MainSettingsConnectorsRoute
   '/settings/extension': typeof MainSettingsExtensionRoute
+  '/settings/models': typeof MainSettingsModelsRoute
   '/settings/preferences': typeof MainSettingsPreferencesRoute
   '/settings/profiles': typeof MainSettingsProfilesRoute
   '/settings/secrets': typeof MainSettingsSecretsRoute
@@ -544,12 +568,15 @@ export interface FileRoutesById {
   '/_main/$profileId/wiki': typeof MainProfileIdWikiRouteRouteWithChildren
   '/_main/settings/api': typeof MainSettingsApiRouteRouteWithChildren
   '/_main/settings/data-controls': typeof MainSettingsDataControlsRouteRouteWithChildren
+  '/_main/$profileId/chat': typeof MainProfileIdChatRoute
   '/_main/$profileId/files': typeof MainProfileIdFilesRoute
   '/_main/$profileId/home': typeof MainProfileIdHomeRoute
   '/_main/$profileId/notifications': typeof MainProfileIdNotificationsRoute
   '/_main/$profileId/proposals': typeof MainProfileIdProposalsRoute
+  '/_main/$profileId/voice': typeof MainProfileIdVoiceRoute
   '/_main/settings/connectors': typeof MainSettingsConnectorsRoute
   '/_main/settings/extension': typeof MainSettingsExtensionRoute
+  '/_main/settings/models': typeof MainSettingsModelsRoute
   '/_main/settings/preferences': typeof MainSettingsPreferencesRoute
   '/_main/settings/profiles': typeof MainSettingsProfilesRoute
   '/_main/settings/secrets': typeof MainSettingsSecretsRoute
@@ -609,12 +636,15 @@ export interface FileRouteTypes {
     | '/$profileId/wiki'
     | '/settings/api'
     | '/settings/data-controls'
+    | '/$profileId/chat'
     | '/$profileId/files'
     | '/$profileId/home'
     | '/$profileId/notifications'
     | '/$profileId/proposals'
+    | '/$profileId/voice'
     | '/settings/connectors'
     | '/settings/extension'
+    | '/settings/models'
     | '/settings/preferences'
     | '/settings/profiles'
     | '/settings/secrets'
@@ -663,12 +693,15 @@ export interface FileRouteTypes {
     | '/agent-callback'
     | '/slides'
     | '/home'
+    | '/$profileId/chat'
     | '/$profileId/files'
     | '/$profileId/home'
     | '/$profileId/notifications'
     | '/$profileId/proposals'
+    | '/$profileId/voice'
     | '/settings/connectors'
     | '/settings/extension'
+    | '/settings/models'
     | '/settings/preferences'
     | '/settings/profiles'
     | '/settings/secrets'
@@ -726,12 +759,15 @@ export interface FileRouteTypes {
     | '/_main/$profileId/wiki'
     | '/_main/settings/api'
     | '/_main/settings/data-controls'
+    | '/_main/$profileId/chat'
     | '/_main/$profileId/files'
     | '/_main/$profileId/home'
     | '/_main/$profileId/notifications'
     | '/_main/$profileId/proposals'
+    | '/_main/$profileId/voice'
     | '/_main/settings/connectors'
     | '/_main/settings/extension'
+    | '/_main/settings/models'
     | '/_main/settings/preferences'
     | '/_main/settings/profiles'
     | '/_main/settings/secrets'
@@ -884,6 +920,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MainSettingsPreferencesRouteImport
       parentRoute: typeof MainRouteRoute
     }
+    '/_main/settings/models': {
+      id: '/_main/settings/models'
+      path: '/settings/models'
+      fullPath: '/settings/models'
+      preLoaderRoute: typeof MainSettingsModelsRouteImport
+      parentRoute: typeof MainRouteRoute
+    }
     '/_main/settings/extension': {
       id: '/_main/settings/extension'
       path: '/settings/extension'
@@ -897,6 +940,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/settings/connectors'
       preLoaderRoute: typeof MainSettingsConnectorsRouteImport
       parentRoute: typeof MainRouteRoute
+    }
+    '/_main/$profileId/voice': {
+      id: '/_main/$profileId/voice'
+      path: '/voice'
+      fullPath: '/$profileId/voice'
+      preLoaderRoute: typeof MainProfileIdVoiceRouteImport
+      parentRoute: typeof MainProfileIdRouteRoute
     }
     '/_main/$profileId/proposals': {
       id: '/_main/$profileId/proposals'
@@ -924,6 +974,13 @@ declare module '@tanstack/react-router' {
       path: '/files'
       fullPath: '/$profileId/files'
       preLoaderRoute: typeof MainProfileIdFilesRouteImport
+      parentRoute: typeof MainProfileIdRouteRoute
+    }
+    '/_main/$profileId/chat': {
+      id: '/_main/$profileId/chat'
+      path: '/chat'
+      fullPath: '/$profileId/chat'
+      preLoaderRoute: typeof MainProfileIdChatRouteImport
       parentRoute: typeof MainProfileIdRouteRoute
     }
     '/_main/settings/data-controls': {
@@ -1358,10 +1415,12 @@ interface MainProfileIdRouteRouteChildren {
   MainProfileIdSkillsRouteRoute: typeof MainProfileIdSkillsRouteRouteWithChildren
   MainProfileIdTeamRouteRoute: typeof MainProfileIdTeamRouteRouteWithChildren
   MainProfileIdWikiRouteRoute: typeof MainProfileIdWikiRouteRouteWithChildren
+  MainProfileIdChatRoute: typeof MainProfileIdChatRoute
   MainProfileIdFilesRoute: typeof MainProfileIdFilesRoute
   MainProfileIdHomeRoute: typeof MainProfileIdHomeRoute
   MainProfileIdNotificationsRoute: typeof MainProfileIdNotificationsRoute
   MainProfileIdProposalsRoute: typeof MainProfileIdProposalsRoute
+  MainProfileIdVoiceRoute: typeof MainProfileIdVoiceRoute
   MainProfileIdIndexRoute: typeof MainProfileIdIndexRoute
   MainProfileIdCodebasesIdRoute: typeof MainProfileIdCodebasesIdRoute
   MainProfileIdAiLogsIndexRoute: typeof MainProfileIdAiLogsIndexRoute
@@ -1376,10 +1435,12 @@ const MainProfileIdRouteRouteChildren: MainProfileIdRouteRouteChildren = {
   MainProfileIdSkillsRouteRoute: MainProfileIdSkillsRouteRouteWithChildren,
   MainProfileIdTeamRouteRoute: MainProfileIdTeamRouteRouteWithChildren,
   MainProfileIdWikiRouteRoute: MainProfileIdWikiRouteRouteWithChildren,
+  MainProfileIdChatRoute: MainProfileIdChatRoute,
   MainProfileIdFilesRoute: MainProfileIdFilesRoute,
   MainProfileIdHomeRoute: MainProfileIdHomeRoute,
   MainProfileIdNotificationsRoute: MainProfileIdNotificationsRoute,
   MainProfileIdProposalsRoute: MainProfileIdProposalsRoute,
+  MainProfileIdVoiceRoute: MainProfileIdVoiceRoute,
   MainProfileIdIndexRoute: MainProfileIdIndexRoute,
   MainProfileIdCodebasesIdRoute: MainProfileIdCodebasesIdRoute,
   MainProfileIdAiLogsIndexRoute: MainProfileIdAiLogsIndexRoute,
@@ -1432,6 +1493,7 @@ interface MainRouteRouteChildren {
   MainSettingsDataControlsRouteRoute: typeof MainSettingsDataControlsRouteRouteWithChildren
   MainSettingsConnectorsRoute: typeof MainSettingsConnectorsRoute
   MainSettingsExtensionRoute: typeof MainSettingsExtensionRoute
+  MainSettingsModelsRoute: typeof MainSettingsModelsRoute
   MainSettingsPreferencesRoute: typeof MainSettingsPreferencesRoute
   MainSettingsProfilesRoute: typeof MainSettingsProfilesRoute
   MainSettingsSecretsRoute: typeof MainSettingsSecretsRoute
@@ -1450,6 +1512,7 @@ const MainRouteRouteChildren: MainRouteRouteChildren = {
     MainSettingsDataControlsRouteRouteWithChildren,
   MainSettingsConnectorsRoute: MainSettingsConnectorsRoute,
   MainSettingsExtensionRoute: MainSettingsExtensionRoute,
+  MainSettingsModelsRoute: MainSettingsModelsRoute,
   MainSettingsPreferencesRoute: MainSettingsPreferencesRoute,
   MainSettingsProfilesRoute: MainSettingsProfilesRoute,
   MainSettingsSecretsRoute: MainSettingsSecretsRoute,
