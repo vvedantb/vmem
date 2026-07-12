@@ -6,20 +6,20 @@
  * prompt invalidation stay consistent with the UI and HTTP v1 API paths.
  */
 
-import { internalAction } from "../_generated/server";
+import { internalAction, type ActionCtx } from "../_generated/server";
 import { v } from "convex/values";
 import { runUpdateMemory } from "./_memories/update";
 import { runDeleteMemory } from "./_memories/delete";
 import { runCreateMemory } from "./_memories/create";
 import { runRetrieveMemories, runSearchMemories } from "./_memories/read";
-import { resolveProfileIdForMcpScope } from "./_memories/shared";
+import { resolveProfileIdForMcpScope, toMemoryType } from "./_memories/shared";
 import { runStoreFromInstruction } from "./agent/storeFromInstruction";
 import type { OpenRouterRequired } from "./agent/shared";
 import type { StoreFromInstructionResult } from "./agent/storeFromInstruction";
 import type { MemoryWithTags } from "../../engine/neo4j/memory/types";
 import { getRelatedMemories } from "../../engine/neo4j/memory/relationships";
 import { getDriver } from "../../engine/neo4j/driver";
-import { mcpScopeValidator } from "../profiles/mcpAccess";
+import { mcpScopeValidator, type McpScope } from "../profiles/mcpAccess";
 
 export interface RelatedMemoryRow {
   memory: MemoryWithTags;
@@ -30,6 +30,19 @@ const scopedMcpArgs = {
   clerkId: v.string(),
   mcpScope: mcpScopeValidator,
 };
+
+/** Every scoped MCP handler resolves its effective profileId the same way. */
+function resolveScopedProfile(
+  ctx: ActionCtx,
+  args: { clerkId: string; mcpScope: McpScope; profileId?: string },
+): Promise<string> {
+  return resolveProfileIdForMcpScope(
+    ctx,
+    args.clerkId,
+    args.mcpScope,
+    args.profileId,
+  );
+}
 
 export const mcpSearchMemories = internalAction({
   args: {
@@ -42,12 +55,7 @@ export const mcpSearchMemories = internalAction({
     profileId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const profileId = await resolveProfileIdForMcpScope(
-      ctx,
-      args.clerkId,
-      args.mcpScope,
-      args.profileId,
-    );
+    const profileId = await resolveScopedProfile(ctx, args);
     return await runSearchMemories({
       clerkId: args.clerkId,
       profileId,
@@ -68,12 +76,7 @@ export const mcpRetrieveMemories = internalAction({
     profileId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const profileId = await resolveProfileIdForMcpScope(
-      ctx,
-      args.clerkId,
-      args.mcpScope,
-      args.profileId,
-    );
+    const profileId = await resolveScopedProfile(ctx, args);
     return await runRetrieveMemories(ctx, {
       clerkId: args.clerkId,
       profileId,
@@ -96,21 +99,13 @@ export const mcpCreateMemory = internalAction({
     profileId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const profileId = await resolveProfileIdForMcpScope(
-      ctx,
-      args.clerkId,
-      args.mcpScope,
-      args.profileId,
-    );
+    const profileId = await resolveScopedProfile(ctx, args);
     return runCreateMemory(ctx, {
       clerkId: args.clerkId,
       profileId,
       title: args.title,
       content: args.content,
-      type:
-        args.type === "profile" || args.type === "episodic"
-          ? args.type
-          : "knowledge",
+      type: toMemoryType(args.type) ?? "knowledge",
       source: args.source ?? "mcp",
       tags: args.tags ?? [],
       confidence: args.confidence ?? 1.0,
@@ -151,12 +146,7 @@ export const mcpAddFromInstruction = internalAction({
     ctx,
     args,
   ): Promise<StoreFromInstructionResult | OpenRouterRequired> => {
-    const profileId = await resolveProfileIdForMcpScope(
-      ctx,
-      args.clerkId,
-      args.mcpScope,
-      args.profileId,
-    );
+    const profileId = await resolveScopedProfile(ctx, args);
     return runStoreFromInstruction(ctx, {
       clerkId: args.clerkId,
       instruction: args.instruction,
