@@ -1,5 +1,6 @@
 /** Detects errors caused by stale JavaScript chunks after a new deployment. */
-export function isChunkLoadError(error: Error): boolean {
+export function isChunkLoadError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
   const msg = error.message;
   return (
     error.name === "ChunkLoadError" ||
