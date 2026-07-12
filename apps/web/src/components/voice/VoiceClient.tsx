@@ -74,7 +74,7 @@ export default function VoiceClient() {
     setThreadId(null);
     getOrCreateThread({ profileId: activeProfile._id })
       .then(setThreadId)
-      .catch((err) => {
+      .catch((err: unknown) => {
         console.error("Failed to get voice thread:", err);
       });
   }, [getOrCreateThread, activeProfile._id]);

@@ -58,7 +58,7 @@ export default function CloudModelSelector({
           setLoadedModels(result);
         }
       })
-      .catch((error) => {
+      .catch((error: unknown) => {
         console.error("Failed to load free chat models:", error);
       })
       .finally(() => {

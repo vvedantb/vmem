@@ -437,7 +437,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
             setPhase("idle");
           }
         })
-        .catch((err) => {
+        .catch((err: unknown) => {
           if (!cancelledRef.current) {
             setPhase("error");
             setErrorMessage(

@@ -3,11 +3,28 @@ import { useEffect } from "react";
 
 export const Route = createFileRoute("/_main/settings/playground/callback")({
   component: PlaygroundCallbackPage,
-  validateSearch: (search: Record<string, unknown>) => ({
-    code: (search.code as string) ?? "",
-    state: (search.state as string) ?? "",
+  validateSearch: (search: { code?: string; state?: string }) => ({
+    code: typeof search.code === "string" ? search.code : "",
+    state: typeof search.state === "string" ? search.state : "",
   }),
 });
+
+function postMessageToOpener(
+  opener: object,
+  message: { type: string; code: string; state: string },
+  targetOrigin: string,
+): void {
+  // PropertyDescriptor.value is `any` in lib.es5 — read once as unknown.
+  // oxlint-disable-next-line typescript/no-unsafe-assignment -- PropertyDescriptor.value
+  const postMessage: unknown =
+    Object.getOwnPropertyDescriptor(opener, "postMessage")?.value ??
+    Object.getOwnPropertyDescriptor(
+      Object.getPrototypeOf(opener),
+      "postMessage",
+    )?.value;
+  if (typeof postMessage !== "function") return;
+  postMessage.call(opener, message, targetOrigin);
+}
 
 function PlaygroundCallbackPage() {
   const { code, state } = useSearch({
@@ -15,12 +32,15 @@ function PlaygroundCallbackPage() {
   });
 
   useEffect(() => {
-    if (code && state && window.opener) {
-      window.opener.postMessage(
-        { type: "mcp-oauth-callback", code, state },
-        window.location.origin,
-      );
+    const opener: unknown = window.opener;
+    if (!code || !state || typeof opener !== "object" || opener === null) {
+      return;
     }
+    postMessageToOpener(
+      opener,
+      { type: "mcp-oauth-callback", code, state },
+      window.location.origin,
+    );
   }, [code, state]);
 
   return (

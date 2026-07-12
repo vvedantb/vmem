@@ -101,9 +101,13 @@ function FilterOptionContent({
   );
 }
 
+function isEventType(type: string): type is EventType {
+  return Object.hasOwn(EVENT_TYPE_ICONS, type);
+}
+
 function getActivityIcon(type: string) {
-  if (type in EVENT_TYPE_ICONS) {
-    return EVENT_TYPE_ICONS[type as EventType];
+  if (isEventType(type)) {
+    return EVENT_TYPE_ICONS[type];
   }
   return IconCheck;
 }
@@ -227,8 +231,8 @@ export function EventsPanel() {
     let result = [...activity];
 
     if (params.types.length > 0) {
-      result = result.filter((item) =>
-        params.types.includes(item.type as EventType),
+      result = result.filter(
+        (item) => isEventType(item.type) && params.types.includes(item.type),
       );
     }
 

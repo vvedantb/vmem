@@ -34,7 +34,7 @@ export function useCloudChat() {
     setThreadId(null);
     getOrCreateThread({ profileId: activeProfile._id })
       .then((id) => setThreadId(id))
-      .catch((error) => {
+      .catch((error: unknown) => {
         console.error("Failed to load chat thread:", error);
       });
   }, [getOrCreateThread, activeProfile._id]);

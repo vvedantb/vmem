@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery as useConvexQuery } from "convex/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { api } from "@vmem/backend";
+import { z } from "zod";
 
 type MemoryEventType =
   | "memory_created"
@@ -87,17 +88,25 @@ export function useMemoryEvents(
         event.eventType === "relationship_deleted"
       ) {
         if (onRelationshipEvent) {
-          const payload = JSON.parse(event.payload) as {
-            source: string;
-            target: string;
-            reason?: string;
-          };
-          onRelationshipEvent({
-            eventType: event.eventType,
-            source: payload.source,
-            target: payload.target,
-            reason: payload.reason,
+          const payloadSchema = z.object({
+            source: z.string(),
+            target: z.string(),
+            reason: z.string().optional(),
           });
+          try {
+            // oxlint-disable-next-line typescript/no-unsafe-assignment -- JSON.parse
+            const raw: unknown = JSON.parse(event.payload);
+            const parsed = payloadSchema.safeParse(raw);
+            if (!parsed.success) return;
+            onRelationshipEvent({
+              eventType: event.eventType,
+              source: parsed.data.source,
+              target: parsed.data.target,
+              reason: parsed.data.reason,
+            });
+          } catch {
+            // ignore malformed payload
+          }
         }
       }
     }
