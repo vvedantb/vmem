@@ -146,16 +146,7 @@ export interface MergedEntry {
  *    a consolidated :Memory and suppresses the sources with
  *    :SUPERSEDED_BY edges to the new memory (no hard delete).
  */
-export type ProposedUpdateKind =
-  | "update"
-  | "delete"
-  | "insight"
-  | "connection"
-  | "contradiction"
-  | "anomaly"
-  | "merge";
-
-export const ALL_PROPOSED_UPDATE_KINDS: ReadonlySet<string> = new Set<string>([
+export const PROPOSED_UPDATE_KINDS = [
   "update",
   "delete",
   "insight",
@@ -163,7 +154,13 @@ export const ALL_PROPOSED_UPDATE_KINDS: ReadonlySet<string> = new Set<string>([
   "contradiction",
   "anomaly",
   "merge",
-]);
+] as const;
+
+export type ProposedUpdateKind = (typeof PROPOSED_UPDATE_KINDS)[number];
+
+export const ALL_PROPOSED_UPDATE_KINDS: ReadonlySet<string> = new Set<string>(
+  PROPOSED_UPDATE_KINDS,
+);
 
 export function isProposedUpdateKind(
   value: string,
