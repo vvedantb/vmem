@@ -49,3 +49,7 @@ export function isOpenRouterRequired(
     value.error === "openrouter_required"
   );
 }
+
+export function openRouterRequiredResponse(): Response {
+  return Response.json({ error: "openrouter_required" }, { status: 422 });
+}
