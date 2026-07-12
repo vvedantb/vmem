@@ -184,6 +184,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
 
       const canvas: HTMLCanvasElement = maybeCanvas;
       const ctx: CanvasRenderingContext2D = maybeCtx;
+      const positionCache = lastPositionsRef.current;
 
       // Reset viewport fit flag — a new simulation starts from scratch, so the
       // viewport must re-fit once the layout settles. Without this, StrictMode
@@ -579,9 +580,9 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       return () => {
         // Snapshot final positions so the next simulation (new data) can
         // seed surviving nodes where they already rest.
-        const positions = lastPositionsRef.current;
+        const positions = positionCache;
         positions.clear();
-        for (const node of nodesRef.current) {
+        for (const node of nodes) {
           if (node.x !== undefined && node.y !== undefined) {
             positions.set(node.id, { x: node.x, y: node.y });
           }

@@ -241,7 +241,7 @@ export default function WikiTree({
         onSelect(newId);
       }
     },
-    [createNode, onSelect],
+    [createNode, onSelect, teamId],
   );
 
   return (

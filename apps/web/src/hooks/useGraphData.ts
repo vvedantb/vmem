@@ -304,7 +304,7 @@ export function useGraphData(
 
   const fetchNextPage = useCallback(() => {
     void graphQuery.fetchNextPage();
-  }, [graphQuery.fetchNextPage]);
+  }, [graphQuery]);
 
   if (benchData) {
     return {

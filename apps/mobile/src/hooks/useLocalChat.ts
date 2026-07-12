@@ -138,7 +138,7 @@ export function useLocalChat(): LocalChatResult {
   const retrieveMemories = useAction(api.memoryApi.retrieveMemories);
   // Effective skills (personal + installed system skills); mobile has no team
   // workspaces.
-  const mySkills = useQuery(api.skills.listEffectiveSkills, {}) ?? [];
+  const mySkillsQuery = useQuery(api.skills.listEffectiveSkills, {});
 
   const refreshLocalModel = useCallback(async () => {
     const modelId = await getActiveModelIdOrDefault();
@@ -258,7 +258,7 @@ export function useLocalChat(): LocalChatResult {
           const grounded = await buildGroundedPrompt({
             core: VMEM_LOCAL_CHAT_CORE,
             query: text,
-            skills: mySkills.map((skill) => ({
+            skills: (mySkillsQuery ?? []).map((skill) => ({
               name: skill.name,
               description: skill.description,
               instructions: skill.instructions,
@@ -397,7 +397,7 @@ export function useLocalChat(): LocalChatResult {
       retrieveMemories,
       saveLocalMessages,
       threadId,
-      mySkills,
+      mySkillsQuery,
     ],
   );
 

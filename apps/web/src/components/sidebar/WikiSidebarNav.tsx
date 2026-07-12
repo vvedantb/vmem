@@ -128,7 +128,7 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
         }
       })();
     },
-    [createNode, navigate, profileId],
+    [createNode, navigate, profileId, teamId],
   );
 
   // Grouped with the search at the top of the sidebar (shared by the empty and

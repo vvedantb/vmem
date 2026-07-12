@@ -126,7 +126,7 @@ function SkillsLayout() {
     if (viewedSkill) {
       setNameDraft(viewedSkill.name);
     }
-  }, [viewedSkill?._id, viewedSkill?.name]);
+  }, [viewedSkill]);
 
   useEffect(() => {
     if (!skills || !hasSkillId) return;

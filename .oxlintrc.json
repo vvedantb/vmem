@@ -3,7 +3,7 @@
   "options": {
     "typeAware": true
   },
-  "plugins": ["typescript", "import", "unicorn"],
+  "plugins": ["typescript", "import", "unicorn", "react"],
   "jsPlugins": [
     { "name": "vmem", "specifier": "./oxlint-plugin-vmem/index.mjs" }
   ],
@@ -74,7 +74,9 @@
         "caughtErrors": "none"
       }
     ],
-    "no-console": ["error", { "allow": ["warn", "error", "info"] }]
+    "no-console": ["error", { "allow": ["warn", "error", "info"] }],
+    "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": "error"
   },
   "overrides": [
     {
