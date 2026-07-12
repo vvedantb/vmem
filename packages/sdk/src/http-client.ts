@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { VMemoryError } from "./errors";
 import type { ApiErrorBody } from "./types";
 
@@ -5,33 +6,28 @@ function trimTrailingSlash(baseUrl: string): string {
   return baseUrl.replace(/\/$/, "");
 }
 
-function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
+const apiIssueSchema = z.object({
+  path: z.array(z.union([z.string(), z.number()])),
+  message: z.string(),
+});
 
-function readProperty(obj: object, key: string): unknown {
-  if (!isObject(obj)) {
-    return undefined;
-  }
-  return obj[key];
-}
+const apiErrorBodySchema = z.object({
+  error: z.string(),
+  issues: z.array(apiIssueSchema).optional(),
+});
+
+const apiSuccessEnvelopeSchema = z.object({
+  data: z.unknown(),
+});
 
 function parseErrorBody(body: unknown): ApiErrorBody | null {
-  if (!isObject(body)) {
-    return null;
+  const parsed = apiErrorBodySchema.safeParse(body);
+  if (!parsed.success) {
+    // Accept `{ error }` even when `issues` is malformed.
+    const fallback = z.object({ error: z.string() }).safeParse(body);
+    return fallback.success ? { error: fallback.data.error } : null;
   }
-  const errorField = readProperty(body, "error");
-  if (typeof errorField !== "string") {
-    return null;
-  }
-  const issuesField = readProperty(body, "issues");
-  if (issuesField === undefined) {
-    return { error: errorField };
-  }
-  if (!Array.isArray(issuesField)) {
-    return { error: errorField };
-  }
-  return { error: errorField, issues: issuesField };
+  return parsed.data;
 }
 
 function unwrapData(
@@ -40,23 +36,15 @@ function unwrapData(
   path: string,
   status: number,
 ): unknown {
-  if (!isObject(json)) {
+  const parsed = apiSuccessEnvelopeSchema.safeParse(json);
+  if (!parsed.success) {
     throw new VMemoryError(
       `VMemory API ${method} ${path} returned an invalid response`,
       status,
       "invalid_response",
     );
   }
-
-  if (!("data" in json)) {
-    throw new VMemoryError(
-      `VMemory API ${method} ${path} returned an invalid response`,
-      status,
-      "invalid_response",
-    );
-  }
-
-  return readProperty(json, "data");
+  return parsed.data.data;
 }
 
 export class HttpClient {

@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { HttpClient } from "./http-client";
 import { VMemoryError } from "./errors";
 import {
@@ -18,20 +19,18 @@ import type {
   VMemoryRequestOptions,
 } from "./types";
 
-function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
+const nodeProcessSchema = z.object({
+  env: z.record(z.string()),
+});
 
 function readEnv(name: string): string | undefined {
-  const globalProcess: unknown = globalThis.process;
-  if (!isObject(globalProcess) || !("env" in globalProcess)) {
+  const parsed = z
+    .object({ process: nodeProcessSchema.optional() })
+    .safeParse(globalThis);
+  if (!parsed.success) {
     return undefined;
   }
-  const env = globalProcess.env;
-  if (!isObject(env)) {
-    return undefined;
-  }
-  const value = env[name];
+  const value = parsed.data.process?.env[name];
   if (typeof value === "string" && value.length > 0) {
     return value;
   }
