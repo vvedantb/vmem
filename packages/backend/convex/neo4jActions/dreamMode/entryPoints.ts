@@ -20,6 +20,14 @@ function emptyDreamResult(reason: DreamRunResult["reason"]): DreamRunResult {
   };
 }
 
+/** Manual button rate-limit guard: at most one run per hour since `lastRunAt`. */
+function isRateLimited(lastRunAt: number | null | undefined): boolean {
+  return (
+    typeof lastRunAt === "number" &&
+    Date.now() - lastRunAt < MANUAL_RATE_LIMIT_MS
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Dynamic Dreaming check — scheduled (debounced) by memory writes via
 // `lib/dreamTriggerInvalidate.ts`. Decides via the pure `decideDreamCheck`:
@@ -127,12 +135,8 @@ export const runDreamForActiveProfile = internalAction({
       throw new Error("Profile not found");
     }
 
-    const lastRun = profile.lastDreamRunAt;
-    if (typeof lastRun === "number") {
-      const elapsed = Date.now() - lastRun;
-      if (elapsed < MANUAL_RATE_LIMIT_MS) {
-        return emptyDreamResult("rate-limited");
-      }
+    if (isRateLimited(profile.lastDreamRunAt)) {
+      return emptyDreamResult("rate-limited");
     }
 
     return await ctx.runAction(
@@ -263,11 +267,8 @@ export const runDreamForActiveUser = internalAction({
       internal.userSettings.getDreamConfigInternal,
       { userId: args.userId },
     );
-    if (typeof config.lastDreamRunAt === "number") {
-      const elapsed = Date.now() - config.lastDreamRunAt;
-      if (elapsed < MANUAL_RATE_LIMIT_MS) {
-        return emptyDreamResult("rate-limited");
-      }
+    if (isRateLimited(config.lastDreamRunAt)) {
+      return emptyDreamResult("rate-limited");
     }
     return await ctx.runAction(
       internal.neo4jActions.dreamMode.runDreamForUserInternal,
