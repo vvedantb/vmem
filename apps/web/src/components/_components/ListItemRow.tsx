@@ -88,19 +88,19 @@ export default function ListItemRow({
         return;
       }
       case "wiki-document":
-        navigate({
+        void navigate({
           to: "/$profileId/wiki/$docId",
           params: { profileId: activeProfile._id, docId: item.wikiId },
         });
         return;
       case "wiki-folder":
-        navigate({
+        void navigate({
           to: "/$profileId/wiki",
           params: { profileId: activeProfile._id },
         });
         return;
       case "skill":
-        navigate({
+        void navigate({
           to: "/$profileId/skills/$id",
           params: { profileId: activeProfile._id, id: item.skillId },
         });

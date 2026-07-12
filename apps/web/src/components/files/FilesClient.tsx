@@ -91,7 +91,7 @@ export default function FilesClient() {
   // Navigation
   const navigateToFolder = useCallback(
     (folderId: string | null) => {
-      setParams({ folderId });
+      void setParams({ folderId });
       selection.clear();
     },
     [setParams, selection],

@@ -112,7 +112,7 @@ export function useMemoryEvents(
     }
 
     if (hasMemoryEvent) {
-      queryClient.invalidateQueries({ queryKey: ["memories"] });
+      void queryClient.invalidateQueries({ queryKey: ["memories"] });
       onMemoryEvent?.();
     }
   }, [events, queryClient, onRelationshipEvent, onMemoryEvent]);

@@ -148,7 +148,7 @@ export function useVoiceSession({ threadId, messages }: VoiceSessionArgs) {
       const maxLen = Speech.maxSpeechInputLength || FALLBACK_SPEECH_MAX;
       const chunks = chunkForSpeech(reply, maxLen);
       updatePhase("speaking");
-      Speech.stop();
+      void Speech.stop();
       chunks.forEach((chunk, index) => {
         const isLast = index === chunks.length - 1;
         // expo-speech queues sequential speak() calls natively.
@@ -336,7 +336,7 @@ export function useVoiceSession({ threadId, messages }: VoiceSessionArgs) {
   const cancelSession = useCallback(() => {
     cancelledRef.current = true;
     ExpoSpeechRecognitionModule.abort();
-    Speech.stop();
+    void Speech.stop();
     setTranscript(null);
     setReplyText(null);
     setErrorMessage(null);

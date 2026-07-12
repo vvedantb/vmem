@@ -39,7 +39,7 @@ export function registerMessageHandler(): void {
         return false;
       }
       console.log("[message-handler] Handling:", messageType);
-      handleMessage(message).then(sendResponse);
+      void handleMessage(message).then(sendResponse);
       return true;
     },
   );

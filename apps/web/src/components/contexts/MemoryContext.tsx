@@ -266,7 +266,7 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
   // by queryKey prefix, so ["memories"] covers both ["memories", "recent"]
   // and ["memories", { ...filters }].
   const invalidateMemories = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ["memories"] });
+    void queryClient.invalidateQueries({ queryKey: ["memories"] });
   }, [queryClient]);
 
   const createMutation = useMutation({

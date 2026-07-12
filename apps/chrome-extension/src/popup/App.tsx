@@ -42,7 +42,7 @@ function EnsureUser() {
 
   useEffect(() => {
     if (isLoaded && isSignedIn) {
-      ensureUserExists();
+      void ensureUserExists();
     }
   }, [isLoaded, isSignedIn, ensureUserExists]);
 

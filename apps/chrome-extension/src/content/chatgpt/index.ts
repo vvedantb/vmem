@@ -6,17 +6,17 @@ import { injectCopyPromptButton } from "./copy-system-prompt";
 import { injectUseVmemButton } from "./use-vmem";
 import { SELECTORS } from "./selectors";
 
-function injectButtons(): void {
+async function injectButtons(): Promise<void> {
   removeExistingVmemButtons();
-  injectExportButton();
-  injectCopyPromptButton();
-  injectUseVmemButton();
+  await injectExportButton();
+  await injectCopyPromptButton();
+  await injectUseVmemButton();
 }
 
-injectButtons();
+void injectButtons();
 
 observeUrlChanges(() => {
-  setTimeout(injectButtons, 1000);
+  setTimeout(() => void injectButtons(), 1000);
 });
 
 // Auto-search + auto-capture (registered once, persists across SPA navigations)

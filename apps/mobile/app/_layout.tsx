@@ -26,7 +26,7 @@ import { NAV_THEME } from "@/lib/theme";
 import { NetworkProvider } from "@/providers/NetworkProvider";
 
 WebBrowser.maybeCompleteAuthSession();
-SplashScreen.preventAutoHideAsync();
+void SplashScreen.preventAutoHideAsync();
 
 const convexUrl = process.env.EXPO_PUBLIC_CONVEX_URL;
 if (!convexUrl) {
@@ -79,7 +79,7 @@ export default function RootLayout() {
   });
 
   if (fontsLoaded) {
-    SplashScreen.hideAsync();
+    void SplashScreen.hideAsync();
   }
 
   if (!fontsLoaded) {

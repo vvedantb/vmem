@@ -630,7 +630,7 @@ prefersDark.addEventListener("change", (e) => {
   draw();
 });
 
-app.connect().then(() => {
+void app.connect().then(() => {
   const hostCtx = app.getHostContext();
   if (hostCtx) handleHostContext(hostCtx);
   requestTallViewport();

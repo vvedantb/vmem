@@ -30,7 +30,7 @@ void runBackgroundBootstrap();
 
 chrome.runtime.onInstalled.addListener(async (details) => {
   if (details.reason === "install") {
-    chrome.tabs.create({ url: chrome.runtime.getURL("welcome.html") });
+    void chrome.tabs.create({ url: chrome.runtime.getURL("welcome.html") });
   }
 
   registerContextMenu();

@@ -22,13 +22,17 @@ export default function ModelsScreen() {
   const isOnline = useIsOnline();
 
   useEffect(() => {
-    getActiveModelId().then(setActiveId);
+    void (async () => {
+      setActiveId(await getActiveModelId());
 
-    MODELS.forEach((model) => {
-      checkModelStatus(model.id).then((status) => {
-        setStates((prev) => ({ ...prev, [model.id]: status }));
-      });
-    });
+      const nextStates: Record<string, ModelState> = {};
+      await Promise.all(
+        MODELS.map(async (model) => {
+          nextStates[model.id] = await checkModelStatus(model.id);
+        }),
+      );
+      setStates(nextStates);
+    })();
   }, []);
 
   const handleDownload = useCallback(

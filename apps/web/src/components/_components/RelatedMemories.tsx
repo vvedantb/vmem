@@ -84,7 +84,7 @@ export default function RelatedMemories({
   }, [memoryId, getRelatedMemories]);
 
   useEffect(() => {
-    fetchRelated();
+    void fetchRelated();
   }, [fetchRelated]);
 
   const handleUnlink = useCallback(

@@ -143,7 +143,7 @@ const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
 
     useEffect(() => {
       let cancelled = false;
-      loadConnectorLogos().then((map) => {
+      void loadConnectorLogos().then((map) => {
         if (!cancelled) connectorLogosRef.current = map;
       });
       return () => {

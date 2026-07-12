@@ -317,7 +317,7 @@ export default function PlaygroundClient() {
   }, []);
 
   const handleDisconnect = useCallback(() => {
-    storedClient?.close();
+    void storedClient?.close();
     storedClient = null;
     dispatch({ type: "RESET" });
   }, []);
@@ -368,7 +368,7 @@ export default function PlaygroundClient() {
 
   useEffect(() => {
     return () => {
-      storedClient?.close();
+      void storedClient?.close();
       storedClient = null;
     };
   }, []);

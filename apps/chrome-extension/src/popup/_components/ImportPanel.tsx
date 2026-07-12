@@ -196,7 +196,7 @@ export function ImportPanel() {
 
   function handleCancel() {
     const message: ContentMessage = { type: "CANCEL_IMPORT" };
-    chrome.runtime.sendMessage(message);
+    void chrome.runtime.sendMessage(message);
 
     if (bookmarkStatus === "importing") setBookmarkStatus("cancelled");
     if (historyStatus === "importing") setHistoryStatus("cancelled");

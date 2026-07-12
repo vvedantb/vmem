@@ -286,7 +286,7 @@ export function EnvVarsTable({
                         placeholder="Enter value"
                         className="h-8 font-mono text-xs"
                         onKeyDown={(e) => {
-                          if (e.key === "Enter") handleAdd();
+                          if (e.key === "Enter") void handleAdd();
                           if (e.key === "Escape") cancelAdd();
                         }}
                       />
@@ -330,7 +330,7 @@ export function EnvVarsTable({
                             className="h-8 font-mono text-xs"
                             autoFocus
                             onKeyDown={(e) => {
-                              if (e.key === "Enter") saveEdit();
+                              if (e.key === "Enter") void saveEdit();
                               if (e.key === "Escape") cancelEdit();
                             }}
                           />
@@ -346,7 +346,7 @@ export function EnvVarsTable({
                             placeholder="New value (leave blank to keep)"
                             className="h-8 font-mono text-xs"
                             onKeyDown={(e) => {
-                              if (e.key === "Enter") saveEdit();
+                              if (e.key === "Enter") void saveEdit();
                               if (e.key === "Escape") cancelEdit();
                             }}
                           />

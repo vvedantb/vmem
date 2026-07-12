@@ -101,7 +101,7 @@ export default function MemoryGraph({
       if (contentCache.has(nodeId)) return;
       if (inflightRef.current.has(nodeId)) return;
       inflightRef.current.add(nodeId);
-      getNodeContent({ memoryId: nodeId })
+      void getNodeContent({ memoryId: nodeId })
         .then((content) => {
           setContentCache((prev) => {
             const next = new Map(prev);

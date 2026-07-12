@@ -99,7 +99,7 @@ export function runOxlintRule(ruleName, source, options = {}) {
 
 /** Assert the rule reports at least one diagnostic on `source`. */
 export function assertInvalid(ruleName, source, options) {
-  test(`${ruleName} (invalid)`, () => {
+  void test(`${ruleName} (invalid)`, () => {
     const { code, output, error } = runOxlintRule(ruleName, source, options);
     assert.equal(error, undefined, `spawn failed: ${error}`);
     assert.notEqual(
@@ -117,7 +117,7 @@ export function assertInvalid(ruleName, source, options) {
 
 /** Assert the rule does not report on `source`. */
 export function assertValid(ruleName, source, options) {
-  test(`${ruleName} (valid)`, () => {
+  void test(`${ruleName} (valid)`, () => {
     const { code, output, error } = runOxlintRule(ruleName, source, options);
     assert.equal(error, undefined, `spawn failed: ${error}`);
     assert.equal(

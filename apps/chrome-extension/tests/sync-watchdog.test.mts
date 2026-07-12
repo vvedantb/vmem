@@ -109,7 +109,7 @@ const FRESH = NOW - 60_000; // 1 min ago: NOT overdue (interval is 30 min)
 
 // ── Tests ────────────────────────────────────────────────────────────────────
 
-test("startAutoSync is idempotent — never resets an existing alarm's timer", async () => {
+await test("startAutoSync is idempotent — never resets an existing alarm's timer", async () => {
   resetState({ autoSyncEnabled: true, lastHistorySync: FRESH });
   await startAutoSync();
   await startAutoSync();
@@ -122,7 +122,7 @@ test("startAutoSync is idempotent — never resets an existing alarm's timer", a
   );
 });
 
-test("browser restart: bootstrap re-asserts BOTH alarms from a clean slate", async () => {
+await test("browser restart: bootstrap re-asserts BOTH alarms from a clean slate", async () => {
   resetState({ autoSyncEnabled: true, lastHistorySync: FRESH });
   // Simulate worst case: all alarms gone after restart/crash.
   assert.equal(alarms.size, 0);
@@ -131,7 +131,7 @@ test("browser restart: bootstrap re-asserts BOTH alarms from a clean slate", asy
   assert.ok(alarms.has(SETTINGS_MIRROR_ALARM_NAME), "heartbeat alarm restored");
 });
 
-test("Chrome drops the history alarm → heartbeat heals it within one tick", async () => {
+await test("Chrome drops the history alarm → heartbeat heals it within one tick", async () => {
   resetState({ autoSyncEnabled: true, lastHistorySync: FRESH });
   await ensureSettingsMirrorAlarm();
   await startAutoSync();
@@ -146,7 +146,7 @@ test("Chrome drops the history alarm → heartbeat heals it within one tick", as
   );
 });
 
-test("Chrome drops the heartbeat alarm → a history-alarm fire heals it (mutual watchdog)", async () => {
+await test("Chrome drops the heartbeat alarm → a history-alarm fire heals it (mutual watchdog)", async () => {
   resetState({ autoSyncEnabled: true, lastHistorySync: FRESH });
   await ensureSettingsMirrorAlarm();
   await startAutoSync();
@@ -159,7 +159,7 @@ test("Chrome drops the heartbeat alarm → a history-alarm fire heals it (mutual
   );
 });
 
-test("no silent gaps: every attempt records lastSyncAttemptAt + skip reason", async () => {
+await test("no silent gaps: every attempt records lastSyncAttemptAt + skip reason", async () => {
   resetState({ autoSyncEnabled: true, lastHistorySync: FRESH });
   await ensureSettingsMirrorAlarm();
   await startAutoSync();
@@ -176,7 +176,7 @@ test("no silent gaps: every attempt records lastSyncAttemptAt + skip reason", as
   );
 });
 
-test("overdue sync keeps retrying (does not advance lastHistorySync while blocked)", async () => {
+await test("overdue sync keeps retrying (does not advance lastHistorySync while blocked)", async () => {
   // lastHistorySync = 0 => never synced => overdue => catch-up fires on heartbeat.
   resetState({ autoSyncEnabled: true, lastHistorySync: 0 });
   await ensureSettingsMirrorAlarm();
@@ -190,7 +190,7 @@ test("overdue sync keeps retrying (does not advance lastHistorySync while blocke
   assert.equal(local.lastSyncSkipReason, "no-session", "attempt was recorded");
 });
 
-test("auto-sync disabled: history alarm not created, heartbeat still present", async () => {
+await test("auto-sync disabled: history alarm not created, heartbeat still present", async () => {
   resetState({ autoSyncEnabled: false, lastHistorySync: FRESH });
   await bootstrapSyncSchedulers();
   assert.ok(!alarms.has(HISTORY_ALARM_NAME), "no history alarm while disabled");
@@ -206,7 +206,7 @@ test("auto-sync disabled: history alarm not created, heartbeat still present", a
   );
 });
 
-test("stopAutoSync clears the history + badge alarms, leaving the heartbeat", async () => {
+await test("stopAutoSync clears the history + badge alarms, leaving the heartbeat", async () => {
   resetState({ autoSyncEnabled: true, lastHistorySync: FRESH });
   await ensureSettingsMirrorAlarm();
   await startAutoSync();
@@ -217,7 +217,7 @@ test("stopAutoSync clears the history + badge alarms, leaving the heartbeat", as
   assert.equal(badgeTexts.at(-1), "", "badge cleared on stop");
 });
 
-test("badge shows minutes until the next history sync", async () => {
+await test("badge shows minutes until the next history sync", async () => {
   resetState({ autoSyncEnabled: true, lastHistorySync: FRESH });
   await startAutoSync();
   assert.ok(alarms.has(BADGE_TICK_ALARM_NAME), "badge tick alarm created");
@@ -228,7 +228,7 @@ test("badge shows minutes until the next history sync", async () => {
   );
 });
 
-test("badge tick heals a dropped history alarm within one minute", async () => {
+await test("badge tick heals a dropped history alarm within one minute", async () => {
   resetState({ autoSyncEnabled: true, lastHistorySync: FRESH });
   await startAutoSync();
   alarms.delete(HISTORY_ALARM_NAME);
@@ -240,7 +240,7 @@ test("badge tick heals a dropped history alarm within one minute", async () => {
   assert.equal(badgeTexts.at(-1), "30m", "badge reflects the recreated alarm");
 });
 
-test("badge tick retires itself and clears the badge when auto-sync is disabled", async () => {
+await test("badge tick retires itself and clears the badge when auto-sync is disabled", async () => {
   resetState({ autoSyncEnabled: true, lastHistorySync: FRESH });
   await startAutoSync();
   local.autoSyncEnabled = false;
@@ -251,7 +251,7 @@ test("badge tick retires itself and clears the badge when auto-sync is disabled"
 
 // ── Configurable sync frequency ──────────────────────────────────────────────
 
-test("startAutoSync honors a non-default interval and stays idempotent", async () => {
+await test("startAutoSync honors a non-default interval and stays idempotent", async () => {
   resetState({
     autoSyncEnabled: true,
     autoSyncIntervalMinutes: 120,
@@ -271,7 +271,7 @@ test("startAutoSync honors a non-default interval and stays idempotent", async (
   );
 });
 
-test("changing the interval reschedules the history alarm to the new period", async () => {
+await test("changing the interval reschedules the history alarm to the new period", async () => {
   resetState({
     autoSyncEnabled: true,
     autoSyncIntervalMinutes: 30,
@@ -294,7 +294,7 @@ test("changing the interval reschedules the history alarm to the new period", as
   );
 });
 
-test("an out-of-range stored interval is clamped, not passed through", async () => {
+await test("an out-of-range stored interval is clamped, not passed through", async () => {
   resetState({
     autoSyncEnabled: true,
     autoSyncIntervalMinutes: 5, // below the 15-min floor
@@ -308,7 +308,7 @@ test("an out-of-range stored interval is clamped, not passed through", async () 
   );
 });
 
-test("rescheduleHistorySync is a no-op while auto-sync is disabled", async () => {
+await test("rescheduleHistorySync is a no-op while auto-sync is disabled", async () => {
   resetState({
     autoSyncEnabled: false,
     autoSyncIntervalMinutes: 60,
@@ -321,7 +321,7 @@ test("rescheduleHistorySync is a no-op while auto-sync is disabled", async () =>
   );
 });
 
-test("badge shows whole hours once the countdown passes an hour", async () => {
+await test("badge shows whole hours once the countdown passes an hour", async () => {
   resetState({
     autoSyncEnabled: true,
     autoSyncIntervalMinutes: 360,

@@ -54,27 +54,27 @@ export function SettingsForm() {
   const [promptCopied, setPromptCopied] = useState(false);
 
   useEffect(() => {
-    getStorage().then((s) => {
+    async function load() {
+      const s = await getStorage();
       setAutoSearchEnabled(s.autoSearchEnabled);
       setAutoCaptureEnabled(s.autoCaptureEnabled);
       setSelectedProfileId(s.defaultProfileId);
-    });
 
-    void listProfiles()
-      .then((profileList) => {
+      try {
+        const profileList = await listProfiles();
         setProfiles(profileList);
-        getStorage().then((s) => {
-          if (!s.defaultProfileId) {
-            const defaultProfile = profileList.find((p) => p.isDefault);
-            if (defaultProfile) {
-              setSelectedProfileId(defaultProfile._id);
-            }
+        if (!s.defaultProfileId) {
+          const defaultProfile = profileList.find((p) => p.isDefault);
+          if (defaultProfile) {
+            setSelectedProfileId(defaultProfile._id);
           }
-        });
-      })
-      .catch(() => {
+        }
+      } catch {
         // Not authenticated yet
-      });
+      }
+    }
+
+    void load();
   }, []);
 
   function handleThemeChange(value: string) {
@@ -97,12 +97,12 @@ export function SettingsForm() {
 
   function handleAutoSearchToggle(checked: boolean) {
     setAutoSearchEnabled(checked);
-    setStorage({ autoSearchEnabled: checked });
+    void setStorage({ autoSearchEnabled: checked });
   }
 
   function handleAutoCaptureToggle(checked: boolean) {
     setAutoCaptureEnabled(checked);
-    setStorage({ autoCaptureEnabled: checked });
+    void setStorage({ autoCaptureEnabled: checked });
   }
 
   // Stored ONLY in chrome.storage.local — per Chrome profile by design,
