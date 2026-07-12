@@ -105,7 +105,7 @@ export const listCatalog = authQuery({
           published: s.published,
           updatedAt: s.updatedAt,
           installed: install !== undefined,
-          installEnabled: install ? install.enabled !== false : false,
+          installEnabled: install ? install.enabled : false,
         };
       });
   },

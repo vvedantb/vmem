@@ -7,6 +7,9 @@
   "jsPlugins": [
     { "name": "vmem", "specifier": "./oxlint-plugin-vmem/index.mjs" }
   ],
+  "categories": {
+    "suspicious": "error"
+  },
   "ignorePatterns": [
     "**/node_modules/**",
     "**/_generated/**",
@@ -23,6 +26,19 @@
     "oxlint-plugin-vmem/test/fixtures/**"
   ],
   "rules": {
+    // Suspicious category off-list — see MISTAKES.md for measured hit counts.
+    "no-underscore-dangle": "off", // Convex `_id` / `_creationTime` (455 hits)
+    "unicorn/no-array-sort": "off", // intentional in-place sort for perf / mutation
+    "typescript/consistent-return": "off", // mixed void/return in callbacks is intentional
+    "unicorn/prefer-add-event-listener": "off", // addEventListener vs on* is stylistic here
+    "unicorn/consistent-function-scoping": "off", // nested helpers colocated with single caller
+    "no-shadow": "off", // common in test mocks and handler params
+    "unicorn/require-post-message-target-origin": "off", // extension uses `*` for dev/preview
+    "import/no-unassigned-import": "off", // CSS and side-effect imports
+    "unicorn/no-array-reverse": "off", // intentional in-place reverse
+    "import/no-named-as-default": "off", // default/named interop from CJS deps
+    "import/no-named-as-default-member": "off", // default/named interop from CJS deps
+    "react/react-in-jsx-scope": "off", // tsconfig `jsx: react-jsx` — React import not required
     "typescript/no-explicit-any": "error",
     "typescript/no-non-null-assertion": "error",
     "typescript/no-unsafe-type-assertion": "error",

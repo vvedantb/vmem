@@ -84,7 +84,7 @@ async function resolveEffectiveSkills(
     .collect();
 
   for (const install of installs) {
-    if (install.enabled === false) continue;
+    if (!install.enabled) continue;
     const sys = await ctx.db.get(install.systemSkillId);
     if (!sys) continue; // catalog row was deleted
     const key = sys.name.toLowerCase();

@@ -29,6 +29,28 @@ const TAGS_PREVIEW = 2;
 const ROW_HEIGHT = 84;
 const LIST_HEIGHT = 280;
 
+interface LinkMemoryVirtuosoContext {
+  linkingId: string | null;
+  isLinking: boolean;
+  onLink: (id: string) => void;
+}
+
+function renderLinkMemoryVirtuosoRow(
+  _index: number,
+  memory: Memory,
+  context?: LinkMemoryVirtuosoContext,
+) {
+  if (!context) return null;
+  return (
+    <LinkMemoryRow
+      memory={memory}
+      isLinking={context.linkingId === memory.id}
+      isDisabled={context.isLinking}
+      onLink={context.onLink}
+    />
+  );
+}
+
 interface LinkMemoryModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -232,16 +254,10 @@ export default function LinkMemoryModal({
             <div className="min-h-0 flex-1 rounded-lg bg-surface p-2">
               <Virtuoso
                 data={filteredMemories}
+                context={{ linkingId, isLinking, onLink: handleLink }}
                 computeItemKey={(_index, memory) => memory.id}
                 defaultItemHeight={ROW_HEIGHT}
-                itemContent={(_index, memory) => (
-                  <LinkMemoryRow
-                    memory={memory}
-                    isLinking={linkingId === memory.id}
-                    isDisabled={isLinking}
-                    onLink={handleLink}
-                  />
-                )}
+                itemContent={renderLinkMemoryVirtuosoRow}
                 style={{ height: LIST_HEIGHT }}
               />
             </div>

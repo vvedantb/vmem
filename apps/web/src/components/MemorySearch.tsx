@@ -32,6 +32,50 @@ import { useMemoriesSearchParams } from "@/routes/_main/$profileId/memories/useM
 import { useMemoryListFlat } from "@/components/contexts/MemoryContext";
 import { useThemeContext } from "@/components/contexts/ThemeContext";
 import { useTrailData } from "@/hooks/useTrailData";
+import type { TrailEntry } from "@/hooks/useTrailData";
+
+type MemoryListEntry = { item: ListItem; score: number | null };
+
+interface MemoryListVirtuosoContext {
+  memoryId: string | null;
+  trailMap: Map<string, TrailEntry>;
+  isDark: boolean;
+  onMemoryClick: (memory: Memory) => void;
+  onContextEdit: (memory: Memory) => void;
+  onContextDelete: (memory: Memory) => void;
+}
+
+function MemoryListVirtuosoRow({
+  entry,
+  context,
+}: {
+  entry: MemoryListEntry;
+  context?: MemoryListVirtuosoContext;
+}) {
+  if (!context) return null;
+  return (
+    <div className="pb-1.5">
+      <ListItemRow
+        item={entry.item}
+        relevanceScore={entry.score}
+        isSelected={context.memoryId === entry.item.id}
+        trailEntry={context.trailMap.get(entry.item.id)}
+        isDark={context.isDark}
+        onMemoryClick={context.onMemoryClick}
+        onContextEdit={context.onContextEdit}
+        onContextDelete={context.onContextDelete}
+      />
+    </div>
+  );
+}
+
+function renderMemoryListVirtuosoRow(
+  _index: number,
+  entry: MemoryListEntry,
+  context?: MemoryListVirtuosoContext,
+) {
+  return <MemoryListVirtuosoRow entry={entry} context={context} />;
+}
 
 function isMemoryType(value: string): value is MemoryType {
   return value === "profile" || value === "episodic" || value === "knowledge";
@@ -477,23 +521,18 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
             >
               <Virtuoso
                 data={displayItems}
+                context={{
+                  memoryId,
+                  trailMap,
+                  isDark,
+                  onMemoryClick: handleMemoryClick,
+                  onContextEdit: handleContextEdit,
+                  onContextDelete: handleContextDelete,
+                }}
                 computeItemKey={(_index, entry) => entry.item.id}
                 defaultItemHeight={44}
                 endReached={handleEndReached}
-                itemContent={(_index, entry) => (
-                  <div className="pb-1.5">
-                    <ListItemRow
-                      item={entry.item}
-                      relevanceScore={entry.score}
-                      isSelected={memoryId === entry.item.id}
-                      trailEntry={trailMap.get(entry.item.id)}
-                      isDark={isDark}
-                      onMemoryClick={handleMemoryClick}
-                      onContextEdit={handleContextEdit}
-                      onContextDelete={handleContextDelete}
-                    />
-                  </div>
-                )}
+                itemContent={renderMemoryListVirtuosoRow}
                 style={{ height: "100%" }}
               />
             </div>

@@ -227,7 +227,7 @@ export async function getRecentActivity(
       );
       const memoryTitle = neo4jString(record, "memoryTitle");
       const action = props.action;
-      const actor = String(props.actor ?? "");
+      const actor = props.actor ?? "";
       const createdAt = props.createdAt;
       const diffMs = now - new Date(createdAt).getTime();
       const diffMins = Math.floor(diffMs / 60000);
