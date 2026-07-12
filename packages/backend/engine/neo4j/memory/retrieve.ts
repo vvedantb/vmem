@@ -101,19 +101,17 @@ function featureFlagEnabled(name: string): boolean {
   return value === "1" || value === "true";
 }
 
+function rrfContribution(rank: number | null, weight: number): number {
+  return rank === null ? 0 : rrfScore(rank) * weight;
+}
+
 function computeRrf(entry: MergedEntry): number {
   return (
-    (entry.ftRank === null ? 0 : rrfScore(entry.ftRank) * FULLTEXT_RRF_WEIGHT) +
-    (entry.vecRank === null ? 0 : rrfScore(entry.vecRank) * VECTOR_RRF_WEIGHT) +
-    (entry.chunkRank === null
-      ? 0
-      : rrfScore(entry.chunkRank) * CHUNK_RRF_WEIGHT) +
-    (entry.graphRank === null
-      ? 0
-      : rrfScore(entry.graphRank) * GRAPH_RRF_WEIGHT) +
-    (entry.entityRank === null
-      ? 0
-      : rrfScore(entry.entityRank) * ENTITY_RRF_WEIGHT)
+    rrfContribution(entry.ftRank, FULLTEXT_RRF_WEIGHT) +
+    rrfContribution(entry.vecRank, VECTOR_RRF_WEIGHT) +
+    rrfContribution(entry.chunkRank, CHUNK_RRF_WEIGHT) +
+    rrfContribution(entry.graphRank, GRAPH_RRF_WEIGHT) +
+    rrfContribution(entry.entityRank, ENTITY_RRF_WEIGHT)
   );
 }
 
@@ -639,16 +637,24 @@ function mergeFulltext(merged: Map<string, MergedEntry>, records: Record[]) {
   });
 }
 
+function getOrCreateEntry(
+  merged: Map<string, MergedEntry>,
+  record: Record,
+): { memory: MemoryWithTags; entry: MergedEntry } {
+  const memory = toMemoryWithTags(record);
+  const ageInDays = parseNeo4jInt(neo4jGet(record, "ageInDays"));
+  const entry =
+    merged.get(memory.id) ??
+    createMergedEntry(memory, ageInDays, embeddingFromRecord(record));
+  return { memory, entry };
+}
+
 function mergeVector(merged: Map<string, MergedEntry>, ranked: RankedRecord[]) {
   for (const item of ranked) {
-    const memory = toMemoryWithTags(item.record);
-    const ageInDays = parseNeo4jInt(neo4jGet(item.record, "ageInDays"));
-    const existing =
-      merged.get(memory.id) ??
-      createMergedEntry(memory, ageInDays, embeddingFromRecord(item.record));
-    existing.vectorScore = Number(neo4jGet(item.record, "vectorScore"));
-    existing.vecRank = item.rank;
-    merged.set(memory.id, existing);
+    const { memory, entry } = getOrCreateEntry(merged, item.record);
+    entry.vectorScore = Number(neo4jGet(item.record, "vectorScore"));
+    entry.vecRank = item.rank;
+    merged.set(memory.id, entry);
   }
 }
 
@@ -678,14 +684,10 @@ function mergeEntities(
   ranked: RankedRecord[],
 ) {
   for (const item of ranked) {
-    const memory = toMemoryWithTags(item.record);
-    const ageInDays = parseNeo4jInt(neo4jGet(item.record, "ageInDays"));
-    const existing =
-      merged.get(memory.id) ??
-      createMergedEntry(memory, ageInDays, embeddingFromRecord(item.record));
-    existing.entityScore = Number(neo4jGet(item.record, "rarityScore"));
-    existing.entityRank = item.rank;
-    merged.set(memory.id, existing);
+    const { memory, entry } = getOrCreateEntry(merged, item.record);
+    entry.entityScore = Number(neo4jGet(item.record, "rarityScore"));
+    entry.entityRank = item.rank;
+    merged.set(memory.id, entry);
   }
 }
 
