@@ -8,7 +8,11 @@
  * vector index on memory create / connector upsert / backfill migration.
  */
 
-import neo4j, { type Driver, type Session } from "neo4j-driver";
+import neo4j, {
+  type Driver,
+  type Record as NeoRecord,
+  type Session,
+} from "neo4j-driver";
 import { neo4jGet, parseNeo4jInt } from "../record";
 import { toMemoryWithTags } from "./mappers";
 import { withSession } from "./shared";
@@ -17,6 +21,10 @@ import { type MemoryWithTags } from "./types";
 const SEMANTIC_EDGE_K = 20;
 const SEMANTIC_EDGE_THRESHOLD = 0.78;
 const SEMANTIC_EDGE_LIMIT = 5;
+
+function stringField(record: NeoRecord, key: string): string {
+  return String(neo4jGet(record, key) ?? "");
+}
 
 /**
  * Create semantic similarity edges for a single memory using the vector index.
@@ -116,7 +124,7 @@ export async function getRelatedMemories(
     );
     return result.records.map((record) => ({
       memory: toMemoryWithTags(record),
-      reason: String(record.get("reason") ?? ""),
+      reason: stringField(record, "reason"),
     }));
   });
 }
@@ -135,9 +143,9 @@ export async function getAllRelationships(
     );
 
     return result.records.map((record) => ({
-      source: String(record.get("source") ?? ""),
-      target: String(record.get("target") ?? ""),
-      reason: String(record.get("reason") ?? ""),
+      source: stringField(record, "source"),
+      target: stringField(record, "target"),
+      reason: stringField(record, "reason"),
     }));
   });
 }
