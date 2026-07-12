@@ -17,8 +17,6 @@
  * `/teams/$teamId/*` pages map onto the team's workspace).
  */
 export const LEGACY_FIRST_SEGMENTS = [
-  "chat",
-  "voice",
   "memories",
   "files",
   "codebases",

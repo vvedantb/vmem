@@ -55,7 +55,7 @@ vmem is a monorepo with a Convex backend, Neo4j graph store, Vite web dashboard,
 2. Convex verifies Clerk identity, resolves active profile
 3. Neo4j action creates the memory node with tags and embedding
 4. Context prompt regeneration is scheduled (60s debounce)
-5. If local enrichment is enabled, tags and related-memory links are applied client-side
+5. Enrichment is scheduled server-side: an OpenRouter call tags the memory, links related memories, and extracts entities (see [Enrichment](/concepts/enrichment))
 
 ### Retrieving Memories
 
@@ -80,6 +80,6 @@ MCP clients authenticate via **OAuth + PKCE** and receive a Bearer JWT signed wi
 
 API keys (`vmem_sk_*`) are created in the dashboard and authenticate HTTP requests to `/api/v1/memories` (store, retrieve, update). Keys are AES-GCM encrypted at rest.
 
-## Local LLM
+## Mobile Chat & Voice
 
-Chat and voice on web, and chat on mobile, run **local models** (WebLLM / llama.cpp) in the browser. Before each turn, relevant memories are retrieved from Convex and injected into the system prompt. Enrichment (semantic tags, related-memory links) also runs locally when a model is available.
+The mobile app runs chat and voice on-device via **llama.cpp**, with an optional cloud mode via OpenRouter. Before each turn, relevant memories are retrieved from Convex and injected into the system prompt. The Convex backend chat surface is shared with other clients; the web dashboard does not expose a chat or voice UI.

@@ -4,7 +4,6 @@ import type { TablerIcon } from "@tabler/icons-react";
 import {
   IconFileText,
   IconKey,
-  IconMessage,
   IconNetwork,
   IconPlus,
   IconSearch,
@@ -41,12 +40,6 @@ const quickActions: {
     href: "/memories/graph",
     icon: IconNetwork,
     description: "Visualize connections",
-  },
-  {
-    label: "Chat",
-    href: "/chat",
-    icon: IconMessage,
-    description: "Query your memories",
   },
   {
     label: "Files",

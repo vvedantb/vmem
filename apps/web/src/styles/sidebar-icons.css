@@ -9,7 +9,6 @@
 }
 
 .sb-chat-dot,
-.sb-voice-wave,
 .sb-file-back,
 .sb-db-top,
 .sb-bolt,
@@ -37,27 +36,6 @@
 }
 .group:hover .sb-chat-dot-3 {
   animation: sb-chat-bounce 1.1s ease-in-out 0.3s infinite;
-}
-
-.sb-voice-wave {
-  opacity: 0;
-}
-@keyframes sb-voice-wave {
-  0% {
-    opacity: 0;
-    transform: scale(0.7);
-  }
-  40% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-    transform: scale(1.35);
-  }
-}
-.group:hover .sb-voice-wave-l,
-.group:hover .sb-voice-wave-r {
-  animation: sb-voice-wave 1.2s ease-out infinite;
 }
 
 .sb-mem-core,
