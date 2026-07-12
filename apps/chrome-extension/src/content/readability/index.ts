@@ -18,10 +18,11 @@
  */
 
 import { Readability } from "@mozilla/readability";
+import { z } from "zod";
 
-interface ExtractPageMessage {
-  type: "EXTRACT_PAGE";
-}
+const extractPageMessageSchema = z.object({
+  type: z.literal("EXTRACT_PAGE"),
+});
 
 interface ExtractPageResult {
   type: "EXTRACT_PAGE_RESULT";
@@ -160,15 +161,12 @@ function extract(): ExtractPageResult {
 
 chrome.runtime.onMessage.addListener(
   (
-    message: ExtractPageMessage,
+    message: unknown,
     _sender: chrome.runtime.MessageSender,
     sendResponse: (response: ExtractPageResult) => void,
   ) => {
-    const messageType =
-      typeof message === "object" && message !== null
-        ? Reflect.get(message, "type")
-        : undefined;
-    if (messageType !== "EXTRACT_PAGE") return false;
+    const parsed = extractPageMessageSchema.safeParse(message);
+    if (!parsed.success) return false;
     try {
       sendResponse(extract());
     } catch (err) {
@@ -191,4 +189,5 @@ chrome.runtime.onMessage.addListener(
   },
 );
 
-export type { ExtractPageMessage, ExtractPageResult };
+export type { ExtractPageResult };
+export type ExtractPageMessage = z.infer<typeof extractPageMessageSchema>;

@@ -6,6 +6,9 @@ import { cancelImport } from "./import-cancel";
 import { runAutoSyncNow } from "./sync-scheduler";
 import { getStorage } from "@/lib/storage";
 import { htmlToMarkdown } from "@/lib/page-extraction";
+import { z } from "zod";
+
+const contentMessageTypeSchema = z.object({ type: z.string() });
 
 const HANDLED_TYPES = new Set<string>([
   "RETRIEVE_MEMORIES",
@@ -29,10 +32,12 @@ export function registerMessageHandler(): void {
       _sender: chrome.runtime.MessageSender,
       sendResponse: (response: BackgroundResponse) => void,
     ) => {
-      const messageType =
-        typeof message === "object" && message !== null
-          ? Reflect.get(message, "type")
-          : undefined;
+      const typeParsed = contentMessageTypeSchema.safeParse(message);
+      if (!typeParsed.success) {
+        console.log("[message-handler] Not handled, skipping");
+        return false;
+      }
+      const messageType = typeParsed.data.type;
       console.log("[message-handler] Received:", messageType);
       if (typeof messageType !== "string" || !HANDLED_TYPES.has(messageType)) {
         console.log("[message-handler] Not handled, skipping");

@@ -341,7 +341,11 @@ export default function PlaygroundClient() {
           args[key] = Number(value);
         } else if (propDef?.type === "array") {
           try {
-            args[key] = JSON.parse(value);
+            const parsed: unknown = JSON.parse(value);
+            const arrayParsed = z.array(z.unknown()).safeParse(parsed);
+            args[key] = arrayParsed.success
+              ? arrayParsed.data
+              : value.split(",").map((s) => s.trim());
           } catch {
             args[key] = value.split(",").map((s) => s.trim());
           }

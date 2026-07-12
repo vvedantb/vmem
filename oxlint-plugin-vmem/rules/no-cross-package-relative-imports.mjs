@@ -75,6 +75,8 @@ function collectPackageRootsFrom(dir, roots) {
     const packageRoot = path.join(dir, entry.name);
     const packageJsonPath = path.join(packageRoot, "package.json");
     if (fs.existsSync(packageJsonPath)) {
+      // JSON.parse is intentional here: oxlint plugin bootstrap reads package.json
+      // from disk when discovering workspace roots (dev tooling, not app boundary).
       const json = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
       if (typeof json.name === "string") {
         roots.push({ root: path.normalize(packageRoot), name: json.name });

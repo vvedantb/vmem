@@ -42,25 +42,31 @@
     "typescript/no-import-type-side-effects": "error",
     "typescript/no-unnecessary-type-assertion": "warn",
     "typescript/no-misused-spread": "warn",
-    "import/no-cycle": "warn",
+    "import/no-cycle": "error",
     "import/no-self-import": "error",
     "import/no-duplicates": "error",
     "import/no-empty-named-blocks": "error",
     "unicorn/no-abusive-eslint-disable": "error",
-    "vmem/no-unknown-shape-probing": "warn",
-    "vmem/no-json-parse": "warn",
+    "vmem/no-unknown-shape-probing": "error",
+    "vmem/no-json-parse": "error",
     "vmem/no-double-cast": "warn",
     "vmem/no-engine-imports-convex": "error",
     "vmem/no-ts-nocheck": "error",
     "vmem/no-cross-package-relative-imports": "error",
     "vmem/no-deep-package-imports": "error",
     "vmem/no-inline-object-type-assertion": "error",
-    "vmem/prefer-schema-inferred-types": "warn",
+    "vmem/prefer-schema-inferred-types": "error",
     "vmem/no-conditional-tests": "error"
   },
   "overrides": [
     {
       "files": ["**/engine/llm/extractJsonString.ts"],
+      "rules": {
+        "vmem/no-json-parse": "off"
+      }
+    },
+    {
+      "files": ["oxlint-plugin-vmem/rules/**/*.mjs"],
       "rules": {
         "vmem/no-json-parse": "off"
       }
