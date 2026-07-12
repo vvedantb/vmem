@@ -4,7 +4,9 @@ import {
   query,
   internalMutation,
   type MutationCtx,
+  type QueryCtx,
 } from "./_generated/server";
+import type { Doc } from "./_generated/dataModel";
 
 /**
  * Live sharing for the `/slides` deck — "follow the presenter" (Teams-style),
@@ -39,6 +41,24 @@ function tallyPollVotes(
     counts.set(vote.optionId, (counts.get(vote.optionId) ?? 0) + 1);
   }
   return { counts, total: seen.size };
+}
+
+async function getSessionByCode(
+  ctx: QueryCtx | MutationCtx,
+  code: string,
+): Promise<Doc<"presentationSessions"> | null> {
+  return await ctx.db
+    .query("presentationSessions")
+    .withIndex("by_code", (q) => q.eq("code", code))
+    .first();
+}
+
+async function patchSession(
+  ctx: MutationCtx,
+  session: Doc<"presentationSessions">,
+  patch: Partial<Pick<Doc<"presentationSessions">, "slide" | "status">>,
+): Promise<void> {
+  await ctx.db.patch(session._id, { ...patch, lastActiveAt: Date.now() });
 }
 
 async function deleteParticipantOptionVotes(
@@ -81,10 +101,7 @@ async function generateUniqueCode(ctx: MutationCtx): Promise<string> {
   for (let attempt = 0; attempt < 8; attempt++) {
     const code = crypto.randomUUID().replace(/-/g, "").slice(0, CODE_LENGTH);
     if (isNumberLikeCode(code)) continue;
-    const existing = await ctx.db
-      .query("presentationSessions")
-      .withIndex("by_code", (q) => q.eq("code", code))
-      .first();
+    const existing = await getSessionByCode(ctx, code);
     if (!existing) return code;
   }
   throw new Error("Could not generate a unique session code");
@@ -127,10 +144,7 @@ export const getSession = query({
     v.null(),
   ),
   handler: async (ctx, args) => {
-    const session = await ctx.db
-      .query("presentationSessions")
-      .withIndex("by_code", (q) => q.eq("code", args.code))
-      .first();
+    const session = await getSessionByCode(ctx, args.code);
     if (!session) return null;
     return { slide: session.slide, status: session.status };
   },
@@ -141,16 +155,15 @@ export const setSlide = mutation({
   args: { code: v.string(), hostKey: v.string(), slide: v.number() },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const session = await ctx.db
-      .query("presentationSessions")
-      .withIndex("by_code", (q) => q.eq("code", args.code))
-      .first();
-    if (!session || session.hostKey !== args.hostKey) return null;
-    if (session.status !== "live") return null;
-    await ctx.db.patch(session._id, {
-      slide: args.slide,
-      lastActiveAt: Date.now(),
-    });
+    const session = await getSessionByCode(ctx, args.code);
+    if (
+      !session ||
+      session.hostKey !== args.hostKey ||
+      session.status !== "live"
+    ) {
+      return null;
+    }
+    await patchSession(ctx, session, { slide: args.slide });
     return null;
   },
 });
@@ -160,15 +173,9 @@ export const stopSharing = mutation({
   args: { code: v.string(), hostKey: v.string() },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const session = await ctx.db
-      .query("presentationSessions")
-      .withIndex("by_code", (q) => q.eq("code", args.code))
-      .first();
+    const session = await getSessionByCode(ctx, args.code);
     if (!session || session.hostKey !== args.hostKey) return null;
-    await ctx.db.patch(session._id, {
-      status: "ended",
-      lastActiveAt: Date.now(),
-    });
+    await patchSession(ctx, session, { status: "ended" });
     return null;
   },
 });
@@ -185,10 +192,7 @@ export const sendVote = mutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const session = await ctx.db
-      .query("presentationSessions")
-      .withIndex("by_code", (q) => q.eq("code", args.code))
-      .first();
+    const session = await getSessionByCode(ctx, args.code);
     if (!session || session.status !== "live") return null;
 
     const prior = await ctx.db
@@ -209,7 +213,7 @@ export const sendVote = mutation({
       participantKey: args.participantKey,
       optionId: args.optionId,
     });
-    await ctx.db.patch(session._id, { lastActiveAt: Date.now() });
+    await patchSession(ctx, session, {});
     return null;
   },
 });
@@ -226,10 +230,7 @@ export const togglePollOption = mutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const session = await ctx.db
-      .query("presentationSessions")
-      .withIndex("by_code", (q) => q.eq("code", args.code))
-      .first();
+    const session = await getSessionByCode(ctx, args.code);
     if (!session || session.status !== "live") return null;
 
     const existing = await ctx.db
@@ -252,7 +253,7 @@ export const togglePollOption = mutation({
         optionId: args.optionId,
       });
     }
-    await ctx.db.patch(session._id, { lastActiveAt: Date.now() });
+    await patchSession(ctx, session, {});
     return null;
   },
 });
@@ -291,12 +292,14 @@ export const clearPollVotes = mutation({
   args: { code: v.string(), hostKey: v.string(), pollId: v.string() },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const session = await ctx.db
-      .query("presentationSessions")
-      .withIndex("by_code", (q) => q.eq("code", args.code))
-      .first();
-    if (!session || session.hostKey !== args.hostKey) return null;
-    if (session.status !== "live") return null;
+    const session = await getSessionByCode(ctx, args.code);
+    if (
+      !session ||
+      session.hostKey !== args.hostKey ||
+      session.status !== "live"
+    ) {
+      return null;
+    }
 
     const votes = await ctx.db
       .query("presentationVotes")
@@ -307,7 +310,7 @@ export const clearPollVotes = mutation({
     for (const vote of votes) {
       await ctx.db.delete(vote._id);
     }
-    await ctx.db.patch(session._id, { lastActiveAt: Date.now() });
+    await patchSession(ctx, session, {});
     return null;
   },
 });
