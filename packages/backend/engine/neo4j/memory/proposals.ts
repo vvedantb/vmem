@@ -90,7 +90,7 @@ function toProposedUpdateNodeFromProps(
     createdAt: props.createdAt,
     resolvedAt: props.resolvedAt ?? null,
     sourceMemoryIds: stringArraySchema.parse(props.sourceMemoryIds),
-    confidence: typeof props.confidence === "number" ? props.confidence : null,
+    confidence: props.confidence ?? null,
     source: proposalSourceSchema.parse(props.source),
     memorySnapshot: options.memorySnapshot ?? null,
     sourceMemorySnapshots: options.sourceMemorySnapshots ?? [],
@@ -336,28 +336,52 @@ async function lookupProposalContext(
   return parsed.success ? parsed.data : null;
 }
 
+/**
+ * Set the proposal's status (no other graph mutation) and log an "api"
+ * event for the target memory, if any. Shared body for `applyRejection`
+ * and `applyDismissOnlyApproval`, which differ only in which status/event
+ * name they use.
+ */
+async function applyStatusOnly(
+  session: Session,
+  proposalId: string,
+  lookup: ProposalLookup,
+  now: string,
+  status: "rejected" | "approved",
+  eventName: "proposal_rejected" | "proposal_approved",
+): Promise<ResolveResult> {
+  await session.run(
+    `MATCH (p:ProposedUpdate {id: $proposalId})
+     SET p.status = $status, p.resolvedAt = $now`,
+    { proposalId, now, status },
+  );
+  if (lookup.memoryId.length > 0) {
+    await logEvent(
+      session,
+      lookup.memoryId,
+      eventName,
+      "api",
+      { kind: lookup.kind },
+      null,
+    );
+  }
+  return { status, memoryId: lookup.memoryId, kind: lookup.kind };
+}
+
 async function applyRejection(
   session: Session,
   proposalId: string,
   lookup: ProposalLookup,
   now: string,
 ): Promise<ResolveResult> {
-  await session.run(
-    `MATCH (p:ProposedUpdate {id: $proposalId})
-     SET p.status = 'rejected', p.resolvedAt = $now`,
-    { proposalId, now },
+  return applyStatusOnly(
+    session,
+    proposalId,
+    lookup,
+    now,
+    "rejected",
+    "proposal_rejected",
   );
-  if (lookup.memoryId.length > 0) {
-    await logEvent(
-      session,
-      lookup.memoryId,
-      "proposal_rejected",
-      "api",
-      { kind: lookup.kind },
-      null,
-    );
-  }
-  return { status: "rejected", memoryId: lookup.memoryId, kind: lookup.kind };
 }
 
 async function applyDeleteApproval(
@@ -441,22 +465,14 @@ async function applyDismissOnlyApproval(
   lookup: ProposalLookup,
   now: string,
 ): Promise<ResolveResult> {
-  await session.run(
-    `MATCH (p:ProposedUpdate {id: $proposalId})
-     SET p.status = 'approved', p.resolvedAt = $now`,
-    { proposalId, now },
+  return applyStatusOnly(
+    session,
+    proposalId,
+    lookup,
+    now,
+    "approved",
+    "proposal_approved",
   );
-  if (lookup.memoryId.length > 0) {
-    await logEvent(
-      session,
-      lookup.memoryId,
-      "proposal_approved",
-      "api",
-      { kind: lookup.kind },
-      null,
-    );
-  }
-  return { status: "approved", memoryId: lookup.memoryId, kind: lookup.kind };
 }
 
 /**
