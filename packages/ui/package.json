@@ -5,7 +5,6 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./ai": "./src/ai-elements/index.ts",
     "./cn": "./src/utils/cn.ts"
   },
   "peerDependencies": {
@@ -25,25 +24,15 @@
     "@radix-ui/react-tabs": "catalog:",
     "@radix-ui/react-tooltip": "catalog:",
     "@radix-ui/react-use-controllable-state": "catalog:",
-    "@shikijs/langs": ">=3.0.0",
-    "@shikijs/themes": ">=3.0.0",
-    "@streamdown/cjk": ">=0.1.0",
-    "@streamdown/math": ">=0.1.0",
-    "@streamdown/mermaid": ">=0.1.0",
     "@tabler/icons-react": "catalog:",
-    "ai": ">=4.0.0",
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",
     "cmdk": "catalog:",
     "motion": ">=12.0.0",
-    "nanoid": ">=5.0.0",
     "react": ">=19.0.0",
     "react-dom": ">=19.0.0",
-    "shiki": ">=3.0.0",
     "sonner": "catalog:",
-    "streamdown": ">=0.1.0",
-    "tailwind-merge": "catalog:",
-    "use-stick-to-bottom": ">=1.0.0"
+    "tailwind-merge": "catalog:"
   },
   "devDependencies": {
     "@types/react": "catalog:",
