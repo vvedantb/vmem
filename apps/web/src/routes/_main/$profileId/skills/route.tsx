@@ -122,11 +122,13 @@ function SkillsLayout() {
     }
   }, [hasSkillId]);
 
+  const viewedSkillName = viewedSkill?.name;
+
   useEffect(() => {
-    if (viewedSkill) {
-      setNameDraft(viewedSkill.name);
+    if (viewedSkillName !== undefined) {
+      setNameDraft(viewedSkillName);
     }
-  }, [viewedSkill]);
+  }, [viewedSkillName]);
 
   useEffect(() => {
     if (!skills || !hasSkillId) return;

@@ -277,7 +277,7 @@ export default function AddMemoryModal({
                         onClick={() => removeTag(tag, field.onChange)}
                         className="-mr-1 ml-0.5 text-muted hover:text-foreground"
                       >
-                        <IconX size={11} />
+                        <IconX className="size-[11px]" />
                       </Button>
                     </Badge>
                   ))}
@@ -349,7 +349,7 @@ export default function AddMemoryModal({
                             className="flex h-auto w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm text-foreground hover:bg-surface-tertiary/80"
                           >
                             <span className="flex items-center gap-1.5">
-                              <IconHash size={12} className="text-muted" />
+                              <IconHash className="size-3 text-muted" />
                               {item.tag}
                             </span>
                             <span className="text-xs text-muted tabular-nums">
@@ -365,7 +365,7 @@ export default function AddMemoryModal({
                             onClick={() => addTag(tagInput, field.onChange)}
                             className="flex h-auto w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-sm text-foreground hover:bg-surface-tertiary/80"
                           >
-                            <IconPlus size={12} className="text-muted" />
+                            <IconPlus className="size-3 text-muted" />
                             Create &ldquo;{normalizedTagInput}&rdquo;
                           </Button>
                         )}

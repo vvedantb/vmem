@@ -68,9 +68,9 @@ export default function WikiSearch({ onSelect }: WikiSearchProps) {
                     className="h-auto w-full justify-start gap-2 rounded-md px-2 py-1.5 text-left text-sm font-normal text-foreground/90 hover:bg-surface-tertiary/50 active:scale-100 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {node.kind === "folder" ? (
-                      <IconFolder size={14} className="text-muted shrink-0" />
+                      <IconFolder className="size-3.5 text-muted shrink-0" />
                     ) : (
-                      <IconFileText size={14} className="text-muted shrink-0" />
+                      <IconFileText className="size-3.5 text-muted shrink-0" />
                     )}
                     <span className="truncate">{node.title}</span>
                   </Button>

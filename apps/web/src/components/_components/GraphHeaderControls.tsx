@@ -265,7 +265,7 @@ function OptionsPopover({
                     : "text-muted hover:bg-surface-secondary/70 hover:text-foreground"
                 }`}
               >
-                <Icon size={14} />
+                <Icon className="size-3.5" />
               </Button>
             ))}
           </div>
@@ -292,7 +292,7 @@ function OptionsPopover({
               onClick={onReset}
               className="flex h-auto items-center gap-0.5 p-0 text-[10px] text-muted hover:text-foreground"
             >
-              <IconRefresh size={10} />
+              <IconRefresh className="size-2.5" />
               Reset
             </Button>
           </div>

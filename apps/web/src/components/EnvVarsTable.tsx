@@ -313,7 +313,7 @@ export function EnvVarsTable({
                           title="Save"
                           className="text-accent hover:text-accent"
                         >
-                          <IconCheck size={14} />
+                          <IconCheck className="size-3.5" />
                         </Button>
                         <Button
                           size="icon-sm"
@@ -321,7 +321,7 @@ export function EnvVarsTable({
                           onClick={cancelAdd}
                           title="Cancel"
                         >
-                          <IconX size={14} />
+                          <IconX className="size-3.5" />
                         </Button>
                       </div>
                     </TableCell>
@@ -377,7 +377,7 @@ export function EnvVarsTable({
                               title="Save"
                               className="text-accent hover:text-accent"
                             >
-                              <IconCheck size={14} />
+                              <IconCheck className="size-3.5" />
                             </Button>
                             <Button
                               size="icon-sm"
@@ -385,7 +385,7 @@ export function EnvVarsTable({
                               onClick={cancelEdit}
                               title="Cancel"
                             >
-                              <IconX size={14} />
+                              <IconX className="size-3.5" />
                             </Button>
                           </div>
                         ) : (
@@ -402,9 +402,9 @@ export function EnvVarsTable({
                               }
                             >
                               {revealedValues[entry.key] !== undefined ? (
-                                <IconEyeOff size={14} />
+                                <IconEyeOff className="size-3.5" />
                               ) : (
-                                <IconEye size={14} />
+                                <IconEye className="size-3.5" />
                               )}
                             </Button>
                             <Button
@@ -418,9 +418,9 @@ export function EnvVarsTable({
                               }
                             >
                               {copiedKey === entry.key ? (
-                                <IconCheck size={14} className="text-accent" />
+                                <IconCheck className="size-3.5 text-accent" />
                               ) : (
-                                <IconCopy size={14} />
+                                <IconCopy className="size-3.5" />
                               )}
                             </Button>
                             <Button
@@ -429,7 +429,7 @@ export function EnvVarsTable({
                               onClick={() => startEdit(entry)}
                               title="Edit"
                             >
-                              <IconPencil size={14} />
+                              <IconPencil className="size-3.5" />
                             </Button>
                             <Button
                               size="icon-sm"
@@ -438,7 +438,7 @@ export function EnvVarsTable({
                               title="Delete"
                               className="text-danger hover:text-danger"
                             >
-                              <IconTrash size={14} />
+                              <IconTrash className="size-3.5" />
                             </Button>
                           </div>
                         )}
