@@ -3,7 +3,10 @@
   "options": {
     "typeAware": true
   },
-  "plugins": ["typescript"],
+  "plugins": ["typescript", "import"],
+  "jsPlugins": [
+    { "name": "vmem", "specifier": "./oxlint-plugin-vmem/index.mjs" }
+  ],
   "ignorePatterns": [
     "**/node_modules/**",
     "**/_generated/**",
@@ -32,6 +35,23 @@
           }
         }
       }
-    ]
-  }
+    ],
+    "typescript/no-floating-promises": "warn",
+    "import/no-cycle": "warn",
+    "import/no-self-import": "warn",
+    "import/no-duplicates": "warn",
+    "vmem/no-unknown-shape-probing": "warn",
+    "vmem/no-json-parse": "warn",
+    "vmem/no-double-cast": "warn",
+    "vmem/no-engine-imports-convex": "error",
+    "vmem/no-ts-nocheck": "error"
+  },
+  "overrides": [
+    {
+      "files": ["**/engine/llm/extractJsonString.ts"],
+      "rules": {
+        "vmem/no-json-parse": "off"
+      }
+    }
+  ]
 }
