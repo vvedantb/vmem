@@ -131,19 +131,15 @@ export const verifyAccessToken = internalAction({
     let clerkUserId: string | null = null;
     try {
       const decoded = jwt.verify(token, getJwtSecret());
-      if (
-        typeof decoded === "object" &&
-        decoded !== null &&
-        typeof decoded.sub === "string"
-      ) {
-        clerkUserId = decoded.sub;
-      } else if (
-        typeof decoded === "object" &&
-        decoded !== null &&
-        "clerkUserId" in decoded &&
-        typeof decoded.clerkUserId === "string"
-      ) {
-        clerkUserId = decoded.clerkUserId;
+      if (typeof decoded === "object" && decoded !== null) {
+        if (typeof decoded.sub === "string") {
+          clerkUserId = decoded.sub;
+        } else if (
+          "clerkUserId" in decoded &&
+          typeof decoded.clerkUserId === "string"
+        ) {
+          clerkUserId = decoded.clerkUserId;
+        }
       }
     } catch (err) {
       console.error(
