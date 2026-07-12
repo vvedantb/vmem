@@ -214,15 +214,12 @@ export const getGraphData = authAction({
       sourceType: null,
     }));
 
-    const wikiParentEdges: { source: string; target: string }[] = [];
-    for (const w of wikiRows) {
-      if (w.parentId !== undefined) {
-        wikiParentEdges.push({
-          source: `${WIKI_PREFIX}${w.parentId}`,
-          target: `${WIKI_PREFIX}${w._id}`,
-        });
-      }
-    }
+    const wikiParentEdges: { source: string; target: string }[] = wikiRows
+      .filter((w: Doc<"wikiNodes">) => w.parentId !== undefined)
+      .map((w: Doc<"wikiNodes">) => ({
+        source: `${WIKI_PREFIX}${w.parentId}`,
+        target: `${WIKI_PREFIX}${w._id}`,
+      }));
 
     // Skills — same visibility rule as wiki. Skills are user-level atoms
     // with no edges into the memory graph today, so they render as
