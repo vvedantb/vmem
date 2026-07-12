@@ -260,8 +260,8 @@ function simulateStep() {
     const a = byId.get(source);
     const b = byId.get(target);
     if (!a || !b) return;
-    let dx = b.x - a.x;
-    let dy = b.y - a.y;
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
     let dist = Math.hypot(dx, dy);
     if (dist < 1) dist = 1;
     const displacement = (dist - distance) * strength;

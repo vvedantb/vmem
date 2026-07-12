@@ -23,11 +23,7 @@ function isTheme(value: string | undefined): value is Theme {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const {
-    theme: nextTheme,
-    resolvedTheme,
-    setTheme: setNextTheme,
-  } = useTheme();
+  const { resolvedTheme, setTheme: setNextTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   const settings = useQuery(api.userSettings.get);

@@ -7,45 +7,6 @@ import type { ImportResult } from "./import-bookmarks";
 
 const SKIP_PREFIXES = ["chrome://", "chrome-extension://", "about:", "edge://"];
 
-// Build a map of visitId → URL for referrer lookups
-async function buildVisitMap(
-  entries: chrome.history.HistoryItem[],
-): Promise<Map<string, string>> {
-  const visitMap = new Map<string, string>();
-
-  for (const entry of entries) {
-    if (!entry.url) continue;
-    try {
-      const visits = await chrome.history.getVisits({ url: entry.url });
-      for (const visit of visits) {
-        visitMap.set(visit.visitId, entry.url);
-      }
-    } catch {
-      // Skip if getVisits fails
-    }
-  }
-
-  return visitMap;
-}
-
-// Get referrer URL for a history entry
-async function getReferrerUrl(
-  url: string,
-  visitMap: Map<string, string>,
-): Promise<string | undefined> {
-  try {
-    const visits = await chrome.history.getVisits({ url });
-    // Get the most recent visit
-    const latestVisit = visits[visits.length - 1];
-    if (latestVisit?.referringVisitId) {
-      return visitMap.get(latestVisit.referringVisitId);
-    }
-  } catch {
-    // Ignore errors
-  }
-  return undefined;
-}
-
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }

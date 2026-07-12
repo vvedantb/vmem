@@ -153,7 +153,6 @@ export default function FilePreviewModal({
             <div className="rounded-lg bg-surface-secondary/50 overflow-hidden">
               {file.fileCategory === "image" && file.thumbnailUrl ? (
                 <div className="flex min-h-72 items-center justify-center p-4">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={file.thumbnailUrl}
                     alt={file.name}

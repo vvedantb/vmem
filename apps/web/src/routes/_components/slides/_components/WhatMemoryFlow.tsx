@@ -2,7 +2,6 @@ import { useContext } from "react";
 import type { ComponentType } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { IconMemories } from "@/components/sidebar-icons";
-import { motionDuration, motionEase } from "@vmem/ui";
 import { SlideStepContext } from "./SlideShell";
 
 interface IconProps {

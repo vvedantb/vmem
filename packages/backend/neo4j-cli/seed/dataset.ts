@@ -1667,13 +1667,6 @@ function generateBulkMemories(count: number) {
     seed = (seed * 16807 + 0) % 2147483647;
     return (seed - 1) / 2147483646;
   }
-  function pickR<T>(arr: readonly T[]): T {
-    return arr[Math.floor(rng() * arr.length)];
-  }
-  function pickN<T>(arr: readonly T[], n: number): T[] {
-    const shuffled = [...arr].sort(() => rng() - 0.5);
-    return shuffled.slice(0, n);
-  }
 
   // â”€â”€ TECH â”€â”€
   const techSubjects = [
