@@ -339,16 +339,20 @@ export async function getGraphOverview(args: FilteredArgs): Promise<{
         const toId: string = rec.get("toId");
         if (!nodeIds.has(fromId) || !nodeIds.has(toId)) continue;
         const confRaw = rec.get("confidence");
-        const tierRaw = rec.get("tier");
+        const tierRaw: unknown = rec.get("tier");
+        const tier: OverviewEdge["tier"] =
+          q.carry &&
+          (tierRaw === "EXTRACTED" ||
+            tierRaw === "INFERRED" ||
+            tierRaw === "AMBIGUOUS")
+            ? tierRaw
+            : undefined;
         edges.push({
           fromId,
           toId,
           type: q.type,
           confidence: q.carry && confRaw != null ? Number(confRaw) : undefined,
-          tier:
-            q.carry && tierRaw != null
-              ? (tierRaw as OverviewEdge["tier"])
-              : undefined,
+          tier,
         });
       }
     }
@@ -404,12 +408,21 @@ export async function getSymbolContext(
     const kind = pickKind(labels);
     if (!kind) return null;
     const props = r.get("n").properties;
-    const num = (v: unknown): number | undefined =>
-      v == null
-        ? undefined
-        : typeof v === "object" && v !== null && "toNumber" in v
-          ? Number((v as { toNumber: () => number }).toNumber())
-          : Number(v);
+    // Neo4j returns Integer objects for integer properties; plain numbers for
+    // floats. After ruling out null and plain number, call .toNumber() which
+    // is present on all neo4j Integer objects.
+    const num = (v: unknown): number | undefined => {
+      if (v == null) return undefined;
+      if (typeof v === "number") return v;
+      if (
+        typeof v === "object" &&
+        "toNumber" in v &&
+        typeof (v as Record<string, unknown>).toNumber === "function"
+      ) {
+        return (v as { toNumber(): number }).toNumber();
+      }
+      return Number(v);
+    };
     const filterOut = <T extends { id: string }>(arr: T[]): T[] =>
       arr.filter((x) => x.id != null);
     return {
