@@ -8,6 +8,8 @@ import neo4j, { type Driver } from "neo4j-driver";
 import { neo4jGet, parseNeo4jInt } from "../record";
 import { withSession } from "./shared";
 
+export { createSemanticEdgesForMemory } from "./relationships";
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Profile migration
 // ─────────────────────────────────────────────────────────────────────────────
@@ -259,41 +261,6 @@ export async function listMissingSemanticEdges(
         },
       ];
     });
-  });
-}
-
-/** Create semantic similarity edges for a single memory using the vector index. */
-export async function createSemanticEdgesForMemory(
-  driver: Driver,
-  memoryId: string,
-  userId: string,
-  embedding: number[],
-): Promise<number> {
-  return withSession(driver, async (session) => {
-    const result = await session.run(
-      `CALL db.index.vector.queryNodes('memory_embedding', $k, $embedding)
-       YIELD node AS candidate, score AS similarity
-       WHERE candidate.userId = $userId
-         AND candidate.id <> $id
-         AND similarity >= $threshold
-       WITH candidate, similarity
-       ORDER BY similarity DESC
-       LIMIT $limit
-       MATCH (m:Memory {id: $id})
-       MERGE (m)-[r:RELATES_TO]->(candidate)
-       ON CREATE SET r.reason = 'semantic similarity', r.score = similarity
-       RETURN count(r) AS created`,
-      {
-        k: neo4j.int(20),
-        embedding,
-        userId,
-        id: memoryId,
-        threshold: 0.78,
-        limit: neo4j.int(5),
-      },
-    );
-    const record = result.records[0];
-    return record ? parseNeo4jInt(neo4jGet(record, "created")) : 0;
   });
 }
 

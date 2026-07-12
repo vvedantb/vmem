@@ -20,6 +20,7 @@ import { buildAndRun } from "../cypherHelpers";
 import { toMemoryContentFulltextQuery } from "../luceneQuery";
 import { neo4jGet, parseNeo4jInt } from "../record";
 import { toMemoryWithTags, toSnapshot } from "./mappers";
+import { createSemanticSimilarityEdges } from "./relationships";
 import { logEvent, withSession } from "./shared";
 import { normalizeTags } from "./tagNormalize";
 import {
@@ -29,7 +30,7 @@ import {
 } from "./types";
 
 /** Lightweight memory reference returned by the dedup-lookup helpers. */
-type MemoryRef = { id: string; title: string; updatedAt: string };
+export type MemoryRef = { id: string; title: string; updatedAt: string };
 
 /**
  * Extract the `{id, title, updatedAt}` shape from a query's first record, or
@@ -202,31 +203,13 @@ export async function createMemory(
     // 578 edges). Genuinely related pages are covered by the two similarity
     // paths below; browsing bursts by the same-session edge above.
 
-    // Semantic similarity edges — find top-5 most similar existing memories
-    // using the vector index and create RELATES_TO edges above the threshold.
-    // MERGE avoids duplicating edges that already exist from same-session;
-    // ON CREATE SET ensures score is only written on new edges.
+    // Semantic similarity edges — see createSemanticSimilarityEdges in relationships.ts.
     if (params.embedding !== null) {
-      await session.run(
-        `CALL db.index.vector.queryNodes('memory_embedding', $k, $embedding)
-         YIELD node AS candidate, score AS similarity
-         WHERE candidate.userId = $userId
-           AND candidate.id <> $id
-           AND similarity >= $threshold
-         WITH candidate, similarity
-         ORDER BY similarity DESC
-         LIMIT $limit
-         MATCH (m:Memory {id: $id})
-         MERGE (m)-[r:RELATES_TO]->(candidate)
-         ON CREATE SET r.reason = 'semantic similarity', r.score = similarity`,
-        {
-          k: neo4j.int(20),
-          embedding: params.embedding,
-          userId: params.userId,
-          id,
-          threshold: 0.78,
-          limit: neo4j.int(5),
-        },
+      await createSemanticSimilarityEdges(
+        session,
+        id,
+        params.userId,
+        params.embedding,
       );
     }
 
@@ -680,6 +663,16 @@ export async function finalizeDedupHit(
 ): Promise<MemoryWithTags | null> {
   await incrementVisitCount(driver, userId, memoryId);
   return getMemory(driver, userId, memoryId);
+}
+
+/** Bump visit count and return the full row when a dedup lookup matched. */
+export async function shortCircuitOnDedupMatch(
+  driver: Driver,
+  userId: string,
+  ref: MemoryRef | null,
+): Promise<MemoryWithTags | null> {
+  if (!ref) return null;
+  return finalizeDedupHit(driver, userId, ref.id);
 }
 
 /**

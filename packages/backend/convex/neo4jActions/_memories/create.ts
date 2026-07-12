@@ -13,7 +13,7 @@ import {
   findMemoryByExternalId,
   findMemoryBySimilarity,
   findMemoryByTitleAndOrigin,
-  finalizeDedupHit,
+  shortCircuitOnDedupMatch,
   findMemoryByUrl,
 } from "../../../engine/neo4j/memory/crud";
 import type { MemoryWithTags } from "../../../engine/neo4j/memory/types";
@@ -77,18 +77,22 @@ export async function runCreateMemory(
       args.sourceType,
       args.externalId,
     );
-    if (existing) {
-      const full = await finalizeDedupHit(driver, args.clerkId, existing.id);
-      if (full) return full;
-    }
+    const shortCircuited = await shortCircuitOnDedupMatch(
+      driver,
+      args.clerkId,
+      existing,
+    );
+    if (shortCircuited) return shortCircuited;
   }
 
   if (normalizedUrl) {
     const existing = await findMemoryByUrl(driver, args.clerkId, normalizedUrl);
-    if (existing) {
-      const full = await finalizeDedupHit(driver, args.clerkId, existing.id);
-      if (full) return full;
-    }
+    const shortCircuited = await shortCircuitOnDedupMatch(
+      driver,
+      args.clerkId,
+      existing,
+    );
+    if (shortCircuited) return shortCircuited;
   }
 
   if (normalizedUrl && BROWSER_SOURCES.has(args.source)) {
@@ -100,14 +104,12 @@ export async function runCreateMemory(
         args.title,
         origin,
       );
-      if (titleMatch) {
-        const full = await finalizeDedupHit(
-          driver,
-          args.clerkId,
-          titleMatch.id,
-        );
-        if (full) return full;
-      }
+      const shortCircuited = await shortCircuitOnDedupMatch(
+        driver,
+        args.clerkId,
+        titleMatch,
+      );
+      if (shortCircuited) return shortCircuited;
     } catch {
       // Invalid URL, skip this check
     }
@@ -119,10 +121,12 @@ export async function runCreateMemory(
     args.clerkId,
     contentHash,
   );
-  if (hashMatch) {
-    const full = await finalizeDedupHit(driver, args.clerkId, hashMatch.id);
-    if (full) return full;
-  }
+  const hashShortCircuited = await shortCircuitOnDedupMatch(
+    driver,
+    args.clerkId,
+    hashMatch,
+  );
+  if (hashShortCircuited) return hashShortCircuited;
 
   const embedding = await tryEmbedOne(ctx, {
     clerkId: args.clerkId,
@@ -143,13 +147,13 @@ export async function runCreateMemory(
       console.log(
         `[dedup] semantic near-duplicate (similarity=${semanticMatch.similarity.toFixed(3)}) → ${semanticMatch.id}`,
       );
-      const full = await finalizeDedupHit(
-        driver,
-        args.clerkId,
-        semanticMatch.id,
-      );
-      if (full) return full;
     }
+    const semanticShortCircuited = await shortCircuitOnDedupMatch(
+      driver,
+      args.clerkId,
+      semanticMatch,
+    );
+    if (semanticShortCircuited) return semanticShortCircuited;
   }
 
   const result = await createMemory(driver, {

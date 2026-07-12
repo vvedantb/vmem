@@ -4,8 +4,7 @@ import { v } from "convex/values";
 import crypto from "node:crypto";
 import { authAction, requireClerkId } from "./auth";
 import { internal } from "./_generated/api";
-import { extractPdfText } from "../engine/parsers/pdf";
-import { extractTextFromBlob } from "../engine/parsers/text";
+import { extractFileContent } from "../engine/parsers/extractFileContent";
 import { detectFileKind } from "./files/lib";
 import type { Id } from "./_generated/dataModel";
 
@@ -100,15 +99,7 @@ export const importMemoryFromFile = authAction({
       );
     }
 
-    // Extract text. PDF goes through pdf-parse (Buffer-based); TXT/MD
-    // are decoded straight from the blob.
-    let content: string;
-    if (kind === "pdf") {
-      const arrayBuffer = await blob.arrayBuffer();
-      content = await extractPdfText(Buffer.from(arrayBuffer));
-    } else {
-      content = await extractTextFromBlob(blob);
-    }
+    const content = await extractFileContent(blob, kind);
 
     if (content.trim().length === 0) {
       throw new Error(
