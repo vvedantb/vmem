@@ -16,16 +16,13 @@ import {
   setContentHashes,
   setEmbeddings,
 } from "../../../engine/neo4j/memory/migration";
-import { getRecentMemoryTitles } from "../../../engine/neo4j/memory/search";
-import { getTopTags } from "../../../engine/neo4j/memory/tags";
-import { getTopEntities } from "../../../engine/neo4j/memory/entities";
 import { getDriver } from "../../../engine/neo4j/driver";
-import { callJsonChat, generateEmbeddings } from "../../lib/openRouter";
+import { generateEmbeddings } from "../../lib/openRouter";
 import { tryUserAndApiKeyByClerkId } from "../../lib/envVars";
 import {
-  buildFullEnrichmentPrompt,
-  parseFullEnrichmentResponse,
-} from "../../prompts/enrichmentPrompt";
+  callFullEnrichmentLlm,
+  loadEnrichmentVocabulary,
+} from "../enrichment/llm";
 export const backfillEmbeddingsInternal = internalAction({
   args: { batchSize: v.optional(v.number()) },
   handler: async (ctx, args) => {
@@ -260,42 +257,27 @@ export const backfillEntitiesInternal = internalAction({
           continue;
         }
 
-        // Recent memory titles + established tag/entity vocabularies for the
-        // enrichment prompt context (vocabulary drives name reuse).
-        const [existingMemories, existingTags, existingEntities] =
-          await Promise.all([
-            getRecentMemoryTitles(driver, clerkId, ""),
-            getTopTags(driver, clerkId, 50),
-            getTopEntities(driver, clerkId, 150),
-          ]);
+        const vocabulary = await loadEnrichmentVocabulary(driver, clerkId, {
+          excludeMemoryId: "",
+          includeEntities: true,
+        });
 
         for (const item of items) {
           try {
-            const prompt = buildFullEnrichmentPrompt(
-              item.title,
-              item.content,
-              existingMemories,
-              existingTags,
-              existingEntities,
-            );
-
-            const llmContent = await callJsonChat(ctx, {
-              apiKey: auth.apiKey,
-              userId: auth.userId,
+            const parsed = await callFullEnrichmentLlm(ctx, auth, {
+              title: item.title,
+              content: item.content,
               profileId: item.profileId ?? undefined,
               feature: "entity-backfill",
-              role: "You are a memory tagging and entity extraction system.",
-              prompt,
+              vocabulary,
             });
 
-            if (llmContent === null) {
+            if (parsed === null) {
               console.error(`entity backfill: LLM failed for ${item.id}`);
               processedIds.push(item.id);
               continue;
             }
-
-            const parsed = parseFullEnrichmentResponse(llmContent);
-            if (parsed && parsed.entities.length > 0) {
+            if (parsed.entities.length > 0) {
               await applyEntitiesOnly(
                 driver,
                 item.id,
