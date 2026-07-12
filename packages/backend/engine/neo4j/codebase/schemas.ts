@@ -58,9 +58,11 @@ export const edgeTierSchema = z.enum(["EXTRACTED", "INFERRED", "AMBIGUOUS"]);
 
 export const nullableEdgeTierSchema = edgeTierSchema.nullable();
 
-export const nullableNumberSchema = z
-  .union([z.number(), neo4jIntSchema, z.null()])
-  .transform((v): number | null => (v === null ? null : v));
+export const nullableNumberSchema = z.union([
+  z.number(),
+  neo4jIntSchema,
+  z.null(),
+]);
 
 export const symbolRefSchema = z.object({
   id: z.string().nullable(),
