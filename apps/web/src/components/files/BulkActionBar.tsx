@@ -1,8 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "motion/react";
-import { Button } from "@vmem/ui";
-import { motionEase, motionDuration } from "@vmem/ui";
+import { Button, motionEase, motionDuration } from "@vmem/ui";
 import {
   IconDownload,
   IconFolderSymlink,

@@ -27,8 +27,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Lint
+        run: pnpm lint
+
       - name: Typecheck web
         run: pnpm typecheck
+
+      - name: Knip (dead exports / deps)
+        run: pnpm knip
+
+      - name: Oxlint plugin unit tests
+        run: pnpm test:oxlint-plugin
 
       - name: Run unit tests (backend + web)
         run: pnpm test

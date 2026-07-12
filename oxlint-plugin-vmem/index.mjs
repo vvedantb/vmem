@@ -9,6 +9,11 @@ import noJsonParse from "./rules/no-json-parse.mjs";
 import noDoubleCast from "./rules/no-double-cast.mjs";
 import noEngineImportsConvex from "./rules/no-engine-imports-convex.mjs";
 import noTsNocheck from "./rules/no-ts-nocheck.mjs";
+import noCrossPackageRelativeImports from "./rules/no-cross-package-relative-imports.mjs";
+import noInlineObjectTypeAssertion from "./rules/no-inline-object-type-assertion.mjs";
+import preferSchemaInferredTypes from "./rules/prefer-schema-inferred-types.mjs";
+import noDeepPackageImports from "./rules/no-deep-package-imports.mjs";
+import noConditionalTests from "./rules/no-conditional-tests.mjs";
 
 export default {
   meta: { name: "vmem" },
@@ -18,5 +23,10 @@ export default {
     "no-double-cast": noDoubleCast,
     "no-engine-imports-convex": noEngineImportsConvex,
     "no-ts-nocheck": noTsNocheck,
+    "no-cross-package-relative-imports": noCrossPackageRelativeImports,
+    "no-inline-object-type-assertion": noInlineObjectTypeAssertion,
+    "prefer-schema-inferred-types": preferSchemaInferredTypes,
+    "no-deep-package-imports": noDeepPackageImports,
+    "no-conditional-tests": noConditionalTests,
   },
 };

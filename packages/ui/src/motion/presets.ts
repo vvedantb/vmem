@@ -94,4 +94,8 @@ export function staggerContainer(
   };
 }
 
-export const staggerItem: Variants = fadeUp;
+export const staggerItem: Variants = {
+  hidden: fadeUp.hidden,
+  show: fadeUp.show,
+  exit: fadeUp.exit,
+};

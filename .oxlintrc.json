@@ -3,7 +3,7 @@
   "options": {
     "typeAware": true
   },
-  "plugins": ["typescript", "import"],
+  "plugins": ["typescript", "import", "unicorn"],
   "jsPlugins": [
     { "name": "vmem", "specifier": "./oxlint-plugin-vmem/index.mjs" }
   ],
@@ -19,7 +19,8 @@
     "**/ios/**",
     "**/routeTree.gen.ts",
     "**/*.d.ts",
-    "eslint-report.json"
+    "eslint-report.json",
+    "oxlint-plugin-vmem/test/fixtures/**"
   ],
   "rules": {
     "typescript/no-explicit-any": "error",
@@ -37,14 +38,23 @@
       }
     ],
     "typescript/no-floating-promises": "warn",
+    "typescript/consistent-type-imports": "warn",
+    "typescript/no-unnecessary-type-assertion": "warn",
+    "typescript/no-misused-spread": "warn",
     "import/no-cycle": "warn",
-    "import/no-self-import": "warn",
-    "import/no-duplicates": "warn",
+    "import/no-self-import": "error",
+    "import/no-duplicates": "error",
+    "unicorn/no-abusive-eslint-disable": "error",
     "vmem/no-unknown-shape-probing": "warn",
     "vmem/no-json-parse": "warn",
     "vmem/no-double-cast": "warn",
     "vmem/no-engine-imports-convex": "error",
-    "vmem/no-ts-nocheck": "error"
+    "vmem/no-ts-nocheck": "error",
+    "vmem/no-cross-package-relative-imports": "error",
+    "vmem/no-deep-package-imports": "error",
+    "vmem/no-inline-object-type-assertion": "error",
+    "vmem/prefer-schema-inferred-types": "warn",
+    "vmem/no-conditional-tests": "error"
   },
   "overrides": [
     {

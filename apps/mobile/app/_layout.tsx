@@ -1,5 +1,4 @@
 import "../src/global.css";
-import "react-native-gesture-handler";
 
 import { View, ActivityIndicator } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";

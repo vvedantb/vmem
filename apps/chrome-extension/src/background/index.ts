@@ -1,4 +1,3 @@
-import "./boot-marker";
 import { markBootPhase } from "./boot-marker";
 import {
   registerContextMenu,

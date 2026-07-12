@@ -1,9 +1,26 @@
-<!-- convex-ai-start -->
+# Backend package notes
 
-This project uses [Convex](https://convex.dev) as its backend.
+Read root [AGENTS.md](../../AGENTS.md) first.
 
-When working on Convex code, **always read `convex/_generated/ai/guidelines.md` first** for important guidelines on how to correctly use Convex APIs and patterns. The file contains rules that override what you may have learned about Convex from training data.
+## Layout
 
-Convex agent skills for common tasks can be installed by running `npx convex ai-files install`.
+| Path         | Role                                                                                                                     |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| `convex/`    | Registered Convex queries/mutations/actions + orchestration + prompts + `cloudLib/`                                      |
+| `engine/`    | Neo4j / codebase / parsers — provider-agnostic. Import only from `"use node"` actions. Never import `convex/` from here. |
+| `neo4j-cli/` | Seed / eval / unseed scripts                                                                                             |
+| `tests/`     | Unit tests importing `engine/` or `convex/`                                                                              |
 
-<!-- convex-ai-end -->
+## Public API
+
+- `@vmem/backend` exports `api`, `internal`, and Convex document types only.
+- Apps must not deep-import `@vmem/backend/...`.
+
+## Typecheck
+
+```bash
+pnpm --filter @vmem/backend typecheck
+```
+
+Refresh `_generated/` with `pnpm convex` (dev) when schema/functions changed and
+codegen is stale.
