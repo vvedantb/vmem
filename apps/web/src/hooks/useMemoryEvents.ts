@@ -98,7 +98,7 @@ export function useMemoryEvents(
             // oxlint-disable-next-line typescript/no-unsafe-assignment -- JSON.parse
             const raw: unknown = JSON.parse(event.payload);
             const parsed = relationshipPayloadSchema.safeParse(raw);
-            if (!parsed.success) return;
+            if (!parsed.success) continue;
             onRelationshipEvent({
               eventType: event.eventType,
               source: parsed.data.source,
