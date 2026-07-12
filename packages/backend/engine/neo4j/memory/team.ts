@@ -18,11 +18,7 @@
 import type { Driver } from "neo4j-driver";
 import { detachDeleteCount, fetchMemoryWithTags, runMemoryList } from "./crud";
 import { withSession } from "./shared";
-import {
-  type MemoryStatus,
-  type MemoryType,
-  type MemoryWithTags,
-} from "./types";
+import type { MemoryStatus, MemoryType, MemoryWithTags } from "./types";
 
 export async function listMemoriesForTeam(
   driver: Driver,

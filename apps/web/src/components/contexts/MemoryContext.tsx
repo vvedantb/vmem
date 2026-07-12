@@ -96,7 +96,7 @@ const CONTEXT_MEMORY_LIMIT = 1000;
  * Cypher overhead per request (the count CALL and the page CALL share the
  * same session, so fewer big pages beats many small ones).
  */
-export const MEMORY_LIST_PAGE_SIZE = 100;
+const MEMORY_LIST_PAGE_SIZE = 100;
 
 function isMemoryType(value: string): value is Memory["type"] {
   return value === "profile" || value === "episodic" || value === "knowledge";
@@ -149,7 +149,7 @@ export interface MemoryListFilters {
  * mutations (create/update/delete in this file) invalidate the root
  * ["memories"] key so every filter combination refetches.
  */
-export function useMemoryListPage(filters: MemoryListFilters) {
+function useMemoryListPage(filters: MemoryListFilters) {
   const { isAuthenticated } = useConvexAuth();
   const listMemoriesAction = useAction(api.memoryApi.listMemories);
 
@@ -266,7 +266,7 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
   // by queryKey prefix, so ["memories"] covers both ["memories", "recent"]
   // and ["memories", { ...filters }].
   const invalidateMemories = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ["memories"] });
+    void queryClient.invalidateQueries({ queryKey: ["memories"] });
   }, [queryClient]);
 
   const createMutation = useMutation({

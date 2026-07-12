@@ -9,7 +9,7 @@
 // root types pull in every Google API (~1M lines of .d.ts) and dominated typecheck time.
 import { gmail as gmailApi, auth as googleAuth } from "@googleapis/gmail";
 import type { gmail_v1 } from "@googleapis/gmail";
-import { type ActionCtx } from "../../_generated/server";
+import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
 import {
   EMBED_CONTENT_CAP,

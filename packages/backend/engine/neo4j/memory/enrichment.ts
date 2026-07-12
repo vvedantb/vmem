@@ -7,7 +7,7 @@
  * back: a memory either gets all its enrichment or none of it.
  */
 
-import { type Driver, type Session, type Transaction } from "neo4j-driver";
+import type { Driver, Session, Transaction } from "neo4j-driver";
 import { withSession } from "./shared";
 import { normalizeTags } from "./tagNormalize";
 

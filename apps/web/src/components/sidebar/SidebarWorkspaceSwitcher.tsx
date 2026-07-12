@@ -6,6 +6,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@vmem/backend";
 import type { Doc } from "@vmem/backend";
 import {
+  Button,
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
@@ -135,17 +136,19 @@ export function SidebarWorkspaceSwitcher({
         <DropdownMenuTrigger asChild>
           {collapsed ? (
             <SidebarIconTooltip label={active.name} enabled>
-              <button
+              <Button
                 type="button"
-                className="mx-auto flex items-center justify-center rounded-lg p-1 transition-[background-color] hover:bg-surface-tertiary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                variant="ghost"
+                className="mx-auto h-auto rounded-lg p-1 hover:bg-surface-tertiary/50 active:scale-100"
               >
                 <WorkspaceAvatar profile={active} />
-              </button>
+              </Button>
             </SidebarIconTooltip>
           ) : (
-            <button
+            <Button
               type="button"
-              className="flex w-full items-center gap-2.5 rounded-lg bg-surface-secondary p-2 text-left transition-[background-color] hover:bg-surface-tertiary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+              variant="ghost"
+              className="h-auto w-full justify-start gap-2.5 rounded-lg bg-surface-secondary p-2 text-left hover:bg-surface-tertiary active:scale-100"
             >
               <WorkspaceAvatar profile={active} />
               <div className="min-w-0 flex-1">
@@ -157,7 +160,7 @@ export function SidebarWorkspaceSwitcher({
                 </p>
               </div>
               <IconSelector className="h-4 w-4 shrink-0 text-muted" />
-            </button>
+            </Button>
           )}
         </DropdownMenuTrigger>
         <DropdownMenuContent

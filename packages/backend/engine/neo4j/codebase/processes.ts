@@ -9,7 +9,7 @@
  * trust ts-morph to be cycle-free in 100% of corner cases.
  */
 
-import { type EntryPoint, type ProcessNode, type RelationEdge } from "./types";
+import type { EntryPoint, ProcessNode, RelationEdge } from "./types";
 
 const MAX_DEPTH = 8;
 

@@ -8,7 +8,7 @@
  * into the enrichment prompt; mergeEntityGroup collapses variant nodes.
  */
 import type { Driver, Record as Neo4jRecord } from "neo4j-driver";
-import { neo4jGet, parseNeo4jInt } from "../record";
+import { neo4jGet, neo4jString, parseNeo4jInt } from "../record";
 import { withSession } from "./shared";
 
 export interface EntityUsage {
@@ -20,8 +20,8 @@ export interface EntityUsage {
 /** Shared `{name, type, mentions}` projection used by both entity-listing queries below. */
 function entityUsageFromRecord(r: Neo4jRecord): EntityUsage {
   return {
-    name: String(neo4jGet(r, "name") ?? ""),
-    type: String(neo4jGet(r, "type") ?? ""),
+    name: neo4jString(r, "name"),
+    type: neo4jString(r, "type"),
     mentions: parseNeo4jInt(neo4jGet(r, "mentions")),
   };
 }
@@ -73,8 +73,8 @@ export async function listEntitiesWithMentions(
       { userId },
     );
     return result.records.map((r) => ({
-      id: String(neo4jGet(r, "id") ?? ""),
-      normalizedName: String(neo4jGet(r, "normalizedName") ?? ""),
+      id: neo4jString(r, "id"),
+      normalizedName: neo4jString(r, "normalizedName"),
       ...entityUsageFromRecord(r),
     }));
   });

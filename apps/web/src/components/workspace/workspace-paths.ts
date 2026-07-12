@@ -16,7 +16,7 @@
  * `teams` is handled specially by LegacyPathRedirect (the old
  * `/teams/$teamId/*` pages map onto the team's workspace).
  */
-export const LEGACY_FIRST_SEGMENTS = [
+const LEGACY_FIRST_SEGMENTS = [
   "memories",
   "files",
   "codebases",

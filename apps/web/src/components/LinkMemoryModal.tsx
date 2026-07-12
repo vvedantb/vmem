@@ -10,6 +10,7 @@ import {
   DialogDescription,
   Input,
   Badge,
+  Button,
   cn,
 } from "@vmem/ui";
 import { IconLink, IconLoader2, IconSearch } from "@tabler/icons-react";
@@ -28,6 +29,28 @@ import { DetailEmptyState } from "@/components/_components/detail-panel/DetailEm
 const TAGS_PREVIEW = 2;
 const ROW_HEIGHT = 84;
 const LIST_HEIGHT = 280;
+
+interface LinkMemoryVirtuosoContext {
+  linkingId: string | null;
+  isLinking: boolean;
+  onLink: (id: string) => void;
+}
+
+function renderLinkMemoryVirtuosoRow(
+  _index: number,
+  memory: Memory,
+  context?: LinkMemoryVirtuosoContext,
+) {
+  if (!context) return null;
+  return (
+    <LinkMemoryRow
+      memory={memory}
+      isLinking={context.linkingId === memory.id}
+      isDisabled={context.isLinking}
+      onLink={context.onLink}
+    />
+  );
+}
 
 interface LinkMemoryModalProps {
   open: boolean;
@@ -60,12 +83,13 @@ function LinkMemoryRow({
 }) {
   return (
     <div className="pb-2">
-      <button
+      <Button
         type="button"
+        variant="ghost"
         disabled={isDisabled}
         onClick={() => onLink(memory.id)}
         className={cn(
-          "flex w-full min-w-0 flex-col gap-2 rounded-lg bg-surface-secondary p-3 text-left transition-[background-color]",
+          "flex h-auto w-full min-w-0 flex-col gap-2 rounded-lg bg-surface-secondary p-3 text-left transition-[background-color]",
           "hover:bg-surface-tertiary disabled:cursor-not-allowed disabled:opacity-50",
         )}
       >
@@ -113,7 +137,7 @@ function LinkMemoryRow({
             </Badge>
           ) : null}
         </div>
-      </button>
+      </Button>
     </div>
   );
 }
@@ -232,16 +256,10 @@ export default function LinkMemoryModal({
             <div className="min-h-0 flex-1 rounded-lg bg-surface p-2">
               <Virtuoso
                 data={filteredMemories}
+                context={{ linkingId, isLinking, onLink: handleLink }}
                 computeItemKey={(_index, memory) => memory.id}
                 defaultItemHeight={ROW_HEIGHT}
-                itemContent={(_index, memory) => (
-                  <LinkMemoryRow
-                    memory={memory}
-                    isLinking={linkingId === memory.id}
-                    isDisabled={isLinking}
-                    onLink={handleLink}
-                  />
-                )}
+                itemContent={renderLinkMemoryVirtuosoRow}
                 style={{ height: LIST_HEIGHT }}
               />
             </div>

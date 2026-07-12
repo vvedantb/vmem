@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@vmem/ui";
+import { Button, cn } from "@vmem/ui";
 import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
 import type { VersionEntry } from "@/lib/timeline";
 
@@ -47,12 +47,13 @@ export default function VersionChainBar({
   return (
     <div className="min-w-0 overflow-hidden rounded-lg bg-surface-secondary p-4">
       <div className="flex items-center justify-center gap-2">
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="icon-sm"
           onClick={() => canGoBack && onSelectVersion(selectedVersion - 1)}
           disabled={!canGoBack}
           className={cn(
-            "rounded-lg p-1.5 transition-[background-color]",
             canGoBack
               ? "text-foreground hover:bg-surface-tertiary"
               : "cursor-not-allowed text-muted/40",
@@ -60,16 +61,17 @@ export default function VersionChainBar({
           aria-label="Previous version"
         >
           <IconChevronLeft size={16} />
-        </button>
+        </Button>
 
         <div className="flex items-center gap-1.5 px-1">
           {versions.map((v) => (
-            <button
+            <Button
               key={v.version}
               type="button"
+              variant="ghost"
               onClick={() => onSelectVersion(v.version)}
               className={cn(
-                "h-2.5 rounded-full transition-[width,background-color]",
+                "h-2.5 min-w-0 rounded-full p-0 transition-[width,background-color]",
                 v.version === selectedVersion
                   ? "w-6 bg-foreground"
                   : "w-2.5 bg-surface-tertiary hover:bg-foreground/40",
@@ -80,12 +82,13 @@ export default function VersionChainBar({
           ))}
         </div>
 
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="icon-sm"
           onClick={() => canGoForward && onSelectVersion(selectedVersion + 1)}
           disabled={!canGoForward}
           className={cn(
-            "rounded-lg p-1.5 transition-[background-color]",
             canGoForward
               ? "text-foreground hover:bg-surface-tertiary"
               : "cursor-not-allowed text-muted/40",
@@ -93,7 +96,7 @@ export default function VersionChainBar({
           aria-label="Next version"
         >
           <IconChevronRight size={16} />
-        </button>
+        </Button>
       </div>
 
       <p className="mt-3 break-words text-center text-xs text-muted">

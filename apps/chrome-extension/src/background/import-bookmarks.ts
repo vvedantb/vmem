@@ -109,7 +109,7 @@ export async function importBookmarks(silent = false): Promise<ImportResult> {
         }
 
         if (!silent) {
-          chrome.runtime.sendMessage({
+          void chrome.runtime.sendMessage({
             type: "IMPORT_PROGRESS",
             current: processed,
             total: bookmarks.length,

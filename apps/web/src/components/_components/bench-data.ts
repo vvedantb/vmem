@@ -45,10 +45,12 @@ export function generateBenchGraph(count: number): BenchGraph {
 
   const nodes = Array.from<ApiGraphNode>({ length: n });
   for (let i = 0; i < n; i++) {
-    const primaryTag = tags[i % TAG_POOL_SIZE];
+    const primaryTag =
+      tags[i % TAG_POOL_SIZE] ?? `bench-topic-${i % TAG_POOL_SIZE}`;
+    const secondaryTag = tags[Math.floor(rng() * TAG_POOL_SIZE)];
     const nodeTags =
-      rng() < 0.4
-        ? [primaryTag, tags[Math.floor(rng() * TAG_POOL_SIZE)]]
+      rng() < 0.4 && secondaryTag !== undefined
+        ? [primaryTag, secondaryTag]
         : [primaryTag];
     nodes[i] = {
       id: `bench-${i}`,
@@ -95,11 +97,13 @@ export function generateBenchGraph(count: number): BenchGraph {
     const a = Math.floor(rng() * n);
     const b = Math.floor(rng() * n);
     if (a === b) continue;
+    const sharedTag = tags[i % TAG_POOL_SIZE];
+    if (sharedTag === undefined) continue;
     tagEdges.push({
       source: `bench-${Math.min(a, b)}`,
       target: `bench-${Math.max(a, b)}`,
       weight: 2,
-      sharedTags: [tags[i % TAG_POOL_SIZE]],
+      sharedTags: [sharedTag],
     });
   }
 

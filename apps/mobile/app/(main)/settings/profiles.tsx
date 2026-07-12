@@ -25,6 +25,8 @@ export default function ProfilesScreen() {
     (localStore, args) => {
       const list = localStore.getQuery(api.profiles.list, {});
       if (!list || list.length === 0) return;
+      const firstProfile = list.at(0);
+      if (!firstProfile) return;
       const now = Date.now();
       const tempId = optimisticId("profiles");
       localStore.setQuery(api.profiles.list, {}, [
@@ -32,7 +34,7 @@ export default function ProfilesScreen() {
         {
           _id: tempId,
           _creationTime: now,
-          userId: list[0].userId,
+          userId: firstProfile.userId,
           name: args.name,
           color: args.color,
           icon: args.icon,

@@ -20,11 +20,13 @@ const apiSuccessEnvelopeSchema = z.object({
   data: z.unknown(),
 });
 
+const errorOnlyBodySchema = z.object({ error: z.string() });
+
 function parseErrorBody(body: unknown): ApiErrorBody | null {
   const parsed = apiErrorBodySchema.safeParse(body);
   if (!parsed.success) {
     // Accept `{ error }` even when `issues` is malformed.
-    const fallback = z.object({ error: z.string() }).safeParse(body);
+    const fallback = errorOnlyBodySchema.safeParse(body);
     return fallback.success ? { error: fallback.data.error } : null;
   }
   return parsed.data;

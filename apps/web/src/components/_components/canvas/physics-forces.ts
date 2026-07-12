@@ -56,9 +56,7 @@ interface PhysicsNode extends SimulationNodeDatum {
 }
 
 /** Resolves a link endpoint to its size (0 until d3 binds id → node). */
-function endpointSize<N extends PhysicsNode>(
-  endpoint: N | string | number,
-): number {
+function endpointSize(endpoint: PhysicsNode | string | number): number {
   return typeof endpoint === "object" ? endpoint.size : 0;
 }
 

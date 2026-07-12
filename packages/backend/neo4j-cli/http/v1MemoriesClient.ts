@@ -7,6 +7,8 @@ const errorBodySchema = z.object({
   error: z.string(),
 });
 
+const apiEnvelopeSchema = z.object({ data: z.unknown() });
+
 const memorySchema = z
   .object({
     id: z.string(),
@@ -110,7 +112,7 @@ function parseEnvelope<T>(
   }
 
   // Parse wrapper first, then data — avoids ZodType<T> making `.data` optional in z.object.
-  const envelope = z.object({ data: z.unknown() }).safeParse(body);
+  const envelope = apiEnvelopeSchema.safeParse(body);
   if (envelope.success) {
     const data = dataSchema.safeParse(envelope.data.data);
     if (data.success) {

@@ -224,7 +224,7 @@ export function EventsPanel() {
   }, [isAuthenticated, getRecentActivity]);
 
   useEffect(() => {
-    fetchActivity();
+    void fetchActivity();
   }, [fetchActivity]);
 
   const filteredAndSortedActivity = useMemo(() => {

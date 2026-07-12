@@ -9,17 +9,13 @@
  * driver doesn't allow concurrent `.run()` on the same session, so the
  * Promise.all over per-leg sessions is the parallelism contract.
  */
-import {
-  type Driver,
-  type Record as NeoRecord,
-  type Session,
-} from "neo4j-driver";
+import type { Driver, Record as NeoRecord, Session } from "neo4j-driver";
 import { z } from "zod";
 import { clampNeo4jLimit } from "../intParams";
 import { neo4jGet, parseNeo4jInt } from "../record";
 import { toMemoryTypeOrUndefined, toTagEdge } from "./mappers";
 import { profileFilter, withSession } from "./shared";
-import { type MemoryType, type TagEdge } from "./types";
+import type { MemoryType, TagEdge } from "./types";
 
 // Each row schema coerces raw Neo4j driver values directly into the typed
 // shape callers need — `safeParse` yields the final object, no hand-rolled
@@ -31,12 +27,14 @@ const graphNodeRowSchema = z.object({
     .unknown()
     .transform((v) => (Array.isArray(v) ? v.filter(Boolean).map(String) : [])),
   createdAt: z.unknown().transform(String),
-  source: z
-    .unknown()
-    .transform((v) => (v === null || v === undefined ? undefined : String(v))),
-  sourceType: z
-    .unknown()
-    .transform((v) => (v === null || v === undefined ? null : String(v))),
+  source: z.coerce
+    .string()
+    .nullish()
+    .transform((v) => v ?? undefined),
+  sourceType: z.coerce
+    .string()
+    .nullish()
+    .transform((v) => v ?? null),
   type: z
     .unknown()
     .transform((v) =>
@@ -47,9 +45,10 @@ const graphNodeRowSchema = z.object({
 const relatesToEdgeRowSchema = z.object({
   source: z.unknown().transform(String),
   target: z.unknown().transform(String),
-  reason: z
-    .unknown()
-    .transform((v) => (v === null || v === undefined ? "" : String(v))),
+  reason: z.coerce
+    .string()
+    .nullish()
+    .transform((v) => v ?? ""),
   score: z
     .unknown()
     .transform((v) => (v === null || v === undefined ? undefined : Number(v))),

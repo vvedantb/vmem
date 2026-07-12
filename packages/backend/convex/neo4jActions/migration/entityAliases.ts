@@ -118,11 +118,6 @@ Respond with ONLY this JSON (names copied EXACTLY; singleton clusters may be omi
 [{"group": 0, "clusters": [{"names": ["Fable 5", "Claude Fable 5", "Fable"], "canonical": "Claude Fable 5"}]}]`;
 }
 
-interface ClusterVerdict {
-  group: number;
-  clusters: Array<{ names: string[]; canonical?: string }>;
-}
-
 const clusterSchema = z.object({
   names: z.array(z.string()),
   canonical: z.string().optional(),
@@ -133,13 +128,17 @@ const clusterVerdictSchema = z.object({
   clusters: z.array(clusterSchema),
 });
 
+const unknownArraySchema = z.array(z.unknown());
+
+type ClusterVerdict = z.infer<typeof clusterVerdictSchema>;
+
 function parseClusterVerdicts(
   raw: string,
   groupCount: number,
 ): ClusterVerdict[] {
   try {
     const parsed: unknown = JSON.parse(extractJsonString(raw));
-    const arr = z.array(z.unknown()).safeParse(parsed);
+    const arr = unknownArraySchema.safeParse(parsed);
     if (!arr.success) return [];
     const out: ClusterVerdict[] = [];
     for (const item of arr.data) {

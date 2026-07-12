@@ -39,6 +39,8 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
     (localStore, args) => {
       const tree = localStore.getQuery(api.wiki.listTree, { teamId });
       if (!tree || tree.length === 0) return;
+      const head = tree.at(0);
+      if (!head) return;
       const siblings = tree.filter((n) => n.parentId === args.parentId);
       const nextOrder =
         siblings.length === 0
@@ -49,7 +51,7 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
       const row: Doc<"wikiNodes"> = {
         _id: tempId,
         _creationTime: now,
-        userId: tree[0].userId,
+        userId: head.userId,
         teamId,
         parentId: args.parentId,
         kind: args.kind,
@@ -128,7 +130,7 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
         }
       })();
     },
-    [createNode, navigate, profileId],
+    [createNode, navigate, profileId, teamId],
   );
 
   // Grouped with the search at the top of the sidebar (shared by the empty and

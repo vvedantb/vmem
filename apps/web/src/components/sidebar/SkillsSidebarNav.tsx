@@ -151,15 +151,16 @@ export function SkillsSidebarNav({
         >
           {installedSystemSkills.map((entry) => (
             <SharedLayoutBackground.Item key={entry._id} id={entry._id}>
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => goSystemSkill(entry._id)}
                 className={cn(
-                  "flex w-full min-w-0 items-center rounded-lg text-left text-sm transition-[color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring",
+                  "h-auto w-full min-w-0 justify-start rounded-lg text-left text-sm font-normal transition-[color] active:scale-100",
                   sidebarListRowClass,
                   activeSystemSkillId === entry._id
-                    ? "text-foreground"
-                    : "text-muted hover:text-foreground",
+                    ? "text-foreground hover:bg-transparent"
+                    : "text-muted hover:bg-transparent hover:text-foreground",
                 )}
               >
                 <span
@@ -170,7 +171,7 @@ export function SkillsSidebarNav({
                   )}
                 />
                 <span className="min-w-0 truncate">{entry.name}</span>
-              </button>
+              </Button>
             </SharedLayoutBackground.Item>
           ))}
         </SharedLayoutBackground.Root>

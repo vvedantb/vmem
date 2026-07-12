@@ -6,6 +6,7 @@ import type {
 } from "./types";
 import { screenToWorld, zoomAt } from "./viewport";
 import { getEdgeAt, getNodeAt } from "./hit-test";
+import type { createSpatialIndex } from "./hit-test";
 import type { SimulationController } from "./simulation";
 
 interface Callbacks {
@@ -28,7 +29,7 @@ export function attachInputHandlers(
   viewport: ViewportState,
   simRef: { current: SimulationController | null },
   spatialIndexRef: {
-    current: ReturnType<typeof import("./hit-test").createSpatialIndex>;
+    current: ReturnType<typeof createSpatialIndex>;
   },
   edgesRef: { current: ResolvedEdge[] },
   callbacks: Callbacks,
@@ -215,11 +216,13 @@ export function attachInputHandlers(
 
     if (interaction.isPanning && panHistory.length >= 2) {
       const now = performance.now();
-      const oldest = panHistory[0];
-      const dt = now - oldest.t;
-      if (dt < 200 && dt > 0) {
-        viewport.velocityX = (x - oldest.x) / (dt / 16);
-        viewport.velocityY = (y - oldest.y) / (dt / 16);
+      const oldest = panHistory.at(0);
+      if (oldest) {
+        const dt = now - oldest.t;
+        if (dt < 200 && dt > 0) {
+          viewport.velocityX = (x - oldest.x) / (dt / 16);
+          viewport.velocityY = (y - oldest.y) / (dt / 16);
+        }
       }
       interaction.isPanning = false;
     }
@@ -318,18 +321,22 @@ export function attachInputHandlers(
     e.preventDefault();
 
     if (e.touches.length === 2) {
+      const touch0 = e.touches.item(0);
+      const touch1 = e.touches.item(1);
+      if (!touch0 || !touch1) return;
       // Pinch start — release any single-touch state
       interaction.draggedNodeId = null;
       interaction.isPanning = false;
-      pinchStartDist = getPinchDist(e.touches[0], e.touches[1]);
+      pinchStartDist = getPinchDist(touch0, touch1);
       pinchStartScale = viewport.targetScale;
-      const center = getPinchCenter(e.touches[0], e.touches[1]);
+      const center = getPinchCenter(touch0, touch1);
       lastTouchX = center.x;
       lastTouchY = center.y;
       return;
     }
 
-    const touch = e.touches[0];
+    const touch = e.touches.item(0);
+    if (!touch) return;
     const { x, y } = getTouchCanvasXY(touch);
     lastTouchX = x;
     lastTouchY = y;
@@ -369,8 +376,11 @@ export function attachInputHandlers(
     e.preventDefault();
 
     if (e.touches.length === 2) {
-      const dist = getPinchDist(e.touches[0], e.touches[1]);
-      const center = getPinchCenter(e.touches[0], e.touches[1]);
+      const touch0 = e.touches.item(0);
+      const touch1 = e.touches.item(1);
+      if (!touch0 || !touch1) return;
+      const dist = getPinchDist(touch0, touch1);
+      const center = getPinchCenter(touch0, touch1);
 
       // Pinch zoom
       const scaleFactor = dist / pinchStartDist;
@@ -389,7 +399,8 @@ export function attachInputHandlers(
       return;
     }
 
-    const touch = e.touches[0];
+    const touch = e.touches.item(0);
+    if (!touch) return;
     const { x, y } = getTouchCanvasXY(touch);
 
     if (Math.abs(x - touchStartX) > 5 || Math.abs(y - touchStartY) > 5) {
@@ -438,11 +449,13 @@ export function attachInputHandlers(
     // Momentum pan
     if (interaction.isPanning && panHistory.length >= 2) {
       const now = performance.now();
-      const oldest = panHistory[0];
-      const dt = now - oldest.t;
-      if (dt < 200 && dt > 0) {
-        viewport.velocityX = (lastTouchX - oldest.x) / (dt / 16);
-        viewport.velocityY = (lastTouchY - oldest.y) / (dt / 16);
+      const oldest = panHistory.at(0);
+      if (oldest) {
+        const dt = now - oldest.t;
+        if (dt < 200 && dt > 0) {
+          viewport.velocityX = (lastTouchX - oldest.x) / (dt / 16);
+          viewport.velocityY = (lastTouchY - oldest.y) / (dt / 16);
+        }
       }
     }
     interaction.isPanning = false;

@@ -18,16 +18,12 @@
  */
 
 import crypto from "node:crypto";
-import {
-  type Driver,
-  type Record as NeoRecord,
-  type Session,
-} from "neo4j-driver";
+import type { Driver, Record as NeoRecord, Session } from "neo4j-driver";
 import { z } from "zod";
-import { neo4jGet, parseNeo4jNodeProps } from "../record";
+import { neo4jGet, neo4jString, parseNeo4jNodeProps } from "../record";
 import { computeContentHash, toMemoryWithTags, toSnapshot } from "./mappers";
 import { logEvent, withSession } from "./shared";
-import { type ProposedUpdateKind, type ProposedUpdateNode } from "./types";
+import type { ProposedUpdateKind, ProposedUpdateNode } from "./types";
 
 const proposedUpdateStatusSchema = z.enum(["pending", "approved", "rejected"]);
 
@@ -51,6 +47,8 @@ const sourceMemorySnapshotSchema = z.object({
   title: z.string(),
   content: z.string(),
 });
+
+const sourceMemorySnapshotsSchema = z.array(sourceMemorySnapshotSchema);
 
 type ProposedUpdateProps = z.infer<typeof proposedUpdateNodePropsSchema>;
 
@@ -118,9 +116,9 @@ function parseListedProposedUpdate(record: NeoRecord): ProposedUpdateNode {
       ? { title: titleRaw, content: contentRaw }
       : null;
 
-  const sourceSnapsParsed = z
-    .array(sourceMemorySnapshotSchema)
-    .safeParse(neo4jGet(record, "sourceSnaps"));
+  const sourceSnapsParsed = sourceMemorySnapshotsSchema.safeParse(
+    neo4jGet(record, "sourceSnaps"),
+  );
   const sourceMemorySnapshots = sourceSnapsParsed.success
     ? sourceSnapsParsed.data
     : [];
@@ -444,7 +442,7 @@ async function applyUpdateApproval(
   );
 
   return {
-    status: String(neo4jGet(firstRecord, "status") ?? ""),
+    status: neo4jString(firstRecord, "status"),
     memoryId: memory.id,
     kind: "update",
   };

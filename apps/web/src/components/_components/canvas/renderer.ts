@@ -664,12 +664,14 @@ function renderScene(
     const hoveredEdgeIdx = hoveredEdgeIndexVisual;
     if (hoveredEdgeIdx !== null && hoveredEdgeIdx < edges.length) {
       const edge = edges[hoveredEdgeIdx];
-      ctx.strokeStyle = theme.edge.connected;
-      ctx.lineWidth = theme.edge.connectedWidth * 1.8;
-      ctx.beginPath();
-      ctx.moveTo(edge.source.x ?? 0, edge.source.y ?? 0);
-      ctx.lineTo(edge.target.x ?? 0, edge.target.y ?? 0);
-      ctx.stroke();
+      if (edge) {
+        ctx.strokeStyle = theme.edge.connected;
+        ctx.lineWidth = theme.edge.connectedWidth * 1.8;
+        ctx.beginPath();
+        ctx.moveTo(edge.source.x ?? 0, edge.source.y ?? 0);
+        ctx.lineTo(edge.target.x ?? 0, edge.target.y ?? 0);
+        ctx.stroke();
+      }
     }
   }
 
@@ -906,6 +908,7 @@ function renderScene(
 
     for (let i = 0; i < edges.length; i++) {
       const edge = edges[i];
+      if (!edge) continue;
       const isHoveredEdge = hoveredEdgeIdx === i;
       const isHoveredNodeEdge =
         hasHoveredNeighbors &&

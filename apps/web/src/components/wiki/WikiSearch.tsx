@@ -5,7 +5,7 @@ import { useQuery } from "convex/react";
 import { useDebounceValue } from "usehooks-ts";
 import { IconSearch, IconFileText, IconFolder } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
-import { Input } from "@vmem/ui";
+import { Button, Input } from "@vmem/ui";
 import { sidebarSearchInputClassName } from "@/components/sidebar/sidebar-search-input";
 import { useActiveTeamId } from "@/components/workspace/active-profile";
 
@@ -55,8 +55,9 @@ export default function WikiSearch({ onSelect }: WikiSearchProps) {
             <ul className="flex flex-col">
               {results.map((node) => (
                 <li key={node._id}>
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
                     onClick={() => {
                       if (node.kind === "document") {
                         onSelect(node._id);
@@ -64,15 +65,15 @@ export default function WikiSearch({ onSelect }: WikiSearchProps) {
                       setRaw("");
                     }}
                     disabled={node.kind !== "document"}
-                    className="w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-foreground/90 hover:bg-surface-tertiary/50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="h-auto w-full justify-start gap-2 rounded-md px-2 py-1.5 text-left text-sm font-normal text-foreground/90 hover:bg-surface-tertiary/50 active:scale-100 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {node.kind === "folder" ? (
-                      <IconFolder size={14} className="text-muted shrink-0" />
+                      <IconFolder className="size-3.5 text-muted shrink-0" />
                     ) : (
-                      <IconFileText size={14} className="text-muted shrink-0" />
+                      <IconFileText className="size-3.5 text-muted shrink-0" />
                     )}
                     <span className="truncate">{node.title}</span>
-                  </button>
+                  </Button>
                 </li>
               ))}
             </ul>

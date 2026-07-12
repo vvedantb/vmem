@@ -28,7 +28,7 @@ function AgentCallback() {
       .then((result) => {
         if (result.createdSessionId) {
           return setActive({ session: result.createdSessionId }).then(() => {
-            navigate({ to: "/home", replace: true });
+            void navigate({ to: "/home", replace: true });
           });
         }
       })

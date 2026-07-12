@@ -1,12 +1,10 @@
+import type { ActionCtx, MutationCtx, QueryCtx } from "./_generated/server";
 import {
   action,
   internalAction,
   internalQuery,
   mutation,
   query,
-  ActionCtx,
-  MutationCtx,
-  QueryCtx,
 } from "./_generated/server";
 import {
   customAction,

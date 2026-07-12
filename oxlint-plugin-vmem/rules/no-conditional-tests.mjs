@@ -16,7 +16,10 @@ function isTestLike(filename) {
 function getCallName(callee) {
   if (!callee) return undefined;
   if (callee.type === "Identifier") return callee.name;
-  if (callee.type === "MemberExpression" && callee.property?.type === "Identifier") {
+  if (
+    callee.type === "MemberExpression" &&
+    callee.property?.type === "Identifier"
+  ) {
     // expect(...).toBe — still report on expect itself via CallExpression on expect
     return callee.property.name;
   }

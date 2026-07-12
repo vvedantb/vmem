@@ -7,7 +7,12 @@
 
 import neo4j, { type Driver } from "neo4j-driver";
 import { z } from "zod";
-import { neo4jGet, parseNeo4jInt, parseNeo4jNodeProps } from "../record";
+import {
+  neo4jGet,
+  neo4jString,
+  parseNeo4jInt,
+  parseNeo4jNodeProps,
+} from "../record";
 import { profileFilter, withSession } from "./shared";
 
 const activityEventPropsSchema = z.object({
@@ -109,7 +114,7 @@ export async function getStats(
     const dailyCounts = new Map<string, number>();
     for (const rec of dailyResult.records) {
       dailyCounts.set(
-        String(neo4jGet(rec, "day") ?? ""),
+        neo4jString(rec, "day"),
         parseNeo4jInt(neo4jGet(rec, "newCount")),
       );
     }
@@ -179,7 +184,7 @@ export async function countMemoryEvents(
       { userId },
     );
     const breakdown = breakdownResult.records.map((r) => ({
-      action: String(neo4jGet(r, "action") ?? ""),
+      action: neo4jString(r, "action"),
       count: parseNeo4jInt(neo4jGet(r, "cnt")),
     }));
 
@@ -220,9 +225,9 @@ export async function getRecentActivity(
         neo4jGet(record, "e"),
         activityEventPropsSchema,
       );
-      const memoryTitle = String(neo4jGet(record, "memoryTitle") ?? "");
+      const memoryTitle = neo4jString(record, "memoryTitle");
       const action = props.action;
-      const actor = String(props.actor ?? "");
+      const actor = props.actor ?? "";
       const createdAt = props.createdAt;
       const diffMs = now - new Date(createdAt).getTime();
       const diffMins = Math.floor(diffMs / 60000);

@@ -12,14 +12,15 @@
  * mirrors the list above).
  */
 
-import {
-  type EntryPoint,
-  type RelationEdge,
-  type SymbolNode,
-  type FunctionNode,
+import type {
+  EntryPoint,
+  RelationEdge,
+  SymbolNode,
+  FunctionNode,
 } from "./types";
 import { convexEntryKind } from "./convexBuilders";
-import { Project, SyntaxKind } from "ts-morph";
+import type { Project } from "ts-morph";
+import { SyntaxKind } from "ts-morph";
 
 const HEURISTIC_NAMES = new Set(["main", "handler", "start"]);
 

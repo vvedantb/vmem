@@ -12,6 +12,32 @@ import { MEMORY_GRAPH_MCP_APP_HTML } from "./bundled/memoryGraphHtml";
 
 export const MEMORY_GRAPH_RESOURCE_URI = "ui://vmem/memory-graph";
 
+const memoryGraphInputSchema = {
+  profileId: z
+    .string()
+    .optional()
+    .describe("Profile ID (defaults to active MCP profile)"),
+  focus: z
+    .string()
+    .optional()
+    .describe("Center on one memory id and its neighbourhood"),
+  memoryIds: z
+    .array(z.string())
+    .optional()
+    .describe(
+      "Memory ids from a prior search/retrieve; shows those nodes plus one-hop neighbours",
+    ),
+  limit: z
+    .number()
+    .int()
+    .min(1)
+    .max(100)
+    .optional()
+    .describe(
+      "Max memory nodes (default 80, max 100; keeps tool result small for Claude context)",
+    ),
+};
+
 function buildSummaryText(
   graph: {
     stats: {
@@ -78,31 +104,7 @@ export function registerMemoryGraphApp(
       title: "Memory graph",
       description:
         "Show an interactive pan/zoom graph of the user's vmem memories (RELATES_TO and shared-tag links). Use when the user asks to visualize, map, or explore their memory graph. After memory_search or memory_retrieve, pass memoryIds to focus on those results. Defaults to active MCP profile unless profileId is set.",
-      inputSchema: {
-        profileId: z
-          .string()
-          .optional()
-          .describe("Profile ID (defaults to active MCP profile)"),
-        focus: z
-          .string()
-          .optional()
-          .describe("Center on one memory id and its neighbourhood"),
-        memoryIds: z
-          .array(z.string())
-          .optional()
-          .describe(
-            "Memory ids from a prior search/retrieve; shows those nodes plus one-hop neighbours",
-          ),
-        limit: z
-          .number()
-          .int()
-          .min(1)
-          .max(100)
-          .optional()
-          .describe(
-            "Max memory nodes (default 80, max 100; keeps tool result small for Claude context)",
-          ),
-      },
+      inputSchema: memoryGraphInputSchema,
       _meta: {
         ui: { resourceUri: MEMORY_GRAPH_RESOURCE_URI },
       },

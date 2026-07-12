@@ -1,7 +1,7 @@
 "use client";
 
 import type { Doc } from "@vmem/backend";
-import { Breadcrumb, BreadcrumbLink, BreadcrumbPage } from "@vmem/ui";
+import { Breadcrumb, BreadcrumbLink, BreadcrumbPage, Input } from "@vmem/ui";
 
 interface WikiPageBreadcrumbProps {
   ancestors: Array<Doc<"wikiNodes">>;
@@ -26,7 +26,7 @@ export function WikiPageBreadcrumb({
         </BreadcrumbLink>
       ))}
       <BreadcrumbPage className="min-w-0 flex-1">
-        <input
+        <Input
           value={title}
           onChange={(e) => onTitleChange(e.target.value)}
           onBlur={onTitleCommit}
@@ -38,7 +38,7 @@ export function WikiPageBreadcrumb({
           }}
           placeholder="Untitled"
           aria-label="Document title"
-          className="w-full min-w-0 bg-transparent text-inherit outline-none placeholder:text-muted/50"
+          className="h-auto min-w-0 border-0 bg-transparent px-0 py-0 text-inherit shadow-none focus-visible:ring-0 placeholder:text-muted/50"
         />
       </BreadcrumbPage>
     </Breadcrumb>

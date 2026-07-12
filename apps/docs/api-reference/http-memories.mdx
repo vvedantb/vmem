@@ -37,19 +37,19 @@ curl -X POST "https://<deployment>.convex.site/api/v1/memories" \
   }'
 ```
 
-| Field | Type | Required |
-| --- | --- | --- |
-| `title` | string | yes |
-| `content` | string | yes |
-| `type` | string | yes (`profile`, `episodic`, `knowledge`) |
-| `source` | string | yes |
-| `tags` | string[] | yes |
-| `confidence` | number | yes |
-| `expiresAt` | string | no (ISO 8601) |
-| `url` | string | no |
-| `profileId` | string | no |
-| `externalId` | string | no |
-| `sourceType` | string | no |
+| Field        | Type     | Required                                 |
+| ------------ | -------- | ---------------------------------------- |
+| `title`      | string   | yes                                      |
+| `content`    | string   | yes                                      |
+| `type`       | string   | yes (`profile`, `episodic`, `knowledge`) |
+| `source`     | string   | yes                                      |
+| `tags`       | string[] | yes                                      |
+| `confidence` | number   | yes                                      |
+| `expiresAt`  | string   | no (ISO 8601)                            |
+| `url`        | string   | no                                       |
+| `profileId`  | string   | no                                       |
+| `externalId` | string   | no                                       |
+| `sourceType` | string   | no                                       |
 
 **Returns:** `MemoryWithTags`
 
@@ -64,10 +64,10 @@ curl -X POST "https://<deployment>.convex.site/api/v1/memories" \
   }'
 ```
 
-| Field | Type | Required |
-| --- | --- | --- |
-| `instruction` | string | yes |
-| `profileId` | string | no |
+| Field         | Type   | Required |
+| ------------- | ------ | -------- |
+| `instruction` | string | yes      |
+| `profileId`   | string | no       |
 
 **Returns:**
 
@@ -96,14 +96,14 @@ curl -X POST "https://<deployment>.convex.site/api/v1/memories/retrieve" \
   }'
 ```
 
-| Field | Type | Required |
-| --- | --- | --- |
-| `query` | string | yes |
-| `limit` | number | no (default `10`) |
-| `type` | string | no |
-| `tags` | string[] | no |
-| `profileId` | string | no |
-| `summarize` | boolean | no — LLM summary (requires OpenRouter) |
+| Field       | Type     | Required                               |
+| ----------- | -------- | -------------------------------------- |
+| `query`     | string   | yes                                    |
+| `limit`     | number   | no (default `10`)                      |
+| `type`      | string   | no                                     |
+| `tags`      | string[] | no                                     |
+| `profileId` | string   | no                                     |
+| `summarize` | boolean  | no — LLM summary (requires OpenRouter) |
 
 **Returns:**
 
@@ -133,16 +133,16 @@ curl -X PATCH "https://<deployment>.convex.site/api/v1/memories" \
   }'
 ```
 
-| Field | Type | Required |
-| --- | --- | --- |
-| `memoryId` | string | yes |
-| `title` | string | no |
-| `content` | string | no |
-| `type` | string | no |
-| `status` | string | no |
-| `tags` | string[] | no |
-| `confidence` | number | no |
-| `expiresAt` | string \| null | no |
+| Field        | Type           | Required |
+| ------------ | -------------- | -------- |
+| `memoryId`   | string         | yes      |
+| `title`      | string         | no       |
+| `content`    | string         | no       |
+| `type`       | string         | no       |
+| `status`     | string         | no       |
+| `tags`       | string[]       | no       |
+| `confidence` | number         | no       |
+| `expiresAt`  | string \| null | no       |
 
 **Returns:** `MemoryWithTags` — `404` when memory not found
 
@@ -157,10 +157,10 @@ curl -X PATCH "https://<deployment>.convex.site/api/v1/memories" \
   }'
 ```
 
-| Field | Type | Required |
-| --- | --- | --- |
-| `instruction` | string | yes |
-| `profileId` | string | no |
+| Field         | Type   | Required |
+| ------------- | ------ | -------- |
+| `instruction` | string | yes      |
+| `profileId`   | string | no       |
 
 **Returns:**
 
@@ -189,9 +189,9 @@ curl -X DELETE "https://<deployment>.convex.site/api/v1/memories" \
   -d '{ "memoryId": "mem_abc" }'
 ```
 
-| Field | Type | Required |
-| --- | --- | --- |
-| `memoryId` | string | yes |
+| Field      | Type   | Required |
+| ---------- | ------ | -------- |
+| `memoryId` | string | yes      |
 
 **Returns:** `{ "deleted": true }` — `404` when memory not found
 
@@ -199,13 +199,13 @@ curl -X DELETE "https://<deployment>.convex.site/api/v1/memories" \
 
 ## Errors
 
-| Status | Meaning |
-| --- | --- |
-| `401` | Missing/invalid Bearer token or revoked key |
-| `400` | Invalid JSON or request body |
-| `403` | No access to the given `profileId` |
-| `404` | Memory not found (structured PATCH) |
-| `422` | OpenRouter key required for instruction/summarize modes |
-| `500` | Server error (generic message, no stack trace) |
+| Status | Meaning                                                 |
+| ------ | ------------------------------------------------------- |
+| `401`  | Missing/invalid Bearer token or revoked key             |
+| `400`  | Invalid JSON or request body                            |
+| `403`  | No access to the given `profileId`                      |
+| `404`  | Memory not found (structured PATCH)                     |
+| `422`  | OpenRouter key required for instruction/summarize modes |
+| `500`  | Server error (generic message, no stack trace)          |
 
 Usage is recorded per request (`requestCount`, `lastUsedAt` on the key). See [API Keys](/features/api-keys).

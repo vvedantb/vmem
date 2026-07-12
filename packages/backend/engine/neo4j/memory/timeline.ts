@@ -8,7 +8,7 @@ import neo4j, { type Driver } from "neo4j-driver";
 import { toMemoryContentFulltextQuery } from "../luceneQuery";
 import { toTimelineEvent } from "./mappers";
 import { withSession } from "./shared";
-import { type ConnectionType, type TimelineEvent } from "./types";
+import type { ConnectionType, TimelineEvent } from "./types";
 
 /**
  * Run a Cypher query and map every record with `toTimelineEvent`. Shared by

@@ -2,13 +2,14 @@
  * Neo4j record → typed codebase read shapes.
  */
 
-import { type Record as NeoRecord } from "neo4j-driver";
-import { z } from "zod";
+import type { Record as NeoRecord } from "neo4j-driver";
+import type { z } from "zod";
 import {
   neo4jField,
   neo4jGet,
   neo4jIntSchema,
   parseNeo4jNodeProps,
+  stringSchema,
 } from "../record";
 import {
   labelsSchema,
@@ -89,8 +90,8 @@ export function parseOverviewEdge(
   type: OverviewEdge["type"],
   carry: boolean,
 ): OverviewEdge {
-  const fromId = neo4jField(record, "fromId", z.string());
-  const toId = neo4jField(record, "toId", z.string());
+  const fromId = neo4jField(record, "fromId", stringSchema);
+  const toId = neo4jField(record, "toId", stringSchema);
   const confRaw = neo4jField(record, "confidence", nullableNumberSchema);
   const tierRaw = neo4jField(record, "tier", nullableEdgeTierSchema);
   const tier: OverviewEdge["tier"] =
@@ -210,7 +211,7 @@ export function parseSearchSymbolRecord(
 
 export function parseImpactRecord(record: NeoRecord): ImpactNode {
   return {
-    id: neo4jField(record, "id", z.string()),
+    id: neo4jField(record, "id", stringSchema),
     distance: neo4jField(record, "distance", neo4jIntSchema),
   };
 }

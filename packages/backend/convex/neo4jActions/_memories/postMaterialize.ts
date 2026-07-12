@@ -1,6 +1,6 @@
 "use node";
 
-import { type ActionCtx } from "../../_generated/server";
+import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import type { Driver } from "neo4j-driver";
 import { setEmbeddings } from "../../../engine/neo4j/memory/migration";

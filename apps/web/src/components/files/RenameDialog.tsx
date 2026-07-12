@@ -8,6 +8,7 @@ import {
   DialogTitle,
   DialogFooter,
   Button,
+  Input,
 } from "@vmem/ui";
 import { IconPencil } from "@tabler/icons-react";
 
@@ -70,13 +71,12 @@ export default function RenameDialog({
         </DialogHeader>
 
         <div className="py-2">
-          <input
+          <Input
             ref={inputRef}
             type="text"
             defaultValue={currentName}
             onKeyDown={handleKeyDown}
             autoFocus
-            className="w-full rounded-field border border-border bg-field-background px-3 py-2 text-sm text-foreground outline-none placeholder:text-field-placeholder focus:ring-1 focus:ring-focus-ring"
           />
         </div>
 

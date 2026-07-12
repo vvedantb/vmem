@@ -14,30 +14,35 @@ LLMs lack persistent long-term memory. Users repeatedly provide the same informa
 ## How vmem is Different
 
 ### Context Trace
+
 Every memory retrieval explains **why** it matched — with a full score breakdown across fulltext, vector, chunk, entity, recency, and graph signals. No black-box retrieval.
 
 ### Proposed Updates
+
 When new information conflicts with existing memories, vmem doesn't silently overwrite. It creates a **proposed update** that you can approve or reject, preserving an audit trail.
 
 ### Implicit Memory via MCP
+
 Competitors require the LLM to explicitly call tools to fetch memories. vmem injects a synthesized user profile via the `vmem://context_prompt` MCP Resource — relevant context is present before the model responds.
 
 ### Memory Lifecycle
+
 Memories can be pinned, suppressed, expired, or audited. Full lifecycle management with event trails.
 
 ### Profiles
+
 Organize memories into profiles (personal or team-scoped). Switch profiles when saving or browsing without changing routes.
 
 ## Architecture
 
-| Component | Role |
-| --- | --- |
-| **Convex** | Auth, API keys, profiles, teams, skills, file storage, MCP HTTP |
-| **Neo4j** | Memory graph — nodes, edges, semantic search, retrieval scoring |
-| **Vite Web App** | Dashboard for browsing, organizing, and managing memories |
-| **MCP Server** | Implicit context via Resources, explicit writes via Tools |
-| **Chrome Extension** | Save pages, export chats, inject memories into ChatGPT/Claude |
-| **Mobile App** | Expo chat with offline local LLM and memory retrieval |
+| Component            | Role                                                            |
+| -------------------- | --------------------------------------------------------------- |
+| **Convex**           | Auth, API keys, profiles, teams, skills, file storage, MCP HTTP |
+| **Neo4j**            | Memory graph — nodes, edges, semantic search, retrieval scoring |
+| **Vite Web App**     | Dashboard for browsing, organizing, and managing memories       |
+| **MCP Server**       | Implicit context via Resources, explicit writes via Tools       |
+| **Chrome Extension** | Save pages, export chats, inject memories into ChatGPT/Claude   |
+| **Mobile App**       | Expo chat with offline local LLM and memory retrieval           |
 
 See [Architecture](/architecture) for a detailed breakdown.
 

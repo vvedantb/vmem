@@ -8,7 +8,7 @@
  * - Re-exports for context-prompt invalidation and best-effort embeddings.
  */
 
-import { type ActionCtx } from "../../_generated/server";
+import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import type { Driver } from "neo4j-driver";
 import {

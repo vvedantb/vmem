@@ -15,7 +15,7 @@ export default function MainShell({ children }: { children: React.ReactNode }) {
   );
   const toggleSidebar = useCallback(
     () => setIsSidebarCollapsed((prev) => !prev),
-    [],
+    [setIsSidebarCollapsed],
   );
 
   useHotkey("Mod+I", toggleSidebar, { preventDefault: true });

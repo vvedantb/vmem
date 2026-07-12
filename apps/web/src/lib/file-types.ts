@@ -1,5 +1,3 @@
-import type { TablerIcon } from "@tabler/icons-react";
-
 export type FileCategory =
   | "pdf"
   | "image"
@@ -33,6 +31,3 @@ export interface FolderBreadcrumb {
   id: string | null;
   name: string;
 }
-
-/** Icon resolver type used across file components */
-export type FileIconResolver = (category: FileCategory) => TablerIcon;

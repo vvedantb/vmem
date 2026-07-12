@@ -16,7 +16,7 @@ import {
   Project,
   ScriptKind,
   SyntaxKind,
-  Node,
+  type Node,
   type SourceFile,
   type ClassDeclaration,
   type InterfaceDeclaration,
@@ -25,14 +25,14 @@ import {
   type VariableDeclaration,
   type ExportableNode,
 } from "ts-morph";
-import {
-  type FileNode,
-  type FunctionNode,
-  type ClassNode,
-  type InterfaceNode,
-  type SymbolNode,
-  type RelationEdge,
-  type ParseResult,
+import type {
+  FileNode,
+  FunctionNode,
+  ClassNode,
+  InterfaceNode,
+  SymbolNode,
+  RelationEdge,
+  ParseResult,
 } from "./types";
 import { isConvexBuilderName } from "./convexBuilders";
 

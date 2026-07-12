@@ -5,7 +5,7 @@
  */
 
 import crypto from "node:crypto";
-import { type Driver } from "neo4j-driver";
+import type { Driver } from "neo4j-driver";
 import { createSemanticSimilarityEdges } from "./relationships";
 import { withSession } from "./shared";
 

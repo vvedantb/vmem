@@ -7,14 +7,6 @@ export function isIdentifier(node, name) {
   );
 }
 
-/** True if `node` is a string literal (ESTree `Literal` or oxc `StringLiteral`). */
-export function isStringLiteral(node) {
-  return (
-    (node?.type === "Literal" && typeof node.value === "string") ||
-    node?.type === "StringLiteral"
-  );
-}
-
 /** Normalise a file path to forward slashes so rules work on Windows too. */
 export function toPosix(filename) {
   return (filename ?? "").replace(/\\/g, "/");

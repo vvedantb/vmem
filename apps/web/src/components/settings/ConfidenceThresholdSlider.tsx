@@ -1,4 +1,4 @@
-import { Label } from "@vmem/ui";
+import { Input, Label } from "@vmem/ui";
 import { useCallback, useRef } from "react";
 
 interface ConfidenceThresholdSliderProps {
@@ -31,7 +31,7 @@ export default function ConfidenceThresholdSlider({
         </Label>
         <span className="text-sm tabular-nums text-muted">{value}%</span>
       </div>
-      <input
+      <Input
         id="confidence-threshold"
         type="range"
         min={0}
@@ -41,7 +41,7 @@ export default function ConfidenceThresholdSlider({
         onChange={handleChange}
         onMouseUp={handleCommit}
         onTouchEnd={handleCommit}
-        className="h-2 w-full cursor-pointer appearance-none rounded-full bg-surface-secondary accent-accent"
+        className="h-2 w-full cursor-pointer appearance-none rounded-full border-0 bg-surface-secondary p-0 accent-accent focus-visible:ring-0"
       />
       <p className="text-xs text-muted">
         Only extract memories with confidence above this threshold.

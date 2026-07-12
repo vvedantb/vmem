@@ -32,5 +32,3 @@ export const codebaseSearchParams = {
   blastDirection: parseAsStringLiteral(blastDirections).withDefault("upstream"),
   search: parseAsString.withDefault(""),
 };
-
-export type CodebaseQueryStates = typeof codebaseSearchParams;

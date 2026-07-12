@@ -11,7 +11,7 @@ import { parseDeepSeekExportBuffer } from "../_utils/parseDeepSeekExport";
 import { parseGrokExportBuffer } from "../_utils/parseGrokExport";
 import type { ExportImportRow } from "../_utils/importRows";
 
-export type ParseResult =
+type ParseResult =
   | { ok: true; rows: ExportImportRow[] }
   | { ok: false; error: string };
 
@@ -33,7 +33,7 @@ export type AvailableProvider = BaseProvider & {
   tag: string;
 };
 
-export type ComingSoonProvider = BaseProvider & {
+type ComingSoonProvider = BaseProvider & {
   kind: "coming-soon";
 };
 

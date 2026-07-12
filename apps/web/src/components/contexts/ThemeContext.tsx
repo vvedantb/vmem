@@ -45,7 +45,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     if (!mounted || settings === undefined) return;
     const convexTheme = settings.theme ?? "system";
     setNextTheme(convexTheme);
-  }, [mounted, settings?.theme, setNextTheme]);
+  }, [mounted, settings, setNextTheme]);
 
   const theme: Theme = isTheme(settings?.theme) ? settings.theme : "system";
 

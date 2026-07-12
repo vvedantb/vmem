@@ -122,20 +122,24 @@ function SkillsLayout() {
     }
   }, [hasSkillId]);
 
+  const viewedSkillName = viewedSkill?.name;
+
   useEffect(() => {
-    if (viewedSkill) {
-      setNameDraft(viewedSkill.name);
+    if (viewedSkillName !== undefined) {
+      setNameDraft(viewedSkillName);
     }
-  }, [viewedSkill?._id, viewedSkill?.name]);
+  }, [viewedSkillName]);
 
   useEffect(() => {
     if (!skills || !hasSkillId) return;
     if (filteredSkills.length === 0) return;
     if (isSkillLoading) return;
     if (filteredSkills.some((skill) => skill._id === skillId)) return;
+    const first = filteredSkills.at(0);
+    if (!first) return;
     void navigate({
       to: "/$profileId/skills/$id",
-      params: { profileId, id: filteredSkills[0]._id },
+      params: { profileId, id: first._id },
       replace: true,
     });
   }, [
@@ -174,9 +178,11 @@ function SkillsLayout() {
       });
       return;
     }
+    const next = remaining.at(0);
+    if (!next) return;
     void navigate({
       to: "/$profileId/skills/$id",
-      params: { profileId, id: remaining[0]._id },
+      params: { profileId, id: next._id },
       replace: true,
     });
   };

@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@vmem/ui";
+import { Button, cn } from "@vmem/ui";
 import { IconLoader2, IconLock, IconPlus } from "@tabler/icons-react";
 import { codebaseLanguageColors } from "../CodebaseCardInsides";
 
@@ -33,12 +33,13 @@ export function AddRepoModalRow({
     : null;
 
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
       disabled={disabled}
       onClick={onAdd}
       className={cn(
-        "group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-[background-color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring",
+        "group flex h-auto w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-[background-color]",
         disabled && !isAdding ? "opacity-50" : "hover:bg-surface-tertiary/50",
       )}
     >
@@ -102,6 +103,6 @@ export function AddRepoModalRow({
           </>
         )}
       </div>
-    </button>
+    </Button>
   );
 }

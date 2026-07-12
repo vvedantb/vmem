@@ -11,7 +11,6 @@ export { AnimatedProgress } from "./AnimatedProgress";
 export { AnimatedCounter } from "./AnimatedCounter";
 
 // vmem logo animations — see /svg-playground for the full library.
-export { VmemPaths, PATH_LEFT, PATH_RIGHT, PATH_TOP } from "./VmemPaths";
+export { VmemPaths, PATH_LEFT } from "./VmemPaths";
 export { VmemDrawInIcon } from "./VmemDrawInIcon";
 export { VmemSpinner } from "./VmemSpinner";
-export { VmemThinkingLoader } from "./VmemThinkingLoader";

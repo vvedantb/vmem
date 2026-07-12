@@ -132,7 +132,18 @@ interface MergedGraph {
  *  - tag edges, wiki nodes/edges, focus, and total only exist on page one
  */
 function mergePages(pages: GraphResponse[]): MergedGraph {
-  const first = pages[0];
+  const first = pages.at(0);
+  if (first === undefined) {
+    return {
+      nodes: EMPTY_NODES,
+      tagEdges: EMPTY_TAG_EDGES,
+      relatesToEdges: [],
+      wikiParentEdges: EMPTY_WIKI_PARENT_EDGES,
+      mentionsEdges: EMPTY_MENTIONS_EDGES,
+      focusNodeId: null,
+      totalMemoryCount: null,
+    };
+  }
   if (pages.length === 1) {
     return {
       nodes: first.nodes,
@@ -233,12 +244,6 @@ export function useGraphData(
     placeholderData: keepPreviousData,
     initialPageParam: null as GraphCursor | null,
     queryFn: async ({ pageParam }): Promise<GraphResponse> => {
-      // Client-side timing so we can see the true user-perceived latency —
-      // Convex action round-trip + Zod parse, logged once per page fetch.
-      // Useful when debugging graph slowness: compare against the
-      // server-side Cypher timing to spot network vs. query regressions.
-      const startedAt =
-        typeof performance !== "undefined" ? performance.now() : Date.now();
       const result = await getGraphData({
         focus: scope === "local" ? (focusNodeId ?? undefined) : undefined,
         profileId: profileId ?? undefined,
@@ -253,15 +258,7 @@ export function useGraphData(
         cursorCreatedAt: pageParam?.createdAt,
         cursorId: pageParam?.id,
       });
-      const parsed = graphResponseSchema.parse(result);
-      const endedAt =
-        typeof performance !== "undefined" ? performance.now() : Date.now();
-      console.log(
-        `[graph] fetch+parse: ${(endedAt - startedAt).toFixed(0)}ms ` +
-          `(nodes=${parsed.nodes.length} tagEdges=${parsed.tagEdges.length} ` +
-          `relatesTo=${parsed.relatesToEdges.length})`,
-      );
-      return parsed;
+      return graphResponseSchema.parse(result);
     },
     getNextPageParam: (lastPage): GraphCursor | undefined =>
       scope === "global" &&
@@ -318,7 +315,7 @@ export function useGraphData(
 
   const fetchNextPage = useCallback(() => {
     void graphQuery.fetchNextPage();
-  }, [graphQuery.fetchNextPage]);
+  }, [graphQuery]);
 
   if (benchData) {
     return {

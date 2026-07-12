@@ -9,7 +9,7 @@
 // Scoped per-API package instead of the monolithic "googleapis" — the monolith's
 // root types pull in every Google API (~1M lines of .d.ts) and dominated typecheck time.
 import { drive as driveApi, auth as googleAuth } from "@googleapis/drive";
-import { type ActionCtx } from "../../_generated/server";
+import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
 import {
   markSyncComplete,

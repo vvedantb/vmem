@@ -70,21 +70,23 @@ export default function SelectImportRowsModal({
           </DialogTitle>
         </DialogHeader>
         <div className="flex gap-2 text-sm">
-          <button
+          <Button
             type="button"
-            className="text-accent underline-offset-4 hover:underline"
+            variant="link"
+            className="h-auto p-0 text-sm active:scale-100"
             onClick={selectAll}
           >
             Select all
-          </button>
+          </Button>
           <span className="text-muted">·</span>
-          <button
+          <Button
             type="button"
-            className="text-accent underline-offset-4 hover:underline"
+            variant="link"
+            className="h-auto p-0 text-sm active:scale-100"
             onClick={selectNone}
           >
             Select none
-          </button>
+          </Button>
         </div>
         <ul className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
           {rows.map((row) => (

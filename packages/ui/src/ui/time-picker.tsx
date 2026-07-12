@@ -44,7 +44,13 @@ const MINUTES = Array.from({ length: 60 }, (_, i) =>
 
 function parseValue(value: string): { hour: string; minute: string } {
   const match = /^(\d{2}):(\d{2})$/.exec(value);
-  if (match) return { hour: match[1], minute: match[2] };
+  if (match) {
+    const hour = match[1];
+    const minute = match[2];
+    if (hour !== undefined && minute !== undefined) {
+      return { hour, minute };
+    }
+  }
   return { hour: "00", minute: "00" };
 }
 

@@ -1,4 +1,4 @@
-import { Breadcrumb, BreadcrumbLink, BreadcrumbPage } from "@vmem/ui";
+import { Breadcrumb, BreadcrumbLink, BreadcrumbPage, Button } from "@vmem/ui";
 import type { FolderBreadcrumb } from "@/lib/file-types";
 
 interface BreadcrumbNavProps {
@@ -30,13 +30,14 @@ export default function BreadcrumbNav({
 
         return (
           <BreadcrumbLink key={key} asChild>
-            <button
+            <Button
               type="button"
+              variant="link"
               onClick={() => onNavigate(crumb.id)}
-              className="transition-transform active:scale-[0.96]"
+              className="h-auto p-0 font-normal text-inherit active:scale-[0.96]"
             >
               {crumb.name}
-            </button>
+            </Button>
           </BreadcrumbLink>
         );
       })}

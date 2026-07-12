@@ -18,10 +18,19 @@ function readCssEase(root: HTMLElement, name: string): (t: number) => number {
   if (!match) {
     return (t) => t;
   }
-  const x1 = parseFloat(match[1]);
-  const y1 = parseFloat(match[2]);
-  const x2 = parseFloat(match[3]);
-  const y2 = parseFloat(match[4]);
+  const [, g1, g2, g3, g4] = match;
+  if (
+    g1 === undefined ||
+    g2 === undefined ||
+    g3 === undefined ||
+    g4 === undefined
+  ) {
+    return (t) => t;
+  }
+  const x1 = parseFloat(g1);
+  const y1 = parseFloat(g2);
+  const x2 = parseFloat(g3);
+  const y2 = parseFloat(g4);
   const cx = 3 * x1;
   const bx = 3 * (x2 - x1) - cx;
   const ax = 1 - cx - bx;

@@ -150,16 +150,18 @@ export default function Sidebar({
     <>
       <Dialog open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
         <div className="fixed inset-x-0 top-0 z-40 flex min-h-14 items-center gap-3 bg-background px-3 pb-0 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] pt-[max(0px,env(safe-area-inset-top))] md:hidden">
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon"
             onClick={() => setMobileMenuOpen(true)}
             aria-label="Open navigation menu"
             aria-expanded={mobileMenuOpen}
             aria-controls={mobileMenuId}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-tertiary/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+            className="h-11 w-11 shrink-0 rounded-lg text-muted hover:bg-surface-tertiary/50 hover:text-foreground"
           >
             <MorphingMenuIcon isOpen={mobileMenuOpen} size={20} />
-          </button>
+          </Button>
           {pageTitle ? (
             <h1 className="min-w-0 flex-1 truncate text-lg leading-none font-instrumentSerif text-foreground">
               {pageTitle}

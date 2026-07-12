@@ -21,13 +21,15 @@ follow both. When they conflict, prefer the stricter type-safety rule.
 
 Do not claim done until the narrowest useful gate for the change has passed:
 
-| Change type                        | Minimum verification                                               |
-| ---------------------------------- | ------------------------------------------------------------------ |
-| Lint / oxlint plugin / CLAUDE-only | `pnpm lint` + `pnpm test:oxlint-plugin`                            |
-| Type / API surface                 | above + scoped `pnpm typecheck` / package typecheck                |
-| Runtime behaviour                  | above + scoped `pnpm test`                                         |
-| Dead exports / deps                | `pnpm knip`                                                        |
-| Merge-ready / ship                 | `pnpm check` (lint + typecheck + knip + plugin tests + unit tests) |
+| Change type                        | Minimum verification                                                            |
+| ---------------------------------- | ------------------------------------------------------------------------------- |
+| Lint / oxlint plugin / CLAUDE-only | `pnpm lint` + `pnpm test:oxlint-plugin`                                         |
+| Format                             | `pnpm format:check`                                                             |
+| Type / API surface                 | above + scoped `pnpm typecheck` / package typecheck                             |
+| Full type surface                  | `pnpm typecheck:all` (all seven TS workspaces)                                  |
+| Runtime behaviour                  | above + scoped `pnpm test`                                                      |
+| Dead exports / deps                | `pnpm knip`                                                                     |
+| Merge-ready / ship                 | `pnpm check` (lint + typecheck:all + knip + plugin tests + unit tests + format) |
 
 Evidence over assertions: paste the command output or link the failing/passing
 check. "Should work" is not done.
@@ -69,6 +71,16 @@ check. "Should work" is not done.
 - Prefer `const`; avoid reassignment `let` when a ternary or early return works.
 - Do not extract a single-use helper unless it clarifies a large function.
 - Happy-path-first: main flow at the top, helpers below.
+- Avoid unnecessary destructuring — prefer dot access when it preserves
+  context (`user.id` over `const { id } = user` for a one-off).
+- Inline once-used values; do not name temporaries that exist only to be
+  returned or passed once.
+- Comments only for non-obvious constraints (why), never narrating control
+  flow (what).
+- Prefer testing real implementations over mocks; never duplicate production
+  logic into the test suite.
+- No new `import * as` outside UI primitives / React / radix wrappers (existing
+  star imports in those wrappers are intentional).
 - No AI co-author / Cursor attribution in commits or PRs.
 
 ## Learning files

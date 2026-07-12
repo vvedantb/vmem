@@ -53,7 +53,7 @@ async function loadUploadedBlob(
   if (blob.size > MAX_UPLOAD_BYTES) {
     await ctx.storage.delete(storageId);
     throw new Error(
-      `${label[0].toUpperCase()}${label.slice(1)} too large: ${(blob.size / (1024 * 1024)).toFixed(1)} MB. Maximum is 25 MB.`,
+      `${label.charAt(0).toUpperCase()}${label.slice(1)} too large: ${(blob.size / (1024 * 1024)).toFixed(1)} MB. Maximum is 25 MB.`,
     );
   }
 

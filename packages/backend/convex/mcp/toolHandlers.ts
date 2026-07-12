@@ -4,7 +4,7 @@ import { toSkillIndexEntry } from "../skills";
 import type { McpScope } from "../profiles/mcpAccess";
 import type { z } from "zod";
 import { isOpenRouterRequired } from "../http/v1Memories/types";
-import {
+import type {
   codebaseContextSchema,
   codebaseGraphSchema,
   codebaseImpactSchema,

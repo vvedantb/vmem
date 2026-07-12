@@ -4,7 +4,7 @@
  * Memory create handler — Convex-local orchestration over Neo4j CRUD + post-create schedules.
  */
 
-import { type ActionCtx } from "../../_generated/server";
+import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import { computeContentHash } from "../../../engine/neo4j/memory/mappers";
 import {

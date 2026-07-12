@@ -421,8 +421,7 @@ export const upsertFileByPathInternal = internalMutation({
     // Walk/auto-create folder segments (all but the last). Personal scope
     // only — team nodes are filtered out so the MCP namespace stays clean.
     let parentId: Id<"fileNodes"> | undefined;
-    for (let i = 0; i < args.segments.length - 1; i++) {
-      const name = args.segments[i];
+    for (const name of args.segments.slice(0, -1)) {
       const existing = await findPersonalSibling(ctx, userId, parentId, name);
       if (existing) {
         if (existing.kind !== "folder") {
@@ -441,7 +440,10 @@ export const upsertFileByPathInternal = internalMutation({
       }
     }
 
-    const fileName = args.segments[args.segments.length - 1];
+    const fileName = args.segments.at(-1);
+    if (fileName === undefined) {
+      throw new Error("Path is required");
+    }
     const existing = await findPersonalSibling(ctx, userId, parentId, fileName);
 
     const indexable = detectFileKind(fileName, args.mimeType) !== null;

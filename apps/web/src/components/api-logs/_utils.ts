@@ -71,6 +71,8 @@ function buildDailyTrends(entries: ApiRequestEntry[]): ApiUsageTrends {
     if (bucketIndex < 0) continue;
 
     const bucket = buckets[bucketIndex];
+    if (bucket === undefined) continue;
+
     bucket.requests += 1;
     if (entry.status >= 200 && entry.status < 300) bucket.successCount += 1;
     bucket.totalDuration += entry.durationMs;

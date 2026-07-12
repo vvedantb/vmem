@@ -23,7 +23,7 @@ function ConnectorsPage() {
   useEffect(() => {
     if (connectors !== undefined && !seededRef.current) {
       seededRef.current = true;
-      seedDefaults();
+      void seedDefaults();
     }
   }, [connectors, seedDefaults]);
 

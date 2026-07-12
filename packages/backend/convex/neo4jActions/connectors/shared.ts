@@ -11,7 +11,7 @@
  */
 
 import type { Driver } from "neo4j-driver";
-import { type ActionCtx } from "../../_generated/server";
+import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import { getDriver } from "../../../engine/neo4j/driver";
