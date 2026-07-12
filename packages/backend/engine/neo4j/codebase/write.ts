@@ -28,6 +28,16 @@ import {
 
 const CHUNK_SIZE = 500;
 
+type Neo4jPropValue = string | number | boolean | null;
+type UpsertRow = { id: string; props: Record<string, Neo4jPropValue> };
+
+type CodeNodeLabel =
+  | "CodeFile"
+  | "Function"
+  | "Class"
+  | "Interface"
+  | "Process";
+
 interface WriteArgs {
   driver: Driver;
   userId: string;
@@ -72,40 +82,28 @@ async function deleteStale(
   }
 }
 
-async function upsertFiles(
+async function upsertNodes(
   driver: Driver,
-  userId: string,
-  codebaseId: string,
-  files: FileNode[],
+  label: CodeNodeLabel,
+  rows: UpsertRow[],
+  options?: { touchUpdatedAt?: boolean },
 ): Promise<void> {
+  if (rows.length === 0) return;
+  const touchUpdatedAt = options?.touchUpdatedAt ?? true;
   const now = Date.now();
-  for (const batch of chunk(files, CHUNK_SIZE)) {
+  const updatedAtClause = touchUpdatedAt ? "SET n.updatedAt = $now" : "";
+  for (const batch of chunk(rows, CHUNK_SIZE)) {
     const session = driver.session();
     try {
       await session.run(
         `
         UNWIND $rows AS row
-        MERGE (n:CodeFile { id: row.id })
+        MERGE (n:${label} { id: row.id })
         SET n += row.props
-        SET n.updatedAt = $now
+        ${updatedAtClause}
         SET n.createdAt = coalesce(n.createdAt, $now)
         `,
-        {
-          rows: batch.map((f) => ({
-            id: f.id,
-            props: {
-              userId,
-              codebaseId,
-              path: f.path,
-              directory: f.directory,
-              filename: f.filename,
-              extension: f.extension,
-              sizeBytes: f.sizeBytes,
-              contentHash: f.contentHash,
-            },
-          })),
-          now,
-        },
+        { rows: batch, now },
       );
     } finally {
       await session.close();
@@ -113,133 +111,100 @@ async function upsertFiles(
   }
 }
 
-async function upsertFunctions(
-  driver: Driver,
-  userId: string,
-  codebaseId: string,
-  fns: FunctionNode[],
-): Promise<void> {
-  const now = Date.now();
-  for (const batch of chunk(fns, CHUNK_SIZE)) {
-    const session = driver.session();
-    try {
-      await session.run(
-        `
-        UNWIND $rows AS row
-        MERGE (n:Function { id: row.id })
-        SET n += row.props
-        SET n.updatedAt = $now
-        SET n.createdAt = coalesce(n.createdAt, $now)
-        `,
-        {
-          rows: batch.map((f) => ({
-            id: f.id,
-            props: {
-              userId,
-              codebaseId,
-              filePath: f.filePath,
-              name: f.name,
-              qualifiedName: f.qualifiedName,
-              parentClass: f.parentClass ?? null,
-              startLine: f.startLine,
-              endLine: f.endLine,
-              isExported: f.isExported,
-              isAsync: f.isAsync,
-              isTest: f.isTest,
-              paramCount: f.paramCount,
-            },
-          })),
-          now,
-        },
-      );
-    } finally {
-      await session.close();
-    }
-  }
+function fileRow(f: FileNode, userId: string, codebaseId: string): UpsertRow {
+  return {
+    id: f.id,
+    props: {
+      userId,
+      codebaseId,
+      path: f.path,
+      directory: f.directory,
+      filename: f.filename,
+      extension: f.extension,
+      sizeBytes: f.sizeBytes,
+      contentHash: f.contentHash,
+    },
+  };
 }
 
-async function upsertClasses(
-  driver: Driver,
+function functionRow(
+  f: FunctionNode,
   userId: string,
   codebaseId: string,
-  classes: ClassNode[],
-): Promise<void> {
-  const now = Date.now();
-  for (const batch of chunk(classes, CHUNK_SIZE)) {
-    const session = driver.session();
-    try {
-      await session.run(
-        `
-        UNWIND $rows AS row
-        MERGE (n:Class { id: row.id })
-        SET n += row.props
-        SET n.updatedAt = $now
-        SET n.createdAt = coalesce(n.createdAt, $now)
-        `,
-        {
-          rows: batch.map((c) => ({
-            id: c.id,
-            props: {
-              userId,
-              codebaseId,
-              filePath: c.filePath,
-              name: c.name,
-              qualifiedName: c.qualifiedName,
-              startLine: c.startLine,
-              endLine: c.endLine,
-              isExported: c.isExported,
-              isAbstract: c.isAbstract,
-              extendsName: c.extendsName ?? null,
-            },
-          })),
-          now,
-        },
-      );
-    } finally {
-      await session.close();
-    }
-  }
+): UpsertRow {
+  return {
+    id: f.id,
+    props: {
+      userId,
+      codebaseId,
+      filePath: f.filePath,
+      name: f.name,
+      qualifiedName: f.qualifiedName,
+      parentClass: f.parentClass ?? null,
+      startLine: f.startLine,
+      endLine: f.endLine,
+      isExported: f.isExported,
+      isAsync: f.isAsync,
+      isTest: f.isTest,
+      paramCount: f.paramCount,
+    },
+  };
 }
 
-async function upsertInterfaces(
-  driver: Driver,
+function classRow(c: ClassNode, userId: string, codebaseId: string): UpsertRow {
+  return {
+    id: c.id,
+    props: {
+      userId,
+      codebaseId,
+      filePath: c.filePath,
+      name: c.name,
+      qualifiedName: c.qualifiedName,
+      startLine: c.startLine,
+      endLine: c.endLine,
+      isExported: c.isExported,
+      isAbstract: c.isAbstract,
+      extendsName: c.extendsName ?? null,
+    },
+  };
+}
+
+function interfaceRow(
+  i: InterfaceNode,
   userId: string,
   codebaseId: string,
-  ifaces: InterfaceNode[],
-): Promise<void> {
-  const now = Date.now();
-  for (const batch of chunk(ifaces, CHUNK_SIZE)) {
-    const session = driver.session();
-    try {
-      await session.run(
-        `
-        UNWIND $rows AS row
-        MERGE (n:Interface { id: row.id })
-        SET n += row.props
-        SET n.updatedAt = $now
-        SET n.createdAt = coalesce(n.createdAt, $now)
-        `,
-        {
-          rows: batch.map((i) => ({
-            id: i.id,
-            props: {
-              userId,
-              codebaseId,
-              filePath: i.filePath,
-              name: i.name,
-              qualifiedName: i.qualifiedName,
-              startLine: i.startLine,
-              endLine: i.endLine,
-              isExported: i.isExported,
-            },
-          })),
-          now,
-        },
-      );
-    } finally {
-      await session.close();
-    }
-  }
+): UpsertRow {
+  return {
+    id: i.id,
+    props: {
+      userId,
+      codebaseId,
+      filePath: i.filePath,
+      name: i.name,
+      qualifiedName: i.qualifiedName,
+      startLine: i.startLine,
+      endLine: i.endLine,
+      isExported: i.isExported,
+    },
+  };
+}
+
+function processRow(
+  p: ProcessNode,
+  userId: string,
+  codebaseId: string,
+): UpsertRow {
+  return {
+    id: p.id,
+    props: {
+      userId,
+      codebaseId,
+      name: p.name,
+      entryPointId: p.entryPointId,
+      entryKind: p.entryKind,
+      nodeCount: p.members.length,
+    },
+  };
 }
 
 /**
@@ -286,6 +251,33 @@ function edgeProps(e: RelationEdge): Record<string, unknown> {
   return out;
 }
 
+/** MERGE labeled endpoints with a fixed relationship type (no edge props). */
+async function upsertLabeledEdges(
+  driver: Driver,
+  edgeType: string,
+  fromLabel: string,
+  toLabel: string,
+  rows: Array<{ fromId: string; toId: string }>,
+): Promise<void> {
+  if (rows.length === 0) return;
+  for (const batch of chunk(rows, CHUNK_SIZE)) {
+    const session = driver.session();
+    try {
+      await session.run(
+        `
+        UNWIND $rows AS row
+        MATCH (a:${fromLabel} { id: row.fromId })
+        MATCH (b:${toLabel} { id: row.toId })
+        MERGE (a)-[:${edgeType}]->(b)
+        `,
+        { rows: batch },
+      );
+    } finally {
+      await session.close();
+    }
+  }
+}
+
 async function upsertProcesses(
   driver: Driver,
   userId: string,
@@ -293,82 +285,29 @@ async function upsertProcesses(
   processes: ProcessNode[],
 ): Promise<void> {
   if (processes.length === 0) return;
-  const now = Date.now();
-  for (const batch of chunk(processes, CHUNK_SIZE)) {
-    const session = driver.session();
-    try {
-      await session.run(
-        `
-        UNWIND $rows AS row
-        MERGE (n:Process { id: row.id })
-        SET n += row.props
-        SET n.createdAt = coalesce(n.createdAt, $now)
-        `,
-        {
-          rows: batch.map((p) => ({
-            id: p.id,
-            props: {
-              userId,
-              codebaseId,
-              name: p.name,
-              entryPointId: p.entryPointId,
-              entryKind: p.entryKind,
-              nodeCount: p.members.length,
-            },
-          })),
-          now,
-        },
-      );
-    } finally {
-      await session.close();
-    }
-  }
 
-  // STARTS_PROCESS edges (entry function → process).
-  const startsRows: { fromId: string; toId: string }[] = processes.map((p) => ({
-    fromId: p.entryPointId,
-    toId: p.id,
-  }));
-  for (const batch of chunk(startsRows, CHUNK_SIZE)) {
-    const session = driver.session();
-    try {
-      await session.run(
-        `
-        UNWIND $rows AS row
-        MATCH (a:Function { id: row.fromId })
-        MATCH (b:Process { id: row.toId })
-        MERGE (a)-[:STARTS_PROCESS]->(b)
-        `,
-        { rows: batch },
-      );
-    } finally {
-      await session.close();
-    }
-  }
+  await upsertNodes(
+    driver,
+    "Process",
+    processes.map((p) => processRow(p, userId, codebaseId)),
+    { touchUpdatedAt: false },
+  );
 
-  // INCLUDES edges (process → each member function).
-  const includes: { fromId: string; toId: string }[] = [];
+  await upsertLabeledEdges(
+    driver,
+    "STARTS_PROCESS",
+    "Function",
+    "Process",
+    processes.map((p) => ({ fromId: p.entryPointId, toId: p.id })),
+  );
+
+  const includes: Array<{ fromId: string; toId: string }> = [];
   for (const p of processes) {
     for (const memberId of p.members) {
       includes.push({ fromId: p.id, toId: memberId });
     }
   }
-  for (const batch of chunk(includes, CHUNK_SIZE)) {
-    const session = driver.session();
-    try {
-      await session.run(
-        `
-        UNWIND $rows AS row
-        MATCH (a:Process { id: row.fromId })
-        MATCH (b:Function { id: row.toId })
-        MERGE (a)-[:INCLUDES]->(b)
-        `,
-        { rows: batch },
-      );
-    } finally {
-      await session.close();
-    }
-  }
+  await upsertLabeledEdges(driver, "INCLUDES", "Process", "Function", includes);
 }
 
 /** Public entry point. Returns ParseStats so the action can patch the codebases row. */
@@ -399,10 +338,26 @@ export async function writeParseResult(args: WriteArgs): Promise<ParseStats> {
   ];
 
   await deleteStale(driver, userId, codebaseId, keepIds);
-  await upsertFiles(driver, userId, codebaseId, files);
-  await upsertFunctions(driver, userId, codebaseId, fns);
-  await upsertClasses(driver, userId, codebaseId, classes);
-  await upsertInterfaces(driver, userId, codebaseId, interfaces);
+  await upsertNodes(
+    driver,
+    "CodeFile",
+    files.map((f) => fileRow(f, userId, codebaseId)),
+  );
+  await upsertNodes(
+    driver,
+    "Function",
+    fns.map((f) => functionRow(f, userId, codebaseId)),
+  );
+  await upsertNodes(
+    driver,
+    "Class",
+    classes.map((c) => classRow(c, userId, codebaseId)),
+  );
+  await upsertNodes(
+    driver,
+    "Interface",
+    interfaces.map((i) => interfaceRow(i, userId, codebaseId)),
+  );
 
   // Bucket structural relations by type.
   const buckets = new Map<string, RelationEdge[]>();

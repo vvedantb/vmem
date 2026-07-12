@@ -18,21 +18,8 @@ import {
   type SymbolNode,
   type FunctionNode,
 } from "./types";
+import { convexEntryKind } from "./convexBuilders";
 import { Project, SyntaxKind } from "ts-morph";
-
-const CONVEX_KIND_BY_BUILDER: Record<string, EntryPoint["kind"]> = {
-  query: "convex_query",
-  mutation: "convex_mutation",
-  action: "convex_action",
-  internalQuery: "convex_internal",
-  internalMutation: "convex_internal",
-  internalAction: "convex_internal",
-  authInternalAction: "convex_internal",
-  httpAction: "convex_http",
-  authQuery: "convex_query",
-  authMutation: "convex_mutation",
-  authAction: "convex_action",
-};
 
 const HEURISTIC_NAMES = new Set(["main", "handler", "start"]);
 
@@ -65,7 +52,7 @@ function detectFromSource(
       if (!fnNode) continue;
 
       // Convex builders.
-      const convexKind = CONVEX_KIND_BY_BUILDER[calleeText];
+      const convexKind = convexEntryKind(calleeText);
       if (convexKind) {
         entries.push({
           functionId: fnNode.id,

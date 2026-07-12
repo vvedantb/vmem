@@ -3,18 +3,36 @@
  * Parse once at the driver boundary — consumers stay fully typed.
  */
 
+import neo4j from "neo4j-driver";
 import { z } from "zod";
 import { neo4jIntSchema, parseNeo4jInt } from "../record";
 
 /** Neo4j Integer | number | null → number | undefined. */
 export const optionalNeo4jIntSchema = z
-  .unknown()
-  .nullable()
-  .optional()
+  .custom<number | undefined>((v) => {
+    if (v === undefined || v === null) return true;
+    return typeof v === "number" || neo4j.isInt(v);
+  })
   .transform((v): number | undefined => {
     if (v == null) return undefined;
     return parseNeo4jInt(v);
   });
+
+/** Parsed Neo4j node `.properties` for overview / search reads. */
+export type OverviewNodeProps = {
+  id: string;
+  name?: string;
+  qualifiedName?: string;
+  path?: string;
+  filePath?: string;
+  filename?: string;
+  directory?: string;
+  isExported?: boolean;
+  isAsync?: boolean;
+  isTest?: boolean;
+  startLine?: number;
+  endLine?: number;
+};
 
 /** Node `.properties` shape shared across overview / search reads. */
 export const overviewNodePropsSchema = z.object({
@@ -30,7 +48,7 @@ export const overviewNodePropsSchema = z.object({
   isTest: z.boolean().optional(),
   startLine: optionalNeo4jIntSchema,
   endLine: optionalNeo4jIntSchema,
-});
+}) satisfies z.ZodType<OverviewNodeProps, z.ZodTypeDef, unknown>;
 
 export const labelsSchema = z.array(z.string());
 
@@ -58,8 +76,3 @@ export const processRefSchema = z.object({
 });
 
 export const processRefListSchema = z.array(processRefSchema);
-
-export const impactRecordSchema = z.object({
-  id: z.string(),
-  distance: neo4jIntSchema,
-});

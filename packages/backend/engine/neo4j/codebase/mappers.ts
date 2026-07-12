@@ -14,6 +14,7 @@ import {
   labelsSchema,
   nullableEdgeTierSchema,
   nullableNumberSchema,
+  type OverviewNodeProps,
   overviewNodePropsSchema,
   processRefListSchema,
   stringArraySchema,
@@ -42,7 +43,7 @@ export function parseOverviewStats(record: NeoRecord): OverviewStats {
 
 function overviewName(
   kind: OverviewNode["kind"],
-  props: z.infer<typeof overviewNodePropsSchema>,
+  props: OverviewNodeProps,
 ): string {
   if (kind === "code-process") return props.name ?? props.id;
   if (kind === "code-file") return props.filename ?? props.path ?? props.id;
@@ -51,7 +52,7 @@ function overviewName(
 
 export function mapOverviewNodeProps(
   kind: OverviewNode["kind"],
-  props: z.infer<typeof overviewNodePropsSchema>,
+  props: OverviewNodeProps,
 ): OverviewNode {
   return {
     id: props.id,
@@ -69,14 +70,9 @@ export function parseOverviewNodeRecord(
   record: NeoRecord,
   pickKind: (labels: string[]) => OverviewNode["kind"] | null,
 ): OverviewNode | null {
-  const labels = neo4jField(record, "labels", labelsSchema);
-  const kind = pickKind(labels);
-  if (!kind) return null;
-  const props = parseNeo4jNodeProps(
-    neo4jGet(record, "n"),
-    overviewNodePropsSchema,
-  );
-  return mapOverviewNodeProps(kind, props);
+  const parsed = parseOverviewPropsRecord(record, pickKind);
+  if (!parsed) return null;
+  return mapOverviewNodeProps(parsed.kind, parsed.props);
 }
 
 export function parseStringArrayField(
@@ -116,24 +112,57 @@ function filterRefsWithId<T extends { id: string | null }>(
   );
 }
 
-export function parseSymbolContextRecord(
+function mapSymbolRefs(
+  refs: z.infer<typeof symbolRefListSchema>,
+): SymbolContext["callsIn"] {
+  return filterRefsWithId(refs).map((x) => ({
+    id: x.id,
+    name: x.name ?? x.id,
+    filePath: x.filePath ?? "",
+  }));
+}
+
+function mapProcessRefs(
+  refs: z.infer<typeof processRefListSchema>,
+): SymbolContext["processes"] {
+  return filterRefsWithId(refs).map((x) => ({
+    id: x.id,
+    name: x.name ?? x.id,
+  }));
+}
+
+function parseOverviewPropsRecord(
   record: NeoRecord,
   pickKind: (labels: string[]) => OverviewNode["kind"] | null,
-): SymbolContext | null {
+  nodeKey: "node" | "n" = "n",
+): {
+  kind: OverviewNode["kind"];
+  props: OverviewNodeProps;
+} | null {
   const labels = neo4jField(record, "labels", labelsSchema);
   const kind = pickKind(labels);
   if (!kind) return null;
   const props = parseNeo4jNodeProps(
-    neo4jGet(record, "n"),
+    neo4jGet(record, nodeKey),
     overviewNodePropsSchema,
   );
-  const callsIn = filterRefsWithId(
+  return { kind, props };
+}
+
+export function parseSymbolContextRecord(
+  record: NeoRecord,
+  pickKind: (labels: string[]) => OverviewNode["kind"] | null,
+): SymbolContext | null {
+  const parsed = parseOverviewPropsRecord(record, pickKind);
+  if (!parsed) return null;
+  const { kind, props } = parsed;
+  const callsIn = mapSymbolRefs(
     neo4jField(record, "callsIn", symbolRefListSchema),
   );
-  const callsOut = filterRefsWithId(
+  const callsOut = mapSymbolRefs(
     neo4jField(record, "callsOut", symbolRefListSchema),
   );
-  const processes = filterRefsWithId(
+  const processes = mapProcessRefs(
     neo4jField(record, "processes", processRefListSchema),
   );
   return {
@@ -158,13 +187,9 @@ export function parseSearchSymbolRecord(
   pickKind: (labels: string[]) => OverviewNode["kind"] | null,
   nodeKey: "node" | "n",
 ): SearchSymbolsResult | null {
-  const labels = neo4jField(record, "labels", labelsSchema);
-  const kind = pickKind(labels);
-  if (!kind) return null;
-  const props = parseNeo4jNodeProps(
-    neo4jGet(record, nodeKey),
-    overviewNodePropsSchema,
-  );
+  const parsed = parseOverviewPropsRecord(record, pickKind, nodeKey);
+  if (!parsed) return null;
+  const { kind, props } = parsed;
   return {
     id: props.id,
     kind,

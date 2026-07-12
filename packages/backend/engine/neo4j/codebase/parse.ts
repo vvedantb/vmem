@@ -33,6 +33,7 @@ import {
   type RelationEdge,
   type ParseResult,
 } from "./types";
+import { isConvexBuilderName } from "./convexBuilders";
 
 export interface SourceFileBlob {
   /** Repo-relative path with `/` separators. */
@@ -316,22 +317,8 @@ function looksLikeConvexBuilder(init: Node): boolean {
   const expr = init.asKindOrThrow(SyntaxKind.CallExpression).getExpression();
   const calleeName = expr.getText();
   // Match bare names — reasonable since these builders are the convention.
-  return CONVEX_BUILDER_NAMES.has(calleeName);
+  return isConvexBuilderName(calleeName);
 }
-
-const CONVEX_BUILDER_NAMES = new Set<string>([
-  "query",
-  "mutation",
-  "action",
-  "internalQuery",
-  "internalMutation",
-  "internalAction",
-  "httpAction",
-  "authQuery",
-  "authMutation",
-  "authAction",
-  "authInternalAction",
-]);
 
 function hasModifier(node: Node, name: "async"): boolean {
   if (
