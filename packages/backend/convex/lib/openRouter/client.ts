@@ -1,6 +1,5 @@
 import { OpenRouter } from "@openrouter/sdk";
 import { OpenRouterError } from "@openrouter/sdk/models/errors";
-import { objectField } from "../jsonBoundary";
 
 export const OPENROUTER_HTTP_REFERER = "https://vmem.vedantb.com";
 export const OPENROUTER_APP_TITLE = "vmem";
@@ -77,18 +76,25 @@ const TRANSIENT_MESSAGE_FRAGMENTS: readonly string[] = [
   "unexpected end of json input",
 ];
 
+function readErrorCode(err: Error): string | undefined {
+  if ("code" in err && typeof err.code === "string") {
+    return err.code;
+  }
+  return undefined;
+}
+
 export function isTransientNetworkError(err: unknown): boolean {
   let current: unknown = err;
   // Walk the cause chain (undici puts the real socket error under `cause`).
   for (let depth = 0; depth < 5 && current != null; depth++) {
     if (current instanceof Error) {
-      const code = objectField(current, "code");
-      if (typeof code === "string" && TRANSIENT_CODES.has(code)) return true;
+      const code = readErrorCode(current);
+      if (code !== undefined && TRANSIENT_CODES.has(code)) return true;
       const message = current.message.toLowerCase();
       if (TRANSIENT_MESSAGE_FRAGMENTS.some((f) => message.includes(f))) {
         return true;
       }
-      current = objectField(current, "cause");
+      current = current.cause;
     } else {
       break;
     }

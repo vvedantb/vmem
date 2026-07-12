@@ -1,8 +1,26 @@
 import { internalMutation, query } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
+import { z } from "zod";
 import { auditLog, ResourceTypes } from "./auditLog";
-import { objectField, parseUnknownArray } from "./lib/jsonBoundary";
+
+const memoryEventMetadataSchema = z.object({
+  payload: z.string().optional(),
+});
+
+const memoryEventEntrySchema = z.object({
+  _id: z.string(),
+  action: z.string(),
+  resourceId: z.string(),
+  metadata: z.unknown().optional(),
+});
+
+function payloadFromMetadata(metadata: unknown): string {
+  if (typeof metadata !== "object" || metadata === null) return "{}";
+  const parsed = memoryEventMetadataSchema.safeParse(metadata);
+  if (!parsed.success) return "{}";
+  return parsed.data.payload ?? "{}";
+}
 
 const eventTypeValidator = v.union(
   v.literal("memory_created"),
@@ -87,9 +105,9 @@ export const pushEventInternal = internalMutation({
  * raw audit-log entries for memory/relationship actions — the web hook owns
  * the reverse map (action → `MemoryEventType`) and reshaping.
  *
- * The audit-log client types entries as `any`; we narrow each field with
- * `typeof` checks before returning, and rely on the Convex runtime
- * `returns:` validator as a second gate.
+ * The audit-log client returns untyped entries — we parse each row with
+ * zod before returning, and rely on the Convex runtime `returns:`
+ * validator as a second gate.
  */
 export const getRecentEvents = query({
   args: {
@@ -125,31 +143,17 @@ export const getRecentEvents = query({
       payload: string;
     }[] = [];
 
-    for (const rawEntry of parseUnknownArray(rawEntries)) {
-      if (typeof rawEntry !== "object" || rawEntry === null) continue;
-      const entryIdRaw = objectField(rawEntry, "_id");
-      const entryId = typeof entryIdRaw === "string" ? entryIdRaw : null;
-      if (!entryId) continue;
-      const actionRaw = objectField(rawEntry, "action");
-      const action = typeof actionRaw === "string" ? actionRaw : null;
-      if (!action) continue;
-      const resourceIdRaw = objectField(rawEntry, "resourceId");
-      const resourceId =
-        typeof resourceIdRaw === "string" ? resourceIdRaw : null;
-      if (!resourceId) continue;
+    for (const rawEntry of rawEntries) {
+      const parsed = memoryEventEntrySchema.safeParse(rawEntry);
+      if (!parsed.success) continue;
 
-      const metadata = objectField(rawEntry, "metadata");
-      const payloadRaw =
-        typeof metadata === "object" && metadata !== null
-          ? objectField(metadata, "payload")
-          : undefined;
-      const payload = typeof payloadRaw === "string" ? payloadRaw : "{}";
+      const { _id, action, resourceId, metadata } = parsed.data;
 
       result.push({
-        _id: entryId,
+        _id,
         action,
         resourceId,
-        payload,
+        payload: payloadFromMetadata(metadata),
       });
     }
 

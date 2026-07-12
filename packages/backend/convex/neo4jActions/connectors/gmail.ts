@@ -12,11 +12,12 @@ import type { gmail_v1 } from "@googleapis/gmail";
 import { type ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
 import {
+  EMBED_CONTENT_CAP,
   markSyncComplete,
-  markSyncError,
   maybeReportProgress,
   setupSync,
   upsertSyncedDoc,
+  withConnectorSyncError,
 } from "./shared";
 
 export interface GmailSyncArgs {
@@ -26,7 +27,6 @@ export interface GmailSyncArgs {
 }
 
 const MAX_MESSAGES_PER_SYNC = 500;
-const MAX_BODY_CHARS = 50_000;
 
 function decodeBase64Url(data: string): string {
   const base64 = data.replace(/-/g, "+").replace(/_/g, "/");
@@ -75,7 +75,7 @@ function extractBodyFromPart(part: gmail_v1.Schema$MessagePart): string {
 
 function messageBody(payload: gmail_v1.Schema$MessagePart | undefined): string {
   if (!payload) return "";
-  return extractBodyFromPart(payload).slice(0, MAX_BODY_CHARS);
+  return extractBodyFromPart(payload).slice(0, EMBED_CONTENT_CAP);
 }
 
 export async function runGmailSync(
@@ -84,7 +84,7 @@ export async function runGmailSync(
 ): Promise<{ synced: number }> {
   const setup = await setupSync(ctx, args.clerkId);
 
-  try {
+  return withConnectorSyncError(ctx, args.connectorId, "Gmail", async () => {
     const oauth = new googleAuth.OAuth2();
     oauth.setCredentials({ access_token: args.accessToken });
     const gmail = gmailApi({ version: "v1", auth: oauth });
@@ -155,14 +155,5 @@ export async function runGmailSync(
     });
 
     return { synced: totalSynced };
-  } catch (err) {
-    const errorMessage =
-      err instanceof Error ? err.message : "Gmail sync failed";
-    console.error("Gmail sync error:", err);
-    await markSyncError(ctx, {
-      connectorId: args.connectorId,
-      errorMessage,
-    });
-    throw err;
-  }
+  });
 }

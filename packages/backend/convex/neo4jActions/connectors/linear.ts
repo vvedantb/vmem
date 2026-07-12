@@ -11,10 +11,10 @@ import { type ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
 import {
   markSyncComplete,
-  markSyncError,
   maybeReportProgress,
   setupSync,
   upsertSyncedDoc,
+  withConnectorSyncError,
 } from "./shared";
 import { parseResponseJson } from "../../lib/jsonBoundary";
 import { z } from "zod";
@@ -76,10 +76,6 @@ const linearProjectsDataSchema = z.object({
   }),
 });
 
-type LinearComment = z.infer<typeof linearCommentSchema>;
-type LinearIssue = z.infer<typeof linearIssueSchema>;
-type LinearProject = z.infer<typeof linearProjectSchema>;
-type LinearPageInfo = z.infer<typeof linearPageInfoSchema>;
 type LinearIssuesData = z.infer<typeof linearIssuesDataSchema>;
 type LinearProjectsData = z.infer<typeof linearProjectsDataSchema>;
 
@@ -91,7 +87,7 @@ async function linearGraphQL<T>(
   variables: Record<string, unknown>,
   dataSchema: z.ZodType<T, z.ZodTypeDef, unknown>,
 ): Promise<T> {
-  const resUnknown: unknown = await fetch(LINEAR_GRAPHQL_URL, {
+  const res = await fetch(LINEAR_GRAPHQL_URL, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -99,10 +95,6 @@ async function linearGraphQL<T>(
     },
     body: JSON.stringify({ query, variables }),
   });
-  if (!(resUnknown instanceof Response)) {
-    throw new Error("Linear fetch did not return Response");
-  }
-  const res = resUnknown;
   if (!res.ok) {
     throw new Error(`Linear API error: ${res.status} ${res.statusText}`);
   }
@@ -181,7 +173,7 @@ export async function runLinearSync(
     ? { updatedAt: { gte: filterDate } }
     : undefined;
 
-  try {
+  return withConnectorSyncError(ctx, args.connectorId, "Linear", async () => {
     let totalSynced = 0;
     let totalFound = 0;
 
@@ -304,14 +296,5 @@ export async function runLinearSync(
     });
 
     return { synced: totalSynced };
-  } catch (err) {
-    const errorMessage =
-      err instanceof Error ? err.message : "Linear sync failed";
-    console.error("Linear sync error:", err);
-    await markSyncError(ctx, {
-      connectorId: args.connectorId,
-      errorMessage,
-    });
-    throw err;
-  }
+  });
 }

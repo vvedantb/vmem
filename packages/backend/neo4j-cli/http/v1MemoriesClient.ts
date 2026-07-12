@@ -45,9 +45,7 @@ const healthBodySchema = z.object({
   status: z.literal("ok"),
 });
 
-function envelopeSchema<S extends z.ZodTypeAny>(dataSchema: S) {
-  return z.object({ data: dataSchema });
-}
+const jsonObjectSchema = z.object({}).passthrough();
 
 export type HttpMemory = z.infer<typeof memorySchema>;
 export type HttpRetrieveResult = z.infer<typeof retrieveDataSchema>;
@@ -69,10 +67,8 @@ async function readJson(response: Response): Promise<object | null> {
 
   try {
     const raw: unknown = JSON.parse(text);
-    if (typeof raw !== "object" || raw === null) {
-      return null;
-    }
-    return raw;
+    const parsed = jsonObjectSchema.safeParse(raw);
+    return parsed.success ? parsed.data : null;
   } catch {
     return null;
   }
@@ -109,9 +105,13 @@ function parseEnvelope<T>(
     return { ok: false, status, error: "invalid_json" };
   }
 
-  const envelope = envelopeSchema(dataSchema).safeParse(body);
+  // Parse wrapper first, then data — avoids ZodType<T> making `.data` optional in z.object.
+  const envelope = z.object({ data: z.unknown() }).safeParse(body);
   if (envelope.success) {
-    return { ok: true, status, data: envelope.data.data };
+    const data = dataSchema.safeParse(envelope.data.data);
+    if (data.success) {
+      return { ok: true, status, data: data.data };
+    }
   }
 
   const error = errorBodySchema.safeParse(body);

@@ -1,7 +1,7 @@
+import { z } from "zod";
 import { extractJsonString } from "../../engine/llm/extractJsonString";
 import type { TagUsage } from "../../engine/neo4j/memory/tagNormalize";
 import { sanitizeTag } from "../../engine/neo4j/memory/tagNormalize";
-import { objectField, parseUnknownArray } from "../lib/jsonBoundary";
 
 // Re-exported for existing imports (enrichment action, tests). The canonical
 // home is the engine tagNormalize module, next to normalizeTags — the
@@ -194,54 +194,54 @@ Respond with ONLY this JSON, no other text:
 {"tags": ["tag1", "tag2"], "relatedMemoryIds": ["id1"], "entities": [{"name": "React", "type": "technology"}]}`;
 }
 
-function isNonEmptyStringArray(value: unknown): value is string[] {
-  return (
-    Array.isArray(value) &&
-    value.length > 0 &&
-    value.every((item) => typeof item === "string" && item.length > 0)
-  );
-}
-
-function isStringArrayAllowEmpty(value: unknown): value is string[] {
-  return (
-    Array.isArray(value) && value.every((item) => typeof item === "string")
-  );
-}
-
 export interface ParsedFullEnrichment {
   tags: string[];
   relatedMemoryIds: string[];
   entities: ExtractedEntity[];
 }
 
-function isValidEntityType(t: string): t is EntityType {
-  return (ENTITY_TYPES as readonly string[]).includes(t);
-}
+const entityTypeSchema = z.enum(ENTITY_TYPES);
+
+const entityItemSchema = z.object({
+  name: z.string().trim().min(1),
+  type: entityTypeSchema,
+});
+
+const fullEnrichmentResponseSchema = z.object({
+  tags: z.array(z.string().min(1)).min(1),
+  relatedMemoryIds: z.unknown().optional(),
+  entities: z.unknown().optional(),
+});
 
 /**
  * Parse entities from LLM response. Gracefully returns [] when the field is
  * missing or malformed — backward compatible with models that don't emit it.
  */
 function parseEntities(raw: unknown): ExtractedEntity[] {
-  if (!Array.isArray(raw)) return [];
+  const arrayResult = z.array(z.unknown()).safeParse(raw);
+  if (!arrayResult.success) return [];
   const seen = new Set<string>();
   const result: ExtractedEntity[] = [];
-  const items = parseUnknownArray(raw);
-  for (const item of items) {
-    if (typeof item !== "object" || item === null) continue;
-    const name = objectField(item, "name");
-    const type = objectField(item, "type");
-    if (typeof name !== "string" || name.trim().length === 0) continue;
-    if (typeof type !== "string" || !isValidEntityType(type)) continue;
+  for (const item of arrayResult.data) {
+    const parsed = entityItemSchema.safeParse(item);
+    if (!parsed.success) continue;
+    const { name, type } = parsed.data;
     const normalizedName = normalizeEntityName(name);
     // Dedup on name alone (no type): entity identity in the graph is
     // (userId, normalizedName) — the same name under two types is one
     // entity the LLM classified inconsistently, not two entities.
     if (seen.has(normalizedName)) continue;
     seen.add(normalizedName);
-    result.push({ name: name.trim(), normalizedName, type });
+    result.push({ name, normalizedName, type });
   }
   return result.slice(0, 10);
+}
+
+function parseRelatedMemoryIds(raw: unknown): string[] {
+  if (raw === undefined) return [];
+  const related = z.array(z.string()).safeParse(raw);
+  if (!related.success) return [];
+  return related.data.filter((id) => id.length > 0);
 }
 
 export function parseFullEnrichmentResponse(
@@ -249,23 +249,17 @@ export function parseFullEnrichmentResponse(
 ): ParsedFullEnrichment | null {
   try {
     const jsonStr = extractJsonString(raw);
-    const parsed: unknown = JSON.parse(jsonStr);
-    if (typeof parsed !== "object" || parsed === null) return null;
-    if (!("tags" in parsed)) return null;
-    const tagsRaw = objectField(parsed, "tags");
-    const relatedRaw = objectField(parsed, "relatedMemoryIds");
-    const entitiesRaw = objectField(parsed, "entities");
-    if (!isNonEmptyStringArray(tagsRaw)) return null;
-    const tags = tagsRaw
+    const parsed = fullEnrichmentResponseSchema.safeParse(JSON.parse(jsonStr));
+    if (!parsed.success) return null;
+    const tags = parsed.data.tags
       .map(sanitizeTag)
       .filter((t) => t.length > 0)
       .slice(0, 4);
     if (tags.length === 0) return null;
-    const relatedMemoryIds =
-      relatedRaw !== undefined && isStringArrayAllowEmpty(relatedRaw)
-        ? relatedRaw.filter((id) => id.length > 0)
-        : [];
-    const entities = parseEntities(entitiesRaw);
+    const relatedMemoryIds = parseRelatedMemoryIds(
+      parsed.data.relatedMemoryIds,
+    );
+    const entities = parseEntities(parsed.data.entities);
     return { tags, relatedMemoryIds, entities };
   } catch {
     console.error("[enrichment] Failed to parse LLM response:", raw);

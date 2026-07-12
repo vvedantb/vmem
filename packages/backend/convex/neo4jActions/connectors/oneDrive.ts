@@ -11,11 +11,12 @@ import { type ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
 import {
   markSyncComplete,
-  markSyncError,
   maybeReportProgress,
   setupSync,
   upsertSyncedDoc,
+  withConnectorSyncError,
 } from "./shared";
+import { parseResponseJson } from "../../lib/jsonBoundary";
 import { z } from "zod";
 
 export interface OneDriveSyncArgs {
@@ -59,23 +60,15 @@ async function fetchOneDriveListPage(
   accessToken: string,
   url: string,
 ): Promise<OneDriveListData> {
-  const responseUnknown: unknown = await fetch(url, {
+  const response = await fetch(url, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
-  if (!(responseUnknown instanceof Response)) {
-    throw new Error("OneDrive fetch did not return Response");
-  }
-  if (!responseUnknown.ok) {
+  if (!response.ok) {
     throw new Error(
-      `OneDrive list failed: ${responseUnknown.status} ${responseUnknown.statusText}`,
+      `OneDrive list failed: ${response.status} ${response.statusText}`,
     );
   }
-  const raw: unknown = await responseUnknown.json();
-  const parsed = oneDriveListResponseSchema.safeParse(raw);
-  if (!parsed.success) {
-    throw new Error(`OneDrive list JSON invalid: ${parsed.error.message}`);
-  }
-  return parsed.data;
+  return parseResponseJson(response, oneDriveListResponseSchema);
 }
 
 export async function runOneDriveSync(
@@ -84,7 +77,7 @@ export async function runOneDriveSync(
 ): Promise<{ synced: number }> {
   const setup = await setupSync(ctx, args.clerkId);
 
-  try {
+  return withConnectorSyncError(ctx, args.connectorId, "OneDrive", async () => {
     // MVP: list root-level files only — no recursion into subfolders.
     let nextUrl: string | null =
       "https://graph.microsoft.com/v1.0/me/drive/root/children?$top=100";
@@ -110,17 +103,10 @@ export async function runOneDriveSync(
         try {
           // `?format=text` asks Graph to convert Word docs to plain text.
           // For text/plain + text/markdown the server ignores it and returns the raw body.
-          const contentResUnknown: unknown = await fetch(
+          const contentRes = await fetch(
             `https://graph.microsoft.com/v1.0/me/drive/items/${item.id}/content?format=text`,
             { headers: { Authorization: `Bearer ${args.accessToken}` } },
           );
-          if (!(contentResUnknown instanceof Response)) {
-            console.error(
-              `OneDrive content fetch failed for ${item.name}: invalid response`,
-            );
-            continue;
-          }
-          const contentRes = contentResUnknown;
           if (!contentRes.ok) {
             console.error(
               `OneDrive content fetch failed for ${item.name}: ${contentRes.status}`,
@@ -163,14 +149,5 @@ export async function runOneDriveSync(
     });
 
     return { synced: totalSynced };
-  } catch (err) {
-    const errorMessage =
-      err instanceof Error ? err.message : "OneDrive sync failed";
-    console.error("OneDrive sync error:", err);
-    await markSyncError(ctx, {
-      connectorId: args.connectorId,
-      errorMessage,
-    });
-    throw err;
-  }
+  });
 }

@@ -24,7 +24,7 @@ import {
 import { scheduleDreamTriggerCheck } from "../../lib/dreamTriggerInvalidate";
 
 /** Max chars of a synced document's body sent to the embedder / stored. */
-const EMBED_CONTENT_CAP = 50_000;
+export const EMBED_CONTENT_CAP = 50_000;
 
 /** Resolved auth pair carried through a sync — `null` if the user has no
  *  OPENROUTER_API_KEY configured. */
@@ -195,4 +195,26 @@ export async function markSyncError(
     syncStatus: "error",
     errorMessage: params.errorMessage,
   });
+}
+
+/**
+ * Wrap a connector sync body with the shared outer try/catch: log, mark
+ * sync error, rethrow. `label` is used in the fallback message and log
+ * prefix (e.g. `"Gmail"` → `"Gmail sync failed"`).
+ */
+export async function withConnectorSyncError<T>(
+  ctx: ActionCtx,
+  connectorId: Id<"connectors">,
+  label: string,
+  fn: () => Promise<T>,
+): Promise<T> {
+  try {
+    return await fn();
+  } catch (err) {
+    const errorMessage =
+      err instanceof Error ? err.message : `${label} sync failed`;
+    console.error(`${label} sync error:`, err);
+    await markSyncError(ctx, { connectorId, errorMessage });
+    throw err;
+  }
 }

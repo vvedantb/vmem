@@ -15,11 +15,12 @@ import type {
 import { type ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
 import {
+  EMBED_CONTENT_CAP,
   markSyncComplete,
-  markSyncError,
   maybeReportProgress,
   setupSync,
   upsertSyncedDoc,
+  withConnectorSyncError,
 } from "./shared";
 
 export interface NotionSyncArgs {
@@ -77,7 +78,7 @@ export async function runNotionSync(
 ): Promise<{ synced: number }> {
   const setup = await setupSync(ctx, args.clerkId);
 
-  try {
+  return withConnectorSyncError(ctx, args.connectorId, "Notion", async () => {
     const notion = new NotionClient({ auth: args.accessToken });
 
     let startCursor: string | undefined;
@@ -130,7 +131,7 @@ export async function runNotionSync(
               : undefined;
           } while (blockCursor);
 
-          const content = blocks.join("\n\n").slice(0, 50000);
+          const content = blocks.join("\n\n").slice(0, EMBED_CONTENT_CAP);
           const pageUrl =
             "url" in page
               ? page.url
@@ -171,14 +172,5 @@ export async function runNotionSync(
     });
 
     return { synced: totalSynced };
-  } catch (err) {
-    const errorMessage =
-      err instanceof Error ? err.message : "Notion sync failed";
-    console.error("Notion sync error:", err);
-    await markSyncError(ctx, {
-      connectorId: args.connectorId,
-      errorMessage,
-    });
-    throw err;
-  }
+  });
 }

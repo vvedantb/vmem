@@ -1,8 +1,21 @@
 import { AuditLog } from "convex-audit-log";
 import { v } from "convex/values";
+import { z } from "zod";
 import { components } from "./_generated/api";
 import { authQuery } from "./auth";
-import { objectField, parseUnknownArray } from "./lib/jsonBoundary";
+
+const apiRequestMetadataSchema = z.object({
+  endpoint: z.string().optional(),
+  status: z.number().optional(),
+  durationMs: z.number().optional(),
+  originalTimestamp: z.number().optional(),
+});
+
+const apiRequestEntrySchema = z.object({
+  _id: z.string(),
+  metadata: apiRequestMetadataSchema,
+  timestamp: z.number().optional(),
+});
 
 /**
  * Shared audit-log client for the whole backend.
@@ -68,9 +81,9 @@ export function severityForStatus(
  * this keeps the backend surface small while preserving security
  * (actorId is pinned to `ctx.userId`, never accepted from the caller).
  *
- * The audit-log client returns entries typed as `any` — we narrow each
- * field with a `typeof` check before writing it into the declared shape,
- * and rely on the Convex `returns:` runtime validator as a second gate.
+ * The audit-log client returns untyped entries — we parse each row with
+ * zod before writing it into the declared shape, and rely on the Convex
+ * `returns:` runtime validator as a second gate.
  */
 export const listMyApiRequestEntries = authQuery({
   args: {
@@ -107,33 +120,18 @@ export const listMyApiRequestEntries = authQuery({
       originalTimestamp: number;
     }[] = [];
 
-    for (const rawEntry of parseUnknownArray(rawEntries)) {
-      if (typeof rawEntry !== "object" || rawEntry === null) continue;
-      const entryIdRaw = objectField(rawEntry, "_id");
-      const entryId = typeof entryIdRaw === "string" ? entryIdRaw : null;
-      if (!entryId) continue;
+    for (const rawEntry of rawEntries) {
+      const parsed = apiRequestEntrySchema.safeParse(rawEntry);
+      if (!parsed.success) continue;
 
-      const meta = objectField(rawEntry, "metadata");
-      if (typeof meta !== "object" || meta === null) continue;
-
-      const endpointRaw = objectField(meta, "endpoint");
-      const statusRaw = objectField(meta, "status");
-      const durationMsRaw = objectField(meta, "durationMs");
-      const originalTimestampRaw = objectField(meta, "originalTimestamp");
-      const timestampRaw = objectField(rawEntry, "timestamp");
-
-      const endpoint = typeof endpointRaw === "string" ? endpointRaw : "";
-      const status = typeof statusRaw === "number" ? statusRaw : 0;
-      const durationMs = typeof durationMsRaw === "number" ? durationMsRaw : 0;
-      const originalTimestamp =
-        typeof originalTimestampRaw === "number"
-          ? originalTimestampRaw
-          : typeof timestampRaw === "number"
-            ? timestampRaw
-            : 0;
+      const { _id, metadata, timestamp } = parsed.data;
+      const endpoint = metadata.endpoint ?? "";
+      const status = metadata.status ?? 0;
+      const durationMs = metadata.durationMs ?? 0;
+      const originalTimestamp = metadata.originalTimestamp ?? timestamp ?? 0;
 
       result.push({
-        _id: entryId,
+        _id,
         endpoint,
         status,
         durationMs,

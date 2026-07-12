@@ -3,7 +3,12 @@
  * JSON conversion exists only for one-time migration off legacy contentJson.
  */
 
-import { objectField } from "./jsonBoundary";
+import { z } from "zod";
+
+const legacyWikiDocProbeSchema = z.object({
+  type: z.literal("doc"),
+  content: z.array(z.unknown()),
+});
 
 export function mergeMarkdownForAppend(
   existing: string,
@@ -120,9 +125,7 @@ function legacyDocToMarkdown(doc: LegacyWikiDoc): string {
 }
 
 function isLegacyWikiDoc(value: unknown): value is LegacyWikiDoc {
-  if (typeof value !== "object" || value === null) return false;
-  if (objectField(value, "type") !== "doc") return false;
-  return Array.isArray(objectField(value, "content"));
+  return legacyWikiDocProbeSchema.safeParse(value).success;
 }
 
 /** One-time migration: legacy TipTap JSON → markdown. */

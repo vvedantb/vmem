@@ -43,15 +43,8 @@ export const neo4jIntSchema = z.unknown().transform(parseNeo4jInt);
 
 /**
  * Read `PropertyDescriptor.value` as `unknown`.
- * Descriptors are typed `any` in lib.es5 — one escape hatch.
+ * Descriptors are typed `any` in lib.es5 — inlined at the one call site.
  */
-function descriptorValue(desc: PropertyDescriptor | undefined): unknown {
-  if (!desc) return undefined;
-  // oxlint-disable-next-line typescript/no-unsafe-assignment, typescript/no-unsafe-return -- PropertyDescriptor.value is `any`
-  return desc.value;
-}
-
-/** Extract + validate `.properties` from a Neo4j Node (or node-shaped object). */
 export function parseNeo4jNodeProps<T>(
   value: unknown,
   propsSchema: ZodType<T>,
@@ -59,9 +52,14 @@ export function parseNeo4jNodeProps<T>(
   if (typeof value !== "object" || value === null) {
     throw new Error("Expected Neo4j node with properties");
   }
-  const properties = descriptorValue(
-    Object.getOwnPropertyDescriptor(value, "properties"),
-  );
+  const desc = Object.getOwnPropertyDescriptor(value, "properties");
+  let properties: unknown;
+  if (!desc) {
+    properties = undefined;
+  } else {
+    // oxlint-disable-next-line typescript/no-unsafe-assignment -- PropertyDescriptor.value is `any`
+    properties = desc.value;
+  }
   const parsed = propsSchema.safeParse(properties);
   if (!parsed.success) {
     throw new Error(

@@ -1,6 +1,8 @@
 import { v } from "convex/values";
 import { internalAction } from "../_generated/server";
+import type { ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
 import { authAction } from "../auth";
 import { encryptToken, decryptToken, getEnvOrThrow } from "../lib/crypto";
 import { oauthAccessTokenSchema, parseResponseJson } from "../lib/jsonBoundary";
@@ -59,6 +61,53 @@ const PROVIDER_CONFIGS: Record<Provider, ProviderConfig> = {
 
 function isConnectorOAuthProvider(value: string): value is Provider {
   return value in PROVIDER_CONFIGS;
+}
+
+type OAuthAccessTokenData = z.infer<typeof oauthAccessTokenSchema>;
+
+type OAuthTokenExchangeResult =
+  | { ok: true; tokenData: OAuthAccessTokenData & { access_token: string } }
+  | { ok: false; error: string };
+
+/** Fetch + parse a provider token endpoint response. */
+async function exchangeOAuthAccessToken(
+  tokenUrl: string,
+  init: RequestInit,
+): Promise<OAuthTokenExchangeResult> {
+  const tokenRes = await fetch(tokenUrl, init);
+  if (!tokenRes.ok) {
+    return { ok: false, error: "token_exchange_failed" };
+  }
+  const tokenData = await parseResponseJson(tokenRes, oauthAccessTokenSchema);
+  const accessToken = tokenData.access_token;
+  if (!accessToken) {
+    return { ok: false, error: tokenData.error ?? "no_token" };
+  }
+  return { ok: true, tokenData: { ...tokenData, access_token: accessToken } };
+}
+
+type StoreOAuthTokensOptions = {
+  refreshToken: string;
+  expiresAt: number;
+};
+
+/** Encrypt access (+ optional refresh) tokens and persist on the connector. */
+async function encryptAndStoreOAuthTokens(
+  ctx: ActionCtx,
+  connectorId: Id<"connectors">,
+  tokenData: OAuthAccessTokenData & { access_token: string },
+  options: StoreOAuthTokensOptions,
+): Promise<void> {
+  const encryptedAccess = await encryptToken(tokenData.access_token);
+  const encryptedRefresh = await encryptToken(options.refreshToken);
+  await ctx.runMutation(internal.connectors.tokens.storeTokensInternal, {
+    connectorId,
+    accessToken: encryptedAccess,
+    refreshToken: encryptedRefresh,
+    expiresAt: options.expiresAt,
+    tokenType: tokenData.token_type ?? "Bearer",
+    scope: tokenData.scope ?? "",
+  });
 }
 
 // --- Public actions ---
@@ -352,52 +401,37 @@ export const handleCallbackInternal = internalAction({
       const clientId = getEnvOrThrow("GOOGLE_CLIENT_ID");
       const clientSecret = getEnvOrThrow("GOOGLE_CLIENT_SECRET");
 
-      const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          code: args.code,
-          client_id: clientId,
-          client_secret: clientSecret,
-          redirect_uri: redirectUri,
-          grant_type: "authorization_code",
-        }),
-      });
-
-      if (!tokenRes.ok) {
+      const exchanged = await exchangeOAuthAccessToken(
+        "https://oauth2.googleapis.com/token",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            code: args.code,
+            client_id: clientId,
+            client_secret: clientSecret,
+            redirect_uri: redirectUri,
+            grant_type: "authorization_code",
+          }),
+        },
+      );
+      if (!exchanged.ok) {
         return {
-          error: "token_exchange_failed",
+          error: exchanged.error,
           frontendUrl: stateEntry.returnUrl,
           connectorId: stateEntry.connectorId,
         };
       }
-
-      const tokenData = await parseResponseJson(
-        tokenRes,
-        oauthAccessTokenSchema,
+      await encryptAndStoreOAuthTokens(
+        ctx,
+        stateEntry.connectorId,
+        exchanged.tokenData,
+        {
+          refreshToken: exchanged.tokenData.refresh_token ?? "",
+          expiresAt:
+            Date.now() + (exchanged.tokenData.expires_in ?? 3600) * 1000,
+        },
       );
-      if (!tokenData.access_token) {
-        return {
-          error: tokenData.error ?? "no_token",
-          frontendUrl: stateEntry.returnUrl,
-          connectorId: stateEntry.connectorId,
-        };
-      }
-
-      // 3. Encrypt and store tokens
-      const encryptedAccess = await encryptToken(tokenData.access_token);
-      const encryptedRefresh = await encryptToken(
-        tokenData.refresh_token ?? "",
-      );
-
-      await ctx.runMutation(internal.connectors.tokens.storeTokensInternal, {
-        connectorId: stateEntry.connectorId,
-        accessToken: encryptedAccess,
-        refreshToken: encryptedRefresh,
-        expiresAt: Date.now() + (tokenData.expires_in ?? 3600) * 1000,
-        tokenType: tokenData.token_type ?? "Bearer",
-        scope: tokenData.scope ?? "",
-      });
     } else if (provider === "notion") {
       const clientId = getEnvOrThrow("NOTION_CLIENT_ID");
       const clientSecret = getEnvOrThrow("NOTION_CLIENT_SECRET");
@@ -453,100 +487,73 @@ export const handleCallbackInternal = internalAction({
       const clientId = getEnvOrThrow("MICROSOFT_CLIENT_ID");
       const clientSecret = getEnvOrThrow("MICROSOFT_CLIENT_SECRET");
 
-      const tokenRes = await fetch(PROVIDER_CONFIGS.onedrive.tokenUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          client_id: clientId,
-          client_secret: clientSecret,
-          code: args.code,
-          redirect_uri: redirectUri,
-          grant_type: "authorization_code",
-          scope: PROVIDER_CONFIGS.onedrive.scopes.join(" "),
-        }),
-      });
-
-      if (!tokenRes.ok) {
+      const exchanged = await exchangeOAuthAccessToken(
+        PROVIDER_CONFIGS.onedrive.tokenUrl,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            client_id: clientId,
+            client_secret: clientSecret,
+            code: args.code,
+            redirect_uri: redirectUri,
+            grant_type: "authorization_code",
+            scope: PROVIDER_CONFIGS.onedrive.scopes.join(" "),
+          }),
+        },
+      );
+      if (!exchanged.ok) {
         return {
-          error: "token_exchange_failed",
+          error: exchanged.error,
           frontendUrl: stateEntry.returnUrl,
           connectorId: stateEntry.connectorId,
         };
       }
-
-      const tokenData = await parseResponseJson(
-        tokenRes,
-        oauthAccessTokenSchema,
+      await encryptAndStoreOAuthTokens(
+        ctx,
+        stateEntry.connectorId,
+        exchanged.tokenData,
+        {
+          refreshToken: exchanged.tokenData.refresh_token ?? "",
+          expiresAt:
+            Date.now() + (exchanged.tokenData.expires_in ?? 3600) * 1000,
+        },
       );
-      if (!tokenData.access_token) {
-        return {
-          error: tokenData.error ?? "no_token",
-          frontendUrl: stateEntry.returnUrl,
-          connectorId: stateEntry.connectorId,
-        };
-      }
-
-      const encryptedAccess = await encryptToken(tokenData.access_token);
-      const encryptedRefresh = await encryptToken(
-        tokenData.refresh_token ?? "",
-      );
-
-      await ctx.runMutation(internal.connectors.tokens.storeTokensInternal, {
-        connectorId: stateEntry.connectorId,
-        accessToken: encryptedAccess,
-        refreshToken: encryptedRefresh,
-        expiresAt: Date.now() + (tokenData.expires_in ?? 3600) * 1000,
-        tokenType: tokenData.token_type ?? "Bearer",
-        scope: tokenData.scope ?? "",
-      });
     } else if (provider === "linear") {
       const clientId = getEnvOrThrow("LINEAR_CLIENT_ID");
       const clientSecret = getEnvOrThrow("LINEAR_CLIENT_SECRET");
 
-      const tokenRes = await fetch(PROVIDER_CONFIGS.linear.tokenUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          client_id: clientId,
-          client_secret: clientSecret,
-          code: args.code,
-          redirect_uri: redirectUri,
-          grant_type: "authorization_code",
-        }),
-      });
-
-      if (!tokenRes.ok) {
-        return {
-          error: "token_exchange_failed",
-          frontendUrl: stateEntry.returnUrl,
-          connectorId: stateEntry.connectorId,
-        };
-      }
-
-      const tokenData = await parseResponseJson(
-        tokenRes,
-        oauthAccessTokenSchema,
+      const exchanged = await exchangeOAuthAccessToken(
+        PROVIDER_CONFIGS.linear.tokenUrl,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            client_id: clientId,
+            client_secret: clientSecret,
+            code: args.code,
+            redirect_uri: redirectUri,
+            grant_type: "authorization_code",
+          }),
+        },
       );
-      if (!tokenData.access_token) {
+      if (!exchanged.ok) {
         return {
-          error: tokenData.error ?? "no_token",
+          error: exchanged.error,
           frontendUrl: stateEntry.returnUrl,
           connectorId: stateEntry.connectorId,
         };
       }
-
       // Linear access tokens last ~10 years and have no refresh token.
-      // Store like Notion: empty refresh, expiresAt=0 (treat as non-expiring).
-      const encryptedAccess = await encryptToken(tokenData.access_token);
-
-      await ctx.runMutation(internal.connectors.tokens.storeTokensInternal, {
-        connectorId: stateEntry.connectorId,
-        accessToken: encryptedAccess,
-        refreshToken: "",
-        expiresAt: 0,
-        tokenType: tokenData.token_type ?? "Bearer",
-        scope: tokenData.scope ?? "",
-      });
+      await encryptAndStoreOAuthTokens(
+        ctx,
+        stateEntry.connectorId,
+        exchanged.tokenData,
+        {
+          refreshToken: "",
+          expiresAt: 0,
+        },
+      );
     } else {
       return {
         error: `unsupported_provider: ${provider}`,
