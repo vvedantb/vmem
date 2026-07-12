@@ -120,6 +120,54 @@ async function callSynthesisLLM(
   );
 }
 
+type SynthesisProposalKind =
+  | "insight"
+  | "connection"
+  | "contradiction"
+  | "anomaly"
+  | "merge";
+
+/**
+ * File a dream synthesis as a :ProposedUpdate and emit the matching
+ * activity event. Shared by the anomaly propose-path and the merge pass.
+ */
+async function fileDreamProposal(
+  ctx: ActionCtx,
+  driver: ReturnType<typeof getDriver>,
+  clerkId: string,
+  result: DreamRunResult,
+  proposal: {
+    kind: SynthesisProposalKind;
+    title: string;
+    content: string;
+    reason: string;
+    sourceMemoryIds: string[];
+    confidence: number;
+  },
+): Promise<void> {
+  const created = await createSynthesisProposal(driver, {
+    userId: clerkId,
+    kind: proposal.kind,
+    proposedTitle: proposal.title,
+    proposedContent: proposal.content,
+    reason: proposal.reason,
+    sourceMemoryIds: proposal.sourceMemoryIds,
+    confidence: proposal.confidence,
+  });
+  result.proposalsCreated += 1;
+
+  await ctx.runMutation(internal.memoryEvents.pushEventInternal, {
+    clerkId,
+    eventType: "dream_synthesis_proposed",
+    memoryId: created.id,
+    payload: JSON.stringify({
+      kind: proposal.kind,
+      sourceMemoryIds: proposal.sourceMemoryIds,
+      confidence: proposal.confidence,
+    }),
+  });
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Per-profile orchestrator
 //
@@ -364,26 +412,13 @@ export const runDreamForProfileInternal = internalAction({
           });
         } else {
           // Default path: file a synthesis :ProposedUpdate.
-          const proposal = await createSynthesisProposal(driver, {
-            userId: args.clerkId,
+          await fileDreamProposal(ctx, driver, args.clerkId, result, {
             kind: synthesis.type,
-            proposedTitle: synthesis.title,
-            proposedContent: synthesis.content,
+            title: synthesis.title,
+            content: synthesis.content,
             reason: synthesis.reason,
             sourceMemoryIds: synthesis.sourceMemoryIds,
             confidence: synthesis.confidence,
-          });
-          result.proposalsCreated += 1;
-
-          await ctx.runMutation(internal.memoryEvents.pushEventInternal, {
-            clerkId: args.clerkId,
-            eventType: "dream_synthesis_proposed",
-            memoryId: proposal.id,
-            payload: JSON.stringify({
-              kind: synthesis.type,
-              sourceMemoryIds: synthesis.sourceMemoryIds,
-              confidence: synthesis.confidence,
-            }),
           });
         }
       } catch (e) {
@@ -431,27 +466,14 @@ export const runDreamForProfileInternal = internalAction({
         });
         if (overlaps) continue;
 
-        const proposal = await createSynthesisProposal(driver, {
-          userId: args.clerkId,
+        await fileDreamProposal(ctx, driver, args.clerkId, result, {
           kind: "merge",
-          proposedTitle: merge.title,
-          proposedContent: merge.content,
+          title: merge.title,
+          content: merge.content,
           reason:
             "These memories are near-duplicate records of the same information; approving replaces them with this consolidation.",
           sourceMemoryIds: merge.sourceMemoryIds,
           confidence: merge.confidence,
-        });
-        result.proposalsCreated += 1;
-
-        await ctx.runMutation(internal.memoryEvents.pushEventInternal, {
-          clerkId: args.clerkId,
-          eventType: "dream_synthesis_proposed",
-          memoryId: proposal.id,
-          payload: JSON.stringify({
-            kind: "merge",
-            sourceMemoryIds: merge.sourceMemoryIds,
-            confidence: merge.confidence,
-          }),
         });
       }
     } catch (e) {
