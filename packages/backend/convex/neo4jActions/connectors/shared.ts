@@ -15,12 +15,16 @@ import { type ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import { getDriver } from "../../../engine/neo4j/driver";
+import { upsertFromSource } from "../../../engine/neo4j/memory/connectors";
 import {
   bestEffortEmbedOneWithAuth,
   resolveBestEffortEmbedAuth,
   type BestEffortEmbedAuth,
 } from "../../lib/openRouter/bestEffortEmbed";
 import { scheduleDreamTriggerCheck } from "../../lib/dreamTriggerInvalidate";
+
+/** Max chars of a synced document's body sent to the embedder / stored. */
+const EMBED_CONTENT_CAP = 50_000;
 
 /** Resolved auth pair carried through a sync — `null` if the user has no
  *  OPENROUTER_API_KEY configured. */
@@ -74,6 +78,57 @@ export async function embedSyncedDoc(
     text: `${title}\n\n${content}`,
     failureLog: "connector sync embedding failed",
   });
+}
+
+/** One synced document — the per-item data each connector produces. */
+export interface SyncedDoc {
+  title: string;
+  content: string;
+  sourceType: string;
+  sourceId: string;
+  sourceUrl: string;
+}
+
+/**
+ * Embed + upsert one synced document and return the incremented synced
+ * count. Truncates the body to the embedding cap, best-effort embeds, then
+ * upserts into Neo4j under the given sourceType. Shared verbatim by every
+ * connector's per-item body so the truncate → embed → upsert sequence and
+ * the content cap live in one place and the connector loops cannot drift.
+ *
+ * Returns `totalSynced + 1` rather than reporting progress itself: the
+ * caller assigns the new count and then calls `maybeReportProgress`, so a
+ * progress-report failure never un-counts an item that was already upserted
+ * (matching the original per-connector ordering exactly).
+ */
+export async function upsertSyncedDoc(
+  ctx: ActionCtx,
+  params: {
+    setup: SyncSetup;
+    clerkId: string;
+    doc: SyncedDoc;
+    totalSynced: number;
+  },
+): Promise<number> {
+  const content = params.doc.content.slice(0, EMBED_CONTENT_CAP);
+  const embedding = await embedSyncedDoc(
+    ctx,
+    params.setup.openRouterAuth,
+    params.setup.profileId,
+    params.doc.title,
+    content,
+  );
+  await upsertFromSource(params.setup.driver, {
+    userId: params.clerkId,
+    profileId: params.setup.profileId,
+    title: params.doc.title,
+    content,
+    sourceType: params.doc.sourceType,
+    sourceId: params.doc.sourceId,
+    sourceUrl: params.doc.sourceUrl,
+    embedding,
+  });
+  return params.totalSynced + 1;
 }
 
 /**

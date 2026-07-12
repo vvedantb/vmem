@@ -6,7 +6,7 @@ runSeed({
   templateMemories: fullMemories,
   templateRelationships: fullRelationships,
   embedAfterInsert: false,
-}).catch((err) => {
+}).catch((err: unknown) => {
   console.error("seed failed:", err);
   process.exit(1);
 });

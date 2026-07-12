@@ -11,13 +11,12 @@ import { gmail as gmailApi, auth as googleAuth } from "@googleapis/gmail";
 import type { gmail_v1 } from "@googleapis/gmail";
 import { type ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
-import { upsertFromSource } from "../../../engine/neo4j/memory/connectors";
 import {
-  embedSyncedDoc,
   markSyncComplete,
   markSyncError,
   maybeReportProgress,
   setupSync,
+  upsertSyncedDoc,
 } from "./shared";
 
 export interface GmailSyncArgs {
@@ -83,10 +82,7 @@ export async function runGmailSync(
   ctx: ActionCtx,
   args: GmailSyncArgs,
 ): Promise<{ synced: number }> {
-  const { driver, profileId, openRouterAuth } = await setupSync(
-    ctx,
-    args.clerkId,
-  );
+  const setup = await setupSync(ctx, args.clerkId);
 
   try {
     const oauth = new googleAuth.OAuth2();
@@ -126,26 +122,18 @@ export async function runGmailSync(
             extractHeader(payload?.headers, "Subject") || "(No subject)";
           const body = messageBody(payload);
           const content = body.length > 0 ? body : subject;
-          const embedding = await embedSyncedDoc(
-            ctx,
-            openRouterAuth,
-            profileId,
-            subject,
-            content,
-          );
-
-          await upsertFromSource(driver, {
-            userId: args.clerkId,
-            profileId,
-            title: subject,
-            content,
-            sourceType: "gmail",
-            sourceId: ref.id,
-            sourceUrl: `https://mail.google.com/mail/u/0/#inbox/${ref.id}`,
-            embedding,
+          totalSynced = await upsertSyncedDoc(ctx, {
+            setup,
+            clerkId: args.clerkId,
+            totalSynced,
+            doc: {
+              title: subject,
+              content,
+              sourceType: "gmail",
+              sourceId: ref.id,
+              sourceUrl: `https://mail.google.com/mail/u/0/#inbox/${ref.id}`,
+            },
           });
-
-          totalSynced++;
           await maybeReportProgress(ctx, {
             connectorId: args.connectorId,
             totalSynced,

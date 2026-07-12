@@ -18,7 +18,8 @@ import neo4j, {
 } from "neo4j-driver";
 import { buildAndRun } from "../cypherHelpers";
 import { toMemoryContentFulltextQuery } from "../luceneQuery";
-import { toMemoryWithTags, toNeoInt, toSnapshot } from "./mappers";
+import { neo4jGet, parseNeo4jInt } from "../record";
+import { toMemoryWithTags, toSnapshot } from "./mappers";
 import { logEvent, withSession } from "./shared";
 import { normalizeTags } from "./tagNormalize";
 import {
@@ -359,7 +360,9 @@ export async function listMemories(
       queryParams,
     );
     const countRecord = countResult.records[0];
-    const total = countRecord ? toNeoInt(countRecord.get("total")) : 0;
+    const total = countRecord
+      ? parseNeo4jInt(neo4jGet(countRecord, "total"))
+      : 0;
 
     const result = await session.run(
       `${matchPrefix}
@@ -499,7 +502,7 @@ export async function deleteMemory(
     );
     const firstRecord = result.records[0];
     if (!firstRecord) return false;
-    return toNeoInt(firstRecord.get("deleted")) > 0;
+    return parseNeo4jInt(neo4jGet(firstRecord, "deleted")) > 0;
   });
 }
 
@@ -558,7 +561,7 @@ export async function deleteMemoriesBySourceTypes(
     );
     const firstRecord = result.records[0];
     if (!firstRecord) return 0;
-    return toNeoInt(firstRecord.get("deleted"));
+    return parseNeo4jInt(neo4jGet(firstRecord, "deleted"));
   });
 }
 
@@ -615,7 +618,7 @@ export async function deleteAllMemoriesForUser(
     );
     const firstRecord = result.records[0];
     if (!firstRecord) return 0;
-    return toNeoInt(firstRecord.get("deleted"));
+    return parseNeo4jInt(neo4jGet(firstRecord, "deleted"));
   });
 }
 
@@ -660,7 +663,7 @@ export async function incrementVisitCount(
       return { visitCount: 1, lastVisitAt: now };
     }
     return {
-      visitCount: toNeoInt(r.get("visitCount")),
+      visitCount: parseNeo4jInt(neo4jGet(r, "visitCount")),
       lastVisitAt: String(r.get("lastVisitAt")),
     };
   });

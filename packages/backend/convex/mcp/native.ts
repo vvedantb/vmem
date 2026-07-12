@@ -3,6 +3,7 @@ import type { ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { extractBearerToken } from "../lib/bearerToken";
 import { getMcpResourceDocumentationUrl, getWebAppUrl } from "./webAppUrl";
+import { objectField } from "../lib/jsonBoundary";
 import { z } from "zod";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -38,12 +39,26 @@ export const protectedResourceMetadata = httpAction(async (_ctx, request) => {
 // OAuth Client Registration
 // ─────────────────────────────────────────────────────────────────────────────
 
+const registerBodySchema = z
+  .object({
+    redirect_uris: z.unknown().optional(),
+    grant_types: z.unknown().optional(),
+    response_types: z.unknown().optional(),
+    token_endpoint_auth_method: z.unknown().optional(),
+  })
+  .passthrough();
+
 export const register = httpAction(async (ctx, request) => {
   try {
-    const body = (await request.json()) as Record<string, unknown>;
+    const raw: unknown = await request.json();
+    const bodyParse = registerBodySchema.safeParse(raw);
+    if (!bodyParse.success) {
+      return Response.json({ error: "invalid_request" }, { status: 400 });
+    }
+    const body = bodyParse.data;
     const clientId = crypto.randomUUID();
 
-    const rawUris = body.redirect_uris;
+    const rawUris = objectField(body, "redirect_uris");
     const redirectUris: string[] = [];
     if (Array.isArray(rawUris)) {
       for (const uri of rawUris) {
@@ -70,9 +85,10 @@ export const register = httpAction(async (ctx, request) => {
         ...body,
         client_id: clientId,
         client_id_issued_at: Math.floor(Date.now() / 1000),
-        grant_types: body.grant_types ?? ["authorization_code"],
-        response_types: body.response_types ?? ["code"],
-        token_endpoint_auth_method: body.token_endpoint_auth_method ?? "none",
+        grant_types: objectField(body, "grant_types") ?? ["authorization_code"],
+        response_types: objectField(body, "response_types") ?? ["code"],
+        token_endpoint_auth_method:
+          objectField(body, "token_endpoint_auth_method") ?? "none",
       },
       { status: 201 },
     );
@@ -168,8 +184,11 @@ export const token = httpAction(async (ctx, request) => {
     });
   } else {
     try {
-      const raw: object | null = await request.json();
-      for (const [key, value] of Object.entries(raw ?? {})) {
+      const raw: unknown = await request.json();
+      if (typeof raw !== "object" || raw === null) {
+        throw new Error("Invalid JSON body");
+      }
+      for (const [key, value] of Object.entries(raw)) {
         if (typeof value === "string") {
           body[key] = value;
         }

@@ -1,5 +1,6 @@
 import { OpenRouter } from "@openrouter/sdk";
 import { OpenRouterError } from "@openrouter/sdk/models/errors";
+import { objectField } from "../jsonBoundary";
 
 export const OPENROUTER_HTTP_REFERER = "https://vmem.vedantb.com";
 export const OPENROUTER_APP_TITLE = "vmem";
@@ -81,13 +82,13 @@ export function isTransientNetworkError(err: unknown): boolean {
   // Walk the cause chain (undici puts the real socket error under `cause`).
   for (let depth = 0; depth < 5 && current != null; depth++) {
     if (current instanceof Error) {
-      const code = Reflect.get(current, "code");
+      const code = objectField(current, "code");
       if (typeof code === "string" && TRANSIENT_CODES.has(code)) return true;
       const message = current.message.toLowerCase();
       if (TRANSIENT_MESSAGE_FRAGMENTS.some((f) => message.includes(f))) {
         return true;
       }
-      current = Reflect.get(current, "cause");
+      current = objectField(current, "cause");
     } else {
       break;
     }

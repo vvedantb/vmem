@@ -10,12 +10,8 @@
 
 import neo4j, { type Driver, type Record, type Session } from "neo4j-driver";
 import { toMemoryContentFulltextQuery } from "../luceneQuery";
-import {
-  recencyFromAgeDays,
-  rrfScore,
-  toMemoryWithTags,
-  toNeoInt,
-} from "./mappers";
+import { neo4jGet, parseNeo4jInt } from "../record";
+import { recencyFromAgeDays, rrfScore, toMemoryWithTags } from "./mappers";
 import { profileFilter, visibleStatusClause, withSession } from "./shared";
 import {
   type GraphExpansion,
@@ -128,7 +124,12 @@ function toEmbedding(val: readonly number[] | null): number[] | null {
 }
 
 function embeddingFromRecord(record: Record): number[] | null {
-  return toEmbedding(record.get("embedding"));
+  const raw = neo4jGet(record, "embedding");
+  if (!Array.isArray(raw)) return null;
+  const numbers = raw.filter(
+    (item): item is number => typeof item === "number",
+  );
+  return toEmbedding(numbers);
 }
 
 function createMergedEntry(
@@ -320,7 +321,7 @@ function mergeExpandedRankings(
   for (const result of results) {
     result.records.forEach((record, index) => {
       const memory = toMemoryWithTags(record);
-      const score = Number(record.get(scoreKey));
+      const score = Number(neo4jGet(record, scoreKey));
       const existing = byMemory.get(memory.id);
       const fusedScore = (existing?.fusedScore ?? 0) + rrfScore(index + 1);
       if (!existing || score > existing.score) {
@@ -440,10 +441,10 @@ export async function expandViaGraph(
     >();
 
     for (const record of result.records) {
-      const id = String(record.get("id"));
-      const hops = toNeoInt(record.get("hops"));
-      const seedId = String(record.get("seedId") ?? "");
-      const bridgingRaw = record.get("bridgingEntity");
+      const id = String(neo4jGet(record, "id") ?? "");
+      const hops = parseNeo4jInt(neo4jGet(record, "hops"));
+      const seedId = String(neo4jGet(record, "seedId") ?? "");
+      const bridgingRaw = neo4jGet(record, "bridgingEntity");
       const bridgingEntity =
         typeof bridgingRaw === "string" && bridgingRaw.length > 0
           ? bridgingRaw
@@ -511,7 +512,7 @@ export async function fetchMemoryMetadata(
     >();
     for (const record of result.records) {
       const memory = toMemoryWithTags(record);
-      const ageInDays = toNeoInt(record.get("ageInDays"));
+      const ageInDays = parseNeo4jInt(neo4jGet(record, "ageInDays"));
       map.set(memory.id, {
         memory,
         ageInDays,
@@ -641,13 +642,13 @@ function scoreEntry(
 function mergeFulltext(merged: Map<string, MergedEntry>, records: Record[]) {
   records.forEach((record, index) => {
     const memory = toMemoryWithTags(record);
-    const ageInDays = toNeoInt(record.get("ageInDays"));
+    const ageInDays = parseNeo4jInt(neo4jGet(record, "ageInDays"));
     const entry = createMergedEntry(
       memory,
       ageInDays,
       embeddingFromRecord(record),
     );
-    entry.fulltextScore = Number(record.get("fulltextScore"));
+    entry.fulltextScore = Number(neo4jGet(record, "fulltextScore"));
     entry.ftRank = index + 1;
     merged.set(memory.id, entry);
   });
@@ -656,11 +657,11 @@ function mergeFulltext(merged: Map<string, MergedEntry>, records: Record[]) {
 function mergeVector(merged: Map<string, MergedEntry>, ranked: RankedRecord[]) {
   for (const item of ranked) {
     const memory = toMemoryWithTags(item.record);
-    const ageInDays = toNeoInt(item.record.get("ageInDays"));
+    const ageInDays = parseNeo4jInt(neo4jGet(item.record, "ageInDays"));
     const existing =
       merged.get(memory.id) ??
       createMergedEntry(memory, ageInDays, embeddingFromRecord(item.record));
-    existing.vectorScore = Number(item.record.get("vectorScore"));
+    existing.vectorScore = Number(neo4jGet(item.record, "vectorScore"));
     existing.vecRank = item.rank;
     merged.set(memory.id, existing);
   }
@@ -673,15 +674,15 @@ function mergeChunks(merged: Map<string, MergedEntry>, ranked: RankedRecord[]) {
     if (seenMemoryIds.has(memory.id)) continue;
     seenMemoryIds.add(memory.id);
 
-    const ageInDays = toNeoInt(item.record.get("ageInDays"));
+    const ageInDays = parseNeo4jInt(neo4jGet(item.record, "ageInDays"));
     const existing =
       merged.get(memory.id) ??
       createMergedEntry(memory, ageInDays, embeddingFromRecord(item.record));
-    existing.chunkScore = Number(item.record.get("chunkScore"));
+    existing.chunkScore = Number(neo4jGet(item.record, "chunkScore"));
     existing.chunkRank = item.rank;
     existing.matchedChunk ??= {
-      content: String(item.record.get("chunkContent") ?? ""),
-      position: toNeoInt(item.record.get("chunkPosition")),
+      content: String(neo4jGet(item.record, "chunkContent") ?? ""),
+      position: parseNeo4jInt(neo4jGet(item.record, "chunkPosition")),
     };
     merged.set(memory.id, existing);
   }
@@ -693,11 +694,11 @@ function mergeEntities(
 ) {
   for (const item of ranked) {
     const memory = toMemoryWithTags(item.record);
-    const ageInDays = toNeoInt(item.record.get("ageInDays"));
+    const ageInDays = parseNeo4jInt(neo4jGet(item.record, "ageInDays"));
     const existing =
       merged.get(memory.id) ??
       createMergedEntry(memory, ageInDays, embeddingFromRecord(item.record));
-    existing.entityScore = Number(item.record.get("rarityScore"));
+    existing.entityScore = Number(neo4jGet(item.record, "rarityScore"));
     existing.entityRank = item.rank;
     merged.set(memory.id, existing);
   }

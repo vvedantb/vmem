@@ -15,10 +15,28 @@
 
 import crypto from "node:crypto";
 import neo4j, { type Driver } from "neo4j-driver";
+import { z } from "zod";
 import type { ConfidenceAdjustment, MergeClusterMember } from "../dreamPrompt";
 import type { PortraitEvidenceMemory } from "../portraitPrompt";
+import { neo4jGet, parseNeo4jNodeProps } from "../record";
 import { toSnapshot } from "./mappers";
 import { logEvent, withSession } from "./shared";
+
+const dreamMemoryPropsSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  content: z.string(),
+});
+
+function tryParseMemoryNode(
+  value: unknown,
+): z.infer<typeof dreamMemoryPropsSchema> | null {
+  try {
+    return parseNeo4jNodeProps(value, dreamMemoryPropsSchema);
+  } catch {
+    return null;
+  }
+}
 
 export async function findRecentMemoriesForDream(
   driver: Driver,
@@ -179,10 +197,13 @@ export async function fetchAnomalyCluster(
     const firstRecord = result.records[0];
     if (!firstRecord) return [];
 
-    const aNode = firstRecord.get("a");
-    const aTagsRaw: unknown = firstRecord.get("aTags");
+    const aProps = parseNeo4jNodeProps(
+      neo4jGet(firstRecord, "a"),
+      dreamMemoryPropsSchema,
+    );
+    const aTagsRaw = neo4jGet(firstRecord, "aTags");
     const aTags: string[] = Array.isArray(aTagsRaw)
-      ? aTagsRaw.filter((x: unknown): x is string => typeof x === "string")
+      ? aTagsRaw.filter((x): x is string => typeof x === "string")
       : [];
 
     const cluster: Array<{
@@ -193,9 +214,9 @@ export async function fetchAnomalyCluster(
       relation: "anomaly" | "related" | "shared-entity" | "semantic";
     }> = [
       {
-        id: String(aNode.properties.id),
-        title: String(aNode.properties.title),
-        content: String(aNode.properties.content),
+        id: aProps.id,
+        title: aProps.title,
+        content: aProps.content,
         tags: aTags,
         relation: "anomaly",
       },
@@ -209,27 +230,17 @@ export async function fetchAnomalyCluster(
       if (!Array.isArray(nodes)) return;
       for (const n of nodes) {
         if (cluster.length >= params.maxClusterSize) return;
-        if (typeof n !== "object" || n === null) continue;
-        const props = Reflect.get(n, "properties");
-        if (typeof props !== "object" || props === null) continue;
-        const id = Reflect.get(props, "id");
-        const title = Reflect.get(props, "title");
-        const content = Reflect.get(props, "content");
-        if (
-          typeof id !== "string" ||
-          typeof title !== "string" ||
-          typeof content !== "string"
-        ) {
-          continue;
-        }
+        const props = tryParseMemoryNode(n);
+        if (props === null) continue;
+        const { id, title, content } = props;
         if (seen.has(id)) continue;
         seen.add(id);
         cluster.push({ id, title, content, tags: [], relation });
       }
     };
 
-    append(firstRecord.get("relMems"), "related");
-    append(firstRecord.get("entityMems"), "shared-entity");
+    append(neo4jGet(firstRecord, "relMems"), "related");
+    append(neo4jGet(firstRecord, "entityMems"), "shared-entity");
 
     // Sparse graph neighbourhood → pad with vector neighbours so the
     // seed isn't dreamt on alone (or skipped outright).
@@ -261,13 +272,13 @@ export async function fetchAnomalyCluster(
       );
       for (const record of semantic.records) {
         if (cluster.length >= params.maxClusterSize) break;
-        const id = String(record.get("id"));
+        const id = String(neo4jGet(record, "id"));
         if (seen.has(id)) continue;
         seen.add(id);
         cluster.push({
           id,
-          title: String(record.get("title")),
-          content: String(record.get("content")),
+          title: String(neo4jGet(record, "title")),
+          content: String(neo4jGet(record, "content")),
           tags: [],
           relation: "semantic",
         });

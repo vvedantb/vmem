@@ -14,7 +14,7 @@ import {
   type Record as NeoRecord,
   type Session,
 } from "neo4j-driver";
-import { toNeoInt } from "./mappers";
+import { neo4jGet, parseNeo4jInt } from "../record";
 import { withSession } from "./shared";
 
 interface DuplicateGroup {
@@ -31,11 +31,11 @@ interface DuplicateGroup {
  * project the same `survivorId` / `duplicateIds` / `extraVisits` columns.
  */
 function parseDuplicateGroup(record: NeoRecord): DuplicateGroup {
-  const rawIds: unknown = record.get("duplicateIds");
+  const rawIds = neo4jGet(record, "duplicateIds");
   return {
-    survivorId: String(record.get("survivorId")),
+    survivorId: String(neo4jGet(record, "survivorId") ?? ""),
     duplicateIds: Array.isArray(rawIds) ? rawIds.map(String) : [],
-    extraVisits: toNeoInt(record.get("extraVisits")),
+    extraVisits: parseNeo4jInt(neo4jGet(record, "extraVisits")),
   };
 }
 
@@ -192,7 +192,7 @@ export async function deleteJunkSessionEdges(
     );
     const r = result.records[0];
     if (!r) return 0;
-    return toNeoInt(r.get("deleted"));
+    return parseNeo4jInt(neo4jGet(r, "deleted"));
   });
 }
 

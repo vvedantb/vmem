@@ -4,8 +4,8 @@
  * can import them without dragging the driver in.
  */
 import type { Driver } from "neo4j-driver";
+import { neo4jGet, parseNeo4jInt } from "../record";
 import { withSession } from "./shared";
-import { toNeoInt } from "./mappers";
 import type { TagUsage } from "./tagNormalize";
 
 export { normalizeTags, sanitizeTag } from "./tagNormalize";
@@ -33,8 +33,8 @@ export async function getTopTags(
       { userId, limit: Math.trunc(limit) },
     );
     return result.records.map((r) => ({
-      name: String(r.get("name")),
-      uses: toNeoInt(r.get("uses")),
+      name: String(neo4jGet(r, "name") ?? ""),
+      uses: parseNeo4jInt(neo4jGet(r, "uses")),
     }));
   });
 }

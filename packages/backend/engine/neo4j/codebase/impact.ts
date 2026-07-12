@@ -8,6 +8,7 @@
  */
 
 import type { Driver } from "neo4j-driver";
+import { parseImpactRecord } from "./mappers";
 
 const DEFAULT_DEPTH = 5;
 
@@ -70,10 +71,7 @@ async function runImpactQuery(
       codebaseId,
       symbolId,
     });
-    return result.records.map((r) => ({
-      id: r.get("id"),
-      distance: r.get("distance").toNumber?.() ?? Number(r.get("distance")),
-    }));
+    return result.records.map(parseImpactRecord);
   } finally {
     await session.close();
   }

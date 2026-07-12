@@ -17,7 +17,8 @@
 
 import neo4j, { type Driver, type Integer } from "neo4j-driver";
 import { toMemoryContentFulltextQuery } from "../luceneQuery";
-import { toMemoryWithTags, toNeoInt } from "./mappers";
+import { neo4jGet, parseNeo4jInt } from "../record";
+import { toMemoryWithTags } from "./mappers";
 import { withSession } from "./shared";
 import {
   type MemoryStatus,
@@ -101,7 +102,9 @@ export async function listMemoriesForTeam(
       queryParams,
     );
     const countRecord = countResult.records[0];
-    const total = countRecord ? toNeoInt(countRecord.get("total")) : 0;
+    const total = countRecord
+      ? parseNeo4jInt(neo4jGet(countRecord, "total"))
+      : 0;
 
     const result = await session.run(
       `${matchPrefix}
@@ -176,6 +179,6 @@ export async function deleteTeamMemoryAsOwner(
     );
     const firstRecord = result.records[0];
     if (!firstRecord) return false;
-    return toNeoInt(firstRecord.get("deleted")) > 0;
+    return parseNeo4jInt(neo4jGet(firstRecord, "deleted")) > 0;
   });
 }

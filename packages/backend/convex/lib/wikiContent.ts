@@ -3,6 +3,8 @@
  * JSON conversion exists only for one-time migration off legacy contentJson.
  */
 
+import { objectField } from "./jsonBoundary";
+
 export function mergeMarkdownForAppend(
   existing: string,
   addition: string,
@@ -117,6 +119,12 @@ function legacyDocToMarkdown(doc: LegacyWikiDoc): string {
   return parts.join("\n\n").trim();
 }
 
+function isLegacyWikiDoc(value: unknown): value is LegacyWikiDoc {
+  if (typeof value !== "object" || value === null) return false;
+  if (objectField(value, "type") !== "doc") return false;
+  return Array.isArray(objectField(value, "content"));
+}
+
 /** One-time migration: legacy TipTap JSON → markdown. */
 export function legacyJsonToMarkdown(
   contentJson: string | undefined,
@@ -126,8 +134,8 @@ export function legacyJsonToMarkdown(
     return contentText ?? "";
   }
   try {
-    const parsed: LegacyWikiDoc = JSON.parse(contentJson);
-    if (parsed.type === "doc" && Array.isArray(parsed.content)) {
+    const parsed: unknown = JSON.parse(contentJson);
+    if (isLegacyWikiDoc(parsed)) {
       return legacyDocToMarkdown(parsed);
     }
   } catch {

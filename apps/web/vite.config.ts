@@ -3,6 +3,11 @@ import react from "@vitejs/plugin-react";
 import tanstackRouter from "@tanstack/router-plugin/vite";
 import { visualizer } from "rollup-plugin-visualizer";
 import path from "path";
+import { z } from "zod";
+
+const clerkSignInTokenSchema = z.object({
+  token: z.string(),
+});
 
 function agentLoginPlugin(): Plugin {
   let env: Record<string, string>;
@@ -50,13 +55,14 @@ function agentLoginPlugin(): Plugin {
           return;
         }
 
-        const data = await resp.json();
-        const token = data.token;
-        if (typeof token !== "string") {
+        const parsed = clerkSignInTokenSchema.safeParse(await resp.json());
+        if (!parsed.success) {
           res.writeHead(502, { "Content-Type": "application/json" });
           res.end(JSON.stringify({ error: "No token in Clerk response" }));
           return;
         }
+
+        const token = parsed.data.token;
 
         res.writeHead(302, {
           Location: `/agent-callback?ticket=${encodeURIComponent(token)}`,

@@ -177,7 +177,7 @@ export const handleMcpRequest = internalAction({
   }),
   handler: async (ctx, { clerkUserId, body, scope }) => {
     try {
-      const parsedBody = JSON.parse(body);
+      const parsedBody: unknown = JSON.parse(body);
 
       const server = new McpServer(mcpServerInfo(scope));
 

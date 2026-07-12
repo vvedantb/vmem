@@ -5,7 +5,7 @@
  */
 
 import neo4j, { type Driver } from "neo4j-driver";
-import { toNeoInt } from "./mappers";
+import { neo4jGet, parseNeo4jInt } from "../record";
 import { withSession } from "./shared";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -25,7 +25,7 @@ export async function countMemoriesWithoutProfile(
       { userId },
     );
     const record = result.records[0];
-    return record ? toNeoInt(record.get("count")) : 0;
+    return record ? parseNeo4jInt(neo4jGet(record, "count")) : 0;
   });
 }
 
@@ -42,7 +42,7 @@ export async function countMemoriesByProfile(
       { userId, profileId },
     );
     const record = result.records[0];
-    return record ? toNeoInt(record.get("count")) : 0;
+    return record ? parseNeo4jInt(neo4jGet(record, "count")) : 0;
   });
 }
 
@@ -61,7 +61,7 @@ export async function migrateMemoriesToProfile(
       { userId, profileId },
     );
     const record = result.records[0];
-    return record ? toNeoInt(record.get("migrated")) : 0;
+    return record ? parseNeo4jInt(neo4jGet(record, "migrated")) : 0;
   });
 }
 
@@ -80,7 +80,7 @@ export async function moveMemoriesBetweenProfiles(
       { userId, fromProfileId, toProfileId },
     );
     const record = result.records[0];
-    return record ? toNeoInt(record.get("moved")) : 0;
+    return record ? parseNeo4jInt(neo4jGet(record, "moved")) : 0;
   });
 }
 
@@ -98,7 +98,7 @@ export async function deleteMemoriesByProfile(
       { userId, profileId },
     );
     const record = result.records[0];
-    return record ? toNeoInt(record.get("deleted")) : 0;
+    return record ? parseNeo4jInt(neo4jGet(record, "deleted")) : 0;
   });
 }
 
@@ -139,16 +139,16 @@ export async function listMissingEmbeddings(
       { limit: neo4j.int(limit) },
     );
     return result.records.map((r) => {
-      const rawProfileId = r.get("profileId");
+      const rawProfileId = neo4jGet(r, "profileId");
       return {
-        id: String(r.get("id")),
-        userId: String(r.get("userId")),
+        id: String(neo4jGet(r, "id") ?? ""),
+        userId: String(neo4jGet(r, "userId") ?? ""),
         profileId:
           typeof rawProfileId === "string" && rawProfileId.length > 0
             ? rawProfileId
             : null,
-        title: String(r.get("title")),
-        content: String(r.get("content")),
+        title: String(neo4jGet(r, "title") ?? ""),
+        content: String(neo4jGet(r, "content") ?? ""),
       };
     });
   });
@@ -196,9 +196,9 @@ export async function listMissingContentHash(
       { limit: neo4j.int(limit) },
     );
     return result.records.map((r) => ({
-      id: String(r.get("id")),
-      title: String(r.get("title")),
-      content: String(r.get("content")),
+      id: String(neo4jGet(r, "id") ?? ""),
+      title: String(neo4jGet(r, "title") ?? ""),
+      content: String(neo4jGet(r, "content") ?? ""),
     }));
   });
 }
@@ -245,7 +245,7 @@ export async function listMissingSemanticEdges(
       { limit: neo4j.int(limit) },
     );
     return result.records.flatMap((r) => {
-      const rawEmbedding: unknown = r.get("embedding");
+      const rawEmbedding = neo4jGet(r, "embedding");
       if (!Array.isArray(rawEmbedding)) return [];
       const embedding: number[] = rawEmbedding.filter(
         (x): x is number => typeof x === "number",
@@ -253,8 +253,8 @@ export async function listMissingSemanticEdges(
       if (embedding.length === 0) return [];
       return [
         {
-          id: String(r.get("id")),
-          userId: String(r.get("userId")),
+          id: String(neo4jGet(r, "id") ?? ""),
+          userId: String(neo4jGet(r, "userId") ?? ""),
           embedding,
         },
       ];
@@ -293,7 +293,7 @@ export async function createSemanticEdgesForMemory(
       },
     );
     const record = result.records[0];
-    return record ? toNeoInt(record.get("created")) : 0;
+    return record ? parseNeo4jInt(neo4jGet(record, "created")) : 0;
   });
 }
 
@@ -341,16 +341,16 @@ export async function listMissingEntities(
       { limit: neo4j.int(limit) },
     );
     return result.records.map((r) => {
-      const rawProfileId = r.get("profileId");
+      const rawProfileId = neo4jGet(r, "profileId");
       return {
-        id: String(r.get("id")),
-        userId: String(r.get("userId")),
+        id: String(neo4jGet(r, "id") ?? ""),
+        userId: String(neo4jGet(r, "userId") ?? ""),
         profileId:
           typeof rawProfileId === "string" && rawProfileId.length > 0
             ? rawProfileId
             : null,
-        title: String(r.get("title")),
-        content: String(r.get("content") ?? ""),
+        title: String(neo4jGet(r, "title") ?? ""),
+        content: String(neo4jGet(r, "content") ?? ""),
       };
     });
   });
@@ -413,16 +413,16 @@ export async function listUnretagged(
       { userId, limit: neo4j.int(limit) },
     );
     return result.records.map((r) => {
-      const rawProfileId = r.get("profileId");
-      const rawTags: unknown = r.get("tags");
+      const rawProfileId = neo4jGet(r, "profileId");
+      const rawTags = neo4jGet(r, "tags");
       return {
-        id: String(r.get("id")),
+        id: String(neo4jGet(r, "id") ?? ""),
         profileId:
           typeof rawProfileId === "string" && rawProfileId.length > 0
             ? rawProfileId
             : null,
-        title: String(r.get("title")),
-        content: String(r.get("content") ?? ""),
+        title: String(neo4jGet(r, "title") ?? ""),
+        content: String(neo4jGet(r, "content") ?? ""),
         tags: Array.isArray(rawTags) ? rawTags.map(String) : [],
       };
     });
@@ -442,7 +442,7 @@ export async function countUnretagged(
       { userId },
     );
     const record = result.records[0];
-    return record ? toNeoInt(record.get("n")) : 0;
+    return record ? parseNeo4jInt(neo4jGet(record, "n")) : 0;
   });
 }
 
@@ -497,6 +497,6 @@ export async function deleteOrphanTags(driver: Driver): Promise<number> {
        RETURN count(t) AS deleted`,
     );
     const record = result.records[0];
-    return record ? toNeoInt(record.get("deleted")) : 0;
+    return record ? parseNeo4jInt(neo4jGet(record, "deleted")) : 0;
   });
 }

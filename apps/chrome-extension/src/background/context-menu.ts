@@ -54,7 +54,7 @@ export async function handleContextMenuClick(
     if (typeof tab.id !== "number") return;
     void chrome.tabs
       .sendMessage(tab.id, { type: "START_SCREENSHOT" })
-      .catch((err) => {
+      .catch((err: unknown) => {
         console.warn("[vmem] Could not start screenshot on tab:", err);
       });
   }

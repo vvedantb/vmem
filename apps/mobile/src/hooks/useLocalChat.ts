@@ -164,7 +164,7 @@ export function useLocalChat(): LocalChatResult {
     // No profileId: mobile chat resolves the default personal profile.
     getOrCreateThread({})
       .then((id) => setThreadId(id))
-      .catch((error) => {
+      .catch((error: unknown) => {
         console.error("Failed to load chat thread:", error);
       });
   }, [isOnline, isLoaded, user, getOrCreateThread]);

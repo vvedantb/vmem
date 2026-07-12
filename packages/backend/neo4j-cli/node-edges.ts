@@ -2,7 +2,9 @@
  * One-off read-only diagnostic: edge breakdown for a single memory matched by
  * title substring. Aggregates + titles only.
  */
+import { z } from "zod";
 import { getDriver, closeDriver } from "../engine/neo4j/driver";
+import { neo4jField } from "../engine/neo4j/record";
 
 const TITLE_PART = process.argv[2] ?? "modern-cpp-features";
 
@@ -36,7 +38,8 @@ async function main() {
         { id },
       );
       const c = counts.records[0];
-      const tags: string[] = c.get("tags").map(String);
+      if (!c) continue;
+      const tags = neo4jField(c, "tags", z.array(z.coerce.string()));
       console.log(`tags (${String(tags.length)}): ${tags.join(", ")}`);
       console.log(
         `RELATES_TO neighbours: ${String(c.get("relatesCount"))}  reasons: ${JSON.stringify(c.get("reasons"))}`,

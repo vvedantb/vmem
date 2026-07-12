@@ -22,7 +22,8 @@ import {
   useInfiniteQuery,
 } from "@tanstack/react-query";
 import type { Memory } from "@/lib/memories";
-import { api, type Id } from "@vmem/backend";
+import { api } from "@vmem/backend";
+import { parseConvexStorageUpload } from "@/lib/schemas";
 
 interface CreateMemoryInput {
   title: string;
@@ -101,7 +102,18 @@ function isMemoryType(value: string): value is Memory["type"] {
   return value === "profile" || value === "episodic" || value === "knowledge";
 }
 
-function apiToMemory(m: ApiMemory): Memory {
+function apiToMemory(m: {
+  id: string;
+  title: string;
+  content: string;
+  type: string;
+  source: string;
+  tags: string[];
+  createdAt: string;
+  sourceUrl?: string | null;
+  sourceSyncedAt?: string | null;
+  profileId?: string;
+}): Memory {
   return {
     id: m.id,
     title: m.title,
@@ -326,7 +338,7 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
         content: input.content,
         tags: input.tags,
       });
-      return { memory: apiToMemory(apiMemory as ApiMemory), id: input.id };
+      return { memory: apiToMemory(apiMemory), id: input.id };
     },
     onMutate: async (input) => {
       await queryClient.cancelQueries({ queryKey: ["memories", "recent"] });
@@ -379,18 +391,18 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
       if (!uploadResponse.ok) {
         throw new Error(`File upload failed: ${uploadResponse.statusText}`);
       }
-      // Convex's signed-upload endpoint returns the storage ID as a JSON
-      // string. The runtime value is just a string — `Id<"_storage">` is a
-      // compile-time brand. We annotate the parse result here so the typed
-      // ID flows into `importFromFile` without an `as` cast.
-      const uploadJson: { storageId: Id<"_storage"> } =
-        await uploadResponse.json();
+      // Convex's signed-upload endpoint returns `{ storageId }`. Parse at the
+      // boundary so the branded ID flows into `importFromFile` without `as`.
+      const storageId = parseConvexStorageUpload(await uploadResponse.json());
+      if (!storageId) {
+        throw new Error("Invalid upload response from storage");
+      }
 
       // 3. Hand the storageId to the server action which extracts text,
       //    hashes it, and calls createMemoryInternal (with chunking
       //    automatically scheduled for long PDFs).
       const created = await importFromFile({
-        storageId: uploadJson.storageId,
+        storageId,
         filename: input.file.name,
         mimeType: input.file.type,
         profileId: input.profileId,

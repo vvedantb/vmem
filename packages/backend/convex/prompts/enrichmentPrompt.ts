@@ -1,6 +1,7 @@
 import { extractJsonString } from "../../engine/llm/extractJsonString";
 import type { TagUsage } from "../../engine/neo4j/memory/tagNormalize";
 import { sanitizeTag } from "../../engine/neo4j/memory/tagNormalize";
+import { objectField, parseUnknownArray } from "../lib/jsonBoundary";
 
 // Re-exported for existing imports (enrichment action, tests). The canonical
 // home is the engine tagNormalize module, next to normalizeTags — the
@@ -225,10 +226,11 @@ function parseEntities(raw: unknown): ExtractedEntity[] {
   if (!Array.isArray(raw)) return [];
   const seen = new Set<string>();
   const result: ExtractedEntity[] = [];
-  for (const item of raw) {
+  const items = parseUnknownArray(raw);
+  for (const item of items) {
     if (typeof item !== "object" || item === null) continue;
-    const name = Reflect.get(item, "name");
-    const type = Reflect.get(item, "type");
+    const name = objectField(item, "name");
+    const type = objectField(item, "type");
     if (typeof name !== "string" || name.trim().length === 0) continue;
     if (typeof type !== "string" || !isValidEntityType(type)) continue;
     const normalizedName = normalizeEntityName(name);
@@ -250,9 +252,9 @@ export function parseFullEnrichmentResponse(
     const parsed: unknown = JSON.parse(jsonStr);
     if (typeof parsed !== "object" || parsed === null) return null;
     if (!("tags" in parsed)) return null;
-    const tagsRaw = Reflect.get(parsed, "tags");
-    const relatedRaw = Reflect.get(parsed, "relatedMemoryIds");
-    const entitiesRaw = Reflect.get(parsed, "entities");
+    const tagsRaw = objectField(parsed, "tags");
+    const relatedRaw = objectField(parsed, "relatedMemoryIds");
+    const entitiesRaw = objectField(parsed, "entities");
     if (!isNonEmptyStringArray(tagsRaw)) return null;
     const tags = tagsRaw
       .map(sanitizeTag)

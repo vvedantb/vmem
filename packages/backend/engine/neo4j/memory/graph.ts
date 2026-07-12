@@ -10,10 +10,61 @@
  * Promise.all over per-leg sessions is the parallelism contract.
  */
 import { type Driver, type Session } from "neo4j-driver";
+import { z } from "zod";
 import { clampNeo4jLimit } from "../intParams";
-import { toMemoryTypeOrUndefined, toNeoInt, toTagEdge } from "./mappers";
+import { neo4jGet, parseNeo4jInt } from "../record";
+import { toMemoryTypeOrUndefined, toTagEdge } from "./mappers";
 import { profileFilter, withSession } from "./shared";
 import { type MemoryType, type TagEdge } from "./types";
+
+const graphNodeRowSchema = z.object({
+  id: z.unknown(),
+  title: z.unknown(),
+  tags: z.unknown(),
+  createdAt: z.unknown(),
+  source: z.unknown(),
+  type: z.unknown(),
+  sourceType: z.unknown(),
+});
+
+const relatesToEdgeRowSchema = z.object({
+  source: z.unknown(),
+  target: z.unknown(),
+  reason: z.unknown().optional(),
+});
+
+const entityRowSchema = z.object({
+  normalizedName: z.unknown(),
+  name: z.unknown(),
+  type: z.unknown(),
+  memoryIds: z.unknown(),
+});
+
+function toStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter(Boolean).map(String) : [];
+}
+
+function parseGraphNodeRow(n: unknown): GraphNode | null {
+  const parsed = graphNodeRowSchema.safeParse(n);
+  if (!parsed.success) return null;
+  const p = parsed.data;
+  const rawType = p.type;
+  return {
+    id: String(p.id),
+    title: String(p.title),
+    tags: toStringArray(p.tags),
+    createdAt: String(p.createdAt),
+    source:
+      p.source !== null && p.source !== undefined
+        ? String(p.source)
+        : undefined,
+    sourceType:
+      p.sourceType !== null && p.sourceType !== undefined
+        ? String(p.sourceType)
+        : null,
+    type: toMemoryTypeOrUndefined(typeof rawType === "string" ? rawType : null),
+  };
+}
 
 /**
  * Hard ceiling for one global-graph page; matches MAX_NODES in capGraph.
@@ -181,24 +232,18 @@ async function fetchGraphNodesAndEdges(
   );
 
   const row = result.records[0];
-  const rawNodes = row ? row.get("nodes") : [];
-  const rawOutEdges = row ? row.get("outEdges") : [];
-  const rawInEdges = row ? row.get("inEdges") : [];
-  const rawEntities = row ? row.get("entities") : [];
+  const rawNodes = row ? neo4jGet(row, "nodes") : [];
+  const rawOutEdges = row ? neo4jGet(row, "outEdges") : [];
+  const rawInEdges = row ? neo4jGet(row, "inEdges") : [];
+  const rawEntities = row ? neo4jGet(row, "entities") : [];
   const totalMemoryCount =
-    row && !cursor ? toNeoInt(row.get("totalMemoryCount")) : undefined;
+    row && !cursor
+      ? parseNeo4jInt(neo4jGet(row, "totalMemoryCount"))
+      : undefined;
 
-  const nodes: GraphNode[] = (Array.isArray(rawNodes) ? rawNodes : []).map(
-    (n) => ({
-      id: String(n.id),
-      title: String(n.title),
-      tags: Array.isArray(n.tags) ? n.tags.filter(Boolean).map(String) : [],
-      createdAt: String(n.createdAt),
-      source: n.source !== null ? String(n.source) : undefined,
-      sourceType: n.sourceType !== null ? String(n.sourceType) : null,
-      type: toMemoryTypeOrUndefined(n.type),
-    }),
-  );
+  const nodes: GraphNode[] = (Array.isArray(rawNodes) ? rawNodes : [])
+    .map(parseGraphNodeRow)
+    .filter((n): n is GraphNode => n !== null);
 
   // Merge the two directed legs; an edge with both endpoints in this page
   // appears in both, so dedupe by pair.
@@ -206,27 +251,35 @@ async function fetchGraphNodesAndEdges(
   const seenPairs = new Set<string>();
   for (const raw of [rawOutEdges, rawInEdges]) {
     for (const e of Array.isArray(raw) ? raw : []) {
-      const source = String(e.source);
-      const target = String(e.target);
+      const parsed = relatesToEdgeRowSchema.safeParse(e);
+      if (!parsed.success) continue;
+      const source = String(parsed.data.source);
+      const target = String(parsed.data.target);
       const key = `${source}|${target}`;
       if (seenPairs.has(key)) continue;
       seenPairs.add(key);
       relatesToEdges.push({
         source,
         target,
-        reason: String(e.reason ?? ""),
+        reason: String(parsed.data.reason ?? ""),
       });
     }
   }
 
   const entities: GraphData["entities"] = (
     Array.isArray(rawEntities) ? rawEntities : []
-  ).map((e) => ({
-    normalizedName: String(e.normalizedName),
-    name: String(e.name),
-    type: String(e.type),
-    memoryIds: Array.isArray(e.memoryIds) ? e.memoryIds.map(String) : [],
-  }));
+  ).flatMap((e) => {
+    const parsed = entityRowSchema.safeParse(e);
+    if (!parsed.success) return [];
+    return [
+      {
+        normalizedName: String(parsed.data.normalizedName),
+        name: String(parsed.data.name),
+        type: String(parsed.data.type),
+        memoryIds: toStringArray(parsed.data.memoryIds),
+      },
+    ];
+  });
 
   // A full page means there may be more — hand back the keyset for the next.
   const last = nodes.length === limit ? nodes[nodes.length - 1] : undefined;
@@ -328,7 +381,7 @@ export async function getMemoryContent(
     );
     const first = result.records[0];
     if (!first) return "";
-    const value = first.get("content");
+    const value = neo4jGet(first, "content");
     return typeof value === "string" ? value : "";
   });
 }
@@ -400,21 +453,32 @@ export async function getLocalGraph(
 
     const firstRecord = nodesResult.records[0];
     resolvedFocusId = firstRecord
-      ? String(firstRecord.get("focusId"))
+      ? String(neo4jGet(firstRecord, "focusId"))
       : undefined;
 
-    nodes = nodesResult.records.map((r) => ({
-      id: String(r.get("id")),
-      title: String(r.get("title")),
-      tags: Array.isArray(r.get("tags"))
-        ? r.get("tags").filter(Boolean).map(String)
-        : [],
-      createdAt: String(r.get("createdAt")),
-      source: r.get("source") !== null ? String(r.get("source")) : undefined,
-      sourceType:
-        r.get("sourceType") !== null ? String(r.get("sourceType")) : null,
-      type: toMemoryTypeOrUndefined(r.get("type")),
-    }));
+    nodes = nodesResult.records.map((r) => {
+      const rawTags = neo4jGet(r, "tags");
+      const rawSource = neo4jGet(r, "source");
+      const rawSourceType = neo4jGet(r, "sourceType");
+      const rawType = neo4jGet(r, "type");
+      return {
+        id: String(neo4jGet(r, "id")),
+        title: String(neo4jGet(r, "title")),
+        tags: toStringArray(rawTags),
+        createdAt: String(neo4jGet(r, "createdAt")),
+        source:
+          rawSource !== null && rawSource !== undefined
+            ? String(rawSource)
+            : undefined,
+        sourceType:
+          rawSourceType !== null && rawSourceType !== undefined
+            ? String(rawSourceType)
+            : null,
+        type: toMemoryTypeOrUndefined(
+          typeof rawType === "string" ? rawType : null,
+        ),
+      };
+    });
     nodeIds = nodes.map((n) => n.id);
   } finally {
     await nodesSession.close();
@@ -469,11 +533,11 @@ export async function getLocalGraph(
     ]);
 
     const relatesToEdges: RelatesToEdge[] = relatesToResult.records.map((r) => {
-      const rawScore = r.get("score");
+      const rawScore = neo4jGet(r, "score");
       return {
-        source: String(r.get("source")),
-        target: String(r.get("target")),
-        reason: String(r.get("reason") ?? ""),
+        source: String(neo4jGet(r, "source")),
+        target: String(neo4jGet(r, "target")),
+        reason: String(neo4jGet(r, "reason") ?? ""),
         score:
           rawScore !== null && rawScore !== undefined
             ? Number(rawScore)
@@ -482,12 +546,10 @@ export async function getLocalGraph(
     });
 
     const entities = entityResult.records.map((r) => ({
-      normalizedName: String(r.get("normalizedName")),
-      name: String(r.get("name")),
-      type: String(r.get("type")),
-      memoryIds: Array.isArray(r.get("memoryIds"))
-        ? r.get("memoryIds").map(String)
-        : [],
+      normalizedName: String(neo4jGet(r, "normalizedName")),
+      name: String(neo4jGet(r, "name")),
+      type: String(neo4jGet(r, "type")),
+      memoryIds: toStringArray(neo4jGet(r, "memoryIds")),
     }));
 
     const tagEdges = tagEdgesResult.records.map(toTagEdge);

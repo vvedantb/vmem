@@ -11,13 +11,12 @@
 import { drive as driveApi, auth as googleAuth } from "@googleapis/drive";
 import { type ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
-import { upsertFromSource } from "../../../engine/neo4j/memory/connectors";
 import {
-  embedSyncedDoc,
   markSyncComplete,
   markSyncError,
   maybeReportProgress,
   setupSync,
+  upsertSyncedDoc,
 } from "./shared";
 
 export interface GoogleDriveSyncArgs {
@@ -36,10 +35,7 @@ export async function runGoogleDriveSync(
   ctx: ActionCtx,
   args: GoogleDriveSyncArgs,
 ): Promise<{ synced: number }> {
-  const { driver, profileId, openRouterAuth } = await setupSync(
-    ctx,
-    args.clerkId,
-  );
+  const setup = await setupSync(ctx, args.clerkId);
 
   try {
     const oauth = new googleAuth.OAuth2();
@@ -75,28 +71,20 @@ export async function runGoogleDriveSync(
               ? exportResponse.data
               : String(exportResponse.data);
 
-          const truncatedContent = content.slice(0, 50000);
-          const embedding = await embedSyncedDoc(
-            ctx,
-            openRouterAuth,
-            profileId,
-            file.name,
-            truncatedContent,
-          );
-
-          await upsertFromSource(driver, {
-            userId: args.clerkId,
-            profileId,
-            title: file.name,
-            content: truncatedContent,
-            sourceType: "google_drive",
-            sourceId: file.id,
-            sourceUrl:
-              file.webViewLink ?? `https://drive.google.com/file/d/${file.id}`,
-            embedding,
+          totalSynced = await upsertSyncedDoc(ctx, {
+            setup,
+            clerkId: args.clerkId,
+            totalSynced,
+            doc: {
+              title: file.name,
+              content,
+              sourceType: "google_drive",
+              sourceId: file.id,
+              sourceUrl:
+                file.webViewLink ??
+                `https://drive.google.com/file/d/${file.id}`,
+            },
           });
-
-          totalSynced++;
           await maybeReportProgress(ctx, {
             connectorId: args.connectorId,
             totalSynced,

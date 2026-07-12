@@ -9,14 +9,14 @@
 
 import { type ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
-import { upsertFromSource } from "../../../engine/neo4j/memory/connectors";
 import {
-  embedSyncedDoc,
   markSyncComplete,
   markSyncError,
   maybeReportProgress,
   setupSync,
+  upsertSyncedDoc,
 } from "./shared";
+import { z } from "zod";
 
 export interface OneDriveSyncArgs {
   clerkId: string;
@@ -37,32 +37,52 @@ const ONEDRIVE_ALLOWED_MIMETYPES = new Set<string>([
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ]);
 
-interface OneDriveFile {
-  mimeType?: string;
-}
+const oneDriveListResponseSchema = z.object({
+  value: z
+    .array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        webUrl: z.string().optional(),
+        file: z.object({ mimeType: z.string().optional() }).optional(),
+        folder: z.unknown().optional(),
+      }),
+    )
+    .optional(),
+  "@odata.nextLink": z.string().optional(),
+});
 
-interface OneDriveItem {
-  id: string;
-  name: string;
-  webUrl?: string;
-  file?: OneDriveFile;
-  // folder presence indicates a folder (skipped in MVP — root-only)
-  folder?: unknown;
-}
+type OneDriveListData = z.infer<typeof oneDriveListResponseSchema>;
+type OneDriveItem = NonNullable<OneDriveListData["value"]>[number];
 
-interface OneDriveListResponse {
-  value: OneDriveItem[];
-  "@odata.nextLink"?: string;
+async function fetchOneDriveListPage(
+  accessToken: string,
+  url: string,
+): Promise<OneDriveListData> {
+  const responseUnknown: unknown = await fetch(url, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!(responseUnknown instanceof Response)) {
+    throw new Error("OneDrive fetch did not return Response");
+  }
+  if (!responseUnknown.ok) {
+    throw new Error(
+      `OneDrive list failed: ${responseUnknown.status} ${responseUnknown.statusText}`,
+    );
+  }
+  const raw: unknown = await responseUnknown.json();
+  const parsed = oneDriveListResponseSchema.safeParse(raw);
+  if (!parsed.success) {
+    throw new Error(`OneDrive list JSON invalid: ${parsed.error.message}`);
+  }
+  return parsed.data;
 }
 
 export async function runOneDriveSync(
   ctx: ActionCtx,
   args: OneDriveSyncArgs,
 ): Promise<{ synced: number }> {
-  const { driver, profileId, openRouterAuth } = await setupSync(
-    ctx,
-    args.clerkId,
-  );
+  const setup = await setupSync(ctx, args.clerkId);
 
   try {
     // MVP: list root-level files only — no recursion into subfolders.
@@ -72,20 +92,16 @@ export async function runOneDriveSync(
     let totalFound = 0;
 
     while (nextUrl) {
-      const listRes = await fetch(nextUrl, {
-        headers: { Authorization: `Bearer ${args.accessToken}` },
-      });
-      if (!listRes.ok) {
-        throw new Error(
-          `OneDrive list failed: ${listRes.status} ${listRes.statusText}`,
-        );
-      }
-      const listData: OneDriveListResponse = await listRes.json();
+      const listData = await fetchOneDriveListPage(args.accessToken, nextUrl);
 
-      const items = (listData.value ?? []).filter(
-        (item) =>
-          item.file &&
-          item.file.mimeType &&
+      const items: OneDriveItem[] = (listData.value ?? []).filter(
+        (
+          item,
+        ): item is OneDriveItem & {
+          file: { mimeType: string };
+        } =>
+          item.file !== undefined &&
+          item.file.mimeType !== undefined &&
           ONEDRIVE_ALLOWED_MIMETYPES.has(item.file.mimeType),
       );
       totalFound += items.length;
@@ -94,10 +110,17 @@ export async function runOneDriveSync(
         try {
           // `?format=text` asks Graph to convert Word docs to plain text.
           // For text/plain + text/markdown the server ignores it and returns the raw body.
-          const contentRes = await fetch(
+          const contentResUnknown: unknown = await fetch(
             `https://graph.microsoft.com/v1.0/me/drive/items/${item.id}/content?format=text`,
             { headers: { Authorization: `Bearer ${args.accessToken}` } },
           );
+          if (!(contentResUnknown instanceof Response)) {
+            console.error(
+              `OneDrive content fetch failed for ${item.name}: invalid response`,
+            );
+            continue;
+          }
+          const contentRes = contentResUnknown;
           if (!contentRes.ok) {
             console.error(
               `OneDrive content fetch failed for ${item.name}: ${contentRes.status}`,
@@ -105,29 +128,20 @@ export async function runOneDriveSync(
             continue;
           }
           const text = await contentRes.text();
-          const truncatedText = text.slice(0, 50000);
-          const embedding = await embedSyncedDoc(
-            ctx,
-            openRouterAuth,
-            profileId,
-            item.name,
-            truncatedText,
-          );
-
-          await upsertFromSource(driver, {
-            userId: args.clerkId,
-            profileId,
-            title: item.name,
-            content: truncatedText,
-            sourceType: "onedrive",
-            sourceId: item.id,
-            sourceUrl:
-              item.webUrl ??
-              `https://onedrive.live.com/?id=${encodeURIComponent(item.id)}`,
-            embedding,
+          totalSynced = await upsertSyncedDoc(ctx, {
+            setup,
+            clerkId: args.clerkId,
+            totalSynced,
+            doc: {
+              title: item.name,
+              content: text,
+              sourceType: "onedrive",
+              sourceId: item.id,
+              sourceUrl:
+                item.webUrl ??
+                `https://onedrive.live.com/?id=${encodeURIComponent(item.id)}`,
+            },
           });
-
-          totalSynced++;
           await maybeReportProgress(ctx, {
             connectorId: args.connectorId,
             totalSynced,

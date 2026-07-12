@@ -54,9 +54,32 @@ let draggedId: string | null = null;
 // for settings-slider updates without `as` casts.
 let forcesRef: GraphForces<WNode, WEdge> | null = null;
 
+// ------ Worker message protocol (must match simulation.ts postMessage calls) ------
+
+type WorkerInputMessage =
+  | {
+      type: "init";
+      nodes: Array<{ id: string; size: number; x: number; y: number }>;
+      edges: Array<{
+        source: string;
+        target: string;
+        edgeType: WEdgeType;
+        weight: number;
+      }>;
+      scalingRatio: number;
+      gravity: number;
+    }
+  | { type: "reheat" }
+  | { type: "setStrength"; scalingRatio: number }
+  | { type: "setGravity"; gravity: number }
+  | { type: "dragStart"; nodeId: string; x: number; y: number }
+  | { type: "dragMove"; x: number; y: number }
+  | { type: "dragEnd"; nodeId: string }
+  | { type: "stop" };
+
 // ------ Message handler ------
 
-self.onmessage = (e: MessageEvent) => {
+self.onmessage = (e: MessageEvent<WorkerInputMessage>) => {
   const msg = e.data;
 
   switch (msg.type) {

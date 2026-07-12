@@ -5,15 +5,26 @@ function trimTrailingSlash(baseUrl: string): string {
   return baseUrl.replace(/\/$/, "");
 }
 
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function readProperty(obj: object, key: string): unknown {
+  if (!isObject(obj)) {
+    return undefined;
+  }
+  return obj[key];
+}
+
 function parseErrorBody(body: unknown): ApiErrorBody | null {
-  if (typeof body !== "object" || body === null) {
+  if (!isObject(body)) {
     return null;
   }
-  const errorField = Reflect.get(body, "error");
+  const errorField = readProperty(body, "error");
   if (typeof errorField !== "string") {
     return null;
   }
-  const issuesField = Reflect.get(body, "issues");
+  const issuesField = readProperty(body, "issues");
   if (issuesField === undefined) {
     return { error: errorField };
   }
@@ -29,7 +40,7 @@ function unwrapData(
   path: string,
   status: number,
 ): unknown {
-  if (typeof json !== "object" || json === null) {
+  if (!isObject(json)) {
     throw new VMemoryError(
       `VMemory API ${method} ${path} returned an invalid response`,
       status,
@@ -45,7 +56,7 @@ function unwrapData(
     );
   }
 
-  return Reflect.get(json, "data");
+  return readProperty(json, "data");
 }
 
 export class HttpClient {

@@ -24,6 +24,7 @@
  */
 
 import { extractJsonString } from "../../engine/llm/extractJsonString";
+import { objectField, parseUnknownArray } from "../lib/jsonBoundary";
 
 export interface ExtractedFact {
   /** Stable id within this extraction (0-indexed). Useful for telemetry. */
@@ -218,14 +219,15 @@ export function parseFactExtractionResponse(
     const parsed: unknown = JSON.parse(jsonStr);
     if (typeof parsed !== "object" || parsed === null) return null;
 
-    const factsRaw = Reflect.get(parsed, "facts");
+    const factsRaw = objectField(parsed, "facts");
     if (!Array.isArray(factsRaw)) return null;
+    const factsItems = parseUnknownArray(factsRaw);
 
     const facts: ExtractedFact[] = [];
-    for (const item of factsRaw) {
+    for (const item of factsItems) {
       if (typeof item !== "object" || item === null) continue;
-      const idRaw = Reflect.get(item, "id");
-      const textRaw = Reflect.get(item, "text");
+      const idRaw = objectField(item, "id");
+      const textRaw = objectField(item, "text");
       if (!isStringValue(textRaw)) continue;
       const text = textRaw.trim();
       if (text.length === 0) continue;
@@ -265,12 +267,12 @@ export function parseUpdateDecisionResponse(
     const parsed: unknown = JSON.parse(jsonStr);
     if (typeof parsed !== "object" || parsed === null) return null;
 
-    const event = toEvent(Reflect.get(parsed, "event"));
+    const event = toEvent(objectField(parsed, "event"));
     if (!event) return null;
 
-    const idRaw = Reflect.get(parsed, "id");
-    const textRaw = Reflect.get(parsed, "text");
-    const oldMemoryRaw = Reflect.get(parsed, "old_memory");
+    const idRaw = objectField(parsed, "id");
+    const textRaw = objectField(parsed, "text");
+    const oldMemoryRaw = objectField(parsed, "old_memory");
 
     const id =
       isStringValue(idRaw) && idRaw.trim().length > 0 ? idRaw : undefined;

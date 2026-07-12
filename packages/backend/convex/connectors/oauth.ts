@@ -3,6 +3,8 @@ import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { authAction } from "../auth";
 import { encryptToken, decryptToken, getEnvOrThrow } from "../lib/crypto";
+import { oauthAccessTokenSchema, parseResponseJson } from "../lib/jsonBoundary";
+import { z } from "zod";
 import { auditLog, ResourceTypes } from "../auditLog";
 import {
   GOOGLE_OAUTH_SCOPES,
@@ -295,41 +297,11 @@ export const disconnect = authAction({
 
 // --- Internal action for handling OAuth callback ---
 
-interface GoogleTokenResponse {
-  access_token?: string;
-  refresh_token?: string;
-  expires_in?: number;
-  token_type?: string;
-  scope?: string;
-  error?: string;
-}
-
-interface NotionTokenResponse {
-  access_token?: string;
-  token_type?: string;
-  bot_id?: string;
-  workspace_id?: string;
-  workspace_name?: string;
-  error?: string;
-}
-
-interface OneDriveTokenResponse {
-  access_token?: string;
-  refresh_token?: string;
-  expires_in?: number;
-  token_type?: string;
-  scope?: string;
-  error?: string;
-  error_description?: string;
-}
-
-interface LinearTokenResponse {
-  access_token?: string;
-  token_type?: string;
-  expires_in?: number;
-  scope?: string;
-  error?: string;
-}
+const notionTokenResponseSchema = oauthAccessTokenSchema.extend({
+  bot_id: z.string().optional(),
+  workspace_id: z.string().optional(),
+  workspace_name: z.string().optional(),
+});
 
 type OAuthCallbackResult = {
   error: string | null;
@@ -363,7 +335,15 @@ export const handleCallbackInternal = internalAction({
       };
     }
 
-    const provider = stateEntry.provider as Provider;
+    if (!isConnectorOAuthProvider(stateEntry.provider)) {
+      return {
+        error: "invalid_state",
+        frontendUrl: stateEntry.returnUrl,
+        connectorId: stateEntry.connectorId,
+      };
+    }
+
+    const provider = stateEntry.provider;
     const convexSiteUrl = getEnvOrThrow("CONVEX_SITE_URL");
     const redirectUri = `${convexSiteUrl}/api/auth/connector/callback`;
 
@@ -392,7 +372,10 @@ export const handleCallbackInternal = internalAction({
         };
       }
 
-      const tokenData: GoogleTokenResponse = await tokenRes.json();
+      const tokenData = await parseResponseJson(
+        tokenRes,
+        oauthAccessTokenSchema,
+      );
       if (!tokenData.access_token) {
         return {
           error: tokenData.error ?? "no_token",
@@ -443,7 +426,10 @@ export const handleCallbackInternal = internalAction({
         };
       }
 
-      const tokenData: NotionTokenResponse = await tokenRes.json();
+      const tokenData = await parseResponseJson(
+        tokenRes,
+        notionTokenResponseSchema,
+      );
       if (!tokenData.access_token) {
         return {
           error: tokenData.error ?? "no_token",
@@ -488,7 +474,10 @@ export const handleCallbackInternal = internalAction({
         };
       }
 
-      const tokenData: OneDriveTokenResponse = await tokenRes.json();
+      const tokenData = await parseResponseJson(
+        tokenRes,
+        oauthAccessTokenSchema,
+      );
       if (!tokenData.access_token) {
         return {
           error: tokenData.error ?? "no_token",
@@ -534,7 +523,10 @@ export const handleCallbackInternal = internalAction({
         };
       }
 
-      const tokenData: LinearTokenResponse = await tokenRes.json();
+      const tokenData = await parseResponseJson(
+        tokenRes,
+        oauthAccessTokenSchema,
+      );
       if (!tokenData.access_token) {
         return {
           error: tokenData.error ?? "no_token",

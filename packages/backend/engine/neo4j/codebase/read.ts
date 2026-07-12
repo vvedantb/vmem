@@ -11,6 +11,14 @@
 
 import { type Driver } from "neo4j-driver";
 import { clampNeo4jLimit } from "../intParams";
+import {
+  parseOverviewEdge,
+  parseOverviewNodeRecord,
+  parseOverviewStats,
+  parseSearchSymbolRecord,
+  parseStringArrayField,
+  parseSymbolContextRecord,
+} from "./mappers";
 
 export interface OverviewNode {
   id: string;
@@ -129,17 +137,18 @@ export async function getOverviewStats(args: ReadArgs): Promise<OverviewStats> {
       { userId: args.userId, codebaseId: args.codebaseId },
     );
     const r = result.records[0];
-    const num = (k: string): number =>
-      r.get(k).toNumber?.() ?? Number(r.get(k));
-    return {
-      fileCount: num("fileCount"),
-      functionCount: num("functionCount"),
-      classCount: num("classCount"),
-      interfaceCount: num("interfaceCount"),
-      processCount: num("processCount"),
-      callEdgeCount: num("callEdgeCount"),
-      importEdgeCount: num("importEdgeCount"),
-    };
+    if (!r) {
+      return {
+        fileCount: 0,
+        functionCount: 0,
+        classCount: 0,
+        interfaceCount: 0,
+        processCount: 0,
+        callEdgeCount: 0,
+        importEdgeCount: 0,
+      };
+    }
+    return parseOverviewStats(r);
   } finally {
     await session.close();
   }
@@ -182,26 +191,10 @@ export async function getGraphOverview(args: FilteredArgs): Promise<{
 
     let nodes: OverviewNode[] = [];
     for (const r of nodesResult.records) {
-      const labels: string[] = r.get("labels");
-      const kind = pickKind(labels);
-      if (!kind) continue;
-      if (!allKinds && !wantedKinds.has(kind)) continue;
-      const props = r.get("n").properties;
-      nodes.push({
-        id: props.id,
-        kind,
-        name:
-          kind === "code-process"
-            ? (props.name ?? props.id)
-            : kind === "code-file"
-              ? (props.filename ?? props.path)
-              : (props.name ?? props.qualifiedName ?? props.id),
-        path: props.path ?? props.filePath ?? "",
-        directory: props.directory ?? "",
-        isExported: props.isExported ?? undefined,
-        isAsync: props.isAsync ?? undefined,
-        isTest: props.isTest ?? undefined,
-      });
+      const node = parseOverviewNodeRecord(r, pickKind);
+      if (!node) continue;
+      if (!allKinds && !wantedKinds.has(node.kind)) continue;
+      nodes.push(node);
     }
 
     // Process-member subset
@@ -218,7 +211,7 @@ export async function getGraphOverview(args: FilteredArgs): Promise<{
         },
       );
       const memberIds = new Set<string>(
-        memResult.records[0]?.get("memberIds") ?? [],
+        parseStringArrayField(memResult.records[0], "memberIds"),
       );
       memberIds.add(args.processId);
       nodes = nodes.filter((n) => memberIds.has(n.id));
@@ -243,7 +236,9 @@ export async function getGraphOverview(args: FilteredArgs): Promise<{
           codebaseId: args.codebaseId,
         },
       );
-      const keep = new Set<string>(blastResult.records[0]?.get("keep") ?? []);
+      const keep = new Set<string>(
+        parseStringArrayField(blastResult.records[0], "keep"),
+      );
       nodes = nodes.filter((n) => keep.has(n.id));
     }
 
@@ -335,25 +330,9 @@ export async function getGraphOverview(args: FilteredArgs): Promise<{
           truncated = true;
           break edgeLoop;
         }
-        const fromId: string = rec.get("fromId");
-        const toId: string = rec.get("toId");
-        if (!nodeIds.has(fromId) || !nodeIds.has(toId)) continue;
-        const confRaw = rec.get("confidence");
-        const tierRaw: unknown = rec.get("tier");
-        const tier: OverviewEdge["tier"] =
-          q.carry &&
-          (tierRaw === "EXTRACTED" ||
-            tierRaw === "INFERRED" ||
-            tierRaw === "AMBIGUOUS")
-            ? tierRaw
-            : undefined;
-        edges.push({
-          fromId,
-          toId,
-          type: q.type,
-          confidence: q.carry && confRaw != null ? Number(confRaw) : undefined,
-          tier,
-        });
+        const edge = parseOverviewEdge(rec, q.type, q.carry);
+        if (!nodeIds.has(edge.fromId) || !nodeIds.has(edge.toId)) continue;
+        edges.push(edge);
       }
     }
 
@@ -403,43 +382,7 @@ export async function getSymbolContext(
       },
     );
     if (result.records.length === 0) return null;
-    const r = result.records[0];
-    const labels: string[] = r.get("labels");
-    const kind = pickKind(labels);
-    if (!kind) return null;
-    const props = r.get("n").properties;
-    // Neo4j returns Integer objects for integer properties; plain numbers for
-    // floats. After ruling out null and plain number, call .toNumber() which
-    // is present on all neo4j Integer objects.
-    const num = (v: unknown): number | undefined => {
-      if (v == null) return undefined;
-      if (typeof v === "number") return v;
-      if (
-        typeof v === "object" &&
-        "toNumber" in v &&
-        typeof (v as Record<string, unknown>).toNumber === "function"
-      ) {
-        return (v as { toNumber(): number }).toNumber();
-      }
-      return Number(v);
-    };
-    const filterOut = <T extends { id: string }>(arr: T[]): T[] =>
-      arr.filter((x) => x.id != null);
-    return {
-      id: props.id,
-      kind,
-      name: props.name ?? props.qualifiedName ?? props.id,
-      qualifiedName: props.qualifiedName ?? props.name ?? props.id,
-      filePath: props.filePath ?? props.path ?? "",
-      startLine: num(props.startLine),
-      endLine: num(props.endLine),
-      isExported: props.isExported ?? undefined,
-      isAsync: props.isAsync ?? undefined,
-      isTest: props.isTest ?? undefined,
-      callsIn: filterOut(r.get("callsIn")),
-      callsOut: filterOut(r.get("callsOut")),
-      processes: filterOut(r.get("processes")),
-    };
+    return parseSymbolContextRecord(result.records[0], pickKind);
   } finally {
     await session.close();
   }
@@ -490,18 +433,10 @@ export async function searchSymbols(
 
     const out: SearchSymbolsResult[] = [];
     for (const rec of ftResult.records) {
-      const labels: string[] = rec.get("labels");
-      const kind = pickKind(labels);
-      if (!kind) continue;
-      if (args.kind && kind !== args.kind) continue;
-      const p = rec.get("node").properties;
-      out.push({
-        id: p.id,
-        kind,
-        name: p.name ?? p.qualifiedName ?? p.id,
-        qualifiedName: p.qualifiedName ?? p.name ?? p.id,
-        filePath: p.filePath ?? "",
-      });
+      const row = parseSearchSymbolRecord(rec, pickKind, "node");
+      if (!row) continue;
+      if (args.kind && row.kind !== args.kind) continue;
+      out.push(row);
     }
     if (out.length > 0) return out;
 
@@ -526,18 +461,10 @@ export async function searchSymbols(
       },
     );
     for (const rec of fbResult.records) {
-      const labels: string[] = rec.get("labels");
-      const kind = pickKind(labels);
-      if (!kind) continue;
-      if (args.kind && kind !== args.kind) continue;
-      const p = rec.get("node").properties;
-      out.push({
-        id: p.id,
-        kind,
-        name: p.name ?? p.qualifiedName ?? p.id,
-        qualifiedName: p.qualifiedName ?? p.name ?? p.id,
-        filePath: p.filePath ?? "",
-      });
+      const row = parseSearchSymbolRecord(rec, pickKind, "n");
+      if (!row) continue;
+      if (args.kind && row.kind !== args.kind) continue;
+      out.push(row);
     }
     return out;
   } finally {

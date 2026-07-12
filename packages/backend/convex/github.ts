@@ -7,6 +7,8 @@ import {
 import { internal } from "./_generated/api";
 import { authAction, authMutation, authQuery } from "./auth";
 import { encryptToken, getEnvOrThrow } from "./lib/crypto";
+import { oauthAccessTokenSchema, parseResponseJson } from "./lib/jsonBoundary";
+import { z } from "zod";
 
 // --- Public functions ---
 
@@ -60,17 +62,11 @@ export const startGitHubOAuth = authAction({
   },
 });
 
-/** GitHub token exchange response shape. */
-interface GitHubTokenResponse {
-  access_token?: string;
-  error?: string;
-}
-
 /** Subset of GitHub user profile we need. */
-interface GitHubUserProfile {
-  login?: string;
-  avatar_url?: string;
-}
+const githubUserProfileSchema = z.object({
+  login: z.string().optional(),
+  avatar_url: z.string().optional(),
+});
 
 /**
  * Handles the GitHub OAuth callback. Called by the httpAction in http.ts.
@@ -123,7 +119,7 @@ export const handleGitHubCallbackInternal = internalAction({
       };
     }
 
-    const tokenData: GitHubTokenResponse = await tokenRes.json();
+    const tokenData = await parseResponseJson(tokenRes, oauthAccessTokenSchema);
     if (!tokenData.access_token) {
       return {
         error: tokenData.error ?? "no_token",
@@ -142,7 +138,7 @@ export const handleGitHubCallbackInternal = internalAction({
       return { error: "user_fetch_failed", returnUrl: stateEntry.returnUrl };
     }
 
-    const userData: GitHubUserProfile = await userRes.json();
+    const userData = await parseResponseJson(userRes, githubUserProfileSchema);
     if (!userData.login) {
       return { error: "user_fetch_failed", returnUrl: stateEntry.returnUrl };
     }

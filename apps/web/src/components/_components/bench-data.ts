@@ -43,7 +43,7 @@ export function generateBenchGraph(count: number): BenchGraph {
   const now = Date.now();
   const yearMs = 365 * 24 * 60 * 60 * 1000;
 
-  const nodes: ApiGraphNode[] = new Array(n);
+  const nodes = Array.from<ApiGraphNode>({ length: n });
   for (let i = 0; i < n; i++) {
     const primaryTag = tags[i % TAG_POOL_SIZE];
     const nodeTags =

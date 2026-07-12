@@ -1,4 +1,20 @@
 import { z } from "zod";
+import type { Id } from "@vmem/backend";
+
+const convexStorageUploadSchema = z.object({
+  storageId: z.string().min(1),
+});
+
+function isStorageId(value: string): value is Id<"_storage"> {
+  return value.length > 0;
+}
+
+/** Parse `{ storageId }` from Convex's signed file-upload POST response. */
+export function parseConvexStorageUpload(json: unknown): Id<"_storage"> | null {
+  const parsed = convexStorageUploadSchema.safeParse(json);
+  if (!parsed.success || !isStorageId(parsed.data.storageId)) return null;
+  return parsed.data.storageId;
+}
 
 export const memorySchema = z.object({
   title: z.string().min(1, "Title is required"),

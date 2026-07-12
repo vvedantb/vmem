@@ -1,4 +1,5 @@
 import { getDriver, closeDriver } from "../engine/neo4j/driver";
+import { neo4jField, neo4jIntSchema } from "../engine/neo4j/record";
 
 // Same user IDs that were seeded
 const SEEDED_USER_IDS = [
@@ -25,8 +26,9 @@ async function unseed() {
          RETURN count(e) AS deleted`,
         { userId },
       );
-      const eventsDeleted =
-        eventResult.records[0]?.get("deleted")?.toNumber() ?? 0;
+      const eventsDeleted = eventResult.records[0]
+        ? neo4jField(eventResult.records[0], "deleted", neo4jIntSchema)
+        : 0;
       console.log(`  deleted ${eventsDeleted} events`);
 
       // Delete ProposedUpdates linked to this user's memories
@@ -36,8 +38,9 @@ async function unseed() {
          RETURN count(p) AS deleted`,
         { userId },
       );
-      const proposalsDeleted =
-        proposalResult.records[0]?.get("deleted")?.toNumber() ?? 0;
+      const proposalsDeleted = proposalResult.records[0]
+        ? neo4jField(proposalResult.records[0], "deleted", neo4jIntSchema)
+        : 0;
       console.log(`  deleted ${proposalsDeleted} proposals`);
 
       // Delete all memories for this user (detach removes TAGGED_WITH, FROM_SOURCE, RELATES_TO edges)
@@ -47,8 +50,9 @@ async function unseed() {
          RETURN count(m) AS deleted`,
         { userId },
       );
-      const memoriesDeleted =
-        memResult.records[0]?.get("deleted")?.toNumber() ?? 0;
+      const memoriesDeleted = memResult.records[0]
+        ? neo4jField(memResult.records[0], "deleted", neo4jIntSchema)
+        : 0;
       console.log(`  deleted ${memoriesDeleted} memories`);
 
       totalDeleted += memoriesDeleted;
@@ -62,7 +66,9 @@ async function unseed() {
        DELETE t
        RETURN count(t) AS deleted`,
     );
-    const tagsDeleted = tagResult.records[0]?.get("deleted")?.toNumber() ?? 0;
+    const tagsDeleted = tagResult.records[0]
+      ? neo4jField(tagResult.records[0], "deleted", neo4jIntSchema)
+      : 0;
     console.log(`  deleted ${tagsDeleted} orphaned tags`);
 
     // Clean up orphaned Sources (sources with no memories pointing to them)
@@ -73,8 +79,9 @@ async function unseed() {
        DELETE s
        RETURN count(s) AS deleted`,
     );
-    const sourcesDeleted =
-      sourceResult.records[0]?.get("deleted")?.toNumber() ?? 0;
+    const sourcesDeleted = sourceResult.records[0]
+      ? neo4jField(sourceResult.records[0], "deleted", neo4jIntSchema)
+      : 0;
     console.log(`  deleted ${sourcesDeleted} orphaned sources`);
 
     console.log("\nunseed complete!");
@@ -87,7 +94,7 @@ async function unseed() {
   }
 }
 
-unseed().catch((err) => {
+unseed().catch((err: unknown) => {
   console.error("unseed failed:", err);
   process.exit(1);
 });

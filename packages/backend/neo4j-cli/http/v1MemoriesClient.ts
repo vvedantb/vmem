@@ -68,18 +68,21 @@ async function readJson(response: Response): Promise<object | null> {
   }
 
   try {
-    const parsed: object = JSON.parse(text);
-    return parsed;
+    const raw: unknown = JSON.parse(text);
+    if (typeof raw !== "object" || raw === null) {
+      return null;
+    }
+    return raw;
   } catch {
     return null;
   }
 }
 
-function parseDirect<S extends z.ZodTypeAny>(
+function parseDirect<T>(
   status: number,
   body: object | null,
-  schema: S,
-): HttpJsonResult<z.output<S>> {
+  schema: z.ZodType<T, z.ZodTypeDef, unknown>,
+): HttpJsonResult<T> {
   if (body === null) {
     return { ok: false, status, error: "invalid_json" };
   }
@@ -97,11 +100,11 @@ function parseDirect<S extends z.ZodTypeAny>(
   return { ok: false, status, error: "unexpected_response" };
 }
 
-function parseEnvelope<S extends z.ZodTypeAny>(
+function parseEnvelope<T>(
   status: number,
   body: object | null,
-  dataSchema: S,
-): HttpJsonResult<z.output<S>> {
+  dataSchema: z.ZodType<T, z.ZodTypeDef, unknown>,
+): HttpJsonResult<T> {
   if (body === null) {
     return { ok: false, status, error: "invalid_json" };
   }
@@ -122,22 +125,22 @@ function parseEnvelope<S extends z.ZodTypeAny>(
 export function createHttpMemoriesClient(config: HttpClientConfig) {
   const { baseUrl, apiKey } = config;
 
-  async function requestDirect<S extends z.ZodTypeAny>(
+  async function requestDirect<T>(
     path: string,
-    schema: S,
+    schema: z.ZodType<T, z.ZodTypeDef, unknown>,
     init: RequestInit,
-  ): Promise<HttpJsonResult<z.output<S>>> {
+  ): Promise<HttpJsonResult<T>> {
     const response = await fetch(`${baseUrl}${path}`, init);
     const body = await readJson(response);
     return parseDirect(response.status, body, schema);
   }
 
-  async function request<S extends z.ZodTypeAny>(
+  async function request<T>(
     path: string,
-    dataSchema: S,
+    dataSchema: z.ZodType<T, z.ZodTypeDef, unknown>,
     init: RequestInit,
     authToken: string | null = apiKey,
-  ): Promise<HttpJsonResult<z.output<S>>> {
+  ): Promise<HttpJsonResult<T>> {
     const headers = new Headers(init.headers);
     if (init.body !== undefined) {
       headers.set("Content-Type", "application/json");

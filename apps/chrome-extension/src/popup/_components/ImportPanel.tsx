@@ -76,7 +76,7 @@ export function ImportPanel() {
       setLastHistorySync(storage.lastHistorySync);
     });
     void chrome.storage.local.get(["vmemSwBootPhase"]).then((stored) => {
-      const phase = stored.vmemSwBootPhase;
+      const phase: unknown = stored.vmemSwBootPhase;
       setSwBootPhase(typeof phase === "string" ? phase : null);
     });
   }

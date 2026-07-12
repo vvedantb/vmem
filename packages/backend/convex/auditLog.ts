@@ -2,6 +2,7 @@ import { AuditLog } from "convex-audit-log";
 import { v } from "convex/values";
 import { components } from "./_generated/api";
 import { authQuery } from "./auth";
+import { objectField, parseUnknownArray } from "./lib/jsonBoundary";
 
 /**
  * Shared audit-log client for the whole backend.
@@ -91,11 +92,12 @@ export const listMyApiRequestEntries = authQuery({
         ? Math.max(1, Math.min(1000, Math.trunc(rawLimit)))
         : 1000;
 
-    const entries = await auditLog.queryByActor(ctx, {
+    const rawEntries: unknown = await auditLog.queryByActor(ctx, {
       actorId: ctx.userId,
       actions: ["api_request"],
       limit,
     });
+    if (!Array.isArray(rawEntries)) return [];
 
     const result: {
       _id: string;
@@ -105,23 +107,29 @@ export const listMyApiRequestEntries = authQuery({
       originalTimestamp: number;
     }[] = [];
 
-    for (const entry of entries) {
-      if (!entry || typeof entry !== "object") continue;
-      const entryId = typeof entry._id === "string" ? entry._id : null;
+    for (const rawEntry of parseUnknownArray(rawEntries)) {
+      if (typeof rawEntry !== "object" || rawEntry === null) continue;
+      const entryIdRaw = objectField(rawEntry, "_id");
+      const entryId = typeof entryIdRaw === "string" ? entryIdRaw : null;
       if (!entryId) continue;
 
-      const meta = entry.metadata;
-      if (!meta || typeof meta !== "object") continue;
+      const meta = objectField(rawEntry, "metadata");
+      if (typeof meta !== "object" || meta === null) continue;
 
-      const endpoint = typeof meta.endpoint === "string" ? meta.endpoint : "";
-      const status = typeof meta.status === "number" ? meta.status : 0;
-      const durationMs =
-        typeof meta.durationMs === "number" ? meta.durationMs : 0;
+      const endpointRaw = objectField(meta, "endpoint");
+      const statusRaw = objectField(meta, "status");
+      const durationMsRaw = objectField(meta, "durationMs");
+      const originalTimestampRaw = objectField(meta, "originalTimestamp");
+      const timestampRaw = objectField(rawEntry, "timestamp");
+
+      const endpoint = typeof endpointRaw === "string" ? endpointRaw : "";
+      const status = typeof statusRaw === "number" ? statusRaw : 0;
+      const durationMs = typeof durationMsRaw === "number" ? durationMsRaw : 0;
       const originalTimestamp =
-        typeof meta.originalTimestamp === "number"
-          ? meta.originalTimestamp
-          : typeof entry.timestamp === "number"
-            ? entry.timestamp
+        typeof originalTimestampRaw === "number"
+          ? originalTimestampRaw
+          : typeof timestampRaw === "number"
+            ? timestampRaw
             : 0;
 
       result.push({

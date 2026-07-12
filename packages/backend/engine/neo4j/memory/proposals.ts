@@ -18,7 +18,13 @@
  */
 
 import crypto from "node:crypto";
-import { type Driver, type Session } from "neo4j-driver";
+import {
+  type Driver,
+  type Record as NeoRecord,
+  type Session,
+} from "neo4j-driver";
+import { z } from "zod";
+import { neo4jGet, parseNeo4jNodeProps } from "../record";
 import { computeContentHash, toMemoryWithTags, toSnapshot } from "./mappers";
 import { logEvent, withSession } from "./shared";
 import {
@@ -27,6 +33,104 @@ import {
   type ProposedUpdateKind,
   type ProposedUpdateNode,
 } from "./types";
+
+const proposedUpdateStatusSchema = z.enum(["pending", "approved", "rejected"]);
+
+const proposedUpdateNodePropsSchema = z.object({
+  id: z.string(),
+  memoryId: z.string().optional(),
+  proposedContent: z.string().optional(),
+  proposedTitle: z.string().nullable().optional(),
+  reason: z.string().optional(),
+  kind: z.string().optional(),
+  status: proposedUpdateStatusSchema,
+  createdAt: z.string(),
+  resolvedAt: z.string().nullable().optional(),
+  sourceMemoryIds: z.array(z.string()).optional(),
+  confidence: z.number().nullable().optional(),
+  source: z.string().optional(),
+});
+
+const sourceMemorySnapshotSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  content: z.string(),
+});
+
+type ProposedUpdateProps = z.infer<typeof proposedUpdateNodePropsSchema>;
+
+function parseProposedUpdateKindFromRaw(raw: unknown): ProposedUpdateKind {
+  const str = typeof raw === "string" ? raw : String(raw ?? "update");
+  return isProposedUpdateKind(str) ? str : "update";
+}
+
+function parseProposalSourceFromRaw(raw: unknown): ProposalSource {
+  return raw === "dream-mode" ? "dream-mode" : "v2-extraction";
+}
+
+function parseStringArray(value: unknown): string[] {
+  const parsed = z.array(z.string()).safeParse(value);
+  return parsed.success ? parsed.data : [];
+}
+
+function toProposedUpdateNodeFromProps(
+  props: ProposedUpdateProps,
+  options: {
+    memorySnapshot?: { title: string; content: string } | null;
+    sourceMemorySnapshots?: { id: string; title: string; content: string }[];
+  } = {},
+): ProposedUpdateNode {
+  return {
+    id: props.id,
+    memoryId: props.memoryId ?? "",
+    proposedContent: props.proposedContent ?? "",
+    proposedTitle: props.proposedTitle ?? null,
+    reason: props.reason ?? "",
+    kind: parseProposedUpdateKindFromRaw(props.kind),
+    status: props.status,
+    createdAt: props.createdAt,
+    resolvedAt: props.resolvedAt ?? null,
+    sourceMemoryIds: parseStringArray(props.sourceMemoryIds),
+    confidence: typeof props.confidence === "number" ? props.confidence : null,
+    source: parseProposalSourceFromRaw(props.source),
+    memorySnapshot: options.memorySnapshot ?? null,
+    sourceMemorySnapshots: options.sourceMemorySnapshots ?? [],
+  };
+}
+
+function parseProposedUpdateNode(record: NeoRecord): ProposedUpdateNode {
+  const props = parseNeo4jNodeProps(
+    neo4jGet(record, "p"),
+    proposedUpdateNodePropsSchema,
+  );
+  return toProposedUpdateNodeFromProps(props);
+}
+
+function parseListedProposedUpdate(record: NeoRecord): ProposedUpdateNode {
+  const props = parseNeo4jNodeProps(
+    neo4jGet(record, "p"),
+    proposedUpdateNodePropsSchema,
+  );
+
+  const titleRaw = neo4jGet(record, "memoryTitle");
+  const contentRaw = neo4jGet(record, "memoryContent");
+  const memorySnapshot =
+    typeof titleRaw === "string" && typeof contentRaw === "string"
+      ? { title: titleRaw, content: contentRaw }
+      : null;
+
+  const sourceSnapsParsed = z
+    .array(sourceMemorySnapshotSchema)
+    .safeParse(neo4jGet(record, "sourceSnaps"));
+  const sourceMemorySnapshots = sourceSnapsParsed.success
+    ? sourceSnapsParsed.data
+    : [];
+
+  return toProposedUpdateNodeFromProps(props, {
+    memorySnapshot,
+    sourceMemorySnapshots,
+  });
+}
 
 export async function createProposedUpdate(
   driver: Driver,
@@ -69,23 +173,7 @@ export async function createProposedUpdate(
 
     const firstRecord = result.records[0];
     if (!firstRecord) throw new Error("Failed to create proposed update");
-    const props = firstRecord.get("p").properties;
-    return {
-      id: props.id,
-      memoryId: props.memoryId,
-      proposedContent: props.proposedContent,
-      proposedTitle: null,
-      reason: props.reason,
-      kind: "update",
-      status: props.status,
-      createdAt: props.createdAt,
-      resolvedAt: null,
-      sourceMemoryIds: [],
-      confidence: null,
-      source: "v2-extraction",
-      memorySnapshot: null,
-      sourceMemorySnapshots: [],
-    };
+    return parseProposedUpdateNode(firstRecord);
   });
 }
 
@@ -132,23 +220,7 @@ export async function createProposedDelete(
 
     const firstRecord = result.records[0];
     if (!firstRecord) throw new Error("Failed to create proposed delete");
-    const props = firstRecord.get("p").properties;
-    return {
-      id: props.id,
-      memoryId: props.memoryId,
-      proposedContent: "",
-      proposedTitle: null,
-      reason: props.reason,
-      kind: "delete",
-      status: props.status,
-      createdAt: props.createdAt,
-      resolvedAt: null,
-      sourceMemoryIds: [],
-      confidence: null,
-      source: "v2-extraction",
-      memorySnapshot: null,
-      sourceMemorySnapshots: [],
-    };
+    return parseProposedUpdateNode(firstRecord);
   });
 }
 
@@ -183,76 +255,7 @@ export async function listProposedUpdates(
       { userId },
     );
 
-    return result.records.map((record) => {
-      const props = record.get("p").properties;
-      // `kind` is absent on pre-V2 proposals — coerce to "update".
-      const rawKind = String(props.kind ?? "update");
-      const kind: ProposedUpdateKind = isProposedUpdateKind(rawKind)
-        ? rawKind
-        : "update";
-
-      const titleRaw = record.get("memoryTitle");
-      const contentRaw = record.get("memoryContent");
-      const memorySnapshot =
-        typeof titleRaw === "string" && typeof contentRaw === "string"
-          ? { title: titleRaw, content: contentRaw }
-          : null;
-
-      const rawSources = record.get("sourceSnaps");
-      const sourceMemorySnapshots: {
-        id: string;
-        title: string;
-        content: string;
-      }[] = Array.isArray(rawSources)
-        ? rawSources.flatMap((s: unknown) => {
-            if (typeof s !== "object" || s === null) return [];
-            const id = Reflect.get(s, "id");
-            const title = Reflect.get(s, "title");
-            const content = Reflect.get(s, "content");
-            if (
-              typeof id === "string" &&
-              typeof title === "string" &&
-              typeof content === "string"
-            ) {
-              return [{ id, title, content }];
-            }
-            return [];
-          })
-        : [];
-
-      const rawSourceIds = props.sourceMemoryIds;
-      const sourceMemoryIds: string[] = Array.isArray(rawSourceIds)
-        ? rawSourceIds.filter(
-            (x: unknown): x is string => typeof x === "string",
-          )
-        : [];
-
-      const rawConfidence: unknown = props.confidence;
-      const confidence: number | null =
-        typeof rawConfidence === "number" ? rawConfidence : null;
-
-      const rawSource = props.source;
-      const source: ProposalSource =
-        rawSource === "dream-mode" ? "dream-mode" : "v2-extraction";
-
-      return {
-        id: props.id,
-        memoryId: props.memoryId ?? "",
-        proposedContent: props.proposedContent ?? "",
-        proposedTitle:
-          typeof props.proposedTitle === "string" ? props.proposedTitle : null,
-        reason: props.reason ?? "",
-        kind,
-        status: props.status,
-        createdAt: props.createdAt,
-        resolvedAt: props.resolvedAt ?? null,
-        sourceMemoryIds,
-        confidence,
-        source,
-        memorySnapshot,
-        sourceMemorySnapshots,
-      };
-    });
+    return result.records.map(parseListedProposedUpdate);
   });
 }
 
@@ -308,19 +311,15 @@ async function lookupProposalContext(
   const lookupRecord = lookup.records[0];
   if (!lookupRecord) return null;
 
-  const rawKind = String(lookupRecord.get("kind"));
-  const kind: ProposedUpdateKind = isProposedUpdateKind(rawKind)
-    ? rawKind
-    : "update";
+  const kind = parseProposedUpdateKindFromRaw(neo4jGet(lookupRecord, "kind"));
 
-  const targetIdRaw = lookupRecord.get("targetId");
-  const targetUserIdRaw = lookupRecord.get("targetUserId");
-  const sourceUserIdRaw = lookupRecord.get("sourceUserId");
-  const sourceProfileIdRaw = lookupRecord.get("sourceProfileId");
-  const sourceIdsRaw: unknown = lookupRecord.get("sourceMemoryIds");
-  const sourceMemoryIds: string[] = Array.isArray(sourceIdsRaw)
-    ? sourceIdsRaw.filter((x: unknown): x is string => typeof x === "string")
-    : [];
+  const targetIdRaw = neo4jGet(lookupRecord, "targetId");
+  const targetUserIdRaw = neo4jGet(lookupRecord, "targetUserId");
+  const sourceUserIdRaw = neo4jGet(lookupRecord, "sourceUserId");
+  const sourceProfileIdRaw = neo4jGet(lookupRecord, "sourceProfileId");
+  const sourceMemoryIds = parseStringArray(
+    neo4jGet(lookupRecord, "sourceMemoryIds"),
+  );
   const firstSourceId = sourceMemoryIds[0] ?? "";
 
   const memoryId =
@@ -334,9 +333,9 @@ async function lookupProposalContext(
         ? sourceUserIdRaw
         : "";
 
-  const proposedTitleRaw = lookupRecord.get("proposedTitle");
-  const proposedContentRaw = lookupRecord.get("proposedContent");
-  const confidenceRaw = lookupRecord.get("confidence");
+  const proposedTitleRaw = neo4jGet(lookupRecord, "proposedTitle");
+  const proposedContentRaw = neo4jGet(lookupRecord, "proposedContent");
+  const confidenceRaw = neo4jGet(lookupRecord, "confidence");
 
   return {
     kind,
@@ -439,7 +438,7 @@ async function applyUpdateApproval(
   );
 
   return {
-    status: String(firstRecord.get("status")),
+    status: String(neo4jGet(firstRecord, "status") ?? ""),
     memoryId: memory.id,
     kind: "update",
   };
@@ -662,9 +661,9 @@ async function applyMergeApproval(
     }),
   );
 
-  const supersededRaw: unknown = result.records[0]?.get("supersededIds");
-  const supersededIds: string[] = Array.isArray(supersededRaw)
-    ? supersededRaw.filter((x: unknown): x is string => typeof x === "string")
+  const mergeRecord = result.records[0];
+  const supersededIds = mergeRecord
+    ? parseStringArray(neo4jGet(mergeRecord, "supersededIds"))
     : [];
   for (const sid of supersededIds) {
     await logEvent(
@@ -730,9 +729,9 @@ async function applyContradictionResolution(
     { outcome: "kept", proposalId },
     null,
   );
-  const suppressedRaw: unknown = suppressed.records[0]?.get("suppressedIds");
-  const suppressedIds: string[] = Array.isArray(suppressedRaw)
-    ? suppressedRaw.filter((x: unknown): x is string => typeof x === "string")
+  const suppressedRecord = suppressed.records[0];
+  const suppressedIds = suppressedRecord
+    ? parseStringArray(neo4jGet(suppressedRecord, "suppressedIds"))
     : [];
   for (const lid of suppressedIds) {
     await logEvent(

@@ -8,8 +8,8 @@
  * into the enrichment prompt; mergeEntityGroup collapses variant nodes.
  */
 import type { Driver } from "neo4j-driver";
+import { neo4jGet, parseNeo4jInt } from "../record";
 import { withSession } from "./shared";
-import { toNeoInt } from "./mappers";
 
 export interface EntityUsage {
   name: string;
@@ -38,9 +38,9 @@ export async function getTopEntities(
       { userId, limit: Math.trunc(limit) },
     );
     return result.records.map((r) => ({
-      name: String(r.get("name")),
-      type: String(r.get("type")),
-      mentions: toNeoInt(r.get("mentions")),
+      name: String(neo4jGet(r, "name") ?? ""),
+      type: String(neo4jGet(r, "type") ?? ""),
+      mentions: parseNeo4jInt(neo4jGet(r, "mentions")),
     }));
   });
 }
@@ -68,11 +68,11 @@ export async function listEntitiesWithMentions(
       { userId },
     );
     return result.records.map((r) => ({
-      id: String(r.get("id")),
-      name: String(r.get("name")),
-      normalizedName: String(r.get("normalizedName")),
-      type: String(r.get("type")),
-      mentions: toNeoInt(r.get("mentions")),
+      id: String(neo4jGet(r, "id") ?? ""),
+      name: String(neo4jGet(r, "name") ?? ""),
+      normalizedName: String(neo4jGet(r, "normalizedName") ?? ""),
+      type: String(neo4jGet(r, "type") ?? ""),
+      mentions: parseNeo4jInt(neo4jGet(r, "mentions")),
     }));
   });
 }

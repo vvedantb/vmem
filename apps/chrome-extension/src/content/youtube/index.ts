@@ -186,10 +186,9 @@ function createSaveButton(): HTMLButtonElement {
 }
 
 async function handleSaveClick(): Promise<void> {
-  const button = document.getElementById(
-    "vmem-youtube-save",
-  ) as HTMLButtonElement;
-  if (!button) return;
+  const buttonEl = document.getElementById("vmem-youtube-save");
+  if (!(buttonEl instanceof HTMLButtonElement)) return;
+  const button = buttonEl;
 
   const videoId = getVideoId();
   if (!videoId) {

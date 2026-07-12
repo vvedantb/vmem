@@ -18,20 +18,22 @@ import type {
   VMemoryRequestOptions,
 } from "./types";
 
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
 function readEnv(name: string): string | undefined {
-  const globalProcess = globalThis.process;
-  if (
-    typeof globalProcess === "object" &&
-    globalProcess !== null &&
-    "env" in globalProcess
-  ) {
-    const env = Reflect.get(globalProcess, "env");
-    if (typeof env === "object" && env !== null) {
-      const value = Reflect.get(env, name);
-      if (typeof value === "string" && value.length > 0) {
-        return value;
-      }
-    }
+  const globalProcess: unknown = globalThis.process;
+  if (!isObject(globalProcess) || !("env" in globalProcess)) {
+    return undefined;
+  }
+  const env = globalProcess.env;
+  if (!isObject(env)) {
+    return undefined;
+  }
+  const value = env[name];
+  if (typeof value === "string" && value.length > 0) {
+    return value;
   }
   return undefined;
 }

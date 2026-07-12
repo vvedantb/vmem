@@ -9,14 +9,15 @@
 
 import { type ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
-import { upsertFromSource } from "../../../engine/neo4j/memory/connectors";
 import {
-  embedSyncedDoc,
   markSyncComplete,
   markSyncError,
   maybeReportProgress,
   setupSync,
+  upsertSyncedDoc,
 } from "./shared";
+import { parseResponseJson } from "../../lib/jsonBoundary";
+import { z } from "zod";
 
 export interface LinearSyncArgs {
   clerkId: string;
@@ -25,55 +26,62 @@ export interface LinearSyncArgs {
   fullHistory: boolean;
 }
 
-interface LinearComment {
-  body: string;
-  createdAt: string;
-  user: { name: string } | null;
-}
+const linearEnvelopeSchema = z.object({
+  data: z.unknown().optional(),
+  errors: z.array(z.object({ message: z.string() })).optional(),
+});
 
-interface LinearIssue {
-  id: string;
-  identifier: string;
-  title: string;
-  description: string | null;
-  url: string;
-  updatedAt: string;
-  comments: { nodes: LinearComment[] };
-  project: { id: string } | null;
-}
+const linearCommentSchema = z.object({
+  body: z.string(),
+  createdAt: z.string(),
+  user: z.object({ name: z.string() }).nullable(),
+});
 
-interface LinearProject {
-  id: string;
-  name: string;
-  description: string | null;
-  url: string;
-  updatedAt: string;
-  state: string;
-}
+const linearIssueSchema = z.object({
+  id: z.string(),
+  identifier: z.string(),
+  title: z.string(),
+  description: z.string().nullable(),
+  url: z.string(),
+  updatedAt: z.string(),
+  comments: z.object({ nodes: z.array(linearCommentSchema) }),
+  project: z.object({ id: z.string() }).nullable(),
+});
 
-interface LinearPageInfo {
-  hasNextPage: boolean;
-  endCursor: string | null;
-}
+const linearProjectSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().nullable(),
+  url: z.string(),
+  updatedAt: z.string(),
+  state: z.string(),
+});
 
-interface LinearIssuesData {
-  issues: {
-    nodes: LinearIssue[];
-    pageInfo: LinearPageInfo;
-  };
-}
+const linearPageInfoSchema = z.object({
+  hasNextPage: z.boolean(),
+  endCursor: z.string().nullable(),
+});
 
-interface LinearProjectsData {
-  projects: {
-    nodes: LinearProject[];
-    pageInfo: LinearPageInfo;
-  };
-}
+const linearIssuesDataSchema = z.object({
+  issues: z.object({
+    nodes: z.array(linearIssueSchema),
+    pageInfo: linearPageInfoSchema,
+  }),
+});
 
-interface LinearGraphQLResponse<T> {
-  data?: T;
-  errors?: Array<{ message: string }>;
-}
+const linearProjectsDataSchema = z.object({
+  projects: z.object({
+    nodes: z.array(linearProjectSchema),
+    pageInfo: linearPageInfoSchema,
+  }),
+});
+
+type LinearComment = z.infer<typeof linearCommentSchema>;
+type LinearIssue = z.infer<typeof linearIssueSchema>;
+type LinearProject = z.infer<typeof linearProjectSchema>;
+type LinearPageInfo = z.infer<typeof linearPageInfoSchema>;
+type LinearIssuesData = z.infer<typeof linearIssuesDataSchema>;
+type LinearProjectsData = z.infer<typeof linearProjectsDataSchema>;
 
 const LINEAR_GRAPHQL_URL = "https://api.linear.app/graphql";
 
@@ -81,8 +89,9 @@ async function linearGraphQL<T>(
   accessToken: string,
   query: string,
   variables: Record<string, unknown>,
+  dataSchema: z.ZodType<T, z.ZodTypeDef, unknown>,
 ): Promise<T> {
-  const res = await fetch(LINEAR_GRAPHQL_URL, {
+  const resUnknown: unknown = await fetch(LINEAR_GRAPHQL_URL, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -90,19 +99,30 @@ async function linearGraphQL<T>(
     },
     body: JSON.stringify({ query, variables }),
   });
+  if (!(resUnknown instanceof Response)) {
+    throw new Error("Linear fetch did not return Response");
+  }
+  const res = resUnknown;
   if (!res.ok) {
     throw new Error(`Linear API error: ${res.status} ${res.statusText}`);
   }
-  const body: LinearGraphQLResponse<T> = await res.json();
-  if (body.errors && body.errors.length > 0) {
+  const envelope = await parseResponseJson(res, linearEnvelopeSchema);
+  if (envelope.errors && envelope.errors.length > 0) {
     throw new Error(
-      `Linear GraphQL error: ${body.errors.map((e) => e.message).join(", ")}`,
+      `Linear GraphQL error: ${envelope.errors.map((e) => e.message).join(", ")}`,
     );
   }
-  if (!body.data) {
+  if (envelope.data === undefined) {
     throw new Error("Linear GraphQL returned no data");
   }
-  return body.data;
+  const dataParsed = dataSchema.safeParse(envelope.data);
+  if (!dataParsed.success) {
+    throw new Error(
+      `Linear GraphQL data validation failed: ${dataParsed.error.message}`,
+    );
+  }
+  const data: T = dataParsed.data;
+  return data;
 }
 
 const LINEAR_ISSUES_QUERY = `
@@ -149,10 +169,7 @@ export async function runLinearSync(
   ctx: ActionCtx,
   args: LinearSyncArgs,
 ): Promise<{ synced: number }> {
-  const { driver, profileId, openRouterAuth } = await setupSync(
-    ctx,
-    args.clerkId,
-  );
+  const setup = await setupSync(ctx, args.clerkId);
 
   const filterDate = args.fullHistory
     ? null
@@ -171,10 +188,11 @@ export async function runLinearSync(
     // --- Issues ---
     let after: string | null = null;
     do {
-      const data: LinearIssuesData = await linearGraphQL<LinearIssuesData>(
+      const data: LinearIssuesData = await linearGraphQL(
         args.accessToken,
         LINEAR_ISSUES_QUERY,
         { after, filter: issueFilter },
+        linearIssuesDataSchema,
       );
 
       const issues = data.issues.nodes;
@@ -201,27 +219,18 @@ export async function runLinearSync(
             content = title;
           }
 
-          const truncatedContent = content.slice(0, 50000);
-          const embedding = await embedSyncedDoc(
-            ctx,
-            openRouterAuth,
-            profileId,
-            title,
-            truncatedContent,
-          );
-
-          await upsertFromSource(driver, {
-            userId: args.clerkId,
-            profileId,
-            title,
-            content: truncatedContent,
-            sourceType: "linear",
-            sourceId: issue.id,
-            sourceUrl: issue.url,
-            embedding,
+          totalSynced = await upsertSyncedDoc(ctx, {
+            setup,
+            clerkId: args.clerkId,
+            totalSynced,
+            doc: {
+              title,
+              content,
+              sourceType: "linear",
+              sourceId: issue.id,
+              sourceUrl: issue.url,
+            },
           });
-
-          totalSynced++;
           await maybeReportProgress(ctx, {
             connectorId: args.connectorId,
             totalSynced,
@@ -243,10 +252,11 @@ export async function runLinearSync(
     // --- Projects (separate sourceType so users can filter) ---
     let projectAfter: string | null = null;
     do {
-      const data: LinearProjectsData = await linearGraphQL<LinearProjectsData>(
+      const data: LinearProjectsData = await linearGraphQL(
         args.accessToken,
         LINEAR_PROJECTS_QUERY,
         { after: projectAfter, filter: projectFilter },
+        linearProjectsDataSchema,
       );
 
       const projects = data.projects.nodes;
@@ -257,27 +267,18 @@ export async function runLinearSync(
           const title = `Project: ${project.name}`;
           const description = project.description ?? "";
           const content = `${description}\nState: ${project.state}`;
-          const truncatedContent = content.slice(0, 50000);
-          const embedding = await embedSyncedDoc(
-            ctx,
-            openRouterAuth,
-            profileId,
-            title,
-            truncatedContent,
-          );
-
-          await upsertFromSource(driver, {
-            userId: args.clerkId,
-            profileId,
-            title,
-            content: truncatedContent,
-            sourceType: "linear_project",
-            sourceId: project.id,
-            sourceUrl: project.url,
-            embedding,
+          totalSynced = await upsertSyncedDoc(ctx, {
+            setup,
+            clerkId: args.clerkId,
+            totalSynced,
+            doc: {
+              title,
+              content,
+              sourceType: "linear_project",
+              sourceId: project.id,
+              sourceUrl: project.url,
+            },
           });
-
-          totalSynced++;
           await maybeReportProgress(ctx, {
             connectorId: args.connectorId,
             totalSynced,

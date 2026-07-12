@@ -9,6 +9,7 @@ import {
 } from "../../../engine/neo4j/memory/entities";
 import { withSession } from "../../../engine/neo4j/memory/shared";
 import { extractJsonString } from "../../../engine/llm/extractJsonString";
+import { objectField, parseUnknownArray } from "../../lib/jsonBoundary";
 import { tryUserAndApiKeyByClerkId } from "../../lib/envVars";
 import { callJsonChat } from "../../lib/openRouter";
 import { normalizeEntityName } from "../../prompts/enrichmentPrompt";
@@ -130,18 +131,18 @@ function parseClusterVerdicts(
     const parsed: unknown = JSON.parse(extractJsonString(raw));
     if (!Array.isArray(parsed)) return [];
     const out: ClusterVerdict[] = [];
-    for (const item of parsed) {
+    for (const item of parseUnknownArray(parsed)) {
       if (typeof item !== "object" || item === null) continue;
-      const group = Reflect.get(item, "group");
-      const clustersRaw = Reflect.get(item, "clusters");
+      const group = objectField(item, "group");
+      const clustersRaw = objectField(item, "clusters");
       if (typeof group !== "number" || group < 0 || group >= groupCount)
         continue;
       if (!Array.isArray(clustersRaw)) continue;
       const clusters: Array<{ names: string[]; canonical?: string }> = [];
-      for (const c of clustersRaw) {
+      for (const c of parseUnknownArray(clustersRaw)) {
         if (typeof c !== "object" || c === null) continue;
-        const names = Reflect.get(c, "names");
-        const canonical = Reflect.get(c, "canonical");
+        const names = objectField(c, "names");
+        const canonical = objectField(c, "canonical");
         if (
           !Array.isArray(names) ||
           !names.every((n): n is string => typeof n === "string")

@@ -85,7 +85,7 @@ function validateEmbeddingItems(
     );
   }
 
-  const out: number[][] = new Array(expectedCount);
+  const out: (number[] | undefined)[] = Array.from({ length: expectedCount });
   for (const item of data) {
     if (!Array.isArray(item.embedding)) {
       throw new Error("embedding response: item missing embedding array");
@@ -107,7 +107,14 @@ function validateEmbeddingItems(
     }
   }
 
-  return out;
+  return out.map((vector, i) => {
+    if (!vector) {
+      throw new Error(
+        `embedding response: missing vector at index ${String(i)}`,
+      );
+    }
+    return vector;
+  });
 }
 
 async function generateOpenRouterEmbeddings(
@@ -119,7 +126,7 @@ async function generateOpenRouterEmbeddings(
   }
 
   const client = createOpenRouterClient(apiKey);
-  const out: number[][] = new Array(texts.length);
+  const out: (number[] | undefined)[] = Array.from({ length: texts.length });
   for (let offset = 0; offset < texts.length; offset += EMBEDDING_BATCH_SIZE) {
     const input = texts
       .slice(offset, offset + EMBEDDING_BATCH_SIZE)
@@ -132,7 +139,14 @@ async function generateOpenRouterEmbeddings(
     }
   }
 
-  return out;
+  return out.map((vector, i) => {
+    if (!vector) {
+      throw new Error(
+        `embedding generation missing vector at index ${String(i)}`,
+      );
+    }
+    return vector;
+  });
 }
 
 async function generateBatchWithRetry(

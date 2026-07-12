@@ -51,7 +51,7 @@ export default function MainLayout() {
     }
 
     setIsUserReady(false);
-    void ensureUser().catch((error) => {
+    void ensureUser().catch((error: unknown) => {
       console.error("Failed to ensure user:", error);
     });
   }, [isLoaded, user, ensureUser]);

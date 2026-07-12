@@ -1,4 +1,5 @@
 import { extractJsonString } from "../../engine/llm/extractJsonString";
+import { objectField } from "../lib/jsonBoundary";
 
 export interface RetrieveSummaryMemory {
   id: string;
@@ -48,7 +49,7 @@ function readJsonString(value: unknown, key: string): string | null {
   if (typeof value !== "object" || value === null) {
     return null;
   }
-  const field = Reflect.get(value, key);
+  const field = objectField(value, key);
   return typeof field === "string" && field.trim().length > 0
     ? field.trim()
     : null;

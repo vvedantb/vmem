@@ -8,6 +8,7 @@
  */
 
 import type { ChatResult as SdkChatResult } from "@openrouter/sdk/models";
+import { objectField } from "../jsonBoundary";
 import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
 import { createOpenRouterClient, readOpenRouterError } from "./client";
@@ -170,6 +171,10 @@ function joinMessagesForPreview(messages: ChatMessage[]): string {
 }
 
 function extractChatContent(json: SdkChatResult): string | null {
-  const messageContent = json.choices[0]?.message?.content;
+  const firstChoice = json.choices.at(0);
+  if (!firstChoice || typeof firstChoice !== "object") return null;
+  const message = objectField(firstChoice, "message");
+  if (typeof message !== "object" || message === null) return null;
+  const messageContent = objectField(message, "content");
   return typeof messageContent === "string" ? messageContent : null;
 }

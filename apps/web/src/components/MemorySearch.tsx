@@ -138,8 +138,9 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
     const legacy =
       typeof searchParams === "object" &&
       searchParams !== null &&
-      "tag" in searchParams
-        ? (searchParams.tag as string)
+      "tag" in searchParams &&
+      typeof searchParams.tag === "string"
+        ? searchParams.tag
         : null;
     if (!legacy?.trim()) return;
     if (params.tags.length > 0) return;
@@ -151,8 +152,9 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
     const legacy =
       typeof searchParams === "object" &&
       searchParams !== null &&
-      "source" in searchParams
-        ? (searchParams.source as string)
+      "source" in searchParams &&
+      typeof searchParams.source === "string"
+        ? searchParams.source
         : null;
     if (!legacy?.trim()) return;
     if (params.sources.length > 0) return;

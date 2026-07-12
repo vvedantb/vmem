@@ -6,8 +6,16 @@
  */
 
 import neo4j, { type Driver } from "neo4j-driver";
-import { toNeoInt } from "./mappers";
+import { z } from "zod";
+import { neo4jGet, parseNeo4jInt, parseNeo4jNodeProps } from "../record";
 import { profileFilter, withSession } from "./shared";
+
+const activityEventPropsSchema = z.object({
+  id: z.string(),
+  action: z.string(),
+  actor: z.string().optional(),
+  createdAt: z.string(),
+});
 
 export async function getStats(
   driver: Driver,
@@ -66,11 +74,11 @@ export async function getStats(
     if (result.records.length > 0) {
       const record = result.records[0];
       if (record) {
-        totalMemories = toNeoInt(record.get("total"));
-        memoriesThisWeek = toNeoInt(record.get("thisWeek"));
-        memoriesThisMonth = toNeoInt(record.get("thisMonth"));
-        memoriesAddedToday = toNeoInt(record.get("today"));
-        totalTags = toNeoInt(record.get("tagCount"));
+        totalMemories = parseNeo4jInt(neo4jGet(record, "total"));
+        memoriesThisWeek = parseNeo4jInt(neo4jGet(record, "thisWeek"));
+        memoriesThisMonth = parseNeo4jInt(neo4jGet(record, "thisMonth"));
+        memoriesAddedToday = parseNeo4jInt(neo4jGet(record, "today"));
+        totalTags = parseNeo4jInt(neo4jGet(record, "tagCount"));
       }
     }
 
@@ -89,7 +97,7 @@ export async function getStats(
     );
     const baselineRecord = baselineResult.records[0];
     const baseline = baselineRecord
-      ? toNeoInt(baselineRecord.get("baseline"))
+      ? parseNeo4jInt(neo4jGet(baselineRecord, "baseline"))
       : 0;
 
     const dailyResult = await session.run(
@@ -102,7 +110,10 @@ export async function getStats(
 
     const dailyCounts = new Map<string, number>();
     for (const rec of dailyResult.records) {
-      dailyCounts.set(String(rec.get("day")), toNeoInt(rec.get("newCount")));
+      dailyCounts.set(
+        String(neo4jGet(rec, "day") ?? ""),
+        parseNeo4jInt(neo4jGet(rec, "newCount")),
+      );
     }
 
     // Walk the 7-day window in ascending order, accumulating the running
@@ -158,7 +169,10 @@ export async function countMemoryEvents(
        RETURN count(e) AS total`,
       { userId },
     );
-    const total = toNeoInt(totalResult.records[0]?.get("total") ?? 0);
+    const totalRecord = totalResult.records[0];
+    const total = totalRecord
+      ? parseNeo4jInt(neo4jGet(totalRecord, "total"))
+      : 0;
 
     const breakdownResult = await session.run(
       `MATCH (e:MemoryEvent)-[:EVENT_FOR]->(m:Memory {userId: $userId})
@@ -167,8 +181,8 @@ export async function countMemoryEvents(
       { userId },
     );
     const breakdown = breakdownResult.records.map((r) => ({
-      action: String(r.get("action")),
-      count: toNeoInt(r.get("cnt")),
+      action: String(neo4jGet(r, "action") ?? ""),
+      count: parseNeo4jInt(neo4jGet(r, "cnt")),
     }));
 
     return { total, breakdown };
@@ -204,13 +218,14 @@ export async function getRecentActivity(
 
     const now = Date.now();
     return result.records.map((record) => {
-      const props = record.get("e").properties;
-      const memoryTitle = String(
-        props.memoryTitle ?? record.get("memoryTitle"),
+      const props = parseNeo4jNodeProps(
+        neo4jGet(record, "e"),
+        activityEventPropsSchema,
       );
-      const action = String(props.action);
+      const memoryTitle = String(neo4jGet(record, "memoryTitle") ?? "");
+      const action = props.action;
       const actor = String(props.actor ?? "");
-      const createdAt = String(props.createdAt);
+      const createdAt = props.createdAt;
       const diffMs = now - new Date(createdAt).getTime();
       const diffMins = Math.floor(diffMs / 60000);
       const diffHours = Math.floor(diffMs / 3600000);
@@ -242,7 +257,7 @@ export async function getRecentActivity(
       };
 
       return {
-        id: String(props.id),
+        id: props.id,
         type: typeMap[action] ?? action,
         title: "Memory",
         description: descMap[action] ?? `${action} "${memoryTitle}"`,

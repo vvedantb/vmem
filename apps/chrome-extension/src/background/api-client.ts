@@ -1,5 +1,6 @@
 import { api, type Id } from "@vmem/backend";
 import type { FunctionArgs } from "convex/server";
+import { z } from "zod";
 import { createAuthenticatedConvexClient } from "./auth";
 import type {
   CreateMemoryParams,
@@ -13,6 +14,10 @@ import type {
 export type UserSettingsUpdateArgs = FunctionArgs<
   typeof api.userSettings.update
 >;
+
+const uploadResponseSchema = z.object({
+  storageId: z.string().min(1),
+});
 
 async function getAuthenticatedClient() {
   return await createAuthenticatedConvexClient();
@@ -156,12 +161,17 @@ export async function saveScreenshot(params: {
       `Screenshot upload POST failed: ${uploadRes.status} ${uploadRes.statusText}`,
     );
   }
-  const uploadJson: { storageId: Id<"_storage"> } = await uploadRes.json();
-  console.log("[vmem] saveScreenshot: uploaded", uploadJson.storageId);
+  const uploadRaw: unknown = await uploadRes.json();
+  const uploadParsed = uploadResponseSchema.safeParse(uploadRaw);
+  if (!uploadParsed.success) {
+    throw new Error("Screenshot upload returned invalid JSON");
+  }
+  const storageId: Id<"_storage"> = uploadParsed.data.storageId;
+  console.log("[vmem] saveScreenshot: uploaded", storageId);
 
   try {
     const memory = await client.action(api.fileImport.importImageMemory, {
-      storageId: uploadJson.storageId,
+      storageId,
       mimeType: params.blob.type || "image/png",
       caption: params.caption,
       pageUrl: params.pageUrl,

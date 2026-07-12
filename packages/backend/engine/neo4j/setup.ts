@@ -1,13 +1,8 @@
-import neo4j, { type Driver, type Integer } from "neo4j-driver";
+import { type Driver } from "neo4j-driver";
+import { neo4jGet, parseNeo4jInt } from "./record";
 
 /** Fulltext index created by setup — cheap sentinel for "has setup run?". */
 const SETUP_SENTINEL_INDEX = "code_symbol_search";
-
-function readCountParam(value: Integer | number | null | undefined): number {
-  if (value === null || value === undefined) return 0;
-  if (neo4j.isInt(value)) return value.toNumber();
-  return value;
-}
 
 /** True when core Neo4j indexes/constraints from `setupDatabase` exist. */
 export async function isNeo4jSetupComplete(driver: Driver): Promise<boolean> {
@@ -22,7 +17,8 @@ export async function isNeo4jSetupComplete(driver: Driver): Promise<boolean> {
       `,
       { name: SETUP_SENTINEL_INDEX },
     );
-    const count = readCountParam(result.records[0]?.get("c"));
+    const first = result.records[0];
+    const count = first ? parseNeo4jInt(neo4jGet(first, "c")) : 0;
     return count > 0;
   } finally {
     await session.close();

@@ -2,6 +2,7 @@ import { internalMutation, query } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { auditLog, ResourceTypes } from "./auditLog";
+import { objectField, parseUnknownArray } from "./lib/jsonBoundary";
 
 const eventTypeValidator = v.union(
   v.literal("memory_created"),
@@ -109,12 +110,13 @@ export const getRecentEvents = query({
     const clerkId = identity.subject;
     if (!clerkId) return [];
 
-    const entries = await auditLog.queryByActor(ctx, {
+    const rawEntries: unknown = await auditLog.queryByActor(ctx, {
       actorId: clerkId,
       fromTimestamp: args.since,
       actions: Object.values(ACTION_FOR_EVENT),
       limit: 200,
     });
+    if (!Array.isArray(rawEntries)) return [];
 
     const result: {
       _id: string;
@@ -123,20 +125,25 @@ export const getRecentEvents = query({
       payload: string;
     }[] = [];
 
-    for (const entry of entries) {
-      if (!entry || typeof entry !== "object") continue;
-      const entryId = typeof entry._id === "string" ? entry._id : null;
+    for (const rawEntry of parseUnknownArray(rawEntries)) {
+      if (typeof rawEntry !== "object" || rawEntry === null) continue;
+      const entryIdRaw = objectField(rawEntry, "_id");
+      const entryId = typeof entryIdRaw === "string" ? entryIdRaw : null;
       if (!entryId) continue;
-      const action = typeof entry.action === "string" ? entry.action : null;
+      const actionRaw = objectField(rawEntry, "action");
+      const action = typeof actionRaw === "string" ? actionRaw : null;
       if (!action) continue;
+      const resourceIdRaw = objectField(rawEntry, "resourceId");
       const resourceId =
-        typeof entry.resourceId === "string" ? entry.resourceId : null;
+        typeof resourceIdRaw === "string" ? resourceIdRaw : null;
       if (!resourceId) continue;
 
-      const payload =
-        typeof entry.metadata?.payload === "string"
-          ? entry.metadata.payload
-          : "{}";
+      const metadata = objectField(rawEntry, "metadata");
+      const payloadRaw =
+        typeof metadata === "object" && metadata !== null
+          ? objectField(metadata, "payload")
+          : undefined;
+      const payload = typeof payloadRaw === "string" ? payloadRaw : "{}";
 
       result.push({
         _id: entryId,

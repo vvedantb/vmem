@@ -78,7 +78,7 @@ export async function generateEmbedding(
 export async function generateEmbeddings(
   args: EmbeddingCallArgs & { texts: string[] },
 ): Promise<number[][]> {
-  const out: number[][] = new Array(args.texts.length);
+  const out: number[][] = Array.from({ length: args.texts.length });
   for (
     let offset = 0;
     offset < args.texts.length;

@@ -7,6 +7,7 @@ import type {
   LanguageModelV3,
   LanguageModelV3CallOptions,
   LanguageModelV3GenerateResult,
+  LanguageModelV3StreamPart,
   LanguageModelV3StreamResult,
   LanguageModelV3Usage,
 } from "@ai-sdk/provider";
@@ -75,7 +76,7 @@ export function createMediaPipeLanguageModel(
       const textId = `mp-${Date.now()}`;
       let isFirstChunk = true;
 
-      const stream = new ReadableStream({
+      const stream = new ReadableStream<LanguageModelV3StreamPart>({
         async start(controller) {
           try {
             await inference.generateResponse(
