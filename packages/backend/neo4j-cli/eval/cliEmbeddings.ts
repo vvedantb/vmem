@@ -9,6 +9,7 @@ import {
   isTransientNetworkError,
   readOpenRouterError,
 } from "../../convex/lib/openRouter/client";
+import pRetry from "p-retry";
 
 const EMBEDDING_MODEL = "openai/text-embedding-3-small";
 const EMBEDDING_DIMENSIONS = 1536;
@@ -20,10 +21,6 @@ const EMBEDDING_MAX_INPUT_CHARS = 6000;
 const EMBEDDING_MAX_ATTEMPTS = 5;
 const EMBEDDING_RETRY_BASE_MS = 800;
 const EMBEDDING_RATE_LIMIT_BASE_MS = 6000;
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 function truncateForEmbedding(text: string): string {
   return text.slice(0, EMBEDDING_MAX_INPUT_CHARS);
@@ -145,32 +142,76 @@ async function generateBatchWithRetry(
   client: ReturnType<typeof createOpenRouterClient>,
   input: string[],
 ): Promise<number[][]> {
-  let lastError = "unknown error";
-  for (let attempt = 1; attempt <= EMBEDDING_MAX_ATTEMPTS; attempt++) {
-    try {
-      const response = await client.embeddings.generate({
-        requestBody: { model: EMBEDDING_MODEL, input },
-      });
-      if (typeof response === "string") {
-        throw new Error("embedding response: unexpected string body");
-      }
-      return validateEmbeddingItems(response.data, input.length);
-    } catch (err) {
-      const { status, message } = readOpenRouterError(err);
-      lastError = `${String(status)}: ${message.slice(0, 200)}`;
-      const retryable =
-        status === 429 ||
-        status >= 500 ||
-        (status === 0 && isTransientNetworkError(err));
-      if (attempt >= EMBEDDING_MAX_ATTEMPTS || !retryable) {
-        throw new Error(`openRouter embedding ${lastError}`, { cause: err });
-      }
-      const base =
-        status === 429 ? EMBEDDING_RATE_LIMIT_BASE_MS : EMBEDDING_RETRY_BASE_MS;
-      await sleep(base * attempt);
+  try {
+    return await pRetry(
+      async () => {
+        try {
+          const response = await client.embeddings.generate({
+            requestBody: { model: EMBEDDING_MODEL, input },
+          });
+          if (typeof response === "string") {
+            throw new Error("embedding response: unexpected string body");
+          }
+          return validateEmbeddingItems(response.data, input.length);
+        } catch (err) {
+          const { status, message } = readOpenRouterError(err);
+          const wrapped = new Error(
+            `openRouter embedding ${String(status)}: ${message.slice(0, 200)}`,
+            { cause: err },
+          );
+          throw wrapped;
+        }
+      },
+      {
+        retries: EMBEDDING_MAX_ATTEMPTS - 1,
+        factor: 1,
+        randomize: true,
+        // Delay is owned by onFailedAttempt so 429 can use a longer base.
+        minTimeout: 1,
+        onFailedAttempt: async ({ error, attemptNumber }) => {
+          const status = statusFromEmbeddingError(error);
+          const base =
+            status === 429
+              ? EMBEDDING_RATE_LIMIT_BASE_MS
+              : EMBEDDING_RETRY_BASE_MS;
+          await new Promise((resolve) =>
+            setTimeout(resolve, base * attemptNumber),
+          );
+        },
+        shouldRetry: ({ error }) => {
+          const status = statusFromEmbeddingError(error);
+          const cause = error.cause;
+          return (
+            status === 429 ||
+            status >= 500 ||
+            (status === 0 && isTransientNetworkError(cause ?? error))
+          );
+        },
+      },
+    );
+  } catch (err) {
+    if (
+      err instanceof Error &&
+      err.message.startsWith("openRouter embedding")
+    ) {
+      throw err;
     }
+    const { status, message } = readOpenRouterError(err);
+    throw new Error(
+      `openRouter embedding ${String(status)}: ${message.slice(0, 200)}`,
+      {
+        cause: err,
+      },
+    );
   }
-  throw new Error(`openRouter embedding exhausted retries (${lastError})`);
+}
+
+function statusFromEmbeddingError(error: Error): number {
+  const match = /^openRouter embedding (\d+):/.exec(error.message);
+  if (match?.[1] !== undefined) {
+    return Number(match[1]);
+  }
+  return readOpenRouterError(error).status;
 }
 
 let syntheticWarningShown = false;
