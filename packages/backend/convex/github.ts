@@ -1,5 +1,9 @@
 import { v } from "convex/values";
 import {
+  exchangeWebFlowCode,
+  getWebFlowAuthorizationUrl,
+} from "@octokit/oauth-methods";
+import {
   internalAction,
   internalMutation,
   internalQuery,
@@ -9,7 +13,7 @@ import type { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { authAction, authMutation, authQuery } from "./auth";
 import { encryptToken, getEnvOrThrow } from "./lib/crypto";
-import { oauthAccessTokenSchema, parseResponseJson } from "./lib/jsonBoundary";
+import { createGithubOctokit } from "../engine/github/octokit";
 import { z } from "zod";
 
 // --- Public functions ---
@@ -50,14 +54,15 @@ export const startGitHubOAuth = authAction({
     });
 
     const redirectUri = `${convexSiteUrl}/api/auth/github/callback`;
-    const params = new URLSearchParams({
-      client_id: clientId,
-      redirect_uri: redirectUri,
-      scope: "repo read:user",
+    const { url } = getWebFlowAuthorizationUrl({
+      clientType: "oauth-app",
+      clientId,
+      redirectUrl: redirectUri,
+      scopes: ["repo", "read:user"],
       state,
     });
 
-    return `https://github.com/login/oauth/authorize?${params.toString()}`;
+    return url;
   },
 });
 
@@ -96,48 +101,31 @@ export const handleGitHubCallbackInternal = internalAction({
     const clientId = getEnvOrThrow("GITHUB_CLIENT_ID");
     const clientSecret = getEnvOrThrow("GITHUB_CLIENT_SECRET");
 
-    const tokenRes = await fetch(
-      "https://github.com/login/oauth/access_token",
-      {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          client_id: clientId,
-          client_secret: clientSecret,
-          code: args.code,
-        }),
-      },
-    );
-    if (!tokenRes.ok) {
+    let accessToken: string;
+    try {
+      const { authentication } = await exchangeWebFlowCode({
+        clientType: "oauth-app",
+        clientId,
+        clientSecret,
+        code: args.code,
+      });
+      accessToken = authentication.token;
+    } catch {
       return {
         error: "token_exchange_failed",
         returnUrl: stateEntry.returnUrl,
       };
     }
 
-    const tokenData = await parseResponseJson(tokenRes, oauthAccessTokenSchema);
-    if (!tokenData.access_token) {
-      return {
-        error: tokenData.error ?? "no_token",
-        returnUrl: stateEntry.returnUrl,
-      };
-    }
-
     // 3. Fetch GitHub user profile
-    const userRes = await fetch("https://api.github.com/user", {
-      headers: {
-        Authorization: `Bearer ${tokenData.access_token}`,
-        Accept: "application/vnd.github+json",
-      },
-    });
-    if (!userRes.ok) {
+    const octokit = createGithubOctokit(accessToken);
+    let userData: z.infer<typeof githubUserProfileSchema>;
+    try {
+      const { data } = await octokit.request("GET /user");
+      userData = githubUserProfileSchema.parse(data);
+    } catch {
       return { error: "user_fetch_failed", returnUrl: stateEntry.returnUrl };
     }
-
-    const userData = await parseResponseJson(userRes, githubUserProfileSchema);
     if (!userData.login) {
       return { error: "user_fetch_failed", returnUrl: stateEntry.returnUrl };
     }
@@ -146,7 +134,7 @@ export const handleGitHubCallbackInternal = internalAction({
     const existing = await ctx.runQuery(internal.github.getConnectionInternal, {
       userId: stateEntry.userId,
     });
-    const encrypted = await encryptToken(tokenData.access_token);
+    const encrypted = await encryptToken(accessToken);
 
     if (existing) {
       await ctx.runMutation(internal.github.updateConnectionInternal, {

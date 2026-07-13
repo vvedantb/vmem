@@ -2,7 +2,13 @@ import { v } from "convex/values";
 import { internalAction, type ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
-import { normalizePathSegments, nodePath, resolveByPath } from "../files/lib";
+import {
+  normalizePathSegments,
+  nodePath,
+  resolveByPath,
+  isImageMime,
+  isTextualMime,
+} from "../files/lib";
 
 /**
  * MCP file tools backend — the agent-facing surface of the shared filesystem.
@@ -49,20 +55,6 @@ interface FileUploadResult {
 interface FileDeleteResult {
   path: string;
   deletedCount: number;
-}
-
-function isImageMime(mime: string): boolean {
-  return mime.startsWith("image/");
-}
-
-function isTextualMime(mime: string): boolean {
-  return (
-    mime.startsWith("text/") ||
-    mime === "application/json" ||
-    mime.endsWith("+json") ||
-    mime.includes("xml") ||
-    mime.includes("markdown")
-  );
 }
 
 /** Decode base64 (tolerating a `data:` URL prefix) into a backing ArrayBuffer. */

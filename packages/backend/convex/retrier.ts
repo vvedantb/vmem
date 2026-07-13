@@ -6,6 +6,8 @@ import { components } from "./_generated/api";
  *
  * Only use for fire-and-forget schedules (e.g. `scheduler.runAfter(0, ...)`),
  * since `retrier.run()` returns a `RunId` rather than the action's result.
+ * In-action SDK/fetch retries (OpenRouter, GitHub tarball) use `p-retry`
+ * instead — ActionRetrier cannot return embedding/repo payloads to the caller.
  *
  * Backoff schedule with defaults below: 500ms → 1s → 2s → 4s (4 attempts total).
  */

@@ -11,41 +11,19 @@
 import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
 import { internal } from "../../_generated/api";
-import { readOpenRouterError } from "./client";
+import type {
+  ErrorClass,
+  OpenRouterEndpoint,
+  OpenRouterFeature,
+} from "./schemas";
 
-export type OpenRouterFeature =
-  // Chat completions
-  | "chat"
-  | "enrichment"
-  | "dream-synthesis"
-  | "dream-portrait"
-  | "context-prompt"
-  | "fact-extraction"
-  | "entity-backfill"
-  | "tag-consolidation"
-  | "entity-aliases"
-  // Embeddings
-  | "memory-save"
-  | "memory-search"
-  | "mcp-embed"
-  | "connector-sync"
-  | "dream-materialize"
-  | "proposal-accept"
-  | "embedding-backfill";
-
-export type ErrorClass =
-  | "network"
-  | "http_4xx"
-  | "http_5xx"
-  | "parse"
-  | "timeout";
+export type { ErrorClass, OpenRouterEndpoint, OpenRouterFeature };
 
 /**
  * Default model for every server-side LLM reasoning call — enrichment,
  * fact extraction, dream synthesis, context-prompt summary, retrieval
  * helper, and entity backfill. Single source of truth: change it here
- * and all callers follow. Previously redefined as a local `const` in
- * seven files, which drifted on every model swap.
+ * and all callers follow.
  */
 export const LLM_MODEL = "qwen/qwen3-235b-a22b-2507";
 
@@ -58,7 +36,7 @@ export interface LogPayload {
   userId: Id<"users">;
   profileId?: string;
   feature: OpenRouterFeature;
-  endpoint: "chat" | "embedding";
+  endpoint: OpenRouterEndpoint;
   model: string;
   status: number;
   ok: boolean;
@@ -107,32 +85,4 @@ export function previewsEnabled(): boolean {
 
 export function truncate(s: string, max: number): string {
   return s.length > max ? s.slice(0, max) : s;
-}
-
-export function classifyHttpStatus(status: number): ErrorClass | undefined {
-  if (status >= 500 && status < 600) return "http_5xx";
-  if (status >= 400 && status < 500) return "http_4xx";
-  return undefined;
-}
-
-/**
- * Shared catch-block handling for both `chat.ts` and `embedding.ts`: turn a
- * thrown SDK/network error into the `{ status, errorMessage, errorClass }`
- * triple each caller logs.
- */
-export function classifyOpenRouterFailure(err: unknown): {
-  status: number;
-  errorMessage: string;
-  errorClass: ErrorClass;
-} {
-  const { status, message } = readOpenRouterError(err);
-  const errorClass =
-    status > 0 ? (classifyHttpStatus(status) ?? "network") : "network";
-  return { status, errorMessage: message, errorClass };
-}
-
-export function numberOrUndef(
-  n: number | undefined | null,
-): number | undefined {
-  return typeof n === "number" ? n : undefined;
 }

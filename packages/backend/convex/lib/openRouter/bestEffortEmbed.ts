@@ -47,20 +47,6 @@ export async function bestEffortEmbedMany(
   return bestEffortEmbedManyWithAuth({ ...params, auth });
 }
 
-/** Run `fn`, degrading to `fallback` (with a warning) on any failure. */
-async function degradeOnFailure<T, F>(
-  fn: () => Promise<T>,
-  fallback: F,
-  failureLog: string,
-): Promise<T | F> {
-  try {
-    return await fn();
-  } catch (e) {
-    console.warn(failureLog, e);
-    return fallback;
-  }
-}
-
 export async function bestEffortEmbedManyWithAuth(params: {
   ctx: ActionCtx;
   auth: BestEffortEmbedAuth | null;
@@ -70,21 +56,19 @@ export async function bestEffortEmbedManyWithAuth(params: {
   failureLog: string;
 }): Promise<(number[] | null)[]> {
   if (!params.auth) return params.texts.map(() => null);
-  const auth = params.auth;
-
-  return degradeOnFailure(
-    () =>
-      generateEmbeddings({
-        ctx: params.ctx,
-        apiKey: auth.apiKey,
-        userId: auth.userId,
-        profileId: params.profileId,
-        feature: params.feature,
-        texts: params.texts,
-      }),
-    params.texts.map(() => null),
-    params.failureLog,
-  );
+  try {
+    return await generateEmbeddings({
+      ctx: params.ctx,
+      apiKey: params.auth.apiKey,
+      userId: params.auth.userId,
+      profileId: params.profileId,
+      feature: params.feature,
+      texts: params.texts,
+    });
+  } catch (e) {
+    console.warn(params.failureLog, e);
+    return params.texts.map(() => null);
+  }
 }
 
 export async function bestEffortEmbedOneWithAuth(params: {

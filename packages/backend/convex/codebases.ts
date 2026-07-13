@@ -7,8 +7,8 @@ import { DAILY_SYNC_STALE_MS } from "./codebaseSyncConstants";
 import { isCodebaseSyncStalled } from "@vmem/shared";
 import type { Doc, Id } from "./_generated/dataModel";
 import { decryptToken } from "./lib/crypto";
+import { createGithubOctokit } from "../engine/github/octokit";
 import { retrier } from "./retrier";
-import { parseResponseJson } from "./lib/jsonBoundary";
 import { z } from "zod";
 
 // --- GitHub API response shape for repos ---
@@ -96,24 +96,15 @@ export const listRepos = authAction({
     if (!encryptedToken) throw new Error("GitHub not connected");
 
     const token = await decryptToken(encryptedToken);
+    const octokit = createGithubOctokit(token);
 
-    const response = await fetch(
-      "https://api.github.com/user/repos?per_page=100&sort=updated&type=all",
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/vnd.github+json",
-          "X-GitHub-Api-Version": "2022-11-28",
-        },
-      },
-    );
+    const { data } = await octokit.request("GET /user/repos", {
+      per_page: 100,
+      sort: "updated",
+      type: "all",
+    });
 
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`GitHub API error: ${response.status} ${text}`);
-    }
-
-    const repos = await parseResponseJson(response, githubReposSchema);
+    const repos = githubReposSchema.parse(data);
 
     return repos.map((repo) => ({
       id: repo.id,

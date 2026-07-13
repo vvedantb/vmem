@@ -14,12 +14,9 @@ import { createOpenRouterClient } from "./client";
 import {
   COMPLETION_PREVIEW_BYTES,
   PROMPT_PREVIEW_BYTES,
-  classifyOpenRouterFailure,
-  numberOrUndef,
   previewsEnabled,
   scheduleLog,
   truncate,
-  type ErrorClass,
   type OpenRouterFeature,
 } from "./shared";
 
@@ -65,9 +62,8 @@ export async function callOpenRouterChat(
     ? truncate(joinMessagesForPreview(args.messages), PROMPT_PREVIEW_BYTES)
     : undefined;
 
-  let status: number;
-  let ok: boolean;
-  let errorClass: ErrorClass | undefined;
+  let status = 0;
+  let ok = false;
   let errorMessage: string | undefined;
   let content: string | null = null;
   let generationId: string | undefined;
@@ -102,28 +98,24 @@ export async function callOpenRouterChat(
       typeof finishReasonRaw === "string" ? finishReasonRaw : undefined;
 
     const usage = json.usage;
-    promptTokens = numberOrUndef(usage?.promptTokens);
-    completionTokens = numberOrUndef(usage?.completionTokens);
-    totalTokens = numberOrUndef(usage?.totalTokens);
-    cachedTokens = numberOrUndef(usage?.promptTokensDetails?.cachedTokens);
-    cacheWriteTokens = numberOrUndef(
-      usage?.promptTokensDetails?.cacheWriteTokens,
-    );
-    reasoningTokens = numberOrUndef(
-      usage?.completionTokensDetails?.reasoningTokens,
-    );
-    costUsd = numberOrUndef(usage?.cost);
-    upstreamCostUsd = numberOrUndef(usage?.costDetails?.upstreamInferenceCost);
+    promptTokens = usage?.promptTokens ?? undefined;
+    completionTokens = usage?.completionTokens ?? undefined;
+    totalTokens = usage?.totalTokens ?? undefined;
+    cachedTokens = usage?.promptTokensDetails?.cachedTokens ?? undefined;
+    cacheWriteTokens =
+      usage?.promptTokensDetails?.cacheWriteTokens ?? undefined;
+    reasoningTokens =
+      usage?.completionTokensDetails?.reasoningTokens ?? undefined;
+    costUsd = usage?.cost ?? undefined;
+    upstreamCostUsd = usage?.costDetails?.upstreamInferenceCost ?? undefined;
     isByok = usage?.isByok;
 
     if (content === null) {
       ok = false;
-      errorClass = "parse";
       errorMessage = "no string content in choices[0].message";
     }
   } catch (e) {
-    ok = false;
-    ({ status, errorMessage, errorClass } = classifyOpenRouterFailure(e));
+    errorMessage = e instanceof Error ? e.message : String(e);
   }
 
   const latencyMs = Math.round(performance.now() - start);
@@ -140,7 +132,6 @@ export async function callOpenRouterChat(
     model: args.model,
     status,
     ok,
-    errorClass,
     errorMessage,
     latencyMs,
     generationId,

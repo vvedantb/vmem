@@ -1,0 +1,39 @@
+import { z } from "zod";
+
+/** Spend-attribution labels for `openRouterLogs.feature`. */
+export const openRouterFeatureSchema = z.enum([
+  // Chat completions
+  "chat",
+  "enrichment",
+  "dream-synthesis",
+  "dream-portrait",
+  "context-prompt",
+  "fact-extraction",
+  "entity-backfill",
+  "tag-consolidation",
+  "entity-aliases",
+  // Embeddings
+  "memory-save",
+  "memory-search",
+  "mcp-embed",
+  "connector-sync",
+  "dream-materialize",
+  "proposal-accept",
+  "embedding-backfill",
+]);
+
+export type OpenRouterFeature = z.infer<typeof openRouterFeatureSchema>;
+
+export const openRouterEndpointSchema = z.enum(["chat", "embedding"]);
+
+export type OpenRouterEndpoint = z.infer<typeof openRouterEndpointSchema>;
+
+export const openRouterErrorClassSchema = z.enum([
+  "network",
+  "http_4xx",
+  "http_5xx",
+  "parse",
+  "timeout",
+]);
+
+export type ErrorClass = z.infer<typeof openRouterErrorClassSchema>;

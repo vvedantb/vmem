@@ -1,6 +1,7 @@
 import { internalMutation, query } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
+import { zodToConvex } from "convex-helpers/server/zod";
 import { z } from "zod";
 import { auditLog, ResourceTypes } from "./auditLog";
 
@@ -22,26 +23,19 @@ function payloadFromMetadata(metadata: unknown): string {
   return parsed.data.payload ?? "{}";
 }
 
-const eventTypeValidator = v.union(
-  v.literal("memory_created"),
-  v.literal("memory_updated"),
-  v.literal("memory_deleted"),
-  v.literal("relationship_created"),
-  v.literal("relationship_deleted"),
-  v.literal("dream_synthesis_proposed"),
-  v.literal("dream_synthesis_materialized"),
-);
+const memoryEventTypeSchema = z.enum([
+  "memory_created",
+  "memory_updated",
+  "memory_deleted",
+  "relationship_created",
+  "relationship_deleted",
+  "dream_synthesis_proposed",
+  "dream_synthesis_materialized",
+]);
 
-export type MemoryEventType =
-  | "memory_created"
-  | "memory_updated"
-  | "memory_deleted"
-  | "relationship_created"
-  | "relationship_deleted"
-  /** Dream Mode created a synthesis proposal (kind ∈ insight/connection/contradiction/anomaly). */
-  | "dream_synthesis_proposed"
-  /** Dream Mode auto-materialized a synthesis as a real :Memory (auto-accept on). */
-  | "dream_synthesis_materialized";
+export type MemoryEventType = z.infer<typeof memoryEventTypeSchema>;
+
+const eventTypeValidator = zodToConvex(memoryEventTypeSchema);
 
 /**
  * Maps the short change-feed event type to a stable, dotted audit-log action.

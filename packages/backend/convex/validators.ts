@@ -1,4 +1,11 @@
 import { v } from "convex/values";
+import { zodToConvex } from "convex-helpers/server/zod";
+import { z } from "zod";
+import {
+  openRouterEndpointSchema,
+  openRouterErrorClassSchema,
+  openRouterFeatureSchema,
+} from "./lib/openRouter/schemas";
 
 /**
  * Single source of truth for profiles table fields.
@@ -89,11 +96,8 @@ export const dreamTriggerStateFields = {
  * Notification severity — reused by the table fields, the `listMy` return
  * validator, and the `pushForClerkIdInternal` args so all three stay in lockstep.
  */
-export const notificationTypeValidator = v.union(
-  v.literal("success"),
-  v.literal("warning"),
-  v.literal("error"),
-  v.literal("info"),
+export const notificationTypeValidator = zodToConvex(
+  z.enum(["success", "warning", "error", "info"]),
 );
 
 /**
@@ -282,39 +286,12 @@ export const openRouterLogRecordFields = {
    *  via `ctx.db.normalizeId("profiles", …)` before insert; the
    *  schema column is the strict `v.id("profiles")` form. */
   profileId: v.optional(v.string()),
-  feature: v.union(
-    // Chat completions
-    v.literal("chat"),
-    v.literal("enrichment"),
-    v.literal("dream-synthesis"),
-    v.literal("dream-portrait"),
-    v.literal("context-prompt"),
-    v.literal("fact-extraction"),
-    v.literal("entity-backfill"),
-    v.literal("tag-consolidation"),
-    v.literal("entity-aliases"),
-    // Embeddings
-    v.literal("memory-save"),
-    v.literal("memory-search"),
-    v.literal("mcp-embed"),
-    v.literal("connector-sync"),
-    v.literal("dream-materialize"),
-    v.literal("proposal-accept"),
-    v.literal("embedding-backfill"),
-  ),
-  endpoint: v.union(v.literal("chat"), v.literal("embedding")),
+  feature: zodToConvex(openRouterFeatureSchema),
+  endpoint: zodToConvex(openRouterEndpointSchema),
   model: v.string(),
   status: v.number(), // HTTP status (0 on network/timeout)
   ok: v.boolean(),
-  errorClass: v.optional(
-    v.union(
-      v.literal("network"),
-      v.literal("http_4xx"),
-      v.literal("http_5xx"),
-      v.literal("parse"),
-      v.literal("timeout"),
-    ),
-  ),
+  errorClass: v.optional(zodToConvex(openRouterErrorClassSchema)),
   errorMessage: v.optional(v.string()),
   latencyMs: v.number(),
   /** OpenRouter generation id (`gen-...`) — used to link to /generation lookup later. */

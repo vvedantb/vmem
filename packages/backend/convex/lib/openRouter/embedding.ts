@@ -7,18 +7,15 @@
  */
 
 import type { CreateEmbeddingsResponseBody } from "@openrouter/sdk/models/operations";
-import pRetry, { AbortError } from "p-retry";
+import pRetry from "p-retry";
 import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
 import { createOpenRouterClient } from "./client";
 import {
   PROMPT_PREVIEW_BYTES,
-  classifyOpenRouterFailure,
-  numberOrUndef,
   previewsEnabled,
   scheduleLog,
   truncate,
-  type ErrorClass,
   type OpenRouterFeature,
 } from "./shared";
 
@@ -114,12 +111,8 @@ interface EmbeddingChunkArgs {
 
 /**
  * Fire one embedding SDK call, log the outcome, return validated
- * vectors. Retries on 429 with exponential backoff + jitter; each
- * attempt logs as its own row (so the dashboard reflects provider load).
- *
- * Non-429 failures throw AbortError so p-retry does not retry them.
- * Errors are plain Error (not TypeError) so p-retry's TypeError abort
- * rule does not swallow rate-limit retries.
+ * vectors. `p-retry` retries any thrown failure; each attempt logs as
+ * its own row (so the dashboard reflects provider load).
  */
 async function postEmbeddingChunkWithRetry(
   args: EmbeddingChunkArgs,
@@ -131,16 +124,6 @@ async function postEmbeddingChunkWithRetry(
       const promptPreview = previews
         ? truncate(args.input.join("\n---\n"), PROMPT_PREVIEW_BYTES)
         : undefined;
-
-      let status: number;
-      let ok: boolean;
-      let errorClass: ErrorClass | undefined;
-      let errorMessage: string | undefined;
-      let items: EmbeddingItem[] | null = null;
-      let generationId: string | undefined;
-      let promptTokens: number | undefined;
-      let totalTokens: number | undefined;
-      let inlineCostUsd: number | undefined;
 
       try {
         const client = createOpenRouterClient(args.apiKey);
@@ -155,58 +138,51 @@ async function postEmbeddingChunkWithRetry(
           throw new Error("embedding response: unexpected string body");
         }
 
-        status = 200;
-        ok = true;
-        items = validateEmbeddingItems(response.data, args.input.length);
-        generationId = response.id;
-        promptTokens = numberOrUndef(response.usage?.promptTokens);
-        totalTokens = numberOrUndef(response.usage?.totalTokens);
-        inlineCostUsd = numberOrUndef(response.usage?.cost);
-      } catch (e) {
-        ok = false;
-        ({ status, errorMessage, errorClass } = classifyOpenRouterFailure(e));
-      }
+        const items = validateEmbeddingItems(response.data, args.input.length);
+        const promptTokens = response.usage?.promptTokens ?? undefined;
+        const totalTokens = response.usage?.totalTokens ?? undefined;
+        const costUsd =
+          response.usage?.cost ?? computeEmbeddingCost(totalTokens);
 
-      const latencyMs = Math.round(performance.now() - start);
-      const costUsd = inlineCostUsd ?? computeEmbeddingCost(totalTokens);
+        await scheduleLog(args.ctx, {
+          userId: args.userId,
+          profileId: args.profileId,
+          feature: args.feature,
+          endpoint: "embedding",
+          model: EMBEDDING_MODEL,
+          status: 200,
+          ok: true,
+          latencyMs: Math.round(performance.now() - start),
+          generationId: response.id,
+          promptTokens,
+          totalTokens,
+          costUsd,
+          promptPreview,
+        });
 
-      await scheduleLog(args.ctx, {
-        userId: args.userId,
-        profileId: args.profileId,
-        feature: args.feature,
-        endpoint: "embedding",
-        model: EMBEDDING_MODEL,
-        status,
-        ok,
-        errorClass,
-        errorMessage,
-        latencyMs,
-        generationId,
-        promptTokens,
-        totalTokens,
-        costUsd,
-        promptPreview,
-      });
-
-      if (ok && items !== null) {
         return items;
+      } catch (e) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        await scheduleLog(args.ctx, {
+          userId: args.userId,
+          profileId: args.profileId,
+          feature: args.feature,
+          endpoint: "embedding",
+          model: EMBEDDING_MODEL,
+          status: 0,
+          ok: false,
+          errorMessage,
+          latencyMs: Math.round(performance.now() - start),
+          promptPreview,
+        });
+        throw e instanceof Error ? e : new Error(errorMessage);
       }
-
-      const message = `openRouter embedding ${String(status)}: ${errorMessage ?? "unknown"}`;
-      // Retry only on 429; AbortError skips further attempts.
-      if (status === 429) {
-        throw new Error(message);
-      }
-      throw new AbortError(message);
     },
     {
       retries: EMBEDDING_MAX_RETRY_ATTEMPTS,
       minTimeout: 500,
       factor: 2,
       randomize: true,
-      shouldRetry: ({ error }) =>
-        !(error instanceof AbortError) &&
-        error.message.startsWith("openRouter embedding 429:"),
     },
   );
 }

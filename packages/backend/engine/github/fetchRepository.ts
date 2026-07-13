@@ -14,7 +14,7 @@ const TS_JS_EXTENSIONS = new Set([
   ".cjs",
 ]);
 
-const GITHUB_API_HEADERS = {
+const GITHUB_TARBALL_HEADERS = {
   Accept: "application/vnd.github+json",
   "X-GitHub-Api-Version": "2022-11-28",
 } as const;
@@ -120,7 +120,7 @@ export async function fetchRepositoryFromGithub(
     tarballUrl,
     {
       headers: {
-        ...GITHUB_API_HEADERS,
+        ...GITHUB_TARBALL_HEADERS,
         Authorization: `Bearer ${githubToken}`,
       },
       redirect: "follow",

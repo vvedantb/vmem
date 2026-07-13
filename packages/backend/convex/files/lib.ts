@@ -23,6 +23,21 @@ export const FILE_STORAGE_LIMIT_BYTES = 10 * 1024 * 1024 * 1024; // 10 GiB
  */
 export type IndexableFileKind = "pdf" | "text";
 
+export function isImageMime(mimeType: string): boolean {
+  return mimeType.startsWith("image/");
+}
+
+/** MIME shapes we treat as UTF-8 text for indexing and MCP inline reads. */
+export function isTextualMime(mimeType: string): boolean {
+  return (
+    mimeType.startsWith("text/") ||
+    mimeType === "application/json" ||
+    mimeType.endsWith("+json") ||
+    mimeType.includes("xml") ||
+    mimeType.includes("markdown")
+  );
+}
+
 export function detectFileKind(
   filename: string,
   mimeType: string,
@@ -33,11 +48,7 @@ export function detectFileKind(
     lower.endsWith(".md") ||
     lower.endsWith(".markdown") ||
     lower.endsWith(".txt") ||
-    mimeType.startsWith("text/") ||
-    mimeType === "application/json" ||
-    mimeType.endsWith("+json") ||
-    mimeType.includes("xml") ||
-    mimeType.includes("markdown")
+    isTextualMime(mimeType)
   ) {
     return "text";
   }
