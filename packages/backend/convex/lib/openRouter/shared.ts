@@ -2,22 +2,17 @@
  * Shared types, constants, and helpers for OpenRouter API calls.
  *
  * Both chat completions and embeddings need: feature taxonomy for
- * spend attribution, error-class taxonomy for log dashboards,
- * privacy-gated prompt previews, and a scheduled `openRouterLogs`
- * row per HTTP attempt. This file owns the shared bits; `chat.ts`
- * and `embedding.ts` own the per-endpoint shapes.
+ * spend attribution, privacy-gated prompt previews, and a scheduled
+ * `openRouterLogs` row per HTTP attempt. This file owns the shared
+ * bits; `chat.ts` and `embedding.ts` own the per-endpoint shapes.
  */
 
 import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
 import { internal } from "../../_generated/api";
-import type {
-  ErrorClass,
-  OpenRouterEndpoint,
-  OpenRouterFeature,
-} from "./schemas";
+import type { OpenRouterEndpoint, OpenRouterFeature } from "./schemas";
 
-export type { ErrorClass, OpenRouterEndpoint, OpenRouterFeature };
+export type { OpenRouterEndpoint, OpenRouterFeature };
 
 /**
  * Default model for every server-side LLM reasoning call — enrichment,
@@ -38,11 +33,7 @@ export interface LogPayload {
   feature: OpenRouterFeature;
   endpoint: OpenRouterEndpoint;
   model: string;
-  status: number;
-  ok: boolean;
-  errorClass?: ErrorClass;
   errorMessage?: string;
-  latencyMs: number;
   generationId?: string;
   provider?: string;
   finishReason?: string;

@@ -74,12 +74,6 @@ function LogRowDetailBody({
       <div className="space-y-4 text-sm">
         <Section title="Call">
           <KV label="Endpoint" value={row.endpoint} />
-          <KV
-            label="Status"
-            value={`${row.status} (${row.ok ? "ok" : "error"})`}
-          />
-          <KV label="Latency" value={`${row.latencyMs.toLocaleString()} ms`} />
-          {row.errorClass && <KV label="Error class" value={row.errorClass} />}
           {row.errorMessage && (
             <KV label="Error message" value={row.errorMessage} mono />
           )}

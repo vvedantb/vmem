@@ -119,7 +119,6 @@ async function postEmbeddingChunkWithRetry(
 ): Promise<EmbeddingItem[]> {
   return pRetry(
     async () => {
-      const start = performance.now();
       const previews = previewsEnabled();
       const promptPreview = previews
         ? truncate(args.input.join("\n---\n"), PROMPT_PREVIEW_BYTES)
@@ -150,9 +149,6 @@ async function postEmbeddingChunkWithRetry(
           feature: args.feature,
           endpoint: "embedding",
           model: EMBEDDING_MODEL,
-          status: 200,
-          ok: true,
-          latencyMs: Math.round(performance.now() - start),
           generationId: response.id,
           promptTokens,
           totalTokens,
@@ -169,10 +165,7 @@ async function postEmbeddingChunkWithRetry(
           feature: args.feature,
           endpoint: "embedding",
           model: EMBEDDING_MODEL,
-          status: 0,
-          ok: false,
           errorMessage,
-          latencyMs: Math.round(performance.now() - start),
           promptPreview,
         });
         throw e instanceof Error ? e : new Error(errorMessage);

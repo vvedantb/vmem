@@ -43,27 +43,22 @@ interface ChatArgs {
 export interface ChatResult {
   /** `null` when the call failed or the response was unparseable. */
   content: string | null;
-  status: number;
-  ok: boolean;
 }
 
 /**
  * Fire one chat-completion call and log the outcome. Single shared
- * implementation handles cost/usage extraction, privacy-gated previews,
- * and latency timing — call sites only see `{ content, status, ok }`.
+ * implementation handles cost/usage extraction and privacy-gated
+ * previews — call sites only see `{ content }`.
  */
 export async function callOpenRouterChat(
   ctx: ActionCtx,
   args: ChatArgs,
 ): Promise<ChatResult> {
-  const start = performance.now();
   const previews = previewsEnabled();
   const promptPreview = previews
     ? truncate(joinMessagesForPreview(args.messages), PROMPT_PREVIEW_BYTES)
     : undefined;
 
-  let status = 0;
-  let ok = false;
   let errorMessage: string | undefined;
   let content: string | null = null;
   let generationId: string | undefined;
@@ -89,8 +84,6 @@ export async function callOpenRouterChat(
       },
     });
 
-    status = 200;
-    ok = true;
     content = extractChatContent(json);
     generationId = json.id;
     const finishReasonRaw = json.choices.at(0)?.finishReason;
@@ -111,14 +104,12 @@ export async function callOpenRouterChat(
     isByok = usage?.isByok;
 
     if (content === null) {
-      ok = false;
       errorMessage = "no string content in choices[0].message";
     }
   } catch (e) {
     errorMessage = e instanceof Error ? e.message : String(e);
   }
 
-  const latencyMs = Math.round(performance.now() - start);
   const completionPreview =
     previews && content !== null
       ? truncate(content, COMPLETION_PREVIEW_BYTES)
@@ -130,10 +121,7 @@ export async function callOpenRouterChat(
     feature: args.feature,
     endpoint: "chat",
     model: args.model,
-    status,
-    ok,
     errorMessage,
-    latencyMs,
     generationId,
     finishReason,
     promptTokens,
@@ -149,7 +137,7 @@ export async function callOpenRouterChat(
     completionPreview,
   });
 
-  return { content, status, ok };
+  return { content };
 }
 
 function joinMessagesForPreview(messages: ChatMessage[]): string {

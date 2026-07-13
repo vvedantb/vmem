@@ -46,9 +46,6 @@ export const FEATURE_LABELS: Record<Feature, string> = {
 const scopes = ["personal", "team"] as const;
 export type Scope = (typeof scopes)[number];
 
-const statuses = ["all", "success", "error"] as const;
-export type StatusFilter = (typeof statuses)[number];
-
 const aiLogsRanges = ["today", "7d", "30d", "all"] as const;
 export type Range = (typeof aiLogsRanges)[number];
 
@@ -75,7 +72,6 @@ export const aiLogsSearchParams = {
   profileId: parseAsString.withDefault(PROFILE_FILTER_ALL),
   features: parseAsArrayOf(parseAsStringLiteral(FEATURES), ",").withDefault([]),
   models: parseAsArrayOf(parseAsString, ",").withDefault([]),
-  status: parseAsStringLiteral(statuses).withDefault("all"),
   range: parseAsStringLiteral(aiLogsRanges).withDefault("7d"),
   sortDir: parseAsStringLiteral(sortDirections).withDefault("desc"),
 };

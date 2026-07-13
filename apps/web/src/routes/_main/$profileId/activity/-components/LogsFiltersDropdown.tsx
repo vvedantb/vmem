@@ -16,18 +16,15 @@ import {
   DropdownMenuSubTrigger,
 } from "@vmem/ui";
 import {
-  IconAlertCircle,
   IconCalendar,
   IconCalendarMonth,
   IconCalendarWeek,
   IconCheck,
-  IconCircleCheck,
   IconCpu,
   IconDatabase,
   IconDeviceFloppy,
   IconFilter,
   IconInfinity,
-  IconList,
   IconListDetails,
   IconMessage,
   IconMoon,
@@ -52,13 +49,12 @@ import {
   type Feature,
   type Range,
   type Scope,
-  type StatusFilter,
 } from "../-searchParams";
 
 /**
  * Filters dropdown for `/ai-logs`.
  *
- * Consolidates scope (when teams exist), range, status, features, models,
+ * Consolidates scope (when teams exist), range, features, models,
  * and profile into one dropdown. Sort stays separate — it only changes order.
  *
  * Scope switches the row population (personal vs team); it does not count
@@ -110,7 +106,6 @@ interface LogsFiltersDropdownProps {
   teams: readonly { _id: string; name: string }[];
   onScopeChange: (scope: Scope, teamId: string | null) => void;
   range: Range;
-  status: StatusFilter;
   features: readonly Feature[];
   models: readonly string[];
   availableModels: readonly string[];
@@ -123,7 +118,6 @@ interface LogsFiltersDropdownProps {
       }[]
     | undefined;
   onRangeChange: (range: Range) => void;
-  onStatusChange: (status: StatusFilter) => void;
   onFeaturesChange: (features: Feature[]) => void;
   onModelsChange: (models: string[]) => void;
   onProfileChange: (profileId: string) => void;
@@ -136,14 +130,12 @@ export function LogsFiltersDropdown({
   teams,
   onScopeChange,
   range,
-  status,
   features,
   models,
   availableModels,
   profileId,
   profiles,
   onRangeChange,
-  onStatusChange,
   onFeaturesChange,
   onModelsChange,
   onProfileChange,
@@ -151,7 +143,6 @@ export function LogsFiltersDropdown({
 }: LogsFiltersDropdownProps) {
   const activeFilterCount =
     (range !== "7d" ? 1 : 0) +
-    (status !== "all" ? 1 : 0) +
     (features.length > 0 ? 1 : 0) +
     (models.length > 0 ? 1 : 0) +
     (!isAllProfilesFilter(profileId) ? 1 : 0);
@@ -242,43 +233,6 @@ export function LogsFiltersDropdown({
                   </DropdownMenuRadioItem>
                 );
               })}
-            </DropdownMenuRadioGroup>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
-
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
-            <IconCircleCheck size={16} />
-            Status
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
-            <DropdownMenuRadioGroup
-              value={status}
-              onValueChange={(value) => {
-                if (
-                  value === "all" ||
-                  value === "success" ||
-                  value === "error"
-                ) {
-                  onStatusChange(value);
-                }
-              }}
-            >
-              <DropdownMenuRadioItem value="all">
-                <FilterOptionContent icon={<IconList size={16} />}>
-                  All
-                </FilterOptionContent>
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="success">
-                <FilterOptionContent icon={<IconCircleCheck size={16} />}>
-                  Success only
-                </FilterOptionContent>
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="error">
-                <FilterOptionContent icon={<IconAlertCircle size={16} />}>
-                  Errors only
-                </FilterOptionContent>
-              </DropdownMenuRadioItem>
             </DropdownMenuRadioGroup>
           </DropdownMenuSubContent>
         </DropdownMenuSub>

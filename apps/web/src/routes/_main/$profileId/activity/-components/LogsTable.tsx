@@ -2,8 +2,8 @@
 
 import { useState, useMemo } from "react";
 import { Virtuoso } from "react-virtuoso";
-import { Badge, Button, Card, CardContent, cn } from "@vmem/ui";
-import { IconAlertCircle, IconReceipt2 } from "@tabler/icons-react";
+import { Badge, Button, Card, CardContent } from "@vmem/ui";
+import { IconReceipt2 } from "@tabler/icons-react";
 import type { Doc } from "@vmem/backend";
 import {
   formatLogCost,
@@ -120,15 +120,13 @@ export function LogsTable({
 
         <Card className="flex min-h-0 flex-1 flex-col shadow-none">
           <CardContent className="flex min-h-0 flex-1 flex-col p-2">
-            <div className="hidden shrink-0 px-2 pb-2 text-xs font-medium text-muted md:grid md:grid-cols-[132px_128px_112px_1fr_128px_88px_80px_72px] md:gap-3">
+            <div className="hidden shrink-0 px-2 pb-2 text-xs font-medium text-muted md:grid md:grid-cols-[132px_128px_112px_1fr_128px_88px] md:gap-3">
               <div>Time</div>
               <div>Feature</div>
               <div>Profile</div>
               <div>Model</div>
               <div className="text-right">Tokens</div>
               <div className="text-right">Cost</div>
-              <div className="text-right">Latency</div>
-              <div className="text-right">Status</div>
             </div>
 
             <div className="relative min-h-0 flex-1">
@@ -203,7 +201,6 @@ function LogRowCard({
   const time = formatLogTime(row.createdAt);
   const tokens = formatTokenPair(row.promptTokens, row.completionTokens);
   const cost = formatLogCost(row.costUsd);
-  const latency = `${row.latencyMs.toLocaleString()}ms`;
 
   return (
     <Button
@@ -212,7 +209,7 @@ function LogRowCard({
       onClick={onClick}
       className="block h-auto w-full justify-start rounded-lg px-4 py-3 text-left font-normal hover:bg-surface-tertiary/50 focus:bg-surface-tertiary/50 active:scale-100"
     >
-      <div className="hidden md:grid md:grid-cols-[132px_128px_112px_1fr_128px_88px_80px_72px] md:items-center md:gap-3">
+      <div className="hidden md:grid md:grid-cols-[132px_128px_112px_1fr_128px_88px] md:items-center md:gap-3">
         <span className="text-xs tabular-nums text-muted">{time}</span>
         <Badge variant="secondary" className="w-fit text-[11px] font-normal">
           {featureLabel}
@@ -227,12 +224,6 @@ function LogRowCard({
         <span className="text-right text-xs tabular-nums text-foreground">
           {cost}
         </span>
-        <span className="text-right text-xs tabular-nums text-muted">
-          {latency}
-        </span>
-        <span className="flex justify-end">
-          <StatusPill ok={row.ok} />
-        </span>
       </div>
 
       <div className="space-y-1.5 md:hidden">
@@ -240,16 +231,14 @@ function LogRowCard({
           <Badge variant="secondary" className="text-[11px] font-normal">
             {featureLabel}
           </Badge>
-          <StatusPill ok={row.ok} />
+          <span className="text-xs tabular-nums text-muted">{cost}</span>
         </div>
         <div className="truncate font-mono text-xs text-foreground">
           {row.model}
         </div>
         <div className="flex items-center justify-between gap-3 text-xs tabular-nums text-muted">
           <span>{time}</span>
-          <span>
-            {tokens} · {cost} · {latency}
-          </span>
+          <span>{tokens}</span>
         </div>
       </div>
     </Button>
@@ -267,26 +256,6 @@ function ProfileBadge({ profile }: { profile: ProfileLite | undefined }) {
         style={{ backgroundColor: profile.color ?? "var(--muted)" }}
       />
       <span className="truncate text-xs text-foreground">{profile.name}</span>
-    </span>
-  );
-}
-
-function StatusPill({ ok }: { ok: boolean }) {
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-lg px-2 py-0.5 text-[11px] font-medium tabular-nums",
-        ok ? "bg-success/10 text-success" : "bg-danger/10 text-danger",
-      )}
-    >
-      {ok ? (
-        "ok"
-      ) : (
-        <>
-          <IconAlertCircle size={12} className="mr-0.5" />
-          error
-        </>
-      )}
     </span>
   );
 }

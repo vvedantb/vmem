@@ -3,7 +3,6 @@ import { zodToConvex } from "convex-helpers/server/zod";
 import { z } from "zod";
 import {
   openRouterEndpointSchema,
-  openRouterErrorClassSchema,
   openRouterFeatureSchema,
 } from "./lib/openRouter/schemas";
 
@@ -264,9 +263,8 @@ export const codebaseFields = {
  *
  * Every OpenRouter API call (chat completions + embeddings) writes one row.
  * Fields cover identity (userId/profileId/teamId/feature/endpoint/model),
- * outcome (status/ok/errorClass/errorMessage/latencyMs), token + cost
- * accounting (returned by OpenRouter when `usage:{include:true}` is set on
- * chat; computed from a price table for embeddings), and optional
+ * optional errorMessage, token + cost accounting (returned by OpenRouter
+ * when available; computed from a price table for embeddings), and optional
  * prompt/completion previews (only populated when the deploy sets
  * OPENROUTER_LOG_PROMPTS=1).
  *
@@ -289,11 +287,7 @@ export const openRouterLogRecordFields = {
   feature: zodToConvex(openRouterFeatureSchema),
   endpoint: zodToConvex(openRouterEndpointSchema),
   model: v.string(),
-  status: v.number(), // HTTP status (0 on network/timeout)
-  ok: v.boolean(),
-  errorClass: v.optional(zodToConvex(openRouterErrorClassSchema)),
   errorMessage: v.optional(v.string()),
-  latencyMs: v.number(),
   /** OpenRouter generation id (`gen-...`) — used to link to /generation lookup later. */
   generationId: v.optional(v.string()),
   provider: v.optional(v.string()),

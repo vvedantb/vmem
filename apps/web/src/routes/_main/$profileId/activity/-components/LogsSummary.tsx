@@ -2,12 +2,7 @@
 
 import type { FunctionReturnType } from "convex/server";
 import type { TablerIcon } from "@tabler/icons-react";
-import {
-  IconActivityHeartbeat,
-  IconCircleCheck,
-  IconCoin,
-  IconStack,
-} from "@tabler/icons-react";
+import { IconCoin, IconStack } from "@tabler/icons-react";
 import { motion } from "motion/react";
 import { Card, CardContent, cn } from "@vmem/ui";
 import type { api } from "@vmem/backend";
@@ -91,8 +86,8 @@ function SummaryCard({
 export function LogsSummary({ summary, range, trends }: LogsSummaryProps) {
   if (summary === undefined) {
     return (
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 sm:gap-4">
-        {[0, 1, 2, 3].map((index) => (
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+        {[0, 1].map((index) => (
           <Card key={index} className="shadow-none">
             <CardContent className="flex min-h-[9.5rem] flex-col gap-3 p-5">
               <div className="h-16 animate-pulse rounded-lg bg-surface-tertiary/60" />
@@ -105,11 +100,6 @@ export function LogsSummary({ summary, range, trends }: LogsSummaryProps) {
 
   const formattedCost = formatCostUsd(summary.totalCostUsd);
   const formattedTokens = formatTokens(summary.totalTokens);
-  const successPercent = `${(summary.successRate * 100).toFixed(1)}%`;
-  const latency =
-    summary.avgLatencyMs > 0
-      ? `${summary.avgLatencyMs.toLocaleString()}ms`
-      : "—";
 
   const hasTrends =
     hasTrendActivity(trends.calls) ||
@@ -138,21 +128,6 @@ export function LogsSummary({ summary, range, trends }: LogsSummaryProps) {
       trendData: trends.tokens,
       strokeClassName: "text-foreground/70",
     },
-    {
-      label: "Avg latency",
-      value: latency,
-      icon: IconActivityHeartbeat,
-      trendData: trends.latencies,
-      strokeClassName: "text-muted",
-    },
-    {
-      label: "Success rate",
-      value: successPercent,
-      icon: IconCircleCheck,
-      valueClassName: "text-success",
-      trendData: trends.successRates,
-      strokeClassName: "text-success",
-    },
   ];
 
   return (
@@ -170,7 +145,7 @@ export function LogsSummary({ summary, range, trends }: LogsSummaryProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 sm:gap-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
         {cards.map((card, index) => (
           <SummaryCard
             key={card.label}

@@ -62,11 +62,6 @@ export const recordInternal = internalMutation({
 // ─────────────────────────────────────────────────────────────────────
 
 const scopeValidator = v.union(v.literal("personal"), v.literal("team"));
-const statusFilterValidator = v.union(
-  v.literal("all"),
-  v.literal("success"),
-  v.literal("error"),
-);
 const rangeValidator = v.union(
   v.literal("today"),
   v.literal("7d"),
@@ -158,7 +153,6 @@ export const listMine = authQuery({
     profileId: v.optional(v.id("profiles")),
     features: v.optional(v.array(openRouterLogFields.feature)),
     models: v.optional(v.array(v.string())),
-    status: v.optional(statusFilterValidator),
     range: v.optional(rangeValidator),
   },
   returns: v.object({
@@ -178,7 +172,6 @@ export const listMine = authQuery({
     const scope = args.scope ?? "personal";
     const features = args.features ?? [];
     const models = args.models ?? [];
-    const status = args.status ?? "all";
     const range = args.range ?? "all";
     const cutoff = rangeCutoff(range);
 
@@ -211,13 +204,6 @@ export const listMine = authQuery({
       );
     }
 
-    // Status filter — success / error / all.
-    if (status === "success") {
-      q = q.filter((f) => f.eq(f.field("ok"), true));
-    } else if (status === "error") {
-      q = q.filter((f) => f.eq(f.field("ok"), false));
-    }
-
     return await q.paginate(args.paginationOpts);
   },
 });
@@ -230,8 +216,6 @@ const summaryReturnValidator = v.object({
   totalCalls: v.number(),
   totalCostUsd: v.number(),
   totalTokens: v.number(),
-  avgLatencyMs: v.number(),
-  successRate: v.number(),
   isApprox: v.boolean(),
 });
 
@@ -273,26 +257,15 @@ export const summaryMine = authQuery({
 
     let totalCostUsd = 0;
     let totalTokens = 0;
-    let totalLatency = 0;
-    let okCount = 0;
     for (const row of rows) {
       if (typeof row.costUsd === "number") totalCostUsd += row.costUsd;
       if (typeof row.totalTokens === "number") totalTokens += row.totalTokens;
-      totalLatency += row.latencyMs;
-      if (row.ok) okCount += 1;
     }
 
-    const totalCalls = rows.length;
-    const avgLatencyMs =
-      totalCalls > 0 ? Math.round(totalLatency / totalCalls) : 0;
-    const successRate = totalCalls > 0 ? okCount / totalCalls : 1;
-
     return {
-      totalCalls,
+      totalCalls: rows.length,
       totalCostUsd,
       totalTokens,
-      avgLatencyMs,
-      successRate,
       isApprox: rows.length === SCAN_CAP,
     };
   },

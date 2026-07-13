@@ -193,7 +193,7 @@ async function tryRetrievalChat(
       temperature: 0,
     });
 
-    if (!result.ok || result.content === null) {
+    if (result.content === null) {
       console.warn("[retrieve] OpenRouter helper returned no content");
       return null;
     }
