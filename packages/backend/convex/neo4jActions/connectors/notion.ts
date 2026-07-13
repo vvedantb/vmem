@@ -2,16 +2,11 @@
 
 /**
  * Notion connector — searches for pages the integration has access to,
- * walks each page's block children, flattens supported block types into
- * a Markdown-ish string, and upserts with `sourceType: "notion"`.
+ * retrieves each page as markdown via the official markdown endpoint, and
+ * upserts with `sourceType: "notion"`.
  */
 
 import { Client as NotionClient } from "@notionhq/client";
-import type {
-  BlockObjectResponse,
-  PartialBlockObjectResponse,
-  RichTextItemResponse,
-} from "@notionhq/client/build/src/api-endpoints";
 import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
 import {
@@ -23,53 +18,13 @@ import {
   type SyncedDoc,
 } from "./shared";
 
+/** Markdown endpoint requires Notion-Version >= 2026-03-11; SDK default is older. */
+const NOTION_MARKDOWN_API_VERSION = "2026-03-11";
+
 export interface NotionSyncArgs {
   clerkId: string;
   connectorId: Id<"connectors">;
   accessToken: string;
-}
-
-function extractTextFromRichText(richText: RichTextItemResponse[]): string {
-  return richText.map((item) => item.plain_text).join("");
-}
-
-function isFullBlock(
-  block: BlockObjectResponse | PartialBlockObjectResponse,
-): block is BlockObjectResponse {
-  return "type" in block;
-}
-
-function extractBlockText(block: BlockObjectResponse): string {
-  const type = block.type;
-
-  switch (type) {
-    case "paragraph":
-      return extractTextFromRichText(block.paragraph.rich_text);
-    case "heading_1":
-      return `# ${extractTextFromRichText(block.heading_1.rich_text)}`;
-    case "heading_2":
-      return `## ${extractTextFromRichText(block.heading_2.rich_text)}`;
-    case "heading_3":
-      return `### ${extractTextFromRichText(block.heading_3.rich_text)}`;
-    case "bulleted_list_item":
-      return `• ${extractTextFromRichText(block.bulleted_list_item.rich_text)}`;
-    case "numbered_list_item":
-      return extractTextFromRichText(block.numbered_list_item.rich_text);
-    case "quote":
-      return `> ${extractTextFromRichText(block.quote.rich_text)}`;
-    case "code":
-      return `\`\`\`\n${extractTextFromRichText(block.code.rich_text)}\n\`\`\``;
-    case "toggle":
-      return extractTextFromRichText(block.toggle.rich_text);
-    case "callout":
-      return extractTextFromRichText(block.callout.rich_text);
-    case "to_do": {
-      const checked = block.to_do.checked ? "[x]" : "[ ]";
-      return `${checked} ${extractTextFromRichText(block.to_do.rich_text)}`;
-    }
-    default:
-      return "";
-  }
 }
 
 export async function runNotionSync(
@@ -79,7 +34,10 @@ export async function runNotionSync(
   const setup = await setupSync(ctx, args.clerkId);
 
   return withConnectorSyncError(ctx, args.connectorId, "Notion", async () => {
-    const notion = new NotionClient({ auth: args.accessToken });
+    const notion = new NotionClient({
+      auth: args.accessToken,
+      notionVersion: NOTION_MARKDOWN_API_VERSION,
+    });
 
     let startCursor: string | undefined;
     let totalSynced = 0;
@@ -106,33 +64,16 @@ export async function runNotionSync(
               (p) => p.type === "title",
             );
             if (titleProp && titleProp.type === "title") {
-              title = extractTextFromRichText(titleProp.title) || "Untitled";
+              title =
+                titleProp.title.map((item) => item.plain_text).join("") ||
+                "Untitled";
             }
           }
 
-          const blocks: string[] = [];
-          let blockCursor: string | undefined;
-
-          do {
-            const blocksResponse = await notion.blocks.children.list({
-              block_id: page.id,
-              page_size: 100,
-              start_cursor: blockCursor,
-            });
-
-            for (const block of blocksResponse.results) {
-              if (isFullBlock(block)) {
-                const text = extractBlockText(block);
-                if (text) blocks.push(text);
-              }
-            }
-
-            blockCursor = blocksResponse.has_more
-              ? (blocksResponse.next_cursor ?? undefined)
-              : undefined;
-          } while (blockCursor);
-
-          const content = blocks.join("\n\n").slice(0, EMBED_CONTENT_CAP);
+          const markdownResponse = await notion.pages.retrieveMarkdown({
+            page_id: page.id,
+          });
+          const content = markdownResponse.markdown.slice(0, EMBED_CONTENT_CAP);
           const pageUrl =
             "url" in page
               ? page.url
