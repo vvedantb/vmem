@@ -291,28 +291,22 @@ function pushVariableFunction(
   if (!isFn && !looksLikeConvexBuilder(init)) return;
   const name = v.getName();
   const id = symbolId(codebaseId, filePath, name);
+  const stmt = v.getVariableStatement();
   // Async/paramCount only meaningful for actual fn nodes — Convex builder calls
   // get sensible defaults (false/0) so the symbol still records correctly.
-  const isAsync = isFn && isAsyncFunctionLike(init);
-  const paramCount = isFn ? getParamCount(init) : 0;
-  const startLine = v.getStartLineNumber();
-  const endLine = v.getEndLineNumber();
-  const stmt = v.getVariableStatement();
-  const isExported = stmt ? isExportedNode(stmt) : false;
-  const node: FunctionNode = {
+  symbols.push({
     kind: "function",
     id,
     filePath,
     name,
     qualifiedName: `${filePath}::${name}`,
-    startLine,
-    endLine,
-    isExported,
-    isAsync,
+    startLine: v.getStartLineNumber(),
+    endLine: v.getEndLineNumber(),
+    isExported: stmt ? isExportedNode(stmt) : false,
+    isAsync: isFn && isAsyncFunctionLike(init),
     isTest: fileIsTest,
-    paramCount,
-  };
-  symbols.push(node);
+    paramCount: isFn ? getParamCount(init) : 0,
+  });
   relations.push({ kind: "CONTAINS", fromId: fileId, toId: id });
 }
 

@@ -77,13 +77,11 @@ function detectFromSource(
   // Heuristic names — top-level functions only (no parentClass).
   for (const s of symbols) {
     if (s.kind !== "function") continue;
-    if (seenIds.has(s.id)) continue;
-    if (s.parentClass) continue;
-    if (HEURISTIC_NAMES.has(s.name) || s.name.startsWith("on")) {
-      addEntry(
-        s,
-        HEURISTIC_NAMES.has(s.name) ? "heuristic_main" : "event_handler",
-      );
+    if (seenIds.has(s.id) || s.parentClass) continue;
+    if (HEURISTIC_NAMES.has(s.name)) {
+      addEntry(s, "heuristic_main");
+    } else if (s.name.startsWith("on")) {
+      addEntry(s, "event_handler");
     }
   }
 
@@ -96,16 +94,13 @@ function detectExportedNoIncoming(
   calls: RelationEdge[],
   alreadySeen: Set<string>,
 ): EntryPoint[] {
-  const incoming = new Map<string, number>();
-  for (const c of calls) {
-    incoming.set(c.toId, (incoming.get(c.toId) ?? 0) + 1);
-  }
+  const hasIncoming = new Set(calls.map((c) => c.toId));
   const out: EntryPoint[] = [];
   for (const s of symbols) {
     if (s.kind !== "function") continue;
-    if (alreadySeen.has(s.id)) continue;
-    if (!s.isExported) continue;
-    if ((incoming.get(s.id) ?? 0) > 0) continue;
+    if (alreadySeen.has(s.id) || !s.isExported || hasIncoming.has(s.id)) {
+      continue;
+    }
     out.push({
       functionId: s.id,
       kind: "no_incoming",

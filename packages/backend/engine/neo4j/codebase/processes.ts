@@ -17,12 +17,9 @@ function buildAdjacency(calls: RelationEdge[]): Map<string, string[]> {
   const adj = new Map<string, string[]>();
   for (const c of calls) {
     if (c.kind !== "CALLS") continue;
-    let arr = adj.get(c.fromId);
-    if (!arr) {
-      arr = [];
-      adj.set(c.fromId, arr);
-    }
-    arr.push(c.toId);
+    const arr = adj.get(c.fromId);
+    if (arr) arr.push(c.toId);
+    else adj.set(c.fromId, [c.toId]);
   }
   return adj;
 }
@@ -32,13 +29,12 @@ function bfsFrom(
   adj: Map<string, string[]>,
   maxDepth: number,
 ): Set<string> {
-  const visited = new Set<string>();
+  const visited = new Set<string>([start]);
   const queue: Array<[string, number]> = [[start, 0]];
-  visited.add(start);
-  while (queue.length > 0) {
-    const head = queue.shift();
-    if (!head) break;
-    const [id, depth] = head;
+  for (let i = 0; i < queue.length; i++) {
+    const item = queue[i];
+    if (item === undefined) break;
+    const [id, depth] = item;
     if (depth >= maxDepth) continue;
     const next = adj.get(id);
     if (!next) continue;
@@ -57,18 +53,11 @@ export function detectProcesses(
   calls: RelationEdge[],
 ): ProcessNode[] {
   const adj = buildAdjacency(calls);
-  const processes: ProcessNode[] = [];
-
-  entryPoints.forEach((entry, idx) => {
-    const members = bfsFrom(entry.functionId, adj, MAX_DEPTH);
-    processes.push({
-      id: `${codebaseId}:p${idx}`,
-      name: entry.name,
-      entryPointId: entry.functionId,
-      entryKind: entry.kind,
-      members: Array.from(members),
-    });
-  });
-
-  return processes;
+  return entryPoints.map((entry, idx) => ({
+    id: `${codebaseId}:p${idx}`,
+    name: entry.name,
+    entryPointId: entry.functionId,
+    entryKind: entry.kind,
+    members: Array.from(bfsFrom(entry.functionId, adj, MAX_DEPTH)),
+  }));
 }
