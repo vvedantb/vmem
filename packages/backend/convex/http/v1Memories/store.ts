@@ -30,7 +30,7 @@ async function runStoreHandler(
   }
 
   if (isInstructionStoreBody(body)) {
-    const result: StoreFromInstructionActionResult = await ctx.runAction(
+    const result = await ctx.runAction(
       internal.neo4jActions.agent.storeFromInstructionInternal,
       {
         clerkId: auth.clerkId,
@@ -46,23 +46,20 @@ async function runStoreHandler(
     return result;
   }
 
-  return await ctx.runAction(
-    internal.neo4jActions.memories.createMemoryInternal,
-    {
-      clerkId: auth.clerkId,
-      profileId: body.profileId,
-      title: body.title,
-      content: body.content,
-      type: body.type,
-      source: body.source,
-      tags: body.tags,
-      confidence: body.confidence,
-      expiresAt: body.expiresAt,
-      url: body.url,
-      externalId: body.externalId,
-      sourceType: body.sourceType,
-    },
-  );
+  return ctx.runAction(internal.neo4jActions.memories.createMemoryInternal, {
+    clerkId: auth.clerkId,
+    profileId: body.profileId,
+    title: body.title,
+    content: body.content,
+    type: body.type,
+    source: body.source,
+    tags: body.tags,
+    confidence: body.confidence,
+    expiresAt: body.expiresAt,
+    url: body.url,
+    externalId: body.externalId,
+    sourceType: body.sourceType,
+  });
 }
 
 export const storeMemory = withApiKeyAuth(

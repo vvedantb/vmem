@@ -10,9 +10,6 @@ import {
   isOpenRouterRequired,
   openRouterRequiredResponse,
   type RetrieveHttpResult,
-  type RetrieveMemoriesActionResult,
-  type SummarizeRetrieveActionResult,
-  type UserContextResult,
 } from "./types";
 
 async function runRetrieveHandler(
@@ -25,7 +22,7 @@ async function runRetrieveHandler(
     return forbidden;
   }
 
-  const memories: RetrieveMemoriesActionResult = await ctx.runAction(
+  const memories = await ctx.runAction(
     internal.neo4jActions.memories.retrieveMemoriesInternal,
     {
       clerkId: auth.clerkId,
@@ -37,7 +34,7 @@ async function runRetrieveHandler(
     },
   );
 
-  const userContext: UserContextResult = await ctx.runQuery(
+  const userContext = await ctx.runQuery(
     internal.userSettings.getUserContextInternal,
     {
       userId: auth.userId,
@@ -48,7 +45,7 @@ async function runRetrieveHandler(
     return { memories, userContext };
   }
 
-  const summaryResult: SummarizeRetrieveActionResult = await ctx.runAction(
+  const summaryResult = await ctx.runAction(
     internal.neo4jActions.agent.summarizeRetrieveInternal,
     {
       clerkId: auth.clerkId,

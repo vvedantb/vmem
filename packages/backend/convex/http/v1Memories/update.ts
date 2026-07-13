@@ -30,7 +30,7 @@ async function runUpdateHandler(
       return forbidden;
     }
 
-    const result: UpdateFromInstructionActionResult = await ctx.runAction(
+    const result = await ctx.runAction(
       internal.neo4jActions.agent.updateFromInstructionInternal,
       {
         clerkId: auth.clerkId,
@@ -46,7 +46,7 @@ async function runUpdateHandler(
     return result;
   }
 
-  const updated: UpdateMemoryActionResult = await ctx.runAction(
+  const updated = await ctx.runAction(
     internal.neo4jActions.memories.updateMemoryInternal,
     {
       clerkId: auth.clerkId,
