@@ -8,8 +8,7 @@ import {
   getMemoryContent,
 } from "../../engine/neo4j/memory/graph";
 import { getDriver } from "../../engine/neo4j/driver";
-
-type MemoryType = "profile" | "episodic" | "knowledge";
+import type { MemoryType } from "./_memories/shared";
 
 // Convex enforces a hard 8192 element limit on ANY array in a return value
 // (applies to all Convex values: return values, arguments, and documents alike).

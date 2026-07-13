@@ -96,7 +96,7 @@ export async function runBackfillChunks(
   }
 
   for (const memory of candidates) {
-    await ctx.runAction(internal.neo4jActions.memories.chunkMemoryInternal, {
+    await runChunkMemory(ctx, {
       clerkId: args.clerkId,
       memoryId: memory.id,
       content: memory.content,

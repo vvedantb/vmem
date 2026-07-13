@@ -28,7 +28,8 @@ import {
 import { runCreateMemory } from "./create";
 import { resolveProfileIdForClerkId } from "./shared";
 
-/** Resolve `profileId` (default profile when unset) and splice it back into args. */
+/** Resolve `profileId` (default / MCP-active when unset) and splice it into args.
+ *  Used for read paths at the action boundary; write runners resolve inside. */
 async function withResolvedProfileId<
   T extends { clerkId: string; profileId?: string },
 >(ctx: ActionCtx, args: T) {

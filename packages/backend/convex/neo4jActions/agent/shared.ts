@@ -6,6 +6,7 @@ import type { Id } from "../../_generated/dataModel";
 import { callJsonChat } from "../../lib/openRouter";
 import { tryUserAndApiKeyByClerkId } from "../../lib/envVars";
 import { runCreateMemory } from "../_memories/create";
+import { resolveProfileIdForClerkId } from "../_memories/shared";
 import type { MemoryWithTags } from "../../../engine/neo4j/memory/types";
 import {
   parseFactExtractionResponse,
@@ -82,21 +83,59 @@ export async function extractFactsFromInstruction(
   return parseFactExtractionResponse(extractionRaw);
 }
 
-export function computeSdkFactExternalId(
-  clerkId: string,
-  instruction: string,
-  factIndex: number,
-  factText: string,
-): string {
+/** Stable per-fact externalId — hash segments joined with NUL. */
+export function computeFactExternalId(parts: readonly string[]): string {
   const h = crypto.createHash("sha256");
-  h.update(clerkId);
-  h.update("\0");
-  h.update(instruction);
-  h.update("\0");
-  h.update(String(factIndex));
-  h.update("\0");
-  h.update(factText);
+  for (const [i, part] of parts.entries()) {
+    if (i > 0) h.update("\0");
+    h.update(part);
+  }
   return h.digest("hex");
+}
+
+const EXTRACTED_FACT_META = {
+  sdk: {
+    source: "sdk-api",
+    tags: ["sdk-extracted"],
+    sourceType: "sdk-extracted",
+  },
+  v2: {
+    source: "v2-extracted",
+    tags: ["v2-extracted"],
+    sourceType: "v2-extracted",
+  },
+} as const;
+
+/** Create a memory from an extracted fact (SDK store/update or v2 prompt-capture). */
+export async function createExtractedFactMemory(
+  ctx: ActionCtx,
+  args: {
+    clerkId: string;
+    profileId: string | undefined;
+    factIndex: number;
+    text: string;
+    variant: keyof typeof EXTRACTED_FACT_META;
+    /** Hashed before factIndex/text — sdk: [clerkId, instruction]; v2: [sourceMemoryId]. */
+    externalIdScope: readonly string[];
+  },
+): Promise<MemoryWithTags> {
+  const meta = EXTRACTED_FACT_META[args.variant];
+  return runCreateMemory(ctx, {
+    clerkId: args.clerkId,
+    profileId: args.profileId,
+    title: args.text.slice(0, 80),
+    content: args.text,
+    type: "knowledge",
+    source: meta.source,
+    tags: [...meta.tags],
+    confidence: 0.9,
+    externalId: computeFactExternalId([
+      ...args.externalIdScope,
+      String(args.factIndex),
+      args.text,
+    ]),
+    sourceType: meta.sourceType,
+  });
 }
 
 /** Create a memory from an SDK-extracted fact, tagged and keyed consistently. */
@@ -110,23 +149,48 @@ export async function createSdkExtractedMemory(
     text: string;
   },
 ): Promise<MemoryWithTags> {
-  return runCreateMemory(ctx, {
+  return createExtractedFactMemory(ctx, {
     clerkId: args.clerkId,
     profileId: args.profileId,
-    title: args.text.slice(0, 80),
-    content: args.text,
-    type: "knowledge",
-    source: "sdk-api",
-    tags: ["sdk-extracted"],
-    confidence: 0.9,
-    externalId: computeSdkFactExternalId(
-      args.clerkId,
-      args.instruction,
-      args.factIndex,
-      args.text,
-    ),
-    sourceType: "sdk-extracted",
+    factIndex: args.factIndex,
+    text: args.text,
+    variant: "sdk",
+    externalIdScope: [args.clerkId, args.instruction],
   });
+}
+
+export async function prepareInstructionFacts(
+  ctx: ActionCtx,
+  args: { clerkId: string; instruction: string; profileId?: string },
+): Promise<
+  | OpenRouterRequired
+  | { empty: true }
+  | {
+      auth: AgentAuth;
+      profileId: string;
+      facts: ExtractedFactsResponse["facts"];
+    }
+> {
+  const auth = await requireOpenRouterAuth(ctx, args.clerkId);
+  if ("error" in auth) return auth;
+
+  const profileId = await resolveProfileIdForClerkId(
+    ctx,
+    args.clerkId,
+    args.profileId,
+  );
+
+  const extracted = await extractFactsFromInstruction(
+    ctx,
+    auth,
+    args.instruction,
+    profileId,
+  );
+  if (!extracted || extracted.facts.length === 0) {
+    return { empty: true };
+  }
+
+  return { auth, profileId, facts: extracted.facts };
 }
 
 export function toDecisionCandidates(

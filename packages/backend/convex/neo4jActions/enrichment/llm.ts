@@ -2,13 +2,13 @@
 
 import type { Driver } from "neo4j-driver";
 import type { ActionCtx } from "../../_generated/server";
-import type { Id } from "../../_generated/dataModel";
 import { getRecentMemoryTitles } from "../../../engine/neo4j/memory/search";
 import { getTopTags } from "../../../engine/neo4j/memory/tags";
 import { getTopEntities } from "../../../engine/neo4j/memory/entities";
 import type { TagUsage } from "../../../engine/neo4j/memory/tagNormalize";
 import { callJsonChat } from "../../lib/openRouter";
 import type { OpenRouterFeature } from "../../lib/openRouter/shared";
+import type { AgentAuth } from "../agent/shared";
 import {
   buildFullEnrichmentPrompt,
   parseFullEnrichmentResponse,
@@ -26,10 +26,7 @@ export interface EnrichmentVocabulary {
   topEntities?: KnownEntity[];
 }
 
-export interface EnrichmentAuth {
-  userId: Id<"users">;
-  apiKey: string;
-}
+export type EnrichmentAuth = AgentAuth;
 
 export async function loadEnrichmentVocabulary(
   driver: Driver,

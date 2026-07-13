@@ -1,9 +1,11 @@
 "use node";
 
 import type { Driver } from "neo4j-driver";
-import type { ActionCtx } from "../../_generated/server";
-import { internal } from "../../_generated/api";
 import { getMemory } from "../../../engine/neo4j/memory/crud";
+import {
+  createProposedDelete,
+  createProposedUpdate,
+} from "../../../engine/neo4j/memory/proposals";
 import type { ProposedUpdateNode } from "../../../engine/neo4j/memory/types";
 import type { UpdateDecision } from "../../prompts/v2Prompt";
 
@@ -25,7 +27,6 @@ async function memoryExists(
 }
 
 export async function applyFactUpdateOrDelete(
-  ctx: ActionCtx,
   driver: Driver,
   params: {
     clerkId: string;
@@ -62,14 +63,11 @@ export async function applyFactUpdateOrDelete(
       return "missing-target";
     }
 
-    const proposal = await ctx.runAction(
-      internal.neo4jActions.proposedUpdates.createProposedUpdateInternal,
-      {
-        memoryId,
-        proposedContent,
-        reason: buildUpdateReason({ factText, decision }),
-      },
-    );
+    const proposal = await createProposedUpdate(driver, {
+      memoryId,
+      proposedContent,
+      reason: buildUpdateReason({ factText, decision }),
+    });
     onProposal?.(proposal);
     return "update";
   }
@@ -82,13 +80,10 @@ export async function applyFactUpdateOrDelete(
       return "missing-target";
     }
 
-    const proposal = await ctx.runAction(
-      internal.neo4jActions.proposedUpdates.createProposedDeleteInternal,
-      {
-        memoryId,
-        reason: buildDeleteReason({ factText, decision }),
-      },
-    );
+    const proposal = await createProposedDelete(driver, {
+      memoryId,
+      reason: buildDeleteReason({ factText, decision }),
+    });
     onProposal?.(proposal);
     return "delete";
   }

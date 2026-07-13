@@ -80,9 +80,9 @@ export const resolveProposalInternal = internalAction({
 });
 
 /**
- * Internal helper used by the V2 fact-extraction pipeline to record an
- * ADD/UPDATE/DELETE proposal in Neo4j. Wraps Neo4j proposal/crud calls; the
- * caller (`factExtraction.ts`) is responsible for the LLM decision.
+ * Internal helpers to record ADD/UPDATE/DELETE proposals in Neo4j.
+ * In-process callers (e.g. `applyFactDecision`) use the engine functions
+ * directly; these actions remain for scheduled / cross-action hops.
  */
 export const createProposedUpdateInternal = internalAction({
   args: {

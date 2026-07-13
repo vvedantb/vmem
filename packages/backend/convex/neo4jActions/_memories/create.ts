@@ -6,6 +6,7 @@
 
 import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
+import type { Driver } from "neo4j-driver";
 import { computeContentHash } from "../../../engine/neo4j/memory/mappers";
 import {
   createMemory,
@@ -23,6 +24,7 @@ import {
   resolveProfileIdForClerkId,
   scheduleChunkSyncForContent,
   scheduleContextPromptInvalidation,
+  toMemoryType,
   tryEmbedOne,
 } from "./shared";
 import { scheduleMemoryEnrichment } from "./postMaterialize";
@@ -62,10 +64,7 @@ export async function runCreateMemory(
     args.clerkId,
     args.profileId,
   );
-  const memoryType =
-    args.type === "profile" || args.type === "episodic"
-      ? args.type
-      : "knowledge";
+  const memoryType = toMemoryType(args.type) ?? "knowledge";
   const normalizedUrl = args.url
     ? (normalizeUrl(args.url) ?? undefined)
     : undefined;
@@ -163,7 +162,7 @@ export async function runCreateMemory(
     originalFilename: args.originalFilename,
   });
 
-  await schedulePostCreate(ctx, {
+  await schedulePostCreate(ctx, driver, {
     clerkId: args.clerkId,
     memoryId: result.id,
     title: result.title,
@@ -188,6 +187,7 @@ interface PostCreateParams {
 
 async function schedulePostCreate(
   ctx: ActionCtx,
+  driver: Driver,
   params: PostCreateParams,
 ): Promise<void> {
   await ctx.runMutation(internal.memoryEvents.pushEventInternal, {
@@ -205,7 +205,7 @@ async function schedulePostCreate(
     profileId: params.profileId,
   });
 
-  await scheduleChunkSyncForContent(ctx, getDriver(), {
+  await scheduleChunkSyncForContent(ctx, driver, {
     clerkId: params.clerkId,
     memoryId: params.memoryId,
     content: params.content,

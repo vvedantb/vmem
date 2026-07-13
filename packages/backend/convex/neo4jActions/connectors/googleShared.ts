@@ -21,10 +21,9 @@ export function pickGoogleTokenConnectorId(
   connectors: GoogleConnectorRow[],
   forProvider: GoogleProvider,
 ): Id<"connectors"> | null {
-  const connected = connectors.filter(
+  const match = connectors.find(
     (row) =>
-      row.connectionStatus === "connected" && row.provider === "google_drive",
+      row.connectionStatus === "connected" && row.provider === forProvider,
   );
-
-  return connected.find((row) => row.provider === forProvider)?._id ?? null;
+  return match?._id ?? null;
 }

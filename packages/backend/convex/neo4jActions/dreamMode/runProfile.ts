@@ -19,7 +19,7 @@ import {
   parsePortraitResponse,
   type ParsedPortrait,
 } from "../../../engine/neo4j/portraitPrompt";
-import { scheduleContextPromptInvalidationByClerkId } from "../../lib/contextPromptInvalidate";
+import { scheduleContextPromptInvalidation } from "../_memories/shared";
 import {
   createSynthesisProposal,
   hasOverlappingPendingProposal,
@@ -255,14 +255,10 @@ export const runDreamForProfileInternal = internalAction({
       console.warn(`[dream] profile ${args.profileId} not found`);
       return result;
     }
-    let autoAccept: boolean;
-    if (args.forceProposals === true) {
-      autoAccept = false;
-    } else if (args.autoAcceptOverride !== undefined) {
-      autoAccept = args.autoAcceptOverride;
-    } else {
-      autoAccept = profile.dreamModeAutoAccept === true;
-    }
+    const autoAccept =
+      args.forceProposals === true
+        ? false
+        : (args.autoAcceptOverride ?? profile.dreamModeAutoAccept === true);
     const depthParams = DEPTH_PARAMS[args.depth ?? "standard"];
 
     const driver = getDriver();
@@ -543,7 +539,7 @@ export const runDreamForProfileInternal = internalAction({
               sourceMemoryIds: portrait.sourceMemoryIds,
             });
             // The MCP context prompt embeds the portrait — refresh it.
-            await scheduleContextPromptInvalidationByClerkId(ctx, args.clerkId);
+            await scheduleContextPromptInvalidation(ctx, args.clerkId);
           }
         }
       }

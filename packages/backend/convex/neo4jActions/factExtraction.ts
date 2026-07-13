@@ -1,6 +1,5 @@
 "use node";
 
-import crypto from "node:crypto";
 import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
@@ -8,6 +7,7 @@ import { getDriver } from "../../engine/neo4j/driver";
 import { applyFactUpdateOrDelete } from "./agent/applyFactDecision";
 import { runFactDecisionLoop } from "./agent/factDecisionLoop";
 import {
+  createExtractedFactMemory,
   extractFactsFromInstruction,
   requireOpenRouterAuth,
 } from "./agent/shared";
@@ -33,21 +33,6 @@ import {
  * (`./agent/shared`); this module keeps prompt-capture-specific
  * retrieve filtering, metadata, and notification batching.
  */
-
-/** Stable per-fact externalId so re-running on the same prompt is idempotent. */
-function computeFactExternalId(
-  sourceMemoryId: string,
-  factIndex: number,
-  factText: string,
-): string {
-  const h = crypto.createHash("sha256");
-  h.update(sourceMemoryId);
-  h.update("\0");
-  h.update(String(factIndex));
-  h.update("\0");
-  h.update(factText);
-  return h.digest("hex");
-}
 
 export const extractFactsAndDecideInternal = internalAction({
   args: {
@@ -96,29 +81,17 @@ export const extractFactsAndDecideInternal = internalAction({
       extracted.facts,
       async ({ factIndex, factText, decision }) => {
         if (decision.event === "ADD" && decision.text) {
-          const externalId = computeFactExternalId(
-            args.sourceMemoryId,
+          await createExtractedFactMemory(ctx, {
+            clerkId: args.clerkId,
+            profileId: args.profileId,
             factIndex,
-            decision.text,
-          );
-          await ctx.runAction(
-            internal.neo4jActions.memories.createMemoryInternal,
-            {
-              clerkId: args.clerkId,
-              profileId: args.profileId,
-              title: decision.text.slice(0, 80),
-              content: decision.text,
-              type: "knowledge",
-              source: "v2-extracted",
-              tags: ["v2-extracted"],
-              confidence: 0.9,
-              externalId,
-              sourceType: "v2-extracted",
-            },
-          );
+            text: decision.text,
+            variant: "v2",
+            externalIdScope: [args.sourceMemoryId],
+          });
           appliedCount += 1;
         } else {
-          const outcome = await applyFactUpdateOrDelete(ctx, driver, {
+          const outcome = await applyFactUpdateOrDelete(driver, {
             clerkId: args.clerkId,
             factText,
             decision,

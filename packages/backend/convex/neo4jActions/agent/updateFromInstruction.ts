@@ -1,26 +1,23 @@
 "use node";
 
 import type { ActionCtx } from "../../_generated/server";
-import type { MemoryWithTags } from "../../../engine/neo4j/memory/types";
+import type {
+  MemoryWithTags,
+  ProposedUpdateNode,
+} from "../../../engine/neo4j/memory/types";
 import { getDriver } from "../../../engine/neo4j/driver";
-import { resolveProfileIdForClerkId } from "../_memories/shared";
 import { applyFactUpdateOrDelete } from "./applyFactDecision";
 import { runFactDecisionLoop } from "./factDecisionLoop";
 import {
-  extractFactsFromInstruction,
   createSdkExtractedMemory,
-  requireOpenRouterAuth,
+  prepareInstructionFacts,
   type OpenRouterRequired,
 } from "./shared";
 
-export interface AgentProposal {
-  id: string;
-  memoryId: string;
-  proposedContent: string;
-  reason: string;
-  kind: string;
-  status: string;
-}
+export type AgentProposal = Pick<
+  ProposedUpdateNode,
+  "id" | "memoryId" | "proposedContent" | "reason" | "kind" | "status"
+>;
 
 export interface UpdateFromInstructionResult {
   applied: MemoryWithTags[];
@@ -38,25 +35,9 @@ export async function runUpdateFromInstruction(
   ctx: ActionCtx,
   args: UpdateFromInstructionArgs,
 ): Promise<UpdateFromInstructionResult | OpenRouterRequired> {
-  const auth = await requireOpenRouterAuth(ctx, args.clerkId);
-  if ("error" in auth) {
-    return auth;
-  }
-
-  const profileId = await resolveProfileIdForClerkId(
-    ctx,
-    args.clerkId,
-    args.profileId,
-  );
-
-  const extracted = await extractFactsFromInstruction(
-    ctx,
-    auth,
-    args.instruction,
-    profileId,
-  );
-
-  if (!extracted || extracted.facts.length === 0) {
+  const prepared = await prepareInstructionFacts(ctx, args);
+  if ("error" in prepared) return prepared;
+  if ("empty" in prepared) {
     return {
       applied: [],
       proposals: [],
@@ -71,27 +52,28 @@ export async function runUpdateFromInstruction(
   await runFactDecisionLoop(
     {
       ctx,
-      auth,
+      auth: prepared.auth,
       clerkId: args.clerkId,
-      profileId,
+      profileId: prepared.profileId,
       retrieveWithProfileId: true,
       logPrefix: "[agent]",
     },
-    extracted.facts,
+    prepared.facts,
     async ({ factIndex: index, factText, decision }) => {
       if (decision.event === "ADD" && decision.text) {
-        const memory = await createSdkExtractedMemory(ctx, {
-          clerkId: args.clerkId,
-          profileId,
-          instruction: args.instruction,
-          factIndex: index,
-          text: decision.text,
-        });
-        applied.push(memory);
+        applied.push(
+          await createSdkExtractedMemory(ctx, {
+            clerkId: args.clerkId,
+            profileId: prepared.profileId,
+            instruction: args.instruction,
+            factIndex: index,
+            text: decision.text,
+          }),
+        );
         return;
       }
 
-      await applyFactUpdateOrDelete(ctx, driver, {
+      await applyFactUpdateOrDelete(driver, {
         clerkId: args.clerkId,
         factText,
         decision,
