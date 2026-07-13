@@ -90,30 +90,27 @@ export const mcpWhoami = internalAction({
   args: { clerkId: v.string(), scope: mcpScopeValidator },
   returns: whoamiResultValidator,
   handler: async (ctx, args): Promise<WhoamiResult> => {
-    const clerkId = args.clerkId;
-    const scope = args.scope;
-
     const profiles = await ctx.runQuery(
       internal.profiles.listByClerkIdAndScopeInternal,
-      { clerkId, scope },
+      { clerkId: args.clerkId, scope: args.scope },
     );
 
     let activeProfile: Doc<"profiles"> | null = await ctx.runQuery(
       internal.profiles.getActiveProfileForMcpScopeInternal,
-      { clerkId, scope },
+      { clerkId: args.clerkId, scope: args.scope },
     );
 
-    if (!activeProfile && scope === "personal") {
+    if (!activeProfile && args.scope === "personal") {
       activeProfile = await ctx.runMutation(
         internal.profiles.getOrCreateDefaultByClerkIdInternal,
-        { clerkId },
+        { clerkId: args.clerkId },
       );
     }
 
     return {
       authenticated: true,
-      clerkUserId: clerkId,
-      scope,
+      clerkUserId: args.clerkId,
+      scope: args.scope,
       activeProfile: activeProfile ? mapActiveProfile(activeProfile) : null,
       profiles: profiles.map(mapWhoamiProfileListItem),
     };

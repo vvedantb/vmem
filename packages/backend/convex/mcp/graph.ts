@@ -58,46 +58,19 @@ const MAX_TAGS_PER_NODE = 12;
 
 type MemoryGraphNode = Infer<typeof memoryGraphNodeValidator>;
 type RelatesToEdge = Infer<typeof relatesToEdgeValidator>;
-type McpTagEdge = Infer<typeof tagEdgeValidator>;
-
-type RawTagEdge = {
-  source: string;
-  target: string;
-  weight: number;
-};
-
-type RawGraph = {
-  nodes: MemoryGraphNode[];
-  relatesToEdges: RelatesToEdge[];
-  tagEdges: RawTagEdge[];
-  totalMemoryCount: number;
-};
 
 type McpGraphSlice = Pick<
   Infer<typeof mcpMemoryGraphResultValidator>,
   "nodes" | "relatesToEdges" | "tagEdges"
 >;
 
-function toMcpTagEdges(edges: RawTagEdge[]): McpTagEdge[] {
-  return edges.map((e) => ({
-    source: e.source,
-    target: e.target,
-    weight: e.weight,
-  }));
-}
-
 function normalizeLimit(limit: number | undefined): number {
   if (limit === undefined) return DEFAULT_NODE_LIMIT;
   return Math.min(Math.max(Math.floor(limit), 1), MAX_NODE_LIMIT);
 }
 
-type ExpandableGraphSlice = Pick<
-  RawGraph,
-  "nodes" | "relatesToEdges" | "tagEdges"
->;
-
 function expandMemoryIdSeeds(
-  graph: ExpandableGraphSlice,
+  graph: McpGraphSlice,
   memoryIds: string[],
 ): McpGraphSlice {
   const seeds = new Set(memoryIds);
@@ -114,14 +87,15 @@ function expandMemoryIdSeeds(
 
   const nodes = graph.nodes.filter((n) => included.has(n.id));
   const nodeIds = new Set(nodes.map((n) => n.id));
-  const relatesToEdges = graph.relatesToEdges.filter(
-    (e) => nodeIds.has(e.source) && nodeIds.has(e.target),
-  );
-  const tagEdges = graph.tagEdges.filter(
-    (e) => nodeIds.has(e.source) && nodeIds.has(e.target),
-  );
-
-  return { nodes, relatesToEdges, tagEdges: toMcpTagEdges(tagEdges) };
+  return {
+    nodes,
+    relatesToEdges: graph.relatesToEdges.filter(
+      (e) => nodeIds.has(e.source) && nodeIds.has(e.target),
+    ),
+    tagEdges: graph.tagEdges.filter(
+      (e) => nodeIds.has(e.source) && nodeIds.has(e.target),
+    ),
+  };
 }
 
 function slimNodeForMcp(node: MemoryGraphNode): MemoryGraphNode {
@@ -246,18 +220,11 @@ export const mcpGetMemoryGraph = internalAction({
     let working: McpGraphSlice = {
       nodes: raw.nodes,
       relatesToEdges: raw.relatesToEdges,
-      tagEdges: toMcpTagEdges(raw.tagEdges),
+      tagEdges: raw.tagEdges,
     };
 
     if (args.memoryIds !== undefined && args.memoryIds.length > 1) {
-      working = expandMemoryIdSeeds(
-        {
-          nodes: raw.nodes,
-          relatesToEdges: raw.relatesToEdges,
-          tagEdges: raw.tagEdges,
-        },
-        args.memoryIds,
-      );
+      working = expandMemoryIdSeeds(working, args.memoryIds);
     }
 
     const capped = capMemoryGraph(

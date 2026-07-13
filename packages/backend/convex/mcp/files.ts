@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { internalAction } from "../_generated/server";
+import { internalAction, type ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { normalizePathSegments, nodePath, resolveByPath } from "../files/lib";
@@ -112,13 +112,29 @@ function toListItem(
   };
 }
 
+async function listFileNodes(
+  ctx: ActionCtx,
+  clerkId: string,
+): Promise<Array<Doc<"fileNodes">>> {
+  return ctx.runQuery(internal.files.listByClerkIdInternal, { clerkId });
+}
+
+function requireNodeAtPath(
+  nodes: Array<Doc<"fileNodes">>,
+  path: string,
+): { node: Doc<"fileNodes">; segments: string[] } {
+  const segments = normalizePathSegments(path);
+  const node = resolveByPath(nodes, segments);
+  if (!node) {
+    throw new Error(`Path not found: ${segments.join("/")}`);
+  }
+  return { node, segments };
+}
+
 export const mcpListFiles = internalAction({
   args: { clerkId: v.string(), path: v.optional(v.string()) },
   handler: async (ctx, args): Promise<FileListItem[]> => {
-    const nodes: Array<Doc<"fileNodes">> = await ctx.runQuery(
-      internal.files.listByClerkIdInternal,
-      { clerkId: args.clerkId },
-    );
+    const nodes = await listFileNodes(ctx, args.clerkId);
 
     const segments =
       args.path !== undefined ? normalizePathSegments(args.path) : [];
@@ -142,15 +158,8 @@ export const mcpListFiles = internalAction({
 export const mcpGetFile = internalAction({
   args: { clerkId: v.string(), path: v.string() },
   handler: async (ctx, args): Promise<FileGetResult> => {
-    const nodes: Array<Doc<"fileNodes">> = await ctx.runQuery(
-      internal.files.listByClerkIdInternal,
-      { clerkId: args.clerkId },
-    );
-    const segments = normalizePathSegments(args.path);
-    const node = resolveByPath(nodes, segments);
-    if (!node) {
-      throw new Error(`Path not found: ${segments.join("/")}`);
-    }
+    const nodes = await listFileNodes(ctx, args.clerkId);
+    const { node } = requireNodeAtPath(nodes, args.path);
     if (node.kind !== "file") {
       throw new Error("Path is a folder, not a file");
     }
@@ -201,9 +210,10 @@ export const mcpUploadFile = internalAction({
     if (segments.length === 0) {
       throw new Error("Path is required");
     }
-    const hasBase64 =
-      args.contentBase64 !== undefined && args.contentBase64.length > 0;
-    const hasUrl = args.sourceUrl !== undefined && args.sourceUrl.length > 0;
+    const contentBase64 = args.contentBase64;
+    const sourceUrl = args.sourceUrl;
+    const hasBase64 = contentBase64 !== undefined && contentBase64.length > 0;
+    const hasUrl = sourceUrl !== undefined && sourceUrl.length > 0;
     if (hasBase64 === hasUrl) {
       throw new Error("Provide exactly one of contentBase64 or sourceUrl");
     }
@@ -211,8 +221,8 @@ export const mcpUploadFile = internalAction({
     let blob: Blob;
     let mimeType: string;
 
-    if (hasUrl && args.sourceUrl) {
-      const response = await fetch(args.sourceUrl);
+    if (hasUrl && sourceUrl !== undefined) {
+      const response = await fetch(sourceUrl);
       if (!response.ok) {
         throw new Error(
           `Failed to fetch sourceUrl (${response.status} ${response.statusText})`,
@@ -225,8 +235,8 @@ export const mcpUploadFile = internalAction({
         (headerMime ? headerMime.split(";")[0] : null) ??
         blob.type ??
         "application/octet-stream";
-    } else if (hasBase64 && args.contentBase64) {
-      const { buffer, dataUrlMime } = decodeBase64(args.contentBase64);
+    } else if (hasBase64 && contentBase64 !== undefined) {
+      const { buffer, dataUrlMime } = decodeBase64(contentBase64);
       mimeType = args.mimeType ?? dataUrlMime ?? "application/octet-stream";
       blob = new Blob([buffer], { type: mimeType });
     } else {
@@ -269,17 +279,10 @@ export const mcpUploadFile = internalAction({
 export const mcpDeleteFile = internalAction({
   args: { clerkId: v.string(), path: v.string() },
   handler: async (ctx, args): Promise<FileDeleteResult> => {
-    const nodes: Array<Doc<"fileNodes">> = await ctx.runQuery(
-      internal.files.listByClerkIdInternal,
-      { clerkId: args.clerkId },
-    );
-    const segments = normalizePathSegments(args.path);
-    const node = resolveByPath(nodes, segments);
-    if (!node) {
-      throw new Error(`Path not found: ${segments.join("/")}`);
-    }
+    const nodes = await listFileNodes(ctx, args.clerkId);
+    const { node } = requireNodeAtPath(nodes, args.path);
     const path = nodePath(nodes, node);
-    const { deletedCount }: { deletedCount: number } = await ctx.runMutation(
+    const { deletedCount } = await ctx.runMutation(
       internal.files.deleteByIdForClerkInternal,
       { clerkId: args.clerkId, nodeId: node._id },
     );

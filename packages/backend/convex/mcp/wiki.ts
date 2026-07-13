@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { internalAction } from "../_generated/server";
+import { internalAction, type ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import {
@@ -13,7 +13,6 @@ import {
   normalizeWikiPathSegments,
   wikiPathNodesFromDocs,
 } from "../wiki/path";
-import type { ActionCtx } from "../_generated/server";
 
 export interface WikiListItem {
   id: string;
@@ -194,18 +193,18 @@ export const mcpCreateWiki = internalAction({
     sourceCodebaseId: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<WikiGetResult> => {
-    const hasParentId = args.parentId !== undefined && args.parentId.length > 0;
     const parentPathTrimmed = args.parentPath?.trim() ?? "";
     const hasParentPath = parentPathTrimmed.length > 0;
-    if (hasParentId && hasParentPath) {
+    const parentIdArg = args.parentId;
+    if (parentIdArg !== undefined && parentIdArg.length > 0 && hasParentPath) {
       throw new Error("Provide parentId or parentPath, not both");
     }
 
     let parentId: Id<"wikiNodes"> | undefined;
-    if (hasParentId && args.parentId !== undefined) {
+    if (parentIdArg !== undefined && parentIdArg.length > 0) {
       const parent: Doc<"wikiNodes"> | null = await ctx.runQuery(
         internal.wiki.getByIdInternal,
-        { clerkId: args.clerkId, id: args.parentId },
+        { clerkId: args.clerkId, id: parentIdArg },
       );
       if (!parent || parent.kind !== "folder") {
         throw new Error("Parent folder not found");
