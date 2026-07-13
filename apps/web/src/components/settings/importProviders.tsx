@@ -1,8 +1,6 @@
 import type { ComponentType } from "react";
 import ClaudeLogo from "./ClaudeLogo";
-import GeminiLogo from "./GeminiLogo";
 import ChatGptLogo from "./ChatGptLogo";
-import PerplexityLogo from "./PerplexityLogo";
 import { parseChatGptExportBuffer } from "../_utils/parseChatGptExport";
 import { parseClaudeExportBuffer } from "../_utils/parseClaudeExport";
 import type { ExportImportRow } from "../_utils/importRows";
@@ -13,27 +11,20 @@ type ParseResult =
 
 type LogoProps = { className?: string };
 
-type BaseProvider = {
+export type AvailableProvider = {
+  kind: "available";
   id: string;
   label: string;
   description: string;
   Logo: ComponentType<LogoProps>;
   logoClassName: string;
-};
-
-export type AvailableProvider = BaseProvider & {
-  kind: "available";
   parser: (buffer: ArrayBuffer) => ParseResult;
   instructions: { title: string; steps: string[]; accept: string };
   source: string;
   tag: string;
 };
 
-type ComingSoonProvider = BaseProvider & {
-  kind: "coming-soon";
-};
-
-export type ImportProvider = AvailableProvider | ComingSoonProvider;
+export type ImportProvider = AvailableProvider;
 
 export const importProviders: readonly ImportProvider[] = [
   {
@@ -77,22 +68,5 @@ export const importProviders: readonly ImportProvider[] = [
       ],
       accept: ".zip,.json,application/zip,application/json",
     },
-  },
-  {
-    kind: "coming-soon",
-    id: "gemini",
-    label: "Gemini",
-    Logo: GeminiLogo,
-    logoClassName: "text-[#4285F4]",
-    description: "Google Takeout export — support coming soon.",
-  },
-  {
-    kind: "coming-soon",
-    id: "perplexity",
-    label: "Perplexity",
-    Logo: PerplexityLogo,
-    logoClassName: "text-[#20808D]",
-    description:
-      "Perplexity does not yet offer a bulk export. Support coming soon.",
   },
 ];
