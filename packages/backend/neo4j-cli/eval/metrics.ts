@@ -1,3 +1,15 @@
+/** Fraction of expected titles present in the top-k results (set recall@k). */
+export function recallAtK(
+  titles: readonly string[],
+  expectedTitles: readonly string[],
+  k: number,
+): number {
+  if (expectedTitles.length === 0) return 0;
+  const topK = new Set(titles.slice(0, k));
+  const hits = expectedTitles.filter((title) => topK.has(title)).length;
+  return hits / expectedTitles.length;
+}
+
 /** Fraction of expected titles that appear in the top five results. */
 export function recallAtFive(
   titles: readonly string[],
@@ -14,18 +26,6 @@ export function reciprocalRank(
   const expected = new Set(expectedTitles);
   const firstRelevantIndex = titles.findIndex((title) => expected.has(title));
   return firstRelevantIndex === -1 ? 0 : 1 / (firstRelevantIndex + 1);
-}
-
-/** Fraction of expected titles present in the top-k results (set recall@k). */
-export function recallAtK(
-  titles: readonly string[],
-  expectedTitles: readonly string[],
-  k: number,
-): number {
-  if (expectedTitles.length === 0) return 0;
-  const topK = new Set(titles.slice(0, k));
-  const hits = expectedTitles.filter((title) => topK.has(title)).length;
-  return hits / expectedTitles.length;
 }
 
 /** Fraction of the top-k results that are relevant (precision@k). */

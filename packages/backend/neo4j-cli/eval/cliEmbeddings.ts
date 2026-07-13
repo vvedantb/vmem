@@ -26,9 +26,25 @@ function sleep(ms: number): Promise<void> {
 }
 
 function truncateForEmbedding(text: string): string {
-  return text.length > EMBEDDING_MAX_INPUT_CHARS
-    ? text.slice(0, EMBEDDING_MAX_INPUT_CHARS)
-    : text;
+  return text.slice(0, EMBEDDING_MAX_INPUT_CHARS);
+}
+
+function rollingHash(text: string, multiplier: number): number {
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) {
+    hash = (hash * multiplier + text.charCodeAt(i)) | 0;
+  }
+  return hash;
+}
+
+function l2Normalize(vec: number[]): number[] {
+  let sumSquares = 0;
+  for (const value of vec) {
+    sumSquares += value * value;
+  }
+  const norm = Math.sqrt(sumSquares);
+  if (norm === 0) return vec;
+  return vec.map((value) => value / norm);
 }
 
 function syntheticEmbed(text: string): number[] {
@@ -37,11 +53,7 @@ function syntheticEmbed(text: string): number[] {
   const tokens = normalized.match(/[a-z0-9]+/g) ?? [];
 
   for (const token of tokens) {
-    let hash = 0;
-    for (let i = 0; i < token.length; i++) {
-      hash = (hash * 31 + token.charCodeAt(i)) | 0;
-    }
-
+    const hash = rollingHash(token, 31);
     for (let slot = 0; slot < 4; slot++) {
       const index = Math.abs((hash + slot * 9973) % EMBEDDING_DIMENSIONS);
       vec[index] = (vec[index] ?? 0) + 1;
@@ -51,26 +63,15 @@ function syntheticEmbed(text: string): number[] {
   for (let i = 0; i < normalized.length - 1; i++) {
     const bigram = normalized.slice(i, i + 2);
     if (!/\w/.test(bigram)) continue;
-    let hash = 0;
-    for (let j = 0; j < bigram.length; j++) {
-      hash = (hash * 37 + bigram.charCodeAt(j)) | 0;
-    }
-    const index = Math.abs(hash % EMBEDDING_DIMENSIONS);
+    const index = Math.abs(rollingHash(bigram, 37) % EMBEDDING_DIMENSIONS);
     vec[index] = (vec[index] ?? 0) + 0.5;
   }
 
-  let sumSquares = 0;
-  for (const value of vec) {
-    sumSquares += value * value;
-  }
-  const norm = Math.sqrt(sumSquares);
-  if (norm === 0) return vec;
-
-  return vec.map((value) => value / norm);
+  return l2Normalize(vec);
 }
 
 function validateEmbeddingItems(
-  data: Array<{ embedding: Array<number> | string; index?: number }>,
+  data: Array<{ embedding: number[] | string; index?: number }>,
   expectedCount: number,
 ): number[][] {
   if (data.length !== expectedCount) {
@@ -133,10 +134,7 @@ async function generateOpenRouterEmbeddings(
 
     const vectors = await generateBatchWithRetry(client, input);
     for (let i = 0; i < vectors.length; i++) {
-      const vector = vectors[i];
-      if (vector !== undefined) {
-        slots[offset + i] = vector;
-      }
+      slots[offset + i] = vectors[i];
     }
   }
 
@@ -164,15 +162,12 @@ async function generateBatchWithRetry(
         status === 429 ||
         status >= 500 ||
         (status === 0 && isTransientNetworkError(err));
-      if (attempt < EMBEDDING_MAX_ATTEMPTS && retryable) {
-        const base =
-          status === 429
-            ? EMBEDDING_RATE_LIMIT_BASE_MS
-            : EMBEDDING_RETRY_BASE_MS;
-        await sleep(base * attempt);
-        continue;
+      if (attempt >= EMBEDDING_MAX_ATTEMPTS || !retryable) {
+        throw new Error(`openRouter embedding ${lastError}`, { cause: err });
       }
-      throw new Error(`openRouter embedding ${lastError}`, { cause: err });
+      const base =
+        status === 429 ? EMBEDDING_RATE_LIMIT_BASE_MS : EMBEDDING_RETRY_BASE_MS;
+      await sleep(base * attempt);
     }
   }
   throw new Error(`openRouter embedding exhausted retries (${lastError})`);
@@ -189,7 +184,7 @@ export async function generateCliEmbeddings(
 ): Promise<number[][]> {
   if (texts.length === 0) return [];
 
-  if (process.env.OPENROUTER_API_KEY) {
+  if (embeddingMode() === "openrouter") {
     return generateOpenRouterEmbeddings(texts);
   }
 
