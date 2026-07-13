@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { extractJsonString } from "../../engine/llm/extractJsonString";
 
+const MAX_CONTENT_PREVIEW = 600;
+
 export interface RetrieveSummaryMemory {
   id: string;
   title: string;
@@ -17,8 +19,8 @@ export function buildRetrieveSummaryPrompt(
       : memories
           .map((memory, index) => {
             const preview =
-              memory.content.length > 600
-                ? `${memory.content.slice(0, 600)}…`
+              memory.content.length > MAX_CONTENT_PREVIEW
+                ? `${memory.content.slice(0, MAX_CONTENT_PREVIEW)}…`
                 : memory.content;
             return `[${String(index + 1)}] ${memory.title}\n${preview}`;
           })

@@ -241,7 +241,6 @@ function parseEntities(raw: unknown): ExtractedEntity[] {
 }
 
 function parseRelatedMemoryIds(raw: unknown): string[] {
-  if (raw === undefined) return [];
   const related = relatedMemoryIdsSchema.safeParse(raw);
   if (!related.success) return [];
   return related.data.filter((id) => id.length > 0);
@@ -251,19 +250,20 @@ export function parseFullEnrichmentResponse(
   raw: string,
 ): ParsedFullEnrichment | null {
   try {
-    const jsonStr = extractJsonString(raw);
-    const parsed = fullEnrichmentResponseSchema.safeParse(JSON.parse(jsonStr));
+    const parsed = fullEnrichmentResponseSchema.safeParse(
+      JSON.parse(extractJsonString(raw)),
+    );
     if (!parsed.success) return null;
     const tags = parsed.data.tags
       .map(sanitizeTag)
       .filter((t) => t.length > 0)
       .slice(0, 4);
     if (tags.length === 0) return null;
-    const relatedMemoryIds = parseRelatedMemoryIds(
-      parsed.data.relatedMemoryIds,
-    );
-    const entities = parseEntities(parsed.data.entities);
-    return { tags, relatedMemoryIds, entities };
+    return {
+      tags,
+      relatedMemoryIds: parseRelatedMemoryIds(parsed.data.relatedMemoryIds),
+      entities: parseEntities(parsed.data.entities),
+    };
   } catch {
     console.error("[enrichment] Failed to parse LLM response:", raw);
     return null;
