@@ -12,6 +12,12 @@ describe("wikiContent", () => {
     );
   });
 
+  it("strips images and strikethrough", () => {
+    expect(
+      markdownToPlainText("See ![alt](https://example.com/a.png) and ~~old~~"),
+    ).toBe("See alt and old");
+  });
+
   it("appends with a blank line separator", () => {
     expect(mergeMarkdownForAppend("Line one", "Line two")).toBe(
       "Line one\n\nLine two",
