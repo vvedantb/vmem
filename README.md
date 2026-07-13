@@ -18,7 +18,7 @@ vmem centralizes user knowledge in a **Neo4j memory graph** with hybrid retrieva
 - **Proposed updates** — conflicts become reviewable proposals instead of silent overwrites
 - **Implicit MCP context** — `vmem://context_prompt` injects a synthesized profile before the model responds
 - **Profiles & teams** — personal and team-scoped workspaces with isolated memory graphs
-- **Dream Mode** — background synthesis that surfaces anomalies and contradictions
+- **Dream Mode** — scheduled background synthesis that builds a user portrait and raises contradictions as proposals
 
 ## Architecture
 
@@ -109,16 +109,16 @@ Apps import only `@vmem/backend` (Convex `api` + types) and `@vmem/shared`.
 
 - Profiles as route-scoped workspaces (`/$profileId/…`)
 - Teams with shared memory graph, member management, team MCP endpoint
-- Per-workspace chat threads
+- Inbox for proposed updates and notifications; activity log for events and AI calls
 
 ### Data & ingest
 
 - **Files** — Convex storage + web explorer; indexable uploads become memories
-- **Codebases** — GitHub OAuth, symbol parsing, dependency graph, daily sync
-- **Connectors** — Google Drive, Notion, GitHub (batch ingest → memories; daily cron at 04:00 UTC)
+- **Codebases** — GitHub OAuth, symbol parsing, dependency graph, daily sync at 04:00 UTC
+- **Connectors** — Google Drive and Notion (batch ingest → memories; daily cron at 04:00 UTC)
 - **Skills** — personal skills + system Skills Hub catalog
 - **Wiki** — folder tree with TipTap markdown docs and version history
-- **Import** — ChatGPT, Claude export files
+- **Import** — ChatGPT and Claude conversation exports
 
 ### Chrome extension
 
@@ -148,6 +148,7 @@ pnpm dev      # Web app — http://localhost:5173
 pnpm ext:dev         # Chrome extension watch build
 pnpm typecheck:all   # web + backend + extension + packages
 pnpm test            # backend + web unit tests
+pnpm check           # full merge gate: lint + typecheck:all + knip + tests + format
 pnpm eval:bench      # bench user only — seeds, reports, cleans up (safe on shared Neo4j)
 ```
 
@@ -175,7 +176,7 @@ CONVEX_SITE_URL         # https://<deployment>.convex.site
 WEB_APP_URL             # http://localhost:5173 in dev
 ```
 
-Optional: `OPENROUTER_API_KEY` (server embeddings/context when users have no key), connector OAuth vars (`GOOGLE_CLIENT_*`, `NOTION_CLIENT_*`, `GITHUB_CLIENT_*`).
+Optional: `OPENROUTER_API_KEY` (server embeddings/context when users have no key), `GOOGLE_CLIENT_*` / `NOTION_CLIENT_*` (connector OAuth), `GITHUB_CLIENT_*` (codebase sync OAuth), `NEO4J_USERNAME` (defaults to `neo4j`).
 
 **Chrome extension** — edit `apps/chrome-extension/src/lib/constants.ts` (Convex URL + Clerk keys) before `pnpm ext:build`.
 
