@@ -18,7 +18,7 @@ export const FILE_STORAGE_LIMIT_BYTES = 10 * 1024 * 1024 * 1024; // 10 GiB
 /**
  * File kinds the memory-graph indexer can extract text from. Checked by
  * extension first (browsers often send an empty MIME for `.md`), then MIME.
- * `pdf` routes through pdf-parse; `text` is decoded straight from the blob.
+ * `pdf` routes through unpdf; `text` is decoded straight from the blob.
  * Anything else (images, binaries) is stored but not indexed.
  */
 export type IndexableFileKind = "pdf" | "text";
