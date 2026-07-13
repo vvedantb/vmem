@@ -54,8 +54,9 @@ export const neo4jIntSchema = z.unknown().transform(parseNeo4jInt);
 export const stringSchema = z.string();
 
 /**
- * Read `PropertyDescriptor.value` as `unknown`.
- * Descriptors are typed `any` in lib.es5 — inlined at the one call site.
+ * Parse a Neo4j node value's `properties` bag with a zod schema.
+ * Reads via `Object.getOwnPropertyDescriptor` because `PropertyDescriptor.value`
+ * is typed `any` in lib.es5.
  */
 export function parseNeo4jNodeProps<T>(
   value: unknown,

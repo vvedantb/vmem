@@ -56,10 +56,9 @@ export function buildPortraitUpdatePrompt(
     })
     .join("\n\n");
 
-  const currentBlock =
-    currentPortrait === null || currentPortrait.trim().length === 0
-      ? "_(none yet — write the first portrait)_"
-      : currentPortrait;
+  const currentBlock = currentPortrait?.trim()
+    ? currentPortrait
+    : "_(none yet — write the first portrait)_";
 
   return `You maintain a "portrait" of a user for a memory system: a short, factual description of who they are, what they work on, and what they prefer, derived ONLY from their stored memories. AI assistants read this portrait to understand the user. Respond with ONLY a JSON object — no explanation, no thinking, no markdown fences.
 
