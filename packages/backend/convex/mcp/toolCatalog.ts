@@ -76,7 +76,7 @@ import {
  * canonical name, its input schema, and the service-layer handler it runs.
  *
  * Two orchestration surfaces consume this catalog — the MCP server
- * (`tools.ts`) and the cloud-chat OpenRouter tools (`src/cloud/openRouterTools.ts`).
+ * (`tools.ts`) and any future tool hosts that share the same catalog.
  * Each surface owns its own presentation (descriptions, result formatting) and
  * decides which subset of tools to expose; the catalog owns only the
  * name ↔ schema ↔ handler binding so the two surfaces can never drift apart

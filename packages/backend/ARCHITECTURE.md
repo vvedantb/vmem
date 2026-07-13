@@ -37,7 +37,7 @@ Neo4j (Aura) graph
 | `convex/neo4jActions/`   | Node bridge Convex → engine                               | `memories.ts`, `dreamMode/`, `connectors/`, `migration/` |
 | `convex/connectors/`     | OAuth + connector CRUD (Drive, Notion, …)                 | `oauth.ts`, `crud.ts`                                    |
 | `convex/lib/`            | Convex-side helpers (crypto, openRouter, env, snapshots)  | imported widely                                          |
-| `convex/cloudLib/`       | Convex-coupled chat tool helpers                          | chat actions                                             |
+| `convex/mcp/`            | MCP HTTP server + tool catalog                            | `tools.ts`, `toolHandlers.ts`                            |
 | `convex/prompts/`        | LLM prompt builders + parsers (enrichment, v2, dream)     | actions                                                  |
 | `engine/neo4j/`          | driver, setup, retrieval, memory CRUD, dream mode         | `driver.ts`, `memory/`, `codebase/`                      |
 | `engine/neo4j/memory/`   | the memory graph: crud, retrieve, proposals, graph, dedup | called from `neo4jActions`                               |

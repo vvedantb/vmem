@@ -28,7 +28,6 @@ Memories are **not** stored in Convex — they live in Neo4j. Convex holds metad
 | `codebases`                               | Connected GitHub repositories              |
 | `connectors` / `connectorTokens`          | External service integrations              |
 | `userSettings`                            | Preferences, about me, active profile      |
-| `chatMessageMemoryRefs`                   | Memory refs persisted under chat messages  |
 | `contextPromptCache`                      | Cached MCP context prompt markdown         |
 | `notifications`                           | In-app notifications                       |
 | `userEnvVars`                             | User-scoped env vars (e.g. OpenRouter key) |

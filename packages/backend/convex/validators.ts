@@ -173,23 +173,6 @@ export const skillVersionFields = {
 };
 
 /**
- * Single source of truth for threadProfiles table fields.
- *
- * Maps an agent-component chat thread to the workspace (profile) it was
- * started in. The agent component's thread docs can't carry custom
- * metadata, so this side table provides the profile association:
- * one active thread per (user, profile); threads stay PRIVATE to their
- * creator even in team profiles.
- */
-export const threadProfileFields = {
-  userId: v.id("users"),
-  /** Agent-component thread id (string — lives in the component's tables). */
-  threadId: v.string(),
-  profileId: v.id("profiles"),
-  createdAt: v.number(),
-};
-
-/**
  * Single source of truth for userEnvVars table fields.
  *
  * One document per user. `vars` holds the user's environment variables as

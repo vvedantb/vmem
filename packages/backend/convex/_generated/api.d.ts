@@ -8,14 +8,9 @@
  * @module
  */
 
-import type * as agent from "../agent.js";
 import type * as apiKeys from "../apiKeys.js";
 import type * as auditLog from "../auditLog.js";
 import type * as auth from "../auth.js";
-import type * as chat from "../chat.js";
-import type * as chatStreamActions from "../chatStreamActions.js";
-import type * as cloudLib_cloudMemoryRef from "../cloudLib/cloudMemoryRef.js";
-import type * as cloudLib_openRouterTools from "../cloudLib/openRouterTools.js";
 import type * as codebaseSymbols from "../codebaseSymbols.js";
 import type * as codebaseSync from "../codebaseSync.js";
 import type * as codebaseSyncActions from "../codebaseSyncActions.js";
@@ -180,14 +175,9 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  agent: typeof agent;
   apiKeys: typeof apiKeys;
   auditLog: typeof auditLog;
   auth: typeof auth;
-  chat: typeof chat;
-  chatStreamActions: typeof chatStreamActions;
-  "cloudLib/cloudMemoryRef": typeof cloudLib_cloudMemoryRef;
-  "cloudLib/openRouterTools": typeof cloudLib_openRouterTools;
   codebaseSymbols: typeof codebaseSymbols;
   codebaseSync: typeof codebaseSync;
   codebaseSyncActions: typeof codebaseSyncActions;
@@ -373,7 +363,6 @@ export declare const internal: FilterApi<
 >;
 
 export declare const components: {
-  agent: import("@convex-dev/agent/_generated/component.js").ComponentApi<"agent">;
   actionRetrier: import("@convex-dev/action-retrier/_generated/component.js").ComponentApi<"actionRetrier">;
   actionCache: import("@convex-dev/action-cache/_generated/component.js").ComponentApi<"actionCache">;
   crons: import("@convex-dev/crons/_generated/component.js").ComponentApi<"crons">;

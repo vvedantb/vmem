@@ -41,13 +41,6 @@ export interface ToolHandlerContext {
   ctx: ActionCtx;
   clerkUserId: string;
   scope: McpScope;
-  /**
-   * Pin memory tools to one profile (cloud chat passes the thread's
-   * workspace). Tool-call `profileId` params still win when the model
-   * passes one explicitly; MCP connectors leave this unset and fall back
-   * to the scope's default profile.
-   */
-  fixedProfileId?: string;
 }
 
 export function formatToolResult(result: ToolHandlerResult): string {
@@ -148,7 +141,7 @@ export async function runMemorySearch(
       tags: params.tags,
       limit: params.limit,
       offset: params.offset,
-      profileId: params.profileId ?? ctx.fixedProfileId,
+      profileId: params.profileId,
     }),
   );
 }
@@ -162,7 +155,7 @@ export async function runMemoryRetrieve(
       ...scopedMemory(ctx),
       query: params.query,
       limit: params.limit,
-      profileId: params.profileId ?? ctx.fixedProfileId,
+      profileId: params.profileId,
     }),
   );
 }

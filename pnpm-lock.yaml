@@ -6,24 +6,15 @@ settings:
 
 catalogs:
   default:
-    '@ai-sdk/provider-utils':
-      specifier: ^4.0.6
-      version: 4.0.23
     '@clerk/backend':
       specifier: ^2.30.1
       version: 2.33.2
     '@clerk/chrome-extension':
       specifier: ^3.1.2
       version: 3.1.14
-    '@convex-dev/agent':
-      specifier: 0.6.1
-      version: 0.6.1
     '@modelcontextprotocol/sdk':
       specifier: 1.29.0
       version: 1.29.0
-    '@openrouter/ai-sdk-provider':
-      specifier: ^2.3.3
-      version: 2.9.0
     '@radix-ui/react-checkbox':
       specifier: ^1.3.3
       version: 1.3.3
@@ -84,9 +75,6 @@ catalogs:
     '@types/react-dom':
       specifier: ^19
       version: 19.2.3
-    ai:
-      specifier: 6.0.142
-      version: 6.0.142
     class-variance-authority:
       specifier: ^0.7.1
       version: 0.7.1
@@ -482,9 +470,6 @@ importers:
 
   packages/backend:
     dependencies:
-      '@ai-sdk/provider-utils':
-        specifier: 'catalog:'
-        version: 4.0.23(zod@3.25.76)
       '@clerk/backend':
         specifier: 'catalog:'
         version: 2.33.2(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
@@ -494,9 +479,6 @@ importers:
       '@convex-dev/action-retrier':
         specifier: ^0.3.0
         version: 0.3.0(convex@1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(bufferutil@4.1.0)(react@19.2.5)(utf-8-validate@6.0.6))
-      '@convex-dev/agent':
-        specifier: 'catalog:'
-        version: 0.6.1(@ai-sdk/provider-utils@4.0.23(zod@3.25.76))(ai@6.0.142(zod@3.25.76))(convex-helpers@0.1.114(@standard-schema/spec@1.1.0)(convex@1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(bufferutil@4.1.0)(react@19.2.5)(utf-8-validate@6.0.6))(hono@4.12.14)(react@19.2.5)(typescript@7.0.1-rc)(zod@3.25.76))(convex@1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(bufferutil@4.1.0)(react@19.2.5)(utf-8-validate@6.0.6))(react@19.2.5)
       '@convex-dev/crons':
         specifier: ^0.2.0
         version: 0.2.0(convex@1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(bufferutil@4.1.0)(react@19.2.5)(utf-8-validate@6.0.6))
@@ -518,18 +500,12 @@ importers:
       '@notionhq/client':
         specifier: ^2.2.15
         version: 2.3.0
-      '@openrouter/ai-sdk-provider':
-        specifier: 'catalog:'
-        version: 2.9.0(ai@6.0.142(zod@3.25.76))(zod@3.25.76)
       '@openrouter/sdk':
         specifier: ^0.12.35
         version: 0.12.35
       '@vmem/shared':
         specifier: workspace:*
         version: link:../shared
-      ai:
-        specifier: 'catalog:'
-        version: 6.0.142(zod@3.25.76)
       convex:
         specifier: 'catalog:'
         version: 1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(bufferutil@4.1.0)(react@19.2.5)(utf-8-validate@6.0.6)
@@ -557,9 +533,6 @@ importers:
       zod:
         specifier: 'catalog:'
         version: 3.25.76
-      zod-to-json-schema:
-        specifier: ^3.25.2
-        version: 3.25.2(zod@3.25.76)
     devDependencies:
       '@edge-runtime/vm':
         specifier: ^5.0.0
@@ -706,28 +679,6 @@ packages:
 
   '@adraffy/ens-normalize@1.11.1':
     resolution: {integrity: sha512-nhCBV3quEgesuf7c7KYfperqSS14T8bYuvJ8PcLJp6znkZpFc0AuW4qBtr8eKVyPPe/8RSr7sglCWPU5eaxwKQ==}
-
-  '@ai-sdk/gateway@3.0.84':
-    resolution: {integrity: sha512-RnUw6UNvkaw9MEaJU9cIjA+WBP+ZR5+M/9nfbfJHcGKtTbcWXijJuYKx9nYRnm+qU+iiakb0XvQA/vvho6lTsw==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.25.76 || ^4.1.8
-
-  '@ai-sdk/provider-utils@4.0.21':
-    resolution: {integrity: sha512-MtFUYI1/8mgDvRmaBDjbLJPFFrMG777AvSgyIFQtZHIMzm88R/12vYBBpnk7pfiWLFE1DSZzY4WDYzGbKAcmiw==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.25.76 || ^4.1.8
-
-  '@ai-sdk/provider-utils@4.0.23':
-    resolution: {integrity: sha512-z8GlDaCmRSDlqkMF2f4/RFgWxdarvIbyuk+m6WXT1LYgsnGiXRJGTD2Z1+SDl3LqtFuRtGX1aghYvQLoHL/9pg==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.25.76 || ^4.1.8
-
-  '@ai-sdk/provider@3.0.8':
-    resolution: {integrity: sha512-oGMAgGoQdBXbZqNG0Ze56CHjDZ1IDYOwGYxYjO5KLSlz5HiNQ9udIXsPZ61VWaHGZ5XW/jyjmr6t2xz2jGVwbQ==}
-    engines: {node: '>=18'}
 
   '@alloc/quick-lru@5.2.0':
     resolution: {integrity: sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==}
@@ -988,18 +939,6 @@ packages:
     resolution: {integrity: sha512-opBNsgOPSuVY3qSARNub98XqPzSpSS7Jga0oGeWFhO+DcWBMt2gD3ssUeEA1Gi7wTNiZBX+T6OBfBnqMfv6Tuw==}
     peerDependencies:
       convex: ^1.24.8
-
-  '@convex-dev/agent@0.6.1':
-    resolution: {integrity: sha512-FTHF2r6yuY3Lr/zYu9fBMimg30xVXlGkA+9hU12FH1SUoXtrPWCwU3zUYsCKhkH/5sPpWGyO9JMMuXHrP13DQg==}
-    peerDependencies:
-      '@ai-sdk/provider-utils': ^4.0.6
-      ai: ^6.0.35
-      convex: ^1.24.8
-      convex-helpers: ^0.1.103
-      react: ^18.3.1 || ^19.0.0
-    peerDependenciesMeta:
-      react:
-        optional: true
 
   '@convex-dev/aggregate@0.2.1':
     resolution: {integrity: sha512-z8GeUC+cIZEgtMXecX6WTBQHNW4E2ioRsc5IkO8BWnCjgDOru/Mw8zXe9JPe35JkqDjlSVKuwxiQHKs/jaYAyA==}
@@ -1935,19 +1874,8 @@ packages:
     resolution: {integrity: sha512-l7WqTCpQqC+HibkB9chghONQTYcxNQT0/rOJemBfmuKQRTu2vuV8B3yA395iKaUdDo7HI+0KvQaz9687Xskzkw==}
     engines: {node: '>=12'}
 
-  '@openrouter/ai-sdk-provider@2.9.0':
-    resolution: {integrity: sha512-Seva+NCa0WUQnJIUE5GzHsUv1WTIeyqwz0ELl2VtS6NP+eF+77yCXGFVOMbvoCM7QMjlnhv7931e89R+8pJdcQ==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      ai: ^6.0.0
-      zod: ^3.25.0 || ^4.0.0
-
   '@openrouter/sdk@0.12.35':
     resolution: {integrity: sha512-s4QVLLnG1AmfW3TjnnHUqGfsCkzwVK+kboGcZmKbde09m1DPqgzl4RUFt/HJ5v97MX8aEaN0UG3mKv2S+qj2Gw==}
-
-  '@opentelemetry/api@1.9.0':
-    resolution: {integrity: sha512-3giAOQvZiH5F9bMlMiv8+GSPMeqg0dbaeo58/0SlA9sxSqZhnUtxzX9/2FzyhS9sWQf5S0GJE0AKBrFqjpeYcg==}
-    engines: {node: '>=8.0.0'}
 
   '@oxc-parser/binding-android-arm-eabi@0.137.0':
     resolution: {integrity: sha512-KDs+0VPdEmasOkpuJHW9V5WCF+cvYdMQv2Jd+aJXt+cxIx12NToRQRbXaRwUEDsZw+/jMk81Ve8ZFbjUkJTOwA==}
@@ -3944,14 +3872,6 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@ungap/structured-clone@1.3.0':
-    resolution: {integrity: sha512-WmoN8qaIAo7WTYWbAZuG8PYEhn5fkz7dZrqTBZ7dtt//lL2Gwms1IcnQ5yHqjDfX8Ft5j4YzDM23f87zBfDe9g==}
-    deprecated: Potential CWE-502 - Update to 1.3.1 or higher
-
-  '@vercel/oidc@3.1.0':
-    resolution: {integrity: sha512-Fw28YZpRnA3cAHHDlkt7xQHiJ0fcL+NRcIqsocZQUSmbzeIKRpwttJjik5ZGanXP+vlA4SbTg+AbA3bP363l+w==}
-    engines: {node: '>= 20'}
-
   '@vitejs/plugin-react@4.7.0':
     resolution: {integrity: sha512-gUu9hwfWvvEDBBmgtAowQCojwZmJ5mcLn3aufeCsitijs3+f2NsrPtlAWIR6OPiqljl96GVCUbLe0HyqIpVaoA==}
     engines: {node: ^14.18.0 || >=16.0.0}
@@ -4067,12 +3987,6 @@ packages:
   agentkeepalive@4.6.0:
     resolution: {integrity: sha512-kja8j7PjmncONqaTsB8fQ+wE2mSU2DJ9D4XKoJ5PFWIdRMa6SLSN1ff4mOr4jCbfRSsxR4keIiySJU0N9T5hIQ==}
     engines: {node: '>= 8.0.0'}
-
-  ai@6.0.142:
-    resolution: {integrity: sha512-ZoxAsnTL/dFg5WdcwC8QNhKVlLtqwwT3I7p/4i8IJJP+6ZwqF1ljuwMsAsPYYvppZ+RzUxjxxFGb1cbEhNH3dg==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.25.76 || ^4.1.8
 
   ajv-formats@3.0.1:
     resolution: {integrity: sha512-8iUql50EUR+uUcdRQ3HDqa6EVyo3docL8g5WJ3FNcWmu62IbkGUue/pEyLBW8VGKKucTPgqeks4fIU1DA4yowQ==}
@@ -5386,9 +5300,6 @@ packages:
 
   json-schema-typed@8.0.2:
     resolution: {integrity: sha512-fQhoXdcvc3V28x7C7BMs4P5+kNlgUURe2jmUT1T//oBRMDrqy1QPelJimwZGo7Hg9VPV3EQV5Bnq4hbFy2vetA==}
-
-  json-schema@0.4.0:
-    resolution: {integrity: sha512-es94M3nTIfsEPisRafak+HDLfHXnKBhV3vU5eqPcS3flIWqcxJWgXHXiey3YrpaNsanY5ei1VoYEbOzijuq9BA==}
 
   json-stable-stringify-without-jsonify@1.0.1:
     resolution: {integrity: sha512-Bdboy+l7tA3OGW6FjyFHWkP5LuByj1Tk33Ljyq0axyzdk9//JSi2u3fP1QSmd1KNwq6VOKYGlAu87CisVir6Pw==}
@@ -7218,31 +7129,6 @@ snapshots:
 
   '@adraffy/ens-normalize@1.11.1': {}
 
-  '@ai-sdk/gateway@3.0.84(zod@3.25.76)':
-    dependencies:
-      '@ai-sdk/provider': 3.0.8
-      '@ai-sdk/provider-utils': 4.0.21(zod@3.25.76)
-      '@vercel/oidc': 3.1.0
-      zod: 3.25.76
-
-  '@ai-sdk/provider-utils@4.0.21(zod@3.25.76)':
-    dependencies:
-      '@ai-sdk/provider': 3.0.8
-      '@standard-schema/spec': 1.1.0
-      eventsource-parser: 3.0.7
-      zod: 3.25.76
-
-  '@ai-sdk/provider-utils@4.0.23(zod@3.25.76)':
-    dependencies:
-      '@ai-sdk/provider': 3.0.8
-      '@standard-schema/spec': 1.1.0
-      eventsource-parser: 3.0.7
-      zod: 3.25.76
-
-  '@ai-sdk/provider@3.0.8':
-    dependencies:
-      json-schema: 0.4.0
-
   '@alloc/quick-lru@5.2.0': {}
 
   '@babel/code-frame@7.29.0':
@@ -7676,16 +7562,6 @@ snapshots:
   '@convex-dev/action-retrier@0.3.0(convex@1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(bufferutil@4.1.0)(react@19.2.5)(utf-8-validate@6.0.6))':
     dependencies:
       convex: 1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(bufferutil@4.1.0)(react@19.2.5)(utf-8-validate@6.0.6)
-
-  '@convex-dev/agent@0.6.1(@ai-sdk/provider-utils@4.0.23(zod@3.25.76))(ai@6.0.142(zod@3.25.76))(convex-helpers@0.1.114(@standard-schema/spec@1.1.0)(convex@1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(bufferutil@4.1.0)(react@19.2.5)(utf-8-validate@6.0.6))(hono@4.12.14)(react@19.2.5)(typescript@7.0.1-rc)(zod@3.25.76))(convex@1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(bufferutil@4.1.0)(react@19.2.5)(utf-8-validate@6.0.6))(react@19.2.5)':
-    dependencies:
-      '@ai-sdk/provider-utils': 4.0.23(zod@3.25.76)
-      ai: 6.0.142(zod@3.25.76)
-      convex: 1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(bufferutil@4.1.0)(react@19.2.5)(utf-8-validate@6.0.6)
-      convex-helpers: 0.1.114(@standard-schema/spec@1.1.0)(convex@1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(bufferutil@4.1.0)(react@19.2.5)(utf-8-validate@6.0.6))(hono@4.12.14)(react@19.2.5)(typescript@7.0.1-rc)(zod@3.25.76)
-    optionalDependencies:
-      '@ungap/structured-clone': 1.3.0
-      react: 19.2.5
 
   '@convex-dev/aggregate@0.2.1(convex@1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(bufferutil@4.1.0)(react@19.2.5)(utf-8-validate@6.0.6))':
     dependencies:
@@ -8364,16 +8240,9 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
-  '@openrouter/ai-sdk-provider@2.9.0(ai@6.0.142(zod@3.25.76))(zod@3.25.76)':
-    dependencies:
-      ai: 6.0.142(zod@3.25.76)
-      zod: 3.25.76
-
   '@openrouter/sdk@0.12.35':
     dependencies:
       zod: 4.3.6
-
-  '@opentelemetry/api@1.9.0': {}
 
   '@oxc-parser/binding-android-arm-eabi@0.137.0':
     optional: true
@@ -10688,11 +10557,6 @@ snapshots:
   '@typescript/typescript-win32-x64@7.0.1-rc':
     optional: true
 
-  '@ungap/structured-clone@1.3.0':
-    optional: true
-
-  '@vercel/oidc@3.1.0': {}
-
   '@vitejs/plugin-react@4.7.0(vite@6.4.2(@types/node@25.9.1)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.9.0))':
     dependencies:
       '@babel/core': 7.29.0
@@ -10821,14 +10685,6 @@ snapshots:
   agentkeepalive@4.6.0:
     dependencies:
       humanize-ms: 1.2.1
-
-  ai@6.0.142(zod@3.25.76):
-    dependencies:
-      '@ai-sdk/gateway': 3.0.84(zod@3.25.76)
-      '@ai-sdk/provider': 3.0.8
-      '@ai-sdk/provider-utils': 4.0.21(zod@3.25.76)
-      '@opentelemetry/api': 1.9.0
-      zod: 3.25.76
 
   ajv-formats@3.0.1(ajv@8.18.0):
     optionalDependencies:
@@ -12229,8 +12085,6 @@ snapshots:
   json-schema-traverse@1.0.0: {}
 
   json-schema-typed@8.0.2: {}
-
-  json-schema@0.4.0: {}
 
   json-stable-stringify-without-jsonify@1.0.1: {}
 

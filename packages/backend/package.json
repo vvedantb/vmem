@@ -18,11 +18,9 @@
     "build:mcp-graph-ui": "node scripts/build-memory-graph-mcp-app.mjs"
   },
   "dependencies": {
-    "@ai-sdk/provider-utils": "catalog:",
     "@clerk/backend": "catalog:",
     "@convex-dev/action-cache": "^0.3.0",
     "@convex-dev/action-retrier": "^0.3.0",
-    "@convex-dev/agent": "catalog:",
     "@convex-dev/crons": "^0.2.0",
     "@convex-dev/workflow": "^0.4.2",
     "@googleapis/drive": "^20.0.0",
@@ -30,10 +28,8 @@
     "@modelcontextprotocol/sdk": "catalog:",
     "@neo4j/cypher-builder": "^3.0.1",
     "@notionhq/client": "^2.2.15",
-    "@openrouter/ai-sdk-provider": "catalog:",
     "@openrouter/sdk": "^0.12.35",
     "@vmem/shared": "workspace:*",
-    "ai": "catalog:",
     "convex": "catalog:",
     "convex-audit-log": "^0.2.0",
     "convex-helpers": "catalog:",
@@ -42,8 +38,7 @@
     "pdf-parse": "^1.1.1",
     "tar-stream": "^3.2.0",
     "ts-morph": "^24.0.0",
-    "zod": "catalog:",
-    "zod-to-json-schema": "^3.25.2"
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@edge-runtime/vm": "^5.0.0",

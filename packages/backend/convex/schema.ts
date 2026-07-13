@@ -11,7 +11,6 @@ import {
   userSystemSkillFields,
   teamFields,
   teamMemberFields,
-  threadProfileFields,
   userEnvVarFields,
   codebaseFields,
   openRouterLogFields,
@@ -175,54 +174,9 @@ const schema = defineSchema({
     connectedAt: v.number(),
   }).index("by_user", ["userId"]),
 
-  chatMessageMemoryRefs: defineTable({
-    userId: v.id("users"),
-    threadId: v.string(),
-    bubbleKey: v.string(),
-    refs: v.array(
-      v.object({
-        id: v.string(),
-        title: v.string(),
-        // Optional so rows written before hybrid search shipped stay valid.
-        // When present, the web chat popover renders the four-bar score
-        // breakdown and the reason string.
-        trace: v.optional(
-          v.object({
-            score: v.number(),
-            scoreBreakdown: v.object({
-              fulltext: v.number(),
-              vector: v.number(),
-              chunk: v.optional(v.number()),
-              entity: v.optional(v.number()),
-              rrf: v.optional(v.number()),
-              recency: v.number(),
-              confidence: v.number(),
-              graphPath: v.optional(
-                v.object({
-                  seedTitle: v.string(),
-                  bridgingEntity: v.union(v.string(), v.null()),
-                  hops: v.number(),
-                }),
-              ),
-              rerankerScore: v.optional(v.number()),
-            }),
-            reason: v.string(),
-          }),
-        ),
-      }),
-    ),
-  })
-    .index("by_user_thread", ["userId", "threadId"])
-    .index("by_user_bubble", ["userId", "bubbleKey"]),
-
   codebases: defineTable(codebaseFields)
     .index("by_user", ["userId"])
     .index("by_user_repo", ["userId", "repoFullName"]),
-
-  /** Thread → workspace mapping for chat (see threadProfileFields). */
-  threadProfiles: defineTable(threadProfileFields)
-    .index("by_thread", ["threadId"])
-    .index("by_user_profile", ["userId", "profileId"]),
 
   skills: defineTable(skillFields)
     .index("by_user", ["userId"])
