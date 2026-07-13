@@ -8,9 +8,14 @@
  * @module
  */
 
+import type * as agent from "../agent.js";
 import type * as apiKeys from "../apiKeys.js";
 import type * as auditLog from "../auditLog.js";
 import type * as auth from "../auth.js";
+import type * as chat from "../chat.js";
+import type * as chatStreamActions from "../chatStreamActions.js";
+import type * as cloudLib_cloudMemoryRef from "../cloudLib/cloudMemoryRef.js";
+import type * as cloudLib_openRouterTools from "../cloudLib/openRouterTools.js";
 import type * as codebaseSymbols from "../codebaseSymbols.js";
 import type * as codebaseSync from "../codebaseSync.js";
 import type * as codebaseSyncActions from "../codebaseSyncActions.js";
@@ -136,6 +141,7 @@ import type * as neo4jActions_timeline from "../neo4jActions/timeline.js";
 import type * as notifications from "../notifications.js";
 import type * as oauthState from "../oauthState.js";
 import type * as openRouterLogs from "../openRouterLogs.js";
+import type * as openRouterModels from "../openRouterModels.js";
 import type * as profiles from "../profiles.js";
 import type * as profiles_dream from "../profiles/dream.js";
 import type * as profiles_handlers from "../profiles/handlers.js";
@@ -175,9 +181,14 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  agent: typeof agent;
   apiKeys: typeof apiKeys;
   auditLog: typeof auditLog;
   auth: typeof auth;
+  chat: typeof chat;
+  chatStreamActions: typeof chatStreamActions;
+  "cloudLib/cloudMemoryRef": typeof cloudLib_cloudMemoryRef;
+  "cloudLib/openRouterTools": typeof cloudLib_openRouterTools;
   codebaseSymbols: typeof codebaseSymbols;
   codebaseSync: typeof codebaseSync;
   codebaseSyncActions: typeof codebaseSyncActions;
@@ -303,6 +314,7 @@ declare const fullApi: ApiFromModules<{
   notifications: typeof notifications;
   oauthState: typeof oauthState;
   openRouterLogs: typeof openRouterLogs;
+  openRouterModels: typeof openRouterModels;
   profiles: typeof profiles;
   "profiles/dream": typeof profiles_dream;
   "profiles/handlers": typeof profiles_handlers;
@@ -363,6 +375,7 @@ export declare const internal: FilterApi<
 >;
 
 export declare const components: {
+  agent: import("@convex-dev/agent/_generated/component.js").ComponentApi<"agent">;
   actionRetrier: import("@convex-dev/action-retrier/_generated/component.js").ComponentApi<"actionRetrier">;
   actionCache: import("@convex-dev/action-cache/_generated/component.js").ComponentApi<"actionCache">;
   crons: import("@convex-dev/crons/_generated/component.js").ComponentApi<"crons">;
