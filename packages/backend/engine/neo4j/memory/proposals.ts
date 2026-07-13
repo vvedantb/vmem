@@ -18,22 +18,118 @@
  */
 
 import crypto from "node:crypto";
-import { type Driver, type Session } from "neo4j-driver";
+import type { Driver, Record as NeoRecord, Session } from "neo4j-driver";
+import { z } from "zod";
+import { neo4jGet, neo4jString, parseNeo4jNodeProps } from "../record";
 import { computeContentHash, toMemoryWithTags, toSnapshot } from "./mappers";
 import { logEvent, withSession } from "./shared";
 import {
-  isProposedUpdateKind,
-  type ProposalSource,
+  PROPOSED_UPDATE_KINDS,
   type ProposedUpdateKind,
   type ProposedUpdateNode,
 } from "./types";
 
-export async function createProposedUpdate(
+const proposedUpdateStatusSchema = z.enum(["pending", "approved", "rejected"]);
+
+const proposedUpdateNodePropsSchema = z.object({
+  id: z.string(),
+  memoryId: z.string().optional(),
+  proposedContent: z.string().optional(),
+  proposedTitle: z.string().nullable().optional(),
+  reason: z.string().optional(),
+  kind: z.string().optional(),
+  status: proposedUpdateStatusSchema,
+  createdAt: z.string(),
+  resolvedAt: z.string().nullable().optional(),
+  sourceMemoryIds: z.array(z.string()).optional(),
+  confidence: z.number().nullable().optional(),
+  source: z.string().optional(),
+});
+
+const sourceMemorySnapshotSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  content: z.string(),
+});
+
+const sourceMemorySnapshotsSchema = z.array(sourceMemorySnapshotSchema);
+
+type ProposedUpdateProps = z.infer<typeof proposedUpdateNodePropsSchema>;
+
+const proposedUpdateKindSchema = z.enum(PROPOSED_UPDATE_KINDS).catch("update");
+
+const proposalSourceSchema = z
+  .enum(["v2-extraction", "dream-mode"])
+  .catch("v2-extraction");
+
+const stringArraySchema = z.array(z.string()).catch([]);
+
+function toProposedUpdateNodeFromProps(
+  props: ProposedUpdateProps,
+  options: {
+    memorySnapshot?: { title: string; content: string } | null;
+    sourceMemorySnapshots?: { id: string; title: string; content: string }[];
+  } = {},
+): ProposedUpdateNode {
+  return {
+    id: props.id,
+    memoryId: props.memoryId ?? "",
+    proposedContent: props.proposedContent ?? "",
+    proposedTitle: props.proposedTitle ?? null,
+    reason: props.reason ?? "",
+    kind: proposedUpdateKindSchema.parse(props.kind),
+    status: props.status,
+    createdAt: props.createdAt,
+    resolvedAt: props.resolvedAt ?? null,
+    sourceMemoryIds: stringArraySchema.parse(props.sourceMemoryIds),
+    confidence: props.confidence ?? null,
+    source: proposalSourceSchema.parse(props.source),
+    memorySnapshot: options.memorySnapshot ?? null,
+    sourceMemorySnapshots: options.sourceMemorySnapshots ?? [],
+  };
+}
+
+function parseProposedUpdateNode(record: NeoRecord): ProposedUpdateNode {
+  const props = parseNeo4jNodeProps(
+    neo4jGet(record, "p"),
+    proposedUpdateNodePropsSchema,
+  );
+  return toProposedUpdateNodeFromProps(props);
+}
+
+function parseListedProposedUpdate(record: NeoRecord): ProposedUpdateNode {
+  const props = parseNeo4jNodeProps(
+    neo4jGet(record, "p"),
+    proposedUpdateNodePropsSchema,
+  );
+
+  const titleRaw = neo4jGet(record, "memoryTitle");
+  const contentRaw = neo4jGet(record, "memoryContent");
+  const memorySnapshot =
+    typeof titleRaw === "string" && typeof contentRaw === "string"
+      ? { title: titleRaw, content: contentRaw }
+      : null;
+
+  const sourceSnapsParsed = sourceMemorySnapshotsSchema.safeParse(
+    neo4jGet(record, "sourceSnaps"),
+  );
+  const sourceMemorySnapshots = sourceSnapsParsed.success
+    ? sourceSnapsParsed.data
+    : [];
+
+  return toProposedUpdateNodeFromProps(props, {
+    memorySnapshot,
+    sourceMemorySnapshots,
+  });
+}
+
+async function createV2Proposal(
   driver: Driver,
   params: {
     memoryId: string;
     proposedContent: string;
     reason: string;
+    kind: "update" | "delete";
   },
 ): Promise<ProposedUpdateNode> {
   return withSession(driver, async (session) => {
@@ -48,7 +144,7 @@ export async function createProposedUpdate(
          proposedContent: $proposedContent,
          proposedTitle: null,
          reason: $reason,
-         kind: 'update',
+         kind: $kind,
          status: 'pending',
          createdAt: $now,
          resolvedAt: null,
@@ -63,30 +159,28 @@ export async function createProposedUpdate(
         memoryId: params.memoryId,
         proposedContent: params.proposedContent,
         reason: params.reason,
+        kind: params.kind,
         now,
       },
     );
 
     const firstRecord = result.records[0];
-    if (!firstRecord) throw new Error("Failed to create proposed update");
-    const props = firstRecord.get("p").properties;
-    return {
-      id: props.id,
-      memoryId: props.memoryId,
-      proposedContent: props.proposedContent,
-      proposedTitle: null,
-      reason: props.reason,
-      kind: "update",
-      status: props.status,
-      createdAt: props.createdAt,
-      resolvedAt: null,
-      sourceMemoryIds: [],
-      confidence: null,
-      source: "v2-extraction",
-      memorySnapshot: null,
-      sourceMemorySnapshots: [],
-    };
+    if (!firstRecord) {
+      throw new Error(`Failed to create proposed ${params.kind}`);
+    }
+    return parseProposedUpdateNode(firstRecord);
   });
+}
+
+export async function createProposedUpdate(
+  driver: Driver,
+  params: {
+    memoryId: string;
+    proposedContent: string;
+    reason: string;
+  },
+): Promise<ProposedUpdateNode> {
+  return createV2Proposal(driver, { ...params, kind: "update" });
 }
 
 /**
@@ -100,55 +194,11 @@ export async function createProposedDelete(
   driver: Driver,
   params: { memoryId: string; reason: string },
 ): Promise<ProposedUpdateNode> {
-  return withSession(driver, async (session) => {
-    const id = crypto.randomUUID();
-    const now = new Date().toISOString();
-
-    const result = await session.run(
-      `MATCH (m:Memory {id: $memoryId})
-       CREATE (p:ProposedUpdate {
-         id: $id,
-         memoryId: $memoryId,
-         proposedContent: '',
-         proposedTitle: null,
-         reason: $reason,
-         kind: 'delete',
-         status: 'pending',
-         createdAt: $now,
-         resolvedAt: null,
-         sourceMemoryIds: [],
-         confidence: null,
-         source: 'v2-extraction'
-       })
-       CREATE (p)-[:UPDATE_FOR]->(m)
-       RETURN p`,
-      {
-        id,
-        memoryId: params.memoryId,
-        reason: params.reason,
-        now,
-      },
-    );
-
-    const firstRecord = result.records[0];
-    if (!firstRecord) throw new Error("Failed to create proposed delete");
-    const props = firstRecord.get("p").properties;
-    return {
-      id: props.id,
-      memoryId: props.memoryId,
-      proposedContent: "",
-      proposedTitle: null,
-      reason: props.reason,
-      kind: "delete",
-      status: props.status,
-      createdAt: props.createdAt,
-      resolvedAt: null,
-      sourceMemoryIds: [],
-      confidence: null,
-      source: "v2-extraction",
-      memorySnapshot: null,
-      sourceMemorySnapshots: [],
-    };
+  return createV2Proposal(driver, {
+    memoryId: params.memoryId,
+    proposedContent: "",
+    reason: params.reason,
+    kind: "delete",
   });
 }
 
@@ -183,76 +233,7 @@ export async function listProposedUpdates(
       { userId },
     );
 
-    return result.records.map((record) => {
-      const props = record.get("p").properties;
-      // `kind` is absent on pre-V2 proposals — coerce to "update".
-      const rawKind = String(props.kind ?? "update");
-      const kind: ProposedUpdateKind = isProposedUpdateKind(rawKind)
-        ? rawKind
-        : "update";
-
-      const titleRaw = record.get("memoryTitle");
-      const contentRaw = record.get("memoryContent");
-      const memorySnapshot =
-        typeof titleRaw === "string" && typeof contentRaw === "string"
-          ? { title: titleRaw, content: contentRaw }
-          : null;
-
-      const rawSources = record.get("sourceSnaps");
-      const sourceMemorySnapshots: {
-        id: string;
-        title: string;
-        content: string;
-      }[] = Array.isArray(rawSources)
-        ? rawSources.flatMap((s: unknown) => {
-            if (typeof s !== "object" || s === null) return [];
-            const id = Reflect.get(s, "id");
-            const title = Reflect.get(s, "title");
-            const content = Reflect.get(s, "content");
-            if (
-              typeof id === "string" &&
-              typeof title === "string" &&
-              typeof content === "string"
-            ) {
-              return [{ id, title, content }];
-            }
-            return [];
-          })
-        : [];
-
-      const rawSourceIds = props.sourceMemoryIds;
-      const sourceMemoryIds: string[] = Array.isArray(rawSourceIds)
-        ? rawSourceIds.filter(
-            (x: unknown): x is string => typeof x === "string",
-          )
-        : [];
-
-      const rawConfidence: unknown = props.confidence;
-      const confidence: number | null =
-        typeof rawConfidence === "number" ? rawConfidence : null;
-
-      const rawSource = props.source;
-      const source: ProposalSource =
-        rawSource === "dream-mode" ? "dream-mode" : "v2-extraction";
-
-      return {
-        id: props.id,
-        memoryId: props.memoryId ?? "",
-        proposedContent: props.proposedContent ?? "",
-        proposedTitle:
-          typeof props.proposedTitle === "string" ? props.proposedTitle : null,
-        reason: props.reason ?? "",
-        kind,
-        status: props.status,
-        createdAt: props.createdAt,
-        resolvedAt: props.resolvedAt ?? null,
-        sourceMemoryIds,
-        confidence,
-        source,
-        memorySnapshot,
-        sourceMemorySnapshots,
-      };
-    });
+    return result.records.map(parseListedProposedUpdate);
   });
 }
 
@@ -276,6 +257,31 @@ interface ResolveResult {
   /** Set when approve materialized a new memory (synthesis kinds). */
   materializedMemoryId?: string;
 }
+
+const proposalLookupRowSchema = z
+  .object({
+    kind: proposedUpdateKindSchema,
+    proposedTitle: z.string().nullish().catch(null),
+    proposedContent: z.string().nullish().catch(null),
+    sourceMemoryIds: stringArraySchema,
+    confidence: z.number().nullish().catch(null),
+    targetId: z.string().nullish().catch(null),
+    targetUserId: z.string().nullish().catch(null),
+    sourceUserId: z.string().nullish().catch(null),
+    sourceProfileId: z.string().nullish().catch(null),
+  })
+  .transform(
+    (r): ProposalLookup => ({
+      kind: r.kind,
+      proposedTitle: r.proposedTitle || "Untitled synthesis",
+      proposedContent: r.proposedContent ?? "",
+      sourceMemoryIds: r.sourceMemoryIds,
+      confidence: r.confidence ?? null,
+      sourceProfileId: r.sourceProfileId ?? null,
+      memoryId: r.targetId || r.sourceMemoryIds[0] || "",
+      userId: r.targetUserId || r.sourceUserId || "",
+    }),
+  );
 
 /**
  * Look up a proposal by id. For legacy update/delete kinds we expect a
@@ -308,51 +314,50 @@ async function lookupProposalContext(
   const lookupRecord = lookup.records[0];
   if (!lookupRecord) return null;
 
-  const rawKind = String(lookupRecord.get("kind"));
-  const kind: ProposedUpdateKind = isProposedUpdateKind(rawKind)
-    ? rawKind
-    : "update";
+  const parsed = proposalLookupRowSchema.safeParse({
+    kind: neo4jGet(lookupRecord, "kind"),
+    proposedTitle: neo4jGet(lookupRecord, "proposedTitle"),
+    proposedContent: neo4jGet(lookupRecord, "proposedContent"),
+    sourceMemoryIds: neo4jGet(lookupRecord, "sourceMemoryIds"),
+    confidence: neo4jGet(lookupRecord, "confidence"),
+    targetId: neo4jGet(lookupRecord, "targetId"),
+    targetUserId: neo4jGet(lookupRecord, "targetUserId"),
+    sourceUserId: neo4jGet(lookupRecord, "sourceUserId"),
+    sourceProfileId: neo4jGet(lookupRecord, "sourceProfileId"),
+  });
+  return parsed.success ? parsed.data : null;
+}
 
-  const targetIdRaw = lookupRecord.get("targetId");
-  const targetUserIdRaw = lookupRecord.get("targetUserId");
-  const sourceUserIdRaw = lookupRecord.get("sourceUserId");
-  const sourceProfileIdRaw = lookupRecord.get("sourceProfileId");
-  const sourceIdsRaw: unknown = lookupRecord.get("sourceMemoryIds");
-  const sourceMemoryIds: string[] = Array.isArray(sourceIdsRaw)
-    ? sourceIdsRaw.filter((x: unknown): x is string => typeof x === "string")
-    : [];
-  const firstSourceId = sourceMemoryIds[0] ?? "";
-
-  const memoryId =
-    typeof targetIdRaw === "string" && targetIdRaw.length > 0
-      ? targetIdRaw
-      : firstSourceId;
-  const userId =
-    typeof targetUserIdRaw === "string" && targetUserIdRaw.length > 0
-      ? targetUserIdRaw
-      : typeof sourceUserIdRaw === "string"
-        ? sourceUserIdRaw
-        : "";
-
-  const proposedTitleRaw = lookupRecord.get("proposedTitle");
-  const proposedContentRaw = lookupRecord.get("proposedContent");
-  const confidenceRaw = lookupRecord.get("confidence");
-
-  return {
-    kind,
-    proposedTitle:
-      typeof proposedTitleRaw === "string" && proposedTitleRaw.length > 0
-        ? proposedTitleRaw
-        : "Untitled synthesis",
-    proposedContent:
-      typeof proposedContentRaw === "string" ? proposedContentRaw : "",
-    sourceMemoryIds,
-    confidence: typeof confidenceRaw === "number" ? confidenceRaw : null,
-    sourceProfileId:
-      typeof sourceProfileIdRaw === "string" ? sourceProfileIdRaw : null,
-    memoryId,
-    userId,
-  };
+/**
+ * Set the proposal's status (no other graph mutation) and log an "api"
+ * event for the target memory, if any. Shared body for `applyRejection`
+ * and `applyDismissOnlyApproval`, which differ only in which status/event
+ * name they use.
+ */
+async function applyStatusOnly(
+  session: Session,
+  proposalId: string,
+  lookup: ProposalLookup,
+  now: string,
+  status: "rejected" | "approved",
+  eventName: "proposal_rejected" | "proposal_approved",
+): Promise<ResolveResult> {
+  await session.run(
+    `MATCH (p:ProposedUpdate {id: $proposalId})
+     SET p.status = $status, p.resolvedAt = $now`,
+    { proposalId, now, status },
+  );
+  if (lookup.memoryId.length > 0) {
+    await logEvent(
+      session,
+      lookup.memoryId,
+      eventName,
+      "api",
+      { kind: lookup.kind },
+      null,
+    );
+  }
+  return { status, memoryId: lookup.memoryId, kind: lookup.kind };
 }
 
 async function applyRejection(
@@ -361,22 +366,14 @@ async function applyRejection(
   lookup: ProposalLookup,
   now: string,
 ): Promise<ResolveResult> {
-  await session.run(
-    `MATCH (p:ProposedUpdate {id: $proposalId})
-     SET p.status = 'rejected', p.resolvedAt = $now`,
-    { proposalId, now },
+  return applyStatusOnly(
+    session,
+    proposalId,
+    lookup,
+    now,
+    "rejected",
+    "proposal_rejected",
   );
-  if (lookup.memoryId.length > 0) {
-    await logEvent(
-      session,
-      lookup.memoryId,
-      "proposal_rejected",
-      "api",
-      { kind: lookup.kind },
-      null,
-    );
-  }
-  return { status: "rejected", memoryId: lookup.memoryId, kind: lookup.kind };
 }
 
 async function applyDeleteApproval(
@@ -439,7 +436,7 @@ async function applyUpdateApproval(
   );
 
   return {
-    status: String(firstRecord.get("status")),
+    status: neo4jString(firstRecord, "status"),
     memoryId: memory.id,
     kind: "update",
   };
@@ -460,23 +457,60 @@ async function applyDismissOnlyApproval(
   lookup: ProposalLookup,
   now: string,
 ): Promise<ResolveResult> {
-  await session.run(
-    `MATCH (p:ProposedUpdate {id: $proposalId})
-     SET p.status = 'approved', p.resolvedAt = $now`,
-    { proposalId, now },
+  return applyStatusOnly(
+    session,
+    proposalId,
+    lookup,
+    now,
+    "approved",
+    "proposal_approved",
   );
-  if (lookup.memoryId.length > 0) {
-    await logEvent(
-      session,
-      lookup.memoryId,
-      "proposal_approved",
-      "api",
-      { kind: lookup.kind },
-      null,
-    );
-  }
-  return { status: "approved", memoryId: lookup.memoryId, kind: lookup.kind };
 }
+
+/**
+ * Shared Cypher for materialising a dream-mode synthesis as a new
+ * knowledge :Memory with :DERIVED_FROM edges to its sources. Used verbatim
+ * by `applySynthesisApproval`; `applyMergeApproval` appends a suppression
+ * suffix. Kept as one string so the two approval paths can never drift on
+ * the memory shape. Expects params: proposalId, now, newMemoryId, userId,
+ * profileId, title, content, confidence, contentHash, sourceMemoryIds.
+ */
+const MATERIALISE_DERIVED_MEMORY_CYPHER = `
+  MATCH (p:ProposedUpdate {id: $proposalId})
+  SET p.status = 'approved', p.resolvedAt = $now
+  WITH p
+  CREATE (m:Memory {
+    id: $newMemoryId,
+    userId: $userId,
+    profileId: $profileId,
+    title: $title,
+    content: $content,
+    type: 'knowledge',
+    source: 'dream-mode',
+    confidence: $confidence,
+    status: 'active',
+    createdAt: $now,
+    updatedAt: $now,
+    expiresAt: null,
+    url: null,
+    embedding: null,
+    contentHash: $contentHash,
+    sourceType: null,
+    sourceId: null,
+    storageId: null,
+    mimeType: null,
+    originalFilename: null,
+    visitCount: 1,
+    firstVisitAt: $now,
+    lastVisitAt: $now
+  })
+  WITH m
+  MERGE (s:Source {name: 'dream-mode'})
+  CREATE (m)-[:FROM_SOURCE]->(s)
+  WITH m
+  UNWIND $sourceMemoryIds AS sid
+  MATCH (src:Memory {id: sid, userId: $userId})
+  MERGE (m)-[:DERIVED_FROM]->(src)`;
 
 /**
  * Materialise a synthesis (insight/connection) proposal as a NEW
@@ -511,55 +545,18 @@ async function applySynthesisApproval(
     lookup.proposedContent,
   );
 
-  await session.run(
-    `MATCH (p:ProposedUpdate {id: $proposalId})
-     SET p.status = 'approved', p.resolvedAt = $now
-     WITH p
-     CREATE (m:Memory {
-       id: $newMemoryId,
-       userId: $userId,
-       profileId: $profileId,
-       title: $title,
-       content: $content,
-       type: 'knowledge',
-       source: 'dream-mode',
-       confidence: $confidence,
-       status: 'active',
-       createdAt: $now,
-       updatedAt: $now,
-       expiresAt: null,
-       url: null,
-       embedding: null,
-       contentHash: $contentHash,
-       sourceType: null,
-       sourceId: null,
-       storageId: null,
-       mimeType: null,
-       originalFilename: null,
-       visitCount: 1,
-       firstVisitAt: $now,
-       lastVisitAt: $now
-     })
-     WITH m
-     MERGE (s:Source {name: 'dream-mode'})
-     CREATE (m)-[:FROM_SOURCE]->(s)
-     WITH m
-     UNWIND $sourceMemoryIds AS sid
-     MATCH (src:Memory {id: sid, userId: $userId})
-     MERGE (m)-[:DERIVED_FROM]->(src)`,
-    {
-      proposalId,
-      now,
-      newMemoryId,
-      userId: lookup.userId,
-      profileId: lookup.sourceProfileId,
-      title: lookup.proposedTitle,
-      content: lookup.proposedContent,
-      confidence: lookup.confidence,
-      contentHash,
-      sourceMemoryIds: lookup.sourceMemoryIds,
-    },
-  );
+  await session.run(MATERIALISE_DERIVED_MEMORY_CYPHER, {
+    proposalId,
+    now,
+    newMemoryId,
+    userId: lookup.userId,
+    profileId: lookup.sourceProfileId,
+    title: lookup.proposedTitle,
+    content: lookup.proposedContent,
+    confidence: lookup.confidence,
+    contentHash,
+    sourceMemoryIds: lookup.sourceMemoryIds,
+  });
 
   await logEvent(
     session,
@@ -618,41 +615,7 @@ async function applyMergeApproval(
   );
 
   const result = await session.run(
-    `MATCH (p:ProposedUpdate {id: $proposalId})
-     SET p.status = 'approved', p.resolvedAt = $now
-     WITH p
-     CREATE (m:Memory {
-       id: $newMemoryId,
-       userId: $userId,
-       profileId: $profileId,
-       title: $title,
-       content: $content,
-       type: 'knowledge',
-       source: 'dream-mode',
-       confidence: $confidence,
-       status: 'active',
-       createdAt: $now,
-       updatedAt: $now,
-       expiresAt: null,
-       url: null,
-       embedding: null,
-       contentHash: $contentHash,
-       sourceType: null,
-       sourceId: null,
-       storageId: null,
-       mimeType: null,
-       originalFilename: null,
-       visitCount: 1,
-       firstVisitAt: $now,
-       lastVisitAt: $now
-     })
-     WITH m
-     MERGE (s:Source {name: 'dream-mode'})
-     CREATE (m)-[:FROM_SOURCE]->(s)
-     WITH m
-     UNWIND $sourceMemoryIds AS sid
-     MATCH (src:Memory {id: sid, userId: $userId})
-     MERGE (m)-[:DERIVED_FROM]->(src)
+    `${MATERIALISE_DERIVED_MEMORY_CYPHER}
      WITH m, src
      WHERE src.status = 'active'
      SET src.status = 'suppressed', src.updatedAt = $now
@@ -688,9 +651,9 @@ async function applyMergeApproval(
     }),
   );
 
-  const supersededRaw: unknown = result.records[0]?.get("supersededIds");
-  const supersededIds: string[] = Array.isArray(supersededRaw)
-    ? supersededRaw.filter((x: unknown): x is string => typeof x === "string")
+  const mergeRecord = result.records[0];
+  const supersededIds = mergeRecord
+    ? stringArraySchema.parse(neo4jGet(mergeRecord, "supersededIds"))
     : [];
   for (const sid of supersededIds) {
     await logEvent(
@@ -756,9 +719,9 @@ async function applyContradictionResolution(
     { outcome: "kept", proposalId },
     null,
   );
-  const suppressedRaw: unknown = suppressed.records[0]?.get("suppressedIds");
-  const suppressedIds: string[] = Array.isArray(suppressedRaw)
-    ? suppressedRaw.filter((x: unknown): x is string => typeof x === "string")
+  const suppressedRecord = suppressed.records[0];
+  const suppressedIds = suppressedRecord
+    ? stringArraySchema.parse(neo4jGet(suppressedRecord, "suppressedIds"))
     : [];
   for (const lid of suppressedIds) {
     await logEvent(
@@ -954,7 +917,7 @@ export async function createSynthesisProposal(
       throw new Error("Failed to create synthesis proposal");
     }
 
-    return {
+    return toProposedUpdateNodeFromProps({
       id,
       memoryId: primaryMemoryId,
       proposedContent: params.proposedContent,
@@ -967,8 +930,6 @@ export async function createSynthesisProposal(
       sourceMemoryIds: params.sourceMemoryIds,
       confidence: params.confidence,
       source: "dream-mode",
-      memorySnapshot: null,
-      sourceMemorySnapshots: [],
-    };
+    });
   });
 }

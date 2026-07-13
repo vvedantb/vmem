@@ -149,13 +149,14 @@ function DeleteProfileDialog({
             What should happen to the memories in this profile?
           </p>
           <div className="space-y-2">
-            <button
+            <Button
               type="button"
+              variant="ghost"
               onClick={() => setMoveToProfileId(null)}
               className={cn(
-                "w-full flex items-center gap-3 p-3 rounded-lg text-left transition-colors",
+                "h-auto w-full justify-start gap-3 rounded-lg p-3 text-left transition-colors active:scale-100",
                 moveToProfileId === null
-                  ? "bg-surface-tertiary text-foreground"
+                  ? "bg-surface-tertiary text-foreground hover:bg-surface-tertiary"
                   : "bg-surface-secondary hover:bg-surface-tertiary/50",
               )}
             >
@@ -169,18 +170,19 @@ function DeleteProfileDialog({
               {moveToProfileId === null && (
                 <IconCheck className="h-4 w-4 ml-auto" />
               )}
-            </button>
+            </Button>
             {otherProfiles.map((p) => {
               const Icon = getProfileIcon(p.icon);
               return (
-                <button
+                <Button
                   key={p._id}
                   type="button"
+                  variant="ghost"
                   onClick={() => setMoveToProfileId(p._id)}
                   className={cn(
-                    "w-full flex items-center gap-3 p-3 rounded-lg text-left transition-colors",
+                    "h-auto w-full justify-start gap-3 rounded-lg p-3 text-left transition-colors active:scale-100",
                     moveToProfileId === p._id
-                      ? "bg-surface-tertiary text-foreground"
+                      ? "bg-surface-tertiary text-foreground hover:bg-surface-tertiary"
                       : "bg-surface-secondary hover:bg-surface-tertiary/50",
                   )}
                 >
@@ -199,7 +201,7 @@ function DeleteProfileDialog({
                   {moveToProfileId === p._id && (
                     <IconCheck className="h-4 w-4 ml-auto" />
                   )}
-                </button>
+                </Button>
               );
             })}
           </div>
@@ -338,7 +340,9 @@ function ProfilesPage() {
   const createProfile = useMutation(api.profiles.create).withOptimisticUpdate(
     (localStore, args) => {
       const list = localStore.getQuery(api.profiles.list, {});
-      if (!list || list.length === 0) return;
+      if (!list) return;
+      const first = list.at(0);
+      if (!first) return;
       const now = Date.now();
       const tempId = optimisticId("profiles");
       localStore.setQuery(api.profiles.list, {}, [
@@ -346,7 +350,7 @@ function ProfilesPage() {
         {
           _id: tempId,
           _creationTime: now,
-          userId: list[0].userId,
+          userId: first.userId,
           name: args.name,
           color: args.color,
           icon: args.icon,

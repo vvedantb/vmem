@@ -52,9 +52,7 @@ export function normalizeUrl(raw: string): string | null {
   });
   url.search = cleaned.toString();
 
-  let path = url.pathname.replace(/\/+$/, "");
-  if (path === "") path = "/";
-  url.pathname = path;
+  url.pathname = url.pathname.replace(/\/+$/, "") || "/";
 
   return url.toString();
 }

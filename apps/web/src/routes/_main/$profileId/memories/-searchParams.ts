@@ -14,7 +14,7 @@ import { LIST_ITEM_KINDS } from "@/lib/list-items";
  * memories + wiki + skills (default); "tags" shows aggregated tag rows with
  * rename/delete actions, replacing the now-removed `/memories/tags` route.
  */
-export const LIST_VIEW_MODES = ["memories", "tags"] as const;
+const LIST_VIEW_MODES = ["memories", "tags"] as const;
 export type ListViewMode = (typeof LIST_VIEW_MODES)[number];
 
 /**
@@ -22,7 +22,7 @@ export type ListViewMode = (typeof LIST_VIEW_MODES)[number];
  * the focus falls back to the newest memory when unset. "global" shows the
  * whole capped graph. Local-by-default keeps first paint small and fast.
  */
-export const GRAPH_SCOPES = ["local", "global"] as const;
+const GRAPH_SCOPES = ["local", "global"] as const;
 export type GraphScope = (typeof GRAPH_SCOPES)[number];
 
 /** Junk written when TanStack Router serializes nuqs state (e.g. `search={params}`). */

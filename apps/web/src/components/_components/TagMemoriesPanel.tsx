@@ -10,6 +10,51 @@ import ListItemRow from "@/components/_components/ListItemRow";
 import MemoryDetailPanel from "@/components/MemoryDetailPanel";
 import { useThemeContext } from "@/components/contexts/ThemeContext";
 import { useTrailData } from "@/hooks/useTrailData";
+import type { TrailEntry } from "@/hooks/useTrailData";
+import type { ListItem } from "@/lib/list-items";
+
+type MemoryListEntry = { item: ListItem; score: number | null };
+
+interface MemoryListVirtuosoContext {
+  selectedMemoryId: string | null;
+  trailMap: Map<string, TrailEntry>;
+  isDark: boolean;
+  onMemoryClick: (memory: Memory) => void;
+  onContextEdit: (memory: Memory) => void;
+  onContextDelete: (memory: Memory) => void;
+}
+
+function MemoryListVirtuosoRow({
+  entry,
+  context,
+}: {
+  entry: MemoryListEntry;
+  context?: MemoryListVirtuosoContext;
+}) {
+  if (!context) return null;
+  return (
+    <div className="pb-1.5">
+      <ListItemRow
+        item={entry.item}
+        relevanceScore={entry.score}
+        isSelected={context.selectedMemoryId === entry.item.id}
+        trailEntry={context.trailMap.get(entry.item.id)}
+        isDark={context.isDark}
+        onMemoryClick={context.onMemoryClick}
+        onContextEdit={context.onContextEdit}
+        onContextDelete={context.onContextDelete}
+      />
+    </div>
+  );
+}
+
+function renderMemoryListVirtuosoRow(
+  _index: number,
+  entry: MemoryListEntry,
+  context?: MemoryListVirtuosoContext,
+) {
+  return <MemoryListVirtuosoRow entry={entry} context={context} />;
+}
 
 interface TagMemoriesPanelProps {
   tag: string;
@@ -111,7 +156,7 @@ export function TagMemoriesPanel({
   }
 
   return (
-    <Card className="flex h-full min-h-0 flex-col shadow-none p-4 sm:p-5 lg:sticky lg:top-4">
+    <Card className="flex h-full min-h-0 flex-col shadow-none p-4 sm:p-5">
       <div className="mb-4 flex shrink-0 items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <h3 className="truncate text-lg font-semibold leading-snug text-foreground text-balance">
@@ -145,22 +190,18 @@ export function TagMemoriesPanel({
         <div className="min-h-0 flex-1">
           <Virtuoso
             data={displayItems}
+            className="scrollbar-thin"
+            context={{
+              selectedMemoryId,
+              trailMap,
+              isDark,
+              onMemoryClick: handleMemoryClick,
+              onContextEdit: handleContextEdit,
+              onContextDelete: handleContextDelete,
+            }}
             computeItemKey={(_index, entry) => entry.item.id}
             defaultItemHeight={44}
-            itemContent={(_index, entry) => (
-              <div className="pb-1.5">
-                <ListItemRow
-                  item={entry.item}
-                  relevanceScore={entry.score}
-                  isSelected={selectedMemoryId === entry.item.id}
-                  trailEntry={trailMap.get(entry.item.id)}
-                  isDark={isDark}
-                  onMemoryClick={handleMemoryClick}
-                  onContextEdit={handleContextEdit}
-                  onContextDelete={handleContextDelete}
-                />
-              </div>
-            )}
+            itemContent={renderMemoryListVirtuosoRow}
             style={{ height: "100%" }}
           />
         </div>

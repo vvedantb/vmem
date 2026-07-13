@@ -16,7 +16,7 @@ type SyncOneResult = { ok: true } | { ok: false; message: string };
 
 /**
  * Internal sync entry point for manual MCP hooks and the daily workflow.
- * Always runs a full provider sync (Linear uses fullHistory when requested).
+ * Always runs a full provider sync.
  */
 export const syncOneConnectorInternal = internalAction({
   args: {
@@ -41,11 +41,11 @@ export const syncOneConnectorInternal = internalAction({
       return { ok: false, message: "Connector does not support sync" };
     }
 
-    const syncingFresh =
+    const isFreshSync =
       connector.syncStatus === "syncing" &&
       connector.syncStartedAt !== undefined &&
       Date.now() - connector.syncStartedAt < STALE_SYNCING_MS;
-    if (connector.syncStatus === "syncing" && syncingFresh) {
+    if (isFreshSync) {
       return { ok: false, message: "Sync already in progress" };
     }
 

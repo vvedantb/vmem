@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useCallback } from "react";
+import { Input } from "@vmem/ui";
 import { IconFolder } from "@tabler/icons-react";
 
 interface InlineNewFolderProps {
@@ -53,13 +54,13 @@ export default function InlineNewFolder({
         <div className="flex aspect-square w-full items-center justify-center rounded-lg bg-surface-secondary">
           <IconFolder size={48} stroke={1.2} className="text-muted" />
         </div>
-        <input
+        <Input
           ref={inputRef}
           type="text"
           defaultValue="Untitled Folder"
           onKeyDown={handleKeyDown}
           onBlur={handleBlur}
-          className="w-full rounded-field border border-border bg-field-background px-2 py-1 text-center text-sm text-foreground outline-none placeholder:text-field-placeholder focus:ring-1 focus:ring-focus-ring"
+          className="h-8 px-2 py-1 text-center text-sm"
         />
       </div>
     );
@@ -74,13 +75,13 @@ export default function InlineNewFolder({
           <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-surface-secondary">
             <IconFolder size={18} stroke={1.5} className="text-muted" />
           </div>
-          <input
+          <Input
             ref={inputRef}
             type="text"
             defaultValue="Untitled Folder"
             onKeyDown={handleKeyDown}
             onBlur={handleBlur}
-            className="rounded-field border border-border bg-field-background px-2 py-1 text-sm text-foreground outline-none placeholder:text-field-placeholder focus:ring-1 focus:ring-focus-ring"
+            className="h-8 px-2 py-1 text-sm"
           />
         </div>
       </td>

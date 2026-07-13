@@ -77,6 +77,7 @@ export function getEdgeAt(
   let bestDSq = thrSq;
   for (let i = 0; i < edges.length; i++) {
     const e = edges[i];
+    if (!e) continue;
     const x1 = e.source.x ?? 0;
     const y1 = e.source.y ?? 0;
     const x2 = e.target.x ?? 0;

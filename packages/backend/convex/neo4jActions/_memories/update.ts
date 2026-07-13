@@ -6,14 +6,13 @@
  * the chunking threshold), and triggers context_prompt invalidation.
  */
 
-import { type ActionCtx } from "../../_generated/server";
+import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
-import { deleteChunksForMemory } from "../../../engine/neo4j/memory/chunks";
 import { updateMemory } from "../../../engine/neo4j/memory/crud";
 import type { MemoryWithTags } from "../../../engine/neo4j/memory/types";
 import { getDriver } from "../../../engine/neo4j/driver";
-import { shouldChunk } from "../../../engine/neo4j/chunking";
 import {
+  scheduleChunkSyncForContent,
   scheduleContextPromptInvalidation,
   toMemoryStatus,
   toMemoryType,
@@ -62,21 +61,12 @@ export async function runUpdateMemory(
   // chunks that drift from the source. `chunkMemoryInternal` deletes
   // existing chunks before inserting new ones.
   if (args.content !== undefined) {
-    if (shouldChunk(args.content)) {
-      await ctx.scheduler.runAfter(
-        0,
-        internal.neo4jActions.memories.chunkMemoryInternal,
-        {
-          clerkId: args.clerkId,
-          memoryId: args.memoryId,
-          content: args.content,
-        },
-      );
-    } else {
-      // Content shrank below the chunking threshold — clean up chunks
-      // so retrieval doesn't surface stale long-content matches.
-      await deleteChunksForMemory(driver, args.clerkId, args.memoryId);
-    }
+    await scheduleChunkSyncForContent(ctx, driver, {
+      clerkId: args.clerkId,
+      memoryId: args.memoryId,
+      content: args.content,
+      mode: "update",
+    });
   }
 
   await scheduleContextPromptInvalidation(ctx, args.clerkId);

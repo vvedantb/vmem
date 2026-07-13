@@ -9,7 +9,6 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SlidesRouteImport } from './routes/slides'
 import { Route as AgentCallbackRouteImport } from './routes/agent-callback'
 import { Route as MainRouteRouteImport } from './routes/_main/route'
 import { Route as IndexRouteImport } from './routes/index'
@@ -72,11 +71,6 @@ import { Route as MainProfileIdMemoriesListIndexRouteImport } from './routes/_ma
 import { Route as MainProfileIdSkillsSystemSkillIdRouteImport } from './routes/_main/$profileId/skills/system.$skillId'
 import { Route as MainProfileIdMemoriesListIdRouteImport } from './routes/_main/$profileId/memories/list/$id'
 
-const SlidesRoute = SlidesRouteImport.update({
-  id: '/slides',
-  path: '/slides',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AgentCallbackRoute = AgentCallbackRouteImport.update({
   id: '/agent-callback',
   path: '/agent-callback',
@@ -415,7 +409,6 @@ const MainProfileIdMemoriesListIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/agent-callback': typeof AgentCallbackRoute
-  '/slides': typeof SlidesRoute
   '/$profileId': typeof MainProfileIdRouteRouteWithChildren
   '/home': typeof MainHomeRoute
   '/$profileId/activity': typeof MainProfileIdActivityRouteRouteWithChildren
@@ -478,7 +471,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/agent-callback': typeof AgentCallbackRoute
-  '/slides': typeof SlidesRoute
   '/home': typeof MainHomeRoute
   '/$profileId/files': typeof MainProfileIdFilesRoute
   '/$profileId/home': typeof MainProfileIdHomeRoute
@@ -533,7 +525,6 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_main': typeof MainRouteRouteWithChildren
   '/agent-callback': typeof AgentCallbackRoute
-  '/slides': typeof SlidesRoute
   '/_main/$profileId': typeof MainProfileIdRouteRouteWithChildren
   '/_main/home': typeof MainHomeRoute
   '/_main/$profileId/activity': typeof MainProfileIdActivityRouteRouteWithChildren
@@ -598,7 +589,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/agent-callback'
-    | '/slides'
     | '/$profileId'
     | '/home'
     | '/$profileId/activity'
@@ -661,7 +651,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/agent-callback'
-    | '/slides'
     | '/home'
     | '/$profileId/files'
     | '/$profileId/home'
@@ -715,7 +704,6 @@ export interface FileRouteTypes {
     | '/'
     | '/_main'
     | '/agent-callback'
-    | '/slides'
     | '/_main/$profileId'
     | '/_main/home'
     | '/_main/$profileId/activity'
@@ -780,19 +768,11 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   MainRouteRoute: typeof MainRouteRouteWithChildren
   AgentCallbackRoute: typeof AgentCallbackRoute
-  SlidesRoute: typeof SlidesRoute
   McpOauthAuthorizeRoute: typeof McpOauthAuthorizeRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/slides': {
-      id: '/slides'
-      path: '/slides'
-      fullPath: '/slides'
-      preLoaderRoute: typeof SlidesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/agent-callback': {
       id: '/agent-callback'
       path: '/agent-callback'
@@ -1468,7 +1448,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   MainRouteRoute: MainRouteRouteWithChildren,
   AgentCallbackRoute: AgentCallbackRoute,
-  SlidesRoute: SlidesRoute,
   McpOauthAuthorizeRoute: McpOauthAuthorizeRoute,
 }
 export const routeTree = rootRouteImport

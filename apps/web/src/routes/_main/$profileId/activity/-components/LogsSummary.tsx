@@ -10,7 +10,7 @@ import {
 } from "@tabler/icons-react";
 import { motion } from "motion/react";
 import { Card, CardContent, cn } from "@vmem/ui";
-import { api } from "@vmem/backend";
+import type { api } from "@vmem/backend";
 import { Sparkline } from "@/components/dashboard/Sparkline";
 import { RANGE_LABELS, type Range } from "../-searchParams";
 import {

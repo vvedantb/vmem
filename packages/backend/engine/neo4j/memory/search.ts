@@ -10,8 +10,8 @@
 
 import neo4j, { type Driver } from "neo4j-driver";
 import { listMemories } from "./crud";
-import { withSession } from "./shared";
-import { type MemoryType, type MemoryWithTags } from "./types";
+import { visibleStatusClause, withSession } from "./shared";
+import type { MemoryType, MemoryWithTags } from "./types";
 
 export async function searchMemories(
   driver: Driver,
@@ -50,7 +50,7 @@ export async function getRecentMemoryTitles(
   return withSession(driver, async (session) => {
     const result = await session.run(
       `MATCH (m:Memory {userId: $userId})
-       WHERE m.id <> $excludeId AND m.status IN ['active', 'pinned']
+       WHERE m.id <> $excludeId AND ${visibleStatusClause("m", false)}
        RETURN m.id AS id, m.title AS title
        ORDER BY m.updatedAt DESC
        LIMIT $limit`,

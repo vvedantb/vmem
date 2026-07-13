@@ -35,12 +35,9 @@ const MEMORY_SOURCE_LABELS: Record<string, string> = {
   "prompt-capture": "Prompt Capture",
   youtube: "YouTube",
   google_drive: "Google Drive",
-  gmail: "Gmail",
-  onedrive: "OneDrive",
-  linear: "Linear",
-  linear_project: "Linear project",
   notion: "Notion",
   mcp: "MCP",
+  cursor: "Cursor",
   "client-enrichment": "Enrichment",
 };
 
@@ -95,10 +92,6 @@ export interface TagStats {
   tag: string;
   count: number;
   latestCreatedAt: string;
-}
-
-export interface SearchResult extends Memory {
-  relevanceScore: number;
 }
 
 export function buildTagStats(memories: Memory[]): TagStats[] {
@@ -158,57 +151,4 @@ export function timeAgo(dateString: string): string {
   const months = Math.floor(days / 30);
   if (months < 12) return `${months}mo`;
   return `${Math.floor(months / 12)}y`;
-}
-
-export function searchMemories(
-  memories: Memory[],
-  query: string,
-): SearchResult[] {
-  const normalizedQuery = query.trim().toLowerCase();
-  if (!normalizedQuery) {
-    return [];
-  }
-
-  const terms = normalizedQuery.split(/\s+/).filter(Boolean);
-  if (terms.length === 0) {
-    return [];
-  }
-
-  const maxScore = terms.length * 5;
-
-  return memories
-    .map((memory) => {
-      const title = memory.title.toLowerCase();
-      const content = memory.content.toLowerCase();
-      const tags = memory.tags.map((tag) => tag.toLowerCase());
-
-      let score = 0;
-      for (const term of terms) {
-        if (title === term) {
-          score += 5;
-          continue;
-        }
-
-        if (title.includes(term)) {
-          score += 3;
-        }
-
-        if (tags.some((tag) => tag === term)) {
-          score += 3;
-        } else if (tags.some((tag) => tag.includes(term))) {
-          score += 2;
-        }
-
-        if (content.includes(term)) {
-          score += 1;
-        }
-      }
-
-      return {
-        ...memory,
-        relevanceScore: Math.min(1, score / maxScore),
-      };
-    })
-    .filter((memory) => memory.relevanceScore > 0)
-    .sort((a, b) => b.relevanceScore - a.relevanceScore);
 }

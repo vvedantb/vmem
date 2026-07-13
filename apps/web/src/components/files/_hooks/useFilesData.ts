@@ -4,6 +4,7 @@ import { useCallback, useMemo } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api, type Id } from "@vmem/backend";
 import type { FileCategory, FileItem } from "@/lib/file-types";
+import { parseConvexStorageUpload } from "@/lib/schemas";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 
 const DEFAULT_STORAGE_LIMIT = 10 * 1024 * 1024 * 1024;
@@ -115,11 +116,14 @@ export function useFilesData(): UseFilesDataResult {
       if (!response.ok) {
         throw new Error(`Upload failed: ${response.statusText}`);
       }
-      const json: { storageId: Id<"_storage"> } = await response.json();
+      const storageId = parseConvexStorageUpload(await response.json());
+      if (!storageId) {
+        throw new Error("Invalid upload response from storage");
+      }
       await createFileMutation({
         name: file.name,
         parentId: toNodeId(parentFolderId),
-        storageId: json.storageId,
+        storageId,
         mimeType: file.type || "application/octet-stream",
         size: file.size,
         teamId,

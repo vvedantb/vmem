@@ -13,8 +13,8 @@
  * explicitly so the audit row attributes correctly.
  */
 
+import type { Doc, Id } from "../_generated/dataModel";
 import type { ActionCtx, MutationCtx } from "../_generated/server";
-import type { Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import { auditLog, ResourceTypes } from "../auditLog";
 
@@ -57,25 +57,13 @@ export async function runRemove(
     }
   }
 
-  await clearSourceDefaultsForDeletedProfile(ctx, ctx.userId, args.profileId);
-  await ctx.db.delete(args.profileId);
-
-  await auditLog.log(ctx, {
-    action: "profile.deleted",
-    actorId: ctx.userId,
-    resourceType: ResourceTypes.PROFILE,
-    resourceId: args.profileId,
-    metadata: {
-      name: profile.name,
-      movedMemoriesTo: args.moveMemoriesToProfileId ?? null,
-    },
-    severity: "warning",
-  });
+  const movedMemoriesTo = args.moveMemoriesToProfileId ?? null;
+  await deleteProfileRow(ctx, profile, ctx.userId, movedMemoriesTo);
 
   return {
     deleted: true,
     profileId: args.profileId,
-    moveMemoriesToProfileId: args.moveMemoriesToProfileId ?? null,
+    moveMemoriesToProfileId: movedMemoriesTo,
   };
 }
 
@@ -142,26 +130,37 @@ export async function runRemoveInternalMutation(
     throw new Error("Cannot delete the default profile");
   }
 
-  await clearSourceDefaultsForDeletedProfile(
+  await deleteProfileRow(
     ctx,
-    profile.userId,
-    args.profileId,
+    profile,
+    args.actorUserId,
+    args.movedMemoriesToProfileId ?? null,
   );
-  await ctx.db.delete(args.profileId);
+
+  return { deleted: true };
+}
+
+/** Clear source defaults, delete the row, and write the audit entry. */
+async function deleteProfileRow(
+  ctx: MutationCtx,
+  profile: Doc<"profiles">,
+  actorUserId: Id<"users">,
+  movedMemoriesTo: Id<"profiles"> | null,
+): Promise<void> {
+  await clearSourceDefaultsForDeletedProfile(ctx, profile.userId, profile._id);
+  await ctx.db.delete(profile._id);
 
   await auditLog.log(ctx, {
     action: "profile.deleted",
-    actorId: args.actorUserId,
+    actorId: actorUserId,
     resourceType: ResourceTypes.PROFILE,
-    resourceId: args.profileId,
+    resourceId: profile._id,
     metadata: {
       name: profile.name,
-      movedMemoriesTo: args.movedMemoriesToProfileId ?? null,
+      movedMemoriesTo,
     },
     severity: "warning",
   });
-
-  return { deleted: true };
 }
 
 /**
@@ -169,6 +168,15 @@ export async function runRemoveInternalMutation(
  * any client surface (web, browser extension), drop the pointer so the
  * UI falls back to "no default" instead of dangling at a tombstone id.
  */
+type DefaultProfileKeys = "web" | "extension" | "mcp" | "mcpTeam";
+
+const DEFAULT_PROFILE_KEYS: readonly DefaultProfileKeys[] = [
+  "web",
+  "extension",
+  "mcp",
+  "mcpTeam",
+];
+
 async function clearSourceDefaultsForDeletedProfile(
   ctx: MutationCtx,
   userId: Id<"users">,
@@ -180,35 +188,20 @@ async function clearSourceDefaultsForDeletedProfile(
     .first();
   if (!settings?.defaultProfiles) return;
 
-  const currentDefaults = settings.defaultProfiles;
-  const updatedDefaults: {
-    web?: Id<"profiles">;
-    extension?: Id<"profiles">;
-    mcp?: Id<"profiles">;
-    mcpTeam?: Id<"profiles">;
-  } = {};
+  const current = settings.defaultProfiles;
+  const updated: Partial<Record<DefaultProfileKeys, Id<"profiles">>> = {};
+  let changed = false;
 
-  if (currentDefaults.web && currentDefaults.web !== deletedProfileId) {
-    updatedDefaults.web = currentDefaults.web;
-  }
-  if (
-    currentDefaults.extension &&
-    currentDefaults.extension !== deletedProfileId
-  ) {
-    updatedDefaults.extension = currentDefaults.extension;
-  }
-  if (currentDefaults.mcp && currentDefaults.mcp !== deletedProfileId) {
-    updatedDefaults.mcp = currentDefaults.mcp;
-  }
-  if (currentDefaults.mcpTeam && currentDefaults.mcpTeam !== deletedProfileId) {
-    updatedDefaults.mcpTeam = currentDefaults.mcpTeam;
+  for (const key of DEFAULT_PROFILE_KEYS) {
+    const value = current[key];
+    if (value === undefined) continue;
+    if (value === deletedProfileId) {
+      changed = true;
+      continue;
+    }
+    updated[key] = value;
   }
 
-  const webChanged = currentDefaults.web === deletedProfileId;
-  const extensionChanged = currentDefaults.extension === deletedProfileId;
-  const mcpChanged = currentDefaults.mcp === deletedProfileId;
-  const mcpTeamChanged = currentDefaults.mcpTeam === deletedProfileId;
-  if (webChanged || extensionChanged || mcpChanged || mcpTeamChanged) {
-    await ctx.db.patch(settings._id, { defaultProfiles: updatedDefaults });
-  }
+  if (!changed) return;
+  await ctx.db.patch(settings._id, { defaultProfiles: updated });
 }

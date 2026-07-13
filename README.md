@@ -10,7 +10,7 @@ LLMs forget between sessions. Users repeat themselves, lose personalization when
 
 ## What vmem does
 
-vmem centralizes user knowledge in a **Neo4j memory graph** with hybrid retrieval (fulltext + vectors + chunks + entities + graph expansion). Any client — web dashboard, mobile app, Chrome extension, MCP host, or HTTP client — can read and write through **Convex**.
+vmem centralizes user knowledge in a **Neo4j memory graph** with hybrid retrieval (fulltext + vectors + chunks + entities + graph expansion). Any client — web dashboard, Chrome extension, MCP host, or HTTP client — can read and write through **Convex**.
 
 **Differentiators:**
 
@@ -18,13 +18,13 @@ vmem centralizes user knowledge in a **Neo4j memory graph** with hybrid retrieva
 - **Proposed updates** — conflicts become reviewable proposals instead of silent overwrites
 - **Implicit MCP context** — `vmem://context_prompt` injects a synthesized profile before the model responds
 - **Profiles & teams** — personal and team-scoped workspaces with isolated memory graphs
-- **Dream Mode** — background synthesis that surfaces anomalies and contradictions
+- **Dream Mode** — scheduled background synthesis that builds a user portrait and raises contradictions as proposals
 
 ## Architecture
 
 ```
 ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
-│  Web / Mobile│  │   Chrome     │  │  MCP hosts   │  │ HTTP / SDK   │
+│  Web         │  │   Chrome     │  │  MCP hosts   │  │ HTTP / SDK   │
 │  dashboard   │  │  extension   │  │ Claude, etc. │  │  scripts     │
 └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘
        │                 │                 │                 │
@@ -88,9 +88,7 @@ pnpm workspace (`pnpm@10.15.1`). Requires Node 20+.
 | Path                    | Package                  | Purpose                                                      |
 | ----------------------- | ------------------------ | ------------------------------------------------------------ |
 | `apps/web`              | `web`                    | Vite + React 19 + TanStack Router dashboard                  |
-| `apps/mobile`           | `mobile`                 | Expo app — local + cloud chat, voice, memory retrieval       |
 | `apps/chrome-extension` | `@vmem/chrome-extension` | Save pages, export chats, inject context into ChatGPT/Claude |
-| `apps/docs`             | `docs`                   | Mintlify documentation site                                  |
 | `packages/backend`      | `@vmem/backend`          | Convex functions, Neo4j actions, MCP HTTP server             |
 | `packages/shared`       | `@vmem/shared`           | Cross-app constants and client-safe prompt helpers           |
 | `packages/ui`           | `@vmem/ui`               | Shared shadcn/Radix component library                        |
@@ -111,22 +109,16 @@ Apps import only `@vmem/backend` (Convex `api` + types) and `@vmem/shared`.
 
 - Profiles as route-scoped workspaces (`/$profileId/…`)
 - Teams with shared memory graph, member management, team MCP endpoint
-- Per-workspace chat threads
+- Inbox for proposed updates and notifications; activity log for events and AI calls
 
 ### Data & ingest
 
 - **Files** — Convex storage + web explorer; indexable uploads become memories
-- **Codebases** — GitHub OAuth, symbol parsing, dependency graph, daily sync
-- **Connectors** — Google Drive, Gmail, Notion, OneDrive, Linear (batch ingest → memories; daily cron at 04:00 UTC)
+- **Codebases** — GitHub OAuth, symbol parsing, dependency graph, daily sync at 04:00 UTC
+- **Connectors** — Google Drive and Notion (batch ingest → memories; daily cron at 04:00 UTC)
 - **Skills** — personal skills + system Skills Hub catalog
 - **Wiki** — folder tree with TipTap markdown docs and version history
-- **Import** — ChatGPT, Claude, Grok, DeepSeek export files
-
-### Chat & voice
-
-- Web: local LLM (WebLLM) or cloud (OpenRouter + MCP tools), grounded on live memories
-- Mobile: on-device Llama + cloud chat, voice mode (STT → grounded LLM → TTS)
-- Dream Mode portraits injected into MCP context
+- **Import** — ChatGPT and Claude conversation exports
 
 ### Chrome extension
 
@@ -153,12 +145,11 @@ pnpm dev      # Web app — http://localhost:5173
 **Other commands:**
 
 ```bash
-pnpm mobile          # Expo dev server
 pnpm ext:dev         # Chrome extension watch build
-pnpm docs:dev        # Mintlify docs — http://localhost:3001
-pnpm typecheck:all   # web + backend + mobile
+pnpm typecheck:all   # web + backend + extension + packages
 pnpm test            # backend + web unit tests
-pnpm db:seed         # seed Neo4j (needs packages/backend/.env.local)
+pnpm check           # full merge gate: lint + typecheck:all + knip + tests + format
+pnpm eval:bench      # bench user only — seeds, reports, cleans up (safe on shared Neo4j)
 ```
 
 Visit `/?agent` during web dev to auto sign in as the agent user (requires `CLERK_SECRET_KEY` + `AGENT_CLERK_USER_ID` in `apps/web/.env.local`).
@@ -185,22 +176,10 @@ CONVEX_SITE_URL         # https://<deployment>.convex.site
 WEB_APP_URL             # http://localhost:5173 in dev
 ```
 
-Optional: `OPENROUTER_API_KEY` (server embeddings/context when users have no key), connector OAuth vars (`GOOGLE_CLIENT_*`, `NOTION_CLIENT_*`, `MICROSOFT_CLIENT_*`, `LINEAR_CLIENT_*`, `GITHUB_CLIENT_*`).
-
-**Mobile** — copy `apps/mobile/.env.example` to `apps/mobile/.env`.
+Optional: `OPENROUTER_API_KEY` (server embeddings/context when users have no key), `GOOGLE_CLIENT_*` / `NOTION_CLIENT_*` (connector OAuth), `GITHUB_CLIENT_*` (codebase sync OAuth), `NEO4J_USERNAME` (defaults to `neo4j`).
 
 **Chrome extension** — edit `apps/chrome-extension/src/lib/constants.ts` (Convex URL + Clerk keys) before `pnpm ext:build`.
 
-**Neo4j CLI scripts** (`db:seed`, `eval:retrieval`) — `packages/backend/.env.local` with `NEO4J_URI`, `NEO4J_PASSWORD`, and optionally `OPENROUTER_API_KEY`.
+**Neo4j CLI scripts** (`eval:bench`, `db:tag-stats`) — `packages/backend/.env.local` with `NEO4J_URI`, `NEO4J_PASSWORD`, and optionally `OPENROUTER_API_KEY`.
 
-Full variable reference: `apps/docs/environment.mdx` (preview with `pnpm docs:dev`).
-
-## Documentation
-
-User-facing docs live in `apps/docs/` (Mintlify). Preview locally:
-
-```bash
-pnpm docs:dev
-```
-
-Public docs: [vmem.vedantb.com](https://vmem.vedantb.com)
+Public docs (hosted separately): [vmem.vedantb.com](https://vmem.vedantb.com)

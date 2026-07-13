@@ -2,7 +2,7 @@ import { Link, useMatchRoute, type LinkProps } from "@tanstack/react-router";
 import { Tabs, TabsList, TabsTrigger } from "@vmem/ui";
 import type { ReactNode } from "react";
 
-export interface RouteTabItem {
+interface RouteTabItem {
   value: string;
   to: LinkProps["to"];
   label: string;

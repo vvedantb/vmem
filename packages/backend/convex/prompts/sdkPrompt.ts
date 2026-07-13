@@ -1,4 +1,7 @@
+import { z } from "zod";
 import { extractJsonString } from "../../engine/llm/extractJsonString";
+
+const MAX_CONTENT_PREVIEW = 600;
 
 export interface RetrieveSummaryMemory {
   id: string;
@@ -16,8 +19,8 @@ export function buildRetrieveSummaryPrompt(
       : memories
           .map((memory, index) => {
             const preview =
-              memory.content.length > 600
-                ? `${memory.content.slice(0, 600)}…`
+              memory.content.length > MAX_CONTENT_PREVIEW
+                ? `${memory.content.slice(0, MAX_CONTENT_PREVIEW)}…`
                 : memory.content;
             return `[${String(index + 1)}] ${memory.title}\n${preview}`;
           })
@@ -44,20 +47,16 @@ ${memoryLines}
 # Your output (JSON only)`;
 }
 
-function readJsonString(value: unknown, key: string): string | null {
-  if (typeof value !== "object" || value === null) {
-    return null;
-  }
-  const field = Reflect.get(value, key);
-  return typeof field === "string" && field.trim().length > 0
-    ? field.trim()
-    : null;
-}
+const retrieveSummaryResponseSchema = z.object({
+  summary: z.string().trim().min(1),
+});
 
 export function parseRetrieveSummaryResponse(raw: string): string | null {
   try {
-    const parsed: unknown = JSON.parse(extractJsonString(raw));
-    return readJsonString(parsed, "summary");
+    const parsed = retrieveSummaryResponseSchema.safeParse(
+      JSON.parse(extractJsonString(raw)),
+    );
+    return parsed.success ? parsed.data.summary : null;
   } catch {
     return null;
   }

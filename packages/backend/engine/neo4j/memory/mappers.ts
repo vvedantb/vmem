@@ -5,19 +5,85 @@
  */
 
 import crypto from "node:crypto";
-import { type Record as NeoRecord } from "neo4j-driver";
+import type { Record as NeoRecord } from "neo4j-driver";
+import { z } from "zod";
 import {
-  type MemoryEvent,
-  type MemorySnapshot,
-  type MemoryType,
-  type MemoryWithTags,
-  type TagEdge,
-  type TimelineEvent,
+  neo4jGet,
+  neo4jString,
+  parseNeo4jInt,
+  parseNeo4jNodeProps,
+} from "../record";
+import type {
+  MemoryEvent,
+  MemoryType,
+  MemoryWithTags,
+  TagEdge,
+  TimelineEvent,
 } from "./types";
 
-function parseJsonField<T>(val: string | null): T | null {
-  if (val === null) return null;
-  return JSON.parse(val) as T;
+const memoryTypeSchema = z.enum(["profile", "episodic", "knowledge"]);
+const memoryStatusSchema = z.enum([
+  "active",
+  "pinned",
+  "suppressed",
+  "expired",
+]);
+
+const memoryNodePropsSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  profileId: z.string().nullable().optional(),
+  title: z.string(),
+  content: z.string(),
+  type: memoryTypeSchema,
+  source: z.string(),
+  sourceType: z.string().nullable().optional(),
+  sourceId: z.string().nullable().optional(),
+  sourceUrl: z.string().nullable().optional(),
+  sourceSyncedAt: z.string().nullable().optional(),
+  confidence: z.number(),
+  status: memoryStatusSchema,
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  expiresAt: z.string().nullable().optional(),
+});
+
+export const memoryEventPropsSchema = z.object({
+  id: z.string(),
+  action: z.string(),
+  actor: z.string(),
+  createdAt: z.string(),
+  snapshot: z.string().nullable().optional(),
+  details: z.string().nullable().optional(),
+});
+
+const memorySnapshotSchema = z.object({
+  title: z.string(),
+  content: z.string(),
+  type: z.string(),
+  status: z.string(),
+  confidence: z.number(),
+  tags: z.array(z.string()),
+});
+
+const tagsArraySchema = z.array(z.string());
+
+const detailsRecordSchema = z.record(z.string(), z.string());
+
+function parseJsonField<T>(
+  val: string | null | undefined,
+  schema: z.ZodType<T>,
+): T | null {
+  if (val === null || val === undefined) return null;
+  try {
+    // JSON.parse is typed `any` — re-enter as unknown for zod.
+    // oxlint-disable-next-line typescript/no-unsafe-assignment -- JSON.parse
+    const raw: unknown = JSON.parse(val);
+    const parsed = schema.safeParse(raw);
+    return parsed.success ? parsed.data : null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -61,15 +127,8 @@ export function recencyFromAgeDays(age: number, type: MemoryType): number {
 export function toMemoryTypeOrUndefined(
   val: string | null,
 ): MemoryType | undefined {
-  if (val === "profile" || val === "episodic" || val === "knowledge") {
-    return val;
-  }
-  return undefined;
-}
-
-export function toNeoInt(val: number | { toNumber(): number }): number {
-  if (typeof val === "number") return val;
-  return val.toNumber();
+  const parsed = memoryTypeSchema.safeParse(val);
+  return parsed.success ? parsed.data : undefined;
 }
 
 export function toSnapshot(
@@ -93,29 +152,25 @@ export function toEventFromNode(props: {
   action: string;
   actor: string;
   createdAt: string;
-  snapshot: string | null;
-  details: string | null;
+  snapshot?: string | null;
+  details?: string | null;
 }): MemoryEvent {
   return {
     id: props.id,
     action: props.action,
     actor: props.actor,
     createdAt: props.createdAt,
-    snapshot: parseJsonField<MemorySnapshot>(props.snapshot),
-    details: parseJsonField<Record<string, string>>(props.details),
+    snapshot: parseJsonField(props.snapshot, memorySnapshotSchema),
+    details: parseJsonField(props.details, detailsRecordSchema),
   };
 }
 
-function optionalNeo4jString(value: unknown): string | null {
-  if (value === null || value === undefined) {
-    return null;
-  }
-  return String(value);
-}
-
 export function toMemoryWithTags(record: NeoRecord): MemoryWithTags {
-  const obj = record.toObject();
-  const props = obj.m.properties;
+  const props = parseNeo4jNodeProps(
+    neo4jGet(record, "m"),
+    memoryNodePropsSchema,
+  );
+  const tagsParsed = tagsArraySchema.safeParse(neo4jGet(record, "tags"));
   return {
     id: props.id,
     userId: props.userId,
@@ -124,24 +179,35 @@ export function toMemoryWithTags(record: NeoRecord): MemoryWithTags {
     content: props.content,
     type: props.type,
     source: props.source,
-    sourceType: optionalNeo4jString(props.sourceType),
-    sourceId: optionalNeo4jString(props.sourceId),
-    sourceUrl: optionalNeo4jString(props.sourceUrl),
-    sourceSyncedAt: optionalNeo4jString(props.sourceSyncedAt),
+    sourceType: props.sourceType ?? null,
+    sourceId: props.sourceId ?? null,
+    sourceUrl: props.sourceUrl ?? null,
+    sourceSyncedAt: props.sourceSyncedAt ?? null,
     confidence: props.confidence,
     status: props.status,
     createdAt: props.createdAt,
     updatedAt: props.updatedAt,
     expiresAt: props.expiresAt ?? null,
-    tags: obj.tags ?? [],
+    tags: tagsParsed.success ? tagsParsed.data : [],
   };
 }
 
 export function toTimelineEvent(record: NeoRecord): TimelineEvent {
+  const eventProps = parseNeo4jNodeProps(
+    neo4jGet(record, "e"),
+    memoryEventPropsSchema,
+  );
   return {
-    ...toEventFromNode(record.get("e").properties),
-    memoryId: String(record.get("memoryId") ?? ""),
-    memoryTitle: String(record.get("memoryTitle") ?? ""),
+    ...toEventFromNode({
+      id: eventProps.id,
+      action: eventProps.action,
+      actor: eventProps.actor,
+      createdAt: eventProps.createdAt,
+      snapshot: eventProps.snapshot ?? null,
+      details: eventProps.details ?? null,
+    }),
+    memoryId: neo4jString(record, "memoryId"),
+    memoryTitle: neo4jString(record, "memoryTitle"),
   };
 }
 
@@ -155,14 +221,14 @@ export function toTimelineEvent(record: NeoRecord): TimelineEvent {
  *     combinatorial explosion on blown-out tags like "misc".
  */
 export function toTagEdge(record: NeoRecord): TagEdge {
-  const rawShared = record.get("sharedTags");
+  const rawShared = neo4jGet(record, "sharedTags");
   const sharedTags = Array.isArray(rawShared)
     ? rawShared.filter(Boolean).map(String)
     : [];
   return {
-    source: String(record.get("source")),
-    target: String(record.get("target")),
-    weight: toNeoInt(record.get("weight")),
+    source: neo4jString(record, "source"),
+    target: neo4jString(record, "target"),
+    weight: parseNeo4jInt(neo4jGet(record, "weight")),
     sharedTags,
   };
 }

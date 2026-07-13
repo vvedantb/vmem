@@ -9,10 +9,10 @@
 import type { CreateEmbeddingsResponseBody } from "@openrouter/sdk/models/operations";
 import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
-import { createOpenRouterClient, readOpenRouterError } from "./client";
+import { createOpenRouterClient } from "./client";
 import {
   PROMPT_PREVIEW_BYTES,
-  classifyHttpStatus,
+  classifyOpenRouterFailure,
   numberOrUndef,
   previewsEnabled,
   scheduleLog,
@@ -78,7 +78,7 @@ export async function generateEmbedding(
 export async function generateEmbeddings(
   args: EmbeddingCallArgs & { texts: string[] },
 ): Promise<number[][]> {
-  const out: number[][] = new Array(args.texts.length);
+  const out: number[][] = Array.from({ length: args.texts.length });
   for (
     let offset = 0;
     offset < args.texts.length;
@@ -86,7 +86,7 @@ export async function generateEmbeddings(
   ) {
     const slice = args.texts
       .slice(offset, offset + EMBEDDING_BATCH_SIZE)
-      .map(truncateForEmbedding);
+      .map((text) => truncate(text, EMBEDDING_MAX_INPUT_CHARS));
     const response = await postEmbeddingChunkWithRetry({
       ctx: args.ctx,
       apiKey: args.apiKey,
@@ -158,11 +158,7 @@ async function postEmbeddingChunkWithRetry(
     inlineCostUsd = numberOrUndef(response.usage?.cost);
   } catch (e) {
     ok = false;
-    const err = readOpenRouterError(e);
-    status = err.status;
-    errorMessage = err.message;
-    errorClass =
-      status > 0 ? (classifyHttpStatus(status) ?? "network") : "network";
+    ({ status, errorMessage, errorClass } = classifyOpenRouterFailure(e));
   }
 
   const latencyMs = Math.round(performance.now() - start);
@@ -234,12 +230,6 @@ function readFloatEmbedding(embedding: Array<number> | string): number[] {
     return embedding;
   }
   throw new Error("embedding response: expected float array");
-}
-
-function truncateForEmbedding(text: string): string {
-  return text.length > EMBEDDING_MAX_INPUT_CHARS
-    ? text.slice(0, EMBEDDING_MAX_INPUT_CHARS)
-    : text;
 }
 
 function computeEmbeddingCost(

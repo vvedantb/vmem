@@ -76,7 +76,7 @@ import {
  * canonical name, its input schema, and the service-layer handler it runs.
  *
  * Two orchestration surfaces consume this catalog — the MCP server
- * (`tools.ts`) and the cloud-chat OpenRouter tools (`src/cloud/openRouterTools.ts`).
+ * (`tools.ts`) and any future tool hosts that share the same catalog.
  * Each surface owns its own presentation (descriptions, result formatting) and
  * decides which subset of tools to expose; the catalog owns only the
  * name ↔ schema ↔ handler binding so the two surfaces can never drift apart
@@ -119,6 +119,11 @@ export const toolSpecs = {
     schema: setActiveProfileSchema,
     run: runSetActiveProfile,
   }),
+  context_prompt_get: toolSpec({
+    name: "context_prompt_get",
+    schema: contextPromptGetSchema,
+    run: runContextPromptGet,
+  }),
   memory_search: toolSpec({
     name: "memory_search",
     schema: memorySearchSchema,
@@ -153,11 +158,6 @@ export const toolSpecs = {
     name: "memory_related",
     schema: memoryRelatedSchema,
     run: runMemoryRelated,
-  }),
-  context_prompt_get: toolSpec({
-    name: "context_prompt_get",
-    schema: contextPromptGetSchema,
-    run: runContextPromptGet,
   }),
   skills_list: toolSpec({
     name: "skills_list",
@@ -265,3 +265,24 @@ export const toolSpecs = {
     run: runCodebaseGraph,
   }),
 };
+
+/** Erased bindable tool — shared return type for MCP registration loops. */
+export type McpBindableTool = {
+  readonly name: string;
+  readonly schema: z.ZodObject<z.ZodRawShape>;
+  readonly run: (
+    h: ToolHandlerContext,
+    params: z.infer<z.ZodObject<z.ZodRawShape>>,
+  ) => Promise<ToolHandlerResult>;
+};
+
+/** Type-erased runner for MCP registration loops. */
+export function bindToolSpec<Shape extends z.ZodRawShape>(
+  spec: ToolSpec<Shape>,
+): McpBindableTool {
+  return {
+    name: spec.name,
+    schema: spec.schema,
+    run: (h, params) => spec.run(h, spec.schema.parse(params)),
+  };
+}

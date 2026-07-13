@@ -1,7 +1,7 @@
 import type { ComponentType } from "react";
 import type { FileRouteTypes } from "@/routeTree.gen";
 
-export type NavIcon = ComponentType<{
+type NavIcon = ComponentType<{
   className?: string;
   size?: number;
   stroke?: number;
@@ -26,7 +26,7 @@ export interface NavGroup {
   items: NavItem[];
 }
 
-export interface SettingsNavItem {
+interface SettingsNavItem {
   href: NavHref;
   label: string;
   icon: NavIcon;

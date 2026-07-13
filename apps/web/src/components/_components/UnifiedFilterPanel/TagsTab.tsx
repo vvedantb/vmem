@@ -15,6 +15,43 @@ import { Virtuoso } from "react-virtuoso";
 import type { TagSortMode, TagStats } from "@/lib/memories";
 import { TAG_SORT_LABELS, TAG_SORT_OPTIONS } from "./types";
 
+interface TagsVirtuosoContext {
+  selectedTags: string[];
+  toggleTag: (tag: string) => void;
+}
+
+function TagVirtuosoRow({
+  tagStat,
+  context,
+}: {
+  tagStat: TagStats;
+  context?: TagsVirtuosoContext;
+}) {
+  const checked = (context?.selectedTags ?? []).some(
+    (t) => t.toLowerCase() === tagStat.tag.toLowerCase(),
+  );
+  return (
+    <label className="flex items-center gap-2 px-3 py-2 cursor-pointer border-b border-separator last:border-0 hover:bg-surface-tertiary">
+      <Checkbox
+        checked={checked}
+        onCheckedChange={() => context?.toggleTag(tagStat.tag)}
+      />
+      <span className="flex-1 text-xs truncate">{tagStat.tag}</span>
+      <span className="text-xs text-muted/50 tabular-nums">
+        {tagStat.count}
+      </span>
+    </label>
+  );
+}
+
+function renderTagVirtuosoRow(
+  _index: number,
+  tagStat: TagStats,
+  context?: TagsVirtuosoContext,
+) {
+  return <TagVirtuosoRow tagStat={tagStat} context={context} />;
+}
+
 interface TagsTabProps {
   sortedTags: TagStats[];
   selectedTags: string[];
@@ -53,19 +90,20 @@ export default function TagsTab({
     >
       <div className="p-2 border-b border-separator">
         <div className="flex items-center justify-between">
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => onTagsChange?.([])}
             className={cn(
-              "flex items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors",
+              "h-auto justify-start gap-2 rounded-md px-2 py-1.5 text-xs transition-colors active:scale-100",
               selectedTags.length === 0
-                ? "bg-surface-secondary text-foreground font-medium"
+                ? "bg-surface-secondary font-medium text-foreground hover:bg-surface-secondary"
                 : "hover:bg-surface-tertiary",
             )}
           >
             All tags
             <span className="text-muted/50 tabular-nums">{totalCount}</span>
-          </button>
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon-xs" className="text-muted">
@@ -94,25 +132,10 @@ export default function TagsTab({
         <div className="flex-1 min-h-0">
           <Virtuoso
             data={sortedTags}
+            context={{ selectedTags, toggleTag }}
             computeItemKey={(_index, item) => item.tag}
             fixedItemHeight={36}
-            itemContent={(_i, tagStat) => {
-              const checked = selectedTags.some(
-                (t) => t.toLowerCase() === tagStat.tag.toLowerCase(),
-              );
-              return (
-                <label className="flex items-center gap-2 px-3 py-2 cursor-pointer border-b border-separator last:border-0 hover:bg-surface-tertiary">
-                  <Checkbox
-                    checked={checked}
-                    onCheckedChange={() => toggleTag(tagStat.tag)}
-                  />
-                  <span className="flex-1 text-xs truncate">{tagStat.tag}</span>
-                  <span className="text-xs text-muted/50 tabular-nums">
-                    {tagStat.count}
-                  </span>
-                </label>
-              );
-            }}
+            itemContent={renderTagVirtuosoRow}
             style={{ height: "100%" }}
           />
         </div>

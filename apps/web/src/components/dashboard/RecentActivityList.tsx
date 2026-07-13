@@ -6,7 +6,7 @@ import { Link } from "@tanstack/react-router";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 import { motion } from "motion/react";
 import { Card, CardContent } from "@vmem/ui";
-import { api } from "@vmem/backend";
+import type { api } from "@vmem/backend";
 import { getActivityIcon, getActivityLabel } from "./_utils";
 
 type ActivityItem = FunctionReturnType<

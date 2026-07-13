@@ -1,25 +1,57 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import { authAction, authMutation, authQuery, requireClerkId } from "./auth";
 import { DAILY_SYNC_STALE_MS } from "./codebaseSyncConstants";
 import { isCodebaseSyncStalled } from "@vmem/shared";
-import type { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import { decryptToken } from "./lib/crypto";
 import { retrier } from "./retrier";
+import { parseResponseJson } from "./lib/jsonBoundary";
+import { z } from "zod";
 
 // --- GitHub API response shape for repos ---
 
-type GitHubRepo = {
-  id: number;
-  name: string;
-  full_name: string;
-  owner: { login: string };
-  default_branch: string;
-  language: string | null;
-  description: string | null;
-  private: boolean;
-};
+const githubRepoSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  full_name: z.string(),
+  owner: z.object({ login: z.string() }),
+  default_branch: z.string(),
+  language: z.string().nullable(),
+  description: z.string().nullable(),
+  private: z.boolean(),
+});
+
+const githubReposSchema = z.array(githubRepoSchema);
+
+/** Normalize + ownership check shared by public mutate/read paths. */
+async function getOwnedCodebaseOrNull(
+  ctx: QueryCtx | MutationCtx,
+  id: string,
+  userId: Id<"users">,
+): Promise<Doc<"codebases"> | null> {
+  const normalizedId = ctx.db.normalizeId("codebases", id);
+  if (!normalizedId) return null;
+  const codebase = await ctx.db.get(normalizedId);
+  if (!codebase || codebase.userId !== userId) return null;
+  return codebase;
+}
+
+async function requireOwnedCodebase(
+  ctx: QueryCtx | MutationCtx,
+  id: string,
+  userId: Id<"users">,
+): Promise<Doc<"codebases">> {
+  const normalizedId = ctx.db.normalizeId("codebases", id);
+  if (!normalizedId) throw new Error("Invalid codebase id");
+  const codebase = await ctx.db.get(normalizedId);
+  if (!codebase || codebase.userId !== userId) {
+    throw new Error("Codebase not found");
+  }
+  return codebase;
+}
 
 // --- Public functions ---
 
@@ -50,12 +82,7 @@ export const listMy = authQuery({
 export const getById = authQuery({
   args: { id: v.string() },
   handler: async (ctx, args) => {
-    // Convex normalizes string → Id at runtime via ctx.db.get
-    const codebase = await ctx.db.normalizeId("codebases", args.id);
-    if (!codebase) return null;
-    const doc = await ctx.db.get(codebase);
-    if (!doc || doc.userId !== ctx.userId) return null;
-    return doc;
+    return await getOwnedCodebaseOrNull(ctx, args.id, ctx.userId);
   },
 });
 
@@ -86,9 +113,7 @@ export const listRepos = authAction({
       throw new Error(`GitHub API error: ${response.status} ${text}`);
     }
 
-    // response.json() returns Promise<any> in the standard lib.
-    // Annotating the variable directly avoids using `as`.
-    const repos: Array<GitHubRepo> = await response.json();
+    const repos = await parseResponseJson(response, githubReposSchema);
 
     return repos.map((repo) => ({
       id: repo.id,
@@ -144,19 +169,14 @@ export const addCodebase = authMutation({
 export const removeCodebase = authMutation({
   args: { id: v.string() },
   handler: async (ctx, args) => {
-    const normalizedId = ctx.db.normalizeId("codebases", args.id);
-    if (!normalizedId) throw new Error("Invalid codebase id");
-    const codebase = await ctx.db.get(normalizedId);
-    if (!codebase || codebase.userId !== ctx.userId) {
-      throw new Error("Codebase not found");
-    }
+    const codebase = await requireOwnedCodebase(ctx, args.id, ctx.userId);
     // Delete the Convex row immediately (keeps the optimistic update snappy)
     // and schedule Neo4j cleanup. The graph data is scoped by clerkId, so we
     // resolve it before handing off to the Node-runtime delete action.
     const clerkId = await ctx.runQuery(internal.auth.getClerkIdInternal, {
       userId: ctx.userId,
     });
-    await ctx.db.delete(normalizedId);
+    await ctx.db.delete(codebase._id);
     if (clerkId) {
       // Retried (not plain scheduled) so a transient Neo4j outage can't leave
       // orphaned graph nodes behind after the row is already gone. The delete
@@ -164,7 +184,7 @@ export const removeCodebase = authMutation({
       await retrier.run(
         ctx,
         internal.neo4jActions.codebases.deleteCodebaseInternal,
-        { clerkId, codebaseId: normalizedId },
+        { clerkId, codebaseId: codebase._id },
       );
     }
   },
@@ -178,13 +198,8 @@ export const removeCodebase = authMutation({
 export const setArchived = authMutation({
   args: { id: v.string(), archived: v.boolean() },
   handler: async (ctx, args) => {
-    const normalizedId = ctx.db.normalizeId("codebases", args.id);
-    if (!normalizedId) throw new Error("Invalid codebase id");
-    const codebase = await ctx.db.get(normalizedId);
-    if (!codebase || codebase.userId !== ctx.userId) {
-      throw new Error("Codebase not found");
-    }
-    await ctx.db.patch(normalizedId, { isArchived: args.archived });
+    const codebase = await requireOwnedCodebase(ctx, args.id, ctx.userId);
+    await ctx.db.patch(codebase._id, { isArchived: args.archived });
   },
 });
 
@@ -337,10 +352,9 @@ export const updateStatusInternal = internalMutation({
     // Patch only the keys actually supplied so callers can update e.g.
     // just `parseStage` mid-sync without clobbering counts/stats.
     const { id, ...rest } = args;
-    const patch: Record<string, unknown> = {};
-    for (const [k, v2] of Object.entries(rest)) {
-      if (v2 !== undefined) patch[k] = v2;
-    }
+    const patch = Object.fromEntries(
+      Object.entries(rest).filter(([, value]) => value !== undefined),
+    );
     await ctx.db.patch(id, patch);
   },
 });

@@ -166,7 +166,7 @@ export default function WikiEditor({
       scheduleRef.current();
       const activeId = loadedDocIdRef.current;
       if (activeId) {
-        debouncedSave(activeId, getMarkdownFromEditor(instance), jsonDoc);
+        void debouncedSave(activeId, getMarkdownFromEditor(instance), jsonDoc);
       }
     },
   });

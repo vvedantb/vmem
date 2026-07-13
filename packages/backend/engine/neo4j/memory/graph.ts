@@ -9,11 +9,91 @@
  * driver doesn't allow concurrent `.run()` on the same session, so the
  * Promise.all over per-leg sessions is the parallelism contract.
  */
-import { type Driver, type Session } from "neo4j-driver";
+import type { Driver, Record as NeoRecord, Session } from "neo4j-driver";
+import { z } from "zod";
 import { clampNeo4jLimit } from "../intParams";
-import { toMemoryTypeOrUndefined, toNeoInt, toTagEdge } from "./mappers";
-import { profileFilter, withSession } from "./shared";
-import { type MemoryType, type TagEdge } from "./types";
+import { neo4jGet, parseNeo4jInt } from "../record";
+import { toMemoryTypeOrUndefined, toTagEdge } from "./mappers";
+import { profileFilter, visibleStatusClause, withSession } from "./shared";
+import type { MemoryType, TagEdge } from "./types";
+
+// Each row schema coerces raw Neo4j driver values directly into the typed
+// shape callers need — `safeParse` yields the final object, no hand-rolled
+// String()/coercion pass afterward.
+const graphNodeRowSchema = z.object({
+  id: z.unknown().transform(String),
+  title: z.unknown().transform(String),
+  tags: z
+    .unknown()
+    .transform((v) => (Array.isArray(v) ? v.filter(Boolean).map(String) : [])),
+  createdAt: z.unknown().transform(String),
+  source: z.coerce
+    .string()
+    .nullish()
+    .transform((v) => v ?? undefined),
+  sourceType: z.coerce
+    .string()
+    .nullish()
+    .transform((v) => v ?? null),
+  type: z
+    .unknown()
+    .transform((v) =>
+      toMemoryTypeOrUndefined(typeof v === "string" ? v : null),
+    ),
+});
+
+const relatesToEdgeRowSchema = z.object({
+  source: z.unknown().transform(String),
+  target: z.unknown().transform(String),
+  reason: z.coerce
+    .string()
+    .nullish()
+    .transform((v) => v ?? ""),
+  score: z
+    .unknown()
+    .transform((v) => (v === null || v === undefined ? undefined : Number(v))),
+});
+
+const entityRowSchema = z.object({
+  normalizedName: z.unknown().transform(String),
+  name: z.unknown().transform(String),
+  type: z.unknown().transform(String),
+  memoryIds: z
+    .unknown()
+    .transform((v) => (Array.isArray(v) ? v.filter(Boolean).map(String) : [])),
+});
+
+function parseGraphNodeRow(n: unknown): GraphNode | null {
+  const parsed = graphNodeRowSchema.safeParse(n);
+  return parsed.success ? parsed.data : null;
+}
+
+/** Shared RELATES_TO edge parse — used by both the global and local graph. */
+function parseRelatesToEdgeRow(raw: unknown): RelatesToEdge | null {
+  const parsed = relatesToEdgeRowSchema.safeParse(raw);
+  return parsed.success ? parsed.data : null;
+}
+
+/** Shared MENTIONS-entity parse — used by both the global and local graph. */
+function parseEntityRow(raw: unknown): GraphData["entities"][number] | null {
+  const parsed = entityRowSchema.safeParse(raw);
+  return parsed.success ? parsed.data : null;
+}
+
+/** Projects the given fields off a Neo4j record into a plain object keyed by
+ *  column name — the `getLocalGraph` queries return scalar columns rather
+ *  than pre-shaped maps, so each row needs re-assembling before it can be
+ *  handed to the shared `parse*Row` schemas above. */
+function rowFromRecord(
+  r: NeoRecord,
+  keys: readonly string[],
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const k of keys) {
+    out[k] = neo4jGet(r, k);
+  }
+  return out;
+}
 
 /**
  * Hard ceiling for one global-graph page; matches MAX_NODES in capGraph.
@@ -126,14 +206,14 @@ async function fetchGraphNodesAndEdges(
     ? ""
     : `CALL () {
          MATCH (m:Memory {userId: $userId})
-         WHERE coalesce(m.status, 'active') IN ['active', 'pinned'] ${pf.clause}
+         WHERE ${visibleStatusClause("m")} ${pf.clause}
          RETURN count(m) AS totalMemoryCount
        }`;
 
   const result = await session.run(
     `CALL () {
        MATCH (m:Memory {userId: $userId})
-       WHERE coalesce(m.status, 'active') IN ['active', 'pinned'] ${pf.clause}
+       WHERE ${visibleStatusClause("m")} ${pf.clause}
        ${cursorClause}
        WITH m ORDER BY m.createdAt DESC, m.id DESC LIMIT $nodeLimit
        OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
@@ -181,24 +261,18 @@ async function fetchGraphNodesAndEdges(
   );
 
   const row = result.records[0];
-  const rawNodes = row ? row.get("nodes") : [];
-  const rawOutEdges = row ? row.get("outEdges") : [];
-  const rawInEdges = row ? row.get("inEdges") : [];
-  const rawEntities = row ? row.get("entities") : [];
+  const rawNodes = row ? neo4jGet(row, "nodes") : [];
+  const rawOutEdges = row ? neo4jGet(row, "outEdges") : [];
+  const rawInEdges = row ? neo4jGet(row, "inEdges") : [];
+  const rawEntities = row ? neo4jGet(row, "entities") : [];
   const totalMemoryCount =
-    row && !cursor ? toNeoInt(row.get("totalMemoryCount")) : undefined;
+    row && !cursor
+      ? parseNeo4jInt(neo4jGet(row, "totalMemoryCount"))
+      : undefined;
 
-  const nodes: GraphNode[] = (Array.isArray(rawNodes) ? rawNodes : []).map(
-    (n) => ({
-      id: String(n.id),
-      title: String(n.title),
-      tags: Array.isArray(n.tags) ? n.tags.filter(Boolean).map(String) : [],
-      createdAt: String(n.createdAt),
-      source: n.source !== null ? String(n.source) : undefined,
-      sourceType: n.sourceType !== null ? String(n.sourceType) : null,
-      type: toMemoryTypeOrUndefined(n.type),
-    }),
-  );
+  const nodes: GraphNode[] = (Array.isArray(rawNodes) ? rawNodes : [])
+    .map(parseGraphNodeRow)
+    .filter((n): n is GraphNode => n !== null);
 
   // Merge the two directed legs; an edge with both endpoints in this page
   // appears in both, so dedupe by pair.
@@ -206,27 +280,25 @@ async function fetchGraphNodesAndEdges(
   const seenPairs = new Set<string>();
   for (const raw of [rawOutEdges, rawInEdges]) {
     for (const e of Array.isArray(raw) ? raw : []) {
-      const source = String(e.source);
-      const target = String(e.target);
-      const key = `${source}|${target}`;
+      const parsed = parseRelatesToEdgeRow(e);
+      if (!parsed) continue;
+      const key = `${parsed.source}|${parsed.target}`;
       if (seenPairs.has(key)) continue;
       seenPairs.add(key);
       relatesToEdges.push({
-        source,
-        target,
-        reason: String(e.reason ?? ""),
+        source: parsed.source,
+        target: parsed.target,
+        reason: parsed.reason,
       });
     }
   }
 
   const entities: GraphData["entities"] = (
     Array.isArray(rawEntities) ? rawEntities : []
-  ).map((e) => ({
-    normalizedName: String(e.normalizedName),
-    name: String(e.name),
-    type: String(e.type),
-    memoryIds: Array.isArray(e.memoryIds) ? e.memoryIds.map(String) : [],
-  }));
+  ).flatMap((e) => {
+    const parsed = parseEntityRow(e);
+    return parsed ? [parsed] : [];
+  });
 
   // A full page means there may be more — hand back the keyset for the next.
   const last = nodes.length === limit ? nodes[nodes.length - 1] : undefined;
@@ -251,7 +323,7 @@ async function fetchTagSharedEdges(
   const pf = profileFilter(profileId, "m");
   const result = await session.run(
     `MATCH (m:Memory {userId: $userId})-[:TAGGED_WITH]->(t:Tag)
-     WHERE coalesce(m.status, 'active') IN ['active', 'pinned'] ${pf.clause}
+     WHERE ${visibleStatusClause("m")} ${pf.clause}
      WITH t, collect(m) AS memsForTag, count(*) AS userTagCount
      WHERE userTagCount >= 2 AND userTagCount <= 500
      UNWIND memsForTag AS m1
@@ -328,7 +400,7 @@ export async function getMemoryContent(
     );
     const first = result.records[0];
     if (!first) return "";
-    const value = first.get("content");
+    const value = neo4jGet(first, "content");
     return typeof value === "string" ? value : "";
   });
 }
@@ -362,9 +434,9 @@ export async function getLocalGraph(
   const focusMatch =
     focusId !== null
       ? `MATCH (focus:Memory {id: $focusId, userId: $userId})
-         WHERE coalesce(focus.status, 'active') IN ['active', 'pinned'] ${pfFocus.clause}`
+         WHERE ${visibleStatusClause("focus")} ${pfFocus.clause}`
       : `MATCH (focus:Memory {userId: $userId})
-         WHERE coalesce(focus.status, 'active') IN ['active', 'pinned'] ${pfFocus.clause}
+         WHERE ${visibleStatusClause("focus")} ${pfFocus.clause}
          WITH focus ORDER BY focus.createdAt DESC LIMIT 1`;
 
   try {
@@ -374,9 +446,9 @@ export async function getLocalGraph(
     const nodesResult = await nodesSession.run(
       `${focusMatch}
        OPTIONAL MATCH (focus)
-         ((a:Memory WHERE coalesce(a.status, 'active') IN ['active', 'pinned'])
+         ((a:Memory WHERE ${visibleStatusClause("a")})
           -[:RELATES_TO]-
-          (b:Memory WHERE coalesce(b.status, 'active') IN ['active', 'pinned']
+          (b:Memory WHERE ${visibleStatusClause("b")}
              AND b.userId = $userId
              ${pfB.clause})
          ){1,${hops}}
@@ -400,21 +472,23 @@ export async function getLocalGraph(
 
     const firstRecord = nodesResult.records[0];
     resolvedFocusId = firstRecord
-      ? String(firstRecord.get("focusId"))
+      ? String(neo4jGet(firstRecord, "focusId"))
       : undefined;
 
-    nodes = nodesResult.records.map((r) => ({
-      id: String(r.get("id")),
-      title: String(r.get("title")),
-      tags: Array.isArray(r.get("tags"))
-        ? r.get("tags").filter(Boolean).map(String)
-        : [],
-      createdAt: String(r.get("createdAt")),
-      source: r.get("source") !== null ? String(r.get("source")) : undefined,
-      sourceType:
-        r.get("sourceType") !== null ? String(r.get("sourceType")) : null,
-      type: toMemoryTypeOrUndefined(r.get("type")),
-    }));
+    nodes = nodesResult.records.flatMap((r) => {
+      const node = parseGraphNodeRow(
+        rowFromRecord(r, [
+          "id",
+          "title",
+          "tags",
+          "createdAt",
+          "source",
+          "type",
+          "sourceType",
+        ] as const),
+      );
+      return node === null ? [] : [node];
+    });
     nodeIds = nodes.map((n) => n.id);
   } finally {
     await nodesSession.close();
@@ -468,27 +542,26 @@ export async function getLocalGraph(
       ),
     ]);
 
-    const relatesToEdges: RelatesToEdge[] = relatesToResult.records.map((r) => {
-      const rawScore = r.get("score");
-      return {
-        source: String(r.get("source")),
-        target: String(r.get("target")),
-        reason: String(r.get("reason") ?? ""),
-        score:
-          rawScore !== null && rawScore !== undefined
-            ? Number(rawScore)
-            : undefined,
-      };
-    });
+    const relatesToEdges: RelatesToEdge[] = relatesToResult.records.flatMap(
+      (r) => {
+        const parsed = parseRelatesToEdgeRow(
+          rowFromRecord(r, ["source", "target", "reason", "score"] as const),
+        );
+        return parsed ? [parsed] : [];
+      },
+    );
 
-    const entities = entityResult.records.map((r) => ({
-      normalizedName: String(r.get("normalizedName")),
-      name: String(r.get("name")),
-      type: String(r.get("type")),
-      memoryIds: Array.isArray(r.get("memoryIds"))
-        ? r.get("memoryIds").map(String)
-        : [],
-    }));
+    const entities = entityResult.records.flatMap((r) => {
+      const parsed = parseEntityRow(
+        rowFromRecord(r, [
+          "normalizedName",
+          "name",
+          "type",
+          "memoryIds",
+        ] as const),
+      );
+      return parsed ? [parsed] : [];
+    });
 
     const tagEdges = tagEdgesResult.records.map(toTagEdge);
 

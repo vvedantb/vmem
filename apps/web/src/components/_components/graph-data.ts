@@ -15,7 +15,7 @@ import type { GraphNode, GraphEdge, RelatedNode } from "./canvas/types";
  * leave them undefined, and the Source/Type filters treat those as
  * passthrough so narrowing memories never hides non-memory items.
  *
- * `sourceType` is the connector provenance (gmail / google_drive / notion) for
+ * `sourceType` is the connector provenance (google_drive / notion) for
  * memories that arrived through a connector sync; null otherwise. Drives the
  * logo-overlay pass in the renderer.
  */

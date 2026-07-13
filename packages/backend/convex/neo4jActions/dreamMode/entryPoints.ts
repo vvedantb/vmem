@@ -10,6 +10,24 @@ import {
   type DreamRunResult,
 } from "./runProfile";
 
+function emptyDreamResult(reason: DreamRunResult["reason"]): DreamRunResult {
+  return {
+    proposalsCreated: 0,
+    memoriesMaterialized: 0,
+    clustersScanned: 0,
+    reweighted: 0,
+    reason,
+  };
+}
+
+/** Manual button rate-limit guard: at most one run per hour since `lastRunAt`. */
+function isRateLimited(lastRunAt: number | null | undefined): boolean {
+  return (
+    typeof lastRunAt === "number" &&
+    Date.now() - lastRunAt < MANUAL_RATE_LIMIT_MS
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Dynamic Dreaming check — scheduled (debounced) by memory writes via
 // `lib/dreamTriggerInvalidate.ts`. Decides via the pure `decideDreamCheck`:
@@ -77,13 +95,7 @@ export const runDreamForProfileById = internalAction({
       console.warn(
         `[dream] scheduled run: profile ${args.profileId} not found`,
       );
-      return {
-        proposalsCreated: 0,
-        memoriesMaterialized: 0,
-        clustersScanned: 0,
-        reweighted: 0,
-        reason: "no-recent-memories",
-      };
+      return emptyDreamResult("no-recent-memories");
     }
     const clerkId = await ctx.runQuery(internal.auth.getClerkIdInternal, {
       userId: profile.userId,
@@ -92,13 +104,7 @@ export const runDreamForProfileById = internalAction({
       console.warn(
         `[dream] scheduled run: no clerkId for owner of ${args.profileId}`,
       );
-      return {
-        proposalsCreated: 0,
-        memoriesMaterialized: 0,
-        clustersScanned: 0,
-        reweighted: 0,
-        reason: "no-key",
-      };
+      return emptyDreamResult("no-key");
     }
 
     return await ctx.runAction(
@@ -129,18 +135,8 @@ export const runDreamForActiveProfile = internalAction({
       throw new Error("Profile not found");
     }
 
-    const lastRun = profile.lastDreamRunAt;
-    if (typeof lastRun === "number") {
-      const elapsed = Date.now() - lastRun;
-      if (elapsed < MANUAL_RATE_LIMIT_MS) {
-        return {
-          proposalsCreated: 0,
-          memoriesMaterialized: 0,
-          clustersScanned: 0,
-          reweighted: 0,
-          reason: "rate-limited",
-        };
-      }
+    if (isRateLimited(profile.lastDreamRunAt)) {
+      return emptyDreamResult("rate-limited");
     }
 
     return await ctx.runAction(
@@ -248,13 +244,7 @@ export const runDreamForUserById = internalAction({
     });
     if (!clerkId) {
       console.warn(`[dream] scheduled run: no clerkId for user ${args.userId}`);
-      return {
-        proposalsCreated: 0,
-        memoriesMaterialized: 0,
-        clustersScanned: 0,
-        reweighted: 0,
-        reason: "no-key",
-      };
+      return emptyDreamResult("no-key");
     }
     return await ctx.runAction(
       internal.neo4jActions.dreamMode.runDreamForUserInternal,
@@ -277,17 +267,8 @@ export const runDreamForActiveUser = internalAction({
       internal.userSettings.getDreamConfigInternal,
       { userId: args.userId },
     );
-    if (typeof config.lastDreamRunAt === "number") {
-      const elapsed = Date.now() - config.lastDreamRunAt;
-      if (elapsed < MANUAL_RATE_LIMIT_MS) {
-        return {
-          proposalsCreated: 0,
-          memoriesMaterialized: 0,
-          clustersScanned: 0,
-          reweighted: 0,
-          reason: "rate-limited",
-        };
-      }
+    if (isRateLimited(config.lastDreamRunAt)) {
+      return emptyDreamResult("rate-limited");
     }
     return await ctx.runAction(
       internal.neo4jActions.dreamMode.runDreamForUserInternal,

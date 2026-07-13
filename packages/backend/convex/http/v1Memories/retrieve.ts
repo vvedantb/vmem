@@ -1,17 +1,15 @@
 import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import {
-  assertProfileAccess,
+  guardProfileAccess,
   withApiKeyAuth,
   type ApiKeyAuth,
 } from "./apiKeyAuth";
 import { retrieveBodySchema, type RetrieveBody } from "./schemas";
 import {
   isOpenRouterRequired,
+  openRouterRequiredResponse,
   type RetrieveHttpResult,
-  type RetrieveMemoriesActionResult,
-  type SummarizeRetrieveActionResult,
-  type UserContextResult,
 } from "./types";
 
 async function runRetrieveHandler(
@@ -19,18 +17,12 @@ async function runRetrieveHandler(
   auth: ApiKeyAuth,
   body: RetrieveBody,
 ): Promise<Response | RetrieveHttpResult> {
-  if (body.profileId) {
-    const forbidden = await assertProfileAccess(
-      ctx,
-      auth.userId,
-      body.profileId,
-    );
-    if (forbidden) {
-      return forbidden;
-    }
+  const forbidden = await guardProfileAccess(ctx, auth, body.profileId);
+  if (forbidden) {
+    return forbidden;
   }
 
-  const memories: RetrieveMemoriesActionResult = await ctx.runAction(
+  const memories = await ctx.runAction(
     internal.neo4jActions.memories.retrieveMemoriesInternal,
     {
       clerkId: auth.clerkId,
@@ -42,7 +34,7 @@ async function runRetrieveHandler(
     },
   );
 
-  const userContext: UserContextResult = await ctx.runQuery(
+  const userContext = await ctx.runQuery(
     internal.userSettings.getUserContextInternal,
     {
       userId: auth.userId,
@@ -53,7 +45,7 @@ async function runRetrieveHandler(
     return { memories, userContext };
   }
 
-  const summaryResult: SummarizeRetrieveActionResult = await ctx.runAction(
+  const summaryResult = await ctx.runAction(
     internal.neo4jActions.agent.summarizeRetrieveInternal,
     {
       clerkId: auth.clerkId,
@@ -68,7 +60,7 @@ async function runRetrieveHandler(
   );
 
   if (isOpenRouterRequired(summaryResult)) {
-    return Response.json({ error: "openrouter_required" }, { status: 422 });
+    return openRouterRequiredResponse();
   }
 
   return {

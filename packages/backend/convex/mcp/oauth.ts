@@ -47,9 +47,9 @@ export const authorize = mutation({
 
     const codeBytes = new Uint8Array(32);
     crypto.getRandomValues(codeBytes);
-    const code = Array.from(codeBytes)
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
+    const code = Array.from(codeBytes, (b) =>
+      b.toString(16).padStart(2, "0"),
+    ).join("");
 
     await ctx.db.insert("mcpAuthCodes", {
       code,

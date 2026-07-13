@@ -10,16 +10,15 @@
  * only — no Claude, no judge.
  *
  * The labelled corpus comes from `eval/corpus.ts` (graded relevance + type
- * tags + deliberate distractors). Seed it first with `pnpm db:seed:bench`.
- *
- * Run: `pnpm db:seed:bench` then `pnpm eval:bench` (writes
- * `internal/bench/vmem-internal-eval.md`).
+ * tags + deliberate distractors). `pnpm eval:bench` seeds `user_vmem_bench_eval`
+ * only (no full-db wipe), runs this script, then removes that user's rows.
  */
 
 import { writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { closeDriver, getDriver } from "../../engine/neo4j/driver";
+import { deleteAllMemoriesForUser } from "../../engine/neo4j/memory/crud";
 import { retrieveMemories } from "../../engine/neo4j/memory/retrieve";
 import { embeddingMode, generateCliEmbedding } from "./cliEmbeddings";
 import {
@@ -92,12 +91,9 @@ function approxTokens(text: string): number {
 
 /** Graded relevance for a query: explicit grades if present, else binary (grade 1). */
 function gradeMap(query: RetrievalEvalQuery): Map<string, number> {
-  const map = new Map<string, number>();
-  if (query.relevance) {
-    for (const [title, grade] of Object.entries(query.relevance)) {
-      map.set(title, grade);
-    }
-  }
+  const map = new Map<string, number>(
+    query.relevance ? Object.entries(query.relevance) : [],
+  );
   for (const title of query.expectedTitles) {
     if (!map.has(title)) map.set(title, 1);
   }
@@ -138,6 +134,7 @@ interface AggMetrics {
 }
 
 function aggregate(outcomes: QueryOutcome[]): AggMetrics {
+  const latencies = outcomes.map((o) => o.latencyMs);
   return {
     recall1: mean(outcomes.map((o) => o.recall1)),
     recall3: mean(outcomes.map((o) => o.recall3)),
@@ -147,14 +144,8 @@ function aggregate(outcomes: QueryOutcome[]): AggMetrics {
     mrr: mean(outcomes.map((o) => o.rr)),
     ndcg10: mean(outcomes.map((o) => o.ndcg10)),
     meanCtxTokens: mean(outcomes.map((o) => o.ctxTokens)),
-    latencyP50: percentile(
-      outcomes.map((o) => o.latencyMs),
-      50,
-    ),
-    latencyP95: percentile(
-      outcomes.map((o) => o.latencyMs),
-      95,
-    ),
+    latencyP50: percentile(latencies, 50),
+    latencyP95: percentile(latencies, 95),
   };
 }
 
@@ -179,6 +170,26 @@ async function fullCorpusTokens(
   }
 }
 
+async function retrieveForConfig(
+  driver: ReturnType<typeof getDriver>,
+  legs: Legs,
+  embeddings: Map<string, number[]>,
+  query: string,
+): Promise<{
+  candidates: Awaited<ReturnType<typeof retrieveMemories>>;
+  latencyMs: number;
+}> {
+  const start = performance.now();
+  const candidates = await retrieveMemories(driver, {
+    userId: BENCH_USER_ID,
+    query,
+    queryEmbedding: embeddings.get(query) ?? null,
+    limit: K,
+    legs,
+  });
+  return { candidates, latencyMs: performance.now() - start };
+}
+
 async function runConfig(
   driver: ReturnType<typeof getDriver>,
   config: LegConfig,
@@ -186,19 +197,15 @@ async function runConfig(
 ): Promise<ConfigRun> {
   const outcomes: QueryOutcome[] = [];
   for (const query of ANSWERABLE) {
-    const queryEmbedding = embeddings.get(query.query) ?? null;
-    const start = performance.now();
-    const candidates = await retrieveMemories(driver, {
-      userId: BENCH_USER_ID,
-      query: query.query,
-      queryEmbedding,
-      limit: K,
-      legs: config.legs,
-    });
-    const latencyMs = performance.now() - start;
+    const { candidates, latencyMs } = await retrieveForConfig(
+      driver,
+      config.legs,
+      embeddings,
+      query.query,
+    );
     const titles = candidates.map((c) => c.title);
     outcomes.push({
-      type: query.type ?? "untyped",
+      type: benchQueryType(query),
       recall1: recallAtK(titles, query.expectedTitles, 1),
       recall3: recallAtK(titles, query.expectedTitles, 3),
       recall5: recallAtK(titles, query.expectedTitles, 5),
@@ -217,14 +224,12 @@ async function runConfig(
 
   const abstentionTopScores: number[] = [];
   for (const query of ABSTENTION) {
-    const queryEmbedding = embeddings.get(query.query) ?? null;
-    const candidates = await retrieveMemories(driver, {
-      userId: BENCH_USER_ID,
-      query: query.query,
-      queryEmbedding,
-      limit: K,
-      legs: config.legs,
-    });
+    const { candidates } = await retrieveForConfig(
+      driver,
+      config.legs,
+      embeddings,
+      query.query,
+    );
     abstentionTopScores.push(candidates[0]?.trace.score ?? 0);
   }
 
@@ -245,9 +250,13 @@ function mdTable(header: string[], rows: string[][]): string {
     .join("\n");
 }
 
+function benchQueryType(q: RetrievalEvalQuery): string {
+  return q.type ?? "untyped";
+}
+
 /** Sorted unique types present in the answerable set, preferred order first. */
 function presentTypes(): string[] {
-  const seen = new Set(ANSWERABLE.map((q) => q.type ?? "untyped"));
+  const seen = new Set(ANSWERABLE.map((q) => benchQueryType(q)));
   const ordered = TYPE_ORDER.filter((t) => seen.has(t));
   const extra = [...seen].filter((t) => !TYPE_ORDER.includes(t)).sort();
   return [...ordered, ...extra];
@@ -261,7 +270,7 @@ function perTypeTable(
   const types = presentTypes();
   const header = ["type", "n", ...runs.map((r) => r.name)];
   const rows = types.map((type) => {
-    const n = ANSWERABLE.filter((q) => (q.type ?? "untyped") === type).length;
+    const n = ANSWERABLE.filter((q) => benchQueryType(q) === type).length;
     const cells = runs.map((r) =>
       metric(aggregate(r.outcomes.filter((o) => o.type === type))),
     );
@@ -377,7 +386,7 @@ async function main(): Promise<void> {
     const corpus = await fullCorpusTokens(driver);
     if (corpus.memoryCount === 0) {
       throw new Error(
-        `no memories for bench user ${BENCH_USER_ID} — run \`pnpm db:seed:bench\` first.`,
+        `no memories for bench user ${BENCH_USER_ID} — run \`pnpm eval:bench\` (seeds first).`,
       );
     }
 
@@ -393,11 +402,24 @@ async function main(): Promise<void> {
     console.log(report);
     console.log(`\nwritten to ${REPORT_PATH}`);
   } finally {
+    try {
+      const deleted = await deleteAllMemoriesForUser(driver, BENCH_USER_ID);
+      console.log(
+        `\nbench cleanup: removed ${String(deleted)} memories for ${BENCH_USER_ID}`,
+      );
+    } catch (cleanupError: unknown) {
+      console.error(
+        "bench cleanup failed:",
+        cleanupError instanceof Error
+          ? cleanupError.message
+          : String(cleanupError),
+      );
+    }
     await closeDriver();
   }
 }
 
-main().catch((error) => {
+main().catch((error: unknown) => {
   console.error(error instanceof Error ? error.message : String(error));
   process.exit(1);
 });

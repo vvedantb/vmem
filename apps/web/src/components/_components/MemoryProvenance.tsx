@@ -3,6 +3,7 @@ import { IconExternalLink } from "@tabler/icons-react";
 import type { Memory } from "@/lib/memories";
 import { formatMemorySourceLabel } from "@/lib/memories";
 import { DetailSection } from "./detail-panel/DetailSection";
+import { MemorySourceLabel } from "./MemorySourceLabel";
 
 interface MemoryProvenanceProps {
   memory: Memory;
@@ -37,8 +38,11 @@ export default function MemoryProvenance({ memory }: MemoryProvenanceProps) {
   return (
     <DetailSection label="Imported from">
       <div className="space-y-3 rounded-lg bg-surface-secondary p-4">
-        <Badge variant="secondary" className="text-xs">
-          {sourceLabel}
+        <Badge
+          variant="secondary"
+          className="inline-flex items-center gap-1.5 text-xs"
+        >
+          <MemorySourceLabel source={memory.source} size={12} />
         </Badge>
         {hasSyncedAt ? (
           <p className="text-sm text-muted">

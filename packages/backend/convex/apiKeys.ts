@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { authAction, authMutation, authQuery } from "./auth";
 import { auditLog, ResourceTypes, severityForStatus } from "./auditLog";
@@ -23,10 +24,6 @@ export async function hashApiKey(rawKey: string): Promise<string> {
   return Array.from(new Uint8Array(hashBuffer))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
-}
-
-async function encryptApiKey(rawKey: string): Promise<string> {
-  return encryptToken(rawKey);
 }
 
 export async function decryptApiKey(encryptedKey: string): Promise<string> {
@@ -73,6 +70,20 @@ function toApiKeyResponse(apiKey: Doc<"apiKeys">) {
   };
 }
 
+// --- Access guard ---
+
+async function getOwnedApiKey(
+  ctx: QueryCtx | MutationCtx,
+  id: Id<"apiKeys">,
+  userId: Id<"users">,
+): Promise<Doc<"apiKeys"> | null> {
+  const apiKey = await ctx.db.get(id);
+  if (!apiKey || apiKey.userId !== userId) {
+    return null;
+  }
+  return apiKey;
+}
+
 // --- Public functions ---
 
 export const listMy = authQuery({
@@ -95,7 +106,7 @@ export const createMy = authAction({
 
     const key = generateApiKey();
     const keyHash = await hashApiKey(key);
-    const encryptedKey = await encryptApiKey(key);
+    const encryptedKey = await encryptToken(key);
     const maskedKey = maskApiKey(key);
 
     const inserted: { id: Id<"apiKeys"> } = await ctx.runMutation(
@@ -117,11 +128,8 @@ export const createMy = authAction({
 export const revokeMy = authMutation({
   args: { id: v.id("apiKeys") },
   handler: async (ctx, args) => {
-    const apiKey = await ctx.db.get(args.id);
-    if (!apiKey || apiKey.userId !== ctx.userId) {
-      return false;
-    }
-    if (apiKey.status !== "active") {
+    const apiKey = await getOwnedApiKey(ctx, args.id, ctx.userId);
+    if (!apiKey || apiKey.status !== "active") {
       return false;
     }
 
@@ -147,8 +155,8 @@ export const revokeMy = authMutation({
 export const deleteMy = authMutation({
   args: { id: v.id("apiKeys") },
   handler: async (ctx, args) => {
-    const apiKey = await ctx.db.get(args.id);
-    if (!apiKey || apiKey.userId !== ctx.userId) {
+    const apiKey = await getOwnedApiKey(ctx, args.id, ctx.userId);
+    if (!apiKey) {
       return false;
     }
 
@@ -176,8 +184,8 @@ export const renameMy = authMutation({
   handler: async (ctx, args) => {
     const name = normalizeApiKeyName(args.name);
 
-    const apiKey = await ctx.db.get(args.id);
-    if (!apiKey || apiKey.userId !== ctx.userId) {
+    const apiKey = await getOwnedApiKey(ctx, args.id, ctx.userId);
+    if (!apiKey) {
       return false;
     }
 

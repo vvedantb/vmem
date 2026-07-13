@@ -86,6 +86,30 @@ export const dreamTriggerStateFields = {
 };
 
 /**
+ * Notification severity — reused by the table fields, the `listMy` return
+ * validator, and the `pushForClerkIdInternal` args so all three stay in lockstep.
+ */
+export const notificationTypeValidator = v.union(
+  v.literal("success"),
+  v.literal("warning"),
+  v.literal("error"),
+  v.literal("info"),
+);
+
+/**
+ * Single source of truth for notifications table fields.
+ * One row per user-facing bell notification.
+ */
+export const notificationFields = {
+  userId: v.id("users"),
+  title: v.string(),
+  description: v.string(),
+  type: notificationTypeValidator,
+  read: v.boolean(),
+  createdAt: v.number(),
+};
+
+/**
  * Single source of truth for teams table fields.
  * A team is a group of users sharing a single profile.
  */
@@ -145,23 +169,6 @@ export const skillVersionFields = {
   /** Who authored the write that this snapshot was taken just before. */
   authorUserId: v.id("users"),
   source: v.union(v.literal("web"), v.literal("mcp")),
-  createdAt: v.number(),
-};
-
-/**
- * Single source of truth for threadProfiles table fields.
- *
- * Maps an agent-component chat thread to the workspace (profile) it was
- * started in. The agent component's thread docs can't carry custom
- * metadata, so this side table provides the profile association:
- * one active thread per (user, profile); threads stay PRIVATE to their
- * creator even in team profiles.
- */
-export const threadProfileFields = {
-  userId: v.id("users"),
-  /** Agent-component thread id (string — lives in the component's tables). */
-  threadId: v.string(),
-  profileId: v.id("profiles"),
   createdAt: v.number(),
 };
 
@@ -479,42 +486,4 @@ export const userSystemSkillFields = {
   /** Per-user toggle. Missing is treated as enabled for forward-compat. */
   enabled: v.boolean(),
   installedAt: v.number(),
-};
-
-/**
- * Single source of truth for presentationSessions table fields.
- *
- * One live "share" of the `/slides` deck. The presenter is the sole driver:
- * only the browser holding the secret `hostKey` may write `slide`. Viewers are
- * anonymous — they subscribe to the row (`getSession`) and either follow
- * `slide` live or detach to browse on their own. Ephemeral — pruned daily once
- * `ended` or idle past 24h (see `presentations.pruneStaleInternal`).
- */
-export const presentationSessionFields = {
-  /** Short, URL-friendly share code (the `?session=` value). */
-  code: v.string(),
-  /** Secret driver token — returned once from `createSession`, kept only in
-   *  the presenter's localStorage. Required to `setSlide` / `stopSharing`. */
-  hostKey: v.string(),
-  /** Current 1-based slide the presenter is on. */
-  slide: v.number(),
-  status: v.union(v.literal("live"), v.literal("ended")),
-  /** Bumped on every slide change; drives the idle-prune window. */
-  lastActiveAt: v.number(),
-};
-
-/**
- * Single source of truth for presentationVotes table fields.
- *
- * One row per participant per poll within a share session — re-voting replaces
- * the row's `optionId`, so a tally never double-counts. `participantKey` is a
- * client-minted UUID in localStorage; `pollId` is the curated poll slide's
- * stable id. Votes are scoped to the session `code`, so each run tallies fresh
- * and they are dropped with the session on prune.
- */
-export const presentationVoteFields = {
-  code: v.string(),
-  pollId: v.string(),
-  participantKey: v.string(),
-  optionId: v.string(),
 };

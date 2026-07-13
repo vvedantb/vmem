@@ -56,7 +56,8 @@ export function useVersionChain(
       );
 
     return withSnapshots.map((event, index): VersionEntry => {
-      const prevSnapshot = index > 0 ? withSnapshots[index - 1].snapshot : null;
+      const prevEvent = index > 0 ? withSnapshots.at(index - 1) : undefined;
+      const prevSnapshot = prevEvent?.snapshot ?? null;
 
       return {
         version: index + 1,

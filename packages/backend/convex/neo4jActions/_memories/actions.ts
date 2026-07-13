@@ -6,7 +6,7 @@
  * `internal.neo4jActions.memories.*` paths (Eva facade pattern).
  */
 
-import { internalAction } from "../../_generated/server";
+import { internalAction, type ActionCtx } from "../../_generated/server";
 import { v } from "convex/values";
 import { runBackfillChunks, runChunkMemory } from "./chunks";
 import {
@@ -27,6 +27,19 @@ import {
 } from "./team";
 import { runCreateMemory } from "./create";
 import { resolveProfileIdForClerkId } from "./shared";
+
+/** Resolve `profileId` (default / MCP-active when unset) and splice it into args.
+ *  Used for read paths at the action boundary; write runners resolve inside. */
+async function withResolvedProfileId<
+  T extends { clerkId: string; profileId?: string },
+>(ctx: ActionCtx, args: T) {
+  const profileId = await resolveProfileIdForClerkId(
+    ctx,
+    args.clerkId,
+    args.profileId,
+  );
+  return { ...args, profileId };
+}
 
 export const createMemoryInternal = internalAction({
   args: {
@@ -87,14 +100,8 @@ export const listMemoriesInternal = internalAction({
     limit: v.number(),
     offset: v.number(),
   },
-  handler: async (ctx, args) => {
-    const profileId = await resolveProfileIdForClerkId(
-      ctx,
-      args.clerkId,
-      args.profileId,
-    );
-    return await runListMemories({ ...args, profileId });
-  },
+  handler: async (ctx, args) =>
+    runListMemories(await withResolvedProfileId(ctx, args)),
 });
 
 export const updateMemoryInternal = internalAction({
@@ -138,14 +145,8 @@ export const searchMemoriesInternal = internalAction({
     limit: v.number(),
     offset: v.number(),
   },
-  handler: async (ctx, args) => {
-    const profileId = await resolveProfileIdForClerkId(
-      ctx,
-      args.clerkId,
-      args.profileId,
-    );
-    return await runSearchMemories({ ...args, profileId });
-  },
+  handler: async (ctx, args) =>
+    runSearchMemories(await withResolvedProfileId(ctx, args)),
 });
 
 export const retrieveMemoriesInternal = internalAction({
@@ -157,14 +158,8 @@ export const retrieveMemoriesInternal = internalAction({
     tags: v.optional(v.array(v.string())),
     limit: v.number(),
   },
-  handler: async (ctx, args) => {
-    const profileId = await resolveProfileIdForClerkId(
-      ctx,
-      args.clerkId,
-      args.profileId,
-    );
-    return await runRetrieveMemories(ctx, { ...args, profileId });
-  },
+  handler: async (ctx, args) =>
+    runRetrieveMemories(ctx, await withResolvedProfileId(ctx, args)),
 });
 
 export const getMemoryEventsInternal = internalAction({

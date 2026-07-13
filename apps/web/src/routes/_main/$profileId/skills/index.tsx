@@ -17,10 +17,11 @@ function SkillsIndexPage() {
   const skills = useQuery(api.skills.listMy, { teamId });
 
   useEffect(() => {
-    if (!skills || skills.length === 0) return;
+    const first = skills?.at(0);
+    if (!first) return;
     void navigate({
       to: "/$profileId/skills/$id",
-      params: { profileId, id: skills[0]._id },
+      params: { profileId, id: first._id },
       replace: true,
     });
   }, [skills, navigate, profileId]);

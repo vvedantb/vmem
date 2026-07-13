@@ -60,12 +60,11 @@ function crossedBoundary(
   meta: SnapshotMeta,
   now: number,
 ): boolean {
-  if (meta.force) return true;
-  if (latest === null) return true;
+  if (meta.force || latest === null) return true;
   if (now - latest.createdAt > BURST_MS) return true;
-  if (latest.source !== meta.source) return true;
-  if (latest.authorUserId !== meta.authorUserId) return true;
-  return false;
+  return (
+    latest.source !== meta.source || latest.authorUserId !== meta.authorUserId
+  );
 }
 
 /**
@@ -161,11 +160,10 @@ export async function deleteVersionsForWikiNode(
   ctx: MutationCtx,
   nodeId: Id<"wikiNodes">,
 ): Promise<void> {
-  const versions = await ctx.db
+  for (const version of await ctx.db
     .query("wikiNodeVersions")
     .withIndex("by_node", (q) => q.eq("nodeId", nodeId))
-    .collect();
-  for (const version of versions) {
+    .collect()) {
     await ctx.db.delete(version._id);
   }
 }
@@ -175,11 +173,10 @@ export async function deleteVersionsForSkill(
   ctx: MutationCtx,
   skillId: Id<"skills">,
 ): Promise<void> {
-  const versions = await ctx.db
+  for (const version of await ctx.db
     .query("skillVersions")
     .withIndex("by_skill", (q) => q.eq("skillId", skillId))
-    .collect();
-  for (const version of versions) {
+    .collect()) {
     await ctx.db.delete(version._id);
   }
 }

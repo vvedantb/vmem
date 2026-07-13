@@ -12,15 +12,15 @@ import type {
   PartialBlockObjectResponse,
   RichTextItemResponse,
 } from "@notionhq/client/build/src/api-endpoints";
-import { type ActionCtx } from "../../_generated/server";
+import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
-import { upsertFromSource } from "../../../engine/neo4j/memory/connectors";
 import {
-  embedSyncedDoc,
+  EMBED_CONTENT_CAP,
   markSyncComplete,
-  markSyncError,
-  maybeReportProgress,
   setupSync,
+  upsertSyncedDocs,
+  withConnectorSyncError,
+  type SyncedDoc,
 } from "./shared";
 
 export interface NotionSyncArgs {
@@ -76,12 +76,9 @@ export async function runNotionSync(
   ctx: ActionCtx,
   args: NotionSyncArgs,
 ): Promise<{ synced: number }> {
-  const { driver, profileId, openRouterAuth } = await setupSync(
-    ctx,
-    args.clerkId,
-  );
+  const setup = await setupSync(ctx, args.clerkId);
 
-  try {
+  return withConnectorSyncError(ctx, args.connectorId, "Notion", async () => {
     const notion = new NotionClient({ auth: args.accessToken });
 
     let startCursor: string | undefined;
@@ -98,6 +95,7 @@ export async function runNotionSync(
       const pages = searchResponse.results;
       totalFound += pages.length;
 
+      const pageDocs: SyncedDoc[] = [];
       for (const page of pages) {
         if (page.object !== "page") continue;
 
@@ -134,42 +132,33 @@ export async function runNotionSync(
               : undefined;
           } while (blockCursor);
 
-          const content = blocks.join("\n\n").slice(0, 50000);
+          const content = blocks.join("\n\n").slice(0, EMBED_CONTENT_CAP);
           const pageUrl =
             "url" in page
               ? page.url
               : `https://notion.so/${page.id.replace(/-/g, "")}`;
 
-          const embedding = await embedSyncedDoc(
-            ctx,
-            openRouterAuth,
-            profileId,
-            title,
-            content,
-          );
-
-          await upsertFromSource(driver, {
-            userId: args.clerkId,
-            profileId,
+          pageDocs.push({
             title,
             content,
             sourceType: "notion",
             sourceId: page.id,
             sourceUrl: pageUrl,
-            embedding,
-          });
-
-          totalSynced++;
-          await maybeReportProgress(ctx, {
-            connectorId: args.connectorId,
-            totalSynced,
-            totalFound,
           });
         } catch (pageErr) {
           console.error(`Failed to sync page ${page.id}:`, pageErr);
           // Continue with other pages
         }
       }
+
+      totalSynced = await upsertSyncedDocs(ctx, {
+        setup,
+        clerkId: args.clerkId,
+        docs: pageDocs,
+        totalSynced,
+        connectorId: args.connectorId,
+        totalFound,
+      });
 
       startCursor = searchResponse.has_more
         ? (searchResponse.next_cursor ?? undefined)
@@ -183,14 +172,5 @@ export async function runNotionSync(
     });
 
     return { synced: totalSynced };
-  } catch (err) {
-    const errorMessage =
-      err instanceof Error ? err.message : "Notion sync failed";
-    console.error("Notion sync error:", err);
-    await markSyncError(ctx, {
-      connectorId: args.connectorId,
-      errorMessage,
-    });
-    throw err;
-  }
+  });
 }

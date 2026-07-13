@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { internalAction } from "../_generated/server";
+import { internalAction, type ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import {
@@ -13,7 +13,6 @@ import {
   normalizeWikiPathSegments,
   wikiPathNodesFromDocs,
 } from "../wiki/path";
-import type { ActionCtx } from "../_generated/server";
 
 export interface WikiListItem {
   id: string;
@@ -120,6 +119,23 @@ async function ensureWikiFolderPath(
   return currentParent;
 }
 
+/** Reload a wiki node after a mutation and map it to the API result shape. */
+async function reloadWikiNode(
+  ctx: ActionCtx,
+  clerkId: string,
+  id: string,
+  notFoundMessage: string,
+): Promise<WikiGetResult> {
+  const node: Doc<"wikiNodes"> | null = await ctx.runQuery(
+    internal.wiki.getByIdInternal,
+    { clerkId, id },
+  );
+  if (!node) {
+    throw new Error(notFoundMessage);
+  }
+  return toGetResult(node);
+}
+
 function toSearchItem(node: Doc<"wikiNodes">): WikiSearchItem {
   const body = node.kind === "document" ? documentMarkdown(node) : "";
   return {
@@ -177,18 +193,18 @@ export const mcpCreateWiki = internalAction({
     sourceCodebaseId: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<WikiGetResult> => {
-    const hasParentId = args.parentId !== undefined && args.parentId.length > 0;
     const parentPathTrimmed = args.parentPath?.trim() ?? "";
     const hasParentPath = parentPathTrimmed.length > 0;
-    if (hasParentId && hasParentPath) {
+    const parentIdArg = args.parentId;
+    if (parentIdArg !== undefined && parentIdArg.length > 0 && hasParentPath) {
       throw new Error("Provide parentId or parentPath, not both");
     }
 
     let parentId: Id<"wikiNodes"> | undefined;
-    if (hasParentId && args.parentId !== undefined) {
+    if (parentIdArg !== undefined && parentIdArg.length > 0) {
       const parent: Doc<"wikiNodes"> | null = await ctx.runQuery(
         internal.wiki.getByIdInternal,
-        { clerkId: args.clerkId, id: args.parentId },
+        { clerkId: args.clerkId, id: parentIdArg },
       );
       if (!parent || parent.kind !== "folder") {
         throw new Error("Parent folder not found");
@@ -220,14 +236,12 @@ export const mcpCreateWiki = internalAction({
       },
     );
 
-    const node: Doc<"wikiNodes"> | null = await ctx.runQuery(
-      internal.wiki.getByIdInternal,
-      { clerkId: args.clerkId, id },
+    return reloadWikiNode(
+      ctx,
+      args.clerkId,
+      id,
+      "Failed to load created wiki node",
     );
-    if (!node) {
-      throw new Error("Failed to load created wiki node");
-    }
-    return toGetResult(node);
   },
 });
 
@@ -272,14 +286,12 @@ export const mcpUpdateWiki = internalAction({
       contentText,
     });
 
-    const node: Doc<"wikiNodes"> | null = await ctx.runQuery(
-      internal.wiki.getByIdInternal,
-      { clerkId: args.clerkId, id: args.id },
+    return reloadWikiNode(
+      ctx,
+      args.clerkId,
+      args.id,
+      "Failed to load updated wiki node",
     );
-    if (!node) {
-      throw new Error("Failed to load updated wiki node");
-    }
-    return toGetResult(node);
   },
 });
 

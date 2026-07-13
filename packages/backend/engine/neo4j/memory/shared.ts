@@ -14,7 +14,7 @@
  */
 
 import crypto from "node:crypto";
-import { type Driver, type Session } from "neo4j-driver";
+import type { Driver, Session } from "neo4j-driver";
 
 export async function withSession<T>(
   driver: Driver,
@@ -108,8 +108,9 @@ export const VISIBLE_STATUSES = ["active", "pinned"] as const;
  * always populated (slightly cheaper Cypher).
  */
 export function visibleStatusClause(alias = "m", coalesce = true): string {
+  const list = VISIBLE_STATUSES.map((s) => `'${s}'`).join(", ");
   if (coalesce) {
-    return `coalesce(${alias}.status, 'active') IN ['active', 'pinned']`;
+    return `coalesce(${alias}.status, 'active') IN [${list}]`;
   }
-  return `${alias}.status IN ['active', 'pinned']`;
+  return `${alias}.status IN [${list}]`;
 }

@@ -34,6 +34,7 @@ describe("chunkText", () => {
     for (let i = 0; i < chunks.length - 1; i++) {
       const current = chunks[i];
       const next = chunks[i + 1];
+      if (current === undefined || next === undefined) continue;
       expect(current.endOffset).toBeGreaterThan(next.startOffset);
       expect(next.startOffset).toBeLessThan(current.endOffset);
     }

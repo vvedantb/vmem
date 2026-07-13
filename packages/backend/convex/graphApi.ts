@@ -1,7 +1,6 @@
 import { v } from "convex/values";
 import { authAction, requireClerkId } from "./auth";
 import { internal } from "./_generated/api";
-import type { Doc } from "./_generated/dataModel";
 
 type MemoryType = "profile" | "episodic" | "knowledge";
 
@@ -18,7 +17,7 @@ type MemoryType = "profile" | "episodic" | "knowledge";
  * filter UI treats them as memory-scoped filters (non-memory nodes pass
  * through when a source/type filter is active).
  *
- * `sourceType` is the connector provenance (gmail / google_drive / notion) on
+ * `sourceType` is the connector provenance (google_drive / notion) on
  * memories that came in through a connector sync. null for MCP / manual / web
  * captures and for non-memory kinds. The renderer uses it to overlay a brand
  * logo inside the node so users can see where the memory came from.
@@ -177,6 +176,9 @@ export const getGraphData = authAction({
         ? args.mode === "local"
         : args.focus !== undefined;
     const isFirstPage = args.cursorCreatedAt === undefined;
+    // Wiki + skills are whole-account atoms: only on the global graph's
+    // first page (later pages would duplicate the same rows).
+    const includeAccountAtoms = !isLocal && isFirstPage;
 
     const memoryGraph: MemoryGraph = await ctx.runAction(
       internal.neo4jActions.graph.getGraphDataInternal,
@@ -195,16 +197,13 @@ export const getGraphData = authAction({
     // Wiki nodes are only included for the global graph. When the user focuses
     // a specific memory we show its local Neo4j neighbourhood — wiki docs are
     // orthogonal to memories today and have no edges reaching a memory node.
-    // They're whole-account data, so only the FIRST page carries them — later
-    // pages would just duplicate the same rows.
-    const wikiRows =
-      isLocal || !isFirstPage
-        ? []
-        : await ctx.runQuery(internal.wiki.listForUserInternal, {
-            userId: ctx.userId,
-          });
+    const wikiRows = includeAccountAtoms
+      ? await ctx.runQuery(internal.wiki.listForUserInternal, {
+          userId: ctx.userId,
+        })
+      : [];
 
-    const wikiNodes: GraphNodeEntry[] = wikiRows.map((w: Doc<"wikiNodes">) => ({
+    const wikiNodes: GraphNodeEntry[] = wikiRows.map((w) => ({
       id: `${WIKI_PREFIX}${w._id}`,
       title: w.title,
       content: w.kind === "document" ? (w.contentText ?? "") : "",
@@ -214,29 +213,25 @@ export const getGraphData = authAction({
       sourceType: null,
     }));
 
-    const wikiParentEdges: { source: string; target: string }[] = [];
-    for (const w of wikiRows) {
-      if (w.parentId !== undefined) {
-        wikiParentEdges.push({
-          source: `${WIKI_PREFIX}${w.parentId}`,
-          target: `${WIKI_PREFIX}${w._id}`,
-        });
-      }
-    }
+    const wikiParentEdges: { source: string; target: string }[] = wikiRows
+      .filter((w) => w.parentId !== undefined)
+      .map((w) => ({
+        source: `${WIKI_PREFIX}${w.parentId}`,
+        target: `${WIKI_PREFIX}${w._id}`,
+      }));
 
-    // Skills — same visibility rule as wiki: only in the global graph's first
-    // page. Skills are user-level atoms (tools) with no edges into the memory
-    // graph today, so they render as isolated hexagons.
-    const skillRows =
-      isLocal || !isFirstPage
-        ? []
-        : await ctx.runQuery(internal.skills.listByClerkIdInternal, {
-            clerkId,
-          });
+    // Skills — same visibility rule as wiki. Skills are user-level atoms
+    // with no edges into the memory graph today, so they render as
+    // isolated hexagons.
+    const skillRows = includeAccountAtoms
+      ? await ctx.runQuery(internal.skills.listByClerkIdInternal, {
+          clerkId,
+        })
+      : [];
 
     const skillNodes: GraphNodeEntry[] = skillRows
-      .filter((s: Doc<"skills">) => s.enabled !== false)
-      .map((s: Doc<"skills">) => ({
+      .filter((s) => s.enabled !== false)
+      .map((s) => ({
         id: `${SKILL_PREFIX}${s._id}`,
         title: s.name,
         content: s.description,

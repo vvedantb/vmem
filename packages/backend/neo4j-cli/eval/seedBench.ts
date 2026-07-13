@@ -1,11 +1,7 @@
 /**
- * Seed the discriminating benchmark corpus (eval/corpus.ts) into Neo4j for
- * `pnpm eval:bench`. Unlike `db:seed:eval`, it does NOT apply the corpus
- * profile — the generator already sets dates/confidence/status deliberately
- * (temporal queries depend on those). `runSeed` wipes all data, so this
- * replaces whatever corpus is loaded.
- *
- * Run: `pnpm db:seed:bench`
+ * Seed the discriminating benchmark corpus (eval/corpus.ts) for `user_vmem_bench_eval`.
+ * Invoked by `pnpm eval:bench` before the ablation runner — clears only that user,
+ * never the full database. Benchmark teardown removes the user again after the report.
  */
 
 import { generateBenchmarkCorpus, BENCH_USER_ID } from "./corpus";
@@ -19,7 +15,7 @@ runSeed({
   templateRelationships: corpus.relationships,
   embedAfterInsert: true,
   logLabel: `bench corpus: ${String(corpus.memories.length)} memories, ${String(corpus.relationships.length)} relationships, ${String(corpus.queries.length)} queries`,
-}).catch((err) => {
+}).catch((err: unknown) => {
   console.error("bench seed failed:", err);
   process.exit(1);
 });

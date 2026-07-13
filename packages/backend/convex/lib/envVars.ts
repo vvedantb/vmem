@@ -60,7 +60,22 @@ async function lookupUserIdByClerkId(
   const user = await ctx.runQuery(internal.users.getByClerkIdInternal, {
     clerkId,
   });
-  return user ? user._id : null;
+  return user?._id ?? null;
+}
+
+/**
+ * Resolves clerkId → userId and loads that user's decrypted env vars in
+ * one shot. Returns null when no user record exists. Shared by the two
+ * soft-fail lookups below.
+ */
+async function resolveUserIdAndEnvVars(
+  ctx: ActionCtx,
+  clerkId: string,
+): Promise<{ userId: Id<"users">; all: Record<string, string> } | null> {
+  const userId = await lookupUserIdByClerkId(ctx, clerkId);
+  if (!userId) return null;
+  const all = await resolveUserEnvVars(ctx, userId);
+  return { userId, all };
 }
 
 /**
@@ -91,10 +106,8 @@ export async function tryUserEnvVarByClerkId(
   clerkId: string,
   key: string,
 ): Promise<string | null> {
-  const userId = await lookupUserIdByClerkId(ctx, clerkId);
-  if (!userId) return null;
-  const all = await resolveUserEnvVars(ctx, userId);
-  return all[key] ?? null;
+  const resolved = await resolveUserIdAndEnvVars(ctx, clerkId);
+  return resolved?.all[key] ?? null;
 }
 
 /**
@@ -114,10 +127,9 @@ export async function tryUserAndApiKeyByClerkId(
   clerkId: string,
   key: string,
 ): Promise<{ userId: Id<"users">; apiKey: string } | null> {
-  const userId = await lookupUserIdByClerkId(ctx, clerkId);
-  if (!userId) return null;
-  const all = await resolveUserEnvVars(ctx, userId);
-  const apiKey = all[key];
+  const resolved = await resolveUserIdAndEnvVars(ctx, clerkId);
+  if (!resolved) return null;
+  const apiKey = resolved.all[key];
   if (!apiKey) return null;
-  return { userId, apiKey };
+  return { userId: resolved.userId, apiKey };
 }

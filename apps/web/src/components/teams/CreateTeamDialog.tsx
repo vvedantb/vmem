@@ -29,6 +29,8 @@ export function CreateTeamDialog({
     (localStore, args) => {
       const list = localStore.getQuery(api.teams.list, {});
       if (!list || list.length === 0) return;
+      const head = list.at(0);
+      if (!head) return;
       const now = Date.now();
       const teamId = optimisticId("teams");
       const profileId = optimisticId("profiles");
@@ -38,7 +40,7 @@ export function CreateTeamDialog({
             _id: teamId,
             _creationTime: now,
             name: args.name.trim(),
-            createdBy: list[0].team.createdBy,
+            createdBy: head.team.createdBy,
             createdAt: now,
             updatedAt: now,
           },
@@ -46,7 +48,7 @@ export function CreateTeamDialog({
           profile: {
             _id: profileId,
             _creationTime: now,
-            userId: list[0].team.createdBy,
+            userId: head.team.createdBy,
             name: args.name.trim(),
             color: "#8B5CF6",
             icon: "briefcase",

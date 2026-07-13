@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { useNavigate } from "@tanstack/react-router";
 import { useActiveProfile } from "@/components/workspace/active-profile";
@@ -80,7 +80,7 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
     ((markdown: string) => Promise<void>) | null
   >(null);
 
-  const tree = nodes ? buildTree(nodes) : [];
+  const tree = useMemo(() => (nodes ? buildTree(nodes) : []), [nodes]);
   const hasDocId = docId !== null && docId.length > 0;
   const isDocLoading = hasDocId && doc === undefined;
   const hasDoc =

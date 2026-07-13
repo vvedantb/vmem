@@ -4,6 +4,7 @@ import { internalMutation, internalQuery } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
+import { getUserIdByClerkId } from "./lib/clerkUser";
 import {
   FILE_STORAGE_LIMIT_BYTES,
   collectSubtreeIds,
@@ -71,12 +72,12 @@ export const listTree = authQuery({
     await requireContentScopeAccess(ctx, ctx.userId, args.teamId);
     const nodes = await listScopeNodes(ctx, ctx.userId, args.teamId);
 
-    let totalBytes = 0;
+    const totalBytes = nodes.reduce(
+      (sum, node) => sum + (node.kind === "file" ? (node.size ?? 0) : 0),
+      0,
+    );
     const withUrls: Array<FileNodeWithUrl> = await Promise.all(
       nodes.map(async (node) => {
-        if (node.kind === "file") {
-          totalBytes += node.size ?? 0;
-        }
         const url =
           node.kind === "file" && node.storageId
             ? await ctx.storage.getUrl(node.storageId)
@@ -117,6 +118,25 @@ async function totalBytesForScope(
   );
 }
 
+/**
+ * Find a personal (non-team) direct child of `parentId` by exact name.
+ * Used by MCP path resolution, which is personal-scope only.
+ */
+async function findPersonalSibling(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  parentId: Id<"fileNodes"> | undefined,
+  name: string,
+): Promise<Doc<"fileNodes"> | undefined> {
+  const siblings = await ctx.db
+    .query("fileNodes")
+    .withIndex("by_user_parent", (q) =>
+      q.eq("userId", userId).eq("parentId", parentId),
+    )
+    .collect();
+  return siblings.find((s) => s.teamId === undefined && s.name === name);
+}
+
 /** Validate that `parentId` (when set) is a folder in the same scope. */
 async function assertParentFolder(
   ctx: QueryCtx | MutationCtx,
@@ -136,6 +156,15 @@ async function assertParentFolder(
   if (parent.kind !== "folder") {
     throw new Error("Parent must be a folder");
   }
+}
+
+async function scheduleFileIndex(
+  ctx: MutationCtx,
+  fileNodeId: Id<"fileNodes">,
+): Promise<void> {
+  await ctx.scheduler.runAfter(0, internal.fileIndexing.indexFileNodeInternal, {
+    fileNodeId,
+  });
 }
 
 /**
@@ -178,11 +207,7 @@ export const createFile = authMutation({
       updatedAt: now,
     });
     if (indexable) {
-      await ctx.scheduler.runAfter(
-        0,
-        internal.fileIndexing.indexFileNodeInternal,
-        { fileNodeId: nodeId },
-      );
+      await scheduleFileIndex(ctx, nodeId);
     }
     return nodeId;
   },
@@ -350,20 +375,6 @@ export const deleteNodes = authMutation({
 // Internal helpers for MCP file tools (after JWT verification, by clerkId).
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function getUserIdByClerkId(
-  ctx: QueryCtx | MutationCtx,
-  clerkId: string,
-): Promise<Id<"users">> {
-  const user = await ctx.db
-    .query("users")
-    .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId))
-    .first();
-  if (!user) {
-    throw new Error("User not found");
-  }
-  return user._id;
-}
-
 /**
  * All PERSONAL file nodes for a user, by clerkId. MCP path resolution runs
  * over this — MCP stays personal-only, so team nodes never leak into the
@@ -415,17 +426,8 @@ export const upsertFileByPathInternal = internalMutation({
     // Walk/auto-create folder segments (all but the last). Personal scope
     // only — team nodes are filtered out so the MCP namespace stays clean.
     let parentId: Id<"fileNodes"> | undefined;
-    for (let i = 0; i < args.segments.length - 1; i++) {
-      const name = args.segments[i];
-      const siblings = (
-        await ctx.db
-          .query("fileNodes")
-          .withIndex("by_user_parent", (q) =>
-            q.eq("userId", userId).eq("parentId", parentId),
-          )
-          .collect()
-      ).filter((s) => s.teamId === undefined);
-      const existing = siblings.find((s) => s.name === name);
+    for (const name of args.segments.slice(0, -1)) {
+      const existing = await findPersonalSibling(ctx, userId, parentId, name);
       if (existing) {
         if (existing.kind !== "folder") {
           throw new Error(`Path segment "${name}" is a file, not a folder`);
@@ -443,16 +445,11 @@ export const upsertFileByPathInternal = internalMutation({
       }
     }
 
-    const fileName = args.segments[args.segments.length - 1];
-    const siblings = (
-      await ctx.db
-        .query("fileNodes")
-        .withIndex("by_user_parent", (q) =>
-          q.eq("userId", userId).eq("parentId", parentId),
-        )
-        .collect()
-    ).filter((s) => s.teamId === undefined);
-    const existing = siblings.find((s) => s.name === fileName);
+    const fileName = args.segments.at(-1);
+    if (fileName === undefined) {
+      throw new Error("Path is required");
+    }
+    const existing = await findPersonalSibling(ctx, userId, parentId, fileName);
 
     const indexable = detectFileKind(fileName, args.mimeType) !== null;
 
@@ -475,11 +472,7 @@ export const upsertFileByPathInternal = internalMutation({
         updatedAt: now,
       });
       if (needsIndexing) {
-        await ctx.scheduler.runAfter(
-          0,
-          internal.fileIndexing.indexFileNodeInternal,
-          { fileNodeId: existing._id },
-        );
+        await scheduleFileIndex(ctx, existing._id);
       }
       return { nodeId: existing._id };
     }
@@ -497,11 +490,7 @@ export const upsertFileByPathInternal = internalMutation({
       updatedAt: now,
     });
     if (indexable) {
-      await ctx.scheduler.runAfter(
-        0,
-        internal.fileIndexing.indexFileNodeInternal,
-        { fileNodeId: nodeId },
-      );
+      await scheduleFileIndex(ctx, nodeId);
     }
     return { nodeId };
   },

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const structuredStoreFields = {
+const structuredStoreBodySchema = z.object({
   title: z.string(),
   content: z.string(),
   type: z.string(),
@@ -12,11 +12,9 @@ const structuredStoreFields = {
   profileId: z.string().optional(),
   externalId: z.string().optional(),
   sourceType: z.string().optional(),
-};
+});
 
-export const structuredStoreBodySchema = z.object(structuredStoreFields);
-
-export const instructionStoreBodySchema = z.object({
+const instructionStoreBodySchema = z.object({
   instruction: z.string().min(1),
   profileId: z.string().optional(),
 });
@@ -26,7 +24,7 @@ export const storeBodySchema = z.union([
   instructionStoreBodySchema,
 ]);
 
-const structuredUpdateFields = {
+const structuredUpdateBodySchema = z.object({
   memoryId: z.string(),
   title: z.string().optional(),
   content: z.string().optional(),
@@ -35,11 +33,9 @@ const structuredUpdateFields = {
   tags: z.array(z.string()).optional(),
   confidence: z.number().optional(),
   expiresAt: z.union([z.string(), z.null()]).optional(),
-};
+});
 
-export const structuredUpdateBodySchema = z.object(structuredUpdateFields);
-
-export const instructionUpdateBodySchema = z.object({
+const instructionUpdateBodySchema = z.object({
   instruction: z.string().min(1),
   profileId: z.string().optional(),
 });
@@ -62,12 +58,10 @@ export const deleteBodySchema = z.object({
   memoryId: z.string(),
 });
 
-export type StructuredStoreBody = z.infer<typeof structuredStoreBodySchema>;
-export type InstructionStoreBody = z.infer<typeof instructionStoreBodySchema>;
 export type StoreBody = z.infer<typeof storeBodySchema>;
-export type StructuredUpdateBody = z.infer<typeof structuredUpdateBodySchema>;
-export type InstructionUpdateBody = z.infer<typeof instructionUpdateBodySchema>;
+export type InstructionStoreBody = z.infer<typeof instructionStoreBodySchema>;
 export type UpdateBody = z.infer<typeof updateBodySchema>;
+export type InstructionUpdateBody = z.infer<typeof instructionUpdateBodySchema>;
 export type RetrieveBody = z.infer<typeof retrieveBodySchema>;
 export type DeleteBody = z.infer<typeof deleteBodySchema>;
 

@@ -1,7 +1,7 @@
 import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import {
-  assertProfileAccess,
+  guardProfileAccess,
   withApiKeyAuth,
   type ApiKeyAuth,
 } from "./apiKeyAuth";
@@ -12,6 +12,7 @@ import {
 } from "./schemas";
 import {
   isOpenRouterRequired,
+  openRouterRequiredResponse,
   type CreateMemoryActionResult,
   type StoreFromInstructionActionResult,
 } from "./types";
@@ -23,19 +24,13 @@ async function runStoreHandler(
 ): Promise<
   Response | CreateMemoryActionResult | StoreFromInstructionActionResult
 > {
-  if (body.profileId) {
-    const forbidden = await assertProfileAccess(
-      ctx,
-      auth.userId,
-      body.profileId,
-    );
-    if (forbidden) {
-      return forbidden;
-    }
+  const forbidden = await guardProfileAccess(ctx, auth, body.profileId);
+  if (forbidden) {
+    return forbidden;
   }
 
   if (isInstructionStoreBody(body)) {
-    const result: StoreFromInstructionActionResult = await ctx.runAction(
+    const result = await ctx.runAction(
       internal.neo4jActions.agent.storeFromInstructionInternal,
       {
         clerkId: auth.clerkId,
@@ -45,29 +40,26 @@ async function runStoreHandler(
     );
 
     if (isOpenRouterRequired(result)) {
-      return Response.json({ error: "openrouter_required" }, { status: 422 });
+      return openRouterRequiredResponse();
     }
 
     return result;
   }
 
-  return await ctx.runAction(
-    internal.neo4jActions.memories.createMemoryInternal,
-    {
-      clerkId: auth.clerkId,
-      profileId: body.profileId,
-      title: body.title,
-      content: body.content,
-      type: body.type,
-      source: body.source,
-      tags: body.tags,
-      confidence: body.confidence,
-      expiresAt: body.expiresAt,
-      url: body.url,
-      externalId: body.externalId,
-      sourceType: body.sourceType,
-    },
-  );
+  return ctx.runAction(internal.neo4jActions.memories.createMemoryInternal, {
+    clerkId: auth.clerkId,
+    profileId: body.profileId,
+    title: body.title,
+    content: body.content,
+    type: body.type,
+    source: body.source,
+    tags: body.tags,
+    confidence: body.confidence,
+    expiresAt: body.expiresAt,
+    url: body.url,
+    externalId: body.externalId,
+    sourceType: body.sourceType,
+  });
 }
 
 export const storeMemory = withApiKeyAuth(

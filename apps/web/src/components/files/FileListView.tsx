@@ -1,6 +1,13 @@
 "use client";
 
-import { Checkbox } from "@vmem/ui";
+import {
+  Checkbox,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+} from "@vmem/ui";
 import type { FileItem } from "@/lib/file-types";
 import FileListRow from "./FileListRow";
 import InlineNewFolder from "./InlineNewFolder";
@@ -42,51 +49,49 @@ export default function FileListView({
   onNewFolderCancel,
 }: FileListViewProps) {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full">
-        <thead>
-          <tr className="border-b border-separator text-left">
-            <th className="w-10 px-3 py-2">
-              <Checkbox checked={isAllSelected} onCheckedChange={onSelectAll} />
-            </th>
-            <th className="py-2 pr-3 text-xs font-medium text-muted uppercase tracking-wider">
-              Name
-            </th>
-            <th className="hidden md:table-cell py-2 pr-3 text-xs font-medium text-muted uppercase tracking-wider">
-              Size
-            </th>
-            <th className="hidden md:table-cell py-2 pr-3 text-xs font-medium text-muted uppercase tracking-wider">
-              Modified
-            </th>
-            <th className="w-10 py-2 pr-3">
-              <span className="sr-only">Actions</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {isCreatingFolder && (
-            <InlineNewFolder
-              variant="list"
-              onConfirm={onNewFolderConfirm}
-              onCancel={onNewFolderCancel}
-            />
-          )}
-          {items.map((item) => (
-            <FileListRow
-              key={item.id}
-              item={item}
-              isSelected={isSelected(item.id)}
-              onClick={onClick}
-              onCheckbox={onCheckbox}
-              onOpen={onOpen}
-              onDownload={onDownload}
-              onMoveTo={onMoveTo}
-              onRename={onRename}
-              onDelete={onDelete}
-            />
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <Table className="rounded-none">
+      <TableHeader>
+        <TableRow className="border-b border-separator hover:bg-transparent">
+          <TableHead className="w-10 px-3 py-2">
+            <Checkbox checked={isAllSelected} onCheckedChange={onSelectAll} />
+          </TableHead>
+          <TableHead className="py-2 pr-3 text-xs font-medium uppercase tracking-wider text-muted">
+            Name
+          </TableHead>
+          <TableHead className="hidden py-2 pr-3 text-xs font-medium uppercase tracking-wider text-muted md:table-cell">
+            Size
+          </TableHead>
+          <TableHead className="hidden py-2 pr-3 text-xs font-medium uppercase tracking-wider text-muted md:table-cell">
+            Modified
+          </TableHead>
+          <TableHead className="w-10 py-2 pr-3">
+            <span className="sr-only">Actions</span>
+          </TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {isCreatingFolder && (
+          <InlineNewFolder
+            variant="list"
+            onConfirm={onNewFolderConfirm}
+            onCancel={onNewFolderCancel}
+          />
+        )}
+        {items.map((item) => (
+          <FileListRow
+            key={item.id}
+            item={item}
+            isSelected={isSelected(item.id)}
+            onClick={onClick}
+            onCheckbox={onCheckbox}
+            onOpen={onOpen}
+            onDownload={onDownload}
+            onMoveTo={onMoveTo}
+            onRename={onRename}
+            onDelete={onDelete}
+          />
+        ))}
+      </TableBody>
+    </Table>
   );
 }

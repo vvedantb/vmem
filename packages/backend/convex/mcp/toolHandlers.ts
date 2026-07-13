@@ -1,8 +1,10 @@
 import type { ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
+import { toSkillIndexEntry } from "../skills";
 import type { McpScope } from "../profiles/mcpAccess";
 import type { z } from "zod";
-import {
+import { isOpenRouterRequired } from "../http/v1Memories/types";
+import type {
   codebaseContextSchema,
   codebaseGraphSchema,
   codebaseImpactSchema,
@@ -39,13 +41,6 @@ export interface ToolHandlerContext {
   ctx: ActionCtx;
   clerkUserId: string;
   scope: McpScope;
-  /**
-   * Pin memory tools to one profile (cloud chat passes the thread's
-   * workspace). Tool-call `profileId` params still win when the model
-   * passes one explicitly; MCP connectors leave this unset and fall back
-   * to the scope's default profile.
-   */
-  fixedProfileId?: string;
 }
 
 export function formatToolResult(result: ToolHandlerResult): string {
@@ -146,7 +141,7 @@ export async function runMemorySearch(
       tags: params.tags,
       limit: params.limit,
       offset: params.offset,
-      profileId: params.profileId ?? ctx.fixedProfileId,
+      profileId: params.profileId,
     }),
   );
 }
@@ -160,7 +155,7 @@ export async function runMemoryRetrieve(
       ...scopedMemory(ctx),
       query: params.query,
       limit: params.limit,
-      profileId: params.profileId ?? ctx.fixedProfileId,
+      profileId: params.profileId,
     }),
   );
 }
@@ -196,12 +191,7 @@ export async function runMemoryAddInstruction(
   );
   if (!result.ok) return result;
 
-  if (
-    typeof result.data === "object" &&
-    result.data !== null &&
-    "error" in result.data &&
-    result.data.error === "openrouter_required"
-  ) {
+  if (isOpenRouterRequired(result.data)) {
     return {
       ok: false,
       error:
@@ -259,11 +249,13 @@ export async function runMemoryRelated(
 export async function runSkillsList(
   ctx: ToolHandlerContext,
 ): Promise<ToolHandlerResult> {
-  return safe("skills_list", () =>
-    ctx.ctx.runAction(internal.mcp.skills.mcpListSkills, {
-      clerkId: ctx.clerkUserId,
-    }),
-  );
+  return safe("skills_list", async () => {
+    const rows = await ctx.ctx.runQuery(
+      internal.skills.listEffectiveByClerkIdInternal,
+      { clerkId: ctx.clerkUserId },
+    );
+    return rows.map(toSkillIndexEntry);
+  });
 }
 
 export async function runSkillsGet(
@@ -271,7 +263,7 @@ export async function runSkillsGet(
   params: z.infer<typeof skillsGetSchema>,
 ): Promise<ToolHandlerResult> {
   return safe("skills_get", () =>
-    ctx.ctx.runAction(internal.mcp.skills.mcpGetSkill, {
+    ctx.ctx.runQuery(internal.skills.getEffectiveByNameInternal, {
       clerkId: ctx.clerkUserId,
       name: params.name,
     }),
@@ -283,7 +275,7 @@ export async function runSkillsCreate(
   params: z.infer<typeof skillsCreateSchema>,
 ): Promise<ToolHandlerResult> {
   return safe("skills_create", () =>
-    ctx.ctx.runAction(internal.mcp.skills.mcpCreateSkill, {
+    ctx.ctx.runMutation(internal.skills.createByClerkIdInternal, {
       clerkId: ctx.clerkUserId,
       name: params.name,
       description: params.description,
@@ -297,7 +289,7 @@ export async function runSkillsUpdate(
   params: z.infer<typeof skillsUpdateSchema>,
 ): Promise<ToolHandlerResult> {
   return safe("skills_update", () =>
-    ctx.ctx.runAction(internal.mcp.skills.mcpUpdateSkill, {
+    ctx.ctx.runMutation(internal.skills.updateByClerkIdInternal, {
       clerkId: ctx.clerkUserId,
       name: params.name,
       newName: params.newName,
@@ -312,12 +304,13 @@ export async function runSkillsDelete(
   ctx: ToolHandlerContext,
   params: z.infer<typeof skillsDeleteSchema>,
 ): Promise<ToolHandlerResult> {
-  return safe("skills_delete", () =>
-    ctx.ctx.runAction(internal.mcp.skills.mcpDeleteSkill, {
+  return safe("skills_delete", async () => {
+    await ctx.ctx.runMutation(internal.skills.deleteByClerkIdInternal, {
       clerkId: ctx.clerkUserId,
       name: params.name,
-    }),
-  );
+    });
+    return { deleted: true };
+  });
 }
 
 export async function runWikiList(

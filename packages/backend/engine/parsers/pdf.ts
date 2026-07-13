@@ -11,14 +11,13 @@
  * gaps for page breaks). The chunker downstream snaps to whitespace, so
  * we don't post-process here.
  *
- * Caller (Convex action) is responsible for `await blob.arrayBuffer()`
- * → Buffer conversion. We accept a Buffer so this file has no dependency
- * on the Convex runtime and can be unit-tested in isolation.
+ * Accepts a Buffer so this file has no Blob/Convex dependency and can be
+ * unit-tested in isolation. Callers convert Blob → Buffer (see
+ * extractFileContent).
  */
 
 import pdfParse from "pdf-parse";
 
 export async function extractPdfText(buffer: Buffer): Promise<string> {
-  const result = await pdfParse(buffer);
-  return result.text;
+  return (await pdfParse(buffer)).text;
 }

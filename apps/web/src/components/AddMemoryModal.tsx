@@ -9,6 +9,8 @@ import {
   DialogContent,
   DialogClose,
   Button,
+  Input,
+  Textarea,
   Badge,
   Popover,
   PopoverTrigger,
@@ -231,20 +233,19 @@ export default function AddMemoryModal({
               </div>
             ) : (
               <>
-                <input
-                  type="text"
+                <Input
                   {...register("title")}
                   placeholder="Memory title"
                   disabled={isBusy}
                   autoFocus
-                  className="w-full bg-transparent text-lg font-medium text-foreground outline-none placeholder:text-field-placeholder disabled:opacity-60"
+                  className="h-auto w-full border-0 bg-transparent px-0 py-0 text-lg font-medium text-foreground shadow-none placeholder:text-field-placeholder focus-visible:border-transparent focus-visible:ring-0 disabled:opacity-60"
                 />
-                <textarea
+                <Textarea
                   {...register("content")}
                   placeholder="Add a description…"
                   rows={5}
                   disabled={isBusy}
-                  className="w-full resize-none bg-transparent text-sm leading-relaxed text-foreground outline-none placeholder:text-field-placeholder disabled:opacity-60"
+                  className="min-h-0 w-full resize-none border-0 bg-transparent px-0 py-0 text-sm leading-relaxed text-foreground shadow-none placeholder:text-field-placeholder focus-visible:border-transparent focus-visible:ring-0 disabled:opacity-60"
                 />
                 {fieldError && (
                   <p className="text-xs text-danger">{fieldError}</p>
@@ -269,13 +270,15 @@ export default function AddMemoryModal({
                     >
                       <IconHash size={11} className="text-muted" />
                       {tag}
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
+                        size="icon-xs"
                         onClick={() => removeTag(tag, field.onChange)}
-                        className="-mr-1 ml-0.5 rounded p-0.5 text-muted transition-colors hover:bg-surface-tertiary/50 hover:text-foreground"
+                        className="-mr-1 ml-0.5 text-muted hover:text-foreground"
                       >
-                        <IconX size={11} />
-                      </button>
+                        <IconX className="size-[11px]" />
+                      </Button>
                     </Badge>
                   ))}
                 </div>
@@ -322,9 +325,8 @@ export default function AddMemoryModal({
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent align="start" className="w-64 p-2">
-                      <input
+                      <Input
                         autoFocus
-                        type="text"
                         value={tagInput}
                         onChange={(e) => setTagInput(e.target.value)}
                         onKeyDown={(e) => {
@@ -334,34 +336,38 @@ export default function AddMemoryModal({
                           }
                         }}
                         placeholder="Add or search tags…"
-                        className="h-8 w-full rounded-field border border-border bg-field-background px-2 text-sm text-foreground outline-none placeholder:text-field-placeholder focus-visible:border-focus-border focus-visible:ring-2 focus-visible:ring-focus-ring"
+                        className="h-8 rounded-field border-border bg-field-background px-2 text-sm text-foreground placeholder:text-field-placeholder"
                       />
                       <div className="mt-2 flex max-h-56 flex-col gap-0.5 overflow-y-auto">
                         {filteredSuggestions.slice(0, 10).map((item) => (
-                          <button
+                          <Button
                             key={item.tag}
                             type="button"
+                            variant="ghost"
+                            size="sm"
                             onClick={() => addTag(item.tag, field.onChange)}
-                            className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-surface-tertiary/80"
+                            className="flex h-auto w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm text-foreground hover:bg-surface-tertiary/80"
                           >
                             <span className="flex items-center gap-1.5">
-                              <IconHash size={12} className="text-muted" />
+                              <IconHash className="size-3 text-muted" />
                               {item.tag}
                             </span>
                             <span className="text-xs text-muted tabular-nums">
                               {item.count}
                             </span>
-                          </button>
+                          </Button>
                         ))}
                         {canCreateTag && (
-                          <button
+                          <Button
                             type="button"
+                            variant="ghost"
+                            size="sm"
                             onClick={() => addTag(tagInput, field.onChange)}
-                            className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-surface-tertiary/80"
+                            className="flex h-auto w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-sm text-foreground hover:bg-surface-tertiary/80"
                           >
-                            <IconPlus size={12} className="text-muted" />
+                            <IconPlus className="size-3 text-muted" />
                             Create &ldquo;{normalizedTagInput}&rdquo;
-                          </button>
+                          </Button>
                         )}
                         {!canCreateTag && filteredSuggestions.length === 0 && (
                           <p className="px-2 py-3 text-center text-xs text-muted">
@@ -377,7 +383,7 @@ export default function AddMemoryModal({
               />
 
               {/* Attach badge — disabled once a file is staged. */}
-              <input
+              <Input
                 ref={fileInputRef}
                 type="file"
                 accept={ACCEPTED_FILE_EXTENSIONS}

@@ -18,6 +18,7 @@ import {
   IconAlertCircle,
 } from "@tabler/icons-react";
 import { api, type Id } from "@vmem/backend";
+import { z } from "zod";
 
 interface OAuthModalProps {
   isOpen: boolean;
@@ -28,6 +29,12 @@ interface OAuthModalProps {
 }
 
 type OAuthStep = "authorize" | "connecting" | "complete" | "error";
+
+const connectorOAuthCompleteSchema = z.object({
+  type: z.literal("connector-oauth-complete"),
+  success: z.boolean(),
+  error: z.string().optional(),
+});
 
 export default function OAuthModal({
   isOpen,
@@ -58,12 +65,12 @@ export default function OAuthModal({
   // Handle message from popup
   const handleMessage = useCallback(
     (event: MessageEvent) => {
-      // Validate message origin and type
-      if (event.data?.type !== "connector-oauth-complete") return;
+      const parsed = connectorOAuthCompleteSchema.safeParse(event.data);
+      if (!parsed.success) return;
 
       cleanup();
 
-      if (event.data.success) {
+      if (parsed.data.success) {
         setStep("complete");
         setTimeout(() => {
           onComplete();
@@ -71,7 +78,7 @@ export default function OAuthModal({
         }, 1000);
       } else {
         setStep("error");
-        setErrorMessage(event.data.error ?? "Connection failed");
+        setErrorMessage(parsed.data.error ?? "Connection failed");
       }
     },
     [cleanup, onComplete, onClose],

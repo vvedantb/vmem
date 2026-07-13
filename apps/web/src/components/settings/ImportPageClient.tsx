@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 import { useAction } from "convex/react";
 import { api } from "@vmem/backend";
-import { Button, Card, CardContent, cn } from "@vmem/ui";
+import { Button, Card, CardContent } from "@vmem/ui";
 import { toast } from "sonner";
 import UploadImportModal from "./UploadImportModal";
 import SelectImportRowsModal from "./SelectImportRowsModal";
@@ -13,7 +13,7 @@ import type { ExportImportRow } from "../_utils/importRows";
 function findAvailable(id: string | null): AvailableProvider | null {
   if (id === null) return null;
   for (const p of importProviders) {
-    if (p.kind === "available" && p.id === id) return p;
+    if (p.id === id) return p;
   }
   return null;
 }
@@ -107,26 +107,6 @@ export default function ImportPageClient() {
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         {importProviders.map((p) => {
           const Logo = p.Logo;
-          if (p.kind === "available") {
-            return (
-              <section key={p.id} className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <Logo className={`h-6 w-6 shrink-0 ${p.logoClassName}`} />
-                  <h3 className="text-base font-medium text-foreground text-balance">
-                    {p.label}
-                  </h3>
-                </div>
-                <Card className="shadow-none">
-                  <CardContent className="p-6">
-                    <p className="mb-5 text-sm text-muted">{p.description}</p>
-                    <Button type="button" onClick={() => openUpload(p.id)}>
-                      Import
-                    </Button>
-                  </CardContent>
-                </Card>
-              </section>
-            );
-          }
           return (
             <section key={p.id} className="space-y-3">
               <div className="flex items-center gap-3">
@@ -135,11 +115,11 @@ export default function ImportPageClient() {
                   {p.label}
                 </h3>
               </div>
-              <Card className={cn("shadow-none opacity-60")}>
+              <Card className="shadow-none">
                 <CardContent className="p-6">
                   <p className="mb-5 text-sm text-muted">{p.description}</p>
-                  <Button type="button" disabled>
-                    Coming soon
+                  <Button type="button" onClick={() => openUpload(p.id)}>
+                    Import
                   </Button>
                 </CardContent>
               </Card>

@@ -23,7 +23,7 @@ function ConnectorsPage() {
   useEffect(() => {
     if (connectors !== undefined && !seededRef.current) {
       seededRef.current = true;
-      seedDefaults();
+      void seedDefaults();
     }
   }, [connectors, seedDefaults]);
 
@@ -84,8 +84,8 @@ function ConnectorsPage() {
               No connectors connected
             </p>
             <p className="mb-6 max-w-sm text-sm text-muted text-balance">
-              Connect Google Drive, Gmail, Notion, and more to sync content into
-              your memories.
+              Connect Google Drive, Notion, or GitHub to sync content into your
+              memories.
             </p>
             <Button
               variant="outline"

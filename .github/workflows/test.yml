@@ -4,7 +4,6 @@ on:
   push:
     branches: [main, staging]
   pull_request:
-    branches: [main, staging]
 
 concurrency:
   group: ci-unit-tests-${{ github.ref }}
@@ -27,8 +26,20 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Typecheck web
-        run: pnpm typecheck
+      - name: Lint
+        run: pnpm lint
+
+      - name: Format check
+        run: pnpm format:check
+
+      - name: Typecheck (all workspaces)
+        run: pnpm typecheck:all
+
+      - name: Knip (dead exports / deps)
+        run: pnpm knip
+
+      - name: Oxlint plugin unit tests
+        run: pnpm test:oxlint-plugin
 
       - name: Run unit tests (backend + web)
         run: pnpm test

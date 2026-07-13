@@ -23,6 +23,7 @@ import {
 } from "@tabler/icons-react";
 import {
   Button,
+  Input,
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -30,7 +31,7 @@ import {
   Separator,
 } from "@vmem/ui";
 import AddMemoryModal from "@/components/AddMemoryModal";
-import SearchPopover from "./SearchPopover";
+import HeaderSearchInput from "./HeaderSearchInput";
 import GraphLegend from "./GraphLegend";
 import type { MemoryGraphController } from "@/hooks/useMemoryGraphController";
 import { MemoryFiltersButton } from "@/routes/_main/$profileId/memories/_components/MemoryFiltersButton";
@@ -88,7 +89,7 @@ export default function GraphHeaderControls({
 }: GraphHeaderControlsProps) {
   return (
     <div className="flex items-center gap-1.5">
-      <SearchPopover
+      <HeaderSearchInput
         value={controller.search}
         onChange={controller.onSearchChange}
         placeholder="Search nodes..."
@@ -251,19 +252,21 @@ function OptionsPopover({
           <span className="text-[11px] text-muted">View</span>
           <div className="flex items-center gap-0.5 rounded-lg bg-default p-0.5 w-fit">
             {VIEW_MODES.map(({ mode, Icon }) => (
-              <button
+              <Button
                 key={mode}
                 type="button"
+                variant="ghost"
+                size="icon-sm"
                 onClick={() => onViewModeChange(mode)}
                 title={VIEW_MODE_LABELS[mode]}
-                className={`flex items-center justify-center w-7 h-7 rounded-md transition-colors ${
+                className={`h-7 w-7 ${
                   mode === viewMode
                     ? "bg-segment text-foreground"
-                    : "text-muted hover:text-foreground hover:bg-surface-secondary/70"
+                    : "text-muted hover:bg-surface-secondary/70 hover:text-foreground"
                 }`}
               >
-                <Icon size={14} />
-              </button>
+                <Icon className="size-3.5" />
+              </Button>
             ))}
           </div>
         </div>
@@ -283,14 +286,15 @@ function OptionsPopover({
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-[11px] text-muted">Forces</span>
-            <button
+            <Button
               type="button"
+              variant="ghost"
               onClick={onReset}
-              className="flex items-center gap-0.5 text-[10px] text-muted hover:text-foreground transition-colors"
+              className="flex h-auto items-center gap-0.5 p-0 text-[10px] text-muted hover:text-foreground"
             >
-              <IconRefresh size={10} />
+              <IconRefresh className="size-2.5" />
               Reset
-            </button>
+            </Button>
           </div>
           {SLIDERS.map((field) => (
             <div key={field.key}>
@@ -300,7 +304,7 @@ function OptionsPopover({
                   {field.format(settings[field.key])}
                 </span>
               </div>
-              <input
+              <Input
                 type="range"
                 min={field.min}
                 max={field.max}
@@ -309,7 +313,7 @@ function OptionsPopover({
                 onChange={(e) =>
                   handleSliderChange(field.key, parseFloat(e.target.value))
                 }
-                className="w-full h-1.5 rounded-full appearance-none cursor-pointer bg-surface-secondary accent-accent"
+                className="h-1.5 w-full cursor-pointer appearance-none rounded-full border-0 bg-surface-secondary p-0 shadow-none accent-accent focus-visible:ring-0"
               />
             </div>
           ))}

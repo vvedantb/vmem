@@ -1,7 +1,7 @@
 import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import {
-  assertProfileAccess,
+  guardProfileAccess,
   withApiKeyAuth,
   type ApiKeyAuth,
 } from "./apiKeyAuth";
@@ -12,6 +12,7 @@ import {
 } from "./schemas";
 import {
   isOpenRouterRequired,
+  openRouterRequiredResponse,
   type UpdateFromInstructionActionResult,
   type UpdateMemoryActionResult,
 } from "./types";
@@ -24,18 +25,12 @@ async function runUpdateHandler(
   Response | UpdateMemoryActionResult | UpdateFromInstructionActionResult
 > {
   if (isInstructionUpdateBody(body)) {
-    if (body.profileId) {
-      const forbidden = await assertProfileAccess(
-        ctx,
-        auth.userId,
-        body.profileId,
-      );
-      if (forbidden) {
-        return forbidden;
-      }
+    const forbidden = await guardProfileAccess(ctx, auth, body.profileId);
+    if (forbidden) {
+      return forbidden;
     }
 
-    const result: UpdateFromInstructionActionResult = await ctx.runAction(
+    const result = await ctx.runAction(
       internal.neo4jActions.agent.updateFromInstructionInternal,
       {
         clerkId: auth.clerkId,
@@ -45,13 +40,13 @@ async function runUpdateHandler(
     );
 
     if (isOpenRouterRequired(result)) {
-      return Response.json({ error: "openrouter_required" }, { status: 422 });
+      return openRouterRequiredResponse();
     }
 
     return result;
   }
 
-  const updated: UpdateMemoryActionResult = await ctx.runAction(
+  const updated = await ctx.runAction(
     internal.neo4jActions.memories.updateMemoryInternal,
     {
       clerkId: auth.clerkId,

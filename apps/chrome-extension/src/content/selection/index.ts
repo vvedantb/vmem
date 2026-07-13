@@ -474,14 +474,14 @@ function init(): void {
 
   // Read initial toggle state
   chrome.storage.local.get({ selectionPopupEnabled: true }, (result) => {
-    const storedEnabled = result["selectionPopupEnabled"];
+    const storedEnabled: unknown = result["selectionPopupEnabled"];
     setEnabled(typeof storedEnabled === "boolean" ? storedEnabled : true);
   });
 
   // React to toggle changes in real-time
   chrome.storage.onChanged.addListener((changes) => {
     if ("selectionPopupEnabled" in changes) {
-      const next = changes["selectionPopupEnabled"].newValue;
+      const next: unknown = changes["selectionPopupEnabled"].newValue;
       setEnabled(typeof next === "boolean" ? next : true);
     }
   });

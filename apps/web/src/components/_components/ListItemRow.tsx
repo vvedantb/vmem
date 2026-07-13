@@ -14,15 +14,21 @@ import {
   TooltipTrigger,
 } from "@vmem/ui";
 import { IconEdit, IconMoon, IconTrash } from "@tabler/icons-react";
+import { IconSkills, IconWiki } from "@/components/sidebar-icons";
 import { formatMemorySourceLabel, timeAgo, type Memory } from "@/lib/memories";
 import type { ListItem } from "@/lib/list-items";
 import type { TrailEntry } from "@/hooks/useTrailData";
+import type { MemoryTrace } from "./memory-trace";
+import MemoryTraceHover from "./MemoryTraceHover";
+import { MemorySourceIcon } from "./MemorySourceIcon";
 import { nodeColor } from "./graph-colors";
 import ShapeIndicator from "./ShapeIndicator";
 
 interface ListItemRowProps {
   item: ListItem;
   relevanceScore: number | null;
+  /** Context Trace for hybrid-search memory hits; enables score hover breakdown. */
+  trace?: MemoryTrace;
   isSelected: boolean;
   trailEntry?: TrailEntry;
   isDark: boolean;
@@ -48,6 +54,7 @@ interface ListItemRowProps {
 export default function ListItemRow({
   item,
   relevanceScore,
+  trace,
   isSelected,
   trailEntry,
   isDark,
@@ -88,19 +95,19 @@ export default function ListItemRow({
         return;
       }
       case "wiki-document":
-        navigate({
+        void navigate({
           to: "/$profileId/wiki/$docId",
           params: { profileId: activeProfile._id, docId: item.wikiId },
         });
         return;
       case "wiki-folder":
-        navigate({
+        void navigate({
           to: "/$profileId/wiki",
           params: { profileId: activeProfile._id },
         });
         return;
       case "skill":
-        navigate({
+        void navigate({
           to: "/$profileId/skills/$id",
           params: { profileId: activeProfile._id, id: item.skillId },
         });
@@ -117,11 +124,15 @@ export default function ListItemRow({
       onClick={handleClick}
     >
       <div className="flex items-center gap-2 min-w-0 w-full">
-        <ShapeIndicator
-          kind={item.kind}
-          color={color}
-          className="w-2.5 h-2.5"
-        />
+        {item.kind === "wiki-folder" ? (
+          <ShapeIndicator
+            kind={item.kind}
+            color={color}
+            className="w-2.5 h-2.5"
+          />
+        ) : (
+          <KindMeta item={item} isSelected={isSelected} />
+        )}
         <span className="text-sm font-medium text-foreground truncate min-w-0 flex-1">
           {item.title}
         </span>
@@ -134,11 +145,19 @@ export default function ListItemRow({
               {trailEntry.reason ?? "related"}
             </Badge>
           )}
-          {relevanceScore !== null && (
-            <span className="text-xs text-muted tabular-nums flex-shrink-0">
-              {Math.round(relevanceScore * 100)}%
-            </span>
-          )}
+          {relevanceScore !== null ? (
+            trace ? (
+              <MemoryTraceHover title={item.title} trace={trace}>
+                <span className="text-xs text-muted tabular-nums flex-shrink-0 underline decoration-dotted decoration-muted/40 underline-offset-2">
+                  {Math.round(relevanceScore * 100)}%
+                </span>
+              </MemoryTraceHover>
+            ) : (
+              <span className="text-xs text-muted tabular-nums flex-shrink-0">
+                {Math.round(relevanceScore * 100)}%
+              </span>
+            )
+          ) : null}
           <div className="flex items-center gap-1.5 shrink-0">
             {awaitingDream && (
               <Tooltip>
@@ -155,8 +174,26 @@ export default function ListItemRow({
                 </TooltipContent>
               </Tooltip>
             )}
-            <KindMeta item={item} />
-            <span className="text-xs text-muted/50 tabular-nums whitespace-nowrap">
+            {item.kind === "wiki-folder" ? (
+              <Badge
+                variant="outline"
+                className="text-[10px] px-1.5 py-0 h-4 shrink-0 font-normal text-muted whitespace-nowrap"
+              >
+                {item.childCount} {item.childCount === 1 ? "item" : "items"}
+              </Badge>
+            ) : (
+              <ShapeIndicator
+                kind={item.kind}
+                color={color}
+                className="w-2.5 h-2.5"
+              />
+            )}
+            <span
+              className={cn(
+                "text-xs tabular-nums whitespace-nowrap",
+                isSelected ? "text-foreground" : "text-muted",
+              )}
+            >
               {timeAgo(item.createdAt)}
             </span>
           </div>
@@ -202,44 +239,63 @@ export default function ListItemRow({
   );
 }
 
-/** Renders the kind-specific badge on the right side of the row. */
-function KindMeta({ item }: { item: ListItem }) {
+/** Renders the kind-specific leading icon for list rows. */
+function KindMeta({
+  item,
+  isSelected,
+}: {
+  item: ListItem;
+  isSelected: boolean;
+}) {
+  const iconWrapClass = cn(
+    "flex h-4 w-4 shrink-0 items-center justify-center",
+    isSelected ? "text-foreground" : "text-muted",
+  );
+
   switch (item.kind) {
     case "memory":
       return (
-        <Badge
-          variant="outline"
-          className="text-[10px] px-1.5 py-0 h-4 shrink-0 font-normal text-muted whitespace-nowrap"
-        >
-          {formatMemorySourceLabel(item.source)}
-        </Badge>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span
+              className={iconWrapClass}
+              aria-label={formatMemorySourceLabel(item.source)}
+            >
+              <MemorySourceIcon source={item.source} size={14} />
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="top" sideOffset={6}>
+            {formatMemorySourceLabel(item.source)}
+          </TooltipContent>
+        </Tooltip>
       );
     case "wiki-document":
       return (
-        <Badge
-          variant="outline"
-          className="text-[10px] px-1.5 py-0 h-4 shrink-0 font-normal text-muted whitespace-nowrap"
-        >
-          Wiki
-        </Badge>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className={iconWrapClass} aria-label="Wiki">
+              <IconWiki size={14} stroke={1.7} />
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="top" sideOffset={6}>
+            Wiki
+          </TooltipContent>
+        </Tooltip>
       );
     case "wiki-folder":
-      return (
-        <Badge
-          variant="outline"
-          className="text-[10px] px-1.5 py-0 h-4 shrink-0 font-normal text-muted whitespace-nowrap"
-        >
-          {item.childCount} {item.childCount === 1 ? "item" : "items"}
-        </Badge>
-      );
+      return null;
     case "skill":
       return (
-        <Badge
-          variant="outline"
-          className="text-[10px] px-1.5 py-0 h-4 shrink-0 font-normal text-muted whitespace-nowrap"
-        >
-          Skill
-        </Badge>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className={iconWrapClass} aria-label="Skill">
+              <IconSkills size={14} stroke={1.7} />
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="top" sideOffset={6}>
+            Skill
+          </TooltipContent>
+        </Tooltip>
       );
   }
 }

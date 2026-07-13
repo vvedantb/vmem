@@ -86,8 +86,8 @@ export function CommandPalette({ onToggleSidebar }: Props) {
     };
   }, [query, isAuthenticated, searchMemories]);
 
-  const runAndClose = <T,>(fn: () => T) => {
-    void fn();
+  const runAndClose = (fn: () => void) => {
+    fn();
     setOpen(false);
   };
 

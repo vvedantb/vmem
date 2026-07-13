@@ -121,7 +121,7 @@ export function AiLogsPanel() {
     !isAllProfilesFilter(params.profileId);
 
   const resetFilters = () => {
-    setParams({
+    void setParams({
       range: "7d",
       status: "all",
       features: [],
@@ -180,7 +180,7 @@ export function AiLogsRightSection() {
   const availableModels = availableModelsResult ?? [];
 
   const resetFilters = () => {
-    setParams({
+    void setParams({
       range: "7d",
       status: "all",
       features: [],

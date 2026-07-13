@@ -9,6 +9,7 @@
  * vocabulary-aware enrichment + normalizeTags chokepoint).
  */
 import { getDriver, closeDriver } from "../engine/neo4j/driver";
+import { neo4jField, stringSchema } from "../engine/neo4j/record";
 
 async function main() {
   const driver = getDriver();
@@ -30,8 +31,9 @@ async function main() {
       );
     }
 
-    const heaviest = users.records[0]?.get("userId");
-    if (typeof heaviest !== "string") return;
+    const firstUser = users.records[0];
+    if (!firstUser) return;
+    const heaviest = neo4jField(firstUser, "userId", stringSchema);
 
     // Usage histogram: how many tags are used 1x, 2x, 3-5x, 6-20x, >20x
     const hist = await session.run(
@@ -47,6 +49,7 @@ async function main() {
       { userId: heaviest },
     );
     const h = hist.records[0];
+    if (h === undefined) return;
     console.log(`\n== tag usage histogram (${heaviest}) ==`);
     for (const k of [
       "once",

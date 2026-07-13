@@ -13,7 +13,7 @@
  * chunks is degraded but functional.
  */
 
-import { type ActionCtx } from "../../_generated/server";
+import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import {
   createChunksForMemory,
@@ -96,7 +96,7 @@ export async function runBackfillChunks(
   }
 
   for (const memory of candidates) {
-    await ctx.runAction(internal.neo4jActions.memories.chunkMemoryInternal, {
+    await runChunkMemory(ctx, {
       clerkId: args.clerkId,
       memoryId: memory.id,
       content: memory.content,

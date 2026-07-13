@@ -32,15 +32,10 @@ export function stripTarballRoot(entryPath: string): string | null {
   return entryPath.slice(slash + 1);
 }
 
-function isTsJsPath(path: string): boolean {
-  const ext = path.substring(path.lastIndexOf("."));
-  return TS_JS_EXTENSIONS.has(ext);
-}
-
 function shouldIncludeRepoPath(path: string): boolean {
   if (path.length === 0) return false;
   if (path.startsWith("node_modules/")) return false;
-  return isTsJsPath(path);
+  return TS_JS_EXTENSIONS.has(path.substring(path.lastIndexOf(".")));
 }
 
 function readFetchCause(err: Error): string | undefined {
@@ -56,18 +51,21 @@ async function fetchWithRetry(
   init: RequestInit,
   label: string,
 ): Promise<Response> {
-  let lastErr: Error | null = null;
+  let lastErr: Error | undefined;
   for (let attempt = 0; attempt < FETCH_ATTEMPTS; attempt++) {
     try {
       return await fetch(url, init);
     } catch (err) {
       lastErr = err instanceof Error ? err : new Error(String(err));
-      if (attempt === FETCH_ATTEMPTS - 1) break;
-      await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1)));
+      if (attempt < FETCH_ATTEMPTS - 1) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, 400 * (attempt + 1)),
+        );
+      }
     }
   }
-  const cause = lastErr ? readFetchCause(lastErr) : undefined;
   const detail = lastErr?.message ?? "unknown error";
+  const cause = lastErr === undefined ? undefined : readFetchCause(lastErr);
   throw new Error(
     `GitHub ${label} failed after ${FETCH_ATTEMPTS} attempts: ${detail}${cause ? ` (${cause})` : ""}`,
   );
@@ -86,7 +84,7 @@ async function extractTsJsFromTarball(
         header.type === "file" || header.type === "contiguous-file";
       if (!repoPath || !isFile || !shouldIncludeRepoPath(repoPath)) {
         stream.resume();
-        stream.on("end", () => next());
+        stream.on("end", next);
         return;
       }
 

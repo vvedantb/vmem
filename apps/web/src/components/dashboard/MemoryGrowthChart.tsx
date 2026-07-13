@@ -4,7 +4,7 @@ import type { FunctionReturnType } from "convex/server";
 import { IconChartBarOff } from "@tabler/icons-react";
 import { motion } from "motion/react";
 import { Card, CardContent } from "@vmem/ui";
-import { api } from "@vmem/backend";
+import type { api } from "@vmem/backend";
 
 type StatsData = FunctionReturnType<typeof api.dashboardApi.getStats>;
 

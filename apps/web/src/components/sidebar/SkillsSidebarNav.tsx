@@ -146,20 +146,25 @@ export function SkillsSidebarNav({
           Installed system skills
         </p>
         <SharedLayoutBackground.Root
-          pinnedId={activeSystemSkillId ?? null}
+          layoutId="skills-system"
           className="gap-0.5"
         >
           {installedSystemSkills.map((entry) => (
-            <SharedLayoutBackground.Item key={entry._id} id={entry._id}>
-              <button
+            <SharedLayoutBackground.Item
+              key={entry._id}
+              id={entry._id}
+              isActive={activeSystemSkillId === entry._id}
+            >
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => goSystemSkill(entry._id)}
                 className={cn(
-                  "flex w-full min-w-0 items-center rounded-lg text-left text-sm transition-[color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring",
+                  "h-auto w-full min-w-0 justify-start rounded-lg text-left text-sm font-normal transition-[color] active:scale-100",
                   sidebarListRowClass,
                   activeSystemSkillId === entry._id
-                    ? "text-foreground"
-                    : "text-muted hover:text-foreground",
+                    ? "text-foreground hover:bg-transparent"
+                    : "text-muted hover:bg-transparent hover:text-foreground",
                 )}
               >
                 <span
@@ -170,7 +175,7 @@ export function SkillsSidebarNav({
                   )}
                 />
                 <span className="min-w-0 truncate">{entry.name}</span>
-              </button>
+              </Button>
             </SharedLayoutBackground.Item>
           ))}
         </SharedLayoutBackground.Root>
@@ -250,11 +255,15 @@ export function SkillsSidebarNav({
               ) : null
             ) : (
               <SharedLayoutBackground.Root
-                pinnedId={selectionMode ? null : (skillId ?? null)}
+                layoutId="skills-nav"
                 className="gap-0.5"
               >
                 {filteredSkills.map((skill) => (
-                  <SharedLayoutBackground.Item key={skill._id} id={skill._id}>
+                  <SharedLayoutBackground.Item
+                    key={skill._id}
+                    id={skill._id}
+                    isActive={!selectionMode && skillId === skill._id}
+                  >
                     <SkillCard
                       skill={skill}
                       selected={skillId === skill._id}

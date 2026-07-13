@@ -6,8 +6,65 @@
  */
 
 import neo4j, { type Driver } from "neo4j-driver";
-import { toNeoInt } from "./mappers";
+import { z } from "zod";
+import {
+  neo4jGet,
+  neo4jString,
+  parseNeo4jInt,
+  parseNeo4jNodeProps,
+} from "../record";
 import { profileFilter, withSession } from "./shared";
+
+const activityEventPropsSchema = z.object({
+  id: z.string(),
+  action: z.string(),
+  actor: z.string().optional(),
+  createdAt: z.string(),
+});
+
+function formatRelativeTime(diffMs: number): string {
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return "just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHours = Math.floor(diffMs / 3600000);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  return `${Math.floor(diffMs / 86400000)}d ago`;
+}
+
+function activityMetaFor(
+  action: string,
+  memoryTitle: string,
+  actor: string,
+): { type: string; description: string } {
+  if (action === "created") {
+    // Dream Mode-materialized memories use actor='dream-mode' on the
+    // logEvent call. Promote those into a distinct activity type so the
+    // feed can filter / icon them separately from manual creates.
+    if (actor === "dream-mode") {
+      return {
+        type: "memory_dream_created",
+        description: `Dream Mode synthesized "${memoryTitle}"`,
+      };
+    }
+    return {
+      type: "memory_created",
+      description: `Created "${memoryTitle}"`,
+    };
+  }
+  if (action === "updated") {
+    return {
+      type: "memory_updated",
+      description: `Updated "${memoryTitle}"`,
+    };
+  }
+  if (action === "deleted") {
+    return {
+      type: "memory_deleted",
+      description: `Deleted "${memoryTitle}"`,
+    };
+  }
+  return { type: action, description: `${action} "${memoryTitle}"` };
+}
 
 export async function getStats(
   driver: Driver,
@@ -57,22 +114,18 @@ export async function getStats(
       },
     );
 
-    let totalMemories = 0;
-    let memoriesThisWeek = 0;
-    let memoriesThisMonth = 0;
-    let memoriesAddedToday = 0;
-    let totalTags = 0;
-
-    if (result.records.length > 0) {
-      const record = result.records[0];
-      if (record) {
-        totalMemories = toNeoInt(record.get("total"));
-        memoriesThisWeek = toNeoInt(record.get("thisWeek"));
-        memoriesThisMonth = toNeoInt(record.get("thisMonth"));
-        memoriesAddedToday = toNeoInt(record.get("today"));
-        totalTags = toNeoInt(record.get("tagCount"));
-      }
-    }
+    const record = result.records[0];
+    const totalMemories = record ? parseNeo4jInt(neo4jGet(record, "total")) : 0;
+    const memoriesThisWeek = record
+      ? parseNeo4jInt(neo4jGet(record, "thisWeek"))
+      : 0;
+    const memoriesThisMonth = record
+      ? parseNeo4jInt(neo4jGet(record, "thisMonth"))
+      : 0;
+    const memoriesAddedToday = record
+      ? parseNeo4jInt(neo4jGet(record, "today"))
+      : 0;
+    const totalTags = record ? parseNeo4jInt(neo4jGet(record, "tagCount")) : 0;
 
     // Growth data: old implementation ran OPTIONAL MATCH twice per day in a
     // 7-day UNWIND, doing O(7×n) scans to recompute the cumulative total for
@@ -89,7 +142,7 @@ export async function getStats(
     );
     const baselineRecord = baselineResult.records[0];
     const baseline = baselineRecord
-      ? toNeoInt(baselineRecord.get("baseline"))
+      ? parseNeo4jInt(neo4jGet(baselineRecord, "baseline"))
       : 0;
 
     const dailyResult = await session.run(
@@ -102,7 +155,10 @@ export async function getStats(
 
     const dailyCounts = new Map<string, number>();
     for (const rec of dailyResult.records) {
-      dailyCounts.set(String(rec.get("day")), toNeoInt(rec.get("newCount")));
+      dailyCounts.set(
+        neo4jString(rec, "day"),
+        parseNeo4jInt(neo4jGet(rec, "newCount")),
+      );
     }
 
     // Walk the 7-day window in ascending order, accumulating the running
@@ -158,7 +214,10 @@ export async function countMemoryEvents(
        RETURN count(e) AS total`,
       { userId },
     );
-    const total = toNeoInt(totalResult.records[0]?.get("total") ?? 0);
+    const totalRecord = totalResult.records[0];
+    const total = totalRecord
+      ? parseNeo4jInt(neo4jGet(totalRecord, "total"))
+      : 0;
 
     const breakdownResult = await session.run(
       `MATCH (e:MemoryEvent)-[:EVENT_FOR]->(m:Memory {userId: $userId})
@@ -167,8 +226,8 @@ export async function countMemoryEvents(
       { userId },
     );
     const breakdown = breakdownResult.records.map((r) => ({
-      action: String(r.get("action")),
-      count: toNeoInt(r.get("cnt")),
+      action: neo4jString(r, "action"),
+      count: parseNeo4jInt(neo4jGet(r, "cnt")),
     }));
 
     return { total, breakdown };
@@ -204,50 +263,26 @@ export async function getRecentActivity(
 
     const now = Date.now();
     return result.records.map((record) => {
-      const props = record.get("e").properties;
-      const memoryTitle = String(
-        props.memoryTitle ?? record.get("memoryTitle"),
+      const props = parseNeo4jNodeProps(
+        neo4jGet(record, "e"),
+        activityEventPropsSchema,
       );
-      const action = String(props.action);
-      const actor = String(props.actor ?? "");
-      const createdAt = String(props.createdAt);
-      const diffMs = now - new Date(createdAt).getTime();
-      const diffMins = Math.floor(diffMs / 60000);
-      const diffHours = Math.floor(diffMs / 3600000);
-      const diffDays = Math.floor(diffMs / 86400000);
-
-      let relativeTime: string;
-      if (diffMins < 1) relativeTime = "just now";
-      else if (diffMins < 60) relativeTime = `${diffMins}m ago`;
-      else if (diffHours < 24) relativeTime = `${diffHours}h ago`;
-      else relativeTime = `${diffDays}d ago`;
-
-      // Dream Mode-materialized memories use actor='dream-mode' on the
-      // logEvent call. We promote those into a distinct activity type so
-      // the feed can filter / icon them separately from manual creates.
-      const isDreamMode = actor === "dream-mode";
-
-      const typeMap: Record<string, string> = {
-        created: isDreamMode ? "memory_dream_created" : "memory_created",
-        updated: "memory_updated",
-        deleted: "memory_deleted",
-      };
-
-      const descMap: Record<string, string> = {
-        created: isDreamMode
-          ? `Dream Mode synthesized "${memoryTitle}"`
-          : `Created "${memoryTitle}"`,
-        updated: `Updated "${memoryTitle}"`,
-        deleted: `Deleted "${memoryTitle}"`,
-      };
+      const memoryTitle = neo4jString(record, "memoryTitle");
+      const meta = activityMetaFor(
+        props.action,
+        memoryTitle,
+        props.actor ?? "",
+      );
 
       return {
-        id: String(props.id),
-        type: typeMap[action] ?? action,
+        id: props.id,
+        type: meta.type,
         title: "Memory",
-        description: descMap[action] ?? `${action} "${memoryTitle}"`,
-        timestamp: createdAt,
-        relativeTime,
+        description: meta.description,
+        timestamp: props.createdAt,
+        relativeTime: formatRelativeTime(
+          now - new Date(props.createdAt).getTime(),
+        ),
       };
     });
   });

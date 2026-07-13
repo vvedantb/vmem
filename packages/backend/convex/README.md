@@ -19,4 +19,4 @@ Do not run `npx convex dev` or `npx convex deploy` from agent sessions — use c
 
 ## Docs
 
-Full API reference: `apps/docs/api-reference/` (preview with `pnpm docs:dev` from repo root).
+Public API reference: [vmem.vedantb.com](https://vmem.vedantb.com).

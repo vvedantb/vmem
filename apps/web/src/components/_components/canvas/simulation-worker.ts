@@ -54,9 +54,32 @@ let draggedId: string | null = null;
 // for settings-slider updates without `as` casts.
 let forcesRef: GraphForces<WNode, WEdge> | null = null;
 
+// ------ Worker message protocol (must match simulation.ts postMessage calls) ------
+
+type WorkerInputMessage =
+  | {
+      type: "init";
+      nodes: Array<{ id: string; size: number; x: number; y: number }>;
+      edges: Array<{
+        source: string;
+        target: string;
+        edgeType: WEdgeType;
+        weight: number;
+      }>;
+      scalingRatio: number;
+      gravity: number;
+    }
+  | { type: "reheat" }
+  | { type: "setStrength"; scalingRatio: number }
+  | { type: "setGravity"; gravity: number }
+  | { type: "dragStart"; nodeId: string; x: number; y: number }
+  | { type: "dragMove"; x: number; y: number }
+  | { type: "dragEnd"; nodeId: string }
+  | { type: "stop" };
+
 // ------ Message handler ------
 
-self.onmessage = (e: MessageEvent) => {
+self.onmessage = (e: MessageEvent<WorkerInputMessage>) => {
   const msg = e.data;
 
   switch (msg.type) {
@@ -248,8 +271,10 @@ function postPositions(): void {
   // sub-pixel precision loss is irrelevant for canvas drawing.
   const buffer = new Float32Array(nodes.length * 2);
   for (let i = 0; i < nodes.length; i++) {
-    buffer[i * 2] = nodes[i].x ?? 0;
-    buffer[i * 2 + 1] = nodes[i].y ?? 0;
+    const node = nodes[i];
+    if (!node) continue;
+    buffer[i * 2] = node.x ?? 0;
+    buffer[i * 2 + 1] = node.y ?? 0;
   }
 
   const alpha = sim.alpha();

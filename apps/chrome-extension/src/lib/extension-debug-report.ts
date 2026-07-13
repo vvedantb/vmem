@@ -1,4 +1,9 @@
+import { z } from "zod";
 import { CLERK_PUBLISHABLE_KEY, CLERK_SYNC_HOST } from "@/lib/constants";
+
+const pingResponseSchema = z.object({
+  type: z.string(),
+});
 
 type DebugReport = {
   generatedAt: string;
@@ -51,12 +56,10 @@ export async function buildExtensionDebugReport(): Promise<DebugReport> {
 
   // Narrow the untyped storage value to a flat string/number record.
   let authDebug: Record<string, string | number> | null = null;
-  if (
-    typeof stored.lastAuthDebug === "object" &&
-    stored.lastAuthDebug !== null
-  ) {
+  const rawAuthDebug: unknown = stored.lastAuthDebug;
+  if (typeof rawAuthDebug === "object" && rawAuthDebug !== null) {
     authDebug = {};
-    for (const [k, v] of Object.entries(stored.lastAuthDebug)) {
+    for (const [k, v] of Object.entries(rawAuthDebug)) {
       if (typeof v === "string" || typeof v === "number") authDebug[k] = v;
     }
   }
@@ -65,7 +68,7 @@ export async function buildExtensionDebugReport(): Promise<DebugReport> {
     ok: boolean;
     error: string | null;
   }>((resolve) => {
-    chrome.runtime.sendMessage({ type: "DEBUG_PING" }, (response) => {
+    chrome.runtime.sendMessage({ type: "DEBUG_PING" }, (response: unknown) => {
       const runtimeError = chrome.runtime.lastError;
       if (runtimeError) {
         const message = runtimeError.message;
@@ -75,10 +78,10 @@ export async function buildExtensionDebugReport(): Promise<DebugReport> {
         });
         return;
       }
-      const responseType =
-        typeof response === "object" && response !== null
-          ? Reflect.get(response, "type")
-          : undefined;
+      const parsedResponse = pingResponseSchema.safeParse(response);
+      const responseType = parsedResponse.success
+        ? parsedResponse.data.type
+        : undefined;
       resolve({
         ok: responseType === "DEBUG_PING_RESULT",
         error:

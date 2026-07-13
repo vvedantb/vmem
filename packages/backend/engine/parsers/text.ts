@@ -8,5 +8,5 @@
  */
 
 export async function extractTextFromBlob(blob: Blob): Promise<string> {
-  return await blob.text();
+  return blob.text();
 }

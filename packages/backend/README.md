@@ -28,7 +28,6 @@ Memories are **not** stored in Convex — they live in Neo4j. Convex holds metad
 | `codebases`                               | Connected GitHub repositories              |
 | `connectors` / `connectorTokens`          | External service integrations              |
 | `userSettings`                            | Preferences, about me, active profile      |
-| `chatMessageMemoryRefs`                   | Memory refs persisted under chat messages  |
 | `contextPromptCache`                      | Cached MCP context prompt markdown         |
 | `notifications`                           | In-app notifications                       |
 | `userEnvVars`                             | User-scoped env vars (e.g. OpenRouter key) |
@@ -74,7 +73,7 @@ Set in the Convex dashboard (not `.env`):
 | `CONVEX_SITE_URL` / `WEB_APP_URL` | OAuth redirects                           |
 | `OPENROUTER_API_KEY`              | Embeddings and context prompt generation  |
 
-Neo4j CLI scripts (`db:seed`, `db:unseed`, `eval:retrieval`) use `packages/backend/.env.local`.
+Neo4j CLI scripts (`eval:bench`, `db:tag-stats`) use `packages/backend/.env.local`.
 
 ## Run
 

@@ -1,183 +1,87 @@
+import { z } from "zod";
 import { VMemoryError } from "./errors";
 import type {
-  AgentProposal,
-  MemoryCandidate,
   MemoryWithTags,
   RetrieveResult,
   StoreInstructionResult,
   UpdateInstructionResult,
 } from "./types";
 
-function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
+const memoryWithTagsSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  title: z.string(),
+  content: z.string(),
+  type: z.string(),
+  source: z.string(),
+  confidence: z.number(),
+  status: z.string(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  expiresAt: z.string().nullable(),
+  tags: z.array(z.string()),
+});
 
-function readString(value: unknown, key: string): string | null {
-  if (!isObject(value)) {
-    return null;
-  }
-  const field = Reflect.get(value, key);
-  return typeof field === "string" ? field : null;
-}
+const scoreBreakdownSchema = z.object({
+  fulltext: z.number(),
+  vector: z.number(),
+  chunk: z.number(),
+  entity: z.number(),
+  rrf: z.number(),
+  recency: z.number(),
+  confidence: z.number(),
+  graphPath: z
+    .object({
+      seedTitle: z.string(),
+      bridgingEntity: z.string().nullable(),
+      hops: z.number(),
+    })
+    .optional(),
+  rerankerScore: z.number().optional(),
+});
 
-function readOptionalString(value: unknown, key: string): string | undefined {
-  const field = readString(value, key);
-  return field ?? undefined;
-}
+const memoryCandidateSchema = memoryWithTagsSchema.extend({
+  trace: z.object({
+    score: z.number(),
+    scoreBreakdown: scoreBreakdownSchema,
+    reason: z.string(),
+  }),
+  matchedChunk: z
+    .object({
+      content: z.string(),
+      position: z.number(),
+    })
+    .optional(),
+});
 
-function readNumber(value: unknown, key: string): number | null {
-  if (!isObject(value)) {
-    return null;
-  }
-  const field = Reflect.get(value, key);
-  return typeof field === "number" ? field : null;
-}
+const agentProposalSchema = z.object({
+  id: z.string(),
+  memoryId: z.string(),
+  proposedContent: z.string(),
+  reason: z.string(),
+  kind: z.string(),
+  status: z.string(),
+});
 
-function readStringArray(value: unknown, key: string): string[] | null {
-  if (!isObject(value)) {
-    return null;
-  }
-  const field = Reflect.get(value, key);
-  if (!Array.isArray(field)) {
-    return null;
-  }
-  const tags: string[] = [];
-  for (const item of field) {
-    if (typeof item !== "string") {
-      return null;
-    }
-    tags.push(item);
-  }
-  return tags;
-}
+const storeInstructionResultSchema = z.object({
+  created: z.array(memoryWithTagsSchema),
+  summary: z.string(),
+});
 
-function parseMemoryWithTags(value: unknown): MemoryWithTags | null {
-  const id = readString(value, "id");
-  const userId = readString(value, "userId");
-  const title = readString(value, "title");
-  const content = readString(value, "content");
-  const type = readString(value, "type");
-  const source = readString(value, "source");
-  const confidence = readNumber(value, "confidence");
-  const status = readString(value, "status");
-  const createdAt = readString(value, "createdAt");
-  const updatedAt = readString(value, "updatedAt");
-  const tags = readStringArray(value, "tags");
+const updateInstructionResultSchema = z.object({
+  applied: z.array(memoryWithTagsSchema),
+  proposals: z.array(agentProposalSchema),
+  summary: z.string(),
+});
 
-  if (
-    !id ||
-    !userId ||
-    !title ||
-    !content ||
-    !type ||
-    !source ||
-    confidence === null ||
-    !status ||
-    !createdAt ||
-    !updatedAt ||
-    !tags
-  ) {
-    return null;
-  }
-
-  let expiresAt: string | null = null;
-  if (isObject(value)) {
-    const expiresField = Reflect.get(value, "expiresAt");
-    if (expiresField === null) {
-      expiresAt = null;
-    } else if (typeof expiresField === "string") {
-      expiresAt = expiresField;
-    } else {
-      return null;
-    }
-  }
-
-  return {
-    id,
-    userId,
-    title,
-    content,
-    type,
-    source,
-    confidence,
-    status,
-    createdAt,
-    updatedAt,
-    expiresAt,
-    tags,
-  };
-}
-
-function parseMemoryCandidate(value: unknown): MemoryCandidate | null {
-  const base = parseMemoryWithTags(value);
-  if (!base || !isObject(value)) {
-    return null;
-  }
-
-  const traceValue = Reflect.get(value, "trace");
-  if (!isObject(traceValue)) {
-    return null;
-  }
-
-  const score = readNumber(traceValue, "score");
-  const reason = readString(traceValue, "reason");
-  const scoreBreakdownValue = Reflect.get(traceValue, "scoreBreakdown");
-  if (!isObject(scoreBreakdownValue) || score === null || !reason) {
-    return null;
-  }
-
-  const fulltext = readNumber(scoreBreakdownValue, "fulltext");
-  const vector = readNumber(scoreBreakdownValue, "vector");
-  const chunk = readNumber(scoreBreakdownValue, "chunk");
-  const entity = readNumber(scoreBreakdownValue, "entity");
-  const rrf = readNumber(scoreBreakdownValue, "rrf");
-  const recency = readNumber(scoreBreakdownValue, "recency");
-  const confidence = readNumber(scoreBreakdownValue, "confidence");
-
-  if (
-    fulltext === null ||
-    vector === null ||
-    chunk === null ||
-    entity === null ||
-    rrf === null ||
-    recency === null ||
-    confidence === null
-  ) {
-    return null;
-  }
-
-  return {
-    ...base,
-    trace: {
-      score,
-      reason,
-      scoreBreakdown: {
-        fulltext,
-        vector,
-        chunk,
-        entity,
-        rrf,
-        recency,
-        confidence,
-      },
-    },
-  };
-}
-
-function parseAgentProposal(value: unknown): AgentProposal | null {
-  const id = readString(value, "id");
-  const memoryId = readString(value, "memoryId");
-  const proposedContent = readString(value, "proposedContent");
-  const reason = readString(value, "reason");
-  const kind = readString(value, "kind");
-  const status = readString(value, "status");
-
-  if (!id || !memoryId || !proposedContent || !reason || !kind || !status) {
-    return null;
-  }
-
-  return { id, memoryId, proposedContent, reason, kind, status };
-}
+const retrieveResultSchema = z.object({
+  memories: z.array(memoryCandidateSchema),
+  userContext: z.object({
+    aboutMe: z.string().nullable(),
+    preferences: z.string().nullable(),
+  }),
+  summary: z.string().optional(),
+});
 
 function invalidResponse(): never {
   throw new VMemoryError(
@@ -187,120 +91,30 @@ function invalidResponse(): never {
   );
 }
 
+function parseOrThrow<T>(schema: z.ZodType<T>, value: unknown): T {
+  const parsed = schema.safeParse(value);
+  if (!parsed.success) {
+    invalidResponse();
+  }
+  return parsed.data;
+}
+
 export function parseStoreInstructionResult(
   value: unknown,
 ): StoreInstructionResult {
-  const summary = readString(value, "summary");
-  if (!summary || !isObject(value)) {
-    invalidResponse();
-  }
-
-  const createdField = Reflect.get(value, "created");
-  if (!Array.isArray(createdField)) {
-    invalidResponse();
-  }
-
-  const created: MemoryWithTags[] = [];
-  for (const item of createdField) {
-    const memory = parseMemoryWithTags(item);
-    if (!memory) {
-      invalidResponse();
-    }
-    created.push(memory);
-  }
-
-  return { created, summary };
+  return parseOrThrow(storeInstructionResultSchema, value);
 }
 
 export function parseUpdateInstructionResult(
   value: unknown,
 ): UpdateInstructionResult {
-  const summary = readString(value, "summary");
-  if (!summary || !isObject(value)) {
-    invalidResponse();
-  }
-
-  const appliedField = Reflect.get(value, "applied");
-  const proposalsField = Reflect.get(value, "proposals");
-  if (!Array.isArray(appliedField) || !Array.isArray(proposalsField)) {
-    invalidResponse();
-  }
-
-  const applied: MemoryWithTags[] = [];
-  for (const item of appliedField) {
-    const memory = parseMemoryWithTags(item);
-    if (!memory) {
-      invalidResponse();
-    }
-    applied.push(memory);
-  }
-
-  const proposals: AgentProposal[] = [];
-  for (const item of proposalsField) {
-    const proposal = parseAgentProposal(item);
-    if (!proposal) {
-      invalidResponse();
-    }
-    proposals.push(proposal);
-  }
-
-  return { applied, proposals, summary };
+  return parseOrThrow(updateInstructionResultSchema, value);
 }
 
 export function parseRetrieveResult(value: unknown): RetrieveResult {
-  if (!isObject(value)) {
-    invalidResponse();
-  }
-
-  const memoriesField = Reflect.get(value, "memories");
-  const userContextField = Reflect.get(value, "userContext");
-  if (!Array.isArray(memoriesField) || !isObject(userContextField)) {
-    invalidResponse();
-  }
-
-  const memories: MemoryCandidate[] = [];
-  for (const item of memoriesField) {
-    const memory = parseMemoryCandidate(item);
-    if (!memory) {
-      invalidResponse();
-    }
-    memories.push(memory);
-  }
-
-  const aboutMeField = Reflect.get(userContextField, "aboutMe");
-  const preferencesField = Reflect.get(userContextField, "preferences");
-
-  let aboutMe: string | null = null;
-  if (aboutMeField === null) {
-    aboutMe = null;
-  } else if (typeof aboutMeField === "string") {
-    aboutMe = aboutMeField;
-  } else {
-    invalidResponse();
-  }
-
-  let preferences: string | null = null;
-  if (preferencesField === null) {
-    preferences = null;
-  } else if (typeof preferencesField === "string") {
-    preferences = preferencesField;
-  } else {
-    invalidResponse();
-  }
-
-  const summary = readOptionalString(value, "summary");
-
-  return {
-    memories,
-    userContext: { aboutMe, preferences },
-    ...(summary ? { summary } : {}),
-  };
+  return parseOrThrow(retrieveResultSchema, value);
 }
 
 export function parseMemoryWithTagsResponse(value: unknown): MemoryWithTags {
-  const memory = parseMemoryWithTags(value);
-  if (!memory) {
-    invalidResponse();
-  }
-  return memory;
+  return parseOrThrow(memoryWithTagsSchema, value);
 }

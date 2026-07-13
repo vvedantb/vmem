@@ -1,7 +1,10 @@
+import type { FunctionReturnType } from "convex/server";
+import { z } from "zod";
 import type {
   MemoryCandidate,
   MemoryWithTags,
 } from "../../../engine/neo4j/memory/types";
+import { internal } from "../../_generated/api";
 import type { OpenRouterRequired } from "../../neo4jActions/agent/shared";
 import type { StoreFromInstructionResult } from "../../neo4jActions/agent/storeFromInstruction";
 import type { SummarizeRetrieveResult } from "../../neo4jActions/agent/summarizeRetrieve";
@@ -25,27 +28,26 @@ export type UpdateMemoryActionResult = MemoryWithTags | null;
 
 export type CreateMemoryActionResult = MemoryWithTags;
 
-export interface UserContextResult {
-  aboutMe: string | null;
-  preferences: string | null;
-}
+export type UserContextResult = FunctionReturnType<
+  typeof internal.userSettings.getUserContextInternal
+>;
 
-export interface RetrieveHttpResult {
+export type RetrieveHttpResult = {
   memories: RetrieveMemoriesActionResult;
   userContext: UserContextResult;
   summary?: string;
-}
+};
+
+const openRouterRequiredSchema = z.object({
+  error: z.literal("openrouter_required"),
+});
 
 export function isOpenRouterRequired(
-  value:
-    | StoreFromInstructionActionResult
-    | UpdateFromInstructionActionResult
-    | SummarizeRetrieveActionResult,
+  value: unknown,
 ): value is OpenRouterRequired {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "error" in value &&
-    value.error === "openrouter_required"
-  );
+  return openRouterRequiredSchema.safeParse(value).success;
+}
+
+export function openRouterRequiredResponse(): Response {
+  return Response.json({ error: "openrouter_required" }, { status: 422 });
 }

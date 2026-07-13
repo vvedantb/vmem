@@ -1,6 +1,8 @@
 import { v } from "convex/values";
 import { Crons } from "@convex-dev/crons";
+import type { FunctionArgs, SchedulableFunctionReference } from "convex/server";
 import { components, internal } from "./_generated/api";
+import type { MutationCtx } from "./_generated/server";
 import { authMutation, authQuery } from "./auth";
 import { auditLog, ResourceTypes } from "./auditLog";
 
@@ -53,6 +55,48 @@ function cronspecForTime(hour: number, minute: number): string {
 }
 
 /**
+ * Parse+validate an enable/time pair, throwing the shared user-facing
+ * error on malformed input. Returns null when the schedule should be
+ * disabled (parsed is only non-null when `enabled` is true).
+ */
+function requireParsedSchedule(
+  enabled: boolean,
+  time: string | undefined,
+): { hour: number; minute: number } | null {
+  const parsed = enabled && time !== undefined ? parseHHMM(time) : null;
+  if (enabled && parsed === null) {
+    throw new Error("Pick a valid time (HH:MM)");
+  }
+  return parsed;
+}
+
+/**
+ * Delete-then-register a named daily cron (the cron component has no
+ * upsert primitive). `parsed === null` means "leave it deleted".
+ */
+async function replaceDailyCron<F extends SchedulableFunctionReference>(
+  ctx: MutationCtx,
+  name: string,
+  parsed: { hour: number; minute: number } | null,
+  func: F,
+  args: FunctionArgs<F>,
+): Promise<void> {
+  const existing = await dreamCrons.get(ctx, { name });
+  if (existing) {
+    await dreamCrons.delete(ctx, { name });
+  }
+  if (parsed !== null) {
+    await dreamCrons.register(
+      ctx,
+      { kind: "cron", cronspec: cronspecForTime(parsed.hour, parsed.minute) },
+      func,
+      args,
+      name,
+    );
+  }
+}
+
+/**
  * Set or clear the user's daily Dream Mode schedule. `enabled=false`
  * clears any registered cron and stores `dreamModeScheduleEnabled=false`.
  * `enabled=true` requires a `time` ("HH:MM" UTC) — re-registers the cron
@@ -65,19 +109,8 @@ export const setDreamSchedule = authMutation({
     time: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const parsed =
-      args.enabled && args.time !== undefined ? parseHHMM(args.time) : null;
-    if (args.enabled && parsed === null) {
-      throw new Error("Pick a valid time (HH:MM)");
-    }
-
+    const parsed = requireParsedSchedule(args.enabled, args.time);
     const name = userCronName(ctx.userId);
-
-    // Delete-then-register: cron component has no upsert primitive.
-    const existing = await dreamCrons.get(ctx, { name });
-    if (existing) {
-      await dreamCrons.delete(ctx, { name });
-    }
 
     // Persist on userSettings so the UI shows the saved value on refresh.
     const settings = await ctx.db
@@ -94,15 +127,13 @@ export const setDreamSchedule = authMutation({
       await ctx.db.insert("userSettings", { userId: ctx.userId, ...patch });
     }
 
-    if (args.enabled && parsed !== null) {
-      await dreamCrons.register(
-        ctx,
-        { kind: "cron", cronspec: cronspecForTime(parsed.hour, parsed.minute) },
-        internal.neo4jActions.dreamMode.runDreamForUserById,
-        { userId: ctx.userId },
-        name,
-      );
-    }
+    await replaceDailyCron(
+      ctx,
+      name,
+      parsed,
+      internal.neo4jActions.dreamMode.runDreamForUserById,
+      { userId: ctx.userId },
+    );
 
     await auditLog.log(ctx, {
       action: "user.dream_mode_schedule_updated",
@@ -153,17 +184,8 @@ export const setDreamScheduleForTeamProfile = authMutation({
       throw new Error("Only team owners can configure Dream Mode");
     }
 
-    const parsed =
-      args.enabled && args.time !== undefined ? parseHHMM(args.time) : null;
-    if (args.enabled && parsed === null) {
-      throw new Error("Pick a valid time (HH:MM)");
-    }
-
+    const parsed = requireParsedSchedule(args.enabled, args.time);
     const name = teamProfileCronName(args.profileId);
-    const existing = await dreamCrons.get(ctx, { name });
-    if (existing) {
-      await dreamCrons.delete(ctx, { name });
-    }
 
     await ctx.db.patch(args.profileId, {
       dreamModeScheduleEnabled: args.enabled,
@@ -171,15 +193,13 @@ export const setDreamScheduleForTeamProfile = authMutation({
       updatedAt: Date.now(),
     });
 
-    if (args.enabled && parsed !== null) {
-      await dreamCrons.register(
-        ctx,
-        { kind: "cron", cronspec: cronspecForTime(parsed.hour, parsed.minute) },
-        internal.neo4jActions.dreamMode.runDreamForProfileById,
-        { profileId: args.profileId },
-        name,
-      );
-    }
+    await replaceDailyCron(
+      ctx,
+      name,
+      parsed,
+      internal.neo4jActions.dreamMode.runDreamForProfileById,
+      { profileId: args.profileId },
+    );
 
     await auditLog.log(ctx, {
       action: "profile.dream_mode_schedule_updated",

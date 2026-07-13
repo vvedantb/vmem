@@ -2,14 +2,13 @@
 
 import { cn } from "@vmem/ui";
 import { motion } from "motion/react";
-import { createContext, use, useId, useState, type ReactNode } from "react";
+import { createContext, use, useState, type ReactNode } from "react";
 import { sidebarSharedLayoutTransition } from "./sidebar-nav-row";
 
 type SharedLayoutContextValue = {
+  layoutId: string;
   hoverId: string | null;
   setHoverId: (id: string | null) => void;
-  pinnedId: string | null;
-  layoutGroupId: string;
 };
 
 const SharedLayoutContext = createContext<SharedLayoutContextValue | null>(
@@ -27,25 +26,16 @@ function useSharedLayoutBackground(): SharedLayoutContextValue {
 }
 
 type RootProps = {
+  layoutId: string;
   children: ReactNode;
-  /** Resting highlight when the pointer is outside the group (e.g. active route). */
-  pinnedId?: string | null;
   className?: string;
 };
 
-function Root({ children, pinnedId = null, className }: RootProps) {
+function Root({ layoutId, children, className }: RootProps) {
   const [hoverId, setHoverId] = useState<string | null>(null);
-  const layoutGroupId = useId();
 
   return (
-    <SharedLayoutContext
-      value={{
-        hoverId,
-        setHoverId,
-        pinnedId,
-        layoutGroupId,
-      }}
-    >
+    <SharedLayoutContext value={{ layoutId, hoverId, setHoverId }}>
       <div
         className={cn("flex w-full flex-col", className)}
         onMouseLeave={() => setHoverId(null)}
@@ -58,24 +48,23 @@ function Root({ children, pinnedId = null, className }: RootProps) {
 
 type ItemProps = {
   id: string;
+  isActive: boolean;
   className?: string;
   children: ReactNode;
 };
 
-function Item({ id, className, children }: ItemProps) {
-  const { hoverId, setHoverId, pinnedId, layoutGroupId } =
-    useSharedLayoutBackground();
-  const backgroundId = hoverId ?? pinnedId;
-  const isBackgroundTarget = backgroundId === id;
+function Item({ id, isActive, className, children }: ItemProps) {
+  const { layoutId, hoverId, setHoverId } = useSharedLayoutBackground();
+  const highlighted = hoverId !== null ? hoverId === id : isActive;
 
   return (
     <div
       className={cn("relative", className)}
       onMouseEnter={() => setHoverId(id)}
     >
-      {isBackgroundTarget ? (
+      {highlighted ? (
         <motion.div
-          layoutId={layoutGroupId}
+          layoutId={layoutId}
           transition={sidebarSharedLayoutTransition}
           className="pointer-events-none absolute inset-0 rounded-lg bg-surface-tertiary"
         />
@@ -85,7 +74,7 @@ function Item({ id, className, children }: ItemProps) {
   );
 }
 
-/** Shared hover/active pill that springs between sidebar rows (dimi.me/lab pattern). */
+/** Shared hover/active pill that springs between sidebar rows (Eva SharedLayoutNav). */
 export const SharedLayoutBackground = {
   Root,
   Item,

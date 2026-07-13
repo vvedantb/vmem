@@ -10,11 +10,11 @@
 import type { ChatResult as SdkChatResult } from "@openrouter/sdk/models";
 import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
-import { createOpenRouterClient, readOpenRouterError } from "./client";
+import { createOpenRouterClient } from "./client";
 import {
   COMPLETION_PREVIEW_BYTES,
   PROMPT_PREVIEW_BYTES,
-  classifyHttpStatus,
+  classifyOpenRouterFailure,
   numberOrUndef,
   previewsEnabled,
   scheduleLog,
@@ -97,9 +97,9 @@ export async function callOpenRouterChat(
     ok = true;
     content = extractChatContent(json);
     generationId = json.id;
-    const first = json.choices[0];
+    const finishReasonRaw = json.choices.at(0)?.finishReason;
     finishReason =
-      typeof first?.finishReason === "string" ? first.finishReason : undefined;
+      typeof finishReasonRaw === "string" ? finishReasonRaw : undefined;
 
     const usage = json.usage;
     promptTokens = numberOrUndef(usage?.promptTokens);
@@ -123,11 +123,7 @@ export async function callOpenRouterChat(
     }
   } catch (e) {
     ok = false;
-    const err = readOpenRouterError(e);
-    status = err.status;
-    errorMessage = err.message;
-    errorClass =
-      status > 0 ? (classifyHttpStatus(status) ?? "network") : "network";
+    ({ status, errorMessage, errorClass } = classifyOpenRouterFailure(e));
   }
 
   const latencyMs = Math.round(performance.now() - start);
@@ -170,6 +166,6 @@ function joinMessagesForPreview(messages: ChatMessage[]): string {
 }
 
 function extractChatContent(json: SdkChatResult): string | null {
-  const messageContent = json.choices[0]?.message?.content;
+  const messageContent = json.choices.at(0)?.message?.content;
   return typeof messageContent === "string" ? messageContent : null;
 }

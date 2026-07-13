@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { HttpClient } from "./http-client";
 import { VMemoryError } from "./errors";
 import {
@@ -18,22 +19,24 @@ import type {
   VMemoryRequestOptions,
 } from "./types";
 
+const nodeProcessSchema = z.object({
+  env: z.record(z.unknown()),
+});
+
+const globalWithProcessSchema = z.object({
+  process: nodeProcessSchema.optional(),
+});
+
+const nonEmptyStringSchema = z.string().min(1);
+
 function readEnv(name: string): string | undefined {
-  const globalProcess = globalThis.process;
-  if (
-    typeof globalProcess === "object" &&
-    globalProcess !== null &&
-    "env" in globalProcess
-  ) {
-    const env = Reflect.get(globalProcess, "env");
-    if (typeof env === "object" && env !== null) {
-      const value = Reflect.get(env, name);
-      if (typeof value === "string" && value.length > 0) {
-        return value;
-      }
-    }
+  const parsed = globalWithProcessSchema.safeParse(globalThis);
+  if (!parsed.success) {
+    return undefined;
   }
-  return undefined;
+  const value = parsed.data.process?.env[name];
+  const valueParsed = nonEmptyStringSchema.safeParse(value);
+  return valueParsed.success ? valueParsed.data : undefined;
 }
 
 function resolveRequiredOption(
@@ -152,17 +155,3 @@ export class VMemory {
 }
 
 export { VMemoryError, isVMemoryError } from "./errors";
-export type {
-  AgentProposal,
-  MemoryCandidate,
-  MemoryWithTags,
-  RetrieveResult,
-  StoreInstructionResult,
-  StructuredCreateMemoryInput,
-  StructuredPatchMemoryInput,
-  StructuredRetrieveInput,
-  UpdateInstructionResult,
-  UserContext,
-  VMemoryOptions,
-  VMemoryRequestOptions,
-} from "./types";

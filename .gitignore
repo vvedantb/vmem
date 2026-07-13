@@ -17,9 +17,12 @@ build
 
 # Local project context (not shared)
 FYP-PROJECT-CONTEXT.md
-CLAUDE.md
-AGENTS.md
 CODEBASE.md
+AGENTS.md
+CLAUDE.md
+DESIRES.md
+LEARNINGS.md
+MISTAKES.md
 skills-lock.json
 skills-lock.json.bak
 
@@ -30,9 +33,13 @@ internal/
 docs/superpowers/
 scripts/
 
-# Presentation deck — local/dissertation only
-# apps/web/src/routes/slides.tsx
-# apps/web/src/routes/_components/slides/
-# apps/web/public/slides/
+# Presentation deck — tracked only on feat/presentation-slides (PR #105).
+# Ignored on mainline so /slides stays out of staging/prod until that PR merges.
+apps/web/src/routes/slides.tsx
+apps/web/src/routes/_components/slides/
+apps/web/public/slides/
 # Chrome extension build + live-verification scripts — local only
 apps/chrome-extension/scripts/
+
+# Oxlint report — local only
+oxlint-report.json

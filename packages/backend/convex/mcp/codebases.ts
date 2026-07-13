@@ -1,18 +1,11 @@
 "use node";
 
 import { v } from "convex/values";
-import { internalAction } from "../_generated/server";
+import { internalAction, type ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
-import type { ActionCtx } from "../_generated/server";
 
 type CodebaseStatus = Doc<"codebases">["status"];
-
-/** MCP/JSON may deliver floats (e.g. 25.0); normalize before Neo4j hops. */
-function normalizeOptionalInt(value: number | undefined): number | undefined {
-  if (value === undefined) return undefined;
-  return Math.trunc(value);
-}
 
 interface McpCodebaseSummary {
   id: string;
@@ -121,6 +114,12 @@ interface SearchResult {
   }>;
 }
 
+/** MCP/JSON may deliver floats (e.g. 25.0); normalize before Neo4j hops. */
+function normalizeOptionalInt(value: number | undefined): number | undefined {
+  if (value === undefined) return undefined;
+  return Math.trunc(value);
+}
+
 const symbolKindValidator = v.union(
   v.literal("code-file"),
   v.literal("code-function"),
@@ -217,7 +216,7 @@ export const mcpGetCodebaseOverview = internalAction({
       args.clerkId,
       args.codebaseId,
     );
-    return await ctx.runAction(
+    return ctx.runAction(
       internal.neo4jActions.codebases.getOverviewStatsInternal,
       { clerkId: args.clerkId, codebaseId: ownedId },
     );
@@ -239,7 +238,7 @@ export const mcpSearchCodebaseSymbols = internalAction({
       args.clerkId,
       args.codebaseId,
     );
-    return await ctx.runAction(
+    return ctx.runAction(
       internal.neo4jActions.codebases.searchSymbolsInternal,
       {
         clerkId: args.clerkId,
@@ -265,7 +264,7 @@ export const mcpGetCodebaseSymbolContext = internalAction({
       args.clerkId,
       args.codebaseId,
     );
-    return await ctx.runAction(
+    return ctx.runAction(
       internal.neo4jActions.codebases.getSymbolContextInternal,
       {
         clerkId: args.clerkId,
@@ -291,16 +290,13 @@ export const mcpGetCodebaseImpact = internalAction({
       args.clerkId,
       args.codebaseId,
     );
-    return await ctx.runAction(
-      internal.neo4jActions.codebases.getImpactInternal,
-      {
-        clerkId: args.clerkId,
-        codebaseId: ownedId,
-        symbolId: args.symbolId,
-        direction: args.direction,
-        depth: normalizeOptionalInt(args.depth),
-      },
-    );
+    return ctx.runAction(internal.neo4jActions.codebases.getImpactInternal, {
+      clerkId: args.clerkId,
+      codebaseId: ownedId,
+      symbolId: args.symbolId,
+      direction: args.direction,
+      depth: normalizeOptionalInt(args.depth),
+    });
   },
 });
 
@@ -321,17 +317,14 @@ export const mcpGetCodebaseGraph = internalAction({
       args.clerkId,
       args.codebaseId,
     );
-    return await ctx.runAction(
-      internal.neo4jActions.codebases.getGraphInternal,
-      {
-        clerkId: args.clerkId,
-        codebaseId: ownedId,
-        kinds: args.kinds,
-        processId: args.processId,
-        blastRadiusOf: args.blastRadiusOf,
-        blastDirection: args.blastDirection,
-        blastDepth: normalizeOptionalInt(args.blastDepth),
-      },
-    );
+    return ctx.runAction(internal.neo4jActions.codebases.getGraphInternal, {
+      clerkId: args.clerkId,
+      codebaseId: ownedId,
+      kinds: args.kinds,
+      processId: args.processId,
+      blastRadiusOf: args.blastRadiusOf,
+      blastDirection: args.blastDirection,
+      blastDepth: normalizeOptionalInt(args.blastDepth),
+    });
   },
 });

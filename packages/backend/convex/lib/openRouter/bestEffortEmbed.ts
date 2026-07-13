@@ -7,7 +7,7 @@
 import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
 import { tryUserAndApiKeyByClerkId } from "../envVars";
-import { generateEmbedding, generateEmbeddings } from "./embedding";
+import { generateEmbeddings } from "./embedding";
 import type { OpenRouterFeature } from "./shared";
 
 export interface BestEffortEmbedAuth {
@@ -33,28 +33,58 @@ export async function resolveBestEffortEmbedAuth(
 export async function bestEffortEmbedOne(
   params: BestEffortEmbedParams & { text: string },
 ): Promise<number[] | null> {
-  const auth = await resolveBestEffortEmbedAuth(params.ctx, params.clerkId);
-  return bestEffortEmbedOneWithAuth({ ...params, auth });
+  const [embedding] = await bestEffortEmbedMany({
+    ...params,
+    texts: [params.text],
+  });
+  return embedding ?? null;
 }
 
 export async function bestEffortEmbedMany(
   params: BestEffortEmbedParams & { texts: string[] },
 ): Promise<(number[] | null)[]> {
+  const auth = await resolveBestEffortEmbedAuth(params.ctx, params.clerkId);
+  return bestEffortEmbedManyWithAuth({ ...params, auth });
+}
+
+/** Run `fn`, degrading to `fallback` (with a warning) on any failure. */
+async function degradeOnFailure<T, F>(
+  fn: () => Promise<T>,
+  fallback: F,
+  failureLog: string,
+): Promise<T | F> {
   try {
-    const auth = await resolveBestEffortEmbedAuth(params.ctx, params.clerkId);
-    if (!auth) return params.texts.map(() => null);
-    return await generateEmbeddings({
-      ctx: params.ctx,
-      apiKey: auth.apiKey,
-      userId: auth.userId,
-      profileId: params.profileId,
-      feature: params.feature,
-      texts: params.texts,
-    });
+    return await fn();
   } catch (e) {
-    console.warn(params.failureLog, e);
-    return params.texts.map(() => null);
+    console.warn(failureLog, e);
+    return fallback;
   }
+}
+
+export async function bestEffortEmbedManyWithAuth(params: {
+  ctx: ActionCtx;
+  auth: BestEffortEmbedAuth | null;
+  profileId?: string;
+  feature: OpenRouterFeature;
+  texts: string[];
+  failureLog: string;
+}): Promise<(number[] | null)[]> {
+  if (!params.auth) return params.texts.map(() => null);
+  const auth = params.auth;
+
+  return degradeOnFailure(
+    () =>
+      generateEmbeddings({
+        ctx: params.ctx,
+        apiKey: auth.apiKey,
+        userId: auth.userId,
+        profileId: params.profileId,
+        feature: params.feature,
+        texts: params.texts,
+      }),
+    params.texts.map(() => null),
+    params.failureLog,
+  );
 }
 
 export async function bestEffortEmbedOneWithAuth(params: {
@@ -65,18 +95,13 @@ export async function bestEffortEmbedOneWithAuth(params: {
   text: string;
   failureLog: string;
 }): Promise<number[] | null> {
-  if (!params.auth) return null;
-  try {
-    return await generateEmbedding({
-      ctx: params.ctx,
-      apiKey: params.auth.apiKey,
-      userId: params.auth.userId,
-      profileId: params.profileId,
-      feature: params.feature,
-      text: params.text,
-    });
-  } catch (e) {
-    console.warn(params.failureLog, e);
-    return null;
-  }
+  const [embedding] = await bestEffortEmbedManyWithAuth({
+    ctx: params.ctx,
+    auth: params.auth,
+    profileId: params.profileId,
+    feature: params.feature,
+    texts: [params.text],
+    failureLog: params.failureLog,
+  });
+  return embedding ?? null;
 }

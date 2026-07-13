@@ -1,7 +1,26 @@
 import { internalMutation, query } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
+import { z } from "zod";
 import { auditLog, ResourceTypes } from "./auditLog";
+
+const memoryEventMetadataSchema = z.object({
+  payload: z.string().optional(),
+});
+
+const memoryEventEntrySchema = z.object({
+  _id: z.string(),
+  action: z.string(),
+  resourceId: z.string(),
+  metadata: z.unknown().optional(),
+});
+
+function payloadFromMetadata(metadata: unknown): string {
+  if (typeof metadata !== "object" || metadata === null) return "{}";
+  const parsed = memoryEventMetadataSchema.safeParse(metadata);
+  if (!parsed.success) return "{}";
+  return parsed.data.payload ?? "{}";
+}
 
 const eventTypeValidator = v.union(
   v.literal("memory_created"),
@@ -71,12 +90,7 @@ export const pushEventInternal = internalMutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    await recordMemoryEvent(ctx, {
-      clerkId: args.clerkId,
-      eventType: args.eventType,
-      memoryId: args.memoryId,
-      payload: args.payload,
-    });
+    await recordMemoryEvent(ctx, args);
     return null;
   },
 });
@@ -86,9 +100,9 @@ export const pushEventInternal = internalMutation({
  * raw audit-log entries for memory/relationship actions — the web hook owns
  * the reverse map (action → `MemoryEventType`) and reshaping.
  *
- * The audit-log client types entries as `any`; we narrow each field with
- * `typeof` checks before returning, and rely on the Convex runtime
- * `returns:` validator as a second gate.
+ * The audit-log client returns untyped entries — we parse each row with
+ * zod before returning, and rely on the Convex runtime `returns:`
+ * validator as a second gate.
  */
 export const getRecentEvents = query({
   args: {
@@ -109,12 +123,13 @@ export const getRecentEvents = query({
     const clerkId = identity.subject;
     if (!clerkId) return [];
 
-    const entries = await auditLog.queryByActor(ctx, {
+    const rawEntries: unknown = await auditLog.queryByActor(ctx, {
       actorId: clerkId,
       fromTimestamp: args.since,
       actions: Object.values(ACTION_FOR_EVENT),
       limit: 200,
     });
+    if (!Array.isArray(rawEntries)) return [];
 
     const result: {
       _id: string;
@@ -123,26 +138,17 @@ export const getRecentEvents = query({
       payload: string;
     }[] = [];
 
-    for (const entry of entries) {
-      if (!entry || typeof entry !== "object") continue;
-      const entryId = typeof entry._id === "string" ? entry._id : null;
-      if (!entryId) continue;
-      const action = typeof entry.action === "string" ? entry.action : null;
-      if (!action) continue;
-      const resourceId =
-        typeof entry.resourceId === "string" ? entry.resourceId : null;
-      if (!resourceId) continue;
+    for (const rawEntry of rawEntries) {
+      const parsed = memoryEventEntrySchema.safeParse(rawEntry);
+      if (!parsed.success) continue;
 
-      const payload =
-        typeof entry.metadata?.payload === "string"
-          ? entry.metadata.payload
-          : "{}";
+      const { _id, action, resourceId, metadata } = parsed.data;
 
       result.push({
-        _id: entryId,
+        _id,
         action,
         resourceId,
-        payload,
+        payload: payloadFromMetadata(metadata),
       });
     }
 

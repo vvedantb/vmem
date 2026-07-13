@@ -3,17 +3,88 @@
 import { useCallback, useEffect, useReducer } from "react";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { Button, Card, CardContent } from "@vmem/ui";
+import {
+  Button,
+  Card,
+  CardContent,
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@vmem/ui";
 import {
   IconPlugConnected,
   IconPlugConnectedX,
   IconPlayerPlay,
   IconLoader2,
 } from "@tabler/icons-react";
+import { z } from "zod";
 import PageContainer from "@/components/PageContainer";
 import { env } from "@/env";
 
 const MCP_BASE = env.VITE_CONVEX_URL.replace(".convex.cloud", ".convex.site");
+
+const oauthMetaSchema = z.object({
+  registration_endpoint: z.string(),
+  authorization_endpoint: z.string(),
+  token_endpoint: z.string(),
+});
+
+const oauthRegistrationSchema = z.object({
+  client_id: z.string(),
+});
+
+const oauthCallbackMessageSchema = z.object({
+  type: z.literal("mcp-oauth-callback"),
+  state: z.string(),
+  code: z.string(),
+});
+
+const oauthTokenErrorSchema = z.object({
+  error_description: z.string().optional(),
+});
+
+const oauthTokenResponseSchema = z.object({
+  access_token: z.string(),
+});
+
+const unknownArraySchema = z.array(z.unknown());
+
+interface JsonSchemaProperty {
+  type?: string;
+  description?: string;
+}
+
+const unknownRecordSchema = z.record(z.string(), z.unknown());
+
+function recordFromUnknown(value: unknown): Record<string, unknown> {
+  const parsed = unknownRecordSchema.safeParse(value);
+  return parsed.success ? parsed.data : {};
+}
+
+function schemaProperties(
+  schema: Record<string, unknown>,
+): Record<string, JsonSchemaProperty> {
+  const raw = recordFromUnknown(schema.properties);
+  const properties: Record<string, JsonSchemaProperty> = {};
+  for (const [key, value] of Object.entries(raw)) {
+    const entry = recordFromUnknown(value);
+    properties[key] = {
+      type: typeof entry.type === "string" ? entry.type : undefined,
+      description:
+        typeof entry.description === "string" ? entry.description : undefined,
+    };
+  }
+  return properties;
+}
+
+function schemaRequired(schema: Record<string, unknown>): string[] {
+  const required = schema.required;
+  if (!Array.isArray(required)) return [];
+  return required.filter((item): item is string => typeof item === "string");
+}
 
 interface ToolInfo {
   name: string;
@@ -115,7 +186,11 @@ export default function PlaygroundClient() {
       const metaRes = await fetch(
         `${MCP_BASE}/.well-known/oauth-authorization-server`,
       );
-      const meta = await metaRes.json();
+      const metaParsed = oauthMetaSchema.safeParse(await metaRes.json());
+      if (!metaParsed.success) {
+        throw new Error("Invalid OAuth server metadata");
+      }
+      const meta = metaParsed.data;
 
       const codeVerifier = generateCodeVerifier();
       const codeChallenge = await generateCodeChallenge(codeVerifier);
@@ -133,8 +208,13 @@ export default function PlaygroundClient() {
           token_endpoint_auth_method: "none",
         }),
       });
-      const regData = await regRes.json();
-      const clientId = regData.client_id as string;
+      const regDataParsed = oauthRegistrationSchema.safeParse(
+        await regRes.json(),
+      );
+      if (!regDataParsed.success) {
+        throw new Error("OAuth client registration failed");
+      }
+      const clientId = regDataParsed.data.client_id;
 
       const redirectUri = `${window.location.origin}/settings/playground/callback`;
       const authUrl = new URL(meta.authorization_endpoint);
@@ -168,10 +248,11 @@ export default function PlaygroundClient() {
 
         function onMessage(event: MessageEvent) {
           if (event.origin !== window.location.origin) return;
-          if (event.data?.type !== "mcp-oauth-callback") return;
-          if (event.data.state !== oauthState) return;
+          const parsed = oauthCallbackMessageSchema.safeParse(event.data);
+          if (!parsed.success) return;
+          if (parsed.data.state !== oauthState) return;
           cleanup();
-          resolve(event.data.code as string);
+          resolve(parsed.data.code);
         }
 
         function cleanup() {
@@ -200,12 +281,23 @@ export default function PlaygroundClient() {
       });
 
       if (!tokenRes.ok) {
-        const err = await tokenRes.json();
-        throw new Error(err.error_description ?? "Token exchange failed");
+        const errParsed = oauthTokenErrorSchema.safeParse(
+          await tokenRes.json(),
+        );
+        throw new Error(
+          errParsed.success
+            ? (errParsed.data.error_description ?? "Token exchange failed")
+            : "Token exchange failed",
+        );
       }
 
-      const tokenData = await tokenRes.json();
-      const accessToken = tokenData.access_token as string;
+      const tokenDataParsed = oauthTokenResponseSchema.safeParse(
+        await tokenRes.json(),
+      );
+      if (!tokenDataParsed.success) {
+        throw new Error("Invalid token response");
+      }
+      const accessToken = tokenDataParsed.data.access_token;
 
       const transport = new StreamableHTTPClientTransport(
         new URL("/mcp", MCP_BASE),
@@ -224,7 +316,7 @@ export default function PlaygroundClient() {
       const tools: ToolInfo[] = toolsResult.tools.map((t) => ({
         name: t.name,
         description: t.description ?? "",
-        inputSchema: (t.inputSchema ?? {}) as Record<string, unknown>,
+        inputSchema: recordFromUnknown(t.inputSchema),
       }));
 
       dispatch({ type: "SET_TOOLS", tools });
@@ -237,7 +329,7 @@ export default function PlaygroundClient() {
   }, []);
 
   const handleDisconnect = useCallback(() => {
-    storedClient?.close();
+    void storedClient?.close();
     storedClient = null;
     dispatch({ type: "RESET" });
   }, []);
@@ -250,10 +342,7 @@ export default function PlaygroundClient() {
 
     try {
       const tool = state.tools.find((t) => t.name === state.selectedTool);
-      const properties = (tool?.inputSchema?.properties ?? {}) as Record<
-        string,
-        { type?: string }
-      >;
+      const properties = schemaProperties(tool?.inputSchema ?? {});
 
       const args: Record<string, unknown> = {};
       for (const [key, value] of Object.entries(state.paramValues)) {
@@ -264,7 +353,11 @@ export default function PlaygroundClient() {
           args[key] = Number(value);
         } else if (propDef?.type === "array") {
           try {
-            args[key] = JSON.parse(value);
+            const parsed: unknown = JSON.parse(value);
+            const arrayParsed = unknownArraySchema.safeParse(parsed);
+            args[key] = arrayParsed.success
+              ? arrayParsed.data
+              : value.split(",").map((s) => s.trim());
           } catch {
             args[key] = value.split(",").map((s) => s.trim());
           }
@@ -291,7 +384,7 @@ export default function PlaygroundClient() {
 
   useEffect(() => {
     return () => {
-      storedClient?.close();
+      void storedClient?.close();
       storedClient = null;
     };
   }, []);
@@ -299,10 +392,8 @@ export default function PlaygroundClient() {
   const selectedToolInfo = state.tools.find(
     (t) => t.name === state.selectedTool,
   );
-  const paramProperties = (selectedToolInfo?.inputSchema?.properties ??
-    {}) as Record<string, { type?: string; description?: string }>;
-  const requiredParams = (selectedToolInfo?.inputSchema?.required ??
-    []) as string[];
+  const paramProperties = schemaProperties(selectedToolInfo?.inputSchema ?? {});
+  const requiredParams = schemaRequired(selectedToolInfo?.inputSchema ?? {});
 
   return (
     <PageContainer
@@ -359,20 +450,23 @@ export default function PlaygroundClient() {
                 <label className="text-sm font-medium text-foreground block mb-1.5">
                   Tool
                 </label>
-                <select
-                  value={state.selectedTool}
-                  onChange={(e) =>
-                    dispatch({ type: "SELECT_TOOL", name: e.target.value })
+                <Select
+                  value={state.selectedTool || undefined}
+                  onValueChange={(name) =>
+                    dispatch({ type: "SELECT_TOOL", name })
                   }
-                  className="w-full rounded-field border border-border bg-field-background px-3 py-2 text-sm text-foreground placeholder:text-field-placeholder"
                 >
-                  <option value="">Select a tool...</option>
-                  {state.tools.map((tool) => (
-                    <option key={tool.name} value={tool.name}>
-                      {tool.name}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a tool..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {state.tools.map((tool) => (
+                      <SelectItem key={tool.name} value={tool.name}>
+                        {tool.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {selectedToolInfo && (
@@ -395,7 +489,7 @@ export default function PlaygroundClient() {
                         </p>
                       )}
                       {prop.type === "array" ? (
-                        <input
+                        <Input
                           type="text"
                           value={state.paramValues[key] ?? ""}
                           onChange={(e) =>
@@ -406,10 +500,9 @@ export default function PlaygroundClient() {
                             })
                           }
                           placeholder='["tag1", "tag2"] or tag1, tag2'
-                          className="w-full rounded-field border border-border bg-field-background px-3 py-2 text-sm text-foreground placeholder:text-field-placeholder"
                         />
                       ) : (
-                        <input
+                        <Input
                           type={prop.type === "number" ? "number" : "text"}
                           value={state.paramValues[key] ?? ""}
                           onChange={(e) =>
@@ -419,7 +512,6 @@ export default function PlaygroundClient() {
                               value: e.target.value,
                             })
                           }
-                          className="w-full rounded-field border border-border bg-field-background px-3 py-2 text-sm text-foreground placeholder:text-field-placeholder"
                         />
                       )}
                     </div>

@@ -10,7 +10,7 @@ import {
 } from "@tabler/icons-react";
 import { motion } from "motion/react";
 import { Card, CardContent } from "@vmem/ui";
-import { api } from "@vmem/backend";
+import type { api } from "@vmem/backend";
 import { AnimatedCounter } from "../svg-animations";
 import { Sparkline } from "./Sparkline";
 

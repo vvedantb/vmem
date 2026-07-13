@@ -2,7 +2,6 @@ import {
   IconKey,
   IconPlugConnected,
   IconStack2,
-  IconPlug,
   IconUserCircle,
   IconAdjustments,
   IconTerminal2,
@@ -30,24 +29,18 @@ import type { NavGroup, NavHref, SettingsNavGroup } from "./types";
  */
 export const navGroups: NavGroup[] = [
   {
-    title: "Workspace",
+    title: "Library",
     icon: IconStack2,
     items: [
       { href: "/$profileId/memories", label: "Memories", icon: IconMemories },
-    ],
-  },
-  {
-    title: "Data",
-    icon: IconPlug,
-    items: [
+      { href: "/$profileId/wiki", label: "Wiki", icon: IconWiki },
+      { href: "/$profileId/skills", label: "Skills", icon: IconSkills },
       { href: "/$profileId/files", label: "Files", icon: IconFiles },
       {
         href: "/$profileId/codebases",
         label: "Codebases",
         icon: IconCodebases,
       },
-      { href: "/$profileId/skills", label: "Skills", icon: IconSkills },
-      { href: "/$profileId/wiki", label: "Wiki", icon: IconWiki },
     ],
   },
   {
