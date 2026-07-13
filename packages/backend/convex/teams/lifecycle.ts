@@ -10,17 +10,17 @@
  */
 
 import type { Id } from "../_generated/dataModel";
-import type { ActionCtx, MutationCtx, QueryCtx } from "../_generated/server";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { auditLog, ResourceTypes } from "../auditLog";
 import {
+  type AuthActionCtx,
+  type AuthMutationCtx,
   getMembershipOrNull,
   getTeamMemberClerkIds,
+  getTeamProfileOrNull,
   requireTeamRole,
 } from "./auth";
-
-type AuthMutationCtx = MutationCtx & { userId: Id<"users"> };
-type AuthActionCtx = ActionCtx & { userId: Id<"users"> };
 
 const TEAM_PROFILE_COLOR = "#8B5CF6"; // violet — visually distinct from personal default
 const TEAM_PROFILE_ICON = "briefcase";
@@ -85,10 +85,7 @@ export async function runUpdateTeam(
   const now = Date.now();
   await ctx.db.patch(teamId, { name, updatedAt: now });
 
-  const profile = await ctx.db
-    .query("profiles")
-    .withIndex("by_team", (q) => q.eq("teamId", teamId))
-    .first();
+  const profile = await getTeamProfileOrNull(ctx, teamId);
   if (profile) {
     await ctx.db.patch(profile._id, { name, updatedAt: now });
   }
@@ -120,12 +117,12 @@ export async function runDeleteTeam(
   ctx: AuthActionCtx,
   args: { teamId: string },
 ): Promise<{ deleted: true }> {
-  const teamProfileId: Id<"profiles"> = await ctx.runMutation(
+  const teamProfileId = await ctx.runMutation(
     internal.teams.prepareDeleteTeamInternal,
     { teamId: args.teamId, userId: ctx.userId },
   );
 
-  const memberClerkIds: string[] = await ctx.runQuery(
+  const memberClerkIds = await ctx.runQuery(
     internal.teams.getTeamMemberClerkIdsInternal,
     { teamId: args.teamId },
   );
@@ -154,10 +151,7 @@ export async function runPrepareDeleteTeamInternal(
   if (!membership || membership.role !== "owner") {
     throw new Error("Owner role required");
   }
-  const profile = await ctx.db
-    .query("profiles")
-    .withIndex("by_team", (q) => q.eq("teamId", teamId))
-    .first();
+  const profile = await getTeamProfileOrNull(ctx, teamId);
   if (!profile) throw new Error("Team profile missing");
   return profile._id;
 }
@@ -187,13 +181,10 @@ export async function runFinalizeDeleteTeamInternal(
     severity: "warning",
   });
 
-  for (const m of members) {
-    await ctx.db.delete(m._id);
+  for (const member of members) {
+    await ctx.db.delete(member._id);
   }
-  const profile = await ctx.db
-    .query("profiles")
-    .withIndex("by_team", (q) => q.eq("teamId", teamId))
-    .first();
+  const profile = await getTeamProfileOrNull(ctx, teamId);
   if (profile) {
     await ctx.db.delete(profile._id);
   }

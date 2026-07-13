@@ -12,9 +12,11 @@
 import type { Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { auditLog, ResourceTypes } from "../auditLog";
-import { getMembershipOrNull, requireTeamRole } from "./auth";
-
-type AuthMutationCtx = MutationCtx & { userId: Id<"users"> };
+import {
+  type AuthMutationCtx,
+  getMembershipOrNull,
+  requireTeamRole,
+} from "./auth";
 
 async function countTeamOwners(
   ctx: MutationCtx,
@@ -52,12 +54,11 @@ export async function runAddMember(
     throw new Error("User is already a member of this team");
   }
 
-  const now = Date.now();
   await ctx.db.insert("teamMembers", {
     teamId,
     userId: user._id,
     role: "member",
-    joinedAt: now,
+    joinedAt: Date.now(),
   });
 
   await auditLog.log(ctx, {
