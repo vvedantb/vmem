@@ -10,7 +10,7 @@ import neo4j, {
   type Record as NeoRecord,
 } from "neo4j-driver";
 import { neo4jGet, parseNeo4jInt } from "../record";
-import { withSession } from "./shared";
+import { visibleStatusClause, withSession } from "./shared";
 
 export { createSemanticEdgesForMemory } from "./relationships";
 
@@ -345,7 +345,7 @@ export async function listMissingEntities(
 > {
   return listMissingCommonFields(
     driver,
-    "m.entityExtractedAt IS NULL AND coalesce(m.status, 'active') IN ['active', 'pinned']",
+    `m.entityExtractedAt IS NULL AND ${visibleStatusClause("m")}`,
     limit,
   );
 }
@@ -389,7 +389,7 @@ export async function listUnretagged(
     const result = await session.run(
       `MATCH (m:Memory {userId: $userId})
        WHERE m.retaggedAt IS NULL
-         AND coalesce(m.status, 'active') IN ['active', 'pinned']
+         AND ${visibleStatusClause("m")}
        OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
        WITH m, collect(t.name) AS tags
        ORDER BY m.createdAt ASC
@@ -418,7 +418,7 @@ export async function countUnretagged(
   return countMemories(
     driver,
     { userId },
-    "m.retaggedAt IS NULL AND coalesce(m.status, 'active') IN ['active', 'pinned']",
+    `m.retaggedAt IS NULL AND ${visibleStatusClause("m")}`,
     "n",
   );
 }

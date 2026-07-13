@@ -14,7 +14,7 @@ import { z } from "zod";
 import { clampNeo4jLimit } from "../intParams";
 import { neo4jGet, parseNeo4jInt } from "../record";
 import { toMemoryTypeOrUndefined, toTagEdge } from "./mappers";
-import { profileFilter, withSession } from "./shared";
+import { profileFilter, visibleStatusClause, withSession } from "./shared";
 import type { MemoryType, TagEdge } from "./types";
 
 // Each row schema coerces raw Neo4j driver values directly into the typed
@@ -206,14 +206,14 @@ async function fetchGraphNodesAndEdges(
     ? ""
     : `CALL () {
          MATCH (m:Memory {userId: $userId})
-         WHERE coalesce(m.status, 'active') IN ['active', 'pinned'] ${pf.clause}
+         WHERE ${visibleStatusClause("m")} ${pf.clause}
          RETURN count(m) AS totalMemoryCount
        }`;
 
   const result = await session.run(
     `CALL () {
        MATCH (m:Memory {userId: $userId})
-       WHERE coalesce(m.status, 'active') IN ['active', 'pinned'] ${pf.clause}
+       WHERE ${visibleStatusClause("m")} ${pf.clause}
        ${cursorClause}
        WITH m ORDER BY m.createdAt DESC, m.id DESC LIMIT $nodeLimit
        OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
@@ -323,7 +323,7 @@ async function fetchTagSharedEdges(
   const pf = profileFilter(profileId, "m");
   const result = await session.run(
     `MATCH (m:Memory {userId: $userId})-[:TAGGED_WITH]->(t:Tag)
-     WHERE coalesce(m.status, 'active') IN ['active', 'pinned'] ${pf.clause}
+     WHERE ${visibleStatusClause("m")} ${pf.clause}
      WITH t, collect(m) AS memsForTag, count(*) AS userTagCount
      WHERE userTagCount >= 2 AND userTagCount <= 500
      UNWIND memsForTag AS m1
@@ -434,9 +434,9 @@ export async function getLocalGraph(
   const focusMatch =
     focusId !== null
       ? `MATCH (focus:Memory {id: $focusId, userId: $userId})
-         WHERE coalesce(focus.status, 'active') IN ['active', 'pinned'] ${pfFocus.clause}`
+         WHERE ${visibleStatusClause("focus")} ${pfFocus.clause}`
       : `MATCH (focus:Memory {userId: $userId})
-         WHERE coalesce(focus.status, 'active') IN ['active', 'pinned'] ${pfFocus.clause}
+         WHERE ${visibleStatusClause("focus")} ${pfFocus.clause}
          WITH focus ORDER BY focus.createdAt DESC LIMIT 1`;
 
   try {
@@ -446,9 +446,9 @@ export async function getLocalGraph(
     const nodesResult = await nodesSession.run(
       `${focusMatch}
        OPTIONAL MATCH (focus)
-         ((a:Memory WHERE coalesce(a.status, 'active') IN ['active', 'pinned'])
+         ((a:Memory WHERE ${visibleStatusClause("a")})
           -[:RELATES_TO]-
-          (b:Memory WHERE coalesce(b.status, 'active') IN ['active', 'pinned']
+          (b:Memory WHERE ${visibleStatusClause("b")}
              AND b.userId = $userId
              ${pfB.clause})
          ){1,${hops}}
