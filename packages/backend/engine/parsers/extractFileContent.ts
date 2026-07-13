@@ -6,8 +6,7 @@ export async function extractFileContent(
   kind: "pdf" | "text",
 ): Promise<string> {
   if (kind === "pdf") {
-    const arrayBuffer = await blob.arrayBuffer();
-    return extractPdfText(Buffer.from(arrayBuffer));
+    return extractPdfText(Buffer.from(await blob.arrayBuffer()));
   }
   return extractTextFromBlob(blob);
 }
