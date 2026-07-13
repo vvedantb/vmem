@@ -1,14 +1,6 @@
 /**
- * Thin orchestrator over the Phase 1 codebase parser pipeline. Composed
- * by the `"use node"` Convex action — the real work lives in:
- *
- *   src/neo4j/codebase/parse.ts          ts-morph AST walk
- *   src/neo4j/codebase/resolveCalls.ts   type-checker call resolution
- *   src/neo4j/codebase/entryPoints.ts    Convex/TanStack/heuristic detection
- *   src/neo4j/codebase/processes.ts      BFS process construction
- *   src/neo4j/codebase/write.ts          bulk Neo4j write
- *   src/neo4j/codebase/read.ts           graph/symbol/search read helpers
- *   src/neo4j/codebase/impact.ts         blast-radius traversal
+ * Orchestrates the codebase parser pipeline for the `"use node"` Convex action.
+ * Work lives in `./codebase/{parse,resolveCalls,entryPoints,processes,write,read,impact}.ts`.
  */
 
 import type { Driver } from "neo4j-driver";

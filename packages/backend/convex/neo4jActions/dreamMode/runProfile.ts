@@ -19,7 +19,7 @@ import {
   parsePortraitResponse,
   type ParsedPortrait,
 } from "../../../engine/neo4j/portraitPrompt";
-import { scheduleContextPromptInvalidation } from "../_memories/shared";
+import { scheduleContextPromptInvalidationByClerkId } from "../../lib/contextPromptInvalidate";
 import {
   createSynthesisProposal,
   hasOverlappingPendingProposal,
@@ -539,7 +539,7 @@ export const runDreamForProfileInternal = internalAction({
               sourceMemoryIds: portrait.sourceMemoryIds,
             });
             // The MCP context prompt embeds the portrait — refresh it.
-            await scheduleContextPromptInvalidation(ctx, args.clerkId);
+            await scheduleContextPromptInvalidationByClerkId(ctx, args.clerkId);
           }
         }
       }

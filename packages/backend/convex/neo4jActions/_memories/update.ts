@@ -13,11 +13,11 @@ import type { MemoryWithTags } from "../../../engine/neo4j/memory/types";
 import { getDriver } from "../../../engine/neo4j/driver";
 import {
   scheduleChunkSyncForContent,
-  scheduleContextPromptInvalidation,
   toMemoryStatus,
   toMemoryType,
 } from "./shared";
 import { scheduleDreamTriggerCheck } from "../../lib/dreamTriggerInvalidate";
+import { scheduleContextPromptInvalidationByClerkId } from "../../lib/contextPromptInvalidate";
 
 export interface UpdateMemoryArgs {
   clerkId: string;
@@ -69,7 +69,7 @@ export async function runUpdateMemory(
     });
   }
 
-  await scheduleContextPromptInvalidation(ctx, args.clerkId);
+  await scheduleContextPromptInvalidationByClerkId(ctx, args.clerkId);
 
   // Dynamic Dreaming: an edited memory is new context too. Dream-mode
   // memories are exempt (dream output must not re-trigger dreaming).

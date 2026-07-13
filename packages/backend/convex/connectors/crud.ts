@@ -5,9 +5,11 @@ import {
   internalQuery,
   type MutationCtx,
 } from "../_generated/server";
-import { authMutation, authQuery } from "../auth";
+import { authAction, authMutation, authQuery, requireClerkId } from "../auth";
+import { internal } from "../_generated/api";
 import { auditLog, ResourceTypes } from "../auditLog";
-import { STALE_SYNCING_MS } from "../codebaseSyncConstants";
+import { STALE_SYNCING_MS } from "@vmem/shared";
+import { sourceTypesForProvider } from "../../engine/neo4j/memory/connectorSourceTypes";
 
 type ConnectorProvider = NonNullable<Doc<"connectors">["provider"]>;
 
@@ -317,5 +319,54 @@ export const migrateAddProviders = internalMutation({
         await ctx.db.patch(connector._id, { provider });
       }
     }
+  },
+});
+
+/** Permanently deletes memories imported from a connector. Does not revoke OAuth. */
+export const deleteConnectorData = authAction({
+  args: { connectorId: v.id("connectors") },
+  returns: v.number(),
+  handler: async (ctx, args): Promise<number> => {
+    const connector = await ctx.runQuery(
+      internal.connectors.crud.getByIdInternal,
+      {
+        id: args.connectorId,
+      },
+    );
+    if (!connector || connector.userId !== ctx.userId) {
+      throw new Error("Connector not found");
+    }
+    if (!connector.provider) {
+      throw new Error("Connector does not support data deletion");
+    }
+
+    const sourceTypes = sourceTypesForProvider(connector.provider);
+    if (!sourceTypes?.length) {
+      throw new Error("Connector does not support data deletion");
+    }
+
+    const deleted = await ctx.runAction(
+      internal.neo4jActions.connectorData.deleteBySourceTypesInternal,
+      { clerkId: await requireClerkId(ctx), sourceTypes: [...sourceTypes] },
+    );
+
+    await ctx.runMutation(internal.connectors.crud.resetSyncStatsInternal, {
+      id: args.connectorId,
+    });
+
+    await auditLog.log(ctx, {
+      action: "connector.data_deleted",
+      actorId: ctx.userId,
+      resourceType: ResourceTypes.CONNECTOR,
+      resourceId: args.connectorId,
+      metadata: {
+        name: connector.name,
+        provider: connector.provider,
+        deletedCount: deleted,
+      },
+      severity: "warning",
+    });
+
+    return deleted;
   },
 });

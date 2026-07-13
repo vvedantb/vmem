@@ -2,11 +2,7 @@
 
 import { internalAction } from "../_generated/server";
 import { v } from "convex/values";
-import {
-  countMemoryEvents,
-  getRecentActivity,
-  getStats,
-} from "../../engine/neo4j/memory/stats";
+import { getRecentActivity, getStats } from "../../engine/neo4j/memory/stats";
 import { getDriver } from "../../engine/neo4j/driver";
 
 export const getStatsInternal = internalAction({
@@ -53,16 +49,5 @@ export const getRecentActivityInternal = internalAction({
       args.profileId ?? null,
       args.limit ?? 10,
     );
-  },
-});
-
-/** Diagnostic: count MemoryEvent nodes for a user. Run from Convex dashboard. */
-export const debugCountEvents = internalAction({
-  args: { clerkId: v.string() },
-  handler: async (_ctx, args) => {
-    const driver = getDriver();
-    const { total, breakdown } = await countMemoryEvents(driver, args.clerkId);
-    console.log(`[debugCountEvents] total=${total}`, breakdown);
-    return { total, breakdown };
   },
 });

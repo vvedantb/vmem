@@ -33,7 +33,7 @@ export default function DeleteConnectorDataDialog({
   connectorId,
   connectorName,
 }: DeleteConnectorDataDialogProps) {
-  const deleteData = useAction(api.connectors.data.deleteConnectorData);
+  const deleteData = useAction(api.connectors.crud.deleteConnectorData);
   const [confirmText, setConfirmText] = useState("");
   const [submitting, setSubmitting] = useState(false);
 

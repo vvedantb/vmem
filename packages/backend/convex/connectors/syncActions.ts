@@ -3,7 +3,7 @@
 import { v } from "convex/values";
 import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
-import { STALE_SYNCING_MS } from "../codebaseSyncConstants";
+import { STALE_SYNCING_MS } from "@vmem/shared";
 import { resolveConnectorAccessToken } from "../lib/connectorAccessToken";
 import { runConnectorProviderSync } from "../lib/runConnectorProviderSync";
 

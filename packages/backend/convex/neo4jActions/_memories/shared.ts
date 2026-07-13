@@ -1,11 +1,8 @@
 "use node";
 
 /**
- * Shared mechanics for memory CRUD actions.
- *
- * - Type validators (`toMemoryType`, `toMemoryStatus`) for the
- *   string-typed `type`/`status` action args.
- * - Re-exports for context-prompt invalidation and best-effort embeddings.
+ * Shared mechanics for memory CRUD actions: type/status validators,
+ * profile resolution, embed adapters, and chunk sync scheduling.
  */
 
 import type { ActionCtx } from "../../_generated/server";
@@ -16,13 +13,15 @@ import {
   bestEffortEmbedOne,
   type BestEffortEmbedParams,
 } from "../../lib/openRouter/bestEffortEmbed";
-import { scheduleContextPromptInvalidationByClerkId } from "../../lib/contextPromptInvalidate";
 import { shouldChunk } from "../../../engine/neo4j/chunking";
 import { deleteChunksForMemory } from "../../../engine/neo4j/memory/chunks";
+import type {
+  MemoryStatus,
+  MemoryType,
+} from "../../../engine/neo4j/memory/types";
 import type { McpScope } from "../../profiles/mcpAccess";
 
-export type MemoryType = "profile" | "episodic" | "knowledge";
-export type MemoryStatus = "active" | "pinned" | "suppressed" | "expired";
+export type { MemoryType, MemoryStatus };
 
 function isMemoryType(s: string): s is MemoryType {
   return s === "profile" || s === "episodic" || s === "knowledge";
@@ -84,9 +83,6 @@ export async function resolveProfileIdForMcpScope(
     profileId: explicitProfileId,
   });
 }
-
-export const scheduleContextPromptInvalidation =
-  scheduleContextPromptInvalidationByClerkId;
 
 type EmbedArgs = Omit<BestEffortEmbedParams, "ctx">;
 

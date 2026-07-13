@@ -199,41 +199,6 @@ export async function getStats(
   });
 }
 
-/**
- * Diagnostic: count MemoryEvent nodes for a user, plus a per-action
- * breakdown. Backs the `debugCountEvents` dashboard action — kept in the
- * read service so no action opens a raw driver session of its own.
- */
-export async function countMemoryEvents(
-  driver: Driver,
-  userId: string,
-): Promise<{ total: number; breakdown: { action: string; count: number }[] }> {
-  return withSession(driver, async (session) => {
-    const totalResult = await session.run(
-      `MATCH (e:MemoryEvent)-[:EVENT_FOR]->(m:Memory {userId: $userId})
-       RETURN count(e) AS total`,
-      { userId },
-    );
-    const totalRecord = totalResult.records[0];
-    const total = totalRecord
-      ? parseNeo4jInt(neo4jGet(totalRecord, "total"))
-      : 0;
-
-    const breakdownResult = await session.run(
-      `MATCH (e:MemoryEvent)-[:EVENT_FOR]->(m:Memory {userId: $userId})
-       RETURN e.action AS action, count(*) AS cnt
-       ORDER BY cnt DESC`,
-      { userId },
-    );
-    const breakdown = breakdownResult.records.map((r) => ({
-      action: neo4jString(r, "action"),
-      count: parseNeo4jInt(neo4jGet(r, "cnt")),
-    }));
-
-    return { total, breakdown };
-  });
-}
-
 export async function getRecentActivity(
   driver: Driver,
   userId: string,

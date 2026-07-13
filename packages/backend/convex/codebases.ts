@@ -3,13 +3,15 @@ import { internalMutation, internalQuery } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import { authAction, authMutation, authQuery, requireClerkId } from "./auth";
-import { DAILY_SYNC_STALE_MS } from "./codebaseSyncConstants";
 import { isCodebaseSyncStalled } from "@vmem/shared";
 import type { Doc, Id } from "./_generated/dataModel";
 import { decryptToken } from "./lib/crypto";
 import { createGithubOctokit } from "../engine/github/octokit";
 import { retrier } from "./retrier";
 import { z } from "zod";
+
+/** Re-sync codebases that have not synced in the last 24 hours. */
+const DAILY_SYNC_STALE_MS = 24 * 60 * 60 * 1000;
 
 // --- GitHub API response shape for repos ---
 

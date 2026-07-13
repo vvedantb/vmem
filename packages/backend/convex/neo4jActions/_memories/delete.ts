@@ -12,7 +12,7 @@ import {
   deleteMemory,
 } from "../../../engine/neo4j/memory/crud";
 import { getDriver } from "../../../engine/neo4j/driver";
-import { scheduleContextPromptInvalidation } from "./shared";
+import { scheduleContextPromptInvalidationByClerkId } from "../../lib/contextPromptInvalidate";
 
 export async function runDeleteMemory(
   ctx: ActionCtx,
@@ -28,7 +28,7 @@ export async function runDeleteMemory(
       memoryId: args.memoryId,
       payload: JSON.stringify({}),
     });
-    await scheduleContextPromptInvalidation(ctx, args.clerkId);
+    await scheduleContextPromptInvalidationByClerkId(ctx, args.clerkId);
   }
 
   return deleted;
@@ -48,7 +48,7 @@ export async function runDeleteAllMemories(
   const driver = getDriver();
   const deleted = await deleteAllMemoriesForUser(driver, args.clerkId);
   if (deleted > 0) {
-    await scheduleContextPromptInvalidation(ctx, args.clerkId);
+    await scheduleContextPromptInvalidationByClerkId(ctx, args.clerkId);
   }
   return deleted;
 }

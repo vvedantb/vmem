@@ -250,7 +250,7 @@ interface ProposalLookup {
   userId: string;
 }
 
-interface ResolveResult {
+export interface ResolveResult {
   status: string;
   memoryId: string;
   kind: ProposedUpdateKind;

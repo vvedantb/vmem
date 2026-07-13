@@ -32,13 +32,10 @@ const EMBEDDING_BATCH_SIZE = 20;
 
 /** Resolved auth pair carried through a sync — `null` if the user has no
  *  OPENROUTER_API_KEY configured. */
-export type SyncAuth = BestEffortEmbedAuth;
-
-/** Output of `setupSync` — everything every connector handler needs upfront. */
 export interface SyncSetup {
   driver: Driver;
   profileId: Id<"profiles">;
-  openRouterAuth: SyncAuth | null;
+  openRouterAuth: BestEffortEmbedAuth | null;
 }
 
 /**
@@ -69,7 +66,7 @@ function embedTextForSyncedDoc(title: string, content: string): string {
  */
 async function embedSyncedDocChunk(
   ctx: ActionCtx,
-  auth: SyncAuth | null,
+  auth: BestEffortEmbedAuth | null,
   profileId: string,
   texts: string[],
 ): Promise<(number[] | null)[]> {
