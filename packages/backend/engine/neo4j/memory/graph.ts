@@ -1,14 +1,3 @@
-/**
- * Graph-canvas read paths. `getGraphData` powers the global graph view;
- * `getLocalGraph` powers the focused/expand-around-a-node view; and
- * `getMemoryContent` is the on-demand body fetch used when the graph
- * tooltip or detail panel needs the full text (the graph payload itself
- * deliberately omits `content` to keep wire size manageable at 2k nodes).
- *
- * Both top-level reads parallelise across **separate sessions** — Neo4j
- * driver doesn't allow concurrent `.run()` on the same session, so the
- * Promise.all over per-leg sessions is the parallelism contract.
- */
 import type { Driver, Record as NeoRecord, Session } from "neo4j-driver";
 import { z } from "zod";
 import { clampNeo4jLimit } from "../intParams";
@@ -17,9 +6,6 @@ import { toMemoryTypeOrUndefined, toTagEdge } from "./mappers";
 import { profileFilter, visibleStatusClause, withSession } from "./shared";
 import type { MemoryType, TagEdge } from "./types";
 
-// Each row schema coerces raw Neo4j driver values directly into the typed
-// shape callers need — `safeParse` yields the final object, no hand-rolled
-// String()/coercion pass afterward.
 const graphNodeRowSchema = z.object({
   id: z.unknown().transform(String),
   title: z.unknown().transform(String),
@@ -68,22 +54,16 @@ function parseGraphNodeRow(n: unknown): GraphNode | null {
   return parsed.success ? parsed.data : null;
 }
 
-/** Shared RELATES_TO edge parse — used by both the global and local graph. */
 function parseRelatesToEdgeRow(raw: unknown): RelatesToEdge | null {
   const parsed = relatesToEdgeRowSchema.safeParse(raw);
   return parsed.success ? parsed.data : null;
 }
 
-/** Shared MENTIONS-entity parse — used by both the global and local graph. */
 function parseEntityRow(raw: unknown): GraphData["entities"][number] | null {
   const parsed = entityRowSchema.safeParse(raw);
   return parsed.success ? parsed.data : null;
 }
 
-/** Projects the given fields off a Neo4j record into a plain object keyed by
- *  column name — the `getLocalGraph` queries return scalar columns rather
- *  than pre-shaped maps, so each row needs re-assembling before it can be
- *  handed to the shared `parse*Row` schemas above. */
 function rowFromRecord(
   r: NeoRecord,
   keys: readonly string[],
@@ -95,21 +75,9 @@ function rowFromRecord(
   return out;
 }
 
-/**
- * Hard ceiling for one global-graph page; matches MAX_NODES in capGraph.
- * Convex enforces an 8192-element cap on any array crossing a function
- * boundary, so a page can never exceed that — 5000 leaves headroom.
- */
 export const GLOBAL_GRAPH_MAX_NODES = 5000;
-/** Default first page for the progressive global graph. */
 export const GLOBAL_GRAPH_DEFAULT_LIMIT = 500;
 
-/**
- * Keyset cursor for paging the global graph (newest-first). `createdAt` is
- * the primary key with `id` as tiebreaker — bulk imports can write many
- * memories with identical timestamps, and OFFSET-based paging would either
- * skip or duplicate rows there (and re-scan the whole prefix every page).
- */
 export interface GraphCursor {
   createdAt: string;
   id: string;
@@ -142,38 +110,11 @@ export interface GraphData {
     type: string;
     memoryIds: string[];
   }>;
-  /**
-   * The memory the local graph is centred on. Set by getLocalGraph (which
-   * resolves it server-side when no explicit focus is given — newest memory
-   * wins); absent on the global graph.
-   */
   focusNodeId?: string;
-  /**
-   * Total active/pinned memories the user has (after profile filter). Set by
-   * the global graph's FIRST page so the UI can show an honest "Showing X of
-   * Y" instead of silently truncating at the node limit.
-   */
   totalMemoryCount?: number;
-  /**
-   * Keyset cursor for the next global-graph page; absent when this page
-   * exhausted the data. Pass back via `cursor` to fetch the next page.
-   */
   nextCursor?: GraphCursor;
 }
 
-/**
- * Fetches one page of the newest active/pinned nodes (keyset-paged via
- * `cursor`), their RELATES_TO edges, MENTIONS entities, and — on the first
- * page only — the user's total memory count, in a single round-trip. The
- * composite index memory_user_status_created lets the planner satisfy both
- * the WHERE and the ORDER BY with one index seek (no Sort op).
- *
- * RELATES_TO edges are fetched with *either* endpoint in this page (two
- * directed legs, merged + deduped in TS): with keyset paging an edge can
- * span two pages, and a both-endpoints filter would silently drop every
- * cross-page link. Edges whose far endpoint isn't loaded yet simply stay
- * unresolved on the client until that page arrives.
- */
 async function fetchGraphNodesAndEdges(
   session: Session,
   userId: string,
@@ -188,7 +129,6 @@ async function fetchGraphNodesAndEdges(
   nextCursor: GraphCursor | undefined;
 }> {
   const pf = profileFilter(profileId, "m");
-  // Plain number for the page-fullness check below; Neo4j integer for Cypher.
   const limit = Math.max(
     1,
     Math.min(
@@ -200,8 +140,6 @@ async function fetchGraphNodesAndEdges(
     ? `AND (m.createdAt < $cursorCreatedAt
          OR (m.createdAt = $cursorCreatedAt AND m.id < $cursorId))`
     : "";
-  // The total-count leg scans the user's whole memory set — only worth paying
-  // on the first page; later pages reuse the first page's number client-side.
   const countLeg = cursor
     ? ""
     : `CALL () {
@@ -274,8 +212,6 @@ async function fetchGraphNodesAndEdges(
     .map(parseGraphNodeRow)
     .filter((n): n is GraphNode => n !== null);
 
-  // Merge the two directed legs; an edge with both endpoints in this page
-  // appears in both, so dedupe by pair.
   const relatesToEdges: RelatesToEdge[] = [];
   const seenPairs = new Set<string>();
   for (const raw of [rawOutEdges, rawInEdges]) {
@@ -300,7 +236,6 @@ async function fetchGraphNodesAndEdges(
     return parsed ? [parsed] : [];
   });
 
-  // A full page means there may be more — hand back the keyset for the next.
   const last = nodes.length === limit ? nodes[nodes.length - 1] : undefined;
   const nextCursor = last
     ? { createdAt: last.createdAt, id: last.id }
@@ -309,12 +244,6 @@ async function fetchGraphNodesAndEdges(
   return { nodes, relatesToEdges, entities, totalMemoryCount, nextCursor };
 }
 
-/**
- * Tag-shared edges. Seed MATCH gathers each tag's memory list once, applies
- * the [2, 500] cardinality gate, then unwinds the per-tag list against
- * itself to generate pairs. Caps the cartesian at 500×500 per tag, and
- * applies profile/status filtering once in the seed (not per-pair).
- */
 async function fetchTagSharedEdges(
   session: Session,
   userId: string,
@@ -348,15 +277,6 @@ export async function getGraphData(
   nodeLimit: number = GLOBAL_GRAPH_MAX_NODES,
   cursor: GraphCursor | null = null,
 ): Promise<GraphData> {
-  // Two parallel sessions — driver doesn't allow concurrent .run() on the
-  // same session. The first leg returns nodes + RELATES_TO + entities in
-  // one round-trip; the second leg computes tag-shared edges independently.
-  // `content` is intentionally NOT returned: the graph canvas only renders
-  // it inline in the tooltip/detail panel, both of which fetch on demand
-  // via getMemoryContent. Dropping it cuts payload roughly in half at 2k.
-  //
-  // Tag-shared edges are computed across the user's whole graph (not paged),
-  // so only the first page pays for them — follow-up pages skip the leg.
   const nodesEdgesSession = driver.session();
   const tagEdgesSession = cursor === null ? driver.session() : null;
   try {
@@ -381,12 +301,6 @@ export async function getGraphData(
   }
 }
 
-/**
- * Fetches the body text of a single memory on-demand. The graph payload
- * deliberately omits `content`; this is what hover-tooltip and the detail
- * side panel call. Scoped by userId so a user can never read another
- * user's memory content.
- */
 export async function getMemoryContent(
   driver: Driver,
   userId: string,
@@ -412,25 +326,16 @@ export async function getLocalGraph(
   profileId?: string | null,
   depth: number = 2,
 ): Promise<GraphData> {
-  // Mirrors getGraphData: content is NOT part of the graph payload. The
-  // frontend fetches it on demand via getMemoryContent when the user hovers
-  // or opens the detail panel.
   const nodesSession = driver.session();
   let nodeIds: string[];
   let nodes: GraphNode[];
   let resolvedFocusId: string | undefined;
 
   const pfFocus = profileFilter(profileId, "focus");
-  // QPP inline filter on the traversal node. Keeps the suppressed/wrong-
-  // user nodes from expanding at all, rather than expanding and discarding.
   const pfB = profileFilter(profileId, "b");
 
-  // QPP quantifiers must be literals (Cypher rejects parameters there), so
-  // the hop count is interpolated after clamping to a safe range.
   const hops = Math.min(3, Math.max(1, Math.trunc(depth)));
 
-  // No explicit focus → centre on the newest active memory. This powers the
-  // default graph entry (local neighbourhood instead of the full graph).
   const focusMatch =
     focusId !== null
       ? `MATCH (focus:Memory {id: $focusId, userId: $userId})
@@ -440,9 +345,6 @@ export async function getLocalGraph(
          WITH focus ORDER BY focus.createdAt DESC LIMIT 1`;
 
   try {
-    // Quantified Path Pattern replaces the old [:RELATES_TO*1..2] form.
-    // QPP filters each hop inline, so the planner stops expansion early at
-    // suppressed or wrong-user nodes instead of traversing then discarding.
     const nodesResult = await nodesSession.run(
       `${focusMatch}
        OPTIONAL MATCH (focus)
@@ -504,8 +406,6 @@ export async function getLocalGraph(
     };
   }
 
-  // Edges scoped to the local neighbourhood: RELATES_TO, tag-shared, and
-  // entity data are computed in Cypher in parallel across separate sessions.
   const relatesToSession = driver.session();
   const tagEdgesSession = driver.session();
   const entitySession = driver.session();
@@ -518,9 +418,6 @@ export async function getLocalGraph(
         { nodeIds },
       ),
       tagEdgesSession.run(
-        // No popular-tag pre-filter needed — the node set is already bounded
-        // by the focus neighbourhood (LIMIT 500 upstream), so the pair
-        // cartesian is always small.
         `MATCH (m1:Memory)-[:TAGGED_WITH]->(t:Tag)<-[:TAGGED_WITH]-(m2:Memory)
          WHERE m1.id IN $nodeIds AND m2.id IN $nodeIds AND m1.id < m2.id
          WITH m1, m2, collect(DISTINCT t.name) AS sharedTagsAll

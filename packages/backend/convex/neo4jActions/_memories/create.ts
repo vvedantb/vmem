@@ -1,9 +1,5 @@
 "use node";
 
-/**
- * Memory create handler — Convex-local orchestration over Neo4j CRUD + post-create schedules.
- */
-
 import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import type { Driver } from "neo4j-driver";
@@ -231,8 +227,6 @@ async function schedulePostCreate(
 
   await scheduleContextPromptInvalidationByClerkId(ctx, params.clerkId);
 
-  // Dynamic Dreaming: count this write toward the trigger. Dream output
-  // must never re-trigger dreaming (run loop).
   if (params.source !== "dream-mode") {
     await scheduleDreamTriggerCheck(ctx, params.clerkId);
   }

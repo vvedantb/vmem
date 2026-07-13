@@ -1,16 +1,6 @@
-/**
- * Read-side helpers for the codebase graph. Each function is a single
- * parameterised Cypher query — no string interpolation of user input,
- * scope every query by `(userId, codebaseId)`.
- *
- * `getGraphOverview` returns the lightweight payload the canvas needs
- * (nodes + edges in a flat shape). `getProcessMembers` zooms into one
- * process. `getSymbolContext` powers the right-side detail panel.
- * `searchSymbols` powers the search box.
- */
-
 import type { Driver } from "neo4j-driver";
 import { clampNeo4jLimit } from "../intParams";
+import type { ConfidenceTier } from "./types";
 import {
   parseOverviewEdge,
   parseOverviewNodeRecord,
@@ -52,7 +42,7 @@ export interface OverviewEdge {
     | "starts_process"
     | "includes";
   confidence?: number;
-  tier?: "EXTRACTED" | "INFERRED" | "AMBIGUOUS";
+  tier?: ConfidenceTier;
 }
 
 export interface OverviewStats {
@@ -85,19 +75,8 @@ interface FilteredArgs extends ReadArgs {
 const CALLS_TIER = "coalesce(r.tier, 'INFERRED')";
 const CALLS_CONF = "coalesce(r.confidence, 1.0)";
 
-/**
- * Convex hard-caps any single array in an action return at 8192 entries,
- * so the graph payload has to fit. Big monorepos easily blow past that
- * with CALLS edges alone. We cap both nodes and edges and surface a
- * `truncated` flag so the canvas can tell the user to narrow down.
- */
 const MAX_GRAPH_ARRAY = 8192;
 
-/**
- * Cap nodes, dropping the most numerous kind (`code-function`) first.
- * Files / classes / interfaces / processes are structural and far less
- * likely to overflow on their own — keeping them anchors the graph.
- */
 function capNodes(
   nodes: OverviewNode[],
   cap: number,
@@ -154,7 +133,6 @@ export async function getOverviewStats(args: ReadArgs): Promise<OverviewStats> {
   }
 }
 
-/** Map Neo4j label sets to our kind enum. Each node has exactly one of these labels. */
 function pickKind(labels: string[]): OverviewNode["kind"] | null {
   if (labels.includes("CodeFile")) return "code-file";
   if (labels.includes("Function")) return "code-function";
@@ -164,11 +142,6 @@ function pickKind(labels: string[]): OverviewNode["kind"] | null {
   return null;
 }
 
-/**
- * The core graph-overview query. Returns a flat list of nodes and edges
- * scoped to the codebase, optionally filtered. The frontend handles
- * positional layout — we just return the topology.
- */
 export async function getGraphOverview(args: FilteredArgs): Promise<{
   nodes: OverviewNode[];
   edges: OverviewEdge[];
@@ -251,15 +224,7 @@ export async function getGraphOverview(args: FilteredArgs): Promise<{
     const nodeIds = new Set(nodes.map((n) => n.id));
     const edges: OverviewEdge[] = [];
 
-    // Edges. We fetch each type separately because Cypher doesn't have a
-    // clean "any of these types" form, and the type names are part of
-    // the schema not user input — so the static queries are safe.
-    //
-    // Order matters because we cap at MAX_GRAPH_ARRAY: structural edges
-    // (contains / has_method / extends / implements / starts_process /
-    // includes) are bounded and informative, so they go first. Imports
-    // can grow with file count. CALLS is the explosive one (≈ O(fns²) in
-    // the worst case) so it goes last and gets truncated first.
+    // Structural edges first; CALLS last so truncation drops call noise first.
     type EdgeQuery = {
       type: OverviewEdge["type"];
       cypher: string;
@@ -397,11 +362,6 @@ export interface SearchSymbolsResult {
   filePath: string;
 }
 
-/**
- * Symbol search via the `code_symbol_search` fulltext index. Falls back
- * to substring-on-name if the fulltext call returns nothing — covers
- * partial-prefix searches the user might expect to "just work".
- */
 export async function searchSymbols(
   args: ReadArgs & {
     query: string;

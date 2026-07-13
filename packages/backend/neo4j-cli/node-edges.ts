@@ -48,7 +48,6 @@ async function main() {
       );
       console.log(`MENTIONS entities: ${String(c.get("entityCount"))}`);
 
-      // For each tag: how many OTHER memories share it → tag-edge fan-out
       const fanout = await session.run(
         `MATCH (m:Memory {id: $id})-[:TAGGED_WITH]->(t:Tag)
          MATCH (t)<-[:TAGGED_WITH]-(o:Memory {userId: $userId})
@@ -64,7 +63,6 @@ async function main() {
         );
       }
 
-      // Distribution of RELATES_TO across the whole account for context
       const dist = await session.run(
         `MATCH (mm:Memory {userId: $userId})
          OPTIONAL MATCH (mm)-[:RELATES_TO]-(o:Memory)

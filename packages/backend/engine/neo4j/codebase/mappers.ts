@@ -1,7 +1,3 @@
-/**
- * Neo4j record → typed codebase read shapes.
- */
-
 import type { Record as NeoRecord } from "neo4j-driver";
 import type { z } from "zod";
 import {
@@ -51,7 +47,7 @@ function overviewName(
   return props.name ?? props.qualifiedName ?? props.id;
 }
 
-export function mapOverviewNodeProps(
+function mapOverviewNodeProps(
   kind: OverviewNode["kind"],
   props: OverviewNodeProps,
 ): OverviewNode {
@@ -130,7 +126,6 @@ function mapProcessRefs(
   }));
 }
 
-/** Shared name/qualifiedName fallback chain used by symbol-shaped records. */
 function nameAndQualifiedName(props: OverviewNodeProps): {
   name: string;
   qualifiedName: string;

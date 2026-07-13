@@ -5,29 +5,14 @@ import {
   parentKey,
 } from "../lib/scopedTree";
 
-/**
- * Pure tree/path helpers shared by the web-facing file functions (`files.ts`)
- * and the MCP file tools (`mcp/files.ts`). No Convex ctx here — callers collect
- * the user's nodes once and pass the array in, keeping these testable and
- * avoiding N round-trips when walking the tree.
- */
-
-/** Default per-user storage limit surfaced in the UI and enforced on upload. */
 export const FILE_STORAGE_LIMIT_BYTES = 10 * 1024 * 1024 * 1024; // 10 GiB
 
-/**
- * File kinds the memory-graph indexer can extract text from. Checked by
- * extension first (browsers often send an empty MIME for `.md`), then MIME.
- * `pdf` routes through unpdf; `text` is decoded straight from the blob.
- * Anything else (images, binaries) is stored but not indexed.
- */
 export type IndexableFileKind = "pdf" | "text";
 
 export function isImageMime(mimeType: string): boolean {
   return mimeType.startsWith("image/");
 }
 
-/** MIME shapes we treat as UTF-8 text for indexing and MCP inline reads. */
 export function isTextualMime(mimeType: string): boolean {
   return (
     mimeType.startsWith("text/") ||
@@ -55,13 +40,8 @@ export function detectFileKind(
   return null;
 }
 
-export { buildChildrenByParent, collectSubtreeIds };
+export { collectSubtreeIds };
 
-/**
- * Split a `/`-separated path into clean segments. Tolerates leading/trailing
- * slashes, duplicate slashes, and whitespace so agents can pass "ai-images/cat.png",
- * "/ai-images/cat.png", or "ai-images//cat.png" interchangeably.
- */
 export function normalizePathSegments(path: string): string[] {
   return path
     .split("/")
@@ -69,7 +49,6 @@ export function normalizePathSegments(path: string): string[] {
     .filter((segment) => segment.length > 0);
 }
 
-/** Find a direct child of `parentId` (root when undefined) by exact name. */
 export function findChild(
   byParent: Map<string, Array<Doc<"fileNodes">>>,
   parentId: Id<"fileNodes"> | undefined,
@@ -79,10 +58,6 @@ export function findChild(
   return children.find((child) => child.name === name) ?? null;
 }
 
-/**
- * Resolve a path to the node it points at, walking folder segments from root.
- * Returns null if any intermediate segment is missing or is not a folder.
- */
 export function resolveByPath(
   nodes: Array<Doc<"fileNodes">>,
   segments: string[],
@@ -101,7 +76,6 @@ export function resolveByPath(
   return current;
 }
 
-/** Build the full `/`-separated path of a node by walking parentId upward. */
 export function nodePath(
   nodes: Array<Doc<"fileNodes">>,
   node: Doc<"fileNodes">,
@@ -120,11 +94,6 @@ export function nodePath(
   return parts.reverse().join("/");
 }
 
-/**
- * True if `nodeId` equals `candidateId`, or is an ancestor of it.
- * Walks upward from `candidateId` (used to block moving a folder into its
- * own descendant).
- */
 export function isAncestorOrSelf(
   nodes: Array<Doc<"fileNodes">>,
   nodeId: Id<"fileNodes">,

@@ -3,6 +3,8 @@ import { ActionCache } from "@convex-dev/action-cache";
 import { authAction, requireClerkId } from "./auth";
 import { components, internal } from "./_generated/api";
 
+const DASHBOARD_CACHE_TTL_MS = 30_000;
+
 interface StatsResult {
   totalMemories: number;
   memoriesThisWeek: number;
@@ -21,16 +23,6 @@ interface ActivityItem {
   relativeTime: string;
 }
 
-// Dashboard read caches. 30s TTL matches the "seconds OK" staleness budget
-// the user accepted — stats and activity refresh quickly enough after a
-// create/update to feel responsive, while repeated dashboard tab switches
-// within the same minute are served from cache.
-//
-// Profile-level stats (getProfilesStatsInternal) are NOT cached: they're
-// called with arrays of profile ids that change often and serialise into
-// many distinct cache keys, giving a poor hit rate.
-const DASHBOARD_CACHE_TTL_MS = 30_000;
-
 const statsCache = new ActionCache(components.actionCache, {
   action: internal.neo4jActions.dashboard.getStatsInternal,
   name: "getStatsInternal-v1",
@@ -46,9 +38,6 @@ const recentActivityCache = new ActionCache(components.actionCache, {
 export const getStats = authAction({
   args: {
     profileId: v.optional(v.string()),
-    // Bypass (and refresh) the 30s cache — used by event-driven refetches
-    // (sidebar live stats) where serving the pre-write cache entry would
-    // make the update a no-op.
     fresh: v.optional(v.boolean()),
   },
   handler: async (ctx, args): Promise<StatsResult> => {

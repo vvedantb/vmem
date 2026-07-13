@@ -1,11 +1,5 @@
 import type { ActionCtx, MutationCtx, QueryCtx } from "./_generated/server";
-import {
-  action,
-  internalAction,
-  internalQuery,
-  mutation,
-  query,
-} from "./_generated/server";
+import { action, internalQuery, mutation, query } from "./_generated/server";
 import {
   customAction,
   customMutation,
@@ -16,11 +10,6 @@ import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { DEFAULT_PROFILE_COLOR } from "./profiles/helpers";
 
-/**
- * Look up a user by their Clerk subject id. The canonical `by_clerk_id`
- * lookup — every place that resolves a Clerk id to a Convex user row
- * (auth, MCP internal functions, dream triggers) goes through here.
- */
 export async function getUserByClerkId(
   ctx: QueryCtx | MutationCtx,
   clerkId: string,
@@ -88,21 +77,9 @@ const authActionBuilder = customAction(action, {
   },
 });
 
-const authInternalActionBuilder = customAction(internalAction, {
-  args: {},
-  input: async (ctx, args) => {
-    const userId = await requireCurrentUserIdFromAction(ctx);
-    return {
-      ctx: { ...ctx, userId },
-      args,
-    };
-  },
-});
-
 export const authQuery = authQueryBuilder;
 export const authMutation = authMutationBuilder;
 export const authAction = authActionBuilder;
-export const authInternalAction = authInternalActionBuilder;
 
 export type AuthActionCtx = ActionCtx & { userId: Id<"users"> };
 

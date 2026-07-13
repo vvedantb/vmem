@@ -7,25 +7,6 @@ import type { MutationCtx } from "./_generated/server";
 import { authMutation, authQuery } from "./auth";
 import { auditLog, ResourceTypes } from "./auditLog";
 
-/**
- * Dream Mode V2 — user-wide schedule manager.
- *
- * One cron per user (named `dream-mode:user:<userId>`) fires
- * `runDreamForUserById` daily at the saved UTC time. The user-level action
- * then iterates every personal profile the user owns and runs a synthesis
- * pass on each, writing proposals (or auto-accepting memories if
- * `userSettings.dreamModeAutoAccept` is true).
- *
- * Schedule fields and the auto-accept flag live in `userSettings` —
- * Dream Mode is a system behavior, not a per-profile attribute. Team
- * profiles keep their own per-profile schedule (see
- * `setDreamScheduleForTeamProfile`).
- *
- * Time is stored as "HH:MM" UTC — the same shape `<input type="time">`
- * produces, so the UI never has to split it. The browser converts the
- * user's local time to UTC before saving so the cron fires at a stable
- * moment regardless of DST.
- */
 export const dreamCrons = new Crons(components.crons);
 
 function userCronName(userId: string): string {

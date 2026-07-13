@@ -1,18 +1,4 @@
-/**
- * vmem internal retrieval benchmark — ablation runner.
- *
- * For each retrieval CONFIG (naive single-leg baselines → full hybrid) it runs
- * every labelled benchmark query through the PRODUCTION `retrieveMemories` (with
- * the config's per-leg toggles), and reports retrieval quality (recall@k,
- * precision, MRR, nDCG) overall AND by query type, token efficiency (retrieved
- * context vs the full corpus), latency (p50/p95), and an abstention signal
- * (top-1 score on no-answer queries vs answerable ones). Embeddings + Neo4j
- * only — no Claude, no judge.
- *
- * The labelled corpus comes from `eval/corpus.ts` (graded relevance + type
- * tags + deliberate distractors). `pnpm eval:bench` seeds `user_vmem_bench_eval`
- * only (no full-db wipe), runs this script, then removes that user's rows.
- */
+/** Retrieval ablation runner over the labelled benchmark corpus. */
 
 import { writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { dirname } from "node:path";
@@ -39,7 +25,6 @@ interface LegConfig {
   legs: Legs;
 }
 
-/** Naive single-leg baselines (mmr off = raw leg ranking) → full hybrid. */
 const CONFIGS: LegConfig[] = [
   {
     name: "vector-only",
@@ -70,7 +55,6 @@ const CONFIGS: LegConfig[] = [
 
 const K = 10;
 
-/** Preferred ordering for the per-type tables; unknown types appended. */
 const TYPE_ORDER = [
   "single-fact",
   "preference",
@@ -89,7 +73,6 @@ function approxTokens(text: string): number {
   return Math.ceil(text.length / 4);
 }
 
-/** Graded relevance for a query: explicit grades if present, else binary (grade 1). */
 function gradeMap(query: RetrievalEvalQuery): Map<string, number> {
   const map = new Map<string, number>(
     query.relevance ? Object.entries(query.relevance) : [],
@@ -205,7 +188,7 @@ async function runConfig(
     );
     const titles = candidates.map((c) => c.title);
     outcomes.push({
-      type: benchQueryType(query),
+      type: query.type ?? "untyped",
       recall1: recallAtK(titles, query.expectedTitles, 1),
       recall3: recallAtK(titles, query.expectedTitles, 3),
       recall5: recallAtK(titles, query.expectedTitles, 5),
@@ -250,19 +233,13 @@ function mdTable(header: string[], rows: string[][]): string {
     .join("\n");
 }
 
-function benchQueryType(q: RetrievalEvalQuery): string {
-  return q.type ?? "untyped";
-}
-
-/** Sorted unique types present in the answerable set, preferred order first. */
 function presentTypes(): string[] {
-  const seen = new Set(ANSWERABLE.map((q) => benchQueryType(q)));
+  const seen = new Set(ANSWERABLE.map((q) => q.type ?? "untyped"));
   const ordered = TYPE_ORDER.filter((t) => seen.has(t));
   const extra = [...seen].filter((t) => !TYPE_ORDER.includes(t)).sort();
   return [...ordered, ...extra];
 }
 
-/** Per-(config, type) metric matrix: rows = type, cols = config. */
 function perTypeTable(
   runs: ConfigRun[],
   metric: (m: AggMetrics) => string,
@@ -270,7 +247,7 @@ function perTypeTable(
   const types = presentTypes();
   const header = ["type", "n", ...runs.map((r) => r.name)];
   const rows = types.map((type) => {
-    const n = ANSWERABLE.filter((q) => benchQueryType(q) === type).length;
+    const n = ANSWERABLE.filter((q) => (q.type ?? "untyped") === type).length;
     const cells = runs.map((r) =>
       metric(aggregate(r.outcomes.filter((o) => o.type === type))),
     );

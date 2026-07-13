@@ -1,8 +1,4 @@
-/**
- * Best-effort OpenRouter embeddings — returns null when the user has no
- * API key or the provider call fails. Callers degrade to fulltext-only
- * or skip vectors; backfill fills gaps later.
- */
+/** Best-effort embeddings — null when no API key or provider failure. */
 
 import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";

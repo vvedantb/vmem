@@ -1,8 +1,3 @@
-/**
- * Profile memory move/delete helpers used by profile and team lifecycle,
- * plus setEmbeddings used by post-create materialize and neo4j-cli seed.
- */
-
 import type { Driver, QueryResult } from "neo4j-driver";
 import { neo4jGet, parseNeo4jInt } from "../record";
 import { withSession } from "./shared";
@@ -47,10 +42,6 @@ export async function deleteMemoriesByProfile(
   });
 }
 
-/**
- * Bulk-set embeddings on existing memories by id. One round trip via
- * UNWIND to avoid N queries per batch.
- */
 export async function setEmbeddings(
   driver: Driver,
   rows: Array<{ id: string; embedding: number[] }>,

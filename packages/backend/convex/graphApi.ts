@@ -5,12 +5,6 @@ import type { CappedMemoryGraph } from "./neo4jActions/graph";
 
 type MemoryType = "profile" | "episodic" | "knowledge";
 
-/**
- * Unified canvas node. `kind` picks shape; `source`/`type`/`sourceType` are
- * memory-scoped. Content is inlined for wiki docs and skills only — memory
- * content is lazy-fetched via `getNodeContent` to stay under Convex's 1 MiB
- * return limit.
- */
 interface GraphNodeEntry {
   id: string;
   title: string;
@@ -49,21 +43,6 @@ interface GraphResult {
 const WIKI_PREFIX = "wiki:";
 const SKILL_PREFIX = "skill:";
 const ENTITY_PREFIX = "entity:";
-
-function annotateMemoryNodes(
-  nodes: CappedMemoryGraph["nodes"],
-): GraphNodeEntry[] {
-  return nodes.map((n) => ({
-    id: n.id,
-    title: n.title,
-    tags: n.tags,
-    createdAt: n.createdAt,
-    kind: "memory" as const,
-    source: n.source,
-    sourceType: n.sourceType,
-    type: n.type,
-  }));
-}
 
 export const getGraphData = authAction({
   args: {
@@ -152,7 +131,18 @@ export const getGraphData = authAction({
 
     return {
       nodes: [
-        ...annotateMemoryNodes(memoryGraph.nodes),
+        ...memoryGraph.nodes.map(
+          (n): GraphNodeEntry => ({
+            id: n.id,
+            title: n.title,
+            tags: n.tags,
+            createdAt: n.createdAt,
+            kind: "memory",
+            source: n.source,
+            sourceType: n.sourceType,
+            type: n.type,
+          }),
+        ),
         ...wikiNodes,
         ...skillNodes,
         ...entityNodes,
@@ -169,7 +159,6 @@ export const getGraphData = authAction({
   },
 });
 
-/** Lazy memory content for graph hover/detail (omitted from graph payload). */
 export const getNodeContent = authAction({
   args: {
     memoryId: v.string(),

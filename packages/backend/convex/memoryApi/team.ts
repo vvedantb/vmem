@@ -1,23 +1,7 @@
-/**
- * Team-scope memoryApi handlers. These power the Company Knowledge UI.
- *
- * Authorization model:
- *   - Reads (list, get, search): membership via `assertTeamAccess` is
- *     sufficient; any team member can read every memory in the team
- *     profile.
- *   - Writes (update, delete): caller must EITHER be the original
- *     creator OR a team owner. The dual-path is hidden behind
- *     `assertMemoryMutablePermissionInternal`.
- *
- * The underlying Cypher is per-user-scoped (MATCH on `userId`), so for
- * mutations we pass the *creator's* clerkId — even when a team owner is
- * the actual caller. Authorization has already been verified by the time
- * we hit Neo4j.
- */
-
 import type { Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
-import { requireClerkId, assertTeamAccess, type AuthActionCtx } from "./auth";
+import { requireClerkId, type AuthActionCtx } from "../auth";
+import { assertTeamAccess } from "./auth";
 import type { MemoryWithTags, MemoryListResult } from "./types";
 
 interface ListTeamMemoriesArgs {
@@ -99,10 +83,6 @@ interface UpdateTeamMemoryArgs {
   expiresAt?: string | null;
 }
 
-/**
- * Load a team memory and assert the caller may mutate it (creator or
- * team owner). Returns null when the memory is missing.
- */
 async function loadMutableTeamMemory(
   ctx: AuthActionCtx,
   args: { profileId: Id<"profiles">; memoryId: string },
@@ -115,8 +95,7 @@ async function loadMutableTeamMemory(
   );
   if (!memory) return null;
 
-  // Creator clerkId is needed so the per-user Cypher path matches the
-  // right node — including when a non-creator team owner is the caller.
+  // Per-user Cypher matches on creator clerkId (including owner-as-caller).
   await ctx.runQuery(internal.teams.assertMemoryMutablePermissionInternal, {
     userId: ctx.userId,
     memoryCreatorClerkId: memory.userId,
@@ -126,11 +105,6 @@ async function loadMutableTeamMemory(
   return memory;
 }
 
-/**
- * Update a team memory. Allowed if caller is the original creator OR is
- * a team owner. Both paths use the creator-scoped `updateMemoryInternal`
- * since that's how Cypher locates the node — we've already authorized.
- */
 export async function runUpdateTeamMemory(
   ctx: AuthActionCtx,
   args: UpdateTeamMemoryArgs,
@@ -159,11 +133,6 @@ export async function runUpdateTeamMemory(
   );
 }
 
-/**
- * Delete a team memory. Creator hits the standard per-user delete path
- * (logs the event under the caller). Non-creator team owners fall
- * through to the profile-scoped owner-override path.
- */
 export async function runDeleteTeamMemory(
   ctx: AuthActionCtx,
   args: { profileId: Id<"profiles">; memoryId: string },

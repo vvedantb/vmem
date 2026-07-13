@@ -11,10 +11,6 @@ function getWebAppUrl(): string {
   return url.replace(/\/$/, "");
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// OAuth Metadata
-// ─────────────────────────────────────────────────────────────────────────────
-
 function requestOrigin(request: Request): string {
   return new URL(request.url).origin;
 }
@@ -52,10 +48,6 @@ export const protectedResourceMetadata =
   createProtectedResourceMetadataAction("/mcp");
 export const protectedResourceMetadataTeam =
   createProtectedResourceMetadataAction("/mcp/team");
-
-// ─────────────────────────────────────────────────────────────────────────────
-// OAuth Client Registration
-// ─────────────────────────────────────────────────────────────────────────────
 
 function parseRedirectUris(raw: unknown): string[] {
   if (!Array.isArray(raw)) return [];
@@ -114,10 +106,6 @@ export const register = httpAction(async (ctx, request) => {
   }
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// OAuth Authorization
-// ─────────────────────────────────────────────────────────────────────────────
-
 const authorizeQuerySchema = z.object({
   client_id: z.string(),
   redirect_uri: z.string(),
@@ -126,11 +114,6 @@ const authorizeQuerySchema = z.object({
   code_challenge_method: z.string(),
 });
 
-/**
- * Redirect to the web app's `/mcp/oauth/authorize` route, which handles Clerk
- * sign-in (production Clerk keys are pinned to the primary web domain) and
- * then mints an authorization code via the `mcp.oauth.authorize` mutation.
- */
 export const authorizeGet = httpAction(async (ctx, request) => {
   try {
     const url = new URL(request.url);
@@ -163,10 +146,6 @@ export const authorizeGet = httpAction(async (ctx, request) => {
     });
   }
 });
-
-// ─────────────────────────────────────────────────────────────────────────────
-// OAuth Token Exchange
-// ─────────────────────────────────────────────────────────────────────────────
 
 const authCodeBodySchema = z.object({
   grant_type: z.literal("authorization_code"),
@@ -301,10 +280,6 @@ export const token = httpAction(async (ctx, request) => {
   return Response.json(tokens);
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MCP Endpoint
-// ─────────────────────────────────────────────────────────────────────────────
-
 function unauthorized(message: string, resourceMetadataUrl: string): Response {
   return new Response(JSON.stringify({ error: message }), {
     status: 401,
@@ -315,7 +290,6 @@ function unauthorized(message: string, resourceMetadataUrl: string): Response {
   });
 }
 
-/** RFC 7636 S256 code_challenge from a plain code_verifier. */
 async function pkceS256Challenge(verifier: string): Promise<string> {
   const hashBuffer = await crypto.subtle.digest(
     "SHA-256",
@@ -390,10 +364,6 @@ export const mcpHandler = httpAction(async (ctx, request) => {
 export const mcpTeamHandler = httpAction(async (ctx, request) => {
   return runMcpEndpoint(ctx, request, "team");
 });
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Health Check
-// ─────────────────────────────────────────────────────────────────────────────
 
 export const health = httpAction(async () => {
   return Response.json({ status: "ok" });

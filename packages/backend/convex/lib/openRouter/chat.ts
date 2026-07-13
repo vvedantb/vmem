@@ -1,12 +1,3 @@
-/**
- * OpenRouter chat completion wrapper. Owns the chat-specific request
- * shape, response parsing, and metric extraction (cost, finish reason,
- * cached/cache-write/reasoning token breakdown). Logs one
- * `openRouterLogs` row per attempt via `scheduleLog`.
- *
- * Uses `@openrouter/sdk` — cost arrives in `usage.cost` when available.
- */
-
 import type { ChatResult as SdkChatResult } from "@openrouter/sdk/models";
 import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
@@ -20,7 +11,7 @@ import {
   type OpenRouterFeature,
 } from "./shared";
 
-export interface ChatMessage {
+interface ChatMessage {
   role: "system" | "user" | "assistant";
   content: string;
 }
@@ -28,11 +19,6 @@ export interface ChatMessage {
 interface ChatArgs {
   apiKey: string;
   userId: Id<"users">;
-  /**
-   * Plain-string profile id — most callers thread profileId through
-   * string-typed action args (string-typed at the Neo4j boundary).
-   * `recordInternal` normalises to `Id<"profiles">` before insert.
-   */
   profileId?: string;
   feature: OpenRouterFeature;
   model: string;
@@ -40,20 +26,10 @@ interface ChatArgs {
   temperature?: number;
 }
 
-export interface ChatResult {
-  /** `null` when the call failed or the response was unparseable. */
-  content: string | null;
-}
-
-/**
- * Fire one chat-completion call and log the outcome. Single shared
- * implementation handles cost/usage extraction and privacy-gated
- * previews — call sites only see `{ content }`.
- */
 export async function callOpenRouterChat(
   ctx: ActionCtx,
   args: ChatArgs,
-): Promise<ChatResult> {
+): Promise<{ content: string | null }> {
   const previews = previewsEnabled();
   const promptPreview = previews
     ? truncate(joinMessagesForPreview(args.messages), PROMPT_PREVIEW_BYTES)

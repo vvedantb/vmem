@@ -4,17 +4,6 @@ import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import { getUserByClerkId } from "./auth";
 
-/**
- * CRUD primitives for the `contextPromptCache` table. Kept separate from
- * the actions file so they can run inside the Convex query/mutation
- * runtime — the Node-only regeneration action calls these via
- * `ctx.runQuery`/`ctx.runMutation`.
- *
- * Lookup is always by `clerkId` (which we translate to `users._id`
- * inside each function) so callers don't need to thread the internal
- * Convex ID through scheduling and HTTP boundaries.
- */
-
 async function getCacheRowByClerkId(
   ctx: QueryCtx | MutationCtx,
   clerkId: string,

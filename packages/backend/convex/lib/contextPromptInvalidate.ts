@@ -7,11 +7,7 @@ type ContextPromptInvalidationCtx = Pick<
   "runMutation" | "scheduler"
 >;
 
-/**
- * Mark the user's cached MCP context prompt as stale and schedule a
- * debounced regeneration (60s). Only the first invalidation in a burst
- * schedules the job.
- */
+/** Debounced MCP context-prompt invalidation (60s). */
 export async function scheduleContextPromptInvalidationByClerkId(
   ctx: ContextPromptInvalidationCtx,
   clerkId: string,
@@ -29,9 +25,6 @@ export async function scheduleContextPromptInvalidationByClerkId(
   }
 }
 
-/**
- * Same debounce as memory CRUD, keyed by Convex user id (e.g. skills mutations).
- */
 export async function scheduleContextPromptInvalidationForUser(
   ctx: MutationCtx,
   userId: Id<"users">,

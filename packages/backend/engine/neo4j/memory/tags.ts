@@ -1,22 +1,8 @@
-/**
- * Tag vocabulary queries (Node-only — imports the Neo4j driver). The pure
- * normalization helpers live in tagNormalize.ts so V8-runtime prompt code
- * can import them without dragging the driver in.
- */
 import type { Driver } from "neo4j-driver";
 import { neo4jGet, neo4jString, parseNeo4jInt } from "../record";
 import { withSession } from "./shared";
 import type { TagUsage } from "./tagNormalize";
 
-export { normalizeTags, sanitizeTag } from "./tagNormalize";
-export type { TagUsage } from "./tagNormalize";
-
-/**
- * The user's existing tag vocabulary, most-used first. Fed into the
- * enrichment prompt so the LLM reuses established themes instead of minting
- * near-duplicates ("llm" vs "ai-models" vs "ai-model"). Single-use tags are
- * excluded — they are exactly the noise the vocabulary exists to prevent.
- */
 export async function getTopTags(
   driver: Driver,
   userId: string,

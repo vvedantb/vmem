@@ -1,11 +1,5 @@
 "use node";
 
-/**
- * Notion connector — searches for pages the integration has access to,
- * retrieves each page as markdown via the official markdown endpoint, and
- * upserts with `sourceType: "notion"`.
- */
-
 import { Client as NotionClient } from "@notionhq/client";
 import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";

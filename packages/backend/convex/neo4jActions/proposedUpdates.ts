@@ -23,7 +23,6 @@ export const resolveProposalInternal = internalAction({
     clerkId: v.string(),
     proposalId: v.string(),
     action: v.string(),
-    /** Contradiction resolution: keep this source memory; losers suppressed. */
     winnerMemoryId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -39,7 +38,6 @@ export const resolveProposalInternal = internalAction({
       args.winnerMemoryId,
     );
 
-    // Synthesis approval materializes without embed/enrich — do that here.
     if (result && result.status === "approved" && result.materializedMemoryId) {
       const materializedMemoryId = result.materializedMemoryId;
       try {

@@ -5,7 +5,7 @@ import { decryptToken, encryptToken, getEnvOrThrow } from "./crypto";
 import { pickGoogleTokenConnectorId } from "../neo4jActions/connectors/googleShared";
 import { oauthAccessTokenSchema, safeParseResponseJson } from "./jsonBoundary";
 
-export type ConnectorAccessTokenResult =
+type ConnectorAccessTokenResult =
   | { ok: true; accessToken: string; tokenConnectorId: Id<"connectors"> }
   | { ok: false; message: string };
 

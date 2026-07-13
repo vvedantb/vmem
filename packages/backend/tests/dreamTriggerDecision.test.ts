@@ -18,7 +18,7 @@ function snapshot(
 ): DreamTriggerSnapshot {
   return {
     newMemoryCount: MIN_NEW_MEMORIES,
-    lastWriteAt: NOW - QUIET_MS - 1_000, // quiet by default
+    lastWriteAt: NOW - QUIET_MS - 1_000,
     lastAutoRunAt: null,
     runsToday: 0,
     dayKey: dayKeyForUtc(NOW),
@@ -56,7 +56,7 @@ describe("decideDreamCheck", () => {
   it("runs mid-activity once the pile-up threshold is reached", () => {
     const state = snapshot({
       newMemoryCount: PILE_THRESHOLD,
-      lastWriteAt: NOW - 1_000, // actively writing
+      lastWriteAt: NOW - 1_000,
     });
     expect(decideDreamCheck(state, true, NOW)).toEqual({
       action: "run",

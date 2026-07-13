@@ -1,14 +1,3 @@
-/**
- * Dream Mode synthesis primitives.
- *
- * Pulls a candidate pool of recent embedded memories, scores them by
- * surprisal (mean cosine distance to k-nearest neighbours), clusters each
- * anomaly with its 1-hop graph neighbourhood, and (when auto-accept is on)
- * materialises the LLM's synthesis as a new :Memory with :DERIVED_FROM
- * edges. The other path — surfacing a synthesis :ProposedUpdate through
- * the /proposals queue — lives in `proposals.ts`.
- */
-
 import crypto from "node:crypto";
 import neo4j, { type Driver } from "neo4j-driver";
 import { z } from "zod";
@@ -100,10 +89,6 @@ function surprisalFromNeighborScores(rawScores: unknown): number | null {
   return 1 - mean;
 }
 
-/**
- * Batch surprisal scoring in a single Neo4j session. Skips memories
- * without embeddings (same null-skip semantics as the single-memory path).
- */
 export async function computeSurprisalScores(
   driver: Driver,
   params: {
@@ -151,52 +136,10 @@ export async function computeSurprisalScores(
   });
 }
 
-/**
- * Compute surprisal score for one memory against the user's full corpus.
- * surprisal = 1 - mean(cosineSimilarity to k nearest neighbours). Higher
- * = more anomalous = more interesting for the Dreamer to expand on.
- *
- * Asks the index for k+5 because it returns the memory itself as its own
- * closest match (sim 1.0); we filter by id and average the rest. Returns
- * null when fewer than 2 neighbours are available — not enough signal.
- */
-export async function computeSurprisalScore(
-  driver: Driver,
-  params: {
-    userId: string;
-    memoryId: string;
-    embedding: number[];
-    k: number;
-  },
-): Promise<number | null> {
-  const batch = await computeSurprisalScores(driver, {
-    userId: params.userId,
-    memories: [{ id: params.memoryId, embedding: params.embedding }],
-    k: params.k,
-  });
-  return batch[0]?.surprisal ?? null;
-}
-
-/** Below this many graph members, the cluster is padded with vector
- *  neighbours — isolated memories still find their neighbours. */
 const MIN_GRAPH_CLUSTER = 4;
-/** Vector neighbours appended per sparse cluster. */
 const SEMANTIC_NEIGHBOR_COUNT = 3;
-/** Cosine floor for a vector neighbour to qualify as "semantic". */
 const SEMANTIC_MIN_SCORE = 0.55;
 
-/**
- * For an anomaly memory, fetch its 1-hop graph neighbourhood:
- *   - Memories linked via RELATES_TO (either direction)
- *   - Memories that MENTIONS the same entity
- * When the graph yields fewer than MIN_GRAPH_CLUSTER members, the
- * cluster is topped up with the seed's nearest vector neighbours from
- * the whole corpus (relation "semantic") — anomalies are by definition
- * semantically distant from their surroundings and often graph-isolated,
- * and cross-time vector neighbours are exactly the dots worth connecting.
- * Caps at `maxClusterSize`. The anomaly is always element 0 so the LLM
- * has a clear focal point.
- */
 export async function fetchAnomalyCluster(
   driver: Driver,
   params: {
@@ -281,8 +224,6 @@ export async function fetchAnomalyCluster(
     append(neo4jGet(firstRecord, "relMems"), "related");
     append(neo4jGet(firstRecord, "entityMems"), "shared-entity");
 
-    // Sparse graph neighbourhood → pad with vector neighbours so the
-    // seed isn't dreamt on alone (or skipped outright).
     if (
       cluster.length < MIN_GRAPH_CLUSTER &&
       cluster.length < params.maxClusterSize
@@ -299,8 +240,6 @@ export async function fetchAnomalyCluster(
          ORDER BY score DESC
          LIMIT $kInner`,
         {
-          // Over-fetch: the index returns the seed itself and possibly
-          // existing cluster members before our WHERE filters them out.
           k: neo4j.int(SEMANTIC_NEIGHBOR_COUNT + excludeIds.length + 2),
           kInner: neo4j.int(SEMANTIC_NEIGHBOR_COUNT),
           embedding: params.embedding,
@@ -328,15 +267,6 @@ export async function fetchAnomalyCluster(
   });
 }
 
-/**
- * Auto-accept path: directly create a :Memory of type 'knowledge' with
- * source 'dream-mode' and :DERIVED_FROM edges to each source. Used when
- * the profile has `dreamModeAutoAccept = true`.
- *
- * Mirrors `createMemory` minus the same-session edge scaffolding
- * (synthesis memories aren't from a session) and minus the
- * URL/file-upload metadata.
- */
 export async function materializeSynthesisAsMemory(
   driver: Driver,
   params: {
@@ -421,12 +351,6 @@ export async function materializeSynthesisAsMemory(
   });
 }
 
-/**
- * Evidence pool for the evolving portrait: the profile's most
- * portrait-worthy memories, scored by pinned-status (the user's own
- * "this matters" signal dominates) + stored confidence + a hyperbolic
- * recency decay (half-weight at ~30 days). One Cypher pass, no LLM.
- */
 export async function fetchPortraitEvidence(
   driver: Driver,
   params: { userId: string; profileId: string; limit: number },
@@ -462,19 +386,6 @@ export async function fetchPortraitEvidence(
   });
 }
 
-/**
- * Reconsolidation detection: group near-duplicate memories into merge
- * candidate clusters. The inverse of the surprisal pass — duplicates
- * score LOW on surprisal, so they never surface as anomaly seeds.
- *
- * For each pool memory (the run's recent window, embeddings already in
- * hand), pulls vector neighbours within the same profile above
- * `simThreshold`, then unions overlapping pairs into clusters. Only
- * `status = 'active'` memories participate — pinned memories are the
- * user's explicit "don't touch" signal and merge approval suppresses
- * its sources. Neighbours can be any age: a fresh fragment merging into
- * last month's duplicate is the common case.
- */
 export async function findMergeCandidates(
   driver: Driver,
   params: {
@@ -500,7 +411,7 @@ export async function findMergeCandidates(
       while ((parent.get(root) ?? root) !== root) {
         root = parent.get(root) ?? root;
       }
-      // Path compression keeps repeated finds cheap.
+      // Path compression
       let cur = id;
       while (cur !== root) {
         const next = parent.get(cur) ?? root;
@@ -516,8 +427,6 @@ export async function findMergeCandidates(
     };
 
     for (const seed of params.pool) {
-      // MATCH-gate on the seed so pinned/suppressed seeds drop out, then
-      // query the vector index for same-profile active near-duplicates.
       const result = await session.run(
         `MATCH (seed:Memory {id: $seedId, userId: $userId})
          WHERE seed.status = 'active'
@@ -565,7 +474,7 @@ export async function findMergeCandidates(
       }
     }
 
-    // Collect components of ≥2, biggest first, capped per run.
+    // Components of size >= 2, biggest first.
     const components = new Map<string, MergeClusterMember[]>();
     for (const member of members.values()) {
       const root = find(member.id);
@@ -584,14 +493,6 @@ export async function findMergeCandidates(
   });
 }
 
-/**
- * Reconsolidation reweighting: auto-apply the LLM's confidence
- * adjustments from a synthesis pass. Per memory: clamp the move to
- * ±`maxDelta` of the CURRENT stored confidence (the prompt's [0.05, 1]
- * clamp happened at parse time), skip pinned/suppressed memories, and
- * write an audit event carrying old → new + the model's reason. Returns
- * how many memories actually changed.
- */
 export async function applyConfidenceAdjustments(
   driver: Driver,
   params: {

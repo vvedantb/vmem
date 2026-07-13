@@ -1,20 +1,4 @@
-/**
- * Layer 4 — differentiator behavioural suite (deterministic, no live LLM).
- *
- * Each test drives the PRODUCTION engine functions on crafted inputs and
- * asserts a distinctive vmem behaviour:
- *   - exact-duplicate collapse (content-hash dedup)
- *   - near-duplicate detection (0.95 semantic threshold, hand-built vectors)
- *   - suppressed memories excluded from retrieval
- *   - pinned memories stay retrievable
- *   - Context Trace carries a full score breakdown
- *   - proposed update: approve supersedes, reject preserves (no silent overwrite)
- *
- * Embeddings are hand-built 1536-dim vectors with known cosine, so the suite
- * needs no OpenRouter calls — only a live Neo4j. Gated by RUN_RETRIEVAL_EVAL=1
- * (same as the retrieval eval). Runs against an isolated test user and wipes
- * that user's data between tests, so it never touches the benchmark corpus.
- */
+/** Live Neo4j behavioural suite (gated by RUN_RETRIEVAL_EVAL=1). */
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { Driver } from "neo4j-driver";
@@ -42,12 +26,9 @@ const PROFILE = "profile_behavioral_test";
 const SOURCE = "behavioral-test";
 const EMBED_DIM = 1536;
 
-/** Deterministic 1536-dim vector from a per-index fill function. */
 function vec(fill: (i: number) => number): number[] {
   return Array.from({ length: EMBED_DIM }, (_, i) => fill(i));
 }
-// Two orthogonal unit vectors: identical query → cosine 1 (near-dup),
-// orthogonal query → cosine 0 (not a dup).
 const EMB_A = vec((i) => (i === 0 ? 1 : 0));
 const EMB_ORTHOGONAL = vec((i) => (i === 1 ? 1 : 0));
 
@@ -125,7 +106,6 @@ async function create(
   return created.id;
 }
 
-/** Vector indexes can lag a write by a moment; retry the positive lookup. */
 async function findSimilarWithRetry(
   driver: Driver,
   embedding: number[],

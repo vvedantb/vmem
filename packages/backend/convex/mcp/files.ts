@@ -10,16 +10,6 @@ import {
   isTextualMime,
 } from "../files/lib";
 
-/**
- * MCP file tools backend — the agent-facing surface of the shared filesystem.
- *
- * Files are addressed by `/`-separated paths (e.g. "ai-images/cat.png") rather
- * than ids, so agents can read/write without a list→id round-trip. All nodes
- * are user-scoped by clerkId (MCP scope is ignored — files are user-wide, like
- * wiki). Bytes live in Convex storage; uploads accept inline base64 or a
- * sourceUrl the server fetches.
- */
-
 // Inline-content caps. MCP tool args/results are JSON, so bytes ride as base64.
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB (Convex 16 MiB action-arg limit w/ base64 overhead)
 const MAX_INLINE_IMAGE_BYTES = 4 * 1024 * 1024; // return image bytes inline up to 4 MB

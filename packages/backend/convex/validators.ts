@@ -7,15 +7,7 @@ import {
 } from "./lib/openRouter/schemas";
 
 /**
- * Single source of truth for profiles table fields.
- * Used in schema.ts (defineTable) and return validators.
- *
- * A profile is a Chrome-like workspace for organizing memories.
- * Each memory belongs to exactly one profile.
- *
- * Personal profile: teamId undefined, userId = owner.
- * Team profile:    teamId set, userId = team creator (for historical attribution only),
- *                  isDefault always false. Access via teamMembers table.
+ * Table field validators — used in schema.ts and return validators.
  */
 export const profileFields = {
   userId: v.id("users"),
@@ -23,86 +15,32 @@ export const profileFields = {
   color: v.string(), // hex e.g. "#3B82F6"
   icon: v.string(), // icon name e.g. "briefcase"
   isDefault: v.boolean(),
-  /** When set, this profile is shared across a team. Access is granted via teamMembers. */
   teamId: v.optional(v.id("teams")),
   createdAt: v.number(),
   updatedAt: v.number(),
-  /**
-   * Dream Mode V2 — when true, derived insights produced by the background
-   * Dreamer auto-materialize as new :Memory nodes (with :DERIVED_FROM edges
-   * back to source memories) instead of being routed through the
-   * `/proposals` queue. Defaults to undefined/false; users opt in per
-   * profile once they trust the synthesis quality.
-   */
   dreamModeAutoAccept: v.optional(v.boolean()),
-  /**
-   * Wall-clock ms of the last successful Dream Mode run for this profile.
-   * Used to rate-limit the manual "Run Dream Mode" button (1 run/hr) and
-   * to scope the Dreamer's "recent memories" window when desired.
-   */
   lastDreamRunAt: v.optional(v.number()),
-  /**
-   * Per-profile Dream Mode schedule. When `dreamModeScheduleEnabled` is
-   * true, a cron is registered via `@convex-dev/crons` that fires daily at
-   * `dreamModeScheduleTime` UTC ("HH:MM" — same shape the `<input
-   * type="time">` picker produces, so the UI never has to split). The user
-   * picks a local time in the browser; the browser converts to UTC before
-   * saving so the cron always fires at a stable moment regardless of DST.
-   *
-   * Defaults: undefined / false — Dream Mode is opt-in to avoid surprising
-   * the user with LLM costs.
-   */
   dreamModeScheduleEnabled: v.optional(v.boolean()),
-  dreamModeScheduleTime: v.optional(v.string()), // "HH:MM" UTC
-  /**
-   * Dream Mode V3 — evolving portrait. A dream-maintained markdown summary
-   * of who this profile's owner is, updated incrementally at the end of
-   * each dream pass. `dreamPortraitSources` carries the Neo4j memory ids
-   * the portrait derives from (grounding — same rule as synthesis
-   * proposals: no claim without traceable sources).
-   */
+  dreamModeScheduleTime: v.optional(v.string()),
   dreamPortrait: v.optional(v.string()),
   dreamPortraitUpdatedAt: v.optional(v.number()),
   dreamPortraitSources: v.optional(v.array(v.string())),
 };
 
-/**
- * Single source of truth for dreamTriggerState table fields.
- *
- * One row per user. Powers Dynamic Dreaming: memory writes bump
- * `newMemoryCount` + `lastWriteAt`; when enough new context piles up and
- * the user goes quiet, a debounced check fires a dream pass. Mirrors the
- * contextPromptCache debounce pattern (`checkPending` = a check is
- * already scheduled, don't pile up scheduler jobs).
- */
 export const dreamTriggerStateFields = {
   userId: v.id("users"),
-  /** Memories written since the last auto dream run consumed the counter. */
   newMemoryCount: v.number(),
-  /** Wall-clock ms of the most recent memory write — the "quiet" signal. */
   lastWriteAt: v.number(),
-  /** True while a maybeRunDream check is scheduled. */
   checkPending: v.boolean(),
-  /** Wall-clock ms of the last automatic (trigger-fired) dream run. */
   lastAutoRunAt: v.optional(v.number()),
-  /** Automatic runs so far on `dayKey` — enforces the daily cap. */
   runsToday: v.number(),
-  /** UTC day "YYYY-MM-DD" that `runsToday` counts against. */
   dayKey: v.string(),
 };
 
-/**
- * Notification severity — reused by the table fields, the `listMy` return
- * validator, and the `pushForClerkIdInternal` args so all three stay in lockstep.
- */
 export const notificationTypeValidator = zodToConvex(
   z.enum(["success", "warning", "error", "info"]),
 );
 
-/**
- * Single source of truth for notifications table fields.
- * One row per user-facing bell notification.
- */
 export const notificationFields = {
   userId: v.id("users"),
   title: v.string(),
@@ -112,10 +50,6 @@ export const notificationFields = {
   createdAt: v.number(),
 };
 
-/**
- * Single source of truth for teams table fields.
- * A team is a group of users sharing a single profile.
- */
 export const teamFields = {
   name: v.string(),
   createdBy: v.id("users"),
@@ -123,11 +57,6 @@ export const teamFields = {
   updatedAt: v.number(),
 };
 
-/**
- * Single source of truth for teamMembers table fields.
- * Membership row joining a user to a team with a role.
- * Uniqueness (one row per (teamId, userId)) enforced in mutations via by_team_user index.
- */
 export const teamMemberFields = {
   teamId: v.id("teams"),
   userId: v.id("users"),
@@ -135,17 +64,8 @@ export const teamMemberFields = {
   joinedAt: v.number(),
 };
 
-/**
- * Single source of truth for skills table fields.
- *
- * Scoping ("user-wide + team"): `teamId` absent = personal skill, visible in
- * every personal workspace of `userId`. `teamId` set = team skill, visible to
- * all members of that team (access via teamMembers); `userId` = creator, kept
- * for attribution and the creator-or-team-owner delete rule.
- */
 export const skillFields = {
   userId: v.id("users"),
-  /** When set, this skill belongs to a team. Access via teamMembers. */
   teamId: v.optional(v.id("teams")),
   name: v.string(),
   description: v.string(),
@@ -155,58 +75,28 @@ export const skillFields = {
   updatedAt: v.number(),
 };
 
-/**
- * Single source of truth for skillVersions table fields.
- *
- * An immutable snapshot of a skill's state *before* an overwrite (see
- * `lib/versionSnapshot.ts`). The live `skills` row is always HEAD; versions are
- * strictly older. `source` distinguishes web edits from MCP-agent writes so the
- * UI can badge "You" vs "Agent" and the user can undo exactly what an agent did.
- */
 export const skillVersionFields = {
   skillId: v.id("skills"),
   name: v.string(),
   description: v.string(),
   instructions: v.string(),
   enabled: v.optional(v.boolean()),
-  /** Who authored the write that this snapshot was taken just before. */
   authorUserId: v.id("users"),
   source: v.union(v.literal("web"), v.literal("mcp")),
   createdAt: v.number(),
 };
 
-/**
- * Single source of truth for userEnvVars table fields.
- *
- * One document per user. `vars` holds the user's environment variables as
- * `{ key, value }` pairs, where `value` is the ciphertext returned by
- * `lib/crypto.ts#encryptToken` (format `v1:iv:ct`).
- *
- * Storage pattern mirrors conductor's `teamEnvVars` / `repoEnvVars` tables:
- * a single row aggregates all vars for a given scope. Env var sets are
- * bounded in practice; the 1MB document limit is not a concern.
- */
 export const userEnvVarFields = {
   userId: v.id("users"),
   vars: v.array(
     v.object({
       key: v.string(),
-      /** Ciphertext from encryptToken(). Never exposed to clients except via `revealValue`. */
       value: v.string(),
     }),
   ),
   updatedAt: v.number(),
 };
 
-/**
- * Single source of truth for codebases table fields.
- * Used in schema.ts (defineTable) and anywhere a codebase row is described.
- *
- * Phase 1 added rich AST stats (functionCount, classCount, etc.) and a
- * `parseStage` field used by the live sync UI. All Phase 1 fields are
- * optional so pre-existing rows stay valid; bumping `parserVersion`
- * triggers a re-sync banner on the codebases index page.
- */
 export const codebaseFields = {
   userId: v.id("users"),
   githubConnectionId: v.id("githubConnections"),
@@ -228,17 +118,13 @@ export const codebaseFields = {
   syncedFiles: v.number(),
   lastSyncedAt: v.optional(v.number()),
   errorMessage: v.optional(v.string()),
-  // ── Phase 1 AST stats ──────────────────────────────────────────────
   functionCount: v.optional(v.number()),
   classCount: v.optional(v.number()),
   interfaceCount: v.optional(v.number()),
   callEdgeCount: v.optional(v.number()),
   processCount: v.optional(v.number()),
-  /** Bumped when parser semantics change — drives the re-sync banner. */
   parserVersion: v.optional(v.string()),
-  /** Last parse error message (distinct from network/GitHub `errorMessage`). */
   lastParseError: v.optional(v.string()),
-  /** Live sync stage for granular progress UI. */
   parseStage: v.optional(
     v.union(
       v.literal("fetching"),
@@ -248,47 +134,17 @@ export const codebaseFields = {
       v.literal("done"),
     ),
   ),
-  /** Set when status becomes `syncing`; used to recover stuck syncs. */
   syncStartedAt: v.optional(v.number()),
-  /**
-   * Archived codebases keep all their data but are excluded from scheduled
-   * syncs and hidden from the main sidebar list (shown in a collapsed
-   * "Archived" accordion instead). Undefined/false = active.
-   */
   isArchived: v.optional(v.boolean()),
 };
 
-/**
- * Single source of truth for openRouterLogs table fields.
- *
- * Every OpenRouter API call (chat completions + embeddings) writes one row.
- * Fields cover identity (userId/profileId/teamId/feature/endpoint/model),
- * optional errorMessage, token + cost accounting (returned by OpenRouter
- * when available; computed from a price table for embeddings), and optional
- * prompt/completion previews (only populated when the deploy sets
- * OPENROUTER_LOG_PROMPTS=1).
- *
- * Split into two consts so the `recordInternal` mutation can re-use the
- * caller-provided subset without re-declaring fields. Schema uses the
- * full `openRouterLogFields`; `recordInternal` uses
- * `openRouterLogRecordFields` and derives `teamId`/`createdAt` itself.
- */
 export const openRouterLogRecordFields = {
   userId: v.id("users"),
-  /** Profile this call was made in context of. Optional — some paths
-   *  (e.g. MCP query embed before profile resolution) don't know yet.
-   *
-   *  Accepted as a plain string at the mutation boundary because most
-   *  call-sites carry a `string` profileId (the Neo4j actions thread
-   *  the id through string-typed args). `recordInternal` normalises
-   *  via `ctx.db.normalizeId("profiles", …)` before insert; the
-   *  schema column is the strict `v.id("profiles")` form. */
   profileId: v.optional(v.string()),
   feature: zodToConvex(openRouterFeatureSchema),
   endpoint: zodToConvex(openRouterEndpointSchema),
   model: v.string(),
   errorMessage: v.optional(v.string()),
-  /** OpenRouter generation id (`gen-...`) — used to link to /generation lookup later. */
   generationId: v.optional(v.string()),
   provider: v.optional(v.string()),
   finishReason: v.optional(v.string()),
@@ -299,114 +155,54 @@ export const openRouterLogRecordFields = {
   cachedTokens: v.optional(v.number()),
   cacheWriteTokens: v.optional(v.number()),
   reasoningTokens: v.optional(v.number()),
-  /** Effective USD cost charged via OpenRouter (`usage.cost`). */
   costUsd: v.optional(v.number()),
-  /** Underlying provider cost when BYOK (`usage.cost_details.upstream_inference_cost`). */
   upstreamCostUsd: v.optional(v.number()),
   isByok: v.optional(v.boolean()),
-  /** Truncated prompt — only set when OPENROUTER_LOG_PROMPTS=1 on the deploy. */
   promptPreview: v.optional(v.string()),
-  /** Truncated completion — only set when OPENROUTER_LOG_PROMPTS=1 on the deploy. */
   completionPreview: v.optional(v.string()),
 };
 
 export const openRouterLogFields = {
   ...openRouterLogRecordFields,
-  /** Stored as a typed Convex Id<"profiles"> on the row even though the
-   *  mutation accepts a plain string at the boundary. `recordInternal`
-   *  normalises before insert. */
   profileId: v.optional(v.id("profiles")),
-  /** Denormalised from profile.teamId at log-write time so team-wide spend
-   *  queries hit a single index. Undefined = personal profile or unknown. */
   teamId: v.optional(v.id("teams")),
   createdAt: v.number(),
 };
 
-/**
- * Single source of truth for wikiNodes table fields.
- * Used in schema.ts (defineTable) and anywhere we need to describe a wikiNode row.
- *
- * A wiki node is either a folder or a document (obsidian-style). Folders are just
- * nodes with children; documents carry the editor content. One table keeps traversal
- * and CRUD trivial.
- */
 export const wikiNodeFields = {
   userId: v.id("users"),
-  /** When set, this node belongs to a team wiki (whole subtree shares the
-   *  same teamId — parent/child scope consistency enforced in mutations).
-   *  Absent = personal, user-wide. `userId` = creator for team nodes. */
   teamId: v.optional(v.id("teams")),
-  /** undefined = root-level node */
   parentId: v.optional(v.id("wikiNodes")),
   kind: v.union(v.literal("folder"), v.literal("document")),
   title: v.string(),
-  /** Canonical markdown body. Undefined for folders; empty string for new documents. */
   content: v.optional(v.string()),
-  /** Plain-text mirror of content used for the Convex full-text searchIndex. */
   contentText: v.optional(v.string()),
-  /** Manual ordering within a parent; higher = later. */
   order: v.number(),
-  /**
-   * Set on the ROOT folder of a knowledge base generated from a synced
-   * codebase (the agent passes it through `wiki_create`). Optional — absent
-   * on all hand-authored nodes. Lets the UI badge "Generated from <repo>"
-   * and tie the subtree back to its source. Only ever set on a folder root.
-   */
   sourceCodebaseId: v.optional(v.id("codebases")),
   createdAt: v.number(),
   updatedAt: v.number(),
 };
 
-/**
- * Single source of truth for wikiNodeVersions table fields.
- *
- * An immutable snapshot of a document's state *before* an overwrite (see
- * `lib/versionSnapshot.ts`). The live `wikiNodes` row is always HEAD; versions
- * are strictly older. `contentText` is stored alongside `content` so a restore
- * keeps the full-text search index correct without re-deriving plain text.
- * `source` distinguishes web edits from MCP-agent writes.
- */
 export const wikiNodeVersionFields = {
   nodeId: v.id("wikiNodes"),
   title: v.string(),
-  /** Canonical markdown body at snapshot time. */
   content: v.string(),
-  /** Plain-text mirror, mirrors wikiNodes.contentText for search on restore. */
   contentText: v.string(),
-  /** Who authored the write that this snapshot was taken just before. */
   authorUserId: v.id("users"),
   source: v.union(v.literal("web"), v.literal("mcp")),
   createdAt: v.number(),
 };
 
-/**
- * Shared filesystem nodes — the `/files` view and the MCP file tools.
- *
- * One table holds folders and files, discriminated by `kind`. Folders provide
- * hierarchy; files carry the storage handle + metadata. The same node tree is
- * exposed to humans (web UI) and AI agents (MCP files_* tools), so they share a
- * single namespace addressable by `parentId` chains (web) or `/`-separated
- * paths (MCP).
- */
 export const fileNodeFields = {
   userId: v.id("users"),
-  /** When set, this node belongs to a team drive (whole subtree shares the
-   *  same teamId; team storage quota is pooled per team). Absent = personal.
-   *  `userId` = creator for team nodes. */
   teamId: v.optional(v.id("teams")),
-  /** undefined = root-level node */
   parentId: v.optional(v.id("fileNodes")),
   kind: v.union(v.literal("folder"), v.literal("file")),
   name: v.string(),
-  /** files only: MIME type of the stored bytes */
   mimeType: v.optional(v.string()),
-  /** files only: size in bytes */
   size: v.optional(v.number()),
-  /** files only: Convex storage handle for the bytes */
   storageId: v.optional(v.id("_storage")),
-  /** files only: Neo4j Memory id this file was indexed into (see fileIndexing.ts) */
   memoryId: v.optional(v.string()),
-  /** files only: memory-graph indexing state. Absent = uploaded before indexing shipped. */
   indexStatus: v.optional(
     v.union(
       v.literal("pending"),
@@ -415,46 +211,24 @@ export const fileNodeFields = {
       v.literal("failed"),
     ),
   ),
-  /** files only: when indexing last completed successfully */
   indexedAt: v.optional(v.number()),
   createdAt: v.number(),
   updatedAt: v.number(),
 };
 
-/**
- * Single source of truth for systemSkills table fields.
- *
- * A "system skill" is a maintainer-curated skill in the global catalog (the
- * Skills Hub). Unlike `skills`, it has no `userId`/`teamId` — it is global.
- * Users do not COPY it; they INSTALL a link to it (see userSystemSkillFields),
- * so a maintainer edit propagates to everyone instantly. Only admins
- * (`users.isAdmin`) may create/edit/delete catalog rows.
- */
 export const systemSkillFields = {
   name: v.string(),
   description: v.string(),
   instructions: v.string(),
-  /** Hub grouping label, e.g. "Codebases". */
   category: v.optional(v.string()),
-  /** Draft vs visible in the Hub. Installed rows resolve regardless. */
   published: v.boolean(),
   createdAt: v.number(),
   updatedAt: v.number(),
 };
 
-/**
- * Single source of truth for userSystemSkills table fields.
- *
- * The install LINK between a user and a catalog `systemSkills` row. Installs
- * are user-wide (personal) — there is no `teamId`, matching the MCP
- * personal-only model. `enabled` lets a user mute an install without
- * removing it; uninstall = delete the row. The skill's content always
- * resolves live from the linked catalog row (never duplicated here).
- */
 export const userSystemSkillFields = {
   userId: v.id("users"),
   systemSkillId: v.id("systemSkills"),
-  /** Per-user toggle. Missing is treated as enabled for forward-compat. */
   enabled: v.boolean(),
   installedAt: v.number(),
 };

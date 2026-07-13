@@ -3,8 +3,7 @@ import type { Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import { decryptToken } from "./crypto";
 
-/** Decrypt all env vars for a user. Plaintext stays on the ActionCtx stack. */
-export async function resolveUserEnvVars(
+async function resolveUserEnvVars(
   ctx: ActionCtx,
   userId: Id<"users">,
 ): Promise<Record<string, string>> {
@@ -30,10 +29,7 @@ async function resolveUserIdAndEnvVars(
   return { userId: user._id, all: await resolveUserEnvVars(ctx, user._id) };
 }
 
-/**
- * Soft-fail: null when user or env var missing. Used when callers need
- * both userId (for logs) and the API key in one lookup.
- */
+/** Soft-fail lookup: null when user or env var missing. */
 export async function tryUserAndApiKeyByClerkId(
   ctx: ActionCtx,
   clerkId: string,

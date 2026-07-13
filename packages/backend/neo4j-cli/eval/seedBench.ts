@@ -1,8 +1,4 @@
-/**
- * Seed the discriminating benchmark corpus (eval/corpus.ts) for `user_vmem_bench_eval`.
- * Invoked by `pnpm eval:bench` before the ablation runner — clears only that user,
- * never the full database. Benchmark teardown removes the user again after the report.
- */
+/** Seeds the benchmark corpus for user_vmem_bench_eval before eval:bench. */
 
 import { generateBenchmarkCorpus, BENCH_USER_ID } from "./corpus";
 import { runSeed } from "../seed/engine";

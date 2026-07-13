@@ -1,18 +1,10 @@
-/**
- * External-source connector ingestion. Single caller
- * (`convex/neo4jActions/connectors.ts`) — Drive, Notion, etc. all funnel
- * through `upsertFromSource`.
- */
-
 import crypto from "node:crypto";
 import type { Driver } from "neo4j-driver";
 import { createSemanticSimilarityEdges } from "./relationships";
 import { withSession } from "./shared";
 
 /**
- * Upsert a memory from an external source (Google Drive, Notion, etc.).
- * Uses MERGE on (userId, sourceType, sourceId) to avoid duplicates.
- * Creates new memory if not exists, updates content if exists.
+ * Upsert a memory from an external source. MERGE on (userId, sourceType, sourceId).
  */
 export async function upsertFromSource(
   driver: Driver,
@@ -24,10 +16,6 @@ export async function upsertFromSource(
     sourceType: string;
     sourceId: string;
     sourceUrl: string;
-    // Pre-computed embedding vector. Applied on BOTH create and match — an
-    // updated upstream document should refresh its semantic signal, not just
-    // its text. Null ⇒ caller had no API key or embedding failed; memory
-    // still upserts, backfill migration can repair later.
     embedding: number[] | null;
   },
 ): Promise<{ id: string; created: boolean }> {
@@ -81,7 +69,6 @@ export async function upsertFromSource(
     const memoryId = String(firstRecord.get("id"));
     const wasCreated = Boolean(firstRecord.get("wasCreated"));
 
-    // Semantic similarity edges on new memory creation (not updates)
     if (wasCreated && params.embedding !== null) {
       await createSemanticSimilarityEdges(
         session,

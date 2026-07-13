@@ -3,7 +3,7 @@
 import { v } from "convex/values";
 import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
-import { STALE_SYNCING_MS } from "@vmem/shared";
+import { isFreshSyncing } from "./crud";
 import { resolveConnectorAccessToken } from "../lib/connectorAccessToken";
 import { runConnectorProviderSync } from "../lib/runConnectorProviderSync";
 
@@ -14,10 +14,6 @@ const syncOneResult = v.union(
 
 type SyncOneResult = { ok: true } | { ok: false; message: string };
 
-/**
- * Internal sync entry point for manual MCP hooks and the daily workflow.
- * Always runs a full provider sync.
- */
 export const syncOneConnectorInternal = internalAction({
   args: {
     connectorId: v.id("connectors"),
@@ -41,11 +37,7 @@ export const syncOneConnectorInternal = internalAction({
       return { ok: false, message: "Connector does not support sync" };
     }
 
-    const isFreshSync =
-      connector.syncStatus === "syncing" &&
-      connector.syncStartedAt !== undefined &&
-      Date.now() - connector.syncStartedAt < STALE_SYNCING_MS;
-    if (isFreshSync) {
+    if (isFreshSyncing(connector)) {
       return { ok: false, message: "Sync already in progress" };
     }
 

@@ -1,14 +1,3 @@
-/**
- * Membership-management bodies for `teams.ts`.
- *
- *  - `runAddMember` — owner-only invite by email. The invitee must
- *    already have a vmem account (no out-of-band invite emails yet).
- *  - `runRemoveMember` — owner-only kick. Refuses to remove the last
- *    owner so the team always has at least one.
- *  - `runLeaveTeam` — self-remove. Owners must transfer ownership
- *    first if they're the last owner.
- */
-
 import type { Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { auditLog, ResourceTypes } from "../auditLog";

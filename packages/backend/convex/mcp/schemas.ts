@@ -1,15 +1,15 @@
 import { z } from "zod";
 
-export const memoryTypeSchema = z.enum(["profile", "episodic", "knowledge"]);
+const memoryTypeSchema = z.enum(["profile", "episodic", "knowledge"]);
 
-export const memoryStatusSchema = z.enum([
+const memoryStatusSchema = z.enum([
   "active",
   "pinned",
   "suppressed",
   "expired",
 ]);
 
-export const codebaseSymbolKindSchema = z.enum([
+const codebaseSymbolKindSchema = z.enum([
   "code-file",
   "code-function",
   "code-class",
@@ -17,7 +17,7 @@ export const codebaseSymbolKindSchema = z.enum([
   "code-process",
 ]);
 
-export const codebaseImpactDirectionSchema = z.enum(["upstream", "downstream"]);
+const codebaseImpactDirectionSchema = z.enum(["upstream", "downstream"]);
 
 export const pingSchema = z.object({});
 

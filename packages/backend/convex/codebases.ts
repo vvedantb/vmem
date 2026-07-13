@@ -13,8 +13,6 @@ import { z } from "zod";
 /** Re-sync codebases that have not synced in the last 24 hours. */
 const DAILY_SYNC_STALE_MS = 24 * 60 * 60 * 1000;
 
-// --- GitHub API response shape for repos ---
-
 const githubRepoSchema = z.object({
   id: z.number(),
   name: z.string(),
@@ -54,8 +52,6 @@ async function requireOwnedCodebase(
   }
   return codebase;
 }
-
-// --- Public functions ---
 
 export const listMy = authQuery({
   args: {},
@@ -287,9 +283,6 @@ export const getCodebaseGraph = authAction({
   },
 });
 
-// --- Internal helpers ---
-
-/** Normalize a string id to a typed Id<"codebases"> for use in internal functions. */
 export const normalizeCodebaseId = internalQuery({
   args: { id: v.string() },
   handler: async (ctx, args) => {

@@ -1,21 +1,3 @@
-/**
- * Resolves CALL edges using ts-morph's TypeChecker, plus patches the
- * IMPORTS / EXTENDS / IMPLEMENTS placeholders that `parse.ts` emitted.
- *
- * Two-pass design:
- *   1. Build a name→symbol-id map keyed by file. Used as a fallback when
- *      the type checker can't resolve a callee (untyped JS, missing
- *      decls, etc.).
- *   2. Walk every CallExpression in the loaded source files and emit a
- *      `CALLS` edge.
- *      - Type checker resolved + declaration in our symbol set →
- *        `EXTRACTED` / 1.0
- *      - Type checker miss but exact same-file or imported-name match →
- *        `INFERRED` / 0.7
- *      - Multiple candidates in different files → `AMBIGUOUS` / 0.4 (one
- *        edge per candidate)
- */
-
 import {
   SyntaxKind,
   type Node,
@@ -32,13 +14,9 @@ import {
 } from "./types";
 
 interface SymbolIndex {
-  /** All symbol nodes by id. */
   byId: Map<string, SymbolNode>;
-  /** Functions only — quick lookup for CALLS resolution. */
   functionsById: Map<string, FunctionNode>;
-  /** filePath → name → symbol id (functions/classes/interfaces only). */
   byFileAndName: Map<string, Map<string, string>>;
-  /** name → set<symbolId> (across files). For ambiguous fallback. */
   byNameGlobal: Map<string, Set<string>>;
 }
 
@@ -71,7 +49,6 @@ function buildIndex(symbols: SymbolNode[]): SymbolIndex {
   return { byId, functionsById, byFileAndName, byNameGlobal };
 }
 
-/** Look up a possibly-undefined name in the per-file symbol map. */
 function lookupByName(
   perFile: Map<string, string>,
   name: string | undefined,
@@ -80,7 +57,6 @@ function lookupByName(
   return perFile.get(name) ?? null;
 }
 
-/** Identify the function that contains a given call expression. */
 function findEnclosingFunctionId(
   call: CallExpression,
   perFile: Map<string, string>,
@@ -95,7 +71,6 @@ function findEnclosingFunctionId(
     } else if (k === SyntaxKind.MethodDeclaration) {
       const md = ancestor.asKind(SyntaxKind.MethodDeclaration);
       const methodName = md?.getName();
-      // Walk further up to the class to disambiguate Class.method.
       const cls = md?.getFirstAncestorByKind(SyntaxKind.ClassDeclaration);
       const className = cls?.getName();
       const id =
@@ -108,8 +83,6 @@ function findEnclosingFunctionId(
       const id = lookupByName(perFile, vd?.getName());
       if (id) return id;
     }
-    // ArrowFunction / FunctionExpression (anonymous nested fn) and any
-    // other node kind: keep walking up.
     ancestor = ancestor.getParent();
   }
   return null;
@@ -124,7 +97,6 @@ function getCalleeName(call: CallExpression): string {
   return expr.getText();
 }
 
-/** Try the type checker first; fall back to local name match; then global. */
 function resolveCalleeIds(
   call: CallExpression,
   callerFilePath: string,
@@ -201,7 +173,6 @@ function getDeclName(decl: Node): string | null {
   return null;
 }
 
-/** Patch IMPORTS edges: textual modulePath → resolved file id. */
 function patchImports(
   project: Project,
   loadedPaths: Set<string>,
@@ -237,36 +208,21 @@ function patchImports(
   }
 }
 
-function heritageTargetKind(
-  edgeKind: "EXTENDS" | "IMPLEMENTS",
-): "class" | "interface" {
-  return edgeKind === "EXTENDS" ? "class" : "interface";
-}
-
-function applyHeritageTarget(
-  edge: RelationEdge,
-  targetId: string,
-  tier: "INFERRED" | "AMBIGUOUS",
-): void {
-  edge.toId = targetId;
-  edge.confidence = CONFIDENCE_BY_TIER[tier];
-  edge.tier = tier;
-}
-
-/** Patch EXTENDS/IMPLEMENTS edges: textual name → resolved class/interface id. */
 function patchHeritage(edges: RelationEdge[], index: SymbolIndex): void {
   for (const edge of edges) {
     if (edge.kind !== "EXTENDS" && edge.kind !== "IMPLEMENTS") continue;
     const fromSym = index.byId.get(edge.fromId);
     if (!fromSym || fromSym.kind !== "class") continue;
 
-    const wantKind = heritageTargetKind(edge.kind);
+    const wantKind = edge.kind === "EXTENDS" ? "class" : "interface";
     const targetName = edge.toId;
 
     // Try same file first.
     const localId = index.byFileAndName.get(fromSym.filePath)?.get(targetName);
     if (localId && index.byId.get(localId)?.kind === wantKind) {
-      applyHeritageTarget(edge, localId, "INFERRED");
+      edge.toId = localId;
+      edge.confidence = CONFIDENCE_BY_TIER.INFERRED;
+      edge.tier = "INFERRED";
       continue;
     }
 
@@ -281,12 +237,15 @@ function patchHeritage(edges: RelationEdge[], index: SymbolIndex): void {
     );
     const first = filtered.at(0);
     if (filtered.length === 1 && first !== undefined) {
-      applyHeritageTarget(edge, first, "INFERRED");
+      edge.toId = first;
+      edge.confidence = CONFIDENCE_BY_TIER.INFERRED;
+      edge.tier = "INFERRED";
     } else if (filtered.length === 0 || first === undefined) {
       edge.toId = "";
     } else {
-      // Pick first; mark ambiguous. Phase 1 won't render tiers anyway.
-      applyHeritageTarget(edge, first, "AMBIGUOUS");
+      edge.toId = first;
+      edge.confidence = CONFIDENCE_BY_TIER.AMBIGUOUS;
+      edge.tier = "AMBIGUOUS";
     }
   }
 }
@@ -320,11 +279,6 @@ function resolveCallsForSourceFile(
   });
 }
 
-/**
- * Run the resolver. Mutates `parseResult.structuralRelations` in place to
- * patch placeholder edges; returns the new CALLS edges separately so the
- * writer can chunk them differently if needed.
- */
 export function resolveCalls(
   project: Project,
   parseResult: ParseResult,

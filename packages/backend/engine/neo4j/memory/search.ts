@@ -1,13 +1,3 @@
-/**
- * Search-style reads. `searchMemories` is a thin wrapper around
- * `listMemories` (kept here so the public action surface stays stable for
- * MCP tools / CommandPalette). `getRecentMemoryTitles` feeds the
- * relationship-suggestion picker.
- *
- * The hybrid retrieve (BM25 + vector + graph + RRF) lives in `retrieve.ts`,
- * not here.
- */
-
 import neo4j, { type Driver } from "neo4j-driver";
 import { listMemories } from "./crud";
 import { visibleStatusClause, withSession } from "./shared";
@@ -26,9 +16,6 @@ export async function searchMemories(
     offset: number;
   },
 ): Promise<{ memories: MemoryWithTags[]; total: number }> {
-  // Funnels every filter (profile, type, status, tags, source, fulltext)
-  // through the single Cypher path in listMemories. Fixes the old bugs where
-  // search ignored type/status/tag filters and returned total = page.length.
   return listMemories(driver, {
     userId: params.userId,
     profileId: params.profileId,

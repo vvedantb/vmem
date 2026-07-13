@@ -3,26 +3,10 @@ import type { Doc } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import { retrier } from "../retrier";
 
-/**
- * How the provider sync runs. Both strategies dispatch to the same
- * registered `sync*Internal` node actions — only the invocation differs:
- *   - "retrier": scheduled via the action retrier (fire-and-forget with
- *     backoff). Used by the public `startSync` action, which returns
- *     immediately while the sync runs in the background.
- *   - "direct": `ctx.runAction` awaited to completion. Used by
- *     `syncOneConnectorInternal` (daily workflow / manual MCP), which
- *     needs the sync to finish so it can report ok/error to its caller.
- */
-export type SyncExecution = "retrier" | "direct";
-
 type ProviderSyncRef =
   | typeof internal.neo4jActions.connectorSync.syncGoogleDriveInternal
   | typeof internal.neo4jActions.connectorSync.syncNotionInternal;
 
-/**
- * Single source of truth for which providers support sync and how each
- * one is dispatched.
- */
 export async function runConnectorProviderSync(
   ctx: ActionCtx,
   params: {
@@ -30,7 +14,7 @@ export async function runConnectorProviderSync(
     clerkId: string;
     accessToken: string;
     fullHistory: boolean;
-    execution: SyncExecution;
+    execution: "retrier" | "direct";
   },
 ): Promise<void> {
   const provider = params.connector.provider;

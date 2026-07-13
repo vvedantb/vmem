@@ -1,5 +1,4 @@
-/** Sentinel key for nodes with no parent (scope root). */
-export const ROOT_PARENT_KEY = "__root__";
+const ROOT_PARENT_KEY = "__root__";
 
 export function parentKey(parentId?: string): string {
   return parentId ?? ROOT_PARENT_KEY;

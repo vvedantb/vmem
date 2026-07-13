@@ -1,13 +1,3 @@
-/**
- * Public AI- and web-facing surface for the Phase 1 codebase parser.
- *
- * Each function delegates to an `internalAction` in
- * `convex/neo4jActions/codebases.ts` because the actual Neo4j calls
- * need the Node runtime (the `neo4j-driver` package depends on Node
- * built-ins). The bridge cost is one `runAction` hop — well worth it
- * for keeping the V8-runtime auth gate centralised.
- */
-
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { authAction, requireClerkId } from "./auth";

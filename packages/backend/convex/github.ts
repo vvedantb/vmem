@@ -16,8 +16,6 @@ import { encryptToken, getEnvOrThrow } from "./lib/crypto";
 import { createGithubOctokit } from "../engine/github/octokit";
 import { z } from "zod";
 
-// --- Public functions ---
-
 export const getConnection = authQuery({
   args: {},
   handler: async (ctx) => {
@@ -166,8 +164,6 @@ export const disconnect = authMutation({
     await ctx.db.delete(connection._id);
   },
 });
-
-// --- Internal helpers ---
 
 async function getConnectionForUser(
   ctx: QueryCtx | MutationCtx,

@@ -1,10 +1,5 @@
 "use node";
 
-/**
- * Shared mechanics for memory CRUD actions: type/status validators,
- * profile resolution, embed adapters, and chunk sync scheduling.
- */
-
 import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import type { Driver } from "neo4j-driver";
@@ -20,8 +15,6 @@ import type {
   MemoryType,
 } from "../../../engine/neo4j/memory/types";
 import type { McpScope } from "../../profiles/mcpAccess";
-
-export type { MemoryType, MemoryStatus };
 
 function isMemoryType(s: string): s is MemoryType {
   return s === "profile" || s === "episodic" || s === "knowledge";
@@ -43,10 +36,6 @@ export function toMemoryStatus(
   return s !== undefined && isMemoryStatus(s) ? s : undefined;
 }
 
-/**
- * Resolve the profileId for a memory operation.
- * Priority: explicit profileId > default profile (created if missing).
- */
 export async function resolveProfileIdForClerkId(
   ctx: ActionCtx,
   clerkId: string,
@@ -86,10 +75,6 @@ export async function resolveProfileIdForMcpScope(
 
 type EmbedArgs = Omit<BestEffortEmbedParams, "ctx">;
 
-/**
- * Memory actions use `(ctx, args)`; `bestEffortEmbed*` expects `{ ctx, ...args }`.
- * Do not alias these to `bestEffortEmbedOne` directly — that breaks `ctx.runQuery`.
- */
 export function tryEmbedOne(
   ctx: ActionCtx,
   args: EmbedArgs & { text: string },
@@ -104,11 +89,6 @@ export function tryEmbedMany(
   return bestEffortEmbedMany({ ctx, ...args });
 }
 
-/**
- * Keep Neo4j chunks in sync with memory body text.
- * - Long content → schedule `chunkMemoryInternal`
- * - Short content on update → delete existing chunks (create never deletes)
- */
 export async function scheduleChunkSyncForContent(
   ctx: ActionCtx,
   driver: Driver,

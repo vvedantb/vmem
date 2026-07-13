@@ -1,5 +1,4 @@
 import { internalMutation, query } from "./_generated/server";
-import type { MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { zodToConvex } from "convex-helpers/server/zod";
 import { z } from "zod";
@@ -38,8 +37,7 @@ export type MemoryEventType = z.infer<typeof memoryEventTypeSchema>;
 const eventTypeValidator = zodToConvex(memoryEventTypeSchema);
 
 /**
- * Maps the short change-feed event type to a stable, dotted audit-log action.
- * Kept in sync with the audit log's memory resource conventions.
+ * Maps change-feed event types to audit-log action strings.
  */
 export const ACTION_FOR_EVENT: Record<MemoryEventType, string> = {
   memory_created: "memory.created",
@@ -51,30 +49,6 @@ export const ACTION_FOR_EVENT: Record<MemoryEventType, string> = {
   dream_synthesis_materialized: "memory.dream.synthesis_materialized",
 };
 
-type MemoryEventArgs = {
-  clerkId: string;
-  eventType: MemoryEventType;
-  memoryId: string;
-  payload: string;
-};
-
-/**
- * Writes a single memory/relationship event to the permanent audit-log trail.
- */
-async function recordMemoryEvent(
-  ctx: MutationCtx,
-  args: MemoryEventArgs,
-): Promise<void> {
-  await auditLog.log(ctx, {
-    action: ACTION_FOR_EVENT[args.eventType],
-    actorId: args.clerkId,
-    resourceType: ResourceTypes.MEMORY,
-    resourceId: args.memoryId,
-    metadata: { payload: args.payload },
-    severity: "info",
-  });
-}
-
 export const pushEventInternal = internalMutation({
   args: {
     clerkId: v.string(),
@@ -84,20 +58,18 @@ export const pushEventInternal = internalMutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    await recordMemoryEvent(ctx, args);
+    await auditLog.log(ctx, {
+      action: ACTION_FOR_EVENT[args.eventType],
+      actorId: args.clerkId,
+      resourceType: ResourceTypes.MEMORY,
+      resourceId: args.memoryId,
+      metadata: { payload: args.payload },
+      severity: "info",
+    });
     return null;
   },
 });
 
-/**
- * Live change-feed for the web graph view (`useMemoryEvents`). Returns the
- * raw audit-log entries for memory/relationship actions — the web hook owns
- * the reverse map (action → `MemoryEventType`) and reshaping.
- *
- * The audit-log client returns untyped entries — we parse each row with
- * zod before returning, and rely on the Convex runtime `returns:`
- * validator as a second gate.
- */
 export const getRecentEvents = query({
   args: {
     since: v.number(),

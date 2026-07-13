@@ -17,21 +17,6 @@ import {
   requireContentScopeAccess,
 } from "./teams/auth";
 
-/**
- * Shared filesystem backend — powers the `/files` web view and the MCP file
- * tools (`mcp/files.ts`). A single `fileNodes` table holds folders and files
- * (discriminated by `kind`); files reference Convex storage via `storageId`.
- *
- * Scoping ("user-wide + team"): nodes without `teamId` are personal and
- * visible in every personal workspace; nodes with `teamId` form a team drive
- * shared by all members (any member edits, creator-or-owner deletes). A
- * subtree never mixes scopes, and each team has its own storage pool.
- *
- * listTree returns every node in the requested scope in one shot (trees are
- * assembled client-side) plus a resolved serving `url` per file, so the grid,
- * preview, and download paths never need a second round-trip.
- */
-
 interface FileNodeWithUrl extends Doc<"fileNodes"> {
   /** Convex serving URL for files; null for folders or missing storage. */
   url: string | null;
@@ -371,15 +356,6 @@ export const deleteNodes = authMutation({
   },
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Internal helpers for MCP file tools (after JWT verification, by clerkId).
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * All PERSONAL file nodes for a user, by clerkId. MCP path resolution runs
- * over this — MCP stays personal-only, so team nodes never leak into the
- * MCP path namespace.
- */
 export const listByClerkIdInternal = internalQuery({
   args: { clerkId: v.string() },
   handler: async (ctx, args): Promise<Array<Doc<"fileNodes">>> => {
@@ -518,10 +494,6 @@ export const deleteStorageInternal = internalMutation({
     await ctx.storage.delete(args.storageId);
   },
 });
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Memory-graph indexing support (see fileIndexing.ts for the pipeline).
-// ─────────────────────────────────────────────────────────────────────────────
 
 interface NodeForIndexResult {
   node: Doc<"fileNodes">;

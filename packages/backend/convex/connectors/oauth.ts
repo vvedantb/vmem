@@ -16,8 +16,6 @@ import {
   scopeIncludesDrive,
 } from "../neo4jActions/connectors/googleShared";
 
-// --- Provider configurations ---
-
 type Provider = NonNullable<Doc<"connectors">["provider"]>;
 
 interface ProviderConfig {
@@ -27,17 +25,12 @@ interface ProviderConfig {
   scopes: string[];
   clientIdEnv: string;
   clientSecretEnv: string;
-  /** Extra params merged into the authorize URL, after `scope` and before `state`. */
   extraAuthParams: Record<string, string>;
-  /** How the token endpoint expects client credentials. */
   tokenAuth: "body" | "basic";
-  /** Whether the (body-auth) token exchange request also carries `scope`. */
   includeScopeInTokenBody: boolean;
-  /** Derives the stored refresh token + expiry from the token response. */
   tokenPolicy: (tokenData: OAuthAccessTokenData) => StoreOAuthTokensOptions;
 }
 
-/** access_token/refresh_token pair expires per the provider's expires_in. */
 function expiringTokenPolicy(
   tokenData: OAuthAccessTokenData,
 ): StoreOAuthTokensOptions {
@@ -47,7 +40,6 @@ function expiringTokenPolicy(
   };
 }
 
-/** Provider issues a long-lived/non-expiring token with no refresh token. */
 function noExpiryTokenPolicy(): StoreOAuthTokensOptions {
   return { refreshToken: "", expiresAt: 0 };
 }
@@ -106,7 +98,6 @@ type OAuthTokenExchangeResult =
   | { ok: true; tokenData: OAuthAccessTokenData & { access_token: string } }
   | { ok: false; error: string };
 
-/** Fetch + parse a provider token endpoint response. */
 async function exchangeOAuthAccessToken(
   tokenUrl: string,
   init: RequestInit,
@@ -135,7 +126,6 @@ type StoreOAuthTokensOptions = {
   expiresAt: number;
 };
 
-/** Encrypt access (+ optional refresh) tokens and persist on the connector. */
 async function encryptAndStoreOAuthTokens(
   ctx: ActionCtx,
   connectorId: Id<"connectors">,
@@ -154,13 +144,6 @@ async function encryptAndStoreOAuthTokens(
   });
 }
 
-// --- Public actions ---
-
-/**
- * Initiates the connector OAuth flow.
- * Creates a state token tied to the current user + connector, returns the provider's authorize URL.
- * Frontend opens this URL in a popup.
- */
 const startOAuthResult = v.object({
   authUrl: v.union(v.string(), v.null()),
   alreadyConnected: v.boolean(),
@@ -244,9 +227,6 @@ export const startOAuth = authAction({
   },
 });
 
-/**
- * Disconnects a connector — revokes tokens with provider and cleans up.
- */
 export const disconnect = authAction({
   args: { connectorId: v.id("connectors") },
   handler: async (ctx, args) => {
@@ -302,8 +282,6 @@ export const disconnect = authAction({
     });
   },
 });
-
-// --- Internal action for handling OAuth callback ---
 
 type OAuthCallbackResult = {
   error: string | null;

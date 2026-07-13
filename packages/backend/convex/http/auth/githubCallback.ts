@@ -1,11 +1,6 @@
 import { httpAction } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 
-/**
- * GitHub OAuth callback — receives the authorization code from GitHub's redirect.
- * Delegates to handleGitHubCallbackInternal which validates the state, exchanges
- * the code for a token, and stores the encrypted connection.
- */
 export const githubCallback = httpAction(async (ctx, req) => {
   const url = new URL(req.url);
   const code = url.searchParams.get("code");

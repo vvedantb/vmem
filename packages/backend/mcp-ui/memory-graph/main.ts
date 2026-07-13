@@ -49,7 +49,6 @@ interface SimNode {
   vy: number;
 }
 
-/** Canvas palette — mirrors apps/web graph-view-themes DEFAULT dark/light. */
 interface GraphCanvasTheme {
   background: string;
   gradientCenter: string | null;
@@ -96,9 +95,6 @@ let panStartY = 0;
 let panOriginX = 0;
 let panOriginY = 0;
 
-// Accessor helpers return non-null element types so the narrowing survives
-// into the functions below (TS does not carry module-level null checks into
-// function bodies). The bundled HTML always contains these elements.
 function requireElement(id: string): HTMLElement {
   const el = document.getElementById(id);
   if (!el) throw new Error(`#${id} element missing`);
@@ -129,7 +125,6 @@ if (!ctx2d) {
 }
 const ctx = ctx2d;
 
-/** Same hue hash as apps/web graph-colors.ts */
 function tagToHue(tag: string): number {
   let hash = 0;
   for (let i = 0; i < tag.length; i++) {
@@ -253,12 +248,12 @@ function simulateStep() {
     }
   }
 
-  const link = function link(
+  const link = (
     source: string,
     target: string,
     strength: number,
     distance: number,
-  ): void {
+  ): void => {
     const a = byId.get(source);
     const b = byId.get(target);
     if (!a || !b) return;

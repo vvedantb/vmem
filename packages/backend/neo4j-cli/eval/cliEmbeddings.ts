@@ -1,8 +1,4 @@
-/**
- * Embedding client for CLI scripts (seed, retrieval eval). Uses OpenRouter
- * when OPENROUTER_API_KEY is set; otherwise falls back to deterministic
- * synthetic vectors so eval can run offline.
- */
+/** OpenRouter embeddings when configured; otherwise deterministic synthetic vectors. */
 
 import { createOpenRouterClient } from "../../convex/lib/openRouter/client";
 import pRetry from "p-retry";
@@ -88,7 +84,6 @@ function validateEmbeddingItems(
   return requireFilledVectors(slots, "embedding response");
 }
 
-/** Narrow sparse slot array after every index has been validated present. */
 function requireFilledVectors(
   slots: (number[] | undefined)[],
   label: string,

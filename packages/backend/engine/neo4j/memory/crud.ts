@@ -1,14 +1,3 @@
-/**
- * Memory CRUD + lookup helpers. All paths through here own at most one
- * audit-log write (`logEvent`) and stay schema-tolerant — `coalesce` is
- * used everywhere a property might be missing on legacy nodes.
- *
- * `listMemories` is the unified list+search path. Filters (profile, type,
- * status, source, tags, search) are pushed into Cypher so the frontend
- * paginates a filtered subset in constant time. `searchMemories` (in
- * `search.ts`) is just a thin wrapper around it.
- */
-
 import Cypher from "@neo4j/cypher-builder";
 import crypto from "node:crypto";
 import neo4j, {
@@ -26,14 +15,8 @@ import { logEvent, visibleStatusClause, withSession } from "./shared";
 import { normalizeTags } from "./tagNormalize";
 import type { MemoryStatus, MemoryType, MemoryWithTags } from "./types";
 
-/** Lightweight memory reference returned by the dedup-lookup helpers. */
 export type MemoryRef = { id: string; title: string; updatedAt: string };
 
-/**
- * Extract the `{id, title, updatedAt}` shape from a query's first record, or
- * null when the query matched nothing. Shared by every `findMemoryBy*` dedup
- * lookup — they all run a single-row MATCH and return this same projection.
- */
 function firstMemoryRef(result: QueryResult): MemoryRef | null {
   const r = result.records[0];
   if (!r) return null;
@@ -44,17 +27,12 @@ function firstMemoryRef(result: QueryResult): MemoryRef | null {
   };
 }
 
-/** Render a `{k: $k, ...}` node-pattern property list from a params object. */
 function propsClause(props: Record<string, unknown>): string {
   return Object.keys(props)
     .map((k) => `${k}: $${k}`)
     .join(", ");
 }
 
-/**
- * Shared core for `getMemory`/`getMemoryForTeam`: a single-node match by
- * arbitrary properties (id + userId, or id + profileId) plus its tags.
- */
 export async function fetchMemoryWithTags(
   driver: Driver,
   matchProps: Record<string, string>,
@@ -72,12 +50,6 @@ export async function fetchMemoryWithTags(
   });
 }
 
-/**
- * Shared core for `deleteMemory`/`deleteTeamMemoryAsOwner`: match a single
- * Memory node by arbitrary properties, DETACH DELETE it, report whether a
- * node was actually removed. Runs on a caller-supplied session so
- * `deleteMemory` can share one session with its chunk cleanup.
- */
 export async function detachDeleteCount(
   session: Session,
   matchProps: Record<string, string>,
@@ -93,10 +65,6 @@ export async function detachDeleteCount(
   return parseNeo4jInt(neo4jGet(firstRecord, "deleted")) > 0;
 }
 
-/**
- * Shared core for the `findMemoryBy*` dedup lookups: single-row MATCH on
- * arbitrary properties, optional extra WHERE/ORDER BY, same projection.
- */
 async function findMemoryRef(
   driver: Driver,
   matchProps: Record<string, string>,
@@ -119,13 +87,6 @@ async function findMemoryRef(
   });
 }
 
-/**
- * Shared core for `listMemories`/`listMemoriesForTeam`: everything past the
- * base scope filter (profile vs userId ownership) is identical — type,
- * status, source, tag, and fulltext-search filters, plus the two-pass
- * count+page run. `baseWhere` supplies the scope clause (e.g.
- * `m.userId = $userId`) and `baseParams` its bound values.
- */
 export async function runMemoryList(
   session: Session,
   baseWhere: string,
@@ -140,10 +101,7 @@ export async function runMemoryList(
     offset: number;
   },
 ): Promise<{ memories: MemoryWithTags[]; total: number }> {
-  // Count + page are still two sequential session.run() calls because a
-  // combined CALL{} pattern that joins them drops the count row whenever
-  // the page query returns zero rows (e.g. user scrolls past the end).
-  // That bug used to silently break pagination UIs, so the guard stays.
+  // Count + page stay separate: a combined query drops the count when the page is empty.
   const queryParams: Record<
     string,
     string | number | Integer | string[] | null
@@ -162,8 +120,6 @@ export async function runMemoryList(
     whereClauses.push("m.status = $status");
     queryParams.status = params.status;
   } else {
-    // Default: hide suppressed/expired. Matches the graph view and
-    // closes a latent bug where the search path ignored status entirely.
     whereClauses.push(visibleStatusClause("m"));
   }
   if (params.source) {
@@ -188,20 +144,12 @@ export async function runMemoryList(
     queryParams.searchQuery = luceneSearchQuery;
   }
 
-  // Index-joined tag filter: match the Tag node directly (hits the
-  // Tag(name) unique-constraint index) and require matched-tag count to
-  // equal the number of filter tags. Avoids scanning every TAGGED_WITH
-  // edge per memory. Forwards `score` alongside `m` when the search path
-  // is active so the subsequent ORDER BY can still see it.
   const tagMatchClause = hasTagFilter
     ? `MATCH (m)-[:TAGGED_WITH]->(ft:Tag) WHERE ft.name IN $filterTags
        WITH m${hasSearchQuery ? ", score" : ""}, count(DISTINCT ft) AS matchedTags
        WHERE matchedTags = ${filterTagsCount}`
     : "";
 
-  // The matchPrefix picks the query anchor: fulltext index when the user
-  // is searching, Memory(userId,status,createdAt) composite index
-  // otherwise. The orderClause decides how the page is sorted.
   const matchPrefix = hasSearchQuery
     ? `CALL db.index.fulltext.queryNodes('memory_content', $searchQuery) YIELD node AS m, score
        WHERE ${where}`
@@ -244,23 +192,10 @@ export async function createMemory(
     confidence: number;
     expiresAt?: string;
     url?: string;
-    // Pre-computed embedding vector (1536 dims for text-embedding-3-small).
-    // Null ⇒ user has no OPENROUTER_API_KEY set, or generation failed.
-    // Memories created without an embedding are still usable; the backfill
-    // migration fills them later, and retrieval degrades to fulltext-only.
     embedding: number[] | null;
-    // MD5 hex digest of normalized(title + content). Used for exact-duplicate
-    // detection on subsequent creates.
     contentHash: string;
-    // External ID idempotency. When both are provided, the memory node is
-    // tagged with `sourceType` + `sourceId` properties so the same external
-    // entity (file upload, Twitter bookmark, etc.) can be recognized across
-    // re-imports. The composite index `memory_source_id` (setup.ts) covers
-    // these. Reuses the same shape that `upsertFromSource` writes for
-    // connectors.
     sourceType?: string;
     sourceId?: string;
-    // File-upload metadata. Optional; only populated by the file-upload pipeline.
     storageId?: string;
     mimeType?: string;
     originalFilename?: string;
@@ -316,8 +251,6 @@ export async function createMemory(
         type: params.type,
         source: params.source,
         confidence: params.confidence,
-        // Chokepoint normalization: client tags (MCP, HTTP API, web form)
-        // arrive raw — "GCP" vs "gcp" would mint separate Tag nodes.
         tags: normalizeTags(params.tags),
         now,
         expiresAt: params.expiresAt ?? null,
@@ -350,8 +283,6 @@ export async function createMemory(
       snapshot,
     );
 
-    // Only create "same session" edges for interactive sources, not batch imports.
-    // Batch sources like browsing-history/bookmarks create O(n²) junk edges.
     const BATCH_SOURCES = new Set([
       "browsing-history",
       "bookmarks",
@@ -375,16 +306,6 @@ export async function createMemory(
       );
     }
 
-    // NOTE: there is deliberately NO "same domain" edge between URL memories.
-    // It existed once and produced 73% of all RELATES_TO edges as noise:
-    // platform domains dominate real browsing (youtube.com, github.com,
-    // google.com), so "same domain" is platform affinity, not topical
-    // relation — and its un-ordered LIMIT 10 concentrated an unbounded
-    // incoming-edge star on the ~10 oldest memories per domain (worst node:
-    // 578 edges). Genuinely related pages are covered by the two similarity
-    // paths below; browsing bursts by the same-session edge above.
-
-    // Semantic similarity edges — see createSemanticSimilarityEdges in relationships.ts.
     if (params.embedding !== null) {
       await createSemanticSimilarityEdges(
         session,
@@ -422,10 +343,6 @@ export async function listMemories(
     offset: number;
   },
 ): Promise<{ memories: MemoryWithTags[]; total: number }> {
-  // Unified list + search path — see `runMemoryList` for the shared
-  // filter/search/pagination core. Scope: owned memories, plus (when a
-  // profile is given) memories tagged with that profile or unmigrated
-  // (legacy, no profileId yet).
   return withSession(driver, async (session) => {
     const baseParams: Record<
       string,
@@ -548,10 +465,6 @@ export async function deleteMemory(
   memoryId: string,
 ): Promise<boolean> {
   return withSession(driver, async (session) => {
-    // Cascade-delete chunks first — they are :Chunk nodes linked via
-    // HAS_CHUNK and DETACH DELETE on the parent only severs the edge,
-    // it does not remove the chunk node. Done in two passes on the
-    // same session so we never DETACH DELETE before removing chunks.
     await session.run(
       `MATCH (c:Chunk {memoryId: $memoryId, userId: $userId})
        DETACH DELETE c`,
@@ -561,7 +474,7 @@ export async function deleteMemory(
   });
 }
 
-/** Prune Tag/Source nodes no memory still references (global UNIQUE names). */
+/** Prune Tag/Source nodes no memory still references. */
 async function deleteOrphanTagsAndSources(session: Session): Promise<void> {
   await session.run(
     `MATCH (t:Tag)
@@ -578,11 +491,6 @@ async function deleteOrphanTagsAndSources(session: Session): Promise<void> {
 const MEMORY_SOURCE_TYPE_WHERE =
   "m.sourceType IN $sourceTypes OR m.source IN $sourceTypes";
 
-/**
- * Remove every memory imported from the given connector source types, plus
- * their chunks, events, and proposed updates. Does not disconnect OAuth or
- * wipe unrelated memories.
- */
 export async function deleteMemoriesBySourceTypes(
   driver: Driver,
   userId: string,
@@ -628,16 +536,6 @@ export async function deleteMemoriesBySourceTypes(
   });
 }
 
-/**
- * Wipe every memory the user owns and every node that exists only to
- * support those memories: chunks, memory events, proposed updates, and
- * per-user entities. Tags and sources are global (`UNIQUE` on name) so
- * we only prune the orphans — names other users still reference stay.
- *
- * Deletes child rows first, then memories, then orphan cleanup, so
- * DETACH DELETE never has to walk into a child it was supposed to remove
- * on its own.
- */
 export async function deleteAllMemoriesForUser(
   driver: Driver,
   userId: string,
@@ -684,10 +582,6 @@ export async function findMemoryByUrl(
   return findMemoryRef(driver, { userId, url });
 }
 
-/**
- * Increment visit count for an existing URL-based memory.
- * Called when a duplicate URL is detected during import.
- */
 export async function incrementVisitCount(
   driver: Driver,
   userId: string,
@@ -714,34 +608,16 @@ export async function incrementVisitCount(
   });
 }
 
-/**
- * Dedup short-circuit: bump visit count and return the full memory row.
- * Returns null when the node disappeared between match and read (race).
- */
-export async function finalizeDedupHit(
-  driver: Driver,
-  userId: string,
-  memoryId: string,
-): Promise<MemoryWithTags | null> {
-  await incrementVisitCount(driver, userId, memoryId);
-  return getMemory(driver, userId, memoryId);
-}
-
-/** Bump visit count and return the full row when a dedup lookup matched. */
 export async function shortCircuitOnDedupMatch(
   driver: Driver,
   userId: string,
   ref: MemoryRef | null,
 ): Promise<MemoryWithTags | null> {
   if (!ref) return null;
-  return finalizeDedupHit(driver, userId, ref.id);
+  await incrementVisitCount(driver, userId, ref.id);
+  return getMemory(driver, userId, ref.id);
 }
 
-/**
- * Find an existing browsing-history/bookmarks memory with the same title
- * from the same origin (protocol+host). Catches the "every page on my app
- * has <title>vmem</title>" problem.
- */
 export async function findMemoryByTitleAndOrigin(
   driver: Driver,
   userId: string,
@@ -760,10 +636,6 @@ export async function findMemoryByTitleAndOrigin(
   );
 }
 
-/**
- * Find an active/pinned memory with the same content hash (exact duplicate).
- * Uses the (userId, contentHash) composite index for O(1) lookup.
- */
 export async function findMemoryByContentHash(
   driver: Driver,
   userId: string,
@@ -772,13 +644,6 @@ export async function findMemoryByContentHash(
   return findMemoryRef(driver, { userId, contentHash });
 }
 
-/**
- * Find an existing memory by its (sourceType, sourceId) tuple — the
- * external-ID idempotency lookup. Used by callers who can supply a stable
- * external identifier (file content hash, Twitter bookmark ID, etc.) so
- * re-imports return the same memory without going through hash/URL/semantic
- * dedup. Backed by the composite index `memory_source_id` in setup.ts.
- */
 export async function findMemoryByExternalId(
   driver: Driver,
   userId: string,
@@ -788,11 +653,6 @@ export async function findMemoryByExternalId(
   return findMemoryRef(driver, { userId, sourceType, sourceId });
 }
 
-/**
- * Find the most semantically similar active/pinned memory above `threshold`.
- * Uses the vector index — only callable when an embedding is available.
- * Returns null when no memory exceeds the threshold.
- */
 export async function findMemoryBySimilarity(
   driver: Driver,
   userId: string,

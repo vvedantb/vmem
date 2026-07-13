@@ -1,20 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { recallAtFive, reciprocalRank } from "./metrics";
+import { recallAtK, reciprocalRank } from "./metrics";
 
 describe("retrieval eval metrics", () => {
   it("scores full recall when every expected title is in the top five", () => {
     const titles = ["A", "B", "C", "D", "E", "F"];
-    expect(recallAtFive(titles, ["B", "E"])).toBe(1);
+    expect(recallAtK(titles, ["B", "E"], 5)).toBe(1);
   });
 
   it("scores partial recall when only some expected titles appear in the top five", () => {
     const titles = ["A", "B", "C", "D", "E", "F"];
-    expect(recallAtFive(titles, ["B", "Z"])).toBe(0.5);
+    expect(recallAtK(titles, ["B", "Z"], 5)).toBe(0.5);
   });
 
   it("scores zero recall when no expected titles appear in the top five", () => {
     const titles = ["A", "B", "C", "D", "E"];
-    expect(recallAtFive(titles, ["Z"])).toBe(0);
+    expect(recallAtK(titles, ["Z"], 5)).toBe(0);
   });
 
   it("scores reciprocal rank from the first relevant hit", () => {

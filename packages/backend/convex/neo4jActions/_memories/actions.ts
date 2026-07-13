@@ -1,11 +1,5 @@
 "use node";
 
-/**
- * Convex `internalAction` definitions for memory operations.
- * Re-exported through `../memories.ts` so callers keep
- * `internal.neo4jActions.memories.*` paths (Eva facade pattern).
- */
-
 import { internalAction, type ActionCtx } from "../../_generated/server";
 import { v } from "convex/values";
 import { runBackfillChunks, runChunkMemory } from "./chunks";
@@ -28,8 +22,6 @@ import {
 import { runCreateMemory } from "./create";
 import { resolveProfileIdForClerkId } from "./shared";
 
-/** Resolve `profileId` (default / MCP-active when unset) and splice it into args.
- *  Used for read paths at the action boundary; write runners resolve inside. */
 async function withResolvedProfileId<
   T extends { clerkId: string; profileId?: string },
 >(ctx: ActionCtx, args: T) {
@@ -178,7 +170,6 @@ export const getRecentMemoryTitlesInternal = internalAction({
   handler: async (_ctx, args) => runGetRecentMemoryTitles(args),
 });
 
-// Team-scoped: verify membership in the Convex layer before calling these.
 export const listMemoriesForTeamInternal = internalAction({
   args: {
     profileId: v.string(),

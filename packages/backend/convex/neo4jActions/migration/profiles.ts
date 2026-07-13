@@ -1,9 +1,5 @@
 "use node";
 
-/**
- * Neo4j memory helpers for profile/team lifecycle (move or delete by profile).
- */
-
 import { internalAction } from "../../_generated/server";
 import { v } from "convex/values";
 import {

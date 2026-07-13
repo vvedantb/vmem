@@ -41,9 +41,6 @@ const healthBodySchema = z.object({
 
 const jsonObjectSchema = z.object({}).passthrough();
 
-export type HttpMemory = z.infer<typeof memorySchema>;
-export type HttpRetrieveResult = z.infer<typeof retrieveDataSchema>;
-
 export type HttpClientConfig = {
   baseUrl: string;
   apiKey: string;

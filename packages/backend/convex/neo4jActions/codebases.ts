@@ -1,30 +1,22 @@
 "use node";
 
-/**
- * Phase 1 codebase parser actions. Runs in the Node.js runtime so we can
- * use `neo4j-driver` and `ts-morph` (both depend on Node built-ins).
- *
- * Stages, with `parseStage` patched on the codebases row at each one:
- *   1. fetching   — pull the file tree + raw blobs from GitHub
- *   2. parsing    — ts-morph AST walk
- *   3. processes  — entry-point detection + BFS process construction
- *   4. writing    — bulk Neo4j writes
- *   5. done
- */
-
 import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
 import {
-  getOverviewStats,
-  getGraphOverview,
-  getSymbolContext,
-  searchSymbols,
-  getDownstreamImpact,
-  getUpstreamImpact,
   deleteCodebase,
   type SyncStage,
 } from "../../engine/neo4j/codebaseService";
+import {
+  getGraphOverview,
+  getOverviewStats,
+  getSymbolContext,
+  searchSymbols,
+} from "../../engine/neo4j/codebase/read";
+import {
+  getDownstreamImpact,
+  getUpstreamImpact,
+} from "../../engine/neo4j/codebase/impact";
 import { getDriver } from "../../engine/neo4j/driver";
 import { runCodebaseSync } from "../../engine/codebase/runCodebaseSync";
 
@@ -180,12 +172,7 @@ export const searchSymbolsInternal = internalAction({
   },
 });
 
-/**
- * Backwards-compatible wrapper for the old graph reader. The web is
- * being migrated to `getGraphInternal`, but the old endpoint stays
- * around so we don't ship a deploy that breaks the dashboard if the
- * web rollout lags behind.
- */
+/** Legacy graph shape for dashboard callers not yet on getGraphInternal. */
 export const getCodebaseGraphInternal = internalAction({
   args: {
     clerkId: v.string(),
@@ -198,10 +185,7 @@ export const getCodebaseGraphInternal = internalAction({
       codebaseId: args.codebaseId,
       kinds: ["code-file"],
     });
-    // Translate to the old wire shape.
-    const idToPath = new Map<string, string>();
     const nodes = overview.nodes.map((n) => {
-      idToPath.set(n.id, n.path);
       const filename = n.name;
       const ext = filename.includes(".")
         ? filename.slice(filename.lastIndexOf("."))

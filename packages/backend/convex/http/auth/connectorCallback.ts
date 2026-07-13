@@ -2,10 +2,6 @@ import { httpAction } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import { connectorCallbackHtml } from "./connectorCallbackHtml";
 
-/**
- * Connector OAuth callback — receives the authorization code from Google/Notion redirect.
- * Returns HTML that postMessages to the opener window and closes the popup.
- */
 export const connectorCallback = httpAction(async (ctx, req) => {
   const url = new URL(req.url);
   const code = url.searchParams.get("code");

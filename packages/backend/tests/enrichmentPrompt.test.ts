@@ -3,9 +3,11 @@ import {
   buildFullEnrichmentPrompt,
   normalizeEntityName,
   parseFullEnrichmentResponse,
-  sanitizeTag,
 } from "../convex/prompts/enrichmentPrompt";
-import { normalizeTags } from "../engine/neo4j/memory/tagNormalize";
+import {
+  normalizeTags,
+  sanitizeTag,
+} from "../engine/neo4j/memory/tagNormalize";
 
 describe("normalizeTags", () => {
   it("merges case/format variants into one canonical tag", () => {

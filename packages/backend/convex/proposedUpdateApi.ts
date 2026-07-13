@@ -20,7 +20,7 @@ export const resolveProposal = authAction({
   args: {
     proposalId: v.string(),
     action: v.string(),
-    /** Contradiction proposals: the source memory the user chose to keep. */
+    /** Contradiction proposals: memory id to keep. */
     winnerMemoryId: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<ResolveResult | null> => {

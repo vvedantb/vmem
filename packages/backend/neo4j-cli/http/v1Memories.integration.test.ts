@@ -12,7 +12,6 @@ const baseUrl = process.env.VMEM_HTTP_API_BASE_URL ?? DEFAULT_HTTP_API_BASE_URL;
 
 const canRun = runLiveHttpApiTest && apiKey !== undefined && apiKey.length > 0;
 
-/** Fail the test and narrow a discriminated HTTP result to the ok branch. */
 function expectOk<T>(
   result: HttpJsonResult<T>,
 ): asserts result is Extract<HttpJsonResult<T>, { ok: true }> {
@@ -24,7 +23,6 @@ function expectOk<T>(
   }
 }
 
-/** Fail the test and narrow a discriminated HTTP result to the error branch. */
 function expectErr(
   result: HttpJsonResult<unknown>,
 ): asserts result is Extract<HttpJsonResult<unknown>, { ok: false }> {

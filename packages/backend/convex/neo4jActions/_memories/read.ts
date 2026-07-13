@@ -1,10 +1,5 @@
 "use node";
 
-/**
- * Memory read handlers: simple lookups (`get`, `events`, recent titles)
- * and the search/retrieve pair (BM25 vs hybrid retrieve with embedding).
- */
-
 import { z } from "zod";
 import type { ActionCtx } from "../../_generated/server";
 import { getMemory, listMemories } from "../../../engine/neo4j/memory/crud";
@@ -31,11 +26,6 @@ import {
 const stringArraySchema = z.array(z.string());
 const numberArraySchema = z.array(z.number());
 
-/**
- * Extract the first balanced top-level `[...]` substring from `source`.
- * Recovers arrays embedded in prose (e.g. "Here are the queries: [...]")
- * that `parseJsonString`'s whole-string parse rejects.
- */
 function extractBalancedArray(source: string): string | null {
   const start = source.indexOf("[");
   if (start === -1) return null;
@@ -52,11 +42,6 @@ function extractBalancedArray(source: string): string | null {
   return null;
 }
 
-/**
- * Fallback for `parseJsonString` when the LLM wraps its JSON array in
- * prose: strip fences/think blocks, pull out the first balanced `[...]`,
- * then parse+validate just that substring.
- */
 function parseEmbeddedJsonArray<T>(
   content: string,
   schema: z.ZodType<T, z.ZodTypeDef, unknown>,
@@ -249,11 +234,6 @@ async function rerankRetrievalCandidates(
   return scores;
 }
 
-/**
- * Hybrid retrieval: best-effort query embedding (falls back to
- * fulltext-only when the user has no OPENROUTER_API_KEY or the call
- * fails — the service records the degraded state in the trace reason).
- */
 export async function runRetrieveMemories(
   ctx: ActionCtx,
   args: RetrieveMemoriesArgs,

@@ -1,19 +1,3 @@
-/**
- * Shared types for the Phase 1 codebase parser pipeline.
- *
- * Stable IDs use **qualified-name format**: `<codebaseId>:<relPath>:<symbolPath>`.
- * Methods append `Class.method`. Files: `<codebaseId>:<path>`. Processes:
- * `<codebaseId>:p<n>`. Idempotent re-syncs (MERGE matches the same node) and
- * debuggable in raw Cypher.
- *
- * Confidence policy:
- *   - AST-resolved by ts-morph type checker → 1.0 / `EXTRACTED`
- *   - Same-file name match (no resolved symbol) → 0.7 / `INFERRED`
- *   - Multiple candidates → 0.4 / `AMBIGUOUS` (one edge per candidate)
- * Structural edges (`CONTAINS`, `HAS_METHOD`, `INCLUDES`, `STARTS_PROCESS`)
- * carry no confidence.
- */
-
 export type ConfidenceTier = "EXTRACTED" | "INFERRED" | "AMBIGUOUS";
 
 export const CONFIDENCE_BY_TIER: Record<ConfidenceTier, number> = {
@@ -21,8 +5,6 @@ export const CONFIDENCE_BY_TIER: Record<ConfidenceTier, number> = {
   INFERRED: 0.7,
   AMBIGUOUS: 0.4,
 };
-
-export type SymbolKind = "file" | "function" | "class" | "interface";
 
 export interface FileNode {
   kind: "file";
@@ -78,16 +60,14 @@ export interface InterfaceNode {
 
 export type SymbolNode = FileNode | FunctionNode | ClassNode | InterfaceNode;
 
-export type RelationKind =
-  | "IMPORTS"
-  | "CONTAINS"
-  | "HAS_METHOD"
-  | "CALLS"
-  | "EXTENDS"
-  | "IMPLEMENTS";
-
 export interface RelationEdge {
-  kind: RelationKind;
+  kind:
+    | "IMPORTS"
+    | "CONTAINS"
+    | "HAS_METHOD"
+    | "CALLS"
+    | "EXTENDS"
+    | "IMPLEMENTS";
   fromId: string;
   toId: string;
   /** Only present on edges that carry confidence (IMPORTS / CALLS / EXTENDS / IMPLEMENTS). */
@@ -99,11 +79,8 @@ export interface RelationEdge {
   callSiteLine?: number;
 }
 
-/** Detected entry point — a function that starts an end-to-end Process. */
 export interface EntryPoint {
-  /** Function symbol id. */
   functionId: string;
-  /** What pattern matched. */
   kind:
     | "convex_query"
     | "convex_mutation"
@@ -114,7 +91,6 @@ export interface EntryPoint {
     | "heuristic_main"
     | "event_handler"
     | "no_incoming";
-  /** Display name, e.g. "convex/codebases.ts::syncCodebase". */
   name: string;
 }
 
@@ -128,9 +104,7 @@ export interface ProcessNode {
 }
 
 export interface ParseResult {
-  /** All file/function/class/interface nodes in dependency order. */
   symbols: SymbolNode[];
-  /** Structural edges from parsing alone (CONTAINS / HAS_METHOD / EXTENDS / IMPLEMENTS / IMPORTS). */
   structuralRelations: RelationEdge[];
 }
 
@@ -143,5 +117,3 @@ export interface ParseStats {
   processCount: number;
   importEdgeCount: number;
 }
-
-export { PARSER_VERSION } from "@vmem/shared";

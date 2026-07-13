@@ -10,7 +10,7 @@ import { internal } from "../_generated/api";
 import type { McpScope } from "../profiles/mcpAccess";
 import { MEMORY_GRAPH_MCP_APP_HTML } from "./bundled/memoryGraphHtml";
 
-export const MEMORY_GRAPH_RESOURCE_URI = "ui://vmem/memory-graph";
+const MEMORY_GRAPH_RESOURCE_URI = "ui://vmem/memory-graph";
 
 const memoryGraphInputSchema = {
   profileId: z

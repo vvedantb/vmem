@@ -2,18 +2,6 @@ import { v } from "convex/values";
 import { internalQuery, internalMutation } from "./_generated/server";
 import { authQuery, authMutation } from "./auth";
 
-/**
- * User-scoped environment variables (one document per user).
- *
- * The single-doc pattern mirrors `conductor`'s `teamEnvVars` / `repoEnvVars`:
- * a `vars: Array<{ key, value }>` field aggregates all entries for a user. Env
- * var sets are bounded in practice, so the 1MB document limit is not a concern.
- *
- * `value` in the stored doc is always ciphertext (produced by `lib/crypto.ts#encryptToken`).
- * Plaintext only leaves Convex via `userEnvVarsActions.revealValue`.
- */
-
-/** Lists the authenticated user's env vars. Values are masked server-side. */
 export const list = authQuery({
   args: {},
   returns: v.array(

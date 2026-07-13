@@ -21,7 +21,6 @@ export const getProfilesStatsInternal = internalAction({
   handler: async (_ctx, args) => {
     const driver = getDriver();
     const results: Record<string, { total: number; today: number }> = {};
-    // Fetch stats for each profile in parallel
     await Promise.all(
       args.profileIds.map(async (profileId) => {
         const stats = await getStats(driver, args.clerkId, profileId);

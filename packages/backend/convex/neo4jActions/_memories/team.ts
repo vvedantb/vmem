@@ -1,18 +1,11 @@
 "use node";
 
-/**
- * Team-scoped memory handlers. The Convex layer must verify team
- * membership BEFORE invoking these — they carry no per-user auth check,
- * only a profileId filter.
- */
-
 import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import {
   deleteTeamMemoryAsOwner,
   getMemoryForTeam,
   listMemoriesForTeam,
-  searchMemoriesForTeam,
 } from "../../../engine/neo4j/memory/team";
 import { getDriver } from "../../../engine/neo4j/driver";
 import { toMemoryStatus, toMemoryType } from "./shared";
@@ -60,12 +53,12 @@ export async function runSearchMemoriesForTeam(
   args: SearchMemoriesForTeamArgs,
 ) {
   const driver = getDriver();
-  return await searchMemoriesForTeam(driver, {
+  return await listMemoriesForTeam(driver, {
     profileId: args.profileId,
-    query: args.query,
     type: toMemoryType(args.type),
     tags: args.tags,
     source: args.source,
+    searchQuery: args.query,
     limit: args.limit,
     offset: args.offset,
   });

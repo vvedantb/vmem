@@ -1,5 +1,8 @@
+import type { MemoryWithTags } from "../../../engine/neo4j/memory/types";
 import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
+import type { OpenRouterRequired } from "../../neo4jActions/agent/shared";
+import type { StoreFromInstructionResult } from "../../neo4jActions/agent/storeFromInstruction";
 import {
   guardProfileAccess,
   withApiKeyAuth,
@@ -10,19 +13,14 @@ import {
   isInstructionStoreBody,
   type StoreBody,
 } from "./schemas";
-import {
-  isOpenRouterRequired,
-  openRouterRequiredResponse,
-  type CreateMemoryActionResult,
-  type StoreFromInstructionActionResult,
-} from "./types";
+import { isOpenRouterRequired, openRouterRequiredResponse } from "./types";
 
 async function runStoreHandler(
   ctx: ActionCtx,
   auth: ApiKeyAuth,
   body: StoreBody,
 ): Promise<
-  Response | CreateMemoryActionResult | StoreFromInstructionActionResult
+  Response | MemoryWithTags | StoreFromInstructionResult | OpenRouterRequired
 > {
   const forbidden = await guardProfileAccess(ctx, auth, body.profileId);
   if (forbidden) {

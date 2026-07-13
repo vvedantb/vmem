@@ -1,31 +1,16 @@
-/**
- * Neo4j bulk writer. Chunks at 500 to stay well under Neo4j's 4 MB
- * transaction cap. Order matters:
- *
- *   1. deleteStale — remove nodes/edges no longer in the parse result
- *   2. upsert files
- *   3. upsert functions / classes / interfaces
- *   4. upsert IMPORTS / CALLS / HAS_METHOD / EXTENDS / IMPLEMENTS / CONTAINS
- *   5. upsert processes + STARTS_PROCESS / INCLUDES
- *
- * Every call uses `UNWIND $rows MERGE (n:Label { id: row.id }) SET n += row.props`
- * so re-syncs are idempotent (qualified-name IDs) and the Convex action
- * stays under the 10-min timeout budget.
- */
-
 import Cypher from "@neo4j/cypher-builder";
 import type { Driver } from "neo4j-driver";
+import { PARSER_VERSION } from "@vmem/shared";
 import { buildAndRun } from "../cypherHelpers";
-import {
-  type ParseStats,
-  type ProcessNode,
-  type RelationEdge,
-  type SymbolNode,
-  type FileNode,
-  type FunctionNode,
-  type ClassNode,
-  type InterfaceNode,
-  PARSER_VERSION,
+import type {
+  ParseStats,
+  ProcessNode,
+  RelationEdge,
+  SymbolNode,
+  FileNode,
+  FunctionNode,
+  ClassNode,
+  InterfaceNode,
 } from "./types";
 
 const CHUNK_SIZE = 500;
@@ -87,10 +72,6 @@ async function runClause(driver: Driver, clause: Cypher.Clause): Promise<void> {
   }
 }
 
-/**
- * Delete any code-graph node scoped to (userId, codebaseId) whose id
- * isn't in the new keep-set. DETACH DELETE drops attached edges too.
- */
 async function deleteStale(
   driver: Driver,
   userId: string,
@@ -155,7 +136,6 @@ async function upsertNodes(
   }
 }
 
-/** Wrap a node id + userId/codebaseId scoping into the common upsert-row shape. */
 function makeRow(
   id: string,
   userId: string,
@@ -236,10 +216,6 @@ function processRow(
   });
 }
 
-/**
- * Upsert a batch of edges of a single type. Endpoint labels are
- * variable, so we use generic `(a {id})-[r:TYPE]->(b {id})`.
- */
 async function upsertEdges(
   driver: Driver,
   type: EdgeKind,
@@ -356,7 +332,6 @@ async function upsertProcesses(
   await upsertLabeledEdges(driver, "INCLUDES", "Process", "Function", includes);
 }
 
-/** Public entry point. Returns ParseStats so the action can patch the codebases row. */
 export async function writeParseResult(args: WriteArgs): Promise<ParseStats> {
   const {
     driver,

@@ -1,8 +1,3 @@
-/**
- * Wiki content helpers — markdown is canonical in Convex.
- * JSON conversion exists only for one-time migration off legacy contentJson.
- */
-
 import removeMarkdown from "remove-markdown";
 import { z } from "zod";
 
@@ -34,7 +29,7 @@ export function wikiExcerpt(text: string, maxLength = 200): string {
   return `${trimmed.slice(0, maxLength)}…`;
 }
 
-/** Plain-text mirror for Convex full-text search (derived from markdown on write). */
+/** Plain-text mirror for Convex full-text search. */
 export function markdownToPlainText(markdown: string): string {
   return removeMarkdown(markdown)
     .replace(/\n{2,}/g, "\n")

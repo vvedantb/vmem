@@ -1,6 +1,3 @@
-/**
- * Neo4j `sourceType` values written by each connector provider.
- */
 export const CONNECTOR_PROVIDER_SOURCE_TYPES = {
   google_drive: ["google_drive"],
   notion: ["notion"],

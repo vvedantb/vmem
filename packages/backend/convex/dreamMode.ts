@@ -2,18 +2,6 @@ import { authAction, requireClerkId } from "./auth";
 import { internal } from "./_generated/api";
 import { auditLog, ResourceTypes } from "./auditLog";
 
-/**
- * Dream Mode V2 — public API for the manual "Start Dreaming" button.
- *
- * The Dreamer pipeline lives in `neo4jActions/dreamMode.ts` (Node runtime —
- * needs Neo4j driver). This file is the thin authAction wrapper that
- * resolves clerkId and delegates to `runDreamForActiveUser`, which enforces
- * the 1-run-per-hour rate-limit at the user level.
- *
- * Personal profiles are scanned in one user-wide pass; team profiles still
- * have their own per-profile cron (see `setDreamScheduleForTeamProfile`).
- */
-
 interface RunResult {
   proposalsCreated: number;
   memoriesMaterialized: number;

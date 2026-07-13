@@ -1,33 +1,16 @@
-/**
- * Shared types, constants, and helpers for OpenRouter API calls.
- *
- * Both chat completions and embeddings need: feature taxonomy for
- * spend attribution, privacy-gated prompt previews, and a scheduled
- * `openRouterLogs` row per HTTP attempt. This file owns the shared
- * bits; `chat.ts` and `embedding.ts` own the per-endpoint shapes.
- */
-
 import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
 import { internal } from "../../_generated/api";
 import type { OpenRouterEndpoint, OpenRouterFeature } from "./schemas";
 
-export type { OpenRouterEndpoint, OpenRouterFeature };
+export type { OpenRouterFeature };
 
-/**
- * Default model for every server-side LLM reasoning call — enrichment,
- * fact extraction, dream synthesis, context-prompt summary, retrieval
- * helper, and entity backfill. Single source of truth: change it here
- * and all callers follow.
- */
 export const LLM_MODEL = "qwen/qwen3-235b-a22b-2507";
 
-/** Privacy default — only populate prompt/completion previews when the
- *  deploy explicitly opts in. */
 export const PROMPT_PREVIEW_BYTES = 4096;
 export const COMPLETION_PREVIEW_BYTES = 2048;
 
-export interface LogPayload {
+interface LogPayload {
   userId: Id<"users">;
   profileId?: string;
   feature: OpenRouterFeature;
@@ -51,10 +34,6 @@ export interface LogPayload {
   completionPreview?: string;
 }
 
-/**
- * Schedule one `openRouterLogs` row per HTTP attempt. Wrapped in
- * try/catch — observability must not take down the user's request.
- */
 export async function scheduleLog(
   ctx: ActionCtx,
   payload: LogPayload,

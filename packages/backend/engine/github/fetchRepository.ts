@@ -105,10 +105,7 @@ async function extractTsJsFromTarball(
   });
 }
 
-/**
- * Download the repo tarball once and extract TS/JS sources. Much faster than
- * hundreds of per-file contents API calls (eva ~707 files).
- */
+/** Download repo tarball and extract TS/JS sources (faster than per-file API). */
 export async function fetchRepositoryFromGithub(
   repoOwner: string,
   repoName: string,

@@ -1,14 +1,3 @@
-/**
- * Process detection. For each `EntryPoint`, BFS forward in the directed
- * `CALLS` graph (depth ≤ 8) to collect every reachable function. The
- * result is a `Process` node + edges (`STARTS_PROCESS`, `INCLUDES`)
- * stored separately from the structural relations array because the
- * Neo4j writer treats them as their own bucket.
- *
- * Depth limit is a guardrail against pathological cycles — we don't
- * trust ts-morph to be cycle-free in 100% of corner cases.
- */
-
 import type { EntryPoint, ProcessNode, RelationEdge } from "./types";
 
 const MAX_DEPTH = 8;

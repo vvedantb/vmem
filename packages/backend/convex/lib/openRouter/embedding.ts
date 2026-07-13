@@ -1,11 +1,3 @@
-/**
- * OpenRouter embedding wrapper. Splits inputs into batches of 20,
- * fires one SDK call per batch, retries on 429 with exponential
- * backoff (each retry logs as its own row). Throws on any
- * non-recoverable failure — callers wrap in try/catch and degrade
- * to fulltext-only / no-embedding.
- */
-
 import type { CreateEmbeddingsResponseBody } from "@openrouter/sdk/models/operations";
 import pRetry from "p-retry";
 import type { ActionCtx } from "../../_generated/server";
@@ -19,24 +11,15 @@ import {
   type OpenRouterFeature,
 } from "./shared";
 
-/**
- * Hardcoded embedding model — the only one the codebase has ever used.
- * Exposed so the rest of the codebase can keep importing
- * `EMBEDDING_DIMENSIONS` from a single canonical place.
- */
 const EMBEDDING_MODEL = "openai/text-embedding-3-small";
-export const EMBEDDING_DIMENSIONS = 1536;
+const EMBEDDING_DIMENSIONS = 1536;
 
-/** Per-1k-token USD cost per embedding model — fallback when the API
- *  does not return inline cost. Numbers from openrouter.ai/models. */
 const EMBEDDING_PRICE_USD_PER_1K: Record<string, number> = {
   "openai/text-embedding-3-small": 0.00002,
 };
 
 const EMBEDDING_BATCH_SIZE = 20;
 const EMBEDDING_MAX_RETRY_ATTEMPTS = 4;
-/** text-embedding-3-small allows up to ~8191 tokens. 6000 chars is a
- *  conservative byte-level cap that stays well under the limit. */
 const EMBEDDING_MAX_INPUT_CHARS = 6000;
 
 interface EmbeddingItem {
@@ -44,20 +27,14 @@ interface EmbeddingItem {
   index: number;
 }
 
-export interface EmbeddingCallArgs {
+interface EmbeddingCallArgs {
   ctx: ActionCtx;
   apiKey: string;
   userId: Id<"users">;
-  /** Plain-string profile id — see `chat.ts`'s `ChatArgs.profileId`. */
   profileId?: string;
   feature: OpenRouterFeature;
 }
 
-/**
- * Generate one embedding vector. Throws on any non-recoverable failure
- * after retries. Callers wrap in try/catch to fall back to fulltext
- * search or skip the embedding altogether.
- */
 export async function generateEmbedding(
   args: EmbeddingCallArgs & { text: string },
 ): Promise<number[]> {
@@ -68,11 +45,6 @@ export async function generateEmbedding(
   return first;
 }
 
-/**
- * Generate embeddings for many inputs. Splits into 20-input SDK
- * requests internally; each chunk is one log row + one retry envelope.
- * Returned vectors are in the same order as the `texts` input.
- */
 export async function generateEmbeddings(
   args: EmbeddingCallArgs & { texts: string[] },
 ): Promise<number[][]> {
@@ -109,11 +81,6 @@ interface EmbeddingChunkArgs {
   input: string[];
 }
 
-/**
- * Fire one embedding SDK call, log the outcome, return validated
- * vectors. `p-retry` retries any thrown failure; each attempt logs as
- * its own row (so the dashboard reflects provider load).
- */
 async function postEmbeddingChunkWithRetry(
   args: EmbeddingChunkArgs,
 ): Promise<EmbeddingItem[]> {

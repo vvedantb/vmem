@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-/** Spend-attribution labels for `openRouterLogs.feature`. */
 export const openRouterFeatureSchema = z.enum([
   // Chat completions
   "chat",

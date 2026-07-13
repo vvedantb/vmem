@@ -33,7 +33,7 @@ const tagEdgeValidator = v.object({
   weight: v.number(),
 });
 
-export const mcpMemoryGraphResultValidator = v.object({
+const mcpMemoryGraphResultValidator = v.object({
   nodes: v.array(memoryGraphNodeValidator),
   relatesToEdges: v.array(relatesToEdgeValidator),
   tagEdges: v.array(tagEdgeValidator),
@@ -121,7 +121,6 @@ function slimRelatesEdgeForMcp(edge: RelatesToEdge): RelatesToEdge {
   };
 }
 
-/** Filter edges to those spanning the kept node set, cap the count, and slim each. */
 function capEdges<T extends { source: string; target: string }>(
   edges: T[],
   nodeIds: Set<string>,
@@ -176,7 +175,6 @@ function capMemoryGraph(
   };
 }
 
-/** MCP entry: memory-only graph payload for the interactive MCP App widget. */
 export const mcpGetMemoryGraph = internalAction({
   args: {
     clerkId: v.string(),

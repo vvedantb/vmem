@@ -1,15 +1,7 @@
-/**
- * Audit log read helpers. Writes go via `logEvent` (re-exported from
- * `shared.ts` for convenience).
- */
-
 import type { Driver } from "neo4j-driver";
-import { neo4jGet, parseNeo4jNodeProps } from "../record";
-import { memoryEventPropsSchema, toEventFromNode } from "./mappers";
+import { toEventFromRecord } from "./mappers";
 import { withSession } from "./shared";
 import type { MemoryEvent } from "./types";
-
-export { logEvent } from "./shared";
 
 export async function getMemoryEvents(
   driver: Driver,
@@ -24,10 +16,6 @@ export async function getMemoryEvents(
       { memoryId, userId },
     );
 
-    return result.records.map((record) =>
-      toEventFromNode(
-        parseNeo4jNodeProps(neo4jGet(record, "e"), memoryEventPropsSchema),
-      ),
-    );
+    return result.records.map(toEventFromRecord);
   });
 }
