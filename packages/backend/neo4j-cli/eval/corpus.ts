@@ -235,17 +235,19 @@ function multiHop(i: number): Scenario {
   const p1 = person(2 * i);
   const p2 = person(2 * i + 1);
   const s = shape(c, t, p1, p2);
+  const bridgeKey = `mh${String(i)}_bridge`;
+  const goldKey = `mh${String(i)}_gold`;
   return {
     memories: [
       {
-        key: `mh${String(i)}_bridge`,
+        key: bridgeKey,
         title: s.bridgeTitle,
         content: s.bridgeContent,
         type: "knowledge",
         tags: ["ownership", c.toLowerCase()],
       },
       {
-        key: `mh${String(i)}_gold`,
+        key: goldKey,
         title: s.goldTitle,
         content: s.goldContent,
         type: "knowledge",
@@ -254,8 +256,8 @@ function multiHop(i: number): Scenario {
     ],
     relationships: [
       {
-        from: `mh${String(i)}_bridge`,
-        to: `mh${String(i)}_gold`,
+        from: bridgeKey,
+        to: goldKey,
         reason: `${t} team owns ${c}`,
       },
     ],
@@ -263,7 +265,7 @@ function multiHop(i: number): Scenario {
       {
         query: s.query,
         type: "multi-hop",
-        relevance: { [`mh${String(i)}_gold`]: 3, [`mh${String(i)}_bridge`]: 1 },
+        relevance: { [goldKey]: 3, [bridgeKey]: 1 },
       },
     ],
   };
@@ -276,6 +278,7 @@ function multiHop(i: number): Scenario {
 function projectCluster(i: number): Scenario {
   const c = code(MULTI_HOP_COUNT + i); // disjoint codename range from multi-hop
   const t = team(i + 3); // distinct team per project (10 teams, 10 projects)
+  const anchorKey = `pj${String(i)}_anchor`;
   // Siblings are codename-free (so only the graph edge links them to the query)
   // and unique across projects via the per-project team name.
   const facts = [
@@ -298,7 +301,7 @@ function projectCluster(i: number): Scenario {
   return {
     memories: [
       {
-        key: `pj${String(i)}_anchor`,
+        key: anchorKey,
         title: `${c} project overview`,
         content: `The ${c} project is a major initiative this year, spanning several quarters.`,
         type: "knowledge",
@@ -316,7 +319,7 @@ function projectCluster(i: number): Scenario {
       ),
     ],
     relationships: facts.map((f) => ({
-      from: `pj${String(i)}_anchor`,
+      from: anchorKey,
       to: f.key,
       reason: `detail of ${c}`,
     })),
@@ -325,10 +328,8 @@ function projectCluster(i: number): Scenario {
         query: `what do we know about the ${c} project`,
         type: "project",
         relevance: {
-          [`pj${String(i)}_anchor`]: 3,
-          [`pj${String(i)}_s1`]: 2,
-          [`pj${String(i)}_s2`]: 2,
-          [`pj${String(i)}_s3`]: 2,
+          [anchorKey]: 3,
+          ...Object.fromEntries(facts.map((f) => [f.key, 2])),
         },
       },
     ],
@@ -354,10 +355,12 @@ const TEMPORAL_TOPICS = [
 function temporalUpdate(i: number): Scenario {
   const spec = TEMPORAL_TOPICS[i % TEMPORAL_TOPICS.length];
   if (spec === undefined) return { memories: [], queries: [] };
+  const staleKey = `tu${String(i)}_stale`;
+  const currentKey = `tu${String(i)}_current`;
   return {
     memories: [
       {
-        key: `tu${String(i)}_stale`,
+        key: staleKey,
         title: `${spec.topic} was ${spec.stale}`,
         content: `Historically, ${spec.topic} was ${spec.stale}.`,
         type: "knowledge",
@@ -365,7 +368,7 @@ function temporalUpdate(i: number): Scenario {
         ageDays: 180 + i * 5,
       },
       {
-        key: `tu${String(i)}_current`,
+        key: currentKey,
         title: `${spec.topic} is now ${spec.current}`,
         content: `As of recently, ${spec.topic} is ${spec.current}; ${spec.stale} is deprecated.`,
         type: "knowledge",
@@ -378,8 +381,8 @@ function temporalUpdate(i: number): Scenario {
         query: `what is ${spec.topic} currently`,
         type: "update",
         relevance: {
-          [`tu${String(i)}_current`]: 3,
-          [`tu${String(i)}_stale`]: 1,
+          [currentKey]: 3,
+          [staleKey]: 1,
         },
       },
     ],
@@ -715,6 +718,22 @@ function fillerMemories(count: number): MemSpec[] {
 // Scenario assembly.
 // ---------------------------------------------------------------------------
 
+/** One memory + one graded query (single-fact / preference style). */
+function singleAnswerScenario(
+  key: string,
+  queryType: string,
+  memoryType: SeedMemoryType,
+  tags: string[],
+  title: string,
+  content: string,
+  query: string,
+): Scenario {
+  return {
+    memories: [{ key, title, content, type: memoryType, tags }],
+    queries: [{ query, type: queryType, relevance: { [key]: 3 } }],
+  };
+}
+
 function buildScenarios(): Scenario[] {
   const scenarios: Scenario[] = [];
 
@@ -723,59 +742,47 @@ function buildScenarios(): Scenario[] {
   for (let i = 0; i < TEMPORAL_COUNT; i++) scenarios.push(temporalUpdate(i));
 
   SINGLE_FACTS.forEach((f, i) => {
-    scenarios.push({
-      memories: [
-        {
-          key: `sf${String(i)}`,
-          title: f.title,
-          content: f.content,
-          type: "knowledge",
-          tags: ["fact"],
-        },
-      ],
-      queries: [
-        {
-          query: f.query,
-          type: "single-fact",
-          relevance: { [`sf${String(i)}`]: 3 },
-        },
-      ],
-    });
+    scenarios.push(
+      singleAnswerScenario(
+        `sf${String(i)}`,
+        "single-fact",
+        "knowledge",
+        ["fact"],
+        f.title,
+        f.content,
+        f.query,
+      ),
+    );
   });
 
   PREFERENCES.forEach((p, i) => {
-    scenarios.push({
-      memories: [
-        {
-          key: `pref${String(i)}`,
-          title: p.title,
-          content: p.content,
-          type: "profile",
-          tags: ["preferences"],
-        },
-      ],
-      queries: [
-        {
-          query: p.query,
-          type: "preference",
-          relevance: { [`pref${String(i)}`]: 3 },
-        },
-      ],
-    });
+    scenarios.push(
+      singleAnswerScenario(
+        `pref${String(i)}`,
+        "preference",
+        "profile",
+        ["preferences"],
+        p.title,
+        p.content,
+        p.query,
+      ),
+    );
   });
 
   TRAPS.forEach((tr, i) => {
+    const goldKey = `lt${String(i)}_gold`;
+    const trapKey = `lt${String(i)}_trap`;
     scenarios.push({
       memories: [
         {
-          key: `lt${String(i)}_gold`,
+          key: goldKey,
           title: tr.goldTitle,
           content: tr.goldContent,
           type: "knowledge",
           tags: ["fact"],
         },
         {
-          key: `lt${String(i)}_trap`,
+          key: trapKey,
           title: tr.trapTitle,
           content: tr.trapContent,
           type: "episodic",
@@ -786,7 +793,7 @@ function buildScenarios(): Scenario[] {
         {
           query: tr.query,
           type: "lexical-trap",
-          relevance: { [`lt${String(i)}_gold`]: 3, [`lt${String(i)}_trap`]: 0 },
+          relevance: { [goldKey]: 3, [trapKey]: 0 },
         },
       ],
     });

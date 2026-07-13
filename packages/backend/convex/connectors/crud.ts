@@ -9,7 +9,7 @@ import { authMutation, authQuery } from "../auth";
 import { auditLog, ResourceTypes } from "../auditLog";
 import { STALE_SYNCING_MS } from "../codebaseSyncConstants";
 
-type ConnectorProvider = "google_drive" | "notion";
+type ConnectorProvider = NonNullable<Doc<"connectors">["provider"]>;
 
 interface DefaultConnector {
   name: string;
@@ -88,26 +88,26 @@ export const seedDefaults = authMutation({
       const existingConnector = existingByName.get(connector.name);
 
       if (existingConnector) {
-        // Update provider if missing (migration for existing connectors)
+        // Backfill provider on rows created before the field existed.
         if (connector.provider && !existingConnector.provider) {
           await ctx.db.patch(existingConnector._id, {
             provider: connector.provider,
           });
         }
-      } else {
-        // Create new connector
-        await ctx.db.insert("connectors", {
-          userId: ctx.userId,
-          name: connector.name,
-          description: connector.description,
-          icon: connector.icon,
-          provider: connector.provider,
-          connectionStatus: "disconnected",
-          syncStatus: "idle",
-          syncProgress: 0,
-          itemsSynced: 0,
-        });
+        continue;
       }
+
+      await ctx.db.insert("connectors", {
+        userId: ctx.userId,
+        name: connector.name,
+        description: connector.description,
+        icon: connector.icon,
+        provider: connector.provider,
+        connectionStatus: "disconnected",
+        syncStatus: "idle",
+        syncProgress: 0,
+        itemsSynced: 0,
+      });
     }
   },
 });
@@ -200,11 +200,11 @@ export const listForDailyConnectorSyncInternal = internalQuery({
       if (row.connectionStatus !== "connected") continue;
       if (!row.provider || !DAILY_SYNC_PROVIDERS.has(row.provider)) continue;
 
-      const syncingFresh =
+      const isFreshSync =
         row.syncStatus === "syncing" &&
         row.syncStartedAt !== undefined &&
         Date.now() - row.syncStartedAt < STALE_SYNCING_MS;
-      if (row.syncStatus === "syncing" && syncingFresh) continue;
+      if (isFreshSync) continue;
 
       out.push({ connectorId: row._id });
     }
@@ -235,9 +235,7 @@ export const listGoogleConnectorsForUserInternal = internalQuery({
     }> = [];
 
     for (const row of rows) {
-      if (row.provider !== "google_drive") {
-        continue;
-      }
+      if (row.provider !== "google_drive") continue;
       googleRows.push({
         _id: row._id,
         provider: row.provider,

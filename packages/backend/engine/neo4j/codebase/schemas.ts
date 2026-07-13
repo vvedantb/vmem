@@ -18,22 +18,6 @@ export const optionalNeo4jIntSchema = z
     return parseNeo4jInt(v);
   });
 
-/** Parsed Neo4j node `.properties` for overview / search reads. */
-export type OverviewNodeProps = {
-  id: string;
-  name?: string;
-  qualifiedName?: string;
-  path?: string;
-  filePath?: string;
-  filename?: string;
-  directory?: string;
-  isExported?: boolean;
-  isAsync?: boolean;
-  isTest?: boolean;
-  startLine?: number;
-  endLine?: number;
-};
-
 /** Node `.properties` shape shared across overview / search reads. */
 export const overviewNodePropsSchema = z.object({
   id: z.string(),
@@ -48,7 +32,9 @@ export const overviewNodePropsSchema = z.object({
   isTest: z.boolean().optional(),
   startLine: optionalNeo4jIntSchema,
   endLine: optionalNeo4jIntSchema,
-}) satisfies z.ZodType<OverviewNodeProps, z.ZodTypeDef, unknown>;
+});
+
+export type OverviewNodeProps = z.infer<typeof overviewNodePropsSchema>;
 
 export const labelsSchema = z.array(z.string());
 

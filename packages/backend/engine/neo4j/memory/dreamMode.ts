@@ -16,7 +16,7 @@ import type { ConfidenceAdjustment, MergeClusterMember } from "../dreamPrompt";
 import type { PortraitEvidenceMemory } from "../portraitPrompt";
 import { neo4jGet, parseNeo4jNodeProps } from "../record";
 import { toSnapshot } from "./mappers";
-import { logEvent, withSession } from "./shared";
+import { logEvent, visibleStatusClause, withSession } from "./shared";
 
 const dreamMemoryPropsSchema = z.object({
   id: z.string(),
@@ -65,7 +65,7 @@ export async function findRecentMemoriesForDream(
       `MATCH (m:Memory {userId: $userId, profileId: $profileId})
        WHERE m.embedding IS NOT NULL
          AND m.createdAt >= $sinceIso
-         AND m.status IN ['active', 'pinned']
+         AND ${visibleStatusClause("m", false)}
        RETURN m.id AS id, m.title AS title, m.content AS content,
               m.embedding AS embedding, m.createdAt AS createdAt
        ORDER BY m.createdAt DESC
@@ -127,7 +127,7 @@ export async function computeSurprisalScores(
          YIELD node, score
          WHERE node.userId = $userId
            AND node.id <> $memoryId
-           AND node.status IN ['active', 'pinned']
+           AND ${visibleStatusClause("node", false)}
          WITH score
          ORDER BY score DESC
          LIMIT $kInner
@@ -218,10 +218,10 @@ export async function fetchAnomalyCluster(
     const result = await session.run(
       `MATCH (a:Memory {id: $anomalyId, userId: $userId})
        OPTIONAL MATCH (a)-[:RELATES_TO]-(rel:Memory {userId: $userId})
-         WHERE rel.id <> a.id AND rel.status IN ['active', 'pinned']
+         WHERE rel.id <> a.id AND ${visibleStatusClause("rel", false)}
        WITH a, collect(DISTINCT rel) AS relMems
        OPTIONAL MATCH (a)-[:MENTIONS]->(e:Entity)<-[:MENTIONS]-(em:Memory {userId: $userId})
-         WHERE em.id <> a.id AND em.status IN ['active', 'pinned']
+         WHERE em.id <> a.id AND ${visibleStatusClause("em", false)}
        WITH a, relMems, collect(DISTINCT em) AS entityMems
        OPTIONAL MATCH (a)-[:TAGGED_WITH]->(at:Tag)
        WITH a, relMems, entityMems, collect(DISTINCT at.name) AS aTags
@@ -293,7 +293,7 @@ export async function fetchAnomalyCluster(
          YIELD node, score
          WHERE node.userId = $userId
            AND NOT node.id IN $excludeIds
-           AND node.status IN ['active', 'pinned']
+           AND ${visibleStatusClause("node", false)}
            AND score >= $minScore
          RETURN node.id AS id, node.title AS title, node.content AS content
          ORDER BY score DESC
@@ -434,7 +434,7 @@ export async function fetchPortraitEvidence(
   return withSession(driver, async (session) => {
     const result = await session.run(
       `MATCH (m:Memory {userId: $userId, profileId: $profileId})
-       WHERE m.status IN ['active', 'pinned']
+       WHERE ${visibleStatusClause("m", false)}
        WITH m, duration.inDays(datetime(m.createdAt), datetime()).days AS rawAge
        WITH m, CASE WHEN rawAge < 0 THEN 0 ELSE rawAge END AS ageDays
        WITH m,

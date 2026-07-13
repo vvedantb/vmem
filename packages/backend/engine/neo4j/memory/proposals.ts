@@ -23,7 +23,11 @@ import { z } from "zod";
 import { neo4jGet, neo4jString, parseNeo4jNodeProps } from "../record";
 import { computeContentHash, toMemoryWithTags, toSnapshot } from "./mappers";
 import { logEvent, withSession } from "./shared";
-import type { ProposedUpdateKind, ProposedUpdateNode } from "./types";
+import {
+  PROPOSED_UPDATE_KINDS,
+  type ProposedUpdateKind,
+  type ProposedUpdateNode,
+} from "./types";
 
 const proposedUpdateStatusSchema = z.enum(["pending", "approved", "rejected"]);
 
@@ -52,17 +56,7 @@ const sourceMemorySnapshotsSchema = z.array(sourceMemorySnapshotSchema);
 
 type ProposedUpdateProps = z.infer<typeof proposedUpdateNodePropsSchema>;
 
-const proposedUpdateKindSchema = z
-  .enum([
-    "update",
-    "delete",
-    "insight",
-    "connection",
-    "contradiction",
-    "anomaly",
-    "merge",
-  ])
-  .catch("update");
+const proposedUpdateKindSchema = z.enum(PROPOSED_UPDATE_KINDS).catch("update");
 
 const proposalSourceSchema = z
   .enum(["v2-extraction", "dream-mode"])

@@ -26,13 +26,13 @@ export const deleteConnectorData = authAction({
     }
 
     const sourceTypes = sourceTypesForProvider(connector.provider);
-    if (sourceTypes === null || sourceTypes.length === 0) {
+    if (!sourceTypes?.length) {
       throw new Error("Connector does not support data deletion");
     }
 
     const clerkId = await requireClerkId(ctx);
 
-    const deleted: number = await ctx.runAction(
+    const deleted = await ctx.runAction(
       internal.neo4jActions.connectorData.deleteBySourceTypesInternal,
       { clerkId, sourceTypes: [...sourceTypes] },
     );

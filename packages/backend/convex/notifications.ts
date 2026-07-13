@@ -16,6 +16,16 @@ async function requireOwnedNotification(
   return notification;
 }
 
+async function setNotificationRead(
+  ctx: MutationCtx & { userId: Id<"users"> },
+  id: Id<"notifications">,
+  read: boolean,
+): Promise<null> {
+  await requireOwnedNotification(ctx, id);
+  await ctx.db.patch(id, { read });
+  return null;
+}
+
 export const listMy = authQuery({
   args: {},
   returns: v.array(
@@ -51,21 +61,13 @@ export const unreadCount = authQuery({
 export const markAsRead = authMutation({
   args: { id: v.id("notifications") },
   returns: v.null(),
-  handler: async (ctx, args) => {
-    await requireOwnedNotification(ctx, args.id);
-    await ctx.db.patch(args.id, { read: true });
-    return null;
-  },
+  handler: async (ctx, args) => setNotificationRead(ctx, args.id, true),
 });
 
 export const markAsUnread = authMutation({
   args: { id: v.id("notifications") },
   returns: v.null(),
-  handler: async (ctx, args) => {
-    await requireOwnedNotification(ctx, args.id);
-    await ctx.db.patch(args.id, { read: false });
-    return null;
-  },
+  handler: async (ctx, args) => setNotificationRead(ctx, args.id, false),
 });
 
 export const markAllAsRead = authMutation({

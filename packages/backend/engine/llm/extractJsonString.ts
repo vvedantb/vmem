@@ -1,28 +1,29 @@
 import type { ZodType, z } from "zod";
 
+const THINK_OPEN = "<think>";
+const THINK_CLOSE = "</think>";
+
 /**
  * Strip thinking blocks and markdown fences from raw LLM output before JSON.parse.
  */
 export function extractJsonString(raw: string): string {
-  let jsonStr = raw.trim();
+  const withoutClosedThink = raw
+    .trim()
+    .replace(/<think>[\s\S]*?<\/think>/g, "")
+    .trim();
 
-  jsonStr = jsonStr.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+  const withoutOpenThink =
+    withoutClosedThink.startsWith(THINK_OPEN) &&
+    withoutClosedThink.indexOf(THINK_CLOSE) === -1
+      ? withoutClosedThink.slice(THINK_OPEN.length).trim()
+      : withoutClosedThink;
 
-  if (jsonStr.startsWith("<think>")) {
-    const closeIdx = jsonStr.indexOf("</think>");
-    if (closeIdx === -1) {
-      jsonStr = jsonStr.slice(7).trim();
-    }
+  if (!withoutOpenThink.startsWith("```")) {
+    return withoutOpenThink;
   }
 
-  if (jsonStr.startsWith("```")) {
-    const match = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (match?.[1]) {
-      jsonStr = match[1].trim();
-    }
-  }
-
-  return jsonStr;
+  const match = withoutOpenThink.match(/```(?:json)?\s*([\s\S]*?)```/);
+  return match?.[1] ? match[1].trim() : withoutOpenThink;
 }
 
 /**

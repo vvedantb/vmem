@@ -339,23 +339,22 @@ export async function writeParseResult(args: WriteArgs): Promise<ParseStats> {
     interfaces.map((i) => interfaceRow(i, userId, codebaseId)),
   );
 
-  // Bucket structural relations by type.
   const buckets = new Map<string, RelationEdge[]>();
   for (const e of structuralRelations) {
-    let arr = buckets.get(e.kind);
-    if (!arr) {
-      arr = [];
-      buckets.set(e.kind, arr);
-    }
-    arr.push(e);
+    const arr = buckets.get(e.kind);
+    if (arr) arr.push(e);
+    else buckets.set(e.kind, [e]);
   }
-  await upsertEdges(driver, "IMPORTS", buckets.get("IMPORTS") ?? []);
-  await upsertEdges(driver, "CONTAINS", buckets.get("CONTAINS") ?? []);
-  await upsertEdges(driver, "HAS_METHOD", buckets.get("HAS_METHOD") ?? []);
-  await upsertEdges(driver, "EXTENDS", buckets.get("EXTENDS") ?? []);
-  await upsertEdges(driver, "IMPLEMENTS", buckets.get("IMPLEMENTS") ?? []);
+  for (const kind of [
+    "IMPORTS",
+    "CONTAINS",
+    "HAS_METHOD",
+    "EXTENDS",
+    "IMPLEMENTS",
+  ] as const) {
+    await upsertEdges(driver, kind, buckets.get(kind) ?? []);
+  }
   await upsertEdges(driver, "CALLS", calls);
-
   await upsertProcesses(driver, userId, codebaseId, processes);
 
   // Mark every node with the parser version so re-sync detection works.

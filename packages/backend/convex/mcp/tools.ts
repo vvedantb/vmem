@@ -312,55 +312,9 @@ const bindableToolSpecs = {
   codebase_graph: bindToolSpec(toolSpecs.codebase_graph),
 } satisfies Record<keyof typeof toolSpecs, McpBindableTool>;
 
-const mcpToolKeys: Array<keyof typeof toolSpecs> = [
-  "ping",
-  "whoami",
-  "list_profiles",
-  "set_active_profile",
-  "context_prompt_get",
-  "memory_search",
-  "memory_retrieve",
-  "memory_add",
-  "memory_add_instruction",
-  "memory_update",
-  "memory_delete",
-  "memory_related",
-  "skills_list",
-  "skills_get",
-  "skills_create",
-  "skills_update",
-  "skills_delete",
-  "wiki_list",
-  "wiki_get",
-  "wiki_search",
-  "wiki_create",
-  "wiki_update",
-  "wiki_delete",
-  "files_list",
-  "files_get",
-  "files_upload",
-  "files_delete",
-  "codebases_list",
-  "codebase_overview",
-  "codebase_search",
-  "codebase_context",
-  "codebase_impact",
-  "codebase_graph",
-];
-
-function assertCatalogExhaustive(): void {
-  for (const key of Object.keys(toolSpecs)) {
-    if (!(key in bindableToolSpecs)) {
-      throw new Error(`MCP bindableToolSpecs missing catalog tool: ${key}`);
-    }
-  }
-  for (const key of Object.keys(mcpPresentation)) {
-    if (!(key in bindableToolSpecs)) {
-      throw new Error(`MCP mcpPresentation missing catalog tool: ${key}`);
-    }
-  }
+function isToolSpecKey(key: string): key is keyof typeof toolSpecs {
+  return key in toolSpecs;
 }
-assertCatalogExhaustive();
 
 function registerMcpTool(
   server: McpServer,
@@ -399,7 +353,10 @@ export function registerTools(
   const scopeLabel = scope === "team" ? "team" : "personal";
   const h = handlerContext(clerkUserId, ctx, scope);
 
-  for (const key of mcpToolKeys) {
+  // Object.keys preserves toolSpecs insertion order; satisfies + Record<>
+  // already enforce catalog / presentation / bindable exhaustiveness at compile time.
+  for (const key of Object.keys(toolSpecs)) {
+    if (!isToolSpecKey(key)) continue;
     registerMcpTool(
       server,
       bindableToolSpecs[key],

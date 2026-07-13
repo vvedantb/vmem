@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { authAction, authMutation, authQuery } from "./auth";
 import { auditLog, ResourceTypes, severityForStatus } from "./auditLog";
@@ -23,10 +24,6 @@ export async function hashApiKey(rawKey: string): Promise<string> {
   return Array.from(new Uint8Array(hashBuffer))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
-}
-
-async function encryptApiKey(rawKey: string): Promise<string> {
-  return encryptToken(rawKey);
 }
 
 export async function decryptApiKey(encryptedKey: string): Promise<string> {
@@ -76,7 +73,7 @@ function toApiKeyResponse(apiKey: Doc<"apiKeys">) {
 // --- Access guard ---
 
 async function getOwnedApiKey(
-  ctx: { db: { get: (id: Id<"apiKeys">) => Promise<Doc<"apiKeys"> | null> } },
+  ctx: QueryCtx | MutationCtx,
   id: Id<"apiKeys">,
   userId: Id<"users">,
 ): Promise<Doc<"apiKeys"> | null> {
@@ -109,7 +106,7 @@ export const createMy = authAction({
 
     const key = generateApiKey();
     const keyHash = await hashApiKey(key);
-    const encryptedKey = await encryptApiKey(key);
+    const encryptedKey = await encryptToken(key);
     const maskedKey = maskApiKey(key);
 
     const inserted: { id: Id<"apiKeys"> } = await ctx.runMutation(

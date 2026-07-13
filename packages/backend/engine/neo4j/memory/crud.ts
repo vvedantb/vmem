@@ -22,7 +22,7 @@ import { toMemoryContentFulltextQuery } from "../luceneQuery";
 import { neo4jGet, parseNeo4jInt } from "../record";
 import { toMemoryWithTags, toSnapshot } from "./mappers";
 import { createSemanticSimilarityEdges } from "./relationships";
-import { logEvent, withSession } from "./shared";
+import { logEvent, visibleStatusClause, withSession } from "./shared";
 import { normalizeTags } from "./tagNormalize";
 import type { MemoryStatus, MemoryType, MemoryWithTags } from "./types";
 
@@ -109,7 +109,7 @@ async function findMemoryRef(
   return withSession(driver, async (session) => {
     const result = await session.run(
       `MATCH (m:Memory {${propsClause(matchProps)}})
-       WHERE m.status IN ['active', 'pinned']${opts?.extraWhere ? ` AND ${opts.extraWhere}` : ""}
+       WHERE ${visibleStatusClause("m", false)}${opts?.extraWhere ? ` AND ${opts.extraWhere}` : ""}
        RETURN m.id AS id, m.title AS title, m.updatedAt AS updatedAt
        ${opts?.orderBy ? `ORDER BY ${opts.orderBy}` : ""}
        LIMIT 1`,
@@ -164,7 +164,7 @@ export async function runMemoryList(
   } else {
     // Default: hide suppressed/expired. Matches the graph view and
     // closes a latent bug where the search path ignored status entirely.
-    whereClauses.push("coalesce(m.status, 'active') IN ['active', 'pinned']");
+    whereClauses.push(visibleStatusClause("m"));
   }
   if (params.source) {
     whereClauses.push("m.source = $source");
@@ -431,9 +431,11 @@ export async function listMemories(
       string,
       string | number | Integer | string[] | null
     > = { userId: params.userId };
-    let baseWhere = "m.userId = $userId";
+    const baseWhere =
+      params.profileId !== undefined && params.profileId !== null
+        ? "m.userId = $userId AND (m.profileId = $profileId OR m.profileId IS NULL)"
+        : "m.userId = $userId";
     if (params.profileId !== undefined && params.profileId !== null) {
-      baseWhere += " AND (m.profileId = $profileId OR m.profileId IS NULL)";
       baseParams.profileId = params.profileId;
     }
     return runMemoryList(session, baseWhere, baseParams, params);
@@ -573,6 +575,9 @@ async function deleteOrphanTagsAndSources(session: Session): Promise<void> {
   );
 }
 
+const MEMORY_SOURCE_TYPE_WHERE =
+  "m.sourceType IN $sourceTypes OR m.source IN $sourceTypes";
+
 /**
  * Remove every memory imported from the given connector source types, plus
  * their chunks, events, and proposed updates. Does not disconnect OAuth or
@@ -590,7 +595,7 @@ export async function deleteMemoriesBySourceTypes(
   return withSession(driver, async (session) => {
     await session.run(
       `MATCH (m:Memory {userId: $userId})
-       WHERE m.sourceType IN $sourceTypes OR m.source IN $sourceTypes
+       WHERE ${MEMORY_SOURCE_TYPE_WHERE}
        WITH collect(m.id) AS memoryIds
        MATCH (c:Chunk {userId: $userId})
        WHERE c.memoryId IN memoryIds
@@ -599,19 +604,19 @@ export async function deleteMemoriesBySourceTypes(
     );
     await session.run(
       `MATCH (e:MemoryEvent)-[:EVENT_FOR]->(m:Memory {userId: $userId})
-       WHERE m.sourceType IN $sourceTypes OR m.source IN $sourceTypes
+       WHERE ${MEMORY_SOURCE_TYPE_WHERE}
        DETACH DELETE e`,
       { userId, sourceTypes },
     );
     await session.run(
       `MATCH (p:ProposedUpdate)-[:UPDATE_FOR]->(m:Memory {userId: $userId})
-       WHERE m.sourceType IN $sourceTypes OR m.source IN $sourceTypes
+       WHERE ${MEMORY_SOURCE_TYPE_WHERE}
        DETACH DELETE p`,
       { userId, sourceTypes },
     );
     const result = await session.run(
       `MATCH (m:Memory {userId: $userId})
-       WHERE m.sourceType IN $sourceTypes OR m.source IN $sourceTypes
+       WHERE ${MEMORY_SOURCE_TYPE_WHERE}
        DETACH DELETE m
        RETURN count(m) AS deleted`,
       { userId, sourceTypes },
@@ -804,7 +809,7 @@ export async function findMemoryBySimilarity(
       `CALL db.index.vector.queryNodes('memory_embedding', $k, $embedding)
        YIELD node AS m, score AS similarity
        WHERE m.userId = $userId
-         AND m.status IN ['active', 'pinned']
+         AND ${visibleStatusClause("m", false)}
          AND similarity >= $threshold
        RETURN m.id AS id, m.title AS title, m.updatedAt AS updatedAt, similarity
        ORDER BY similarity DESC

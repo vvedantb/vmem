@@ -4,20 +4,10 @@
  */
 
 import type { Driver } from "neo4j-driver";
-import { z } from "zod";
 import { neo4jGet, parseNeo4jNodeProps } from "../record";
-import { toEventFromNode } from "./mappers";
+import { memoryEventPropsSchema, toEventFromNode } from "./mappers";
 import { withSession } from "./shared";
 import type { MemoryEvent } from "./types";
-
-const memoryEventNodePropsSchema = z.object({
-  id: z.string(),
-  action: z.string(),
-  actor: z.string(),
-  createdAt: z.string(),
-  snapshot: z.string().nullable().optional(),
-  details: z.string().nullable().optional(),
-});
 
 export { logEvent } from "./shared";
 
@@ -36,7 +26,7 @@ export async function getMemoryEvents(
 
     return result.records.map((record) =>
       toEventFromNode(
-        parseNeo4jNodeProps(neo4jGet(record, "e"), memoryEventNodePropsSchema),
+        parseNeo4jNodeProps(neo4jGet(record, "e"), memoryEventPropsSchema),
       ),
     );
   });

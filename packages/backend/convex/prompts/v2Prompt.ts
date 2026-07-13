@@ -54,9 +54,7 @@ export interface RetrievedCandidate {
   text: string;
 }
 
-// ──────────────────────────────────────────────────────────────────────
 // Stage A — extract atomic facts
-// ──────────────────────────────────────────────────────────────────────
 
 export function buildFactExtractionPrompt(
   capturedPrompt: string,
@@ -132,9 +130,7 @@ ${capturedPrompt}
 # Your output (JSON only)`;
 }
 
-// ──────────────────────────────────────────────────────────────────────
 // Stage B — decide ADD / UPDATE / DELETE / NONE per fact
-// ──────────────────────────────────────────────────────────────────────
 
 export function buildUpdateDecisionPrompt(
   fact: string,
@@ -199,13 +195,11 @@ ${candidatesBlock}
 # Your output (JSON only)`;
 }
 
-// ──────────────────────────────────────────────────────────────────────
 // Parsers
-// ──────────────────────────────────────────────────────────────────────
 
 const factItemSchema = z.object({
   id: z.number().optional().catch(undefined),
-  text: z.string(),
+  text: z.string().trim().min(1),
 });
 
 const factExtractionResponseSchema = z.object({
@@ -216,18 +210,16 @@ export function parseFactExtractionResponse(
   raw: string,
 ): ExtractedFactsResponse | null {
   try {
-    const jsonStr = extractJsonString(raw);
-    const parsed = factExtractionResponseSchema.safeParse(JSON.parse(jsonStr));
+    const parsed = factExtractionResponseSchema.safeParse(
+      JSON.parse(extractJsonString(raw)),
+    );
     if (!parsed.success) return null;
 
     const facts: ExtractedFact[] = [];
     for (const item of parsed.data.facts) {
       const fact = factItemSchema.safeParse(item);
       if (!fact.success) continue;
-      const text = fact.data.text.trim();
-      if (text.length === 0) continue;
-      const id = fact.data.id ?? facts.length;
-      facts.push({ id, text });
+      facts.push({ id: fact.data.id ?? facts.length, text: fact.data.text });
     }
     return { facts };
   } catch {
@@ -245,11 +237,6 @@ const updateDecisionResponseSchema = z.object({
 
 const updateDecisionEventSchema = z.enum(["ADD", "UPDATE", "DELETE", "NONE"]);
 
-function toEvent(v: string): UpdateDecisionEvent | null {
-  const parsed = updateDecisionEventSchema.safeParse(v.trim().toUpperCase());
-  return parsed.success ? parsed.data : null;
-}
-
 function optionalNonEmptyString(value: string | undefined): string | undefined {
   if (value === undefined) return undefined;
   const trimmed = value.trim();
@@ -260,12 +247,16 @@ export function parseUpdateDecisionResponse(
   raw: string,
 ): UpdateDecision | null {
   try {
-    const jsonStr = extractJsonString(raw);
-    const parsed = updateDecisionResponseSchema.safeParse(JSON.parse(jsonStr));
+    const parsed = updateDecisionResponseSchema.safeParse(
+      JSON.parse(extractJsonString(raw)),
+    );
     if (!parsed.success) return null;
 
-    const event = toEvent(parsed.data.event);
-    if (!event) return null;
+    const eventResult = updateDecisionEventSchema.safeParse(
+      parsed.data.event.trim().toUpperCase(),
+    );
+    if (!eventResult.success) return null;
+    const event = eventResult.data;
 
     const id = optionalNonEmptyString(parsed.data.id);
     const text = optionalNonEmptyString(parsed.data.text);

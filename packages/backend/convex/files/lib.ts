@@ -80,13 +80,10 @@ export function resolveByPath(
   const byParent = buildChildrenByParent(nodes);
   let parentId: Id<"fileNodes"> | undefined;
   let current: Doc<"fileNodes"> | null = null;
-  for (let i = 0; i < segments.length; i++) {
-    const segment = segments[i];
-    if (segment === undefined) return null;
+  for (const [index, segment] of segments.entries()) {
     const child = findChild(byParent, parentId, segment);
-    if (!child) return null;
-    const isLast = i === segments.length - 1;
-    if (!isLast && child.kind !== "folder") return null;
+    if (child === null) return null;
+    if (index < segments.length - 1 && child.kind !== "folder") return null;
     current = child;
     parentId = child._id;
   }
@@ -100,30 +97,37 @@ export function nodePath(
 ): string {
   const byId = new Map(nodes.map((n) => [n._id, n]));
   const parts: string[] = [node.name];
-  let cursor = node.parentId ? byId.get(node.parentId) : undefined;
+  let cursor =
+    node.parentId === undefined ? undefined : byId.get(node.parentId);
   const seen = new Set<string>([node._id]);
-  while (cursor && !seen.has(cursor._id)) {
+  while (cursor !== undefined && !seen.has(cursor._id)) {
     seen.add(cursor._id);
     parts.push(cursor.name);
-    cursor = cursor.parentId ? byId.get(cursor.parentId) : undefined;
+    cursor =
+      cursor.parentId === undefined ? undefined : byId.get(cursor.parentId);
   }
   return parts.reverse().join("/");
 }
 
-/** True if `candidateAncestorId` is `nodeId` or one of its ancestors. */
+/**
+ * True if `nodeId` equals `candidateId`, or is an ancestor of it.
+ * Walks upward from `candidateId` (used to block moving a folder into its
+ * own descendant).
+ */
 export function isAncestorOrSelf(
   nodes: Array<Doc<"fileNodes">>,
   nodeId: Id<"fileNodes">,
-  candidateAncestorId: Id<"fileNodes">,
+  candidateId: Id<"fileNodes">,
 ): boolean {
-  if (nodeId === candidateAncestorId) return true;
+  if (nodeId === candidateId) return true;
   const byId = new Map(nodes.map((n) => [n._id, n]));
-  let cursor = byId.get(candidateAncestorId);
+  let cursor = byId.get(candidateId);
   const seen = new Set<string>();
-  while (cursor && !seen.has(cursor._id)) {
+  while (cursor !== undefined && !seen.has(cursor._id)) {
     if (cursor._id === nodeId) return true;
     seen.add(cursor._id);
-    cursor = cursor.parentId ? byId.get(cursor.parentId) : undefined;
+    cursor =
+      cursor.parentId === undefined ? undefined : byId.get(cursor.parentId);
   }
   return false;
 }

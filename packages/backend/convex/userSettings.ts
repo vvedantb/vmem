@@ -1,5 +1,10 @@
 import { authQuery, authMutation } from "./auth";
-import { internalQuery, internalMutation } from "./_generated/server";
+import {
+  internalQuery,
+  internalMutation,
+  type MutationCtx,
+  type QueryCtx,
+} from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 import {
@@ -60,6 +65,16 @@ const defaults: {
   lastDreamRunAt: null,
 };
 
+async function getSettingsDoc(
+  ctx: QueryCtx | MutationCtx,
+  userId: Id<"users">,
+): Promise<Doc<"userSettings"> | null> {
+  return await ctx.db
+    .query("userSettings")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .first();
+}
+
 function resolveSettings(userId: Id<"users">, doc: Doc<"userSettings"> | null) {
   return {
     _id: doc?._id ?? null,
@@ -102,11 +117,7 @@ function resolveSettings(userId: Id<"users">, doc: Doc<"userSettings"> | null) {
 export const get = authQuery({
   args: {},
   handler: async (ctx) => {
-    const doc = await ctx.db
-      .query("userSettings")
-      .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
-      .first();
-
+    const doc = await getSettingsDoc(ctx, ctx.userId);
     return resolveSettings(ctx.userId, doc);
   },
 });
@@ -122,10 +133,7 @@ export const getUserContextInternal = internalQuery({
     preferences: v.union(v.string(), v.null()),
   }),
   handler: async (ctx, args) => {
-    const doc = await ctx.db
-      .query("userSettings")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
-      .first();
+    const doc = await getSettingsDoc(ctx, args.userId);
     const aboutMe = doc?.aboutMe?.trim();
     const preferences = doc?.preferences?.trim();
     return {
@@ -157,10 +165,7 @@ export const update = authMutation({
     dreamModeAutomatic: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const existing = await ctx.db
-      .query("userSettings")
-      .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
-      .first();
+    const existing = await getSettingsDoc(ctx, ctx.userId);
 
     const fields: Record<string, string | boolean | number> = {};
     const optionalKeys = [
@@ -212,10 +217,7 @@ export const setLastDreamRunAtInternal = internalMutation({
     timestamp: v.number(),
   },
   handler: async (ctx, args) => {
-    const existing = await ctx.db
-      .query("userSettings")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
-      .first();
+    const existing = await getSettingsDoc(ctx, args.userId);
     if (existing) {
       await ctx.db.patch(existing._id, { lastDreamRunAt: args.timestamp });
       return existing._id;
@@ -239,10 +241,7 @@ export const getDreamConfigInternal = internalQuery({
     lastDreamRunAt: v.union(v.number(), v.null()),
   }),
   handler: async (ctx, args) => {
-    const doc = await ctx.db
-      .query("userSettings")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
-      .first();
+    const doc = await getSettingsDoc(ctx, args.userId);
     return {
       dreamModeAutoAccept: doc?.dreamModeAutoAccept ?? false,
       lastDreamRunAt: doc?.lastDreamRunAt ?? null,
@@ -256,13 +255,8 @@ export const getDefaultProfile = authQuery({
     source: v.union(v.literal("web"), v.literal("extension"), v.literal("mcp")),
   },
   handler: async (ctx, args) => {
-    const doc = await ctx.db
-      .query("userSettings")
-      .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
-      .first();
-
+    const doc = await getSettingsDoc(ctx, ctx.userId);
     if (!doc?.defaultProfiles) return null;
-
     return doc.defaultProfiles[args.source] ?? null;
   },
 });
@@ -280,11 +274,7 @@ export const setDefaultProfile = authMutation({
       throw new Error("Profile not found");
     }
 
-    const existing = await ctx.db
-      .query("userSettings")
-      .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
-      .first();
-
+    const existing = await getSettingsDoc(ctx, ctx.userId);
     const currentDefaults = existing?.defaultProfiles ?? {};
     const updatedDefaults = {
       ...currentDefaults,

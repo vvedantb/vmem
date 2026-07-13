@@ -6,6 +6,14 @@ import { setupDatabase } from "../../engine/neo4j/setup";
 import { embeddingMode, generateCliEmbeddings } from "../eval/cliEmbeddings";
 import type { SeedEvent, SeedMemory, SeedRelationship } from "./types";
 
+const MS_PER_DAY = 86_400_000;
+
+/** Memory indices that also get a synthetic "updated" event after create. */
+const UPDATED_MEMORY_INDICES = [
+  3, 10, 22, 27, 35, 48, 55, 68, 78, 95, 116, 130, 145, 155, 178, 190, 201, 213,
+  237, 248,
+];
+
 export interface RunSeedOptions {
   userIds: string[];
   templateMemories: SeedMemory[];
@@ -22,32 +30,25 @@ function remapId(idMap: Map<string, string>, oldId: string): string {
   return newId;
 }
 
-export function buildEvents(mems: SeedMemory[]): SeedEvent[] {
-  const events: SeedEvent[] = [];
+export function buildEvents(memories: SeedMemory[]): SeedEvent[] {
+  const events: SeedEvent[] = memories.map((memory) => ({
+    eventId: crypto.randomUUID(),
+    memoryId: memory.id,
+    action: "created",
+    createdAt: memory.createdAt,
+  }));
 
-  for (const m of mems) {
+  for (const index of UPDATED_MEMORY_INDICES) {
+    const memory = memories[index];
+    if (!memory) continue;
+    const createdMs = new Date(memory.createdAt).getTime();
     events.push({
       eventId: crypto.randomUUID(),
-      memoryId: m.id,
-      action: "created",
-      createdAt: m.createdAt,
-    });
-  }
-
-  const updatedIndices = [
-    3, 10, 22, 27, 35, 48, 55, 68, 78, 95, 116, 130, 145, 155, 178, 190, 201,
-    213, 237, 248,
-  ];
-  for (const idx of updatedIndices) {
-    const m = mems[idx];
-    if (!m) continue;
-    const createdMs = new Date(m.createdAt).getTime();
-    const laterMs = createdMs + (1 + Math.random() * 5) * 86400000;
-    events.push({
-      eventId: crypto.randomUUID(),
-      memoryId: m.id,
+      memoryId: memory.id,
       action: "updated",
-      createdAt: new Date(laterMs).toISOString(),
+      createdAt: new Date(
+        createdMs + (1 + Math.random() * 5) * MS_PER_DAY,
+      ).toISOString(),
     });
   }
 
@@ -55,27 +56,24 @@ export function buildEvents(mems: SeedMemory[]): SeedEvent[] {
 }
 
 async function embedMemories(
-  memoriesToEmbed: Array<{ id: string; title: string; content: string }>,
+  memories: Array<{ id: string; title: string; content: string }>,
 ): Promise<void> {
   const BATCH = 20;
-  console.log(`  embedding ${String(memoriesToEmbed.length)} memories...`);
+  console.log(`  embedding ${String(memories.length)} memories...`);
 
-  for (let offset = 0; offset < memoriesToEmbed.length; offset += BATCH) {
-    const batch = memoriesToEmbed.slice(offset, offset + BATCH);
+  for (let offset = 0; offset < memories.length; offset += BATCH) {
+    const batch = memories.slice(offset, offset + BATCH);
     const texts = batch.map((memory) => `${memory.title}\n\n${memory.content}`);
     const vectors = await generateCliEmbeddings(texts);
-    const writes: Array<{ id: string; embedding: number[] }> = [];
-
-    for (let index = 0; index < batch.length; index++) {
-      const memory = batch[index];
+    const writes = batch.map((memory, index) => {
       const vector = vectors[index];
-      if (!memory || !vector) {
+      if (!vector) {
         throw new Error(
           `missing embedding for memory at offset ${String(offset + index)}`,
         );
       }
-      writes.push({ id: memory.id, embedding: vector });
-    }
+      return { id: memory.id, embedding: vector };
+    });
 
     await setEmbeddings(getDriver(), writes);
   }
@@ -90,8 +88,7 @@ export async function runSeed(options: RunSeedOptions): Promise<void> {
     console.log("ensuring indexes and constraints...");
     await setupDatabase(driver);
 
-    const clearUsers = options.clearUsersBeforeInsert !== false;
-    if (clearUsers) {
+    if (options.clearUsersBeforeInsert ?? true) {
       for (const userId of options.userIds) {
         const deleted = await deleteAllMemoriesForUser(driver, userId);
         console.log(
@@ -112,21 +109,23 @@ export async function runSeed(options: RunSeedOptions): Promise<void> {
       console.log(`\nseeding user: ${userId}`);
 
       const idMap = new Map<string, string>();
-      const userMemories = options.templateMemories.map((m) => {
+      const userMemories = options.templateMemories.map((memory) => {
         const newId = crypto.randomUUID();
-        idMap.set(m.id, newId);
-        return { ...m, id: newId, userId };
+        idMap.set(memory.id, newId);
+        return { ...memory, id: newId, userId };
       });
 
-      const userRelationships = options.templateRelationships.map((r) => ({
-        sourceId: remapId(idMap, r.sourceId),
-        targetId: remapId(idMap, r.targetId),
-        reason: r.reason,
-      }));
+      const userRelationships = options.templateRelationships.map(
+        (relationship) => ({
+          sourceId: remapId(idMap, relationship.sourceId),
+          targetId: remapId(idMap, relationship.targetId),
+          reason: relationship.reason,
+        }),
+      );
 
       const userEvents = buildEvents(userMemories);
 
-      console.log(`  inserting ${userMemories.length} memories...`);
+      console.log(`  inserting ${String(userMemories.length)} memories...`);
       await session.run(
         `UNWIND $memories AS mem
          CREATE (m:Memory {
@@ -147,7 +146,9 @@ export async function runSeed(options: RunSeedOptions): Promise<void> {
         { memories: userMemories },
       );
 
-      console.log(`  creating ${userRelationships.length} relationships...`);
+      console.log(
+        `  creating ${String(userRelationships.length)} relationships...`,
+      );
       await session.run(
         `UNWIND $rels AS rel
          MATCH (a:Memory {id: rel.sourceId})
@@ -156,7 +157,7 @@ export async function runSeed(options: RunSeedOptions): Promise<void> {
         { rels: userRelationships },
       );
 
-      console.log(`  creating ${userEvents.length} events...`);
+      console.log(`  creating ${String(userEvents.length)} events...`);
       await session.run(
         `UNWIND $events AS evt
          MATCH (m:Memory {id: evt.memoryId})
@@ -183,9 +184,9 @@ export async function runSeed(options: RunSeedOptions): Promise<void> {
 
     console.log("\ndone!");
     console.log(`  users: ${String(options.userIds.length)}`);
-    console.log(`  memories: ${totalMemories}`);
-    console.log(`  relationships: ${totalRelationships}`);
-    console.log(`  events: ${totalEvents}`);
+    console.log(`  memories: ${String(totalMemories)}`);
+    console.log(`  relationships: ${String(totalRelationships)}`);
+    console.log(`  events: ${String(totalEvents)}`);
     if (options.embedAfterInsert) {
       console.log(
         `  embeddings: ${String(totalMemories)} (${embeddingMode()})`,

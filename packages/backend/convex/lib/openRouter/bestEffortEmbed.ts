@@ -7,7 +7,7 @@
 import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
 import { tryUserAndApiKeyByClerkId } from "../envVars";
-import { generateEmbedding, generateEmbeddings } from "./embedding";
+import { generateEmbeddings } from "./embedding";
 import type { OpenRouterFeature } from "./shared";
 
 export interface BestEffortEmbedAuth {
@@ -33,8 +33,11 @@ export async function resolveBestEffortEmbedAuth(
 export async function bestEffortEmbedOne(
   params: BestEffortEmbedParams & { text: string },
 ): Promise<number[] | null> {
-  const auth = await resolveBestEffortEmbedAuth(params.ctx, params.clerkId);
-  return bestEffortEmbedOneWithAuth({ ...params, auth });
+  const [embedding] = await bestEffortEmbedMany({
+    ...params,
+    texts: [params.text],
+  });
+  return embedding ?? null;
 }
 
 export async function bestEffortEmbedMany(
@@ -68,6 +71,7 @@ export async function bestEffortEmbedManyWithAuth(params: {
 }): Promise<(number[] | null)[]> {
   if (!params.auth) return params.texts.map(() => null);
   const auth = params.auth;
+
   return degradeOnFailure(
     () =>
       generateEmbeddings({
@@ -91,19 +95,13 @@ export async function bestEffortEmbedOneWithAuth(params: {
   text: string;
   failureLog: string;
 }): Promise<number[] | null> {
-  if (!params.auth) return null;
-  const auth = params.auth;
-  return degradeOnFailure(
-    () =>
-      generateEmbedding({
-        ctx: params.ctx,
-        apiKey: auth.apiKey,
-        userId: auth.userId,
-        profileId: params.profileId,
-        feature: params.feature,
-        text: params.text,
-      }),
-    null,
-    params.failureLog,
-  );
+  const [embedding] = await bestEffortEmbedManyWithAuth({
+    ctx: params.ctx,
+    auth: params.auth,
+    profileId: params.profileId,
+    feature: params.feature,
+    texts: [params.text],
+    failureLog: params.failureLog,
+  });
+  return embedding ?? null;
 }

@@ -56,6 +56,17 @@ function snapToWordBoundary(text: string, index: number): number {
   return index;
 }
 
+/** Snap `index` left to whitespace; if that lands at/before `start`, use `fallback`. */
+function snapPastStart(
+  text: string,
+  index: number,
+  start: number,
+  fallback: number,
+): number {
+  const snapped = snapToWordBoundary(text, index);
+  return snapped <= start ? fallback : snapped;
+}
+
 /**
  * Split `content` into overlapping chunks of approximately CHUNK_TARGET_CHARS
  * characters, stepping by CHUNK_STEP_CHARS so adjacent chunks share
@@ -79,14 +90,11 @@ export function chunkText(content: string): MemoryChunk[] {
   let start = 0;
 
   while (start < content.length) {
-    let end = Math.min(start + CHUNK_TARGET_CHARS, content.length);
-    if (end < content.length) {
-      end = snapToWordBoundary(content, end);
-      // If snap-to-boundary moved us back to or before start, just take the
-      // hard cut so we always advance.
-      if (end <= start)
-        end = Math.min(start + CHUNK_TARGET_CHARS, content.length);
-    }
+    const hardEnd = Math.min(start + CHUNK_TARGET_CHARS, content.length);
+    const end =
+      hardEnd < content.length
+        ? snapPastStart(content, hardEnd, start, hardEnd)
+        : hardEnd;
     const slice = content.slice(start, end).trim();
     if (slice.length > 0) {
       chunks.push({
@@ -96,14 +104,11 @@ export function chunkText(content: string): MemoryChunk[] {
       });
     }
     if (end >= content.length) break;
-    // Step forward by CHUNK_STEP_CHARS but never past `end`. snap the step
-    // landing point too.
-    let next = start + CHUNK_STEP_CHARS;
-    if (next < content.length) {
-      next = snapToWordBoundary(content, next);
-      if (next <= start) next = start + CHUNK_STEP_CHARS;
-    }
-    start = next;
+    const hardNext = start + CHUNK_STEP_CHARS;
+    start =
+      hardNext < content.length
+        ? snapPastStart(content, hardNext, start, hardNext)
+        : hardNext;
   }
 
   return chunks;

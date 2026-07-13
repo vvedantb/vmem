@@ -48,7 +48,7 @@ const memoryNodePropsSchema = z.object({
   expiresAt: z.string().nullable().optional(),
 });
 
-const memoryEventPropsSchema = z.object({
+export const memoryEventPropsSchema = z.object({
   id: z.string(),
   action: z.string(),
   actor: z.string(),
@@ -127,10 +127,8 @@ export function recencyFromAgeDays(age: number, type: MemoryType): number {
 export function toMemoryTypeOrUndefined(
   val: string | null,
 ): MemoryType | undefined {
-  if (val === "profile" || val === "episodic" || val === "knowledge") {
-    return val;
-  }
-  return undefined;
+  const parsed = memoryTypeSchema.safeParse(val);
+  return parsed.success ? parsed.data : undefined;
 }
 
 export function toSnapshot(
@@ -167,13 +165,6 @@ export function toEventFromNode(props: {
   };
 }
 
-function optionalNeo4jString(value: string | null | undefined): string | null {
-  if (value === null || value === undefined) {
-    return null;
-  }
-  return value;
-}
-
 export function toMemoryWithTags(record: NeoRecord): MemoryWithTags {
   const props = parseNeo4jNodeProps(
     neo4jGet(record, "m"),
@@ -188,10 +179,10 @@ export function toMemoryWithTags(record: NeoRecord): MemoryWithTags {
     content: props.content,
     type: props.type,
     source: props.source,
-    sourceType: optionalNeo4jString(props.sourceType),
-    sourceId: optionalNeo4jString(props.sourceId),
-    sourceUrl: optionalNeo4jString(props.sourceUrl),
-    sourceSyncedAt: optionalNeo4jString(props.sourceSyncedAt),
+    sourceType: props.sourceType ?? null,
+    sourceId: props.sourceId ?? null,
+    sourceUrl: props.sourceUrl ?? null,
+    sourceSyncedAt: props.sourceSyncedAt ?? null,
     confidence: props.confidence,
     status: props.status,
     createdAt: props.createdAt,

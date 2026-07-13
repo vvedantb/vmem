@@ -91,12 +91,9 @@ function approxTokens(text: string): number {
 
 /** Graded relevance for a query: explicit grades if present, else binary (grade 1). */
 function gradeMap(query: RetrievalEvalQuery): Map<string, number> {
-  const map = new Map<string, number>();
-  if (query.relevance) {
-    for (const [title, grade] of Object.entries(query.relevance)) {
-      map.set(title, grade);
-    }
-  }
+  const map = new Map<string, number>(
+    query.relevance ? Object.entries(query.relevance) : [],
+  );
   for (const title of query.expectedTitles) {
     if (!map.has(title)) map.set(title, 1);
   }
@@ -137,6 +134,7 @@ interface AggMetrics {
 }
 
 function aggregate(outcomes: QueryOutcome[]): AggMetrics {
+  const latencies = outcomes.map((o) => o.latencyMs);
   return {
     recall1: mean(outcomes.map((o) => o.recall1)),
     recall3: mean(outcomes.map((o) => o.recall3)),
@@ -146,14 +144,8 @@ function aggregate(outcomes: QueryOutcome[]): AggMetrics {
     mrr: mean(outcomes.map((o) => o.rr)),
     ndcg10: mean(outcomes.map((o) => o.ndcg10)),
     meanCtxTokens: mean(outcomes.map((o) => o.ctxTokens)),
-    latencyP50: percentile(
-      outcomes.map((o) => o.latencyMs),
-      50,
-    ),
-    latencyP95: percentile(
-      outcomes.map((o) => o.latencyMs),
-      95,
-    ),
+    latencyP50: percentile(latencies, 50),
+    latencyP95: percentile(latencies, 95),
   };
 }
 
@@ -178,6 +170,26 @@ async function fullCorpusTokens(
   }
 }
 
+async function retrieveForConfig(
+  driver: ReturnType<typeof getDriver>,
+  legs: Legs,
+  embeddings: Map<string, number[]>,
+  query: string,
+): Promise<{
+  candidates: Awaited<ReturnType<typeof retrieveMemories>>;
+  latencyMs: number;
+}> {
+  const start = performance.now();
+  const candidates = await retrieveMemories(driver, {
+    userId: BENCH_USER_ID,
+    query,
+    queryEmbedding: embeddings.get(query) ?? null,
+    limit: K,
+    legs,
+  });
+  return { candidates, latencyMs: performance.now() - start };
+}
+
 async function runConfig(
   driver: ReturnType<typeof getDriver>,
   config: LegConfig,
@@ -185,16 +197,12 @@ async function runConfig(
 ): Promise<ConfigRun> {
   const outcomes: QueryOutcome[] = [];
   for (const query of ANSWERABLE) {
-    const queryEmbedding = embeddings.get(query.query) ?? null;
-    const start = performance.now();
-    const candidates = await retrieveMemories(driver, {
-      userId: BENCH_USER_ID,
-      query: query.query,
-      queryEmbedding,
-      limit: K,
-      legs: config.legs,
-    });
-    const latencyMs = performance.now() - start;
+    const { candidates, latencyMs } = await retrieveForConfig(
+      driver,
+      config.legs,
+      embeddings,
+      query.query,
+    );
     const titles = candidates.map((c) => c.title);
     outcomes.push({
       type: benchQueryType(query),
@@ -216,14 +224,12 @@ async function runConfig(
 
   const abstentionTopScores: number[] = [];
   for (const query of ABSTENTION) {
-    const queryEmbedding = embeddings.get(query.query) ?? null;
-    const candidates = await retrieveMemories(driver, {
-      userId: BENCH_USER_ID,
-      query: query.query,
-      queryEmbedding,
-      limit: K,
-      legs: config.legs,
-    });
+    const { candidates } = await retrieveForConfig(
+      driver,
+      config.legs,
+      embeddings,
+      query.query,
+    );
     abstentionTopScores.push(candidates[0]?.trace.score ?? 0);
   }
 
@@ -244,7 +250,7 @@ function mdTable(header: string[], rows: string[][]): string {
     .join("\n");
 }
 
-function benchQueryType(q: { type?: string }): string {
+function benchQueryType(q: RetrievalEvalQuery): string {
   return q.type ?? "untyped";
 }
 

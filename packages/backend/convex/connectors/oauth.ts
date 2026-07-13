@@ -1,16 +1,15 @@
 import { v } from "convex/values";
-import { internalAction } from "../_generated/server";
-import type { ActionCtx } from "../_generated/server";
+import type { z } from "zod";
 import { internal } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
+import { internalAction, type ActionCtx } from "../_generated/server";
 import { authAction } from "../auth";
+import { auditLog, ResourceTypes } from "../auditLog";
 import { encryptToken, decryptToken, getEnvOrThrow } from "../lib/crypto";
 import {
   oauthAccessTokenSchema,
   safeParseResponseJson,
 } from "../lib/jsonBoundary";
-import type { z } from "zod";
-import { auditLog, ResourceTypes } from "../auditLog";
 import {
   GOOGLE_OAUTH_SCOPES,
   pickGoogleTokenConnectorId,
@@ -19,7 +18,7 @@ import {
 
 // --- Provider configurations ---
 
-type Provider = "google_drive" | "notion";
+type Provider = NonNullable<Doc<"connectors">["provider"]>;
 
 interface ProviderConfig {
   authUrl: string;
@@ -174,17 +173,13 @@ export const startOAuth = authAction({
     ctx,
     args,
   ): Promise<{ authUrl: string | null; alreadyConnected: boolean }> => {
-    // 1. Get connector and validate provider
     const connector = await ctx.runQuery(
       internal.connectors.crud.getByIdInternal,
       {
         id: args.connectorId,
       },
     );
-    if (!connector) {
-      throw new Error("Connector not found");
-    }
-    if (connector.userId !== ctx.userId) {
+    if (!connector || connector.userId !== ctx.userId) {
       throw new Error("Connector not found");
     }
     if (!connector.provider) {
@@ -194,9 +189,8 @@ export const startOAuth = authAction({
     if (!isConnectorOAuthProvider(connector.provider)) {
       throw new Error(`Unsupported provider: ${String(connector.provider)}`);
     }
-    const provider: Provider = connector.provider;
-
-    const config: ProviderConfig = PROVIDER_CONFIGS[provider];
+    const provider = connector.provider;
+    const config = PROVIDER_CONFIGS[provider];
     const convexSiteUrl = getEnvOrThrow("CONVEX_SITE_URL");
 
     if (provider === "google_drive") {
@@ -222,7 +216,6 @@ export const startOAuth = authAction({
       }
     }
 
-    // 2. Generate state and store in oauthStates
     const state = crypto.randomUUID();
     const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
 
@@ -235,7 +228,6 @@ export const startOAuth = authAction({
       provider,
     });
 
-    // 3. Build provider auth URL from its config
     const redirectUri = `${convexSiteUrl}/api/auth/connector/callback`;
 
     return {
@@ -258,7 +250,6 @@ export const startOAuth = authAction({
 export const disconnect = authAction({
   args: { connectorId: v.id("connectors") },
   handler: async (ctx, args) => {
-    // 1. Get connector and validate ownership
     const connector = await ctx.runQuery(
       internal.connectors.crud.getByIdInternal,
       {
@@ -269,23 +260,27 @@ export const disconnect = authAction({
       throw new Error("Connector not found");
     }
 
-    // 2. Get and revoke tokens if provider supports it
     const tokens = await ctx.runQuery(
       internal.connectors.tokens.getEncryptedTokensInternal,
       { connectorId: args.connectorId },
     );
 
-    if (tokens && connector.provider === "google_drive") {
-      await revokeTokenBestEffort(async () => {
-        const accessToken = await decryptToken(tokens.accessToken);
-        await fetch(
-          `https://oauth2.googleapis.com/revoke?token=${encodeURIComponent(accessToken)}`,
-          { method: "POST" },
-        );
-      });
+    if (
+      tokens &&
+      connector.provider &&
+      isConnectorOAuthProvider(connector.provider)
+    ) {
+      const revokeUrl = PROVIDER_CONFIGS[connector.provider].revokeUrl;
+      if (revokeUrl) {
+        await revokeTokenBestEffort(async () => {
+          const accessToken = await decryptToken(tokens.accessToken);
+          await fetch(`${revokeUrl}?token=${encodeURIComponent(accessToken)}`, {
+            method: "POST",
+          });
+        });
+      }
     }
 
-    // 3. Delete tokens and mark disconnected
     await ctx.runMutation(internal.connectors.tokens.deleteTokensInternal, {
       connectorId: args.connectorId,
     });
@@ -327,7 +322,6 @@ function oauthCallbackError(
 export const handleCallbackInternal = internalAction({
   args: { code: v.string(), state: v.string() },
   handler: async (ctx, args): Promise<OAuthCallbackResult> => {
-    // 1. Consume and validate state
     const stateEntry = await ctx.runMutation(
       internal.oauthState.consumeOAuthStateInternal,
       { state: args.state },
@@ -361,7 +355,6 @@ export const handleCallbackInternal = internalAction({
     const fail = (error: string): OAuthCallbackResult =>
       oauthCallbackError(error, stateEntry.returnUrl, connectorId);
 
-    // 2. Exchange code for tokens using the provider's configured auth style
     const config = PROVIDER_CONFIGS[provider];
     const clientId = getEnvOrThrow(config.clientIdEnv);
     const clientSecret = getEnvOrThrow(config.clientSecretEnv);
@@ -405,7 +398,6 @@ export const handleCallbackInternal = internalAction({
       config.tokenPolicy(exchanged.tokenData),
     );
 
-    // 4. Mark connector as connected
     await ctx.runMutation(internal.connectors.crud.markConnectedInternal, {
       id: connectorId,
     });

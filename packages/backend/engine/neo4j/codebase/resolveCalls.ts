@@ -29,8 +29,6 @@ import {
   type RelationEdge,
   type SymbolNode,
   type FunctionNode,
-  type ClassNode,
-  type InterfaceNode,
 } from "./types";
 
 interface SymbolIndex {
@@ -38,10 +36,6 @@ interface SymbolIndex {
   byId: Map<string, SymbolNode>;
   /** Functions only — quick lookup for CALLS resolution. */
   functionsById: Map<string, FunctionNode>;
-  /** Classes only — for EXTENDS/IMPLEMENTS resolution. */
-  classesById: Map<string, ClassNode>;
-  /** Interfaces — for IMPLEMENTS resolution. */
-  interfacesById: Map<string, InterfaceNode>;
   /** filePath → name → symbol id (functions/classes/interfaces only). */
   byFileAndName: Map<string, Map<string, string>>;
   /** name → set<symbolId> (across files). For ambiguous fallback. */
@@ -51,24 +45,21 @@ interface SymbolIndex {
 function buildIndex(symbols: SymbolNode[]): SymbolIndex {
   const byId = new Map<string, SymbolNode>();
   const functionsById = new Map<string, FunctionNode>();
-  const classesById = new Map<string, ClassNode>();
-  const interfacesById = new Map<string, InterfaceNode>();
   const byFileAndName = new Map<string, Map<string, string>>();
   const byNameGlobal = new Map<string, Set<string>>();
 
   for (const sym of symbols) {
     byId.set(sym.id, sym);
     if (sym.kind === "function") functionsById.set(sym.id, sym);
-    else if (sym.kind === "class") classesById.set(sym.id, sym);
-    else if (sym.kind === "interface") interfacesById.set(sym.id, sym);
-
     if (sym.kind === "file") continue;
+
     let perFile = byFileAndName.get(sym.filePath);
     if (!perFile) {
       perFile = new Map();
       byFileAndName.set(sym.filePath, perFile);
     }
     perFile.set(sym.name, sym.id);
+
     let global = byNameGlobal.get(sym.name);
     if (!global) {
       global = new Set();
@@ -77,14 +68,7 @@ function buildIndex(symbols: SymbolNode[]): SymbolIndex {
     global.add(sym.id);
   }
 
-  return {
-    byId,
-    functionsById,
-    classesById,
-    interfacesById,
-    byFileAndName,
-    byNameGlobal,
-  };
+  return { byId, functionsById, byFileAndName, byNameGlobal };
 }
 
 /** Look up a possibly-undefined name in the per-file symbol map. */
@@ -184,11 +168,9 @@ function resolveCalleeIds(
   if (!globalIds || globalIds.size === 0) {
     return { ids: [], tier: "INFERRED" };
   }
-  const filtered: string[] = [];
-  for (const candidateId of globalIds) {
-    const sym = index.byId.get(candidateId);
-    if (sym && sym.kind === "function") filtered.push(candidateId);
-  }
+  const filtered = [...globalIds].filter(
+    (id) => index.byId.get(id)?.kind === "function",
+  );
   if (filtered.length === 0) return { ids: [], tier: "INFERRED" };
   if (filtered.length === 1) return { ids: filtered, tier: "INFERRED" };
   return { ids: filtered, tier: "AMBIGUOUS" };
@@ -255,63 +237,56 @@ function patchImports(
   }
 }
 
+function heritageTargetKind(
+  edgeKind: "EXTENDS" | "IMPLEMENTS",
+): "class" | "interface" {
+  return edgeKind === "EXTENDS" ? "class" : "interface";
+}
+
+function applyHeritageTarget(
+  edge: RelationEdge,
+  targetId: string,
+  tier: "INFERRED" | "AMBIGUOUS",
+): void {
+  edge.toId = targetId;
+  edge.confidence = CONFIDENCE_BY_TIER[tier];
+  edge.tier = tier;
+}
+
 /** Patch EXTENDS/IMPLEMENTS edges: textual name → resolved class/interface id. */
 function patchHeritage(edges: RelationEdge[], index: SymbolIndex): void {
   for (const edge of edges) {
     if (edge.kind !== "EXTENDS" && edge.kind !== "IMPLEMENTS") continue;
     const fromSym = index.byId.get(edge.fromId);
     if (!fromSym || fromSym.kind !== "class") continue;
+
+    const wantKind = heritageTargetKind(edge.kind);
     const targetName = edge.toId;
+
     // Try same file first.
-    const perFile = index.byFileAndName.get(fromSym.filePath);
-    const localId = perFile?.get(targetName);
-    if (localId) {
-      const target = index.byId.get(localId);
-      if (
-        target &&
-        ((edge.kind === "EXTENDS" && target.kind === "class") ||
-          (edge.kind === "IMPLEMENTS" && target.kind === "interface"))
-      ) {
-        edge.toId = localId;
-        edge.confidence = CONFIDENCE_BY_TIER.INFERRED;
-        edge.tier = "INFERRED";
-        continue;
-      }
+    const localId = index.byFileAndName.get(fromSym.filePath)?.get(targetName);
+    if (localId && index.byId.get(localId)?.kind === wantKind) {
+      applyHeritageTarget(edge, localId, "INFERRED");
+      continue;
     }
+
     // Global by name.
     const candidates = index.byNameGlobal.get(targetName);
     if (!candidates || candidates.size === 0) {
       edge.toId = "";
       continue;
     }
-    const filtered: string[] = [];
-    for (const cid of candidates) {
-      const c = index.byId.get(cid);
-      if (
-        c &&
-        ((edge.kind === "EXTENDS" && c.kind === "class") ||
-          (edge.kind === "IMPLEMENTS" && c.kind === "interface"))
-      ) {
-        filtered.push(cid);
-      }
-    }
-    if (filtered.length === 1) {
-      const single = filtered.at(0);
-      if (single !== undefined) {
-        edge.toId = single;
-        edge.confidence = CONFIDENCE_BY_TIER.INFERRED;
-        edge.tier = "INFERRED";
-      }
-    } else if (filtered.length === 0) {
+    const filtered = [...candidates].filter(
+      (cid) => index.byId.get(cid)?.kind === wantKind,
+    );
+    const first = filtered.at(0);
+    if (filtered.length === 1 && first !== undefined) {
+      applyHeritageTarget(edge, first, "INFERRED");
+    } else if (filtered.length === 0 || first === undefined) {
       edge.toId = "";
     } else {
       // Pick first; mark ambiguous. Phase 1 won't render tiers anyway.
-      const first = filtered.at(0);
-      if (first !== undefined) {
-        edge.toId = first;
-        edge.confidence = CONFIDENCE_BY_TIER.AMBIGUOUS;
-        edge.tier = "AMBIGUOUS";
-      }
+      applyHeritageTarget(edge, first, "AMBIGUOUS");
     }
   }
 }

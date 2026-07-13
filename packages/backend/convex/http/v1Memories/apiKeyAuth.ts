@@ -1,5 +1,4 @@
-import { httpAction } from "../../_generated/server";
-import type { ActionCtx } from "../../_generated/server";
+import { httpAction, type ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import { hashApiKey } from "../../apiKeys";
 import { extractBearerToken } from "../../lib/bearerToken";
@@ -14,12 +13,8 @@ export type ApiKeyAuth = {
   keyHash: string;
 };
 
-function jsonResponse(body: unknown, status: number): Response {
-  return Response.json(body, { status });
-}
-
 function unauthorized(): Response {
-  return jsonResponse({ error: "unauthorized" }, 401);
+  return Response.json({ error: "unauthorized" }, { status: 401 });
 }
 
 async function resolveApiKeyAuth(
@@ -47,7 +42,7 @@ async function resolveApiKeyAuth(
   };
 }
 
-export async function assertProfileAccess(
+async function assertProfileAccess(
   ctx: ActionCtx,
   userId: Id<"users">,
   profileId: string,
@@ -59,7 +54,7 @@ export async function assertProfileAccess(
     });
     return null;
   } catch {
-    return jsonResponse({ error: "forbidden" }, 403);
+    return Response.json({ error: "forbidden" }, { status: 403 });
   }
 }
 
@@ -93,6 +88,25 @@ async function recordUsage(
   });
 }
 
+async function respondWithUsage(
+  ctx: ActionCtx,
+  auth: ApiKeyAuth,
+  endpoint: string,
+  method: string,
+  startedAt: number,
+  response: Response,
+): Promise<Response> {
+  await recordUsage(
+    ctx,
+    auth,
+    endpoint,
+    method,
+    response.status,
+    Date.now() - startedAt,
+  );
+  return response;
+}
+
 export function withApiKeyAuth<T>(
   endpoint: string,
   method: string,
@@ -116,44 +130,56 @@ export function withApiKeyAuth<T>(
     try {
       json = await req.json();
     } catch {
-      const durationMs = Date.now() - startedAt;
-      await recordUsage(ctx, auth, endpoint, method, 400, durationMs);
-      return jsonResponse({ error: "invalid_json" }, 400);
+      return respondWithUsage(
+        ctx,
+        auth,
+        endpoint,
+        method,
+        startedAt,
+        Response.json({ error: "invalid_json" }, { status: 400 }),
+      );
     }
 
     const parsed = schema.safeParse(json);
     if (!parsed.success) {
-      const durationMs = Date.now() - startedAt;
-      await recordUsage(ctx, auth, endpoint, method, 400, durationMs);
-      return jsonResponse(
-        { error: "invalid_request", issues: parsed.error.issues },
-        400,
+      return respondWithUsage(
+        ctx,
+        auth,
+        endpoint,
+        method,
+        startedAt,
+        Response.json(
+          { error: "invalid_request", issues: parsed.error.issues },
+          { status: 400 },
+        ),
       );
     }
 
     try {
       const result = await run(ctx, auth, parsed.data);
-      const durationMs = Date.now() - startedAt;
 
       if (result instanceof Response) {
-        await recordUsage(
-          ctx,
-          auth,
-          endpoint,
-          method,
-          result.status,
-          durationMs,
-        );
-        return result;
+        return respondWithUsage(ctx, auth, endpoint, method, startedAt, result);
       }
 
-      await recordUsage(ctx, auth, endpoint, method, 200, durationMs);
-      return jsonResponse({ data: result }, 200);
+      return respondWithUsage(
+        ctx,
+        auth,
+        endpoint,
+        method,
+        startedAt,
+        Response.json({ data: result }, { status: 200 }),
+      );
     } catch (err) {
       console.error(`[HTTP][${endpoint}]`, err);
-      const durationMs = Date.now() - startedAt;
-      await recordUsage(ctx, auth, endpoint, method, 500, durationMs);
-      return jsonResponse({ error: "internal_error" }, 500);
+      return respondWithUsage(
+        ctx,
+        auth,
+        endpoint,
+        method,
+        startedAt,
+        Response.json({ error: "internal_error" }, { status: 500 }),
+      );
     }
   });
 }

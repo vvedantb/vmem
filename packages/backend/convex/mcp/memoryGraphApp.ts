@@ -110,16 +110,27 @@ export function registerMemoryGraphApp(
       },
     },
     async (params) => {
-      let graph;
       try {
-        graph = await ctx.runAction(internal.mcp.graph.mcpGetMemoryGraph, {
-          clerkId: clerkUserId,
-          mcpScope: scope,
-          profileId: params.profileId,
-          focus: params.focus,
-          memoryIds: params.memoryIds,
-          limit: params.limit,
-        });
+        const graph = await ctx.runAction(
+          internal.mcp.graph.mcpGetMemoryGraph,
+          {
+            clerkId: clerkUserId,
+            mcpScope: scope,
+            profileId: params.profileId,
+            focus: params.focus,
+            memoryIds: params.memoryIds,
+            limit: params.limit,
+          },
+        );
+        return {
+          content: [
+            {
+              type: "text",
+              text: buildSummaryText(graph, params.profileId),
+            },
+          ],
+          structuredContent: graph,
+        };
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error";
         return {
@@ -132,16 +143,6 @@ export function registerMemoryGraphApp(
           isError: true,
         };
       }
-
-      return {
-        content: [
-          {
-            type: "text",
-            text: buildSummaryText(graph, params.profileId),
-          },
-        ],
-        structuredContent: graph,
-      };
     },
   );
 }

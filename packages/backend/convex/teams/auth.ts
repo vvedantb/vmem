@@ -17,14 +17,18 @@
  */
 
 import type { Doc, Id } from "../_generated/dataModel";
-import type { MutationCtx, QueryCtx } from "../_generated/server";
+import type { ActionCtx, MutationCtx, QueryCtx } from "../_generated/server";
+
+export type AuthQueryCtx = QueryCtx & { userId: Id<"users"> };
+export type AuthMutationCtx = MutationCtx & { userId: Id<"users"> };
+export type AuthActionCtx = ActionCtx & { userId: Id<"users"> };
 
 export async function getMembershipOrNull(
   ctx: QueryCtx | MutationCtx,
   teamId: Id<"teams">,
   userId: Id<"users">,
 ): Promise<Doc<"teamMembers"> | null> {
-  return await ctx.db
+  return ctx.db
     .query("teamMembers")
     .withIndex("by_team_user", (q) =>
       q.eq("teamId", teamId).eq("userId", userId),
@@ -46,6 +50,17 @@ export async function requireTeamRole(
   return membership;
 }
 
+/** Team-scoped profile row, or null when the team has none. */
+export async function getTeamProfileOrNull(
+  ctx: QueryCtx | MutationCtx,
+  teamId: Id<"teams">,
+): Promise<Doc<"profiles"> | null> {
+  return ctx.db
+    .query("profiles")
+    .withIndex("by_team", (q) => q.eq("teamId", teamId))
+    .first();
+}
+
 /** Clerk ids of every member of a team (members without a clerkId skipped). */
 export async function getTeamMemberClerkIds(
   ctx: QueryCtx | MutationCtx,
@@ -56,9 +71,9 @@ export async function getTeamMemberClerkIds(
     .withIndex("by_team", (q) => q.eq("teamId", teamId))
     .collect();
   const clerkIds: string[] = [];
-  for (const m of members) {
-    const u = await ctx.db.get(m.userId);
-    if (u?.clerkId) clerkIds.push(u.clerkId);
+  for (const member of members) {
+    const user = await ctx.db.get(member.userId);
+    if (user?.clerkId) clerkIds.push(user.clerkId);
   }
   return clerkIds;
 }
@@ -75,20 +90,6 @@ export async function getTeamMemberClerkIds(
 interface ScopedContentDoc {
   userId: Id<"users">;
   teamId?: Id<"teams">;
-}
-
-/** Personal scope: only the owner. Team scope: any current member. */
-async function assertPersonalOwnerOrTeamMember(
-  ctx: QueryCtx | MutationCtx,
-  doc: ScopedContentDoc,
-  userId: Id<"users">,
-): Promise<void> {
-  if (doc.teamId === undefined) {
-    if (doc.userId !== userId) throw new Error("Not found");
-    return;
-  }
-  const membership = await getMembershipOrNull(ctx, doc.teamId, userId);
-  if (!membership) throw new Error("Not found");
 }
 
 /** List/create gate: membership when a teamId scope is requested. */
@@ -119,7 +120,12 @@ export async function assertContentEditable(
   doc: ScopedContentDoc,
   userId: Id<"users">,
 ): Promise<void> {
-  await assertPersonalOwnerOrTeamMember(ctx, doc, userId);
+  if (doc.teamId === undefined) {
+    if (doc.userId !== userId) throw new Error("Not found");
+    return;
+  }
+  const membership = await getMembershipOrNull(ctx, doc.teamId, userId);
+  if (!membership) throw new Error("Not found");
 }
 
 /** Delete gate: personal → owner; team → creator or team owner. */
@@ -129,16 +135,16 @@ export async function assertContentDeletable(
   userId: Id<"users">,
 ): Promise<void> {
   if (doc.teamId === undefined) {
-    await assertPersonalOwnerOrTeamMember(ctx, doc, userId);
+    await assertContentEditable(ctx, doc, userId);
     return;
   }
+
+  const membership = await getMembershipOrNull(ctx, doc.teamId, userId);
   if (doc.userId === userId) {
     // Creator must still be a member to act on team content.
-    const membership = await getMembershipOrNull(ctx, doc.teamId, userId);
     if (!membership) throw new Error("Not found");
     return;
   }
-  const membership = await getMembershipOrNull(ctx, doc.teamId, userId);
   if (!membership || membership.role !== "owner") {
     throw new Error("Only the creator or a team owner can delete this");
   }
@@ -159,8 +165,11 @@ export async function runAssertProfileAccessInternal(
   const profile = await ctx.db.get(profileId);
   if (!profile) throw new Error("Profile not found");
   if (profile.teamId) {
-    const teamId = profile.teamId;
-    const membership = await getMembershipOrNull(ctx, teamId, args.userId);
+    const membership = await getMembershipOrNull(
+      ctx,
+      profile.teamId,
+      args.userId,
+    );
     if (!membership) throw new Error("Not a member of this team");
   } else if (profile.userId !== args.userId) {
     throw new Error("Profile not accessible");
@@ -201,12 +210,11 @@ export async function runResolveMemoryScopeInternal(
     const membership = await getMembershipOrNull(ctx, teamId, args.userId);
     if (!membership) throw new Error("Not a member of this team");
 
-    const allowedClerkIds = await getTeamMemberClerkIds(ctx, teamId);
     return {
       kind: "team",
-      allowedClerkIds,
+      allowedClerkIds: await getTeamMemberClerkIds(ctx, teamId),
       profileId: profile._id,
-      teamId: profile.teamId,
+      teamId,
     };
   }
 
@@ -237,8 +245,11 @@ export async function runAssertMemoryMutablePermissionInternal(
   const profile = await ctx.db.get(args.profileId);
   if (!profile?.teamId) throw new Error("Not allowed");
 
-  const teamId = profile.teamId;
-  const membership = await getMembershipOrNull(ctx, teamId, args.userId);
+  const membership = await getMembershipOrNull(
+    ctx,
+    profile.teamId,
+    args.userId,
+  );
   if (!membership || membership.role !== "owner") {
     throw new Error("Not allowed");
   }

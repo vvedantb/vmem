@@ -1,11 +1,27 @@
 import { v } from "convex/values";
-import { internalMutation, internalQuery } from "../_generated/server";
+import type { Id } from "../_generated/dataModel";
+import {
+  internalMutation,
+  internalQuery,
+  type MutationCtx,
+  type QueryCtx,
+} from "../_generated/server";
 
 /**
  * Internal mutations and queries for connector OAuth tokens.
  * Only called from internalActions (sync, callback), never directly from frontend.
  * Encryption/decryption happens in the calling action using shared crypto helpers.
  */
+
+async function tokensForConnector(
+  ctx: QueryCtx | MutationCtx,
+  connectorId: Id<"connectors">,
+) {
+  return await ctx.db
+    .query("connectorTokens")
+    .withIndex("by_connector", (q) => q.eq("connectorId", connectorId))
+    .first();
+}
 
 export const storeTokensInternal = internalMutation({
   args: {
@@ -17,17 +33,11 @@ export const storeTokensInternal = internalMutation({
     scope: v.string(),
   },
   handler: async (ctx, args) => {
-    // Delete existing tokens for this connector
-    const existing = await ctx.db
-      .query("connectorTokens")
-      .withIndex("by_connector", (q) => q.eq("connectorId", args.connectorId))
-      .first();
-
+    const existing = await tokensForConnector(ctx, args.connectorId);
     if (existing) {
       await ctx.db.delete(existing._id);
     }
 
-    // Insert new tokens
     return await ctx.db.insert("connectorTokens", {
       connectorId: args.connectorId,
       accessToken: args.accessToken,
@@ -42,25 +52,18 @@ export const storeTokensInternal = internalMutation({
 export const getEncryptedTokensInternal = internalQuery({
   args: { connectorId: v.id("connectors") },
   handler: async (ctx, args) => {
-    return await ctx.db
-      .query("connectorTokens")
-      .withIndex("by_connector", (q) => q.eq("connectorId", args.connectorId))
-      .first();
+    return await tokensForConnector(ctx, args.connectorId);
   },
 });
 
 export const deleteTokensInternal = internalMutation({
   args: { connectorId: v.id("connectors") },
   handler: async (ctx, args) => {
-    const existing = await ctx.db
-      .query("connectorTokens")
-      .withIndex("by_connector", (q) => q.eq("connectorId", args.connectorId))
-      .first();
-
-    if (existing) {
-      await ctx.db.delete(existing._id);
-      return true;
+    const existing = await tokensForConnector(ctx, args.connectorId);
+    if (!existing) {
+      return false;
     }
-    return false;
+    await ctx.db.delete(existing._id);
+    return true;
   },
 });

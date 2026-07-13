@@ -100,6 +100,33 @@ interface UpdateTeamMemoryArgs {
 }
 
 /**
+ * Load a team memory and assert the caller may mutate it (creator or
+ * team owner). Returns null when the memory is missing.
+ */
+async function loadMutableTeamMemory(
+  ctx: AuthActionCtx,
+  args: { profileId: Id<"profiles">; memoryId: string },
+): Promise<MemoryWithTags | null> {
+  await assertTeamAccess(ctx, args.profileId);
+
+  const memory = await ctx.runAction(
+    internal.neo4jActions.memories.getMemoryForTeamInternal,
+    { profileId: args.profileId, memoryId: args.memoryId },
+  );
+  if (!memory) return null;
+
+  // Creator clerkId is needed so the per-user Cypher path matches the
+  // right node — including when a non-creator team owner is the caller.
+  await ctx.runQuery(internal.teams.assertMemoryMutablePermissionInternal, {
+    userId: ctx.userId,
+    memoryCreatorClerkId: memory.userId,
+    profileId: args.profileId,
+  });
+
+  return memory;
+}
+
+/**
  * Update a team memory. Allowed if caller is the original creator OR is
  * a team owner. Both paths use the creator-scoped `updateMemoryInternal`
  * since that's how Cypher locates the node — we've already authorized.
@@ -109,22 +136,12 @@ export async function runUpdateTeamMemory(
   args: UpdateTeamMemoryArgs,
 ): Promise<MemoryWithTags | null> {
   await requireClerkId(ctx);
-  await assertTeamAccess(ctx, args.profileId);
 
-  // Lookup needed to find the creator clerkId so the per-user delete
-  // path matches the right node — works even when caller is a non-creator
-  // team owner.
-  const memory: MemoryWithTags | null = await ctx.runAction(
-    internal.neo4jActions.memories.getMemoryForTeamInternal,
-    { profileId: args.profileId, memoryId: args.memoryId },
-  );
-  if (!memory) throw new Error("Memory not found");
-
-  await ctx.runQuery(internal.teams.assertMemoryMutablePermissionInternal, {
-    userId: ctx.userId,
-    memoryCreatorClerkId: memory.userId,
+  const memory = await loadMutableTeamMemory(ctx, {
     profileId: args.profileId,
+    memoryId: args.memoryId,
   });
+  if (!memory) throw new Error("Memory not found");
 
   return await ctx.runAction(
     internal.neo4jActions.memories.updateMemoryInternal,
@@ -152,19 +169,12 @@ export async function runDeleteTeamMemory(
   args: { profileId: Id<"profiles">; memoryId: string },
 ): Promise<boolean> {
   const callerClerkId = await requireClerkId(ctx);
-  await assertTeamAccess(ctx, args.profileId);
 
-  const memory: MemoryWithTags | null = await ctx.runAction(
-    internal.neo4jActions.memories.getMemoryForTeamInternal,
-    { profileId: args.profileId, memoryId: args.memoryId },
-  );
-  if (!memory) return false;
-
-  await ctx.runQuery(internal.teams.assertMemoryMutablePermissionInternal, {
-    userId: ctx.userId,
-    memoryCreatorClerkId: memory.userId,
+  const memory = await loadMutableTeamMemory(ctx, {
     profileId: args.profileId,
+    memoryId: args.memoryId,
   });
+  if (!memory) return false;
 
   if (memory.userId === callerClerkId) {
     return await ctx.runAction(

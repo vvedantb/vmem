@@ -202,13 +202,10 @@ const synthesisResponseSchema = z.object({
   title: z.string().optional(),
   content: z.string().optional(),
   reason: z.string().optional(),
-  // Array entries are validated individually (see filterValidIds) so a
-  // malformed entry is dropped rather than failing the whole array
-  // (best-effort side-channel, same treatment as confidenceAdjustments).
+  // Entries validated individually (filterValidIds / parseConfidenceAdjustments)
+  // so one bad item is dropped instead of failing the whole array.
   sourceMemoryIds: z.array(z.unknown()).optional(),
   confidence: z.number().finite().optional(),
-  // Array entries are validated individually so malformed entries are dropped
-  // silently rather than failing the whole array (best-effort side-channel).
   confidenceAdjustments: z.array(z.unknown()).optional(),
 });
 
@@ -228,8 +225,9 @@ function parseConfidenceAdjustments(
   for (const item of raw) {
     const entry = adjustmentSchema.safeParse(item);
     if (!entry.success) continue;
-    if (!validIds.has(entry.data.memoryId)) continue;
-    if (seen.has(entry.data.memoryId)) continue;
+    if (!validIds.has(entry.data.memoryId) || seen.has(entry.data.memoryId)) {
+      continue;
+    }
     seen.add(entry.data.memoryId);
     adjustments.push({
       memoryId: entry.data.memoryId,
@@ -281,20 +279,11 @@ export function parseDreamSynthesisResponse(
     };
   }
 
-  // Validate source ids: must come from the cluster (model may not invent ids).
-  let sourceMemoryIds = filterValidIds(data.sourceMemoryIds, validIds);
+  const sourceMemoryIds = filterValidIds(data.sourceMemoryIds, validIds);
 
   // Non-skip kinds need at least one source and non-empty title/content.
   if (sourceMemoryIds.length === 0) return null;
   if (title.trim().length === 0 || content.trim().length === 0) return null;
-
-  // Connections describe links between exactly 2 memories — anything
-  // else is either an insight or a contradiction. We don't enforce the
-  // count strictly (the LLM might pick 3 sources and call it a
-  // connection), but we cap at the cluster size.
-  if (sourceMemoryIds.length > clusterIds.length) {
-    sourceMemoryIds = sourceMemoryIds.slice(0, clusterIds.length);
-  }
 
   return {
     type,
@@ -382,8 +371,7 @@ const mergeResponseSchema = z.object({
   type: z.string(),
   title: z.string().optional(),
   content: z.string().optional(),
-  // Array entries are validated individually (see filterValidIds) so a
-  // malformed entry is dropped rather than failing the whole array.
+  // Entries validated individually via filterValidIds.
   sourceMemoryIds: z.array(z.unknown()).optional(),
   confidence: z.number().finite().optional(),
 });

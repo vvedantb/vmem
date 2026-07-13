@@ -128,7 +128,8 @@ export async function tryUserAndApiKeyByClerkId(
   key: string,
 ): Promise<{ userId: Id<"users">; apiKey: string } | null> {
   const resolved = await resolveUserIdAndEnvVars(ctx, clerkId);
-  const apiKey = resolved?.all[key];
-  if (!resolved || !apiKey) return null;
+  if (!resolved) return null;
+  const apiKey = resolved.all[key];
+  if (!apiKey) return null;
   return { userId: resolved.userId, apiKey };
 }

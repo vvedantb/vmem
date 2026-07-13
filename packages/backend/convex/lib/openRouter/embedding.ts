@@ -86,7 +86,7 @@ export async function generateEmbeddings(
   ) {
     const slice = args.texts
       .slice(offset, offset + EMBEDDING_BATCH_SIZE)
-      .map(truncateForEmbedding);
+      .map((text) => truncate(text, EMBEDDING_MAX_INPUT_CHARS));
     const response = await postEmbeddingChunkWithRetry({
       ctx: args.ctx,
       apiKey: args.apiKey,
@@ -230,12 +230,6 @@ function readFloatEmbedding(embedding: Array<number> | string): number[] {
     return embedding;
   }
   throw new Error("embedding response: expected float array");
-}
-
-function truncateForEmbedding(text: string): string {
-  return text.length > EMBEDDING_MAX_INPUT_CHARS
-    ? text.slice(0, EMBEDDING_MAX_INPUT_CHARS)
-    : text;
 }
 
 function computeEmbeddingCost(

@@ -15,10 +15,6 @@ function isGoogleProvider(
   return provider === "google_drive";
 }
 
-function usesRefreshToken(provider: Doc<"connectors">["provider"]): boolean {
-  return provider === "google_drive";
-}
-
 export async function resolveConnectorAccessToken(
   ctx: ActionCtx,
   connector: Doc<"connectors">,
@@ -50,7 +46,8 @@ export async function resolveConnectorAccessToken(
 
   let accessToken = await decryptToken(tokens.accessToken);
 
-  if (usesRefreshToken(connector.provider) && tokens.expiresAt < Date.now()) {
+  // Google is the only provider that issues refreshable OAuth tokens.
+  if (isGoogleProvider(connector.provider) && tokens.expiresAt < Date.now()) {
     if (!tokens.refreshToken) {
       return {
         ok: false,

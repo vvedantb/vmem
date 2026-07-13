@@ -9,10 +9,11 @@
  */
 
 import type { Doc, Id } from "../_generated/dataModel";
-import type { QueryCtx } from "../_generated/server";
-import { getMembershipOrNull } from "./auth";
-
-type AuthQueryCtx = QueryCtx & { userId: Id<"users"> };
+import {
+  type AuthQueryCtx,
+  getMembershipOrNull,
+  getTeamProfileOrNull,
+} from "./auth";
 
 interface TeamListEntry {
   team: Doc<"teams">;
@@ -31,21 +32,18 @@ export async function runList(ctx: AuthQueryCtx): Promise<TeamListEntry[]> {
   for (const membership of memberships) {
     const team = await ctx.db.get(membership.teamId);
     if (!team) continue;
-    const profile = await ctx.db
-      .query("profiles")
+
+    const profile = await getTeamProfileOrNull(ctx, team._id);
+    const members = await ctx.db
+      .query("teamMembers")
       .withIndex("by_team", (q) => q.eq("teamId", team._id))
-      .first();
-    const memberCount = (
-      await ctx.db
-        .query("teamMembers")
-        .withIndex("by_team", (q) => q.eq("teamId", team._id))
-        .collect()
-    ).length;
+      .collect();
+
     results.push({
       team,
       role: membership.role,
-      profile: profile ?? null,
-      memberCount,
+      profile,
+      memberCount: members.length,
     });
   }
   return results;
@@ -81,11 +79,7 @@ export async function runGet(
   const team = await ctx.db.get(teamId);
   if (!team) return null;
 
-  const profile = await ctx.db
-    .query("profiles")
-    .withIndex("by_team", (q) => q.eq("teamId", team._id))
-    .first();
-
+  const profile = await getTeamProfileOrNull(ctx, team._id);
   const memberRows = await ctx.db
     .query("teamMembers")
     .withIndex("by_team", (q) => q.eq("teamId", team._id))
@@ -108,7 +102,7 @@ export async function runGet(
   return {
     team,
     role: membership.role,
-    profile: profile ?? null,
+    profile,
     members,
   };
 }

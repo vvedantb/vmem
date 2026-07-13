@@ -1,5 +1,4 @@
-import { httpAction } from "../_generated/server";
-import type { ActionCtx } from "../_generated/server";
+import { httpAction, type ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { extractBearerToken } from "../lib/bearerToken";
 import { z } from "zod";
@@ -135,12 +134,9 @@ const authorizeQuerySchema = z.object({
 export const authorizeGet = httpAction(async (ctx, request) => {
   try {
     const url = new URL(request.url);
-    const query: Record<string, string> = {};
-    for (const [key, value] of url.searchParams.entries()) {
-      query[key] = value;
-    }
-
-    const params = authorizeQuerySchema.parse(query);
+    const params = authorizeQuerySchema.parse(
+      Object.fromEntries(url.searchParams.entries()),
+    );
 
     const client = await ctx.runQuery(internal.mcp.oauth.getClient, {
       clientId: params.client_id,
@@ -283,14 +279,7 @@ export const token = httpAction(async (ctx, request) => {
   }
 
   // PKCE verification using Web Crypto (httpAction runs on V8 — no node import).
-  const encoder = new TextEncoder();
-  const data = encoder.encode(params.code_verifier);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  const hashArray = new Uint8Array(hashBuffer);
-  const expectedChallenge = btoa(String.fromCharCode(...hashArray))
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
+  const expectedChallenge = await pkceS256Challenge(params.code_verifier);
 
   if (expectedChallenge !== entry.codeChallenge) {
     console.error(
@@ -326,6 +315,18 @@ function unauthorized(message: string, resourceMetadataUrl: string): Response {
   });
 }
 
+/** RFC 7636 S256 code_challenge from a plain code_verifier. */
+async function pkceS256Challenge(verifier: string): Promise<string> {
+  const hashBuffer = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(verifier),
+  );
+  return btoa(String.fromCharCode(...new Uint8Array(hashBuffer)))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
 async function runMcpEndpoint(
   ctx: ActionCtx,
   request: Request,
@@ -342,7 +343,7 @@ async function runMcpEndpoint(
     return unauthorized("Missing Authorization header", resourceMetadataUrl);
   }
 
-  const credentials: { clerkUserId: string } | null = await ctx.runAction(
+  const credentials = await ctx.runAction(
     internal.mcp.nodeActions.verifyAccessToken,
     { token },
   );
@@ -367,7 +368,7 @@ async function runMcpEndpoint(
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const result: { status: number; body: string } = await ctx.runAction(
+  const result = await ctx.runAction(
     internal.mcp.nodeActions.handleMcpRequest,
     {
       clerkUserId: credentials.clerkUserId,

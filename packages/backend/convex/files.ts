@@ -72,12 +72,12 @@ export const listTree = authQuery({
     await requireContentScopeAccess(ctx, ctx.userId, args.teamId);
     const nodes = await listScopeNodes(ctx, ctx.userId, args.teamId);
 
-    let totalBytes = 0;
+    const totalBytes = nodes.reduce(
+      (sum, node) => sum + (node.kind === "file" ? (node.size ?? 0) : 0),
+      0,
+    );
     const withUrls: Array<FileNodeWithUrl> = await Promise.all(
       nodes.map(async (node) => {
-        if (node.kind === "file") {
-          totalBytes += node.size ?? 0;
-        }
         const url =
           node.kind === "file" && node.storageId
             ? await ctx.storage.getUrl(node.storageId)
@@ -158,6 +158,15 @@ async function assertParentFolder(
   }
 }
 
+async function scheduleFileIndex(
+  ctx: MutationCtx,
+  fileNodeId: Id<"fileNodes">,
+): Promise<void> {
+  await ctx.scheduler.runAfter(0, internal.fileIndexing.indexFileNodeInternal, {
+    fileNodeId,
+  });
+}
+
 /**
  * Record an uploaded file. The client has already POSTed bytes to the signed
  * URL and holds the resulting `storageId`. Enforces the per-user storage limit;
@@ -198,11 +207,7 @@ export const createFile = authMutation({
       updatedAt: now,
     });
     if (indexable) {
-      await ctx.scheduler.runAfter(
-        0,
-        internal.fileIndexing.indexFileNodeInternal,
-        { fileNodeId: nodeId },
-      );
+      await scheduleFileIndex(ctx, nodeId);
     }
     return nodeId;
   },
@@ -467,11 +472,7 @@ export const upsertFileByPathInternal = internalMutation({
         updatedAt: now,
       });
       if (needsIndexing) {
-        await ctx.scheduler.runAfter(
-          0,
-          internal.fileIndexing.indexFileNodeInternal,
-          { fileNodeId: existing._id },
-        );
+        await scheduleFileIndex(ctx, existing._id);
       }
       return { nodeId: existing._id };
     }
@@ -489,11 +490,7 @@ export const upsertFileByPathInternal = internalMutation({
       updatedAt: now,
     });
     if (indexable) {
-      await ctx.scheduler.runAfter(
-        0,
-        internal.fileIndexing.indexFileNodeInternal,
-        { fileNodeId: nodeId },
-      );
+      await scheduleFileIndex(ctx, nodeId);
     }
     return { nodeId };
   },

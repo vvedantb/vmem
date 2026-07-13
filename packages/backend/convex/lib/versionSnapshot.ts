@@ -60,12 +60,11 @@ function crossedBoundary(
   meta: SnapshotMeta,
   now: number,
 ): boolean {
-  if (meta.force) return true;
-  if (latest === null) return true;
+  if (meta.force || latest === null) return true;
   if (now - latest.createdAt > BURST_MS) return true;
-  if (latest.source !== meta.source) return true;
-  if (latest.authorUserId !== meta.authorUserId) return true;
-  return false;
+  return (
+    latest.source !== meta.source || latest.authorUserId !== meta.authorUserId
+  );
 }
 
 /**

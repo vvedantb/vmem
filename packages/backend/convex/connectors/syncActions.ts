@@ -41,11 +41,11 @@ export const syncOneConnectorInternal = internalAction({
       return { ok: false, message: "Connector does not support sync" };
     }
 
-    const syncingFresh =
+    const isFreshSync =
       connector.syncStatus === "syncing" &&
       connector.syncStartedAt !== undefined &&
       Date.now() - connector.syncStartedAt < STALE_SYNCING_MS;
-    if (connector.syncStatus === "syncing" && syncingFresh) {
+    if (isFreshSync) {
       return { ok: false, message: "Sync already in progress" };
     }
 

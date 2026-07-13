@@ -293,10 +293,9 @@ async function runChunkLeg(
       ),
     ),
   );
-  const successfulResults: Array<{ records: Record[] }> = [];
-  for (const result of results) {
-    if (result !== null) successfulResults.push(result);
-  }
+  const successfulResults = results.flatMap((result) =>
+    result === null ? [] : [result],
+  );
   return mergeExpandedRankings(successfulResults, "chunkScore", legLimit);
 }
 
@@ -405,19 +404,19 @@ export async function expandViaGraph(
     const result = await session.run(
       `MATCH (seed:Memory {userId: $userId})-[:RELATES_TO]-(neighbor:Memory {userId: $userId})
        WHERE seed.id IN $seedIds AND NOT neighbor.id IN $seedIds
-         AND coalesce(neighbor.status, 'active') IN ['active', 'pinned']
+         AND ${visibleStatusClause("neighbor")}
        RETURN neighbor.id AS id, 1 AS hops, seed.id AS seedId, null AS bridgingEntity
        UNION ALL
        MATCH (seed:Memory {userId: $userId})-[:MENTIONS]->(e:Entity)<-[:MENTIONS]-(neighbor:Memory {userId: $userId})
        WHERE seed.id IN $seedIds AND NOT neighbor.id IN $seedIds
-         AND coalesce(neighbor.status, 'active') IN ['active', 'pinned']
+         AND ${visibleStatusClause("neighbor")}
        RETURN neighbor.id AS id, 1 AS hops, seed.id AS seedId,
               coalesce(e.name, e.normalizedName) AS bridgingEntity
        UNION ALL
        MATCH (seed:Memory {userId: $userId})-[:RELATES_TO]-(mid:Memory {userId: $userId})-[:RELATES_TO]-(neighbor:Memory {userId: $userId})
        WHERE seed.id IN $seedIds AND NOT neighbor.id IN $seedIds AND NOT mid.id IN $seedIds
-         AND coalesce(mid.status, 'active') IN ['active', 'pinned']
-         AND coalesce(neighbor.status, 'active') IN ['active', 'pinned']
+         AND ${visibleStatusClause("mid")}
+         AND ${visibleStatusClause("neighbor")}
        RETURN neighbor.id AS id, 2 AS hops, seed.id AS seedId, null AS bridgingEntity`,
       { seedIds, userId },
     );

@@ -108,9 +108,7 @@ export function parseOverviewEdge(
 function filterRefsWithId<T extends { id: string | null }>(
   arr: T[],
 ): Array<T & { id: string }> {
-  return arr.filter(
-    (x): x is T & { id: string } => x.id !== null && x.id !== undefined,
-  );
+  return arr.filter((x): x is T & { id: string } => x.id !== null);
 }
 
 function mapSymbolRefs(
