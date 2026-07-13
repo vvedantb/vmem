@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { parseChatGptExportJsonText } from "./parseChatGptExport";
 import { parseClaudeExportJsonText } from "./parseClaudeExport";
+import { parseGrokExportJsonText } from "./parseGrokExport";
+import { parseDeepSeekExportJsonText } from "./parseDeepSeekExport";
 
 describe("parseChatGptExportJsonText", () => {
   it("walks the active branch from current_node and skips the empty root node", () => {
@@ -133,6 +135,80 @@ describe("parseClaudeExportJsonText", () => {
           content: "Assistant:\nOnly message",
         },
       ],
+    });
+  });
+});
+
+describe("parseGrokExportJsonText", () => {
+  it("reads a conversations wrapper with parts content and author roles", () => {
+    const json = JSON.stringify({
+      conversations: [
+        {
+          id: "grok-1",
+          title: "Rockets",
+          messages: [
+            { author: { role: "user" }, content: { parts: ["How high?"] } },
+            { author: "grok", response: "Very." },
+          ],
+        },
+      ],
+    });
+
+    expect(parseGrokExportJsonText(json)).toEqual({
+      ok: true,
+      rows: [
+        {
+          stableId: "grok-1",
+          title: "Rockets",
+          content: "User:\nHow high?\n\nAssistant:\nVery.",
+        },
+      ],
+    });
+  });
+
+  it("reports no readable messages when every conversation is empty", () => {
+    expect(parseGrokExportJsonText(JSON.stringify([{ messages: [] }]))).toEqual(
+      {
+        ok: false,
+        error: "No readable messages found in the Grok export.",
+      },
+    );
+  });
+
+  it("reports no conversations when the root holds none", () => {
+    expect(
+      parseGrokExportJsonText(JSON.stringify({ conversations: [] })),
+    ).toEqual({
+      ok: false,
+      error:
+        "No conversations found. Expected a JSON array or an object with a conversations array.",
+    });
+  });
+});
+
+describe("parseDeepSeekExportJsonText", () => {
+  it("falls back to an index-based stable id and vendor error message", () => {
+    const json = JSON.stringify([
+      { turns: [{ role: "user", message: "Hi" }] },
+      { turns: [{ role: "user", message: "" }] },
+    ]);
+
+    expect(parseDeepSeekExportJsonText(json)).toEqual({
+      ok: true,
+      rows: [
+        {
+          stableId: "deepseek-row-0",
+          title: "Untitled conversation",
+          content: "User:\nHi",
+        },
+      ],
+    });
+
+    expect(
+      parseDeepSeekExportJsonText(JSON.stringify([{ turns: [{ role: "x" }] }])),
+    ).toEqual({
+      ok: false,
+      error: "No readable messages found in the DeepSeek export.",
     });
   });
 });
