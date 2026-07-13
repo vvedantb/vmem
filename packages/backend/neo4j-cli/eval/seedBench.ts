@@ -1,9 +1,7 @@
 /**
  * Seed the discriminating benchmark corpus (eval/corpus.ts) into Neo4j for
- * `pnpm eval:bench`. Unlike `db:seed:eval`, it does NOT apply the corpus
- * profile — the generator already sets dates/confidence/status deliberately
- * (temporal queries depend on those). `runSeed` wipes all data, so this
- * replaces whatever corpus is loaded.
+ * `pnpm eval:bench`. `runSeed` wipes all data, so this replaces whatever
+ * corpus is loaded.
  *
  * Run: `pnpm db:seed:bench`
  */

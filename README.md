@@ -179,6 +179,6 @@ Optional: `OPENROUTER_API_KEY` (server embeddings/context when users have no key
 
 **Chrome extension** — edit `apps/chrome-extension/src/lib/constants.ts` (Convex URL + Clerk keys) before `pnpm ext:build`.
 
-**Neo4j CLI scripts** (`db:seed`, `eval:retrieval`) — `packages/backend/.env.local` with `NEO4J_URI`, `NEO4J_PASSWORD`, and optionally `OPENROUTER_API_KEY`.
+**Neo4j CLI scripts** (`db:seed`, `db:seed:bench`, `eval:bench`) — `packages/backend/.env.local` with `NEO4J_URI`, `NEO4J_PASSWORD`, and optionally `OPENROUTER_API_KEY`.
 
 Public docs (hosted separately): [vmem.vedantb.com](https://vmem.vedantb.com)
