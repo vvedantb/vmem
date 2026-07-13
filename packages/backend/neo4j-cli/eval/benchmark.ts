@@ -10,14 +10,15 @@
  * only — no Claude, no judge.
  *
  * The labelled corpus comes from `eval/corpus.ts` (graded relevance + type
- * tags + deliberate distractors). `pnpm eval:bench` seeds it first, then runs
- * this script (writes `internal/bench/vmem-internal-eval.md`).
+ * tags + deliberate distractors). `pnpm eval:bench` seeds `user_vmem_bench_eval`
+ * only (no full-db wipe), runs this script, then removes that user's rows.
  */
 
 import { writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { closeDriver, getDriver } from "../../engine/neo4j/driver";
+import { deleteAllMemoriesForUser } from "../../engine/neo4j/memory/crud";
 import { retrieveMemories } from "../../engine/neo4j/memory/retrieve";
 import { embeddingMode, generateCliEmbedding } from "./cliEmbeddings";
 import {
@@ -395,6 +396,19 @@ async function main(): Promise<void> {
     console.log(report);
     console.log(`\nwritten to ${REPORT_PATH}`);
   } finally {
+    try {
+      const deleted = await deleteAllMemoriesForUser(driver, BENCH_USER_ID);
+      console.log(
+        `\nbench cleanup: removed ${String(deleted)} memories for ${BENCH_USER_ID}`,
+      );
+    } catch (cleanupError: unknown) {
+      console.error(
+        "bench cleanup failed:",
+        cleanupError instanceof Error
+          ? cleanupError.message
+          : String(cleanupError),
+      );
+    }
     await closeDriver();
   }
 }

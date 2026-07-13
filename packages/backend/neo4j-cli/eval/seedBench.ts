@@ -1,7 +1,7 @@
 /**
- * Seed the discriminating benchmark corpus (eval/corpus.ts) into Neo4j.
- * Invoked by `pnpm eval:bench` before the ablation runner. `runSeed` wipes
- * all data, so this replaces whatever corpus is loaded.
+ * Seed the discriminating benchmark corpus (eval/corpus.ts) for `user_vmem_bench_eval`.
+ * Invoked by `pnpm eval:bench` before the ablation runner — clears only that user,
+ * never the full database. Benchmark teardown removes the user again after the report.
  */
 
 import { generateBenchmarkCorpus, BENCH_USER_ID } from "./corpus";

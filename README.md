@@ -148,7 +148,7 @@ pnpm dev      # Web app — http://localhost:5173
 pnpm ext:dev         # Chrome extension watch build
 pnpm typecheck:all   # web + backend + extension + packages
 pnpm test            # backend + web unit tests
-pnpm eval:bench      # seed bench corpus + write internal/bench/vmem-internal-eval.md
+pnpm eval:bench      # bench user only — seeds, reports, cleans up (safe on shared Neo4j)
 ```
 
 Visit `/?agent` during web dev to auto sign in as the agent user (requires `CLERK_SECRET_KEY` + `AGENT_CLERK_USER_ID` in `apps/web/.env.local`).

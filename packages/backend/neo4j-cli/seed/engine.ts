@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { closeDriver, getDriver } from "../../engine/neo4j/driver";
+import { deleteAllMemoriesForUser } from "../../engine/neo4j/memory/crud";
 import { setEmbeddings } from "../../engine/neo4j/memory/migration";
 import { setupDatabase } from "../../engine/neo4j/setup";
 import { embeddingMode, generateCliEmbeddings } from "../eval/cliEmbeddings";
@@ -11,6 +12,8 @@ export interface RunSeedOptions {
   templateRelationships: SeedRelationship[];
   embedAfterInsert: boolean;
   logLabel?: string;
+  /** Remove existing rows for listed users before insert (default true). */
+  clearUsersBeforeInsert?: boolean;
 }
 
 function remapId(idMap: Map<string, string>, oldId: string): string {
@@ -84,11 +87,18 @@ export async function runSeed(options: RunSeedOptions): Promise<void> {
   const session = driver.session();
 
   try {
-    console.log("wiping all data...");
-    await session.run("MATCH (n) DETACH DELETE n");
-
-    console.log("recreating indexes and constraints...");
+    console.log("ensuring indexes and constraints...");
     await setupDatabase(driver);
+
+    const clearUsers = options.clearUsersBeforeInsert !== false;
+    if (clearUsers) {
+      for (const userId of options.userIds) {
+        const deleted = await deleteAllMemoriesForUser(driver, userId);
+        console.log(
+          `cleared ${String(deleted)} existing memories for ${userId}`,
+        );
+      }
+    }
 
     let totalMemories = 0;
     let totalRelationships = 0;
