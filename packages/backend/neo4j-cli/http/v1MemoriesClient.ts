@@ -9,28 +9,22 @@ const errorBodySchema = z.object({
 
 const apiEnvelopeSchema = z.object({ data: z.unknown() });
 
+const memoryIdentityFields = {
+  id: z.string(),
+  title: z.string(),
+  content: z.string(),
+};
+
 const memorySchema = z
   .object({
-    id: z.string(),
-    title: z.string(),
-    content: z.string(),
+    ...memoryIdentityFields,
     type: z.string().optional(),
     tags: z.array(z.string()).optional(),
   })
   .passthrough();
 
-const retrieveMemoriesSchema = z.array(
-  z
-    .object({
-      id: z.string(),
-      title: z.string(),
-      content: z.string(),
-    })
-    .passthrough(),
-);
-
 const retrieveDataSchema = z.object({
-  memories: retrieveMemoriesSchema,
+  memories: z.array(z.object(memoryIdentityFields).passthrough()),
   userContext: z.object({
     aboutMe: z.string().nullable(),
     preferences: z.string().nullable(),
@@ -95,11 +89,10 @@ function parseDirect<T>(
   }
 
   const parsed = schema.safeParse(body);
-  if (parsed.success) {
-    return { ok: true, status, data: parsed.data };
+  if (!parsed.success) {
+    return errorResultFromBody(status, body);
   }
-
-  return errorResultFromBody(status, body);
+  return { ok: true, status, data: parsed.data };
 }
 
 function parseEnvelope<T>(
@@ -113,27 +106,38 @@ function parseEnvelope<T>(
 
   // Parse wrapper first, then data — avoids ZodType<T> making `.data` optional in z.object.
   const envelope = apiEnvelopeSchema.safeParse(body);
-  if (envelope.success) {
-    const data = dataSchema.safeParse(envelope.data.data);
-    if (data.success) {
-      return { ok: true, status, data: data.data };
-    }
+  if (!envelope.success) {
+    return errorResultFromBody(status, body);
   }
 
-  return errorResultFromBody(status, body);
+  const data = dataSchema.safeParse(envelope.data.data);
+  if (!data.success) {
+    return errorResultFromBody(status, body);
+  }
+  return { ok: true, status, data: data.data };
 }
 
 export function createHttpMemoriesClient(config: HttpClientConfig) {
   const { baseUrl, apiKey } = config;
+
+  async function fetchJson(
+    path: string,
+    init: RequestInit,
+  ): Promise<{ status: number; body: object | null }> {
+    const response = await fetch(`${baseUrl}${path}`, init);
+    return {
+      status: response.status,
+      body: await readJson(response),
+    };
+  }
 
   async function requestDirect<T>(
     path: string,
     schema: z.ZodType<T, z.ZodTypeDef, unknown>,
     init: RequestInit,
   ): Promise<HttpJsonResult<T>> {
-    const response = await fetch(`${baseUrl}${path}`, init);
-    const body = await readJson(response);
-    return parseDirect(response.status, body, schema);
+    const { status, body } = await fetchJson(path, init);
+    return parseDirect(status, body, schema);
   }
 
   async function request<T>(
@@ -150,13 +154,27 @@ export function createHttpMemoriesClient(config: HttpClientConfig) {
       headers.set("Authorization", `Bearer ${authToken}`);
     }
 
-    const response = await fetch(`${baseUrl}${path}`, {
-      ...init,
-      headers,
-    });
+    const { status, body } = await fetchJson(path, { ...init, headers });
+    return parseEnvelope(status, body, dataSchema);
+  }
 
-    const body = await readJson(response);
-    return parseEnvelope(response.status, body, dataSchema);
+  function storeAuthProbe(authToken: string | null, content: string) {
+    return request(
+      "/api/v1/memories",
+      memorySchema,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          title: "should fail",
+          content,
+          type: "note",
+          source: "vitest",
+          tags: [],
+          confidence: 1,
+        }),
+      },
+      authToken,
+    );
   }
 
   return {
@@ -206,41 +224,11 @@ export function createHttpMemoriesClient(config: HttpClientConfig) {
     },
 
     storeWithoutAuth() {
-      return request(
-        "/api/v1/memories",
-        memorySchema,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            title: "should fail",
-            content: "no auth header",
-            type: "note",
-            source: "vitest",
-            tags: [],
-            confidence: 1,
-          }),
-        },
-        null,
-      );
+      return storeAuthProbe(null, "no auth header");
     },
 
     storeWithBadKey() {
-      return request(
-        "/api/v1/memories",
-        memorySchema,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            title: "should fail",
-            content: "bad key",
-            type: "note",
-            source: "vitest",
-            tags: [],
-            confidence: 1,
-          }),
-        },
-        "vmem_sk_invalid_key_for_tests",
-      );
+      return storeAuthProbe("vmem_sk_invalid_key_for_tests", "bad key");
     },
 
     storeInvalidBody() {
