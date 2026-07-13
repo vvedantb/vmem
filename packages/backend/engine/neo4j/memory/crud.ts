@@ -629,9 +629,9 @@ export async function deleteMemoriesBySourceTypes(
  * per-user entities. Tags and sources are global (`UNIQUE` on name) so
  * we only prune the orphans — names other users still reference stay.
  *
- * Mirrors `unseed.ts`'s ordering: child rows first, then memories, then
- * orphan cleanup, so DETACH DELETE never has to walk into a child it
- * was supposed to remove on its own.
+ * Deletes child rows first, then memories, then orphan cleanup, so
+ * DETACH DELETE never has to walk into a child it was supposed to remove
+ * on its own.
  */
 export async function deleteAllMemoriesForUser(
   driver: Driver,

@@ -29,9 +29,7 @@
     "test": "pnpm --filter @vmem/backend test && pnpm --filter web test",
     "test:mcp": "node scripts/test-vmem-mcp.mjs",
     "eval:bench": "pnpm --filter @vmem/backend eval:bench",
-    "db:seed": "pnpm --filter @vmem/backend db:seed",
-    "db:seed:bench": "pnpm --filter @vmem/backend db:seed:bench",
-    "db:unseed": "pnpm --filter @vmem/backend db:unseed"
+    "db:seed:bench": "pnpm --filter @vmem/backend db:seed:bench"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx,mjs,cjs,json,css,md,mdx,html,yml,yaml}": "prettier --write"

@@ -74,7 +74,7 @@ Set in the Convex dashboard (not `.env`):
 | `CONVEX_SITE_URL` / `WEB_APP_URL` | OAuth redirects                           |
 | `OPENROUTER_API_KEY`              | Embeddings and context prompt generation  |
 
-Neo4j CLI scripts (`db:seed`, `db:seed:bench`, `db:unseed`, `eval:bench`) use `packages/backend/.env.local`.
+Neo4j CLI scripts (`db:seed:bench`, `db:tag-stats`, `eval:bench`) use `packages/backend/.env.local`.
 
 ## Run
 
