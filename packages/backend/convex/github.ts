@@ -4,6 +4,8 @@ import {
   internalMutation,
   internalQuery,
 } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { authAction, authMutation, authQuery } from "./auth";
 import { encryptToken, getEnvOrThrow } from "./lib/crypto";
@@ -15,10 +17,7 @@ import { z } from "zod";
 export const getConnection = authQuery({
   args: {},
   handler: async (ctx) => {
-    const connection = await ctx.db
-      .query("githubConnections")
-      .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
-      .first();
+    const connection = await getConnectionForUser(ctx, ctx.userId);
     if (!connection) return null;
     return {
       id: connection._id,
@@ -174,10 +173,7 @@ export const handleGitHubCallbackInternal = internalAction({
 export const disconnect = authMutation({
   args: {},
   handler: async (ctx) => {
-    const connection = await ctx.db
-      .query("githubConnections")
-      .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
-      .first();
+    const connection = await getConnectionForUser(ctx, ctx.userId);
     if (!connection) return;
     await ctx.db.delete(connection._id);
   },
@@ -185,13 +181,20 @@ export const disconnect = authMutation({
 
 // --- Internal helpers ---
 
+async function getConnectionForUser(
+  ctx: QueryCtx | MutationCtx,
+  userId: Id<"users">,
+) {
+  return await ctx.db
+    .query("githubConnections")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .first();
+}
+
 export const getConnectionInternal = internalQuery({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
-    return await ctx.db
-      .query("githubConnections")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
-      .first();
+    return await getConnectionForUser(ctx, args.userId);
   },
 });
 
@@ -222,15 +225,11 @@ export const updateConnectionInternal = internalMutation({
   },
 });
 
-// Retrieve encrypted token for internal use (decryption happens in actions)
+/** Encrypted token for internal use (decryption happens in actions). */
 export const getDecryptedTokenInternal = internalQuery({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
-    const connection = await ctx.db
-      .query("githubConnections")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
-      .first();
-    if (!connection) return null;
-    return connection.encryptedAccessToken;
+    const connection = await getConnectionForUser(ctx, args.userId);
+    return connection?.encryptedAccessToken ?? null;
   },
 });

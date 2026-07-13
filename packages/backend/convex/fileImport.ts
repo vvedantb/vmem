@@ -2,11 +2,12 @@
 
 import { v } from "convex/values";
 import crypto from "node:crypto";
-import { authAction, requireClerkId } from "./auth";
+import { authAction, requireClerkId, type AuthActionCtx } from "./auth";
 import { internal } from "./_generated/api";
 import { extractFileContent } from "../engine/parsers/extractFileContent";
 import { detectFileKind } from "./files/lib";
 import type { Id } from "./_generated/dataModel";
+import type { MemoryWithTags } from "./memoryApi/types";
 
 /**
  * Maximum size of an uploaded file. 25 MB is far above what the typical
@@ -30,6 +31,34 @@ function chooseTitle(extractedText: string, filename: string): string {
   const trimmed = firstLine.trim().replace(/^#+\s*/, "");
   // Cap at 200 chars so we don't end up with a wall-of-text title.
   return trimmed.length > 200 ? trimmed.slice(0, 200) : trimmed;
+}
+
+function truncateTitle(text: string, max: number): string {
+  return text.length > max ? `${text.slice(0, max)}…` : text;
+}
+
+function chooseScreenshotTitle(
+  caption: string,
+  pageTitle: string | undefined,
+  hostname: string,
+): string {
+  if (caption.length > 0) return truncateTitle(caption, 80);
+  const trimmedPageTitle = pageTitle?.trim();
+  if (trimmedPageTitle && trimmedPageTitle.length > 0) {
+    return `Screenshot · ${truncateTitle(trimmedPageTitle, 70)}`;
+  }
+  return `Screenshot from ${hostname}`;
+}
+
+async function assertProfileAccessIfPresent(
+  ctx: AuthActionCtx,
+  profileId: string | undefined,
+): Promise<void> {
+  if (!profileId) return;
+  await ctx.runQuery(internal.teams.assertProfileAccessInternal, {
+    profileId,
+    userId: ctx.userId,
+  });
 }
 
 /**
@@ -60,21 +89,6 @@ async function loadUploadedBlob(
   return blob;
 }
 
-interface MemoryWithTags {
-  id: string;
-  userId: string;
-  title: string;
-  content: string;
-  type: string;
-  source: string;
-  confidence: number;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-  expiresAt: string | null;
-  tags: string[];
-}
-
 /**
  * Process an uploaded file (already in Convex storage):
  *   1. Read the blob from storage.
@@ -98,13 +112,7 @@ export const importMemoryFromFile = authAction({
   },
   handler: async (ctx, args): Promise<MemoryWithTags> => {
     const clerkId = await requireClerkId(ctx);
-
-    if (args.profileId) {
-      await ctx.runQuery(internal.teams.assertProfileAccessInternal, {
-        profileId: args.profileId,
-        userId: ctx.userId,
-      });
-    }
+    await assertProfileAccessIfPresent(ctx, args.profileId);
 
     const kind = detectFileKind(args.filename, args.mimeType);
     if (kind === null) {
@@ -115,8 +123,7 @@ export const importMemoryFromFile = authAction({
 
     // Pull the blob from storage. Returns null if storageId is invalid or
     // the file was deleted before we got to it.
-    const storageId: Id<"_storage"> = args.storageId;
-    const blob = await loadUploadedBlob(ctx, storageId, "file");
+    const blob = await loadUploadedBlob(ctx, args.storageId, "file");
 
     const content = await extractFileContent(blob, kind);
 
@@ -136,7 +143,7 @@ export const importMemoryFromFile = authAction({
 
     const title = chooseTitle(content, args.filename);
 
-    const memory: MemoryWithTags = await ctx.runAction(
+    return await ctx.runAction(
       internal.neo4jActions.memories.createMemoryInternal,
       {
         clerkId,
@@ -154,8 +161,6 @@ export const importMemoryFromFile = authAction({
         originalFilename: args.filename,
       },
     );
-
-    return memory;
   },
 });
 
@@ -182,13 +187,7 @@ export const importImageMemory = authAction({
   },
   handler: async (ctx, args): Promise<MemoryWithTags> => {
     const clerkId = await requireClerkId(ctx);
-
-    if (args.profileId) {
-      await ctx.runQuery(internal.teams.assertProfileAccessInternal, {
-        profileId: args.profileId,
-        userId: ctx.userId,
-      });
-    }
+    await assertProfileAccessIfPresent(ctx, args.profileId);
 
     if (!args.mimeType.startsWith("image/")) {
       throw new Error(
@@ -196,24 +195,13 @@ export const importImageMemory = authAction({
       );
     }
 
-    const storageId: Id<"_storage"> = args.storageId;
-    await loadUploadedBlob(ctx, storageId, "screenshot");
+    await loadUploadedBlob(ctx, args.storageId, "screenshot");
 
     const caption = args.caption?.trim() ?? "";
     const hostname = args.pageUrl
       ? (safeHostname(args.pageUrl) ?? "screenshot")
       : "screenshot";
-
-    // Title preference: caption (truncated) → page title → "Screenshot from <host>".
-    let title: string;
-    if (caption.length > 0) {
-      title = caption.length > 80 ? caption.slice(0, 80) + "…" : caption;
-    } else if (args.pageTitle && args.pageTitle.trim().length > 0) {
-      const t = args.pageTitle.trim();
-      title = `Screenshot · ${t.length > 70 ? t.slice(0, 70) + "…" : t}`;
-    } else {
-      title = `Screenshot from ${hostname}`;
-    }
+    const title = chooseScreenshotTitle(caption, args.pageTitle, hostname);
 
     // Use the storageId as the externalId so re-saving the exact same blob
     // (same upload flow) is idempotent — but each new screenshot has a
@@ -221,7 +209,7 @@ export const importImageMemory = authAction({
     // don't dedupe (unlike pages, which dedupe on URL).
     const externalId = crypto
       .createHash("sha256")
-      .update(storageId)
+      .update(args.storageId)
       .digest("hex");
 
     // Screenshots intentionally don't pass `url` to createMemoryInternal:
@@ -231,28 +219,25 @@ export const importImageMemory = authAction({
     const contentParts: string[] = [];
     if (caption.length > 0) contentParts.push(caption);
     if (args.pageUrl) contentParts.push(`Source: ${args.pageUrl}`);
-    const content = contentParts.join("\n\n");
 
-    const memory: MemoryWithTags = await ctx.runAction(
+    return await ctx.runAction(
       internal.neo4jActions.memories.createMemoryInternal,
       {
         clerkId,
         profileId: args.profileId,
         title,
-        content,
+        content: contentParts.join("\n\n"),
         type: "knowledge",
         source: "browser-extension",
         tags: [hostname, "screenshot"],
         confidence: 1.0,
         externalId,
         sourceType: "screenshot",
-        storageId,
+        storageId: args.storageId,
         mimeType: args.mimeType,
         originalFilename: `screenshot-${Date.now()}.png`,
       },
     );
-
-    return memory;
   },
 });
 

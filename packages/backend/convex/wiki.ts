@@ -79,6 +79,51 @@ async function listScopeSiblings(
   return siblings.filter((n) => n.teamId === undefined);
 }
 
+/** `order = max(sibling.order) + 1`, or 0 when the parent has no children. */
+function nextSiblingOrder(siblings: Array<Doc<"wikiNodes">>): number {
+  if (siblings.length === 0) return 0;
+  return Math.max(...siblings.map((s) => s.order)) + 1;
+}
+
+/**
+ * Parent must exist, be a folder, and live in the same scope — a subtree
+ * never mixes personal and team nodes.
+ */
+async function assertWikiParentFolder(
+  ctx: QueryCtx | MutationCtx,
+  parentId: Id<"wikiNodes"> | undefined,
+  scope: { userId: Id<"users">; teamId: Id<"teams"> | undefined },
+): Promise<void> {
+  if (parentId === undefined) return;
+  const parent = await ctx.db.get(parentId);
+  if (
+    !parent ||
+    parent.teamId !== scope.teamId ||
+    (scope.teamId === undefined && parent.userId !== scope.userId)
+  ) {
+    throw new Error("Parent not found");
+  }
+  if (parent.kind !== "folder") {
+    throw new Error("Parent must be a folder");
+  }
+}
+
+/** Dedupe title + content hits, documents first in input order, capped. */
+function mergeWikiSearchHits(
+  titleMatches: Array<Doc<"wikiNodes">>,
+  contentMatches: Array<Doc<"wikiNodes">>,
+): Array<Doc<"wikiNodes">> {
+  const seen = new Set<string>();
+  const merged: Array<Doc<"wikiNodes">> = [];
+  for (const node of [...titleMatches, ...contentMatches]) {
+    if (seen.has(node._id)) continue;
+    seen.add(node._id);
+    merged.push(node);
+    if (merged.length >= MAX_SEARCH_RESULTS) break;
+  }
+  return merged;
+}
+
 /**
  * Returns all wikiNodes in the requested scope, sorted by `order` ascending.
  * No `teamId` = personal nodes; `teamId` = that team's wiki (members only).
@@ -146,22 +191,10 @@ export const createNode = authMutation({
   },
   handler: async (ctx, args) => {
     await requireContentScopeAccess(ctx, ctx.userId, args.teamId);
-
-    // Guard: parent must exist, be a folder, and live in the SAME scope —
-    // a subtree never mixes personal and team nodes.
-    if (args.parentId !== undefined) {
-      const parent = await ctx.db.get(args.parentId);
-      if (
-        !parent ||
-        parent.teamId !== args.teamId ||
-        (args.teamId === undefined && parent.userId !== ctx.userId)
-      ) {
-        throw new Error("Parent not found");
-      }
-      if (parent.kind !== "folder") {
-        throw new Error("Parent must be a folder");
-      }
-    }
+    await assertWikiParentFolder(ctx, args.parentId, {
+      userId: ctx.userId,
+      teamId: args.teamId,
+    });
 
     const siblings = await listScopeSiblings(
       ctx,
@@ -169,8 +202,6 @@ export const createNode = authMutation({
       args.teamId,
       args.parentId,
     );
-    const nextOrder =
-      siblings.length === 0 ? 0 : Math.max(...siblings.map((s) => s.order)) + 1;
 
     const now = Date.now();
     const id = await ctx.db.insert("wikiNodes", {
@@ -181,7 +212,7 @@ export const createNode = authMutation({
       title: args.title,
       content: args.kind === "document" ? "" : undefined,
       contentText: args.kind === "document" ? "" : undefined,
-      order: nextOrder,
+      order: nextSiblingOrder(siblings),
       createdAt: now,
       updatedAt: now,
     });
@@ -307,19 +338,12 @@ export const moveNode = authMutation({
     if (!node) throw new Error("Not found");
     await assertContentEditable(ctx, node, ctx.userId);
     if (args.newParentId !== undefined) {
-      const parent = await ctx.db.get(args.newParentId);
-      if (
-        !parent ||
-        parent.teamId !== node.teamId ||
-        (node.teamId === undefined && parent.userId !== node.userId)
-      ) {
-        throw new Error("Parent not found");
-      }
-      if (parent.kind !== "folder") {
-        throw new Error("Parent must be a folder");
-      }
+      await assertWikiParentFolder(ctx, args.newParentId, {
+        userId: node.userId,
+        teamId: node.teamId,
+      });
       // Guard against cycles: parent cannot be a descendant of node.
-      let cursor: Doc<"wikiNodes"> | null = parent;
+      let cursor: Doc<"wikiNodes"> | null = await ctx.db.get(args.newParentId);
       while (cursor !== null) {
         if (cursor._id === node._id) {
           throw new Error("Cannot move a node into its own descendant");
@@ -373,15 +397,7 @@ export const search = authQuery({
       )
       .take(MAX_SEARCH_RESULTS);
 
-    const seen = new Set<string>();
-    const merged: Array<Doc<"wikiNodes">> = [];
-    for (const node of [...titleMatches, ...contentMatches]) {
-      if (seen.has(node._id)) continue;
-      seen.add(node._id);
-      merged.push(node);
-      if (merged.length >= MAX_SEARCH_RESULTS) break;
-    }
-    return merged;
+    return mergeWikiSearchHits(titleMatches, contentMatches);
   },
 });
 
@@ -446,15 +462,7 @@ export const searchByClerkIdInternal = internalQuery({
       )
       .take(MAX_SEARCH_RESULTS);
 
-    const seen = new Set<string>();
-    const merged: Array<Doc<"wikiNodes">> = [];
-    for (const node of [...titleMatches, ...contentMatches]) {
-      if (seen.has(node._id)) continue;
-      seen.add(node._id);
-      merged.push(node);
-      if (merged.length >= MAX_SEARCH_RESULTS) break;
-    }
-    return merged;
+    return mergeWikiSearchHits(titleMatches, contentMatches);
   },
 });
 
@@ -471,16 +479,10 @@ export const createByClerkIdInternal = internalMutation({
   },
   handler: async (ctx, args) => {
     const userId = await getUserIdByClerkId(ctx, args.clerkId);
-
-    if (args.parentId !== undefined) {
-      const parent = await ctx.db.get(args.parentId);
-      if (!parent || parent.userId !== userId || parent.teamId !== undefined) {
-        throw new Error("Parent not found");
-      }
-      if (parent.kind !== "folder") {
-        throw new Error("Parent must be a folder");
-      }
-    }
+    await assertWikiParentFolder(ctx, args.parentId, {
+      userId,
+      teamId: undefined,
+    });
 
     // Validate the optional codebase link belongs to this user.
     let sourceCodebaseId: Id<"codebases"> | undefined;
@@ -501,8 +503,6 @@ export const createByClerkIdInternal = internalMutation({
       undefined,
       args.parentId,
     );
-    const nextOrder =
-      siblings.length === 0 ? 0 : Math.max(...siblings.map((s) => s.order)) + 1;
 
     const now = Date.now();
     const isDocument = args.kind === "document";
@@ -513,7 +513,7 @@ export const createByClerkIdInternal = internalMutation({
       title: args.title,
       content: isDocument ? (args.content ?? "") : undefined,
       contentText: isDocument ? (args.contentText ?? "") : undefined,
-      order: nextOrder,
+      order: nextSiblingOrder(siblings),
       sourceCodebaseId,
       createdAt: now,
       updatedAt: now,
