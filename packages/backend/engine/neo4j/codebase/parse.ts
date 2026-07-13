@@ -12,6 +12,7 @@
  * has been added so cross-file symbol lookups work.
  */
 
+import { basename, dirname, extname } from "node:path/posix";
 import {
   Project,
   ScriptKind,
@@ -76,19 +77,10 @@ function pickScriptKind(ext: string): ScriptKind {
   }
 }
 
-function getExtension(path: string): string {
-  const idx = path.lastIndexOf(".");
-  return idx === -1 ? "" : path.slice(idx);
-}
-
-function getDirectory(path: string): string {
-  const idx = path.lastIndexOf("/");
-  return idx === -1 ? "" : path.slice(0, idx);
-}
-
-function getFilename(path: string): string {
-  const idx = path.lastIndexOf("/");
-  return idx === -1 ? path : path.slice(idx + 1);
+/** Repo-root files: posix `dirname("foo.ts")` is `"."`; we store `""`. */
+function directoryOf(repoPath: string): string {
+  const dir = dirname(repoPath);
+  return dir === "." ? "" : dir;
 }
 
 /** Cheap stable hash (FNV-1a 32-bit) — we only need to detect content changes. */
@@ -115,7 +107,7 @@ function symbolId(
 
 /** Match any of `.test.`/`.spec.` in filename. */
 function isTestFile(path: string): boolean {
-  const filename = getFilename(path);
+  const filename = basename(path);
   return /\.(test|spec)\.[mc]?[jt]sx?$/.test(filename);
 }
 
@@ -150,7 +142,7 @@ export function buildProject(input: ParseInput): {
 
   const loadedPaths: string[] = [];
   for (const file of input.files) {
-    const ext = getExtension(file.path);
+    const ext = extname(file.path);
     if (!TS_JS_EXTENSIONS.has(ext)) continue;
     project.createSourceFile(file.path, file.content, {
       scriptKind: pickScriptKind(ext),
@@ -180,13 +172,13 @@ function parseSourceFile(
 ): FileNode {
   const path = fileBlob.path;
   const fileId = fileSymbolId(codebaseId, path);
-  const ext = getExtension(path);
+  const ext = extname(path);
   const fileNode: FileNode = {
     kind: "file",
     id: fileId,
     path,
-    directory: getDirectory(path),
-    filename: getFilename(path),
+    directory: directoryOf(path),
+    filename: basename(path),
     extension: ext,
     sizeBytes: fileBlob.content.length,
     contentHash: contentHash(fileBlob.content),
