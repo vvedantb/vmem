@@ -114,12 +114,9 @@ import type * as neo4jActions_agent_updateFromInstruction from "../neo4jActions/
 import type * as neo4jActions_codebases from "../neo4jActions/codebases.js";
 import type * as neo4jActions_connectorData from "../neo4jActions/connectorData.js";
 import type * as neo4jActions_connectorSync from "../neo4jActions/connectorSync.js";
-import type * as neo4jActions_connectors_gmail from "../neo4jActions/connectors/gmail.js";
 import type * as neo4jActions_connectors_googleDrive from "../neo4jActions/connectors/googleDrive.js";
 import type * as neo4jActions_connectors_googleShared from "../neo4jActions/connectors/googleShared.js";
-import type * as neo4jActions_connectors_linear from "../neo4jActions/connectors/linear.js";
 import type * as neo4jActions_connectors_notion from "../neo4jActions/connectors/notion.js";
-import type * as neo4jActions_connectors_oneDrive from "../neo4jActions/connectors/oneDrive.js";
 import type * as neo4jActions_connectors_shared from "../neo4jActions/connectors/shared.js";
 import type * as neo4jActions_dashboard from "../neo4jActions/dashboard.js";
 import type * as neo4jActions_dbSetup from "../neo4jActions/dbSetup.js";
@@ -289,12 +286,9 @@ declare const fullApi: ApiFromModules<{
   "neo4jActions/codebases": typeof neo4jActions_codebases;
   "neo4jActions/connectorData": typeof neo4jActions_connectorData;
   "neo4jActions/connectorSync": typeof neo4jActions_connectorSync;
-  "neo4jActions/connectors/gmail": typeof neo4jActions_connectors_gmail;
   "neo4jActions/connectors/googleDrive": typeof neo4jActions_connectors_googleDrive;
   "neo4jActions/connectors/googleShared": typeof neo4jActions_connectors_googleShared;
-  "neo4jActions/connectors/linear": typeof neo4jActions_connectors_linear;
   "neo4jActions/connectors/notion": typeof neo4jActions_connectors_notion;
-  "neo4jActions/connectors/oneDrive": typeof neo4jActions_connectors_oneDrive;
   "neo4jActions/connectors/shared": typeof neo4jActions_connectors_shared;
   "neo4jActions/dashboard": typeof neo4jActions_dashboard;
   "neo4jActions/dbSetup": typeof neo4jActions_dbSetup;
