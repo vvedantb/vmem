@@ -4,7 +4,7 @@
  * documents directly from `ctx.db`; no Neo4j round-trips.
  */
 
-import type { Id, Doc } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { auditLog, ResourceTypes } from "../auditLog";
 import { getMembershipOrNull } from "../teams/auth";
@@ -42,15 +42,14 @@ export async function runGet(
     return profile.userId === ctx.userId ? profile : null;
   }
 
-  const teamId = profile.teamId;
-  const membership = await getMembershipOrNull(ctx, teamId, ctx.userId);
+  const membership = await getMembershipOrNull(ctx, profile.teamId, ctx.userId);
   return membership ? profile : null;
 }
 
 export async function runGetOrCreateDefault(
   ctx: AuthMutationCtx,
 ): Promise<Doc<"profiles">> {
-  return await getOrCreateDefaultProfile(ctx, ctx.userId);
+  return getOrCreateDefaultProfile(ctx, ctx.userId);
 }
 
 export async function runCreate(
@@ -88,7 +87,7 @@ export async function runCreate(
     severity: "info",
   });
 
-  return await ctx.db.get(profileId);
+  return ctx.db.get(profileId);
 }
 
 interface UpdateArgs {
@@ -170,5 +169,5 @@ export async function runUpdate(
     severity: "info",
   });
 
-  return await ctx.db.get(args.profileId);
+  return ctx.db.get(args.profileId);
 }

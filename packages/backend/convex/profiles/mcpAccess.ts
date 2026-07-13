@@ -109,25 +109,26 @@ export async function getActiveProfileForMcpScope(
     }
   }
 
-  if (scope === "personal") {
-    const defaultOwned = await ctx.db
-      .query("profiles")
-      .withIndex("by_user_default", (q) =>
-        q.eq("userId", user._id).eq("isDefault", true),
-      )
-      .first();
-    if (
-      defaultOwned &&
-      (await canAccessProfileForMcpScope(ctx, user._id, defaultOwned, scope))
-    ) {
-      return defaultOwned;
-    }
-    const personalProfiles = await listPersonalProfiles(ctx, user._id);
-    return personalProfiles[0] ?? null;
+  if (scope === "team") {
+    const teamProfiles = await listTeamProfiles(ctx, user._id);
+    return teamProfiles[0] ?? null;
   }
 
-  const teamProfiles = await listTeamProfiles(ctx, user._id);
-  return teamProfiles[0] ?? null;
+  const defaultOwned = await ctx.db
+    .query("profiles")
+    .withIndex("by_user_default", (q) =>
+      q.eq("userId", user._id).eq("isDefault", true),
+    )
+    .first();
+  if (
+    defaultOwned &&
+    (await canAccessProfileForMcpScope(ctx, user._id, defaultOwned, scope))
+  ) {
+    return defaultOwned;
+  }
+
+  const personalProfiles = await listPersonalProfiles(ctx, user._id);
+  return personalProfiles[0] ?? null;
 }
 
 /**
@@ -167,12 +168,7 @@ export async function resolveProfileIdForMcpScope(
   }
 
   if (explicitProfileId !== undefined) {
-    return await requireAccessibleProfileId(
-      ctx,
-      user._id,
-      explicitProfileId,
-      scope,
-    );
+    return requireAccessibleProfileId(ctx, user._id, explicitProfileId, scope);
   }
 
   const activeProfile = await getActiveProfileForMcpScope(ctx, clerkId, scope);
