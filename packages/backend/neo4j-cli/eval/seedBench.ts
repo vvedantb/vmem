@@ -1,9 +1,7 @@
 /**
- * Seed the discriminating benchmark corpus (eval/corpus.ts) into Neo4j for
- * `pnpm eval:bench`. `runSeed` wipes all data, so this replaces whatever
- * corpus is loaded.
- *
- * Run: `pnpm db:seed:bench`
+ * Seed the discriminating benchmark corpus (eval/corpus.ts) into Neo4j.
+ * Invoked by `pnpm eval:bench` before the ablation runner. `runSeed` wipes
+ * all data, so this replaces whatever corpus is loaded.
  */
 
 import { generateBenchmarkCorpus, BENCH_USER_ID } from "./corpus";

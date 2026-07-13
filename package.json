@@ -28,8 +28,7 @@
     "sdk:typecheck": "pnpm --filter @vmem/sdk typecheck",
     "test": "pnpm --filter @vmem/backend test && pnpm --filter web test",
     "test:mcp": "node scripts/test-vmem-mcp.mjs",
-    "eval:bench": "pnpm --filter @vmem/backend eval:bench",
-    "db:seed:bench": "pnpm --filter @vmem/backend db:seed:bench"
+    "eval:bench": "pnpm --filter @vmem/backend eval:bench"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx,mjs,cjs,json,css,md,mdx,html,yml,yaml}": "prettier --write"

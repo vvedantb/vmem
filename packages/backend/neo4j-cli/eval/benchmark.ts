@@ -10,10 +10,8 @@
  * only — no Claude, no judge.
  *
  * The labelled corpus comes from `eval/corpus.ts` (graded relevance + type
- * tags + deliberate distractors). Seed it first with `pnpm db:seed:bench`.
- *
- * Run: `pnpm db:seed:bench` then `pnpm eval:bench` (writes
- * `internal/bench/vmem-internal-eval.md`).
+ * tags + deliberate distractors). `pnpm eval:bench` seeds it first, then runs
+ * this script (writes `internal/bench/vmem-internal-eval.md`).
  */
 
 import { writeFileSync, mkdirSync, existsSync } from "node:fs";
@@ -381,7 +379,7 @@ async function main(): Promise<void> {
     const corpus = await fullCorpusTokens(driver);
     if (corpus.memoryCount === 0) {
       throw new Error(
-        `no memories for bench user ${BENCH_USER_ID} — run \`pnpm db:seed:bench\` first.`,
+        `no memories for bench user ${BENCH_USER_ID} — run \`pnpm eval:bench\` (seeds first).`,
       );
     }
 

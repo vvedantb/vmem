@@ -42,7 +42,7 @@ Neo4j (Aura) graph
 | `engine/neo4j/`          | driver, setup, retrieval, memory CRUD, dream mode         | `driver.ts`, `memory/`, `codebase/`                      |
 | `engine/neo4j/memory/`   | the memory graph: crud, retrieve, proposals, graph, dedup | called from `neo4jActions`                               |
 | `engine/neo4j/codebase/` | symbol parsing + dependency graph                         | `parse.ts`, `read.ts`, `write.ts`                        |
-| `neo4j-cli/`             | bench seed / eval CLI scripts (not runtime)               | `eval/seedBench.ts`, `eval/benchmark.ts`                 |
+| `neo4j-cli/`             | bench eval CLI (not runtime)                              | `eval:bench` (seed + report)                             |
 | `mcp-ui/`                | interactive MCP App (memory graph UI)                     | `memory-graph/main.ts`                                   |
 
 ## Request-path traces

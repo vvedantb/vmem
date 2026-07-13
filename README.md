@@ -148,8 +148,7 @@ pnpm dev      # Web app — http://localhost:5173
 pnpm ext:dev         # Chrome extension watch build
 pnpm typecheck:all   # web + backend + extension + packages
 pnpm test            # backend + web unit tests
-pnpm db:seed:bench   # bench corpus for eval:bench (wipes Neo4j — eval instance only)
-pnpm eval:bench      # internal retrieval benchmark report
+pnpm eval:bench      # seed bench corpus + write internal/bench/vmem-internal-eval.md
 ```
 
 Visit `/?agent` during web dev to auto sign in as the agent user (requires `CLERK_SECRET_KEY` + `AGENT_CLERK_USER_ID` in `apps/web/.env.local`).
@@ -180,6 +179,6 @@ Optional: `OPENROUTER_API_KEY` (server embeddings/context when users have no key
 
 **Chrome extension** — edit `apps/chrome-extension/src/lib/constants.ts` (Convex URL + Clerk keys) before `pnpm ext:build`.
 
-**Neo4j CLI scripts** (`db:seed:bench`, `eval:bench`, `db:tag-stats`) — `packages/backend/.env.local` with `NEO4J_URI`, `NEO4J_PASSWORD`, and optionally `OPENROUTER_API_KEY`.
+**Neo4j CLI scripts** (`eval:bench`, `db:tag-stats`) — `packages/backend/.env.local` with `NEO4J_URI`, `NEO4J_PASSWORD`, and optionally `OPENROUTER_API_KEY`.
 
 Public docs (hosted separately): [vmem.vedantb.com](https://vmem.vedantb.com)
