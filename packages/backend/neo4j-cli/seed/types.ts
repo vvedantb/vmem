@@ -1,5 +1,6 @@
 export type SeedMemoryType = "profile" | "episodic" | "knowledge";
 export type SeedMemoryStatus = "active" | "pinned";
+export type SeedEventAction = "created" | "updated";
 
 export interface SeedMemory {
   id: string;
@@ -25,6 +26,6 @@ export interface SeedRelationship {
 export interface SeedEvent {
   eventId: string;
   memoryId: string;
-  action: string;
+  action: SeedEventAction;
   createdAt: string;
 }
