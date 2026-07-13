@@ -15,16 +15,9 @@ import { retrier } from "../retrier";
  */
 export type SyncExecution = "retrier" | "direct";
 
-async function dispatchSync(
-  execution: SyncExecution,
-  paths: {
-    retrier: () => Promise<unknown>;
-    direct: () => Promise<unknown>;
-  },
-): Promise<void> {
-  if (execution === "retrier") await paths.retrier();
-  else await paths.direct();
-}
+type ProviderSyncRef =
+  | typeof internal.neo4jActions.connectorSync.syncGoogleDriveInternal
+  | typeof internal.neo4jActions.connectorSync.syncNotionInternal;
 
 /**
  * Single source of truth for which providers support sync and how each
@@ -50,26 +43,22 @@ export async function runConnectorProviderSync(
     connectorId: params.connector._id,
     accessToken: params.accessToken,
   };
-  const { execution } = params;
 
+  let syncRef: ProviderSyncRef;
   switch (provider) {
-    case "google_drive": {
-      const ref = internal.neo4jActions.connectorSync.syncGoogleDriveInternal;
-      return dispatchSync(execution, {
-        retrier: () => retrier.run(ctx, ref, syncArgs),
-        direct: () => ctx.runAction(ref, syncArgs),
-      });
-    }
-
-    case "notion": {
-      const ref = internal.neo4jActions.connectorSync.syncNotionInternal;
-      return dispatchSync(execution, {
-        retrier: () => retrier.run(ctx, ref, syncArgs),
-        direct: () => ctx.runAction(ref, syncArgs),
-      });
-    }
-
+    case "google_drive":
+      syncRef = internal.neo4jActions.connectorSync.syncGoogleDriveInternal;
+      break;
+    case "notion":
+      syncRef = internal.neo4jActions.connectorSync.syncNotionInternal;
+      break;
     default:
       throw new Error(`Unsupported provider: ${String(provider)}`);
+  }
+
+  if (params.execution === "retrier") {
+    await retrier.run(ctx, syncRef, syncArgs);
+  } else {
+    await ctx.runAction(syncRef, syncArgs);
   }
 }

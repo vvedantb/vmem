@@ -42,20 +42,15 @@ export async function encryptToken(token: string): Promise<string> {
 }
 
 export async function decryptToken(encryptedToken: string): Promise<string> {
-  const parts = encryptedToken.split(":");
-  const version = parts[0];
-  const ivB64 = parts[1];
-  const encB64 = parts[2];
-  if (parts.length !== 3 || version !== "v1" || !ivB64 || !encB64) {
+  const [version, ivB64, encB64, ...rest] = encryptedToken.split(":");
+  if (rest.length > 0 || version !== "v1" || !ivB64 || !encB64) {
     throw new Error("Invalid encrypted token format");
   }
   const key = await getEncryptionKey();
-  const iv = base64ToUint8(ivB64);
-  const enc = base64ToUint8(encB64);
   const decrypted = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv },
+    { name: "AES-GCM", iv: base64ToUint8(ivB64) },
     key,
-    enc,
+    base64ToUint8(encB64),
   );
   return new TextDecoder().decode(decrypted);
 }

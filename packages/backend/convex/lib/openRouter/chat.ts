@@ -97,9 +97,9 @@ export async function callOpenRouterChat(
     ok = true;
     content = extractChatContent(json);
     generationId = json.id;
-    const first = json.choices[0];
+    const finishReasonRaw = json.choices.at(0)?.finishReason;
     finishReason =
-      typeof first?.finishReason === "string" ? first.finishReason : undefined;
+      typeof finishReasonRaw === "string" ? finishReasonRaw : undefined;
 
     const usage = json.usage;
     promptTokens = numberOrUndef(usage?.promptTokens);
