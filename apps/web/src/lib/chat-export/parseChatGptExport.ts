@@ -2,6 +2,7 @@ import { unzipSync } from "fflate";
 import { z } from "zod";
 import type { ExportImportRow } from "./importRows";
 import type { ParseExportResult } from "./parseChatExport";
+import { textFromUtf8 } from "./textFromUtf8";
 
 // chatGPT's `conversations.json` is a mapping graph
 
@@ -68,10 +69,6 @@ const rootSchema = z.array(conversationSchema);
 type Conversation = NonNullable<z.infer<typeof conversationSchema>>;
 type Message = NonNullable<z.infer<typeof messageSchema>>;
 type MappingNode = z.infer<typeof nodeSchema>;
-
-function textFromUtf8(data: Uint8Array): string {
-  return new TextDecoder("utf-8", { fatal: false }).decode(data);
-}
 
 function findConversationsJsonInZip(buffer: Uint8Array): string | null {
   let unzipped: Record<string, Uint8Array>;

@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { createContext, use, useCallback } from "react";
 import { useQuery, useMutation, useConvexAuth } from "convex/react";
+import type { OptimisticLocalStore } from "convex/browser";
 import { api } from "@vmem/backend";
 import type { Doc, Id } from "@vmem/backend";
 
@@ -20,6 +21,30 @@ interface NotificationContextType {
 
 const NotificationContext = createContext<NotificationContextType | null>(null);
 
+/** Set one notification's read flag and adjust unreadCount when it changes. */
+function setNotificationRead(
+  localStore: OptimisticLocalStore,
+  id: Id<"notifications">,
+  read: boolean,
+) {
+  const list = localStore.getQuery(api.notifications.listMy, {});
+  if (!list) return;
+  const prev = list.find((n) => n._id === id);
+  localStore.setQuery(
+    api.notifications.listMy,
+    {},
+    list.map((n) => (n._id === id ? { ...n, read } : n)),
+  );
+  if (!prev || prev.read === read) return;
+  const count = localStore.getQuery(api.notifications.unreadCount, {});
+  if (count === undefined) return;
+  localStore.setQuery(
+    api.notifications.unreadCount,
+    {},
+    read ? Math.max(0, count - 1) : count + 1,
+  );
+}
+
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated } = useConvexAuth();
   const notifications = useQuery(
@@ -33,38 +58,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const markAsReadMutation = useMutation(
     api.notifications.markAsRead,
   ).withOptimisticUpdate((localStore, args) => {
-    const list = localStore.getQuery(api.notifications.listMy, {});
-    if (!list) return;
-    const prev = list.find((n) => n._id === args.id);
-    localStore.setQuery(
-      api.notifications.listMy,
-      {},
-      list.map((n) => (n._id === args.id ? { ...n, read: true } : n)),
-    );
-    const count = localStore.getQuery(api.notifications.unreadCount, {});
-    if (count !== undefined && prev && !prev.read) {
-      localStore.setQuery(
-        api.notifications.unreadCount,
-        {},
-        Math.max(0, count - 1),
-      );
-    }
+    setNotificationRead(localStore, args.id, true);
   });
   const markAsUnreadMutation = useMutation(
     api.notifications.markAsUnread,
   ).withOptimisticUpdate((localStore, args) => {
-    const list = localStore.getQuery(api.notifications.listMy, {});
-    if (!list) return;
-    const prev = list.find((n) => n._id === args.id);
-    localStore.setQuery(
-      api.notifications.listMy,
-      {},
-      list.map((n) => (n._id === args.id ? { ...n, read: false } : n)),
-    );
-    const count = localStore.getQuery(api.notifications.unreadCount, {});
-    if (count !== undefined && prev && prev.read) {
-      localStore.setQuery(api.notifications.unreadCount, {}, count + 1);
-    }
+    setNotificationRead(localStore, args.id, false);
   });
   const markAllAsReadMutation = useMutation(
     api.notifications.markAllAsRead,
@@ -85,8 +84,11 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     const list = localStore.getQuery(api.notifications.listMy, {});
     if (!list) return;
     const removed = list.find((n) => n._id === args.id);
-    const next = list.filter((n) => n._id !== args.id);
-    localStore.setQuery(api.notifications.listMy, {}, next);
+    localStore.setQuery(
+      api.notifications.listMy,
+      {},
+      list.filter((n) => n._id !== args.id),
+    );
     if (removed && !removed.read) {
       const count = localStore.getQuery(api.notifications.unreadCount, {});
       if (count !== undefined) {

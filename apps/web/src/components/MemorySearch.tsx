@@ -25,7 +25,7 @@ import type { TrailEntry } from "@/hooks/useTrailData";
 import {
   useMemoryListEntries,
   type MemoryListEntry,
-} from "./_hooks/useMemoryListEntries";
+} from "@/hooks/useMemoryListEntries";
 import { useMemoriesSearchParams } from "@/routes/_main/$profileId/memories/useMemoriesSearchParams";
 
 interface MemoryListVirtuosoContext {

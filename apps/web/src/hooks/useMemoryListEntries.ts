@@ -5,7 +5,7 @@ import { useAction, useQuery as useConvexQuery } from "convex/react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@vmem/backend";
 import { useActiveProfile } from "@/components/workspace/active-profile";
-import { useMemoryListFlat } from "@/components/contexts/MemoryContext";
+import { useMemoryListFlat } from "@/hooks/useMemoryList";
 import { useMemoriesSearchParams } from "@/routes/_main/$profileId/memories/useMemoriesSearchParams";
 import {
   listItemMatchesKindFilter,

@@ -1,6 +1,7 @@
 import { unzipSync } from "fflate";
 import { z } from "zod";
 import type { ExportImportRow } from "./importRows";
+import { textFromUtf8 } from "./textFromUtf8";
 
 // shared parser for claude-style conversation+messages export json
 
@@ -101,10 +102,6 @@ const rootSchema = z.union([
 type Conversation = z.infer<typeof conversationObjectSchema>;
 type Message = z.infer<typeof messageSchema>;
 type Block = z.infer<typeof blockSchema>;
-
-function textFromUtf8(data: Uint8Array): string {
-  return new TextDecoder("utf-8", { fatal: false }).decode(data);
-}
 
 // pull the first JSON-looking file out of a vendor export zip
 function extractJsonFromZip(buffer: Uint8Array): string | null {

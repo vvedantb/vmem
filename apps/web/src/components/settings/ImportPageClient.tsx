@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import UploadImportModal from "./UploadImportModal";
 import SelectImportRowsModal from "./SelectImportRowsModal";
 import { importProviders, type AvailableProvider } from "./importProviders";
-import type { ExportImportRow } from "../_utils/importRows";
+import type { ExportImportRow } from "@/lib/chat-export/importRows";
 
 function findAvailable(id: string | null): AvailableProvider | null {
   if (id === null) return null;

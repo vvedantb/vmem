@@ -1,9 +1,9 @@
 import type { ComponentType } from "react";
 import ClaudeLogo from "./ClaudeLogo";
 import ChatGptLogo from "./ChatGptLogo";
-import { parseChatGptExportBuffer } from "../_utils/parseChatGptExport";
-import { parseClaudeExportBuffer } from "../_utils/parseClaudeExport";
-import type { ExportImportRow } from "../_utils/importRows";
+import { parseChatGptExportBuffer } from "@/lib/chat-export/parseChatGptExport";
+import { parseClaudeExportBuffer } from "@/lib/chat-export/parseClaudeExport";
+import type { ExportImportRow } from "@/lib/chat-export/importRows";
 
 type ParseResult =
   | { ok: true; rows: ExportImportRow[] }

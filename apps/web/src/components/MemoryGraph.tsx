@@ -14,7 +14,7 @@ import GraphNodeTooltip from "./_components/GraphNodeTooltip";
 import GraphEdgeTooltip from "./_components/GraphEdgeTooltip";
 import GraphDetailPanel from "./_components/GraphDetailPanel";
 import { MemoryGraphStatus } from "./_components/MemoryGraphStatus";
-import { useGraphNodeInteraction } from "./_hooks/useGraphNodeInteraction";
+import { useGraphNodeInteraction } from "@/hooks/useGraphNodeInteraction";
 import type { MemoryGraphController } from "@/hooks/useMemoryGraphController";
 
 interface MemoryGraphProps {
