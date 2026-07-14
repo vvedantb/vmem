@@ -18,7 +18,6 @@
  * Esc cancels at any stage. Click outside the preview bar dismisses.
  *
  * File layout (all under `./screenshot/`):
- *   - `icons.ts`    - inline SVG strings
  *   - `styles.ts`   - shadow-DOM CSS
  *   - `types.ts`    - Mode + SelectionRect + CroppedImage
  *   - `dom.ts`      - element construction (singleton tree, mountOverlay)
@@ -30,7 +29,7 @@ import type { ContentMessage, BackgroundResponse } from "@/types/messages";
 import { safeSendMessage } from "@/lib/safe-message";
 import { z } from "zod";
 import { mountVmemLogo } from "@/content/shared/icons";
-import { CHECK_ICON, ERROR_ICON } from "./icons";
+import { checkIcon, errorIcon } from "@/content/shared/status-icons";
 import type { Mode, SelectionRect } from "./types";
 import { blobToBase64, cropImage, requestCapture } from "./capture";
 import {
@@ -45,6 +44,9 @@ import {
   scrim,
   thumb,
 } from "./dom";
+
+const CHECK_ICON = checkIcon(14);
+const ERROR_ICON = errorIcon(14);
 
 const startScreenshotMessageSchema = z.object({
   type: z.literal("START_SCREENSHOT"),
