@@ -1,13 +1,16 @@
 "use client";
 
+import { useMemo } from "react";
 import { useQueryStates } from "nuqs";
+import type { Id } from "@vmem/backend";
 import { VmemSpinner } from "@/components/svg-animations";
-import type { FolderBreadcrumb, FileItem } from "./-types";
+import type { FileItem } from "@/lib/file-types";
+import type { FolderBreadcrumb, FileTreeNode } from "./-types";
 import PageContainer from "@/components/PageContainer";
 import FileUploadModal from "@/components/FileUploadModal";
 import FilePreviewModal from "@/components/FilePreviewModal";
 import { filesSearchParams } from "./-searchParams";
-import { sortFiles } from "./_utils";
+import { childCountMap, fileCategoryForNode, sortNodes } from "./_utils";
 import { useFileSelection } from "./_hooks/useFileSelection";
 import { useFilesData } from "./_hooks/useFilesData";
 import { useFilesActions } from "./_hooks/useFilesActions";
@@ -31,7 +34,7 @@ const filesLoadingView = (
 );
 
 function buildBreadcrumbs(
-  allFiles: Pick<FileItem, "id" | "name" | "parentFolderId">[],
+  nodes: Pick<FileTreeNode, "_id" | "name" | "parentId">[],
   folderId: string | null,
 ): FolderBreadcrumb[] {
   const root: FolderBreadcrumb = { id: null, name: "Files" };
@@ -44,21 +47,50 @@ function buildBreadcrumbs(
   while (currentId !== null) {
     if (visited.has(currentId)) break;
     visited.add(currentId);
-    const folder = allFiles.find((f) => f.id === currentId);
+    const folder = nodes.find((node) => node._id === currentId);
     if (!folder) break;
-    crumbs.push({ id: folder.id, name: folder.name });
-    currentId = folder.parentFolderId;
+    crumbs.push({ id: folder._id, name: folder.name });
+    currentId = folder.parentId ?? null;
   }
 
   if (crumbs.length <= 1) return crumbs;
   return [root, ...crumbs.slice(1).reverse()];
 }
 
+function resolveFolderId(
+  folderIdParam: string | null,
+  nodes: FileTreeNode[],
+): Id<"fileNodes"> | null {
+  if (folderIdParam === null) return null;
+  return nodes.find((node) => node._id === folderIdParam)?._id ?? null;
+}
+
+function toPreviewFile(node: FileTreeNode): FileItem {
+  const fileCategory = fileCategoryForNode(node);
+  const url = node.url ?? undefined;
+  return {
+    id: node._id,
+    name: node.name,
+    itemType: node.kind,
+    mimeType: node.mimeType ?? "",
+    fileCategory,
+    size: node.size ?? 0,
+    uploadedAt: new Date(node.createdAt).toISOString(),
+    parentFolderId: node.parentId ?? null,
+    thumbnailUrl:
+      node.kind === "file" && fileCategory === "image" ? url : undefined,
+    url,
+    memoryId: node.memoryId,
+    indexStatus: node.indexStatus,
+  };
+}
+
 export default function FilesClient() {
   const [params, setParams] = useQueryStates(filesSearchParams);
+  const folderIdParam = params.folderId ?? null;
 
   const {
-    allFiles,
+    nodes,
     isLoading,
     totalBytes,
     storageLimit,
@@ -69,23 +101,25 @@ export default function FilesClient() {
     deleteNodes,
   } = useFilesData();
 
-  const currentItems = sortFiles(
-    allFiles.filter((f) => f.parentFolderId === (params.folderId ?? null)),
+  const folderId = resolveFolderId(folderIdParam, nodes);
+  const childCounts = useMemo(() => childCountMap(nodes), [nodes]);
+  const currentItems = sortNodes(
+    nodes.filter((node) => (node.parentId ?? null) === folderIdParam),
     params.sort,
     params.sortDir,
   );
-  const selection = useFileSelection(currentItems.map((f) => f.id));
-  const allFolders = allFiles.filter((f) => f.itemType === "folder");
-  const breadcrumbs = buildBreadcrumbs(allFiles, params.folderId ?? null);
+  const selection = useFileSelection(currentItems.map((node) => node._id));
+  const folderNodes = nodes.filter((node) => node.kind === "folder");
+  const breadcrumbs = buildBreadcrumbs(nodes, folderIdParam);
 
-  function navigateToFolder(folderId: string | null) {
-    void setParams({ folderId });
+  function navigateToFolder(nextFolderId: Id<"fileNodes"> | null) {
+    void setParams({ folderId: nextFolderId });
     selection.clear();
   }
 
   const actions = useFilesActions({
-    folderId: params.folderId ?? null,
-    allFiles,
+    folderId,
+    nodes,
     mutations: {
       uploadFile,
       createFolder,
@@ -102,11 +136,17 @@ export default function FilesClient() {
     return filesLoadingView;
   }
 
-  const isRoot = params.folderId === null;
+  const isRoot = folderIdParam === null;
   const showEmpty = currentItems.length === 0 && !actions.isCreatingFolder;
+  const previewNodeLive = actions.previewNodeId
+    ? nodes.find((node) => node._id === actions.previewNodeId)
+    : undefined;
+  const renameNodeLive = actions.renameNodeId
+    ? nodes.find((node) => node._id === actions.renameNodeId)
+    : undefined;
 
-  function handleItemDelete(item: Parameters<typeof actions.handleDelete>[0]) {
-    void actions.handleDelete(item);
+  function handleItemDelete(node: Pick<FileTreeNode, "_id" | "name">) {
+    void actions.handleDelete(node);
   }
 
   function handleNewFolderConfirm(name: string) {
@@ -119,6 +159,7 @@ export default function FilesClient() {
 
   const sharedItemViewProps = {
     items: currentItems,
+    childCounts,
     isCreatingFolder: actions.isCreatingFolder,
     isSelected: selection.isSelected,
     onClick: selection.handleClick,
@@ -184,7 +225,7 @@ export default function FilesClient() {
         </FileDropZone>
 
         <StorageStatusBar
-          itemCount={allFiles.length}
+          itemCount={nodes.length}
           totalBytes={totalBytes}
           storageLimit={storageLimit}
         />
@@ -201,23 +242,25 @@ export default function FilesClient() {
 
       <FilePreviewModal
         isOpen={actions.isPreviewOpen}
-        file={actions.selectedFile}
+        file={previewNodeLive ? toPreviewFile(previewNodeLive) : null}
         onClose={actions.closePreview}
-        onDelete={(item) => void actions.handleDelete(item)}
+        onDelete={() => {
+          if (previewNodeLive) void actions.handleDelete(previewNodeLive);
+        }}
       />
 
       <RenameDialog
-        key={actions.renameTarget?.id ?? "rename"}
-        isOpen={actions.renameTarget !== null}
-        currentName={actions.renameTarget?.name ?? ""}
+        key={actions.renameNodeId ?? "rename"}
+        isOpen={actions.renameNodeId !== null}
+        currentName={renameNodeLive?.name ?? ""}
         onRename={(name) => void actions.handleRenameConfirm(name)}
-        onClose={() => actions.setRenameTarget(null)}
+        onClose={() => actions.setRenameNodeId(null)}
       />
 
       <MoveFolderDialog
         isOpen={actions.isMoveDialogOpen}
-        folders={allFolders}
-        currentFolderId={params.folderId ?? null}
+        folders={folderNodes}
+        currentFolderId={folderId}
         itemCount={actions.pendingMoveIds.length}
         onMove={(id) => void actions.handleMoveConfirm(id)}
         onClose={actions.closeMove}

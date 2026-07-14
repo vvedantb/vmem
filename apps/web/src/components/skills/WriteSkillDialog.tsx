@@ -16,6 +16,7 @@ import {
 import { IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { optimisticId } from "@/lib/optimisticId";
+import { prependOptimisticSkillRow } from "@/components/skills/_utils";
 import { useActiveTeamId } from "@/components/workspace/active-profile";
 
 interface WriteSkillDialogProps {
@@ -33,25 +34,12 @@ export function WriteSkillDialog({
   const createSkill = useMutation(api.skills.createSkill).withOptimisticUpdate(
     (localStore, args) => {
       const current = localStore.getQuery(api.skills.listMy, { teamId });
-      if (!current || current.length === 0) return;
-      const head = current.at(0);
-      if (!head) return;
-      const now = Date.now();
-      const tempId = optimisticId("skills");
-      localStore.setQuery(api.skills.listMy, { teamId }, [
-        {
-          ...head,
-          _id: tempId,
-          _creationTime: now,
-          name: args.name.trim(),
-          description: args.description,
-          instructions: args.instructions,
-          enabled: true,
-          createdAt: now,
-          updatedAt: now,
-        },
-        ...current,
-      ]);
+      if (!current) return;
+      localStore.setQuery(
+        api.skills.listMy,
+        { teamId },
+        prependOptimisticSkillRow(current, optimisticId("skills"), args),
+      );
     },
   );
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { createFileRoute, Outlet, useMatchRoute } from "@tanstack/react-router";
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Button } from "@vmem/ui";
 import { IconPlus } from "@tabler/icons-react";
 import PageContainer from "@/components/PageContainer";
@@ -61,17 +61,13 @@ function ApiKeysPageShell({ children }: { children: ReactNode }) {
 function ApiLayout() {
   const matchRoute = useMatchRoute();
   const activeTab = getActiveApiTab(matchRoute);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const pageShell =
     activeTab === "usage" ? ApiUsagePageShell : ApiKeysPageShell;
   const PageShell = pageShell;
 
   return (
-    <ApiCreateKeyProvider
-      isCreateModalOpen={isCreateModalOpen}
-      setIsCreateModalOpen={setIsCreateModalOpen}
-    >
+    <ApiCreateKeyProvider>
       <PageShell>
         <Outlet />
       </PageShell>

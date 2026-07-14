@@ -10,6 +10,18 @@ export type ProposedUpdateKind = ProposedUpdate["kind"];
 export type SourceMemorySnapshot =
   ProposedUpdate["sourceMemorySnapshots"][number];
 
+const SYNTHESIS_KINDS = new Set<ProposedUpdateKind>([
+  "insight",
+  "connection",
+  "contradiction",
+  "anomaly",
+  "merge",
+]);
+
+export function isSynthesisKind(kind: ProposedUpdateKind): boolean {
+  return SYNTHESIS_KINDS.has(kind);
+}
+
 export function proposalAccentClass(kind: ProposedUpdateKind): string {
   switch (kind) {
     case "delete":

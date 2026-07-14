@@ -14,8 +14,6 @@ import {
 import { formatRelativeTime, formatDate, formatNumber } from "@/lib/formatters";
 import type { ApiKey } from "./types";
 
-export type { ApiKey } from "./types";
-
 const MASKED_API_KEY = "vmem_sk_••••••••••••••••";
 
 function ApiKeyActiveBadge() {

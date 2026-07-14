@@ -4,10 +4,8 @@ import type { KeyboardEvent } from "react";
 import { cn } from "@vmem/ui";
 import { sidebarListRowClass } from "@/components/sidebar/sidebar-nav-row";
 import { IconLoader2, IconLock } from "@tabler/icons-react";
-import {
-  codebaseLanguageColor,
-  type CodebaseItem,
-} from "./CodebaseCardInsides";
+import { codebaseLanguageColor } from "./CodebaseCardInsides";
+import type { CodebaseItem } from "./-types";
 
 interface CodebaseSidebarCardProps {
   codebase: CodebaseItem;

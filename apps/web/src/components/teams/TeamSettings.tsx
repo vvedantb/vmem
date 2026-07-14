@@ -67,14 +67,15 @@ export function TeamSettings() {
   const nameBaselineRef = useRef<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const renameTeam = async (name: string) => {
+  const handleNameChange = (name: string) => {
     const trimmed = name.trim();
     if (trimmed.length === 0 || trimmed === data.team.name) return;
-    try {
-      await updateTeam({ teamId: data.team._id, name: trimmed });
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Rename failed");
-    }
+
+    void updateTeam({ teamId: data.team._id, name: trimmed }).catch(
+      (err: unknown) => {
+        toast.error(err instanceof Error ? err.message : "Rename failed");
+      },
+    );
   };
 
   // Cascades: team profile, memberships, and Neo4j team memories.
@@ -116,12 +117,7 @@ export function TeamSettings() {
             onFocus={() => {
               nameBaselineRef.current = data.team.name;
             }}
-            onChange={(e) => {
-              const next = e.target.value;
-              if (next.trim().length === 0) return;
-              if (next === data.team.name) return;
-              void renameTeam(next);
-            }}
+            onChange={(e) => handleNameChange(e.target.value)}
             onBlur={() => {
               const baseline = nameBaselineRef.current;
               nameBaselineRef.current = null;

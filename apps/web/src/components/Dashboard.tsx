@@ -1,7 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
 import { Button } from "@vmem/ui";
 import { useConvexAuth, useAction } from "convex/react";
-import type { FunctionReturnType } from "convex/server";
+import { useQuery as useTanstackQuery } from "@tanstack/react-query";
 import { IconAlertCircle, IconRefresh } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 import { useActiveProfile } from "./workspace/active-profile";
@@ -10,38 +9,27 @@ import { DashboardStatCards } from "./dashboard/DashboardStatCards";
 import { DreamPortraitCard } from "./dashboard/DreamPortraitCard";
 import { MemoryGrowthChart } from "./dashboard/MemoryGrowthChart";
 
-type StatsData = FunctionReturnType<typeof api.dashboardApi.getStats>;
-
 export default function Dashboard() {
   const { isAuthenticated } = useConvexAuth();
   const activeProfile = useActiveProfile();
   const getStats = useAction(api.dashboardApi.getStats);
-  const [stats, setStats] = useState<StatsData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const fetchData = useCallback(async () => {
-    if (!isAuthenticated) return;
-    try {
-      setIsLoading(true);
-      setError(null);
-      setStats(await getStats({ profileId: activeProfile._id }));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load dashboard");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [isAuthenticated, getStats, activeProfile._id]);
+  const statsQuery = useTanstackQuery({
+    queryKey: ["dashboard-stats", activeProfile._id],
+    enabled: isAuthenticated,
+    staleTime: 30_000,
+    queryFn: async () => getStats({ profileId: activeProfile._id }),
+  });
 
-  useEffect(() => {
-    void fetchData();
-  }, [fetchData]);
-
-  if (isLoading) {
+  if (statsQuery.isLoading) {
     return <DashboardLoadingSkeleton />;
   }
 
-  if (error) {
+  if (statsQuery.isError) {
+    const error =
+      statsQuery.error instanceof Error
+        ? statsQuery.error.message
+        : "Failed to load dashboard";
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-danger/10">
@@ -51,7 +39,11 @@ export default function Dashboard() {
           Failed to load dashboard
         </h3>
         <p className="mb-4 text-sm text-muted">{error}</p>
-        <Button onClick={fetchData}>
+        <Button
+          onClick={() => {
+            void statsQuery.refetch();
+          }}
+        >
           <IconRefresh size={18} />
           Try again
         </Button>
@@ -59,6 +51,7 @@ export default function Dashboard() {
     );
   }
 
+  const stats = statsQuery.data;
   if (!stats) {
     return null;
   }

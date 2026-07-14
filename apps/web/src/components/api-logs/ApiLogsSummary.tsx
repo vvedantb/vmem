@@ -10,60 +10,15 @@ interface ApiLogsSummaryProps {
   metrics: ApiUsageMetrics;
 }
 
-type MetricVariant = "requests" | "success" | "latency";
-
-const METRIC_VARIANT_CONFIG = new Map<
-  MetricVariant,
-  {
-    label: string;
-    icon: TablerIcon;
-    valueClassName?: string;
-    strokeClassName: string;
-    fillClassName: string;
-  }
->([
-  [
-    "requests",
-    {
-      label: "Total requests",
-      icon: IconActivity,
-      strokeClassName: "text-accent",
-      fillClassName: "fill-accent/10",
-    },
-  ],
-  [
-    "success",
-    {
-      label: "Success rate",
-      icon: IconCircleCheck,
-      valueClassName: "text-success",
-      strokeClassName: "text-success",
-      fillClassName: "fill-success/10",
-    },
-  ],
-  [
-    "latency",
-    {
-      label: "Avg response",
-      icon: IconClock,
-      strokeClassName: "text-muted",
-      fillClassName: "fill-foreground/5",
-    },
-  ],
-]);
-
 function Sparkline({
   data,
-  variant,
+  strokeClassName,
+  fillClassName,
 }: {
   data: number[];
-  variant: MetricVariant;
+  strokeClassName: string;
+  fillClassName: string;
 }) {
-  const styles = METRIC_VARIANT_CONFIG.get(variant);
-  if (styles === undefined) return null;
-
-  const { strokeClassName, fillClassName } = styles;
-
   if (!hasTrendActivity(data)) {
     return (
       <div aria-hidden className="flex h-10 items-end gap-0.5 opacity-40">
@@ -117,19 +72,22 @@ function Sparkline({
 }
 
 function SummaryCard({
-  variant,
+  label,
   value,
+  icon: Icon,
+  valueClassName,
   trendData,
+  strokeClassName,
+  fillClassName,
 }: {
-  variant: MetricVariant;
+  label: string;
   value: string;
+  icon: TablerIcon;
+  valueClassName?: string;
   trendData: number[];
+  strokeClassName: string;
+  fillClassName: string;
 }) {
-  const config = METRIC_VARIANT_CONFIG.get(variant);
-  if (config === undefined) return null;
-
-  const { label, icon: Icon, valueClassName } = config;
-
   return (
     <Card className="shadow-none">
       <CardContent className="flex min-h-[9.5rem] flex-col gap-3 p-5">
@@ -148,7 +106,11 @@ function SummaryCard({
           {value}
         </p>
         <div className="mt-auto pt-1">
-          <Sparkline data={trendData} variant={variant} />
+          <Sparkline
+            data={trendData}
+            strokeClassName={strokeClassName}
+            fillClassName={fillClassName}
+          />
           <p className="mt-1.5 text-[11px] text-muted">Last 7 days</p>
         </div>
       </CardContent>
@@ -156,68 +118,33 @@ function SummaryCard({
   );
 }
 
-function RequestsSummaryCard({
-  totalRequests,
-  trendData,
-}: {
-  totalRequests: number;
-  trendData: number[];
-}) {
-  return (
-    <SummaryCard
-      variant="requests"
-      value={totalRequests.toLocaleString()}
-      trendData={trendData}
-    />
-  );
-}
-
-function SuccessRateSummaryCard({
-  successRate,
-  trendData,
-}: {
-  successRate: number;
-  trendData: number[];
-}) {
-  return (
-    <SummaryCard
-      variant="success"
-      value={`${successRate.toFixed(1)}%`}
-      trendData={trendData}
-    />
-  );
-}
-
-function LatencySummaryCard({
-  avgResponseMs,
-  trendData,
-}: {
-  avgResponseMs: number;
-  trendData: number[];
-}) {
-  return (
-    <SummaryCard
-      variant="latency"
-      value={formatDuration(avgResponseMs)}
-      trendData={trendData}
-    />
-  );
-}
-
 export function ApiLogsSummary({ metrics }: ApiLogsSummaryProps) {
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
-      <RequestsSummaryCard
-        totalRequests={metrics.totalRequests}
+      <SummaryCard
+        label="Total requests"
+        value={metrics.totalRequests.toLocaleString()}
+        icon={IconActivity}
         trendData={metrics.trends.requests}
+        strokeClassName="text-accent"
+        fillClassName="fill-accent/10"
       />
-      <SuccessRateSummaryCard
-        successRate={metrics.successRate}
+      <SummaryCard
+        label="Success rate"
+        value={`${metrics.successRate.toFixed(1)}%`}
+        icon={IconCircleCheck}
+        valueClassName="text-success"
         trendData={metrics.trends.successRates}
+        strokeClassName="text-success"
+        fillClassName="fill-success/10"
       />
-      <LatencySummaryCard
-        avgResponseMs={metrics.avgResponseMs}
+      <SummaryCard
+        label="Avg response"
+        value={formatDuration(metrics.avgResponseMs)}
+        icon={IconClock}
         trendData={metrics.trends.avgDurations}
+        strokeClassName="text-muted"
+        fillClassName="fill-foreground/5"
       />
     </div>
   );

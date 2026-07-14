@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import type { Doc, Id } from "@vmem/backend";
+import type { WikiListNode, WikiNodeId } from "./-types";
 import {
   IconChevronRight,
   IconDatabase,
@@ -56,7 +56,7 @@ export function WikiRootDropZone({
 }
 
 // floating preview rendered under the cursor while dragging a row
-export function WikiDragPreview({ node }: { node: Doc<"wikiNodes"> }) {
+export function WikiDragPreview({ node }: { node: WikiListNode }) {
   const isFolder = node.kind === "folder";
   return (
     <div className="flex max-w-[220px] items-center gap-1.5 rounded-md bg-surface-tertiary px-2 py-1.5 text-sm text-foreground shadow-lg">
@@ -74,16 +74,13 @@ export interface WikiTreeListProps {
   nodes: WikiTreeNode[];
   depth: number;
   selectedId: string | null;
-  onSelect: (id: string) => void;
+  onSelect: (id: WikiNodeId | "") => void;
   mode: WikiTreeMode;
-  selectedNodeIds?: ReadonlySet<Id<"wikiNodes">>;
-  onToggleSelect?: (id: Id<"wikiNodes">) => void;
-  onCreateInside: (
-    parentId: Id<"wikiNodes">,
-    kind: "folder" | "document",
-  ) => void;
-  onRequestRename: (node: Doc<"wikiNodes">) => void;
-  onRequestDelete: (node: Doc<"wikiNodes">) => void;
+  selectedNodeIds?: ReadonlySet<WikiNodeId>;
+  onToggleSelect?: (id: WikiNodeId) => void;
+  onCreateInside: (parentId: WikiNodeId, kind: "folder" | "document") => void;
+  onRequestRename: (node: WikiListNode) => void;
+  onRequestDelete: (node: WikiListNode) => void;
 }
 
 export function WikiTreeList({
@@ -123,16 +120,13 @@ interface WikiTreeItemProps {
   item: WikiTreeNode;
   depth: number;
   selectedId: string | null;
-  onSelect: (id: string) => void;
+  onSelect: (id: WikiNodeId | "") => void;
   mode: WikiTreeMode;
-  selectedNodeIds?: ReadonlySet<Id<"wikiNodes">>;
-  onToggleSelect?: (id: Id<"wikiNodes">) => void;
-  onCreateInside: (
-    parentId: Id<"wikiNodes">,
-    kind: "folder" | "document",
-  ) => void;
-  onRequestRename: (node: Doc<"wikiNodes">) => void;
-  onRequestDelete: (node: Doc<"wikiNodes">) => void;
+  selectedNodeIds?: ReadonlySet<WikiNodeId>;
+  onToggleSelect?: (id: WikiNodeId) => void;
+  onCreateInside: (parentId: WikiNodeId, kind: "folder" | "document") => void;
+  onRequestRename: (node: WikiListNode) => void;
+  onRequestDelete: (node: WikiListNode) => void;
 }
 
 function WikiTreeItem(props: WikiTreeItemProps) {

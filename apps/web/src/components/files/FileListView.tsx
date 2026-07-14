@@ -8,32 +8,35 @@ import {
   TableRow,
   TableHead,
 } from "@vmem/ui";
-import type { FileItem } from "./-types";
+import type { Id } from "@vmem/backend";
+import type { FileTreeNode } from "./-types";
 import FileListRow from "./FileListRow";
 import { InlineNewFolderList } from "./InlineNewFolder";
 
 interface FileListViewProps {
-  items: FileItem[];
+  items: FileTreeNode[];
+  childCounts: Map<Id<"fileNodes">, number>;
   isCreatingFolder: boolean;
   isAllSelected: boolean;
-  isSelected: (id: string) => boolean;
+  isSelected: (id: Id<"fileNodes">) => boolean;
   onClick: (
-    id: string,
+    id: Id<"fileNodes">,
     e: { ctrlKey: boolean; metaKey: boolean; shiftKey: boolean },
   ) => void;
-  onCheckbox: (id: string) => void;
+  onCheckbox: (id: Id<"fileNodes">) => void;
   onSelectAll: () => void;
-  onOpen: (item: FileItem) => void;
-  onDownload: (item: FileItem) => void;
-  onMoveTo: (item: FileItem) => void;
-  onRename: (item: FileItem) => void;
-  onDelete: (item: FileItem) => void;
+  onOpen: (node: FileTreeNode) => void;
+  onDownload: (node: FileTreeNode) => void;
+  onMoveTo: (node: FileTreeNode) => void;
+  onRename: (node: FileTreeNode) => void;
+  onDelete: (node: FileTreeNode) => void;
   onNewFolderConfirm: (name: string) => void;
   onNewFolderCancel: () => void;
 }
 
 export default function FileListView({
   items,
+  childCounts,
   isCreatingFolder,
   isAllSelected,
   isSelected,
@@ -76,11 +79,12 @@ export default function FileListView({
             onCancel={onNewFolderCancel}
           />
         ) : null}
-        {items.map((item) => (
+        {items.map((node) => (
           <FileListRow
-            key={item.id}
-            item={item}
-            isSelected={isSelected(item.id)}
+            key={node._id}
+            node={node}
+            childCount={childCounts.get(node._id) ?? 0}
+            isSelected={isSelected(node._id)}
             onClick={onClick}
             onCheckbox={onCheckbox}
             onOpen={onOpen}

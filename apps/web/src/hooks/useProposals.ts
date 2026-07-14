@@ -1,28 +1,16 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback } from "react";
 import { useConvexAuth, useAction } from "convex/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@vmem/backend";
 import { useActiveProfileId } from "@/components/workspace/active-profile";
-import type {
+
+export type {
   ProposedUpdate,
   ProposedUpdateKind,
 } from "@/components/proposals/_proposalUtils";
-
-export type { ProposedUpdate, ProposedUpdateKind };
-
-const SYNTHESIS_KINDS = new Set<ProposedUpdateKind>([
-  "insight",
-  "connection",
-  "contradiction",
-  "anomaly",
-  "merge",
-]);
-
-export function isSynthesisKind(kind: ProposedUpdateKind): boolean {
-  return SYNTHESIS_KINDS.has(kind);
-}
+export { isSynthesisKind } from "@/components/proposals/_proposalUtils";
 
 // pending proposals + approve/reject (tanstack cache)
 export function useProposals() {
@@ -35,7 +23,7 @@ export function useProposals() {
   const listQuery = useQuery({
     queryKey: ["proposals", activeProfileId],
     enabled: isAuthenticated && activeProfileId !== undefined,
-    queryFn: async (): Promise<ProposedUpdate[]> => {
+    queryFn: async () => {
       if (activeProfileId === undefined) return [];
       return await listAction({ profileId: activeProfileId });
     },
@@ -83,11 +71,8 @@ export function useProposals() {
     [resolveMutation],
   );
 
-  const proposals = useMemo(() => listQuery.data ?? [], [listQuery.data]);
-  const pendingCount = useMemo(
-    () => proposals.filter((p) => p.status === "pending").length,
-    [proposals],
-  );
+  const proposals = listQuery.data ?? [];
+  const pendingCount = proposals.filter((p) => p.status === "pending").length;
 
   return {
     proposals,

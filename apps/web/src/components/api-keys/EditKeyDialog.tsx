@@ -14,6 +14,7 @@ import {
   Input,
 } from "@vmem/ui";
 import { IconLoader2 } from "@tabler/icons-react";
+import { patchApiKeyInList } from "./_optimistic";
 import type { ApiKey } from "./types";
 
 interface EditKeyDialogProps {
@@ -32,15 +33,10 @@ export function EditKeyDialog({
 
   const renameApiKey = useMutation(api.apiKeys.renameMy).withOptimisticUpdate(
     (localStore, args) => {
-      const list = localStore.getQuery(api.apiKeys.listMy, {});
-      if (!list) return;
-      localStore.setQuery(
-        api.apiKeys.listMy,
-        {},
-        list.map((row) =>
-          row.id === args.id ? { ...row, name: args.name.trim() } : row,
-        ),
-      );
+      patchApiKeyInList(localStore, args.id, (row) => ({
+        ...row,
+        name: args.name,
+      }));
     },
   );
 

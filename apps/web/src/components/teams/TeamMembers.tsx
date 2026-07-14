@@ -10,16 +10,11 @@ import {
   IconUser,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
-import {
-  useTeamDetail,
-  useTeamWorkspace,
-  type TeamMember,
-} from "./team-context";
+import { useTeamWorkspace, type TeamMember } from "./team-context";
 import { AddMemberDialog } from "./AddMemberDialog";
 
 export function TeamMembers() {
-  const data = useTeamDetail();
-  const { meta } = useTeamWorkspace();
+  const { detail: data, meta } = useTeamWorkspace();
   const removeMember = useMutation(api.teams.removeMember).withOptimisticUpdate(
     (localStore, args) => {
       const detail = localStore.getQuery(api.teams.get, {

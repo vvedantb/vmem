@@ -47,15 +47,10 @@ export function DetailsTabView({ memory }: DetailsTabViewProps) {
 
 interface DetailsTabEditProps {
   memory: Memory;
-  onMemoryUpdate: (memory: Memory) => void;
   onCancel: () => void;
 }
 
-export function DetailsTabEdit({
-  memory,
-  onMemoryUpdate,
-  onCancel,
-}: DetailsTabEditProps) {
+export function DetailsTabEdit({ memory, onCancel }: DetailsTabEditProps) {
   const { updateMemory } = useMemoryContext();
   const [tags, setTags] = useState(memory.tags);
   const [contentError, setContentError] = useState<string | null>(null);
@@ -90,7 +85,6 @@ export function DetailsTabEdit({
         throw new Error("Memory not found");
       }
 
-      onMemoryUpdate(updated);
       onCancel();
       toast.success("Memory updated successfully");
     } catch (err) {

@@ -15,16 +15,18 @@ import {
   formatFileSize,
   formatDate,
   formatItemCount,
+  fileCategoryForNode,
   getFileIcon,
   imageThumbnailUrl,
-  type FileItemChromeProps,
+  type FileNodeChromeProps,
 } from "./_utils";
-import { fileItemActions } from "./fileItemActions";
+import { fileNodeActions } from "./fileItemActions";
 import FileContextMenu from "./FileContextMenu";
 import MemoryIndexBadge from "./MemoryIndexBadge";
 
 export default function FileListRow({
-  item,
+  node,
+  childCount,
   isSelected,
   onClick,
   onCheckbox,
@@ -33,45 +35,46 @@ export default function FileListRow({
   onMoveTo,
   onRename,
   onDelete,
-}: FileItemChromeProps) {
-  const FileIcon = getFileIcon(item.fileCategory);
-  const isFolder = item.itemType === "folder";
-  const thumbnailUrl = imageThumbnailUrl(item);
-  const actions = fileItemActions(item, {
-    onOpen: () => onOpen(item),
-    onDownload: () => onDownload(item),
-    onMoveTo: () => onMoveTo(item),
-    onRename: () => onRename(item),
-    onDelete: () => onDelete(item),
+}: FileNodeChromeProps) {
+  const fileCategory = fileCategoryForNode(node);
+  const FileIcon = getFileIcon(fileCategory);
+  const isFolder = node.kind === "folder";
+  const thumbnailUrl = imageThumbnailUrl(node);
+  const actions = fileNodeActions(node, {
+    onOpen: () => onOpen(node),
+    onDownload: () => onDownload(node),
+    onMoveTo: () => onMoveTo(node),
+    onRename: () => onRename(node),
+    onDelete: () => onDelete(node),
   });
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
-      onClick(item.id, e);
+      onClick(node._id, e);
     },
-    [item.id, onClick],
+    [node._id, onClick],
   );
 
   const handleCheckboxClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      onCheckbox(item.id);
+      onCheckbox(node._id);
     },
-    [item.id, onCheckbox],
+    [node._id, onCheckbox],
   );
 
   const handleRowOpen = useCallback(() => {
-    onOpen(item);
-  }, [item, onOpen]);
+    onOpen(node);
+  }, [node, onOpen]);
 
   return (
     <FileContextMenu
-      item={item}
+      node={node}
       onOpen={handleRowOpen}
-      onDownload={() => onDownload(item)}
-      onMoveTo={() => onMoveTo(item)}
-      onRename={() => onRename(item)}
-      onDelete={() => onDelete(item)}
+      onDownload={() => onDownload(node)}
+      onMoveTo={() => onMoveTo(node)}
+      onRename={() => onRename(node)}
+      onDelete={() => onDelete(node)}
     >
       <tr
         className={cn(
@@ -93,7 +96,7 @@ export default function FileListRow({
               {thumbnailUrl ? (
                 <img
                   src={thumbnailUrl}
-                  alt={item.name}
+                  alt={node.name}
                   className="h-full w-full object-cover outline outline-1 -outline-offset-1 outline-separator"
                 />
               ) : (
@@ -101,23 +104,23 @@ export default function FileListRow({
               )}
             </div>
             <span className="text-sm font-medium text-foreground truncate">
-              {item.name}
+              {node.name}
             </span>
-            <MemoryIndexBadge item={item} />
+            <MemoryIndexBadge node={node} />
           </div>
         </td>
 
         <td className="hidden md:table-cell py-2 pr-3">
           <span className="text-sm text-muted tabular-nums">
             {isFolder
-              ? formatItemCount(item.itemCount ?? 0)
-              : formatFileSize(item.size)}
+              ? formatItemCount(childCount)
+              : formatFileSize(node.size ?? 0)}
           </span>
         </td>
 
         <td className="hidden md:table-cell py-2 pr-3">
           <span className="text-sm text-muted">
-            {formatDate(item.uploadedAt)}
+            {formatDate(node.createdAt)}
           </span>
         </td>
 

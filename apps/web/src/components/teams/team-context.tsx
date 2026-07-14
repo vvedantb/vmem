@@ -5,17 +5,9 @@ import type { api } from "@vmem/backend";
 export type TeamDetail = NonNullable<FunctionReturnType<typeof api.teams.get>>;
 export type TeamMember = TeamDetail["members"][number];
 
-type TeamWorkspaceState = {
+type TeamWorkspaceContextValue = {
   detail: TeamDetail;
-};
-
-type TeamWorkspaceMeta = {
-  isOwner: boolean;
-};
-
-export type TeamWorkspaceContextValue = {
-  state: TeamWorkspaceState;
-  meta: TeamWorkspaceMeta;
+  meta: { isOwner: boolean };
 };
 
 const TeamWorkspaceContext = createContext<TeamWorkspaceContextValue | null>(
@@ -30,7 +22,7 @@ export function TeamDetailProvider({
   children: ReactNode;
 }) {
   const value: TeamWorkspaceContextValue = {
-    state: { detail },
+    detail,
     meta: { isOwner: detail.role === "owner" },
   };
 
@@ -50,5 +42,5 @@ export function useTeamWorkspace(): TeamWorkspaceContextValue {
 }
 
 export function useTeamDetail(): TeamDetail {
-  return useTeamWorkspace().state.detail;
+  return useTeamWorkspace().detail;
 }

@@ -59,7 +59,6 @@ function formatMetaDate(dateString: string): string {
 interface MemoryDetailPanelProps {
   memory: Memory;
   onClose: () => void;
-  onMemoryUpdate: (memory: Memory) => void;
   onMemoryDelete: (id: string) => void;
   onSelectRelated: (memory: Memory) => void;
   // one-shot action to run when the panel opens (edit or delete confirm)
@@ -70,7 +69,6 @@ interface MemoryDetailPanelProps {
 export default function MemoryDetailPanel({
   memory,
   onClose,
-  onMemoryUpdate,
   onMemoryDelete,
   onSelectRelated,
   initialAction,
@@ -236,7 +234,6 @@ export default function MemoryDetailPanel({
               <DetailsTabEdit
                 key={memory.id}
                 memory={memory}
-                onMemoryUpdate={onMemoryUpdate}
                 onCancel={() => setIsEditing(false)}
               />
             ) : (
@@ -245,7 +242,7 @@ export default function MemoryDetailPanel({
           </TabsContent>
 
           <TabsContent value="history" className={TAB_PANEL_CLASS}>
-            <HistoryTab memoryId={memory.id} />
+            <HistoryTab key={memory.id} memoryId={memory.id} />
           </TabsContent>
 
           <TabsContent value="connections" className={TAB_PANEL_CLASS}>

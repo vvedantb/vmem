@@ -15,6 +15,7 @@ import {
 } from "@vmem/ui";
 import { IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
+import { patchSkillListMy } from "@/components/skills/_utils";
 
 interface EditSkillDialogProps {
   skill: Doc<"skills"> | undefined;
@@ -33,25 +34,10 @@ export function EditSkillDialog({
         teamId: skill?.teamId,
       });
       if (!current) return;
-      const now = Date.now();
       localStore.setQuery(
         api.skills.listMy,
         { teamId: skill?.teamId },
-        current.map((row) => {
-          if (row._id !== args.id) return row;
-          return {
-            ...row,
-            ...(args.name !== undefined ? { name: args.name.trim() } : {}),
-            ...(args.description !== undefined
-              ? { description: args.description }
-              : {}),
-            ...(args.instructions !== undefined
-              ? { instructions: args.instructions }
-              : {}),
-            ...(args.enabled !== undefined ? { enabled: args.enabled } : {}),
-            updatedAt: now,
-          };
-        }),
+        patchSkillListMy(current, args.id, args),
       );
     },
   );

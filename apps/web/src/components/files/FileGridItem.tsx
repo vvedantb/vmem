@@ -5,15 +5,17 @@ import { Checkbox, cn } from "@vmem/ui";
 import {
   formatFileSize,
   formatItemCount,
+  fileCategoryForNode,
   getFileIcon,
   imageThumbnailUrl,
-  type FileItemChromeProps,
+  type FileNodeChromeProps,
 } from "./_utils";
 import FileContextMenu from "./FileContextMenu";
 import MemoryIndexBadge from "./MemoryIndexBadge";
 
 export default function FileGridItem({
-  item,
+  node,
+  childCount,
   isSelected,
   onClick,
   onCheckbox,
@@ -22,38 +24,39 @@ export default function FileGridItem({
   onMoveTo,
   onRename,
   onDelete,
-}: FileItemChromeProps) {
-  const FileIcon = getFileIcon(item.fileCategory);
-  const isFolder = item.itemType === "folder";
-  const thumbnailUrl = imageThumbnailUrl(item);
+}: FileNodeChromeProps) {
+  const fileCategory = fileCategoryForNode(node);
+  const FileIcon = getFileIcon(fileCategory);
+  const isFolder = node.kind === "folder";
+  const thumbnailUrl = imageThumbnailUrl(node);
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
-      onClick(item.id, e);
+      onClick(node._id, e);
     },
-    [item.id, onClick],
+    [node._id, onClick],
   );
 
   const handleDoubleClick = useCallback(() => {
-    onOpen(item);
-  }, [item, onOpen]);
+    onOpen(node);
+  }, [node, onOpen]);
 
   const handleCheckboxClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      onCheckbox(item.id);
+      onCheckbox(node._id);
     },
-    [item.id, onCheckbox],
+    [node._id, onCheckbox],
   );
 
   return (
     <FileContextMenu
-      item={item}
-      onOpen={() => onOpen(item)}
-      onDownload={() => onDownload(item)}
-      onMoveTo={() => onMoveTo(item)}
-      onRename={() => onRename(item)}
-      onDelete={() => onDelete(item)}
+      node={node}
+      onOpen={() => onOpen(node)}
+      onDownload={() => onDownload(node)}
+      onMoveTo={() => onMoveTo(node)}
+      onRename={() => onRename(node)}
+      onDelete={() => onDelete(node)}
     >
       <div
         className={cn(
@@ -80,7 +83,7 @@ export default function FileGridItem({
           {thumbnailUrl ? (
             <img
               src={thumbnailUrl}
-              alt={item.name}
+              alt={node.name}
               className="h-full w-full object-cover outline outline-1 -outline-offset-1 outline-separator"
             />
           ) : (
@@ -94,18 +97,18 @@ export default function FileGridItem({
 
         <div className="w-full text-center min-w-0">
           <p className="text-sm font-medium text-foreground truncate">
-            {item.name}
+            {node.name}
           </p>
           {!isFolder && (
-            <p className="text-xs text-muted">{formatFileSize(item.size)}</p>
+            <p className="text-xs text-muted">
+              {formatFileSize(node.size ?? 0)}
+            </p>
           )}
           <div className="mt-1 flex justify-center">
-            <MemoryIndexBadge item={item} />
+            <MemoryIndexBadge node={node} />
           </div>
-          {isFolder && item.itemCount !== undefined && (
-            <p className="text-xs text-muted">
-              {formatItemCount(item.itemCount)}
-            </p>
+          {isFolder && (
+            <p className="text-xs text-muted">{formatItemCount(childCount)}</p>
           )}
         </div>
       </div>

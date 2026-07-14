@@ -1,6 +1,6 @@
 "use client";
 
-// app-wide memory data facade for chat, extension flows, and legacy views
+// app-wide memory data facade for chat, extension flows, and list views
 
 import { createContext, useCallback, use, useMemo } from "react";
 import {
@@ -83,9 +83,10 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
     enabled: isAuthenticated && activeProfileId !== undefined,
   });
 
-  // shared invalidator for paginated + recent memory caches
+  // shared invalidator for paginated, recent, and detail memory caches
   const invalidateMemories = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: ["memories"] });
+    void queryClient.invalidateQueries({ queryKey: ["memory"] });
   }, [queryClient]);
 
   const createMutation = useMutation({

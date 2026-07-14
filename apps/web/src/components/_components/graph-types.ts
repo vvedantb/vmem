@@ -1,4 +1,9 @@
-import type { GraphEdgeType } from "./canvas/types";
+import type { GraphEdgeType, GraphNode } from "./canvas/types";
+
+export type GraphDetailNode = Pick<
+  GraphNode,
+  "id" | "title" | "content" | "tags" | "createdAt"
+>;
 
 export interface HoveredNodeInfo {
   id: string;

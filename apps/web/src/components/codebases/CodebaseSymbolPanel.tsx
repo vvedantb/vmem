@@ -20,12 +20,8 @@ import {
 } from "@tabler/icons-react";
 import { Badge, Button } from "@vmem/ui";
 import { AnimatePresence, motion } from "motion/react";
-import type { api } from "@vmem/backend";
-import type { FunctionReturnType } from "convex/server";
-import {
-  useSymbolContext,
-  type CodeNodeKind,
-} from "@/hooks/useCodebaseGraphData";
+import type { CodebaseSymbolContext, CodeNodeKind } from "./-types";
+import { useSymbolContext } from "@/hooks/useCodebaseGraphData";
 
 interface CodebaseSymbolPanelProps {
   codebaseId: string;
@@ -236,9 +232,6 @@ export function CodebaseSymbolPanel({
   );
 }
 
-type CodebaseSymbolContext = NonNullable<
-  FunctionReturnType<typeof api.codebaseSymbols.getContext>
->;
 type SymbolNeighbour = CodebaseSymbolContext["callsIn"][number];
 
 function SymbolTraitBadges({ context }: { context: CodebaseSymbolContext }) {

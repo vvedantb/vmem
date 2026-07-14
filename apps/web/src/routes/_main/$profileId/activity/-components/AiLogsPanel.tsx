@@ -29,7 +29,7 @@ import { LogsFiltersDropdown } from "./LogsFiltersDropdown";
 import { LogsTable } from "./LogsTable";
 import { computeAiLogsTrends } from "./_aiLogsUtils";
 import { AiLogsLoadingSkeleton } from "./AiLogsLoadingSkeleton";
-import type { ProfileListItem } from "./-types";
+import type { ProfileListItem, TeamListItem } from "./-types";
 
 const PAGE_SIZE = 50;
 
@@ -184,17 +184,12 @@ export function AiLogsRightSection() {
     });
   };
 
-  const teamOptions = (teams ?? []).map((t) => ({
-    _id: t.team._id,
-    name: t.team.name,
-  }));
-
   return (
     <div className="flex items-center gap-2">
       <LogsFiltersDropdown
         scope={scope}
         teamId={teamIdParam}
-        teams={teamOptions}
+        teams={teams ?? []}
         onScopeChange={(scope, nextTeamId) =>
           setParams({ scope, teamId: nextTeamId ?? "" })
         }
@@ -203,11 +198,7 @@ export function AiLogsRightSection() {
         models={params.models}
         availableModels={availableModels}
         profileId={params.profileId}
-        profiles={profiles?.map((p) => ({
-          _id: p._id,
-          name: p.name,
-          color: p.color,
-        }))}
+        profiles={profiles}
         onRangeChange={(range: Range) => setParams({ range })}
         onFeaturesChange={(features: Feature[]) => setParams({ features })}
         onModelsChange={(models) => setParams({ models })}
@@ -264,7 +255,7 @@ function SortDropdown({
 // known set, so we never push a malformed id to the backend
 function normalizeTeamId(
   raw: string,
-  teams: { team: { _id: Id<"teams"> } }[] | undefined,
+  teams: TeamListItem[] | undefined,
 ): Id<"teams"> | undefined {
   if (!teams) return undefined;
   const match = teams.find((t) => t.team._id === raw);
@@ -273,7 +264,7 @@ function normalizeTeamId(
 
 function normalizeProfileId(
   raw: string,
-  profiles: { _id: Id<"profiles"> }[] | undefined,
+  profiles: ProfileListItem[] | undefined,
 ): Id<"profiles"> | undefined {
   if (!profiles) return undefined;
   const match = profiles.find((p) => p._id === raw);

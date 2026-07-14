@@ -1,13 +1,13 @@
 "use client";
 
 import { Link } from "@tanstack/react-router";
-import type { Doc } from "@vmem/backend";
+import type { WikiListNode, WikiNodeDoc } from "./-types";
 import { Breadcrumb, BreadcrumbLink, BreadcrumbPage, Input } from "@vmem/ui";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 
 interface WikiPageBreadcrumbProps {
-  ancestors: Array<Doc<"wikiNodes">>;
-  doc: Doc<"wikiNodes">;
+  ancestors: Array<WikiListNode>;
+  doc: WikiNodeDoc;
   onTitleChange: (value: string) => void;
   onTitleCommit: () => void;
 }

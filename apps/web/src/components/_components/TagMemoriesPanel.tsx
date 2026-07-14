@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Button, Card } from "@vmem/ui";
 import { IconMoodEmpty, IconX } from "@tabler/icons-react";
 import { Virtuoso } from "react-virtuoso";
@@ -77,11 +77,6 @@ export function TagMemoriesPanel({
     null,
   );
 
-  useEffect(() => {
-    setSelectedMemoryId(null);
-    setPanelAction(null);
-  }, [tag]);
-
   const sortedMemories = useMemo(
     () => [...memories].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     [memories],
@@ -102,10 +97,6 @@ export function TagMemoriesPanel({
       sortedMemories.find((memory) => memory.id === selectedMemoryId) ?? null
     );
   }, [sortedMemories, selectedMemoryId]);
-
-  const handleMemoryUpdate = useCallback((updatedMemory: Memory) => {
-    setSelectedMemoryId(updatedMemory.id);
-  }, []);
 
   const handleMemoryDelete = useCallback(
     (deletedId: string) => {
@@ -147,7 +138,6 @@ export function TagMemoriesPanel({
         key={selectedMemory.id}
         memory={selectedMemory}
         onClose={() => setSelectedMemoryId(null)}
-        onMemoryUpdate={handleMemoryUpdate}
         onMemoryDelete={handleMemoryDelete}
         onSelectRelated={(memory) => setSelectedMemoryId(memory.id)}
         initialAction={panelAction ?? undefined}

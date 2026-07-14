@@ -3,7 +3,6 @@
 import { useEffect, useRef, type RefObject } from "react";
 import { Button, cn } from "@vmem/ui";
 import type { OutlineHeading } from "./_utils";
-import { useWikiSidebar } from "./WikiSidebarContext";
 
 interface WikiOutlineProps {
   headings: OutlineHeading[];
@@ -74,7 +73,6 @@ export default function WikiOutline({
   activeHeadingId,
   onJump,
 }: WikiOutlineProps) {
-  const { hasDoc } = useWikiSidebar();
   const activeRef = useRef<HTMLButtonElement | null>(null);
 
   // keep the active row in view as the reader scrolls the document
@@ -82,10 +80,6 @@ export default function WikiOutline({
     if (!activeHeadingId) return;
     activeRef.current?.scrollIntoView({ block: "nearest" });
   }, [activeHeadingId]);
-
-  if (!hasDoc) {
-    return <p className="px-2 py-3 text-xs text-muted">No document open.</p>;
-  }
 
   if (headings.length === 0) {
     return (

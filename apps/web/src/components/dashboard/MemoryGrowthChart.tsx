@@ -6,6 +6,10 @@ import type { FunctionReturnType } from "convex/server";
 import { api } from "@vmem/backend";
 import { Card, CardContent } from "@vmem/ui";
 
+type GrowthData = FunctionReturnType<
+  typeof api.dashboardApi.getStats
+>["growthData"];
+
 const CHART_HEIGHT = 180;
 
 const CHART_GRID_LINES = (
@@ -29,11 +33,7 @@ const CHART_LEGEND = (
   </div>
 );
 
-function maxGrowthTotal(
-  growthData: FunctionReturnType<
-    typeof api.dashboardApi.getStats
-  >["growthData"],
-): number {
+function maxGrowthTotal(growthData: GrowthData): number {
   let maxTotal = 1;
   for (const day of growthData) {
     if (day.total > maxTotal) maxTotal = day.total;
@@ -41,13 +41,7 @@ function maxGrowthTotal(
   return maxTotal;
 }
 
-export function MemoryGrowthChart({
-  growthData,
-}: {
-  growthData: FunctionReturnType<
-    typeof api.dashboardApi.getStats
-  >["growthData"];
-}) {
+export function MemoryGrowthChart({ growthData }: { growthData: GrowthData }) {
   if (growthData.length === 0) {
     return (
       <motion.div

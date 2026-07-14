@@ -27,7 +27,7 @@ import {
 import HeaderSearchInput from "@/components/_components/HeaderSearchInput";
 import { DirectoryFilter } from "./DirectoryFilter";
 import type { CodebaseGraphController } from "@/hooks/useCodebaseGraphController";
-import type { CodeNode, CodeNodeKind } from "@/hooks/useCodebaseGraphData";
+import type { CodeNode, CodeNodeKind } from "./-types";
 
 interface CodebaseGraphHeaderControlsProps {
   controller: CodebaseGraphController;

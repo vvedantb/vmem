@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Doc, Id } from "@vmem/backend";
+import type { WikiListNode, WikiNodeId } from "./-types";
 import {
   Button,
   Dialog,
@@ -13,15 +13,15 @@ import {
 } from "@vmem/ui";
 
 interface RenameDialogProps {
-  target: Doc<"wikiNodes"> | null;
+  target: WikiListNode | null;
   onClose: () => void;
-  onConfirm: (id: Id<"wikiNodes">, title: string) => Promise<void>;
+  onConfirm: (id: WikiNodeId, title: string) => Promise<void>;
 }
 
 interface RenameDialogFormProps {
-  target: Doc<"wikiNodes">;
+  target: WikiListNode;
   onClose: () => void;
-  onConfirm: (id: Id<"wikiNodes">, title: string) => Promise<void>;
+  onConfirm: (id: WikiNodeId, title: string) => Promise<void>;
 }
 
 function RenameDialogForm({

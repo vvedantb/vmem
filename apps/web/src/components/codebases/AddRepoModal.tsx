@@ -18,10 +18,8 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { sidebarSearchInputClassName } from "@/components/sidebar/sidebar-search-input";
 import { GitHubIcon } from "@/components/brand-icons";
-import {
-  AddRepoModalRow,
-  type AddRepoModalRepo,
-} from "./_components/AddRepoModalRow";
+import { AddRepoModalRow } from "./_components/AddRepoModalRow";
+import type { AddRepoModalRepo } from "./-types";
 import { optimisticId } from "@/lib/optimisticId";
 import { useActiveTeamId } from "@/components/workspace/active-profile";
 

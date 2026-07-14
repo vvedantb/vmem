@@ -1,9 +1,11 @@
 import type { FunctionReturnType } from "convex/server";
 import type { api } from "@vmem/backend";
 
-export type ApiRequestEntry = FunctionReturnType<
+export type ApiRequestEntries = FunctionReturnType<
   typeof api.auditLog.listMyApiRequestEntries
->[number];
+>;
+
+export type ApiRequestEntry = ApiRequestEntries[number];
 
 export interface ApiUsageTrends {
   requests: number[];
@@ -33,7 +35,7 @@ export function isSuccessStatus(status: number): boolean {
 
 // aggregate request volume, success rate, latency, and 7-day trends
 export function computeApiUsageMetrics(
-  entries: ApiRequestEntry[],
+  entries: ApiRequestEntries,
 ): ApiUsageMetrics {
   let successCount = 0;
   let totalDuration = 0;
@@ -54,7 +56,7 @@ export function computeApiUsageMetrics(
   };
 }
 
-function buildDailyTrends(entries: ApiRequestEntry[]): ApiUsageTrends {
+function buildDailyTrends(entries: ApiRequestEntries): ApiUsageTrends {
   const todayStart = startOfLocalDay(Date.now());
   const dayStarts = Array.from(
     { length: TREND_DAY_COUNT },
@@ -101,9 +103,9 @@ export function hasTrendActivity(trend: number[]): boolean {
 }
 
 export function prepareTableEntries(
-  entries: ApiRequestEntry[],
+  entries: ApiRequestEntries,
   limit: number,
-): ApiRequestEntry[] {
+): ApiRequestEntries {
   return [...entries]
     .sort((a, b) => b.originalTimestamp - a.originalTimestamp)
     .slice(0, limit);

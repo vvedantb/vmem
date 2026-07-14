@@ -1,9 +1,10 @@
 import { Breadcrumb, BreadcrumbLink, BreadcrumbPage, Button } from "@vmem/ui";
+import type { Id } from "@vmem/backend";
 import type { FolderBreadcrumb } from "./-types";
 
 interface BreadcrumbNavProps {
   breadcrumbs: FolderBreadcrumb[];
-  onNavigate: (folderId: string | null) => void;
+  onNavigate: (folderId: Id<"fileNodes"> | null) => void;
 }
 
 // files page breadcrumb

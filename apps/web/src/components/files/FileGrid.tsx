@@ -1,27 +1,30 @@
-import type { FileItem } from "./-types";
+import type { Id } from "@vmem/backend";
+import type { FileTreeNode } from "./-types";
 import FileGridItem from "./FileGridItem";
 import { InlineNewFolderGrid } from "./InlineNewFolder";
 
 interface FileGridProps {
-  items: FileItem[];
+  items: FileTreeNode[];
+  childCounts: Map<Id<"fileNodes">, number>;
   isCreatingFolder: boolean;
-  isSelected: (id: string) => boolean;
+  isSelected: (id: Id<"fileNodes">) => boolean;
   onClick: (
-    id: string,
+    id: Id<"fileNodes">,
     e: { ctrlKey: boolean; metaKey: boolean; shiftKey: boolean },
   ) => void;
-  onCheckbox: (id: string) => void;
-  onOpen: (item: FileItem) => void;
-  onDownload: (item: FileItem) => void;
-  onMoveTo: (item: FileItem) => void;
-  onRename: (item: FileItem) => void;
-  onDelete: (item: FileItem) => void;
+  onCheckbox: (id: Id<"fileNodes">) => void;
+  onOpen: (node: FileTreeNode) => void;
+  onDownload: (node: FileTreeNode) => void;
+  onMoveTo: (node: FileTreeNode) => void;
+  onRename: (node: FileTreeNode) => void;
+  onDelete: (node: FileTreeNode) => void;
   onNewFolderConfirm: (name: string) => void;
   onNewFolderCancel: () => void;
 }
 
 export default function FileGrid({
   items,
+  childCounts,
   isCreatingFolder,
   isSelected,
   onClick,
@@ -42,11 +45,12 @@ export default function FileGrid({
           onCancel={onNewFolderCancel}
         />
       ) : null}
-      {items.map((item) => (
+      {items.map((node) => (
         <FileGridItem
-          key={item.id}
-          item={item}
-          isSelected={isSelected(item.id)}
+          key={node._id}
+          node={node}
+          childCount={childCounts.get(node._id) ?? 0}
+          isSelected={isSelected(node._id)}
           onClick={onClick}
           onCheckbox={onCheckbox}
           onOpen={onOpen}

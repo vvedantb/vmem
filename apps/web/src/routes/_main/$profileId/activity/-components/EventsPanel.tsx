@@ -1,7 +1,6 @@
 import { useState, useEffect, type ReactNode } from "react";
 import { useQueryStates } from "nuqs";
 import { useConvexAuth, useAction } from "convex/react";
-import type { FunctionReturnType } from "convex/server";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 import {
   Button,
@@ -55,10 +54,7 @@ import {
   type EventDatePreset,
   type SortDirection,
 } from "../-searchParams";
-
-type ActivityItem = FunctionReturnType<
-  typeof api.dashboardApi.getRecentActivity
->[number];
+import type { ActivityItem } from "./-types";
 
 const EVENT_TYPE_ICONS: Record<EventType, TablerIcon> = {
   memory_created: IconBrain,

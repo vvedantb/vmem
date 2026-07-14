@@ -1,5 +1,4 @@
 import { useQuery } from "convex/react";
-import type { FunctionReturnType } from "convex/server";
 import {
   Button,
   Table,
@@ -19,10 +18,9 @@ import { RevokeKeyDialog } from "@/components/api-keys/RevokeKeyDialog";
 import { DeleteKeyDialog } from "@/components/api-keys/DeleteKeyDialog";
 import { EditKeyDialog } from "@/components/api-keys/EditKeyDialog";
 import { useApiKeyActions } from "@/components/api-keys/useApiKeyActions";
+import type { ApiKey } from "@/components/api-keys/types";
 import { api } from "@vmem/backend";
 import { useApiCreateKeyModal } from "./ApiCreateKeyContext";
-
-type ApiKey = FunctionReturnType<typeof api.apiKeys.listMy>[number];
 
 // keys panel for `/settings/api`
 export function KeysPanel() {

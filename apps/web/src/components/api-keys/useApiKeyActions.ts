@@ -4,31 +4,21 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useMutation, useAction } from "convex/react";
 import { toast } from "sonner";
 import { api } from "@vmem/backend";
+import { patchApiKeyInList, removeApiKeyFromList } from "./_optimistic";
 import type { ApiKey } from "./types";
 
 export function useApiKeyActions() {
   const revokeApiKey = useMutation(api.apiKeys.revokeMy).withOptimisticUpdate(
     (localStore, args) => {
-      const list = localStore.getQuery(api.apiKeys.listMy, {});
-      if (!list) return;
-      localStore.setQuery(
-        api.apiKeys.listMy,
-        {},
-        list.map((row) =>
-          row.id === args.id ? { ...row, status: "revoked" } : row,
-        ),
-      );
+      patchApiKeyInList(localStore, args.id, (row) => ({
+        ...row,
+        status: "revoked",
+      }));
     },
   );
   const deleteApiKey = useMutation(api.apiKeys.deleteMy).withOptimisticUpdate(
     (localStore, args) => {
-      const list = localStore.getQuery(api.apiKeys.listMy, {});
-      if (!list) return;
-      localStore.setQuery(
-        api.apiKeys.listMy,
-        {},
-        list.filter((row) => row.id !== args.id),
-      );
+      removeApiKeyFromList(localStore, args.id);
     },
   );
   const revealApiKey = useAction(api.apiKeys.revealMy);

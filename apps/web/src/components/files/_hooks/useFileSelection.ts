@@ -1,15 +1,16 @@
 import { useReducer, useCallback } from "react";
+import type { Id } from "@vmem/backend";
 
 interface SelectionState {
-  selectedIds: Set<string>;
-  lastSelectedId: string | null;
+  selectedIds: Set<Id<"fileNodes">>;
+  lastSelectedId: Id<"fileNodes"> | null;
 }
 
 type SelectionAction =
-  | { type: "select"; id: string }
-  | { type: "toggle"; id: string }
-  | { type: "range"; id: string; orderedIds: string[] }
-  | { type: "selectAll"; ids: string[] }
+  | { type: "select"; id: Id<"fileNodes"> }
+  | { type: "toggle"; id: Id<"fileNodes"> }
+  | { type: "range"; id: Id<"fileNodes">; orderedIds: Array<Id<"fileNodes">> }
+  | { type: "selectAll"; ids: Array<Id<"fileNodes">> }
   | { type: "clear" };
 
 function selectionReducer(
@@ -69,12 +70,12 @@ const initialState: SelectionState = {
   lastSelectedId: null,
 };
 
-export function useFileSelection(orderedIds: string[]) {
+export function useFileSelection(orderedIds: Array<Id<"fileNodes">>) {
   const [state, dispatch] = useReducer(selectionReducer, initialState);
 
   const handleClick = useCallback(
     (
-      id: string,
+      id: Id<"fileNodes">,
       e: { ctrlKey: boolean; metaKey: boolean; shiftKey: boolean },
     ) => {
       if (e.shiftKey) {
@@ -88,7 +89,7 @@ export function useFileSelection(orderedIds: string[]) {
     [orderedIds],
   );
 
-  const handleCheckbox = useCallback((id: string) => {
+  const handleCheckbox = useCallback((id: Id<"fileNodes">) => {
     dispatch({ type: "toggle", id });
   }, []);
 
@@ -105,7 +106,7 @@ export function useFileSelection(orderedIds: string[]) {
   }, []);
 
   const isSelected = useCallback(
-    (id: string) => state.selectedIds.has(id),
+    (id: Id<"fileNodes">) => state.selectedIds.has(id),
     [state.selectedIds],
   );
 

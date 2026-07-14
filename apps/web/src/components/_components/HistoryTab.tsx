@@ -145,10 +145,6 @@ export default function HistoryTab({ memoryId }: HistoryTabProps) {
   const { versions, isEmpty, totalVersions } = useVersionChain(events);
   const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
 
-  useEffect(() => {
-    setSelectedVersion(null);
-  }, [memoryId]);
-
   const currentSelected = selectedVersion ?? totalVersions;
 
   const selectedEntry = useMemo(

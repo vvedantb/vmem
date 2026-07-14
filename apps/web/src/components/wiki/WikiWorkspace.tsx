@@ -186,7 +186,6 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
     setHistoryVisible,
     wordCount,
     setWordCount,
-    setHasDoc,
   } = useWikiSidebar();
 
   const [headings, setHeadings] = useState<OutlineHeading[]>([]);
@@ -268,19 +267,11 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
   }, []);
 
   useEffect(() => {
-    setHasDoc(hasDoc);
     if (hasDocId) return;
     setOutlineVisible(false);
     setHistoryVisible(false);
     setWordCount(0);
-  }, [
-    hasDoc,
-    hasDocId,
-    setHasDoc,
-    setOutlineVisible,
-    setHistoryVisible,
-    setWordCount,
-  ]);
+  }, [hasDocId, setOutlineVisible, setHistoryVisible, setWordCount]);
 
   return (
     <PageContainer

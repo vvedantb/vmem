@@ -50,6 +50,7 @@ import {
   type Range,
   type Scope,
 } from "../-searchParams";
+import type { ProfileListItem, TeamListItem } from "./-types";
 
 // filters dropdown for `/ai-logs`
 const RANGE_OPTIONS: Range[] = ["today", "7d", "30d", "all"];
@@ -94,20 +95,14 @@ function FilterOptionContent({
 interface LogsFiltersDropdownProps {
   scope: Scope;
   teamId: string;
-  teams: readonly { _id: string; name: string }[];
+  teams: readonly TeamListItem[];
   onScopeChange: (scope: Scope, teamId: string | null) => void;
   range: Range;
   features: readonly Feature[];
   models: readonly string[];
   availableModels: readonly string[];
   profileId: string;
-  profiles:
-    | readonly {
-        _id: string;
-        name: string;
-        color?: string | null | undefined;
-      }[]
-    | undefined;
+  profiles: readonly ProfileListItem[] | undefined;
   onRangeChange: (range: Range) => void;
   onFeaturesChange: (features: Feature[]) => void;
   onModelsChange: (models: string[]) => void;
@@ -190,9 +185,12 @@ export function LogsFiltersDropdown({
                   </FilterOptionContent>
                 </DropdownMenuRadioItem>
                 {teams.map((t) => (
-                  <DropdownMenuRadioItem key={t._id} value={`team:${t._id}`}>
+                  <DropdownMenuRadioItem
+                    key={t.team._id}
+                    value={`team:${t.team._id}`}
+                  >
                     <FilterOptionContent icon={<IconUsers size={16} />}>
-                      {t.name}
+                      {t.team.name}
                     </FilterOptionContent>
                   </DropdownMenuRadioItem>
                 ))}

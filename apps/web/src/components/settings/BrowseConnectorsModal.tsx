@@ -10,10 +10,11 @@ import {
   DialogTitle,
   Button,
 } from "@vmem/ui";
-import { api, type Doc } from "@vmem/backend";
+import { api } from "@vmem/backend";
 import {
   isConnectorConnected,
   isConnectorConnectable,
+  type Connector,
   type GitHubConnection,
 } from "./connector-utils";
 import OAuthModal from "@/components/OAuthModal";
@@ -39,36 +40,14 @@ function connectorIcon(
   return connectorIcons.get(iconName) ?? GoogleDriveIcon;
 }
 
-function GitHubConnectorConnectAction({
-  connection,
-}: {
-  connection: GitHubConnection | undefined;
-}) {
-  return <GitHubConnectorControls connection={connection} />;
-}
-
-function OAuthConnectorConnectAction({
-  connector,
-  onConnect,
-}: {
-  connector: Doc<"connectors">;
-  onConnect: (connector: Doc<"connectors">) => void;
-}) {
-  return (
-    <Button size="sm" variant="secondary" onClick={() => onConnect(connector)}>
-      Connect
-    </Button>
-  );
-}
-
 function ConnectorRow({
   connector,
   githubConnection,
   onConnect,
 }: {
-  connector: Doc<"connectors">;
+  connector: Connector;
   githubConnection: GitHubConnection | undefined;
-  onConnect: (connector: Doc<"connectors">) => void;
+  onConnect: (connector: Connector) => void;
 }) {
   const Icon = connectorIcon(connector.icon);
 
@@ -83,12 +62,15 @@ function ConnectorRow({
       </div>
       <div className="flex-shrink-0">
         {connector.name === "GitHub" ? (
-          <GitHubConnectorConnectAction connection={githubConnection} />
+          <GitHubConnectorControls connection={githubConnection} />
         ) : (
-          <OAuthConnectorConnectAction
-            connector={connector}
-            onConnect={onConnect}
-          />
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => onConnect(connector)}
+          >
+            Connect
+          </Button>
         )}
       </div>
     </div>
@@ -98,7 +80,7 @@ function ConnectorRow({
 interface BrowseConnectorsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  connectors: Doc<"connectors">[];
+  connectors: Connector[];
 }
 
 export default function BrowseConnectorsModal({
@@ -106,8 +88,7 @@ export default function BrowseConnectorsModal({
   onClose,
   connectors,
 }: BrowseConnectorsModalProps) {
-  const [oauthConnector, setOauthConnector] =
-    useState<Doc<"connectors"> | null>(null);
+  const [oauthConnector, setOauthConnector] = useState<Connector | null>(null);
 
   const githubConnection = useQuery(api.github.getConnection);
 
@@ -119,7 +100,7 @@ export default function BrowseConnectorsModal({
     )
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  const handleConnect = (connector: Doc<"connectors">) => {
+  const handleConnect = (connector: Connector) => {
     setOauthConnector(connector);
   };
 

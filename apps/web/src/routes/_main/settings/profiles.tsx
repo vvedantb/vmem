@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useAction } from "convex/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   Button,
@@ -377,8 +377,35 @@ function ProfilesPage() {
   const removeProfileWithMemories = useAction(api.profiles.removeWithMemories);
 
   const [createOpen, setCreateOpen] = useState(false);
-  const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
-  const [deletingProfile, setDeletingProfile] = useState<Profile | null>(null);
+  const [editingProfileId, setEditingProfileId] =
+    useState<Id<"profiles"> | null>(null);
+  const [deletingProfileId, setDeletingProfileId] =
+    useState<Id<"profiles"> | null>(null);
+
+  const editingProfile =
+    editingProfileId !== null && profiles !== undefined
+      ? profiles.find((profile) => profile._id === editingProfileId)
+      : undefined;
+  const deletingProfile =
+    deletingProfileId !== null && profiles !== undefined
+      ? profiles.find((profile) => profile._id === deletingProfileId)
+      : undefined;
+
+  useEffect(() => {
+    if (!profiles) return;
+    if (
+      editingProfileId !== null &&
+      !profiles.some((profile) => profile._id === editingProfileId)
+    ) {
+      setEditingProfileId(null);
+    }
+    if (
+      deletingProfileId !== null &&
+      !profiles.some((profile) => profile._id === deletingProfileId)
+    ) {
+      setDeletingProfileId(null);
+    }
+  }, [profiles, editingProfileId, deletingProfileId]);
 
   if (profiles === undefined) {
     return (
@@ -393,16 +420,6 @@ function ProfilesPage() {
 
   const handleCreate = async (data: Parameters<typeof createProfile>[0]) => {
     await createProfile(data);
-  };
-
-  const handleEdit = async (
-    data: Omit<Parameters<typeof updateProfile>[0], "profileId">,
-  ) => {
-    if (!editingProfile) return;
-    await updateProfile({
-      profileId: editingProfile._id,
-      ...data,
-    });
   };
 
   const handleDelete = async (moveToProfileId: Id<"profiles"> | null) => {
@@ -434,8 +451,8 @@ function ProfilesPage() {
             <ProfileCard
               key={profile._id}
               profile={profile}
-              onEdit={() => setEditingProfile(profile)}
-              onDelete={() => setDeletingProfile(profile)}
+              onEdit={() => setEditingProfileId(profile._id)}
+              onDelete={() => setDeletingProfileId(profile._id)}
             />
           ))}
         </div>
@@ -451,8 +468,7 @@ function ProfilesPage() {
           <CreateEditProfileDialog
             profile={editingProfile}
             open={!!editingProfile}
-            onOpenChange={(open) => !open && setEditingProfile(null)}
-            onSave={handleEdit}
+            onOpenChange={(open) => !open && setEditingProfileId(null)}
             onFieldUpdate={(patch) => {
               void updateProfile({
                 profileId: editingProfile._id,
@@ -473,7 +489,7 @@ function ProfilesPage() {
             profile={deletingProfile}
             profiles={profiles}
             open={!!deletingProfile}
-            onOpenChange={(open) => !open && setDeletingProfile(null)}
+            onOpenChange={(open) => !open && setDeletingProfileId(null)}
             onDelete={handleDelete}
           />
         )}

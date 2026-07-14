@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useAction } from "convex/react";
+import { useAction, useMutation } from "convex/react";
 import { api, type Id } from "@vmem/backend";
 import { toast } from "sonner";
 import DestructiveConfirmDialog from "./DestructiveConfirmDialog";
+import { optimisticallyDisconnectConnector } from "./_optimisticConnectors";
 
 interface DisconnectConnectorDialogProps {
   open: boolean;
@@ -19,13 +20,21 @@ export default function DisconnectConnectorDialog({
   connectorId,
   connectorName,
 }: DisconnectConnectorDialogProps) {
-  const disconnect = useAction(api.connectors.oauth.disconnect);
+  const disconnectOAuth = useAction(api.connectors.oauth.disconnect);
+  const markDisconnected = useMutation(
+    api.connectors.crud.disconnect,
+  ).withOptimisticUpdate((localStore, args) => {
+    optimisticallyDisconnectConnector(localStore, args.id);
+  });
   const [submitting, setSubmitting] = useState(false);
 
   const handleConfirm = async () => {
     setSubmitting(true);
     try {
-      await disconnect({ connectorId });
+      await Promise.all([
+        markDisconnected({ id: connectorId }),
+        disconnectOAuth({ connectorId }),
+      ]);
       toast(`Disconnected from ${connectorName}`);
       onClose();
     } catch {
