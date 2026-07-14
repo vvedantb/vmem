@@ -21,6 +21,7 @@ import {
 import { toast } from "sonner";
 import { api } from "@vmem/backend";
 import type { Memory, MemoryType } from "@/lib/memories";
+import { formatMemoryTypeLabel } from "@/lib/memories";
 import LinkMemoryModal from "@/components/LinkMemoryModal";
 import { DetailEmptyState } from "./detail-panel/DetailEmptyState";
 import { VmemSpinner } from "@/components/svg-animations";
@@ -113,12 +114,10 @@ export default function RelatedMemories({
   );
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <h4 className="text-[11px] font-medium uppercase tracking-wide text-muted">
-            Related memories
-          </h4>
+    <div className="min-w-0 space-y-4 overflow-x-hidden">
+      <div className="flex min-w-0 items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <h4 className="text-xs font-medium text-muted">Related memories</h4>
           {entries.length > 0 ? (
             <Badge variant="secondary" className="text-xs tabular-nums">
               {entries.length}
@@ -129,7 +128,7 @@ export default function RelatedMemories({
           variant="outline"
           size="sm"
           onClick={() => setLinkModalOpen(true)}
-          className="h-8 gap-1.5"
+          className="h-8 shrink-0 gap-1.5"
         >
           <IconLink size={14} />
           Link memory
@@ -153,15 +152,14 @@ export default function RelatedMemories({
           }
         />
       ) : (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-0.5">
           {entries.map((entry) => (
             <div
               key={entry.memory.id}
-              className="flex items-start gap-2 rounded-lg bg-surface-secondary p-3 transition-[background-color] hover:bg-surface-tertiary"
+              className="flex min-w-0 items-start gap-1 rounded-lg px-2 py-2.5 transition-[background-color] hover:bg-surface-tertiary"
             >
-              <Button
+              <button
                 type="button"
-                variant="ghost"
                 onClick={() =>
                   onSelectRelated({
                     id: entry.memory.id,
@@ -175,18 +173,31 @@ export default function RelatedMemories({
                     createdAt: entry.memory.createdAt,
                   })
                 }
-                className="h-auto min-w-0 flex-1 justify-start p-0 text-left font-normal hover:bg-transparent active:scale-100"
+                className="flex min-w-0 flex-1 flex-col items-start gap-2 overflow-hidden rounded-none border-0 bg-transparent p-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
               >
-                <p className="truncate text-sm font-medium text-foreground">
-                  {entry.memory.title}
-                </p>
-                <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted">
-                  {entry.memory.content}
-                </p>
-                <Badge variant="secondary" className="mt-2 text-[10px]">
-                  {entry.reason}
-                </Badge>
-              </Button>
+                <div className="min-w-0 w-full overflow-hidden">
+                  <p className="truncate text-sm font-medium text-foreground">
+                    {entry.memory.title}
+                  </p>
+                  <p className="mt-0.5 line-clamp-1 break-all text-xs leading-relaxed text-muted">
+                    {entry.memory.content}
+                  </p>
+                </div>
+                <div className="flex w-full min-w-0 flex-wrap items-center justify-start gap-1.5">
+                  <Badge
+                    variant="secondary"
+                    className="h-5 max-w-full truncate text-[10px]"
+                  >
+                    {entry.reason}
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className="h-5 shrink-0 text-[10px] font-normal"
+                  >
+                    {formatMemoryTypeLabel(toMemoryType(entry.memory.type))}
+                  </Badge>
+                </div>
+              </button>
               <Button
                 variant="ghost"
                 size="icon-sm"

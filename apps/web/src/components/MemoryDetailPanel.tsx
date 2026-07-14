@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { useAction } from "convex/react";
 import {
   Dialog,
   DialogContent,
@@ -8,21 +9,56 @@ import {
   DialogTitle,
   DialogFooter,
   Button,
-  Card,
+  Badge,
   Tabs,
   TabsList,
   TabsTrigger,
   TabsContent,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@vmem/ui";
-import { IconLoader2, IconTrash, IconX } from "@tabler/icons-react";
+import {
+  IconLoader2,
+  IconTrash,
+  IconX,
+  IconDots,
+  IconPencil,
+} from "@tabler/icons-react";
+import { api } from "@vmem/backend";
 import type { Memory } from "@/lib/memories";
+import { formatMemoryTypeLabel } from "@/lib/memories";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { toast } from "sonner";
 import DetailsTab from "./_components/DetailsTab";
 import HistoryTab from "./_components/HistoryTab";
 import ConnectionsTab from "./_components/ConnectionsTab";
+import { MemorySourceLabel } from "./_components/MemorySourceLabel";
 
 type PanelTab = "details" | "history" | "connections";
+
+interface RelatedMemoryEntry {
+  memory: { id: string };
+}
+
+function formatMetaDate(dateString: string): string {
+  return new Date(dateString).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function countUniqueRelated(entries: RelatedMemoryEntry[]): number {
+  const seen = new Set<string>();
+  return entries.filter((entry) => {
+    if (seen.has(entry.memory.id)) return false;
+    seen.add(entry.memory.id);
+    return true;
+  }).length;
+}
 
 interface MemoryDetailPanelProps {
   memory: Memory;
@@ -45,10 +81,57 @@ export default function MemoryDetailPanel({
   onConsumeAction,
 }: MemoryDetailPanelProps) {
   const [activeTab, setActiveTab] = useState<PanelTab>("details");
+  const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [connectionCount, setConnectionCount] = useState<number | null>(null);
 
   const { deleteMemory } = useMemoryContext();
+  const getRelatedMemories = useAction(api.relationshipApi.getRelatedMemories);
+
+  useEffect(() => {
+    setIsEditing(false);
+    setActiveTab("details");
+  }, [memory.id]);
+
+  useEffect(() => {
+    if (initialAction === "edit") {
+      setIsEditing(true);
+      setActiveTab("details");
+      onConsumeAction?.();
+    } else if (initialAction === "delete") {
+      setShowDeleteConfirm(true);
+      onConsumeAction?.();
+    }
+  }, [initialAction, onConsumeAction]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !showDeleteConfirm && !isEditing) {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose, showDeleteConfirm, isEditing]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setConnectionCount(null);
+
+    void getRelatedMemories({ memoryId: memory.id })
+      .then((data) => {
+        if (cancelled) return;
+        setConnectionCount(countUniqueRelated(data as RelatedMemoryEntry[]));
+      })
+      .catch(() => {
+        if (!cancelled) setConnectionCount(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [memory.id, getRelatedMemories]);
 
   const handleDelete = useCallback(async () => {
     setIsDeleting(true);
@@ -72,28 +155,77 @@ export default function MemoryDetailPanel({
     }
   }, [memory, onMemoryDelete, onClose, deleteMemory]);
 
-  const handleRequestDelete = useCallback(() => {
-    setShowDeleteConfirm(true);
+  const handleStartEdit = useCallback(() => {
+    setActiveTab("details");
+    setIsEditing(true);
   }, []);
 
   return (
     <>
-      <Card className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden shadow-none p-4 sm:p-5">
-        <div className="mb-4 flex shrink-0 items-start justify-between gap-3">
-          <h3 className="min-w-0 flex-1 truncate text-lg font-semibold leading-snug text-foreground text-balance">
-            {memory.title}
-          </h3>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={onClose}
-            className="text-muted flex-shrink-0"
-          >
-            <IconX size={18} />
-          </Button>
+      <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
+        <div className="mb-3 shrink-0">
+          <div className="flex items-start gap-2">
+            <div className="min-w-0 flex-1">
+              <h3 className="truncate text-lg font-semibold leading-snug text-foreground">
+                {memory.title}
+              </h3>
+              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+                <time className="tabular-nums text-foreground/80">
+                  {formatMetaDate(memory.createdAt)}
+                </time>
+                <span aria-hidden>·</span>
+                <Badge variant="secondary" className="h-5 px-1.5 text-[11px]">
+                  {formatMemoryTypeLabel(memory.type)}
+                </Badge>
+                <span aria-hidden>·</span>
+                <MemorySourceLabel
+                  source={memory.source}
+                  size={12}
+                  labelClassName="text-foreground/80"
+                />
+              </div>
+            </div>
+            {!isEditing ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    className="shrink-0 text-muted"
+                    aria-label="Memory actions"
+                  >
+                    <IconDots size={16} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onSelect={handleStartEdit}>
+                    <IconPencil size={14} />
+                    Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-danger focus:text-danger data-[highlighted]:text-danger"
+                    onSelect={() => setShowDeleteConfirm(true)}
+                  >
+                    <IconTrash size={14} />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : null}
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={onClose}
+              className="shrink-0 text-muted"
+              aria-label="Close panel"
+            >
+              <IconX size={18} />
+            </Button>
+          </div>
         </div>
 
-        {/* Tabs */}
         <Tabs
           value={activeTab}
           onValueChange={(v) => {
@@ -103,36 +235,41 @@ export default function MemoryDetailPanel({
           }}
           className="flex min-h-0 flex-1 flex-col overflow-hidden"
         >
-          <TabsList className="mb-5 shrink-0 self-start">
+          <TabsList className="max-w-full shrink-0 self-start">
             <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
-            <TabsTrigger value="connections">Connections</TabsTrigger>
+            <TabsTrigger value="connections">
+              Connections
+              {connectionCount !== null && connectionCount > 0 ? (
+                <span className="ml-1 tabular-nums text-muted">
+                  ({connectionCount})
+                </span>
+              ) : null}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent
             value="details"
-            className="mt-0 min-h-0 w-full flex-1 overflow-y-auto scrollbar-thin"
+            className="mt-3 min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto scrollbar-thin"
           >
             <DetailsTab
               memory={memory}
               onMemoryUpdate={onMemoryUpdate}
-              onRequestDelete={handleRequestDelete}
-              onSelectRelated={onSelectRelated}
-              initialAction={initialAction}
-              onConsumeAction={onConsumeAction}
+              isEditing={isEditing}
+              onIsEditingChange={setIsEditing}
             />
           </TabsContent>
 
           <TabsContent
             value="history"
-            className="mt-0 min-h-0 w-full flex-1 overflow-y-auto scrollbar-thin"
+            className="mt-3 min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto scrollbar-thin"
           >
             <HistoryTab memoryId={memory.id} />
           </TabsContent>
 
           <TabsContent
             value="connections"
-            className="mt-0 min-h-0 w-full flex-1 overflow-y-auto scrollbar-thin"
+            className="mt-3 min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto scrollbar-thin"
           >
             <ConnectionsTab
               memoryId={memory.id}
@@ -140,9 +277,8 @@ export default function MemoryDetailPanel({
             />
           </TabsContent>
         </Tabs>
-      </Card>
+      </div>
 
-      {/* Delete confirmation dialog */}
       <Dialog
         open={showDeleteConfirm}
         onOpenChange={(value) => {
