@@ -1,16 +1,16 @@
 import { z } from "zod";
 import { internal } from "../_generated/api";
 import { isOpenRouterRequired } from "../http/v1Memories/types";
+import {
+  deleteBodySchema,
+  instructionStoreBodySchema,
+  memoryStatusSchema,
+  memoryTypeSchema,
+  retrieveBodySchema,
+  structuredStoreBodySchema,
+  structuredUpdateBodySchema,
+} from "../memoryApi/contract";
 import { scopedMemory, toolSpec } from "./toolTypes";
-
-const memoryTypeSchema = z.enum(["profile", "episodic", "knowledge"]);
-
-const memoryStatusSchema = z.enum([
-  "active",
-  "pinned",
-  "suppressed",
-  "expired",
-]);
 
 const memorySearchSchema = z.object({
   query: z.string().optional().describe("Text to search for"),
@@ -34,89 +34,100 @@ const memorySearchSchema = z.object({
     .describe("Offset for pagination (default 0)"),
 });
 
-const memoryRetrieveSchema = z.object({
-  query: z
-    .string()
-    .describe("Natural language query to find relevant memories"),
-  type: memoryTypeSchema.optional().describe("Filter by memory type"),
-  tags: z.array(z.string()).optional().describe("Filter by tags"),
-  profileId: z
-    .string()
-    .optional()
-    .describe("Profile ID to search in (defaults to active profile)"),
-  limit: z
-    .number()
-    .min(1)
-    .max(50)
-    .optional()
-    .describe("Max results (default 5)"),
-});
+const memoryRetrieveSchema = retrieveBodySchema
+  .omit({ summarize: true })
+  .extend({
+    query: retrieveBodySchema.shape.query.describe(
+      "Natural language query to find relevant memories",
+    ),
+    type: memoryTypeSchema.optional().describe("Filter by memory type"),
+    tags: z.array(z.string()).optional().describe("Filter by tags"),
+    profileId: z
+      .string()
+      .optional()
+      .describe("Profile ID to search in (defaults to active profile)"),
+    limit: z
+      .number()
+      .int()
+      .min(1)
+      .max(50)
+      .optional()
+      .describe("Max results (default 5)"),
+  });
 
-const memoryAddSchema = z.object({
-  title: z.string().describe("Short title for the memory"),
-  content: z.string().describe("The memory content"),
-  type: memoryTypeSchema.describe(
-    "Memory type: profile, episodic, or knowledge",
-  ),
-  source: z
-    .string()
-    .describe(
+const memoryAddSchema = structuredStoreBodySchema
+  .omit({
+    expiresAt: true,
+    url: true,
+    externalId: true,
+    sourceType: true,
+  })
+  .extend({
+    title: structuredStoreBodySchema.shape.title.describe(
+      "Short title for the memory",
+    ),
+    content:
+      structuredStoreBodySchema.shape.content.describe("The memory content"),
+    type: memoryTypeSchema.describe(
+      "Memory type: profile, episodic, or knowledge",
+    ),
+    source: structuredStoreBodySchema.shape.source.describe(
       "Where this memory came from (e.g. 'claude', 'chatgpt', 'manual')",
     ),
-  tags: z
-    .array(z.string())
-    .optional()
-    .describe(
-      "1-3 broad recurring THEME tags (lowercase-hyphenated, e.g. 'react', 'health'). Reuse tags you've seen on the user's existing memories; never mint hyper-specific one-offs — named people/products belong in the content, not tags. Omit to let server enrichment tag automatically.",
-    ),
-  confidence: z
-    .number()
-    .min(0)
-    .max(1)
-    .optional()
-    .describe("Confidence score 0-1 (default 1.0)"),
-  profileId: z
-    .string()
-    .optional()
-    .describe("Profile ID to add memory to (defaults to active profile)"),
-});
+    tags: z
+      .array(z.string())
+      .optional()
+      .describe(
+        "1-3 broad recurring THEME tags (lowercase-hyphenated, e.g. 'react', 'health'). Reuse tags you've seen on the user's existing memories; never mint hyper-specific one-offs — named people/products belong in the content, not tags. Omit to let server enrichment tag automatically.",
+      ),
+    confidence: z
+      .number()
+      .min(0)
+      .max(1)
+      .optional()
+      .describe("Confidence score 0-1 (default 1.0)"),
+    profileId: z
+      .string()
+      .optional()
+      .describe("Profile ID to add memory to (defaults to active profile)"),
+  });
 
-const memoryAddInstructionSchema = z.object({
-  instruction: z
-    .string()
-    .describe(
-      "What to remember, e.g. 'User prefers dark mode and uses pnpm for vmem'",
-    ),
+const memoryAddInstructionSchema = instructionStoreBodySchema.extend({
+  instruction: instructionStoreBodySchema.shape.instruction.describe(
+    "What to remember, e.g. 'User prefers dark mode and uses pnpm for vmem'",
+  ),
   profileId: z
     .string()
     .optional()
     .describe("Profile ID (defaults to active MCP profile)"),
 });
 
-const memoryUpdateSchema = z.object({
-  id: z.string().describe("Memory ID to update"),
-  title: z.string().optional().describe("New title"),
-  content: z.string().optional().describe("New content"),
-  type: memoryTypeSchema.optional().describe("New type"),
-  status: memoryStatusSchema
-    .optional()
-    .describe("New status: active, pinned, suppressed, expired"),
-  tags: z
-    .array(z.string())
-    .optional()
-    .describe(
-      "New tags, replaces all. 1-3 broad recurring themes (lowercase-hyphenated); reuse the user's existing tags where possible.",
-    ),
-  confidence: z
-    .number()
-    .min(0)
-    .max(1)
-    .optional()
-    .describe("New confidence score"),
-});
+const memoryUpdateSchema = structuredUpdateBodySchema
+  .omit({ expiresAt: true })
+  .extend({
+    id: structuredUpdateBodySchema.shape.id.describe("Memory ID to update"),
+    title: z.string().optional().describe("New title"),
+    content: z.string().optional().describe("New content"),
+    type: memoryTypeSchema.optional().describe("New type"),
+    status: memoryStatusSchema
+      .optional()
+      .describe("New status: active, pinned, suppressed, expired"),
+    tags: z
+      .array(z.string())
+      .optional()
+      .describe(
+        "New tags, replaces all. 1-3 broad recurring themes (lowercase-hyphenated); reuse the user's existing tags where possible.",
+      ),
+    confidence: z
+      .number()
+      .min(0)
+      .max(1)
+      .optional()
+      .describe("New confidence score"),
+  });
 
-const memoryDeleteSchema = z.object({
-  id: z.string().describe("Memory ID to delete"),
+const memoryDeleteSchema = deleteBodySchema.extend({
+  id: deleteBodySchema.shape.id.describe("Memory ID to delete"),
 });
 
 const memoryRelatedSchema = z.object({

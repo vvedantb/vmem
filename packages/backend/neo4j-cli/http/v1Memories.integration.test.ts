@@ -43,7 +43,7 @@ async function postMemoriesProbe(args: {
 const storeAuthProbeBody = {
   title: "should fail",
   content: "probe",
-  type: "note",
+  type: "knowledge",
   source: "vitest",
   tags: Array.of<string>(),
   confidence: 1,
