@@ -29,7 +29,6 @@ export const dailyConnectorSyncWorkflow = workflow
         internal.connectors.syncActions.syncOneConnectorInternal,
         {
           connectorId: target.connectorId,
-          fullHistory: true,
         },
         { retry: true },
       );

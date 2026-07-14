@@ -7,8 +7,6 @@ import { runConnectorProviderSync } from "../lib/runConnectorProviderSync";
 export const startSync = authAction({
   args: {
     connectorId: v.id("connectors"),
-    // Kept for API compatibility; unused after Linear was archived.
-    fullHistory: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const connector = await ctx.runQuery(
@@ -46,7 +44,6 @@ export const startSync = authAction({
       connector,
       clerkId,
       accessToken: tokenResult.accessToken,
-      fullHistory: args.fullHistory ?? false,
       execution: "retrier",
     });
 

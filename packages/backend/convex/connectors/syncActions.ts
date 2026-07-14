@@ -17,7 +17,6 @@ type SyncOneResult = { ok: true } | { ok: false; message: string };
 export const syncOneConnectorInternal = internalAction({
   args: {
     connectorId: v.id("connectors"),
-    fullHistory: v.optional(v.boolean()),
   },
   returns: syncOneResult,
   handler: async (ctx, args): Promise<SyncOneResult> => {
@@ -69,7 +68,6 @@ export const syncOneConnectorInternal = internalAction({
         connector,
         clerkId,
         accessToken: tokenResult.accessToken,
-        fullHistory: args.fullHistory ?? false,
         execution: "direct",
       });
 

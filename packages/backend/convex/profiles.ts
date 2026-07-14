@@ -9,11 +9,9 @@ import {
   runUpdate,
 } from "./profiles/handlers";
 import {
-  runRemove,
   runRemoveInternalMutation,
   runRemoveWithMemories,
 } from "./profiles/lifecycle";
-import { runSetLastDreamRunAtInternal } from "./profiles/dream";
 import {
   getActiveProfileForMcpScope,
   listProfilesByClerkIdAndScope,
@@ -56,16 +54,6 @@ export const update = authMutation({
     icon: v.optional(v.string()),
   },
   handler: async (ctx, args) => runUpdate(ctx, args),
-});
-
-/** Delete a profile (cannot delete default, must handle memories) */
-export const remove = authMutation({
-  args: {
-    profileId: v.id("profiles"),
-    /** If set, move memories to this profile. If not set, memories are orphaned (null profileId). */
-    moveMemoriesToProfileId: v.optional(v.id("profiles")),
-  },
-  handler: async (ctx, args) => runRemove(ctx, args),
 });
 
 /** Delete a profile and handle its memories (action that can call Neo4j) */
@@ -186,7 +174,12 @@ export const setLastDreamRunAtInternal = internalMutation({
     profileId: v.id("profiles"),
     timestamp: v.number(),
   },
-  handler: async (ctx, args) => runSetLastDreamRunAtInternal(ctx, args),
+  handler: async (ctx, args) => {
+    const profile = await ctx.db.get(args.profileId);
+    if (!profile) return null;
+    await ctx.db.patch(args.profileId, { lastDreamRunAt: args.timestamp });
+    return null;
+  },
 });
 
 /**
