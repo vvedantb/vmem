@@ -1,7 +1,7 @@
-import type { Doc } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import { requireClerkId, type AuthActionCtx } from "../auth";
-import { assertTeamAccess, getAccessibleProfile } from "./auth";
+import { assertTeamAccess } from "./auth";
+import { routeMemoryByProfile } from "./routing";
 import {
   runDeleteTeamMemory,
   runGetTeamMemory,
@@ -15,17 +15,6 @@ import type {
   MemoryEvent,
   RetrieveMemoriesResult,
 } from "./types";
-
-/** Team profile the caller can access, else null (personal / missing profileId). */
-async function getTeamProfileIfApplicable(
-  ctx: AuthActionCtx,
-  profileId: string | undefined,
-): Promise<Doc<"profiles"> | null> {
-  if (!profileId) return null;
-  const profile = await getAccessibleProfile(ctx, profileId);
-  if (profile.teamId === undefined) return null;
-  return profile;
-}
 
 interface CreateMemoryArgs {
   title: string;
@@ -74,17 +63,17 @@ export async function runGetMemory(
   ctx: AuthActionCtx,
   args: { memoryId: string; profileId?: string },
 ): Promise<MemoryWithTags | null> {
-  const clerkId = await requireClerkId(ctx);
-  const teamProfile = await getTeamProfileIfApplicable(ctx, args.profileId);
-  if (teamProfile) {
-    return await runGetTeamMemory(ctx, {
-      profileId: teamProfile._id,
-      memoryId: args.memoryId,
-    });
-  }
-  return await ctx.runAction(internal.neo4jActions.memories.getMemoryInternal, {
-    clerkId,
-    memoryId: args.memoryId,
+  return routeMemoryByProfile(ctx, args.profileId, {
+    team: (teamProfile) =>
+      runGetTeamMemory(ctx, {
+        profileId: teamProfile._id,
+        memoryId: args.memoryId,
+      }),
+    personal: (clerkId) =>
+      ctx.runAction(internal.neo4jActions.memories.getMemoryInternal, {
+        clerkId,
+        memoryId: args.memoryId,
+      }),
   });
 }
 
@@ -103,46 +92,44 @@ export async function runListMemories(
   ctx: AuthActionCtx,
   args: ListMemoriesArgs,
 ): Promise<MemoryListResult> {
-  const clerkId = await requireClerkId(ctx);
-  const teamProfile = await getTeamProfileIfApplicable(ctx, args.profileId);
-  if (teamProfile) {
-    // Team workspace: member-wide listing. Free-text / source filters map
-    // onto the team search variant (the team list path has no
-    // searchQuery/source support of its own).
-    if (args.searchQuery !== undefined || args.source !== undefined) {
-      return await runSearchTeamMemories(ctx, {
+  return routeMemoryByProfile(ctx, args.profileId, {
+    team: async (teamProfile) => {
+      // Team workspace: member-wide listing. Free-text / source filters map
+      // onto the team search variant (the team list path has no
+      // searchQuery/source support of its own).
+      if (args.searchQuery !== undefined || args.source !== undefined) {
+        return runSearchTeamMemories(ctx, {
+          profileId: teamProfile._id,
+          query: args.searchQuery,
+          type: args.type,
+          tags: args.tags,
+          source: args.source,
+          limit: args.limit,
+          offset: args.offset,
+        });
+      }
+      return runListTeamMemories(ctx, {
         profileId: teamProfile._id,
-        query: args.searchQuery,
         type: args.type,
+        status: args.status,
         tags: args.tags,
-        source: args.source,
         limit: args.limit,
         offset: args.offset,
       });
-    }
-    return await runListTeamMemories(ctx, {
-      profileId: teamProfile._id,
-      type: args.type,
-      status: args.status,
-      tags: args.tags,
-      limit: args.limit,
-      offset: args.offset,
-    });
-  }
-  return await ctx.runAction(
-    internal.neo4jActions.memories.listMemoriesInternal,
-    {
-      clerkId,
-      profileId: args.profileId,
-      type: args.type,
-      status: args.status,
-      source: args.source,
-      tags: args.tags,
-      searchQuery: args.searchQuery,
-      limit: args.limit,
-      offset: args.offset,
     },
-  );
+    personal: (clerkId) =>
+      ctx.runAction(internal.neo4jActions.memories.listMemoriesInternal, {
+        clerkId,
+        profileId: args.profileId,
+        type: args.type,
+        status: args.status,
+        source: args.source,
+        tags: args.tags,
+        searchQuery: args.searchQuery,
+        limit: args.limit,
+        offset: args.offset,
+      }),
+  });
 }
 
 interface UpdateMemoryArgs {
@@ -161,53 +148,50 @@ export async function runUpdateMemory(
   ctx: AuthActionCtx,
   args: UpdateMemoryArgs,
 ): Promise<MemoryWithTags | null> {
-  const clerkId = await requireClerkId(ctx);
-  const teamProfile = await getTeamProfileIfApplicable(ctx, args.profileId);
-  if (teamProfile) {
-    return await runUpdateTeamMemory(ctx, {
-      profileId: teamProfile._id,
-      memoryId: args.memoryId,
-      title: args.title,
-      content: args.content,
-      type: args.type,
-      status: args.status,
-      tags: args.tags,
-      confidence: args.confidence,
-      expiresAt: args.expiresAt,
-    });
-  }
-  return await ctx.runAction(
-    internal.neo4jActions.memories.updateMemoryInternal,
-    {
-      clerkId,
-      memoryId: args.memoryId,
-      title: args.title,
-      content: args.content,
-      type: args.type,
-      status: args.status,
-      tags: args.tags,
-      confidence: args.confidence,
-      expiresAt: args.expiresAt,
-    },
-  );
+  return routeMemoryByProfile(ctx, args.profileId, {
+    team: (teamProfile) =>
+      runUpdateTeamMemory(ctx, {
+        profileId: teamProfile._id,
+        memoryId: args.memoryId,
+        title: args.title,
+        content: args.content,
+        type: args.type,
+        status: args.status,
+        tags: args.tags,
+        confidence: args.confidence,
+        expiresAt: args.expiresAt,
+      }),
+    personal: (clerkId) =>
+      ctx.runAction(internal.neo4jActions.memories.updateMemoryInternal, {
+        clerkId,
+        memoryId: args.memoryId,
+        title: args.title,
+        content: args.content,
+        type: args.type,
+        status: args.status,
+        tags: args.tags,
+        confidence: args.confidence,
+        expiresAt: args.expiresAt,
+      }),
+  });
 }
 
 export async function runDeleteMemory(
   ctx: AuthActionCtx,
   args: { memoryId: string; profileId?: string },
 ): Promise<boolean> {
-  const clerkId = await requireClerkId(ctx);
-  const teamProfile = await getTeamProfileIfApplicable(ctx, args.profileId);
-  if (teamProfile) {
-    return await runDeleteTeamMemory(ctx, {
-      profileId: teamProfile._id,
-      memoryId: args.memoryId,
-    });
-  }
-  return await ctx.runAction(
-    internal.neo4jActions.memories.deleteMemoryInternal,
-    { clerkId, memoryId: args.memoryId },
-  );
+  return routeMemoryByProfile(ctx, args.profileId, {
+    team: (teamProfile) =>
+      runDeleteTeamMemory(ctx, {
+        profileId: teamProfile._id,
+        memoryId: args.memoryId,
+      }),
+    personal: (clerkId) =>
+      ctx.runAction(internal.neo4jActions.memories.deleteMemoryInternal, {
+        clerkId,
+        memoryId: args.memoryId,
+      }),
+  });
 }
 
 export async function runDeleteAllMemories(
@@ -234,32 +218,29 @@ export async function runSearchMemories(
   ctx: AuthActionCtx,
   args: SearchMemoriesArgs,
 ): Promise<MemoryListResult> {
-  const clerkId = await requireClerkId(ctx);
-  const teamProfile = await getTeamProfileIfApplicable(ctx, args.profileId);
-  if (teamProfile) {
-    return await runSearchTeamMemories(ctx, {
-      profileId: teamProfile._id,
-      query: args.query,
-      type: args.type,
-      tags: args.tags,
-      source: args.source,
-      limit: args.limit,
-      offset: args.offset,
-    });
-  }
-  return await ctx.runAction(
-    internal.neo4jActions.memories.searchMemoriesInternal,
-    {
-      clerkId,
-      profileId: args.profileId,
-      query: args.query,
-      type: args.type,
-      tags: args.tags,
-      source: args.source,
-      limit: args.limit,
-      offset: args.offset,
-    },
-  );
+  return routeMemoryByProfile(ctx, args.profileId, {
+    team: (teamProfile) =>
+      runSearchTeamMemories(ctx, {
+        profileId: teamProfile._id,
+        query: args.query,
+        type: args.type,
+        tags: args.tags,
+        source: args.source,
+        limit: args.limit,
+        offset: args.offset,
+      }),
+    personal: (clerkId) =>
+      ctx.runAction(internal.neo4jActions.memories.searchMemoriesInternal, {
+        clerkId,
+        profileId: args.profileId,
+        query: args.query,
+        type: args.type,
+        tags: args.tags,
+        source: args.source,
+        limit: args.limit,
+        offset: args.offset,
+      }),
+  });
 }
 
 interface RetrieveMemoriesArgs {

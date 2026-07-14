@@ -17,8 +17,8 @@ import {
   getDownstreamImpact,
   getUpstreamImpact,
 } from "../../engine/neo4j/codebase/impact";
-import { getDriver } from "../../engine/neo4j/driver";
 import { runCodebaseSync } from "../../engine/codebase/runCodebaseSync";
+import { runWithNeo4jDriver } from "./_shared/driver";
 
 export const syncCodebaseInternal = internalAction({
   args: {
@@ -59,13 +59,7 @@ export const getOverviewStatsInternal = internalAction({
     clerkId: v.string(),
     codebaseId: v.string(),
   },
-  handler: async (_ctx, args) => {
-    return await getOverviewStats({
-      driver: getDriver(),
-      userId: args.clerkId,
-      codebaseId: args.codebaseId,
-    });
-  },
+  handler: async (_ctx, args) => runWithNeo4jDriver(args, getOverviewStats),
 });
 
 const kindValidator = v.union(
@@ -91,18 +85,7 @@ export const getGraphInternal = internalAction({
     blastDirection: v.optional(directionValidator),
     blastDepth: v.optional(v.number()),
   },
-  handler: async (_ctx, args) => {
-    return await getGraphOverview({
-      driver: getDriver(),
-      userId: args.clerkId,
-      codebaseId: args.codebaseId,
-      kinds: args.kinds,
-      processId: args.processId,
-      blastRadiusOf: args.blastRadiusOf,
-      blastDirection: args.blastDirection,
-      blastDepth: args.blastDepth,
-    });
-  },
+  handler: async (_ctx, args) => runWithNeo4jDriver(args, getGraphOverview),
 });
 
 export const getSymbolContextInternal = internalAction({
@@ -111,14 +94,7 @@ export const getSymbolContextInternal = internalAction({
     codebaseId: v.string(),
     symbolId: v.string(),
   },
-  handler: async (_ctx, args) => {
-    return await getSymbolContext({
-      driver: getDriver(),
-      userId: args.clerkId,
-      codebaseId: args.codebaseId,
-      symbolId: args.symbolId,
-    });
-  },
+  handler: async (_ctx, args) => runWithNeo4jDriver(args, getSymbolContext),
 });
 
 export const getImpactInternal = internalAction({
@@ -129,26 +105,29 @@ export const getImpactInternal = internalAction({
     direction: directionValidator,
     depth: v.optional(v.number()),
   },
-  handler: async (_ctx, args) => {
-    const driver = getDriver();
-    const nodes =
-      args.direction === "upstream"
-        ? await getUpstreamImpact({
-            driver,
-            userId: args.clerkId,
-            codebaseId: args.codebaseId,
-            symbolId: args.symbolId,
-            depth: args.depth,
-          })
-        : await getDownstreamImpact({
-            driver,
-            userId: args.clerkId,
-            codebaseId: args.codebaseId,
-            symbolId: args.symbolId,
-            depth: args.depth,
-          });
-    return { nodes };
-  },
+  handler: async (_ctx, args) =>
+    runWithNeo4jDriver(
+      args,
+      async ({ driver, userId, codebaseId, symbolId, direction, depth }) => {
+        const nodes =
+          direction === "upstream"
+            ? await getUpstreamImpact({
+                driver,
+                userId,
+                codebaseId,
+                symbolId,
+                depth,
+              })
+            : await getDownstreamImpact({
+                driver,
+                userId,
+                codebaseId,
+                symbolId,
+                depth,
+              });
+        return { nodes };
+      },
+    ),
 });
 
 export const searchSymbolsInternal = internalAction({
@@ -159,17 +138,10 @@ export const searchSymbolsInternal = internalAction({
     kind: v.optional(kindValidator),
     limit: v.optional(v.number()),
   },
-  handler: async (_ctx, args) => {
-    const results = await searchSymbols({
-      driver: getDriver(),
-      userId: args.clerkId,
-      codebaseId: args.codebaseId,
-      query: args.query,
-      kind: args.kind,
-      limit: args.limit,
-    });
-    return { results };
-  },
+  handler: async (_ctx, args) =>
+    runWithNeo4jDriver(args, async (params) => ({
+      results: await searchSymbols(params),
+    })),
 });
 
 /** Legacy graph shape for dashboard callers not yet on getGraphInternal. */
@@ -178,36 +150,37 @@ export const getCodebaseGraphInternal = internalAction({
     clerkId: v.string(),
     codebaseId: v.string(),
   },
-  handler: async (_ctx, args) => {
-    const overview = await getGraphOverview({
-      driver: getDriver(),
-      userId: args.clerkId,
-      codebaseId: args.codebaseId,
-      kinds: ["code-file"],
-    });
-    const nodes = overview.nodes.map((n) => {
-      const filename = n.name;
-      const ext = filename.includes(".")
-        ? filename.slice(filename.lastIndexOf("."))
-        : "";
-      return {
-        id: n.id,
-        path: n.path,
-        directory: n.directory,
-        filename,
-        extension: ext,
-        sizeBytes: 0,
-      };
-    });
-    const edges = overview.edges
-      .filter((e) => e.type === "imports")
-      .map((e) => ({
-        source: e.fromId,
-        target: e.toId,
-        importPath: "",
-      }));
-    return { nodes, edges };
-  },
+  handler: async (_ctx, args) =>
+    runWithNeo4jDriver(args, async ({ driver, userId, codebaseId }) => {
+      const overview = await getGraphOverview({
+        driver,
+        userId,
+        codebaseId,
+        kinds: ["code-file"],
+      });
+      const nodes = overview.nodes.map((n) => {
+        const filename = n.name;
+        const ext = filename.includes(".")
+          ? filename.slice(filename.lastIndexOf("."))
+          : "";
+        return {
+          id: n.id,
+          path: n.path,
+          directory: n.directory,
+          filename,
+          extension: ext,
+          sizeBytes: 0,
+        };
+      });
+      const edges = overview.edges
+        .filter((e) => e.type === "imports")
+        .map((e) => ({
+          source: e.fromId,
+          target: e.toId,
+          importPath: "",
+        }));
+      return { nodes, edges };
+    }),
 });
 
 export const deleteCodebaseInternal = internalAction({
@@ -216,7 +189,9 @@ export const deleteCodebaseInternal = internalAction({
     codebaseId: v.string(),
   },
   handler: async (_ctx, args) => {
-    await deleteCodebase(getDriver(), args.clerkId, args.codebaseId);
+    await runWithNeo4jDriver(args, ({ driver, userId, codebaseId }) =>
+      deleteCodebase(driver, userId, codebaseId),
+    );
     return null;
   },
 });

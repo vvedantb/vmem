@@ -9,6 +9,7 @@ import {
 } from "../../engine/neo4j/memory/proposals";
 import { getDriver } from "../../engine/neo4j/driver";
 import { postMaterializeEmbedAndEnrich } from "./_memories/postMaterialize";
+import { runWithNeo4jDriver } from "./_shared/driver";
 
 export const listProposedUpdatesInternal = internalAction({
   args: {
@@ -16,13 +17,13 @@ export const listProposedUpdatesInternal = internalAction({
     profileId: v.optional(v.string()),
     strictProfile: v.optional(v.boolean()),
   },
-  handler: async (_ctx, args) => {
-    const driver = getDriver();
-    return await listProposedUpdates(driver, args.clerkId, {
-      profileId: args.profileId,
-      strictProfile: args.strictProfile === true,
-    });
-  },
+  handler: async (_ctx, args) =>
+    runWithNeo4jDriver(args, ({ driver, userId, profileId, strictProfile }) =>
+      listProposedUpdates(driver, userId, {
+        profileId,
+        strictProfile: strictProfile === true,
+      }),
+    ),
 });
 
 export const resolveProposalInternal = internalAction({
