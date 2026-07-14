@@ -1,22 +1,12 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "convex/react";
 import { IconDeviceFloppy } from "@tabler/icons-react";
-import {
-  Button,
-  Card,
-  CardContent,
-  Label,
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-  Skeleton,
-} from "@vmem/ui";
+import { Button, Card, CardContent, Label, Skeleton } from "@vmem/ui";
 import { api } from "@vmem/backend";
 import type { ContentMessage, BackgroundResponse } from "@/types/messages";
-import { getStorage } from "@/lib/storage";
 import { extractPageFromTab } from "@/lib/extract-page";
+import { useBrowserDefaultProfile } from "@/popup/useBrowserDefaultProfile";
+import { ProfileSelect } from "./ProfileSelect";
 
 interface PageInfo {
   title: string;
@@ -45,105 +35,82 @@ function truncateUrl(url: string, maxLength = 40): string {
   }
 }
 
+function queryActiveTab(): Promise<chrome.tabs.Tab | undefined> {
+  return chrome.tabs
+    .query({ active: true, currentWindow: true })
+    .then((tabs) => tabs[0]);
+}
+
 export function QuickSave() {
   const profiles = useQuery(api.profiles.list);
+  const { effectiveProfileId, setSelectedProfileId } =
+    useBrowserDefaultProfile(profiles);
   const [pageInfo, setPageInfo] = useState<PageInfo | null>(null);
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState<{
     success: boolean;
     message: string;
   } | null>(null);
-  const [selectedProfileId, setSelectedProfileId] = useState<string>("");
 
   useEffect(() => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      const tab = tabs[0];
-      if (tab?.url) {
-        setPageInfo({
-          title: tab.title ?? "Untitled",
-          url: tab.url,
-          favicon: tab.favIconUrl ?? "",
-        });
-      }
-    });
-
-    void getStorage().then((storage) => {
-      if (storage.defaultProfileId) {
-        setSelectedProfileId(storage.defaultProfileId);
-      }
+    void queryActiveTab().then((tab) => {
+      if (!tab?.url) return;
+      setPageInfo({
+        title: tab.title ?? "Untitled",
+        url: tab.url,
+        favicon: tab.favIconUrl ?? "",
+      });
     });
   }, []);
 
-  // Resolve empty selection to the account default once profiles load.
-  useEffect(() => {
-    if (profiles === undefined || selectedProfileId) return;
-    const defaultProfile = profiles.find((p) => p.isDefault);
-    if (defaultProfile) {
-      setSelectedProfileId(defaultProfile._id);
-    }
-  }, [profiles, selectedProfileId]);
-
-  function handleSave() {
+  async function handleSave() {
     setSaving(true);
     setResult(null);
 
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      const tab = tabs[0];
-      if (!tab?.id || !tab.url) {
+    const tab = await queryActiveTab();
+    if (!tab?.id || !tab.url) {
+      setSaving(false);
+      setResult({ success: false, message: "No active tab found" });
+      return;
+    }
+
+    const extraction = await extractPageFromTab(tab.id);
+    if (!extraction) {
+      setSaving(false);
+      setResult({ success: false, message: "Failed to extract page" });
+      return;
+    }
+
+    const message: ContentMessage = {
+      type: "SAVE_PAGE",
+      url: tab.url,
+      title: extraction.ogTitle ?? extraction.title ?? tab.title ?? "Untitled",
+      content: extraction.content,
+      markdown: extraction.html,
+      ogImage: extraction.ogImage,
+      ogDescription: extraction.ogDescription,
+      profileId: effectiveProfileId || undefined,
+    };
+
+    chrome.runtime.sendMessage(
+      message,
+      (response: BackgroundResponse | undefined) => {
         setSaving(false);
-        setResult({ success: false, message: "No active tab found" });
-        return;
-      }
-
-      void (async () => {
-        const tabId = tab.id;
-        if (!tabId) {
-          setSaving(false);
-          setResult({ success: false, message: "No active tab found" });
+        if (response?.type === "SAVE_RESULT") {
+          setResult(
+            response.success
+              ? { success: true, message: "Page saved to vmem" }
+              : {
+                  success: false,
+                  message: response.error ?? "Failed to save",
+                },
+          );
           return;
         }
-        const extraction = await extractPageFromTab(tabId);
-        if (!extraction) {
-          setSaving(false);
-          setResult({ success: false, message: "Failed to extract page" });
-          return;
-        }
-
-        const message: ContentMessage = {
-          type: "SAVE_PAGE",
-          url: tab.url ?? "",
-          title:
-            extraction.ogTitle ?? extraction.title ?? tab.title ?? "Untitled",
-          content: extraction.content,
-          markdown: extraction.html,
-          ogImage: extraction.ogImage,
-          ogDescription: extraction.ogDescription,
-          profileId: selectedProfileId || undefined,
-        };
-
-        chrome.runtime.sendMessage(
-          message,
-          (response: BackgroundResponse | undefined) => {
-            setSaving(false);
-            if (response?.type === "SAVE_RESULT") {
-              setResult(
-                response.success
-                  ? { success: true, message: "Page saved to vmem" }
-                  : {
-                      success: false,
-                      message: response.error ?? "Failed to save",
-                    },
-              );
-            } else {
-              setResult({ success: false, message: "Failed to save" });
-            }
-          },
-        );
-      })();
-    });
+        setResult({ success: false, message: "Failed to save" });
+      },
+    );
   }
-
-  const selectedProfile = profiles?.find((p) => p._id === selectedProfileId);
 
   return (
     <div className="space-y-4">
@@ -180,44 +147,18 @@ export function QuickSave() {
       ) : profiles.length > 0 ? (
         <div className="flex items-center justify-between gap-3">
           <Label className="text-sm font-medium">Save to</Label>
-          <Select
-            value={selectedProfileId}
+          <ProfileSelect
+            profiles={profiles}
+            value={effectiveProfileId}
             onValueChange={setSelectedProfileId}
             disabled={saving}
-          >
-            <SelectTrigger className="h-9 w-[160px]">
-              <SelectValue>
-                {selectedProfile ? (
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="h-2 w-2 shrink-0 rounded-full"
-                      style={{ backgroundColor: selectedProfile.color }}
-                    />
-                    <span className="truncate">{selectedProfile.name}</span>
-                  </div>
-                ) : null}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {profiles.map((profile) => (
-                <SelectItem key={profile._id} value={profile._id}>
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="h-2 w-2 shrink-0 rounded-full"
-                      style={{ backgroundColor: profile.color }}
-                    />
-                    <span>{profile.name}</span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          />
         </div>
       ) : null}
 
       <Button
         className="w-full"
-        onClick={handleSave}
+        onClick={() => void handleSave()}
         disabled={saving || !pageInfo}
       >
         <IconDeviceFloppy size={16} />

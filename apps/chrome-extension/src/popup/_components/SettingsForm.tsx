@@ -34,9 +34,11 @@ import {
 } from "@/lib/constants";
 import { copyTextToClipboard } from "@/lib/copy-to-clipboard";
 import { useExtensionUserSettings } from "@/popup/useExtensionUserSettings";
+import { useBrowserDefaultProfile } from "@/popup/useBrowserDefaultProfile";
 import { SettingsSelectRow } from "./SettingsSelectRow";
 import { SettingsSwitchRow } from "./SettingsSwitchRow";
 import { SettingsSliderRow } from "./SettingsSliderRow";
+import { ProfileSelect } from "./ProfileSelect";
 
 type Theme = "light" | "dark" | "system";
 
@@ -48,27 +50,18 @@ export function SettingsForm() {
   const { signOut } = useClerk();
   const { settings, update } = useExtensionUserSettings();
   const profiles = useQuery(api.profiles.list);
+  const { effectiveProfileId, setSelectedProfileId } =
+    useBrowserDefaultProfile(profiles);
   const [autoSearchEnabled, setAutoSearchEnabled] = useState(true);
   const [autoCaptureEnabled, setAutoCaptureEnabled] = useState(false);
-  const [selectedProfileId, setSelectedProfileId] = useState<string>("");
   const [promptCopied, setPromptCopied] = useState(false);
 
   useEffect(() => {
     void getStorage().then((s) => {
       setAutoSearchEnabled(s.autoSearchEnabled);
       setAutoCaptureEnabled(s.autoCaptureEnabled);
-      setSelectedProfileId(s.defaultProfileId);
     });
   }, []);
-
-  // Resolve empty selection to the account default once profiles load.
-  useEffect(() => {
-    if (profiles === undefined || selectedProfileId) return;
-    const defaultProfile = profiles.find((p) => p.isDefault);
-    if (defaultProfile) {
-      setSelectedProfileId(defaultProfile._id);
-    }
-  }, [profiles, selectedProfileId]);
 
   function handleThemeChange(value: string) {
     if (isTheme(value)) {
@@ -159,31 +152,12 @@ export function SettingsForm() {
               {profiles === undefined ? (
                 <Skeleton className="h-9 w-[160px] rounded-field" />
               ) : (
-                <Select
-                  value={selectedProfileId}
+                <ProfileSelect
+                  profiles={profiles}
+                  value={effectiveProfileId}
                   onValueChange={handleProfileChange}
                   disabled={profiles.length === 0}
-                >
-                  <SelectTrigger className="h-9 w-[160px]">
-                    <SelectValue>
-                      {profiles.find((p) => p._id === selectedProfileId)
-                        ?.name ?? "Select..."}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {profiles.map((profile) => (
-                      <SelectItem key={profile._id} value={profile._id}>
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="h-2 w-2 shrink-0 rounded-full"
-                            style={{ backgroundColor: profile.color }}
-                          />
-                          <span>{profile.name}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                />
               )}
             </SettingsSelectRow>
           </CardContent>

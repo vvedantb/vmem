@@ -8,6 +8,7 @@
  */
 
 import type { ContentMessage, BackgroundResponse } from "@/types/messages";
+import type { ExtensionStorage } from "@/types/storage";
 import { safeSendMessage } from "@/lib/safe-message";
 import { formatMemoriesContext } from "./format-memories-context";
 import { showToast } from "./toast";
@@ -31,11 +32,10 @@ export interface AIChatConfig {
 
 // ── Cached settings (read once, kept in sync via storage listener) ───────────
 
-interface CachedSettings {
-  autoSearchEnabled: boolean;
-  autoCaptureEnabled: boolean;
-  defaultProfileId: string;
-}
+type CachedSettings = Pick<
+  ExtensionStorage,
+  "autoSearchEnabled" | "autoCaptureEnabled" | "defaultProfileId"
+>;
 
 const SETTING_DEFAULTS: CachedSettings = {
   autoSearchEnabled: true,

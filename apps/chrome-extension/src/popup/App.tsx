@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import {
   Show,
   SignInButton,
@@ -65,6 +65,14 @@ function ThemeApplier() {
 const tabContentClassName =
   "min-h-0 flex-1 overflow-y-auto scrollbar-thin [scrollbar-gutter:stable] py-5 pl-5 pr-2 mr-1.5";
 
+function AnimatedTabPanel({ children }: { children: ReactNode }) {
+  return (
+    <motion.div variants={fadeUp} initial="hidden" animate="show">
+      {children}
+    </motion.div>
+  );
+}
+
 function SignedInContent() {
   return (
     <ExtensionUserSettingsProvider>
@@ -88,19 +96,19 @@ function SignedInContent() {
         </TabsList>
 
         <TabsContent value="save" className={tabContentClassName}>
-          <motion.div variants={fadeUp} initial="hidden" animate="show">
+          <AnimatedTabPanel>
             <QuickSave />
-          </motion.div>
+          </AnimatedTabPanel>
         </TabsContent>
         <TabsContent value="import" className={tabContentClassName}>
-          <motion.div variants={fadeUp} initial="hidden" animate="show">
+          <AnimatedTabPanel>
             <ImportPanel />
-          </motion.div>
+          </AnimatedTabPanel>
         </TabsContent>
         <TabsContent value="settings" className={tabContentClassName}>
-          <motion.div variants={fadeUp} initial="hidden" animate="show">
+          <AnimatedTabPanel>
             <SettingsForm />
-          </motion.div>
+          </AnimatedTabPanel>
         </TabsContent>
       </Tabs>
     </ExtensionUserSettingsProvider>
