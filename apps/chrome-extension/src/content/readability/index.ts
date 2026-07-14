@@ -190,4 +190,3 @@ chrome.runtime.onMessage.addListener(
 );
 
 export type { ExtractPageResult };
-export type ExtractPageMessage = z.infer<typeof extractPageMessageSchema>;

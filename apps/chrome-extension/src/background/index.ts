@@ -1,20 +1,14 @@
 import { markBootPhase } from "./boot-marker";
-import {
-  registerContextMenu,
-  registerContextMenuClickListener,
-} from "./context-menu";
+import { registerContextMenuClickListener } from "./context-menu";
 import { registerCommandListener } from "./command-handler";
 import { registerMessageHandler } from "./message-handler";
 import {
-  bootstrapSyncSchedulers,
-  catchUpHistorySyncIfOverdue,
   registerAlarmListener,
   registerBookmarkListener,
   rescheduleHistorySync,
   startAutoSync,
   stopAutoSync,
 } from "./sync-scheduler";
-import { refreshUserSettingsMirrorFromConvex } from "./user-settings-mirror";
 import { runBackgroundBootstrap } from "./bootstrap";
 import { registerSyncHostCookieListener } from "./sync-host-cookie-listener";
 
@@ -28,22 +22,15 @@ markBootPhase("listeners-ready");
 
 void runBackgroundBootstrap();
 
-chrome.runtime.onInstalled.addListener(async (details) => {
+chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === "install") {
     void chrome.tabs.create({ url: chrome.runtime.getURL("welcome.html") });
   }
-
-  registerContextMenu();
-  await refreshUserSettingsMirrorFromConvex();
-  await bootstrapSyncSchedulers();
-  void catchUpHistorySyncIfOverdue();
+  void runBackgroundBootstrap();
 });
 
-chrome.runtime.onStartup.addListener(async () => {
-  registerContextMenu();
-  await refreshUserSettingsMirrorFromConvex();
-  await bootstrapSyncSchedulers();
-  void catchUpHistorySyncIfOverdue();
+chrome.runtime.onStartup.addListener(() => {
+  void runBackgroundBootstrap();
 });
 
 chrome.storage.onChanged.addListener((changes, area) => {

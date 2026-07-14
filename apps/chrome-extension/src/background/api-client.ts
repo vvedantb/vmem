@@ -102,19 +102,6 @@ export async function retrieveMemories(
   return result.memories;
 }
 
-export async function getMemory(
-  memoryId: string,
-): Promise<MemoryWithTags | null> {
-  const client = await getAuthenticatedClient();
-  if (!client) {
-    throw new Error(
-      "Not authenticated - please sign in via the extension popup",
-    );
-  }
-
-  return await client.action(api.memoryApi.getMemory, { memoryId });
-}
-
 /**
  * Upload a screenshot blob to Convex storage and create a memory pointing
  * at it. Three steps:
