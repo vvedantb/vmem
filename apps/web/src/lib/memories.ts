@@ -29,6 +29,40 @@ export interface Memory {
   profileId?: string;
 }
 
+export function isMemoryType(value: string): value is MemoryType {
+  return MEMORY_TYPES.some((type) => type === value);
+}
+
+// fields shared by list / retrieve / getMemory api payloads
+export type MemoryApiFields = {
+  id: string;
+  title: string;
+  content: string;
+  type: string;
+  source: string;
+  tags: string[];
+  createdAt: string;
+  sourceUrl?: string | null;
+  sourceSyncedAt?: string | null;
+  profileId?: string | null;
+};
+
+// normalize api / retrieve / getMemory payloads into the client Memory shape
+export function memoryFromApi(m: MemoryApiFields): Memory {
+  return {
+    id: m.id,
+    title: m.title,
+    content: m.content,
+    type: isMemoryType(m.type) ? m.type : "knowledge",
+    source: m.source,
+    sourceUrl: m.sourceUrl ?? null,
+    sourceSyncedAt: m.sourceSyncedAt ?? null,
+    tags: m.tags,
+    createdAt: m.createdAt,
+    profileId: m.profileId ?? undefined,
+  };
+}
+
 const MEMORY_SOURCE_LABELS: Record<string, string> = {
   web: "Web",
   "browser-extension": "Extension",

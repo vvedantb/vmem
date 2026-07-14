@@ -1,7 +1,8 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
-import { useNavigate, useSearch } from "@tanstack/react-router";
-import { useActiveProfile } from "@/components/workspace/active-profile";
-import { useAction, useQuery as useConvexQuery } from "convex/react";
+"use client";
+
+import { useState, useEffect } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { useAction } from "convex/react";
 import { useQuery } from "@tanstack/react-query";
 import { Button, cn } from "@vmem/ui";
 import {
@@ -16,34 +17,16 @@ import ListItemRow from "./_components/ListItemRow";
 import ListItemPreviewPanel from "./_components/ListItemPreviewPanel";
 import AnimatedSearchIcon from "./_components/AnimatedSearchIcon";
 import { VmemSpinner } from "@/components/svg-animations";
-import type { Memory, MemoryType } from "@/lib/memories";
-import {
-  listItemMatchesKindFilter,
-  listItemMatchesSourceFilter,
-  listItemMatchesTagFilter,
-  listItemMatchesTypeFilter,
-  memoryToListItem,
-  searchListItems,
-  skillRowsToListItems,
-  wikiRowsToListItems,
-  type ListItem,
-  type ListItemSearchResult,
-} from "@/lib/list-items";
-import { useMemoriesSearchParams } from "@/routes/_main/$profileId/memories/useMemoriesSearchParams";
-import { useMemoryListFlat } from "@/components/contexts/MemoryContext";
+import { memoryFromApi, type Memory } from "@/lib/memories";
+import type { ListItem } from "@/lib/list-items";
 import { useThemeContext } from "@/components/contexts/ThemeContext";
 import { useTrailData } from "@/hooks/useTrailData";
 import type { TrailEntry } from "@/hooks/useTrailData";
 import {
-  relativeRelevanceScore,
-  type MemoryTrace,
-} from "./_components/memory-trace";
-
-type MemoryListEntry = {
-  item: ListItem;
-  score: number | null;
-  trace?: MemoryTrace;
-};
+  useMemoryListEntries,
+  type MemoryListEntry,
+} from "./_hooks/useMemoryListEntries";
+import { useMemoriesSearchParams } from "@/routes/_main/$profileId/memories/useMemoriesSearchParams";
 
 interface MemoryListVirtuosoContext {
   selectedItemId: string | null;
@@ -89,130 +72,143 @@ function renderMemoryListVirtuosoRow(
   return <MemoryListVirtuosoRow entry={entry} context={context} />;
 }
 
-function isMemoryType(value: string): value is MemoryType {
-  return value === "profile" || value === "episodic" || value === "knowledge";
+function MemoryListStatus({
+  variant,
+  onRetry,
+}: {
+  variant: "loading" | "error" | "empty" | "no-results";
+  onRetry?: () => void;
+}) {
+  if (variant === "loading") {
+    return (
+      <div className="flex h-full min-h-0 items-center justify-center">
+        <VmemSpinner size={24} className="text-muted" />
+      </div>
+    );
+  }
+
+  if (variant === "error") {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-surface-secondary">
+          <IconAlertCircle className="h-6 w-6 text-danger" />
+        </div>
+        <h3 className="mb-2 text-balance text-lg font-medium text-foreground">
+          Failed to load memories
+        </h3>
+        <p className="mb-4 text-sm text-muted">
+          Something went wrong fetching this workspace's memories.
+        </p>
+        {onRetry ? (
+          <Button variant="outline" size="sm" onClick={onRetry}>
+            <IconRefresh size={16} />
+            Try again
+          </Button>
+        ) : null}
+      </div>
+    );
+  }
+
+  if (variant === "empty") {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-surface-secondary">
+          <IconMoodEmpty className="h-6 w-6 text-muted" />
+        </div>
+        <h3 className="mb-2 text-balance text-lg font-medium text-foreground">
+          Nothing here yet
+        </h3>
+        <p className="text-sm text-muted">
+          Add a memory, wiki doc, or skill to get started
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-center justify-center py-12 text-center">
+      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-surface-secondary">
+        <AnimatedSearchIcon className="text-muted" />
+      </div>
+      <h3 className="mb-1 text-balance text-base font-medium text-foreground">
+        No results found
+      </h3>
+      <p className="text-sm text-muted">
+        Try searching with different keywords
+      </p>
+    </div>
+  );
 }
 
-function apiMemoryToMemory(m: {
-  id: string;
-  title: string;
-  content: string;
-  type: string;
-  source: string;
-  tags: string[];
-  createdAt: string;
-  profileId?: string;
-  sourceUrl?: string | null;
-  sourceSyncedAt?: string | null;
-}): Memory {
-  return {
-    id: m.id,
-    title: m.title,
-    content: m.content,
-    type: isMemoryType(m.type) ? m.type : "knowledge",
-    source: m.source,
-    sourceUrl: m.sourceUrl ?? null,
-    sourceSyncedAt: m.sourceSyncedAt ?? null,
-    tags: m.tags,
-    createdAt: m.createdAt,
-    profileId: m.profileId,
-  };
+function MemoryListSidePanel({
+  previewItem,
+  selectedMemory,
+  memoryId,
+  isPanelLoading,
+  panelAction,
+  onClosePreview,
+  onCloseMemory,
+  onMemoryUpdate,
+  onMemoryDelete,
+  onSelectRelated,
+  onConsumeAction,
+}: {
+  previewItem: ListItem | null;
+  selectedMemory: Memory | null;
+  memoryId: string | null;
+  isPanelLoading: boolean;
+  panelAction: "edit" | "delete" | null;
+  onClosePreview: () => void;
+  onCloseMemory: () => void;
+  onMemoryUpdate: (updated: Memory) => void;
+  onMemoryDelete: (deletedId: string) => void;
+  onSelectRelated: (memory: Memory) => void;
+  onConsumeAction: () => void;
+}) {
+  if (previewItem) {
+    return (
+      <ListItemPreviewPanel
+        key={previewItem.id}
+        item={previewItem}
+        onClose={onClosePreview}
+      />
+    );
+  }
+
+  if (selectedMemory) {
+    return (
+      <MemoryDetailPanel
+        key={memoryId}
+        memory={selectedMemory}
+        onClose={onCloseMemory}
+        onMemoryUpdate={onMemoryUpdate}
+        onMemoryDelete={onMemoryDelete}
+        onSelectRelated={onSelectRelated}
+        initialAction={panelAction ?? undefined}
+        onConsumeAction={onConsumeAction}
+      />
+    );
+  }
+
+  if (!isPanelLoading) return null;
+
+  return (
+    <div className="flex h-full items-center justify-center rounded-lg bg-surface-secondary">
+      <VmemSpinner size={20} className="text-muted" />
+    </div>
+  );
 }
 
 interface MemorySearchProps {
   memoryId: string | null;
 }
 
-// /memories list view — merges memories, wiki, skills (search uses retrieve scores)
+// /memories list view — browse + hybrid retrieve, wiki/skills merged in
 export default function MemorySearch({ memoryId }: MemorySearchProps) {
   const navigate = useNavigate();
-  const activeProfile = useActiveProfile();
-  const searchParams = useSearch({ strict: false });
-  const [params, setParams] = useMemoriesSearchParams();
+  const [params] = useMemoriesSearchParams();
   const getMemory = useAction(api.memoryApi.getMemory);
-
-  const searchQuery = params.q;
-  const normalizedQuery = searchQuery.trim();
-
-  // first type in the filter wins for the server-side roundtrip
-  const primaryType = params.types.length > 0 ? params.types[0] : undefined;
-  const primarySource =
-    params.sources.length > 0 ? params.sources[0] : undefined;
-
-  const kindIncludesMemory =
-    params.kinds.length === 0 || params.kinds.includes("memory");
-
-  const isHybridSearch = normalizedQuery.length > 0 && kindIncludesMemory;
-
-  const memoryPage = useMemoryListFlat({
-    profileId: activeProfile._id,
-    type: primaryType,
-    source: primarySource,
-    tags: params.tags,
-    searchQuery: isHybridSearch ? undefined : normalizedQuery || undefined,
-    enabled: !isHybridSearch,
-  });
-
-  const retrieveMemoriesAction = useAction(api.memoryApi.retrieveMemories);
-
-  const retrieveQuery = useQuery({
-    queryKey: [
-      "retrieveMemories",
-      activeProfile._id,
-      normalizedQuery,
-      primaryType,
-      params.tags,
-    ],
-    enabled: isHybridSearch,
-    queryFn: async () => {
-      return retrieveMemoriesAction({
-        query: normalizedQuery,
-        profileId: activeProfile._id,
-        type: primaryType,
-        tags: params.tags.length > 0 ? params.tags : undefined,
-        limit: 25,
-      });
-    },
-  });
-
-  const {
-    isLoading: isBrowseMemoriesLoading,
-    isError: isBrowseMemoriesError,
-    refetch: refetchBrowseMemories,
-    hasNextPage,
-    fetchNextPage,
-    isFetchingNextPage,
-  } = memoryPage;
-
-  const browseMemoryResults = memoryPage.memories;
-
-  const hybridMemoryResults = useMemo<Memory[]>(() => {
-    if (!retrieveQuery.data) return [];
-    return retrieveQuery.data.memories.map(apiMemoryToMemory);
-  }, [retrieveQuery.data]);
-
-  const memoryResults = isHybridSearch
-    ? hybridMemoryResults
-    : browseMemoryResults;
-
-  const isMemoriesLoading = isHybridSearch
-    ? retrieveQuery.isLoading
-    : isBrowseMemoriesLoading;
-
-  const isMemoriesError = isHybridSearch
-    ? retrieveQuery.isError
-    : isBrowseMemoriesError;
-
-  const refetchMemories = isHybridSearch
-    ? retrieveQuery.refetch
-    : refetchBrowseMemories;
-
-  const wikiRows = useConvexQuery(api.wiki.listTree, {
-    teamId: activeProfile.teamId,
-  });
-  const skillRows = useConvexQuery(api.skills.listMy, {
-    teamId: activeProfile.teamId,
-  });
+  const list = useMemoryListEntries();
   const { theme } = useThemeContext();
   const isDark = theme === "dark";
 
@@ -225,403 +221,157 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
   );
   const [previewItem, setPreviewItem] = useState<ListItem | null>(null);
 
-  // legacy param migration: convert old ?tag= to new ?tags=
-  useEffect(() => {
-    const legacy =
-      typeof searchParams === "object" &&
-      searchParams !== null &&
-      "tag" in searchParams &&
-      typeof searchParams.tag === "string"
-        ? searchParams.tag
-        : null;
-    if (!legacy?.trim()) return;
-    if (params.tags.length > 0) return;
-    void setParams({ tags: [legacy.trim().toLowerCase()] });
-  }, [searchParams, params.tags.length, setParams]);
-
-  // legacy param migration: convert old ?source= to new ?sources=
-  useEffect(() => {
-    const legacy =
-      typeof searchParams === "object" &&
-      searchParams !== null &&
-      "source" in searchParams &&
-      typeof searchParams.source === "string"
-        ? searchParams.source
-        : null;
-    if (!legacy?.trim()) return;
-    if (params.sources.length > 0) return;
-    void setParams({ sources: [legacy.trim()] });
-  }, [searchParams, params.sources.length, setParams]);
-
-  // memory items: browse from paginated list, or hybrid search from retrieve
-  const memoryItems = useMemo<ListItem[]>(
-    () => memoryResults.map(memoryToListItem),
-    [memoryResults],
-  );
-
-  const traceByMemoryId = useMemo(() => {
-    const map = new Map<string, MemoryTrace>();
-    if (!isHybridSearch || !retrieveQuery.data) return map;
-    for (const candidate of retrieveQuery.data.memories) {
-      map.set(candidate.id, candidate.trace);
-    }
-    return map;
-  }, [isHybridSearch, retrieveQuery.data]);
-
-  const maxRetrieveScore = useMemo(() => {
-    if (!retrieveQuery.data?.memories.length) return 1;
-    let max = 0;
-    for (const candidate of retrieveQuery.data.memories) {
-      if (candidate.trace.score > max) max = candidate.trace.score;
-    }
-    return max > 0 ? max : 1;
-  }, [retrieveQuery.data]);
-
-  // wiki + skill items come fully loaded
-  const wikiItemsRaw = useMemo<ListItem[]>(
-    () => (wikiRows ? wikiRowsToListItems(wikiRows) : []),
-    [wikiRows],
-  );
-  const skillItemsRaw = useMemo<ListItem[]>(
-    () => (skillRows ? skillRowsToListItems(skillRows) : []),
-    [skillRows],
-  );
-
-  const filteredNonMemoryItems = useMemo<ListItem[]>(() => {
-    const nonMemory = [...wikiItemsRaw, ...skillItemsRaw];
-    return nonMemory.filter(
-      (item) =>
-        listItemMatchesKindFilter(item, params.kinds) &&
-        listItemMatchesTagFilter(item, params.tags) &&
-        listItemMatchesSourceFilter(item, params.sources) &&
-        listItemMatchesTypeFilter(item, params.types),
-    );
-  }, [
-    wikiItemsRaw,
-    skillItemsRaw,
-    params.kinds,
-    params.tags,
-    params.sources,
-    params.types,
-  ]);
-
-  // if multiple types were selected, the server returned results for only the first
-  const memoryItemsAfterMultiFilter = useMemo<ListItem[]>(() => {
-    if (params.types.length <= 1 && params.sources.length <= 1) {
-      return memoryItems;
-    }
-    return memoryItems.filter((item) => {
-      if (params.types.length > 1 && item.kind === "memory") {
-        if (!params.types.includes(item.type)) return false;
-      }
-      if (params.sources.length > 1 && item.kind === "memory") {
-        if (!params.sources.includes(item.source)) return false;
-      }
-      return true;
-    });
-  }, [memoryItems, params.types, params.sources]);
-
-  const memoryItemsAfterKind = useMemo<ListItem[]>(
-    () =>
-      kindIncludesMemory
-        ? memoryItemsAfterMultiFilter.filter((item) =>
-            listItemMatchesKindFilter(item, params.kinds),
-          )
-        : [],
-    [memoryItemsAfterMultiFilter, params.kinds, kindIncludesMemory],
-  );
-
-  // client-side search scores wiki/skills; memory hits use retrieveMemories
-  const isShowingSearchResults = normalizedQuery.length > 0;
-  const nonMemorySearchResults = useMemo<ListItemSearchResult[] | null>(() => {
-    if (!isShowingSearchResults) return null;
-    return searchListItems(filteredNonMemoryItems, normalizedQuery);
-  }, [filteredNonMemoryItems, normalizedQuery, isShowingSearchResults]);
-
-  const displayItems: MemoryListEntry[] = useMemo(() => {
-    const memoryEntries = memoryItemsAfterKind.map((item) => {
-      const trace = traceByMemoryId.get(item.id);
-      if (trace) {
-        return {
-          item,
-          score: relativeRelevanceScore(trace.score, maxRetrieveScore),
-          trace,
-        };
-      }
-      return { item, score: null };
-    });
-    if (nonMemorySearchResults !== null) {
-      const nonMemoryEntries = nonMemorySearchResults.map((r) => ({
-        item: r.item,
-        score: r.relevanceScore,
-      }));
-      return [...memoryEntries, ...nonMemoryEntries];
-    }
-    const nonMemoryEntries = filteredNonMemoryItems.map((item) => ({
-      item,
-      score: null,
-    }));
-    return [...memoryEntries, ...nonMemoryEntries];
-  }, [
-    memoryItemsAfterKind,
-    filteredNonMemoryItems,
-    nonMemorySearchResults,
-    traceByMemoryId,
-    maxRetrieveScore,
-  ]);
-
-  const totalItems =
-    memoryItemsAfterKind.length + filteredNonMemoryItems.length;
-
-  const memoryFromList = useMemo<Memory | null>(() => {
-    if (!memoryId) return null;
-    return memoryResults.find((memory) => memory.id === memoryId) ?? null;
-  }, [memoryResults, memoryId]);
+  const memoryFromList =
+    memoryId === null
+      ? null
+      : (list.memoryResults.find((memory) => memory.id === memoryId) ?? null);
 
   const { data: fetchedMemory, isLoading: isFetchingMemory } = useQuery({
     queryKey: ["memory", memoryId],
     enabled: memoryId !== null && memoryFromList === null,
     queryFn: async () => {
       if (memoryId === null) return null;
-      return getMemory({ memoryId, profileId: activeProfile._id });
+      return getMemory({ memoryId, profileId: list.activeProfileId });
     },
   });
 
-  const selectedMemory = useMemo<Memory | null>(() => {
-    if (!memoryId) return null;
-    if (memoryFromList) return memoryFromList;
-    if (fetchedMemory) return apiMemoryToMemory(fetchedMemory);
-    return null;
-  }, [memoryId, memoryFromList, fetchedMemory]);
+  const selectedMemory =
+    memoryId === null
+      ? null
+      : (memoryFromList ??
+        (fetchedMemory ? memoryFromApi(fetchedMemory) : null));
 
+  // drop stale /$id routes once list + fetch settle empty
   useEffect(() => {
-    if (!memoryId) return;
-    if (isHybridSearch) {
-      if (retrieveQuery.isLoading) return;
-    } else if (isBrowseMemoriesLoading || isFetchingNextPage || hasNextPage) {
+    if (memoryId === null || isFetchingMemory) return;
+
+    if (list.isHybridSearch) {
+      if (list.isRetrieveLoading) return;
+    } else if (
+      list.isBrowseMemoriesLoading ||
+      list.isFetchingNextPage ||
+      list.hasNextPage
+    ) {
       return;
     }
-    if (isFetchingMemory) return;
-    const inList = memoryResults.some((memory) => memory.id === memoryId);
-    const hasMemory = inList || fetchedMemory !== null;
-    if (!hasMemory) {
-      void navigate({
-        to: "/$profileId/memories/list",
-        params: { profileId: activeProfile._id },
-      });
-    }
+
+    const inList = list.memoryResults.some((memory) => memory.id === memoryId);
+    if (inList || fetchedMemory !== null) return;
+
+    void navigate({
+      to: "/$profileId/memories/list",
+      params: { profileId: list.activeProfileId },
+    });
   }, [
-    activeProfile._id,
+    list.activeProfileId,
     memoryId,
-    memoryResults,
+    list.memoryResults,
     fetchedMemory,
-    isHybridSearch,
-    retrieveQuery.isLoading,
-    isBrowseMemoriesLoading,
-    isFetchingNextPage,
-    hasNextPage,
+    list.isHybridSearch,
+    list.isRetrieveLoading,
+    list.isBrowseMemoriesLoading,
+    list.isFetchingNextPage,
+    list.hasNextPage,
     isFetchingMemory,
     navigate,
   ]);
 
-  const openMemory = useCallback(
-    (id: string) => {
-      setPreviewItem(null);
-      void navigate({
-        to: "/$profileId/memories/list/$id",
-        params: { profileId: activeProfile._id, id },
-      });
-    },
-    [navigate, activeProfile._id],
-  );
+  function openMemory(id: string) {
+    setPreviewItem(null);
+    void navigate({
+      to: "/$profileId/memories/list/$id",
+      params: { profileId: list.activeProfileId, id },
+    });
+  }
 
-  const closeMemory = useCallback(() => {
+  function closeMemory() {
     void navigate({
       to: "/$profileId/memories/list",
-      params: { profileId: activeProfile._id },
+      params: { profileId: list.activeProfileId },
     });
-  }, [navigate, activeProfile._id]);
+  }
 
-  const closePreview = useCallback(() => {
-    setPreviewItem(null);
-  }, []);
-
-  const handleItemSelect = useCallback(
-    (item: ListItem) => {
-      setPanelAction(null);
-      if (previewItem?.id === item.id) {
-        setPreviewItem(null);
-        return;
-      }
-      if (memoryId !== null) {
-        closeMemory();
-      }
-      setPreviewItem(item);
-    },
-    [previewItem, memoryId, closeMemory],
-  );
-
-  const handleMemoryUpdate = useCallback(
-    (updatedMemory: Memory) => {
-      if (memoryId !== updatedMemory.id) {
-        openMemory(updatedMemory.id);
-      }
-    },
-    [memoryId, openMemory],
-  );
-
-  const handleMemoryDelete = useCallback(
-    (deletedId: string) => {
-      if (memoryId === deletedId) {
-        closeMemory();
-      }
-    },
-    [memoryId, closeMemory],
-  );
-
-  const handleMemoryClick = useCallback(
-    (memory: Memory) => {
-      setPanelAction(null);
-      setPreviewItem(null);
-      if (memoryId === memory.id) {
-        closeMemory();
-        return;
-      }
-      openMemory(memory.id);
-    },
-    [memoryId, closeMemory, openMemory],
-  );
-
-  const handleContextEdit = useCallback(
-    (memory: Memory) => {
-      openMemory(memory.id);
-      setPanelAction("edit");
-    },
-    [openMemory],
-  );
-
-  const handleContextDelete = useCallback(
-    (memory: Memory) => {
-      openMemory(memory.id);
-      setPanelAction("delete");
-    },
-    [openMemory],
-  );
-
-  const handleConsumeAction = useCallback(() => {
+  function handleItemSelect(item: ListItem) {
     setPanelAction(null);
-  }, []);
-
-  const handleEndReached = useCallback(() => {
-    if (isHybridSearch) return;
-    if (hasNextPage && !isFetchingNextPage && !isBrowseMemoriesLoading) {
-      void fetchNextPage();
+    if (previewItem?.id === item.id) {
+      setPreviewItem(null);
+      return;
     }
-  }, [
-    isHybridSearch,
-    hasNextPage,
-    isFetchingNextPage,
-    isBrowseMemoriesLoading,
-    fetchNextPage,
-  ]);
+    if (memoryId !== null) closeMemory();
+    setPreviewItem(item);
+  }
 
-  const hasMemoryRoute = memoryId !== null;
-  const hasPreviewPanel = previewItem !== null;
-  const hasSidePanel = hasMemoryRoute || hasPreviewPanel;
+  function handleMemoryClick(memory: Memory) {
+    setPanelAction(null);
+    setPreviewItem(null);
+    if (memoryId === memory.id) {
+      closeMemory();
+      return;
+    }
+    openMemory(memory.id);
+  }
+
+  function handleEndReached() {
+    if (list.isHybridSearch) return;
+    if (
+      !list.hasNextPage ||
+      list.isFetchingNextPage ||
+      list.isBrowseMemoriesLoading
+    ) {
+      return;
+    }
+    void list.fetchNextPage();
+  }
+
+  const hasSidePanel = memoryId !== null || previewItem !== null;
   const selectedItemId = memoryId ?? previewItem?.id ?? null;
   const isPanelLoading =
-    hasMemoryRoute &&
+    memoryId !== null &&
     selectedMemory === null &&
     (isFetchingMemory ||
-      (isHybridSearch
-        ? retrieveQuery.isLoading
-        : isBrowseMemoriesLoading || isFetchingNextPage));
+      (list.isHybridSearch
+        ? list.isRetrieveLoading
+        : list.isBrowseMemoriesLoading || list.isFetchingNextPage));
 
-  // initial load: block render until memory data is ready
-  if (isMemoriesLoading && memoryResults.length === 0) {
+  if (list.isMemoriesLoading && list.memoryResults.length === 0) {
+    return <MemoryListStatus variant="loading" />;
+  }
+
+  if (list.isMemoriesError && list.memoryResults.length === 0) {
     return (
-      <div className="flex h-full min-h-0 items-center justify-center">
-        <VmemSpinner size={24} className="text-muted" />
-      </div>
+      <MemoryListStatus
+        variant="error"
+        onRetry={() => void list.refetchMemories()}
+      />
     );
   }
 
-  // A failed list load must never masquerade as an empty workspace —
-  // that exact silence cost a debugging session once
-  if (isMemoriesError && memoryResults.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 text-center">
-        <div className="w-12 h-12 rounded-full bg-surface-secondary flex items-center justify-center mb-4">
-          <IconAlertCircle className="w-6 h-6 text-danger" />
-        </div>
-        <h3 className="text-lg font-medium text-foreground mb-2 text-balance">
-          Failed to load memories
-        </h3>
-        <p className="text-sm text-muted mb-4">
-          Something went wrong fetching this workspace's memories.
-        </p>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => void refetchMemories()}
-        >
-          <IconRefresh size={16} />
-          Try again
-        </Button>
-      </div>
-    );
-  }
-
-  if (totalItems === 0 && !isShowingSearchResults) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 text-center">
-        <div className="w-12 h-12 rounded-full bg-surface-secondary flex items-center justify-center mb-4">
-          <IconMoodEmpty className="w-6 h-6 text-muted" />
-        </div>
-        <h3 className="text-lg font-medium text-foreground mb-2 text-balance">
-          Nothing here yet
-        </h3>
-        <p className="text-sm text-muted">
-          Add a memory, wiki doc, or skill to get started
-        </p>
-      </div>
-    );
+  if (!list.isShowingSearchResults && list.displayItems.length === 0) {
+    return <MemoryListStatus variant="empty" />;
   }
 
   return (
     <div className="relative flex h-full min-h-0 flex-col">
-      <div className="flex flex-1 min-w-0 min-h-0 flex-col">
-        {isShowingSearchResults && displayItems.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="w-10 h-10 rounded-full bg-surface-secondary flex items-center justify-center mb-3">
-              <AnimatedSearchIcon className="text-muted" />
-            </div>
-            <h3 className="text-base font-medium text-foreground mb-1 text-balance">
-              No results found
-            </h3>
-            <p className="text-sm text-muted">
-              Try searching with different keywords
-            </p>
-          </div>
-        )}
-
-        {(!isShowingSearchResults || displayItems.length > 0) && (
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        {list.isShowingSearchResults && list.displayItems.length === 0 ? (
+          <MemoryListStatus variant="no-results" />
+        ) : (
           <div
             className={cn(
-              "flex flex-1 min-h-0 gap-4",
+              "flex min-h-0 flex-1 gap-4",
               hasSidePanel ? "flex-col lg:flex-row" : "",
             )}
           >
             <div
               className={cn(
-                "min-w-0 min-h-0",
+                "min-h-0 min-w-0",
                 hasSidePanel
                   ? "hidden sm:block lg:min-w-0 lg:flex-1"
                   : "flex-1",
               )}
             >
               <Virtuoso
-                data={displayItems}
+                data={list.displayItems}
                 className="scrollbar-thin"
                 context={{
                   selectedItemId,
@@ -629,8 +379,14 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
                   isDark,
                   onMemoryClick: handleMemoryClick,
                   onItemSelect: handleItemSelect,
-                  onContextEdit: handleContextEdit,
-                  onContextDelete: handleContextDelete,
+                  onContextEdit: (memory) => {
+                    openMemory(memory.id);
+                    setPanelAction("edit");
+                  },
+                  onContextDelete: (memory) => {
+                    openMemory(memory.id);
+                    setPanelAction("delete");
+                  },
                 }}
                 computeItemKey={(_index, entry) => entry.item.id}
                 defaultItemHeight={44}
@@ -642,28 +398,23 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
 
             {hasSidePanel ? (
               <div className="flex h-full min-h-0 w-full flex-col overflow-hidden lg:min-w-0 lg:flex-1">
-                {previewItem ? (
-                  <ListItemPreviewPanel
-                    key={previewItem.id}
-                    item={previewItem}
-                    onClose={closePreview}
-                  />
-                ) : selectedMemory ? (
-                  <MemoryDetailPanel
-                    key={memoryId}
-                    memory={selectedMemory}
-                    onClose={closeMemory}
-                    onMemoryUpdate={handleMemoryUpdate}
-                    onMemoryDelete={handleMemoryDelete}
-                    onSelectRelated={(memory) => openMemory(memory.id)}
-                    initialAction={panelAction ?? undefined}
-                    onConsumeAction={handleConsumeAction}
-                  />
-                ) : isPanelLoading ? (
-                  <div className="flex h-full items-center justify-center rounded-lg bg-surface-secondary">
-                    <VmemSpinner size={20} className="text-muted" />
-                  </div>
-                ) : null}
+                <MemoryListSidePanel
+                  previewItem={previewItem}
+                  selectedMemory={selectedMemory}
+                  memoryId={memoryId}
+                  isPanelLoading={isPanelLoading}
+                  panelAction={panelAction}
+                  onClosePreview={() => setPreviewItem(null)}
+                  onCloseMemory={closeMemory}
+                  onMemoryUpdate={(updated) => {
+                    if (memoryId !== updated.id) openMemory(updated.id);
+                  }}
+                  onMemoryDelete={(deletedId) => {
+                    if (memoryId === deletedId) closeMemory();
+                  }}
+                  onSelectRelated={(memory) => openMemory(memory.id)}
+                  onConsumeAction={() => setPanelAction(null)}
+                />
               </div>
             ) : null}
           </div>

@@ -14,7 +14,11 @@ import {
   useQueryClient,
   useInfiniteQuery,
 } from "@tanstack/react-query";
-import type { Memory } from "@/lib/memories";
+import {
+  memoryFromApi,
+  type Memory,
+  type MemoryApiFields,
+} from "@/lib/memories";
 import { api } from "@vmem/backend";
 import { parseConvexStorageUpload } from "@/lib/schemas";
 import { useActiveProfileId } from "@/components/workspace/active-profile";
@@ -51,26 +55,8 @@ interface MemoryContextType {
 
 const MemoryContext = createContext<MemoryContextType | null>(null);
 
-interface ApiMemory {
-  id: string;
-  userId: string;
-  title: string;
-  content: string;
-  type: string;
-  source: string;
-  sourceUrl?: string | null;
-  sourceSyncedAt?: string | null;
-  confidence: number;
-  status: string;
-  tags: string[];
-  createdAt: string;
-  updatedAt: string;
-  expiresAt: string | null;
-  profileId?: string;
-}
-
 interface ApiMemoryPage {
-  memories: ApiMemory[];
+  memories: MemoryApiFields[];
   total: number;
 }
 
@@ -79,36 +65,6 @@ const CONTEXT_MEMORY_LIMIT = 1000;
 
 // page size for the paginated list hook
 const MEMORY_LIST_PAGE_SIZE = 100;
-
-function isMemoryType(value: string): value is Memory["type"] {
-  return value === "profile" || value === "episodic" || value === "knowledge";
-}
-
-function apiToMemory(m: {
-  id: string;
-  title: string;
-  content: string;
-  type: string;
-  source: string;
-  tags: string[];
-  createdAt: string;
-  sourceUrl?: string | null;
-  sourceSyncedAt?: string | null;
-  profileId?: string | null;
-}): Memory {
-  return {
-    id: m.id,
-    title: m.title,
-    content: m.content,
-    type: isMemoryType(m.type) ? m.type : "knowledge",
-    source: m.source,
-    sourceUrl: m.sourceUrl ?? null,
-    sourceSyncedAt: m.sourceSyncedAt ?? null,
-    tags: m.tags,
-    createdAt: m.createdAt,
-    profileId: m.profileId ?? undefined,
-  };
-}
 
 // filters forwarded to the server-paginated listMemories action
 export interface MemoryListFilters {
@@ -183,7 +139,7 @@ export function useMemoryListFlat(filters: MemoryListFilters) {
     const out: Memory[] = [];
     for (const page of query.data.pages) {
       for (const m of page.memories) {
-        out.push(apiToMemory(m));
+        out.push(memoryFromApi(m));
       }
     }
     return out;
@@ -230,7 +186,7 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
         offset: 0,
         profileId: activeProfileId,
       });
-      return data.memories.map((m) => apiToMemory(m));
+      return data.memories.map((m) => memoryFromApi(m));
     },
     enabled: isAuthenticated && activeProfileId !== undefined,
   });
@@ -253,7 +209,7 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
       });
       // pass the action result as a variable (not a fresh literal) so
       // extra MemoryWithTags fields don't trip excess-property checks
-      return apiToMemory(created);
+      return memoryFromApi(created);
     },
     onMutate: async (input) => {
       await queryClient.cancelQueries({ queryKey: recentQueryKey });
@@ -296,7 +252,7 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
       if (apiMemory === null) {
         throw new Error("Memory not found");
       }
-      return { memory: apiToMemory(apiMemory), id: input.id };
+      return { memory: memoryFromApi(apiMemory), id: input.id };
     },
     onMutate: async (input) => {
       await queryClient.cancelQueries({ queryKey: recentQueryKey });
@@ -360,7 +316,7 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
         mimeType: input.file.type,
         profileId: input.profileId ?? activeProfileId,
       });
-      return apiToMemory(created);
+      return memoryFromApi(created);
     },
     onSettled: invalidateMemories,
   });
