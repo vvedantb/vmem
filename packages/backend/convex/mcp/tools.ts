@@ -324,9 +324,11 @@ export function registerTools(
 
   for (const key of Object.keys(toolSpecs)) {
     if (!isToolSpecKey(key)) continue;
+    const bindable = bindableToolSpecs[key];
+    if (!bindable) continue;
     registerMcpTool(
       server,
-      bindableToolSpecs[key],
+      bindable,
       mcpPresentation[key],
       scopeLabel,
       scope,

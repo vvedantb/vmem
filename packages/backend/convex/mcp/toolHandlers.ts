@@ -1,9 +1,16 @@
 import type { ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
+import type { Doc } from "../_generated/dataModel";
 import { toSkillIndexEntry } from "../skills";
 import type { McpScope } from "../profiles/mcpAccess";
 import type { z } from "zod";
 import { isOpenRouterRequired } from "../http/v1Memories/types";
+import { deleteFile, getFile, listFiles, uploadFile } from "./fileOps";
+import {
+  mapActiveProfile,
+  mapProfileListItem,
+  mapWhoamiProfileListItem,
+} from "./profileMappers";
 import type {
   codebaseContextSchema,
   codebaseGraphSchema,
@@ -32,6 +39,13 @@ import type {
   wikiSearchSchema,
   wikiUpdateSchema,
 } from "./schemas";
+import {
+  createWiki,
+  toWikiGetResult,
+  toWikiListItem,
+  toWikiSearchItem,
+  updateWiki,
+} from "./wikiOps";
 
 export type ToolHandlerResult =
   | { ok: true; data: unknown }
@@ -80,9 +94,32 @@ export async function runPing(
 export async function runWhoami(
   ctx: ToolHandlerContext,
 ): Promise<ToolHandlerResult> {
-  return safe("whoami", () =>
-    ctx.ctx.runAction(internal.mcp.profiles.mcpWhoami, scopedClerk(ctx)),
-  );
+  return safe("whoami", async () => {
+    const profiles = await ctx.ctx.runQuery(
+      internal.profiles.listByClerkIdAndScopeInternal,
+      scopedClerk(ctx),
+    );
+
+    let activeProfile: Doc<"profiles"> | null = await ctx.ctx.runQuery(
+      internal.profiles.getActiveProfileForMcpScopeInternal,
+      scopedClerk(ctx),
+    );
+
+    if (!activeProfile && ctx.scope === "personal") {
+      activeProfile = await ctx.ctx.runMutation(
+        internal.profiles.getOrCreateDefaultByClerkIdInternal,
+        { clerkId: ctx.clerkUserId },
+      );
+    }
+
+    return {
+      authenticated: true,
+      clerkUserId: ctx.clerkUserId,
+      scope: ctx.scope,
+      activeProfile: activeProfile ? mapActiveProfile(activeProfile) : null,
+      profiles: profiles.map(mapWhoamiProfileListItem),
+    };
+  });
 }
 
 export async function runContextPromptGet(
@@ -105,21 +142,38 @@ export async function runContextPromptGet(
 export async function runListProfiles(
   ctx: ToolHandlerContext,
 ): Promise<ToolHandlerResult> {
-  return safe("list_profiles", () =>
-    ctx.ctx.runAction(internal.mcp.profiles.mcpListProfiles, scopedClerk(ctx)),
-  );
+  return safe("list_profiles", async () => {
+    const profiles = await ctx.ctx.runQuery(
+      internal.profiles.listByClerkIdAndScopeInternal,
+      scopedClerk(ctx),
+    );
+    return profiles.map(mapProfileListItem);
+  });
 }
 
 export async function runSetActiveProfile(
   ctx: ToolHandlerContext,
   params: z.infer<typeof setActiveProfileSchema>,
 ): Promise<ToolHandlerResult> {
-  return safe("set_active_profile", () =>
-    ctx.ctx.runAction(internal.mcp.profiles.mcpSetActiveProfile, {
-      ...scopedClerk(ctx),
-      profileId: params.profileId,
-    }),
-  );
+  return safe("set_active_profile", async () => {
+    await ctx.ctx.runMutation(
+      internal.userSettings.setMcpDefaultProfileByClerkIdInternal,
+      {
+        ...scopedClerk(ctx),
+        profileId: params.profileId,
+      },
+    );
+
+    const activeProfile: Doc<"profiles"> | null = await ctx.ctx.runQuery(
+      internal.profiles.getActiveProfileForMcpScopeInternal,
+      scopedClerk(ctx),
+    );
+    if (!activeProfile) {
+      throw new Error("Failed to resolve active profile");
+    }
+
+    return mapActiveProfile(activeProfile);
+  });
 }
 
 export async function runMemorySearch(
@@ -309,23 +363,26 @@ export async function runSkillsDelete(
 export async function runWikiList(
   ctx: ToolHandlerContext,
 ): Promise<ToolHandlerResult> {
-  return safe("wiki_list", () =>
-    ctx.ctx.runAction(internal.mcp.wiki.mcpListWiki, {
+  return safe("wiki_list", async () => {
+    const rows = await ctx.ctx.runQuery(internal.wiki.listByClerkIdInternal, {
       clerkId: ctx.clerkUserId,
-    }),
-  );
+    });
+    return rows.map(toWikiListItem);
+  });
 }
 
 export async function runWikiGet(
   ctx: ToolHandlerContext,
   params: z.infer<typeof wikiGetSchema>,
 ): Promise<ToolHandlerResult> {
-  const result = await safe("wiki_get", () =>
-    ctx.ctx.runAction(internal.mcp.wiki.mcpGetWiki, {
+  const result = await safe("wiki_get", async () => {
+    const node = await ctx.ctx.runQuery(internal.wiki.getByIdInternal, {
       clerkId: ctx.clerkUserId,
       id: params.id,
-    }),
-  );
+    });
+    if (!node) return null;
+    return toWikiGetResult(node);
+  });
   if (!result.ok) return result;
   if (result.data === null) {
     return { ok: false, error: "Wiki node not found" };
@@ -337,12 +394,13 @@ export async function runWikiSearch(
   ctx: ToolHandlerContext,
   params: z.infer<typeof wikiSearchSchema>,
 ): Promise<ToolHandlerResult> {
-  return safe("wiki_search", () =>
-    ctx.ctx.runAction(internal.mcp.wiki.mcpSearchWiki, {
+  return safe("wiki_search", async () => {
+    const rows = await ctx.ctx.runQuery(internal.wiki.searchByClerkIdInternal, {
       clerkId: ctx.clerkUserId,
-      query: params.query,
-    }),
-  );
+      queryText: params.query,
+    });
+    return rows.map(toWikiSearchItem);
+  });
 }
 
 export async function runWikiCreate(
@@ -350,7 +408,7 @@ export async function runWikiCreate(
   params: z.infer<typeof wikiCreateSchema>,
 ): Promise<ToolHandlerResult> {
   return safe("wiki_create", () =>
-    ctx.ctx.runAction(internal.mcp.wiki.mcpCreateWiki, {
+    createWiki(ctx.ctx, {
       clerkId: ctx.clerkUserId,
       kind: params.kind,
       title: params.title,
@@ -367,7 +425,7 @@ export async function runWikiUpdate(
   params: z.infer<typeof wikiUpdateSchema>,
 ): Promise<ToolHandlerResult> {
   return safe("wiki_update", () =>
-    ctx.ctx.runAction(internal.mcp.wiki.mcpUpdateWiki, {
+    updateWiki(ctx.ctx, {
       clerkId: ctx.clerkUserId,
       id: params.id,
       title: params.title,
@@ -381,12 +439,13 @@ export async function runWikiDelete(
   ctx: ToolHandlerContext,
   params: z.infer<typeof wikiDeleteSchema>,
 ): Promise<ToolHandlerResult> {
-  return safe("wiki_delete", () =>
-    ctx.ctx.runAction(internal.mcp.wiki.mcpDeleteWiki, {
-      clerkId: ctx.clerkUserId,
-      id: params.id,
-    }),
-  );
+  return safe("wiki_delete", async () => {
+    const deletedCount = await ctx.ctx.runMutation(
+      internal.wiki.deleteByClerkIdInternal,
+      { clerkId: ctx.clerkUserId, id: params.id },
+    );
+    return { deletedCount };
+  });
 }
 
 export async function runFilesList(
@@ -394,10 +453,7 @@ export async function runFilesList(
   params: z.infer<typeof filesListSchema>,
 ): Promise<ToolHandlerResult> {
   return safe("files_list", () =>
-    ctx.ctx.runAction(internal.mcp.files.mcpListFiles, {
-      clerkId: ctx.clerkUserId,
-      path: params.path,
-    }),
+    listFiles(ctx.ctx, ctx.clerkUserId, params.path),
   );
 }
 
@@ -406,10 +462,7 @@ export async function runFilesGet(
   params: z.infer<typeof filesGetSchema>,
 ): Promise<ToolHandlerResult> {
   return safe("files_get", () =>
-    ctx.ctx.runAction(internal.mcp.files.mcpGetFile, {
-      clerkId: ctx.clerkUserId,
-      path: params.path,
-    }),
+    getFile(ctx.ctx, ctx.clerkUserId, params.path),
   );
 }
 
@@ -418,7 +471,7 @@ export async function runFilesUpload(
   params: z.infer<typeof filesUploadSchema>,
 ): Promise<ToolHandlerResult> {
   return safe("files_upload", () =>
-    ctx.ctx.runAction(internal.mcp.files.mcpUploadFile, {
+    uploadFile(ctx.ctx, {
       clerkId: ctx.clerkUserId,
       path: params.path,
       contentBase64: params.contentBase64,
@@ -433,21 +486,51 @@ export async function runFilesDelete(
   params: z.infer<typeof filesDeleteSchema>,
 ): Promise<ToolHandlerResult> {
   return safe("files_delete", () =>
-    ctx.ctx.runAction(internal.mcp.files.mcpDeleteFile, {
-      clerkId: ctx.clerkUserId,
-      path: params.path,
-    }),
+    deleteFile(ctx.ctx, ctx.clerkUserId, params.path),
   );
+}
+
+function mapCodebaseSummary(row: Doc<"codebases">) {
+  return {
+    id: row._id,
+    repoFullName: row.repoFullName,
+    repoOwner: row.repoOwner,
+    repoName: row.repoName,
+    defaultBranch: row.defaultBranch,
+    status: row.status,
+    language: row.language,
+    description: row.description,
+    isPrivate: row.isPrivate,
+    totalFiles: row.totalFiles,
+    syncedFiles: row.syncedFiles,
+    lastSyncedAt: row.lastSyncedAt,
+    functionCount: row.functionCount,
+    classCount: row.classCount,
+    interfaceCount: row.interfaceCount,
+    callEdgeCount: row.callEdgeCount,
+    processCount: row.processCount,
+    parserVersion: row.parserVersion,
+    lastParseError: row.lastParseError,
+    errorMessage: row.errorMessage,
+  };
 }
 
 export async function runCodebasesList(
   ctx: ToolHandlerContext,
 ): Promise<ToolHandlerResult> {
-  return safe("codebases_list", () =>
-    ctx.ctx.runAction(internal.mcp.codebases.mcpListCodebases, {
+  return safe("codebases_list", async () => {
+    const user = await ctx.ctx.runQuery(internal.users.getByClerkIdInternal, {
       clerkId: ctx.clerkUserId,
-    }),
-  );
+    });
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const rows = await ctx.ctx.runQuery(internal.codebases.listMyInternal, {
+      userId: user._id,
+    });
+    return rows.map(mapCodebaseSummary);
+  });
 }
 
 export async function runCodebaseOverview(

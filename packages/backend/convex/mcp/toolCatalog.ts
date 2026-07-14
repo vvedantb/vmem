@@ -74,10 +74,11 @@ import {
 interface ToolSpec<Shape extends z.ZodRawShape> {
   readonly name: string;
   readonly schema: z.ZodObject<Shape>;
-  readonly run: (
+  // Method syntax: bivariant params so ToolSpec<> erases into ErasedToolSpec.
+  run(
     h: ToolHandlerContext,
     params: z.infer<z.ZodObject<Shape>>,
-  ) => Promise<ToolHandlerResult>;
+  ): Promise<ToolHandlerResult>;
 }
 
 function toolSpec<Shape extends z.ZodRawShape>(
@@ -255,9 +256,18 @@ export type McpBindableTool = {
   ) => Promise<ToolHandlerResult>;
 };
 
-export function bindToolSpec<Shape extends z.ZodRawShape>(
-  spec: ToolSpec<Shape>,
-): McpBindableTool {
+/** Structural erase of ToolSpec<> so heterogeneous catalog entries can bind. */
+type ErasedToolSpec = {
+  readonly name: string;
+  readonly schema: z.ZodObject<z.ZodRawShape>;
+  // Method syntax keeps `run` bivariant so specific ToolSpec shapes assign here.
+  run(
+    h: ToolHandlerContext,
+    params: z.infer<z.ZodObject<z.ZodRawShape>>,
+  ): Promise<ToolHandlerResult>;
+};
+
+export function bindToolSpec(spec: ErasedToolSpec): McpBindableTool {
   return {
     name: spec.name,
     schema: spec.schema,
@@ -265,38 +275,6 @@ export function bindToolSpec<Shape extends z.ZodRawShape>(
   };
 }
 
-export const bindableToolSpecs = {
-  ping: bindToolSpec(toolSpecs.ping),
-  whoami: bindToolSpec(toolSpecs.whoami),
-  list_profiles: bindToolSpec(toolSpecs.list_profiles),
-  set_active_profile: bindToolSpec(toolSpecs.set_active_profile),
-  context_prompt_get: bindToolSpec(toolSpecs.context_prompt_get),
-  memory_search: bindToolSpec(toolSpecs.memory_search),
-  memory_retrieve: bindToolSpec(toolSpecs.memory_retrieve),
-  memory_add: bindToolSpec(toolSpecs.memory_add),
-  memory_add_instruction: bindToolSpec(toolSpecs.memory_add_instruction),
-  memory_update: bindToolSpec(toolSpecs.memory_update),
-  memory_delete: bindToolSpec(toolSpecs.memory_delete),
-  memory_related: bindToolSpec(toolSpecs.memory_related),
-  skills_list: bindToolSpec(toolSpecs.skills_list),
-  skills_get: bindToolSpec(toolSpecs.skills_get),
-  skills_create: bindToolSpec(toolSpecs.skills_create),
-  skills_update: bindToolSpec(toolSpecs.skills_update),
-  skills_delete: bindToolSpec(toolSpecs.skills_delete),
-  wiki_list: bindToolSpec(toolSpecs.wiki_list),
-  wiki_get: bindToolSpec(toolSpecs.wiki_get),
-  wiki_search: bindToolSpec(toolSpecs.wiki_search),
-  wiki_create: bindToolSpec(toolSpecs.wiki_create),
-  wiki_update: bindToolSpec(toolSpecs.wiki_update),
-  wiki_delete: bindToolSpec(toolSpecs.wiki_delete),
-  files_list: bindToolSpec(toolSpecs.files_list),
-  files_get: bindToolSpec(toolSpecs.files_get),
-  files_upload: bindToolSpec(toolSpecs.files_upload),
-  files_delete: bindToolSpec(toolSpecs.files_delete),
-  codebases_list: bindToolSpec(toolSpecs.codebases_list),
-  codebase_overview: bindToolSpec(toolSpecs.codebase_overview),
-  codebase_search: bindToolSpec(toolSpecs.codebase_search),
-  codebase_context: bindToolSpec(toolSpecs.codebase_context),
-  codebase_impact: bindToolSpec(toolSpecs.codebase_impact),
-  codebase_graph: bindToolSpec(toolSpecs.codebase_graph),
-} satisfies Record<keyof typeof toolSpecs, McpBindableTool>;
+export const bindableToolSpecs = Object.fromEntries(
+  Object.entries(toolSpecs).map(([key, spec]) => [key, bindToolSpec(spec)]),
+) satisfies Record<string, McpBindableTool>;

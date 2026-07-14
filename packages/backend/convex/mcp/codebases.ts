@@ -3,32 +3,7 @@
 import { v } from "convex/values";
 import { internalAction, type ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
-import type { Doc, Id } from "../_generated/dataModel";
-
-type CodebaseStatus = Doc<"codebases">["status"];
-
-interface McpCodebaseSummary {
-  id: string;
-  repoFullName: string;
-  repoOwner: string;
-  repoName: string;
-  defaultBranch: string;
-  status: CodebaseStatus;
-  language?: string;
-  description?: string;
-  isPrivate?: boolean;
-  totalFiles: number;
-  syncedFiles: number;
-  lastSyncedAt?: number;
-  functionCount?: number;
-  classCount?: number;
-  interfaceCount?: number;
-  callEdgeCount?: number;
-  processCount?: number;
-  parserVersion?: string;
-  lastParseError?: string;
-  errorMessage?: string;
-}
+import type { Id } from "../_generated/dataModel";
 
 interface OverviewStatsResult {
   fileCount: number;
@@ -133,31 +108,6 @@ const directionValidator = v.union(
   v.literal("downstream"),
 );
 
-function mapCodebaseSummary(row: Doc<"codebases">): McpCodebaseSummary {
-  return {
-    id: row._id,
-    repoFullName: row.repoFullName,
-    repoOwner: row.repoOwner,
-    repoName: row.repoName,
-    defaultBranch: row.defaultBranch,
-    status: row.status,
-    language: row.language,
-    description: row.description,
-    isPrivate: row.isPrivate,
-    totalFiles: row.totalFiles,
-    syncedFiles: row.syncedFiles,
-    lastSyncedAt: row.lastSyncedAt,
-    functionCount: row.functionCount,
-    classCount: row.classCount,
-    interfaceCount: row.interfaceCount,
-    callEdgeCount: row.callEdgeCount,
-    processCount: row.processCount,
-    parserVersion: row.parserVersion,
-    lastParseError: row.lastParseError,
-    errorMessage: row.errorMessage,
-  };
-}
-
 async function requireOwnedCodebaseId(
   ctx: ActionCtx,
   clerkId: string,
@@ -188,23 +138,6 @@ async function requireOwnedCodebaseId(
 
   return normalizedId;
 }
-
-export const mcpListCodebases = internalAction({
-  args: { clerkId: v.string() },
-  handler: async (ctx, args): Promise<McpCodebaseSummary[]> => {
-    const user = await ctx.runQuery(internal.users.getByClerkIdInternal, {
-      clerkId: args.clerkId,
-    });
-    if (!user) {
-      throw new Error("User not found");
-    }
-
-    const rows = await ctx.runQuery(internal.codebases.listMyInternal, {
-      userId: user._id,
-    });
-    return rows.map(mapCodebaseSummary);
-  },
-});
 
 export const mcpGetCodebaseOverview = internalAction({
   args: { clerkId: v.string(), codebaseId: v.string() },
