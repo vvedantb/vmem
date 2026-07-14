@@ -78,6 +78,14 @@ export const syncOneConnectorInternal = internalAction({
       const message =
         err instanceof Error ? err.message : "Connector sync failed";
       console.error("[connector-sync]", args.connectorId, err);
+      // The daily connector cron runs unattended at 04:00 UTC — without this
+      // a failed ingest is invisible until the user notices stale memories.
+      await ctx.runMutation(internal.notifications.pushInternal, {
+        userId: connector.userId,
+        title: `Connector sync failed — ${connector.name}`,
+        description: message,
+        type: "error",
+      });
       return { ok: false, message };
     }
   },

@@ -87,6 +87,46 @@ export const markAllAsRead = authMutation({
   },
 });
 
+async function insertNotification(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  title: string,
+  description: string,
+  type: Doc<"notifications">["type"],
+): Promise<null> {
+  await ctx.db.insert("notifications", {
+    userId,
+    title,
+    description,
+    type,
+    read: false,
+    createdAt: Date.now(),
+  });
+  return null;
+}
+
+/**
+ * Push a notification to a known user row. Preferred over the clerkId variant
+ * from anything that already holds a `userId` (sync failures, scheduled runs).
+ */
+export const pushInternal = internalMutation({
+  args: {
+    userId: v.id("users"),
+    title: v.string(),
+    description: v.string(),
+    type: notificationTypeValidator,
+  },
+  returns: v.null(),
+  handler: async (ctx, args) =>
+    insertNotification(
+      ctx,
+      args.userId,
+      args.title,
+      args.description,
+      args.type,
+    ),
+});
+
 export const pushForClerkIdInternal = internalMutation({
   args: {
     clerkId: v.string(),
@@ -98,16 +138,13 @@ export const pushForClerkIdInternal = internalMutation({
   handler: async (ctx, args) => {
     const user = await getUserByClerkId(ctx, args.clerkId);
     if (!user) return null;
-
-    await ctx.db.insert("notifications", {
-      userId: user._id,
-      title: args.title,
-      description: args.description,
-      type: args.type,
-      read: false,
-      createdAt: Date.now(),
-    });
-    return null;
+    return await insertNotification(
+      ctx,
+      user._id,
+      args.title,
+      args.description,
+      args.type,
+    );
   },
 });
 

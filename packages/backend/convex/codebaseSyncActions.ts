@@ -149,6 +149,14 @@ export const syncOneCodebaseInternal = internalAction({
         errorMessage: message,
         lastParseError: message,
       });
+      // Surface the failure in the Inbox — a nightly sync fails with nobody
+      // watching, and the error would otherwise only live on the codebase row.
+      await ctx.runMutation(internal.notifications.pushInternal, {
+        userId: codebase.userId,
+        title: `Codebase sync failed — ${codebase.repoFullName}`,
+        description: message,
+        type: "error",
+      });
       return { ok: false, message };
     }
   },

@@ -473,6 +473,13 @@ export const recoverStaleSyncingInternal = internalMutation({
           "Sync stalled — the previous run was interrupted before finishing. Click Sync to retry.",
         lastParseError: "Sync stalled — interrupted before completion.",
       });
+      await ctx.runMutation(internal.notifications.pushInternal, {
+        userId: cb.userId,
+        title: `Codebase sync stalled — ${cb.repoFullName}`,
+        description:
+          "The sync was interrupted before finishing. Open the codebase and click Sync to retry.",
+        type: "warning",
+      });
       reset += 1;
     }
     return reset;

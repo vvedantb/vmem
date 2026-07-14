@@ -1,6 +1,8 @@
 "use node";
 
+import type { GenericActionCtx } from "convex/server";
 import { internalAction } from "../../_generated/server";
+import type { DataModel, Id } from "../../_generated/dataModel";
 import { internal } from "../../_generated/api";
 import { v } from "convex/values";
 import { decideDreamCheck } from "../../lib/dreamTriggerDecision";
@@ -94,13 +96,15 @@ export const runDreamForProfileById = internalAction({
       return emptyDreamResult("no-key");
     }
 
-    return await ctx.runAction(
+    const result: DreamRunResult = await ctx.runAction(
       internal.neo4jActions.dreamMode.runDreamForProfileInternal,
       {
         clerkId,
         profileId: args.profileId,
       },
     );
+    await notifyScheduledDreamResult(ctx, profile.userId, result);
+    return result;
   },
 });
 
@@ -202,6 +206,39 @@ export const runDreamForUserInternal = internalAction({
   },
 });
 
+/**
+ * Notify after an *unattended* run (cron) that actually produced something.
+ * Manual runs already report back through the UI, and a silent "found nothing"
+ * run is not worth an inbox row.
+ */
+async function notifyScheduledDreamResult(
+  ctx: GenericActionCtx<DataModel>,
+  userId: Id<"users">,
+  result: DreamRunResult,
+): Promise<void> {
+  const { proposalsCreated, memoriesMaterialized } = result;
+  if (proposalsCreated === 0 && memoriesMaterialized === 0) return;
+
+  const parts: string[] = [];
+  if (proposalsCreated > 0) {
+    parts.push(
+      `${String(proposalsCreated)} proposal${proposalsCreated === 1 ? "" : "s"} to review`,
+    );
+  }
+  if (memoriesMaterialized > 0) {
+    parts.push(
+      `${String(memoriesMaterialized)} new memor${memoriesMaterialized === 1 ? "y" : "ies"}`,
+    );
+  }
+
+  await ctx.runMutation(internal.notifications.pushInternal, {
+    userId,
+    title: "Dream Mode finished",
+    description: `${parts.join(" and ")}. Open the Inbox to review.`,
+    type: "info",
+  });
+}
+
 export const runDreamForUserById = internalAction({
   args: { userId: v.id("users") },
   handler: async (ctx, args): Promise<DreamRunResult> => {
@@ -212,10 +249,12 @@ export const runDreamForUserById = internalAction({
       console.warn(`[dream] scheduled run: no clerkId for user ${args.userId}`);
       return emptyDreamResult("no-key");
     }
-    return await ctx.runAction(
+    const result: DreamRunResult = await ctx.runAction(
       internal.neo4jActions.dreamMode.runDreamForUserInternal,
       { clerkId, userId: args.userId },
     );
+    await notifyScheduledDreamResult(ctx, args.userId, result);
+    return result;
   },
 });
 
