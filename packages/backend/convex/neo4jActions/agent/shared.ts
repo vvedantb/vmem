@@ -27,15 +27,19 @@ export type AgentAuth = {
   apiKey: string;
 };
 
+/** Soft-fail: null when user or OPENROUTER_API_KEY is missing. */
+export async function tryOpenRouterAuth(
+  ctx: ActionCtx,
+  clerkId: string,
+): Promise<AgentAuth | null> {
+  return tryUserAndApiKeyByClerkId(ctx, clerkId, "OPENROUTER_API_KEY");
+}
+
 export async function requireOpenRouterAuth(
   ctx: ActionCtx,
   clerkId: string,
 ): Promise<AgentAuth | OpenRouterRequired> {
-  const auth = await tryUserAndApiKeyByClerkId(
-    ctx,
-    clerkId,
-    "OPENROUTER_API_KEY",
-  );
+  const auth = await tryOpenRouterAuth(ctx, clerkId);
   if (!auth) {
     return { error: "openrouter_required" };
   }

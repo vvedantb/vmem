@@ -1,6 +1,5 @@
 "use node";
 
-import { z } from "zod";
 import type { ActionCtx } from "../../_generated/server";
 import { getMemory, listMemories } from "../../../engine/neo4j/memory/crud";
 import { getMemoryEvents } from "../../../engine/neo4j/memory/events";
@@ -11,76 +10,17 @@ import {
 import { retrieveMemories } from "../../../engine/neo4j/memory/retrieve";
 import { getDriver } from "../../../engine/neo4j/driver";
 import { callOpenRouterChat, LLM_MODEL } from "../../lib/openRouter";
-import { tryUserAndApiKeyByClerkId } from "../../lib/envVars";
 import {
-  extractJsonString,
-  parseJsonString,
+  parseLlmNumberArray,
+  parseLlmStringArray,
 } from "../../../engine/llm/extractJsonString";
+import { tryOpenRouterAuth } from "../agent/shared";
 import {
   toMemoryStatus,
   toMemoryType,
   tryEmbedMany,
   tryEmbedOne,
 } from "./shared";
-
-const stringArraySchema = z.array(z.string());
-const numberArraySchema = z.array(z.number());
-
-function extractBalancedArray(source: string): string | null {
-  const start = source.indexOf("[");
-  if (start === -1) return null;
-
-  let depth = 0;
-  for (let i = start; i < source.length; i++) {
-    if (source[i] === "[") depth++;
-    else if (source[i] === "]") {
-      depth--;
-      if (depth === 0) return source.slice(start, i + 1);
-    }
-  }
-
-  return null;
-}
-
-function parseEmbeddedJsonArray<T>(
-  content: string,
-  schema: z.ZodType<T, z.ZodTypeDef, unknown>,
-): T | null {
-  const stripped = extractJsonString(content);
-  const arrayStr = extractBalancedArray(stripped);
-  if (arrayStr === null) return null;
-
-  try {
-    const parsed = schema.safeParse(JSON.parse(arrayStr));
-    return parsed.success ? parsed.data : null;
-  } catch {
-    return null;
-  }
-}
-
-function parseStringArray(content: string): string[] {
-  const values =
-    parseJsonString(content, stringArraySchema) ??
-    parseEmbeddedJsonArray(content, stringArraySchema);
-  const trimmed = values?.map((v) => v.trim()).filter((v) => v.length > 0);
-  if (trimmed && trimmed.length > 0) return trimmed;
-
-  return content
-    .split(/\r?\n/)
-    .map((line) => line.replace(/^\s*[-*\d.]+\s*/, "").trim())
-    .filter((line) => line.length > 0)
-    .slice(0, 2);
-}
-
-function parseNumberArray(
-  content: string,
-  expectedCount: number,
-): number[] | null {
-  const scores =
-    parseJsonString(content, numberArraySchema) ??
-    parseEmbeddedJsonArray(content, numberArraySchema);
-  return scores && scores.length === expectedCount ? scores : null;
-}
 
 export async function runGetMemory(args: {
   clerkId: string;
@@ -158,11 +98,7 @@ async function tryRetrievalChat(
   user: string,
 ): Promise<string | null> {
   try {
-    const auth = await tryUserAndApiKeyByClerkId(
-      ctx,
-      args.clerkId,
-      "OPENROUTER_API_KEY",
-    );
+    const auth = await tryOpenRouterAuth(ctx, args.clerkId);
     if (!auth) return null;
 
     const result = await callOpenRouterChat(ctx, {
@@ -202,7 +138,7 @@ async function generateRetrievalParaphrases(
     query,
   );
   if (content === null) return [];
-  return parseStringArray(content)
+  return parseLlmStringArray(content)
     .filter((value) => value.toLowerCase() !== query.toLowerCase())
     .slice(0, 2);
 }
@@ -227,7 +163,7 @@ async function rerankRetrievalCandidates(
     `Query: ${query}\n\nMemories:\n${body}`,
   );
   if (content === null) return null;
-  const scores = parseNumberArray(content, candidates.length);
+  const scores = parseLlmNumberArray(content, candidates.length);
   if (scores === null) {
     console.warn("[retrieve] rerank response parse failed");
   }

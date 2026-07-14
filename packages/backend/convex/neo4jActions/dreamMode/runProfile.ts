@@ -35,7 +35,7 @@ import {
   type DreamClusterMember,
   type ParsedSynthesis,
 } from "../../../engine/neo4j/dreamPrompt";
-import { tryUserAndApiKeyByClerkId } from "../../lib/envVars";
+import { tryOpenRouterAuth } from "../agent/shared";
 import type { DreamDepth } from "../../lib/dreamTriggerDecision";
 
 const DEFAULT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
@@ -180,11 +180,7 @@ export const runDreamForProfileInternal = internalAction({
       reason: "ok",
     };
 
-    const auth = await tryUserAndApiKeyByClerkId(
-      ctx,
-      args.clerkId,
-      "OPENROUTER_API_KEY",
-    );
+    const auth = await tryOpenRouterAuth(ctx, args.clerkId);
     if (!auth) {
       console.log(
         `[dream] No OPENROUTER_API_KEY for ${args.clerkId}, skipping`,

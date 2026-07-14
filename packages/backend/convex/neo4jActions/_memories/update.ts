@@ -1,17 +1,11 @@
 "use node";
 
 import type { ActionCtx } from "../../_generated/server";
-import { internal } from "../../_generated/api";
 import { updateMemory } from "../../../engine/neo4j/memory/crud";
 import type { MemoryWithTags } from "../../../engine/neo4j/memory/types";
 import { getDriver } from "../../../engine/neo4j/driver";
-import {
-  scheduleChunkSyncForContent,
-  toMemoryStatus,
-  toMemoryType,
-} from "./shared";
-import { scheduleDreamTriggerCheck } from "../../lib/dreamTriggerInvalidate";
-import { scheduleContextPromptInvalidationByClerkId } from "../../lib/contextPromptInvalidate";
+import { toMemoryStatus, toMemoryType } from "./shared";
+import { scheduleAfterMemoryMutation } from "./lifecycle";
 
 export interface UpdateMemoryArgs {
   clerkId: string;
@@ -42,27 +36,24 @@ export async function runUpdateMemory(
 
   if (!result) return result;
 
-  await ctx.runMutation(internal.memoryEvents.pushEventInternal, {
+  await scheduleAfterMemoryMutation(ctx, {
     clerkId: args.clerkId,
-    eventType: "memory_updated",
-    memoryId: args.memoryId,
-    payload: JSON.stringify({ title: result.title }),
-  });
-
-  if (args.content !== undefined) {
-    await scheduleChunkSyncForContent(ctx, driver, {
-      clerkId: args.clerkId,
+    event: {
+      type: "memory_updated",
       memoryId: args.memoryId,
-      content: args.content,
-      mode: "update",
-    });
-  }
-
-  await scheduleContextPromptInvalidationByClerkId(ctx, args.clerkId);
-
-  if (result.source !== "dream-mode") {
-    await scheduleDreamTriggerCheck(ctx, args.clerkId);
-  }
+      payload: JSON.stringify({ title: result.title }),
+    },
+    chunk:
+      args.content !== undefined
+        ? {
+            driver,
+            memoryId: args.memoryId,
+            content: args.content,
+            mode: "update",
+          }
+        : undefined,
+    checkDream: result.source !== "dream-mode",
+  });
 
   return result;
 }

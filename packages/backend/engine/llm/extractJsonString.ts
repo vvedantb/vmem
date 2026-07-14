@@ -1,7 +1,10 @@
-import type { ZodType, z } from "zod";
+import { z, type ZodType } from "zod";
 
 const THINK_OPEN = "<think>";
 const THINK_CLOSE = "</think>";
+
+const stringArraySchema = z.array(z.string());
+const numberArraySchema = z.array(z.number());
 
 /** Strip thinking blocks and markdown fences before JSON.parse. */
 export function extractJsonString(raw: string): string {
@@ -24,6 +27,23 @@ export function extractJsonString(raw: string): string {
   return match?.[1] ? match[1].trim() : withoutOpenThink;
 }
 
+/** First balanced `[...]` substring, or null. */
+export function extractBalancedArray(source: string): string | null {
+  const start = source.indexOf("[");
+  if (start === -1) return null;
+
+  let depth = 0;
+  for (let i = start; i < source.length; i++) {
+    if (source[i] === "[") depth++;
+    else if (source[i] === "]") {
+      depth--;
+      if (depth === 0) return source.slice(start, i + 1);
+    }
+  }
+
+  return null;
+}
+
 /** Parse LLM text → JSON → zod; null on any failure. */
 export function parseJsonString<T>(
   raw: string,
@@ -37,4 +57,48 @@ export function parseJsonString<T>(
   }
   const parsed = schema.safeParse(value);
   return parsed.success ? parsed.data : null;
+}
+
+/**
+ * Parse an array from LLM text: full JSON first, then first balanced `[...]`.
+ * Null on any failure.
+ */
+export function parseLlmJsonArray<T>(
+  content: string,
+  schema: ZodType<T, z.ZodTypeDef, unknown>,
+): T | null {
+  const direct = parseJsonString(content, schema);
+  if (direct !== null) return direct;
+
+  const arrayStr = extractBalancedArray(extractJsonString(content));
+  if (arrayStr === null) return null;
+
+  try {
+    const parsed = schema.safeParse(JSON.parse(arrayStr));
+    return parsed.success ? parsed.data : null;
+  } catch {
+    return null;
+  }
+}
+
+/** String array from LLM JSON, or newline/bullet fallback (capped at 2). */
+export function parseLlmStringArray(content: string): string[] {
+  const values = parseLlmJsonArray(content, stringArraySchema);
+  const trimmed = values?.map((v) => v.trim()).filter((v) => v.length > 0);
+  if (trimmed && trimmed.length > 0) return trimmed;
+
+  return content
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^\s*[-*\d.]+\s*/, "").trim())
+    .filter((line) => line.length > 0)
+    .slice(0, 2);
+}
+
+/** Number array from LLM JSON; null unless length matches expectedCount. */
+export function parseLlmNumberArray(
+  content: string,
+  expectedCount: number,
+): number[] | null {
+  const scores = parseLlmJsonArray(content, numberArraySchema);
+  return scores && scores.length === expectedCount ? scores : null;
 }

@@ -1,7 +1,6 @@
 "use node";
 
 import type { ActionCtx } from "../../_generated/server";
-import { internal } from "../../_generated/api";
 import type { Driver } from "neo4j-driver";
 import { computeContentHash } from "../../../engine/neo4j/memory/mappers";
 import {
@@ -18,13 +17,10 @@ import { getDriver } from "../../../engine/neo4j/driver";
 import { normalizeUrl } from "../../../engine/neo4j/url";
 import {
   resolveProfileIdForClerkId,
-  scheduleChunkSyncForContent,
   toMemoryType,
   tryEmbedOne,
 } from "./shared";
-import { scheduleMemoryEnrichment } from "./postMaterialize";
-import { scheduleDreamTriggerCheck } from "../../lib/dreamTriggerInvalidate";
-import { scheduleContextPromptInvalidationByClerkId } from "../../lib/contextPromptInvalidate";
+import { scheduleAfterMemoryMutation } from "./lifecycle";
 
 export interface CreateMemoryArgs {
   clerkId: string;
@@ -186,48 +182,36 @@ async function schedulePostCreate(
   driver: Driver,
   params: PostCreateParams,
 ): Promise<void> {
-  await ctx.runMutation(internal.memoryEvents.pushEventInternal, {
+  const shouldExtractFacts =
+    params.source === "prompt-capture" && params.sourceType !== "v2-extracted";
+
+  await scheduleAfterMemoryMutation(ctx, {
     clerkId: params.clerkId,
-    eventType: "memory_created",
-    memoryId: params.memoryId,
-    payload: JSON.stringify({ title: params.title }),
+    event: {
+      type: "memory_created",
+      memoryId: params.memoryId,
+      payload: JSON.stringify({ title: params.title }),
+    },
+    enrich: {
+      memoryId: params.memoryId,
+      title: params.title,
+      content: params.content,
+      profileId: params.profileId,
+    },
+    chunk: {
+      driver,
+      memoryId: params.memoryId,
+      content: params.content,
+      profileId: params.profileId,
+      mode: "create",
+    },
+    extractFacts: shouldExtractFacts
+      ? {
+          memoryId: params.memoryId,
+          content: params.content,
+          profileId: params.profileId,
+        }
+      : undefined,
+    checkDream: params.source !== "dream-mode",
   });
-
-  await scheduleMemoryEnrichment(ctx, {
-    clerkId: params.clerkId,
-    memoryId: params.memoryId,
-    title: params.title,
-    content: params.content,
-    profileId: params.profileId,
-  });
-
-  await scheduleChunkSyncForContent(ctx, driver, {
-    clerkId: params.clerkId,
-    memoryId: params.memoryId,
-    content: params.content,
-    profileId: params.profileId,
-    mode: "create",
-  });
-
-  if (
-    params.source === "prompt-capture" &&
-    params.sourceType !== "v2-extracted"
-  ) {
-    await ctx.scheduler.runAfter(
-      0,
-      internal.neo4jActions.factExtraction.extractFactsAndDecideInternal,
-      {
-        clerkId: params.clerkId,
-        sourceMemoryId: params.memoryId,
-        capturedPrompt: params.content,
-        profileId: params.profileId,
-      },
-    );
-  }
-
-  await scheduleContextPromptInvalidationByClerkId(ctx, params.clerkId);
-
-  if (params.source !== "dream-mode") {
-    await scheduleDreamTriggerCheck(ctx, params.clerkId);
-  }
 }

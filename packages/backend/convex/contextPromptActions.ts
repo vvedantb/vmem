@@ -8,7 +8,7 @@ import { listMemories } from "../engine/neo4j/memory/crud";
 import { getDriver } from "../engine/neo4j/driver";
 import { buildSkillsIndexAddition } from "@vmem/shared";
 import { toSkillIndexEntry } from "./skills";
-import { tryUserAndApiKeyByClerkId } from "./lib/envVars";
+import { tryOpenRouterAuth } from "./neo4jActions/agent/shared";
 import { callOpenRouterChat, LLM_MODEL } from "./lib/openRouter";
 
 const PINNED_LIMIT = 20;
@@ -138,11 +138,7 @@ export const regenerateContextPromptInternal = internalAction({
 
     // Profile summary is best-effort. Without an OpenRouter key we still
     // produce a useful prompt (about/preferences/pinned).
-    const auth = await tryUserAndApiKeyByClerkId(
-      ctx,
-      args.clerkId,
-      "OPENROUTER_API_KEY",
-    );
+    const auth = await tryOpenRouterAuth(ctx, args.clerkId);
     const summary = auth
       ? await callSummarizer(ctx, auth.apiKey, auth.userId, recentSnippets)
       : null;

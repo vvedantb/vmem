@@ -1,13 +1,12 @@
 "use node";
 
 import type { ActionCtx } from "../../_generated/server";
-import { internal } from "../../_generated/api";
 import {
   deleteAllMemoriesForUser,
   deleteMemory,
 } from "../../../engine/neo4j/memory/crud";
 import { getDriver } from "../../../engine/neo4j/driver";
-import { scheduleContextPromptInvalidationByClerkId } from "../../lib/contextPromptInvalidate";
+import { scheduleAfterMemoryMutation } from "./lifecycle";
 
 export async function runDeleteMemory(
   ctx: ActionCtx,
@@ -17,13 +16,14 @@ export async function runDeleteMemory(
   const deleted = await deleteMemory(driver, args.clerkId, args.memoryId);
 
   if (deleted) {
-    await ctx.runMutation(internal.memoryEvents.pushEventInternal, {
+    await scheduleAfterMemoryMutation(ctx, {
       clerkId: args.clerkId,
-      eventType: "memory_deleted",
-      memoryId: args.memoryId,
-      payload: JSON.stringify({}),
+      event: {
+        type: "memory_deleted",
+        memoryId: args.memoryId,
+        payload: JSON.stringify({}),
+      },
     });
-    await scheduleContextPromptInvalidationByClerkId(ctx, args.clerkId);
   }
 
   return deleted;
@@ -36,7 +36,7 @@ export async function runDeleteAllMemories(
   const driver = getDriver();
   const deleted = await deleteAllMemoriesForUser(driver, args.clerkId);
   if (deleted > 0) {
-    await scheduleContextPromptInvalidationByClerkId(ctx, args.clerkId);
+    await scheduleAfterMemoryMutation(ctx, { clerkId: args.clerkId });
   }
   return deleted;
 }

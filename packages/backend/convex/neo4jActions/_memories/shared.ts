@@ -10,31 +10,15 @@ import {
 } from "../../lib/openRouter/bestEffortEmbed";
 import { shouldChunk } from "../../../engine/neo4j/chunking";
 import { deleteChunksForMemory } from "../../../engine/neo4j/memory/chunks";
-import type {
-  MemoryStatus,
-  MemoryType,
-} from "../../../engine/neo4j/memory/types";
+import {
+  toMemoryStatusOrUndefined,
+  toMemoryTypeOrUndefined,
+} from "../../../engine/neo4j/memory/mappers";
 import type { McpScope } from "../../profiles/mcpAccess";
 
-function isMemoryType(s: string): s is MemoryType {
-  return s === "profile" || s === "episodic" || s === "knowledge";
-}
-
-function isMemoryStatus(s: string): s is MemoryStatus {
-  return (
-    s === "active" || s === "pinned" || s === "suppressed" || s === "expired"
-  );
-}
-
-export function toMemoryType(s: string | undefined): MemoryType | undefined {
-  return s !== undefined && isMemoryType(s) ? s : undefined;
-}
-
-export function toMemoryStatus(
-  s: string | undefined,
-): MemoryStatus | undefined {
-  return s !== undefined && isMemoryStatus(s) ? s : undefined;
-}
+/** Stable wrappers — call sites keep importing from this module. */
+export const toMemoryType = toMemoryTypeOrUndefined;
+export const toMemoryStatus = toMemoryStatusOrUndefined;
 
 export async function resolveProfileIdForClerkId(
   ctx: ActionCtx,
