@@ -40,16 +40,18 @@ export const mcpSearchMemories = internalAction({
     profileId: v.optional(v.string()),
   },
   handler: async (ctx, args) =>
-    withMcpMemoryScope(ctx, args, (scope) =>
-      runForMcpScope(scope, {
+    withMcpMemoryScope(ctx, args, (scope) => {
+      const limit = args.limit ?? 20;
+      const offset = args.offset ?? 0;
+      return runForMcpScope(scope, {
         team: (profileId) =>
           runSearchMemoriesForTeam({
             profileId,
             query: args.query,
             type: args.type,
             tags: args.tags,
-            limit: args.limit ?? 20,
-            offset: args.offset ?? 0,
+            limit,
+            offset,
           }),
         personal: ({ clerkId, profileId }) =>
           runSearchMemories({
@@ -58,11 +60,11 @@ export const mcpSearchMemories = internalAction({
             query: args.query,
             type: args.type,
             tags: args.tags,
-            limit: args.limit ?? 20,
-            offset: args.offset ?? 0,
+            limit,
+            offset,
           }),
-      }),
-    ),
+      });
+    }),
 });
 
 export const mcpRetrieveMemories = internalAction({
@@ -73,13 +75,14 @@ export const mcpRetrieveMemories = internalAction({
     profileId: v.optional(v.string()),
   },
   handler: async (ctx, args) =>
-    withMcpMemoryScope(ctx, args, (scope) =>
-      runForMcpScope(scope, {
+    withMcpMemoryScope(ctx, args, (scope) => {
+      const limit = args.limit ?? 10;
+      return runForMcpScope(scope, {
         team: async (profileId) => {
           const result = await runSearchMemoriesForTeam({
             profileId,
             query: args.query,
-            limit: args.limit ?? 10,
+            limit,
             offset: 0,
           });
           return toTeamRetrieveCandidates(result.memories);
@@ -89,10 +92,10 @@ export const mcpRetrieveMemories = internalAction({
             clerkId,
             profileId,
             query: args.query,
-            limit: args.limit ?? 10,
+            limit,
           }),
-      }),
-    ),
+      });
+    }),
 });
 
 export const mcpCreateMemory = internalAction({
@@ -147,15 +150,17 @@ export const mcpUpdateMemory = internalAction({
   handler: async (ctx, args) =>
     withMcpMemoryScope(ctx, args, async (scope) => {
       const memory = await loadScopedMemory(scope, args.memoryId);
+      const {
+        clerkId: _clerkId,
+        mcpScope: _mcpScope,
+        memoryId,
+        profileId: _profileId,
+        ...patch
+      } = args;
       return runUpdateMemory(ctx, {
         clerkId: memory.userId,
-        memoryId: args.memoryId,
-        title: args.title,
-        content: args.content,
-        type: args.type,
-        status: args.status,
-        tags: args.tags,
-        confidence: args.confidence,
+        memoryId,
+        ...patch,
       });
     }),
 });
