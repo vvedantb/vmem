@@ -1,6 +1,8 @@
 export { VMemory, VMemoryError, isVMemoryError } from "./vmemory";
 export type {
   AgentProposal,
+  DeleteMemoryResult,
+  HealthResult,
   MatchedChunk,
   MemoryCandidate,
   MemoryWithTags,
@@ -8,6 +10,7 @@ export type {
   ScoreBreakdown,
   StoreInstructionResult,
   StructuredCreateMemoryInput,
+  StructuredDeleteMemoryInput,
   StructuredPatchMemoryInput,
   StructuredRetrieveInput,
   UpdateInstructionResult,

@@ -1,10 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import {
-  createHttpMemoriesClient,
-  DEFAULT_HTTP_API_BASE_URL,
-  type HttpJsonResult,
-} from "./v1MemoriesClient";
+import { z } from "zod";
+import { VMemory } from "@vmem/sdk";
+
+const DEFAULT_HTTP_API_BASE_URL =
+  "https://outgoing-reindeer-268.eu-west-1.convex.site";
 
 const runLiveHttpApiTest = process.env.RUN_HTTP_API_TEST === "1";
 const apiKey = process.env.VMEM_API_KEY;
@@ -12,56 +12,85 @@ const baseUrl = process.env.VMEM_HTTP_API_BASE_URL ?? DEFAULT_HTTP_API_BASE_URL;
 
 const canRun = runLiveHttpApiTest && apiKey !== undefined && apiKey.length > 0;
 
-function expectOk<T>(
-  result: HttpJsonResult<T>,
-): asserts result is Extract<HttpJsonResult<T>, { ok: true }> {
-  expect(result.ok).toBe(true);
-  if (!result.ok) {
-    throw new Error(
-      `expected ok response, got ${result.status} ${result.error}`,
-    );
-  }
-}
+const errorBodySchema = z.object({
+  error: z.string(),
+});
 
-function expectErr(
-  result: HttpJsonResult<unknown>,
-): asserts result is Extract<HttpJsonResult<unknown>, { ok: false }> {
-  expect(result.ok).toBe(false);
-  if (result.ok) {
-    throw new Error("expected error response");
+// authenticated-only sdk cannot probe missing/bad auth; keep a tiny raw post
+async function postMemoriesProbe(args: {
+  authToken: string | null;
+  body: object;
+}): Promise<{ status: number; error: string | null }> {
+  const headers = new Headers({ "Content-Type": "application/json" });
+  if (args.authToken !== null) {
+    headers.set("Authorization", `Bearer ${args.authToken}`);
   }
-}
 
-describe.skipIf(!canRun)("HTTP v1 memories API (live)", () => {
-  const client = createHttpMemoriesClient({
-    baseUrl,
-    apiKey: apiKey ?? "",
+  const response = await fetch(`${baseUrl}/api/v1/memories`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(args.body),
   });
 
+  const json: unknown = await response.json().catch(() => null);
+  const parsed = errorBodySchema.safeParse(json);
+  return {
+    status: response.status,
+    error: parsed.success ? parsed.data.error : null,
+  };
+}
+
+const storeAuthProbeBody = {
+  title: "should fail",
+  content: "probe",
+  type: "note",
+  source: "vitest",
+  tags: Array.of<string>(),
+  confidence: 1,
+};
+
+describe.skipIf(!canRun)("HTTP v1 memories API (live)", () => {
+  // Construct only when gated on — VMemory rejects an empty apiKey.
+  const client =
+    apiKey !== undefined && apiKey.length > 0
+      ? new VMemory({ baseUrl, apiKey })
+      : null;
+
+  function vmem(): VMemory {
+    if (client === null) {
+      throw new Error("VMEM_API_KEY required for live HTTP tests");
+    }
+    return client;
+  }
+
   it("GET /health returns ok", async () => {
-    const result = await client.health();
-    expectOk(result);
-    expect(result.status).toBe(200);
-    expect(result.data.status).toBe("ok");
+    const result = await vmem().health();
+    expect(result.status).toBe("ok");
   });
 
   it("rejects requests without Authorization", async () => {
-    const result = await client.storeWithoutAuth();
-    expectErr(result);
+    const result = await postMemoriesProbe({
+      authToken: null,
+      body: { ...storeAuthProbeBody, content: "no auth header" },
+    });
     expect(result.status).toBe(401);
     expect(result.error).toBe("unauthorized");
   });
 
   it("rejects requests with an invalid API key", async () => {
-    const result = await client.storeWithBadKey();
-    expectErr(result);
+    const result = await postMemoriesProbe({
+      authToken: "vmem_sk_invalid_key_for_tests",
+      body: { ...storeAuthProbeBody, content: "bad key" },
+    });
     expect(result.status).toBe(401);
     expect(result.error).toBe("unauthorized");
   });
 
   it("rejects invalid store payloads", async () => {
-    const result = await client.storeInvalidBody();
-    expectErr(result);
+    const result = await postMemoriesProbe({
+      authToken: apiKey ?? "",
+      body: { title: "missing required fields" },
+    });
     expect(result.status).toBe(400);
     expect(result.error).toBe("invalid_request");
   });
@@ -69,9 +98,10 @@ describe.skipIf(!canRun)("HTTP v1 memories API (live)", () => {
   it("store → retrieve → patch → delete flow", async () => {
     const marker = randomUUID();
     let memoryId = "";
+    const sdk = vmem();
 
     try {
-      const storeResult = await client.storeStructured({
+      const stored = await sdk.createMemory({
         title: marker,
         content: marker,
         type: "note",
@@ -82,46 +112,37 @@ describe.skipIf(!canRun)("HTTP v1 memories API (live)", () => {
         sourceType: "vitest-http-api",
       });
 
-      expectOk(storeResult);
-      expect(storeResult.status).toBe(200);
-      expect(storeResult.data.id.length).toBeGreaterThan(0);
-      expect(storeResult.data.content).toBe(marker);
+      expect(stored.id.length).toBeGreaterThan(0);
+      expect(stored.content).toBe(marker);
 
-      memoryId = storeResult.data.id;
+      memoryId = stored.id;
 
-      const retrieveResult = await client.retrieve({
+      const retrieveResult = await sdk.searchMemories({
         query: marker,
         limit: 5,
       });
 
-      expectOk(retrieveResult);
-      expect(retrieveResult.status).toBe(200);
-      const ids = retrieveResult.data.memories.map((memory) => memory.id);
+      const ids = retrieveResult.memories.map((memory) => memory.id);
       expect(ids).toContain(memoryId);
 
       const updatedTitle = `${marker}-updated`;
-      const updateResult = await client.updateStructured({
+      const updated = await sdk.patchMemory({
         memoryId,
         title: updatedTitle,
         content: `${marker}-patched`,
       });
 
-      expectOk(updateResult);
-      expect(updateResult.status).toBe(200);
-      expect(updateResult.data.id).toBe(memoryId);
-      expect(updateResult.data.title).toBe(updatedTitle);
-      expect(updateResult.data.content).toBe(`${marker}-patched`);
+      expect(updated.id).toBe(memoryId);
+      expect(updated.title).toBe(updatedTitle);
+      expect(updated.content).toBe(`${marker}-patched`);
 
-      const deleteResult = await client.deleteStructured({ memoryId });
-
-      expectOk(deleteResult);
-      expect(deleteResult.status).toBe(200);
-      expect(deleteResult.data.deleted).toBe(true);
+      const deleted = await sdk.deleteMemory({ memoryId });
+      expect(deleted.deleted).toBe(true);
 
       memoryId = "";
     } finally {
       if (memoryId.length > 0) {
-        await client.deleteStructured({ memoryId });
+        await sdk.deleteMemory({ memoryId });
       }
     }
   }, 30_000);

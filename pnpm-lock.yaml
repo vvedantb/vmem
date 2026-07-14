@@ -488,6 +488,9 @@ importers:
       '@scure/base':
         specifier: ^2.2.0
         version: 2.2.0
+      '@vmem/sdk':
+        specifier: workspace:*
+        version: link:../sdk
       '@vmem/shared':
         specifier: workspace:*
         version: link:../shared

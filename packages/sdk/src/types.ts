@@ -1,5 +1,7 @@
 export type {
   AgentProposal,
+  DeleteMemoryResult,
+  HealthResult,
   MatchedChunk,
   MemoryCandidate,
   MemoryWithTags,
@@ -33,6 +35,10 @@ export interface StructuredPatchMemoryInput {
   tags?: string[];
   confidence?: number;
   expiresAt?: string | null;
+}
+
+export interface StructuredDeleteMemoryInput {
+  memoryId: string;
 }
 
 export interface StructuredRetrieveInput {

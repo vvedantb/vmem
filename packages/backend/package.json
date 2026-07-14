@@ -32,6 +32,7 @@
     "@octokit/oauth-methods": "^6.0.2",
     "@openrouter/sdk": "^0.12.35",
     "@scure/base": "^2.2.0",
+    "@vmem/sdk": "workspace:*",
     "@vmem/shared": "workspace:*",
     "convex": "catalog:",
     "convex-audit-log": "^0.2.0",
