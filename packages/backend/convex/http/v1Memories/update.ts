@@ -1,3 +1,4 @@
+import { z } from "zod";
 import type { MemoryWithTags } from "../../../engine/neo4j/memory/types";
 import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
@@ -8,12 +9,37 @@ import {
   withApiKeyAuth,
   type ApiKeyAuth,
 } from "./apiKeyAuth";
-import {
-  updateBodySchema,
-  isInstructionUpdateBody,
-  type UpdateBody,
-} from "./schemas";
 import { isOpenRouterRequired, openRouterRequiredResponse } from "./types";
+
+const structuredUpdateBodySchema = z.object({
+  memoryId: z.string(),
+  title: z.string().optional(),
+  content: z.string().optional(),
+  type: z.string().optional(),
+  status: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+  confidence: z.number().optional(),
+  expiresAt: z.union([z.string(), z.null()]).optional(),
+});
+
+const instructionUpdateBodySchema = z.object({
+  instruction: z.string().min(1),
+  profileId: z.string().optional(),
+});
+
+const updateBodySchema = z.union([
+  structuredUpdateBodySchema,
+  instructionUpdateBodySchema,
+]);
+
+type UpdateBody = z.infer<typeof updateBodySchema>;
+type InstructionUpdateBody = z.infer<typeof instructionUpdateBodySchema>;
+
+function isInstructionUpdateBody(
+  body: UpdateBody,
+): body is InstructionUpdateBody {
+  return "instruction" in body;
+}
 
 async function runUpdateHandler(
   ctx: ActionCtx,

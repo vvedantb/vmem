@@ -1,3 +1,4 @@
+import { z } from "zod";
 import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import {
@@ -5,12 +6,22 @@ import {
   withApiKeyAuth,
   type ApiKeyAuth,
 } from "./apiKeyAuth";
-import { retrieveBodySchema, type RetrieveBody } from "./schemas";
 import {
   isOpenRouterRequired,
   openRouterRequiredResponse,
   type RetrieveHttpResult,
 } from "./types";
+
+const retrieveBodySchema = z.object({
+  query: z.string(),
+  type: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+  limit: z.number().int().positive().optional(),
+  profileId: z.string().optional(),
+  summarize: z.boolean().optional(),
+});
+
+type RetrieveBody = z.infer<typeof retrieveBodySchema>;
 
 async function runRetrieveHandler(
   ctx: ActionCtx,

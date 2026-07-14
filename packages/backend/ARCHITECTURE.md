@@ -32,12 +32,11 @@ Neo4j (Aura) graph
 | Path                     | Job                                                       | Entry points                                             |
 | ------------------------ | --------------------------------------------------------- | -------------------------------------------------------- |
 | `convex/http/`           | HTTP routes + MCP server transport                        | `http.ts` (router)                                       |
-| `convex/mcp/`            | MCP tool definitions, handlers, schemas                   | tool registry                                            |
+| `convex/mcp/`            | MCP HTTP server + per-domain tool specs                   | `tools.ts`, `toolsMemory.ts`, …                          |
 | `convex/memoryApi/`      | `/api/v1/*` REST surface for memories                     | HTTP actions                                             |
 | `convex/neo4jActions/`   | Node bridge Convex → engine                               | `memories.ts`, `dreamMode/`, `connectors/`, `migration/` |
 | `convex/connectors/`     | OAuth + connector CRUD (Drive, Notion, …)                 | `oauth.ts`, `crud.ts`                                    |
 | `convex/lib/`            | Convex-side helpers (crypto, openRouter, env, snapshots)  | imported widely                                          |
-| `convex/mcp/`            | MCP HTTP server + tool catalog                            | `tools.ts`, `toolHandlers.ts`                            |
 | `convex/prompts/`        | LLM prompt builders + parsers (enrichment, v2, dream)     | actions                                                  |
 | `engine/neo4j/`          | driver, setup, retrieval, memory CRUD, dream mode         | `driver.ts`, `memory/`, `codebase/`                      |
 | `engine/neo4j/memory/`   | the memory graph: crud, retrieve, proposals, graph, dedup | called from `neo4jActions`                               |

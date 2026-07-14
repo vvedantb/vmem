@@ -1,7 +1,13 @@
+import { z } from "zod";
 import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import { withApiKeyAuth, type ApiKeyAuth } from "./apiKeyAuth";
-import { deleteBodySchema, type DeleteBody } from "./schemas";
+
+const deleteBodySchema = z.object({
+  memoryId: z.string(),
+});
+
+type DeleteBody = z.infer<typeof deleteBodySchema>;
 
 async function runDeleteHandler(
   ctx: ActionCtx,

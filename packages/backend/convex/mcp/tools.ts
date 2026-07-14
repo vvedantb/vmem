@@ -11,7 +11,7 @@ import {
   toolSpecs,
   type McpBindableTool,
 } from "./toolCatalog";
-import type { ToolHandlerContext } from "./toolHandlers";
+import type { ToolHandlerContext } from "./toolTypes";
 
 function handlerContext(
   clerkUserId: string,
