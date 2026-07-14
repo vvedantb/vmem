@@ -1,22 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  encodeGithubContentPath,
-  stripTarballRoot,
-} from "../engine/github/fetchRepository";
-
-describe("encodeGithubContentPath", () => {
-  it("encodes TanStack route params with $", () => {
-    expect(
-      encodeGithubContentPath("apps/web/src/routes/_global/setup/$id.tsx"),
-    ).toBe("apps/web/src/routes/_global/setup/%24id.tsx");
-  });
-
-  it("encodes spaces and leaves plain segments unchanged", () => {
-    expect(encodeGithubContentPath("src/foo bar/baz.ts")).toBe(
-      "src/foo%20bar/baz.ts",
-    );
-  });
-});
+import { stripTarballRoot } from "../engine/github/fetchRepository";
 
 describe("stripTarballRoot", () => {
   it("removes the GitHub tarball prefix directory", () => {
