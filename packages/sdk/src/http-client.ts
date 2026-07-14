@@ -58,18 +58,18 @@ export class HttpClient {
     this.apiKey = apiKey;
   }
 
-  async post(path: string, body: Record<string, unknown>): Promise<unknown> {
+  async post(path: string, body: object): Promise<unknown> {
     return this.request("POST", path, body);
   }
 
-  async patch(path: string, body: Record<string, unknown>): Promise<unknown> {
+  async patch(path: string, body: object): Promise<unknown> {
     return this.request("PATCH", path, body);
   }
 
   private async request(
     method: "POST" | "PATCH",
     path: string,
-    body: Record<string, unknown>,
+    body: object,
   ): Promise<unknown> {
     const response = await fetch(`${this.baseUrl}${path}`, {
       method,
