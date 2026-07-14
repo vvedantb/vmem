@@ -4,17 +4,31 @@ export function parentKey(parentId?: string): string {
   return parentId ?? ROOT_PARENT_KEY;
 }
 
-export function buildChildrenByParent<
-  T extends { parentId?: string; _id: string },
->(nodes: T[]): Map<string, T[]> {
+export function normalizePathSegments(path: string): string[] {
+  return path
+    .split("/")
+    .map((segment) => segment.trim())
+    .filter((segment) => segment.length > 0);
+}
+
+export function buildChildrenByParentKey<T>(
+  nodes: T[],
+  getParentId: (node: T) => string | null | undefined,
+): Map<string, T[]> {
   const byParent = new Map<string, T[]>();
   for (const node of nodes) {
-    const key = parentKey(node.parentId);
+    const key = parentKey(getParentId(node) ?? undefined);
     const list = byParent.get(key) ?? [];
     list.push(node);
     byParent.set(key, list);
   }
   return byParent;
+}
+
+export function buildChildrenByParent<
+  T extends { parentId?: string; _id: string },
+>(nodes: T[]): Map<string, T[]> {
+  return buildChildrenByParentKey(nodes, (node) => node.parentId);
 }
 
 export function collectSubtreeIds<T extends { _id: string; parentId?: string }>(
