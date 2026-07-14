@@ -1,5 +1,6 @@
 import type { Driver } from "neo4j-driver";
 import { clampNeo4jLimit } from "../intParams";
+import { escapeLuceneQuery } from "../luceneQuery";
 import type { ConfidenceTier } from "./types";
 import {
   parseOverviewEdge,
@@ -374,7 +375,7 @@ export async function searchSymbols(
   try {
     // fulltext index supports Lucene syntax — escape special chars and add a
     // wildcard so `valid` matches `validateInput`
-    const escaped = args.query.replace(/[+\-!(){}[\]^"~*?:\\/]/g, "\\$&");
+    const escaped = escapeLuceneQuery(args.query);
     const ftQuery = `${escaped}* OR ${escaped}~`;
     const ftResult = await session.run(
       `
