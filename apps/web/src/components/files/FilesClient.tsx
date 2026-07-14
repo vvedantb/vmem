@@ -17,31 +17,41 @@ import BulkActionBar from "./BulkActionBar";
 import FileDropZone from "./FileDropZone";
 import FileGrid from "./FileGrid";
 import FileListView from "./FileListView";
-import FileEmptyState from "./FileEmptyState";
+import { FileEmptyStateFolder, FileEmptyStateRoot } from "./FileEmptyState";
 import StorageStatusBar from "./StorageStatusBar";
 import MoveFolderDialog from "./MoveFolderDialog";
 import RenameDialog from "./RenameDialog";
+
+const filesLoadingView = (
+  <PageContainer title="Files">
+    <div className="flex h-full min-h-0 items-center justify-center">
+      <VmemSpinner size={24} className="text-muted" />
+    </div>
+  </PageContainer>
+);
 
 function buildBreadcrumbs(
   allFiles: { id: string; name: string; parentFolderId: string | null }[],
   folderId: string | null,
 ): FolderBreadcrumb[] {
-  const crumbs: FolderBreadcrumb[] = [{ id: null, name: "Files" }];
-  let currentId = folderId;
+  const root: FolderBreadcrumb = { id: null, name: "Files" };
+  if (folderId === null) return [root];
+
+  const folderById = new Map(allFiles.map((f) => [f.id, f]));
+  const crumbs: FolderBreadcrumb[] = [root];
+  let currentId: string | null = folderId;
   const visited = new Set<string>();
 
   while (currentId !== null) {
     if (visited.has(currentId)) break;
     visited.add(currentId);
-    const folder = allFiles.find((f) => f.id === currentId);
+    const folder = folderById.get(currentId);
     if (!folder) break;
     crumbs.push({ id: folder.id, name: folder.name });
     currentId = folder.parentFolderId;
   }
 
   if (crumbs.length <= 1) return crumbs;
-  const root = crumbs.at(0);
-  if (root === undefined) return crumbs;
   return [root, ...crumbs.slice(1).reverse()];
 }
 
@@ -90,17 +100,38 @@ export default function FilesClient() {
   });
 
   if (isLoading) {
-    return (
-      <PageContainer title="Files">
-        <div className="flex h-full min-h-0 items-center justify-center">
-          <VmemSpinner size={24} className="text-muted" />
-        </div>
-      </PageContainer>
-    );
+    return filesLoadingView;
   }
 
   const isRoot = params.folderId === null;
   const showEmpty = currentItems.length === 0 && !actions.isCreatingFolder;
+
+  function handleItemDelete(item: Parameters<typeof actions.handleDelete>[0]) {
+    void actions.handleDelete(item);
+  }
+
+  function handleNewFolderConfirm(name: string) {
+    void actions.handleNewFolderConfirm(name);
+  }
+
+  function handleNewFolderCancel() {
+    actions.setIsCreatingFolder(false);
+  }
+
+  const sharedItemViewProps = {
+    items: currentItems,
+    isCreatingFolder: actions.isCreatingFolder,
+    isSelected: selection.isSelected,
+    onClick: selection.handleClick,
+    onCheckbox: selection.handleCheckbox,
+    onOpen: actions.handleOpen,
+    onDownload: actions.handleDownload,
+    onMoveTo: actions.handleMoveTo,
+    onRename: actions.handleRename,
+    onDelete: handleItemDelete,
+    onNewFolderConfirm: handleNewFolderConfirm,
+    onNewFolderCancel: handleNewFolderCancel,
+  };
 
   return (
     <PageContainer
@@ -136,45 +167,18 @@ export default function FilesClient() {
         <FileDropZone onFilesDropped={actions.handleFilesDropped}>
           <div className="h-full overflow-y-auto scrollbar-thin">
             {showEmpty ? (
-              <FileEmptyState
-                variant={isRoot ? "root" : "folder"}
-                onUpload={actions.openUpload}
-              />
+              isRoot ? (
+                <FileEmptyStateRoot onUpload={actions.openUpload} />
+              ) : (
+                <FileEmptyStateFolder onUpload={actions.openUpload} />
+              )
             ) : params.view === "grid" ? (
-              <FileGrid
-                items={currentItems}
-                isCreatingFolder={actions.isCreatingFolder}
-                isSelected={selection.isSelected}
-                onClick={selection.handleClick}
-                onCheckbox={selection.handleCheckbox}
-                onOpen={actions.handleOpen}
-                onDownload={actions.handleDownload}
-                onMoveTo={actions.handleMoveTo}
-                onRename={actions.handleRename}
-                onDelete={(item) => void actions.handleDelete(item)}
-                onNewFolderConfirm={(name) =>
-                  void actions.handleNewFolderConfirm(name)
-                }
-                onNewFolderCancel={() => actions.setIsCreatingFolder(false)}
-              />
+              <FileGrid {...sharedItemViewProps} />
             ) : (
               <FileListView
-                items={currentItems}
-                isCreatingFolder={actions.isCreatingFolder}
+                {...sharedItemViewProps}
                 isAllSelected={selection.isAllSelected}
-                isSelected={selection.isSelected}
-                onClick={selection.handleClick}
-                onCheckbox={selection.handleCheckbox}
                 onSelectAll={selection.handleSelectAll}
-                onOpen={actions.handleOpen}
-                onDownload={actions.handleDownload}
-                onMoveTo={actions.handleMoveTo}
-                onRename={actions.handleRename}
-                onDelete={(item) => void actions.handleDelete(item)}
-                onNewFolderConfirm={(name) =>
-                  void actions.handleNewFolderConfirm(name)
-                }
-                onNewFolderCancel={() => actions.setIsCreatingFolder(false)}
               />
             )}
           </div>

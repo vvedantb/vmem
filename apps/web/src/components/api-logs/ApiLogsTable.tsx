@@ -13,11 +13,21 @@ interface ApiLogItem {
   timestamp: string;
 }
 
-function getStatusClassName(status: number): string {
-  if (isSuccessStatus(status)) return "bg-success/10 text-success";
-  if (status >= 400) return "bg-danger/10 text-danger";
-  return "bg-warning/10 text-warning";
+type StatusVariant = "success" | "error" | "warning";
+
+function getStatusVariant(status: number): StatusVariant {
+  if (isSuccessStatus(status)) return "success";
+  if (status >= 400) return "error";
+  return "warning";
 }
+
+const STATUS_VARIANT_CLASS = new Map<StatusVariant, string>([
+  ["success", "bg-success/10 text-success"],
+  ["error", "bg-danger/10 text-danger"],
+  ["warning", "bg-warning/10 text-warning"],
+]);
+
+const RECENT_REQUESTS_LABEL = "Recent requests";
 
 interface ApiLogsTableProps {
   logs: ApiLogItem[];
@@ -28,7 +38,7 @@ function ApiLogsEmptyState() {
   return (
     <section className="flex min-h-0 flex-1 flex-col gap-3">
       <h2 className="shrink-0 px-0.5 text-sm font-medium text-foreground">
-        Recent requests
+        {RECENT_REQUESTS_LABEL}
       </h2>
       <Card className="flex min-h-0 flex-1 flex-col shadow-none">
         <CardContent className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-14 text-center">
@@ -49,8 +59,10 @@ function ApiLogsEmptyState() {
 }
 
 function ApiLogRow({ log }: { log: ApiLogItem }) {
+  const statusVariant = getStatusVariant(log.status);
+
   return (
-    <li className="rounded-lg px-4 py-3 transition-[background-color] hover:bg-surface-tertiary/50">
+    <li className="rounded-lg px-4 py-3 transition-[background-color] hover:bg-surface-tertiary/50 [content-visibility:auto] [contain-intrinsic-size:0_3.5rem]">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <code className="min-w-0 break-all font-mono text-sm text-foreground sm:break-normal">
           {log.endpoint}
@@ -59,7 +71,7 @@ function ApiLogRow({ log }: { log: ApiLogItem }) {
           <span
             className={cn(
               "inline-flex rounded-lg px-2 py-0.5 text-xs font-medium tabular-nums",
-              getStatusClassName(log.status),
+              STATUS_VARIANT_CLASS.get(statusVariant),
             )}
           >
             {log.status}
@@ -89,7 +101,9 @@ export function ApiLogsTable({ logs, totalCount }: ApiLogsTableProps) {
   return (
     <section className="flex min-h-0 flex-1 flex-col gap-3">
       <div className="flex shrink-0 items-center justify-between gap-3 px-0.5">
-        <h2 className="text-sm font-medium text-foreground">Recent requests</h2>
+        <h2 className="text-sm font-medium text-foreground">
+          {RECENT_REQUESTS_LABEL}
+        </h2>
         <span className="text-xs text-muted tabular-nums">{showingLabel}</span>
       </div>
       <Card className="flex min-h-0 flex-1 flex-col shadow-none">

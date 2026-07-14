@@ -10,7 +10,7 @@ import {
 } from "@vmem/ui";
 import type { FileItem } from "@/lib/file-types";
 import FileListRow from "./FileListRow";
-import InlineNewFolder from "./InlineNewFolder";
+import { InlineNewFolderList } from "./InlineNewFolder";
 
 interface FileListViewProps {
   items: FileItem[];
@@ -70,13 +70,12 @@ export default function FileListView({
         </TableRow>
       </TableHeader>
       <TableBody>
-        {isCreatingFolder && (
-          <InlineNewFolder
-            variant="list"
+        {isCreatingFolder ? (
+          <InlineNewFolderList
             onConfirm={onNewFolderConfirm}
             onCancel={onNewFolderCancel}
           />
-        )}
+        ) : null}
         {items.map((item) => (
           <FileListRow
             key={item.id}

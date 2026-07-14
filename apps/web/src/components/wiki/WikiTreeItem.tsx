@@ -27,6 +27,8 @@ import {
 import type { WikiTreeNode } from "./_utils";
 import { WIKI_ROOT_DROP_ID } from "./_utils";
 
+export type WikiTreeMode = "navigate" | "bulk-select";
+
 // scroll container that doubles as the "move to top level" drop target
 export function WikiRootDropZone({
   disabled,
@@ -73,7 +75,7 @@ export interface WikiTreeListProps {
   depth: number;
   selectedId: string | null;
   onSelect: (id: string) => void;
-  selectionMode: boolean;
+  mode: WikiTreeMode;
   selectedNodeIds?: ReadonlySet<Id<"wikiNodes">>;
   onToggleSelect?: (id: Id<"wikiNodes">) => void;
   onCreateInside: (
@@ -89,7 +91,7 @@ export function WikiTreeList({
   depth,
   selectedId,
   onSelect,
-  selectionMode,
+  mode,
   selectedNodeIds,
   onToggleSelect,
   onCreateInside,
@@ -105,7 +107,7 @@ export function WikiTreeList({
           depth={depth}
           selectedId={selectedId}
           onSelect={onSelect}
-          selectionMode={selectionMode}
+          mode={mode}
           selectedNodeIds={selectedNodeIds}
           onToggleSelect={onToggleSelect}
           onCreateInside={onCreateInside}
@@ -122,7 +124,7 @@ interface WikiTreeItemProps {
   depth: number;
   selectedId: string | null;
   onSelect: (id: string) => void;
-  selectionMode: boolean;
+  mode: WikiTreeMode;
   selectedNodeIds?: ReadonlySet<Id<"wikiNodes">>;
   onToggleSelect?: (id: Id<"wikiNodes">) => void;
   onCreateInside: (
@@ -133,46 +135,44 @@ interface WikiTreeItemProps {
   onRequestDelete: (node: Doc<"wikiNodes">) => void;
 }
 
-function WikiTreeItem({
+function WikiTreeItem(props: WikiTreeItemProps) {
+  if (props.mode === "bulk-select") {
+    return <WikiTreeBulkSelectItem {...props} />;
+  }
+  return <WikiTreeNavigateItem {...props} />;
+}
+
+function WikiTreeNavigateItem({
   item,
   depth,
   selectedId,
   onSelect,
-  selectionMode,
-  selectedNodeIds,
-  onToggleSelect,
   onCreateInside,
   onRequestRename,
   onRequestDelete,
 }: WikiTreeItemProps) {
   const [expanded, setExpanded] = useState(depth === 0);
   const isFolder = item.node.kind === "folder";
-  const isChecked = selectedNodeIds?.has(item.node._id) ?? false;
-  const highlighted = selectionMode ? isChecked : selectedId === item.node._id;
+  const highlighted = selectedId === item.node._id;
 
-  // the row is draggable; folders are also a drop target to nest into
   const {
     attributes,
     listeners,
     setNodeRef: setDragRef,
     transform,
     isDragging,
-  } = useDraggable({ id: item.node._id, disabled: selectionMode });
+  } = useDraggable({ id: item.node._id });
   const { setNodeRef: setDropRef, isOver } = useDroppable({
     id: item.node._id,
-    disabled: !isFolder || selectionMode,
+    disabled: !isFolder,
   });
 
   const handleActivate = () => {
-    if (selectionMode) {
-      onToggleSelect?.(item.node._id);
-      return;
-    }
     if (isFolder) {
       setExpanded((prev) => !prev);
-    } else {
-      onSelect(item.node._id);
+      return;
     }
+    onSelect(item.node._id);
   };
 
   return (
@@ -205,14 +205,6 @@ function WikiTreeItem({
                   : "text-muted hover:bg-surface-tertiary/50 hover:text-foreground",
               )}
             >
-              {selectionMode ? (
-                <Checkbox
-                  checked={isChecked}
-                  tabIndex={-1}
-                  aria-hidden
-                  className="pointer-events-none shrink-0"
-                />
-              ) : null}
               {isFolder ? (
                 <span
                   role="button"
@@ -286,7 +278,132 @@ function WikiTreeItem({
             depth={depth + 1}
             selectedId={selectedId}
             onSelect={onSelect}
-            selectionMode={selectionMode}
+            mode="navigate"
+            onCreateInside={onCreateInside}
+            onRequestRename={onRequestRename}
+            onRequestDelete={onRequestDelete}
+          />
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+function WikiTreeBulkSelectItem({
+  item,
+  depth,
+  selectedId,
+  onSelect,
+  selectedNodeIds,
+  onToggleSelect,
+  onCreateInside,
+  onRequestRename,
+  onRequestDelete,
+}: WikiTreeItemProps) {
+  const [expanded, setExpanded] = useState(depth === 0);
+  const isFolder = item.node.kind === "folder";
+  const isChecked = selectedNodeIds?.has(item.node._id) ?? false;
+
+  const handleActivate = () => {
+    onToggleSelect?.(item.node._id);
+  };
+
+  return (
+    <>
+      <div className="rounded-md transition-[background-color]">
+        <ContextMenu>
+          <ContextMenuTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={handleActivate}
+              className={cn(
+                "group h-auto w-full justify-start gap-1.5 rounded-md px-2 py-1.5 text-left text-sm font-normal transition-[background-color,color] active:scale-100",
+                isChecked
+                  ? "bg-surface-tertiary font-medium text-foreground hover:bg-surface-tertiary"
+                  : "text-muted hover:bg-surface-tertiary/50 hover:text-foreground",
+              )}
+            >
+              <Checkbox
+                checked={isChecked}
+                tabIndex={-1}
+                aria-hidden
+                className="pointer-events-none shrink-0"
+              />
+              {isFolder ? (
+                <span
+                  role="button"
+                  tabIndex={-1}
+                  aria-label={expanded ? "Collapse folder" : "Expand folder"}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setExpanded((prev) => !prev);
+                  }}
+                  className="inline-flex shrink-0"
+                >
+                  <IconChevronRight
+                    size={14}
+                    className={cn(
+                      "text-muted transition-transform",
+                      expanded && "rotate-90",
+                    )}
+                  />
+                </span>
+              ) : (
+                <span className="inline-block w-[14px] shrink-0" />
+              )}
+              <span className="truncate">{item.node.title}</span>
+              {isFolder && item.node.sourceCodebaseId ? (
+                <span
+                  title="Generated from a synced codebase"
+                  className="ml-auto inline-flex shrink-0"
+                >
+                  <IconDatabase size={13} className="text-muted" />
+                </span>
+              ) : null}
+            </Button>
+          </ContextMenuTrigger>
+          <ContextMenuContent>
+            {isFolder && (
+              <>
+                <ContextMenuItem
+                  onSelect={() => onCreateInside(item.node._id, "document")}
+                >
+                  <IconFileText size={16} className="text-muted" />
+                  New document
+                </ContextMenuItem>
+                <ContextMenuItem
+                  onSelect={() => onCreateInside(item.node._id, "folder")}
+                >
+                  <IconFolderPlus size={16} className="text-muted" />
+                  New folder
+                </ContextMenuItem>
+                <ContextMenuSeparator />
+              </>
+            )}
+            <ContextMenuItem onSelect={() => onRequestRename(item.node)}>
+              <IconPencil size={16} className="text-muted" />
+              Rename
+            </ContextMenuItem>
+            <ContextMenuItem
+              onSelect={() => onRequestDelete(item.node)}
+              className="text-danger focus:text-danger data-[highlighted]:text-danger"
+            >
+              <IconTrash size={16} />
+              Delete
+            </ContextMenuItem>
+          </ContextMenuContent>
+        </ContextMenu>
+      </div>
+
+      {isFolder && expanded && item.children.length > 0 ? (
+        <div className="ml-[15px] border-l border-separator pl-2">
+          <WikiTreeList
+            nodes={item.children}
+            depth={depth + 1}
+            selectedId={selectedId}
+            onSelect={onSelect}
+            mode="bulk-select"
             selectedNodeIds={selectedNodeIds}
             onToggleSelect={onToggleSelect}
             onCreateInside={onCreateInside}

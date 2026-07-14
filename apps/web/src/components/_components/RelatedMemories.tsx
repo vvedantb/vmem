@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAction } from "convex/react";
 import {
   Badge,
@@ -79,10 +79,11 @@ export default function RelatedMemories({
     [memoryId, unlinkMemoriesAction],
   );
 
-  const relatedIds = useMemo(
-    () => new Set(entries.map((e) => e.memory.id)),
-    [entries],
-  );
+  const relatedIds = new Set(entries.map((entry) => entry.memory.id));
+  const unlinkTarget =
+    confirmUnlinkId === null
+      ? null
+      : (entries.find((entry) => entry.memory.id === confirmUnlinkId) ?? null);
 
   return (
     <div className="min-w-0 space-y-4 overflow-x-hidden">
@@ -200,8 +201,7 @@ export default function RelatedMemories({
               <p className="text-foreground">
                 Unlink{" "}
                 <span className="font-medium">
-                  {entries.find((e) => e.memory.id === confirmUnlinkId)?.memory
-                    .title ?? "this memory"}
+                  {unlinkTarget?.memory.title ?? "this memory"}
                 </span>
                 ?
               </p>

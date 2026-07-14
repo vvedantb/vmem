@@ -13,7 +13,7 @@ import {
   cn,
 } from "@vmem/ui";
 import { IconLoader2, IconSearch } from "@tabler/icons-react";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { sidebarSearchInputClassName } from "@/components/sidebar/sidebar-search-input";
 import { GitHubIcon } from "@/components/brand-icons";
@@ -76,24 +76,22 @@ export function AddRepoModal({
   const [search, setSearch] = useState("");
   const [adding, setAdding] = useState<string | null>(null);
 
-  const addedFullNames = useMemo(() => {
-    return new Set((codebases ?? []).map((cb) => cb.repoFullName));
-  }, [codebases]);
-
-  const availableRepos = useMemo(() => {
-    return repos.filter((repo) => !addedFullNames.has(repo.fullName));
-  }, [repos, addedFullNames]);
-
-  const filtered = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    if (query.length === 0) return availableRepos;
-    return availableRepos.filter(
-      (repo) =>
-        repo.fullName.toLowerCase().includes(query) ||
-        (repo.description?.toLowerCase().includes(query) ?? false) ||
-        (repo.language?.toLowerCase().includes(query) ?? false),
-    );
-  }, [availableRepos, search]);
+  const addedFullNames = new Set(
+    (codebases ?? []).map((cb) => cb.repoFullName),
+  );
+  const availableRepos = repos.filter(
+    (repo) => !addedFullNames.has(repo.fullName),
+  );
+  const searchQuery = search.trim().toLowerCase();
+  const filtered =
+    searchQuery.length === 0
+      ? availableRepos
+      : availableRepos.filter(
+          (repo) =>
+            repo.fullName.toLowerCase().includes(searchQuery) ||
+            (repo.description?.toLowerCase().includes(searchQuery) ?? false) ||
+            (repo.language?.toLowerCase().includes(searchQuery) ?? false),
+        );
 
   const fetchRepos = useCallback(async () => {
     setLoading(true);
@@ -192,11 +190,11 @@ export function AddRepoModal({
               </div>
             ) : filtered.length === 0 ? (
               <p className="px-3 py-14 text-center text-sm text-muted">
-                {search.trim().length > 0
-                  ? "No matching repositories"
-                  : availableRepos.length === 0 && repos.length > 0
-                    ? "All accessible repositories are already added"
-                    : "No repositories found on your GitHub account"}
+                {emptyRepoListMessage(
+                  search,
+                  availableRepos.length,
+                  repos.length,
+                )}
               </p>
             ) : (
               <div className="flex flex-col gap-0.5">
@@ -225,4 +223,18 @@ export function AddRepoModal({
       </DialogContent>
     </Dialog>
   );
+}
+
+function emptyRepoListMessage(
+  search: string,
+  availableCount: number,
+  totalCount: number,
+): string {
+  if (search.trim().length > 0) {
+    return "No matching repositories";
+  }
+  if (availableCount === 0 && totalCount > 0) {
+    return "All accessible repositories are already added";
+  }
+  return "No repositories found on your GitHub account";
 }

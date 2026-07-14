@@ -54,42 +54,47 @@ function AuthorizedFlow({ search }: { search: McpOauthParams }) {
   const authorize = useMutation(api.mcp.oauth.authorize);
   const [error, setError] = useState<string | null>(null);
   const startedRef = useRef(false);
+  const canAuthorize = !convexLoading && isAuthenticated;
 
   useEffect(() => {
-    if (convexLoading || !isAuthenticated) return;
-    if (startedRef.current) return;
+    if (!canAuthorize || startedRef.current) return;
     startedRef.current = true;
 
-    authorize({
-      clientId: search.client_id,
-      redirectUri: search.redirect_uri,
-      codeChallenge: search.code_challenge,
-      codeChallengeMethod: search.code_challenge_method,
-    })
-      .then(({ code }) => {
+    void (async () => {
+      try {
+        const { code } = await authorize({
+          clientId: search.client_id,
+          redirectUri: search.redirect_uri,
+          codeChallenge: search.code_challenge,
+          codeChallengeMethod: search.code_challenge_method,
+        });
         clearMcpOauthParams();
         const target = new URL(search.redirect_uri);
         target.searchParams.set("code", code);
         target.searchParams.set("state", search.state);
         window.location.replace(target.toString());
-      })
-      .catch(() => {
+      } catch {
         setError("Please try connecting Claude again.");
-      });
-  }, [authorize, search, convexLoading, isAuthenticated]);
+      }
+    })();
+  }, [authorize, search, canAuthorize]);
 
   if (error) {
-    return (
-      <div className="flex flex-col items-center gap-3 text-center">
-        <p className="text-sm font-medium text-foreground">
-          Couldn&apos;t complete authorization
-        </p>
-        <p className="text-sm text-muted">{error}</p>
-      </div>
-    );
+    return <AuthorizationError message={error} />;
   }
 
   return <Status>Connecting Claude to vmem…</Status>;
+}
+
+function AuthorizationError({ message }: { message: string }) {
+  return (
+    <div className="flex flex-col items-center gap-3 text-center">
+      <p className="text-sm font-medium text-foreground">
+        Couldn&apos;t complete authorization
+      </p>
+      <p className="text-sm text-muted">{message}</p>
+    </div>
+  );
 }
 
 function SignInPrompt() {

@@ -4,26 +4,50 @@ import type { api } from "@vmem/backend";
 
 export type TeamDetail = NonNullable<FunctionReturnType<typeof api.teams.get>>;
 
-const TeamDetailContext = createContext<TeamDetail | null>(null);
+type TeamWorkspaceState = {
+  detail: TeamDetail;
+};
+
+type TeamWorkspaceMeta = {
+  isOwner: boolean;
+};
+
+export type TeamWorkspaceContextValue = {
+  state: TeamWorkspaceState;
+  meta: TeamWorkspaceMeta;
+};
+
+const TeamWorkspaceContext = createContext<TeamWorkspaceContextValue | null>(
+  null,
+);
 
 export function TeamDetailProvider({
-  value,
+  detail,
   children,
 }: {
-  value: TeamDetail;
+  detail: TeamDetail;
   children: ReactNode;
 }) {
+  const value: TeamWorkspaceContextValue = {
+    state: { detail },
+    meta: { isOwner: detail.role === "owner" },
+  };
+
   return (
-    <TeamDetailContext.Provider value={value}>
+    <TeamWorkspaceContext.Provider value={value}>
       {children}
-    </TeamDetailContext.Provider>
+    </TeamWorkspaceContext.Provider>
   );
 }
 
-export function useTeamDetail(): TeamDetail {
-  const value = use(TeamDetailContext);
+export function useTeamWorkspace(): TeamWorkspaceContextValue {
+  const value = use(TeamWorkspaceContext);
   if (value === null) {
-    throw new Error("useTeamDetail must be used within TeamDetailProvider");
+    throw new Error("useTeamWorkspace must be used within TeamDetailProvider");
   }
   return value;
+}
+
+export function useTeamDetail(): TeamDetail {
+  return useTeamWorkspace().state.detail;
 }

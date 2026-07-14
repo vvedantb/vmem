@@ -61,6 +61,10 @@ function buildDailyTrends(entries: ApiRequestEntry[]): ApiUsageTrends {
     (_, index) => todayStart - (TREND_DAY_COUNT - 1 - index) * DAY_MS,
   );
 
+  const dayStartToBucketIndex = new Map(
+    dayStarts.map((dayStart, index) => [dayStart, index]),
+  );
+
   const buckets = dayStarts.map((dayStart) => ({
     dayStart,
     requests: 0,
@@ -70,10 +74,8 @@ function buildDailyTrends(entries: ApiRequestEntry[]): ApiUsageTrends {
 
   for (const entry of entries) {
     const entryDayStart = startOfLocalDay(entry.originalTimestamp);
-    const bucketIndex = dayStarts.findIndex(
-      (dayStart) => dayStart === entryDayStart,
-    );
-    if (bucketIndex < 0) continue;
+    const bucketIndex = dayStartToBucketIndex.get(entryDayStart);
+    if (bucketIndex === undefined) continue;
 
     const bucket = buckets[bucketIndex];
     if (bucket === undefined) continue;

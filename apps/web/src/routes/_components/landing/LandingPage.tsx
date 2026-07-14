@@ -31,7 +31,12 @@ const features = [
   },
 ] as const;
 
-const capabilities = ["Graph memory", "MCP", "HTTP API", "Skills"] as const;
+const capabilities = [
+  { label: "Graph memory", tone: "accent" },
+  { label: "MCP", tone: "muted" },
+  { label: "HTTP API", tone: "muted" },
+  { label: "Skills", tone: "muted" },
+] as const;
 
 const narrowMediaQuery = "(max-width: 1023px)";
 
@@ -49,27 +54,47 @@ function getNarrowViewportServerSnapshot() {
   return false;
 }
 
-export function LandingPage() {
+function LandingAmbientStatic() {
+  return (
+    <div className="pointer-events-none absolute inset-0">
+      <LandingAmbientGraph />
+    </div>
+  );
+}
+
+function LandingAmbientParallax() {
+  const { scrollY } = useScroll();
+  const ambientY = useTransform(scrollY, [0, 480], [0, 56]);
+  const ambientOpacity = useTransform(scrollY, [0, 320], [1, 0.72]);
+
+  return (
+    <motion.div
+      className="pointer-events-none absolute inset-0"
+      style={{ y: ambientY, opacity: ambientOpacity }}
+    >
+      <LandingAmbientGraph />
+    </motion.div>
+  );
+}
+
+function LandingAmbientLayer() {
   const isNarrowViewport = useSyncExternalStore(
     subscribeNarrowViewport,
     getNarrowViewportSnapshot,
     getNarrowViewportServerSnapshot,
   );
-  const { scrollY } = useScroll();
-  const ambientY = useTransform(scrollY, [0, 480], [0, 56]);
-  const ambientOpacity = useTransform(scrollY, [0, 320], [1, 0.72]);
-  const parallaxEnabled = !isNarrowViewport;
 
+  if (isNarrowViewport) {
+    return <LandingAmbientStatic />;
+  }
+
+  return <LandingAmbientParallax />;
+}
+
+export function LandingPage() {
   return (
     <div className="relative min-h-[100dvh] bg-background text-foreground">
-      <motion.div
-        className="pointer-events-none absolute inset-0"
-        style={
-          parallaxEnabled ? { y: ambientY, opacity: ambientOpacity } : undefined
-        }
-      >
-        <LandingAmbientGraph />
-      </motion.div>
+      <LandingAmbientLayer />
 
       <div className="relative mx-auto flex w-full max-w-7xl flex-col px-5 py-8 sm:px-8 sm:py-10 lg:px-12">
         <motion.header

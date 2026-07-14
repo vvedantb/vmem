@@ -145,6 +145,7 @@ export function TagMemoriesPanel({
   if (selectedMemory) {
     return (
       <MemoryDetailPanel
+        key={selectedMemory.id}
         memory={selectedMemory}
         onClose={() => setSelectedMemoryId(null)}
         onMemoryUpdate={handleMemoryUpdate}

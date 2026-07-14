@@ -10,6 +10,55 @@ import { Button, cn, Input } from "@vmem/ui";
 import { sidebarSearchInputClassName } from "@/components/sidebar/sidebar-search-input";
 import { useActiveTeamId } from "@/components/workspace/active-profile";
 
+interface WikiSearchResultItemProps {
+  node: {
+    _id: string;
+    kind: "folder" | "document";
+    title: string;
+  };
+  onSelect: (id: string) => void;
+  onClear: () => void;
+}
+
+function WikiSearchResultItem({
+  node,
+  onSelect,
+  onClear,
+}: WikiSearchResultItemProps) {
+  if (node.kind !== "document") {
+    return (
+      <li>
+        <Button
+          type="button"
+          variant="ghost"
+          disabled
+          className="h-auto w-full justify-start gap-2 rounded-md px-2 py-1.5 text-left text-sm font-normal text-foreground/90 hover:bg-surface-tertiary/50 active:scale-100 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <IconFolder className="size-3.5 shrink-0 text-muted" />
+          <span className="truncate">{node.title}</span>
+        </Button>
+      </li>
+    );
+  }
+
+  return (
+    <li>
+      <Button
+        type="button"
+        variant="ghost"
+        onClick={() => {
+          onSelect(node._id);
+          onClear();
+        }}
+        className="h-auto w-full justify-start gap-2 rounded-md px-2 py-1.5 text-left text-sm font-normal text-foreground/90 hover:bg-surface-tertiary/50 active:scale-100"
+      >
+        <IconFileText className="size-3.5 shrink-0 text-muted" />
+        <span className="truncate">{node.title}</span>
+      </Button>
+    </li>
+  );
+}
+
 interface WikiSearchProps {
   onSelect: (id: string) => void;
   // trailing chrome (add, select) beside the input
@@ -61,27 +110,12 @@ export default function WikiSearch({
           ) : (
             <ul className="flex flex-col">
               {results.map((node) => (
-                <li key={node._id}>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => {
-                      if (node.kind === "document") {
-                        onSelect(node._id);
-                      }
-                      setRaw("");
-                    }}
-                    disabled={node.kind !== "document"}
-                    className="h-auto w-full justify-start gap-2 rounded-md px-2 py-1.5 text-left text-sm font-normal text-foreground/90 hover:bg-surface-tertiary/50 active:scale-100 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {node.kind === "folder" ? (
-                      <IconFolder className="size-3.5 shrink-0 text-muted" />
-                    ) : (
-                      <IconFileText className="size-3.5 shrink-0 text-muted" />
-                    )}
-                    <span className="truncate">{node.title}</span>
-                  </Button>
-                </li>
+                <WikiSearchResultItem
+                  key={node._id}
+                  node={node}
+                  onSelect={onSelect}
+                  onClear={() => setRaw("")}
+                />
               ))}
             </ul>
           )}

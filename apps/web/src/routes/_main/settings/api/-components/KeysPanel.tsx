@@ -20,17 +20,13 @@ import { DeleteKeyDialog } from "@/components/api-keys/DeleteKeyDialog";
 import { EditKeyDialog } from "@/components/api-keys/EditKeyDialog";
 import { useApiKeyActions } from "@/components/api-keys/useApiKeyActions";
 import { api } from "@vmem/backend";
+import { useApiCreateKeyModal } from "./ApiCreateKeyContext";
 
 type ApiKey = FunctionReturnType<typeof api.apiKeys.listMy>[number];
 
 // keys panel for `/settings/api`
-export function KeysPanel({
-  isCreateModalOpen,
-  onCreateModalOpenChange,
-}: {
-  isCreateModalOpen: boolean;
-  onCreateModalOpenChange: (open: boolean) => void;
-}) {
+export function KeysPanel() {
+  const { isCreateModalOpen, setIsCreateModalOpen } = useApiCreateKeyModal();
   const apiKeys = useQuery(api.apiKeys.listMy, {});
 
   const {
@@ -77,7 +73,7 @@ export function KeysPanel({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => onCreateModalOpenChange(true)}
+              onClick={() => setIsCreateModalOpen(true)}
             >
               <IconPlus size={16} />
               New Key
@@ -132,7 +128,7 @@ export function KeysPanel({
 
       <ApiKeyModal
         isOpen={isCreateModalOpen}
-        onClose={() => onCreateModalOpenChange(false)}
+        onClose={() => setIsCreateModalOpen(false)}
         onKeyCreated={() => {}}
       />
 

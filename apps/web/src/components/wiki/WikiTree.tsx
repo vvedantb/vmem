@@ -58,7 +58,6 @@ export default function WikiTree({
   selectedNodeIds,
   onToggleSelect,
 }: WikiTreeProps) {
-  const selectionMode = mode === "bulk-select";
   const teamId = useActiveTeamId();
   const createNode = useMutation(api.wiki.createNode).withOptimisticUpdate(
     (localStore, args) => {
@@ -227,7 +226,7 @@ export default function WikiTree({
       onDragCancel={() => setActiveNode(null)}
     >
       <div className="flex flex-col min-h-0 flex-1 w-full">
-        <WikiRootDropZone disabled={selectionMode}>
+        <WikiRootDropZone disabled={mode === "bulk-select"}>
           {tree.length === 0 ? (
             <p className="px-2 py-3 text-xs text-muted">
               No documents yet. Use Add below to create one.
@@ -238,7 +237,7 @@ export default function WikiTree({
               depth={0}
               selectedId={selectedId}
               onSelect={onSelect}
-              selectionMode={selectionMode}
+              mode={mode}
               selectedNodeIds={selectedNodeIds}
               onToggleSelect={onToggleSelect}
               onCreateInside={handleCreateInFolder}

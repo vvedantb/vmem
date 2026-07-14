@@ -22,17 +22,14 @@ export function RevokeKeyDialog({
       isOpen={isOpen}
       isBusy={isRevoking}
       title="Revoke API Key"
-      lead={
-        <>
-          Are you sure you want to revoke{" "}
-          <span className="font-medium">{keyName}</span>?
-        </>
-      }
       detail="This action cannot be undone. Any applications using this key will immediately lose access."
       confirmLabel="Revoke Key"
       busyLabel="Revoking..."
       onConfirm={onConfirm}
       onCancel={onCancel}
-    />
+    >
+      Are you sure you want to revoke{" "}
+      <span className="font-medium">{keyName}</span>?
+    </KeyConfirmDialog>
   );
 }

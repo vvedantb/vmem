@@ -1,5 +1,14 @@
+import { useMatchRoute } from "@tanstack/react-router";
 import { IconKey, IconChartBar } from "@tabler/icons-react";
 import { RouteTabs } from "@/components/RouteTabs";
+
+export type ApiTab = "usage" | "keys";
+
+type MatchRoute = ReturnType<typeof useMatchRoute>;
+
+export function getActiveApiTab(matchRoute: MatchRoute): ApiTab {
+  return matchRoute({ to: "/settings/api/usage" }) ? "usage" : "keys";
+}
 
 export function ApiTabs() {
   return (
@@ -18,9 +27,7 @@ export function ApiTabs() {
           icon: <IconKey size={16} />,
         },
       ]}
-      getActiveValue={(matchRoute) =>
-        matchRoute({ to: "/settings/api/usage" }) ? "usage" : "keys"
-      }
+      getActiveValue={getActiveApiTab}
     />
   );
 }

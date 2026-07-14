@@ -10,11 +10,16 @@ import {
   IconUser,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
-import { useTeamDetail, type TeamDetail } from "./team-context";
+import {
+  useTeamDetail,
+  useTeamWorkspace,
+  type TeamDetail,
+} from "./team-context";
 import { AddMemberDialog } from "./AddMemberDialog";
 
 export function TeamMembers() {
   const data = useTeamDetail();
+  const { meta } = useTeamWorkspace();
   const removeMember = useMutation(api.teams.removeMember).withOptimisticUpdate(
     (localStore, args) => {
       const detail = localStore.getQuery(api.teams.get, {
@@ -49,8 +54,6 @@ export function TeamMembers() {
   const currentUser = useQuery(api.users.getMe);
   const { user: clerkUser } = useUser();
 
-  const isOwner = data.role === "owner";
-
   const handleRemove = async (userId: string, label: string) => {
     const confirmed = window.confirm(`Remove ${label} from ${data.team.name}?`);
     if (!confirmed) return;
@@ -72,12 +75,12 @@ export function TeamMembers() {
           {data.members.length}{" "}
           {data.members.length === 1 ? "member" : "members"}
         </div>
-        {isOwner && (
+        {meta.isOwner ? (
           <Button variant="outline" size="sm" onClick={() => setAddOpen(true)}>
             <IconPlus size={16} />
             Add member
           </Button>
-        )}
+        ) : null}
       </div>
 
       <Card className="shadow-none">
@@ -88,58 +91,16 @@ export function TeamMembers() {
             </div>
           ) : (
             <ul className="flex flex-col gap-1">
-              {data.members.map((m) => {
-                const name = memberLabel(m);
-                const isSelf = m.userId === currentUser?._id;
-                const canRemoveMember =
-                  isOwner && !isSelf && currentUser !== undefined;
-
-                return (
-                  <li
-                    key={m.userId}
-                    className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 transition-[background-color] hover:bg-surface-tertiary/50"
-                  >
-                    <div className="flex min-w-0 flex-1 items-center gap-3">
-                      <MemberAvatar
-                        imageUrl={isSelf ? clerkUser?.imageUrl : undefined}
-                      />
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-medium text-foreground">
-                          {name}
-                        </div>
-                        {m.email ? (
-                          <div className="truncate text-xs text-muted">
-                            {m.email}
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        variant={m.role === "owner" ? "default" : "secondary"}
-                        className="capitalize"
-                      >
-                        {m.role}
-                      </Badge>
-                      {canRemoveMember ? (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemove(m.userId, name)}
-                          disabled={removing === m.userId}
-                          className="text-muted hover:text-danger"
-                        >
-                          {removing === m.userId ? (
-                            <IconLoader2 size={14} className="animate-spin" />
-                          ) : (
-                            <IconTrash size={14} />
-                          )}
-                        </Button>
-                      ) : null}
-                    </div>
-                  </li>
-                );
-              })}
+              {data.members.map((member) => (
+                <MemberRow
+                  key={member.userId}
+                  member={member}
+                  currentUserId={currentUser?._id}
+                  clerkImageUrl={clerkUser?.imageUrl}
+                  removingUserId={removing}
+                  onRemove={handleRemove}
+                />
+              ))}
             </ul>
           )}
         </CardContent>
@@ -151,6 +112,66 @@ export function TeamMembers() {
         onOpenChange={setAddOpen}
       />
     </div>
+  );
+}
+
+function MemberRow({
+  member,
+  currentUserId,
+  clerkImageUrl,
+  removingUserId,
+  onRemove,
+}: {
+  member: TeamDetail["members"][number];
+  currentUserId: string | undefined;
+  clerkImageUrl: string | undefined;
+  removingUserId: string | null;
+  onRemove: (userId: string, label: string) => void;
+}) {
+  const { meta } = useTeamWorkspace();
+  const name = memberLabel(member);
+  const isSelf = member.userId === currentUserId;
+  const canRemoveMember =
+    meta.isOwner && !isSelf && currentUserId !== undefined;
+  const isRemoving = removingUserId === member.userId;
+
+  return (
+    <li className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 transition-[background-color] hover:bg-surface-tertiary/50">
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <MemberAvatar imageUrl={isSelf ? clerkImageUrl : undefined} />
+        <div className="min-w-0">
+          <div className="truncate text-sm font-medium text-foreground">
+            {name}
+          </div>
+          {member.email ? (
+            <div className="truncate text-xs text-muted">{member.email}</div>
+          ) : null}
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <Badge
+          variant={member.role === "owner" ? "default" : "secondary"}
+          className="capitalize"
+        >
+          {member.role}
+        </Badge>
+        {canRemoveMember ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onRemove(member.userId, name)}
+            disabled={isRemoving}
+            className="text-muted hover:text-danger"
+          >
+            {isRemoving ? (
+              <IconLoader2 size={14} className="animate-spin" />
+            ) : (
+              <IconTrash size={14} />
+            )}
+          </Button>
+        ) : null}
+      </div>
+    </li>
   );
 }
 

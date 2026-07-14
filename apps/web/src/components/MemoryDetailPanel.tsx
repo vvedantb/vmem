@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useAction } from "convex/react";
 import {
   Dialog,
@@ -33,12 +33,15 @@ import { formatMemoryTypeLabel } from "@/lib/memories";
 import { countUniqueRelated } from "@/lib/memories-related";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { toast } from "sonner";
-import DetailsTab from "./_components/DetailsTab";
+import { DetailsTabView, DetailsTabEdit } from "./_components/DetailsTab";
 import HistoryTab from "./_components/HistoryTab";
 import ConnectionsTab from "./_components/ConnectionsTab";
 import { MemorySourceLabel } from "./_components/MemorySourceLabel";
 
 type PanelTab = "details" | "history" | "connections";
+
+const TAB_PANEL_CLASS =
+  "mt-3 min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto scrollbar-thin";
 
 function formatMetaDate(dateString: string): string {
   return new Date(dateString).toLocaleDateString("en-US", {
@@ -78,11 +81,6 @@ export default function MemoryDetailPanel({
   const getRelatedMemories = useAction(api.relationshipApi.getRelatedMemories);
 
   useEffect(() => {
-    setIsEditing(false);
-    setActiveTab("details");
-  }, [memory.id]);
-
-  useEffect(() => {
     if (initialAction === "edit") {
       setIsEditing(true);
       setActiveTab("details");
@@ -99,7 +97,7 @@ export default function MemoryDetailPanel({
         onClose();
       }
     };
-    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keydown", onKeyDown, { passive: true });
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose, showDeleteConfirm, isEditing]);
 
@@ -121,7 +119,7 @@ export default function MemoryDetailPanel({
     };
   }, [memory.id, getRelatedMemories]);
 
-  const handleDelete = useCallback(async () => {
+  async function handleDelete() {
     setIsDeleting(true);
 
     try {
@@ -141,12 +139,12 @@ export default function MemoryDetailPanel({
     } finally {
       setIsDeleting(false);
     }
-  }, [memory, onMemoryDelete, onClose, deleteMemory]);
+  }
 
-  const handleStartEdit = useCallback(() => {
+  function handleStartEdit() {
     setActiveTab("details");
     setIsEditing(true);
-  }, []);
+  }
 
   return (
     <>
@@ -236,29 +234,24 @@ export default function MemoryDetailPanel({
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent
-            value="details"
-            className="mt-3 min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto scrollbar-thin"
-          >
-            <DetailsTab
-              memory={memory}
-              onMemoryUpdate={onMemoryUpdate}
-              isEditing={isEditing}
-              onIsEditingChange={setIsEditing}
-            />
+          <TabsContent value="details" className={TAB_PANEL_CLASS}>
+            {isEditing ? (
+              <DetailsTabEdit
+                key={memory.id}
+                memory={memory}
+                onMemoryUpdate={onMemoryUpdate}
+                onCancel={() => setIsEditing(false)}
+              />
+            ) : (
+              <DetailsTabView memory={memory} />
+            )}
           </TabsContent>
 
-          <TabsContent
-            value="history"
-            className="mt-3 min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto scrollbar-thin"
-          >
+          <TabsContent value="history" className={TAB_PANEL_CLASS}>
             <HistoryTab memoryId={memory.id} />
           </TabsContent>
 
-          <TabsContent
-            value="connections"
-            className="mt-3 min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto scrollbar-thin"
-          >
+          <TabsContent value="connections" className={TAB_PANEL_CLASS}>
             <ConnectionsTab
               memoryId={memory.id}
               onSelectRelated={onSelectRelated}

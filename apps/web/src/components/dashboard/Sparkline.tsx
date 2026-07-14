@@ -18,11 +18,24 @@ export function Sparkline({ data, strokeClassName }: SparklineProps) {
     );
   }
 
+  const first = data[0];
+  if (first === undefined) {
+    return (
+      <div aria-hidden className="flex h-10 items-end gap-0.5 opacity-40" />
+    );
+  }
+
   const width = 200;
   const height = 40;
   const padding = 2;
-  const min = Math.min(...data);
-  const max = Math.max(...data);
+  let min = first;
+  let max = first;
+  for (let index = 1; index < data.length; index++) {
+    const value = data[index];
+    if (value === undefined) continue;
+    if (value < min) min = value;
+    if (value > max) max = value;
+  }
   const range = max - min || 1;
   const span = Math.max(data.length - 1, 1);
 

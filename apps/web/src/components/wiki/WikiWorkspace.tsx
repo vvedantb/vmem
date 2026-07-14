@@ -47,27 +47,21 @@ function WikiSpinner() {
   );
 }
 
-interface WikiWorkspaceBodyProps {
-  phase: WikiWorkspacePhase;
-  outlineVisible: boolean;
-  isMobileViewport: boolean;
-  headings: OutlineHeading[];
-  activeHeadingId: string | null;
-  onJump: (pos: number) => void;
-  docId: string | null;
-  titleForCopy: string;
-  onRegisterCopy: (handler: (() => Promise<void>) | null) => void;
-  onRegisterRestore: (
-    handler: ((markdown: string) => Promise<void>) | null,
-  ) => void;
-  onHeadingsChange: (headings: OutlineHeading[]) => void;
-  onActiveHeadingChange: (id: string | null) => void;
-  onWordCountChange: (count: number) => void;
-  jumpRequest: { pos: number; n: number };
-}
+const wikiEmptyState = (
+  <div className="flex flex-1 flex-col items-center justify-center text-center">
+    <p className="text-sm text-muted">
+      No documents yet. Use Add in the sidebar to create one.
+    </p>
+  </div>
+);
 
-function WikiWorkspaceBody({
-  phase,
+const wikiPickDocState = (
+  <div className="flex flex-1 items-center justify-center">
+    <p className="text-sm text-muted">Select a document from the sidebar</p>
+  </div>
+);
+
+function WikiWorkspaceEditing({
   outlineVisible,
   isMobileViewport,
   headings,
@@ -81,30 +75,10 @@ function WikiWorkspaceBody({
   onActiveHeadingChange,
   onWordCountChange,
   jumpRequest,
-}: WikiWorkspaceBodyProps) {
-  if (phase === "loading-tree") {
-    return <WikiSpinner />;
-  }
-
-  if (phase === "empty") {
-    return (
-      <div className="flex flex-1 flex-col items-center justify-center text-center">
-        <p className="text-sm text-muted">
-          No documents yet. Use Add in the sidebar to create one.
-        </p>
-      </div>
-    );
-  }
-
-  if (phase === "pick-doc") {
-    return (
-      <div className="flex flex-1 items-center justify-center">
-        <p className="text-sm text-muted">Select a document from the sidebar</p>
-      </div>
-    );
-  }
-
-  // loading-doc still mounts WikiEditor
+  phase,
+}: Omit<WikiWorkspaceBodyProps, "phase"> & {
+  phase: "editing" | "loading-doc";
+}) {
   const showOutline =
     phase === "editing" && outlineVisible && !isMobileViewport;
 
@@ -136,6 +110,39 @@ function WikiWorkspaceBody({
       </div>
     </div>
   );
+}
+
+interface WikiWorkspaceBodyProps {
+  phase: WikiWorkspacePhase;
+  outlineVisible: boolean;
+  isMobileViewport: boolean;
+  headings: OutlineHeading[];
+  activeHeadingId: string | null;
+  onJump: (pos: number) => void;
+  docId: string | null;
+  titleForCopy: string;
+  onRegisterCopy: (handler: (() => Promise<void>) | null) => void;
+  onRegisterRestore: (
+    handler: ((markdown: string) => Promise<void>) | null,
+  ) => void;
+  onHeadingsChange: (headings: OutlineHeading[]) => void;
+  onActiveHeadingChange: (id: string | null) => void;
+  onWordCountChange: (count: number) => void;
+  jumpRequest: { pos: number; n: number };
+}
+
+function WikiWorkspaceBody(props: WikiWorkspaceBodyProps) {
+  if (props.phase === "loading-tree") {
+    return <WikiSpinner />;
+  }
+  if (props.phase === "empty") {
+    return wikiEmptyState;
+  }
+  if (props.phase === "pick-doc") {
+    return wikiPickDocState;
+  }
+  const { phase, ...editingProps } = props;
+  return <WikiWorkspaceEditing phase={phase} {...editingProps} />;
 }
 
 interface WikiWorkspaceProps {
@@ -218,6 +225,17 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
     setJumpRequest((prev) => ({ pos, n: prev.n + 1 }));
   }
 
+  function handleRegisterCopy(handler: (() => Promise<void>) | null) {
+    copyDocumentRef.current = handler;
+    setCopyReady(handler !== null);
+  }
+
+  function handleRegisterRestore(
+    handler: ((markdown: string) => Promise<void>) | null,
+  ) {
+    restoreDocumentRef.current = handler;
+  }
+
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 767px)");
     function updateViewport() {
@@ -282,13 +300,8 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
           onJump={requestJump}
           docId={docId}
           titleForCopy={titleDraft}
-          onRegisterCopy={(handler) => {
-            copyDocumentRef.current = handler;
-            setCopyReady(handler !== null);
-          }}
-          onRegisterRestore={(handler) => {
-            restoreDocumentRef.current = handler;
-          }}
+          onRegisterCopy={handleRegisterCopy}
+          onRegisterRestore={handleRegisterRestore}
           onHeadingsChange={setHeadings}
           onActiveHeadingChange={setActiveHeadingId}
           onWordCountChange={setWordCount}

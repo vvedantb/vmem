@@ -72,6 +72,11 @@ const SORT_FIELD_LABELS: Record<FileSortField, string> = {
   date: "Date",
 };
 
+const SORT_DIR_ICONS = {
+  asc: IconSortAscending,
+  desc: IconSortDescending,
+} as const;
+
 interface FileToolbarProps {
   view: FileView;
   sort: FileSortField;
@@ -91,7 +96,7 @@ export default function FileToolbar({
   onNewFolder,
   onUpload,
 }: FileToolbarProps) {
-  const SortIcon = sortDir === "asc" ? IconSortAscending : IconSortDescending;
+  const SortIcon = SORT_DIR_ICONS[sortDir];
 
   return (
     <div className="flex items-center gap-2">

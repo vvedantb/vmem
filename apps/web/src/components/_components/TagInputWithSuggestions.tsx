@@ -22,14 +22,17 @@ export default function TagInputWithSuggestions({
   const tagInputRef = useRef<HTMLInputElement>(null);
   const { memories } = useMemoryContext();
   const allTags = useMemo(() => buildTagStats(memories), [memories]);
+  const selectedTagSet = useMemo(() => new Set(tags), [tags]);
 
   const filteredSuggestions = useMemo(() => {
-    if (!newTag.trim()) return allTags.filter((t) => !tags.includes(t.tag));
+    if (!newTag.trim()) {
+      return allTags.filter((t) => !selectedTagSet.has(t.tag));
+    }
     const input = newTag.toLowerCase();
     return allTags.filter(
-      (t) => t.tag.includes(input) && !tags.includes(t.tag),
+      (t) => t.tag.includes(input) && !selectedTagSet.has(t.tag),
     );
-  }, [newTag, allTags, tags]);
+  }, [newTag, allTags, selectedTagSet]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
@@ -93,7 +96,7 @@ export default function TagInputWithSuggestions({
           disabled={disabled}
           className="h-8 rounded-field border-border bg-field-background text-foreground placeholder:text-field-placeholder hover:bg-field-background focus-visible:border-focus"
         />
-        {showSuggestions && filteredSuggestions.length > 0 && (
+        {showSuggestions && filteredSuggestions.length > 0 ? (
           <div
             className={cn(
               "absolute z-50 mt-1 max-h-32 w-full overflow-y-auto",
@@ -116,7 +119,7 @@ export default function TagInputWithSuggestions({
               </Button>
             ))}
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

@@ -11,23 +11,35 @@ export function ProposalFieldLabel({ children }: { children: ReactNode }) {
 export function ProposalTextBlock({
   label,
   children,
-  muted = false,
   className,
 }: {
   label: string;
   children: ReactNode;
-  muted?: boolean;
   className?: string;
 }) {
   return (
     <div className={cn("rounded-lg bg-surface-secondary/50 p-3", className)}>
       <ProposalFieldLabel>{label}</ProposalFieldLabel>
-      <p
-        className={cn(
-          "whitespace-pre-wrap break-words text-sm",
-          muted ? "text-muted" : "text-foreground",
-        )}
-      >
+      <p className="whitespace-pre-wrap break-words text-sm text-foreground">
+        {children}
+      </p>
+    </div>
+  );
+}
+
+export function ProposalMutedTextBlock({
+  label,
+  children,
+  className,
+}: {
+  label: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn("rounded-lg bg-surface-secondary/50 p-3", className)}>
+      <ProposalFieldLabel>{label}</ProposalFieldLabel>
+      <p className="whitespace-pre-wrap break-words text-sm text-muted">
         {children}
       </p>
     </div>

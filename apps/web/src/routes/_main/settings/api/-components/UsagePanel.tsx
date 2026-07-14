@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@vmem/backend";
 import { ApiLogsSummary } from "@/components/api-logs/ApiLogsSummary";
@@ -14,26 +13,19 @@ export function UsagePanel() {
     limit: 1000,
   });
 
-  const metrics = useMemo(() => {
-    if (!entries) return null;
-    return computeApiUsageMetrics(entries);
-  }, [entries]);
+  if (entries === undefined) return <ApiLogsLoadingSkeleton />;
 
-  const logs = useMemo(() => {
-    if (!entries) return null;
-    return [...entries]
-      .sort((a, b) => b.originalTimestamp - a.originalTimestamp)
-      .slice(0, DISPLAY_LIMIT)
-      .map((entry) => ({
-        id: entry._id,
-        endpoint: entry.endpoint,
-        status: entry.status,
-        durationMs: entry.durationMs,
-        timestamp: new Date(entry.originalTimestamp).toISOString(),
-      }));
-  }, [entries]);
-
-  if (!metrics || !logs) return <ApiLogsLoadingSkeleton />;
+  const metrics = computeApiUsageMetrics(entries);
+  const logs = [...entries]
+    .sort((a, b) => b.originalTimestamp - a.originalTimestamp)
+    .slice(0, DISPLAY_LIMIT)
+    .map((entry) => ({
+      id: entry._id,
+      endpoint: entry.endpoint,
+      status: entry.status,
+      durationMs: entry.durationMs,
+      timestamp: new Date(entry.originalTimestamp).toISOString(),
+    }));
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-8">

@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -15,6 +14,71 @@ import {
 } from "@vmem/ui";
 import { IconLoader2 } from "@tabler/icons-react";
 import { apiKeySchema, type ApiKeyFormValues } from "@/lib/schemas";
+
+interface EditKeyFormProps {
+  keyName: string | undefined;
+  isSaving: boolean;
+  onSave: (name: string) => void;
+  onCancel: () => void;
+}
+
+function EditKeyForm({
+  keyName,
+  isSaving,
+  onSave,
+  onCancel,
+}: EditKeyFormProps) {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<ApiKeyFormValues>({
+    resolver: zodResolver(apiKeySchema),
+    defaultValues: { name: keyName ?? "" },
+  });
+
+  const onSubmit = ({ name }: ApiKeyFormValues) => {
+    onSave(name.trim());
+  };
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-2">
+      <div className="space-y-2">
+        <Input
+          {...register("name")}
+          placeholder="e.g. Production server"
+          autoFocus
+          disabled={isSaving}
+          aria-invalid={errors.name ? true : undefined}
+        />
+        {errors.name ? (
+          <p className="text-sm text-danger">{errors.name.message}</p>
+        ) : null}
+      </div>
+      <DialogFooter>
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={onCancel}
+          disabled={isSaving}
+          className="text-muted"
+        >
+          Cancel
+        </Button>
+        <Button type="submit" disabled={isSaving}>
+          {isSaving ? (
+            <>
+              <IconLoader2 size={16} className="animate-spin" />
+              Saving...
+            </>
+          ) : (
+            "Save"
+          )}
+        </Button>
+      </DialogFooter>
+    </form>
+  );
+}
 
 interface EditKeyDialogProps {
   keyName: string | undefined;
@@ -31,26 +95,6 @@ export function EditKeyDialog({
   onSave,
   onCancel,
 }: EditKeyDialogProps) {
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<ApiKeyFormValues>({
-    resolver: zodResolver(apiKeySchema),
-    defaultValues: { name: keyName ?? "" },
-  });
-
-  useEffect(() => {
-    if (isOpen) {
-      reset({ name: keyName ?? "" });
-    }
-  }, [isOpen, keyName, reset]);
-
-  const onSubmit = ({ name }: ApiKeyFormValues) => {
-    onSave(name.trim());
-  };
-
   return (
     <Dialog
       open={isOpen}
@@ -65,41 +109,15 @@ export function EditKeyDialog({
             Update the display name for this key. The key value stays the same.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-2">
-          <div className="space-y-2">
-            <Input
-              {...register("name")}
-              placeholder="e.g. Production server"
-              autoFocus
-              disabled={isSaving}
-              aria-invalid={errors.name ? true : undefined}
-            />
-            {errors.name ? (
-              <p className="text-sm text-danger">{errors.name.message}</p>
-            ) : null}
-          </div>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={onCancel}
-              disabled={isSaving}
-              className="text-muted"
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSaving}>
-              {isSaving ? (
-                <>
-                  <IconLoader2 size={16} className="animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                "Save"
-              )}
-            </Button>
-          </DialogFooter>
-        </form>
+        {isOpen ? (
+          <EditKeyForm
+            key={keyName ?? ""}
+            keyName={keyName}
+            isSaving={isSaving}
+            onSave={onSave}
+            onCancel={onCancel}
+          />
+        ) : null}
       </DialogContent>
     </Dialog>
   );

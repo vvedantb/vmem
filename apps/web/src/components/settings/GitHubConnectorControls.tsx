@@ -14,79 +14,67 @@ interface GitHubConnectorControlsProps {
   returnPath?: string;
 }
 
-export function GitHubConnectorControls({
-  connection,
-  returnPath = "/settings/connectors",
-}: GitHubConnectorControlsProps) {
-  const disconnectGithub = useMutation(
-    api.github.disconnect,
-  ).withOptimisticUpdate((localStore) => {
-    localStore.setQuery(api.github.getConnection, {}, null);
-  });
+function GitHubDisconnectControl({
+  onDisconnect,
+  disconnecting,
+}: {
+  onDisconnect: () => Promise<boolean>;
+  disconnecting: boolean;
+}) {
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  const handleConfirm = async () => {
+    const ok = await onDisconnect();
+    if (ok) setConfirmOpen(false);
+  };
+
+  return (
+    <>
+      <Button
+        variant="destructive"
+        size="sm"
+        disabled={disconnecting}
+        onClick={() => setConfirmOpen(true)}
+      >
+        Disconnect
+      </Button>
+
+      <DestructiveConfirmDialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        title="Disconnect GitHub?"
+        description="vmem will revoke GitHub access and stop syncing repositories until you connect again. Codebases and memories already imported stay unless you remove them separately."
+        confirmLabel="Disconnect"
+        submittingLabel="Disconnecting…"
+        submitting={disconnecting}
+        onConfirm={() => void handleConfirm()}
+      />
+    </>
+  );
+}
+
+function GitHubConnectControl({ returnPath }: { returnPath: string }) {
   const startOAuth = useAction(api.github.startGitHubOAuth);
-  const [confirmDisconnectOpen, setConfirmDisconnectOpen] = useState(false);
-  const [disconnecting, setDisconnecting] = useState(false);
   const [connecting, setConnecting] = useState(false);
 
-  if (connection === undefined) {
-    return null;
-  }
-
-  if (connection) {
-    const handleConfirmDisconnect = async () => {
-      setDisconnecting(true);
-      try {
-        await disconnectGithub();
-        toast.success("GitHub disconnected");
-        setConfirmDisconnectOpen(false);
-      } catch {
-        toast.error("Failed to disconnect");
-      } finally {
-        setDisconnecting(false);
-      }
-    };
-
-    return (
-      <>
-        <Button
-          variant="destructive"
-          size="sm"
-          disabled={disconnecting}
-          onClick={() => setConfirmDisconnectOpen(true)}
-        >
-          Disconnect
-        </Button>
-
-        <DestructiveConfirmDialog
-          open={confirmDisconnectOpen}
-          onClose={() => setConfirmDisconnectOpen(false)}
-          title="Disconnect GitHub?"
-          description="vmem will revoke GitHub access and stop syncing repositories until you connect again. Codebases and memories already imported stay unless you remove them separately."
-          confirmLabel="Disconnect"
-          submittingLabel="Disconnecting…"
-          submitting={disconnecting}
-          onConfirm={() => void handleConfirmDisconnect()}
-        />
-      </>
-    );
-  }
+  const handleConnect = async () => {
+    setConnecting(true);
+    try {
+      const url = await startOAuth({
+        returnUrl: `${window.location.origin}${returnPath}`,
+      });
+      window.location.href = url;
+    } catch {
+      toast.error("Failed to start GitHub connection");
+      setConnecting(false);
+    }
+  };
 
   return (
     <Button
       size="sm"
       disabled={connecting}
-      onClick={async () => {
-        setConnecting(true);
-        try {
-          const url = await startOAuth({
-            returnUrl: `${window.location.origin}${returnPath}`,
-          });
-          window.location.href = url;
-        } catch {
-          toast.error("Failed to start GitHub connection");
-          setConnecting(false);
-        }
-      }}
+      onClick={() => void handleConnect()}
     >
       {connecting ? (
         <IconLoader2 size={14} className="animate-spin" />
@@ -96,4 +84,45 @@ export function GitHubConnectorControls({
       {connecting ? "Connecting..." : "Connect"}
     </Button>
   );
+}
+
+export function GitHubConnectorControls({
+  connection,
+  returnPath = "/settings/connectors",
+}: GitHubConnectorControlsProps) {
+  const disconnectGithub = useMutation(
+    api.github.disconnect,
+  ).withOptimisticUpdate((localStore) => {
+    localStore.setQuery(api.github.getConnection, {}, null);
+  });
+  const [disconnecting, setDisconnecting] = useState(false);
+
+  if (connection === undefined) {
+    return null;
+  }
+
+  if (connection) {
+    const handleDisconnect = async (): Promise<boolean> => {
+      setDisconnecting(true);
+      try {
+        await disconnectGithub();
+        toast.success("GitHub disconnected");
+        return true;
+      } catch {
+        toast.error("Failed to disconnect");
+        return false;
+      } finally {
+        setDisconnecting(false);
+      }
+    };
+
+    return (
+      <GitHubDisconnectControl
+        onDisconnect={handleDisconnect}
+        disconnecting={disconnecting}
+      />
+    );
+  }
+
+  return <GitHubConnectControl returnPath={returnPath} />;
 }

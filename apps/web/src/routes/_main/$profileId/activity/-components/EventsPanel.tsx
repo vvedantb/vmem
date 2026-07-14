@@ -1,10 +1,4 @@
-import {
-  useState,
-  useEffect,
-  useCallback,
-  useMemo,
-  type ReactNode,
-} from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { useQueryStates } from "nuqs";
 import { useConvexAuth, useAction } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
@@ -127,7 +121,7 @@ function ActivityEventRow({ item }: { item: ActivityItem }) {
   const Icon = getActivityIcon(item.type);
 
   return (
-    <div className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-[background-color] hover:bg-surface-tertiary/50">
+    <div className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-[background-color] hover:bg-surface-tertiary/50 [content-visibility:auto] [contain-intrinsic-size:auto_2.75rem]">
       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-tertiary/60">
         <Icon size={16} className="text-muted" stroke={1.5} />
       </div>
@@ -165,7 +159,7 @@ function LoadingSkeleton() {
   );
 }
 
-function EmptyState({ hasFilters }: { hasFilters: boolean }) {
+function NoActivityEmptyState() {
   return (
     <Card className="flex min-h-0 flex-1 flex-col shadow-none">
       <CardContent className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-16 text-center">
@@ -173,16 +167,62 @@ function EmptyState({ hasFilters }: { hasFilters: boolean }) {
           <IconActivity size={28} className="text-muted" stroke={1.5} />
         </div>
         <h3 className="mb-1 text-base font-medium text-foreground text-balance">
-          {hasFilters ? "No matching activity" : "No activity yet"}
+          No activity yet
         </h3>
         <p className="max-w-sm text-sm text-muted text-balance">
-          {hasFilters
-            ? "Try adjusting your filters to see more results."
-            : "Your activity history will appear here."}
+          Your activity history will appear here.
         </p>
       </CardContent>
     </Card>
   );
+}
+
+function FilteredActivityEmptyState() {
+  return (
+    <Card className="flex min-h-0 flex-1 flex-col shadow-none">
+      <CardContent className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-16 text-center">
+        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-surface-tertiary/60">
+          <IconActivity size={28} className="text-muted" stroke={1.5} />
+        </div>
+        <h3 className="mb-1 text-base font-medium text-foreground text-balance">
+          No matching activity
+        </h3>
+        <p className="max-w-sm text-sm text-muted text-balance">
+          Try adjusting your filters to see more results.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function filterAndSortActivity(
+  activity: ActivityItem[],
+  types: EventType[],
+  range: EventDatePreset,
+  sortDir: SortDirection,
+): ActivityItem[] {
+  let result = [...activity];
+
+  if (types.length > 0) {
+    result = result.filter(
+      (item) => isEventType(item.type) && types.includes(item.type),
+    );
+  }
+
+  const threshold = getDateThreshold(range);
+  if (threshold !== null) {
+    result = result.filter(
+      (item) => new Date(item.timestamp).getTime() >= threshold,
+    );
+  }
+
+  result.sort((a, b) => {
+    const dateA = new Date(a.timestamp).getTime();
+    const dateB = new Date(b.timestamp).getTime();
+    return sortDir === "desc" ? dateB - dateA : dateA - dateB;
+  });
+
+  return result;
 }
 
 const DATE_PRESETS: EventDatePreset[] = ["all", "today", "week", "month"];
@@ -198,56 +238,59 @@ export function EventsPanel() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchActivity = useCallback(async () => {
+  useEffect(() => {
     if (!isAuthenticated) return;
 
+    let cancelled = false;
     setIsLoading(true);
     setError(null);
 
-    try {
-      const data = await getRecentActivity({
-        limit: 200,
-        profileId: activeProfileId,
+    void getRecentActivity({
+      limit: 200,
+      profileId: activeProfileId,
+    })
+      .then((data) => {
+        if (!cancelled) setActivity(data);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch activity:", err);
+        if (!cancelled) {
+          setError("Failed to load activity. Please try again.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
       });
-      setActivity(data);
-    } catch (err) {
-      console.error("Failed to fetch activity:", err);
-      setError("Failed to load activity. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
+
+    return () => {
+      cancelled = true;
+    };
   }, [isAuthenticated, getRecentActivity, activeProfileId]);
 
-  useEffect(() => {
-    void fetchActivity();
-  }, [fetchActivity]);
-
-  const filteredAndSortedActivity = useMemo(() => {
-    let result = [...activity];
-
-    if (params.types.length > 0) {
-      result = result.filter(
-        (item) => isEventType(item.type) && params.types.includes(item.type),
-      );
-    }
-
-    const threshold = getDateThreshold(params.range);
-    if (threshold !== null) {
-      result = result.filter(
-        (item) => new Date(item.timestamp).getTime() >= threshold,
-      );
-    }
-
-    result.sort((a, b) => {
-      const dateA = new Date(a.timestamp).getTime();
-      const dateB = new Date(b.timestamp).getTime();
-      return params.sortDir === "desc" ? dateB - dateA : dateA - dateB;
-    });
-
-    return result;
-  }, [activity, params.types, params.range, params.sortDir]);
+  const filteredAndSortedActivity = filterAndSortActivity(
+    activity,
+    params.types,
+    params.range,
+    params.sortDir,
+  );
 
   const hasFilters = params.types.length > 0 || params.range !== "all";
+
+  const retryFetch = () => {
+    if (!isAuthenticated) return;
+    setIsLoading(true);
+    setError(null);
+    void getRecentActivity({
+      limit: 200,
+      profileId: activeProfileId,
+    })
+      .then(setActivity)
+      .catch((err) => {
+        console.error("Failed to fetch activity:", err);
+        setError("Failed to load activity. Please try again.");
+      })
+      .finally(() => setIsLoading(false));
+  };
 
   if (isLoading) {
     return (
@@ -263,7 +306,7 @@ export function EventsPanel() {
         <Card className="flex min-h-0 flex-1 flex-col shadow-none">
           <CardContent className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-16 text-center">
             <p className="mb-4 text-sm text-danger">{error}</p>
-            <Button variant="outline" size="sm" onClick={fetchActivity}>
+            <Button variant="outline" size="sm" onClick={retryFetch}>
               <IconLoader2 size={16} className="mr-2" />
               Retry
             </Button>
@@ -276,7 +319,7 @@ export function EventsPanel() {
   if (filteredAndSortedActivity.length === 0) {
     return (
       <div className="flex h-full min-h-0 flex-col">
-        <EmptyState hasFilters={hasFilters} />
+        {hasFilters ? <FilteredActivityEmptyState /> : <NoActivityEmptyState />}
       </div>
     );
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
@@ -11,6 +11,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  cn,
 } from "@vmem/ui";
 import { IconHistory, IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
@@ -20,6 +21,55 @@ interface SkillHistoryPanelProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   skillId: Id<"skills"> | null;
+}
+
+interface SkillVersionListItemProps {
+  createdAt: number;
+  authorLabel: string;
+  source: string;
+  active: boolean;
+  onSelect: () => void;
+}
+
+function SkillVersionListItem({
+  createdAt,
+  authorLabel,
+  source,
+  active,
+  onSelect,
+}: SkillVersionListItemProps) {
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      onClick={onSelect}
+      className={cn(
+        "flex h-auto w-full flex-col items-start gap-1 rounded-md px-2.5 py-2 text-left",
+        active ? "bg-surface-tertiary" : "hover:bg-surface-tertiary/50",
+      )}
+    >
+      <span className="text-xs font-medium text-foreground">
+        {formatRelativeTime(createdAt)}
+      </span>
+      <Badge
+        variant={source === "mcp" ? "default" : "outline"}
+        className="h-4 px-1.5 text-[10px] font-normal"
+      >
+        {authorLabel}
+      </Badge>
+    </Button>
+  );
+}
+
+function resolveActiveVersionId(
+  versions: Array<{ _id: Id<"skillVersions"> }> | undefined,
+  selectedId: Id<"skillVersions"> | null,
+): Id<"skillVersions"> | null {
+  if (!versions || versions.length === 0) return null;
+  if (selectedId && versions.some((version) => version._id === selectedId)) {
+    return selectedId;
+  }
+  return versions.at(0)?._id ?? null;
 }
 
 // version history for a skill
@@ -37,31 +87,28 @@ export function SkillHistoryPanel({
   );
   const [restoring, setRestoring] = useState(false);
 
+  const activeVersionId = open
+    ? resolveActiveVersionId(versions, selectedId)
+    : null;
+
   const selected = useQuery(
     api.skillVersions.get,
-    selectedId ? { versionId: selectedId } : "skip",
+    activeVersionId ? { versionId: activeVersionId } : "skip",
   );
   const restoreVersion = useMutation(api.skills.restoreVersion);
 
-  // default to the newest version when the list (re)loads; reset when closed
-  useEffect(() => {
-    if (!open) {
-      setSelectedId(null);
-      return;
-    }
-    if (!versions || versions.length === 0) return;
-    if (selectedId && versions.some((v) => v._id === selectedId)) return;
-    const newest = versions.at(0);
-    if (newest) setSelectedId(newest._id);
-  }, [open, versions, selectedId]);
+  const handleOpenChange = (next: boolean) => {
+    if (!next) setSelectedId(null);
+    onOpenChange(next);
+  };
 
   const handleRestore = async () => {
-    if (!selectedId) return;
+    if (!activeVersionId) return;
     setRestoring(true);
     try {
-      await restoreVersion({ versionId: selectedId });
+      await restoreVersion({ versionId: activeVersionId });
       toast.success("Version restored");
-      onOpenChange(false);
+      handleOpenChange(false);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to restore");
     } finally {
@@ -70,14 +117,13 @@ export function SkillHistoryPanel({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="flex h-[min(80vh,640px)] max-w-3xl flex-col gap-3">
         <DialogHeader>
           <DialogTitle>Version history</DialogTitle>
         </DialogHeader>
 
         <div className="flex min-h-0 flex-1 gap-3">
-          {/* Version list */}
           <div className="flex w-56 shrink-0 flex-col overflow-y-auto rounded-lg bg-surface-secondary/40 p-1 scrollbar-thin">
             {versions === undefined ? (
               <div className="flex flex-1 items-center justify-center">
@@ -93,34 +139,20 @@ export function SkillHistoryPanel({
               </div>
             ) : (
               versions.map((ver) => (
-                <Button
+                <SkillVersionListItem
                   key={ver._id}
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setSelectedId(ver._id)}
-                  className={`flex h-auto w-full flex-col items-start gap-1 rounded-md px-2.5 py-2 text-left ${
-                    ver._id === selectedId
-                      ? "bg-surface-tertiary"
-                      : "hover:bg-surface-tertiary/50"
-                  }`}
-                >
-                  <span className="text-xs font-medium text-foreground">
-                    {formatRelativeTime(ver.createdAt)}
-                  </span>
-                  <Badge
-                    variant={ver.source === "mcp" ? "default" : "outline"}
-                    className="h-4 px-1.5 text-[10px] font-normal"
-                  >
-                    {ver.authorLabel}
-                  </Badge>
-                </Button>
+                  createdAt={ver.createdAt}
+                  authorLabel={ver.authorLabel}
+                  source={ver.source}
+                  active={ver._id === activeVersionId}
+                  onSelect={() => setSelectedId(ver._id)}
+                />
               ))
             )}
           </div>
 
-          {/* Preview */}
           <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto rounded-lg bg-surface-secondary/40 px-4 py-3 scrollbar-thin">
-            {selected === undefined && selectedId !== null ? (
+            {selected === undefined && activeVersionId !== null ? (
               <div className="flex flex-1 items-center justify-center">
                 <IconLoader2 size={16} className="animate-spin text-muted" />
               </div>
@@ -161,7 +193,7 @@ export function SkillHistoryPanel({
             type="button"
             variant="ghost"
             size="sm"
-            onClick={() => onOpenChange(false)}
+            onClick={() => handleOpenChange(false)}
           >
             Close
           </Button>

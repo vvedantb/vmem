@@ -9,6 +9,10 @@ export function DreamPortraitCard() {
   if (!profile.dreamPortrait) return null;
 
   const sourceCount = profile.dreamPortraitSources?.length ?? 0;
+  const groundedSuffix =
+    sourceCount > 0
+      ? ` · grounded in ${sourceCount} ${sourceCount === 1 ? "memory" : "memories"}`
+      : "";
 
   return (
     <Card className="shadow-none">
@@ -22,8 +26,7 @@ export function DreamPortraitCard() {
           </div>
           <span className="text-xs text-muted">
             Dreamt {formatRelativeTime(profile.dreamPortraitUpdatedAt ?? null)}
-            {sourceCount > 0 &&
-              ` · grounded in ${sourceCount} ${sourceCount === 1 ? "memory" : "memories"}`}
+            {groundedSuffix}
           </span>
         </div>
         <p className="whitespace-pre-wrap break-words text-sm text-muted">

@@ -70,7 +70,7 @@ export function DirectoryFilter({
           return (
             <label
               key={stat.directory}
-              className="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-surface-tertiary/50 cursor-pointer"
+              className="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-surface-tertiary/50 cursor-pointer [content-visibility:auto] [contain-intrinsic-size:0_1.5rem]"
             >
               <Checkbox
                 checked={checked}

@@ -22,6 +22,40 @@ import type { CodebaseGraphController } from "@/hooks/useCodebaseGraphController
 // canvas requires onLinkNodes; codebase graphs are structural (no manual links)
 function noopLinkNodes(_sourceId: string, _targetId: string) {}
 
+function GraphLoadingState() {
+  return (
+    <div className="flex h-full min-h-0 items-center justify-center">
+      <VmemSpinner size={24} className="text-muted" />
+    </div>
+  );
+}
+
+function GraphErrorState({ message }: { message: string }) {
+  return (
+    <div className="flex h-full min-h-0 flex-col items-center justify-center text-center">
+      <IconMoodEmpty className="w-8 h-8 text-muted mb-3" />
+      <p className="text-sm font-medium text-foreground mb-1">
+        Failed to load graph
+      </p>
+      <p className="text-xs text-muted max-w-sm">{message}</p>
+    </div>
+  );
+}
+
+function GraphEmptyState() {
+  return (
+    <div className="flex h-full min-h-0 flex-col items-center justify-center text-center">
+      <IconMoodEmpty className="w-8 h-8 text-muted mb-3" />
+      <p className="text-sm font-medium text-foreground mb-1">
+        No symbols to visualise
+      </p>
+      <p className="text-xs text-muted">
+        Sync the repository to see its symbol graph.
+      </p>
+    </div>
+  );
+}
+
 interface CodebaseGraphProps {
   codebaseId: string;
   controller: CodebaseGraphController;
@@ -63,39 +97,15 @@ export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
   );
 
   if (isLoading) {
-    return (
-      <div className="flex h-full min-h-0 items-center justify-center">
-        <VmemSpinner size={24} className="text-muted" />
-      </div>
-    );
+    return <GraphLoadingState />;
   }
 
   if (isError) {
-    return (
-      <div className="flex h-full min-h-0 flex-col items-center justify-center text-center">
-        <IconMoodEmpty className="w-8 h-8 text-muted mb-3" />
-        <p className="text-sm font-medium text-foreground mb-1">
-          Failed to load graph
-        </p>
-        <p className="text-xs text-muted max-w-sm">
-          {error?.message ?? "Unknown error"}
-        </p>
-      </div>
-    );
+    return <GraphErrorState message={error?.message ?? "Unknown error"} />;
   }
 
   if (apiNodes.length === 0) {
-    return (
-      <div className="flex h-full min-h-0 flex-col items-center justify-center text-center">
-        <IconMoodEmpty className="w-8 h-8 text-muted mb-3" />
-        <p className="text-sm font-medium text-foreground mb-1">
-          No symbols to visualise
-        </p>
-        <p className="text-xs text-muted">
-          Sync the repository to see its symbol graph.
-        </p>
-      </div>
-    );
+    return <GraphEmptyState />;
   }
 
   return (
