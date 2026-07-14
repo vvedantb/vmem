@@ -99,7 +99,7 @@ export class VMemory {
     return options?.profileId ?? this.defaultProfileId;
   }
 
-  async store(
+  async save(
     instruction: string,
     options?: VMemoryRequestOptions,
   ): Promise<StoreInstructionResult> {
@@ -123,7 +123,7 @@ export class VMemory {
     return parseUpdateInstructionResult(data);
   }
 
-  async retrieve(
+  async search(
     query: string,
     options?: VMemoryRequestOptions & {
       limit?: number;

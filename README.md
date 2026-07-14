@@ -75,8 +75,8 @@ const vmem = new VMemory({
   baseUrl: process.env.VMEM_BASE_URL,
 });
 
-await vmem.store("User prefers TypeScript over JavaScript");
-const { memories } = await vmem.retrieve("What language does the user prefer?");
+await vmem.save("User prefers TypeScript over JavaScript");
+const { memories } = await vmem.search("What language does the user prefer?");
 ```
 
 See [MCP docs](https://vmem.vedantb.com/mcp/overview) and `packages/sdk/README.md` for full API details.
