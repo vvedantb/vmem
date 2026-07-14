@@ -1,27 +1,6 @@
 import { z } from "zod";
 import { parseJsonString } from "../llm/extractJsonString";
 
-/**
- * Dream Mode V2 — synthesis prompt builder + parser.
- *
- * Honcho-Deriver-style background reasoning. Given a cluster of memories
- * (one anomaly + its 1-hop graph neighborhood), the LLM emits a single
- * synthesis proposal of one of four kinds:
- *
- *   - insight       — distilled pattern across ≥3 memories
- *   - connection    — non-obvious link between 2 memories
- *   - contradiction — 2+ memories disagree about a fact
- *   - anomaly       — one memory unlike anything else in the cluster
- *
- * The model is also free to emit `type: "skip"` when the cluster looks
- * like genuine noise or mundane co-occurrence — we'd rather false-negative
- * than spam the proposals queue.
- *
- * Parsers tolerate `<think>...</think>` blocks (Qwen3 thinking models)
- * and markdown code fences. Errors return null; the orchestrator skips
- * the cluster.
- */
-
 const MAX_CONTENT_LENGTH = 1200;
 
 const synthesisTypeSchema = z.enum([
@@ -38,25 +17,11 @@ export interface DreamClusterMember {
   title: string;
   content: string;
   tags: string[];
-  /**
-   * The anomaly seed is rendered first in the prompt so the LLM has a
-   * focal point — `related` and `shared-entity` neighbors come after.
-   * `semantic` = vector-nearest neighbour pulled in when the seed had
-   * few graph links (isolated memories still find their neighbours).
-   */
   relation: "anomaly" | "related" | "shared-entity" | "semantic";
 }
 
-/**
- * Reconsolidation side-channel: while synthesizing, the model may also
- * reweight cluster members whose stored confidence no longer matches the
- * evidence (corroborated → raise, contradicted/outdated → lower). The
- * orchestrator auto-applies these (clamped, pinned memories exempt) with
- * an audit event per change.
- */
 export interface ConfidenceAdjustment {
   memoryId: string;
-  /** Proposed absolute confidence 0.05–1. Engine clamps the delta. */
   newConfidence: number;
   reason: string;
 }
@@ -66,11 +31,8 @@ export interface ParsedSynthesis {
   title: string;
   content: string;
   reason: string;
-  /** Memory ids the synthesis derives from. Always a subset of the cluster ids. */
   sourceMemoryIds: string[];
-  /** 0–1. Caller drops anything below the confidence floor (0.6). */
   confidence: number;
-  /** Optional reweighting of cluster members. Ids validated against the cluster. */
   confidenceAdjustments: ConfidenceAdjustment[];
 }
 
@@ -80,17 +42,10 @@ function truncateAtWord(text: string, maxLen: number): string {
   return text.slice(0, cut > 0 ? cut : maxLen);
 }
 
-/** Clamp an optional 0-1 confidence value, defaulting to 0 when absent. */
 function clamp01(value: number | undefined): number {
   return value !== undefined ? Math.max(0, Math.min(1, value)) : 0;
 }
 
-/**
- * Keep only string ids that appear in `validIds`, preserving order and
- * uniqueness. Entries are validated individually — a non-string entry is
- * dropped rather than failing the whole array (best-effort side-channel,
- * same treatment as `confidenceAdjustments`).
- */
 export function filterValidIds(
   ids: readonly unknown[] | undefined,
   validIds: ReadonlySet<string>,
@@ -106,10 +61,6 @@ export function filterValidIds(
   return out;
 }
 
-/**
- * Build the user prompt for one cluster. Cluster size cap is enforced by
- * the caller (`fetchAnomalyCluster.maxClusterSize`); this just renders.
- */
 export function buildDreamSynthesisPrompt(
   cluster: DreamClusterMember[],
 ): string {
@@ -202,19 +153,11 @@ const synthesisResponseSchema = z.object({
   title: z.string().optional(),
   content: z.string().optional(),
   reason: z.string().optional(),
-  // Entries validated individually (filterValidIds / parseConfidenceAdjustments)
-  // so one bad item is dropped instead of failing the whole array.
   sourceMemoryIds: z.array(z.unknown()).optional(),
   confidence: z.number().finite().optional(),
   confidenceAdjustments: z.array(z.unknown()).optional(),
 });
 
-/**
- * Validate the optional `confidenceAdjustments` array: ids must come from
- * the cluster (never invented), newConfidence clamped to [0.05, 1] so a
- * model can't zero a memory out, one entry per memory. Anything malformed
- * is dropped silently — adjustments are a best-effort side-channel.
- */
 function parseConfidenceAdjustments(
   raw: readonly unknown[] | undefined,
   validIds: ReadonlySet<string>,
@@ -238,11 +181,6 @@ function parseConfidenceAdjustments(
   return adjustments;
 }
 
-/**
- * Parse the LLM response. Returns null when the JSON is malformed,
- * required fields are missing, or any sourceMemoryId isn't in the
- * provided cluster (we never let the model invent ids).
- */
 export function parseDreamSynthesisResponse(
   raw: string,
   clusterIds: string[],
@@ -266,8 +204,6 @@ export function parseDreamSynthesisResponse(
   );
 
   if (type === "skip") {
-    // Adjustments survive a skip — the prompt allows reweighting even
-    // when no synthesis is worth surfacing.
     return {
       type: "skip",
       title: "",
@@ -281,7 +217,6 @@ export function parseDreamSynthesisResponse(
 
   const sourceMemoryIds = filterValidIds(data.sourceMemoryIds, validIds);
 
-  // Non-skip kinds need at least one source and non-empty title/content.
   if (sourceMemoryIds.length === 0) return null;
   if (title.trim().length === 0 || content.trim().length === 0) return null;
 
@@ -296,14 +231,6 @@ export function parseDreamSynthesisResponse(
   };
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Merge synthesis — reconsolidation of near-duplicate fragments.
-//
-// Detection is vector-similarity based (`findMergeCandidates`), the
-// opposite end of the spectrum from the surprisal-seeded clusters above:
-// near-duplicates score LOW on surprisal, so they need their own pass.
-// ─────────────────────────────────────────────────────────────────────────────
-
 export interface MergeClusterMember {
   id: string;
   title: string;
@@ -313,16 +240,10 @@ export interface MergeClusterMember {
 export interface ParsedMerge {
   title: string;
   content: string;
-  /** ≥2 ids from the cluster — the memories the consolidation replaces. */
   sourceMemoryIds: string[];
   confidence: number;
 }
 
-/**
- * Build the prompt for one near-duplicate cluster. The model either
- * consolidates (type "merge") or declines (type "skip") — declining is
- * the right call whenever each memory still adds standalone value.
- */
 export function buildMergeSynthesisPrompt(
   cluster: MergeClusterMember[],
 ): string {
@@ -371,16 +292,10 @@ const mergeResponseSchema = z.object({
   type: z.string(),
   title: z.string().optional(),
   content: z.string().optional(),
-  // Entries validated individually via filterValidIds.
   sourceMemoryIds: z.array(z.unknown()).optional(),
   confidence: z.number().finite().optional(),
 });
 
-/**
- * Parse the merge response. Returns null for skip, malformed JSON, or a
- * merge that names fewer than 2 valid cluster ids (a 1-source "merge" is
- * meaningless — there is nothing to consolidate).
- */
 export function parseMergeSynthesisResponse(
   raw: string,
   clusterIds: string[],

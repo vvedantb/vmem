@@ -11,26 +11,6 @@ import { toSkillIndexEntry } from "./skills";
 import { tryUserAndApiKeyByClerkId } from "./lib/envVars";
 import { callOpenRouterChat, LLM_MODEL } from "./lib/openRouter";
 
-/**
- * Regenerates the cached `vmem://context_prompt` markdown for one user.
- *
- * The cache is a synthesized "User Profile" — userSettings (aboutMe +
- * preferences) + top pinned memories verbatim + an LLM-generated short
- * prose summary of recent active memories. AI clients (Claude, Cursor)
- * read this once at conversation start so they don't have to fan out
- * into N tool calls just to learn who the user is.
- *
- * Best-effort. If the LLM is unavailable or has no key, the cache still
- * gets the deterministic sections (about, preferences, pinned) — the
- * "Profile Summary" prose is just omitted. AI clients still get useful
- * data.
- *
- * Triggered by:
- * - `regenerateIfPendingInternal` after a 60s debounce window
- * - `getContextPrompt` on first call when no cache row exists yet
- */
-
-/** Number of pinned memories to embed verbatim in the prompt. */
 const PINNED_LIMIT = 20;
 /** Number of recent active memories the summarizer model sees. */
 const RECENT_LIMIT = 50;
@@ -40,12 +20,6 @@ const RECENT_CONTENT_CHAR_CAP = 400;
 interface MemorySnippet {
   title: string;
   content: string;
-}
-
-function toSnippets(
-  memories: { title: string; content: string }[],
-): MemorySnippet[] {
-  return memories.map((m) => ({ title: m.title, content: m.content }));
 }
 
 function formatPinnedSection(pinned: MemorySnippet[]): string {
@@ -153,8 +127,14 @@ export const regenerateContextPromptInternal = internalAction({
       offset: 0,
     });
 
-    const pinnedSnippets = toSnippets(pinnedPage.memories);
-    const recentSnippets = toSnippets(recentPage.memories);
+    const pinnedSnippets = pinnedPage.memories.map((m) => ({
+      title: m.title,
+      content: m.content,
+    }));
+    const recentSnippets = recentPage.memories.map((m) => ({
+      title: m.title,
+      content: m.content,
+    }));
 
     // Profile summary is best-effort. Without an OpenRouter key we still
     // produce a useful prompt (about/preferences/pinned).

@@ -1,13 +1,5 @@
 "use node";
 
-/**
- * Shared mechanics for memory CRUD actions.
- *
- * - Type validators (`toMemoryType`, `toMemoryStatus`) for the
- *   string-typed `type`/`status` action args.
- * - Re-exports for context-prompt invalidation and best-effort embeddings.
- */
-
 import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import type { Driver } from "neo4j-driver";
@@ -16,13 +8,13 @@ import {
   bestEffortEmbedOne,
   type BestEffortEmbedParams,
 } from "../../lib/openRouter/bestEffortEmbed";
-import { scheduleContextPromptInvalidationByClerkId } from "../../lib/contextPromptInvalidate";
 import { shouldChunk } from "../../../engine/neo4j/chunking";
 import { deleteChunksForMemory } from "../../../engine/neo4j/memory/chunks";
+import type {
+  MemoryStatus,
+  MemoryType,
+} from "../../../engine/neo4j/memory/types";
 import type { McpScope } from "../../profiles/mcpAccess";
-
-export type MemoryType = "profile" | "episodic" | "knowledge";
-export type MemoryStatus = "active" | "pinned" | "suppressed" | "expired";
 
 function isMemoryType(s: string): s is MemoryType {
   return s === "profile" || s === "episodic" || s === "knowledge";
@@ -44,10 +36,6 @@ export function toMemoryStatus(
   return s !== undefined && isMemoryStatus(s) ? s : undefined;
 }
 
-/**
- * Resolve the profileId for a memory operation.
- * Priority: explicit profileId > default profile (created if missing).
- */
 export async function resolveProfileIdForClerkId(
   ctx: ActionCtx,
   clerkId: string,
@@ -85,15 +73,8 @@ export async function resolveProfileIdForMcpScope(
   });
 }
 
-export const scheduleContextPromptInvalidation =
-  scheduleContextPromptInvalidationByClerkId;
-
 type EmbedArgs = Omit<BestEffortEmbedParams, "ctx">;
 
-/**
- * Memory actions use `(ctx, args)`; `bestEffortEmbed*` expects `{ ctx, ...args }`.
- * Do not alias these to `bestEffortEmbedOne` directly — that breaks `ctx.runQuery`.
- */
 export function tryEmbedOne(
   ctx: ActionCtx,
   args: EmbedArgs & { text: string },
@@ -108,11 +89,6 @@ export function tryEmbedMany(
   return bestEffortEmbedMany({ ctx, ...args });
 }
 
-/**
- * Keep Neo4j chunks in sync with memory body text.
- * - Long content → schedule `chunkMemoryInternal`
- * - Short content on update → delete existing chunks (create never deletes)
- */
 export async function scheduleChunkSyncForContent(
   ctx: ActionCtx,
   driver: Driver,

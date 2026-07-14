@@ -1,7 +1,6 @@
 import type { Id } from "../../_generated/dataModel";
 
-export const GOOGLE_DRIVE_SCOPE =
-  "https://www.googleapis.com/auth/drive.readonly";
+const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.readonly";
 
 export const GOOGLE_OAUTH_SCOPES = [GOOGLE_DRIVE_SCOPE];
 

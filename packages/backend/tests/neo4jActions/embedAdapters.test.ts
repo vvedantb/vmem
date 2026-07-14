@@ -16,7 +16,6 @@ import {
 } from "../../convex/neo4jActions/_memories/shared";
 import type { ActionCtx } from "../../convex/_generated/server";
 
-/** Structurally complete ActionCtx so the mock needs no type assertions. */
 function mockActionCtx(): ActionCtx {
   return {
     runQuery: vi.fn(),

@@ -1,12 +1,9 @@
 import { z } from "zod";
 import { extractJsonString } from "../../engine/llm/extractJsonString";
-import type { TagUsage } from "../../engine/neo4j/memory/tagNormalize";
-import { sanitizeTag } from "../../engine/neo4j/memory/tagNormalize";
-
-// Re-exported for existing imports (enrichment action, tests). The canonical
-// home is the engine tagNormalize module, next to normalizeTags — the
-// chokepoint all tag writes flow through.
-export { sanitizeTag };
+import {
+  sanitizeTag,
+  type TagUsage,
+} from "../../engine/neo4j/memory/tagNormalize";
 
 const MAX_CONTENT_LENGTH = 2000;
 

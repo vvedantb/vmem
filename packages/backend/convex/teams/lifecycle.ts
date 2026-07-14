@@ -1,14 +1,3 @@
-/**
- * Lifecycle bodies for `teams.ts` — create / rename / delete plus the
- * deleteTeam internals.
- *
- * `runDeleteTeam` is a public action that drives the two-phase delete:
- * phase 1 verifies ownership and looks up the team profile id (mutation
- * for txn safety), phase 2 purges Neo4j memories per-creator, phase 3
- * finalizes the DB cleanup. Splitting around the action lets the Neo4j
- * round-trip happen between two mutation phases.
- */
-
 import type { Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { internal } from "../_generated/api";

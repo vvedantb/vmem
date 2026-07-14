@@ -1,12 +1,10 @@
 const TRACKING_PARAMS = new Set([
-  // UTM params
   "utm_source",
   "utm_medium",
   "utm_campaign",
   "utm_term",
   "utm_content",
   "utm_id",
-  // Social/ad tracking
   "fbclid",
   "gclid",
   "gclsrc",
@@ -14,17 +12,14 @@ const TRACKING_PARAMS = new Set([
   "msclkid",
   "twclid",
   "igshid",
-  // Email/marketing
   "mc_cid",
   "mc_eid",
   "mkt_tok",
-  // General tracking
   "ref",
   "source",
   "referrer",
   "_ga",
   "_gl",
-  // Session/analytics
   "sessionid",
   "session_id",
   "trk",

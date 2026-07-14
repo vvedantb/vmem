@@ -1,14 +1,3 @@
-/**
- * Shared mechanics for the `profiles.ts` action surface.
- *
- * - Profile preset constants surfaced in the UI (color/icon pickers).
- * - `getOrCreateDefaultProfile` — used by the public mutation
- *   `getOrCreateDefault` and by the internal MCP path
- *   `getOrCreateDefaultByClerkIdInternal`. Returns the user's default
- *   profile, creating it on first call. Both callers are mutations,
- *   so the helper only accepts `MutationCtx`.
- */
-
 import type { Id, Doc } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 

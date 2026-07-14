@@ -1,13 +1,4 @@
-/**
- * Read-only tag distribution diagnostics: per-user tag counts, usage
- * histogram, top tags, and a sample of single-use tags. Aggregates only —
- * never reads memory content. Run with `pnpm db:tag-stats`.
- *
- * Healthy ratio: most tag USES should hit multi-use tags. A spike in the
- * "once" bucket means tagging is minting one-off labels instead of reusing
- * themes (2026-06 audit: 3,623 of 4,962 tags were single-use — fixed by
- * vocabulary-aware enrichment + normalizeTags chokepoint).
- */
+/** Read-only tag distribution diagnostics. Run with `pnpm db:tag-stats`. */
 import { getDriver, closeDriver } from "../engine/neo4j/driver";
 import { neo4jField, stringSchema } from "../engine/neo4j/record";
 
@@ -15,7 +6,6 @@ async function main() {
   const driver = getDriver();
   const session = driver.session();
   try {
-    // Per-user memory + distinct tag counts (find the heavy account)
     const users = await session.run(
       `MATCH (m:Memory)
        WITH m.userId AS userId, count(m) AS memories
@@ -35,7 +25,6 @@ async function main() {
     if (!firstUser) return;
     const heaviest = neo4jField(firstUser, "userId", stringSchema);
 
-    // Usage histogram: how many tags are used 1x, 2x, 3-5x, 6-20x, >20x
     const hist = await session.run(
       `MATCH (t:Tag)<-[:TAGGED_WITH]-(m:Memory {userId: $userId})
        WITH t, count(m) AS uses
@@ -62,7 +51,6 @@ async function main() {
       console.log(`${k}: ${String(h.get(k))}`);
     }
 
-    // Top 25 tags by usage (names are user-derived; local debugging only)
     const top = await session.run(
       `MATCH (t:Tag)<-[:TAGGED_WITH]-(m:Memory {userId: $userId})
        WITH t.name AS tag, count(m) AS uses
@@ -76,7 +64,6 @@ async function main() {
       );
     }
 
-    // Sample of single-use tags to see their shape
     const singles = await session.run(
       `MATCH (t:Tag)<-[:TAGGED_WITH]-(m:Memory {userId: $userId})
        WITH t.name AS tag, count(m) AS uses

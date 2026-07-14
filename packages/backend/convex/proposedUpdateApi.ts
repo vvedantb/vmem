@@ -2,53 +2,8 @@ import { v } from "convex/values";
 import { authAction, requireClerkId } from "./auth";
 import { internal } from "./_generated/api";
 import { auditLog, ResourceTypes } from "./auditLog";
-
-/**
- * Mirror of the server-side `ProposedUpdateNode` interface. Kept
- * structurally identical so the action handler can pass through without
- * remapping. Synthesis kinds (insight/connection/contradiction/anomaly)
- * are produced by Dream Mode V2; legacy kinds (update/delete) come from
- * V2 fact-extraction.
- */
-type ProposedUpdateKind =
-  | "update"
-  | "delete"
-  | "insight"
-  | "connection"
-  | "contradiction"
-  | "anomaly"
-  | "merge";
-
-interface ProposedUpdateNode {
-  id: string;
-  memoryId: string;
-  proposedContent: string;
-  proposedTitle: string | null;
-  reason: string;
-  kind: ProposedUpdateKind;
-  status: string;
-  createdAt: string;
-  resolvedAt: string | null;
-  sourceMemoryIds: string[];
-  confidence: number | null;
-  source: "v2-extraction" | "dream-mode";
-  /**
-   * Title + content of the target memory at the time of listing. The
-   * proposals UI uses this to render the diff (UPDATE) or the
-   * to-be-deleted body (DELETE) without needing a separate
-   * memory-detail fetch per row.
-   */
-  memorySnapshot: { title: string; content: string } | null;
-  sourceMemorySnapshots: { id: string; title: string; content: string }[];
-}
-
-interface ResolveResult {
-  status: string;
-  memoryId: string;
-  kind: ProposedUpdateKind;
-  /** Set when approve materialized a NEW memory (synthesis kinds). */
-  materializedMemoryId?: string;
-}
+import type { ProposedUpdateNode } from "../engine/neo4j/memory/types";
+import type { ResolveResult } from "../engine/neo4j/memory/proposals";
 
 export const listProposedUpdates = authAction({
   args: {},
@@ -56,9 +11,7 @@ export const listProposedUpdates = authAction({
     const clerkId = await requireClerkId(ctx);
     return await ctx.runAction(
       internal.neo4jActions.proposedUpdates.listProposedUpdatesInternal,
-      {
-        clerkId,
-      },
+      { clerkId },
     );
   },
 });
@@ -67,8 +20,7 @@ export const resolveProposal = authAction({
   args: {
     proposalId: v.string(),
     action: v.string(),
-    /** Contradiction proposals: the source memory the user chose to keep.
-     *  Approving with a winner suppresses the other sources. */
+    /** Contradiction proposals: memory id to keep. */
     winnerMemoryId: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<ResolveResult | null> => {
@@ -84,8 +36,6 @@ export const resolveProposal = authAction({
       },
     );
 
-    // Only audit successful resolutions — a null result means the proposal
-    // was already gone / wasn't owned by this user, which isn't audit-worthy.
     if (result) {
       const normalized = args.action.toLowerCase();
       let auditAction: string;
@@ -112,9 +62,6 @@ export const resolveProposal = authAction({
         severity: "info",
       });
 
-      // Synthesis approve materialized a brand-new memory — emit a
-      // memory_created event so the live graph view picks it up alongside
-      // the dream_synthesis_materialized event.
       if (result.materializedMemoryId && result.status === "approved") {
         await ctx.runMutation(internal.memoryEvents.pushEventInternal, {
           clerkId,

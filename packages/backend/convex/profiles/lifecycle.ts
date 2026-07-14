@@ -1,29 +1,13 @@
-/**
- * Profile-deletion bodies. Two paths:
- *
- *   - `runRemove` (mutation) — the synchronous DB-only delete called
- *     from contexts that have already cleaned up the Neo4j side, plus
- *     the bookkeeping for clearing source-default profile pointers.
- *   - `runRemoveWithMemories` (action) — the orchestrating
- *     entry point used by the dashboard. Cleans Neo4j first, then
- *     calls the internal mutation to drop the DB row.
- *
- * `runRemoveInternalMutation` is the server-only twin of `runRemove`
- * called by the action — same DB cleanup, but the actor id is supplied
- * explicitly so the audit row attributes correctly.
- */
-
 import type { Doc, Id } from "../_generated/dataModel";
-import type { ActionCtx, MutationCtx } from "../_generated/server";
+import type { MutationCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
+import type { AuthActionCtx } from "../auth";
 import { auditLog, ResourceTypes } from "../auditLog";
-
-type AuthMutationCtx = MutationCtx & { userId: Id<"users"> };
-type AuthActionCtx = ActionCtx & { userId: Id<"users"> };
+import type { AuthMutationCtx } from "../teams/auth";
 
 interface RemoveArgs {
   profileId: Id<"profiles">;
-  /** When set, the action moves Neo4j memories to this profile before deletion. */
+  /** When set, move Neo4j memories here before deletion. */
   moveMemoriesToProfileId?: Id<"profiles">;
 }
 
@@ -67,11 +51,6 @@ export async function runRemove(
   };
 }
 
-/**
- * Public action — orchestrates Neo4j cleanup + DB delete. The Convex
- * runtime separates the two because mutation contexts can't fetch from
- * Neo4j; the action drives both phases.
- */
 export async function runRemoveWithMemories(
   ctx: AuthActionCtx,
   args: RemoveArgs,
@@ -163,11 +142,6 @@ async function deleteProfileRow(
   });
 }
 
-/**
- * If the soon-to-be-deleted profile is currently set as the default for
- * any client surface (web, browser extension), drop the pointer so the
- * UI falls back to "no default" instead of dangling at a tombstone id.
- */
 type DefaultProfileKeys = "web" | "extension" | "mcp" | "mcpTeam";
 
 const DEFAULT_PROFILE_KEYS: readonly DefaultProfileKeys[] = [

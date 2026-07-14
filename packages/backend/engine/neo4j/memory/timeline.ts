@@ -1,21 +1,9 @@
-/**
- * Timeline reads — derive a chronologically-ordered event list scoped by
- * memory, tag, or fulltext query. Three callers in
- * `convex/neo4jActions/memories.ts` (one per scope).
- */
-
 import neo4j, { type Driver } from "neo4j-driver";
 import { toMemoryContentFulltextQuery } from "../luceneQuery";
 import { toTimelineEvent } from "./mappers";
 import { withSession } from "./shared";
 import type { ConnectionType, TimelineEvent } from "./types";
 
-/**
- * Run a Cypher query and map every record with `toTimelineEvent`. Shared by
- * the two timeline reads whose result shape needs no per-row extras
- * (`getTopicTimeline` also tags each row with a `connectionType`, so it
- * stays out of this helper).
- */
 async function runTimelineQuery(
   driver: Driver,
   cypher: string,

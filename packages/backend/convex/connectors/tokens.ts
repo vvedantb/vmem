@@ -7,12 +7,6 @@ import {
   type QueryCtx,
 } from "../_generated/server";
 
-/**
- * Internal mutations and queries for connector OAuth tokens.
- * Only called from internalActions (sync, callback), never directly from frontend.
- * Encryption/decryption happens in the calling action using shared crypto helpers.
- */
-
 async function tokensForConnector(
   ctx: QueryCtx | MutationCtx,
   connectorId: Id<"connectors">,

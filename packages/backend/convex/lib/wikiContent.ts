@@ -1,8 +1,4 @@
-/**
- * Wiki content helpers — markdown is canonical in Convex.
- * JSON conversion exists only for one-time migration off legacy contentJson.
- */
-
+import removeMarkdown from "remove-markdown";
 import { z } from "zod";
 
 const legacyWikiDocProbeSchema = z.object({
@@ -33,21 +29,9 @@ export function wikiExcerpt(text: string, maxLength = 200): string {
   return `${trimmed.slice(0, maxLength)}…`;
 }
 
-/** Plain-text mirror for Convex full-text search (derived from markdown on write). */
+/** Plain-text mirror for Convex full-text search. */
 export function markdownToPlainText(markdown: string): string {
-  const withoutCode = markdown.replace(/```[\s\S]*?```/g, (block) => {
-    return block.replace(/^```[^\n]*\n?/, "").replace(/```$/, "");
-  });
-  return withoutCode
-    .replace(/^#{1,6}\s+/gm, "")
-    .replace(/^[-*+]\s+/gm, "")
-    .replace(/^\d+\.\s+/gm, "")
-    .replace(/\*\*([^*]+)\*\*/g, "$1")
-    .replace(/__([^_]+)__/g, "$1")
-    .replace(/\*([^*]+)\*/g, "$1")
-    .replace(/_([^_]+)_/g, "$1")
-    .replace(/`([^`]+)`/g, "$1")
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+  return removeMarkdown(markdown)
     .replace(/\n{2,}/g, "\n")
     .trim();
 }

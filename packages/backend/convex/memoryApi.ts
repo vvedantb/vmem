@@ -25,28 +25,6 @@ import type {
   RetrieveMemoriesResult,
 } from "./memoryApi/types";
 
-// Re-export the public return-shape interfaces so consumers that
-// previously imported them via this file (none today, but keeping the
-// surface identical) keep resolving.
-export type {
-  MemoryCandidate,
-  MemoryEvent,
-  MemoryListResult,
-  MemorySnapshot,
-  MemoryWithTags,
-  MatchedChunk,
-  RetrieveMemoriesResult,
-  ScoreBreakdown,
-  UserContext,
-} from "./memoryApi/types";
-
-/**
- * Generate a signed URL the client can POST a memory upload to. Backed
- * by Convex storage — the URL is valid for ~1 hour. The client receives
- * `{ storageId }` from Convex when the POST completes and forwards it
- * to `fileImport.importMemoryFromFile` for processing. Auth-gated so
- * anonymous callers can't generate upload URLs.
- */
 export const generateMemoryUploadUrl = authMutation({
   args: {},
   handler: async (ctx): Promise<string> => {
@@ -173,15 +151,6 @@ export const getMemoryEvents = authAction({
   handler: async (ctx, args): Promise<MemoryEvent[]> =>
     runGetMemoryEvents(ctx, args),
 });
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Team-scoped memory actions.
-//
-// These are the read/mutate entry points for the Company Knowledge UI. Each
-// verifies team membership via `teams.assertProfileAccessInternal` before
-// hitting Neo4j. Attribution (original creator) is preserved in `memory.userId`
-// and surfaced in the UI via `users.getByClerkIds`.
-// ─────────────────────────────────────────────────────────────────────────────
 
 export const listTeamMemories = authAction({
   args: {

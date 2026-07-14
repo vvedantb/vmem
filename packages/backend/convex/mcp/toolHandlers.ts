@@ -43,13 +43,6 @@ export interface ToolHandlerContext {
   scope: McpScope;
 }
 
-export function formatToolResult(result: ToolHandlerResult): string {
-  if (!result.ok) {
-    return JSON.stringify({ error: result.error }, null, 2);
-  }
-  return JSON.stringify(result.data, null, 2);
-}
-
 async function safe(
   label: string,
   fn: () => Promise<unknown>,

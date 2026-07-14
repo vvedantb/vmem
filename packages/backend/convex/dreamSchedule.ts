@@ -1,30 +1,12 @@
 import { v } from "convex/values";
 import { Crons } from "@convex-dev/crons";
 import type { FunctionArgs, SchedulableFunctionReference } from "convex/server";
+import { parseHHMM } from "@vmem/shared";
 import { components, internal } from "./_generated/api";
 import type { MutationCtx } from "./_generated/server";
 import { authMutation, authQuery } from "./auth";
 import { auditLog, ResourceTypes } from "./auditLog";
 
-/**
- * Dream Mode V2 — user-wide schedule manager.
- *
- * One cron per user (named `dream-mode:user:<userId>`) fires
- * `runDreamForUserById` daily at the saved UTC time. The user-level action
- * then iterates every personal profile the user owns and runs a synthesis
- * pass on each, writing proposals (or auto-accepting memories if
- * `userSettings.dreamModeAutoAccept` is true).
- *
- * Schedule fields and the auto-accept flag live in `userSettings` —
- * Dream Mode is a system behavior, not a per-profile attribute. Team
- * profiles keep their own per-profile schedule (see
- * `setDreamScheduleForTeamProfile`).
- *
- * Time is stored as "HH:MM" UTC — the same shape `<input type="time">`
- * produces, so the UI never has to split it. The browser converts the
- * user's local time to UTC before saving so the cron fires at a stable
- * moment regardless of DST.
- */
 export const dreamCrons = new Crons(components.crons);
 
 function userCronName(userId: string): string {
@@ -33,20 +15,6 @@ function userCronName(userId: string): string {
 
 function teamProfileCronName(profileId: string): string {
   return `dream-mode:${profileId}`;
-}
-
-/**
- * Parse "HH:MM" → numeric hour/minute. Returns null on any malformed input
- * so callers can throw a single user-facing error rather than spreading
- * format checks across every entry point.
- */
-function parseHHMM(time: string): { hour: number; minute: number } | null {
-  const match = /^(\d{2}):(\d{2})$/.exec(time);
-  if (!match) return null;
-  const hour = Number(match[1]);
-  const minute = Number(match[2]);
-  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
-  return { hour, minute };
 }
 
 /** Build a daily cronspec ("M H * * *") from "HH:MM". */

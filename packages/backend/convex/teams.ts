@@ -21,29 +21,6 @@ import {
   runResolveMemoryScopeInternal,
 } from "./teams/auth";
 
-/**
- * Teams & team memberships.
- *
- * A team owns exactly one shared "team profile". Members save/view memories
- * against that profile. Memory rows keep userId (clerkId) of the original
- * creator for attribution; access control is enforced at the Convex layer
- * by consulting teamMembers before calling Neo4j.
- *
- * File layout (all under `./teams/`):
- *   - `auth.ts`        - getMembershipOrNull/requireTeamRole + assert/resolveScope helpers
- *   - `handlers.ts`    - read-only public queries (list, get)
- *   - `membership.ts`  - addMember, removeMember, leaveTeam
- *   - `lifecycle.ts`   - create, updateTeam, deleteTeam (+ delete internals)
- *
- * Action validators stay in this barrel so the public Convex API path
- * (`api.teams.*`, `internal.teams.*`) is unchanged.
- */
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Public queries/mutations (require auth)
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** List all teams the current user is a member of, with their role + profile. */
 export const list = authQuery({
   args: {},
   handler: async (ctx) => runList(ctx),
@@ -101,14 +78,6 @@ export const deleteTeam = authAction({
   handler: async (ctx, args) => runDeleteTeam(ctx, args),
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Internal mutations / queries
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Phase 1 of deleteTeam: verify ownership and return the profile id.
- * Split from finalize so we can run Neo4j cleanup in between (action cannot use ctx.db).
- */
 export const prepareDeleteTeamInternal = internalMutation({
   args: { teamId: v.string(), userId: v.id("users") },
   handler: async (ctx, args) => runPrepareDeleteTeamInternal(ctx, args),

@@ -59,9 +59,9 @@ export const deleteBodySchema = z.object({
 });
 
 export type StoreBody = z.infer<typeof storeBodySchema>;
-export type InstructionStoreBody = z.infer<typeof instructionStoreBodySchema>;
+type InstructionStoreBody = z.infer<typeof instructionStoreBodySchema>;
 export type UpdateBody = z.infer<typeof updateBodySchema>;
-export type InstructionUpdateBody = z.infer<typeof instructionUpdateBodySchema>;
+type InstructionUpdateBody = z.infer<typeof instructionUpdateBodySchema>;
 export type RetrieveBody = z.infer<typeof retrieveBodySchema>;
 export type DeleteBody = z.infer<typeof deleteBodySchema>;
 

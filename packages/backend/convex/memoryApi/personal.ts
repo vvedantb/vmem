@@ -1,24 +1,7 @@
-/**
- * Personal-scope memoryApi handlers. Each `runFoo` is the body of an
- * `authAction` declared in `../memoryApi.ts`; the action's validators
- * live in the barrel so the public Convex API path
- * (`api.memoryApi.foo`) is unchanged.
- *
- * All handlers here resolve the caller's Clerk subject via
- * `requireClerkId` and (when a profileId is given) verify team
- * membership via `assertTeamAccess` / `getAccessibleProfile`. Actual
- * work is then delegated to the matching
- * `internal.neo4jActions.memories.*` action.
- */
-
 import type { Doc } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
-import {
-  requireClerkId,
-  assertTeamAccess,
-  getAccessibleProfile,
-  type AuthActionCtx,
-} from "./auth";
+import { requireClerkId, type AuthActionCtx } from "../auth";
+import { assertTeamAccess, getAccessibleProfile } from "./auth";
 import {
   runDeleteTeamMemory,
   runGetTeamMemory,
@@ -33,11 +16,7 @@ import type {
   RetrieveMemoriesResult,
 } from "./types";
 
-/**
- * When `profileId` is a team profile the caller can access, return it so
- * handlers can route to member-wide team ops. Personal profiles (and
- * missing profileId) return null and stay on the per-user Cypher path.
- */
+/** Team profile the caller can access, else null (personal / missing profileId). */
 async function getTeamProfileIfApplicable(
   ctx: AuthActionCtx,
   profileId: string | undefined,

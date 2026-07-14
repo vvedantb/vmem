@@ -1,11 +1,4 @@
-/**
- * One-time migration: collapse Entity nodes that share (userId,
- * normalizedName) but were minted separately because `type` used to be part
- * of the MERGE key. Survivor = most mentions (tie: oldest). MENTIONS edges
- * re-point onto the survivor; the survivor keeps the best display name in
- * the group (prefers one with uppercase, by mention count). Afterwards swaps
- * the uniqueness constraint to (userId, normalizedName).
- */
+/** One-time migration: merge duplicate Entity nodes by (userId, normalizedName). */
 import { getDriver, closeDriver } from "../engine/neo4j/driver";
 import { z } from "zod";
 

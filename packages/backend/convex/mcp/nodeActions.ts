@@ -118,12 +118,6 @@ export const refreshToken = internalAction({
   },
 });
 
-/**
- * Verify the bearer access token. Accepts both the new tokens we issue and
- * legacy Railway-issued tokens (signed with the same `MCP_JWT_SECRET`) so
- * existing Claude connectors survive the cutover. Optionally re-verifies the
- * Clerk user still exists; failures there fail the request closed.
- */
 export const verifyAccessToken = internalAction({
   args: { token: v.string() },
   returns: v.union(v.object({ clerkUserId: v.string() }), v.null()),
@@ -164,10 +158,6 @@ export const verifyAccessToken = internalAction({
     }
   },
 });
-
-// ─────────────────────────────────────────────────────────────────────────────
-// MCP Request Handler
-// ─────────────────────────────────────────────────────────────────────────────
 
 export const handleMcpRequest = internalAction({
   args: {

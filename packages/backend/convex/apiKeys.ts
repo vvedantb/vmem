@@ -26,10 +26,6 @@ export async function hashApiKey(rawKey: string): Promise<string> {
     .join("");
 }
 
-export async function decryptApiKey(encryptedKey: string): Promise<string> {
-  return decryptToken(encryptedKey);
-}
-
 function maskApiKey(rawKey: string): string {
   return `${rawKey.slice(0, 12)}${"*".repeat(16)}${rawKey.slice(-4)}`;
 }
@@ -45,16 +41,12 @@ export function normalizeApiKeyName(rawName: string): string {
   return name;
 }
 
-// --- Types ---
-
 type CreateMyResult = {
   id: Id<"apiKeys">;
   name: string;
   key: string;
   maskedKey: string;
 };
-
-// --- Response helpers ---
 
 function toApiKeyResponse(apiKey: Doc<"apiKeys">) {
   return {
@@ -70,8 +62,6 @@ function toApiKeyResponse(apiKey: Doc<"apiKeys">) {
   };
 }
 
-// --- Access guard ---
-
 async function getOwnedApiKey(
   ctx: QueryCtx | MutationCtx,
   id: Id<"apiKeys">,
@@ -83,8 +73,6 @@ async function getOwnedApiKey(
   }
   return apiKey;
 }
-
-// --- Public functions ---
 
 export const listMy = authQuery({
   args: {},
@@ -223,11 +211,9 @@ export const revealMy = authAction({
       { id: args.id, userId: ctx.userId },
     );
     if (!encryptedKey) return null;
-    return await decryptApiKey(encryptedKey);
+    return await decryptToken(encryptedKey);
   },
 });
-
-// --- Internal queries and mutations ---
 
 export const resolveByKeyHashInternal = internalQuery({
   args: { keyHash: v.string() },

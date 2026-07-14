@@ -1,12 +1,10 @@
 import { httpRouter } from "convex/server";
 import { connectorCallback } from "./http/auth/connectorCallback";
 import { githubCallback } from "./http/auth/githubCallback";
-import {
-  storeMemory,
-  retrieveMemories,
-  updateMemory,
-  deleteMemory,
-} from "./http/v1Memories";
+import { deleteMemory } from "./http/v1Memories/delete";
+import { retrieveMemories } from "./http/v1Memories/retrieve";
+import { storeMemory } from "./http/v1Memories/store";
+import { updateMemory } from "./http/v1Memories/update";
 import {
   oauthMetadata,
   protectedResourceMetadata,

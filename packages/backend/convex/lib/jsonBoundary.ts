@@ -1,23 +1,6 @@
 import { type ZodType, z } from "zod";
 
-/** Parse a fetch Response body with zod. Throws on mismatch. */
-export async function parseResponseJson<T>(
-  response: Response,
-  schema: ZodType<T, z.ZodTypeDef, unknown>,
-): Promise<T> {
-  const raw: unknown = await response.json();
-  const parsed = schema.safeParse(raw);
-  if (!parsed.success) {
-    throw new Error(`JSON response validation failed: ${parsed.error.message}`);
-  }
-  return parsed.data;
-}
-
-/**
- * Parse a fetch Response body with zod. Returns `null` on a JSON parse
- * failure or a schema mismatch instead of throwing, so callers can fall
- * back to their own graceful error path (e.g. "please reconnect").
- */
+/** Parse a fetch Response body with zod; returns null on parse or schema failure. */
 export async function safeParseResponseJson<T>(
   response: Response,
   schema: ZodType<T, z.ZodTypeDef, unknown>,

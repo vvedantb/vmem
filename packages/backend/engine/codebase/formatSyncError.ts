@@ -1,22 +1,11 @@
 import { z } from "zod";
 
-/**
- * Convex nests actions across runtimes, and a re-thrown error often arrives
- * without its Error prototype — the text can survive under `message` or `data`
- * on a plain object instead. This schema captures both so a best-effort
- * message can be pulled from whatever shape shows up.
- */
+/** Convex rethrows often lose Error prototype; message may be under `message` or `data`. */
 const errorLikeSchema = z.object({
   message: z.string().optional(),
   data: z.string().optional(),
 });
 
-/**
- * Best-effort human message from an arbitrary thrown value. Takes `unknown` so
- * callers pass their raw `catch` value straight in — no pre-narrowing. Tries,
- * in order: a non-empty string, a real Error's message/name, then a
- * `{ message }` / `{ data }` object, falling back to a generic line.
- */
 export function formatSyncError(err: unknown): string {
   if (typeof err === "string" && err.length > 0) return err;
   if (err instanceof Error) {

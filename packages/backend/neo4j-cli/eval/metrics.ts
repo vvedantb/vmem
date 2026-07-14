@@ -1,4 +1,3 @@
-/** Fraction of expected titles present in the top-k results (set recall@k). */
 export function recallAtK(
   titles: readonly string[],
   expectedTitles: readonly string[],
@@ -10,15 +9,6 @@ export function recallAtK(
   return hits / expectedTitles.length;
 }
 
-/** Fraction of expected titles that appear in the top five results. */
-export function recallAtFive(
-  titles: readonly string[],
-  expectedTitles: readonly string[],
-): number {
-  return recallAtK(titles, expectedTitles, 5);
-}
-
-/** Mean reciprocal rank of the first relevant title in the result list. */
 export function reciprocalRank(
   titles: readonly string[],
   expectedTitles: readonly string[],
@@ -28,7 +18,6 @@ export function reciprocalRank(
   return firstRelevantIndex === -1 ? 0 : 1 / (firstRelevantIndex + 1);
 }
 
-/** Fraction of the top-k results that are relevant (precision@k). */
 export function precisionAtK(
   titles: readonly string[],
   expectedTitles: readonly string[],
@@ -42,11 +31,6 @@ export function precisionAtK(
   return hits / topK.length;
 }
 
-/**
- * Normalised Discounted Cumulative Gain at k over graded relevance.
- * Grades default to 1 (binary) for titles absent from `gradeByTitle`-only sets;
- * pass a full grade map for graded relevance. Gain = 2^grade − 1, discount = log2(rank+1).
- */
 export function ndcgAtK(
   titles: readonly string[],
   gradeByTitle: ReadonlyMap<string, number>,
@@ -71,7 +55,6 @@ export function ndcgAtK(
   return ideal === 0 ? 0 : dcg(retrievedGrades) / ideal;
 }
 
-/** Nearest-rank percentile over a copy of the values. Empty → 0. */
 export function percentile(values: readonly number[], p: number): number {
   if (values.length === 0) return 0;
   const sorted = [...values].sort((a, b) => a - b);
@@ -79,7 +62,6 @@ export function percentile(values: readonly number[], p: number): number {
   return sorted[Math.min(Math.max(rank - 1, 0), sorted.length - 1)] ?? 0;
 }
 
-/** Arithmetic mean. Empty → 0. */
 export function mean(values: readonly number[]): number {
   if (values.length === 0) return 0;
   return values.reduce((sum, v) => sum + v, 0) / values.length;

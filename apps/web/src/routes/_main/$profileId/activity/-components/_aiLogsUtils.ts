@@ -7,16 +7,12 @@ export interface AiLogTrendRow {
   createdAt: number;
   costUsd?: number;
   totalTokens?: number;
-  ok: boolean;
-  latencyMs: number;
 }
 
 export interface AiLogsTrends {
   calls: number[];
   costs: number[];
   tokens: number[];
-  successRates: number[];
-  latencies: number[];
 }
 
 function startOfLocalDay(timestamp: number): number {
@@ -38,8 +34,6 @@ export function computeAiLogsTrends(
     calls: 0,
     costUsd: 0,
     tokens: 0,
-    okCount: 0,
-    totalLatency: 0,
   }));
 
   for (const row of rows) {
@@ -54,20 +48,12 @@ export function computeAiLogsTrends(
     bucket.calls += 1;
     if (typeof row.costUsd === "number") bucket.costUsd += row.costUsd;
     if (typeof row.totalTokens === "number") bucket.tokens += row.totalTokens;
-    if (row.ok) bucket.okCount += 1;
-    bucket.totalLatency += row.latencyMs;
   }
 
   return {
     calls: buckets.map((bucket) => bucket.calls),
     costs: buckets.map((bucket) => bucket.costUsd),
     tokens: buckets.map((bucket) => bucket.tokens),
-    successRates: buckets.map((bucket) =>
-      bucket.calls === 0 ? 0 : (bucket.okCount / bucket.calls) * 100,
-    ),
-    latencies: buckets.map((bucket) =>
-      bucket.calls === 0 ? 0 : bucket.totalLatency / bucket.calls,
-    ),
   };
 }
 

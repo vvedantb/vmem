@@ -1,12 +1,3 @@
-/**
- * Enrichment helpers — apply LLM-extracted tags / RELATES_TO edges /
- * MENTIONS-Entity edges to a memory after creation. Single caller
- * (`convex/neo4jActions/memories.ts`).
- *
- * Both functions own a transaction so partial state on failure is rolled
- * back: a memory either gets all its enrichment or none of it.
- */
-
 import type { Driver, Session, Transaction } from "neo4j-driver";
 import { withSession } from "./shared";
 import { normalizeTags } from "./tagNormalize";
@@ -17,12 +8,6 @@ type EntityInput = Array<{
   type: string;
 }>;
 
-/**
- * Replace a memory's MENTIONS edges with fresh ones for `entities`: delete
- * the old edges, MERGE each entity node (per-user, keyed on normalizedName),
- * re-point MENTIONS. Shared by `applyEnrichment` (inside its transaction)
- * and `applyEntitiesOnly` (plain session run) since the query is identical.
- */
 async function replaceMentionsEdges(
   runner: Session | Transaction,
   memoryId: string,
@@ -85,8 +70,6 @@ export async function applyEnrichment(
         );
       }
 
-      // Entity extraction: delete old MENTIONS edges, MERGE entity nodes,
-      // re-create MENTIONS edges. Same pattern as TAGGED_WITH above.
       if (entities.length > 0) {
         await replaceMentionsEdges(tx, memoryId, userId, entities);
       }
@@ -99,10 +82,6 @@ export async function applyEnrichment(
   });
 }
 
-/**
- * Entity-only enrichment for backfill. Applies MENTIONS edges without
- * touching tags or RELATES_TO edges.
- */
 export async function applyEntitiesOnly(
   driver: Driver,
   memoryId: string,

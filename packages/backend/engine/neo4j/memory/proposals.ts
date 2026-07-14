@@ -1,22 +1,3 @@
-/**
- * `:ProposedUpdate` lifecycle: create / list / resolve.
- *
- * Two flavours live here:
- * - V2 fact-extraction proposals (kind ∈ {update, delete}) — bound to the
- *   target memory via `:UPDATE_FOR`. These are the legacy "memory says X
- *   but the user just stated Y" path.
- * - Dream-mode synthesis proposals (kind ∈ {insight, connection,
- *   contradiction, anomaly}) — carry `sourceMemoryIds` + their own title,
- *   bound to sources via `:DERIVED_FROM`. Approving an insight/connection
- *   materialises a NEW :Memory (type='knowledge', source='dream-mode');
- *   contradiction/anomaly are dismiss-only.
- *
- * `resolveProposal` is decomposed into one lookup helper plus four
- * kind-handlers that each own their own `logEvent` call. The dispatch is
- * a switch on `kind` — the kinds genuinely diverge, so a generic apply()
- * would just be a soup of branchy flags.
- */
-
 import crypto from "node:crypto";
 import type { Driver, Record as NeoRecord, Session } from "neo4j-driver";
 import { z } from "zod";
@@ -183,13 +164,6 @@ export async function createProposedUpdate(
   return createV2Proposal(driver, { ...params, kind: "update" });
 }
 
-/**
- * V2 fact-extraction emits "delete this old memory because the user just
- * stated a contradicting fact" → recorded as a `:ProposedUpdate` with
- * `kind: 'delete'` so the user explicitly approves before destructive
- * action. Mirrors `createProposedUpdate` shape so the existing list /
- * resolve plumbing handles both.
- */
 export async function createProposedDelete(
   driver: Driver,
   params: { memoryId: string; reason: string },
@@ -207,14 +181,6 @@ export async function listProposedUpdates(
   userId: string,
 ): Promise<ProposedUpdateNode[]> {
   return withSession(driver, async (session) => {
-    // Pull the target memory's title + content alongside each proposal so
-    // the proposals UI can render a diff without a round-trip per row. For
-    // synthesis proposals (sourceMemoryIds non-empty), also collect the
-    // source memories so the UI can render the "derived from" panel.
-    //
-    // OPTIONAL MATCH on UPDATE_FOR because synthesis proposals carry an
-    // empty memoryId / no UPDATE_FOR edge — ownership then falls through
-    // to the source memories' userId via sourceMemoryIds below.
     const result = await session.run(
       `MATCH (p:ProposedUpdate {status: 'pending'})
        OPTIONAL MATCH (p)-[:UPDATE_FOR]->(m:Memory)
@@ -250,7 +216,7 @@ interface ProposalLookup {
   userId: string;
 }
 
-interface ResolveResult {
+export interface ResolveResult {
   status: string;
   memoryId: string;
   kind: ProposedUpdateKind;
@@ -283,12 +249,6 @@ const proposalLookupRowSchema = z
     }),
   );
 
-/**
- * Look up a proposal by id. For legacy update/delete kinds we expect a
- * UPDATE_FOR edge to the target memory; synthesis proposals have no
- * UPDATE_FOR edge but carry sourceMemoryIds — we resolve the
- * userId/profileId from the first source.
- */
 async function lookupProposalContext(
   session: Session,
   proposalId: string,
@@ -328,12 +288,6 @@ async function lookupProposalContext(
   return parsed.success ? parsed.data : null;
 }
 
-/**
- * Set the proposal's status (no other graph mutation) and log an "api"
- * event for the target memory, if any. Shared body for `applyRejection`
- * and `applyDismissOnlyApproval`, which differ only in which status/event
- * name they use.
- */
 async function applyStatusOnly(
   session: Session,
   proposalId: string,
@@ -382,9 +336,6 @@ async function applyDeleteApproval(
   lookup: ProposalLookup,
   now: string,
 ): Promise<ResolveResult> {
-  // Approving a delete proposal hard-deletes the memory and all its chunks.
-  // The proposal itself is also removed (DETACH DELETE on the memory takes
-  // its UPDATE_FOR edge with it).
   await session.run(
     `MATCH (c:Chunk {memoryId: $memoryId, userId: $userId})
      DETACH DELETE c`,
@@ -442,15 +393,6 @@ async function applyUpdateApproval(
   };
 }
 
-/**
- * V1 dismiss-only path for `kind ∈ { contradiction, anomaly }`. Both are
- * flags rather than new knowledge — contradictions need a human to pick
- * a winning side, anomalies ask the user to confirm whether the seed
- * memory belongs in the profile. Either way the proposal just clears.
- *
- * TODO(V2 contradiction): structured "pick winner" UI that hard-deletes
- * the memory the user did not pick.
- */
 async function applyDismissOnlyApproval(
   session: Session,
   proposalId: string,
@@ -467,14 +409,6 @@ async function applyDismissOnlyApproval(
   );
 }
 
-/**
- * Shared Cypher for materialising a dream-mode synthesis as a new
- * knowledge :Memory with :DERIVED_FROM edges to its sources. Used verbatim
- * by `applySynthesisApproval`; `applyMergeApproval` appends a suppression
- * suffix. Kept as one string so the two approval paths can never drift on
- * the memory shape. Expects params: proposalId, now, newMemoryId, userId,
- * profileId, title, content, confidence, contentHash, sourceMemoryIds.
- */
 const MATERIALISE_DERIVED_MEMORY_CYPHER = `
   MATCH (p:ProposedUpdate {id: $proposalId})
   SET p.status = 'approved', p.resolvedAt = $now
@@ -512,12 +446,6 @@ const MATERIALISE_DERIVED_MEMORY_CYPHER = `
   MATCH (src:Memory {id: sid, userId: $userId})
   MERGE (m)-[:DERIVED_FROM]->(src)`;
 
-/**
- * Materialise a synthesis (insight/connection) proposal as a NEW
- * :Memory(type='knowledge', source='dream-mode') with :DERIVED_FROM
- * edges to each source. The new memory's id is returned so callers can
- * backfill its embedding and run enrichment.
- */
 async function applySynthesisApproval(
   session: Session,
   proposalId: string,
@@ -525,8 +453,6 @@ async function applySynthesisApproval(
   now: string,
 ): Promise<ResolveResult> {
   if (lookup.sourceMemoryIds.length === 0) {
-    // Malformed synthesis proposal — no sources to derive from. Reject
-    // silently rather than create an orphaned memory.
     await session.run(
       `MATCH (p:ProposedUpdate {id: $proposalId})
        SET p.status = 'rejected', p.resolvedAt = $now`,
@@ -582,15 +508,6 @@ async function applySynthesisApproval(
   };
 }
 
-/**
- * Merge approval — reconsolidation. Creates the consolidated :Memory
- * (like `applySynthesisApproval`), then retires each source: status →
- * 'suppressed' (drops out of retrieval, stays inspectable) plus a
- * `(src)-[:SUPERSEDED_BY]->(new)` edge so the graph shows the
- * consolidation. Never hard-deletes. Sources that are no longer
- * 'active' at approval time (pinned/suppressed since the proposal was
- * filed) are left untouched — the DERIVED_FROM edge still records them.
- */
 async function applyMergeApproval(
   session: Session,
   proposalId: string,
@@ -598,8 +515,6 @@ async function applyMergeApproval(
   now: string,
 ): Promise<ResolveResult> {
   if (lookup.sourceMemoryIds.length < 2) {
-    // A merge needs at least two sources — reject malformed proposals
-    // rather than suppress a lone memory.
     await session.run(
       `MATCH (p:ProposedUpdate {id: $proposalId})
        SET p.status = 'rejected', p.resolvedAt = $now`,
@@ -674,12 +589,6 @@ async function applyMergeApproval(
   };
 }
 
-/**
- * Contradiction resolution with a chosen winner: the winner's confidence
- * gets a small boost (the user just re-affirmed it), every other source
- * that is still 'active' is suppressed. Pinned losers are left alone —
- * pinning outranks a dream flag.
- */
 async function applyContradictionResolution(
   session: Session,
   proposalId: string,
@@ -741,25 +650,6 @@ async function applyContradictionResolution(
   };
 }
 
-/**
- * Approve or reject a proposed update / delete / synthesis. Returns null
- * when the proposal id doesn't exist. Caller verifies ownership before
- * invoking.
- *
- * Legacy V2 fact-extraction kinds (UPDATE_FOR-bound):
- * - update + approve: copy `proposedContent` onto the existing memory.
- * - delete + approve: hard-delete the existing memory + its chunks.
- *
- * Dream Mode synthesis kinds (DERIVED_FROM-bound, no UPDATE_FOR):
- * - insight / connection + approve: materialise a new :Memory.
- * - merge + approve: materialise the consolidation + suppress sources
- *   with :SUPERSEDED_BY edges.
- * - contradiction + approve with `winnerMemoryId`: boost the winner,
- *   suppress the active losers. Without a winner: just marks resolved.
- * - anomaly + approve OR reject: just marks resolved.
- *
- * Reject (any kind): mark resolved, no graph mutation.
- */
 export async function resolveProposal(
   driver: Driver,
   proposalId: string,
@@ -781,8 +671,6 @@ export async function resolveProposal(
       case "update":
         return applyUpdateApproval(session, proposalId, now);
       case "contradiction":
-        // Winner must be one of the sources — anything else falls back
-        // to the dismiss-only path rather than suppressing blindly.
         if (
           winnerMemoryId !== undefined &&
           lookup.sourceMemoryIds.includes(winnerMemoryId) &&
@@ -808,12 +696,6 @@ export async function resolveProposal(
   });
 }
 
-/**
- * Dedup check: returns true if a pending proposal already exists whose
- * sourceMemoryIds overlap by at least `overlapThreshold` (default 0.5)
- * with the candidate. Prevents the Dreamer from re-proposing the same
- * insight on consecutive runs.
- */
 export async function hasOverlappingPendingProposal(
   driver: Driver,
   params: {
@@ -850,13 +732,6 @@ export async function hasOverlappingPendingProposal(
   });
 }
 
-/**
- * Create a synthesis :ProposedUpdate (insight/connection/contradiction/anomaly).
- * Synthesis proposals carry their own title and a sourceMemoryIds list — they
- * are NOT bound via UPDATE_FOR to a single memory like update/delete proposals.
- * The proposals UI uses sourceMemoryIds + sourceMemorySnapshots to render the
- * "derived from" panel.
- */
 export async function createSynthesisProposal(
   driver: Driver,
   params: {
@@ -872,10 +747,6 @@ export async function createSynthesisProposal(
   return withSession(driver, async (session) => {
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
-    // primaryMemoryId backfills the legacy `memoryId` field so existing
-    // queries that look up "proposals affecting memory X" still surface
-    // synthesis proposals where X is one of the sources. Picks the first
-    // source by convention.
     const primaryMemoryId = params.sourceMemoryIds[0] ?? "";
 
     const result = await session.run(

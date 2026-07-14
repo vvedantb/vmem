@@ -5,17 +5,6 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { getUserByClerkId } from "./auth";
 import { dayKeyForUtc, MIN_NEW_MEMORIES } from "./lib/dreamTriggerDecision";
 
-/**
- * Dynamic Dreaming — trigger-state CRUD (`dreamTriggerState` table).
- *
- * Memory writes call `bumpActivityByClerkIdInternal` (via
- * `lib/dreamTriggerInvalidate.ts`); the debounced check action in
- * `neo4jActions/dreamMode/entryPoints.ts` reads the state through
- * `getDecisionInputsInternal` and feeds it to the pure
- * `decideDreamCheck`. Kept in the Convex query/mutation runtime so the
- * Node-only dream actions reach it via `ctx.runQuery`/`ctx.runMutation`.
- */
-
 async function getStateRow(
   ctx: QueryCtx,
   userId: Id<"users">,

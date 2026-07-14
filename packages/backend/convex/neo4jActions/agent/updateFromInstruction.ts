@@ -9,7 +9,7 @@ import { getDriver } from "../../../engine/neo4j/driver";
 import { applyFactUpdateOrDelete } from "./applyFactDecision";
 import { runFactDecisionLoop } from "./factDecisionLoop";
 import {
-  createSdkExtractedMemory,
+  createExtractedFactMemory,
   prepareInstructionFacts,
   type OpenRouterRequired,
 } from "./shared";
@@ -62,12 +62,13 @@ export async function runUpdateFromInstruction(
     async ({ factIndex: index, factText, decision }) => {
       if (decision.event === "ADD" && decision.text) {
         applied.push(
-          await createSdkExtractedMemory(ctx, {
+          await createExtractedFactMemory(ctx, {
             clerkId: args.clerkId,
             profileId: prepared.profileId,
-            instruction: args.instruction,
             factIndex: index,
             text: decision.text,
+            variant: "sdk",
+            externalIdScope: [args.clerkId, args.instruction],
           }),
         );
         return;

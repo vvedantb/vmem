@@ -14,7 +14,7 @@ const UPDATED_MEMORY_INDICES = [
   237, 248,
 ];
 
-export interface RunSeedOptions {
+interface RunSeedOptions {
   userIds: string[];
   templateMemories: SeedMemory[];
   templateRelationships: SeedRelationship[];
@@ -30,7 +30,7 @@ function remapId(idMap: Map<string, string>, oldId: string): string {
   return newId;
 }
 
-export function buildEvents(memories: SeedMemory[]): SeedEvent[] {
+function buildEvents(memories: SeedMemory[]): SeedEvent[] {
   const events: SeedEvent[] = memories.map((memory) => ({
     eventId: crypto.randomUUID(),
     memoryId: memory.id,

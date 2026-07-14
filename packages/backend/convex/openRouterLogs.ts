@@ -6,30 +6,6 @@ import { openRouterLogFields, openRouterLogRecordFields } from "./validators";
 import type { Id } from "./_generated/dataModel";
 import { getMembershipOrNull } from "./teams/auth";
 
-/**
- * OpenRouter call logs — backing table for the `/openrouter-logs`
- * dashboard route.
- *
- * - `recordInternal` is fired (via `ctx.scheduler.runAfter(0, …)`) by
- *   the shared OpenRouter wrapper after every chat or embedding call.
- *   It derives the row's `teamId` from the supplied `profileId` so the
- *   single `by_team_createdAt` index can serve team-wide spend queries.
- * - `listMine` and `summaryMine` are auth-scoped reads. They never
- *   accept an `actorId` from the caller — the userId is pinned to
- *   `ctx.userId`, which the `authQuery` builder resolves from the
- *   Clerk identity. Team scope additionally checks `teamMembers` for
- *   membership before returning rows.
- */
-
-// ─────────────────────────────────────────────────────────────────────
-// recordInternal
-// ─────────────────────────────────────────────────────────────────────
-
-/**
- * Insert one OpenRouter call log row. Resolves `teamId` from
- * `profileId` at write-time so the dashboard's team-spend queries hit
- * a single `by_team_createdAt` index without needing to join.
- */
 export const recordInternal = internalMutation({
   args: openRouterLogRecordFields,
   returns: v.null(),
@@ -57,16 +33,7 @@ export const recordInternal = internalMutation({
   },
 });
 
-// ─────────────────────────────────────────────────────────────────────
-// listMine
-// ─────────────────────────────────────────────────────────────────────
-
 const scopeValidator = v.union(v.literal("personal"), v.literal("team"));
-const statusFilterValidator = v.union(
-  v.literal("all"),
-  v.literal("success"),
-  v.literal("error"),
-);
 const rangeValidator = v.union(
   v.literal("today"),
   v.literal("7d"),
@@ -94,10 +61,6 @@ function rangeCutoff(range: "today" | "7d" | "30d" | "all"): number | null {
   }
 }
 
-/**
- * Shared personal/team index selection + membership gate for OpenRouter
- * log reads. Returns null when `onDenied: "empty"` and auth fails.
- */
 async function scopedOpenRouterLogsQuery(
   ctx: QueryCtx,
   opts: {
@@ -139,17 +102,6 @@ async function scopedOpenRouterLogsQuery(
     .order("desc");
 }
 
-/**
- * Paginated list of the current user's OpenRouter call logs.
- *
- * Personal scope reads `by_user_createdAt` (own rows only). Team scope
- * requires a `teamId` and reads `by_team_createdAt` after verifying
- * membership via `teamMembers.by_team_user`.
- *
- * Filters compose with AND. Multi-value filters (`features`, `models`)
- * fall back to no-op when the array is empty so the index can still
- * be used efficiently.
- */
 export const listMine = authQuery({
   args: {
     paginationOpts: paginationOptsValidator,
@@ -158,7 +110,6 @@ export const listMine = authQuery({
     profileId: v.optional(v.id("profiles")),
     features: v.optional(v.array(openRouterLogFields.feature)),
     models: v.optional(v.array(v.string())),
-    status: v.optional(statusFilterValidator),
     range: v.optional(rangeValidator),
   },
   returns: v.object({
@@ -178,7 +129,6 @@ export const listMine = authQuery({
     const scope = args.scope ?? "personal";
     const features = args.features ?? [];
     const models = args.models ?? [];
-    const status = args.status ?? "all";
     const range = args.range ?? "all";
     const cutoff = rangeCutoff(range);
 
@@ -211,41 +161,17 @@ export const listMine = authQuery({
       );
     }
 
-    // Status filter — success / error / all.
-    if (status === "success") {
-      q = q.filter((f) => f.eq(f.field("ok"), true));
-    } else if (status === "error") {
-      q = q.filter((f) => f.eq(f.field("ok"), false));
-    }
-
     return await q.paginate(args.paginationOpts);
   },
 });
-
-// ─────────────────────────────────────────────────────────────────────
-// summaryMine
-// ─────────────────────────────────────────────────────────────────────
 
 const summaryReturnValidator = v.object({
   totalCalls: v.number(),
   totalCostUsd: v.number(),
   totalTokens: v.number(),
-  avgLatencyMs: v.number(),
-  successRate: v.number(),
   isApprox: v.boolean(),
 });
 
-/**
- * Aggregate call stats for the dashboard's stat-card row. Caps the
- * scan at 5k rows; if the cap is hit the response is marked
- * `isApprox: true` so the UI can render a tooltip ("based on most
- * recent 5,000 calls").
- *
- * Mirrors `listMine`'s scope/auth contract but ignores feature/model
- * filters — the cards always show the unfiltered window so users see
- * "today's spend" rather than "today's spend matching the current
- * filter chip set".
- */
 export const summaryMine = authQuery({
   args: {
     scope: v.optional(scopeValidator),
@@ -273,39 +199,20 @@ export const summaryMine = authQuery({
 
     let totalCostUsd = 0;
     let totalTokens = 0;
-    let totalLatency = 0;
-    let okCount = 0;
     for (const row of rows) {
       if (typeof row.costUsd === "number") totalCostUsd += row.costUsd;
       if (typeof row.totalTokens === "number") totalTokens += row.totalTokens;
-      totalLatency += row.latencyMs;
-      if (row.ok) okCount += 1;
     }
 
-    const totalCalls = rows.length;
-    const avgLatencyMs =
-      totalCalls > 0 ? Math.round(totalLatency / totalCalls) : 0;
-    const successRate = totalCalls > 0 ? okCount / totalCalls : 1;
-
     return {
-      totalCalls,
+      totalCalls: rows.length,
       totalCostUsd,
       totalTokens,
-      avgLatencyMs,
-      successRate,
       isApprox: rows.length === SCAN_CAP,
     };
   },
 });
 
-// ─────────────────────────────────────────────────────────────────────
-// Helper queries
-// ─────────────────────────────────────────────────────────────────────
-
-/** Distinct model strings the user has logged — drives the "Models"
- *  multi-select in the filters dropdown. Caps at the 1000 most recent
- *  rows; new models surface within seconds via Convex's reactive
- *  query subscription. */
 export const distinctModelsMine = authQuery({
   args: {
     scope: v.optional(scopeValidator),

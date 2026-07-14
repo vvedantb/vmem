@@ -42,22 +42,6 @@ async function resolveApiKeyAuth(
   };
 }
 
-async function assertProfileAccess(
-  ctx: ActionCtx,
-  userId: Id<"users">,
-  profileId: string,
-): Promise<Response | null> {
-  try {
-    await ctx.runQuery(internal.teams.assertProfileAccessInternal, {
-      profileId,
-      userId,
-    });
-    return null;
-  } catch {
-    return Response.json({ error: "forbidden" }, { status: 403 });
-  }
-}
-
 /** Checks profile access only when a profileId is present; no-op otherwise. */
 export async function guardProfileAccess(
   ctx: ActionCtx,
@@ -67,7 +51,15 @@ export async function guardProfileAccess(
   if (!profileId) {
     return null;
   }
-  return assertProfileAccess(ctx, auth.userId, profileId);
+  try {
+    await ctx.runQuery(internal.teams.assertProfileAccessInternal, {
+      profileId,
+      userId: auth.userId,
+    });
+    return null;
+  } catch {
+    return Response.json({ error: "forbidden" }, { status: 403 });
+  }
 }
 
 async function recordUsage(

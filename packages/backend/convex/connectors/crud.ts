@@ -5,9 +5,11 @@ import {
   internalQuery,
   type MutationCtx,
 } from "../_generated/server";
-import { authMutation, authQuery } from "../auth";
+import { authAction, authMutation, authQuery, requireClerkId } from "../auth";
+import { internal } from "../_generated/api";
 import { auditLog, ResourceTypes } from "../auditLog";
-import { STALE_SYNCING_MS } from "../codebaseSyncConstants";
+import { STALE_SYNCING_MS } from "@vmem/shared";
+import { sourceTypesForProvider } from "../../engine/neo4j/memory/connectorSourceTypes";
 
 type ConnectorProvider = NonNullable<Doc<"connectors">["provider"]>;
 
@@ -18,7 +20,6 @@ interface DefaultConnector {
   provider?: ConnectorProvider;
 }
 
-/** Shared reset applied whenever a connector is marked disconnected. */
 const DISCONNECTED_SYNC_RESET = {
   syncStatus: "idle" as const,
   syncProgress: 0,
@@ -171,8 +172,6 @@ export const sync = authMutation({
   },
 });
 
-// --- Internal mutations and queries for OAuth flow ---
-
 export const getByIdInternal = internalQuery({
   args: { id: v.id("connectors") },
   handler: async (ctx, args) => {
@@ -185,10 +184,6 @@ const DAILY_SYNC_PROVIDERS = new Set<ConnectorProvider>([
   "notion",
 ]);
 
-/**
- * Connected connectors eligible for the global 04:00 UTC daily workflow.
- * Skips in-progress syncs; always runs a full ingest (no lastSyncAt cutoff).
- */
 export const listForDailyConnectorSyncInternal = internalQuery({
   args: {},
   returns: v.array(v.object({ connectorId: v.id("connectors") })),
@@ -200,11 +195,7 @@ export const listForDailyConnectorSyncInternal = internalQuery({
       if (row.connectionStatus !== "connected") continue;
       if (!row.provider || !DAILY_SYNC_PROVIDERS.has(row.provider)) continue;
 
-      const isFreshSync =
-        row.syncStatus === "syncing" &&
-        row.syncStartedAt !== undefined &&
-        Date.now() - row.syncStartedAt < STALE_SYNCING_MS;
-      if (isFreshSync) continue;
+      if (isFreshSyncing(row)) continue;
 
       out.push({ connectorId: row._id });
     }
@@ -228,11 +219,7 @@ export const listGoogleConnectorsForUserInternal = internalQuery({
       .withIndex("by_user", (q) => q.eq("userId", args.userId))
       .collect();
 
-    const googleRows: Array<{
-      _id: Id<"connectors">;
-      provider: "google_drive";
-      connectionStatus: "connected" | "disconnected";
-    }> = [];
+    const googleRows = [];
 
     for (const row of rows) {
       if (row.provider !== "google_drive") continue;
@@ -303,8 +290,6 @@ export const updateSyncProgressInternal = internalMutation({
   },
 });
 
-// --- Migration helper ---
-
 export const migrateAddProviders = internalMutation({
   args: {},
   handler: async (ctx) => {
@@ -319,3 +304,61 @@ export const migrateAddProviders = internalMutation({
     }
   },
 });
+
+export const deleteConnectorData = authAction({
+  args: { connectorId: v.id("connectors") },
+  returns: v.number(),
+  handler: async (ctx, args): Promise<number> => {
+    const connector = await ctx.runQuery(
+      internal.connectors.crud.getByIdInternal,
+      {
+        id: args.connectorId,
+      },
+    );
+    if (!connector || connector.userId !== ctx.userId) {
+      throw new Error("Connector not found");
+    }
+    if (!connector.provider) {
+      throw new Error("Connector does not support data deletion");
+    }
+
+    const sourceTypes = sourceTypesForProvider(connector.provider);
+    if (!sourceTypes?.length) {
+      throw new Error("Connector does not support data deletion");
+    }
+
+    const deleted = await ctx.runAction(
+      internal.neo4jActions.connectorData.deleteBySourceTypesInternal,
+      { clerkId: await requireClerkId(ctx), sourceTypes: [...sourceTypes] },
+    );
+
+    await ctx.runMutation(internal.connectors.crud.resetSyncStatsInternal, {
+      id: args.connectorId,
+    });
+
+    await auditLog.log(ctx, {
+      action: "connector.data_deleted",
+      actorId: ctx.userId,
+      resourceType: ResourceTypes.CONNECTOR,
+      resourceId: args.connectorId,
+      metadata: {
+        name: connector.name,
+        provider: connector.provider,
+        deletedCount: deleted,
+      },
+      severity: "warning",
+    });
+
+    return deleted;
+  },
+});
+
+export function isFreshSyncing(
+  row: Pick<Doc<"connectors">, "syncStatus" | "syncStartedAt">,
+): boolean {
+  return (
+    row.syncStatus === "syncing" &&
+    row.syncStartedAt !== undefined &&
+    Date.now() - row.syncStartedAt < STALE_SYNCING_MS
+  );
+}

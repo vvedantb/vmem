@@ -14,7 +14,7 @@ import {
   wikiPathNodesFromDocs,
 } from "../wiki/path";
 
-export interface WikiListItem {
+interface WikiListItem {
   id: string;
   title: string;
   kind: "folder" | "document";
@@ -23,7 +23,7 @@ export interface WikiListItem {
   updatedAt: number;
 }
 
-export interface WikiGetResult {
+interface WikiGetResult {
   id: string;
   title: string;
   kind: "folder" | "document";
@@ -33,7 +33,7 @@ export interface WikiGetResult {
   updatedAt: number;
 }
 
-export interface WikiSearchItem {
+interface WikiSearchItem {
   id: string;
   title: string;
   kind: "folder" | "document";
@@ -67,7 +67,6 @@ function toGetResult(node: Doc<"wikiNodes">): WikiGetResult {
   };
 }
 
-/** Walk `parentPath`, creating missing folder segments (e.g. `Learning/topic`). */
 async function ensureWikiFolderPath(
   ctx: ActionCtx,
   clerkId: string,
@@ -119,7 +118,6 @@ async function ensureWikiFolderPath(
   return currentParent;
 }
 
-/** Reload a wiki node after a mutation and map it to the API result shape. */
 async function reloadWikiNode(
   ctx: ActionCtx,
   clerkId: string,

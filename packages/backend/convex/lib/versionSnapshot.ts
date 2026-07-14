@@ -1,31 +1,11 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 
-/**
- * Version snapshots for wiki docs and skills.
- *
- * Model: snapshot the *previous* (pre-patch) state before an overwrite, called
- * from inside the existing update mutations. The live row is always HEAD;
- * versions are strictly older. Because every MCP-agent write force-checkpoints
- * its pre-write state, "undo what the agent changed" is just "restore the
- * newest version".
- *
- * A new version is cut only on a burst boundary so web autosave (which fires
- * every ~800ms) does not flood the history: a different author/source, a gap
- * longer than BURST_MS, or `force` (MCP writes and restores). Consecutive
- * identical snapshots are always skipped — that also stops a brand-new empty
- * doc from minting a junk version.
- */
-
 /** Edits within this window by the same author/source coalesce into one version. */
 const BURST_MS = 15 * 60 * 1000;
 
 type VersionSource = "web" | "mcp";
 
-/**
- * The label the history UI shows for who made a version: "Agent" for MCP
- * writes, "You" for the current user, otherwise the team member's name.
- */
 export async function resolveVersionAuthorLabel(
   ctx: QueryCtx,
   currentUserId: Id<"users">,
@@ -41,10 +21,6 @@ export async function resolveVersionAuthorLabel(
 interface SnapshotMeta {
   source: VersionSource;
   authorUserId: Id<"users">;
-  /**
-   * Snapshot regardless of the burst/author/source boundary (MCP writes,
-   * restores). Duplicate content is still skipped.
-   */
   force?: boolean;
 }
 
@@ -54,7 +30,6 @@ interface LatestMarker {
   authorUserId: Id<"users">;
 }
 
-/** True when this write clearly begins a new editing burst. */
 function crossedBoundary(
   latest: LatestMarker | null,
   meta: SnapshotMeta,
@@ -67,11 +42,7 @@ function crossedBoundary(
   );
 }
 
-/**
- * Snapshot a wiki document's current state before it is overwritten.
- * No-op for folders (no content) and when nothing changed since the last
- * version. Call BEFORE `ctx.db.patch(node._id, ...)`.
- */
+/** Snapshot wiki pre-patch state; call before `ctx.db.patch`. */
 export async function maybeSnapshotWikiVersion(
   ctx: MutationCtx,
   node: Doc<"wikiNodes">,
@@ -89,11 +60,9 @@ export async function maybeSnapshotWikiVersion(
   const content = node.content ?? "";
   const contentText = node.contentText ?? "";
 
-  // Never store consecutive identical snapshots.
   if (latest !== null && latest.title === title && latest.content === content) {
     return;
   }
-  // Nothing worth keeping for a brand-new, never-saved document.
   if (latest === null && content.length === 0) return;
 
   const now = Date.now();
@@ -110,7 +79,6 @@ export async function maybeSnapshotWikiVersion(
   });
 }
 
-/** True when two skill snapshots carry identical user-visible content. */
 function skillUnchanged(
   latest: Doc<"skillVersions">,
   skill: Doc<"skills">,
@@ -123,10 +91,7 @@ function skillUnchanged(
   );
 }
 
-/**
- * Snapshot a skill's current state before it is overwritten. No-op when
- * nothing changed since the last version. Call BEFORE `ctx.db.patch`.
- */
+/** Snapshot skill pre-patch state; call before `ctx.db.patch`. */
 export async function maybeSnapshotSkillVersion(
   ctx: MutationCtx,
   skill: Doc<"skills">,
@@ -155,7 +120,6 @@ export async function maybeSnapshotSkillVersion(
   });
 }
 
-/** Remove every version snapshot of a wiki node (call when deleting the node). */
 export async function deleteVersionsForWikiNode(
   ctx: MutationCtx,
   nodeId: Id<"wikiNodes">,
@@ -168,7 +132,6 @@ export async function deleteVersionsForWikiNode(
   }
 }
 
-/** Remove every version snapshot of a skill (call when deleting the skill). */
 export async function deleteVersionsForSkill(
   ctx: MutationCtx,
   skillId: Id<"skills">,

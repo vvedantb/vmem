@@ -115,7 +115,6 @@ export async function createExtractedFactMemory(
     factIndex: number;
     text: string;
     variant: keyof typeof EXTRACTED_FACT_META;
-    /** Hashed before factIndex/text — sdk: [clerkId, instruction]; v2: [sourceMemoryId]. */
     externalIdScope: readonly string[];
   },
 ): Promise<MemoryWithTags> {
@@ -135,27 +134,6 @@ export async function createExtractedFactMemory(
       args.text,
     ]),
     sourceType: meta.sourceType,
-  });
-}
-
-/** Create a memory from an SDK-extracted fact, tagged and keyed consistently. */
-export async function createSdkExtractedMemory(
-  ctx: ActionCtx,
-  args: {
-    clerkId: string;
-    profileId: string | undefined;
-    instruction: string;
-    factIndex: number;
-    text: string;
-  },
-): Promise<MemoryWithTags> {
-  return createExtractedFactMemory(ctx, {
-    clerkId: args.clerkId,
-    profileId: args.profileId,
-    factIndex: args.factIndex,
-    text: args.text,
-    variant: "sdk",
-    externalIdScope: [args.clerkId, args.instruction],
   });
 }
 

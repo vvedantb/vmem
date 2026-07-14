@@ -17,12 +17,9 @@ export interface FactDecisionLoopOptions {
   auth: AgentAuth;
   clerkId: string;
   profileId?: string;
-  /** When true, pass profileId to retrieveMemories; when false/omit, omit it. */
   retrieveWithProfileId?: boolean;
   excludeMemoryIds?: string[];
-  /** Prefix for embed failure logs, e.g. "[v2]" or "[agent]" */
   logPrefix: string;
-  /** When true, wrap each fact in try/catch and continue (v2 behavior) */
   bestEffortPerFact?: boolean;
 }
 

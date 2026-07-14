@@ -1,17 +1,4 @@
-/**
- * ts-morph based parser. Builds an in-memory `Project`, walks each
- * `SourceFile`, and emits `SymbolNode`s + structural `RelationEdge`s
- * (CONTAINS / HAS_METHOD / EXTENDS / IMPLEMENTS / IMPORTS).
- *
- * `useInMemoryFileSystem: true` so the parser never touches disk —
- * Convex actions are sandboxed and we only have file blobs from the
- * GitHub API anyway.
- *
- * NOTE: We intentionally do NOT resolve `CALLS` here. That happens in
- * `resolveCalls.ts`, which needs the full `Project` after every file
- * has been added so cross-file symbol lookups work.
- */
-
+import { basename, dirname, extname } from "node:path/posix";
 import {
   Project,
   ScriptKind,
@@ -34,7 +21,7 @@ import type {
   RelationEdge,
   ParseResult,
 } from "./types";
-import { isConvexBuilderName } from "./convexBuilders";
+import { convexEntryKind } from "./convexBuilders";
 
 export interface SourceFileBlob {
   /** Repo-relative path with `/` separators. */
@@ -43,7 +30,7 @@ export interface SourceFileBlob {
   content: string;
 }
 
-export interface ParseInput {
+interface ParseInput {
   codebaseId: string;
   files: SourceFileBlob[];
 }
@@ -76,19 +63,10 @@ function pickScriptKind(ext: string): ScriptKind {
   }
 }
 
-function getExtension(path: string): string {
-  const idx = path.lastIndexOf(".");
-  return idx === -1 ? "" : path.slice(idx);
-}
-
-function getDirectory(path: string): string {
-  const idx = path.lastIndexOf("/");
-  return idx === -1 ? "" : path.slice(0, idx);
-}
-
-function getFilename(path: string): string {
-  const idx = path.lastIndexOf("/");
-  return idx === -1 ? path : path.slice(idx + 1);
+/** Repo-root files: posix `dirname("foo.ts")` is `"."`; we store `""`. */
+function directoryOf(repoPath: string): string {
+  const dir = dirname(repoPath);
+  return dir === "." ? "" : dir;
 }
 
 /** Cheap stable hash (FNV-1a 32-bit) — we only need to detect content changes. */
@@ -115,7 +93,7 @@ function symbolId(
 
 /** Match any of `.test.`/`.spec.` in filename. */
 function isTestFile(path: string): boolean {
-  const filename = getFilename(path);
+  const filename = basename(path);
   return /\.(test|spec)\.[mc]?[jt]sx?$/.test(filename);
 }
 
@@ -124,11 +102,7 @@ function isExportedNode(node: ExportableNode): boolean {
   return node.isExported() || node.isDefaultExport();
 }
 
-/**
- * Build an in-memory ts-morph Project from raw file blobs. Skips non-TS/JS
- * files. Returns the project + the set of files actually loaded.
- */
-export function buildProject(input: ParseInput): {
+function buildProject(input: ParseInput): {
   project: Project;
   loadedPaths: string[];
 } {
@@ -150,7 +124,7 @@ export function buildProject(input: ParseInput): {
 
   const loadedPaths: string[] = [];
   for (const file of input.files) {
-    const ext = getExtension(file.path);
+    const ext = extname(file.path);
     if (!TS_JS_EXTENSIONS.has(ext)) continue;
     project.createSourceFile(file.path, file.content, {
       scriptKind: pickScriptKind(ext),
@@ -162,14 +136,8 @@ export function buildProject(input: ParseInput): {
 }
 
 /**
- * Walk a single source file and emit its function/class/interface symbols
- * plus the local structural edges (CONTAINS / HAS_METHOD / EXTENDS-name /
- * IMPLEMENTS-name / IMPORTS).
- *
- * EXTENDS/IMPLEMENTS edges resolve to symbol ids in `resolveCalls.ts` — at
- * this point we only know the heritage clause's textual name, so we emit
- * the edge with the textual name as the `toId` placeholder. The resolver
- * patches it.
+ * Walk a single source file and emit symbols plus local structural edges.
+ * EXTENDS/IMPLEMENTS use textual names; resolveCalls patches them to ids.
  */
 function parseSourceFile(
   codebaseId: string,
@@ -180,13 +148,13 @@ function parseSourceFile(
 ): FileNode {
   const path = fileBlob.path;
   const fileId = fileSymbolId(codebaseId, path);
-  const ext = getExtension(path);
+  const ext = extname(path);
   const fileNode: FileNode = {
     kind: "file",
     id: fileId,
     path,
-    directory: getDirectory(path),
-    filename: getFilename(path),
+    directory: directoryOf(path),
+    filename: basename(path),
     extension: ext,
     sizeBytes: fileBlob.content.length,
     contentHash: contentHash(fileBlob.content),
@@ -195,7 +163,7 @@ function parseSourceFile(
 
   const fileIsTest = isTestFile(path);
 
-  // ── Imports — emit text-form path; resolver later replaces with file id.
+  // Imports — module path placeholder; resolveCalls patches to file id.
   for (const imp of source.getImportDeclarations()) {
     const moduleSpec = imp.getModuleSpecifierValue();
     if (!moduleSpec) continue;
@@ -209,12 +177,10 @@ function parseSourceFile(
     });
   }
 
-  // ── Top-level functions (function declarations).
   for (const fn of source.getFunctions()) {
     pushFunction(codebaseId, fileId, path, fn, fileIsTest, symbols, relations);
   }
 
-  // ── Top-level arrow / fn-expr assigned to a const.
   for (const v of source.getVariableDeclarations()) {
     pushVariableFunction(
       codebaseId,
@@ -227,12 +193,10 @@ function parseSourceFile(
     );
   }
 
-  // ── Classes.
   for (const cls of source.getClasses()) {
     pushClass(codebaseId, fileId, path, cls, fileIsTest, symbols, relations);
   }
 
-  // ── Interfaces.
   for (const iface of source.getInterfaces()) {
     pushInterface(codebaseId, fileId, path, iface, symbols, relations);
   }
@@ -270,9 +234,7 @@ function pushFunction(
 }
 
 /**
- * Const/let arrow-fn or fn-expr → treat as a Function symbol. This is by
- * far the most common shape in modern TS codebases (Convex actions, React
- * components, hooks, util fns).
+ * Const/let arrow-fn or fn-expr, or Convex builder call → Function symbol.
  */
 function pushVariableFunction(
   codebaseId: string,
@@ -310,13 +272,12 @@ function pushVariableFunction(
   relations.push({ kind: "CONTAINS", fromId: fileId, toId: id });
 }
 
-/** True for `query({...})` / `mutation({...})` / `action({...})` / etc. */
+/** True for `query({...})` / `mutation({...})` / etc. */
 function looksLikeConvexBuilder(init: Node): boolean {
   if (init.getKind() !== SyntaxKind.CallExpression) return false;
   const expr = init.asKindOrThrow(SyntaxKind.CallExpression).getExpression();
   const calleeName = expr.getText();
-  // Match bare names — reasonable since these builders are the convention.
-  return isConvexBuilderName(calleeName);
+  return convexEntryKind(calleeName) !== undefined;
 }
 
 /** Cheap `async` check for an arrow-fn / fn-expr node's own text. */
@@ -459,11 +420,6 @@ function pushInterface(
   relations.push({ kind: "CONTAINS", fromId: fileId, toId: id });
 }
 
-/**
- * Top-level entry point. Builds the project, walks each file, returns
- * `{ project, symbols, structuralRelations }`. The `project` is forwarded
- * to `resolveCalls.ts` so it can use the type checker without re-parsing.
- */
 export function parseRepository(input: ParseInput): {
   project: Project;
   result: ParseResult;

@@ -1,11 +1,4 @@
-/**
- * Shared return-shape interfaces for `memoryApi.ts`. Kept identical to
- * the pre-split shape so existing `FunctionReturnType<typeof api.…>`
- * usages on the frontend keep resolving to the same types. Diverges
- * intentionally from `src/neo4j/memory/types` — those carry branded
- * unions and a `profileId` field; the API surface keeps `type`/`status`
- * as plain strings to avoid leaking the branding into 16 caller files.
- */
+/** API return shapes for memoryApi (plain strings; not engine branded unions). */
 
 export interface MemoryWithTags {
   id: string;
@@ -54,11 +47,7 @@ export interface MemoryCandidate extends MemoryWithTags {
     scoreBreakdown: ScoreBreakdown;
     reason: string;
   };
-  /**
-   * Set when retrieval matched a paragraph-level chunk inside a long memory
-   * instead of (or in addition to) the whole-memory embedding. UIs can use
-   * this to highlight the specific passage that triggered the match.
-   */
+  /** Paragraph-level chunk that triggered the match (for UI highlight). */
   matchedChunk?: MatchedChunk;
 }
 

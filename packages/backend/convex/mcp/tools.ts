@@ -2,9 +2,12 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { ActionCtx } from "../_generated/server";
 import type { McpScope } from "../profiles/mcpAccess";
-import { bindToolSpec, toolSpecs, type McpBindableTool } from "./toolCatalog";
 import {
-  formatToolResult,
+  bindableToolSpecs,
+  toolSpecs,
+  type McpBindableTool,
+} from "./toolCatalog";
+import {
   type ToolHandlerContext,
   type ToolHandlerResult,
 } from "./toolHandlers";
@@ -36,13 +39,13 @@ function handlerContext(
   return { ctx, clerkUserId, scope };
 }
 
-/**
- * The MCP-surface mechanic: map a structured handler result to MCP tool
- * content — `isError` + a `<label> failed: …` message on failure, otherwise
- * the JSON-formatted data. Kept non-generic so it stays clear of the MCP SDK's
- * schema-inference generics; `registerMcpTool` below keeps each tool's
- * concrete schema type from the catalog.
- */
+function formatToolResult(result: ToolHandlerResult): string {
+  if (!result.ok) {
+    return JSON.stringify({ error: result.error }, null, 2);
+  }
+  return JSON.stringify(result.data, null, 2);
+}
+
 function toMcpContent(
   result: ToolHandlerResult,
   errorLabel: string,
@@ -51,7 +54,6 @@ function toMcpContent(
   return textContent(formatToolResult(result));
 }
 
-/** JSON for a get-file result with the (large) base64 payload removed. */
 const unknownRecordSchema = z.record(z.unknown());
 
 function fileMetadataText(data: unknown): string {
@@ -69,12 +71,6 @@ const inlineImageFileSchema = z.object({
   mimeType: z.string().refine((mime) => mime.startsWith("image/")),
 });
 
-/**
- * files_get returns an MCP image content block when the file is an inlined
- * image so hosts (Claude, ChatGPT) render it directly, plus a text block with
- * the remaining metadata (path, size, downloadUrl). Other files fall back to
- * the standard JSON text content.
- */
 function filesGetContent(result: ToolHandlerResult): McpToolContent {
   if (!result.ok) return errorContent(`Files get failed: ${result.error}`);
   const data = result.data;
@@ -102,11 +98,6 @@ type McpToolPresentation = {
   toContent?: (result: ToolHandlerResult) => McpToolContent;
 };
 
-/**
- * MCP presentation metadata per catalog tool — descriptions, error labels,
- * scope gating, and optional custom content mappers. Operational wiring
- * (name, schema, handler) stays in `toolCatalog.ts`.
- */
 const mcpPresentation: Record<keyof typeof toolSpecs, McpToolPresentation> = {
   ping: {
     description: "Health check tool for connector validation.",
@@ -275,43 +266,6 @@ const mcpPresentation: Record<keyof typeof toolSpecs, McpToolPresentation> = {
   },
 };
 
-/** Registration order mirrors insertion order of `toolSpecs` (toolCatalog.ts). */
-const bindableToolSpecs = {
-  ping: bindToolSpec(toolSpecs.ping),
-  whoami: bindToolSpec(toolSpecs.whoami),
-  list_profiles: bindToolSpec(toolSpecs.list_profiles),
-  set_active_profile: bindToolSpec(toolSpecs.set_active_profile),
-  context_prompt_get: bindToolSpec(toolSpecs.context_prompt_get),
-  memory_search: bindToolSpec(toolSpecs.memory_search),
-  memory_retrieve: bindToolSpec(toolSpecs.memory_retrieve),
-  memory_add: bindToolSpec(toolSpecs.memory_add),
-  memory_add_instruction: bindToolSpec(toolSpecs.memory_add_instruction),
-  memory_update: bindToolSpec(toolSpecs.memory_update),
-  memory_delete: bindToolSpec(toolSpecs.memory_delete),
-  memory_related: bindToolSpec(toolSpecs.memory_related),
-  skills_list: bindToolSpec(toolSpecs.skills_list),
-  skills_get: bindToolSpec(toolSpecs.skills_get),
-  skills_create: bindToolSpec(toolSpecs.skills_create),
-  skills_update: bindToolSpec(toolSpecs.skills_update),
-  skills_delete: bindToolSpec(toolSpecs.skills_delete),
-  wiki_list: bindToolSpec(toolSpecs.wiki_list),
-  wiki_get: bindToolSpec(toolSpecs.wiki_get),
-  wiki_search: bindToolSpec(toolSpecs.wiki_search),
-  wiki_create: bindToolSpec(toolSpecs.wiki_create),
-  wiki_update: bindToolSpec(toolSpecs.wiki_update),
-  wiki_delete: bindToolSpec(toolSpecs.wiki_delete),
-  files_list: bindToolSpec(toolSpecs.files_list),
-  files_get: bindToolSpec(toolSpecs.files_get),
-  files_upload: bindToolSpec(toolSpecs.files_upload),
-  files_delete: bindToolSpec(toolSpecs.files_delete),
-  codebases_list: bindToolSpec(toolSpecs.codebases_list),
-  codebase_overview: bindToolSpec(toolSpecs.codebase_overview),
-  codebase_search: bindToolSpec(toolSpecs.codebase_search),
-  codebase_context: bindToolSpec(toolSpecs.codebase_context),
-  codebase_impact: bindToolSpec(toolSpecs.codebase_impact),
-  codebase_graph: bindToolSpec(toolSpecs.codebase_graph),
-} satisfies Record<keyof typeof toolSpecs, McpBindableTool>;
-
 function isToolSpecKey(key: string): key is keyof typeof toolSpecs {
   return key in toolSpecs;
 }
@@ -338,12 +292,6 @@ function registerMcpTool(
   );
 }
 
-/**
- * Register every vmem tool on the MCP server. Tool name, input schema, and
- * handler all come from the shared catalog (`toolCatalog.ts`); only the
- * MCP-surface presentation lives here — scope-aware descriptions and the
- * error label used by `toMcpContent`.
- */
 export function registerTools(
   server: McpServer,
   clerkUserId: string,
@@ -353,8 +301,6 @@ export function registerTools(
   const scopeLabel = scope === "team" ? "team" : "personal";
   const h = handlerContext(clerkUserId, ctx, scope);
 
-  // Object.keys preserves toolSpecs insertion order; satisfies + Record<>
-  // already enforce catalog / presentation / bindable exhaustiveness at compile time.
   for (const key of Object.keys(toolSpecs)) {
     if (!isToolSpecKey(key)) continue;
     registerMcpTool(

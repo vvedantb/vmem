@@ -1,17 +1,3 @@
-/**
- * Entry-point detection. Phase 1 supports four shapes:
- *   - Convex builders: `query`/`mutation`/`action`/`internalQuery`/
- *     `internalMutation`/`internalAction`/`httpAction`/`authQuery`/
- *     `authMutation`/`authAction`/`authInternalAction`.
- *   - TanStack Router: `createFileRoute(...)({ component: ... })`.
- *   - Heuristic names: top-level `main`, `handler`, `start`, `on*`.
- *   - Any exported function with zero incoming `CALLS` edges.
- *
- * Returns one `EntryPoint` per detected function. The same function can
- * be matched by multiple patterns; the first match wins (priority order
- * mirrors the list above).
- */
-
 import type {
   EntryPoint,
   RelationEdge,
@@ -29,7 +15,6 @@ function entryName(fn: FunctionNode): string {
   return `${fn.filePath}::${exportName}`;
 }
 
-/** Detect Convex builder + TanStack route + heuristic-name entries by walking source. */
 function detectFromSource(
   project: Project,
   symbols: SymbolNode[],
@@ -57,16 +42,12 @@ function detectFromSource(
       const fnNode = fnByPathName.get(`${filePath}::${v.getName()}`);
       if (!fnNode) continue;
 
-      // Convex builders.
       const convexKind = convexEntryKind(calleeText);
       if (convexKind) {
         addEntry(fnNode, convexKind);
         continue;
       }
 
-      // TanStack `createFileRoute("...")({...})`.
-      // The outer call is an immediately-invoked builder; the inner CE
-      // has callee `createFileRoute` (or `createRootRoute`).
       if (calleeText.startsWith("createFileRoute")) {
         addEntry(fnNode, "tanstack_route");
         continue;
@@ -74,7 +55,6 @@ function detectFromSource(
     }
   }
 
-  // Heuristic names — top-level functions only (no parentClass).
   for (const s of symbols) {
     if (s.kind !== "function") continue;
     if (seenIds.has(s.id) || s.parentClass) continue;
@@ -88,7 +68,6 @@ function detectFromSource(
   return entries;
 }
 
-/** Exported functions with zero incoming CALLS edges become "no_incoming" entries. */
 function detectExportedNoIncoming(
   symbols: SymbolNode[],
   calls: RelationEdge[],

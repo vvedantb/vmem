@@ -5,8 +5,8 @@ import { Card, CardContent, Skeleton } from "@vmem/ui";
 export function AiLogsLoadingSkeleton() {
   return (
     <div className="flex h-full min-h-0 flex-col gap-8">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 sm:gap-4">
-        {[1, 2, 3, 4].map((index) => (
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+        {[1, 2].map((index) => (
           <Card key={index} className="shadow-none">
             <CardContent className="flex min-h-[9.5rem] flex-col gap-3 p-5">
               <div className="flex items-start justify-between">

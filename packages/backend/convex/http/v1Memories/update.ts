@@ -1,5 +1,8 @@
+import type { MemoryWithTags } from "../../../engine/neo4j/memory/types";
 import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
+import type { OpenRouterRequired } from "../../neo4jActions/agent/shared";
+import type { UpdateFromInstructionResult } from "../../neo4jActions/agent/updateFromInstruction";
 import {
   guardProfileAccess,
   withApiKeyAuth,
@@ -10,19 +13,18 @@ import {
   isInstructionUpdateBody,
   type UpdateBody,
 } from "./schemas";
-import {
-  isOpenRouterRequired,
-  openRouterRequiredResponse,
-  type UpdateFromInstructionActionResult,
-  type UpdateMemoryActionResult,
-} from "./types";
+import { isOpenRouterRequired, openRouterRequiredResponse } from "./types";
 
 async function runUpdateHandler(
   ctx: ActionCtx,
   auth: ApiKeyAuth,
   body: UpdateBody,
 ): Promise<
-  Response | UpdateMemoryActionResult | UpdateFromInstructionActionResult
+  | Response
+  | MemoryWithTags
+  | null
+  | UpdateFromInstructionResult
+  | OpenRouterRequired
 > {
   if (isInstructionUpdateBody(body)) {
     const forbidden = await guardProfileAccess(ctx, auth, body.profileId);

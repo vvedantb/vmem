@@ -71,35 +71,15 @@ import {
   wikiUpdateSchema,
 } from "./schemas";
 
-/**
- * Single source of truth for every vmem tool's operational mechanics: the
- * canonical name, its input schema, and the service-layer handler it runs.
- *
- * Two orchestration surfaces consume this catalog — the MCP server
- * (`tools.ts`) and any future tool hosts that share the same catalog.
- * Each surface owns its own presentation (descriptions, result formatting) and
- * decides which subset of tools to expose; the catalog owns only the
- * name ↔ schema ↔ handler binding so the two surfaces can never drift apart
- * or duplicate the wiring. Keep MCP/AI-SDK types out of this file — it must
- * stay surface-agnostic.
- */
-export interface ToolSpec<Shape extends z.ZodRawShape> {
-  /** Canonical tool name exposed to clients. Defined once, here. */
+interface ToolSpec<Shape extends z.ZodRawShape> {
   readonly name: string;
-  /** Zod schema for the tool input. Drives both MCP and AI-SDK validation. */
   readonly schema: z.ZodObject<Shape>;
-  /** Service-layer handler that performs the operation and returns a result. */
   readonly run: (
     h: ToolHandlerContext,
     params: z.infer<z.ZodObject<Shape>>,
   ) => Promise<ToolHandlerResult>;
 }
 
-/**
- * Identity helper that pins each spec's `Shape` generic at the call site so
- * `schema` and `run` stay correlated. Storing the result in the object literal
- * below preserves the precise per-tool type for each property.
- */
 function toolSpec<Shape extends z.ZodRawShape>(
   spec: ToolSpec<Shape>,
 ): ToolSpec<Shape> {
@@ -266,7 +246,6 @@ export const toolSpecs = {
   }),
 };
 
-/** Erased bindable tool — shared return type for MCP registration loops. */
 export type McpBindableTool = {
   readonly name: string;
   readonly schema: z.ZodObject<z.ZodRawShape>;
@@ -276,7 +255,6 @@ export type McpBindableTool = {
   ) => Promise<ToolHandlerResult>;
 };
 
-/** Type-erased runner for MCP registration loops. */
 export function bindToolSpec<Shape extends z.ZodRawShape>(
   spec: ToolSpec<Shape>,
 ): McpBindableTool {
@@ -286,3 +264,39 @@ export function bindToolSpec<Shape extends z.ZodRawShape>(
     run: (h, params) => spec.run(h, spec.schema.parse(params)),
   };
 }
+
+export const bindableToolSpecs = {
+  ping: bindToolSpec(toolSpecs.ping),
+  whoami: bindToolSpec(toolSpecs.whoami),
+  list_profiles: bindToolSpec(toolSpecs.list_profiles),
+  set_active_profile: bindToolSpec(toolSpecs.set_active_profile),
+  context_prompt_get: bindToolSpec(toolSpecs.context_prompt_get),
+  memory_search: bindToolSpec(toolSpecs.memory_search),
+  memory_retrieve: bindToolSpec(toolSpecs.memory_retrieve),
+  memory_add: bindToolSpec(toolSpecs.memory_add),
+  memory_add_instruction: bindToolSpec(toolSpecs.memory_add_instruction),
+  memory_update: bindToolSpec(toolSpecs.memory_update),
+  memory_delete: bindToolSpec(toolSpecs.memory_delete),
+  memory_related: bindToolSpec(toolSpecs.memory_related),
+  skills_list: bindToolSpec(toolSpecs.skills_list),
+  skills_get: bindToolSpec(toolSpecs.skills_get),
+  skills_create: bindToolSpec(toolSpecs.skills_create),
+  skills_update: bindToolSpec(toolSpecs.skills_update),
+  skills_delete: bindToolSpec(toolSpecs.skills_delete),
+  wiki_list: bindToolSpec(toolSpecs.wiki_list),
+  wiki_get: bindToolSpec(toolSpecs.wiki_get),
+  wiki_search: bindToolSpec(toolSpecs.wiki_search),
+  wiki_create: bindToolSpec(toolSpecs.wiki_create),
+  wiki_update: bindToolSpec(toolSpecs.wiki_update),
+  wiki_delete: bindToolSpec(toolSpecs.wiki_delete),
+  files_list: bindToolSpec(toolSpecs.files_list),
+  files_get: bindToolSpec(toolSpecs.files_get),
+  files_upload: bindToolSpec(toolSpecs.files_upload),
+  files_delete: bindToolSpec(toolSpecs.files_delete),
+  codebases_list: bindToolSpec(toolSpecs.codebases_list),
+  codebase_overview: bindToolSpec(toolSpecs.codebase_overview),
+  codebase_search: bindToolSpec(toolSpecs.codebase_search),
+  codebase_context: bindToolSpec(toolSpecs.codebase_context),
+  codebase_impact: bindToolSpec(toolSpecs.codebase_impact),
+  codebase_graph: bindToolSpec(toolSpecs.codebase_graph),
+} satisfies Record<keyof typeof toolSpecs, McpBindableTool>;

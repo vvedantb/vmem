@@ -1,15 +1,7 @@
 import { v } from "convex/values";
 import { authAction, requireClerkId } from "./auth";
 import { internal } from "./_generated/api";
-
-interface MemorySnapshot {
-  title: string;
-  content: string;
-  type: string;
-  status: string;
-  confidence: number;
-  tags: string[];
-}
+import type { MemorySnapshot } from "./memoryApi/types";
 
 interface TimelineEvent {
   id: string;

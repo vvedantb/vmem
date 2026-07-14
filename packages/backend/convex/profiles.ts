@@ -22,22 +22,6 @@ import {
   resolveProfileIdForMcpScope,
 } from "./profiles/mcpAccess";
 
-export { PROFILE_COLORS, PROFILE_ICONS } from "./profiles/helpers";
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Public queries/mutations (require auth)
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * List all profiles visible to the current user.
- * Includes:
- *  - personal profiles owned by the user (teamId undefined)
- *  - team profiles for every team the user is a member of
- *
- * Personal profiles owned by a different user that happen to be shared via
- * team membership are NOT included here — team access is strictly through
- * team profiles.
- */
 export const list = authQuery({
   args: {},
   handler: async (ctx) => runList(ctx),
@@ -111,11 +95,6 @@ export const removeInternalMutation = internalMutation({
   handler: async (ctx, args) => runRemoveInternalMutation(ctx, args),
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Internal queries/mutations (for MCP and internal use)
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** Get a profile by ID (internal, no auth check) */
 export const getByIdInternal = internalQuery({
   args: { profileId: v.id("profiles") },
   handler: async (ctx, args) => {
@@ -222,18 +201,6 @@ export const getByTeamInternal = internalQuery({
   },
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Dream Mode V2 — per-profile rate-limit stamp
-//
-// `lastDreamRunAt` is stamped after every Dream Mode pass and used by the
-// manual "Run Dream Mode" button to enforce a 1-run-per-hour rate limit.
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Internal: stamp `lastDreamRunAt` on a profile. Called by the per-profile
- * Dream Mode runner on every pass (success or empty) so the manual button's
- * rate-limit accounting stays accurate.
- */
 export const setLastDreamRunAtInternal = internalMutation({
   args: {
     profileId: v.id("profiles"),

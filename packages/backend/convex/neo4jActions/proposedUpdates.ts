@@ -4,8 +4,6 @@ import { internalAction } from "../_generated/server";
 import { v } from "convex/values";
 import { getMemory } from "../../engine/neo4j/memory/crud";
 import {
-  createProposedDelete,
-  createProposedUpdate,
   listProposedUpdates,
   resolveProposal,
 } from "../../engine/neo4j/memory/proposals";
@@ -25,8 +23,6 @@ export const resolveProposalInternal = internalAction({
     clerkId: v.string(),
     proposalId: v.string(),
     action: v.string(),
-    /** Contradiction resolution: the source memory the user chose to
-     *  keep. Losers get suppressed; see `applyContradictionResolution`. */
     winnerMemoryId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -42,12 +38,6 @@ export const resolveProposalInternal = internalAction({
       args.winnerMemoryId,
     );
 
-    // Synthesis approval materializes a NEW memory without an embedding
-    // and without enrichment (resolveProposal is pure Cypher — has no
-    // OpenRouter access). Embed + enrich it here so it ends up
-    // searchable, tagged, and linked via RELATES_TO like a regular
-    // memory. Without this the materialized memory was a dead-end node
-    // with only DERIVED_FROM edges — useless in graph view.
     if (result && result.status === "approved" && result.materializedMemoryId) {
       const materializedMemoryId = result.materializedMemoryId;
       try {
@@ -76,40 +66,5 @@ export const resolveProposalInternal = internalAction({
     }
 
     return result;
-  },
-});
-
-/**
- * Internal helpers to record ADD/UPDATE/DELETE proposals in Neo4j.
- * In-process callers (e.g. `applyFactDecision`) use the engine functions
- * directly; these actions remain for scheduled / cross-action hops.
- */
-export const createProposedUpdateInternal = internalAction({
-  args: {
-    memoryId: v.string(),
-    proposedContent: v.string(),
-    reason: v.string(),
-  },
-  handler: async (_ctx, args) => {
-    const driver = getDriver();
-    return await createProposedUpdate(driver, {
-      memoryId: args.memoryId,
-      proposedContent: args.proposedContent,
-      reason: args.reason,
-    });
-  },
-});
-
-export const createProposedDeleteInternal = internalAction({
-  args: {
-    memoryId: v.string(),
-    reason: v.string(),
-  },
-  handler: async (_ctx, args) => {
-    const driver = getDriver();
-    return await createProposedDelete(driver, {
-      memoryId: args.memoryId,
-      reason: args.reason,
-    });
   },
 });

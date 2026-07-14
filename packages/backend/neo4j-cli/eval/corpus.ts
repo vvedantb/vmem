@@ -1,33 +1,4 @@
-/**
- * Discriminating benchmark corpus generator for the internal retrieval eval.
- *
- * Produces a controlled labelled corpus (≈480 memories, ≈74 queries) designed
- * so naive baselines fail where specific hybrid-retrieval legs succeed. Each
- * query type isolates one mechanism:
- *
- *   - multi-hop   — the gold shares NO terms with the query and is NOT a close
- *                   embedding match; it is reachable ONLY by a RELATES_TO edge
- *                   from a bridge memory that the query matches strongly. The
- *                   bridge becomes a top-5 seed → graph expansion surfaces the
- *                   gold. Vector/BM25 miss it entirely.
- *   - project     — same trick, multi-gold: an anchor memory the query matches,
- *                   plus several related facts (graded 2) that never repeat the
- *                   anchor's codename → only graph expansion recalls the cluster.
- *   - lexical-trap— a near-miss distractor repeats the query's keyword in a
- *                   different sense (grade 0) → BM25 ranks it high, hurting BM25
- *                   precision/nDCG; vector disambiguates.
- *   - update      — a stale and a current memory on one topic; the query asks
- *                   for the current value → the recency signal separates them.
- *   - single-fact / preference — easy; all methods should do well (shows full
- *                   hybrid stays strong on Recall@5).
- *   - abstention  — no gold exists; reported via the top-1-score signal.
- *
- * Graph-advantage scenarios use unique codenames (Helios, Vega, …) so the
- * bridge/anchor is the unambiguous strongest match and reliably becomes a seed.
- *
- * Deterministic structure; dates are relative to now (recent vs stale is what
- * the recency leg needs, and the corpus is re-seeded before each run).
- */
+/** Labelled retrieval benchmark corpus (~480 memories, ~74 queries). */
 
 import type {
   SeedMemory,
@@ -64,7 +35,6 @@ interface RelSpec {
 interface QuerySpec {
   query: string;
   type: string;
-  /** memory key → grade (3 high, 2 medium, 1 marginal). Keys absent = irrelevant. */
   relevance: Record<string, number>;
 }
 interface Scenario {
@@ -72,10 +42,6 @@ interface Scenario {
   relationships?: RelSpec[];
   queries: QuerySpec[];
 }
-
-// ---------------------------------------------------------------------------
-// Word banks for the generated graph-advantage scenarios.
-// ---------------------------------------------------------------------------
 
 const CODENAMES = [
   "Helios",
@@ -152,19 +118,6 @@ function team(i: number): string {
   return TEAMS[i % TEAMS.length] ?? `team${String(i)}`;
 }
 
-// ---------------------------------------------------------------------------
-// Generated builders (templatable patterns).
-// ---------------------------------------------------------------------------
-
-/**
- * Multi-hop scenario shapes. Each yields a bridge (matches the query strongly
- * via the unique codename) and a gold whose answer is reachable only through
- * the bridge — but the gold deliberately shares ONE generic word with the query
- * (lead / respond / approve / budget / roadmap / support) so vector places it
- * in the candidate pool (top-40) yet OUTSIDE the top-10. The graph leg's boost
- * (≈10 rank positions) then lifts the correct gold into the top-10. Distinct
- * vocab per shape stops bridges/golds clustering across scenarios.
- */
 const MULTI_HOP_SHAPES: Array<
   (
     c: string,
@@ -223,13 +176,11 @@ const MULTI_HOP_SHAPES: Array<
   }),
 ];
 
-/**
- * Multi-hop: query → bridge (unique codename match → becomes a seed) → gold
- * (faint shared word with the query; lifted into top-10 only by graph boost).
- */
 function multiHop(i: number): Scenario {
   const shape = MULTI_HOP_SHAPES[i % MULTI_HOP_SHAPES.length];
-  if (shape === undefined) return { memories: [], queries: [] };
+  if (shape === undefined) {
+    throw new Error(`missing multi-hop shape for index ${String(i)}`);
+  }
   const c = code(i);
   const t = team(i);
   const p1 = person(2 * i);
@@ -271,16 +222,10 @@ function multiHop(i: number): Scenario {
   };
 }
 
-/**
- * Project cluster: anchor (codename, term match) + related facts that never
- * repeat the codename (graded 2). Only graph expansion recalls the cluster.
- */
 function projectCluster(i: number): Scenario {
-  const c = code(MULTI_HOP_COUNT + i); // disjoint codename range from multi-hop
-  const t = team(i + 3); // distinct team per project (10 teams, 10 projects)
+  const c = code(MULTI_HOP_COUNT + i);
+  const t = team(i + 3);
   const anchorKey = `pj${String(i)}_anchor`;
-  // Siblings are codename-free (so only the graph edge links them to the query)
-  // and unique across projects via the per-project team name.
   const facts = [
     {
       key: `pj${String(i)}_s1`,
@@ -351,10 +296,11 @@ const TEMPORAL_TOPICS = [
   { topic: "the log aggregator", stale: "Logstash", current: "Vector" },
 ];
 
-/** Temporal/update: stale (old) + current (recent) on one topic; recency wins. */
 function temporalUpdate(i: number): Scenario {
   const spec = TEMPORAL_TOPICS[i % TEMPORAL_TOPICS.length];
-  if (spec === undefined) return { memories: [], queries: [] };
+  if (spec === undefined) {
+    throw new Error(`missing temporal topic for index ${String(i)}`);
+  }
   const staleKey = `tu${String(i)}_stale`;
   const currentKey = `tu${String(i)}_current`;
   return {
@@ -388,10 +334,6 @@ function temporalUpdate(i: number): Scenario {
     ],
   };
 }
-
-// ---------------------------------------------------------------------------
-// Authored pools (need semantic care, so hand-written).
-// ---------------------------------------------------------------------------
 
 const SINGLE_FACTS: Array<{ title: string; content: string; query: string }> = [
   {
@@ -514,7 +456,6 @@ const PREFERENCES: Array<{ title: string; content: string; query: string }> = [
   },
 ];
 
-/** Lexical traps: gold = semantic answer; trap = same keyword, wrong sense (grade 0). */
 const TRAPS: Array<{
   goldTitle: string;
   goldContent: string;
@@ -621,13 +562,6 @@ const TRAPS: Array<{
   },
 ];
 
-/**
- * Exact-match: a cluster of near-identical error-code memories that differ only
- * by a distinctive code + meaning. The query gives ONLY the code (not the
- * meaning), so embeddings — which blur similar codes — struggle to pick the
- * right lookalike, while the fulltext/BM25 leg matches the exact token. This is
- * where the hybrid's keyword leg earns its keep against pure vector.
- */
 const ERROR_CODES: Array<{ code: string; meaning: string }> = [
   { code: "E2001", meaning: "the disk is full" },
   { code: "E2002", meaning: "the request timed out" },
@@ -671,10 +605,6 @@ const ABSTENTIONS = [
   "what time does the moon rise tomorrow",
 ];
 
-// ---------------------------------------------------------------------------
-// Filler distractors — unrelated memories to pad the corpus (all grade 0).
-// ---------------------------------------------------------------------------
-
 const FILLER_TOPICS = [
   "Tried a new ramen place in Shibuya",
   "Booked flights for the Lisbon trip",
@@ -714,11 +644,6 @@ function fillerMemories(count: number): MemSpec[] {
   return out;
 }
 
-// ---------------------------------------------------------------------------
-// Scenario assembly.
-// ---------------------------------------------------------------------------
-
-/** One memory + one graded query (single-fact / preference style). */
 function singleAnswerScenario(
   key: string,
   queryType: string,
@@ -819,14 +744,11 @@ function isoFromAgeDays(ageDays: number): string {
   return new Date(Date.now() - ageDays * 86_400_000).toISOString();
 }
 
-export interface BenchmarkCorpus {
+export function generateBenchmarkCorpus(): {
   memories: SeedMemory[];
   relationships: SeedRelationship[];
   queries: RetrievalEvalQuery[];
-}
-
-/** Generate the full labelled benchmark corpus. */
-export function generateBenchmarkCorpus(): BenchmarkCorpus {
+} {
   const memories: SeedMemory[] = [];
   const relationships: SeedRelationship[] = [];
   const queries: RetrievalEvalQuery[] = [];

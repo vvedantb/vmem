@@ -20,13 +20,11 @@ import {
 const ENRICHMENT_ROLE =
   "You are a memory tagging and entity extraction system.";
 
-export interface EnrichmentVocabulary {
+export type EnrichmentVocabulary = {
   recentTitles: EnrichmentCandidate[];
   topTags: TagUsage[];
   topEntities?: KnownEntity[];
-}
-
-export type EnrichmentAuth = AgentAuth;
+};
 
 export async function loadEnrichmentVocabulary(
   driver: Driver,
@@ -61,7 +59,7 @@ export async function loadEnrichmentVocabulary(
 
 export async function callFullEnrichmentLlm(
   ctx: ActionCtx,
-  auth: EnrichmentAuth,
+  auth: AgentAuth,
   params: {
     title: string;
     content: string;

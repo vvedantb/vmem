@@ -1,12 +1,5 @@
 "use node";
 
-/**
- * Connector sync internal actions barrel.
- *
- * Each `internalAction` delegates to a free `runFooSync(ctx, args)` function;
- * shared mechanics live in `./connectors/shared.ts`.
- */
-
 import { v } from "convex/values";
 import { internalAction } from "../_generated/server";
 import { runGoogleDriveSync } from "./connectors/googleDrive";

@@ -9,12 +9,8 @@ import {
   type WikiPathNode,
 } from "../../convex/wiki/path";
 
-// Mint a branded wikiNodes id from a raw string for these pure-function tests
-// (no db context to normalize against). zod bridges the brand without `as`.
-const wikiIdSchema = z.custom<Id<"wikiNodes">>((v) => typeof v === "string");
-
 function wikiId(raw: string): Id<"wikiNodes"> {
-  return wikiIdSchema.parse(raw);
+  return z.custom<Id<"wikiNodes">>((v) => typeof v === "string").parse(raw);
 }
 
 function folder(

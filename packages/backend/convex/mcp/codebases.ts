@@ -189,7 +189,6 @@ async function requireOwnedCodebaseId(
   return normalizedId;
 }
 
-/** MCP entry point: list connected codebases for the authenticated user. */
 export const mcpListCodebases = internalAction({
   args: { clerkId: v.string() },
   handler: async (ctx, args): Promise<McpCodebaseSummary[]> => {
@@ -207,7 +206,6 @@ export const mcpListCodebases = internalAction({
   },
 });
 
-/** MCP entry point: aggregate graph stats for a synced codebase. */
 export const mcpGetCodebaseOverview = internalAction({
   args: { clerkId: v.string(), codebaseId: v.string() },
   handler: async (ctx, args): Promise<OverviewStatsResult> => {
@@ -223,7 +221,6 @@ export const mcpGetCodebaseOverview = internalAction({
   },
 });
 
-/** MCP entry point: search symbols in a codebase graph. */
 export const mcpSearchCodebaseSymbols = internalAction({
   args: {
     clerkId: v.string(),
@@ -251,7 +248,6 @@ export const mcpSearchCodebaseSymbols = internalAction({
   },
 });
 
-/** MCP entry point: symbol detail with calls in/out and processes. */
 export const mcpGetCodebaseSymbolContext = internalAction({
   args: {
     clerkId: v.string(),
@@ -275,7 +271,6 @@ export const mcpGetCodebaseSymbolContext = internalAction({
   },
 });
 
-/** MCP entry point: upstream/downstream blast radius on CALLS edges. */
 export const mcpGetCodebaseImpact = internalAction({
   args: {
     clerkId: v.string(),
@@ -300,7 +295,6 @@ export const mcpGetCodebaseImpact = internalAction({
   },
 });
 
-/** MCP entry point: filtered graph payload (nodes + relationship edges). */
 export const mcpGetCodebaseGraph = internalAction({
   args: {
     clerkId: v.string(),

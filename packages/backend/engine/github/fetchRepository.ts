@@ -1,6 +1,7 @@
 import { createGunzip } from "node:zlib";
 import { Readable } from "node:stream";
 import { extract } from "tar-stream";
+import pRetry from "p-retry";
 import type { SourceFileBlob } from "../neo4j/codebase/parse";
 import { MAX_FILES_PER_SYNC } from "../neo4j/codebaseService";
 
@@ -13,7 +14,7 @@ const TS_JS_EXTENSIONS = new Set([
   ".cjs",
 ]);
 
-const GITHUB_API_HEADERS = {
+const GITHUB_TARBALL_HEADERS = {
   Accept: "application/vnd.github+json",
   "X-GitHub-Api-Version": "2022-11-28",
 } as const;
@@ -51,24 +52,21 @@ async function fetchWithRetry(
   init: RequestInit,
   label: string,
 ): Promise<Response> {
-  let lastErr: Error | undefined;
-  for (let attempt = 0; attempt < FETCH_ATTEMPTS; attempt++) {
-    try {
-      return await fetch(url, init);
-    } catch (err) {
-      lastErr = err instanceof Error ? err : new Error(String(err));
-      if (attempt < FETCH_ATTEMPTS - 1) {
-        await new Promise((resolve) =>
-          setTimeout(resolve, 400 * (attempt + 1)),
-        );
-      }
-    }
+  try {
+    return await pRetry(async () => fetch(url, init), {
+      retries: FETCH_ATTEMPTS - 1,
+      minTimeout: 400,
+      factor: 1,
+      randomize: true,
+    });
+  } catch (err) {
+    const lastErr = err instanceof Error ? err : new Error(String(err));
+    const detail = lastErr.message;
+    const cause = readFetchCause(lastErr);
+    throw new Error(
+      `GitHub ${label} failed after ${FETCH_ATTEMPTS} attempts: ${detail}${cause ? ` (${cause})` : ""}`,
+    );
   }
-  const detail = lastErr?.message ?? "unknown error";
-  const cause = lastErr === undefined ? undefined : readFetchCause(lastErr);
-  throw new Error(
-    `GitHub ${label} failed after ${FETCH_ATTEMPTS} attempts: ${detail}${cause ? ` (${cause})` : ""}`,
-  );
 }
 
 async function extractTsJsFromTarball(
@@ -107,10 +105,7 @@ async function extractTsJsFromTarball(
   });
 }
 
-/**
- * Download the repo tarball once and extract TS/JS sources. Much faster than
- * hundreds of per-file contents API calls (eva ~707 files).
- */
+/** Download repo tarball and extract TS/JS sources (faster than per-file API). */
 export async function fetchRepositoryFromGithub(
   repoOwner: string,
   repoName: string,
@@ -122,7 +117,7 @@ export async function fetchRepositoryFromGithub(
     tarballUrl,
     {
       headers: {
-        ...GITHUB_API_HEADERS,
+        ...GITHUB_TARBALL_HEADERS,
         Authorization: `Bearer ${githubToken}`,
       },
       redirect: "follow",

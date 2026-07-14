@@ -3,13 +3,6 @@ import { internal } from "./_generated/api";
 import { authAction } from "./auth";
 import { encryptToken, decryptToken } from "./lib/crypto";
 
-/**
- * Encrypt/decrypt boundary for user-owned env vars.
- *
- * All plaintext crosses this module only — storage-layer mutations (`userEnvVars.ts`)
- * only ever see ciphertext. Uses WebCrypto via `lib/crypto.ts`, so no `"use node"`.
- */
-
 const KEY_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const MAX_KEY_LENGTH = 64;
 

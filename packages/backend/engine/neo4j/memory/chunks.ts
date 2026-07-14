@@ -1,10 +1,3 @@
-/**
- * Chunk lifecycle for long memories. The retrieve path's chunk-leg fans out
- * to (m)-[:HAS_CHUNK]->(c:Chunk) so semantic search can hit a paragraph
- * inside a long memory. Single caller is `convex/neo4jActions/memories.ts`
- * (chunk-rebuild path on content change + one-shot backfill).
- */
-
 import crypto from "node:crypto";
 import neo4j, { type Driver } from "neo4j-driver";
 import { withSession } from "./shared";
@@ -54,11 +47,6 @@ export async function createChunksForMemory(
   });
 }
 
-/**
- * Delete all chunks for a memory. Used by the chunk-rebuild path when a
- * memory's content changes and chunks need re-emitting. The standalone
- * `deleteMemory` already inlines this query so the cleanup is local.
- */
 export async function deleteChunksForMemory(
   driver: Driver,
   userId: string,
@@ -73,11 +61,6 @@ export async function deleteChunksForMemory(
   });
 }
 
-/**
- * Return memories whose `content` exceeds the given length and that have
- * not yet been chunked (no outgoing `HAS_CHUNK` edge). Used by the
- * one-shot backfill action to chunk pre-existing long memories.
- */
 export async function findUnchunkedLongMemories(
   driver: Driver,
   userId: string,

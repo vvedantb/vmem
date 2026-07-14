@@ -1,13 +1,3 @@
-/**
- * Read-only public query bodies for `teams.ts`.
- *
- *  - `runList` — every team the caller belongs to, with the team's
- *     profile and a member count for the cards view.
- *  - `runGet` — a single team plus the caller's role, the team profile,
- *     and the full member list. Accepts `teamId` as a string and
- *     normalizes it server-side so router params don't need branding.
- */
-
 import type { Doc, Id } from "../_generated/dataModel";
 import {
   type AuthQueryCtx,

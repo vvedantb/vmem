@@ -1,10 +1,3 @@
-/**
- * Dashboard analytics: stats summary + recent activity feed.
- * Both are user-wide reads with optional profile filter (per project rule:
- * profiles narrow saves, not high-level totals — but optional scoping is
- * still supported for views that ask for it).
- */
-
 import neo4j, { type Driver } from "neo4j-driver";
 import { z } from "zod";
 import {
@@ -37,9 +30,6 @@ function activityMetaFor(
   actor: string,
 ): { type: string; description: string } {
   if (action === "created") {
-    // Dream Mode-materialized memories use actor='dream-mode' on the
-    // logEvent call. Promote those into a distinct activity type so the
-    // feed can filter / icon them separately from manual creates.
     if (actor === "dream-mode") {
       return {
         type: "memory_dream_created",
@@ -88,9 +78,6 @@ export async function getStats(
       now.getDate(),
     ).toISOString();
 
-    // Two profileFilter() calls so the alias is correct on each side of the
-    // OPTIONAL MATCH — replaces the prior `pf.clause.replace(/m\./g, "m2.")`
-    // string-mangling hack.
     const pfM = profileFilter(profileId, "m");
     const pfM2 = profileFilter(profileId, "m2");
 
@@ -127,13 +114,6 @@ export async function getStats(
       : 0;
     const totalTags = record ? parseNeo4jInt(neo4jGet(record, "tagCount")) : 0;
 
-    // Growth data: old implementation ran OPTIONAL MATCH twice per day in a
-    // 7-day UNWIND, doing O(7×n) scans to recompute the cumulative total for
-    // each day. Historical per-day totals never change, so replace with:
-    //   1. A single baseline count of memories created before the window.
-    //   2. A single bucketed aggregate of daily counts within the window.
-    // Cumulative totals are then computed in JS by walking the 7 days in
-    // order, adding each daily delta onto the running baseline.
     const baselineResult = await session.run(
       `MATCH (m:Memory {userId: $userId})
        WHERE date(datetime(m.createdAt)) < date() - duration({days: 6}) ${pfM.clause}
@@ -161,9 +141,8 @@ export async function getStats(
       );
     }
 
-    // Walk the 7-day window in ascending order, accumulating the running
-    // total. `todayMs` anchors to midnight local-day so we can derive the
-    // ISO yyyy-mm-dd key matching Cypher's `date()` output.
+    let running = baseline;
+    const growthData: { date: string; total: number; new: number }[] = [];
     const today = new Date();
     const todayMs = new Date(
       today.getFullYear(),
@@ -171,8 +150,6 @@ export async function getStats(
       today.getDate(),
     ).getTime();
     const dayMs = 24 * 60 * 60 * 1000;
-    let running = baseline;
-    const growthData: { date: string; total: number; new: number }[] = [];
     for (let offset = 6; offset >= 0; offset--) {
       const dayDate = new Date(todayMs - offset * dayMs);
       const isoDay = dayDate.toISOString().slice(0, 10);
@@ -196,41 +173,6 @@ export async function getStats(
       totalTags,
       growthData,
     };
-  });
-}
-
-/**
- * Diagnostic: count MemoryEvent nodes for a user, plus a per-action
- * breakdown. Backs the `debugCountEvents` dashboard action — kept in the
- * read service so no action opens a raw driver session of its own.
- */
-export async function countMemoryEvents(
-  driver: Driver,
-  userId: string,
-): Promise<{ total: number; breakdown: { action: string; count: number }[] }> {
-  return withSession(driver, async (session) => {
-    const totalResult = await session.run(
-      `MATCH (e:MemoryEvent)-[:EVENT_FOR]->(m:Memory {userId: $userId})
-       RETURN count(e) AS total`,
-      { userId },
-    );
-    const totalRecord = totalResult.records[0];
-    const total = totalRecord
-      ? parseNeo4jInt(neo4jGet(totalRecord, "total"))
-      : 0;
-
-    const breakdownResult = await session.run(
-      `MATCH (e:MemoryEvent)-[:EVENT_FOR]->(m:Memory {userId: $userId})
-       RETURN e.action AS action, count(*) AS cnt
-       ORDER BY cnt DESC`,
-      { userId },
-    );
-    const breakdown = breakdownResult.records.map((r) => ({
-      action: neo4jString(r, "action"),
-      count: parseNeo4jInt(neo4jGet(r, "cnt")),
-    }));
-
-    return { total, breakdown };
   });
 }
 

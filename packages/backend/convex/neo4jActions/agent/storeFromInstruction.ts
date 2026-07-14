@@ -3,7 +3,7 @@
 import type { ActionCtx } from "../../_generated/server";
 import type { MemoryWithTags } from "../../../engine/neo4j/memory/types";
 import {
-  createSdkExtractedMemory,
+  createExtractedFactMemory,
   prepareInstructionFacts,
   type OpenRouterRequired,
 } from "./shared";
@@ -39,12 +39,13 @@ export async function runStoreFromInstruction(
     if (!fact) continue;
 
     created.push(
-      await createSdkExtractedMemory(ctx, {
+      await createExtractedFactMemory(ctx, {
         clerkId: args.clerkId,
         profileId: prepared.profileId,
-        instruction: args.instruction,
         factIndex: index,
         text: fact.text,
+        variant: "sdk",
+        externalIdScope: [args.clerkId, args.instruction],
       }),
     );
   }

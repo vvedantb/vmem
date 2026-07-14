@@ -4,10 +4,6 @@ import { internal } from "../_generated/api";
 import { resolveConnectorAccessToken } from "../lib/connectorAccessToken";
 import { runConnectorProviderSync } from "../lib/runConnectorProviderSync";
 
-/**
- * Public sync action — frontend calls this via useAction.
- * Validates ownership, handles token refresh, schedules background sync.
- */
 export const startSync = authAction({
   args: {
     connectorId: v.id("connectors"),

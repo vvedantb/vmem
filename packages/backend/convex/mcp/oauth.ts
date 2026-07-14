@@ -8,14 +8,6 @@ import {
 const CODE_TTL_MS = 5 * 60 * 1000;
 const CLIENT_TTL_MS = 24 * 60 * 60 * 1000;
 
-/**
- * Authorize the current Clerk-authenticated user against an MCP OAuth client
- * and return a fresh authorization code.
- *
- * Called from the web app's `/mcp/oauth/authorize` route, which handles the
- * Clerk sign-in flow (production Clerk keys are pinned to the primary web
- * domain, so we cannot mount Clerk inside the Convex-hosted page).
- */
 export const authorize = mutation({
   args: {
     clientId: v.string(),
@@ -65,10 +57,6 @@ export const authorize = mutation({
   },
 });
 
-/**
- * Consume an authorization code (retrieve + delete atomically).
- * Returns the code entry if found and not expired, null otherwise.
- */
 export const consumeAuthCode = internalMutation({
   args: { code: v.string() },
   handler: async (ctx, { code }) => {
@@ -93,10 +81,6 @@ export const consumeAuthCode = internalMutation({
   },
 });
 
-/**
- * Register a new OAuth client.
- * Called during dynamic client registration.
- */
 export const registerClient = internalMutation({
   args: {
     clientId: v.string(),
@@ -113,10 +97,6 @@ export const registerClient = internalMutation({
   },
 });
 
-/**
- * Get an OAuth client by client_id.
- * Returns null if not found or expired (24h soft TTL).
- */
 export const getClient = internalQuery({
   args: { clientId: v.string() },
   handler: async (ctx, { clientId }) => {

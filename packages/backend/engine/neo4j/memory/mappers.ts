@@ -1,9 +1,3 @@
-/**
- * Pure mapping helpers — Neo4j record / property → typed shape.
- * Cross-cutting use is the whole point: every module that reads from
- * Neo4j ends up needing one or more of these.
- */
-
 import crypto from "node:crypto";
 import type { Record as NeoRecord } from "neo4j-driver";
 import { z } from "zod";
@@ -48,7 +42,7 @@ const memoryNodePropsSchema = z.object({
   expiresAt: z.string().nullable().optional(),
 });
 
-export const memoryEventPropsSchema = z.object({
+const memoryEventPropsSchema = z.object({
   id: z.string(),
   action: z.string(),
   actor: z.string(),
@@ -86,24 +80,10 @@ function parseJsonField<T>(
   }
 }
 
-/**
- * Reciprocal Rank Fusion score. Rank is 1-indexed. The constant k=60 is
- * the value from Cormack et al. ("Reciprocal Rank Fusion outperforms
- * Condorcet and individual Rank Learning Methods", SIGIR '09) — it
- * dampens the contribution of high-rank results while keeping lower
- * ranks meaningful. RRF is robust to scale differences between fulltext
- * BM25 scores and cosine-similarity scores, which is why we use ranks
- * instead of the raw score numbers when combining the two legs.
- */
 export function rrfScore(rank: number, k = 60): number {
   return 1 / (k + rank);
 }
 
-/**
- * Age-in-days → recency multiplier. Small fixed buckets keep recent
- * knowledge (last week) near the top while not penalising older
- * reference memories too harshly.
- */
 export function recencyFromAgeDays(age: number, type: MemoryType): number {
   if (type === "profile") return 1.0;
   if (age < 1) return 1.0;
@@ -119,11 +99,6 @@ export function recencyFromAgeDays(age: number, type: MemoryType): number {
   return 0.3;
 }
 
-/**
- * Narrow a raw Neo4j property value to `MemoryType | undefined`. Returns
- * undefined for nulls and any unrecognized string (future-proof against new
- * type values landing in the DB before the frontend knows about them).
- */
 export function toMemoryTypeOrUndefined(
   val: string | null,
 ): MemoryType | undefined {
@@ -163,6 +138,12 @@ export function toEventFromNode(props: {
     snapshot: parseJsonField(props.snapshot, memorySnapshotSchema),
     details: parseJsonField(props.details, detailsRecordSchema),
   };
+}
+
+export function toEventFromRecord(record: NeoRecord): MemoryEvent {
+  return toEventFromNode(
+    parseNeo4jNodeProps(neo4jGet(record, "e"), memoryEventPropsSchema),
+  );
 }
 
 export function toMemoryWithTags(record: NeoRecord): MemoryWithTags {
@@ -211,15 +192,6 @@ export function toTimelineEvent(record: NeoRecord): TimelineEvent {
   };
 }
 
-/**
- * Parse a Neo4j record returned by the tag-edge Cypher query into a typed
- * TagEdge. The Cypher-side computation enforces:
- *   - Each pair appears once (m1.id < m2.id ordering).
- *   - weight >= 2 (at least two shared tags).
- *   - sharedTags capped at 5 via list slicing.
- *   - Popular tags with > 500 memories are pre-filtered out to prevent
- *     combinatorial explosion on blown-out tags like "misc".
- */
 export function toTagEdge(record: NeoRecord): TagEdge {
   const rawShared = neo4jGet(record, "sharedTags");
   const sharedTags = Array.isArray(rawShared)
@@ -233,22 +205,10 @@ export function toTagEdge(record: NeoRecord): TagEdge {
   };
 }
 
-/**
- * Normalize title+content into a stable string for hashing. Trims whitespace,
- * collapses runs of whitespace to a single space, and lowercases — so trivial
- * formatting differences ("  vmem " vs "vmem") produce the same hash.
- */
-function normalizeForHash(title: string, content: string): string {
-  return `${title}\n${content}`.trim().replace(/\s+/g, " ").toLowerCase();
-}
-
-/**
- * MD5 hex digest of the normalized title+content. Used for exact-duplicate
- * detection at creation time — Mem0-style hash dedup with zero API cost.
- */
 export function computeContentHash(title: string, content: string): string {
-  return crypto
-    .createHash("md5")
-    .update(normalizeForHash(title, content))
-    .digest("hex");
+  const normalized = `${title}\n${content}`
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+  return crypto.createHash("md5").update(normalized).digest("hex");
 }

@@ -1,15 +1,5 @@
 "use node";
 
-/**
- * Shared mechanics for connector sync runs.
- *
- * Every connector (Google Drive, Notion) follows the
- * same lifecycle: resolve profile + auth, paginate through items, embed
- * + upsert each item, report progress every 10 items, mark complete or
- * error at the end. This file owns the framing; the per-connector files
- * own the listing/fetching specifics.
- */
-
 import type { Driver } from "neo4j-driver";
 import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
@@ -24,27 +14,16 @@ import {
 } from "../../lib/openRouter/bestEffortEmbed";
 import { scheduleDreamTriggerCheck } from "../../lib/dreamTriggerInvalidate";
 
-/** Max chars of a synced document's body sent to the embedder / stored. */
 export const EMBED_CONTENT_CAP = 50_000;
 
-/** Embedding batch size — matches `openRouter/embedding.ts`. */
 const EMBEDDING_BATCH_SIZE = 20;
 
-/** Resolved auth pair carried through a sync — `null` if the user has no
- *  OPENROUTER_API_KEY configured. */
-export type SyncAuth = BestEffortEmbedAuth;
-
-/** Output of `setupSync` — everything every connector handler needs upfront. */
 export interface SyncSetup {
   driver: Driver;
   profileId: Id<"profiles">;
-  openRouterAuth: SyncAuth | null;
+  openRouterAuth: BestEffortEmbedAuth | null;
 }
 
-/**
- * Resolve the default profile + (optional) OpenRouter auth for a sync run.
- * Reused at the top of every connector handler.
- */
 export async function setupSync(
   ctx: ActionCtx,
   clerkId: string,
@@ -63,13 +42,9 @@ function embedTextForSyncedDoc(title: string, content: string): string {
   return `${title}\n\n${content}`;
 }
 
-/**
- * Batch-embed a chunk of synced docs. When auth is present but the batch
- * call returns all nulls, fall back to per-doc embeds for that chunk.
- */
 async function embedSyncedDocChunk(
   ctx: ActionCtx,
-  auth: SyncAuth | null,
+  auth: BestEffortEmbedAuth | null,
   profileId: string,
   texts: string[],
 ): Promise<(number[] | null)[]> {
@@ -98,7 +73,6 @@ async function embedSyncedDocChunk(
   return embeddings;
 }
 
-/** One synced document — the per-item data each connector produces. */
 export interface SyncedDoc {
   title: string;
   content: string;
@@ -107,12 +81,6 @@ export interface SyncedDoc {
   sourceUrl: string;
 }
 
-/**
- * Embed + upsert many synced documents. Embeds in chunks of
- * `EMBEDDING_BATCH_SIZE`, falling back to per-doc embeds when a batch
- * returns all nulls despite auth being present. Upserts sequentially and
- * reports progress every 10 items via `maybeReportProgress`.
- */
 export async function upsertSyncedDocs(
   ctx: ActionCtx,
   params: {
@@ -178,10 +146,6 @@ export async function upsertSyncedDocs(
   return totalSynced;
 }
 
-/**
- * Push a progress update every 10 synced items. No-op when the count
- * isn't a multiple of 10 — call this on every item without gating.
- */
 export async function maybeReportProgress(
   ctx: ActionCtx,
   params: {
@@ -205,9 +169,6 @@ export async function maybeReportProgress(
   });
 }
 
-/** Mark sync done at 100% with current timestamp. Counts the synced
- *  batch toward the Dynamic Dreaming trigger in one bump — an import is
- *  exactly the "enough new context piled up" signal a dream feeds on. */
 export async function markSyncComplete(
   ctx: ActionCtx,
   params: {
@@ -229,7 +190,6 @@ export async function markSyncComplete(
   }
 }
 
-/** Mark sync errored with the resolved message. Caller still rethrows. */
 export async function markSyncError(
   ctx: ActionCtx,
   params: { connectorId: Id<"connectors">; errorMessage: string },
@@ -241,11 +201,6 @@ export async function markSyncError(
   });
 }
 
-/**
- * Wrap a connector sync body with the shared outer try/catch: log, mark
- * sync error, rethrow. `label` is used in the fallback message and log
- * prefix (e.g. `"Gmail"` → `"Gmail sync failed"`).
- */
 export async function withConnectorSyncError<T>(
   ctx: ActionCtx,
   connectorId: Id<"connectors">,

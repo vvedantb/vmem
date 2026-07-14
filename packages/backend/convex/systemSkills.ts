@@ -6,19 +6,6 @@ import { authQuery, authMutation, getUserByClerkId } from "./auth";
 import { scheduleContextPromptInvalidationForUser } from "./lib/contextPromptInvalidate";
 import { SYSTEM_SKILL_SEEDS } from "./prompts/systemSkillSeeds";
 
-/**
- * System skills — the maintainer-curated catalog behind the Skills Hub.
- *
- * A `systemSkills` row is GLOBAL (no userId/teamId). Users INSTALL a link to
- * it (`userSystemSkills`) rather than copying it, so a maintainer edit
- * propagates to every installer instantly (the content always resolves live
- * from the catalog — see `skills.resolveEffectiveSkills`). Catalog CRUD is
- * gated by `users.isAdmin`. Installs are user-wide (personal), matching the
- * MCP personal-only model.
- */
-
-// --- Admin gate ---
-
 async function isAdminUser(
   ctx: QueryCtx | MutationCtx,
   userId: Id<"users">,
@@ -64,9 +51,6 @@ async function findInstall(
     .first();
 }
 
-// --- Read ---
-
-/** Whether the current user is a maintainer (gates Hub admin controls). */
 export const amIAdmin = authQuery({
   args: {},
   handler: async (ctx): Promise<boolean> => {
@@ -111,9 +95,6 @@ export const listCatalog = authQuery({
   },
 });
 
-// --- Install / uninstall / toggle (any authenticated user) ---
-
-/** Install (link) a system skill into the caller's personal skills. Idempotent. */
 export const install = authMutation({
   args: { systemSkillId: v.id("systemSkills") },
   handler: async (ctx, args) => {
@@ -173,8 +154,6 @@ export const setInstalledEnabled = authMutation({
     await scheduleContextPromptInvalidationForUser(ctx, ctx.userId);
   },
 });
-
-// --- Admin catalog CRUD (users.isAdmin only) ---
 
 export const adminCreate = authMutation({
   args: {
@@ -285,13 +264,6 @@ export const adminDelete = authMutation({
   },
 });
 
-// --- Maintenance (run via `npx convex run`) ---
-
-/**
- * Idempotently upsert the shipped catalog seeds. Matches by `name`, falling
- * back to `previousNames` so a renamed seed adopts (renames) the existing row
- * in place — its id and every install survive — instead of orphaning it.
- */
 export const seedSystemSkillsInternal = internalMutation({
   args: {},
   handler: async (ctx) => {

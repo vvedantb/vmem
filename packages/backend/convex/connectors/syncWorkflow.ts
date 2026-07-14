@@ -10,53 +10,40 @@ const dailySyncResult = v.object({
   skipped: v.number(),
 });
 
-/**
- * Durable orchestrator: one workflow step per connected connector so each
- * sync gets a full Convex action timeout (same pattern as codebase daily sync).
- */
 export const dailyConnectorSyncWorkflow = workflow
   .define({
     args: {},
     returns: dailySyncResult,
   })
-  .handler(
-    async (
-      step,
-    ): Promise<{
-      synced: number;
-      failed: number;
-      skipped: number;
-    }> => {
-      const targets = await step.runQuery(
-        internal.connectors.crud.listForDailyConnectorSyncInternal,
-        {},
+  .handler(async (step) => {
+    const targets = await step.runQuery(
+      internal.connectors.crud.listForDailyConnectorSyncInternal,
+      {},
+    );
+
+    let synced = 0;
+    let failed = 0;
+
+    for (const target of targets) {
+      const result = await step.runAction(
+        internal.connectors.syncActions.syncOneConnectorInternal,
+        {
+          connectorId: target.connectorId,
+          fullHistory: true,
+        },
+        { retry: true },
       );
-
-      let synced = 0;
-      let failed = 0;
-
-      for (const target of targets) {
-        const result = await step.runAction(
-          internal.connectors.syncActions.syncOneConnectorInternal,
-          {
-            connectorId: target.connectorId,
-            fullHistory: true,
-          },
-          { retry: true },
-        );
-        if (result.ok) {
-          synced += 1;
-        } else {
-          failed += 1;
-          console.error("[connector-sync]", target.connectorId, result.message);
-        }
+      if (result.ok) {
+        synced += 1;
+      } else {
+        failed += 1;
+        console.error("[connector-sync]", target.connectorId, result.message);
       }
+    }
 
-      return { synced, failed, skipped: 0 };
-    },
-  );
+    return { synced, failed, skipped: 0 };
+  });
 
-/** Started by the global daily cron in `crons.ts` (04:00 UTC). */
 export const kickoffDailyConnectorSync = internalMutation({
   args: {},
   returns: v.null(),

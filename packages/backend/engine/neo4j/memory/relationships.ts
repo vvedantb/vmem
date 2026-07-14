@@ -1,13 +1,3 @@
-/**
- * Memory↔Memory `RELATES_TO` edge management. `linkMemories` and
- * `unlinkMemories` are user-driven (via the relationships API);
- * `getRelatedMemories` and `getAllRelationships` are read-only and feed
- * the detail panel + graph view respectively.
- *
- * `createSemanticSimilarityEdges` auto-creates RELATES_TO edges from the
- * vector index on memory create / connector upsert / backfill migration.
- */
-
 import neo4j, {
   type Driver,
   type Record as NeoRecord,
@@ -27,10 +17,6 @@ function stringField(record: NeoRecord, key: string): string {
   return typeof value === "string" ? value : "";
 }
 
-/**
- * Create semantic similarity edges for a single memory using the vector index.
- * Accepts an active session so callers inside `withSession` share transaction scope.
- */
 export async function createSemanticSimilarityEdges(
   session: Session,
   memoryId: string,
@@ -63,7 +49,6 @@ export async function createSemanticSimilarityEdges(
   return record ? parseNeo4jInt(neo4jGet(record, "created")) : 0;
 }
 
-/** Driver-level wrapper for backfill migration and other standalone callers. */
 export async function createSemanticEdgesForMemory(
   driver: Driver,
   memoryId: string,

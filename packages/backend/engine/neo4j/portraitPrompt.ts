@@ -2,22 +2,6 @@ import { z } from "zod";
 import { parseJsonString } from "../llm/extractJsonString";
 import { filterValidIds } from "./dreamPrompt";
 
-/**
- * Dream Mode V3 — evolving portrait prompt builder + parser.
- *
- * At the end of a dream pass the model revises a per-profile "portrait":
- * a short grounded description of who the profile's owner is, what they
- * work on, and what they prefer. The update is INCREMENTAL — the current
- * portrait goes in alongside fresh evidence, and the model keeps what
- * still holds, revises what changed, and drops what the evidence no
- * longer supports. That's what makes it an evolving picture rather than
- * a regenerated summary.
- *
- * Grounding rule mirrors synthesis: every returned source id must exist
- * in the evidence list — the portrait can't cite memories it wasn't
- * shown.
- */
-
 const PORTRAIT_CHAR_CAP = 2000;
 const EVIDENCE_CONTENT_CHAR_CAP = 400;
 
@@ -31,9 +15,7 @@ export interface PortraitEvidenceMemory {
 }
 
 export interface ParsedPortrait {
-  /** Markdown portrait, capped. */
   portrait: string;
-  /** Evidence ids the portrait is grounded in. Subset of the input. */
   sourceMemoryIds: string[];
 }
 
@@ -101,11 +83,6 @@ const portraitResponseSchema = z.object({
   sourceMemoryIds: z.array(z.string()).optional(),
 });
 
-/**
- * Parse the portrait response. Returns null when the JSON is malformed,
- * the portrait is empty, or no valid source ids survive validation — a
- * portrait that can't show its work doesn't get stored.
- */
 export function parsePortraitResponse(
   raw: string,
   evidenceIds: string[],

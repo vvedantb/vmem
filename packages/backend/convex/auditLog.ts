@@ -54,17 +54,7 @@ export const ResourceTypes = {
   USER: "user",
 } as const;
 
-export type ResourceType = (typeof ResourceTypes)[keyof typeof ResourceTypes];
-
-/**
- * Maps an HTTP status code into an audit-log severity level.
- *   2xx → "info"
- *   4xx → "warning" (client error — possible abuse / bad auth)
- *   5xx → "error"  (server error — investigate)
- *   anything else → "info"
- * Shared so `apiKeys.recordUsageInternal` and the `apiRequestLogs` backfill
- * always produce the same severity for identical status codes.
- */
+/** 2xx → info, 4xx → warning, 5xx → error. */
 export function severityForStatus(
   status: number,
 ): "info" | "warning" | "error" {
@@ -73,18 +63,6 @@ export function severityForStatus(
   return "info";
 }
 
-/**
- * Auth-scoped pass-through over the audit-log client: returns every
- * `api_request` entry for the current user, reshaped into the minimal row
- * the settings/usage UI needs. The frontend computes the summary
- * (total / success-rate / avg duration) and formats timestamps itself —
- * this keeps the backend surface small while preserving security
- * (actorId is pinned to `ctx.userId`, never accepted from the caller).
- *
- * The audit-log client returns untyped entries — we parse each row with
- * zod before writing it into the declared shape, and rely on the Convex
- * `returns:` runtime validator as a second gate.
- */
 export const listMyApiRequestEntries = authQuery({
   args: {
     limit: v.optional(v.number()),

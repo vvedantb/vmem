@@ -21,7 +21,6 @@ import {
   type Feature,
   type Range,
   type SortDirection,
-  type StatusFilter,
 } from "../-searchParams";
 import { LogsSummary } from "./LogsSummary";
 import { LogsFiltersDropdown } from "./LogsFiltersDropdown";
@@ -63,7 +62,6 @@ export function AiLogsPanel() {
         : normalizeProfileId(params.profileId, profiles),
       features: params.features.length > 0 ? params.features : undefined,
       models: params.models.length > 0 ? params.models : undefined,
-      status: params.status,
       range: params.range,
     };
   }, [
@@ -72,7 +70,6 @@ export function AiLogsPanel() {
     params.profileId,
     params.features,
     params.models,
-    params.status,
     params.range,
     profiles,
   ]);
@@ -115,7 +112,6 @@ export function AiLogsPanel() {
 
   const hasActiveFilters =
     params.range !== "7d" ||
-    params.status !== "all" ||
     params.features.length > 0 ||
     params.models.length > 0 ||
     !isAllProfilesFilter(params.profileId);
@@ -123,7 +119,6 @@ export function AiLogsPanel() {
   const resetFilters = () => {
     void setParams({
       range: "7d",
-      status: "all",
       features: [],
       models: [],
       profileId: PROFILE_FILTER_ALL,
@@ -182,7 +177,6 @@ export function AiLogsRightSection() {
   const resetFilters = () => {
     void setParams({
       range: "7d",
-      status: "all",
       features: [],
       models: [],
       profileId: PROFILE_FILTER_ALL,
@@ -204,7 +198,6 @@ export function AiLogsRightSection() {
           setParams({ scope, teamId: nextTeamId ?? "" })
         }
         range={params.range}
-        status={params.status}
         features={params.features}
         models={params.models}
         availableModels={availableModels}
@@ -215,7 +208,6 @@ export function AiLogsRightSection() {
           color: p.color,
         }))}
         onRangeChange={(range: Range) => setParams({ range })}
-        onStatusChange={(status: StatusFilter) => setParams({ status })}
         onFeaturesChange={(features: Feature[]) => setParams({ features })}
         onModelsChange={(models) => setParams({ models })}
         onProfileChange={(profileId) => setParams({ profileId })}

@@ -87,13 +87,6 @@ export const markAllAsRead = authMutation({
   },
 });
 
-/**
- * Internal helper used by background actions (e.g. V2 fact-extraction
- * pipeline) to surface a notification on the user's bell. clerkId is
- * resolved to the Convex `users._id` here; callers in `"use node"`
- * actions don't need to do that themselves. Silently no-ops if no user
- * record exists for the clerkId — keeps best-effort callers simple.
- */
 export const pushForClerkIdInternal = internalMutation({
   args: {
     clerkId: v.string(),

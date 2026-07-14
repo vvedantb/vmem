@@ -1,12 +1,3 @@
-/**
- * Entity vocabulary queries + group merge (Node-only — Neo4j driver).
- *
- * Entities suffer the same divergence problem tags did: the extractor never
- * saw the user's existing entities, so the same real-world thing accumulated
- * name variants ("Fable", "Fable 5", "Claude Fable 5", "Claude Fable-5" —
- * five nodes for one model). getTopEntities feeds the established names back
- * into the enrichment prompt; mergeEntityGroup collapses variant nodes.
- */
 import type { Driver, Record as Neo4jRecord } from "neo4j-driver";
 import { neo4jGet, neo4jString, parseNeo4jInt } from "../record";
 import { withSession } from "./shared";
@@ -17,7 +8,6 @@ export interface EntityUsage {
   mentions: number;
 }
 
-/** Shared `{name, type, mentions}` projection used by both entity-listing queries below. */
 function entityUsageFromRecord(r: Neo4jRecord): EntityUsage {
   return {
     name: neo4jString(r, "name"),
@@ -26,11 +16,6 @@ function entityUsageFromRecord(r: Neo4jRecord): EntityUsage {
   };
 }
 
-/**
- * The user's most-mentioned entities. Fed into the enrichment prompt so a
- * mention of an already-known entity reuses its established name exactly
- * instead of minting a variant.
- */
 export async function getTopEntities(
   driver: Driver,
   userId: string,
@@ -50,8 +35,6 @@ export async function getTopEntities(
   });
 }
 
-/** All of a user's entities with ids — input for alias-merge candidate
- *  detection. */
 export async function listEntitiesWithMentions(
   driver: Driver,
   userId: string,
@@ -80,11 +63,6 @@ export async function listEntitiesWithMentions(
   });
 }
 
-/**
- * Collapse a group of Entity nodes onto a survivor: MENTIONS edges re-point
- * (MERGE — no duplicate edges), duplicates are deleted, the survivor takes
- * the given display name and normalizedName.
- */
 export async function mergeEntityGroup(
   driver: Driver,
   params: {

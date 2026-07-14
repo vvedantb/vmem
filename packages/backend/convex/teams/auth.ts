@@ -1,27 +1,10 @@
-/**
- * Auth helpers and internal authorization queries for `teams.ts`.
- *
- * Module-private:
- *   - `getMembershipOrNull` / `requireTeamRole` — DB lookups used by
- *     every mutation in `teams.ts` to gate access by role.
- *
- * Cross-module (called via `internal.teams.*` from memoryApi,
- * fileImport, etc.):
- *   - `runAssertProfileAccessInternal` — caller is owner of personal
- *     profile or member of team profile.
- *   - `runAssertMemoryMutablePermissionInternal` — caller is the
- *     memory's creator or a team owner.
- *   - `runResolveMemoryScopeInternal` — returns the Neo4j scope
- *     (`{ kind: "personal", clerkId }` or
- *     `{ kind: "team", allowedClerkIds, profileId, teamId }`).
- */
-
 import type { Doc, Id } from "../_generated/dataModel";
-import type { ActionCtx, MutationCtx, QueryCtx } from "../_generated/server";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
+import type { AuthActionCtx } from "../auth";
 
 export type AuthQueryCtx = QueryCtx & { userId: Id<"users"> };
 export type AuthMutationCtx = MutationCtx & { userId: Id<"users"> };
-export type AuthActionCtx = ActionCtx & { userId: Id<"users"> };
+export type { AuthActionCtx };
 
 export async function getMembershipOrNull(
   ctx: QueryCtx | MutationCtx,
@@ -77,15 +60,6 @@ export async function getTeamMemberClerkIds(
   }
   return clerkIds;
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Content scoping (skills / wikiNodes / fileNodes) — "user-wide + team".
-//
-// A content doc carries `userId` (creator) and optional `teamId`:
-//   - teamId absent → personal: only the owner can read or mutate.
-//   - teamId set    → team: any member reads AND edits (collaborative);
-//                     delete requires the creator or a team owner.
-// ─────────────────────────────────────────────────────────────────────────────
 
 interface ScopedContentDoc {
   userId: Id<"users">;

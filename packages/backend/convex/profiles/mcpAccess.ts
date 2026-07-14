@@ -1,8 +1,3 @@
-/**
- * MCP profile access: personal vs team connector scopes share one OAuth
- * server but list/validate/default profiles differently.
- */
-
 import { v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
@@ -131,11 +126,6 @@ export async function getActiveProfileForMcpScope(
   return personalProfiles[0] ?? null;
 }
 
-/**
- * Normalize a profile id string and verify it's accessible to `userId` at
- * the given MCP scope. Throws "Invalid profile id" / "Profile not found"
- * on failure — shared by every path that resolves an explicit profileId.
- */
 async function requireAccessibleProfileId(
   ctx: QueryCtx | MutationCtx,
   userId: Id<"users">,

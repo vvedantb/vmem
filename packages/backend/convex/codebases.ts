@@ -3,15 +3,15 @@ import { internalMutation, internalQuery } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import { authAction, authMutation, authQuery, requireClerkId } from "./auth";
-import { DAILY_SYNC_STALE_MS } from "./codebaseSyncConstants";
 import { isCodebaseSyncStalled } from "@vmem/shared";
 import type { Doc, Id } from "./_generated/dataModel";
 import { decryptToken } from "./lib/crypto";
+import { createGithubOctokit } from "../engine/github/octokit";
 import { retrier } from "./retrier";
-import { parseResponseJson } from "./lib/jsonBoundary";
 import { z } from "zod";
 
-// --- GitHub API response shape for repos ---
+/** Re-sync codebases that have not synced in the last 24 hours. */
+const DAILY_SYNC_STALE_MS = 24 * 60 * 60 * 1000;
 
 const githubRepoSchema = z.object({
   id: z.number(),
@@ -52,8 +52,6 @@ async function requireOwnedCodebase(
   }
   return codebase;
 }
-
-// --- Public functions ---
 
 export const listMy = authQuery({
   args: {},
@@ -96,24 +94,15 @@ export const listRepos = authAction({
     if (!encryptedToken) throw new Error("GitHub not connected");
 
     const token = await decryptToken(encryptedToken);
+    const octokit = createGithubOctokit(token);
 
-    const response = await fetch(
-      "https://api.github.com/user/repos?per_page=100&sort=updated&type=all",
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/vnd.github+json",
-          "X-GitHub-Api-Version": "2022-11-28",
-        },
-      },
-    );
+    const { data } = await octokit.request("GET /user/repos", {
+      per_page: 100,
+      sort: "updated",
+      type: "all",
+    });
 
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`GitHub API error: ${response.status} ${text}`);
-    }
-
-    const repos = await parseResponseJson(response, githubReposSchema);
+    const repos = githubReposSchema.parse(data);
 
     return repos.map((repo) => ({
       id: repo.id,
@@ -294,9 +283,6 @@ export const getCodebaseGraph = authAction({
   },
 });
 
-// --- Internal helpers ---
-
-/** Normalize a string id to a typed Id<"codebases"> for use in internal functions. */
 export const normalizeCodebaseId = internalQuery({
   args: { id: v.string() },
   handler: async (ctx, args) => {

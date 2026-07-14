@@ -17,23 +17,6 @@ import {
   maybeSnapshotWikiVersion,
 } from "./lib/versionSnapshot";
 
-/**
- * Wiki (Obsidian-style notes) backend.
- *
- * A single wikiNodes table holds both folders and documents, discriminated by
- * `kind`. Folders just provide hierarchy; content lives on documents.
- *
- * Scoping ("user-wide + team"): nodes without `teamId` are personal and
- * visible in every personal workspace; nodes with `teamId` form a team wiki
- * shared by all members (any member edits, creator-or-owner deletes). A
- * subtree never mixes scopes — parent/child consistency is enforced on
- * create and move.
- *
- * listTree returns every node in the requested scope in one shot — trees are
- * assembled on the client. This keeps live-reactivity simple (one subscription
- * invalidates the whole tree on any change).
- */
-
 const MAX_SEARCH_RESULTS = 20;
 
 /** Every node in a scope: a team's wiki, or the user's personal nodes. */
@@ -401,12 +384,6 @@ export const search = authQuery({
   },
 });
 
-// --- Internal helpers (MCP after JWT verification) ---
-
-/**
- * MCP stays personal-only for now: team nodes are invisible to (and
- * immutable through) the clerkId-based internals.
- */
 async function getOwnedNode(
   ctx: QueryCtx | MutationCtx,
   userId: Id<"users">,

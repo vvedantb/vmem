@@ -1,13 +1,7 @@
-/**
- * Zod schemas for Neo4j codebase read queries.
- * Parse once at the driver boundary — consumers stay fully typed.
- */
-
 import neo4j from "neo4j-driver";
 import { z } from "zod";
 import { neo4jIntSchema, parseNeo4jInt } from "../record";
 
-/** Neo4j Integer | number | null → number | undefined. */
 export const optionalNeo4jIntSchema = z
   .custom<number | undefined>((v) => {
     if (v === undefined || v === null) return true;
@@ -18,7 +12,6 @@ export const optionalNeo4jIntSchema = z
     return parseNeo4jInt(v);
   });
 
-/** Node `.properties` shape shared across overview / search reads. */
 export const overviewNodePropsSchema = z.object({
   id: z.string(),
   name: z.string().optional(),
@@ -40,9 +33,9 @@ export const labelsSchema = z.array(z.string());
 
 export const stringArraySchema = z.array(z.string());
 
-export const edgeTierSchema = z.enum(["EXTRACTED", "INFERRED", "AMBIGUOUS"]);
-
-export const nullableEdgeTierSchema = edgeTierSchema.nullable();
+export const nullableEdgeTierSchema = z
+  .enum(["EXTRACTED", "INFERRED", "AMBIGUOUS"])
+  .nullable();
 
 export const nullableNumberSchema = z.union([
   z.number(),

@@ -1,12 +1,3 @@
-/**
- * OpenRouter chat completion wrapper. Owns the chat-specific request
- * shape, response parsing, and metric extraction (cost, finish reason,
- * cached/cache-write/reasoning token breakdown). Logs one
- * `openRouterLogs` row per attempt via `scheduleLog`.
- *
- * Uses `@openrouter/sdk` — cost arrives in `usage.cost` when available.
- */
-
 import type { ChatResult as SdkChatResult } from "@openrouter/sdk/models";
 import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
@@ -14,16 +5,13 @@ import { createOpenRouterClient } from "./client";
 import {
   COMPLETION_PREVIEW_BYTES,
   PROMPT_PREVIEW_BYTES,
-  classifyOpenRouterFailure,
-  numberOrUndef,
   previewsEnabled,
   scheduleLog,
   truncate,
-  type ErrorClass,
   type OpenRouterFeature,
 } from "./shared";
 
-export interface ChatMessage {
+interface ChatMessage {
   role: "system" | "user" | "assistant";
   content: string;
 }
@@ -31,11 +19,6 @@ export interface ChatMessage {
 interface ChatArgs {
   apiKey: string;
   userId: Id<"users">;
-  /**
-   * Plain-string profile id — most callers thread profileId through
-   * string-typed action args (string-typed at the Neo4j boundary).
-   * `recordInternal` normalises to `Id<"profiles">` before insert.
-   */
   profileId?: string;
   feature: OpenRouterFeature;
   model: string;
@@ -43,31 +26,15 @@ interface ChatArgs {
   temperature?: number;
 }
 
-export interface ChatResult {
-  /** `null` when the call failed or the response was unparseable. */
-  content: string | null;
-  status: number;
-  ok: boolean;
-}
-
-/**
- * Fire one chat-completion call and log the outcome. Single shared
- * implementation handles cost/usage extraction, privacy-gated previews,
- * and latency timing — call sites only see `{ content, status, ok }`.
- */
 export async function callOpenRouterChat(
   ctx: ActionCtx,
   args: ChatArgs,
-): Promise<ChatResult> {
-  const start = performance.now();
+): Promise<{ content: string | null }> {
   const previews = previewsEnabled();
   const promptPreview = previews
     ? truncate(joinMessagesForPreview(args.messages), PROMPT_PREVIEW_BYTES)
     : undefined;
 
-  let status: number;
-  let ok: boolean;
-  let errorClass: ErrorClass | undefined;
   let errorMessage: string | undefined;
   let content: string | null = null;
   let generationId: string | undefined;
@@ -93,8 +60,6 @@ export async function callOpenRouterChat(
       },
     });
 
-    status = 200;
-    ok = true;
     content = extractChatContent(json);
     generationId = json.id;
     const finishReasonRaw = json.choices.at(0)?.finishReason;
@@ -102,31 +67,25 @@ export async function callOpenRouterChat(
       typeof finishReasonRaw === "string" ? finishReasonRaw : undefined;
 
     const usage = json.usage;
-    promptTokens = numberOrUndef(usage?.promptTokens);
-    completionTokens = numberOrUndef(usage?.completionTokens);
-    totalTokens = numberOrUndef(usage?.totalTokens);
-    cachedTokens = numberOrUndef(usage?.promptTokensDetails?.cachedTokens);
-    cacheWriteTokens = numberOrUndef(
-      usage?.promptTokensDetails?.cacheWriteTokens,
-    );
-    reasoningTokens = numberOrUndef(
-      usage?.completionTokensDetails?.reasoningTokens,
-    );
-    costUsd = numberOrUndef(usage?.cost);
-    upstreamCostUsd = numberOrUndef(usage?.costDetails?.upstreamInferenceCost);
+    promptTokens = usage?.promptTokens ?? undefined;
+    completionTokens = usage?.completionTokens ?? undefined;
+    totalTokens = usage?.totalTokens ?? undefined;
+    cachedTokens = usage?.promptTokensDetails?.cachedTokens ?? undefined;
+    cacheWriteTokens =
+      usage?.promptTokensDetails?.cacheWriteTokens ?? undefined;
+    reasoningTokens =
+      usage?.completionTokensDetails?.reasoningTokens ?? undefined;
+    costUsd = usage?.cost ?? undefined;
+    upstreamCostUsd = usage?.costDetails?.upstreamInferenceCost ?? undefined;
     isByok = usage?.isByok;
 
     if (content === null) {
-      ok = false;
-      errorClass = "parse";
       errorMessage = "no string content in choices[0].message";
     }
   } catch (e) {
-    ok = false;
-    ({ status, errorMessage, errorClass } = classifyOpenRouterFailure(e));
+    errorMessage = e instanceof Error ? e.message : String(e);
   }
 
-  const latencyMs = Math.round(performance.now() - start);
   const completionPreview =
     previews && content !== null
       ? truncate(content, COMPLETION_PREVIEW_BYTES)
@@ -138,11 +97,7 @@ export async function callOpenRouterChat(
     feature: args.feature,
     endpoint: "chat",
     model: args.model,
-    status,
-    ok,
-    errorClass,
     errorMessage,
-    latencyMs,
     generationId,
     finishReason,
     promptTokens,
@@ -158,7 +113,7 @@ export async function callOpenRouterChat(
     completionPreview,
   });
 
-  return { content, status, ok };
+  return { content };
 }
 
 function joinMessagesForPreview(messages: ChatMessage[]): string {

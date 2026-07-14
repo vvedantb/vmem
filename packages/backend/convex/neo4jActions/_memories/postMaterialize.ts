@@ -19,11 +19,7 @@ export async function postMaterializeEmbedAndEnrich(
     profileId?: string;
     feature: OpenRouterFeature;
     failureLog: string;
-    /**
-     * When provided (including null), skip post-create embed+setEmbeddings —
-     * embedding was already handled at CREATE (dream path).
-     * When omitted (undefined), embed via tryEmbedOne and setEmbeddings if non-null.
-     */
+    /** Omit to embed here; set (incl. null) when CREATE already embedded. */
     embeddingAtCreate?: number[] | null;
   },
 ): Promise<void> {

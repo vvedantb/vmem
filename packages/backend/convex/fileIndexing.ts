@@ -10,27 +10,6 @@ import { getDriver } from "../engine/neo4j/driver";
 import { getMemory } from "../engine/neo4j/memory/crud";
 import { detectFileKind } from "./files/lib";
 
-/**
- * Memory-graph indexing for the shared filesystem (`/files` + MCP files_*).
- *
- * Every indexable upload (PDF / text-like, per `detectFileKind`) becomes a
- * Memory node via the same pipeline as manual imports (`fileImport.ts`):
- * dedup → embedding → enrichment → chunking → retrieval. Linkage lives on
- * the fileNode doc (`memoryId` + `indexStatus`); lifecycle hooks in
- * `files.ts` schedule these actions on create/overwrite/delete.
- *
- * Scope rules: personal files index under the creator's DEFAULT profile
- * (deterministic — never the MCP-active one); team-drive files index under
- * the team's profile so they surface in team-scoped memory reads. The
- * memory author is always the file's creator (Neo4j ops match on author).
- */
-
-/**
- * Delete a file-derived memory unless (a) another surviving fileNode still
- * references it (identical-content files dedup onto one memory) or (b) it
- * was not minted by file indexing — content-hash dedup can point a fileNode
- * at a pre-existing memory (e.g. a manual import), which must survive.
- */
 async function cleanupFileMemory(
   ctx: ActionCtx,
   entry: { memoryId: string; clerkId: string },

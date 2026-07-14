@@ -4,8 +4,7 @@ import { v } from "convex/values";
 import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { decryptToken } from "./lib/crypto";
-import { PARSER_VERSION } from "@vmem/shared";
-import { STALE_SYNCING_MS } from "./codebaseSyncConstants";
+import { PARSER_VERSION, STALE_SYNCING_MS } from "@vmem/shared";
 import { formatSyncError } from "../engine/codebase/formatSyncError";
 import { runCodebaseSync } from "../engine/codebase/runCodebaseSync";
 import { ensureNeo4jSetupIfNeeded } from "../engine/neo4j/setup";
@@ -19,10 +18,6 @@ const syncOneResult = v.union(
 
 type SyncOneResult = { ok: true } | { ok: false; message: string };
 
-/**
- * Internal sync entry point used by manual sync, MCP, and the daily workflow.
- * Returns a result instead of throwing so orchestrators can continue on failure.
- */
 export const syncOneCodebaseInternal = internalAction({
   args: { codebaseId: v.id("codebases") },
   returns: syncOneResult,

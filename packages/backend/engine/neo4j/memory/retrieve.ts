@@ -1,13 +1,3 @@
-/**
- * Hybrid retrieval: BM25 fulltext + whole-memory vector + chunk vector +
- * entity overlap + graph expansion + RRF fusion.
- *
- * Each independent retrieval leg opens its own Neo4j session so the
- * driver can run them concurrently. Graph expansion then uses the top
- * fused seeds and contributes its own ranked RRF leg rather than a flat
- * proximity boost.
- */
-
 import neo4j, { type Driver, type Record, type Session } from "neo4j-driver";
 import { toMemoryContentFulltextQuery } from "../luceneQuery";
 import { neo4jGet, neo4jString, parseNeo4jInt } from "../record";
@@ -23,33 +13,12 @@ import type {
 } from "./types";
 
 const TOP_N_SEEDS = 5;
-// Per-leg RRF weights. RRF rewards a memory for appearing in multiple legs, so
-// a weak leg (BM25/fulltext) lifts distractors that also appear faintly in the
-// strong leg (vector), dragging fused ranking below pure vector. Internal
-// benchmarking (internal/bench/vmem-internal-eval.md) showed the vector leg is
-// by far the most reliable signal, so it carries full weight while the lexical
-// legs are down-weighted to noise-suppressing levels — keeping enough BM25
-// weight to still win exact-token (code/ID) queries that vector blurs.
 const VECTOR_RRF_WEIGHT = 1.0;
 const FULLTEXT_RRF_WEIGHT = 0.45;
 const ENTITY_RRF_WEIGHT = 0.8;
 const CHUNK_RRF_WEIGHT = 0.85;
 const GRAPH_RRF_WEIGHT = 0.85;
-// Near-duplicate suppression threshold (cosine). The previous MMR balanced
-// relevance against diversity, but its diversity penalty demoted genuinely
-// related memories (a project's sibling facts, a multi-hop gold near its
-// bridge) for merely resembling an already-selected result, which lowered
-// retrieval quality below pure vector search. A memory system needs dedup (do
-// not repeat the same fact), not broad diversity, so we instead keep the
-// relevance order and only defer NEAR-IDENTICAL results (cosine ≥ threshold) to
-// the tail. Tuned via internal/bench/vmem-internal-eval.md.
 const DEDUP_COSINE_THRESHOLD = 0.92;
-// Recency/confidence modulate relevance as a BOUNDED MULTIPLIER, not a flat
-// additive term. RRF scores are numerically tiny (~0.01–0.03), so the old
-// additive boost (recency*0.225 + confidence*0.225 ≈ 0.4) swamped relevance and
-// effectively sorted by recency. As a multiplier, a recent/high-confidence
-// memory is lifted among similarly-relevant results but cannot outrank a
-// clearly more relevant one. Tuned via internal/bench/vmem-internal-eval.md.
 const RECENCY_BOOST = 0.5;
 const CONFIDENCE_BOOST = 0.3;
 
@@ -70,12 +39,6 @@ interface RetrieveParams {
     query: string,
     candidates: Array<{ title: string; content: string }>,
   ) => Promise<number[] | null>;
-  /**
-   * Per-leg toggles for ablation / naive-baseline evaluation. Each defaults to
-   * ON when omitted, so production callers (no `legs`) get the full hybrid
-   * pipeline unchanged. Used by the internal benchmark to isolate legs
-   * (e.g. `{ vector: true, fulltext: false, ... , mmr: false }` = vector-only).
-   */
   legs?: {
     fulltext?: boolean;
     vector?: boolean;
@@ -388,12 +351,7 @@ async function runEntityLeg(
   });
 }
 
-/**
- * Discover memories 1-2 hops from the top initial matches. Each returned
- * neighbor carries the number of distinct seeds that reached it plus one
- * representative seed/entity path for explanations.
- */
-export async function expandViaGraph(
+async function expandViaGraph(
   driver: Driver,
   seedIds: string[],
   userId: string,
@@ -476,7 +434,7 @@ export async function expandViaGraph(
   });
 }
 
-export async function fetchMemoryMetadata(
+async function fetchMemoryMetadata(
   driver: Driver,
   ids: string[],
   userId: string,
@@ -738,10 +696,6 @@ function applyDedup(
   if (queryEmbedding === null) return scored;
   if (!scored.some((item) => item.entry.embedding !== null)) return scored;
 
-  // `scored` is already ordered by fused relevance. Keep that order and only
-  // defer near-identical results (cosine ≥ threshold to an already-kept item)
-  // to the tail, so a duplicate fact does not waste a top-k slot while
-  // genuinely related memories stay where their relevance puts them.
   const kept: ScoredEntry[] = [];
   const deferred: ScoredEntry[] = [];
   for (const item of scored) {
@@ -813,7 +767,6 @@ export async function retrieveMemories(
   const legLimit = Math.max(params.limit * 4, 20);
   const queryEmbeddings = await queryEmbeddingsForRetrieval(params);
 
-  // Per-leg toggles (default on) — let the internal benchmark isolate legs.
   const useFulltext = params.legs?.fulltext !== false;
   const useVector = params.legs?.vector !== false;
   const useChunk = params.legs?.chunk !== false;

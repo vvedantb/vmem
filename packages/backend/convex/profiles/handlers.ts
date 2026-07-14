@@ -1,28 +1,13 @@
-/**
- * Public CRUD bodies for `profiles.ts`. Each `runFoo` is the body of a
- * matching `authQuery`/`authMutation` declared in the barrel. Returns
- * documents directly from `ctx.db`; no Neo4j round-trips.
- */
-
 import type { Doc, Id } from "../_generated/dataModel";
-import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { auditLog, ResourceTypes } from "../auditLog";
-import { getMembershipOrNull } from "../teams/auth";
+import {
+  getMembershipOrNull,
+  type AuthMutationCtx,
+  type AuthQueryCtx,
+} from "../teams/auth";
 import { getOrCreateDefaultProfile } from "./helpers";
 import { listPersonalProfiles, listTeamProfiles } from "./mcpAccess";
 
-type AuthQueryCtx = QueryCtx & { userId: Id<"users"> };
-type AuthMutationCtx = MutationCtx & { userId: Id<"users"> };
-
-/**
- * List profiles visible to the caller:
- *  - personal profiles they own (`teamId` undefined)
- *  - team profiles for every team they're a member of
- *
- * Personal profiles owned by other users that happen to be shared via
- * team membership are NOT included — team access only flows through the
- * single team profile.
- */
 export async function runList(ctx: AuthQueryCtx): Promise<Doc<"profiles">[]> {
   const [personal, teamProfiles] = await Promise.all([
     listPersonalProfiles(ctx, ctx.userId),
@@ -97,11 +82,6 @@ interface UpdateArgs {
   icon?: string;
 }
 
-/**
- * Update a profile. Personal profiles: owner only. Team profiles: only
- * an owner of the team can edit; renaming the team profile syncs the
- * team's name so they stay in lockstep.
- */
 export async function runUpdate(
   ctx: AuthMutationCtx,
   args: UpdateArgs,
@@ -122,9 +102,7 @@ export async function runUpdate(
     throw new Error("Profile not found");
   }
 
-  // Per-user name uniqueness applies only to personal profiles. Team
-  // profiles intentionally don't compete with personal ones for names
-  // since they belong to the team, not a single user.
+  // Personal profiles: unique name per user. Team profiles share the team namespace.
   if (
     !profile.teamId &&
     args.name !== undefined &&

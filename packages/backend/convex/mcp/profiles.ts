@@ -72,7 +72,6 @@ function mapWhoamiProfileListItem(
   };
 }
 
-/** List profiles visible in the current MCP connector scope. */
 export const mcpListProfiles = internalAction({
   args: { clerkId: v.string(), scope: mcpScopeValidator },
   returns: v.array(profileListItemValidator),
@@ -85,7 +84,6 @@ export const mcpListProfiles = internalAction({
   },
 });
 
-/** Returns auth info, connector scope, and scoped profile list. */
 export const mcpWhoami = internalAction({
   args: { clerkId: v.string(), scope: mcpScopeValidator },
   returns: whoamiResultValidator,

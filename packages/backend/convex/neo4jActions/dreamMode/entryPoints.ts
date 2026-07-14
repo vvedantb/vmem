@@ -4,11 +4,9 @@ import { internalAction } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import { v } from "convex/values";
 import { decideDreamCheck } from "../../lib/dreamTriggerDecision";
-import {
-  dreamDepthValidator,
-  MANUAL_RATE_LIMIT_MS,
-  type DreamRunResult,
-} from "./runProfile";
+import { dreamDepthValidator, type DreamRunResult } from "./runProfile";
+
+const MANUAL_RATE_LIMIT_MS = 60 * 60 * 1000;
 
 function emptyDreamResult(reason: DreamRunResult["reason"]): DreamRunResult {
   return {
@@ -20,23 +18,12 @@ function emptyDreamResult(reason: DreamRunResult["reason"]): DreamRunResult {
   };
 }
 
-/** Manual button rate-limit guard: at most one run per hour since `lastRunAt`. */
 function isRateLimited(lastRunAt: number | null | undefined): boolean {
   return (
     typeof lastRunAt === "number" &&
     Date.now() - lastRunAt < MANUAL_RATE_LIMIT_MS
   );
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Dynamic Dreaming check — scheduled (debounced) by memory writes via
-// `lib/dreamTriggerInvalidate.ts`. Decides via the pure `decideDreamCheck`:
-//   - user still writing → reschedule for the rest of the quiet window
-//   - quiet + enough new memories (or a big pile-up) → consume the trigger
-//     and run a user-wide dream pass at the decided depth
-//   - guards fail (gap/cap/automatic off) → stand down; the counter
-//     persists and the next write re-arms the check
-// ─────────────────────────────────────────────────────────────────────────────
 
 export const maybeRunDreamInternal = internalAction({
   args: { clerkId: v.string() },
@@ -117,11 +104,6 @@ export const runDreamForProfileById = internalAction({
   },
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Manual button entry — wired to the "Run Dream Mode" button on /proposals.
-// Rate-limited: at most one run per profile per hour.
-// ─────────────────────────────────────────────────────────────────────────────
-
 export const runDreamForActiveProfile = internalAction({
   args: {
     clerkId: v.string(),
@@ -149,23 +131,11 @@ export const runDreamForActiveProfile = internalAction({
   },
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// User-wide orchestrator (Dream Mode V2)
-//
-// Personal profiles no longer carry their own schedule / auto-accept config —
-// the user owns those settings on `userSettings`. This wrapper iterates every
-// personal profile the user has, runs the per-profile pass on each, and
-// aggregates the result. `lastDreamRunAt` is stamped on `userSettings` so the
-// manual-button rate-limit applies user-wide (not per-profile, which would
-// otherwise let users bypass the limit by having many profiles).
-// ─────────────────────────────────────────────────────────────────────────────
-
 export const runDreamForUserInternal = internalAction({
   args: {
     clerkId: v.string(),
     userId: v.id("users"),
     forceProposals: v.optional(v.boolean()),
-    /** How deep to dream — set by the dynamic trigger. Default "standard". */
     depth: v.optional(dreamDepthValidator),
   },
   handler: async (ctx, args): Promise<DreamRunResult> => {
@@ -232,10 +202,6 @@ export const runDreamForUserInternal = internalAction({
   },
 });
 
-/**
- * Cron entrypoint — wired by `dreamSchedule.setDreamSchedule`. The cron
- * registration only carries `userId`; we resolve the clerkId at fire time.
- */
 export const runDreamForUserById = internalAction({
   args: { userId: v.id("users") },
   handler: async (ctx, args): Promise<DreamRunResult> => {
@@ -253,10 +219,6 @@ export const runDreamForUserById = internalAction({
   },
 });
 
-/**
- * Manual button entry — "Start Dreaming". Rate-limited to one run per hour
- * per user (not per profile — see comment on the user-wide orchestrator).
- */
 export const runDreamForActiveUser = internalAction({
   args: {
     clerkId: v.string(),
