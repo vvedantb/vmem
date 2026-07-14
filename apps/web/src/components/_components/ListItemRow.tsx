@@ -1,7 +1,5 @@
-import { useNavigate } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { api } from "@vmem/backend";
-import { useActiveProfile } from "@/components/workspace/active-profile";
 import {
   Badge,
   cn,
@@ -33,6 +31,8 @@ interface ListItemRowProps {
   trailEntry?: TrailEntry;
   isDark: boolean;
   onMemoryClick: (memory: Memory) => void;
+  /** Opens a preview panel for wiki/skill (and folders) instead of navigating. */
+  onItemSelect: (item: ListItem) => void;
   onContextEdit: (memory: Memory) => void;
   onContextDelete: (memory: Memory) => void;
 }
@@ -42,10 +42,8 @@ interface ListItemRowProps {
  * `item.kind` for both visual meta (source badge for memories, child count for
  * folders, etc.) and click behaviour:
  *
- *  - memory       → navigates to /memories/list/[id] via onMemoryClick
- *  - wiki-doc     → navigates to /wiki/<id>
- *  - wiki-folder  → navigates to /wiki (no deep-link to folder yet)
- *  - skill        → navigates to /skills/[id]
+ *  - memory       → opens detail via onMemoryClick
+ *  - wiki / skill → opens a list preview panel via onItemSelect
  *
  * Edit/Delete context menu actions only exist for memories; non-memory rows
  * render without the ContextMenu wrapper so right-click falls through to the
@@ -59,11 +57,10 @@ export default function ListItemRow({
   trailEntry,
   isDark,
   onMemoryClick,
+  onItemSelect,
   onContextEdit,
   onContextDelete,
 }: ListItemRowProps) {
-  const navigate = useNavigate();
-  const activeProfile = useActiveProfile();
   const color = nodeColor(item.tags, item.kind, isDark, null);
   // Dynamic Dreaming indicator: memories newer than the last dream run
   // haven't been dreamt on yet. Convex dedupes this subscription across
@@ -76,43 +73,24 @@ export default function ListItemRow({
       Date.parse(item.createdAt) > settings.lastDreamRunAt);
 
   const handleClick = () => {
-    switch (item.kind) {
-      case "memory": {
-        // Re-materialise the Memory shape from the list item so the callback
-        // keeps working on Memory — the detail panel + mutations expect it.
-        const memory: Memory = {
-          id: item.id,
-          title: item.title,
-          content: item.content,
-          tags: item.tags,
-          createdAt: item.createdAt,
-          type: item.type,
-          source: item.source,
-          sourceUrl: item.sourceUrl,
-          sourceSyncedAt: item.sourceSyncedAt,
-        };
-        onMemoryClick(memory);
-        return;
-      }
-      case "wiki-document":
-        void navigate({
-          to: "/$profileId/wiki/$docId",
-          params: { profileId: activeProfile._id, docId: item.wikiId },
-        });
-        return;
-      case "wiki-folder":
-        void navigate({
-          to: "/$profileId/wiki",
-          params: { profileId: activeProfile._id },
-        });
-        return;
-      case "skill":
-        void navigate({
-          to: "/$profileId/skills/$id",
-          params: { profileId: activeProfile._id, id: item.skillId },
-        });
-        return;
+    if (item.kind === "memory") {
+      // Re-materialise the Memory shape from the list item so the callback
+      // keeps working on Memory — the detail panel + mutations expect it.
+      const memory: Memory = {
+        id: item.id,
+        title: item.title,
+        content: item.content,
+        tags: item.tags,
+        createdAt: item.createdAt,
+        type: item.type,
+        source: item.source,
+        sourceUrl: item.sourceUrl,
+        sourceSyncedAt: item.sourceSyncedAt,
+      };
+      onMemoryClick(memory);
+      return;
     }
+    onItemSelect(item);
   };
 
   const rowBody = (

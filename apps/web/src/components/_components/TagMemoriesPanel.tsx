@@ -20,6 +20,7 @@ interface MemoryListVirtuosoContext {
   trailMap: Map<string, TrailEntry>;
   isDark: boolean;
   onMemoryClick: (memory: Memory) => void;
+  onItemSelect: (item: ListItem) => void;
   onContextEdit: (memory: Memory) => void;
   onContextDelete: (memory: Memory) => void;
 }
@@ -41,6 +42,7 @@ function MemoryListVirtuosoRow({
         trailEntry={context.trailMap.get(entry.item.id)}
         isDark={context.isDark}
         onMemoryClick={context.onMemoryClick}
+        onItemSelect={context.onItemSelect}
         onContextEdit={context.onContextEdit}
         onContextDelete={context.onContextDelete}
       />
@@ -195,6 +197,7 @@ export function TagMemoriesPanel({
               trailMap,
               isDark,
               onMemoryClick: handleMemoryClick,
+              onItemSelect: () => {},
               onContextEdit: handleContextEdit,
               onContextDelete: handleContextDelete,
             }}

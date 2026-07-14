@@ -13,6 +13,7 @@ import { Virtuoso } from "react-virtuoso";
 import { api } from "@vmem/backend";
 import MemoryDetailPanel from "./MemoryDetailPanel";
 import ListItemRow from "./_components/ListItemRow";
+import ListItemPreviewPanel from "./_components/ListItemPreviewPanel";
 import AnimatedSearchIcon from "./_components/AnimatedSearchIcon";
 import { VmemSpinner } from "@/components/svg-animations";
 import type { Memory, MemoryType } from "@/lib/memories";
@@ -45,10 +46,11 @@ type MemoryListEntry = {
 };
 
 interface MemoryListVirtuosoContext {
-  memoryId: string | null;
+  selectedItemId: string | null;
   trailMap: Map<string, TrailEntry>;
   isDark: boolean;
   onMemoryClick: (memory: Memory) => void;
+  onItemSelect: (item: ListItem) => void;
   onContextEdit: (memory: Memory) => void;
   onContextDelete: (memory: Memory) => void;
 }
@@ -67,10 +69,11 @@ function MemoryListVirtuosoRow({
         item={entry.item}
         relevanceScore={entry.score}
         trace={entry.trace}
-        isSelected={context.memoryId === entry.item.id}
+        isSelected={context.selectedItemId === entry.item.id}
         trailEntry={context.trailMap.get(entry.item.id)}
         isDark={context.isDark}
         onMemoryClick={context.onMemoryClick}
+        onItemSelect={context.onItemSelect}
         onContextEdit={context.onContextEdit}
         onContextDelete={context.onContextDelete}
       />
@@ -233,6 +236,7 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
   const [panelAction, setPanelAction] = useState<"edit" | "delete" | null>(
     null,
   );
+  const [previewItem, setPreviewItem] = useState<ListItem | null>(null);
 
   // Legacy param migration: convert old ?tag= to new ?tags=
   useEffect(() => {
@@ -439,6 +443,7 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
 
   const openMemory = useCallback(
     (id: string) => {
+      setPreviewItem(null);
       void navigate({
         to: "/$profileId/memories/list/$id",
         params: { profileId: activeProfile._id, id },
@@ -453,6 +458,25 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
       params: { profileId: activeProfile._id },
     });
   }, [navigate, activeProfile._id]);
+
+  const closePreview = useCallback(() => {
+    setPreviewItem(null);
+  }, []);
+
+  const handleItemSelect = useCallback(
+    (item: ListItem) => {
+      setPanelAction(null);
+      if (previewItem?.id === item.id) {
+        setPreviewItem(null);
+        return;
+      }
+      if (memoryId !== null) {
+        closeMemory();
+      }
+      setPreviewItem(item);
+    },
+    [previewItem, memoryId, closeMemory],
+  );
 
   const handleMemoryUpdate = useCallback(
     (updatedMemory: Memory) => {
@@ -475,6 +499,7 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
   const handleMemoryClick = useCallback(
     (memory: Memory) => {
       setPanelAction(null);
+      setPreviewItem(null);
       if (memoryId === memory.id) {
         closeMemory();
         return;
@@ -518,6 +543,9 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
   ]);
 
   const hasMemoryRoute = memoryId !== null;
+  const hasPreviewPanel = previewItem !== null;
+  const hasSidePanel = hasMemoryRoute || hasPreviewPanel;
+  const selectedItemId = memoryId ?? previewItem?.id ?? null;
   const isPanelLoading =
     hasMemoryRoute &&
     selectedMemory === null &&
@@ -598,13 +626,13 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
           <div
             className={cn(
               "flex flex-1 min-h-0 gap-4",
-              hasMemoryRoute ? "flex-col lg:flex-row" : "",
+              hasSidePanel ? "flex-col lg:flex-row" : "",
             )}
           >
             <div
               className={cn(
                 "min-w-0 min-h-0",
-                hasMemoryRoute
+                hasSidePanel
                   ? "hidden sm:block lg:min-w-0 lg:flex-1"
                   : "flex-1",
               )}
@@ -613,10 +641,11 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
                 data={displayItems}
                 className="scrollbar-thin"
                 context={{
-                  memoryId,
+                  selectedItemId,
                   trailMap,
                   isDark,
                   onMemoryClick: handleMemoryClick,
+                  onItemSelect: handleItemSelect,
                   onContextEdit: handleContextEdit,
                   onContextDelete: handleContextDelete,
                 }}
@@ -628,9 +657,15 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
               />
             </div>
 
-            {hasMemoryRoute ? (
+            {hasSidePanel ? (
               <div className="flex h-full min-h-0 w-full flex-col overflow-hidden lg:min-w-0 lg:flex-1">
-                {selectedMemory ? (
+                {previewItem ? (
+                  <ListItemPreviewPanel
+                    key={previewItem.id}
+                    item={previewItem}
+                    onClose={closePreview}
+                  />
+                ) : selectedMemory ? (
                   <MemoryDetailPanel
                     key={memoryId}
                     memory={selectedMemory}
