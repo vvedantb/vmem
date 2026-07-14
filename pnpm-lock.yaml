@@ -134,9 +134,6 @@ catalogs:
       specifier: ^4.1.0
       version: 4.2.2
 
-overrides:
-  react-native-worklets: 0.7.4
-
 importers:
 
   .:
@@ -488,6 +485,9 @@ importers:
       '@scure/base':
         specifier: ^2.2.0
         version: 2.2.0
+      '@vmem/sdk':
+        specifier: workspace:*
+        version: link:../sdk
       '@vmem/shared':
         specifier: workspace:*
         version: link:../shared

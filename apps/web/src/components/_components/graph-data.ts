@@ -8,7 +8,7 @@ import type { GraphNode, GraphEdge, RelatedNode } from "./canvas/types";
 // ---- API response shapes (mirrors Zod schemas in useGraphData) ----
 
 // graph payload omits wiki-artifact (artifacts render as wiki-document nodes)
-export type ApiGraphNodeKind = Exclude<ListItemKind, "wiki-artifact">;
+type ApiGraphNodeKind = Exclude<ListItemKind, "wiki-artifact">;
 
 // `source` and `type` are only populated on memory nodes
 export interface ApiGraphNode {

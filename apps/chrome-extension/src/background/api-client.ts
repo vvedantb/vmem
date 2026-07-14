@@ -1,5 +1,6 @@
 import { api, type Id } from "@vmem/backend";
 import type { FunctionArgs } from "convex/server";
+import type { ConvexHttpClient } from "convex/browser";
 import { z } from "zod";
 import { createAuthenticatedConvexClient } from "./auth";
 import type {
@@ -9,7 +10,7 @@ import type {
   Profile,
 } from "@/types/api";
 
-/** userSettings.update args — from the convex validator. */
+// userSettings.update args — from the convex validator
 export type UserSettingsUpdateArgs = FunctionArgs<
   typeof api.userSettings.update
 >;
@@ -20,19 +21,20 @@ const uploadResponseSchema = z.object({
   ),
 });
 
-async function getAuthenticatedClient() {
-  return await createAuthenticatedConvexClient();
-}
-
-export async function createMemory(
-  params: CreateMemoryParams,
-): Promise<MemoryWithTags> {
-  const client = await getAuthenticatedClient();
+async function requireAuthenticatedClient(): Promise<ConvexHttpClient> {
+  const client = await createAuthenticatedConvexClient();
   if (!client) {
     throw new Error(
       "Not authenticated - please sign in via the extension popup",
     );
   }
+  return client;
+}
+
+export async function createMemory(
+  params: CreateMemoryParams,
+): Promise<MemoryWithTags> {
+  const client = await requireAuthenticatedClient();
 
   return await client.action(api.memoryApi.createMemory, {
     title: params.title,
@@ -50,12 +52,7 @@ export async function retrieveMemories(
   query: string,
   limit = 5,
 ): Promise<MemoryCandidate[]> {
-  const client = await getAuthenticatedClient();
-  if (!client) {
-    throw new Error(
-      "Not authenticated - please sign in via the extension popup",
-    );
-  }
+  const client = await requireAuthenticatedClient();
 
   const result = await client.action(api.memoryApi.retrieveMemories, {
     query,
@@ -64,7 +61,7 @@ export async function retrieveMemories(
   return result.memories;
 }
 
-/** upload screenshot → storage → importImageMemory. */
+// upload screenshot → storage → importImageMemory
 export async function saveScreenshot(params: {
   blob: Blob;
   caption?: string;
@@ -72,12 +69,7 @@ export async function saveScreenshot(params: {
   pageTitle: string;
   profileId?: string;
 }): Promise<MemoryWithTags> {
-  const client = await getAuthenticatedClient();
-  if (!client) {
-    throw new Error(
-      "Not authenticated - please sign in via the extension popup",
-    );
-  }
+  const client = await requireAuthenticatedClient();
 
   console.log(
     "[vmem] saveScreenshot: requesting upload URL, blob size",
@@ -132,12 +124,7 @@ export async function saveScreenshot(params: {
 }
 
 export async function listProfiles(): Promise<Profile[]> {
-  const client = await getAuthenticatedClient();
-  if (!client) {
-    throw new Error(
-      "Not authenticated - please sign in via the extension popup",
-    );
-  }
+  const client = await requireAuthenticatedClient();
 
   const profiles = await client.query(api.profiles.list, {});
   return profiles.map(
@@ -151,16 +138,11 @@ export async function listProfiles(): Promise<Profile[]> {
   );
 }
 
-/** durable settings write via http — popup websocket can drop on close. */
+// durable settings write via http — popup websocket can drop on close
 export async function updateUserSettings(
   args: UserSettingsUpdateArgs,
 ): Promise<void> {
-  const client = await getAuthenticatedClient();
-  if (!client) {
-    throw new Error(
-      "Not authenticated - please sign in via the extension popup",
-    );
-  }
+  const client = await requireAuthenticatedClient();
 
   await client.mutation(api.userSettings.update, args);
 }

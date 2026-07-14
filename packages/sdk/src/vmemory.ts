@@ -2,16 +2,21 @@ import { z } from "zod";
 import { HttpClient } from "./http-client";
 import { VMemoryError } from "./errors";
 import {
+  parseDeleteMemoryResult,
+  parseHealthResult,
   parseMemoryWithTagsResponse,
   parseRetrieveResult,
   parseStoreInstructionResult,
   parseUpdateInstructionResult,
 } from "./validators";
 import type {
+  DeleteMemoryResult,
+  HealthResult,
   MemoryWithTags,
   RetrieveResult,
   StoreInstructionResult,
   StructuredCreateMemoryInput,
+  StructuredDeleteMemoryInput,
   StructuredPatchMemoryInput,
   StructuredRetrieveInput,
   UpdateInstructionResult,
@@ -159,6 +164,13 @@ export class VMemory {
     return parseMemoryWithTagsResponse(data);
   }
 
+  async deleteMemory(
+    input: StructuredDeleteMemoryInput,
+  ): Promise<DeleteMemoryResult> {
+    const data = await this.client.delete("/api/v1/memories", input);
+    return parseDeleteMemoryResult(data);
+  }
+
   async searchMemories(
     input: StructuredRetrieveInput,
   ): Promise<RetrieveResult> {
@@ -167,6 +179,10 @@ export class VMemory {
       buildRetrieveBody(input.query, input),
     );
     return parseRetrieveResult(data);
+  }
+
+  async health(): Promise<HealthResult> {
+    return parseHealthResult(await this.client.getRaw("/health"));
   }
 }
 

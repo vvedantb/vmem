@@ -9,7 +9,7 @@ export type AddRepoModalRepo = FunctionReturnType<
   typeof api.codebases.listRepos
 >[number];
 
-export type CodebaseGraphPayload = FunctionReturnType<
+type CodebaseGraphPayload = FunctionReturnType<
   typeof api.codebaseSymbols.getGraph
 >;
 

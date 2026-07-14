@@ -11,6 +11,6 @@ export type WikiNodeDoc = NonNullable<
   FunctionReturnType<typeof api.wiki.getNode>
 >;
 
-export type WikiVersionSummary = FunctionReturnType<
+type WikiVersionSummary = FunctionReturnType<
   typeof api.wikiVersions.list
 >[number];

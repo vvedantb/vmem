@@ -26,78 +26,10 @@ export const defaultTransition: Transition = {
   ease: motionEase,
 };
 
-export const fade: Variants = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: defaultTransition },
-  exit: {
-    opacity: 0,
-    transition: { duration: motionDuration.fast, ease: motionEase },
-  },
-};
-
 export const fadeUp: Variants = {
   hidden: { opacity: 0, y: motionDistance.pageY },
   show: { opacity: 1, y: 0, transition: defaultTransition },
   exit: {
-    opacity: 0,
-    y: 6,
-    transition: { duration: motionDuration.fast, ease: motionEase },
-  },
-};
-
-export const routeSlideFade: Variants = {
-  hidden: { opacity: 0, x: -motionDistance.routeX },
-  show: {
-    opacity: 1,
-    x: 0,
-    transition: { duration: motionTiming.route, ease: motionEase },
-  },
-  exit: {
-    opacity: 0,
-    x: -6,
-    transition: { duration: motionDuration.fast, ease: motionEase },
-  },
-};
-
-export const scaleIn: Variants = {
-  hidden: { opacity: 0, scale: 0.98 },
-  show: { opacity: 1, scale: 1, transition: defaultTransition },
-  exit: {
-    opacity: 0,
-    scale: 0.98,
-    transition: { duration: motionDuration.fast, ease: motionEase },
-  },
-};
-
-export function staggerContainer(
-  stagger = motionTiming.stagger,
-  delayChildren = 0,
-): Variants {
-  return {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        when: "beforeChildren",
-        delayChildren,
-        staggerChildren: stagger,
-      },
-    },
-    exit: {
-      opacity: 0,
-      transition: {
-        when: "afterChildren",
-        staggerChildren: Math.max(0.01, stagger / 2),
-        staggerDirection: -1,
-      },
-    },
-  };
-}
-
-export const staggerItem: Variants = {
-  hidden: fadeUp.hidden ?? { opacity: 0, y: motionDistance.pageY },
-  show: fadeUp.show ?? { opacity: 1, y: 0, transition: defaultTransition },
-  exit: fadeUp.exit ?? {
     opacity: 0,
     y: 6,
     transition: { duration: motionDuration.fast, ease: motionEase },

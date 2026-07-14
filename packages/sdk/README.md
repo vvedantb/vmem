@@ -58,7 +58,9 @@ const vmem = new VMemory({
 | `search(query, options?)` | Hybrid semantic search; optional `summarize: true`      |
 | `createMemory(body)`      | Structured create (escape hatch)                        |
 | `patchMemory(body)`       | Structured update by `id`                               |
+| `deleteMemory(body)`      | Structured delete by `id`                               |
 | `searchMemories(body)`    | Structured search                                       |
+| `health()`                | `GET /health` (unauthenticated liveness check)          |
 
 ## Errors
 

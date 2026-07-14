@@ -66,8 +66,34 @@ export class HttpClient {
     return this.request("PATCH", path, body);
   }
 
+  async delete(path: string, body: object): Promise<unknown> {
+    return this.request("DELETE", path, body);
+  }
+
+  // unauthenticated GET — response body returned as-is (no `{ data }` unwrap)
+  async getRaw(path: string): Promise<unknown> {
+    const response = await fetch(`${this.baseUrl}${path}`, {
+      method: "GET",
+    });
+
+    const json: unknown = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      const parsed = parseErrorBody(json);
+      const code = parsed?.error ?? "request_failed";
+      throw new VMemoryError(
+        `VMemory API GET ${path} failed (${String(response.status)}): ${code}`,
+        response.status,
+        code,
+        parsed?.issues,
+      );
+    }
+
+    return json;
+  }
+
   private async request(
-    method: "POST" | "PATCH",
+    method: "POST" | "PATCH" | "DELETE",
     path: string,
     body: object,
   ): Promise<unknown> {

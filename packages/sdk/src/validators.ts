@@ -92,6 +92,14 @@ const retrieveResultSchema = z.object({
   summary: z.string().optional(),
 });
 
+const deleteMemoryResultSchema = z.object({
+  deleted: z.literal(true),
+});
+
+const healthResultSchema = z.object({
+  status: z.literal("ok"),
+});
+
 export type MemoryWithTags = z.infer<typeof memoryWithTagsSchema>;
 export type MemoryType = z.infer<typeof memoryTypeSchema>;
 export type MemoryStatus = z.infer<typeof memoryStatusSchema>;
@@ -107,6 +115,8 @@ export type UpdateInstructionResult = z.infer<
   typeof updateInstructionResultSchema
 >;
 export type RetrieveResult = z.infer<typeof retrieveResultSchema>;
+export type DeleteMemoryResult = z.infer<typeof deleteMemoryResultSchema>;
+export type HealthResult = z.infer<typeof healthResultSchema>;
 
 function invalidResponse(): never {
   throw new VMemoryError(
@@ -142,4 +152,12 @@ export function parseRetrieveResult(value: unknown): RetrieveResult {
 
 export function parseMemoryWithTagsResponse(value: unknown): MemoryWithTags {
   return parseOrThrow(memoryWithTagsSchema, value);
+}
+
+export function parseDeleteMemoryResult(value: unknown): DeleteMemoryResult {
+  return parseOrThrow(deleteMemoryResultSchema, value);
+}
+
+export function parseHealthResult(value: unknown): HealthResult {
+  return parseOrThrow(healthResultSchema, value);
 }

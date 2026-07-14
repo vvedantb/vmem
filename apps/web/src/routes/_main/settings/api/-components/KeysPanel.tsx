@@ -14,8 +14,7 @@ import { AnimatedKeyIcon } from "@/components/svg-animations";
 import ApiKeyModal from "@/components/ApiKeyModal";
 import { ApiKeyRow } from "@/components/api-keys/ApiKeyRow";
 import { ApiKeysLoadingSkeleton } from "@/components/api-keys/ApiKeysLoadingSkeleton";
-import { RevokeKeyDialog } from "@/components/api-keys/RevokeKeyDialog";
-import { DeleteKeyDialog } from "@/components/api-keys/DeleteKeyDialog";
+import { KeyConfirmDialog } from "@/components/api-keys/KeyConfirmDialog";
 import { EditKeyDialog } from "@/components/api-keys/EditKeyDialog";
 import { useApiKeyActions } from "@/components/api-keys/useApiKeyActions";
 import type { ApiKey } from "@/components/api-keys/types";
@@ -127,21 +126,33 @@ export function KeysPanel() {
         onKeyCreated={() => {}}
       />
 
-      <RevokeKeyDialog
-        keyName={keyToRevoke?.name}
+      <KeyConfirmDialog
         isOpen={!!revokeKeyId}
-        isRevoking={isRevoking}
+        isBusy={isRevoking}
+        title="Revoke API Key"
+        detail="This action cannot be undone. Any applications using this key will immediately lose access."
+        confirmLabel="Revoke Key"
+        busyLabel="Revoking..."
         onConfirm={handleRevoke}
         onCancel={() => setRevokeKeyId(null)}
-      />
+      >
+        Are you sure you want to revoke{" "}
+        <span className="font-medium">{keyToRevoke?.name}</span>?
+      </KeyConfirmDialog>
 
-      <DeleteKeyDialog
-        keyName={keyToDelete?.name}
+      <KeyConfirmDialog
         isOpen={!!deleteKeyId}
-        isDeleting={isDeleting}
+        isBusy={isDeleting}
+        title="Delete API Key"
+        detail="This removes the key from your account. Active keys stop working immediately. This cannot be undone."
+        confirmLabel="Delete Key"
+        busyLabel="Deleting..."
         onConfirm={handleDelete}
         onCancel={() => setDeleteKeyId(null)}
-      />
+      >
+        Delete <span className="font-medium">{keyToDelete?.name}</span>{" "}
+        permanently?
+      </KeyConfirmDialog>
 
       <EditKeyDialog
         apiKeyId={editKeyId}

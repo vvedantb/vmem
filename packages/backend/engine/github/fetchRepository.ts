@@ -21,11 +21,6 @@ const GITHUB_TARBALL_HEADERS = {
 
 const FETCH_ATTEMPTS = 3;
 
-// encode each path segment for GitHub contents URLs ($id, spaces, etc.)
-export function encodeGithubContentPath(repoPath: string): string {
-  return repoPath.split("/").map(encodeURIComponent).join("/");
-}
-
 // gitHub tarballs prefix paths with `owner-repo-sha/`
 export function stripTarballRoot(entryPath: string): string | null {
   const slash = entryPath.indexOf("/");

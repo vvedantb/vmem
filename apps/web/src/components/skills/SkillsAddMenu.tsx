@@ -33,7 +33,7 @@ interface SkillsAddMenuActionProps {
   className?: string;
 }
 
-export function SkillsToolbarAddMenu({
+function SkillsToolbarAddMenu({
   onWriteSkill,
   onUploadSkill,
   className,
@@ -48,7 +48,7 @@ export function SkillsToolbarAddMenu({
   );
 }
 
-export function SkillsLabeledAddMenu({
+function SkillsLabeledAddMenu({
   onWriteSkill,
   onUploadSkill,
   className,

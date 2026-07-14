@@ -7,6 +7,8 @@ export {
 } from "./validators";
 export type {
   AgentProposal,
+  DeleteMemoryResult,
+  HealthResult,
   MatchedChunk,
   MemoryCandidate,
   MemoryStatus,
@@ -16,6 +18,7 @@ export type {
   ScoreBreakdown,
   StoreInstructionResult,
   StructuredCreateMemoryInput,
+  StructuredDeleteMemoryInput,
   StructuredPatchMemoryInput,
   StructuredRetrieveInput,
   UpdateInstructionResult,
