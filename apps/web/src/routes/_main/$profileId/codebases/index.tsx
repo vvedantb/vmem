@@ -8,6 +8,7 @@ import { Button } from "@vmem/ui";
 import { IconDatabase, IconPlus } from "@tabler/icons-react";
 import PageContainer from "@/components/PageContainer";
 import { AddRepoModal } from "@/components/codebases/AddRepoModal";
+import { useActiveProfile } from "@/components/workspace/active-profile";
 
 export const Route = createFileRoute("/_main/$profileId/codebases/")({
   component: CodebasesIndexPage,
@@ -15,9 +16,10 @@ export const Route = createFileRoute("/_main/$profileId/codebases/")({
 
 function CodebasesIndexPage() {
   const { profileId } = Route.useParams();
+  const teamId = useActiveProfile().teamId;
   const navigate = useNavigate();
   const connection = useQuery(api.github.getConnection);
-  const codebases = useQuery(api.codebases.listMy);
+  const codebases = useQuery(api.codebases.listMy, { teamId });
   const [addModalOpen, setAddModalOpen] = useState(false);
 
   const isConnected = connection !== undefined && connection !== null;

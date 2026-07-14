@@ -23,6 +23,7 @@ import {
   type AddRepoModalRepo,
 } from "./_components/AddRepoModalRow";
 import { optimisticId } from "@/lib/optimisticId";
+import { useActiveTeamId } from "@/components/workspace/active-profile";
 
 type RepoItem = FunctionReturnType<typeof api.codebases.listRepos>[number];
 
@@ -37,22 +38,24 @@ export function AddRepoModal({
   onOpenChange,
   connectionId,
 }: AddRepoModalProps) {
+  const teamId = useActiveTeamId();
   const listRepos = useAction(api.codebases.listRepos);
   const addCodebase = useMutation(
     api.codebases.addCodebase,
   ).withOptimisticUpdate((localStore, args) => {
-    const list = localStore.getQuery(api.codebases.listMy, {});
+    const list = localStore.getQuery(api.codebases.listMy, { teamId });
     if (!list || list.length === 0) return;
     const head = list.at(0);
     if (!head) return;
     const connection = localStore.getQuery(api.github.getConnection, {});
     const now = Date.now();
     const tempId = optimisticId("codebases");
-    localStore.setQuery(api.codebases.listMy, {}, [
+    localStore.setQuery(api.codebases.listMy, { teamId }, [
       {
         _id: tempId,
         _creationTime: now,
         userId: head.userId,
+        teamId: args.teamId,
         githubConnectionId: args.githubConnectionId,
         repoOwner: args.repoOwner,
         repoName: args.repoName,
@@ -69,7 +72,7 @@ export function AddRepoModal({
       ...list,
     ]);
   });
-  const codebases = useQuery(api.codebases.listMy);
+  const codebases = useQuery(api.codebases.listMy, { teamId });
 
   const [repos, setRepos] = useState<RepoItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -127,6 +130,7 @@ export function AddRepoModal({
         language: repo.language ?? undefined,
         description: repo.description ?? undefined,
         isPrivate: repo.isPrivate,
+        teamId,
       });
       toast.success(`Added ${repo.fullName}`);
       onOpenChange(false);

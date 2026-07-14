@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { ActionCache } from "@convex-dev/action-cache";
-import { authAction, requireClerkId } from "./auth";
+import { authAction, requireClerkId, type AuthActionCtx } from "./auth";
 import { components, internal } from "./_generated/api";
 
 const DASHBOARD_CACHE_TTL_MS = 30_000;
@@ -25,15 +25,27 @@ interface ActivityItem {
 
 const statsCache = new ActionCache(components.actionCache, {
   action: internal.neo4jActions.dashboard.getStatsInternal,
-  name: "getStatsInternal-v1",
+  name: "getStatsInternal-v2",
   ttl: DASHBOARD_CACHE_TTL_MS,
 });
 
 const recentActivityCache = new ActionCache(components.actionCache, {
   action: internal.neo4jActions.dashboard.getRecentActivityInternal,
-  name: "getRecentActivityInternal-v1",
+  name: "getRecentActivityInternal-v2",
   ttl: DASHBOARD_CACHE_TTL_MS,
 });
+
+async function resolveStrictProfile(
+  ctx: AuthActionCtx,
+  profileId: string | undefined,
+): Promise<boolean> {
+  if (profileId === undefined) return false;
+  const profile = await ctx.runQuery(
+    internal.teams.assertProfileAccessInternal,
+    { profileId, userId: ctx.userId },
+  );
+  return profile.teamId !== undefined;
+}
 
 export const getStats = authAction({
   args: {
@@ -42,9 +54,10 @@ export const getStats = authAction({
   },
   handler: async (ctx, args): Promise<StatsResult> => {
     const clerkId = await requireClerkId(ctx);
+    const strictProfile = await resolveStrictProfile(ctx, args.profileId);
     return await statsCache.fetch(
       ctx,
-      { clerkId, profileId: args.profileId },
+      { clerkId, profileId: args.profileId, strictProfile },
       args.fresh ? { force: true } : undefined,
     );
   },
@@ -73,9 +86,11 @@ export const getRecentActivity = authAction({
   },
   handler: async (ctx, args): Promise<ActivityItem[]> => {
     const clerkId = await requireClerkId(ctx);
+    const strictProfile = await resolveStrictProfile(ctx, args.profileId);
     return await recentActivityCache.fetch(ctx, {
       clerkId,
       profileId: args.profileId,
+      strictProfile,
       limit: args.limit,
     });
   },

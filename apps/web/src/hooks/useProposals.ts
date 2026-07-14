@@ -4,6 +4,7 @@ import { useCallback, useMemo } from "react";
 import { useConvexAuth, useAction } from "convex/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@vmem/backend";
+import { useActiveProfileId } from "@/components/workspace/active-profile";
 
 /**
  * Shape returned by `api.proposedUpdateApi.listProposedUpdates`. Mirror of
@@ -79,15 +80,17 @@ export interface ProposedUpdate {
  */
 export function useProposals() {
   const { isAuthenticated } = useConvexAuth();
+  const activeProfileId = useActiveProfileId();
   const listAction = useAction(api.proposedUpdateApi.listProposedUpdates);
   const resolveAction = useAction(api.proposedUpdateApi.resolveProposal);
   const queryClient = useQueryClient();
 
   const listQuery = useQuery({
-    queryKey: ["proposals"],
-    enabled: isAuthenticated,
+    queryKey: ["proposals", activeProfileId],
+    enabled: isAuthenticated && activeProfileId !== undefined,
     queryFn: async (): Promise<ProposedUpdate[]> => {
-      const data = await listAction({});
+      if (activeProfileId === undefined) return [];
+      const data = await listAction({ profileId: activeProfileId });
       // Convex action return shape is already structurally identical —
       // we map to clip any extra fields and pin the kind/source unions.
       return data.map((p): ProposedUpdate => {

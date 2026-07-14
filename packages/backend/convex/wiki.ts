@@ -138,12 +138,25 @@ export const listForUserInternal = internalQuery({
     }),
   ),
   handler: async (ctx, args) => {
-    const nodes = await ctx.db
-      .query("wikiNodes")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
-      .collect();
-    // Graph payloads are personal-scope only — never include team nodes.
-    return nodes.filter((n) => n.teamId === undefined);
+    return await listScopeNodes(ctx, args.userId, undefined);
+  },
+});
+
+/** Workspace-scoped wiki nodes for the memory graph (personal or team). */
+export const listForGraphInternal = internalQuery({
+  args: {
+    userId: v.id("users"),
+    teamId: v.optional(v.id("teams")),
+  },
+  returns: v.array(
+    v.object({
+      _id: v.id("wikiNodes"),
+      _creationTime: v.number(),
+      ...wikiNodeFields,
+    }),
+  ),
+  handler: async (ctx, args) => {
+    return await listScopeNodes(ctx, args.userId, args.teamId);
   },
 });
 

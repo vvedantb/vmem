@@ -24,6 +24,7 @@ import {
 import type { Memory } from "@/lib/memories";
 import { api } from "@vmem/backend";
 import { parseConvexStorageUpload } from "@/lib/schemas";
+import { useActiveProfileId } from "@/components/workspace/active-profile";
 
 interface CreateMemoryInput {
   title: string;
@@ -37,6 +38,7 @@ interface UpdateMemoryInput {
   title?: string;
   content?: string;
   tags?: string[];
+  profileId?: string;
 }
 
 interface UploadMemoryFileInput {
@@ -239,6 +241,7 @@ export function useMemoryListFlat(filters: MemoryListFilters) {
 export function MemoryProvider({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useConvexAuth();
   const queryClient = useQueryClient();
+  const activeProfileId = useActiveProfileId();
   const listMemoriesAction = useAction(api.memoryApi.listMemories);
   const createMemoryAction = useAction(api.memoryApi.createMemory);
   const updateMemoryAction = useAction(api.memoryApi.updateMemory);
@@ -247,25 +250,30 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
     api.memoryApi.generateMemoryUploadUrl,
   );
   const importFromFile = useAction(api.fileImport.importMemoryFromFile);
-  // Bounded single-query load for consumers that still want a broad slice
-  // of memories (tag suggestions, filter-option derivation). This replaces
-  // the old fetch-all loop that made 120 round trips for a 12k-memory user.
-  // The list page itself uses useMemoryListPage for true pagination.
+  // Workspace-scoped recent slice for tag suggestions / filter options.
+  // Without profileId this leaked personal + other-team memories into every
+  // workspace (listMemories falls back to user-wide when profileId is omitted).
+  const recentQueryKey = [
+    "memories",
+    "recent",
+    activeProfileId ?? "none",
+  ] as const;
   const memoriesQuery = useTanstackQuery({
-    queryKey: ["memories", "recent"],
+    queryKey: recentQueryKey,
     queryFn: async (): Promise<Memory[]> => {
       const data = await listMemoriesAction({
         limit: CONTEXT_MEMORY_LIMIT,
         offset: 0,
+        profileId: activeProfileId,
       });
       return data.memories.map((m) => apiToMemory(m));
     },
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && activeProfileId !== undefined,
   });
 
   // Shared invalidator so every paginated filter cache AND the recent-
   // context cache refresh after any mutation. TanStack matches invalidations
-  // by queryKey prefix, so ["memories"] covers both ["memories", "recent"]
+  // by queryKey prefix, so ["memories"] covers both ["memories", "recent", …]
   // and ["memories", { ...filters }].
   const invalidateMemories = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: ["memories"] });
@@ -280,18 +288,15 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
         source: "web",
         tags: input.tags ?? [],
         confidence: 1.0,
-        profileId: input.profileId,
+        profileId: input.profileId ?? activeProfileId,
       });
       // Pass the action result as a variable (not a fresh literal) so
       // extra MemoryWithTags fields don't trip excess-property checks.
       return apiToMemory(created);
     },
     onMutate: async (input) => {
-      await queryClient.cancelQueries({ queryKey: ["memories", "recent"] });
-      const previous = queryClient.getQueryData<Memory[]>([
-        "memories",
-        "recent",
-      ]);
+      await queryClient.cancelQueries({ queryKey: recentQueryKey });
+      const previous = queryClient.getQueryData<Memory[]>(recentQueryKey);
       const optimistic: Memory = {
         id: `temp-${Date.now()}`,
         title: input.title.trim(),
@@ -303,14 +308,14 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
         tags: input.tags ?? [],
         createdAt: new Date().toISOString(),
       };
-      queryClient.setQueryData<Memory[]>(["memories", "recent"], (old) =>
+      queryClient.setQueryData<Memory[]>(recentQueryKey, (old) =>
         old ? [optimistic, ...old] : [optimistic],
       );
       return { previous };
     },
     onError: (_err, _input, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(["memories", "recent"], context.previous);
+        queryClient.setQueryData(recentQueryKey, context.previous);
       }
     },
     onSettled: invalidateMemories,
@@ -325,6 +330,7 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
         title: input.title,
         content: input.content,
         tags: input.tags,
+        profileId: input.profileId ?? activeProfileId,
       });
       if (apiMemory === null) {
         throw new Error("Memory not found");
@@ -332,12 +338,9 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
       return { memory: apiToMemory(apiMemory), id: input.id };
     },
     onMutate: async (input) => {
-      await queryClient.cancelQueries({ queryKey: ["memories", "recent"] });
-      const previous = queryClient.getQueryData<Memory[]>([
-        "memories",
-        "recent",
-      ]);
-      queryClient.setQueryData<Memory[]>(["memories", "recent"], (old) =>
+      await queryClient.cancelQueries({ queryKey: recentQueryKey });
+      const previous = queryClient.getQueryData<Memory[]>(recentQueryKey);
+      queryClient.setQueryData<Memory[]>(recentQueryKey, (old) =>
         old
           ? old.map((m) =>
               m.id === input.id
@@ -359,7 +362,7 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
     },
     onError: (_err, _input, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(["memories", "recent"], context.previous);
+        queryClient.setQueryData(recentQueryKey, context.previous);
       }
     },
     onSettled: invalidateMemories,
@@ -396,7 +399,7 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
         storageId,
         filename: input.file.name,
         mimeType: input.file.type,
-        profileId: input.profileId,
+        profileId: input.profileId ?? activeProfileId,
       });
       return apiToMemory(created);
     },
@@ -405,23 +408,23 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string): Promise<string> => {
-      await deleteMemoryAction({ memoryId: id });
+      await deleteMemoryAction({
+        memoryId: id,
+        profileId: activeProfileId,
+      });
       return id;
     },
     onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ["memories", "recent"] });
-      const previous = queryClient.getQueryData<Memory[]>([
-        "memories",
-        "recent",
-      ]);
-      queryClient.setQueryData<Memory[]>(["memories", "recent"], (old) =>
+      await queryClient.cancelQueries({ queryKey: recentQueryKey });
+      const previous = queryClient.getQueryData<Memory[]>(recentQueryKey);
+      queryClient.setQueryData<Memory[]>(recentQueryKey, (old) =>
         old ? old.filter((m) => m.id !== id) : [],
       );
       return { previous };
     },
     onError: (_err, _id, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(["memories", "recent"], context.previous);
+        queryClient.setQueryData(recentQueryKey, context.previous);
       }
     },
     onSettled: invalidateMemories,

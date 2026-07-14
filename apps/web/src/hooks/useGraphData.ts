@@ -10,7 +10,7 @@
  */
 import { useState, useMemo, useCallback } from "react";
 import { useConvexAuth, useAction } from "convex/react";
-import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, type InfiniteData } from "@tanstack/react-query";
 import { z } from "zod";
 import { useMemoryEvents } from "@/hooks/useMemoryEvents";
 import { api } from "@vmem/backend";
@@ -231,7 +231,13 @@ export function useGraphData(
     [benchCount],
   );
 
-  const graphQuery = useInfiniteQuery({
+  const graphQuery = useInfiniteQuery<
+    GraphResponse,
+    Error,
+    InfiniteData<GraphResponse>,
+    readonly ["graph", "local" | "global", string, string, number],
+    GraphCursor | null
+  >({
     queryKey: [
       "graph",
       scope,
@@ -239,9 +245,14 @@ export function useGraphData(
       profileId ?? "all",
       scope === "local" ? depth : 0,
     ],
-    // Scope/filter switches: keep showing the previous graph while the new
-    // first page fetches instead of flashing the spinner.
-    placeholderData: keepPreviousData,
+    // Keep the previous graph while scope/focus/depth changes, but not when
+    // switching workspaces — showing another profile's nodes is misleading.
+    placeholderData: (previousData, previousQuery) => {
+      if (previousQuery?.queryKey[3] !== (profileId ?? "all")) {
+        return undefined;
+      }
+      return previousData;
+    },
     initialPageParam: null as GraphCursor | null,
     queryFn: async ({ pageParam }): Promise<GraphResponse> => {
       const result = await getGraphData({

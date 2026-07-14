@@ -6,14 +6,22 @@ import { runUpdateMemory } from "./_memories/update";
 import { runDeleteMemory } from "./_memories/delete";
 import { runCreateMemory } from "./_memories/create";
 import { runRetrieveMemories, runSearchMemories } from "./_memories/read";
+import {
+  runGetMemoryForTeam,
+  runSearchMemoriesForTeam,
+} from "./_memories/team";
 import { resolveProfileIdForMcpScope, toMemoryType } from "./_memories/shared";
 import { runStoreFromInstruction } from "./agent/storeFromInstruction";
 import type { OpenRouterRequired } from "./agent/shared";
 import type { StoreFromInstructionResult } from "./agent/storeFromInstruction";
-import type { MemoryWithTags } from "../../engine/neo4j/memory/types";
+import type {
+  MemoryCandidate,
+  MemoryWithTags,
+} from "../../engine/neo4j/memory/types";
 import { getRelatedMemories } from "../../engine/neo4j/memory/relationships";
+import { getMemory } from "../../engine/neo4j/memory/crud";
 import { getDriver } from "../../engine/neo4j/driver";
-import { mcpScopeValidator } from "../profiles/mcpAccess";
+import { mcpScopeValidator, type McpScope } from "../profiles/mcpAccess";
 
 export interface RelatedMemoryRow {
   memory: MemoryWithTags;
@@ -24,6 +32,65 @@ const scopedMcpArgs = {
   clerkId: v.string(),
   mcpScope: mcpScopeValidator,
 };
+
+function memoryMatchesMcpScope(
+  memory: MemoryWithTags,
+  mcpScope: McpScope,
+  profileId: string,
+): boolean {
+  if (mcpScope === "team") {
+    return memory.profileId === profileId;
+  }
+  return memory.profileId === profileId || memory.profileId === null;
+}
+
+async function loadMemoryForMcpScope(args: {
+  clerkId: string;
+  mcpScope: McpScope;
+  profileId: string;
+  memoryId: string;
+}): Promise<MemoryWithTags> {
+  if (args.mcpScope === "team") {
+    const memory = await runGetMemoryForTeam({
+      profileId: args.profileId,
+      memoryId: args.memoryId,
+    });
+    if (!memory) {
+      throw new Error("Memory not found");
+    }
+    return memory;
+  }
+
+  const memory = await getMemory(getDriver(), args.clerkId, args.memoryId);
+  if (
+    !memory ||
+    !memoryMatchesMcpScope(memory, args.mcpScope, args.profileId)
+  ) {
+    throw new Error("Memory not found");
+  }
+  return memory;
+}
+
+function toTeamRetrieveCandidates(
+  memories: MemoryWithTags[],
+): MemoryCandidate[] {
+  return memories.map((memory, index) => ({
+    ...memory,
+    trace: {
+      score: 1 / (index + 1),
+      scoreBreakdown: {
+        fulltext: 1 / (index + 1),
+        vector: 0,
+        chunk: 0,
+        entity: 0,
+        rrf: 1 / (index + 1),
+        recency: 0,
+        confidence: memory.confidence,
+      },
+      reason: "team profile search",
+    },
+  }));
+}
 
 export const mcpSearchMemories = internalAction({
   args: {
@@ -42,6 +109,16 @@ export const mcpSearchMemories = internalAction({
       args.mcpScope,
       args.profileId,
     );
+    if (args.mcpScope === "team") {
+      return await runSearchMemoriesForTeam({
+        profileId,
+        query: args.query,
+        type: args.type,
+        tags: args.tags,
+        limit: args.limit ?? 20,
+        offset: args.offset ?? 0,
+      });
+    }
     return await runSearchMemories({
       clerkId: args.clerkId,
       profileId,
@@ -68,6 +145,15 @@ export const mcpRetrieveMemories = internalAction({
       args.mcpScope,
       args.profileId,
     );
+    if (args.mcpScope === "team") {
+      const result = await runSearchMemoriesForTeam({
+        profileId,
+        query: args.query,
+        limit: args.limit ?? 10,
+        offset: 0,
+      });
+      return toTeamRetrieveCandidates(result.memories);
+    }
     return await runRetrieveMemories(ctx, {
       clerkId: args.clerkId,
       profileId,
@@ -112,8 +198,9 @@ export const mcpCreateMemory = internalAction({
 
 export const mcpUpdateMemory = internalAction({
   args: {
-    clerkId: v.string(),
+    ...scopedMcpArgs,
     memoryId: v.string(),
+    profileId: v.optional(v.string()),
     title: v.optional(v.string()),
     content: v.optional(v.string()),
     type: v.optional(v.string()),
@@ -121,15 +208,56 @@ export const mcpUpdateMemory = internalAction({
     tags: v.optional(v.array(v.string())),
     confidence: v.optional(v.number()),
   },
-  handler: async (ctx, args) => runUpdateMemory(ctx, args),
+  handler: async (ctx, args) => {
+    const profileId = await resolveProfileIdForMcpScope(
+      ctx,
+      args.clerkId,
+      args.mcpScope,
+      args.profileId,
+    );
+    const memory = await loadMemoryForMcpScope({
+      clerkId: args.clerkId,
+      mcpScope: args.mcpScope,
+      profileId,
+      memoryId: args.memoryId,
+    });
+    return runUpdateMemory(ctx, {
+      clerkId: memory.userId,
+      memoryId: args.memoryId,
+      title: args.title,
+      content: args.content,
+      type: args.type,
+      status: args.status,
+      tags: args.tags,
+      confidence: args.confidence,
+    });
+  },
 });
 
 export const mcpDeleteMemory = internalAction({
   args: {
-    clerkId: v.string(),
+    ...scopedMcpArgs,
     memoryId: v.string(),
+    profileId: v.optional(v.string()),
   },
-  handler: async (ctx, args) => runDeleteMemory(ctx, args),
+  handler: async (ctx, args) => {
+    const profileId = await resolveProfileIdForMcpScope(
+      ctx,
+      args.clerkId,
+      args.mcpScope,
+      args.profileId,
+    );
+    const memory = await loadMemoryForMcpScope({
+      clerkId: args.clerkId,
+      mcpScope: args.mcpScope,
+      profileId,
+      memoryId: args.memoryId,
+    });
+    return runDeleteMemory(ctx, {
+      clerkId: memory.userId,
+      memoryId: args.memoryId,
+    });
+  },
 });
 
 export const mcpAddFromInstruction = internalAction({
@@ -158,15 +286,32 @@ export const mcpAddFromInstruction = internalAction({
 
 export const mcpGetRelatedMemories = internalAction({
   args: {
-    clerkId: v.string(),
+    ...scopedMcpArgs,
     memoryId: v.string(),
+    profileId: v.optional(v.string()),
   },
-  handler: async (_ctx, args): Promise<RelatedMemoryRow[]> => {
+  handler: async (ctx, args): Promise<RelatedMemoryRow[]> => {
+    const profileId = await resolveProfileIdForMcpScope(
+      ctx,
+      args.clerkId,
+      args.mcpScope,
+      args.profileId,
+    );
+    const memory = await loadMemoryForMcpScope({
+      clerkId: args.clerkId,
+      mcpScope: args.mcpScope,
+      profileId,
+      memoryId: args.memoryId,
+    });
     const driver = getDriver();
-    const rows = await getRelatedMemories(driver, args.clerkId, args.memoryId);
-    return rows.map((row) => ({
-      memory: row.memory,
-      linkReason: row.reason,
-    }));
+    const rows = await getRelatedMemories(driver, memory.userId, args.memoryId);
+    return rows
+      .filter((row) =>
+        memoryMatchesMcpScope(row.memory, args.mcpScope, profileId),
+      )
+      .map((row) => ({
+        memory: row.memory,
+        linkReason: row.reason,
+      }));
   },
 });

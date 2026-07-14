@@ -11,10 +11,17 @@ import { getDriver } from "../../engine/neo4j/driver";
 import { postMaterializeEmbedAndEnrich } from "./_memories/postMaterialize";
 
 export const listProposedUpdatesInternal = internalAction({
-  args: { clerkId: v.string() },
+  args: {
+    clerkId: v.string(),
+    profileId: v.optional(v.string()),
+    strictProfile: v.optional(v.boolean()),
+  },
   handler: async (_ctx, args) => {
     const driver = getDriver();
-    return await listProposedUpdates(driver, args.clerkId);
+    return await listProposedUpdates(driver, args.clerkId, {
+      profileId: args.profileId,
+      strictProfile: args.strictProfile === true,
+    });
   },
 });
 

@@ -59,9 +59,16 @@ export interface FilterFragment {
 export function profileFilter(
   profileId: string | null | undefined,
   alias: string,
+  options?: { strict?: boolean },
 ): FilterFragment {
   if (profileId === null || profileId === undefined) {
     return { clause: "", params: {} };
+  }
+  if (options?.strict) {
+    return {
+      clause: `AND ${alias}.profileId = $profileId`,
+      params: { profileId },
+    };
   }
   return {
     clause: `AND (${alias}.profileId = $profileId OR ${alias}.profileId IS NULL)`,

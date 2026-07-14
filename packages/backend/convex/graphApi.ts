@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { authAction, requireClerkId } from "./auth";
 import { internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
 import type { CappedMemoryGraph } from "./neo4jActions/graph";
 
 type MemoryType = "profile" | "episodic" | "knowledge";
@@ -64,12 +65,26 @@ export const getGraphData = authAction({
     const isFirstPage = args.cursorCreatedAt === undefined;
     const includeAccountAtoms = !isLocal && isFirstPage;
 
+    let strictProfile = false;
+    let teamId: Id<"teams"> | undefined;
+    if (args.profileId !== undefined) {
+      const profile = await ctx.runQuery(
+        internal.teams.assertProfileAccessInternal,
+        { profileId: args.profileId, userId: ctx.userId },
+      );
+      if (profile.teamId !== undefined) {
+        strictProfile = true;
+        teamId = profile.teamId;
+      }
+    }
+
     const memoryGraph: CappedMemoryGraph = await ctx.runAction(
       internal.neo4jActions.graph.getGraphDataInternal,
       {
         clerkId,
         focus: args.focus,
         profileId: args.profileId,
+        strictProfile,
         mode: args.mode,
         depth: args.depth,
         nodeLimit: args.nodeLimit,
@@ -79,8 +94,9 @@ export const getGraphData = authAction({
     );
 
     const wikiRows = includeAccountAtoms
-      ? await ctx.runQuery(internal.wiki.listForUserInternal, {
+      ? await ctx.runQuery(internal.wiki.listForGraphInternal, {
           userId: ctx.userId,
+          teamId,
         })
       : [];
 
@@ -102,8 +118,9 @@ export const getGraphData = authAction({
       }));
 
     const skillRows = includeAccountAtoms
-      ? await ctx.runQuery(internal.skills.listByClerkIdInternal, {
-          clerkId,
+      ? await ctx.runQuery(internal.skills.listForGraphInternal, {
+          userId: ctx.userId,
+          teamId,
         })
       : [];
 

@@ -58,6 +58,12 @@ interface ProfileDropdownProps {
   onChange: (profileId: string) => void;
   disabled?: boolean;
   className?: string;
+  /**
+   * When true, only offer profiles in the same workspace kind as the active
+   * one (personal ↔ personal, or the active team only). Prevents writing
+   * memories across the personal/team boundary from Add Memory.
+   */
+  lockToActiveWorkspace?: boolean;
 }
 
 export function ProfileDropdown({
@@ -65,6 +71,7 @@ export function ProfileDropdown({
   onChange,
   disabled,
   className,
+  lockToActiveWorkspace = false,
 }: ProfileDropdownProps) {
   const { isAuthenticated } = useConvexAuth();
   const profiles = useQuery(api.profiles.list, isAuthenticated ? {} : "skip");
@@ -85,11 +92,20 @@ export function ProfileDropdown({
   }
 
   const selectedProfile = profiles?.find((p) => p._id === effectiveValue);
+  const activeProfile = profiles?.find((p) => p._id === activeProfileId);
 
   // Partition into personal vs team so the dropdown can render two labelled groups.
   const personalProfiles: ProfileListItem[] = [];
   const teamProfiles: ProfileListItem[] = [];
   for (const p of profiles ?? []) {
+    if (lockToActiveWorkspace) {
+      if (activeProfile?.teamId !== undefined) {
+        if (p._id === activeProfile._id) teamProfiles.push(p);
+      } else if (p.teamId === undefined) {
+        personalProfiles.push(p);
+      }
+      continue;
+    }
     if (p.teamId) teamProfiles.push(p);
     else personalProfiles.push(p);
   }

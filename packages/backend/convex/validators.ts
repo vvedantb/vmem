@@ -99,6 +99,8 @@ export const userEnvVarFields = {
 
 export const codebaseFields = {
   userId: v.id("users"),
+  /** Personal when absent; team drive when set (same pattern as skills/wiki/files). */
+  teamId: v.optional(v.id("teams")),
   githubConnectionId: v.id("githubConnections"),
   repoOwner: v.string(),
   repoName: v.string(),
@@ -228,6 +230,8 @@ export const systemSkillFields = {
 
 export const userSystemSkillFields = {
   userId: v.id("users"),
+  /** Personal when absent; team workspace install when set (shared with members). */
+  teamId: v.optional(v.id("teams")),
   systemSkillId: v.id("systemSkills"),
   enabled: v.boolean(),
   installedAt: v.number(),

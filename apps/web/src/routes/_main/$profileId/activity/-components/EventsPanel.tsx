@@ -7,6 +7,7 @@ import {
 } from "react";
 import { useQueryStates } from "nuqs";
 import { useConvexAuth, useAction } from "convex/react";
+import { useActiveProfile } from "@/components/workspace/active-profile";
 import {
   Button,
   Card,
@@ -199,6 +200,7 @@ const DATE_PRESETS: EventDatePreset[] = ["all", "today", "week", "month"];
  */
 export function EventsPanel() {
   const { isAuthenticated } = useConvexAuth();
+  const activeProfileId = useActiveProfile()._id;
   const getRecentActivity = useAction(api.dashboardApi.getRecentActivity);
 
   const [params] = useQueryStates(eventsSearchParams);
@@ -213,7 +215,10 @@ export function EventsPanel() {
     setError(null);
 
     try {
-      const data = await getRecentActivity({ limit: 200 });
+      const data = await getRecentActivity({
+        limit: 200,
+        profileId: activeProfileId,
+      });
       setActivity(data);
     } catch (err) {
       console.error("Failed to fetch activity:", err);
@@ -221,7 +226,7 @@ export function EventsPanel() {
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, getRecentActivity]);
+  }, [isAuthenticated, getRecentActivity, activeProfileId]);
 
   useEffect(() => {
     void fetchActivity();

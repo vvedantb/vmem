@@ -6,10 +6,19 @@ import { getRecentActivity, getStats } from "../../engine/neo4j/memory/stats";
 import { getDriver } from "../../engine/neo4j/driver";
 
 export const getStatsInternal = internalAction({
-  args: { clerkId: v.string(), profileId: v.optional(v.string()) },
+  args: {
+    clerkId: v.string(),
+    profileId: v.optional(v.string()),
+    strictProfile: v.optional(v.boolean()),
+  },
   handler: async (_ctx, args) => {
     const driver = getDriver();
-    return await getStats(driver, args.clerkId, args.profileId ?? null);
+    return await getStats(
+      driver,
+      args.clerkId,
+      args.profileId ?? null,
+      args.strictProfile === true,
+    );
   },
 });
 
@@ -38,6 +47,7 @@ export const getRecentActivityInternal = internalAction({
   args: {
     clerkId: v.string(),
     profileId: v.optional(v.string()),
+    strictProfile: v.optional(v.boolean()),
     limit: v.optional(v.number()),
   },
   handler: async (_ctx, args) => {
@@ -47,6 +57,7 @@ export const getRecentActivityInternal = internalAction({
       args.clerkId,
       args.profileId ?? null,
       args.limit ?? 10,
+      args.strictProfile === true,
     );
   },
 });

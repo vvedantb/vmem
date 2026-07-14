@@ -1,4 +1,4 @@
-import { paginationOptsValidator } from "convex/server";
+﻿import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { internalMutation, type QueryCtx } from "./_generated/server";
 import { authQuery } from "./auth";
@@ -11,7 +11,7 @@ export const recordInternal = internalMutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     // Normalise the string profileId from the caller into a typed
-    // Convex Id<"profiles">. Returns null for malformed strings — we
+    // Convex Id<"profiles">. Returns null for malformed strings â€” we
     // treat that as "no profile" so a bad id never blocks the log row.
     const { profileId: rawProfileId, ...rest } = args;
     const profileId = rawProfileId
@@ -143,7 +143,7 @@ export const listMine = authQuery({
       throw new Error("Not authorized for this team");
     }
 
-    // Optional profile filter — works for both scopes.
+    // Optional profile filter â€” works for both scopes.
     if (args.profileId) {
       const profileId = args.profileId;
       q = q.filter((f) => f.eq(f.field("profileId"), profileId));

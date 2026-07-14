@@ -201,7 +201,7 @@ export async function runMemoryUpdate(
 ): Promise<ToolHandlerResult> {
   return safe("memory_update", () =>
     ctx.ctx.runAction(internal.neo4jActions.mcp.mcpUpdateMemory, {
-      clerkId: ctx.clerkUserId,
+      ...scopedMemory(ctx),
       memoryId: params.id,
       title: params.title,
       content: params.content,
@@ -219,7 +219,7 @@ export async function runMemoryDelete(
 ): Promise<ToolHandlerResult> {
   const result = await safe("memory_delete", () =>
     ctx.ctx.runAction(internal.neo4jActions.mcp.mcpDeleteMemory, {
-      clerkId: ctx.clerkUserId,
+      ...scopedMemory(ctx),
       memoryId: params.id,
     }),
   );
@@ -233,7 +233,7 @@ export async function runMemoryRelated(
 ): Promise<ToolHandlerResult> {
   return safe("memory_related", () =>
     ctx.ctx.runAction(internal.neo4jActions.mcp.mcpGetRelatedMemories, {
-      clerkId: ctx.clerkUserId,
+      ...scopedMemory(ctx),
       memoryId: params.memoryId,
     }),
   );

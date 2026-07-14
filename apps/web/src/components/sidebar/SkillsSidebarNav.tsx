@@ -45,7 +45,7 @@ export function SkillsSidebarNav({
   const onHub = pathname.endsWith("/skills/hub");
 
   const skills = useQuery(api.skills.listMy, { teamId });
-  const catalog = useQuery(api.systemSkills.listCatalog, {});
+  const catalog = useQuery(api.systemSkills.listCatalog, { teamId });
   const installedSystemSkills = useMemo(
     () => (catalog ?? []).filter((entry) => entry.installed),
     [catalog],
@@ -121,7 +121,6 @@ export function SkillsSidebarNav({
     });
   };
 
-  // Browse-the-catalog entry point, grouped with the Add control.
   const hubButton = (
     <Button
       variant="ghost"
@@ -137,8 +136,7 @@ export function SkillsSidebarNav({
     </Button>
   );
 
-  // Installed (linked) system skills — same active-pill + sliding treatment as
-  // personal skills; clicking opens the read-only detail page.
+  // Installed system skills for this workspace (personal vs team installs are split).
   const installedSection =
     !isIconOnly && !selectionMode && installedSystemSkills.length > 0 ? (
       <div className="mt-3 space-y-1">

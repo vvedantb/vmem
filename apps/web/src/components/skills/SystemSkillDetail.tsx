@@ -34,6 +34,7 @@ import { toast } from "sonner";
 import PageContainer from "@/components/PageContainer";
 import { ViewSkillPanel } from "@/components/skills/ViewSkillPanel";
 import { SystemSkillFormDialog } from "@/components/skills/SystemSkillFormDialog";
+import { useActiveTeamId } from "@/components/workspace/active-profile";
 
 type SystemSkillEntry = FunctionReturnType<
   typeof api.systemSkills.listCatalog
@@ -59,22 +60,25 @@ function patchCatalog(
  * Read-only detail page for a catalog system skill — full instructions plus
  * install / enable / remove (and admin edit / delete) in the header. Mirrors
  * the personal skill detail + SkillHeaderActions so both behave the same.
+ * Install state is scoped to the active workspace (personal vs team).
  */
 export function SystemSkillDetail({
   systemSkillId,
   profileId,
 }: SystemSkillDetailProps) {
   const navigate = useNavigate();
-  const catalog = useQuery(api.systemSkills.listCatalog, {});
+  const teamId = useActiveTeamId();
+  const catalogArgs = { teamId };
+  const catalog = useQuery(api.systemSkills.listCatalog, catalogArgs);
   const isAdmin = useQuery(api.systemSkills.amIAdmin, {}) ?? false;
 
   const install = useMutation(api.systemSkills.install).withOptimisticUpdate(
     (store, args) => {
-      const current = store.getQuery(api.systemSkills.listCatalog, {});
+      const current = store.getQuery(api.systemSkills.listCatalog, catalogArgs);
       if (!current) return;
       store.setQuery(
         api.systemSkills.listCatalog,
-        {},
+        catalogArgs,
         patchCatalog(current, args.systemSkillId, {
           installed: true,
           installEnabled: true,
@@ -85,11 +89,11 @@ export function SystemSkillDetail({
   const uninstall = useMutation(
     api.systemSkills.uninstall,
   ).withOptimisticUpdate((store, args) => {
-    const current = store.getQuery(api.systemSkills.listCatalog, {});
+    const current = store.getQuery(api.systemSkills.listCatalog, catalogArgs);
     if (!current) return;
     store.setQuery(
       api.systemSkills.listCatalog,
-      {},
+      catalogArgs,
       patchCatalog(current, args.systemSkillId, {
         installed: false,
         installEnabled: false,
@@ -99,11 +103,11 @@ export function SystemSkillDetail({
   const setEnabled = useMutation(
     api.systemSkills.setInstalledEnabled,
   ).withOptimisticUpdate((store, args) => {
-    const current = store.getQuery(api.systemSkills.listCatalog, {});
+    const current = store.getQuery(api.systemSkills.listCatalog, catalogArgs);
     if (!current) return;
     store.setQuery(
       api.systemSkills.listCatalog,
-      {},
+      catalogArgs,
       patchCatalog(current, args.systemSkillId, {
         installEnabled: args.enabled,
       }),
@@ -178,7 +182,7 @@ export function SystemSkillDetail({
           className="gap-1.5"
           onClick={() =>
             void run(
-              () => install({ systemSkillId: entry._id }),
+              () => install({ systemSkillId: entry._id, teamId }),
               "Failed to add",
             )
           }
@@ -216,6 +220,7 @@ export function SystemSkillDetail({
                           setEnabled({
                             systemSkillId: entry._id,
                             enabled: checked,
+                            teamId,
                           }),
                         "Failed to update",
                       )
@@ -230,7 +235,7 @@ export function SystemSkillDetail({
                   className="text-danger focus:text-danger data-[highlighted]:text-danger"
                   onSelect={() =>
                     void run(
-                      () => uninstall({ systemSkillId: entry._id }),
+                      () => uninstall({ systemSkillId: entry._id, teamId }),
                       "Failed to remove",
                     )
                   }

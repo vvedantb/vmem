@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useQueryStates } from "nuqs";
 import { useQuery, usePaginatedQuery } from "convex/react";
 import {
@@ -14,6 +14,7 @@ import {
 } from "@vmem/ui";
 import { IconSortDescending, IconSortAscending } from "@tabler/icons-react";
 import { api, type Id } from "@vmem/backend";
+import { useActiveProfile } from "@/components/workspace/active-profile";
 import {
   aiLogsSearchParams,
   isAllProfilesFilter,
@@ -40,6 +41,35 @@ const PAGE_SIZE = 50;
  */
 export function AiLogsPanel() {
   const [params, setParams] = useQueryStates(aiLogsSearchParams);
+  const activeProfile = useActiveProfile();
+
+  // Keep AI logs scoped to the active workspace so a team route never opens
+  // on personal spend (and vice versa) via the static `personal` URL default.
+  useEffect(() => {
+    if (activeProfile.teamId !== undefined) {
+      if (params.scope !== "team" || params.teamId !== activeProfile.teamId) {
+        void setParams({
+          scope: "team",
+          teamId: activeProfile.teamId,
+          profileId: PROFILE_FILTER_ALL,
+        });
+      }
+      return;
+    }
+    if (params.scope === "team") {
+      void setParams({
+        scope: "personal",
+        teamId: "",
+        profileId: PROFILE_FILTER_ALL,
+      });
+    }
+  }, [
+    activeProfile.teamId,
+    activeProfile._id,
+    params.scope,
+    params.teamId,
+    setParams,
+  ]);
 
   // Profiles + teams power the scope selector and the per-row profile badge
   // lookup. Both are user-scoped queries — we don't need to gate on auth

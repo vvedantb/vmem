@@ -160,7 +160,9 @@ function MainNav({
   onWikiClick: () => void;
   onCodebasesClick: () => void;
 }) {
-  const groups = isTeamWorkspace ? [...navGroups, teamNavGroup] : navGroups;
+  const groups = isTeamWorkspace
+    ? [...navGroups.slice(0, 1), teamNavGroup, ...navGroups.slice(1)]
+    : navGroups;
   return (
     <motion.nav
       className={cn(

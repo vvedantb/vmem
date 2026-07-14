@@ -6,12 +6,28 @@ import type { ProposedUpdateNode } from "../engine/neo4j/memory/types";
 import type { ResolveResult } from "../engine/neo4j/memory/proposals";
 
 export const listProposedUpdates = authAction({
-  args: {},
-  handler: async (ctx): Promise<ProposedUpdateNode[]> => {
+  args: {
+    profileId: v.optional(v.string()),
+  },
+  handler: async (ctx, args): Promise<ProposedUpdateNode[]> => {
     const clerkId = await requireClerkId(ctx);
+
+    let strictProfile = false;
+    if (args.profileId !== undefined) {
+      const profile = await ctx.runQuery(
+        internal.teams.assertProfileAccessInternal,
+        { profileId: args.profileId, userId: ctx.userId },
+      );
+      strictProfile = profile.teamId !== undefined;
+    }
+
     return await ctx.runAction(
       internal.neo4jActions.proposedUpdates.listProposedUpdatesInternal,
-      { clerkId },
+      {
+        clerkId,
+        profileId: args.profileId,
+        strictProfile,
+      },
     );
   },
 });

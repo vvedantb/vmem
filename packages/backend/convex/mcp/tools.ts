@@ -162,107 +162,128 @@ const mcpPresentation: Record<keyof typeof toolSpecs, McpToolPresentation> = {
     description:
       "List enabled skills (name + description only). Same data as the Available Skills section in context_prompt_get / vmem://context_prompt. When a task matches a skill's description, call skills_get with the exact name to load full markdown instructions before following them.",
     errorLabel: "List skills failed",
+    scopes: ["personal"],
   },
   skills_get: {
     description:
       "Fetch a single enabled skill by exact name, including full markdown instructions. Call after identifying a matching skill from context_prompt_get, skills_list, or the Available Skills section in vmem://context_prompt.",
     errorLabel: "Get skill failed",
+    scopes: ["personal"],
   },
   skills_create: {
     description:
       "Create a new enabled skill when you have identified a repeatable problem or a workflow that could be automated with a skill, and no existing skill already covers it (check Available Skills in vmem://context_prompt or call skills_list first). Write markdown instructions so future sessions can follow the same fix or automation. Do not create duplicates — if a similar skill exists, use skills_get and skills_update instead. Names must be unique per user (trimmed).",
     errorLabel: "Create skill failed",
+    scopes: ["personal"],
   },
   skills_update: {
     description:
       "Update an existing skill when its playbook should change — e.g. after fixing a repeatable problem, refining steps, or improving an automation. Call skills_get first to read the current skill. Provide the skill's current exact name (case sensitive) plus at least one field to change. Use newName to rename; use enabled false to disable without deleting.",
     errorLabel: "Update skill failed",
+    scopes: ["personal"],
   },
   skills_delete: {
     description:
       "Permanently delete a skill by exact name (case sensitive). Call skills_get first if unsure of the name. Prefer skills_update with enabled false to hide a skill without deleting it.",
     errorLabel: "Delete skill failed",
+    scopes: ["personal"],
   },
   wiki_list: {
     description:
       "List all wiki folders and documents (flat index, no body). Use returned ids with wiki_get. Call this before wiki_get or wiki_update when you do not already have a node id.",
     errorLabel: "Wiki list failed",
+    scopes: ["personal"],
   },
   wiki_get: {
     description:
       "Fetch a single wiki node by id. Returns metadata and contentMarkdown for documents. Call wiki_list first if you do not have the id.",
     errorLabel: "Wiki get failed",
+    scopes: ["personal"],
   },
   wiki_search: {
     description:
       "Full-text search wiki titles and document bodies. Returns id, title, kind, and excerpt.",
     errorLabel: "Wiki search failed",
+    scopes: ["personal"],
   },
   wiki_create: {
     description:
       "Create a wiki folder or document. Documents accept contentMarkdown stored as canonical markdown (same as the web editor). Optional parentId must be a folder id from wiki_list.",
     errorLabel: "Wiki create failed",
+    scopes: ["personal"],
   },
   wiki_update: {
     description:
       "Update a wiki node by id. Optional title and/or contentMarkdown. contentMode append concatenates new markdown after existing body; replace (default) overwrites the body.",
     errorLabel: "Wiki update failed",
+    scopes: ["personal"],
   },
   wiki_delete: {
     description:
       "Permanently delete a wiki folder or document by id. Deleting a folder removes all descendants. Call wiki_list or wiki_get first to confirm the id.",
     errorLabel: "Wiki delete failed",
+    scopes: ["personal"],
   },
   files_list: {
     description:
       "List files and folders in the shared filesystem. Paths are '/'-separated (e.g. 'ai-images/cat.png'). Omit path to list the entire tree; pass a folder path to list its direct children. Files are user-wide and shared across all your AI clients.",
     errorLabel: "Files list failed",
+    scopes: ["personal"],
   },
   files_get: {
     description:
       "Read a file by path. Images up to 4 MB are returned as an inline image block (rendered directly); text files up to 100 KB are returned inline. A downloadUrl is always included for larger files. Call files_list first if you don't know the path.",
     errorLabel: "Files get failed",
+    scopes: ["personal"],
     toContent: filesGetContent,
   },
   files_upload: {
     description:
       "Save a file to the shared filesystem at the given path. Provide either contentBase64 (inline bytes, data: URL allowed) or sourceUrl (the server fetches and stores it — best for generated images). Missing parent folders are auto-created; an existing file at the path is overwritten. Max 10 MB. PDF and text-like files are automatically indexed into the memory graph and appear in memory_search/memory_retrieve.",
     errorLabel: "Files upload failed",
+    scopes: ["personal"],
   },
   files_delete: {
     description:
       "Delete a file or folder by path. Folders are deleted recursively along with their stored contents. This is permanent.",
     errorLabel: "Files delete failed",
+    scopes: ["personal"],
   },
   codebases_list: {
     description:
       "List GitHub repositories connected to vmem. Returns codebase IDs, repo names, sync status, and parser stats. Call this first to discover codebaseId values for the other codebase_* tools. Only repos with status 'synced' have graph data in Neo4j.",
     errorLabel: "List codebases failed",
+    scopes: ["personal"],
   },
   codebase_overview: {
     description:
       "Get aggregate stats for a synced codebase: file, function, class, interface, and process counts plus CALLS and IMPORTS edge counts.",
     errorLabel: "Codebase overview failed",
+    scopes: ["personal"],
   },
   codebase_search: {
     description:
       "Search symbols (files, functions, classes, interfaces, processes) inside a synced codebase. Use the returned symbol id with codebase_context or codebase_impact.",
     errorLabel: "Codebase search failed",
+    scopes: ["personal"],
   },
   codebase_context: {
     description:
       "Get a symbol's metadata plus its direct CALLS relationships (callers and callees) and linked processes.",
     errorLabel: "Codebase context failed",
+    scopes: ["personal"],
   },
   codebase_impact: {
     description:
       "Traverse CALLS edges upstream (callers) or downstream (callees) from a symbol to estimate blast radius.",
     errorLabel: "Codebase impact failed",
+    scopes: ["personal"],
   },
   codebase_graph: {
     description:
       "Fetch a filtered subgraph of a synced codebase: nodes plus relationship edges (imports, calls, contains, extends, implements, process links). Response may be truncated on large repos — use kinds, processId, or blastRadiusOf to narrow scope.",
     errorLabel: "Codebase graph failed",
+    scopes: ["personal"],
   },
 };
 

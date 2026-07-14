@@ -31,7 +31,10 @@ import { CodebaseSidebarItem } from "@/components/codebases/CodebaseSidebarItem"
 import { CodebasesSearchBar } from "@/components/codebases/CodebasesSearchBar";
 import { AddRepoModal } from "@/components/codebases/AddRepoModal";
 import { codebasesListSearchParams } from "@/routes/_main/$profileId/codebases/-list-searchParams";
-import { useActiveProfileId } from "@/components/workspace/active-profile";
+import {
+  useActiveProfileId,
+  useActiveTeamId,
+} from "@/components/workspace/active-profile";
 import { SharedLayoutBackground } from "./SharedLayoutBackground";
 
 export type CodebasesSidebarNavProps = {
@@ -45,11 +48,12 @@ export function CodebasesSidebarNav({
 }: CodebasesSidebarNavProps) {
   const navigate = useNavigate();
   const profileId = useActiveProfileId();
+  const teamId = useActiveTeamId();
   const params = useParams({ strict: false });
   const codebaseId = typeof params.id === "string" ? params.id : undefined;
 
   const connection = useQuery(api.github.getConnection);
-  const codebases = useQuery(api.codebases.listMy);
+  const codebases = useQuery(api.codebases.listMy, { teamId });
   const syncAllMy = useAction(api.codebases.syncAllMy);
   const [{ q: searchQuery }, setSearchParams] = useQueryStates(
     codebasesListSearchParams,
@@ -105,7 +109,7 @@ export function CodebasesSidebarNav({
   const handleResyncAll = useCallback(async () => {
     setResyncing(true);
     try {
-      const result = await syncAllMy({});
+      const result = await syncAllMy({ teamId });
       toast.success(`Re-syncing ${result.synced} codebase(s)`);
     } catch (err) {
       const message =
@@ -114,7 +118,7 @@ export function CodebasesSidebarNav({
     } finally {
       setResyncing(false);
     }
-  }, [syncAllMy]);
+  }, [syncAllMy, teamId]);
 
   // Grouped with the search at the top of the sidebar, replacing the old
   // bottom-pinned button. "Add repository" when connected, else "Connect GitHub".

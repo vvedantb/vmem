@@ -25,23 +25,6 @@ export function DashboardLoadingSkeleton() {
           <Skeleton className="h-44 w-full rounded-lg" />
         </CardContent>
       </Card>
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
-        {[1, 2].map((index) => (
-          <Card key={index} className="shadow-none">
-            <CardContent className="p-5 sm:p-6">
-              <Skeleton className="mb-4 h-5 w-36 rounded" />
-              <div className="flex flex-col gap-1">
-                {[1, 2, 3, 4].map((row) => (
-                  <div key={row} className="rounded-lg px-4 py-3">
-                    <Skeleton className="h-4 w-full max-w-sm rounded" />
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
     </div>
   );
 }

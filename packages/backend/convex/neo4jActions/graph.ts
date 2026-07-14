@@ -34,9 +34,10 @@ function capGraph(data: GraphData): CappedMemoryGraph {
   const nodes = data.nodes.slice(0, MAX_NODES);
   const nodeIds = new Set(nodes.map((n) => n.id));
 
-  // Keep RELATES_TO edges with at least one endpoint in this page.
+  // Keep RELATES_TO edges only when both ends are in this page — otherwise a
+  // team-scoped page can ship dangling ids that belong to another workspace.
   const relatesToEdges = data.relatesToEdges
-    .filter((e) => nodeIds.has(e.source) || nodeIds.has(e.target))
+    .filter((e) => nodeIds.has(e.source) && nodeIds.has(e.target))
     .slice(0, MAX_EDGES);
   // Tag edges span the whole graph (first page only) — no node filter.
   const tagEdges = data.tagEdges.slice(0, MAX_EDGES);
@@ -74,6 +75,7 @@ export const getGraphDataInternal = internalAction({
     clerkId: v.string(),
     focus: v.optional(v.string()),
     profileId: v.optional(v.string()),
+    strictProfile: v.optional(v.boolean()),
     mode: v.optional(v.union(v.literal("local"), v.literal("global"))),
     depth: v.optional(v.number()),
     nodeLimit: v.optional(v.number()),
@@ -90,6 +92,7 @@ export const getGraphDataInternal = internalAction({
       args.cursorCreatedAt !== undefined && args.cursorId !== undefined
         ? { createdAt: args.cursorCreatedAt, id: args.cursorId }
         : null;
+    const strictProfile = args.strictProfile === true;
     const raw = isLocal
       ? await getLocalGraph(
           driver,
@@ -97,6 +100,7 @@ export const getGraphDataInternal = internalAction({
           args.focus ?? null,
           args.profileId,
           args.depth,
+          strictProfile,
         )
       : await getGraphData(
           driver,
@@ -104,6 +108,7 @@ export const getGraphDataInternal = internalAction({
           args.profileId,
           args.nodeLimit,
           cursor,
+          strictProfile,
         );
     return capGraph(raw);
   },

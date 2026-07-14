@@ -295,6 +295,7 @@ export default function AddMemoryModal({
                 value={selectedProfileId}
                 onChange={setSelectedProfileId}
                 disabled={isBusy}
+                lockToActiveWorkspace
                 className="h-7 min-w-0 gap-1.5 border-0 bg-transparent px-2 text-xs font-normal text-foreground shadow-none hover:bg-surface-tertiary/50 [&[data-state=open]]:bg-surface-tertiary/50 [&>svg]:size-3.5"
               />
 

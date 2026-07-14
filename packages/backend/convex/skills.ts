@@ -46,10 +46,9 @@ export function toSkillIndexEntry(skill: SkillIndexSlice): SkillIndexSlice {
 
 /**
  * Resolve a user's EFFECTIVE skills = their enabled personal skills + the
- * system skills they have installed-and-enabled (resolved LIVE from the
- * catalog — installs are links, not copies, so a maintainer edit changes
- * every installer's result here). Deduped by name (case-insensitive),
- * personal skills winning a clash. Only enabled entries are returned.
+ * system skills they have installed-and-enabled in the personal workspace
+ * (resolved LIVE from the catalog — installs are links, not copies).
+ * Team-scoped installs are excluded — those surface via team skill lists.
  */
 async function resolveEffectiveSkills(
   ctx: QueryCtx | MutationCtx,
@@ -84,7 +83,7 @@ async function resolveEffectiveSkills(
     .collect();
 
   for (const install of installs) {
-    if (!install.enabled) continue;
+    if (install.teamId !== undefined || !install.enabled) continue;
     const sys = await ctx.db.get(install.systemSkillId);
     if (!sys) continue; // catalog row was deleted
     const key = sys.name.toLowerCase();
@@ -103,17 +102,30 @@ async function resolveEffectiveSkills(
   return out;
 }
 
-/** True when the user has installed a system skill with this exact name. */
-async function userHasInstalledSystemSkillNamed(
+/** True when this workspace has an install of a system skill with this name. */
+async function scopeHasInstalledSystemSkillNamed(
   ctx: QueryCtx | MutationCtx,
   userId: Id<"users">,
+  teamId: Id<"teams"> | undefined,
   name: string,
 ): Promise<boolean> {
+  if (teamId !== undefined) {
+    const installs = await ctx.db
+      .query("userSystemSkills")
+      .withIndex("by_team", (q) => q.eq("teamId", teamId))
+      .collect();
+    for (const install of installs) {
+      const sys = await ctx.db.get(install.systemSkillId);
+      if (sys && sys.name === name) return true;
+    }
+    return false;
+  }
   const installs = await ctx.db
     .query("userSystemSkills")
     .withIndex("by_user", (q) => q.eq("userId", userId))
     .collect();
   for (const install of installs) {
+    if (install.teamId !== undefined) continue;
     const sys = await ctx.db.get(install.systemSkillId);
     if (sys && sys.name === name) return true;
   }
@@ -178,8 +190,7 @@ async function assertSkillNameAvailableInScope(
     throw new Error("A skill with this name already exists");
   }
   if (
-    teamId === undefined &&
-    (await userHasInstalledSystemSkillNamed(ctx, userId, trimmedName))
+    await scopeHasInstalledSystemSkillNamed(ctx, userId, teamId, trimmedName)
   ) {
     throw new Error(
       "A system skill with this name is installed. Uninstall it or choose another name.",
@@ -486,6 +497,31 @@ export const listByClerkIdInternal = internalQuery({
     const rows = await ctx.db
       .query("skills")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .order("desc")
+      .collect();
+    return rows.filter((s) => isSkillEnabled(s) && s.teamId === undefined);
+  },
+});
+
+/** Workspace-scoped enabled skills for the memory graph (personal or team). */
+export const listForGraphInternal = internalQuery({
+  args: {
+    userId: v.id("users"),
+    teamId: v.optional(v.id("teams")),
+  },
+  handler: async (ctx, args) => {
+    if (args.teamId !== undefined) {
+      const teamId = args.teamId;
+      const rows = await ctx.db
+        .query("skills")
+        .withIndex("by_team", (q) => q.eq("teamId", teamId))
+        .order("desc")
+        .collect();
+      return rows.filter((s) => isSkillEnabled(s));
+    }
+    const rows = await ctx.db
+      .query("skills")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
       .order("desc")
       .collect();
     return rows.filter((s) => isSkillEnabled(s) && s.teamId === undefined);

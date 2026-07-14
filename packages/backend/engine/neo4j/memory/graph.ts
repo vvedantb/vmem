@@ -121,6 +121,7 @@ async function fetchGraphNodesAndEdges(
   profileId: string | null | undefined,
   nodeLimit: number,
   cursor: GraphCursor | null,
+  strictProfile: boolean,
 ): Promise<{
   nodes: GraphNode[];
   relatesToEdges: RelatesToEdge[];
@@ -128,7 +129,9 @@ async function fetchGraphNodesAndEdges(
   totalMemoryCount: number | undefined;
   nextCursor: GraphCursor | undefined;
 }> {
-  const pf = profileFilter(profileId, "m");
+  const pf = profileFilter(profileId, "m", { strict: strictProfile });
+  const pfA = profileFilter(profileId, "a", { strict: strictProfile });
+  const pfB = profileFilter(profileId, "b", { strict: strictProfile });
   const limit = Math.max(
     1,
     Math.min(
@@ -166,11 +169,13 @@ async function fetchGraphNodesAndEdges(
      CALL (nodeIds) {
        MATCH (a:Memory)-[r:RELATES_TO]->(b:Memory)
        WHERE a.id IN nodeIds AND b.userId = $userId
+         ${pfB.clause}
        RETURN collect({source: a.id, target: b.id, reason: r.reason, score: r.score}) AS outEdges
      }
      CALL (nodeIds) {
        MATCH (a:Memory)-[r:RELATES_TO]->(b:Memory)
        WHERE b.id IN nodeIds AND a.userId = $userId
+         ${pfA.clause}
        RETURN collect({source: a.id, target: b.id, reason: r.reason, score: r.score}) AS inEdges
      }
      CALL (nodeIds) {
@@ -248,8 +253,9 @@ async function fetchTagSharedEdges(
   session: Session,
   userId: string,
   profileId: string | null | undefined,
+  strictProfile: boolean,
 ): Promise<TagEdge[]> {
-  const pf = profileFilter(profileId, "m");
+  const pf = profileFilter(profileId, "m", { strict: strictProfile });
   const result = await session.run(
     `MATCH (m:Memory {userId: $userId})-[:TAGGED_WITH]->(t:Tag)
      WHERE ${visibleStatusClause("m")} ${pf.clause}
@@ -276,6 +282,7 @@ export async function getGraphData(
   profileId?: string | null,
   nodeLimit: number = GLOBAL_GRAPH_MAX_NODES,
   cursor: GraphCursor | null = null,
+  strictProfile: boolean = false,
 ): Promise<GraphData> {
   const nodesEdgesSession = driver.session();
   const tagEdgesSession = cursor === null ? driver.session() : null;
@@ -287,9 +294,10 @@ export async function getGraphData(
         profileId,
         nodeLimit,
         cursor,
+        strictProfile,
       ),
       tagEdgesSession
-        ? fetchTagSharedEdges(tagEdgesSession, userId, profileId)
+        ? fetchTagSharedEdges(tagEdgesSession, userId, profileId, strictProfile)
         : Promise.resolve<TagEdge[]>([]),
     ]);
     return { ...nodesAndEdges, tagEdges };
@@ -325,14 +333,15 @@ export async function getLocalGraph(
   focusId: string | null,
   profileId?: string | null,
   depth: number = 2,
+  strictProfile: boolean = false,
 ): Promise<GraphData> {
   const nodesSession = driver.session();
   let nodeIds: string[];
   let nodes: GraphNode[];
   let resolvedFocusId: string | undefined;
 
-  const pfFocus = profileFilter(profileId, "focus");
-  const pfB = profileFilter(profileId, "b");
+  const pfFocus = profileFilter(profileId, "focus", { strict: strictProfile });
+  const pfB = profileFilter(profileId, "b", { strict: strictProfile });
 
   const hops = Math.min(3, Math.max(1, Math.trunc(depth)));
 

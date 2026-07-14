@@ -3,7 +3,7 @@ import type { Driver, Record as NeoRecord, Session } from "neo4j-driver";
 import { z } from "zod";
 import { neo4jGet, neo4jString, parseNeo4jNodeProps } from "../record";
 import { computeContentHash, toMemoryWithTags, toSnapshot } from "./mappers";
-import { logEvent, withSession } from "./shared";
+import { logEvent, profileFilter, withSession } from "./shared";
 import {
   PROPOSED_UPDATE_KINDS,
   type ProposedUpdateKind,
@@ -179,7 +179,15 @@ export async function createProposedDelete(
 export async function listProposedUpdates(
   driver: Driver,
   userId: string,
+  options?: { profileId?: string | null; strictProfile?: boolean },
 ): Promise<ProposedUpdateNode[]> {
+  const pf = profileFilter(options?.profileId, "m", {
+    strict: options?.strictProfile === true,
+  });
+  const pfSrc = profileFilter(options?.profileId, "src", {
+    strict: options?.strictProfile === true,
+  });
+
   return withSession(driver, async (session) => {
     const result = await session.run(
       `MATCH (p:ProposedUpdate {status: 'pending'})
@@ -187,16 +195,17 @@ export async function listProposedUpdates(
        WITH p, m
        OPTIONAL MATCH (src:Memory {userId: $userId})
          WHERE src.id IN coalesce(p.sourceMemoryIds, [])
+         ${pfSrc.clause}
        WITH p, m,
             collect(DISTINCT { id: src.id, title: src.title, content: src.content }) AS sources
-       WHERE (m IS NOT NULL AND m.userId = $userId)
-          OR size([s IN sources WHERE s.id IS NOT NULL]) > 0
+       WHERE (m IS NOT NULL AND m.userId = $userId ${pf.clause})
+          OR (m IS NULL AND size([s IN sources WHERE s.id IS NOT NULL]) > 0)
        RETURN p,
               m.title AS memoryTitle,
               m.content AS memoryContent,
               [s IN sources WHERE s.id IS NOT NULL] AS sourceSnaps
        ORDER BY p.createdAt DESC`,
-      { userId },
+      { userId, ...pf.params },
     );
 
     return result.records.map(parseListedProposedUpdate);

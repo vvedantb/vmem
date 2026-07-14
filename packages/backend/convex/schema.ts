@@ -176,7 +176,9 @@ const schema = defineSchema({
 
   codebases: defineTable(codebaseFields)
     .index("by_user", ["userId"])
-    .index("by_user_repo", ["userId", "repoFullName"]),
+    .index("by_user_repo", ["userId", "repoFullName"])
+    .index("by_team", ["teamId"])
+    .index("by_team_repo", ["teamId", "repoFullName"]),
 
   skills: defineTable(skillFields)
     .index("by_user", ["userId"])
@@ -192,10 +194,12 @@ const schema = defineSchema({
     .index("by_name", ["name"])
     .index("by_published", ["published"]),
 
-  /** Per-user install LINK to a systemSkills row (linked, never copied). */
+  /** Per-user (personal) or per-team install LINK to a systemSkills row. */
   userSystemSkills: defineTable(userSystemSkillFields)
     .index("by_user", ["userId"])
     .index("by_user_systemSkill", ["userId", "systemSkillId"])
+    .index("by_team", ["teamId"])
+    .index("by_team_systemSkill", ["teamId", "systemSkillId"])
     .index("by_systemSkill", ["systemSkillId"]),
 
   wikiNodes: defineTable(wikiNodeFields)

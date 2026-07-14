@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { authAction, requireClerkId } from "./auth";
+import { authAction } from "./auth";
 
 const kindValidator = v.union(
   v.literal("code-file"),
@@ -36,10 +36,14 @@ interface OverviewStatsResult {
 export const getOverview = authAction({
   args: { codebaseId: v.string() },
   handler: async (ctx, args): Promise<OverviewStatsResult> => {
-    const clerkId = await requireClerkId(ctx);
+    const neo = await ctx.runQuery(
+      internal.codebases.resolveNeo4jAccessInternal,
+      { codebaseId: args.codebaseId, userId: ctx.userId },
+    );
+    if (!neo) throw new Error("Codebase not found");
     return await ctx.runAction(
       internal.neo4jActions.codebases.getOverviewStatsInternal,
-      { clerkId, codebaseId: args.codebaseId },
+      { clerkId: neo.ownerClerkId, codebaseId: neo.codebaseId },
     );
   },
 });
@@ -86,12 +90,16 @@ export const getGraph = authAction({
     blastDepth: v.optional(v.number()),
   },
   handler: async (ctx, args): Promise<GraphResult> => {
-    const clerkId = await requireClerkId(ctx);
+    const neo = await ctx.runQuery(
+      internal.codebases.resolveNeo4jAccessInternal,
+      { codebaseId: args.codebaseId, userId: ctx.userId },
+    );
+    if (!neo) throw new Error("Codebase not found");
     return await ctx.runAction(
       internal.neo4jActions.codebases.getGraphInternal,
       {
-        clerkId,
-        codebaseId: args.codebaseId,
+        clerkId: neo.ownerClerkId,
+        codebaseId: neo.codebaseId,
         kinds: args.kinds,
         processId: args.processId,
         blastRadiusOf: args.blastRadiusOf,
@@ -122,12 +130,16 @@ interface SymbolContextResult {
 export const getContext = authAction({
   args: { codebaseId: v.string(), symbolId: v.string() },
   handler: async (ctx, args): Promise<SymbolContextResult | null> => {
-    const clerkId = await requireClerkId(ctx);
+    const neo = await ctx.runQuery(
+      internal.codebases.resolveNeo4jAccessInternal,
+      { codebaseId: args.codebaseId, userId: ctx.userId },
+    );
+    if (!neo) throw new Error("Codebase not found");
     return await ctx.runAction(
       internal.neo4jActions.codebases.getSymbolContextInternal,
       {
-        clerkId,
-        codebaseId: args.codebaseId,
+        clerkId: neo.ownerClerkId,
+        codebaseId: neo.codebaseId,
         symbolId: args.symbolId,
       },
     );
@@ -147,12 +159,16 @@ export const getImpact = authAction({
     depth: v.optional(v.number()),
   },
   handler: async (ctx, args): Promise<ImpactResult> => {
-    const clerkId = await requireClerkId(ctx);
+    const neo = await ctx.runQuery(
+      internal.codebases.resolveNeo4jAccessInternal,
+      { codebaseId: args.codebaseId, userId: ctx.userId },
+    );
+    if (!neo) throw new Error("Codebase not found");
     return await ctx.runAction(
       internal.neo4jActions.codebases.getImpactInternal,
       {
-        clerkId,
-        codebaseId: args.codebaseId,
+        clerkId: neo.ownerClerkId,
+        codebaseId: neo.codebaseId,
         symbolId: args.symbolId,
         direction: args.direction,
         depth: args.depth,
@@ -180,12 +196,16 @@ export const searchSymbols = authAction({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args): Promise<SearchResult> => {
-    const clerkId = await requireClerkId(ctx);
+    const neo = await ctx.runQuery(
+      internal.codebases.resolveNeo4jAccessInternal,
+      { codebaseId: args.codebaseId, userId: ctx.userId },
+    );
+    if (!neo) throw new Error("Codebase not found");
     return await ctx.runAction(
       internal.neo4jActions.codebases.searchSymbolsInternal,
       {
-        clerkId,
-        codebaseId: args.codebaseId,
+        clerkId: neo.ownerClerkId,
+        codebaseId: neo.codebaseId,
         query: args.query,
         kind: args.kind,
         limit: args.limit,

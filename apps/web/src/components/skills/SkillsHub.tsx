@@ -8,6 +8,7 @@ import { Button } from "@vmem/ui";
 import { IconApps, IconPlus } from "@tabler/icons-react";
 import { SystemSkillCard } from "@/components/skills/SystemSkillCard";
 import { SystemSkillFormDialog } from "@/components/skills/SystemSkillFormDialog";
+import { useActiveTeamId } from "@/components/workspace/active-profile";
 
 type SystemSkillEntry = FunctionReturnType<
   typeof api.systemSkills.listCatalog
@@ -20,10 +21,12 @@ interface SkillsHubProps {
 /**
  * The Skills Hub — browse maintainer-curated system skills. Each card links to
  * the skill's detail page (read + install/manage there). Admins create new
- * catalog entries here. Installs are LINKS to the catalog, never copies.
+ * catalog entries here. Installs are LINKS to the catalog, never copies —
+ * scoped to the active workspace (personal vs team).
  */
 export function SkillsHub({ profileId }: SkillsHubProps) {
-  const catalog = useQuery(api.systemSkills.listCatalog, {});
+  const teamId = useActiveTeamId();
+  const catalog = useQuery(api.systemSkills.listCatalog, { teamId });
   const isAdmin = useQuery(api.systemSkills.amIAdmin, {}) ?? false;
   const [creating, setCreating] = useState(false);
 

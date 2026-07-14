@@ -2,13 +2,19 @@ import { v } from "convex/values";
 import { internalMutation, internalQuery } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { api, internal } from "./_generated/api";
-import { authAction, authMutation, authQuery, requireClerkId } from "./auth";
+import { authAction, authMutation, authQuery } from "./auth";
 import { isCodebaseSyncStalled } from "@vmem/shared";
 import type { Doc, Id } from "./_generated/dataModel";
 import { decryptToken } from "./lib/crypto";
 import { createGithubOctokit } from "../engine/github/octokit";
 import { retrier } from "./retrier";
 import { z } from "zod";
+import {
+  assertContentDeletable,
+  assertContentEditable,
+  isContentReadable,
+  requireContentScopeAccess,
+} from "./teams/auth";
 
 /** Re-sync codebases that have not synced in the last 24 hours. */
 const DAILY_SYNC_STALE_MS = 24 * 60 * 60 * 1000;
@@ -26,8 +32,49 @@ const githubRepoSchema = z.object({
 
 const githubReposSchema = z.array(githubRepoSchema);
 
-/** Normalize + ownership check shared by public mutate/read paths. */
-async function getOwnedCodebaseOrNull(
+async function listScopeCodebases(
+  ctx: QueryCtx | MutationCtx,
+  userId: Id<"users">,
+  teamId: Id<"teams"> | undefined,
+): Promise<Array<Doc<"codebases">>> {
+  if (teamId !== undefined) {
+    return await ctx.db
+      .query("codebases")
+      .withIndex("by_team", (q) => q.eq("teamId", teamId))
+      .collect();
+  }
+  const rows = await ctx.db
+    .query("codebases")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .collect();
+  return rows.filter((cb) => cb.teamId === undefined);
+}
+
+async function findDuplicateInScope(
+  ctx: QueryCtx | MutationCtx,
+  userId: Id<"users">,
+  teamId: Id<"teams"> | undefined,
+  repoFullName: string,
+): Promise<Doc<"codebases"> | null> {
+  if (teamId !== undefined) {
+    return await ctx.db
+      .query("codebases")
+      .withIndex("by_team_repo", (q) =>
+        q.eq("teamId", teamId).eq("repoFullName", repoFullName),
+      )
+      .first();
+  }
+  const matches = await ctx.db
+    .query("codebases")
+    .withIndex("by_user_repo", (q) =>
+      q.eq("userId", userId).eq("repoFullName", repoFullName),
+    )
+    .collect();
+  return matches.find((cb) => cb.teamId === undefined) ?? null;
+}
+
+/** Normalize + readability check shared by public mutate/read paths. */
+async function getReadableCodebaseOrNull(
   ctx: QueryCtx | MutationCtx,
   id: string,
   userId: Id<"users">,
@@ -35,38 +82,36 @@ async function getOwnedCodebaseOrNull(
   const normalizedId = ctx.db.normalizeId("codebases", id);
   if (!normalizedId) return null;
   const codebase = await ctx.db.get(normalizedId);
-  if (!codebase || codebase.userId !== userId) return null;
+  if (!codebase) return null;
+  if (!(await isContentReadable(ctx, codebase, userId))) return null;
   return codebase;
 }
 
-async function requireOwnedCodebase(
+async function requireReadableCodebase(
   ctx: QueryCtx | MutationCtx,
   id: string,
   userId: Id<"users">,
 ): Promise<Doc<"codebases">> {
-  const normalizedId = ctx.db.normalizeId("codebases", id);
-  if (!normalizedId) throw new Error("Invalid codebase id");
-  const codebase = await ctx.db.get(normalizedId);
-  if (!codebase || codebase.userId !== userId) {
-    throw new Error("Codebase not found");
-  }
+  const codebase = await getReadableCodebaseOrNull(ctx, id, userId);
+  if (!codebase) throw new Error("Codebase not found");
   return codebase;
 }
 
+/**
+ * List codebases in a scope. No `teamId` = the user's personal codebases;
+ * `teamId` = that team's shared drive (members only).
+ */
 export const listMy = authQuery({
-  args: {},
-  handler: async (ctx) => {
-    const codebases = await ctx.db
-      .query("codebases")
-      .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
-      .collect();
+  args: { teamId: v.optional(v.id("teams")) },
+  handler: async (ctx, args) => {
+    await requireContentScopeAccess(ctx, ctx.userId, args.teamId);
+    const codebases = await listScopeCodebases(ctx, ctx.userId, args.teamId);
 
-    // Resolve the avatar from the user's *current* GitHub connection rather
+    // Resolve the avatar from the caller's *current* GitHub connection rather
     // than each codebase's stored `githubConnectionId`. A disconnect deletes
     // the connection row and a reconnect creates a new one (e.g. after a
     // username change), so codebases added under an old connection would
-    // otherwise point at a deleted row and lose their avatar. A user has a
-    // single connection (queried `by_user`), so one lookup covers all rows.
+    // otherwise point at a deleted row and lose their avatar.
     const connection = await ctx.db
       .query("githubConnections")
       .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
@@ -80,7 +125,7 @@ export const listMy = authQuery({
 export const getById = authQuery({
   args: { id: v.string() },
   handler: async (ctx, args) => {
-    return await getOwnedCodebaseOrNull(ctx, args.id, ctx.userId);
+    return await getReadableCodebaseOrNull(ctx, args.id, ctx.userId);
   },
 });
 
@@ -127,19 +172,22 @@ export const addCodebase = authMutation({
     language: v.optional(v.string()),
     description: v.optional(v.string()),
     isPrivate: v.optional(v.boolean()),
+    teamId: v.optional(v.id("teams")),
   },
   handler: async (ctx, args) => {
-    // Check for duplicate
-    const existing = await ctx.db
-      .query("codebases")
-      .withIndex("by_user_repo", (q) =>
-        q.eq("userId", ctx.userId).eq("repoFullName", args.repoFullName),
-      )
-      .first();
+    await requireContentScopeAccess(ctx, ctx.userId, args.teamId);
+
+    const existing = await findDuplicateInScope(
+      ctx,
+      ctx.userId,
+      args.teamId,
+      args.repoFullName,
+    );
     if (existing) throw new Error("Repository already added");
 
     return await ctx.db.insert("codebases", {
       userId: ctx.userId,
+      teamId: args.teamId,
       githubConnectionId: args.githubConnectionId,
       repoOwner: args.repoOwner,
       repoName: args.repoName,
@@ -158,12 +206,13 @@ export const addCodebase = authMutation({
 export const removeCodebase = authMutation({
   args: { id: v.string() },
   handler: async (ctx, args) => {
-    const codebase = await requireOwnedCodebase(ctx, args.id, ctx.userId);
+    const codebase = await requireReadableCodebase(ctx, args.id, ctx.userId);
+    await assertContentDeletable(ctx, codebase, ctx.userId);
     // Delete the Convex row immediately (keeps the optimistic update snappy)
-    // and schedule Neo4j cleanup. The graph data is scoped by clerkId, so we
-    // resolve it before handing off to the Node-runtime delete action.
+    // and schedule Neo4j cleanup. Graph nodes are keyed by the owner's
+    // clerkId (whoever first synced), not the deleter.
     const clerkId = await ctx.runQuery(internal.auth.getClerkIdInternal, {
-      userId: ctx.userId,
+      userId: codebase.userId,
     });
     await ctx.db.delete(codebase._id);
     if (clerkId) {
@@ -187,7 +236,8 @@ export const removeCodebase = authMutation({
 export const setArchived = authMutation({
   args: { id: v.string(), archived: v.boolean() },
   handler: async (ctx, args) => {
-    const codebase = await requireOwnedCodebase(ctx, args.id, ctx.userId);
+    const codebase = await requireReadableCodebase(ctx, args.id, ctx.userId);
+    await assertContentEditable(ctx, codebase, ctx.userId);
     await ctx.db.patch(codebase._id, { isArchived: args.archived });
   },
 });
@@ -201,10 +251,10 @@ export const syncCodebase = authAction({
     );
     if (!normalizedId) throw new Error("Invalid codebase id");
 
-    const codebase = await ctx.runQuery(internal.codebases.getByIdInternal, {
-      id: normalizedId,
-      userId: ctx.userId,
-    });
+    const codebase = await ctx.runQuery(
+      internal.codebases.getAccessibleByIdInternal,
+      { id: normalizedId, userId: ctx.userId },
+    );
     if (!codebase) throw new Error("Codebase not found");
 
     const result = await ctx.runAction(
@@ -218,19 +268,19 @@ export const syncCodebase = authAction({
 });
 
 /**
- * Re-sync every codebase belonging to the current user. Fires when the
- * user clicks the "Re-sync" banner that appears on `/codebases` after a
- * `PARSER_VERSION` bump. We run them sequentially to avoid hammering
- * GitHub rate limits.
+ * Re-sync every codebase in the active scope. Fires when the user clicks the
+ * "Re-sync" banner that appears on `/codebases` after a `PARSER_VERSION` bump.
+ * We run them sequentially to avoid hammering GitHub rate limits.
  */
 export const syncAllMy = authAction({
-  args: {},
-  handler: async (ctx) => {
+  args: { teamId: v.optional(v.id("teams")) },
+  handler: async (ctx, args) => {
     // Explicit type breaks the circular inference caused by re-entering
     // `api.codebases.syncCodebase` below (this action references itself).
     const allCodebases: Array<{ _id: string; isArchived?: boolean }> =
       await ctx.runQuery(internal.codebases.listMyInternal, {
         userId: ctx.userId,
+        teamId: args.teamId,
       });
     // Archived codebases are intentionally excluded from re-syncs.
     const codebases = allCodebases.filter((cb) => !cb.isArchived);
@@ -272,12 +322,16 @@ interface CodebaseGraphResult {
 export const getCodebaseGraph = authAction({
   args: { codebaseId: v.string() },
   handler: async (ctx, args): Promise<CodebaseGraphResult> => {
-    const clerkId = await requireClerkId(ctx);
+    const neo = await ctx.runQuery(
+      internal.codebases.resolveNeo4jAccessInternal,
+      { codebaseId: args.codebaseId, userId: ctx.userId },
+    );
+    if (!neo) throw new Error("Codebase not found");
     return await ctx.runAction(
       internal.neo4jActions.codebases.getCodebaseGraphInternal,
       {
-        clerkId,
-        codebaseId: args.codebaseId,
+        clerkId: neo.ownerClerkId,
+        codebaseId: neo.codebaseId,
       },
     );
   },
@@ -290,6 +344,36 @@ export const normalizeCodebaseId = internalQuery({
   },
 });
 
+/** Readable by owner or team member — used by sync / symbol actions. */
+export const getAccessibleByIdInternal = internalQuery({
+  args: { id: v.id("codebases"), userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const codebase = await ctx.db.get(args.id);
+    if (!codebase) return null;
+    if (!(await isContentReadable(ctx, codebase, args.userId))) return null;
+    return codebase;
+  },
+});
+
+/**
+ * Resolve Neo4j access for a viewer: the graph is keyed by the owner's
+ * clerkId (whoever first synced), so teammates must use that id to read.
+ */
+export const resolveNeo4jAccessInternal = internalQuery({
+  args: { codebaseId: v.string(), userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const normalizedId = ctx.db.normalizeId("codebases", args.codebaseId);
+    if (!normalizedId) return null;
+    const codebase = await ctx.db.get(normalizedId);
+    if (!codebase) return null;
+    if (!(await isContentReadable(ctx, codebase, args.userId))) return null;
+    const owner = await ctx.db.get(codebase.userId);
+    if (!owner?.clerkId) return null;
+    return { codebaseId: codebase._id, ownerClerkId: owner.clerkId };
+  },
+});
+
+/** Owner-only lookup (MCP personal scope). Prefer getAccessibleByIdInternal for app paths. */
 export const getByIdInternal = internalQuery({
   args: { id: v.id("codebases"), userId: v.id("users") },
   handler: async (ctx, args) => {
@@ -345,14 +429,17 @@ export const updateStatusInternal = internalMutation({
   },
 });
 
-/** Internal lister — used by `syncAllMy` so it can iterate user codebases without the avatar join. */
+/**
+ * Internal lister — used by `syncAllMy` and MCP. No `teamId` = personal only
+ * (MCP stays personal-scoped, matching skills/wiki).
+ */
 export const listMyInternal = internalQuery({
-  args: { userId: v.id("users") },
+  args: {
+    userId: v.id("users"),
+    teamId: v.optional(v.id("teams")),
+  },
   handler: async (ctx, args) => {
-    return ctx.db
-      .query("codebases")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
-      .collect();
+    return await listScopeCodebases(ctx, args.userId, args.teamId);
   },
 });
 

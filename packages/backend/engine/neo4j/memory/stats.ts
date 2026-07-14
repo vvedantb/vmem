@@ -60,6 +60,7 @@ export async function getStats(
   driver: Driver,
   userId: string,
   profileId?: string | null,
+  strictProfile: boolean = false,
 ): Promise<{
   totalMemories: number;
   memoriesThisWeek: number;
@@ -78,8 +79,8 @@ export async function getStats(
       now.getDate(),
     ).toISOString();
 
-    const pfM = profileFilter(profileId, "m");
-    const pfM2 = profileFilter(profileId, "m2");
+    const pfM = profileFilter(profileId, "m", { strict: strictProfile });
+    const pfM2 = profileFilter(profileId, "m2", { strict: strictProfile });
 
     const result = await session.run(
       `MATCH (m:Memory {userId: $userId})
@@ -181,6 +182,7 @@ export async function getRecentActivity(
   userId: string,
   profileId?: string | null,
   limit = 10,
+  strictProfile: boolean = false,
 ): Promise<
   {
     id: string;
@@ -192,7 +194,7 @@ export async function getRecentActivity(
   }[]
 > {
   return withSession(driver, async (session) => {
-    const pf = profileFilter(profileId, "m");
+    const pf = profileFilter(profileId, "m", { strict: strictProfile });
 
     const result = await session.run(
       `MATCH (e:MemoryEvent)-[:EVENT_FOR]->(m:Memory {userId: $userId})

@@ -9,21 +9,14 @@ import { DashboardLoadingSkeleton } from "./dashboard/DashboardLoadingSkeleton";
 import { DashboardStatCards } from "./dashboard/DashboardStatCards";
 import { DreamPortraitCard } from "./dashboard/DreamPortraitCard";
 import { MemoryGrowthChart } from "./dashboard/MemoryGrowthChart";
-import { QuickActionsGrid } from "./dashboard/QuickActionsGrid";
-import { RecentActivityList } from "./dashboard/RecentActivityList";
 
 type StatsData = FunctionReturnType<typeof api.dashboardApi.getStats>;
-type ActivityItem = FunctionReturnType<
-  typeof api.dashboardApi.getRecentActivity
->[number];
 
 export default function Dashboard() {
   const { isAuthenticated } = useConvexAuth();
   const activeProfile = useActiveProfile();
   const getStats = useAction(api.dashboardApi.getStats);
-  const getRecentActivity = useAction(api.dashboardApi.getRecentActivity);
   const [stats, setStats] = useState<StatsData | null>(null);
-  const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,20 +25,13 @@ export default function Dashboard() {
     try {
       setIsLoading(true);
       setError(null);
-
-      const [statsData, activityData] = await Promise.all([
-        getStats({ profileId: activeProfile._id }),
-        getRecentActivity({ profileId: activeProfile._id }),
-      ]);
-
-      setStats(statsData);
-      setActivity(activityData);
+      setStats(await getStats({ profileId: activeProfile._id }));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load dashboard");
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, getStats, getRecentActivity, activeProfile._id]);
+  }, [isAuthenticated, getStats, activeProfile._id]);
 
   useEffect(() => {
     void fetchData();
@@ -84,11 +70,6 @@ export default function Dashboard() {
       <DreamPortraitCard />
 
       <MemoryGrowthChart growthData={stats.growthData} />
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
-        <RecentActivityList activity={activity} />
-        <QuickActionsGrid />
-      </div>
     </div>
   );
 }
