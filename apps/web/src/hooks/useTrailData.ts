@@ -2,12 +2,17 @@
 
 import { useState, useEffect } from "react";
 import { useAction } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { api } from "@vmem/backend";
 
 export interface TrailEntry {
   connectionType: string;
   reason?: string;
 }
+
+type TopicTimelineEvents = FunctionReturnType<
+  typeof api.timelineApi.getTopicTimeline
+>;
 
 interface UseTrailDataOptions {
   tag: string | null;
@@ -16,6 +21,18 @@ interface UseTrailDataOptions {
 interface UseTrailDataResult {
   trailMap: Map<string, TrailEntry>;
   isLoading: boolean;
+}
+
+function buildTrailMap(events: TopicTimelineEvents): Map<string, TrailEntry> {
+  const map = new Map<string, TrailEntry>();
+  for (const event of events) {
+    if (!map.has(event.memoryId)) {
+      map.set(event.memoryId, {
+        connectionType: event.connectionType ?? "tag",
+      });
+    }
+  }
+  return map;
 }
 
 export function useTrailData({ tag }: UseTrailDataOptions): UseTrailDataResult {
@@ -35,21 +52,7 @@ export function useTrailData({ tag }: UseTrailDataOptions): UseTrailDataResult {
     getTopicTimeline({ tag, limit: 200, offset: 0 })
       .then((events) => {
         if (cancelled) return;
-        const data = events as Array<{
-          memoryId: string;
-          connectionType?: string;
-          reason?: string;
-        }>;
-        const map = new Map<string, TrailEntry>();
-        for (const event of data) {
-          if (!map.has(event.memoryId)) {
-            map.set(event.memoryId, {
-              connectionType: event.connectionType ?? "tag",
-              reason: event.reason,
-            });
-          }
-        }
-        setTrailMap(map);
+        setTrailMap(buildTrailMap(events));
       })
       .catch(() => {
         if (!cancelled) setTrailMap(new Map());
