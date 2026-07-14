@@ -2,8 +2,11 @@ import type { ContentMessage, BackgroundResponse } from "@/types/messages";
 import { safeSendMessage } from "@/lib/safe-message";
 import { mountVmemLogo } from "@/content/shared/icons";
 import type { VmemLogoVariant } from "@/content/shared/icons";
+import { checkIcon, errorIcon } from "@/content/shared/status-icons";
 
 const VMEM_LOGO_SIZE = 16;
+const CHECK_ICON = checkIcon(16);
+const ERROR_ICON = errorIcon(16);
 
 /**
  * The popup's background follows prefers-color-scheme (see styles below), so
@@ -14,14 +17,6 @@ function logoVariant(): VmemLogoVariant {
     ? "light"
     : "dark";
 }
-
-const CHECK_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-  <polyline points="20 6 9 17 4 12"/>
-</svg>`;
-
-const ERROR_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-</svg>`;
 
 // Spinner is pure CSS — see styles below
 

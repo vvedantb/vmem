@@ -11,7 +11,7 @@ export type SkillVersionListEntry = FunctionReturnType<
   typeof api.skillVersions.list
 >[number];
 
-export type SkillVersionDetail = NonNullable<
+type SkillVersionDetail = NonNullable<
   FunctionReturnType<typeof api.skillVersions.get>
 >;
 

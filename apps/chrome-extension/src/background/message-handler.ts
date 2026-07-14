@@ -1,4 +1,5 @@
 import type { ContentMessage, BackgroundResponse } from "@/types/messages";
+import type { CreateMemoryParams } from "@/types/api";
 import { createMemory, retrieveMemories, saveScreenshot } from "./api-client";
 import { importBookmarks } from "./import-bookmarks";
 import { importHistory } from "./import-history";
@@ -25,6 +26,23 @@ const HANDLED_TYPES = new Set<string>([
   "DEBUG_PING",
 ]);
 
+type SaveResult = Extract<BackgroundResponse, { type: "SAVE_RESULT" }>;
+
+async function tryCreateMemory(
+  params: CreateMemoryParams,
+): Promise<SaveResult> {
+  try {
+    const memory = await createMemory(params);
+    return { type: "SAVE_RESULT", success: true, memoryId: memory.id };
+  } catch (err) {
+    return {
+      type: "SAVE_RESULT",
+      success: false,
+      error: err instanceof Error ? err.message : "Unknown error",
+    };
+  }
+}
+
 export function registerMessageHandler(): void {
   chrome.runtime.onMessage.addListener(
     (
@@ -50,12 +68,7 @@ export function registerMessageHandler(): void {
   );
 }
 
-/**
- * Decode a base64 PNG payload (no data URL prefix) into a Blob suitable
- * for upload. atob is available in service workers; using a Uint8Array
- * avoids the subtle bug where wrapping a binary string directly in a
- * Blob produces UTF-8-mangled output.
- */
+// decode base64 PNG payload without UTF-8-mangling binary bytes
 function base64PngToBlob(base64: string): Blob {
   const binary = atob(base64);
   const bytes = new Uint8Array(binary.length);
@@ -81,119 +94,78 @@ export async function handleMessage(
     }
 
     case "SAVE_PAGE": {
-      try {
-        // Convert HTML to markdown if provided, otherwise use plain content
-        let contentToSave = message.content;
-        if (message.markdown) {
-          // markdown field contains HTML from page extraction - convert it
-          contentToSave = htmlToMarkdown(message.markdown);
-        }
-        const memory = await createMemory({
-          title: message.title,
-          content: contentToSave.slice(0, 10000),
-          type: "knowledge",
-          source: "browser-extension",
-          tags: [new URL(message.url).hostname],
-          confidence: 1.0,
-          url: message.url,
-          profileId: message.profileId,
-        });
-        return {
-          type: "SAVE_RESULT",
-          success: true,
-          memoryId: memory.id,
-        };
-      } catch (err) {
-        const error = err instanceof Error ? err.message : "Unknown error";
-        return { type: "SAVE_RESULT", success: false, error };
+      // Convert HTML to markdown if provided, otherwise use plain content
+      let contentToSave = message.content;
+      if (message.markdown) {
+        // markdown field contains HTML from page extraction - convert it
+        contentToSave = htmlToMarkdown(message.markdown);
       }
+      return await tryCreateMemory({
+        title: message.title,
+        content: contentToSave.slice(0, 10000),
+        type: "knowledge",
+        source: "browser-extension",
+        tags: [new URL(message.url).hostname],
+        confidence: 1.0,
+        url: message.url,
+        profileId: message.profileId,
+      });
     }
 
     case "SAVE_YOUTUBE_VIDEO": {
-      try {
-        const content = `Channel: ${message.channel}\n\nTranscript:\n${message.transcript}`;
-        const memory = await createMemory({
-          title: message.title,
-          content: content.slice(0, 10000),
-          type: "knowledge",
-          source: "youtube",
-          tags: ["youtube", message.channel],
-          confidence: 1.0,
-          url: message.url,
-          profileId: message.profileId,
-        });
-        return {
-          type: "SAVE_RESULT",
-          success: true,
-          memoryId: memory.id,
-        };
-      } catch (err) {
-        const error = err instanceof Error ? err.message : "Unknown error";
-        return { type: "SAVE_RESULT", success: false, error };
-      }
+      const content = `Channel: ${message.channel}\n\nTranscript:\n${message.transcript}`;
+      return await tryCreateMemory({
+        title: message.title,
+        content: content.slice(0, 10000),
+        type: "knowledge",
+        source: "youtube",
+        tags: ["youtube", message.channel],
+        confidence: 1.0,
+        url: message.url,
+        profileId: message.profileId,
+      });
     }
 
     case "CAPTURE_PROMPT": {
-      try {
-        const trimmed = message.prompt.trim();
-        const title =
-          trimmed.length > 80 ? trimmed.slice(0, 80) + "…" : trimmed;
-        const hostname = new URL(message.url).hostname;
-
-        const memory = await createMemory({
-          title,
-          content: message.prompt.slice(0, 10000),
-          type: "knowledge",
-          source: "prompt-capture",
-          tags: [hostname, message.platform, "prompt"],
-          confidence: 0.8,
-          url: message.url,
-          profileId: message.profileId,
-        });
-        return {
-          type: "SAVE_RESULT",
-          success: true,
-          memoryId: memory.id,
-        };
-      } catch (err) {
-        const error = err instanceof Error ? err.message : "Unknown error";
-        return { type: "SAVE_RESULT", success: false, error };
-      }
+      const trimmed = message.prompt.trim();
+      const title = trimmed.length > 80 ? trimmed.slice(0, 80) + "…" : trimmed;
+      return await tryCreateMemory({
+        title,
+        content: message.prompt.slice(0, 10000),
+        type: "knowledge",
+        source: "prompt-capture",
+        tags: [new URL(message.url).hostname, message.platform, "prompt"],
+        confidence: 0.8,
+        url: message.url,
+        profileId: message.profileId,
+      });
     }
 
     case "SAVE_SELECTION": {
-      try {
-        const trimmed = message.selectedText.trim();
-        const title =
-          trimmed.length > 80 ? trimmed.slice(0, 80) + "…" : trimmed;
-        const hostname = new URL(message.pageUrl).hostname;
+      const trimmed = message.selectedText.trim();
+      const title = trimmed.length > 80 ? trimmed.slice(0, 80) + "…" : trimmed;
+      const hostname = new URL(message.pageUrl).hostname;
 
-        console.log("[vmem] Saving selection:", {
-          title,
-          hostname,
-          textLength: message.selectedText.length,
-        });
+      console.log("[vmem] Saving selection:", {
+        title,
+        hostname,
+        textLength: message.selectedText.length,
+      });
 
-        const memory = await createMemory({
-          title,
-          content: message.selectedText.slice(0, 10000),
-          type: "knowledge",
-          source: "browser-extension",
-          tags: [hostname, "selection"],
-          confidence: 1.0,
-          url: message.pageUrl,
-          profileId: message.profileId,
-        });
-        return {
-          type: "SAVE_RESULT",
-          success: true,
-          memoryId: memory.id,
-        };
-      } catch (err) {
-        const error = err instanceof Error ? err.message : "Unknown error";
-        console.error("[vmem] SAVE_SELECTION failed:", error);
-        return { type: "SAVE_RESULT", success: false, error };
+      const result = await tryCreateMemory({
+        title,
+        content: message.selectedText.slice(0, 10000),
+        type: "knowledge",
+        source: "browser-extension",
+        tags: [hostname, "selection"],
+        confidence: 1.0,
+        url: message.pageUrl,
+        profileId: message.profileId,
+      });
+      if (!result.success) {
+        console.error("[vmem] SAVE_SELECTION failed:", result.error);
       }
+      return result;
     }
 
     case "CAPTURE_VISIBLE_TAB": {

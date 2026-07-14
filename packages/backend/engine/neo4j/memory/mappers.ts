@@ -150,12 +150,6 @@ export function toEventFromNode(props: {
   };
 }
 
-export function toEventFromRecord(record: NeoRecord): MemoryEvent {
-  return toEventFromNode(
-    parseNeo4jNodeProps(neo4jGet(record, "e"), memoryEventPropsSchema),
-  );
-}
-
 export function toMemoryWithTags(record: NeoRecord): MemoryWithTags {
   const props = parseNeo4jNodeProps(
     neo4jGet(record, "m"),

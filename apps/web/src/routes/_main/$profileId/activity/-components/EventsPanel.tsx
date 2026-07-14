@@ -1,4 +1,4 @@
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, useEffect } from "react";
 import { useQueryStates } from "nuqs";
 import { useConvexAuth, useAction } from "convex/react";
 import { useActiveProfile } from "@/components/workspace/active-profile";
@@ -55,6 +55,7 @@ import {
   type SortDirection,
 } from "../-searchParams";
 import type { ActivityItem } from "./-types";
+import { FilterOptionContent } from "./FilterOptionContent";
 
 const EVENT_TYPE_ICONS: Record<EventType, TablerIcon> = {
   memory_created: IconBrain,
@@ -72,21 +73,6 @@ const EVENT_DATE_ICONS: Record<EventDatePreset, TablerIcon> = {
   week: IconCalendarWeek,
   month: IconCalendarMonth,
 };
-
-function FilterOptionContent({
-  icon,
-  children,
-}: {
-  icon: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <span className="flex items-center gap-2">
-      <span className="flex shrink-0 text-muted [&>svg]:size-4">{icon}</span>
-      {children}
-    </span>
-  );
-}
 
 function isEventType(type: string): type is EventType {
   return Object.prototype.hasOwnProperty.call(EVENT_TYPE_ICONS, type);

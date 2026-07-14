@@ -52,7 +52,7 @@ interface NavigateSkillCardProps {
   onSelect: () => void;
 }
 
-export function NavigateSkillCard({
+function NavigateSkillCard({
   skill,
   selected,
   onSelect,
@@ -83,7 +83,7 @@ interface BulkSelectSkillCardProps {
   onToggleSelect: () => void;
 }
 
-export function BulkSelectSkillCard({
+function BulkSelectSkillCard({
   skill,
   checked,
   onToggleSelect,

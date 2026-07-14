@@ -1,6 +1,5 @@
 "use client";
 
-import type { ReactNode } from "react";
 import {
   Button,
   DropdownMenu,
@@ -51,6 +50,7 @@ import {
   type Scope,
 } from "../-searchParams";
 import type { ProfileListItem, TeamListItem } from "./-types";
+import { FilterOptionContent } from "./FilterOptionContent";
 
 // filters dropdown for `/ai-logs`
 const RANGE_OPTIONS: Range[] = ["today", "7d", "30d", "all"];
@@ -76,21 +76,6 @@ const FEATURE_ICONS: Record<Feature, typeof IconSparkles> = {
   "proposal-accept": IconCheck,
   "embedding-backfill": IconVectorBezier,
 };
-
-function FilterOptionContent({
-  icon,
-  children,
-}: {
-  icon: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <span className="flex items-center gap-2">
-      <span className="flex shrink-0 text-muted [&>svg]:size-4">{icon}</span>
-      {children}
-    </span>
-  );
-}
 
 interface LogsFiltersDropdownProps {
   scope: Scope;

@@ -11,11 +11,12 @@ import { Button, cn, motionDuration, motionEase } from "@vmem/ui";
 import { IconApps, IconBolt, IconListCheck } from "@tabler/icons-react";
 import { SkillCard } from "@/components/skills/SkillCard";
 import { SkillBulkDeleteBar } from "@/components/skills/SkillBulkDeleteBar";
-import { SkillsSearchBar } from "@/components/skills/SkillsSearchBar";
 import { SkillsAddMenu } from "@/components/skills/SkillsAddMenu";
 import { skillsSearchParams } from "@/routes/_main/$profileId/skills/-searchParams";
+import { SidebarListSearchBar } from "./SidebarListSearchBar";
 import { SharedLayoutBackground } from "./SharedLayoutBackground";
 import { sidebarListRowClass } from "./sidebar-nav-row";
+import { useIdSelectionMode } from "@/hooks/useIdSelectionMode";
 import {
   useActiveProfileId,
   useActiveTeamId,
@@ -62,27 +63,13 @@ export function SkillsSidebarNav({
   const [{ q: searchQuery }, setSearchParams] =
     useQueryStates(skillsSearchParams);
   const [createModal, setCreateModal] = useState<CreateModalState>("none");
-  const [selectionMode, setSelectionMode] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<Id<"skills">>>(
-    () => new Set(),
-  );
-
-  const exitSelection = () => {
-    setSelectionMode(false);
-    setSelectedIds(new Set());
-  };
-
-  const toggleSelect = (id: Id<"skills">) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  };
+  const {
+    selectionMode,
+    selectedIds,
+    setSelectionMode,
+    exitSelection,
+    toggleSelect,
+  } = useIdSelectionMode<Id<"skills">>();
 
   const filteredSkills = useMemo(() => {
     if (!skills) return [];
@@ -252,11 +239,13 @@ export function SkillsSidebarNav({
             {!isIconOnly && !selectionMode ? (
               <>
                 <div className="shrink-0">
-                  <SkillsSearchBar
+                  <SidebarListSearchBar
                     value={searchQuery}
                     onChange={(value) => {
                       void setSearchParams({ q: value });
                     }}
+                    placeholder="Search skills"
+                    aria-label="Search skills"
                     actions={
                       <>
                         {toolbarAddMenu}

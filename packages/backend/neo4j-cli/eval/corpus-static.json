@@ -1,0 +1,344 @@
+{
+  "codenames": [
+    "Helios",
+    "Vega",
+    "Orion",
+    "Atlas",
+    "Nova",
+    "Lyra",
+    "Draco",
+    "Cygnus",
+    "Pollux",
+    "Rigel",
+    "Mizar",
+    "Antares",
+    "Polaris",
+    "Castor",
+    "Vela",
+    "Crux",
+    "Hydra",
+    "Phoenix",
+    "Aquila",
+    "Corvus",
+    "Lupus",
+    "Tucana",
+    "Carina",
+    "Dorado"
+  ],
+  "people": [
+    "Dana",
+    "Raj",
+    "Mia",
+    "Leo",
+    "Priya",
+    "Sam",
+    "Ada",
+    "Kai",
+    "Noor",
+    "Finn",
+    "Ivy",
+    "Omar",
+    "Zoe",
+    "Theo",
+    "Lena",
+    "Hugo",
+    "Nina",
+    "Cole",
+    "Esme",
+    "Ravi",
+    "Tariq",
+    "Beth",
+    "Yuki",
+    "Marco"
+  ],
+  "teams": [
+    "platform",
+    "growth",
+    "data",
+    "mobile",
+    "infra",
+    "payments",
+    "search",
+    "identity",
+    "billing",
+    "analytics"
+  ],
+  "temporalTopics": [
+    { "topic": "password hashing", "stale": "bcrypt", "current": "Argon2id" },
+    {
+      "topic": "primary cloud region",
+      "stale": "us-east-1",
+      "current": "eu-west-1"
+    },
+    {
+      "topic": "the daily standup time",
+      "stale": "9am",
+      "current": "10:30am"
+    },
+    {
+      "topic": "the CI runner",
+      "stale": "CircleCI",
+      "current": "GitHub Actions"
+    },
+    { "topic": "the API gateway", "stale": "Kong", "current": "Envoy" },
+    {
+      "topic": "the staging database",
+      "stale": "MySQL",
+      "current": "Postgres"
+    },
+    { "topic": "the frontend framework", "stale": "Vue", "current": "React" },
+    { "topic": "the package manager", "stale": "npm", "current": "pnpm" },
+    {
+      "topic": "the metrics backend",
+      "stale": "Graphite",
+      "current": "Prometheus"
+    },
+    { "topic": "the deploy target", "stale": "EC2", "current": "Kubernetes" },
+    { "topic": "the auth provider", "stale": "Auth0", "current": "Clerk" },
+    { "topic": "the log aggregator", "stale": "Logstash", "current": "Vector" }
+  ],
+  "singleFacts": [
+    {
+      "title": "Thesis submission deadline is December 15",
+      "content": "The thesis must be submitted by December 15.",
+      "query": "when is the thesis deadline"
+    },
+    {
+      "title": "Memory graph is stored in Neo4j Aura",
+      "content": "vmem keeps its memory graph in Neo4j Aura, a managed cloud database.",
+      "query": "what database stores the memory graph"
+    },
+    {
+      "title": "Embeddings use text-embedding-3-small",
+      "content": "Memories are embedded with OpenAI's text-embedding-3-small model.",
+      "query": "which embedding model does vmem use"
+    },
+    {
+      "title": "The office wifi password is on the whiteboard",
+      "content": "Guest wifi credentials are written on the meeting-room whiteboard.",
+      "query": "where is the office wifi password"
+    },
+    {
+      "title": "Quarterly review is the last Friday of the quarter",
+      "content": "The business quarterly review always lands on the final Friday of the quarter.",
+      "query": "when is the quarterly review"
+    },
+    {
+      "title": "Support SLA is a four hour first response",
+      "content": "Customer support commits to a first response within four hours.",
+      "query": "what is the support response SLA"
+    },
+    {
+      "title": "The mobile app minimum iOS version is 16",
+      "content": "The mobile app supports iOS 16 and above only.",
+      "query": "what is the minimum supported iOS version"
+    },
+    {
+      "title": "Backups run nightly at 2am UTC",
+      "content": "Database backups are taken every night at 2am UTC.",
+      "query": "when do database backups run"
+    },
+    {
+      "title": "The company was founded in 2019",
+      "content": "The company was incorporated in 2019.",
+      "query": "what year was the company founded"
+    },
+    {
+      "title": "Invoices are due net 30",
+      "content": "Customer invoices are payable on net-30 terms.",
+      "query": "what are the invoice payment terms"
+    },
+    {
+      "title": "The design tool of record is Figma",
+      "content": "All product design work happens in Figma.",
+      "query": "which design tool does the team use"
+    },
+    {
+      "title": "Release notes ship every other Tuesday",
+      "content": "Public release notes are published on a fortnightly Tuesday cadence.",
+      "query": "how often do release notes ship"
+    }
+  ],
+  "preferences": [
+    {
+      "title": "Prefers dark mode in all editors",
+      "content": "Always sets editors and terminals to a dark theme.",
+      "query": "what editor theme do I prefer"
+    },
+    {
+      "title": "Prefers TypeScript over JavaScript",
+      "content": "Chooses TypeScript for new projects for the type safety.",
+      "query": "which language do I prefer for new projects"
+    },
+    {
+      "title": "Prefers tabs over spaces",
+      "content": "Indents code with tabs, not spaces.",
+      "query": "do I prefer tabs or spaces"
+    },
+    {
+      "title": "Prefers async standups over live ones",
+      "content": "Would rather post a written standup than attend a live call.",
+      "query": "what kind of standup do I prefer"
+    },
+    {
+      "title": "Prefers window seats when flying",
+      "content": "Always books a window seat on flights.",
+      "query": "what seat do I prefer on flights"
+    },
+    {
+      "title": "Prefers oat milk in coffee",
+      "content": "Takes coffee with oat milk.",
+      "query": "what milk do I take in coffee"
+    },
+    {
+      "title": "Prefers vim keybindings",
+      "content": "Uses vim keybindings in every editor.",
+      "query": "what keybindings do I prefer"
+    },
+    {
+      "title": "Prefers reading on a Kindle over paper",
+      "content": "Reads books on a Kindle rather than print.",
+      "query": "how do I prefer to read books"
+    },
+    {
+      "title": "Prefers morning workouts",
+      "content": "Trains in the morning before work.",
+      "query": "when do I prefer to work out"
+    },
+    {
+      "title": "Prefers trains over flights for short trips",
+      "content": "Takes the train rather than flying for short journeys.",
+      "query": "how do I prefer to travel short distances"
+    }
+  ],
+  "traps": [
+    {
+      "goldTitle": "Login keeps users signed in for thirty days",
+      "goldContent": "After authenticating, a session persists about a month before re-login.",
+      "trapTitle": "Booked the upstairs session room for the Java class",
+      "trapContent": "Reserved the session room; the class uses a login screen as a teaching example.",
+      "query": "how long does the login session last"
+    },
+    {
+      "goldTitle": "Background jobs retry three times with backoff",
+      "goldContent": "A failed queue task is retried up to three times with exponential delay.",
+      "trapTitle": "Will retry the marathon training block after the injury",
+      "trapContent": "Plan to retry the twelve week marathon plan once the knee heals.",
+      "query": "how many times do background jobs retry"
+    },
+    {
+      "goldTitle": "Cache entries expire after five minutes",
+      "goldContent": "The read cache holds values five minutes before refetching.",
+      "trapTitle": "Cash expense report from the team offsite",
+      "trapContent": "Submitted the cash expenses; receipts expire for reimbursement after ninety days.",
+      "query": "how long do cache entries stay valid"
+    },
+    {
+      "goldTitle": "API rate limit is 100 requests per minute",
+      "goldContent": "Clients may call the public API a hundred times each minute before throttling.",
+      "trapTitle": "Rated the climbing routes at the new gym",
+      "trapContent": "Spent the evening rating climbing routes at the limit of my grade.",
+      "query": "what is the api request rate limit"
+    },
+    {
+      "goldTitle": "The deploy key rotates every ninety days",
+      "goldContent": "The deployment signing key is rotated quarterly for security.",
+      "trapTitle": "Lost the spare house key at the cabin",
+      "trapContent": "Misplaced the spare house key while away for the weekend.",
+      "query": "how often does the deploy key rotate"
+    },
+    {
+      "goldTitle": "Feature branches merge via squash",
+      "goldContent": "Feature branches are squash-merged into main to keep history clean.",
+      "trapTitle": "Pruned the apple tree branch in the garden",
+      "trapContent": "Cut back a low branch on the apple tree over the weekend.",
+      "query": "how are feature branches merged"
+    },
+    {
+      "goldTitle": "The build pipeline runs on every commit",
+      "goldContent": "CI triggers the full build on each pushed commit.",
+      "trapTitle": "Made a commitment to run a half marathon",
+      "trapContent": "Committed to a half marathon and started a training plan.",
+      "query": "when does the build pipeline run"
+    },
+    {
+      "goldTitle": "The message queue holds events for seven days",
+      "goldContent": "Undelivered events stay in the queue for seven days before dropping.",
+      "trapTitle": "Stood in the queue at the bakery for ages",
+      "trapContent": "Waited in a long queue at the bakery on Saturday morning.",
+      "query": "how long does the message queue keep events"
+    },
+    {
+      "goldTitle": "Auth tokens expire after one hour",
+      "goldContent": "Access tokens are valid for one hour, then a refresh is required.",
+      "trapTitle": "Collected a casino token as a souvenir",
+      "trapContent": "Kept a casino token from the trip as a keepsake.",
+      "query": "how long are auth tokens valid"
+    },
+    {
+      "goldTitle": "The connection pool caps at twenty threads",
+      "goldContent": "The database connection pool allows at most twenty concurrent threads.",
+      "trapTitle": "Bought blue thread to fix a shirt button",
+      "trapContent": "Picked up blue thread to sew a loose button back on.",
+      "query": "how many threads does the connection pool allow"
+    },
+    {
+      "goldTitle": "S3 bucket lifecycle deletes objects after a year",
+      "goldContent": "Storage bucket policy expires objects after twelve months.",
+      "trapTitle": "Filled a bucket with sand at the beach",
+      "trapContent": "The kids filled a bucket with sand building a castle.",
+      "query": "when does the storage bucket delete old objects"
+    },
+    {
+      "goldTitle": "The primary key is a UUID v7",
+      "goldContent": "Records use a UUID version 7 as their primary key for time ordering.",
+      "trapTitle": "Found the missing piano key was sticking",
+      "trapContent": "A piano key was sticking and needed the felt cleaned.",
+      "query": "what type is used for the primary key"
+    }
+  ],
+  "errorCodes": [
+    { "code": "E2001", "meaning": "the disk is full" },
+    { "code": "E2002", "meaning": "the request timed out" },
+    { "code": "E2003", "meaning": "the auth token is invalid" },
+    { "code": "E2004", "meaning": "the client is rate limited" },
+    { "code": "E2005", "meaning": "permission was denied" },
+    { "code": "E2006", "meaning": "the resource was not found" },
+    { "code": "E2007", "meaning": "there is a write conflict" },
+    { "code": "E2008", "meaning": "the payload is too large" },
+    { "code": "E2009", "meaning": "the media type is unsupported" },
+    { "code": "E2010", "meaning": "an upstream gateway failed" },
+    { "code": "E2011", "meaning": "the account quota is exceeded" },
+    { "code": "E2012", "meaning": "a checksum did not match" }
+  ],
+  "abstentions": [
+    "what is my blood type",
+    "what was the score of last night's hockey game",
+    "what is the capital of Mongolia",
+    "how tall is the Eiffel Tower",
+    "what is my neighbour's phone number",
+    "what time does the moon rise tomorrow"
+  ],
+  "fillerTopics": [
+    "Tried a new ramen place in Shibuya",
+    "Booked flights for the Lisbon trip",
+    "Replaced the bike chain after 3000km",
+    "Finished reading a book on stoicism",
+    "Set up a compost bin in the garden",
+    "Switched to a standing desk this week",
+    "Watered the office plants on Friday",
+    "Recipe: roast cauliflower with tahini",
+    "Renewed the gym membership for a year",
+    "Adopted a rescue cat named Pixel",
+    "Planted tomatoes and basil in spring",
+    "Fixed a leaky kitchen tap at the weekend",
+    "Took a pottery class downtown",
+    "Started learning the ukulele",
+    "Hiked the coastal trail on Saturday",
+    "Repainted the spare bedroom a soft grey",
+    "Sampled three cheeses at the market",
+    "Cycled to the lighthouse and back",
+    "Sorted the bookshelf by colour",
+    "Brewed a batch of ginger beer"
+  ]
+}

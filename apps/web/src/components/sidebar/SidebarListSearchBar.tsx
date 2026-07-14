@@ -4,20 +4,24 @@ import type { ReactNode } from "react";
 import { cn } from "@vmem/ui";
 import { SidebarClearSearchInput } from "@/components/sidebar/SidebarClearSearchInput";
 
-interface CodebasesSearchBarProps {
+interface SidebarListSearchBarProps {
   value: string;
   onChange: (value: string) => void;
-  // trailing chrome (Add) on the same row as the input
+  placeholder: string;
+  "aria-label": string;
+  // trailing chrome (Add, Select) on the same row as the input
   actions?: ReactNode;
   className?: string;
 }
 
-export function CodebasesSearchBar({
+export function SidebarListSearchBar({
   value,
   onChange,
+  placeholder,
+  "aria-label": ariaLabel,
   actions,
   className,
-}: CodebasesSearchBarProps) {
+}: SidebarListSearchBarProps) {
   return (
     <div className={cn("flex min-w-0 flex-col gap-1.5", className)}>
       <div className="flex min-w-0 items-center gap-1">
@@ -25,8 +29,8 @@ export function CodebasesSearchBar({
           <SidebarClearSearchInput
             value={value}
             onChange={onChange}
-            placeholder="Search repositories"
-            aria-label="Search repositories"
+            placeholder={placeholder}
+            aria-label={ariaLabel}
             wrapperClassName="mb-0"
           />
         </div>

@@ -1,5 +1,7 @@
 export type {
   AgentProposal,
+  DeleteMemoryResult,
+  HealthResult,
   MatchedChunk,
   MemoryCandidate,
   MemoryWithTags,
@@ -15,8 +17,8 @@ export interface StructuredCreateMemoryInput {
   content: string;
   type: string;
   source: string;
-  tags: string[];
-  confidence: number;
+  tags?: string[];
+  confidence?: number;
   expiresAt?: string;
   url?: string;
   profileId?: string;
@@ -25,7 +27,7 @@ export interface StructuredCreateMemoryInput {
 }
 
 export interface StructuredPatchMemoryInput {
-  memoryId: string;
+  id: string;
   title?: string;
   content?: string;
   type?: string;
@@ -33,6 +35,10 @@ export interface StructuredPatchMemoryInput {
   tags?: string[];
   confidence?: number;
   expiresAt?: string | null;
+}
+
+export interface StructuredDeleteMemoryInput {
+  id: string;
 }
 
 export interface StructuredRetrieveInput {

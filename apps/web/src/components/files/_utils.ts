@@ -11,7 +11,7 @@ import type { Id } from "@vmem/backend";
 import type { FileCategory, FileTreeNode } from "./-types";
 import type { FileSortField, SortDirection } from "./-searchParams";
 
-/** Shared interaction props for list rows and grid cards. */
+// shared interaction props for list rows and grid cards
 export type FileNodeChromeProps = {
   node: FileTreeNode;
   childCount: number;
@@ -28,7 +28,7 @@ export type FileNodeChromeProps = {
   onDelete: (node: FileTreeNode) => void;
 };
 
-export function fileCategoryFor(mimeType: string | undefined): FileCategory {
+function fileCategoryFor(mimeType: string | undefined): FileCategory {
   const mime = mimeType ?? "";
   if (mime.startsWith("image/")) return "image";
   if (mime === "application/pdf") return "pdf";

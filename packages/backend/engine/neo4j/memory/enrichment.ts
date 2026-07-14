@@ -81,15 +81,3 @@ export async function applyEnrichment(
     }
   });
 }
-
-export async function applyEntitiesOnly(
-  driver: Driver,
-  memoryId: string,
-  userId: string,
-  entities: EntityInput,
-): Promise<void> {
-  if (entities.length === 0) return;
-  return withSession(driver, (session) =>
-    replaceMentionsEdges(session, memoryId, userId, entities),
-  );
-}

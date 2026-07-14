@@ -26,7 +26,7 @@ import {
   WikiRootDropZone,
   WikiTreeList,
 } from "./WikiTreeItem";
-import { optimisticId } from "@/lib/optimisticId";
+import { optimisticCreateWikiNode } from "./_optimisticCreate";
 import { useActiveTeamId } from "@/components/workspace/active-profile";
 
 // collision strategy: a folder row always wins over the surrounding root droppable
@@ -60,38 +60,7 @@ export default function WikiTree({
 }: WikiTreeProps) {
   const teamId = useActiveTeamId();
   const createNode = useMutation(api.wiki.createNode).withOptimisticUpdate(
-    (localStore, args) => {
-      const tree = localStore.getQuery(api.wiki.listTree, { teamId });
-      if (!tree || tree.length === 0) return;
-      const head = tree.at(0);
-      if (!head) return;
-      const siblings = tree.filter((n) => n.parentId === args.parentId);
-      const nextOrder =
-        siblings.length === 0
-          ? 0
-          : Math.max(...siblings.map((s) => s.order)) + 1;
-      const now = Date.now();
-      const tempId = optimisticId("wikiNodes");
-      const row: WikiListNode = {
-        _id: tempId,
-        _creationTime: now,
-        userId: head.userId,
-        teamId,
-        parentId: args.parentId,
-        kind: args.kind,
-        title: args.title,
-        content:
-          args.kind === "document" || args.kind === "artifact" ? "" : undefined,
-        contentText:
-          args.kind === "document" || args.kind === "artifact" ? "" : undefined,
-        language:
-          args.kind === "artifact" ? (args.language ?? "html") : undefined,
-        order: nextOrder,
-        createdAt: now,
-        updatedAt: now,
-      };
-      localStore.setQuery(api.wiki.listTree, { teamId }, [...tree, row]);
-    },
+    optimisticCreateWikiNode,
   );
   const renameNode = useMutation(api.wiki.renameNode).withOptimisticUpdate(
     (localStore, args) => {

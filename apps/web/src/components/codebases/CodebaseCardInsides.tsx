@@ -1,4 +1,4 @@
-export const codebaseLanguageColors: Record<string, string> = {
+const codebaseLanguageColors: Record<string, string> = {
   TypeScript: "#3178c6",
   JavaScript: "#f1e05a",
   Python: "#3572A5",

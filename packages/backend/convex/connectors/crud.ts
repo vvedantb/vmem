@@ -39,11 +39,6 @@ async function requireOwnedConnector(
   return connector;
 }
 
-const CONNECTOR_NAME_TO_PROVIDER: Record<string, ConnectorProvider> = {
-  "Google Drive": "google_drive",
-  Notion: "notion",
-};
-
 const DEFAULT_CONNECTORS: DefaultConnector[] = [
   {
     name: "Google Drive",
@@ -286,21 +281,6 @@ export const updateSyncProgressInternal = internalMutation({
     );
     if (Object.keys(patch).length > 0) {
       await ctx.db.patch(id, patch);
-    }
-  },
-});
-
-export const migrateAddProviders = internalMutation({
-  args: {},
-  handler: async (ctx) => {
-    const connectors = await ctx.db.query("connectors").collect();
-
-    for (const connector of connectors) {
-      if (connector.provider !== undefined) continue;
-      const provider = CONNECTOR_NAME_TO_PROVIDER[connector.name];
-      if (provider) {
-        await ctx.db.patch(connector._id, { provider });
-      }
     }
   },
 });
