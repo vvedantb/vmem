@@ -6,12 +6,6 @@ import {
   listItemMatchesTagFilter,
   listItemMatchesTypeFilter,
 } from "./list-items";
-import type { Memory } from "./memories";
-import {
-  memoryMatchesSourceFilters,
-  memoryMatchesTagFilters,
-  memoryMatchesTypeFilters,
-} from "./memories";
 
 const memoryItem: ListItem = {
   kind: "memory",
@@ -35,19 +29,6 @@ const wikiDoc: ListItem = {
   content: "Notes",
   tags: [],
   createdAt: "2026-01-01T00:00:00.000Z",
-};
-
-const sampleMemory: Memory = {
-  id: "mem-1",
-  title: "Memory",
-  content: "Body",
-  type: "episodic",
-  source: "browser-extension",
-  sourceUrl: null,
-  sourceSyncedAt: null,
-  tags: ["react"],
-  createdAt: "2026-01-01T00:00:00.000Z",
-  profileId: "profile-a",
 };
 
 describe("list item filters", () => {
@@ -82,29 +63,5 @@ describe("list item filters", () => {
     expect(listItemMatchesTypeFilter(memoryItem, ["knowledge"])).toBe(true);
     expect(listItemMatchesTypeFilter(memoryItem, ["episodic"])).toBe(false);
     expect(listItemMatchesTypeFilter(wikiDoc, ["episodic"])).toBe(true);
-  });
-});
-
-describe("memory filters", () => {
-  it("passes all memories when no filters are selected", () => {
-    expect(memoryMatchesTagFilters(sampleMemory, [])).toBe(true);
-    expect(memoryMatchesSourceFilters(sampleMemory, [])).toBe(true);
-    expect(memoryMatchesTypeFilters(sampleMemory, [])).toBe(true);
-  });
-
-  it("matches tags case-insensitively with AND semantics", () => {
-    expect(memoryMatchesTagFilters(sampleMemory, ["REACT"])).toBe(true);
-    expect(memoryMatchesTagFilters(sampleMemory, ["react", "missing"])).toBe(
-      false,
-    );
-  });
-
-  it("matches source and type filters", () => {
-    expect(
-      memoryMatchesSourceFilters(sampleMemory, ["browser-extension"]),
-    ).toBe(true);
-    expect(memoryMatchesSourceFilters(sampleMemory, ["web"])).toBe(false);
-    expect(memoryMatchesTypeFilters(sampleMemory, ["episodic"])).toBe(true);
-    expect(memoryMatchesTypeFilters(sampleMemory, ["knowledge"])).toBe(false);
   });
 });

@@ -29,7 +29,7 @@ export interface Memory {
   profileId?: string;
 }
 
-export function isMemoryType(value: string): value is MemoryType {
+function isMemoryType(value: string): value is MemoryType {
   return MEMORY_TYPES.some((type) => type === value);
 }
 
@@ -74,38 +74,6 @@ const MEMORY_SOURCE_LABELS: Record<string, string> = {
   cursor: "Cursor",
   "client-enrichment": "Enrichment",
 };
-
-export function memoryMatchesTagFilters(
-  memory: Memory,
-  selectedTags: string[],
-): boolean {
-  if (selectedTags.length === 0) {
-    return true;
-  }
-  return selectedTags.every((tag) =>
-    memory.tags.some((mt) => mt.toLowerCase() === tag.toLowerCase()),
-  );
-}
-
-export function memoryMatchesSourceFilters(
-  memory: Memory,
-  selectedSources: string[],
-): boolean {
-  if (selectedSources.length === 0) {
-    return true;
-  }
-  return selectedSources.includes(memory.source);
-}
-
-export function memoryMatchesTypeFilters(
-  memory: Memory,
-  selectedTypes: MemoryType[],
-): boolean {
-  if (selectedTypes.length === 0) {
-    return true;
-  }
-  return selectedTypes.includes(memory.type);
-}
 
 export function formatMemorySourceLabel(source: string): string {
   const mapped = MEMORY_SOURCE_LABELS[source];
