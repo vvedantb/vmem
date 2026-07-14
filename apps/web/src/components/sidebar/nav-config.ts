@@ -4,6 +4,7 @@ import {
   IconStack2,
   IconUserCircle,
   IconAdjustments,
+  IconTerminal2,
   IconPuzzle,
   IconFileImport,
   IconUsers,
@@ -77,6 +78,11 @@ export const settingsNavGroups: SettingsNavGroup[] = [
     items: [
       { href: "/settings/api", label: "API", icon: IconKey },
       { href: "/settings/secrets", label: "Secrets", icon: IconLock },
+      {
+        href: "/settings/playground",
+        label: "Playground",
+        icon: IconTerminal2,
+      },
     ],
   },
   {

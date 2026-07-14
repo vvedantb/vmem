@@ -35,6 +35,7 @@ import { Route as MainProfileIdSkillsRouteRouteImport } from './routes/_main/$pr
 import { Route as MainProfileIdMemoriesRouteRouteImport } from './routes/_main/$profileId/memories/route'
 import { Route as MainProfileIdInboxRouteRouteImport } from './routes/_main/$profileId/inbox/route'
 import { Route as MainProfileIdActivityRouteRouteImport } from './routes/_main/$profileId/activity/route'
+import { Route as MainSettingsPlaygroundIndexRouteImport } from './routes/_main/settings/playground/index'
 import { Route as MainSettingsDataControlsIndexRouteImport } from './routes/_main/settings/data-controls/index'
 import { Route as MainSettingsApiIndexRouteImport } from './routes/_main/settings/api/index'
 import { Route as MainProfileIdWikiIndexRouteImport } from './routes/_main/$profileId/wiki/index'
@@ -46,6 +47,7 @@ import { Route as MainProfileIdInboxIndexRouteImport } from './routes/_main/$pro
 import { Route as MainProfileIdCodebasesIndexRouteImport } from './routes/_main/$profileId/codebases/index'
 import { Route as MainProfileIdAiLogsIndexRouteImport } from './routes/_main/$profileId/ai-logs/index'
 import { Route as MainProfileIdActivityIndexRouteImport } from './routes/_main/$profileId/activity/index'
+import { Route as MainSettingsPlaygroundCallbackRouteImport } from './routes/_main/settings/playground/callback'
 import { Route as MainSettingsDataControlsImportRouteImport } from './routes/_main/settings/data-controls/import'
 import { Route as MainSettingsDataControlsExportRouteImport } from './routes/_main/settings/data-controls/export'
 import { Route as MainSettingsDataControlsDangerRouteImport } from './routes/_main/settings/data-controls/danger'
@@ -202,6 +204,12 @@ const MainProfileIdActivityRouteRoute =
     path: '/activity',
     getParentRoute: () => MainProfileIdRouteRoute,
   } as any)
+const MainSettingsPlaygroundIndexRoute =
+  MainSettingsPlaygroundIndexRouteImport.update({
+    id: '/settings/playground/',
+    path: '/settings/playground/',
+    getParentRoute: () => MainRouteRoute,
+  } as any)
 const MainSettingsDataControlsIndexRoute =
   MainSettingsDataControlsIndexRouteImport.update({
     id: '/',
@@ -263,6 +271,12 @@ const MainProfileIdActivityIndexRoute =
     id: '/',
     path: '/',
     getParentRoute: () => MainProfileIdActivityRouteRoute,
+  } as any)
+const MainSettingsPlaygroundCallbackRoute =
+  MainSettingsPlaygroundCallbackRouteImport.update({
+    id: '/settings/playground/callback',
+    path: '/settings/playground/callback',
+    getParentRoute: () => MainRouteRoute,
   } as any)
 const MainSettingsDataControlsImportRoute =
   MainSettingsDataControlsImportRouteImport.update({
@@ -430,6 +444,7 @@ export interface FileRoutesByFullPath {
   '/settings/data-controls/danger': typeof MainSettingsDataControlsDangerRoute
   '/settings/data-controls/export': typeof MainSettingsDataControlsExportRoute
   '/settings/data-controls/import': typeof MainSettingsDataControlsImportRoute
+  '/settings/playground/callback': typeof MainSettingsPlaygroundCallbackRoute
   '/$profileId/activity/': typeof MainProfileIdActivityIndexRoute
   '/$profileId/ai-logs/': typeof MainProfileIdAiLogsIndexRoute
   '/$profileId/codebases/': typeof MainProfileIdCodebasesIndexRoute
@@ -441,6 +456,7 @@ export interface FileRoutesByFullPath {
   '/$profileId/wiki/': typeof MainProfileIdWikiIndexRoute
   '/settings/api/': typeof MainSettingsApiIndexRoute
   '/settings/data-controls/': typeof MainSettingsDataControlsIndexRoute
+  '/settings/playground/': typeof MainSettingsPlaygroundIndexRoute
   '/$profileId/memories/list/$id': typeof MainProfileIdMemoriesListIdRoute
   '/$profileId/skills/system/$skillId': typeof MainProfileIdSkillsSystemSkillIdRoute
   '/$profileId/memories/list/': typeof MainProfileIdMemoriesListIndexRoute
@@ -479,6 +495,7 @@ export interface FileRoutesByTo {
   '/settings/data-controls/danger': typeof MainSettingsDataControlsDangerRoute
   '/settings/data-controls/export': typeof MainSettingsDataControlsExportRoute
   '/settings/data-controls/import': typeof MainSettingsDataControlsImportRoute
+  '/settings/playground/callback': typeof MainSettingsPlaygroundCallbackRoute
   '/$profileId/activity': typeof MainProfileIdActivityIndexRoute
   '/$profileId/ai-logs': typeof MainProfileIdAiLogsIndexRoute
   '/$profileId/codebases': typeof MainProfileIdCodebasesIndexRoute
@@ -490,6 +507,7 @@ export interface FileRoutesByTo {
   '/$profileId/wiki': typeof MainProfileIdWikiIndexRoute
   '/settings/api': typeof MainSettingsApiIndexRoute
   '/settings/data-controls': typeof MainSettingsDataControlsIndexRoute
+  '/settings/playground': typeof MainSettingsPlaygroundIndexRoute
   '/$profileId/memories/list/$id': typeof MainProfileIdMemoriesListIdRoute
   '/$profileId/skills/system/$skillId': typeof MainProfileIdSkillsSystemSkillIdRoute
   '/$profileId/memories/list': typeof MainProfileIdMemoriesListIndexRoute
@@ -540,6 +558,7 @@ export interface FileRoutesById {
   '/_main/settings/data-controls/danger': typeof MainSettingsDataControlsDangerRoute
   '/_main/settings/data-controls/export': typeof MainSettingsDataControlsExportRoute
   '/_main/settings/data-controls/import': typeof MainSettingsDataControlsImportRoute
+  '/_main/settings/playground/callback': typeof MainSettingsPlaygroundCallbackRoute
   '/_main/$profileId/activity/': typeof MainProfileIdActivityIndexRoute
   '/_main/$profileId/ai-logs/': typeof MainProfileIdAiLogsIndexRoute
   '/_main/$profileId/codebases/': typeof MainProfileIdCodebasesIndexRoute
@@ -551,6 +570,7 @@ export interface FileRoutesById {
   '/_main/$profileId/wiki/': typeof MainProfileIdWikiIndexRoute
   '/_main/settings/api/': typeof MainSettingsApiIndexRoute
   '/_main/settings/data-controls/': typeof MainSettingsDataControlsIndexRoute
+  '/_main/settings/playground/': typeof MainSettingsPlaygroundIndexRoute
   '/_main/$profileId/memories/list/$id': typeof MainProfileIdMemoriesListIdRoute
   '/_main/$profileId/skills/system/$skillId': typeof MainProfileIdSkillsSystemSkillIdRoute
   '/_main/$profileId/memories/list/': typeof MainProfileIdMemoriesListIndexRoute
@@ -601,6 +621,7 @@ export interface FileRouteTypes {
     | '/settings/data-controls/danger'
     | '/settings/data-controls/export'
     | '/settings/data-controls/import'
+    | '/settings/playground/callback'
     | '/$profileId/activity/'
     | '/$profileId/ai-logs/'
     | '/$profileId/codebases/'
@@ -612,6 +633,7 @@ export interface FileRouteTypes {
     | '/$profileId/wiki/'
     | '/settings/api/'
     | '/settings/data-controls/'
+    | '/settings/playground/'
     | '/$profileId/memories/list/$id'
     | '/$profileId/skills/system/$skillId'
     | '/$profileId/memories/list/'
@@ -650,6 +672,7 @@ export interface FileRouteTypes {
     | '/settings/data-controls/danger'
     | '/settings/data-controls/export'
     | '/settings/data-controls/import'
+    | '/settings/playground/callback'
     | '/$profileId/activity'
     | '/$profileId/ai-logs'
     | '/$profileId/codebases'
@@ -661,6 +684,7 @@ export interface FileRouteTypes {
     | '/$profileId/wiki'
     | '/settings/api'
     | '/settings/data-controls'
+    | '/settings/playground'
     | '/$profileId/memories/list/$id'
     | '/$profileId/skills/system/$skillId'
     | '/$profileId/memories/list'
@@ -710,6 +734,7 @@ export interface FileRouteTypes {
     | '/_main/settings/data-controls/danger'
     | '/_main/settings/data-controls/export'
     | '/_main/settings/data-controls/import'
+    | '/_main/settings/playground/callback'
     | '/_main/$profileId/activity/'
     | '/_main/$profileId/ai-logs/'
     | '/_main/$profileId/codebases/'
@@ -721,6 +746,7 @@ export interface FileRouteTypes {
     | '/_main/$profileId/wiki/'
     | '/_main/settings/api/'
     | '/_main/settings/data-controls/'
+    | '/_main/settings/playground/'
     | '/_main/$profileId/memories/list/$id'
     | '/_main/$profileId/skills/system/$skillId'
     | '/_main/$profileId/memories/list/'
@@ -917,6 +943,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MainProfileIdActivityRouteRouteImport
       parentRoute: typeof MainProfileIdRouteRoute
     }
+    '/_main/settings/playground/': {
+      id: '/_main/settings/playground/'
+      path: '/settings/playground'
+      fullPath: '/settings/playground/'
+      preLoaderRoute: typeof MainSettingsPlaygroundIndexRouteImport
+      parentRoute: typeof MainRouteRoute
+    }
     '/_main/settings/data-controls/': {
       id: '/_main/settings/data-controls/'
       path: '/'
@@ -993,6 +1026,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/$profileId/activity/'
       preLoaderRoute: typeof MainProfileIdActivityIndexRouteImport
       parentRoute: typeof MainProfileIdActivityRouteRoute
+    }
+    '/_main/settings/playground/callback': {
+      id: '/_main/settings/playground/callback'
+      path: '/settings/playground/callback'
+      fullPath: '/settings/playground/callback'
+      preLoaderRoute: typeof MainSettingsPlaygroundCallbackRouteImport
+      parentRoute: typeof MainRouteRoute
     }
     '/_main/settings/data-controls/import': {
       id: '/_main/settings/data-controls/import'
@@ -1358,6 +1398,8 @@ interface MainRouteRouteChildren {
   MainSettingsSecretsRoute: typeof MainSettingsSecretsRoute
   MainSettingsUsageRoute: typeof MainSettingsUsageRoute
   MainSettingsIndexRoute: typeof MainSettingsIndexRoute
+  MainSettingsPlaygroundCallbackRoute: typeof MainSettingsPlaygroundCallbackRoute
+  MainSettingsPlaygroundIndexRoute: typeof MainSettingsPlaygroundIndexRoute
 }
 
 const MainRouteRouteChildren: MainRouteRouteChildren = {
@@ -1373,6 +1415,8 @@ const MainRouteRouteChildren: MainRouteRouteChildren = {
   MainSettingsSecretsRoute: MainSettingsSecretsRoute,
   MainSettingsUsageRoute: MainSettingsUsageRoute,
   MainSettingsIndexRoute: MainSettingsIndexRoute,
+  MainSettingsPlaygroundCallbackRoute: MainSettingsPlaygroundCallbackRoute,
+  MainSettingsPlaygroundIndexRoute: MainSettingsPlaygroundIndexRoute,
 }
 
 const MainRouteRouteWithChildren = MainRouteRoute._addFileChildren(
