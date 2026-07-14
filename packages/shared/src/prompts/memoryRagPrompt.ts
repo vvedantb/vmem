@@ -3,10 +3,7 @@ export interface SkillIndexEntry {
   description: string;
 }
 
-/**
- * Claude-style skills menu: name + description only. Full instructions are
- * loaded lazily via MCP `skills_get`.
- */
+// skills menu: name + description only; full body loads via MCP skills_get
 export function buildSkillsIndexAddition(
   entries: SkillIndexEntry[],
   options: { mcpClient: boolean },
