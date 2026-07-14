@@ -3,15 +3,7 @@
 import { IconChartBar } from "@tabler/icons-react";
 import { Card, CardContent, cn } from "@vmem/ui";
 import { formatRelativeTime, formatDuration } from "@/lib/formatters";
-import { isSuccessStatus } from "./_utils";
-
-interface ApiLogItem {
-  id: string;
-  endpoint: string;
-  status: number;
-  durationMs: number;
-  timestamp: string;
-}
+import { isSuccessStatus, type ApiRequestEntry } from "./_utils";
 
 type StatusVariant = "success" | "error" | "warning";
 
@@ -30,7 +22,7 @@ const STATUS_VARIANT_CLASS = new Map<StatusVariant, string>([
 const RECENT_REQUESTS_LABEL = "Recent requests";
 
 interface ApiLogsTableProps {
-  logs: ApiLogItem[];
+  logs: ApiRequestEntry[];
   totalCount: number;
 }
 
@@ -58,7 +50,7 @@ function ApiLogsEmptyState() {
   );
 }
 
-function ApiLogRow({ log }: { log: ApiLogItem }) {
+function ApiLogRow({ log }: { log: ApiRequestEntry }) {
   const statusVariant = getStatusVariant(log.status);
 
   return (
@@ -80,7 +72,7 @@ function ApiLogRow({ log }: { log: ApiLogItem }) {
             {formatDuration(log.durationMs)}
           </span>
           <span className="hidden text-sm text-muted sm:inline">
-            {formatRelativeTime(log.timestamp)}
+            {formatRelativeTime(log.originalTimestamp)}
           </span>
         </div>
       </div>
@@ -110,7 +102,7 @@ export function ApiLogsTable({ logs, totalCount }: ApiLogsTableProps) {
         <CardContent className="min-h-0 flex-1 overflow-y-auto p-2 scrollbar-thin">
           <ul className="flex flex-col gap-1">
             {logs.map((log) => (
-              <ApiLogRow key={log.id} log={log} />
+              <ApiLogRow key={log._id} log={log} />
             ))}
           </ul>
         </CardContent>

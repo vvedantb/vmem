@@ -1,7 +1,6 @@
 import { Button } from "@vmem/ui";
 import { IconCheck, IconPencil, IconTrash, IconX } from "@tabler/icons-react";
-import type { ProposedUpdate } from "@/hooks/useProposals";
-import { proposalAccentClass } from "./_proposalUtils";
+import { proposalAccentClass, type ProposedUpdate } from "./_proposalUtils";
 import {
   ProposalMutedTextBlock,
   ProposalShell,

@@ -1,9 +1,9 @@
-export interface ApiRequestEntry {
-  endpoint: string;
-  status: number;
-  durationMs: number;
-  originalTimestamp: number;
-}
+import type { FunctionReturnType } from "convex/server";
+import type { api } from "@vmem/backend";
+
+export type ApiRequestEntry = FunctionReturnType<
+  typeof api.auditLog.listMyApiRequestEntries
+>[number];
 
 export interface ApiUsageTrends {
   requests: number[];
@@ -98,4 +98,13 @@ function buildDailyTrends(entries: ApiRequestEntry[]): ApiUsageTrends {
 
 export function hasTrendActivity(trend: number[]): boolean {
   return trend.some((value) => value > 0);
+}
+
+export function prepareTableEntries(
+  entries: ApiRequestEntry[],
+  limit: number,
+): ApiRequestEntry[] {
+  return [...entries]
+    .sort((a, b) => b.originalTimestamp - a.originalTimestamp)
+    .slice(0, limit);
 }

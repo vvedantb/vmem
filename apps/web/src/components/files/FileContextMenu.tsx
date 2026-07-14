@@ -7,7 +7,7 @@ import {
   ContextMenuItem,
   ContextMenuSeparator,
 } from "@vmem/ui";
-import type { FileItem } from "@/lib/file-types";
+import type { FileItem } from "./-types";
 import {
   fileItemActions,
   type FileItemActionHandlers,

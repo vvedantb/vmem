@@ -8,7 +8,7 @@ import {
   TableRow,
   TableHead,
 } from "@vmem/ui";
-import type { FileItem } from "@/lib/file-types";
+import type { FileItem } from "./-types";
 import FileListRow from "./FileListRow";
 import { InlineNewFolderList } from "./InlineNewFolder";
 

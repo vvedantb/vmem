@@ -2,18 +2,13 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import type { FileItem } from "@/lib/file-types";
+import type { FileItem } from "../-types";
+import type { UseFilesDataResult } from "./useFilesData";
 
-type FilesMutations = {
-  uploadFile: (file: File, parentFolderId: string | null) => Promise<unknown>;
-  createFolder: (
-    name: string,
-    parentFolderId: string | null,
-  ) => Promise<unknown>;
-  renameNode: (id: string, name: string) => Promise<unknown>;
-  moveNodes: (ids: string[], targetFolderId: string | null) => Promise<unknown>;
-  deleteNodes: (ids: string[]) => Promise<unknown>;
-};
+type FilesMutations = Pick<
+  UseFilesDataResult,
+  "uploadFile" | "createFolder" | "renameNode" | "moveNodes" | "deleteNodes"
+>;
 
 export function useFilesActions(args: {
   folderId: string | null;
@@ -57,7 +52,7 @@ export function useFilesActions(args: {
     toast.success(`Downloading ${item.name}`);
   }
 
-  async function handleDelete(item: FileItem) {
+  async function handleDelete(item: { id: string; name: string }) {
     try {
       await args.mutations.deleteNodes([item.id]);
       toast.success(`Deleted ${item.name}`);

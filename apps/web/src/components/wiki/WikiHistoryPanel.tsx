@@ -42,22 +42,19 @@ export function WikiHistoryPanel({
   );
   const [restoring, setRestoring] = useState(false);
 
+  useEffect(() => {
+    if (!open) setSelectedId(null);
+  }, [open]);
+
+  const activeVersionId =
+    selectedId !== null && versions?.some((v) => v._id === selectedId)
+      ? selectedId
+      : (versions?.at(0)?._id ?? null);
+
   const selected = useQuery(
     api.wikiVersions.get,
-    selectedId ? { versionId: selectedId } : "skip",
+    activeVersionId ? { versionId: activeVersionId } : "skip",
   );
-
-  // default to the newest version when the list (re)loads; reset when closed
-  useEffect(() => {
-    if (!open) {
-      setSelectedId(null);
-      return;
-    }
-    if (!versions || versions.length === 0) return;
-    if (selectedId && versions.some((v) => v._id === selectedId)) return;
-    const newest = versions.at(0);
-    if (newest) setSelectedId(newest._id);
-  }, [open, versions, selectedId]);
 
   const previewEditor = useEditor({
     extensions: wikiEditorExtensions(),
@@ -116,7 +113,7 @@ export function WikiHistoryPanel({
                   onClick={() => setSelectedId(ver._id)}
                   className={cn(
                     "flex h-auto w-full flex-col items-start justify-start gap-1 rounded-md px-2.5 py-2 text-left transition-[background-color] active:scale-100",
-                    ver._id === selectedId
+                    ver._id === activeVersionId
                       ? "bg-surface-tertiary hover:bg-surface-tertiary"
                       : "hover:bg-surface-tertiary/50",
                   )}
@@ -137,7 +134,7 @@ export function WikiHistoryPanel({
 
           {/* Preview */}
           <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto rounded-lg bg-surface-secondary/40 px-4 py-3 scrollbar-thin">
-            {selected === undefined && selectedId !== null ? (
+            {selected === undefined && activeVersionId !== null ? (
               <div className="flex flex-1 items-center justify-center">
                 <IconLoader2 size={16} className="animate-spin text-muted" />
               </div>

@@ -7,22 +7,17 @@ import {
   DialogTitle,
   Badge,
 } from "@vmem/ui";
-import type { Doc } from "@vmem/backend";
+import type { AiLogRow, ProfileListItem } from "./-types";
 import { featureLabelFor } from "./_aiLogsUtils";
 
 // detail dialog for one ai log row (prompt/response when logging enabled)
-type LogRow = Doc<"openRouterLogs">;
-type ProfileLite = {
-  _id: string;
-  name: string;
-  color?: string | null | undefined;
-};
+type LogRow = AiLogRow;
 
 interface LogRowDetailProps {
   row: LogRow | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  profile: ProfileLite | undefined;
+  profile: ProfileListItem | undefined;
 }
 
 export function LogRowDetail({
@@ -45,7 +40,7 @@ function LogRowDetailBody({
   profile,
 }: {
   row: LogRow;
-  profile: ProfileLite | undefined;
+  profile: ProfileListItem | undefined;
 }) {
   const featureLabel = featureLabelFor(row.feature);
   return (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useAction, useMutation, useQuery } from "convex/react";
+import { useQuery as useTanstackQuery } from "@tanstack/react-query";
 import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
 import {
@@ -13,7 +14,7 @@ import {
   cn,
 } from "@vmem/ui";
 import { IconLoader2, IconSearch } from "@tabler/icons-react";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { sidebarSearchInputClassName } from "@/components/sidebar/sidebar-search-input";
 import { GitHubIcon } from "@/components/brand-icons";
@@ -70,9 +71,22 @@ export function AddRepoModal({
     ]);
   });
   const codebases = useQuery(api.codebases.listMy, { teamId });
+  const reposQuery = useTanstackQuery({
+    queryKey: ["github-repos", connectionId],
+    queryFn: async () => {
+      try {
+        return await listRepos();
+      } catch {
+        toast.error("Failed to fetch repositories");
+        throw new Error("Failed to fetch repositories");
+      }
+    },
+    enabled: open,
+    staleTime: 60_000,
+  });
 
-  const [repos, setRepos] = useState<AddRepoModalRepo[]>([]);
-  const [loading, setLoading] = useState(false);
+  const repos = reposQuery.data ?? [];
+  const loading = reposQuery.isLoading;
   const [search, setSearch] = useState("");
   const [adding, setAdding] = useState<string | null>(null);
 
@@ -93,25 +107,9 @@ export function AddRepoModal({
             (repo.language?.toLowerCase().includes(searchQuery) ?? false),
         );
 
-  const fetchRepos = useCallback(async () => {
-    setLoading(true);
-    try {
-      const result = await listRepos();
-      setRepos(result);
-    } catch {
-      toast.error("Failed to fetch repositories");
-    } finally {
-      setLoading(false);
-    }
-  }, [listRepos]);
-
   useEffect(() => {
-    if (open) {
-      void fetchRepos();
-    } else {
-      setSearch("");
-    }
-  }, [open, fetchRepos]);
+    if (!open) setSearch("");
+  }, [open]);
 
   const handleAdd = async (repo: AddRepoModalRepo) => {
     setAdding(repo.fullName);

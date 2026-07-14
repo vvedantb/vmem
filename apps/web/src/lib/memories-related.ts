@@ -7,6 +7,10 @@ export type RelatedMemoriesResult = FunctionReturnType<
 
 export type RelatedMemoryEntry = RelatedMemoriesResult[number];
 
+export function relatedMemoriesQueryKey(memoryId: string) {
+  return ["relatedMemories", memoryId] as const;
+}
+
 export function uniqueRelated(
   entries: RelatedMemoriesResult,
 ): RelatedMemoryEntry[] {

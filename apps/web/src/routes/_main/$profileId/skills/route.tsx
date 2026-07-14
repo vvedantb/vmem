@@ -13,7 +13,6 @@ import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
 import { IconBolt } from "@tabler/icons-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
 import PageContainer from "@/components/PageContainer";
 import { SkillsHub } from "@/components/skills/SkillsHub";
 import { SystemSkillDetail } from "@/components/skills/SystemSkillDetail";
@@ -72,7 +71,6 @@ function SkillsLayout() {
   );
   const [{ q: searchQuery }] = useQueryStates(skillsSearchParams);
   const [modal, setModal] = useState<ModalState>({ mode: "none" });
-  const [nameDraft, setNameDraft] = useState("");
 
   const filteredSkills = useMemo(() => {
     if (!skills) return [];
@@ -97,38 +95,27 @@ function SkillsLayout() {
       ? skills?.find((skill) => skill._id === modal.skillId)
       : undefined;
 
-  const pageTitle =
-    hasSkill && viewedSkill ? nameDraft || viewedSkill.name : "Skills";
+  const pageTitle = hasSkill && viewedSkill ? viewedSkill.name : "Skills";
 
-  const handleNameCommit = useCallback(async () => {
+  const handleNameChange = useCallback(
+    (value: string) => {
+      if (!viewedSkill) return;
+      void updateSkill({ id: viewedSkill._id, name: value });
+    },
+    [updateSkill, viewedSkill],
+  );
+
+  const handleNameCommit = useCallback(() => {
     if (!viewedSkill) return;
-    const trimmed = nameDraft.trim();
-    if (trimmed.length === 0 || trimmed === viewedSkill.name) {
-      setNameDraft(viewedSkill.name);
+    const trimmed = viewedSkill.name.trim();
+    if (trimmed.length === 0) {
+      void updateSkill({ id: viewedSkill._id, name: "Untitled skill" });
       return;
     }
-    try {
-      await updateSkill({ id: viewedSkill._id, name: trimmed });
-      toast.success("Saved!");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save");
-      setNameDraft(viewedSkill.name);
+    if (trimmed !== viewedSkill.name) {
+      void updateSkill({ id: viewedSkill._id, name: trimmed });
     }
-  }, [nameDraft, updateSkill, viewedSkill]);
-
-  useEffect(() => {
-    if (!hasSkillId) {
-      setNameDraft("");
-    }
-  }, [hasSkillId]);
-
-  const viewedSkillName = viewedSkill?.name;
-
-  useEffect(() => {
-    if (viewedSkillName !== undefined) {
-      setNameDraft(viewedSkillName);
-    }
-  }, [viewedSkillName]);
+  }, [updateSkill, viewedSkill]);
 
   useEffect(() => {
     if (!skills || !hasSkillId) return;
@@ -212,9 +199,9 @@ function SkillsLayout() {
       breadcrumb={
         hasSkill || isSkillLoading ? (
           <SkillPageTitle
-            name={nameDraft}
-            onNameChange={setNameDraft}
-            onNameCommit={() => void handleNameCommit()}
+            name={viewedSkill?.name ?? ""}
+            onNameChange={handleNameChange}
+            onNameCommit={handleNameCommit}
           />
         ) : undefined
       }

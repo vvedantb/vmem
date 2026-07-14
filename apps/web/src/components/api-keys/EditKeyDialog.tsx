@@ -1,7 +1,8 @@
 "use client";
 
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQuery } from "convex/react";
+import { toast } from "sonner";
+import { api } from "@vmem/backend";
 import {
   Button,
   Dialog,
@@ -13,93 +14,51 @@ import {
   Input,
 } from "@vmem/ui";
 import { IconLoader2 } from "@tabler/icons-react";
-import { apiKeySchema, type ApiKeyFormValues } from "@/lib/schemas";
-
-interface EditKeyFormProps {
-  keyName: string | undefined;
-  isSaving: boolean;
-  onSave: (name: string) => void;
-  onCancel: () => void;
-}
-
-function EditKeyForm({
-  keyName,
-  isSaving,
-  onSave,
-  onCancel,
-}: EditKeyFormProps) {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<ApiKeyFormValues>({
-    resolver: zodResolver(apiKeySchema),
-    defaultValues: { name: keyName ?? "" },
-  });
-
-  const onSubmit = ({ name }: ApiKeyFormValues) => {
-    onSave(name.trim());
-  };
-
-  return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-2">
-      <div className="space-y-2">
-        <Input
-          {...register("name")}
-          placeholder="e.g. Production server"
-          autoFocus
-          disabled={isSaving}
-          aria-invalid={errors.name ? true : undefined}
-        />
-        {errors.name ? (
-          <p className="text-sm text-danger">{errors.name.message}</p>
-        ) : null}
-      </div>
-      <DialogFooter>
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={onCancel}
-          disabled={isSaving}
-          className="text-muted"
-        >
-          Cancel
-        </Button>
-        <Button type="submit" disabled={isSaving}>
-          {isSaving ? (
-            <>
-              <IconLoader2 size={16} className="animate-spin" />
-              Saving...
-            </>
-          ) : (
-            "Save"
-          )}
-        </Button>
-      </DialogFooter>
-    </form>
-  );
-}
+import type { ApiKey } from "./types";
 
 interface EditKeyDialogProps {
-  keyName: string | undefined;
+  apiKeyId: ApiKey["id"] | null;
   isOpen: boolean;
-  isSaving: boolean;
-  onSave: (name: string) => void;
-  onCancel: () => void;
+  onClose: () => void;
 }
 
 export function EditKeyDialog({
-  keyName,
+  apiKeyId,
   isOpen,
-  isSaving,
-  onSave,
-  onCancel,
+  onClose,
 }: EditKeyDialogProps) {
+  const apiKeys = useQuery(api.apiKeys.listMy, isOpen ? {} : "skip");
+  const apiKey = apiKeys?.find((row) => row.id === apiKeyId);
+
+  const renameApiKey = useMutation(api.apiKeys.renameMy).withOptimisticUpdate(
+    (localStore, args) => {
+      const list = localStore.getQuery(api.apiKeys.listMy, {});
+      if (!list) return;
+      localStore.setQuery(
+        api.apiKeys.listMy,
+        {},
+        list.map((row) =>
+          row.id === args.id ? { ...row, name: args.name.trim() } : row,
+        ),
+      );
+    },
+  );
+
+  const handleNameChange = (name: string) => {
+    if (!apiKey || name === apiKey.name) return;
+
+    void renameApiKey({ id: apiKey.id, name }).catch((err: unknown) => {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to rename API key",
+      );
+    });
+  };
+
   return (
     <Dialog
       open={isOpen}
       onOpenChange={(open) => {
-        if (!open && !isSaving) onCancel();
+        if (!open) onClose();
       }}
     >
       <DialogContent className="sm:max-w-sm">
@@ -109,14 +68,32 @@ export function EditKeyDialog({
             Update the display name for this key. The key value stays the same.
           </DialogDescription>
         </DialogHeader>
-        {isOpen ? (
-          <EditKeyForm
-            key={keyName ?? ""}
-            keyName={keyName}
-            isSaving={isSaving}
-            onSave={onSave}
-            onCancel={onCancel}
-          />
+        {isOpen && apiKey ? (
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Input
+                value={apiKey.name}
+                onChange={(e) => handleNameChange(e.target.value)}
+                placeholder="e.g. Production server"
+                autoFocus
+                aria-label="API key name"
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={onClose}
+                className="text-muted"
+              >
+                Done
+              </Button>
+            </DialogFooter>
+          </div>
+        ) : isOpen ? (
+          <div className="flex justify-center py-6">
+            <IconLoader2 size={20} className="animate-spin text-muted" />
+          </div>
         ) : null}
       </DialogContent>
     </Dialog>

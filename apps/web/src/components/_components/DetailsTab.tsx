@@ -1,13 +1,12 @@
 "use client";
 
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useState, type FormEvent } from "react";
 import { Button, Input, Textarea, Badge } from "@vmem/ui";
 import { toast } from "sonner";
 import { IconCheck, IconLoader2 } from "@tabler/icons-react";
 import type { Memory } from "@/lib/memories";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
-import { memorySchema, type MemoryFormValues } from "@/lib/schemas";
+import { memorySchema } from "@/lib/schemas";
 import TagInputWithSuggestions from "./TagInputWithSuggestions";
 import MemoryProvenance from "./MemoryProvenance";
 import { DetailSection } from "./detail-panel/DetailSection";
@@ -58,28 +57,33 @@ export function DetailsTabEdit({
   onCancel,
 }: DetailsTabEditProps) {
   const { updateMemory } = useMemoryContext();
+  const [tags, setTags] = useState(memory.tags);
+  const [contentError, setContentError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    control,
-    formState: { errors, isSubmitting },
-  } = useForm<MemoryFormValues>({
-    resolver: zodResolver(memorySchema),
-    defaultValues: {
-      title: memory.title,
-      content: memory.content,
-      tags: [...memory.tags],
-    },
-  });
+  const onSave = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const title = String(formData.get("title") ?? "");
+    const content = String(formData.get("content") ?? "");
+    const parsed = memorySchema.safeParse({ title, content, tags });
+    if (!parsed.success) {
+      const contentIssue = parsed.error.issues.find(
+        (issue) => issue.path[0] === "content",
+      );
+      setContentError(contentIssue?.message ?? "Invalid memory content");
+      return;
+    }
+    setContentError(null);
+    setIsSubmitting(true);
 
-  const onSave = async (data: MemoryFormValues) => {
     try {
       const updated = await updateMemory({
         id: memory.id,
-        title: data.title,
-        content: data.content,
-        tags: data.tags,
+        title: parsed.data.title,
+        content: parsed.data.content,
+        tags: parsed.data.tags,
       });
 
       if (!updated) {
@@ -93,48 +97,47 @@ export function DetailsTabEdit({
       toast.error(
         err instanceof Error ? err.message : "Failed to update memory",
       );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className={DETAILS_ROOT_CLASS}>
+    <form className={DETAILS_ROOT_CLASS} onSubmit={onSave}>
       <div className="space-y-3 rounded-lg bg-surface-secondary/60 p-4">
         <Input
-          {...register("title")}
+          name="title"
+          defaultValue={memory.title}
           placeholder="Memory title"
           disabled={isSubmitting}
           className="h-10 rounded-field border-border bg-field-background text-foreground text-base font-semibold placeholder:text-field-placeholder"
         />
         <Textarea
-          {...register("content")}
+          name="content"
+          defaultValue={memory.content}
           placeholder="Memory content"
           rows={8}
           disabled={isSubmitting}
           className="min-h-[160px] rounded-field border-border bg-field-background text-foreground placeholder:text-field-placeholder"
         />
-        {errors.content ? (
-          <p className="text-sm text-danger">{errors.content.message}</p>
+        {contentError ? (
+          <p className="text-sm text-danger">{contentError}</p>
         ) : null}
       </div>
 
       <MemoryProvenance memory={memory} />
 
       <DetailSection label="Tags">
-        <Controller
-          name="tags"
-          control={control}
-          render={({ field }) => (
-            <TagInputWithSuggestions
-              tags={field.value}
-              onChange={field.onChange}
-              disabled={isSubmitting}
-            />
-          )}
+        <TagInputWithSuggestions
+          tags={tags}
+          onChange={setTags}
+          disabled={isSubmitting}
         />
       </DetailSection>
 
       <div className="sticky bottom-0 flex items-center justify-end gap-3 bg-surface-primary pt-3">
         <Button
+          type="button"
           variant="ghost"
           onClick={onCancel}
           disabled={isSubmitting}
@@ -142,7 +145,7 @@ export function DetailsTabEdit({
         >
           Cancel
         </Button>
-        <Button onClick={handleSubmit(onSave)} disabled={isSubmitting}>
+        <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? (
             <IconLoader2 size={16} className="animate-spin" />
           ) : (
@@ -151,6 +154,6 @@ export function DetailsTabEdit({
           {isSubmitting ? "Saving..." : "Save changes"}
         </Button>
       </div>
-    </div>
+    </form>
   );
 }

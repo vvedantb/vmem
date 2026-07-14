@@ -3,23 +3,11 @@
 import { useCallback, useMemo } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api, type Id } from "@vmem/backend";
-import type { FileCategory, FileItem } from "@/lib/file-types";
+import type { FileCategory, FileItem } from "../-types";
 import { parseConvexStorageUpload } from "@/lib/schemas";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 
 const DEFAULT_STORAGE_LIMIT = 10 * 1024 * 1024 * 1024;
-
-interface UseFilesDataResult {
-  allFiles: FileItem[];
-  isLoading: boolean;
-  totalBytes: number;
-  storageLimit: number;
-  uploadFile: (file: File, parentFolderId: string | null) => Promise<void>;
-  createFolder: (name: string, parentFolderId: string | null) => Promise<void>;
-  renameNode: (id: string, name: string) => Promise<void>;
-  moveNodes: (ids: string[], targetFolderId: string | null) => Promise<void>;
-  deleteNodes: (ids: string[]) => Promise<void>;
-}
 
 // map a stored MIME type to the icon/display category used by the file UI
 function fileCategoryFor(mimeType: string | undefined): FileCategory {
@@ -32,7 +20,7 @@ function fileCategoryFor(mimeType: string | undefined): FileCategory {
 }
 
 // files data layer bound directly to the live Convex `files.listTree` query
-export function useFilesData(): UseFilesDataResult {
+export function useFilesData() {
   // active workspace scope: personal files, or the team's shared drive
   const teamId = useActiveProfile().teamId;
   const data = useQuery(api.files.listTree, { teamId });
@@ -173,3 +161,5 @@ export function useFilesData(): UseFilesDataResult {
     deleteNodes,
   };
 }
+
+export type UseFilesDataResult = ReturnType<typeof useFilesData>;

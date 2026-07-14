@@ -1,4 +1,4 @@
-import type { FileItem } from "@/lib/file-types";
+import type { FileItem } from "./-types";
 import FileGridItem from "./FileGridItem";
 import { InlineNewFolderGrid } from "./InlineNewFolder";
 

@@ -20,6 +20,8 @@ import {
 } from "@tabler/icons-react";
 import { Badge, Button } from "@vmem/ui";
 import { AnimatePresence, motion } from "motion/react";
+import type { api } from "@vmem/backend";
+import type { FunctionReturnType } from "convex/server";
 import {
   useSymbolContext,
   type CodeNodeKind,
@@ -47,10 +49,14 @@ function KindIcon({ kind, size = 18 }: { kind: CodeNodeKind; size?: number }) {
   return <Icon size={size} className="text-muted flex-shrink-0" />;
 }
 
-const SYMBOL_TRAIT_CONFIG = [
-  { field: "isExported" as const, icon: IconShieldCheck, label: "exported" },
-  { field: "isAsync" as const, icon: IconBolt, label: "async" },
-  { field: "isTest" as const, icon: IconFlask, label: "test" },
+const SYMBOL_TRAIT_CONFIG: {
+  field: "isExported" | "isAsync" | "isTest";
+  icon: typeof IconShieldCheck;
+  label: string;
+}[] = [
+  { field: "isExported", icon: IconShieldCheck, label: "exported" },
+  { field: "isAsync", icon: IconBolt, label: "async" },
+  { field: "isTest", icon: IconFlask, label: "test" },
 ];
 
 export function CodebaseSymbolPanel({
@@ -230,11 +236,12 @@ export function CodebaseSymbolPanel({
   );
 }
 
-type SymbolContext = NonNullable<
-  ReturnType<typeof useSymbolContext>["context"]
+type CodebaseSymbolContext = NonNullable<
+  FunctionReturnType<typeof api.codebaseSymbols.getContext>
 >;
+type SymbolNeighbour = CodebaseSymbolContext["callsIn"][number];
 
-function SymbolTraitBadges({ context }: { context: SymbolContext }) {
+function SymbolTraitBadges({ context }: { context: CodebaseSymbolContext }) {
   const traits = SYMBOL_TRAIT_CONFIG.filter((trait) => context[trait.field]);
   if (traits.length === 0) return null;
 
@@ -263,7 +270,7 @@ function SymbolRelationSection({
 }: {
   icon: typeof IconArrowRight;
   title: string;
-  items: { id: string; name: string; filePath: string }[];
+  items: SymbolNeighbour[];
   onNavigate: (id: string) => void;
   className?: string;
 }) {
@@ -290,7 +297,7 @@ function NeighbourList({
   items,
   onNavigate,
 }: {
-  items: { id: string; name: string; filePath: string }[];
+  items: SymbolNeighbour[];
   onNavigate: (id: string) => void;
 }) {
   return (

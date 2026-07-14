@@ -1,9 +1,29 @@
-import type { Doc } from "@vmem/backend";
+import type { FunctionReturnType } from "convex/server";
+import type { api, Doc } from "@vmem/backend";
+
+export type SystemSkillEntry = FunctionReturnType<
+  typeof api.systemSkills.listCatalog
+>[number];
+
+export type SkillViewFields = Pick<
+  Doc<"skills">,
+  "description" | "instructions"
+>;
 
 type SkillClipboardFields = Pick<
   Doc<"skills">,
   "name" | "description" | "instructions"
 >;
+
+export function patchSystemSkillCatalog(
+  rows: SystemSkillEntry[],
+  id: SystemSkillEntry["_id"],
+  change: Partial<SystemSkillEntry>,
+): SystemSkillEntry[] {
+  return rows.map((entry) =>
+    entry._id === id ? { ...entry, ...change } : entry,
+  );
+}
 
 function yamlScalar(value: string): string {
   if (/[\n:"'\\]/.test(value)) {

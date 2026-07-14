@@ -1,5 +1,4 @@
 import { Input, Label } from "@vmem/ui";
-import { useCallback, useRef } from "react";
 
 interface ConfidenceThresholdSliderProps {
   value: number;
@@ -10,19 +9,6 @@ export default function ConfidenceThresholdSlider({
   value,
   onChange,
 }: ConfidenceThresholdSliderProps) {
-  const pendingValue = useRef<number | null>(null);
-
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    pendingValue.current = Number(e.target.value);
-  }, []);
-
-  const handleCommit = useCallback(() => {
-    if (pendingValue.current !== null) {
-      onChange(pendingValue.current);
-      pendingValue.current = null;
-    }
-  }, [onChange]);
-
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -37,10 +23,8 @@ export default function ConfidenceThresholdSlider({
         min={0}
         max={100}
         step={5}
-        defaultValue={value}
-        onChange={handleChange}
-        onMouseUp={handleCommit}
-        onTouchEnd={handleCommit}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
         className="h-2 w-full cursor-pointer appearance-none rounded-full border-0 bg-surface-secondary p-0 accent-accent focus-visible:ring-0"
       />
       <p className="text-xs text-muted">

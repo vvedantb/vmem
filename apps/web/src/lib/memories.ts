@@ -1,3 +1,6 @@
+import type { FunctionReturnType } from "convex/server";
+import { api } from "@vmem/backend";
+
 export type MemoryType = "profile" | "episodic" | "knowledge";
 
 export const MEMORY_TYPES: readonly MemoryType[] = [
@@ -33,19 +36,11 @@ function isMemoryType(value: string): value is MemoryType {
   return MEMORY_TYPES.some((type) => type === value);
 }
 
-// fields shared by list / retrieve / getMemory api payloads
-export type MemoryApiFields = {
-  id: string;
-  title: string;
-  content: string;
-  type: string;
-  source: string;
-  tags: string[];
-  createdAt: string;
-  sourceUrl?: string | null;
-  sourceSyncedAt?: string | null;
-  profileId?: string | null;
-};
+export type MemoryListResult = FunctionReturnType<
+  typeof api.memoryApi.listMemories
+>;
+// single memory row from list / retrieve / getMemory api payloads
+export type MemoryApiFields = MemoryListResult["memories"][number];
 
 // normalize api / retrieve / getMemory payloads into the client Memory shape
 export function memoryFromApi(m: MemoryApiFields): Memory {

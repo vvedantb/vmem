@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
-import { api } from "@vmem/backend";
+import { api, type Id } from "@vmem/backend";
 import { Badge, Button, Card, CardContent } from "@vmem/ui";
 import { useUser } from "@clerk/clerk-react";
 import {
@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import {
   useTeamDetail,
   useTeamWorkspace,
-  type TeamDetail,
+  type TeamMember,
 } from "./team-context";
 import { AddMemberDialog } from "./AddMemberDialog";
 
@@ -50,11 +50,11 @@ export function TeamMembers() {
     },
   );
   const [addOpen, setAddOpen] = useState(false);
-  const [removing, setRemoving] = useState<string | null>(null);
+  const [removing, setRemoving] = useState<Id<"users"> | null>(null);
   const currentUser = useQuery(api.users.getMe);
   const { user: clerkUser } = useUser();
 
-  const handleRemove = async (userId: string, label: string) => {
+  const handleRemove = async (userId: Id<"users">, label: string) => {
     const confirmed = window.confirm(`Remove ${label} from ${data.team.name}?`);
     if (!confirmed) return;
     setRemoving(userId);
@@ -122,11 +122,11 @@ function MemberRow({
   removingUserId,
   onRemove,
 }: {
-  member: TeamDetail["members"][number];
-  currentUserId: string | undefined;
+  member: TeamMember;
+  currentUserId: Id<"users"> | undefined;
   clerkImageUrl: string | undefined;
-  removingUserId: string | null;
-  onRemove: (userId: string, label: string) => void;
+  removingUserId: Id<"users"> | null;
+  onRemove: (userId: Id<"users">, label: string) => void;
 }) {
   const { meta } = useTeamWorkspace();
   const name = memberLabel(member);
@@ -175,7 +175,7 @@ function MemberRow({
   );
 }
 
-function memberLabel(m: TeamDetail["members"][number]): string {
+function memberLabel(m: TeamMember): string {
   return (
     m.fullName ||
     [m.firstName, m.lastName].filter(Boolean).join(" ") ||

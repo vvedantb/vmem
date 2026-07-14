@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@vmem/backend";
 import type { Doc } from "@vmem/backend";
@@ -56,48 +56,36 @@ export function EditSkillDialog({
     },
   );
 
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [instructions, setInstructions] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (!skill) return;
-    setName(skill.name);
-    setDescription(skill.description);
-    setInstructions(skill.instructions);
-  }, [skill]);
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleDone = async () => {
     if (submitting || !skill) return;
 
-    const trimmedName = name.trim();
+    const trimmedName = skill.name.trim();
     if (trimmedName.length === 0) {
       toast.error("Name is required");
       return;
     }
-    if (instructions.trim().length === 0) {
+    if (skill.instructions.trim().length === 0) {
       toast.error("Instructions are required");
       return;
     }
 
-    setSubmitting(true);
-    try {
-      await updateSkill({
-        id: skill._id,
-        name: trimmedName,
-        description: description.trim(),
-        instructions,
-      });
-      toast.success(`Updated ${trimmedName}`);
-      onOpenChange(false);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to update skill";
-      toast.error(msg);
-    } finally {
-      setSubmitting(false);
+    if (trimmedName !== skill.name) {
+      setSubmitting(true);
+      try {
+        await updateSkill({ id: skill._id, name: trimmedName });
+      } catch (err) {
+        const msg =
+          err instanceof Error ? err.message : "Failed to update skill";
+        toast.error(msg);
+        return;
+      } finally {
+        setSubmitting(false);
+      }
     }
+
+    onOpenChange(false);
   };
 
   if (!skill) return null;
@@ -110,13 +98,18 @@ export function EditSkillDialog({
         </DialogHeader>
 
         <form
-          onSubmit={handleSubmit}
+          onSubmit={(e) => {
+            e.preventDefault();
+            void handleDone();
+          }}
           className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto"
         >
           <Input
             id="edit-skill-name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            value={skill.name}
+            onChange={(e) => {
+              void updateSkill({ id: skill._id, name: e.target.value });
+            }}
             placeholder="Name"
             aria-label="Name"
             autoFocus
@@ -124,8 +117,13 @@ export function EditSkillDialog({
 
           <Textarea
             id="edit-skill-description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            value={skill.description}
+            onChange={(e) => {
+              void updateSkill({
+                id: skill._id,
+                description: e.target.value,
+              });
+            }}
             placeholder="What this skill is for"
             aria-label="Description"
             rows={3}
@@ -134,8 +132,13 @@ export function EditSkillDialog({
 
           <Textarea
             id="edit-skill-instructions"
-            value={instructions}
-            onChange={(e) => setInstructions(e.target.value)}
+            value={skill.instructions}
+            onChange={(e) => {
+              void updateSkill({
+                id: skill._id,
+                instructions: e.target.value,
+              });
+            }}
             placeholder="Instructions"
             aria-label="Instructions"
             className="min-h-[240px] font-mono text-xs"
@@ -155,7 +158,7 @@ export function EditSkillDialog({
               {submitting ? (
                 <IconLoader2 size={14} className="animate-spin" />
               ) : null}
-              Save
+              Done
             </Button>
           </div>
         </form>

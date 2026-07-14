@@ -38,7 +38,6 @@ export function KeysPanel() {
     setEditKeyId,
     isRevoking,
     isDeleting,
-    isRenaming,
     copiedKeyId,
     copyingKeyId,
     revealedKeys,
@@ -47,14 +46,12 @@ export function KeysPanel() {
     handleToggleReveal,
     handleRevoke,
     handleDelete,
-    handleRename,
   } = useApiKeyActions();
 
   const isLoading = apiKeys === undefined;
   const apiKeyList: ApiKey[] = apiKeys ?? [];
   const keyToRevoke = apiKeyList.find((key) => key.id === revokeKeyId);
   const keyToDelete = apiKeyList.find((key) => key.id === deleteKeyId);
-  const keyToEdit = apiKeyList.find((key) => key.id === editKeyId);
 
   if (isLoading) return <ApiKeysLoadingSkeleton />;
 
@@ -149,11 +146,9 @@ export function KeysPanel() {
       />
 
       <EditKeyDialog
-        keyName={keyToEdit?.name}
+        apiKeyId={editKeyId}
         isOpen={!!editKeyId}
-        isSaving={isRenaming}
-        onSave={handleRename}
-        onCancel={() => setEditKeyId(null)}
+        onClose={() => setEditKeyId(null)}
       />
     </>
   );

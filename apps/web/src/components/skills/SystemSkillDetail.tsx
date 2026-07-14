@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
-import type { FunctionReturnType } from "convex/server";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { api } from "@vmem/backend";
 import {
@@ -34,11 +33,11 @@ import { toast } from "sonner";
 import PageContainer from "@/components/PageContainer";
 import { ViewSkillPanel } from "@/components/skills/ViewSkillPanel";
 import { SystemSkillFormDialog } from "@/components/skills/SystemSkillFormDialog";
+import {
+  patchSystemSkillCatalog,
+  type SystemSkillEntry,
+} from "@/components/skills/_utils";
 import { useActiveTeamId } from "@/components/workspace/active-profile";
-
-type SystemSkillEntry = FunctionReturnType<
-  typeof api.systemSkills.listCatalog
->[number];
 
 const systemSkillDetailSpinner = (
   <div className="flex justify-center py-20">
@@ -147,17 +146,6 @@ interface SystemSkillDetailProps {
   profileId: string;
 }
 
-// patch one entry in the cached catalog (shared optimistic-update helper)
-function patchCatalog(
-  rows: SystemSkillEntry[],
-  id: string,
-  change: Partial<SystemSkillEntry>,
-): SystemSkillEntry[] {
-  return rows.map((entry) =>
-    entry._id === id ? { ...entry, ...change } : entry,
-  );
-}
-
 // read-only detail page for a catalog system skill
 export function SystemSkillDetail({
   systemSkillId,
@@ -176,7 +164,7 @@ export function SystemSkillDetail({
       store.setQuery(
         api.systemSkills.listCatalog,
         catalogArgs,
-        patchCatalog(current, args.systemSkillId, {
+        patchSystemSkillCatalog(current, args.systemSkillId, {
           installed: true,
           installEnabled: true,
         }),
@@ -191,7 +179,7 @@ export function SystemSkillDetail({
     store.setQuery(
       api.systemSkills.listCatalog,
       catalogArgs,
-      patchCatalog(current, args.systemSkillId, {
+      patchSystemSkillCatalog(current, args.systemSkillId, {
         installed: false,
         installEnabled: false,
       }),
@@ -205,7 +193,7 @@ export function SystemSkillDetail({
     store.setQuery(
       api.systemSkills.listCatalog,
       catalogArgs,
-      patchCatalog(current, args.systemSkillId, {
+      patchSystemSkillCatalog(current, args.systemSkillId, {
         installEnabled: args.enabled,
       }),
     );

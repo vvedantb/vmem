@@ -11,9 +11,8 @@ import MemoryDetailPanel from "@/components/MemoryDetailPanel";
 import { useThemeContext } from "@/components/contexts/ThemeContext";
 import { useTrailData } from "@/hooks/useTrailData";
 import type { TrailEntry } from "@/hooks/useTrailData";
+import type { MemoryListEntry } from "@/hooks/useMemoryListEntries";
 import type { ListItem } from "@/lib/list-items";
-
-type MemoryListEntry = { item: ListItem; score: number | null };
 
 interface MemoryListVirtuosoContext {
   selectedMemoryId: string | null;

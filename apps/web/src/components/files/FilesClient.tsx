@@ -2,7 +2,7 @@
 
 import { useQueryStates } from "nuqs";
 import { VmemSpinner } from "@/components/svg-animations";
-import type { FolderBreadcrumb } from "@/lib/file-types";
+import type { FolderBreadcrumb, FileItem } from "./-types";
 import PageContainer from "@/components/PageContainer";
 import FileUploadModal from "@/components/FileUploadModal";
 import FilePreviewModal from "@/components/FilePreviewModal";
@@ -31,13 +31,12 @@ const filesLoadingView = (
 );
 
 function buildBreadcrumbs(
-  allFiles: { id: string; name: string; parentFolderId: string | null }[],
+  allFiles: Pick<FileItem, "id" | "name" | "parentFolderId">[],
   folderId: string | null,
 ): FolderBreadcrumb[] {
   const root: FolderBreadcrumb = { id: null, name: "Files" };
   if (folderId === null) return [root];
 
-  const folderById = new Map(allFiles.map((f) => [f.id, f]));
   const crumbs: FolderBreadcrumb[] = [root];
   let currentId: string | null = folderId;
   const visited = new Set<string>();
@@ -45,7 +44,7 @@ function buildBreadcrumbs(
   while (currentId !== null) {
     if (visited.has(currentId)) break;
     visited.add(currentId);
-    const folder = folderById.get(currentId);
+    const folder = allFiles.find((f) => f.id === currentId);
     if (!folder) break;
     crumbs.push({ id: folder.id, name: folder.name });
     currentId = folder.parentFolderId;

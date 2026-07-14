@@ -6,14 +6,9 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import {
   memoryFromApi,
   type Memory,
-  type MemoryApiFields,
+  type MemoryListResult,
 } from "@/lib/memories";
 import { api } from "@vmem/backend";
-
-interface ApiMemoryPage {
-  memories: MemoryApiFields[];
-  total: number;
-}
 
 const MEMORY_LIST_PAGE_SIZE = 100;
 
@@ -62,7 +57,7 @@ function useMemoryListPage(filters: MemoryListFilters) {
     queryKey: ["memories", normalizedFilters],
     enabled: isAuthenticated && filters.enabled !== false,
     initialPageParam: 0,
-    queryFn: async ({ pageParam }): Promise<ApiMemoryPage> => {
+    queryFn: async ({ pageParam }): Promise<MemoryListResult> => {
       return await listMemoriesAction({
         profileId: normalizedFilters.profileId ?? undefined,
         type: normalizedFilters.type,

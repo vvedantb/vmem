@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useMutation, useAction } from "convex/react";
 import { toast } from "sonner";
 import { api } from "@vmem/backend";
-import type { ApiKey } from "./ApiKeyRow";
+import type { ApiKey } from "./types";
 
 export function useApiKeyActions() {
   const revokeApiKey = useMutation(api.apiKeys.revokeMy).withOptimisticUpdate(
@@ -31,19 +31,6 @@ export function useApiKeyActions() {
       );
     },
   );
-  const renameApiKey = useMutation(api.apiKeys.renameMy).withOptimisticUpdate(
-    (localStore, args) => {
-      const list = localStore.getQuery(api.apiKeys.listMy, {});
-      if (!list) return;
-      localStore.setQuery(
-        api.apiKeys.listMy,
-        {},
-        list.map((row) =>
-          row.id === args.id ? { ...row, name: args.name.trim() } : row,
-        ),
-      );
-    },
-  );
   const revealApiKey = useAction(api.apiKeys.revealMy);
 
   const [revokeKeyId, setRevokeKeyId] = useState<ApiKey["id"] | null>(null);
@@ -51,13 +38,14 @@ export function useApiKeyActions() {
   const [editKeyId, setEditKeyId] = useState<ApiKey["id"] | null>(null);
   const [isRevoking, setIsRevoking] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isRenaming, setIsRenaming] = useState(false);
-  const [copiedKeyId, setCopiedKeyId] = useState<string | null>(null);
-  const [copyingKeyId, setCopyingKeyId] = useState<string | null>(null);
+  const [copiedKeyId, setCopiedKeyId] = useState<ApiKey["id"] | null>(null);
+  const [copyingKeyId, setCopyingKeyId] = useState<ApiKey["id"] | null>(null);
   const [revealedKeys, setRevealedKeys] = useState<
-    Partial<Record<string, string>>
+    Partial<Record<ApiKey["id"], string>>
   >({});
-  const [revealingKeyId, setRevealingKeyId] = useState<string | null>(null);
+  const [revealingKeyId, setRevealingKeyId] = useState<ApiKey["id"] | null>(
+    null,
+  );
 
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -172,29 +160,6 @@ export function useApiKeyActions() {
     }
   }, [deleteKeyId, deleteApiKey]);
 
-  const handleRename = useCallback(
-    async (name: string) => {
-      if (!editKeyId) return;
-
-      setIsRenaming(true);
-      try {
-        const renamed = await renameApiKey({ id: editKeyId, name });
-        if (!renamed) {
-          throw new Error("Failed to rename API key");
-        }
-        toast.success("API key renamed");
-        setEditKeyId(null);
-      } catch (err) {
-        toast.error(
-          err instanceof Error ? err.message : "Failed to rename API key",
-        );
-      } finally {
-        setIsRenaming(false);
-      }
-    },
-    [editKeyId, renameApiKey],
-  );
-
   return {
     revokeKeyId,
     setRevokeKeyId,
@@ -204,7 +169,6 @@ export function useApiKeyActions() {
     setEditKeyId,
     isRevoking,
     isDeleting,
-    isRenaming,
     copiedKeyId,
     copyingKeyId,
     revealedKeys,
@@ -213,6 +177,5 @@ export function useApiKeyActions() {
     handleToggleReveal,
     handleRevoke,
     handleDelete,
-    handleRename,
   };
 }

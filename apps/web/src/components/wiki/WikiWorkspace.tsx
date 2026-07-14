@@ -2,6 +2,7 @@
 
 import { lazy, Suspense, useState, useEffect, useRef } from "react";
 import { useMutation, useQuery } from "convex/react";
+import { toast } from "sonner";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 import { api } from "@vmem/backend";
 import { Dialog, DialogContent, DialogTitle } from "@vmem/ui";
@@ -12,7 +13,6 @@ import WikiOutline from "./WikiOutline";
 import { useWikiSidebar } from "./WikiSidebarContext";
 import { WikiPageBreadcrumb } from "./WikiPageBreadcrumb";
 import { WikiDocActionsMenu } from "./WikiDocActionsMenu";
-import { useWikiTitleDraft } from "./useWikiTitleDraft";
 
 const WikiEditor = lazy(() => import("./WikiEditor"));
 const WikiHistoryPanel = lazy(() =>
@@ -206,6 +206,7 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
   const hasDocId = docId !== null && docId.length > 0;
   const isDocLoading = hasDocId && doc === undefined;
   const hasDoc = hasDocId && doc != null && doc.kind === "document";
+  const editableDoc = hasDoc ? doc : null;
   const phase = resolvePhase({
     hasDoc,
     isDocLoading,
@@ -214,12 +215,32 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
   });
   const showChrome = phase === "editing" || phase === "loading-doc";
   const ancestors = doc && nodes ? findAncestors(doc, nodes) : [];
-  const { titleDraft, setTitleDraft, commitTitle } = useWikiTitleDraft(
-    doc,
-    renameNode,
-  );
-  const pageTitle =
-    doc != null && doc.kind === "document" ? titleDraft || doc.title : "Wiki";
+  const pageTitle = editableDoc ? editableDoc.title || "Untitled" : "Wiki";
+
+  function handleTitleChange(title: string) {
+    if (!editableDoc) return;
+    void renameNode({ id: editableDoc._id, title }).catch((err) => {
+      toast.error(err instanceof Error ? err.message : "Failed to save");
+    });
+  }
+
+  function handleTitleCommit() {
+    if (!editableDoc) return;
+    const trimmed = editableDoc.title.trim();
+    if (trimmed.length === 0) {
+      void renameNode({ id: editableDoc._id, title: "Untitled" }).catch(
+        (err) => {
+          toast.error(err instanceof Error ? err.message : "Failed to save");
+        },
+      );
+      return;
+    }
+    if (trimmed !== editableDoc.title) {
+      void renameNode({ id: editableDoc._id, title: trimmed }).catch((err) => {
+        toast.error(err instanceof Error ? err.message : "Failed to save");
+      });
+    }
+  }
 
   function requestJump(pos: number) {
     setJumpRequest((prev) => ({ pos, n: prev.n + 1 }));
@@ -252,7 +273,6 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
     setOutlineVisible(false);
     setHistoryVisible(false);
     setWordCount(0);
-    setTitleDraft("");
   }, [
     hasDoc,
     hasDocId,
@@ -260,7 +280,6 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
     setOutlineVisible,
     setHistoryVisible,
     setWordCount,
-    setTitleDraft,
   ]);
 
   return (
@@ -268,12 +287,12 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
       title={pageTitle}
       noScroll
       breadcrumb={
-        showChrome ? (
+        editableDoc ? (
           <WikiPageBreadcrumb
             ancestors={ancestors}
-            title={titleDraft}
-            onTitleChange={setTitleDraft}
-            onTitleCommit={() => void commitTitle()}
+            doc={editableDoc}
+            onTitleChange={handleTitleChange}
+            onTitleCommit={handleTitleCommit}
           />
         ) : undefined
       }
@@ -299,7 +318,7 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
           activeHeadingId={activeHeadingId}
           onJump={requestJump}
           docId={docId}
-          titleForCopy={titleDraft}
+          titleForCopy={editableDoc?.title ?? ""}
           onRegisterCopy={handleRegisterCopy}
           onRegisterRestore={handleRegisterRestore}
           onHeadingsChange={setHeadings}

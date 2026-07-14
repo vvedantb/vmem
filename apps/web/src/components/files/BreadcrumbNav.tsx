@@ -1,5 +1,5 @@
 import { Breadcrumb, BreadcrumbLink, BreadcrumbPage, Button } from "@vmem/ui";
-import type { FolderBreadcrumb } from "@/lib/file-types";
+import type { FolderBreadcrumb } from "./-types";
 
 interface BreadcrumbNavProps {
   breadcrumbs: FolderBreadcrumb[];

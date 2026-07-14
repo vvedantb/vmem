@@ -148,6 +148,11 @@ export default function ImportPageClient() {
       ) : null}
 
       <SelectImportRowsModal
+        key={
+          step.phase === "select"
+            ? step.rows.map((r) => r.stableId).join("\0")
+            : "idle"
+        }
         open={step.phase === "select"}
         rows={selectRows}
         onClose={closeSelect}

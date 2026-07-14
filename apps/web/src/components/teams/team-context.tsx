@@ -3,6 +3,7 @@ import type { FunctionReturnType } from "convex/server";
 import type { api } from "@vmem/backend";
 
 export type TeamDetail = NonNullable<FunctionReturnType<typeof api.teams.get>>;
+export type TeamMember = TeamDetail["members"][number];
 
 type TeamWorkspaceState = {
   detail: TeamDetail;

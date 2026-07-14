@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAction } from "convex/react";
+import { useQuery as useTanstackQuery } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -30,7 +31,11 @@ import {
 import { api } from "@vmem/backend";
 import type { Memory } from "@/lib/memories";
 import { formatMemoryTypeLabel } from "@/lib/memories";
-import { countUniqueRelated } from "@/lib/memories-related";
+import {
+  countUniqueRelated,
+  relatedMemoriesQueryKey,
+  uniqueRelated,
+} from "@/lib/memories-related";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { toast } from "sonner";
 import { DetailsTabView, DetailsTabEdit } from "./_components/DetailsTab";
@@ -75,10 +80,20 @@ export default function MemoryDetailPanel({
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [connectionCount, setConnectionCount] = useState<number | null>(null);
 
   const { deleteMemory } = useMemoryContext();
   const getRelatedMemories = useAction(api.relationshipApi.getRelatedMemories);
+  const relatedQuery = useTanstackQuery({
+    queryKey: relatedMemoriesQueryKey(memory.id),
+    queryFn: async () => {
+      const data = await getRelatedMemories({ memoryId: memory.id });
+      return uniqueRelated(data);
+    },
+  });
+  const connectionCount =
+    relatedQuery.data === undefined
+      ? null
+      : countUniqueRelated(relatedQuery.data);
 
   useEffect(() => {
     if (initialAction === "edit") {
@@ -100,24 +115,6 @@ export default function MemoryDetailPanel({
     window.addEventListener("keydown", onKeyDown, { passive: true });
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose, showDeleteConfirm, isEditing]);
-
-  useEffect(() => {
-    let cancelled = false;
-    setConnectionCount(null);
-
-    void getRelatedMemories({ memoryId: memory.id })
-      .then((data) => {
-        if (cancelled) return;
-        setConnectionCount(countUniqueRelated(data));
-      })
-      .catch(() => {
-        if (!cancelled) setConnectionCount(null);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [memory.id, getRelatedMemories]);
 
   async function handleDelete() {
     setIsDeleting(true);

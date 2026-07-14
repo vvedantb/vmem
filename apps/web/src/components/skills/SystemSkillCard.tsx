@@ -1,13 +1,8 @@
 "use client";
 
 import { Link } from "@tanstack/react-router";
-import type { FunctionReturnType } from "convex/server";
-import type { api } from "@vmem/backend";
 import { Badge, Card, CardContent } from "@vmem/ui";
-
-type SystemSkillEntry = FunctionReturnType<
-  typeof api.systemSkills.listCatalog
->[number];
+import type { SystemSkillEntry } from "@/components/skills/_utils";
 
 interface SystemSkillCardProps {
   entry: SystemSkillEntry;

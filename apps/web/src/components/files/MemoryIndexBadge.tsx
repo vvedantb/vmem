@@ -2,7 +2,7 @@
 
 import { Link } from "@tanstack/react-router";
 import { IconBrain } from "@tabler/icons-react";
-import type { FileItem } from "@/lib/file-types";
+import type { FileItem } from "./-types";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 
 // memory-graph indexing indicator for a file row/card

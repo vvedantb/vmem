@@ -7,7 +7,7 @@ import {
   IconFolder,
 } from "@tabler/icons-react";
 import type { TablerIcon } from "@tabler/icons-react";
-import type { FileCategory, FileItem } from "@/lib/file-types";
+import type { FileCategory, FileItem } from "./-types";
 import type { FileSortField, SortDirection } from "./-searchParams";
 
 /** Shared interaction props for list rows and grid cards. */

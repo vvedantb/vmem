@@ -1,24 +1,10 @@
-export interface MemorySnapshot {
-  title: string;
-  content: string;
-  type: string;
-  status: string;
-  confidence: number;
-  tags: string[];
-}
+import type { FunctionReturnType } from "convex/server";
+import { api } from "@vmem/backend";
 
-export interface TimelineEvent {
-  id: string;
-  action: string;
-  actor: string;
-  createdAt: string;
-  snapshot: MemorySnapshot | null;
-  details: Record<string, string> | null;
-  memoryId: string;
-  memoryTitle: string;
-  connectionType?: "tag" | "related";
-  reason?: string;
-}
+export type TimelineEvent = FunctionReturnType<
+  typeof api.timelineApi.getMemoryTimeline
+>[number];
+export type MemorySnapshot = NonNullable<TimelineEvent["snapshot"]>;
 
 export interface ChangeSummary {
   addedChars: number;

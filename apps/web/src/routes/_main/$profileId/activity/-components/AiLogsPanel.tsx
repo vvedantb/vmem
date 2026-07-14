@@ -29,6 +29,7 @@ import { LogsFiltersDropdown } from "./LogsFiltersDropdown";
 import { LogsTable } from "./LogsTable";
 import { computeAiLogsTrends } from "./_aiLogsUtils";
 import { AiLogsLoadingSkeleton } from "./AiLogsLoadingSkeleton";
+import type { ProfileListItem } from "./-types";
 
 const PAGE_SIZE = 50;
 
@@ -109,12 +110,9 @@ export function AiLogsPanel() {
   );
 
   const profilesById = useMemo(() => {
-    const map = new Map<
-      string,
-      { _id: string; name: string; color?: string }
-    >();
-    for (const p of profiles ?? []) {
-      map.set(p._id, { _id: p._id, name: p.name, color: p.color });
+    const map = new Map<string, ProfileListItem>();
+    for (const profile of profiles ?? []) {
+      map.set(profile._id, profile);
     }
     return map;
   }, [profiles]);

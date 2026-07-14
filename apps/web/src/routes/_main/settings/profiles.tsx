@@ -29,8 +29,9 @@ import {
   IconBrandChrome,
   IconLoader2,
 } from "@tabler/icons-react";
+import type { FunctionReturnType } from "convex/server";
 import { api } from "@vmem/backend";
-import type { Doc, Id } from "@vmem/backend";
+import type { Id } from "@vmem/backend";
 import { optimisticId } from "@/lib/optimisticId";
 import PageContainer from "@/components/PageContainer";
 import { ProfileAvatar } from "@/components/profiles/ProfileAvatar";
@@ -40,7 +41,7 @@ export const Route = createFileRoute("/_main/settings/profiles")({
   component: ProfilesPage,
 });
 
-type Profile = Doc<"profiles">;
+type Profile = FunctionReturnType<typeof api.profiles.list>[number];
 
 function ProfileCard({
   profile,
@@ -245,14 +246,11 @@ function DefaultProfilesSection({ profiles }: { profiles: Profile[] }) {
   const extensionDefault =
     profiles.find((p) => p._id === extensionDefaultId) ?? defaultProfile;
 
-  const handleDefaultProfileChange = async (profileId: string) => {
-    const profile = profiles.find((p) => p._id === profileId);
-    if (!profile) return;
-
+  const handleDefaultProfileChange = async (profileId: Profile["_id"]) => {
     try {
       await setDefaultProfile({
         source: "extension",
-        profileId: profile._id,
+        profileId,
       });
       toast.success("Saved!");
     } catch (err) {
@@ -282,8 +280,9 @@ function DefaultProfilesSection({ profiles }: { profiles: Profile[] }) {
               </div>
               <Select
                 value={extensionDefault?._id ?? ""}
-                onValueChange={(profileId) => {
-                  void handleDefaultProfileChange(profileId);
+                onValueChange={(value) => {
+                  const profile = profiles.find((p) => p._id === value);
+                  if (profile) void handleDefaultProfileChange(profile._id);
                 }}
               >
                 <SelectTrigger className="w-[160px]">
@@ -392,19 +391,13 @@ function ProfilesPage() {
     );
   }
 
-  const handleCreate = async (data: {
-    name: string;
-    color: string;
-    icon: string;
-  }) => {
+  const handleCreate = async (data: Parameters<typeof createProfile>[0]) => {
     await createProfile(data);
   };
 
-  const handleEdit = async (data: {
-    name: string;
-    color: string;
-    icon: string;
-  }) => {
+  const handleEdit = async (
+    data: Omit<Parameters<typeof updateProfile>[0], "profileId">,
+  ) => {
     if (!editingProfile) return;
     await updateProfile({
       profileId: editingProfile._id,
@@ -460,6 +453,18 @@ function ProfilesPage() {
             open={!!editingProfile}
             onOpenChange={(open) => !open && setEditingProfile(null)}
             onSave={handleEdit}
+            onFieldUpdate={(patch) => {
+              void updateProfile({
+                profileId: editingProfile._id,
+                ...patch,
+              }).catch((err: unknown) => {
+                toast.error(
+                  err instanceof Error
+                    ? err.message
+                    : "Failed to update profile",
+                );
+              });
+            }}
           />
         )}
 

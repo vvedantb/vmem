@@ -13,8 +13,12 @@ import {
   IconX,
   type TablerIcon,
 } from "@tabler/icons-react";
-import type { ProposedUpdate, ProposedUpdateKind } from "@/hooks/useProposals";
-import { proposalAccentClass } from "./_proposalUtils";
+import {
+  proposalAccentClass,
+  type ProposedUpdate,
+  type ProposedUpdateKind,
+  type SourceMemorySnapshot,
+} from "./_proposalUtils";
 import {
   ProposalFieldLabel,
   ProposalMutedTextBlock,
@@ -149,7 +153,7 @@ function SynthesisSourceMemoryRow({
   isResolving,
   onKeepWinner,
 }: {
-  src: { id: string; title: string; content: string };
+  src: SourceMemorySnapshot;
   profileId: string;
   showKeepWinner: boolean;
   isResolving: boolean;

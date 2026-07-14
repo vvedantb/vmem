@@ -4,13 +4,10 @@ import type { TablerIcon } from "@tabler/icons-react";
 import { IconActivity, IconCircleCheck, IconClock } from "@tabler/icons-react";
 import { Card, CardContent, cn } from "@vmem/ui";
 import { formatDuration } from "@/lib/formatters";
-import { hasTrendActivity, type ApiUsageTrends } from "./_utils";
+import { hasTrendActivity, type ApiUsageMetrics } from "./_utils";
 
 interface ApiLogsSummaryProps {
-  totalRequests: number;
-  successRate: number;
-  avgResponseMs: number;
-  trends: ApiUsageTrends;
+  metrics: ApiUsageMetrics;
 }
 
 type MetricVariant = "requests" | "success" | "latency";
@@ -207,25 +204,20 @@ function LatencySummaryCard({
   );
 }
 
-export function ApiLogsSummary({
-  totalRequests,
-  successRate,
-  avgResponseMs,
-  trends,
-}: ApiLogsSummaryProps) {
+export function ApiLogsSummary({ metrics }: ApiLogsSummaryProps) {
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
       <RequestsSummaryCard
-        totalRequests={totalRequests}
-        trendData={trends.requests}
+        totalRequests={metrics.totalRequests}
+        trendData={metrics.trends.requests}
       />
       <SuccessRateSummaryCard
-        successRate={successRate}
-        trendData={trends.successRates}
+        successRate={metrics.successRate}
+        trendData={metrics.trends.successRates}
       />
       <LatencySummaryCard
-        avgResponseMs={avgResponseMs}
-        trendData={trends.avgDurations}
+        avgResponseMs={metrics.avgResponseMs}
+        trendData={metrics.trends.avgDurations}
       />
     </div>
   );

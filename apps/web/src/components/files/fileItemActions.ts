@@ -6,7 +6,7 @@ import {
   IconPencil,
   IconTrash,
 } from "@tabler/icons-react";
-import type { FileItem } from "@/lib/file-types";
+import type { FileItem } from "./-types";
 
 export type FileItemActionHandlers = {
   onOpen: () => void;

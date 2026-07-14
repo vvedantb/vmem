@@ -3,23 +3,14 @@
 import { useCallback, useMemo } from "react";
 import { useConvexAuth, useAction } from "convex/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { z } from "zod";
 import { api } from "@vmem/backend";
 import { useActiveProfileId } from "@/components/workspace/active-profile";
+import type {
+  ProposedUpdate,
+  ProposedUpdateKind,
+} from "@/components/proposals/_proposalUtils";
 
-const proposedUpdateKindSchema = z.enum([
-  "update",
-  "delete",
-  "insight",
-  "connection",
-  "contradiction",
-  "anomaly",
-  "merge",
-]);
-
-export type ProposedUpdateKind = z.infer<typeof proposedUpdateKindSchema>;
-
-const proposalSourceSchema = z.enum(["v2-extraction", "dream-mode"]);
+export type { ProposedUpdate, ProposedUpdateKind };
 
 const SYNTHESIS_KINDS = new Set<ProposedUpdateKind>([
   "insight",
@@ -31,25 +22,6 @@ const SYNTHESIS_KINDS = new Set<ProposedUpdateKind>([
 
 export function isSynthesisKind(kind: ProposedUpdateKind): boolean {
   return SYNTHESIS_KINDS.has(kind);
-}
-
-export interface ProposedUpdate {
-  id: string;
-  memoryId: string;
-  proposedContent: string;
-  proposedTitle: string | null;
-  reason: string;
-  kind: ProposedUpdateKind;
-  status: string;
-  createdAt: string;
-  resolvedAt: string | null;
-  sourceMemoryIds: string[];
-  confidence: number | null;
-  source: z.infer<typeof proposalSourceSchema>;
-  // target memory title/content at list time (null if deleted)
-  memorySnapshot: { title: string; content: string } | null;
-  // source memory snapshots for synthesis "derived from" panel
-  sourceMemorySnapshots: { id: string; title: string; content: string }[];
 }
 
 // pending proposals + approve/reject (tanstack cache)
@@ -65,29 +37,7 @@ export function useProposals() {
     enabled: isAuthenticated && activeProfileId !== undefined,
     queryFn: async (): Promise<ProposedUpdate[]> => {
       if (activeProfileId === undefined) return [];
-      const data = await listAction({ profileId: activeProfileId });
-      return data.map((p): ProposedUpdate => {
-        const kind = proposedUpdateKindSchema.catch("update").parse(p.kind);
-        const source = proposalSourceSchema
-          .catch("v2-extraction")
-          .parse(p.source);
-        return {
-          id: p.id,
-          memoryId: p.memoryId,
-          proposedContent: p.proposedContent,
-          proposedTitle: p.proposedTitle,
-          reason: p.reason,
-          kind,
-          status: p.status,
-          createdAt: p.createdAt,
-          resolvedAt: p.resolvedAt,
-          sourceMemoryIds: p.sourceMemoryIds,
-          confidence: p.confidence,
-          source,
-          memorySnapshot: p.memorySnapshot,
-          sourceMemorySnapshots: p.sourceMemorySnapshots,
-        };
-      });
+      return await listAction({ profileId: activeProfileId });
     },
   });
 

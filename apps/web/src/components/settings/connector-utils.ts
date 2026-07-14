@@ -1,5 +1,5 @@
 import type { FunctionReturnType } from "convex/server";
-import type { Doc, api } from "@vmem/backend";
+import { api, type Doc } from "@vmem/backend";
 
 export type GitHubConnection = FunctionReturnType<
   typeof api.github.getConnection

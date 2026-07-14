@@ -11,7 +11,7 @@ import {
   cn,
 } from "@vmem/ui";
 import { IconFolder, IconFolderSymlink, IconHome } from "@tabler/icons-react";
-import type { FileItem } from "@/lib/file-types";
+import type { FileItem } from "./-types";
 
 interface MoveFolderDialogProps {
   isOpen: boolean;

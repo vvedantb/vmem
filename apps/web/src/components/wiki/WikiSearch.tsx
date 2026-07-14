@@ -5,18 +5,18 @@ import { useState } from "react";
 import { useQuery } from "convex/react";
 import { useDebounceValue } from "usehooks-ts";
 import { IconSearch, IconFileText, IconFolder } from "@tabler/icons-react";
+import type { FunctionReturnType } from "convex/server";
 import { api } from "@vmem/backend";
+import type { Id } from "@vmem/backend";
 import { Button, cn, Input } from "@vmem/ui";
 import { sidebarSearchInputClassName } from "@/components/sidebar/sidebar-search-input";
 import { useActiveTeamId } from "@/components/workspace/active-profile";
 
+type WikiSearchHit = FunctionReturnType<typeof api.wiki.search>[number];
+
 interface WikiSearchResultItemProps {
-  node: {
-    _id: string;
-    kind: "folder" | "document";
-    title: string;
-  };
-  onSelect: (id: string) => void;
+  node: WikiSearchHit;
+  onSelect: (id: Id<"wikiNodes">) => void;
   onClear: () => void;
 }
 

@@ -10,9 +10,10 @@ import {
 } from "@tabler/icons-react";
 import { motion } from "motion/react";
 import { Card, CardContent } from "@vmem/ui";
+import type { FunctionReturnType } from "convex/server";
+import { api } from "@vmem/backend";
 import { AnimatedCounter } from "../svg-animations";
 import { Sparkline } from "./Sparkline";
-import type { DashboardStats } from "./_utils";
 
 const STAT_CARD_SPACER = <div className="mt-auto" />;
 
@@ -120,7 +121,11 @@ type StatCardConfig =
       icon: TablerIcon;
     };
 
-export function DashboardStatCards({ stats }: { stats: DashboardStats }) {
+export function DashboardStatCards({
+  stats,
+}: {
+  stats: FunctionReturnType<typeof api.dashboardApi.getStats>;
+}) {
   const totalTrend = stats.growthData.map((day) => day.total);
   const newTrend = stats.growthData.map((day) => day.new);
 

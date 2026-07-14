@@ -2,8 +2,9 @@
 
 import { IconChartBarOff } from "@tabler/icons-react";
 import { motion } from "motion/react";
+import type { FunctionReturnType } from "convex/server";
+import { api } from "@vmem/backend";
 import { Card, CardContent } from "@vmem/ui";
-import type { DashboardStats } from "./_utils";
 
 const CHART_HEIGHT = 180;
 
@@ -28,7 +29,11 @@ const CHART_LEGEND = (
   </div>
 );
 
-function maxGrowthTotal(growthData: DashboardStats["growthData"]): number {
+function maxGrowthTotal(
+  growthData: FunctionReturnType<
+    typeof api.dashboardApi.getStats
+  >["growthData"],
+): number {
   let maxTotal = 1;
   for (const day of growthData) {
     if (day.total > maxTotal) maxTotal = day.total;
@@ -39,7 +44,9 @@ function maxGrowthTotal(growthData: DashboardStats["growthData"]): number {
 export function MemoryGrowthChart({
   growthData,
 }: {
-  growthData: DashboardStats["growthData"];
+  growthData: FunctionReturnType<
+    typeof api.dashboardApi.getStats
+  >["growthData"];
 }) {
   if (growthData.length === 0) {
     return (

@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@vmem/backend";
-import type { Doc, Id } from "@vmem/backend";
+import type { Id } from "@vmem/backend";
 import {
   Button,
   Dialog,
@@ -38,19 +38,20 @@ export function WriteSkillDialog({
       if (!head) return;
       const now = Date.now();
       const tempId = optimisticId("skills");
-      const row: Doc<"skills"> = {
-        _id: tempId,
-        _creationTime: now,
-        userId: head.userId,
-        teamId,
-        name: args.name.trim(),
-        description: args.description,
-        instructions: args.instructions,
-        enabled: true,
-        createdAt: now,
-        updatedAt: now,
-      };
-      localStore.setQuery(api.skills.listMy, { teamId }, [row, ...current]);
+      localStore.setQuery(api.skills.listMy, { teamId }, [
+        {
+          ...head,
+          _id: tempId,
+          _creationTime: now,
+          name: args.name.trim(),
+          description: args.description,
+          instructions: args.instructions,
+          enabled: true,
+          createdAt: now,
+          updatedAt: now,
+        },
+        ...current,
+      ]);
     },
   );
 

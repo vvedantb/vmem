@@ -7,14 +7,14 @@ import { useActiveProfile } from "@/components/workspace/active-profile";
 
 interface WikiPageBreadcrumbProps {
   ancestors: Array<Doc<"wikiNodes">>;
-  title: string;
+  doc: Doc<"wikiNodes">;
   onTitleChange: (value: string) => void;
   onTitleCommit: () => void;
 }
 
 export function WikiPageBreadcrumb({
   ancestors,
-  title,
+  doc,
   onTitleChange,
   onTitleCommit,
 }: WikiPageBreadcrumbProps) {
@@ -35,7 +35,7 @@ export function WikiPageBreadcrumb({
       ))}
       <BreadcrumbPage className="min-w-0 flex-1">
         <Input
-          value={title}
+          value={doc.title}
           onChange={(e) => onTitleChange(e.target.value)}
           onBlur={onTitleCommit}
           onKeyDown={(e) => {

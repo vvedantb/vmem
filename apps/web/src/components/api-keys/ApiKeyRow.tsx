@@ -1,6 +1,5 @@
 "use client";
 
-import type { FunctionReturnType } from "convex/server";
 import { TableRow, TableCell, Badge, Button } from "@vmem/ui";
 import {
   IconCopy,
@@ -12,10 +11,10 @@ import {
   IconBan,
   IconTrash,
 } from "@tabler/icons-react";
-import type { api } from "@vmem/backend";
 import { formatRelativeTime, formatDate, formatNumber } from "@/lib/formatters";
+import type { ApiKey } from "./types";
 
-export type ApiKey = FunctionReturnType<typeof api.apiKeys.listMy>[number];
+export type { ApiKey } from "./types";
 
 const MASKED_API_KEY = "vmem_sk_••••••••••••••••";
 
@@ -100,9 +99,9 @@ function ApiKeySecretCellActive({
 interface ApiKeyRowProps {
   apiKey: ApiKey;
   revealedKey: string | undefined;
-  revealingKeyId: string | null;
-  copyingKeyId: string | null;
-  copiedKeyId: string | null;
+  revealingKeyId: ApiKey["id"] | null;
+  copyingKeyId: ApiKey["id"] | null;
+  copiedKeyId: ApiKey["id"] | null;
   onToggleReveal: (id: ApiKey["id"]) => void;
   onCopy: (id: ApiKey["id"]) => void;
   onEdit: (id: ApiKey["id"]) => void;
