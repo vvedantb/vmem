@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "pnpm --filter web dev",
     "build": "pnpm --filter web build",
-    "start": "pnpm --filter web start",
     "ext:dev": "pnpm --filter @vmem/chrome-extension dev",
     "ext:build": "pnpm --filter @vmem/chrome-extension build",
     "lint": "oxlint --type-aware --deny-warnings && eslint . --max-warnings 0",
@@ -27,16 +26,10 @@
     "sdk:build": "pnpm --filter @vmem/sdk build",
     "sdk:typecheck": "pnpm --filter @vmem/sdk typecheck",
     "test": "pnpm --filter @vmem/backend test && pnpm --filter web test",
-    "test:mcp": "node scripts/test-vmem-mcp.mjs",
     "eval:bench": "pnpm --filter @vmem/backend eval:bench"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx,mjs,cjs,json,css,md,mdx,html,yml,yaml}": "prettier --write"
-  },
-  "pnpm": {
-    "overrides": {
-      "react-native-worklets": "0.7.4"
-    }
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
