@@ -22,8 +22,7 @@ interface SynthesisProposalCardProps {
   isResolving: boolean;
   onApprove: () => void;
   onReject: () => void;
-  /** Contradictions: resolve by keeping this source memory and
-   *  suppressing the rest. Renders a "Keep this" button per source. */
+  // contradictions: resolve by keeping this source memory and suppressing the rest
   onKeepWinner?: (winnerMemoryId: string) => void;
 }
 

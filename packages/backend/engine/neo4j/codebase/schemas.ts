@@ -38,7 +38,7 @@ export const nullableEdgeTierSchema = z
   .nullable();
 
 // null before neo4jIntSchema: z.unknown() accepts null, and a throwing
-// transform would abort the union before z.null() could match (blank graph).
+// transform would abort the union before z.null() could match (blank graph)
 export const nullableNumberSchema = z.union([
   z.null(),
   z.number(),

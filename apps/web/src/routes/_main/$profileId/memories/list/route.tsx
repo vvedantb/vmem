@@ -7,8 +7,7 @@ import TagsListView from "@/components/_components/TagsListView";
 import { VmemSpinner } from "@/components/svg-animations";
 import { useMemoriesSearchParams } from "../useMemoriesSearchParams";
 
-/** A bare Suspense renders NOTHING while suspended — a stuck query then
- *  looks like an empty workspace. Always show the spinner instead. */
+// A bare Suspense renders NOTHING while suspended — a stuck query then looks like an empty workspace
 const suspenseFallback = (
   <div className="flex h-full min-h-0 items-center justify-center">
     <VmemSpinner size={24} className="text-muted" />
@@ -27,11 +26,7 @@ function listMemoryIdFromParams(
   return id;
 }
 
-/**
- * Tag rows (`?view=tags`) share the list tab but have no per-memory route.
- * Memory rows use child routes (`/` and `/$id`) for the URL only — MemorySearch
- * lives here so it stays mounted across list ↔ detail navigation (no remount flicker).
- */
+// tag rows (`?view=tags`) share the list tab but have no per-memory route
 function MemoriesListLayout() {
   const [params] = useMemoriesSearchParams();
   const routeParams = useParams({ strict: false });

@@ -43,7 +43,7 @@ export function getFileIcon(category: FileCategory): TablerIcon {
   }
 }
 
-/** Sort files with folders always first, then by the selected criteria */
+// sort files with folders always first, then by the selected criteria
 export function sortFiles(
   files: FileItem[],
   sort: FileSortField,
@@ -52,7 +52,7 @@ export function sortFiles(
   const multiplier = sortDir === "asc" ? 1 : -1;
 
   return [...files].sort((a, b) => {
-    // Folders always first
+    // folders always first
     if (a.itemType !== b.itemType) {
       return a.itemType === "folder" ? -1 : 1;
     }

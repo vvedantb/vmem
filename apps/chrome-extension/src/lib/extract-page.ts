@@ -1,21 +1,10 @@
-/**
- * Helper for invoking the Readability content script that lives on every
- * page. Replaces the old `chrome.scripting.executeScript({ func })` pattern
- * because that path serializes the function — its imports get dropped, so
- * `@mozilla/readability` cannot be bundled in.
- */
+/** ask the page's readability content script for extracted html/text. */
 
 import type { ExtractPageResult } from "@/content/readability";
 
 export type { ExtractPageResult };
 
-/**
- * Send an EXTRACT_PAGE message to the content script in `tabId` and return
- * the parsed page (Readability-extracted when possible, strip-list fallback
- * otherwise). Resolves to `null` when the content script is missing (e.g.
- * the page is a privileged URL such as chrome:// where content scripts
- * cannot run).
- */
+/** returns null on privileged urls where content scripts can't run. */
 export function extractPageFromTab(
   tabId: number,
 ): Promise<ExtractPageResult | null> {
@@ -26,7 +15,7 @@ export function extractPageFromTab(
       (response: ExtractPageResult | undefined) => {
         // chrome.runtime.lastError fires on privileged URLs / when the
         // content script is not loaded. We resolve null instead of
-        // rejecting so callers can decide how to handle missing pages.
+        // rejecting so callers can decide how to handle missing pages
         if (chrome.runtime.lastError) {
           console.warn(
             "[vmem] EXTRACT_PAGE failed:",

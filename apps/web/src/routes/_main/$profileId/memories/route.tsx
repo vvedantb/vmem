@@ -52,13 +52,7 @@ function MemoriesLayoutShell() {
   );
 }
 
-/**
- * Keeps `MemoriesTabs` mounted across graph/list subroutes so the sliding
- * pill animates. The graph controller provider stays mounted across both
- * subroutes so the graph page never loses its context mid-transition (the
- * `Outlet` and `matchRoute` can briefly disagree during a tab switch). It only
- * fetches graph data while the graph view is active via the `enabled` flag.
- */
+// keeps `MemoriesTabs` mounted across graph/list subroutes so the sliding pill animates
 function MemoriesLayout() {
   const matchRoute = useMatchRoute();
   const isGraph = matchRoute({ to: "/$profileId/memories/graph" });

@@ -59,7 +59,7 @@ export function createVmemButton(
   });
 
   if (options?.iconOnly) {
-    // Circular icon-only variant: the text becomes the tooltip/aria-label.
+    // Circular icon-only variant: the text becomes the tooltip/aria-label
     button.append(icon);
     button.title = text;
     button.setAttribute("aria-label", text);

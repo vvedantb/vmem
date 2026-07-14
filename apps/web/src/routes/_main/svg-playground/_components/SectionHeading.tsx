@@ -1,9 +1,4 @@
-/**
- * Heading + blurb pair shown above each animation grid.
- *
- * Kept in its own file so each section component stays focused on its
- * cards alone — six identical inline copies would just be noise.
- */
+// heading + blurb pair shown above each animation grid
 export function SectionHeading({
   title,
   blurb,

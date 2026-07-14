@@ -9,23 +9,15 @@ import {
 import { MEMORY_TYPES } from "@/lib/memories";
 import { LIST_ITEM_KINDS } from "@/lib/list-items";
 
-/**
- * Display modes for the list route. "memories" shows the unified list of
- * memories + wiki + skills (default); "tags" shows aggregated tag rows with
- * rename/delete actions, replacing the now-removed `/memories/tags` route.
- */
+// display modes for the list route
 const LIST_VIEW_MODES = ["memories", "tags"] as const;
 export type ListViewMode = (typeof LIST_VIEW_MODES)[number];
 
-/**
- * Graph scopes. "local" (default) shows the focused memory's neighbourhood —
- * the focus falls back to the newest memory when unset. "global" shows the
- * whole capped graph. Local-by-default keeps first paint small and fast.
- */
+// graph scopes
 const GRAPH_SCOPES = ["local", "global"] as const;
 export type GraphScope = (typeof GRAPH_SCOPES)[number];
 
-/** Junk written when TanStack Router serializes nuqs state (e.g. `search={params}`). */
+// junk written when TanStack Router serializes nuqs state (e.g
 const NULLISH_QUERY_VALUES = new Set(["", "null", '"null"', "undefined", "[]"]);
 
 function isNullishQueryValue(value: string): boolean {
@@ -97,22 +89,11 @@ function createSanitizedLiteralArrayParser<const T extends string>(
   }).withDefault([]);
 }
 
-/**
- * URL shape (only non-default values should appear):
- * - `q` — search text
- * - `focus` — memory id for graph focus mode (unset in local scope → newest memory)
- * - `scope` — `global` for the full graph (default `local` is omitted)
- * - `tags` / `sources` / `types` / `kinds` — comma-separated (e.g. `tags=react,ts`)
- * - `view` — `tags` when on tag rows (default `memories` is omitted)
- */
+// URL shape (only non-default values should appear): - `q` — search text - `focus`
 const memoriesSearchParams = {
   focus: parseAsOptionalString,
   scope: parseAsStringLiteral(GRAPH_SCOPES).withDefault("local"),
-  /**
-   * Performance bench: `?bench=100000` renders a synthetic graph of that many
-   * nodes (client-generated, no server fetch) so graph performance can be
-   * verified at scales beyond the account's real data. 0 = off (default).
-   */
+  // performance bench
   bench: parseAsInteger.withDefault(0),
   q: parseAsSearchQuery,
   tags: createSanitizedStringArrayParser(),
@@ -124,7 +105,7 @@ const memoriesSearchParams = {
 
 export type MemoriesSearchParams = inferParserType<typeof memoriesSearchParams>;
 
-/** Prefer `replace` so filter typing does not flood browser history. */
+// prefer `replace` so filter typing does not flood browser history
 export const memoriesNuqsOptions = { history: "replace" } as const;
 
 export { memoriesSearchParams, isNullishQueryValue };

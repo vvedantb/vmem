@@ -18,7 +18,7 @@ export default function InlineNewFolder({
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Auto-focus and select all text on mount
+    // auto-focus and select all text on mount
     const input = inputRef.current;
     if (input) {
       input.focus();
@@ -66,7 +66,7 @@ export default function InlineNewFolder({
     );
   }
 
-  // List variant
+  // list variant
   return (
     <tr className="border-b border-separator bg-surface-secondary/30">
       <td className="w-10 px-3 py-2" />

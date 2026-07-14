@@ -1,9 +1,6 @@
 "use client";
 
-/**
- * Directory filter for the codebase graph.
- * Lets users toggle which directories are visible on the canvas.
- */
+// directory filter for the codebase graph
 
 import { useState } from "react";
 import { Checkbox, Button } from "@vmem/ui";
@@ -37,7 +34,7 @@ export function DirectoryFilter({
     ? directories
     : directories.slice(0, COLLAPSED_LIMIT);
   const hasMore = directories.length > COLLAPSED_LIMIT;
-  // Empty activeDirectories means "show all"
+  // empty activeDirectories means "show all"
   const isAllSelected = activeDirectories.size === 0;
 
   return (

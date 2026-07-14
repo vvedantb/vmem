@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import {
   Show,
   SignInButton,
@@ -55,15 +55,18 @@ function ThemeApplier() {
 }
 
 /**
- * Each tab panel is its own scroll container: the popup window stays a fixed
- * 600px (see index.html) so the scrollbar lives inside the tab content and
- * switching tabs never resizes the popup. `scrollbar-gutter: stable` reserves
- * the thumb's width so content doesn't shift when a tab overflows. The right
- * inset is split as 8px padding + 6px gutter + 6px margin (= 20px, matching
- * pl-5) so the scrollbar sits visibly inside the panel, not at the popup edge.
+ * fixed-height popup: each tab scrolls inside; gutter keeps layout stable.
  */
 const tabContentClassName =
   "min-h-0 flex-1 overflow-y-auto scrollbar-thin [scrollbar-gutter:stable] py-5 pl-5 pr-2 mr-1.5";
+
+function AnimatedTabPanel({ children }: { children: ReactNode }) {
+  return (
+    <motion.div variants={fadeUp} initial="hidden" animate="show">
+      {children}
+    </motion.div>
+  );
+}
 
 function SignedInContent() {
   return (
@@ -88,19 +91,19 @@ function SignedInContent() {
         </TabsList>
 
         <TabsContent value="save" className={tabContentClassName}>
-          <motion.div variants={fadeUp} initial="hidden" animate="show">
+          <AnimatedTabPanel>
             <QuickSave />
-          </motion.div>
+          </AnimatedTabPanel>
         </TabsContent>
         <TabsContent value="import" className={tabContentClassName}>
-          <motion.div variants={fadeUp} initial="hidden" animate="show">
+          <AnimatedTabPanel>
             <ImportPanel />
-          </motion.div>
+          </AnimatedTabPanel>
         </TabsContent>
         <TabsContent value="settings" className={tabContentClassName}>
-          <motion.div variants={fadeUp} initial="hidden" animate="show">
+          <AnimatedTabPanel>
             <SettingsForm />
-          </motion.div>
+          </AnimatedTabPanel>
         </TabsContent>
       </Tabs>
     </ExtensionUserSettingsProvider>

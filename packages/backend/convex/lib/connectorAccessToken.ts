@@ -46,7 +46,7 @@ export async function resolveConnectorAccessToken(
 
   let accessToken = await decryptToken(tokens.accessToken);
 
-  // Google is the only provider that issues refreshable OAuth tokens.
+  // google is the only provider that issues refreshable OAuth tokens
   if (isGoogleProvider(connector.provider) && tokens.expiresAt < Date.now()) {
     if (!tokens.refreshToken) {
       return {

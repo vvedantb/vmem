@@ -123,18 +123,7 @@ interface MemorySearchProps {
   memoryId: string | null;
 }
 
-/**
- * The "list" view of /memories. Mirrors the graph view's node set by merging
- * memories (from Neo4j via Convex), wiki documents/folders, and skills into a
- * single scrollable list. Browse mode uses paginated `useMemoryListFlat`.
- * When `q` is set and memories are included in the kind filter, memory hits
- * come from `retrieveMemories` with real Context Trace scores instead of
- * listMemories fulltext ordering.
- *
- * Kind filter is the only cross-cutting filter; when the user excludes
- * memories via the kind filter the list simply hides them and Virtuoso
- * stops asking for more pages.
- */
+// /memories list view — merges memories, wiki, skills (search uses retrieve scores)
 export default function MemorySearch({ memoryId }: MemorySearchProps) {
   const navigate = useNavigate();
   const activeProfile = useActiveProfile();
@@ -145,9 +134,7 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
   const searchQuery = params.q;
   const normalizedQuery = searchQuery.trim();
 
-  // First type in the filter wins for the server-side roundtrip. The server
-  // only supports a single type; multi-type is rare in practice and the
-  // post-merge kind filter handles any residual UI edge cases.
+  // first type in the filter wins for the server-side roundtrip
   const primaryType = params.types.length > 0 ? params.types[0] : undefined;
   const primarySource =
     params.sources.length > 0 ? params.sources[0] : undefined;
@@ -238,7 +225,7 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
   );
   const [previewItem, setPreviewItem] = useState<ListItem | null>(null);
 
-  // Legacy param migration: convert old ?tag= to new ?tags=
+  // legacy param migration: convert old ?tag= to new ?tags=
   useEffect(() => {
     const legacy =
       typeof searchParams === "object" &&
@@ -252,7 +239,7 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
     void setParams({ tags: [legacy.trim().toLowerCase()] });
   }, [searchParams, params.tags.length, setParams]);
 
-  // Legacy param migration: convert old ?source= to new ?sources=
+  // legacy param migration: convert old ?source= to new ?sources=
   useEffect(() => {
     const legacy =
       typeof searchParams === "object" &&
@@ -266,7 +253,7 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
     void setParams({ sources: [legacy.trim()] });
   }, [searchParams, params.sources.length, setParams]);
 
-  // Memory items: browse from paginated list, or hybrid search from retrieve.
+  // memory items: browse from paginated list, or hybrid search from retrieve
   const memoryItems = useMemo<ListItem[]>(
     () => memoryResults.map(memoryToListItem),
     [memoryResults],
@@ -290,9 +277,7 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
     return max > 0 ? max : 1;
   }, [retrieveQuery.data]);
 
-  // Wiki + skill items come fully loaded. They run through the regular
-  // client filter chain: kind (restrictive) + tag/source/type/profile
-  // (pass-through for non-memory kinds per the helpers' semantics).
+  // wiki + skill items come fully loaded
   const wikiItemsRaw = useMemo<ListItem[]>(
     () => (wikiRows ? wikiRowsToListItems(wikiRows) : []),
     [wikiRows],
@@ -320,9 +305,7 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
     params.types,
   ]);
 
-  // If multiple types were selected, the server returned results for only
-  // the first. Filter the remainder locally so the displayed set still
-  // respects the full URL state. Same story for multi-source.
+  // if multiple types were selected, the server returned results for only the first
   const memoryItemsAfterMultiFilter = useMemo<ListItem[]>(() => {
     if (params.types.length <= 1 && params.sources.length <= 1) {
       return memoryItems;
@@ -348,7 +331,7 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
     [memoryItemsAfterMultiFilter, params.kinds, kindIncludesMemory],
   );
 
-  // Client-side search scores wiki/skills; memory hits use retrieveMemories.
+  // client-side search scores wiki/skills; memory hits use retrieveMemories
   const isShowingSearchResults = normalizedQuery.length > 0;
   const nonMemorySearchResults = useMemo<ListItemSearchResult[] | null>(() => {
     if (!isShowingSearchResults) return null;
@@ -554,7 +537,7 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
         ? retrieveQuery.isLoading
         : isBrowseMemoriesLoading || isFetchingNextPage));
 
-  // Initial load: block render until memory data is ready.
+  // initial load: block render until memory data is ready
   if (isMemoriesLoading && memoryResults.length === 0) {
     return (
       <div className="flex h-full min-h-0 items-center justify-center">
@@ -564,7 +547,7 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
   }
 
   // A failed list load must never masquerade as an empty workspace —
-  // that exact silence cost a debugging session once.
+  // that exact silence cost a debugging session once
   if (isMemoriesError && memoryResults.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">

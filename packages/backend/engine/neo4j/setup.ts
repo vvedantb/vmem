@@ -54,7 +54,7 @@ const SETUP_STATEMENTS: string[] = [
    FOR (m:Memory) ON (m.userId, m.status)`,
   `CREATE INDEX memory_user_status_created IF NOT EXISTS
    FOR (m:Memory) ON (m.userId, m.status, m.createdAt)`,
-  // Entity identity is (userId, normalizedName) — type is not part of the key
+  // entity identity is (userId, normalizedName) — type is not part of the key
   `CREATE CONSTRAINT entity_user_name IF NOT EXISTS
    FOR (e:Entity) REQUIRE (e.userId, e.normalizedName) IS UNIQUE`,
   `CREATE INDEX entity_user_id IF NOT EXISTS FOR (e:Entity) ON (e.userId)`,

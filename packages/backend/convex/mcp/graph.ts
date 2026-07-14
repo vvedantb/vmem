@@ -1,68 +1,53 @@
-"use node";
-
-import { internalAction } from "../_generated/server";
+import type { ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
-import { v, type Infer } from "convex/values";
+import type { MemoryType } from "../../engine/neo4j/memory/types";
 import { resolveProfileIdForMcpScope } from "../neo4jActions/_memories/shared";
-import { mcpScopeValidator } from "../profiles/mcpAccess";
+import type { McpScope } from "../profiles/mcpAccess";
 
-const memoryTypeValidator = v.union(
-  v.literal("profile"),
-  v.literal("episodic"),
-  v.literal("knowledge"),
-);
+type MemoryGraphNode = {
+  id: string;
+  title: string;
+  type?: MemoryType;
+  tags: string[];
+  createdAt: string;
+};
 
-const memoryGraphNodeValidator = v.object({
-  id: v.string(),
-  title: v.string(),
-  type: v.optional(memoryTypeValidator),
-  tags: v.array(v.string()),
-  createdAt: v.string(),
-});
+type RelatesToEdge = {
+  source: string;
+  target: string;
+  reason: string;
+  score?: number;
+};
 
-const relatesToEdgeValidator = v.object({
-  source: v.string(),
-  target: v.string(),
-  reason: v.string(),
-  score: v.optional(v.number()),
-});
+type TagEdge = {
+  source: string;
+  target: string;
+  weight: number;
+};
 
-const tagEdgeValidator = v.object({
-  source: v.string(),
-  target: v.string(),
-  weight: v.number(),
-});
+type McpGraphSlice = {
+  nodes: MemoryGraphNode[];
+  relatesToEdges: RelatesToEdge[];
+  tagEdges: TagEdge[];
+};
 
-const mcpMemoryGraphResultValidator = v.object({
-  nodes: v.array(memoryGraphNodeValidator),
-  relatesToEdges: v.array(relatesToEdgeValidator),
-  tagEdges: v.array(tagEdgeValidator),
-  truncated: v.boolean(),
-  stats: v.object({
-    nodeCount: v.number(),
-    relatesToEdgeCount: v.number(),
-    tagEdgeCount: v.number(),
-    totalNodesBeforeCap: v.number(),
-  }),
-});
+export type McpMemoryGraphResult = McpGraphSlice & {
+  truncated: boolean;
+  stats: {
+    nodeCount: number;
+    relatesToEdgeCount: number;
+    tagEdgeCount: number;
+    totalNodesBeforeCap: number;
+  };
+};
 
 const DEFAULT_NODE_LIMIT = 80;
-// Hard cap kept low (100): the embedded MCP-UI canvas runs a naive O(n²)
-// main-thread simulation, and the tool result is also injected into the
-// model's context — both punish large payloads.
+// hard cap kept low (100)
 const MAX_NODE_LIMIT = 100;
 const MAX_RELATES_EDGES_PER_NODE = 4;
 const MAX_TAG_EDGES_PER_NODE = 3;
 const MAX_EDGE_REASON_CHARS = 120;
 const MAX_TAGS_PER_NODE = 12;
-
-type MemoryGraphNode = Infer<typeof memoryGraphNodeValidator>;
-type RelatesToEdge = Infer<typeof relatesToEdgeValidator>;
-
-type McpGraphSlice = Pick<
-  Infer<typeof mcpMemoryGraphResultValidator>,
-  "nodes" | "relatesToEdges" | "tagEdges"
->;
 
 function normalizeLimit(limit: number | undefined): number {
   if (limit === undefined) return DEFAULT_NODE_LIMIT;
@@ -139,10 +124,7 @@ function capEdges<T extends { source: string; target: string }>(
 function capMemoryGraph(
   graph: McpGraphSlice,
   limit: number,
-  // True server-side total for plain global fetches, where the Neo4j query
-  // itself is already limited — graph.nodes.length would under-report and
-  // hide the truncation banner. Omitted for seed-expanded slices, whose
-  // working set IS the relevant total.
+  // true server-side total for plain global fetches, where the Neo4j query itself is
   totalAvailable?: number,
 ): McpGraphSlice & {
   truncated: boolean;
@@ -175,74 +157,71 @@ function capMemoryGraph(
   };
 }
 
-export const mcpGetMemoryGraph = internalAction({
-  args: {
-    clerkId: v.string(),
-    mcpScope: mcpScopeValidator,
-    profileId: v.optional(v.string()),
-    focus: v.optional(v.string()),
-    memoryIds: v.optional(v.array(v.string())),
-    limit: v.optional(v.number()),
-  },
-  returns: mcpMemoryGraphResultValidator,
-  handler: async (ctx, args) => {
-    const profileId = await resolveProfileIdForMcpScope(
-      ctx,
-      args.clerkId,
-      args.mcpScope,
-      args.profileId,
-    );
-    const limit = normalizeLimit(args.limit);
+export interface GetMemoryGraphForMcpArgs {
+  clerkId: string;
+  mcpScope: McpScope;
+  profileId?: string;
+  focus?: string;
+  memoryIds?: string[];
+  limit?: number;
+}
 
-    const focus =
-      args.focus ??
-      (args.memoryIds !== undefined && args.memoryIds.length === 1
-        ? args.memoryIds[0]
-        : undefined);
+// cap + seed-expand Neo4j graph data for the MCP memory-graph app tool
+export async function getMemoryGraphForMcp(
+  ctx: ActionCtx,
+  args: GetMemoryGraphForMcpArgs,
+): Promise<McpMemoryGraphResult> {
+  const profileId = await resolveProfileIdForMcpScope(
+    ctx,
+    args.clerkId,
+    args.mcpScope,
+    args.profileId,
+  );
+  const limit = normalizeLimit(args.limit);
 
-    const isPlainGlobal = focus === undefined && args.memoryIds === undefined;
+  const focus =
+    args.focus ??
+    (args.memoryIds !== undefined && args.memoryIds.length === 1
+      ? args.memoryIds[0]
+      : undefined);
 
-    const raw = await ctx.runAction(
-      internal.neo4jActions.graph.getGraphDataInternal,
-      {
-        clerkId: args.clerkId,
-        focus,
-        profileId,
-        strictProfile: args.mcpScope === "team",
-        // Plain global view gets sliced to `limit` below anyway — fetch only
-        // that many from Neo4j. Seed expansion (memoryIds) keeps the full
-        // fetch: it needs the wider graph to find the seeds' neighbours.
-        nodeLimit: isPlainGlobal ? limit : undefined,
-      },
-    );
+  const isPlainGlobal = focus === undefined && args.memoryIds === undefined;
 
-    let working: McpGraphSlice = {
-      nodes: raw.nodes,
-      relatesToEdges: raw.relatesToEdges,
-      tagEdges: raw.tagEdges,
-    };
+  const raw = await ctx.runAction(internal.graphApi.getGraphDataInternal, {
+    clerkId: args.clerkId,
+    focus,
+    profileId,
+    strictProfile: args.mcpScope === "team",
+    // plain global view gets sliced to `limit` below anyway — fetch only that many from Neo4j
+    nodeLimit: isPlainGlobal ? limit : undefined,
+  });
 
-    if (args.memoryIds !== undefined && args.memoryIds.length > 1) {
-      working = expandMemoryIdSeeds(working, args.memoryIds);
-    }
+  let working: McpGraphSlice = {
+    nodes: raw.nodes,
+    relatesToEdges: raw.relatesToEdges,
+    tagEdges: raw.tagEdges,
+  };
 
-    const capped = capMemoryGraph(
-      working,
-      limit,
-      isPlainGlobal ? raw.totalMemoryCount : undefined,
-    );
+  if (args.memoryIds !== undefined && args.memoryIds.length > 1) {
+    working = expandMemoryIdSeeds(working, args.memoryIds);
+  }
 
-    return {
-      nodes: capped.nodes,
-      relatesToEdges: capped.relatesToEdges,
-      tagEdges: capped.tagEdges,
-      truncated: capped.truncated,
-      stats: {
-        nodeCount: capped.nodes.length,
-        relatesToEdgeCount: capped.relatesToEdges.length,
-        tagEdgeCount: capped.tagEdges.length,
-        totalNodesBeforeCap: capped.totalNodesBeforeCap,
-      },
-    };
-  },
-});
+  const capped = capMemoryGraph(
+    working,
+    limit,
+    isPlainGlobal ? raw.totalMemoryCount : undefined,
+  );
+
+  return {
+    nodes: capped.nodes,
+    relatesToEdges: capped.relatesToEdges,
+    tagEdges: capped.tagEdges,
+    truncated: capped.truncated,
+    stats: {
+      nodeCount: capped.nodes.length,
+      relatesToEdgeCount: capped.relatesToEdges.length,
+      tagEdgeCount: capped.tagEdges.length,
+      totalNodesBeforeCap: capped.totalNodesBeforeCap,
+    },
+  };
+}

@@ -22,31 +22,24 @@ interface WikiEditorProps {
   docId: string | null;
   titleForCopy: string;
   onRegisterCopy: (handler: (() => Promise<void>) | null) => void;
-  /**
-   * Registers a restore handler the history panel calls with a version's
-   * markdown. The editor loads it and force-checkpoints the pre-restore state,
-   * so the restore is itself reversible.
-   */
+  // registers a restore handler the history panel calls with a version's markdown
   onRegisterRestore: (
     handler: ((markdown: string) => Promise<void>) | null,
   ) => void;
   onHeadingsChange: (headings: OutlineHeading[]) => void;
-  /** Reports the heading the reader is currently scrolled to (outline highlight). */
+  // reports the heading the reader is currently scrolled to (outline highlight)
   onActiveHeadingChange: (id: string | null) => void;
   onWordCountChange: (count: number) => void;
-  /** Bumped whenever the outline pane requests a jump. `n` forces effect re-runs. */
+  // bumped whenever the outline pane requests a jump
   jumpRequest: { pos: number; n: number };
 }
 
 const AUTOSAVE_MS = 800;
 const SAVE_TOAST_MS = 2000;
-/** A heading stays "active" until its top scrolls this far below the viewport top. */
+// A heading stays "active" until its top scrolls this far below the viewport top
 const ACTIVE_OFFSET_PX = 80;
 
-/**
- * Resolve the heading DOM element for a ProseMirror position (outline scroll-spy).
- * Mirrors the click-to-jump path, which also resolves headings via `domAtPos`.
- */
+// resolve the heading DOM element for a ProseMirror position (outline scroll-spy)
 function resolveHeadingElement(editor: Editor, pos: number): Element | null {
   try {
     const { node } = editor.view.domAtPos(pos);
@@ -70,10 +63,7 @@ function getMarkdownFromEditor(editor: Editor): string {
   return editor.getText();
 }
 
-/**
- * TipTap editor body. Title and actions live in the page header; tree in the sidebar.
- * Autosaves canonical markdown plus a plain-text mirror for Convex search (debounced).
- */
+// tipTap editor body
 export default function WikiEditor({
   docId,
   titleForCopy,
@@ -130,7 +120,7 @@ export default function WikiEditor({
     AUTOSAVE_MS,
   );
 
-  // Update the outline's heading list and keep a ref copy for scroll-spy.
+  // update the outline's heading list and keep a ref copy for scroll-spy
   const publishHeadings = useCallback(
     (next: OutlineHeading[]) => {
       headingsRef.current = next;
@@ -139,8 +129,8 @@ export default function WikiEditor({
     [onHeadingsChange],
   );
 
-  // Scroll handler reads the latest scheduler via ref — the editor's onUpdate
-  // closure is fixed at creation and can't see a fresher useCallback otherwise.
+  // scroll handler reads the latest scheduler via ref — the editor's onUpdate
+  // closure is fixed at creation and can't see a fresher useCallback otherwise
   const handleScroll = useCallback(() => {
     scheduleRef.current();
   }, []);
@@ -171,7 +161,7 @@ export default function WikiEditor({
     },
   });
 
-  // Determine which heading the reader is currently on, from scroll position.
+  // determine which heading the reader is currently on, from scroll position
   const computeActiveHeading = useCallback(() => {
     const container = scrollContainerRef.current;
     if (!editor || editor.isDestroyed || !container) return;
@@ -186,7 +176,7 @@ export default function WikiEditor({
       container.scrollHeight - 2;
     const containerTop = container.getBoundingClientRect().top;
 
-    // Active = the last heading whose top has scrolled above the offset line.
+    // active = the last heading whose top has scrolled above the offset line
     let firstId: string | null = null;
     let activeId: string | null = null;
     for (const heading of headings) {
@@ -201,8 +191,8 @@ export default function WikiEditor({
       }
     }
 
-    // At the very bottom, a short trailing section never reaches the offset —
-    // pin the last heading so it can still become active.
+    // at the very bottom, a short trailing section never reaches the offset —
+    // pin the last heading so it can still become active
     if (atBottom) {
       for (let i = headings.length - 1; i >= 0; i--) {
         const heading = headings[i];
@@ -213,7 +203,7 @@ export default function WikiEditor({
       }
     }
 
-    // Before the first heading is reached, highlight it rather than nothing.
+    // before the first heading is reached, highlight it rather than nothing
     onActiveHeadingChange(activeId ?? firstId);
   }, [editor, onActiveHeadingChange]);
 
@@ -225,12 +215,12 @@ export default function WikiEditor({
     });
   }, [computeActiveHeading]);
 
-  // Keep the ref the onUpdate/scroll closures call pointed at the latest scheduler.
+  // keep the ref the onUpdate/scroll closures call pointed at the latest scheduler
   useEffect(() => {
     scheduleRef.current = scheduleComputeActive;
   }, [scheduleComputeActive]);
 
-  // Cancel any queued scroll-spy frame on unmount.
+  // cancel any queued scroll-spy frame on unmount
   useEffect(() => {
     return () => {
       if (computeFrameRef.current) {
@@ -314,8 +304,8 @@ export default function WikiEditor({
     return () => onRegisterCopy(null);
   }, [editor, onRegisterCopy, titleForCopy]);
 
-  // Restore: load a version's markdown into the editor and persist it with a
-  // forced snapshot so the pre-restore state is captured (restore is reversible).
+  // restore: load a version's markdown into the editor and persist it with a
+  // forced snapshot so the pre-restore state is captured (restore is reversible)
   const restoreToContent = useCallback(
     async (markdown: string) => {
       if (!editor) return;

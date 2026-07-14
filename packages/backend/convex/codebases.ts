@@ -16,7 +16,7 @@ import {
   requireContentScopeAccess,
 } from "./teams/auth";
 
-/** Re-sync codebases that have not synced in the last 24 hours. */
+// re-sync codebases that have not synced in the last 24 hours
 const DAILY_SYNC_STALE_MS = 24 * 60 * 60 * 1000;
 
 const githubRepoSchema = z.object({
@@ -73,7 +73,7 @@ async function findDuplicateInScope(
   return matches.find((cb) => cb.teamId === undefined) ?? null;
 }
 
-/** Normalize + readability check shared by public mutate/read paths. */
+// normalize + readability check shared by public mutate/read paths
 async function getReadableCodebaseOrNull(
   ctx: QueryCtx | MutationCtx,
   id: string,
@@ -97,21 +97,14 @@ async function requireReadableCodebase(
   return codebase;
 }
 
-/**
- * List codebases in a scope. No `teamId` = the user's personal codebases;
- * `teamId` = that team's shared drive (members only).
- */
+// list codebases in a scope
 export const listMy = authQuery({
   args: { teamId: v.optional(v.id("teams")) },
   handler: async (ctx, args) => {
     await requireContentScopeAccess(ctx, ctx.userId, args.teamId);
     const codebases = await listScopeCodebases(ctx, ctx.userId, args.teamId);
 
-    // Resolve the avatar from the caller's *current* GitHub connection rather
-    // than each codebase's stored `githubConnectionId`. A disconnect deletes
-    // the connection row and a reconnect creates a new one (e.g. after a
-    // username change), so codebases added under an old connection would
-    // otherwise point at a deleted row and lose their avatar.
+    // resolve the avatar from the caller's *current* GitHub connection rather than
     const connection = await ctx.db
       .query("githubConnections")
       .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
@@ -208,17 +201,13 @@ export const removeCodebase = authMutation({
   handler: async (ctx, args) => {
     const codebase = await requireReadableCodebase(ctx, args.id, ctx.userId);
     await assertContentDeletable(ctx, codebase, ctx.userId);
-    // Delete the Convex row immediately (keeps the optimistic update snappy)
-    // and schedule Neo4j cleanup. Graph nodes are keyed by the owner's
-    // clerkId (whoever first synced), not the deleter.
+    // delete the Convex row immediately (keeps the optimistic update snappy) and schedule Neo4j cleanup
     const clerkId = await ctx.runQuery(internal.auth.getClerkIdInternal, {
       userId: codebase.userId,
     });
     await ctx.db.delete(codebase._id);
     if (clerkId) {
-      // Retried (not plain scheduled) so a transient Neo4j outage can't leave
-      // orphaned graph nodes behind after the row is already gone. The delete
-      // is idempotent — re-running it on already-deleted nodes is a no-op.
+      // retried (not plain scheduled) so a transient Neo4j outage can't leave
       await retrier.run(
         ctx,
         internal.neo4jActions.codebases.deleteCodebaseInternal,
@@ -228,11 +217,7 @@ export const removeCodebase = authMutation({
   },
 });
 
-/**
- * Archive or unarchive a codebase. Archived codebases retain all their data
- * but are skipped by the scheduled daily sync and hidden from the main
- * sidebar list (surfaced in a collapsed "Archived" accordion instead).
- */
+// archive or unarchive a codebase
 export const setArchived = authMutation({
   args: { id: v.string(), archived: v.boolean() },
   handler: async (ctx, args) => {
@@ -267,73 +252,31 @@ export const syncCodebase = authAction({
   },
 });
 
-/**
- * Re-sync every codebase in the active scope. Fires when the user clicks the
- * "Re-sync" banner that appears on `/codebases` after a `PARSER_VERSION` bump.
- * We run them sequentially to avoid hammering GitHub rate limits.
- */
+// re-sync every codebase in the active scope
 export const syncAllMy = authAction({
   args: { teamId: v.optional(v.id("teams")) },
   handler: async (ctx, args) => {
-    // Explicit type breaks the circular inference caused by re-entering
-    // `api.codebases.syncCodebase` below (this action references itself).
+    // explicit type breaks the circular inference caused by re-entering
+    // `api.codebases.syncCodebase` below (this action references itself)
     const allCodebases: Array<{ _id: string; isArchived?: boolean }> =
       await ctx.runQuery(internal.codebases.listMyInternal, {
         userId: ctx.userId,
         teamId: args.teamId,
       });
-    // Archived codebases are intentionally excluded from re-syncs.
+    // archived codebases are intentionally excluded from re-syncs
     const codebases = allCodebases.filter((cb) => !cb.isArchived);
     for (const cb of codebases) {
       try {
-        // Re-entering the public sync action keeps all the auth/token
-        // wiring centralised — no need to duplicate it here.
+        // re-entering the public sync action keeps all the auth/token
+        // wiring centralised — no need to duplicate it here
         await ctx.runAction(api.codebases.syncCodebase, { id: cb._id });
       } catch (err) {
-        // Per-codebase errors are already recorded on the row by syncCodebase;
-        // continue to the next one rather than aborting the whole batch.
+        // per-codebase errors are already recorded on the row by syncCodebase;
+        // continue to the next one rather than aborting the whole batch
         console.error("syncAllMy: codebase failed", cb._id, err);
       }
     }
     return { synced: codebases.length };
-  },
-});
-
-interface CodeFileNode {
-  id: string;
-  path: string;
-  directory: string;
-  filename: string;
-  extension: string;
-  sizeBytes: number;
-}
-
-interface ImportEdge {
-  source: string;
-  target: string;
-  importPath: string;
-}
-
-interface CodebaseGraphResult {
-  nodes: CodeFileNode[];
-  edges: ImportEdge[];
-}
-
-export const getCodebaseGraph = authAction({
-  args: { codebaseId: v.string() },
-  handler: async (ctx, args): Promise<CodebaseGraphResult> => {
-    const neo = await ctx.runQuery(
-      internal.codebases.resolveNeo4jAccessInternal,
-      { codebaseId: args.codebaseId, userId: ctx.userId },
-    );
-    if (!neo) throw new Error("Codebase not found");
-    return await ctx.runAction(
-      internal.neo4jActions.codebases.getCodebaseGraphInternal,
-      {
-        clerkId: neo.ownerClerkId,
-        codebaseId: neo.codebaseId,
-      },
-    );
   },
 });
 
@@ -344,7 +287,7 @@ export const normalizeCodebaseId = internalQuery({
   },
 });
 
-/** Readable by owner or team member — used by sync / symbol actions. */
+// readable by owner or team member — used by sync / symbol actions
 export const getAccessibleByIdInternal = internalQuery({
   args: { id: v.id("codebases"), userId: v.id("users") },
   handler: async (ctx, args) => {
@@ -355,10 +298,7 @@ export const getAccessibleByIdInternal = internalQuery({
   },
 });
 
-/**
- * Resolve Neo4j access for a viewer: the graph is keyed by the owner's
- * clerkId (whoever first synced), so teammates must use that id to read.
- */
+// resolve Neo4j access for a viewer
 export const resolveNeo4jAccessInternal = internalQuery({
   args: { codebaseId: v.string(), userId: v.id("users") },
   handler: async (ctx, args) => {
@@ -373,7 +313,7 @@ export const resolveNeo4jAccessInternal = internalQuery({
   },
 });
 
-/** Owner-only lookup (MCP personal scope). Prefer getAccessibleByIdInternal for app paths. */
+// owner-only lookup (MCP personal scope)
 export const getByIdInternal = internalQuery({
   args: { id: v.id("codebases"), userId: v.id("users") },
   handler: async (ctx, args) => {
@@ -399,7 +339,7 @@ export const updateStatusInternal = internalMutation({
     syncedFiles: v.optional(v.number()),
     lastSyncedAt: v.optional(v.number()),
     errorMessage: v.optional(v.string()),
-    // Phase 1 stats — present only on the final "synced" patch.
+    // phase 1 stats — present only on the final "synced" patch
     functionCount: v.optional(v.number()),
     classCount: v.optional(v.number()),
     interfaceCount: v.optional(v.number()),
@@ -419,8 +359,8 @@ export const updateStatusInternal = internalMutation({
     syncStartedAt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    // Patch only the keys actually supplied so callers can update e.g.
-    // just `parseStage` mid-sync without clobbering counts/stats.
+    // patch only the keys actually supplied so callers can update e.g
+    // just `parseStage` mid-sync without clobbering counts/stats
     const { id, ...rest } = args;
     const patch = Object.fromEntries(
       Object.entries(rest).filter(([, value]) => value !== undefined),
@@ -429,10 +369,7 @@ export const updateStatusInternal = internalMutation({
   },
 });
 
-/**
- * Internal lister — used by `syncAllMy` and MCP. No `teamId` = personal only
- * (MCP stays personal-scoped, matching skills/wiki).
- */
+// internal lister — used by `syncAllMy` and MCP
 export const listMyInternal = internalQuery({
   args: {
     userId: v.id("users"),
@@ -443,7 +380,7 @@ export const listMyInternal = internalQuery({
   },
 });
 
-/** Load a codebase row for internal sync (no user scoping). */
+// load a codebase row for internal sync (no user scoping)
 export const getByIdForSyncInternal = internalQuery({
   args: { id: v.id("codebases") },
   handler: async (ctx, args) => {
@@ -451,13 +388,7 @@ export const getByIdForSyncInternal = internalQuery({
   },
 });
 
-/**
- * Flip codebases wedged in `syncing` past the stale window to `error`. A sync
- * action that times out or whose host dies never writes a terminal status, so
- * the row would otherwise spin forever in the UI and look "in progress" to
- * every consumer that trusts `status`. Runs on a cron (and can be invoked
- * manually) to keep the stored state honest. Returns the number of rows reset.
- */
+// flip codebases wedged in `syncing` past the stale window to `error`
 export const recoverStaleSyncingInternal = internalMutation({
   args: {},
   returns: v.number(),
@@ -486,10 +417,7 @@ export const recoverStaleSyncingInternal = internalMutation({
   },
 });
 
-/**
- * Codebases eligible for the global daily sync workflow.
- * Skips in-progress syncs, fresh syncs, and users without GitHub connected.
- */
+// codebases eligible for the global daily sync workflow
 export const listForDailySyncInternal = internalQuery({
   args: {},
   returns: v.array(v.object({ codebaseId: v.id("codebases") })),
@@ -500,8 +428,8 @@ export const listForDailySyncInternal = internalQuery({
 
     for (const cb of all) {
       if (cb.isArchived) continue;
-      // Skip rows that are genuinely mid-sync; a stalled `syncing` row is
-      // eligible for a re-run (same predicate the UI and recovery sweep use).
+      // skip rows that are genuinely mid-sync; a stalled `syncing` row is
+      // eligible for a re-run (same predicate the UI and recovery sweep use)
       if (
         cb.status === "syncing" &&
         !isCodebaseSyncStalled(cb.status, cb.syncStartedAt)

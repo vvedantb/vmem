@@ -1,4 +1,4 @@
-/** Labelled retrieval benchmark corpus (~480 memories, ~74 queries). */
+// labelled retrieval benchmark corpus (~480 memories, ~74 queries)
 
 import type {
   SeedMemory,
@@ -11,7 +11,7 @@ import type { RetrievalEvalQuery } from "./queries";
 export const BENCH_USER_ID = "user_vmem_bench_eval";
 const SOURCE = "bench-corpus";
 
-// Tunable scale knobs.
+// tunable scale knobs
 const MULTI_HOP_COUNT = 12;
 const PROJECT_COUNT = 8;
 const TEMPORAL_COUNT = 12;

@@ -99,10 +99,7 @@ export function CommandPalette({ onToggleSidebar }: Props) {
     setOpen(false);
   };
 
-  /**
-   * Target within the active workspace, or `/home` (the workspace
-   * resolver) when none has been visited yet.
-   */
+  // target within the active workspace, or `/home` (the workspace resolver) when none
   const workspaceTo = (subPath: string) =>
     workspaceId === undefined ? "/home" : `/${workspaceId}${subPath}`;
 

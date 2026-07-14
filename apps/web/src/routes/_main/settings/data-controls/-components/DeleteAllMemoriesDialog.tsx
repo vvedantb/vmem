@@ -23,13 +23,7 @@ interface Props {
 
 const CONFIRM_PHRASE = "delete all memories";
 
-/**
- * Type-to-confirm dialog for the wipe-all action. The user must type the
- * exact phrase before the destructive button enables — same friction as
- * GitHub's repo-deletion flow, scaled down to a single string. Resets
- * the typed text every time the dialog opens so a stale phrase from a
- * previous open never auto-arms the button.
- */
+// type-to-confirm dialog for the wipe-all action
 export default function DeleteAllMemoriesDialog({ open, onClose }: Props) {
   const deleteAll = useAction(api.memoryApi.deleteAllMemories);
   const [confirmText, setConfirmText] = useState("");

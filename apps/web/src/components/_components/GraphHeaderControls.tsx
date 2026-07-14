@@ -1,14 +1,6 @@
 "use client";
 
-/**
- * Graph-view controls rendered in the page header.
- *
- * Renders three popover buttons — Search, Filters, Options — plus the Add
- * Memory trigger. The Options popover absorbs the legend (counts, shapes,
- * edge colours, dim states) so the toolbar stays compact on mobile. State
- * flows in through a single `controller` prop (see
- * `useMemoryGraphController`).
- */
+// graph header: search / filters / options (+ add memory)
 
 import { useCallback, useMemo } from "react";
 import {

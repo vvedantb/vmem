@@ -1,6 +1,6 @@
 "use node";
 
-// Scoped per-API package — monolithic googleapis dominates typecheck time.
+// scoped per-API package — monolithic googleapis dominates typecheck time
 import { drive as driveApi, auth as googleAuth } from "@googleapis/drive";
 import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
@@ -80,7 +80,7 @@ export async function runGoogleDriveSync(
             });
           } catch (fileErr) {
             console.error(`Failed to sync file ${file.name}:`, fileErr);
-            // Continue with other files
+            // continue with other files
           }
         }
 

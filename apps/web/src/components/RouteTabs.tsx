@@ -14,16 +14,13 @@ type MatchRoute = ReturnType<typeof useMatchRoute>;
 interface RouteTabsProps {
   tabs: RouteTabItem[];
   getActiveValue: (matchRoute: MatchRoute) => string;
-  /** Passed to every tab `<Link>` (e.g. `{ teamId }` for `/teams/$teamId/*`). */
+  // passed to every tab `<Link>` (e.g
   linkParams?: LinkProps["params"];
-  /** Preserved on tab navigation (e.g. nuqs filter/search state). */
+  // preserved on tab navigation (e.g
   search?: LinkProps["search"];
 }
 
-/**
- * URL-backed tab bar for route groups. Each tab is a real subroute wired as
- * a `<Link>`; active state is derived from `useMatchRoute`.
- */
+// URL-backed tab bar for route groups
 export function RouteTabs({
   tabs,
   getActiveValue,

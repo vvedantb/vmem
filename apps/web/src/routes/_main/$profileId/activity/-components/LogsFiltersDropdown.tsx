@@ -51,16 +51,7 @@ import {
   type Scope,
 } from "../-searchParams";
 
-/**
- * Filters dropdown for `/ai-logs`.
- *
- * Consolidates scope (when teams exist), range, features, models,
- * and profile into one dropdown. Sort stays separate — it only changes order.
- *
- * Scope switches the row population (personal vs team); it does not count
- * toward the active-filter badge. Active count = non-default filter fields.
- * Multi-value arrays count as 1 if non-empty, not their length.
- */
+// filters dropdown for `/ai-logs`
 const RANGE_OPTIONS: Range[] = ["today", "7d", "30d", "all"];
 
 const RANGE_ICONS: Record<Range, typeof IconSun> = {

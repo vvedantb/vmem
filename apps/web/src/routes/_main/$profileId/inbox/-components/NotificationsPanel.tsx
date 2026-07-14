@@ -182,11 +182,7 @@ export function NotificationsPanel() {
   );
 }
 
-/**
- * Right-section action specific to the notifications tab — a single
- * "mark all as read" button that only appears when at least one item
- * is unread. The badge in the sidebar already covers the count.
- */
+// right-section action specific to the notifications tab
 export function NotificationsRightSection() {
   const { unreadCount, markAllAsRead } = useNotifications();
   const sendTest = useMutation(api.notifications.sendTest);

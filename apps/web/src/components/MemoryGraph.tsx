@@ -1,19 +1,6 @@
 "use client";
 
-/**
- * Pure graph canvas — renders the force-directed graph and the overlays that
- * are inherently canvas-local (zoom nav, focus-mode back button, hover tooltip,
- * node detail panel).
- *
- * All filter/search/display state lives in `useMemoryGraphController` and is
- * passed in via the `controller` prop. Chrome (filters, options, search,
- * legend, add-memory) lives in the page header via `GraphHeaderControls`.
- *
- * Canvas-local state intentionally kept here:
- *   - selectedNodeId / hoveredNode: driven by canvas pointer events
- *   - linkMemories action: fired directly by the canvas link gesture
- *   - deleteMemory: fired by the detail panel
- */
+// force-directed graph canvas + canvas-local overlays (filters live in controller)
 
 import { useState, useMemo, useCallback, useRef } from "react";
 import { useAction } from "convex/react";
@@ -38,9 +25,9 @@ import type { MemoryGraphController } from "@/hooks/useMemoryGraphController";
 
 interface MemoryGraphProps {
   controller: MemoryGraphController;
-  /** Explicit focus from the URL — null in local scope means "newest memory". */
+  // explicit focus from the URL — null in local scope means "newest memory"
   focusNodeId: string | null;
-  /** id → focus that node (local scope); null → switch to the global graph. */
+  // id → focus that node (local scope); null → switch to the global graph
   onFocusChange: (id: string | null) => void;
   scope: GraphScope;
 }
@@ -56,16 +43,12 @@ export default function MemoryGraph({
   const getNodeContent = useAction(api.graphApi.getNodeContent);
   const canvasRef = useRef<GraphCanvasHandle>(null);
 
-  // Canvas-local state (purely driven by pointer events on the canvas).
+  // canvas-local state (purely driven by pointer events on the canvas)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [hoveredNode, setHoveredNode] = useState<HoveredNodeInfo | null>(null);
   const [hoveredEdge, setHoveredEdge] = useState<HoveredEdgeInfo | null>(null);
 
-  // Lazy memory-body cache. The graph payload no longer ships memory content
-  // (dropped to fit Convex's 1 MiB value limit at ~2000 memories), so we
-  // pull content on-demand when the user hovers or clicks a memory node.
-  // A Set tracks in-flight fetches to avoid duplicate round-trips when the
-  // user hovers the same node repeatedly.
+  // lazy memory-body cache
   const [contentCache, setContentCache] = useState<ReadonlyMap<string, string>>(
     () => new Map(),
   );
@@ -114,9 +97,7 @@ export default function MemoryGraph({
     if (!selectedNodeId) return null;
     const node = graphNodes.find((n) => n.id === selectedNodeId);
     if (!node) return null;
-    // Inline content (wiki docs, skills) wins. For memory nodes, content is
-    // undefined at first and becomes a string once the lazy fetch resolves;
-    // the detail panel shows a loading spinner while it's undefined.
+    // inline content (wiki docs, skills) wins
     const content =
       node.content !== undefined ? node.content : contentCache.get(node.id);
     return {
@@ -133,7 +114,7 @@ export default function MemoryGraph({
     return getRelatedNodes(selectedNodeId, graphEdges, graphNodes);
   }, [selectedNodeId, graphEdges, graphNodes]);
 
-  // Canvas handlers
+  // canvas handlers
   const handleHoverNode = useCallback((info: HoveredNodeInfo | null) => {
     setHoveredNode(info);
   }, []);
@@ -160,8 +141,8 @@ export default function MemoryGraph({
 
   const handleFocusNode = useCallback(
     (nodeId: string) => {
-      // Only memory nodes can be a local-graph focus — wiki/skill/entity ids
-      // have no Neo4j neighbourhood and would land on an empty graph.
+      // only memory nodes can be a local-graph focus — wiki/skill/entity ids
+      // have no Neo4j neighbourhood and would land on an empty graph
       const node = graphNodes.find((n) => n.id === nodeId);
       if (!node || node.kind !== "memory") return;
       onFocusChange(nodeId);
@@ -185,7 +166,7 @@ export default function MemoryGraph({
     [linkMemories],
   );
 
-  // Loading / error / empty states
+  // loading / error / empty states
   if (isLoading) {
     return (
       <div className="flex h-full min-h-0 items-center justify-center">

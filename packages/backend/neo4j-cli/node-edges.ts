@@ -1,7 +1,4 @@
-/**
- * One-off read-only diagnostic: edge breakdown for a single memory matched by
- * title substring. Aggregates + titles only.
- */
+// one-off read-only diagnostic: edge breakdown for a single memory matched by title substring
 import { z } from "zod";
 import { getDriver, closeDriver } from "../engine/neo4j/driver";
 import { neo4jField } from "../engine/neo4j/record";

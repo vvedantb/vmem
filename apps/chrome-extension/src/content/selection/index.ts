@@ -345,9 +345,6 @@ function saveSelection(): void {
 
     if (response.type === "SAVE_RESULT" && response.success) {
       transitionTo("success");
-    } else if (response.type === "SAVE_DUPLICATE") {
-      // Already saved — treat as success from user's perspective
-      transitionTo("success");
     } else {
       console.error("[vmem] Save failed:", response);
       transitionTo("error");

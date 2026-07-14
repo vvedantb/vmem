@@ -104,7 +104,67 @@ function parseListedProposedUpdate(record: NeoRecord): ProposedUpdateNode {
   });
 }
 
-async function createV2Proposal(
+const PENDING_PROPOSAL_PROPS = `id: $id,
+         memoryId: $memoryId,
+         proposedContent: $proposedContent,
+         proposedTitle: $proposedTitle,
+         reason: $reason,
+         kind: $kind,
+         status: 'pending',
+         createdAt: $now,
+         resolvedAt: null,
+         sourceMemoryIds: $sourceMemoryIds,
+         confidence: $confidence,
+         source: $source`;
+
+interface InsertProposalFields {
+  memoryId: string;
+  proposedContent: string;
+  proposedTitle: string | null;
+  reason: string;
+  kind: string;
+  source: "v2-extraction" | "dream-mode";
+  sourceMemoryIds: string[];
+  confidence: number | null;
+}
+
+async function insertProposal(
+  driver: Driver,
+  fields: InsertProposalFields,
+  link: { mode: "update_for" } | { mode: "derived_from"; userId: string },
+  failMessage: string,
+): Promise<ProposedUpdateNode> {
+  return withSession(driver, async (session) => {
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    const props = { id, now, ...fields };
+
+    const result =
+      link.mode === "update_for"
+        ? await session.run(
+            `MATCH (m:Memory {id: $memoryId})
+             CREATE (p:ProposedUpdate { ${PENDING_PROPOSAL_PROPS} })
+             CREATE (p)-[:UPDATE_FOR]->(m)
+             RETURN p`,
+            props,
+          )
+        : await session.run(
+            `CREATE (p:ProposedUpdate { ${PENDING_PROPOSAL_PROPS} })
+             WITH p
+             UNWIND $sourceMemoryIds AS sid
+             MATCH (m:Memory {id: sid, userId: $userId})
+             MERGE (p)-[:DERIVED_FROM]->(m)
+             RETURN p`,
+            { ...props, userId: link.userId },
+          );
+
+    const firstRecord = result.records[0];
+    if (!firstRecord) throw new Error(failMessage);
+    return parseProposedUpdateNode(firstRecord);
+  });
+}
+
+function insertV2Proposal(
   driver: Driver,
   params: {
     memoryId: string;
@@ -113,44 +173,21 @@ async function createV2Proposal(
     kind: "update" | "delete";
   },
 ): Promise<ProposedUpdateNode> {
-  return withSession(driver, async (session) => {
-    const id = crypto.randomUUID();
-    const now = new Date().toISOString();
-
-    const result = await session.run(
-      `MATCH (m:Memory {id: $memoryId})
-       CREATE (p:ProposedUpdate {
-         id: $id,
-         memoryId: $memoryId,
-         proposedContent: $proposedContent,
-         proposedTitle: null,
-         reason: $reason,
-         kind: $kind,
-         status: 'pending',
-         createdAt: $now,
-         resolvedAt: null,
-         sourceMemoryIds: [],
-         confidence: null,
-         source: 'v2-extraction'
-       })
-       CREATE (p)-[:UPDATE_FOR]->(m)
-       RETURN p`,
-      {
-        id,
-        memoryId: params.memoryId,
-        proposedContent: params.proposedContent,
-        reason: params.reason,
-        kind: params.kind,
-        now,
-      },
-    );
-
-    const firstRecord = result.records[0];
-    if (!firstRecord) {
-      throw new Error(`Failed to create proposed ${params.kind}`);
-    }
-    return parseProposedUpdateNode(firstRecord);
-  });
+  return insertProposal(
+    driver,
+    {
+      memoryId: params.memoryId,
+      proposedContent: params.proposedContent,
+      proposedTitle: null,
+      reason: params.reason,
+      kind: params.kind,
+      source: "v2-extraction",
+      sourceMemoryIds: [],
+      confidence: null,
+    },
+    { mode: "update_for" },
+    `Failed to create proposed ${params.kind}`,
+  );
 }
 
 export async function createProposedUpdate(
@@ -161,14 +198,14 @@ export async function createProposedUpdate(
     reason: string;
   },
 ): Promise<ProposedUpdateNode> {
-  return createV2Proposal(driver, { ...params, kind: "update" });
+  return insertV2Proposal(driver, { ...params, kind: "update" });
 }
 
 export async function createProposedDelete(
   driver: Driver,
   params: { memoryId: string; reason: string },
 ): Promise<ProposedUpdateNode> {
-  return createV2Proposal(driver, {
+  return insertV2Proposal(driver, {
     memoryId: params.memoryId,
     proposedContent: "",
     reason: params.reason,
@@ -219,9 +256,9 @@ interface ProposalLookup {
   sourceMemoryIds: string[];
   confidence: number | null;
   sourceProfileId: string | null;
-  /** `targetId` if UPDATE_FOR-bound, else first source memory id. */
+  // `targetId` if UPDATE_FOR-bound, else first source memory id
   memoryId: string;
-  /** UPDATE_FOR target's userId, else first source's userId. */
+  // UPDATE_FOR target's userId, else first source's userId
   userId: string;
 }
 
@@ -229,7 +266,7 @@ export interface ResolveResult {
   status: string;
   memoryId: string;
   kind: ProposedUpdateKind;
-  /** Set when approve materialized a new memory (synthesis kinds). */
+  // set when approve materialized a new memory (synthesis kinds)
   materializedMemoryId?: string;
 }
 
@@ -323,22 +360,6 @@ async function applyStatusOnly(
   return { status, memoryId: lookup.memoryId, kind: lookup.kind };
 }
 
-async function applyRejection(
-  session: Session,
-  proposalId: string,
-  lookup: ProposalLookup,
-  now: string,
-): Promise<ResolveResult> {
-  return applyStatusOnly(
-    session,
-    proposalId,
-    lookup,
-    now,
-    "rejected",
-    "proposal_rejected",
-  );
-}
-
 async function applyDeleteApproval(
   session: Session,
   proposalId: string,
@@ -402,22 +423,6 @@ async function applyUpdateApproval(
   };
 }
 
-async function applyDismissOnlyApproval(
-  session: Session,
-  proposalId: string,
-  lookup: ProposalLookup,
-  now: string,
-): Promise<ResolveResult> {
-  return applyStatusOnly(
-    session,
-    proposalId,
-    lookup,
-    now,
-    "approved",
-    "proposal_approved",
-  );
-}
-
 const MATERIALISE_DERIVED_MEMORY_CYPHER = `
   MATCH (p:ProposedUpdate {id: $proposalId})
   SET p.status = 'approved', p.resolvedAt = $now
@@ -455,23 +460,29 @@ const MATERIALISE_DERIVED_MEMORY_CYPHER = `
   MATCH (src:Memory {id: sid, userId: $userId})
   MERGE (m)-[:DERIVED_FROM]->(src)`;
 
-async function applySynthesisApproval(
+async function rejectUnresolved(
   session: Session,
   proposalId: string,
   lookup: ProposalLookup,
   now: string,
 ): Promise<ResolveResult> {
-  if (lookup.sourceMemoryIds.length === 0) {
-    await session.run(
-      `MATCH (p:ProposedUpdate {id: $proposalId})
-       SET p.status = 'rejected', p.resolvedAt = $now`,
-      { proposalId, now },
-    );
-    return {
-      status: "rejected",
-      memoryId: lookup.memoryId,
-      kind: lookup.kind,
-    };
+  await session.run(
+    `MATCH (p:ProposedUpdate {id: $proposalId})
+     SET p.status = 'rejected', p.resolvedAt = $now`,
+    { proposalId, now },
+  );
+  return { status: "rejected", memoryId: lookup.memoryId, kind: lookup.kind };
+}
+
+async function applyDerivedMemoryApproval(
+  session: Session,
+  proposalId: string,
+  lookup: ProposalLookup,
+  now: string,
+  options: { minSources: number; supersedeSources: boolean },
+): Promise<ResolveResult> {
+  if (lookup.sourceMemoryIds.length < options.minSources) {
+    return rejectUnresolved(session, proposalId, lookup, now);
   }
 
   const newMemoryId = crypto.randomUUID();
@@ -479,8 +490,7 @@ async function applySynthesisApproval(
     lookup.proposedTitle,
     lookup.proposedContent,
   );
-
-  await session.run(MATERIALISE_DERIVED_MEMORY_CYPHER, {
+  const materialiseParams = {
     proposalId,
     now,
     newMemoryId,
@@ -491,7 +501,19 @@ async function applySynthesisApproval(
     confidence: lookup.confidence,
     contentHash,
     sourceMemoryIds: lookup.sourceMemoryIds,
-  });
+  };
+
+  const result = options.supersedeSources
+    ? await session.run(
+        `${MATERIALISE_DERIVED_MEMORY_CYPHER}
+         WITH m, src
+         WHERE src.status = 'active'
+         SET src.status = 'suppressed', src.updatedAt = $now
+         MERGE (src)-[:SUPERSEDED_BY]->(m)
+         RETURN collect(src.id) AS supersededIds`,
+        materialiseParams,
+      )
+    : await session.run(MATERIALISE_DERIVED_MEMORY_CYPHER, materialiseParams);
 
   await logEvent(
     session,
@@ -509,92 +531,28 @@ async function applySynthesisApproval(
     }),
   );
 
+  if (options.supersedeSources) {
+    const mergeRecord = result.records[0];
+    const supersededIds = mergeRecord
+      ? stringArraySchema.parse(neo4jGet(mergeRecord, "supersededIds"))
+      : [];
+    for (const sid of supersededIds) {
+      await logEvent(
+        session,
+        sid,
+        "superseded",
+        "dream-mode",
+        { by: newMemoryId, kind: "merge" },
+        null,
+      );
+    }
+  }
+
   return {
     status: "approved",
     memoryId: newMemoryId,
     materializedMemoryId: newMemoryId,
     kind: lookup.kind,
-  };
-}
-
-async function applyMergeApproval(
-  session: Session,
-  proposalId: string,
-  lookup: ProposalLookup,
-  now: string,
-): Promise<ResolveResult> {
-  if (lookup.sourceMemoryIds.length < 2) {
-    await session.run(
-      `MATCH (p:ProposedUpdate {id: $proposalId})
-       SET p.status = 'rejected', p.resolvedAt = $now`,
-      { proposalId, now },
-    );
-    return { status: "rejected", memoryId: lookup.memoryId, kind: "merge" };
-  }
-
-  const newMemoryId = crypto.randomUUID();
-  const contentHash = computeContentHash(
-    lookup.proposedTitle,
-    lookup.proposedContent,
-  );
-
-  const result = await session.run(
-    `${MATERIALISE_DERIVED_MEMORY_CYPHER}
-     WITH m, src
-     WHERE src.status = 'active'
-     SET src.status = 'suppressed', src.updatedAt = $now
-     MERGE (src)-[:SUPERSEDED_BY]->(m)
-     RETURN collect(src.id) AS supersededIds`,
-    {
-      proposalId,
-      now,
-      newMemoryId,
-      userId: lookup.userId,
-      profileId: lookup.sourceProfileId,
-      title: lookup.proposedTitle,
-      content: lookup.proposedContent,
-      confidence: lookup.confidence,
-      contentHash,
-      sourceMemoryIds: lookup.sourceMemoryIds,
-    },
-  );
-
-  await logEvent(
-    session,
-    newMemoryId,
-    "created",
-    "dream-mode",
-    { kind: "merge", source: "synthesis-approve" },
-    toSnapshot({
-      title: lookup.proposedTitle,
-      content: lookup.proposedContent,
-      type: "knowledge",
-      status: "active",
-      confidence: lookup.confidence ?? 0,
-      tags: [],
-    }),
-  );
-
-  const mergeRecord = result.records[0];
-  const supersededIds = mergeRecord
-    ? stringArraySchema.parse(neo4jGet(mergeRecord, "supersededIds"))
-    : [];
-  for (const sid of supersededIds) {
-    await logEvent(
-      session,
-      sid,
-      "superseded",
-      "dream-mode",
-      { by: newMemoryId, kind: "merge" },
-      null,
-    );
-  }
-
-  return {
-    status: "approved",
-    memoryId: newMemoryId,
-    materializedMemoryId: newMemoryId,
-    kind: "merge",
   };
 }
 
@@ -671,8 +629,25 @@ export async function resolveProposal(
     if (!lookup) return null;
 
     if (action === "reject") {
-      return applyRejection(session, proposalId, lookup, now);
+      return applyStatusOnly(
+        session,
+        proposalId,
+        lookup,
+        now,
+        "rejected",
+        "proposal_rejected",
+      );
     }
+
+    const dismissOnly = () =>
+      applyStatusOnly(
+        session,
+        proposalId,
+        lookup,
+        now,
+        "approved",
+        "proposal_approved",
+      );
 
     switch (lookup.kind) {
       case "delete":
@@ -693,14 +668,20 @@ export async function resolveProposal(
             now,
           );
         }
-        return applyDismissOnlyApproval(session, proposalId, lookup, now);
+        return dismissOnly();
       case "anomaly":
-        return applyDismissOnlyApproval(session, proposalId, lookup, now);
+        return dismissOnly();
       case "insight":
       case "connection":
-        return applySynthesisApproval(session, proposalId, lookup, now);
+        return applyDerivedMemoryApproval(session, proposalId, lookup, now, {
+          minSources: 1,
+          supersedeSources: false,
+        });
       case "merge":
-        return applyMergeApproval(session, proposalId, lookup, now);
+        return applyDerivedMemoryApproval(session, proposalId, lookup, now, {
+          minSources: 2,
+          supersedeSources: true,
+        });
     }
   });
 }
@@ -753,63 +734,19 @@ export async function createSynthesisProposal(
     confidence: number;
   },
 ): Promise<ProposedUpdateNode> {
-  return withSession(driver, async (session) => {
-    const id = crypto.randomUUID();
-    const now = new Date().toISOString();
-    const primaryMemoryId = params.sourceMemoryIds[0] ?? "";
-
-    const result = await session.run(
-      `CREATE (p:ProposedUpdate {
-         id: $id,
-         memoryId: $primaryMemoryId,
-         proposedTitle: $proposedTitle,
-         proposedContent: $proposedContent,
-         reason: $reason,
-         kind: $kind,
-         status: 'pending',
-         createdAt: $now,
-         resolvedAt: null,
-         sourceMemoryIds: $sourceMemoryIds,
-         confidence: $confidence,
-         source: 'dream-mode'
-       })
-       WITH p
-       UNWIND $sourceMemoryIds AS sid
-       MATCH (m:Memory {id: sid, userId: $userId})
-       MERGE (p)-[:DERIVED_FROM]->(m)
-       RETURN p`,
-      {
-        id,
-        primaryMemoryId,
-        proposedTitle: params.proposedTitle,
-        proposedContent: params.proposedContent,
-        reason: params.reason,
-        kind: params.kind,
-        now,
-        sourceMemoryIds: params.sourceMemoryIds,
-        confidence: params.confidence,
-        userId: params.userId,
-      },
-    );
-
-    const firstRecord = result.records[0];
-    if (!firstRecord) {
-      throw new Error("Failed to create synthesis proposal");
-    }
-
-    return toProposedUpdateNodeFromProps({
-      id,
-      memoryId: primaryMemoryId,
+  return insertProposal(
+    driver,
+    {
+      memoryId: params.sourceMemoryIds[0] ?? "",
       proposedContent: params.proposedContent,
       proposedTitle: params.proposedTitle,
       reason: params.reason,
       kind: params.kind,
-      status: "pending",
-      createdAt: now,
-      resolvedAt: null,
+      source: "dream-mode",
       sourceMemoryIds: params.sourceMemoryIds,
       confidence: params.confidence,
-      source: "dream-mode",
-    });
-  });
+    },
+    { mode: "derived_from", userId: params.userId },
+    "Failed to create synthesis proposal",
+  );
 }

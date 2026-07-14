@@ -35,12 +35,7 @@ interface CodebaseSidebarItemProps {
   onSelect: () => void;
 }
 
-/**
- * Sidebar codebase row with a right-click context menu for archiving and
- * deleting. Delete is destructive (removes Convex row + Neo4j graph data) so
- * it routes through a confirmation modal; archive/unarchive is a reversible
- * toggle and fires immediately.
- */
+// sidebar codebase row with a right-click context menu for archiving and deleting
 export function CodebaseSidebarItem({
   codebase,
   selected,

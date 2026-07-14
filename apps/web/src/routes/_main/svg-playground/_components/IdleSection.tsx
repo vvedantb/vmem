@@ -2,12 +2,7 @@ import { AnimationCard } from "./AnimationCard";
 import { SectionHeading } from "./SectionHeading";
 import { VmemPaths } from "@/components/svg-animations";
 
-/**
- * Idle / always-on animations.
- *
- * Run forever (or as long as the card is mounted). Designed to feel calm in
- * the background — never pulls focus during real product use.
- */
+// idle / always-on animations
 export function IdleSection() {
   return (
     <section className="space-y-4">

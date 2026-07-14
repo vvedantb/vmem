@@ -33,7 +33,7 @@ export async function requireTeamRole(
   return membership;
 }
 
-/** Team-scoped profile row, or null when the team has none. */
+// team-scoped profile row, or null when the team has none
 export async function getTeamProfileOrNull(
   ctx: QueryCtx | MutationCtx,
   teamId: Id<"teams">,
@@ -44,7 +44,7 @@ export async function getTeamProfileOrNull(
     .first();
 }
 
-/** Clerk ids of every member of a team (members without a clerkId skipped). */
+// Clerk ids of every member of a team (members without a clerkId skipped)
 export async function getTeamMemberClerkIds(
   ctx: QueryCtx | MutationCtx,
   teamId: Id<"teams">,
@@ -66,7 +66,7 @@ interface ScopedContentDoc {
   teamId?: Id<"teams">;
 }
 
-/** List/create gate: membership when a teamId scope is requested. */
+// list/create gate: membership when a teamId scope is requested
 export async function requireContentScopeAccess(
   ctx: QueryCtx | MutationCtx,
   userId: Id<"users">,
@@ -77,7 +77,7 @@ export async function requireContentScopeAccess(
   if (!membership) throw new Error("Not a member of this team");
 }
 
-/** True when the caller may read this doc (owner, or team member). */
+// true when the caller may read this doc (owner, or team member)
 export async function isContentReadable(
   ctx: QueryCtx | MutationCtx,
   doc: ScopedContentDoc,
@@ -88,7 +88,7 @@ export async function isContentReadable(
   return membership !== null;
 }
 
-/** Edit gate: personal → owner only; team → any member (collaborative). */
+// edit gate: personal → owner only; team → any member (collaborative)
 export async function assertContentEditable(
   ctx: QueryCtx | MutationCtx,
   doc: ScopedContentDoc,
@@ -102,7 +102,7 @@ export async function assertContentEditable(
   if (!membership) throw new Error("Not found");
 }
 
-/** Delete gate: personal → owner; team → creator or team owner. */
+// delete gate: personal → owner; team → creator or team owner
 export async function assertContentDeletable(
   ctx: QueryCtx | MutationCtx,
   doc: ScopedContentDoc,
@@ -115,7 +115,7 @@ export async function assertContentDeletable(
 
   const membership = await getMembershipOrNull(ctx, doc.teamId, userId);
   if (doc.userId === userId) {
-    // Creator must still be a member to act on team content.
+    // creator must still be a member to act on team content
     if (!membership) throw new Error("Not found");
     return;
   }
@@ -213,8 +213,8 @@ export async function runAssertMemoryMutablePermissionInternal(
 
   if (user.clerkId === args.memoryCreatorClerkId) return true;
 
-  // Non-creator: must be the team's owner. Personal-profile mutations
-  // by non-creators are never allowed.
+  // non-creator: must be the team's owner. Personal-profile mutations
+  // by non-creators are never allowed
   if (!args.profileId) throw new Error("Not allowed");
   const profile = await ctx.db.get(args.profileId);
   if (!profile?.teamId) throw new Error("Not allowed");

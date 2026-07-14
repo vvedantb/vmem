@@ -95,7 +95,7 @@ async function loadMutableTeamMemory(
   );
   if (!memory) return null;
 
-  // Per-user Cypher matches on creator clerkId (including owner-as-caller).
+  // per-user Cypher matches on creator clerkId (including owner-as-caller)
   await ctx.runQuery(internal.teams.assertMemoryMutablePermissionInternal, {
     userId: ctx.userId,
     memoryCreatorClerkId: memory.userId,

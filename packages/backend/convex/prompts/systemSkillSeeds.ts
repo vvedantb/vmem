@@ -1,24 +1,11 @@
-/**
- * Shipped catalog seeds for the Skills Hub. `seedSystemSkillsInternal`
- * idempotently upserts these by name (and renames in place via
- * `previousNames`, preserving installs). Editing the text here and re-running
- * the seed updates every installer (system skills are linked, not copied).
- *
- * Instructions are a markdown PLAYBOOK aimed at an MCP agent (e.g. Claude
- * Code with vmem connected) — they drive the agent to build the artefact
- * entirely through vmem's existing tools. Keep tool names exact.
- */
+// shipped catalog seeds for the Skills Hub
 
 export interface SystemSkillSeed {
   name: string;
   description: string;
   instructions: string;
   category?: string;
-  /**
-   * Former names of this seed. If no row matches `name` but one matches a
-   * previous name, it is renamed in place (id + installs preserved) instead
-   * of inserting a duplicate.
-   */
+  // former names of this seed
   previousNames?: string[];
 }
 

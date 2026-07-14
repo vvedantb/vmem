@@ -191,13 +191,7 @@ function EmptyState({ hasFilters }: { hasFilters: boolean }) {
 
 const DATE_PRESETS: EventDatePreset[] = ["all", "today", "week", "month"];
 
-/**
- * Events panel for `/activity` — the user-action audit log (memory created,
- * file uploaded, sync completed, etc.).
- *
- * Renders compact rows inside a capped card scroll region (same pattern as
- * API usage logs).
- */
+// events panel for `/activity`
 export function EventsPanel() {
   const { isAuthenticated } = useConvexAuth();
   const activeProfileId = useActiveProfile()._id;
@@ -306,14 +300,7 @@ export function EventsPanel() {
   );
 }
 
-/**
- * Events-specific filters + sort dropdowns. Lives in the right-section
- * of the activity page header when the Events tab is active.
- *
- * Filters dropdown consolidates Date Range + Event Types with an
- * active-filter count badge. Sort is intentionally separate — it doesn't
- * change which items are visible, only their order.
- */
+// events-specific filters + sort dropdowns
 export function EventsRightSection() {
   const [params, setParams] = useQueryStates(eventsSearchParams);
 

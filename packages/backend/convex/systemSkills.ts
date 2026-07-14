@@ -24,7 +24,7 @@ async function requireAdmin(
   }
 }
 
-/** Invalidate the cached MCP context prompt for everyone who installed a skill. */
+// invalidate the cached MCP context prompt for everyone who installed a skill
 async function invalidateInstallers(
   ctx: MutationCtx,
   systemSkillId: Id<"systemSkills">,
@@ -34,16 +34,13 @@ async function invalidateInstallers(
     .withIndex("by_systemSkill", (q) => q.eq("systemSkillId", systemSkillId))
     .collect();
   for (const install of installs) {
-    // Context prompt is personal-only — skip team-scoped installs.
+    // context prompt is personal-only — skip team-scoped installs
     if (install.teamId !== undefined) continue;
     await scheduleContextPromptInvalidationForUser(ctx, install.userId);
   }
 }
 
-/**
- * Find an install link in a workspace scope.
- * Personal: caller's row with no teamId. Team: shared team row (any installer).
- */
+// find an install link in a workspace scope
 async function findInstall(
   ctx: QueryCtx | MutationCtx,
   userId: Id<"users">,
@@ -92,10 +89,7 @@ export const amIAdmin = authQuery({
   },
 });
 
-/**
- * The Hub catalog for the current workspace: published rows (plus drafts for
- * admins), annotated with whether THIS workspace has installed each skill.
- */
+// the Hub catalog for the current workspace
 export const listCatalog = authQuery({
   args: { teamId: v.optional(v.id("teams")) },
   handler: async (ctx, args) => {
@@ -134,7 +128,7 @@ export const install = authMutation({
   handler: async (ctx, args) => {
     await requireContentScopeAccess(ctx, ctx.userId, args.teamId);
     const sys = await ctx.db.get(args.systemSkillId);
-    // Hide drafts from non-admins (treat as not found).
+    // hide drafts from non-admins (treat as not found)
     if (!sys || (!sys.published && !(await isAdminUser(ctx, ctx.userId)))) {
       throw new Error("System skill not found");
     }
@@ -147,7 +141,7 @@ export const install = authMutation({
     );
     if (existing) return existing._id; // already installed — idempotent
 
-    // Skills and installs share one effective namespace per workspace.
+    // skills and installs share one effective namespace per workspace
     if (args.teamId !== undefined) {
       const teamClash = await ctx.db
         .query("skills")
@@ -189,7 +183,7 @@ export const install = authMutation({
   },
 });
 
-/** Remove the install link in this workspace. No-op if not installed. */
+// remove the install link in this workspace
 export const uninstall = authMutation({
   args: {
     systemSkillId: v.id("systemSkills"),
@@ -211,7 +205,7 @@ export const uninstall = authMutation({
   },
 });
 
-/** Enable/disable an install without removing it. */
+// enable/disable an install without removing it
 export const setInstalledEnabled = authMutation({
   args: {
     systemSkillId: v.id("systemSkills"),
@@ -342,7 +336,7 @@ export const seedSystemSkillsInternal = internalMutation({
         .withIndex("by_name", (q) => q.eq("name", seed.name))
         .first();
       if (existing) {
-        // Keep published seeds in sync with the repo definition.
+        // keep published seeds in sync with the repo definition
         if (existing.published) {
           await ctx.db.patch(existing._id, {
             description: seed.description,

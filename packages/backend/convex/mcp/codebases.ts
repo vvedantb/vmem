@@ -3,159 +3,35 @@
 import { v } from "convex/values";
 import { internalAction, type ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
-import type { Doc, Id } from "../_generated/dataModel";
+import type { Id } from "../_generated/dataModel";
+import {
+  getDownstreamImpact,
+  getUpstreamImpact,
+  type ImpactNode,
+} from "../../engine/neo4j/codebase/impact";
+import {
+  getGraphOverview,
+  getOverviewStats,
+  getSymbolContext,
+  searchSymbols,
+  type OverviewStats,
+  type SearchSymbolsResult,
+  type SymbolContext,
+} from "../../engine/neo4j/codebase/read";
+import { runWithNeo4jDriver } from "../neo4jActions/_shared/driver";
+import {
+  codebaseDirectionValidator,
+  codebaseSymbolKindValidator,
+} from "../validators";
 
-type CodebaseStatus = Doc<"codebases">["status"];
+type GraphResult = Awaited<ReturnType<typeof getGraphOverview>>;
+type ImpactResult = { nodes: ImpactNode[] };
+type SearchResult = { results: SearchSymbolsResult[] };
 
-interface McpCodebaseSummary {
-  id: string;
-  repoFullName: string;
-  repoOwner: string;
-  repoName: string;
-  defaultBranch: string;
-  status: CodebaseStatus;
-  language?: string;
-  description?: string;
-  isPrivate?: boolean;
-  totalFiles: number;
-  syncedFiles: number;
-  lastSyncedAt?: number;
-  functionCount?: number;
-  classCount?: number;
-  interfaceCount?: number;
-  callEdgeCount?: number;
-  processCount?: number;
-  parserVersion?: string;
-  lastParseError?: string;
-  errorMessage?: string;
-}
-
-interface OverviewStatsResult {
-  fileCount: number;
-  functionCount: number;
-  classCount: number;
-  interfaceCount: number;
-  processCount: number;
-  callEdgeCount: number;
-  importEdgeCount: number;
-}
-
-interface GraphResult {
-  nodes: Array<{
-    id: string;
-    kind:
-      | "code-file"
-      | "code-function"
-      | "code-class"
-      | "code-interface"
-      | "code-process";
-    name: string;
-    path: string;
-    directory: string;
-    isExported?: boolean;
-    isAsync?: boolean;
-    isTest?: boolean;
-  }>;
-  edges: Array<{
-    fromId: string;
-    toId: string;
-    type:
-      | "imports"
-      | "calls"
-      | "contains"
-      | "has_method"
-      | "extends"
-      | "implements"
-      | "starts_process"
-      | "includes";
-    confidence?: number;
-    tier?: "EXTRACTED" | "INFERRED" | "AMBIGUOUS";
-  }>;
-  truncated: boolean;
-}
-
-interface SymbolContextResult {
-  id: string;
-  kind:
-    | "code-file"
-    | "code-function"
-    | "code-class"
-    | "code-interface"
-    | "code-process";
-  name: string;
-  qualifiedName: string;
-  filePath: string;
-  startLine?: number;
-  endLine?: number;
-  isExported?: boolean;
-  isAsync?: boolean;
-  isTest?: boolean;
-  callsIn: { id: string; name: string; filePath: string }[];
-  callsOut: { id: string; name: string; filePath: string }[];
-  processes: { id: string; name: string }[];
-}
-
-interface ImpactResult {
-  nodes: { id: string; distance: number }[];
-}
-
-interface SearchResult {
-  results: Array<{
-    id: string;
-    kind:
-      | "code-file"
-      | "code-function"
-      | "code-class"
-      | "code-interface"
-      | "code-process";
-    name: string;
-    qualifiedName: string;
-    filePath: string;
-  }>;
-}
-
-/** MCP/JSON may deliver floats (e.g. 25.0); normalize before Neo4j hops. */
+// MCP/JSON may deliver floats (e.g
 function normalizeOptionalInt(value: number | undefined): number | undefined {
   if (value === undefined) return undefined;
   return Math.trunc(value);
-}
-
-const symbolKindValidator = v.union(
-  v.literal("code-file"),
-  v.literal("code-function"),
-  v.literal("code-class"),
-  v.literal("code-interface"),
-  v.literal("code-process"),
-);
-
-const directionValidator = v.union(
-  v.literal("upstream"),
-  v.literal("downstream"),
-);
-
-function mapCodebaseSummary(row: Doc<"codebases">): McpCodebaseSummary {
-  return {
-    id: row._id,
-    repoFullName: row.repoFullName,
-    repoOwner: row.repoOwner,
-    repoName: row.repoName,
-    defaultBranch: row.defaultBranch,
-    status: row.status,
-    language: row.language,
-    description: row.description,
-    isPrivate: row.isPrivate,
-    totalFiles: row.totalFiles,
-    syncedFiles: row.syncedFiles,
-    lastSyncedAt: row.lastSyncedAt,
-    functionCount: row.functionCount,
-    classCount: row.classCount,
-    interfaceCount: row.interfaceCount,
-    callEdgeCount: row.callEdgeCount,
-    processCount: row.processCount,
-    parserVersion: row.parserVersion,
-    lastParseError: row.lastParseError,
-    errorMessage: row.errorMessage,
-  };
 }
 
 async function requireOwnedCodebaseId(
@@ -189,34 +65,17 @@ async function requireOwnedCodebaseId(
   return normalizedId;
 }
 
-export const mcpListCodebases = internalAction({
-  args: { clerkId: v.string() },
-  handler: async (ctx, args): Promise<McpCodebaseSummary[]> => {
-    const user = await ctx.runQuery(internal.users.getByClerkIdInternal, {
-      clerkId: args.clerkId,
-    });
-    if (!user) {
-      throw new Error("User not found");
-    }
-
-    const rows = await ctx.runQuery(internal.codebases.listMyInternal, {
-      userId: user._id,
-    });
-    return rows.map(mapCodebaseSummary);
-  },
-});
-
 export const mcpGetCodebaseOverview = internalAction({
   args: { clerkId: v.string(), codebaseId: v.string() },
-  handler: async (ctx, args): Promise<OverviewStatsResult> => {
+  handler: async (ctx, args): Promise<OverviewStats> => {
     const ownedId = await requireOwnedCodebaseId(
       ctx,
       args.clerkId,
       args.codebaseId,
     );
-    return ctx.runAction(
-      internal.neo4jActions.codebases.getOverviewStatsInternal,
+    return await runWithNeo4jDriver(
       { clerkId: args.clerkId, codebaseId: ownedId },
+      getOverviewStats,
     );
   },
 });
@@ -226,7 +85,7 @@ export const mcpSearchCodebaseSymbols = internalAction({
     clerkId: v.string(),
     codebaseId: v.string(),
     query: v.string(),
-    kind: v.optional(symbolKindValidator),
+    kind: v.optional(codebaseSymbolKindValidator),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args): Promise<SearchResult> => {
@@ -235,8 +94,7 @@ export const mcpSearchCodebaseSymbols = internalAction({
       args.clerkId,
       args.codebaseId,
     );
-    return ctx.runAction(
-      internal.neo4jActions.codebases.searchSymbolsInternal,
+    return await runWithNeo4jDriver(
       {
         clerkId: args.clerkId,
         codebaseId: ownedId,
@@ -244,6 +102,7 @@ export const mcpSearchCodebaseSymbols = internalAction({
         kind: args.kind,
         limit: normalizeOptionalInt(args.limit),
       },
+      async (params) => ({ results: await searchSymbols(params) }),
     );
   },
 });
@@ -254,19 +113,19 @@ export const mcpGetCodebaseSymbolContext = internalAction({
     codebaseId: v.string(),
     symbolId: v.string(),
   },
-  handler: async (ctx, args): Promise<SymbolContextResult | null> => {
+  handler: async (ctx, args): Promise<SymbolContext | null> => {
     const ownedId = await requireOwnedCodebaseId(
       ctx,
       args.clerkId,
       args.codebaseId,
     );
-    return ctx.runAction(
-      internal.neo4jActions.codebases.getSymbolContextInternal,
+    return await runWithNeo4jDriver(
       {
         clerkId: args.clerkId,
         codebaseId: ownedId,
         symbolId: args.symbolId,
       },
+      getSymbolContext,
     );
   },
 });
@@ -276,7 +135,7 @@ export const mcpGetCodebaseImpact = internalAction({
     clerkId: v.string(),
     codebaseId: v.string(),
     symbolId: v.string(),
-    direction: directionValidator,
+    direction: codebaseDirectionValidator,
     depth: v.optional(v.number()),
   },
   handler: async (ctx, args): Promise<ImpactResult> => {
@@ -285,13 +144,35 @@ export const mcpGetCodebaseImpact = internalAction({
       args.clerkId,
       args.codebaseId,
     );
-    return ctx.runAction(internal.neo4jActions.codebases.getImpactInternal, {
-      clerkId: args.clerkId,
-      codebaseId: ownedId,
-      symbolId: args.symbolId,
-      direction: args.direction,
-      depth: normalizeOptionalInt(args.depth),
-    });
+    const depth = normalizeOptionalInt(args.depth);
+    return await runWithNeo4jDriver(
+      {
+        clerkId: args.clerkId,
+        codebaseId: ownedId,
+        symbolId: args.symbolId,
+        direction: args.direction,
+        depth,
+      },
+      async ({ driver, userId, codebaseId, symbolId, direction }) => {
+        const nodes =
+          direction === "upstream"
+            ? await getUpstreamImpact({
+                driver,
+                userId,
+                codebaseId,
+                symbolId,
+                depth,
+              })
+            : await getDownstreamImpact({
+                driver,
+                userId,
+                codebaseId,
+                symbolId,
+                depth,
+              });
+        return { nodes };
+      },
+    );
   },
 });
 
@@ -299,10 +180,10 @@ export const mcpGetCodebaseGraph = internalAction({
   args: {
     clerkId: v.string(),
     codebaseId: v.string(),
-    kinds: v.optional(v.array(symbolKindValidator)),
+    kinds: v.optional(v.array(codebaseSymbolKindValidator)),
     processId: v.optional(v.string()),
     blastRadiusOf: v.optional(v.string()),
-    blastDirection: v.optional(directionValidator),
+    blastDirection: v.optional(codebaseDirectionValidator),
     blastDepth: v.optional(v.number()),
   },
   handler: async (ctx, args): Promise<GraphResult> => {
@@ -311,14 +192,17 @@ export const mcpGetCodebaseGraph = internalAction({
       args.clerkId,
       args.codebaseId,
     );
-    return ctx.runAction(internal.neo4jActions.codebases.getGraphInternal, {
-      clerkId: args.clerkId,
-      codebaseId: ownedId,
-      kinds: args.kinds,
-      processId: args.processId,
-      blastRadiusOf: args.blastRadiusOf,
-      blastDirection: args.blastDirection,
-      blastDepth: normalizeOptionalInt(args.blastDepth),
-    });
+    return await runWithNeo4jDriver(
+      {
+        clerkId: args.clerkId,
+        codebaseId: ownedId,
+        kinds: args.kinds,
+        processId: args.processId,
+        blastRadiusOf: args.blastRadiusOf,
+        blastDirection: args.blastDirection,
+        blastDepth: normalizeOptionalInt(args.blastDepth),
+      },
+      getGraphOverview,
+    );
   },
 });

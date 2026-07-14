@@ -9,7 +9,7 @@ interface SkillCardProps {
   skill: Doc<"skills">;
   selected?: boolean;
   onSelect: () => void;
-  /** navigate = open skill; bulk-select = checkbox toggle */
+  // navigate = open skill; bulk-select = checkbox toggle
   mode?: "navigate" | "bulk-select";
   checked?: boolean;
   onToggleSelect?: () => void;

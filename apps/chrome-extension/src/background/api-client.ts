@@ -9,8 +9,7 @@ import type {
   Profile,
 } from "@/types/api";
 
-/** Args accepted by the userSettings.update mutation — sourced from the
- * Convex validator so the popup write path can never drift from the schema. */
+/** userSettings.update args — from the convex validator. */
 export type UserSettingsUpdateArgs = FunctionArgs<
   typeof api.userSettings.update
 >;
@@ -25,19 +24,9 @@ async function getAuthenticatedClient() {
   return await createAuthenticatedConvexClient();
 }
 
-export interface DuplicateInfo {
-  id: string;
-  title: string;
-  updatedAt: string;
-}
-
-export type CreateResult =
-  | { status: "created"; memory: MemoryWithTags }
-  | { status: "duplicate"; existingMemory: DuplicateInfo };
-
 export async function createMemory(
   params: CreateMemoryParams,
-): Promise<CreateResult> {
+): Promise<MemoryWithTags> {
   const client = await getAuthenticatedClient();
   if (!client) {
     throw new Error(
@@ -45,7 +34,7 @@ export async function createMemory(
     );
   }
 
-  const memory = await client.action(api.memoryApi.createMemory, {
+  return await client.action(api.memoryApi.createMemory, {
     title: params.title,
     content: params.content,
     type: params.type,
@@ -55,33 +44,6 @@ export async function createMemory(
     url: params.url,
     profileId: params.profileId,
   });
-
-  return { status: "created", memory };
-}
-
-export async function updateMemory(
-  memoryId: string,
-  params: { title?: string; content?: string; tags?: string[] },
-): Promise<MemoryWithTags> {
-  const client = await getAuthenticatedClient();
-  if (!client) {
-    throw new Error(
-      "Not authenticated - please sign in via the extension popup",
-    );
-  }
-
-  const result = await client.action(api.memoryApi.updateMemory, {
-    memoryId,
-    title: params.title,
-    content: params.content,
-    tags: params.tags,
-  });
-
-  if (!result) {
-    throw new Error("Memory not found or update failed");
-  }
-
-  return result;
 }
 
 export async function retrieveMemories(
@@ -102,27 +64,7 @@ export async function retrieveMemories(
   return result.memories;
 }
 
-export async function getMemory(
-  memoryId: string,
-): Promise<MemoryWithTags | null> {
-  const client = await getAuthenticatedClient();
-  if (!client) {
-    throw new Error(
-      "Not authenticated - please sign in via the extension popup",
-    );
-  }
-
-  return await client.action(api.memoryApi.getMemory, { memoryId });
-}
-
-/**
- * Upload a screenshot blob to Convex storage and create a memory pointing
- * at it. Three steps:
- *   1. Action `generateMemoryUploadUrl` returns a signed POST URL.
- *   2. POST the PNG bytes to that URL → `{ storageId }`.
- *   3. Action `importImageMemory` attaches the storage object to a new
- *      memory with image-aware metadata (skips text extraction).
- */
+/** upload screenshot → storage → importImageMemory. */
 export async function saveScreenshot(params: {
   blob: Blob;
   caption?: string;
@@ -184,9 +126,7 @@ export async function saveScreenshot(params: {
     return memory;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    // Most common failure mode here: the action hasn't been deployed to
-    // Convex yet. After editing fileImport.ts, run `npx convex dev` in
-    // packages/backend (or `npx convex deploy` for prod).
+    // often means importImageMemory isn't deployed yet
     throw new Error(`importImageMemory action failed: ${msg}`, { cause: err });
   }
 }
@@ -200,29 +140,18 @@ export async function listProfiles(): Promise<Profile[]> {
   }
 
   const profiles = await client.query(api.profiles.list, {});
-  return profiles.map((p) => ({
-    _id: p._id,
-    name: p.name,
-    color: p.color,
-    icon: p.icon,
-    isDefault: p.isDefault,
-  }));
+  return profiles.map(
+    (p): Profile => ({
+      _id: p._id,
+      name: p.name,
+      color: p.color,
+      icon: p.icon,
+      isDefault: p.isDefault,
+    }),
+  );
 }
 
-/**
- * Persist user-settings changes through the background's authenticated HTTP
- * client — the same reliable path every other popup write already uses
- * (createMemory, listProfiles, etc.).
- *
- * Why this exists: the popup also fires the websocket mutation for instant
- * optimistic UI, but that socket can stall or never flush before the
- * short-lived popup closes (see CLAUDE.md). A dropped write left Convex stale,
- * and the SW settings mirror (refreshUserSettingsMirrorFromConvex) then
- * re-pulled the old value into chrome.storage and reverted behaviour — most
- * visibly resetting the history-sync alarm back to 30m after the user picked a
- * longer interval. This one-shot HTTP request is the durable write, so Convex
- * always reflects the change and the mirror has nothing stale to clobber.
- */
+/** durable settings write via http — popup websocket can drop on close. */
 export async function updateUserSettings(
   args: UserSettingsUpdateArgs,
 ): Promise<void> {

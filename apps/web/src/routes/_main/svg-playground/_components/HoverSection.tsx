@@ -2,12 +2,7 @@ import { AnimationCard } from "./AnimationCard";
 import { SectionHeading } from "./SectionHeading";
 import { VmemPaths } from "@/components/svg-animations";
 
-/**
- * Hover / interactive animations.
- *
- * CSS transitions, not keyframe animations — they hold their hovered state
- * for as long as the cursor's there, then unwind smoothly when it leaves.
- */
+// hover / interactive animations
 export function HoverSection() {
   return (
     <section className="space-y-4">

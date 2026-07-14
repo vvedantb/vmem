@@ -1,19 +1,6 @@
 "use client";
 
-/**
- * Graph-view controller hook.
- *
- * Owns everything the graph view needs that is NOT purely canvas-local
- * (selected/hovered nodes stay in the canvas component). Centralizing here
- * lets both the canvas (`MemoryGraph`) and the header popovers
- * (`GraphHeaderControls`) read from one source — no prop drilling, no extra
- * React context, no duplicated state/data-fetching.
- *
- * State ownership:
- *   - Filters + search (tags/kinds/sources/types/q): URL via `nuqs`, shared with list view.
- *   - Display (forces/labels): cookies via `graph-cookies`, per-user.
- *   - Data: Convex action via `useGraphData`.
- */
+// non-canvas graph state (filters/search/display) shared by canvas + header
 
 import { useCallback, useDeferredValue, useMemo, useState } from "react";
 import { useAction } from "convex/react";
@@ -65,15 +52,11 @@ import {
 
 const EMPTY_SET = new Set<string>();
 
-/**
- * Client-side ceiling on accumulated global-graph nodes. Pages are 5000
- * each (server cap per response), so this is 20 "Load more" clicks — the
- * renderer and simulation are tuned to stay smooth at this scale.
- */
+// cap global graph nodes (~20 load-more pages at 5k each)
 const GLOBAL_GRAPH_MAX_NODES = 100_000;
 
 export interface MemoryGraphController {
-  // ----- Raw data -----
+  // raw data
   apiNodes: ApiGraphNode[];
   apiTagEdges: ApiTagEdge[];
   allRelatesToEdges: ApiRelatesToEdge[];
@@ -83,24 +66,22 @@ export interface MemoryGraphController {
   isError: boolean;
   error: Error | null;
 
-  // ----- Scope (URL) -----
-  /** "local" = focus neighbourhood (default), "global" = full capped graph. */
+  // scope (url)
+  // local = focus neighbourhood; global = full capped graph
   scope: GraphScope;
-  /** Focus the local graph is centred on (server-resolved). null in global. */
+  // focus centre for local graph; null in global
   resolvedFocusNodeId: string | null;
 
-  // ----- Progressive global loading -----
-  /** Memory nodes currently loaded (global scope). */
+  // progressive global loading
   loadedMemoryCount: number;
-  /** Total active memories on the server — null until the first response. */
+  // total active memories; null until first response
   totalMemoryCount: number | null;
-  /** True when more memories exist beyond the loaded page (and the cap). */
   canLoadMore: boolean;
-  /** True while a bigger page is fetching (previous page stays on screen). */
+  // true while fetching next page (previous stays on screen)
   isLoadingMore: boolean;
   onLoadMore: () => void;
 
-  // ----- Derived -----
+  // derived
   graphNodes: GraphNode[];
   graphEdges: GraphEdge[];
   searchMatchSet: Set<string>;
@@ -116,15 +97,15 @@ export interface MemoryGraphController {
   filters: MemoryViewFilterParams;
   activeFilterCount: number;
 
-  // ----- Display state (cookie) -----
+  // display (cookie)
   graphSettings: GraphSettings;
   viewTheme: GraphViewTheme;
   isDark: boolean;
 
-  // ----- Search state (URL) -----
+  // search (url)
   search: string;
 
-  // ----- Filter handlers (same shape as list view) -----
+  // filter handlers (same shape as list view)
   onKindsChange: (kinds: ListItemKind[]) => void;
   onTagsChange: (tags: string[]) => void;
   onSourcesChange: (sources: string[]) => void;
@@ -140,25 +121,17 @@ export function useMemoryGraphController({
   enabled = true,
 }: {
   focusNodeId: string | null;
-  /**
-   * When false the controller stays mounted (so the graph route never loses
-   * its context during a tab transition) but skips all data fetching. Set to
-   * false while the list view is active so we don't fetch graph data for a
-   * view that never reads it.
-   */
+  // false = stay mounted but skip fetch (list view active)
   enabled?: boolean;
 }): MemoryGraphController {
   const { theme } = useThemeContext();
 
-  // URL-backed filter state — shared with list view so filters persist across
-  // view modes and are URL-shareable.
+  // url filters shared with list view
   const [params, setParams] = useMemoriesSearchParams();
   const activeProfileId = useActiveProfile()._id;
 
-  // Data
   const listMemoriesAction = useAction(api.memoryApi.listMemories);
 
-  // Scope lives in the URL beside the focus id.
   const scope: GraphScope = params.scope;
 
   const {
@@ -194,7 +167,7 @@ export function useMemoryGraphController({
     staleTime: 30_000,
   });
 
-  // Cookie-backed display state (per-user, non-shareable).
+  // cookie-backed display state (per-user, non-shareable)
   const [graphSettings, setGraphSettingsState] =
     useState<GraphSettings>(getGraphSettings);
 
@@ -213,11 +186,11 @@ export function useMemoryGraphController({
     [filters],
   );
 
-  // Derived display state
+  // derived display state
   const isDark = theme === "dark";
   const viewTheme = useMemo(() => getViewTheme(isDark), [isDark]);
 
-  // Derived filter stats
+  // derived filter stats
   const allTags = useMemo(() => getAllTags(apiNodes), [apiNodes]);
   const allKinds = useMemo(() => getAllKinds(apiNodes), [apiNodes]);
   const allSources = useMemo(() => getAllSources(apiNodes), [apiNodes]);
@@ -345,7 +318,7 @@ export function useMemoryGraphController({
   );
 
   return {
-    // Raw
+    // raw
     apiNodes,
     apiTagEdges,
     allRelatesToEdges,
@@ -355,18 +328,18 @@ export function useMemoryGraphController({
     isError,
     error,
 
-    // Scope
+    // scope
     scope,
     resolvedFocusNodeId,
 
-    // Progressive global loading
+    // progressive global loading
     loadedMemoryCount,
     totalMemoryCount,
     canLoadMore,
     isLoadingMore: isFetchingNextPage,
     onLoadMore,
 
-    // Derived
+    // derived
     graphNodes,
     graphEdges,
     searchMatchSet,
@@ -382,15 +355,15 @@ export function useMemoryGraphController({
     filters,
     activeFilterCount,
 
-    // Display state
+    // display state
     graphSettings,
     viewTheme,
     isDark,
 
-    // Search (URL — shared with list view via `q`)
+    // search (URL — shared with list view via `q`)
     search: params.q,
 
-    // Handlers
+    // handlers
     onKindsChange,
     onTagsChange,
     onSourcesChange,

@@ -14,42 +14,32 @@ import {
   requireContentScopeAccess,
 } from "./teams/auth";
 
-/** Missing `enabled` is treated as enabled for existing rows. */
+// missing `enabled` is treated as enabled for existing rows
 function isSkillEnabled(skill: { enabled?: boolean }): boolean {
   return skill.enabled !== false;
 }
 
-/**
- * A skill as seen by every prompt surface, regardless of whether it is a
- * personal skill or an installed system skill. The single shape lets the
- * MCP context prompt, skills_list/skills_get, and chat/voice all treat both
- * sources identically.
- */
+// A skill as seen by every prompt surface, regardless of whether it is a personal
 export interface EffectiveSkill {
   name: string;
   description: string;
   instructions: string;
   enabled: boolean;
   source: "personal" | "system";
-  /** The personal skill's id — present only for `source === "personal"`. */
+  // the personal skill's id — present only for `source === "personal"`
   skillId?: Id<"skills">;
-  /** Present only for `source === "system"`. */
+  // present only for `source === "system"`
   systemSkillId?: Id<"systemSkills">;
 }
 
 export type SkillIndexSlice = Pick<EffectiveSkill, "name" | "description">;
 
-/** Name + description for skills index surfaces (MCP, context prompt, chat). */
+// name + description for skills index surfaces (MCP, context prompt, chat)
 export function toSkillIndexEntry(skill: SkillIndexSlice): SkillIndexSlice {
   return { name: skill.name, description: skill.description };
 }
 
-/**
- * Resolve a user's EFFECTIVE skills = their enabled personal skills + the
- * system skills they have installed-and-enabled in the personal workspace
- * (resolved LIVE from the catalog — installs are links, not copies).
- * Team-scoped installs are excluded — those surface via team skill lists.
- */
+// resolve a user's EFFECTIVE skills = their enabled personal skills + the system
 async function resolveEffectiveSkills(
   ctx: QueryCtx | MutationCtx,
   userId: Id<"users">,
@@ -102,7 +92,7 @@ async function resolveEffectiveSkills(
   return out;
 }
 
-/** True when this workspace has an install of a system skill with this name. */
+// true when this workspace has an install of a system skill with this name
 async function scopeHasInstalledSystemSkillNamed(
   ctx: QueryCtx | MutationCtx,
   userId: Id<"users">,
@@ -132,10 +122,7 @@ async function scopeHasInstalledSystemSkillNamed(
   return false;
 }
 
-/**
- * Name-uniqueness lookup within one scope: team skills compete only with
- * that team's names, personal skills only with the user's personal names.
- */
+// name-uniqueness lookup within one scope
 async function findSkillByNameInScope(
   ctx: QueryCtx | MutationCtx,
   userId: Id<"users">,
@@ -155,10 +142,7 @@ async function findSkillByNameInScope(
     .first();
 }
 
-/**
- * Skip context-prompt cache invalidation for team-scoped writes: the cached
- * MCP context prompt only embeds the user's PERSONAL skills index.
- */
+// skip context-prompt cache invalidation for team-scoped writes
 async function invalidateContextPromptIfPersonal(
   ctx: MutationCtx,
   userId: Id<"users">,
@@ -168,12 +152,7 @@ async function invalidateContextPromptIfPersonal(
   await scheduleContextPromptInvalidationForUser(ctx, userId);
 }
 
-/**
- * Reject a skill name already taken in the target scope. Team scopes compete
- * only with that team's names; personal scopes also clash with the user's
- * installed system skills (both resolve into one effective list). Shared by
- * the web and MCP create paths.
- */
+// reject a skill name already taken in the target scope
 async function assertSkillNameAvailableInScope(
   ctx: QueryCtx | MutationCtx,
   userId: Id<"users">,
@@ -198,7 +177,7 @@ async function assertSkillNameAvailableInScope(
   }
 }
 
-/** User-editable skill fields, all optional (a patch or an update request). */
+// user-editable skill fields, all optional (a patch or an update request)
 type SkillWritableFields = {
   name?: string;
   description?: string;
@@ -206,12 +185,7 @@ type SkillWritableFields = {
   enabled?: boolean;
 };
 
-/**
- * Assemble the patch for a skill update from optionally-provided fields,
- * applying the name trim + in-scope uniqueness check (only when the name
- * actually changes, against the skill's own scope). Shared by the web
- * `updateSkill` and MCP `updateByClerkIdInternal` so both validate identically.
- */
+// assemble the patch for a skill update from optionally-provided fields, applying the
 async function buildSkillUpdatePatch(
   ctx: QueryCtx | MutationCtx,
   skill: Doc<"skills">,
@@ -248,7 +222,7 @@ async function buildSkillUpdatePatch(
   return patch;
 }
 
-/** Normalize a skill id string and fetch the row, throwing if either fails. */
+// normalize a skill id string and fetch the row, throwing if either fails
 async function resolveSkillOrThrow(
   ctx: QueryCtx | MutationCtx,
   rawId: string,
@@ -260,11 +234,7 @@ async function resolveSkillOrThrow(
   return skill;
 }
 
-/**
- * List skills in a scope, newest-first. No `teamId` = the user's personal
- * skills (shared across all personal workspaces); `teamId` = that team's
- * skills (members only).
- */
+// list skills in a scope, newest-first
 export const listMy = authQuery({
   args: { teamId: v.optional(v.id("teams")) },
   handler: async (ctx, args) => {
@@ -286,11 +256,7 @@ export const listMy = authQuery({
   },
 });
 
-/**
- * The caller's effective skills (enabled personal + installed-and-enabled
- * system skills), resolved live. Client prompt surfaces (local chat, voice,
- * mobile) read this so installed system skills behave like personal ones.
- */
+// the caller's effective skills (enabled personal + installed-and-enabled system
 export const listEffectiveSkills = authQuery({
   args: {},
   handler: async (ctx): Promise<EffectiveSkill[]> => {
@@ -298,9 +264,7 @@ export const listEffectiveSkills = authQuery({
   },
 });
 
-/**
- * Create a new skill in a scope. Duplicate names per scope are rejected.
- */
+// create a new skill in a scope
 export const createSkill = authMutation({
   args: {
     name: v.string(),
@@ -338,10 +302,7 @@ export const createSkill = authMutation({
   },
 });
 
-/**
- * Update an existing skill. Personal: owner only. Team: any member
- * (collaborative). Only provided fields are patched.
- */
+// update an existing skill
 export const updateSkill = authMutation({
   args: {
     id: v.string(),
@@ -370,9 +331,7 @@ export const updateSkill = authMutation({
   },
 });
 
-/**
- * Delete a skill. Personal: owner only. Team: creator or team owner.
- */
+// delete a skill
 export const deleteSkill = authMutation({
   args: { id: v.string() },
   handler: async (ctx, args) => {
@@ -384,11 +343,7 @@ export const deleteSkill = authMutation({
   },
 });
 
-/**
- * Bulk-delete skills (each with its version snapshots). Same per-skill
- * permission gate as `deleteSkill`; ids already gone are skipped. The personal
- * skills index is invalidated once at the end if any personal skill was removed.
- */
+// bulk-delete skills (each with its version snapshots)
 export const deleteSkills = authMutation({
   args: { ids: v.array(v.id("skills")) },
   handler: async (ctx, args) => {
@@ -407,13 +362,7 @@ export const deleteSkills = authMutation({
   },
 });
 
-/**
- * Restore a skill to a previous version. Checkpoints the current state first
- * (force) so the restore is itself reversible, then patches the skill from the
- * snapshot. Rejects when the snapshot's name now collides with another skill in
- * the same scope. Lives here (not skillVersions.ts) to reuse the scope's
- * name-uniqueness check and context-prompt invalidation.
- */
+// restore a skill to a previous version
 export const restoreVersion = authMutation({
   args: { versionId: v.id("skillVersions") },
   handler: async (ctx, args) => {
@@ -452,14 +401,9 @@ export const restoreVersion = authMutation({
   },
 });
 
-// --- Internal helpers (used by MCP HTTP routes after JWT verification) ---
-// MCP stays personal-only for now: every lookup filters `teamId === undefined`
-// so team skills never leak into (or get mutated through) MCP tools.
+// internal helpers (used by MCP HTTP routes after JWT verification) --- MCP stays
 
-/**
- * Effective skills (personal + installed system skills) for a Clerk user id.
- * The single source for the MCP context-prompt index and `skills_list`.
- */
+// effective skills (personal + installed system skills) for a Clerk user id
 export const listEffectiveByClerkIdInternal = internalQuery({
   args: { clerkId: v.string() },
   handler: async (ctx, args): Promise<EffectiveSkill[]> => {
@@ -469,11 +413,7 @@ export const listEffectiveByClerkIdInternal = internalQuery({
   },
 });
 
-/**
- * Resolve one effective skill by name for a Clerk user id (personal first,
- * then installed system skills). Powers `skills_get` so an agent can load a
- * system skill's full instructions exactly like a personal one.
- */
+// resolve one effective skill by name for a Clerk user id (personal first, then
 export const getEffectiveByNameInternal = internalQuery({
   args: { clerkId: v.string(), name: v.string() },
   handler: async (ctx, args): Promise<EffectiveSkill | null> => {
@@ -485,9 +425,7 @@ export const getEffectiveByNameInternal = internalQuery({
   },
 });
 
-/**
- * List personal skills for a given Clerk user id.
- */
+// list personal skills for a given Clerk user id
 export const listByClerkIdInternal = internalQuery({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
@@ -503,7 +441,7 @@ export const listByClerkIdInternal = internalQuery({
   },
 });
 
-/** Workspace-scoped enabled skills for the memory graph (personal or team). */
+// workspace-scoped enabled skills for the memory graph (personal or team)
 export const listForGraphInternal = internalQuery({
   args: {
     userId: v.id("users"),
@@ -528,9 +466,7 @@ export const listForGraphInternal = internalQuery({
   },
 });
 
-/**
- * Create a skill for a given Clerk user id (MCP after JWT verification).
- */
+// create a skill for a given Clerk user id (MCP after JWT verification)
 export const createByClerkIdInternal = internalMutation({
   args: {
     clerkId: v.string(),
@@ -576,9 +512,7 @@ export const createByClerkIdInternal = internalMutation({
   },
 });
 
-/**
- * Update a skill for a given Clerk user id (MCP after JWT verification).
- */
+// update a skill for a given Clerk user id (MCP after JWT verification)
 export const updateByClerkIdInternal = internalMutation({
   args: {
     clerkId: v.string(),
@@ -621,7 +555,7 @@ export const updateByClerkIdInternal = internalMutation({
       enabled: args.enabled,
     });
 
-    // Agent (MCP) writes always checkpoint the pre-write state.
+    // agent (MCP) writes always checkpoint the pre-write state
     await maybeSnapshotSkillVersion(ctx, skill, {
       source: "mcp",
       authorUserId: user._id,
@@ -638,9 +572,7 @@ export const updateByClerkIdInternal = internalMutation({
   },
 });
 
-/**
- * Delete a skill by name for a given Clerk user id (MCP after JWT verification).
- */
+// delete a skill by name for a given Clerk user id (MCP after JWT verification)
 export const deleteByClerkIdInternal = internalMutation({
   args: { clerkId: v.string(), name: v.string() },
   returns: v.null(),
@@ -668,11 +600,7 @@ export const deleteByClerkIdInternal = internalMutation({
   },
 });
 
-/**
- * Enabled skills of a team — for cloud chat's merged (personal + team)
- * skills index when a thread lives in a team workspace. Membership is
- * verified upstream (thread ownership + profile access in chat).
- */
+// enabled skills of a team
 export const listTeamSkillsInternal = internalQuery({
   args: { teamId: v.id("teams") },
   handler: async (ctx, args) => {

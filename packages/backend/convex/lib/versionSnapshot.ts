@@ -1,7 +1,7 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 
-/** Edits within this window by the same author/source coalesce into one version. */
+// edits within this window by the same author/source coalesce into one version
 const BURST_MS = 15 * 60 * 1000;
 
 type VersionSource = "web" | "mcp";
@@ -42,7 +42,7 @@ function crossedBoundary(
   );
 }
 
-/** Snapshot wiki pre-patch state; call before `ctx.db.patch`. */
+// snapshot wiki pre-patch state; call before `ctx.db.patch`
 export async function maybeSnapshotWikiVersion(
   ctx: MutationCtx,
   node: Doc<"wikiNodes">,
@@ -91,7 +91,7 @@ function skillUnchanged(
   );
 }
 
-/** Snapshot skill pre-patch state; call before `ctx.db.patch`. */
+// snapshot skill pre-patch state; call before `ctx.db.patch`
 export async function maybeSnapshotSkillVersion(
   ctx: MutationCtx,
   skill: Doc<"skills">,

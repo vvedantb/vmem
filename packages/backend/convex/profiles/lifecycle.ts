@@ -3,52 +3,11 @@ import type { MutationCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import type { AuthActionCtx } from "../auth";
 import { auditLog, ResourceTypes } from "../auditLog";
-import type { AuthMutationCtx } from "../teams/auth";
 
 interface RemoveArgs {
   profileId: Id<"profiles">;
-  /** When set, move Neo4j memories here before deletion. */
+  // when set, move Neo4j memories here before deletion
   moveMemoriesToProfileId?: Id<"profiles">;
-}
-
-interface RemoveResult {
-  deleted: boolean;
-  profileId: Id<"profiles">;
-  moveMemoriesToProfileId: Id<"profiles"> | null;
-}
-
-export async function runRemove(
-  ctx: AuthMutationCtx,
-  args: RemoveArgs,
-): Promise<RemoveResult> {
-  const profile = await ctx.db.get(args.profileId);
-  if (!profile || profile.userId !== ctx.userId) {
-    throw new Error("Profile not found");
-  }
-
-  if (profile.teamId) {
-    throw new Error("Use teams.deleteTeam to remove a team profile");
-  }
-
-  if (profile.isDefault) {
-    throw new Error("Cannot delete the default profile");
-  }
-
-  if (args.moveMemoriesToProfileId) {
-    const targetProfile = await ctx.db.get(args.moveMemoriesToProfileId);
-    if (!targetProfile || targetProfile.userId !== ctx.userId) {
-      throw new Error("Target profile not found");
-    }
-  }
-
-  const movedMemoriesTo = args.moveMemoriesToProfileId ?? null;
-  await deleteProfileRow(ctx, profile, ctx.userId, movedMemoriesTo);
-
-  return {
-    deleted: true,
-    profileId: args.profileId,
-    moveMemoriesToProfileId: movedMemoriesTo,
-  };
 }
 
 export async function runRemoveWithMemories(
@@ -119,7 +78,7 @@ export async function runRemoveInternalMutation(
   return { deleted: true };
 }
 
-/** Clear source defaults, delete the row, and write the audit entry. */
+// clear source defaults, delete the row, and write the audit entry
 async function deleteProfileRow(
   ctx: MutationCtx,
   profile: Doc<"profiles">,

@@ -78,7 +78,7 @@ function CodebaseDetailView({
   const [syncing, setSyncing] = useState(false);
   const controller = useCodebaseGraphController(id);
   // A stalled sync still reads `status === "syncing"`; treat it as retryable so
-  // the Sync button isn't disabled forever waiting on a dead run.
+  // the Sync button isn't disabled forever waiting on a dead run
   const stalled = isCodebaseSyncStalled(
     codebase.status,
     codebase.syncStartedAt,

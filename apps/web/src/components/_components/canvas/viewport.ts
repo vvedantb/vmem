@@ -1,14 +1,10 @@
 import type { ViewportState } from "./types";
 
-// Low enough that fitToNodes can frame a 100k-node layout (world extent grows
-// with sqrt(n); 0.1 capped fit at roughly 6k nodes and left bigger graphs
-// permanently cropped).
+// low enough that fitToNodes can frame a 100k-node layout (world extent grows with
 const MIN_SCALE = 0.01;
 const MAX_SCALE = 5.0;
 const FRICTION = 0.92;
-// Zoom/pan spring response. 0.15 trailed the cursor by ~230ms (14 frames to
-// 90% of a wheel step) — read as mushy next to Obsidian's near-direct zoom.
-// 0.35 reaches 90% in ~5 frames: still eased, visibly "attached" to input.
+// zoom/pan spring response
 const SPRING_FACTOR = 0.35;
 const VELOCITY_THRESHOLD = 0.5;
 

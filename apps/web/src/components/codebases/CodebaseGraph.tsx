@@ -1,15 +1,6 @@
 "use client";
 
-/**
- * Codebase symbol-graph canvas. Renders the multi-kind payload (files +
- * functions + classes + interfaces + processes) using the shared graph
- * canvas. Filter / search chrome lives in the page header — this component
- * just consumes the controller's derived state.
- *
- * Selection lives in the URL (`?blastRadiusOf=…`) via the controller, so
- * navigating between symbols and refreshing both Just Work without local
- * state management here.
- */
+// codebase symbol-graph canvas
 
 import { useMemo, useCallback, useRef, useState } from "react";
 import { IconAlertTriangle, IconMoodEmpty } from "@tabler/icons-react";
@@ -53,8 +44,8 @@ export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
     onToggleBlastDirection,
   } = controller;
 
-  // Hovered-node / hovered-edge state stays canvas-local: it's high-
-  // frequency and not worth putting in the controller (or the URL).
+  // hovered-node / hovered-edge state stays canvas-local: it's high-
+  // frequency and not worth putting in the controller (or the URL)
   const [hoveredNode, setHoveredNode] = useState<HoveredNodeInfo | null>(null);
   const [hoveredEdge, setHoveredEdge] = useState<HoveredEdgeInfo | null>(null);
 
@@ -76,8 +67,8 @@ export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
     onSelectSymbol(null);
   }, [onSelectSymbol]);
 
-  // Codebase graph doesn't support manual link creation — symbols are
-  // structural. The canvas still asks for this callback though.
+  // codebase graph doesn't support manual link creation — symbols are
+  // structural. The canvas still asks for this callback though
   const handleLinkNodes = useCallback(
     (_sourceId: string, _targetId: string) => {},
     [],

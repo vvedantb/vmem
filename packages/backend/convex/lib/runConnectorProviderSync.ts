@@ -13,7 +13,6 @@ export async function runConnectorProviderSync(
     connector: Doc<"connectors">;
     clerkId: string;
     accessToken: string;
-    fullHistory: boolean;
     execution: "retrier" | "direct";
   },
 ): Promise<void> {

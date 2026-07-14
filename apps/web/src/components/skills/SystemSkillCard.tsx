@@ -14,11 +14,7 @@ interface SystemSkillCardProps {
   profileId: string;
 }
 
-/**
- * A catalog entry in the Skills Hub. The whole card links to the skill's
- * detail page (where it can be read, installed, toggled, removed) — same
- * card-to-detail pattern as CodebaseCard.
- */
+// A catalog entry in the Skills Hub
 export function SystemSkillCard({ entry, profileId }: SystemSkillCardProps) {
   return (
     <Link

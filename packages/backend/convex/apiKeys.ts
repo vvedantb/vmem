@@ -126,7 +126,7 @@ export const revokeMy = authMutation({
       revokedAt: Date.now(),
     });
 
-    // Revocation is a security-relevant event — surface at `warning`.
+    // revocation is a security-relevant event — surface at `warning`
     await auditLog.log(ctx, {
       action: "api_key.revoked",
       actorId: ctx.userId,

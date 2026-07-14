@@ -23,11 +23,7 @@ import { api } from "@vmem/backend";
 
 type ApiKey = FunctionReturnType<typeof api.apiKeys.listMy>[number];
 
-/**
- * Keys panel for `/settings/api`. The "create" modal is controlled by
- * the orchestrator so the right-section "New Key" button (in the page
- * header) and the empty-state "New Key" button can both open it.
- */
+// keys panel for `/settings/api`
 export function KeysPanel({
   isCreateModalOpen,
   onCreateModalOpenChange,

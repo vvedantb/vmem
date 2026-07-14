@@ -7,7 +7,7 @@ import { setEmbeddings } from "../../../engine/neo4j/memory/migration";
 import type { OpenRouterFeature } from "../../lib/openRouter/shared";
 import { tryEmbedOne } from "./shared";
 
-/** Best-effort embed (unless already at create) + schedule enrichment. */
+// best-effort embed (unless already at create) + schedule enrichment
 export async function postMaterializeEmbedAndEnrich(
   ctx: ActionCtx,
   driver: Driver,
@@ -19,7 +19,7 @@ export async function postMaterializeEmbedAndEnrich(
     profileId?: string;
     feature: OpenRouterFeature;
     failureLog: string;
-    /** Omit to embed here; set (incl. null) when CREATE already embedded. */
+    // omit to embed here; set (incl
     embeddingAtCreate?: number[] | null;
   },
 ): Promise<void> {

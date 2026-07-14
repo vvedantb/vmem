@@ -74,7 +74,7 @@ function Item({ id, isActive, className, children }: ItemProps) {
   );
 }
 
-/** Shared hover/active pill that springs between sidebar rows (Eva SharedLayoutNav). */
+// shared hover/active pill that springs between sidebar rows (Eva SharedLayoutNav)
 export const SharedLayoutBackground = {
   Root,
   Item,

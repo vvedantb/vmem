@@ -22,7 +22,7 @@ function mcpServerInfo(scope: McpScope): {
 }
 
 // JWT TTLs match the legacy Railway server so existing Claude connectors
-// keep working without re-auth at cutover.
+// keep working without re-auth at cutover
 const ACCESS_TTL_SECONDS = 30 * 24 * 60 * 60;
 const REFRESH_TTL_SECONDS = 90 * 24 * 60 * 60;
 
@@ -101,9 +101,7 @@ export const refreshToken = internalAction({
       ) {
         return refreshFailure("Invalid refresh token");
       }
-      // Legacy refresh tokens (issued by Railway) didn't carry a `type`
-      // claim — accept those too so the refresh flow still works during
-      // the cutover. New tokens issued here are tagged.
+      // legacy refresh tokens (issued by Railway) didn't carry a `type` claim
       const typeClaim =
         "type" in decoded && typeof decoded.type === "string"
           ? decoded.type
@@ -179,10 +177,7 @@ export const handleMcpRequest = internalAction({
       registerMemoryGraphApp(server, clerkUserId, ctx, scope);
       registerResources(server, clerkUserId, ctx, scope);
 
-      // WebStandardStreamableHTTPServerTransport works with Web Standard
-      // Request/Response, avoiding Node.js req/res shimming. Stateless
-      // mode (no sessionIdGenerator) + JSON responses = fits Convex
-      // httpAction → action delegation cleanly.
+      // webStandardStreamableHTTPServerTransport works with Web Standard
       const transport = new WebStandardStreamableHTTPServerTransport({
         sessionIdGenerator: undefined,
         enableJsonResponse: true,

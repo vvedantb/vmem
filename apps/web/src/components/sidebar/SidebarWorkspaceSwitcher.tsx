@@ -54,20 +54,14 @@ function WorkspaceAvatar({
   );
 }
 
-/**
- * Workspace (profile) switcher at the top of the sidebar — a structural
- * twin of the account card (`SidebarUserMenu`). Selecting a workspace
- * navigates to the same sub-route in the target workspace (detail ids
- * dropped); the dropdown also hosts create-profile / create-team and a
- * link to profile management.
- */
+// workspace (profile) switcher at the top of the sidebar
 export function SidebarWorkspaceSwitcher({
   collapsed,
   onNavigate,
 }: {
-  /** Collapsed (icon-only) rail shows just the avatar; dropdown opens to the side. */
+  // collapsed (icon-only) rail shows just the avatar; dropdown opens to the side
   collapsed: boolean;
-  /** Called after any navigation (mobile menu close). */
+  // called after any navigation (mobile menu close)
   onNavigate?: () => void;
 }) {
   const navigate = useNavigate();

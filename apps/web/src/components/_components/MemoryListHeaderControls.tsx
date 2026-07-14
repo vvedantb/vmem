@@ -1,14 +1,6 @@
 "use client";
 
-/**
- * List-view controls rendered in the page header.
- *
- * Renders View + Search + Filters popovers and the Add Memory trigger. The
- * View dropdown switches between the unified memory/wiki/skill list and the
- * tag-rows view (formerly the standalone /memories/tags route). Mirrors the
- * graph's header pattern but with list-specific filter data; graph-only
- * controls (graph Options, Legend) are intentionally omitted.
- */
+// list-view controls rendered in the page header
 
 import { useMemo } from "react";
 import { useQuery } from "convex/react";
@@ -141,12 +133,7 @@ export default function MemoryListHeaderControls() {
   );
 }
 
-// ---- View dropdown ----
-//
-// Two options today (memories / tags) but kept as a dropdown rather than a
-// segmented toggle so adding a third view later (e.g. sources) doesn't
-// require a layout rethink. Per the project's UI rules: prefer dropdowns
-// with explicit options over toggle buttons when a control has ≥2 states.
+// two options today (memories / tags) but kept as a dropdown rather than a segmented
 
 const VIEW_OPTIONS: {
   value: ListViewMode;

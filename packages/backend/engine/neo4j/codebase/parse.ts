@@ -24,9 +24,9 @@ import type {
 import { convexEntryKind } from "./convexBuilders";
 
 export interface SourceFileBlob {
-  /** Repo-relative path with `/` separators. */
+  // repo-relative path with `/` separators
   path: string;
-  /** Raw text content. */
+  // raw text content
   content: string;
 }
 
@@ -35,7 +35,7 @@ interface ParseInput {
   files: SourceFileBlob[];
 }
 
-/** Subset of extensions ts-morph understands. */
+// subset of extensions ts-morph understands
 const TS_JS_EXTENSIONS = new Set([
   ".ts",
   ".tsx",
@@ -47,7 +47,7 @@ const TS_JS_EXTENSIONS = new Set([
   ".cjs",
 ]);
 
-/** Extension → ScriptKind. Default to TS for `.ts`/`.mts`/`.cts`. */
+// extension → ScriptKind
 function pickScriptKind(ext: string): ScriptKind {
   switch (ext) {
     case ".tsx":
@@ -63,13 +63,13 @@ function pickScriptKind(ext: string): ScriptKind {
   }
 }
 
-/** Repo-root files: posix `dirname("foo.ts")` is `"."`; we store `""`. */
+// repo-root files: posix `dirname("foo.ts")` is `"."`; we store `""`
 function directoryOf(repoPath: string): string {
   const dir = dirname(repoPath);
   return dir === "." ? "" : dir;
 }
 
-/** Cheap stable hash (FNV-1a 32-bit) — we only need to detect content changes. */
+// cheap stable hash (FNV-1a 32-bit) — we only need to detect content changes
 function contentHash(s: string): string {
   let h = 0x811c9dc5;
   for (let i = 0; i < s.length; i++) {
@@ -91,13 +91,13 @@ function symbolId(
   return `${codebaseId}:${path}:${symbolPath}`;
 }
 
-/** Match any of `.test.`/`.spec.` in filename. */
+// match any of `.test.`/`.spec.` in filename
 function isTestFile(path: string): boolean {
   const filename = basename(path);
   return /\.(test|spec)\.[mc]?[jt]sx?$/.test(filename);
 }
 
-/** True for a named export or a `export default`. */
+// true for a named export or a `export default`
 function isExportedNode(node: ExportableNode): boolean {
   return node.isExported() || node.isDefaultExport();
 }
@@ -110,7 +110,7 @@ function buildProject(input: ParseInput): {
     useInMemoryFileSystem: true,
     skipAddingFilesFromTsConfig: true,
     compilerOptions: {
-      // Permissive — we want the parser to succeed even on broken code.
+      // permissive — we want the parser to succeed even on broken code
       allowJs: true,
       checkJs: false,
       noEmit: true,
@@ -135,10 +135,7 @@ function buildProject(input: ParseInput): {
   return { project, loadedPaths };
 }
 
-/**
- * Walk a single source file and emit symbols plus local structural edges.
- * EXTENDS/IMPLEMENTS use textual names; resolveCalls patches them to ids.
- */
+// walk a single source file and emit symbols plus local structural edges
 function parseSourceFile(
   codebaseId: string,
   source: SourceFile,
@@ -163,7 +160,7 @@ function parseSourceFile(
 
   const fileIsTest = isTestFile(path);
 
-  // Imports — module path placeholder; resolveCalls patches to file id.
+  // imports — module path placeholder; resolveCalls patches to file id
   for (const imp of source.getImportDeclarations()) {
     const moduleSpec = imp.getModuleSpecifierValue();
     if (!moduleSpec) continue;
@@ -233,9 +230,7 @@ function pushFunction(
   relations.push({ kind: "CONTAINS", fromId: fileId, toId: id });
 }
 
-/**
- * Const/let arrow-fn or fn-expr, or Convex builder call → Function symbol.
- */
+// const/let arrow-fn or fn-expr, or Convex builder call → Function symbol
 function pushVariableFunction(
   codebaseId: string,
   fileId: string,
@@ -254,8 +249,8 @@ function pushVariableFunction(
   const name = v.getName();
   const id = symbolId(codebaseId, filePath, name);
   const stmt = v.getVariableStatement();
-  // Async/paramCount only meaningful for actual fn nodes — Convex builder calls
-  // get sensible defaults (false/0) so the symbol still records correctly.
+  // async/paramCount only meaningful for actual fn nodes — Convex builder calls
+  // get sensible defaults (false/0) so the symbol still records correctly
   symbols.push({
     kind: "function",
     id,
@@ -272,7 +267,7 @@ function pushVariableFunction(
   relations.push({ kind: "CONTAINS", fromId: fileId, toId: id });
 }
 
-/** True for `query({...})` / `mutation({...})` / etc. */
+// true for `query({...})` / `mutation({...})` / etc
 function looksLikeConvexBuilder(init: Node): boolean {
   if (init.getKind() !== SyntaxKind.CallExpression) return false;
   const expr = init.asKindOrThrow(SyntaxKind.CallExpression).getExpression();
@@ -280,14 +275,14 @@ function looksLikeConvexBuilder(init: Node): boolean {
   return convexEntryKind(calleeName) !== undefined;
 }
 
-/** Cheap `async` check for an arrow-fn / fn-expr node's own text. */
+// cheap `async` check for an arrow-fn / fn-expr node's own text
 function isAsyncFunctionLike(node: Node): boolean {
   if (
     node.getKind() === SyntaxKind.ArrowFunction ||
     node.getKind() === SyntaxKind.FunctionExpression
   ) {
     const text = node.getText();
-    // Cheap match — async always appears at the very start of these forms.
+    // cheap match — async always appears at the very start of these forms
     return text.startsWith("async ") || text.includes("async (");
   }
   return false;
@@ -330,7 +325,7 @@ function pushClass(
   symbols.push(node);
   relations.push({ kind: "CONTAINS", fromId: fileId, toId: id });
 
-  // Extends edge — placeholder, resolver patches.
+  // extends edge — placeholder, resolver patches
   if (extendsName) {
     relations.push({
       kind: "EXTENDS",
@@ -340,7 +335,7 @@ function pushClass(
       tier: "INFERRED",
     });
   }
-  // Implements edges — placeholders, resolver patches.
+  // implements edges — placeholders, resolver patches
   for (const impl of cls.getImplements()) {
     relations.push({
       kind: "IMPLEMENTS",
@@ -351,7 +346,7 @@ function pushClass(
     });
   }
 
-  // Methods.
+  // methods
   for (const method of cls.getMethods()) {
     pushMethod(
       codebaseId,

@@ -8,7 +8,7 @@ import {
 } from "../../engine/neo4j/setup";
 import { getDriver } from "../../engine/neo4j/driver";
 
-/** Force full Neo4j DDL (manual / after new indexes ship in setup.ts). */
+// force full Neo4j DDL (manual / after new indexes ship in setup.ts)
 export const ensureNeo4jSetup = internalAction({
   args: {},
   returns: v.null(),
@@ -18,7 +18,7 @@ export const ensureNeo4jSetup = internalAction({
   },
 });
 
-/** Cheap check + setup only when indexes are missing (auto on first codebase sync). */
+// cheap check + setup only when indexes are missing (auto on first codebase sync)
 export const ensureNeo4jSetupIfNeededInternal = internalAction({
   args: {},
   returns: v.object({ ranSetup: v.boolean() }),

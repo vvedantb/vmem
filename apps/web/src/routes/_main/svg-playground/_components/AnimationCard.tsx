@@ -3,21 +3,16 @@ import { IconRefresh } from "@tabler/icons-react";
 import { Button } from "@vmem/ui";
 
 interface AnimationCardProps {
-  /** Numeric label rendered as `{n}.` before the title. */
+  // numeric label rendered as `{n}.` before the title
   number: number;
   title: string;
-  /** Single-line hint about the animation's intent. */
+  // single-line hint about the animation's intent
   description: string;
-  /** `true` for animations that need a replay button (one-shot). */
+  // `true` for animations that need a replay button (one-shot)
   oneShot?: boolean;
-  /** `true` to render a "hover me" hint under the demo. */
+  // `true` to render a "hover me" hint under the demo
   hoverHint?: boolean;
-  /**
-   * `render` receives a `replayKey` that changes each time the user clicks
-   * the replay button. Apply it as `key={replayKey}` on the SVG (or any
-   * wrapper) so the element remounts and CSS animations restart from frame 0.
-   * For non-one-shot cards, `replayKey` is always 0 and can be ignored.
-   */
+  // `render` receives a `replayKey` that changes each time the user clicks the replay button
   render: (replayKey: number) => ReactNode;
 }
 

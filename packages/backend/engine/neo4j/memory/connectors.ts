@@ -3,9 +3,7 @@ import type { Driver } from "neo4j-driver";
 import { createSemanticSimilarityEdges } from "./relationships";
 import { withSession } from "./shared";
 
-/**
- * Upsert a memory from an external source. MERGE on (userId, sourceType, sourceId).
- */
+// upsert a memory from an external source
 export async function upsertFromSource(
   driver: Driver,
   params: {

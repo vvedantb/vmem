@@ -1,20 +1,6 @@
 import type { SimulationNodeDatum, SimulationLinkDatum } from "d3-force";
 
-/**
- * Kind of node shown on the graph. Merges Neo4j memory nodes, Convex wikiNode
- * rows, Convex skills, and Phase-1 codebase symbols into one union so the
- * renderer can dispatch a different shape per kind:
- *  - memory         → circle
- *  - wiki-document  → diamond
- *  - wiki-folder    → square
- *  - skill          → hexagon (flat-topped)
- *  - entity         → diamond
- *  - code-file      → square
- *  - code-function  → circle
- *  - code-class     → hexagon
- *  - code-interface → diamond
- *  - code-process   → starburst
- */
+// kind of node shown on the graph
 export type GraphNodeKind =
   | "memory"
   | "wiki-document"
@@ -44,26 +30,16 @@ export type GraphEdgeType =
 export interface GraphNode extends SimulationNodeDatum {
   id: string;
   title: string;
-  /**
-   * Inline content — only wiki documents and skills carry this through the
-   * graph payload. Memory nodes omit it (the UI lazy-fetches content on
-   * hover/click to keep the full-graph response under Convex's 1 MiB limit).
-   */
+  // inline content — only wiki documents and skills carry this through the graph payload
   content?: string;
   tags: string[];
   createdAt: string;
   color: string;
   size: number;
   kind: GraphNodeKind;
-  /**
-   * Connector provenance string (e.g. "google_drive", "notion") for
-   * memories that came in through a connector sync. null for MCP / manual /
-   * web captures and for non-memory kinds. The renderer uses this to stamp a
-   * brand logo inside the circle so provenance reads at a glance without
-   * disturbing the tag-hash colour.
-   */
+  // connector provenance string (e.g
   sourceType: string | null;
-  /** Entity sub-type (person/organization/place/technology). Only for entity nodes. */
+  // entity sub-type (person/organization/place/technology)
   entityType?: string;
 }
 

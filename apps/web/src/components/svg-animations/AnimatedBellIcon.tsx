@@ -1,7 +1,4 @@
-/**
- * Animated bell icon with swing animation for empty notification state.
- * Bell swings gently and clapper moves.
- */
+// animated bell icon with swing animation for empty notification state
 "use client";
 
 import { motion } from "motion/react";

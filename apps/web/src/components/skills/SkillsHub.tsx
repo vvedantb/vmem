@@ -18,19 +18,14 @@ interface SkillsHubProps {
   profileId: string;
 }
 
-/**
- * The Skills Hub — browse maintainer-curated system skills. Each card links to
- * the skill's detail page (read + install/manage there). Admins create new
- * catalog entries here. Installs are LINKS to the catalog, never copies —
- * scoped to the active workspace (personal vs team).
- */
+// the Skills Hub — browse maintainer-curated system skills
 export function SkillsHub({ profileId }: SkillsHubProps) {
   const teamId = useActiveTeamId();
   const catalog = useQuery(api.systemSkills.listCatalog, { teamId });
   const isAdmin = useQuery(api.systemSkills.amIAdmin, {}) ?? false;
   const [creating, setCreating] = useState(false);
 
-  // Group by category for a scannable catalog; uncategorised falls under "Other".
+  // group by category for a scannable catalog; uncategorised falls under "Other"
   const grouped = useMemo(() => {
     const cats = new Map<string, SystemSkillEntry[]>();
     for (const entry of catalog ?? []) {

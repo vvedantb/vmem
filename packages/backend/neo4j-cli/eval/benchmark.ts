@@ -1,4 +1,4 @@
-/** Retrieval ablation runner over the labelled benchmark corpus. */
+// retrieval ablation runner over the labelled benchmark corpus
 
 import { writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { dirname } from "node:path";
@@ -354,7 +354,7 @@ async function main(): Promise<void> {
   try {
     console.log(`vmem internal benchmark · embeddings: ${embeddingMode()}`);
 
-    // Embed each query once (answerable + abstention), reused across configs.
+    // embed each query once (answerable + abstention), reused across configs
     const embeddings = new Map<string, number[]>();
     for (const query of CORPUS.queries) {
       embeddings.set(query.query, await generateCliEmbedding(query.query));

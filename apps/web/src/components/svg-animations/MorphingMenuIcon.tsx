@@ -1,7 +1,4 @@
-/**
- * Morphing hamburger menu icon that transforms to X.
- * Three lines smoothly morph into an X shape.
- */
+// morphing hamburger menu icon that transforms to X
 "use client";
 
 import { motion } from "motion/react";

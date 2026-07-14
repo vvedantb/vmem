@@ -23,7 +23,7 @@ export interface FunctionNode {
   filePath: string;
   name: string;
   qualifiedName: string;
-  /** Set when this is a method of a class. */
+  // set when this is a method of a class
   parentClass?: string;
   startLine: number;
   endLine: number;
@@ -43,7 +43,7 @@ export interface ClassNode {
   endLine: number;
   isExported: boolean;
   isAbstract: boolean;
-  /** Name only (resolution happens in resolveCalls/structural-edges step). */
+  // name only (resolution happens in resolveCalls/structural-edges step)
   extendsName?: string;
 }
 
@@ -70,12 +70,12 @@ export interface RelationEdge {
     | "IMPLEMENTS";
   fromId: string;
   toId: string;
-  /** Only present on edges that carry confidence (IMPORTS / CALLS / EXTENDS / IMPLEMENTS). */
+  // only present on edges that carry confidence (IMPORTS / CALLS / EXTENDS / IMPLEMENTS)
   confidence?: number;
   tier?: ConfidenceTier;
-  /** IMPORTS-specific: source-text path string from the import statement. */
+  // IMPORTS-specific: source-text path string from the import statement
   importPath?: string;
-  /** CALLS-specific: line of the call site. */
+  // CALLS-specific: line of the call site
   callSiteLine?: number;
 }
 
@@ -99,7 +99,7 @@ export interface ProcessNode {
   name: string;
   entryPointId: string;
   entryKind: EntryPoint["kind"];
-  /** Function ids reachable from the entry point (depth ≤ 8). */
+  // function ids reachable from the entry point (depth ≤ 8)
   members: string[];
 }
 

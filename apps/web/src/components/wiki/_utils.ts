@@ -1,19 +1,16 @@
 import type { Doc, Id } from "@vmem/backend";
 import type { JSONContent } from "@tiptap/react";
 
-/** One node of a rendered wiki tree (folders contain children). */
+// one node of a rendered wiki tree (folders contain children)
 export interface WikiTreeNode {
   node: Doc<"wikiNodes">;
   children: WikiTreeNode[];
 }
 
-/**
- * Droppable id for the sidebar's root container — dropping a node here moves it
- * to the top level (`parentId === undefined`). Distinct from any real node id.
- */
+// sidebar root droppable — move to top level (parentId undefined)
 export const WIKI_ROOT_DROP_ID = "__wiki_root__";
 
-/** Minimal node shape `resolveWikiMove` needs; `Doc<"wikiNodes">` satisfies it. */
+// minimal shape resolveWikiMove needs
 interface MovableNode<TId extends string> {
   _id: TId;
   parentId?: TId;
@@ -21,21 +18,7 @@ interface MovableNode<TId extends string> {
   order: number;
 }
 
-/**
- * Work out the `moveNode` arguments for a drag-and-drop drop, or `null` when the
- * drop is a no-op or invalid (so the caller can skip the mutation entirely).
- *
- * `overId` is either `WIKI_ROOT_DROP_ID` (move to top level) or the id of a
- * folder node (move inside it). The new order appends the node to the end of its
- * destination siblings — the sidebar does not support precise reordering.
- *
- * Returns `null` when the drop targets the node itself, its current parent (no
- * change), a non-folder, or one of its own descendants (which would create a
- * cycle — mirrors the backend guard so we never fire a doomed mutation).
- *
- * Generic over the id type so production infers `Id<"wikiNodes">` from
- * `Doc<"wikiNodes">` while tests can pass plain-string ids.
- */
+// moveNode args for a wiki drop, or null if invalid/no-op
 export function resolveWikiMove<TId extends string>(
   nodes: Array<MovableNode<TId>>,
   activeId: string,
@@ -55,16 +38,16 @@ export function resolveWikiMove<TId extends string>(
     newParentId = target._id;
   }
 
-  // No-op: the node already lives directly under this parent.
+  // no-op if already under this parent
   if ((active.parentId ?? undefined) === newParentId) return null;
 
-  // Block dropping a node into its own subtree (would create a cycle).
+  // block drop into own subtree (cycle)
   if (newParentId !== undefined) {
     const subtree = collectSubtreeIds(nodes, [activeId]);
     if (subtree.has(newParentId)) return null;
   }
 
-  // Append to the end of the destination's existing siblings.
+  // append after existing siblings
   const siblings = nodes.filter(
     (n) => (n.parentId ?? undefined) === newParentId && n._id !== activeId,
   );
@@ -74,7 +57,7 @@ export function resolveWikiMove<TId extends string>(
   return { id: active._id, newParentId, newOrder };
 }
 
-/** Folders first, then documents; each group sorted A–Z by title. */
+// folders first, then docs; each group a–z by title
 export function compareWikiTreeSiblings(
   a: Pick<Doc<"wikiNodes">, "kind" | "title">,
   b: Pick<Doc<"wikiNodes">, "kind" | "title">,
@@ -85,12 +68,7 @@ export function compareWikiTreeSiblings(
   return a.title.localeCompare(b.title, undefined, { sensitivity: "base" });
 }
 
-/**
- * Build a hierarchical tree of WikiTreeNodes from the flat listTree result.
- * Roots have `parentId === undefined`. Siblings are folders first, then
- * documents, each group sorted A–Z by title (display order only; `order` is
- * still used for drag-and-drop mutations).
- */
+// flat listTree → tree; display sort only (order still used for dnd)
 export function buildTree(nodes: Array<Doc<"wikiNodes">>): WikiTreeNode[] {
   const childrenByParent = new Map<string, Array<Doc<"wikiNodes">>>();
   const ROOT_KEY = "__root__";
@@ -116,11 +94,7 @@ export function buildTree(nodes: Array<Doc<"wikiNodes">>): WikiTreeNode[] {
   return build(ROOT_KEY);
 }
 
-/**
- * Expand a set of root ids to include every descendant, given the flat node
- * list. Used so bulk delete (and its optimistic update) can drop whole subtrees
- * and tell whether the open document is among the casualties.
- */
+// expand root ids to full subtrees (bulk delete / optimistic drop)
 export function collectSubtreeIds(
   nodes: Array<{ _id: string; parentId?: string }>,
   rootIds: Iterable<string>,
@@ -146,7 +120,7 @@ export function collectSubtreeIds(
   return result;
 }
 
-/** First document in tree display order (depth-first), or null if none exist. */
+// first document in display order (depth-first), or null
 export function findFirstDocumentId(
   tree: WikiTreeNode[],
 ): Id<"wikiNodes"> | null {
@@ -162,10 +136,7 @@ export function findFirstDocumentId(
   return null;
 }
 
-/**
- * Walk up `parentId` chain for the given node, returning ancestors from root → parent.
- * Excludes the node itself. Used for breadcrumb rendering.
- */
+// ancestors root → parent for breadcrumbs (excludes self)
 export function findAncestors(
   node: Doc<"wikiNodes">,
   allNodes: Array<Doc<"wikiNodes">>,
@@ -184,24 +155,17 @@ export function findAncestors(
   return chain;
 }
 
-/** One heading entry extracted from a TipTap JSON document for the outline pane. */
+// heading from tiptap json for outline pane
 export interface OutlineHeading {
-  /** Stable identifier within the document — position index + text */
+  // stable id: position + text
   id: string;
   level: number;
   text: string;
-  /** ProseMirror document position where the heading node starts. */
+  // proseMirror start position
   pos: number;
 }
 
-/**
- * Walk a TipTap JSON document collecting heading nodes with their text content
- * and ProseMirror positions (for click-to-scroll in the outline pane).
- *
- * Positions are calculated by mirroring ProseMirror's node-size semantics:
- * each node contributes `nodeSize = content size + 2` for non-leaf block nodes,
- * and `text.length` for text nodes.
- */
+// collect headings + pm positions (nodeSize mirrors proseMirror)
 export function extractHeadings(doc: JSONContent): OutlineHeading[] {
   const headings: OutlineHeading[] = [];
 
@@ -217,16 +181,15 @@ export function extractHeadings(doc: JSONContent): OutlineHeading[] {
       (sum, child) => sum + nodeSize(child),
       0,
     );
-    // Block/inline nodes contribute 2 extra (open + close tokens).
+    // block/inline nodes: +2 for open/close tokens
     return contentSize + 2;
   }
 
-  // Walk top-level doc.content — ProseMirror's doc root itself starts at pos 0
-  // with an opening token of size 1.
+  // top-level content; doc root opens at pos 0 (+1 token)
   let cursor = 0;
   const topLevel = doc.content ?? [];
   for (const child of topLevel) {
-    const startPos = cursor + 1; // +1 accounts for the doc's opening token
+    const startPos = cursor + 1; // doc opening token
     if (child.type === "heading") {
       const level =
         typeof child.attrs?.level === "number" ? child.attrs.level : 1;
@@ -245,10 +208,7 @@ export function extractHeadings(doc: JSONContent): OutlineHeading[] {
   return headings;
 }
 
-/**
- * Flatten a TipTap JSON doc into plain text (for the Convex search index).
- * Preserves paragraph breaks as single newlines.
- */
+// tiptap json → plain text for convex search (paragraph breaks = \n)
 export function docToPlainText(doc: JSONContent): string {
   function walk(node: JSONContent): string {
     if (node.type === "text") return node.text ?? "";
@@ -261,7 +221,7 @@ export function docToPlainText(doc: JSONContent): string {
   return walk(doc).trim();
 }
 
-/** Count words in plain text (whitespace-separated tokens). */
+// whitespace-separated word count
 export function countWords(text: string): number {
   const trimmed = text.trim();
   if (trimmed.length === 0) return 0;

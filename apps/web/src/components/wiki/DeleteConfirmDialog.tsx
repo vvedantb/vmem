@@ -18,10 +18,7 @@ interface DeleteConfirmDialogProps {
   onConfirm: (id: Id<"wikiNodes">) => Promise<void>;
 }
 
-/**
- * Confirms deletion of a folder or document. Folders warn about recursive
- * deletion of all children.
- */
+// confirms deletion of a folder or document
 export default function DeleteConfirmDialog({
   target,
   onClose,

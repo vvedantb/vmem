@@ -1,27 +1,10 @@
+// search icon morphs to x on empty results
 interface AnimatedSearchIconProps {
   className?: string;
   size?: number;
 }
 
-/**
- * Search icon that morphs into an X for the "no results found" empty state.
- *
- * The morph is a real SVG transformation (not a cross-fade):
- *   - The lens circle shrinks toward a point and fades out.
- *   - The handle line repositions to become the ╲ diagonal of the X.
- *   - A second line draws out from the center to form the ╱ diagonal.
- *
- * Then it holds on the X long enough to read as "nothing found" before
- * reversing back to the magnifying glass — telling a tiny story on loop
- * that's specific to the empty state rather than generic motion.
- */
-
-// Shared timing for every <animate> below. Six keyframes, five transitions:
-//   0 → 20%: rest on glass           (linear)
-//   20 → 40%: morph glass → X        (ease-in-out)
-//   40 → 70%: rest on X              (linear)
-//   70 → 90%: morph X → glass        (ease-in-out)
-//   90 → 100%: rest on glass         (linear)
+// morph loop keyframes: glass → x → hold → glass
 const KEY_TIMES = "0; 0.2; 0.4; 0.7; 0.9; 1";
 const KEY_SPLINES = "0 0 1 1; 0.42 0 0.58 1; 0 0 1 1; 0.42 0 0.58 1; 0 0 1 1";
 const DUR = "3.5s";

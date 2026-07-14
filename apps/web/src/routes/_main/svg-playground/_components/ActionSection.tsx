@@ -2,12 +2,7 @@ import { AnimationCard } from "./AnimationCard";
 import { SectionHeading } from "./SectionHeading";
 import { VmemPaths } from "@/components/svg-animations";
 
-/**
- * Action feedback animations (one-shot, click to replay).
- *
- * Triggered in response to a user action — saving a memory, hitting send,
- * confirming a destructive op. Should feel snappy: under a second total.
- */
+// action feedback animations (one-shot, click to replay)
 export function ActionSection() {
   return (
     <section className="space-y-4">

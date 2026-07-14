@@ -3,15 +3,11 @@ import { authQuery } from "./auth";
 import { isContentReadable } from "./teams/auth";
 import { resolveVersionAuthorLabel } from "./lib/versionSnapshot";
 
-/**
- * Read-only version history for skills (snapshots written by
- * `lib/versionSnapshot.ts`). Restore lives in `skills.restoreVersion` so it can
- * reuse the scope's name-uniqueness check and context-prompt invalidation.
- */
+// read-only version history for skills (snapshots written by `lib/versionSnapshot.ts`)
 
 const sourceValidator = v.union(v.literal("web"), v.literal("mcp"));
 
-/** Version list for a skill — lightweight (no body), newest first. */
+// version list for a skill — lightweight (no body), newest first
 export const list = authQuery({
   args: { skillId: v.id("skills") },
   returns: v.array(
@@ -48,7 +44,7 @@ export const list = authQuery({
   },
 });
 
-/** Full version by id, for the read-only preview pane. */
+// full version by id, for the read-only preview pane
 export const get = authQuery({
   args: { versionId: v.id("skillVersions") },
   returns: v.union(

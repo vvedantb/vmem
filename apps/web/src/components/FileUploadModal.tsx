@@ -27,7 +27,7 @@ import { formatFileSize } from "@/components/files/_utils";
 interface FileUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  /** Persist a single file (Convex upload-url flow lives in the caller). */
+  // persist a single file (Convex upload-url flow lives in the caller)
   onUpload: (file: File) => Promise<void>;
   initialFiles?: File[];
 }
@@ -55,7 +55,7 @@ export default function FileUploadModal({
   const [queuedFiles, setQueuedFiles] = useState<QueuedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
-  // Pre-populate queue when initialFiles are provided (e.g. from drop zone)
+  // pre-populate queue when initialFiles are provided (e.g. from drop zone)
   useEffect(() => {
     if (isOpen && initialFiles && initialFiles.length > 0) {
       const newQueued: QueuedFile[] = initialFiles.map((file) => ({

@@ -66,7 +66,7 @@ interface MemoryDetailPanelProps {
   onMemoryUpdate: (memory: Memory) => void;
   onMemoryDelete: (id: string) => void;
   onSelectRelated: (memory: Memory) => void;
-  /** One-shot action to run when the panel opens (edit or delete confirm). */
+  // one-shot action to run when the panel opens (edit or delete confirm)
   initialAction?: "edit" | "delete";
   onConsumeAction?: () => void;
 }

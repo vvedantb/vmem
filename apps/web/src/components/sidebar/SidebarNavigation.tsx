@@ -37,8 +37,8 @@ function isSubSidebarHref(href: string): href is SubSidebarHref {
 
 export function navViewFromPathname(pathname: string): SidebarNavView {
   if (pathname.startsWith("/settings")) return "settings";
-  // Workspace routes carry the profile id as their first segment — strip it
-  // before matching sections.
+  // workspace routes carry the profile id as their first segment — strip it
+  // before matching sections
   const sub = pathname.replace(/^\/[^/]+/, "");
   if (sub.startsWith("/skills")) return "skills";
   if (sub.startsWith("/wiki")) return "wiki";
@@ -48,9 +48,9 @@ export function navViewFromPathname(pathname: string): SidebarNavView {
 
 export type SidebarNavigationProps = {
   pathname: string;
-  /** Active workspace id for resolving workspace-scoped nav hrefs. */
+  // active workspace id for resolving workspace-scoped nav hrefs
   profileId: string | undefined;
-  /** Team workspaces get an extra "Team" nav group (members / settings). */
+  // team workspaces get an extra "Team" nav group (members / settings)
   isTeamWorkspace: boolean;
   unreadCount: number;
   proposalsCount: number;
@@ -61,7 +61,7 @@ export type SidebarNavigationProps = {
   onNavigate?: MouseEventHandler<HTMLAnchorElement>;
 };
 
-/** Extra nav group shown only when the active workspace belongs to a team. */
+// extra nav group shown only when the active workspace belongs to a team
 const teamNavGroup: NavGroup = {
   title: "Team",
   icon: IconTeams,

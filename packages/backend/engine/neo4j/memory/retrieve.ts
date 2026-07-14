@@ -26,7 +26,7 @@ interface RetrieveParams {
   userId: string;
   profileId?: string | null;
   query: string;
-  /** Pre-computed query embedding. Null means vector legs and MMR are skipped. */
+  // pre-computed query embedding
   queryEmbedding: number[] | null;
   type?: MemoryType;
   tags?: string[];

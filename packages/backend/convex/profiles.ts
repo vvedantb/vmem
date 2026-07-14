@@ -4,17 +4,14 @@ import { internalQuery, internalMutation } from "./_generated/server";
 import { getOrCreateDefaultProfile } from "./profiles/helpers";
 import {
   runCreate,
-  runGet,
   runGetOrCreateDefault,
   runList,
   runUpdate,
 } from "./profiles/handlers";
 import {
-  runRemove,
   runRemoveInternalMutation,
   runRemoveWithMemories,
 } from "./profiles/lifecycle";
-import { runSetLastDreamRunAtInternal } from "./profiles/dream";
 import {
   getActiveProfileForMcpScope,
   listProfilesByClerkIdAndScope,
@@ -27,19 +24,13 @@ export const list = authQuery({
   handler: async (ctx) => runList(ctx),
 });
 
-/** Get a single profile by ID (must belong to user OR be a team profile where user is a member) */
-export const get = authQuery({
-  args: { profileId: v.id("profiles") },
-  handler: async (ctx, args) => runGet(ctx, args),
-});
-
-/** Get the currently active profile, or create default if none exists */
+// get the currently active profile, or create default if none exists
 export const getOrCreateDefault = authMutation({
   args: {},
   handler: async (ctx) => runGetOrCreateDefault(ctx),
 });
 
-/** Create a new profile */
+// create a new profile
 export const create = authMutation({
   args: {
     name: v.string(),
@@ -49,12 +40,7 @@ export const create = authMutation({
   handler: async (ctx, args) => runCreate(ctx, args),
 });
 
-/**
- * Update an existing profile (rename, recolor, re-icon).
- * Personal profile: owner only.
- * Team profile: must be a team owner. Renaming a team profile here also syncs
- * the team's name so the two stay in lockstep.
- */
+// update an existing profile (rename, recolor, re-icon)
 export const update = authMutation({
   args: {
     profileId: v.id("profiles"),
@@ -65,27 +51,17 @@ export const update = authMutation({
   handler: async (ctx, args) => runUpdate(ctx, args),
 });
 
-/** Delete a profile (cannot delete default, must handle memories) */
-export const remove = authMutation({
-  args: {
-    profileId: v.id("profiles"),
-    /** If set, move memories to this profile. If not set, memories are orphaned (null profileId). */
-    moveMemoriesToProfileId: v.optional(v.id("profiles")),
-  },
-  handler: async (ctx, args) => runRemove(ctx, args),
-});
-
-/** Delete a profile and handle its memories (action that can call Neo4j) */
+// delete a profile and handle its memories (action that can call Neo4j)
 export const removeWithMemories = authAction({
   args: {
     profileId: v.id("profiles"),
-    /** If set, move memories to this profile. If not set, memories will be deleted. */
+    // if set, move memories to this profile
     moveMemoriesToProfileId: v.optional(v.id("profiles")),
   },
   handler: async (ctx, args) => runRemoveWithMemories(ctx, args),
 });
 
-/** Internal mutation for deleting a profile (used by action) */
+// internal mutation for deleting a profile (used by action)
 export const removeInternalMutation = internalMutation({
   args: {
     profileId: v.id("profiles"),
@@ -102,10 +78,7 @@ export const getByIdInternal = internalQuery({
   },
 });
 
-/**
- * Profile used for MCP memory tools when no profileId is passed.
- * Personal connector only — use getActiveProfileForMcpScopeInternal for team.
- */
+// profile used for MCP memory tools when no profileId is passed
 export const getActiveProfileForMcpInternal = internalQuery({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
@@ -157,11 +130,7 @@ export const listByClerkIdAndScopeInternal = internalQuery({
   },
 });
 
-/**
- * List personal (non-team) profiles owned by a user. Used by the
- * user-level Dream Mode orchestrator to iterate every personal profile
- * in one pass.
- */
+// list personal (non-team) profiles owned by a user
 export const listPersonalByUserIdInternal = internalQuery({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
@@ -173,24 +142,7 @@ export const listPersonalByUserIdInternal = internalQuery({
   },
 });
 
-/** Get default profile by user ID (internal) */
-export const getDefaultByUserIdInternal = internalQuery({
-  args: { userId: v.id("users") },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query("profiles")
-      .withIndex("by_user_default", (q) =>
-        q.eq("userId", args.userId).eq("isDefault", true),
-      )
-      .first();
-  },
-});
-
-/**
- * Get a team's profile (every team has exactly one — created with the team).
- * Used by file indexing to write team-drive file memories under the team
- * profile so they surface in team-scoped memory reads.
- */
+// get a team's profile (every team has exactly one — created with the team)
 export const getByTeamInternal = internalQuery({
   args: { teamId: v.id("teams") },
   handler: async (ctx, args) => {
@@ -206,13 +158,15 @@ export const setLastDreamRunAtInternal = internalMutation({
     profileId: v.id("profiles"),
     timestamp: v.number(),
   },
-  handler: async (ctx, args) => runSetLastDreamRunAtInternal(ctx, args),
+  handler: async (ctx, args) => {
+    const profile = await ctx.db.get(args.profileId);
+    if (!profile) return null;
+    await ctx.db.patch(args.profileId, { lastDreamRunAt: args.timestamp });
+    return null;
+  },
 });
 
-/**
- * Dream Mode V3 — store the evolving portrait the Dreamer produced for
- * this profile, with the memory ids it is grounded in.
- */
+// dream Mode V3 — store the evolving portrait the Dreamer produced for this profile,
 export const setDreamPortraitInternal = internalMutation({
   args: {
     profileId: v.id("profiles"),
@@ -233,11 +187,7 @@ export const setDreamPortraitInternal = internalMutation({
   },
 });
 
-/**
- * Portrait for the user-wide MCP context prompt: the MCP-active personal
- * profile's dream portrait (the same profile MCP memory tools write to
- * by default). Null when no portrait has been dreamt yet.
- */
+// portrait for the user-wide MCP context prompt
 export const getPortraitForContextPromptInternal = internalQuery({
   args: { clerkId: v.string() },
   returns: v.union(

@@ -172,7 +172,7 @@ export function SkillsSidebarNav({
     <div className="mt-2 mb-3 shrink-0">{hubButton}</div>
   ) : null;
 
-  // Installed system skills for this workspace (personal vs team installs are split).
+  // installed system skills for this workspace (personal vs team installs are split)
   const installedSection =
     !isIconOnly && !selectionMode && installedSystemSkills.length > 0 ? (
       <div className="mt-3 space-y-1">

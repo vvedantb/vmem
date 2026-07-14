@@ -4,7 +4,7 @@ import { CLERK_PUBLISHABLE_KEY, CLERK_SYNC_HOST } from "@/lib/constants";
 const DEV_SESSION_COOKIE = "__clerk_db_jwt";
 const PROD_SESSION_COOKIE = "__client";
 
-/** Clerk Frontend API origin derived from the publishable key (pk_*_<base64(host)$>). */
+/** clerk fapi origin from publishable key (pk_*_<base64(host)$>). */
 function clerkFrontendApiOrigin(): string {
   const encoded = CLERK_PUBLISHABLE_KEY.split("_")[2] ?? "";
   const base64 = encoded.replace(/-/g, "+").replace(/_/g, "/");
@@ -13,13 +13,7 @@ function clerkFrontendApiOrigin(): string {
   return `https://${decoded.endsWith("$") ? decoded.slice(0, -1) : decoded}`;
 }
 
-/**
- * Breadcrumbs from the most recent token refresh, persisted to
- * chrome.storage.local (key `lastAuthDebug`). Auth failures here are
- * otherwise invisible — a missing cookie, a rejected FAPI call, and a
- * signed-out user all look like "no-session" to the sync scheduler. Same
- * philosophy as recordSyncAttempt: a gap must be diagnosable from storage.
- */
+/** last auth attempt breadcrumbs for popup/debug (key: lastAuthDebug). */
 type AuthDebug = {
   at: number;
   stage:
@@ -61,23 +55,7 @@ const fapiTokenResponseSchema = z.object({
   jwt: z.string().nullable().optional(),
 });
 
-/**
- * Mint a Convex JWT against Clerk's Frontend API directly, using the
- * syncHost session cookie. This is the same two-request flow clerk-js
- * performs (resolve client → create session token), hand-rolled because
- * clerk-js CANNOT run in a service worker: its `isValidBrowserOnline`
- * check requires `window`, so every SW is treated as permanently offline
- * and `session.getToken()` throws `clerk_offline` even when the network
- * is fine. Do not reintroduce `@clerk/chrome-extension`/clerk-js here.
- *
- * MUST run in a context that has the chrome.cookies API (the background
- * service worker or an extension page). Offscreen documents do NOT have
- * it — guard explicitly so a wrong context fails loudly.
- *
- * Dev instances (pk_test) authenticate FAPI calls with the __clerk_db_jwt
- * value as a query param; prod instances (pk_live) send the __client JWT
- * as a Bearer header with _is_native=1.
- */
+/** mint convex jwt via clerk fapi + syncHost cookie (clerk-js can't run in sw). */
 export async function refreshConvexTokenFromClerk(): Promise<string | null> {
   if (typeof chrome === "undefined" || chrome.cookies === undefined) {
     console.warn(

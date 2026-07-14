@@ -88,7 +88,7 @@ async function revokeTokenBestEffort(
   try {
     await revoke();
   } catch {
-    // Best effort — continue even if revocation fails
+    // best effort — continue even if revocation fails
   }
 }
 

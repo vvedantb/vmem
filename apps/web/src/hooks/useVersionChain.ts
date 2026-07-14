@@ -15,7 +15,7 @@ function computeChangeSummary(
   const prevContent = prev.content;
   const currContent = curr.content;
 
-  // Simple character diff (not a real diff algorithm, but good enough for summary)
+  // simple character diff (not a real diff algorithm, but good enough for summary)
   const addedChars = Math.max(0, currContent.length - prevContent.length);
   const removedChars = Math.max(0, prevContent.length - currContent.length);
 
@@ -43,8 +43,8 @@ export function useVersionChain(
   events: TimelineEvent[],
 ): UseVersionChainResult {
   const versions = useMemo(() => {
-    // Filter to only events with snapshots (actual content changes)
-    // Sort chronologically (oldest first) for version numbering
+    // filter to only events with snapshots (actual content changes)
+    // sort chronologically (oldest first) for version numbering
     const withSnapshots = events
       .filter(
         (e): e is TimelineEvent & { snapshot: MemorySnapshot } =>

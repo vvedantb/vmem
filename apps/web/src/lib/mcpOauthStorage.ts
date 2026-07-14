@@ -1,17 +1,7 @@
 import { z } from "zod";
 
-/**
- * On prod Clerk live keys, the cross-domain session handshake on a fresh
- * popup load can redirect `/mcp/oauth/authorize` to the globally-configured
- * `signInFallbackRedirectUrl` (`/home`) before our route's `AuthorizedFlow`
- * can mint the auth code. To recover, we persist the OAuth search params
- * here as soon as the page loads (in `main.tsx`, before any Clerk code
- * runs) and again on entry to the route via `beforeLoad`. The `/home`
- * route reads + consumes them on entry to redirect back into the flow.
- *
- * sessionStorage is per-tab, so the popup Claude opens has its own state
- * and won't pollute the user's main tab.
- */
+// persist mcp oauth params across clerk popup redirects (sessionStorage)
+
 const STORAGE_KEY = "mcp_oauth_pending";
 const MAX_ATTEMPTS = 2;
 
@@ -43,12 +33,7 @@ function readState(): StoredState | null {
   }
 }
 
-/**
- * Save the OAuth params on route entry. The attempt counter is preserved
- * across saves for the same flow (matched by OAuth `state` nonce) so a
- * `/home` → `/mcp/oauth/authorize` recovery doesn't reset the loop guard,
- * but a fresh OAuth flow starts the counter from zero.
- */
+// save oauth params; keep attempt count for same state nonce
 export function saveMcpOauthParams(params: McpOauthParams): void {
   const existing = readState();
   const attempts =
@@ -59,12 +44,7 @@ export function saveMcpOauthParams(params: McpOauthParams): void {
   sessionStorage.setItem(STORAGE_KEY, JSON.stringify(next));
 }
 
-/**
- * Parse the OAuth params from `window.location` and persist them. Called
- * from `main.tsx` before the Clerk provider mounts, so that even if
- * Clerk's session handshake redirects us off this URL during the React
- * loading phase, the params survive for `/home` to recover.
- */
+// parse oauth params from url before clerk mounts (survives handshake redirect)
 export function saveMcpOauthParamsFromUrl(): void {
   if (typeof window === "undefined") return;
   const url = new URL(window.location.href);
@@ -84,11 +64,7 @@ export function saveMcpOauthParamsFromUrl(): void {
   saveMcpOauthParams(parsed.data);
 }
 
-/**
- * If a pending OAuth flow exists, return its params and increment the
- * attempt counter. Returns null after `MAX_ATTEMPTS` to prevent an
- * infinite redirect loop if Clerk keeps bouncing us off the OAuth route.
- */
+// consume pending oauth params; null after max attempts (loop guard)
 export function consumeMcpOauthParams(): McpOauthParams | null {
   const state = readState();
   if (!state) return null;

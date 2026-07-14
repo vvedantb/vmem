@@ -82,8 +82,8 @@ export function TeamSettings({ data }: { data: TeamDetail }) {
     }
   };
 
-  // Double-confirm to delete. The action cascades: team profile, all memberships,
-  // and the team's memories in Neo4j. Owner must type the team name to proceed.
+  // double-confirm to delete. The action cascades: team profile, all memberships,
+  // and the team's memories in Neo4j. Owner must type the team name to proceed
   const handleDelete = async () => {
     const typed = window.prompt(
       `Type "${data.team.name}" to confirm deletion. This removes the team profile and all team memories.`,
@@ -98,8 +98,8 @@ export function TeamSettings({ data }: { data: TeamDetail }) {
     try {
       await deleteTeam({ teamId: data.team._id });
       toast.success(`Deleted ${data.team.name}`);
-      // The team workspace just ceased to exist — /home resolves a
-      // personal workspace to land in.
+      // the team workspace just ceased to exist — /home resolves a
+      // personal workspace to land in
       await navigate({ to: "/home" });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Delete failed");

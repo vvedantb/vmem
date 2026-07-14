@@ -61,7 +61,7 @@ const DEFAULT_CONNECTORS: DefaultConnector[] = [
     name: "GitHub",
     description: "Connect repositories, issues, and documentation from GitHub",
     icon: "IconBrandGithub",
-    // No provider — dedicated GitHub integration (githubConnections)
+    // no provider — dedicated GitHub integration (githubConnections)
   },
 ];
 
@@ -89,7 +89,7 @@ export const seedDefaults = authMutation({
       const existingConnector = existingByName.get(connector.name);
 
       if (existingConnector) {
-        // Backfill provider on rows created before the field existed.
+        // backfill provider on rows created before the field existed
         if (connector.provider && !existingConnector.provider) {
           await ctx.db.patch(existingConnector._id, {
             provider: connector.provider,

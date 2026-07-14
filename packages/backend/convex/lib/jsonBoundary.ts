@@ -1,6 +1,6 @@
 import { type ZodType, z } from "zod";
 
-/** Parse a fetch Response body with zod; returns null on parse or schema failure. */
+// parse a fetch Response body with zod; returns null on parse or schema failure
 export async function safeParseResponseJson<T>(
   response: Response,
   schema: ZodType<T, z.ZodTypeDef, unknown>,
@@ -15,7 +15,7 @@ export async function safeParseResponseJson<T>(
   return parsed.success ? parsed.data : null;
 }
 
-/** OAuth access-token payload shared by provider token endpoints. */
+// OAuth access-token payload shared by provider token endpoints
 export const oauthAccessTokenSchema = z.object({
   access_token: z.string().optional(),
   refresh_token: z.string().optional(),

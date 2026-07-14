@@ -1,7 +1,4 @@
-/**
- * Animated notification icons with self-drawing effects.
- * Checkmark draws itself, warning shakes, error pulses, info bounces.
- */
+// animated notification icons with self-drawing effects
 "use client";
 
 import { motion } from "motion/react";

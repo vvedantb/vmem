@@ -21,19 +21,15 @@ interface WikiBulkDeleteBarProps {
   selectedIds: ReadonlySet<Id<"wikiNodes">>;
   nodes: Array<Doc<"wikiNodes">>;
   teamId: Id<"teams"> | undefined;
-  /** Open document, so we can navigate away if the selection deletes it. */
+  // open document, so we can navigate away if the selection deletes it
   currentDocId: string | null;
-  /** Clear the selection and leave select mode. */
+  // clear the selection and leave select mode
   onExit: () => void;
-  /** Called when the open document was among those deleted. */
+  // called when the open document was among those deleted
   onCurrentRemoved: () => void;
 }
 
-/**
- * Selection-mode action bar for the wiki tree: shows the selected count and a
- * confirm-gated bulk delete. Folders delete their whole subtree (the server
- * dedupes overlapping folder/child selections).
- */
+// selection-mode action bar for the wiki tree
 export function WikiBulkDeleteBar({
   selectedIds,
   nodes,

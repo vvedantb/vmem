@@ -1,21 +1,6 @@
 "use client";
 
-/**
- * Codebase-graph controller hook.
- *
- * Owns the data + filter/search state for a single codebase's symbol graph
- * (files, functions, classes, interfaces, processes). Both the canvas
- * (`CodebaseGraph`) and the page-header chrome (`CodebaseGraphHeaderControls`)
- * read from the value returned by this hook.
- *
- * State ownership:
- *   - Filters (`kinds`, `processId`, `blastRadiusOf`, `blastDirection`,
- *     `search`): URL via `nuqs` so the view is shareable.
- *   - Active directories: client-side `useState` — purely a presentational
- *     filter applied after the network round-trip, not worth a URL slot.
- *   - Selected-symbol pointer: piggybacks on `blastRadiusOf` so the panel
- *     and the graph stay in sync via a single source of truth.
- */
+// data + filter state for one codebase symbol graph (filters in url via nuqs)
 
 import { useCallback, useMemo, useState } from "react";
 import { useQueryStates } from "nuqs";
@@ -46,7 +31,7 @@ const DEFAULT_KINDS: CodeNodeKind[] = [
   "code-class",
 ];
 
-/** Cheap deep-equality on string arrays for nuqs default-detection. */
+// cheap deep-equality on string arrays for nuqs default-detection
 function sameStringSet(a: readonly string[], b: readonly string[]): boolean {
   if (a.length !== b.length) return false;
   const set = new Set(a);
@@ -58,7 +43,7 @@ export interface CodebaseGraphController {
   // ----- Raw data -----
   apiNodes: CodeNode[];
   apiEdges: CodeEdge[];
-  /** True when the API capped the payload to fit Convex's array limit. */
+  // true when the API capped the payload to fit Convex's array limit
   truncated: boolean;
   isLoading: boolean;
   isError: boolean;
@@ -74,7 +59,7 @@ export interface CodebaseGraphController {
   edgeCount: number;
   hasActiveSearch: boolean;
   hasActiveDirectoryFilter: boolean;
-  /** True when any URL-backed filter is non-default. Drives the badge dot. */
+  // true when any URL-backed filter is non-default
   activeFilterCount: number;
 
   // ----- Filter state -----
@@ -82,7 +67,7 @@ export interface CodebaseGraphController {
   processId: string | null;
   blastRadiusOf: string | null;
   blastDirection: "upstream" | "downstream";
-  /** Mirrors `blastRadiusOf` — exposed under a friendly name for the panel. */
+  // mirrors `blastRadiusOf` — exposed under a friendly name for the panel
   selectedSymbolId: string | null;
   activeDirectories: Set<string>;
 
@@ -101,7 +86,7 @@ export interface CodebaseGraphController {
   onToggleDirectory: (dir: string) => void;
   onSelectAllDirs: () => void;
   onClearAllDirs: () => void;
-  /** Reset every URL-backed filter (kinds/process/blast/search) in one write. */
+  // reset every URL-backed filter (kinds/process/blast/search) in one write
   onClearFilters: () => void;
 }
 
@@ -115,19 +100,13 @@ export function useCodebaseGraphController(
     history: "replace",
   });
 
-  // Adapt nuqs array → Set for membership-style access in the builder /
-  // header controls. Memo-keyed on the array reference so toggles don't
-  // re-create the set every render.
+  // adapt nuqs array → Set for membership-style access in the builder / header controls
   const activeKinds = useMemo<Set<CodeNodeKind>>(
     () => new Set(params.kinds),
     [params.kinds],
   );
 
-  // Kinds filtering happens client-side in `buildCodebaseGraphData` so a
-  // toggle never round-trips to Neo4j and processes stay listable in the
-  // Filters dropdown even when the user has hidden the "code-process" kind
-  // from the canvas. The server-side filters (processId / blastRadiusOf)
-  // require Cypher traversals so they continue to live in the API call.
+  // kinds filtering happens client-side in `buildCodebaseGraphData` so a toggle never
   const filters = useMemo(
     () => ({
       processId: params.processId,
@@ -146,8 +125,8 @@ export function useCodebaseGraphController(
     error,
   } = useCodebaseGraphData(codebaseId, filters);
 
-  // Directories list is computed off the raw API payload so toggling a dir
-  // doesn't drop options the user hasn't yet picked.
+  // directories list is computed off the raw API payload so toggling a dir
+  // doesn't drop options the user hasn't yet picked
   const directories = useMemo(() => getAllDirectories(apiNodes), [apiNodes]);
 
   const [activeDirectories, setActiveDirectories] = useState<Set<string>>(
@@ -169,7 +148,7 @@ export function useCodebaseGraphController(
     const matches = new Set<string>();
     for (const node of graphNodes) {
       // `title` carries the symbol name, `content` carries the file path —
-      // both are reasonable hits for a casual "find me X" search.
+      // both are reasonable hits for a casual "find me X" search
       const path = node.content ?? "";
       if (
         node.title.toLowerCase().includes(q) ||
@@ -184,9 +163,7 @@ export function useCodebaseGraphController(
   const hasActiveSearch = params.search.trim().length > 0;
   const hasActiveDirectoryFilter = activeDirectories.size > 0;
 
-  // Per CLAUDE.md UI rules: each non-default filter contributes 1, regardless
-  // of how many values it carries. Search and directory live outside the
-  // Filters dropdown so they don't bump this count.
+  // per CLAUDE.md UI rules
   const activeFilterCount =
     (sameStringSet(params.kinds, DEFAULT_KINDS) ? 0 : 1) +
     (params.processId ? 1 : 0) +
@@ -221,9 +198,7 @@ export function useCodebaseGraphController(
 
   const onSelectSymbol = useCallback(
     (id: string | null) => {
-      // Unset any existing process filter when picking a symbol — the two are
-      // logically distinct ways to slice the graph and combining them makes
-      // the canvas hard to interpret.
+      // unset any existing process filter when picking a symbol
       void setParams({
         blastRadiusOf: id,
         processId: id ? null : params.processId,
@@ -258,8 +233,8 @@ export function useCodebaseGraphController(
   }, []);
 
   const onClearFilters = useCallback(() => {
-    // One write to avoid the per-field race where successive setParams calls
-    // throttle to a single URL update reflecting only the last field.
+    // one write to avoid the per-field race where successive setParams calls
+    // throttle to a single URL update reflecting only the last field
     void setParams({
       kinds: DEFAULT_KINDS,
       processId: null,

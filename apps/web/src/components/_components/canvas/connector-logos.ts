@@ -1,16 +1,4 @@
-/**
- * Connector-logo registry + loader for the graph renderer.
- *
- * Memories that arrive through a connector sync carry a `sourceType`
- * (google_drive, notion). The renderer stamps the connector's brand logo inside
- * the memory's coloured circle so provenance reads at a glance, while the
- * tag-hash fill keeps encoding topic.
- *
- * Loading is memoised at module scope: the first caller kicks off the fetches,
- * every subsequent caller reuses the same promise. Images that fail to load
- * are skipped (the renderer falls back to a plain circle), so a broken asset
- * never breaks the whole graph.
- */
+// connector logo registry/loader for graph memory provenance stamps
 
 const CONNECTOR_SOURCE_TYPES = ["google_drive", "notion"] as const;
 
@@ -23,7 +11,7 @@ const LOGO_PATHS: Record<ConnectorSourceType, string> = {
   notion: "/connector-logos/notion.svg",
 };
 
-/** Narrow a raw string to a known connector source type, or return null. */
+// narrow raw string to known connector source type
 function asConnectorSourceType(value: string): ConnectorSourceType | null {
   for (const t of CONNECTOR_SOURCE_TYPES) {
     if (value === t) return t;
@@ -42,11 +30,7 @@ function loadOne(src: string): Promise<HTMLImageElement | null> {
   });
 }
 
-/**
- * Load all connector logos into a Map keyed by sourceType. Idempotent — the
- * first call fetches, later calls return the same promise. Missing/broken
- * assets are simply omitted from the returned map.
- */
+// load connector logos once; missing assets omitted
 export function loadConnectorLogos(): Promise<ConnectorLogoMap> {
   if (cachedPromise) return cachedPromise;
   cachedPromise = (async () => {
@@ -65,11 +49,7 @@ export function loadConnectorLogos(): Promise<ConnectorLogoMap> {
   return cachedPromise;
 }
 
-/**
- * Resolve a node's raw `sourceType` string to a loaded logo image, or null if
- * the sourceType isn't a known connector or the image hasn't finished loading
- * (or failed to load).
- */
+// logo for sourceType, or null if unknown/unloaded
 export function getConnectorLogo(
   sourceType: string | null,
   logoMap: ConnectorLogoMap,

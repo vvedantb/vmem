@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-/** Convex rethrows often lose Error prototype; message may be under `message` or `data`. */
+// Convex rethrows often lose Error prototype; message may be under `message` or `data`
 const errorLikeSchema = z.object({
   message: z.string().optional(),
   data: z.string().optional(),

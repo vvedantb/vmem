@@ -16,21 +16,6 @@ export async function runList(ctx: AuthQueryCtx): Promise<Doc<"profiles">[]> {
   return [...personal, ...teamProfiles];
 }
 
-export async function runGet(
-  ctx: AuthQueryCtx,
-  args: { profileId: Id<"profiles"> },
-): Promise<Doc<"profiles"> | null> {
-  const profile = await ctx.db.get(args.profileId);
-  if (!profile) return null;
-
-  if (!profile.teamId) {
-    return profile.userId === ctx.userId ? profile : null;
-  }
-
-  const membership = await getMembershipOrNull(ctx, profile.teamId, ctx.userId);
-  return membership ? profile : null;
-}
-
 export async function runGetOrCreateDefault(
   ctx: AuthMutationCtx,
 ): Promise<Doc<"profiles">> {
@@ -102,7 +87,7 @@ export async function runUpdate(
     throw new Error("Profile not found");
   }
 
-  // Personal profiles: unique name per user. Team profiles share the team namespace.
+  // personal profiles: unique name per user. Team profiles share the team namespace
   if (
     !profile.teamId &&
     args.name !== undefined &&

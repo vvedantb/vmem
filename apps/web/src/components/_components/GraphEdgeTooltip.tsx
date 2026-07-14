@@ -21,8 +21,8 @@ const EDGE_TYPE_LABEL: Record<GraphEdgeType, string> = {
   wiki_parent: "Parent folder",
   imports: "Imports",
   mentions: "Mentions",
-  // Phase 1 codebase edges — these tooltips also flow through the same
-  // canvas in `CodebaseGraph.tsx`, so each new GraphEdgeType needs a label.
+  // phase 1 codebase edges — these tooltips also flow through the same
+  // canvas in `CodebaseGraph.tsx`, so each new GraphEdgeType needs a label
   calls: "Calls",
   contains: "Contains",
   has_method: "Has method",

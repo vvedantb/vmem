@@ -1,15 +1,4 @@
-/**
- * Synthetic graph generator for the `?bench=N` performance mode.
- *
- * Builds a deterministic, realistically-shaped dataset entirely client-side
- * (no server fetch) so graph rendering/simulation performance can be verified
- * at scales far beyond the account's real data — e.g. /memories/graph?bench=100000.
- *
- * Shape mirrors real data: clustered RELATES_TO structure (hub + chain per
- * cluster with occasional long-range links), a bounded tag vocabulary so the
- * color-bucketing matches production cardinality, and a capped number of tag
- * edges (the server caps these at 5000 too).
- */
+// synthetic ?bench=N graph for client-side perf testing
 import type { ApiGraphNode, ApiRelatesToEdge, ApiTagEdge } from "./graph-data";
 
 export interface BenchGraph {
@@ -18,13 +7,13 @@ export interface BenchGraph {
   tagEdges: ApiTagEdge[];
 }
 
-/** Hard ceiling so a hand-typed `?bench=99999999` can't OOM the tab. */
+// hard ceiling so a hand-typed `?bench=99999999` can't OOM the tab
 const BENCH_MAX_NODES = 200_000;
 const CLUSTER_SIZE = 50;
 const TAG_POOL_SIZE = 48;
 const TAG_EDGE_CAP = 5000;
 
-/** Deterministic LCG so every bench run renders the identical graph. */
+// deterministic LCG so every bench run renders the identical graph
 function makeRng(seed: number): () => number {
   let state = seed >>> 0;
   return () => {
@@ -64,8 +53,8 @@ export function generateBenchGraph(count: number): BenchGraph {
     };
   }
 
-  // Cluster structure: each cluster is a chain anchored to a hub, plus ~10%
-  // long-range links so the layout has both local clumps and global bridges.
+  // cluster structure: each cluster is a chain anchored to a hub, plus ~10%
+  // long-range links so the layout has both local clumps and global bridges
   const relatesToEdges: ApiRelatesToEdge[] = [];
   for (let i = 1; i < n; i++) {
     const clusterStart = i - (i % CLUSTER_SIZE);

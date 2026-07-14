@@ -1,13 +1,6 @@
 "use client";
 
-/**
- * Extracted graph data-fetching hook.
- * Handles the Convex action query, Zod validation, and live relationship
- * events. The global graph is keyset-paged: pages ACCUMULATE client-side
- * (useInfiniteQuery), so loading 100k memories transfers each page exactly
- * once — the old approach refetched the whole prefix on every "load more",
- * which made deep loading quadratic in transfer.
- */
+// extracted graph data-fetching hook
 import { useState, useMemo, useCallback } from "react";
 import { useConvexAuth, useAction } from "convex/react";
 import { useInfiniteQuery, type InfiniteData } from "@tanstack/react-query";
@@ -25,15 +18,12 @@ import type {
 
 // ---- Page sizes ----
 
-/** First page stays small so the graph paints fast on entry. */
+// first page stays small so the graph paints fast on entry
 const FIRST_PAGE_SIZE = 500;
-/** Follow-up pages bulk-load (server caps a page at 5000). */
+// follow-up pages bulk-load (server caps a page at 5000)
 const NEXT_PAGE_SIZE = 5000;
 
-// Stable empty-array identities for loading/bench states. Inline `[]` here
-// would mint a fresh identity per render, invalidating buildGraphData's memo
-// downstream — whose output feeds GraphCanvas's [nodes, edges] effect, which
-// tears down and rebuilds the entire physics simulation on identity change.
+// stable empty-array identities for loading/bench states
 const EMPTY_NODES: ApiGraphNode[] = [];
 const EMPTY_TAG_EDGES: ApiTagEdge[] = [];
 const EMPTY_WIKI_PARENT_EDGES: ApiWikiParentEdge[] = [];
@@ -53,8 +43,8 @@ const graphNodeKindSchema = z.enum([
 const graphNodeSchema = z.object({
   id: z.string(),
   title: z.string(),
-  // Inline content is only present for wiki documents and skills; memory
-  // nodes omit it (lazy-fetched via graphApi.getNodeContent on hover/click).
+  // inline content is only present for wiki documents and skills; memory
+  // nodes omit it (lazy-fetched via graphApi.getNodeContent on hover/click)
   content: z.string().optional(),
   tags: z.array(z.string()),
   createdAt: z.string(),
@@ -95,12 +85,12 @@ const graphResponseSchema = z.object({
   tagEdges: z.array(tagEdgeSchema),
   wikiParentEdges: z.array(wikiParentEdgeSchema),
   mentionsEdges: z.array(mentionsEdgeSchema),
-  // Local mode only: the memory the graph is centred on, resolved server-side
-  // (newest memory) when no explicit focus was requested.
+  // local mode only: the memory the graph is centred on, resolved server-side
+  // (newest memory) when no explicit focus was requested
   focusNodeId: z.string().optional(),
-  // Global mode, first page only: total active memories, for "Showing X of Y".
+  // global mode, first page only: total active memories, for "Showing X of Y"
   totalMemoryCount: z.number().optional(),
-  // Global mode: keyset cursor for the next page; absent when exhausted.
+  // global mode: keyset cursor for the next page; absent when exhausted
   nextCursorCreatedAt: z.string().optional(),
   nextCursorId: z.string().optional(),
 });
@@ -124,13 +114,7 @@ interface MergedGraph {
   totalMemoryCount: number | null;
 }
 
-/**
- * Flattens accumulated pages into one graph:
- *  - nodes dedupe by id (entity nodes recur on every page that mentions them)
- *  - relates_to edges dedupe by pair (a cross-page edge is fetched from both
- *    of its endpoints' pages)
- *  - tag edges, wiki nodes/edges, focus, and total only exist on page one
- */
+// flattens accumulated pages into one graph:
 function mergePages(pages: GraphResponse[]): MergedGraph {
   const first = pages.at(0);
   if (first === undefined) {
@@ -192,26 +176,23 @@ export interface UseGraphDataReturn {
   allRelatesToEdges: ApiRelatesToEdge[];
   apiWikiParentEdges: ApiWikiParentEdge[];
   apiMentionsEdges: ApiMentionsEdge[];
-  /**
-   * The memory the local graph is centred on — the explicit focus, or the
-   * newest memory when the server picked the default. null in global scope.
-   */
+  // the memory the local graph is centred on
   resolvedFocusNodeId: string | null;
-  /** Total active memories (global scope) — null until the first response. */
+  // total active memories (global scope) — null until the first response
   totalMemoryCount: number | null;
   isLoading: boolean;
-  /** True while a refetch is in flight over previous data. */
+  // true while a refetch is in flight over previous data
   isFetching: boolean;
-  /** True while the next page is loading (existing pages stay on screen). */
+  // true while the next page is loading (existing pages stay on screen)
   isFetchingNextPage: boolean;
-  /** True when the server has more pages beyond what's accumulated. */
+  // true when the server has more pages beyond what's accumulated
   hasNextPage: boolean;
   fetchNextPage: () => void;
   isError: boolean;
   error: Error | null;
 }
 
-/** Fixed hop count for local (focus-neighbourhood) graph fetches. */
+// fixed hop count for local (focus-neighbourhood) graph fetches
 const LOCAL_GRAPH_DEPTH = 2;
 
 export function useGraphData(
@@ -219,7 +200,7 @@ export function useGraphData(
   profileId: string | null = null,
   enabled: boolean = true,
   scope: "local" | "global" = "global",
-  /** `?bench=N` — synthetic client-side dataset, no server fetch. 0 = off. */
+  // `?bench=N` — synthetic client-side dataset, no server fetch
   benchCount: number = 0,
 ): UseGraphDataReturn {
   const { isAuthenticated } = useConvexAuth();
@@ -241,8 +222,8 @@ export function useGraphData(
     GraphCursor | null
   >({
     queryKey: ["graph", scope, focusNodeId ?? "auto", profileId ?? "all"],
-    // Keep the previous graph while scope/focus changes, but not when
-    // switching workspaces — showing another profile's nodes is misleading.
+    // keep the previous graph while scope/focus changes, but not when
+    // switching workspaces — showing another profile's nodes is misleading
     placeholderData: (previousData, previousQuery) => {
       if (previousQuery?.queryKey[3] !== (profileId ?? "all")) {
         return undefined;

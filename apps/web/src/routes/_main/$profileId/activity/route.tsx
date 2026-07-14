@@ -20,11 +20,7 @@ export const Route = createFileRoute("/_main/$profileId/activity")({
   component: ActivityLayout,
 });
 
-/**
- * Shared activity shell — keeps `ActivityTabs` mounted across AI Logs /
- * Events subroutes so the sliding tab pill can animate instead of snapping
- * on every navigation.
- */
+// shared activity shell
 function ActivityLayout() {
   const matchRoute = useMatchRoute();
   const isEvents = matchRoute({ to: "/$profileId/activity/events" });

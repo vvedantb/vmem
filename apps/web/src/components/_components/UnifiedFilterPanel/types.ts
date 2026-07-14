@@ -16,51 +16,43 @@ export const TAG_SORT_OPTIONS: TagSortMode[] = [
 ];
 
 export interface UnifiedFilterPanelProps {
-  /** All memories for tag/source/type counts (list view) */
+  // all memories for tag/source/type counts (list view)
   allMemories?: Memory[];
-  /** All items (memories + wiki + skills) for kind counts (list view) */
+  // all items (memories + wiki + skills) for kind counts (list view)
   allItems?: ListItem[];
 
-  // Kinds - supports both array (list) and Set (graph) styles
+  // kinds - supports both array (list) and Set (graph) styles
   selectedKinds?: ListItemKind[];
   onKindsChange?: (kinds: ListItemKind[]) => void;
-  /** Graph-style kind counts - if provided, used instead of computing from allItems */
+  // graph-style kind counts - if provided, used instead of computing from allItems
   kindCounts?: Record<ListItemKind, number>;
 
-  // Tags - supports both array (list) and Set (graph) styles
+  // tags - supports both array (list) and Set (graph) styles
   selectedTags?: string[];
   onTagsChange?: (tags: string[]) => void;
-  /** Graph-style tag stats - if provided, used instead of computing from allMemories */
+  // graph-style tag stats - if provided, used instead of computing from allMemories
   tagStats?: TagStats[];
 
-  // Sources (list view only)
+  // sources (list view only)
   distinctSources?: string[];
   selectedSources?: string[];
   onSourcesChange?: (sources: string[]) => void;
 
-  // Types (list view only)
+  // types (list view only)
   selectedTypes?: MemoryType[];
   onTypesChange?: (types: MemoryType[]) => void;
-  /** Graph-style type counts - if provided, used instead of computing from allMemories */
+  // graph-style type counts - if provided, used instead of computing from allMemories
   typeCounts?: Record<MemoryType, number>;
 
-  // Result count
+  // result count
   filteredCount: number;
   totalCount: number;
 
-  /**
-   * Reset every filter at once. Must be a single atomic update - clearing
-   * filters one-by-one via the individual handlers races when those handlers
-   * read from stale URL/closure state (see graph view's toggle-based adapters).
-   */
+  // reset every filter at once
   onClearAll: () => void;
 
   isDark: boolean;
 
-  /**
-   * Which tabs to show. Defaults to all 5. Kept configurable so embeddings
-   * that only care about a subset (e.g. a dialog scoped to picking a tag)
-   * can hide the rest.
-   */
+  // which tabs to show
   visibleTabs?: FilterTab[];
 }

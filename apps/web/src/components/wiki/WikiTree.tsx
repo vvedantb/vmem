@@ -47,13 +47,7 @@ import DeleteConfirmDialog from "./DeleteConfirmDialog";
 import { optimisticId } from "@/lib/optimisticId";
 import { useActiveTeamId } from "@/components/workspace/active-profile";
 
-/**
- * Collision strategy: a folder row always wins over the surrounding root
- * droppable. `pointerWithin` returns every droppable under the cursor (the row
- * and the root container both qualify); we drop the root candidate whenever a
- * real node is also under the pointer so dropping on a folder nests into it,
- * and only empty space resolves to the root.
- */
+// collision strategy: a folder row always wins over the surrounding root droppable
 const wikiCollisionDetection: CollisionDetection = (args) => {
   const collisions = pointerWithin(args);
   const nonRoot = collisions.filter((c) => c.id !== WIKI_ROOT_DROP_ID);
@@ -62,23 +56,17 @@ const wikiCollisionDetection: CollisionDetection = (args) => {
 
 interface WikiTreeProps {
   tree: WikiTreeNode[];
-  /** Flat node list (the raw `listTree` result) for drag-and-drop move math. */
+  // flat node list (the raw `listTree` result) for drag-and-drop move math
   nodes: Array<Doc<"wikiNodes">>;
   selectedId: string | null;
   onSelect: (id: string) => void;
-  /** navigate = open node; bulk-select = checkbox toggle */
+  // navigate = open node; bulk-select = checkbox toggle
   mode?: "navigate" | "bulk-select";
   selectedNodeIds?: ReadonlySet<Id<"wikiNodes">>;
   onToggleSelect?: (id: Id<"wikiNodes">) => void;
 }
 
-/**
- * Left-pane document/folder tree. Right-click a node for New/Rename/Delete.
- * Click a document to open it in the center pane. Click a folder chevron to toggle.
- *
- * Kept as one file so the recursive `TreeItem` can stay co-located with the
- * context-menu + dialog state; pulling it apart would just fragment the logic.
- */
+// left-pane document/folder tree
 export default function WikiTree({
   tree,
   nodes,
@@ -177,8 +165,8 @@ export default function WikiTree({
     },
   );
 
-  // Drag-to-move: patch the node's parentId + order in the cached listTree so
-  // the tree reorganises instantly while the server round-trips.
+  // drag-to-move: patch the node's parentId + order in the cached listTree so
+  // the tree reorganises instantly while the server round-trips
   const moveNode = useMutation(api.wiki.moveNode).withOptimisticUpdate(
     (localStore, args) => {
       const tree = localStore.getQuery(api.wiki.listTree, { teamId });
@@ -207,11 +195,11 @@ export default function WikiTree({
     null,
   );
 
-  // The node currently being dragged — drives the drag overlay preview.
+  // the node currently being dragged — drives the drag overlay preview
   const [activeNode, setActiveNode] = useState<Doc<"wikiNodes"> | null>(null);
 
   // 5px threshold so a plain click (open doc / toggle folder) and the
-  // right-click context menu still work; a drag only begins after movement.
+  // right-click context menu still work; a drag only begins after movement
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
@@ -304,11 +292,7 @@ export default function WikiTree({
   );
 }
 
-/**
- * Scroll container that doubles as the "move to top level" drop target. Lives in
- * its own component so `useDroppable` runs inside the `DndContext` provider
- * (a hook called in the same component that renders the context can't see it).
- */
+// scroll container that doubles as the "move to top level" drop target
 function RootDropZone({
   disabled,
   children,
@@ -325,7 +309,7 @@ function RootDropZone({
       ref={setNodeRef}
       className={cn(
         "flex-1 min-h-0 overflow-y-auto scrollbar-thin rounded-md transition-[background-color]",
-        // isOver is only set during an active drag, so this is the drop hint.
+        // isOver is only set during an active drag, so this is the drop hint
         isOver ? "bg-surface-secondary/40" : null,
       )}
     >
@@ -334,7 +318,7 @@ function RootDropZone({
   );
 }
 
-/** Floating preview rendered under the cursor while dragging a row. */
+// floating preview rendered under the cursor while dragging a row
 function DragPreview({ node }: { node: Doc<"wikiNodes"> }) {
   const isFolder = node.kind === "folder";
   return (
@@ -431,7 +415,7 @@ function TreeItem({
   const isChecked = selectedNodeIds?.has(item.node._id) ?? false;
   const highlighted = selectionMode ? isChecked : selectedId === item.node._id;
 
-  // The row is draggable; folders are also a drop target to nest into.
+  // the row is draggable; folders are also a drop target to nest into
   const {
     attributes,
     listeners,
@@ -462,7 +446,7 @@ function TreeItem({
         ref={setDropRef}
         className={cn(
           "rounded-md transition-[background-color]",
-          // Highlight the folder being hovered as a drop target.
+          // highlight the folder being hovered as a drop target
           isOver && "bg-surface-tertiary ring-1 ring-primary",
         )}
       >

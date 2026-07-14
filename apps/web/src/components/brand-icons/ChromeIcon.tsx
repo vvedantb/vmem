@@ -3,7 +3,7 @@ interface IconProps {
   className?: string;
 }
 
-/** Chrome mark from https://svgl.app/library/chrome.svg */
+// chrome mark from https://svgl.app/library/chrome.svg
 export default function ChromeIcon({ size = 24, className }: IconProps) {
   return (
     <svg

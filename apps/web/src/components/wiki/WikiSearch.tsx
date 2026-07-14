@@ -12,16 +12,12 @@ import { useActiveTeamId } from "@/components/workspace/active-profile";
 
 interface WikiSearchProps {
   onSelect: (id: string) => void;
-  /** Trailing chrome (Add, Select) on the same row as the input. */
+  // trailing chrome (add, select) beside the input
   actions?: ReactNode;
   className?: string;
 }
 
-/**
- * Top-of-left-pane search. Debounced text input with inline results below.
- * Uses the convex full-text search indexes on title + contentText, scoped
- * to the active workspace (personal or team wiki).
- */
+// debounced wiki search (title + contentText, workspace-scoped)
 export default function WikiSearch({
   onSelect,
   actions,

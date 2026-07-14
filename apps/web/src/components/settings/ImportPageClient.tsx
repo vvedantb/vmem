@@ -18,12 +18,7 @@ function findAvailable(id: string | null): AvailableProvider | null {
   return null;
 }
 
-/**
- * Panel body for the Import tab on `/settings/data-controls/import`.
- * Lists every connector and walks the user through upload → row-pick →
- * batch-create. The route file owns the page header (title, tabs); this
- * component renders only the tab body.
- */
+// panel body for the Import tab on `/settings/data-controls/import`
 export default function ImportPageClient() {
   const createMemory = useAction(api.memoryApi.createMemory);
   const [providerId, setProviderId] = useState<string | null>(null);

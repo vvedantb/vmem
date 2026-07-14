@@ -3,12 +3,7 @@ import { IconMoonStars } from "@tabler/icons-react";
 import { useActiveProfile } from "../workspace/active-profile";
 import { formatRelativeTime } from "@/lib/formatters";
 
-/**
- * Dream Mode's evolving portrait of this workspace's owner — written and
- * revised by the background Dreamer, grounded in stored memories
- * (`dreamPortraitSources`). Renders nothing until the first dream pass
- * produces one.
- */
+// dream Mode's evolving portrait of this workspace's owner
 export function DreamPortraitCard() {
   const profile = useActiveProfile();
   if (profile.dreamPortrait === undefined || profile.dreamPortrait === "") {

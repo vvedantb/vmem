@@ -45,7 +45,7 @@ interface SystemSkillDetailProps {
   profileId: string;
 }
 
-/** Patch one entry in the cached catalog (shared optimistic-update helper). */
+// patch one entry in the cached catalog (shared optimistic-update helper)
 function patchCatalog(
   rows: SystemSkillEntry[],
   id: string,
@@ -56,12 +56,7 @@ function patchCatalog(
   );
 }
 
-/**
- * Read-only detail page for a catalog system skill — full instructions plus
- * install / enable / remove (and admin edit / delete) in the header. Mirrors
- * the personal skill detail + SkillHeaderActions so both behave the same.
- * Install state is scoped to the active workspace (personal vs team).
- */
+// read-only detail page for a catalog system skill
 export function SystemSkillDetail({
   systemSkillId,
   profileId,

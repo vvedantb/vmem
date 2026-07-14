@@ -17,13 +17,7 @@ const apiRequestEntrySchema = z.object({
   timestamp: z.number().optional(),
 });
 
-/**
- * Shared audit-log client for the whole backend.
- *
- * `piiFields` are auto-redacted whenever they appear as keys inside
- * `metadata`, `before`, or `after` payloads passed to `log` / `logChange`.
- * Extend this list if new sensitive field names enter the codebase.
- */
+// shared audit-log client for the whole backend
 export const auditLog = new AuditLog(components.auditLog, {
   piiFields: [
     "email",
@@ -38,10 +32,7 @@ export const auditLog = new AuditLog(components.auditLog, {
   ],
 });
 
-/**
- * Stable `resourceType` constants so all callers write the same string.
- * Keep this list short and meaningful — one entry per product surface.
- */
+// stable `resourceType` constants so all callers write the same string
 export const ResourceTypes = {
   MEMORY: "memory",
   PROPOSED_UPDATE: "proposed_update",
@@ -54,7 +45,7 @@ export const ResourceTypes = {
   USER: "user",
 } as const;
 
-/** 2xx → info, 4xx → warning, 5xx → error. */
+// 2xx → info, 4xx → warning, 5xx → error
 export function severityForStatus(
   status: number,
 ): "info" | "warning" | "error" {

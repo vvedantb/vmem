@@ -1,16 +1,4 @@
-/**
- * Catch-all for pre-workspace URLs (old bookmarks, stale docs).
- *
- * Mounted two ways:
- *  - as the root `notFoundComponent` (multi-segment legacy paths like
- *    `/memories/graph` no longer match any route)
- *  - by the `$profileId` layout when its param is a known legacy segment
- *    (single-segment paths like `/chat` match the dynamic route)
- *
- * Legacy paths are re-prefixed with the resolved default workspace and
- * `/teams/$teamId/*` pages map onto the team's workspace. Anything else
- * renders a plain 404.
- */
+// catch-all for pre-workspace URLs (old bookmarks, stale docs)
 
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
@@ -46,7 +34,7 @@ export function NotFoundPage({
   );
 }
 
-/** Maps old `/teams/$teamId/<section>` pages onto the team workspace. */
+// maps old `/teams/$teamId/<section>` pages onto the team workspace
 function LegacyTeamRedirect({
   teamId,
   section,
@@ -88,7 +76,7 @@ export function LegacyPathRedirect() {
   const first = segments[0];
   const isLegacy = first !== undefined && isLegacyFirstSegment(first);
 
-  // Signed-out visitors on a legacy (or unknown) path go to the landing page.
+  // signed-out visitors on a legacy (or unknown) path go to the landing page
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       void navigate({ to: "/", replace: true });

@@ -1,18 +1,4 @@
-/**
- * Resolves "which workspace should this user land in" and redirects there.
- *
- * Mounted by `/home` (the post-login / Clerk-fallback entry point) and by
- * `LegacyPathRedirect` for pre-workspace deep links. Resolution priority:
- *
- *   1. last-visited workspace (localStorage, validated against profiles.list)
- *   2. the user's web default profile (userSettings.defaultProfiles.web)
- *   3. the `isDefault` personal profile
- *   4. first visible profile
- *
- * An empty profile list (brand-new account) triggers `getOrCreateDefault`
- * once; `profiles.list` is reactive so the effect re-runs with the new
- * profile and the redirect proceeds.
- */
+// resolve landing workspace and redirect (/home + legacy deep links)
 
 import { useEffect, useRef } from "react";
 import { useNavigate } from "@tanstack/react-router";
@@ -25,9 +11,9 @@ export function WorkspaceEntryRedirect({
   subPath = "/home",
   search = "",
 }: {
-  /** Workspace-relative path to land on, e.g. "/memories/graph". */
+  // workspace-relative path to land on, e.g
   subPath?: string;
-  /** Query string (including leading "?") to preserve across the redirect. */
+  // query string (including leading "?") to preserve across the redirect
   search?: string;
 }) {
   const navigate = useNavigate();

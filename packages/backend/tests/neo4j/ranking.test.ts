@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   recencyFromAgeDays,
   rrfScore,
+  toMemoryStatusOrUndefined,
   toMemoryTypeOrUndefined,
 } from "../../engine/neo4j/memory/mappers";
 
@@ -48,6 +49,22 @@ describe("toMemoryTypeOrUndefined", () => {
 
   it("returns undefined for null and unknown values", () => {
     expect(toMemoryTypeOrUndefined(null)).toBeUndefined();
+    expect(toMemoryTypeOrUndefined(undefined)).toBeUndefined();
     expect(toMemoryTypeOrUndefined("semantic")).toBeUndefined();
+  });
+});
+
+describe("toMemoryStatusOrUndefined", () => {
+  it("accepts known memory statuses", () => {
+    expect(toMemoryStatusOrUndefined("active")).toBe("active");
+    expect(toMemoryStatusOrUndefined("pinned")).toBe("pinned");
+    expect(toMemoryStatusOrUndefined("suppressed")).toBe("suppressed");
+    expect(toMemoryStatusOrUndefined("expired")).toBe("expired");
+  });
+
+  it("returns undefined for null and unknown values", () => {
+    expect(toMemoryStatusOrUndefined(null)).toBeUndefined();
+    expect(toMemoryStatusOrUndefined(undefined)).toBeUndefined();
+    expect(toMemoryStatusOrUndefined("archived")).toBeUndefined();
   });
 });

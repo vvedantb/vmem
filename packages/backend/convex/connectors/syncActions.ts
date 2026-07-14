@@ -17,7 +17,6 @@ type SyncOneResult = { ok: true } | { ok: false; message: string };
 export const syncOneConnectorInternal = internalAction({
   args: {
     connectorId: v.id("connectors"),
-    fullHistory: v.optional(v.boolean()),
   },
   returns: syncOneResult,
   handler: async (ctx, args): Promise<SyncOneResult> => {
@@ -69,7 +68,6 @@ export const syncOneConnectorInternal = internalAction({
         connector,
         clerkId,
         accessToken: tokenResult.accessToken,
-        fullHistory: args.fullHistory ?? false,
         execution: "direct",
       });
 
@@ -78,8 +76,8 @@ export const syncOneConnectorInternal = internalAction({
       const message =
         err instanceof Error ? err.message : "Connector sync failed";
       console.error("[connector-sync]", args.connectorId, err);
-      // The daily connector cron runs unattended at 04:00 UTC — without this
-      // a failed ingest is invisible until the user notices stale memories.
+      // the daily connector cron runs unattended at 04:00 UTC — without this
+      // a failed ingest is invisible until the user notices stale memories
       await ctx.runMutation(internal.notifications.pushInternal, {
         userId: connector.userId,
         title: `Connector sync failed — ${connector.name}`,

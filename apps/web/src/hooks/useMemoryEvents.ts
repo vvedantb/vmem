@@ -13,12 +13,7 @@ type MemoryEventType =
   | "relationship_created"
   | "relationship_deleted";
 
-/**
- * Inverse of `ACTION_FOR_EVENT` in `packages/backend/convex/memoryEvents.ts`.
- * Backend returns the raw audit-log `action` string; the hook owns this
- * reverse map so the wire shape stays small and the backend doesn't have to
- * know about the compact event-type vocabulary.
- */
+// inverse of `ACTION_FOR_EVENT` in `packages/backend/convex/memoryEvents.ts`
 const EVENT_FOR_ACTION: Record<string, MemoryEventType> = {
   "memory.created": "memory_created",
   "memory.updated": "memory_updated",
@@ -44,7 +39,7 @@ type RelationshipEventHandler = (event: RelationshipEvent) => void;
 
 export function useMemoryEvents(
   onRelationshipEvent?: RelationshipEventHandler,
-  /** Called once per batch of new memory created/updated/deleted events. */
+  // called once per batch of new memory created/updated/deleted events
   onMemoryEvent?: () => void,
 ) {
   const queryClient = useQueryClient();

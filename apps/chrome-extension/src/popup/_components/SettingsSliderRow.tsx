@@ -5,26 +5,26 @@ interface SettingsSliderRowProps {
   id: string;
   label: string;
   description?: string;
-  /** Current value in minutes. Snapped to the nearest preset for display. */
+  /** minutes; snapped to nearest preset for display. */
   value: number;
-  /** Selectable values (minutes), ascending. */
+  /** selectable values (minutes), ascending. */
   presets: readonly number[];
-  /** Human label for the current value, e.g. "Every 30 minutes". */
+  /** e.g. "every 30 minutes". */
   format: (minutes: number) => string;
-  /** Compact label for the axis ends, e.g. "15m" / "24h". */
+  /** e.g. "15m" / "24h". */
   formatShort: (minutes: number) => string;
   onValueChange: (minutes: number) => void;
   disabled?: boolean;
   icon?: ReactNode;
 }
 
-/** Safe indexed read — keeps the slider total under noUncheckedIndexedAccess. */
+/** safe indexed read under noUncheckedIndexedAccess. */
 function valueAt(presets: readonly number[], index: number): number {
   const value = presets[index];
   return value === undefined ? 0 : value;
 }
 
-/** Index of the preset closest to `minutes` (handles legacy/off-grid values). */
+/** nearest preset index (handles off-grid legacy values). */
 function nearestIndex(presets: readonly number[], minutes: number): number {
   let best = 0;
   let bestDiff = Number.POSITIVE_INFINITY;
@@ -38,13 +38,7 @@ function nearestIndex(presets: readonly number[], minutes: number): number {
   return best;
 }
 
-/**
- * Stacked label + snap-to-preset range slider. Uses a native range input —
- * the popup is Chromium-only and globals.css themes range inputs via
- * `accent-color`, so no custom track/thumb styling is needed. The slider
- * operates in preset-index space (evenly spaced stops) while reading/writing
- * minutes, so the non-linear 15m–24h scale snaps to even, easy-to-hit steps.
- */
+/** snap-to-preset range slider (operates in preset-index space). */
 export function SettingsSliderRow({
   id,
   label,

@@ -8,20 +8,7 @@ import { Button } from "@vmem/ui";
 import { IconSparkles, IconLoader2 } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 
-/**
- * "Start Dreaming" button rendered in the `/inbox` (proposals tab) page header.
- *
- * Triggers a one-shot synthesis pass across every personal profile the user
- * owns. Team profiles still rely on their per-profile daily cron — Dream Mode
- * is a user-wide concept for personal use. Rate-limited to 1 run per 60
- * minutes user-wide; the limit reason is surfaced via toast.
- *
- * Toast outcomes:
- *   ok                  → "Dream Mode found N proposals" (or "no synthesis")
- *   no-key              → "Set OPENROUTER_API_KEY in settings"
- *   no-recent-memories  → "No recent memories to scan"
- *   rate-limited        → "Already ran in the last hour"
- */
+// inbox "start dreaming" button — one-shot personal-profile synthesis
 export default function RunDreamModeButton() {
   const runDreamForUser = useAction(api.dreamMode.runDreamForUser);
   const queryClient = useQueryClient();

@@ -1,4 +1,4 @@
-/** OpenRouter embeddings when configured; otherwise deterministic synthetic vectors. */
+// openRouter embeddings when configured; otherwise deterministic synthetic vectors
 
 import { createOpenRouterClient } from "../../convex/lib/openRouter/client";
 import pRetry from "p-retry";

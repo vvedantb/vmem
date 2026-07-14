@@ -1,23 +1,20 @@
 "use node";
 
 import type { ActionCtx } from "../../_generated/server";
-import type {
-  MemoryWithTags,
-  ProposedUpdateNode,
-} from "../../../engine/neo4j/memory/types";
-import { getDriver } from "../../../engine/neo4j/driver";
-import { applyFactUpdateOrDelete } from "./applyFactDecision";
-import { runFactDecisionLoop } from "./factDecisionLoop";
+import type { MemoryWithTags } from "../../../engine/neo4j/memory/types";
 import {
   createExtractedFactMemory,
   prepareInstructionFacts,
   type OpenRouterRequired,
 } from "./shared";
+import {
+  buildSdkDeleteReason,
+  buildSdkUpdateReason,
+  reconcileExtractedFacts,
+  type AgentProposal,
+} from "./reconcileFacts";
 
-export type AgentProposal = Pick<
-  ProposedUpdateNode,
-  "id" | "memoryId" | "proposedContent" | "reason" | "kind" | "status"
->;
+export type { AgentProposal };
 
 export interface UpdateFromInstructionResult {
   applied: MemoryWithTags[];
@@ -45,58 +42,29 @@ export async function runUpdateFromInstruction(
     };
   }
 
-  const driver = getDriver();
-  const applied: MemoryWithTags[] = [];
-  const proposals: AgentProposal[] = [];
-
-  await runFactDecisionLoop(
-    {
-      ctx,
-      auth: prepared.auth,
-      clerkId: args.clerkId,
-      profileId: prepared.profileId,
+  const { applied, proposals } = await reconcileExtractedFacts(ctx, {
+    clerkId: args.clerkId,
+    profileId: prepared.profileId,
+    auth: prepared.auth,
+    facts: prepared.facts,
+    loop: {
       retrieveWithProfileId: true,
       logPrefix: "[agent]",
     },
-    prepared.facts,
-    async ({ factIndex: index, factText, decision }) => {
-      if (decision.event === "ADD" && decision.text) {
-        applied.push(
-          await createExtractedFactMemory(ctx, {
-            clerkId: args.clerkId,
-            profileId: prepared.profileId,
-            factIndex: index,
-            text: decision.text,
-            variant: "sdk",
-            externalIdScope: [args.clerkId, args.instruction],
-          }),
-        );
-        return;
-      }
-
-      await applyFactUpdateOrDelete(driver, {
+    createAdd: ({ factIndex, text }) =>
+      createExtractedFactMemory(ctx, {
         clerkId: args.clerkId,
-        factText,
-        decision,
-        buildUpdateReason: ({ factText: ft, decision: d }) =>
-          `Instruction: "${args.instruction}"` +
-          `\nNew fact: "${ft}"` +
-          (d.oldMemory ? `\nOld memory: "${d.oldMemory}"` : ""),
-        buildDeleteReason: ({ factText: ft }) =>
-          `Instruction: "${args.instruction}" contradicts: "${ft}"`,
-        onProposal: (proposal) => {
-          proposals.push({
-            id: proposal.id,
-            memoryId: proposal.memoryId,
-            proposedContent: proposal.proposedContent,
-            reason: proposal.reason,
-            kind: proposal.kind,
-            status: proposal.status,
-          });
-        },
-      });
-    },
-  );
+        profileId: prepared.profileId,
+        factIndex,
+        text,
+        variant: "sdk",
+        externalIdScope: [args.clerkId, args.instruction],
+      }),
+    buildUpdateReason: (reasonArgs) =>
+      buildSdkUpdateReason(args.instruction, reasonArgs),
+    buildDeleteReason: (reasonArgs) =>
+      buildSdkDeleteReason(args.instruction, reasonArgs),
+  });
 
   return {
     applied,

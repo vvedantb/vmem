@@ -3,27 +3,19 @@ import {
   createVmemButton,
   setVmemButtonLabel,
 } from "@/content/shared/inject-button";
-import { SELECTORS } from "./selectors";
+import { formatMemoriesContext } from "@/content/shared/format-memories-context";
+import {
+  setInputText,
+  type FocusPolicy,
+} from "@/content/shared/set-input-text";
 import type { ContentMessage, BackgroundResponse } from "@/types/messages";
-import type { MemoryCandidate } from "@/types/api";
 import { safeSendMessage } from "@/lib/safe-message";
 
-function formatMemoriesContext(memories: MemoryCandidate[]): string {
-  if (memories.length === 0) return "";
-
-  const lines = memories.map((m) => `- ${m.title}: ${m.content.slice(0, 200)}`);
-
-  return `[Context from vmem]\n${lines.join("\n")}\n\n`;
-}
-
-function setInputValue(element: HTMLElement, value: string): void {
-  element.focus();
-  element.textContent = value;
-  element.dispatchEvent(new Event("input", { bubbles: true }));
-}
-
-export async function injectUseVmemButton(): Promise<void> {
-  const inputField = await waitForElement(SELECTORS.inputField);
+export async function injectUseVmemButton(options: {
+  inputSelector: string;
+  focus: FocusPolicy;
+}): Promise<void> {
+  const inputField = await waitForElement(options.inputSelector);
   if (!inputField) return;
 
   const parent = inputField.parentElement;
@@ -32,7 +24,7 @@ export async function injectUseVmemButton(): Promise<void> {
   const button = createVmemButton(
     "Use vmem",
     () => {
-      const input = document.querySelector(SELECTORS.inputField);
+      const input = document.querySelector(options.inputSelector);
       if (!(input instanceof HTMLElement)) return;
 
       const currentText = (input.textContent ?? "").trim();
@@ -61,7 +53,7 @@ export async function injectUseVmemButton(): Promise<void> {
           response.memories.length > 0
         ) {
           const context = formatMemoriesContext(response.memories);
-          setInputValue(input, context + currentText);
+          setInputText(input, context + currentText, options.focus);
         } else {
           setVmemButtonLabel(button, "No memories found");
           setTimeout(() => {

@@ -7,7 +7,7 @@ function firstCount(result: QueryResult, key: string): number {
   return record ? parseNeo4jInt(neo4jGet(record, key)) : 0;
 }
 
-/** Move memories from one profile to another. */
+// move memories from one profile to another
 export async function moveMemoriesBetweenProfiles(
   driver: Driver,
   userId: string,
@@ -25,7 +25,7 @@ export async function moveMemoriesBetweenProfiles(
   });
 }
 
-/** Delete all memories for a profile. */
+// delete all memories for a profile
 export async function deleteMemoriesByProfile(
   driver: Driver,
   userId: string,
