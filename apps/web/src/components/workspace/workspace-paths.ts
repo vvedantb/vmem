@@ -28,7 +28,6 @@ const DETAIL_PARENTS = new Set(["skills", "codebases", "wiki"]);
 const USER_LEVEL_FIRST_SEGMENTS = new Set([
   "settings",
   "home",
-  "svg-playground",
   "mcp",
   "agent-callback",
 ]);
