@@ -1,4 +1,4 @@
-/** Parses a `.env`-formatted text blob into `{ key, value }` pairs. */
+// parse a `.env` text blob into `{ key, value }` pairs
 export function parseEnvVars(
   text: string,
 ): Array<{ key: string; value: string }> {

@@ -16,5 +16,5 @@ function TeamSettingsRoute() {
     );
   }
 
-  return <TeamSettings data={data} />;
+  return <TeamSettings />;
 }

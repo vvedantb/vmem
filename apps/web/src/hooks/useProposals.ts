@@ -3,18 +3,23 @@
 import { useCallback, useMemo } from "react";
 import { useConvexAuth, useAction } from "convex/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { z } from "zod";
 import { api } from "@vmem/backend";
 import { useActiveProfileId } from "@/components/workspace/active-profile";
 
-// client mirror of listProposedUpdates return kinds
-export type ProposedUpdateKind =
-  | "update"
-  | "delete"
-  | "insight"
-  | "connection"
-  | "contradiction"
-  | "anomaly"
-  | "merge";
+const proposedUpdateKindSchema = z.enum([
+  "update",
+  "delete",
+  "insight",
+  "connection",
+  "contradiction",
+  "anomaly",
+  "merge",
+]);
+
+export type ProposedUpdateKind = z.infer<typeof proposedUpdateKindSchema>;
+
+const proposalSourceSchema = z.enum(["v2-extraction", "dream-mode"]);
 
 const SYNTHESIS_KINDS = new Set<ProposedUpdateKind>([
   "insight",
@@ -40,7 +45,7 @@ export interface ProposedUpdate {
   resolvedAt: string | null;
   sourceMemoryIds: string[];
   confidence: number | null;
-  source: "v2-extraction" | "dream-mode";
+  source: z.infer<typeof proposalSourceSchema>;
   // target memory title/content at list time (null if deleted)
   memorySnapshot: { title: string; content: string } | null;
   // source memory snapshots for synthesis "derived from" panel
@@ -61,20 +66,11 @@ export function useProposals() {
     queryFn: async (): Promise<ProposedUpdate[]> => {
       if (activeProfileId === undefined) return [];
       const data = await listAction({ profileId: activeProfileId });
-      // Convex action return shape is already structurally identical —
-      // we map to clip any extra fields and pin the kind/source unions
       return data.map((p): ProposedUpdate => {
-        const kind: ProposedUpdateKind =
-          p.kind === "delete" ||
-          p.kind === "insight" ||
-          p.kind === "connection" ||
-          p.kind === "contradiction" ||
-          p.kind === "anomaly" ||
-          p.kind === "merge"
-            ? p.kind
-            : "update";
-        const source: ProposedUpdate["source"] =
-          p.source === "dream-mode" ? "dream-mode" : "v2-extraction";
+        const kind = proposedUpdateKindSchema.catch("update").parse(p.kind);
+        const source = proposalSourceSchema
+          .catch("v2-extraction")
+          .parse(p.source);
         return {
           id: p.id,
           memoryId: p.memoryId,

@@ -105,13 +105,11 @@ function ConnectorsPage() {
         )}
       </PageContainer>
 
-      {connectors && (
-        <BrowseConnectorsModal
-          isOpen={showBrowse}
-          onClose={() => setShowBrowse(false)}
-          connectors={connectors}
-        />
-      )}
+      <BrowseConnectorsModal
+        isOpen={showBrowse}
+        onClose={() => setShowBrowse(false)}
+        connectors={connectors}
+      />
     </>
   );
 }

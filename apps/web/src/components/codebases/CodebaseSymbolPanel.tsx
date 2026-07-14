@@ -2,7 +2,6 @@
 
 // right-side symbol detail panel
 
-import { useCallback } from "react";
 import {
   IconX,
   IconArrowRight,
@@ -56,13 +55,6 @@ export function CodebaseSymbolPanel({
   onToggleBlastDirection,
 }: CodebaseSymbolPanelProps) {
   const { context, isLoading } = useSymbolContext(codebaseId, selectedSymbolId);
-
-  const handleNavigate = useCallback(
-    (id: string) => {
-      onSelectSymbol(id);
-    },
-    [onSelectSymbol],
-  );
 
   return (
     <AnimatePresence initial={false}>
@@ -202,7 +194,7 @@ export function CodebaseSymbolPanel({
                   </div>
                   <NeighbourList
                     items={context.callsOut}
-                    onNavigate={handleNavigate}
+                    onNavigate={onSelectSymbol}
                   />
                 </div>
               )}
@@ -224,7 +216,7 @@ export function CodebaseSymbolPanel({
                   </div>
                   <NeighbourList
                     items={context.callsIn}
-                    onNavigate={handleNavigate}
+                    onNavigate={onSelectSymbol}
                   />
                 </div>
               )}
@@ -250,7 +242,7 @@ export function CodebaseSymbolPanel({
                         key={proc.id}
                         type="button"
                         variant="ghost"
-                        onClick={() => handleNavigate(proc.id)}
+                        onClick={() => onSelectSymbol(proc.id)}
                         className="h-auto w-full rounded-md bg-surface-secondary/40 p-2 text-left hover:bg-surface-tertiary"
                       >
                         <p className="text-xs font-medium text-foreground truncate font-mono">

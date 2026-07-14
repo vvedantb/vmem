@@ -1,40 +1,149 @@
 "use client";
 
-import {
-  lazy,
-  Suspense,
-  useState,
-  useCallback,
-  useEffect,
-  useRef,
-  useMemo,
-} from "react";
+import { lazy, Suspense, useState, useEffect, useRef } from "react";
 import { useMutation, useQuery } from "convex/react";
-import { useNavigate } from "@tanstack/react-router";
 import { useActiveProfile } from "@/components/workspace/active-profile";
-import { toast } from "sonner";
 import { api } from "@vmem/backend";
 import { Dialog, DialogContent, DialogTitle } from "@vmem/ui";
 import PageContainer from "@/components/PageContainer";
-import { buildTree, findAncestors, findFirstDocumentId } from "./_utils";
+import { buildTree, findAncestors } from "./_utils";
 import type { OutlineHeading } from "./_utils";
 import WikiOutline from "./WikiOutline";
 import { useWikiSidebar } from "./WikiSidebarContext";
 import { WikiPageBreadcrumb } from "./WikiPageBreadcrumb";
 import { WikiDocActionsMenu } from "./WikiDocActionsMenu";
+import { useWikiTitleDraft } from "./useWikiTitleDraft";
 
 const WikiEditor = lazy(() => import("./WikiEditor"));
 const WikiHistoryPanel = lazy(() =>
   import("./WikiHistoryPanel").then((m) => ({ default: m.WikiHistoryPanel })),
 );
 
+type WikiWorkspacePhase =
+  | "loading-tree"
+  | "empty"
+  | "pick-doc"
+  | "loading-doc"
+  | "editing";
+
+function resolvePhase(args: {
+  hasDoc: boolean;
+  isDocLoading: boolean;
+  nodesUndefined: boolean;
+  treeEmpty: boolean;
+}): WikiWorkspacePhase {
+  if (args.hasDoc) return "editing";
+  if (args.isDocLoading) return "loading-doc";
+  if (args.nodesUndefined) return "loading-tree";
+  if (args.treeEmpty) return "empty";
+  return "pick-doc";
+}
+
+function WikiSpinner() {
+  return (
+    <div className="flex flex-1 items-center justify-center">
+      <div className="h-5 w-5 animate-spin rounded-full border-2 border-default border-t-transparent" />
+    </div>
+  );
+}
+
+interface WikiWorkspaceBodyProps {
+  phase: WikiWorkspacePhase;
+  outlineVisible: boolean;
+  isMobileViewport: boolean;
+  headings: OutlineHeading[];
+  activeHeadingId: string | null;
+  onJump: (pos: number) => void;
+  docId: string | null;
+  titleForCopy: string;
+  onRegisterCopy: (handler: (() => Promise<void>) | null) => void;
+  onRegisterRestore: (
+    handler: ((markdown: string) => Promise<void>) | null,
+  ) => void;
+  onHeadingsChange: (headings: OutlineHeading[]) => void;
+  onActiveHeadingChange: (id: string | null) => void;
+  onWordCountChange: (count: number) => void;
+  jumpRequest: { pos: number; n: number };
+}
+
+function WikiWorkspaceBody({
+  phase,
+  outlineVisible,
+  isMobileViewport,
+  headings,
+  activeHeadingId,
+  onJump,
+  docId,
+  titleForCopy,
+  onRegisterCopy,
+  onRegisterRestore,
+  onHeadingsChange,
+  onActiveHeadingChange,
+  onWordCountChange,
+  jumpRequest,
+}: WikiWorkspaceBodyProps) {
+  if (phase === "loading-tree") {
+    return <WikiSpinner />;
+  }
+
+  if (phase === "empty") {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center text-center">
+        <p className="text-sm text-muted">
+          No documents yet. Use Add in the sidebar to create one.
+        </p>
+      </div>
+    );
+  }
+
+  if (phase === "pick-doc") {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <p className="text-sm text-muted">Select a document from the sidebar</p>
+      </div>
+    );
+  }
+
+  // loading-doc still mounts WikiEditor
+  const showOutline =
+    phase === "editing" && outlineVisible && !isMobileViewport;
+
+  return (
+    <div className="flex min-h-0 min-w-0 flex-1 gap-4">
+      {showOutline ? (
+        <div className="hidden min-h-0 w-52 shrink-0 overflow-y-auto rounded-lg bg-surface-secondary/40 p-2 scrollbar-thin md:block">
+          <WikiOutline
+            headings={headings}
+            activeHeadingId={activeHeadingId}
+            onJump={onJump}
+          />
+        </div>
+      ) : null}
+
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <Suspense fallback={<WikiSpinner />}>
+          <WikiEditor
+            docId={docId}
+            titleForCopy={titleForCopy}
+            onRegisterCopy={onRegisterCopy}
+            onRegisterRestore={onRegisterRestore}
+            onHeadingsChange={onHeadingsChange}
+            onActiveHeadingChange={onActiveHeadingChange}
+            onWordCountChange={onWordCountChange}
+            jumpRequest={jumpRequest}
+          />
+        </Suspense>
+      </div>
+    </div>
+  );
+}
+
 interface WikiWorkspaceProps {
   docId: string | null;
 }
 
-// wiki editor shell
+// wiki editor shell — redirects live in WikiDocRouteRedirect
 export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
-  const navigate = useNavigate();
   const activeProfile = useActiveProfile();
   const teamId = activeProfile.teamId;
   const nodes = useQuery(api.wiki.listTree, { teamId });
@@ -79,7 +188,6 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
     pos: 0,
     n: 0,
   });
-  const [titleDraft, setTitleDraft] = useState("");
   const [copyReady, setCopyReady] = useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const copyDocumentRef = useRef<(() => Promise<void>) | null>(null);
@@ -87,45 +195,34 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
     ((markdown: string) => Promise<void>) | null
   >(null);
 
-  const tree = useMemo(() => (nodes ? buildTree(nodes) : []), [nodes]);
+  const tree = nodes ? buildTree(nodes) : [];
   const hasDocId = docId !== null && docId.length > 0;
   const isDocLoading = hasDocId && doc === undefined;
-  const hasDoc =
-    hasDocId && doc !== null && doc !== undefined && doc.kind === "document";
+  const hasDoc = hasDocId && doc != null && doc.kind === "document";
+  const phase = resolvePhase({
+    hasDoc,
+    isDocLoading,
+    nodesUndefined: nodes === undefined,
+    treeEmpty: tree.length === 0,
+  });
+  const showChrome = phase === "editing" || phase === "loading-doc";
   const ancestors = doc && nodes ? findAncestors(doc, nodes) : [];
-  const pageTitle = hasDoc && doc ? titleDraft || doc.title : "Wiki";
+  const { titleDraft, setTitleDraft, commitTitle } = useWikiTitleDraft(
+    doc,
+    renameNode,
+  );
+  const pageTitle =
+    doc != null && doc.kind === "document" ? titleDraft || doc.title : "Wiki";
 
-  const handleJumpToHeading = (pos: number) => {
+  function requestJump(pos: number) {
     setJumpRequest((prev) => ({ pos, n: prev.n + 1 }));
-  };
-
-  const handleTitleCommit = useCallback(async () => {
-    if (!doc || doc.kind !== "document") return;
-    const trimmed = titleDraft.trim();
-    if (trimmed.length === 0 || trimmed === doc.title) {
-      setTitleDraft(doc.title);
-      return;
-    }
-    try {
-      await renameNode({ id: doc._id, title: trimmed });
-      toast.success("Saved!");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save");
-      setTitleDraft(doc.title);
-    }
-  }, [doc, renameNode, titleDraft]);
-
-  const handleCopy = useCallback(() => {
-    void copyDocumentRef.current?.();
-  }, []);
-
-  const handleRestore = useCallback(async (markdown: string) => {
-    await restoreDocumentRef.current?.(markdown);
-  }, []);
+  }
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 767px)");
-    const updateViewport = () => setIsMobileViewport(mediaQuery.matches);
+    function updateViewport() {
+      setIsMobileViewport(mediaQuery.matches);
+    }
     updateViewport();
     mediaQuery.addEventListener("change", updateViewport);
     return () => mediaQuery.removeEventListener("change", updateViewport);
@@ -133,12 +230,11 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
 
   useEffect(() => {
     setHasDoc(hasDoc);
-    if (!hasDocId) {
-      setOutlineVisible(false);
-      setHistoryVisible(false);
-      setWordCount(0);
-      setTitleDraft("");
-    }
+    if (hasDocId) return;
+    setOutlineVisible(false);
+    setHistoryVisible(false);
+    setWordCount(0);
+    setTitleDraft("");
   }, [
     hasDoc,
     hasDocId,
@@ -146,124 +242,58 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
     setOutlineVisible,
     setHistoryVisible,
     setWordCount,
+    setTitleDraft,
   ]);
-
-  useEffect(() => {
-    if (doc?.kind === "document") {
-      setTitleDraft(doc.title);
-    }
-  }, [doc?._id, doc?.title, doc?.kind]);
-
-  // only when `/wiki` has no doc id — not while a selected doc is loading
-  useEffect(() => {
-    if (!nodes || hasDocId) return;
-    const firstId = findFirstDocumentId(tree);
-    if (firstId !== null) {
-      void navigate({
-        to: "/$profileId/wiki/$docId",
-        params: { profileId: activeProfile._id, docId: firstId },
-        replace: true,
-      });
-    }
-  }, [hasDocId, nodes, tree, navigate, activeProfile._id]);
-
-  // URL points at a folder (not a document) — open first document instead
-  useEffect(() => {
-    if (!hasDocId || !nodes || doc === undefined) return;
-    if (doc === null || doc.kind === "document") return;
-    const firstId = findFirstDocumentId(tree);
-    if (firstId !== null && firstId !== docId) {
-      void navigate({
-        to: "/$profileId/wiki/$docId",
-        params: { profileId: activeProfile._id, docId: firstId },
-        replace: true,
-      });
-    }
-  }, [hasDocId, docId, doc, nodes, tree, navigate, activeProfile._id]);
 
   return (
     <PageContainer
       title={pageTitle}
       noScroll
       breadcrumb={
-        hasDoc || isDocLoading ? (
+        showChrome ? (
           <WikiPageBreadcrumb
             ancestors={ancestors}
             title={titleDraft}
             onTitleChange={setTitleDraft}
-            onTitleCommit={() => void handleTitleCommit()}
+            onTitleCommit={() => void commitTitle()}
           />
         ) : undefined
       }
       rightSection={
-        hasDoc || isDocLoading ? (
+        showChrome ? (
           <WikiDocActionsMenu
             outlineVisible={outlineVisible}
             onOutlineVisibleChange={setOutlineVisible}
             onShowHistory={() => setHistoryVisible(true)}
             wordCount={wordCount}
-            onCopy={handleCopy}
+            onCopy={() => void copyDocumentRef.current?.()}
             copyDisabled={!copyReady}
           />
         ) : undefined
       }
     >
       <div className="flex h-full min-h-0 flex-1 flex-col">
-        {hasDoc || isDocLoading ? (
-          <div className="flex min-h-0 min-w-0 flex-1 gap-4">
-            {outlineVisible && !isMobileViewport && hasDoc ? (
-              <div className="hidden min-h-0 w-52 shrink-0 overflow-y-auto rounded-lg bg-surface-secondary/40 p-2 scrollbar-thin md:block">
-                <WikiOutline
-                  headings={headings}
-                  activeHeadingId={activeHeadingId}
-                  onJump={handleJumpToHeading}
-                />
-              </div>
-            ) : null}
-
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-              <Suspense
-                fallback={
-                  <div className="flex flex-1 items-center justify-center">
-                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-default border-t-transparent" />
-                  </div>
-                }
-              >
-                <WikiEditor
-                  docId={docId}
-                  titleForCopy={titleDraft}
-                  onRegisterCopy={(handler) => {
-                    copyDocumentRef.current = handler;
-                    setCopyReady(handler !== null);
-                  }}
-                  onRegisterRestore={(handler) => {
-                    restoreDocumentRef.current = handler;
-                  }}
-                  onHeadingsChange={setHeadings}
-                  onActiveHeadingChange={setActiveHeadingId}
-                  onWordCountChange={setWordCount}
-                  jumpRequest={jumpRequest}
-                />
-              </Suspense>
-            </div>
-          </div>
-        ) : nodes === undefined ? (
-          <div className="flex flex-1 items-center justify-center">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-default border-t-transparent" />
-          </div>
-        ) : tree.length === 0 ? (
-          <div className="flex flex-1 flex-col items-center justify-center text-center">
-            <p className="text-sm text-muted">
-              No documents yet. Use Add in the sidebar to create one.
-            </p>
-          </div>
-        ) : (
-          <div className="flex flex-1 items-center justify-center">
-            <p className="text-sm text-muted">
-              Select a document from the sidebar
-            </p>
-          </div>
-        )}
+        <WikiWorkspaceBody
+          phase={phase}
+          outlineVisible={outlineVisible}
+          isMobileViewport={isMobileViewport}
+          headings={headings}
+          activeHeadingId={activeHeadingId}
+          onJump={requestJump}
+          docId={docId}
+          titleForCopy={titleDraft}
+          onRegisterCopy={(handler) => {
+            copyDocumentRef.current = handler;
+            setCopyReady(handler !== null);
+          }}
+          onRegisterRestore={(handler) => {
+            restoreDocumentRef.current = handler;
+          }}
+          onHeadingsChange={setHeadings}
+          onActiveHeadingChange={setActiveHeadingId}
+          onWordCountChange={setWordCount}
+          jumpRequest={jumpRequest}
+        />
       </div>
 
       <Dialog
@@ -278,7 +308,7 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
             <WikiOutline
               headings={headings}
               activeHeadingId={activeHeadingId}
-              onJump={handleJumpToHeading}
+              onJump={requestJump}
             />
           </div>
         </DialogContent>
@@ -289,8 +319,10 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
           <WikiHistoryPanel
             open={historyVisible}
             onOpenChange={setHistoryVisible}
-            docId={hasDoc && doc ? doc._id : null}
-            onRestore={handleRestore}
+            docId={hasDoc && doc != null ? doc._id : null}
+            onRestore={async (markdown) => {
+              await restoreDocumentRef.current?.(markdown);
+            }}
           />
         </Suspense>
       ) : null}

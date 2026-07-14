@@ -2,7 +2,7 @@ export type InputSkillSegment =
   | { kind: "text"; text: string }
   | { kind: "skill"; name: string; text: string };
 
-/** Split input into plain text and completed `/skill` tokens (known names + trailing space/end). */
+// split input into plain text and completed `/skill` tokens (known name + space/end)
 export function segmentInputBySkills(
   input: string,
   skillNames: ReadonlySet<string>,

@@ -1,19 +1,22 @@
 import type { TablerIcon } from "@tabler/icons-react";
 
-interface LandingFeatureCardProps {
+export interface LandingFeature {
   icon: TablerIcon;
   title: string;
   description: string;
-  index: number;
-  offsetClassName?: string;
+  offsetClassName: string;
 }
+
+type LandingFeatureCardProps = LandingFeature & {
+  index: number;
+};
 
 export function LandingFeatureCard({
   icon: Icon,
   title,
   description,
   index,
-  offsetClassName = "",
+  offsetClassName,
 }: LandingFeatureCardProps) {
   const label = String(index + 1).padStart(2, "0");
 

@@ -14,7 +14,7 @@ import { api, type Doc } from "@vmem/backend";
 import {
   isConnectorConnected,
   isConnectorConnectable,
-} from "@/components/settings/connector-utils";
+} from "./connector-utils";
 import OAuthModal from "@/components/OAuthModal";
 import { GitHubConnectorControls } from "./GitHubConnectorControls";
 import {

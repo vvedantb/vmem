@@ -29,6 +29,40 @@ export interface Memory {
   profileId?: string;
 }
 
+function isMemoryType(value: string): value is MemoryType {
+  return MEMORY_TYPES.some((type) => type === value);
+}
+
+// fields shared by list / retrieve / getMemory api payloads
+export type MemoryApiFields = {
+  id: string;
+  title: string;
+  content: string;
+  type: string;
+  source: string;
+  tags: string[];
+  createdAt: string;
+  sourceUrl?: string | null;
+  sourceSyncedAt?: string | null;
+  profileId?: string | null;
+};
+
+// normalize api / retrieve / getMemory payloads into the client Memory shape
+export function memoryFromApi(m: MemoryApiFields): Memory {
+  return {
+    id: m.id,
+    title: m.title,
+    content: m.content,
+    type: isMemoryType(m.type) ? m.type : "knowledge",
+    source: m.source,
+    sourceUrl: m.sourceUrl ?? null,
+    sourceSyncedAt: m.sourceSyncedAt ?? null,
+    tags: m.tags,
+    createdAt: m.createdAt,
+    profileId: m.profileId ?? undefined,
+  };
+}
+
 const MEMORY_SOURCE_LABELS: Record<string, string> = {
   web: "Web",
   "browser-extension": "Extension",
@@ -40,38 +74,6 @@ const MEMORY_SOURCE_LABELS: Record<string, string> = {
   cursor: "Cursor",
   "client-enrichment": "Enrichment",
 };
-
-export function memoryMatchesTagFilters(
-  memory: Memory,
-  selectedTags: string[],
-): boolean {
-  if (selectedTags.length === 0) {
-    return true;
-  }
-  return selectedTags.every((tag) =>
-    memory.tags.some((mt) => mt.toLowerCase() === tag.toLowerCase()),
-  );
-}
-
-export function memoryMatchesSourceFilters(
-  memory: Memory,
-  selectedSources: string[],
-): boolean {
-  if (selectedSources.length === 0) {
-    return true;
-  }
-  return selectedSources.includes(memory.source);
-}
-
-export function memoryMatchesTypeFilters(
-  memory: Memory,
-  selectedTypes: MemoryType[],
-): boolean {
-  if (selectedTypes.length === 0) {
-    return true;
-  }
-  return selectedTypes.includes(memory.type);
-}
 
 export function formatMemorySourceLabel(source: string): string {
   const mapped = MEMORY_SOURCE_LABELS[source];

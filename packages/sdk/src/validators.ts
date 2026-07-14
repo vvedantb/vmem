@@ -1,11 +1,5 @@
 import { z } from "zod";
 import { VMemoryError } from "./errors";
-import type {
-  MemoryWithTags,
-  RetrieveResult,
-  StoreInstructionResult,
-  UpdateInstructionResult,
-} from "./types";
 
 const memoryWithTagsSchema = z.object({
   id: z.string(),
@@ -40,18 +34,23 @@ const scoreBreakdownSchema = z.object({
   rerankerScore: z.number().optional(),
 });
 
+const matchedChunkSchema = z.object({
+  content: z.string(),
+  position: z.number(),
+});
+
 const memoryCandidateSchema = memoryWithTagsSchema.extend({
   trace: z.object({
     score: z.number(),
     scoreBreakdown: scoreBreakdownSchema,
     reason: z.string(),
   }),
-  matchedChunk: z
-    .object({
-      content: z.string(),
-      position: z.number(),
-    })
-    .optional(),
+  matchedChunk: matchedChunkSchema.optional(),
+});
+
+const userContextSchema = z.object({
+  aboutMe: z.string().nullable(),
+  preferences: z.string().nullable(),
 });
 
 const agentProposalSchema = z.object({
@@ -76,12 +75,23 @@ const updateInstructionResultSchema = z.object({
 
 const retrieveResultSchema = z.object({
   memories: z.array(memoryCandidateSchema),
-  userContext: z.object({
-    aboutMe: z.string().nullable(),
-    preferences: z.string().nullable(),
-  }),
+  userContext: userContextSchema,
   summary: z.string().optional(),
 });
+
+export type MemoryWithTags = z.infer<typeof memoryWithTagsSchema>;
+export type ScoreBreakdown = z.infer<typeof scoreBreakdownSchema>;
+export type MatchedChunk = z.infer<typeof matchedChunkSchema>;
+export type MemoryCandidate = z.infer<typeof memoryCandidateSchema>;
+export type UserContext = z.infer<typeof userContextSchema>;
+export type AgentProposal = z.infer<typeof agentProposalSchema>;
+export type StoreInstructionResult = z.infer<
+  typeof storeInstructionResultSchema
+>;
+export type UpdateInstructionResult = z.infer<
+  typeof updateInstructionResultSchema
+>;
+export type RetrieveResult = z.infer<typeof retrieveResultSchema>;
 
 function invalidResponse(): never {
   throw new VMemoryError(

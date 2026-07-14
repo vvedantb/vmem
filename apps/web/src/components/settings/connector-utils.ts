@@ -1,7 +1,9 @@
 import type { FunctionReturnType } from "convex/server";
 import type { Doc, api } from "@vmem/backend";
 
-type GitHubConnection = FunctionReturnType<typeof api.github.getConnection>;
+export type GitHubConnection = FunctionReturnType<
+  typeof api.github.getConnection
+>;
 
 export function isConnectorConnected(
   connector: Doc<"connectors">,

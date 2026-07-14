@@ -10,33 +10,18 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@vmem/ui";
+import { IconDotsVertical } from "@tabler/icons-react";
 import {
-  IconDotsVertical,
-  IconFolderOpen,
-  IconDownload,
-  IconFolderSymlink,
-  IconPencil,
-  IconTrash,
-} from "@tabler/icons-react";
-import type { FileItem } from "@/lib/file-types";
-import { formatFileSize, formatDate, getFileIcon } from "./_utils";
+  formatFileSize,
+  formatDate,
+  formatItemCount,
+  getFileIcon,
+  imageThumbnailUrl,
+  type FileItemChromeProps,
+} from "./_utils";
+import { fileItemActions } from "./fileItemActions";
 import FileContextMenu from "./FileContextMenu";
 import MemoryIndexBadge from "./MemoryIndexBadge";
-
-interface FileListRowProps {
-  item: FileItem;
-  isSelected: boolean;
-  onClick: (
-    id: string,
-    e: { ctrlKey: boolean; metaKey: boolean; shiftKey: boolean },
-  ) => void;
-  onCheckbox: (id: string) => void;
-  onOpen: (item: FileItem) => void;
-  onDownload: (item: FileItem) => void;
-  onMoveTo: (item: FileItem) => void;
-  onRename: (item: FileItem) => void;
-  onDelete: (item: FileItem) => void;
-}
 
 export default function FileListRow({
   item,
@@ -48,9 +33,17 @@ export default function FileListRow({
   onMoveTo,
   onRename,
   onDelete,
-}: FileListRowProps) {
+}: FileItemChromeProps) {
   const FileIcon = getFileIcon(item.fileCategory);
   const isFolder = item.itemType === "folder";
+  const thumbnailUrl = imageThumbnailUrl(item);
+  const actions = fileItemActions(item, {
+    onOpen: () => onOpen(item),
+    onDownload: () => onDownload(item),
+    onMoveTo: () => onMoveTo(item),
+    onRename: () => onRename(item),
+    onDelete: () => onDelete(item),
+  });
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
@@ -88,22 +81,18 @@ export default function FileListRow({
         onClick={handleClick}
         onDoubleClick={handleRowOpen}
       >
-        {/* Checkbox */}
         <td className="w-10 px-3 py-2">
           <div onClick={handleCheckboxClick}>
             <Checkbox checked={isSelected} tabIndex={-1} />
           </div>
         </td>
 
-        {/* Icon + Name */}
         <td className="py-2 pr-3">
           <div className="flex items-center gap-3 min-w-0">
             <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-surface-secondary overflow-hidden">
-              {!isFolder &&
-              item.fileCategory === "image" &&
-              item.thumbnailUrl ? (
+              {thumbnailUrl ? (
                 <img
-                  src={item.thumbnailUrl}
+                  src={thumbnailUrl}
                   alt={item.name}
                   className="h-full w-full object-cover outline outline-1 -outline-offset-1 outline-separator"
                 />
@@ -118,23 +107,20 @@ export default function FileListRow({
           </div>
         </td>
 
-        {/* Size */}
         <td className="hidden md:table-cell py-2 pr-3">
           <span className="text-sm text-muted tabular-nums">
             {isFolder
-              ? `${item.itemCount ?? 0} items`
+              ? formatItemCount(item.itemCount ?? 0)
               : formatFileSize(item.size)}
           </span>
         </td>
 
-        {/* Date */}
         <td className="hidden md:table-cell py-2 pr-3">
           <span className="text-sm text-muted">
             {formatDate(item.uploadedAt)}
           </span>
         </td>
 
-        {/* Actions */}
         <td className="w-10 py-2 pr-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -148,31 +134,20 @@ export default function FileListRow({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleRowOpen}>
-                <IconFolderOpen size={16} stroke={1.5} />
-                Open
-              </DropdownMenuItem>
-              {!isFolder && (
-                <DropdownMenuItem onClick={() => onDownload(item)}>
-                  <IconDownload size={16} stroke={1.5} />
-                  Download
+              {actions.map((action) => (
+                <DropdownMenuItem
+                  key={action.key}
+                  className={
+                    action.danger
+                      ? "text-danger focus:text-danger data-[highlighted]:text-danger"
+                      : undefined
+                  }
+                  onClick={action.onClick}
+                >
+                  <action.Icon size={16} stroke={1.5} />
+                  {action.label}
                 </DropdownMenuItem>
-              )}
-              <DropdownMenuItem onClick={() => onMoveTo(item)}>
-                <IconFolderSymlink size={16} stroke={1.5} />
-                Move to…
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onRename(item)}>
-                <IconPencil size={16} stroke={1.5} />
-                Rename
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="text-danger focus:text-danger data-[highlighted]:text-danger"
-                onClick={() => onDelete(item)}
-              >
-                <IconTrash size={16} stroke={1.5} />
-                Delete
-              </DropdownMenuItem>
+              ))}
             </DropdownMenuContent>
           </DropdownMenu>
         </td>

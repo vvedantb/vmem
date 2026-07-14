@@ -21,8 +21,6 @@ import TagsTab from "./TagsTab";
 import SourceTab from "./SourceTab";
 import TypeTab from "./TypeTab";
 
-export type { UnifiedFilterPanelProps } from "./types";
-
 // unified filter panel content that consolidates Kind, Tags, Source, and Type filters
 export default function UnifiedFilterPanel({
   allMemories = [],

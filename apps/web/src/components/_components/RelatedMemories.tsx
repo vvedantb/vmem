@@ -20,34 +20,12 @@ import {
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { api } from "@vmem/backend";
-import type { Memory, MemoryType } from "@/lib/memories";
-import { formatMemoryTypeLabel } from "@/lib/memories";
+import type { Memory } from "@/lib/memories";
+import { formatMemoryTypeLabel, memoryFromApi } from "@/lib/memories";
+import { uniqueRelated, type RelatedMemoryEntry } from "@/lib/memories-related";
 import LinkMemoryModal from "@/components/LinkMemoryModal";
 import { DetailEmptyState } from "./detail-panel/DetailEmptyState";
 import { VmemSpinner } from "@/components/svg-animations";
-
-function isMemoryType(value: string): value is MemoryType {
-  return value === "profile" || value === "episodic" || value === "knowledge";
-}
-
-function toMemoryType(value: string): MemoryType {
-  return isMemoryType(value) ? value : "knowledge";
-}
-
-interface RelatedMemoryEntry {
-  memory: {
-    id: string;
-    title: string;
-    content: string;
-    type: string;
-    source?: string;
-    sourceUrl?: string | null;
-    sourceSyncedAt?: string | null;
-    tags: string[];
-    createdAt: string;
-  };
-  reason: string;
-}
 
 interface RelatedMemoriesProps {
   memoryId: string;
@@ -70,14 +48,7 @@ export default function RelatedMemories({
     setIsLoading(true);
     try {
       const data = await getRelatedMemories({ memoryId });
-      const entries = data as RelatedMemoryEntry[];
-      const seen = new Set<string>();
-      const unique = entries.filter((entry) => {
-        if (seen.has(entry.memory.id)) return false;
-        seen.add(entry.memory.id);
-        return true;
-      });
-      setEntries(unique);
+      setEntries(uniqueRelated(data));
     } catch {
       setEntries([]);
     }
@@ -153,67 +124,58 @@ export default function RelatedMemories({
         />
       ) : (
         <div className="flex flex-col gap-0.5">
-          {entries.map((entry) => (
-            <div
-              key={entry.memory.id}
-              className="flex min-w-0 items-start gap-1 rounded-lg px-2 py-2.5 transition-[background-color] hover:bg-surface-tertiary"
-            >
-              <button
-                type="button"
-                onClick={() =>
-                  onSelectRelated({
-                    id: entry.memory.id,
-                    title: entry.memory.title,
-                    content: entry.memory.content,
-                    type: toMemoryType(entry.memory.type),
-                    source: entry.memory.source ?? "web",
-                    sourceUrl: entry.memory.sourceUrl ?? null,
-                    sourceSyncedAt: entry.memory.sourceSyncedAt ?? null,
-                    tags: entry.memory.tags,
-                    createdAt: entry.memory.createdAt,
-                  })
-                }
-                className="flex min-w-0 flex-1 flex-col items-start gap-2 overflow-hidden rounded-none border-0 bg-transparent p-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+          {entries.map((entry) => {
+            const related = memoryFromApi(entry.memory);
+            return (
+              <div
+                key={entry.memory.id}
+                className="flex min-w-0 items-start gap-1 rounded-lg px-2 py-2.5 transition-[background-color] hover:bg-surface-tertiary"
               >
-                <div className="min-w-0 w-full overflow-hidden">
-                  <p className="truncate text-sm font-medium text-foreground">
-                    {entry.memory.title}
-                  </p>
-                  <p className="mt-0.5 line-clamp-1 break-all text-xs leading-relaxed text-muted">
-                    {entry.memory.content}
-                  </p>
-                </div>
-                <div className="flex w-full min-w-0 flex-wrap items-center justify-start gap-1.5">
-                  <Badge
-                    variant="secondary"
-                    className="h-5 max-w-full truncate text-[10px]"
-                  >
-                    {entry.reason}
-                  </Badge>
-                  <Badge
-                    variant="outline"
-                    className="h-5 shrink-0 text-[10px] font-normal"
-                  >
-                    {formatMemoryTypeLabel(toMemoryType(entry.memory.type))}
-                  </Badge>
-                </div>
-              </button>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                onClick={() => setConfirmUnlinkId(entry.memory.id)}
-                disabled={unlinkingId === entry.memory.id}
-                className="shrink-0 text-muted hover:bg-danger/10 hover:text-danger"
-                aria-label={`Unlink ${entry.memory.title}`}
-              >
-                {unlinkingId === entry.memory.id ? (
-                  <IconLoader2 size={14} className="animate-spin" />
-                ) : (
-                  <IconUnlink size={14} />
-                )}
-              </Button>
-            </div>
-          ))}
+                <button
+                  type="button"
+                  onClick={() => onSelectRelated(related)}
+                  className="flex min-w-0 flex-1 flex-col items-start gap-2 overflow-hidden rounded-none border-0 bg-transparent p-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                >
+                  <div className="min-w-0 w-full overflow-hidden">
+                    <p className="truncate text-sm font-medium text-foreground">
+                      {entry.memory.title}
+                    </p>
+                    <p className="mt-0.5 line-clamp-1 break-all text-xs leading-relaxed text-muted">
+                      {entry.memory.content}
+                    </p>
+                  </div>
+                  <div className="flex w-full min-w-0 flex-wrap items-center justify-start gap-1.5">
+                    <Badge
+                      variant="secondary"
+                      className="h-5 max-w-full truncate text-[10px]"
+                    >
+                      {entry.reason}
+                    </Badge>
+                    <Badge
+                      variant="outline"
+                      className="h-5 shrink-0 text-[10px] font-normal"
+                    >
+                      {formatMemoryTypeLabel(related.type)}
+                    </Badge>
+                  </div>
+                </button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => setConfirmUnlinkId(entry.memory.id)}
+                  disabled={unlinkingId === entry.memory.id}
+                  className="shrink-0 text-muted hover:bg-danger/10 hover:text-danger"
+                  aria-label={`Unlink ${entry.memory.title}`}
+                >
+                  {unlinkingId === entry.memory.id ? (
+                    <IconLoader2 size={14} className="animate-spin" />
+                  ) : (
+                    <IconUnlink size={14} />
+                  )}
+                </Button>
+              </div>
+            );
+          })}
         </div>
       )}
 

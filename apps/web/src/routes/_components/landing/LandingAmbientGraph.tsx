@@ -1,6 +1,5 @@
-import "./landing.css";
-
 // decorative graph atmosphere — presentational only, no interaction
+// CSS loaded via LandingPage (`./landing.css`)
 export function LandingAmbientGraph() {
   return (
     <div

@@ -4,14 +4,7 @@ import { SignInButton, SignUpButton } from "@clerk/clerk-react";
 import { motion } from "motion/react";
 import { Button, motionDuration, motionEase } from "@vmem/ui";
 import { LandingAside } from "./LandingAside";
-import type { TablerIcon } from "@tabler/icons-react";
-
-interface LandingFeature {
-  icon: TablerIcon;
-  title: string;
-  description: string;
-  offsetClassName: string;
-}
+import type { LandingFeature } from "./LandingFeatureCard";
 
 interface LandingHeroProps {
   features: readonly LandingFeature[];
@@ -110,12 +103,8 @@ export function LandingHero({ features, capabilities }: LandingHeroProps) {
         </motion.div>
       </div>
 
-      <div className="w-full min-w-0 lg:hidden">
-        <LandingAside features={features} showPreview />
-      </div>
-
-      <div className="hidden min-w-0 lg:block">
-        <LandingAside features={features} showPreview />
+      <div className="w-full min-w-0">
+        <LandingAside features={features} />
       </div>
     </div>
   );

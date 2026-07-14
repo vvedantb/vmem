@@ -1,9 +1,9 @@
 import type { ComponentType } from "react";
 import ClaudeLogo from "./ClaudeLogo";
 import ChatGptLogo from "./ChatGptLogo";
-import { parseChatGptExportBuffer } from "../_utils/parseChatGptExport";
-import { parseClaudeExportBuffer } from "../_utils/parseClaudeExport";
-import type { ExportImportRow } from "../_utils/importRows";
+import { parseChatGptExportBuffer } from "@/lib/chat-export/parseChatGptExport";
+import { parseClaudeExportBuffer } from "@/lib/chat-export/parseClaudeExport";
+import type { ExportImportRow } from "@/lib/chat-export/importRows";
 
 type ParseResult =
   | { ok: true; rows: ExportImportRow[] }
@@ -11,8 +11,7 @@ type ParseResult =
 
 type LogoProps = { className?: string };
 
-export type AvailableProvider = {
-  kind: "available";
+export type ImportProvider = {
   id: string;
   label: string;
   description: string;
@@ -24,11 +23,8 @@ export type AvailableProvider = {
   tag: string;
 };
 
-export type ImportProvider = AvailableProvider;
-
 export const importProviders: readonly ImportProvider[] = [
   {
-    kind: "available",
     id: "chatgpt",
     label: "ChatGPT",
     Logo: ChatGptLogo,
@@ -49,7 +45,6 @@ export const importProviders: readonly ImportProvider[] = [
     },
   },
   {
-    kind: "available",
     id: "claude",
     label: "Claude",
     Logo: ClaudeLogo,

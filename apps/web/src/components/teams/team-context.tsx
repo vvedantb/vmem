@@ -1,7 +1,8 @@
-"use client";
-
 import { createContext, use, type ReactNode } from "react";
-import type { TeamDetail } from "./team-detail";
+import type { FunctionReturnType } from "convex/server";
+import type { api } from "@vmem/backend";
+
+export type TeamDetail = NonNullable<FunctionReturnType<typeof api.teams.get>>;
 
 const TeamDetailContext = createContext<TeamDetail | null>(null);
 

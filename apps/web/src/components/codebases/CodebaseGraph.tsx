@@ -19,6 +19,9 @@ import {
 import { CodebaseSymbolPanel } from "./CodebaseSymbolPanel";
 import type { CodebaseGraphController } from "@/hooks/useCodebaseGraphController";
 
+// canvas requires onLinkNodes; codebase graphs are structural (no manual links)
+function noopLinkNodes(_sourceId: string, _targetId: string) {}
+
 interface CodebaseGraphProps {
   codebaseId: string;
   controller: CodebaseGraphController;
@@ -51,27 +54,12 @@ export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
 
   const viewTheme = useMemo(() => getViewTheme(isDark), [isDark]);
 
-  const handleHoverNode = useCallback((info: HoveredNodeInfo | null) => {
-    setHoveredNode(info);
-  }, []);
-
   const handleClickNode = useCallback(
     (nodeId: string) => {
       onSelectSymbol(nodeId);
       setHoveredNode(null);
     },
     [onSelectSymbol],
-  );
-
-  const handleCloseDetail = useCallback(() => {
-    onSelectSymbol(null);
-  }, [onSelectSymbol]);
-
-  // codebase graph doesn't support manual link creation — symbols are
-  // structural. The canvas still asks for this callback though
-  const handleLinkNodes = useCallback(
-    (_sourceId: string, _targetId: string) => {},
-    [],
   );
 
   if (isLoading) {
@@ -122,10 +110,10 @@ export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
         searchMatchSet={searchMatchSet}
         isSearchActive={hasActiveSearch}
         showLabels={DEFAULT_GRAPH_SETTINGS.showLabels}
-        onHoverNode={handleHoverNode}
+        onHoverNode={setHoveredNode}
         onHoverEdge={setHoveredEdge}
         onClickNode={handleClickNode}
-        onLinkNodes={handleLinkNodes}
+        onLinkNodes={noopLinkNodes}
       />
 
       {/* Stats badge (top-right) */}
@@ -188,7 +176,7 @@ export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
         codebaseId={codebaseId}
         selectedSymbolId={selectedSymbolId}
         blastDirection={blastDirection}
-        onClose={handleCloseDetail}
+        onClose={() => onSelectSymbol(null)}
         onSelectSymbol={onSelectSymbol}
         onToggleBlastDirection={onToggleBlastDirection}
       />

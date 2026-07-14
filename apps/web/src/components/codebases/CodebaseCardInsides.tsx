@@ -25,6 +25,15 @@ export const codebaseLanguageColors: Record<string, string> = {
   Svelte: "#ff3e00",
 };
 
+const FALLBACK_LANGUAGE_COLOR = "#8b8b8b";
+
+export function codebaseLanguageColor(
+  language: string | null | undefined,
+): string | null {
+  if (!language) return null;
+  return codebaseLanguageColors[language] ?? FALLBACK_LANGUAGE_COLOR;
+}
+
 export type CodebaseItem = FunctionReturnType<
   typeof api.codebases.listMy
 >[number];

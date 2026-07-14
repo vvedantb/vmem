@@ -10,6 +10,31 @@ import type { TablerIcon } from "@tabler/icons-react";
 import type { FileCategory, FileItem } from "@/lib/file-types";
 import type { FileSortField, SortDirection } from "./-searchParams";
 
+/** Shared interaction props for list rows and grid cards. */
+export type FileItemChromeProps = {
+  item: FileItem;
+  isSelected: boolean;
+  onClick: (
+    id: string,
+    e: { ctrlKey: boolean; metaKey: boolean; shiftKey: boolean },
+  ) => void;
+  onCheckbox: (id: string) => void;
+  onOpen: (item: FileItem) => void;
+  onDownload: (item: FileItem) => void;
+  onMoveTo: (item: FileItem) => void;
+  onRename: (item: FileItem) => void;
+  onDelete: (item: FileItem) => void;
+};
+
+export function imageThumbnailUrl(item: FileItem): string | null {
+  if (item.itemType !== "file" || item.fileCategory !== "image") return null;
+  return item.thumbnailUrl ?? null;
+}
+
+export function formatItemCount(count: number): string {
+  return `${count} ${count === 1 ? "item" : "items"}`;
+}
+
 export function formatFileSize(bytes: number): string {
   if (bytes === 0) return "0 B";
   const k = 1024;

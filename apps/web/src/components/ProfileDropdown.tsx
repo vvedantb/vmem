@@ -13,43 +13,11 @@ import {
   SelectValue,
   Skeleton,
 } from "@vmem/ui";
-import {
-  IconUser,
-  IconBriefcase,
-  IconHome,
-  IconCode,
-  IconBook,
-  IconHeart,
-  IconStar,
-  IconRocket,
-  IconBulb,
-  IconMusic,
-  IconCamera,
-  IconDeviceGamepad,
-  IconUsers,
-} from "@tabler/icons-react";
+import { IconUsers } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 import { useActiveProfileId } from "@/components/workspace/active-profile";
+import { getProfileIcon } from "@/components/profiles/profile-icon";
 import type { FunctionReturnType } from "convex/server";
-
-const ICON_MAP: Record<string, typeof IconUser> = {
-  user: IconUser,
-  briefcase: IconBriefcase,
-  home: IconHome,
-  code: IconCode,
-  book: IconBook,
-  heart: IconHeart,
-  star: IconStar,
-  rocket: IconRocket,
-  lightbulb: IconBulb,
-  music: IconMusic,
-  camera: IconCamera,
-  gamepad: IconDeviceGamepad,
-};
-
-function getProfileIcon(iconName: string) {
-  return ICON_MAP[iconName] ?? IconUser;
-}
 
 type ProfileListItem = FunctionReturnType<typeof api.profiles.list>[number];
 

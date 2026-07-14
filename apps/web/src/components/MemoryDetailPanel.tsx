@@ -30,6 +30,7 @@ import {
 import { api } from "@vmem/backend";
 import type { Memory } from "@/lib/memories";
 import { formatMemoryTypeLabel } from "@/lib/memories";
+import { countUniqueRelated } from "@/lib/memories-related";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { toast } from "sonner";
 import DetailsTab from "./_components/DetailsTab";
@@ -39,25 +40,12 @@ import { MemorySourceLabel } from "./_components/MemorySourceLabel";
 
 type PanelTab = "details" | "history" | "connections";
 
-interface RelatedMemoryEntry {
-  memory: { id: string };
-}
-
 function formatMetaDate(dateString: string): string {
   return new Date(dateString).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
   });
-}
-
-function countUniqueRelated(entries: RelatedMemoryEntry[]): number {
-  const seen = new Set<string>();
-  return entries.filter((entry) => {
-    if (seen.has(entry.memory.id)) return false;
-    seen.add(entry.memory.id);
-    return true;
-  }).length;
 }
 
 interface MemoryDetailPanelProps {
@@ -122,7 +110,7 @@ export default function MemoryDetailPanel({
     void getRelatedMemories({ memoryId: memory.id })
       .then((data) => {
         if (cancelled) return;
-        setConnectionCount(countUniqueRelated(data as RelatedMemoryEntry[]));
+        setConnectionCount(countUniqueRelated(data));
       })
       .catch(() => {
         if (!cancelled) setConnectionCount(null);

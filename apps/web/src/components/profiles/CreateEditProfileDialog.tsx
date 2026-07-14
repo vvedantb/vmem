@@ -1,4 +1,6 @@
-import { useState } from "react";
+"use client";
+
+import { useEffect, useState } from "react";
 import {
   Button,
   Input,
@@ -14,6 +16,8 @@ import {
 import { IconLoader2 } from "@tabler/icons-react";
 import type { Doc } from "@vmem/backend";
 import { PROFILE_COLORS, PROFILE_ICON_OPTIONS } from "./profile-icon";
+
+const DEFAULT_COLOR: string = PROFILE_COLORS[0] ?? "#171717";
 
 // create/edit form for a (personal) profile
 export function CreateEditProfileDialog({
@@ -31,11 +35,21 @@ export function CreateEditProfileDialog({
     icon: string;
   }) => Promise<void>;
 }) {
-  const [name, setName] = useState(profile?.name ?? "");
-  const [color, setColor] = useState(profile?.color ?? PROFILE_COLORS[0]);
-  const [icon, setIcon] = useState(profile?.icon ?? "user");
+  const [name, setName] = useState("");
+  const [color, setColor] = useState<string>(DEFAULT_COLOR);
+  const [icon, setIcon] = useState("user");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // reset when reopening or switching the profile being edited
+  useEffect(() => {
+    if (!open) return;
+    setName(profile?.name ?? "");
+    setColor(profile?.color ?? DEFAULT_COLOR);
+    setIcon(profile?.icon ?? "user");
+    setError(null);
+    setSaving(false);
+  }, [open, profile]);
 
   const handleSave = async () => {
     if (!name.trim()) {

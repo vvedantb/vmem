@@ -22,25 +22,7 @@ import {
 } from "@/components/svg-animations";
 import { useNotifications } from "@/components/contexts/NotificationContext";
 import type { NotificationType } from "@/components/contexts/NotificationContext";
-
-function formatTimestamp(createdAt: number): string {
-  const now = Date.now();
-  const diffMs = now - createdAt;
-  const diffSeconds = Math.floor(diffMs / 1000);
-  const diffMinutes = Math.floor(diffSeconds / 60);
-  const diffHours = Math.floor(diffMinutes / 60);
-  const diffDays = Math.floor(diffHours / 24);
-
-  if (diffSeconds < 60) return "Just now";
-  if (diffMinutes < 60) return `${diffMinutes}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return new Date(createdAt).toLocaleDateString();
-}
-
-function NotificationIcon({ type }: { type: NotificationType }) {
-  return <AnimatedNotificationIcon type={type} size={20} />;
-}
+import { formatRelativeTime } from "@/lib/formatters";
 
 function getIconBackground(type: NotificationType) {
   switch (type) {
@@ -115,7 +97,7 @@ export function NotificationsPanel() {
                 notification.type,
               )}`}
             >
-              <NotificationIcon type={notification.type} />
+              <AnimatedNotificationIcon type={notification.type} size={20} />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-start justify-between gap-2 sm:items-center sm:gap-4">
@@ -128,7 +110,7 @@ export function NotificationsPanel() {
                   {notification.title}
                 </h3>
                 <span className="flex-shrink-0 text-xs text-muted sm:text-sm tabular-nums">
-                  {formatTimestamp(notification.createdAt)}
+                  {formatRelativeTime(notification.createdAt)}
                 </span>
               </div>
               <p className="mt-1 text-xs text-muted sm:text-sm">

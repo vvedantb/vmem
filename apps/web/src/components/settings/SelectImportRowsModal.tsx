@@ -9,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@vmem/ui";
-import type { ExportImportRow } from "../_utils/importRows";
+import type { ExportImportRow } from "@/lib/chat-export/importRows";
 
 type SelectImportRowsModalProps = {
   open: boolean;

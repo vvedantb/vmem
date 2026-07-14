@@ -10,10 +10,11 @@ import {
   IconUser,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
-import type { TeamDetail } from "./team-detail";
+import { useTeamDetail, type TeamDetail } from "./team-context";
 import { AddMemberDialog } from "./AddMemberDialog";
 
-export function TeamMembers({ data }: { data: TeamDetail }) {
+export function TeamMembers() {
+  const data = useTeamDetail();
   const removeMember = useMutation(api.teams.removeMember).withOptimisticUpdate(
     (localStore, args) => {
       const detail = localStore.getQuery(api.teams.get, {
@@ -88,19 +89,10 @@ export function TeamMembers({ data }: { data: TeamDetail }) {
           ) : (
             <ul className="flex flex-col gap-1">
               {data.members.map((m) => {
-                const name =
-                  m.fullName ||
-                  [m.firstName, m.lastName].filter(Boolean).join(" ") ||
-                  m.email ||
-                  "Unknown";
-                const isSelf =
-                  currentUser !== undefined && m.userId === currentUser?._id;
+                const name = memberLabel(m);
+                const isSelf = m.userId === currentUser?._id;
                 const canRemoveMember =
                   isOwner && !isSelf && currentUser !== undefined;
-                const avatarUrl =
-                  isSelf && clerkUser?.imageUrl
-                    ? clerkUser.imageUrl
-                    : undefined;
 
                 return (
                   <li
@@ -108,7 +100,9 @@ export function TeamMembers({ data }: { data: TeamDetail }) {
                     className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 transition-[background-color] hover:bg-surface-tertiary/50"
                   >
                     <div className="flex min-w-0 flex-1 items-center gap-3">
-                      <MemberAvatar imageUrl={avatarUrl} />
+                      <MemberAvatar
+                        imageUrl={isSelf ? clerkUser?.imageUrl : undefined}
+                      />
                       <div className="min-w-0">
                         <div className="truncate text-sm font-medium text-foreground">
                           {name}
@@ -157,6 +151,15 @@ export function TeamMembers({ data }: { data: TeamDetail }) {
         onOpenChange={setAddOpen}
       />
     </div>
+  );
+}
+
+function memberLabel(m: TeamDetail["members"][number]): string {
+  return (
+    m.fullName ||
+    [m.firstName, m.lastName].filter(Boolean).join(" ") ||
+    m.email ||
+    "Unknown"
   );
 }
 

@@ -2,21 +2,12 @@
 
 import { useAction, useMutation } from "convex/react";
 import { api } from "@vmem/backend";
-import type { FunctionReturnType } from "convex/server";
-import {
-  Button,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@vmem/ui";
+import { Button } from "@vmem/ui";
 import { IconBrandGithub, IconLoader2 } from "@tabler/icons-react";
 import { useState } from "react";
 import { toast } from "sonner";
-
-type GitHubConnection = FunctionReturnType<typeof api.github.getConnection>;
+import type { GitHubConnection } from "./connector-utils";
+import DestructiveConfirmDialog from "./DestructiveConfirmDialog";
 
 interface GitHubConnectorControlsProps {
   connection: GitHubConnection | undefined;
@@ -66,42 +57,16 @@ export function GitHubConnectorControls({
           Disconnect
         </Button>
 
-        <Dialog
+        <DestructiveConfirmDialog
           open={confirmDisconnectOpen}
-          onOpenChange={(open) => {
-            if (!open && !disconnecting) setConfirmDisconnectOpen(false);
-          }}
-        >
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Disconnect GitHub?</DialogTitle>
-              <DialogDescription>
-                vmem will revoke GitHub access and stop syncing repositories
-                until you connect again. Codebases and memories already imported
-                stay unless you remove them separately.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button
-                variant="ghost"
-                onClick={() => setConfirmDisconnectOpen(false)}
-                disabled={disconnecting}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={() => void handleConfirmDisconnect()}
-                disabled={disconnecting}
-              >
-                {disconnecting ? (
-                  <IconLoader2 size={14} className="animate-spin" />
-                ) : null}
-                {disconnecting ? "Disconnecting…" : "Disconnect"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+          onClose={() => setConfirmDisconnectOpen(false)}
+          title="Disconnect GitHub?"
+          description="vmem will revoke GitHub access and stop syncing repositories until you connect again. Codebases and memories already imported stay unless you remove them separately."
+          confirmLabel="Disconnect"
+          submittingLabel="Disconnecting…"
+          submitting={disconnecting}
+          onConfirm={() => void handleConfirmDisconnect()}
+        />
       </>
     );
   }

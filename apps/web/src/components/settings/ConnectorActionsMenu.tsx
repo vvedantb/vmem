@@ -16,7 +16,7 @@ import {
   IconTrash,
 } from "@tabler/icons-react";
 
-export type ConnectorMenuAction = "sync" | "disconnect" | "delete-data";
+type ConnectorMenuAction = "sync" | "disconnect" | "delete-data";
 
 interface ConnectorActionsMenuProps {
   connectorName: string;

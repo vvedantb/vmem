@@ -15,16 +15,11 @@ import {
 } from "@tabler/icons-react";
 import type { ProposedUpdate, ProposedUpdateKind } from "@/hooks/useProposals";
 import { proposalAccentClass } from "./_proposalUtils";
-import { ProposalFieldLabel, ProposalShell } from "./ProposalShell";
-
-interface SynthesisProposalCardProps {
-  proposal: ProposedUpdate;
-  isResolving: boolean;
-  onApprove: () => void;
-  onReject: () => void;
-  // contradictions: resolve by keeping this source memory and suppressing the rest
-  onKeepWinner?: (winnerMemoryId: string) => void;
-}
+import {
+  ProposalFieldLabel,
+  ProposalShell,
+  ProposalTextBlock,
+} from "./ProposalShell";
 
 export default function SynthesisProposalCard({
   proposal,
@@ -32,7 +27,14 @@ export default function SynthesisProposalCard({
   onApprove,
   onReject,
   onKeepWinner,
-}: SynthesisProposalCardProps) {
+}: {
+  proposal: ProposedUpdate;
+  isResolving: boolean;
+  onApprove: () => void;
+  onReject: () => void;
+  // contradictions: resolve by keeping this source memory and suppressing the rest
+  onKeepWinner?: (winnerMemoryId: string) => void;
+}) {
   const activeProfile = useActiveProfile();
   const meta = getKindMeta(proposal.kind);
   const isDismissOnly =
@@ -86,22 +88,17 @@ export default function SynthesisProposalCard({
         </>
       }
     >
-      <div className="rounded-lg bg-surface-secondary/60 p-3">
-        <ProposalFieldLabel>
-          {isMerge ? "Consolidated memory" : "Synthesis"}
-        </ProposalFieldLabel>
-        <p className="whitespace-pre-wrap break-words text-sm text-foreground">
-          {proposal.proposedContent}
-        </p>
-      </div>
+      <ProposalTextBlock
+        label={isMerge ? "Consolidated memory" : "Synthesis"}
+        className="bg-surface-secondary/60"
+      >
+        {proposal.proposedContent}
+      </ProposalTextBlock>
 
-      {proposal.reason.trim().length > 0 && (
-        <div className="rounded-lg bg-surface-secondary/50 p-3">
-          <ProposalFieldLabel>Why</ProposalFieldLabel>
-          <p className="whitespace-pre-wrap break-words text-sm text-muted">
-            {proposal.reason}
-          </p>
-        </div>
+      {proposal.reason.trim() !== "" && (
+        <ProposalTextBlock label="Why" muted>
+          {proposal.reason}
+        </ProposalTextBlock>
       )}
 
       {sourceCount > 0 && (
