@@ -33,7 +33,7 @@ import { api } from "@vmem/backend";
 import type { Doc, Id } from "@vmem/backend";
 import { optimisticId } from "@/lib/optimisticId";
 import PageContainer from "@/components/PageContainer";
-import { getProfileIcon } from "@/components/profiles/profile-icon";
+import { ProfileAvatar } from "@/components/profiles/ProfileAvatar";
 import { CreateEditProfileDialog } from "@/components/profiles/CreateEditProfileDialog";
 
 export const Route = createFileRoute("/_main/settings/profiles")({
@@ -51,18 +51,16 @@ function ProfileCard({
   onEdit: () => void;
   onDelete: () => void;
 }) {
-  const Icon = getProfileIcon(profile.icon);
-
   return (
     <Card className="relative shadow-none">
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
-          <div
-            className="flex h-10 w-10 items-center justify-center rounded-lg"
-            style={{ backgroundColor: profile.color + "20" }}
-          >
-            <Icon className="h-5 w-5" style={{ color: profile.color }} />
-          </div>
+          <ProfileAvatar
+            icon={profile.icon}
+            color={profile.color}
+            className="h-10 w-10 rounded-lg"
+            iconClassName="h-5 w-5"
+          />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <h3 className="font-medium text-foreground truncate">
@@ -172,7 +170,6 @@ function DeleteProfileDialog({
               )}
             </Button>
             {otherProfiles.map((p) => {
-              const Icon = getProfileIcon(p.icon);
               return (
                 <Button
                   key={p._id}
@@ -186,12 +183,12 @@ function DeleteProfileDialog({
                       : "bg-surface-secondary hover:bg-surface-tertiary/50",
                   )}
                 >
-                  <div
-                    className="h-6 w-6 rounded flex items-center justify-center"
-                    style={{ backgroundColor: p.color + "20" }}
-                  >
-                    <Icon className="h-3.5 w-3.5" style={{ color: p.color }} />
-                  </div>
+                  <ProfileAvatar
+                    icon={p.icon}
+                    color={p.color}
+                    className="h-6 w-6 rounded"
+                    iconClassName="h-3.5 w-3.5"
+                  />
                   <div>
                     <p className="text-sm font-medium">Move to {p.name}</p>
                     <p className="text-xs text-muted">

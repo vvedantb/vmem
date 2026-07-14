@@ -58,10 +58,17 @@ export function useActiveProfileId(): string | undefined {
   return readLastActiveProfileId() ?? undefined;
 }
 
-// team id for shell outside $profileId (undefined = personal)
+// team id for the active workspace (undefined = personal).
+// Prefer ActiveProfileProvider when inside /$profileId; fall back to a
+// profiles.list lookup for shell/sidebar outside that provider.
 export function useActiveTeamId(): Id<"teams"> | undefined {
+  const fromContext = use(ActiveProfileContext);
   const profileId = useActiveProfileId();
-  const profiles = useQuery(api.profiles.list);
+  const profiles = useQuery(
+    api.profiles.list,
+    fromContext === null ? {} : "skip",
+  );
+  if (fromContext !== null) return fromContext.teamId;
   if (profileId === undefined) return undefined;
   return profiles?.find((p) => p._id === profileId)?.teamId;
 }

@@ -23,7 +23,7 @@ import {
   IconUserCog,
   IconUsers,
 } from "@tabler/icons-react";
-import { getProfileIcon } from "@/components/profiles/profile-icon";
+import { ProfileAvatar } from "@/components/profiles/ProfileAvatar";
 import { CreateEditProfileDialog } from "@/components/profiles/CreateEditProfileDialog";
 import { CreateTeamDialog } from "@/components/teams/CreateTeamDialog";
 import {
@@ -32,27 +32,6 @@ import {
 } from "@/components/workspace/active-profile";
 import { workspacePathFor } from "@/components/workspace/workspace-paths";
 import { SidebarIconTooltip } from "./SidebarIconTooltip";
-
-function WorkspaceAvatar({
-  profile,
-  className,
-}: {
-  profile: Doc<"profiles">;
-  className?: string;
-}) {
-  const Icon = getProfileIcon(profile.icon);
-  return (
-    <div
-      className={cn(
-        "flex h-7 w-7 shrink-0 items-center justify-center rounded-full",
-        className,
-      )}
-      style={{ backgroundColor: profile.color + "20" }}
-    >
-      <Icon className="h-4 w-4" style={{ color: profile.color }} />
-    </div>
-  );
-}
 
 // workspace (profile) switcher at the top of the sidebar
 export function SidebarWorkspaceSwitcher({
@@ -116,7 +95,11 @@ export function SidebarWorkspaceSwitcher({
 
   const workspaceRow = (profile: Doc<"profiles">) => (
     <DropdownMenuItem key={profile._id} onSelect={() => switchTo(profile)}>
-      <WorkspaceAvatar profile={profile} className="h-5 w-5" />
+      <ProfileAvatar
+        icon={profile.icon}
+        color={profile.color}
+        className="h-5 w-5"
+      />
       <span className="min-w-0 flex-1 truncate">{profile.name}</span>
       {profile._id === active._id ? (
         <IconCheck className="h-4 w-4 shrink-0 text-muted" />
@@ -135,7 +118,11 @@ export function SidebarWorkspaceSwitcher({
                 variant="ghost"
                 className="mx-auto h-auto rounded-lg p-1 hover:bg-surface-tertiary/50 active:scale-100"
               >
-                <WorkspaceAvatar profile={active} />
+                <ProfileAvatar
+                  icon={active.icon}
+                  color={active.color}
+                  className="h-7 w-7"
+                />
               </Button>
             </SidebarIconTooltip>
           ) : (
@@ -144,7 +131,11 @@ export function SidebarWorkspaceSwitcher({
               variant="ghost"
               className="h-auto w-full justify-start gap-2.5 rounded-lg bg-surface-secondary p-2 text-left hover:bg-surface-tertiary active:scale-100"
             >
-              <WorkspaceAvatar profile={active} />
+              <ProfileAvatar
+                icon={active.icon}
+                color={active.color}
+                className="h-7 w-7"
+              />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium leading-tight text-foreground">
                   {active.name}
