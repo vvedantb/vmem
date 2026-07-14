@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { motion } from "motion/react";
 import { api } from "@vmem/backend";
-import type { Doc, Id } from "@vmem/backend";
+import type { Id } from "@vmem/backend";
 import { Button, cn, motionDuration, motionEase } from "@vmem/ui";
 import { IconBook, IconListCheck } from "@tabler/icons-react";
 import WikiTree from "@/components/wiki/WikiTree";
@@ -13,7 +13,8 @@ import WikiSearch from "@/components/wiki/WikiSearch";
 import { WikiAddMenu } from "@/components/wiki/WikiAddMenu";
 import { WikiBulkDeleteBar } from "@/components/wiki/WikiBulkDeleteBar";
 import { buildTree, findFirstDocumentId } from "@/components/wiki/_utils";
-import { optimisticId } from "@/lib/optimisticId";
+import { optimisticCreateWikiNode } from "@/components/wiki/_optimisticCreate";
+import { useIdSelectionMode } from "@/hooks/useIdSelectionMode";
 import {
   useActiveProfileId,
   useActiveTeamId,
@@ -36,59 +37,18 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
 
   const nodes = useQuery(api.wiki.listTree, { teamId });
   const createNode = useMutation(api.wiki.createNode).withOptimisticUpdate(
-    (localStore, args) => {
-      const tree = localStore.getQuery(api.wiki.listTree, { teamId });
-      if (!tree || tree.length === 0) return;
-      const head = tree.at(0);
-      if (!head) return;
-      const siblings = tree.filter((n) => n.parentId === args.parentId);
-      const nextOrder =
-        siblings.length === 0
-          ? 0
-          : Math.max(...siblings.map((s) => s.order)) + 1;
-      const now = Date.now();
-      const tempId = optimisticId("wikiNodes");
-      const row: Doc<"wikiNodes"> = {
-        _id: tempId,
-        _creationTime: now,
-        userId: head.userId,
-        teamId,
-        parentId: args.parentId,
-        kind: args.kind,
-        title: args.title,
-        content: args.kind === "document" ? "" : undefined,
-        contentText: args.kind === "document" ? "" : undefined,
-        order: nextOrder,
-        createdAt: now,
-        updatedAt: now,
-      };
-      localStore.setQuery(api.wiki.listTree, { teamId }, [...tree, row]);
-    },
+    optimisticCreateWikiNode,
   );
 
   const tree = useMemo(() => (nodes ? buildTree(nodes) : []), [nodes]);
 
-  const [selectionMode, setSelectionMode] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<Id<"wikiNodes">>>(
-    () => new Set(),
-  );
-
-  const exitSelection = useCallback(() => {
-    setSelectionMode(false);
-    setSelectedIds(new Set());
-  }, []);
-
-  const toggleSelect = useCallback((id: Id<"wikiNodes">) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  }, []);
+  const {
+    selectionMode,
+    selectedIds,
+    setSelectionMode,
+    exitSelection,
+    toggleSelect,
+  } = useIdSelectionMode<Id<"wikiNodes">>();
 
   const handleSelectNode = useCallback(
     (id: string) => {

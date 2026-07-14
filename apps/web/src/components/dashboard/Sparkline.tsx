@@ -1,9 +1,14 @@
 interface SparklineProps {
   data: number[];
   strokeClassName: string;
+  fillClassName?: string;
 }
 
-export function Sparkline({ data, strokeClassName }: SparklineProps) {
+export function Sparkline({
+  data,
+  strokeClassName,
+  fillClassName,
+}: SparklineProps) {
   if (!data.some((value) => value > 0)) {
     return (
       <div aria-hidden className="flex h-10 items-end gap-0.5 opacity-40">
@@ -46,6 +51,8 @@ export function Sparkline({ data, strokeClassName }: SparklineProps) {
     return `${x},${y}`;
   });
 
+  const linePath = `M${points.join(" L")}`;
+
   return (
     <svg
       viewBox={`0 0 ${width} ${height}`}
@@ -53,8 +60,14 @@ export function Sparkline({ data, strokeClassName }: SparklineProps) {
       preserveAspectRatio="none"
       aria-hidden
     >
+      {fillClassName !== undefined ? (
+        <path
+          d={`${linePath} L${width - padding},${height} L${padding},${height} Z`}
+          className={fillClassName}
+        />
+      ) : null}
       <path
-        d={`M${points.join(" L")}`}
+        d={linePath}
         fill="none"
         stroke="currentColor"
         className={strokeClassName}

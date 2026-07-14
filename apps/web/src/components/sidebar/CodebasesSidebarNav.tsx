@@ -28,7 +28,7 @@ import {
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { CodebaseSidebarItem } from "@/components/codebases/CodebaseSidebarItem";
-import { CodebasesSearchBar } from "@/components/codebases/CodebasesSearchBar";
+import { SidebarListSearchBar } from "./SidebarListSearchBar";
 import { codebasesListSearchParams } from "@/routes/_main/$profileId/codebases/-list-searchParams";
 import {
   useActiveProfileId,
@@ -206,11 +206,13 @@ export function CodebasesSidebarNav({
         {!isIconOnly ? (
           <div className="mb-2 shrink-0">
             {codebases !== undefined && codebases.length > 0 ? (
-              <CodebasesSearchBar
+              <SidebarListSearchBar
                 value={searchQuery}
                 onChange={(value) => {
                   void setSearchParams({ q: value });
                 }}
+                placeholder="Search repositories"
+                aria-label="Search repositories"
                 actions={isConnected ? toolbarAddButton : undefined}
               />
             ) : isConnected ? (
