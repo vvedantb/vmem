@@ -125,10 +125,22 @@ export function CodebasesSidebarNav({
     }
   }, [syncAllMy, teamId]);
 
-  // Grouped with the search at the top of the sidebar, replacing the old
-  // bottom-pinned button. "Add repository" when connected, else "Connect GitHub".
-  const actionButton = isConnected ? (
+  const toolbarAddButton = (
     <Button
+      type="button"
+      variant="outline"
+      size="icon-sm"
+      aria-label="Add repository"
+      className="shrink-0"
+      onClick={() => setAddModalOpen(true)}
+    >
+      <IconPlus size={16} />
+    </Button>
+  );
+
+  const labeledAddButton = (
+    <Button
+      type="button"
       variant="outline"
       size="sm"
       className="w-full gap-2"
@@ -137,7 +149,9 @@ export function CodebasesSidebarNav({
       <IconPlus size={16} />
       Add repository
     </Button>
-  ) : (
+  );
+
+  const connectButton = (
     <Button variant="outline" size="sm" className="w-full" asChild>
       <Link to="/settings/connectors">Connect GitHub</Link>
     </Button>
@@ -190,16 +204,20 @@ export function CodebasesSidebarNav({
         ) : null}
 
         {!isIconOnly ? (
-          <div className="mb-2 flex flex-col gap-2">
+          <div className="mb-2 shrink-0">
             {codebases !== undefined && codebases.length > 0 ? (
               <CodebasesSearchBar
                 value={searchQuery}
                 onChange={(value) => {
                   void setSearchParams({ q: value });
                 }}
+                actions={isConnected ? toolbarAddButton : undefined}
               />
-            ) : null}
-            {actionButton}
+            ) : isConnected ? (
+              labeledAddButton
+            ) : (
+              connectButton
+            )}
           </div>
         ) : null}
 

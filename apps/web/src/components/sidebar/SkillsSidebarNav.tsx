@@ -8,7 +8,7 @@ import { motion } from "motion/react";
 import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
 import { Button, cn, motionDuration, motionEase } from "@vmem/ui";
-import { IconApps, IconBolt } from "@tabler/icons-react";
+import { IconApps, IconBolt, IconListCheck } from "@tabler/icons-react";
 import { SkillCard } from "@/components/skills/SkillCard";
 import { SkillBulkDeleteBar } from "@/components/skills/SkillBulkDeleteBar";
 import { SkillsSearchBar } from "@/components/skills/SkillsSearchBar";
@@ -107,14 +107,34 @@ export function SkillsSidebarNav({
     openSkill(id);
   };
 
-  // Grouped with the search at the top of the sidebar (shared by the empty and
-  // populated states), replacing the old bottom-pinned button.
-  const addMenu = (
+  const toolbarAddMenu = (
     <SkillsAddMenu
-      className="w-full gap-2"
+      variant="toolbar"
       onWriteSkill={() => setCreateModal("write")}
       onUploadSkill={() => setCreateModal("upload")}
     />
+  );
+
+  const labeledAddMenu = (
+    <SkillsAddMenu
+      variant="labeled"
+      className="w-full"
+      onWriteSkill={() => setCreateModal("write")}
+      onUploadSkill={() => setCreateModal("upload")}
+    />
+  );
+
+  const selectButton = (
+    <Button
+      type="button"
+      variant="outline"
+      size="icon-sm"
+      aria-label="Select"
+      className="shrink-0"
+      onClick={() => setSelectionMode(true)}
+    >
+      <IconListCheck size={16} />
+    </Button>
   );
 
   const goHub = () => {
@@ -132,18 +152,25 @@ export function SkillsSidebarNav({
 
   const hubButton = (
     <Button
+      type="button"
       variant="ghost"
-      size="sm"
-      className={cn(
-        "w-full justify-start gap-2 text-muted hover:text-foreground",
-        onHub && "bg-surface-tertiary text-foreground",
-      )}
       onClick={goHub}
+      className={cn(
+        "h-auto w-full min-w-0 justify-start rounded-lg text-left text-sm font-normal transition-[color] active:scale-100",
+        sidebarListRowClass,
+        onHub
+          ? "bg-surface-tertiary text-foreground hover:bg-surface-tertiary"
+          : "text-muted hover:bg-transparent hover:text-foreground",
+      )}
     >
-      <IconApps size={16} />
+      <IconApps size={16} className="shrink-0" />
       Skills Hub
     </Button>
   );
+
+  const hubSection = !isIconOnly ? (
+    <div className="mt-2 mb-3 shrink-0">{hubButton}</div>
+  ) : null;
 
   // Installed system skills for this workspace (personal vs team installs are split).
   const installedSection =
@@ -209,8 +236,8 @@ export function SkillsSidebarNav({
           <>
             {!isIconOnly ? (
               <div className="flex flex-col gap-2">
-                {addMenu}
-                {hubButton}
+                {labeledAddMenu}
+                {hubSection}
               </div>
             ) : null}
             <div className="flex flex-col items-center justify-center px-2 py-10 text-center">
@@ -223,36 +250,30 @@ export function SkillsSidebarNav({
         ) : (
           <>
             {!isIconOnly && !selectionMode ? (
-              <div className="flex flex-col gap-2">
-                <SkillsSearchBar
-                  value={searchQuery}
-                  onChange={(value) => {
-                    void setSearchParams({ q: value });
-                  }}
-                />
-                {addMenu}
-                {hubButton}
-              </div>
-            ) : null}
-            {!isIconOnly ? (
-              selectionMode ? (
-                <SkillBulkDeleteBar
-                  selectedIds={selectedIds}
-                  teamId={teamId}
-                  onExit={exitSelection}
-                />
-              ) : (
-                <div className="flex justify-end">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 px-2 text-xs text-muted"
-                    onClick={() => setSelectionMode(true)}
-                  >
-                    Select
-                  </Button>
+              <>
+                <div className="shrink-0">
+                  <SkillsSearchBar
+                    value={searchQuery}
+                    onChange={(value) => {
+                      void setSearchParams({ q: value });
+                    }}
+                    actions={
+                      <>
+                        {toolbarAddMenu}
+                        {selectButton}
+                      </>
+                    }
+                  />
                 </div>
-              )
+                {hubSection}
+              </>
+            ) : null}
+            {!isIconOnly && selectionMode ? (
+              <SkillBulkDeleteBar
+                selectedIds={selectedIds}
+                teamId={teamId}
+                onExit={exitSelection}
+              />
             ) : null}
             {filteredSkills.length === 0 ? (
               !isIconOnly ? (

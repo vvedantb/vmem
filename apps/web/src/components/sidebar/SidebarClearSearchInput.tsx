@@ -9,6 +9,7 @@ interface SidebarClearSearchInputProps {
   onChange: (value: string) => void;
   placeholder: string;
   "aria-label": string;
+  wrapperClassName?: string;
 }
 
 export function SidebarClearSearchInput({
@@ -16,6 +17,7 @@ export function SidebarClearSearchInput({
   onChange,
   placeholder,
   "aria-label": ariaLabel,
+  wrapperClassName = "mb-2",
 }: SidebarClearSearchInputProps) {
   return (
     <ClearInput
@@ -23,7 +25,7 @@ export function SidebarClearSearchInput({
       onChange={onChange}
       placeholder={placeholder}
       aria-label={ariaLabel}
-      wrapperClassName="mb-2"
+      wrapperClassName={wrapperClassName}
       className={sidebarSearchInputClassName}
       leading={
         <IconSearch

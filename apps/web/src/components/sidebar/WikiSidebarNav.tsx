@@ -7,7 +7,7 @@ import { motion } from "motion/react";
 import { api } from "@vmem/backend";
 import type { Doc, Id } from "@vmem/backend";
 import { Button, cn, motionDuration, motionEase } from "@vmem/ui";
-import { IconBook } from "@tabler/icons-react";
+import { IconBook, IconListCheck } from "@tabler/icons-react";
 import WikiTree from "@/components/wiki/WikiTree";
 import WikiSearch from "@/components/wiki/WikiSearch";
 import { WikiAddMenu } from "@/components/wiki/WikiAddMenu";
@@ -133,14 +133,34 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
     [createNode, navigate, profileId, teamId],
   );
 
-  // Grouped with the search at the top of the sidebar (shared by the empty and
-  // populated states), replacing the old bottom-pinned button.
-  const addMenu = (
+  const toolbarAddMenu = (
     <WikiAddMenu
-      className="w-full gap-2"
+      variant="toolbar"
       onCreateDocument={() => handleCreateRoot("document")}
       onCreateFolder={() => handleCreateRoot("folder")}
     />
+  );
+
+  const labeledAddMenu = (
+    <WikiAddMenu
+      variant="labeled"
+      className="w-full"
+      onCreateDocument={() => handleCreateRoot("document")}
+      onCreateFolder={() => handleCreateRoot("folder")}
+    />
+  );
+
+  const selectButton = (
+    <Button
+      type="button"
+      variant="outline"
+      size="icon-sm"
+      aria-label="Select"
+      className="shrink-0"
+      onClick={() => setSelectionMode(true)}
+    >
+      <IconListCheck size={16} />
+    </Button>
   );
 
   return (
@@ -161,7 +181,7 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
           </div>
         ) : tree.length === 0 ? (
           <>
-            {!isIconOnly ? addMenu : null}
+            {!isIconOnly ? labeledAddMenu : null}
             <div className="flex flex-col items-center justify-center px-2 py-10 text-center">
               <IconBook size={28} className="mb-2 text-muted" />
               {!isIconOnly ? (
@@ -172,33 +192,26 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
         ) : (
           <>
             {!isIconOnly && !selectionMode ? (
-              <div className="flex flex-col gap-2">
-                <WikiSearch onSelect={handleSelectNode} />
-                {addMenu}
-              </div>
+              <WikiSearch
+                onSelect={handleSelectNode}
+                className="shrink-0"
+                actions={
+                  <>
+                    {toolbarAddMenu}
+                    {selectButton}
+                  </>
+                }
+              />
             ) : null}
-            {!isIconOnly ? (
-              selectionMode ? (
-                <WikiBulkDeleteBar
-                  selectedIds={selectedIds}
-                  nodes={nodes ?? []}
-                  teamId={teamId}
-                  currentDocId={docId}
-                  onExit={exitSelection}
-                  onCurrentRemoved={() => handleSelectNode("")}
-                />
-              ) : (
-                <div className="flex justify-end">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 px-2 text-xs text-muted"
-                    onClick={() => setSelectionMode(true)}
-                  >
-                    Select
-                  </Button>
-                </div>
-              )
+            {!isIconOnly && selectionMode ? (
+              <WikiBulkDeleteBar
+                selectedIds={selectedIds}
+                nodes={nodes ?? []}
+                teamId={teamId}
+                currentDocId={docId}
+                onExit={exitSelection}
+                onCurrentRemoved={() => handleSelectNode("")}
+              />
             ) : null}
             <WikiTree
               tree={tree}
