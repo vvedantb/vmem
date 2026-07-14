@@ -29,7 +29,6 @@ function MemoriesGraphPage() {
           controller={graphController}
           focusNodeId={params.focus}
           scope={graphController.scope}
-          depth={graphController.depth}
           // Focusing a node implies local scope (scope: null resets to the
           // "local" default, keeping the URL clean); exiting goes global.
           onFocusChange={(id) =>
@@ -37,7 +36,6 @@ function MemoriesGraphPage() {
               ? setParams({ focus: null, scope: "global" })
               : setParams({ focus: id, scope: null })
           }
-          onDepthChange={(d) => setParams({ depth: d === 2 ? null : d })}
         />
       </Suspense>
     </div>

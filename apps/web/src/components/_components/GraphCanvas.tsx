@@ -550,30 +550,36 @@ function GraphCanvas({
         }
       }
 
-      render(
-        ctx,
-        w,
-        h,
-        dpr,
-        nodesRef.current,
-        resolvedEdgesCache,
-        viewportRef.current,
-        interactionRef.current,
-        themeRef.current,
-        neighborSet,
-        focusNodeIdRef.current ?? null,
-        searchMatchSetRef.current,
-        isSearchActiveRef.current,
-        showLabelsRef.current,
-        connectorLogosRef.current,
-        worldCache,
-        viewportOnly,
-        gestureActive,
-      );
-      lastFrameWasBlit = viewportOnly && worldCache !== null;
-      if (!lastFrameWasBlit) {
-        lastSceneRenderAt = performance.now();
-        lastPaintedSimVersion = simVersion;
+      try {
+        render(
+          ctx,
+          w,
+          h,
+          dpr,
+          nodesRef.current,
+          resolvedEdgesCache,
+          viewportRef.current,
+          interactionRef.current,
+          themeRef.current,
+          neighborSet,
+          focusNodeIdRef.current ?? null,
+          searchMatchSetRef.current,
+          isSearchActiveRef.current,
+          showLabelsRef.current,
+          connectorLogosRef.current,
+          worldCache,
+          viewportOnly,
+          gestureActive,
+        );
+        lastFrameWasBlit = viewportOnly && worldCache !== null;
+        if (!lastFrameWasBlit) {
+          lastSceneRenderAt = performance.now();
+          lastPaintedSimVersion = simVersion;
+        }
+      } catch (err) {
+        // Keep the rAF loop alive — a single throw (e.g. bad canvas color)
+        // must not blank the graph until remount.
+        console.error("[GraphCanvas] render failed:", err);
       }
 
       rafId = requestAnimationFrame(tick);

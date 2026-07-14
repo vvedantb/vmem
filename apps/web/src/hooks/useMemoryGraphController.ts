@@ -11,7 +11,7 @@
  *
  * State ownership:
  *   - Filters + search (tags/kinds/sources/types/q): URL via `nuqs`, shared with list view.
- *   - Display (view mode, forces/labels): cookies via `graph-cookies`, per-user.
+ *   - Display (forces/labels): cookies via `graph-cookies`, per-user.
  *   - Data: Convex action via `useGraphData`.
  */
 
@@ -19,12 +19,7 @@ import { useCallback, useDeferredValue, useMemo, useState } from "react";
 import { useAction } from "convex/react";
 import { useQuery as useTanstackQuery } from "@tanstack/react-query";
 import { api } from "@vmem/backend";
-import {
-  getGraphSettings,
-  setGraphSettings,
-  getGraphViewMode,
-  setGraphViewMode,
-} from "@/lib/graph-cookies";
+import { getGraphSettings, setGraphSettings } from "@/lib/graph-cookies";
 import { useGraphData } from "@/hooks/useGraphData";
 import { useThemeContext } from "@/components/contexts/ThemeContext";
 import { useActiveProfile } from "@/components/workspace/active-profile";
@@ -58,7 +53,6 @@ import {
 import {
   getViewTheme,
   type GraphViewTheme,
-  type ViewMode,
 } from "@/components/_components/graph-view-themes";
 import type { MemoryType } from "@/lib/memories";
 import { graphNodeMatchesLocalSearch } from "@/components/_components/graph-search";
@@ -92,8 +86,6 @@ export interface MemoryGraphController {
   // ----- Scope (URL) -----
   /** "local" = focus neighbourhood (default), "global" = full capped graph. */
   scope: GraphScope;
-  /** Local-graph hop depth, clamped to 1–3. */
-  depth: number;
   /** Focus the local graph is centred on (server-resolved). null in global. */
   resolvedFocusNodeId: string | null;
 
@@ -126,7 +118,6 @@ export interface MemoryGraphController {
 
   // ----- Display state (cookie) -----
   graphSettings: GraphSettings;
-  viewMode: ViewMode;
   viewTheme: GraphViewTheme;
   isDark: boolean;
 
@@ -140,7 +131,6 @@ export interface MemoryGraphController {
   onTypesChange: (types: MemoryType[]) => void;
   onClearFilters: () => void;
   onSettingsChange: (next: GraphSettings) => void;
-  onViewModeChange: (mode: ViewMode) => void;
   onSearchChange: (q: string) => void;
   onResetSettings: () => void;
 }
@@ -168,10 +158,8 @@ export function useMemoryGraphController({
   // Data
   const listMemoriesAction = useAction(api.memoryApi.listMemories);
 
-  // Scope/depth live in the URL beside the focus id. Depth is clamped here so
-  // a hand-edited URL can't request an unbounded traversal.
+  // Scope lives in the URL beside the focus id.
   const scope: GraphScope = params.scope;
-  const depth = Math.min(3, Math.max(1, Math.trunc(params.depth)));
 
   const {
     apiNodes,
@@ -187,14 +175,7 @@ export function useMemoryGraphController({
     fetchNextPage,
     isError,
     error,
-  } = useGraphData(
-    focusNodeId,
-    activeProfileId,
-    enabled,
-    scope,
-    depth,
-    params.bench,
-  );
+  } = useGraphData(focusNodeId, activeProfileId, enabled, scope, params.bench);
 
   const searchQuery = params.q.trim();
   const deferredSearchQuery = useDeferredValue(searchQuery);
@@ -216,7 +197,6 @@ export function useMemoryGraphController({
   // Cookie-backed display state (per-user, non-shareable).
   const [graphSettings, setGraphSettingsState] =
     useState<GraphSettings>(getGraphSettings);
-  const [viewMode, setViewModeState] = useState<ViewMode>(getGraphViewMode);
 
   const filters = useMemo<MemoryViewFilterParams>(
     () => ({
@@ -235,10 +215,7 @@ export function useMemoryGraphController({
 
   // Derived display state
   const isDark = theme === "dark";
-  const viewTheme = useMemo(
-    () => getViewTheme(viewMode, isDark),
-    [viewMode, isDark],
-  );
+  const viewTheme = useMemo(() => getViewTheme(isDark), [isDark]);
 
   // Derived filter stats
   const allTags = useMemo(() => getAllTags(apiNodes), [apiNodes]);
@@ -323,11 +300,6 @@ export function useMemoryGraphController({
     setGraphSettings(next);
   }, []);
 
-  const onViewModeChange = useCallback((mode: ViewMode) => {
-    setViewModeState(mode);
-    setGraphViewMode(mode);
-  }, []);
-
   const onResetSettings = useCallback(() => {
     setGraphSettingsState(DEFAULT_GRAPH_SETTINGS);
     setGraphSettings(DEFAULT_GRAPH_SETTINGS);
@@ -385,7 +357,6 @@ export function useMemoryGraphController({
 
     // Scope
     scope,
-    depth,
     resolvedFocusNodeId,
 
     // Progressive global loading
@@ -413,7 +384,6 @@ export function useMemoryGraphController({
 
     // Display state
     graphSettings,
-    viewMode,
     viewTheme,
     isDark,
 
@@ -427,7 +397,6 @@ export function useMemoryGraphController({
     onTypesChange,
     onClearFilters,
     onSettingsChange,
-    onViewModeChange,
     onSearchChange,
     onResetSettings,
   };

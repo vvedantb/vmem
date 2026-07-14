@@ -211,12 +211,14 @@ export interface UseGraphDataReturn {
   error: Error | null;
 }
 
+/** Fixed hop count for local (focus-neighbourhood) graph fetches. */
+const LOCAL_GRAPH_DEPTH = 2;
+
 export function useGraphData(
   focusNodeId: string | null,
   profileId: string | null = null,
   enabled: boolean = true,
   scope: "local" | "global" = "global",
-  depth: number = 2,
   /** `?bench=N` — synthetic client-side dataset, no server fetch. 0 = off. */
   benchCount: number = 0,
 ): UseGraphDataReturn {
@@ -235,17 +237,11 @@ export function useGraphData(
     GraphResponse,
     Error,
     InfiniteData<GraphResponse>,
-    readonly ["graph", "local" | "global", string, string, number],
+    readonly ["graph", "local" | "global", string, string],
     GraphCursor | null
   >({
-    queryKey: [
-      "graph",
-      scope,
-      focusNodeId ?? "auto",
-      profileId ?? "all",
-      scope === "local" ? depth : 0,
-    ],
-    // Keep the previous graph while scope/focus/depth changes, but not when
+    queryKey: ["graph", scope, focusNodeId ?? "auto", profileId ?? "all"],
+    // Keep the previous graph while scope/focus changes, but not when
     // switching workspaces — showing another profile's nodes is misleading.
     placeholderData: (previousData, previousQuery) => {
       if (previousQuery?.queryKey[3] !== (profileId ?? "all")) {
@@ -259,7 +255,7 @@ export function useGraphData(
         focus: scope === "local" ? (focusNodeId ?? undefined) : undefined,
         profileId: profileId ?? undefined,
         mode: scope,
-        depth: scope === "local" ? depth : undefined,
+        depth: scope === "local" ? LOCAL_GRAPH_DEPTH : undefined,
         nodeLimit:
           scope === "global"
             ? pageParam

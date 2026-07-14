@@ -58,7 +58,7 @@ export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
   const [hoveredNode, setHoveredNode] = useState<HoveredNodeInfo | null>(null);
   const [hoveredEdge, setHoveredEdge] = useState<HoveredEdgeInfo | null>(null);
 
-  const viewTheme = useMemo(() => getViewTheme("default", isDark), [isDark]);
+  const viewTheme = useMemo(() => getViewTheme(isDark), [isDark]);
 
   const handleHoverNode = useCallback((info: HoveredNodeInfo | null) => {
     setHoveredNode(info);

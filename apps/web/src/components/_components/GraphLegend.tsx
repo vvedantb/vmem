@@ -10,16 +10,6 @@ interface GraphLegendProps {
 }
 
 /**
- * Connector logos mirrored on the graph: memories synced from one of these
- * services carry a small brand logo inside their node. Kept in sync with
- * `CONNECTOR_SOURCE_TYPES` in `canvas/connector-logos.ts`.
- */
-const CONNECTOR_LEGEND: { src: string; label: string }[] = [
-  { src: "/connector-logos/google_drive.svg", label: "Google Drive" },
-  { src: "/connector-logos/notion.svg", label: "Notion" },
-];
-
-/**
  * Node shapes the renderer dispatches per kind. Only the five kinds users
  * encounter on /memories/graph are listed; codebase-specific shapes
  * (code-file/-class/-interface/-process) reuse this same vocabulary and are
@@ -124,26 +114,6 @@ export default function GraphLegend({
             <span className="w-2.5 h-2.5 rounded-full border border-dashed border-foreground/60" />
             <span>Focused · 2-hop subgraph</span>
           </div>
-        </div>
-      </div>
-
-      {/* Connector source provenance */}
-      <div className="space-y-1">
-        <p className="text-muted/80">Source logo</p>
-        <div className="space-y-1 pt-0.5">
-          {CONNECTOR_LEGEND.map(({ src, label }) => (
-            <div key={src} className="flex items-center gap-2">
-              <img
-                src={src}
-                alt=""
-                width={12}
-                height={12}
-                aria-hidden
-                className="flex-shrink-0"
-              />
-              <span>{label}</span>
-            </div>
-          ))}
         </div>
       </div>
     </div>

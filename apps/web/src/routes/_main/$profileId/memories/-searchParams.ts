@@ -102,14 +102,12 @@ function createSanitizedLiteralArrayParser<const T extends string>(
  * - `q` — search text
  * - `focus` — memory id for graph focus mode (unset in local scope → newest memory)
  * - `scope` — `global` for the full graph (default `local` is omitted)
- * - `depth` — local-graph hop depth 1–3 (default 2 is omitted)
  * - `tags` / `sources` / `types` / `kinds` — comma-separated (e.g. `tags=react,ts`)
  * - `view` — `tags` when on tag rows (default `memories` is omitted)
  */
 const memoriesSearchParams = {
   focus: parseAsOptionalString,
   scope: parseAsStringLiteral(GRAPH_SCOPES).withDefault("local"),
-  depth: parseAsInteger.withDefault(2),
   /**
    * Performance bench: `?bench=100000` renders a synthetic graph of that many
    * nodes (client-generated, no server fetch) so graph performance can be

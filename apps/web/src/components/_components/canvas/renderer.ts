@@ -721,18 +721,18 @@ function renderScene(
         ny,
         glowRadius,
       );
-      grad.addColorStop(
-        0,
-        color +
-          Math.round(intensity * 255)
-            .toString(16)
-            .padStart(2, "0"),
-      );
-      grad.addColorStop(1, color + "00");
+      // Do not append hex alpha (`color + "26"`) — untagged nodes resolve
+      // `--muted` to oklch(...), and addColorStop throws on `oklch(...)26`,
+      // which kills the GraphCanvas rAF loop for the whole session.
+      grad.addColorStop(0, color);
+      grad.addColorStop(1, "transparent");
+      ctx.save();
+      ctx.globalAlpha = intensity;
       ctx.fillStyle = grad;
       ctx.beginPath();
       ctx.arc(nx, ny, glowRadius, 0, TWO_PI);
       ctx.fill();
+      ctx.restore();
     }
   }
 

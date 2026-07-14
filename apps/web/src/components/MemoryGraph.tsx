@@ -18,7 +18,7 @@
 import { useState, useMemo, useCallback, useRef } from "react";
 import { useAction } from "convex/react";
 import { IconMoodEmpty, IconArrowBack } from "@tabler/icons-react";
-import { Button, cn } from "@vmem/ui";
+import { Button } from "@vmem/ui";
 import type { GraphScope } from "@/routes/_main/$profileId/memories/-searchParams";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { VmemSpinner } from "@/components/svg-animations";
@@ -43,19 +43,13 @@ interface MemoryGraphProps {
   /** id → focus that node (local scope); null → switch to the global graph. */
   onFocusChange: (id: string | null) => void;
   scope: GraphScope;
-  depth: number;
-  onDepthChange: (depth: number) => void;
 }
-
-const LOCAL_GRAPH_DEPTHS = [1, 2, 3] as const;
 
 export default function MemoryGraph({
   controller,
   focusNodeId,
   onFocusChange,
   scope,
-  depth,
-  onDepthChange,
 }: MemoryGraphProps) {
   const { deleteMemory } = useMemoryContext();
   const linkMemories = useAction(api.relationshipApi.linkMemories);
@@ -270,9 +264,9 @@ export default function MemoryGraph({
         isDarkCanvas={viewTheme.isDarkCanvas}
       />
 
-      {/* Local-scope controls: switch to global + neighbourhood depth */}
+      {/* Local-scope control: switch back to the full (capped) graph */}
       {scope === "local" && (
-        <div className="absolute top-2 left-2 z-10 flex items-center gap-2">
+        <div className="absolute top-2 left-2 z-10">
           <Button
             variant="outline"
             size="sm"
@@ -282,26 +276,6 @@ export default function MemoryGraph({
             <IconArrowBack size={14} />
             Global graph
           </Button>
-          <div className="flex items-center gap-0.5 rounded-lg bg-surface-secondary/40 p-0.5">
-            <span className="px-1.5 text-xs text-muted">Depth</span>
-            {LOCAL_GRAPH_DEPTHS.map((d) => (
-              <Button
-                key={d}
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => onDepthChange(d)}
-                className={cn(
-                  "h-auto rounded-md px-2 py-1 text-xs",
-                  d === depth
-                    ? "bg-surface-tertiary text-foreground"
-                    : "text-muted hover:bg-surface-tertiary/50 hover:text-foreground",
-                )}
-              >
-                {d}
-              </Button>
-            ))}
-          </div>
         </div>
       )}
 
