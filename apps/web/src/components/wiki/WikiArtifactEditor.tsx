@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useMutation } from "convex/react";
 import { useDebounceCallback } from "usehooks-ts";
 import { toast } from "sonner";
@@ -37,6 +43,80 @@ function previewSrcDoc(content: string, language: string | undefined): string {
   return content;
 }
 
+function PersonalPreviewActions({
+  armed,
+  onArm,
+  onDisarm,
+}: {
+  armed: boolean;
+  onArm: () => void;
+  onDisarm: () => void;
+}) {
+  if (armed) {
+    return (
+      <Button type="button" size="sm" variant="ghost" onClick={onDisarm}>
+        Hide preview
+      </Button>
+    );
+  }
+  return (
+    <Button type="button" size="sm" variant="outline" onClick={onArm}>
+      Show preview
+    </Button>
+  );
+}
+
+function TeamPreviewActions({
+  armed,
+  onArm,
+  onDisarm,
+}: {
+  armed: boolean;
+  onArm: () => void;
+  onDisarm: () => void;
+}) {
+  if (!armed) {
+    return (
+      <Button type="button" size="sm" variant="outline" onClick={onArm}>
+        <IconPlayerPlay size={14} />
+        Run preview
+      </Button>
+    );
+  }
+  return (
+    <Button type="button" size="sm" variant="ghost" onClick={onDisarm}>
+      Hide preview
+    </Button>
+  );
+}
+
+function ArtifactLivePreview({
+  content,
+  language,
+}: {
+  content: string;
+  language: string | undefined;
+}) {
+  const deferredContent = useDeferredValue(content);
+  const isStale = deferredContent !== content;
+
+  return (
+    <div
+      className={cn(
+        "min-h-[220px] min-w-0 flex-1 overflow-hidden bg-surface-secondary md:min-h-0",
+        isStale ? "opacity-70" : null,
+      )}
+    >
+      <iframe
+        title="Artifact preview"
+        sandbox="allow-scripts"
+        srcDoc={previewSrcDoc(deferredContent, language)}
+        className="h-full w-full border-0 bg-white"
+      />
+    </div>
+  );
+}
+
 export default function WikiArtifactEditor({
   doc,
   titleForCopy,
@@ -63,14 +143,14 @@ export default function WikiArtifactEditor({
     );
   });
 
-  const [draft, setDraft] = useState(doc.content ?? "");
-  const loadedDocIdRef = useRef<Id<"wikiNodes"> | null>(null);
+  // remount via key={doc._id} from parent resets draft / preview armed state
+  const [draft, setDraft] = useState(() => doc.content ?? "");
   const draftRef = useRef(draft);
   draftRef.current = draft;
 
   const isTeam = doc.teamId !== undefined;
   const canPreview = isPreviewableLanguage(doc.language);
-  const [previewArmed, setPreviewArmed] = useState(!isTeam);
+  const [previewArmed, setPreviewArmed] = useState(() => !isTeam);
 
   const debouncedSaveToast = useDebounceCallback(() => {
     toast.success("Saved!");
@@ -99,13 +179,6 @@ export default function WikiArtifactEditor({
   }, [onHeadingsChange, onActiveHeadingChange, onWordCountChange]);
 
   useEffect(() => {
-    if (loadedDocIdRef.current === doc._id) return;
-    loadedDocIdRef.current = doc._id;
-    setDraft(doc.content ?? "");
-    setPreviewArmed(!isTeam);
-  }, [doc._id, doc.content, isTeam]);
-
-  useEffect(() => {
     return () => {
       debouncedSave.cancel();
       debouncedSaveToast.cancel();
@@ -131,13 +204,11 @@ export default function WikiArtifactEditor({
 
   const restoreToContent = useCallback(
     async (source: string) => {
-      const activeId = loadedDocIdRef.current;
-      if (!activeId) return;
       debouncedSave.cancel();
       setDraft(source);
       try {
         await updateContent({
-          id: activeId,
+          id: doc._id,
           content: source,
           contentText: source,
           forceSnapshot: true,
@@ -147,7 +218,7 @@ export default function WikiArtifactEditor({
         toast.error(err instanceof Error ? err.message : "Failed to restore");
       }
     },
-    [debouncedSave, updateContent],
+    [debouncedSave, updateContent, doc._id],
   );
 
   useEffect(() => {
@@ -161,51 +232,35 @@ export default function WikiArtifactEditor({
   }
 
   const showPreview = canPreview && previewArmed;
+  const languageLabel = doc.language ?? (canPreview ? "html" : "text");
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       {canPreview ? (
         <div className="flex shrink-0 items-center gap-2 border-b border-separator px-3 py-2 md:px-6">
           <span className="text-xs text-muted">
-            {doc.language ?? "html"}
+            {languageLabel}
             {isTeam ? " · team artifact" : null}
           </span>
           <div className="ml-auto flex items-center gap-1">
-            {isTeam && !previewArmed ? (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => setPreviewArmed(true)}
-              >
-                <IconPlayerPlay size={14} />
-                Run preview
-              </Button>
-            ) : null}
-            {previewArmed ? (
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                onClick={() => setPreviewArmed(false)}
-              >
-                Hide preview
-              </Button>
-            ) : !isTeam ? (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => setPreviewArmed(true)}
-              >
-                Show preview
-              </Button>
-            ) : null}
+            {isTeam ? (
+              <TeamPreviewActions
+                armed={previewArmed}
+                onArm={() => setPreviewArmed(true)}
+                onDisarm={() => setPreviewArmed(false)}
+              />
+            ) : (
+              <PersonalPreviewActions
+                armed={previewArmed}
+                onArm={() => setPreviewArmed(true)}
+                onDisarm={() => setPreviewArmed(false)}
+              />
+            )}
           </div>
         </div>
       ) : (
         <div className="shrink-0 px-3 py-2 text-xs text-muted md:px-6">
-          {doc.language ?? "text"}
+          {languageLabel}
         </div>
       )}
 
@@ -231,14 +286,7 @@ export default function WikiArtifactEditor({
         </div>
 
         {showPreview ? (
-          <div className="min-h-[220px] min-w-0 flex-1 overflow-hidden bg-surface-secondary md:min-h-0">
-            <iframe
-              title="Artifact preview"
-              sandbox="allow-scripts"
-              srcDoc={previewSrcDoc(draft, doc.language)}
-              className="h-full w-full border-0 bg-white"
-            />
-          </div>
+          <ArtifactLivePreview content={draft} language={doc.language} />
         ) : null}
       </div>
     </div>

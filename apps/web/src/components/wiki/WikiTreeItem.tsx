@@ -30,6 +30,76 @@ import { WIKI_ROOT_DROP_ID } from "./_utils";
 
 export type WikiTreeMode = "navigate" | "bulk-select";
 
+type WikiCreateKind = "folder" | "document" | "artifact";
+
+function WikiKindIcon({
+  kind,
+  size = 14,
+}: {
+  kind: WikiListNode["kind"];
+  size?: number;
+}) {
+  if (kind === "folder") {
+    return <IconFolder size={size} className="shrink-0 text-muted" />;
+  }
+  if (kind === "artifact") {
+    return <IconCode size={size} className="shrink-0 text-muted" />;
+  }
+  return <IconFileText size={size} className="shrink-0 text-muted" />;
+}
+
+function WikiFolderCreateMenuItems({
+  parentId,
+  onCreateInside,
+}: {
+  parentId: WikiNodeId;
+  onCreateInside: (parentId: WikiNodeId, kind: WikiCreateKind) => void;
+}) {
+  return (
+    <>
+      <ContextMenuItem onSelect={() => onCreateInside(parentId, "document")}>
+        <IconFileText size={16} className="text-muted" />
+        New document
+      </ContextMenuItem>
+      <ContextMenuItem onSelect={() => onCreateInside(parentId, "artifact")}>
+        <IconCode size={16} className="text-muted" />
+        New artifact
+      </ContextMenuItem>
+      <ContextMenuItem onSelect={() => onCreateInside(parentId, "folder")}>
+        <IconFolderPlus size={16} className="text-muted" />
+        New folder
+      </ContextMenuItem>
+      <ContextMenuSeparator />
+    </>
+  );
+}
+
+function WikiNodeActionMenuItems({
+  node,
+  onRequestRename,
+  onRequestDelete,
+}: {
+  node: WikiListNode;
+  onRequestRename: (node: WikiListNode) => void;
+  onRequestDelete: (node: WikiListNode) => void;
+}) {
+  return (
+    <>
+      <ContextMenuItem onSelect={() => onRequestRename(node)}>
+        <IconPencil size={16} className="text-muted" />
+        Rename
+      </ContextMenuItem>
+      <ContextMenuItem
+        onSelect={() => onRequestDelete(node)}
+        className="text-danger focus:text-danger data-[highlighted]:text-danger"
+      >
+        <IconTrash size={16} />
+        Delete
+      </ContextMenuItem>
+    </>
+  );
+}
+
 // scroll container that doubles as the "move to top level" drop target
 export function WikiRootDropZone({
   disabled,
@@ -58,17 +128,9 @@ export function WikiRootDropZone({
 
 // floating preview rendered under the cursor while dragging a row
 export function WikiDragPreview({ node }: { node: WikiListNode }) {
-  const isFolder = node.kind === "folder";
-  const isArtifact = node.kind === "artifact";
   return (
     <div className="flex max-w-[220px] items-center gap-1.5 rounded-md bg-surface-tertiary px-2 py-1.5 text-sm text-foreground shadow-lg">
-      {isFolder ? (
-        <IconFolder size={14} className="shrink-0 text-muted" />
-      ) : isArtifact ? (
-        <IconCode size={14} className="shrink-0 text-muted" />
-      ) : (
-        <IconFileText size={14} className="shrink-0 text-muted" />
-      )}
+      <WikiKindIcon kind={node.kind} />
       <span className="truncate">{node.title}</span>
     </div>
   );
@@ -231,13 +293,7 @@ function WikiTreeNavigateItem({
               ) : (
                 <span className="inline-block w-[14px] shrink-0" />
               )}
-              {isFolder ? (
-                <IconFolder size={14} className="shrink-0 text-muted" />
-              ) : item.node.kind === "artifact" ? (
-                <IconCode size={14} className="shrink-0 text-muted" />
-              ) : (
-                <IconFileText size={14} className="shrink-0 text-muted" />
-              )}
+              <WikiKindIcon kind={item.node.kind} />
               <span className="truncate">{item.node.title}</span>
               {isFolder && item.node.sourceCodebaseId ? (
                 <span
@@ -250,40 +306,17 @@ function WikiTreeNavigateItem({
             </Button>
           </ContextMenuTrigger>
           <ContextMenuContent>
-            {isFolder && (
-              <>
-                <ContextMenuItem
-                  onSelect={() => onCreateInside(item.node._id, "document")}
-                >
-                  <IconFileText size={16} className="text-muted" />
-                  New document
-                </ContextMenuItem>
-                <ContextMenuItem
-                  onSelect={() => onCreateInside(item.node._id, "artifact")}
-                >
-                  <IconCode size={16} className="text-muted" />
-                  New artifact
-                </ContextMenuItem>
-                <ContextMenuItem
-                  onSelect={() => onCreateInside(item.node._id, "folder")}
-                >
-                  <IconFolderPlus size={16} className="text-muted" />
-                  New folder
-                </ContextMenuItem>
-                <ContextMenuSeparator />
-              </>
-            )}
-            <ContextMenuItem onSelect={() => onRequestRename(item.node)}>
-              <IconPencil size={16} className="text-muted" />
-              Rename
-            </ContextMenuItem>
-            <ContextMenuItem
-              onSelect={() => onRequestDelete(item.node)}
-              className="text-danger focus:text-danger data-[highlighted]:text-danger"
-            >
-              <IconTrash size={16} />
-              Delete
-            </ContextMenuItem>
+            {isFolder ? (
+              <WikiFolderCreateMenuItems
+                parentId={item.node._id}
+                onCreateInside={onCreateInside}
+              />
+            ) : null}
+            <WikiNodeActionMenuItems
+              node={item.node}
+              onRequestRename={onRequestRename}
+              onRequestDelete={onRequestDelete}
+            />
           </ContextMenuContent>
         </ContextMenu>
       </div>
@@ -369,13 +402,7 @@ function WikiTreeBulkSelectItem({
               ) : (
                 <span className="inline-block w-[14px] shrink-0" />
               )}
-              {isFolder ? (
-                <IconFolder size={14} className="shrink-0 text-muted" />
-              ) : item.node.kind === "artifact" ? (
-                <IconCode size={14} className="shrink-0 text-muted" />
-              ) : (
-                <IconFileText size={14} className="shrink-0 text-muted" />
-              )}
+              <WikiKindIcon kind={item.node.kind} />
               <span className="truncate">{item.node.title}</span>
               {isFolder && item.node.sourceCodebaseId ? (
                 <span
@@ -388,40 +415,17 @@ function WikiTreeBulkSelectItem({
             </Button>
           </ContextMenuTrigger>
           <ContextMenuContent>
-            {isFolder && (
-              <>
-                <ContextMenuItem
-                  onSelect={() => onCreateInside(item.node._id, "document")}
-                >
-                  <IconFileText size={16} className="text-muted" />
-                  New document
-                </ContextMenuItem>
-                <ContextMenuItem
-                  onSelect={() => onCreateInside(item.node._id, "artifact")}
-                >
-                  <IconCode size={16} className="text-muted" />
-                  New artifact
-                </ContextMenuItem>
-                <ContextMenuItem
-                  onSelect={() => onCreateInside(item.node._id, "folder")}
-                >
-                  <IconFolderPlus size={16} className="text-muted" />
-                  New folder
-                </ContextMenuItem>
-                <ContextMenuSeparator />
-              </>
-            )}
-            <ContextMenuItem onSelect={() => onRequestRename(item.node)}>
-              <IconPencil size={16} className="text-muted" />
-              Rename
-            </ContextMenuItem>
-            <ContextMenuItem
-              onSelect={() => onRequestDelete(item.node)}
-              className="text-danger focus:text-danger data-[highlighted]:text-danger"
-            >
-              <IconTrash size={16} />
-              Delete
-            </ContextMenuItem>
+            {isFolder ? (
+              <WikiFolderCreateMenuItems
+                parentId={item.node._id}
+                onCreateInside={onCreateInside}
+              />
+            ) : null}
+            <WikiNodeActionMenuItems
+              node={item.node}
+              onRequestRename={onRequestRename}
+              onRequestDelete={onRequestDelete}
+            />
           </ContextMenuContent>
         </ContextMenu>
       </div>
