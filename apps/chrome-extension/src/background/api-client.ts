@@ -25,19 +25,9 @@ async function getAuthenticatedClient() {
   return await createAuthenticatedConvexClient();
 }
 
-export interface DuplicateInfo {
-  id: string;
-  title: string;
-  updatedAt: string;
-}
-
-export type CreateResult =
-  | { status: "created"; memory: MemoryWithTags }
-  | { status: "duplicate"; existingMemory: DuplicateInfo };
-
 export async function createMemory(
   params: CreateMemoryParams,
-): Promise<CreateResult> {
+): Promise<MemoryWithTags> {
   const client = await getAuthenticatedClient();
   if (!client) {
     throw new Error(
@@ -45,7 +35,7 @@ export async function createMemory(
     );
   }
 
-  const memory = await client.action(api.memoryApi.createMemory, {
+  return await client.action(api.memoryApi.createMemory, {
     title: params.title,
     content: params.content,
     type: params.type,
@@ -55,33 +45,6 @@ export async function createMemory(
     url: params.url,
     profileId: params.profileId,
   });
-
-  return { status: "created", memory };
-}
-
-export async function updateMemory(
-  memoryId: string,
-  params: { title?: string; content?: string; tags?: string[] },
-): Promise<MemoryWithTags> {
-  const client = await getAuthenticatedClient();
-  if (!client) {
-    throw new Error(
-      "Not authenticated - please sign in via the extension popup",
-    );
-  }
-
-  const result = await client.action(api.memoryApi.updateMemory, {
-    memoryId,
-    title: params.title,
-    content: params.content,
-    tags: params.tags,
-  });
-
-  if (!result) {
-    throw new Error("Memory not found or update failed");
-  }
-
-  return result;
 }
 
 export async function retrieveMemories(
@@ -187,13 +150,15 @@ export async function listProfiles(): Promise<Profile[]> {
   }
 
   const profiles = await client.query(api.profiles.list, {});
-  return profiles.map((p) => ({
-    _id: p._id,
-    name: p.name,
-    color: p.color,
-    icon: p.icon,
-    isDefault: p.isDefault,
-  }));
+  return profiles.map(
+    (p): Profile => ({
+      _id: p._id,
+      name: p.name,
+      color: p.color,
+      icon: p.icon,
+      isDefault: p.isDefault,
+    }),
+  );
 }
 
 /**

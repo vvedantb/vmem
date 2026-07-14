@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQuery } from "convex/react";
 import { IconDeviceFloppy } from "@tabler/icons-react";
 import {
   Button,
@@ -12,9 +13,8 @@ import {
   SelectItem,
   Skeleton,
 } from "@vmem/ui";
+import { api } from "@vmem/backend";
 import type { ContentMessage, BackgroundResponse } from "@/types/messages";
-import type { Profile } from "@/types/api";
-import { updateMemory, listProfiles } from "@/background/api-client";
 import { getStorage } from "@/lib/storage";
 import { extractPageFromTab } from "@/lib/extract-page";
 
@@ -46,18 +46,13 @@ function truncateUrl(url: string, maxLength = 40): string {
 }
 
 export function QuickSave() {
+  const profiles = useQuery(api.profiles.list);
   const [pageInfo, setPageInfo] = useState<PageInfo | null>(null);
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState<{
     success: boolean;
     message: string;
   } | null>(null);
-  const [pendingUpdate, setPendingUpdate] = useState<{
-    memoryId: string;
-    title: string;
-    content: string;
-  } | null>(null);
-  const [profiles, setProfiles] = useState<Profile[] | null>(null);
   const [selectedProfileId, setSelectedProfileId] = useState<string>("");
 
   useEffect(() => {
@@ -72,29 +67,25 @@ export function QuickSave() {
       }
     });
 
-    void (async () => {
-      try {
-        const [profileList, storage] = await Promise.all([
-          listProfiles(),
-          getStorage(),
-        ]);
-        setProfiles(profileList);
-
-        const defaultId =
-          storage.defaultProfileId ||
-          profileList.find((p) => p.isDefault)?._id ||
-          "";
-        setSelectedProfileId(defaultId);
-      } catch {
-        // Not authenticated or other error
+    void getStorage().then((storage) => {
+      if (storage.defaultProfileId) {
+        setSelectedProfileId(storage.defaultProfileId);
       }
-    })();
+    });
   }, []);
+
+  // Resolve empty selection to the account default once profiles load.
+  useEffect(() => {
+    if (profiles === undefined || selectedProfileId) return;
+    const defaultProfile = profiles.find((p) => p.isDefault);
+    if (defaultProfile) {
+      setSelectedProfileId(defaultProfile._id);
+    }
+  }, [profiles, selectedProfileId]);
 
   function handleSave() {
     setSaving(true);
     setResult(null);
-    setPendingUpdate(null);
 
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const tab = tabs[0];
@@ -143,39 +134,13 @@ export function QuickSave() {
                       message: response.error ?? "Failed to save",
                     },
               );
-            } else if (response?.type === "SAVE_DUPLICATE") {
-              setPendingUpdate({
-                memoryId: response.existingMemory.id,
-                title: tab.title ?? "Untitled",
-                content: extraction.content.slice(0, 10000),
-              });
+            } else {
+              setResult({ success: false, message: "Failed to save" });
             }
           },
         );
       })();
     });
-  }
-
-  async function handleUpdate() {
-    if (!pendingUpdate) return;
-    setSaving(true);
-    try {
-      await updateMemory(pendingUpdate.memoryId, {
-        title: pendingUpdate.title,
-        content: pendingUpdate.content,
-      });
-      setPendingUpdate(null);
-      setResult({ success: true, message: "Memory updated" });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Update failed";
-      setResult({ success: false, message: msg });
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  function handleDismiss() {
-    setPendingUpdate(null);
   }
 
   const selectedProfile = profiles?.find((p) => p._id === selectedProfileId);
@@ -207,7 +172,7 @@ export function QuickSave() {
         </Card>
       ) : null}
 
-      {profiles === null ? (
+      {profiles === undefined ? (
         <div className="flex items-center justify-between gap-3">
           <Label className="text-sm font-medium">Save to</Label>
           <Skeleton className="h-9 w-[160px] rounded-field" />
@@ -258,27 +223,6 @@ export function QuickSave() {
         <IconDeviceFloppy size={16} />
         {saving ? "Saving..." : "Save to vmem"}
       </Button>
-
-      {pendingUpdate ? (
-        <Card className="shadow-none">
-          <CardContent className="space-y-3 p-4">
-            <p className="text-sm text-muted">Already saved — update it?</p>
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleUpdate}
-                disabled={saving}
-              >
-                Update
-              </Button>
-              <Button size="sm" variant="ghost" onClick={handleDismiss}>
-                Dismiss
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
 
       {result ? (
         <p

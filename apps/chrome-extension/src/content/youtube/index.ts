@@ -227,9 +227,6 @@ async function handleSaveClick(): Promise<void> {
       if (response?.type === "SAVE_RESULT" && response.success) {
         button.innerHTML = `<span style="color: #16a34a;">✓ Saved!</span>`;
         button.title = "Save video to vmem";
-      } else if (response?.type === "SAVE_DUPLICATE") {
-        button.innerHTML = `<span style="color: #ca8a04;">Already saved</span>`;
-        button.title = "Save video to vmem";
       } else {
         // Surface the real reason: backend error message, or a generic note
         // when the response was dropped (extension reload, channel closed).

@@ -1,9 +1,11 @@
+import type { ExtensionUserSettings } from "./api";
+
 export interface ExtensionStorage {
   selectionPopupEnabled: boolean;
   lastBookmarkSync: number; // epoch ms, 0 = never synced
   lastHistorySync: number; // epoch ms, 0 = never synced
   autoSyncEnabled: boolean;
-  autoSyncIntervalMinutes: number; // history-sync period (min); mirrors Convex extensionAutoSyncIntervalMinutes
+  autoSyncIntervalMinutes: number; // history-sync period (min)
   defaultProfileId: string; // Default profile for saving memories
   autoSearchEnabled: boolean; // Auto-search memories while typing in AI chats
   autoCaptureEnabled: boolean; // Auto-capture prompts sent to AI chats
@@ -12,6 +14,39 @@ export interface ExtensionStorage {
   // instead of looking healthy. See sync-scheduler.handleHistoryAlarm.
   lastSyncAttemptAt: number; // epoch ms of the most recent sync attempt, 0 = never
   lastSyncSkipReason: string; // why the last attempt did not sync ("" = synced ok)
+}
+
+/**
+ * chrome.storage keys that mirror Convex `userSettings` fields for the
+ * service worker (alarms / content scripts can't subscribe to Convex).
+ * `satisfies` ties each storage key to a real Convex field so renames break
+ * typecheck here instead of silently drifting.
+ */
+export const CONVEX_SETTINGS_MIRROR = {
+  autoSyncEnabled: "extensionAutoSyncEnabled",
+  autoSyncIntervalMinutes: "extensionAutoSyncIntervalMinutes",
+  selectionPopupEnabled: "extensionSelectionPopupEnabled",
+} as const satisfies {
+  readonly [K in keyof Pick<
+    ExtensionStorage,
+    "autoSyncEnabled" | "autoSyncIntervalMinutes" | "selectionPopupEnabled"
+  >]: keyof ExtensionUserSettings;
+};
+
+export type MirroredStorageKey = keyof typeof CONVEX_SETTINGS_MIRROR;
+
+export type MirroredConvexKey =
+  (typeof CONVEX_SETTINGS_MIRROR)[MirroredStorageKey];
+
+/** Project Convex userSettings → the chrome.storage mirror subset. */
+export function convexSettingsToStorageMirror(
+  settings: Pick<ExtensionUserSettings, MirroredConvexKey>,
+): Pick<ExtensionStorage, MirroredStorageKey> {
+  return {
+    autoSyncEnabled: settings.extensionAutoSyncEnabled,
+    autoSyncIntervalMinutes: settings.extensionAutoSyncIntervalMinutes,
+    selectionPopupEnabled: settings.extensionSelectionPopupEnabled,
+  };
 }
 
 export const STORAGE_DEFAULTS: ExtensionStorage = {

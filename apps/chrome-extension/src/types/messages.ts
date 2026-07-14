@@ -62,10 +62,6 @@ export type BackgroundResponse =
   | { type: "RETRIEVE_RESULT"; memories: MemoryCandidate[] }
   | { type: "SAVE_RESULT"; success: boolean; memoryId?: string; error?: string }
   | {
-      type: "SAVE_DUPLICATE";
-      existingMemory: { id: string; title: string; updatedAt: string };
-    }
-  | {
       type: "IMPORT_RESULT";
       success: boolean;
       count: number;

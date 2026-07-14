@@ -261,8 +261,6 @@ async function saveScreenshot(): Promise<void> {
     }
     if (response.type === "SAVE_RESULT" && response.success) {
       setMode("success");
-    } else if (response.type === "SAVE_DUPLICATE") {
-      setMode("success");
     } else if (response.type === "SAVE_RESULT") {
       console.error(
         "[vmem] Screenshot save failed:",

@@ -88,7 +88,7 @@ export async function handleMessage(
           // markdown field contains HTML from page extraction - convert it
           contentToSave = htmlToMarkdown(message.markdown);
         }
-        const result = await createMemory({
+        const memory = await createMemory({
           title: message.title,
           content: contentToSave.slice(0, 10000),
           type: "knowledge",
@@ -98,16 +98,10 @@ export async function handleMessage(
           url: message.url,
           profileId: message.profileId,
         });
-        if (result.status === "duplicate") {
-          return {
-            type: "SAVE_DUPLICATE",
-            existingMemory: result.existingMemory,
-          };
-        }
         return {
           type: "SAVE_RESULT",
           success: true,
-          memoryId: result.memory.id,
+          memoryId: memory.id,
         };
       } catch (err) {
         const error = err instanceof Error ? err.message : "Unknown error";
@@ -118,7 +112,7 @@ export async function handleMessage(
     case "SAVE_YOUTUBE_VIDEO": {
       try {
         const content = `Channel: ${message.channel}\n\nTranscript:\n${message.transcript}`;
-        const result = await createMemory({
+        const memory = await createMemory({
           title: message.title,
           content: content.slice(0, 10000),
           type: "knowledge",
@@ -128,16 +122,10 @@ export async function handleMessage(
           url: message.url,
           profileId: message.profileId,
         });
-        if (result.status === "duplicate") {
-          return {
-            type: "SAVE_DUPLICATE",
-            existingMemory: result.existingMemory,
-          };
-        }
         return {
           type: "SAVE_RESULT",
           success: true,
-          memoryId: result.memory.id,
+          memoryId: memory.id,
         };
       } catch (err) {
         const error = err instanceof Error ? err.message : "Unknown error";
@@ -152,7 +140,7 @@ export async function handleMessage(
           trimmed.length > 80 ? trimmed.slice(0, 80) + "…" : trimmed;
         const hostname = new URL(message.url).hostname;
 
-        const result = await createMemory({
+        const memory = await createMemory({
           title,
           content: message.prompt.slice(0, 10000),
           type: "knowledge",
@@ -162,17 +150,10 @@ export async function handleMessage(
           url: message.url,
           profileId: message.profileId,
         });
-
-        if (result.status === "duplicate") {
-          return {
-            type: "SAVE_DUPLICATE",
-            existingMemory: result.existingMemory,
-          };
-        }
         return {
           type: "SAVE_RESULT",
           success: true,
-          memoryId: result.memory.id,
+          memoryId: memory.id,
         };
       } catch (err) {
         const error = err instanceof Error ? err.message : "Unknown error";
@@ -193,7 +174,7 @@ export async function handleMessage(
           textLength: message.selectedText.length,
         });
 
-        const result = await createMemory({
+        const memory = await createMemory({
           title,
           content: message.selectedText.slice(0, 10000),
           type: "knowledge",
@@ -203,17 +184,10 @@ export async function handleMessage(
           url: message.pageUrl,
           profileId: message.profileId,
         });
-
-        if (result.status === "duplicate") {
-          return {
-            type: "SAVE_DUPLICATE",
-            existingMemory: result.existingMemory,
-          };
-        }
         return {
           type: "SAVE_RESULT",
           success: true,
-          memoryId: result.memory.id,
+          memoryId: memory.id,
         };
       } catch (err) {
         const error = err instanceof Error ? err.message : "Unknown error";

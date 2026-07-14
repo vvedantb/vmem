@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useClerk } from "@clerk/chrome-extension";
+import { useQuery } from "convex/react";
 import {
   IconSun,
   IconMoon,
@@ -22,6 +23,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@vmem/ui";
+import { api } from "@vmem/backend";
 import { getStorage, setStorage } from "@/lib/storage";
 import {
   VMEM_AI_SYSTEM_PROMPT,
@@ -32,8 +34,6 @@ import {
 } from "@/lib/constants";
 import { copyTextToClipboard } from "@/lib/copy-to-clipboard";
 import { useExtensionUserSettings } from "@/popup/useExtensionUserSettings";
-import type { Profile } from "@/types/api";
-import { listProfiles } from "@/background/api-client";
 import { SettingsSelectRow } from "./SettingsSelectRow";
 import { SettingsSwitchRow } from "./SettingsSwitchRow";
 import { SettingsSliderRow } from "./SettingsSliderRow";
@@ -47,35 +47,28 @@ function isTheme(value: string): value is Theme {
 export function SettingsForm() {
   const { signOut } = useClerk();
   const { settings, update } = useExtensionUserSettings();
+  const profiles = useQuery(api.profiles.list);
   const [autoSearchEnabled, setAutoSearchEnabled] = useState(true);
   const [autoCaptureEnabled, setAutoCaptureEnabled] = useState(false);
-  const [profiles, setProfiles] = useState<Profile[] | null>(null);
   const [selectedProfileId, setSelectedProfileId] = useState<string>("");
   const [promptCopied, setPromptCopied] = useState(false);
 
   useEffect(() => {
-    async function load() {
-      const s = await getStorage();
+    void getStorage().then((s) => {
       setAutoSearchEnabled(s.autoSearchEnabled);
       setAutoCaptureEnabled(s.autoCaptureEnabled);
       setSelectedProfileId(s.defaultProfileId);
-
-      try {
-        const profileList = await listProfiles();
-        setProfiles(profileList);
-        if (!s.defaultProfileId) {
-          const defaultProfile = profileList.find((p) => p.isDefault);
-          if (defaultProfile) {
-            setSelectedProfileId(defaultProfile._id);
-          }
-        }
-      } catch {
-        // Not authenticated yet
-      }
-    }
-
-    void load();
+    });
   }, []);
+
+  // Resolve empty selection to the account default once profiles load.
+  useEffect(() => {
+    if (profiles === undefined || selectedProfileId) return;
+    const defaultProfile = profiles.find((p) => p.isDefault);
+    if (defaultProfile) {
+      setSelectedProfileId(defaultProfile._id);
+    }
+  }, [profiles, selectedProfileId]);
 
   function handleThemeChange(value: string) {
     if (isTheme(value)) {
@@ -163,7 +156,7 @@ export function SettingsForm() {
               label="Active profile"
               description="Where this browser saves new memories — set it separately in each Chrome profile."
             >
-              {profiles === null ? (
+              {profiles === undefined ? (
                 <Skeleton className="h-9 w-[160px] rounded-field" />
               ) : (
                 <Select

@@ -13,6 +13,7 @@ import {
   updateUserSettings,
   type UserSettingsUpdateArgs,
 } from "@/background/api-client";
+import { convexSettingsToStorageMirror } from "@/types/storage";
 
 function useExtensionUserSettingsInner() {
   const settings = useQuery(api.userSettings.get);
@@ -62,11 +63,11 @@ function useExtensionUserSettingsInner() {
     }
     migrationRan.current = true;
     void getStorage().then((local) => {
+      const mirrored = convexSettingsToStorageMirror(settings);
       if (
-        local.autoSyncEnabled === settings.extensionAutoSyncEnabled &&
-        local.autoSyncIntervalMinutes ===
-          settings.extensionAutoSyncIntervalMinutes &&
-        local.selectionPopupEnabled === settings.extensionSelectionPopupEnabled
+        local.autoSyncEnabled === mirrored.autoSyncEnabled &&
+        local.autoSyncIntervalMinutes === mirrored.autoSyncIntervalMinutes &&
+        local.selectionPopupEnabled === mirrored.selectionPopupEnabled
       ) {
         return;
       }
@@ -80,11 +81,7 @@ function useExtensionUserSettingsInner() {
 
   useEffect(() => {
     if (settings === undefined) return;
-    void setStorage({
-      autoSyncEnabled: settings.extensionAutoSyncEnabled,
-      autoSyncIntervalMinutes: settings.extensionAutoSyncIntervalMinutes,
-      selectionPopupEnabled: settings.extensionSelectionPopupEnabled,
-    });
+    void setStorage(convexSettingsToStorageMirror(settings));
   }, [settings]);
 
   return { settings, update };

@@ -42,11 +42,9 @@ export async function runLockedImportLoop<T>(options: {
         const params = options.toCreateParams(item);
         if (!params) continue;
 
-        const result = await createMemory(params);
+        await createMemory(params);
         processed++;
-        if (result.status === "created") {
-          imported++;
-        }
+        imported++;
 
         if (!options.silent) {
           void chrome.runtime.sendMessage({

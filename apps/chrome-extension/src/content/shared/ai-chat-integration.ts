@@ -8,8 +8,8 @@
  */
 
 import type { ContentMessage, BackgroundResponse } from "@/types/messages";
-import type { MemoryCandidate } from "@/types/api";
 import { safeSendMessage } from "@/lib/safe-message";
+import { formatMemoriesContext } from "./format-memories-context";
 import { showToast } from "./toast";
 import {
   showMemoryPanel,
@@ -42,13 +42,6 @@ const SETTING_DEFAULTS: CachedSettings = {
   autoCaptureEnabled: false,
   defaultProfileId: "",
 };
-
-// ── Context formatting (matches existing "Use vmem" button format) ───────────
-
-function formatMemoriesContext(mems: MemoryCandidate[]): string {
-  const lines = mems.map((m) => `- ${m.title}: ${m.content.slice(0, 200)}`);
-  return `[Context from vmem]\n${lines.join("\n")}\n\n`;
-}
 
 // ── Setup ────────────────────────────────────────────────────────────────────
 

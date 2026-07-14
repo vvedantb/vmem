@@ -90,7 +90,7 @@ export async function savePageFromTab(
       : extraction.content;
 
     const hostname = new URL(tab.url).hostname;
-    const result = await createMemory({
+    const memory = await createMemory({
       title: extraction.ogTitle ?? extraction.title ?? tab.title ?? "Untitled",
       content: truncate(markdown || extraction.content, 10000),
       type: "knowledge",
@@ -100,11 +100,7 @@ export async function savePageFromTab(
       url: tab.url,
     });
 
-    if (result.status === "duplicate") {
-      return { success: false, error: "Already saved" };
-    }
-
-    return { success: true, memoryId: result.memory.id };
+    return { success: true, memoryId: memory.id };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     return { success: false, error: message };

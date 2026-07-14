@@ -1,5 +1,6 @@
 import { api } from "@vmem/backend";
 import { getStorage, setStorage } from "@/lib/storage";
+import { convexSettingsToStorageMirror } from "@/types/storage";
 import {
   DEFAULT_SYNC_INTERVAL_MINUTES,
   MAX_SYNC_INTERVAL_MINUTES,
@@ -140,12 +141,9 @@ export async function refreshUserSettingsMirrorFromConvex(): Promise<void> {
 
   try {
     const settings = await client.query(api.userSettings.get, {});
-    await setStorage({
-      autoSyncEnabled: settings.extensionAutoSyncEnabled,
-      autoSyncIntervalMinutes: settings.extensionAutoSyncIntervalMinutes,
-      selectionPopupEnabled: settings.extensionSelectionPopupEnabled,
-    });
-    await reconcileAutoSyncAlarm(settings.extensionAutoSyncEnabled);
+    const mirrored = convexSettingsToStorageMirror(settings);
+    await setStorage(mirrored);
+    await reconcileAutoSyncAlarm(mirrored.autoSyncEnabled);
   } catch {
     return;
   }
