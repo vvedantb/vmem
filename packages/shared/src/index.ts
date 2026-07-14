@@ -4,7 +4,6 @@ export {
   isCodebaseSyncStalled,
 } from "./codebase";
 export { parseEnvVars } from "./envParse";
-export { segmentInputBySkills, type InputSkillSegment } from "./skillSegments";
 export {
   DEFAULT_LOCAL_TIME,
   localTimeToUtc,
