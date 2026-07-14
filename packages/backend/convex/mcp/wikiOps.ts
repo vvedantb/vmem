@@ -6,6 +6,7 @@ import {
   mergeMarkdownForAppend,
   wikiExcerpt,
 } from "../lib/wikiContent";
+import { wikiKindHasContent } from "../lib/wikiKind";
 import {
   buildWikiChildrenByParent,
   findWikiChild,
@@ -16,18 +17,20 @@ import {
 export type WikiListItem = {
   id: string;
   title: string;
-  kind: "folder" | "document";
+  kind: "folder" | "document" | "artifact";
   parentId: string | null;
   order: number;
   updatedAt: number;
+  language: string | null;
 };
 
 export type WikiGetResult = {
   id: string;
   title: string;
-  kind: "folder" | "document";
+  kind: "folder" | "document" | "artifact";
   parentId: string | null;
   contentMarkdown: string | null;
+  language: string | null;
   createdAt: number;
   updatedAt: number;
 };
@@ -35,11 +38,11 @@ export type WikiGetResult = {
 export type WikiSearchItem = {
   id: string;
   title: string;
-  kind: "folder" | "document";
+  kind: "folder" | "document" | "artifact";
   excerpt: string;
 };
 
-function documentMarkdown(node: Doc<"wikiNodes">): string {
+function nodeBody(node: Doc<"wikiNodes">): string {
   return node.content ?? "";
 }
 
@@ -51,6 +54,7 @@ export function toWikiListItem(node: Doc<"wikiNodes">): WikiListItem {
     parentId: node.parentId ?? null,
     order: node.order,
     updatedAt: node.updatedAt,
+    language: node.language ?? null,
   };
 }
 
@@ -60,14 +64,15 @@ export function toWikiGetResult(node: Doc<"wikiNodes">): WikiGetResult {
     title: node.title,
     kind: node.kind,
     parentId: node.parentId ?? null,
-    contentMarkdown: node.kind === "document" ? documentMarkdown(node) : null,
+    contentMarkdown: wikiKindHasContent(node.kind) ? nodeBody(node) : null,
+    language: node.language ?? null,
     createdAt: node.createdAt,
     updatedAt: node.updatedAt,
   };
 }
 
 export function toWikiSearchItem(node: Doc<"wikiNodes">): WikiSearchItem {
-  const body = node.kind === "document" ? documentMarkdown(node) : "";
+  const body = wikiKindHasContent(node.kind) ? nodeBody(node) : "";
   return {
     id: node._id,
     title: node.title,
@@ -145,11 +150,12 @@ async function reloadWikiNode(
 
 export type CreateWikiArgs = {
   clerkId: string;
-  kind: "folder" | "document";
+  kind: "folder" | "document" | "artifact";
   title: string;
   parentId?: string;
   parentPath?: string;
   contentMarkdown?: string;
+  language?: string;
   sourceCodebaseId?: string;
 };
 
@@ -178,10 +184,15 @@ export async function createWiki(
     parentId = await ensureWikiFolderPath(ctx, args.clerkId, parentPathTrimmed);
   }
 
-  const content =
-    args.kind === "document" ? (args.contentMarkdown ?? "") : undefined;
+  const hasContent = wikiKindHasContent(args.kind);
+  const content = hasContent ? (args.contentMarkdown ?? "") : undefined;
+  // documents: markdown → plain text for search; artifacts: mirror raw source
   const contentText =
-    content !== undefined ? markdownToPlainText(content) : undefined;
+    content === undefined
+      ? undefined
+      : args.kind === "artifact"
+        ? content
+        : markdownToPlainText(content);
 
   const id: Id<"wikiNodes"> = await ctx.runMutation(
     internal.wiki.createByClerkIdInternal,
@@ -192,6 +203,7 @@ export async function createWiki(
       title: args.title,
       content,
       contentText,
+      language: args.language,
       sourceCodebaseId: args.sourceCodebaseId,
     },
   );
@@ -210,6 +222,7 @@ export type UpdateWikiArgs = {
   title?: string;
   contentMarkdown?: string;
   contentMode?: "replace" | "append";
+  language?: string;
 };
 
 export async function updateWiki(
@@ -228,16 +241,17 @@ export async function updateWiki(
   let contentText: string | undefined;
 
   if (args.contentMarkdown !== undefined) {
-    if (existing.kind !== "document") {
+    if (!wikiKindHasContent(existing.kind)) {
       throw new Error("Cannot write content to a folder");
     }
     const mode = args.contentMode ?? "replace";
-    const existingMarkdown = documentMarkdown(existing);
+    const existingBody = nodeBody(existing);
     content =
       mode === "append"
-        ? mergeMarkdownForAppend(existingMarkdown, args.contentMarkdown)
+        ? mergeMarkdownForAppend(existingBody, args.contentMarkdown)
         : args.contentMarkdown;
-    contentText = markdownToPlainText(content);
+    contentText =
+      existing.kind === "artifact" ? content : markdownToPlainText(content);
   }
 
   await ctx.runMutation(internal.wiki.updateByClerkIdInternal, {
@@ -246,6 +260,7 @@ export async function updateWiki(
     title: args.title,
     content,
     contentText,
+    language: args.language,
   });
 
   return reloadWikiNode(

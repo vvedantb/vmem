@@ -7,13 +7,16 @@ import type { GraphNode, GraphEdge, RelatedNode } from "./canvas/types";
 
 // ---- API response shapes (mirrors Zod schemas in useGraphData) ----
 
+// graph payload omits wiki-artifact (artifacts render as wiki-document nodes)
+export type ApiGraphNodeKind = Exclude<ListItemKind, "wiki-artifact">;
+
 // `source` and `type` are only populated on memory nodes
 export interface ApiGraphNode {
   id: string;
   title: string;
   tags: string[];
   createdAt: string;
-  kind: ListItemKind;
+  kind: ApiGraphNodeKind;
   source?: string;
   sourceType: string | null;
   type?: MemoryType;
@@ -70,12 +73,12 @@ export function getAllTags(apiNodes: ApiGraphNode[]): TagStat[] {
 // ---- Kind stats ----
 
 export interface KindStat {
-  kind: ListItemKind;
+  kind: ApiGraphNodeKind;
   count: number;
 }
 
 // canonical display order for kinds — never shuffle regardless of data
-const KIND_ORDER: ListItemKind[] = [
+const KIND_ORDER: ApiGraphNodeKind[] = [
   "memory",
   "entity",
   "wiki-document",
@@ -85,7 +88,7 @@ const KIND_ORDER: ListItemKind[] = [
 
 // returns counts for each node kind present in the data, in a stable order
 export function getAllKinds(apiNodes: ApiGraphNode[]): KindStat[] {
-  const counts = new Map<ListItemKind, number>();
+  const counts = new Map<ApiGraphNodeKind, number>();
   for (const node of apiNodes) {
     counts.set(node.kind, (counts.get(node.kind) ?? 0) + 1);
   }

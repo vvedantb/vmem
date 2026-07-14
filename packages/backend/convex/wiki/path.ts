@@ -6,7 +6,7 @@ export interface WikiPathNode {
   id: Id<"wikiNodes">;
   parentId: Id<"wikiNodes"> | null;
   title: string;
-  kind: "folder" | "document";
+  kind: "folder" | "document" | "artifact";
 }
 
 export function wikiPathNodeFromDoc(node: Doc<"wikiNodes">): WikiPathNode {

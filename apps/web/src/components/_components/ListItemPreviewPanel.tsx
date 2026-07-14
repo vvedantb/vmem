@@ -17,6 +17,8 @@ function kindLabel(item: ListItem): string {
   switch (item.kind) {
     case "wiki-document":
       return "Wiki";
+    case "wiki-artifact":
+      return "Artifact";
     case "wiki-folder":
       return "Folder";
     case "skill":
@@ -47,6 +49,7 @@ function glimpseText(item: ListItem): string {
 function jumpLabel(item: ListItem): string {
   switch (item.kind) {
     case "wiki-document":
+    case "wiki-artifact":
       return "Open in Wiki";
     case "wiki-folder":
       return "Open Wiki";
@@ -67,6 +70,7 @@ export default function ListItemPreviewPanel({
   const handleJump = () => {
     switch (item.kind) {
       case "wiki-document":
+      case "wiki-artifact":
         void navigate({
           to: "/$profileId/wiki/$docId",
           params: { profileId: activeProfile._id, docId: item.wikiId },

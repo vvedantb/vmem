@@ -19,10 +19,10 @@ export function WikiDocRouteRedirect() {
   useEffect(() => {
     if (!nodes) return;
 
-    // keep document URLs; only redirect bare /wiki or folder ids
+    // keep document/artifact URLs; only redirect bare /wiki or folder ids
     if (docId !== null) {
       const node = nodes.find((n) => n._id === docId);
-      if (!node || node.kind === "document") return;
+      if (!node || node.kind === "document" || node.kind === "artifact") return;
     }
 
     const firstId = findFirstDocumentId(tree);

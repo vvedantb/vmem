@@ -7,6 +7,7 @@ import { CSS } from "@dnd-kit/utilities";
 import type { WikiListNode, WikiNodeId } from "./-types";
 import {
   IconChevronRight,
+  IconCode,
   IconDatabase,
   IconFileText,
   IconFolder,
@@ -58,10 +59,13 @@ export function WikiRootDropZone({
 // floating preview rendered under the cursor while dragging a row
 export function WikiDragPreview({ node }: { node: WikiListNode }) {
   const isFolder = node.kind === "folder";
+  const isArtifact = node.kind === "artifact";
   return (
     <div className="flex max-w-[220px] items-center gap-1.5 rounded-md bg-surface-tertiary px-2 py-1.5 text-sm text-foreground shadow-lg">
       {isFolder ? (
         <IconFolder size={14} className="shrink-0 text-muted" />
+      ) : isArtifact ? (
+        <IconCode size={14} className="shrink-0 text-muted" />
       ) : (
         <IconFileText size={14} className="shrink-0 text-muted" />
       )}
@@ -78,7 +82,10 @@ export interface WikiTreeListProps {
   mode: WikiTreeMode;
   selectedNodeIds?: ReadonlySet<WikiNodeId>;
   onToggleSelect?: (id: WikiNodeId) => void;
-  onCreateInside: (parentId: WikiNodeId, kind: "folder" | "document") => void;
+  onCreateInside: (
+    parentId: WikiNodeId,
+    kind: "folder" | "document" | "artifact",
+  ) => void;
   onRequestRename: (node: WikiListNode) => void;
   onRequestDelete: (node: WikiListNode) => void;
 }
@@ -124,7 +131,10 @@ interface WikiTreeItemProps {
   mode: WikiTreeMode;
   selectedNodeIds?: ReadonlySet<WikiNodeId>;
   onToggleSelect?: (id: WikiNodeId) => void;
-  onCreateInside: (parentId: WikiNodeId, kind: "folder" | "document") => void;
+  onCreateInside: (
+    parentId: WikiNodeId,
+    kind: "folder" | "document" | "artifact",
+  ) => void;
   onRequestRename: (node: WikiListNode) => void;
   onRequestDelete: (node: WikiListNode) => void;
 }
@@ -221,6 +231,13 @@ function WikiTreeNavigateItem({
               ) : (
                 <span className="inline-block w-[14px] shrink-0" />
               )}
+              {isFolder ? (
+                <IconFolder size={14} className="shrink-0 text-muted" />
+              ) : item.node.kind === "artifact" ? (
+                <IconCode size={14} className="shrink-0 text-muted" />
+              ) : (
+                <IconFileText size={14} className="shrink-0 text-muted" />
+              )}
               <span className="truncate">{item.node.title}</span>
               {isFolder && item.node.sourceCodebaseId ? (
                 <span
@@ -240,6 +257,12 @@ function WikiTreeNavigateItem({
                 >
                   <IconFileText size={16} className="text-muted" />
                   New document
+                </ContextMenuItem>
+                <ContextMenuItem
+                  onSelect={() => onCreateInside(item.node._id, "artifact")}
+                >
+                  <IconCode size={16} className="text-muted" />
+                  New artifact
                 </ContextMenuItem>
                 <ContextMenuItem
                   onSelect={() => onCreateInside(item.node._id, "folder")}
@@ -346,6 +369,13 @@ function WikiTreeBulkSelectItem({
               ) : (
                 <span className="inline-block w-[14px] shrink-0" />
               )}
+              {isFolder ? (
+                <IconFolder size={14} className="shrink-0 text-muted" />
+              ) : item.node.kind === "artifact" ? (
+                <IconCode size={14} className="shrink-0 text-muted" />
+              ) : (
+                <IconFileText size={14} className="shrink-0 text-muted" />
+              )}
               <span className="truncate">{item.node.title}</span>
               {isFolder && item.node.sourceCodebaseId ? (
                 <span
@@ -365,6 +395,12 @@ function WikiTreeBulkSelectItem({
                 >
                   <IconFileText size={16} className="text-muted" />
                   New document
+                </ContextMenuItem>
+                <ContextMenuItem
+                  onSelect={() => onCreateInside(item.node._id, "artifact")}
+                >
+                  <IconCode size={16} className="text-muted" />
+                  New artifact
                 </ContextMenuItem>
                 <ContextMenuItem
                   onSelect={() => onCreateInside(item.node._id, "folder")}

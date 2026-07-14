@@ -14,8 +14,22 @@ export const WIKI_ROOT_DROP_ID = "__wiki_root__";
 interface MovableNode<TId extends string> {
   _id: TId;
   parentId?: TId;
-  kind: "folder" | "document";
+  kind: "folder" | "document" | "artifact";
   order: number;
+}
+
+export function wikiKindHasContent(
+  kind: "folder" | "document" | "artifact",
+): boolean {
+  return kind === "document" || kind === "artifact";
+}
+
+export function wikiKindLabel(
+  kind: "folder" | "document" | "artifact",
+): string {
+  if (kind === "folder") return "folder";
+  if (kind === "artifact") return "artifact";
+  return "document";
 }
 
 // moveNode args for a wiki drop, or null if invalid/no-op
@@ -120,10 +134,10 @@ export function collectSubtreeIds(
   return result;
 }
 
-// first document in display order (depth-first), or null
+// first document or artifact in display order (depth-first), or null
 export function findFirstDocumentId(tree: WikiTreeNode[]): WikiNodeId | null {
   for (const item of tree) {
-    if (item.node.kind === "document") {
+    if (wikiKindHasContent(item.node.kind)) {
       return item.node._id;
     }
     const childId = findFirstDocumentId(item.children);

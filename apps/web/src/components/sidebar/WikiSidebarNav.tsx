@@ -56,8 +56,12 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
         parentId: args.parentId,
         kind: args.kind,
         title: args.title,
-        content: args.kind === "document" ? "" : undefined,
-        contentText: args.kind === "document" ? "" : undefined,
+        content:
+          args.kind === "document" || args.kind === "artifact" ? "" : undefined,
+        contentText:
+          args.kind === "document" || args.kind === "artifact" ? "" : undefined,
+        language:
+          args.kind === "artifact" ? (args.language ?? "html") : undefined,
         order: nextOrder,
         createdAt: now,
         updatedAt: now,
@@ -113,16 +117,25 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
   );
 
   const handleCreateRoot = useCallback(
-    (kind: "folder" | "document") => {
+    (kind: "folder" | "document" | "artifact") => {
       void (async () => {
-        const title = kind === "folder" ? "Untitled folder" : "Untitled";
+        const title =
+          kind === "folder"
+            ? "Untitled folder"
+            : kind === "artifact"
+              ? "Untitled artifact"
+              : "Untitled";
         const newId = await createNode({
           parentId: undefined,
           kind,
           title,
           teamId,
+          language: kind === "artifact" ? "html" : undefined,
         });
-        if (kind === "document" && profileId !== undefined) {
+        if (
+          (kind === "document" || kind === "artifact") &&
+          profileId !== undefined
+        ) {
           void navigate({
             to: "/$profileId/wiki/$docId",
             params: { profileId, docId: newId },
@@ -137,6 +150,7 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
     <WikiAddMenu
       variant="toolbar"
       onCreateDocument={() => handleCreateRoot("document")}
+      onCreateArtifact={() => handleCreateRoot("artifact")}
       onCreateFolder={() => handleCreateRoot("folder")}
     />
   );
@@ -146,6 +160,7 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
       variant="labeled"
       className="w-full"
       onCreateDocument={() => handleCreateRoot("document")}
+      onCreateArtifact={() => handleCreateRoot("artifact")}
       onCreateFolder={() => handleCreateRoot("folder")}
     />
   );

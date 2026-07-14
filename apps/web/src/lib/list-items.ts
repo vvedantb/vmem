@@ -12,6 +12,7 @@ import {
 export type ListItemKind =
   | "memory"
   | "wiki-document"
+  | "wiki-artifact"
   | "wiki-folder"
   | "skill"
   | "entity";
@@ -21,6 +22,7 @@ export const LIST_ITEM_KINDS: readonly ListItemKind[] = [
   "memory",
   "entity",
   "wiki-document",
+  "wiki-artifact",
   "wiki-folder",
   "skill",
 ];
@@ -29,6 +31,7 @@ const LIST_ITEM_KIND_LABELS: Record<ListItemKind, string> = {
   memory: "Memories",
   entity: "Entities",
   "wiki-document": "Wiki docs",
+  "wiki-artifact": "Artifacts",
   "wiki-folder": "Folders",
   skill: "Skills",
 };
@@ -64,6 +67,11 @@ interface WikiDocumentItem extends BaseListItem {
   wikiId: string;
 }
 
+interface WikiArtifactItem extends BaseListItem {
+  kind: "wiki-artifact";
+  wikiId: string;
+}
+
 interface WikiFolderItem extends BaseListItem {
   kind: "wiki-folder";
   wikiId: string;
@@ -79,6 +87,7 @@ interface SkillItem extends BaseListItem {
 export type ListItem =
   | MemoryRowItem
   | WikiDocumentItem
+  | WikiArtifactItem
   | WikiFolderItem
   | SkillItem;
 
@@ -163,6 +172,17 @@ export function wikiRowsToListItems(rows: WikiRows): ListItem[] {
         tags: [],
         createdAt,
         childCount: childCount.get(row._id) ?? 0,
+      };
+    }
+    if (row.kind === "artifact") {
+      return {
+        kind: "wiki-artifact",
+        id: `${WIKI_PREFIX}${row._id}`,
+        wikiId: row._id,
+        title: row.title,
+        content: row.contentText ?? "",
+        tags: [],
+        createdAt,
       };
     }
     return {

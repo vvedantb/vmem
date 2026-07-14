@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { WikiListNode, WikiNodeId } from "./-types";
+import { wikiKindLabel } from "./_utils";
 import {
   Button,
   Dialog,
@@ -49,9 +50,7 @@ function RenameDialogForm({
   return (
     <DialogContent className="sm:max-w-sm">
       <DialogHeader>
-        <DialogTitle>
-          Rename {target.kind === "folder" ? "folder" : "document"}
-        </DialogTitle>
+        <DialogTitle>Rename {wikiKindLabel(target.kind)}</DialogTitle>
       </DialogHeader>
       <Input
         autoFocus

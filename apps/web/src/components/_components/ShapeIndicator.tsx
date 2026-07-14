@@ -40,6 +40,14 @@ export default function ShapeIndicator({
           aria-hidden
         />
       );
+    case "wiki-artifact":
+      return (
+        <span
+          className={cn(base, "rounded-sm")}
+          style={{ backgroundColor: color }}
+          aria-hidden
+        />
+      );
     case "wiki-folder":
       return (
         <span className={base} style={{ backgroundColor: color }} aria-hidden />

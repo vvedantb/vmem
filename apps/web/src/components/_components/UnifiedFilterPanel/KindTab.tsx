@@ -57,7 +57,12 @@ export default function KindTab({
       <div className="flex-1 overflow-y-auto">
         {LIST_ITEM_KINDS.map((kind) => {
           const checked = isCheckedByDefault(selectedKinds, kind);
-          const color = nodeColor([], kind, isDark, null);
+          const color = nodeColor(
+            [],
+            kind === "wiki-artifact" ? "wiki-document" : kind,
+            isDark,
+            null,
+          );
           return (
             <label
               key={kind}

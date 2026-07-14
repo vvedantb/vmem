@@ -17,6 +17,7 @@ import {
   formatWikiDocForClipboard,
 } from "./_utils";
 import type { OutlineHeading } from "./_utils";
+import WikiArtifactEditor from "./WikiArtifactEditor";
 
 interface WikiEditorProps {
   docId: string | null;
@@ -245,6 +246,17 @@ export default function WikiEditor({
       return;
     }
 
+    if (doc.kind !== "document") {
+      if (loadedDocIdRef.current !== null) {
+        suppressNextUpdateRef.current = true;
+        editor.commands.setContent("");
+        loadedDocIdRef.current = null;
+        publishHeadings([]);
+        onWordCountChange(0);
+      }
+      return;
+    }
+
     if (loadedDocIdRef.current === doc._id) {
       return;
     }
@@ -368,6 +380,20 @@ export default function WikiEditor({
       <div className="flex-1 flex items-center justify-center">
         <p className="text-sm text-muted">Document not found.</p>
       </div>
+    );
+  }
+
+  if (doc.kind === "artifact") {
+    return (
+      <WikiArtifactEditor
+        doc={doc}
+        titleForCopy={titleForCopy}
+        onRegisterCopy={onRegisterCopy}
+        onRegisterRestore={onRegisterRestore}
+        onHeadingsChange={onHeadingsChange}
+        onActiveHeadingChange={onActiveHeadingChange}
+        onWordCountChange={onWordCountChange}
+      />
     );
   }
 

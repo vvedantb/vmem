@@ -80,8 +80,12 @@ export default function WikiTree({
         parentId: args.parentId,
         kind: args.kind,
         title: args.title,
-        content: args.kind === "document" ? "" : undefined,
-        contentText: args.kind === "document" ? "" : undefined,
+        content:
+          args.kind === "document" || args.kind === "artifact" ? "" : undefined,
+        contentText:
+          args.kind === "document" || args.kind === "artifact" ? "" : undefined,
+        language:
+          args.kind === "artifact" ? (args.language ?? "html") : undefined,
         order: nextOrder,
         createdAt: now,
         updatedAt: now,
@@ -203,10 +207,21 @@ export default function WikiTree({
   );
 
   const handleCreateInFolder = useCallback(
-    async (parentId: WikiNodeId, kind: "folder" | "document") => {
-      const title = kind === "folder" ? "Untitled folder" : "Untitled";
-      const newId = await createNode({ parentId, kind, title, teamId });
-      if (kind === "document") {
+    async (parentId: WikiNodeId, kind: "folder" | "document" | "artifact") => {
+      const title =
+        kind === "folder"
+          ? "Untitled folder"
+          : kind === "artifact"
+            ? "Untitled artifact"
+            : "Untitled";
+      const newId = await createNode({
+        parentId,
+        kind,
+        title,
+        teamId,
+        language: kind === "artifact" ? "html" : undefined,
+      });
+      if (kind === "document" || kind === "artifact") {
         onSelect(newId);
       }
     },

@@ -16,6 +16,13 @@ import {
   deleteVersionsForWikiNode,
   maybeSnapshotWikiVersion,
 } from "./lib/versionSnapshot";
+import { wikiKindHasContent } from "./lib/wikiKind";
+
+const wikiKindValidator = v.union(
+  v.literal("folder"),
+  v.literal("document"),
+  v.literal("artifact"),
+);
 
 const MAX_SEARCH_RESULTS = 20;
 
@@ -164,9 +171,10 @@ export const getNode = authQuery({
 export const createNode = authMutation({
   args: {
     parentId: v.optional(v.id("wikiNodes")),
-    kind: v.union(v.literal("folder"), v.literal("document")),
+    kind: wikiKindValidator,
     title: v.string(),
     teamId: v.optional(v.id("teams")),
+    language: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     await requireContentScopeAccess(ctx, ctx.userId, args.teamId);
@@ -183,14 +191,17 @@ export const createNode = authMutation({
     );
 
     const now = Date.now();
+    const hasContent = wikiKindHasContent(args.kind);
     const id = await ctx.db.insert("wikiNodes", {
       userId: ctx.userId,
       teamId: args.teamId,
       parentId: args.parentId,
       kind: args.kind,
       title: args.title,
-      content: args.kind === "document" ? "" : undefined,
-      contentText: args.kind === "document" ? "" : undefined,
+      content: hasContent ? "" : undefined,
+      contentText: hasContent ? "" : undefined,
+      language:
+        args.kind === "artifact" ? (args.language ?? "html") : undefined,
       order: nextSiblingOrder(siblings),
       createdAt: now,
       updatedAt: now,
@@ -227,7 +238,7 @@ export const updateContent = authMutation({
     const node = await ctx.db.get(args.id);
     if (!node) throw new Error("Not found");
     await assertContentEditable(ctx, node, ctx.userId);
-    if (node.kind !== "document") {
+    if (!wikiKindHasContent(node.kind)) {
       throw new Error("Cannot write content to a folder");
     }
     await maybeSnapshotWikiVersion(ctx, node, {
@@ -417,10 +428,11 @@ export const createByClerkIdInternal = internalMutation({
   args: {
     clerkId: v.string(),
     parentId: v.optional(v.id("wikiNodes")),
-    kind: v.union(v.literal("folder"), v.literal("document")),
+    kind: wikiKindValidator,
     title: v.string(),
     content: v.optional(v.string()),
     contentText: v.optional(v.string()),
+    language: v.optional(v.string()),
     // plain-string codebase id (MCP threads ids as strings); validated below
     sourceCodebaseId: v.optional(v.string()),
   },
@@ -452,14 +464,16 @@ export const createByClerkIdInternal = internalMutation({
     );
 
     const now = Date.now();
-    const isDocument = args.kind === "document";
+    const hasContent = wikiKindHasContent(args.kind);
     return await ctx.db.insert("wikiNodes", {
       userId,
       parentId: args.parentId,
       kind: args.kind,
       title: args.title,
-      content: isDocument ? (args.content ?? "") : undefined,
-      contentText: isDocument ? (args.contentText ?? "") : undefined,
+      content: hasContent ? (args.content ?? "") : undefined,
+      contentText: hasContent ? (args.contentText ?? "") : undefined,
+      language:
+        args.kind === "artifact" ? (args.language ?? "html") : undefined,
       order: nextSiblingOrder(siblings),
       sourceCodebaseId,
       createdAt: now,
@@ -475,6 +489,7 @@ export const updateByClerkIdInternal = internalMutation({
     title: v.optional(v.string()),
     content: v.optional(v.string()),
     contentText: v.optional(v.string()),
+    language: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const userId = await getUserIdByClerkId(ctx, args.clerkId);
@@ -487,6 +502,7 @@ export const updateByClerkIdInternal = internalMutation({
       title?: string;
       content?: string;
       contentText?: string;
+      language?: string;
       updatedAt: number;
     } = { updatedAt: Date.now() };
 
@@ -495,7 +511,7 @@ export const updateByClerkIdInternal = internalMutation({
     }
 
     if (args.content !== undefined || args.contentText !== undefined) {
-      if (node.kind !== "document") {
+      if (!wikiKindHasContent(node.kind)) {
         throw new Error("Cannot write content to a folder");
       }
       if (args.content !== undefined) {
@@ -504,6 +520,13 @@ export const updateByClerkIdInternal = internalMutation({
       if (args.contentText !== undefined) {
         patch.contentText = args.contentText;
       }
+    }
+
+    if (args.language !== undefined) {
+      if (node.kind !== "artifact") {
+        throw new Error("language is only valid on artifacts");
+      }
+      patch.language = args.language;
     }
 
     // agent (MCP) writes always checkpoint the pre-write state so the user can

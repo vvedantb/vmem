@@ -1,5 +1,6 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
+import { wikiKindHasContent } from "./wikiKind";
 
 // edits within this window by the same author/source coalesce into one version
 const BURST_MS = 15 * 60 * 1000;
@@ -48,7 +49,7 @@ export async function maybeSnapshotWikiVersion(
   node: Doc<"wikiNodes">,
   meta: SnapshotMeta,
 ): Promise<void> {
-  if (node.kind !== "document") return;
+  if (!wikiKindHasContent(node.kind)) return;
 
   const latest = await ctx.db
     .query("wikiNodeVersions")
@@ -59,6 +60,7 @@ export async function maybeSnapshotWikiVersion(
   const title = node.title;
   const content = node.content ?? "";
   const contentText = node.contentText ?? "";
+  const language = node.language;
 
   if (latest !== null && latest.title === title && latest.content === content) {
     return;
@@ -73,6 +75,7 @@ export async function maybeSnapshotWikiVersion(
     title,
     content,
     contentText,
+    language,
     authorUserId: meta.authorUserId,
     source: meta.source,
     createdAt: now,

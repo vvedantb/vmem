@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { WikiListNode, WikiNodeId } from "./-types";
+import { wikiKindLabel } from "./_utils";
 import {
   Button,
   Dialog,
@@ -37,12 +38,13 @@ export default function DeleteConfirmDialog({
   };
 
   const isFolder = target?.kind === "folder";
+  const kindLabel = target ? wikiKindLabel(target.kind) : "document";
 
   return (
     <Dialog open={target !== null} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>Delete {isFolder ? "folder" : "document"}?</DialogTitle>
+          <DialogTitle>Delete {kindLabel}?</DialogTitle>
           <DialogDescription>
             {isFolder
               ? `"${target?.title}" and everything inside it will be permanently removed.`
