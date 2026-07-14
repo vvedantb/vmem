@@ -201,7 +201,6 @@
         "apps/web/src/components/files/InlineNewFolder.tsx",
         "apps/web/src/components/providers/ClientProvider.tsx",
         "apps/web/src/components/settings/DeleteConnectorDataDialog.tsx",
-        "apps/web/src/components/settings/PlaygroundClient.tsx",
         "apps/web/src/components/settings/SelectImportRowsModal.tsx",
         "apps/web/src/components/skills/EditSkillDialog.tsx",
         "apps/web/src/components/skills/SkillHistoryPanel.tsx",

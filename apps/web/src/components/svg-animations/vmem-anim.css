@@ -2,9 +2,8 @@
  * vmem logo animation library.
  *
  * Imported once via `VmemPaths.tsx` so any caller of <VmemPaths> picks it up
- * automatically. Used both by the /svg-playground demo page (which previews
- * every animation in this file) and by the production wrappers
- * <VmemDrawInIcon>, <VmemSpinner>, and <VmemThinkingLoader>.
+ * automatically. Used by the production wrappers <VmemDrawInIcon>,
+ * <VmemSpinner>, and <VmemThinkingLoader>.
  *
  * The vmem logo SVG inherits its color from `currentColor`, so per-petal
  * tinting comes from CSS `color` on the parent. `transform-box: fill-box`
