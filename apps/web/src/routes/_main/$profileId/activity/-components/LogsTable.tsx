@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { Virtuoso } from "react-virtuoso";
 import { Badge, Button, Card, CardContent } from "@vmem/ui";
 import { IconReceipt2 } from "@tabler/icons-react";
-import type { Doc } from "@vmem/backend";
+import type { AiLogRow, ProfileListItem } from "./-types";
 import {
   formatLogCost,
   formatLogTime,
@@ -13,17 +13,12 @@ import {
 } from "./_aiLogsUtils";
 import { LogRowDetail } from "./LogRowDetail";
 
-type LogRow = Doc<"openRouterLogs">;
-type ProfileLite = {
-  _id: string;
-  name: string;
-  color?: string | null | undefined;
-};
+type LogRow = AiLogRow;
 
 interface LogsVirtuosoContext {
   hasMore: boolean;
   isLoading: boolean;
-  profilesById: ReadonlyMap<string, ProfileLite>;
+  profilesById: ReadonlyMap<string, ProfileListItem>;
   onSelectRow: (row: LogRow) => void;
 }
 
@@ -72,7 +67,7 @@ interface LogsTableProps {
   onLoadMore: () => void;
   onResetFilters: () => void;
   hasActiveFilters: boolean;
-  profilesById: ReadonlyMap<string, ProfileLite>;
+  profilesById: ReadonlyMap<string, ProfileListItem>;
   totalCalls: number | undefined;
 }
 
@@ -194,7 +189,7 @@ function LogRowCard({
   onClick,
 }: {
   row: LogRow;
-  profile: ProfileLite | undefined;
+  profile: ProfileListItem | undefined;
   onClick: () => void;
 }) {
   const featureLabel = featureLabelFor(row.feature);
@@ -245,7 +240,7 @@ function LogRowCard({
   );
 }
 
-function ProfileBadge({ profile }: { profile: ProfileLite | undefined }) {
+function ProfileBadge({ profile }: { profile: ProfileListItem | undefined }) {
   if (!profile) {
     return <span className="text-xs text-muted/70">—</span>;
   }

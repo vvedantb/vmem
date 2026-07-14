@@ -12,28 +12,34 @@ import {
 } from "@vmem/ui";
 import { IconAlertTriangle, IconLoader2 } from "@tabler/icons-react";
 
+const alertIcon = (
+  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-danger/10">
+    <IconAlertTriangle size={20} className="text-danger" />
+  </div>
+);
+
 type KeyConfirmDialogProps = {
   isOpen: boolean;
   isBusy: boolean;
   title: string;
-  lead: ReactNode;
   detail: string;
   confirmLabel: string;
   busyLabel: string;
   onConfirm: () => void;
   onCancel: () => void;
+  children: ReactNode;
 };
 
 export function KeyConfirmDialog({
   isOpen,
   isBusy,
   title,
-  lead,
   detail,
   confirmLabel,
   busyLabel,
   onConfirm,
   onCancel,
+  children,
 }: KeyConfirmDialogProps) {
   return (
     <Dialog
@@ -48,11 +54,9 @@ export function KeyConfirmDialog({
           <DialogDescription className="sr-only">{title}</DialogDescription>
         </DialogHeader>
         <div className="flex items-start gap-3 py-4">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-danger/10">
-            <IconAlertTriangle size={20} className="text-danger" />
-          </div>
+          {alertIcon}
           <div>
-            <p className="text-foreground">{lead}</p>
+            <p className="text-foreground">{children}</p>
             <p className="mt-1 text-sm text-muted">{detail}</p>
           </div>
         </div>

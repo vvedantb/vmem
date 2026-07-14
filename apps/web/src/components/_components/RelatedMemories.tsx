@@ -1,7 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useCallback } from "react";
 import { useAction } from "convex/react";
+import {
+  useMutation,
+  useQuery as useTanstackQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   Badge,
   Button,
@@ -22,7 +27,11 @@ import { toast } from "sonner";
 import { api } from "@vmem/backend";
 import type { Memory } from "@/lib/memories";
 import { formatMemoryTypeLabel, memoryFromApi } from "@/lib/memories";
-import { uniqueRelated, type RelatedMemoryEntry } from "@/lib/memories-related";
+import {
+  relatedMemoriesQueryKey,
+  uniqueRelated,
+  type RelatedMemoryEntry,
+} from "@/lib/memories-related";
 import LinkMemoryModal from "@/components/LinkMemoryModal";
 import { DetailEmptyState } from "./detail-panel/DetailEmptyState";
 import { VmemSpinner } from "@/components/svg-animations";
@@ -36,53 +45,72 @@ export default function RelatedMemories({
   memoryId,
   onSelectRelated,
 }: RelatedMemoriesProps) {
+  const queryClient = useQueryClient();
   const getRelatedMemories = useAction(api.relationshipApi.getRelatedMemories);
   const unlinkMemoriesAction = useAction(api.relationshipApi.unlinkMemories);
-  const [entries, setEntries] = useState<RelatedMemoryEntry[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryKey = relatedMemoriesQueryKey(memoryId);
+  const relatedQuery = useTanstackQuery({
+    queryKey,
+    queryFn: async (): Promise<RelatedMemoryEntry[]> => {
+      const data = await getRelatedMemories({ memoryId });
+      return uniqueRelated(data);
+    },
+  });
+  const entries = relatedQuery.data ?? [];
+  const isLoading = relatedQuery.isLoading;
   const [unlinkingId, setUnlinkingId] = useState<string | null>(null);
   const [confirmUnlinkId, setConfirmUnlinkId] = useState<string | null>(null);
   const [linkModalOpen, setLinkModalOpen] = useState(false);
 
-  const fetchRelated = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const data = await getRelatedMemories({ memoryId });
-      setEntries(uniqueRelated(data));
-    } catch {
-      setEntries([]);
-    }
-    setIsLoading(false);
-  }, [memoryId, getRelatedMemories]);
-
-  useEffect(() => {
-    void fetchRelated();
-  }, [fetchRelated]);
+  const unlinkMutation = useMutation({
+    mutationFn: async (relatedId: string) => {
+      await unlinkMemoriesAction({
+        memoryIdA: memoryId,
+        memoryIdB: relatedId,
+      });
+      return relatedId;
+    },
+    onMutate: async (relatedId) => {
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData<RelatedMemoryEntry[]>(queryKey);
+      queryClient.setQueryData<RelatedMemoryEntry[]>(queryKey, (old) =>
+        old ? old.filter((entry) => entry.memory.id !== relatedId) : [],
+      );
+      return { previous };
+    },
+    onError: (_err, _relatedId, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKey, context.previous);
+      }
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey });
+    },
+  });
 
   const handleUnlink = useCallback(
     async (relatedId: string) => {
       setUnlinkingId(relatedId);
       try {
-        await unlinkMemoriesAction({
-          memoryIdA: memoryId,
-          memoryIdB: relatedId,
-        });
-        setEntries((prev) =>
-          prev.filter((entry) => entry.memory.id !== relatedId),
-        );
+        await unlinkMutation.mutateAsync(relatedId);
         toast.success("Memory unlinked");
       } catch {
         toast.error("Failed to unlink memory");
       }
       setUnlinkingId(null);
     },
-    [memoryId, unlinkMemoriesAction],
+    [unlinkMutation],
   );
 
-  const relatedIds = useMemo(
-    () => new Set(entries.map((e) => e.memory.id)),
-    [entries],
-  );
+  const invalidateRelated = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey });
+  }, [queryClient, queryKey]);
+
+  const relatedIds = new Set(entries.map((entry) => entry.memory.id));
+  const unlinkTarget =
+    confirmUnlinkId === null
+      ? null
+      : (entries.find((entry) => entry.memory.id === confirmUnlinkId) ?? null);
 
   return (
     <div className="min-w-0 space-y-4 overflow-x-hidden">
@@ -200,8 +228,7 @@ export default function RelatedMemories({
               <p className="text-foreground">
                 Unlink{" "}
                 <span className="font-medium">
-                  {entries.find((e) => e.memory.id === confirmUnlinkId)?.memory
-                    .title ?? "this memory"}
+                  {unlinkTarget?.memory.title ?? "this memory"}
                 </span>
                 ?
               </p>
@@ -246,7 +273,7 @@ export default function RelatedMemories({
         onOpenChange={setLinkModalOpen}
         currentMemoryId={memoryId}
         excludeIds={relatedIds}
-        onLinked={fetchRelated}
+        onLinked={invalidateRelated}
       />
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAction } from "convex/react";
 import { api, type Id } from "@vmem/backend";
 import {
@@ -40,9 +40,10 @@ export default function DeleteConnectorDataDialog({
   const confirmPhrase = confirmPhraseForConnector(connectorName);
   const canConfirm = confirmText.trim().toLowerCase() === confirmPhrase;
 
-  useEffect(() => {
-    if (open) setConfirmText("");
-  }, [open]);
+  const handleClose = () => {
+    setConfirmText("");
+    onClose();
+  };
 
   const handleConfirm = async () => {
     if (!canConfirm) return;
@@ -54,7 +55,7 @@ export default function DeleteConnectorDataDialog({
           ? `Removed 1 memory imported from ${connectorName}.`
           : `Removed ${String(deleted)} memories imported from ${connectorName}.`,
       );
-      onClose();
+      handleClose();
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Failed to delete connector data",
@@ -65,7 +66,7 @@ export default function DeleteConnectorDataDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+    <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Delete {connectorName} data?</DialogTitle>
@@ -91,7 +92,7 @@ export default function DeleteConnectorDataDialog({
           />
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose} disabled={submitting}>
+          <Button variant="ghost" onClick={handleClose} disabled={submitting}>
             Cancel
           </Button>
           <Button

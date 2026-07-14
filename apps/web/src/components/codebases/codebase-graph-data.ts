@@ -4,11 +4,7 @@ import type {
   GraphEdge,
   GraphNodeKind,
 } from "@/components/_components/canvas/types";
-import type {
-  CodeNode,
-  CodeEdge,
-  CodeNodeKind,
-} from "@/hooks/useCodebaseGraphData";
+import type { CodeNode, CodeEdge, CodeNodeKind } from "./-types";
 
 // ---- Directory stats ----
 

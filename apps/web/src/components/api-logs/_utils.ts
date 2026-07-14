@@ -1,9 +1,11 @@
-export interface ApiRequestEntry {
-  endpoint: string;
-  status: number;
-  durationMs: number;
-  originalTimestamp: number;
-}
+import type { FunctionReturnType } from "convex/server";
+import type { api } from "@vmem/backend";
+
+export type ApiRequestEntries = FunctionReturnType<
+  typeof api.auditLog.listMyApiRequestEntries
+>;
+
+export type ApiRequestEntry = ApiRequestEntries[number];
 
 export interface ApiUsageTrends {
   requests: number[];
@@ -33,7 +35,7 @@ export function isSuccessStatus(status: number): boolean {
 
 // aggregate request volume, success rate, latency, and 7-day trends
 export function computeApiUsageMetrics(
-  entries: ApiRequestEntry[],
+  entries: ApiRequestEntries,
 ): ApiUsageMetrics {
   let successCount = 0;
   let totalDuration = 0;
@@ -54,11 +56,15 @@ export function computeApiUsageMetrics(
   };
 }
 
-function buildDailyTrends(entries: ApiRequestEntry[]): ApiUsageTrends {
+function buildDailyTrends(entries: ApiRequestEntries): ApiUsageTrends {
   const todayStart = startOfLocalDay(Date.now());
   const dayStarts = Array.from(
     { length: TREND_DAY_COUNT },
     (_, index) => todayStart - (TREND_DAY_COUNT - 1 - index) * DAY_MS,
+  );
+
+  const dayStartToBucketIndex = new Map(
+    dayStarts.map((dayStart, index) => [dayStart, index]),
   );
 
   const buckets = dayStarts.map((dayStart) => ({
@@ -70,10 +76,8 @@ function buildDailyTrends(entries: ApiRequestEntry[]): ApiUsageTrends {
 
   for (const entry of entries) {
     const entryDayStart = startOfLocalDay(entry.originalTimestamp);
-    const bucketIndex = dayStarts.findIndex(
-      (dayStart) => dayStart === entryDayStart,
-    );
-    if (bucketIndex < 0) continue;
+    const bucketIndex = dayStartToBucketIndex.get(entryDayStart);
+    if (bucketIndex === undefined) continue;
 
     const bucket = buckets[bucketIndex];
     if (bucket === undefined) continue;
@@ -96,4 +100,13 @@ function buildDailyTrends(entries: ApiRequestEntry[]): ApiUsageTrends {
 
 export function hasTrendActivity(trend: number[]): boolean {
   return trend.some((value) => value > 0);
+}
+
+export function prepareTableEntries(
+  entries: ApiRequestEntries,
+  limit: number,
+): ApiRequestEntries {
+  return [...entries]
+    .sort((a, b) => b.originalTimestamp - a.originalTimestamp)
+    .slice(0, limit);
 }

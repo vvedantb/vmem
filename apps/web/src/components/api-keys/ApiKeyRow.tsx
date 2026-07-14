@@ -1,6 +1,5 @@
 "use client";
 
-import type { FunctionReturnType } from "convex/server";
 import { TableRow, TableCell, Badge, Button } from "@vmem/ui";
 import {
   IconCopy,
@@ -12,17 +11,95 @@ import {
   IconBan,
   IconTrash,
 } from "@tabler/icons-react";
-import type { api } from "@vmem/backend";
 import { formatRelativeTime, formatDate, formatNumber } from "@/lib/formatters";
+import type { ApiKey } from "./types";
 
-export type ApiKey = FunctionReturnType<typeof api.apiKeys.listMy>[number];
+const MASKED_API_KEY = "vmem_sk_••••••••••••••••";
+
+function ApiKeyActiveBadge() {
+  return (
+    <Badge className="border-success/25 bg-success/12 text-success text-xs">
+      Active
+    </Badge>
+  );
+}
+
+function ApiKeyRevokedBadge() {
+  return <Badge className="bg-danger/10 text-danger text-xs">Revoked</Badge>;
+}
+
+function ApiKeySecretCellRevoked() {
+  return (
+    <div className="flex items-center gap-2">
+      <code className="text-sm text-muted font-mono">{MASKED_API_KEY}</code>
+    </div>
+  );
+}
+
+function ApiKeySecretCellActive({
+  apiKeyId,
+  revealedKey,
+  isRevealing,
+  isRevealed,
+  isCopying,
+  isCopied,
+  onToggleReveal,
+  onCopy,
+}: {
+  apiKeyId: ApiKey["id"];
+  revealedKey: string | undefined;
+  isRevealing: boolean;
+  isRevealed: boolean;
+  isCopying: boolean;
+  isCopied: boolean;
+  onToggleReveal: (id: ApiKey["id"]) => void;
+  onCopy: (id: ApiKey["id"]) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <code className="text-sm text-muted font-mono">
+        {revealedKey ?? MASKED_API_KEY}
+      </code>
+      <Button
+        size="icon-sm"
+        variant="ghost"
+        onClick={() => onToggleReveal(apiKeyId)}
+        disabled={isRevealing}
+        title={isRevealed ? "Hide key" : "Reveal key"}
+      >
+        {isRevealing ? (
+          <IconLoader2 size={14} className="animate-spin" />
+        ) : isRevealed ? (
+          <IconEyeOff size={14} />
+        ) : (
+          <IconEye size={14} />
+        )}
+      </Button>
+      <Button
+        size="icon-sm"
+        variant="ghost"
+        onClick={() => onCopy(apiKeyId)}
+        disabled={isCopying}
+        title={isCopied ? "Copied!" : "Copy key"}
+      >
+        {isCopying ? (
+          <IconLoader2 size={14} className="animate-spin" />
+        ) : isCopied ? (
+          <IconCheck size={14} className="text-accent" />
+        ) : (
+          <IconCopy size={14} />
+        )}
+      </Button>
+    </div>
+  );
+}
 
 interface ApiKeyRowProps {
   apiKey: ApiKey;
   revealedKey: string | undefined;
-  revealingKeyId: string | null;
-  copyingKeyId: string | null;
-  copiedKeyId: string | null;
+  revealingKeyId: ApiKey["id"] | null;
+  copyingKeyId: ApiKey["id"] | null;
+  copiedKeyId: ApiKey["id"] | null;
   onToggleReveal: (id: ApiKey["id"]) => void;
   onCopy: (id: ApiKey["id"]) => void;
   onEdit: (id: ApiKey["id"]) => void;
@@ -43,6 +120,10 @@ export function ApiKeyRow({
   onDelete,
 }: ApiKeyRowProps) {
   const isActive = apiKey.status === "active";
+  const isRevealing = revealingKeyId === apiKey.id;
+  const isCopying = copyingKeyId === apiKey.id;
+  const isCopied = copiedKeyId === apiKey.id;
+  const isRevealed = revealedKey !== undefined;
 
   return (
     <TableRow>
@@ -53,54 +134,23 @@ export function ApiKeyRow({
         </p>
       </TableCell>
       <TableCell className="hidden sm:table-cell py-4">
-        {isActive ? (
-          <Badge className="border-success/25 bg-success/12 text-success text-xs">
-            Active
-          </Badge>
-        ) : (
-          <Badge className="bg-danger/10 text-danger text-xs">Revoked</Badge>
-        )}
+        {isActive ? <ApiKeyActiveBadge /> : <ApiKeyRevokedBadge />}
       </TableCell>
       <TableCell className="hidden md:table-cell py-4">
-        <div className="flex items-center gap-2">
-          <code className="text-sm text-muted font-mono">
-            {revealedKey ?? "vmem_sk_••••••••••••••••"}
-          </code>
-          {isActive ? (
-            <>
-              <Button
-                size="icon-sm"
-                variant="ghost"
-                onClick={() => onToggleReveal(apiKey.id)}
-                disabled={revealingKeyId === apiKey.id}
-                title={revealedKey ? "Hide key" : "Reveal key"}
-              >
-                {revealingKeyId === apiKey.id ? (
-                  <IconLoader2 size={14} className="animate-spin" />
-                ) : revealedKey ? (
-                  <IconEyeOff size={14} />
-                ) : (
-                  <IconEye size={14} />
-                )}
-              </Button>
-              <Button
-                size="icon-sm"
-                variant="ghost"
-                onClick={() => onCopy(apiKey.id)}
-                disabled={copyingKeyId === apiKey.id}
-                title={copiedKeyId === apiKey.id ? "Copied!" : "Copy key"}
-              >
-                {copyingKeyId === apiKey.id ? (
-                  <IconLoader2 size={14} className="animate-spin" />
-                ) : copiedKeyId === apiKey.id ? (
-                  <IconCheck size={14} className="text-accent" />
-                ) : (
-                  <IconCopy size={14} />
-                )}
-              </Button>
-            </>
-          ) : null}
-        </div>
+        {isActive ? (
+          <ApiKeySecretCellActive
+            apiKeyId={apiKey.id}
+            revealedKey={revealedKey}
+            isRevealing={isRevealing}
+            isRevealed={isRevealed}
+            isCopying={isCopying}
+            isCopied={isCopied}
+            onToggleReveal={onToggleReveal}
+            onCopy={onCopy}
+          />
+        ) : (
+          <ApiKeySecretCellRevoked />
+        )}
       </TableCell>
       <TableCell className="hidden lg:table-cell py-4">
         <span className="text-sm text-muted tabular-nums">

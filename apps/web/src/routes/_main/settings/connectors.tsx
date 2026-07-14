@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { Card, CardContent, Skeleton, Button } from "@vmem/ui";
 import { IconPlug, IconPlus } from "@tabler/icons-react";
@@ -29,13 +29,6 @@ function ConnectorsPage() {
 
   const githubConnection = useQuery(api.github.getConnection);
 
-  const connectedConnectors = useMemo(() => {
-    if (!connectors) return [];
-    return connectors
-      .filter((connector) => isConnectorConnected(connector, githubConnection))
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }, [connectors, githubConnection]);
-
   if (connectors === undefined) {
     return (
       <PageContainer title="Connectors" centeredMaxWidth>
@@ -60,6 +53,10 @@ function ConnectorsPage() {
       </PageContainer>
     );
   }
+
+  const connectedConnectors = connectors
+    .filter((connector) => isConnectorConnected(connector, githubConnection))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <>

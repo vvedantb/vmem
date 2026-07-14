@@ -22,16 +22,13 @@ export function DeleteKeyDialog({
       isOpen={isOpen}
       isBusy={isDeleting}
       title="Delete API Key"
-      lead={
-        <>
-          Delete <span className="font-medium">{keyName}</span> permanently?
-        </>
-      }
       detail="This removes the key from your account. Active keys stop working immediately. This cannot be undone."
       confirmLabel="Delete Key"
       busyLabel="Deleting..."
       onConfirm={onConfirm}
       onCancel={onCancel}
-    />
+    >
+      Delete <span className="font-medium">{keyName}</span> permanently?
+    </KeyConfirmDialog>
   );
 }

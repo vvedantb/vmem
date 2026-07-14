@@ -1,5 +1,8 @@
-import type { CreateEmbeddingsResponseBody } from "@openrouter/sdk/models/operations";
 import pRetry from "p-retry";
+import {
+  validateEmbeddingItems,
+  type EmbeddingItem,
+} from "../../../engine/llm/embeddingResponse";
 import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
 import { createOpenRouterClient } from "./client";
@@ -21,11 +24,6 @@ const EMBEDDING_PRICE_USD_PER_1K: Record<string, number> = {
 const EMBEDDING_BATCH_SIZE = 20;
 const EMBEDDING_MAX_RETRY_ATTEMPTS = 4;
 const EMBEDDING_MAX_INPUT_CHARS = 6000;
-
-interface EmbeddingItem {
-  embedding: number[];
-  index: number;
-}
 
 interface EmbeddingCallArgs {
   ctx: ActionCtx;
@@ -104,7 +102,11 @@ async function postEmbeddingChunkWithRetry(
           throw new Error("embedding response: unexpected string body");
         }
 
-        const items = validateEmbeddingItems(response.data, args.input.length);
+        const items = validateEmbeddingItems(
+          response.data,
+          args.input.length,
+          EMBEDDING_DIMENSIONS,
+        );
         const promptTokens = response.usage?.promptTokens ?? undefined;
         const totalTokens = response.usage?.totalTokens ?? undefined;
         const costUsd =
@@ -145,38 +147,6 @@ async function postEmbeddingChunkWithRetry(
       randomize: true,
     },
   );
-}
-
-function validateEmbeddingItems(
-  data: CreateEmbeddingsResponseBody["data"],
-  expectedCount: number,
-): EmbeddingItem[] {
-  if (data.length !== expectedCount) {
-    throw new Error(
-      `embedding response: expected ${String(expectedCount)} and got ${String(data.length)}`,
-    );
-  }
-
-  const items: EmbeddingItem[] = [];
-  for (const item of data) {
-    const embedding = readFloatEmbedding(item.embedding);
-    const index = item.index ?? items.length;
-    if (embedding.length !== EMBEDDING_DIMENSIONS) {
-      throw new Error(
-        `embedding response: expected ${String(EMBEDDING_DIMENSIONS)} dims, got ${String(embedding.length)}`,
-      );
-    }
-    items.push({ embedding, index });
-  }
-
-  return items;
-}
-
-function readFloatEmbedding(embedding: Array<number> | string): number[] {
-  if (Array.isArray(embedding)) {
-    return embedding;
-  }
-  throw new Error("embedding response: expected float array");
 }
 
 function computeEmbeddingCost(

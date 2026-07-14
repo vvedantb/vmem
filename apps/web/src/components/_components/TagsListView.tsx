@@ -252,6 +252,7 @@ export default function TagsListView() {
               className="flex h-full min-h-0 w-full flex-col overflow-hidden lg:min-w-0 lg:flex-1"
             >
               <TagMemoriesPanel
+                key={selectedTag}
                 tag={selectedTag}
                 memories={selectedTagMemories}
                 onClose={closeTagPanel}

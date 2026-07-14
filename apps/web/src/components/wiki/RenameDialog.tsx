@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import type { Doc, Id } from "@vmem/backend";
+import { useState } from "react";
+import type { WikiListNode, WikiNodeId } from "./-types";
 import {
   Button,
   Dialog,
@@ -13,26 +13,26 @@ import {
 } from "@vmem/ui";
 
 interface RenameDialogProps {
-  target: Doc<"wikiNodes"> | null;
+  target: WikiListNode | null;
   onClose: () => void;
-  onConfirm: (id: Id<"wikiNodes">, title: string) => Promise<void>;
+  onConfirm: (id: WikiNodeId, title: string) => Promise<void>;
 }
 
-// shared rename dialog for folders + documents
-export default function RenameDialog({
+interface RenameDialogFormProps {
+  target: WikiListNode;
+  onClose: () => void;
+  onConfirm: (id: WikiNodeId, title: string) => Promise<void>;
+}
+
+function RenameDialogForm({
   target,
   onClose,
   onConfirm,
-}: RenameDialogProps) {
-  const [title, setTitle] = useState("");
+}: RenameDialogFormProps) {
+  const [title, setTitle] = useState(target.title);
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    setTitle(target?.title ?? "");
-  }, [target]);
-
   const handleSubmit = async () => {
-    if (!target) return;
     const trimmed = title.trim();
     if (trimmed.length === 0 || trimmed === target.title) {
       onClose();
@@ -47,34 +47,52 @@ export default function RenameDialog({
   };
 
   return (
+    <DialogContent className="sm:max-w-sm">
+      <DialogHeader>
+        <DialogTitle>
+          Rename {target.kind === "folder" ? "folder" : "document"}
+        </DialogTitle>
+      </DialogHeader>
+      <Input
+        autoFocus
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            void handleSubmit();
+          }
+        }}
+        placeholder="Title"
+      />
+      <DialogFooter>
+        <Button variant="ghost" onClick={onClose} disabled={submitting}>
+          Cancel
+        </Button>
+        <Button onClick={() => void handleSubmit()} disabled={submitting}>
+          Rename
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  );
+}
+
+// shared rename dialog for folders + documents
+export default function RenameDialog({
+  target,
+  onClose,
+  onConfirm,
+}: RenameDialogProps) {
+  return (
     <Dialog open={target !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-sm">
-        <DialogHeader>
-          <DialogTitle>
-            Rename {target?.kind === "folder" ? "folder" : "document"}
-          </DialogTitle>
-        </DialogHeader>
-        <Input
-          autoFocus
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              void handleSubmit();
-            }
-          }}
-          placeholder="Title"
+      {target !== null ? (
+        <RenameDialogForm
+          key={target._id}
+          target={target}
+          onClose={onClose}
+          onConfirm={onConfirm}
         />
-        <DialogFooter>
-          <Button variant="ghost" onClick={onClose} disabled={submitting}>
-            Cancel
-          </Button>
-          <Button onClick={() => void handleSubmit()} disabled={submitting}>
-            Rename
-          </Button>
-        </DialogFooter>
-      </DialogContent>
+      ) : null}
     </Dialog>
   );
 }

@@ -148,7 +148,6 @@ function MemoryListSidePanel({
   panelAction,
   onClosePreview,
   onCloseMemory,
-  onMemoryUpdate,
   onMemoryDelete,
   onSelectRelated,
   onConsumeAction,
@@ -160,7 +159,6 @@ function MemoryListSidePanel({
   panelAction: "edit" | "delete" | null;
   onClosePreview: () => void;
   onCloseMemory: () => void;
-  onMemoryUpdate: (updated: Memory) => void;
   onMemoryDelete: (deletedId: string) => void;
   onSelectRelated: (memory: Memory) => void;
   onConsumeAction: () => void;
@@ -181,7 +179,6 @@ function MemoryListSidePanel({
         key={memoryId}
         memory={selectedMemory}
         onClose={onCloseMemory}
-        onMemoryUpdate={onMemoryUpdate}
         onMemoryDelete={onMemoryDelete}
         onSelectRelated={onSelectRelated}
         initialAction={panelAction ?? undefined}
@@ -406,9 +403,6 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
                   panelAction={panelAction}
                   onClosePreview={() => setPreviewItem(null)}
                   onCloseMemory={closeMemory}
-                  onMemoryUpdate={(updated) => {
-                    if (memoryId !== updated.id) openMemory(updated.id);
-                  }}
                   onMemoryDelete={(deletedId) => {
                     if (memoryId === deletedId) closeMemory();
                   }}

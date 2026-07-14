@@ -1,9 +1,10 @@
 "use client";
 
-import { lazy, Suspense } from "react";
+import type { ReactNode } from "react";
 import { createFileRoute, Outlet, useMatchRoute } from "@tanstack/react-router";
 import PageContainer from "@/components/PageContainer";
 import MemoryListHeaderControls from "@/components/_components/MemoryListHeaderControls";
+import GraphHeaderControls from "@/components/_components/GraphHeaderControls";
 import { MemoriesTabs } from "./-components/MemoriesTabs";
 import {
   MemoryGraphControllerProvider,
@@ -11,45 +12,58 @@ import {
 } from "./-components/MemoryGraphControllerContext";
 import { useMemoriesSearchParams } from "./useMemoriesSearchParams";
 
-const GraphHeaderControls = lazy(
-  () => import("@/components/_components/GraphHeaderControls"),
-);
-
 export const Route = createFileRoute("/_main/$profileId/memories")({
   component: MemoriesLayout,
 });
 
-function GraphHeaderSlot() {
-  const controller = useMemoryGraphControllerContext();
-  return (
-    <Suspense fallback={null}>
-      <GraphHeaderControls controller={controller} />
-    </Suspense>
-  );
-}
-
-function MemoriesLayoutShell() {
-  const matchRoute = useMatchRoute();
-  const isGraph = matchRoute({ to: "/$profileId/memories/graph" });
-  const isList = matchRoute({ to: "/$profileId/memories/list", fuzzy: true });
-
+function MemoriesPageShell({
+  rightSection,
+  noScroll,
+}: {
+  rightSection?: ReactNode;
+  noScroll?: boolean;
+}) {
   return (
     <PageContainer
       title="Memories"
       showTitle={false}
       leftSection={<MemoriesTabs />}
-      rightSection={
-        isGraph ? (
-          <GraphHeaderSlot />
-        ) : isList ? (
-          <MemoryListHeaderControls />
-        ) : undefined
-      }
-      noScroll={isList ? true : undefined}
+      rightSection={rightSection}
+      noScroll={noScroll}
     >
       <Outlet />
     </PageContainer>
   );
+}
+
+function GraphMemoriesLayout() {
+  const controller = useMemoryGraphControllerContext();
+  return (
+    <MemoriesPageShell
+      rightSection={<GraphHeaderControls controller={controller} />}
+    />
+  );
+}
+
+function ListMemoriesLayout() {
+  return (
+    <MemoriesPageShell rightSection={<MemoryListHeaderControls />} noScroll />
+  );
+}
+
+function DefaultMemoriesLayout() {
+  return <MemoriesPageShell />;
+}
+
+function MemoriesLayoutShell() {
+  const matchRoute = useMatchRoute();
+  if (matchRoute({ to: "/$profileId/memories/graph" })) {
+    return <GraphMemoriesLayout />;
+  }
+  if (matchRoute({ to: "/$profileId/memories/list", fuzzy: true })) {
+    return <ListMemoriesLayout />;
+  }
+  return <DefaultMemoriesLayout />;
 }
 
 // keeps `MemoriesTabs` mounted across graph/list subroutes so the sliding pill animates

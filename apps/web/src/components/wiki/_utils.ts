@@ -1,9 +1,9 @@
-import type { Doc, Id } from "@vmem/backend";
+import type { WikiListNode, WikiNodeId } from "./-types";
 import type { JSONContent } from "@tiptap/react";
 
 // one node of a rendered wiki tree (folders contain children)
 export interface WikiTreeNode {
-  node: Doc<"wikiNodes">;
+  node: WikiListNode;
   children: WikiTreeNode[];
 }
 
@@ -59,8 +59,8 @@ export function resolveWikiMove<TId extends string>(
 
 // folders first, then docs; each group a–z by title
 export function compareWikiTreeSiblings(
-  a: Pick<Doc<"wikiNodes">, "kind" | "title">,
-  b: Pick<Doc<"wikiNodes">, "kind" | "title">,
+  a: Pick<WikiListNode, "kind" | "title">,
+  b: Pick<WikiListNode, "kind" | "title">,
 ): number {
   const aRank = a.kind === "folder" ? 0 : 1;
   const bRank = b.kind === "folder" ? 0 : 1;
@@ -69,8 +69,8 @@ export function compareWikiTreeSiblings(
 }
 
 // flat listTree → tree; display sort only (order still used for dnd)
-export function buildTree(nodes: Array<Doc<"wikiNodes">>): WikiTreeNode[] {
-  const childrenByParent = new Map<string, Array<Doc<"wikiNodes">>>();
+export function buildTree(nodes: Array<WikiListNode>): WikiTreeNode[] {
+  const childrenByParent = new Map<string, Array<WikiListNode>>();
   const ROOT_KEY = "__root__";
 
   for (const node of nodes) {
@@ -121,9 +121,7 @@ export function collectSubtreeIds(
 }
 
 // first document in display order (depth-first), or null
-export function findFirstDocumentId(
-  tree: WikiTreeNode[],
-): Id<"wikiNodes"> | null {
+export function findFirstDocumentId(tree: WikiTreeNode[]): WikiNodeId | null {
   for (const item of tree) {
     if (item.node.kind === "document") {
       return item.node._id;
@@ -138,14 +136,14 @@ export function findFirstDocumentId(
 
 // ancestors root → parent for breadcrumbs (excludes self)
 export function findAncestors(
-  node: Doc<"wikiNodes">,
-  allNodes: Array<Doc<"wikiNodes">>,
-): Array<Doc<"wikiNodes">> {
-  const byId = new Map<string, Doc<"wikiNodes">>();
+  node: WikiListNode,
+  allNodes: Array<WikiListNode>,
+): Array<WikiListNode> {
+  const byId = new Map<string, WikiListNode>();
   for (const n of allNodes) byId.set(n._id, n);
 
-  const chain: Array<Doc<"wikiNodes">> = [];
-  let currentParentId: Id<"wikiNodes"> | undefined = node.parentId;
+  const chain: Array<WikiListNode> = [];
+  let currentParentId: WikiNodeId | undefined = node.parentId;
   while (currentParentId !== undefined) {
     const parent = byId.get(currentParentId);
     if (!parent) break;

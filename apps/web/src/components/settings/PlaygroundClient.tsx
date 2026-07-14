@@ -175,6 +175,48 @@ async function generateCodeChallenge(verifier: string): Promise<string> {
 
 let storedClient: Client | null = null;
 
+function PlaygroundDisconnectedView({
+  error,
+  onConnect,
+}: {
+  error: string;
+  onConnect: () => void;
+}) {
+  return (
+    <div className="py-16 text-center">
+      <IconPlugConnected
+        size={48}
+        className="mx-auto text-muted mb-4"
+        stroke={1.5}
+      />
+      <h3 className="text-lg font-medium text-foreground mb-2 text-balance">
+        MCP Playground
+      </h3>
+      <p className="text-muted mb-6 max-w-md mx-auto">
+        Connect to the vmem MCP server to test tools directly. This uses the
+        full OAuth flow — sign in with your vmem account.
+      </p>
+      <Button onClick={onConnect}>Connect to MCP</Button>
+      {error ? <p className="text-danger text-sm mt-4">{error}</p> : null}
+    </div>
+  );
+}
+
+function PlaygroundConnectingView() {
+  return (
+    <div className="py-16 text-center">
+      <IconLoader2
+        size={32}
+        className="mx-auto text-muted mb-4 animate-spin"
+        stroke={1.5}
+      />
+      <p className="text-muted text-sm">
+        Connecting... complete sign-in in the popup window.
+      </p>
+    </div>
+  );
+}
+
 export default function PlaygroundClient() {
   const [state, dispatch] = useReducer(reducer, initialState);
 
@@ -183,17 +225,16 @@ export default function PlaygroundClient() {
     dispatch({ type: "SET_ERROR", error: "" });
 
     try {
-      const metaRes = await fetch(
-        `${MCP_BASE}/.well-known/oauth-authorization-server`,
-      );
+      const codeVerifier = generateCodeVerifier();
+      const [metaRes, codeChallenge] = await Promise.all([
+        fetch(`${MCP_BASE}/.well-known/oauth-authorization-server`),
+        generateCodeChallenge(codeVerifier),
+      ]);
       const metaParsed = oauthMetaSchema.safeParse(await metaRes.json());
       if (!metaParsed.success) {
         throw new Error("Invalid OAuth server metadata");
       }
       const meta = metaParsed.data;
-
-      const codeVerifier = generateCodeVerifier();
-      const codeChallenge = await generateCodeChallenge(codeVerifier);
       const oauthState = crypto.randomUUID();
 
       const regRes = await fetch(meta.registration_endpoint, {
@@ -393,7 +434,9 @@ export default function PlaygroundClient() {
     (t) => t.name === state.selectedTool,
   );
   const paramProperties = schemaProperties(selectedToolInfo?.inputSchema ?? {});
-  const requiredParams = schemaRequired(selectedToolInfo?.inputSchema ?? {});
+  const requiredParamSet = new Set(
+    schemaRequired(selectedToolInfo?.inputSchema ?? {}),
+  );
 
   return (
     <PageContainer
@@ -408,39 +451,14 @@ export default function PlaygroundClient() {
         ) : undefined
       }
     >
-      {state.status === "disconnected" && (
-        <div className="py-16 text-center">
-          <IconPlugConnected
-            size={48}
-            className="mx-auto text-muted mb-4"
-            stroke={1.5}
-          />
-          <h3 className="text-lg font-medium text-foreground mb-2 text-balance">
-            MCP Playground
-          </h3>
-          <p className="text-muted mb-6 max-w-md mx-auto">
-            Connect to the vmem MCP server to test tools directly. This uses the
-            full OAuth flow — sign in with your vmem account.
-          </p>
-          <Button onClick={handleConnect}>Connect to MCP</Button>
-          {state.error && (
-            <p className="text-danger text-sm mt-4">{state.error}</p>
-          )}
-        </div>
-      )}
+      {state.status === "disconnected" ? (
+        <PlaygroundDisconnectedView
+          error={state.error}
+          onConnect={handleConnect}
+        />
+      ) : null}
 
-      {state.status === "connecting" && (
-        <div className="py-16 text-center">
-          <IconLoader2
-            size={32}
-            className="mx-auto text-muted mb-4 animate-spin"
-            stroke={1.5}
-          />
-          <p className="text-muted text-sm">
-            Connecting... complete sign-in in the popup window.
-          </p>
-        </div>
-      )}
+      {state.status === "connecting" ? <PlaygroundConnectingView /> : null}
 
       {state.status === "connected" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -479,9 +497,9 @@ export default function PlaygroundClient() {
                     <div key={key}>
                       <label className="text-sm font-medium text-foreground block mb-1">
                         {key}
-                        {requiredParams.includes(key) && (
+                        {requiredParamSet.has(key) ? (
                           <span className="text-danger ml-0.5">*</span>
-                        )}
+                        ) : null}
                       </label>
                       {prop.description && (
                         <p className="text-xs text-muted mb-1">

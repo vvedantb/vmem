@@ -2,6 +2,13 @@ import { useState, type ReactNode } from "react";
 import { IconRefresh } from "@tabler/icons-react";
 import { Button } from "@vmem/ui";
 
+const STAGE_CLASS_NAME =
+  "flex h-32 w-32 items-center justify-center text-foreground";
+
+const hoverHintLabel = (
+  <p className="text-[11px] text-muted/70 italic mt-1">Hover the icon</p>
+);
+
 interface AnimationCardProps {
   // numeric label rendered as `{n}.` before the title
   number: number;
@@ -12,8 +19,27 @@ interface AnimationCardProps {
   oneShot?: boolean;
   // `true` to render a "hover me" hint under the demo
   hoverHint?: boolean;
-  // `render` receives a `replayKey` that changes each time the user clicks the replay button
-  render: (replayKey: number) => ReactNode;
+  children: ReactNode;
+}
+
+function AnimationCardStage({
+  oneShot,
+  replayKey,
+  children,
+}: {
+  oneShot?: boolean;
+  replayKey: number;
+  children: ReactNode;
+}) {
+  if (!oneShot) {
+    return <div className={STAGE_CLASS_NAME}>{children}</div>;
+  }
+
+  return (
+    <div key={replayKey} className={STAGE_CLASS_NAME}>
+      {children}
+    </div>
+  );
 }
 
 export function AnimationCard({
@@ -22,15 +48,15 @@ export function AnimationCard({
   description,
   oneShot,
   hoverHint,
-  render,
+  children,
 }: AnimationCardProps) {
   const [replayKey, setReplayKey] = useState(0);
 
   return (
     <div className="flex flex-col items-center gap-4 rounded-lg bg-surface-secondary/40 p-6">
-      <div className="flex h-32 w-32 items-center justify-center text-foreground">
-        {render(replayKey)}
-      </div>
+      <AnimationCardStage oneShot={oneShot} replayKey={replayKey}>
+        {children}
+      </AnimationCardStage>
 
       <div className="flex flex-col items-center gap-1 text-center">
         <h3 className="text-sm font-medium text-foreground">
@@ -39,14 +65,10 @@ export function AnimationCard({
         <p className="text-xs text-muted leading-snug max-w-[14rem]">
           {description}
         </p>
-        {hoverHint && (
-          <p className="text-[11px] text-muted/70 italic mt-1">
-            Hover the icon
-          </p>
-        )}
+        {hoverHint ? hoverHintLabel : null}
       </div>
 
-      {oneShot && (
+      {oneShot ? (
         <Button
           size="sm"
           variant="ghost"
@@ -56,7 +78,7 @@ export function AnimationCard({
           <IconRefresh className="size-3.5" stroke={1.5} />
           Replay
         </Button>
-      )}
+      ) : null}
     </div>
   );
 }

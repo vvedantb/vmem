@@ -6,9 +6,9 @@ import {
   IconPencil,
   IconTrash,
 } from "@tabler/icons-react";
-import type { FileItem } from "@/lib/file-types";
+import type { FileTreeNode } from "./-types";
 
-export type FileItemActionHandlers = {
+export type FileNodeActionHandlers = {
   onOpen: () => void;
   onDownload: () => void;
   onMoveTo: () => void;
@@ -16,7 +16,7 @@ export type FileItemActionHandlers = {
   onDelete: () => void;
 };
 
-export type FileItemAction = {
+export type FileNodeAction = {
   key: string;
   label: string;
   Icon: TablerIcon;
@@ -26,11 +26,11 @@ export type FileItemAction = {
 };
 
 // shared Open / Download / Move / Rename / Delete for context + row menus
-export function fileItemActions(
-  item: FileItem,
-  handlers: FileItemActionHandlers,
-): FileItemAction[] {
-  const actions: FileItemAction[] = [
+export function fileNodeActions(
+  node: FileTreeNode,
+  handlers: FileNodeActionHandlers,
+): FileNodeAction[] {
+  const actions: FileNodeAction[] = [
     {
       key: "open",
       label: "Open",
@@ -39,7 +39,7 @@ export function fileItemActions(
     },
   ];
 
-  if (item.itemType !== "folder") {
+  if (node.kind !== "folder") {
     actions.push({
       key: "download",
       label: "Download",

@@ -42,9 +42,10 @@ export default function ConnectorActionsMenu({
     return null;
   }
 
-  const showSync = actions.includes("sync");
-  const showDisconnect = actions.includes("disconnect");
-  const showDeleteData = actions.includes("delete-data");
+  const actionSet = new Set(actions);
+  const showSync = actionSet.has("sync");
+  const showDisconnect = actionSet.has("disconnect");
+  const showDeleteData = actionSet.has("delete-data");
   const hasDestructive = showDisconnect || showDeleteData;
 
   return (

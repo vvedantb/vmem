@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Label, Switch, Skeleton, Card, CardContent } from "@vmem/ui";
 import { api } from "@vmem/backend";
 import PageContainer from "@/components/PageContainer";
+import { patchUserSettingsOptimistic } from "./-optimisticUserSettings";
 
 export const Route = createFileRoute("/_main/settings/extension")({
   component: ExtensionSettingsPage,
@@ -13,11 +14,7 @@ function ExtensionSettingsPage() {
   const settings = useQuery(api.userSettings.get);
   const updateSettings = useMutation(
     api.userSettings.update,
-  ).withOptimisticUpdate((localStore, args) => {
-    const current = localStore.getQuery(api.userSettings.get, {});
-    if (!current) return;
-    localStore.setQuery(api.userSettings.get, {}, { ...current, ...args });
-  });
+  ).withOptimisticUpdate(patchUserSettingsOptimistic);
 
   const saveSettings = async (
     patch: Parameters<typeof updateSettings>[0],

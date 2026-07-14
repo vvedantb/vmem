@@ -8,6 +8,11 @@ import {
   isImageMime,
   isTextualMime,
 } from "../files/lib";
+import {
+  decodeBase64Bytes,
+  encodeBase64Bytes,
+  toArrayBuffer,
+} from "../lib/base64";
 
 // inline-content caps. MCP tool args/results are JSON, so bytes ride as base64
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB (Convex 16 MiB action-arg limit w/ base64 overhead)
@@ -61,23 +66,7 @@ function decodeBase64(input: string): {
       payload = payload.slice(commaIndex + 1);
     }
   }
-  const binary = atob(payload);
-  const buffer = new ArrayBuffer(binary.length);
-  const view = new Uint8Array(buffer);
-  for (let i = 0; i < binary.length; i++) {
-    view[i] = binary.charCodeAt(i);
-  }
-  return { buffer, dataUrlMime };
-}
-
-// encode raw bytes to base64 in chunks (avoids call-stack limits)
-function encodeBase64(bytes: Uint8Array): string {
-  let binary = "";
-  const chunkSize = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
-  }
-  return btoa(binary);
+  return { buffer: toArrayBuffer(decodeBase64Bytes(payload)), dataUrlMime };
 }
 
 function toListItem(
@@ -166,7 +155,7 @@ export async function getFile(
       const blob = await ctx.storage.get(node.storageId);
       if (blob) {
         const buffer = await blob.arrayBuffer();
-        result.contentBase64 = encodeBase64(new Uint8Array(buffer));
+        result.contentBase64 = encodeBase64Bytes(new Uint8Array(buffer));
       }
     } else if (isTextualMime(mimeType) && size <= MAX_INLINE_TEXT_BYTES) {
       const blob = await ctx.storage.get(node.storageId);

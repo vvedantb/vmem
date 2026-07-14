@@ -1,6 +1,7 @@
 import { httpAction, type ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { extractBearerToken } from "../lib/bearerToken";
+import { encodeBase64UrlBytes } from "../lib/base64";
 import { z } from "zod";
 
 function getWebAppUrl(): string {
@@ -292,10 +293,7 @@ async function pkceS256Challenge(verifier: string): Promise<string> {
     "SHA-256",
     new TextEncoder().encode(verifier),
   );
-  return btoa(String.fromCharCode(...new Uint8Array(hashBuffer)))
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
+  return encodeBase64UrlBytes(new Uint8Array(hashBuffer));
 }
 
 async function runMcpEndpoint(

@@ -13,10 +13,15 @@ import {
   IconX,
   type TablerIcon,
 } from "@tabler/icons-react";
-import type { ProposedUpdate, ProposedUpdateKind } from "@/hooks/useProposals";
-import { proposalAccentClass } from "./_proposalUtils";
+import {
+  proposalAccentClass,
+  type ProposedUpdate,
+  type ProposedUpdateKind,
+  type SourceMemorySnapshot,
+} from "./_proposalUtils";
 import {
   ProposalFieldLabel,
+  ProposalMutedTextBlock,
   ProposalShell,
   ProposalTextBlock,
 } from "./ProposalShell";
@@ -37,14 +42,13 @@ export default function SynthesisProposalCard({
 }) {
   const activeProfile = useActiveProfile();
   const meta = getKindMeta(proposal.kind);
-  const isDismissOnly =
-    proposal.kind === "contradiction" || proposal.kind === "anomaly";
-  const isMerge = proposal.kind === "merge";
+  const actionLabels = getSynthesisActionLabels(proposal.kind);
+  const contentLabel = getSynthesisContentLabel(proposal.kind);
   const title = proposal.proposedTitle ?? "(untitled synthesis)";
   const confidencePct =
     proposal.confidence === null ? null : Math.round(proposal.confidence * 100);
   const sourceCount = proposal.sourceMemorySnapshots.length;
-  const canPickWinner =
+  const showKeepWinner =
     proposal.kind === "contradiction" &&
     onKeepWinner !== undefined &&
     sourceCount >= 2;
@@ -74,7 +78,7 @@ export default function SynthesisProposalCard({
             className="text-muted hover:text-foreground"
           >
             <IconX size={14} />
-            {isDismissOnly ? "Dismiss" : "Reject"}
+            {actionLabels.reject}
           </Button>
           <Button
             type="button"
@@ -83,31 +87,30 @@ export default function SynthesisProposalCard({
             disabled={isResolving}
           >
             <IconCheck size={14} />
-            {isDismissOnly ? "Acknowledge" : isMerge ? "Merge" : "Approve"}
+            {actionLabels.approve}
           </Button>
         </>
       }
     >
       <ProposalTextBlock
-        label={isMerge ? "Consolidated memory" : "Synthesis"}
+        label={contentLabel}
         className="bg-surface-secondary/60"
       >
         {proposal.proposedContent}
       </ProposalTextBlock>
 
       {proposal.reason.trim() !== "" && (
-        <ProposalTextBlock label="Why" muted>
+        <ProposalMutedTextBlock label="Why">
           {proposal.reason}
-        </ProposalTextBlock>
+        </ProposalMutedTextBlock>
       )}
 
       {sourceCount > 0 && (
         <div className="rounded-lg bg-surface-secondary/50 p-3">
           <ProposalFieldLabel>
-            {isMerge ? "Replaces" : "Derived from"} {sourceCount}{" "}
-            {sourceCount === 1 ? "memory" : "memories"}
+            {getSourceListLabel(proposal.kind, sourceCount)}
           </ProposalFieldLabel>
-          {canPickWinner && (
+          {showKeepWinner && (
             <p className="mb-1 text-xs text-muted">
               Keep one to resolve the conflict — the others get suppressed.
               Acknowledge instead if both should stay.
@@ -115,39 +118,14 @@ export default function SynthesisProposalCard({
           )}
           <div className="flex flex-col gap-0.5">
             {proposal.sourceMemorySnapshots.map((src) => (
-              <div key={src.id} className="flex min-w-0 items-center gap-1">
-                <Link
-                  to="/$profileId/memories/graph"
-                  params={{ profileId: activeProfile._id }}
-                  search={(prev) => ({ ...prev, focus: src.id })}
-                  className="group -mx-1 flex min-w-0 flex-1 items-baseline gap-2 rounded-lg px-2 py-1.5 text-sm transition-[background-color] hover:bg-surface-tertiary/50"
-                >
-                  <span className="truncate text-foreground/80 group-hover:text-foreground">
-                    {src.title || "(untitled)"}
-                  </span>
-                  {src.content && (
-                    <span className="truncate text-xs text-muted/60">
-                      {src.content.slice(0, 80)}
-                      {src.content.length > 80 ? "…" : ""}
-                    </span>
-                  )}
-                </Link>
-                {canPickWinner && (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    disabled={isResolving}
-                    onClick={() => {
-                      onKeepWinner(src.id);
-                    }}
-                    className="shrink-0 text-muted hover:text-foreground"
-                  >
-                    <IconCheck size={14} />
-                    Keep this
-                  </Button>
-                )}
-              </div>
+              <SynthesisSourceMemoryRow
+                key={src.id}
+                src={src}
+                profileId={activeProfile._id}
+                showKeepWinner={showKeepWinner}
+                isResolving={isResolving}
+                onKeepWinner={onKeepWinner}
+              />
             ))}
           </div>
         </div>
@@ -165,6 +143,56 @@ export default function SynthesisProposalCard({
         </div>
       )}
     </ProposalShell>
+  );
+}
+
+function SynthesisSourceMemoryRow({
+  src,
+  profileId,
+  showKeepWinner,
+  isResolving,
+  onKeepWinner,
+}: {
+  src: SourceMemorySnapshot;
+  profileId: string;
+  showKeepWinner: boolean;
+  isResolving: boolean;
+  onKeepWinner?: (winnerMemoryId: string) => void;
+}) {
+  return (
+    <div className="flex min-w-0 items-center gap-1">
+      <Link
+        to="/$profileId/memories/graph"
+        params={{ profileId }}
+        search={(prev) => ({ ...prev, focus: src.id })}
+        className="group -mx-1 flex min-w-0 flex-1 items-baseline gap-2 rounded-lg px-2 py-1.5 text-sm transition-[background-color] hover:bg-surface-tertiary/50"
+      >
+        <span className="truncate text-foreground/80 group-hover:text-foreground">
+          {src.title || "(untitled)"}
+        </span>
+        {src.content && (
+          <span className="truncate text-xs text-muted/60">
+            {src.content.slice(0, 80)}
+            {src.content.length > 80 ? "…" : ""}
+          </span>
+        )}
+      </Link>
+      {showKeepWinner && onKeepWinner !== undefined && (
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          disabled={isResolving}
+          onClick={() => {
+            onKeepWinner(src.id);
+          }}
+          className="shrink-0 text-muted hover:text-foreground"
+        >
+          <IconCheck size={14} />
+          Keep this
+        </Button>
+      )}
+    </div>
   );
 }
 
@@ -193,4 +221,32 @@ function getKindMeta(kind: ProposedUpdateKind): KindMeta {
     default:
       return { label: "Synthesis", variant: "outline", Icon: IconBulb };
   }
+}
+
+function getSynthesisActionLabels(kind: ProposedUpdateKind): {
+  reject: string;
+  approve: string;
+} {
+  switch (kind) {
+    case "contradiction":
+    case "anomaly":
+      return { reject: "Dismiss", approve: "Acknowledge" };
+    case "merge":
+      return { reject: "Reject", approve: "Merge" };
+    default:
+      return { reject: "Reject", approve: "Approve" };
+  }
+}
+
+function getSynthesisContentLabel(kind: ProposedUpdateKind): string {
+  return kind === "merge" ? "Consolidated memory" : "Synthesis";
+}
+
+function getSourceListLabel(
+  kind: ProposedUpdateKind,
+  sourceCount: number,
+): string {
+  const noun = sourceCount === 1 ? "memory" : "memories";
+  const prefix = kind === "merge" ? "Replaces" : "Derived from";
+  return `${prefix} ${sourceCount} ${noun}`;
 }

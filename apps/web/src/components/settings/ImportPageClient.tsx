@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { useAction } from "convex/react";
 import { api } from "@vmem/backend";
 import { Button, Card, CardContent } from "@vmem/ui";
@@ -10,61 +10,88 @@ import SelectImportRowsModal from "./SelectImportRowsModal";
 import { importProviders, type ImportProvider } from "./importProviders";
 import type { ExportImportRow } from "@/lib/chat-export/importRows";
 
+type ImportStep =
+  | { phase: "idle" }
+  | { phase: "upload"; providerId: string }
+  | { phase: "select"; providerId: string; rows: ExportImportRow[] };
+
 function findProvider(id: string | null): ImportProvider | null {
   if (id === null) return null;
   return importProviders.find((p) => p.id === id) ?? null;
 }
 
+function ImportProviderCard({
+  provider,
+  onImport,
+}: {
+  provider: ImportProvider;
+  onImport: (id: string) => void;
+}) {
+  const Logo = provider.Logo;
+  return (
+    <section className="space-y-3">
+      <div className="flex items-center gap-3">
+        <Logo className={`h-6 w-6 shrink-0 ${provider.logoClassName}`} />
+        <h3 className="text-base font-medium text-foreground text-balance">
+          {provider.label}
+        </h3>
+      </div>
+      <Card className="shadow-none">
+        <CardContent className="p-6">
+          <p className="mb-5 text-sm text-muted">{provider.description}</p>
+          <Button type="button" onClick={() => onImport(provider.id)}>
+            Import
+          </Button>
+        </CardContent>
+      </Card>
+    </section>
+  );
+}
+
 // panel body for the Import tab on `/settings/data-controls/import`
 export default function ImportPageClient() {
   const createMemory = useAction(api.memoryApi.createMemory);
-  const [providerId, setProviderId] = useState<string | null>(null);
-  const [uploadOpen, setUploadOpen] = useState(false);
-  const [selectOpen, setSelectOpen] = useState(false);
-  const [rows, setRows] = useState<ExportImportRow[]>([]);
+  const [step, setStep] = useState<ImportStep>({ phase: "idle" });
   const [parsing, setParsing] = useState(false);
   const [importing, setImporting] = useState(false);
 
   const openUpload = (id: string) => {
-    setProviderId(id);
-    setUploadOpen(true);
+    setStep({ phase: "upload", providerId: id });
   };
 
   const closeUpload = () => {
-    setUploadOpen(false);
-    setProviderId(null);
+    setStep({ phase: "idle" });
   };
 
-  const handleFile = useCallback(
-    async (file: File) => {
-      const p = findProvider(providerId);
-      if (!p) return;
-      setParsing(true);
-      try {
-        const buf = await file.arrayBuffer();
-        const result = p.parser(buf);
-        if (!result.ok) {
-          toast.error(result.error);
-          return;
-        }
-        setRows(result.rows);
-        setUploadOpen(false);
-        setSelectOpen(true);
-      } finally {
-        setParsing(false);
+  const handleFile = async (file: File) => {
+    if (step.phase !== "upload") return;
+    const p = findProvider(step.providerId);
+    if (!p) return;
+    setParsing(true);
+    try {
+      const buf = await file.arrayBuffer();
+      const result = p.parser(buf);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
       }
-    },
-    [providerId],
-  );
+      setStep({
+        phase: "select",
+        providerId: step.providerId,
+        rows: result.rows,
+      });
+    } finally {
+      setParsing(false);
+    }
+  };
 
   const closeSelect = () => {
-    setSelectOpen(false);
-    setRows([]);
-    setProviderId(null);
+    setStep({ phase: "idle" });
   };
 
   const handleImport = async (selected: ExportImportRow[]) => {
-    const p = findProvider(providerId);
+    if (step.phase !== "select") return;
+    const p = findProvider(step.providerId);
     if (!p) return;
     setImporting(true);
     const results = await Promise.allSettled(
@@ -98,38 +125,22 @@ export default function ImportPageClient() {
     );
   };
 
-  const activeProvider = findProvider(providerId);
+  const uploadProvider =
+    step.phase === "upload" ? findProvider(step.providerId) : null;
+  const selectRows = step.phase === "select" ? step.rows : [];
 
   return (
     <>
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        {importProviders.map((p) => {
-          const Logo = p.Logo;
-          return (
-            <section key={p.id} className="space-y-3">
-              <div className="flex items-center gap-3">
-                <Logo className={`h-6 w-6 shrink-0 ${p.logoClassName}`} />
-                <h3 className="text-base font-medium text-foreground text-balance">
-                  {p.label}
-                </h3>
-              </div>
-              <Card className="shadow-none">
-                <CardContent className="p-6">
-                  <p className="mb-5 text-sm text-muted">{p.description}</p>
-                  <Button type="button" onClick={() => openUpload(p.id)}>
-                    Import
-                  </Button>
-                </CardContent>
-              </Card>
-            </section>
-          );
-        })}
+        {importProviders.map((p) => (
+          <ImportProviderCard key={p.id} provider={p} onImport={openUpload} />
+        ))}
       </div>
 
-      {uploadOpen && activeProvider !== null ? (
+      {step.phase === "upload" && uploadProvider !== null ? (
         <UploadImportModal
-          open={uploadOpen}
-          provider={activeProvider}
+          open
+          provider={uploadProvider}
           onClose={closeUpload}
           onFile={handleFile}
           isParsing={parsing}
@@ -137,8 +148,13 @@ export default function ImportPageClient() {
       ) : null}
 
       <SelectImportRowsModal
-        open={selectOpen}
-        rows={rows}
+        key={
+          step.phase === "select"
+            ? step.rows.map((r) => r.stableId).join("\0")
+            : "idle"
+        }
+        open={step.phase === "select"}
+        rows={selectRows}
         onClose={closeSelect}
         onConfirm={handleImport}
         isImporting={importing}

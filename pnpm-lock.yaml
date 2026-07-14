@@ -488,6 +488,9 @@ importers:
       '@openrouter/sdk':
         specifier: ^0.12.35
         version: 0.12.35
+      '@scure/base':
+        specifier: ^2.2.0
+        version: 2.2.0
       '@vmem/shared':
         specifier: workspace:*
         version: link:../shared
@@ -500,6 +503,9 @@ importers:
       convex-helpers:
         specifier: 'catalog:'
         version: 0.1.114(@standard-schema/spec@1.1.0)(convex@1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(bufferutil@4.1.0)(react@19.2.5)(utf-8-validate@6.0.6))(hono@4.12.14)(react@19.2.5)(typescript@7.0.1-rc)(zod@3.25.76)
+      json-from-llm:
+        specifier: ^0.2.6
+        version: 0.2.6
       jsonrepair:
         specifier: ^3.15.0
         version: 3.15.0
@@ -3069,6 +3075,9 @@ packages:
   '@scure/base@1.2.6':
     resolution: {integrity: sha512-g/nm5FgUa//MCj1gV09zTJTaM6KBAHqLN907YVQqf7zC49+DcO4B1so4ZX07Ef10Twr6nuqYEH9GEggFXA4Fmg==}
 
+  '@scure/base@2.2.0':
+    resolution: {integrity: sha512-b8XEupJibegiXV+tDUseI8oLQc8ei3d/4Jkb2RpbHh3MfE054ov3uIz2dhFkB3FI8iwYkEh0gGCApkrYggkPNg==}
+
   '@scure/bip32@1.7.0':
     resolution: {integrity: sha512-E4FFX/N3f4B80AKWp5dP6ow+flD1LQZo/w8UnLGYZO674jS6YnYeepycOOksv+vLPSpgN35wgKgy+ybfTb2SMw==}
 
@@ -5305,6 +5314,11 @@ packages:
 
   json-buffer@3.0.1:
     resolution: {integrity: sha512-4bV5BfR2mqfQTJm+V5tPPdf+ZpuhiIvTuAB5g8kcrXOZpTT/QwwVRWBywX1ozr6lEuPdbHxwaJlm9G6mI2sfSQ==}
+
+  json-from-llm@0.2.6:
+    resolution: {integrity: sha512-TJbI+OqoHGDRKl7CoWFIqAHNR6HEKZce//+My7u7NgBGY93hYsWgGs9U2Gesp596Q0ha1AeKEpdCa29XXBzwHA==}
+    engines: {node: '>=18'}
+    hasBin: true
 
   json-parse-even-better-errors@2.3.1:
     resolution: {integrity: sha512-xyFwyhro/JEof6Ghe2iz2NcXoj2sloNsWr/XsERDK/oiPCfaNhl5ONfp+jQdAZRQQ0IJWNzH9zIZF7li91kh2w==}
@@ -9711,6 +9725,8 @@ snapshots:
 
   '@scure/base@1.2.6': {}
 
+  '@scure/base@2.2.0': {}
+
   '@scure/bip32@1.7.0':
     dependencies:
       '@noble/curves': 1.9.1
@@ -12122,6 +12138,8 @@ snapshots:
       bignumber.js: 9.3.1
 
   json-buffer@3.0.1: {}
+
+  json-from-llm@0.2.6: {}
 
   json-parse-even-better-errors@2.3.1: {}
 

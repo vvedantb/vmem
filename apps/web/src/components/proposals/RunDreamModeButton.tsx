@@ -77,12 +77,25 @@ export default function RunDreamModeButton() {
       disabled={isRunning}
       className="gap-1.5"
     >
-      {isRunning ? (
-        <IconLoader2 size={14} className="animate-spin" />
-      ) : (
-        <IconSparkles size={14} />
-      )}
-      {isRunning ? "Dreaming…" : "Start Dreaming"}
+      {isRunning ? <DreamModeButtonRunning /> : <DreamModeButtonIdle />}
     </Button>
+  );
+}
+
+function DreamModeButtonIdle() {
+  return (
+    <>
+      <IconSparkles size={14} />
+      Start Dreaming
+    </>
+  );
+}
+
+function DreamModeButtonRunning() {
+  return (
+    <>
+      <IconLoader2 size={14} className="animate-spin" />
+      Dreaming…
+    </>
   );
 }

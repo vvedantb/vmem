@@ -16,7 +16,7 @@ import type {
   DragStartEvent,
 } from "@dnd-kit/core";
 import { api } from "@vmem/backend";
-import type { Doc, Id } from "@vmem/backend";
+import type { WikiListNode, WikiNodeId } from "./-types";
 import type { WikiTreeNode } from "./_utils";
 import { resolveWikiMove, WIKI_ROOT_DROP_ID } from "./_utils";
 import RenameDialog from "./RenameDialog";
@@ -39,13 +39,13 @@ const wikiCollisionDetection: CollisionDetection = (args) => {
 interface WikiTreeProps {
   tree: WikiTreeNode[];
   // flat node list (the raw `listTree` result) for drag-and-drop move math
-  nodes: Array<Doc<"wikiNodes">>;
+  nodes: Array<WikiListNode>;
   selectedId: string | null;
-  onSelect: (id: string) => void;
+  onSelect: (id: WikiNodeId | "") => void;
   // navigate = open node; bulk-select = checkbox toggle
   mode?: "navigate" | "bulk-select";
-  selectedNodeIds?: ReadonlySet<Id<"wikiNodes">>;
-  onToggleSelect?: (id: Id<"wikiNodes">) => void;
+  selectedNodeIds?: ReadonlySet<WikiNodeId>;
+  onToggleSelect?: (id: WikiNodeId) => void;
 }
 
 // left-pane document/folder tree
@@ -58,7 +58,6 @@ export default function WikiTree({
   selectedNodeIds,
   onToggleSelect,
 }: WikiTreeProps) {
-  const selectionMode = mode === "bulk-select";
   const teamId = useActiveTeamId();
   const createNode = useMutation(api.wiki.createNode).withOptimisticUpdate(
     (localStore, args) => {
@@ -73,7 +72,7 @@ export default function WikiTree({
           : Math.max(...siblings.map((s) => s.order)) + 1;
       const now = Date.now();
       const tempId = optimisticId("wikiNodes");
-      const row: Doc<"wikiNodes"> = {
+      const row: WikiListNode = {
         _id: tempId,
         _creationTime: now,
         userId: head.userId,
@@ -118,7 +117,7 @@ export default function WikiTree({
     (localStore, args) => {
       const tree = localStore.getQuery(api.wiki.listTree, { teamId });
       if (!tree) return;
-      const childrenByParent = new Map<string, Array<Id<"wikiNodes">>>();
+      const childrenByParent = new Map<string, Array<WikiNodeId>>();
       for (const node of tree) {
         const key = node.parentId ?? "__root__";
         const list = childrenByParent.get(key) ?? [];
@@ -126,7 +125,7 @@ export default function WikiTree({
         childrenByParent.set(key, list);
       }
       const remove = new Set<string>([args.id]);
-      const stack: Array<Id<"wikiNodes">> = [args.id];
+      const stack: Array<WikiNodeId> = [args.id];
       while (stack.length > 0) {
         const current = stack.pop();
         if (current === undefined) continue;
@@ -170,15 +169,11 @@ export default function WikiTree({
     },
   );
 
-  const [renameTarget, setRenameTarget] = useState<Doc<"wikiNodes"> | null>(
-    null,
-  );
-  const [deleteTarget, setDeleteTarget] = useState<Doc<"wikiNodes"> | null>(
-    null,
-  );
+  const [renameTarget, setRenameTarget] = useState<WikiListNode | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<WikiListNode | null>(null);
 
   // the node currently being dragged — drives the drag overlay preview
-  const [activeNode, setActiveNode] = useState<Doc<"wikiNodes"> | null>(null);
+  const [activeNode, setActiveNode] = useState<WikiListNode | null>(null);
 
   // 5px threshold so a plain click (open doc / toggle folder) and the
   // right-click context menu still work; a drag only begins after movement
@@ -208,7 +203,7 @@ export default function WikiTree({
   );
 
   const handleCreateInFolder = useCallback(
-    async (parentId: Id<"wikiNodes">, kind: "folder" | "document") => {
+    async (parentId: WikiNodeId, kind: "folder" | "document") => {
       const title = kind === "folder" ? "Untitled folder" : "Untitled";
       const newId = await createNode({ parentId, kind, title, teamId });
       if (kind === "document") {
@@ -227,7 +222,7 @@ export default function WikiTree({
       onDragCancel={() => setActiveNode(null)}
     >
       <div className="flex flex-col min-h-0 flex-1 w-full">
-        <WikiRootDropZone disabled={selectionMode}>
+        <WikiRootDropZone disabled={mode === "bulk-select"}>
           {tree.length === 0 ? (
             <p className="px-2 py-3 text-xs text-muted">
               No documents yet. Use Add below to create one.
@@ -238,7 +233,7 @@ export default function WikiTree({
               depth={0}
               selectedId={selectedId}
               onSelect={onSelect}
-              selectionMode={selectionMode}
+              mode={mode}
               selectedNodeIds={selectedNodeIds}
               onToggleSelect={onToggleSelect}
               onCreateInside={handleCreateInFolder}

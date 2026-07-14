@@ -26,7 +26,7 @@ import {
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { CodebaseSidebarCard } from "./CodebaseSidebarCard";
-import type { CodebaseItem } from "./CodebaseCardInsides";
+import type { CodebaseItem } from "./-types";
 import { useActiveTeamId } from "@/components/workspace/active-profile";
 
 interface CodebaseSidebarItemProps {

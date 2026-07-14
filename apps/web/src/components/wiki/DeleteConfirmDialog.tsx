@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Doc, Id } from "@vmem/backend";
+import type { WikiListNode, WikiNodeId } from "./-types";
 import {
   Button,
   Dialog,
@@ -13,9 +13,9 @@ import {
 } from "@vmem/ui";
 
 interface DeleteConfirmDialogProps {
-  target: Doc<"wikiNodes"> | null;
+  target: WikiListNode | null;
   onClose: () => void;
-  onConfirm: (id: Id<"wikiNodes">) => Promise<void>;
+  onConfirm: (id: WikiNodeId) => Promise<void>;
 }
 
 // confirms deletion of a folder or document

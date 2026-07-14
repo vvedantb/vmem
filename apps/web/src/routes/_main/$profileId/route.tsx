@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useQuery } from "convex/react";
-import { api } from "@vmem/backend";
+import { api, type Doc } from "@vmem/backend";
 import { IconLoader2 } from "@tabler/icons-react";
 import {
   ActiveProfileProvider,
@@ -21,7 +21,9 @@ export const Route = createFileRoute("/_main/$profileId")({
 function WorkspaceLayout() {
   const { profileId } = Route.useParams();
   const profiles = useQuery(api.profiles.list);
-  const profile = profiles?.find((p) => p._id === profileId);
+  const profile: Doc<"profiles"> | undefined = profiles?.find(
+    (p) => p._id === profileId,
+  );
 
   useEffect(() => {
     if (profile !== undefined) rememberActiveProfileId(profile._id);

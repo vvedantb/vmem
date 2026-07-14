@@ -2,6 +2,7 @@
 
 import { lazy, Suspense, useState, useEffect, useRef } from "react";
 import { useMutation, useQuery } from "convex/react";
+import { toast } from "sonner";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 import { api } from "@vmem/backend";
 import { Dialog, DialogContent, DialogTitle } from "@vmem/ui";
@@ -12,7 +13,6 @@ import WikiOutline from "./WikiOutline";
 import { useWikiSidebar } from "./WikiSidebarContext";
 import { WikiPageBreadcrumb } from "./WikiPageBreadcrumb";
 import { WikiDocActionsMenu } from "./WikiDocActionsMenu";
-import { useWikiTitleDraft } from "./useWikiTitleDraft";
 
 const WikiEditor = lazy(() => import("./WikiEditor"));
 const WikiHistoryPanel = lazy(() =>
@@ -47,27 +47,21 @@ function WikiSpinner() {
   );
 }
 
-interface WikiWorkspaceBodyProps {
-  phase: WikiWorkspacePhase;
-  outlineVisible: boolean;
-  isMobileViewport: boolean;
-  headings: OutlineHeading[];
-  activeHeadingId: string | null;
-  onJump: (pos: number) => void;
-  docId: string | null;
-  titleForCopy: string;
-  onRegisterCopy: (handler: (() => Promise<void>) | null) => void;
-  onRegisterRestore: (
-    handler: ((markdown: string) => Promise<void>) | null,
-  ) => void;
-  onHeadingsChange: (headings: OutlineHeading[]) => void;
-  onActiveHeadingChange: (id: string | null) => void;
-  onWordCountChange: (count: number) => void;
-  jumpRequest: { pos: number; n: number };
-}
+const wikiEmptyState = (
+  <div className="flex flex-1 flex-col items-center justify-center text-center">
+    <p className="text-sm text-muted">
+      No documents yet. Use Add in the sidebar to create one.
+    </p>
+  </div>
+);
 
-function WikiWorkspaceBody({
-  phase,
+const wikiPickDocState = (
+  <div className="flex flex-1 items-center justify-center">
+    <p className="text-sm text-muted">Select a document from the sidebar</p>
+  </div>
+);
+
+function WikiWorkspaceEditing({
   outlineVisible,
   isMobileViewport,
   headings,
@@ -81,30 +75,10 @@ function WikiWorkspaceBody({
   onActiveHeadingChange,
   onWordCountChange,
   jumpRequest,
-}: WikiWorkspaceBodyProps) {
-  if (phase === "loading-tree") {
-    return <WikiSpinner />;
-  }
-
-  if (phase === "empty") {
-    return (
-      <div className="flex flex-1 flex-col items-center justify-center text-center">
-        <p className="text-sm text-muted">
-          No documents yet. Use Add in the sidebar to create one.
-        </p>
-      </div>
-    );
-  }
-
-  if (phase === "pick-doc") {
-    return (
-      <div className="flex flex-1 items-center justify-center">
-        <p className="text-sm text-muted">Select a document from the sidebar</p>
-      </div>
-    );
-  }
-
-  // loading-doc still mounts WikiEditor
+  phase,
+}: Omit<WikiWorkspaceBodyProps, "phase"> & {
+  phase: "editing" | "loading-doc";
+}) {
   const showOutline =
     phase === "editing" && outlineVisible && !isMobileViewport;
 
@@ -136,6 +110,39 @@ function WikiWorkspaceBody({
       </div>
     </div>
   );
+}
+
+interface WikiWorkspaceBodyProps {
+  phase: WikiWorkspacePhase;
+  outlineVisible: boolean;
+  isMobileViewport: boolean;
+  headings: OutlineHeading[];
+  activeHeadingId: string | null;
+  onJump: (pos: number) => void;
+  docId: string | null;
+  titleForCopy: string;
+  onRegisterCopy: (handler: (() => Promise<void>) | null) => void;
+  onRegisterRestore: (
+    handler: ((markdown: string) => Promise<void>) | null,
+  ) => void;
+  onHeadingsChange: (headings: OutlineHeading[]) => void;
+  onActiveHeadingChange: (id: string | null) => void;
+  onWordCountChange: (count: number) => void;
+  jumpRequest: { pos: number; n: number };
+}
+
+function WikiWorkspaceBody(props: WikiWorkspaceBodyProps) {
+  if (props.phase === "loading-tree") {
+    return <WikiSpinner />;
+  }
+  if (props.phase === "empty") {
+    return wikiEmptyState;
+  }
+  if (props.phase === "pick-doc") {
+    return wikiPickDocState;
+  }
+  const { phase, ...editingProps } = props;
+  return <WikiWorkspaceEditing phase={phase} {...editingProps} />;
 }
 
 interface WikiWorkspaceProps {
@@ -179,7 +186,6 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
     setHistoryVisible,
     wordCount,
     setWordCount,
-    setHasDoc,
   } = useWikiSidebar();
 
   const [headings, setHeadings] = useState<OutlineHeading[]>([]);
@@ -199,6 +205,7 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
   const hasDocId = docId !== null && docId.length > 0;
   const isDocLoading = hasDocId && doc === undefined;
   const hasDoc = hasDocId && doc != null && doc.kind === "document";
+  const editableDoc = hasDoc ? doc : null;
   const phase = resolvePhase({
     hasDoc,
     isDocLoading,
@@ -207,15 +214,46 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
   });
   const showChrome = phase === "editing" || phase === "loading-doc";
   const ancestors = doc && nodes ? findAncestors(doc, nodes) : [];
-  const { titleDraft, setTitleDraft, commitTitle } = useWikiTitleDraft(
-    doc,
-    renameNode,
-  );
-  const pageTitle =
-    doc != null && doc.kind === "document" ? titleDraft || doc.title : "Wiki";
+  const pageTitle = editableDoc ? editableDoc.title || "Untitled" : "Wiki";
+
+  function handleTitleChange(title: string) {
+    if (!editableDoc) return;
+    void renameNode({ id: editableDoc._id, title }).catch((err) => {
+      toast.error(err instanceof Error ? err.message : "Failed to save");
+    });
+  }
+
+  function handleTitleCommit() {
+    if (!editableDoc) return;
+    const trimmed = editableDoc.title.trim();
+    if (trimmed.length === 0) {
+      void renameNode({ id: editableDoc._id, title: "Untitled" }).catch(
+        (err) => {
+          toast.error(err instanceof Error ? err.message : "Failed to save");
+        },
+      );
+      return;
+    }
+    if (trimmed !== editableDoc.title) {
+      void renameNode({ id: editableDoc._id, title: trimmed }).catch((err) => {
+        toast.error(err instanceof Error ? err.message : "Failed to save");
+      });
+    }
+  }
 
   function requestJump(pos: number) {
     setJumpRequest((prev) => ({ pos, n: prev.n + 1 }));
+  }
+
+  function handleRegisterCopy(handler: (() => Promise<void>) | null) {
+    copyDocumentRef.current = handler;
+    setCopyReady(handler !== null);
+  }
+
+  function handleRegisterRestore(
+    handler: ((markdown: string) => Promise<void>) | null,
+  ) {
+    restoreDocumentRef.current = handler;
   }
 
   useEffect(() => {
@@ -229,33 +267,23 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
   }, []);
 
   useEffect(() => {
-    setHasDoc(hasDoc);
     if (hasDocId) return;
     setOutlineVisible(false);
     setHistoryVisible(false);
     setWordCount(0);
-    setTitleDraft("");
-  }, [
-    hasDoc,
-    hasDocId,
-    setHasDoc,
-    setOutlineVisible,
-    setHistoryVisible,
-    setWordCount,
-    setTitleDraft,
-  ]);
+  }, [hasDocId, setOutlineVisible, setHistoryVisible, setWordCount]);
 
   return (
     <PageContainer
       title={pageTitle}
       noScroll
       breadcrumb={
-        showChrome ? (
+        editableDoc ? (
           <WikiPageBreadcrumb
             ancestors={ancestors}
-            title={titleDraft}
-            onTitleChange={setTitleDraft}
-            onTitleCommit={() => void commitTitle()}
+            doc={editableDoc}
+            onTitleChange={handleTitleChange}
+            onTitleCommit={handleTitleCommit}
           />
         ) : undefined
       }
@@ -281,14 +309,9 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
           activeHeadingId={activeHeadingId}
           onJump={requestJump}
           docId={docId}
-          titleForCopy={titleDraft}
-          onRegisterCopy={(handler) => {
-            copyDocumentRef.current = handler;
-            setCopyReady(handler !== null);
-          }}
-          onRegisterRestore={(handler) => {
-            restoreDocumentRef.current = handler;
-          }}
+          titleForCopy={editableDoc?.title ?? ""}
+          onRegisterCopy={handleRegisterCopy}
+          onRegisterRestore={handleRegisterRestore}
           onHeadingsChange={setHeadings}
           onActiveHeadingChange={setActiveHeadingId}
           onWordCountChange={setWordCount}

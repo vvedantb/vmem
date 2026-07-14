@@ -10,6 +10,7 @@ import type {
 import type {
   HoveredEdgeInfo,
   HoveredNodeInfo,
+  GraphDetailNode,
 } from "@/components/_components/graph-types";
 import { getRelatedNodes } from "@/components/_components/graph-data";
 
@@ -50,7 +51,7 @@ export function useGraphNodeInteraction(args: {
       ? null
       : (args.graphNodes.find((n) => n.id === selectedNodeId) ?? null);
 
-  const selectedNodeData =
+  const selectedNodeData: GraphDetailNode | null =
     selectedNode === null
       ? null
       : {

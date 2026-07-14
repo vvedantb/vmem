@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { lazy, Suspense, useState, useCallback } from "react";
 import { useQuery, useAction } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { api } from "@vmem/backend";
+import { api, type Id } from "@vmem/backend";
 import { isCodebaseSyncStalled } from "@vmem/shared";
 import PageContainer from "@/components/PageContainer";
 import { Breadcrumb, BreadcrumbPage, Button } from "@vmem/ui";
@@ -62,7 +62,7 @@ function CodebaseDetailPage() {
     );
   }
 
-  return <CodebaseDetailView id={id} codebase={codebase} />;
+  return <CodebaseDetailView id={codebase._id} codebase={codebase} />;
 }
 
 type Codebase = NonNullable<FunctionReturnType<typeof api.codebases.getById>>;
@@ -71,7 +71,7 @@ function CodebaseDetailView({
   id,
   codebase,
 }: {
-  id: string;
+  id: Id<"codebases">;
   codebase: Codebase;
 }) {
   const syncCodebase = useAction(api.codebases.syncCodebase);

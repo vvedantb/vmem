@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useAction } from "convex/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   Button,
@@ -29,8 +29,9 @@ import {
   IconBrandChrome,
   IconLoader2,
 } from "@tabler/icons-react";
+import type { FunctionReturnType } from "convex/server";
 import { api } from "@vmem/backend";
-import type { Doc, Id } from "@vmem/backend";
+import type { Id } from "@vmem/backend";
 import { optimisticId } from "@/lib/optimisticId";
 import PageContainer from "@/components/PageContainer";
 import { ProfileAvatar } from "@/components/profiles/ProfileAvatar";
@@ -40,7 +41,7 @@ export const Route = createFileRoute("/_main/settings/profiles")({
   component: ProfilesPage,
 });
 
-type Profile = Doc<"profiles">;
+type Profile = FunctionReturnType<typeof api.profiles.list>[number];
 
 function ProfileCard({
   profile,
@@ -245,14 +246,11 @@ function DefaultProfilesSection({ profiles }: { profiles: Profile[] }) {
   const extensionDefault =
     profiles.find((p) => p._id === extensionDefaultId) ?? defaultProfile;
 
-  const handleDefaultProfileChange = async (profileId: string) => {
-    const profile = profiles.find((p) => p._id === profileId);
-    if (!profile) return;
-
+  const handleDefaultProfileChange = async (profileId: Profile["_id"]) => {
     try {
       await setDefaultProfile({
         source: "extension",
-        profileId: profile._id,
+        profileId,
       });
       toast.success("Saved!");
     } catch (err) {
@@ -282,8 +280,9 @@ function DefaultProfilesSection({ profiles }: { profiles: Profile[] }) {
               </div>
               <Select
                 value={extensionDefault?._id ?? ""}
-                onValueChange={(profileId) => {
-                  void handleDefaultProfileChange(profileId);
+                onValueChange={(value) => {
+                  const profile = profiles.find((p) => p._id === value);
+                  if (profile) void handleDefaultProfileChange(profile._id);
                 }}
               >
                 <SelectTrigger className="w-[160px]">
@@ -378,8 +377,35 @@ function ProfilesPage() {
   const removeProfileWithMemories = useAction(api.profiles.removeWithMemories);
 
   const [createOpen, setCreateOpen] = useState(false);
-  const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
-  const [deletingProfile, setDeletingProfile] = useState<Profile | null>(null);
+  const [editingProfileId, setEditingProfileId] =
+    useState<Id<"profiles"> | null>(null);
+  const [deletingProfileId, setDeletingProfileId] =
+    useState<Id<"profiles"> | null>(null);
+
+  const editingProfile =
+    editingProfileId !== null && profiles !== undefined
+      ? profiles.find((profile) => profile._id === editingProfileId)
+      : undefined;
+  const deletingProfile =
+    deletingProfileId !== null && profiles !== undefined
+      ? profiles.find((profile) => profile._id === deletingProfileId)
+      : undefined;
+
+  useEffect(() => {
+    if (!profiles) return;
+    if (
+      editingProfileId !== null &&
+      !profiles.some((profile) => profile._id === editingProfileId)
+    ) {
+      setEditingProfileId(null);
+    }
+    if (
+      deletingProfileId !== null &&
+      !profiles.some((profile) => profile._id === deletingProfileId)
+    ) {
+      setDeletingProfileId(null);
+    }
+  }, [profiles, editingProfileId, deletingProfileId]);
 
   if (profiles === undefined) {
     return (
@@ -392,24 +418,8 @@ function ProfilesPage() {
     );
   }
 
-  const handleCreate = async (data: {
-    name: string;
-    color: string;
-    icon: string;
-  }) => {
+  const handleCreate = async (data: Parameters<typeof createProfile>[0]) => {
     await createProfile(data);
-  };
-
-  const handleEdit = async (data: {
-    name: string;
-    color: string;
-    icon: string;
-  }) => {
-    if (!editingProfile) return;
-    await updateProfile({
-      profileId: editingProfile._id,
-      ...data,
-    });
   };
 
   const handleDelete = async (moveToProfileId: Id<"profiles"> | null) => {
@@ -441,8 +451,8 @@ function ProfilesPage() {
             <ProfileCard
               key={profile._id}
               profile={profile}
-              onEdit={() => setEditingProfile(profile)}
-              onDelete={() => setDeletingProfile(profile)}
+              onEdit={() => setEditingProfileId(profile._id)}
+              onDelete={() => setDeletingProfileId(profile._id)}
             />
           ))}
         </div>
@@ -458,8 +468,19 @@ function ProfilesPage() {
           <CreateEditProfileDialog
             profile={editingProfile}
             open={!!editingProfile}
-            onOpenChange={(open) => !open && setEditingProfile(null)}
-            onSave={handleEdit}
+            onOpenChange={(open) => !open && setEditingProfileId(null)}
+            onFieldUpdate={(patch) => {
+              void updateProfile({
+                profileId: editingProfile._id,
+                ...patch,
+              }).catch((err: unknown) => {
+                toast.error(
+                  err instanceof Error
+                    ? err.message
+                    : "Failed to update profile",
+                );
+              });
+            }}
           />
         )}
 
@@ -468,7 +489,7 @@ function ProfilesPage() {
             profile={deletingProfile}
             profiles={profiles}
             open={!!deletingProfile}
-            onOpenChange={(open) => !open && setDeletingProfile(null)}
+            onOpenChange={(open) => !open && setDeletingProfileId(null)}
             onDelete={handleDelete}
           />
         )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, use, type ReactNode } from "react";
+import { createContext, use, useState, type ReactNode } from "react";
 
 type ApiCreateKeyContextValue = {
   isCreateModalOpen: boolean;
@@ -11,11 +11,9 @@ const ApiCreateKeyContext = createContext<ApiCreateKeyContextValue | null>(
   null,
 );
 
-export function ApiCreateKeyProvider({
-  isCreateModalOpen,
-  setIsCreateModalOpen,
-  children,
-}: ApiCreateKeyContextValue & { children: ReactNode }) {
+export function ApiCreateKeyProvider({ children }: { children: ReactNode }) {
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
   return (
     <ApiCreateKeyContext value={{ isCreateModalOpen, setIsCreateModalOpen }}>
       {children}

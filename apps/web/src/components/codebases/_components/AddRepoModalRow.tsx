@@ -2,13 +2,8 @@
 
 import { Button, cn } from "@vmem/ui";
 import { IconLoader2, IconLock, IconPlus } from "@tabler/icons-react";
-import type { api } from "@vmem/backend";
-import type { FunctionReturnType } from "convex/server";
 import { codebaseLanguageColor } from "../CodebaseCardInsides";
-
-export type AddRepoModalRepo = FunctionReturnType<
-  typeof api.codebases.listRepos
->[number];
+import type { AddRepoModalRepo } from "../-types";
 
 interface AddRepoModalRowProps {
   repo: AddRepoModalRepo;

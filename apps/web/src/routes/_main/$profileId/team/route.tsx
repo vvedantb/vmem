@@ -8,7 +8,7 @@ import { IconLoader2 } from "@tabler/icons-react";
 import PageContainer from "@/components/PageContainer";
 import { TeamDetailProvider } from "@/components/teams/team-context";
 import { useActiveProfile } from "@/components/workspace/active-profile";
-import { TeamTabs } from "./-components/TeamTabs";
+import { TeamWorkspaceTabs } from "./-components/TeamTabs";
 
 // team area of a team workspace (members / team settings)
 export const Route = createFileRoute("/_main/$profileId/team")({
@@ -52,14 +52,12 @@ function TeamWorkspaceLayout() {
   }
 
   return (
-    <TeamDetailProvider value={data}>
+    <TeamDetailProvider detail={data}>
       <PageContainer
         title={data.team.name}
         showTitle={false}
         centeredMaxWidth
-        leftSection={
-          <TeamTabs role={data.role === "owner" ? "owner" : "member"} />
-        }
+        leftSection={<TeamWorkspaceTabs />}
       >
         <Outlet />
       </PageContainer>

@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { useMutation } from "convex/react";
-import type { FunctionReturnType } from "convex/server";
 import { api } from "@vmem/backend";
 import {
   Button,
@@ -17,10 +16,11 @@ import {
 } from "@vmem/ui";
 import { IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
-
-type SystemSkillEntry = FunctionReturnType<
-  typeof api.systemSkills.listCatalog
->[number];
+import {
+  patchSystemSkillCatalog,
+  type SystemSkillEntry,
+} from "@/components/skills/_utils";
+import { useActiveTeamId } from "@/components/workspace/active-profile";
 
 interface SystemSkillFormDialogProps {
   open: boolean;
@@ -35,64 +35,81 @@ export function SystemSkillFormDialog({
   onOpenChange,
   entry,
 }: SystemSkillFormDialogProps) {
+  const teamId = useActiveTeamId();
+  const catalogArgs = { teamId };
   const adminCreate = useMutation(api.systemSkills.adminCreate);
-  const adminUpdate = useMutation(api.systemSkills.adminUpdate);
+  const adminUpdate = useMutation(
+    api.systemSkills.adminUpdate,
+  ).withOptimisticUpdate((store, args) => {
+    const current = store.getQuery(api.systemSkills.listCatalog, catalogArgs);
+    if (!current) return;
+    store.setQuery(
+      api.systemSkills.listCatalog,
+      catalogArgs,
+      patchSystemSkillCatalog(current, args.id, {
+        ...(args.name !== undefined ? { name: args.name.trim() } : {}),
+        ...(args.description !== undefined
+          ? { description: args.description }
+          : {}),
+        ...(args.instructions !== undefined
+          ? { instructions: args.instructions }
+          : {}),
+        ...(args.category !== undefined
+          ? { category: args.category ?? undefined }
+          : {}),
+        ...(args.published !== undefined ? { published: args.published } : {}),
+      }),
+    );
+  });
 
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [instructions, setInstructions] = useState("");
-  const [category, setCategory] = useState("");
-  const [published, setPublished] = useState(false);
+  const [createName, setCreateName] = useState("");
+  const [createDescription, setCreateDescription] = useState("");
+  const [createInstructions, setCreateInstructions] = useState("");
+  const [createCategory, setCreateCategory] = useState("");
+  const [createPublished, setCreatePublished] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // hydrate the draft when the dialog opens (snapshot to edit / blank to create)
-  useEffect(() => {
-    if (!open) return;
-    setName(entry?.name ?? "");
-    setDescription(entry?.description ?? "");
-    setInstructions(entry?.instructions ?? "");
-    setCategory(entry?.category ?? "");
-    setPublished(entry?.published ?? false);
-  }, [open, entry]);
+  const isEdit = entry !== undefined;
 
-  const handleSubmit = async (e: FormEvent) => {
+  const resetCreateForm = () => {
+    setCreateName("");
+    setCreateDescription("");
+    setCreateInstructions("");
+    setCreateCategory("");
+    setCreatePublished(false);
+  };
+
+  const handleOpenChange = (next: boolean) => {
+    if (!next) resetCreateForm();
+    onOpenChange(next);
+  };
+
+  const handleCreateSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (submitting) return;
+    if (submitting || isEdit) return;
 
-    const trimmedName = name.trim();
+    const trimmedName = createName.trim();
     if (trimmedName.length === 0) {
       toast.error("Name is required");
       return;
     }
-    if (instructions.trim().length === 0) {
+    if (createInstructions.trim().length === 0) {
       toast.error("Instructions are required");
       return;
     }
 
-    const trimmedCategory = category.trim();
+    const trimmedCategory = createCategory.trim();
     setSubmitting(true);
     try {
-      if (entry) {
-        await adminUpdate({
-          id: entry._id,
-          name: trimmedName,
-          description: description.trim(),
-          instructions,
-          category: trimmedCategory.length > 0 ? trimmedCategory : undefined,
-          published,
-        });
-        toast.success("System skill updated");
-      } else {
-        await adminCreate({
-          name: trimmedName,
-          description: description.trim(),
-          instructions,
-          category: trimmedCategory.length > 0 ? trimmedCategory : undefined,
-          published,
-        });
-        toast.success(`Created ${trimmedName}`);
-      }
-      onOpenChange(false);
+      await adminCreate({
+        name: trimmedName,
+        description: createDescription.trim(),
+        instructions: createInstructions,
+        category: trimmedCategory.length > 0 ? trimmedCategory : undefined,
+        published: createPublished,
+      });
+      toast.success(`Created ${trimmedName}`);
+      handleOpenChange(false);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save");
     } finally {
@@ -100,43 +117,112 @@ export function SystemSkillFormDialog({
     }
   };
 
+  const handleEditDone = async () => {
+    if (submitting || !entry) return;
+
+    const trimmedName = entry.name.trim();
+    if (trimmedName.length === 0) {
+      toast.error("Name is required");
+      return;
+    }
+    if (entry.instructions.trim().length === 0) {
+      toast.error("Instructions are required");
+      return;
+    }
+
+    if (trimmedName !== entry.name) {
+      setSubmitting(true);
+      try {
+        await adminUpdate({ id: entry._id, name: trimmedName });
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Failed to save");
+        return;
+      } finally {
+        setSubmitting(false);
+      }
+    }
+
+    onOpenChange(false);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="flex max-h-[min(90vh,760px)] flex-col sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>
-            {entry ? "Edit system skill" : "New system skill"}
+            {isEdit ? "Edit system skill" : "New system skill"}
           </DialogTitle>
         </DialogHeader>
 
         <form
-          onSubmit={handleSubmit}
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (isEdit) {
+              void handleEditDone();
+              return;
+            }
+            void handleCreateSubmit(e);
+          }}
           className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto"
         >
           <Input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            value={isEdit ? entry.name : createName}
+            onChange={(e) => {
+              if (isEdit) {
+                void adminUpdate({ id: entry._id, name: e.target.value });
+                return;
+              }
+              setCreateName(e.target.value);
+            }}
             placeholder="Name"
             aria-label="Name"
             autoFocus
           />
           <Input
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
+            value={isEdit ? (entry.category ?? "") : createCategory}
+            onChange={(e) => {
+              if (isEdit) {
+                const value = e.target.value;
+                void adminUpdate({
+                  id: entry._id,
+                  category: value.trim().length > 0 ? value : undefined,
+                });
+                return;
+              }
+              setCreateCategory(e.target.value);
+            }}
             placeholder="Category (optional, e.g. Codebases)"
             aria-label="Category"
           />
           <Textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            value={isEdit ? entry.description : createDescription}
+            onChange={(e) => {
+              if (isEdit) {
+                void adminUpdate({
+                  id: entry._id,
+                  description: e.target.value,
+                });
+                return;
+              }
+              setCreateDescription(e.target.value);
+            }}
             placeholder="What this skill is for"
             aria-label="Description"
             rows={3}
             className="min-h-[4.5rem] resize-y"
           />
           <Textarea
-            value={instructions}
-            onChange={(e) => setInstructions(e.target.value)}
+            value={isEdit ? entry.instructions : createInstructions}
+            onChange={(e) => {
+              if (isEdit) {
+                void adminUpdate({
+                  id: entry._id,
+                  instructions: e.target.value,
+                });
+                return;
+              }
+              setCreateInstructions(e.target.value);
+            }}
             placeholder="Instructions (markdown playbook the agent follows)"
             aria-label="Instructions"
             className="min-h-[240px] font-mono text-xs"
@@ -145,8 +231,14 @@ export function SystemSkillFormDialog({
           <div className="flex items-center gap-2">
             <Switch
               id="system-skill-published"
-              checked={published}
-              onCheckedChange={setPublished}
+              checked={isEdit ? entry.published : createPublished}
+              onCheckedChange={(checked) => {
+                if (isEdit) {
+                  void adminUpdate({ id: entry._id, published: checked });
+                  return;
+                }
+                setCreatePublished(checked);
+              }}
             />
             <Label htmlFor="system-skill-published" className="text-sm">
               Published (visible in the Hub)
@@ -158,7 +250,7 @@ export function SystemSkillFormDialog({
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => onOpenChange(false)}
+              onClick={() => handleOpenChange(false)}
               disabled={submitting}
             >
               Cancel
@@ -167,7 +259,7 @@ export function SystemSkillFormDialog({
               {submitting ? (
                 <IconLoader2 size={14} className="animate-spin" />
               ) : null}
-              {entry ? "Save" : "Create"}
+              {isEdit ? "Done" : "Create"}
             </Button>
           </div>
         </form>

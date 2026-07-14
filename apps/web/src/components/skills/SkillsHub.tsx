@@ -1,18 +1,84 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useQuery } from "convex/react";
-import type { FunctionReturnType } from "convex/server";
 import { api } from "@vmem/backend";
 import { Button } from "@vmem/ui";
 import { IconApps, IconPlus } from "@tabler/icons-react";
 import { SystemSkillCard } from "@/components/skills/SystemSkillCard";
 import { SystemSkillFormDialog } from "@/components/skills/SystemSkillFormDialog";
+import type { SystemSkillEntry } from "@/components/skills/_utils";
 import { useActiveTeamId } from "@/components/workspace/active-profile";
 
-type SystemSkillEntry = FunctionReturnType<
-  typeof api.systemSkills.listCatalog
->[number];
+const skillsHubSpinner = (
+  <div className="flex justify-center py-20">
+    <div className="h-5 w-5 animate-spin rounded-full border-2 border-default border-t-transparent" />
+  </div>
+);
+
+const skillsHubEmpty = (
+  <div className="flex flex-col items-center justify-center py-20 text-center">
+    <IconApps size={40} className="mb-3 text-muted" />
+    <p className="text-sm text-muted">No system skills available yet.</p>
+  </div>
+);
+
+function groupCatalogByCategory(
+  catalog: SystemSkillEntry[],
+): Array<[string, SystemSkillEntry[]]> {
+  const categories = new Map<string, SystemSkillEntry[]>();
+  for (const entry of catalog) {
+    const key = entry.category ?? "Other";
+    const list = categories.get(key);
+    if (list) {
+      list.push(entry);
+    } else {
+      categories.set(key, [entry]);
+    }
+  }
+  return [...categories.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+}
+
+interface SkillsHubCatalogProps {
+  catalog: SystemSkillEntry[];
+  profileId: string;
+}
+
+function SkillsHubCatalog({ catalog, profileId }: SkillsHubCatalogProps) {
+  const grouped = groupCatalogByCategory(catalog);
+
+  return (
+    <>
+      {grouped.map(([category, entries]) => (
+        <section key={category} className="space-y-2">
+          <h2 className="text-xs font-medium uppercase tracking-wide text-muted">
+            {category}
+          </h2>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {entries.map((entry) => (
+              <SystemSkillCard
+                key={entry._id}
+                entry={entry}
+                profileId={profileId}
+              />
+            ))}
+          </div>
+        </section>
+      ))}
+    </>
+  );
+}
+
+interface SkillsHubBodyProps {
+  catalog: SystemSkillEntry[] | undefined;
+  profileId: string;
+}
+
+function SkillsHubBody({ catalog, profileId }: SkillsHubBodyProps) {
+  if (catalog === undefined) return skillsHubSpinner;
+  if (catalog.length === 0) return skillsHubEmpty;
+  return <SkillsHubCatalog catalog={catalog} profileId={profileId} />;
+}
 
 interface SkillsHubProps {
   profileId: string;
@@ -24,18 +90,6 @@ export function SkillsHub({ profileId }: SkillsHubProps) {
   const catalog = useQuery(api.systemSkills.listCatalog, { teamId });
   const isAdmin = useQuery(api.systemSkills.amIAdmin, {}) ?? false;
   const [creating, setCreating] = useState(false);
-
-  // group by category for a scannable catalog; uncategorised falls under "Other"
-  const grouped = useMemo(() => {
-    const cats = new Map<string, SystemSkillEntry[]>();
-    for (const entry of catalog ?? []) {
-      const key = entry.category ?? "Other";
-      const list = cats.get(key) ?? [];
-      list.push(entry);
-      cats.set(key, list);
-    }
-    return [...cats.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-  }, [catalog]);
 
   return (
     <div className="space-y-6">
@@ -53,33 +107,7 @@ export function SkillsHub({ profileId }: SkillsHubProps) {
         </div>
       ) : null}
 
-      {catalog === undefined ? (
-        <div className="flex justify-center py-20">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-default border-t-transparent" />
-        </div>
-      ) : catalog.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <IconApps size={40} className="mb-3 text-muted" />
-          <p className="text-sm text-muted">No system skills available yet.</p>
-        </div>
-      ) : (
-        grouped.map(([category, entries]) => (
-          <section key={category} className="space-y-2">
-            <h2 className="text-xs font-medium uppercase tracking-wide text-muted">
-              {category}
-            </h2>
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {entries.map((entry) => (
-                <SystemSkillCard
-                  key={entry._id}
-                  entry={entry}
-                  profileId={profileId}
-                />
-              ))}
-            </div>
-          </section>
-        ))
-      )}
+      <SkillsHubBody catalog={catalog} profileId={profileId} />
 
       <SystemSkillFormDialog open={creating} onOpenChange={setCreating} />
     </div>

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useAction } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@vmem/backend";
 
@@ -23,6 +23,8 @@ interface UseTrailDataResult {
   isLoading: boolean;
 }
 
+const EMPTY_TRAIL_MAP = new Map<string, TrailEntry>();
+
 function buildTrailMap(events: TopicTimelineEvents): Map<string, TrailEntry> {
   const map = new Map<string, TrailEntry>();
   for (const event of events) {
@@ -37,34 +39,22 @@ function buildTrailMap(events: TopicTimelineEvents): Map<string, TrailEntry> {
 
 export function useTrailData({ tag }: UseTrailDataOptions): UseTrailDataResult {
   const getTopicTimeline = useAction(api.timelineApi.getTopicTimeline);
-  const [trailMap, setTrailMap] = useState<Map<string, TrailEntry>>(new Map());
-  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    if (!tag) {
-      setTrailMap(new Map());
-      return;
-    }
-
-    let cancelled = false;
-    setIsLoading(true);
-
-    getTopicTimeline({ tag, limit: 200, offset: 0 })
-      .then((events) => {
-        if (cancelled) return;
-        setTrailMap(buildTrailMap(events));
-      })
-      .catch(() => {
-        if (!cancelled) setTrailMap(new Map());
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
+  const trailQuery = useQuery({
+    queryKey: ["topicTimeline", tag],
+    enabled: tag !== null && tag.length > 0,
+    queryFn: async () => {
+      const events = await getTopicTimeline({
+        tag: tag ?? "",
+        limit: 200,
+        offset: 0,
       });
+      return buildTrailMap(events);
+    },
+  });
 
-    return () => {
-      cancelled = true;
-    };
-  }, [tag, getTopicTimeline]);
-
-  return { trailMap, isLoading };
+  return {
+    trailMap: trailQuery.data ?? EMPTY_TRAIL_MAP,
+    isLoading: trailQuery.isLoading,
+  };
 }

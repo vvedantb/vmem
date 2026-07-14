@@ -2,83 +2,85 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import type { FileItem } from "@/lib/file-types";
+import type { Id } from "@vmem/backend";
+import type { FileTreeNode } from "../-types";
+import type { UseFilesDataResult } from "./useFilesData";
 
-type FilesMutations = {
-  uploadFile: (file: File, parentFolderId: string | null) => Promise<unknown>;
-  createFolder: (
-    name: string,
-    parentFolderId: string | null,
-  ) => Promise<unknown>;
-  renameNode: (id: string, name: string) => Promise<unknown>;
-  moveNodes: (ids: string[], targetFolderId: string | null) => Promise<unknown>;
-  deleteNodes: (ids: string[]) => Promise<unknown>;
-};
+type FilesMutations = Pick<
+  UseFilesDataResult,
+  "uploadFile" | "createFolder" | "renameNode" | "moveNodes" | "deleteNodes"
+>;
 
 export function useFilesActions(args: {
-  folderId: string | null;
-  allFiles: FileItem[];
+  folderId: Id<"fileNodes"> | null;
+  nodes: FileTreeNode[];
   mutations: FilesMutations;
   clearSelection: () => void;
-  selectedIds: Set<string>;
-  navigateToFolder: (folderId: string | null) => void;
+  selectedIds: Set<Id<"fileNodes">>;
+  navigateToFolder: (folderId: Id<"fileNodes"> | null) => void;
 }) {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [droppedFiles, setDroppedFiles] = useState<File[]>([]);
-  const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
+  const [previewNodeId, setPreviewNodeId] = useState<Id<"fileNodes"> | null>(
+    null,
+  );
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isMoveDialogOpen, setIsMoveDialogOpen] = useState(false);
-  const [pendingMoveIds, setPendingMoveIds] = useState<string[]>([]);
-  const [renameTarget, setRenameTarget] = useState<FileItem | null>(null);
+  const [pendingMoveIds, setPendingMoveIds] = useState<Array<Id<"fileNodes">>>(
+    [],
+  );
+  const [renameNodeId, setRenameNodeId] = useState<Id<"fileNodes"> | null>(
+    null,
+  );
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
 
-  function handleOpen(item: FileItem) {
-    if (item.itemType === "folder") {
-      args.navigateToFolder(item.id);
+  function handleOpen(node: FileTreeNode) {
+    if (node.kind === "folder") {
+      args.navigateToFolder(node._id);
       return;
     }
-    setSelectedFile(item);
+    setPreviewNodeId(node._id);
     setIsPreviewOpen(true);
   }
 
-  function handleDownload(item: FileItem) {
-    if (!item.url) {
+  function handleDownload(node: FileTreeNode) {
+    if (!node.url) {
       toast.error("Download URL unavailable");
       return;
     }
     const link = document.createElement("a");
-    link.href = item.url;
-    link.download = item.name;
+    link.href = node.url;
+    link.download = node.name;
     link.target = "_blank";
     link.rel = "noopener";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.success(`Downloading ${item.name}`);
+    toast.success(`Downloading ${node.name}`);
   }
 
-  async function handleDelete(item: FileItem) {
+  async function handleDelete(node: Pick<FileTreeNode, "_id" | "name">) {
     try {
-      await args.mutations.deleteNodes([item.id]);
-      toast.success(`Deleted ${item.name}`);
+      await args.mutations.deleteNodes([node._id]);
+      toast.success(`Deleted ${node.name}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to delete file");
     }
   }
 
   async function handleRenameConfirm(name: string) {
-    if (!renameTarget) return;
+    if (!renameNodeId) return;
     try {
-      await args.mutations.renameNode(renameTarget.id, name);
+      await args.mutations.renameNode(renameNodeId, name);
       toast.success("Renamed");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to rename");
     } finally {
-      setRenameTarget(null);
+      setRenameNodeId(null);
     }
   }
 
-  async function handleMoveConfirm(targetFolderId: string | null) {
+  async function handleMoveConfirm(targetFolderId: Id<"fileNodes"> | null) {
     try {
       await args.mutations.moveNodes(pendingMoveIds, targetFolderId);
       toast.success("Items moved");
@@ -91,9 +93,9 @@ export function useFilesActions(args: {
   }
 
   function handleBulkDownload() {
-    for (const item of args.allFiles) {
-      if (args.selectedIds.has(item.id) && item.itemType === "file") {
-        handleDownload(item);
+    for (const node of args.nodes) {
+      if (args.selectedIds.has(node._id) && node.kind === "file") {
+        handleDownload(node);
       }
     }
   }
@@ -124,11 +126,11 @@ export function useFilesActions(args: {
   return {
     isUploadModalOpen,
     droppedFiles,
-    selectedFile,
+    previewNodeId,
     isPreviewOpen,
     isMoveDialogOpen,
     pendingMoveIds,
-    renameTarget,
+    renameNodeId,
     isCreatingFolder,
     openUpload: () => setIsUploadModalOpen(true),
     closeUpload: () => {
@@ -137,9 +139,9 @@ export function useFilesActions(args: {
     },
     closePreview: () => {
       setIsPreviewOpen(false);
-      setSelectedFile(null);
+      setPreviewNodeId(null);
     },
-    openMove: (ids: string[]) => {
+    openMove: (ids: Array<Id<"fileNodes">>) => {
       setPendingMoveIds(ids);
       setIsMoveDialogOpen(true);
     },
@@ -147,16 +149,16 @@ export function useFilesActions(args: {
       setIsMoveDialogOpen(false);
       setPendingMoveIds([]);
     },
-    setRenameTarget,
+    setRenameNodeId,
     setIsCreatingFolder,
     handleOpen,
     handleDownload,
     handleDelete,
-    handleMoveTo: (item: FileItem) => {
-      setPendingMoveIds([item.id]);
+    handleMoveTo: (node: FileTreeNode) => {
+      setPendingMoveIds([node._id]);
       setIsMoveDialogOpen(true);
     },
-    handleRename: (item: FileItem) => setRenameTarget(item),
+    handleRename: (node: FileTreeNode) => setRenameNodeId(node._id),
     handleRenameConfirm,
     handleMoveConfirm,
     handleBulkDownload,

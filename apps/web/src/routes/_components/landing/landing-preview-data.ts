@@ -5,7 +5,7 @@ export type PreviewNodeId =
   | "tool"
   | "entity";
 
-interface PreviewNode {
+export interface PreviewNode {
   id: PreviewNodeId;
   cx: number;
   cy: number;
@@ -16,7 +16,7 @@ interface PreviewNode {
   isCenter?: boolean;
 }
 
-interface PreviewEdge {
+export interface PreviewEdge {
   from: PreviewNodeId;
   to: PreviewNodeId;
   d: string;

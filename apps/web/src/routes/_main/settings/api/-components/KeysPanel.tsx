@@ -1,5 +1,4 @@
 import { useQuery } from "convex/react";
-import type { FunctionReturnType } from "convex/server";
 import {
   Button,
   Table,
@@ -19,18 +18,13 @@ import { RevokeKeyDialog } from "@/components/api-keys/RevokeKeyDialog";
 import { DeleteKeyDialog } from "@/components/api-keys/DeleteKeyDialog";
 import { EditKeyDialog } from "@/components/api-keys/EditKeyDialog";
 import { useApiKeyActions } from "@/components/api-keys/useApiKeyActions";
+import type { ApiKey } from "@/components/api-keys/types";
 import { api } from "@vmem/backend";
-
-type ApiKey = FunctionReturnType<typeof api.apiKeys.listMy>[number];
+import { useApiCreateKeyModal } from "./ApiCreateKeyContext";
 
 // keys panel for `/settings/api`
-export function KeysPanel({
-  isCreateModalOpen,
-  onCreateModalOpenChange,
-}: {
-  isCreateModalOpen: boolean;
-  onCreateModalOpenChange: (open: boolean) => void;
-}) {
+export function KeysPanel() {
+  const { isCreateModalOpen, setIsCreateModalOpen } = useApiCreateKeyModal();
   const apiKeys = useQuery(api.apiKeys.listMy, {});
 
   const {
@@ -42,7 +36,6 @@ export function KeysPanel({
     setEditKeyId,
     isRevoking,
     isDeleting,
-    isRenaming,
     copiedKeyId,
     copyingKeyId,
     revealedKeys,
@@ -51,14 +44,12 @@ export function KeysPanel({
     handleToggleReveal,
     handleRevoke,
     handleDelete,
-    handleRename,
   } = useApiKeyActions();
 
   const isLoading = apiKeys === undefined;
   const apiKeyList: ApiKey[] = apiKeys ?? [];
   const keyToRevoke = apiKeyList.find((key) => key.id === revokeKeyId);
   const keyToDelete = apiKeyList.find((key) => key.id === deleteKeyId);
-  const keyToEdit = apiKeyList.find((key) => key.id === editKeyId);
 
   if (isLoading) return <ApiKeysLoadingSkeleton />;
 
@@ -77,7 +68,7 @@ export function KeysPanel({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => onCreateModalOpenChange(true)}
+              onClick={() => setIsCreateModalOpen(true)}
             >
               <IconPlus size={16} />
               New Key
@@ -132,7 +123,7 @@ export function KeysPanel({
 
       <ApiKeyModal
         isOpen={isCreateModalOpen}
-        onClose={() => onCreateModalOpenChange(false)}
+        onClose={() => setIsCreateModalOpen(false)}
         onKeyCreated={() => {}}
       />
 
@@ -153,11 +144,9 @@ export function KeysPanel({
       />
 
       <EditKeyDialog
-        keyName={keyToEdit?.name}
+        apiKeyId={editKeyId}
         isOpen={!!editKeyId}
-        isSaving={isRenaming}
-        onSave={handleRename}
-        onCancel={() => setEditKeyId(null)}
+        onClose={() => setEditKeyId(null)}
       />
     </>
   );

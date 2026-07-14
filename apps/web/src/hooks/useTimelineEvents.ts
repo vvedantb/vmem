@@ -1,14 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useAction } from "convex/react";
-import type { FunctionReturnType } from "convex/server";
+import { useQuery } from "@tanstack/react-query";
 import { api } from "@vmem/backend";
 import type { TimelineEvent } from "@/lib/timeline";
-
-type TimelineActionResult = FunctionReturnType<
-  typeof api.timelineApi.getMemoryTimeline
->;
 
 interface UseTimelineEventsOptions {
   memoryId?: string;
@@ -31,58 +26,31 @@ export function useTimelineEvents({
   const getMemoryTimeline = useAction(api.timelineApi.getMemoryTimeline);
   const getTopicTimeline = useAction(api.timelineApi.getTopicTimeline);
   const getSearchTimeline = useAction(api.timelineApi.getSearchTimeline);
-  const [events, setEvents] = useState<TimelineEvent[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    if (!enabled) {
-      setEvents([]);
-      return;
-    }
+  const hasTarget =
+    (memoryId !== undefined && memoryId.length > 0) ||
+    (tag !== undefined && tag.length > 0) ||
+    (query !== undefined && query.length > 0);
 
-    let cancelled = false;
-    setIsLoading(true);
+  const timelineQuery = useQuery({
+    queryKey: ["timeline", memoryId, tag, query],
+    enabled: enabled && hasTarget,
+    queryFn: async (): Promise<TimelineEvent[]> => {
+      if (memoryId !== undefined && memoryId.length > 0) {
+        return getMemoryTimeline({ memoryId });
+      }
+      if (tag !== undefined && tag.length > 0) {
+        return getTopicTimeline({ tag, limit: 200, offset: 0 });
+      }
+      if (query !== undefined && query.length > 0) {
+        return getSearchTimeline({ query, limit: 200, offset: 0 });
+      }
+      return [];
+    },
+  });
 
-    let promise: Promise<TimelineActionResult> | null = null;
-
-    if (memoryId) {
-      promise = getMemoryTimeline({ memoryId });
-    } else if (tag) {
-      promise = getTopicTimeline({ tag, limit: 200, offset: 0 });
-    } else if (query) {
-      promise = getSearchTimeline({ query, limit: 200, offset: 0 });
-    }
-
-    if (!promise) {
-      setEvents([]);
-      setIsLoading(false);
-      return;
-    }
-
-    promise
-      .then((data) => {
-        if (cancelled) return;
-        setEvents(data);
-      })
-      .catch(() => {
-        if (!cancelled) setEvents([]);
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    memoryId,
-    tag,
-    query,
-    enabled,
-    getMemoryTimeline,
-    getTopicTimeline,
-    getSearchTimeline,
-  ]);
-
-  return { events, isLoading };
+  return {
+    events: timelineQuery.data ?? [],
+    isLoading: timelineQuery.isLoading,
+  };
 }

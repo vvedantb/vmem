@@ -5,15 +5,12 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { authAction, authMutation, authQuery } from "./auth";
 import { auditLog, ResourceTypes, severityForStatus } from "./auditLog";
+import { encodeBase64UrlBytes } from "./lib/base64";
 import { decryptToken, encryptToken } from "./lib/crypto";
 
 function generateApiKey(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(24));
-  const b64url = btoa(String.fromCharCode(...bytes))
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=/g, "");
-  return `vmem_sk_${b64url}`;
+  return `vmem_sk_${encodeBase64UrlBytes(bytes)}`;
 }
 
 export async function hashApiKey(rawKey: string): Promise<string> {

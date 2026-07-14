@@ -2,14 +2,15 @@
 
 import { useMutation } from "convex/react";
 import { api } from "@vmem/backend";
-import type { Doc, Id } from "@vmem/backend";
+import type { Id } from "@vmem/backend";
+import type { WikiListNode, WikiNodeId } from "./-types";
 import { toast } from "sonner";
 import { BulkSelectionDeleteBar } from "@/components/BulkSelectionDeleteBar";
 import { collectSubtreeIds } from "./_utils";
 
 interface WikiBulkDeleteBarProps {
-  selectedIds: ReadonlySet<Id<"wikiNodes">>;
-  nodes: Array<Doc<"wikiNodes">>;
+  selectedIds: ReadonlySet<WikiNodeId>;
+  nodes: Array<WikiListNode>;
   teamId: Id<"teams"> | undefined;
   // open document, so we can navigate away if the selection deletes it
   currentDocId: string | null;

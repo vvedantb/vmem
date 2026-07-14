@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { parseJsonString } from "../llm/extractJsonString";
+import { truncateAtWord } from "../llm/truncateAtWord";
 
 const MAX_CONTENT_LENGTH = 1200;
 
@@ -34,12 +35,6 @@ export interface ParsedSynthesis {
   sourceMemoryIds: string[];
   confidence: number;
   confidenceAdjustments: ConfidenceAdjustment[];
-}
-
-function truncateAtWord(text: string, maxLen: number): string {
-  if (text.length <= maxLen) return text;
-  const cut = text.lastIndexOf(" ", maxLen);
-  return text.slice(0, cut > 0 ? cut : maxLen);
 }
 
 function clamp01(value: number | undefined): number {

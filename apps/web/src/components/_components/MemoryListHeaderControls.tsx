@@ -132,6 +132,10 @@ const VIEW_OPTIONS: {
   { value: "tags", label: "Tags", Icon: IconHash },
 ];
 
+const VIEW_BY_VALUE = new Map(
+  VIEW_OPTIONS.map((option) => [option.value, option]),
+);
+
 function ViewDropdown({
   view,
   onChange,
@@ -139,8 +143,7 @@ function ViewDropdown({
   view: ListViewMode;
   onChange: (next: ListViewMode) => void;
 }) {
-  const current =
-    VIEW_OPTIONS.find((o) => o.value === view) ?? VIEW_OPTIONS.at(0);
+  const current = VIEW_BY_VALUE.get(view) ?? VIEW_OPTIONS.at(0);
   if (!current) return null;
   const CurrentIcon = current.Icon;
   return (
@@ -170,7 +173,7 @@ function ViewDropdown({
                 <Icon size={14} stroke={1.5} />
                 {label}
               </span>
-              {isActive && <IconCheck size={14} className="text-muted" />}
+              {isActive ? <IconCheck size={14} className="text-muted" /> : null}
             </DropdownMenuItem>
           );
         })}

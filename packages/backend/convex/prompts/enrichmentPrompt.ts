@@ -1,17 +1,12 @@
 import { z } from "zod";
 import { parseJsonString } from "../../engine/llm/extractJsonString";
+import { truncateAtWord } from "../../engine/llm/truncateAtWord";
 import {
   sanitizeTag,
   type TagUsage,
 } from "../../engine/neo4j/memory/tagNormalize";
 
 const MAX_CONTENT_LENGTH = 2000;
-
-export function truncateAtWord(text: string, maxLen: number): string {
-  if (text.length <= maxLen) return text;
-  const cut = text.lastIndexOf(" ", maxLen);
-  return text.slice(0, cut > 0 ? cut : maxLen);
-}
 
 const ENTITY_TYPES = ["person", "organization", "place", "technology"] as const;
 export type EntityType = (typeof ENTITY_TYPES)[number];

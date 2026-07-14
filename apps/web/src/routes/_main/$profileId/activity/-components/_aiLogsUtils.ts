@@ -1,13 +1,10 @@
+import type { AiLogRow } from "./-types";
 import { FEATURE_LABELS, FEATURES } from "../-searchParams";
 
 const TREND_DAY_COUNT = 7;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-export interface AiLogTrendRow {
-  createdAt: number;
-  costUsd?: number;
-  totalTokens?: number;
-}
+type AiLogTrendRow = Pick<AiLogRow, "createdAt" | "costUsd" | "totalTokens">;
 
 export interface AiLogsTrends {
   calls: number[];

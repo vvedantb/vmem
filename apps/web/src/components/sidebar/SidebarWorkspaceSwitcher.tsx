@@ -33,6 +33,43 @@ import {
 import { workspacePathFor } from "@/components/workspace/workspace-paths";
 import { SidebarIconTooltip } from "./SidebarIconTooltip";
 
+function WorkspaceRow({
+  profile,
+  activeId,
+  onSelect,
+}: {
+  profile: Doc<"profiles">;
+  activeId: string;
+  onSelect: (profile: Doc<"profiles">) => void;
+}) {
+  return (
+    <DropdownMenuItem onSelect={() => onSelect(profile)}>
+      <ProfileAvatar
+        icon={profile.icon}
+        color={profile.color}
+        className="h-5 w-5"
+      />
+      <span className="min-w-0 flex-1 truncate">{profile.name}</span>
+      {profile._id === activeId ? (
+        <IconCheck className="h-4 w-4 shrink-0 text-muted" />
+      ) : null}
+    </DropdownMenuItem>
+  );
+}
+
+function partitionProfiles(profiles: Doc<"profiles">[]): {
+  personal: Doc<"profiles">[];
+  team: Doc<"profiles">[];
+} {
+  const personal: Doc<"profiles">[] = [];
+  const team: Doc<"profiles">[] = [];
+  for (const profile of profiles) {
+    if (profile.teamId === undefined) personal.push(profile);
+    else team.push(profile);
+  }
+  return { personal, team };
+}
+
 // workspace (profile) switcher at the top of the sidebar
 export function SidebarWorkspaceSwitcher({
   collapsed,
@@ -65,8 +102,8 @@ export function SidebarWorkspaceSwitcher({
     profiles[0];
   if (active === undefined) return null;
 
-  const personalProfiles = profiles.filter((p) => p.teamId === undefined);
-  const teamProfiles = profiles.filter((p) => p.teamId !== undefined);
+  const { personal: personalProfiles, team: teamProfiles } =
+    partitionProfiles(profiles);
   const subtitle = active.teamId !== undefined ? "Team workspace" : "Personal";
 
   const switchTo = (profile: Doc<"profiles">) => {
@@ -92,20 +129,6 @@ export function SidebarWorkspaceSwitcher({
       onNavigate?.();
     }
   };
-
-  const workspaceRow = (profile: Doc<"profiles">) => (
-    <DropdownMenuItem key={profile._id} onSelect={() => switchTo(profile)}>
-      <ProfileAvatar
-        icon={profile.icon}
-        color={profile.color}
-        className="h-5 w-5"
-      />
-      <span className="min-w-0 flex-1 truncate">{profile.name}</span>
-      {profile._id === active._id ? (
-        <IconCheck className="h-4 w-4 shrink-0 text-muted" />
-      ) : null}
-    </DropdownMenuItem>
-  );
 
   return (
     <>
@@ -163,14 +186,28 @@ export function SidebarWorkspaceSwitcher({
               Personal
             </DropdownMenuLabel>
           ) : null}
-          {personalProfiles.map(workspaceRow)}
+          {personalProfiles.map((profile) => (
+            <WorkspaceRow
+              key={profile._id}
+              profile={profile}
+              activeId={active._id}
+              onSelect={switchTo}
+            />
+          ))}
           {teamProfiles.length > 0 ? (
             <>
               <DropdownMenuSeparator />
               <DropdownMenuLabel className="text-xs text-muted">
                 Teams
               </DropdownMenuLabel>
-              {teamProfiles.map(workspaceRow)}
+              {teamProfiles.map((profile) => (
+                <WorkspaceRow
+                  key={profile._id}
+                  profile={profile}
+                  activeId={active._id}
+                  onSelect={switchTo}
+                />
+              ))}
             </>
           ) : null}
           <DropdownMenuSeparator />

@@ -20,6 +20,7 @@ import {
 import PageContainer from "@/components/PageContainer";
 import ConfidenceThresholdSlider from "@/components/settings/ConfidenceThresholdSlider";
 import { formatRelativeTime } from "@/lib/formatters";
+import { patchUserSettingsOptimistic } from "./-optimisticUserSettings";
 
 export const Route = createFileRoute("/_main/settings/preferences")({
   component: PreferencesPage,
@@ -33,11 +34,7 @@ function PreferencesPage() {
   // textareas stay in sync with keystrokes without waiting for the server
   const updateSettings = useMutation(
     api.userSettings.update,
-  ).withOptimisticUpdate((localStore, args) => {
-    const current = localStore.getQuery(api.userSettings.get, {});
-    if (!current) return;
-    localStore.setQuery(api.userSettings.get, {}, { ...current, ...args });
-  });
+  ).withOptimisticUpdate(patchUserSettingsOptimistic);
   const setDreamSchedule = useMutation(
     api.dreamSchedule.setDreamSchedule,
   ).withOptimisticUpdate((localStore, args) => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Button,
   Checkbox,
@@ -32,11 +32,9 @@ export default function SelectImportRowsModal({
   onConfirm,
   isImporting,
 }: SelectImportRowsModalProps) {
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    setSelectedIds(new Set(rows.map((r) => r.stableId)));
-  }, [rows]);
+  const [selectedIds, setSelectedIds] = useState(
+    () => new Set(rows.map((r) => r.stableId)),
+  );
 
   const toggle = (id: string) => {
     setSelectedIds((prev) => {
