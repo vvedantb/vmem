@@ -141,7 +141,7 @@ export interface ShowToastOptions {
   duration?: number;
 }
 
-/** Show a toast notification. Returns a unique toast ID for later updates/removal. */
+// show a toast notification; returns a unique toast ID for later removal
 export function showToast(options: ShowToastOptions): string {
   ensureContainer();
 
@@ -178,25 +178,6 @@ export function hideToast(id: string): void {
     entry.element.remove();
     active.delete(id);
   }, 300);
-}
-
-/** Update an existing toast's message or type. */
-export function updateToast(
-  id: string,
-  options: { type?: ToastType; message?: string },
-): void {
-  const entry = active.get(id);
-  if (!entry) return;
-
-  if (options.message) {
-    const msgEl = entry.element.querySelector(".toast-message");
-    if (msgEl) msgEl.textContent = options.message;
-  }
-  if (options.type) {
-    entry.element.className = `toast toast-${options.type} show`;
-    const iconEl = entry.element.querySelector(".toast-icon");
-    if (iconEl) iconEl.innerHTML = ICON_MAP[options.type];
-  }
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

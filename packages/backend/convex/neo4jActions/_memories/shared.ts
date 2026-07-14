@@ -3,11 +3,6 @@
 import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import type { Driver } from "neo4j-driver";
-import {
-  bestEffortEmbedMany,
-  bestEffortEmbedOne,
-  type BestEffortEmbedParams,
-} from "../../lib/openRouter/bestEffortEmbed";
 import { shouldChunk } from "../../../engine/neo4j/chunking";
 import { deleteChunksForMemory } from "../../../engine/neo4j/memory/chunks";
 import {
@@ -55,22 +50,6 @@ export async function resolveProfileIdForMcpScope(
     scope,
     profileId: explicitProfileId,
   });
-}
-
-type EmbedArgs = Omit<BestEffortEmbedParams, "ctx">;
-
-export function tryEmbedOne(
-  ctx: ActionCtx,
-  args: EmbedArgs & { text: string },
-): Promise<number[] | null> {
-  return bestEffortEmbedOne({ ctx, ...args });
-}
-
-export function tryEmbedMany(
-  ctx: ActionCtx,
-  args: EmbedArgs & { texts: string[] },
-): Promise<(number[] | null)[]> {
-  return bestEffortEmbedMany({ ctx, ...args });
 }
 
 export async function scheduleChunkSyncForContent(

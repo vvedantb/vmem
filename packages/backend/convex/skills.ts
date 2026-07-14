@@ -425,22 +425,6 @@ export const getEffectiveByNameInternal = internalQuery({
   },
 });
 
-// list personal skills for a given Clerk user id
-export const listByClerkIdInternal = internalQuery({
-  args: { clerkId: v.string() },
-  handler: async (ctx, args) => {
-    const user = await getUserByClerkId(ctx, args.clerkId);
-    if (!user) return [];
-
-    const rows = await ctx.db
-      .query("skills")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .order("desc")
-      .collect();
-    return rows.filter((s) => isSkillEnabled(s) && s.teamId === undefined);
-  },
-});
-
 // workspace-scoped enabled skills for the memory graph (personal or team)
 export const listForGraphInternal = internalQuery({
   args: {

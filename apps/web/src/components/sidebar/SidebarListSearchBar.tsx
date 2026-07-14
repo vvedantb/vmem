@@ -1,8 +1,9 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { cn } from "@vmem/ui";
-import { SidebarClearSearchInput } from "@/components/sidebar/SidebarClearSearchInput";
+import { IconSearch } from "@tabler/icons-react";
+import { ClearInput, cn } from "@vmem/ui";
+import { sidebarSearchInputClassName } from "./sidebar-search-input";
 
 interface SidebarListSearchBarProps {
   value: string;
@@ -26,12 +27,19 @@ export function SidebarListSearchBar({
     <div className={cn("flex min-w-0 flex-col gap-1.5", className)}>
       <div className="flex min-w-0 items-center gap-1">
         <div className="min-w-0 flex-1">
-          <SidebarClearSearchInput
+          <ClearInput
             value={value}
             onChange={onChange}
             placeholder={placeholder}
             aria-label={ariaLabel}
             wrapperClassName="mb-0"
+            className={sidebarSearchInputClassName}
+            leading={
+              <IconSearch
+                size={14}
+                className="pointer-events-none absolute left-2.5 top-1/2 z-[5] -translate-y-1/2 text-muted"
+              />
+            }
           />
         </div>
         {actions}

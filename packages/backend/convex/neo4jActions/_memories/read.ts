@@ -12,11 +12,10 @@ import {
 } from "../../../engine/llm/extractJsonString";
 import { tryOpenRouterAuth } from "../agent/shared";
 import {
-  toMemoryStatus,
-  toMemoryType,
-  tryEmbedMany,
-  tryEmbedOne,
-} from "./shared";
+  bestEffortEmbedMany,
+  bestEffortEmbedOne,
+} from "../../lib/openRouter/bestEffortEmbed";
+import { toMemoryStatus, toMemoryType } from "./shared";
 
 export async function runGetMemory(args: {
   clerkId: string;
@@ -171,7 +170,8 @@ export async function runRetrieveMemories(
   args: RetrieveMemoriesArgs,
 ) {
   const driver = getDriver();
-  const queryEmbedding = await tryEmbedOne(ctx, {
+  const queryEmbedding = await bestEffortEmbedOne({
+    ctx,
     clerkId: args.clerkId,
     profileId: args.profileId,
     feature: "memory-search",
@@ -191,7 +191,8 @@ export async function runRetrieveMemories(
       generateParaphrases: (query) =>
         generateRetrievalParaphrases(ctx, args, query),
       embedTexts: (texts) =>
-        tryEmbedMany(ctx, {
+        bestEffortEmbedMany({
+          ctx,
           clerkId: args.clerkId,
           profileId: args.profileId,
           feature: "memory-search",

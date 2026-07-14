@@ -21,7 +21,7 @@ import {
   IconX,
   IconLoader2,
 } from "@tabler/icons-react";
-import type { FileItem } from "@/lib/file-types";
+import type { FileItem } from "@/components/files/-types";
 import { formatFileSize } from "@/components/files/_utils";
 
 interface FilePreviewModalProps {

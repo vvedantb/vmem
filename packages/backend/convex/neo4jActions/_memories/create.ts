@@ -4,11 +4,8 @@ import type { ActionCtx } from "../../_generated/server";
 import { resolveCreateWithDedup } from "../../../engine/neo4j/memory/dedup";
 import type { MemoryWithTags } from "../../../engine/neo4j/memory/types";
 import { getDriver } from "../../../engine/neo4j/driver";
-import {
-  resolveProfileIdForClerkId,
-  toMemoryType,
-  tryEmbedOne,
-} from "./shared";
+import { bestEffortEmbedOne } from "../../lib/openRouter/bestEffortEmbed";
+import { resolveProfileIdForClerkId, toMemoryType } from "./shared";
 import { scheduleAfterMemoryMutation } from "./lifecycle";
 
 export interface CreateMemoryArgs {
@@ -57,7 +54,8 @@ export async function runCreateMemory(
     mimeType: args.mimeType,
     originalFilename: args.originalFilename,
     embed: () =>
-      tryEmbedOne(ctx, {
+      bestEffortEmbedOne({
+        ctx,
         clerkId: args.clerkId,
         profileId,
         feature: "memory-save",

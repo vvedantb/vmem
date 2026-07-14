@@ -90,8 +90,7 @@ const BreadcrumbPage = React.forwardRef<
 BreadcrumbPage.displayName = "BreadcrumbPage";
 
 /**
- * Separator rendered automatically between breadcrumb children. Exported in
- * case a consumer needs to render it manually (e.g. custom layouts).
+ * Separator rendered automatically between breadcrumb children.
  */
 const BreadcrumbSeparator = () => (
   <span aria-hidden className="flex-shrink-0 text-muted/40">
@@ -100,4 +99,4 @@ const BreadcrumbSeparator = () => (
 );
 BreadcrumbSeparator.displayName = "BreadcrumbSeparator";
 
-export { Breadcrumb, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator };
+export { Breadcrumb, BreadcrumbLink, BreadcrumbPage };

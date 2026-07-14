@@ -1,7 +1,6 @@
 import type { ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import type { MemoryType } from "../../engine/neo4j/memory/types";
-import { resolveProfileIdForMcpScope } from "../neo4jActions/_memories/shared";
 import type { McpScope } from "../profiles/mcpAccess";
 
 type MemoryGraphNode = {
@@ -171,11 +170,13 @@ export async function getMemoryGraphForMcp(
   ctx: ActionCtx,
   args: GetMemoryGraphForMcpArgs,
 ): Promise<McpMemoryGraphResult> {
-  const profileId = await resolveProfileIdForMcpScope(
-    ctx,
-    args.clerkId,
-    args.mcpScope,
-    args.profileId,
+  const profileId = await ctx.runQuery(
+    internal.profiles.resolveProfileIdForMcpScopeInternal,
+    {
+      clerkId: args.clerkId,
+      scope: args.mcpScope,
+      profileId: args.profileId,
+    },
   );
   const limit = normalizeLimit(args.limit);
 

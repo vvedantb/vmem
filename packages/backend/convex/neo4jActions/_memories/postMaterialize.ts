@@ -4,8 +4,8 @@ import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import type { Driver } from "neo4j-driver";
 import { setEmbeddings } from "../../../engine/neo4j/memory/migration";
+import { bestEffortEmbedOne } from "../../lib/openRouter/bestEffortEmbed";
 import type { OpenRouterFeature } from "../../lib/openRouter/shared";
-import { tryEmbedOne } from "./shared";
 
 // best-effort embed (unless already at create) + schedule enrichment
 export async function postMaterializeEmbedAndEnrich(
@@ -24,7 +24,8 @@ export async function postMaterializeEmbedAndEnrich(
   },
 ): Promise<void> {
   if (params.embeddingAtCreate === undefined) {
-    const embedding = await tryEmbedOne(ctx, {
+    const embedding = await bestEffortEmbedOne({
+      ctx,
       clerkId: params.clerkId,
       profileId: params.profileId,
       feature: params.feature,

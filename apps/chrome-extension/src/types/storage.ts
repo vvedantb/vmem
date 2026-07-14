@@ -1,20 +1,23 @@
+import { z } from "zod";
 import type { ExtensionUserSettings } from "./api";
 
-export interface ExtensionStorage {
-  selectionPopupEnabled: boolean;
-  lastBookmarkSync: number; // epoch ms, 0 = never synced
-  lastHistorySync: number; // epoch ms, 0 = never synced
-  autoSyncEnabled: boolean;
-  autoSyncIntervalMinutes: number; // history-sync period (min)
-  defaultProfileId: string; // Default profile for saving memories
-  autoSearchEnabled: boolean; // Auto-search memories while typing in AI chats
-  autoCaptureEnabled: boolean; // Auto-capture prompts sent to AI chats
+export const extensionStorageSchema = z.object({
+  selectionPopupEnabled: z.boolean(),
+  lastBookmarkSync: z.number(), // epoch ms, 0 = never synced
+  lastHistorySync: z.number(), // epoch ms, 0 = never synced
+  autoSyncEnabled: z.boolean(),
+  autoSyncIntervalMinutes: z.number(), // history-sync period (min)
+  defaultProfileId: z.string(), // Default profile for saving memories
+  autoSearchEnabled: z.boolean(), // Auto-search memories while typing in AI chats
+  autoCaptureEnabled: z.boolean(), // Auto-capture prompts sent to AI chats
   // Sync-health diagnostics — every alarm/catch-up attempt records here so a
   // silent gap (auth lost, alarm dropped) is visible in the popup/debug report
   // instead of looking healthy. See sync-scheduler.handleHistoryAlarm
-  lastSyncAttemptAt: number; // epoch ms of the most recent sync attempt, 0 = never
-  lastSyncSkipReason: string; // why the last attempt did not sync ("" = synced ok)
-}
+  lastSyncAttemptAt: z.number(), // epoch ms of the most recent sync attempt, 0 = never
+  lastSyncSkipReason: z.string(), // why the last attempt did not sync ("" = synced ok)
+});
+
+export type ExtensionStorage = z.infer<typeof extensionStorageSchema>;
 
 /**
  * chrome.storage ↔ convex userSettings field map (sw can't subscribe to convex).

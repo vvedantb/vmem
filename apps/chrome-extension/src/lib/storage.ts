@@ -1,19 +1,5 @@
-import { z } from "zod";
 import type { ExtensionStorage } from "@/types/storage";
-import { STORAGE_DEFAULTS } from "@/types/storage";
-
-const extensionStorageSchema = z.object({
-  selectionPopupEnabled: z.boolean(),
-  lastBookmarkSync: z.number(),
-  lastHistorySync: z.number(),
-  autoSyncEnabled: z.boolean(),
-  autoSyncIntervalMinutes: z.number(),
-  defaultProfileId: z.string(),
-  autoSearchEnabled: z.boolean(),
-  autoCaptureEnabled: z.boolean(),
-  lastSyncAttemptAt: z.number(),
-  lastSyncSkipReason: z.string(),
-});
+import { extensionStorageSchema, STORAGE_DEFAULTS } from "@/types/storage";
 
 export async function getStorage(): Promise<ExtensionStorage> {
   const result = await chrome.storage.local.get(STORAGE_DEFAULTS);
