@@ -13,6 +13,9 @@ import {
   IconEyeOff,
   IconTrash,
 } from "@tabler/icons-react";
+import { useMutation } from "convex/react";
+import { toast } from "sonner";
+import { api } from "@vmem/backend";
 import {
   AnimatedNotificationIcon,
   AnimatedBellIcon,
@@ -186,14 +189,31 @@ export function NotificationsPanel() {
  */
 export function NotificationsRightSection() {
   const { unreadCount, markAllAsRead } = useNotifications();
-  if (unreadCount === 0) return null;
+  const sendTest = useMutation(api.notifications.sendTest);
   return (
-    <Button
-      variant="ghost"
-      className="text-muted hover:text-foreground"
-      onClick={markAllAsRead}
-    >
-      Mark all as read
-    </Button>
+    <div className="flex items-center gap-2">
+      {import.meta.env.DEV && (
+        <Button
+          variant="ghost"
+          className="text-muted hover:text-foreground"
+          onClick={() => {
+            void sendTest({}).then(() =>
+              toast.success("Sent one notification per producer"),
+            );
+          }}
+        >
+          Send test
+        </Button>
+      )}
+      {unreadCount > 0 && (
+        <Button
+          variant="ghost"
+          className="text-muted hover:text-foreground"
+          onClick={markAllAsRead}
+        >
+          Mark all as read
+        </Button>
+      )}
+    </div>
   );
 }

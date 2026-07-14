@@ -148,6 +148,56 @@ export const pushForClerkIdInternal = internalMutation({
   },
 });
 
+/**
+ * Emit one notification per real producer shape so the Inbox can be exercised
+ * without waiting on the 04:00 UTC crons. Writes only to the caller's own
+ * inbox; the UI only offers it in dev.
+ */
+export const sendTest = authMutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const samples: Array<{
+      title: string;
+      description: string;
+      type: Doc<"notifications">["type"];
+    }> = [
+      {
+        title: "Codebase sync failed — vedantb2/vmem",
+        description: "Bad credentials — reconnect GitHub and sync again.",
+        type: "error",
+      },
+      {
+        title: "Codebase sync stalled — vedantb2/vmem",
+        description:
+          "The sync was interrupted before finishing. Open the codebase and click Sync to retry.",
+        type: "warning",
+      },
+      {
+        title: "Connector sync failed — Google Drive",
+        description: "Token expired — reconnect the connector.",
+        type: "error",
+      },
+      {
+        title: "Dream Mode finished",
+        description:
+          "3 proposals to review and 1 new memory. Open the Inbox to review.",
+        type: "info",
+      },
+    ];
+    for (const sample of samples) {
+      await insertNotification(
+        ctx,
+        ctx.userId,
+        sample.title,
+        sample.description,
+        sample.type,
+      );
+    }
+    return null;
+  },
+});
+
 export const deleteNotification = authMutation({
   args: { id: v.id("notifications") },
   returns: v.null(),
