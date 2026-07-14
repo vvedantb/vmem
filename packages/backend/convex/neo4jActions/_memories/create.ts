@@ -1,20 +1,9 @@
 "use node";
 
 import type { ActionCtx } from "../../_generated/server";
-import type { Driver } from "neo4j-driver";
-import { computeContentHash } from "../../../engine/neo4j/memory/mappers";
-import {
-  createMemory,
-  findMemoryByContentHash,
-  findMemoryByExternalId,
-  findMemoryBySimilarity,
-  findMemoryByTitleAndOrigin,
-  shortCircuitOnDedupMatch,
-  findMemoryByUrl,
-} from "../../../engine/neo4j/memory/crud";
+import { resolveCreateWithDedup } from "../../../engine/neo4j/memory/dedup";
 import type { MemoryWithTags } from "../../../engine/neo4j/memory/types";
 import { getDriver } from "../../../engine/neo4j/driver";
-import { normalizeUrl } from "../../../engine/neo4j/url";
 import {
   resolveProfileIdForClerkId,
   toMemoryType,
@@ -40,178 +29,77 @@ export interface CreateMemoryArgs {
   originalFilename?: string;
 }
 
-const BROWSER_SOURCES: ReadonlySet<string> = new Set([
-  "browsing-history",
-  "bookmarks",
-]);
-
 export async function runCreateMemory(
   ctx: ActionCtx,
   args: CreateMemoryArgs,
 ): Promise<MemoryWithTags> {
   const driver = getDriver();
-
-  const resolvedProfileId = await resolveProfileIdForClerkId(
+  const profileId = await resolveProfileIdForClerkId(
     ctx,
     args.clerkId,
     args.profileId,
   );
-  const memoryType = toMemoryType(args.type) ?? "knowledge";
-  const normalizedUrl = args.url
-    ? (normalizeUrl(args.url) ?? undefined)
-    : undefined;
 
-  async function checkDuplicate(
-    finder: () => Promise<{
-      id: string;
-      title: string;
-      updatedAt: string;
-    } | null>,
-  ): Promise<MemoryWithTags | null> {
-    const ref = await finder();
-    return shortCircuitOnDedupMatch(driver, args.clerkId, ref);
-  }
-
-  if (args.externalId && args.sourceType) {
-    const sourceType = args.sourceType;
-    const externalId = args.externalId;
-    const hit = await checkDuplicate(() =>
-      findMemoryByExternalId(driver, args.clerkId, sourceType, externalId),
-    );
-    if (hit) return hit;
-  }
-
-  if (normalizedUrl) {
-    const hit = await checkDuplicate(() =>
-      findMemoryByUrl(driver, args.clerkId, normalizedUrl),
-    );
-    if (hit) return hit;
-  }
-
-  if (normalizedUrl && BROWSER_SOURCES.has(args.source)) {
-    try {
-      const origin = new URL(normalizedUrl).origin;
-      const hit = await checkDuplicate(() =>
-        findMemoryByTitleAndOrigin(driver, args.clerkId, args.title, origin),
-      );
-      if (hit) return hit;
-    } catch {
-      // Invalid URL, skip this check
-    }
-  }
-
-  const contentHash = computeContentHash(args.title, args.content);
-  const hashHit = await checkDuplicate(() =>
-    findMemoryByContentHash(driver, args.clerkId, contentHash),
-  );
-  if (hashHit) return hashHit;
-
-  const embedding = await tryEmbedOne(ctx, {
-    clerkId: args.clerkId,
-    profileId: resolvedProfileId,
-    feature: "memory-save",
-    text: `${args.title}\n\n${args.content}`,
-    failureLog: "embedding failed on create",
-  });
-
-  if (embedding) {
-    const semanticMatch = await findMemoryBySimilarity(
-      driver,
-      args.clerkId,
-      embedding,
-      0.95,
-    );
-    if (semanticMatch) {
-      console.log(
-        `[dedup] semantic near-duplicate (similarity=${semanticMatch.similarity.toFixed(3)}) → ${semanticMatch.id}`,
-      );
-    }
-    const semanticHit = await shortCircuitOnDedupMatch(
-      driver,
-      args.clerkId,
-      semanticMatch,
-    );
-    if (semanticHit) return semanticHit;
-  }
-
-  const result = await createMemory(driver, {
+  const { memory, created } = await resolveCreateWithDedup(driver, {
     userId: args.clerkId,
-    profileId: resolvedProfileId,
+    profileId,
     title: args.title,
     content: args.content,
-    type: memoryType,
+    type: toMemoryType(args.type) ?? "knowledge",
     source: args.source,
     tags: args.tags,
     confidence: args.confidence,
     expiresAt: args.expiresAt,
-    url: normalizedUrl,
-    embedding,
-    contentHash,
+    url: args.url,
+    externalId: args.externalId,
     sourceType: args.sourceType,
-    sourceId: args.externalId,
     storageId: args.storageId,
     mimeType: args.mimeType,
     originalFilename: args.originalFilename,
+    embed: () =>
+      tryEmbedOne(ctx, {
+        clerkId: args.clerkId,
+        profileId,
+        feature: "memory-save",
+        text: `${args.title}\n\n${args.content}`,
+        failureLog: "embedding failed on create",
+      }),
   });
 
-  await schedulePostCreate(ctx, driver, {
-    clerkId: args.clerkId,
-    memoryId: result.id,
-    title: result.title,
-    content: args.content,
-    source: args.source,
-    sourceType: args.sourceType,
-    profileId: resolvedProfileId,
-  });
+  if (!created) return memory;
 
-  return result;
-}
-
-interface PostCreateParams {
-  clerkId: string;
-  memoryId: string;
-  title: string;
-  content: string;
-  source: string;
-  sourceType?: string;
-  profileId: string;
-}
-
-async function schedulePostCreate(
-  ctx: ActionCtx,
-  driver: Driver,
-  params: PostCreateParams,
-): Promise<void> {
   const shouldExtractFacts =
-    params.source === "prompt-capture" && params.sourceType !== "v2-extracted";
+    args.source === "prompt-capture" && args.sourceType !== "v2-extracted";
 
   await scheduleAfterMemoryMutation(ctx, {
-    clerkId: params.clerkId,
+    clerkId: args.clerkId,
     event: {
       type: "memory_created",
-      memoryId: params.memoryId,
-      payload: JSON.stringify({ title: params.title }),
+      memoryId: memory.id,
+      payload: JSON.stringify({ title: memory.title }),
     },
     enrich: {
-      memoryId: params.memoryId,
-      title: params.title,
-      content: params.content,
-      profileId: params.profileId,
+      memoryId: memory.id,
+      title: memory.title,
+      content: args.content,
+      profileId,
     },
     chunk: {
       driver,
-      memoryId: params.memoryId,
-      content: params.content,
-      profileId: params.profileId,
+      memoryId: memory.id,
+      content: args.content,
+      profileId,
       mode: "create",
     },
     extractFacts: shouldExtractFacts
       ? {
-          memoryId: params.memoryId,
-          content: params.content,
-          profileId: params.profileId,
+          memoryId: memory.id,
+          content: args.content,
+          profileId,
         }
       : undefined,
-    checkDream: params.source !== "dream-mode",
+    checkDream: args.source !== "dream-mode",
   });
+
+  return memory;
 }
