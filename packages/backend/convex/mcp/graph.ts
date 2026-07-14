@@ -192,19 +192,16 @@ export async function getMemoryGraphForMcp(
 
   const isPlainGlobal = focus === undefined && args.memoryIds === undefined;
 
-  const raw = await ctx.runAction(
-    internal.neo4jActions.graph.getGraphDataInternal,
-    {
-      clerkId: args.clerkId,
-      focus,
-      profileId,
-      strictProfile: args.mcpScope === "team",
-      // Plain global view gets sliced to `limit` below anyway — fetch only
-      // that many from Neo4j. Seed expansion (memoryIds) keeps the full
-      // fetch: it needs the wider graph to find the seeds' neighbours.
-      nodeLimit: isPlainGlobal ? limit : undefined,
-    },
-  );
+  const raw = await ctx.runAction(internal.graphApi.getGraphDataInternal, {
+    clerkId: args.clerkId,
+    focus,
+    profileId,
+    strictProfile: args.mcpScope === "team",
+    // Plain global view gets sliced to `limit` below anyway — fetch only
+    // that many from Neo4j. Seed expansion (memoryIds) keeps the full
+    // fetch: it needs the wider graph to find the seeds' neighbours.
+    nodeLimit: isPlainGlobal ? limit : undefined,
+  });
 
   let working: McpGraphSlice = {
     nodes: raw.nodes,

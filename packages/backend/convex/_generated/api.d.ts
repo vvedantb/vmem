@@ -116,7 +116,6 @@ import type * as neo4jActions_connectors_googleDrive from "../neo4jActions/conne
 import type * as neo4jActions_connectors_googleShared from "../neo4jActions/connectors/googleShared.js";
 import type * as neo4jActions_connectors_notion from "../neo4jActions/connectors/notion.js";
 import type * as neo4jActions_connectors_shared from "../neo4jActions/connectors/shared.js";
-import type * as neo4jActions_dashboard from "../neo4jActions/dashboard.js";
 import type * as neo4jActions_dbSetup from "../neo4jActions/dbSetup.js";
 import type * as neo4jActions_dreamMode from "../neo4jActions/dreamMode.js";
 import type * as neo4jActions_dreamMode_entryPoints from "../neo4jActions/dreamMode/entryPoints.js";
@@ -124,14 +123,10 @@ import type * as neo4jActions_dreamMode_runProfile from "../neo4jActions/dreamMo
 import type * as neo4jActions_enrichment from "../neo4jActions/enrichment.js";
 import type * as neo4jActions_enrichment_llm from "../neo4jActions/enrichment/llm.js";
 import type * as neo4jActions_factExtraction from "../neo4jActions/factExtraction.js";
-import type * as neo4jActions_graph from "../neo4jActions/graph.js";
 import type * as neo4jActions_mcp from "../neo4jActions/mcp.js";
 import type * as neo4jActions_memories from "../neo4jActions/memories.js";
 import type * as neo4jActions_migration from "../neo4jActions/migration.js";
 import type * as neo4jActions_migration_profiles from "../neo4jActions/migration/profiles.js";
-import type * as neo4jActions_proposedUpdates from "../neo4jActions/proposedUpdates.js";
-import type * as neo4jActions_relationships from "../neo4jActions/relationships.js";
-import type * as neo4jActions_timeline from "../neo4jActions/timeline.js";
 import type * as notifications from "../notifications.js";
 import type * as oauthState from "../oauthState.js";
 import type * as openRouterLogs from "../openRouterLogs.js";
@@ -282,7 +277,6 @@ declare const fullApi: ApiFromModules<{
   "neo4jActions/connectors/googleShared": typeof neo4jActions_connectors_googleShared;
   "neo4jActions/connectors/notion": typeof neo4jActions_connectors_notion;
   "neo4jActions/connectors/shared": typeof neo4jActions_connectors_shared;
-  "neo4jActions/dashboard": typeof neo4jActions_dashboard;
   "neo4jActions/dbSetup": typeof neo4jActions_dbSetup;
   "neo4jActions/dreamMode": typeof neo4jActions_dreamMode;
   "neo4jActions/dreamMode/entryPoints": typeof neo4jActions_dreamMode_entryPoints;
@@ -290,14 +284,10 @@ declare const fullApi: ApiFromModules<{
   "neo4jActions/enrichment": typeof neo4jActions_enrichment;
   "neo4jActions/enrichment/llm": typeof neo4jActions_enrichment_llm;
   "neo4jActions/factExtraction": typeof neo4jActions_factExtraction;
-  "neo4jActions/graph": typeof neo4jActions_graph;
   "neo4jActions/mcp": typeof neo4jActions_mcp;
   "neo4jActions/memories": typeof neo4jActions_memories;
   "neo4jActions/migration": typeof neo4jActions_migration;
   "neo4jActions/migration/profiles": typeof neo4jActions_migration_profiles;
-  "neo4jActions/proposedUpdates": typeof neo4jActions_proposedUpdates;
-  "neo4jActions/relationships": typeof neo4jActions_relationships;
-  "neo4jActions/timeline": typeof neo4jActions_timeline;
   notifications: typeof notifications;
   oauthState: typeof oauthState;
   openRouterLogs: typeof openRouterLogs;

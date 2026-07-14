@@ -1,36 +1,63 @@
+"use node";
+
 import { v } from "convex/values";
 import { ActionCache } from "@convex-dev/action-cache";
 import { authAction, requireClerkId, type AuthActionCtx } from "./auth";
 import { components, internal } from "./_generated/api";
+import { internalAction } from "./_generated/server";
+import {
+  getRecentActivity as fetchRecentActivity,
+  getStats as fetchStats,
+} from "../engine/neo4j/memory/stats";
+import { runWithNeo4jDriver } from "./neo4jActions/_shared/driver";
 
 const DASHBOARD_CACHE_TTL_MS = 30_000;
 
-interface StatsResult {
-  totalMemories: number;
-  memoriesThisWeek: number;
-  memoriesThisMonth: number;
-  memoriesAddedToday: number;
-  totalTags: number;
-  growthData: { date: string; total: number; new: number }[];
-}
+type StatsResult = Awaited<ReturnType<typeof fetchStats>>;
+type ActivityItem = Awaited<ReturnType<typeof fetchRecentActivity>>[number];
+type ProfileStats = { total: number; today: number };
 
-interface ActivityItem {
-  id: string;
-  type: string;
-  title: string;
-  description: string;
-  timestamp: string;
-  relativeTime: string;
-}
+export const getStatsInternal = internalAction({
+  args: {
+    clerkId: v.string(),
+    profileId: v.optional(v.string()),
+    strictProfile: v.optional(v.boolean()),
+  },
+  handler: async (_ctx, args) =>
+    runWithNeo4jDriver(args, ({ driver, userId, profileId, strictProfile }) =>
+      fetchStats(driver, userId, profileId ?? null, strictProfile === true),
+    ),
+});
+
+export const getRecentActivityInternal = internalAction({
+  args: {
+    clerkId: v.string(),
+    profileId: v.optional(v.string()),
+    strictProfile: v.optional(v.boolean()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (_ctx, args) =>
+    runWithNeo4jDriver(
+      args,
+      ({ driver, userId, profileId, strictProfile, limit }) =>
+        fetchRecentActivity(
+          driver,
+          userId,
+          profileId ?? null,
+          limit ?? 10,
+          strictProfile === true,
+        ),
+    ),
+});
 
 const statsCache = new ActionCache(components.actionCache, {
-  action: internal.neo4jActions.dashboard.getStatsInternal,
+  action: internal.dashboardApi.getStatsInternal,
   name: "getStatsInternal-v2",
   ttl: DASHBOARD_CACHE_TTL_MS,
 });
 
 const recentActivityCache = new ActionCache(components.actionCache, {
-  action: internal.neo4jActions.dashboard.getRecentActivityInternal,
+  action: internal.dashboardApi.getRecentActivityInternal,
   name: "getRecentActivityInternal-v2",
   ttl: DASHBOARD_CACHE_TTL_MS,
 });
@@ -63,18 +90,25 @@ export const getStats = authAction({
   },
 });
 
-interface ProfileStats {
-  total: number;
-  today: number;
-}
-
 export const getProfilesStats = authAction({
   args: { profileIds: v.array(v.string()) },
   handler: async (ctx, args): Promise<Record<string, ProfileStats>> => {
     const clerkId = await requireClerkId(ctx);
-    return await ctx.runAction(
-      internal.neo4jActions.dashboard.getProfilesStatsInternal,
+    return await runWithNeo4jDriver(
       { clerkId, profileIds: args.profileIds },
+      async ({ driver, userId, profileIds }) => {
+        const results: Record<string, ProfileStats> = {};
+        await Promise.all(
+          profileIds.map(async (profileId) => {
+            const stats = await fetchStats(driver, userId, profileId);
+            results[profileId] = {
+              total: stats.totalMemories,
+              today: stats.memoriesAddedToday,
+            };
+          }),
+        );
+        return results;
+      },
     );
   },
 });

@@ -1,31 +1,20 @@
+"use node";
+
 import { v } from "convex/values";
 import { authAction, requireClerkId } from "./auth";
-import { internal } from "./_generated/api";
-import type { MemorySnapshot } from "./memoryApi/types";
-
-interface TimelineEvent {
-  id: string;
-  action: string;
-  actor: string;
-  details: Record<string, string> | null;
-  snapshot: MemorySnapshot | null;
-  createdAt: string;
-  memoryId: string;
-  memoryTitle: string;
-  connectionType?: "tag" | "related";
-}
+import { getDriver } from "../engine/neo4j/driver";
+import {
+  getMemoryTimeline as fetchMemoryTimeline,
+  getSearchTimeline as fetchSearchTimeline,
+  getTopicTimeline as fetchTopicTimeline,
+} from "../engine/neo4j/memory/timeline";
+import type { TimelineEvent } from "../engine/neo4j/memory/types";
 
 export const getMemoryTimeline = authAction({
   args: { memoryId: v.string() },
   handler: async (ctx, args): Promise<TimelineEvent[]> => {
     const clerkId = await requireClerkId(ctx);
-    return await ctx.runAction(
-      internal.neo4jActions.timeline.getMemoryTimelineInternal,
-      {
-        clerkId,
-        memoryId: args.memoryId,
-      },
-    );
+    return await fetchMemoryTimeline(getDriver(), clerkId, args.memoryId);
   },
 });
 
@@ -37,14 +26,12 @@ export const getTopicTimeline = authAction({
   },
   handler: async (ctx, args): Promise<TimelineEvent[]> => {
     const clerkId = await requireClerkId(ctx);
-    return await ctx.runAction(
-      internal.neo4jActions.timeline.getTopicTimelineInternal,
-      {
-        clerkId,
-        tag: args.tag,
-        limit: args.limit,
-        offset: args.offset,
-      },
+    return await fetchTopicTimeline(
+      getDriver(),
+      clerkId,
+      args.tag,
+      args.limit,
+      args.offset,
     );
   },
 });
@@ -57,14 +44,12 @@ export const getSearchTimeline = authAction({
   },
   handler: async (ctx, args): Promise<TimelineEvent[]> => {
     const clerkId = await requireClerkId(ctx);
-    return await ctx.runAction(
-      internal.neo4jActions.timeline.getSearchTimelineInternal,
-      {
-        clerkId,
-        query: args.query,
-        limit: args.limit,
-        offset: args.offset,
-      },
+    return await fetchSearchTimeline(
+      getDriver(),
+      clerkId,
+      args.query,
+      args.limit,
+      args.offset,
     );
   },
 });

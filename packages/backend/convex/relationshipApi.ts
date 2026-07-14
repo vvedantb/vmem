@@ -1,34 +1,19 @@
+"use node";
+
 import { v } from "convex/values";
 import { authAction, requireClerkId } from "./auth";
 import { internal } from "./_generated/api";
+import { getDriver } from "../engine/neo4j/driver";
+import {
+  getAllRelationships as fetchAllRelationships,
+  getRelatedMemories as fetchRelatedMemories,
+  linkMemories as linkMemoriesEngine,
+  unlinkMemories as unlinkMemoriesEngine,
+} from "../engine/neo4j/memory/relationships";
+import type { MemoryWithTags } from "../engine/neo4j/memory/types";
 
-interface MemoryWithTags {
-  id: string;
-  userId: string;
-  title: string;
-  content: string;
-  type: string;
-  source: string;
-  sourceUrl: string | null;
-  sourceSyncedAt: string | null;
-  confidence: number;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-  expiresAt: string | null;
-  tags: string[];
-}
-
-interface RelatedMemory {
-  memory: MemoryWithTags;
-  reason: string;
-}
-
-interface RelationshipEdge {
-  source: string;
-  target: string;
-  reason: string;
-}
+type RelatedMemory = { memory: MemoryWithTags; reason: string };
+type RelationshipEdge = { source: string; target: string; reason: string };
 
 export const linkMemories = authAction({
   args: {
@@ -38,15 +23,27 @@ export const linkMemories = authAction({
   },
   handler: async (ctx, args): Promise<boolean> => {
     const clerkId = await requireClerkId(ctx);
-    return await ctx.runAction(
-      internal.neo4jActions.relationships.linkMemoriesInternal,
-      {
-        clerkId,
-        memoryIdA: args.memoryIdA,
-        memoryIdB: args.memoryIdB,
-        reason: args.reason,
-      },
+    const linked = await linkMemoriesEngine(
+      getDriver(),
+      clerkId,
+      args.memoryIdA,
+      args.memoryIdB,
+      args.reason,
     );
+
+    if (linked) {
+      await ctx.runMutation(internal.memoryEvents.pushEventInternal, {
+        clerkId,
+        eventType: "relationship_created",
+        memoryId: args.memoryIdA,
+        payload: JSON.stringify({
+          linkedTo: args.memoryIdB,
+          reason: args.reason,
+        }),
+      });
+    }
+
+    return linked;
   },
 });
 
@@ -57,14 +54,23 @@ export const unlinkMemories = authAction({
   },
   handler: async (ctx, args): Promise<boolean> => {
     const clerkId = await requireClerkId(ctx);
-    return await ctx.runAction(
-      internal.neo4jActions.relationships.unlinkMemoriesInternal,
-      {
-        clerkId,
-        memoryIdA: args.memoryIdA,
-        memoryIdB: args.memoryIdB,
-      },
+    const unlinked = await unlinkMemoriesEngine(
+      getDriver(),
+      clerkId,
+      args.memoryIdA,
+      args.memoryIdB,
     );
+
+    if (unlinked) {
+      await ctx.runMutation(internal.memoryEvents.pushEventInternal, {
+        clerkId,
+        eventType: "relationship_deleted",
+        memoryId: args.memoryIdA,
+        payload: JSON.stringify({ unlinkedFrom: args.memoryIdB }),
+      });
+    }
+
+    return unlinked;
   },
 });
 
@@ -72,13 +78,7 @@ export const getRelatedMemories = authAction({
   args: { memoryId: v.string() },
   handler: async (ctx, args): Promise<RelatedMemory[]> => {
     const clerkId = await requireClerkId(ctx);
-    return await ctx.runAction(
-      internal.neo4jActions.relationships.getRelatedMemoriesInternal,
-      {
-        clerkId,
-        memoryId: args.memoryId,
-      },
-    );
+    return await fetchRelatedMemories(getDriver(), clerkId, args.memoryId);
   },
 });
 
@@ -86,12 +86,6 @@ export const getAllRelationships = authAction({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, args): Promise<RelationshipEdge[]> => {
     const clerkId = await requireClerkId(ctx);
-    return await ctx.runAction(
-      internal.neo4jActions.relationships.getAllRelationshipsInternal,
-      {
-        clerkId,
-        limit: args.limit,
-      },
-    );
+    return await fetchAllRelationships(getDriver(), clerkId, args.limit ?? 500);
   },
 });

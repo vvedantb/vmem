@@ -6,6 +6,7 @@ import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import { listMemories } from "../engine/neo4j/memory/crud";
 import { getDriver } from "../engine/neo4j/driver";
+import type { MemoryWithTags } from "../engine/neo4j/memory/types";
 import { buildSkillsIndexAddition } from "@vmem/shared";
 import { toSkillIndexEntry } from "./skills";
 import { tryOpenRouterAuth } from "./neo4jActions/agent/shared";
@@ -17,10 +18,7 @@ const RECENT_LIMIT = 50;
 /** Per-memory char cap when feeding the summarizer — keeps prompt finite. */
 const RECENT_CONTENT_CHAR_CAP = 400;
 
-interface MemorySnippet {
-  title: string;
-  content: string;
-}
+type MemorySnippet = Pick<MemoryWithTags, "title" | "content">;
 
 function formatPinnedSection(pinned: MemorySnippet[]): string {
   if (pinned.length === 0) return "_No pinned memories._";
