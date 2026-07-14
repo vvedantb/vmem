@@ -11,8 +11,7 @@ type ParseResult =
 
 type LogoProps = { className?: string };
 
-export type AvailableProvider = {
-  kind: "available";
+export type ImportProvider = {
   id: string;
   label: string;
   description: string;
@@ -24,11 +23,8 @@ export type AvailableProvider = {
   tag: string;
 };
 
-export type ImportProvider = AvailableProvider;
-
 export const importProviders: readonly ImportProvider[] = [
   {
-    kind: "available",
     id: "chatgpt",
     label: "ChatGPT",
     Logo: ChatGptLogo,
@@ -49,7 +45,6 @@ export const importProviders: readonly ImportProvider[] = [
     },
   },
   {
-    kind: "available",
     id: "claude",
     label: "Claude",
     Logo: ClaudeLogo,

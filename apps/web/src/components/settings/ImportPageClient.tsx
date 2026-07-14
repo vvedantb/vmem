@@ -7,15 +7,12 @@ import { Button, Card, CardContent } from "@vmem/ui";
 import { toast } from "sonner";
 import UploadImportModal from "./UploadImportModal";
 import SelectImportRowsModal from "./SelectImportRowsModal";
-import { importProviders, type AvailableProvider } from "./importProviders";
+import { importProviders, type ImportProvider } from "./importProviders";
 import type { ExportImportRow } from "@/lib/chat-export/importRows";
 
-function findAvailable(id: string | null): AvailableProvider | null {
+function findProvider(id: string | null): ImportProvider | null {
   if (id === null) return null;
-  for (const p of importProviders) {
-    if (p.id === id) return p;
-  }
-  return null;
+  return importProviders.find((p) => p.id === id) ?? null;
 }
 
 // panel body for the Import tab on `/settings/data-controls/import`
@@ -40,7 +37,7 @@ export default function ImportPageClient() {
 
   const handleFile = useCallback(
     async (file: File) => {
-      const p = findAvailable(providerId);
+      const p = findProvider(providerId);
       if (!p) return;
       setParsing(true);
       try {
@@ -67,7 +64,7 @@ export default function ImportPageClient() {
   };
 
   const handleImport = async (selected: ExportImportRow[]) => {
-    const p = findAvailable(providerId);
+    const p = findProvider(providerId);
     if (!p) return;
     setImporting(true);
     const results = await Promise.allSettled(
@@ -101,7 +98,7 @@ export default function ImportPageClient() {
     );
   };
 
-  const activeProvider = findAvailable(providerId);
+  const activeProvider = findProvider(providerId);
 
   return (
     <>
