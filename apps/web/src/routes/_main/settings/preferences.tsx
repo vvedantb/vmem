@@ -29,8 +29,8 @@ function PreferencesPage() {
   const settings = useQuery(api.userSettings.get);
   const aboutMeBaselineRef = useRef<string | null>(null);
   const preferencesBaselineRef = useRef<string | null>(null);
-  // Optimistic update patches the local query cache so the controlled
-  // textareas stay in sync with keystrokes without waiting for the server.
+  // optimistic update patches the local query cache so the controlled
+  // textareas stay in sync with keystrokes without waiting for the server
   const updateSettings = useMutation(
     api.userSettings.update,
   ).withOptimisticUpdate((localStore, args) => {
@@ -76,7 +76,7 @@ function PreferencesPage() {
     }
   };
 
-  // Pulled out so the schedule section below stays readable.
+  // pulled out so the schedule section below stays readable
   const handleScheduleToggle = async (enabled: boolean): Promise<void> => {
     if (settings === undefined) return;
     try {
@@ -107,8 +107,8 @@ function PreferencesPage() {
       return;
     }
     try {
-      // Persist the new time. If the schedule is currently off we still save
-      // it so flipping the toggle on later picks up the user's chosen time.
+      // persist the new time. If the schedule is currently off we still save
+      // it so flipping the toggle on later picks up the user's chosen time
       await setDreamSchedule({
         enabled: settings.dreamModeScheduleEnabled,
         time: utcTime,

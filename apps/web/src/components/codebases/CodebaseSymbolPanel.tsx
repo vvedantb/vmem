@@ -1,17 +1,6 @@
 "use client";
 
-/**
- * Right-side symbol detail panel.
- *
- * Renders metadata + neighbours + process membership for the currently
- * selected codebase symbol. Backed by `useSymbolContext` rather than the
- * graph payload so we always show the freshest call edges (the graph's
- * `kinds` filter can hide neighbours that are still relevant to the panel).
- *
- * Visibility is driven by the controller's `selectedSymbolId`, which is
- * stored in the URL (`?blastRadiusOf=…`) so refreshing the page or sharing
- * the URL preserves the user's selection.
- */
+// right-side symbol detail panel
 
 import { useCallback } from "react";
 import {

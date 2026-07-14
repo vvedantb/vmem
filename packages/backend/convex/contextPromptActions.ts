@@ -13,9 +13,9 @@ import { tryOpenRouterAuth } from "./neo4jActions/agent/shared";
 import { callOpenRouterChat, LLM_MODEL } from "./lib/openRouter";
 
 const PINNED_LIMIT = 20;
-/** Number of recent active memories the summarizer model sees. */
+// number of recent active memories the summarizer model sees
 const RECENT_LIMIT = 50;
-/** Per-memory char cap when feeding the summarizer — keeps prompt finite. */
+// per-memory char cap when feeding the summarizer — keeps prompt finite
 const RECENT_CONTENT_CHAR_CAP = 400;
 
 type MemorySnippet = Pick<MemoryWithTags, "title" | "content">;
@@ -28,8 +28,8 @@ function formatPinnedSection(pinned: MemorySnippet[]): string {
 }
 
 function buildSummaryPrompt(recent: MemorySnippet[]): string {
-  // Truncate per-memory content so a chatty user doesn't blow the
-  // prompt budget. The summarizer is just looking for themes anyway.
+  // truncate per-memory content so a chatty user doesn't blow the
+  // prompt budget. The summarizer is just looking for themes anyway
   const lines = recent.map((m) => {
     const trimmed =
       m.content.length > RECENT_CONTENT_CHAR_CAP
@@ -60,8 +60,8 @@ async function callSummarizer(
     const { content } = await callOpenRouterChat(ctx, {
       apiKey,
       userId,
-      // No profileId — context-prompt cache is a single user-wide row,
-      // not bound to any one profile.
+      // no profileId — context-prompt cache is a single user-wide row,
+      // not bound to any one profile
       feature: "context-prompt",
       model: LLM_MODEL,
       messages: [
@@ -81,18 +81,12 @@ async function callSummarizer(
   }
 }
 
-/**
- * Build a fresh context-prompt markdown for a user and persist it. Always
- * tries the deterministic sections (settings + pinned) first; only the
- * LLM prose summary depends on a working API key.
- */
+// build a fresh context-prompt markdown for a user and persist it
 export const regenerateContextPromptInternal = internalAction({
   args: { clerkId: v.string() },
   returns: v.null(),
   handler: async (ctx, args) => {
-    // Resolve clerkId → users._id so we can read userSettings (which is
-    // keyed on the internal id). The internal query already handles the
-    // missing-row case by returning empty strings.
+    // resolve clerkId → users._id so we can read userSettings (which is keyed on the internal id)
     const userId = await ctx.runQuery(
       internal.contextPromptCache.resolveUserIdByClerkIdInternal,
       { clerkId: args.clerkId },
@@ -111,8 +105,8 @@ export const regenerateContextPromptInternal = internalAction({
 
     const driver = getDriver();
 
-    // Pull pinned (verbatim) and recent (for summarizer). Two cheap
-    // index-backed Cypher calls — no fanout per memory.
+    // pull pinned (verbatim) and recent (for summarizer). Two cheap
+    // index-backed Cypher calls — no fanout per memory
     const pinnedPage = await listMemories(driver, {
       userId: args.clerkId,
       status: "pinned",
@@ -134,16 +128,14 @@ export const regenerateContextPromptInternal = internalAction({
       content: m.content,
     }));
 
-    // Profile summary is best-effort. Without an OpenRouter key we still
-    // produce a useful prompt (about/preferences/pinned).
+    // profile summary is best-effort. Without an OpenRouter key we still
+    // produce a useful prompt (about/preferences/pinned)
     const auth = await tryOpenRouterAuth(ctx, args.clerkId);
     const summary = auth
       ? await callSummarizer(ctx, auth.apiKey, auth.userId, recentSnippets)
       : null;
 
-    // Dream-maintained portrait of the MCP-active profile. Unlike About
-    // (user-typed) this is inferred — labelled as such so AI clients can
-    // weigh it accordingly.
+    // dream-maintained portrait of the MCP-active profile
     const dreamPortrait = await ctx.runQuery(
       internal.profiles.getPortraitForContextPromptInternal,
       { clerkId: args.clerkId },
@@ -173,7 +165,7 @@ export const regenerateContextPromptInternal = internalAction({
     sections.push("## Profile Summary");
     sections.push(summary ?? "_(summary unavailable)_");
 
-    // Effective skills = personal + installed system skills (resolved live).
+    // effective skills = personal + installed system skills (resolved live)
     const skillRows = await ctx.runQuery(
       internal.skills.listEffectiveByClerkIdInternal,
       { clerkId: args.clerkId },
@@ -205,11 +197,7 @@ export const regenerateContextPromptInternal = internalAction({
   },
 });
 
-/**
- * Debounce check fired ~60s after a memory write. Reads the cache flag;
- * only regenerates when the user has actually invalidated since the
- * last regen. Spurious checks are cheap (one read).
- */
+// debounce check fired ~60s after a memory write
 export const regenerateIfPendingInternal = internalAction({
   args: { clerkId: v.string() },
   returns: v.null(),
@@ -219,8 +207,8 @@ export const regenerateIfPendingInternal = internalAction({
       { clerkId: args.clerkId },
     );
     if (!cache || !cache.pendingRegeneration) {
-      // Either no cache row yet (someone else's regen is already running)
-      // or the flag was cleared by an earlier debounce winner.
+      // either no cache row yet (someone else's regen is already running)
+      // or the flag was cleared by an earlier debounce winner
       return null;
     }
     await ctx.runAction(

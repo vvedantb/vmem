@@ -21,7 +21,7 @@ function startOfLocalDay(timestamp: number): number {
   return date.getTime();
 }
 
-/** Bucket loaded log rows into daily trends for sparklines. */
+// bucket loaded log rows into daily trends for sparklines
 export function computeAiLogsTrends(
   rows: readonly AiLogTrendRow[],
 ): AiLogsTrends {
@@ -61,7 +61,7 @@ export function hasTrendActivity(trend: number[]): boolean {
   return trend.some((value) => value > 0);
 }
 
-/** Format a USD amount with the precision OpenRouter quotes (4dp). */
+// format a USD amount with the precision OpenRouter quotes (4dp)
 export function formatCostUsd(amount: number): string {
   if (amount === 0) return "$0";
   if (amount < 0.0001) return "<$0.0001";

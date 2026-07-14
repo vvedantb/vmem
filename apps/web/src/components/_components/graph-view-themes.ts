@@ -26,7 +26,7 @@ export interface GraphViewTheme {
   outline: {
     enabled: boolean;
     color: string;
-    /** "node" reuses the node's own colour; otherwise a literal colour string. */
+    // node" reuses the node's own colour; otherwise a literal colour string
     hoveredColor: string;
     width: number;
     hoveredWidth: number;

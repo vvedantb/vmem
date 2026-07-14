@@ -33,8 +33,8 @@ interface ExtractPageResult {
   ogImage?: string;
   ogDescription?: string;
   favicon?: string;
-  // True when the result came from Readability; false on fallback path.
-  // Lets the caller log degraded extractions for debugging.
+  // True when the result came from Readability; false on fallback path
+  // Lets the caller log degraded extractions for debugging
   usedReadability: boolean;
 }
 
@@ -106,9 +106,9 @@ function fallbackExtract(): { content: string; html: string } {
 
 /** Run Readability on a cloned document. Returns null when unable to parse. */
 function readabilityExtract(): { content: string; html: string } | null {
-  // Readability mutates the DOM it is given — cloning is required.
+  // Readability mutates the DOM it is given — cloning is required
   // The cast is to `Document` because cloneNode returns `Node`; we know
-  // `document.cloneNode(true)` always yields a Document.
+  // `document.cloneNode(true)` always yields a Document
   const cloned = document.cloneNode(true);
   if (!(cloned instanceof Document)) return null;
 

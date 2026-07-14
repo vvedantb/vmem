@@ -16,7 +16,7 @@ import {
 } from "../../../engine/neo4j/memory/mappers";
 import type { McpScope } from "../../profiles/mcpAccess";
 
-/** Stable wrappers — call sites keep importing from this module. */
+// stable wrappers — call sites keep importing from this module
 export const toMemoryType = toMemoryTypeOrUndefined;
 export const toMemoryStatus = toMemoryStatusOrUndefined;
 

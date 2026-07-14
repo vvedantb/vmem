@@ -1,4 +1,4 @@
-/** Live Neo4j behavioural suite (gated by RUN_RETRIEVAL_EVAL=1). */
+// live Neo4j behavioural suite (gated by RUN_RETRIEVAL_EVAL=1)
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { Driver } from "neo4j-driver";
@@ -157,11 +157,11 @@ describe.skipIf(!runLive)("vmem behavioural suite (live Neo4j)", () => {
       embedding: EMB_A,
     });
 
-    // Identical embedding → cosine 1.0 ≥ 0.95 → flagged as a near-duplicate.
+    // identical embedding → cosine 1.0 ≥ 0.95 → flagged as a near-duplicate
     const match = await findSimilarWithRetry(driver, EMB_A, 0.95);
     expect(match?.id).toBe(id);
 
-    // Orthogonal embedding → cosine 0 < 0.95 → not a duplicate.
+    // orthogonal embedding → cosine 0 < 0.95 → not a duplicate
     const noMatch = await findMemoryBySimilarity(
       driver,
       USER,
@@ -244,7 +244,7 @@ describe.skipIf(!runLive)("vmem behavioural suite (live Neo4j)", () => {
   }, 60_000);
 
   it("applies a proposed update on approve and preserves it on reject", async () => {
-    // Approve path: the proposal surfaces, then supersedes on approval.
+    // approve path: the proposal surfaces, then supersedes on approval
     const id = await create(driver, {
       title: "Password hashing",
       content: "Passwords are hashed with bcrypt.",
@@ -257,7 +257,7 @@ describe.skipIf(!runLive)("vmem behavioural suite (live Neo4j)", () => {
 
     const pending = await listProposedUpdates(driver, USER);
     expect(pending.some((p) => p.id === proposal.id)).toBe(true);
-    // The conflict is surfaced for approval, not silently applied.
+    // the conflict is surfaced for approval, not silently applied
     expect(await getContent(driver, id)).toBe(
       "Passwords are hashed with bcrypt.",
     );
@@ -267,7 +267,7 @@ describe.skipIf(!runLive)("vmem behavioural suite (live Neo4j)", () => {
       "Passwords are hashed with Argon2id.",
     );
 
-    // Reject path: the memory is preserved and the proposal stops being pending.
+    // reject path: the memory is preserved and the proposal stops being pending
     const id2 = await create(driver, {
       title: "Primary region",
       content: "Production runs in us-east-1.",

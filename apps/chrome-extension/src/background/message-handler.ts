@@ -200,7 +200,7 @@ export async function handleMessage(
       try {
         // Omitting windowId targets the currently-focused window, which
         // is the one the user is interacting with when they triggered
-        // the screenshot shortcut.
+        // the screenshot shortcut
         const dataUrl = await chrome.tabs.captureVisibleTab({
           format: "png",
         });

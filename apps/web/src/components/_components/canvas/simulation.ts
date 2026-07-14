@@ -1,17 +1,10 @@
-/**
- * Simulation controller — wraps d3-force in a Web Worker for off-main-thread physics.
- * Falls back to main-thread simulation if Worker creation fails.
- */
+// simulation controller — wraps d3-force in a Web Worker for off-main-thread physics
 import { forceSimulation } from "d3-force";
 import type { GraphNode, GraphEdge } from "./types";
 import { physicsProfile } from "./physics-profile";
 import { createGraphForces, VELOCITY_DECAY } from "./physics-forces";
 
-/**
- * Below this alpha the layout is visually static. The worker stops its tick
- * interval, and GraphCanvas skips rendering, when alpha is under this value.
- * Must match SLEEP_ALPHA in simulation-worker.ts.
- */
+// below this alpha the layout is visually static
 export const SLEEP_ALPHA = 0.005;
 
 type WorkerPositionMessage = {
@@ -21,34 +14,26 @@ type WorkerPositionMessage = {
 };
 
 export interface SimulationController {
-  /** Current simulation alpha (convergence indicator, 0 = stable) */
+  // current simulation alpha (convergence indicator, 0 = stable)
   alpha: () => number;
-  /**
-   * Monotonic counter, bumped each time node positions actually change
-   * (worker position message / fallback tick). The worker posts at ~30Hz
-   * while the rAF loop runs at 60 — rendering settle frames whose positions
-   * have not changed is pure waste, so GraphCanvas repaints the hot layout
-   * only when this advances.
-   */
+  // monotonic counter, bumped each time node positions actually change (worker
   positionsVersion: () => number;
-  /** Tick the simulation once — no-op for Worker mode (worker ticks itself) */
+  // tick the simulation once — no-op for Worker mode (worker ticks itself)
   tick: () => void;
   reheat: () => void;
   setStrength: (scalingRatio: number) => void;
   setGravity: (gravity: number) => void;
-  /** Fix a node in place at the given position (drag start) */
+  // fix a node in place at the given position (drag start)
   dragStart: (nodeId: string, x: number, y: number) => void;
-  /** Move a fixed/dragged node to a new position */
+  // move a fixed/dragged node to a new position
   dragMove: (nodeId: string, x: number, y: number) => void;
-  /** Release a fixed node (drag end) */
+  // release a fixed node (drag end)
   dragEnd: (nodeId: string) => void;
   updateData: (nodes: GraphNode[], edges: GraphEdge[]) => void;
   stop: () => void;
 }
 
-/**
- * Creates a simulation controller. Tries Worker first, falls back to main-thread.
- */
+// creates a simulation controller
 export function createSimulation(
   nodes: GraphNode[],
   edges: GraphEdge[],
@@ -68,13 +53,10 @@ export function createSimulation(
 
 // ------ Worker-backed simulation ------
 
-// Golden angle for spiral layout — optimal packing like sunflower seeds
+// golden angle for spiral layout — optimal packing like sunflower seeds
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 
-/**
- * Computes golden spiral position for a node at index i of n total nodes.
- * Returns [x, y] centered at origin.
- */
+// computes golden spiral position for a node at index i of n total nodes
 function goldenSpiralPosition(
   index: number,
   total: number,
@@ -108,11 +90,7 @@ function createWorkerSimulation(
 ): SimulationController {
   seedNodePositions(nodes);
 
-  // type: "module" is load-bearing: the worker source uses ESM imports, and a
-  // classic worker dies on its first `import` with an ASYNC SyntaxError that
-  // the try/catch around createSimulation never sees — no physics, and alpha
-  // stays 1 forever so GraphCanvas full-renders every frame (no blit, no
-  // idle sleep). The onerror fallback below guards the same failure mode.
+  // type: "module" is load-bearing
   const worker = new Worker(
     new URL("./simulation-worker.ts", import.meta.url),
     { type: "module" },
@@ -121,12 +99,12 @@ function createWorkerSimulation(
   let currentAlpha = 1;
   let positionsVersion = 0;
 
-  // Build node index for fast lookups when applying position updates
+  // build node index for fast lookups when applying position updates
   const nodeById = new Map<string, GraphNode>();
   for (const n of nodes) nodeById.set(n.id, n);
 
-  // Lightweight node data for the worker (strip d3 simulation properties)
-  // Use golden spiral for initial positions instead of random — reduces chaos
+  // lightweight node data for the worker (strip d3 simulation properties)
+  // use golden spiral for initial positions instead of random — reduces chaos
   const workerNodes = nodes.map((n, i) => {
     const spiral = goldenSpiralPosition(i, nodes.length);
     return {
@@ -137,7 +115,7 @@ function createWorkerSimulation(
     };
   });
 
-  // Resolve edge source/target to string IDs
+  // resolve edge source/target to string IDs
   const workerEdges = edges.map((e) => ({
     source: typeof e.source === "string" ? e.source : e.source.id,
     target: typeof e.target === "string" ? e.target : e.target.id,
@@ -145,7 +123,7 @@ function createWorkerSimulation(
     weight: e.weight,
   }));
 
-  // Initialize the worker simulation
+  // initialize the worker simulation
   worker.postMessage({
     type: "init",
     nodes: workerNodes,
@@ -154,7 +132,7 @@ function createWorkerSimulation(
     gravity,
   });
 
-  // Apply position updates from worker to main-thread node objects
+  // apply position updates from worker to main-thread node objects
   worker.onmessage = (e: MessageEvent<WorkerPositionMessage>) => {
     const msg = e.data;
     if (msg.type === "positions") {
@@ -164,7 +142,7 @@ function createWorkerSimulation(
       for (let i = 0; i < nodes.length; i++) {
         const node = nodes[i];
         if (!node) continue;
-        // Don't overwrite position of a node being dragged (main thread has authority)
+        // don't overwrite position of a node being dragged (main thread has authority)
         if (node.fx !== undefined && node.fx !== null) continue;
         node.x = buffer[i * 2];
         node.y = buffer[i * 2 + 1];
@@ -172,11 +150,7 @@ function createWorkerSimulation(
     }
   };
 
-  // Worker failures are ASYNC (script load/parse errors never hit the sync
-  // try/catch in createSimulation). Without this fallback a dead worker means
-  // no physics AND currentAlpha pinned at 1 — which keeps GraphCanvas's
-  // positionsMoving true so every frame full-renders forever. Swap to the
-  // main-thread simulation instead; every controller method delegates.
+  // worker failures are ASYNC (script load/parse errors never hit the sync try/catch in
   let fallback: SimulationController | null = null;
   let stopped = false;
   worker.onerror = (event: ErrorEvent) => {
@@ -195,7 +169,7 @@ function createWorkerSimulation(
     positionsVersion: () =>
       fallback ? fallback.positionsVersion() : positionsVersion,
 
-    // No-op in worker mode (worker ticks itself); drives the fallback sim.
+    // no-op in worker mode (worker ticks itself); drives the fallback sim
     tick: () => fallback?.tick(),
 
     reheat: () => {
@@ -215,7 +189,7 @@ function createWorkerSimulation(
 
     dragStart: (nodeId: string, x: number, y: number) => {
       if (fallback) return fallback.dragStart(nodeId, x, y);
-      // Set on main thread for immediate visual feedback
+      // set on main thread for immediate visual feedback
       const node = nodeById.get(nodeId);
       if (node) {
         node.fx = x;
@@ -248,9 +222,7 @@ function createWorkerSimulation(
 
     updateData: (newNodes: GraphNode[], newEdges: GraphEdge[]) => {
       if (fallback) return fallback.updateData(newNodes, newEdges);
-      // Full re-init: terminate and restart would be simpler,
-      // but the effect in GraphCanvas.tsx already recreates the simulation on data change.
-      // This is here for interface compatibility.
+      // full re-init
       worker.postMessage({
         type: "init",
         nodes: newNodes.map((n, i) => {
@@ -293,9 +265,7 @@ function createMainThreadSimulation(
 
   const profile = physicsProfile(nodes.length);
 
-  // Only structural edges participate in physics — tag edges are visual-only.
-  // This prevents nodes from clustering just because they share tags, keeping
-  // the layout driven by meaningful semantic relationships.
+  // only structural edges participate in physics — tag edges are visual-only
   const structuralEdges = edges.filter((e) => e.edgeType !== "tag");
 
   const forces = createGraphForces<GraphNode, GraphEdge>(
@@ -305,9 +275,7 @@ function createMainThreadSimulation(
     profile,
   );
 
-  // .stop() kills d3's internal timer — GraphCanvas's rAF loop drives ticking
-  // through controller.tick(), which gates on SLEEP_ALPHA so a settled layout
-  // costs nothing per frame.
+  // .stop() kills d3's internal timer
   const simulation = forceSimulation<GraphNode, GraphEdge>(nodes)
     .force("link", forces.link)
     .force("charge", forces.charge)
@@ -321,7 +289,7 @@ function createMainThreadSimulation(
     simulation.force("collide", forces.collide);
   }
 
-  // Warm-up (main thread — blocks, so the adaptive tick count matters even
+  // warm-up (main thread — blocks, so the adaptive tick count matters even
   // more here than in the worker path)
   for (let i = 0; i < profile.warmupTicks; i++) {
     simulation.tick();
@@ -339,8 +307,8 @@ function createMainThreadSimulation(
     positionsVersion: () => positionsVersion,
 
     tick() {
-      // Sleep gate: skip force passes once settled, unless a drag is holding
-      // alphaTarget above zero.
+      // sleep gate: skip force passes once settled, unless a drag is holding
+      // alphaTarget above zero
       if (simulation.alpha() < SLEEP_ALPHA && simulation.alphaTarget() === 0)
         return;
       simulation.tick();
@@ -368,8 +336,8 @@ function createMainThreadSimulation(
         node.fx = x;
         node.fy = y;
       }
-      // Keep the sim warm during the drag so neighbours react (and the
-      // sleep gate in tick() stays open).
+      // keep the sim warm during the drag so neighbours react (and the
+      // sleep gate in tick() stays open)
       simulation.alphaTarget(0.3);
     },
 

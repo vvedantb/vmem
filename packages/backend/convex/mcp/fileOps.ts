@@ -9,7 +9,7 @@ import {
   isTextualMime,
 } from "../files/lib";
 
-// Inline-content caps. MCP tool args/results are JSON, so bytes ride as base64.
+// inline-content caps. MCP tool args/results are JSON, so bytes ride as base64
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB (Convex 16 MiB action-arg limit w/ base64 overhead)
 const MAX_INLINE_IMAGE_BYTES = 4 * 1024 * 1024; // return image bytes inline up to 4 MB
 const MAX_INLINE_TEXT_BYTES = 100 * 1024; // return text inline up to 100 KB
@@ -28,9 +28,9 @@ export type FileGetResult = {
   mimeType: string;
   size: number;
   downloadUrl: string | null;
-  /** Present for images ≤ 4 MB — lets the agent render the image directly. */
+  // present for images ≤ 4 MB — lets the agent render the image directly
   contentBase64?: string;
-  /** Present for text-like files ≤ 100 KB. */
+  // present for text-like files ≤ 100 KB
   text?: string;
 };
 
@@ -46,7 +46,7 @@ export type FileDeleteResult = {
   deletedCount: number;
 };
 
-/** Decode base64 (tolerating a `data:` URL prefix) into a backing ArrayBuffer. */
+// decode base64 (tolerating a `data:` URL prefix) into a backing ArrayBuffer
 function decodeBase64(input: string): {
   buffer: ArrayBuffer;
   dataUrlMime?: string;
@@ -70,7 +70,7 @@ function decodeBase64(input: string): {
   return { buffer, dataUrlMime };
 }
 
-/** Encode raw bytes to base64 in chunks (avoids call-stack limits). */
+// encode raw bytes to base64 in chunks (avoids call-stack limits)
 function encodeBase64(bytes: Uint8Array): string {
   let binary = "";
   const chunkSize = 0x8000;
@@ -243,7 +243,7 @@ export async function uploadFile(
       size: blob.size,
     });
   } catch (err) {
-    // Roll back the orphaned blob if recording the node failed.
+    // roll back the orphaned blob if recording the node failed
     await ctx.runMutation(internal.files.deleteStorageInternal, {
       storageId,
     });

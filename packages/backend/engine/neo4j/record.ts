@@ -31,7 +31,7 @@ export function parseNeo4jInt(value: unknown): number {
   throw new Error("Expected Neo4j integer or number");
 }
 
-/** Zod schema — never throws; emits a ZodIssue so unions/safeParse can continue. */
+// zod schema — never throws; emits a ZodIssue so unions/safeParse can continue
 export const neo4jIntSchema = z.unknown().transform((value, ctx) => {
   if (typeof value === "number") return value;
   if (neo4j.isInt(value)) return value.toNumber();

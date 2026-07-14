@@ -14,7 +14,7 @@ function postMessageToOpener(
   message: { type: string; code: string; state: string },
   targetOrigin: string,
 ): void {
-  // PropertyDescriptor.value is `any` in lib.es5 — read once as unknown.
+  // propertyDescriptor.value is `any` in lib.es5 — read once as unknown
   // oxlint-disable-next-line typescript/no-unsafe-assignment -- PropertyDescriptor.value
   const postMessage: unknown =
     Object.getOwnPropertyDescriptor(opener, "postMessage")?.value ??

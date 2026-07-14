@@ -11,16 +11,13 @@ export interface ExtensionStorage {
   autoCaptureEnabled: boolean; // Auto-capture prompts sent to AI chats
   // Sync-health diagnostics — every alarm/catch-up attempt records here so a
   // silent gap (auth lost, alarm dropped) is visible in the popup/debug report
-  // instead of looking healthy. See sync-scheduler.handleHistoryAlarm.
+  // instead of looking healthy. See sync-scheduler.handleHistoryAlarm
   lastSyncAttemptAt: number; // epoch ms of the most recent sync attempt, 0 = never
   lastSyncSkipReason: string; // why the last attempt did not sync ("" = synced ok)
 }
 
 /**
- * chrome.storage keys that mirror Convex `userSettings` fields for the
- * service worker (alarms / content scripts can't subscribe to Convex).
- * `satisfies` ties each storage key to a real Convex field so renames break
- * typecheck here instead of silently drifting.
+ * chrome.storage ↔ convex userSettings field map (sw can't subscribe to convex).
  */
 export const CONVEX_SETTINGS_MIRROR = {
   autoSyncEnabled: "extensionAutoSyncEnabled",

@@ -11,17 +11,13 @@ export const getMe = query({
   },
 });
 
-/** Get user by Clerk ID (internal, for MCP profile resolution). */
+// get user by Clerk ID (internal, for MCP profile resolution)
 export const getByClerkIdInternal = internalQuery({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => getUserByClerkId(ctx, args.clerkId),
 });
 
-/**
- * Resolve clerkIds → minimal user info for attribution in team memory lists.
- * Returns a map keyed by clerkId; unknown clerkIds are simply omitted.
- * Intentionally only exposes display fields (no Convex _id, no theme, etc.).
- */
+// resolve clerkIds → minimal user info for attribution in team memory lists
 export const getByClerkIds = authQuery({
   args: { clerkIds: v.array(v.string()) },
   handler: async (ctx, args) => {

@@ -2,21 +2,13 @@ import { cn } from "@vmem/ui";
 import { VmemPaths } from "./VmemPaths";
 
 interface VmemSpinnerProps {
-  /** Pixel size for both width and height. Default 24 — same as `IconLoader2 h-6 w-6`. */
+  // pixel size for both width and height
   size?: number;
-  /** Extra classes — `currentColor` driven, so `text-muted` etc. works. */
+  // extra classes — `currentColor` driven, so `text-muted` etc
   className?: string;
 }
 
-/**
- * Drop-in replacement for `<IconLoader2 className="animate-spin" />` that uses
- * the petal sequencer animation (#2 in the playground): each petal of the
- * vmem logo lights up in turn — left → right → top — making a calmer, more
- * branded loading indicator than a generic spinning circle.
- *
- * Same color contract as IconLoader2: inherits from `currentColor`, so
- * Tailwind text-color utilities just work. Loops indefinitely while mounted.
- */
+// drop-in replacement for `<IconLoader2 className="animate-spin" />` that uses the
 export function VmemSpinner({ size = 24, className }: VmemSpinnerProps) {
   return (
     <svg

@@ -27,7 +27,7 @@ function startOfLocalDay(timestamp: number): number {
   return date.getTime();
 }
 
-/** Aggregate request volume, success rate, latency, and 7-day trends. */
+// aggregate request volume, success rate, latency, and 7-day trends
 export function computeApiUsageMetrics(
   entries: ApiRequestEntry[],
 ): ApiUsageMetrics {

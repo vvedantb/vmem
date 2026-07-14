@@ -14,12 +14,7 @@ import type { RelatedNode } from "./canvas/types";
 interface NodeData {
   id: string;
   title: string;
-  /**
-   * `undefined` while the parent is lazy-fetching the memory body. Empty
-   * string means the fetch completed and the body is genuinely empty. We
-   * render a subtle loading state for `undefined` so the panel doesn't flash
-   * empty-then-populated.
-   */
+  // `undefined` while the parent is lazy-fetching the memory body
   content?: string;
   tags: string[];
   createdAt: string;

@@ -78,7 +78,7 @@ export function CreateTeamDialog({
       toast.success(`Created ${trimmed}`);
       onOpenChange(false);
       setName("");
-      // Navigate into the new team's workspace.
+      // navigate into the new team's workspace
       await navigate({ to: "/$profileId/home", params: { profileId } });
     } catch (err) {
       const message =

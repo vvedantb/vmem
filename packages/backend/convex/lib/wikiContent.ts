@@ -29,7 +29,7 @@ export function wikiExcerpt(text: string, maxLength = 200): string {
   return `${trimmed.slice(0, maxLength)}…`;
 }
 
-/** Plain-text mirror for Convex full-text search. */
+// plain-text mirror for Convex full-text search
 export function markdownToPlainText(markdown: string): string {
   return removeMarkdown(markdown)
     .replace(/\n{2,}/g, "\n")
@@ -111,7 +111,7 @@ function isLegacyWikiDoc(value: unknown): value is LegacyWikiDoc {
   return legacyWikiDocProbeSchema.safeParse(value).success;
 }
 
-/** One-time migration: legacy TipTap JSON → markdown. */
+// one-time migration: legacy TipTap JSON → markdown
 export function legacyJsonToMarkdown(
   contentJson: string | undefined,
   contentText: string | undefined,

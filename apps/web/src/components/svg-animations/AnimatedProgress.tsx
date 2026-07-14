@@ -1,20 +1,17 @@
-/**
- * Animated progress bar with gradient fill and smooth transitions.
- * Progress animates from 0 to target value on mount.
- */
+// animated progress bar with gradient fill and smooth transitions
 "use client";
 
 import { motion, useSpring, useTransform } from "motion/react";
 import { useEffect } from "react";
 
 interface AnimatedProgressProps {
-  /** Progress value from 0 to 100 */
+  // progress value from 0 to 100
   value: number;
-  /** Height of the progress bar */
+  // height of the progress bar
   height?: number;
-  /** CSS class for the container */
+  // CSS class for the container
   className?: string;
-  /** Whether to show the animated gradient */
+  // whether to show the animated gradient
   showGradient?: boolean;
 }
 

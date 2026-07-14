@@ -1,4 +1,4 @@
-/** API return shapes for memoryApi — engine types where they match. */
+// API return shapes for memoryApi — engine types where they match
 
 export type {
   MemoryWithTags,

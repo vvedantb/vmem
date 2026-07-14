@@ -91,10 +91,7 @@ export function SettingsForm() {
     void setStorage({ autoCaptureEnabled: checked });
   }
 
-  // Stored ONLY in chrome.storage.local — per Chrome profile by design,
-  // so a uni and a personal browser profile each keep their own active
-  // workspace. Never sync this to the account-wide default: that made
-  // every browser profile clobber the others.
+  // per-browser only — never write to account-wide default
   async function handleProfileChange(profileId: string) {
     setSelectedProfileId(profileId);
     await setStorage({ defaultProfileId: profileId });

@@ -25,11 +25,11 @@ type SystemSkillEntry = FunctionReturnType<
 interface SystemSkillFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Undefined = create a new catalog skill; provided = edit it. */
+  // undefined = create a new catalog skill; provided = edit it
   entry?: SystemSkillEntry;
 }
 
-/** Admin-only create/edit form for a catalog system skill. */
+// admin-only create/edit form for a catalog system skill
 export function SystemSkillFormDialog({
   open,
   onOpenChange,
@@ -45,7 +45,7 @@ export function SystemSkillFormDialog({
   const [published, setPublished] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Hydrate the draft when the dialog opens (snapshot to edit / blank to create).
+  // hydrate the draft when the dialog opens (snapshot to edit / blank to create)
   useEffect(() => {
     if (!open) return;
     setName(entry?.name ?? "");

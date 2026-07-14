@@ -28,7 +28,7 @@ type GraphResult = Awaited<ReturnType<typeof getGraphOverview>>;
 type ImpactResult = { nodes: ImpactNode[] };
 type SearchResult = { results: SearchSymbolsResult[] };
 
-/** MCP/JSON may deliver floats (e.g. 25.0); normalize before Neo4j hops. */
+// MCP/JSON may deliver floats (e.g
 function normalizeOptionalInt(value: number | undefined): number | undefined {
   if (value === undefined) return undefined;
   return Math.trunc(value);

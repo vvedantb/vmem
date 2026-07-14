@@ -12,7 +12,7 @@ import {
   type SyncedDoc,
 } from "./shared";
 
-/** Markdown endpoint requires Notion-Version >= 2026-03-11; SDK default is older. */
+// markdown endpoint requires Notion-Version >= 2026-03-11; SDK default is older
 const NOTION_MARKDOWN_API_VERSION = "2026-03-11";
 
 export interface NotionSyncArgs {
@@ -82,7 +82,7 @@ export async function runNotionSync(
           });
         } catch (pageErr) {
           console.error(`Failed to sync page ${page.id}:`, pageErr);
-          // Continue with other pages
+          // continue with other pages
         }
       }
 

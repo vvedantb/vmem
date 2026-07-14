@@ -32,13 +32,7 @@ import { AiLogsLoadingSkeleton } from "./AiLogsLoadingSkeleton";
 
 const PAGE_SIZE = 50;
 
-/**
- * Effective scope for the AI logs, derived rather than written back to the
- * URL. An explicit `?scope=` (set by the scope selector) wins; otherwise we
- * follow the active workspace, so a team route never opens on personal spend
- * and vice versa. Deriving keeps the selector usable — forcing the params
- * from an effect would immediately stomp whatever the user picked.
- */
+// effective scope for the AI logs, derived rather than written back to the URL
 function useAiLogsScope(params: {
   scope: Scope | null;
   teamId: string | null;
@@ -53,21 +47,12 @@ function useAiLogsScope(params: {
   return { scope: "personal" as const, teamIdParam: "" };
 }
 
-/**
- * AI Logs panel for `/activity` — observability dashboard for every backend
- * AI call vmem fires on the user's behalf (chat completions + embeddings,
- * currently routed via OpenRouter).
- *
- * Reads filter params from the URL and renders summary + filterable
- * virtualised table (table scrolls inside a capped card region).
- */
+// AI Logs panel for `/activity`
 export function AiLogsPanel() {
   const [params, setParams] = useQueryStates(aiLogsSearchParams);
   const { scope, teamIdParam } = useAiLogsScope(params);
 
-  // Profiles + teams power the scope selector and the per-row profile badge
-  // lookup. Both are user-scoped queries — we don't need to gate on auth
-  // here because TanStack Router's `_main` route already does.
+  // profiles + teams power the scope selector and the per-row profile badge lookup
   const profiles = useQuery(api.profiles.list);
   const teams = useQuery(api.teams.list);
 
@@ -172,10 +157,7 @@ export function AiLogsPanel() {
   );
 }
 
-/**
- * Right-section actions for the AI Logs tab — filters dropdown and sort
- * dropdown. Reads/writes the same `aiLogsSearchParams` as `AiLogsPanel`.
- */
+// right-section actions for the AI Logs tab — filters dropdown and sort dropdown
 export function AiLogsRightSection() {
   const [params, setParams] = useQueryStates(aiLogsSearchParams);
   const { scope, teamIdParam } = useAiLogsScope(params);
@@ -280,8 +262,8 @@ function SortDropdown({
   );
 }
 
-// Helpers — match a string to a typed Id by checking against the user's
-// known set, so we never push a malformed id to the backend.
+// helpers — match a string to a typed Id by checking against the user's
+// known set, so we never push a malformed id to the backend
 function normalizeTeamId(
   raw: string,
   teams: { team: { _id: Id<"teams"> } }[] | undefined,

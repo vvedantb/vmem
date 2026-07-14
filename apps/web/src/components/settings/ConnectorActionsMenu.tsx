@@ -22,7 +22,7 @@ interface ConnectorActionsMenuProps {
   connectorName: string;
   isSyncing: boolean;
   isBusy: boolean;
-  /** Explicit menu items — prefer this over boolean show* flags. */
+  // explicit menu items — prefer this over boolean show* flags
   actions: ConnectorMenuAction[];
   onSync: () => void;
   onDisconnect: () => void;

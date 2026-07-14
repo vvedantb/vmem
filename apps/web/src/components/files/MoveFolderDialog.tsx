@@ -44,7 +44,7 @@ export default function MoveFolderDialog({
     [onClose],
   );
 
-  // Filter out the current folder from destinations
+  // filter out the current folder from destinations
   const destinations = folders.filter((f) => f.id !== currentFolderId);
 
   return (

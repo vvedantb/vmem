@@ -30,11 +30,7 @@ export const getConnection = authQuery({
   },
 });
 
-/**
- * Initiates the GitHub OAuth flow.
- * Creates a state token tied to the current user, returns the GitHub authorize URL.
- * Frontend redirects the browser to this URL.
- */
+// initiates the GitHub OAuth flow
 export const startGitHubOAuth = authAction({
   args: { returnUrl: v.string() },
   handler: async (ctx, args) => {
@@ -64,17 +60,13 @@ export const startGitHubOAuth = authAction({
   },
 });
 
-/** Subset of GitHub user profile we need. */
+// subset of GitHub user profile we need
 const githubUserProfileSchema = z.object({
   login: z.string().optional(),
   avatar_url: z.string().optional(),
 });
 
-/**
- * Handles the GitHub OAuth callback. Called by the httpAction in http.ts.
- * Consumes the state token, exchanges the code for an access token,
- * fetches the user profile, and stores the encrypted connection.
- */
+// handles the GitHub OAuth callback
 type OAuthCallbackResult = {
   error: string | null;
   returnUrl: string | null;
@@ -209,7 +201,7 @@ export const updateConnectionInternal = internalMutation({
   },
 });
 
-/** Encrypted token for internal use (decryption happens in actions). */
+// encrypted token for internal use (decryption happens in actions)
 export const getDecryptedTokenInternal = internalQuery({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {

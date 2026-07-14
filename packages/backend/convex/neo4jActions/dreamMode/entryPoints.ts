@@ -29,7 +29,7 @@ function isRateLimited(lastRunAt: number | null | undefined): boolean {
   );
 }
 
-/** Resolve clerkId for a scheduled dream actor; returns no-key result on miss. */
+// resolve clerkId for a scheduled dream actor; returns no-key result on miss
 async function withClerkId(
   ctx: DreamActionCtx,
   userId: Id<"users">,
@@ -46,11 +46,7 @@ async function withClerkId(
   return run(clerkId);
 }
 
-/**
- * Notify after an *unattended* run (cron) that actually produced something.
- * Manual runs already report back through the UI, and a silent "found nothing"
- * run is not worth an inbox row.
- */
+// notify after an *unattended* run (cron) that actually produced something
 async function notifyScheduledDreamResult(
   ctx: DreamActionCtx,
   userId: Id<"users">,

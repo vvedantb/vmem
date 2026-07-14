@@ -13,10 +13,7 @@ export type MemoryLifecycleEventType =
   | "memory_updated"
   | "memory_deleted";
 
-/**
- * Shared post-mutation scheduling. Callers own domain decisions
- * (when to dream / enrich / extract / chunk); this owns the how.
- */
+// shared post-mutation scheduling
 export async function scheduleAfterMemoryMutation(
   ctx: ActionCtx,
   params: {

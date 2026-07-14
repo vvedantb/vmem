@@ -5,12 +5,7 @@ import { Button, Card, CardContent } from "@vmem/ui";
 import { IconAlertTriangle, IconTrash } from "@tabler/icons-react";
 import DeleteAllMemoriesDialog from "./DeleteAllMemoriesDialog";
 
-/**
- * Body of the Data Control tab. Hosts every irreversible operation the
- * user can run on their own data. Each row is its own card so additional
- * destructive actions (e.g. delete account, reset relationships only)
- * can drop in without restructuring.
- */
+// body of the Data Control tab
 export function DangerZonePanel() {
   const [confirmOpen, setConfirmOpen] = useState(false);
 

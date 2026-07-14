@@ -6,7 +6,7 @@ import { auditLog, ResourceTypes } from "../auditLog";
 
 interface RemoveArgs {
   profileId: Id<"profiles">;
-  /** When set, move Neo4j memories here before deletion. */
+  // when set, move Neo4j memories here before deletion
   moveMemoriesToProfileId?: Id<"profiles">;
 }
 
@@ -78,7 +78,7 @@ export async function runRemoveInternalMutation(
   return { deleted: true };
 }
 
-/** Clear source defaults, delete the row, and write the audit entry. */
+// clear source defaults, delete the row, and write the audit entry
 async function deleteProfileRow(
   ctx: MutationCtx,
   profile: Doc<"profiles">,

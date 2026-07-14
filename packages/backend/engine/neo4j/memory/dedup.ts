@@ -38,14 +38,11 @@ export interface CreateWithDedupParams {
   storageId?: string;
   mimeType?: string;
   originalFilename?: string;
-  /** Called only after exact-match checks miss. */
+  // called only after exact-match checks miss
   embed: () => Promise<number[] | null>;
 }
 
-/**
- * Create-memory path with ordered dedup short-circuits.
- * Order is product behavior — do not reorder checks.
- */
+// create-memory path with ordered dedup short-circuits
 export async function resolveCreateWithDedup(
   driver: Driver,
   params: CreateWithDedupParams,
@@ -84,7 +81,7 @@ export async function resolveCreateWithDedup(
       );
       if (hit) return { memory: hit, created: false };
     } catch {
-      // Invalid URL, skip this check
+      // invalid URL, skip this check
     }
   }
 

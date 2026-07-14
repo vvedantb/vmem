@@ -34,17 +34,14 @@ export const createMemory = authAction({
     expiresAt: v.optional(v.string()),
     url: v.optional(v.string()),
     profileId: v.optional(v.string()),
-    // External ID idempotency. Callers that have a stable upstream
-    // identifier (file content hash, Twitter bookmark id, …) can pass
-    // both `externalId` and `sourceType`; the backend short-circuits to
-    // the existing memory on re-import instead of duplicating.
+    // external ID idempotency
     externalId: v.optional(v.string()),
     sourceType: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<MemoryWithTags> => {
     const clerkId = await requireClerkId(ctx);
-    // Personal profiles inherit ownership via matching userId; team
-    // profiles require membership before we hit the graph.
+    // personal profiles inherit ownership via matching userId; team
+    // profiles require membership before we hit the graph
     if (args.profileId) await assertTeamAccess(ctx, args.profileId);
     return await ctx.runAction(
       internal.neo4jActions.memories.createMemoryInternal,
@@ -56,7 +53,7 @@ export const createMemory = authAction({
 export const getMemory = authAction({
   args: {
     memoryId: v.string(),
-    /** Active workspace; team profiles read via the member-wide path. */
+    // active workspace; team profiles read via the member-wide path
     profileId: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<MemoryWithTags | null> =>
@@ -88,9 +85,7 @@ export const listMemories = authAction({
   handler: async (ctx, args): Promise<MemoryListResult> =>
     routeMemoryByProfile(ctx, args.profileId, {
       team: async (teamProfile) => {
-        // Team workspace: member-wide listing. Free-text / source filters map
-        // onto the team search variant (the team list path has no
-        // searchQuery/source support of its own).
+        // team workspace: member-wide listing
         if (args.searchQuery !== undefined || args.source !== undefined) {
           return runSearchTeamMemories(ctx, {
             profileId: teamProfile._id,
@@ -122,7 +117,7 @@ export const listMemories = authAction({
 export const updateMemory = authAction({
   args: {
     memoryId: v.string(),
-    /** Active workspace; team profiles use creator-or-owner permissions. */
+    // active workspace; team profiles use creator-or-owner permissions
     profileId: v.optional(v.string()),
     title: v.optional(v.string()),
     content: v.optional(v.string()),
@@ -154,7 +149,7 @@ export const updateMemory = authAction({
 export const deleteMemory = authAction({
   args: {
     memoryId: v.string(),
-    /** Active workspace; team profiles use creator-or-owner permissions. */
+    // active workspace; team profiles use creator-or-owner permissions
     profileId: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<boolean> =>
@@ -172,14 +167,7 @@ export const deleteMemory = authAction({
     }),
 });
 
-/**
- * Delete every memory the calling user owns, along with all per-user
- * dependents (chunks, events, proposed updates, entities) and orphaned
- * tag/source nodes. Returns the number of memories that were deleted.
- *
- * Destructive and irreversible — the UI gates this behind a confirmation
- * dialog in /settings/data-controls.
- */
+// delete every memory the calling user owns, along with all per-user dependents
 export const deleteAllMemories = authAction({
   args: {},
   handler: async (ctx): Promise<number> => {
@@ -193,7 +181,7 @@ export const deleteAllMemories = authAction({
 
 export const searchMemories = authAction({
   args: {
-    /** Active workspace; team profiles search member-wide. */
+    // active workspace; team profiles search member-wide
     profileId: v.optional(v.string()),
     query: v.optional(v.string()),
     type: v.optional(v.string()),
@@ -222,7 +210,7 @@ export const searchMemories = authAction({
 export const retrieveMemories = authAction({
   args: {
     query: v.string(),
-    /** Active workspace to ground retrieval in. */
+    // active workspace to ground retrieval in
     profileId: v.optional(v.string()),
     type: v.optional(v.string()),
     tags: v.optional(v.array(v.string())),
@@ -230,14 +218,9 @@ export const retrieveMemories = authAction({
   },
   handler: async (ctx, args): Promise<RetrieveMemoriesResult> => {
     const clerkId = await requireClerkId(ctx);
-    // Workspace grounding: assert access before scoping retrieval. Team
-    // profiles currently retrieve only the caller's own memories in that
-    // profile (hybrid retrieval is per-user) — member-wide team retrieval is
-    // a follow-up.
+    // workspace grounding: assert access before scoping retrieval
     if (args.profileId) await assertTeamAccess(ctx, args.profileId);
-    // Memories + userContext run in parallel — userContext doesn't depend
-    // on the retrieval result, so the LLM caller can stitch them once both
-    // resolve. Saves ~1 RTT vs sequential.
+    // memories + userContext run in parallel
     const [memories, userContext] = await Promise.all([
       ctx.runAction(internal.neo4jActions.memories.retrieveMemoriesInternal, {
         clerkId,

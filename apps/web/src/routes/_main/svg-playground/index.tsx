@@ -7,17 +7,7 @@ import { IdleSection } from "./_components/IdleSection";
 import { IntroSection } from "./_components/IntroSection";
 import { LoadingSection } from "./_components/LoadingSection";
 
-/**
- * /svg-playground — internal demo page for the vmem logo motion library.
- *
- * Each section corresponds to an animation intent (idle, loading, intro,
- * action, hover, aesthetic). Cards inside a section all use the same
- * underlying logo paths from <VmemPaths>; the difference is which CSS class
- * (or SMIL element) is layered on top.
- *
- * Not linked from the sidebar — open it directly via the URL when picking
- * the next animation to ship into product surfaces.
- */
+// /svg-playground — internal demo page for the vmem logo motion library
 export const Route = createFileRoute("/_main/svg-playground/")({
   component: SvgPlaygroundPage,
 });

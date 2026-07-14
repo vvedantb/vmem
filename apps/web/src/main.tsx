@@ -10,33 +10,26 @@ import { isChunkLoadError } from "./lib/utils/isChunkLoadError";
 import { saveMcpOauthParamsFromUrl } from "./lib/mcpOauthStorage";
 import "./globals.css";
 
-// Snapshot MCP OAuth params before ClerkProvider mounts. With prod Clerk live
-// keys, the cross-domain session handshake on the popup's first paint can
-// redirect `/mcp/oauth/authorize` to `/home`, stripping the search params we
-// need to mint the auth code. Stashing them in sessionStorage here lets the
-// `/home` route detect a pending flow and bounce back into it.
+// snapshot MCP OAuth params before ClerkProvider mounts
 saveMcpOauthParamsFromUrl();
 
-/**
- * Handles stale deployment detection: closes the Convex WebSocket to prevent
- * a cascade of "Not authenticated" server errors, then reloads the page.
- */
+// handles stale deployment detection
 function handleStaleDeployment(event: Event) {
   event.preventDefault();
   try {
     void convex.close();
   } catch {
-    // WebSocket may already be closed
+    // webSocket may already be closed
   }
   window.location.reload();
 }
 
-// After a new Vercel deployment, cached HTML may reference old chunk hashes that no longer exist.
-// Reload the page so the browser fetches the new HTML with correct asset references.
+// after a new Vercel deployment, cached HTML may reference old chunk hashes that no longer exist
+// reload the page so the browser fetches the new HTML with correct asset references
 window.addEventListener("vite:preloadError", handleStaleDeployment);
 
-// Catch chunk loading failures that bypass Vite's preload detection
-// (e.g. dynamic imports triggered by route navigation or lazy components).
+// catch chunk loading failures that bypass Vite's preload detection
+// (e.g. dynamic imports triggered by route navigation or lazy components)
 window.addEventListener("error", (event) => {
   if (isChunkLoadError(event.error)) {
     handleStaleDeployment(event);

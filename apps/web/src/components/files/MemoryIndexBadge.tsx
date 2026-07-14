@@ -5,12 +5,7 @@ import { IconBrain } from "@tabler/icons-react";
 import type { FileItem } from "@/lib/file-types";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 
-/**
- * Memory-graph indexing indicator for a file row/card. Indexed files link to
- * the derived memory; failed files show a muted hint. Pending/skipped render
- * nothing — uploads resolve within seconds and non-text files are expected
- * to skip, so neither state is worth pixels.
- */
+// memory-graph indexing indicator for a file row/card
 export default function MemoryIndexBadge({ item }: { item: FileItem }) {
   const profileId = useActiveProfile()._id;
 

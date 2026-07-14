@@ -101,7 +101,7 @@ export async function runMemoryList(
     offset: number;
   },
 ): Promise<{ memories: MemoryWithTags[]; total: number }> {
-  // Count + page stay separate: a combined query drops the count when the page is empty.
+  // count + page stay separate: a combined query drops the count when the page is empty
   const queryParams: Record<
     string,
     string | number | Integer | string[] | null
@@ -474,7 +474,7 @@ export async function deleteMemory(
   });
 }
 
-/** Prune Tag/Source nodes no memory still references. */
+// prune Tag/Source nodes no memory still references
 async function deleteOrphanTagsAndSources(session: Session): Promise<void> {
   await session.run(
     `MATCH (t:Tag)

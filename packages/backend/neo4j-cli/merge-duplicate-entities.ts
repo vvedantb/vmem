@@ -1,4 +1,4 @@
-/** One-time migration: merge duplicate Entity nodes by (userId, normalizedName). */
+// one-time migration: merge duplicate Entity nodes by (userId, normalizedName)
 import { getDriver, closeDriver } from "../engine/neo4j/driver";
 import { z } from "zod";
 
@@ -40,8 +40,8 @@ async function main() {
       const survivor = nodes[0];
       const dups = nodes.slice(1);
       if (!survivor || dups.length === 0) continue;
-      // Best display name: highest-mentioned variant that isn't all-lowercase
-      // (e.g. prefer "Eva" over "eva"); fall back to the survivor's.
+      // best display name: highest-mentioned variant that isn't all-lowercase
+      // (e.g. prefer "Eva" over "eva"); fall back to the survivor's
       const displayName =
         nodes.find((n) => /[A-Z]/.test(n.name))?.name ?? survivor.name;
 
@@ -67,7 +67,7 @@ async function main() {
     }
     console.log(`total duplicate nodes removed: ${String(merged)}`);
 
-    // Constraint swap — only valid now that (userId, normalizedName) is unique.
+    // constraint swap — only valid now that (userId, normalizedName) is unique
     await session.run(`DROP CONSTRAINT entity_user_name_type IF EXISTS`);
     await session.run(
       `CREATE CONSTRAINT entity_user_name IF NOT EXISTS

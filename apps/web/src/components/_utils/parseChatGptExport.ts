@@ -3,17 +3,9 @@ import { z } from "zod";
 import type { ExportImportRow } from "./importRows";
 import type { ParseExportResult } from "./parseChatExport";
 
-/**
- * ChatGPT's `conversations.json` is a mapping graph: every conversation holds a
- * `mapping` of node id → node, each node pointing at its `parent`. The active
- * branch is recovered by walking parents up from `current_node`; exports that
- * omit it fall back to sorting every node by timestamp.
- *
- * Validated with zod at the `JSON.parse` boundary so the walk below is fully
- * typed. Schemas are lenient — a malformed node is dropped, not fatal.
- */
+// chatGPT's `conversations.json` is a mapping graph
 
-/** A block inside `content.parts`: a bare string or an object holding text. */
+// A block inside `content.parts`: a bare string or an object holding text
 const partSchema = z
   .union([
     z.string(),
@@ -136,11 +128,7 @@ function messageTime(message: Message): number {
   return message.create_time ?? message.update_time ?? 0;
 }
 
-/**
- * Flatten a conversation into ordered role/text lines: walk parents up from
- * `current_node` (the active branch), else fall back to every node sorted by
- * timestamp.
- */
+// flatten a conversation into ordered role/text lines
 function linearizeConversation(
   conv: Conversation,
 ): { role: string; text: string }[] {

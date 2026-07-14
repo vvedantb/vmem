@@ -23,12 +23,7 @@ import TypeTab from "./TypeTab";
 
 export type { UnifiedFilterPanelProps } from "./types";
 
-/**
- * Unified filter panel content that consolidates Kind, Tags, Source, and
- * Type filters into vertical tabs. (Profile is no longer a filter — the
- * workspace route scopes memories.) The caller wraps this inside their own
- * Popover - this component only renders the panel body.
- */
+// unified filter panel content that consolidates Kind, Tags, Source, and Type filters
 export default function UnifiedFilterPanel({
   allMemories = [],
   allItems = [],

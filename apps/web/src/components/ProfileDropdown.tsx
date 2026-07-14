@@ -58,11 +58,7 @@ interface ProfileDropdownProps {
   onChange: (profileId: string) => void;
   disabled?: boolean;
   className?: string;
-  /**
-   * When true, only offer profiles in the same workspace kind as the active
-   * one (personal ↔ personal, or the active team only). Prevents writing
-   * memories across the personal/team boundary from Add Memory.
-   */
+  // when true, only offer profiles in the same workspace kind as the active one
   lockToActiveWorkspace?: boolean;
 }
 
@@ -79,7 +75,7 @@ export function ProfileDropdown({
 
   const isLoading = profiles === undefined;
 
-  // Default selection = the active workspace (explicit value wins).
+  // default selection = the active workspace (explicit value wins)
   const effectiveValue =
     value ?? activeProfileId ?? profiles?.find((p) => p.isDefault)?._id;
 
@@ -94,7 +90,7 @@ export function ProfileDropdown({
   const selectedProfile = profiles?.find((p) => p._id === effectiveValue);
   const activeProfile = profiles?.find((p) => p._id === activeProfileId);
 
-  // Partition into personal vs team so the dropdown can render two labelled groups.
+  // partition into personal vs team so the dropdown can render two labelled groups
   const personalProfiles: ProfileListItem[] = [];
   const teamProfiles: ProfileListItem[] = [];
   for (const p of profiles ?? []) {

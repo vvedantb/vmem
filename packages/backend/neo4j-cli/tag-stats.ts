@@ -1,4 +1,4 @@
-/** Read-only tag distribution diagnostics. Run with `pnpm db:tag-stats`. */
+// read-only tag distribution diagnostics
 import { getDriver, closeDriver } from "../engine/neo4j/driver";
 import { neo4jField, stringSchema } from "../engine/neo4j/record";
 

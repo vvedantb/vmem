@@ -25,30 +25,19 @@ import ShapeIndicator from "./ShapeIndicator";
 interface ListItemRowProps {
   item: ListItem;
   relevanceScore: number | null;
-  /** Context Trace for hybrid-search memory hits; enables score hover breakdown. */
+  // context trace for hybrid-search memory hits
   trace?: MemoryTrace;
   isSelected: boolean;
   trailEntry?: TrailEntry;
   isDark: boolean;
   onMemoryClick: (memory: Memory) => void;
-  /** Opens a preview panel for wiki/skill (and folders) instead of navigating. */
+  // wiki/skill/folder → preview panel (not navigate)
   onItemSelect: (item: ListItem) => void;
   onContextEdit: (memory: Memory) => void;
   onContextDelete: (memory: Memory) => void;
 }
 
-/**
- * Renders a single row in the unified /memories list. The row dispatches on
- * `item.kind` for both visual meta (source badge for memories, child count for
- * folders, etc.) and click behaviour:
- *
- *  - memory       → opens detail via onMemoryClick
- *  - wiki / skill → opens a list preview panel via onItemSelect
- *
- * Edit/Delete context menu actions only exist for memories; non-memory rows
- * render without the ContextMenu wrapper so right-click falls through to the
- * browser default.
- */
+// unified /memories row; memory gets context menu, others don't
 export default function ListItemRow({
   item,
   relevanceScore,
@@ -62,9 +51,7 @@ export default function ListItemRow({
   onContextDelete,
 }: ListItemRowProps) {
   const color = nodeColor(item.tags, item.kind, isDark, null);
-  // Dynamic Dreaming indicator: memories newer than the last dream run
-  // haven't been dreamt on yet. Convex dedupes this subscription across
-  // rows, so per-row useQuery costs one websocket subscription total.
+  // dynamic Dreaming indicator
   const settings = useQuery(api.userSettings.get);
   const awaitingDream =
     item.kind === "memory" &&
@@ -74,8 +61,8 @@ export default function ListItemRow({
 
   const handleClick = () => {
     if (item.kind === "memory") {
-      // Re-materialise the Memory shape from the list item so the callback
-      // keeps working on Memory — the detail panel + mutations expect it.
+      // re-materialise the Memory shape from the list item so the callback
+      // keeps working on Memory — the detail panel + mutations expect it
       const memory: Memory = {
         id: item.id,
         title: item.title,
@@ -184,7 +171,7 @@ export default function ListItemRow({
     return rowBody;
   }
 
-  // Materialised once per render; cheap enough and keeps handlers typed to Memory.
+  // materialised once per render; cheap enough and keeps handlers typed to Memory
   const memory: Memory = {
     id: item.id,
     title: item.title,
@@ -217,7 +204,7 @@ export default function ListItemRow({
   );
 }
 
-/** Renders the kind-specific leading icon for list rows. */
+// renders the kind-specific leading icon for list rows
 function KindMeta({
   item,
   isSelected,

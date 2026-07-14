@@ -6,11 +6,7 @@ type ProfileLike = {
   isDefault: boolean;
 };
 
-/**
- * Per-browser active profile from chrome.storage.local, falling back to the
- * account default once profiles load. Storage stays browser-scoped on purpose
- * (uni vs personal Chrome profiles).
- */
+/** per-browser active profile from chrome.storage, else account default. */
 export function useBrowserDefaultProfile(profiles: ProfileLike[] | undefined): {
   effectiveProfileId: string;
   setSelectedProfileId: (profileId: string) => void;

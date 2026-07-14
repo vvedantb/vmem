@@ -11,9 +11,7 @@ interface HeaderSearchInputProps {
   className?: string;
 }
 
-/**
- * Always-visible toolbar search. Plain input — no ClearInput dissolve layers.
- */
+// always-visible toolbar search
 export default function HeaderSearchInput({
   value,
   onChange,

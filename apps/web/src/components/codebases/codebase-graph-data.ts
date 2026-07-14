@@ -1,12 +1,4 @@
-/**
- * Pure transformation functions for codebase symbol graph data.
- *
- * Converts the Phase-1 codebase payload (files + functions + classes +
- * interfaces + processes, with imports/calls/contains/has_method/extends/
- * implements/starts_process/includes edges) into canvas-ready GraphNode +
- * GraphEdge arrays. The renderer's existing kind→shape mapping handles
- * the visual dispatch — this module just shapes the data.
- */
+// codebase payload → canvas GraphNode/GraphEdge
 import type {
   GraphNode,
   GraphEdge,
@@ -26,13 +18,7 @@ export interface DirectoryStat {
   count: number;
 }
 
-/**
- * Get unique directories with file counts, sorted by count desc.
- *
- * Counts are computed against `code-file` nodes only because directories
- * are a per-file concept; functions/classes inherit their directory from
- * their containing file (already factored into the file count).
- */
+// unique dirs with file counts (code-file only), count desc
 export function getAllDirectories(nodes: CodeNode[]): DirectoryStat[] {
   const dirCounts = new Map<string, number>();
   for (const node of nodes) {
@@ -47,10 +33,7 @@ export function getAllDirectories(nodes: CodeNode[]): DirectoryStat[] {
 
 // ---- Node-size scaling ----
 
-/**
- * Per-kind base size + degree scaling factor. Processes and files are visible
- * "hubs" so they get more visual weight than individual functions/methods.
- */
+// per-kind base size + degree scale (processes/files weigh more)
 const SIZE_CONFIG: Record<
   CodeNodeKind,
   { base: number; perDegree: number; max: number }
@@ -65,26 +48,13 @@ const SIZE_CONFIG: Record<
 // ---- Build graph data ----
 
 interface BuildOptions {
-  /** Empty set = "show all directories". Otherwise restrict files to these dirs. */
+  // empty = show all dirs; otherwise restrict files to these
   activeDirectories: Set<string>;
-  /** Empty set = "hide everything". Otherwise restrict to these kinds. */
+  // empty set = hide everything
   activeKinds: Set<CodeNodeKind>;
 }
 
-/**
- * Transform the codebase symbol payload into canvas-ready nodes + edges.
- *
- * Filtering rules:
- *   - `activeDirectories` (when non-empty) drops files outside those dirs and
- *     orphans their child symbols by extension (no parent file → drop). This
- *     is purely client-side because the user toggles directories in the same
- *     popover that would otherwise round-trip to Neo4j on each click.
- *   - Edges are pruned to those whose endpoints both survived filtering.
- *
- * Server-side filtering (`kinds`, `processId`, `blastRadiusOf`) happens
- * upstream in the Convex action, so by the time we reach this function the
- * payload is already trimmed for those concerns.
- */
+// symbols → canvas nodes/edges (client-side directory filter + edge prune)
 export function buildCodebaseGraphData(
   apiNodes: CodeNode[],
   apiEdges: CodeEdge[],
@@ -108,16 +78,13 @@ export function buildCodebaseGraphData(
     }
   }
 
-  // --- Stage 2: Build a child→parent file map from CONTAINS edges so we can
-  // drop symbols whose host file was filtered out. Class methods don't have a
-  // direct CONTAINS edge from a file — they live under (Class)-[:HAS_METHOD]->
-  // — so we also chase HAS_METHOD edges through their parent class.
+  // stage 2: Build a child→parent file map from CONTAINS edges so we can drop symbols
   const symbolToFile = new Map<string, string>();
   const classToFile = new Map<string, string>();
   for (const edge of apiEdges) {
     if (edge.type === "contains") {
       symbolToFile.set(edge.toId, edge.fromId);
-      // Track classes too so HAS_METHOD edges below can resolve.
+      // track classes too so HAS_METHOD edges below can resolve
       const child = apiNodes.find((n) => n.id === edge.toId);
       if (child?.kind === "code-class" || child?.kind === "code-interface") {
         classToFile.set(edge.toId, edge.fromId);
@@ -140,12 +107,12 @@ export function buildCodebaseGraphData(
       continue;
     }
     if (node.kind === "code-process") {
-      // Processes are top-level entities (not directory-scoped) — keep them.
+      // processes are top-level entities (not directory-scoped) — keep them
       surviving.add(node.id);
       continue;
     }
-    // Function / Class / Interface — keep when host file survived. If we have
-    // no parent record (older payload, orphan symbol), keep it as a fallback.
+    // function / Class / Interface — keep when host file survived. If we have
+    // no parent record (older payload, orphan symbol), keep it as a fallback
     const parentFile = symbolToFile.get(node.id);
     if (!filterByDir || !parentFile || survivingFileIds.has(parentFile)) {
       surviving.add(node.id);
@@ -167,15 +134,15 @@ export function buildCodebaseGraphData(
     const cfg = SIZE_CONFIG[node.kind];
     const d = degree.get(node.id) ?? 0;
     const size = Math.min(cfg.base + d * cfg.perDegree, cfg.max);
-    // Display directory as a tag so the existing legend / hover affordance
-    // reads naturally, even though codebase nodes don't carry user tags.
+    // display directory as a tag so the existing legend / hover affordance
+    // reads naturally, even though codebase nodes don't carry user tags
     const dir = node.directory || "(root)";
     const tags = node.kind === "code-process" ? [] : [dir];
     graphNodes.push({
       id: node.id,
       title: node.name,
-      // Inline the path into `content` so the search match-set check (which
-      // looks at title + content) can fuzzy-match on file paths.
+      // inline the path into `content` so the search match-set check (which
+      // looks at title + content) can fuzzy-match on file paths
       content: node.path,
       tags,
       createdAt: "",
@@ -197,9 +164,7 @@ export function buildCodebaseGraphData(
     starts_process: "starts_process",
     includes: "includes",
   };
-  // Confidence drives visual weight on the renderer where supported. For
-  // structural edges (no confidence stored) we collapse to 1 so they read as
-  // crisp lines, matching their "this is structural truth" semantics.
+  // confidence drives visual weight on the renderer where supported
   const graphEdges: GraphEdge[] = [];
   for (const edge of apiEdges) {
     if (!surviving.has(edge.fromId) || !surviving.has(edge.toId)) continue;

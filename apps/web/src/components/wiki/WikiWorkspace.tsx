@@ -32,11 +32,7 @@ interface WikiWorkspaceProps {
   docId: string | null;
 }
 
-/**
- * Wiki editor shell. Document tree and Add live in the root sidebar.
- * Page header: breadcrumb + inline title; outline toggle and actions grouped on the right.
- * Outline pane sits left of the editor when visible.
- */
+// wiki editor shell
 export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
   const navigate = useNavigate();
   const activeProfile = useActiveProfile();
@@ -158,7 +154,7 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
     }
   }, [doc?._id, doc?.title, doc?.kind]);
 
-  // Only when `/wiki` has no doc id — not while a selected doc is loading.
+  // only when `/wiki` has no doc id — not while a selected doc is loading
   useEffect(() => {
     if (!nodes || hasDocId) return;
     const firstId = findFirstDocumentId(tree);
@@ -171,7 +167,7 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
     }
   }, [hasDocId, nodes, tree, navigate, activeProfile._id]);
 
-  // URL points at a folder (not a document) — open first document instead.
+  // URL points at a folder (not a document) — open first document instead
   useEffect(() => {
     if (!hasDocId || !nodes || doc === undefined) return;
     if (doc === null || doc.kind === "document") return;

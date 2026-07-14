@@ -71,7 +71,7 @@ function parseJsonField<T>(
 ): T | null {
   if (val === null || val === undefined) return null;
   try {
-    // JSON.parse is typed `any` — re-enter as unknown for zod.
+    // JSON.parse is typed `any` — re-enter as unknown for zod
     // oxlint-disable-next-line typescript/no-unsafe-assignment -- JSON.parse
     const raw: unknown = JSON.parse(val);
     const parsed = schema.safeParse(raw);

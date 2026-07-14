@@ -16,7 +16,7 @@ import {
 
 type GraphResult = Awaited<ReturnType<typeof getGraphOverview>>;
 
-/** Filtered graph payload — kinds, processId, blastRadius all optional. */
+// filtered graph payload — kinds, processId, blastRadius all optional
 export const getGraph = authAction({
   args: {
     codebaseId: v.string(),
@@ -47,7 +47,7 @@ export const getGraph = authAction({
   },
 });
 
-/** Detail-panel payload — metadata + neighbours + processes. */
+// detail-panel payload — metadata + neighbours + processes
 export const getContext = authAction({
   args: { codebaseId: v.string(), symbolId: v.string() },
   handler: async (ctx, args): Promise<SymbolContext | null> => {

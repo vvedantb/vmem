@@ -1,13 +1,6 @@
 "use client";
 
-/**
- * App-wide memory data facade for chat, extension flows, and legacy views.
- *
- * Combines Convex actions (mutations/retrieve) with TanStack Query caching
- * so multiple surfaces share one API without each route re-wiring auth and
- * optimistic updates. New graph/list views should prefer controller hooks +
- * direct Convex queries where live data is enough.
- */
+// app-wide memory data facade for chat, extension flows, and legacy views
 
 import { createContext, useCallback, use, useMemo } from "react";
 import {
@@ -81,23 +74,10 @@ interface ApiMemoryPage {
   total: number;
 }
 
-/**
- * Upper bound on the "context" memory list. At 12k memories the old
- * fetch-all loop (100 per page × 120 round trips) took ~10s. The primary
- * renderer (MemorySearch) now uses the paginated useMemoryListPage hook, so
- * this list only backs consumers that need a broad slice for tag suggestions
- * and filter-option derivation (TagInputWithSuggestions, MemoryListHeader-
- * Controls, etc.). 1000 most-recent memories is enough for those use cases
- * and loads in a single round trip.
- */
+// upper bound on the "context" memory list
 const CONTEXT_MEMORY_LIMIT = 1000;
 
-/**
- * Page size for the paginated list hook. 100 is the sweet spot between
- * number of visible rows at once (Virtuoso renders ~30–40 at a time) and
- * Cypher overhead per request (the count CALL and the page CALL share the
- * same session, so fewer big pages beats many small ones).
- */
+// page size for the paginated list hook
 const MEMORY_LIST_PAGE_SIZE = 100;
 
 function isMemoryType(value: string): value is Memory["type"] {
@@ -130,11 +110,7 @@ function apiToMemory(m: {
   };
 }
 
-/**
- * Filters forwarded to the server-paginated listMemories action. Each field
- * lands on a URL searchParam (nuqs) on the list page, so the cache key is
- * stable across navigations and the filter state is shareable/bookmarkable.
- */
+// filters forwarded to the server-paginated listMemories action
 export interface MemoryListFilters {
   profileId?: string | null;
   type?: string;
@@ -142,23 +118,17 @@ export interface MemoryListFilters {
   source?: string;
   tags?: string[];
   searchQuery?: string;
-  /** When false, skips the paginated list query (e.g. hybrid retrieve search). */
+  // when false, skips the paginated list query (e.g. hybrid retrieve)
   enabled?: boolean;
 }
 
-/**
- * Paginated list hook for the memories page. Uses TanStack's
- * useInfiniteQuery, so `fetchNextPage` can be wired directly into Virtuoso's
- * endReached callback. Pages cache under ["memories", filters], and
- * mutations (create/update/delete in this file) invalidate the root
- * ["memories"] key so every filter combination refetches.
- */
+// paginated list hook for the memories page
 function useMemoryListPage(filters: MemoryListFilters) {
   const { isAuthenticated } = useConvexAuth();
   const listMemoriesAction = useAction(api.memoryApi.listMemories);
 
-  // Normalize so equivalent filter shapes produce the same cache key.
-  // Arrays are defensively copied + sorted, strings are trimmed.
+  // normalize so equivalent filter shapes produce the same cache key
+  // arrays are defensively copied + sorted, strings are trimmed
   const normalizedFilters = useMemo<MemoryListFilters>(() => {
     const normalized: MemoryListFilters = {};
     if (filters.profileId !== undefined && filters.profileId !== null) {
@@ -205,11 +175,7 @@ function useMemoryListPage(filters: MemoryListFilters) {
   });
 }
 
-/**
- * Flat list of memories with an isLoading flag, derived from useMemoryListPage.
- * Exists to let the list UI render a simple `Memory[]` without each caller
- * having to flatten the infinite-query pages themselves.
- */
+// flat list of memories with an isLoading flag, derived from useMemoryListPage
 export function useMemoryListFlat(filters: MemoryListFilters) {
   const query = useMemoryListPage(filters);
   const memories = useMemo<Memory[]>(() => {
@@ -228,7 +194,7 @@ export function useMemoryListFlat(filters: MemoryListFilters) {
     total,
     isLoading: query.isLoading,
     // A failed load renders identically to "no memories" otherwise —
-    // callers must surface this instead of showing a silent blank list.
+    // callers must surface this instead of showing a silent blank list
     isError: query.isError,
     refetch: query.refetch,
     isFetching: query.isFetching,
@@ -250,9 +216,7 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
     api.memoryApi.generateMemoryUploadUrl,
   );
   const importFromFile = useAction(api.fileImport.importMemoryFromFile);
-  // Workspace-scoped recent slice for tag suggestions / filter options.
-  // Without profileId this leaked personal + other-team memories into every
-  // workspace (listMemories falls back to user-wide when profileId is omitted).
+  // workspace-scoped recent slice for tag suggestions / filter options
   const recentQueryKey = [
     "memories",
     "recent",
@@ -271,10 +235,7 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
     enabled: isAuthenticated && activeProfileId !== undefined,
   });
 
-  // Shared invalidator so every paginated filter cache AND the recent-
-  // context cache refresh after any mutation. TanStack matches invalidations
-  // by queryKey prefix, so ["memories"] covers both ["memories", "recent", …]
-  // and ["memories", { ...filters }].
+  // shared invalidator for paginated + recent memory caches
   const invalidateMemories = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: ["memories"] });
   }, [queryClient]);
@@ -290,8 +251,8 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
         confidence: 1.0,
         profileId: input.profileId ?? activeProfileId,
       });
-      // Pass the action result as a variable (not a fresh literal) so
-      // extra MemoryWithTags fields don't trip excess-property checks.
+      // pass the action result as a variable (not a fresh literal) so
+      // extra MemoryWithTags fields don't trip excess-property checks
       return apiToMemory(created);
     },
     onMutate: async (input) => {
@@ -370,11 +331,11 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
 
   const uploadMutation = useMutation({
     mutationFn: async (input: UploadMemoryFileInput): Promise<Memory> => {
-      // 1. Get a one-shot upload URL from Convex storage.
+      // 1. Get a one-shot upload URL from Convex storage
       const uploadUrl = await generateUploadUrl();
 
       // 2. POST the raw file bytes. Convex returns `{ storageId }` on
-      //    success — that ID is the handle we forward to the import action.
+      //    success — that ID is the handle we forward to the import action
       const uploadResponse = await fetch(uploadUrl, {
         method: "POST",
         headers: {
@@ -386,15 +347,13 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
         throw new Error(`File upload failed: ${uploadResponse.statusText}`);
       }
       // Convex's signed-upload endpoint returns `{ storageId }`. Parse at the
-      // boundary so the branded ID flows into `importFromFile` without `as`.
+      // boundary so the branded ID flows into `importFromFile` without `as`
       const storageId = parseConvexStorageUpload(await uploadResponse.json());
       if (!storageId) {
         throw new Error("Invalid upload response from storage");
       }
 
-      // 3. Hand the storageId to the server action which extracts text,
-      //    hashes it, and calls createMemoryInternal (with chunking
-      //    automatically scheduled for long PDFs).
+      // hand storageId to import action (extract/hash/createMemory)
       const created = await importFromFile({
         storageId,
         filename: input.file.name,

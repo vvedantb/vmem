@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const openRouterFeatureSchema = z.enum([
-  // Chat completions
+  // chat completions
   "chat",
   "enrichment",
   "dream-synthesis",
@@ -11,7 +11,7 @@ export const openRouterFeatureSchema = z.enum([
   "entity-backfill",
   "tag-consolidation",
   "entity-aliases",
-  // Embeddings
+  // embeddings
   "memory-save",
   "memory-search",
   "mcp-embed",

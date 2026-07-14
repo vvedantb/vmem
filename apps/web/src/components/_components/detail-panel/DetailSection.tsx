@@ -5,7 +5,7 @@ interface DetailSectionProps {
   children: ReactNode;
 }
 
-/** Labeled block for memory detail panel tabs — spacing only, no dividers. */
+// labeled block for memory detail panel tabs — spacing only, no dividers
 export function DetailSection({ label, children }: DetailSectionProps) {
   return (
     <section className="space-y-2">

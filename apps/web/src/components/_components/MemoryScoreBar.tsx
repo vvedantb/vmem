@@ -1,8 +1,4 @@
-/**
- * One signal row in the Context Trace breakdown. Values may exceed 1 on some
- * legs (e.g. fulltext); the bar clamps to [0, 1] but the label shows the raw
- * score so operators can see magnitude.
- */
+// one signal row in the Context Trace breakdown
 export default function MemoryScoreBar({
   label,
   value,

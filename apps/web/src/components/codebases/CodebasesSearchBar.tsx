@@ -7,7 +7,7 @@ import { SidebarClearSearchInput } from "@/components/sidebar/SidebarClearSearch
 interface CodebasesSearchBarProps {
   value: string;
   onChange: (value: string) => void;
-  /** Trailing chrome (Add) on the same row as the input. */
+  // trailing chrome (Add) on the same row as the input
   actions?: ReactNode;
   className?: string;
 }

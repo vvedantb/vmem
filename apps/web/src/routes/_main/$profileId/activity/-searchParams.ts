@@ -1,13 +1,6 @@
 import { parseAsArrayOf, parseAsString, parseAsStringLiteral } from "nuqs";
 
-/**
- * URL filter state for the `/activity` subroutes.
- *
- * Each subroute owns a separate `useQueryStates` schema. Because the tabs
- * are now real subroutes (`/activity/ai-logs` and `/activity/events`),
- * their filter params live on different URLs — there's no key-collision
- * concern, so each schema uses the natural names (`range`, `sortDir`).
- */
+// URL filter state for the `/activity` subroutes
 
 // ── AI Logs subroute ──────────────────────────────────────────────────────
 
@@ -59,16 +52,14 @@ export const RANGE_LABELS: Record<Range, string> = {
 const sortDirections = ["desc", "asc"] as const;
 export type SortDirection = (typeof sortDirections)[number];
 
-/** URL value when no single profile is selected — show logs from all profiles. */
+// URL value when no single profile is selected — show logs from all profiles
 export const PROFILE_FILTER_ALL = "all";
 
 export function isAllProfilesFilter(profileId: string): boolean {
   return profileId === PROFILE_FILTER_ALL || profileId === "";
 }
 
-// `scope`/`teamId` intentionally have no static default: absent means "follow
-// the active workspace" (see useAiLogsScope). A hardcoded "personal" default
-// would open a team route on personal spend until the user touched the filter.
+// `scope`/`teamId` intentionally have no static default
 export const aiLogsSearchParams = {
   scope: parseAsStringLiteral(scopes),
   teamId: parseAsString,

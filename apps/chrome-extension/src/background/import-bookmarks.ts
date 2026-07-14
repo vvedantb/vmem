@@ -72,7 +72,7 @@ export async function importBookmarks(silent = false): Promise<ImportResult> {
     loadItems: async () => {
       const { lastBookmarkSync } = await getStorage();
       const tree = await chrome.bookmarks.getTree();
-      // This browser's workspace selection (see sync-profile.ts).
+      // This browser's workspace selection (see sync-profile.ts)
       profileId = await getSyncProfileId();
       return flattenBookmarks(tree).filter(
         (b) => b.dateAdded > lastBookmarkSync,

@@ -20,12 +20,7 @@ async function getCacheRowByClerkId(
   return { user, row };
 }
 
-/**
- * Resolve a clerkId to the internal Convex `users._id`. The regen
- * action needs this to call `userSettings.getUserContextInternal`,
- * which is keyed on the internal id. Returns null when no user row
- * exists yet (race with onboarding).
- */
+// resolve a clerkId to the internal Convex `users._id`
 export const resolveUserIdByClerkIdInternal = internalQuery({
   args: { clerkId: v.string() },
   returns: v.union(v.id("users"), v.null()),
@@ -35,11 +30,7 @@ export const resolveUserIdByClerkIdInternal = internalQuery({
   },
 });
 
-/**
- * Look up the cache row for a clerkId. Returns null when no row exists
- * yet — `mcpGetContextPrompt` treats that as "first call, schedule a regen
- * and return placeholder".
- */
+// look up the cache row for a clerkId
 export const getByClerkIdInternal = internalQuery({
   args: { clerkId: v.string() },
   returns: v.union(
@@ -64,16 +55,7 @@ export const getByClerkIdInternal = internalQuery({
   },
 });
 
-/**
- * Mark the cache as needing regeneration. Called from every memory
- * write path. Creates the row on first invalidation so subsequent reads
- * see a consistent shape.
- *
- * Returns true if the caller should schedule a debounced regen check
- * (i.e. there wasn't already one in flight). Returns false when an
- * earlier write already scheduled a check, so the caller can skip the
- * scheduler call and avoid piling up redundant jobs.
- */
+// mark the cache as needing regeneration
 export const markPendingByClerkIdInternal = internalMutation({
   args: { clerkId: v.string() },
   returns: v.boolean(),
@@ -92,7 +74,7 @@ export const markPendingByClerkIdInternal = internalMutation({
       return true;
     }
     if (existing.pendingRegeneration) {
-      // Already pending — a debounce check is already scheduled.
+      // already pending — a debounce check is already scheduled
       return false;
     }
     await ctx.db.patch(existing._id, { pendingRegeneration: true });
@@ -100,10 +82,7 @@ export const markPendingByClerkIdInternal = internalMutation({
   },
 });
 
-/**
- * Persist freshly generated content and clear the pending flag. Called
- * from the regenerate action after a successful LLM round-trip.
- */
+// persist freshly generated content and clear the pending flag
 export const upsertByClerkIdInternal = internalMutation({
   args: {
     clerkId: v.string(),

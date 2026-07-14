@@ -8,11 +8,7 @@ import { computeApiUsageMetrics } from "@/components/api-logs/_utils";
 
 const DISPLAY_LIMIT = 100;
 
-/**
- * Usage panel for `/settings/api` — request volume / success rate /
- * latency for calls third-party apps make against the public API
- * using the user's generated keys.
- */
+// usage panel for `/settings/api`
 export function UsagePanel() {
   const entries = useQuery(api.auditLog.listMyApiRequestEntries, {
     limit: 1000,

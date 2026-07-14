@@ -62,7 +62,7 @@ export async function importHistory(
       });
 
       // This browser's workspace selection — uni and personal Chrome
-      // profiles each sync into their own vmem profile.
+      // profiles each sync into their own vmem profile
       profileId = await getSyncProfileId();
       return deduplicated;
     },

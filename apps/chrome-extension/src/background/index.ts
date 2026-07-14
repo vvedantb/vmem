@@ -47,7 +47,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
   }
 
   // The frequency slider changed the sync period — reschedule the alarm with
-  // the new period (no-op while auto-sync is disabled).
+  // the new period (no-op while auto-sync is disabled)
   if (changes["autoSyncIntervalMinutes"]) {
     void rescheduleHistorySync();
   }

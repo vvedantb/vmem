@@ -2,13 +2,7 @@ import { AnimationCard } from "./AnimationCard";
 import { SectionHeading } from "./SectionHeading";
 import { VmemPaths } from "@/components/svg-animations";
 
-/**
- * Loading / processing animations.
- *
- * These signal "something is happening" — they're meant to occupy attention
- * during a wait, so they cycle faster and use stronger visual changes than
- * the idle set.
- */
+// loading / processing animations
 export function LoadingSection() {
   return (
     <section className="space-y-4">

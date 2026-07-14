@@ -13,22 +13,14 @@ import {
 
 export const Route = createFileRoute("/mcp/oauth/authorize")({
   validateSearch: mcpOauthParamsSchema,
-  // Persist the OAuth params before any auth-driven redirect can strip them.
-  // Prod Clerk live keys can bounce us to `/home` during the popup's session
-  // handshake; `/home` reads this storage to recover us back into the flow.
+  // persist the OAuth params before any auth-driven redirect can strip them
   beforeLoad: ({ search }) => {
     saveMcpOauthParams(search);
   },
   component: McpOauthAuthorize,
 });
 
-/**
- * Gates on Clerk's auth state (not Convex's). If we gated on Convex's
- * `<Unauthenticated>`, a signed-in user with a transient Convex auth
- * loading state could see the sign-in button, click it, and Clerk would
- * redirect them to `signInFallbackRedirectUrl="/home"` (since they're
- * already signed in and there's no real sign-in flow to complete).
- */
+// gates on Clerk's auth state (not Convex's)
 function McpOauthAuthorize() {
   const search = Route.useSearch();
   const { isLoaded, isSignedIn } = useAuth();
@@ -56,7 +48,7 @@ function McpOauthAuthorize() {
   );
 }
 
-/** Mints an authorization code via Convex and redirects to the OAuth client's redirect_uri. */
+// mints an authorization code via Convex and redirects to the OAuth client's redirect_uri
 function AuthorizedFlow({ search }: { search: McpOauthParams }) {
   const { isLoading: convexLoading, isAuthenticated } = useConvexAuth();
   const authorize = useMutation(api.mcp.oauth.authorize);

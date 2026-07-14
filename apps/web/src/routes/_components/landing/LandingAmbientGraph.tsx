@@ -1,6 +1,6 @@
 import "./landing.css";
 
-/** Decorative graph atmosphere — presentational only, no interaction. */
+// decorative graph atmosphere — presentational only, no interaction
 export function LandingAmbientGraph() {
   return (
     <div

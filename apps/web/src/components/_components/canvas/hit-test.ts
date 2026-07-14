@@ -5,13 +5,11 @@ const CELL_SIZE = 60;
 interface SpatialIndex {
   cells: Map<number, GraphNode[]>;
   lastHash: string;
-  /** When false, rebuildIndex skips the O(n) hash computation entirely */
+  // when false, rebuildIndex skips the O(n) hash computation entirely
   dirty: boolean;
 }
 
-// Numeric cell key — string keys allocated one string per node per rebuild,
-// which is pure GC churn at 100k nodes. World extent grows with sqrt(n), so
-// cell coords stay well inside ±32k even at 1M nodes.
+// numeric cell key — string keys allocated one string per node per rebuild, which is
 function cellKey(cx: number, cy: number): number {
   return (cx + 32768) * 65536 + (cy + 32768);
 }
@@ -31,7 +29,7 @@ export function createSpatialIndex(): SpatialIndex {
   return { cells: new Map(), lastHash: "", dirty: true };
 }
 
-/** Mark the index as needing a rebuild on next rebuildIndex call */
+// mark the index as needing a rebuild on next rebuildIndex call
 export function markDirty(index: SpatialIndex): void {
   index.dirty = true;
 }
@@ -61,10 +59,7 @@ export function rebuildIndex(index: SpatialIndex, nodes: GraphNode[]): void {
   index.dirty = false;
 }
 
-/**
- * Naive O(E) edge hit-test. Edge counts are capped by data pipeline
- * (~≤4000 typical), so a spatial index isn't worth the maintenance cost here.
- */
+// naive O(E) edge hit-test
 export function getEdgeAt(
   edges: ResolvedEdge[],
   worldX: number,
@@ -82,8 +77,8 @@ export function getEdgeAt(
     const y1 = e.source.y ?? 0;
     const x2 = e.target.x ?? 0;
     const y2 = e.target.y ?? 0;
-    // Cheap bbox reject before the projection math — on 100k+ edge graphs
-    // this prunes almost every edge per mousemove.
+    // cheap bbox reject before the projection math — on 100k+ edge graphs
+    // this prunes almost every edge per mousemove
     if (
       (x1 < worldX - threshold && x2 < worldX - threshold) ||
       (x1 > worldX + threshold && x2 > worldX + threshold) ||

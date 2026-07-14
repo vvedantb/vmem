@@ -2,7 +2,7 @@ import type { Doc } from "../_generated/dataModel";
 import { requireClerkId, type AuthActionCtx } from "../auth";
 import { getAccessibleProfile } from "./auth";
 
-/** Team profile the caller can access, else null (personal / missing profileId). */
+// team profile the caller can access, else null (personal / missing profileId)
 export async function getTeamProfileIfApplicable(
   ctx: AuthActionCtx,
   profileId: string | undefined,
@@ -13,10 +13,7 @@ export async function getTeamProfileIfApplicable(
   return profile;
 }
 
-/**
- * Resolve clerkId + optional team profile, then dispatch.
- * Callers own team vs personal domain policy; this owns the branch.
- */
+// resolve clerkId + optional team profile, then dispatch
 export async function routeMemoryByProfile<T>(
   ctx: AuthActionCtx,
   profileId: string | undefined,

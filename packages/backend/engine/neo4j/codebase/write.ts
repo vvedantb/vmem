@@ -62,7 +62,7 @@ function isCodeGraphNode(n: Cypher.Node): Cypher.Predicate {
   );
 }
 
-/** Open a session, run one clause, and always close it. */
+// open a session, run one clause, and always close it
 async function runClause(driver: Driver, clause: Cypher.Clause): Promise<void> {
   const session = driver.session();
   try {
@@ -266,7 +266,7 @@ function edgeProps(e: RelationEdge): Record<string, Neo4jPropValue> {
   return out;
 }
 
-/** MERGE labeled endpoints with a fixed relationship type (no edge props). */
+// MERGE labeled endpoints with a fixed relationship type (no edge props)
 async function upsertLabeledEdges(
   driver: Driver,
   edgeType: EdgeKind,

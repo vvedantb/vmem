@@ -2,20 +2,7 @@ import { unzipSync } from "fflate";
 import { z } from "zod";
 import type { ExportImportRow } from "./importRows";
 
-/**
- * Shared parser for the "conversation objects holding a messages array" export
- * shape used by Claude (only the key names the vendor emits differ, so the
- * schemas below accept a small union of aliases).
- *
- * ChatGPT is NOT parsed here — its export is a mapping graph, see
- * `parseChatGptExport.ts`.
- *
- * Everything coming out of `JSON.parse` is validated by zod at this boundary,
- * so the traversal below works on fully typed data. Schemas are deliberately
- * lenient: a malformed message or conversation is skipped (`.catch(null)` then
- * filtered) rather than failing the whole file, which is what a user importing
- * a huge multi-year export expects.
- */
+// shared parser for claude-style conversation+messages export json
 
 export type ChatExportVendor = "claude";
 
@@ -23,7 +10,7 @@ export type ParseExportResult =
   | { ok: true; rows: ExportImportRow[] }
   | { ok: false; error: string };
 
-/** A single block inside an array-shaped message body. */
+// A single block inside an array-shaped message body
 const blockSchema = z
   .union([
     z.string(),
@@ -34,13 +21,13 @@ const blockSchema = z
 
 const blocksSchema = z.array(blockSchema);
 
-/** Message body: a plain string, or an object wrapping text/blocks. */
+// message body: a plain string, or an object wrapping text/blocks
 const contentSchema = z
   .union([
     z.string(),
     z.object({
       text: z.string().optional().catch(undefined),
-      // Claude nests blocks under `content`; other vendors may use `parts`.
+      // Claude nests blocks under `content`; other vendors may use `parts`
       content: blocksSchema.optional().catch(undefined),
       parts: blocksSchema.optional().catch(undefined),
     }),
@@ -48,7 +35,7 @@ const contentSchema = z
   .nullable()
   .catch(null);
 
-/** `sender` / `author` are sometimes a bare role string, sometimes an object. */
+// `sender` / `author` are sometimes a bare role string, sometimes an object
 const roleHolderSchema = z
   .union([
     z.string(),
@@ -100,8 +87,7 @@ const conversationObjectSchema = z.object({
 
 const conversationSchema = conversationObjectSchema.nullable().catch(null);
 
-/** The file root is either an array of conversations, or an object that is
- * itself a conversation and/or wraps the array under a vendor-specific key. */
+// the file root is either an array of conversations, or an object that is itself a
 const rootSchema = z.union([
   z.array(conversationSchema),
   conversationObjectSchema.extend({
@@ -120,7 +106,7 @@ function textFromUtf8(data: Uint8Array): string {
   return new TextDecoder("utf-8", { fatal: false }).decode(data);
 }
 
-/** Pull the first JSON-looking file out of a vendor export zip. */
+// pull the first JSON-looking file out of a vendor export zip
 function extractJsonFromZip(buffer: Uint8Array): string | null {
   try {
     const unzipped = unzipSync(buffer);
@@ -202,7 +188,7 @@ function formatLines(msgs: Message[]): string {
   return parts.join("\n\n");
 }
 
-/** First non-empty messages array across the key names the vendors use. */
+// first non-empty messages array across the key names the vendors use
 function pickMessages(conv: Conversation): Message[] | null {
   const candidates = [
     conv.chat_messages,
@@ -255,7 +241,7 @@ function collectConversations(
   if (Array.isArray(root)) {
     return root.filter((conv) => conv !== null);
   }
-  // A single-conversation file: the root object holds the messages itself.
+  // A single-conversation file: the root object holds the messages itself
   if (pickMessages(root)) return [root];
   for (const wrapper of [
     root.conversations,

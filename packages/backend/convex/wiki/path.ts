@@ -1,7 +1,7 @@
 import type { Doc, Id } from "../_generated/dataModel";
 import { parentKey } from "../lib/scopedTree";
 
-/** Minimal wiki tree shape for path resolution (no Convex coupling in tests). */
+// minimal wiki tree shape for path resolution (no Convex coupling in tests)
 export interface WikiPathNode {
   id: Id<"wikiNodes">;
   parentId: Id<"wikiNodes"> | null;
@@ -54,7 +54,7 @@ export function findWikiChild(
   return children.find((child) => child.title === title) ?? null;
 }
 
-/** Resolve a slash path to the folder id at the end, or null if missing/not a folder. */
+// resolve a slash path to the folder id at the end, or null if missing/not a folder
 export function resolveWikiFolderPath(
   nodes: WikiPathNode[],
   path: string,

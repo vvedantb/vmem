@@ -9,12 +9,7 @@ interface GraphLegendProps {
   visibleNodeCount: number;
 }
 
-/**
- * Node shapes the renderer dispatches per kind. Only the five kinds users
- * encounter on /memories/graph are listed; codebase-specific shapes
- * (code-file/-class/-interface/-process) reuse this same vocabulary and are
- * documented elsewhere if a code-graph view is ever added.
- */
+// node shapes the renderer dispatches per kind
 const NODE_LEGEND: { kind: ListItemKind; label: string }[] = [
   { kind: "memory", label: "Memory" },
   { kind: "wiki-document", label: "Wiki document" },
@@ -23,12 +18,7 @@ const NODE_LEGEND: { kind: ListItemKind; label: string }[] = [
   { kind: "entity", label: "Entity" },
 ];
 
-/**
- * Edge categories grouped by the renderer's four colour buckets. Concrete
- * Cypher edge types map to these buckets in `canvas/renderer.ts`; the labels
- * here describe the bucket meaning rather than each individual type so the
- * legend stays scannable.
- */
+// edge categories grouped by the renderer's four colour buckets
 const EDGE_LEGEND: {
   label: string;
   swatchClass: string;

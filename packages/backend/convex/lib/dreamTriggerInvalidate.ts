@@ -4,7 +4,7 @@ import { QUIET_MS } from "./dreamTriggerDecision";
 
 type DreamTriggerCtx = Pick<ActionCtx, "runMutation" | "scheduler">;
 
-/** Debounced dream check after memory writes; skips dream-mode source. */
+// debounced dream check after memory writes; skips dream-mode source
 export async function scheduleDreamTriggerCheck(
   ctx: DreamTriggerCtx,
   clerkId: string,

@@ -101,7 +101,7 @@ function parseEnvelope<T>(
     return { ok: false, status, error: "invalid_json" };
   }
 
-  // Parse wrapper first, then data — avoids ZodType<T> making `.data` optional in z.object.
+  // parse wrapper first, then data — avoids ZodType<T> making `.data` optional in z.object
   const envelope = apiEnvelopeSchema.safeParse(body);
   if (!envelope.success) {
     return errorResultFromBody(status, body);

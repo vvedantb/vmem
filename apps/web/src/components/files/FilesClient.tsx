@@ -38,7 +38,7 @@ export default function FilesClient() {
     deleteNodes,
   } = useFilesData();
 
-  // Modal state
+  // modal state
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [droppedFiles, setDroppedFiles] = useState<File[]>([]);
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
@@ -48,7 +48,7 @@ export default function FilesClient() {
   const [renameTarget, setRenameTarget] = useState<FileItem | null>(null);
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
 
-  // Derived: items in current folder, sorted
+  // derived: items in current folder, sorted
   const currentItems = sortFiles(
     allFiles.filter((f) => f.parentFolderId === (params.folderId ?? null)),
     params.sort,
@@ -60,7 +60,7 @@ export default function FilesClient() {
 
   const allFolders = allFiles.filter((f) => f.itemType === "folder");
 
-  // Build breadcrumb path
+  // build breadcrumb path
   const buildBreadcrumbs = useCallback((): FolderBreadcrumb[] => {
     const crumbs: FolderBreadcrumb[] = [{ id: null, name: "Files" }];
     let currentId = params.folderId ?? null;
@@ -78,7 +78,7 @@ export default function FilesClient() {
       }
     }
 
-    // Reverse non-root crumbs to get root→leaf order
+    // reverse non-root crumbs to get root→leaf order
     if (crumbs.length > 1) {
       const root = crumbs.at(0);
       if (root === undefined) return crumbs;
@@ -89,7 +89,7 @@ export default function FilesClient() {
 
   const breadcrumbs = buildBreadcrumbs();
 
-  // Navigation
+  // navigation
   const navigateToFolder = useCallback(
     (folderId: string | null) => {
       void setParams({ folderId });
@@ -98,7 +98,7 @@ export default function FilesClient() {
     [setParams, selection],
   );
 
-  // Actions
+  // actions
   const handleOpen = useCallback(
     (item: FileItem) => {
       if (item.itemType === "folder") {
@@ -180,7 +180,7 @@ export default function FilesClient() {
     [pendingMoveIds, moveNodes, selection],
   );
 
-  // Bulk actions
+  // bulk actions
   const handleBulkDownload = useCallback(() => {
     const selected = allFiles.filter(
       (f) => selection.selectedIds.has(f.id) && f.itemType === "file",
@@ -206,7 +206,7 @@ export default function FilesClient() {
     setIsMoveDialogOpen(true);
   }, [selection.selectedIds]);
 
-  // New folder
+  // new folder
   const handleNewFolderConfirm = useCallback(
     async (name: string) => {
       setIsCreatingFolder(false);
@@ -229,7 +229,7 @@ export default function FilesClient() {
     [uploadFile, params.folderId],
   );
 
-  // Drop zone
+  // drop zone
   const handleFilesDropped = useCallback((files: File[]) => {
     setDroppedFiles(files);
     setIsUploadModalOpen(true);

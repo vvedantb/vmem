@@ -256,9 +256,9 @@ interface ProposalLookup {
   sourceMemoryIds: string[];
   confidence: number | null;
   sourceProfileId: string | null;
-  /** `targetId` if UPDATE_FOR-bound, else first source memory id. */
+  // `targetId` if UPDATE_FOR-bound, else first source memory id
   memoryId: string;
-  /** UPDATE_FOR target's userId, else first source's userId. */
+  // UPDATE_FOR target's userId, else first source's userId
   userId: string;
 }
 
@@ -266,7 +266,7 @@ export interface ResolveResult {
   status: string;
   memoryId: string;
   kind: ProposedUpdateKind;
-  /** Set when approve materialized a new memory (synthesis kinds). */
+  // set when approve materialized a new memory (synthesis kinds)
   materializedMemoryId?: string;
 }
 

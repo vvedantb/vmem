@@ -15,11 +15,7 @@ import { IconLoader2 } from "@tabler/icons-react";
 import type { Doc } from "@vmem/backend";
 import { PROFILE_COLORS, PROFILE_ICON_OPTIONS } from "./profile-icon";
 
-/**
- * Create/edit form for a (personal) profile — shared by the settings
- * profiles page and the sidebar workspace switcher. The caller owns the
- * mutation; this component only collects { name, color, icon }.
- */
+// create/edit form for a (personal) profile
 export function CreateEditProfileDialog({
   profile,
   open,

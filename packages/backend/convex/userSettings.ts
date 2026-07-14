@@ -60,7 +60,7 @@ const defaults: {
   dreamModeAutoAccept: false,
   dreamModeScheduleEnabled: false,
   dreamModeScheduleTime: null,
-  // Dynamic Dreaming is on by default — soft-fails without an API key.
+  // dynamic Dreaming is on by default — soft-fails without an API key
   dreamModeAutomatic: true,
   lastDreamRunAt: null,
 };
@@ -122,10 +122,7 @@ export const get = authQuery({
   },
 });
 
-/**
- * Internal query used by actions to fetch the user-provided context
- * (About Me / Preferences) that gets surfaced alongside memory retrieval.
- */
+// internal query used by actions to fetch the user-provided context (About Me /
 export const getUserContextInternal = internalQuery({
   args: { userId: v.id("users") },
   returns: v.object({
@@ -206,11 +203,7 @@ export const update = authMutation({
   },
 });
 
-/**
- * Internal: stamp `lastDreamRunAt` on the user's settings row. Called by
- * `runDreamForUserInternal` after every Dream Mode pass — used to enforce
- * the 1-run-per-hour rate-limit on the manual button.
- */
+// internal: stamp `lastDreamRunAt` on the user's settings row
 export const setLastDreamRunAtInternal = internalMutation({
   args: {
     userId: v.id("users"),
@@ -229,11 +222,7 @@ export const setLastDreamRunAtInternal = internalMutation({
   },
 });
 
-/**
- * Internal: read the user's Dream Mode config (auto-accept + last run).
- * Used by the dream pipeline to decide auto-accept vs proposals and to
- * gate the manual button rate-limit.
- */
+// internal: read the user's Dream Mode config (auto-accept + last run)
 export const getDreamConfigInternal = internalQuery({
   args: { userId: v.id("users") },
   returns: v.object({
@@ -249,7 +238,7 @@ export const getDreamConfigInternal = internalQuery({
   },
 });
 
-// Get default profile for a specific source (web, extension, or mcp)
+// get default profile for a specific source (web, extension, or mcp)
 export const getDefaultProfile = authQuery({
   args: {
     source: v.union(v.literal("web"), v.literal("extension"), v.literal("mcp")),
@@ -261,14 +250,14 @@ export const getDefaultProfile = authQuery({
   },
 });
 
-// Set default profile for a specific source
+// set default profile for a specific source
 export const setDefaultProfile = authMutation({
   args: {
     source: v.union(v.literal("web"), v.literal("extension"), v.literal("mcp")),
     profileId: v.id("profiles"),
   },
   handler: async (ctx, args) => {
-    // Verify profile belongs to user
+    // verify profile belongs to user
     const profile = await ctx.db.get(args.profileId);
     if (!profile || profile.userId !== ctx.userId) {
       throw new Error("Profile not found");

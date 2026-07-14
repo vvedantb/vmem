@@ -22,11 +22,7 @@ interface SkillHistoryPanelProps {
   skillId: Id<"skills"> | null;
 }
 
-/**
- * Version history for a skill: a list of pre-overwrite snapshots, a read-only
- * preview of the selected one, and Restore. Restore checkpoints the current
- * state first (server-side), so it is reversible.
- */
+// version history for a skill
 export function SkillHistoryPanel({
   open,
   onOpenChange,
@@ -47,7 +43,7 @@ export function SkillHistoryPanel({
   );
   const restoreVersion = useMutation(api.skills.restoreVersion);
 
-  // Default to the newest version when the list (re)loads; reset when closed.
+  // default to the newest version when the list (re)loads; reset when closed
   useEffect(() => {
     if (!open) {
       setSelectedId(null);

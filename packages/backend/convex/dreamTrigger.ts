@@ -23,25 +23,16 @@ async function isAutomaticEnabled(
     .query("userSettings")
     .withIndex("by_user", (q) => q.eq("userId", userId))
     .first();
-  // Absent = true: Dynamic Dreaming is on by default (soft-fails without
-  // an OpenRouter key, so default-on costs nothing for unconfigured users).
+  // absent = true: Dynamic Dreaming is on by default (soft-fails without
+  // an OpenRouter key, so default-on costs nothing for unconfigured users)
   return settings?.dreamModeAutomatic ?? true;
 }
 
-/**
- * Record a memory write. Bumps the new-memory counter + lastWriteAt and
- * decides whether the caller should schedule a debounced dream check.
- *
- * Returns true exactly once per burst: when automatic mode is on, no
- * check is already pending, and the counter has reached the minimum.
- * Sets `checkPending` in the same mutation, so concurrent writes can't
- * double-schedule (Convex mutations are serializable).
- */
+// record a memory write
 export const bumpActivityByClerkIdInternal = internalMutation({
   args: {
     clerkId: v.string(),
-    /** How many memories this write represents (connector syncs report
-     *  their whole batch in one bump). Default 1. */
+    // how many memories this write represents (connector syncs report their whole batch in one bump)
     count: v.optional(v.number()),
   },
   returns: v.boolean(),
@@ -82,11 +73,7 @@ export const bumpActivityByClerkIdInternal = internalMutation({
   },
 });
 
-/**
- * Everything the debounced check needs in one query: the state snapshot
- * (shape of `DreamTriggerSnapshot`) plus the automatic-mode setting.
- * Null when the user or state row doesn't exist — nothing to decide on.
- */
+// everything the debounced check needs in one query
 export const getDecisionInputsInternal = internalQuery({
   args: { clerkId: v.string() },
   returns: v.union(
@@ -131,8 +118,7 @@ async function patchState(
   if (state) await ctx.db.patch(state._id, patch);
 }
 
-/** Stand down: the check decided not to dream. The counter persists so
- *  the next memory write re-arms the check with progress intact. */
+// stand down: the check decided not to dream
 export const clearPendingInternal = internalMutation({
   args: { userId: v.id("users") },
   returns: v.null(),
@@ -142,8 +128,7 @@ export const clearPendingInternal = internalMutation({
   },
 });
 
-/** Consume the trigger for an automatic run: reset the counter, stamp
- *  the run for gap/cap accounting, and clear the pending flag. */
+// consume the trigger for an automatic run
 export const consumeRunInternal = internalMutation({
   args: { userId: v.id("users") },
   returns: v.null(),

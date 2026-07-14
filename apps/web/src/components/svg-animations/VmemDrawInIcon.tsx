@@ -4,20 +4,13 @@ import { cn } from "@vmem/ui";
 import { VmemPaths } from "./VmemPaths";
 
 interface VmemDrawInIconProps {
-  /** Pixel size for both width and height. Default 22 (sidebar default). */
+  // pixel size for both width and height
   size?: number;
-  /** Extra classes — `currentColor` driven, so `text-foreground` etc. works. */
+  // extra classes — `currentColor` driven, so `text-foreground` etc
   className?: string;
 }
 
-/**
- * vmem logo with a one-shot stroke draw-in animation on mount, replayed when
- * the parent `.group` link is hovered in (see `vmem-anim.css`). After mount,
- * paths stay in the settled state so hover-out does not replay the intro.
- *
- * Sized via inline width/height attributes rather than the `.vmem-svg` class
- * so callers can pin it at a specific px size (sidebar uses 22).
- */
+// vmem logo with a one-shot stroke draw-in animation on mount, replayed when the
 function handleMountAnimationEnd(event: React.AnimationEvent<SVGSVGElement>) {
   if (event.animationName !== "vmem-draw-in") return;
 

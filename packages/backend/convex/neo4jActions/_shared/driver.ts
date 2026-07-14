@@ -5,10 +5,7 @@ import { getDriver } from "../../../engine/neo4j/driver";
 
 type Neo4jUserArgs = { clerkId: string };
 
-/**
- * Thin internalAction pass-through: map Convex `clerkId` → engine
- * `{ driver, userId }` and forward remaining args.
- */
+// thin internalAction pass-through
 export async function runWithNeo4jDriver<Args extends Neo4jUserArgs, Result>(
   args: Args,
   fn: (

@@ -15,11 +15,7 @@ export const insertOAuthStateInternal = internalMutation({
   },
 });
 
-/**
- * Atomically consumes an OAuth state entry (read + delete).
- * Returns the entry data if found, null otherwise.
- * Being a mutation ensures no two callbacks can consume the same state.
- */
+// atomically consumes an OAuth state entry (read + delete)
 export const consumeOAuthStateInternal = internalMutation({
   args: { state: v.string() },
   returns: v.union(

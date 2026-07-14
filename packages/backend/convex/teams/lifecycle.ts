@@ -92,16 +92,7 @@ export async function runUpdateTeam(
   return { updated: true };
 }
 
-/**
- * Delete a team. Two-phase so Neo4j can be purged between DB-bound
- * phases — actions can't use `ctx.db` directly.
- *
- *   1. `prepareDeleteTeamInternal` — verify ownership, return profile id.
- *   2. `getTeamMemberClerkIdsInternal` + `deleteMemoriesByProfile` per
- *      creator — team memories may belong to many creators.
- *   3. `finalizeDeleteTeamInternal` — drop memberships, profile, and
- *      team rows. Audits before deletion to keep the team name available.
- */
+// delete a team
 export async function runDeleteTeam(
   ctx: AuthActionCtx,
   args: { teamId: string },

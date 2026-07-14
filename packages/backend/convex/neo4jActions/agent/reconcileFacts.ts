@@ -29,10 +29,7 @@ type ReasonArgs = {
   decision: UpdateDecision;
 };
 
-/**
- * Shared decision-loop + ADD/UPDATE/DELETE apply. Callers own variant
- * policy (reason text, ADD creation, loop flags); this owns the mechanics.
- */
+// shared decision-loop + ADD/UPDATE/DELETE apply
 export async function reconcileExtractedFacts(
   ctx: ActionCtx,
   params: {
@@ -53,7 +50,7 @@ export async function reconcileExtractedFacts(
     }) => Promise<MemoryWithTags | undefined>;
     buildUpdateReason: (args: ReasonArgs) => string;
     buildDeleteReason: (args: ReasonArgs) => string;
-    /** When set, forwarded to apply (v2 warns on missing targets; SDK does not). */
+    // when set, forwarded to apply (v2 warns on missing targets; SDK does not)
     applyLogPrefix?: string;
   },
 ): Promise<ReconcileFactsResult> {
@@ -109,7 +106,7 @@ export async function reconcileExtractedFacts(
   return { applied, proposals };
 }
 
-/** v2 prompt-capture reason templates (notification path). */
+// v2 prompt-capture reason templates (notification path)
 export function buildV2UpdateReason({
   factText,
   decision,
@@ -124,7 +121,7 @@ export function buildV2DeleteReason({ factText }: ReasonArgs): string {
   return `New fact contradicts: "${factText}"`;
 }
 
-/** SDK / agent instruction reason templates. */
+// SDK / agent instruction reason templates
 export function buildSdkUpdateReason(
   instruction: string,
   { factText, decision }: ReasonArgs,

@@ -1,13 +1,4 @@
-/**
- * Custom animated icons for the root sidebar nav.
- *
- * Each icon plays a short signature animation when the parent NavLink
- * (which carries Tailwind's `group` class) is hovered. Shared keyframes
- * live in sidebar-icons.css and are pulled in via BaseIcon.
- *
- * Drop-in compatible with tabler icons via the NavIcon shape
- * (`{ className?, size?, stroke? }`).
- */
+// custom animated icons for the root sidebar nav
 
 export { IconMemories } from "./IconMemories";
 export { IconTeams } from "./IconTeams";

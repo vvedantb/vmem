@@ -16,9 +16,7 @@ export function truncateAtWord(text: string, maxLen: number): string {
 const ENTITY_TYPES = ["person", "organization", "place", "technology"] as const;
 export type EntityType = (typeof ENTITY_TYPES)[number];
 
-// Hyphens count as spaces for IDENTITY (display names keep them): the LLM
-// writes the same entity as "Claude Fable-5" one day and "Claude Fable 5"
-// the next, and those must resolve to one node.
+// hyphens count as spaces for IDENTITY (display names keep them)
 export function normalizeEntityName(name: string): string {
   return name
     .trim()
@@ -213,10 +211,7 @@ const fullEnrichmentResponseSchema = z.object({
 const unknownArraySchema = z.array(z.unknown());
 const relatedMemoryIdsSchema = z.array(z.string());
 
-/**
- * Parse entities from LLM response. Gracefully returns [] when the field is
- * missing or malformed — backward compatible with models that don't emit it.
- */
+// parse entities from LLM response
 function parseEntities(raw: unknown): ExtractedEntity[] {
   const arrayResult = unknownArraySchema.safeParse(raw);
   if (!arrayResult.success) return [];
@@ -227,9 +222,7 @@ function parseEntities(raw: unknown): ExtractedEntity[] {
     if (!parsed.success) continue;
     const { name, type } = parsed.data;
     const normalizedName = normalizeEntityName(name);
-    // Dedup on name alone (no type): entity identity in the graph is
-    // (userId, normalizedName) — the same name under two types is one
-    // entity the LLM classified inconsistently, not two entities.
+    // dedup on name alone (no type): entity identity in the graph is (userId, normalizedName)
     if (seen.has(normalizedName)) continue;
     seen.add(normalizedName);
     result.push({ name, normalizedName, type });

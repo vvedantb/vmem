@@ -18,10 +18,7 @@ interface RenameDialogProps {
   onConfirm: (id: Id<"wikiNodes">, title: string) => Promise<void>;
 }
 
-/**
- * Shared rename dialog for folders + documents. Controlled by `target` —
- * null closes, a node opens. Resets the input whenever target changes.
- */
+// shared rename dialog for folders + documents
 export default function RenameDialog({
   target,
   onClose,

@@ -8,7 +8,7 @@ import {
 import type { Doc, Id } from "@vmem/backend";
 import { optimisticId } from "@/lib/optimisticId";
 
-/** Stable branded wiki id for tests (`optimisticId` requires UUID-shaped strings). */
+// stable branded wiki id for tests (`optimisticId` requires UUID-shaped strings)
 function testWikiId(suffix: string): Id<"wikiNodes"> {
   const tail = suffix.padEnd(12, "0").slice(0, 12);
   return optimisticId("wikiNodes", `00000000-0000-4000-8000-${tail}`);
@@ -81,7 +81,7 @@ describe("buildTree", () => {
   });
 });
 
-/** Plain-string node fixture; `resolveWikiMove` is generic over the id type. */
+// plain-string node fixture; `resolveWikiMove` is generic over the id type
 interface TestNode {
   _id: string;
   parentId?: string;

@@ -42,9 +42,7 @@ export type McpMemoryGraphResult = McpGraphSlice & {
 };
 
 const DEFAULT_NODE_LIMIT = 80;
-// Hard cap kept low (100): the embedded MCP-UI canvas runs a naive O(n²)
-// main-thread simulation, and the tool result is also injected into the
-// model's context — both punish large payloads.
+// hard cap kept low (100)
 const MAX_NODE_LIMIT = 100;
 const MAX_RELATES_EDGES_PER_NODE = 4;
 const MAX_TAG_EDGES_PER_NODE = 3;
@@ -126,10 +124,7 @@ function capEdges<T extends { source: string; target: string }>(
 function capMemoryGraph(
   graph: McpGraphSlice,
   limit: number,
-  // True server-side total for plain global fetches, where the Neo4j query
-  // itself is already limited — graph.nodes.length would under-report and
-  // hide the truncation banner. Omitted for seed-expanded slices, whose
-  // working set IS the relevant total.
+  // true server-side total for plain global fetches, where the Neo4j query itself is
   totalAvailable?: number,
 ): McpGraphSlice & {
   truncated: boolean;
@@ -171,7 +166,7 @@ export interface GetMemoryGraphForMcpArgs {
   limit?: number;
 }
 
-/** Cap + seed-expand Neo4j graph data for the MCP memory-graph app tool. */
+// cap + seed-expand Neo4j graph data for the MCP memory-graph app tool
 export async function getMemoryGraphForMcp(
   ctx: ActionCtx,
   args: GetMemoryGraphForMcpArgs,
@@ -197,9 +192,7 @@ export async function getMemoryGraphForMcp(
     focus,
     profileId,
     strictProfile: args.mcpScope === "team",
-    // Plain global view gets sliced to `limit` below anyway — fetch only
-    // that many from Neo4j. Seed expansion (memoryIds) keeps the full
-    // fetch: it needs the wider graph to find the seeds' neighbours.
+    // plain global view gets sliced to `limit` below anyway — fetch only that many from Neo4j
     nodeLimit: isPlainGlobal ? limit : undefined,
   });
 

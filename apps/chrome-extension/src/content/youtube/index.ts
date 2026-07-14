@@ -49,7 +49,7 @@ function getChannelName(): string {
 // it, and the InnerTube transcript endpoints reject JSON replays (the page
 // itself now sends an encrypted protobuf body). The only reliable path left is
 // the one YouTube's own UI uses — programmatically open the "Show transcript"
-// panel and read the rendered segments out of the DOM, then close the panel.
+// panel and read the rendered segments out of the DOM, then close the panel
 
 /** Matches both the new view-model markup and the old polymer renderer. */
 const SEGMENT_SELECTOR =
@@ -64,8 +64,8 @@ function querySegments(): Element[] {
  * and its a11y duplicate ("0:07" / "7 seconds") that share the element.
  */
 function segmentText(segment: Element): string {
-  // New markup: <span role="text"> holds just the snippet.
-  // Old markup: yt-formatted-string.segment-text.
+  // New markup: <span role="text"> holds just the snippet
+  // Old markup: yt-formatted-string.segment-text
   const snippet =
     segment.querySelector('span[role="text"]') ||
     segment.querySelector(".segment-text");
@@ -107,14 +107,14 @@ function closeTranscriptPanel(segment: Element): void {
 async function getTranscript(): Promise<string | null> {
   try {
     // Segments already in the DOM means the user has the panel open — read
-    // them directly and leave the panel alone.
+    // them directly and leave the panel alone
     const preexisting = querySegments();
     if (preexisting.length > 0) {
       return preexisting.map(segmentText).filter(Boolean).join(" ") || null;
     }
 
-    // The "Show transcript" button only exists when the video has captions.
-    // .click() works even while the description is collapsed.
+    // The "Show transcript" button only exists when the video has captions
+    // .click() works even while the description is collapsed
     const openButton = document.querySelector<HTMLButtonElement>(
       "ytd-video-description-transcript-section-renderer button",
     );
@@ -145,7 +145,7 @@ async function getTranscript(): Promise<string | null> {
 
 function createSaveButton(): HTMLButtonElement {
   // Make sure Instrument Sans is loaded on the YouTube page before we
-  // render the button; cheap + idempotent.
+  // render the button; cheap + idempotent
   injectInstrumentSansFont();
 
   const button = document.createElement("button");
@@ -156,7 +156,7 @@ function createSaveButton(): HTMLButtonElement {
   button.append(createVmemLogoImg("dark", 20), label);
 
   // Button shape mirrors YouTube's chip style for visual fit, but the
-  // typography stays on-brand with Instrument Sans.
+  // typography stays on-brand with Instrument Sans
   button.style.cssText = `
     display: inline-flex;
     align-items: center;
@@ -210,7 +210,7 @@ async function handleSaveClick(): Promise<void> {
     const rawTranscript = await getTranscript();
     // Cap before sending — chrome.runtime messages have to round-trip through
     // structured-clone, and the backend slices to 10k anyway. Keeping a small
-    // headroom lets the channel prefix fit in the final payload.
+    // headroom lets the channel prefix fit in the final payload
     const transcript = rawTranscript
       ? rawTranscript.slice(0, 12000)
       : "(No transcript available)";
@@ -229,7 +229,7 @@ async function handleSaveClick(): Promise<void> {
         button.title = "Save video to vmem";
       } else {
         // Surface the real reason: backend error message, or a generic note
-        // when the response was dropped (extension reload, channel closed).
+        // when the response was dropped (extension reload, channel closed)
         const reason =
           response?.type === "SAVE_RESULT" && response.error
             ? response.error

@@ -2,14 +2,7 @@ import { AnimationCard } from "./AnimationCard";
 import { SectionHeading } from "./SectionHeading";
 import { VmemPaths } from "@/components/svg-animations";
 
-/**
- * Intro / first-paint animations (one-shot).
- *
- * Run once when the logo appears, then settle. The replay button on each card
- * remounts the SVG via a `key` change so the CSS animations restart from
- * frame 0 — a closer demo of the real first-paint experience than waiting for
- * a route transition.
- */
+// intro / first-paint animations (one-shot)
 export function IntroSection() {
   return (
     <section className="space-y-4">

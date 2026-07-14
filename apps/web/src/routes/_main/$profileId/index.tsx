@@ -1,10 +1,6 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 
-/**
- * Bare `/$profileId` → that workspace's home. Component-level (not
- * `beforeLoad`) so the layout's legacy-segment check renders first for
- * single-segment legacy URLs like `/chat`.
- */
+// bare `/$profileId` → that workspace's home
 export const Route = createFileRoute("/_main/$profileId/")({
   component: WorkspaceIndexRedirect,
 });

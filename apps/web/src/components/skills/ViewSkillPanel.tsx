@@ -1,7 +1,7 @@
 "use client";
 
 interface ViewSkillPanelProps {
-  /** Any skill-like value — personal skill doc or a system-skill catalog row. */
+  // any skill-like value — personal skill doc or a system-skill catalog row
   skill: { description?: string; instructions: string };
 }
 

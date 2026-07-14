@@ -21,7 +21,7 @@ interface UseFilesDataResult {
   deleteNodes: (ids: string[]) => Promise<void>;
 }
 
-/** Map a stored MIME type to the icon/display category used by the file UI. */
+// map a stored MIME type to the icon/display category used by the file UI
 function fileCategoryFor(mimeType: string | undefined): FileCategory {
   const mime = mimeType ?? "";
   if (mime.startsWith("image/")) return "image";
@@ -31,17 +31,9 @@ function fileCategoryFor(mimeType: string | undefined): FileCategory {
   return "generic";
 }
 
-/**
- * Files data layer bound directly to the live Convex `files.listTree` query —
- * no local mirror, so any upload/move/delete (web or MCP) reflects immediately.
- *
- * The presentational components speak the `FileItem` view-model (string ids,
- * display category, ISO dates), so we map each `fileNodes` doc here and keep the
- * raw nodes around to resolve those string ids back to branded `Id<"fileNodes">`
- * at the mutation boundary (avoids casts).
- */
+// files data layer bound directly to the live Convex `files.listTree` query
 export function useFilesData(): UseFilesDataResult {
-  // Active workspace scope: personal files, or the team's shared drive.
+  // active workspace scope: personal files, or the team's shared drive
   const teamId = useActiveProfile().teamId;
   const data = useQuery(api.files.listTree, { teamId });
   const nodes = useMemo(() => data?.nodes ?? [], [data]);
@@ -84,7 +76,7 @@ export function useFilesData(): UseFilesDataResult {
     });
   }, [nodes]);
 
-  // Resolve a UI string id to the branded node id from the live query result.
+  // resolve a UI string id to the branded node id from the live query result
   const toNodeId = useCallback(
     (id: string | null): Id<"fileNodes"> | undefined => {
       if (id === null) return undefined;

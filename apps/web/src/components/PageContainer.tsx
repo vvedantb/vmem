@@ -8,21 +8,16 @@ import { usePageTitle } from "./contexts/PageTitleContext";
 
 interface PageContainerProps {
   title?: string;
-  /**
-   * Breadcrumb trail shown in the header's left slot. When provided, replaces
-   * the large `<h1>` title render — the breadcrumb's final segment identifies
-   * the current page. The `title` prop is still used for the browser tab and
-   * mobile topbar via the page title context.
-   */
+  // breadcrumb trail shown in the header's left slot
   breadcrumb?: ReactNode;
   leftSection?: ReactNode;
   centerSection?: ReactNode;
   rightSection?: ReactNode;
   noScroll?: boolean;
-  /** Show title in header row. Defaults to true if sections exist, false otherwise. */
+  // show title in header row
   showTitle?: boolean;
   centeredMaxWidth?: boolean;
-  /** Ref callback to access the scroll container (for use with virtualized lists) */
+  // ref callback to access the scroll container (for use with virtualized lists)
   scrollRef?: (el: HTMLDivElement | null) => void;
   children: ReactNode;
 }
@@ -47,11 +42,11 @@ export default function PageContainer({
   }, [title, setPageTitle]);
 
   const hasSections = Boolean(leftSection || centerSection || rightSection);
-  // Breadcrumb takes precedence over the h1 title — don't render both.
-  // Default: show title if sections exist, unless explicitly set.
+  // breadcrumb takes precedence over the h1 title — don't render both
+  // default: show title if sections exist, unless explicitly set
   const showTitleInHeader =
     !breadcrumb && Boolean(title) && (showTitle ?? hasSections);
-  // Title and breadcrumb are desktop-only (md+); mobile uses the shell topbar.
+  // title and breadcrumb are desktop-only (md+); mobile uses the shell topbar
   const hasMobileHeaderContent = hasSections;
   const hasHeader =
     Boolean(breadcrumb) || showTitleInHeader || hasMobileHeaderContent;

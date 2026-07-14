@@ -23,7 +23,7 @@ export interface McpResolvedScope {
   profileId: string;
 }
 
-/** Resolve MCP profile scope, then run the handler with the resolved ids. */
+// resolve MCP profile scope, then run the handler with the resolved ids
 export async function withMcpMemoryScope<T>(
   ctx: ActionCtx,
   args: { clerkId: string; mcpScope: McpScope; profileId?: string },
@@ -42,7 +42,7 @@ export async function withMcpMemoryScope<T>(
   });
 }
 
-/** Team vs personal branch after scope resolution. */
+// team vs personal branch after scope resolution
 export async function runForMcpScope<T>(
   scope: McpResolvedScope,
   handlers: {
@@ -97,7 +97,7 @@ export async function loadMemoryForMcpScope(args: {
   return memory;
 }
 
-/** Fake-RRF candidates for team MCP retrieve (search has no hybrid trace). */
+// fake-RRF candidates for team MCP retrieve (search has no hybrid trace)
 export function toTeamRetrieveCandidates(
   memories: MemoryWithTags[],
 ): MemoryCandidate[] {

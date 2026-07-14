@@ -60,7 +60,7 @@ let captionValue = "";
 
 // Surfaced as the Save button's `title` attribute when the save fails,
 // so the user can hover the button to see the underlying error without
-// hunting through the SW console.
+// hunting through the SW console
 function setLastErrorTitle(message: string): void {
   saveBtn.title = message;
 }
@@ -155,7 +155,7 @@ function onScrimMouseUp(e: MouseEvent): void {
   const finalRect = dragRect;
   dragStart = null;
 
-  // Reject tiny drags - likely a stray click.
+  // Reject tiny drags - likely a stray click
   if (finalRect.w < 8 || finalRect.h < 8) {
     setMode("idle");
     return;
@@ -175,11 +175,11 @@ function positionRect(r: SelectionRect): void {
 
 async function captureAndCrop(rect: SelectionRect): Promise<void> {
   // Hide the scrim *before* asking the SW to capture - otherwise the
-  // captured image will include our dim overlay.
+  // captured image will include our dim overlay
   scrim.classList.remove("active");
   rectEl.classList.remove("active");
 
-  // Yield a frame so the browser actually paints without the scrim.
+  // Yield a frame so the browser actually paints without the scrim
   await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
   let dataUrl: string;
@@ -206,7 +206,7 @@ async function captureAndCrop(rect: SelectionRect): Promise<void> {
 // ── Preview positioning ───────────────────────────────────────────────────────
 
 function positionPreview(rect: SelectionRect): void {
-  // Render off-screen first so we can measure.
+  // Render off-screen first so we can measure
   preview.style.left = "-9999px";
   preview.style.top = "-9999px";
   preview.classList.add("visible");
@@ -304,7 +304,7 @@ captionInput.addEventListener("keydown", (e) => {
     e.preventDefault();
     cancelAll();
   }
-  // Stop the page from intercepting typing (some sites bind global keys).
+  // Stop the page from intercepting typing (some sites bind global keys)
   e.stopPropagation();
 });
 
@@ -314,7 +314,7 @@ saveBtn.addEventListener("click", (e) => {
   void saveScreenshot();
 });
 
-// Global Esc - cancel from any state.
+// Global Esc - cancel from any state
 document.addEventListener(
   "keydown",
   (e) => {
@@ -326,7 +326,7 @@ document.addEventListener(
   true,
 );
 
-// Click outside preview while in preview state → dismiss without saving.
+// Click outside preview while in preview state → dismiss without saving
 document.addEventListener(
   "mousedown",
   (e) => {
@@ -337,7 +337,7 @@ document.addEventListener(
   true,
 );
 
-// Listen for the start trigger from the background SW.
+// Listen for the start trigger from the background SW
 chrome.runtime.onMessage.addListener(
   (message: unknown, _sender, sendResponse) => {
     const parsed = startScreenshotMessageSchema.safeParse(message);

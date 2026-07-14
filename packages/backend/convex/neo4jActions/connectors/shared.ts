@@ -37,7 +37,7 @@ export async function setupSync(
   return { driver, profileId: defaultProfile._id, openRouterAuth };
 }
 
-/** Title + body text fed to the embedder for a synced document. */
+// title + body text fed to the embedder for a synced document
 function embedTextForSyncedDoc(title: string, content: string): string {
   return `${title}\n\n${content}`;
 }

@@ -2,14 +2,7 @@ import { AnimationCard } from "./AnimationCard";
 import { SectionHeading } from "./SectionHeading";
 import { PATH_LEFT, VmemPaths } from "@/components/svg-animations";
 
-/**
- * Aesthetic / showpiece animations.
- *
- * Maximalist — meant for marketing, splash screens, the about page. Both
- * survivors are wired up via SMIL because they're fundamentally about
- * animating attributes (motion path / filter primitive stdDeviation) that
- * CSS can't reach cleanly.
- */
+// aesthetic / showpiece animations
 export function AestheticSection() {
   return (
     <section className="space-y-4">

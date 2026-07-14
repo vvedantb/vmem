@@ -1,7 +1,7 @@
 import type { MemoryType } from "./memories";
 import type { ListItemKind } from "./list-items";
 
-/** URL-backed filter fields shared by /memories/list and /memories/graph. */
+// URL-backed filter fields shared by /memories/list and /memories/graph
 export interface MemoryViewFilterParams {
   kinds: readonly ListItemKind[];
   tags: readonly string[];
@@ -26,7 +26,7 @@ export function kindPassesFilter(
   return selectedKinds.includes(kind);
 }
 
-/** Memory nodes must include every selected tag; other kinds pass through. */
+// memory nodes must include every selected tag; other kinds pass through
 export function tagsPassFilter(
   nodeTags: readonly string[],
   selectedTags: readonly string[],
@@ -88,7 +88,7 @@ export function apiGraphNodePassesFilters(
   );
 }
 
-/** Per header-controls rules: each non-default filter field counts as 1. */
+// per header-controls rules: each non-default filter field counts as 1
 export function countActiveMemoryViewFilters(
   params: MemoryViewFilterParams,
 ): number {

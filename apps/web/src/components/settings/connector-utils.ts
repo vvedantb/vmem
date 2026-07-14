@@ -13,7 +13,7 @@ export function isConnectorConnected(
   return connector.connectionStatus === "connected";
 }
 
-/** Connectable in UI — has OAuth provider or dedicated GitHub flow. */
+// connectable in UI — has OAuth provider or dedicated GitHub flow
 export function isConnectorConnectable(connector: Doc<"connectors">): boolean {
   return connector.name === "GitHub" || connector.provider !== undefined;
 }

@@ -19,15 +19,11 @@ import { toast } from "sonner";
 interface SkillBulkDeleteBarProps {
   selectedIds: ReadonlySet<Id<"skills">>;
   teamId: Id<"teams"> | undefined;
-  /** Clear the selection and leave select mode. */
+  // clear the selection and leave select mode
   onExit: () => void;
 }
 
-/**
- * Selection-mode action bar for the skills sidebar: selected count plus a
- * confirm-gated bulk delete. The skills route redirects on its own when the
- * open skill is among those removed, so no navigation is needed here.
- */
+// selection-mode action bar for the skills sidebar: selected count plus a confirm-gated bulk delete
 export function SkillBulkDeleteBar({
   selectedIds,
   teamId,

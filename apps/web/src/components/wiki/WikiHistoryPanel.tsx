@@ -22,15 +22,11 @@ interface WikiHistoryPanelProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   docId: Id<"wikiNodes"> | null;
-  /** Loads the chosen version's markdown into the open editor and persists it. */
+  // loads the chosen version's markdown into the open editor and persists it
   onRestore: (markdown: string) => Promise<void>;
 }
 
-/**
- * Version history for a wiki document: a list of pre-overwrite snapshots, a
- * read-only preview of the selected one, and Restore. Restore is reversible —
- * the editor checkpoints the current state before loading the old content.
- */
+// version history for a wiki document
 export function WikiHistoryPanel({
   open,
   onOpenChange,
@@ -51,7 +47,7 @@ export function WikiHistoryPanel({
     selectedId ? { versionId: selectedId } : "skip",
   );
 
-  // Default to the newest version when the list (re)loads; reset when closed.
+  // default to the newest version when the list (re)loads; reset when closed
   useEffect(() => {
     if (!open) {
       setSelectedId(null);

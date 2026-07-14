@@ -7,15 +7,7 @@ import { navHrefToPath } from "./nav-config";
 import { SidebarIconTooltip } from "./SidebarIconTooltip";
 import { sidebarNavRowClass, sidebarNavLinkTextClass } from "./sidebar-nav-row";
 
-/**
- * Sidebar nav link.
- *
- * Carries a single optional badge whose source depends on the route:
- * - `/inbox` → pending proposals + unread notifications (sum)
- *
- * Both counts come in as separate props so the parent doesn't have to
- * predict which the link cares about. Routes without a badge ignore them.
- */
+// sidebar nav link
 export function NavLink({
   item,
   pathname,
@@ -27,7 +19,7 @@ export function NavLink({
 }: {
   item: NavItem;
   pathname: string;
-  /** Active workspace id; workspace hrefs fall back to /home without one. */
+  // active workspace id; workspace hrefs fall back to /home without one
   profileId: string | undefined;
   isIconOnly: boolean;
   unreadCount: number;
@@ -39,8 +31,8 @@ export function NavLink({
     pathname === resolvedPath || pathname.startsWith(resolvedPath + "/");
   const Icon = item.icon;
 
-  // Resolve the badge count for this route. Adding a new badge route =
-  // new branch here + corresponding prop on this component.
+  // resolve the badge count for this route. Adding a new badge route =
+  // new branch here + corresponding prop on this component
   const badgeCount = item.href.endsWith("/inbox")
     ? proposalsCount + unreadCount
     : 0;

@@ -105,10 +105,7 @@ async function insertNotification(
   return null;
 }
 
-/**
- * Push a notification to a known user row. Preferred over the clerkId variant
- * from anything that already holds a `userId` (sync failures, scheduled runs).
- */
+// push a notification to a known user row
 export const pushInternal = internalMutation({
   args: {
     userId: v.id("users"),
@@ -148,11 +145,7 @@ export const pushForClerkIdInternal = internalMutation({
   },
 });
 
-/**
- * Emit one notification per real producer shape so the Inbox can be exercised
- * without waiting on the 04:00 UTC crons. Writes only to the caller's own
- * inbox; the UI only offers it in dev.
- */
+// emit one notification per real producer shape so the Inbox can be exercised without
 export const sendTest = authMutation({
   args: {},
   returns: v.null(),

@@ -7,7 +7,7 @@ const THINK_CLOSE = "</think>";
 const stringArraySchema = z.array(z.string());
 const numberArraySchema = z.array(z.number());
 
-/** Strip model thinking blocks before JSON repair/parse. */
+// strip model thinking blocks before JSON repair/parse
 function stripThinkBlocks(raw: string): string {
   const withoutClosedThink = raw
     .trim()
@@ -24,7 +24,7 @@ function stripThinkBlocks(raw: string): string {
   return withoutClosedThink;
 }
 
-/** First balanced `[...]` substring, or null. */
+// first balanced `[...]` substring, or null
 function extractBalancedArray(source: string): string | null {
   const start = source.indexOf("[");
   if (start === -1) return null;
@@ -41,16 +41,12 @@ function extractBalancedArray(source: string): string | null {
   return null;
 }
 
-/**
- * Strip thinking blocks and repair to valid JSON text.
- * Handles fences, trailing commas, missing brackets, etc. via jsonrepair.
- * Throws if the input cannot be repaired.
- */
+// strip thinking blocks and repair to valid JSON text
 export function extractJsonString(raw: string): string {
   return jsonrepair(stripThinkBlocks(raw));
 }
 
-/** Parse LLM text → repaired JSON → zod; null on any failure. */
+// parse LLM text → repaired JSON → zod; null on any failure
 export function parseJsonString<T>(
   raw: string,
   schema: ZodType<T, z.ZodTypeDef, unknown>,
@@ -65,11 +61,7 @@ export function parseJsonString<T>(
   return parsed.success ? parsed.data : null;
 }
 
-/**
- * Parse an array from LLM text: full repaired JSON first, then first
- * balanced `[...]` (jsonrepair may wrap surrounding prose into a larger
- * structure). Null on any failure.
- */
+// parse an array from LLM text
 export function parseLlmJsonArray<T>(
   content: string,
   schema: ZodType<T, z.ZodTypeDef, unknown>,
@@ -88,7 +80,7 @@ export function parseLlmJsonArray<T>(
   }
 }
 
-/** String array from LLM JSON, or newline/bullet fallback (capped at 2). */
+// string array from LLM JSON, or newline/bullet fallback (capped at 2)
 export function parseLlmStringArray(content: string): string[] {
   const values = parseLlmJsonArray(content, stringArraySchema);
   const trimmed = values?.map((v) => v.trim()).filter((v) => v.length > 0);
@@ -101,7 +93,7 @@ export function parseLlmStringArray(content: string): string[] {
     .slice(0, 2);
 }
 
-/** Number array from LLM JSON; null unless length matches expectedCount. */
+// number array from LLM JSON; null unless length matches expectedCount
 export function parseLlmNumberArray(
   content: string,
   expectedCount: number,
