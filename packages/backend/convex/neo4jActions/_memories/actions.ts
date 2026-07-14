@@ -5,8 +5,6 @@ import { v } from "convex/values";
 import { runBackfillChunks, runChunkMemory } from "./chunks";
 import {
   runGetMemory,
-  runGetMemoryEvents,
-  runGetRecentMemoryTitles,
   runListMemories,
   runRetrieveMemories,
   runSearchMemories,
@@ -152,22 +150,6 @@ export const retrieveMemoriesInternal = internalAction({
   },
   handler: async (ctx, args) =>
     runRetrieveMemories(ctx, await withResolvedProfileId(ctx, args)),
-});
-
-export const getMemoryEventsInternal = internalAction({
-  args: {
-    clerkId: v.string(),
-    memoryId: v.string(),
-  },
-  handler: async (_ctx, args) => runGetMemoryEvents(args),
-});
-
-export const getRecentMemoryTitlesInternal = internalAction({
-  args: {
-    clerkId: v.string(),
-    excludeMemoryId: v.string(),
-  },
-  handler: async (_ctx, args) => runGetRecentMemoryTitles(args),
 });
 
 export const listMemoriesForTeamInternal = internalAction({

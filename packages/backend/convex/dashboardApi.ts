@@ -15,7 +15,6 @@ const DASHBOARD_CACHE_TTL_MS = 30_000;
 
 type StatsResult = Awaited<ReturnType<typeof fetchStats>>;
 type ActivityItem = Awaited<ReturnType<typeof fetchRecentActivity>>[number];
-type ProfileStats = { total: number; today: number };
 
 export const getStatsInternal = internalAction({
   args: {
@@ -86,29 +85,6 @@ export const getStats = authAction({
       ctx,
       { clerkId, profileId: args.profileId, strictProfile },
       args.fresh ? { force: true } : undefined,
-    );
-  },
-});
-
-export const getProfilesStats = authAction({
-  args: { profileIds: v.array(v.string()) },
-  handler: async (ctx, args): Promise<Record<string, ProfileStats>> => {
-    const clerkId = await requireClerkId(ctx);
-    return await runWithNeo4jDriver(
-      { clerkId, profileIds: args.profileIds },
-      async ({ driver, userId, profileIds }) => {
-        const results: Record<string, ProfileStats> = {};
-        await Promise.all(
-          profileIds.map(async (profileId) => {
-            const stats = await fetchStats(driver, userId, profileId);
-            results[profileId] = {
-              total: stats.totalMemories,
-              today: stats.memoriesAddedToday,
-            };
-          }),
-        );
-        return results;
-      },
     );
   },
 });

@@ -2,11 +2,7 @@
 
 import type { ActionCtx } from "../../_generated/server";
 import { getMemory, listMemories } from "../../../engine/neo4j/memory/crud";
-import { getMemoryEvents } from "../../../engine/neo4j/memory/events";
-import {
-  getRecentMemoryTitles,
-  searchMemories,
-} from "../../../engine/neo4j/memory/search";
+import { searchMemories } from "../../../engine/neo4j/memory/search";
 import { retrieveMemories } from "../../../engine/neo4j/memory/retrieve";
 import { getDriver } from "../../../engine/neo4j/driver";
 import { callOpenRouterChat, LLM_MODEL } from "../../lib/openRouter";
@@ -206,24 +202,4 @@ export async function runRetrieveMemories(
     rerankCandidates: (query, candidates) =>
       rerankRetrievalCandidates(ctx, args, query, candidates),
   });
-}
-
-export async function runGetMemoryEvents(args: {
-  clerkId: string;
-  memoryId: string;
-}) {
-  const driver = getDriver();
-  return await getMemoryEvents(driver, args.clerkId, args.memoryId);
-}
-
-export async function runGetRecentMemoryTitles(args: {
-  clerkId: string;
-  excludeMemoryId: string;
-}) {
-  const driver = getDriver();
-  return await getRecentMemoryTitles(
-    driver,
-    args.clerkId,
-    args.excludeMemoryId,
-  );
 }

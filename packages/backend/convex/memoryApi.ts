@@ -11,7 +11,6 @@ import {
   runUpdateTeamMemory,
 } from "./memoryApi/team";
 import type {
-  MemoryEvent,
   MemoryListResult,
   MemoryWithTags,
   RetrieveMemoriesResult,
@@ -249,16 +248,5 @@ export const retrieveMemories = authAction({
       }),
     ]);
     return { memories, userContext };
-  },
-});
-
-export const getMemoryEvents = authAction({
-  args: { memoryId: v.string() },
-  handler: async (ctx, args): Promise<MemoryEvent[]> => {
-    const clerkId = await requireClerkId(ctx);
-    return await ctx.runAction(
-      internal.neo4jActions.memories.getMemoryEventsInternal,
-      { clerkId, ...args },
-    );
   },
 });

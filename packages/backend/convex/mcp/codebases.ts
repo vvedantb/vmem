@@ -4,90 +4,25 @@ import { v } from "convex/values";
 import { internalAction, type ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
+import {
+  getDownstreamImpact,
+  getUpstreamImpact,
+  type ImpactNode,
+} from "../../engine/neo4j/codebase/impact";
+import {
+  getGraphOverview,
+  getOverviewStats,
+  getSymbolContext,
+  searchSymbols,
+  type OverviewStats,
+  type SearchSymbolsResult,
+  type SymbolContext,
+} from "../../engine/neo4j/codebase/read";
+import { runWithNeo4jDriver } from "../neo4jActions/_shared/driver";
 
-interface OverviewStatsResult {
-  fileCount: number;
-  functionCount: number;
-  classCount: number;
-  interfaceCount: number;
-  processCount: number;
-  callEdgeCount: number;
-  importEdgeCount: number;
-}
-
-interface GraphResult {
-  nodes: Array<{
-    id: string;
-    kind:
-      | "code-file"
-      | "code-function"
-      | "code-class"
-      | "code-interface"
-      | "code-process";
-    name: string;
-    path: string;
-    directory: string;
-    isExported?: boolean;
-    isAsync?: boolean;
-    isTest?: boolean;
-  }>;
-  edges: Array<{
-    fromId: string;
-    toId: string;
-    type:
-      | "imports"
-      | "calls"
-      | "contains"
-      | "has_method"
-      | "extends"
-      | "implements"
-      | "starts_process"
-      | "includes";
-    confidence?: number;
-    tier?: "EXTRACTED" | "INFERRED" | "AMBIGUOUS";
-  }>;
-  truncated: boolean;
-}
-
-interface SymbolContextResult {
-  id: string;
-  kind:
-    | "code-file"
-    | "code-function"
-    | "code-class"
-    | "code-interface"
-    | "code-process";
-  name: string;
-  qualifiedName: string;
-  filePath: string;
-  startLine?: number;
-  endLine?: number;
-  isExported?: boolean;
-  isAsync?: boolean;
-  isTest?: boolean;
-  callsIn: { id: string; name: string; filePath: string }[];
-  callsOut: { id: string; name: string; filePath: string }[];
-  processes: { id: string; name: string }[];
-}
-
-interface ImpactResult {
-  nodes: { id: string; distance: number }[];
-}
-
-interface SearchResult {
-  results: Array<{
-    id: string;
-    kind:
-      | "code-file"
-      | "code-function"
-      | "code-class"
-      | "code-interface"
-      | "code-process";
-    name: string;
-    qualifiedName: string;
-    filePath: string;
-  }>;
-}
+type GraphResult = Awaited<ReturnType<typeof getGraphOverview>>;
+type ImpactResult = { nodes: ImpactNode[] };
+type SearchResult = { results: SearchSymbolsResult[] };
 
 /** MCP/JSON may deliver floats (e.g. 25.0); normalize before Neo4j hops. */
 function normalizeOptionalInt(value: number | undefined): number | undefined {
@@ -141,15 +76,15 @@ async function requireOwnedCodebaseId(
 
 export const mcpGetCodebaseOverview = internalAction({
   args: { clerkId: v.string(), codebaseId: v.string() },
-  handler: async (ctx, args): Promise<OverviewStatsResult> => {
+  handler: async (ctx, args): Promise<OverviewStats> => {
     const ownedId = await requireOwnedCodebaseId(
       ctx,
       args.clerkId,
       args.codebaseId,
     );
-    return ctx.runAction(
-      internal.neo4jActions.codebases.getOverviewStatsInternal,
+    return await runWithNeo4jDriver(
       { clerkId: args.clerkId, codebaseId: ownedId },
+      getOverviewStats,
     );
   },
 });
@@ -168,8 +103,7 @@ export const mcpSearchCodebaseSymbols = internalAction({
       args.clerkId,
       args.codebaseId,
     );
-    return ctx.runAction(
-      internal.neo4jActions.codebases.searchSymbolsInternal,
+    return await runWithNeo4jDriver(
       {
         clerkId: args.clerkId,
         codebaseId: ownedId,
@@ -177,6 +111,7 @@ export const mcpSearchCodebaseSymbols = internalAction({
         kind: args.kind,
         limit: normalizeOptionalInt(args.limit),
       },
+      async (params) => ({ results: await searchSymbols(params) }),
     );
   },
 });
@@ -187,19 +122,19 @@ export const mcpGetCodebaseSymbolContext = internalAction({
     codebaseId: v.string(),
     symbolId: v.string(),
   },
-  handler: async (ctx, args): Promise<SymbolContextResult | null> => {
+  handler: async (ctx, args): Promise<SymbolContext | null> => {
     const ownedId = await requireOwnedCodebaseId(
       ctx,
       args.clerkId,
       args.codebaseId,
     );
-    return ctx.runAction(
-      internal.neo4jActions.codebases.getSymbolContextInternal,
+    return await runWithNeo4jDriver(
       {
         clerkId: args.clerkId,
         codebaseId: ownedId,
         symbolId: args.symbolId,
       },
+      getSymbolContext,
     );
   },
 });
@@ -218,13 +153,35 @@ export const mcpGetCodebaseImpact = internalAction({
       args.clerkId,
       args.codebaseId,
     );
-    return ctx.runAction(internal.neo4jActions.codebases.getImpactInternal, {
-      clerkId: args.clerkId,
-      codebaseId: ownedId,
-      symbolId: args.symbolId,
-      direction: args.direction,
-      depth: normalizeOptionalInt(args.depth),
-    });
+    const depth = normalizeOptionalInt(args.depth);
+    return await runWithNeo4jDriver(
+      {
+        clerkId: args.clerkId,
+        codebaseId: ownedId,
+        symbolId: args.symbolId,
+        direction: args.direction,
+        depth,
+      },
+      async ({ driver, userId, codebaseId, symbolId, direction }) => {
+        const nodes =
+          direction === "upstream"
+            ? await getUpstreamImpact({
+                driver,
+                userId,
+                codebaseId,
+                symbolId,
+                depth,
+              })
+            : await getDownstreamImpact({
+                driver,
+                userId,
+                codebaseId,
+                symbolId,
+                depth,
+              });
+        return { nodes };
+      },
+    );
   },
 });
 
@@ -244,14 +201,17 @@ export const mcpGetCodebaseGraph = internalAction({
       args.clerkId,
       args.codebaseId,
     );
-    return ctx.runAction(internal.neo4jActions.codebases.getGraphInternal, {
-      clerkId: args.clerkId,
-      codebaseId: ownedId,
-      kinds: args.kinds,
-      processId: args.processId,
-      blastRadiusOf: args.blastRadiusOf,
-      blastDirection: args.blastDirection,
-      blastDepth: normalizeOptionalInt(args.blastDepth),
-    });
+    return await runWithNeo4jDriver(
+      {
+        clerkId: args.clerkId,
+        codebaseId: ownedId,
+        kinds: args.kinds,
+        processId: args.processId,
+        blastRadiusOf: args.blastRadiusOf,
+        blastDirection: args.blastDirection,
+        blastDepth: normalizeOptionalInt(args.blastDepth),
+      },
+      getGraphOverview,
+    );
   },
 });

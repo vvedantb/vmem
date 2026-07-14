@@ -5,7 +5,6 @@ import { authAction, requireClerkId } from "./auth";
 import { internal } from "./_generated/api";
 import { getDriver } from "../engine/neo4j/driver";
 import {
-  getAllRelationships as fetchAllRelationships,
   getRelatedMemories as fetchRelatedMemories,
   linkMemories as linkMemoriesEngine,
   unlinkMemories as unlinkMemoriesEngine,
@@ -13,7 +12,6 @@ import {
 import type { MemoryWithTags } from "../engine/neo4j/memory/types";
 
 type RelatedMemory = { memory: MemoryWithTags; reason: string };
-type RelationshipEdge = { source: string; target: string; reason: string };
 
 export const linkMemories = authAction({
   args: {
@@ -79,13 +77,5 @@ export const getRelatedMemories = authAction({
   handler: async (ctx, args): Promise<RelatedMemory[]> => {
     const clerkId = await requireClerkId(ctx);
     return await fetchRelatedMemories(getDriver(), clerkId, args.memoryId);
-  },
-});
-
-export const getAllRelationships = authAction({
-  args: { limit: v.optional(v.number()) },
-  handler: async (ctx, args): Promise<RelationshipEdge[]> => {
-    const clerkId = await requireClerkId(ctx);
-    return await fetchAllRelationships(getDriver(), clerkId, args.limit ?? 500);
   },
 });
