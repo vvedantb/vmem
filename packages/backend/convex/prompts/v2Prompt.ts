@@ -24,7 +24,7 @@
  */
 
 import { z } from "zod";
-import { extractJsonString } from "../../engine/llm/extractJsonString";
+import { parseJsonString } from "../../engine/llm/extractJsonString";
 
 export interface ExtractedFact {
   /** Stable id within this extraction (0-indexed). Useful for telemetry. */
@@ -209,23 +209,19 @@ const factExtractionResponseSchema = z.object({
 export function parseFactExtractionResponse(
   raw: string,
 ): ExtractedFactsResponse | null {
-  try {
-    const parsed = factExtractionResponseSchema.safeParse(
-      JSON.parse(extractJsonString(raw)),
-    );
-    if (!parsed.success) return null;
-
-    const facts: ExtractedFact[] = [];
-    for (const item of parsed.data.facts) {
-      const fact = factItemSchema.safeParse(item);
-      if (!fact.success) continue;
-      facts.push({ id: fact.data.id ?? facts.length, text: fact.data.text });
-    }
-    return { facts };
-  } catch {
+  const parsed = parseJsonString(raw, factExtractionResponseSchema);
+  if (!parsed) {
     console.error("[v2] Failed to parse fact-extraction response:", raw);
     return null;
   }
+
+  const facts: ExtractedFact[] = [];
+  for (const item of parsed.facts) {
+    const fact = factItemSchema.safeParse(item);
+    if (!fact.success) continue;
+    facts.push({ id: fact.data.id ?? facts.length, text: fact.data.text });
+  }
+  return { facts };
 }
 
 const updateDecisionResponseSchema = z.object({
@@ -246,31 +242,27 @@ function optionalNonEmptyString(value: string | undefined): string | undefined {
 export function parseUpdateDecisionResponse(
   raw: string,
 ): UpdateDecision | null {
-  try {
-    const parsed = updateDecisionResponseSchema.safeParse(
-      JSON.parse(extractJsonString(raw)),
-    );
-    if (!parsed.success) return null;
-
-    const eventResult = updateDecisionEventSchema.safeParse(
-      parsed.data.event.trim().toUpperCase(),
-    );
-    if (!eventResult.success) return null;
-    const event = eventResult.data;
-
-    const id = optionalNonEmptyString(parsed.data.id);
-    const text = optionalNonEmptyString(parsed.data.text);
-    const oldMemory = optionalNonEmptyString(parsed.data.old_memory);
-
-    // Per-event validation. Reject malformed responses so the caller can
-    // skip cleanly instead of writing a corrupt proposal.
-    if (event === "ADD" && !text) return null;
-    if (event === "UPDATE" && (!id || !text)) return null;
-    if (event === "DELETE" && !id) return null;
-
-    return { event, id, text, oldMemory };
-  } catch {
+  const parsed = parseJsonString(raw, updateDecisionResponseSchema);
+  if (!parsed) {
     console.error("[v2] Failed to parse update-decision response:", raw);
     return null;
   }
+
+  const eventResult = updateDecisionEventSchema.safeParse(
+    parsed.event.trim().toUpperCase(),
+  );
+  if (!eventResult.success) return null;
+  const event = eventResult.data;
+
+  const id = optionalNonEmptyString(parsed.id);
+  const text = optionalNonEmptyString(parsed.text);
+  const oldMemory = optionalNonEmptyString(parsed.old_memory);
+
+  // Per-event validation. Reject malformed responses so the caller can
+  // skip cleanly instead of writing a corrupt proposal.
+  if (event === "ADD" && !text) return null;
+  if (event === "UPDATE" && (!id || !text)) return null;
+  if (event === "DELETE" && !id) return null;
+
+  return { event, id, text, oldMemory };
 }

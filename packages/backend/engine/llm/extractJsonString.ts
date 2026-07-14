@@ -1,3 +1,4 @@
+import { jsonrepair } from "jsonrepair";
 import { z, type ZodType } from "zod";
 
 const THINK_OPEN = "<think>";
@@ -6,29 +7,25 @@ const THINK_CLOSE = "</think>";
 const stringArraySchema = z.array(z.string());
 const numberArraySchema = z.array(z.number());
 
-/** Strip thinking blocks and markdown fences before JSON.parse. */
-export function extractJsonString(raw: string): string {
+/** Strip model thinking blocks before JSON repair/parse. */
+function stripThinkBlocks(raw: string): string {
   const withoutClosedThink = raw
     .trim()
     .replace(/<think>[\s\S]*?<\/think>/g, "")
     .trim();
 
-  const withoutOpenThink =
+  if (
     withoutClosedThink.startsWith(THINK_OPEN) &&
     withoutClosedThink.indexOf(THINK_CLOSE) === -1
-      ? withoutClosedThink.slice(THINK_OPEN.length).trim()
-      : withoutClosedThink;
-
-  if (!withoutOpenThink.startsWith("```")) {
-    return withoutOpenThink;
+  ) {
+    return withoutClosedThink.slice(THINK_OPEN.length).trim();
   }
 
-  const match = withoutOpenThink.match(/```(?:json)?\s*([\s\S]*?)```/);
-  return match?.[1] ? match[1].trim() : withoutOpenThink;
+  return withoutClosedThink;
 }
 
 /** First balanced `[...]` substring, or null. */
-export function extractBalancedArray(source: string): string | null {
+function extractBalancedArray(source: string): string | null {
   const start = source.indexOf("[");
   if (start === -1) return null;
 
@@ -44,7 +41,16 @@ export function extractBalancedArray(source: string): string | null {
   return null;
 }
 
-/** Parse LLM text → JSON → zod; null on any failure. */
+/**
+ * Strip thinking blocks and repair to valid JSON text.
+ * Handles fences, trailing commas, missing brackets, etc. via jsonrepair.
+ * Throws if the input cannot be repaired.
+ */
+export function extractJsonString(raw: string): string {
+  return jsonrepair(stripThinkBlocks(raw));
+}
+
+/** Parse LLM text → repaired JSON → zod; null on any failure. */
 export function parseJsonString<T>(
   raw: string,
   schema: ZodType<T, z.ZodTypeDef, unknown>,
@@ -60,8 +66,9 @@ export function parseJsonString<T>(
 }
 
 /**
- * Parse an array from LLM text: full JSON first, then first balanced `[...]`.
- * Null on any failure.
+ * Parse an array from LLM text: full repaired JSON first, then first
+ * balanced `[...]` (jsonrepair may wrap surrounding prose into a larger
+ * structure). Null on any failure.
  */
 export function parseLlmJsonArray<T>(
   content: string,
@@ -70,11 +77,11 @@ export function parseLlmJsonArray<T>(
   const direct = parseJsonString(content, schema);
   if (direct !== null) return direct;
 
-  const arrayStr = extractBalancedArray(extractJsonString(content));
+  const arrayStr = extractBalancedArray(stripThinkBlocks(content));
   if (arrayStr === null) return null;
 
   try {
-    const parsed = schema.safeParse(JSON.parse(arrayStr));
+    const parsed = schema.safeParse(JSON.parse(jsonrepair(arrayStr)));
     return parsed.success ? parsed.data : null;
   } catch {
     return null;

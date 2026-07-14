@@ -521,6 +521,9 @@ importers:
       convex-helpers:
         specifier: 'catalog:'
         version: 0.1.114(@standard-schema/spec@1.1.0)(convex@1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(bufferutil@4.1.0)(react@19.2.5)(utf-8-validate@6.0.6))(hono@4.12.14)(react@19.2.5)(typescript@7.0.1-rc)(zod@3.25.76)
+      jsonrepair:
+        specifier: ^3.15.0
+        version: 3.15.0
       jsonwebtoken:
         specifier: 'catalog:'
         version: 9.0.3
@@ -5348,6 +5351,10 @@ packages:
   json5@2.2.3:
     resolution: {integrity: sha512-XmOWe7eyHYH14cLdVPoyg+GOH3rYX++KpzrylJwSW98t3Nk+U8XOl8FWKOgwtzdb8lXGf6zYwDUzeHMWfxasyg==}
     engines: {node: '>=6'}
+    hasBin: true
+
+  jsonrepair@3.15.0:
+    resolution: {integrity: sha512-wy8OTjwsJwQRnQJkKnMJJ9vcytRdBPAgIF/Hy6+s1dAj42BHMKiyL8JzEieIl3JY7idt8eyHwBWTO8mh/+mtwA==}
     hasBin: true
 
   jsonwebtoken@9.0.3:
@@ -12152,6 +12159,8 @@ snapshots:
   json-with-bigint@3.5.10: {}
 
   json5@2.2.3: {}
+
+  jsonrepair@3.15.0: {}
 
   jsonwebtoken@9.0.3:
     dependencies:

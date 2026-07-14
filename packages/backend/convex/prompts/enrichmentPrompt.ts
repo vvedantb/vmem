@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { extractJsonString } from "../../engine/llm/extractJsonString";
+import { parseJsonString } from "../../engine/llm/extractJsonString";
 import {
   sanitizeTag,
   type TagUsage,
@@ -246,23 +246,19 @@ function parseRelatedMemoryIds(raw: unknown): string[] {
 export function parseFullEnrichmentResponse(
   raw: string,
 ): ParsedFullEnrichment | null {
-  try {
-    const parsed = fullEnrichmentResponseSchema.safeParse(
-      JSON.parse(extractJsonString(raw)),
-    );
-    if (!parsed.success) return null;
-    const tags = parsed.data.tags
-      .map(sanitizeTag)
-      .filter((t) => t.length > 0)
-      .slice(0, 4);
-    if (tags.length === 0) return null;
-    return {
-      tags,
-      relatedMemoryIds: parseRelatedMemoryIds(parsed.data.relatedMemoryIds),
-      entities: parseEntities(parsed.data.entities),
-    };
-  } catch {
+  const parsed = parseJsonString(raw, fullEnrichmentResponseSchema);
+  if (!parsed) {
     console.error("[enrichment] Failed to parse LLM response:", raw);
     return null;
   }
+  const tags = parsed.tags
+    .map(sanitizeTag)
+    .filter((t) => t.length > 0)
+    .slice(0, 4);
+  if (tags.length === 0) return null;
+  return {
+    tags,
+    relatedMemoryIds: parseRelatedMemoryIds(parsed.relatedMemoryIds),
+    entities: parseEntities(parsed.entities),
+  };
 }
