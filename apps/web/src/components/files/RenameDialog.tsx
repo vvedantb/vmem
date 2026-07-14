@@ -19,7 +19,6 @@ interface RenameDialogProps {
   onClose: () => void;
 }
 
-// rename a file or folder
 export default function RenameDialog({
   isOpen,
   currentName,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, type ReactNode } from "react";
+import { useState, useCallback, useRef, type ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { motionDuration, motionEase } from "@vmem/ui";
 import { IconUpload } from "@tabler/icons-react";
@@ -15,23 +15,20 @@ export default function FileDropZone({
   children,
 }: FileDropZoneProps) {
   const [isDragging, setIsDragging] = useState(false);
-  const [_dragCounter, setDragCounter] = useState(0);
+  const dragDepthRef = useRef(0);
 
   const handleDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setDragCounter((c) => c + 1);
+    dragDepthRef.current += 1;
     setIsDragging(true);
   }, []);
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setDragCounter((c) => {
-      const next = c - 1;
-      if (next <= 0) setIsDragging(false);
-      return Math.max(0, next);
-    });
+    dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+    if (dragDepthRef.current === 0) setIsDragging(false);
   }, []);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -43,8 +40,8 @@ export default function FileDropZone({
     (e: React.DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
+      dragDepthRef.current = 0;
       setIsDragging(false);
-      setDragCounter(0);
 
       const droppedFiles = Array.from(e.dataTransfer.files);
       if (droppedFiles.length > 0) {

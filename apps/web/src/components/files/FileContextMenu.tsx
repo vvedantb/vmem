@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Fragment } from "react";
 import {
   ContextMenu,
   ContextMenuTrigger,
@@ -6,22 +7,14 @@ import {
   ContextMenuItem,
   ContextMenuSeparator,
 } from "@vmem/ui";
-import {
-  IconFolderOpen,
-  IconDownload,
-  IconFolderSymlink,
-  IconPencil,
-  IconTrash,
-} from "@tabler/icons-react";
 import type { FileItem } from "@/lib/file-types";
+import {
+  fileItemActions,
+  type FileItemActionHandlers,
+} from "./fileItemActions";
 
-interface FileContextMenuProps {
+interface FileContextMenuProps extends FileItemActionHandlers {
   item: FileItem;
-  onOpen: () => void;
-  onDownload: () => void;
-  onMoveTo: () => void;
-  onRename: () => void;
-  onDelete: () => void;
   children: ReactNode;
 }
 
@@ -34,38 +27,34 @@ export default function FileContextMenu({
   onDelete,
   children,
 }: FileContextMenuProps) {
-  const isFolder = item.itemType === "folder";
+  const actions = fileItemActions(item, {
+    onOpen,
+    onDownload,
+    onMoveTo,
+    onRename,
+    onDelete,
+  });
 
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
       <ContextMenuContent>
-        <ContextMenuItem onClick={onOpen}>
-          <IconFolderOpen size={16} stroke={1.5} />
-          Open
-        </ContextMenuItem>
-        {!isFolder && (
-          <ContextMenuItem onClick={onDownload}>
-            <IconDownload size={16} stroke={1.5} />
-            Download
-          </ContextMenuItem>
-        )}
-        <ContextMenuItem onClick={onMoveTo}>
-          <IconFolderSymlink size={16} stroke={1.5} />
-          Move to…
-        </ContextMenuItem>
-        <ContextMenuItem onClick={onRename}>
-          <IconPencil size={16} stroke={1.5} />
-          Rename
-        </ContextMenuItem>
-        <ContextMenuSeparator />
-        <ContextMenuItem
-          className="text-danger focus:text-danger data-[highlighted]:text-danger"
-          onClick={onDelete}
-        >
-          <IconTrash size={16} stroke={1.5} />
-          Delete
-        </ContextMenuItem>
+        {actions.map((action) => (
+          <Fragment key={action.key}>
+            {action.separatorBefore ? <ContextMenuSeparator /> : null}
+            <ContextMenuItem
+              className={
+                action.danger
+                  ? "text-danger focus:text-danger data-[highlighted]:text-danger"
+                  : undefined
+              }
+              onClick={action.onClick}
+            >
+              <action.Icon size={16} stroke={1.5} />
+              {action.label}
+            </ContextMenuItem>
+          </Fragment>
+        ))}
       </ContextMenuContent>
     </ContextMenu>
   );
