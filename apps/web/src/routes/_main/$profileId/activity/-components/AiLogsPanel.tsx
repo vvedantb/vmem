@@ -33,14 +33,6 @@ import { AiLogsLoadingSkeleton } from "./AiLogsLoadingSkeleton";
 const PAGE_SIZE = 50;
 
 /**
- * AI Logs panel for `/activity` — observability dashboard for every backend
- * AI call vmem fires on the user's behalf (chat completions + embeddings,
- * currently routed via OpenRouter).
- *
- * Reads filter params from the URL and renders summary + filterable
- * virtualised table (table scrolls inside a capped card region).
- */
-/**
  * Effective scope for the AI logs, derived rather than written back to the
  * URL. An explicit `?scope=` (set by the scope selector) wins; otherwise we
  * follow the active workspace, so a team route never opens on personal spend
@@ -61,6 +53,14 @@ function useAiLogsScope(params: {
   return { scope: "personal" as const, teamIdParam: "" };
 }
 
+/**
+ * AI Logs panel for `/activity` — observability dashboard for every backend
+ * AI call vmem fires on the user's behalf (chat completions + embeddings,
+ * currently routed via OpenRouter).
+ *
+ * Reads filter params from the URL and renders summary + filterable
+ * virtualised table (table scrolls inside a capped card region).
+ */
 export function AiLogsPanel() {
   const [params, setParams] = useQueryStates(aiLogsSearchParams);
   const { scope, teamIdParam } = useAiLogsScope(params);
