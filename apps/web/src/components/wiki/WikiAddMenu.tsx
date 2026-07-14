@@ -2,7 +2,7 @@
 
 import { IconFileText, IconFolderPlus } from "@tabler/icons-react";
 import { DropdownMenuItem } from "@vmem/ui";
-import { FeatureAddMenu } from "@/components/_components/FeatureAddMenu";
+import { FeatureAddMenu } from "@/components/FeatureAddMenu";
 
 interface WikiAddMenuProps {
   onCreateDocument: () => void;

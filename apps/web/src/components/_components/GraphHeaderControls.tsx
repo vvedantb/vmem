@@ -3,11 +3,7 @@
 // graph header: search / filters / options (+ add memory)
 
 import { useCallback, useMemo } from "react";
-import {
-  IconAdjustmentsHorizontal,
-  IconPlus,
-  IconRefresh,
-} from "@tabler/icons-react";
+import { IconAdjustmentsHorizontal, IconRefresh } from "@tabler/icons-react";
 import {
   Button,
   Input,
@@ -17,7 +13,7 @@ import {
   Switch,
   Separator,
 } from "@vmem/ui";
-import AddMemoryModal from "@/components/AddMemoryModal";
+import AddMemoryIconTrigger from "@/components/AddMemoryIconTrigger";
 import HeaderSearchInput from "./HeaderSearchInput";
 import GraphLegend from "./GraphLegend";
 import type { MemoryGraphController } from "@/hooks/useMemoryGraphController";
@@ -80,13 +76,7 @@ export default function GraphHeaderControls({
         visibleNodeCount={controller.visibleNodeCount}
         edgeCount={controller.edgeCount}
       />
-      <AddMemoryModal
-        trigger={
-          <Button variant="outline" size="icon-sm" aria-label="Add memory">
-            <IconPlus size={16} />
-          </Button>
-        }
-      />
+      <AddMemoryIconTrigger />
     </div>
   );
 }

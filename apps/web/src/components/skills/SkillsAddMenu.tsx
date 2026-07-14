@@ -2,7 +2,7 @@
 
 import { IconPencil, IconUpload } from "@tabler/icons-react";
 import { DropdownMenuItem } from "@vmem/ui";
-import { FeatureAddMenu } from "@/components/_components/FeatureAddMenu";
+import { FeatureAddMenu } from "@/components/FeatureAddMenu";
 
 interface SkillsAddMenuProps {
   onWriteSkill: () => void;

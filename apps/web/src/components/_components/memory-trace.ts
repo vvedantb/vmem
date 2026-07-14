@@ -3,7 +3,7 @@ import type { api } from "@vmem/backend";
 
 type RetrieveResult = FunctionReturnType<typeof api.memoryApi.retrieveMemories>;
 
-export type MemoryCandidate = RetrieveResult["memories"][number];
+type MemoryCandidate = RetrieveResult["memories"][number];
 
 // context Trace payload attached to hybrid-search memory rows
 export type MemoryTrace = MemoryCandidate["trace"];

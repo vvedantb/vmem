@@ -9,7 +9,6 @@ import {
   IconChevronDown,
   IconHash,
   IconList,
-  IconPlus,
 } from "@tabler/icons-react";
 import {
   Button,
@@ -20,7 +19,7 @@ import {
 } from "@vmem/ui";
 import { api } from "@vmem/backend";
 import { useActiveProfile } from "@/components/workspace/active-profile";
-import AddMemoryModal from "@/components/AddMemoryModal";
+import AddMemoryIconTrigger from "@/components/AddMemoryIconTrigger";
 import HeaderSearchInput from "./HeaderSearchInput";
 import { MemoryFiltersButton } from "@/routes/_main/$profileId/memories/_components/MemoryFiltersButton";
 import {
@@ -117,18 +116,7 @@ export default function MemoryListHeaderControls() {
         isDark={isDark}
         ariaLabel="Filter list"
       />
-      <AddMemoryModal
-        trigger={
-          <Button
-            variant="outline"
-            size="icon-sm"
-            aria-label="Add memory"
-            className="h-11 w-11 shrink-0 md:h-8 md:w-8"
-          >
-            <IconPlus size={16} />
-          </Button>
-        }
-      />
+      <AddMemoryIconTrigger className="h-11 w-11 shrink-0 md:h-8 md:w-8" />
     </div>
   );
 }

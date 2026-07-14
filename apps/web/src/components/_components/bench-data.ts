@@ -1,7 +1,7 @@
 // synthetic ?bench=N graph for client-side perf testing
 import type { ApiGraphNode, ApiRelatesToEdge, ApiTagEdge } from "./graph-data";
 
-export interface BenchGraph {
+interface BenchGraph {
   nodes: ApiGraphNode[];
   relatesToEdges: ApiRelatesToEdge[];
   tagEdges: ApiTagEdge[];
