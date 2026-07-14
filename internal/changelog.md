@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-07-14 — Memory API contract alignment
+
+HTTP memory routes and MCP memory tools share one zod contract for create,
+retrieve, update, and delete payloads. The public structured update/delete id
+field is now `id`; SDK response validators match backend memory fields and
+contract tests guard the API/MCP/SDK shape.
+
 ## 2026-07-14 — Wiki artifacts kind
 
 Artifacts are a third `wikiNodes.kind` (with optional `language`), editable via

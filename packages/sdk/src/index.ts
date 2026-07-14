@@ -1,8 +1,16 @@
 export { VMemory, VMemoryError, isVMemoryError } from "./vmemory";
+export {
+  parseMemoryWithTagsResponse,
+  parseRetrieveResult,
+  parseStoreInstructionResult,
+  parseUpdateInstructionResult,
+} from "./validators";
 export type {
   AgentProposal,
   MatchedChunk,
   MemoryCandidate,
+  MemoryStatus,
+  MemoryType,
   MemoryWithTags,
   RetrieveResult,
   ScoreBreakdown,

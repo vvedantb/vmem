@@ -1,15 +1,28 @@
 import { z } from "zod";
 import { VMemoryError } from "./errors";
 
+const memoryTypeSchema = z.enum(["profile", "episodic", "knowledge"]);
+const memoryStatusSchema = z.enum([
+  "active",
+  "pinned",
+  "suppressed",
+  "expired",
+]);
+
 const memoryWithTagsSchema = z.object({
   id: z.string(),
   userId: z.string(),
+  profileId: z.string().nullable(),
   title: z.string(),
   content: z.string(),
-  type: z.string(),
+  type: memoryTypeSchema,
   source: z.string(),
+  sourceType: z.string().nullable(),
+  sourceId: z.string().nullable(),
+  sourceUrl: z.string().nullable(),
+  sourceSyncedAt: z.string().nullable(),
   confidence: z.number(),
-  status: z.string(),
+  status: memoryStatusSchema,
   createdAt: z.string(),
   updatedAt: z.string(),
   expiresAt: z.string().nullable(),
@@ -80,6 +93,8 @@ const retrieveResultSchema = z.object({
 });
 
 export type MemoryWithTags = z.infer<typeof memoryWithTagsSchema>;
+export type MemoryType = z.infer<typeof memoryTypeSchema>;
+export type MemoryStatus = z.infer<typeof memoryStatusSchema>;
 export type ScoreBreakdown = z.infer<typeof scoreBreakdownSchema>;
 export type MatchedChunk = z.infer<typeof matchedChunkSchema>;
 export type MemoryCandidate = z.infer<typeof memoryCandidateSchema>;

@@ -74,7 +74,7 @@ describe.skipIf(!canRun)("HTTP v1 memories API (live)", () => {
       const storeResult = await client.storeStructured({
         title: marker,
         content: marker,
-        type: "note",
+        type: "knowledge",
         source: "vitest-http-api",
         tags: ["vitest", "http-api"],
         confidence: 1,
@@ -101,7 +101,7 @@ describe.skipIf(!canRun)("HTTP v1 memories API (live)", () => {
 
       const updatedTitle = `${marker}-updated`;
       const updateResult = await client.updateStructured({
-        memoryId,
+        id: memoryId,
         title: updatedTitle,
         content: `${marker}-patched`,
       });
@@ -112,7 +112,7 @@ describe.skipIf(!canRun)("HTTP v1 memories API (live)", () => {
       expect(updateResult.data.title).toBe(updatedTitle);
       expect(updateResult.data.content).toBe(`${marker}-patched`);
 
-      const deleteResult = await client.deleteStructured({ memoryId });
+      const deleteResult = await client.deleteStructured({ id: memoryId });
 
       expectOk(deleteResult);
       expect(deleteResult.status).toBe(200);
@@ -121,7 +121,7 @@ describe.skipIf(!canRun)("HTTP v1 memories API (live)", () => {
       memoryId = "";
     } finally {
       if (memoryId.length > 0) {
-        await client.deleteStructured({ memoryId });
+        await client.deleteStructured({ id: memoryId });
       }
     }
   }, 30_000);

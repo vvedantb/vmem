@@ -57,7 +57,7 @@ const vmem = new VMemory({
 | `update(instruction)`     | Reconcile changes; conflicting updates become proposals |
 | `search(query, options?)` | Hybrid semantic search; optional `summarize: true`      |
 | `createMemory(body)`      | Structured create (escape hatch)                        |
-| `patchMemory(body)`       | Structured update by `memoryId`                         |
+| `patchMemory(body)`       | Structured update by `id`                               |
 | `searchMemories(body)`    | Structured search                                       |
 
 ## Errors

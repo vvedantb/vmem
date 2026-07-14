@@ -202,18 +202,14 @@ export function createHttpMemoriesClient(config: HttpClientConfig) {
       });
     },
 
-    updateStructured(body: {
-      memoryId: string;
-      title?: string;
-      content?: string;
-    }) {
+    updateStructured(body: { id: string; title?: string; content?: string }) {
       return request("/api/v1/memories", memorySchema, {
         method: "PATCH",
         body: JSON.stringify(body),
       });
     },
 
-    deleteStructured(body: { memoryId: string }) {
+    deleteStructured(body: { id: string }) {
       return request("/api/v1/memories", deleteDataSchema, {
         method: "DELETE",
         body: JSON.stringify(body),

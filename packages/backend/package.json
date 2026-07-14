@@ -53,6 +53,7 @@
     "@types/node": "catalog:node-types-22",
     "@types/remove-markdown": "^0.3.4",
     "@types/tar-stream": "^3.1.4",
+    "@vmem/sdk": "workspace:*",
     "convex-test": "^0.0.38",
     "cross-env": "^7.0.3",
     "esbuild": "0.25.0",
