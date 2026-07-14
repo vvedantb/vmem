@@ -7,7 +7,7 @@ export { MorphingMenuIcon } from "./MorphingMenuIcon";
 export { AnimatedProgress } from "./AnimatedProgress";
 export { AnimatedCounter } from "./AnimatedCounter";
 
-// vmem logo animations
+// vmem logo animations — see /svg-playground for the full library
 export { VmemPaths, PATH_LEFT } from "./VmemPaths";
 export { VmemDrawInIcon } from "./VmemDrawInIcon";
 export { VmemSpinner } from "./VmemSpinner";

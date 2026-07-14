@@ -14,6 +14,7 @@ import { Route as MainRouteRouteImport } from './routes/_main/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MainHomeRouteImport } from './routes/_main/home'
 import { Route as MainProfileIdRouteRouteImport } from './routes/_main/$profileId/route'
+import { Route as MainSvgPlaygroundIndexRouteImport } from './routes/_main/svg-playground/index'
 import { Route as MainSettingsIndexRouteImport } from './routes/_main/settings/index'
 import { Route as MainProfileIdIndexRouteImport } from './routes/_main/$profileId/index'
 import { Route as McpOauthAuthorizeRouteImport } from './routes/mcp/oauth/authorize'
@@ -90,6 +91,11 @@ const MainHomeRoute = MainHomeRouteImport.update({
 const MainProfileIdRouteRoute = MainProfileIdRouteRouteImport.update({
   id: '/$profileId',
   path: '/$profileId',
+  getParentRoute: () => MainRouteRoute,
+} as any)
+const MainSvgPlaygroundIndexRoute = MainSvgPlaygroundIndexRouteImport.update({
+  id: '/svg-playground/',
+  path: '/svg-playground/',
   getParentRoute: () => MainRouteRoute,
 } as any)
 const MainSettingsIndexRoute = MainSettingsIndexRouteImport.update({
@@ -412,6 +418,7 @@ export interface FileRoutesByFullPath {
   '/mcp/oauth/authorize': typeof McpOauthAuthorizeRoute
   '/$profileId/': typeof MainProfileIdIndexRoute
   '/settings/': typeof MainSettingsIndexRoute
+  '/svg-playground/': typeof MainSvgPlaygroundIndexRoute
   '/$profileId/memories/list': typeof MainProfileIdMemoriesListRouteRouteWithChildren
   '/$profileId/activity/ai-logs': typeof MainProfileIdActivityAiLogsRoute
   '/$profileId/activity/events': typeof MainProfileIdActivityEventsRoute
@@ -462,6 +469,7 @@ export interface FileRoutesByTo {
   '/mcp/oauth/authorize': typeof McpOauthAuthorizeRoute
   '/$profileId': typeof MainProfileIdIndexRoute
   '/settings': typeof MainSettingsIndexRoute
+  '/svg-playground': typeof MainSvgPlaygroundIndexRoute
   '/$profileId/activity/ai-logs': typeof MainProfileIdActivityAiLogsRoute
   '/$profileId/activity/events': typeof MainProfileIdActivityEventsRoute
   '/$profileId/codebases/$id': typeof MainProfileIdCodebasesIdRoute
@@ -522,6 +530,7 @@ export interface FileRoutesById {
   '/mcp/oauth/authorize': typeof McpOauthAuthorizeRoute
   '/_main/$profileId/': typeof MainProfileIdIndexRoute
   '/_main/settings/': typeof MainSettingsIndexRoute
+  '/_main/svg-playground/': typeof MainSvgPlaygroundIndexRoute
   '/_main/$profileId/memories/list': typeof MainProfileIdMemoriesListRouteRouteWithChildren
   '/_main/$profileId/activity/ai-logs': typeof MainProfileIdActivityAiLogsRoute
   '/_main/$profileId/activity/events': typeof MainProfileIdActivityEventsRoute
@@ -583,6 +592,7 @@ export interface FileRouteTypes {
     | '/mcp/oauth/authorize'
     | '/$profileId/'
     | '/settings/'
+    | '/svg-playground/'
     | '/$profileId/memories/list'
     | '/$profileId/activity/ai-logs'
     | '/$profileId/activity/events'
@@ -633,6 +643,7 @@ export interface FileRouteTypes {
     | '/mcp/oauth/authorize'
     | '/$profileId'
     | '/settings'
+    | '/svg-playground'
     | '/$profileId/activity/ai-logs'
     | '/$profileId/activity/events'
     | '/$profileId/codebases/$id'
@@ -692,6 +703,7 @@ export interface FileRouteTypes {
     | '/mcp/oauth/authorize'
     | '/_main/$profileId/'
     | '/_main/settings/'
+    | '/_main/svg-playground/'
     | '/_main/$profileId/memories/list'
     | '/_main/$profileId/activity/ai-logs'
     | '/_main/$profileId/activity/events'
@@ -768,6 +780,13 @@ declare module '@tanstack/react-router' {
       path: '/$profileId'
       fullPath: '/$profileId'
       preLoaderRoute: typeof MainProfileIdRouteRouteImport
+      parentRoute: typeof MainRouteRoute
+    }
+    '/_main/svg-playground/': {
+      id: '/_main/svg-playground/'
+      path: '/svg-playground'
+      fullPath: '/svg-playground/'
+      preLoaderRoute: typeof MainSvgPlaygroundIndexRouteImport
       parentRoute: typeof MainRouteRoute
     }
     '/_main/settings/': {
@@ -1358,6 +1377,7 @@ interface MainRouteRouteChildren {
   MainSettingsSecretsRoute: typeof MainSettingsSecretsRoute
   MainSettingsUsageRoute: typeof MainSettingsUsageRoute
   MainSettingsIndexRoute: typeof MainSettingsIndexRoute
+  MainSvgPlaygroundIndexRoute: typeof MainSvgPlaygroundIndexRoute
 }
 
 const MainRouteRouteChildren: MainRouteRouteChildren = {
@@ -1373,6 +1393,7 @@ const MainRouteRouteChildren: MainRouteRouteChildren = {
   MainSettingsSecretsRoute: MainSettingsSecretsRoute,
   MainSettingsUsageRoute: MainSettingsUsageRoute,
   MainSettingsIndexRoute: MainSettingsIndexRoute,
+  MainSvgPlaygroundIndexRoute: MainSvgPlaygroundIndexRoute,
 }
 
 const MainRouteRouteWithChildren = MainRouteRoute._addFileChildren(
