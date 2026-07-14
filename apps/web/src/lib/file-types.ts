@@ -1,10 +1,4 @@
-export type FileCategory =
-  | "pdf"
-  | "image"
-  | "doc"
-  | "excel"
-  | "generic"
-  | "folder";
+type FileCategory = "pdf" | "image" | "doc" | "excel" | "generic" | "folder";
 
 export interface FileItem {
   id: string;
@@ -27,7 +21,7 @@ export interface FileItem {
 }
 
 // breadcrumb segment for folder navigation
-export interface FolderBreadcrumb {
+interface FolderBreadcrumb {
   id: string | null;
   name: string;
 }

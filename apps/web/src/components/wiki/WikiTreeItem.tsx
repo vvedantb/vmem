@@ -27,7 +27,7 @@ import {
 import type { WikiTreeNode } from "./_utils";
 import { WIKI_ROOT_DROP_ID } from "./_utils";
 
-export type WikiTreeMode = "navigate" | "bulk-select";
+type WikiTreeMode = "navigate" | "bulk-select";
 
 // scroll container that doubles as the "move to top level" drop target
 export function WikiRootDropZone({

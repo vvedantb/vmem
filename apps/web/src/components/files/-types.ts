@@ -1,9 +1,7 @@
 import type { api, Id } from "@vmem/backend";
 import type { FunctionReturnType } from "convex/server";
 
-export type FileListTree = NonNullable<
-  FunctionReturnType<typeof api.files.listTree>
->;
+type FileListTree = NonNullable<FunctionReturnType<typeof api.files.listTree>>;
 
 export type FileTreeNode = FileListTree["nodes"][number];
 

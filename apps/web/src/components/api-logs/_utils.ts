@@ -7,7 +7,7 @@ export type ApiRequestEntries = FunctionReturnType<
 
 export type ApiRequestEntry = ApiRequestEntries[number];
 
-export interface ApiUsageTrends {
+interface ApiUsageTrends {
   requests: number[];
   successRates: number[];
   avgDurations: number[];
@@ -96,17 +96,4 @@ function buildDailyTrends(entries: ApiRequestEntries): ApiUsageTrends {
       bucket.requests === 0 ? 0 : bucket.totalDuration / bucket.requests,
     ),
   };
-}
-
-export function hasTrendActivity(trend: number[]): boolean {
-  return trend.some((value) => value > 0);
-}
-
-export function prepareTableEntries(
-  entries: ApiRequestEntries,
-  limit: number,
-): ApiRequestEntries {
-  return [...entries]
-    .sort((a, b) => b.originalTimestamp - a.originalTimestamp)
-    .slice(0, limit);
 }

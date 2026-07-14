@@ -4,9 +4,9 @@ import { api } from "@vmem/backend";
 export type TimelineEvent = FunctionReturnType<
   typeof api.timelineApi.getMemoryTimeline
 >[number];
-export type MemorySnapshot = NonNullable<TimelineEvent["snapshot"]>;
+type MemorySnapshot = NonNullable<TimelineEvent["snapshot"]>;
 
-export interface ChangeSummary {
+interface ChangeSummary {
   addedChars: number;
   removedChars: number;
   tagsAdded: string[];
@@ -23,7 +23,7 @@ export interface VersionEntry {
   changeSummary: ChangeSummary | null;
 }
 
-export function computeChangeSummary(
+function computeChangeSummary(
   prev: MemorySnapshot,
   curr: MemorySnapshot,
 ): ChangeSummary {
