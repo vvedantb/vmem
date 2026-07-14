@@ -30,8 +30,8 @@ interface MemoryDetailPanelProps {
   onMemoryUpdate: (memory: Memory) => void;
   onMemoryDelete: (id: string) => void;
   onSelectRelated: (memory: Memory) => void;
-  startInEditMode?: boolean;
-  startWithDelete?: boolean;
+  /** One-shot action to run when the panel opens (edit or delete confirm). */
+  initialAction?: "edit" | "delete";
   onConsumeAction?: () => void;
 }
 
@@ -41,8 +41,7 @@ export default function MemoryDetailPanel({
   onMemoryUpdate,
   onMemoryDelete,
   onSelectRelated,
-  startInEditMode = false,
-  startWithDelete = false,
+  initialAction,
   onConsumeAction,
 }: MemoryDetailPanelProps) {
   const [activeTab, setActiveTab] = useState<PanelTab>("details");
@@ -119,8 +118,7 @@ export default function MemoryDetailPanel({
               onMemoryUpdate={onMemoryUpdate}
               onRequestDelete={handleRequestDelete}
               onSelectRelated={onSelectRelated}
-              startInEditMode={startInEditMode}
-              startWithDelete={startWithDelete}
+              initialAction={initialAction}
               onConsumeAction={onConsumeAction}
             />
           </TabsContent>

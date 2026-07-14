@@ -1,10 +1,20 @@
 "use client";
 
+import { lazy, Suspense } from "react";
 import { createFileRoute, Outlet, useMatchRoute } from "@tanstack/react-router";
 import PageContainer from "@/components/PageContainer";
 import { ActivityTabs } from "./-components/ActivityTabs";
-import { AiLogsRightSection } from "./-components/AiLogsPanel";
-import { EventsRightSection } from "./-components/EventsPanel";
+
+const AiLogsRightSection = lazy(() =>
+  import("./-components/AiLogsPanel").then((m) => ({
+    default: m.AiLogsRightSection,
+  })),
+);
+const EventsRightSection = lazy(() =>
+  import("./-components/EventsPanel").then((m) => ({
+    default: m.EventsRightSection,
+  })),
+);
 
 export const Route = createFileRoute("/_main/$profileId/activity")({
   component: ActivityLayout,
@@ -26,7 +36,11 @@ function ActivityLayout() {
       centeredMaxWidth
       noScroll
       leftSection={<ActivityTabs />}
-      rightSection={isEvents ? <EventsRightSection /> : <AiLogsRightSection />}
+      rightSection={
+        <Suspense fallback={null}>
+          {isEvents ? <EventsRightSection /> : <AiLogsRightSection />}
+        </Suspense>
+      }
     >
       <Outlet />
     </PageContainer>

@@ -148,8 +148,7 @@ export function TagMemoriesPanel({
         onMemoryUpdate={handleMemoryUpdate}
         onMemoryDelete={handleMemoryDelete}
         onSelectRelated={(memory) => setSelectedMemoryId(memory.id)}
-        startInEditMode={panelAction === "edit"}
-        startWithDelete={panelAction === "delete"}
+        initialAction={panelAction ?? undefined}
         onConsumeAction={handleConsumeAction}
       />
     );

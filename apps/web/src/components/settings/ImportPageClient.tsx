@@ -75,19 +75,25 @@ export default function ImportPageClient() {
     const p = findAvailable(providerId);
     if (!p) return;
     setImporting(true);
-    let ok = 0;
-    for (const row of selected) {
-      try {
-        await createMemory({
+    const results = await Promise.allSettled(
+      selected.map((row) =>
+        createMemory({
           title: row.title,
           content: row.content,
           type: "episodic",
           source: p.source,
           tags: ["import", p.tag],
           confidence: 0.75,
-        });
+        }),
+      ),
+    );
+    let ok = 0;
+    for (let i = 0; i < results.length; i++) {
+      const result = results.at(i);
+      const row = selected.at(i);
+      if (result?.status === "fulfilled") {
         ok += 1;
-      } catch {
+      } else if (row) {
         toast.error(`Failed to import: ${row.title}`);
       }
     }

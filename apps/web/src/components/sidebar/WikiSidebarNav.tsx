@@ -205,7 +205,7 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
               nodes={nodes ?? []}
               selectedId={docId}
               onSelect={handleSelectNode}
-              selectionMode={selectionMode && !isIconOnly}
+              mode={selectionMode && !isIconOnly ? "bulk-select" : "navigate"}
               selectedNodeIds={selectedIds}
               onToggleSelect={toggleSelect}
             />

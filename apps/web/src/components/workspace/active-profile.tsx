@@ -11,7 +11,7 @@
  *   like `/settings/**` so the shell keeps its workspace context.
  */
 
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, use, type ReactNode } from "react";
 import { useParams } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { api } from "@vmem/backend";
@@ -34,7 +34,7 @@ export function ActiveProfileProvider({
 }
 
 export function useActiveProfile(): Doc<"profiles"> {
-  const profile = useContext(ActiveProfileContext);
+  const profile = use(ActiveProfileContext);
   if (profile === null) {
     throw new Error(
       "useActiveProfile must be used inside the $profileId workspace route",

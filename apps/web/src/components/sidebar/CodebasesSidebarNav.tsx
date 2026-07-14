@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, lazy, Suspense } from "react";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useAction, useQuery } from "convex/react";
 import { useQueryStates } from "nuqs";
@@ -29,13 +29,18 @@ import {
 import { toast } from "sonner";
 import { CodebaseSidebarItem } from "@/components/codebases/CodebaseSidebarItem";
 import { CodebasesSearchBar } from "@/components/codebases/CodebasesSearchBar";
-import { AddRepoModal } from "@/components/codebases/AddRepoModal";
 import { codebasesListSearchParams } from "@/routes/_main/$profileId/codebases/-list-searchParams";
 import {
   useActiveProfileId,
   useActiveTeamId,
 } from "@/components/workspace/active-profile";
 import { SharedLayoutBackground } from "./SharedLayoutBackground";
+
+const AddRepoModal = lazy(() =>
+  import("@/components/codebases/AddRepoModal").then((m) => ({
+    default: m.AddRepoModal,
+  })),
+);
 
 export type CodebasesSidebarNavProps = {
   isIconOnly: boolean;
@@ -276,12 +281,14 @@ export function CodebasesSidebarNav({
         )}
       </div>
 
-      {isConnected && connection ? (
-        <AddRepoModal
-          open={addModalOpen}
-          onOpenChange={setAddModalOpen}
-          connectionId={connection.id}
-        />
+      {isConnected && connection && addModalOpen ? (
+        <Suspense fallback={null}>
+          <AddRepoModal
+            open={addModalOpen}
+            onOpenChange={setAddModalOpen}
+            connectionId={connection.id}
+          />
+        </Suspense>
       ) : null}
     </motion.nav>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, lazy, Suspense } from "react";
 import { useLocation, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { useQueryStates } from "nuqs";
@@ -13,8 +13,6 @@ import { SkillCard } from "@/components/skills/SkillCard";
 import { SkillBulkDeleteBar } from "@/components/skills/SkillBulkDeleteBar";
 import { SkillsSearchBar } from "@/components/skills/SkillsSearchBar";
 import { SkillsAddMenu } from "@/components/skills/SkillsAddMenu";
-import { WriteSkillDialog } from "@/components/skills/WriteSkillDialog";
-import { UploadSkillDialog } from "@/components/skills/UploadSkillDialog";
 import { skillsSearchParams } from "@/routes/_main/$profileId/skills/-searchParams";
 import { SharedLayoutBackground } from "./SharedLayoutBackground";
 import { sidebarListRowClass } from "./sidebar-nav-row";
@@ -22,6 +20,17 @@ import {
   useActiveProfileId,
   useActiveTeamId,
 } from "@/components/workspace/active-profile";
+
+const WriteSkillDialog = lazy(() =>
+  import("@/components/skills/WriteSkillDialog").then((m) => ({
+    default: m.WriteSkillDialog,
+  })),
+);
+const UploadSkillDialog = lazy(() =>
+  import("@/components/skills/UploadSkillDialog").then((m) => ({
+    default: m.UploadSkillDialog,
+  })),
+);
 
 export type SkillsSidebarNavProps = {
   isIconOnly: boolean;
@@ -266,7 +275,11 @@ export function SkillsSidebarNav({
                       skill={skill}
                       selected={skillId === skill._id}
                       onSelect={() => openSkill(skill._id)}
-                      selectionMode={selectionMode && !isIconOnly}
+                      mode={
+                        selectionMode && !isIconOnly
+                          ? "bulk-select"
+                          : "navigate"
+                      }
                       checked={selectedIds.has(skill._id)}
                       onToggleSelect={() => toggleSelect(skill._id)}
                     />
@@ -279,21 +292,29 @@ export function SkillsSidebarNav({
         {installedSection}
       </div>
 
-      <WriteSkillDialog
-        open={createModal === "write"}
-        onOpenChange={(open) => {
-          if (!open) setCreateModal("none");
-        }}
-        onCreated={handleSkillCreated}
-      />
+      {createModal === "write" ? (
+        <Suspense fallback={null}>
+          <WriteSkillDialog
+            open
+            onOpenChange={(open) => {
+              if (!open) setCreateModal("none");
+            }}
+            onCreated={handleSkillCreated}
+          />
+        </Suspense>
+      ) : null}
 
-      <UploadSkillDialog
-        open={createModal === "upload"}
-        onOpenChange={(open) => {
-          if (!open) setCreateModal("none");
-        }}
-        onCreated={handleSkillCreated}
-      />
+      {createModal === "upload" ? (
+        <Suspense fallback={null}>
+          <UploadSkillDialog
+            open
+            onOpenChange={(open) => {
+              if (!open) setCreateModal("none");
+            }}
+            onCreated={handleSkillCreated}
+          />
+        </Suspense>
+      ) : null}
     </motion.nav>
   );
 }

@@ -24,8 +24,7 @@ interface DetailsTabProps {
   onMemoryUpdate: (memory: Memory) => void;
   onRequestDelete: () => void;
   onSelectRelated: (memory: Memory) => void;
-  startInEditMode: boolean;
-  startWithDelete: boolean;
+  initialAction?: "edit" | "delete";
   onConsumeAction?: () => void;
 }
 
@@ -44,8 +43,7 @@ export default function DetailsTab({
   memory,
   onMemoryUpdate,
   onRequestDelete,
-  startInEditMode,
-  startWithDelete,
+  initialAction,
   onConsumeAction,
 }: DetailsTabProps) {
   const [isEditing, setIsEditing] = useState(false);
@@ -72,20 +70,14 @@ export default function DetailsTab({
   }, [memory, reset]);
 
   useEffect(() => {
-    if (startInEditMode) {
+    if (initialAction === "edit") {
       startEditing();
       onConsumeAction?.();
-    } else if (startWithDelete) {
+    } else if (initialAction === "delete") {
       onRequestDelete();
       onConsumeAction?.();
     }
-  }, [
-    startInEditMode,
-    startWithDelete,
-    startEditing,
-    onConsumeAction,
-    onRequestDelete,
-  ]);
+  }, [initialAction, startEditing, onConsumeAction, onRequestDelete]);
 
   const cancelEditing = useCallback(() => {
     setIsEditing(false);

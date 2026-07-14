@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, use, type ReactNode } from "react";
 import type { TeamDetail } from "./team-detail";
 
 const TeamDetailContext = createContext<TeamDetail | null>(null);
@@ -20,7 +20,7 @@ export function TeamDetailProvider({
 }
 
 export function useTeamDetail(): TeamDetail {
-  const value = useContext(TeamDetailContext);
+  const value = use(TeamDetailContext);
   if (value === null) {
     throw new Error("useTeamDetail must be used within TeamDetailProvider");
   }

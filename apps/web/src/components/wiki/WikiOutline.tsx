@@ -3,13 +3,13 @@
 import { useEffect, useRef } from "react";
 import { Button, cn } from "@vmem/ui";
 import type { OutlineHeading } from "./_utils";
+import { useWikiSidebar } from "./WikiSidebarContext";
 
 interface WikiOutlineProps {
   headings: OutlineHeading[];
   /** Heading the reader is currently scrolled to — highlighted with an accent rail. */
   activeHeadingId: string | null;
   onJump: (pos: number) => void;
-  hasDoc: boolean;
 }
 
 /**
@@ -35,8 +35,8 @@ export default function WikiOutline({
   headings,
   activeHeadingId,
   onJump,
-  hasDoc,
 }: WikiOutlineProps) {
+  const { hasDoc } = useWikiSidebar();
   const activeRef = useRef<HTMLButtonElement | null>(null);
 
   // Keep the active row in view as the reader scrolls the document.

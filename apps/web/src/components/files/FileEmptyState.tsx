@@ -2,14 +2,15 @@ import { IconFolder, IconUpload } from "@tabler/icons-react";
 import { Button } from "@vmem/ui";
 
 interface FileEmptyStateProps {
-  isRoot: boolean;
+  variant: "root" | "folder";
   onUpload: () => void;
 }
 
 export default function FileEmptyState({
-  isRoot,
+  variant,
   onUpload,
 }: FileEmptyStateProps) {
+  const isRoot = variant === "root";
   return (
     <div className="flex flex-col items-center justify-center py-20 px-4">
       <IconFolder size={40} stroke={1.2} className="text-muted/60 mb-3" />

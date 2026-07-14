@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { createContext, useContext, useCallback } from "react";
+import { createContext, use, useCallback } from "react";
 import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { api } from "@vmem/backend";
 import type { Doc, Id } from "@vmem/backend";
@@ -145,7 +145,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 }
 
 export function useNotifications() {
-  const context = useContext(NotificationContext);
+  const context = use(NotificationContext);
   if (!context) {
     throw new Error(
       "useNotifications must be used within a NotificationProvider",

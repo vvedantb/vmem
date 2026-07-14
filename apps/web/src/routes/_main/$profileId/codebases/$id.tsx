@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useCallback } from "react";
+import { lazy, Suspense, useState, useCallback } from "react";
 import { useQuery, useAction } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@vmem/backend";
@@ -13,11 +13,16 @@ import {
   IconDatabase,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
-import { CodebaseGraph } from "@/components/codebases/CodebaseGraph";
 import CodebaseGraphHeaderControls from "@/components/codebases/CodebaseGraphHeaderControls";
 import { useCodebaseGraphController } from "@/hooks/useCodebaseGraphController";
 import { VmemSpinner } from "@/components/svg-animations";
 import { formatRelativeTime } from "@/lib/formatters";
+
+const CodebaseGraph = lazy(() =>
+  import("@/components/codebases/CodebaseGraph").then((m) => ({
+    default: m.CodebaseGraph,
+  })),
+);
 
 export const Route = createFileRoute("/_main/$profileId/codebases/$id")({
   component: CodebaseDetailPage,
@@ -132,7 +137,15 @@ function CodebaseDetailView({
         </div>
       }
     >
-      <CodebaseGraph codebaseId={id} controller={controller} />
+      <Suspense
+        fallback={
+          <div className="flex h-full items-center justify-center">
+            <VmemSpinner size={24} className="text-muted" />
+          </div>
+        }
+      >
+        <CodebaseGraph codebaseId={id} controller={controller} />
+      </Suspense>
     </PageContainer>
   );
 }

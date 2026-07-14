@@ -638,8 +638,7 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
                     onMemoryUpdate={handleMemoryUpdate}
                     onMemoryDelete={handleMemoryDelete}
                     onSelectRelated={(memory) => openMemory(memory.id)}
-                    startInEditMode={panelAction === "edit"}
-                    startWithDelete={panelAction === "delete"}
+                    initialAction={panelAction ?? undefined}
                     onConsumeAction={handleConsumeAction}
                   />
                 ) : isPanelLoading ? (

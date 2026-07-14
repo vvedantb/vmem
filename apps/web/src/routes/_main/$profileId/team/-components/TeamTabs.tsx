@@ -2,7 +2,7 @@ import { IconUsers, IconSettings } from "@tabler/icons-react";
 import { RouteTabs } from "@/components/RouteTabs";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 
-export function TeamTabs({ isOwner }: { isOwner: boolean }) {
+export function TeamTabs({ role }: { role: "owner" | "member" }) {
   const profile = useActiveProfile();
   return (
     <RouteTabs
@@ -13,7 +13,7 @@ export function TeamTabs({ isOwner }: { isOwner: boolean }) {
           label: "Members",
           icon: <IconUsers size={16} />,
         },
-        ...(isOwner
+        ...(role === "owner"
           ? [
               {
                 value: "settings",

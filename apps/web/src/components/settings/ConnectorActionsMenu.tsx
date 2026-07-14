@@ -16,13 +16,14 @@ import {
   IconTrash,
 } from "@tabler/icons-react";
 
+export type ConnectorMenuAction = "sync" | "disconnect" | "delete-data";
+
 interface ConnectorActionsMenuProps {
   connectorName: string;
   isSyncing: boolean;
   isBusy: boolean;
-  showSyncActions: boolean;
-  showDisconnect: boolean;
-  showDeleteData: boolean;
+  /** Explicit menu items — prefer this over boolean show* flags. */
+  actions: ConnectorMenuAction[];
   onSync: () => void;
   onDisconnect: () => void;
   onDeleteData: () => void;
@@ -32,19 +33,19 @@ export default function ConnectorActionsMenu({
   connectorName,
   isSyncing,
   isBusy,
-  showSyncActions,
-  showDisconnect,
-  showDeleteData,
+  actions,
   onSync,
   onDisconnect,
   onDeleteData,
 }: ConnectorActionsMenuProps) {
-  const hasDestructive = showDisconnect || showDeleteData;
-  const hasMenuItems = showSyncActions || hasDestructive;
-
-  if (!hasMenuItems) {
+  if (actions.length === 0) {
     return null;
   }
+
+  const showSync = actions.includes("sync");
+  const showDisconnect = actions.includes("disconnect");
+  const showDeleteData = actions.includes("delete-data");
+  const hasDestructive = showDisconnect || showDeleteData;
 
   return (
     <DropdownMenu>
@@ -64,13 +65,13 @@ export default function ConnectorActionsMenu({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {showSyncActions ? (
+        {showSync ? (
           <DropdownMenuItem onSelect={onSync} disabled={isBusy}>
             <IconRefresh size={14} />
             {isSyncing ? "Syncing…" : "Sync now"}
           </DropdownMenuItem>
         ) : null}
-        {showSyncActions && hasDestructive ? <DropdownMenuSeparator /> : null}
+        {showSync && hasDestructive ? <DropdownMenuSeparator /> : null}
         {showDisconnect ? (
           <DropdownMenuItem
             className="text-danger focus:text-danger data-[highlighted]:text-danger"

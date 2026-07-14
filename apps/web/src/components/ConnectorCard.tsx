@@ -147,9 +147,11 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
                 connectorName={connector.name}
                 isSyncing={isSyncing}
                 isBusy={isSyncing}
-                showSyncActions
-                showDisconnect
-                showDeleteData={canDeleteImportedData}
+                actions={
+                  canDeleteImportedData
+                    ? ["sync", "disconnect", "delete-data"]
+                    : ["sync", "disconnect"]
+                }
                 onSync={handleSync}
                 onDisconnect={() => setShowDisconnectDialog(true)}
                 onDeleteData={() => setShowDeleteDataDialog(true)}
@@ -161,9 +163,7 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
                     connectorName={connector.name}
                     isSyncing={false}
                     isBusy={false}
-                    showSyncActions={false}
-                    showDisconnect={false}
-                    showDeleteData
+                    actions={["delete-data"]}
                     onSync={handleSync}
                     onDisconnect={() => setShowDisconnectDialog(true)}
                     onDeleteData={() => setShowDeleteDataDialog(true)}

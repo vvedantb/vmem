@@ -290,7 +290,7 @@ export default function FilesClient() {
           <div className="h-full overflow-y-auto scrollbar-thin">
             {showEmpty ? (
               <FileEmptyState
-                isRoot={isRoot}
+                variant={isRoot ? "root" : "folder"}
                 onUpload={() => setIsUploadModalOpen(true)}
               />
             ) : params.view === "grid" ? (

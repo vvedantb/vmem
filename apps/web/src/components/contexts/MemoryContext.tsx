@@ -9,7 +9,7 @@
  * direct Convex queries where live data is enough.
  */
 
-import { createContext, useCallback, useContext, useMemo } from "react";
+import { createContext, useCallback, use, useMemo } from "react";
 import {
   useConvexAuth,
   useAction,
@@ -503,7 +503,7 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function useMemoryContext() {
-  const context = useContext(MemoryContext);
+  const context = use(MemoryContext);
   if (!context) {
     throw new Error("useMemoryContext must be used within a MemoryProvider");
   }

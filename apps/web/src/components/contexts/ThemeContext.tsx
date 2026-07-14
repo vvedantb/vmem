@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, use, useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@vmem/backend";
@@ -77,7 +77,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function useThemeContext() {
-  const context = useContext(ThemeContext);
+  const context = use(ThemeContext);
   if (context === undefined) {
     throw new Error("useThemeContext must be used within a ThemeProvider");
   }

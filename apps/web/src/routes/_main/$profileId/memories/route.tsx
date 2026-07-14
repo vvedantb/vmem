@@ -1,8 +1,8 @@
 "use client";
 
+import { lazy, Suspense } from "react";
 import { createFileRoute, Outlet, useMatchRoute } from "@tanstack/react-router";
 import PageContainer from "@/components/PageContainer";
-import GraphHeaderControls from "@/components/_components/GraphHeaderControls";
 import MemoryListHeaderControls from "@/components/_components/MemoryListHeaderControls";
 import { MemoriesTabs } from "./-components/MemoriesTabs";
 import {
@@ -11,13 +11,21 @@ import {
 } from "./-components/MemoryGraphControllerContext";
 import { useMemoriesSearchParams } from "./useMemoriesSearchParams";
 
+const GraphHeaderControls = lazy(
+  () => import("@/components/_components/GraphHeaderControls"),
+);
+
 export const Route = createFileRoute("/_main/$profileId/memories")({
   component: MemoriesLayout,
 });
 
 function GraphHeaderSlot() {
   const controller = useMemoryGraphControllerContext();
-  return <GraphHeaderControls controller={controller} />;
+  return (
+    <Suspense fallback={null}>
+      <GraphHeaderControls controller={controller} />
+    </Suspense>
+  );
 }
 
 function MemoriesLayoutShell() {

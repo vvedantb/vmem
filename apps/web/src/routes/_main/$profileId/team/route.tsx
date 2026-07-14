@@ -62,7 +62,9 @@ function TeamWorkspaceLayout() {
         title={data.team.name}
         showTitle={false}
         centeredMaxWidth
-        leftSection={<TeamTabs isOwner={data.role === "owner"} />}
+        leftSection={
+          <TeamTabs role={data.role === "owner" ? "owner" : "member"} />
+        }
       >
         <Outlet />
       </PageContainer>

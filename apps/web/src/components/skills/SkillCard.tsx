@@ -9,8 +9,8 @@ interface SkillCardProps {
   skill: Doc<"skills">;
   selected?: boolean;
   onSelect: () => void;
-  /** When true, the row shows a checkbox and activating it toggles selection. */
-  selectionMode?: boolean;
+  /** navigate = open skill; bulk-select = checkbox toggle */
+  mode?: "navigate" | "bulk-select";
   checked?: boolean;
   onToggleSelect?: () => void;
 }
@@ -19,14 +19,15 @@ export function SkillCard({
   skill,
   selected,
   onSelect,
-  selectionMode = false,
+  mode = "navigate",
   checked = false,
   onToggleSelect,
 }: SkillCardProps) {
   const isEnabled = skill.enabled !== false;
+  const bulkSelect = mode === "bulk-select";
 
   const activate = () => {
-    if (selectionMode) {
+    if (bulkSelect) {
       onToggleSelect?.();
     } else {
       onSelect();
@@ -40,7 +41,7 @@ export function SkillCard({
     }
   };
 
-  const highlighted = selectionMode ? checked : selected;
+  const highlighted = bulkSelect ? checked : selected;
 
   return (
     <div
@@ -55,7 +56,7 @@ export function SkillCard({
         highlighted ? "text-foreground" : "text-muted hover:text-foreground",
       )}
     >
-      {selectionMode ? (
+      {bulkSelect ? (
         <Checkbox
           checked={checked}
           tabIndex={-1}

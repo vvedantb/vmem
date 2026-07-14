@@ -58,20 +58,28 @@ export function CommandPalette({ onToggleSidebar }: Props) {
     if (!next) setQuery("");
   };
 
-  const profiles = useQuery(api.profiles.list, isAuthenticated ? {} : "skip");
+  const profiles = useQuery(
+    api.profiles.list,
+    isAuthenticated && open ? {} : "skip",
+  );
 
-  const skills = useQuery(api.skills.listMy, isAuthenticated ? {} : "skip");
+  const skills = useQuery(
+    api.skills.listMy,
+    isAuthenticated && open ? {} : "skip",
+  );
 
   const wikiHits = useQuery(
     api.wiki.search,
-    isAuthenticated && query.length >= 2 ? { queryText: query } : "skip",
+    isAuthenticated && open && query.length >= 2
+      ? { queryText: query }
+      : "skip",
   );
 
   const searchMemories = useAction(api.memoryApi.searchMemories);
   const [memoryHits, setMemoryHits] = useState<MemoryHit[]>([]);
 
   useEffect(() => {
-    if (!isAuthenticated || query.length < 2) {
+    if (!open || !isAuthenticated || query.length < 2) {
       setMemoryHits([]);
       return;
     }
@@ -84,7 +92,7 @@ export function CommandPalette({ onToggleSidebar }: Props) {
       cancelled = true;
       clearTimeout(handle);
     };
-  }, [query, isAuthenticated, searchMemories]);
+  }, [open, query, isAuthenticated, searchMemories]);
 
   const runAndClose = (fn: () => void) => {
     fn();

@@ -66,8 +66,8 @@ interface WikiTreeProps {
   nodes: Array<Doc<"wikiNodes">>;
   selectedId: string | null;
   onSelect: (id: string) => void;
-  /** When true, rows show checkboxes and clicking toggles selection instead of opening. */
-  selectionMode?: boolean;
+  /** navigate = open node; bulk-select = checkbox toggle */
+  mode?: "navigate" | "bulk-select";
   selectedNodeIds?: ReadonlySet<Id<"wikiNodes">>;
   onToggleSelect?: (id: Id<"wikiNodes">) => void;
 }
@@ -84,10 +84,11 @@ export default function WikiTree({
   nodes,
   selectedId,
   onSelect,
-  selectionMode = false,
+  mode = "navigate",
   selectedNodeIds,
   onToggleSelect,
 }: WikiTreeProps) {
+  const selectionMode = mode === "bulk-select";
   const teamId = useActiveTeamId();
   const createNode = useMutation(api.wiki.createNode).withOptimisticUpdate(
     (localStore, args) => {

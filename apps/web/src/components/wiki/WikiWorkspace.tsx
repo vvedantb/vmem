@@ -1,6 +1,14 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import {
+  lazy,
+  Suspense,
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+  useMemo,
+} from "react";
 import { useMutation, useQuery } from "convex/react";
 import { useNavigate } from "@tanstack/react-router";
 import { useActiveProfile } from "@/components/workspace/active-profile";
@@ -10,12 +18,15 @@ import { Dialog, DialogContent, DialogTitle } from "@vmem/ui";
 import PageContainer from "@/components/PageContainer";
 import { buildTree, findAncestors, findFirstDocumentId } from "./_utils";
 import type { OutlineHeading } from "./_utils";
-import WikiEditor from "./WikiEditor";
 import WikiOutline from "./WikiOutline";
 import { useWikiSidebar } from "./WikiSidebarContext";
 import { WikiPageBreadcrumb } from "./WikiPageBreadcrumb";
 import { WikiDocActionsMenu } from "./WikiDocActionsMenu";
-import { WikiHistoryPanel } from "./WikiHistoryPanel";
+
+const WikiEditor = lazy(() => import("./WikiEditor"));
+const WikiHistoryPanel = lazy(() =>
+  import("./WikiHistoryPanel").then((m) => ({ default: m.WikiHistoryPanel })),
+);
 
 interface WikiWorkspaceProps {
   docId: string | null;
@@ -210,27 +221,34 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
                   headings={headings}
                   activeHeadingId={activeHeadingId}
                   onJump={handleJumpToHeading}
-                  hasDoc={hasDoc}
                 />
               </div>
             ) : null}
 
             <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-              <WikiEditor
-                docId={docId}
-                titleForCopy={titleDraft}
-                onRegisterCopy={(handler) => {
-                  copyDocumentRef.current = handler;
-                  setCopyReady(handler !== null);
-                }}
-                onRegisterRestore={(handler) => {
-                  restoreDocumentRef.current = handler;
-                }}
-                onHeadingsChange={setHeadings}
-                onActiveHeadingChange={setActiveHeadingId}
-                onWordCountChange={setWordCount}
-                jumpRequest={jumpRequest}
-              />
+              <Suspense
+                fallback={
+                  <div className="flex flex-1 items-center justify-center">
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-default border-t-transparent" />
+                  </div>
+                }
+              >
+                <WikiEditor
+                  docId={docId}
+                  titleForCopy={titleDraft}
+                  onRegisterCopy={(handler) => {
+                    copyDocumentRef.current = handler;
+                    setCopyReady(handler !== null);
+                  }}
+                  onRegisterRestore={(handler) => {
+                    restoreDocumentRef.current = handler;
+                  }}
+                  onHeadingsChange={setHeadings}
+                  onActiveHeadingChange={setActiveHeadingId}
+                  onWordCountChange={setWordCount}
+                  jumpRequest={jumpRequest}
+                />
+              </Suspense>
             </div>
           </div>
         ) : nodes === undefined ? (
@@ -265,18 +283,21 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
               headings={headings}
               activeHeadingId={activeHeadingId}
               onJump={handleJumpToHeading}
-              hasDoc={hasDoc}
             />
           </div>
         </DialogContent>
       </Dialog>
 
-      <WikiHistoryPanel
-        open={historyVisible}
-        onOpenChange={setHistoryVisible}
-        docId={hasDoc && doc ? doc._id : null}
-        onRestore={handleRestore}
-      />
+      {historyVisible ? (
+        <Suspense fallback={null}>
+          <WikiHistoryPanel
+            open={historyVisible}
+            onOpenChange={setHistoryVisible}
+            docId={hasDoc && doc ? doc._id : null}
+            onRestore={handleRestore}
+          />
+        </Suspense>
+      ) : null}
     </PageContainer>
   );
 }
