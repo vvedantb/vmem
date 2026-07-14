@@ -37,7 +37,7 @@ export const resolveUserIdByClerkIdInternal = internalQuery({
 
 /**
  * Look up the cache row for a clerkId. Returns null when no row exists
- * yet — `getContextPrompt` treats that as "first call, schedule a regen
+ * yet — `mcpGetContextPrompt` treats that as "first call, schedule a regen
  * and return placeholder".
  */
 export const getByClerkIdInternal = internalQuery({

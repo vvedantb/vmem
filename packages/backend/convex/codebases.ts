@@ -299,44 +299,6 @@ export const syncAllMy = authAction({
   },
 });
 
-interface CodeFileNode {
-  id: string;
-  path: string;
-  directory: string;
-  filename: string;
-  extension: string;
-  sizeBytes: number;
-}
-
-interface ImportEdge {
-  source: string;
-  target: string;
-  importPath: string;
-}
-
-interface CodebaseGraphResult {
-  nodes: CodeFileNode[];
-  edges: ImportEdge[];
-}
-
-export const getCodebaseGraph = authAction({
-  args: { codebaseId: v.string() },
-  handler: async (ctx, args): Promise<CodebaseGraphResult> => {
-    const neo = await ctx.runQuery(
-      internal.codebases.resolveNeo4jAccessInternal,
-      { codebaseId: args.codebaseId, userId: ctx.userId },
-    );
-    if (!neo) throw new Error("Codebase not found");
-    return await ctx.runAction(
-      internal.neo4jActions.codebases.getCodebaseGraphInternal,
-      {
-        clerkId: neo.ownerClerkId,
-        codebaseId: neo.codebaseId,
-      },
-    );
-  },
-});
-
 export const normalizeCodebaseId = internalQuery({
   args: { id: v.string() },
   handler: async (ctx, args) => {

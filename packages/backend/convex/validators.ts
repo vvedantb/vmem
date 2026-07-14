@@ -140,6 +140,21 @@ export const codebaseFields = {
   isArchived: v.optional(v.boolean()),
 };
 
+/** Neo4j codebase symbol node kinds (graph / impact / MCP args). */
+export const codebaseSymbolKindValidator = v.union(
+  v.literal("code-file"),
+  v.literal("code-function"),
+  v.literal("code-class"),
+  v.literal("code-interface"),
+  v.literal("code-process"),
+);
+
+/** Blast-radius / impact traversal direction. */
+export const codebaseDirectionValidator = v.union(
+  v.literal("upstream"),
+  v.literal("downstream"),
+);
+
 export const openRouterLogRecordFields = {
   userId: v.id("users"),
   profileId: v.optional(v.string()),

@@ -166,33 +166,6 @@ export const runDreamForProfileById = internalAction({
   },
 });
 
-export const runDreamForActiveProfile = internalAction({
-  args: {
-    clerkId: v.string(),
-    profileId: v.id("profiles"),
-  },
-  handler: async (ctx, args): Promise<DreamRunResult> => {
-    const profile = await ctx.runQuery(internal.profiles.getByIdInternal, {
-      profileId: args.profileId,
-    });
-    if (!profile) {
-      throw new Error("Profile not found");
-    }
-
-    if (isRateLimited(profile.lastDreamRunAt)) {
-      return emptyDreamResult("rate-limited");
-    }
-
-    return ctx.runAction(
-      internal.neo4jActions.dreamMode.runDreamForProfileInternal,
-      {
-        clerkId: args.clerkId,
-        profileId: args.profileId,
-      },
-    );
-  },
-});
-
 export const runDreamForUserInternal = internalAction({
   args: {
     clerkId: v.string(),

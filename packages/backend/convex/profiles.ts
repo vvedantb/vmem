@@ -4,7 +4,6 @@ import { internalQuery, internalMutation } from "./_generated/server";
 import { getOrCreateDefaultProfile } from "./profiles/helpers";
 import {
   runCreate,
-  runGet,
   runGetOrCreateDefault,
   runList,
   runUpdate,
@@ -25,12 +24,6 @@ import {
 export const list = authQuery({
   args: {},
   handler: async (ctx) => runList(ctx),
-});
-
-/** Get a single profile by ID (must belong to user OR be a team profile where user is a member) */
-export const get = authQuery({
-  args: { profileId: v.id("profiles") },
-  handler: async (ctx, args) => runGet(ctx, args),
 });
 
 /** Get the currently active profile, or create default if none exists */
@@ -170,19 +163,6 @@ export const listPersonalByUserIdInternal = internalQuery({
       .withIndex("by_user", (q) => q.eq("userId", args.userId))
       .collect();
     return all.filter((p) => p.teamId === undefined);
-  },
-});
-
-/** Get default profile by user ID (internal) */
-export const getDefaultByUserIdInternal = internalQuery({
-  args: { userId: v.id("users") },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query("profiles")
-      .withIndex("by_user_default", (q) =>
-        q.eq("userId", args.userId).eq("isDefault", true),
-      )
-      .first();
   },
 });
 

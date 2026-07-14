@@ -9,19 +9,10 @@ import {
   type SymbolContext,
 } from "../engine/neo4j/codebase/read";
 import { runWithNeo4jDriver } from "./neo4jActions/_shared/driver";
-
-const kindValidator = v.union(
-  v.literal("code-file"),
-  v.literal("code-function"),
-  v.literal("code-class"),
-  v.literal("code-interface"),
-  v.literal("code-process"),
-);
-
-const directionValidator = v.union(
-  v.literal("upstream"),
-  v.literal("downstream"),
-);
+import {
+  codebaseDirectionValidator,
+  codebaseSymbolKindValidator,
+} from "./validators";
 
 type GraphResult = Awaited<ReturnType<typeof getGraphOverview>>;
 
@@ -29,10 +20,10 @@ type GraphResult = Awaited<ReturnType<typeof getGraphOverview>>;
 export const getGraph = authAction({
   args: {
     codebaseId: v.string(),
-    kinds: v.optional(v.array(kindValidator)),
+    kinds: v.optional(v.array(codebaseSymbolKindValidator)),
     processId: v.optional(v.string()),
     blastRadiusOf: v.optional(v.string()),
-    blastDirection: v.optional(directionValidator),
+    blastDirection: v.optional(codebaseDirectionValidator),
     blastDepth: v.optional(v.number()),
   },
   handler: async (ctx, args): Promise<GraphResult> => {

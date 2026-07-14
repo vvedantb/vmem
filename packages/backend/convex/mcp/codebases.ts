@@ -19,6 +19,10 @@ import {
   type SymbolContext,
 } from "../../engine/neo4j/codebase/read";
 import { runWithNeo4jDriver } from "../neo4jActions/_shared/driver";
+import {
+  codebaseDirectionValidator,
+  codebaseSymbolKindValidator,
+} from "../validators";
 
 type GraphResult = Awaited<ReturnType<typeof getGraphOverview>>;
 type ImpactResult = { nodes: ImpactNode[] };
@@ -29,19 +33,6 @@ function normalizeOptionalInt(value: number | undefined): number | undefined {
   if (value === undefined) return undefined;
   return Math.trunc(value);
 }
-
-const symbolKindValidator = v.union(
-  v.literal("code-file"),
-  v.literal("code-function"),
-  v.literal("code-class"),
-  v.literal("code-interface"),
-  v.literal("code-process"),
-);
-
-const directionValidator = v.union(
-  v.literal("upstream"),
-  v.literal("downstream"),
-);
 
 async function requireOwnedCodebaseId(
   ctx: ActionCtx,
@@ -94,7 +85,7 @@ export const mcpSearchCodebaseSymbols = internalAction({
     clerkId: v.string(),
     codebaseId: v.string(),
     query: v.string(),
-    kind: v.optional(symbolKindValidator),
+    kind: v.optional(codebaseSymbolKindValidator),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args): Promise<SearchResult> => {
@@ -144,7 +135,7 @@ export const mcpGetCodebaseImpact = internalAction({
     clerkId: v.string(),
     codebaseId: v.string(),
     symbolId: v.string(),
-    direction: directionValidator,
+    direction: codebaseDirectionValidator,
     depth: v.optional(v.number()),
   },
   handler: async (ctx, args): Promise<ImpactResult> => {
@@ -189,10 +180,10 @@ export const mcpGetCodebaseGraph = internalAction({
   args: {
     clerkId: v.string(),
     codebaseId: v.string(),
-    kinds: v.optional(v.array(symbolKindValidator)),
+    kinds: v.optional(v.array(codebaseSymbolKindValidator)),
     processId: v.optional(v.string()),
     blastRadiusOf: v.optional(v.string()),
-    blastDirection: v.optional(directionValidator),
+    blastDirection: v.optional(codebaseDirectionValidator),
     blastDepth: v.optional(v.number()),
   },
   handler: async (ctx, args): Promise<GraphResult> => {

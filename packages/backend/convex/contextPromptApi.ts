@@ -1,6 +1,5 @@
 "use node";
 
-import { authAction, requireClerkId } from "./auth";
 import { internalAction, type ActionCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
@@ -35,9 +34,8 @@ const PLACEHOLDER = [
  * or older than `MAX_AGE_MS`, schedules a fresh regeneration but still
  * returns whatever is there (or a placeholder on the very first call).
  *
- * Kept symmetric between the dashboard (auth-cookie) and MCP (JWT)
- * flows — both call into the shared `internal.contextPromptCache`
- * helpers, so cache invariants hold across surfaces.
+ * MCP (JWT) callers go through `mcpGetContextPrompt`, which shares
+ * `internal.contextPromptCache` helpers so cache invariants hold.
  */
 async function getOrSchedule(
   ctx: ActionCtx,
@@ -78,24 +76,6 @@ async function getOrSchedule(
     isPlaceholder: false,
   };
 }
-
-/**
- * Dashboard-facing action. Used by the web app if/when we want to
- * preview what AI clients will see (out of scope for this plan but the
- * action stays cheap and uniform).
- */
-export const getContextPrompt = authAction({
-  args: {},
-  returns: v.object({
-    content: v.string(),
-    generatedAt: v.number(),
-    isPlaceholder: v.boolean(),
-  }),
-  handler: async (ctx): Promise<ContextPromptResponse> => {
-    const clerkId = await requireClerkId(ctx);
-    return await getOrSchedule(ctx, clerkId);
-  },
-});
 
 /**
  * MCP-side action. The Convex MCP server (httpAction → "use node" action
