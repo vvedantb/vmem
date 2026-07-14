@@ -54,13 +54,13 @@ export default function Sidebar({
   const { pendingCount: proposalsCount } = useProposals();
   const { pageTitle } = usePageTitle();
 
-  // Lift stats fetching here so it persists across mobile menu open/close
+  // lift stats fetching here so it persists across mobile menu open/close
   const { isAuthenticated } = useConvexAuth();
   const getStats = useAction(api.dashboardApi.getStats);
   const [stats, setStats] = useState<SidebarStats>({ addedToday: 0, total: 0 });
 
-  // Whether the active workspace is a team profile — drives the conditional
-  // "Team" nav group (members / team settings).
+  // whether the active workspace is a team profile — drives the conditional
+  // "Team" nav group (members / team settings)
   const profiles = useQuery(api.profiles.list, isAuthenticated ? {} : "skip");
   const isTeamWorkspace =
     profiles?.find((p) => p._id === activeProfileId)?.teamId !== undefined;
@@ -68,8 +68,8 @@ export default function Sidebar({
   const refreshStats = useCallback(
     async (fresh: boolean) => {
       try {
-        // Scope counts to the active workspace; without one (fresh browser
-        // on /settings) fall back to user-wide totals.
+        // scope counts to the active workspace; without one (fresh browser
+        // on /settings) fall back to user-wide totals
         const data = await getStats(
           fresh
             ? { fresh: true, profileId: activeProfileId }
@@ -91,11 +91,7 @@ export default function Sidebar({
     void refreshStats(false);
   }, [isAuthenticated, refreshStats]);
 
-  // Live updates: the memory-events change feed pushes created/updated/deleted
-  // events over Convex's reactive query; refetch stats with the action cache
-  // bypassed (the cached entry predates the write). Throttled so a burst
-  // (bookmark/history import) collapses into one Neo4j count per window —
-  // later batches re-arm the timer, so counts converge after the burst.
+  // live updates: the memory-events change feed pushes created/updated/deleted events
   const statsRefetchTimer = useRef<number | null>(null);
   const handleMemoryEvent = useCallback(() => {
     if (statsRefetchTimer.current !== null) return;

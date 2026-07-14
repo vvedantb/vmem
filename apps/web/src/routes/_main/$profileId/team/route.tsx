@@ -8,14 +8,9 @@ import { IconLoader2 } from "@tabler/icons-react";
 import PageContainer from "@/components/PageContainer";
 import { TeamDetailProvider } from "@/components/teams/team-context";
 import { useActiveProfile } from "@/components/workspace/active-profile";
-import { TeamTabs } from "./-components/TeamTabs";
+import { TeamWorkspaceTabs } from "./-components/TeamTabs";
 
-/**
- * Team area of a team workspace (members / team settings). Personal
- * workspaces have no team — they get bounced to the workspace home.
- * Knowledge and overview have no equivalent here: the workspace's
- * memories and home pages already are them.
- */
+// team area of a team workspace (members / team settings)
 export const Route = createFileRoute("/_main/$profileId/team")({
   component: TeamWorkspaceLayout,
 });
@@ -41,8 +36,8 @@ function TeamWorkspaceLayout() {
   }, [teamId, navigate, profile._id]);
 
   if (teamId === undefined || data === null) {
-    // Not a team workspace (or membership just got revoked) — the effect
-    // above redirects; render nothing meanwhile.
+    // not a team workspace (or membership just got revoked) — the effect
+    // above redirects; render nothing meanwhile
     return null;
   }
 
@@ -57,12 +52,12 @@ function TeamWorkspaceLayout() {
   }
 
   return (
-    <TeamDetailProvider value={data}>
+    <TeamDetailProvider detail={data}>
       <PageContainer
         title={data.team.name}
         showTitle={false}
         centeredMaxWidth
-        leftSection={<TeamTabs isOwner={data.role === "owner"} />}
+        leftSection={<TeamWorkspaceTabs />}
       >
         <Outlet />
       </PageContainer>

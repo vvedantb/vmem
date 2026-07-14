@@ -1,10 +1,48 @@
 import type { ReactNode } from "react";
 import { Card, CardContent, cn } from "@vmem/ui";
-import { formatProposalRelativeDate } from "./_proposalUtils";
+import { formatRelativeTime } from "@/lib/formatters";
 
 export function ProposalFieldLabel({ children }: { children: ReactNode }) {
   return (
     <div className="mb-1.5 text-xs font-medium text-muted">{children}</div>
+  );
+}
+
+export function ProposalTextBlock({
+  label,
+  children,
+  className,
+}: {
+  label: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn("rounded-lg bg-surface-secondary/50 p-3", className)}>
+      <ProposalFieldLabel>{label}</ProposalFieldLabel>
+      <p className="whitespace-pre-wrap break-words text-sm text-foreground">
+        {children}
+      </p>
+    </div>
+  );
+}
+
+export function ProposalMutedTextBlock({
+  label,
+  children,
+  className,
+}: {
+  label: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn("rounded-lg bg-surface-secondary/50 p-3", className)}>
+      <ProposalFieldLabel>{label}</ProposalFieldLabel>
+      <p className="whitespace-pre-wrap break-words text-sm text-muted">
+        {children}
+      </p>
+    </div>
   );
 }
 
@@ -36,7 +74,7 @@ export function ProposalShell({
               {meta}
               <span aria-hidden>·</span>
               <time dateTime={timestamp} title={timestamp}>
-                {formatProposalRelativeDate(timestamp)}
+                {formatRelativeTime(timestamp)}
               </time>
             </div>
             <h3 className="text-base font-medium leading-snug text-foreground text-balance">

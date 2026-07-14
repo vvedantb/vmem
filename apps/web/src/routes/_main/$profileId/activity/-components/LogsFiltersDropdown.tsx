@@ -1,6 +1,5 @@
 "use client";
 
-import type { ReactNode } from "react";
 import {
   Button,
   DropdownMenu,
@@ -50,17 +49,10 @@ import {
   type Range,
   type Scope,
 } from "../-searchParams";
+import type { ProfileListItem, TeamListItem } from "./-types";
+import { FilterOptionContent } from "./FilterOptionContent";
 
-/**
- * Filters dropdown for `/ai-logs`.
- *
- * Consolidates scope (when teams exist), range, features, models,
- * and profile into one dropdown. Sort stays separate — it only changes order.
- *
- * Scope switches the row population (personal vs team); it does not count
- * toward the active-filter badge. Active count = non-default filter fields.
- * Multi-value arrays count as 1 if non-empty, not their length.
- */
+// filters dropdown for `/ai-logs`
 const RANGE_OPTIONS: Range[] = ["today", "7d", "30d", "all"];
 
 const RANGE_ICONS: Record<Range, typeof IconSun> = {
@@ -85,38 +77,17 @@ const FEATURE_ICONS: Record<Feature, typeof IconSparkles> = {
   "embedding-backfill": IconVectorBezier,
 };
 
-function FilterOptionContent({
-  icon,
-  children,
-}: {
-  icon: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <span className="flex items-center gap-2">
-      <span className="flex shrink-0 text-muted [&>svg]:size-4">{icon}</span>
-      {children}
-    </span>
-  );
-}
-
 interface LogsFiltersDropdownProps {
   scope: Scope;
   teamId: string;
-  teams: readonly { _id: string; name: string }[];
+  teams: readonly TeamListItem[];
   onScopeChange: (scope: Scope, teamId: string | null) => void;
   range: Range;
   features: readonly Feature[];
   models: readonly string[];
   availableModels: readonly string[];
   profileId: string;
-  profiles:
-    | readonly {
-        _id: string;
-        name: string;
-        color?: string | null | undefined;
-      }[]
-    | undefined;
+  profiles: readonly ProfileListItem[] | undefined;
   onRangeChange: (range: Range) => void;
   onFeaturesChange: (features: Feature[]) => void;
   onModelsChange: (models: string[]) => void;
@@ -199,9 +170,12 @@ export function LogsFiltersDropdown({
                   </FilterOptionContent>
                 </DropdownMenuRadioItem>
                 {teams.map((t) => (
-                  <DropdownMenuRadioItem key={t._id} value={`team:${t._id}`}>
+                  <DropdownMenuRadioItem
+                    key={t.team._id}
+                    value={`team:${t.team._id}`}
+                  >
                     <FilterOptionContent icon={<IconUsers size={16} />}>
-                      {t.name}
+                      {t.team.name}
                     </FilterOptionContent>
                   </DropdownMenuRadioItem>
                 ))}

@@ -6,7 +6,7 @@ import { v } from "convex/values";
 import { applyEnrichment } from "../../engine/neo4j/memory/enrichment";
 import { getDriver } from "../../engine/neo4j/driver";
 import { sanitizeTag } from "../../engine/neo4j/memory/tagNormalize";
-import { tryUserAndApiKeyByClerkId } from "../lib/envVars";
+import { tryOpenRouterAuth } from "./agent/shared";
 import {
   callFullEnrichmentLlm,
   loadEnrichmentVocabulary,
@@ -22,11 +22,7 @@ export const enrichMemoryInternal = internalAction({
   },
   handler: async (ctx, args) => {
     try {
-      const auth = await tryUserAndApiKeyByClerkId(
-        ctx,
-        args.clerkId,
-        "OPENROUTER_API_KEY",
-      );
+      const auth = await tryOpenRouterAuth(ctx, args.clerkId);
       if (!auth) {
         console.log(
           "[enrichment] No OPENROUTER_API_KEY configured, skipping enrichment",

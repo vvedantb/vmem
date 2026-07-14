@@ -1,19 +1,7 @@
 "use client";
 
-/**
- * Right-side symbol detail panel.
- *
- * Renders metadata + neighbours + process membership for the currently
- * selected codebase symbol. Backed by `useSymbolContext` rather than the
- * graph payload so we always show the freshest call edges (the graph's
- * `kinds` filter can hide neighbours that are still relevant to the panel).
- *
- * Visibility is driven by the controller's `selectedSymbolId`, which is
- * stored in the URL (`?blastRadiusOf=…`) so refreshing the page or sharing
- * the URL preserves the user's selection.
- */
+// right-side symbol detail panel
 
-import { useCallback } from "react";
 import {
   IconX,
   IconArrowRight,
@@ -32,10 +20,8 @@ import {
 } from "@tabler/icons-react";
 import { Badge, Button } from "@vmem/ui";
 import { AnimatePresence, motion } from "motion/react";
-import {
-  useSymbolContext,
-  type CodeNodeKind,
-} from "@/hooks/useCodebaseGraphData";
+import type { CodebaseSymbolContext, CodeNodeKind } from "./-types";
+import { useSymbolContext } from "@/hooks/useCodebaseGraphData";
 
 interface CodebaseSymbolPanelProps {
   codebaseId: string;
@@ -46,17 +32,28 @@ interface CodebaseSymbolPanelProps {
   onToggleBlastDirection: () => void;
 }
 
+const KIND_ICON_MAP = new Map<CodeNodeKind, typeof IconFile>([
+  ["code-file", IconFile],
+  ["code-function", IconFunction],
+  ["code-class", IconHexagon],
+  ["code-interface", IconCube],
+  ["code-process", IconRoute],
+]);
+
 function KindIcon({ kind, size = 18 }: { kind: CodeNodeKind; size?: number }) {
-  const cls = "text-muted flex-shrink-0";
-  if (kind === "code-file") return <IconFile size={size} className={cls} />;
-  if (kind === "code-function")
-    return <IconFunction size={size} className={cls} />;
-  if (kind === "code-class") return <IconHexagon size={size} className={cls} />;
-  if (kind === "code-interface")
-    return <IconCube size={size} className={cls} />;
-  if (kind === "code-process") return <IconRoute size={size} className={cls} />;
-  return <IconHash size={size} className={cls} />;
+  const Icon = KIND_ICON_MAP.get(kind) ?? IconHash;
+  return <Icon size={size} className="text-muted flex-shrink-0" />;
 }
+
+const SYMBOL_TRAIT_CONFIG: {
+  field: "isExported" | "isAsync" | "isTest";
+  icon: typeof IconShieldCheck;
+  label: string;
+}[] = [
+  { field: "isExported", icon: IconShieldCheck, label: "exported" },
+  { field: "isAsync", icon: IconBolt, label: "async" },
+  { field: "isTest", icon: IconFlask, label: "test" },
+];
 
 export function CodebaseSymbolPanel({
   codebaseId,
@@ -67,13 +64,6 @@ export function CodebaseSymbolPanel({
   onToggleBlastDirection,
 }: CodebaseSymbolPanelProps) {
   const { context, isLoading } = useSymbolContext(codebaseId, selectedSymbolId);
-
-  const handleNavigate = useCallback(
-    (id: string) => {
-      onSelectSymbol(id);
-    },
-    [onSelectSymbol],
-  );
 
   return (
     <AnimatePresence initial={false}>
@@ -145,35 +135,7 @@ export function CodebaseSymbolPanel({
                       </div>
                     </div>
                   )}
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {context.isExported && (
-                    <Badge
-                      variant="outline"
-                      className="bg-surface-secondary/40 text-[10px] h-5 px-1.5 border-0"
-                    >
-                      <IconShieldCheck size={10} className="mr-1" />
-                      exported
-                    </Badge>
-                  )}
-                  {context.isAsync && (
-                    <Badge
-                      variant="outline"
-                      className="bg-surface-secondary/40 text-[10px] h-5 px-1.5 border-0"
-                    >
-                      <IconBolt size={10} className="mr-1" />
-                      async
-                    </Badge>
-                  )}
-                  {context.isTest && (
-                    <Badge
-                      variant="outline"
-                      className="bg-surface-secondary/40 text-[10px] h-5 px-1.5 border-0"
-                    >
-                      <IconFlask size={10} className="mr-1" />
-                      test
-                    </Badge>
-                  )}
-                </div>
+                <SymbolTraitBadges context={context} />
               </div>
 
               {/* Blast-direction toggle. Selecting a symbol always activates
@@ -196,49 +158,19 @@ export function CodebaseSymbolPanel({
                 </div>
               )}
 
-              {/* Calls Out */}
-              {context.callsOut.length > 0 && (
-                <div className="px-4 py-2 mt-2">
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <IconArrowRight size={12} className="text-muted" />
-                    <span className="text-xs font-medium text-muted">
-                      Calls
-                    </span>
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] h-4 px-1 bg-surface-secondary border-0"
-                    >
-                      {context.callsOut.length}
-                    </Badge>
-                  </div>
-                  <NeighbourList
-                    items={context.callsOut}
-                    onNavigate={handleNavigate}
-                  />
-                </div>
-              )}
-
-              {/* Calls In */}
-              {context.callsIn.length > 0 && (
-                <div className="px-4 py-2">
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <IconArrowLeft size={12} className="text-muted" />
-                    <span className="text-xs font-medium text-muted">
-                      Called by
-                    </span>
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] h-4 px-1 bg-surface-secondary border-0"
-                    >
-                      {context.callsIn.length}
-                    </Badge>
-                  </div>
-                  <NeighbourList
-                    items={context.callsIn}
-                    onNavigate={handleNavigate}
-                  />
-                </div>
-              )}
+              <SymbolRelationSection
+                icon={IconArrowRight}
+                title="Calls"
+                items={context.callsOut}
+                onNavigate={onSelectSymbol}
+                className="mt-2"
+              />
+              <SymbolRelationSection
+                icon={IconArrowLeft}
+                title="Called by"
+                items={context.callsIn}
+                onNavigate={onSelectSymbol}
+              />
 
               {/* Processes */}
               {context.processes.length > 0 && (
@@ -261,7 +193,7 @@ export function CodebaseSymbolPanel({
                         key={proc.id}
                         type="button"
                         variant="ghost"
-                        onClick={() => handleNavigate(proc.id)}
+                        onClick={() => onSelectSymbol(proc.id)}
                         className="h-auto w-full rounded-md bg-surface-secondary/40 p-2 text-left hover:bg-surface-tertiary"
                       >
                         <p className="text-xs font-medium text-foreground truncate font-mono">
@@ -300,11 +232,65 @@ export function CodebaseSymbolPanel({
   );
 }
 
+type SymbolNeighbour = CodebaseSymbolContext["callsIn"][number];
+
+function SymbolTraitBadges({ context }: { context: CodebaseSymbolContext }) {
+  const traits = SYMBOL_TRAIT_CONFIG.filter((trait) => context[trait.field]);
+  if (traits.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap gap-1.5 pt-1">
+      {traits.map(({ field, icon: TraitIcon, label }) => (
+        <Badge
+          key={field}
+          variant="outline"
+          className="bg-surface-secondary/40 text-[10px] h-5 px-1.5 border-0"
+        >
+          <TraitIcon size={10} className="mr-1" />
+          {label}
+        </Badge>
+      ))}
+    </div>
+  );
+}
+
+function SymbolRelationSection({
+  icon: SectionIcon,
+  title,
+  items,
+  onNavigate,
+  className,
+}: {
+  icon: typeof IconArrowRight;
+  title: string;
+  items: SymbolNeighbour[];
+  onNavigate: (id: string) => void;
+  className?: string;
+}) {
+  if (items.length === 0) return null;
+
+  return (
+    <div className={className ? `px-4 py-2 ${className}` : "px-4 py-2"}>
+      <div className="flex items-center gap-1.5 mb-2">
+        <SectionIcon size={12} className="text-muted" />
+        <span className="text-xs font-medium text-muted">{title}</span>
+        <Badge
+          variant="outline"
+          className="text-[10px] h-4 px-1 bg-surface-secondary border-0"
+        >
+          {items.length}
+        </Badge>
+      </div>
+      <NeighbourList items={items} onNavigate={onNavigate} />
+    </div>
+  );
+}
+
 function NeighbourList({
   items,
   onNavigate,
 }: {
-  items: { id: string; name: string; filePath: string }[];
+  items: SymbolNeighbour[];
   onNavigate: (id: string) => void;
 }) {
   return (
@@ -315,7 +301,7 @@ function NeighbourList({
           type="button"
           variant="ghost"
           onClick={() => onNavigate(item.id)}
-          className="h-auto w-full rounded-md bg-surface-secondary/40 p-2 text-left hover:bg-surface-tertiary"
+          className="h-auto w-full rounded-md bg-surface-secondary/40 p-2 text-left hover:bg-surface-tertiary [content-visibility:auto] [contain-intrinsic-size:0_2.75rem]"
         >
           <p className="text-xs font-medium text-foreground truncate font-mono">
             {item.name}

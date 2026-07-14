@@ -1,10 +1,16 @@
 import type { FunctionReturnType } from "convex/server";
-import type { Doc, api } from "@vmem/backend";
+import { api } from "@vmem/backend";
 
-type GitHubConnection = FunctionReturnType<typeof api.github.getConnection>;
+export type GitHubConnection = FunctionReturnType<
+  typeof api.github.getConnection
+>;
+
+export type Connector = FunctionReturnType<
+  typeof api.connectors.crud.listMy
+>[number];
 
 export function isConnectorConnected(
-  connector: Doc<"connectors">,
+  connector: Connector,
   githubConnection: GitHubConnection | undefined,
 ): boolean {
   if (connector.name === "GitHub") {
@@ -13,7 +19,7 @@ export function isConnectorConnected(
   return connector.connectionStatus === "connected";
 }
 
-/** Connectable in UI — has OAuth provider or dedicated GitHub flow. */
-export function isConnectorConnectable(connector: Doc<"connectors">): boolean {
+// connectable in UI — has OAuth provider or dedicated GitHub flow
+export function isConnectorConnectable(connector: Connector): boolean {
   return connector.name === "GitHub" || connector.provider !== undefined;
 }

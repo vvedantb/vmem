@@ -1,14 +1,6 @@
 "use client";
 
-/**
- * List-view controls rendered in the page header.
- *
- * Renders View + Search + Filters popovers and the Add Memory trigger. The
- * View dropdown switches between the unified memory/wiki/skill list and the
- * tag-rows view (formerly the standalone /memories/tags route). Mirrors the
- * graph's header pattern but with list-specific filter data; graph-only
- * controls (graph Options, Legend) are intentionally omitted.
- */
+// list-view controls rendered in the page header
 
 import { useMemo } from "react";
 import { useQuery } from "convex/react";
@@ -17,7 +9,6 @@ import {
   IconChevronDown,
   IconHash,
   IconList,
-  IconPlus,
 } from "@tabler/icons-react";
 import {
   Button,
@@ -28,7 +19,7 @@ import {
 } from "@vmem/ui";
 import { api } from "@vmem/backend";
 import { useActiveProfile } from "@/components/workspace/active-profile";
-import AddMemoryModal from "@/components/AddMemoryModal";
+import AddMemoryIconTrigger from "@/components/AddMemoryIconTrigger";
 import HeaderSearchInput from "./HeaderSearchInput";
 import { MemoryFiltersButton } from "@/routes/_main/$profileId/memories/_components/MemoryFiltersButton";
 import {
@@ -125,28 +116,12 @@ export default function MemoryListHeaderControls() {
         isDark={isDark}
         ariaLabel="Filter list"
       />
-      <AddMemoryModal
-        trigger={
-          <Button
-            variant="outline"
-            size="icon-sm"
-            aria-label="Add memory"
-            className="h-11 w-11 shrink-0 md:h-8 md:w-8"
-          >
-            <IconPlus size={16} />
-          </Button>
-        }
-      />
+      <AddMemoryIconTrigger className="h-11 w-11 shrink-0 md:h-8 md:w-8" />
     </div>
   );
 }
 
-// ---- View dropdown ----
-//
-// Two options today (memories / tags) but kept as a dropdown rather than a
-// segmented toggle so adding a third view later (e.g. sources) doesn't
-// require a layout rethink. Per the project's UI rules: prefer dropdowns
-// with explicit options over toggle buttons when a control has ≥2 states.
+// two options today (memories / tags) but kept as a dropdown rather than a segmented
 
 const VIEW_OPTIONS: {
   value: ListViewMode;
@@ -157,6 +132,10 @@ const VIEW_OPTIONS: {
   { value: "tags", label: "Tags", Icon: IconHash },
 ];
 
+const VIEW_BY_VALUE = new Map(
+  VIEW_OPTIONS.map((option) => [option.value, option]),
+);
+
 function ViewDropdown({
   view,
   onChange,
@@ -164,8 +143,7 @@ function ViewDropdown({
   view: ListViewMode;
   onChange: (next: ListViewMode) => void;
 }) {
-  const current =
-    VIEW_OPTIONS.find((o) => o.value === view) ?? VIEW_OPTIONS.at(0);
+  const current = VIEW_BY_VALUE.get(view) ?? VIEW_OPTIONS.at(0);
   if (!current) return null;
   const CurrentIcon = current.Icon;
   return (
@@ -195,7 +173,7 @@ function ViewDropdown({
                 <Icon size={14} stroke={1.5} />
                 {label}
               </span>
-              {isActive && <IconCheck size={14} className="text-muted" />}
+              {isActive ? <IconCheck size={14} className="text-muted" /> : null}
             </DropdownMenuItem>
           );
         })}

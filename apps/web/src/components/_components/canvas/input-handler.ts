@@ -139,18 +139,13 @@ export function attachInputHandlers(
       return;
     }
 
-    // Freeze hover while a zoom gesture is in flight (spring still converging
-    // on its target scale). Hover changes mid-gesture fire React tooltip
-    // state → parent re-render → a forced full canvas repaint that breaks the
-    // gesture's blit cadence — the difference between butter and stutter on
-    // dense graphs. Obsidian likewise pauses hover during zoom; the first
-    // mousemove after the spring settles re-resolves it.
+    // freeze hover while a zoom gesture is in flight (spring still converging on its
     if (Math.abs(viewport.targetScale - viewport.scale) > 0.001) {
       return;
     }
 
-    // Hover detection — nodes take precedence over edges. When the cursor
-    // is over a node, the edge hover is cleared so the node tooltip wins.
+    // hover detection — nodes take precedence over edges. When the cursor
+    // is over a node, the edge hover is cleared so the node tooltip wins
     const hitNode = getNodeAt(
       spatialIndexRef.current,
       world.x,
@@ -259,7 +254,7 @@ export function attachInputHandlers(
 
   function onDblClick(e: MouseEvent) {
     const { x, y } = getCanvasXY(e);
-    // Double-click on a node → focus local graph. On background → zoom.
+    // double-click on a node → focus local graph. On background → zoom
     const world = screenToWorld(
       viewport,
       x,
@@ -324,7 +319,7 @@ export function attachInputHandlers(
       const touch0 = e.touches.item(0);
       const touch1 = e.touches.item(1);
       if (!touch0 || !touch1) return;
-      // Pinch start — release any single-touch state
+      // pinch start — release any single-touch state
       interaction.draggedNodeId = null;
       interaction.isPanning = false;
       pinchStartDist = getPinchDist(touch0, touch1);
@@ -382,14 +377,14 @@ export function attachInputHandlers(
       const dist = getPinchDist(touch0, touch1);
       const center = getPinchCenter(touch0, touch1);
 
-      // Pinch zoom
+      // pinch zoom
       const scaleFactor = dist / pinchStartDist;
       const newScale = pinchStartScale * scaleFactor;
       const clampedScale = Math.max(0.1, Math.min(5, newScale));
       viewport.targetScale = clampedScale;
       viewport.scale = clampedScale;
 
-      // Pan with pinch center
+      // pan with pinch center
       viewport.offsetX += center.x - lastTouchX;
       viewport.offsetY += center.y - lastTouchY;
       viewport.targetOffsetX = viewport.offsetX;
@@ -437,7 +432,7 @@ export function attachInputHandlers(
   function onTouchEnd(e: TouchEvent) {
     e.preventDefault();
 
-    // If still two fingers, ignore partial lift
+    // if still two fingers, ignore partial lift
     if (e.touches.length > 0) return;
 
     if (interaction.draggedNodeId) {
@@ -446,7 +441,7 @@ export function attachInputHandlers(
       simRef.current?.reheat();
     }
 
-    // Momentum pan
+    // momentum pan
     if (interaction.isPanning && panHistory.length >= 2) {
       const now = performance.now();
       const oldest = panHistory.at(0);
@@ -460,7 +455,7 @@ export function attachInputHandlers(
     }
     interaction.isPanning = false;
 
-    // Tap detection
+    // tap detection
     if (!touchHasDragged && performance.now() - touchStartTime < 300) {
       const world = screenToWorld(
         viewport,

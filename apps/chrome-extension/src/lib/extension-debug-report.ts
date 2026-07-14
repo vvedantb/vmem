@@ -54,7 +54,7 @@ export async function buildExtensionDebugReport(): Promise<DebugReport> {
 
   const syncHostCookiePresent = await hasSyncHostSessionCookie();
 
-  // Narrow the untyped storage value to a flat string/number record.
+  // Narrow the untyped storage value to a flat string/number record
   let authDebug: Record<string, string | number> | null = null;
   const rawAuthDebug: unknown = stored.lastAuthDebug;
   if (typeof rawAuthDebug === "object" && rawAuthDebug !== null) {

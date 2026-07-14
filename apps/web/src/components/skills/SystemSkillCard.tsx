@@ -1,24 +1,15 @@
 "use client";
 
 import { Link } from "@tanstack/react-router";
-import type { FunctionReturnType } from "convex/server";
-import type { api } from "@vmem/backend";
 import { Badge, Card, CardContent } from "@vmem/ui";
-
-type SystemSkillEntry = FunctionReturnType<
-  typeof api.systemSkills.listCatalog
->[number];
+import type { SystemSkillEntry } from "@/components/skills/_utils";
 
 interface SystemSkillCardProps {
   entry: SystemSkillEntry;
   profileId: string;
 }
 
-/**
- * A catalog entry in the Skills Hub. The whole card links to the skill's
- * detail page (where it can be read, installed, toggled, removed) — same
- * card-to-detail pattern as CodebaseCard.
- */
+// A catalog entry in the Skills Hub
 export function SystemSkillCard({ entry, profileId }: SystemSkillCardProps) {
   return (
     <Link

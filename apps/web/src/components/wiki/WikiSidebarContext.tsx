@@ -9,8 +9,6 @@ type WikiSidebarContextValue = {
   setHistoryVisible: (visible: boolean) => void;
   wordCount: number;
   setWordCount: (count: number) => void;
-  hasDoc: boolean;
-  setHasDoc: (has: boolean) => void;
 };
 
 const WikiSidebarContext = createContext<WikiSidebarContextValue | null>(null);
@@ -19,7 +17,6 @@ export function WikiSidebarProvider({ children }: { children: ReactNode }) {
   const [outlineVisible, setOutlineVisible] = useState(true);
   const [historyVisible, setHistoryVisible] = useState(false);
   const [wordCount, setWordCount] = useState(0);
-  const [hasDoc, setHasDoc] = useState(false);
 
   return (
     <WikiSidebarContext
@@ -30,8 +27,6 @@ export function WikiSidebarProvider({ children }: { children: ReactNode }) {
         setHistoryVisible,
         wordCount,
         setWordCount,
-        hasDoc,
-        setHasDoc,
       }}
     >
       {children}

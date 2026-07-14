@@ -10,7 +10,7 @@ import {
 import { getMemory } from "../../../engine/neo4j/memory/crud";
 import { getDriver } from "../../../engine/neo4j/driver";
 import { chunkText } from "../../../engine/neo4j/chunking";
-import { tryEmbedMany } from "./shared";
+import { bestEffortEmbedMany } from "../../lib/openRouter/bestEffortEmbed";
 
 export interface ChunkMemoryArgs {
   clerkId: string;
@@ -34,7 +34,8 @@ export async function runChunkMemory(
     resolvedProfileId = parent?.profileId ?? undefined;
   }
 
-  const embeddings = await tryEmbedMany(ctx, {
+  const embeddings = await bestEffortEmbedMany({
+    ctx,
     clerkId: args.clerkId,
     profileId: resolvedProfileId,
     feature: "memory-save",

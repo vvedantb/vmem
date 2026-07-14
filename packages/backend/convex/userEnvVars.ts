@@ -24,7 +24,7 @@ export const list = authQuery({
   },
 });
 
-/** Removes a single env var by key. No-op when the user has no doc yet. */
+// removes a single env var by key
 export const removeVar = authMutation({
   args: { key: v.string() },
   returns: v.null(),
@@ -41,10 +41,7 @@ export const removeVar = authMutation({
   },
 });
 
-/**
- * Returns raw (encrypted) env var entries for a user.
- * Internal-only — callers decrypt via `lib/envVars.ts` or `userEnvVarsActions.revealValue`.
- */
+// returns raw (encrypted) env var entries for a user
 export const getAllInternal = internalQuery({
   args: { userId: v.id("users") },
   returns: v.array(
@@ -63,13 +60,7 @@ export const getAllInternal = internalQuery({
   },
 });
 
-/**
- * Inserts or updates a single env var entry for a user.
- *
- * When `preservedPrevKey` is supplied and differs from `key`, the entry with
- * that old key is removed first — enabling atomic key renames. An entry
- * already matching `key` is always replaced (upsert semantics).
- */
+// inserts or updates a single env var entry for a user
 export const upsertVarInternal = internalMutation({
   args: {
     userId: v.id("users"),

@@ -4,7 +4,6 @@ import {
   IconStack2,
   IconUserCircle,
   IconAdjustments,
-  IconTerminal2,
   IconPuzzle,
   IconFileImport,
   IconUsers,
@@ -22,11 +21,7 @@ import {
 } from "../sidebar-icons";
 import type { NavGroup, NavHref, SettingsNavGroup } from "./types";
 
-/**
- * Workspace-scoped nav items use the `$profileId` placeholder; resolve them
- * with `navHrefToPath` (or pass `params` to a typed `<Link>`). Teams have no
- * nav item — team workspaces live in the sidebar workspace switcher.
- */
+// workspace-scoped nav items use the `$profileId` placeholder; resolve them with
 export const navGroups: NavGroup[] = [
   {
     title: "Library",
@@ -54,11 +49,7 @@ export const navGroups: NavGroup[] = [
   },
 ];
 
-/**
- * Resolve a nav href into a concrete pathname for the active workspace.
- * Without a known workspace, workspace-scoped hrefs fall back to `/home`
- * (the workspace resolver route); user-level hrefs pass through untouched.
- */
+// resolve a nav href into a concrete pathname for the active workspace
 export function navHrefToPath(
   href: NavHref,
   profileId: string | undefined,
@@ -68,11 +59,7 @@ export function navHrefToPath(
   return href.replace("$profileId", profileId);
 }
 
-/**
- * Settings sub-nav, grouped into 3 sections rendered with headers in the
- * settings slide-out (mirroring the main nav group pattern). Routes are
- * unchanged — this is purely a visual grouping for discoverability.
- */
+// settings sub-nav, grouped into 3 sections rendered with headers in the settings
 export const settingsNavGroups: SettingsNavGroup[] = [
   {
     title: "General",
@@ -90,11 +77,6 @@ export const settingsNavGroups: SettingsNavGroup[] = [
     items: [
       { href: "/settings/api", label: "API", icon: IconKey },
       { href: "/settings/secrets", label: "Secrets", icon: IconLock },
-      {
-        href: "/settings/playground",
-        label: "Playground",
-        icon: IconTerminal2,
-      },
     ],
   },
   {

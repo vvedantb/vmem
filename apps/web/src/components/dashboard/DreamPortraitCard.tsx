@@ -3,18 +3,16 @@ import { IconMoonStars } from "@tabler/icons-react";
 import { useActiveProfile } from "../workspace/active-profile";
 import { formatRelativeTime } from "@/lib/formatters";
 
-/**
- * Dream Mode's evolving portrait of this workspace's owner — written and
- * revised by the background Dreamer, grounded in stored memories
- * (`dreamPortraitSources`). Renders nothing until the first dream pass
- * produces one.
- */
+// dream Mode's evolving portrait of this workspace's owner
 export function DreamPortraitCard() {
   const profile = useActiveProfile();
-  if (profile.dreamPortrait === undefined || profile.dreamPortrait === "") {
-    return null;
-  }
+  if (!profile.dreamPortrait) return null;
+
   const sourceCount = profile.dreamPortraitSources?.length ?? 0;
+  const groundedSuffix =
+    sourceCount > 0
+      ? ` · grounded in ${sourceCount} ${sourceCount === 1 ? "memory" : "memories"}`
+      : "";
 
   return (
     <Card className="shadow-none">
@@ -28,8 +26,7 @@ export function DreamPortraitCard() {
           </div>
           <span className="text-xs text-muted">
             Dreamt {formatRelativeTime(profile.dreamPortraitUpdatedAt ?? null)}
-            {sourceCount > 0 &&
-              ` · grounded in ${String(sourceCount)} ${sourceCount === 1 ? "memory" : "memories"}`}
+            {groundedSuffix}
           </span>
         </div>
         <p className="whitespace-pre-wrap break-words text-sm text-muted">

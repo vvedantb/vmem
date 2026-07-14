@@ -1,28 +1,46 @@
-"use client";
+import { createContext, use, type ReactNode } from "react";
+import type { FunctionReturnType } from "convex/server";
+import type { api } from "@vmem/backend";
 
-import { createContext, useContext, type ReactNode } from "react";
-import type { TeamDetail } from "./team-detail";
+export type TeamDetail = NonNullable<FunctionReturnType<typeof api.teams.get>>;
+export type TeamMember = TeamDetail["members"][number];
 
-const TeamDetailContext = createContext<TeamDetail | null>(null);
+type TeamWorkspaceContextValue = {
+  detail: TeamDetail;
+  meta: { isOwner: boolean };
+};
+
+const TeamWorkspaceContext = createContext<TeamWorkspaceContextValue | null>(
+  null,
+);
 
 export function TeamDetailProvider({
-  value,
+  detail,
   children,
 }: {
-  value: TeamDetail;
+  detail: TeamDetail;
   children: ReactNode;
 }) {
+  const value: TeamWorkspaceContextValue = {
+    detail,
+    meta: { isOwner: detail.role === "owner" },
+  };
+
   return (
-    <TeamDetailContext.Provider value={value}>
+    <TeamWorkspaceContext.Provider value={value}>
       {children}
-    </TeamDetailContext.Provider>
+    </TeamWorkspaceContext.Provider>
   );
 }
 
-export function useTeamDetail(): TeamDetail {
-  const value = useContext(TeamDetailContext);
+export function useTeamWorkspace(): TeamWorkspaceContextValue {
+  const value = use(TeamWorkspaceContext);
   if (value === null) {
-    throw new Error("useTeamDetail must be used within TeamDetailProvider");
+    throw new Error("useTeamWorkspace must be used within TeamDetailProvider");
   }
   return value;
+}
+
+export function useTeamDetail(): TeamDetail {
+  return useTeamWorkspace().detail;
 }

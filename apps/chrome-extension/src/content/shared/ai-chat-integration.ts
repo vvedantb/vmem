@@ -8,8 +8,9 @@
  */
 
 import type { ContentMessage, BackgroundResponse } from "@/types/messages";
-import type { MemoryCandidate } from "@/types/api";
+import type { ExtensionStorage } from "@/types/storage";
 import { safeSendMessage } from "@/lib/safe-message";
+import { formatMemoriesContext } from "./format-memories-context";
 import { showToast } from "./toast";
 import {
   showMemoryPanel,
@@ -31,24 +32,16 @@ export interface AIChatConfig {
 
 // ── Cached settings (read once, kept in sync via storage listener) ───────────
 
-interface CachedSettings {
-  autoSearchEnabled: boolean;
-  autoCaptureEnabled: boolean;
-  defaultProfileId: string;
-}
+type CachedSettings = Pick<
+  ExtensionStorage,
+  "autoSearchEnabled" | "autoCaptureEnabled" | "defaultProfileId"
+>;
 
 const SETTING_DEFAULTS: CachedSettings = {
   autoSearchEnabled: true,
   autoCaptureEnabled: false,
   defaultProfileId: "",
 };
-
-// ── Context formatting (matches existing "Use vmem" button format) ───────────
-
-function formatMemoriesContext(mems: MemoryCandidate[]): string {
-  const lines = mems.map((m) => `- ${m.title}: ${m.content.slice(0, 200)}`);
-  return `[Context from vmem]\n${lines.join("\n")}\n\n`;
-}
 
 // ── Setup ────────────────────────────────────────────────────────────────────
 

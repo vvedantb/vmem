@@ -25,14 +25,7 @@ function isTokenExpired(token: string): boolean {
   }
 }
 
-/**
- * Mint a fresh Convex JWT via Clerk, directly in this service worker.
- * The SW has chrome.cookies + host permissions, so Clerk's syncHost
- * bridge can read the web app's session cookie here. (The old offscreen
- * document could NOT — offscreen contexts only get chrome.runtime, so
- * after every browser restart auth was unrecoverable until the popup
- * was opened, and auto-sync sat at "no-session" for days.)
- */
+/** mint convex jwt in the sw (has cookies; offscreen does not). */
 async function refreshTokenFromClerk(): Promise<string | null> {
   if (pendingRefresh) return pendingRefresh;
 
@@ -45,7 +38,7 @@ async function refreshTokenFromClerk(): Promise<string | null> {
       }
 
       // Do not clear chrome.storage.session — popup TokenSync may have a
-      // valid token even when the syncHost cookie is missing.
+      // valid token even when the syncHost cookie is missing
       return null;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

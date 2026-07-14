@@ -1,14 +1,6 @@
 import TurndownService from "turndown";
 
-/**
- * Convert HTML to Markdown using Turndown.
- *
- * Lives in the extension/background context (not in the page-injected
- * content script) because Turndown needs to be imported, and content
- * scripts have their own bundle. The Readability content script returns
- * raw article HTML; the background converts it to markdown before
- * persisting.
- */
+/** html → markdown via turndown (runs in extension/background, not page cs). */
 export function htmlToMarkdown(html: string): string {
   const turndownService = new TurndownService({
     headingStyle: "atx",
@@ -16,7 +8,7 @@ export function htmlToMarkdown(html: string): string {
     bulletListMarker: "-",
   });
 
-  // Remove empty links
+  // drop empty links
   turndownService.addRule("removeEmptyLinks", {
     filter: (node) => node.nodeName === "A" && !node.textContent?.trim(),
     replacement: () => "",

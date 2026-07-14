@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, use, useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@vmem/backend";
@@ -9,7 +9,7 @@ type Theme = "light" | "dark" | "system";
 
 interface ThemeContextType {
   theme: Theme;
-  /** Matches the active document class (respects system preference). */
+  // matches the active document class (respects system preference)
   isDark: boolean;
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
@@ -39,8 +39,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setMounted(true);
   }, []);
 
-  // Apply Convex theme to the document when settings load or change externally.
-  // Do not depend on nextTheme — that caused a revert flicker while mutations were in flight.
+  // apply Convex theme to the document when settings load or change externally
+  // do not depend on nextTheme — that caused a revert flicker while mutations were in flight
   useEffect(() => {
     if (!mounted || settings === undefined) return;
     const convexTheme = settings.theme ?? "system";
@@ -77,7 +77,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function useThemeContext() {
-  const context = useContext(ThemeContext);
+  const context = use(ThemeContext);
   if (context === undefined) {
     throw new Error("useThemeContext must be used within a ThemeProvider");
   }

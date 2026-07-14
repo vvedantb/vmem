@@ -1,12 +1,16 @@
 import type { Doc, Id } from "../_generated/dataModel";
-import { parentKey } from "../lib/scopedTree";
+import {
+  buildChildrenByParentKey,
+  normalizePathSegments,
+  parentKey,
+} from "../lib/scopedTree";
 
-/** Minimal wiki tree shape for path resolution (no Convex coupling in tests). */
+// minimal wiki tree shape for path resolution (no Convex coupling in tests)
 export interface WikiPathNode {
   id: Id<"wikiNodes">;
   parentId: Id<"wikiNodes"> | null;
   title: string;
-  kind: "folder" | "document";
+  kind: "folder" | "document" | "artifact";
 }
 
 export function wikiPathNodeFromDoc(node: Doc<"wikiNodes">): WikiPathNode {
@@ -23,26 +27,13 @@ function wikiParentKey(parentId: Id<"wikiNodes"> | null): string {
 }
 
 export function normalizeWikiPathSegments(path: string): string[] {
-  return path
-    .split("/")
-    .map((segment) => segment.trim())
-    .filter((segment) => segment.length > 0);
+  return normalizePathSegments(path);
 }
 
 export function buildWikiChildrenByParent(
   nodes: WikiPathNode[],
 ): Map<string, WikiPathNode[]> {
-  const byParent = new Map<string, WikiPathNode[]>();
-  for (const node of nodes) {
-    const key = wikiParentKey(node.parentId);
-    const bucket = byParent.get(key);
-    if (bucket) {
-      bucket.push(node);
-    } else {
-      byParent.set(key, [node]);
-    }
-  }
-  return byParent;
+  return buildChildrenByParentKey(nodes, (node) => node.parentId);
 }
 
 export function findWikiChild(
@@ -54,7 +45,7 @@ export function findWikiChild(
   return children.find((child) => child.title === title) ?? null;
 }
 
-/** Resolve a slash path to the folder id at the end, or null if missing/not a folder. */
+// resolve a slash path to the folder id at the end, or null if missing/not a folder
 export function resolveWikiFolderPath(
   nodes: WikiPathNode[],
   path: string,

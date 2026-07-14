@@ -7,34 +7,17 @@ import {
   DialogTitle,
   Badge,
 } from "@vmem/ui";
-import type { Doc } from "@vmem/backend";
+import type { AiLogRow, ProfileListItem } from "./-types";
 import { featureLabelFor } from "./_aiLogsUtils";
 
-/**
- * Side-style detail panel for a single log row.
- *
- * Shows everything `listMine` returned for the row plus the truncated
- * prompt/completion previews when the deploy enabled them via
- * `OPENROUTER_LOG_PROMPTS=1`. The privacy default is OFF — when the env
- * isn't set the previews are absent on the row, so the panel just hides
- * those sections rather than displaying empty placeholders.
- *
- * Implemented via Dialog for now (no Sheet primitive in @vmem/ui yet).
- * Per CLAUDE.md, modal-style overlays are allowed to use shadows since
- * they are floating, not inline content.
- */
-type LogRow = Doc<"openRouterLogs">;
-type ProfileLite = {
-  _id: string;
-  name: string;
-  color?: string | null | undefined;
-};
+// detail dialog for one ai log row (prompt/response when logging enabled)
+type LogRow = AiLogRow;
 
 interface LogRowDetailProps {
   row: LogRow | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  profile: ProfileLite | undefined;
+  profile: ProfileListItem | undefined;
 }
 
 export function LogRowDetail({
@@ -57,7 +40,7 @@ function LogRowDetailBody({
   profile,
 }: {
   row: LogRow;
-  profile: ProfileLite | undefined;
+  profile: ProfileListItem | undefined;
 }) {
   const featureLabel = featureLabelFor(row.feature);
   return (

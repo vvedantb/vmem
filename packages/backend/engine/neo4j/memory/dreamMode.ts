@@ -411,7 +411,7 @@ export async function findMergeCandidates(
       while ((parent.get(root) ?? root) !== root) {
         root = parent.get(root) ?? root;
       }
-      // Path compression
+      // path compression
       let cur = id;
       while (cur !== root) {
         const next = parent.get(cur) ?? root;
@@ -474,7 +474,7 @@ export async function findMergeCandidates(
       }
     }
 
-    // Components of size >= 2, biggest first.
+    // components of size >= 2, biggest first
     const components = new Map<string, MergeClusterMember[]>();
     for (const member of members.values()) {
       const root = find(member.id);

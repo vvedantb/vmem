@@ -1,12 +1,7 @@
-import {
-  useState,
-  useEffect,
-  useCallback,
-  useMemo,
-  type ReactNode,
-} from "react";
+import { useState, useEffect } from "react";
 import { useQueryStates } from "nuqs";
 import { useConvexAuth, useAction } from "convex/react";
+import { useActiveProfile } from "@/components/workspace/active-profile";
 import {
   Button,
   Card,
@@ -59,15 +54,8 @@ import {
   type EventDatePreset,
   type SortDirection,
 } from "../-searchParams";
-
-interface ActivityItem {
-  id: string;
-  type: string;
-  title: string;
-  description: string;
-  timestamp: string;
-  relativeTime: string;
-}
+import type { ActivityItem } from "./-types";
+import { FilterOptionContent } from "./FilterOptionContent";
 
 const EVENT_TYPE_ICONS: Record<EventType, TablerIcon> = {
   memory_created: IconBrain,
@@ -85,21 +73,6 @@ const EVENT_DATE_ICONS: Record<EventDatePreset, TablerIcon> = {
   week: IconCalendarWeek,
   month: IconCalendarMonth,
 };
-
-function FilterOptionContent({
-  icon,
-  children,
-}: {
-  icon: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <span className="flex items-center gap-2">
-      <span className="flex shrink-0 text-muted [&>svg]:size-4">{icon}</span>
-      {children}
-    </span>
-  );
-}
 
 function isEventType(type: string): type is EventType {
   return Object.prototype.hasOwnProperty.call(EVENT_TYPE_ICONS, type);
@@ -130,7 +103,7 @@ function ActivityEventRow({ item }: { item: ActivityItem }) {
   const Icon = getActivityIcon(item.type);
 
   return (
-    <div className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-[background-color] hover:bg-surface-tertiary/50">
+    <div className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-[background-color] hover:bg-surface-tertiary/50 [content-visibility:auto] [contain-intrinsic-size:auto_2.75rem]">
       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-tertiary/60">
         <Icon size={16} className="text-muted" stroke={1.5} />
       </div>
@@ -168,7 +141,7 @@ function LoadingSkeleton() {
   );
 }
 
-function EmptyState({ hasFilters }: { hasFilters: boolean }) {
+function NoActivityEmptyState() {
   return (
     <Card className="flex min-h-0 flex-1 flex-col shadow-none">
       <CardContent className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-16 text-center">
@@ -176,29 +149,70 @@ function EmptyState({ hasFilters }: { hasFilters: boolean }) {
           <IconActivity size={28} className="text-muted" stroke={1.5} />
         </div>
         <h3 className="mb-1 text-base font-medium text-foreground text-balance">
-          {hasFilters ? "No matching activity" : "No activity yet"}
+          No activity yet
         </h3>
         <p className="max-w-sm text-sm text-muted text-balance">
-          {hasFilters
-            ? "Try adjusting your filters to see more results."
-            : "Your activity history will appear here."}
+          Your activity history will appear here.
         </p>
       </CardContent>
     </Card>
   );
 }
 
+function FilteredActivityEmptyState() {
+  return (
+    <Card className="flex min-h-0 flex-1 flex-col shadow-none">
+      <CardContent className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-16 text-center">
+        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-surface-tertiary/60">
+          <IconActivity size={28} className="text-muted" stroke={1.5} />
+        </div>
+        <h3 className="mb-1 text-base font-medium text-foreground text-balance">
+          No matching activity
+        </h3>
+        <p className="max-w-sm text-sm text-muted text-balance">
+          Try adjusting your filters to see more results.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function filterAndSortActivity(
+  activity: ActivityItem[],
+  types: EventType[],
+  range: EventDatePreset,
+  sortDir: SortDirection,
+): ActivityItem[] {
+  let result = [...activity];
+
+  if (types.length > 0) {
+    result = result.filter(
+      (item) => isEventType(item.type) && types.includes(item.type),
+    );
+  }
+
+  const threshold = getDateThreshold(range);
+  if (threshold !== null) {
+    result = result.filter(
+      (item) => new Date(item.timestamp).getTime() >= threshold,
+    );
+  }
+
+  result.sort((a, b) => {
+    const dateA = new Date(a.timestamp).getTime();
+    const dateB = new Date(b.timestamp).getTime();
+    return sortDir === "desc" ? dateB - dateA : dateA - dateB;
+  });
+
+  return result;
+}
+
 const DATE_PRESETS: EventDatePreset[] = ["all", "today", "week", "month"];
 
-/**
- * Events panel for `/activity` — the user-action audit log (memory created,
- * file uploaded, sync completed, etc.).
- *
- * Renders compact rows inside a capped card scroll region (same pattern as
- * API usage logs).
- */
+// events panel for `/activity`
 export function EventsPanel() {
   const { isAuthenticated } = useConvexAuth();
+  const activeProfileId = useActiveProfile()._id;
   const getRecentActivity = useAction(api.dashboardApi.getRecentActivity);
 
   const [params] = useQueryStates(eventsSearchParams);
@@ -206,53 +220,59 @@ export function EventsPanel() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchActivity = useCallback(async () => {
+  useEffect(() => {
     if (!isAuthenticated) return;
 
+    let cancelled = false;
     setIsLoading(true);
     setError(null);
 
-    try {
-      const data = await getRecentActivity({ limit: 200 });
-      setActivity(data);
-    } catch (err) {
-      console.error("Failed to fetch activity:", err);
-      setError("Failed to load activity. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [isAuthenticated, getRecentActivity]);
+    void getRecentActivity({
+      limit: 200,
+      profileId: activeProfileId,
+    })
+      .then((data) => {
+        if (!cancelled) setActivity(data);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch activity:", err);
+        if (!cancelled) {
+          setError("Failed to load activity. Please try again.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
 
-  useEffect(() => {
-    void fetchActivity();
-  }, [fetchActivity]);
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, getRecentActivity, activeProfileId]);
 
-  const filteredAndSortedActivity = useMemo(() => {
-    let result = [...activity];
-
-    if (params.types.length > 0) {
-      result = result.filter(
-        (item) => isEventType(item.type) && params.types.includes(item.type),
-      );
-    }
-
-    const threshold = getDateThreshold(params.range);
-    if (threshold !== null) {
-      result = result.filter(
-        (item) => new Date(item.timestamp).getTime() >= threshold,
-      );
-    }
-
-    result.sort((a, b) => {
-      const dateA = new Date(a.timestamp).getTime();
-      const dateB = new Date(b.timestamp).getTime();
-      return params.sortDir === "desc" ? dateB - dateA : dateA - dateB;
-    });
-
-    return result;
-  }, [activity, params.types, params.range, params.sortDir]);
+  const filteredAndSortedActivity = filterAndSortActivity(
+    activity,
+    params.types,
+    params.range,
+    params.sortDir,
+  );
 
   const hasFilters = params.types.length > 0 || params.range !== "all";
+
+  const retryFetch = () => {
+    if (!isAuthenticated) return;
+    setIsLoading(true);
+    setError(null);
+    void getRecentActivity({
+      limit: 200,
+      profileId: activeProfileId,
+    })
+      .then(setActivity)
+      .catch((err) => {
+        console.error("Failed to fetch activity:", err);
+        setError("Failed to load activity. Please try again.");
+      })
+      .finally(() => setIsLoading(false));
+  };
 
   if (isLoading) {
     return (
@@ -268,7 +288,7 @@ export function EventsPanel() {
         <Card className="flex min-h-0 flex-1 flex-col shadow-none">
           <CardContent className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-16 text-center">
             <p className="mb-4 text-sm text-danger">{error}</p>
-            <Button variant="outline" size="sm" onClick={fetchActivity}>
+            <Button variant="outline" size="sm" onClick={retryFetch}>
               <IconLoader2 size={16} className="mr-2" />
               Retry
             </Button>
@@ -281,7 +301,7 @@ export function EventsPanel() {
   if (filteredAndSortedActivity.length === 0) {
     return (
       <div className="flex h-full min-h-0 flex-col">
-        <EmptyState hasFilters={hasFilters} />
+        {hasFilters ? <FilteredActivityEmptyState /> : <NoActivityEmptyState />}
       </div>
     );
   }
@@ -301,14 +321,7 @@ export function EventsPanel() {
   );
 }
 
-/**
- * Events-specific filters + sort dropdowns. Lives in the right-section
- * of the activity page header when the Events tab is active.
- *
- * Filters dropdown consolidates Date Range + Event Types with an
- * active-filter count badge. Sort is intentionally separate — it doesn't
- * change which items are visible, only their order.
- */
+// events-specific filters + sort dropdowns
 export function EventsRightSection() {
   const [params, setParams] = useQueryStates(eventsSearchParams);
 

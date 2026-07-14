@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useQuery } from "convex/react";
-import { api } from "@vmem/backend";
+import { api, type Doc } from "@vmem/backend";
 import { IconLoader2 } from "@tabler/icons-react";
 import {
   ActiveProfileProvider,
@@ -13,17 +13,7 @@ import {
   NotFoundPage,
 } from "@/components/workspace/LegacyPathRedirect";
 
-/**
- * Workspace layout: validates the `$profileId` URL segment against the
- * profiles visible to the signed-in user (string-safe — `profiles.list`
- * never throws on garbage, unlike `profiles.get` whose arg is `v.id`)
- * and provides the active profile to everything below.
- *
- * No-match handling is load-bearing: single-segment legacy URLs like
- * `/chat` match this route with `profileId === "chat"`, so unknown ids
- * that are known legacy segments fall through to LegacyPathRedirect
- * instead of a 404.
- */
+// workspace layout: validates the `$profileId` URL segment against the profiles
 export const Route = createFileRoute("/_main/$profileId")({
   component: WorkspaceLayout,
 });
@@ -31,7 +21,9 @@ export const Route = createFileRoute("/_main/$profileId")({
 function WorkspaceLayout() {
   const { profileId } = Route.useParams();
   const profiles = useQuery(api.profiles.list);
-  const profile = profiles?.find((p) => p._id === profileId);
+  const profile: Doc<"profiles"> | undefined = profiles?.find(
+    (p) => p._id === profileId,
+  );
 
   useEffect(() => {
     if (profile !== undefined) rememberActiveProfileId(profile._id);

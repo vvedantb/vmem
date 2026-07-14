@@ -1,11 +1,14 @@
 import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import {
+  retrieveBodySchema,
+  type RetrieveBody,
+} from "../../memoryApi/contract";
+import {
   guardProfileAccess,
   withApiKeyAuth,
   type ApiKeyAuth,
 } from "./apiKeyAuth";
-import { retrieveBodySchema, type RetrieveBody } from "./schemas";
 import {
   isOpenRouterRequired,
   openRouterRequiredResponse,

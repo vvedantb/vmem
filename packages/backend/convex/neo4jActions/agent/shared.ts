@@ -27,15 +27,19 @@ export type AgentAuth = {
   apiKey: string;
 };
 
+// soft-fail: null when user or OPENROUTER_API_KEY is missing
+export async function tryOpenRouterAuth(
+  ctx: ActionCtx,
+  clerkId: string,
+): Promise<AgentAuth | null> {
+  return tryUserAndApiKeyByClerkId(ctx, clerkId, "OPENROUTER_API_KEY");
+}
+
 export async function requireOpenRouterAuth(
   ctx: ActionCtx,
   clerkId: string,
 ): Promise<AgentAuth | OpenRouterRequired> {
-  const auth = await tryUserAndApiKeyByClerkId(
-    ctx,
-    clerkId,
-    "OPENROUTER_API_KEY",
-  );
+  const auth = await tryOpenRouterAuth(ctx, clerkId);
   if (!auth) {
     return { error: "openrouter_required" };
   }
@@ -83,7 +87,7 @@ export async function extractFactsFromInstruction(
   return parseFactExtractionResponse(extractionRaw);
 }
 
-/** Stable per-fact externalId — hash segments joined with NUL. */
+// stable per-fact externalId — hash segments joined with NUL
 export function computeFactExternalId(parts: readonly string[]): string {
   const h = crypto.createHash("sha256");
   for (const [i, part] of parts.entries()) {
@@ -106,7 +110,7 @@ const EXTRACTED_FACT_META = {
   },
 } as const;
 
-/** Create a memory from an extracted fact (SDK store/update or v2 prompt-capture). */
+// create a memory from an extracted fact (SDK store/update or v2 prompt-capture)
 export async function createExtractedFactMemory(
   ctx: ActionCtx,
   args: {

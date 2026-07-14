@@ -1,50 +1,39 @@
 "use client";
 
-import {
-  IconChevronDown,
-  IconFileText,
-  IconFolderPlus,
-  IconPlus,
-} from "@tabler/icons-react";
-import {
-  Button,
-  cn,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@vmem/ui";
+import { IconCode, IconFileText, IconFolderPlus } from "@tabler/icons-react";
+import { DropdownMenuItem } from "@vmem/ui";
+import { FeatureAddMenu } from "@/components/FeatureAddMenu";
 
 interface WikiAddMenuProps {
   onCreateDocument: () => void;
+  onCreateArtifact: () => void;
   onCreateFolder: () => void;
+  // `toolbar` = icon-only for the sidebar chrome row; `labeled` = full Add button
+  variant?: "toolbar" | "labeled";
   className?: string;
 }
 
 export function WikiAddMenu({
   onCreateDocument,
+  onCreateArtifact,
   onCreateFolder,
+  variant = "labeled",
   className,
 }: WikiAddMenuProps) {
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className={cn("gap-2", className)}>
-          <IconPlus size={16} />
-          Add
-          <IconChevronDown size={14} className="text-muted" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onSelect={onCreateDocument}>
-          <IconFileText size={16} />
-          New document
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={onCreateFolder}>
-          <IconFolderPlus size={16} />
-          New folder
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <FeatureAddMenu variant={variant} className={className}>
+      <DropdownMenuItem onSelect={onCreateDocument}>
+        <IconFileText size={16} />
+        New document
+      </DropdownMenuItem>
+      <DropdownMenuItem onSelect={onCreateArtifact}>
+        <IconCode size={16} />
+        New artifact
+      </DropdownMenuItem>
+      <DropdownMenuItem onSelect={onCreateFolder}>
+        <IconFolderPlus size={16} />
+        New folder
+      </DropdownMenuItem>
+    </FeatureAddMenu>
   );
 }

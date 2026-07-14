@@ -50,7 +50,7 @@ export default function OAuthModal({
 
   const startOAuth = useAction(api.connectors.oauth.startOAuth);
 
-  // Cleanup function
+  // cleanup function
   const cleanup = useCallback(() => {
     if (pollIntervalRef.current) {
       clearInterval(pollIntervalRef.current);
@@ -62,7 +62,7 @@ export default function OAuthModal({
     popupRef.current = null;
   }, []);
 
-  // Handle message from popup
+  // handle message from popup
   const handleMessage = useCallback(
     (event: MessageEvent) => {
       const parsed = connectorOAuthCompleteSchema.safeParse(event.data);
@@ -84,7 +84,7 @@ export default function OAuthModal({
     [cleanup, onComplete, onClose],
   );
 
-  // Setup message listener
+  // setup message listener
   useEffect(() => {
     window.addEventListener("message", handleMessage);
     return () => {
@@ -93,7 +93,7 @@ export default function OAuthModal({
     };
   }, [handleMessage, cleanup]);
 
-  // Reset state when modal opens
+  // reset state when modal opens
   useEffect(() => {
     if (isOpen) {
       setStep("authorize");
@@ -108,7 +108,7 @@ export default function OAuthModal({
     setErrorMessage(null);
 
     try {
-      // Get OAuth URL from Convex (pass origin for postMessage security)
+      // get OAuth URL from Convex (pass origin for postMessage security)
       const result = await startOAuth({
         connectorId,
         returnUrl: window.location.origin,
@@ -129,7 +129,7 @@ export default function OAuthModal({
         return;
       }
 
-      // Open popup
+      // open popup
       const popup = window.open(
         result.authUrl,
         "oauth-popup",
@@ -146,11 +146,11 @@ export default function OAuthModal({
 
       popupRef.current = popup;
 
-      // Poll for popup close (user cancelled)
+      // poll for popup close (user cancelled)
       pollIntervalRef.current = setInterval(() => {
         if (popup.closed) {
           cleanup();
-          // Only set to authorize if we haven't received a message
+          // only set to authorize if we haven't received a message
           setStep((currentStep) => {
             if (currentStep === "connecting") {
               return "authorize";

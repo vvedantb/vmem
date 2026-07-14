@@ -1,6 +1,6 @@
 import type { GraphNode } from "./canvas/types";
 
-/** Client-side graph search over fields present on rendered nodes. */
+// client-side graph search over fields present on rendered nodes
 export function graphNodeMatchesLocalSearch(
   node: GraphNode,
   query: string,

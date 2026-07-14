@@ -10,23 +10,10 @@ import {
 import { Badge, Button } from "@vmem/ui";
 import { AnimatePresence, motion } from "motion/react";
 import type { RelatedNode } from "./canvas/types";
-
-interface NodeData {
-  id: string;
-  title: string;
-  /**
-   * `undefined` while the parent is lazy-fetching the memory body. Empty
-   * string means the fetch completed and the body is genuinely empty. We
-   * render a subtle loading state for `undefined` so the panel doesn't flash
-   * empty-then-populated.
-   */
-  content?: string;
-  tags: string[];
-  createdAt: string;
-}
+import type { GraphDetailNode } from "./graph-types";
 
 interface GraphDetailPanelProps {
-  nodeData: NodeData | null;
+  nodeData: GraphDetailNode | null;
   relatedNodes: RelatedNode[];
   onClose: () => void;
   onNavigate: (nodeId: string) => void;

@@ -1,33 +1,95 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useMemo } from "react";
 import { useQueryStates } from "nuqs";
-import { toast } from "sonner";
+import type { Id } from "@vmem/backend";
 import { VmemSpinner } from "@/components/svg-animations";
-import type { FileItem, FolderBreadcrumb } from "@/lib/file-types";
+import type { FileItem, FolderBreadcrumb, FileTreeNode } from "./-types";
 import PageContainer from "@/components/PageContainer";
 import FileUploadModal from "@/components/FileUploadModal";
 import FilePreviewModal from "@/components/FilePreviewModal";
 import { filesSearchParams } from "./-searchParams";
-import { sortFiles } from "./_utils";
+import { childCountMap, fileCategoryForNode, sortNodes } from "./_utils";
 import { useFileSelection } from "./_hooks/useFileSelection";
 import { useFilesData } from "./_hooks/useFilesData";
+import { useFilesActions } from "./_hooks/useFilesActions";
 import BreadcrumbNav from "./BreadcrumbNav";
 import FileToolbar from "./FileToolbar";
 import BulkActionBar from "./BulkActionBar";
 import FileDropZone from "./FileDropZone";
 import FileGrid from "./FileGrid";
 import FileListView from "./FileListView";
-import FileEmptyState from "./FileEmptyState";
+import { FileEmptyStateFolder, FileEmptyStateRoot } from "./FileEmptyState";
 import StorageStatusBar from "./StorageStatusBar";
 import MoveFolderDialog from "./MoveFolderDialog";
 import RenameDialog from "./RenameDialog";
 
+const filesLoadingView = (
+  <PageContainer title="Files">
+    <div className="flex h-full min-h-0 items-center justify-center">
+      <VmemSpinner size={24} className="text-muted" />
+    </div>
+  </PageContainer>
+);
+
+function buildBreadcrumbs(
+  nodes: Pick<FileTreeNode, "_id" | "name" | "parentId">[],
+  folderId: string | null,
+): FolderBreadcrumb[] {
+  const root: FolderBreadcrumb = { id: null, name: "Files" };
+  if (folderId === null) return [root];
+
+  const crumbs: FolderBreadcrumb[] = [root];
+  let currentId: string | null = folderId;
+  const visited = new Set<string>();
+
+  while (currentId !== null) {
+    if (visited.has(currentId)) break;
+    visited.add(currentId);
+    const folder = nodes.find((node) => node._id === currentId);
+    if (!folder) break;
+    crumbs.push({ id: folder._id, name: folder.name });
+    currentId = folder.parentId ?? null;
+  }
+
+  if (crumbs.length <= 1) return crumbs;
+  return [root, ...crumbs.slice(1).reverse()];
+}
+
+function resolveFolderId(
+  folderIdParam: string | null,
+  nodes: FileTreeNode[],
+): Id<"fileNodes"> | null {
+  if (folderIdParam === null) return null;
+  return nodes.find((node) => node._id === folderIdParam)?._id ?? null;
+}
+
+function toPreviewFile(node: FileTreeNode): FileItem {
+  const fileCategory = fileCategoryForNode(node);
+  const url = node.url ?? undefined;
+  return {
+    id: node._id,
+    name: node.name,
+    itemType: node.kind,
+    mimeType: node.mimeType ?? "",
+    fileCategory,
+    size: node.size ?? 0,
+    uploadedAt: new Date(node.createdAt).toISOString(),
+    parentFolderId: node.parentId ?? null,
+    thumbnailUrl:
+      node.kind === "file" && fileCategory === "image" ? url : undefined,
+    url,
+    memoryId: node.memoryId,
+    indexStatus: node.indexStatus,
+  };
+}
+
 export default function FilesClient() {
   const [params, setParams] = useQueryStates(filesSearchParams);
+  const folderIdParam = params.folderId ?? null;
 
   const {
-    allFiles,
+    nodes,
     isLoading,
     totalBytes,
     storageLimit,
@@ -38,220 +100,77 @@ export default function FilesClient() {
     deleteNodes,
   } = useFilesData();
 
-  // Modal state
-  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [droppedFiles, setDroppedFiles] = useState<File[]>([]);
-  const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [isMoveDialogOpen, setIsMoveDialogOpen] = useState(false);
-  const [pendingMoveIds, setPendingMoveIds] = useState<string[]>([]);
-  const [renameTarget, setRenameTarget] = useState<FileItem | null>(null);
-  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
-
-  // Derived: items in current folder, sorted
-  const currentItems = sortFiles(
-    allFiles.filter((f) => f.parentFolderId === (params.folderId ?? null)),
+  const folderId = resolveFolderId(folderIdParam, nodes);
+  const childCounts = useMemo(() => childCountMap(nodes), [nodes]);
+  const currentItems = sortNodes(
+    nodes.filter((node) => (node.parentId ?? null) === folderIdParam),
     params.sort,
     params.sortDir,
   );
+  const selection = useFileSelection(currentItems.map((node) => node._id));
+  const folderNodes = nodes.filter((node) => node.kind === "folder");
+  const breadcrumbs = buildBreadcrumbs(nodes, folderIdParam);
 
-  const orderedIds = currentItems.map((f) => f.id);
-  const selection = useFileSelection(orderedIds);
-
-  const allFolders = allFiles.filter((f) => f.itemType === "folder");
-
-  // Build breadcrumb path
-  const buildBreadcrumbs = useCallback((): FolderBreadcrumb[] => {
-    const crumbs: FolderBreadcrumb[] = [{ id: null, name: "Files" }];
-    let currentId = params.folderId ?? null;
-    const visited = new Set<string>();
-
-    while (currentId !== null) {
-      if (visited.has(currentId)) break;
-      visited.add(currentId);
-      const folder = allFiles.find((f) => f.id === currentId);
-      if (folder) {
-        crumbs.push({ id: folder.id, name: folder.name });
-        currentId = folder.parentFolderId;
-      } else {
-        break;
-      }
-    }
-
-    // Reverse non-root crumbs to get root→leaf order
-    if (crumbs.length > 1) {
-      const root = crumbs.at(0);
-      if (root === undefined) return crumbs;
-      return [root, ...crumbs.slice(1).reverse()];
-    }
-    return crumbs;
-  }, [allFiles, params.folderId]);
-
-  const breadcrumbs = buildBreadcrumbs();
-
-  // Navigation
-  const navigateToFolder = useCallback(
-    (folderId: string | null) => {
-      void setParams({ folderId });
-      selection.clear();
-    },
-    [setParams, selection],
-  );
-
-  // Actions
-  const handleOpen = useCallback(
-    (item: FileItem) => {
-      if (item.itemType === "folder") {
-        navigateToFolder(item.id);
-      } else {
-        setSelectedFile(item);
-        setIsPreviewOpen(true);
-      }
-    },
-    [navigateToFolder],
-  );
-
-  const handleDownload = useCallback((item: FileItem) => {
-    if (!item.url) {
-      toast.error("Download URL unavailable");
-      return;
-    }
-    const link = document.createElement("a");
-    link.href = item.url;
-    link.download = item.name;
-    link.target = "_blank";
-    link.rel = "noopener";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success(`Downloading ${item.name}`);
-  }, []);
-
-  const handleDelete = useCallback(
-    async (item: FileItem) => {
-      try {
-        await deleteNodes([item.id]);
-        toast.success(`Deleted ${item.name}`);
-      } catch (err) {
-        toast.error(
-          err instanceof Error ? err.message : "Failed to delete file",
-        );
-      }
-    },
-    [deleteNodes],
-  );
-
-  const handleMoveTo = useCallback((item: FileItem) => {
-    setPendingMoveIds([item.id]);
-    setIsMoveDialogOpen(true);
-  }, []);
-
-  const handleRename = useCallback((item: FileItem) => {
-    setRenameTarget(item);
-  }, []);
-
-  const handleRenameConfirm = useCallback(
-    async (name: string) => {
-      if (!renameTarget) return;
-      try {
-        await renameNode(renameTarget.id, name);
-        toast.success("Renamed");
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Failed to rename");
-      } finally {
-        setRenameTarget(null);
-      }
-    },
-    [renameTarget, renameNode],
-  );
-
-  const handleMoveConfirm = useCallback(
-    async (targetFolderId: string | null) => {
-      try {
-        await moveNodes(pendingMoveIds, targetFolderId);
-        toast.success("Items moved");
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Failed to move");
-      } finally {
-        selection.clear();
-        setPendingMoveIds([]);
-      }
-    },
-    [pendingMoveIds, moveNodes, selection],
-  );
-
-  // Bulk actions
-  const handleBulkDownload = useCallback(() => {
-    const selected = allFiles.filter(
-      (f) => selection.selectedIds.has(f.id) && f.itemType === "file",
-    );
-    for (const item of selected) {
-      handleDownload(item);
-    }
-  }, [allFiles, selection.selectedIds, handleDownload]);
-
-  const handleBulkDelete = useCallback(async () => {
-    try {
-      await deleteNodes(Array.from(selection.selectedIds));
-      toast.success("Items deleted");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete");
-    } finally {
-      selection.clear();
-    }
-  }, [selection, deleteNodes]);
-
-  const handleBulkMove = useCallback(() => {
-    setPendingMoveIds(Array.from(selection.selectedIds));
-    setIsMoveDialogOpen(true);
-  }, [selection.selectedIds]);
-
-  // New folder
-  const handleNewFolderConfirm = useCallback(
-    async (name: string) => {
-      setIsCreatingFolder(false);
-      try {
-        await createFolder(name, params.folderId ?? null);
-        toast.success(`Created folder "${name}"`);
-      } catch (err) {
-        toast.error(
-          err instanceof Error ? err.message : "Failed to create folder",
-        );
-      }
-    },
-    [params.folderId, createFolder],
-  );
-
-  const handleUpload = useCallback(
-    async (file: File) => {
-      await uploadFile(file, params.folderId ?? null);
-    },
-    [uploadFile, params.folderId],
-  );
-
-  // Drop zone
-  const handleFilesDropped = useCallback((files: File[]) => {
-    setDroppedFiles(files);
-    setIsUploadModalOpen(true);
-  }, []);
-
-  const handleUploadModalClose = useCallback(() => {
-    setIsUploadModalOpen(false);
-    setDroppedFiles([]);
-  }, []);
-
-  if (isLoading) {
-    return (
-      <PageContainer title="Files">
-        <div className="flex h-full min-h-0 items-center justify-center">
-          <VmemSpinner size={24} className="text-muted" />
-        </div>
-      </PageContainer>
-    );
+  function navigateToFolder(nextFolderId: Id<"fileNodes"> | null) {
+    void setParams({ folderId: nextFolderId });
+    selection.clear();
   }
 
-  const isRoot = params.folderId === null;
-  const showEmpty = currentItems.length === 0 && !isCreatingFolder;
+  const actions = useFilesActions({
+    folderId,
+    nodes,
+    mutations: {
+      uploadFile,
+      createFolder,
+      renameNode,
+      moveNodes,
+      deleteNodes,
+    },
+    clearSelection: selection.clear,
+    selectedIds: selection.selectedIds,
+    navigateToFolder,
+  });
+
+  if (isLoading) {
+    return filesLoadingView;
+  }
+
+  const isRoot = folderIdParam === null;
+  const showEmpty = currentItems.length === 0 && !actions.isCreatingFolder;
+  const previewNodeLive = actions.previewNodeId
+    ? nodes.find((node) => node._id === actions.previewNodeId)
+    : undefined;
+  const renameNodeLive = actions.renameNodeId
+    ? nodes.find((node) => node._id === actions.renameNodeId)
+    : undefined;
+
+  function handleItemDelete(node: Pick<FileTreeNode, "_id" | "name">) {
+    void actions.handleDelete(node);
+  }
+
+  function handleNewFolderConfirm(name: string) {
+    void actions.handleNewFolderConfirm(name);
+  }
+
+  function handleNewFolderCancel() {
+    actions.setIsCreatingFolder(false);
+  }
+
+  const sharedItemViewProps = {
+    items: currentItems,
+    childCounts,
+    isCreatingFolder: actions.isCreatingFolder,
+    isSelected: selection.isSelected,
+    onClick: selection.handleClick,
+    onCheckbox: selection.handleCheckbox,
+    onOpen: actions.handleOpen,
+    onDownload: actions.handleDownload,
+    onMoveTo: actions.handleMoveTo,
+    onRename: actions.handleRename,
+    onDelete: handleItemDelete,
+    onNewFolderConfirm: handleNewFolderConfirm,
+    onNewFolderCancel: handleNewFolderCancel,
+  };
 
   return (
     <PageContainer
@@ -270,109 +189,80 @@ export default function FilesClient() {
           sortDir={params.sortDir}
           onViewChange={(view) => setParams({ view })}
           onSortSelect={(sort, sortDir) => setParams({ sort, sortDir })}
-          onNewFolder={() => setIsCreatingFolder(true)}
-          onUpload={() => setIsUploadModalOpen(true)}
+          onNewFolder={() => actions.setIsCreatingFolder(true)}
+          onUpload={actions.openUpload}
         />
       }
     >
-      <div className="flex flex-col h-full min-h-0">
-        {/* Bulk action bar */}
+      <div className="flex h-full min-h-0 flex-col">
         <BulkActionBar
           selectedCount={selection.selectedCount}
-          onDownload={handleBulkDownload}
-          onMove={handleBulkMove}
-          onDelete={handleBulkDelete}
+          onDownload={actions.handleBulkDownload}
+          onMove={actions.handleBulkMove}
+          onDelete={() => void actions.handleBulkDelete()}
           onClear={selection.clear}
         />
 
-        {/* Main content with drop zone */}
-        <FileDropZone onFilesDropped={handleFilesDropped}>
+        <FileDropZone onFilesDropped={actions.handleFilesDropped}>
           <div className="h-full overflow-y-auto scrollbar-thin">
             {showEmpty ? (
-              <FileEmptyState
-                isRoot={isRoot}
-                onUpload={() => setIsUploadModalOpen(true)}
-              />
+              isRoot ? (
+                <FileEmptyStateRoot onUpload={actions.openUpload} />
+              ) : (
+                <FileEmptyStateFolder onUpload={actions.openUpload} />
+              )
             ) : params.view === "grid" ? (
-              <FileGrid
-                items={currentItems}
-                isCreatingFolder={isCreatingFolder}
-                isSelected={selection.isSelected}
-                onClick={selection.handleClick}
-                onCheckbox={selection.handleCheckbox}
-                onOpen={handleOpen}
-                onDownload={handleDownload}
-                onMoveTo={handleMoveTo}
-                onRename={handleRename}
-                onDelete={handleDelete}
-                onNewFolderConfirm={handleNewFolderConfirm}
-                onNewFolderCancel={() => setIsCreatingFolder(false)}
-              />
+              <FileGrid {...sharedItemViewProps} />
             ) : (
               <FileListView
-                items={currentItems}
-                isCreatingFolder={isCreatingFolder}
+                {...sharedItemViewProps}
                 isAllSelected={selection.isAllSelected}
-                isSelected={selection.isSelected}
-                onClick={selection.handleClick}
-                onCheckbox={selection.handleCheckbox}
                 onSelectAll={selection.handleSelectAll}
-                onOpen={handleOpen}
-                onDownload={handleDownload}
-                onMoveTo={handleMoveTo}
-                onRename={handleRename}
-                onDelete={handleDelete}
-                onNewFolderConfirm={handleNewFolderConfirm}
-                onNewFolderCancel={() => setIsCreatingFolder(false)}
               />
             )}
           </div>
         </FileDropZone>
 
-        {/* Storage status bar */}
         <StorageStatusBar
-          itemCount={allFiles.length}
+          itemCount={nodes.length}
           totalBytes={totalBytes}
           storageLimit={storageLimit}
         />
       </div>
 
-      {/* Modals */}
       <FileUploadModal
-        isOpen={isUploadModalOpen}
-        onClose={handleUploadModalClose}
-        onUpload={handleUpload}
-        initialFiles={droppedFiles.length > 0 ? droppedFiles : undefined}
+        isOpen={actions.isUploadModalOpen}
+        onClose={actions.closeUpload}
+        onUpload={actions.handleUpload}
+        initialFiles={
+          actions.droppedFiles.length > 0 ? actions.droppedFiles : undefined
+        }
       />
 
       <FilePreviewModal
-        isOpen={isPreviewOpen}
-        file={selectedFile}
-        onClose={() => {
-          setIsPreviewOpen(false);
-          setSelectedFile(null);
+        isOpen={actions.isPreviewOpen}
+        file={previewNodeLive ? toPreviewFile(previewNodeLive) : null}
+        onClose={actions.closePreview}
+        onDelete={() => {
+          if (previewNodeLive) void actions.handleDelete(previewNodeLive);
         }}
-        onDelete={handleDelete}
       />
 
       <RenameDialog
-        key={renameTarget?.id ?? "rename"}
-        isOpen={renameTarget !== null}
-        currentName={renameTarget?.name ?? ""}
-        onRename={handleRenameConfirm}
-        onClose={() => setRenameTarget(null)}
+        key={actions.renameNodeId ?? "rename"}
+        isOpen={actions.renameNodeId !== null}
+        currentName={renameNodeLive?.name ?? ""}
+        onRename={(name) => void actions.handleRenameConfirm(name)}
+        onClose={() => actions.setRenameNodeId(null)}
       />
 
       <MoveFolderDialog
-        isOpen={isMoveDialogOpen}
-        folders={allFolders}
-        currentFolderId={params.folderId ?? null}
-        itemCount={pendingMoveIds.length}
-        onMove={handleMoveConfirm}
-        onClose={() => {
-          setIsMoveDialogOpen(false);
-          setPendingMoveIds([]);
-        }}
+        isOpen={actions.isMoveDialogOpen}
+        folders={folderNodes}
+        currentFolderId={folderId}
+        itemCount={actions.pendingMoveIds.length}
+        onMove={(id) => void actions.handleMoveConfirm(id)}
+        onClose={actions.closeMove}
       />
     </PageContainer>
   );

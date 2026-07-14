@@ -1,4 +1,4 @@
-/** Seeds the benchmark corpus for user_vmem_bench_eval before eval:bench. */
+// seeds the benchmark corpus for user_vmem_bench_eval before eval:bench
 
 import { generateBenchmarkCorpus, BENCH_USER_ID } from "./corpus";
 import { runSeed } from "../seed/engine";

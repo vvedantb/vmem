@@ -8,31 +8,21 @@ import {
   typePassesFilter,
 } from "./memory-view-filters";
 
-/**
- * Unified list-item model for the /memories list view.
- *
- * The graph view already merges four kinds of nodes (memories, wiki documents,
- * wiki folders, skills) into one `ApiGraphNode` stream. The list view now
- * mirrors that so users can browse the same four kinds in a flat, scrollable
- * form. Memory items carry extra memory-only fields (`type`, `source`) that
- * feed the existing Type/Source filters; other kinds pass through those
- * filters untouched.
- *
- * Ids are namespaced (`wiki:<id>`, `skill:<id>`) to match the graph and avoid
- * id collisions if two kinds ever share a detail panel.
- */
+// unified /memories list item (memory | wiki | skill) mirroring graph node kinds
 export type ListItemKind =
   | "memory"
   | "wiki-document"
+  | "wiki-artifact"
   | "wiki-folder"
   | "skill"
   | "entity";
 
-/** Canonical ordering for kinds in filter UI — never shuffle regardless of data. */
+// kind order for filter ui — fixed, never shuffle
 export const LIST_ITEM_KINDS: readonly ListItemKind[] = [
   "memory",
   "entity",
   "wiki-document",
+  "wiki-artifact",
   "wiki-folder",
   "skill",
 ];
@@ -41,6 +31,7 @@ const LIST_ITEM_KIND_LABELS: Record<ListItemKind, string> = {
   memory: "Memories",
   entity: "Entities",
   "wiki-document": "Wiki docs",
+  "wiki-artifact": "Artifacts",
   "wiki-folder": "Folders",
   skill: "Skills",
 };
@@ -50,14 +41,14 @@ export function formatListItemKindLabel(kind: ListItemKind): string {
 }
 
 interface BaseListItem {
-  /** Namespaced unique id (wiki:/skill: prefix or raw memory id). */
+  // namespaced id (wiki:/skill: or raw memory id)
   id: string;
   title: string;
-  /** Free-form body text used for search scoring. Empty for folders. */
+  // body for search scoring; empty for folders
   content: string;
-  /** Always an array (empty for non-memory kinds) so callers don't branch. */
+  // always an array (empty for non-memory)
   tags: string[];
-  /** ISO timestamp — sortable as a string. */
+  // iso timestamp — sortable as string
   createdAt: string;
 }
 
@@ -72,14 +63,19 @@ interface MemoryRowItem extends BaseListItem {
 
 interface WikiDocumentItem extends BaseListItem {
   kind: "wiki-document";
-  /** Raw Convex id, used to deep-link into /wiki/<wikiId>. */
+  // convex id for /wiki/<wikiId>
+  wikiId: string;
+}
+
+interface WikiArtifactItem extends BaseListItem {
+  kind: "wiki-artifact";
   wikiId: string;
 }
 
 interface WikiFolderItem extends BaseListItem {
   kind: "wiki-folder";
   wikiId: string;
-  /** Direct child count — shown as "N items" in the row meta. */
+  // direct child count for row meta
   childCount: number;
 }
 
@@ -91,14 +87,11 @@ interface SkillItem extends BaseListItem {
 export type ListItem =
   | MemoryRowItem
   | WikiDocumentItem
+  | WikiArtifactItem
   | WikiFolderItem
   | SkillItem;
 
-// ---- Filter helpers -------------------------------------------------------
-//
-// Memory-scoped filters (tag/source/type) pass non-memory items through so
-// setting a tag filter doesn't silently hide every wiki doc and skill. The
-// kind filter is the only cross-cutting filter.
+// filter helpers — memory filters pass non-memory items through; kind is cross-cutting
 
 export function listItemMatchesKindFilter(
   item: ListItem,
@@ -136,7 +129,7 @@ export function listItemMatchesTypeFilter(
   );
 }
 
-// ---- Builders -------------------------------------------------------------
+// builders
 
 const WIKI_PREFIX = "wiki:";
 const SKILL_PREFIX = "skill:";
@@ -159,10 +152,7 @@ export function memoryToListItem(memory: Memory): ListItem {
 
 type WikiRows = FunctionReturnType<typeof api.wiki.listTree>;
 
-/**
- * Turns raw wiki rows into list items. Computes direct-child counts in one
- * pass so folder rows can show "N items" without re-scanning the tree.
- */
+// wiki rows → list items; one pass for folder child counts
 export function wikiRowsToListItems(rows: WikiRows): ListItem[] {
   const childCount = new Map<string, number>();
   for (const row of rows) {
@@ -182,6 +172,17 @@ export function wikiRowsToListItems(rows: WikiRows): ListItem[] {
         tags: [],
         createdAt,
         childCount: childCount.get(row._id) ?? 0,
+      };
+    }
+    if (row.kind === "artifact") {
+      return {
+        kind: "wiki-artifact",
+        id: `${WIKI_PREFIX}${row._id}`,
+        wikiId: row._id,
+        title: row.title,
+        content: row.contentText ?? "",
+        tags: [],
+        createdAt,
       };
     }
     return {
@@ -214,18 +215,14 @@ export function skillRowsToListItems(rows: SkillRows): ListItem[] {
     );
 }
 
-// ---- Search ---------------------------------------------------------------
+// search
 
 export interface ListItemSearchResult {
   item: ListItem;
   relevanceScore: number;
 }
 
-/**
- * Lightweight relevance scorer. Scores title > tags > content, normalised to
- * [0, 1]. Folders have no tags/content so they only score on title — acceptable
- * because folders are usually found by name anyway.
- */
+// score title > tags > content, normalised to [0, 1]
 export function searchListItems(
   items: readonly ListItem[],
   query: string,

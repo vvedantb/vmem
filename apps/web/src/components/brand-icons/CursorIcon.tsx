@@ -3,7 +3,7 @@ interface IconProps {
   className?: string;
 }
 
-/** Cursor mark from https://svgl.app/library/cursor_light.svg */
+// cursor mark from https://svgl.app/library/cursor_light.svg
 export default function CursorIcon({ size = 24, className }: IconProps) {
   return (
     <svg

@@ -7,11 +7,7 @@ type NavIcon = ComponentType<{
   stroke?: number;
 }>;
 
-/**
- * Verified route target. Typing hrefs against the generated route union
- * means a renamed/moved route breaks nav-config at compile time instead of
- * silently producing dead links.
- */
+// verified route target
 export type NavHref = FileRouteTypes["to"];
 
 export interface NavItem {

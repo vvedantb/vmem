@@ -38,7 +38,7 @@ export type ContentMessage =
       // Sent by the screenshot content script after the user crops a
       // region. The image is base64-encoded PNG (data URL without the
       // `data:image/png;base64,` prefix) — base64 is the only payload form
-      // chrome.runtime.sendMessage transports reliably across content/SW.
+      // chrome.runtime.sendMessage transports reliably across content/SW
       type: "SAVE_SCREENSHOT";
       base64Png: string;
       caption?: string;
@@ -49,7 +49,7 @@ export type ContentMessage =
   | {
       // Asks the background SW to capture the visible viewport of the
       // tab the message originates from. Returns a data URL the content
-      // script can load into an Image and crop client-side.
+      // script can load into an Image and crop client-side
       type: "CAPTURE_VISIBLE_TAB";
     }
   | { type: "IMPORT_BOOKMARKS" }
@@ -61,10 +61,6 @@ export type ContentMessage =
 export type BackgroundResponse =
   | { type: "RETRIEVE_RESULT"; memories: MemoryCandidate[] }
   | { type: "SAVE_RESULT"; success: boolean; memoryId?: string; error?: string }
-  | {
-      type: "SAVE_DUPLICATE";
-      existingMemory: { id: string; title: string; updatedAt: string };
-    }
   | {
       type: "IMPORT_RESULT";
       success: boolean;

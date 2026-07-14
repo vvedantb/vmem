@@ -3,38 +3,17 @@
 import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import type { Driver } from "neo4j-driver";
-import {
-  bestEffortEmbedMany,
-  bestEffortEmbedOne,
-  type BestEffortEmbedParams,
-} from "../../lib/openRouter/bestEffortEmbed";
 import { shouldChunk } from "../../../engine/neo4j/chunking";
 import { deleteChunksForMemory } from "../../../engine/neo4j/memory/chunks";
-import type {
-  MemoryStatus,
-  MemoryType,
-} from "../../../engine/neo4j/memory/types";
+import {
+  toMemoryStatusOrUndefined,
+  toMemoryTypeOrUndefined,
+} from "../../../engine/neo4j/memory/mappers";
 import type { McpScope } from "../../profiles/mcpAccess";
 
-function isMemoryType(s: string): s is MemoryType {
-  return s === "profile" || s === "episodic" || s === "knowledge";
-}
-
-function isMemoryStatus(s: string): s is MemoryStatus {
-  return (
-    s === "active" || s === "pinned" || s === "suppressed" || s === "expired"
-  );
-}
-
-export function toMemoryType(s: string | undefined): MemoryType | undefined {
-  return s !== undefined && isMemoryType(s) ? s : undefined;
-}
-
-export function toMemoryStatus(
-  s: string | undefined,
-): MemoryStatus | undefined {
-  return s !== undefined && isMemoryStatus(s) ? s : undefined;
-}
+// stable wrappers — call sites keep importing from this module
+export const toMemoryType = toMemoryTypeOrUndefined;
+export const toMemoryStatus = toMemoryStatusOrUndefined;
 
 export async function resolveProfileIdForClerkId(
   ctx: ActionCtx,
@@ -71,22 +50,6 @@ export async function resolveProfileIdForMcpScope(
     scope,
     profileId: explicitProfileId,
   });
-}
-
-type EmbedArgs = Omit<BestEffortEmbedParams, "ctx">;
-
-export function tryEmbedOne(
-  ctx: ActionCtx,
-  args: EmbedArgs & { text: string },
-): Promise<number[] | null> {
-  return bestEffortEmbedOne({ ctx, ...args });
-}
-
-export function tryEmbedMany(
-  ctx: ActionCtx,
-  args: EmbedArgs & { texts: string[] },
-): Promise<(number[] | null)[]> {
-  return bestEffortEmbedMany({ ctx, ...args });
 }
 
 export async function scheduleChunkSyncForContent(

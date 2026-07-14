@@ -39,11 +39,6 @@ async function requireOwnedConnector(
   return connector;
 }
 
-const CONNECTOR_NAME_TO_PROVIDER: Record<string, ConnectorProvider> = {
-  "Google Drive": "google_drive",
-  Notion: "notion",
-};
-
 const DEFAULT_CONNECTORS: DefaultConnector[] = [
   {
     name: "Google Drive",
@@ -61,7 +56,7 @@ const DEFAULT_CONNECTORS: DefaultConnector[] = [
     name: "GitHub",
     description: "Connect repositories, issues, and documentation from GitHub",
     icon: "IconBrandGithub",
-    // No provider — dedicated GitHub integration (githubConnections)
+    // no provider — dedicated GitHub integration (githubConnections)
   },
 ];
 
@@ -89,7 +84,7 @@ export const seedDefaults = authMutation({
       const existingConnector = existingByName.get(connector.name);
 
       if (existingConnector) {
-        // Backfill provider on rows created before the field existed.
+        // backfill provider on rows created before the field existed
         if (connector.provider && !existingConnector.provider) {
           await ctx.db.patch(existingConnector._id, {
             provider: connector.provider,
@@ -286,21 +281,6 @@ export const updateSyncProgressInternal = internalMutation({
     );
     if (Object.keys(patch).length > 0) {
       await ctx.db.patch(id, patch);
-    }
-  },
-});
-
-export const migrateAddProviders = internalMutation({
-  args: {},
-  handler: async (ctx) => {
-    const connectors = await ctx.db.query("connectors").collect();
-
-    for (const connector of connectors) {
-      if (connector.provider !== undefined) continue;
-      const provider = CONNECTOR_NAME_TO_PROVIDER[connector.name];
-      if (provider) {
-        await ctx.db.patch(connector._id, { provider });
-      }
     }
   },
 });

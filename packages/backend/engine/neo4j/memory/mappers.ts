@@ -9,14 +9,15 @@ import {
 } from "../record";
 import type {
   MemoryEvent,
+  MemoryStatus,
   MemoryType,
   MemoryWithTags,
   TagEdge,
   TimelineEvent,
 } from "./types";
 
-const memoryTypeSchema = z.enum(["profile", "episodic", "knowledge"]);
-const memoryStatusSchema = z.enum([
+export const memoryTypeSchema = z.enum(["profile", "episodic", "knowledge"]);
+export const memoryStatusSchema = z.enum([
   "active",
   "pinned",
   "suppressed",
@@ -70,7 +71,7 @@ function parseJsonField<T>(
 ): T | null {
   if (val === null || val === undefined) return null;
   try {
-    // JSON.parse is typed `any` — re-enter as unknown for zod.
+    // JSON.parse is typed `any` — re-enter as unknown for zod
     // oxlint-disable-next-line typescript/no-unsafe-assignment -- JSON.parse
     const raw: unknown = JSON.parse(val);
     const parsed = schema.safeParse(raw);
@@ -100,9 +101,18 @@ export function recencyFromAgeDays(age: number, type: MemoryType): number {
 }
 
 export function toMemoryTypeOrUndefined(
-  val: string | null,
+  val: string | null | undefined,
 ): MemoryType | undefined {
+  if (val === null || val === undefined) return undefined;
   const parsed = memoryTypeSchema.safeParse(val);
+  return parsed.success ? parsed.data : undefined;
+}
+
+export function toMemoryStatusOrUndefined(
+  val: string | null | undefined,
+): MemoryStatus | undefined {
+  if (val === null || val === undefined) return undefined;
+  const parsed = memoryStatusSchema.safeParse(val);
   return parsed.success ? parsed.data : undefined;
 }
 
@@ -138,12 +148,6 @@ export function toEventFromNode(props: {
     snapshot: parseJsonField(props.snapshot, memorySnapshotSchema),
     details: parseJsonField(props.details, detailsRecordSchema),
   };
-}
-
-export function toEventFromRecord(record: NeoRecord): MemoryEvent {
-  return toEventFromNode(
-    parseNeo4jNodeProps(neo4jGet(record, "e"), memoryEventPropsSchema),
-  );
 }
 
 export function toMemoryWithTags(record: NeoRecord): MemoryWithTags {

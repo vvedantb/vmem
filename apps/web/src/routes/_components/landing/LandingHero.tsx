@@ -4,19 +4,26 @@ import { SignInButton, SignUpButton } from "@clerk/clerk-react";
 import { motion } from "motion/react";
 import { Button, motionDuration, motionEase } from "@vmem/ui";
 import { LandingAside } from "./LandingAside";
-import type { TablerIcon } from "@tabler/icons-react";
+import type { LandingFeature } from "./LandingFeatureCard";
 
-interface LandingFeature {
-  icon: TablerIcon;
-  title: string;
-  description: string;
-  offsetClassName: string;
+export type LandingCapabilityTone = "accent" | "muted";
+
+export interface LandingCapability {
+  label: string;
+  tone: LandingCapabilityTone;
 }
 
 interface LandingHeroProps {
   features: readonly LandingFeature[];
-  capabilities: readonly string[];
+  capabilities: readonly LandingCapability[];
 }
+
+const capabilityToneClassName: Record<LandingCapabilityTone, string> = {
+  accent:
+    "rounded-full bg-foreground px-2.5 py-1 text-[11px] text-background sm:px-3 sm:text-xs",
+  muted:
+    "rounded-full bg-surface px-2.5 py-1 text-[11px] text-muted sm:px-3 sm:text-xs",
+};
 
 const fadeUp = {
   initial: { opacity: 0, y: 14 },
@@ -74,16 +81,9 @@ export function LandingHero({ features, capabilities }: LandingHeroProps) {
             delay: 0.22,
           }}
         >
-          {capabilities.map((cap, index) => (
-            <span
-              key={cap}
-              className={
-                index === 0
-                  ? "rounded-full bg-foreground px-2.5 py-1 text-[11px] text-background sm:px-3 sm:text-xs"
-                  : "rounded-full bg-surface px-2.5 py-1 text-[11px] text-muted sm:px-3 sm:text-xs"
-              }
-            >
-              {cap}
+          {capabilities.map((cap) => (
+            <span key={cap.label} className={capabilityToneClassName[cap.tone]}>
+              {cap.label}
             </span>
           ))}
         </motion.div>
@@ -110,12 +110,8 @@ export function LandingHero({ features, capabilities }: LandingHeroProps) {
         </motion.div>
       </div>
 
-      <div className="w-full min-w-0 lg:hidden">
-        <LandingAside features={features} showPreview />
-      </div>
-
-      <div className="hidden min-w-0 lg:block">
-        <LandingAside features={features} showPreview />
+      <div className="w-full min-w-0">
+        <LandingAside features={features} />
       </div>
     </div>
   );

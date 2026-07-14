@@ -38,10 +38,7 @@ function buildUrlCleanupPatch(
   return Object.keys(patch).length > 0 ? patch : null;
 }
 
-/**
- * One-shot rewrite for malformed query strings (legacy tab links that passed
- * parsed nuqs objects through TanStack Router `search={params}`).
- */
+// one-shot rewrite for malformed query strings
 export function MemoriesSearchUrlSanitizer() {
   const [params, setParams] = useMemoriesSearchParams();
   const didRun = useRef(false);

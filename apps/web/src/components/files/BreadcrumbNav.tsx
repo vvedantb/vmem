@@ -1,19 +1,13 @@
 import { Breadcrumb, BreadcrumbLink, BreadcrumbPage, Button } from "@vmem/ui";
-import type { FolderBreadcrumb } from "@/lib/file-types";
+import type { Id } from "@vmem/backend";
+import type { FolderBreadcrumb } from "./-types";
 
 interface BreadcrumbNavProps {
   breadcrumbs: FolderBreadcrumb[];
-  onNavigate: (folderId: string | null) => void;
+  onNavigate: (folderId: Id<"fileNodes"> | null) => void;
 }
 
-/**
- * Files page breadcrumb. Renders the folder path using the generic @vmem/ui
- * Breadcrumb primitive so the styling matches other detail pages.
- *
- * Navigation is a nuqs state update (not a router Link), so parent segments
- * render as buttons inside BreadcrumbLink's asChild slot. The final segment
- * is the current folder (or "Files" at root) and is not clickable.
- */
+// files page breadcrumb
 export default function BreadcrumbNav({
   breadcrumbs,
   onNavigate,

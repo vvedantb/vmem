@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useAction } from "convex/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   Button,
@@ -29,18 +29,19 @@ import {
   IconBrandChrome,
   IconLoader2,
 } from "@tabler/icons-react";
+import type { FunctionReturnType } from "convex/server";
 import { api } from "@vmem/backend";
-import type { Doc, Id } from "@vmem/backend";
+import type { Id } from "@vmem/backend";
 import { optimisticId } from "@/lib/optimisticId";
 import PageContainer from "@/components/PageContainer";
-import { getProfileIcon } from "@/components/profiles/profile-icon";
+import { ProfileAvatar } from "@/components/profiles/ProfileAvatar";
 import { CreateEditProfileDialog } from "@/components/profiles/CreateEditProfileDialog";
 
 export const Route = createFileRoute("/_main/settings/profiles")({
   component: ProfilesPage,
 });
 
-type Profile = Doc<"profiles">;
+type Profile = FunctionReturnType<typeof api.profiles.list>[number];
 
 function ProfileCard({
   profile,
@@ -51,18 +52,16 @@ function ProfileCard({
   onEdit: () => void;
   onDelete: () => void;
 }) {
-  const Icon = getProfileIcon(profile.icon);
-
   return (
     <Card className="relative shadow-none">
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
-          <div
-            className="flex h-10 w-10 items-center justify-center rounded-lg"
-            style={{ backgroundColor: profile.color + "20" }}
-          >
-            <Icon className="h-5 w-5" style={{ color: profile.color }} />
-          </div>
+          <ProfileAvatar
+            icon={profile.icon}
+            color={profile.color}
+            className="h-10 w-10 rounded-lg"
+            iconClassName="h-5 w-5"
+          />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <h3 className="font-medium text-foreground truncate">
@@ -171,39 +170,36 @@ function DeleteProfileDialog({
                 <IconCheck className="h-4 w-4 ml-auto" />
               )}
             </Button>
-            {otherProfiles.map((p) => {
-              const Icon = getProfileIcon(p.icon);
-              return (
-                <Button
-                  key={p._id}
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setMoveToProfileId(p._id)}
-                  className={cn(
-                    "h-auto w-full justify-start gap-3 rounded-lg p-3 text-left transition-colors active:scale-100",
-                    moveToProfileId === p._id
-                      ? "bg-surface-tertiary text-foreground hover:bg-surface-tertiary"
-                      : "bg-surface-secondary hover:bg-surface-tertiary/50",
-                  )}
-                >
-                  <div
-                    className="h-6 w-6 rounded flex items-center justify-center"
-                    style={{ backgroundColor: p.color + "20" }}
-                  >
-                    <Icon className="h-3.5 w-3.5" style={{ color: p.color }} />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">Move to {p.name}</p>
-                    <p className="text-xs text-muted">
-                      Transfer all memories to this profile
-                    </p>
-                  </div>
-                  {moveToProfileId === p._id && (
-                    <IconCheck className="h-4 w-4 ml-auto" />
-                  )}
-                </Button>
-              );
-            })}
+            {otherProfiles.map((p) => (
+              <Button
+                key={p._id}
+                type="button"
+                variant="ghost"
+                onClick={() => setMoveToProfileId(p._id)}
+                className={cn(
+                  "h-auto w-full justify-start gap-3 rounded-lg p-3 text-left transition-colors active:scale-100",
+                  moveToProfileId === p._id
+                    ? "bg-surface-tertiary text-foreground hover:bg-surface-tertiary"
+                    : "bg-surface-secondary hover:bg-surface-tertiary/50",
+                )}
+              >
+                <ProfileAvatar
+                  icon={p.icon}
+                  color={p.color}
+                  className="h-6 w-6 rounded"
+                  iconClassName="h-3.5 w-3.5"
+                />
+                <div>
+                  <p className="text-sm font-medium">Move to {p.name}</p>
+                  <p className="text-xs text-muted">
+                    Transfer all memories to this profile
+                  </p>
+                </div>
+                {moveToProfileId === p._id && (
+                  <IconCheck className="h-4 w-4 ml-auto" />
+                )}
+              </Button>
+            ))}
           </div>
         </div>
         <DialogFooter>
@@ -250,17 +246,11 @@ function DefaultProfilesSection({ profiles }: { profiles: Profile[] }) {
   const extensionDefault =
     profiles.find((p) => p._id === extensionDefaultId) ?? defaultProfile;
 
-  const handleDefaultProfileChange = async (
-    source: "extension",
-    profileId: string,
-  ) => {
-    const profile = profiles.find((p) => p._id === profileId);
-    if (!profile) return;
-
+  const handleDefaultProfileChange = async (profileId: Profile["_id"]) => {
     try {
       await setDefaultProfile({
-        source,
-        profileId: profile._id,
+        source: "extension",
+        profileId,
       });
       toast.success("Saved!");
     } catch (err) {
@@ -290,8 +280,9 @@ function DefaultProfilesSection({ profiles }: { profiles: Profile[] }) {
               </div>
               <Select
                 value={extensionDefault?._id ?? ""}
-                onValueChange={(profileId) => {
-                  void handleDefaultProfileChange("extension", profileId);
+                onValueChange={(value) => {
+                  const profile = profiles.find((p) => p._id === value);
+                  if (profile) void handleDefaultProfileChange(profile._id);
                 }}
               >
                 <SelectTrigger className="w-[160px]">
@@ -386,8 +377,35 @@ function ProfilesPage() {
   const removeProfileWithMemories = useAction(api.profiles.removeWithMemories);
 
   const [createOpen, setCreateOpen] = useState(false);
-  const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
-  const [deletingProfile, setDeletingProfile] = useState<Profile | null>(null);
+  const [editingProfileId, setEditingProfileId] =
+    useState<Id<"profiles"> | null>(null);
+  const [deletingProfileId, setDeletingProfileId] =
+    useState<Id<"profiles"> | null>(null);
+
+  const editingProfile =
+    editingProfileId !== null && profiles !== undefined
+      ? profiles.find((profile) => profile._id === editingProfileId)
+      : undefined;
+  const deletingProfile =
+    deletingProfileId !== null && profiles !== undefined
+      ? profiles.find((profile) => profile._id === deletingProfileId)
+      : undefined;
+
+  useEffect(() => {
+    if (!profiles) return;
+    if (
+      editingProfileId !== null &&
+      !profiles.some((profile) => profile._id === editingProfileId)
+    ) {
+      setEditingProfileId(null);
+    }
+    if (
+      deletingProfileId !== null &&
+      !profiles.some((profile) => profile._id === deletingProfileId)
+    ) {
+      setDeletingProfileId(null);
+    }
+  }, [profiles, editingProfileId, deletingProfileId]);
 
   if (profiles === undefined) {
     return (
@@ -400,24 +418,8 @@ function ProfilesPage() {
     );
   }
 
-  const handleCreate = async (data: {
-    name: string;
-    color: string;
-    icon: string;
-  }) => {
+  const handleCreate = async (data: Parameters<typeof createProfile>[0]) => {
     await createProfile(data);
-  };
-
-  const handleEdit = async (data: {
-    name: string;
-    color: string;
-    icon: string;
-  }) => {
-    if (!editingProfile) return;
-    await updateProfile({
-      profileId: editingProfile._id,
-      ...data,
-    });
   };
 
   const handleDelete = async (moveToProfileId: Id<"profiles"> | null) => {
@@ -449,8 +451,8 @@ function ProfilesPage() {
             <ProfileCard
               key={profile._id}
               profile={profile}
-              onEdit={() => setEditingProfile(profile)}
-              onDelete={() => setDeletingProfile(profile)}
+              onEdit={() => setEditingProfileId(profile._id)}
+              onDelete={() => setDeletingProfileId(profile._id)}
             />
           ))}
         </div>
@@ -466,8 +468,19 @@ function ProfilesPage() {
           <CreateEditProfileDialog
             profile={editingProfile}
             open={!!editingProfile}
-            onOpenChange={(open) => !open && setEditingProfile(null)}
-            onSave={handleEdit}
+            onOpenChange={(open) => !open && setEditingProfileId(null)}
+            onFieldUpdate={(patch) => {
+              void updateProfile({
+                profileId: editingProfile._id,
+                ...patch,
+              }).catch((err: unknown) => {
+                toast.error(
+                  err instanceof Error
+                    ? err.message
+                    : "Failed to update profile",
+                );
+              });
+            }}
           />
         )}
 
@@ -476,7 +489,7 @@ function ProfilesPage() {
             profile={deletingProfile}
             profiles={profiles}
             open={!!deletingProfile}
-            onOpenChange={(open) => !open && setDeletingProfile(null)}
+            onOpenChange={(open) => !open && setDeletingProfileId(null)}
             onDelete={handleDelete}
           />
         )}

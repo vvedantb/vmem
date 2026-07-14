@@ -1,7 +1,4 @@
-/**
- * Pure graph-data transformation functions.
- * No React, no side effects — just data in → data out.
- */
+// pure graph-data transformation functions
 import type { MemoryType } from "@/lib/memories";
 import { MEMORY_TYPES } from "@/lib/memories";
 import type { ListItemKind } from "@/lib/list-items";
@@ -10,32 +7,22 @@ import type { GraphNode, GraphEdge, RelatedNode } from "./canvas/types";
 
 // ---- API response shapes (mirrors Zod schemas in useGraphData) ----
 
-/**
- * `source` and `type` are only populated on memory nodes — wiki/skill nodes
- * leave them undefined, and the Source/Type filters treat those as
- * passthrough so narrowing memories never hides non-memory items.
- *
- * `sourceType` is the connector provenance (google_drive / notion) for
- * memories that arrived through a connector sync; null otherwise. Drives the
- * logo-overlay pass in the renderer.
- */
+// graph payload omits wiki-artifact (artifacts render as wiki-document nodes)
+type ApiGraphNodeKind = Exclude<ListItemKind, "wiki-artifact">;
+
+// `source` and `type` are only populated on memory nodes
 export interface ApiGraphNode {
   id: string;
   title: string;
   tags: string[];
   createdAt: string;
-  kind: ListItemKind;
+  kind: ApiGraphNodeKind;
   source?: string;
   sourceType: string | null;
   type?: MemoryType;
-  /**
-   * Inline content is only present for wiki documents and skills. Memory
-   * nodes omit it — the graph payload dropped memory content to fit Convex's
-   * 1 MiB value limit, and the UI lazy-fetches it via `getNodeContent` on
-   * hover/click.
-   */
+  // inline content is only present for wiki documents and skills
   content?: string;
-  /** Entity sub-type (person/organization/place/technology). Only for entity nodes. */
+  // entity sub-type (person/organization/place/technology)
   entityType?: string;
 }
 
@@ -70,7 +57,7 @@ export interface TagStat {
   count: number;
 }
 
-/** Extracts unique tags with counts from API nodes. Sorted by count desc. */
+// extracts unique tags with counts from API nodes
 export function getAllTags(apiNodes: ApiGraphNode[]): TagStat[] {
   const tagCounts = new Map<string, number>();
   for (const node of apiNodes) {
@@ -86,12 +73,12 @@ export function getAllTags(apiNodes: ApiGraphNode[]): TagStat[] {
 // ---- Kind stats ----
 
 export interface KindStat {
-  kind: ListItemKind;
+  kind: ApiGraphNodeKind;
   count: number;
 }
 
-/** Canonical display order for kinds — never shuffle regardless of data. */
-const KIND_ORDER: ListItemKind[] = [
+// canonical display order for kinds — never shuffle regardless of data
+const KIND_ORDER: ApiGraphNodeKind[] = [
   "memory",
   "entity",
   "wiki-document",
@@ -99,13 +86,9 @@ const KIND_ORDER: ListItemKind[] = [
   "skill",
 ];
 
-/**
- * Returns counts for each node kind present in the data, in a stable order.
- * Kinds with zero nodes are omitted so the filter UI hides categories the user
- * hasn't started using yet.
- */
+// returns counts for each node kind present in the data, in a stable order
 export function getAllKinds(apiNodes: ApiGraphNode[]): KindStat[] {
-  const counts = new Map<ListItemKind, number>();
+  const counts = new Map<ApiGraphNodeKind, number>();
   for (const node of apiNodes) {
     counts.set(node.kind, (counts.get(node.kind) ?? 0) + 1);
   }
@@ -122,11 +105,7 @@ export interface SourceStat {
   count: number;
 }
 
-/**
- * Unique memory sources with counts, sorted alphabetically. Only memory nodes
- * carry a `source`; wiki/skill nodes are skipped so the Source filter UI
- * reflects what's actually filterable.
- */
+// unique memory sources with counts, sorted alphabetically
 export function getAllSources(apiNodes: ApiGraphNode[]): SourceStat[] {
   const counts = new Map<string, number>();
   for (const node of apiNodes) {
@@ -145,11 +124,7 @@ export interface TypeStat {
   count: number;
 }
 
-/**
- * Memory-type counts in canonical order. Types with zero memories are kept
- * (unlike kinds) because there are only 3 of them — hiding some would make
- * the filter UI feel inconsistent as the user adds memories of new types.
- */
+// memory-type counts in canonical order
 export function getAllTypes(apiNodes: ApiGraphNode[]): TypeStat[] {
   const counts = new Map<MemoryType, number>();
   for (const node of apiNodes) {
@@ -164,13 +139,7 @@ export function getAllTypes(apiNodes: ApiGraphNode[]): TypeStat[] {
 
 // ---- Build graph data ----
 
-/**
- * Transforms API data into simulation-ready nodes + edges.
- *
- * Node visibility uses `apiGraphNodePassesFilters` from `memory-view-filters.ts`
- * — same semantics as the list view (empty kinds = all kinds; tags are AND;
- * source/type filters apply only to memory nodes).
- */
+// transforms API data into simulation-ready nodes + edges
 export function buildGraphData(
   apiNodes: ApiGraphNode[],
   apiTagEdges: ApiTagEdge[],
@@ -192,7 +161,7 @@ export function buildGraphData(
     apiGraphNodePassesFilters(node, filters),
   );
 
-  // Degree counting across all edge types
+  // degree counting across all edge types
   const degreeCount = new Map<string, number>();
   for (const edge of apiTagEdges) {
     degreeCount.set(edge.source, (degreeCount.get(edge.source) ?? 0) + 1);
@@ -215,11 +184,7 @@ export function buildGraphData(
 
   const graphNodes: GraphNode[] = filteredNodes.map((node) => {
     const degree = degreeCount.get(node.id) ?? 0;
-    // Uncapped multiplicative scale so super-hubs visibly dominate.
-    // Skills carry no edges today, so their degree-0 floor is lifted to 4
-    // to keep them readable as distinct atoms.
-    // Entity nodes are hub nodes ("suns") — scale more aggressively so they
-    // visually dominate and memories orbit around them.
+    // uncapped multiplicative scale so super-hubs visibly dominate
     const scaled = 3 * (1 + degree * 0.05);
     let size: number;
     if (node.kind === "entity") {
@@ -246,7 +211,7 @@ export function buildGraphData(
   const graphEdges: GraphEdge[] = [];
   const addedPairs = new Set<string>();
 
-  // Tag edges from server (already deduplicated, a.id < b.id guaranteed)
+  // tag edges from server (already deduplicated, a.id < b.id guaranteed)
   for (const edge of apiTagEdges) {
     if (nodeSet.has(edge.source) && nodeSet.has(edge.target)) {
       const pairKey = `${edge.source}|${edge.target}`;
@@ -261,7 +226,7 @@ export function buildGraphData(
     }
   }
 
-  // Relates-to edges (skip if already covered by a tag edge for same pair)
+  // relates-to edges (skip if already covered by a tag edge for same pair)
   for (const rel of allRelatesToEdges) {
     if (nodeSet.has(rel.source) && nodeSet.has(rel.target)) {
       const pairKey =
@@ -282,8 +247,8 @@ export function buildGraphData(
     }
   }
 
-  // Wiki parent→child edges (folder hierarchy). Always a distinct pair from
-  // tag/relates_to edges since wiki ids are namespaced with "wiki:".
+  // wiki parent→child edges (folder hierarchy). Always a distinct pair from
+  // tag/relates_to edges since wiki ids are namespaced with "wiki:"
   for (const wpe of apiWikiParentEdges) {
     if (nodeSet.has(wpe.source) && nodeSet.has(wpe.target)) {
       graphEdges.push({
@@ -295,8 +260,8 @@ export function buildGraphData(
     }
   }
 
-  // Memory→Entity MENTIONS edges. Entity ids are namespaced with "entity:"
-  // so they never collide with memory/wiki/skill ids.
+  // memory→Entity MENTIONS edges. Entity ids are namespaced with "entity:"
+  // so they never collide with memory/wiki/skill ids
   for (const me of apiMentionsEdges) {
     if (nodeSet.has(me.source) && nodeSet.has(me.target)) {
       graphEdges.push({

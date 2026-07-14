@@ -1,12 +1,6 @@
 import { BaseIcon, type SidebarIconProps } from "./BaseIcon";
 
-/**
- * Brain with a firing synapse: a clean, symmetric brain silhouette (drawn to
- * fill the 24x24 canvas so it reads at the same weight as the other sidebar
- * icons) with a central fissure and a synapse at its core. On hover the synapse
- * fires -- the core pulses while a ring pings outward. Animation lives in
- * styles/sidebar-icons.css (`sb-mem-core` + `sb-mem-ring`).
- */
+// brain with a firing synapse
 export function IconMemories(props: SidebarIconProps) {
   return (
     <BaseIcon {...props}>

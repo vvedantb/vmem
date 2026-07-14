@@ -6,7 +6,7 @@ interface RunResult {
   proposalsCreated: number;
   memoriesMaterialized: number;
   clustersScanned: number;
-  /** Memories whose confidence the reconsolidation pass adjusted. */
+  // memories whose confidence the reconsolidation pass adjusted
   reweighted: number;
   reason: "ok" | "no-key" | "no-recent-memories" | "rate-limited";
 }

@@ -37,7 +37,7 @@ export default function MemoryProvenance({ memory }: MemoryProvenanceProps) {
 
   return (
     <DetailSection label="Imported from">
-      <div className="space-y-3 rounded-lg bg-surface-secondary p-4">
+      <div className="space-y-3 rounded-lg bg-surface-secondary/60 p-4">
         <Badge
           variant="secondary"
           className="inline-flex items-center gap-1.5 text-xs"

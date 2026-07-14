@@ -28,7 +28,7 @@ export function CreateTeamDialog({
   const createTeam = useMutation(api.teams.create).withOptimisticUpdate(
     (localStore, args) => {
       const list = localStore.getQuery(api.teams.list, {});
-      if (!list || list.length === 0) return;
+      if (!list) return;
       const head = list.at(0);
       if (!head) return;
       const now = Date.now();
@@ -78,7 +78,6 @@ export function CreateTeamDialog({
       toast.success(`Created ${trimmed}`);
       onOpenChange(false);
       setName("");
-      // Navigate into the new team's workspace.
       await navigate({ to: "/$profileId/home", params: { profileId } });
     } catch (err) {
       const message =

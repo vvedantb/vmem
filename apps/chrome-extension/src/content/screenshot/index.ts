@@ -18,7 +18,6 @@
  * Esc cancels at any stage. Click outside the preview bar dismisses.
  *
  * File layout (all under `./screenshot/`):
- *   - `icons.ts`    - inline SVG strings
  *   - `styles.ts`   - shadow-DOM CSS
  *   - `types.ts`    - Mode + SelectionRect + CroppedImage
  *   - `dom.ts`      - element construction (singleton tree, mountOverlay)
@@ -30,7 +29,7 @@ import type { ContentMessage, BackgroundResponse } from "@/types/messages";
 import { safeSendMessage } from "@/lib/safe-message";
 import { z } from "zod";
 import { mountVmemLogo } from "@/content/shared/icons";
-import { CHECK_ICON, ERROR_ICON } from "./icons";
+import { checkIcon, errorIcon } from "@/content/shared/status-icons";
 import type { Mode, SelectionRect } from "./types";
 import { blobToBase64, cropImage, requestCapture } from "./capture";
 import {
@@ -46,6 +45,9 @@ import {
   thumb,
 } from "./dom";
 
+const CHECK_ICON = checkIcon(14);
+const ERROR_ICON = errorIcon(14);
+
 const startScreenshotMessageSchema = z.object({
   type: z.literal("START_SCREENSHOT"),
 });
@@ -60,7 +62,7 @@ let captionValue = "";
 
 // Surfaced as the Save button's `title` attribute when the save fails,
 // so the user can hover the button to see the underlying error without
-// hunting through the SW console.
+// hunting through the SW console
 function setLastErrorTitle(message: string): void {
   saveBtn.title = message;
 }
@@ -155,7 +157,7 @@ function onScrimMouseUp(e: MouseEvent): void {
   const finalRect = dragRect;
   dragStart = null;
 
-  // Reject tiny drags - likely a stray click.
+  // Reject tiny drags - likely a stray click
   if (finalRect.w < 8 || finalRect.h < 8) {
     setMode("idle");
     return;
@@ -175,11 +177,11 @@ function positionRect(r: SelectionRect): void {
 
 async function captureAndCrop(rect: SelectionRect): Promise<void> {
   // Hide the scrim *before* asking the SW to capture - otherwise the
-  // captured image will include our dim overlay.
+  // captured image will include our dim overlay
   scrim.classList.remove("active");
   rectEl.classList.remove("active");
 
-  // Yield a frame so the browser actually paints without the scrim.
+  // Yield a frame so the browser actually paints without the scrim
   await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
   let dataUrl: string;
@@ -206,7 +208,7 @@ async function captureAndCrop(rect: SelectionRect): Promise<void> {
 // ── Preview positioning ───────────────────────────────────────────────────────
 
 function positionPreview(rect: SelectionRect): void {
-  // Render off-screen first so we can measure.
+  // Render off-screen first so we can measure
   preview.style.left = "-9999px";
   preview.style.top = "-9999px";
   preview.classList.add("visible");
@@ -261,8 +263,6 @@ async function saveScreenshot(): Promise<void> {
     }
     if (response.type === "SAVE_RESULT" && response.success) {
       setMode("success");
-    } else if (response.type === "SAVE_DUPLICATE") {
-      setMode("success");
     } else if (response.type === "SAVE_RESULT") {
       console.error(
         "[vmem] Screenshot save failed:",
@@ -306,7 +306,7 @@ captionInput.addEventListener("keydown", (e) => {
     e.preventDefault();
     cancelAll();
   }
-  // Stop the page from intercepting typing (some sites bind global keys).
+  // Stop the page from intercepting typing (some sites bind global keys)
   e.stopPropagation();
 });
 
@@ -316,7 +316,7 @@ saveBtn.addEventListener("click", (e) => {
   void saveScreenshot();
 });
 
-// Global Esc - cancel from any state.
+// Global Esc - cancel from any state
 document.addEventListener(
   "keydown",
   (e) => {
@@ -328,7 +328,7 @@ document.addEventListener(
   true,
 );
 
-// Click outside preview while in preview state → dismiss without saving.
+// Click outside preview while in preview state → dismiss without saving
 document.addEventListener(
   "mousedown",
   (e) => {
@@ -339,7 +339,7 @@ document.addEventListener(
   true,
 );
 
-// Listen for the start trigger from the background SW.
+// Listen for the start trigger from the background SW
 chrome.runtime.onMessage.addListener(
   (message: unknown, _sender, sendResponse) => {
     const parsed = startScreenshotMessageSchema.safeParse(message);

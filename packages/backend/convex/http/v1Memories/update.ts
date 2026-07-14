@@ -1,6 +1,11 @@
 import type { MemoryWithTags } from "../../../engine/neo4j/memory/types";
 import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
+import {
+  isInstructionUpdateBody,
+  updateBodySchema,
+  type UpdateBody,
+} from "../../memoryApi/contract";
 import type { OpenRouterRequired } from "../../neo4jActions/agent/shared";
 import type { UpdateFromInstructionResult } from "../../neo4jActions/agent/updateFromInstruction";
 import {
@@ -8,11 +13,6 @@ import {
   withApiKeyAuth,
   type ApiKeyAuth,
 } from "./apiKeyAuth";
-import {
-  updateBodySchema,
-  isInstructionUpdateBody,
-  type UpdateBody,
-} from "./schemas";
 import { isOpenRouterRequired, openRouterRequiredResponse } from "./types";
 
 async function runUpdateHandler(
@@ -52,7 +52,7 @@ async function runUpdateHandler(
     internal.neo4jActions.memories.updateMemoryInternal,
     {
       clerkId: auth.clerkId,
-      memoryId: body.memoryId,
+      memoryId: body.id,
       title: body.title,
       content: body.content,
       type: body.type,

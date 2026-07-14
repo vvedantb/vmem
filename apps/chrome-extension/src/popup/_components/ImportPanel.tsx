@@ -135,27 +135,31 @@ export function ImportPanel() {
     void update({ extensionAutoSyncEnabled: checked });
   }
 
-  function handleImportBookmarks() {
-    setBookmarkStatus("importing");
+  function runImport(options: {
+    message: ContentMessage;
+    setStatus: (status: ImportStatus) => void;
+    successMessage: (count: number) => string;
+    onSettled: () => void;
+  }) {
+    options.setStatus("importing");
     setProgress(null);
     setResultMessage(null);
 
-    const message: ContentMessage = { type: "IMPORT_BOOKMARKS" };
     chrome.runtime.sendMessage(
-      message,
+      options.message,
       (response: BackgroundResponse | undefined) => {
         if (response?.type === "IMPORT_RESULT") {
           if (response.locked) {
-            setBookmarkStatus("idle");
+            options.setStatus("idle");
             setResultMessage("Sync already in progress");
           } else {
-            setBookmarkStatus(response.success ? "done" : "error");
+            options.setStatus(response.success ? "done" : "error");
             setResultMessage(
               response.success
-                ? `Synced ${response.count} new bookmarks`
+                ? options.successMessage(response.count)
                 : (response.error ?? "Sync failed"),
             );
-            setLastBookmarkSync(Date.now());
+            options.onSettled();
           }
         }
         setProgress(null);
@@ -163,35 +167,25 @@ export function ImportPanel() {
     );
   }
 
-  function handleImportHistory() {
-    setHistoryStatus("importing");
-    setProgress(null);
-    setResultMessage(null);
+  function handleImportBookmarks() {
+    runImport({
+      message: { type: "IMPORT_BOOKMARKS" },
+      setStatus: setBookmarkStatus,
+      successMessage: (count) => `Synced ${count} new bookmarks`,
+      onSettled: () => setLastBookmarkSync(Date.now()),
+    });
+  }
 
-    const message: ContentMessage = {
-      type: "IMPORT_HISTORY",
-      days: Number(historyDays),
-    };
-    chrome.runtime.sendMessage(
-      message,
-      (response: BackgroundResponse | undefined) => {
-        if (response?.type === "IMPORT_RESULT") {
-          if (response.locked) {
-            setHistoryStatus("idle");
-            setResultMessage("Sync already in progress");
-          } else {
-            setHistoryStatus(response.success ? "done" : "error");
-            setResultMessage(
-              response.success
-                ? `Synced ${response.count} new history entries`
-                : (response.error ?? "Sync failed"),
-            );
-            setLastHistorySync(Date.now());
-          }
-        }
-        setProgress(null);
+  function handleImportHistory() {
+    runImport({
+      message: {
+        type: "IMPORT_HISTORY",
+        days: Number(historyDays),
       },
-    );
+      setStatus: setHistoryStatus,
+      successMessage: (count) => `Synced ${count} new history entries`,
+      onSettled: () => setLastHistorySync(Date.now()),
+    });
   }
 
   function handleCancel() {

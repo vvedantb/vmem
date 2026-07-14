@@ -13,7 +13,7 @@ export interface RunCodebaseSyncArgs {
   onStage: (stage: SyncStage) => Promise<void>;
 }
 
-/** Fetch from GitHub, parse, and write to Neo4j — single Node action body. */
+// fetch from GitHub, parse, and write to Neo4j — single Node action body
 export async function runCodebaseSync(
   args: RunCodebaseSyncArgs,
 ): Promise<ParseStats> {

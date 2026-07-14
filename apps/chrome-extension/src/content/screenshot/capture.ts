@@ -39,15 +39,15 @@ export async function cropImage(
 ): Promise<CroppedImage> {
   const img = await loadImage(sourceDataUrl);
 
-  // captureVisibleTab returns an image at devicePixelRatio resolution.
-  // Map CSS-pixel rect → image-pixel rect.
+  // captureVisibleTab returns an image at devicePixelRatio resolution
+  // Map CSS-pixel rect → image-pixel rect
   const dpr = window.devicePixelRatio || 1;
   const sx = Math.round(rect.x * dpr);
   const sy = Math.round(rect.y * dpr);
   const sw = Math.round(rect.w * dpr);
   const sh = Math.round(rect.h * dpr);
 
-  // Clamp to image bounds in case dpr drift produces an off-by-a-pixel.
+  // Clamp to image bounds in case dpr drift produces an off-by-a-pixel
   const clampedSx = Math.max(0, Math.min(sx, img.naturalWidth));
   const clampedSy = Math.max(0, Math.min(sy, img.naturalHeight));
   const clampedSw = Math.max(1, Math.min(sw, img.naturalWidth - clampedSx));
@@ -99,7 +99,7 @@ export function blobToBase64(blob: Blob): Promise<string> {
         reject(new Error("FileReader returned non-string result"));
         return;
       }
-      // Strip the `data:image/png;base64,` prefix.
+      // Strip the `data:image/png;base64,` prefix
       const comma = result.indexOf(",");
       resolve(comma >= 0 ? result.slice(comma + 1) : result);
     };

@@ -1,22 +1,33 @@
 import { diffWords } from "diff";
 import type { Change } from "diff";
+import { cn } from "@vmem/ui";
 
 interface DiffDisplayProps {
   oldText: string;
   newText: string;
+  className?: string;
 }
 
-export default function DiffDisplay({ oldText, newText }: DiffDisplayProps) {
+export default function DiffDisplay({
+  oldText,
+  newText,
+  className,
+}: DiffDisplayProps) {
   const changes: Change[] = diffWords(oldText, newText);
 
   return (
-    <div className="overflow-hidden break-words font-mono text-sm leading-relaxed whitespace-pre-wrap text-foreground">
+    <div
+      className={cn(
+        "overflow-wrap-anywhere text-sm leading-relaxed whitespace-pre-wrap text-foreground/80",
+        className,
+      )}
+    >
       {changes.map((part, index) => {
         if (part.added) {
           return (
             <span
               key={index}
-              className="bg-success/15 text-success rounded-sm px-0.5"
+              className="rounded-sm bg-success/15 px-0.5 text-success"
             >
               {part.value}
             </span>
@@ -26,7 +37,7 @@ export default function DiffDisplay({ oldText, newText }: DiffDisplayProps) {
           return (
             <span
               key={index}
-              className="bg-danger/15 text-danger line-through rounded-sm px-0.5"
+              className="rounded-sm bg-danger/15 px-0.5 text-danger line-through"
             >
               {part.value}
             </span>

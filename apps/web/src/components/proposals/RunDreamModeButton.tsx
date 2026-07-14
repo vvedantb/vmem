@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { useAction } from "convex/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -8,26 +8,13 @@ import { Button } from "@vmem/ui";
 import { IconSparkles, IconLoader2 } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 
-/**
- * "Start Dreaming" button rendered in the `/inbox` (proposals tab) page header.
- *
- * Triggers a one-shot synthesis pass across every personal profile the user
- * owns. Team profiles still rely on their per-profile daily cron — Dream Mode
- * is a user-wide concept for personal use. Rate-limited to 1 run per 60
- * minutes user-wide; the limit reason is surfaced via toast.
- *
- * Toast outcomes:
- *   ok                  → "Dream Mode found N proposals" (or "no synthesis")
- *   no-key              → "Set OPENROUTER_API_KEY in settings"
- *   no-recent-memories  → "No recent memories to scan"
- *   rate-limited        → "Already ran in the last hour"
- */
+// inbox "start dreaming" button — one-shot personal-profile synthesis
 export default function RunDreamModeButton() {
   const runDreamForUser = useAction(api.dreamMode.runDreamForUser);
   const queryClient = useQueryClient();
   const [isRunning, setIsRunning] = useState(false);
 
-  const handleClick = useCallback(async () => {
+  async function handleClick() {
     if (isRunning) return;
     setIsRunning(true);
     try {
@@ -38,18 +25,16 @@ export default function RunDreamModeButton() {
           const materialized = result.memoriesMaterialized;
           if (created === 0 && materialized === 0) {
             toast.success(
-              `Scanned ${String(result.clustersScanned)} clusters — no new synthesis surfaced`,
+              `Scanned ${result.clustersScanned} clusters — no new synthesis surfaced`,
             );
           } else {
             const parts: string[] = [];
             if (created > 0) {
-              parts.push(
-                `${String(created)} proposal${created === 1 ? "" : "s"}`,
-              );
+              parts.push(`${created} proposal${created === 1 ? "" : "s"}`);
             }
             if (materialized > 0) {
               parts.push(
-                `${String(materialized)} auto-accepted ${
+                `${materialized} auto-accepted ${
                   materialized === 1 ? "memory" : "memories"
                 }`,
               );
@@ -79,23 +64,38 @@ export default function RunDreamModeButton() {
     } finally {
       setIsRunning(false);
     }
-  }, [isRunning, queryClient, runDreamForUser]);
+  }
 
   return (
     <Button
       type="button"
       size="sm"
       variant="secondary"
-      onClick={handleClick}
+      onClick={() => {
+        void handleClick();
+      }}
       disabled={isRunning}
       className="gap-1.5"
     >
-      {isRunning ? (
-        <IconLoader2 size={14} className="animate-spin" />
-      ) : (
-        <IconSparkles size={14} />
-      )}
-      {isRunning ? "Dreaming…" : "Start Dreaming"}
+      {isRunning ? <DreamModeButtonRunning /> : <DreamModeButtonIdle />}
     </Button>
+  );
+}
+
+function DreamModeButtonIdle() {
+  return (
+    <>
+      <IconSparkles size={14} />
+      Start Dreaming
+    </>
+  );
+}
+
+function DreamModeButtonRunning() {
+  return (
+    <>
+      <IconLoader2 size={14} className="animate-spin" />
+      Dreaming…
+    </>
   );
 }

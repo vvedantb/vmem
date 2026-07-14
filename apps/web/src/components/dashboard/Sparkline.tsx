@@ -1,14 +1,15 @@
 interface SparklineProps {
   data: number[];
   strokeClassName: string;
+  fillClassName?: string;
 }
 
-function hasActivity(data: number[]): boolean {
-  return data.some((value) => value > 0);
-}
-
-export function Sparkline({ data, strokeClassName }: SparklineProps) {
-  if (!hasActivity(data)) {
+export function Sparkline({
+  data,
+  strokeClassName,
+  fillClassName,
+}: SparklineProps) {
+  if (!data.some((value) => value > 0)) {
     return (
       <div aria-hidden className="flex h-10 items-end gap-0.5 opacity-40">
         {data.map((_, index) => (
@@ -22,15 +23,29 @@ export function Sparkline({ data, strokeClassName }: SparklineProps) {
     );
   }
 
+  const first = data[0];
+  if (first === undefined) {
+    return (
+      <div aria-hidden className="flex h-10 items-end gap-0.5 opacity-40" />
+    );
+  }
+
   const width = 200;
   const height = 40;
   const padding = 2;
-  const min = Math.min(...data);
-  const max = Math.max(...data);
+  let min = first;
+  let max = first;
+  for (let index = 1; index < data.length; index++) {
+    const value = data[index];
+    if (value === undefined) continue;
+    if (value < min) min = value;
+    if (value > max) max = value;
+  }
   const range = max - min || 1;
+  const span = Math.max(data.length - 1, 1);
 
   const points = data.map((value, index) => {
-    const x = padding + (index / (data.length - 1)) * (width - padding * 2);
+    const x = padding + (index / span) * (width - padding * 2);
     const y =
       height - padding - ((value - min) / range) * (height - padding * 2);
     return `${x},${y}`;
@@ -45,6 +60,12 @@ export function Sparkline({ data, strokeClassName }: SparklineProps) {
       preserveAspectRatio="none"
       aria-hidden
     >
+      {fillClassName !== undefined ? (
+        <path
+          d={`${linePath} L${width - padding},${height} L${padding},${height} Z`}
+          className={fillClassName}
+        />
+      ) : null}
       <path
         d={linePath}
         fill="none"

@@ -1,17 +1,6 @@
-/**
- * Active workspace (profile) plumbing for the `/$profileId/*` route tree.
- *
- * - `ActiveProfileProvider` is mounted by `routes/_main/$profileId/route.tsx`
- *   once the profile in the URL is validated against `api.profiles.list`.
- * - `useActiveProfile()` — for components rendered INSIDE the workspace
- *   outlet; returns the full profile doc and throws if used elsewhere.
- * - `useActiveProfileId()` — for shell components rendered ABOVE the outlet
- *   (sidebar, command palette). Reads the route param when present and
- *   falls back to the last-remembered workspace on user-level routes
- *   like `/settings/**` so the shell keeps its workspace context.
- */
+// active workspace context for /$profileId/* (provider + useActiveProfile*)
 
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, use, type ReactNode } from "react";
 import { useParams } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { api } from "@vmem/backend";
@@ -34,7 +23,7 @@ export function ActiveProfileProvider({
 }
 
 export function useActiveProfile(): Doc<"profiles"> {
-  const profile = useContext(ActiveProfileContext);
+  const profile = use(ActiveProfileContext);
   if (profile === null) {
     throw new Error(
       "useActiveProfile must be used inside the $profileId workspace route",
@@ -61,12 +50,7 @@ export function readLastActiveProfileId(): string | null {
   }
 }
 
-/**
- * Active workspace id for components rendered OUTSIDE the `$profileId`
- * outlet. `undefined` only when no workspace has ever been visited
- * (fresh browser, user-level route) — callers should render a disabled /
- * fallback state in that case.
- */
+// workspace id outside $profileId outlet; undefined if never visited
 export function useActiveProfileId(): string | undefined {
   const params = useParams({ strict: false });
   const profileId: string | undefined = params.profileId;
@@ -74,15 +58,17 @@ export function useActiveProfileId(): string | undefined {
   return readLastActiveProfileId() ?? undefined;
 }
 
-/**
- * The active workspace's team id (undefined = personal workspace). For
- * shell components rendered OUTSIDE the `$profileId` outlet that need to
- * scope content queries (skills/wiki/files). Inside the outlet prefer
- * `useActiveProfile().teamId`.
- */
+// team id for the active workspace (undefined = personal).
+// Prefer ActiveProfileProvider when inside /$profileId; fall back to a
+// profiles.list lookup for shell/sidebar outside that provider.
 export function useActiveTeamId(): Id<"teams"> | undefined {
+  const fromContext = use(ActiveProfileContext);
   const profileId = useActiveProfileId();
-  const profiles = useQuery(api.profiles.list);
+  const profiles = useQuery(
+    api.profiles.list,
+    fromContext === null ? {} : "skip",
+  );
+  if (fromContext !== null) return fromContext.teamId;
   if (profileId === undefined) return undefined;
   return profiles?.find((p) => p._id === profileId)?.teamId;
 }

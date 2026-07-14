@@ -1,7 +1,4 @@
-/**
- * Shared color utilities for graph nodes.
- * Used by both the canvas renderer and UI components (tag filters, legend).
- */
+// graph node colors (canvas + tag filters / legend)
 import type { GraphNodeKind } from "./canvas/types";
 
 function themeColor(token: string, fallback: string): string {
@@ -39,20 +36,7 @@ export function tagToColor(tag: string, isDark: boolean): string {
   return isDark ? hslToHex(hue, 50, 72) : hslToHex(hue, 55, 48);
 }
 
-/**
- * Fixed colors for tagless node kinds. Picks from the same HSL space used by
- * `tagToColor` to stay visually coherent with the rest of the palette.
- * Hue cheat-sheet:
- *  - wiki-document: warm amber (content accent)
- *  - wiki-folder:   cool slate (structural)
- *  - skill:         purple (tool/capability)
- *  - entity:        gold (named-entity accent)
- *  - code-file:      teal     (structural file surface)
- *  - code-function:  green    (executable behaviour)
- *  - code-class:     indigo   (type/abstraction)
- *  - code-interface: pink     (contract/abstraction)
- *  - code-process:   orange   (entry-point burst — high salience)
- */
+// fixed hsl colors for tagless node kinds (matches tagToColor space)
 function kindColor(
   kind: Exclude<GraphNodeKind, "memory">,
   isDark: boolean,
@@ -85,13 +69,7 @@ function kindColor(
   return isDark ? hslToHex(35, 55, 70) : hslToHex(35, 60, 50);
 }
 
-/**
- * Color for a node based on its kind, tags, and theme. Used by renderer and UI.
- *
- * - Memory nodes: first tag drives the hue (falls back to a theme-aware grey).
- * - Non-memory kinds: fixed kind-based color.
- * - `nodeColorOverride` from a view theme (e.g. monochrome themes) wins for all.
- */
+// memory: first tag hue; other kinds: fixed; theme override wins
 export function nodeColor(
   tags: string[],
   kind: GraphNodeKind,

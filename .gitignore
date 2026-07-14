@@ -18,6 +18,7 @@ build
 # Local project context (not shared)
 FYP-PROJECT-CONTEXT.md
 CODEBASE.md
+ARCHITECTURE.md
 AGENTS.md
 CLAUDE.md
 DESIRES.md

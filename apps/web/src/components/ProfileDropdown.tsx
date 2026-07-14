@@ -13,43 +13,11 @@ import {
   SelectValue,
   Skeleton,
 } from "@vmem/ui";
-import {
-  IconUser,
-  IconBriefcase,
-  IconHome,
-  IconCode,
-  IconBook,
-  IconHeart,
-  IconStar,
-  IconRocket,
-  IconBulb,
-  IconMusic,
-  IconCamera,
-  IconDeviceGamepad,
-  IconUsers,
-} from "@tabler/icons-react";
+import { IconUsers } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 import { useActiveProfileId } from "@/components/workspace/active-profile";
+import { getProfileIcon } from "@/components/profiles/profile-icon";
 import type { FunctionReturnType } from "convex/server";
-
-const ICON_MAP: Record<string, typeof IconUser> = {
-  user: IconUser,
-  briefcase: IconBriefcase,
-  home: IconHome,
-  code: IconCode,
-  book: IconBook,
-  heart: IconHeart,
-  star: IconStar,
-  rocket: IconRocket,
-  lightbulb: IconBulb,
-  music: IconMusic,
-  camera: IconCamera,
-  gamepad: IconDeviceGamepad,
-};
-
-function getProfileIcon(iconName: string) {
-  return ICON_MAP[iconName] ?? IconUser;
-}
 
 type ProfileListItem = FunctionReturnType<typeof api.profiles.list>[number];
 
@@ -58,6 +26,8 @@ interface ProfileDropdownProps {
   onChange: (profileId: string) => void;
   disabled?: boolean;
   className?: string;
+  // when true, only offer profiles in the same workspace kind as the active one
+  lockToActiveWorkspace?: boolean;
 }
 
 export function ProfileDropdown({
@@ -65,6 +35,7 @@ export function ProfileDropdown({
   onChange,
   disabled,
   className,
+  lockToActiveWorkspace = false,
 }: ProfileDropdownProps) {
   const { isAuthenticated } = useConvexAuth();
   const profiles = useQuery(api.profiles.list, isAuthenticated ? {} : "skip");
@@ -72,7 +43,7 @@ export function ProfileDropdown({
 
   const isLoading = profiles === undefined;
 
-  // Default selection = the active workspace (explicit value wins).
+  // default selection = the active workspace (explicit value wins)
   const effectiveValue =
     value ?? activeProfileId ?? profiles?.find((p) => p.isDefault)?._id;
 
@@ -85,11 +56,20 @@ export function ProfileDropdown({
   }
 
   const selectedProfile = profiles?.find((p) => p._id === effectiveValue);
+  const activeProfile = profiles?.find((p) => p._id === activeProfileId);
 
-  // Partition into personal vs team so the dropdown can render two labelled groups.
+  // partition into personal vs team so the dropdown can render two labelled groups
   const personalProfiles: ProfileListItem[] = [];
   const teamProfiles: ProfileListItem[] = [];
   for (const p of profiles ?? []) {
+    if (lockToActiveWorkspace) {
+      if (activeProfile?.teamId !== undefined) {
+        if (p._id === activeProfile._id) teamProfiles.push(p);
+      } else if (p.teamId === undefined) {
+        personalProfiles.push(p);
+      }
+      continue;
+    }
     if (p.teamId) teamProfiles.push(p);
     else personalProfiles.push(p);
   }

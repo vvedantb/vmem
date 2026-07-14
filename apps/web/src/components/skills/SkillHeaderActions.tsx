@@ -28,7 +28,7 @@ import {
   IconTrash,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
-import { formatSkillForClipboard } from "./_utils";
+import { formatSkillForClipboard, patchSkillListMy } from "./_utils";
 import { SkillHistoryPanel } from "./SkillHistoryPanel";
 
 interface SkillHeaderActionsProps {
@@ -65,39 +65,22 @@ export function SkillHeaderActions({
         teamId: skill.teamId,
       });
       if (!current) return;
-      const now = Date.now();
       localStore.setQuery(
         api.skills.listMy,
         { teamId: skill.teamId },
-        current.map((row) => {
-          if (row._id !== args.id) return row;
-          return {
-            ...row,
-            ...(args.name !== undefined ? { name: args.name.trim() } : {}),
-            ...(args.description !== undefined
-              ? { description: args.description }
-              : {}),
-            ...(args.instructions !== undefined
-              ? { instructions: args.instructions }
-              : {}),
-            ...(args.enabled !== undefined ? { enabled: args.enabled } : {}),
-            updatedAt: now,
-          };
-        }),
+        patchSkillListMy(current, args.id, args),
       );
     },
   );
 
   const isEnabled = skill.enabled !== false;
 
-  const handleEnabledChange = async (checked: boolean) => {
-    try {
-      await updateSkill({ id: skill._id, enabled: checked });
-    } catch (err) {
+  const handleEnabledChange = (checked: boolean) => {
+    void updateSkill({ id: skill._id, enabled: checked }).catch((err) => {
       toast.error(
         err instanceof Error ? err.message : "Failed to update skill",
       );
-    }
+    });
   };
 
   const handleCopy = async () => {

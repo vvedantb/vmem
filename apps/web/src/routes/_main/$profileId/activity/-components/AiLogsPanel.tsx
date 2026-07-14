@@ -14,12 +14,14 @@ import {
 } from "@vmem/ui";
 import { IconSortDescending, IconSortAscending } from "@tabler/icons-react";
 import { api, type Id } from "@vmem/backend";
+import { useActiveProfile } from "@/components/workspace/active-profile";
 import {
   aiLogsSearchParams,
   isAllProfilesFilter,
   PROFILE_FILTER_ALL,
   type Feature,
   type Range,
+  type Scope,
   type SortDirection,
 } from "../-searchParams";
 import { LogsSummary } from "./LogsSummary";
@@ -27,35 +29,43 @@ import { LogsFiltersDropdown } from "./LogsFiltersDropdown";
 import { LogsTable } from "./LogsTable";
 import { computeAiLogsTrends } from "./_aiLogsUtils";
 import { AiLogsLoadingSkeleton } from "./AiLogsLoadingSkeleton";
+import type { ProfileListItem, TeamListItem } from "./-types";
 
 const PAGE_SIZE = 50;
 
-/**
- * AI Logs panel for `/activity` — observability dashboard for every backend
- * AI call vmem fires on the user's behalf (chat completions + embeddings,
- * currently routed via OpenRouter).
- *
- * Reads filter params from the URL and renders summary + filterable
- * virtualised table (table scrolls inside a capped card region).
- */
+// effective scope for the AI logs, derived rather than written back to the URL
+function useAiLogsScope(params: {
+  scope: Scope | null;
+  teamId: string | null;
+}) {
+  const activeProfile = useActiveProfile();
+  if (params.scope !== null) {
+    return { scope: params.scope, teamIdParam: params.teamId ?? "" };
+  }
+  if (activeProfile.teamId !== undefined) {
+    return { scope: "team" as const, teamIdParam: activeProfile.teamId };
+  }
+  return { scope: "personal" as const, teamIdParam: "" };
+}
+
+// AI Logs panel for `/activity`
 export function AiLogsPanel() {
   const [params, setParams] = useQueryStates(aiLogsSearchParams);
+  const { scope, teamIdParam } = useAiLogsScope(params);
 
-  // Profiles + teams power the scope selector and the per-row profile badge
-  // lookup. Both are user-scoped queries — we don't need to gate on auth
-  // here because TanStack Router's `_main` route already does.
+  // profiles + teams power the scope selector and the per-row profile badge lookup
   const profiles = useQuery(api.profiles.list);
   const teams = useQuery(api.teams.list);
 
   const teamId =
-    params.scope === "team" && params.teamId.length > 0
-      ? normalizeTeamId(params.teamId, teams)
+    scope === "team" && teamIdParam.length > 0
+      ? normalizeTeamId(teamIdParam, teams)
       : undefined;
 
   const listArgs = useMemo(() => {
-    if (params.scope === "team" && !teamId) return "skip" as const;
+    if (scope === "team" && !teamId) return "skip" as const;
     return {
-      scope: params.scope,
+      scope,
       teamId,
       profileId: isAllProfilesFilter(params.profileId)
         ? undefined
@@ -65,7 +75,7 @@ export function AiLogsPanel() {
       range: params.range,
     };
   }, [
-    params.scope,
+    scope,
     teamId,
     params.profileId,
     params.features,
@@ -84,13 +94,13 @@ export function AiLogsPanel() {
   }, [paged.results, params.sortDir]);
 
   const summaryArgs = useMemo(() => {
-    if (params.scope === "team" && !teamId) return "skip" as const;
+    if (scope === "team" && !teamId) return "skip" as const;
     return {
-      scope: params.scope,
+      scope,
       teamId,
       range: params.range,
     };
-  }, [params.scope, teamId, params.range]);
+  }, [scope, teamId, params.range]);
 
   const summary = useQuery(api.openRouterLogs.summaryMine, summaryArgs);
 
@@ -100,12 +110,9 @@ export function AiLogsPanel() {
   );
 
   const profilesById = useMemo(() => {
-    const map = new Map<
-      string,
-      { _id: string; name: string; color?: string }
-    >();
-    for (const p of profiles ?? []) {
-      map.set(p._id, { _id: p._id, name: p.name, color: p.color });
+    const map = new Map<string, ProfileListItem>();
+    for (const profile of profiles ?? []) {
+      map.set(profile._id, profile);
     }
     return map;
   }, [profiles]);
@@ -148,26 +155,20 @@ export function AiLogsPanel() {
   );
 }
 
-/**
- * Right-section actions for the AI Logs tab — filters dropdown and sort
- * dropdown. Reads/writes the same `aiLogsSearchParams` as `AiLogsPanel`.
- */
+// right-section actions for the AI Logs tab — filters dropdown and sort dropdown
 export function AiLogsRightSection() {
   const [params, setParams] = useQueryStates(aiLogsSearchParams);
+  const { scope, teamIdParam } = useAiLogsScope(params);
   const profiles = useQuery(api.profiles.list);
   const teams = useQuery(api.teams.list);
 
   const teamId =
-    params.scope === "team" && params.teamId.length > 0
-      ? normalizeTeamId(params.teamId, teams)
+    scope === "team" && teamIdParam.length > 0
+      ? normalizeTeamId(teamIdParam, teams)
       : undefined;
 
   const distinctModelsArgs =
-    params.scope === "team"
-      ? teamId
-        ? { scope: params.scope, teamId }
-        : "skip"
-      : { scope: params.scope };
+    scope === "team" ? (teamId ? { scope, teamId } : "skip") : { scope };
   const availableModelsResult = useQuery(
     api.openRouterLogs.distinctModelsMine,
     distinctModelsArgs,
@@ -183,17 +184,12 @@ export function AiLogsRightSection() {
     });
   };
 
-  const teamOptions = (teams ?? []).map((t) => ({
-    _id: t.team._id,
-    name: t.team.name,
-  }));
-
   return (
     <div className="flex items-center gap-2">
       <LogsFiltersDropdown
-        scope={params.scope}
-        teamId={params.teamId}
-        teams={teamOptions}
+        scope={scope}
+        teamId={teamIdParam}
+        teams={teams ?? []}
         onScopeChange={(scope, nextTeamId) =>
           setParams({ scope, teamId: nextTeamId ?? "" })
         }
@@ -202,11 +198,7 @@ export function AiLogsRightSection() {
         models={params.models}
         availableModels={availableModels}
         profileId={params.profileId}
-        profiles={profiles?.map((p) => ({
-          _id: p._id,
-          name: p.name,
-          color: p.color,
-        }))}
+        profiles={profiles}
         onRangeChange={(range: Range) => setParams({ range })}
         onFeaturesChange={(features: Feature[]) => setParams({ features })}
         onModelsChange={(models) => setParams({ models })}
@@ -259,11 +251,11 @@ function SortDropdown({
   );
 }
 
-// Helpers — match a string to a typed Id by checking against the user's
-// known set, so we never push a malformed id to the backend.
+// helpers — match a string to a typed Id by checking against the user's
+// known set, so we never push a malformed id to the backend
 function normalizeTeamId(
   raw: string,
-  teams: { team: { _id: Id<"teams"> } }[] | undefined,
+  teams: TeamListItem[] | undefined,
 ): Id<"teams"> | undefined {
   if (!teams) return undefined;
   const match = teams.find((t) => t.team._id === raw);
@@ -272,7 +264,7 @@ function normalizeTeamId(
 
 function normalizeProfileId(
   raw: string,
-  profiles: { _id: Id<"profiles"> }[] | undefined,
+  profiles: ProfileListItem[] | undefined,
 ): Id<"profiles"> | undefined {
   if (!profiles) return undefined;
   const match = profiles.find((p) => p._id === raw);

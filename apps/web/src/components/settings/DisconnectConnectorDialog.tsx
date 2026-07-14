@@ -1,19 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useAction } from "convex/react";
+import { useAction, useMutation } from "convex/react";
 import { api, type Id } from "@vmem/backend";
-import {
-  Button,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@vmem/ui";
-import { IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
+import DestructiveConfirmDialog from "./DestructiveConfirmDialog";
+import { optimisticallyDisconnectConnector } from "./_optimisticConnectors";
 
 interface DisconnectConnectorDialogProps {
   open: boolean;
@@ -28,13 +20,21 @@ export default function DisconnectConnectorDialog({
   connectorId,
   connectorName,
 }: DisconnectConnectorDialogProps) {
-  const disconnect = useAction(api.connectors.oauth.disconnect);
+  const disconnectOAuth = useAction(api.connectors.oauth.disconnect);
+  const markDisconnected = useMutation(
+    api.connectors.crud.disconnect,
+  ).withOptimisticUpdate((localStore, args) => {
+    optimisticallyDisconnectConnector(localStore, args.id);
+  });
   const [submitting, setSubmitting] = useState(false);
 
   const handleConfirm = async () => {
     setSubmitting(true);
     try {
-      await disconnect({ connectorId });
+      await Promise.all([
+        markDisconnected({ id: connectorId }),
+        disconnectOAuth({ connectorId }),
+      ]);
       toast(`Disconnected from ${connectorName}`);
       onClose();
     } catch {
@@ -45,37 +45,15 @@ export default function DisconnectConnectorDialog({
   };
 
   return (
-    <Dialog
+    <DestructiveConfirmDialog
       open={open}
-      onOpenChange={(nextOpen) => {
-        if (!nextOpen && !submitting) onClose();
-      }}
-    >
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Disconnect {connectorName}?</DialogTitle>
-          <DialogDescription>
-            vmem will stop syncing from {connectorName} and revoke access until
-            you connect again. Memories already imported stay in your graph
-            unless you delete them separately.
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <Button variant="ghost" onClick={onClose} disabled={submitting}>
-            Cancel
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={() => void handleConfirm()}
-            disabled={submitting}
-          >
-            {submitting ? (
-              <IconLoader2 size={14} className="animate-spin" />
-            ) : null}
-            {submitting ? "Disconnecting…" : "Disconnect"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      onClose={onClose}
+      title={`Disconnect ${connectorName}?`}
+      description={`vmem will stop syncing from ${connectorName} and revoke access until you connect again. Memories already imported stay in your graph unless you delete them separately.`}
+      confirmLabel="Disconnect"
+      submittingLabel="Disconnecting…"
+      submitting={submitting}
+      onConfirm={() => void handleConfirm()}
+    />
   );
 }

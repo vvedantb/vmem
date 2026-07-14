@@ -2,8 +2,11 @@ import type { Doc, Id } from "../_generated/dataModel";
 import {
   buildChildrenByParent,
   collectSubtreeIds,
+  normalizePathSegments,
   parentKey,
 } from "../lib/scopedTree";
+
+export { normalizePathSegments };
 
 export const FILE_STORAGE_LIMIT_BYTES = 10 * 1024 * 1024 * 1024; // 10 GiB
 
@@ -41,13 +44,6 @@ export function detectFileKind(
 }
 
 export { collectSubtreeIds };
-
-export function normalizePathSegments(path: string): string[] {
-  return path
-    .split("/")
-    .map((segment) => segment.trim())
-    .filter((segment) => segment.length > 0);
-}
 
 export function findChild(
   byParent: Map<string, Array<Doc<"fileNodes">>>,

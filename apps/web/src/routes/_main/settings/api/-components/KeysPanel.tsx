@@ -1,5 +1,4 @@
 import { useQuery } from "convex/react";
-import type { FunctionReturnType } from "convex/server";
 import {
   Button,
   Table,
@@ -15,26 +14,16 @@ import { AnimatedKeyIcon } from "@/components/svg-animations";
 import ApiKeyModal from "@/components/ApiKeyModal";
 import { ApiKeyRow } from "@/components/api-keys/ApiKeyRow";
 import { ApiKeysLoadingSkeleton } from "@/components/api-keys/ApiKeysLoadingSkeleton";
-import { RevokeKeyDialog } from "@/components/api-keys/RevokeKeyDialog";
-import { DeleteKeyDialog } from "@/components/api-keys/DeleteKeyDialog";
+import { KeyConfirmDialog } from "@/components/api-keys/KeyConfirmDialog";
 import { EditKeyDialog } from "@/components/api-keys/EditKeyDialog";
 import { useApiKeyActions } from "@/components/api-keys/useApiKeyActions";
+import type { ApiKey } from "@/components/api-keys/types";
 import { api } from "@vmem/backend";
+import { useApiCreateKeyModal } from "./ApiCreateKeyContext";
 
-type ApiKey = FunctionReturnType<typeof api.apiKeys.listMy>[number];
-
-/**
- * Keys panel for `/settings/api`. The "create" modal is controlled by
- * the orchestrator so the right-section "New Key" button (in the page
- * header) and the empty-state "New Key" button can both open it.
- */
-export function KeysPanel({
-  isCreateModalOpen,
-  onCreateModalOpenChange,
-}: {
-  isCreateModalOpen: boolean;
-  onCreateModalOpenChange: (open: boolean) => void;
-}) {
+// keys panel for `/settings/api`
+export function KeysPanel() {
+  const { isCreateModalOpen, setIsCreateModalOpen } = useApiCreateKeyModal();
   const apiKeys = useQuery(api.apiKeys.listMy, {});
 
   const {
@@ -46,7 +35,6 @@ export function KeysPanel({
     setEditKeyId,
     isRevoking,
     isDeleting,
-    isRenaming,
     copiedKeyId,
     copyingKeyId,
     revealedKeys,
@@ -55,14 +43,12 @@ export function KeysPanel({
     handleToggleReveal,
     handleRevoke,
     handleDelete,
-    handleRename,
   } = useApiKeyActions();
 
   const isLoading = apiKeys === undefined;
   const apiKeyList: ApiKey[] = apiKeys ?? [];
   const keyToRevoke = apiKeyList.find((key) => key.id === revokeKeyId);
   const keyToDelete = apiKeyList.find((key) => key.id === deleteKeyId);
-  const keyToEdit = apiKeyList.find((key) => key.id === editKeyId);
 
   if (isLoading) return <ApiKeysLoadingSkeleton />;
 
@@ -81,7 +67,7 @@ export function KeysPanel({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => onCreateModalOpenChange(true)}
+              onClick={() => setIsCreateModalOpen(true)}
             >
               <IconPlus size={16} />
               New Key
@@ -136,32 +122,42 @@ export function KeysPanel({
 
       <ApiKeyModal
         isOpen={isCreateModalOpen}
-        onClose={() => onCreateModalOpenChange(false)}
+        onClose={() => setIsCreateModalOpen(false)}
         onKeyCreated={() => {}}
       />
 
-      <RevokeKeyDialog
-        keyName={keyToRevoke?.name}
+      <KeyConfirmDialog
         isOpen={!!revokeKeyId}
-        isRevoking={isRevoking}
+        isBusy={isRevoking}
+        title="Revoke API Key"
+        detail="This action cannot be undone. Any applications using this key will immediately lose access."
+        confirmLabel="Revoke Key"
+        busyLabel="Revoking..."
         onConfirm={handleRevoke}
         onCancel={() => setRevokeKeyId(null)}
-      />
+      >
+        Are you sure you want to revoke{" "}
+        <span className="font-medium">{keyToRevoke?.name}</span>?
+      </KeyConfirmDialog>
 
-      <DeleteKeyDialog
-        keyName={keyToDelete?.name}
+      <KeyConfirmDialog
         isOpen={!!deleteKeyId}
-        isDeleting={isDeleting}
+        isBusy={isDeleting}
+        title="Delete API Key"
+        detail="This removes the key from your account. Active keys stop working immediately. This cannot be undone."
+        confirmLabel="Delete Key"
+        busyLabel="Deleting..."
         onConfirm={handleDelete}
         onCancel={() => setDeleteKeyId(null)}
-      />
+      >
+        Delete <span className="font-medium">{keyToDelete?.name}</span>{" "}
+        permanently?
+      </KeyConfirmDialog>
 
       <EditKeyDialog
-        keyName={keyToEdit?.name}
+        apiKeyId={editKeyId}
         isOpen={!!editKeyId}
-        isSaving={isRenaming}
-        onSave={handleRename}
-        onCancel={() => setEditKeyId(null)}
+        onClose={() => setEditKeyId(null)}
       />
     </>
   );

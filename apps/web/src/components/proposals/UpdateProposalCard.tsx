@@ -1,23 +1,56 @@
 import { Button } from "@vmem/ui";
 import { IconCheck, IconPencil, IconTrash, IconX } from "@tabler/icons-react";
-import type { ProposedUpdate } from "@/hooks/useProposals";
-import { proposalAccentClass } from "./_proposalUtils";
-import { ProposalFieldLabel, ProposalShell } from "./ProposalShell";
+import { proposalAccentClass, type ProposedUpdate } from "./_proposalUtils";
+import {
+  ProposalMutedTextBlock,
+  ProposalShell,
+  ProposalTextBlock,
+} from "./ProposalShell";
 
-export function UpdateProposalCard({
-  proposal,
-  isResolving,
-  onApprove,
-  onReject,
-}: {
+type UpdateProposalCardProps = {
   proposal: ProposedUpdate;
   isResolving: boolean;
   onApprove: () => void;
   onReject: () => void;
+};
+
+export function UpdateProposalCard(props: UpdateProposalCardProps) {
+  if (props.proposal.kind === "delete") {
+    return <DeleteUpdateProposalCard {...props} />;
+  }
+  return <EditUpdateProposalCard {...props} />;
+}
+
+function UpdateProposalRejectButton({
+  isResolving,
+  onReject,
+}: {
+  isResolving: boolean;
+  onReject: () => void;
 }) {
+  return (
+    <Button
+      type="button"
+      size="sm"
+      variant="ghost"
+      onClick={onReject}
+      disabled={isResolving}
+      className="text-muted hover:text-foreground"
+    >
+      <IconX size={14} />
+      Reject
+    </Button>
+  );
+}
+
+function DeleteUpdateProposalCard({
+  proposal,
+  isResolving,
+  onApprove,
+  onReject,
+}: UpdateProposalCardProps) {
   const targetTitle = proposal.memorySnapshot?.title ?? "(memory unavailable)";
   const targetContent = proposal.memorySnapshot?.content ?? "";
-  const isDelete = proposal.kind === "delete";
 
   return (
     <ProposalShell
@@ -26,106 +59,96 @@ export function UpdateProposalCard({
       timestamp={proposal.createdAt}
       meta={
         <span className="inline-flex items-center gap-1.5">
-          {isDelete ? (
-            <>
-              <IconTrash size={14} />
-              Proposed deletion
-            </>
-          ) : (
-            <>
-              <IconPencil size={14} />
-              Proposed update
-            </>
-          )}
+          <IconTrash size={14} />
+          Proposed deletion
         </span>
       }
       actions={
         <>
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            onClick={onReject}
-            disabled={isResolving}
-            className="text-muted hover:text-foreground"
-          >
-            <IconX size={14} />
-            Reject
-          </Button>
+          <UpdateProposalRejectButton
+            isResolving={isResolving}
+            onReject={onReject}
+          />
           <Button
             type="button"
             size="sm"
             onClick={onApprove}
             disabled={isResolving}
-            className={
-              isDelete
-                ? "bg-danger text-danger-foreground"
-                : "bg-surface text-foreground"
-            }
+            className="bg-danger text-danger-foreground"
           >
             <IconCheck size={14} />
-            {isDelete ? "Approve delete" : "Approve update"}
+            Approve delete
           </Button>
         </>
       }
     >
-      <Reason text={proposal.reason} />
-      {isDelete ? (
-        <DeleteSnapshot text={targetContent} />
-      ) : (
-        <UpdateDiff
-          oldText={targetContent}
-          newText={proposal.proposedContent}
-        />
+      {proposal.reason.trim() !== "" && (
+        <ProposalMutedTextBlock label="Reason">
+          {proposal.reason}
+        </ProposalMutedTextBlock>
       )}
+      <ProposalTextBlock
+        label="Memory body (will be deleted)"
+        className="bg-danger/10"
+      >
+        {targetContent || "(empty)"}
+      </ProposalTextBlock>
     </ProposalShell>
   );
 }
 
-function Reason({ text }: { text: string }) {
-  if (!text.trim()) return null;
-  return (
-    <div className="rounded-lg bg-surface-secondary/50 p-3">
-      <ProposalFieldLabel>Reason</ProposalFieldLabel>
-      <p className="whitespace-pre-wrap break-words text-sm text-muted">
-        {text}
-      </p>
-    </div>
-  );
-}
+function EditUpdateProposalCard({
+  proposal,
+  isResolving,
+  onApprove,
+  onReject,
+}: UpdateProposalCardProps) {
+  const targetTitle = proposal.memorySnapshot?.title ?? "(memory unavailable)";
+  const targetContent = proposal.memorySnapshot?.content ?? "";
 
-function UpdateDiff({
-  oldText,
-  newText,
-}: {
-  oldText: string;
-  newText: string;
-}) {
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-      <div className="rounded-lg bg-surface-secondary/50 p-3">
-        <ProposalFieldLabel>Current</ProposalFieldLabel>
-        <p className="whitespace-pre-wrap break-words text-sm text-muted">
-          {oldText || "(empty)"}
-        </p>
+    <ProposalShell
+      accentClass={proposalAccentClass(proposal.kind)}
+      title={targetTitle}
+      timestamp={proposal.createdAt}
+      meta={
+        <span className="inline-flex items-center gap-1.5">
+          <IconPencil size={14} />
+          Proposed update
+        </span>
+      }
+      actions={
+        <>
+          <UpdateProposalRejectButton
+            isResolving={isResolving}
+            onReject={onReject}
+          />
+          <Button
+            type="button"
+            size="sm"
+            onClick={onApprove}
+            disabled={isResolving}
+            className="bg-surface text-foreground"
+          >
+            <IconCheck size={14} />
+            Approve update
+          </Button>
+        </>
+      }
+    >
+      {proposal.reason.trim() !== "" && (
+        <ProposalMutedTextBlock label="Reason">
+          {proposal.reason}
+        </ProposalMutedTextBlock>
+      )}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <ProposalMutedTextBlock label="Current">
+          {targetContent || "(empty)"}
+        </ProposalMutedTextBlock>
+        <ProposalTextBlock label="Proposed" className="bg-surface-secondary/70">
+          {proposal.proposedContent}
+        </ProposalTextBlock>
       </div>
-      <div className="rounded-lg bg-surface-secondary/70 p-3">
-        <ProposalFieldLabel>Proposed</ProposalFieldLabel>
-        <p className="whitespace-pre-wrap break-words text-sm text-foreground">
-          {newText}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function DeleteSnapshot({ text }: { text: string }) {
-  return (
-    <div className="rounded-lg bg-danger/10 p-3">
-      <ProposalFieldLabel>Memory body (will be deleted)</ProposalFieldLabel>
-      <p className="whitespace-pre-wrap break-words text-sm text-foreground">
-        {text || "(empty)"}
-      </p>
-    </div>
+    </ProposalShell>
   );
 }

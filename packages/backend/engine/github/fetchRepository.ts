@@ -21,12 +21,7 @@ const GITHUB_TARBALL_HEADERS = {
 
 const FETCH_ATTEMPTS = 3;
 
-/** Encode each path segment for GitHub contents URLs ($id, spaces, etc.). */
-export function encodeGithubContentPath(repoPath: string): string {
-  return repoPath.split("/").map(encodeURIComponent).join("/");
-}
-
-/** GitHub tarballs prefix paths with `owner-repo-sha/`. */
+// gitHub tarballs prefix paths with `owner-repo-sha/`
 export function stripTarballRoot(entryPath: string): string | null {
   const slash = entryPath.indexOf("/");
   if (slash === -1) return null;
@@ -105,7 +100,7 @@ async function extractTsJsFromTarball(
   });
 }
 
-/** Download repo tarball and extract TS/JS sources (faster than per-file API). */
+// download repo tarball and extract TS/JS sources (faster than per-file API)
 export async function fetchRepositoryFromGithub(
   repoOwner: string,
   repoName: string,

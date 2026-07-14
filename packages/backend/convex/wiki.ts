@@ -16,10 +16,17 @@ import {
   deleteVersionsForWikiNode,
   maybeSnapshotWikiVersion,
 } from "./lib/versionSnapshot";
+import { wikiKindHasContent } from "./lib/wikiKind";
+
+const wikiKindValidator = v.union(
+  v.literal("folder"),
+  v.literal("document"),
+  v.literal("artifact"),
+);
 
 const MAX_SEARCH_RESULTS = 20;
 
-/** Every node in a scope: a team's wiki, or the user's personal nodes. */
+// every node in a scope: a team's wiki, or the user's personal nodes
 async function listScopeNodes(
   ctx: QueryCtx | MutationCtx,
   userId: Id<"users">,
@@ -38,7 +45,7 @@ async function listScopeNodes(
   return nodes.filter((n) => n.teamId === undefined);
 }
 
-/** Siblings under one parent within a scope (for order assignment). */
+// siblings under one parent within a scope (for order assignment)
 async function listScopeSiblings(
   ctx: QueryCtx | MutationCtx,
   userId: Id<"users">,
@@ -62,16 +69,13 @@ async function listScopeSiblings(
   return siblings.filter((n) => n.teamId === undefined);
 }
 
-/** `order = max(sibling.order) + 1`, or 0 when the parent has no children. */
+// `order = max(sibling.order) + 1`, or 0 when the parent has no children
 function nextSiblingOrder(siblings: Array<Doc<"wikiNodes">>): number {
   if (siblings.length === 0) return 0;
   return Math.max(...siblings.map((s) => s.order)) + 1;
 }
 
-/**
- * Parent must exist, be a folder, and live in the same scope — a subtree
- * never mixes personal and team nodes.
- */
+// parent must exist, be a folder, and live in the same scope
 async function assertWikiParentFolder(
   ctx: QueryCtx | MutationCtx,
   parentId: Id<"wikiNodes"> | undefined,
@@ -91,7 +95,7 @@ async function assertWikiParentFolder(
   }
 }
 
-/** Dedupe title + content hits, documents first in input order, capped. */
+// dedupe title + content hits, documents first in input order, capped
 function mergeWikiSearchHits(
   titleMatches: Array<Doc<"wikiNodes">>,
   contentMatches: Array<Doc<"wikiNodes">>,
@@ -107,10 +111,7 @@ function mergeWikiSearchHits(
   return merged;
 }
 
-/**
- * Returns all wikiNodes in the requested scope, sorted by `order` ascending.
- * No `teamId` = personal nodes; `teamId` = that team's wiki (members only).
- */
+// returns all wikiNodes in the requested scope, sorted by `order` ascending
 export const listTree = authQuery({
   args: { teamId: v.optional(v.id("teams")) },
   handler: async (ctx, args) => {
@@ -120,14 +121,7 @@ export const listTree = authQuery({
   },
 });
 
-/**
- * Internal variant of `listTree` that takes an explicit userId instead of deriving
- * it from auth. Called by `graphApi.getGraphData` (an action) so the graph payload
- * can include wiki folders/documents as extra nodes alongside Neo4j memories.
- *
- * Kept separate from `listTree` to avoid relying on auth propagation through
- * runQuery and to mirror the pattern used by `internal.auth.getClerkIdInternal`.
- */
+// internal variant of `listTree` that takes an explicit userId instead of deriving it from auth
 export const listForUserInternal = internalQuery({
   args: { userId: v.id("users") },
   returns: v.array(
@@ -138,16 +132,29 @@ export const listForUserInternal = internalQuery({
     }),
   ),
   handler: async (ctx, args) => {
-    const nodes = await ctx.db
-      .query("wikiNodes")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
-      .collect();
-    // Graph payloads are personal-scope only — never include team nodes.
-    return nodes.filter((n) => n.teamId === undefined);
+    return await listScopeNodes(ctx, args.userId, undefined);
   },
 });
 
-/** Fetch a single node by id. Returns null if missing or not readable (owner or team member). */
+// workspace-scoped wiki nodes for the memory graph (personal or team)
+export const listForGraphInternal = internalQuery({
+  args: {
+    userId: v.id("users"),
+    teamId: v.optional(v.id("teams")),
+  },
+  returns: v.array(
+    v.object({
+      _id: v.id("wikiNodes"),
+      _creationTime: v.number(),
+      ...wikiNodeFields,
+    }),
+  ),
+  handler: async (ctx, args) => {
+    return await listScopeNodes(ctx, args.userId, args.teamId);
+  },
+});
+
+// fetch a single node by id
 export const getNode = authQuery({
   args: { id: v.string() },
   handler: async (ctx, args) => {
@@ -160,17 +167,14 @@ export const getNode = authQuery({
   },
 });
 
-/**
- * Create a new folder or document under `parentId` (or at root when undefined),
- * in the personal scope or a team's wiki. Automatically assigns
- * `order = max(sibling.order) + 1`.
- */
+// create a new folder or document under `parentId` (or at root when undefined), in
 export const createNode = authMutation({
   args: {
     parentId: v.optional(v.id("wikiNodes")),
-    kind: v.union(v.literal("folder"), v.literal("document")),
+    kind: wikiKindValidator,
     title: v.string(),
     teamId: v.optional(v.id("teams")),
+    language: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     await requireContentScopeAccess(ctx, ctx.userId, args.teamId);
@@ -187,14 +191,17 @@ export const createNode = authMutation({
     );
 
     const now = Date.now();
+    const hasContent = wikiKindHasContent(args.kind);
     const id = await ctx.db.insert("wikiNodes", {
       userId: ctx.userId,
       teamId: args.teamId,
       parentId: args.parentId,
       kind: args.kind,
       title: args.title,
-      content: args.kind === "document" ? "" : undefined,
-      contentText: args.kind === "document" ? "" : undefined,
+      content: hasContent ? "" : undefined,
+      contentText: hasContent ? "" : undefined,
+      language:
+        args.kind === "artifact" ? (args.language ?? "html") : undefined,
       order: nextSiblingOrder(siblings),
       createdAt: now,
       updatedAt: now,
@@ -203,7 +210,7 @@ export const createNode = authMutation({
   },
 });
 
-/** Rename a folder or document (any team member for team nodes). */
+// rename a folder or document (any team member for team nodes)
 export const renameNode = authMutation({
   args: { id: v.id("wikiNodes"), title: v.string() },
   handler: async (ctx, args) => {
@@ -218,28 +225,20 @@ export const renameNode = authMutation({
   },
 });
 
-/**
- * Persist editor content. Called on autosave (debounced client-side).
- * Only valid for documents — calling on a folder throws.
- *
- * TODO(v2): parse [[wikilinks]] out of contentText here and upsert a wikiLinks table.
- */
+// persist editor content
 export const updateContent = authMutation({
   args: {
     id: v.id("wikiNodes"),
     content: v.string(),
     contentText: v.string(),
-    /**
-     * Restore path: force a pre-overwrite snapshot regardless of the burst
-     * boundary so restoring an old version is itself reversible.
-     */
+    // restore path: force a pre-overwrite snapshot regardless of the burst boundary
     forceSnapshot: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const node = await ctx.db.get(args.id);
     if (!node) throw new Error("Not found");
     await assertContentEditable(ctx, node, ctx.userId);
-    if (node.kind !== "document") {
+    if (!wikiKindHasContent(node.kind)) {
       throw new Error("Cannot write content to a folder");
     }
     await maybeSnapshotWikiVersion(ctx, node, {
@@ -255,13 +254,7 @@ export const updateContent = authMutation({
   },
 });
 
-/**
- * Recursively delete a node and every descendant.
- *
- * Builds a parentId → children map over a single scope-wide collect(), then
- * walks the tree in-memory — avoiding N recursive queries. The caller is
- * responsible for the permission check on the root (deletable gate).
- */
+// recursively delete a node and every descendant
 async function deleteWikiSubtree(
   ctx: MutationCtx,
   actorUserId: Id<"users">,
@@ -289,11 +282,7 @@ export const deleteNode = authMutation({
   },
 });
 
-/**
- * Bulk-delete several nodes, each recursively (with its version snapshots).
- * Ids already removed as part of an earlier node's subtree are skipped, so a
- * selection that mixes a folder and its descendants is safe.
- */
+// bulk-delete several nodes, each recursively (with its version snapshots)
 export const deleteNodes = authMutation({
   args: { ids: v.array(v.id("wikiNodes")) },
   handler: async (ctx, args) => {
@@ -305,11 +294,7 @@ export const deleteNodes = authMutation({
   },
 });
 
-/**
- * Move a node to a new parent and/or reorder within its siblings.
- * Cross-scope moves (personal ↔ team) are rejected.
- * Exposed for future drag-to-reorder UI; v1 UI doesn't use it yet.
- */
+// move a node to a new parent and/or reorder within its siblings
 export const moveNode = authMutation({
   args: {
     id: v.id("wikiNodes"),
@@ -325,7 +310,7 @@ export const moveNode = authMutation({
         userId: node.userId,
         teamId: node.teamId,
       });
-      // Guard against cycles: parent cannot be a descendant of node.
+      // guard against cycles: parent cannot be a descendant of node
       let cursor: Doc<"wikiNodes"> | null = await ctx.db.get(args.newParentId);
       while (cursor !== null) {
         if (cursor._id === node._id) {
@@ -343,11 +328,7 @@ export const moveNode = authMutation({
   },
 });
 
-/**
- * Union search across title + content full-text indexes, within one scope
- * (personal by default, a team's wiki when `teamId` is set).
- * Returns unique nodes, documents preferred, capped at 20.
- */
+// union search across title + content full-text indexes, within one scope (personal
 export const search = authQuery({
   args: { queryText: v.string(), teamId: v.optional(v.id("teams")) },
   handler: async (ctx, args) => {
@@ -447,11 +428,12 @@ export const createByClerkIdInternal = internalMutation({
   args: {
     clerkId: v.string(),
     parentId: v.optional(v.id("wikiNodes")),
-    kind: v.union(v.literal("folder"), v.literal("document")),
+    kind: wikiKindValidator,
     title: v.string(),
     content: v.optional(v.string()),
     contentText: v.optional(v.string()),
-    /** Plain-string codebase id (MCP threads ids as strings); validated below. */
+    language: v.optional(v.string()),
+    // plain-string codebase id (MCP threads ids as strings); validated below
     sourceCodebaseId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -461,7 +443,7 @@ export const createByClerkIdInternal = internalMutation({
       teamId: undefined,
     });
 
-    // Validate the optional codebase link belongs to this user.
+    // validate the optional codebase link belongs to this user
     let sourceCodebaseId: Id<"codebases"> | undefined;
     if (
       args.sourceCodebaseId !== undefined &&
@@ -482,14 +464,16 @@ export const createByClerkIdInternal = internalMutation({
     );
 
     const now = Date.now();
-    const isDocument = args.kind === "document";
+    const hasContent = wikiKindHasContent(args.kind);
     return await ctx.db.insert("wikiNodes", {
       userId,
       parentId: args.parentId,
       kind: args.kind,
       title: args.title,
-      content: isDocument ? (args.content ?? "") : undefined,
-      contentText: isDocument ? (args.contentText ?? "") : undefined,
+      content: hasContent ? (args.content ?? "") : undefined,
+      contentText: hasContent ? (args.contentText ?? "") : undefined,
+      language:
+        args.kind === "artifact" ? (args.language ?? "html") : undefined,
       order: nextSiblingOrder(siblings),
       sourceCodebaseId,
       createdAt: now,
@@ -505,6 +489,7 @@ export const updateByClerkIdInternal = internalMutation({
     title: v.optional(v.string()),
     content: v.optional(v.string()),
     contentText: v.optional(v.string()),
+    language: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const userId = await getUserIdByClerkId(ctx, args.clerkId);
@@ -517,6 +502,7 @@ export const updateByClerkIdInternal = internalMutation({
       title?: string;
       content?: string;
       contentText?: string;
+      language?: string;
       updatedAt: number;
     } = { updatedAt: Date.now() };
 
@@ -525,7 +511,7 @@ export const updateByClerkIdInternal = internalMutation({
     }
 
     if (args.content !== undefined || args.contentText !== undefined) {
-      if (node.kind !== "document") {
+      if (!wikiKindHasContent(node.kind)) {
         throw new Error("Cannot write content to a folder");
       }
       if (args.content !== undefined) {
@@ -536,8 +522,15 @@ export const updateByClerkIdInternal = internalMutation({
       }
     }
 
-    // Agent (MCP) writes always checkpoint the pre-write state so the user can
-    // see and undo exactly what the agent changed.
+    if (args.language !== undefined) {
+      if (node.kind !== "artifact") {
+        throw new Error("language is only valid on artifacts");
+      }
+      patch.language = args.language;
+    }
+
+    // agent (MCP) writes always checkpoint the pre-write state so the user can
+    // see and undo exactly what the agent changed
     await maybeSnapshotWikiVersion(ctx, node, {
       source: "mcp",
       authorUserId: userId,

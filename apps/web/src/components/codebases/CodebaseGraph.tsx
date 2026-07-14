@@ -1,15 +1,6 @@
 "use client";
 
-/**
- * Codebase symbol-graph canvas. Renders the multi-kind payload (files +
- * functions + classes + interfaces + processes) using the shared graph
- * canvas. Filter / search chrome lives in the page header — this component
- * just consumes the controller's derived state.
- *
- * Selection lives in the URL (`?blastRadiusOf=…`) via the controller, so
- * navigating between symbols and refreshing both Just Work without local
- * state management here.
- */
+// codebase symbol-graph canvas
 
 import { useMemo, useCallback, useRef, useState } from "react";
 import { IconAlertTriangle, IconMoodEmpty } from "@tabler/icons-react";
@@ -27,6 +18,43 @@ import {
 } from "@/components/_components/graph-types";
 import { CodebaseSymbolPanel } from "./CodebaseSymbolPanel";
 import type { CodebaseGraphController } from "@/hooks/useCodebaseGraphController";
+
+// canvas requires onLinkNodes; codebase graphs are structural (no manual links)
+function noopLinkNodes(_sourceId: string, _targetId: string) {}
+
+function GraphLoadingState() {
+  return (
+    <div className="flex h-full min-h-0 items-center justify-center">
+      <VmemSpinner size={24} className="text-muted" />
+    </div>
+  );
+}
+
+function GraphErrorState({ message }: { message: string }) {
+  return (
+    <div className="flex h-full min-h-0 flex-col items-center justify-center text-center">
+      <IconMoodEmpty className="w-8 h-8 text-muted mb-3" />
+      <p className="text-sm font-medium text-foreground mb-1">
+        Failed to load graph
+      </p>
+      <p className="text-xs text-muted max-w-sm">{message}</p>
+    </div>
+  );
+}
+
+function GraphEmptyState() {
+  return (
+    <div className="flex h-full min-h-0 flex-col items-center justify-center text-center">
+      <IconMoodEmpty className="w-8 h-8 text-muted mb-3" />
+      <p className="text-sm font-medium text-foreground mb-1">
+        No symbols to visualise
+      </p>
+      <p className="text-xs text-muted">
+        Sync the repository to see its symbol graph.
+      </p>
+    </div>
+  );
+}
 
 interface CodebaseGraphProps {
   codebaseId: string;
@@ -53,16 +81,12 @@ export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
     onToggleBlastDirection,
   } = controller;
 
-  // Hovered-node / hovered-edge state stays canvas-local: it's high-
-  // frequency and not worth putting in the controller (or the URL).
+  // hovered-node / hovered-edge state stays canvas-local: it's high-
+  // frequency and not worth putting in the controller (or the URL)
   const [hoveredNode, setHoveredNode] = useState<HoveredNodeInfo | null>(null);
   const [hoveredEdge, setHoveredEdge] = useState<HoveredEdgeInfo | null>(null);
 
-  const viewTheme = useMemo(() => getViewTheme("default", isDark), [isDark]);
-
-  const handleHoverNode = useCallback((info: HoveredNodeInfo | null) => {
-    setHoveredNode(info);
-  }, []);
+  const viewTheme = useMemo(() => getViewTheme(isDark), [isDark]);
 
   const handleClickNode = useCallback(
     (nodeId: string) => {
@@ -72,51 +96,16 @@ export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
     [onSelectSymbol],
   );
 
-  const handleCloseDetail = useCallback(() => {
-    onSelectSymbol(null);
-  }, [onSelectSymbol]);
-
-  // Codebase graph doesn't support manual link creation — symbols are
-  // structural. The canvas still asks for this callback though.
-  const handleLinkNodes = useCallback(
-    (_sourceId: string, _targetId: string) => {},
-    [],
-  );
-
   if (isLoading) {
-    return (
-      <div className="flex h-full min-h-0 items-center justify-center">
-        <VmemSpinner size={24} className="text-muted" />
-      </div>
-    );
+    return <GraphLoadingState />;
   }
 
   if (isError) {
-    return (
-      <div className="flex h-full min-h-0 flex-col items-center justify-center text-center">
-        <IconMoodEmpty className="w-8 h-8 text-muted mb-3" />
-        <p className="text-sm font-medium text-foreground mb-1">
-          Failed to load graph
-        </p>
-        <p className="text-xs text-muted max-w-sm">
-          {error?.message ?? "Unknown error"}
-        </p>
-      </div>
-    );
+    return <GraphErrorState message={error?.message ?? "Unknown error"} />;
   }
 
   if (apiNodes.length === 0) {
-    return (
-      <div className="flex h-full min-h-0 flex-col items-center justify-center text-center">
-        <IconMoodEmpty className="w-8 h-8 text-muted mb-3" />
-        <p className="text-sm font-medium text-foreground mb-1">
-          No symbols to visualise
-        </p>
-        <p className="text-xs text-muted">
-          Sync the repository to see its symbol graph.
-        </p>
-      </div>
-    );
+    return <GraphEmptyState />;
   }
 
   return (
@@ -131,10 +120,10 @@ export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
         searchMatchSet={searchMatchSet}
         isSearchActive={hasActiveSearch}
         showLabels={DEFAULT_GRAPH_SETTINGS.showLabels}
-        onHoverNode={handleHoverNode}
+        onHoverNode={setHoveredNode}
         onHoverEdge={setHoveredEdge}
         onClickNode={handleClickNode}
-        onLinkNodes={handleLinkNodes}
+        onLinkNodes={noopLinkNodes}
       />
 
       {/* Stats badge (top-right) */}
@@ -197,7 +186,7 @@ export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
         codebaseId={codebaseId}
         selectedSymbolId={selectedSymbolId}
         blastDirection={blastDirection}
-        onClose={handleCloseDetail}
+        onClose={() => onSelectSymbol(null)}
         onSelectSymbol={onSelectSymbol}
         onToggleBlastDirection={onToggleBlastDirection}
       />

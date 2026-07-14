@@ -23,7 +23,7 @@ import {
   IconUserCog,
   IconUsers,
 } from "@tabler/icons-react";
-import { getProfileIcon } from "@/components/profiles/profile-icon";
+import { ProfileAvatar } from "@/components/profiles/ProfileAvatar";
 import { CreateEditProfileDialog } from "@/components/profiles/CreateEditProfileDialog";
 import { CreateTeamDialog } from "@/components/teams/CreateTeamDialog";
 import {
@@ -33,41 +33,51 @@ import {
 import { workspacePathFor } from "@/components/workspace/workspace-paths";
 import { SidebarIconTooltip } from "./SidebarIconTooltip";
 
-function WorkspaceAvatar({
+function WorkspaceRow({
   profile,
-  className,
+  activeId,
+  onSelect,
 }: {
   profile: Doc<"profiles">;
-  className?: string;
+  activeId: string;
+  onSelect: (profile: Doc<"profiles">) => void;
 }) {
-  const Icon = getProfileIcon(profile.icon);
   return (
-    <div
-      className={cn(
-        "flex h-7 w-7 shrink-0 items-center justify-center rounded-full",
-        className,
-      )}
-      style={{ backgroundColor: profile.color + "20" }}
-    >
-      <Icon className="h-4 w-4" style={{ color: profile.color }} />
-    </div>
+    <DropdownMenuItem onSelect={() => onSelect(profile)}>
+      <ProfileAvatar
+        icon={profile.icon}
+        color={profile.color}
+        className="h-5 w-5"
+      />
+      <span className="min-w-0 flex-1 truncate">{profile.name}</span>
+      {profile._id === activeId ? (
+        <IconCheck className="h-4 w-4 shrink-0 text-muted" />
+      ) : null}
+    </DropdownMenuItem>
   );
 }
 
-/**
- * Workspace (profile) switcher at the top of the sidebar — a structural
- * twin of the account card (`SidebarUserMenu`). Selecting a workspace
- * navigates to the same sub-route in the target workspace (detail ids
- * dropped); the dropdown also hosts create-profile / create-team and a
- * link to profile management.
- */
+function partitionProfiles(profiles: Doc<"profiles">[]): {
+  personal: Doc<"profiles">[];
+  team: Doc<"profiles">[];
+} {
+  const personal: Doc<"profiles">[] = [];
+  const team: Doc<"profiles">[] = [];
+  for (const profile of profiles) {
+    if (profile.teamId === undefined) personal.push(profile);
+    else team.push(profile);
+  }
+  return { personal, team };
+}
+
+// workspace (profile) switcher at the top of the sidebar
 export function SidebarWorkspaceSwitcher({
   collapsed,
   onNavigate,
 }: {
-  /** Collapsed (icon-only) rail shows just the avatar; dropdown opens to the side. */
+  // collapsed (icon-only) rail shows just the avatar; dropdown opens to the side
   collapsed: boolean;
-  /** Called after any navigation (mobile menu close). */
+  // called after any navigation (mobile menu close)
   onNavigate?: () => void;
 }) {
   const navigate = useNavigate();
@@ -92,8 +102,8 @@ export function SidebarWorkspaceSwitcher({
     profiles[0];
   if (active === undefined) return null;
 
-  const personalProfiles = profiles.filter((p) => p.teamId === undefined);
-  const teamProfiles = profiles.filter((p) => p.teamId !== undefined);
+  const { personal: personalProfiles, team: teamProfiles } =
+    partitionProfiles(profiles);
   const subtitle = active.teamId !== undefined ? "Team workspace" : "Personal";
 
   const switchTo = (profile: Doc<"profiles">) => {
@@ -120,16 +130,6 @@ export function SidebarWorkspaceSwitcher({
     }
   };
 
-  const workspaceRow = (profile: Doc<"profiles">) => (
-    <DropdownMenuItem key={profile._id} onSelect={() => switchTo(profile)}>
-      <WorkspaceAvatar profile={profile} className="h-5 w-5" />
-      <span className="min-w-0 flex-1 truncate">{profile.name}</span>
-      {profile._id === active._id ? (
-        <IconCheck className="h-4 w-4 shrink-0 text-muted" />
-      ) : null}
-    </DropdownMenuItem>
-  );
-
   return (
     <>
       <DropdownMenu>
@@ -141,7 +141,11 @@ export function SidebarWorkspaceSwitcher({
                 variant="ghost"
                 className="mx-auto h-auto rounded-lg p-1 hover:bg-surface-tertiary/50 active:scale-100"
               >
-                <WorkspaceAvatar profile={active} />
+                <ProfileAvatar
+                  icon={active.icon}
+                  color={active.color}
+                  className="h-7 w-7"
+                />
               </Button>
             </SidebarIconTooltip>
           ) : (
@@ -150,7 +154,11 @@ export function SidebarWorkspaceSwitcher({
               variant="ghost"
               className="h-auto w-full justify-start gap-2.5 rounded-lg bg-surface-secondary p-2 text-left hover:bg-surface-tertiary active:scale-100"
             >
-              <WorkspaceAvatar profile={active} />
+              <ProfileAvatar
+                icon={active.icon}
+                color={active.color}
+                className="h-7 w-7"
+              />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium leading-tight text-foreground">
                   {active.name}
@@ -178,14 +186,28 @@ export function SidebarWorkspaceSwitcher({
               Personal
             </DropdownMenuLabel>
           ) : null}
-          {personalProfiles.map(workspaceRow)}
+          {personalProfiles.map((profile) => (
+            <WorkspaceRow
+              key={profile._id}
+              profile={profile}
+              activeId={active._id}
+              onSelect={switchTo}
+            />
+          ))}
           {teamProfiles.length > 0 ? (
             <>
               <DropdownMenuSeparator />
               <DropdownMenuLabel className="text-xs text-muted">
                 Teams
               </DropdownMenuLabel>
-              {teamProfiles.map(workspaceRow)}
+              {teamProfiles.map((profile) => (
+                <WorkspaceRow
+                  key={profile._id}
+                  profile={profile}
+                  activeId={active._id}
+                  onSelect={switchTo}
+                />
+              ))}
             </>
           ) : null}
           <DropdownMenuSeparator />

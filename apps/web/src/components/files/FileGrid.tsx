@@ -1,27 +1,30 @@
-import type { FileItem } from "@/lib/file-types";
+import type { Id } from "@vmem/backend";
+import type { FileTreeNode } from "./-types";
 import FileGridItem from "./FileGridItem";
-import InlineNewFolder from "./InlineNewFolder";
+import { InlineNewFolderGrid } from "./InlineNewFolder";
 
 interface FileGridProps {
-  items: FileItem[];
+  items: FileTreeNode[];
+  childCounts: Map<Id<"fileNodes">, number>;
   isCreatingFolder: boolean;
-  isSelected: (id: string) => boolean;
+  isSelected: (id: Id<"fileNodes">) => boolean;
   onClick: (
-    id: string,
+    id: Id<"fileNodes">,
     e: { ctrlKey: boolean; metaKey: boolean; shiftKey: boolean },
   ) => void;
-  onCheckbox: (id: string) => void;
-  onOpen: (item: FileItem) => void;
-  onDownload: (item: FileItem) => void;
-  onMoveTo: (item: FileItem) => void;
-  onRename: (item: FileItem) => void;
-  onDelete: (item: FileItem) => void;
+  onCheckbox: (id: Id<"fileNodes">) => void;
+  onOpen: (node: FileTreeNode) => void;
+  onDownload: (node: FileTreeNode) => void;
+  onMoveTo: (node: FileTreeNode) => void;
+  onRename: (node: FileTreeNode) => void;
+  onDelete: (node: FileTreeNode) => void;
   onNewFolderConfirm: (name: string) => void;
   onNewFolderCancel: () => void;
 }
 
 export default function FileGrid({
   items,
+  childCounts,
   isCreatingFolder,
   isSelected,
   onClick,
@@ -36,18 +39,18 @@ export default function FileGrid({
 }: FileGridProps) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 p-2">
-      {isCreatingFolder && (
-        <InlineNewFolder
-          variant="grid"
+      {isCreatingFolder ? (
+        <InlineNewFolderGrid
           onConfirm={onNewFolderConfirm}
           onCancel={onNewFolderCancel}
         />
-      )}
-      {items.map((item) => (
+      ) : null}
+      {items.map((node) => (
         <FileGridItem
-          key={item.id}
-          item={item}
-          isSelected={isSelected(item.id)}
+          key={node._id}
+          node={node}
+          childCount={childCounts.get(node._id) ?? 0}
+          isSelected={isSelected(node._id)}
           onClick={onClick}
           onCheckbox={onCheckbox}
           onOpen={onOpen}

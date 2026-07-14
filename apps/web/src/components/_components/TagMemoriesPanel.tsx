@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Button, Card } from "@vmem/ui";
 import { IconMoodEmpty, IconX } from "@tabler/icons-react";
 import { Virtuoso } from "react-virtuoso";
@@ -11,15 +11,15 @@ import MemoryDetailPanel from "@/components/MemoryDetailPanel";
 import { useThemeContext } from "@/components/contexts/ThemeContext";
 import { useTrailData } from "@/hooks/useTrailData";
 import type { TrailEntry } from "@/hooks/useTrailData";
+import type { MemoryListEntry } from "@/hooks/useMemoryListEntries";
 import type { ListItem } from "@/lib/list-items";
-
-type MemoryListEntry = { item: ListItem; score: number | null };
 
 interface MemoryListVirtuosoContext {
   selectedMemoryId: string | null;
   trailMap: Map<string, TrailEntry>;
   isDark: boolean;
   onMemoryClick: (memory: Memory) => void;
+  onItemSelect: (item: ListItem) => void;
   onContextEdit: (memory: Memory) => void;
   onContextDelete: (memory: Memory) => void;
 }
@@ -41,6 +41,7 @@ function MemoryListVirtuosoRow({
         trailEntry={context.trailMap.get(entry.item.id)}
         isDark={context.isDark}
         onMemoryClick={context.onMemoryClick}
+        onItemSelect={context.onItemSelect}
         onContextEdit={context.onContextEdit}
         onContextDelete={context.onContextDelete}
       />
@@ -76,11 +77,6 @@ export function TagMemoriesPanel({
     null,
   );
 
-  useEffect(() => {
-    setSelectedMemoryId(null);
-    setPanelAction(null);
-  }, [tag]);
-
   const sortedMemories = useMemo(
     () => [...memories].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     [memories],
@@ -101,10 +97,6 @@ export function TagMemoriesPanel({
       sortedMemories.find((memory) => memory.id === selectedMemoryId) ?? null
     );
   }, [sortedMemories, selectedMemoryId]);
-
-  const handleMemoryUpdate = useCallback((updatedMemory: Memory) => {
-    setSelectedMemoryId(updatedMemory.id);
-  }, []);
 
   const handleMemoryDelete = useCallback(
     (deletedId: string) => {
@@ -143,13 +135,12 @@ export function TagMemoriesPanel({
   if (selectedMemory) {
     return (
       <MemoryDetailPanel
+        key={selectedMemory.id}
         memory={selectedMemory}
         onClose={() => setSelectedMemoryId(null)}
-        onMemoryUpdate={handleMemoryUpdate}
         onMemoryDelete={handleMemoryDelete}
         onSelectRelated={(memory) => setSelectedMemoryId(memory.id)}
-        startInEditMode={panelAction === "edit"}
-        startWithDelete={panelAction === "delete"}
+        initialAction={panelAction ?? undefined}
         onConsumeAction={handleConsumeAction}
       />
     );
@@ -196,6 +187,7 @@ export function TagMemoriesPanel({
               trailMap,
               isDark,
               onMemoryClick: handleMemoryClick,
+              onItemSelect: () => {},
               onContextEdit: handleContextEdit,
               onContextDelete: handleContextDelete,
             }}

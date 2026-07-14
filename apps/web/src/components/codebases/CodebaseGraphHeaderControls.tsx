@@ -1,16 +1,6 @@
 "use client";
 
-/**
- * Codebase-graph header controls.
- *
- * Two buttons in the page header:
- *   - Search field (separate per CLAUDE.md UI rules — search isn't a filter)
- *   - Filters popover with Kinds + Process + Directory sections (consolidated)
- *
- * The active-count badge on the Filters button counts each non-default field
- * as 1 (per CLAUDE.md UI rules), regardless of how many values it carries.
- * Search and directory are presentational — not counted there.
- */
+// codebase-graph header controls
 
 import { useMemo } from "react";
 import {
@@ -37,7 +27,7 @@ import {
 import HeaderSearchInput from "@/components/_components/HeaderSearchInput";
 import { DirectoryFilter } from "./DirectoryFilter";
 import type { CodebaseGraphController } from "@/hooks/useCodebaseGraphController";
-import type { CodeNode, CodeNodeKind } from "@/hooks/useCodebaseGraphData";
+import type { CodeNode, CodeNodeKind } from "./-types";
 
 interface CodebaseGraphHeaderControlsProps {
   controller: CodebaseGraphController;
@@ -96,10 +86,7 @@ function FiltersPopover({
     isDark,
   } = controller;
 
-  // Derive the process picker options from the current payload. Even when the
-  // user has hidden "code-process" via the kinds filter, the API still
-  // returns processes (kinds filtering is client-side) so this list stays
-  // populated regardless.
+  // derive the process picker options from the current payload
   const processOptions = useMemo(
     () =>
       apiNodes

@@ -70,6 +70,118 @@
   animation: landing-ambient-drift 14s ease-in-out infinite;
 }
 
+@keyframes landing-ambient-node-a {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes landing-ambient-node-b {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes landing-ambient-node-c {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.95;
+  }
+}
+
+@keyframes landing-ambient-node-d {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+@keyframes landing-ambient-node-e {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes landing-ambient-node-f {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+@keyframes landing-ambient-node-g {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes landing-ambient-node-h {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 0.75;
+  }
+}
+
+.landing-ambient-node-a {
+  animation: landing-ambient-node-a 5s ease-in-out infinite;
+}
+
+.landing-ambient-node-b {
+  animation: landing-ambient-node-b 4s ease-in-out infinite;
+}
+
+.landing-ambient-node-c {
+  animation: landing-ambient-node-c 6s ease-in-out infinite;
+}
+
+.landing-ambient-node-d {
+  animation: landing-ambient-node-d 5.5s ease-in-out infinite;
+}
+
+.landing-ambient-node-e {
+  animation: landing-ambient-node-e 4.5s ease-in-out infinite;
+}
+
+.landing-ambient-node-f {
+  animation: landing-ambient-node-f 5.2s ease-in-out infinite;
+}
+
+.landing-ambient-node-g {
+  animation: landing-ambient-node-g 4.8s ease-in-out infinite;
+}
+
+.landing-ambient-node-h {
+  animation: landing-ambient-node-h 5.8s ease-in-out infinite;
+}
+
 /* Mobile / tablet: solid read zone at top, graph atmosphere lower on the page */
 @media (max-width: 1023px) {
   .landing-hero-read-scrim {

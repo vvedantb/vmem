@@ -1,7 +1,7 @@
 import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
+import { deleteBodySchema, type DeleteBody } from "../../memoryApi/contract";
 import { withApiKeyAuth, type ApiKeyAuth } from "./apiKeyAuth";
-import { deleteBodySchema, type DeleteBody } from "./schemas";
 
 async function runDeleteHandler(
   ctx: ActionCtx,
@@ -12,7 +12,7 @@ async function runDeleteHandler(
     internal.neo4jActions.memories.deleteMemoryInternal,
     {
       clerkId: auth.clerkId,
-      memoryId: body.memoryId,
+      memoryId: body.id,
     },
   );
 

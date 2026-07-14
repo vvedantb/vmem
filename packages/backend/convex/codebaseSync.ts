@@ -10,10 +10,7 @@ const dailySyncResult = v.object({
   skipped: v.number(),
 });
 
-/**
- * Durable orchestrator: one workflow step per codebase so each sync gets a
- * full Convex action timeout (not one shared limit for the whole batch).
- */
+// durable orchestrator
 export const dailyCodebaseSyncWorkflow = workflow
   .define({
     args: {},
@@ -53,7 +50,7 @@ export const dailyCodebaseSyncWorkflow = workflow
     },
   );
 
-/** Started by the global daily cron in `crons.ts`. */
+// started by the global daily cron in `crons.ts`
 export const kickoffDailyCodebaseSync = internalMutation({
   args: {},
   returns: v.null(),

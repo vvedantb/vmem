@@ -3,45 +3,13 @@
 import { useCallback, useMemo } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api, type Id } from "@vmem/backend";
-import type { FileCategory, FileItem } from "@/lib/file-types";
 import { parseConvexStorageUpload } from "@/lib/schemas";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 
 const DEFAULT_STORAGE_LIMIT = 10 * 1024 * 1024 * 1024;
 
-interface UseFilesDataResult {
-  allFiles: FileItem[];
-  isLoading: boolean;
-  totalBytes: number;
-  storageLimit: number;
-  uploadFile: (file: File, parentFolderId: string | null) => Promise<void>;
-  createFolder: (name: string, parentFolderId: string | null) => Promise<void>;
-  renameNode: (id: string, name: string) => Promise<void>;
-  moveNodes: (ids: string[], targetFolderId: string | null) => Promise<void>;
-  deleteNodes: (ids: string[]) => Promise<void>;
-}
-
-/** Map a stored MIME type to the icon/display category used by the file UI. */
-function fileCategoryFor(mimeType: string | undefined): FileCategory {
-  const mime = mimeType ?? "";
-  if (mime.startsWith("image/")) return "image";
-  if (mime === "application/pdf") return "pdf";
-  if (mime.includes("word") || mime === "application/msword") return "doc";
-  if (mime.includes("sheet") || mime.includes("excel")) return "excel";
-  return "generic";
-}
-
-/**
- * Files data layer bound directly to the live Convex `files.listTree` query —
- * no local mirror, so any upload/move/delete (web or MCP) reflects immediately.
- *
- * The presentational components speak the `FileItem` view-model (string ids,
- * display category, ISO dates), so we map each `fileNodes` doc here and keep the
- * raw nodes around to resolve those string ids back to branded `Id<"fileNodes">`
- * at the mutation boundary (avoids casts).
- */
-export function useFilesData(): UseFilesDataResult {
-  // Active workspace scope: personal files, or the team's shared drive.
+// files data layer bound directly to the live Convex `files.listTree` query
+export function useFilesData() {
   const teamId = useActiveProfile().teamId;
   const data = useQuery(api.files.listTree, { teamId });
   const nodes = useMemo(() => data?.nodes ?? [], [data]);
@@ -53,40 +21,8 @@ export function useFilesData(): UseFilesDataResult {
   const moveMutation = useMutation(api.files.moveNodes);
   const deleteMutation = useMutation(api.files.deleteNodes);
 
-  const allFiles = useMemo<FileItem[]>(() => {
-    const childCount = new Map<string, number>();
-    for (const node of nodes) {
-      if (node.parentId) {
-        childCount.set(node.parentId, (childCount.get(node.parentId) ?? 0) + 1);
-      }
-    }
-    return nodes.map((node) => {
-      const isFolder = node.kind === "folder";
-      const category: FileCategory = isFolder
-        ? "folder"
-        : fileCategoryFor(node.mimeType);
-      const url = node.url ?? undefined;
-      return {
-        id: node._id,
-        name: node.name,
-        itemType: isFolder ? "folder" : "file",
-        mimeType: node.mimeType ?? "",
-        fileCategory: category,
-        size: node.size ?? 0,
-        uploadedAt: new Date(node.createdAt).toISOString(),
-        parentFolderId: node.parentId ?? null,
-        thumbnailUrl: !isFolder && category === "image" ? url : undefined,
-        url,
-        itemCount: isFolder ? (childCount.get(node._id) ?? 0) : undefined,
-        memoryId: node.memoryId,
-        indexStatus: node.indexStatus,
-      };
-    });
-  }, [nodes]);
-
-  // Resolve a UI string id to the branded node id from the live query result.
   const toNodeId = useCallback(
-    (id: string | null): Id<"fileNodes"> | undefined => {
+    (id: Id<"fileNodes"> | null): Id<"fileNodes"> | undefined => {
       if (id === null) return undefined;
       return nodes.find((node) => node._id === id)?._id;
     },
@@ -94,7 +30,7 @@ export function useFilesData(): UseFilesDataResult {
   );
 
   const toNodeIds = useCallback(
-    (ids: string[]): Array<Id<"fileNodes">> => {
+    (ids: Array<Id<"fileNodes">>): Array<Id<"fileNodes">> => {
       const wanted = new Set(ids);
       return nodes
         .filter((node) => wanted.has(node._id))
@@ -104,7 +40,10 @@ export function useFilesData(): UseFilesDataResult {
   );
 
   const uploadFile = useCallback(
-    async (file: File, parentFolderId: string | null): Promise<void> => {
+    async (
+      file: File,
+      parentFolderId: Id<"fileNodes"> | null,
+    ): Promise<void> => {
       const uploadUrl = await generateUploadUrl();
       const response = await fetch(uploadUrl, {
         method: "POST",
@@ -133,7 +72,10 @@ export function useFilesData(): UseFilesDataResult {
   );
 
   const createFolder = useCallback(
-    async (name: string, parentFolderId: string | null): Promise<void> => {
+    async (
+      name: string,
+      parentFolderId: Id<"fileNodes"> | null,
+    ): Promise<void> => {
       await createFolderMutation({
         name,
         parentId: toNodeId(parentFolderId),
@@ -144,7 +86,7 @@ export function useFilesData(): UseFilesDataResult {
   );
 
   const renameNode = useCallback(
-    async (id: string, name: string): Promise<void> => {
+    async (id: Id<"fileNodes">, name: string): Promise<void> => {
       const nodeId = toNodeId(id);
       if (!nodeId) return;
       await renameMutation({ nodeId, name });
@@ -153,7 +95,10 @@ export function useFilesData(): UseFilesDataResult {
   );
 
   const moveNodes = useCallback(
-    async (ids: string[], targetFolderId: string | null): Promise<void> => {
+    async (
+      ids: Array<Id<"fileNodes">>,
+      targetFolderId: Id<"fileNodes"> | null,
+    ): Promise<void> => {
       await moveMutation({
         nodeIds: toNodeIds(ids),
         targetParentId: toNodeId(targetFolderId),
@@ -163,14 +108,14 @@ export function useFilesData(): UseFilesDataResult {
   );
 
   const deleteNodes = useCallback(
-    async (ids: string[]): Promise<void> => {
+    async (ids: Array<Id<"fileNodes">>): Promise<void> => {
       await deleteMutation({ nodeIds: toNodeIds(ids) });
     },
     [deleteMutation, toNodeIds],
   );
 
   return {
-    allFiles,
+    nodes,
     isLoading: data === undefined,
     totalBytes: data?.totalBytes ?? 0,
     storageLimit: data?.storageLimit ?? DEFAULT_STORAGE_LIMIT,
@@ -181,3 +126,5 @@ export function useFilesData(): UseFilesDataResult {
     deleteNodes,
   };
 }
+
+export type UseFilesDataResult = ReturnType<typeof useFilesData>;

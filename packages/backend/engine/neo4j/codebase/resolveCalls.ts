@@ -103,7 +103,7 @@ function resolveCalleeIds(
   index: SymbolIndex,
 ): { ids: string[]; tier: "EXTRACTED" | "INFERRED" | "AMBIGUOUS" } {
   const expr = call.getExpression();
-  // Symbol resolution via type checker.
+  // symbol resolution via type checker
   let resolvedSymbol = expr.getSymbol();
   if (
     !resolvedSymbol &&
@@ -118,7 +118,7 @@ function resolveCalleeIds(
     for (const decl of resolvedSymbol.getDeclarations()) {
       const declFile = decl.getSourceFile();
       const declPath = declFile.getFilePath().toString();
-      // Skip node_modules / lib.d.ts.
+      // skip node_modules / lib.d.ts
       if (declPath.includes("node_modules")) continue;
       const declName = getDeclName(decl);
       if (!declName) continue;
@@ -128,14 +128,14 @@ function resolveCalleeIds(
     }
   }
 
-  // Fallback: name match in same file.
+  // fallback: name match in same file
   const calleeName = getCalleeName(call);
   if (!calleeName) return { ids: [], tier: "INFERRED" };
   const perFile = index.byFileAndName.get(callerFilePath);
   const localId = perFile?.get(calleeName);
   if (localId) return { ids: [localId], tier: "INFERRED" };
 
-  // Final fallback: global name match.
+  // final fallback: global name match
   const globalIds = index.byNameGlobal.get(calleeName);
   if (!globalIds || globalIds.size === 0) {
     return { ids: [], tier: "INFERRED" };
@@ -187,13 +187,13 @@ function patchImports(
     const importPath = edge.toId;
     const sourceFile = project.getSourceFile(fromFile.path);
     if (!sourceFile) continue;
-    // ts-morph resolves relative + path-aliased imports for us.
+    // ts-morph resolves relative + path-aliased imports for us
     const resolved = sourceFile
       .getImportDeclarations()
       .find((d) => d.getModuleSpecifierValue() === importPath)
       ?.getModuleSpecifierSourceFile();
     if (!resolved) {
-      // Couldn't resolve — leave as-is so caller can drop it later.
+      // couldn't resolve — leave as-is so caller can drop it later
       edge.toId = "";
       continue;
     }
@@ -217,7 +217,7 @@ function patchHeritage(edges: RelationEdge[], index: SymbolIndex): void {
     const wantKind = edge.kind === "EXTENDS" ? "class" : "interface";
     const targetName = edge.toId;
 
-    // Try same file first.
+    // try same file first
     const localId = index.byFileAndName.get(fromSym.filePath)?.get(targetName);
     if (localId && index.byId.get(localId)?.kind === wantKind) {
       edge.toId = localId;
@@ -226,7 +226,7 @@ function patchHeritage(edges: RelationEdge[], index: SymbolIndex): void {
       continue;
     }
 
-    // Global by name.
+    // global by name
     const candidates = index.byNameGlobal.get(targetName);
     if (!candidates || candidates.size === 0) {
       edge.toId = "";
@@ -310,7 +310,7 @@ export function resolveCalls(
     resolveCallsForSourceFile(source, path, index, calls);
   }
 
-  // Drop placeholder edges that couldn't resolve.
+  // drop placeholder edges that couldn't resolve
   parseResult.structuralRelations = parseResult.structuralRelations.filter(
     (e) => e.toId !== "",
   );

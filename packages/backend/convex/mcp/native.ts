@@ -1,6 +1,7 @@
 import { httpAction, type ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { extractBearerToken } from "../lib/bearerToken";
+import { encodeBase64UrlBytes } from "../lib/base64";
 import { z } from "zod";
 
 function getWebAppUrl(): string {
@@ -60,7 +61,7 @@ function parseRedirectUris(raw: unknown): string[] {
         redirectUris.push(uri);
       }
     } catch {
-      // Skip invalid URIs
+      // skip invalid URIs
     }
   }
   return redirectUris;
@@ -163,10 +164,7 @@ const refreshBodySchema = z.object({
 
 export const token = httpAction(async (ctx, request) => {
   const contentType = request.headers.get("Content-Type") ?? "";
-  // Parsed via text/URLSearchParams (not request.formData()) and an entries
-  // walk (not a type assertion) so this file typechecks under apps/mobile's
-  // React Native lib types too — they pull in the convex api graph but their
-  // FormData global has no forEach.
+  // parsed via text/URLSearchParams (not request.formData()) and an entries walk (not
   const body: Record<string, string> = {};
 
   if (contentType.includes("application/x-www-form-urlencoded")) {
@@ -194,7 +192,7 @@ export const token = httpAction(async (ctx, request) => {
     }
   }
 
-  // Refresh token grant
+  // refresh token grant
   const refreshParse = refreshBodySchema.safeParse(body);
   if (refreshParse.success) {
     const result = await ctx.runAction(internal.mcp.nodeActions.refreshToken, {
@@ -210,7 +208,7 @@ export const token = httpAction(async (ctx, request) => {
     return Response.json(result.tokens);
   }
 
-  // Authorization code grant
+  // authorization code grant
   const parseResult = authCodeBodySchema.safeParse(body);
   if (!parseResult.success) {
     console.error(
@@ -257,7 +255,7 @@ export const token = httpAction(async (ctx, request) => {
     );
   }
 
-  // PKCE verification using Web Crypto (httpAction runs on V8 — no node import).
+  // PKCE verification using Web Crypto (httpAction runs on V8 — no node import)
   const expectedChallenge = await pkceS256Challenge(params.code_verifier);
 
   if (expectedChallenge !== entry.codeChallenge) {
@@ -295,10 +293,7 @@ async function pkceS256Challenge(verifier: string): Promise<string> {
     "SHA-256",
     new TextEncoder().encode(verifier),
   );
-  return btoa(String.fromCharCode(...new Uint8Array(hashBuffer)))
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
+  return encodeBase64UrlBytes(new Uint8Array(hashBuffer));
 }
 
 async function runMcpEndpoint(

@@ -1,7 +1,4 @@
-import type { api } from "@vmem/backend";
-import type { FunctionReturnType } from "convex/server";
-
-export const codebaseLanguageColors: Record<string, string> = {
+const codebaseLanguageColors: Record<string, string> = {
   TypeScript: "#3178c6",
   JavaScript: "#f1e05a",
   Python: "#3572A5",
@@ -25,6 +22,11 @@ export const codebaseLanguageColors: Record<string, string> = {
   Svelte: "#ff3e00",
 };
 
-export type CodebaseItem = FunctionReturnType<
-  typeof api.codebases.listMy
->[number];
+const FALLBACK_LANGUAGE_COLOR = "#8b8b8b";
+
+export function codebaseLanguageColor(
+  language: string | null | undefined,
+): string | null {
+  if (!language) return null;
+  return codebaseLanguageColors[language] ?? FALLBACK_LANGUAGE_COLOR;
+}

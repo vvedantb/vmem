@@ -1,6 +1,6 @@
 export const DEFAULT_LOCAL_TIME = "04:00";
 
-/** Parse "HH:MM" → hour/minute. Returns null on malformed input. */
+// parse "HH:MM" → hour/minute; null if malformed
 export function parseHHMM(
   time: string,
 ): { hour: number; minute: number } | null {
@@ -12,11 +12,7 @@ export function parseHHMM(
   return { hour, minute };
 }
 
-/**
- * Storage is "HH:MM" UTC; pickers render local time. These helpers
- * shift between the two via today's date, so DST is applied consistently
- * with what the user sees at scheduling time.
- */
+// storage is UTC HH:MM; pickers show local — shift via today's date for DST
 export function utcTimeToLocal(utcTime: string): string {
   const parsed = parseHHMM(utcTime);
   if (!parsed) return DEFAULT_LOCAL_TIME;

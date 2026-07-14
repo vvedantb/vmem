@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useEffect } from "react";
+import { useAction } from "convex/react";
+import { useQuery as useTanstackQuery } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -8,50 +10,111 @@ import {
   DialogTitle,
   DialogFooter,
   Button,
-  Card,
+  Badge,
   Tabs,
   TabsList,
   TabsTrigger,
   TabsContent,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@vmem/ui";
-import { IconLoader2, IconTrash, IconX } from "@tabler/icons-react";
+import {
+  IconLoader2,
+  IconTrash,
+  IconX,
+  IconDots,
+  IconPencil,
+} from "@tabler/icons-react";
+import { api } from "@vmem/backend";
 import type { Memory } from "@/lib/memories";
+import { formatMemoryTypeLabel } from "@/lib/memories";
+import {
+  countUniqueRelated,
+  relatedMemoriesQueryKey,
+  uniqueRelated,
+} from "@/lib/memories-related";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { toast } from "sonner";
-import DetailsTab from "./_components/DetailsTab";
+import { DetailsTabView, DetailsTabEdit } from "./_components/DetailsTab";
 import HistoryTab from "./_components/HistoryTab";
 import ConnectionsTab from "./_components/ConnectionsTab";
+import { MemorySourceLabel } from "./_components/MemorySourceLabel";
 
 type PanelTab = "details" | "history" | "connections";
+
+const TAB_PANEL_CLASS =
+  "mt-3 min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto scrollbar-thin";
+
+function formatMetaDate(dateString: string): string {
+  return new Date(dateString).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
 
 interface MemoryDetailPanelProps {
   memory: Memory;
   onClose: () => void;
-  onMemoryUpdate: (memory: Memory) => void;
   onMemoryDelete: (id: string) => void;
   onSelectRelated: (memory: Memory) => void;
-  startInEditMode?: boolean;
-  startWithDelete?: boolean;
+  // one-shot action to run when the panel opens (edit or delete confirm)
+  initialAction?: "edit" | "delete";
   onConsumeAction?: () => void;
 }
 
 export default function MemoryDetailPanel({
   memory,
   onClose,
-  onMemoryUpdate,
   onMemoryDelete,
   onSelectRelated,
-  startInEditMode = false,
-  startWithDelete = false,
+  initialAction,
   onConsumeAction,
 }: MemoryDetailPanelProps) {
   const [activeTab, setActiveTab] = useState<PanelTab>("details");
+  const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const { deleteMemory } = useMemoryContext();
+  const getRelatedMemories = useAction(api.relationshipApi.getRelatedMemories);
+  const relatedQuery = useTanstackQuery({
+    queryKey: relatedMemoriesQueryKey(memory.id),
+    queryFn: async () => {
+      const data = await getRelatedMemories({ memoryId: memory.id });
+      return uniqueRelated(data);
+    },
+  });
+  const connectionCount =
+    relatedQuery.data === undefined
+      ? null
+      : countUniqueRelated(relatedQuery.data);
 
-  const handleDelete = useCallback(async () => {
+  useEffect(() => {
+    if (initialAction === "edit") {
+      setIsEditing(true);
+      setActiveTab("details");
+      onConsumeAction?.();
+    } else if (initialAction === "delete") {
+      setShowDeleteConfirm(true);
+      onConsumeAction?.();
+    }
+  }, [initialAction, onConsumeAction]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !showDeleteConfirm && !isEditing) {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown, { passive: true });
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose, showDeleteConfirm, isEditing]);
+
+  async function handleDelete() {
     setIsDeleting(true);
 
     try {
@@ -71,30 +134,79 @@ export default function MemoryDetailPanel({
     } finally {
       setIsDeleting(false);
     }
-  }, [memory, onMemoryDelete, onClose, deleteMemory]);
+  }
 
-  const handleRequestDelete = useCallback(() => {
-    setShowDeleteConfirm(true);
-  }, []);
+  function handleStartEdit() {
+    setActiveTab("details");
+    setIsEditing(true);
+  }
 
   return (
     <>
-      <Card className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden shadow-none p-4 sm:p-5">
-        <div className="mb-4 flex shrink-0 items-start justify-between gap-3">
-          <h3 className="min-w-0 flex-1 truncate text-lg font-semibold leading-snug text-foreground text-balance">
-            {memory.title}
-          </h3>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={onClose}
-            className="text-muted flex-shrink-0"
-          >
-            <IconX size={18} />
-          </Button>
+      <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
+        <div className="mb-3 shrink-0">
+          <div className="flex items-start gap-2">
+            <div className="min-w-0 flex-1">
+              <h3 className="truncate text-lg font-semibold leading-snug text-foreground">
+                {memory.title}
+              </h3>
+              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+                <time className="tabular-nums text-foreground/80">
+                  {formatMetaDate(memory.createdAt)}
+                </time>
+                <span aria-hidden>·</span>
+                <Badge variant="secondary" className="h-5 px-1.5 text-[11px]">
+                  {formatMemoryTypeLabel(memory.type)}
+                </Badge>
+                <span aria-hidden>·</span>
+                <MemorySourceLabel
+                  source={memory.source}
+                  size={12}
+                  labelClassName="text-foreground/80"
+                />
+              </div>
+            </div>
+            {!isEditing ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    className="shrink-0 text-muted"
+                    aria-label="Memory actions"
+                  >
+                    <IconDots size={16} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onSelect={handleStartEdit}>
+                    <IconPencil size={14} />
+                    Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-danger focus:text-danger data-[highlighted]:text-danger"
+                    onSelect={() => setShowDeleteConfirm(true)}
+                  >
+                    <IconTrash size={14} />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : null}
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={onClose}
+              className="shrink-0 text-muted"
+              aria-label="Close panel"
+            >
+              <IconX size={18} />
+            </Button>
+          </div>
         </div>
 
-        {/* Tabs */}
         <Tabs
           value={activeTab}
           onValueChange={(v) => {
@@ -104,47 +216,44 @@ export default function MemoryDetailPanel({
           }}
           className="flex min-h-0 flex-1 flex-col overflow-hidden"
         >
-          <TabsList className="mb-5 shrink-0 self-start">
+          <TabsList className="max-w-full shrink-0 self-start">
             <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
-            <TabsTrigger value="connections">Connections</TabsTrigger>
+            <TabsTrigger value="connections">
+              Connections
+              {connectionCount !== null && connectionCount > 0 ? (
+                <span className="ml-1 tabular-nums text-muted">
+                  ({connectionCount})
+                </span>
+              ) : null}
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent
-            value="details"
-            className="mt-0 min-h-0 w-full flex-1 overflow-y-auto scrollbar-thin"
-          >
-            <DetailsTab
-              memory={memory}
-              onMemoryUpdate={onMemoryUpdate}
-              onRequestDelete={handleRequestDelete}
-              onSelectRelated={onSelectRelated}
-              startInEditMode={startInEditMode}
-              startWithDelete={startWithDelete}
-              onConsumeAction={onConsumeAction}
-            />
+          <TabsContent value="details" className={TAB_PANEL_CLASS}>
+            {isEditing ? (
+              <DetailsTabEdit
+                key={memory.id}
+                memory={memory}
+                onCancel={() => setIsEditing(false)}
+              />
+            ) : (
+              <DetailsTabView memory={memory} />
+            )}
           </TabsContent>
 
-          <TabsContent
-            value="history"
-            className="mt-0 min-h-0 w-full flex-1 overflow-y-auto scrollbar-thin"
-          >
-            <HistoryTab memoryId={memory.id} />
+          <TabsContent value="history" className={TAB_PANEL_CLASS}>
+            <HistoryTab key={memory.id} memoryId={memory.id} />
           </TabsContent>
 
-          <TabsContent
-            value="connections"
-            className="mt-0 min-h-0 w-full flex-1 overflow-y-auto scrollbar-thin"
-          >
+          <TabsContent value="connections" className={TAB_PANEL_CLASS}>
             <ConnectionsTab
               memoryId={memory.id}
               onSelectRelated={onSelectRelated}
             />
           </TabsContent>
         </Tabs>
-      </Card>
+      </div>
 
-      {/* Delete confirmation dialog */}
       <Dialog
         open={showDeleteConfirm}
         onOpenChange={(value) => {

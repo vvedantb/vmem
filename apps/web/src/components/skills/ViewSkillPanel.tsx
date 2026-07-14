@@ -1,8 +1,9 @@
 "use client";
 
+import type { SkillViewFields } from "@/components/skills/_utils";
+
 interface ViewSkillPanelProps {
-  /** Any skill-like value — personal skill doc or a system-skill catalog row. */
-  skill: { description?: string; instructions: string };
+  skill: SkillViewFields;
 }
 
 export function ViewSkillPanel({ skill }: ViewSkillPanelProps) {

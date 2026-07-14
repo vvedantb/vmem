@@ -1,26 +1,9 @@
 "use client";
 
-/**
- * Graph-view controls rendered in the page header.
- *
- * Renders three popover buttons — Search, Filters, Options — plus the Add
- * Memory trigger. The Options popover absorbs the legend (counts, shapes,
- * edge colours, dim states, source logos) so the toolbar stays compact on
- * mobile. State flows in through a single `controller` prop (see
- * `useMemoryGraphController`).
- */
+// graph header: search / filters / options (+ add memory)
 
 import { useCallback, useMemo } from "react";
-import {
-  IconAdjustmentsHorizontal,
-  IconPlus,
-  IconRefresh,
-  IconGraph,
-  IconSatellite,
-  IconStars,
-  IconGridDots,
-  IconCircleDot,
-} from "@tabler/icons-react";
+import { IconAdjustmentsHorizontal, IconRefresh } from "@tabler/icons-react";
 import {
   Button,
   Input,
@@ -30,25 +13,14 @@ import {
   Switch,
   Separator,
 } from "@vmem/ui";
-import AddMemoryModal from "@/components/AddMemoryModal";
+import AddMemoryIconTrigger from "@/components/AddMemoryIconTrigger";
 import HeaderSearchInput from "./HeaderSearchInput";
 import GraphLegend from "./GraphLegend";
 import type { MemoryGraphController } from "@/hooks/useMemoryGraphController";
 import { MemoryFiltersButton } from "@/routes/_main/$profileId/memories/_components/MemoryFiltersButton";
 import type { ListItemKind } from "@/lib/list-items";
 import type { MemoryType } from "@/lib/memories";
-import { VIEW_MODE_LABELS, type ViewMode } from "./graph-view-themes";
 import type { GraphSettings } from "./graph-types";
-
-// ---- View-mode selector config ----
-
-const VIEW_MODES: { mode: ViewMode; Icon: typeof IconGraph }[] = [
-  { mode: "default", Icon: IconGraph },
-  { mode: "satellite", Icon: IconSatellite },
-  { mode: "constellation", Icon: IconStars },
-  { mode: "blueprint", Icon: IconGridDots },
-  { mode: "minimal", Icon: IconCircleDot },
-];
 
 // ---- Slider config ----
 
@@ -97,8 +69,6 @@ export default function GraphHeaderControls({
       />
       <GraphFiltersButton controller={controller} />
       <OptionsPopover
-        viewMode={controller.viewMode}
-        onViewModeChange={controller.onViewModeChange}
         settings={controller.graphSettings}
         onSettingsChange={controller.onSettingsChange}
         onReset={controller.onResetSettings}
@@ -106,13 +76,7 @@ export default function GraphHeaderControls({
         visibleNodeCount={controller.visibleNodeCount}
         edgeCount={controller.edgeCount}
       />
-      <AddMemoryModal
-        trigger={
-          <Button variant="outline" size="icon-sm" aria-label="Add memory">
-            <IconPlus size={16} />
-          </Button>
-        }
-      />
+      <AddMemoryIconTrigger />
     </div>
   );
 }
@@ -145,6 +109,7 @@ function GraphFiltersButton({
       memory: 0,
       entity: 0,
       "wiki-document": 0,
+      "wiki-artifact": 0,
       "wiki-folder": 0,
       skill: 0,
     };
@@ -200,8 +165,6 @@ function GraphFiltersButton({
 // ---- Options popover ----
 
 function OptionsPopover({
-  viewMode,
-  onViewModeChange,
   settings,
   onSettingsChange,
   onReset,
@@ -209,8 +172,6 @@ function OptionsPopover({
   visibleNodeCount,
   edgeCount,
 }: {
-  viewMode: ViewMode;
-  onViewModeChange: (m: ViewMode) => void;
   settings: GraphSettings;
   onSettingsChange: (s: GraphSettings) => void;
   onReset: () => void;
@@ -247,30 +208,6 @@ function OptionsPopover({
         align="end"
         className="w-72 p-3 space-y-4 max-h-[80vh] overflow-y-auto"
       >
-        {/* View mode */}
-        <div className="space-y-1.5">
-          <span className="text-[11px] text-muted">View</span>
-          <div className="flex items-center gap-0.5 rounded-lg bg-default p-0.5 w-fit">
-            {VIEW_MODES.map(({ mode, Icon }) => (
-              <Button
-                key={mode}
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                onClick={() => onViewModeChange(mode)}
-                title={VIEW_MODE_LABELS[mode]}
-                className={`h-7 w-7 ${
-                  mode === viewMode
-                    ? "bg-segment text-foreground"
-                    : "text-muted hover:bg-surface-secondary/70 hover:text-foreground"
-                }`}
-              >
-                <Icon className="size-3.5" />
-              </Button>
-            ))}
-          </div>
-        </div>
-
         {/* Labels toggle */}
         <div className="flex items-center justify-between">
           <span className="text-[11px] text-muted">Labels</span>
@@ -321,7 +258,7 @@ function OptionsPopover({
 
         <Separator />
 
-        {/* Legend — counts, shapes, edge categories, dim states, source logos.
+        {/* Legend — counts, shapes, edge categories, dim states.
             Folded into Options instead of a sibling button so the toolbar stays
             compact on mobile. */}
         <GraphLegend

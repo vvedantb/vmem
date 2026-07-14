@@ -48,13 +48,7 @@ function isAcceptedFile(file: File): boolean {
   );
 }
 
-/**
- * Linear-style memory creation modal: a borderless title + description
- * canvas, with all metadata (profile, tags, attachment) consolidated into
- * a single icon-led toolbar at the bottom. The toolbar uses a tonal
- * surface shift instead of a border for separation, in line with the
- * project's UI design rules.
- */
+// linear-style memory creation modal
 export default function AddMemoryModal({
   trigger,
 }: {
@@ -88,16 +82,16 @@ export default function AddMemoryModal({
   const allTags = useMemo(() => buildTagStats(memories ?? []), [memories]);
   const normalizedTagInput = tagInput.trim().toLowerCase();
 
-  // Suggestions hide tags already on the memory and (when typing) filter by
-  // substring match — same behaviour as the legacy AddMemoryForm.
+  // suggestions hide tags already on the memory and (when typing) filter by
+  // substring match — same behaviour as the legacy AddMemoryForm
   const filteredSuggestions = useMemo(() => {
     const available = allTags.filter((t) => !currentTags.includes(t.tag));
     if (!normalizedTagInput) return available;
     return available.filter((t) => t.tag.includes(normalizedTagInput));
   }, [normalizedTagInput, allTags, currentTags]);
 
-  // Show "Create …" only when the typed string is brand-new (not in the
-  // existing tag corpus and not already on this memory).
+  // show "Create …" only when the typed string is brand-new (not in the
+  // existing tag corpus and not already on this memory)
   const canCreateTag =
     normalizedTagInput.length > 0 &&
     !currentTags.includes(normalizedTagInput) &&
@@ -114,8 +108,8 @@ export default function AddMemoryModal({
     onChange(currentTags.filter((t) => t !== tag));
   };
 
-  // Single source of truth for "the modal closed" — fires for cancel,
-  // escape, click-outside, and post-submit success paths.
+  // single source of truth for "the modal closed" — fires for cancel,
+  // escape, click-outside, and post-submit success paths
   const resetForm = () => {
     reset();
     setTagInput("");
@@ -295,6 +289,7 @@ export default function AddMemoryModal({
                 value={selectedProfileId}
                 onChange={setSelectedProfileId}
                 disabled={isBusy}
+                lockToActiveWorkspace
                 className="h-7 min-w-0 gap-1.5 border-0 bg-transparent px-2 text-xs font-normal text-foreground shadow-none hover:bg-surface-tertiary/50 [&[data-state=open]]:bg-surface-tertiary/50 [&>svg]:size-3.5"
               />
 

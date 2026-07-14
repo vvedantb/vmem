@@ -1,86 +1,26 @@
-export interface MemoryWithTags {
-  id: string;
-  userId: string;
-  title: string;
-  content: string;
-  type: string;
-  source: string;
-  confidence: number;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-  expiresAt: string | null;
-  tags: string[];
-}
-
-export interface ScoreBreakdown {
-  fulltext: number;
-  vector: number;
-  chunk: number;
-  entity: number;
-  rrf: number;
-  recency: number;
-  confidence: number;
-  graphPath?: {
-    seedTitle: string;
-    bridgingEntity: string | null;
-    hops: number;
-  };
-  rerankerScore?: number;
-}
-
-export interface MatchedChunk {
-  content: string;
-  position: number;
-}
-
-export interface MemoryCandidate extends MemoryWithTags {
-  trace: {
-    score: number;
-    scoreBreakdown: ScoreBreakdown;
-    reason: string;
-  };
-  matchedChunk?: MatchedChunk;
-}
-
-export interface UserContext {
-  aboutMe: string | null;
-  preferences: string | null;
-}
-
-export interface RetrieveResult {
-  memories: MemoryCandidate[];
-  userContext: UserContext;
-  summary?: string;
-}
-
-export interface AgentProposal {
-  id: string;
-  memoryId: string;
-  proposedContent: string;
-  reason: string;
-  kind: string;
-  status: string;
-}
-
-export interface StoreInstructionResult {
-  created: MemoryWithTags[];
-  summary: string;
-}
-
-export interface UpdateInstructionResult {
-  applied: MemoryWithTags[];
-  proposals: AgentProposal[];
-  summary: string;
-}
+export type {
+  AgentProposal,
+  DeleteMemoryResult,
+  HealthResult,
+  MatchedChunk,
+  MemoryCandidate,
+  MemoryWithTags,
+  RetrieveResult,
+  ScoreBreakdown,
+  StoreInstructionResult,
+  UpdateInstructionResult,
+  UserContext,
+} from "./validators";
+import type { MemoryStatus, MemoryType } from "./validators";
+export type { MemoryStatus, MemoryType } from "./validators";
 
 export interface StructuredCreateMemoryInput {
   title: string;
   content: string;
-  type: string;
+  type: MemoryType;
   source: string;
-  tags: string[];
-  confidence: number;
+  tags?: string[];
+  confidence?: number;
   expiresAt?: string;
   url?: string;
   profileId?: string;
@@ -89,20 +29,24 @@ export interface StructuredCreateMemoryInput {
 }
 
 export interface StructuredPatchMemoryInput {
-  memoryId: string;
+  id: string;
   title?: string;
   content?: string;
-  type?: string;
-  status?: string;
+  type?: MemoryType;
+  status?: MemoryStatus;
   tags?: string[];
   confidence?: number;
   expiresAt?: string | null;
 }
 
+export interface StructuredDeleteMemoryInput {
+  id: string;
+}
+
 export interface StructuredRetrieveInput {
   query: string;
   limit?: number;
-  type?: string;
+  type?: MemoryType;
   tags?: string[];
   profileId?: string;
   summarize?: boolean;

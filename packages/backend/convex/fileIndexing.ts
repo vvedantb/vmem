@@ -30,19 +30,14 @@ async function cleanupFileMemory(
   });
 }
 
-/**
- * Index one file node into the memory graph. Scheduled by `files.ts` on
- * create and overwrite (and by the backfill below). Overwrites delete the
- * previous derived memory and re-create — updating in place would keep a
- * stale embedding and skip re-enrichment.
- */
+// index one file node into the memory graph
 export const indexFileNodeInternal = internalAction({
   args: { fileNodeId: v.id("fileNodes") },
   handler: async (ctx, args): Promise<void> => {
     const result = await ctx.runQuery(internal.files.getNodeForIndexInternal, {
       fileNodeId: args.fileNodeId,
     });
-    // Node already deleted — deleteSubtree scheduled its own cleanup.
+    // node already deleted — deleteSubtree scheduled its own cleanup
     if (!result) return;
     const { node, clerkId } = result;
 
@@ -83,7 +78,7 @@ export const indexFileNodeInternal = internalAction({
       content = await extractFileContent(blob, kind);
     } catch (err) {
       console.error(`[fileIndexing] extraction failed for ${node.name}`, err);
-      // Old memory (if any) is untouched here — keep the reference.
+      // old memory (if any) is untouched here — keep the reference
       await ctx.runMutation(internal.files.setIndexResultInternal, {
         fileNodeId: args.fileNodeId,
         indexStatus: "failed",
@@ -121,8 +116,8 @@ export const indexFileNodeInternal = internalAction({
       profileId = defaultProfile._id;
     }
 
-    // Overwrite path: drop the previous derived memory so the re-create
-    // gets a fresh dedup/embed/enrich/chunk pass.
+    // overwrite path: drop the previous derived memory so the re-create
+    // gets a fresh dedup/embed/enrich/chunk pass
     if (staleMemoryId) {
       await cleanupFileMemory(
         ctx,
@@ -168,18 +163,14 @@ export const indexFileNodeInternal = internalAction({
   },
 });
 
-/**
- * Delete derived memories after their file nodes were removed. Scheduled by
- * `deleteSubtree` post-commit, so the survivor guard sees the deletes. Runs
- * under each node creator's clerkId.
- */
+// delete derived memories after their file nodes were removed
 export const cleanupFileMemoriesInternal = internalAction({
   args: {
     entries: v.array(v.object({ memoryId: v.string(), clerkId: v.string() })),
   },
   handler: async (ctx, args): Promise<void> => {
     // A folder delete can contain several identical-content files that
-    // collapsed onto one memory — clean each memory once.
+    // collapsed onto one memory — clean each memory once
     const seen = new Set<string>();
     for (const entry of args.entries) {
       if (seen.has(entry.memoryId)) continue;
@@ -189,13 +180,7 @@ export const cleanupFileMemoriesInternal = internalAction({
   },
 });
 
-/**
- * One-shot backfill: index every file uploaded before indexing shipped
- * (no `indexStatus` yet). Staggered — each run embeds + enriches through
- * OpenRouter and writes to Neo4j.
- *
- * Run manually: `npx convex run fileIndexing:backfillFileNodeIndex`
- */
+// one-shot backfill: index every file uploaded before indexing shipped (no `indexStatus` yet)
 export const backfillFileNodeIndex = internalAction({
   args: {},
   handler: async (ctx): Promise<{ scheduled: number }> => {

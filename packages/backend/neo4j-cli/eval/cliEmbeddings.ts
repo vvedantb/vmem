@@ -1,6 +1,7 @@
-/** OpenRouter embeddings when configured; otherwise deterministic synthetic vectors. */
+// openRouter embeddings when configured; otherwise deterministic synthetic vectors
 
 import { createOpenRouterClient } from "../../convex/lib/openRouter/client";
+import { validateEmbeddingItems } from "../../engine/llm/embeddingResponse";
 import pRetry from "p-retry";
 
 const EMBEDDING_MODEL = "openai/text-embedding-3-small";
@@ -53,35 +54,6 @@ function syntheticEmbed(text: string): number[] {
   }
 
   return l2Normalize(vec);
-}
-
-function validateEmbeddingItems(
-  data: Array<{ embedding: number[] | string; index?: number }>,
-  expectedCount: number,
-): number[][] {
-  if (data.length !== expectedCount) {
-    throw new Error(
-      `embedding response: expected ${String(expectedCount)} items, got ${String(data.length)}`,
-    );
-  }
-
-  const slots: (number[] | undefined)[] = Array.from({
-    length: expectedCount,
-  });
-  for (const item of data) {
-    if (!Array.isArray(item.embedding)) {
-      throw new Error("embedding response: item missing embedding array");
-    }
-    const index = item.index ?? 0;
-    if (item.embedding.length !== EMBEDDING_DIMENSIONS) {
-      throw new Error(
-        `embedding response: expected ${String(EMBEDDING_DIMENSIONS)} dims, got ${String(item.embedding.length)}`,
-      );
-    }
-    slots[index] = item.embedding;
-  }
-
-  return requireFilledVectors(slots, "embedding response");
 }
 
 function requireFilledVectors(
@@ -137,7 +109,17 @@ async function generateBatchWithRetry(
       if (typeof response === "string") {
         throw new Error("embedding response: unexpected string body");
       }
-      return validateEmbeddingItems(response.data, input.length);
+      const slots: (number[] | undefined)[] = Array.from({
+        length: input.length,
+      });
+      for (const item of validateEmbeddingItems(
+        response.data,
+        input.length,
+        EMBEDDING_DIMENSIONS,
+      )) {
+        slots[item.index] = item.embedding;
+      }
+      return requireFilledVectors(slots, "embedding response");
     },
     {
       retries: EMBEDDING_MAX_ATTEMPTS - 1,

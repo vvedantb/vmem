@@ -17,16 +17,12 @@ function teamProfileCronName(profileId: string): string {
   return `dream-mode:${profileId}`;
 }
 
-/** Build a daily cronspec ("M H * * *") from "HH:MM". */
+// build a daily cronspec ("M H * * *") from "HH:MM"
 function cronspecForTime(hour: number, minute: number): string {
   return `${String(minute)} ${String(hour)} * * *`;
 }
 
-/**
- * Parse+validate an enable/time pair, throwing the shared user-facing
- * error on malformed input. Returns null when the schedule should be
- * disabled (parsed is only non-null when `enabled` is true).
- */
+// parse+validate an enable/time pair, throwing the shared user-facing error on malformed input
 function requireParsedSchedule(
   enabled: boolean,
   time: string | undefined,
@@ -38,10 +34,7 @@ function requireParsedSchedule(
   return parsed;
 }
 
-/**
- * Delete-then-register a named daily cron (the cron component has no
- * upsert primitive). `parsed === null` means "leave it deleted".
- */
+// delete-then-register a named daily cron (the cron component has no upsert primitive)
 async function replaceDailyCron<F extends SchedulableFunctionReference>(
   ctx: MutationCtx,
   name: string,
@@ -64,23 +57,18 @@ async function replaceDailyCron<F extends SchedulableFunctionReference>(
   }
 }
 
-/**
- * Set or clear the user's daily Dream Mode schedule. `enabled=false`
- * clears any registered cron and stores `dreamModeScheduleEnabled=false`.
- * `enabled=true` requires a `time` ("HH:MM" UTC) — re-registers the cron
- * and persists the saved time on `userSettings`.
- */
+// set or clear the user's daily Dream Mode schedule
 export const setDreamSchedule = authMutation({
   args: {
     enabled: v.boolean(),
-    /** "HH:MM" in UTC. Required when enabled=true. */
+    // "HH:MM" in UTC
     time: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const parsed = requireParsedSchedule(args.enabled, args.time);
     const name = userCronName(ctx.userId);
 
-    // Persist on userSettings so the UI shows the saved value on refresh.
+    // persist on userSettings so the UI shows the saved value on refresh
     const settings = await ctx.db
       .query("userSettings")
       .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
@@ -119,17 +107,12 @@ export const setDreamSchedule = authMutation({
   },
 });
 
-/**
- * Per-team-profile schedule (kept from V1). Team profiles still use the
- * `dream-mode:<profileId>` cron and the per-profile fields on
- * `profileFields` because team membership cuts across users — a team
- * owner sets the schedule once for everyone on the team.
- */
+// per-team-profile schedule (kept from V1)
 export const setDreamScheduleForTeamProfile = authMutation({
   args: {
     profileId: v.id("profiles"),
     enabled: v.boolean(),
-    /** "HH:MM" in UTC. Required when enabled=true. */
+    // "HH:MM" in UTC
     time: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -185,11 +168,7 @@ export const setDreamScheduleForTeamProfile = authMutation({
   },
 });
 
-/**
- * Read-only view of registered Dream Mode crons for the current user.
- * Used by the settings page to verify saved schedules are actually
- * active in the cron component (defense-in-depth against drift).
- */
+// read-only view of registered Dream Mode crons for the current user
 export const listDreamCrons = authQuery({
   args: {},
   handler: async (ctx) => {

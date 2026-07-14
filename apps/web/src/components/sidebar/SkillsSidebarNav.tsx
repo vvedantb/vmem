@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, lazy, Suspense } from "react";
 import { useLocation, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { useQueryStates } from "nuqs";
@@ -8,20 +8,30 @@ import { motion } from "motion/react";
 import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
 import { Button, cn, motionDuration, motionEase } from "@vmem/ui";
-import { IconApps, IconBolt } from "@tabler/icons-react";
+import { IconApps, IconBolt, IconListCheck } from "@tabler/icons-react";
 import { SkillCard } from "@/components/skills/SkillCard";
 import { SkillBulkDeleteBar } from "@/components/skills/SkillBulkDeleteBar";
-import { SkillsSearchBar } from "@/components/skills/SkillsSearchBar";
 import { SkillsAddMenu } from "@/components/skills/SkillsAddMenu";
-import { WriteSkillDialog } from "@/components/skills/WriteSkillDialog";
-import { UploadSkillDialog } from "@/components/skills/UploadSkillDialog";
 import { skillsSearchParams } from "@/routes/_main/$profileId/skills/-searchParams";
+import { SidebarListSearchBar } from "./SidebarListSearchBar";
 import { SharedLayoutBackground } from "./SharedLayoutBackground";
 import { sidebarListRowClass } from "./sidebar-nav-row";
+import { useIdSelectionMode } from "@/hooks/useIdSelectionMode";
 import {
   useActiveProfileId,
   useActiveTeamId,
 } from "@/components/workspace/active-profile";
+
+const WriteSkillDialog = lazy(() =>
+  import("@/components/skills/WriteSkillDialog").then((m) => ({
+    default: m.WriteSkillDialog,
+  })),
+);
+const UploadSkillDialog = lazy(() =>
+  import("@/components/skills/UploadSkillDialog").then((m) => ({
+    default: m.UploadSkillDialog,
+  })),
+);
 
 export type SkillsSidebarNavProps = {
   isIconOnly: boolean;
@@ -45,7 +55,7 @@ export function SkillsSidebarNav({
   const onHub = pathname.endsWith("/skills/hub");
 
   const skills = useQuery(api.skills.listMy, { teamId });
-  const catalog = useQuery(api.systemSkills.listCatalog, {});
+  const catalog = useQuery(api.systemSkills.listCatalog, { teamId });
   const installedSystemSkills = useMemo(
     () => (catalog ?? []).filter((entry) => entry.installed),
     [catalog],
@@ -53,27 +63,13 @@ export function SkillsSidebarNav({
   const [{ q: searchQuery }, setSearchParams] =
     useQueryStates(skillsSearchParams);
   const [createModal, setCreateModal] = useState<CreateModalState>("none");
-  const [selectionMode, setSelectionMode] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<Id<"skills">>>(
-    () => new Set(),
-  );
-
-  const exitSelection = () => {
-    setSelectionMode(false);
-    setSelectedIds(new Set());
-  };
-
-  const toggleSelect = (id: Id<"skills">) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  };
+  const {
+    selectionMode,
+    selectedIds,
+    setSelectionMode,
+    exitSelection,
+    toggleSelect,
+  } = useIdSelectionMode<Id<"skills">>();
 
   const filteredSkills = useMemo(() => {
     if (!skills) return [];
@@ -98,14 +94,34 @@ export function SkillsSidebarNav({
     openSkill(id);
   };
 
-  // Grouped with the search at the top of the sidebar (shared by the empty and
-  // populated states), replacing the old bottom-pinned button.
-  const addMenu = (
+  const toolbarAddMenu = (
     <SkillsAddMenu
-      className="w-full gap-2"
+      variant="toolbar"
       onWriteSkill={() => setCreateModal("write")}
       onUploadSkill={() => setCreateModal("upload")}
     />
+  );
+
+  const labeledAddMenu = (
+    <SkillsAddMenu
+      variant="labeled"
+      className="w-full"
+      onWriteSkill={() => setCreateModal("write")}
+      onUploadSkill={() => setCreateModal("upload")}
+    />
+  );
+
+  const selectButton = (
+    <Button
+      type="button"
+      variant="outline"
+      size="icon-sm"
+      aria-label="Select"
+      className="shrink-0"
+      onClick={() => setSelectionMode(true)}
+    >
+      <IconListCheck size={16} />
+    </Button>
   );
 
   const goHub = () => {
@@ -121,24 +137,29 @@ export function SkillsSidebarNav({
     });
   };
 
-  // Browse-the-catalog entry point, grouped with the Add control.
   const hubButton = (
     <Button
+      type="button"
       variant="ghost"
-      size="sm"
-      className={cn(
-        "w-full justify-start gap-2 text-muted hover:text-foreground",
-        onHub && "bg-surface-tertiary text-foreground",
-      )}
       onClick={goHub}
+      className={cn(
+        "h-auto w-full min-w-0 justify-start rounded-lg text-left text-sm font-normal transition-[color] active:scale-100",
+        sidebarListRowClass,
+        onHub
+          ? "bg-surface-tertiary text-foreground hover:bg-surface-tertiary"
+          : "text-muted hover:bg-transparent hover:text-foreground",
+      )}
     >
-      <IconApps size={16} />
+      <IconApps size={16} className="shrink-0" />
       Skills Hub
     </Button>
   );
 
-  // Installed (linked) system skills — same active-pill + sliding treatment as
-  // personal skills; clicking opens the read-only detail page.
+  const hubSection = !isIconOnly ? (
+    <div className="mt-2 mb-3 shrink-0">{hubButton}</div>
+  ) : null;
+
+  // installed system skills for this workspace (personal vs team installs are split)
   const installedSection =
     !isIconOnly && !selectionMode && installedSystemSkills.length > 0 ? (
       <div className="mt-3 space-y-1">
@@ -202,8 +223,8 @@ export function SkillsSidebarNav({
           <>
             {!isIconOnly ? (
               <div className="flex flex-col gap-2">
-                {addMenu}
-                {hubButton}
+                {labeledAddMenu}
+                {hubSection}
               </div>
             ) : null}
             <div className="flex flex-col items-center justify-center px-2 py-10 text-center">
@@ -216,36 +237,32 @@ export function SkillsSidebarNav({
         ) : (
           <>
             {!isIconOnly && !selectionMode ? (
-              <div className="flex flex-col gap-2">
-                <SkillsSearchBar
-                  value={searchQuery}
-                  onChange={(value) => {
-                    void setSearchParams({ q: value });
-                  }}
-                />
-                {addMenu}
-                {hubButton}
-              </div>
-            ) : null}
-            {!isIconOnly ? (
-              selectionMode ? (
-                <SkillBulkDeleteBar
-                  selectedIds={selectedIds}
-                  teamId={teamId}
-                  onExit={exitSelection}
-                />
-              ) : (
-                <div className="flex justify-end">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 px-2 text-xs text-muted"
-                    onClick={() => setSelectionMode(true)}
-                  >
-                    Select
-                  </Button>
+              <>
+                <div className="shrink-0">
+                  <SidebarListSearchBar
+                    value={searchQuery}
+                    onChange={(value) => {
+                      void setSearchParams({ q: value });
+                    }}
+                    placeholder="Search skills"
+                    aria-label="Search skills"
+                    actions={
+                      <>
+                        {toolbarAddMenu}
+                        {selectButton}
+                      </>
+                    }
+                  />
                 </div>
-              )
+                {hubSection}
+              </>
+            ) : null}
+            {!isIconOnly && selectionMode ? (
+              <SkillBulkDeleteBar
+                selectedIds={selectedIds}
+                teamId={teamId}
+                onExit={exitSelection}
+              />
             ) : null}
             {filteredSkills.length === 0 ? (
               !isIconOnly ? (
@@ -268,7 +285,11 @@ export function SkillsSidebarNav({
                       skill={skill}
                       selected={skillId === skill._id}
                       onSelect={() => openSkill(skill._id)}
-                      selectionMode={selectionMode && !isIconOnly}
+                      mode={
+                        selectionMode && !isIconOnly
+                          ? "bulk-select"
+                          : "navigate"
+                      }
                       checked={selectedIds.has(skill._id)}
                       onToggleSelect={() => toggleSelect(skill._id)}
                     />
@@ -281,21 +302,29 @@ export function SkillsSidebarNav({
         {installedSection}
       </div>
 
-      <WriteSkillDialog
-        open={createModal === "write"}
-        onOpenChange={(open) => {
-          if (!open) setCreateModal("none");
-        }}
-        onCreated={handleSkillCreated}
-      />
+      {createModal === "write" ? (
+        <Suspense fallback={null}>
+          <WriteSkillDialog
+            open
+            onOpenChange={(open) => {
+              if (!open) setCreateModal("none");
+            }}
+            onCreated={handleSkillCreated}
+          />
+        </Suspense>
+      ) : null}
 
-      <UploadSkillDialog
-        open={createModal === "upload"}
-        onOpenChange={(open) => {
-          if (!open) setCreateModal("none");
-        }}
-        onCreated={handleSkillCreated}
-      />
+      {createModal === "upload" ? (
+        <Suspense fallback={null}>
+          <UploadSkillDialog
+            open
+            onOpenChange={(open) => {
+              if (!open) setCreateModal("none");
+            }}
+            onCreated={handleSkillCreated}
+          />
+        </Suspense>
+      ) : null}
     </motion.nav>
   );
 }

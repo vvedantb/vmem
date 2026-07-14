@@ -1,35 +1,12 @@
-/**
- * V2 fact-extraction & decision prompts (mem0-derived).
- *
- * Two-stage pipeline used by the chrome-extension prompt-capture flow:
- *
- *   Stage A (extract): given a single user prompt that was just submitted
- *   to ChatGPT/Claude/T3, decompose it into atomic facts about the user.
- *   "I'm building vmem with Convex and Neo4j, and my favorite editor is
- *   Helix" → three facts.
- *
- *   Stage B (decide): for each fact, given the top-N hybrid-retrieved
- *   existing memories, emit ADD / UPDATE / DELETE / NONE — UPDATEs and
- *   DELETEs become :ProposedUpdate nodes (never silent overwrites).
- *
- * Prompts are derived from mem0's `ADDITIVE_EXTRACTION_PROMPT` and
- * `DEFAULT_UPDATE_MEMORY_PROMPT` but trimmed for our scope (single
- * prompt; no conversation history; English only). The output schema is
- * narrower than mem0's — we never propagate `attributedTo` because the
- * prompt-capture path always implicitly attributes to the user.
- *
- * Parsers tolerate `<think>...</think>` tags (Qwen3 and other thinking
- * models). Errors return null; callers degrade gracefully (skip this
- * fact / skip this memory).
- */
+// V2 fact-extraction & decision prompts (mem0-derived)
 
 import { z } from "zod";
-import { extractJsonString } from "../../engine/llm/extractJsonString";
+import { parseJsonString } from "../../engine/llm/extractJsonString";
 
 export interface ExtractedFact {
-  /** Stable id within this extraction (0-indexed). Useful for telemetry. */
+  // stable id within this extraction (0-indexed)
   id: number;
-  /** Canonical fact text. First-person, present tense, single statement. */
+  // canonical fact text
   text: string;
 }
 
@@ -41,11 +18,11 @@ export type UpdateDecisionEvent = "ADD" | "UPDATE" | "DELETE" | "NONE";
 
 export interface UpdateDecision {
   event: UpdateDecisionEvent;
-  /** Existing memory id targeted by UPDATE / DELETE. Absent for ADD / NONE. */
+  // existing memory id targeted by UPDATE / DELETE
   id?: string;
-  /** Proposed text for ADD / UPDATE. Absent for DELETE / NONE. */
+  // proposed text for ADD / UPDATE
   text?: string;
-  /** Existing memory text for UPDATE (lets us include diff in proposal reason). */
+  // existing memory text for UPDATE (lets us include diff in proposal reason)
   oldMemory?: string;
 }
 
@@ -54,7 +31,7 @@ export interface RetrievedCandidate {
   text: string;
 }
 
-// Stage A — extract atomic facts
+// stage A — extract atomic facts
 
 export function buildFactExtractionPrompt(
   capturedPrompt: string,
@@ -130,7 +107,7 @@ ${capturedPrompt}
 # Your output (JSON only)`;
 }
 
-// Stage B — decide ADD / UPDATE / DELETE / NONE per fact
+// stage B — decide ADD / UPDATE / DELETE / NONE per fact
 
 export function buildUpdateDecisionPrompt(
   fact: string,
@@ -195,7 +172,7 @@ ${candidatesBlock}
 # Your output (JSON only)`;
 }
 
-// Parsers
+// parsers
 
 const factItemSchema = z.object({
   id: z.number().optional().catch(undefined),
@@ -209,23 +186,19 @@ const factExtractionResponseSchema = z.object({
 export function parseFactExtractionResponse(
   raw: string,
 ): ExtractedFactsResponse | null {
-  try {
-    const parsed = factExtractionResponseSchema.safeParse(
-      JSON.parse(extractJsonString(raw)),
-    );
-    if (!parsed.success) return null;
-
-    const facts: ExtractedFact[] = [];
-    for (const item of parsed.data.facts) {
-      const fact = factItemSchema.safeParse(item);
-      if (!fact.success) continue;
-      facts.push({ id: fact.data.id ?? facts.length, text: fact.data.text });
-    }
-    return { facts };
-  } catch {
+  const parsed = parseJsonString(raw, factExtractionResponseSchema);
+  if (!parsed) {
     console.error("[v2] Failed to parse fact-extraction response:", raw);
     return null;
   }
+
+  const facts: ExtractedFact[] = [];
+  for (const item of parsed.facts) {
+    const fact = factItemSchema.safeParse(item);
+    if (!fact.success) continue;
+    facts.push({ id: fact.data.id ?? facts.length, text: fact.data.text });
+  }
+  return { facts };
 }
 
 const updateDecisionResponseSchema = z.object({
@@ -246,31 +219,27 @@ function optionalNonEmptyString(value: string | undefined): string | undefined {
 export function parseUpdateDecisionResponse(
   raw: string,
 ): UpdateDecision | null {
-  try {
-    const parsed = updateDecisionResponseSchema.safeParse(
-      JSON.parse(extractJsonString(raw)),
-    );
-    if (!parsed.success) return null;
-
-    const eventResult = updateDecisionEventSchema.safeParse(
-      parsed.data.event.trim().toUpperCase(),
-    );
-    if (!eventResult.success) return null;
-    const event = eventResult.data;
-
-    const id = optionalNonEmptyString(parsed.data.id);
-    const text = optionalNonEmptyString(parsed.data.text);
-    const oldMemory = optionalNonEmptyString(parsed.data.old_memory);
-
-    // Per-event validation. Reject malformed responses so the caller can
-    // skip cleanly instead of writing a corrupt proposal.
-    if (event === "ADD" && !text) return null;
-    if (event === "UPDATE" && (!id || !text)) return null;
-    if (event === "DELETE" && !id) return null;
-
-    return { event, id, text, oldMemory };
-  } catch {
+  const parsed = parseJsonString(raw, updateDecisionResponseSchema);
+  if (!parsed) {
     console.error("[v2] Failed to parse update-decision response:", raw);
     return null;
   }
+
+  const eventResult = updateDecisionEventSchema.safeParse(
+    parsed.event.trim().toUpperCase(),
+  );
+  if (!eventResult.success) return null;
+  const event = eventResult.data;
+
+  const id = optionalNonEmptyString(parsed.id);
+  const text = optionalNonEmptyString(parsed.text);
+  const oldMemory = optionalNonEmptyString(parsed.old_memory);
+
+  // per-event validation. Reject malformed responses so the caller can
+  // skip cleanly instead of writing a corrupt proposal
+  if (event === "ADD" && !text) return null;
+  if (event === "UPDATE" && (!id || !text)) return null;
+  if (event === "DELETE" && !id) return null;
+
+  return { event, id, text, oldMemory };
 }

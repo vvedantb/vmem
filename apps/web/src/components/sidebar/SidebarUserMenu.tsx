@@ -30,23 +30,11 @@ import { useThemeContext } from "../contexts/ThemeContext";
 import { SidebarIconTooltip } from "./SidebarIconTooltip";
 
 type SidebarUserMenuProps = {
-  /** Collapsed (icon-only) rail shows just the avatar; dropdown opens to the side. */
+  // collapsed (icon-only) rail shows just the avatar; dropdown opens to the side
   collapsed: boolean;
 };
 
-/**
- * The footer identity card, doubling as the account menu trigger. Clicking it
- * opens a dropdown with manage account, the theme toggle, and sign out — so the
- * footer is a single clean row instead of an avatar plus a separate button.
- *
- * Sign out is destructive, so it opens a confirmation dialog (rendered as a
- * sibling of the dropdown, controlled by `confirmOpen`, so the menu can close
- * cleanly before the dialog traps focus).
- *
- * Uses Clerk's `useUser` for identity (avatar/name/email) and `useClerk` for the
- * account/sign-out actions, rather than Clerk's prebuilt `<UserButton>`, so the
- * trigger matches the rest of the sidebar's styling.
- */
+// footer identity card + account menu (theme, sign out)
 export function SidebarUserMenu({ collapsed }: SidebarUserMenuProps) {
   const { user } = useUser();
   const { openUserProfile, signOut } = useClerk();
@@ -64,7 +52,7 @@ export function SidebarUserMenu({ collapsed }: SidebarUserMenuProps) {
     try {
       await signOut();
     } catch {
-      // On failure, drop the pending state so the user can retry or cancel.
+      // on failure, drop the pending state so the user can retry or cancel
       setIsSigningOut(false);
     }
   };

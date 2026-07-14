@@ -8,11 +8,11 @@ import {
   DialogTitle,
   Input,
 } from "@vmem/ui";
-import type { AvailableProvider } from "./importProviders";
+import type { ImportProvider } from "./importProviders";
 
 type UploadImportModalProps = {
   open: boolean;
-  provider: AvailableProvider;
+  provider: ImportProvider;
   onClose: () => void;
   onFile: (file: File) => void;
   isParsing: boolean;

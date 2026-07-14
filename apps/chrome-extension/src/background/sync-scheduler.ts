@@ -1,26 +1,26 @@
+import { api } from "@vmem/backend";
+import { getStorage, setStorage } from "@/lib/storage";
+import { convexSettingsToStorageMirror } from "@/types/storage";
+import {
+  DEFAULT_SYNC_INTERVAL_MINUTES,
+  MAX_SYNC_INTERVAL_MINUTES,
+  MIN_SYNC_INTERVAL_MINUTES,
+} from "@/lib/constants";
 import { importBookmarks, syncSingleBookmark } from "./import-bookmarks";
 import { importHistory } from "./import-history";
-import { refreshUserSettingsMirrorFromConvex } from "./user-settings-mirror";
-import { hasActiveClerkSession, warmBackgroundAuth } from "./auth";
-import { getStorage, setStorage } from "@/lib/storage";
 import {
-  BADGE_TICK_ALARM_NAME,
-  getHistorySyncIntervalMinutes,
-  HISTORY_ALARM_NAME,
-  startAutoSync,
-  updateSyncBadge,
-} from "./history-sync-alarms";
+  createAuthenticatedConvexClient,
+  hasActiveClerkSession,
+  warmBackgroundAuth,
+} from "./auth";
 
-export {
-  BADGE_TICK_ALARM_NAME,
-  HISTORY_ALARM_NAME,
-  rescheduleHistorySync,
-  startAutoSync,
-  stopAutoSync,
-  updateSyncBadge,
-} from "./history-sync-alarms";
-
+export const HISTORY_ALARM_NAME = "vmem-history-sync";
+export const BADGE_TICK_ALARM_NAME = "vmem-sync-badge-tick";
 export const SETTINGS_MIRROR_ALARM_NAME = "vmem-user-settings-mirror";
+
+const BADGE_TICK_INTERVAL_MINUTES = 1;
+/** matches popup --accent. */
+const BADGE_BACKGROUND_COLOR = "#363636";
 const SETTINGS_MIRROR_INTERVAL_MINUTES = 5;
 const CATCHUP_MIN_INTERVAL_MS = 5 * 60 * 1000;
 
@@ -29,11 +29,100 @@ let lastCatchUpAttemptMs = 0;
 let bookmarkListenerRegistered = false;
 let historySyncInProgress = false;
 
-/**
- * Register alarm listener at service worker top level.
- * Must be called synchronously when SW starts so it's ready
- * when an alarm wakes the worker. Idempotent.
- */
+/** clamped sync interval minutes from chrome.storage. */
+export async function getHistorySyncIntervalMinutes(): Promise<number> {
+  const { autoSyncIntervalMinutes } = await getStorage();
+  if (!Number.isFinite(autoSyncIntervalMinutes)) {
+    return DEFAULT_SYNC_INTERVAL_MINUTES;
+  }
+  return Math.min(
+    MAX_SYNC_INTERVAL_MINUTES,
+    Math.max(MIN_SYNC_INTERVAL_MINUTES, Math.round(autoSyncIntervalMinutes)),
+  );
+}
+
+async function ensureBadgeTickAlarm(): Promise<void> {
+  const existing = await chrome.alarms.get(BADGE_TICK_ALARM_NAME);
+  if (existing) return;
+  await chrome.alarms.create(BADGE_TICK_ALARM_NAME, {
+    periodInMinutes: BADGE_TICK_INTERVAL_MINUTES,
+  });
+}
+
+/** badge countdown from the real history alarm's scheduledTime. */
+export async function updateSyncBadge(): Promise<void> {
+  const { autoSyncEnabled } = await getStorage();
+  const alarm = autoSyncEnabled
+    ? await chrome.alarms.get(HISTORY_ALARM_NAME)
+    : undefined;
+  if (!alarm || typeof alarm.scheduledTime !== "number") {
+    await chrome.action.setBadgeText({ text: "" });
+    return;
+  }
+  const minutes = Math.max(
+    1,
+    Math.ceil((alarm.scheduledTime - Date.now()) / 60_000),
+  );
+  // prefer "6h" over "359m"
+  const text = minutes >= 60 ? `${Math.floor(minutes / 60)}h` : `${minutes}m`;
+  await chrome.action.setBadgeBackgroundColor({
+    color: BADGE_BACKGROUND_COLOR,
+  });
+  await chrome.action.setBadgeText({ text });
+}
+
+/** ensure history alarm exists; only recreate when period changes. */
+export async function startAutoSync(): Promise<void> {
+  await ensureBadgeTickAlarm();
+  const intervalMinutes = await getHistorySyncIntervalMinutes();
+  const existing = await chrome.alarms.get(HISTORY_ALARM_NAME);
+  if (!existing || existing.periodInMinutes !== intervalMinutes) {
+    await chrome.alarms.create(HISTORY_ALARM_NAME, {
+      periodInMinutes: intervalMinutes,
+    });
+  }
+  await updateSyncBadge();
+}
+
+/** reschedule history alarm after frequency change (if auto-sync on). */
+export async function rescheduleHistorySync(): Promise<void> {
+  const { autoSyncEnabled } = await getStorage();
+  if (!autoSyncEnabled) return;
+  await startAutoSync();
+}
+
+/** clear history + badge alarms; bookmark listener stays wired. */
+export async function stopAutoSync(): Promise<void> {
+  await chrome.alarms.clear(HISTORY_ALARM_NAME);
+  await chrome.alarms.clear(BADGE_TICK_ALARM_NAME);
+  await updateSyncBadge();
+}
+
+async function reconcileAutoSyncAlarm(enabled: boolean): Promise<void> {
+  if (enabled) {
+    await startAutoSync();
+  } else {
+    await stopAutoSync();
+  }
+}
+
+export async function refreshUserSettingsMirrorFromConvex(): Promise<void> {
+  const client = await createAuthenticatedConvexClient();
+  if (!client) {
+    return;
+  }
+
+  try {
+    const settings = await client.query(api.userSettings.get, {});
+    const mirrored = convexSettingsToStorageMirror(settings);
+    await setStorage(mirrored);
+    await reconcileAutoSyncAlarm(mirrored.autoSyncEnabled);
+  } catch {
+    return;
+  }
+}
+
+/** top-level alarm listener — must register synchronously on sw start. */
 export function registerAlarmListener(): void {
   if (alarmListenerRegistered) return;
   alarmListenerRegistered = true;
@@ -54,36 +143,19 @@ export function registerAlarmListener(): void {
   });
 }
 
-/**
- * Heartbeat — runs every SETTINGS_MIRROR_INTERVAL_MINUTES (5 min), the most
- * reliable periodic wake the worker has. Beyond refreshing settings it acts as
- * a watchdog: MV3 can silently drop the slower 30-min history alarm (OS
- * sleep/hibernate on Windows, SW crash, extension update), and without a
- * frequent re-assertion a dropped alarm stays dead until the next browser
- * restart — the exact cause of multi-day silent sync gaps. Here we re-assert
- * the history alarm and immediately catch up if a sync is overdue, so recovery
- * happens within 5 minutes instead of waiting for onStartup.
- */
+/** 5m watchdog: refresh settings, heal dropped history alarm, catch up. */
 async function handleHeartbeat(): Promise<void> {
   void refreshUserSettingsMirrorFromConvex();
 
   const { autoSyncEnabled } = await getStorage();
   if (!autoSyncEnabled) return;
 
-  // Resurrect the history alarm if Chrome dropped it (idempotent — only
-  // creates when absent, so an existing alarm's timer is never reset).
+  // idempotent — won't reset an existing alarm's timer
   await startAutoSync();
   await catchUpHistorySyncIfOverdue();
 }
 
-/**
- * Register bookmark listener at service worker top level. The handler
- * checks `autoSyncEnabled` at call time so the listener can stay wired
- * even when sync is disabled. Must be called synchronously on every SW
- * wake — without this, Chrome's aggressive SW eviction (~30s idle) means
- * bookmarks created while the SW was dormant get silently dropped.
- * Idempotent.
- */
+/** top-level bookmark listener — must register synchronously every sw wake. */
 export function registerBookmarkListener(): void {
   if (bookmarkListenerRegistered) return;
   bookmarkListenerRegistered = true;
@@ -112,13 +184,7 @@ export async function ensureSettingsMirrorAlarm(): Promise<void> {
   });
 }
 
-/**
- * Badge tick — fires every minute while auto-sync is enabled. Keeps the
- * action-icon badge counting down to the next history sync, and doubles as
- * a third watchdog leg: each tick re-asserts the history alarm (idempotent),
- * so a dropped alarm now heals within ~1 minute instead of ~5. When auto-sync
- * is disabled the tick retires itself so the worker stops waking every minute.
- */
+/** 1m badge tick + history-alarm heal while auto-sync is on. */
 async function handleBadgeTick(): Promise<void> {
   const { autoSyncEnabled } = await getStorage();
   if (!autoSyncEnabled) {
@@ -126,20 +192,15 @@ async function handleBadgeTick(): Promise<void> {
     await updateSyncBadge();
     return;
   }
-  await startAutoSync(); // idempotent — heals a dropped history alarm + updates badge
+  await startAutoSync(); // heals dropped history alarm + updates badge
 }
 
-/**
- * Ensure periodic alarms exist whenever the service worker starts.
- * MV3 workers are ephemeral — onInstalled/onStartup alone miss wakes from
- * alarms, messages, and dev reloads, leaving auto-sync scheduled but with
- * no active alarm if it was ever lost.
- */
+/** ensure sync alarms exist on every sw start (not just install/startup). */
 export async function bootstrapSyncSchedulers(): Promise<void> {
   await ensureSettingsMirrorAlarm();
   const { autoSyncEnabled } = await getStorage();
   if (!autoSyncEnabled) {
-    await updateSyncBadge(); // clears any stale countdown left on the icon
+    await updateSyncBadge();
     return;
   }
 
@@ -148,11 +209,7 @@ export async function bootstrapSyncSchedulers(): Promise<void> {
   void catchUpHistorySyncIfOverdue();
 }
 
-/**
- * If the last history sync is older than the sync interval (or never
- * happened), fire one immediately. Called after SW startup so users
- * don't wait up to 30 minutes for a sync after a browser restart.
- */
+/** run history sync now if last sync is older than the interval. */
 export async function catchUpHistorySyncIfOverdue(): Promise<void> {
   const { autoSyncEnabled, lastHistorySync } = await getStorage();
   if (!autoSyncEnabled) return;
@@ -169,16 +226,12 @@ export async function catchUpHistorySyncIfOverdue(): Promise<void> {
   await handleHistoryAlarm();
 }
 
-/** Manual/debug entry — same path as the 30-min alarm. */
+/** manual/debug entry — same path as the history alarm. */
 export async function runAutoSyncNow(): Promise<void> {
   await handleHistoryAlarm();
 }
 
-/**
- * Record why the latest sync attempt did or didn't run, so a silent gap is
- * always diagnosable from storage (popup / debug report) rather than looking
- * healthy. `reason === ""` means the attempt synced successfully.
- */
+/** persist last sync attempt (+ skip reason) for popup/debug. */
 async function recordSyncAttempt(reason: string): Promise<void> {
   await setStorage({
     lastSyncAttemptAt: Date.now(),
@@ -186,7 +239,7 @@ async function recordSyncAttempt(reason: string): Promise<void> {
   });
 }
 
-/** Called by alarm — checks auth + auto-sync setting before syncing. */
+/** history alarm handler — checks auth + auto-sync before syncing. */
 async function handleHistoryAlarm(): Promise<void> {
   if (historySyncInProgress) {
     await recordSyncAttempt("in-progress");
@@ -197,9 +250,7 @@ async function handleHistoryAlarm(): Promise<void> {
 
   try {
     console.info("[vmem] History sync alarm fired");
-    // Mutual watchdog: ensure the frequent heartbeat alarm still exists. As
-    // long as either alarm survives, each fire resurrects the other — so a
-    // single dropped alarm can never permanently stop auto-sync.
+    // keep heartbeat alive so either alarm can resurrect the other
     await ensureSettingsMirrorAlarm();
 
     const { autoSyncEnabled } = await getStorage();
@@ -232,7 +283,7 @@ async function handleHistoryAlarm(): Promise<void> {
   } finally {
     historySyncInProgress = false;
     // Reset the countdown — after a fire, the alarm's scheduledTime is the
-    // next full interval away.
+    // next full interval away
     void updateSyncBadge();
   }
 }

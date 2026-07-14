@@ -34,16 +34,12 @@ import { DetailEmptyState } from "@/components/_components/detail-panel/DetailEm
 import { TagMemoriesPanel } from "@/components/_components/TagMemoriesPanel";
 import { VmemSpinner } from "@/components/svg-animations";
 
-/**
- * Tag-rows view for /memories/list?view=tags. Clicking a tag opens a right-hand
- * panel listing memories with that tag (same row + detail pattern as the main
- * list). The kebab menu handles rename/delete.
- */
+// tag-rows view for /memories/list?view=tags
 export default function TagsListView() {
   const { memories, isLoading, updateMemory } = useMemoryContext();
   const [params] = useMemoriesSearchParams();
 
-  // The route already scopes memories to the active workspace.
+  // the route already scopes memories to the active workspace
   const scopedMemories = memories;
 
   const tags = useMemo(() => {
@@ -256,6 +252,7 @@ export default function TagsListView() {
               className="flex h-full min-h-0 w-full flex-col overflow-hidden lg:min-w-0 lg:flex-1"
             >
               <TagMemoriesPanel
+                key={selectedTag}
                 tag={selectedTag}
                 memories={selectedTagMemories}
                 onClose={closeTagPanel}

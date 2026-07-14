@@ -1,10 +1,5 @@
-import {
-  VMEM_AI_SYSTEM_PROMPT,
-  VMEM_AI_SYSTEM_PROMPT_COPY_SUCCESS,
-} from "@/lib/constants";
-import { copyTextToClipboard } from "@/lib/copy-to-clipboard";
 import { createVmemButton } from "@/content/shared/inject-button";
-import { showToast } from "@/content/shared/toast";
+import { copyVmemSystemPrompt } from "@/content/shared/copy-vmem-system-prompt";
 
 const COPY_ACTION = "copy-prompt";
 
@@ -73,19 +68,7 @@ export async function injectCopyPromptButton(): Promise<void> {
   if (!mount) return;
 
   const button = createVmemButton("Copy vmem prompt", () => {
-    void copyTextToClipboard(VMEM_AI_SYSTEM_PROMPT).then((copied) => {
-      if (copied) {
-        showToast({
-          type: "success",
-          message: VMEM_AI_SYSTEM_PROMPT_COPY_SUCCESS,
-        });
-      } else {
-        showToast({
-          type: "error",
-          message: "Could not copy to clipboard",
-        });
-      }
-    });
+    copyVmemSystemPrompt();
   });
 
   button.setAttribute("data-vmem-action", COPY_ACTION);

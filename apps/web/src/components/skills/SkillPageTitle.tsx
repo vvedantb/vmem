@@ -28,7 +28,7 @@ export function SkillPageTitle({
           }}
           placeholder="Untitled skill"
           aria-label="Skill name"
-          className="h-auto min-w-0 border-0 bg-transparent px-0 py-0 text-inherit shadow-none focus-visible:ring-0 placeholder:text-muted/50"
+          className="h-auto min-w-0 rounded-none border-0 bg-transparent px-0 py-0 font-instrumentSerif text-2xl shadow-none focus-visible:ring-0 placeholder:text-muted/50"
         />
       </BreadcrumbPage>
     </Breadcrumb>

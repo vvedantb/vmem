@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useCallback } from "react";
+import { lazy, Suspense, useState, useCallback } from "react";
 import { useQuery, useAction } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { api } from "@vmem/backend";
+import { api, type Id } from "@vmem/backend";
 import { isCodebaseSyncStalled } from "@vmem/shared";
 import PageContainer from "@/components/PageContainer";
 import { Breadcrumb, BreadcrumbPage, Button } from "@vmem/ui";
@@ -13,11 +13,16 @@ import {
   IconDatabase,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
-import { CodebaseGraph } from "@/components/codebases/CodebaseGraph";
 import CodebaseGraphHeaderControls from "@/components/codebases/CodebaseGraphHeaderControls";
 import { useCodebaseGraphController } from "@/hooks/useCodebaseGraphController";
 import { VmemSpinner } from "@/components/svg-animations";
 import { formatRelativeTime } from "@/lib/formatters";
+
+const CodebaseGraph = lazy(() =>
+  import("@/components/codebases/CodebaseGraph").then((m) => ({
+    default: m.CodebaseGraph,
+  })),
+);
 
 export const Route = createFileRoute("/_main/$profileId/codebases/$id")({
   component: CodebaseDetailPage,
@@ -57,7 +62,7 @@ function CodebaseDetailPage() {
     );
   }
 
-  return <CodebaseDetailView id={id} codebase={codebase} />;
+  return <CodebaseDetailView id={codebase._id} codebase={codebase} />;
 }
 
 type Codebase = NonNullable<FunctionReturnType<typeof api.codebases.getById>>;
@@ -66,14 +71,14 @@ function CodebaseDetailView({
   id,
   codebase,
 }: {
-  id: string;
+  id: Id<"codebases">;
   codebase: Codebase;
 }) {
   const syncCodebase = useAction(api.codebases.syncCodebase);
   const [syncing, setSyncing] = useState(false);
   const controller = useCodebaseGraphController(id);
   // A stalled sync still reads `status === "syncing"`; treat it as retryable so
-  // the Sync button isn't disabled forever waiting on a dead run.
+  // the Sync button isn't disabled forever waiting on a dead run
   const stalled = isCodebaseSyncStalled(
     codebase.status,
     codebase.syncStartedAt,
@@ -132,7 +137,15 @@ function CodebaseDetailView({
         </div>
       }
     >
-      <CodebaseGraph codebaseId={id} controller={controller} />
+      <Suspense
+        fallback={
+          <div className="flex h-full items-center justify-center">
+            <VmemSpinner size={24} className="text-muted" />
+          </div>
+        }
+      >
+        <CodebaseGraph codebaseId={id} controller={controller} />
+      </Suspense>
     </PageContainer>
   );
 }

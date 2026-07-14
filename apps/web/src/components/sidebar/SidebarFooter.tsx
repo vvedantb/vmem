@@ -5,10 +5,7 @@ import { IconChartBar } from "@tabler/icons-react";
 import { SidebarUserMenu } from "./SidebarUserMenu";
 import { SidebarIconTooltip } from "./SidebarIconTooltip";
 
-/**
- * Formats a number with abbreviated suffix (k, m, b) and 1 decimal place.
- * Numbers under 1000 are displayed as-is.
- */
+// formats a number with abbreviated suffix (k, m, b) and 1 decimal place
 function formatCompactNumber(num: number): string {
   if (num < 1000) return String(num);
   if (num < 1_000_000) {

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { extractJsonString } from "../../engine/llm/extractJsonString";
+import { parseJsonString } from "../../engine/llm/extractJsonString";
 
 const MAX_CONTENT_PREVIEW = 600;
 
@@ -52,12 +52,6 @@ const retrieveSummaryResponseSchema = z.object({
 });
 
 export function parseRetrieveSummaryResponse(raw: string): string | null {
-  try {
-    const parsed = retrieveSummaryResponseSchema.safeParse(
-      JSON.parse(extractJsonString(raw)),
-    );
-    return parsed.success ? parsed.data.summary : null;
-  } catch {
-    return null;
-  }
+  const parsed = parseJsonString(raw, retrieveSummaryResponseSchema);
+  return parsed?.summary ?? null;
 }

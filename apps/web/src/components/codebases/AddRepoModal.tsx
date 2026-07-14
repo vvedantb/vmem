@@ -1,6 +1,7 @@
 "use client";
 
 import { useAction, useMutation, useQuery } from "convex/react";
+import { useQuery as useTanstackQuery } from "@tanstack/react-query";
 import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
 import {
@@ -13,18 +14,14 @@ import {
   cn,
 } from "@vmem/ui";
 import { IconLoader2, IconSearch } from "@tabler/icons-react";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import type { FunctionReturnType } from "convex/server";
 import { sidebarSearchInputClassName } from "@/components/sidebar/sidebar-search-input";
 import { GitHubIcon } from "@/components/brand-icons";
-import {
-  AddRepoModalRow,
-  type AddRepoModalRepo,
-} from "./_components/AddRepoModalRow";
+import { AddRepoModalRow } from "./_components/AddRepoModalRow";
+import type { AddRepoModalRepo } from "./-types";
 import { optimisticId } from "@/lib/optimisticId";
-
-type RepoItem = FunctionReturnType<typeof api.codebases.listRepos>[number];
+import { useActiveTeamId } from "@/components/workspace/active-profile";
 
 interface AddRepoModalProps {
   open: boolean;
@@ -37,22 +34,24 @@ export function AddRepoModal({
   onOpenChange,
   connectionId,
 }: AddRepoModalProps) {
+  const teamId = useActiveTeamId();
   const listRepos = useAction(api.codebases.listRepos);
   const addCodebase = useMutation(
     api.codebases.addCodebase,
   ).withOptimisticUpdate((localStore, args) => {
-    const list = localStore.getQuery(api.codebases.listMy, {});
+    const list = localStore.getQuery(api.codebases.listMy, { teamId });
     if (!list || list.length === 0) return;
     const head = list.at(0);
     if (!head) return;
     const connection = localStore.getQuery(api.github.getConnection, {});
     const now = Date.now();
     const tempId = optimisticId("codebases");
-    localStore.setQuery(api.codebases.listMy, {}, [
+    localStore.setQuery(api.codebases.listMy, { teamId }, [
       {
         _id: tempId,
         _creationTime: now,
         userId: head.userId,
+        teamId: args.teamId,
         githubConnectionId: args.githubConnectionId,
         repoOwner: args.repoOwner,
         repoName: args.repoName,
@@ -69,51 +68,46 @@ export function AddRepoModal({
       ...list,
     ]);
   });
-  const codebases = useQuery(api.codebases.listMy);
+  const codebases = useQuery(api.codebases.listMy, { teamId });
+  const reposQuery = useTanstackQuery({
+    queryKey: ["github-repos", connectionId],
+    queryFn: async () => {
+      try {
+        return await listRepos();
+      } catch {
+        toast.error("Failed to fetch repositories");
+        throw new Error("Failed to fetch repositories");
+      }
+    },
+    enabled: open,
+    staleTime: 60_000,
+  });
 
-  const [repos, setRepos] = useState<RepoItem[]>([]);
-  const [loading, setLoading] = useState(false);
+  const repos = reposQuery.data ?? [];
+  const loading = reposQuery.isLoading;
   const [search, setSearch] = useState("");
   const [adding, setAdding] = useState<string | null>(null);
 
-  const addedFullNames = useMemo(() => {
-    return new Set((codebases ?? []).map((cb) => cb.repoFullName));
-  }, [codebases]);
-
-  const availableRepos = useMemo(() => {
-    return repos.filter((repo) => !addedFullNames.has(repo.fullName));
-  }, [repos, addedFullNames]);
-
-  const filtered = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    if (query.length === 0) return availableRepos;
-    return availableRepos.filter(
-      (repo) =>
-        repo.fullName.toLowerCase().includes(query) ||
-        (repo.description?.toLowerCase().includes(query) ?? false) ||
-        (repo.language?.toLowerCase().includes(query) ?? false),
-    );
-  }, [availableRepos, search]);
-
-  const fetchRepos = useCallback(async () => {
-    setLoading(true);
-    try {
-      const result = await listRepos();
-      setRepos(result);
-    } catch {
-      toast.error("Failed to fetch repositories");
-    } finally {
-      setLoading(false);
-    }
-  }, [listRepos]);
+  const addedFullNames = new Set(
+    (codebases ?? []).map((cb) => cb.repoFullName),
+  );
+  const availableRepos = repos.filter(
+    (repo) => !addedFullNames.has(repo.fullName),
+  );
+  const searchQuery = search.trim().toLowerCase();
+  const filtered =
+    searchQuery.length === 0
+      ? availableRepos
+      : availableRepos.filter(
+          (repo) =>
+            repo.fullName.toLowerCase().includes(searchQuery) ||
+            (repo.description?.toLowerCase().includes(searchQuery) ?? false) ||
+            (repo.language?.toLowerCase().includes(searchQuery) ?? false),
+        );
 
   useEffect(() => {
-    if (open) {
-      void fetchRepos();
-    } else {
-      setSearch("");
-    }
-  }, [open, fetchRepos]);
+    if (!open) setSearch("");
+  }, [open]);
 
   const handleAdd = async (repo: AddRepoModalRepo) => {
     setAdding(repo.fullName);
@@ -127,6 +121,7 @@ export function AddRepoModal({
         language: repo.language ?? undefined,
         description: repo.description ?? undefined,
         isPrivate: repo.isPrivate,
+        teamId,
       });
       toast.success(`Added ${repo.fullName}`);
       onOpenChange(false);
@@ -191,11 +186,11 @@ export function AddRepoModal({
               </div>
             ) : filtered.length === 0 ? (
               <p className="px-3 py-14 text-center text-sm text-muted">
-                {search.trim().length > 0
-                  ? "No matching repositories"
-                  : availableRepos.length === 0 && repos.length > 0
-                    ? "All accessible repositories are already added"
-                    : "No repositories found on your GitHub account"}
+                {emptyRepoListMessage(
+                  search,
+                  availableRepos.length,
+                  repos.length,
+                )}
               </p>
             ) : (
               <div className="flex flex-col gap-0.5">
@@ -224,4 +219,18 @@ export function AddRepoModal({
       </DialogContent>
     </Dialog>
   );
+}
+
+function emptyRepoListMessage(
+  search: string,
+  availableCount: number,
+  totalCount: number,
+): string {
+  if (search.trim().length > 0) {
+    return "No matching repositories";
+  }
+  if (availableCount === 0 && totalCount > 0) {
+    return "All accessible repositories are already added";
+  }
+  return "No repositories found on your GitHub account";
 }

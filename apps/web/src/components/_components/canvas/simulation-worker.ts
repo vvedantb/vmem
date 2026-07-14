@@ -1,10 +1,5 @@
 /// <reference lib="webworker" />
-/**
- * Web Worker for d3-force simulation.
- * Runs physics off the main thread, posts position updates at ~30fps while
- * the layout is moving, then sleeps entirely (no interval, zero CPU) once it
- * settles. Reheat/drag/settings messages wake it back up.
- */
+// web Worker for d3-force simulation
 import {
   forceSimulation,
   type Simulation,
@@ -34,13 +29,9 @@ interface WEdge extends SimulationLinkDatum<WNode> {
 
 // ------ State ------
 
-// Below this alpha (with no drag holding alphaTarget up) the layout is
-// visually static, so we stop the tick interval entirely — zero CPU while
-// idle. Any wake signal (reheat, drag, settings change) calls ensureTicking.
+// below this alpha (with no drag holding alphaTarget up) the layout is visually static,
 const SLEEP_ALPHA = 0.005;
-// Tick cadence comes from the node-count-adaptive physics profile (see
-// physics-profile.ts). Multiple physics ticks per posted frame keep the
-// settle animation's pace while reducing position-message traffic.
+// tick cadence comes from the node-count-adaptive physics profile (see physics-profile.ts)
 let tickIntervalMs = 33;
 let ticksPerFrame = 2;
 
@@ -50,8 +41,8 @@ let nodeById = new Map<string, WNode>();
 let tickTimer: ReturnType<typeof setInterval> | null = null;
 let draggedId: string | null = null;
 
-// Force bundle (shared Obsidian-style model — see physics-forces.ts); kept
-// for settings-slider updates without `as` casts.
+// force bundle (shared Obsidian-style model — see physics-forces.ts); kept
+// for settings-slider updates without `as` casts
 let forcesRef: GraphForces<WNode, WEdge> | null = null;
 
 // ------ Worker message protocol (must match simulation.ts postMessage calls) ------
@@ -88,7 +79,7 @@ self.onmessage = (e: MessageEvent<WorkerInputMessage>) => {
       break;
 
     case "reheat": {
-      // Don't clobber a hotter simulation. Drag-release only needs a nudge.
+      // don't clobber a hotter simulation. Drag-release only needs a nudge
       const current = sim?.alpha() ?? 0;
       sim?.alpha(Math.max(current, 0.1));
       ensureTicking();
@@ -119,9 +110,7 @@ self.onmessage = (e: MessageEvent<WorkerInputMessage>) => {
         node.fx = msg.x;
         node.fy = msg.y;
         draggedId = msg.nodeId;
-        // Canonical d3 drag pattern: a non-zero alphaTarget keeps the sim
-        // warm for the whole drag so neighbours react to the moving node.
-        // It also blocks the sleep check (which requires alphaTarget 0).
+        // canonical d3 drag pattern
         sim?.alphaTarget(0.3);
         ensureTicking();
       }
@@ -146,7 +135,7 @@ self.onmessage = (e: MessageEvent<WorkerInputMessage>) => {
         node.fy = null;
       }
       draggedId = null;
-      // Release the drag's alphaTarget so the sim can settle and sleep again.
+      // release the drag's alphaTarget so the sim can settle and sleep again
       sim?.alphaTarget(0);
       break;
     }
@@ -192,9 +181,7 @@ function init(
   tickIntervalMs = profile.tickIntervalMs;
   ticksPerFrame = profile.ticksPerFrame;
 
-  // Only structural edges participate in physics — tag edges are visual-only.
-  // This prevents nodes from clustering just because they share tags, keeping
-  // the layout driven by meaningful semantic relationships.
+  // only structural edges participate in physics — tag edges are visual-only
   const structuralEdges = edges.filter((e) => e.edgeType !== "tag");
 
   const forces = createGraphForces<WNode, WEdge>(
@@ -205,9 +192,7 @@ function init(
   );
   forcesRef = forces;
 
-  // .stop() kills d3's internal timer — ticking is fully manual via
-  // ensureTicking's interval, so the sleep check below is the single
-  // authority on whether physics runs.
+  // .stop() kills d3's internal timer
   sim = forceSimulation<WNode, WEdge>(nodes)
     .force("link", forces.link)
     .force("charge", forces.charge)
@@ -222,29 +207,23 @@ function init(
     sim.force("collide", forces.collide);
   }
 
-  // Post the seeded (spiral / carried-over) positions immediately so the
-  // canvas paints right away — at 100k nodes warm-up takes seconds, and the
-  // layout visibly morphing beats a frozen screen.
+  // post the seeded (spiral / carried-over) positions immediately so the canvas paints
   postPositions();
 
-  // Warm-up ticks run here in the worker (non-blocking for main thread),
-  // scaled down for large graphs where each tick is expensive.
+  // warm-up ticks run here in the worker (non-blocking for main thread),
+  // scaled down for large graphs where each tick is expensive
   for (let i = 0; i < profile.warmupTicks; i++) {
     sim.tick();
   }
   sim.alpha(0.2);
 
-  // Post initial positions immediately after warm-up
+  // post initial positions immediately after warm-up
   postPositions();
 
   ensureTicking();
 }
 
-/**
- * Starts the periodic tick+post loop if it isn't already running, and stops
- * it again once the simulation has settled (alpha below SLEEP_ALPHA with no
- * drag pinning alphaTarget up). Idempotent — every wake path calls this.
- */
+// starts the periodic tick+post loop if it isn't already running, and stops it again
 function ensureTicking(): void {
   if (tickTimer !== null || !sim) return;
   tickTimer = setInterval(() => {
@@ -267,8 +246,8 @@ function ensureTicking(): void {
 function postPositions(): void {
   if (!sim) return;
 
-  // Float32 halves the per-frame transfer (1.6 MB → 0.8 MB at 100k nodes);
-  // sub-pixel precision loss is irrelevant for canvas drawing.
+  // float32 halves the per-frame transfer (1.6 MB → 0.8 MB at 100k nodes);
+  // sub-pixel precision loss is irrelevant for canvas drawing
   const buffer = new Float32Array(nodes.length * 2);
   for (let i = 0; i < nodes.length; i++) {
     const node = nodes[i];
@@ -279,7 +258,7 @@ function postPositions(): void {
 
   const alpha = sim.alpha();
 
-  // Transfer the buffer (zero-copy) rather than copying
+  // transfer the buffer (zero-copy) rather than copying
   self.postMessage(
     { type: "positions", buffer, alpha },
     {

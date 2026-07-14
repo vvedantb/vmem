@@ -1,7 +1,4 @@
-/**
- * Animated key/bolt icon with sparkle effects for empty API keys state.
- * Key rotates slightly and sparkles twinkle around it.
- */
+// animated key/bolt icon with sparkle effects for empty API keys state
 "use client";
 
 import { motion } from "motion/react";

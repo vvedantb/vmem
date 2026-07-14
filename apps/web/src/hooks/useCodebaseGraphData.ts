@@ -1,12 +1,6 @@
 "use client";
 
-/**
- * Hooks for fetching the Phase-1 codebase graph payload.
- *
- *   - `useCodebaseGraphData`: full nodes+edges payload, takes filter
- *     args. Re-fetches when filters change so the canvas matches what
- *     the user picked.
- */
+// hooks for fetching the Phase-1 codebase graph payload
 import { useConvexAuth, useAction } from "convex/react";
 import { useQuery as useTanstackQuery } from "@tanstack/react-query";
 import { z } from "zod";
@@ -99,8 +93,7 @@ type CodeSymbolContext = z.infer<typeof symbolContextSchema>;
 export interface UseCodebaseGraphDataReturn {
   nodes: CodeNode[];
   edges: CodeEdge[];
-  /** True when the API capped the payload to fit Convex's array limit.
-   *  Surface this to the user so they apply filters to narrow down. */
+  // true when the API capped the payload to fit Convex's array limit
   truncated: boolean;
   isLoading: boolean;
   isError: boolean;
@@ -115,7 +108,7 @@ export interface CodebaseGraphFilters {
   blastDepth?: number;
 }
 
-/** Filter-driven full-payload hook used by the canvas. */
+// filter-driven full-payload hook used by the canvas
 export function useCodebaseGraphData(
   codebaseId: string | null,
   filters: CodebaseGraphFilters = {},
@@ -123,8 +116,8 @@ export function useCodebaseGraphData(
   const { isAuthenticated } = useConvexAuth();
   const getGraph = useAction(api.codebaseSymbols.getGraph);
 
-  // Stable cache key — includes every filter so re-applying the same
-  // filters doesn't refetch but a change does.
+  // stable cache key — includes every filter so re-applying the same
+  // filters doesn't refetch but a change does
   const filterKey = [
     filters.kinds?.slice().sort().join(","),
     filters.processId ?? "",
@@ -167,9 +160,7 @@ export interface UseSymbolContextReturn {
   isError: boolean;
 }
 
-/** Detail-panel data source. Fetches calls-in / calls-out / processes for a
- *  single symbol. Disabled when no symbol is selected so the panel close
- *  short-circuits the network round-trip. */
+// detail-panel data source
 export function useSymbolContext(
   codebaseId: string | null,
   symbolId: string | null,

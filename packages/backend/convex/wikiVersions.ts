@@ -3,16 +3,11 @@ import { authQuery } from "./auth";
 import { isContentReadable } from "./teams/auth";
 import { resolveVersionAuthorLabel } from "./lib/versionSnapshot";
 
-/**
- * Read-only version history for wiki documents (snapshots written by
- * `lib/versionSnapshot.ts`). Restore is client-driven through
- * `wiki.updateContent({ forceSnapshot: true })` — the open editor is the source
- * of truth for the live doc, so there is no server restore mutation here.
- */
+// read-only version history for wiki documents (snapshots written by `lib/versionSnapshot.ts`)
 
 const sourceValidator = v.union(v.literal("web"), v.literal("mcp"));
 
-/** Version list for a document — lightweight (no content), newest first. */
+// version list for a document — lightweight (no content), newest first
 export const list = authQuery({
   args: { nodeId: v.id("wikiNodes") },
   returns: v.array(
@@ -49,7 +44,7 @@ export const list = authQuery({
   },
 });
 
-/** Full version by id, for the read-only preview pane. */
+// full version by id, for the read-only preview pane
 export const get = authQuery({
   args: { versionId: v.id("wikiNodeVersions") },
   returns: v.union(

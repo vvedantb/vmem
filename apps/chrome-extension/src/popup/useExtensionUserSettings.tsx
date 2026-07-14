@@ -13,20 +13,13 @@ import {
   updateUserSettings,
   type UserSettingsUpdateArgs,
 } from "@/background/api-client";
+import { convexSettingsToStorageMirror } from "@/types/storage";
 
 function useExtensionUserSettingsInner() {
   const settings = useQuery(api.userSettings.get);
   const baseUpdate = useMutation(api.userSettings.update);
 
-  // Settings writes go through TWO paths on purpose:
-  //   1. The websocket mutation with an optimistic update — instant slider/
-  //      toggle feedback, and an instant chrome.storage mirror via the
-  //      [settings] effect below so the service worker reschedules at once.
-  //   2. The background HTTP client (updateUserSettings) — the DURABLE write.
-  //      The popup websocket can stall or never flush before the popup closes,
-  //      which left Convex stale; the SW settings mirror then re-pulled the old
-  //      value and reverted behaviour (notably resetting the history-sync alarm
-  //      to 30m). Persisting over the reliable HTTP path keeps Convex current.
+  // optimistic ws + durable http write (popup socket can drop on close)
   const update = useCallback(
     async (args: UserSettingsUpdateArgs): Promise<void> => {
       void baseUpdate
@@ -40,7 +33,7 @@ function useExtensionUserSettingsInner() {
           );
         })(args)
         .catch(() => {
-          // Best-effort — the durable HTTP write below is the source of truth.
+          // http write below is source of truth
         });
 
       try {
@@ -62,11 +55,11 @@ function useExtensionUserSettingsInner() {
     }
     migrationRan.current = true;
     void getStorage().then((local) => {
+      const mirrored = convexSettingsToStorageMirror(settings);
       if (
-        local.autoSyncEnabled === settings.extensionAutoSyncEnabled &&
-        local.autoSyncIntervalMinutes ===
-          settings.extensionAutoSyncIntervalMinutes &&
-        local.selectionPopupEnabled === settings.extensionSelectionPopupEnabled
+        local.autoSyncEnabled === mirrored.autoSyncEnabled &&
+        local.autoSyncIntervalMinutes === mirrored.autoSyncIntervalMinutes &&
+        local.selectionPopupEnabled === mirrored.selectionPopupEnabled
       ) {
         return;
       }
@@ -80,11 +73,7 @@ function useExtensionUserSettingsInner() {
 
   useEffect(() => {
     if (settings === undefined) return;
-    void setStorage({
-      autoSyncEnabled: settings.extensionAutoSyncEnabled,
-      autoSyncIntervalMinutes: settings.extensionAutoSyncIntervalMinutes,
-      selectionPopupEnabled: settings.extensionSelectionPopupEnabled,
-    });
+    void setStorage(convexSettingsToStorageMirror(settings));
   }, [settings]);
 
   return { settings, update };

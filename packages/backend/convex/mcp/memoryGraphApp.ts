@@ -6,9 +6,9 @@ import {
 } from "@modelcontextprotocol/ext-apps/server";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ActionCtx } from "../_generated/server";
-import { internal } from "../_generated/api";
 import type { McpScope } from "../profiles/mcpAccess";
 import { MEMORY_GRAPH_MCP_APP_HTML } from "./bundled/memoryGraphHtml";
+import { getMemoryGraphForMcp } from "./graph";
 
 const MEMORY_GRAPH_RESOURCE_URI = "ui://vmem/memory-graph";
 
@@ -111,17 +111,14 @@ export function registerMemoryGraphApp(
     },
     async (params) => {
       try {
-        const graph = await ctx.runAction(
-          internal.mcp.graph.mcpGetMemoryGraph,
-          {
-            clerkId: clerkUserId,
-            mcpScope: scope,
-            profileId: params.profileId,
-            focus: params.focus,
-            memoryIds: params.memoryIds,
-            limit: params.limit,
-          },
-        );
+        const graph = await getMemoryGraphForMcp(ctx, {
+          clerkId: clerkUserId,
+          mcpScope: scope,
+          profileId: params.profileId,
+          focus: params.focus,
+          memoryIds: params.memoryIds,
+          limit: params.limit,
+        });
         return {
           content: [
             {

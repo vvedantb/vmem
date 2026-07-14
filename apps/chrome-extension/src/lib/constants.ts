@@ -22,21 +22,17 @@ If you catch yourself reasoning about whether to skip vmem because the topic is 
 export const VMEM_AI_SYSTEM_PROMPT_COPY_SUCCESS =
   "Copied — paste into your AI agent's system prompt";
 
-// ── Auto-sync frequency ──────────────────────────────────────────────────
-// The popup slider snaps to SYNC_INTERVAL_PRESETS; the background clamps the
-// stored value to [MIN, MAX] defensively. Keep the preset ends equal to the
-// bounds. Shared by the popup (UI) and the background service worker (alarm
-// period) so the two layers can never drift.
+// sync interval presets shared by popup slider + background alarm clamp
 export const MIN_SYNC_INTERVAL_MINUTES = 15;
-export const MAX_SYNC_INTERVAL_MINUTES = 1440; // 24 hours
+export const MAX_SYNC_INTERVAL_MINUTES = 1440; // 24h
 export const DEFAULT_SYNC_INTERVAL_MINUTES = 30;
 
-/** Selectable history-sync periods (minutes), ascending. */
+/** selectable history-sync periods (minutes), ascending. */
 export const SYNC_INTERVAL_PRESETS = [
   15, 30, 60, 120, 240, 360, 720, 1440,
 ] as const;
 
-/** Human phrase for a sync period, e.g. "Every 30 minutes" / "Every 2 hours". */
+/** e.g. "every 30 minutes" / "every 2 hours". */
 export function describeSyncInterval(minutes: number): string {
   if (minutes < 60) return `Every ${minutes} minutes`;
   const hours = minutes / 60;

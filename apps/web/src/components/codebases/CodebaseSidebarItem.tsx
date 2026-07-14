@@ -26,7 +26,8 @@ import {
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { CodebaseSidebarCard } from "./CodebaseSidebarCard";
-import type { CodebaseItem } from "./CodebaseCardInsides";
+import type { CodebaseItem } from "./-types";
+import { useActiveTeamId } from "@/components/workspace/active-profile";
 
 interface CodebaseSidebarItemProps {
   codebase: CodebaseItem;
@@ -34,26 +35,22 @@ interface CodebaseSidebarItemProps {
   onSelect: () => void;
 }
 
-/**
- * Sidebar codebase row with a right-click context menu for archiving and
- * deleting. Delete is destructive (removes Convex row + Neo4j graph data) so
- * it routes through a confirmation modal; archive/unarchive is a reversible
- * toggle and fires immediately.
- */
+// sidebar codebase row with a right-click context menu for archiving and deleting
 export function CodebaseSidebarItem({
   codebase,
   selected,
   onSelect,
 }: CodebaseSidebarItemProps) {
+  const teamId = useActiveTeamId();
   const setArchived = useMutation(api.codebases.setArchived);
   const removeCodebase = useMutation(
     api.codebases.removeCodebase,
   ).withOptimisticUpdate((localStore, args) => {
-    const list = localStore.getQuery(api.codebases.listMy, {});
+    const list = localStore.getQuery(api.codebases.listMy, { teamId });
     if (list) {
       localStore.setQuery(
         api.codebases.listMy,
-        {},
+        { teamId },
         list.filter((row) => row._id !== args.id),
       );
     }

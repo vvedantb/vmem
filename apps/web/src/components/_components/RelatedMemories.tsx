@@ -1,7 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useCallback } from "react";
 import { useAction } from "convex/react";
+import {
+  useMutation,
+  useQuery as useTanstackQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   Badge,
   Button,
@@ -20,33 +25,16 @@ import {
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { api } from "@vmem/backend";
-import type { Memory, MemoryType } from "@/lib/memories";
+import type { Memory } from "@/lib/memories";
+import { formatMemoryTypeLabel, memoryFromApi } from "@/lib/memories";
+import {
+  relatedMemoriesQueryKey,
+  uniqueRelated,
+  type RelatedMemoryEntry,
+} from "@/lib/memories-related";
 import LinkMemoryModal from "@/components/LinkMemoryModal";
 import { DetailEmptyState } from "./detail-panel/DetailEmptyState";
 import { VmemSpinner } from "@/components/svg-animations";
-
-function isMemoryType(value: string): value is MemoryType {
-  return value === "profile" || value === "episodic" || value === "knowledge";
-}
-
-function toMemoryType(value: string): MemoryType {
-  return isMemoryType(value) ? value : "knowledge";
-}
-
-interface RelatedMemoryEntry {
-  memory: {
-    id: string;
-    title: string;
-    content: string;
-    type: string;
-    source?: string;
-    sourceUrl?: string | null;
-    sourceSyncedAt?: string | null;
-    tags: string[];
-    createdAt: string;
-  };
-  reason: string;
-}
 
 interface RelatedMemoriesProps {
   memoryId: string;
@@ -57,68 +45,78 @@ export default function RelatedMemories({
   memoryId,
   onSelectRelated,
 }: RelatedMemoriesProps) {
+  const queryClient = useQueryClient();
   const getRelatedMemories = useAction(api.relationshipApi.getRelatedMemories);
   const unlinkMemoriesAction = useAction(api.relationshipApi.unlinkMemories);
-  const [entries, setEntries] = useState<RelatedMemoryEntry[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryKey = relatedMemoriesQueryKey(memoryId);
+  const relatedQuery = useTanstackQuery({
+    queryKey,
+    queryFn: async (): Promise<RelatedMemoryEntry[]> => {
+      const data = await getRelatedMemories({ memoryId });
+      return uniqueRelated(data);
+    },
+  });
+  const entries = relatedQuery.data ?? [];
+  const isLoading = relatedQuery.isLoading;
   const [unlinkingId, setUnlinkingId] = useState<string | null>(null);
   const [confirmUnlinkId, setConfirmUnlinkId] = useState<string | null>(null);
   const [linkModalOpen, setLinkModalOpen] = useState(false);
 
-  const fetchRelated = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const data = await getRelatedMemories({ memoryId });
-      const entries = data as RelatedMemoryEntry[];
-      const seen = new Set<string>();
-      const unique = entries.filter((entry) => {
-        if (seen.has(entry.memory.id)) return false;
-        seen.add(entry.memory.id);
-        return true;
+  const unlinkMutation = useMutation({
+    mutationFn: async (relatedId: string) => {
+      await unlinkMemoriesAction({
+        memoryIdA: memoryId,
+        memoryIdB: relatedId,
       });
-      setEntries(unique);
-    } catch {
-      setEntries([]);
-    }
-    setIsLoading(false);
-  }, [memoryId, getRelatedMemories]);
-
-  useEffect(() => {
-    void fetchRelated();
-  }, [fetchRelated]);
+      return relatedId;
+    },
+    onMutate: async (relatedId) => {
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData<RelatedMemoryEntry[]>(queryKey);
+      queryClient.setQueryData<RelatedMemoryEntry[]>(queryKey, (old) =>
+        old ? old.filter((entry) => entry.memory.id !== relatedId) : [],
+      );
+      return { previous };
+    },
+    onError: (_err, _relatedId, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKey, context.previous);
+      }
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey });
+    },
+  });
 
   const handleUnlink = useCallback(
     async (relatedId: string) => {
       setUnlinkingId(relatedId);
       try {
-        await unlinkMemoriesAction({
-          memoryIdA: memoryId,
-          memoryIdB: relatedId,
-        });
-        setEntries((prev) =>
-          prev.filter((entry) => entry.memory.id !== relatedId),
-        );
+        await unlinkMutation.mutateAsync(relatedId);
         toast.success("Memory unlinked");
       } catch {
         toast.error("Failed to unlink memory");
       }
       setUnlinkingId(null);
     },
-    [memoryId, unlinkMemoriesAction],
+    [unlinkMutation],
   );
 
-  const relatedIds = useMemo(
-    () => new Set(entries.map((e) => e.memory.id)),
-    [entries],
-  );
+  const invalidateRelated = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey });
+  }, [queryClient, queryKey]);
+
+  const relatedIds = new Set(entries.map((entry) => entry.memory.id));
+  const unlinkTarget =
+    confirmUnlinkId === null
+      ? null
+      : (entries.find((entry) => entry.memory.id === confirmUnlinkId) ?? null);
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <h4 className="text-[11px] font-medium uppercase tracking-wide text-muted">
-            Related memories
-          </h4>
+    <div className="min-w-0 space-y-4 overflow-x-hidden">
+      <div className="flex min-w-0 items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <h4 className="text-xs font-medium text-muted">Related memories</h4>
           {entries.length > 0 ? (
             <Badge variant="secondary" className="text-xs tabular-nums">
               {entries.length}
@@ -129,7 +127,7 @@ export default function RelatedMemories({
           variant="outline"
           size="sm"
           onClick={() => setLinkModalOpen(true)}
-          className="h-8 gap-1.5"
+          className="h-8 shrink-0 gap-1.5"
         >
           <IconLink size={14} />
           Link memory
@@ -153,56 +151,59 @@ export default function RelatedMemories({
           }
         />
       ) : (
-        <div className="flex flex-col gap-2">
-          {entries.map((entry) => (
-            <div
-              key={entry.memory.id}
-              className="flex items-start gap-2 rounded-lg bg-surface-secondary p-3 transition-[background-color] hover:bg-surface-tertiary"
-            >
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() =>
-                  onSelectRelated({
-                    id: entry.memory.id,
-                    title: entry.memory.title,
-                    content: entry.memory.content,
-                    type: toMemoryType(entry.memory.type),
-                    source: entry.memory.source ?? "web",
-                    sourceUrl: entry.memory.sourceUrl ?? null,
-                    sourceSyncedAt: entry.memory.sourceSyncedAt ?? null,
-                    tags: entry.memory.tags,
-                    createdAt: entry.memory.createdAt,
-                  })
-                }
-                className="h-auto min-w-0 flex-1 justify-start p-0 text-left font-normal hover:bg-transparent active:scale-100"
+        <div className="flex flex-col gap-0.5">
+          {entries.map((entry) => {
+            const related = memoryFromApi(entry.memory);
+            return (
+              <div
+                key={entry.memory.id}
+                className="flex min-w-0 items-start gap-1 rounded-lg px-2 py-2.5 transition-[background-color] hover:bg-surface-tertiary"
               >
-                <p className="truncate text-sm font-medium text-foreground">
-                  {entry.memory.title}
-                </p>
-                <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted">
-                  {entry.memory.content}
-                </p>
-                <Badge variant="secondary" className="mt-2 text-[10px]">
-                  {entry.reason}
-                </Badge>
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                onClick={() => setConfirmUnlinkId(entry.memory.id)}
-                disabled={unlinkingId === entry.memory.id}
-                className="shrink-0 text-muted hover:bg-danger/10 hover:text-danger"
-                aria-label={`Unlink ${entry.memory.title}`}
-              >
-                {unlinkingId === entry.memory.id ? (
-                  <IconLoader2 size={14} className="animate-spin" />
-                ) : (
-                  <IconUnlink size={14} />
-                )}
-              </Button>
-            </div>
-          ))}
+                <button
+                  type="button"
+                  onClick={() => onSelectRelated(related)}
+                  className="flex min-w-0 flex-1 flex-col items-start gap-2 overflow-hidden rounded-none border-0 bg-transparent p-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                >
+                  <div className="min-w-0 w-full overflow-hidden">
+                    <p className="truncate text-sm font-medium text-foreground">
+                      {entry.memory.title}
+                    </p>
+                    <p className="mt-0.5 line-clamp-1 break-all text-xs leading-relaxed text-muted">
+                      {entry.memory.content}
+                    </p>
+                  </div>
+                  <div className="flex w-full min-w-0 flex-wrap items-center justify-start gap-1.5">
+                    <Badge
+                      variant="secondary"
+                      className="h-5 max-w-full truncate text-[10px]"
+                    >
+                      {entry.reason}
+                    </Badge>
+                    <Badge
+                      variant="outline"
+                      className="h-5 shrink-0 text-[10px] font-normal"
+                    >
+                      {formatMemoryTypeLabel(related.type)}
+                    </Badge>
+                  </div>
+                </button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => setConfirmUnlinkId(entry.memory.id)}
+                  disabled={unlinkingId === entry.memory.id}
+                  className="shrink-0 text-muted hover:bg-danger/10 hover:text-danger"
+                  aria-label={`Unlink ${entry.memory.title}`}
+                >
+                  {unlinkingId === entry.memory.id ? (
+                    <IconLoader2 size={14} className="animate-spin" />
+                  ) : (
+                    <IconUnlink size={14} />
+                  )}
+                </Button>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -227,8 +228,7 @@ export default function RelatedMemories({
               <p className="text-foreground">
                 Unlink{" "}
                 <span className="font-medium">
-                  {entries.find((e) => e.memory.id === confirmUnlinkId)?.memory
-                    .title ?? "this memory"}
+                  {unlinkTarget?.memory.title ?? "this memory"}
                 </span>
                 ?
               </p>
@@ -273,7 +273,7 @@ export default function RelatedMemories({
         onOpenChange={setLinkModalOpen}
         currentMemoryId={memoryId}
         excludeIds={relatedIds}
-        onLinked={fetchRelated}
+        onLinked={invalidateRelated}
       />
     </div>
   );

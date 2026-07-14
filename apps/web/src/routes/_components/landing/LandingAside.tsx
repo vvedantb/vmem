@@ -2,26 +2,14 @@
 
 import { motion } from "motion/react";
 import { motionDuration, motionEase } from "@vmem/ui";
-import { LandingFeatureCard } from "./LandingFeatureCard";
+import { LandingFeatureCard, type LandingFeature } from "./LandingFeatureCard";
 import { LandingMemoryPreview } from "./LandingMemoryPreview";
-import type { TablerIcon } from "@tabler/icons-react";
-
-interface LandingFeature {
-  icon: TablerIcon;
-  title: string;
-  description: string;
-  offsetClassName: string;
-}
 
 interface LandingAsideProps {
   features: readonly LandingFeature[];
-  showPreview?: boolean;
 }
 
-export function LandingAside({
-  features,
-  showPreview = true,
-}: LandingAsideProps) {
+export function LandingAside({ features }: LandingAsideProps) {
   return (
     <motion.div
       className="flex w-full min-w-0 flex-col gap-5 sm:gap-6 lg:sticky lg:top-10 lg:pt-2"
@@ -33,7 +21,7 @@ export function LandingAside({
         delay: 0.34,
       }}
     >
-      {showPreview ? <LandingMemoryPreview /> : null}
+      <LandingMemoryPreview />
 
       <div>
         <p className="mb-3 text-xs font-medium uppercase tracking-[0.2em] text-muted">

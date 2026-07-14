@@ -1,73 +1,25 @@
-import type { Id } from "@vmem/backend";
+import type { api } from "@vmem/backend";
+import type { FunctionArgs, FunctionReturnType } from "convex/server";
 
-export type MemoryType = "profile" | "episodic" | "knowledge";
-export type MemoryStatus = "active" | "pinned" | "suppressed" | "expired";
+export type MemoryWithTags = FunctionReturnType<
+  typeof api.memoryApi.createMemory
+>;
 
-export interface MemoryNode {
-  id: string;
-  userId: string;
-  title: string;
-  content: string;
-  type: string; // Convex returns string, narrowed at runtime
-  source: string;
-  confidence: number;
-  status: string; // Convex returns string, narrowed at runtime
-  createdAt: string;
-  updatedAt: string;
-  expiresAt: string | null;
-}
+export type MemoryCandidate = FunctionReturnType<
+  typeof api.memoryApi.retrieveMemories
+>["memories"][number];
 
-export interface MemoryWithTags extends MemoryNode {
-  tags: string[];
-}
+export type CreateMemoryParams = FunctionArgs<
+  typeof api.memoryApi.createMemory
+>;
 
-export interface ScoreBreakdown {
-  fulltext: number;
-  vector: number;
-  recency: number;
-  confidence: number;
-}
+/** Subset of profile fields the extension UI/SW need. */
+export type Profile = Pick<
+  FunctionReturnType<typeof api.profiles.list>[number],
+  "_id" | "name" | "color" | "icon" | "isDefault"
+>;
 
-export interface MemoryCandidate extends MemoryWithTags {
-  trace: {
-    score: number;
-    scoreBreakdown: ScoreBreakdown;
-    reason: string;
-  };
-}
-
-export interface CreateMemoryParams {
-  title: string;
-  content: string;
-  type: string;
-  source: string;
-  tags: string[];
-  confidence: number;
-  expiresAt?: string;
-  url?: string;
-  profileId?: string;
-}
-
-export interface Profile {
-  _id: Id<"profiles">;
-  name: string;
-  color: string;
-  icon: string;
-  isDefault: boolean;
-}
-
-export interface RetrieveParams {
-  query: string;
-  type?: string;
-  tags?: string[];
-  limit?: number;
-}
-
-export interface RetrieveResponse {
-  memories: MemoryCandidate[];
-}
-
-export interface ListResponse {
-  memories: MemoryWithTags[];
-  total: number;
-}
+/** Live userSettings query shape — single source of truth from Convex. */
+export type ExtensionUserSettings = FunctionReturnType<
+  typeof api.userSettings.get
+>;

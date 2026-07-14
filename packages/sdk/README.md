@@ -1,6 +1,6 @@
 # @vmem/sdk
 
-Official JavaScript SDK for the [vmem](https://github.com/vedantb2/vmem) memory API. Store, update, and retrieve user memories over HTTP with API key auth.
+Official JavaScript SDK for the [vmem](https://github.com/vedantb2/vmem) memory API. Save, update, and search user memories over HTTP with API key auth.
 
 ## Install
 
@@ -25,10 +25,10 @@ import { VMemory } from "@vmem/sdk";
 
 const vmem = new VMemory();
 
-await vmem.store("User switched from Neovim to Helix");
+await vmem.save("User switched from Neovim to Helix");
 await vmem.update("Actually they use Zed now, not Helix");
 
-const result = await vmem.retrieve("What editor does the user prefer?");
+const result = await vmem.search("What editor does the user prefer?");
 console.log(result.memories);
 console.log(result.userContext);
 ```
@@ -47,18 +47,20 @@ const vmem = new VMemory({
 
 - **API key** (`VMEM_API_KEY` or `apiKey`) — required for all calls.
 - **Base URL** (`VMEM_BASE_URL` or `baseUrl`) — your Convex site URL (`https://<deployment>.convex.site`).
-- **OpenRouter key** (dashboard env) — required for agentic `store()` and `update()`, and for `retrieve({ summarize: true })`.
+- **OpenRouter key** (dashboard env) — required for agentic `save()` and `update()`, and for `search({ summarize: true })`.
 
 ## API
 
-| Method                      | Description                                             |
-| --------------------------- | ------------------------------------------------------- |
-| `store(instruction)`        | Extract facts from natural language and create memories |
-| `update(instruction)`       | Reconcile changes; conflicting updates become proposals |
-| `retrieve(query, options?)` | Hybrid semantic search; optional `summarize: true`      |
-| `createMemory(body)`        | Structured create (escape hatch)                        |
-| `patchMemory(body)`         | Structured update by `memoryId`                         |
-| `searchMemories(body)`      | Structured retrieve                                     |
+| Method                    | Description                                             |
+| ------------------------- | ------------------------------------------------------- |
+| `save(instruction)`       | Extract facts from natural language and create memories |
+| `update(instruction)`     | Reconcile changes; conflicting updates become proposals |
+| `search(query, options?)` | Hybrid semantic search; optional `summarize: true`      |
+| `createMemory(body)`      | Structured create (escape hatch)                        |
+| `patchMemory(body)`       | Structured update by `id`                               |
+| `deleteMemory(body)`      | Structured delete by `id`                               |
+| `searchMemories(body)`    | Structured search                                       |
+| `health()`                | `GET /health` (unauthenticated liveness check)          |
 
 ## Errors
 
@@ -66,7 +68,7 @@ const vmem = new VMemory({
 import { VMemory, isVMemoryError } from "@vmem/sdk";
 
 try {
-  await vmem.store("...");
+  await vmem.save("...");
 } catch (error) {
   if (isVMemoryError(error) && error.code === "openrouter_required") {
     // Add OPENROUTER_API_KEY in vmem dashboard settings

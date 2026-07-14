@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useQuery } from "convex/react";
 import { toast } from "sonner";
 import {
@@ -10,11 +10,13 @@ import {
   DialogTitle,
   Button,
 } from "@vmem/ui";
-import { api, type Doc } from "@vmem/backend";
+import { api } from "@vmem/backend";
 import {
   isConnectorConnected,
   isConnectorConnectable,
-} from "@/components/settings/connector-utils";
+  type Connector,
+  type GitHubConnection,
+} from "./connector-utils";
 import OAuthModal from "@/components/OAuthModal";
 import { GitHubConnectorControls } from "./GitHubConnectorControls";
 import {
@@ -23,19 +25,62 @@ import {
   GitHubIcon,
 } from "@/components/brand-icons";
 
-const iconMap: Record<
+const connectorIcons = new Map<
   string,
   React.ComponentType<{ size?: number; className?: string }>
-> = {
-  IconBrandGoogleDrive: GoogleDriveIcon,
-  IconBrandNotion: NotionIcon,
-  IconBrandGithub: GitHubIcon,
-};
+>([
+  ["IconBrandGoogleDrive", GoogleDriveIcon],
+  ["IconBrandNotion", NotionIcon],
+  ["IconBrandGithub", GitHubIcon],
+]);
+
+function connectorIcon(
+  iconName: string,
+): React.ComponentType<{ size?: number; className?: string }> {
+  return connectorIcons.get(iconName) ?? GoogleDriveIcon;
+}
+
+function ConnectorRow({
+  connector,
+  githubConnection,
+  onConnect,
+}: {
+  connector: Connector;
+  githubConnection: GitHubConnection | undefined;
+  onConnect: (connector: Connector) => void;
+}) {
+  const Icon = connectorIcon(connector.icon);
+
+  return (
+    <div className="flex items-center gap-3 rounded-lg px-3 py-3 hover:bg-surface-tertiary/50 transition-colors min-w-0">
+      <div className="w-10 h-10 rounded-lg bg-surface-secondary/60 flex items-center justify-center flex-shrink-0">
+        <Icon size={20} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-foreground">{connector.name}</p>
+        <p className="text-xs text-muted truncate">{connector.description}</p>
+      </div>
+      <div className="flex-shrink-0">
+        {connector.name === "GitHub" ? (
+          <GitHubConnectorControls connection={githubConnection} />
+        ) : (
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => onConnect(connector)}
+          >
+            Connect
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 interface BrowseConnectorsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  connectors: Doc<"connectors">[];
+  connectors: Connector[];
 }
 
 export default function BrowseConnectorsModal({
@@ -43,22 +88,19 @@ export default function BrowseConnectorsModal({
   onClose,
   connectors,
 }: BrowseConnectorsModalProps) {
-  const [oauthConnector, setOauthConnector] =
-    useState<Doc<"connectors"> | null>(null);
+  const [oauthConnector, setOauthConnector] = useState<Connector | null>(null);
 
   const githubConnection = useQuery(api.github.getConnection);
 
-  const availableConnectors = useMemo(() => {
-    return connectors
-      .filter(
-        (connector) =>
-          isConnectorConnectable(connector) &&
-          !isConnectorConnected(connector, githubConnection),
-      )
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }, [connectors, githubConnection]);
+  const availableConnectors = connectors
+    .filter(
+      (connector) =>
+        isConnectorConnectable(connector) &&
+        !isConnectorConnected(connector, githubConnection),
+    )
+    .sort((a, b) => a.name.localeCompare(b.name));
 
-  const handleConnect = (connector: Doc<"connectors">) => {
+  const handleConnect = (connector: Connector) => {
     setOauthConnector(connector);
   };
 
@@ -83,42 +125,14 @@ export default function BrowseConnectorsModal({
                 All connectors are connected.
               </p>
             ) : null}
-            {availableConnectors.map((connector) => {
-              const Icon = iconMap[connector.icon] || GoogleDriveIcon;
-              const isGitHub = connector.name === "GitHub";
-
-              return (
-                <div
-                  key={connector._id}
-                  className="flex items-center gap-3 rounded-lg px-3 py-3 hover:bg-surface-tertiary/50 transition-colors min-w-0"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-surface-secondary/60 flex items-center justify-center flex-shrink-0">
-                    <Icon size={20} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground">
-                      {connector.name}
-                    </p>
-                    <p className="text-xs text-muted truncate">
-                      {connector.description}
-                    </p>
-                  </div>
-                  <div className="flex-shrink-0">
-                    {isGitHub ? (
-                      <GitHubConnectorControls connection={githubConnection} />
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => handleConnect(connector)}
-                      >
-                        Connect
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+            {availableConnectors.map((connector) => (
+              <ConnectorRow
+                key={connector._id}
+                connector={connector}
+                githubConnection={githubConnection}
+                onConnect={handleConnect}
+              />
+            ))}
           </div>
         </DialogContent>
       </Dialog>

@@ -20,6 +20,7 @@ import {
 import PageContainer from "@/components/PageContainer";
 import ConfidenceThresholdSlider from "@/components/settings/ConfidenceThresholdSlider";
 import { formatRelativeTime } from "@/lib/formatters";
+import { patchUserSettingsOptimistic } from "./-optimisticUserSettings";
 
 export const Route = createFileRoute("/_main/settings/preferences")({
   component: PreferencesPage,
@@ -29,15 +30,11 @@ function PreferencesPage() {
   const settings = useQuery(api.userSettings.get);
   const aboutMeBaselineRef = useRef<string | null>(null);
   const preferencesBaselineRef = useRef<string | null>(null);
-  // Optimistic update patches the local query cache so the controlled
-  // textareas stay in sync with keystrokes without waiting for the server.
+  // optimistic update patches the local query cache so the controlled
+  // textareas stay in sync with keystrokes without waiting for the server
   const updateSettings = useMutation(
     api.userSettings.update,
-  ).withOptimisticUpdate((localStore, args) => {
-    const current = localStore.getQuery(api.userSettings.get, {});
-    if (!current) return;
-    localStore.setQuery(api.userSettings.get, {}, { ...current, ...args });
-  });
+  ).withOptimisticUpdate(patchUserSettingsOptimistic);
   const setDreamSchedule = useMutation(
     api.dreamSchedule.setDreamSchedule,
   ).withOptimisticUpdate((localStore, args) => {
@@ -76,7 +73,7 @@ function PreferencesPage() {
     }
   };
 
-  // Pulled out so the schedule section below stays readable.
+  // pulled out so the schedule section below stays readable
   const handleScheduleToggle = async (enabled: boolean): Promise<void> => {
     if (settings === undefined) return;
     try {
@@ -107,8 +104,8 @@ function PreferencesPage() {
       return;
     }
     try {
-      // Persist the new time. If the schedule is currently off we still save
-      // it so flipping the toggle on later picks up the user's chosen time.
+      // persist the new time. If the schedule is currently off we still save
+      // it so flipping the toggle on later picks up the user's chosen time
       await setDreamSchedule({
         enabled: settings.dreamModeScheduleEnabled,
         time: utcTime,

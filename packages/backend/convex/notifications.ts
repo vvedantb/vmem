@@ -87,6 +87,43 @@ export const markAllAsRead = authMutation({
   },
 });
 
+async function insertNotification(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  title: string,
+  description: string,
+  type: Doc<"notifications">["type"],
+): Promise<null> {
+  await ctx.db.insert("notifications", {
+    userId,
+    title,
+    description,
+    type,
+    read: false,
+    createdAt: Date.now(),
+  });
+  return null;
+}
+
+// push a notification to a known user row
+export const pushInternal = internalMutation({
+  args: {
+    userId: v.id("users"),
+    title: v.string(),
+    description: v.string(),
+    type: notificationTypeValidator,
+  },
+  returns: v.null(),
+  handler: async (ctx, args) =>
+    insertNotification(
+      ctx,
+      args.userId,
+      args.title,
+      args.description,
+      args.type,
+    ),
+});
+
 export const pushForClerkIdInternal = internalMutation({
   args: {
     clerkId: v.string(),
@@ -98,15 +135,58 @@ export const pushForClerkIdInternal = internalMutation({
   handler: async (ctx, args) => {
     const user = await getUserByClerkId(ctx, args.clerkId);
     if (!user) return null;
+    return await insertNotification(
+      ctx,
+      user._id,
+      args.title,
+      args.description,
+      args.type,
+    );
+  },
+});
 
-    await ctx.db.insert("notifications", {
-      userId: user._id,
-      title: args.title,
-      description: args.description,
-      type: args.type,
-      read: false,
-      createdAt: Date.now(),
-    });
+// emit one notification per real producer shape so the Inbox can be exercised without
+export const sendTest = authMutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const samples: Array<{
+      title: string;
+      description: string;
+      type: Doc<"notifications">["type"];
+    }> = [
+      {
+        title: "Codebase sync failed — vedantb2/vmem",
+        description: "Bad credentials — reconnect GitHub and sync again.",
+        type: "error",
+      },
+      {
+        title: "Codebase sync stalled — vedantb2/vmem",
+        description:
+          "The sync was interrupted before finishing. Open the codebase and click Sync to retry.",
+        type: "warning",
+      },
+      {
+        title: "Connector sync failed — Google Drive",
+        description: "Token expired — reconnect the connector.",
+        type: "error",
+      },
+      {
+        title: "Dream Mode finished",
+        description:
+          "3 proposals to review and 1 new memory. Open the Inbox to review.",
+        type: "info",
+      },
+    ];
+    for (const sample of samples) {
+      await insertNotification(
+        ctx,
+        ctx.userId,
+        sample.title,
+        sample.description,
+        sample.type,
+      );
+    }
     return null;
   },
 });

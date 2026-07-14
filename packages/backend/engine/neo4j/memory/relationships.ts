@@ -49,17 +49,6 @@ export async function createSemanticSimilarityEdges(
   return record ? parseNeo4jInt(neo4jGet(record, "created")) : 0;
 }
 
-export async function createSemanticEdgesForMemory(
-  driver: Driver,
-  memoryId: string,
-  userId: string,
-  embedding: number[],
-): Promise<number> {
-  return withSession(driver, async (session) =>
-    createSemanticSimilarityEdges(session, memoryId, userId, embedding),
-  );
-}
-
 export async function linkMemories(
   driver: Driver,
   userId: string,
@@ -110,27 +99,6 @@ export async function getRelatedMemories(
     );
     return result.records.map((record) => ({
       memory: toMemoryWithTags(record),
-      reason: stringField(record, "reason"),
-    }));
-  });
-}
-
-export async function getAllRelationships(
-  driver: Driver,
-  userId: string,
-  limit = 500,
-): Promise<{ source: string; target: string; reason: string }[]> {
-  return withSession(driver, async (session) => {
-    const result = await session.run(
-      `MATCH (a:Memory {userId: $userId})-[r:RELATES_TO]->(b:Memory)
-       RETURN a.id AS source, b.id AS target, r.reason AS reason
-       LIMIT $limit`,
-      { userId, limit: neo4j.int(limit) },
-    );
-
-    return result.records.map((record) => ({
-      source: stringField(record, "source"),
-      target: stringField(record, "target"),
       reason: stringField(record, "reason"),
     }));
   });

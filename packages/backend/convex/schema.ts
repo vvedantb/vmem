@@ -26,7 +26,7 @@ const schema = defineSchema({
     lastName: v.optional(v.string()),
     fullName: v.optional(v.string()),
     theme: v.optional(v.union(v.literal("light"), v.literal("dark"))),
-    /** Maintainer flag — gates system-skill catalog CRUD. Absent = not admin. */
+    // maintainer flag — gates system-skill catalog CRUD
     isAdmin: v.optional(v.boolean()),
   })
     .index("by_clerk_id", ["clerkId"])
@@ -89,20 +89,20 @@ const schema = defineSchema({
     memoryAutoTag: v.optional(v.boolean()),
     notificationsEnabled: v.optional(v.boolean()),
     extensionAutoSyncEnabled: v.optional(v.boolean()),
-    // History-sync period for the browser extension, in minutes (15–1440).
+    // history-sync period for the browser extension, in minutes (15–1440)
     extensionAutoSyncIntervalMinutes: v.optional(v.number()),
     extensionSelectionPopupEnabled: v.optional(v.boolean()),
-    // Memory behavior defaults
+    // memory behavior defaults
     memoryAutoExtract: v.optional(v.boolean()),
     memoryConfidenceThreshold: v.optional(v.number()),
-    // Notification preferences
+    // notification preferences
     notifyMemoryConflicts: v.optional(v.boolean()),
     notifyNewMemories: v.optional(v.boolean()),
     notifyMemoriesExpiring: v.optional(v.boolean()),
-    // User-provided context surfaced to AI apps on retrieval
+    // user-provided context surfaced to AI apps on retrieval
     aboutMe: v.optional(v.string()),
     preferences: v.optional(v.string()),
-    // Source-specific default profiles (replaces activeProfileId)
+    // source-specific default profiles (replaces activeProfileId)
     defaultProfiles: v.optional(
       v.object({
         web: v.optional(v.id("profiles")),
@@ -112,28 +112,18 @@ const schema = defineSchema({
       }),
     ),
     // ── Dream Mode (user-wide; applies to personal profiles only) ──────
-    /** When true, the Dreamer's high-confidence synthesis materializes
-     *  directly as new memories instead of routing through /proposals. */
+    // when true, the Dreamer's high-confidence synthesis materializes directly as new
     dreamModeAutoAccept: v.optional(v.boolean()),
-    /** When true, a daily cron fires `runDreamForUserById` at
-     *  `dreamModeScheduleTime` UTC and scans every personal profile in one
-     *  pass. Time stored as "HH:MM" — same shape the time picker produces. */
+    // when true, a daily cron fires `runDreamForUserById` at `dreamModeScheduleTime`
     dreamModeScheduleEnabled: v.optional(v.boolean()),
     dreamModeScheduleTime: v.optional(v.string()), // "HH:MM" UTC
-    /** Dynamic Dreaming (V3) — when true (the default; absent = true),
-     *  dream passes fire automatically once the user goes quiet after
-     *  enough new memories, instead of waiting for the daily schedule or
-     *  the manual button. Soft-fails without an OpenRouter key. */
+    // dynamic Dreaming (V3)
     dreamModeAutomatic: v.optional(v.boolean()),
-    /** Wall-clock ms of the last successful Dream Mode run. Used to
-     *  rate-limit the manual "Start Dreaming" button (1 run/hour). */
+    // wall-clock ms of the last successful Dream Mode run
     lastDreamRunAt: v.optional(v.number()),
   }).index("by_user", ["userId"]),
 
-  /**
-   * Dynamic Dreaming trigger state — one row per user (see
-   * `dreamTriggerStateFields` for the debounce/cap semantics).
-   */
+  // dynamic Dreaming trigger state
   dreamTriggerState: defineTable(dreamTriggerStateFields).index("by_user", [
     "userId",
   ]),
@@ -161,7 +151,7 @@ const schema = defineSchema({
     userId: v.id("users"),
     returnUrl: v.string(),
     expiresAt: v.number(),
-    // Connector OAuth fields (optional to not break existing GitHub flow)
+    // connector OAuth fields (optional to not break existing GitHub flow)
     connectorId: v.optional(v.id("connectors")),
     provider: v.optional(v.string()),
   }).index("by_state", ["state"]),
@@ -176,7 +166,9 @@ const schema = defineSchema({
 
   codebases: defineTable(codebaseFields)
     .index("by_user", ["userId"])
-    .index("by_user_repo", ["userId", "repoFullName"]),
+    .index("by_user_repo", ["userId", "repoFullName"])
+    .index("by_team", ["teamId"])
+    .index("by_team_repo", ["teamId", "repoFullName"]),
 
   skills: defineTable(skillFields)
     .index("by_user", ["userId"])
@@ -184,18 +176,20 @@ const schema = defineSchema({
     .index("by_team", ["teamId"])
     .index("by_team_name", ["teamId", "name"]),
 
-  /** Immutable pre-overwrite snapshots of skills (see lib/versionSnapshot.ts). */
+  // immutable pre-overwrite snapshots of skills (see lib/versionSnapshot.ts)
   skillVersions: defineTable(skillVersionFields).index("by_skill", ["skillId"]),
 
-  /** Global maintainer-curated skill catalog (the Skills Hub). */
+  // global maintainer-curated skill catalog (the Skills Hub)
   systemSkills: defineTable(systemSkillFields)
     .index("by_name", ["name"])
     .index("by_published", ["published"]),
 
-  /** Per-user install LINK to a systemSkills row (linked, never copied). */
+  // per-user (personal) or per-team install LINK to a systemSkills row
   userSystemSkills: defineTable(userSystemSkillFields)
     .index("by_user", ["userId"])
     .index("by_user_systemSkill", ["userId", "systemSkillId"])
+    .index("by_team", ["teamId"])
+    .index("by_team_systemSkill", ["teamId", "systemSkillId"])
     .index("by_systemSkill", ["systemSkillId"]),
 
   wikiNodes: defineTable(wikiNodeFields)
@@ -212,7 +206,7 @@ const schema = defineSchema({
       filterFields: ["userId", "teamId"],
     }),
 
-  /** Immutable pre-overwrite snapshots of wiki docs (see lib/versionSnapshot.ts). */
+  // immutable pre-overwrite snapshots of wiki docs (see lib/versionSnapshot.ts)
   wikiNodeVersions: defineTable(wikiNodeVersionFields).index("by_node", [
     "nodeId",
   ]),
@@ -222,23 +216,13 @@ const schema = defineSchema({
     .index("by_user_parent", ["userId", "parentId"])
     .index("by_team", ["teamId"])
     .index("by_team_parent", ["teamId", "parentId"])
-    // Reverse lookup for the index-cleanup guard: is any surviving file still
+    // reverse lookup for the index-cleanup guard: is any surviving file still
     // pointing at this derived memory? (identical-content files share one)
     .index("by_memory", ["memoryId"]),
 
   userEnvVars: defineTable(userEnvVarFields).index("by_user", ["userId"]),
 
-  /**
-   * One row per OpenRouter API call. Powers the `/openrouter-logs`
-   * dashboard (per-call cost / latency / token breakdown) and aggregate
-   * spend queries by user, profile, or team.
-   *
-   * Indexes:
-   * - by_user / by_user_createdAt — personal-scope listing + recent feed
-   * - by_user_feature           — feature breakdown chart
-   * - by_profile_createdAt      — per-workspace breakdowns
-   * - by_team_createdAt         — team-wide spend across all members
-   */
+  // one row per OpenRouter API call
   openRouterLogs: defineTable(openRouterLogFields)
     .index("by_user", ["userId"])
     .index("by_user_createdAt", ["userId", "createdAt"])
@@ -246,37 +230,20 @@ const schema = defineSchema({
     .index("by_profile_createdAt", ["profileId", "createdAt"])
     .index("by_team_createdAt", ["teamId", "createdAt"]),
 
-  /**
-   * Cached "User Profile" prose for the MCP `vmem://context_prompt`
-   * resource. AI clients (Claude, Cursor) read this once per conversation
-   * to prime their understanding of the user without making N memory
-   * tool calls.
-   *
-   * Regenerated via debounced scheduler: any memory write flips
-   * `pendingRegeneration = true` and schedules a regen check 60s out.
-   * The check runs the LLM only if the flag is set, keeping cost
-   * bounded under bursty write patterns.
-   */
+  // cached "User Profile" prose for the MCP `vmem://context_prompt` resource
   contextPromptCache: defineTable({
     userId: v.id("users"),
-    /** Markdown-formatted profile prose served to MCP clients. */
+    // markdown-formatted profile prose served to MCP clients
     content: v.string(),
-    /** Wall-clock ms when the LLM last regenerated `content`. */
+    // wall-clock ms when the LLM last regenerated `content`
     generatedAt: v.number(),
-    /** Snapshot of the user's memory count at generation time — used to
-     *  detect "lots changed since last regen" for staleness UX later. */
+    // snapshot of the user's memory count at generation time
     memoryCountAtGeneration: v.number(),
-    /** True when a memory write happened since the last regen and a
-     *  regen-check is scheduled. The check clears the flag on success. */
+    // true when a memory write happened since the last regen and a regen-check is scheduled
     pendingRegeneration: v.boolean(),
   }).index("by_user", ["userId"]),
 
-  /**
-   * Short-lived OAuth authorization codes for the MCP `/mcp/oauth/token`
-   * exchange. Inserted by `mcp.oauth.authorize` (called from the web app
-   * after Clerk sign-in) and consumed atomically by the token endpoint.
-   * 5-minute TTL; expired rows are deleted on consumption regardless.
-   */
+  // short-lived OAuth authorization codes for the MCP `/mcp/oauth/token` exchange
   mcpAuthCodes: defineTable({
     code: v.string(),
     clerkUserId: v.string(),
@@ -287,11 +254,7 @@ const schema = defineSchema({
     expiresAt: v.number(),
   }).index("by_code", ["code"]),
 
-  /**
-   * Dynamic OAuth client registrations issued via `/mcp/oauth/register`.
-   * `clientSecret` is optional — Claude.ai uses the public-client (no
-   * secret) flow with PKCE. 24h soft TTL applied at the query layer.
-   */
+  // dynamic OAuth client registrations issued via `/mcp/oauth/register`
   mcpClientRegistrations: defineTable({
     clientId: v.string(),
     clientSecret: v.optional(v.string()),

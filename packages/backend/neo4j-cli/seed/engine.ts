@@ -8,7 +8,7 @@ import type { SeedEvent, SeedMemory, SeedRelationship } from "./types";
 
 const MS_PER_DAY = 86_400_000;
 
-/** Memory indices that also get a synthetic "updated" event after create. */
+// memory indices that also get a synthetic "updated" event after create
 const UPDATED_MEMORY_INDICES = [
   3, 10, 22, 27, 35, 48, 55, 68, 78, 95, 116, 130, 145, 155, 178, 190, 201, 213,
   237, 248,
@@ -20,7 +20,7 @@ interface RunSeedOptions {
   templateRelationships: SeedRelationship[];
   embedAfterInsert: boolean;
   logLabel?: string;
-  /** Remove existing rows for listed users before insert (default true). */
+  // remove existing rows for listed users before insert (default true)
   clearUsersBeforeInsert?: boolean;
 }
 

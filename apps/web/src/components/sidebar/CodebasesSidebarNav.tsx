@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, lazy, Suspense } from "react";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useAction, useQuery } from "convex/react";
 import { useQueryStates } from "nuqs";
@@ -28,11 +28,19 @@ import {
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { CodebaseSidebarItem } from "@/components/codebases/CodebaseSidebarItem";
-import { CodebasesSearchBar } from "@/components/codebases/CodebasesSearchBar";
-import { AddRepoModal } from "@/components/codebases/AddRepoModal";
+import { SidebarListSearchBar } from "./SidebarListSearchBar";
 import { codebasesListSearchParams } from "@/routes/_main/$profileId/codebases/-list-searchParams";
-import { useActiveProfileId } from "@/components/workspace/active-profile";
+import {
+  useActiveProfileId,
+  useActiveTeamId,
+} from "@/components/workspace/active-profile";
 import { SharedLayoutBackground } from "./SharedLayoutBackground";
+
+const AddRepoModal = lazy(() =>
+  import("@/components/codebases/AddRepoModal").then((m) => ({
+    default: m.AddRepoModal,
+  })),
+);
 
 export type CodebasesSidebarNavProps = {
   isIconOnly: boolean;
@@ -45,11 +53,12 @@ export function CodebasesSidebarNav({
 }: CodebasesSidebarNavProps) {
   const navigate = useNavigate();
   const profileId = useActiveProfileId();
+  const teamId = useActiveTeamId();
   const params = useParams({ strict: false });
   const codebaseId = typeof params.id === "string" ? params.id : undefined;
 
   const connection = useQuery(api.github.getConnection);
-  const codebases = useQuery(api.codebases.listMy);
+  const codebases = useQuery(api.codebases.listMy, { teamId });
   const syncAllMy = useAction(api.codebases.syncAllMy);
   const [{ q: searchQuery }, setSearchParams] = useQueryStates(
     codebasesListSearchParams,
@@ -105,7 +114,7 @@ export function CodebasesSidebarNav({
   const handleResyncAll = useCallback(async () => {
     setResyncing(true);
     try {
-      const result = await syncAllMy({});
+      const result = await syncAllMy({ teamId });
       toast.success(`Re-syncing ${result.synced} codebase(s)`);
     } catch (err) {
       const message =
@@ -114,12 +123,24 @@ export function CodebasesSidebarNav({
     } finally {
       setResyncing(false);
     }
-  }, [syncAllMy]);
+  }, [syncAllMy, teamId]);
 
-  // Grouped with the search at the top of the sidebar, replacing the old
-  // bottom-pinned button. "Add repository" when connected, else "Connect GitHub".
-  const actionButton = isConnected ? (
+  const toolbarAddButton = (
     <Button
+      type="button"
+      variant="outline"
+      size="icon-sm"
+      aria-label="Add repository"
+      className="shrink-0"
+      onClick={() => setAddModalOpen(true)}
+    >
+      <IconPlus size={16} />
+    </Button>
+  );
+
+  const labeledAddButton = (
+    <Button
+      type="button"
       variant="outline"
       size="sm"
       className="w-full gap-2"
@@ -128,7 +149,9 @@ export function CodebasesSidebarNav({
       <IconPlus size={16} />
       Add repository
     </Button>
-  ) : (
+  );
+
+  const connectButton = (
     <Button variant="outline" size="sm" className="w-full" asChild>
       <Link to="/settings/connectors">Connect GitHub</Link>
     </Button>
@@ -181,16 +204,22 @@ export function CodebasesSidebarNav({
         ) : null}
 
         {!isIconOnly ? (
-          <div className="mb-2 flex flex-col gap-2">
+          <div className="mb-2 shrink-0">
             {codebases !== undefined && codebases.length > 0 ? (
-              <CodebasesSearchBar
+              <SidebarListSearchBar
                 value={searchQuery}
                 onChange={(value) => {
                   void setSearchParams({ q: value });
                 }}
+                placeholder="Search repositories"
+                aria-label="Search repositories"
+                actions={isConnected ? toolbarAddButton : undefined}
               />
-            ) : null}
-            {actionButton}
+            ) : isConnected ? (
+              labeledAddButton
+            ) : (
+              connectButton
+            )}
           </div>
         ) : null}
 
@@ -272,12 +301,14 @@ export function CodebasesSidebarNav({
         )}
       </div>
 
-      {isConnected && connection ? (
-        <AddRepoModal
-          open={addModalOpen}
-          onOpenChange={setAddModalOpen}
-          connectionId={connection.id}
-        />
+      {isConnected && connection && addModalOpen ? (
+        <Suspense fallback={null}>
+          <AddRepoModal
+            open={addModalOpen}
+            onOpenChange={setAddModalOpen}
+            connectionId={connection.id}
+          />
+        </Suspense>
       ) : null}
     </motion.nav>
   );

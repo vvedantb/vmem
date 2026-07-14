@@ -6,9 +6,7 @@ import {
   openRouterFeatureSchema,
 } from "./lib/openRouter/schemas";
 
-/**
- * Table field validators — used in schema.ts and return validators.
- */
+// table field validators — used in schema.ts and return validators
 export const profileFields = {
   userId: v.id("users"),
   name: v.string(),
@@ -99,6 +97,8 @@ export const userEnvVarFields = {
 
 export const codebaseFields = {
   userId: v.id("users"),
+  // personal when absent; team drive when set (same pattern as skills/wiki/files)
+  teamId: v.optional(v.id("teams")),
   githubConnectionId: v.id("githubConnections"),
   repoOwner: v.string(),
   repoName: v.string(),
@@ -138,6 +138,21 @@ export const codebaseFields = {
   isArchived: v.optional(v.boolean()),
 };
 
+// Neo4j codebase symbol node kinds (graph / impact / MCP args)
+export const codebaseSymbolKindValidator = v.union(
+  v.literal("code-file"),
+  v.literal("code-function"),
+  v.literal("code-class"),
+  v.literal("code-interface"),
+  v.literal("code-process"),
+);
+
+// blast-radius / impact traversal direction
+export const codebaseDirectionValidator = v.union(
+  v.literal("upstream"),
+  v.literal("downstream"),
+);
+
 export const openRouterLogRecordFields = {
   userId: v.id("users"),
   profileId: v.optional(v.string()),
@@ -173,10 +188,16 @@ export const wikiNodeFields = {
   userId: v.id("users"),
   teamId: v.optional(v.id("teams")),
   parentId: v.optional(v.id("wikiNodes")),
-  kind: v.union(v.literal("folder"), v.literal("document")),
+  kind: v.union(
+    v.literal("folder"),
+    v.literal("document"),
+    v.literal("artifact"),
+  ),
   title: v.string(),
   content: v.optional(v.string()),
   contentText: v.optional(v.string()),
+  // artifact source language (html | svg | tsx | sql | …); absent on folders/docs
+  language: v.optional(v.string()),
   order: v.number(),
   sourceCodebaseId: v.optional(v.id("codebases")),
   createdAt: v.number(),
@@ -188,6 +209,7 @@ export const wikiNodeVersionFields = {
   title: v.string(),
   content: v.string(),
   contentText: v.string(),
+  language: v.optional(v.string()),
   authorUserId: v.id("users"),
   source: v.union(v.literal("web"), v.literal("mcp")),
   createdAt: v.number(),
@@ -228,6 +250,8 @@ export const systemSkillFields = {
 
 export const userSystemSkillFields = {
   userId: v.id("users"),
+  // personal when absent; team workspace install when set (shared with members)
+  teamId: v.optional(v.id("teams")),
   systemSkillId: v.id("systemSkills"),
   enabled: v.boolean(),
   installedAt: v.number(),

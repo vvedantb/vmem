@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SignInButton, useAuth } from "@clerk/clerk-react";
 import { useConvexAuth, useMutation } from "convex/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { api } from "@vmem/backend";
 import { Button, Spinner } from "@vmem/ui";
 import {
@@ -13,22 +13,14 @@ import {
 
 export const Route = createFileRoute("/mcp/oauth/authorize")({
   validateSearch: mcpOauthParamsSchema,
-  // Persist the OAuth params before any auth-driven redirect can strip them.
-  // Prod Clerk live keys can bounce us to `/home` during the popup's session
-  // handshake; `/home` reads this storage to recover us back into the flow.
+  // persist the OAuth params before any auth-driven redirect can strip them
   beforeLoad: ({ search }) => {
     saveMcpOauthParams(search);
   },
   component: McpOauthAuthorize,
 });
 
-/**
- * Gates on Clerk's auth state (not Convex's). If we gated on Convex's
- * `<Unauthenticated>`, a signed-in user with a transient Convex auth
- * loading state could see the sign-in button, click it, and Clerk would
- * redirect them to `signInFallbackRedirectUrl="/home"` (since they're
- * already signed in and there's no real sign-in flow to complete).
- */
+// gates on Clerk's auth state (not Convex's)
 function McpOauthAuthorize() {
   const search = Route.useSearch();
   const { isLoaded, isSignedIn } = useAuth();
@@ -56,48 +48,53 @@ function McpOauthAuthorize() {
   );
 }
 
-/** Mints an authorization code via Convex and redirects to the OAuth client's redirect_uri. */
+// mints an authorization code via Convex and redirects to the OAuth client's redirect_uri
 function AuthorizedFlow({ search }: { search: McpOauthParams }) {
   const { isLoading: convexLoading, isAuthenticated } = useConvexAuth();
   const authorize = useMutation(api.mcp.oauth.authorize);
   const [error, setError] = useState<string | null>(null);
   const startedRef = useRef(false);
+  const canAuthorize = !convexLoading && isAuthenticated;
 
   useEffect(() => {
-    if (convexLoading || !isAuthenticated) return;
-    if (startedRef.current) return;
+    if (!canAuthorize || startedRef.current) return;
     startedRef.current = true;
 
-    authorize({
-      clientId: search.client_id,
-      redirectUri: search.redirect_uri,
-      codeChallenge: search.code_challenge,
-      codeChallengeMethod: search.code_challenge_method,
-    })
-      .then(({ code }) => {
+    void (async () => {
+      try {
+        const { code } = await authorize({
+          clientId: search.client_id,
+          redirectUri: search.redirect_uri,
+          codeChallenge: search.code_challenge,
+          codeChallengeMethod: search.code_challenge_method,
+        });
         clearMcpOauthParams();
         const target = new URL(search.redirect_uri);
         target.searchParams.set("code", code);
         target.searchParams.set("state", search.state);
         window.location.replace(target.toString());
-      })
-      .catch(() => {
+      } catch {
         setError("Please try connecting Claude again.");
-      });
-  }, [authorize, search, convexLoading, isAuthenticated]);
+      }
+    })();
+  }, [authorize, search, canAuthorize]);
 
   if (error) {
-    return (
-      <div className="flex flex-col items-center gap-3 text-center">
-        <p className="text-sm font-medium text-foreground">
-          Couldn&apos;t complete authorization
-        </p>
-        <p className="text-sm text-muted">{error}</p>
-      </div>
-    );
+    return <AuthorizationError message={error} />;
   }
 
   return <Status>Connecting Claude to vmem…</Status>;
+}
+
+function AuthorizationError({ message }: { message: string }) {
+  return (
+    <div className="flex flex-col items-center gap-3 text-center">
+      <p className="text-sm font-medium text-foreground">
+        Couldn&apos;t complete authorization
+      </p>
+      <p className="text-sm text-muted">{message}</p>
+    </div>
+  );
 }
 
 function SignInPrompt() {
@@ -120,7 +117,7 @@ function SignInPrompt() {
   );
 }
 
-function Status({ children }: { children: React.ReactNode }) {
+function Status({ children }: { children: ReactNode }) {
   return (
     <div className="flex flex-col items-center gap-3">
       <Spinner size="md" />
@@ -129,7 +126,7 @@ function Status({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Shell({ children }: { children: React.ReactNode }) {
+function Shell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="flex w-full max-w-sm flex-col items-center gap-6">

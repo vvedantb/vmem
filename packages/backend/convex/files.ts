@@ -18,7 +18,7 @@ import {
 } from "./teams/auth";
 
 interface FileNodeWithUrl extends Doc<"fileNodes"> {
-  /** Convex serving URL for files; null for folders or missing storage. */
+  // Convex serving URL for files; null for folders or missing storage
   url: string | null;
 }
 
@@ -28,7 +28,7 @@ interface ListTreeResult {
   storageLimit: number;
 }
 
-/** Every file node in a scope: a team's drive, or the user's personal files. */
+// every file node in a scope: a team's drive, or the user's personal files
 async function listScopeNodes(
   ctx: QueryCtx | MutationCtx,
   userId: Id<"users">,
@@ -47,10 +47,7 @@ async function listScopeNodes(
   return nodes.filter((n) => n.teamId === undefined);
 }
 
-/**
- * All file nodes in a scope, each file enriched with its URL. No `teamId` =
- * the user's personal files; `teamId` = that team's drive (members only).
- */
+// all file nodes in a scope, each file enriched with its URL
 export const listTree = authQuery({
   args: { teamId: v.optional(v.id("teams")) },
   handler: async (ctx, args): Promise<ListTreeResult> => {
@@ -79,7 +76,7 @@ export const listTree = authQuery({
   },
 });
 
-/** Signed URL for the client to POST raw file bytes to (Convex storage). */
+// signed URL for the client to POST raw file bytes to (Convex storage)
 export const generateFileUploadUrl = authMutation({
   args: {},
   handler: async (ctx): Promise<string> => {
@@ -87,10 +84,7 @@ export const generateFileUploadUrl = authMutation({
   },
 });
 
-/**
- * Sum of all file sizes in a scope — used for storage-limit checks.
- * Each team drive has its own pool, separate from members' personal pools.
- */
+// sum of all file sizes in a scope — used for storage-limit checks
 async function totalBytesForScope(
   ctx: QueryCtx | MutationCtx,
   userId: Id<"users">,
@@ -103,10 +97,7 @@ async function totalBytesForScope(
   );
 }
 
-/**
- * Find a personal (non-team) direct child of `parentId` by exact name.
- * Used by MCP path resolution, which is personal-scope only.
- */
+// find a personal (non-team) direct child of `parentId` by exact name
 async function findPersonalSibling(
   ctx: MutationCtx,
   userId: Id<"users">,
@@ -122,7 +113,7 @@ async function findPersonalSibling(
   return siblings.find((s) => s.teamId === undefined && s.name === name);
 }
 
-/** Validate that `parentId` (when set) is a folder in the same scope. */
+// validate that `parentId` (when set) is a folder in the same scope
 async function assertParentFolder(
   ctx: QueryCtx | MutationCtx,
   userId: Id<"users">,
@@ -152,11 +143,7 @@ async function scheduleFileIndex(
   });
 }
 
-/**
- * Record an uploaded file. The client has already POSTed bytes to the signed
- * URL and holds the resulting `storageId`. Enforces the per-user storage limit;
- * on overflow the orphaned blob is deleted before throwing.
- */
+// record an uploaded file
 export const createFile = authMutation({
   args: {
     name: v.string(),
@@ -198,7 +185,7 @@ export const createFile = authMutation({
   },
 });
 
-/** Create an empty folder under `parentId` (or at the scope's root). */
+// create an empty folder under `parentId` (or at the scope's root)
 export const createFolder = authMutation({
   args: {
     name: v.string(),
@@ -221,7 +208,7 @@ export const createFolder = authMutation({
   },
 });
 
-/** Rename a file or folder (any team member for team nodes). */
+// rename a file or folder (any team member for team nodes)
 export const renameNode = authMutation({
   args: { nodeId: v.id("fileNodes"), name: v.string() },
   handler: async (ctx, args): Promise<void> => {
@@ -230,9 +217,7 @@ export const renameNode = authMutation({
     await assertContentEditable(ctx, node, ctx.userId);
     await ctx.db.patch(args.nodeId, { name: args.name, updatedAt: Date.now() });
 
-    // Keep the derived memory's title in sync (content is unchanged, so a
-    // cheap title patch — not a full re-index). Memory ops run under the
-    // CREATOR's clerkId: Neo4j matches memories on their author's userId.
+    // keep the derived memory's title in sync (content is unchanged, so a cheap title patch
     if (node.kind === "file" && node.memoryId) {
       const creator = await ctx.db.get(node.userId);
       if (creator?.clerkId) {
@@ -250,11 +235,7 @@ export const renameNode = authMutation({
   },
 });
 
-/**
- * Move one or more nodes under a new parent (or to root). Rejects cycles
- * and cross-scope moves (personal ↔ team). All nodes must share one scope,
- * inferred from the first node.
- */
+// move one or more nodes under a new parent (or to root)
 export const moveNodes = authMutation({
   args: {
     nodeIds: v.array(v.id("fileNodes")),
@@ -291,16 +272,7 @@ export const moveNodes = authMutation({
   },
 });
 
-/**
- * Delete a node and (for folders) its entire subtree, dropping each file's
- * stored blob. Builds the children map over one scope-wide collect().
- * Permission: personal → owner; team → creator or team owner (per root).
- *
- * Indexed files also schedule cleanup of their derived memories. Cleanup
- * runs post-commit (scheduler), so its "any surviving fileNode still
- * references this memory?" guard sees the deletes. Each entry carries the
- * CREATOR's clerkId (team nodes can be deleted by a non-creator).
- */
+// delete a node and (for folders) its entire subtree, dropping each file's stored blob
 async function deleteSubtree(
   ctx: MutationCtx,
   actorUserId: Id<"users">,
@@ -344,7 +316,7 @@ async function deleteSubtree(
   return ids.length;
 }
 
-/** Delete the given nodes (and their subtrees). Returns total nodes removed. */
+// delete the given nodes (and their subtrees)
 export const deleteNodes = authMutation({
   args: { nodeIds: v.array(v.id("fileNodes")) },
   handler: async (ctx, args): Promise<number> => {
@@ -364,7 +336,7 @@ export const listByClerkIdInternal = internalQuery({
   },
 });
 
-/** Serving URL for a stored blob (MCP get returns this as downloadUrl). */
+// serving URL for a stored blob (MCP get returns this as downloadUrl)
 export const getStorageUrlInternal = internalQuery({
   args: { storageId: v.id("_storage") },
   handler: async (ctx, args): Promise<string | null> => {
@@ -372,12 +344,7 @@ export const getStorageUrlInternal = internalQuery({
   },
 });
 
-/**
- * Create or replace a file at a path, auto-creating any missing parent folders.
- * Called by the MCP upload action after the blob is stored. When a file already
- * exists at the path its old blob is deleted (idempotent overwrite); a folder at
- * the path is an error.
- */
+// create or replace a file at a path, auto-creating any missing parent folders
 export const upsertFileByPathInternal = internalMutation({
   args: {
     clerkId: v.string(),
@@ -399,8 +366,8 @@ export const upsertFileByPathInternal = internalMutation({
     }
 
     const now = Date.now();
-    // Walk/auto-create folder segments (all but the last). Personal scope
-    // only — team nodes are filtered out so the MCP namespace stays clean.
+    // walk/auto-create folder segments (all but the last). Personal scope
+    // only — team nodes are filtered out so the MCP namespace stays clean
     let parentId: Id<"fileNodes"> | undefined;
     for (const name of args.segments.slice(0, -1)) {
       const existing = await findPersonalSibling(ctx, userId, parentId, name);
@@ -436,9 +403,7 @@ export const upsertFileByPathInternal = internalMutation({
       if (existing.storageId) {
         await ctx.storage.delete(existing.storageId);
       }
-      // Re-index on overwrite (content changed). Also schedule when the old
-      // content was indexed but the new bytes aren't indexable — the action
-      // cleans up the now-stale memory.
+      // re-index on overwrite (content changed)
       const needsIndexing = indexable || existing.memoryId !== undefined;
       await ctx.db.patch(existing._id, {
         storageId: args.storageId,
@@ -472,13 +437,13 @@ export const upsertFileByPathInternal = internalMutation({
   },
 });
 
-/** Delete the node at a path (and its subtree), by clerkId. For MCP delete. */
+// delete the node at a path (and its subtree), by clerkId
 export const deleteByIdForClerkInternal = internalMutation({
   args: { clerkId: v.string(), nodeId: v.id("fileNodes") },
   handler: async (ctx, args): Promise<{ deletedCount: number }> => {
     const userId = await getUserIdByClerkId(ctx, args.clerkId);
     const node = await ctx.db.get(args.nodeId);
-    // MCP is personal-only: team nodes are invisible here.
+    // MCP is personal-only: team nodes are invisible here
     if (!node || node.userId !== userId || node.teamId !== undefined) {
       throw new Error("Not found");
     }
@@ -487,7 +452,7 @@ export const deleteByIdForClerkInternal = internalMutation({
   },
 });
 
-/** Delete an orphaned blob (MCP upload rollback when the mutation throws). */
+// delete an orphaned blob (MCP upload rollback when the mutation throws)
 export const deleteStorageInternal = internalMutation({
   args: { storageId: v.id("_storage") },
   handler: async (ctx, args): Promise<void> => {
@@ -497,11 +462,11 @@ export const deleteStorageInternal = internalMutation({
 
 interface NodeForIndexResult {
   node: Doc<"fileNodes">;
-  /** clerkId of the node's CREATOR — memory ops match on the author. */
+  // clerkId of the node's CREATOR — memory ops match on the author
   clerkId: string;
 }
 
-/** A file node plus its creator's clerkId, for the indexing action. */
+// A file node plus its creator's clerkId, for the indexing action
 export const getNodeForIndexInternal = internalQuery({
   args: { fileNodeId: v.id("fileNodes") },
   handler: async (ctx, args): Promise<NodeForIndexResult | null> => {
@@ -513,7 +478,7 @@ export const getNodeForIndexInternal = internalQuery({
   },
 });
 
-/** Record the outcome of an indexing run on the file node. */
+// record the outcome of an indexing run on the file node
 export const setIndexResultInternal = internalMutation({
   args: {
     fileNodeId: v.id("fileNodes"),
@@ -535,11 +500,7 @@ export const setIndexResultInternal = internalMutation({
   },
 });
 
-/**
- * Does any OTHER surviving file node still reference this memory?
- * Identical-content files dedup onto one memory — it must outlive all but
- * the last referencing file.
- */
+// does any OTHER surviving file node still reference this memory
 export const hasOtherNodeForMemoryInternal = internalQuery({
   args: {
     memoryId: v.string(),
@@ -554,7 +515,7 @@ export const hasOtherNodeForMemoryInternal = internalQuery({
   },
 });
 
-/** All unindexed file docs (no indexStatus yet) — backfill input. */
+// all unindexed file docs (no indexStatus yet) — backfill input
 export const listUnindexedFilesInternal = internalQuery({
   args: {},
   handler: async (ctx): Promise<Array<Id<"fileNodes">>> => {

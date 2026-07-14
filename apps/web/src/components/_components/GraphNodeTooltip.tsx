@@ -14,7 +14,7 @@ export default function GraphNodeTooltip({
   viewportX,
   viewportY,
 }: GraphNodeTooltipProps) {
-  // Use window dimensions for clamping — graph container fills the viewport
+  // use window dimensions for clamping — graph container fills the viewport
   const cw = typeof window !== "undefined" ? window.innerWidth : 1200;
   const ch = typeof window !== "undefined" ? window.innerHeight : 800;
 

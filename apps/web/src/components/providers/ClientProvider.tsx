@@ -31,27 +31,11 @@ if (!env.VITE_CONVEX_URL) {
 
 export const convex = new ConvexReactClient(env.VITE_CONVEX_URL);
 
-// Tracks whether the user has been signed in during this page session.
-// Used by useStableAuth to detect unexpected auth loss (stale deployment).
+// tracks whether the user has been signed in during this page session
+// used by useStableAuth to detect unexpected auth loss (stale deployment)
 let wasEverSignedIn = false;
 
-/**
- * Wraps Clerk's useAuth to debounce unexpected auth loss.
- *
- * When Vercel deploys a new version, stale JS can break Clerk's internals,
- * causing it to report isSignedIn:false even though the user has a valid session.
- * ConvexProviderWithClerk then clears the auth token, and the Convex server
- * re-evaluates every active subscription without auth — producing a burst of
- * "Not authenticated" errors in the Convex logs.
- *
- * To prevent this: when auth drops from signed-in → not-signed-in, we tell
- * Convex "auth is still loading" for 2 seconds. During that window:
- * - Stale deployment: page reloads, WebSocket closes, subscriptions drop cleanly
- * - Real logout: routes unmount via router (which reads Clerk directly),
- *   subscriptions are cleaned up, then the timer fires and propagates the real state
- *
- * In both cases Convex never re-evaluates subscriptions without auth.
- */
+// debounce clerk auth loss after stale post-deploy js (avoids convex auth cascade)
 function useStableAuth() {
   const auth = useAuth();
   const [overrideLoading, setOverrideLoading] = useState(false);
@@ -63,7 +47,7 @@ function useStableAuth() {
       return;
     }
 
-    // Was signed in and now not — debounce to avoid Convex auth cascade
+    // was signed in and now not — debounce to avoid Convex auth cascade
     if (wasEverSignedIn && auth.isLoaded && !auth.isSignedIn) {
       setOverrideLoading(true);
       const timer = setTimeout(() => {
@@ -115,14 +99,7 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-/**
- * Reads the resolved theme from `next-themes` and forwards it to Sonner so
- * the toast's `data-theme` attribute (which Sonner uses for its internal
- * focus / hover states) matches our app's active light/dark mode.
- *
- * `resolvedTheme` is `undefined` until `next-themes` hydrates — fall back to
- * "light" during that brief window to avoid a flash of the wrong palette.
- */
+// forward resolved theme to sonner (light until next-themes hydrates)
 function ThemedSonnerToaster() {
   const { resolvedTheme } = useTheme();
   return (

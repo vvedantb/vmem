@@ -1,5 +1,6 @@
 import type { Driver } from "neo4j-driver";
 import { clampNeo4jLimit } from "../intParams";
+import { escapeLuceneQuery } from "../luceneQuery";
 import type { ConfidenceTier } from "./types";
 import {
   parseOverviewEdge,
@@ -21,9 +22,9 @@ export interface OverviewNode {
   name: string;
   path: string;
   directory: string;
-  /** Process member set when kind === "code-process". */
+  // process member set when kind === "code-process"
   members?: string[];
-  /** Convenience flags. */
+  // convenience flags
   isExported?: boolean;
   isAsync?: boolean;
   isTest?: boolean;
@@ -62,11 +63,11 @@ interface ReadArgs {
 }
 
 interface FilteredArgs extends ReadArgs {
-  /** Filter the result set to one of these kinds. Empty = all kinds. */
+  // filter the result set to one of these kinds
   kinds?: OverviewNode["kind"][];
-  /** When set, restrict to members of this process. */
+  // when set, restrict to members of this process
   processId?: string | null;
-  /** When set, restrict to (start) ∪ blast-radius around this symbol. */
+  // when set, restrict to (start) ∪ blast-radius around this symbol
   blastRadiusOf?: string | null;
   blastDirection?: "upstream" | "downstream";
   blastDepth?: number;
@@ -152,7 +153,7 @@ export async function getGraphOverview(args: FilteredArgs): Promise<{
 
   const session = args.driver.session();
   try {
-    // Nodes
+    // nodes
     const nodesResult = await session.run(
       `
       MATCH (n { userId: $userId, codebaseId: $codebaseId })
@@ -170,7 +171,7 @@ export async function getGraphOverview(args: FilteredArgs): Promise<{
       nodes.push(node);
     }
 
-    // Process-member subset
+    // process-member subset
     if (args.processId) {
       const memResult = await session.run(
         `
@@ -190,7 +191,7 @@ export async function getGraphOverview(args: FilteredArgs): Promise<{
       nodes = nodes.filter((n) => memberIds.has(n.id));
     }
 
-    // Blast radius subset
+    // blast radius subset
     if (args.blastRadiusOf) {
       const depth = Math.max(1, Math.min(8, Math.trunc(args.blastDepth ?? 5)));
       const arrow =
@@ -215,8 +216,8 @@ export async function getGraphOverview(args: FilteredArgs): Promise<{
       nodes = nodes.filter((n) => keep.has(n.id));
     }
 
-    // Cap nodes before we build the edge filter set so that any edges
-    // we drop here also drop their endpoint references.
+    // cap nodes before we build the edge filter set so that any edges
+    // we drop here also drop their endpoint references
     const nodeCapResult = capNodes(nodes, MAX_GRAPH_ARRAY);
     nodes = nodeCapResult.nodes;
     let truncated = nodeCapResult.truncated;
@@ -224,7 +225,7 @@ export async function getGraphOverview(args: FilteredArgs): Promise<{
     const nodeIds = new Set(nodes.map((n) => n.id));
     const edges: OverviewEdge[] = [];
 
-    // Structural edges first; CALLS last so truncation drops call noise first.
+    // structural edges first; CALLS last so truncation drops call noise first
     type EdgeQuery = {
       type: OverviewEdge["type"];
       cypher: string;
@@ -372,9 +373,9 @@ export async function searchSymbols(
   const limit = clampNeo4jLimit(args.limit, 25, 100);
   const session = args.driver.session();
   try {
-    // Fulltext index supports Lucene syntax — escape special chars and add a
-    // wildcard so `valid` matches `validateInput`.
-    const escaped = args.query.replace(/[+\-!(){}[\]^"~*?:\\/]/g, "\\$&");
+    // fulltext index supports Lucene syntax — escape special chars and add a
+    // wildcard so `valid` matches `validateInput`
+    const escaped = escapeLuceneQuery(args.query);
     const ftQuery = `${escaped}* OR ${escaped}~`;
     const ftResult = await session.run(
       `
@@ -409,7 +410,7 @@ export async function searchSymbols(
     const primary = collectRows(ftResult.records, "node");
     if (primary.length > 0) return primary;
 
-    // Fallback substring scan (name, qualifiedName, filePath).
+    // fallback substring scan (name, qualifiedName, filePath)
     const fbResult = await session.run(
       `
       MATCH (n { userId: $userId, codebaseId: $codebaseId })

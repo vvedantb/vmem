@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, use, useState, type ReactNode } from "react";
 
 type PageTitleContextValue = {
   pageTitle: string;
@@ -16,12 +16,12 @@ export function PageTitleProvider({ children }: { children: ReactNode }) {
   const [pageTitle, setPageTitle] = useState("");
 
   return (
-    <PageTitleContext.Provider value={{ pageTitle, setPageTitle }}>
+    <PageTitleContext value={{ pageTitle, setPageTitle }}>
       {children}
-    </PageTitleContext.Provider>
+    </PageTitleContext>
   );
 }
 
 export function usePageTitle() {
-  return useContext(PageTitleContext);
+  return use(PageTitleContext);
 }

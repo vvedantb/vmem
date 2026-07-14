@@ -1,33 +1,41 @@
 "use client";
 
-import type { Doc } from "@vmem/backend";
+import { Link } from "@tanstack/react-router";
+import type { WikiListNode, WikiNodeDoc } from "./-types";
 import { Breadcrumb, BreadcrumbLink, BreadcrumbPage, Input } from "@vmem/ui";
+import { useActiveProfile } from "@/components/workspace/active-profile";
 
 interface WikiPageBreadcrumbProps {
-  ancestors: Array<Doc<"wikiNodes">>;
-  title: string;
+  ancestors: Array<WikiListNode>;
+  doc: WikiNodeDoc;
   onTitleChange: (value: string) => void;
   onTitleCommit: () => void;
 }
 
 export function WikiPageBreadcrumb({
   ancestors,
-  title,
+  doc,
   onTitleChange,
   onTitleCommit,
 }: WikiPageBreadcrumbProps) {
+  const profileId = useActiveProfile()._id;
+
   return (
     <Breadcrumb className="w-full min-w-0">
       {ancestors.map((node) => (
         <BreadcrumbLink key={node._id} asChild>
-          <span className="max-w-[120px] shrink-0 cursor-default truncate">
+          <Link
+            to="/$profileId/wiki/$docId"
+            params={{ profileId, docId: node._id }}
+            className="max-w-[120px] shrink-0 truncate"
+          >
             {node.title}
-          </span>
+          </Link>
         </BreadcrumbLink>
       ))}
       <BreadcrumbPage className="min-w-0 flex-1">
         <Input
-          value={title}
+          value={doc.title}
           onChange={(e) => onTitleChange(e.target.value)}
           onBlur={onTitleCommit}
           onKeyDown={(e) => {
@@ -38,7 +46,7 @@ export function WikiPageBreadcrumb({
           }}
           placeholder="Untitled"
           aria-label="Document title"
-          className="h-auto min-w-0 border-0 bg-transparent px-0 py-0 text-inherit shadow-none focus-visible:ring-0 placeholder:text-muted/50"
+          className="h-auto min-w-0 rounded-none border-0 bg-transparent px-0 py-0 font-instrumentSerif text-2xl shadow-none focus-visible:ring-0 placeholder:text-muted/50"
         />
       </BreadcrumbPage>
     </Breadcrumb>

@@ -12,12 +12,7 @@ import { getConnectorLogo } from "./connector-logos";
 
 const TWO_PI = Math.PI * 2;
 
-// ── Per-node color cache ──────────────────────────────────────────────────────
-// nodeColor hashes the first tag and builds a hex string — and for untagged
-// memories reads getComputedStyle (forced style recalc). Computing it per node
-// per pass per frame dominates frame time on large graphs, so colors are
-// cached per node object and invalidated when the theme object changes (node
-// objects are recreated on data swaps, so WeakMap entries age out naturally).
+// per-node color cache — avoid hashing/getComputedStyle every frame
 let colorCacheTheme: GraphViewTheme | null = null;
 let colorCache = new WeakMap<GraphNode, string>();
 
@@ -39,13 +34,7 @@ function nodeColor(node: GraphNode, theme: GraphViewTheme): string {
   return color;
 }
 
-// ── Per-node label cache ──────────────────────────────────────────────────────
-// fillText's maxWidth argument forces a measure+horizontal-squish slow path in
-// every browser — the single most expensive way to cap label width. Truncating
-// to a character budget once per node (≈ what 150px fit at the 12px base font)
-// renders with the fast fillText overload and looks better: an ellipsis
-// instead of squished glyphs. Node objects are recreated on data swaps, so
-// WeakMap entries age out naturally.
+// truncate labels once — fillText maxWidth is a slow path
 const LABEL_MAX_CHARS = 26;
 const labelCache = new WeakMap<GraphNode, string>();
 
@@ -61,12 +50,7 @@ function nodeLabel(node: GraphNode): string {
   return label;
 }
 
-// ── Per-dataset bucket cache ──────────────────────────────────────────────────
-// Grouping nodes by (kind, color) lets the shape pass batch one beginPath/fill
-// per bucket — but rebuilding the Map (plus 100k array pushes) every frame is
-// pure GC churn. The grouping only depends on the nodes array and the theme,
-// both of which are reference-stable between data swaps, so it's cached on
-// identity. Culling and hover-dim stay per-frame inside the draw loop.
+// cache (kind,color) buckets across frames — rebuild only when nodes/theme change
 interface NodeBucket {
   color: string;
   kind: GraphNodeKind;
@@ -94,13 +78,7 @@ function nodeBuckets(nodes: GraphNode[], theme: GraphViewTheme): NodeBucket[] {
   return bucketCache;
 }
 
-/**
- * Node shape helpers. All shapes are inscribed in a circle of the given `r`
- * so the existing hit-test, glow, and collision physics (all radius-based)
- * keep working unchanged. Each helper appends a sub-path to the caller's
- * currently-open path — callers are responsible for beginPath/fill/stroke
- * so we can batch many nodes in a single draw call.
- */
+// shapes inscribed in radius r so hit-test/glow/collision stay radius-based
 function traceCircle(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -117,8 +95,8 @@ function traceSquare(
   y: number,
   r: number,
 ): void {
-  // Axis-aligned square inscribed in the circle of radius r (side = r * √2).
-  const half = r * Math.SQRT1_2 * 1.15; // scale slightly so visual mass ≈ circle
+  // square inscribed in circle; scale so visual mass ≈ circle
+  const half = r * Math.SQRT1_2 * 1.15;
   ctx.moveTo(x - half, y - half);
   ctx.lineTo(x + half, y - half);
   ctx.lineTo(x + half, y + half);
@@ -132,7 +110,7 @@ function traceDiamond(
   y: number,
   r: number,
 ): void {
-  // Square rotated 45°: the four cardinal points lie on the circle of radius r.
+  // diamond: cardinal points on the circle
   ctx.moveTo(x, y - r);
   ctx.lineTo(x + r, y);
   ctx.lineTo(x, y + r);
@@ -146,8 +124,7 @@ function traceHexagon(
   y: number,
   r: number,
 ): void {
-  // Flat-topped regular hexagon. i=0 places a vertex at 3 o'clock; the six
-  // vertices step around the inscribing circle at 60° intervals.
+  // flat-top hex; vertices every 60° on the circle
   ctx.moveTo(x + r, y);
   for (let i = 1; i < 6; i++) {
     const angle = (Math.PI / 3) * i;
@@ -156,11 +133,7 @@ function traceHexagon(
   ctx.closePath();
 }
 
-/**
- * 8-pointed starburst shape for entity hub nodes. Alternates between outer
- * vertices on the circle and inner vertices at half the radius, giving a
- * spiky "sun" silhouette that reads as distinct from every other shape.
- */
+// 8-point starburst for entity hubs (outer/inner radii)
 function traceStarburst(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -190,13 +163,12 @@ function traceShape(
   if (kind === "wiki-document") return traceDiamond(ctx, x, y, r);
   if (kind === "skill") return traceHexagon(ctx, x, y, r);
   if (kind === "entity") return traceStarburst(ctx, x, y, r);
-  // Codebase symbols use the same shape vocabulary as the rest of the
-  // graph — this keeps the visual language consistent across views.
+  // codebase kinds reuse the same shape vocabulary
   if (kind === "code-file") return traceSquare(ctx, x, y, r);
   if (kind === "code-class") return traceHexagon(ctx, x, y, r);
   if (kind === "code-interface") return traceDiamond(ctx, x, y, r);
   if (kind === "code-process") return traceStarburst(ctx, x, y, r);
-  // code-function falls through to circle (default for memory).
+  // code-function → circle (same as memory)
   return traceCircle(ctx, x, y, r);
 }
 
@@ -214,14 +186,7 @@ function isOnScreen(
   return sx + sr > 0 && sx - sr < canvasW && sy + sr > 0 && sy - sr < canvasH;
 }
 
-/**
- * Cached full-scene bitmap for viewport-only frames. While the user pans or
- * zooms (and nothing else changes), re-tracing every node and edge per frame
- * is pure waste — the previous frame's pixels are still correct, just under a
- * different viewport transform. Blitting the cached bitmap with the delta
- * transform makes pan/zoom O(1) per frame regardless of graph size; the first
- * frame after the gesture settles re-renders crisp.
- */
+// cached scene bitmap for O(1) pan/zoom blit; settle frame re-renders crisp
 export interface WorldLayerCache {
   layer: HTMLCanvasElement | null;
   scale: number;
@@ -262,18 +227,14 @@ export function render(
   isSearchActive: boolean,
   showLabels: boolean,
   connectorLogos: ConnectorLogoMap,
-  /** null = always draw directly (small graphs stay pixel-perfect mid-gesture) */
+  // null cache = always draw direct (small graphs stay sharp mid-gesture)
   worldCache: WorldLayerCache | null,
-  /** True when ONLY the viewport moved since the last frame — blit-eligible */
+  // true when only the viewport moved — blit-eligible
   viewportOnly: boolean,
-  /**
-   * True while a pan/zoom gesture is in flight. Gesture-frame full renders
-   * (snapshot refreshes) drop the glow pass — the dominant per-node cost —
-   * so they fit the frame budget; the settle frame restores it.
-   */
+  // pan/zoom in flight: gesture renders skip glow; settle restores it
   gestureActive: boolean = false,
 ): void {
-  // Blit path: pan/zoom in progress over an up-to-date cache.
+  // blit: pan/zoom over a fresh cache
   if (
     worldCache &&
     viewportOnly &&
@@ -290,8 +251,8 @@ export function render(
       vp.offsetY + canvasH / 2 - k * (worldCache.offsetY + canvasH / 2);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, canvasW, canvasH);
-    // Solid background behind the transformed bitmap so margins it no longer
-    // covers (zoom-out, pan) show theme color instead of garbage.
+    // solid background behind the transformed bitmap so margins it no longer
+    // covers (zoom-out, pan) show theme color instead of garbage
     ctx.fillStyle = theme.background;
     ctx.fillRect(0, 0, canvasW, canvasH);
     ctx.setTransform(dpr * k, 0, 0, dpr * k, dpr * dx, dpr * dy);
@@ -300,9 +261,7 @@ export function render(
     return;
   }
 
-  // Full render. With a cache attached, render into the layer canvas and
-  // stamp it 1:1 — the extra full-canvas drawImage is the price of having
-  // the bitmap ready for the next gesture frame.
+  // full render
   if (worldCache) {
     if (!worldCache.layer) {
       worldCache.layer = document.createElement("canvas");
@@ -431,30 +390,20 @@ function renderScene(
   ctx.scale(vp.scale, vp.scale);
 
   const nodeCount = nodes.length;
-  // Hover dim/highlight repaints the whole scene per mousemove. On huge
-  // graphs at far zoom the highlighted node is sub-pixel — pure cost, no
-  // signal — so hover VISUALS switch off there (tooltips still work; the
-  // frame loop in GraphCanvas mirrors this so hover doesn't even repaint).
-  // Must stay in sync with hoverVisualsEnabled in GraphCanvas.tsx.
+  // hover dim/highlight repaints the whole scene per mousemove
   const hoverVisuals = !(nodeCount > 5000 && vp.scale < 0.4);
   const hoveredNodeId = hoverVisuals ? interaction.hoveredNodeId : null;
   const hoveredEdgeIndexVisual = hoverVisuals
     ? interaction.hoveredEdgeIndex
     : null;
   const hasHover = hoveredNodeId !== null || hoveredEdgeIndexVisual !== null;
-  // Edges only enter hover mode (dim non-connected, highlight connected) when
-  // the hovered node actually has neighbors. Hovering an isolated node would
-  // otherwise fade the entire graph to gray with nothing to highlight.
-  // neighborSet always includes the hovered node itself, so size > 1 means
-  // there's at least one real neighbor.
+  // edges only enter hover mode (dim non-connected, highlight connected) when the hovered…
   const hasHoveredNeighbors = hasHover && neighborSet.size > 1;
   const lowZoom = vp.scale < 0.4;
   const veryLowZoom = vp.scale < 0.08;
   const highNodeCount = nodeCount > 5000;
 
-  // World-space view bounds (small margin) for edge culling. An edge whose
-  // bounding box misses the viewport can't paint a pixel — skipping it keeps
-  // the zoomed-in edge pass proportional to what's visible, not to the graph.
+  // world-space view bounds (small margin) for edge culling
   const viewMinX = (-canvasW / 2 - vp.offsetX) / vp.scale - 40;
   const viewMaxX = (canvasW / 2 - vp.offsetX) / vp.scale + 40;
   const viewMinY = (-canvasH / 2 - vp.offsetY) / vp.scale - 40;
@@ -473,20 +422,14 @@ function renderScene(
     );
 
   // --- Edges (batched by style — single beginPath/stroke per style bucket) ---
-  // Skip ALL edges at very low zoom (just render node dots)
+  // skip ALL edges at very low zoom (just render node dots)
   if (!veryLowZoom && edges.length > 0) {
-    // Edge budget: skip tag edges when total edge count is very high, and on
-    // any edge-heavy graph while a gesture is in flight — a single stroke()
-    // of thousands of batched hairline segments dominates gesture-frame cost,
-    // and the faint tag lattice is the least informative layer. It returns on
-    // the crisp settle frame. Structural edges always draw.
+    // edge budget: skip tag edges when total edge count is very high, and on any edge-heavy…
     const skipTagEdges =
       edges.length > 10_000 || (gestureActive && edges.length > 1500);
 
     if (!hasHoveredNeighbors) {
-      // No hover — three batched passes, one per edge type. Each type gets its
-      // own hue via `theme.edge.normalByType` so users can read the semantic
-      // category (tag / user-linked / folder-parent) at a glance.
+      // no hover — three batched passes, one per edge type
       if (!skipTagEdges) {
         ctx.strokeStyle = theme.edge.normalByType.tag;
         ctx.lineWidth = theme.edge.width;
@@ -504,9 +447,7 @@ function renderScene(
         ctx.stroke();
       }
 
-      // relates_to + imports + calls — "user-forged" warm hue. Memory
-      // relates_to, file imports, and function calls all read as
-      // semantic connections so they share the warm slot.
+      // relates_to + imports + calls — "user-forged" warm hue
       ctx.strokeStyle = theme.edge.normalByType.relates_to;
       ctx.lineWidth = theme.edge.width * 2;
       ctx.beginPath();
@@ -527,9 +468,7 @@ function renderScene(
       }
       ctx.stroke();
 
-      // wiki_parent + codebase structural edges — cool blue hue.
-      // File→symbol containment, class→method, extends, implements
-      // all describe structural hierarchy.
+      // wiki_parent + codebase structural edges — cool blue hue
       ctx.strokeStyle = theme.edge.normalByType.wiki_parent;
       ctx.lineWidth = theme.edge.width * 2;
       ctx.beginPath();
@@ -553,7 +492,7 @@ function renderScene(
       ctx.stroke();
 
       // mentions + process flow — teal-green hue. Entity mentions and
-      // codebase process membership both signal "associated with X".
+      // codebase process membership both signal "associated with X"
       ctx.strokeStyle = theme.edge.normalByType.mentions;
       ctx.lineWidth = theme.edge.width * 2;
       ctx.beginPath();
@@ -574,15 +513,8 @@ function renderScene(
       }
       ctx.stroke();
     } else {
-      // Hover active — two batched passes per edge type: dimmed non-connected
-      // edges first (fade into background), then connected edges on top at
-      // full opacity so the hover highlight reads as a clear "lit up" line.
-      //
-      // Codebase edges piggyback on the memory palette slots so the renderer
-      // doesn't need a per-codebase-type theme entry: behavioral edges
-      // (calls/imports) ride the warm `relates_to` slot, structural edges
-      // (contains/has_method/extends/implements) ride the cool `wiki_parent`
-      // slot, and process flow (starts_process/includes) rides `mentions`.
+      // hover: dim non-connected edges, then draw connected on top
+      // codebase edges reuse memory palette slots (relates_to / wiki_parent / mentions)
       for (const edgeType of [
         "tag",
         "relates_to",
@@ -598,12 +530,11 @@ function renderScene(
         "includes",
       ] as const) {
         if (edgeType === "tag" && skipTagEdges) continue;
-        // Tag is the only "weak" edge type — everything else is strong so it
-        // reads through the dim pass at full opacity.
+        // tag edges stay weak; everything else stays full opacity in dim pass
         const isStrongEdge = edgeType !== "tag";
         const widthMultiplier = isStrongEdge ? 2 : 1;
-        // Codebase types reuse the existing palette slots — see the comment
-        // on the loop. Memory types use their own slot directly.
+        // codebase types reuse the existing palette slots — see the comment
+        // on the loop. Memory types use their own slot directly
         const typeColor =
           edgeType === "imports" || edgeType === "calls"
             ? theme.edge.normalByType.relates_to
@@ -616,10 +547,7 @@ function renderScene(
                 ? theme.edge.normalByType.mentions
                 : theme.edge.normalByType[edgeType];
 
-        // Pass 1: dimmed edges (everything not connected to the hovered node).
-        // Use the per-type hue at reduced alpha so you can still tell the
-        // background lattice apart by category while the hovered neighborhood
-        // lights up.
+        // pass 1: dimmed edges (everything not connected to the hovered node)
         ctx.strokeStyle = typeColor;
         ctx.lineWidth = theme.edge.width * widthMultiplier;
         ctx.globalAlpha = theme.dimAlpha * (isStrongEdge ? 1 : 2);
@@ -640,8 +568,8 @@ function renderScene(
         ctx.stroke();
         ctx.globalAlpha = 1;
 
-        // Pass 2: connected edges (on top) — single `connected` hue across all
-        // types signals "lit up" consistently, 1.5× width for unmistakability.
+        // pass 2: connected edges (on top) — single `connected` hue across all
+        // types signals "lit up" consistently, 1.5× width for unmistakability
         ctx.strokeStyle = theme.edge.connected;
         ctx.lineWidth = theme.edge.connectedWidth * widthMultiplier * 1.5;
         ctx.beginPath();
@@ -657,10 +585,7 @@ function renderScene(
       }
     }
 
-    // Hovered-edge emphasis pass: re-stroke the single hovered edge in the
-    // "connected" hue so the tooltip has a clear visual anchor. Runs after
-    // the batched passes so it always draws on top, even when no node is
-    // hovered (the common case when reading an edge tooltip).
+    // hovered-edge emphasis pass: re-stroke the single hovered edge in the "connected" hue…
     const hoveredEdgeIdx = hoveredEdgeIndexVisual;
     if (hoveredEdgeIdx !== null && hoveredEdgeIdx < edges.length) {
       const edge = edges[hoveredEdgeIdx];
@@ -675,15 +600,7 @@ function renderScene(
     }
   }
 
-  // --- Nodes ---
-  // Glow pass: one createRadialGradient + fill PER NODE per frame — by far the
-  // most expensive pass (at 5k nodes it's ~80% of the frame: 23ms vs 4.6ms
-  // without). Its budget is much tighter than the label cutoff: past ~1.5k
-  // nodes the halos overlap into soup anyway, so it switches off well before
-  // labels do. Also skipped at lowZoom (halos are sub-pixel) and during
-  // pan/zoom gestures — zoomed into a cluster each halo covers a large screen
-  // area, and gesture-frame snapshot refreshes must fit the frame budget; the
-  // crisp settle frame brings the glow back.
+  // nodes — skip glow past budget / low zoom / pan-zoom (expensive per node)
   const glowNodeBudget = 1500;
   if (
     theme.glow.enabled &&
@@ -706,8 +623,8 @@ function renderScene(
       if (isDimmed) continue;
 
       const color = nodeColor(node, theme);
-      // Clamp the *glow* radius source (not the node's visual size) so a
-      // degree-500 super-hub doesn't paint a screen-filling radial gradient.
+      // clamp the *glow* radius source (not the node's visual size) so a
+      // degree-500 super-hub doesn't paint a screen-filling radial gradient
       const glowR = Math.min(node.size, 10) * 2;
       const glowRadius = glowR * theme.glow.radiusMultiplier;
       const intensity = isHovered
@@ -721,34 +638,30 @@ function renderScene(
         ny,
         glowRadius,
       );
-      grad.addColorStop(
-        0,
-        color +
-          Math.round(intensity * 255)
-            .toString(16)
-            .padStart(2, "0"),
-      );
-      grad.addColorStop(1, color + "00");
+      // do not append hex alpha (`color + "26"`) — untagged nodes resolve `--muted` to…
+      grad.addColorStop(0, color);
+      grad.addColorStop(1, "transparent");
+      ctx.save();
+      ctx.globalAlpha = intensity;
       ctx.fillStyle = grad;
       ctx.beginPath();
       ctx.arc(nx, ny, glowRadius, 0, TWO_PI);
       ctx.fill();
+      ctx.restore();
     }
   }
 
-  // Node shape pass: batched by (color, kind) so we keep O(unique (color,kind))
-  // draw calls. Bucket grouping is cached per (nodes, theme) — see nodeBuckets.
+  // node shape pass: batched by (color, kind) so we keep O(unique (color,kind))
+  // draw calls. Bucket grouping is cached per (nodes, theme) — see nodeBuckets
   {
     const buckets = nodeBuckets(nodes, theme);
-    // When nothing is hovered and no search is active, no node can be dimmed —
-    // skip the per-node Set lookups AND the entire second (dimmed) pass.
+    // when nothing is hovered and no search is active, no node can be dimmed —
+    // skip the per-node Set lookups AND the entire second (dimmed) pass
     const needDimChecks = hasHover || isSearchActive;
-    // Below ~2.2 screen pixels a circle/diamond/hexagon is indistinguishable
-    // from a square, and rect() is far cheaper than arc() — at 100k nodes this
-    // is the difference between a sub-frame and a multi-frame shape pass.
+    // below ~2.2 screen pixels a circle/diamond/hexagon is indistinguishable from a square,…
     const tinyShapes = 2.2;
-    // World-space length of 4 screen px: keeps nodes visible at extreme
-    // zoom-out; sqrt-blend preserves hub/leaf ranking at all zoom levels.
+    // world-space length of 4 screen px: keeps nodes visible at extreme
+    // zoom-out; sqrt-blend preserves hub/leaf ranking at all zoom levels
     const minWorld = 4 / vp.scale;
 
     for (const dimPass of needDimChecks ? [false, true] : [false]) {
@@ -789,15 +702,7 @@ function renderScene(
     }
   }
 
-  // Connector-logo pass: stamp the sourceType's brand logo inside the circle
-  // for memories that came in through a connector sync. Skipped at low zoom
-  // and on very large graphs because drawImage per-node is not free.
-  //
-  // Runs AFTER the batched circle pass so the common case (no logo) never pays
-  // any extra cost — the inner loop here only iterates nodes that actually
-  // resolve to a connector logo. Clip-to-circle guarantees the logo never
-  // bleeds past the node's visual boundary even if the SVG is slightly
-  // off-centre.
+  // connector-logo pass: stamp the sourceType's brand logo inside the circle for memories…
   if (!lowZoom && !highNodeCount && connectorLogos.size > 0) {
     for (const node of nodes) {
       if (node.kind !== "memory") continue;
@@ -816,8 +721,8 @@ function renderScene(
         (hasHover && !isHovered && !isNeighbor) ||
         (isSearchActive && !isSearchMatch);
 
-      // Logo sits inset inside the circle so the tag-hash ring remains visible
-      // around it — topic colour and provenance read as two distinct signals.
+      // logo sits inset inside the circle so the tag-hash ring remains visible
+      // around it — topic colour and provenance read as two distinct signals
       const logoSize = baseRadius * 1.4;
       const logoHalf = logoSize / 2;
 
@@ -831,9 +736,7 @@ function renderScene(
     }
   }
 
-  // Outlines pass: only for hovered/dragged/outlined nodes (few nodes, no batch
-  // needed). When the theme draws no resting outlines and nothing is hovered or
-  // dragged, the whole O(nodes) scan is skipped.
+  // outlines pass: only for hovered/dragged/outlined nodes (few nodes, no batch needed)
   if (
     !lowZoom &&
     (theme.outline.enabled ||
@@ -896,9 +799,7 @@ function renderScene(
     }
   }
 
-  // --- Edge labels ---
-  // Labels only ever draw for the hovered edge / hovered node's edges, so the
-  // whole O(edges) scan is skipped while nothing is hovered.
+  // edge labels --- Labels only ever draw for the hovered edge / hovered node's edges,…
   const hoveredEdgeIdx = hoveredEdgeIndexVisual;
   if (!lowZoom && (hoveredEdgeIdx !== null || hasHoveredNeighbors)) {
     const fontSize = Math.max(8, 10 / Math.max(vp.scale, 0.5));
@@ -953,13 +854,7 @@ function renderScene(
     const fontSize = Math.max(10, 12 / Math.max(vp.scale, 0.5));
     ctx.font = `500 ${fontSize}px "Instrument Sans", system-ui, sans-serif`;
 
-    // Obsidian-style label thinning: only caption a node big enough on screen
-    // to read. As you zoom out, nodes shrink below this and their labels drop
-    // away (biggest hubs persist longest); zooming in fades them back in. This
-    // is also the dominant render-cost lever — at a dense zoom-out the label
-    // pass (fillText + measureText per node) otherwise costs more than the
-    // entire rest of the frame. The hovered node always shows its caption;
-    // neighbours use a lenient half-threshold (see below).
+    // obsidian-style label thinning: only caption a node big enough on screen to read
     const minLabelScreenR = 6;
 
     for (const node of nodes) {
@@ -978,10 +873,7 @@ function renderScene(
 
       if (isDimmed) continue;
 
-      // Neighbour labels get a lenient gate (half the resting threshold):
-      // hover should reveal the neighbourhood, but captioning sub-3px dots in
-      // a dense cluster just stacks unreadable text — Obsidian likewise only
-      // labels neighbours you could actually read at the current zoom.
+      // neighbour labels get a lenient gate (half the resting threshold): hover should reveal…
       const bigEnough = baseRadius * vp.scale >= minLabelScreenR;
       const neighborBigEnough = baseRadius * vp.scale >= minLabelScreenR / 2;
       const showLabel =

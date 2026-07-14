@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation } from "convex/react";
-import { api } from "@vmem/backend";
+import { api, type Id } from "@vmem/backend";
 import {
   Button,
   Dialog,
@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import { optimisticId } from "@/lib/optimisticId";
 
 interface AddMemberDialogProps {
-  teamId: string;
+  teamId: Id<"teams">;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }

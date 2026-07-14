@@ -1,12 +1,16 @@
 "use node";
 
+import type { GenericActionCtx } from "convex/server";
 import { internalAction } from "../../_generated/server";
+import type { DataModel, Id } from "../../_generated/dataModel";
 import { internal } from "../../_generated/api";
 import { v } from "convex/values";
 import { decideDreamCheck } from "../../lib/dreamTriggerDecision";
 import { dreamDepthValidator, type DreamRunResult } from "./runProfile";
 
 const MANUAL_RATE_LIMIT_MS = 60 * 60 * 1000;
+
+type DreamActionCtx = GenericActionCtx<DataModel>;
 
 function emptyDreamResult(reason: DreamRunResult["reason"]): DreamRunResult {
   return {
@@ -23,6 +27,65 @@ function isRateLimited(lastRunAt: number | null | undefined): boolean {
     typeof lastRunAt === "number" &&
     Date.now() - lastRunAt < MANUAL_RATE_LIMIT_MS
   );
+}
+
+// resolve clerkId for a scheduled dream actor; returns no-key result on miss
+async function withClerkId(
+  ctx: DreamActionCtx,
+  userId: Id<"users">,
+  warnContext: string,
+  run: (clerkId: string) => Promise<DreamRunResult>,
+): Promise<DreamRunResult> {
+  const clerkId = await ctx.runQuery(internal.auth.getClerkIdInternal, {
+    userId,
+  });
+  if (!clerkId) {
+    console.warn(`[dream] scheduled run: no clerkId for ${warnContext}`);
+    return emptyDreamResult("no-key");
+  }
+  return run(clerkId);
+}
+
+// notify after an *unattended* run (cron) that actually produced something
+async function notifyScheduledDreamResult(
+  ctx: DreamActionCtx,
+  userId: Id<"users">,
+  result: DreamRunResult,
+): Promise<void> {
+  const { proposalsCreated, memoriesMaterialized } = result;
+  if (proposalsCreated === 0 && memoriesMaterialized === 0) return;
+
+  const parts: string[] = [];
+  if (proposalsCreated > 0) {
+    parts.push(
+      `${String(proposalsCreated)} proposal${proposalsCreated === 1 ? "" : "s"} to review`,
+    );
+  }
+  if (memoriesMaterialized > 0) {
+    parts.push(
+      `${String(memoriesMaterialized)} new memor${memoriesMaterialized === 1 ? "y" : "ies"}`,
+    );
+  }
+
+  await ctx.runMutation(internal.notifications.pushInternal, {
+    userId,
+    title: "Dream Mode finished",
+    description: `${parts.join(" and ")}. Open the Inbox to review.`,
+    type: "info",
+  });
+}
+
+async function runScheduledAndNotify(
+  ctx: DreamActionCtx,
+  userId: Id<"users">,
+  warnContext: string,
+  run: (clerkId: string) => Promise<DreamRunResult>,
+): Promise<DreamRunResult> {
+  return withClerkId(ctx, userId, warnContext, async (clerkId) => {
+    const result = await run(clerkId);
+    await notifyScheduledDreamResult(ctx, userId, result);
+    return result;
+  });
 }
 
 export const maybeRunDreamInternal = internalAction({
@@ -70,6 +133,7 @@ export const maybeRunDreamInternal = internalAction({
     return null;
   },
 });
+
 export const runDreamForProfileById = internalAction({
   args: {
     profileId: v.id("profiles"),
@@ -84,49 +148,16 @@ export const runDreamForProfileById = internalAction({
       );
       return emptyDreamResult("no-recent-memories");
     }
-    const clerkId = await ctx.runQuery(internal.auth.getClerkIdInternal, {
-      userId: profile.userId,
-    });
-    if (!clerkId) {
-      console.warn(
-        `[dream] scheduled run: no clerkId for owner of ${args.profileId}`,
-      );
-      return emptyDreamResult("no-key");
-    }
 
-    return await ctx.runAction(
-      internal.neo4jActions.dreamMode.runDreamForProfileInternal,
-      {
-        clerkId,
-        profileId: args.profileId,
-      },
-    );
-  },
-});
-
-export const runDreamForActiveProfile = internalAction({
-  args: {
-    clerkId: v.string(),
-    profileId: v.id("profiles"),
-  },
-  handler: async (ctx, args): Promise<DreamRunResult> => {
-    const profile = await ctx.runQuery(internal.profiles.getByIdInternal, {
-      profileId: args.profileId,
-    });
-    if (!profile) {
-      throw new Error("Profile not found");
-    }
-
-    if (isRateLimited(profile.lastDreamRunAt)) {
-      return emptyDreamResult("rate-limited");
-    }
-
-    return await ctx.runAction(
-      internal.neo4jActions.dreamMode.runDreamForProfileInternal,
-      {
-        clerkId: args.clerkId,
-        profileId: args.profileId,
-      },
+    return runScheduledAndNotify(
+      ctx,
+      profile.userId,
+      `owner of ${args.profileId}`,
+      (clerkId) =>
+        ctx.runAction(
+          internal.neo4jActions.dreamMode.runDreamForProfileInternal,
+          { clerkId, profileId: args.profileId },
+        ),
     );
   },
 });
@@ -204,19 +235,13 @@ export const runDreamForUserInternal = internalAction({
 
 export const runDreamForUserById = internalAction({
   args: { userId: v.id("users") },
-  handler: async (ctx, args): Promise<DreamRunResult> => {
-    const clerkId = await ctx.runQuery(internal.auth.getClerkIdInternal, {
-      userId: args.userId,
-    });
-    if (!clerkId) {
-      console.warn(`[dream] scheduled run: no clerkId for user ${args.userId}`);
-      return emptyDreamResult("no-key");
-    }
-    return await ctx.runAction(
-      internal.neo4jActions.dreamMode.runDreamForUserInternal,
-      { clerkId, userId: args.userId },
-    );
-  },
+  handler: async (ctx, args): Promise<DreamRunResult> =>
+    runScheduledAndNotify(ctx, args.userId, `user ${args.userId}`, (clerkId) =>
+      ctx.runAction(internal.neo4jActions.dreamMode.runDreamForUserInternal, {
+        clerkId,
+        userId: args.userId,
+      }),
+    ),
 });
 
 export const runDreamForActiveUser = internalAction({
@@ -232,7 +257,7 @@ export const runDreamForActiveUser = internalAction({
     if (isRateLimited(config.lastDreamRunAt)) {
       return emptyDreamResult("rate-limited");
     }
-    return await ctx.runAction(
+    return ctx.runAction(
       internal.neo4jActions.dreamMode.runDreamForUserInternal,
       { clerkId: args.clerkId, userId: args.userId },
     );

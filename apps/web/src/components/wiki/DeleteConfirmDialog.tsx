@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { Doc, Id } from "@vmem/backend";
+import type { WikiListNode, WikiNodeId } from "./-types";
+import { wikiKindLabel } from "./_utils";
 import {
   Button,
   Dialog,
@@ -13,15 +14,12 @@ import {
 } from "@vmem/ui";
 
 interface DeleteConfirmDialogProps {
-  target: Doc<"wikiNodes"> | null;
+  target: WikiListNode | null;
   onClose: () => void;
-  onConfirm: (id: Id<"wikiNodes">) => Promise<void>;
+  onConfirm: (id: WikiNodeId) => Promise<void>;
 }
 
-/**
- * Confirms deletion of a folder or document. Folders warn about recursive
- * deletion of all children.
- */
+// confirms deletion of a folder or document
 export default function DeleteConfirmDialog({
   target,
   onClose,
@@ -40,12 +38,13 @@ export default function DeleteConfirmDialog({
   };
 
   const isFolder = target?.kind === "folder";
+  const kindLabel = target ? wikiKindLabel(target.kind) : "document";
 
   return (
     <Dialog open={target !== null} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>Delete {isFolder ? "folder" : "document"}?</DialogTitle>
+          <DialogTitle>Delete {kindLabel}?</DialogTitle>
           <DialogDescription>
             {isFolder
               ? `"${target?.title}" and everything inside it will be permanently removed.`

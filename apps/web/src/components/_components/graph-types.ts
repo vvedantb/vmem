@@ -1,14 +1,14 @@
-import type { GraphEdgeType } from "./canvas/types";
+import type { GraphEdgeType, GraphNode } from "./canvas/types";
+
+export type GraphDetailNode = Pick<
+  GraphNode,
+  "id" | "title" | "content" | "tags" | "createdAt"
+>;
 
 export interface HoveredNodeInfo {
   id: string;
   title: string;
-  /**
-   * Inline content is only present when the node carried content through the
-   * graph payload (wiki docs, skills, codebase files). Memory nodes omit it —
-   * the parent hooks `useMemoryGraphController` / MemoryGraph then lazy-fetch
-   * content via `getNodeContent` and resolve it before rendering the tooltip.
-   */
+  // inline content is only present when the node carried content through the graph
   content?: string;
   viewportX: number;
   viewportY: number;
@@ -18,9 +18,9 @@ export interface HoveredEdgeInfo {
   edgeType: GraphEdgeType;
   sourceTitle: string;
   targetTitle: string;
-  /** Tag edges: shared tag list. relates_to: reason from API. wiki_parent: null. */
+  // tag edges: shared tag list
   reason: string | null;
-  /** Similarity score (0–1) for semantic similarity edges. */
+  // similarity score (0–1) for semantic similarity edges
   score?: number;
   viewportX: number;
   viewportY: number;

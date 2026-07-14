@@ -19,11 +19,6 @@ interface RenameDialogProps {
   onClose: () => void;
 }
 
-/**
- * Rename a file or folder. Uncontrolled input seeded from `currentName`; the
- * parent remounts this via a `key` per target so each open starts fresh,
- * keeping form state out of FilesClient.
- */
 export default function RenameDialog({
   isOpen,
   currentName,

@@ -10,7 +10,7 @@ type SidebarIconTooltipProps = {
   side?: "top" | "right" | "bottom" | "left";
 };
 
-/** Radix tooltip for icon-only sidebar rail — skipped when labels are visible. */
+// radix tooltip for icon-only sidebar rail — skipped when labels are visible
 export function SidebarIconTooltip({
   label,
   enabled,

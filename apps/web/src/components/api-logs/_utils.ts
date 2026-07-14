@@ -1,11 +1,13 @@
-export interface ApiRequestEntry {
-  endpoint: string;
-  status: number;
-  durationMs: number;
-  originalTimestamp: number;
-}
+import type { FunctionReturnType } from "convex/server";
+import type { api } from "@vmem/backend";
 
-export interface ApiUsageTrends {
+export type ApiRequestEntries = FunctionReturnType<
+  typeof api.auditLog.listMyApiRequestEntries
+>;
+
+export type ApiRequestEntry = ApiRequestEntries[number];
+
+interface ApiUsageTrends {
   requests: number[];
   successRates: number[];
   avgDurations: number[];
@@ -27,15 +29,19 @@ function startOfLocalDay(timestamp: number): number {
   return date.getTime();
 }
 
-/** Aggregate request volume, success rate, latency, and 7-day trends. */
+export function isSuccessStatus(status: number): boolean {
+  return status >= 200 && status < 300;
+}
+
+// aggregate request volume, success rate, latency, and 7-day trends
 export function computeApiUsageMetrics(
-  entries: ApiRequestEntry[],
+  entries: ApiRequestEntries,
 ): ApiUsageMetrics {
   let successCount = 0;
   let totalDuration = 0;
 
   for (const entry of entries) {
-    if (entry.status >= 200 && entry.status < 300) successCount += 1;
+    if (isSuccessStatus(entry.status)) successCount += 1;
     totalDuration += entry.durationMs;
   }
 
@@ -50,11 +56,16 @@ export function computeApiUsageMetrics(
   };
 }
 
-function buildDailyTrends(entries: ApiRequestEntry[]): ApiUsageTrends {
+function buildDailyTrends(entries: ApiRequestEntries): ApiUsageTrends {
   const todayStart = startOfLocalDay(Date.now());
-  const dayStarts = Array.from({ length: TREND_DAY_COUNT }, (_, index) => {
-    return todayStart - (TREND_DAY_COUNT - 1 - index) * DAY_MS;
-  });
+  const dayStarts = Array.from(
+    { length: TREND_DAY_COUNT },
+    (_, index) => todayStart - (TREND_DAY_COUNT - 1 - index) * DAY_MS,
+  );
+
+  const dayStartToBucketIndex = new Map(
+    dayStarts.map((dayStart, index) => [dayStart, index]),
+  );
 
   const buckets = dayStarts.map((dayStart) => ({
     dayStart,
@@ -65,16 +76,14 @@ function buildDailyTrends(entries: ApiRequestEntry[]): ApiUsageTrends {
 
   for (const entry of entries) {
     const entryDayStart = startOfLocalDay(entry.originalTimestamp);
-    const bucketIndex = dayStarts.findIndex(
-      (dayStart) => dayStart === entryDayStart,
-    );
-    if (bucketIndex < 0) continue;
+    const bucketIndex = dayStartToBucketIndex.get(entryDayStart);
+    if (bucketIndex === undefined) continue;
 
     const bucket = buckets[bucketIndex];
     if (bucket === undefined) continue;
 
     bucket.requests += 1;
-    if (entry.status >= 200 && entry.status < 300) bucket.successCount += 1;
+    if (isSuccessStatus(entry.status)) bucket.successCount += 1;
     bucket.totalDuration += entry.durationMs;
   }
 
@@ -87,8 +96,4 @@ function buildDailyTrends(entries: ApiRequestEntry[]): ApiUsageTrends {
       bucket.requests === 0 ? 0 : bucket.totalDuration / bucket.requests,
     ),
   };
-}
-
-export function hasTrendActivity(trend: number[]): boolean {
-  return trend.some((value) => value > 0);
 }

@@ -2,16 +2,21 @@ import { z } from "zod";
 import { HttpClient } from "./http-client";
 import { VMemoryError } from "./errors";
 import {
+  parseDeleteMemoryResult,
+  parseHealthResult,
   parseMemoryWithTagsResponse,
   parseRetrieveResult,
   parseStoreInstructionResult,
   parseUpdateInstructionResult,
 } from "./validators";
 import type {
+  DeleteMemoryResult,
+  HealthResult,
   MemoryWithTags,
   RetrieveResult,
   StoreInstructionResult,
   StructuredCreateMemoryInput,
+  StructuredDeleteMemoryInput,
   StructuredPatchMemoryInput,
   StructuredRetrieveInput,
   UpdateInstructionResult,
@@ -55,6 +60,25 @@ function resolveRequiredOption(
   return resolved;
 }
 
+type RetrieveBodyInput = {
+  limit?: number;
+  type?: string;
+  tags?: string[];
+  summarize?: boolean;
+  profileId?: string;
+};
+
+function buildRetrieveBody(query: string, options: RetrieveBodyInput): object {
+  return {
+    query,
+    limit: options.limit ?? 10,
+    ...(options.profileId ? { profileId: options.profileId } : {}),
+    ...(options.type ? { type: options.type } : {}),
+    ...(options.tags ? { tags: options.tags } : {}),
+    ...(options.summarize ? { summarize: true } : {}),
+  };
+}
+
 export class VMemory {
   private readonly client: HttpClient;
   private readonly defaultProfileId?: string;
@@ -80,7 +104,7 @@ export class VMemory {
     return options?.profileId ?? this.defaultProfileId;
   }
 
-  async store(
+  async save(
     instruction: string,
     options?: VMemoryRequestOptions,
   ): Promise<StoreInstructionResult> {
@@ -104,7 +128,7 @@ export class VMemory {
     return parseUpdateInstructionResult(data);
   }
 
-  async retrieve(
+  async search(
     query: string,
     options?: VMemoryRequestOptions & {
       limit?: number;
@@ -113,44 +137,52 @@ export class VMemory {
       summarize?: boolean;
     },
   ): Promise<RetrieveResult> {
-    const profileId = this.resolveProfileId(options);
-    const data = await this.client.post("/api/v1/memories/retrieve", {
-      query,
-      limit: options?.limit ?? 10,
-      ...(profileId ? { profileId } : {}),
-      ...(options?.type ? { type: options.type } : {}),
-      ...(options?.tags ? { tags: options.tags } : {}),
-      ...(options?.summarize ? { summarize: true } : {}),
-    });
+    const data = await this.client.post(
+      "/api/v1/memories/retrieve",
+      buildRetrieveBody(query, {
+        limit: options?.limit,
+        type: options?.type,
+        tags: options?.tags,
+        summarize: options?.summarize,
+        profileId: this.resolveProfileId(options),
+      }),
+    );
     return parseRetrieveResult(data);
   }
 
   async createMemory(
     input: StructuredCreateMemoryInput,
   ): Promise<MemoryWithTags> {
-    const data = await this.client.post("/api/v1/memories", { ...input });
+    const data = await this.client.post("/api/v1/memories", input);
     return parseMemoryWithTagsResponse(data);
   }
 
   async patchMemory(
     input: StructuredPatchMemoryInput,
   ): Promise<MemoryWithTags> {
-    const data = await this.client.patch("/api/v1/memories", { ...input });
+    const data = await this.client.patch("/api/v1/memories", input);
     return parseMemoryWithTagsResponse(data);
+  }
+
+  async deleteMemory(
+    input: StructuredDeleteMemoryInput,
+  ): Promise<DeleteMemoryResult> {
+    const data = await this.client.delete("/api/v1/memories", input);
+    return parseDeleteMemoryResult(data);
   }
 
   async searchMemories(
     input: StructuredRetrieveInput,
   ): Promise<RetrieveResult> {
-    const data = await this.client.post("/api/v1/memories/retrieve", {
-      query: input.query,
-      limit: input.limit ?? 10,
-      ...(input.profileId ? { profileId: input.profileId } : {}),
-      ...(input.type ? { type: input.type } : {}),
-      ...(input.tags ? { tags: input.tags } : {}),
-      ...(input.summarize ? { summarize: true } : {}),
-    });
+    const data = await this.client.post(
+      "/api/v1/memories/retrieve",
+      buildRetrieveBody(input.query, input),
+    );
     return parseRetrieveResult(data);
+  }
+
+  async health(): Promise<HealthResult> {
+    return parseHealthResult(await this.client.getRaw("/health"));
   }
 }
 

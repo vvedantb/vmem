@@ -1,7 +1,4 @@
-/**
- * Animated counter that counts up from 0 to target value.
- * Uses spring animation for natural motion.
- */
+// animated counter that counts up from 0 to target value
 "use client";
 
 import { motion, useSpring, useTransform, useInView } from "motion/react";
@@ -9,15 +6,15 @@ import { useEffect, useRef } from "react";
 import { cn } from "@vmem/ui";
 
 interface AnimatedCounterProps {
-  /** Target value to count up to */
+  // target value to count up to
   value: number;
-  /** Duration of the animation in seconds */
+  // duration of the animation in seconds
   duration?: number;
-  /** CSS class for styling */
+  // CSS class for styling
   className?: string;
-  /** Format function for the displayed number */
+  // format function for the displayed number
   formatValue?: (value: number) => string;
-  /** Whether to animate on scroll into view */
+  // whether to animate on scroll into view
   animateOnView?: boolean;
 }
 

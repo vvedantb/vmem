@@ -35,11 +35,11 @@ export function getProfileIcon(iconName: string): TablerIcon {
   return IconUser;
 }
 
-/** Ordered icon choices for the profile create/edit picker. */
+// ordered icon choices for the profile create/edit picker
 export const PROFILE_ICON_OPTIONS: { name: string; icon: TablerIcon }[] =
   Object.entries(PROFILE_ICON_MAP).map(([name, icon]) => ({ name, icon }));
 
-/** Colour swatches for the profile create/edit picker. */
+// colour swatches for the profile create/edit picker
 export const PROFILE_COLORS = [
   "#171717", // black (brand default)
   "#10B981", // emerald
