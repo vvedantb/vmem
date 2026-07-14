@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { useQueryStates } from "nuqs";
 import { useQuery, usePaginatedQuery } from "convex/react";
 import {
@@ -21,6 +21,7 @@ import {
   PROFILE_FILTER_ALL,
   type Feature,
   type Range,
+  type Scope,
   type SortDirection,
 } from "../-searchParams";
 import { LogsSummary } from "./LogsSummary";
@@ -39,37 +40,30 @@ const PAGE_SIZE = 50;
  * Reads filter params from the URL and renders summary + filterable
  * virtualised table (table scrolls inside a capped card region).
  */
+/**
+ * Effective scope for the AI logs, derived rather than written back to the
+ * URL. An explicit `?scope=` (set by the scope selector) wins; otherwise we
+ * follow the active workspace, so a team route never opens on personal spend
+ * and vice versa. Deriving keeps the selector usable — forcing the params
+ * from an effect would immediately stomp whatever the user picked.
+ */
+function useAiLogsScope(params: {
+  scope: Scope | null;
+  teamId: string | null;
+}) {
+  const activeProfile = useActiveProfile();
+  if (params.scope !== null) {
+    return { scope: params.scope, teamIdParam: params.teamId ?? "" };
+  }
+  if (activeProfile.teamId !== undefined) {
+    return { scope: "team" as const, teamIdParam: activeProfile.teamId };
+  }
+  return { scope: "personal" as const, teamIdParam: "" };
+}
+
 export function AiLogsPanel() {
   const [params, setParams] = useQueryStates(aiLogsSearchParams);
-  const activeProfile = useActiveProfile();
-
-  // Keep AI logs scoped to the active workspace so a team route never opens
-  // on personal spend (and vice versa) via the static `personal` URL default.
-  useEffect(() => {
-    if (activeProfile.teamId !== undefined) {
-      if (params.scope !== "team" || params.teamId !== activeProfile.teamId) {
-        void setParams({
-          scope: "team",
-          teamId: activeProfile.teamId,
-          profileId: PROFILE_FILTER_ALL,
-        });
-      }
-      return;
-    }
-    if (params.scope === "team") {
-      void setParams({
-        scope: "personal",
-        teamId: "",
-        profileId: PROFILE_FILTER_ALL,
-      });
-    }
-  }, [
-    activeProfile.teamId,
-    activeProfile._id,
-    params.scope,
-    params.teamId,
-    setParams,
-  ]);
+  const { scope, teamIdParam } = useAiLogsScope(params);
 
   // Profiles + teams power the scope selector and the per-row profile badge
   // lookup. Both are user-scoped queries — we don't need to gate on auth
@@ -78,14 +72,14 @@ export function AiLogsPanel() {
   const teams = useQuery(api.teams.list);
 
   const teamId =
-    params.scope === "team" && params.teamId.length > 0
-      ? normalizeTeamId(params.teamId, teams)
+    scope === "team" && teamIdParam.length > 0
+      ? normalizeTeamId(teamIdParam, teams)
       : undefined;
 
   const listArgs = useMemo(() => {
-    if (params.scope === "team" && !teamId) return "skip" as const;
+    if (scope === "team" && !teamId) return "skip" as const;
     return {
-      scope: params.scope,
+      scope,
       teamId,
       profileId: isAllProfilesFilter(params.profileId)
         ? undefined
@@ -95,7 +89,7 @@ export function AiLogsPanel() {
       range: params.range,
     };
   }, [
-    params.scope,
+    scope,
     teamId,
     params.profileId,
     params.features,
@@ -114,13 +108,13 @@ export function AiLogsPanel() {
   }, [paged.results, params.sortDir]);
 
   const summaryArgs = useMemo(() => {
-    if (params.scope === "team" && !teamId) return "skip" as const;
+    if (scope === "team" && !teamId) return "skip" as const;
     return {
-      scope: params.scope,
+      scope,
       teamId,
       range: params.range,
     };
-  }, [params.scope, teamId, params.range]);
+  }, [scope, teamId, params.range]);
 
   const summary = useQuery(api.openRouterLogs.summaryMine, summaryArgs);
 
@@ -184,20 +178,17 @@ export function AiLogsPanel() {
  */
 export function AiLogsRightSection() {
   const [params, setParams] = useQueryStates(aiLogsSearchParams);
+  const { scope, teamIdParam } = useAiLogsScope(params);
   const profiles = useQuery(api.profiles.list);
   const teams = useQuery(api.teams.list);
 
   const teamId =
-    params.scope === "team" && params.teamId.length > 0
-      ? normalizeTeamId(params.teamId, teams)
+    scope === "team" && teamIdParam.length > 0
+      ? normalizeTeamId(teamIdParam, teams)
       : undefined;
 
   const distinctModelsArgs =
-    params.scope === "team"
-      ? teamId
-        ? { scope: params.scope, teamId }
-        : "skip"
-      : { scope: params.scope };
+    scope === "team" ? (teamId ? { scope, teamId } : "skip") : { scope };
   const availableModelsResult = useQuery(
     api.openRouterLogs.distinctModelsMine,
     distinctModelsArgs,
@@ -221,8 +212,8 @@ export function AiLogsRightSection() {
   return (
     <div className="flex items-center gap-2">
       <LogsFiltersDropdown
-        scope={params.scope}
-        teamId={params.teamId}
+        scope={scope}
+        teamId={teamIdParam}
         teams={teamOptions}
         onScopeChange={(scope, nextTeamId) =>
           setParams({ scope, teamId: nextTeamId ?? "" })

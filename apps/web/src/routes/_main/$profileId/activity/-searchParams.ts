@@ -66,9 +66,12 @@ export function isAllProfilesFilter(profileId: string): boolean {
   return profileId === PROFILE_FILTER_ALL || profileId === "";
 }
 
+// `scope`/`teamId` intentionally have no static default: absent means "follow
+// the active workspace" (see useAiLogsScope). A hardcoded "personal" default
+// would open a team route on personal spend until the user touched the filter.
 export const aiLogsSearchParams = {
-  scope: parseAsStringLiteral(scopes).withDefault("personal"),
-  teamId: parseAsString.withDefault(""),
+  scope: parseAsStringLiteral(scopes),
+  teamId: parseAsString,
   profileId: parseAsString.withDefault(PROFILE_FILTER_ALL),
   features: parseAsArrayOf(parseAsStringLiteral(FEATURES), ",").withDefault([]),
   models: parseAsArrayOf(parseAsString, ",").withDefault([]),
