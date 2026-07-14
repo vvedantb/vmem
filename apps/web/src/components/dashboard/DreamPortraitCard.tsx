@@ -6,9 +6,8 @@ import { formatRelativeTime } from "@/lib/formatters";
 // dream Mode's evolving portrait of this workspace's owner
 export function DreamPortraitCard() {
   const profile = useActiveProfile();
-  if (profile.dreamPortrait === undefined || profile.dreamPortrait === "") {
-    return null;
-  }
+  if (!profile.dreamPortrait) return null;
+
   const sourceCount = profile.dreamPortraitSources?.length ?? 0;
 
   return (
@@ -24,7 +23,7 @@ export function DreamPortraitCard() {
           <span className="text-xs text-muted">
             Dreamt {formatRelativeTime(profile.dreamPortraitUpdatedAt ?? null)}
             {sourceCount > 0 &&
-              ` · grounded in ${String(sourceCount)} ${sourceCount === 1 ? "memory" : "memories"}`}
+              ` · grounded in ${sourceCount} ${sourceCount === 1 ? "memory" : "memories"}`}
           </span>
         </div>
         <p className="whitespace-pre-wrap break-words text-sm text-muted">

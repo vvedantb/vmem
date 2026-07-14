@@ -3,12 +3,8 @@ interface SparklineProps {
   strokeClassName: string;
 }
 
-function hasActivity(data: number[]): boolean {
-  return data.some((value) => value > 0);
-}
-
 export function Sparkline({ data, strokeClassName }: SparklineProps) {
-  if (!hasActivity(data)) {
+  if (!data.some((value) => value > 0)) {
     return (
       <div aria-hidden className="flex h-10 items-end gap-0.5 opacity-40">
         {data.map((_, index) => (
@@ -28,15 +24,14 @@ export function Sparkline({ data, strokeClassName }: SparklineProps) {
   const min = Math.min(...data);
   const max = Math.max(...data);
   const range = max - min || 1;
+  const span = Math.max(data.length - 1, 1);
 
   const points = data.map((value, index) => {
-    const x = padding + (index / (data.length - 1)) * (width - padding * 2);
+    const x = padding + (index / span) * (width - padding * 2);
     const y =
       height - padding - ((value - min) / range) * (height - padding * 2);
     return `${x},${y}`;
   });
-
-  const linePath = `M${points.join(" L")}`;
 
   return (
     <svg
@@ -46,7 +41,7 @@ export function Sparkline({ data, strokeClassName }: SparklineProps) {
       aria-hidden
     >
       <path
-        d={linePath}
+        d={`M${points.join(" L")}`}
         fill="none"
         stroke="currentColor"
         className={strokeClassName}

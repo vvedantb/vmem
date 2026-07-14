@@ -3,6 +3,7 @@
 import { IconChartBar } from "@tabler/icons-react";
 import { Card, CardContent, cn } from "@vmem/ui";
 import { formatRelativeTime, formatDuration } from "@/lib/formatters";
+import { isSuccessStatus } from "./_utils";
 
 interface ApiLogItem {
   id: string;
@@ -13,7 +14,7 @@ interface ApiLogItem {
 }
 
 function getStatusClassName(status: number): string {
-  if (status >= 200 && status < 300) return "bg-success/10 text-success";
+  if (isSuccessStatus(status)) return "bg-success/10 text-success";
   if (status >= 400) return "bg-danger/10 text-danger";
   return "bg-warning/10 text-warning";
 }
@@ -63,10 +64,7 @@ function ApiLogRow({ log }: { log: ApiLogItem }) {
           >
             {log.status}
           </span>
-          <span className="text-xs text-muted tabular-nums md:hidden">
-            {formatDuration(log.durationMs)}
-          </span>
-          <span className="hidden text-sm text-muted tabular-nums md:inline">
+          <span className="text-xs text-muted tabular-nums md:text-sm">
             {formatDuration(log.durationMs)}
           </span>
           <span className="hidden text-sm text-muted sm:inline">

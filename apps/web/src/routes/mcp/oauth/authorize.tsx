@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SignInButton, useAuth } from "@clerk/clerk-react";
 import { useConvexAuth, useMutation } from "convex/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { api } from "@vmem/backend";
 import { Button, Spinner } from "@vmem/ui";
 import {
@@ -112,7 +112,7 @@ function SignInPrompt() {
   );
 }
 
-function Status({ children }: { children: React.ReactNode }) {
+function Status({ children }: { children: ReactNode }) {
   return (
     <div className="flex flex-col items-center gap-3">
       <Spinner size="md" />
@@ -121,7 +121,7 @@ function Status({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Shell({ children }: { children: React.ReactNode }) {
+function Shell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="flex w-full max-w-sm flex-col items-center gap-6">

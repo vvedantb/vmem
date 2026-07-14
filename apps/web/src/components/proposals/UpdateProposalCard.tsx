@@ -2,7 +2,7 @@ import { Button } from "@vmem/ui";
 import { IconCheck, IconPencil, IconTrash, IconX } from "@tabler/icons-react";
 import type { ProposedUpdate } from "@/hooks/useProposals";
 import { proposalAccentClass } from "./_proposalUtils";
-import { ProposalFieldLabel, ProposalShell } from "./ProposalShell";
+import { ProposalShell, ProposalTextBlock } from "./ProposalShell";
 
 export function UpdateProposalCard({
   proposal,
@@ -69,63 +69,31 @@ export function UpdateProposalCard({
         </>
       }
     >
-      <Reason text={proposal.reason} />
+      {proposal.reason.trim() !== "" && (
+        <ProposalTextBlock label="Reason" muted>
+          {proposal.reason}
+        </ProposalTextBlock>
+      )}
       {isDelete ? (
-        <DeleteSnapshot text={targetContent} />
+        <ProposalTextBlock
+          label="Memory body (will be deleted)"
+          className="bg-danger/10"
+        >
+          {targetContent || "(empty)"}
+        </ProposalTextBlock>
       ) : (
-        <UpdateDiff
-          oldText={targetContent}
-          newText={proposal.proposedContent}
-        />
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <ProposalTextBlock label="Current" muted>
+            {targetContent || "(empty)"}
+          </ProposalTextBlock>
+          <ProposalTextBlock
+            label="Proposed"
+            className="bg-surface-secondary/70"
+          >
+            {proposal.proposedContent}
+          </ProposalTextBlock>
+        </div>
       )}
     </ProposalShell>
-  );
-}
-
-function Reason({ text }: { text: string }) {
-  if (!text.trim()) return null;
-  return (
-    <div className="rounded-lg bg-surface-secondary/50 p-3">
-      <ProposalFieldLabel>Reason</ProposalFieldLabel>
-      <p className="whitespace-pre-wrap break-words text-sm text-muted">
-        {text}
-      </p>
-    </div>
-  );
-}
-
-function UpdateDiff({
-  oldText,
-  newText,
-}: {
-  oldText: string;
-  newText: string;
-}) {
-  return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-      <div className="rounded-lg bg-surface-secondary/50 p-3">
-        <ProposalFieldLabel>Current</ProposalFieldLabel>
-        <p className="whitespace-pre-wrap break-words text-sm text-muted">
-          {oldText || "(empty)"}
-        </p>
-      </div>
-      <div className="rounded-lg bg-surface-secondary/70 p-3">
-        <ProposalFieldLabel>Proposed</ProposalFieldLabel>
-        <p className="whitespace-pre-wrap break-words text-sm text-foreground">
-          {newText}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function DeleteSnapshot({ text }: { text: string }) {
-  return (
-    <div className="rounded-lg bg-danger/10 p-3">
-      <ProposalFieldLabel>Memory body (will be deleted)</ProposalFieldLabel>
-      <p className="whitespace-pre-wrap break-words text-sm text-foreground">
-        {text || "(empty)"}
-      </p>
-    </div>
   );
 }

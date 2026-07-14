@@ -1,20 +1,17 @@
 "use client";
 
-import type { FunctionReturnType } from "convex/server";
 import { IconChartBarOff } from "@tabler/icons-react";
 import { motion } from "motion/react";
 import { Card, CardContent } from "@vmem/ui";
-import type { api } from "@vmem/backend";
-
-type StatsData = FunctionReturnType<typeof api.dashboardApi.getStats>;
-
-interface MemoryGrowthChartProps {
-  growthData: StatsData["growthData"];
-}
+import type { DashboardStats } from "./_utils";
 
 const CHART_HEIGHT = 180;
 
-export function MemoryGrowthChart({ growthData }: MemoryGrowthChartProps) {
+export function MemoryGrowthChart({
+  growthData,
+}: {
+  growthData: DashboardStats["growthData"];
+}) {
   const maxTotal = Math.max(...growthData.map((day) => day.total), 1);
   const plotHeight = CHART_HEIGHT - 30;
 

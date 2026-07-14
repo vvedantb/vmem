@@ -15,7 +15,7 @@ import {
 import type { api } from "@vmem/backend";
 import { formatRelativeTime, formatDate, formatNumber } from "@/lib/formatters";
 
-type ApiKey = FunctionReturnType<typeof api.apiKeys.listMy>[number];
+export type ApiKey = FunctionReturnType<typeof api.apiKeys.listMy>[number];
 
 interface ApiKeyRowProps {
   apiKey: ApiKey;
@@ -66,40 +66,40 @@ export function ApiKeyRow({
           <code className="text-sm text-muted font-mono">
             {revealedKey ?? "vmem_sk_••••••••••••••••"}
           </code>
-          {isActive && (
-            <Button
-              size="icon-sm"
-              variant="ghost"
-              onClick={() => onToggleReveal(apiKey.id)}
-              disabled={revealingKeyId === apiKey.id}
-              title={revealedKey ? "Hide key" : "Reveal key"}
-            >
-              {revealingKeyId === apiKey.id ? (
-                <IconLoader2 size={14} className="animate-spin" />
-              ) : revealedKey ? (
-                <IconEyeOff size={14} />
-              ) : (
-                <IconEye size={14} />
-              )}
-            </Button>
-          )}
-          {isActive && (
-            <Button
-              size="icon-sm"
-              variant="ghost"
-              onClick={() => onCopy(apiKey.id)}
-              disabled={copyingKeyId === apiKey.id}
-              title={copiedKeyId === apiKey.id ? "Copied!" : "Copy key"}
-            >
-              {copyingKeyId === apiKey.id ? (
-                <IconLoader2 size={14} className="animate-spin" />
-              ) : copiedKeyId === apiKey.id ? (
-                <IconCheck size={14} className="text-accent" />
-              ) : (
-                <IconCopy size={14} />
-              )}
-            </Button>
-          )}
+          {isActive ? (
+            <>
+              <Button
+                size="icon-sm"
+                variant="ghost"
+                onClick={() => onToggleReveal(apiKey.id)}
+                disabled={revealingKeyId === apiKey.id}
+                title={revealedKey ? "Hide key" : "Reveal key"}
+              >
+                {revealingKeyId === apiKey.id ? (
+                  <IconLoader2 size={14} className="animate-spin" />
+                ) : revealedKey ? (
+                  <IconEyeOff size={14} />
+                ) : (
+                  <IconEye size={14} />
+                )}
+              </Button>
+              <Button
+                size="icon-sm"
+                variant="ghost"
+                onClick={() => onCopy(apiKey.id)}
+                disabled={copyingKeyId === apiKey.id}
+                title={copiedKeyId === apiKey.id ? "Copied!" : "Copy key"}
+              >
+                {copyingKeyId === apiKey.id ? (
+                  <IconLoader2 size={14} className="animate-spin" />
+                ) : copiedKeyId === apiKey.id ? (
+                  <IconCheck size={14} className="text-accent" />
+                ) : (
+                  <IconCopy size={14} />
+                )}
+              </Button>
+            </>
+          ) : null}
         </div>
       </TableCell>
       <TableCell className="hidden lg:table-cell py-4">

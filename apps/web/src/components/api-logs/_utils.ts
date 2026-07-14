@@ -27,6 +27,10 @@ function startOfLocalDay(timestamp: number): number {
   return date.getTime();
 }
 
+export function isSuccessStatus(status: number): boolean {
+  return status >= 200 && status < 300;
+}
+
 // aggregate request volume, success rate, latency, and 7-day trends
 export function computeApiUsageMetrics(
   entries: ApiRequestEntry[],
@@ -35,7 +39,7 @@ export function computeApiUsageMetrics(
   let totalDuration = 0;
 
   for (const entry of entries) {
-    if (entry.status >= 200 && entry.status < 300) successCount += 1;
+    if (isSuccessStatus(entry.status)) successCount += 1;
     totalDuration += entry.durationMs;
   }
 
@@ -52,9 +56,10 @@ export function computeApiUsageMetrics(
 
 function buildDailyTrends(entries: ApiRequestEntry[]): ApiUsageTrends {
   const todayStart = startOfLocalDay(Date.now());
-  const dayStarts = Array.from({ length: TREND_DAY_COUNT }, (_, index) => {
-    return todayStart - (TREND_DAY_COUNT - 1 - index) * DAY_MS;
-  });
+  const dayStarts = Array.from(
+    { length: TREND_DAY_COUNT },
+    (_, index) => todayStart - (TREND_DAY_COUNT - 1 - index) * DAY_MS,
+  );
 
   const buckets = dayStarts.map((dayStart) => ({
     dayStart,
@@ -74,7 +79,7 @@ function buildDailyTrends(entries: ApiRequestEntry[]): ApiUsageTrends {
     if (bucket === undefined) continue;
 
     bucket.requests += 1;
-    if (entry.status >= 200 && entry.status < 300) bucket.successCount += 1;
+    if (isSuccessStatus(entry.status)) bucket.successCount += 1;
     bucket.totalDuration += entry.durationMs;
   }
 

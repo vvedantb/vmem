@@ -4,9 +4,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useMutation, useAction } from "convex/react";
 import { toast } from "sonner";
 import { api } from "@vmem/backend";
-import type { FunctionReturnType } from "convex/server";
-
-type ApiKey = FunctionReturnType<typeof api.apiKeys.listMy>[number];
+import type { ApiKey } from "./ApiKeyRow";
 
 export function useApiKeyActions() {
   const revokeApiKey = useMutation(api.apiKeys.revokeMy).withOptimisticUpdate(

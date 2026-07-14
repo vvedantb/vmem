@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { useAction } from "convex/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -14,7 +14,7 @@ export default function RunDreamModeButton() {
   const queryClient = useQueryClient();
   const [isRunning, setIsRunning] = useState(false);
 
-  const handleClick = useCallback(async () => {
+  async function handleClick() {
     if (isRunning) return;
     setIsRunning(true);
     try {
@@ -25,18 +25,16 @@ export default function RunDreamModeButton() {
           const materialized = result.memoriesMaterialized;
           if (created === 0 && materialized === 0) {
             toast.success(
-              `Scanned ${String(result.clustersScanned)} clusters — no new synthesis surfaced`,
+              `Scanned ${result.clustersScanned} clusters — no new synthesis surfaced`,
             );
           } else {
             const parts: string[] = [];
             if (created > 0) {
-              parts.push(
-                `${String(created)} proposal${created === 1 ? "" : "s"}`,
-              );
+              parts.push(`${created} proposal${created === 1 ? "" : "s"}`);
             }
             if (materialized > 0) {
               parts.push(
-                `${String(materialized)} auto-accepted ${
+                `${materialized} auto-accepted ${
                   materialized === 1 ? "memory" : "memories"
                 }`,
               );
@@ -66,14 +64,16 @@ export default function RunDreamModeButton() {
     } finally {
       setIsRunning(false);
     }
-  }, [isRunning, queryClient, runDreamForUser]);
+  }
 
   return (
     <Button
       type="button"
       size="sm"
       variant="secondary"
-      onClick={handleClick}
+      onClick={() => {
+        void handleClick();
+      }}
       disabled={isRunning}
       className="gap-1.5"
     >

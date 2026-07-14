@@ -1,6 +1,5 @@
 "use client";
 
-import type { FunctionReturnType } from "convex/server";
 import type { TablerIcon } from "@tabler/icons-react";
 import {
   IconBrain,
@@ -10,11 +9,9 @@ import {
 } from "@tabler/icons-react";
 import { motion } from "motion/react";
 import { Card, CardContent } from "@vmem/ui";
-import type { api } from "@vmem/backend";
 import { AnimatedCounter } from "../svg-animations";
 import { Sparkline } from "./Sparkline";
-
-type StatsData = FunctionReturnType<typeof api.dashboardApi.getStats>;
+import type { DashboardStats } from "./_utils";
 
 interface StatCardConfig {
   label: string;
@@ -22,7 +19,6 @@ interface StatCardConfig {
   icon: TablerIcon;
   trendData?: number[];
   strokeClassName?: string;
-  showSparkline?: boolean;
 }
 
 function StatCard({
@@ -31,9 +27,18 @@ function StatCard({
   icon: Icon,
   trendData,
   strokeClassName,
-  showSparkline,
   index,
 }: StatCardConfig & { index: number }) {
+  const sparkline =
+    trendData !== undefined && strokeClassName !== undefined ? (
+      <div className="mt-auto pt-1">
+        <Sparkline data={trendData} strokeClassName={strokeClassName} />
+        <p className="mt-1.5 text-[11px] text-muted">Last 7 days</p>
+      </div>
+    ) : (
+      <div className="mt-auto" />
+    );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -56,25 +61,14 @@ function StatCard({
           <p className="font-instrumentSerif text-3xl leading-none tabular-nums text-foreground">
             <AnimatedCounter value={value} duration={0.8} />
           </p>
-          {showSparkline && trendData && strokeClassName ? (
-            <div className="mt-auto pt-1">
-              <Sparkline data={trendData} strokeClassName={strokeClassName} />
-              <p className="mt-1.5 text-[11px] text-muted">Last 7 days</p>
-            </div>
-          ) : (
-            <div className="mt-auto" />
-          )}
+          {sparkline}
         </CardContent>
       </Card>
     </motion.div>
   );
 }
 
-interface DashboardStatCardsProps {
-  stats: StatsData;
-}
-
-export function DashboardStatCards({ stats }: DashboardStatCardsProps) {
+export function DashboardStatCards({ stats }: { stats: DashboardStats }) {
   const totalTrend = stats.growthData.map((day) => day.total);
   const newTrend = stats.growthData.map((day) => day.new);
 
@@ -85,7 +79,6 @@ export function DashboardStatCards({ stats }: DashboardStatCardsProps) {
       icon: IconBrain,
       trendData: totalTrend,
       strokeClassName: "text-foreground/70",
-      showSparkline: true,
     },
     {
       label: "Added today",
@@ -93,7 +86,6 @@ export function DashboardStatCards({ stats }: DashboardStatCardsProps) {
       icon: IconSparkles,
       trendData: newTrend,
       strokeClassName: "text-accent",
-      showSparkline: true,
     },
     {
       label: "This week",

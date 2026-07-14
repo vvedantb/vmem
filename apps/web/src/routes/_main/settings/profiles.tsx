@@ -169,38 +169,36 @@ function DeleteProfileDialog({
                 <IconCheck className="h-4 w-4 ml-auto" />
               )}
             </Button>
-            {otherProfiles.map((p) => {
-              return (
-                <Button
-                  key={p._id}
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setMoveToProfileId(p._id)}
-                  className={cn(
-                    "h-auto w-full justify-start gap-3 rounded-lg p-3 text-left transition-colors active:scale-100",
-                    moveToProfileId === p._id
-                      ? "bg-surface-tertiary text-foreground hover:bg-surface-tertiary"
-                      : "bg-surface-secondary hover:bg-surface-tertiary/50",
-                  )}
-                >
-                  <ProfileAvatar
-                    icon={p.icon}
-                    color={p.color}
-                    className="h-6 w-6 rounded"
-                    iconClassName="h-3.5 w-3.5"
-                  />
-                  <div>
-                    <p className="text-sm font-medium">Move to {p.name}</p>
-                    <p className="text-xs text-muted">
-                      Transfer all memories to this profile
-                    </p>
-                  </div>
-                  {moveToProfileId === p._id && (
-                    <IconCheck className="h-4 w-4 ml-auto" />
-                  )}
-                </Button>
-              );
-            })}
+            {otherProfiles.map((p) => (
+              <Button
+                key={p._id}
+                type="button"
+                variant="ghost"
+                onClick={() => setMoveToProfileId(p._id)}
+                className={cn(
+                  "h-auto w-full justify-start gap-3 rounded-lg p-3 text-left transition-colors active:scale-100",
+                  moveToProfileId === p._id
+                    ? "bg-surface-tertiary text-foreground hover:bg-surface-tertiary"
+                    : "bg-surface-secondary hover:bg-surface-tertiary/50",
+                )}
+              >
+                <ProfileAvatar
+                  icon={p.icon}
+                  color={p.color}
+                  className="h-6 w-6 rounded"
+                  iconClassName="h-3.5 w-3.5"
+                />
+                <div>
+                  <p className="text-sm font-medium">Move to {p.name}</p>
+                  <p className="text-xs text-muted">
+                    Transfer all memories to this profile
+                  </p>
+                </div>
+                {moveToProfileId === p._id && (
+                  <IconCheck className="h-4 w-4 ml-auto" />
+                )}
+              </Button>
+            ))}
           </div>
         </div>
         <DialogFooter>
@@ -247,16 +245,13 @@ function DefaultProfilesSection({ profiles }: { profiles: Profile[] }) {
   const extensionDefault =
     profiles.find((p) => p._id === extensionDefaultId) ?? defaultProfile;
 
-  const handleDefaultProfileChange = async (
-    source: "extension",
-    profileId: string,
-  ) => {
+  const handleDefaultProfileChange = async (profileId: string) => {
     const profile = profiles.find((p) => p._id === profileId);
     if (!profile) return;
 
     try {
       await setDefaultProfile({
-        source,
+        source: "extension",
         profileId: profile._id,
       });
       toast.success("Saved!");
@@ -288,7 +283,7 @@ function DefaultProfilesSection({ profiles }: { profiles: Profile[] }) {
               <Select
                 value={extensionDefault?._id ?? ""}
                 onValueChange={(profileId) => {
-                  void handleDefaultProfileChange("extension", profileId);
+                  void handleDefaultProfileChange(profileId);
                 }}
               >
                 <SelectTrigger className="w-[160px]">

@@ -5,11 +5,13 @@ import { api } from "@vmem/backend";
 import { Button, Card, CardContent, Input } from "@vmem/ui";
 import { IconTrash, IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
-import type { TeamDetail } from "./team-detail";
+import { useTeamDetail } from "./team-context";
 
-export function TeamSettings({ data }: { data: TeamDetail }) {
+export function TeamSettings() {
+  const data = useTeamDetail();
   const updateTeam = useMutation(api.teams.updateTeam).withOptimisticUpdate(
     (localStore, args) => {
+      const now = Date.now();
       const list = localStore.getQuery(api.teams.list, {});
       if (list) {
         localStore.setQuery(
@@ -22,14 +24,14 @@ export function TeamSettings({ data }: { data: TeamDetail }) {
                   team: {
                     ...entry.team,
                     name: args.name,
-                    updatedAt: Date.now(),
+                    updatedAt: now,
                   },
                   profile:
                     entry.profile !== null
                       ? {
                           ...entry.profile,
                           name: args.name,
-                          updatedAt: Date.now(),
+                          updatedAt: now,
                         }
                       : null,
                 }
@@ -46,13 +48,13 @@ export function TeamSettings({ data }: { data: TeamDetail }) {
           { teamId: args.teamId },
           {
             ...detail,
-            team: { ...detail.team, name: args.name, updatedAt: Date.now() },
+            team: { ...detail.team, name: args.name, updatedAt: now },
             profile:
               detail.profile !== null
                 ? {
                     ...detail.profile,
                     name: args.name,
-                    updatedAt: Date.now(),
+                    updatedAt: now,
                   }
                 : null,
           },
@@ -82,8 +84,7 @@ export function TeamSettings({ data }: { data: TeamDetail }) {
     }
   };
 
-  // double-confirm to delete. The action cascades: team profile, all memberships,
-  // and the team's memories in Neo4j. Owner must type the team name to proceed
+  // Cascades: team profile, memberships, and Neo4j team memories.
   const handleDelete = async () => {
     const typed = window.prompt(
       `Type "${data.team.name}" to confirm deletion. This removes the team profile and all team memories.`,
@@ -98,8 +99,6 @@ export function TeamSettings({ data }: { data: TeamDetail }) {
     try {
       await deleteTeam({ teamId: data.team._id });
       toast.success(`Deleted ${data.team.name}`);
-      // the team workspace just ceased to exist — /home resolves a
-      // personal workspace to land in
       await navigate({ to: "/home" });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Delete failed");
