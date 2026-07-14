@@ -17,7 +17,7 @@ function testWikiId(suffix: string): Id<"wikiNodes"> {
 function wikiNode(
   id: Id<"wikiNodes">,
   title: string,
-  kind: "folder" | "document",
+  kind: "folder" | "document" | "artifact",
   parentId?: Id<"wikiNodes">,
   order = 0,
 ): Doc<"wikiNodes"> {
@@ -85,7 +85,7 @@ describe("buildTree", () => {
 interface TestNode {
   _id: string;
   parentId?: string;
-  kind: "folder" | "document";
+  kind: "folder" | "document" | "artifact";
   order: number;
 }
 

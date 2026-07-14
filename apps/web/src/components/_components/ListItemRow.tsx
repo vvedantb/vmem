@@ -50,7 +50,12 @@ export default function ListItemRow({
   onContextEdit,
   onContextDelete,
 }: ListItemRowProps) {
-  const color = nodeColor(item.tags, item.kind, isDark, null);
+  const color = nodeColor(
+    item.tags,
+    item.kind === "wiki-artifact" ? "wiki-document" : item.kind,
+    isDark,
+    null,
+  );
   // dynamic Dreaming indicator
   const settings = useQuery(api.userSettings.get);
   const awaitingDream =
@@ -244,6 +249,19 @@ function KindMeta({
           </TooltipTrigger>
           <TooltipContent side="top" sideOffset={6}>
             Wiki
+          </TooltipContent>
+        </Tooltip>
+      );
+    case "wiki-artifact":
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className={iconWrapClass} aria-label="Artifact">
+              <IconWiki size={14} stroke={1.7} />
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="top" sideOffset={6}>
+            Artifact
           </TooltipContent>
         </Tooltip>
       );

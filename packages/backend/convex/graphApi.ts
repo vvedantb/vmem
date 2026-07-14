@@ -219,7 +219,10 @@ export const getGraphData = authAction({
     const wikiNodes: GraphNodeEntry[] = wikiRows.map((w) => ({
       id: `${WIKI_PREFIX}${w._id}`,
       title: w.title,
-      content: w.kind === "document" ? (w.contentText ?? "") : "",
+      content:
+        w.kind === "document" || w.kind === "artifact"
+          ? (w.contentText ?? "")
+          : "",
       tags: [],
       createdAt: new Date(w.createdAt).toISOString(),
       kind: w.kind === "folder" ? "wiki-folder" : "wiki-document",

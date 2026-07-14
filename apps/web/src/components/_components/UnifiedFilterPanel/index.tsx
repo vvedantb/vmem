@@ -70,6 +70,7 @@ export default function UnifiedFilterPanel({
       memory: 0,
       entity: 0,
       "wiki-document": 0,
+      "wiki-artifact": 0,
       "wiki-folder": 0,
       skill: 0,
     };

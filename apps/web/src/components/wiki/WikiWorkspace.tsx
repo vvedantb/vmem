@@ -7,7 +7,7 @@ import { useActiveProfile } from "@/components/workspace/active-profile";
 import { api } from "@vmem/backend";
 import { Dialog, DialogContent, DialogTitle } from "@vmem/ui";
 import PageContainer from "@/components/PageContainer";
-import { buildTree, findAncestors } from "./_utils";
+import { buildTree, findAncestors, wikiKindHasContent } from "./_utils";
 import type { OutlineHeading } from "./_utils";
 import WikiOutline from "./WikiOutline";
 import { useWikiSidebar } from "./WikiSidebarContext";
@@ -204,7 +204,7 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
   const tree = nodes ? buildTree(nodes) : [];
   const hasDocId = docId !== null && docId.length > 0;
   const isDocLoading = hasDocId && doc === undefined;
-  const hasDoc = hasDocId && doc != null && doc.kind === "document";
+  const hasDoc = hasDocId && doc != null && wikiKindHasContent(doc.kind);
   const editableDoc = hasDoc ? doc : null;
   const phase = resolvePhase({
     hasDoc,

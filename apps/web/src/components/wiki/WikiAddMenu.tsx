@@ -1,11 +1,12 @@
 "use client";
 
-import { IconFileText, IconFolderPlus } from "@tabler/icons-react";
+import { IconCode, IconFileText, IconFolderPlus } from "@tabler/icons-react";
 import { DropdownMenuItem } from "@vmem/ui";
 import { FeatureAddMenu } from "@/components/FeatureAddMenu";
 
 interface WikiAddMenuProps {
   onCreateDocument: () => void;
+  onCreateArtifact: () => void;
   onCreateFolder: () => void;
   // `toolbar` = icon-only for the sidebar chrome row; `labeled` = full Add button
   variant?: "toolbar" | "labeled";
@@ -14,6 +15,7 @@ interface WikiAddMenuProps {
 
 export function WikiAddMenu({
   onCreateDocument,
+  onCreateArtifact,
   onCreateFolder,
   variant = "labeled",
   className,
@@ -23,6 +25,10 @@ export function WikiAddMenu({
       <DropdownMenuItem onSelect={onCreateDocument}>
         <IconFileText size={16} />
         New document
+      </DropdownMenuItem>
+      <DropdownMenuItem onSelect={onCreateArtifact}>
+        <IconCode size={16} />
+        New artifact
       </DropdownMenuItem>
       <DropdownMenuItem onSelect={onCreateFolder}>
         <IconFolderPlus size={16} />

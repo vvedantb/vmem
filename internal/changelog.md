@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-07-14 — Wiki artifacts kind
+
+Artifacts are a third `wikiNodes.kind` (with optional `language`), editable via
+existing wiki MCP tools. Web adds create/list/tree support and a sandboxed
+HTML/SVG preview (`allow-scripts` only; team artifacts require Run preview).
+
 ## 2026-07-14 — Backend parser/base64 dependency trim
 
 LLM JSON extraction uses `json-from-llm` to locate model payloads and keeps

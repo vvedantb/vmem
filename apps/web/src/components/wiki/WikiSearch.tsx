@@ -4,7 +4,12 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { useDebounceValue } from "usehooks-ts";
-import { IconSearch, IconFileText, IconFolder } from "@tabler/icons-react";
+import {
+  IconSearch,
+  IconCode,
+  IconFileText,
+  IconFolder,
+} from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 import { Button, cn, Input } from "@vmem/ui";
 import { sidebarSearchInputClassName } from "@/components/sidebar/sidebar-search-input";
@@ -22,7 +27,7 @@ function WikiSearchResultItem({
   onSelect,
   onClear,
 }: WikiSearchResultItemProps) {
-  if (node.kind !== "document") {
+  if (node.kind === "folder") {
     return (
       <li>
         <Button
@@ -49,7 +54,11 @@ function WikiSearchResultItem({
         }}
         className="h-auto w-full justify-start gap-2 rounded-md px-2 py-1.5 text-left text-sm font-normal text-foreground/90 hover:bg-surface-tertiary/50 active:scale-100"
       >
-        <IconFileText className="size-3.5 shrink-0 text-muted" />
+        {node.kind === "artifact" ? (
+          <IconCode className="size-3.5 shrink-0 text-muted" />
+        ) : (
+          <IconFileText className="size-3.5 shrink-0 text-muted" />
+        )}
         <span className="truncate">{node.title}</span>
       </Button>
     </li>
