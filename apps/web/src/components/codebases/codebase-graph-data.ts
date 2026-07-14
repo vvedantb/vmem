@@ -3,7 +3,6 @@ import type {
   GraphNode,
   GraphEdge,
   GraphNodeKind,
-  GraphEdgeType,
 } from "@/components/_components/canvas/types";
 import type {
   CodeNode,
@@ -78,20 +77,19 @@ export function buildCodebaseGraphData(
     }
   }
 
-  // stage 2: Build a child→parent file map from CONTAINS edges so we can drop symbols
+  // stage 2: child→parent file map from CONTAINS / HAS_METHOD edges
+  const nodeById = new Map(apiNodes.map((n) => [n.id, n]));
   const symbolToFile = new Map<string, string>();
   const classToFile = new Map<string, string>();
   for (const edge of apiEdges) {
     if (edge.type === "contains") {
       symbolToFile.set(edge.toId, edge.fromId);
-      // track classes too so HAS_METHOD edges below can resolve
-      const child = apiNodes.find((n) => n.id === edge.toId);
+      const child = nodeById.get(edge.toId);
       if (child?.kind === "code-class" || child?.kind === "code-interface") {
         classToFile.set(edge.toId, edge.fromId);
       }
+      continue;
     }
-  }
-  for (const edge of apiEdges) {
     if (edge.type === "has_method") {
       const fileId = classToFile.get(edge.fromId);
       if (fileId) symbolToFile.set(edge.toId, fileId);
@@ -154,16 +152,7 @@ export function buildCodebaseGraphData(
   }
 
   // --- Stage 6: Map to canvas GraphEdge shape. ---
-  const edgeTypeMap: Record<CodeEdge["type"], GraphEdgeType> = {
-    imports: "imports",
-    calls: "calls",
-    contains: "contains",
-    has_method: "has_method",
-    extends: "extends",
-    implements: "implements",
-    starts_process: "starts_process",
-    includes: "includes",
-  };
+  // CodeEdge.type is a subset of GraphEdgeType — pass through directly.
   // confidence drives visual weight on the renderer where supported
   const graphEdges: GraphEdge[] = [];
   for (const edge of apiEdges) {
@@ -171,7 +160,7 @@ export function buildCodebaseGraphData(
     graphEdges.push({
       source: edge.fromId,
       target: edge.toId,
-      edgeType: edgeTypeMap[edge.type],
+      edgeType: edge.type,
       weight: edge.confidence ?? 1,
     });
   }

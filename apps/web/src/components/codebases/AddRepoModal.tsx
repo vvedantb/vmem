@@ -15,7 +15,6 @@ import {
 import { IconLoader2, IconSearch } from "@tabler/icons-react";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { toast } from "sonner";
-import type { FunctionReturnType } from "convex/server";
 import { sidebarSearchInputClassName } from "@/components/sidebar/sidebar-search-input";
 import { GitHubIcon } from "@/components/brand-icons";
 import {
@@ -24,8 +23,6 @@ import {
 } from "./_components/AddRepoModalRow";
 import { optimisticId } from "@/lib/optimisticId";
 import { useActiveTeamId } from "@/components/workspace/active-profile";
-
-type RepoItem = FunctionReturnType<typeof api.codebases.listRepos>[number];
 
 interface AddRepoModalProps {
   open: boolean;
@@ -74,7 +71,7 @@ export function AddRepoModal({
   });
   const codebases = useQuery(api.codebases.listMy, { teamId });
 
-  const [repos, setRepos] = useState<RepoItem[]>([]);
+  const [repos, setRepos] = useState<AddRepoModalRepo[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [adding, setAdding] = useState<string | null>(null);

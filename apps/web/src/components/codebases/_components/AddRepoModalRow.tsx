@@ -2,18 +2,13 @@
 
 import { Button, cn } from "@vmem/ui";
 import { IconLoader2, IconLock, IconPlus } from "@tabler/icons-react";
-import { codebaseLanguageColors } from "../CodebaseCardInsides";
+import type { api } from "@vmem/backend";
+import type { FunctionReturnType } from "convex/server";
+import { codebaseLanguageColor } from "../CodebaseCardInsides";
 
-export interface AddRepoModalRepo {
-  id: number;
-  name: string;
-  fullName: string;
-  owner: string;
-  defaultBranch: string;
-  language: string | null;
-  description: string | null;
-  isPrivate: boolean;
-}
+export type AddRepoModalRepo = FunctionReturnType<
+  typeof api.codebases.listRepos
+>[number];
 
 interface AddRepoModalRowProps {
   repo: AddRepoModalRepo;
@@ -28,9 +23,7 @@ export function AddRepoModalRow({
   disabled,
   onAdd,
 }: AddRepoModalRowProps) {
-  const langColor = repo.language
-    ? (codebaseLanguageColors[repo.language] ?? "#8b8b8b")
-    : null;
+  const langColor = codebaseLanguageColor(repo.language);
 
   return (
     <Button

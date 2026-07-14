@@ -5,7 +5,7 @@ import { cn } from "@vmem/ui";
 import { sidebarListRowClass } from "@/components/sidebar/sidebar-nav-row";
 import { IconLoader2, IconLock } from "@tabler/icons-react";
 import {
-  codebaseLanguageColors,
+  codebaseLanguageColor,
   type CodebaseItem,
 } from "./CodebaseCardInsides";
 
@@ -27,9 +27,7 @@ export function CodebaseSidebarCard({
   selected,
   onSelect,
 }: CodebaseSidebarCardProps) {
-  const langColor = codebase.language
-    ? (codebaseLanguageColors[codebase.language] ?? "#8b8b8b")
-    : null;
+  const langColor = codebaseLanguageColor(codebase.language);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key === "Enter" || e.key === " ") {
