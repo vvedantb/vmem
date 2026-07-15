@@ -3,7 +3,7 @@ import { internal } from "./_generated/api";
 
 const crons = cronJobs();
 
-// 04:00 UTC daily — stale codebases sync via durable workflow (one action per repo)
+// 04:00 UTC daily — stale codebases sync via workpool (one action per repo)
 crons.cron(
   "daily codebase sync",
   "0 4 * * *",

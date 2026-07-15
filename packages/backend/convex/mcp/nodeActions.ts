@@ -1,9 +1,8 @@
-"use node";
+﻿"use node";
 
 import { v } from "convex/values";
 import { internalAction } from "../_generated/server";
 import { createClerkClient } from "@clerk/backend";
-import jwt from "jsonwebtoken";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { registerTools } from "./tools";
@@ -21,135 +20,47 @@ function mcpServerInfo(scope: McpScope): {
   };
 }
 
-// JWT TTLs match the legacy Railway server so existing Claude connectors
-// keep working without re-auth at cutover
-const ACCESS_TTL_SECONDS = 30 * 24 * 60 * 60;
-const REFRESH_TTL_SECONDS = 90 * 24 * 60 * 60;
-
-function getJwtSecret(): string {
-  const secret = process.env.MCP_JWT_SECRET;
-  if (!secret) throw new Error("MCP_JWT_SECRET is required");
-  return secret;
+function getClerkClient() {
+  const secretKey = process.env.CLERK_SECRET_KEY;
+  if (!secretKey) throw new Error("CLERK_SECRET_KEY is required");
+  const publishableKey = process.env.CLERK_PUBLISHABLE_KEY;
+  if (!publishableKey) throw new Error("CLERK_PUBLISHABLE_KEY is required");
+  return createClerkClient({ secretKey, publishableKey });
 }
 
-function getClerkSecretKey(): string {
-  const key = process.env.CLERK_SECRET_KEY;
-  if (!key) throw new Error("CLERK_SECRET_KEY is required");
-  return key;
-}
-
-const tokensValidator = v.object({
-  access_token: v.string(),
-  token_type: v.literal("Bearer"),
-  expires_in: v.number(),
-  scope: v.string(),
-  refresh_token: v.string(),
-});
-
-function signTokens(clerkUserId: string): {
-  access_token: string;
-  token_type: "Bearer";
-  expires_in: number;
-  scope: string;
-  refresh_token: string;
-} {
-  const secret = getJwtSecret();
-  const accessToken = jwt.sign({ sub: clerkUserId }, secret, {
-    expiresIn: ACCESS_TTL_SECONDS,
-  });
-  const refreshToken = jwt.sign({ sub: clerkUserId, type: "refresh" }, secret, {
-    expiresIn: REFRESH_TTL_SECONDS,
-  });
-  return {
-    access_token: accessToken,
-    token_type: "Bearer",
-    expires_in: ACCESS_TTL_SECONDS,
-    scope: "claudeai",
-    refresh_token: refreshToken,
-  };
-}
-
-export const issueTokens = internalAction({
-  args: { clerkUserId: v.string() },
-  returns: tokensValidator,
-  handler: async (_ctx, { clerkUserId }) => {
-    return signTokens(clerkUserId);
-  },
-});
-
-type RefreshTokenResult =
-  | { success: true; tokens: ReturnType<typeof signTokens> }
-  | { success: false; error: string };
-
-function refreshFailure(error: string): RefreshTokenResult {
-  return { success: false, error };
-}
-
-export const refreshToken = internalAction({
-  args: { refreshToken: v.string() },
-  returns: v.union(
-    v.object({ success: v.literal(true), tokens: tokensValidator }),
-    v.object({ success: v.literal(false), error: v.string() }),
-  ),
-  handler: async (_ctx, { refreshToken }): Promise<RefreshTokenResult> => {
-    try {
-      const decoded = jwt.verify(refreshToken, getJwtSecret());
-      if (
-        typeof decoded !== "object" ||
-        decoded === null ||
-        typeof decoded.sub !== "string"
-      ) {
-        return refreshFailure("Invalid refresh token");
-      }
-      // legacy refresh tokens (issued by Railway) didn't carry a `type` claim
-      const typeClaim =
-        "type" in decoded && typeof decoded.type === "string"
-          ? decoded.type
-          : null;
-      if (typeClaim !== null && typeClaim !== "refresh") {
-        return refreshFailure("Invalid refresh token");
-      }
-      return { success: true, tokens: signTokens(decoded.sub) };
-    } catch {
-      return refreshFailure("Expired or invalid refresh token");
-    }
-  },
-});
-
+/** Verifies a Clerk-issued OAuth access token (MCP bearer). Existing custom JWTs are invalid — clients must reconnect. */
 export const verifyAccessToken = internalAction({
   args: { token: v.string() },
   returns: v.union(v.object({ clerkUserId: v.string() }), v.null()),
   handler: async (_ctx, { token }) => {
-    let clerkUserId: string | null = null;
     try {
-      const decoded = jwt.verify(token, getJwtSecret());
-      if (typeof decoded === "object" && decoded !== null) {
-        if (typeof decoded.sub === "string") {
-          clerkUserId = decoded.sub;
-        } else if (
-          "clerkUserId" in decoded &&
-          typeof decoded.clerkUserId === "string"
-        ) {
-          clerkUserId = decoded.clerkUserId;
-        }
+      const clerk = getClerkClient();
+      const request = new Request("https://mcp.local/", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const state = await clerk.authenticateRequest(request, {
+        acceptsToken: "oauth_token",
+      });
+      if (!state.isAuthenticated) {
+        console.error(
+          "[MCP][verifyAccessToken] authenticateRequest failed:",
+          state.reason,
+          state.message,
+        );
+        return null;
       }
+
+      const auth = state.toAuth();
+      if (!auth.isAuthenticated || auth.tokenType !== "oauth_token") {
+        return null;
+      }
+      if (typeof auth.userId !== "string" || auth.userId.length === 0) {
+        return null;
+      }
+      return { clerkUserId: auth.userId };
     } catch (err) {
       console.error(
-        "[MCP][verifyAccessToken] jwt verify failed:",
-        err instanceof Error ? err.message : err,
-      );
-      return null;
-    }
-
-    if (!clerkUserId) return null;
-
-    try {
-      const clerk = createClerkClient({ secretKey: getClerkSecretKey() });
-      await clerk.users.getUser(clerkUserId);
-      return { clerkUserId };
-    } catch (err) {
-      console.error(
-        "[MCP][verifyAccessToken] Clerk getUser failed:",
+        "[MCP][verifyAccessToken] threw:",
         err instanceof Error ? err.message : err,
       );
       return null;
@@ -177,7 +88,6 @@ export const handleMcpRequest = internalAction({
       registerMemoryGraphApp(server, clerkUserId, ctx, scope);
       registerResources(server, clerkUserId, ctx, scope);
 
-      // webStandardStreamableHTTPServerTransport works with Web Standard
       const transport = new WebStandardStreamableHTTPServerTransport({
         sessionIdGenerator: undefined,
         enableJsonResponse: true,

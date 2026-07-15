@@ -45,6 +45,7 @@ import type * as http_v1Memories_retrieve from "../http/v1Memories/retrieve.js";
 import type * as http_v1Memories_store from "../http/v1Memories/store.js";
 import type * as http_v1Memories_types from "../http/v1Memories/types.js";
 import type * as http_v1Memories_update from "../http/v1Memories/update.js";
+import type * as lib_arcticOAuth from "../lib/arcticOAuth.js";
 import type * as lib_base64 from "../lib/base64.js";
 import type * as lib_bearerToken from "../lib/bearerToken.js";
 import type * as lib_clerkUser from "../lib/clerkUser.js";
@@ -54,7 +55,6 @@ import type * as lib_crypto from "../lib/crypto.js";
 import type * as lib_dreamTriggerDecision from "../lib/dreamTriggerDecision.js";
 import type * as lib_dreamTriggerInvalidate from "../lib/dreamTriggerInvalidate.js";
 import type * as lib_envVars from "../lib/envVars.js";
-import type * as lib_jsonBoundary from "../lib/jsonBoundary.js";
 import type * as lib_openRouter from "../lib/openRouter.js";
 import type * as lib_openRouter_bestEffortEmbed from "../lib/openRouter/bestEffortEmbed.js";
 import type * as lib_openRouter_chat from "../lib/openRouter/chat.js";
@@ -75,7 +75,6 @@ import type * as mcp_graph from "../mcp/graph.js";
 import type * as mcp_memoryGraphApp from "../mcp/memoryGraphApp.js";
 import type * as mcp_native from "../mcp/native.js";
 import type * as mcp_nodeActions from "../mcp/nodeActions.js";
-import type * as mcp_oauth from "../mcp/oauth.js";
 import type * as mcp_resources from "../mcp/resources.js";
 import type * as mcp_toolCatalog from "../mcp/toolCatalog.js";
 import type * as mcp_toolTypes from "../mcp/toolTypes.js";
@@ -145,7 +144,6 @@ import type * as prompts_systemSkillSeeds from "../prompts/systemSkillSeeds.js";
 import type * as prompts_v2Prompt from "../prompts/v2Prompt.js";
 import type * as proposedUpdateApi from "../proposedUpdateApi.js";
 import type * as relationshipApi from "../relationshipApi.js";
-import type * as retrier from "../retrier.js";
 import type * as skillVersions from "../skillVersions.js";
 import type * as skills from "../skills.js";
 import type * as systemSkills from "../systemSkills.js";
@@ -163,7 +161,7 @@ import type * as validators from "../validators.js";
 import type * as wiki from "../wiki.js";
 import type * as wikiVersions from "../wikiVersions.js";
 import type * as wiki_path from "../wiki/path.js";
-import type * as workflow from "../workflow.js";
+import type * as workpools from "../workpools.js";
 
 import type {
   ApiFromModules,
@@ -209,6 +207,7 @@ declare const fullApi: ApiFromModules<{
   "http/v1Memories/store": typeof http_v1Memories_store;
   "http/v1Memories/types": typeof http_v1Memories_types;
   "http/v1Memories/update": typeof http_v1Memories_update;
+  "lib/arcticOAuth": typeof lib_arcticOAuth;
   "lib/base64": typeof lib_base64;
   "lib/bearerToken": typeof lib_bearerToken;
   "lib/clerkUser": typeof lib_clerkUser;
@@ -218,7 +217,6 @@ declare const fullApi: ApiFromModules<{
   "lib/dreamTriggerDecision": typeof lib_dreamTriggerDecision;
   "lib/dreamTriggerInvalidate": typeof lib_dreamTriggerInvalidate;
   "lib/envVars": typeof lib_envVars;
-  "lib/jsonBoundary": typeof lib_jsonBoundary;
   "lib/openRouter": typeof lib_openRouter;
   "lib/openRouter/bestEffortEmbed": typeof lib_openRouter_bestEffortEmbed;
   "lib/openRouter/chat": typeof lib_openRouter_chat;
@@ -239,7 +237,6 @@ declare const fullApi: ApiFromModules<{
   "mcp/memoryGraphApp": typeof mcp_memoryGraphApp;
   "mcp/native": typeof mcp_native;
   "mcp/nodeActions": typeof mcp_nodeActions;
-  "mcp/oauth": typeof mcp_oauth;
   "mcp/resources": typeof mcp_resources;
   "mcp/toolCatalog": typeof mcp_toolCatalog;
   "mcp/toolTypes": typeof mcp_toolTypes;
@@ -309,7 +306,6 @@ declare const fullApi: ApiFromModules<{
   "prompts/v2Prompt": typeof prompts_v2Prompt;
   proposedUpdateApi: typeof proposedUpdateApi;
   relationshipApi: typeof relationshipApi;
-  retrier: typeof retrier;
   skillVersions: typeof skillVersions;
   skills: typeof skills;
   systemSkills: typeof systemSkills;
@@ -327,7 +323,7 @@ declare const fullApi: ApiFromModules<{
   wiki: typeof wiki;
   wikiVersions: typeof wikiVersions;
   "wiki/path": typeof wiki_path;
-  workflow: typeof workflow;
+  workpools: typeof workpools;
 }>;
 
 /**
@@ -357,9 +353,9 @@ export declare const internal: FilterApi<
 >;
 
 export declare const components: {
-  actionRetrier: import("@convex-dev/action-retrier/_generated/component.js").ComponentApi<"actionRetrier">;
   actionCache: import("@convex-dev/action-cache/_generated/component.js").ComponentApi<"actionCache">;
   crons: import("@convex-dev/crons/_generated/component.js").ComponentApi<"crons">;
-  workflow: import("@convex-dev/workflow/_generated/component.js").ComponentApi<"workflow">;
+  connectorSyncPool: import("@convex-dev/workpool/_generated/component.js").ComponentApi<"connectorSyncPool">;
+  codebaseSyncPool: import("@convex-dev/workpool/_generated/component.js").ComponentApi<"codebaseSyncPool">;
   auditLog: import("convex-audit-log/_generated/component.js").ComponentApi<"auditLog">;
 };

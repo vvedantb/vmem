@@ -224,8 +224,7 @@
         "apps/web/src/routes/_main/$profileId/team/route.tsx",
         "apps/web/src/routes/_main/settings/connectors.tsx",
         "apps/web/src/routes/_main/settings/data-controls/-components/DeleteAllMemoriesDialog.tsx",
-        "apps/web/src/routes/agent-callback.tsx",
-        "apps/web/src/routes/mcp/oauth/authorize.tsx"
+        "apps/web/src/routes/agent-callback.tsx"
       ],
       "rules": {
         "no-restricted-imports": "off"

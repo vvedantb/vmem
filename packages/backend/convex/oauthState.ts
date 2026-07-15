@@ -27,6 +27,7 @@ export const consumeOAuthStateInternal = internalMutation({
       expiresAt: entry.expiresAt,
       connectorId: entry.connectorId,
       provider: entry.provider,
+      codeVerifier: entry.codeVerifier,
     };
   },
 });

@@ -57,7 +57,7 @@ Three surfaces, same memory graph:
 
 | Surface                                        | Auth                              | Best for                               |
 | ---------------------------------------------- | --------------------------------- | -------------------------------------- |
-| **MCP** `https://<deployment>.convex.site/mcp` | OAuth + Bearer JWT                | Claude Desktop, Cursor, Windsurf, etc. |
+| **MCP** `https://<deployment>.convex.site/mcp` | Clerk OAuth bearer tokens         | Claude Desktop, Cursor, Windsurf, etc. |
 | **HTTP API** `/api/v1/memories/*`              | `Authorization: Bearer vmem_sk_…` | Backends, scripts, CI                  |
 | **`@vmem/sdk`**                                | API key                           | TypeScript/JS integrations             |
 
@@ -192,8 +192,8 @@ AGENT_CLERK_USER_ID=user_...     # optional, for /?agent dev login
 ```
 CLERK_FRONTEND_API_URL
 CLERK_SECRET_KEY
+CLERK_PUBLISHABLE_KEY   # MCP OAuth token verification
 ENCRYPTION_KEY          # base64 AES-256 for API key encryption
-MCP_JWT_SECRET
 NEO4J_URI
 NEO4J_USERNAME            # optional, defaults to neo4j
 NEO4J_PASSWORD

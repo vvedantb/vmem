@@ -17,22 +17,21 @@ Public HTTP routes (MCP, OAuth, health) are registered in `convex/http.ts` on th
 
 Memories are **not** stored in Convex — they live in Neo4j. Convex holds metadata, auth, and app state:
 
-| Table                                     | Description                                |
-| ----------------------------------------- | ------------------------------------------ |
-| `users`                                   | Clerk-linked user records                  |
-| `apiKeys`                                 | API keys — AES-GCM encrypted at rest       |
-| `profiles`                                | Personal and team memory profiles          |
-| `teams` / `teamMembers`                   | Team membership                            |
-| `skills`                                  | Reusable instruction modules               |
-| `wikiNodes`                               | Personal wiki tree                         |
-| `codebases`                               | Connected GitHub repositories              |
-| `connectors` / `connectorTokens`          | External service integrations              |
-| `userSettings`                            | Preferences, about me, active profile      |
-| `contextPromptCache`                      | Cached MCP context prompt markdown         |
-| `notifications`                           | In-app notifications                       |
-| `userEnvVars`                             | User-scoped env vars (e.g. OpenRouter key) |
-| `openRouterLogs`                          | LLM/embedding call audit trail             |
-| `mcpAuthCodes` / `mcpClientRegistrations` | MCP OAuth state                            |
+| Table                            | Description                                |
+| -------------------------------- | ------------------------------------------ |
+| `users`                          | Clerk-linked user records                  |
+| `apiKeys`                        | API keys — AES-GCM encrypted at rest       |
+| `profiles`                       | Personal and team memory profiles          |
+| `teams` / `teamMembers`          | Team membership                            |
+| `skills`                         | Reusable instruction modules               |
+| `wikiNodes`                      | Personal wiki tree                         |
+| `codebases`                      | Connected GitHub repositories              |
+| `connectors` / `connectorTokens` | External service integrations              |
+| `userSettings`                   | Preferences, about me, active profile      |
+| `contextPromptCache`             | Cached MCP context prompt markdown         |
+| `notifications`                  | In-app notifications                       |
+| `userEnvVars`                    | User-scoped env vars (e.g. OpenRouter key) |
+| `openRouterLogs`                 | LLM/embedding call audit trail             |
 
 Audit trails (memory lifecycle, API key events, proposed-update resolutions) live in the `convex-audit-log` component — see `auditLog.ts`.
 
@@ -48,7 +47,7 @@ Audit trails (memory lifecycle, API key events, proposed-update resolutions) liv
 | `fileImport.ts`                          | PDF/text/image memory import                                          |
 | `contextPromptApi.ts`                    | Synthesized user profile for MCP                                      |
 | `apiKeys.ts`                             | Create, list, revoke, reveal API keys                                 |
-| `mcp/`                                   | MCP tools, resources, OAuth, JWT                                      |
+| `mcp/`                                   | MCP tools, resources, Clerk OAuth token verify                        |
 | `neo4jActions/`                          | Node actions wrapping Neo4j memory service                            |
 
 ## Auth builders
@@ -63,15 +62,15 @@ import { authQuery, authMutation, authAction } from "./auth";
 
 Use `.env.example` as the complete template. Copy it to `.env.local` for local CLI scripts/tests, and set the Convex runtime variables in the Convex dashboard:
 
-| Variable                          | Purpose                                   |
-| --------------------------------- | ----------------------------------------- |
-| `ENCRYPTION_KEY`                  | AES-256 key for API keys and OAuth tokens |
-| `CLERK_FRONTEND_API_URL`          | Clerk JWKS for Convex auth                |
-| `CLERK_SECRET_KEY`                | MCP OAuth                                 |
-| `MCP_JWT_SECRET`                  | MCP Bearer token signing                  |
-| `NEO4J_URI` / `NEO4J_PASSWORD`    | Memory graph                              |
-| `CONVEX_SITE_URL` / `WEB_APP_URL` | OAuth redirects                           |
-| `OPENROUTER_API_KEY`              | Embeddings and context prompt generation  |
+| Variable                          | Purpose                                        |
+| --------------------------------- | ---------------------------------------------- |
+| `ENCRYPTION_KEY`                  | AES-256 key for API keys and OAuth tokens      |
+| `CLERK_FRONTEND_API_URL`          | Clerk JWKS + MCP AS discovery                  |
+| `CLERK_SECRET_KEY`                | Clerk Backend API / MCP token verify           |
+| `CLERK_PUBLISHABLE_KEY`           | MCP OAuth token verify (`authenticateRequest`) |
+| `NEO4J_URI` / `NEO4J_PASSWORD`    | Memory graph                                   |
+| `CONVEX_SITE_URL` / `WEB_APP_URL` | OAuth redirects / resource docs                |
+| `OPENROUTER_API_KEY`              | Embeddings and context prompt generation       |
 
 Neo4j CLI scripts (`eval:bench`) and live HTTP tests use `packages/backend/.env.local`.
 
