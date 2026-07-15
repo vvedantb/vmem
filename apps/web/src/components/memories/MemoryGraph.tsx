@@ -7,6 +7,8 @@ import type { GraphScope } from "@/lib/url-state/memories";
 import { useMemoryContext } from "@/contexts/MemoryContext";
 import GraphCanvas from "@/components/_components/GraphCanvas";
 import type { GraphCanvasHandle } from "@/components/_components/GraphCanvas";
+import CosmosGraphCanvas from "@/components/_components/cosmos/CosmosGraphCanvas";
+import { isCosmosGraphRendererEnabled } from "@/components/_components/cosmos/is-cosmos-graph-renderer";
 import GraphNavControls from "@/components/_components/GraphNavControls";
 import GraphNodeTooltip from "@/components/_components/GraphNodeTooltip";
 import GraphEdgeTooltip from "@/components/_components/GraphEdgeTooltip";
@@ -14,6 +16,13 @@ import GraphDetailPanel from "@/components/_components/GraphDetailPanel";
 import { GraphStatus } from "@/components/_components/GraphStatus";
 import { useGraphNodeInteraction } from "@/hooks/useGraphNodeInteraction";
 import type { MemoryGraphController } from "@/hooks/useMemoryGraphController";
+
+// Cosmos GL tracer-bullet (DEFAULT OFF). Enable with:
+//   localStorage.setItem("vmem.graphRenderer", "cosmos")
+// or VITE_GRAPH_RENDERER=cosmos
+const GraphRenderer = isCosmosGraphRendererEnabled()
+  ? CosmosGraphCanvas
+  : GraphCanvas;
 
 interface MemoryGraphProps {
   controller: MemoryGraphController;
@@ -97,7 +106,7 @@ export default function MemoryGraph({
 
   return (
     <div className="relative h-full min-h-0 overflow-hidden rounded-lg">
-      <GraphCanvas
+      <GraphRenderer
         ref={canvasRef}
         nodes={graphNodes}
         edges={graphEdges}
