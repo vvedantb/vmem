@@ -29,7 +29,6 @@ export interface SimulationController {
   dragMove: (nodeId: string, x: number, y: number) => void;
   // release a fixed node (drag end)
   dragEnd: (nodeId: string) => void;
-  updateData: (nodes: GraphNode[], edges: GraphEdge[]) => void;
   stop: () => void;
 }
 
@@ -220,31 +219,6 @@ function createWorkerSimulation(
       worker.postMessage({ type: "dragEnd", nodeId });
     },
 
-    updateData: (newNodes: GraphNode[], newEdges: GraphEdge[]) => {
-      if (fallback) return fallback.updateData(newNodes, newEdges);
-      // full re-init
-      worker.postMessage({
-        type: "init",
-        nodes: newNodes.map((n, i) => {
-          const spiral = goldenSpiralPosition(i, newNodes.length);
-          return {
-            id: n.id,
-            size: n.size,
-            x: n.x ?? spiral.x,
-            y: n.y ?? spiral.y,
-          };
-        }),
-        edges: newEdges.map((e) => ({
-          source: typeof e.source === "string" ? e.source : e.source.id,
-          target: typeof e.target === "string" ? e.target : e.target.id,
-          edgeType: e.edgeType,
-          weight: e.weight,
-        })),
-        scalingRatio,
-        gravity,
-      });
-    },
-
     stop: () => {
       stopped = true;
       if (fallback) return fallback.stop();
@@ -358,12 +332,6 @@ function createMainThreadSimulation(
         node.fy = null;
       }
       simulation.alphaTarget(0);
-    },
-
-    updateData(newNodes: GraphNode[], newEdges: GraphEdge[]) {
-      simulation.nodes(newNodes);
-      forces.link.links(newEdges.filter((e) => e.edgeType !== "tag"));
-      simulation.alpha(0.5);
     },
 
     stop() {

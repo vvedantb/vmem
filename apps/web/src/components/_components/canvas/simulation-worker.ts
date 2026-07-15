@@ -64,8 +64,7 @@ type WorkerInputMessage =
   | { type: "setGravity"; gravity: number }
   | { type: "dragStart"; nodeId: string; x: number; y: number }
   | { type: "dragMove"; x: number; y: number }
-  | { type: "dragEnd"; nodeId: string }
-  | { type: "stop" };
+  | { type: "dragEnd"; nodeId: string };
 
 // ------ Message handler ------
 
@@ -138,10 +137,6 @@ self.onmessage = (e: MessageEvent<WorkerInputMessage>) => {
       sim?.alphaTarget(0);
       break;
     }
-
-    case "stop":
-      cleanup();
-      break;
   }
 };
 
