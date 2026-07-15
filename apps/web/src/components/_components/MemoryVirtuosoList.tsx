@@ -5,7 +5,7 @@ import type { TrailEntry } from "@/hooks/useTrailData";
 import type { Memory } from "@/lib/memories";
 import type { ListItem } from "@/lib/list-items";
 
-export interface MemoryVirtuosoListHandlers {
+interface MemoryVirtuosoListHandlers {
   onMemoryClick: (memory: Memory) => void;
   onItemSelect: (item: ListItem) => void;
   onContextEdit: (memory: Memory) => void;

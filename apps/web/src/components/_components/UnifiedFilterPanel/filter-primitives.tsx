@@ -3,7 +3,7 @@ import { Button, Checkbox, cn, TabsPrimitive } from "@vmem/ui";
 import { Virtuoso } from "react-virtuoso";
 import { isCheckedByDefault, toggleCheckedByDefault } from "./checkedByDefault";
 
-export function FilterTabContent({
+function FilterTabContent({
   value,
   children,
 }: {
@@ -20,7 +20,7 @@ export function FilterTabContent({
   );
 }
 
-export function AllFilterHeader({
+function AllFilterHeader({
   label,
   totalCount,
   isAllSelected,

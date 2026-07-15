@@ -41,7 +41,7 @@ export function useActiveProfile(): Doc<"profiles"> {
   return profile;
 }
 
-export const LAST_PROFILE_STORAGE_KEY = "vmem:last-profile-id";
+const LAST_PROFILE_STORAGE_KEY = "vmem:last-profile-id";
 
 // plain string (not JSON) so existing raw profile ids keep working
 const lastProfileStorageOptions = {

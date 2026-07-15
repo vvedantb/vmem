@@ -72,7 +72,7 @@ export function formatFileSize(bytes: number): string {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 }
 
-export function fileCategoryFromMime(
+function fileCategoryFromMime(
   mimeType: string,
 ): Exclude<FileCategory, "folder"> {
   const category = fileCategoryFor(mimeType);

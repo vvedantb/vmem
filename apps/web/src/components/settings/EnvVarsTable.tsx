@@ -40,6 +40,11 @@ export interface EnvVar {
   value: string;
 }
 
+/** Unified add/edit row draft — `originalKey` is set only when editing. */
+type EnvVarDraft =
+  | { mode: "add"; key: string; value: string }
+  | { mode: "edit"; originalKey: string; key: string; value: string };
+
 interface EnvVarsTableProps {
   vars: EnvVar[] | undefined;
   onUpsert: (key: string, value: string) => Promise<void>;
@@ -51,6 +56,85 @@ interface EnvVarsTableProps {
   ) => Promise<void>;
 }
 
+type EnvVarRowEditorProps = {
+  draft: EnvVarDraft;
+  saving: boolean;
+  autoFocus?: boolean;
+  onKeyChange: (key: string) => void;
+  onValueChange: (value: string) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  onKeyPaste?: (e: React.ClipboardEvent<HTMLInputElement>) => void;
+  valuePlaceholder: string;
+  saveDisabled: boolean;
+};
+
+function EnvVarRowEditor({
+  draft,
+  saving,
+  autoFocus = false,
+  onKeyChange,
+  onValueChange,
+  onSave,
+  onCancel,
+  onKeyPaste,
+  valuePlaceholder,
+  saveDisabled,
+}: EnvVarRowEditorProps) {
+  return (
+    <TableRow className="hover:bg-transparent">
+      <TableCell className="px-2.5 py-2.5 sm:px-4">
+        <Input
+          value={draft.key}
+          onChange={(e) => onKeyChange(e.target.value)}
+          onPaste={onKeyPaste}
+          placeholder={draft.mode === "add" ? "e.g. OPENROUTER_API_KEY" : "Key"}
+          className="h-8 font-mono text-xs"
+          autoFocus={autoFocus}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") onCancel();
+            if (draft.mode === "edit" && e.key === "Enter") onSave();
+          }}
+        />
+      </TableCell>
+      <TableCell className="px-2.5 py-2.5 sm:px-4">
+        <Input
+          value={draft.value}
+          onChange={(e) => onValueChange(e.target.value)}
+          placeholder={valuePlaceholder}
+          className="h-8 font-mono text-xs"
+          onKeyDown={(e) => {
+            if (e.key === "Enter") onSave();
+            if (e.key === "Escape") onCancel();
+          }}
+        />
+      </TableCell>
+      <TableCell className="px-2.5 py-2.5 text-right sm:px-4">
+        <div className="flex items-center justify-end gap-1">
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            onClick={onSave}
+            disabled={saveDisabled || saving}
+            title="Save"
+            className="text-accent hover:text-accent"
+          >
+            <IconCheck className="size-3.5" />
+          </Button>
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            onClick={onCancel}
+            title="Cancel"
+          >
+            <IconX className="size-3.5" />
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+}
+
 export function EnvVarsTable({
   vars,
   onUpsert,
@@ -59,13 +143,7 @@ export function EnvVarsTable({
   onRemove,
   onBulkImport,
 }: EnvVarsTableProps) {
-  const [adding, setAdding] = useState(false);
-  const [addKey, setAddKey] = useState("");
-  const [addValue, setAddValue] = useState("");
-
-  const [editingKey, setEditingKey] = useState<string | null>(null);
-  const [editKeyDraft, setEditKeyDraft] = useState("");
-  const [editValueDraft, setEditValueDraft] = useState("");
+  const [draft, setDraft] = useState<EnvVarDraft | null>(null);
 
   const [deleteKey, setDeleteKey] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -86,65 +164,65 @@ export function EnvVarsTable({
   const sortedVars = (vars ?? [])
     .slice()
     .sort((a, b) => a.key.localeCompare(b.key));
-  const showTable = (vars && vars.length > 0) || adding;
+  const showTable = (vars && vars.length > 0) || draft !== null;
+
+  const clearDraft = () => setDraft(null);
 
   const startAdd = () => {
-    setAdding(true);
-    setAddKey("");
-    setAddValue("");
-  };
-
-  const cancelAdd = () => {
-    setAdding(false);
-    setAddKey("");
-    setAddValue("");
-  };
-
-  const handleAdd = async () => {
-    if (!addKey.trim() || !addValue.trim()) return;
-    setSaving(true);
-    try {
-      await onUpsert(addKey.trim(), addValue);
-      setAdding(false);
-      setAddKey("");
-      setAddValue("");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save");
-    } finally {
-      setSaving(false);
-    }
+    setDraft({ mode: "add", key: "", value: "" });
   };
 
   const startEdit = (entry: EnvVar) => {
-    setEditingKey(entry.key);
-    setEditKeyDraft(entry.key);
-    setEditValueDraft("");
+    setDraft({
+      mode: "edit",
+      originalKey: entry.key,
+      key: entry.key,
+      value: "",
+    });
   };
 
-  const cancelEdit = () => {
-    setEditingKey(null);
-    setEditKeyDraft("");
-    setEditValueDraft("");
+  const updateDraftKey = (key: string) => {
+    setDraft((prev) => (prev === null ? prev : { ...prev, key }));
   };
 
-  const saveEdit = async () => {
-    if (!editingKey || !editKeyDraft.trim()) return;
-    const newKey = editKeyDraft.trim();
-    const newValue = editValueDraft.trim() ? editValueDraft : undefined;
-    if (newKey === editingKey && newValue === undefined) {
-      cancelEdit();
+  const updateDraftValue = (value: string) => {
+    setDraft((prev) => (prev === null ? prev : { ...prev, value }));
+  };
+
+  const saveDraft = async () => {
+    if (draft === null) return;
+
+    if (draft.mode === "add") {
+      if (!draft.key.trim() || !draft.value.trim()) return;
+      setSaving(true);
+      try {
+        await onUpsert(draft.key.trim(), draft.value);
+        clearDraft();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Failed to save");
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
+    if (!draft.key.trim()) return;
+    const newKey = draft.key.trim();
+    const newValue = draft.value.trim() ? draft.value : undefined;
+    if (newKey === draft.originalKey && newValue === undefined) {
+      clearDraft();
       return;
     }
     setSaving(true);
     try {
-      await onEdit(editingKey, newKey, newValue);
+      await onEdit(draft.originalKey, newKey, newValue);
       setRevealedValues((prev) => {
         const next = { ...prev };
-        delete next[editingKey];
-        if (newKey !== editingKey) delete next[newKey];
+        delete next[draft.originalKey];
+        if (newKey !== draft.originalKey) delete next[newKey];
         return next;
       });
-      cancelEdit();
+      clearDraft();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save");
     } finally {
@@ -215,7 +293,7 @@ export function EnvVarsTable({
       e.preventDefault();
       setBulkText(text);
       setShowBulkPaste(true);
-      cancelAdd();
+      clearDraft();
     }
   };
 
@@ -235,6 +313,7 @@ export function EnvVarsTable({
   };
 
   const parsedPreview = parseEnvVars(bulkText);
+  const isAdding = draft?.mode === "add";
 
   return (
     <div>
@@ -248,7 +327,7 @@ export function EnvVarsTable({
             <IconClipboard size={16} className="mr-1.5" />
             Paste
           </Button>
-          <Button size="sm" onClick={startAdd} disabled={adding}>
+          <Button size="sm" onClick={startAdd} disabled={isAdding}>
             <IconPlus size={16} className="mr-1.5" />
             Add Variable
           </Button>
@@ -282,174 +361,104 @@ export function EnvVarsTable({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {adding && (
-                  <TableRow className="hover:bg-transparent">
-                    <TableCell className="px-2.5 py-2.5 sm:px-4">
-                      <Input
-                        value={addKey}
-                        onChange={(e) => setAddKey(e.target.value)}
-                        onPaste={handleKeyInputPaste}
-                        placeholder="e.g. OPENROUTER_API_KEY"
-                        className="h-8 font-mono text-xs"
-                        autoFocus
-                        onKeyDown={(e) => {
-                          if (e.key === "Escape") cancelAdd();
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell className="px-2.5 py-2.5 sm:px-4">
-                      <Input
-                        value={addValue}
-                        onChange={(e) => setAddValue(e.target.value)}
-                        placeholder="Enter value"
-                        className="h-8 font-mono text-xs"
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") void handleAdd();
-                          if (e.key === "Escape") cancelAdd();
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell className="px-2.5 py-2.5 text-right sm:px-4">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          size="icon-sm"
-                          variant="ghost"
-                          onClick={handleAdd}
-                          disabled={
-                            !addKey.trim() || !addValue.trim() || saving
-                          }
-                          title="Save"
-                          className="text-accent hover:text-accent"
-                        >
-                          <IconCheck className="size-3.5" />
-                        </Button>
-                        <Button
-                          size="icon-sm"
-                          variant="ghost"
-                          onClick={cancelAdd}
-                          title="Cancel"
-                        >
-                          <IconX className="size-3.5" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )}
+                {draft?.mode === "add" ? (
+                  <EnvVarRowEditor
+                    draft={draft}
+                    saving={saving}
+                    autoFocus
+                    onKeyChange={updateDraftKey}
+                    onValueChange={updateDraftValue}
+                    onSave={() => {
+                      void saveDraft();
+                    }}
+                    onCancel={clearDraft}
+                    onKeyPaste={handleKeyInputPaste}
+                    valuePlaceholder="Enter value"
+                    saveDisabled={!draft.key.trim() || !draft.value.trim()}
+                  />
+                ) : null}
                 {sortedVars.map((entry) => {
-                  const isEditing = editingKey === entry.key;
+                  const isEditing =
+                    draft?.mode === "edit" && draft.originalKey === entry.key;
+                  if (isEditing && draft !== null) {
+                    return (
+                      <EnvVarRowEditor
+                        key={entry.key}
+                        draft={draft}
+                        saving={saving}
+                        autoFocus
+                        onKeyChange={updateDraftKey}
+                        onValueChange={updateDraftValue}
+                        onSave={() => {
+                          void saveDraft();
+                        }}
+                        onCancel={clearDraft}
+                        valuePlaceholder="New value (leave blank to keep)"
+                        saveDisabled={!draft.key.trim()}
+                      />
+                    );
+                  }
                   return (
                     <TableRow key={entry.key} className="hover:bg-transparent">
                       <TableCell className="px-2.5 py-2.5 font-mono text-xs sm:px-4">
-                        {isEditing ? (
-                          <Input
-                            value={editKeyDraft}
-                            onChange={(e) => setEditKeyDraft(e.target.value)}
-                            placeholder="Key"
-                            className="h-8 font-mono text-xs"
-                            autoFocus
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") void saveEdit();
-                              if (e.key === "Escape") cancelEdit();
-                            }}
-                          />
-                        ) : (
-                          entry.key
-                        )}
+                        {entry.key}
                       </TableCell>
                       <TableCell className="px-2.5 py-2.5 sm:px-4">
-                        {isEditing ? (
-                          <Input
-                            value={editValueDraft}
-                            onChange={(e) => setEditValueDraft(e.target.value)}
-                            placeholder="New value (leave blank to keep)"
-                            className="h-8 font-mono text-xs"
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") void saveEdit();
-                              if (e.key === "Escape") cancelEdit();
-                            }}
-                          />
-                        ) : (
-                          <span className="font-mono text-xs text-muted">
-                            {revealedValues[entry.key] ?? entry.value}
-                          </span>
-                        )}
+                        <span className="font-mono text-xs text-muted">
+                          {revealedValues[entry.key] ?? entry.value}
+                        </span>
                       </TableCell>
                       <TableCell className="px-2.5 py-2.5 text-right sm:px-4">
-                        {isEditing ? (
-                          <div className="flex items-center justify-end gap-1">
-                            <Button
-                              size="icon-sm"
-                              variant="ghost"
-                              onClick={saveEdit}
-                              disabled={!editKeyDraft.trim() || saving}
-                              title="Save"
-                              className="text-accent hover:text-accent"
-                            >
-                              <IconCheck className="size-3.5" />
-                            </Button>
-                            <Button
-                              size="icon-sm"
-                              variant="ghost"
-                              onClick={cancelEdit}
-                              title="Cancel"
-                            >
-                              <IconX className="size-3.5" />
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-end gap-1">
-                            <Button
-                              size="icon-sm"
-                              variant="ghost"
-                              onClick={() => toggleReveal(entry.key)}
-                              disabled={revealingKey === entry.key}
-                              title={
-                                revealedValues[entry.key] !== undefined
-                                  ? "Hide value"
-                                  : "Reveal value"
-                              }
-                            >
-                              {revealedValues[entry.key] !== undefined ? (
-                                <IconEyeOff className="size-3.5" />
-                              ) : (
-                                <IconEye className="size-3.5" />
-                              )}
-                            </Button>
-                            <Button
-                              size="icon-sm"
-                              variant="ghost"
-                              onClick={() => copyValue(entry.key)}
-                              title={
-                                copiedKey === entry.key
-                                  ? "Copied!"
-                                  : "Copy value"
-                              }
-                            >
-                              {copiedKey === entry.key ? (
-                                <IconCheck className="size-3.5 text-accent" />
-                              ) : (
-                                <IconCopy className="size-3.5" />
-                              )}
-                            </Button>
-                            <Button
-                              size="icon-sm"
-                              variant="ghost"
-                              onClick={() => startEdit(entry)}
-                              title="Edit"
-                            >
-                              <IconPencil className="size-3.5" />
-                            </Button>
-                            <Button
-                              size="icon-sm"
-                              variant="ghost"
-                              onClick={() => setDeleteKey(entry.key)}
-                              title="Delete"
-                              className="text-danger hover:text-danger"
-                            >
-                              <IconTrash className="size-3.5" />
-                            </Button>
-                          </div>
-                        )}
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            size="icon-sm"
+                            variant="ghost"
+                            onClick={() => toggleReveal(entry.key)}
+                            disabled={revealingKey === entry.key}
+                            title={
+                              revealedValues[entry.key] !== undefined
+                                ? "Hide value"
+                                : "Reveal value"
+                            }
+                          >
+                            {revealedValues[entry.key] !== undefined ? (
+                              <IconEyeOff className="size-3.5" />
+                            ) : (
+                              <IconEye className="size-3.5" />
+                            )}
+                          </Button>
+                          <Button
+                            size="icon-sm"
+                            variant="ghost"
+                            onClick={() => copyValue(entry.key)}
+                            title={
+                              copiedKey === entry.key ? "Copied!" : "Copy value"
+                            }
+                          >
+                            {copiedKey === entry.key ? (
+                              <IconCheck className="size-3.5 text-accent" />
+                            ) : (
+                              <IconCopy className="size-3.5" />
+                            )}
+                          </Button>
+                          <Button
+                            size="icon-sm"
+                            variant="ghost"
+                            onClick={() => startEdit(entry)}
+                            title="Edit"
+                          >
+                            <IconPencil className="size-3.5" />
+                          </Button>
+                          <Button
+                            size="icon-sm"
+                            variant="ghost"
+                            onClick={() => setDeleteKey(entry.key)}
+                            title="Delete"
+                            className="text-danger hover:text-danger"
+                          >
+                            <IconTrash className="size-3.5" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );

@@ -8,6 +8,7 @@ import {
   imageThumbnailUrl,
   type FileNodeChromeProps,
 } from "./_utils";
+import { fileNodeActionsFor } from "./fileItemActions";
 import FileContextMenu from "./FileContextMenu";
 import MemoryIndexBadge from "./MemoryIndexBadge";
 
@@ -27,6 +28,13 @@ export default function FileGridItem({
   const FileIcon = getFileIcon(fileCategory);
   const isFolder = node.kind === "folder";
   const thumbnailUrl = imageThumbnailUrl(node);
+  const { actions } = fileNodeActionsFor(node, {
+    onOpen,
+    onDownload,
+    onMoveTo,
+    onRename,
+    onDelete,
+  });
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
@@ -48,14 +56,7 @@ export default function FileGridItem({
   );
 
   return (
-    <FileContextMenu
-      node={node}
-      onOpen={() => onOpen(node)}
-      onDownload={() => onDownload(node)}
-      onMoveTo={() => onMoveTo(node)}
-      onRename={() => onRename(node)}
-      onDelete={() => onDelete(node)}
-    >
+    <FileContextMenu actions={actions}>
       <div
         className={cn(
           "group relative flex flex-col items-center gap-2 rounded-lg border p-3 cursor-pointer transition-[background-color,box-shadow,transform]",

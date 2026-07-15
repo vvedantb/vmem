@@ -7,34 +7,17 @@ import {
   ContextMenuItem,
   ContextMenuSeparator,
 } from "@vmem/ui";
-import type { FileTreeNode } from "./-types";
-import {
-  fileNodeActions,
-  type FileNodeActionHandlers,
-} from "./fileItemActions";
+import type { FileNodeAction } from "./fileItemActions";
 
-interface FileContextMenuProps extends FileNodeActionHandlers {
-  node: FileTreeNode;
+interface FileContextMenuProps {
+  actions: FileNodeAction[];
   children: ReactNode;
 }
 
 export default function FileContextMenu({
-  node,
-  onOpen,
-  onDownload,
-  onMoveTo,
-  onRename,
-  onDelete,
+  actions,
   children,
 }: FileContextMenuProps) {
-  const actions = fileNodeActions(node, {
-    onOpen,
-    onDownload,
-    onMoveTo,
-    onRename,
-    onDelete,
-  });
-
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>

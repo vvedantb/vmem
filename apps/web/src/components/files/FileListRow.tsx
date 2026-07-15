@@ -18,7 +18,7 @@ import {
   imageThumbnailUrl,
   type FileNodeChromeProps,
 } from "./_utils";
-import { fileNodeActions } from "./fileItemActions";
+import { fileNodeActionsFor } from "./fileItemActions";
 import FileContextMenu from "./FileContextMenu";
 import MemoryIndexBadge from "./MemoryIndexBadge";
 
@@ -38,12 +38,12 @@ export default function FileListRow({
   const FileIcon = getFileIcon(fileCategory);
   const isFolder = node.kind === "folder";
   const thumbnailUrl = imageThumbnailUrl(node);
-  const actions = fileNodeActions(node, {
-    onOpen: () => onOpen(node),
-    onDownload: () => onDownload(node),
-    onMoveTo: () => onMoveTo(node),
-    onRename: () => onRename(node),
-    onDelete: () => onDelete(node),
+  const { actions, handlers } = fileNodeActionsFor(node, {
+    onOpen,
+    onDownload,
+    onMoveTo,
+    onRename,
+    onDelete,
   });
 
   const handleClick = useCallback(
@@ -61,26 +61,15 @@ export default function FileListRow({
     [node._id, onCheckbox],
   );
 
-  const handleRowOpen = useCallback(() => {
-    onOpen(node);
-  }, [node, onOpen]);
-
   return (
-    <FileContextMenu
-      node={node}
-      onOpen={handleRowOpen}
-      onDownload={() => onDownload(node)}
-      onMoveTo={() => onMoveTo(node)}
-      onRename={() => onRename(node)}
-      onDelete={() => onDelete(node)}
-    >
+    <FileContextMenu actions={actions}>
       <tr
         className={cn(
           "group cursor-pointer border-b border-separator transition-colors hover:bg-surface-tertiary/50",
           isSelected && "bg-accent/5",
         )}
         onClick={handleClick}
-        onDoubleClick={handleRowOpen}
+        onDoubleClick={handlers.onOpen}
       >
         <td className="w-10 px-3 py-2">
           <div onClick={handleCheckboxClick}>

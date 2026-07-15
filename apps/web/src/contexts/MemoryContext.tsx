@@ -10,8 +10,6 @@ import {
 } from "@/hooks/useMemoryMutations";
 import type { Memory } from "@/lib/memories";
 
-export type { CreateMemoryInput, UpdateMemoryInput, UploadMemoryFileInput };
-
 interface MemoryContextType {
   memories: Memory[];
   isLoading: boolean;
@@ -59,6 +57,3 @@ export function useMemoryContext() {
   }
   return context;
 }
-
-export { useRecentMemories } from "@/hooks/useRecentMemories";
-export { useMemoryMutations } from "@/hooks/useMemoryMutations";

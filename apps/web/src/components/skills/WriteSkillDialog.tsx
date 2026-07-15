@@ -1,10 +1,18 @@
-import { useState, type FormEvent } from "react";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "convex/react";
 import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@vmem/ui";
 import { toast } from "sonner";
 import { SkillFormShell } from "@/components/skills/SkillFormShell";
+import {
+  emptySkillFormValues,
+  skillFormSchema,
+  toastSkillFormErrors,
+  type SkillFormValues,
+} from "@/components/skills/skillForm";
 import { useActiveTeamId } from "@/components/workspace/active-profile";
 
 interface WriteSkillDialogProps {
@@ -21,53 +29,39 @@ export function WriteSkillDialog({
   const teamId = useActiveTeamId();
   const createSkill = useMutation(api.skills.createSkill);
 
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [instructions, setInstructions] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const form = useForm<SkillFormValues>({
+    resolver: zodResolver(skillFormSchema),
+    defaultValues: emptySkillFormValues,
+  });
 
-  const resetForm = () => {
-    setName("");
-    setDescription("");
-    setInstructions("");
-  };
+  const submitting = form.formState.isSubmitting;
+
+  useEffect(() => {
+    if (!open) {
+      form.reset(emptySkillFormValues);
+    }
+  }, [open, form]);
 
   const handleOpenChange = (next: boolean) => {
-    if (!next) resetForm();
+    if (!next) form.reset(emptySkillFormValues);
     onOpenChange(next);
   };
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (submitting) return;
-
-    const trimmedName = name.trim();
-    if (trimmedName.length === 0) {
-      toast.error("Name is required");
-      return;
-    }
-    if (instructions.trim().length === 0) {
-      toast.error("Instructions are required");
-      return;
-    }
-
-    setSubmitting(true);
+  const onSubmit = async (values: SkillFormValues) => {
     try {
       const skillId = await createSkill({
-        name: trimmedName,
-        description: description.trim(),
-        instructions,
+        name: values.name,
+        description: values.description.trim(),
+        instructions: values.instructions,
         teamId,
       });
-      toast.success(`Added ${trimmedName}`);
-      resetForm();
+      toast.success(`Added ${values.name}`);
+      form.reset(emptySkillFormValues);
       onOpenChange(false);
       onCreated(skillId);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to add skill";
       toast.error(msg);
-    } finally {
-      setSubmitting(false);
     }
   };
 
@@ -79,13 +73,8 @@ export function WriteSkillDialog({
         </DialogHeader>
 
         <SkillFormShell
-          name={name}
-          description={description}
-          instructions={instructions}
-          onNameChange={setName}
-          onDescriptionChange={setDescription}
-          onInstructionsChange={setInstructions}
-          onSubmit={handleSubmit}
+          register={form.register}
+          onSubmit={form.handleSubmit(onSubmit, toastSkillFormErrors)}
           onCancel={() => handleOpenChange(false)}
           submitting={submitting}
           submitLabel="Add Skill"

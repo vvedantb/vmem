@@ -1,18 +1,15 @@
 import type { FormEvent, ReactNode } from "react";
+import type { UseFormRegister } from "react-hook-form";
 import { Button, Input, Textarea } from "@vmem/ui";
 import { IconLoader2 } from "@tabler/icons-react";
 import {
   SkillDescriptionSection,
   SkillInstructionsSection,
 } from "@/components/skills/SkillPanelSections";
+import type { SkillFormValues } from "@/components/skills/skillForm";
 
 type SkillFormShellProps = {
-  name: string;
-  description: string;
-  instructions: string;
-  onNameChange: (value: string) => void;
-  onDescriptionChange: (value: string) => void;
-  onInstructionsChange: (value: string) => void;
+  register: UseFormRegister<SkillFormValues>;
   onSubmit: (e: FormEvent) => void;
   onCancel: () => void;
   submitting: boolean;
@@ -28,12 +25,7 @@ type SkillFormShellProps = {
 };
 
 export function SkillFormShell({
-  name,
-  description,
-  instructions,
-  onNameChange,
-  onDescriptionChange,
-  onInstructionsChange,
+  register,
   onSubmit,
   onCancel,
   submitting,
@@ -49,23 +41,21 @@ export function SkillFormShell({
   const descriptionField = (
     <Textarea
       id={descriptionId}
-      value={description}
-      onChange={(e) => onDescriptionChange(e.target.value)}
       placeholder="What this skill is for"
       aria-label="Description"
       rows={3}
       className="min-h-[4.5rem] resize-y"
+      {...register("description")}
     />
   );
 
   const instructionsField = (
     <Textarea
       id={instructionsId}
-      value={instructions}
-      onChange={(e) => onInstructionsChange(e.target.value)}
       placeholder={instructionsPlaceholder}
       aria-label="Instructions"
       className="min-h-[240px] font-mono text-xs"
+      {...register("instructions")}
     />
   );
 
@@ -76,11 +66,10 @@ export function SkillFormShell({
     >
       <Input
         id={nameId}
-        value={name}
-        onChange={(e) => onNameChange(e.target.value)}
         placeholder="Name"
         aria-label="Name"
         autoFocus
+        {...register("name")}
       />
       {afterName}
       {labeledSections ? (
