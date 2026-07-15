@@ -1,4 +1,4 @@
-// show a short toast in the active tab after a keyboard-shortcut save
+// show a short toast in the active tab after a keyboard shortcut save
 export async function injectPageToast(
   tabId: number,
   message: string,
@@ -6,7 +6,7 @@ export async function injectPageToast(
 ): Promise<void> {
   await chrome.scripting.executeScript({
     target: { tabId },
-    // serialized into the page — no outer-scope captures besides args
+    // serialized into the page no outer scope captures besides args
     func: (toastMessage: string, toastColor: string) => {
       if (!document.getElementById("vmem-instrument-sans-font")) {
         const link = document.createElement("link");

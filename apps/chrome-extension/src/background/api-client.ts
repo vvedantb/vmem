@@ -10,7 +10,7 @@ import type {
   Profile,
 } from "@/types/api";
 
-// userSettings.update args — from the convex validator
+// userSettings.update args from the convex validator
 export type UserSettingsUpdateArgs = FunctionArgs<
   typeof api.userSettings.update
 >;
@@ -138,7 +138,7 @@ export async function listProfiles(): Promise<Profile[]> {
   );
 }
 
-// durable settings write via http — popup websocket can drop on close
+// durable settings write via http popup websocket can drop on close
 export async function updateUserSettings(
   args: UserSettingsUpdateArgs,
 ): Promise<void> {

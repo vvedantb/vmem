@@ -5,7 +5,7 @@ import tailwindcss from "@tailwindcss/vite";
 
 const root = import.meta.dirname;
 
-/** MV3 — no need to downlevel for legacy browsers; avoids esbuild destructuring errors on Clerk chunks. */
+// mv3 no need to downlevel for legacy browsers avoids esbuild destructuring errors on clerk chunks
 const extensionBuildTarget = "chrome120";
 
 const sharedResolve = {

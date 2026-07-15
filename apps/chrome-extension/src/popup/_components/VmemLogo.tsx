@@ -1,8 +1,6 @@
-/**
- * Static vmem logo mark — the same three petal paths as the web app's
- * `apps/web/src/components/svg-animations/VmemPaths.tsx`, without the
- * draw-in animation. `currentColor` fill so it follows the popup theme.
- */
+// static vmem logo mark the same three petal paths as the web app's
+// apps/web/src/components/svg-animations/VmemPaths.tsx without the
+// draw in animation currentColor fill so it follows the popup theme
 export function VmemLogo({ size = 18 }: { size?: number }) {
   return (
     <svg

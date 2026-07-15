@@ -18,7 +18,7 @@ export function TokenSync() {
     let active = true;
 
     async function sync() {
-      // Get token with "convex" template so Convex can verify it
+      // get token with "convex" template so convex can verify it
       const token = await getToken({ template: "convex" });
       if (active) {
         await setAuthToken(token ?? "");

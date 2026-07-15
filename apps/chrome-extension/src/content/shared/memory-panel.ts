@@ -1,12 +1,10 @@
-/**
- * Floating memory panel for auto-search results.
- * Displays retrieved memories with per-item removal, anchored above the chat input.
- * Uses Shadow DOM for style encapsulation.
- */
+// floating memory panel for auto search results
+// displays retrieved memories with per item removal anchored above the chat input
+// uses shadow dom for style encapsulation
 
 import type { MemoryCandidate } from "@/types/api";
 
-// ── Singleton state ──────────────────────────────────────────────────────────
+// singleton state
 
 let host: HTMLElement | null = null;
 let shadow: ShadowRoot | null = null;
@@ -15,7 +13,7 @@ let memories: MemoryCandidate[] = [];
 let removedIds = new Set<string>();
 let currentAnchor: HTMLElement | null = null;
 
-// ── Styles ───────────────────────────────────────────────────────────────────
+// styles
 
 const STYLES = `
   :host { all: initial; }
@@ -166,7 +164,7 @@ const STYLES = `
   }
 `;
 
-// ── Container setup ──────────────────────────────────────────────────────────
+// container setup
 
 function ensureContainer(): void {
   if (host) return;
@@ -196,7 +194,7 @@ function ensureContainer(): void {
   document.documentElement.appendChild(host);
 }
 
-// ── Rendering ────────────────────────────────────────────────────────────────
+// rendering
 
 function positionPanel(anchor: HTMLElement): void {
   if (!panelEl) return;
@@ -222,7 +220,7 @@ function render(): void {
 
   positionPanel(currentAnchor);
   panelEl.style.display = "block";
-  // Trigger reflow before adding visible class
+  // trigger reflow before adding visible class
   void panelEl.offsetWidth;
   panelEl.classList.add("visible");
 
@@ -248,7 +246,7 @@ function render(): void {
     <div class="panel-footer">Hit send to include context</div>
   `;
 
-  // Bind events
+  // bind events
   const clearBtn = panelEl.querySelector(".clear-all");
   if (clearBtn) {
     clearBtn.addEventListener("click", () => {
@@ -267,9 +265,9 @@ function render(): void {
   });
 }
 
-// ── Public API ───────────────────────────────────────────────────────────────
+// public api
 
-/** Show the panel in a loading state while memories are being fetched. */
+// show the panel in a loading state while memories are being fetched
 export function showMemoryPanelLoading(anchor: HTMLElement): void {
   ensureContainer();
   if (!panelEl) return;
@@ -291,7 +289,7 @@ export function showMemoryPanelLoading(anchor: HTMLElement): void {
   `;
 }
 
-/** Show the memory panel with the given results, anchored above the given element. */
+// show the memory panel with the given results anchored above the given element
 export function showMemoryPanel(
   newMemories: MemoryCandidate[],
   anchor: HTMLElement,
@@ -303,7 +301,7 @@ export function showMemoryPanel(
   render();
 }
 
-/** Hide the memory panel without clearing state. */
+// hide the memory panel without clearing state
 export function hideMemoryPanel(): void {
   if (panelEl) {
     panelEl.classList.remove("visible");
@@ -311,12 +309,12 @@ export function hideMemoryPanel(): void {
   }
 }
 
-/** Get the memories the user hasn't removed. */
+// get the memories the user hasn't removed
 export function getIncludedMemories(): MemoryCandidate[] {
   return memories.filter((m) => !removedIds.has(m.id));
 }
 
-/** Clear all memories and hide the panel. */
+// clear all memories and hide the panel
 export function clearMemories(): void {
   memories = [];
   removedIds = new Set<string>();
@@ -324,7 +322,7 @@ export function clearMemories(): void {
   hideMemoryPanel();
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// helpers
 
 function escapeHtml(str: string): string {
   return str

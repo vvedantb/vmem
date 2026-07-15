@@ -91,7 +91,7 @@ export function SettingsForm() {
     void setStorage({ autoCaptureEnabled: checked });
   }
 
-  // per-browser only — never write to account-wide default
+  // per browser only never write to account wide default
   async function handleProfileChange(profileId: string) {
     setSelectedProfileId(profileId);
     await setStorage({ defaultProfileId: profileId });

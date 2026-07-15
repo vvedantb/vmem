@@ -1,4 +1,4 @@
-// check / error SVGs shared by selection + screenshot overlays
+// check / error svgs shared by selection + screenshot overlays
 
 export function checkIcon(size: 14 | 16): string {
   return `<svg width="${String(size)}" height="${String(size)}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">

@@ -3,14 +3,14 @@
 
 @source "../../node_modules/@vmem/ui/src/**/*.{ts,tsx}";
 
-/* Tab animation timing — matches apps/web/src/globals.css */
+/* tab animation timing matches apps/web/src/globals.css */
 :root {
   --tabs-dur: 200ms;
   --tabs-ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /*
- * HeroUI theme — keep in sync with apps/web/src/globals.css
+ * heroui theme keep in sync with apps/web/src/globals.css
  * @see https://heroui.com/docs/react/getting-started/theming
  */
 :root,
@@ -205,9 +205,9 @@ textarea,
   transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Tailwind v4 preflight sets `cursor: default` on buttons — restore the
-   pointer affordance for enabled interactive controls. Layered so cursor-*
-   utilities can still override per-element. */
+/* tailwind v4 preflight sets cursor: default on buttons restore the
+   pointer affordance for enabled interactive controls layered so cursor-*
+   utilities can still override per element */
 @layer base {
   button:not(:disabled),
   [role="button"]:not(:disabled),
@@ -215,7 +215,7 @@ textarea,
     cursor: pointer;
   }
 
-  /* Radix menu items render as divs with menu roles, not buttons. */
+  /* radix menu items render as divs with menu roles not buttons */
   [role="menuitem"]:not([data-disabled]),
   [role="menuitemcheckbox"]:not([data-disabled]),
   [role="menuitemradio"]:not([data-disabled]),
@@ -235,11 +235,11 @@ input[type="range"] {
   accent-color: var(--accent);
 }
 
-/* Thin themed scrollbar — webkit-only on purpose. Setting `scrollbar-width`/
-   `scrollbar-color` (like apps/web does for Firefox) makes Chrome 121+ ignore
-   the ::-webkit-scrollbar rules and fall back to its fluent overlay scrollbar,
-   which auto-hides and fades in with a delay. The extension is Chrome-only,
-   so webkit styling alone gives an always-visible, instant scrollbar. */
+/* thin themed scrollbar webkit only on purpose setting scrollbar-width/
+   scrollbar-color (like apps/web does for firefox) makes chrome 121+ ignore
+   the ::-webkit-scrollbar rules and fall back to its fluent overlay scrollbar
+   which auto hides and fades in with a delay the extension is chrome only
+   so webkit styling alone gives an always visible instant scrollbar */
 @layer utilities {
   .scrollbar-thin::-webkit-scrollbar {
     width: 6px;
@@ -259,14 +259,14 @@ input[type="range"] {
   }
 }
 
-/* Floating overlays — matches apps/web */
+/* floating overlays matches apps/web */
 .glass-panel-strong {
   background: var(--overlay);
   color: var(--overlay-foreground);
   box-shadow: var(--overlay-shadow);
 }
 
-/* Transitions.dev — Tabs sliding (matches apps/web) */
+/* transitions.dev tabs sliding (matches apps/web) */
 .t-tabs {
   position: relative;
   display: inline-flex;

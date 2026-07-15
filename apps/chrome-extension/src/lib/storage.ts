@@ -13,8 +13,8 @@ export async function setStorage(
   await chrome.storage.local.set(partial);
 }
 
-// Auth token lives in chrome.storage.session — in-memory only, cleared on
-// browser restart. The Convex JWT has a ~60s TTL anyway, so persisting it
+// auth token lives in chrome.storage.session in memory only cleared on
+// browser restart the convex jwt has a ~60s ttl anyway so persisting it
 // to disk via chrome.storage.local would mostly cache expired tokens while
 // leaving them readable from the filesystem at rest
 export async function getAuthToken(): Promise<string> {

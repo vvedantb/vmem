@@ -2,7 +2,7 @@ import { createMemory } from "./api-client";
 import { htmlToMarkdown } from "@/lib/page-extraction";
 import { extractPageFromTab } from "@/lib/extract-page";
 
-/** recreate context menus (idempotent across install/startup). */
+// recreate context menus (idempotent across install/startup)
 export function registerContextMenu(): void {
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({
@@ -14,15 +14,13 @@ export function registerContextMenu(): void {
     chrome.contextMenus.create({
       id: "screenshot-to-vmem",
       title: "Screenshot region to vmem",
-      // viewport capture — show on any click target
+      // viewport capture show on any click target
       contexts: ["all"],
     });
   });
 }
 
-/**
- * click handler — register via registerContextMenuClickListener at sw top-level.
- */
+// click handler register via registerContextMenuClickListener at sw top level
 export async function handleContextMenuClick(
   info: chrome.contextMenus.OnClickData,
   tab: chrome.tabs.Tab | undefined,
@@ -45,14 +43,14 @@ export async function handleContextMenuClick(
   }
 }
 
-/** register click listener synchronously at sw top-level. */
+// register click listener synchronously at sw top level
 export function registerContextMenuClickListener(): void {
   chrome.contextMenus.onClicked.addListener((info, tab) => {
     void handleContextMenuClick(info, tab);
   });
 }
 
-/** save active tab page (context menu / keyboard shortcut). */
+// save active tab page (context menu / keyboard shortcut)
 export async function savePageFromTab(
   tab: chrome.tabs.Tab,
 ): Promise<{ success: boolean; memoryId?: string; error?: string }> {

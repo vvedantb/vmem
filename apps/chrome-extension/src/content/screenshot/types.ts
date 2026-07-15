@@ -1,8 +1,5 @@
-/**
- * Internal types shared between the screenshot overlay's state machine,
- * drag handler, and capture pipeline. Module-private — not part of the
- * extension's public message API.
- */
+// internal types shared by the screenshot overlay state machine
+// drag handler and capture pipeline not part of the public message api
 
 export type Mode =
   | "idle"
@@ -12,7 +9,7 @@ export type Mode =
   | "success"
   | "error";
 
-/** CSS pixels relative to the viewport. */
+// css pixels relative to the viewport
 export interface SelectionRect {
   x: number;
   y: number;

@@ -7,13 +7,9 @@ export type { ImportResult };
 
 const SKIP_PREFIXES = ["chrome://", "chrome-extension://", "about:", "edge://"];
 
-/**
- * Import browsing history — only items since last sync.
- *
- * @param days  Manual sync: max lookback window (clamped to lastHistorySync).
- *              Omit for auto-sync: uses lastHistorySync directly.
- * @param silent  When true, skips sending IMPORT_PROGRESS messages (auto-sync, popup closed).
- */
+// import browsing history only items since last sync
+// days: manual sync max lookback (clamped to lastHistorySync) omit for auto sync
+// silent: skip IMPORT_PROGRESS messages (auto sync popup closed)
 export async function importHistory(
   days?: number,
   silent = false,
@@ -32,14 +28,14 @@ export async function importHistory(
 
       let startTime: number;
       if (days !== undefined) {
-        // Manual sync: go back `days` but never earlier than last sync
+        // manual sync: go back `days` but never earlier than last sync
         const daysAgo = Date.now() - days * 24 * 60 * 60 * 1000;
         startTime = Math.max(daysAgo, lastHistorySync);
       } else if (lastHistorySync > 0) {
-        // Auto-sync: from last sync point
+        // auto sync: from last sync point
         startTime = lastHistorySync;
       } else {
-        // First auto-sync tick, never synced — only look back 30 min to avoid huge fetch
+        // first auto sync tick never synced only look back 30 min to avoid huge fetch
         startTime = Date.now() - 30 * 60 * 1000;
       }
 
@@ -61,7 +57,7 @@ export async function importHistory(
         return true;
       });
 
-      // This browser's workspace selection — uni and personal Chrome
+      // this browser's workspace selection uni and personal chrome
       // profiles each sync into their own vmem profile
       profileId = await getSyncProfileId();
       return deduplicated;

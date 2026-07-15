@@ -1,8 +1,6 @@
-/**
- * In-page toast notification system for vmem.
- * Uses Shadow DOM for style encapsulation so it works on any host page.
- * Toasts stack from bottom-right and auto-dismiss.
- */
+// in page toast notification system for vmem
+// uses shadow dom for style encapsulation so it works on any host page
+// toasts stack from bottom right and auto dismiss
 
 type ToastType = "success" | "error" | "loading" | "info";
 
@@ -12,7 +10,7 @@ interface ToastEntry {
   timer: ReturnType<typeof setTimeout> | null;
 }
 
-// ── Singleton state ──────────────────────────────────────────────────────────
+// singleton state
 
 let host: HTMLElement | null = null;
 let shadow: ShadowRoot | null = null;
@@ -20,7 +18,7 @@ let listEl: HTMLElement | null = null;
 let counter = 0;
 const active = new Map<string, ToastEntry>();
 
-// ── Icons ────────────────────────────────────────────────────────────────────
+// icons
 
 const CHECK_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
 const ERROR_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
@@ -34,7 +32,7 @@ const ICON_MAP: Record<ToastType, string> = {
   loading: SPINNER_HTML,
 };
 
-// ── Styles ───────────────────────────────────────────────────────────────────
+// styles
 
 const STYLES = `
   :host { all: initial; }
@@ -102,7 +100,7 @@ const STYLES = `
   @keyframes spin { to { transform: rotate(360deg); } }
 `;
 
-// ── Container setup ──────────────────────────────────────────────────────────
+// container setup
 
 function ensureContainer(): void {
   if (host) return;
@@ -132,16 +130,16 @@ function ensureContainer(): void {
   document.documentElement.appendChild(host);
 }
 
-// ── Public API ───────────────────────────────────────────────────────────────
+// public api
 
 export interface ShowToastOptions {
   type: ToastType;
   message: string;
-  /** Auto-dismiss after ms. Default 3000. Pass 0 to keep open. */
+  // auto dismiss after ms default 3000 pass 0 to keep open
   duration?: number;
 }
 
-// show a toast notification; returns a unique toast ID for later removal
+// show a toast notification returns a unique toast id for later removal
 export function showToast(options: ShowToastOptions): string {
   ensureContainer();
 
@@ -151,7 +149,7 @@ export function showToast(options: ShowToastOptions): string {
   el.innerHTML = `<div class="toast-icon">${ICON_MAP[options.type]}</div><span class="toast-message">${escapeHtml(options.message)}</span>`;
 
   if (listEl) listEl.appendChild(el);
-  // Trigger reflow then animate in
+  // trigger reflow then animate in
   void el.offsetWidth;
   el.classList.add("show");
 
@@ -165,7 +163,7 @@ export function showToast(options: ShowToastOptions): string {
   return id;
 }
 
-/** Remove a toast by ID. */
+// remove a toast by id
 export function hideToast(id: string): void {
   const entry = active.get(id);
   if (!entry) return;
@@ -180,7 +178,7 @@ export function hideToast(id: string): void {
   }, 300);
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// helpers
 
 function escapeHtml(str: string): string {
   return str

@@ -5,26 +5,26 @@ interface SettingsSliderRowProps {
   id: string;
   label: string;
   description?: string;
-  /** minutes; snapped to nearest preset for display. */
+  // minutes snapped to nearest preset for display
   value: number;
-  /** selectable values (minutes), ascending. */
+  // selectable values (minutes) ascending
   presets: readonly number[];
-  /** e.g. "every 30 minutes". */
+  // e.g. "every 30 minutes"
   format: (minutes: number) => string;
-  /** e.g. "15m" / "24h". */
+  // e.g. "15m" / "24h"
   formatShort: (minutes: number) => string;
   onValueChange: (minutes: number) => void;
   disabled?: boolean;
   icon?: ReactNode;
 }
 
-/** safe indexed read under noUncheckedIndexedAccess. */
+// safe indexed read under noUncheckedIndexedAccess
 function valueAt(presets: readonly number[], index: number): number {
   const value = presets[index];
   return value === undefined ? 0 : value;
 }
 
-/** nearest preset index (handles off-grid legacy values). */
+// nearest preset index (handles off grid legacy values)
 function nearestIndex(presets: readonly number[], minutes: number): number {
   let best = 0;
   let bestDiff = Number.POSITIVE_INFINITY;
@@ -38,7 +38,7 @@ function nearestIndex(presets: readonly number[], minutes: number): number {
   return best;
 }
 
-/** snap-to-preset range slider (operates in preset-index space). */
+// snap to preset range slider (operates in preset index space)
 export function SettingsSliderRow({
   id,
   label,

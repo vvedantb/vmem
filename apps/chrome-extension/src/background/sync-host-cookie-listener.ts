@@ -28,10 +28,8 @@ function isSyncHostSessionCookie(cookie: chrome.cookies.Cookie): boolean {
   return domain === syncDomain || domain.endsWith(`.${syncDomain}`);
 }
 
-/**
- * When the user signs in on the vmem web app, Clerk updates session cookies on
- * syncHost. Re-warm background auth so auto-sync works without opening the popup.
- */
+// when user signs in on vmem web clerk updates session cookies on syncHost
+// re warm background auth so auto sync works without opening the popup
 export function registerSyncHostCookieListener(): void {
   if (listenerRegistered) return;
   listenerRegistered = true;

@@ -9,22 +9,20 @@ function applyTheme(resolved: ResolvedTheme) {
   document.documentElement.classList.toggle("dark", resolved === "dark");
 }
 
-/**
- * Hook to manage theme state synced with Convex userSettings.
- * Must be used inside ExtensionUserSettingsProvider.
- */
+// hook to manage theme state synced with convex userSettings
+// must be used inside ExtensionUserSettingsProvider
 export function useTheme() {
   const { settings, update } = useExtensionUserSettings();
   const prefersDark = useMediaQuery("(prefers-color-scheme: dark)");
 
-  // Theme preference from Convex (source of truth)
+  // theme preference from convex (source of truth)
   const theme: Theme = settings?.theme ?? "system";
 
-  // Resolve "system" to actual light/dark based on OS preference
+  // resolve "system" to actual light/dark based on os preference
   const resolvedTheme: ResolvedTheme =
     theme === "system" ? (prefersDark ? "dark" : "light") : theme;
 
-  // Apply theme class when resolved theme changes
+  // apply theme class when resolved theme changes
   useEffect(() => {
     applyTheme(resolvedTheme);
   }, [resolvedTheme]);
@@ -43,10 +41,8 @@ export function useTheme() {
   };
 }
 
-/**
- * Apply system-based theme for signed-out users.
- * Does not require ExtensionUserSettingsProvider.
- */
+// apply system based theme for signed out users
+// does not require ExtensionUserSettingsProvider
 export function useSystemTheme() {
   const prefersDark = useMediaQuery("(prefers-color-scheme: dark)");
   const resolvedTheme: ResolvedTheme = prefersDark ? "dark" : "light";

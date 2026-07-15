@@ -1,4 +1,4 @@
-/** `public/icon-{dark,light}.svg` — copied from apps/web/public. */
+// public/icon-{dark,light}.svg copied from apps/web/public
 
 export type VmemLogoVariant = "dark" | "light";
 

@@ -4,7 +4,7 @@ import { CLERK_PUBLISHABLE_KEY, CLERK_SYNC_HOST } from "@/lib/constants";
 const DEV_SESSION_COOKIE = "__clerk_db_jwt";
 const PROD_SESSION_COOKIE = "__client";
 
-/** clerk fapi origin from publishable key (pk_*_<base64(host)$>). */
+// clerk fapi origin from publishable key (pk_*_<base64(host)$>)
 function clerkFrontendApiOrigin(): string {
   const encoded = CLERK_PUBLISHABLE_KEY.split("_")[2] ?? "";
   const base64 = encoded.replace(/-/g, "+").replace(/_/g, "/");
@@ -13,7 +13,7 @@ function clerkFrontendApiOrigin(): string {
   return `https://${decoded.endsWith("$") ? decoded.slice(0, -1) : decoded}`;
 }
 
-/** last auth attempt breadcrumbs for popup/debug (key: lastAuthDebug). */
+// last auth attempt breadcrumbs for popup/debug (key: lastAuthDebug)
 type AuthDebug = {
   at: number;
   stage:
@@ -55,7 +55,7 @@ const fapiTokenResponseSchema = z.object({
   jwt: z.string().nullable().optional(),
 });
 
-/** mint convex jwt via clerk fapi + syncHost cookie (clerk-js can't run in sw). */
+// mint convex jwt via clerk fapi + syncHost cookie (clerk js can't run in sw)
 export async function refreshConvexTokenFromClerk(): Promise<string | null> {
   if (typeof chrome === "undefined" || chrome.cookies === undefined) {
     console.warn(

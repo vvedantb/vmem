@@ -1,15 +1,10 @@
-/**
- * Pure capture/crop pipeline for the screenshot overlay.
- *
- *   - `requestCapture` asks the background SW for a viewport PNG.
- *   - `cropImage` clips that PNG to the dragged rect on a canvas
- *     (devicePixelRatio aware) and returns both the blob and a data URL.
- *   - `blobToBase64` strips the data URL prefix for transport.
- *
- * No DOM mutation, no module-level state - safe to call from the
- * orchestrator without coupling.
- */
+// pure capture/crop pipeline for the screenshot overlay
+//
+//   requestCapture asks the background sw for a viewport png
+//   cropImage clips that png to the dragged rect (dpr aware)
+//   blobToBase64 encodes the cropped blob for SAVE_SCREENSHOT
 
+import { base64 as base64Codec } from "@scure/base";
 import type { ContentMessage, BackgroundResponse } from "@/types/messages";
 import { safeSendMessage } from "@/lib/safe-message";
 import type { CroppedImage, SelectionRect } from "./types";
@@ -39,37 +34,26 @@ export async function cropImage(
 ): Promise<CroppedImage> {
   const img = await loadImage(sourceDataUrl);
 
-  // captureVisibleTab returns an image at devicePixelRatio resolution
-  // Map CSS-pixel rect → image-pixel rect
+  // captureVisibleTab is at devicePixelRatio map css rect → image pixels
   const dpr = window.devicePixelRatio || 1;
-  const sx = Math.round(rect.x * dpr);
-  const sy = Math.round(rect.y * dpr);
-  const sw = Math.round(rect.w * dpr);
-  const sh = Math.round(rect.h * dpr);
-
-  // Clamp to image bounds in case dpr drift produces an off-by-a-pixel
-  const clampedSx = Math.max(0, Math.min(sx, img.naturalWidth));
-  const clampedSy = Math.max(0, Math.min(sy, img.naturalHeight));
-  const clampedSw = Math.max(1, Math.min(sw, img.naturalWidth - clampedSx));
-  const clampedSh = Math.max(1, Math.min(sh, img.naturalHeight - clampedSy));
+  const sx = Math.max(0, Math.min(Math.round(rect.x * dpr), img.naturalWidth));
+  const sy = Math.max(0, Math.min(Math.round(rect.y * dpr), img.naturalHeight));
+  const sw = Math.max(
+    1,
+    Math.min(Math.round(rect.w * dpr), img.naturalWidth - sx),
+  );
+  const sh = Math.max(
+    1,
+    Math.min(Math.round(rect.h * dpr), img.naturalHeight - sy),
+  );
 
   const canvas = document.createElement("canvas");
-  canvas.width = clampedSw;
-  canvas.height = clampedSh;
+  canvas.width = sw;
+  canvas.height = sh;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas 2D context unavailable");
 
-  ctx.drawImage(
-    img,
-    clampedSx,
-    clampedSy,
-    clampedSw,
-    clampedSh,
-    0,
-    0,
-    clampedSw,
-    clampedSh,
-  );
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
 
   const dataUrl = canvas.toDataURL("image/png");
   const blob = await new Promise<Blob>((resolve, reject) => {
@@ -90,20 +74,6 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
-export function blobToBase64(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result;
-      if (typeof result !== "string") {
-        reject(new Error("FileReader returned non-string result"));
-        return;
-      }
-      // Strip the `data:image/png;base64,` prefix
-      const comma = result.indexOf(",");
-      resolve(comma >= 0 ? result.slice(comma + 1) : result);
-    };
-    reader.onerror = () => reject(new Error("FileReader failed"));
-    reader.readAsDataURL(blob);
-  });
+export async function blobToBase64(blob: Blob): Promise<string> {
+  return base64Codec.encode(new Uint8Array(await blob.arrayBuffer()));
 }

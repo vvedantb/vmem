@@ -1,21 +1,19 @@
-/**
- * Readability content script.
- *
- * Lives on every page (`<all_urls>`, `document_idle`) and listens for
- * `EXTRACT_PAGE` requests sent from the background via
- * `chrome.tabs.sendMessage(tabId, { type: "EXTRACT_PAGE" })`.
- *
- * Why a content script and not `chrome.scripting.executeScript({ func })`?
- * Because `executeScript({ func })` serializes the function — its imports
- * are stripped, so `@mozilla/readability` would not be available at run
- * time. A bundled content script keeps the dependency wired up.
- *
- * The handler runs Readability on a CLONED document (Readability mutates
- * the DOM it is given — Mozilla docs are explicit on this) and falls back
- * to the previous strip-list extraction when Readability returns null
- * or an article body shorter than 200 characters (paywall, JS-heavy SPA
- * with no static HTML, etc.).
- */
+// readability content script
+//
+// lives on every page (<all_urls> document_idle) and listens for
+// EXTRACT_PAGE requests sent from the background via
+// chrome.tabs.sendMessage(tabId { type: "EXTRACT_PAGE" })
+//
+// why a content script and not chrome.scripting.executeScript({ func })?
+// because executeScript({ func }) serializes the function its imports
+// are stripped so @mozilla/readability would not be available at run
+// time a bundled content script keeps the dependency wired up
+//
+// the handler runs readability on a cloned document (readability mutates
+// the dom it is given mozilla docs are explicit on this) and falls back
+// to the previous strip list extraction when readability returns null
+// or an article body shorter than 200 characters (paywall js heavy spa
+// with no static html etc)
 
 import { Readability } from "@mozilla/readability";
 import { z } from "zod";
@@ -33,8 +31,8 @@ interface ExtractPageResult {
   ogImage?: string;
   ogDescription?: string;
   favicon?: string;
-  // True when the result came from Readability; false on fallback path
-  // Lets the caller log degraded extractions for debugging
+  // true when the result came from readability false on fallback path
+  // lets the caller log degraded extractions for debugging
   usedReadability: boolean;
 }
 
@@ -87,7 +85,7 @@ function getOgMetadata(): {
   return { ogTitle, ogImage, ogDescription, favicon };
 }
 
-/** Strip-list extraction — used as a fallback when Readability fails. */
+// strip list extraction used as a fallback when readability fails
 function fallbackExtract(): { content: string; html: string } {
   const bodyClone = document.body.cloneNode(true);
   if (!(bodyClone instanceof HTMLElement)) {
@@ -104,11 +102,11 @@ function fallbackExtract(): { content: string; html: string } {
   };
 }
 
-/** Run Readability on a cloned document. Returns null when unable to parse. */
+// run readability on a cloned document returns null when unable to parse
 function readabilityExtract(): { content: string; html: string } | null {
-  // Readability mutates the DOM it is given — cloning is required
-  // The cast is to `Document` because cloneNode returns `Node`; we know
-  // `document.cloneNode(true)` always yields a Document
+  // readability mutates the dom it is given cloning is required
+  // the cast is to Document because cloneNode returns Node we know
+  // document.cloneNode(true) always yields a Document
   const cloned = document.cloneNode(true);
   if (!(cloned instanceof Document)) return null;
 

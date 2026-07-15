@@ -1,29 +1,9 @@
-/**
- * Screenshot content script.
- *
- * Listens for a `START_SCREENSHOT` runtime message (sent by the
- * background SW when the user invokes the toolbar action or the
- * keyboard shortcut). When triggered:
- *
- *   1. Mounts a dim overlay + crosshair on the page (Shadow DOM, so
- *      page styles can't bleed in).
- *   2. User drags a rectangle on the visible viewport.
- *   3. On mouseup, asks the background to `captureVisibleTab` and
- *      crops the returned PNG to the dragged rect on an OffscreenCanvas
- *      (devicePixelRatio aware).
- *   4. Shows a floating bar with thumbnail preview, optional caption,
- *      and a Save button - matching the selection popup's visual
- *      language. Save → SAVE_SCREENSHOT message.
- *
- * Esc cancels at any stage. Click outside the preview bar dismisses.
- *
- * File layout (all under `./screenshot/`):
- *   - `styles.ts`   - shadow-DOM CSS
- *   - `types.ts`    - Mode + SelectionRect + CroppedImage
- *   - `dom.ts`      - element construction (singleton tree, mountOverlay)
- *   - `capture.ts`  - requestCapture + cropImage + blobToBase64
- *   - `index.ts`    - state machine + drag/save handlers + event wiring
- */
+// screenshot content script
+//
+// START_SCREENSHOT from the background sw mounts a dim overlay
+// user drags a viewport rect → captureVisibleTab → dpr aware crop
+// preview bar with caption + save → SAVE_SCREENSHOT
+// esc cancels click outside preview dismisses
 
 import type { ContentMessage, BackgroundResponse } from "@/types/messages";
 import { safeSendMessage } from "@/lib/safe-message";
@@ -52,76 +32,77 @@ const startScreenshotMessageSchema = z.object({
   type: z.literal("START_SCREENSHOT"),
 });
 
-// ── Mode + state ──────────────────────────────────────────────────────────────
-
 let mode: Mode = "idle";
 let dragStart: { x: number; y: number } | null = null;
 let dragRect: SelectionRect | null = null;
 let croppedBlob: Blob | null = null;
 let captionValue = "";
 
-// Surfaced as the Save button's `title` attribute when the save fails,
-// so the user can hover the button to see the underlying error without
-// hunting through the SW console
-function setLastErrorTitle(message: string): void {
-  saveBtn.title = message;
+function clearOverlay(): void {
+  scrim.classList.remove("active");
+  rectEl.classList.remove("active");
+  preview.classList.remove("visible");
 }
 
-// ── State transitions ─────────────────────────────────────────────────────────
+function resetSelectionState(): void {
+  dragStart = null;
+  dragRect = null;
+  croppedBlob = null;
+  captionValue = "";
+  captionInput.value = "";
+}
+
+function setSaveButtonState(
+  icon: "logo" | string,
+  label: string,
+  disabled: boolean,
+  title?: string,
+): void {
+  if (icon === "logo") {
+    mountVmemLogo(saveIcon, "dark", 14);
+  } else {
+    saveIcon.innerHTML = icon;
+  }
+  saveLabel.textContent = label;
+  saveBtn.disabled = disabled;
+  // omit title to preserve hover error text set before entering error mode
+  if (title !== undefined) saveBtn.title = title;
+}
 
 function setMode(next: Mode): void {
   mode = next;
   preview.classList.remove("state-saving", "state-success", "state-error");
+
   switch (next) {
     case "idle":
-      scrim.classList.remove("active");
-      rectEl.classList.remove("active");
-      preview.classList.remove("visible");
-      dragStart = null;
-      dragRect = null;
-      croppedBlob = null;
-      captionValue = "";
-      captionInput.value = "";
-      mountVmemLogo(saveIcon, "dark", 14);
-      saveLabel.textContent = "Save";
-      saveBtn.disabled = false;
-      saveBtn.title = "";
+      clearOverlay();
+      resetSelectionState();
+      setSaveButtonState("logo", "Save", false, "");
       break;
     case "selecting":
+      clearOverlay();
       scrim.classList.add("active");
-      rectEl.classList.remove("active");
-      preview.classList.remove("visible");
       break;
     case "preview":
-      scrim.classList.remove("active");
-      rectEl.classList.remove("active");
+      clearOverlay();
       preview.classList.add("visible");
-      mountVmemLogo(saveIcon, "dark", 14);
-      saveLabel.textContent = "Save";
-      saveBtn.disabled = false;
-      // Focus caption input after the popup transitions in
+      setSaveButtonState("logo", "Save", false, "");
       setTimeout(() => captionInput.focus(), 50);
       break;
     case "saving":
       preview.classList.add("state-saving");
-      saveIcon.innerHTML = `<div class="spinner"></div>`;
-      saveLabel.textContent = "Saving";
-      saveBtn.disabled = true;
+      setSaveButtonState(`<div class="spinner"></div>`, "Saving", true);
       break;
     case "success":
       preview.classList.add("state-success");
-      saveIcon.innerHTML = CHECK_ICON;
-      saveLabel.textContent = "Saved";
-      saveBtn.disabled = true;
+      setSaveButtonState(CHECK_ICON, "Saved", true);
       setTimeout(() => {
         if (mode === "success") setMode("idle");
       }, 1400);
       break;
     case "error":
       preview.classList.add("state-error");
-      saveIcon.innerHTML = ERROR_ICON;
-      saveLabel.textContent = "Failed";
-      saveBtn.disabled = false;
+      setSaveButtonState(ERROR_ICON, "Failed", false);
       setTimeout(() => {
         if (mode === "error") setMode("idle");
       }, 2000);
@@ -129,11 +110,48 @@ function setMode(next: Mode): void {
   }
 }
 
-// ── Drag handling ─────────────────────────────────────────────────────────────
+function positionRect(r: SelectionRect): void {
+  rectEl.style.left = `${r.x}px`;
+  rectEl.style.top = `${r.y}px`;
+  rectEl.style.width = `${r.w}px`;
+  rectEl.style.height = `${r.h}px`;
+}
+
+function positionPreview(rect: SelectionRect): void {
+  // measure off screen first
+  preview.style.left = "-9999px";
+  preview.style.top = "-9999px";
+  preview.classList.add("visible");
+  const box = preview.getBoundingClientRect();
+  preview.classList.remove("visible");
+
+  const gap = 10;
+  let x = rect.x + rect.w / 2 - box.width / 2;
+  let y = rect.y + rect.h + gap;
+
+  if (x + box.width > window.innerWidth - gap) {
+    x = window.innerWidth - box.width - gap;
+  }
+  if (x < gap) x = gap;
+
+  if (y + box.height > window.innerHeight - gap) {
+    y = rect.y - box.height - gap;
+  }
+  if (y < gap) y = gap;
+
+  preview.style.left = `${x}px`;
+  preview.style.top = `${y}px`;
+}
+
+function showPreview(rect: SelectionRect, blob: Blob, dataUrl: string): void {
+  croppedBlob = blob;
+  thumb.src = dataUrl;
+  positionPreview(rect);
+  setMode("preview");
+}
 
 function onScrimMouseDown(e: MouseEvent): void {
-  if (mode !== "selecting") return;
-  if (e.button !== 0) return;
+  if (mode !== "selecting" || e.button !== 0) return;
   e.preventDefault();
   dragStart = { x: e.clientX, y: e.clientY };
   dragRect = { x: e.clientX, y: e.clientY, w: 0, h: 0 };
@@ -157,7 +175,7 @@ function onScrimMouseUp(e: MouseEvent): void {
   const finalRect = dragRect;
   dragStart = null;
 
-  // Reject tiny drags - likely a stray click
+  // reject tiny drags likely a stray click
   if (finalRect.w < 8 || finalRect.h < 8) {
     setMode("idle");
     return;
@@ -166,22 +184,9 @@ function onScrimMouseUp(e: MouseEvent): void {
   void captureAndCrop(finalRect);
 }
 
-function positionRect(r: SelectionRect): void {
-  rectEl.style.left = `${r.x}px`;
-  rectEl.style.top = `${r.y}px`;
-  rectEl.style.width = `${r.w}px`;
-  rectEl.style.height = `${r.h}px`;
-}
-
-// ── Capture + crop pipeline ───────────────────────────────────────────────────
-
 async function captureAndCrop(rect: SelectionRect): Promise<void> {
-  // Hide the scrim *before* asking the SW to capture - otherwise the
-  // captured image will include our dim overlay
-  scrim.classList.remove("active");
-  rectEl.classList.remove("active");
-
-  // Yield a frame so the browser actually paints without the scrim
+  // hide overlay before capture so it is not in the png
+  clearOverlay();
   await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
   let dataUrl: string;
@@ -195,45 +200,12 @@ async function captureAndCrop(rect: SelectionRect): Promise<void> {
 
   try {
     const cropped = await cropImage(dataUrl, rect);
-    croppedBlob = cropped.blob;
-    thumb.src = cropped.dataUrl;
-    positionPreview(rect);
-    setMode("preview");
+    showPreview(rect, cropped.blob, cropped.dataUrl);
   } catch (err) {
     console.error("[vmem] Crop failed:", err);
     setMode("idle");
   }
 }
-
-// ── Preview positioning ───────────────────────────────────────────────────────
-
-function positionPreview(rect: SelectionRect): void {
-  // Render off-screen first so we can measure
-  preview.style.left = "-9999px";
-  preview.style.top = "-9999px";
-  preview.classList.add("visible");
-  const rectBox = preview.getBoundingClientRect();
-  preview.classList.remove("visible");
-
-  const gap = 10;
-  let x = rect.x + rect.w / 2 - rectBox.width / 2;
-  let y = rect.y + rect.h + gap;
-
-  if (x + rectBox.width > window.innerWidth - gap) {
-    x = window.innerWidth - rectBox.width - gap;
-  }
-  if (x < gap) x = gap;
-
-  if (y + rectBox.height > window.innerHeight - gap) {
-    y = rect.y - rectBox.height - gap;
-  }
-  if (y < gap) y = gap;
-
-  preview.style.left = `${x}px`;
-  preview.style.top = `${y}px`;
-}
-
-// ── Save ──────────────────────────────────────────────────────────────────────
 
 async function saveScreenshot(): Promise<void> {
   if (mode !== "preview" && mode !== "error") return;
@@ -242,7 +214,6 @@ async function saveScreenshot(): Promise<void> {
   setMode("saving");
 
   const base64Png = await blobToBase64(croppedBlob);
-
   const message: ContentMessage = {
     type: "SAVE_SCREENSHOT",
     base64Png,
@@ -257,39 +228,33 @@ async function saveScreenshot(): Promise<void> {
         "[vmem] Screenshot save: no response from background (extension context lost or SW killed mid-request). " +
           "Open the service worker console (chrome://extensions → service worker) for backend errors.",
       );
-      setLastErrorTitle("No response from background");
+      saveBtn.title = "No response from background";
       setMode("error");
       return;
     }
     if (response.type === "SAVE_RESULT" && response.success) {
       setMode("success");
-    } else if (response.type === "SAVE_RESULT") {
+      return;
+    }
+    if (response.type === "SAVE_RESULT") {
       console.error(
         "[vmem] Screenshot save failed:",
         response.error ?? "(no error message)",
       );
-      setLastErrorTitle(response.error ?? "Save failed");
+      saveBtn.title = response.error ?? "Save failed";
       setMode("error");
-    } else {
-      console.error("[vmem] Screenshot save: unexpected response", response);
-      setLastErrorTitle("Unexpected response");
-      setMode("error");
+      return;
     }
+    console.error("[vmem] Screenshot save: unexpected response", response);
+    saveBtn.title = "Unexpected response";
+    setMode("error");
   });
 }
-
-// ── Trigger ───────────────────────────────────────────────────────────────────
 
 function startSelection(): void {
   if (mode !== "idle") return;
   setMode("selecting");
 }
-
-function cancelAll(): void {
-  setMode("idle");
-}
-
-// ── Event wiring ──────────────────────────────────────────────────────────────
 
 scrim.addEventListener("mousedown", onScrimMouseDown);
 scrim.addEventListener("mousemove", onScrimMouseMove);
@@ -304,9 +269,9 @@ captionInput.addEventListener("keydown", (e) => {
     void saveScreenshot();
   } else if (e.key === "Escape") {
     e.preventDefault();
-    cancelAll();
+    setMode("idle");
   }
-  // Stop the page from intercepting typing (some sites bind global keys)
+  // stop the page from intercepting typing
   e.stopPropagation();
 });
 
@@ -316,30 +281,27 @@ saveBtn.addEventListener("click", (e) => {
   void saveScreenshot();
 });
 
-// Global Esc - cancel from any state
 document.addEventListener(
   "keydown",
   (e) => {
     if (e.key === "Escape" && mode !== "idle") {
       e.preventDefault();
-      cancelAll();
+      setMode("idle");
     }
   },
   true,
 );
 
-// Click outside preview while in preview state → dismiss without saving
 document.addEventListener(
   "mousedown",
   (e) => {
     if (mode !== "preview") return;
     if (e.target === host) return;
-    cancelAll();
+    setMode("idle");
   },
   true,
 );
 
-// Listen for the start trigger from the background SW
 chrome.runtime.onMessage.addListener(
   (message: unknown, _sender, sendResponse) => {
     const parsed = startScreenshotMessageSchema.safeParse(message);
