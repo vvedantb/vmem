@@ -1,10 +1,25 @@
-import type { GraphEdge, GraphEdgeType, GraphNode } from "@/lib/graph/types";
+import type {
+  GraphEdge,
+  GraphEdgeType,
+  GraphNode,
+  GraphNodeKind,
+} from "@/lib/graph/types";
 import type { GraphViewTheme } from "../graph-view-themes";
 import { nodeColor as getNodeColor } from "../graph-colors";
 import { colorToRgba, writeRgba } from "./cosmos-color";
 
 // Palette slots on GraphViewTheme.edge.normalByType — mirrors canvas/renderer.ts
 type EdgePaletteSlot = keyof GraphViewTheme["edge"]["normalByType"];
+
+// @cosmos.gl/graph PointShape enum values. Keep local so pure adapter tests
+// do not import the WebGPU bundle in Vitest.
+export const COSMOS_POINT_SHAPE = {
+  Circle: 0,
+  Square: 1,
+  Diamond: 3,
+  Hexagon: 5,
+  Star: 6,
+} as const;
 
 const EDGE_SLOT: Record<GraphEdgeType, EdgePaletteSlot> = {
   tag: "tag",
@@ -39,6 +54,7 @@ export interface CosmosGraphBuffers {
   positions: Float32Array;
   colors: Float32Array;
   sizes: Float32Array;
+  shapes: Float32Array;
   links: Float32Array;
   linkColors: Float32Array;
 }
@@ -57,7 +73,14 @@ function seedPosition(
     return { x: node.x, y: node.y };
   }
   const angle = (index / Math.max(count, 1)) * Math.PI * 2;
-  const radius = spaceSize * 0.28;
+  const radius =
+    count <= 10
+      ? 80
+      : count <= 50
+        ? 180
+        : count <= 200
+          ? 360
+          : spaceSize * 0.28;
   const cx = spaceSize / 2;
   const cy = spaceSize / 2;
   return {
@@ -86,6 +109,18 @@ function paintNodeColor(
   );
 }
 
+export function cosmosPointShapeForKind(kind: GraphNodeKind): number {
+  if (kind === "wiki-folder") return COSMOS_POINT_SHAPE.Square;
+  if (kind === "wiki-document") return COSMOS_POINT_SHAPE.Diamond;
+  if (kind === "skill") return COSMOS_POINT_SHAPE.Hexagon;
+  if (kind === "entity") return COSMOS_POINT_SHAPE.Star;
+  if (kind === "code-file") return COSMOS_POINT_SHAPE.Square;
+  if (kind === "code-class") return COSMOS_POINT_SHAPE.Hexagon;
+  if (kind === "code-interface") return COSMOS_POINT_SHAPE.Diamond;
+  if (kind === "code-process") return COSMOS_POINT_SHAPE.Star;
+  return COSMOS_POINT_SHAPE.Circle;
+}
+
 /** Build Cosmos index-based Float32Arrays + id↔index / edge meta maps. */
 export function buildCosmosGraphBuffers(
   nodes: GraphNode[],
@@ -100,6 +135,7 @@ export function buildCosmosGraphBuffers(
   const positions = new Float32Array(nodes.length * 2);
   const colors = new Float32Array(nodes.length * 4);
   const sizes = new Float32Array(nodes.length);
+  const shapes = new Float32Array(nodes.length);
 
   for (let i = 0; i < nodes.length; i++) {
     const node = nodes[i];
@@ -115,6 +151,7 @@ export function buildCosmosGraphBuffers(
     paintNodeColor(colors, i, node, theme);
     // Canvas draws radius ≈ size * 2; Cosmos size is diameter-ish — keep proportional
     sizes[i] = Math.max(2, node.size * 2);
+    shapes[i] = cosmosPointShapeForKind(node.kind);
   }
 
   const resolved: Array<{
@@ -169,6 +206,7 @@ export function buildCosmosGraphBuffers(
     positions,
     colors,
     sizes,
+    shapes,
     links,
     linkColors,
   };
@@ -184,6 +222,7 @@ export function recolorCosmosGraphBuffers(
     if (!node) continue;
     paintNodeColor(buffers.colors, i, node, theme);
     buffers.sizes[i] = Math.max(2, node.size * 2);
+    buffers.shapes[i] = cosmosPointShapeForKind(node.kind);
   }
   for (let i = 0; i < buffers.edgeMeta.length; i++) {
     const meta = buffers.edgeMeta[i];

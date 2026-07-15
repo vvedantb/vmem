@@ -2,9 +2,16 @@
 // Modified by me: expanded hex and rgba color cases
 import { describe, expect, it } from "vitest";
 import type { GraphEdge, GraphNode } from "@/lib/graph/types";
+import { DEFAULT_GRAPH_SETTINGS } from "@/lib/graph/graph-types";
 import { getViewTheme } from "../graph-view-themes";
-import { buildCosmosGraphBuffers, searchMatchIndices } from "./cosmos-adapters";
+import {
+  buildCosmosGraphBuffers,
+  COSMOS_POINT_SHAPE,
+  cosmosPointShapeForKind,
+  searchMatchIndices,
+} from "./cosmos-adapters";
 import { colorToRgba } from "./cosmos-color";
+import { cosmosPhysicsFromSettings } from "./cosmos-physics";
 
 function node(id: string, overrides: Partial<GraphNode> = {}): GraphNode {
   return {
@@ -60,6 +67,7 @@ describe("buildCosmosGraphBuffers", () => {
     expect(buffers.positions.length).toBe(6);
     expect(buffers.colors.length).toBe(12);
     expect(buffers.sizes.length).toBe(3);
+    expect(buffers.shapes.length).toBe(3);
     expect(buffers.links.length).toBe(2);
     expect(buffers.links[0]).toBe(0);
     expect(buffers.links[1]).toBe(1);
@@ -72,5 +80,69 @@ describe("buildCosmosGraphBuffers", () => {
     expect(searchMatchIndices(["a", "b", "c"], new Set(["c", "a"]))).toEqual([
       0, 2,
     ]);
+  });
+
+  it("maps graph node kinds to Cosmos point shapes", () => {
+    expect(cosmosPointShapeForKind("memory")).toBe(COSMOS_POINT_SHAPE.Circle);
+    expect(cosmosPointShapeForKind("wiki-folder")).toBe(
+      COSMOS_POINT_SHAPE.Square,
+    );
+    expect(cosmosPointShapeForKind("wiki-document")).toBe(
+      COSMOS_POINT_SHAPE.Diamond,
+    );
+    expect(cosmosPointShapeForKind("skill")).toBe(COSMOS_POINT_SHAPE.Hexagon);
+    expect(cosmosPointShapeForKind("entity")).toBe(COSMOS_POINT_SHAPE.Star);
+    expect(cosmosPointShapeForKind("code-file")).toBe(
+      COSMOS_POINT_SHAPE.Square,
+    );
+    expect(cosmosPointShapeForKind("code-class")).toBe(
+      COSMOS_POINT_SHAPE.Hexagon,
+    );
+    expect(cosmosPointShapeForKind("code-interface")).toBe(
+      COSMOS_POINT_SHAPE.Diamond,
+    );
+    expect(cosmosPointShapeForKind("code-process")).toBe(
+      COSMOS_POINT_SHAPE.Star,
+    );
+  });
+
+  it("seeds tiny graphs tightly instead of on the large overview ring", () => {
+    const buffers = buildCosmosGraphBuffers(
+      [node("a"), node("b")],
+      [],
+      getViewTheme(true),
+    );
+    const dx = (buffers.positions[0] ?? 0) - (buffers.positions[2] ?? 0);
+    const dy = (buffers.positions[1] ?? 0) - (buffers.positions[3] ?? 0);
+    expect(Math.hypot(dx, dy)).toBeLessThan(200);
+  });
+});
+
+describe("cosmosPhysicsFromSettings", () => {
+  it("maps default settings into a settling Cosmos config", () => {
+    const p = cosmosPhysicsFromSettings(DEFAULT_GRAPH_SETTINGS, 500);
+    expect(p.simulationRepulsion).toBe(1);
+    expect(p.simulationGravity).toBeCloseTo(0.125);
+    expect(p.simulationFriction).toBeLessThan(0.85);
+    expect(p.simulationDecay).toBeLessThan(5000);
+    expect(p.simulationRepulsionFromMouse).toBe(0);
+    expect(p.simulationCollision).toBe(1);
+  });
+
+  it("keeps small local graphs tighter than overview graphs", () => {
+    const small = cosmosPhysicsFromSettings(DEFAULT_GRAPH_SETTINGS, 5);
+    const overview = cosmosPhysicsFromSettings(DEFAULT_GRAPH_SETTINGS, 500);
+    expect(small.simulationRepulsion).toBeLessThan(
+      overview.simulationRepulsion,
+    );
+    expect(small.simulationLinkDistance).toBeLessThan(
+      overview.simulationLinkDistance,
+    );
+  });
+
+  it("disables collision on very large graphs", () => {
+    const p = cosmosPhysicsFromSettings(DEFAULT_GRAPH_SETTINGS, 20_000);
+    expect(p.simulationCollision).toBe(0);
+    expect(p.simulationDecay).toBeGreaterThan(1100);
   });
 });
