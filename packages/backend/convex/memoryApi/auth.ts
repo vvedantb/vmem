@@ -1,15 +1,12 @@
 import type { Doc } from "../_generated/dataModel";
-import { internal } from "../_generated/api";
 import type { AuthActionCtx } from "../auth";
+import { getAccessibleProfile as getAccessibleProfileShared } from "../profiles/accessibleProfile";
 
 export async function getAccessibleProfile(
   ctx: AuthActionCtx,
   profileId: string,
 ): Promise<Doc<"profiles">> {
-  return await ctx.runQuery(internal.teams.assertProfileAccessInternal, {
-    profileId,
-    userId: ctx.userId,
-  });
+  return await getAccessibleProfileShared(ctx, profileId);
 }
 
 export async function assertTeamAccess(

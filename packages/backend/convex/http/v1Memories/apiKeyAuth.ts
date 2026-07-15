@@ -3,6 +3,7 @@ import { internal } from "../../_generated/api";
 import { hashApiKey } from "../../apiKeys";
 import { extractBearerToken } from "../../lib/bearerToken";
 import type { Id } from "../../_generated/dataModel";
+import { getAccessibleProfileForUser } from "../../profiles/accessibleProfile";
 import type { z } from "zod";
 
 const API_KEY_PREFIX = "vmem_sk_";
@@ -52,51 +53,11 @@ export async function guardProfileAccess(
     return null;
   }
   try {
-    await ctx.runQuery(internal.teams.assertProfileAccessInternal, {
-      profileId,
-      userId: auth.userId,
-    });
+    await getAccessibleProfileForUser(ctx, auth.userId, profileId);
     return null;
   } catch {
     return Response.json({ error: "forbidden" }, { status: 403 });
   }
-}
-
-async function recordUsage(
-  ctx: ActionCtx,
-  auth: ApiKeyAuth,
-  endpoint: string,
-  method: string,
-  status: number,
-  durationMs: number,
-): Promise<void> {
-  await ctx.runMutation(internal.apiKeys.recordUsageInternal, {
-    keyHash: auth.keyHash,
-    endpoint,
-    method,
-    status,
-    durationMs,
-    createdAt: Date.now(),
-  });
-}
-
-async function respondWithUsage(
-  ctx: ActionCtx,
-  auth: ApiKeyAuth,
-  endpoint: string,
-  method: string,
-  startedAt: number,
-  response: Response,
-): Promise<Response> {
-  await recordUsage(
-    ctx,
-    auth,
-    endpoint,
-    method,
-    response.status,
-    Date.now() - startedAt,
-  );
-  return response;
 }
 
 export function withApiKeyAuth<T>(
@@ -118,28 +79,28 @@ export function withApiKeyAuth<T>(
       return unauthorized();
     }
 
+    const respond = async (response: Response): Promise<Response> => {
+      await ctx.runMutation(internal.apiKeys.recordUsageInternal, {
+        keyHash: auth.keyHash,
+        endpoint,
+        method,
+        status: response.status,
+        durationMs: Date.now() - startedAt,
+        createdAt: Date.now(),
+      });
+      return response;
+    };
+
     let json: unknown;
     try {
       json = await req.json();
     } catch {
-      return respondWithUsage(
-        ctx,
-        auth,
-        endpoint,
-        method,
-        startedAt,
-        Response.json({ error: "invalid_json" }, { status: 400 }),
-      );
+      return respond(Response.json({ error: "invalid_json" }, { status: 400 }));
     }
 
     const parsed = schema.safeParse(json);
     if (!parsed.success) {
-      return respondWithUsage(
-        ctx,
-        auth,
-        endpoint,
-        method,
-        startedAt,
+      return respond(
         Response.json(
           { error: "invalid_request", issues: parsed.error.issues },
           { status: 400 },
@@ -151,25 +112,13 @@ export function withApiKeyAuth<T>(
       const result = await run(ctx, auth, parsed.data);
 
       if (result instanceof Response) {
-        return respondWithUsage(ctx, auth, endpoint, method, startedAt, result);
+        return respond(result);
       }
 
-      return respondWithUsage(
-        ctx,
-        auth,
-        endpoint,
-        method,
-        startedAt,
-        Response.json({ data: result }, { status: 200 }),
-      );
+      return respond(Response.json({ data: result }, { status: 200 }));
     } catch (err) {
       console.error(`[HTTP][${endpoint}]`, err);
-      return respondWithUsage(
-        ctx,
-        auth,
-        endpoint,
-        method,
-        startedAt,
+      return respond(
         Response.json({ error: "internal_error" }, { status: 500 }),
       );
     }

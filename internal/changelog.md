@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-07-15 — Share HTTP respond + accessible-profile helpers
+
+API-key auth uses a request-local `respond` closure for usage logging. Dashboard,
+graph, proposals, file import, memoryApi, and HTTP share one accessible-profile
+helper for team-scope / assert checks.
+
 ## 2026-07-15 — Simplify Convex skills/wiki/memory internals
 
 Shared skill and wiki create/update/delete helpers across web and MCP

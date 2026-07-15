@@ -13,6 +13,7 @@ import {
   type GraphData,
 } from "../engine/neo4j/memory/graph";
 import type { MemoryType } from "../engine/neo4j/memory/types";
+import { resolveAccessibleTeamScope } from "./profiles/accessibleProfile";
 
 // Convex enforces a hard 8192 element limit on ANY array in a return value
 const MAX_NODES = 5000;
@@ -187,14 +188,9 @@ export const getGraphData = authAction({
     let strictProfile = false;
     let teamId: Id<"teams"> | undefined;
     if (args.profileId !== undefined) {
-      const profile = await ctx.runQuery(
-        internal.teams.assertProfileAccessInternal,
-        { profileId: args.profileId, userId: ctx.userId },
-      );
-      if (profile.teamId !== undefined) {
-        strictProfile = true;
-        teamId = profile.teamId;
-      }
+      const scope = await resolveAccessibleTeamScope(ctx, args.profileId);
+      strictProfile = scope.strictProfile;
+      teamId = scope.teamId;
     }
 
     const memoryGraph = await fetchCappedMemoryGraph({

@@ -2,7 +2,7 @@
 
 import { v } from "convex/values";
 import { ActionCache } from "@convex-dev/action-cache";
-import { authAction, requireClerkId, type AuthActionCtx } from "./auth";
+import { authAction, requireClerkId } from "./auth";
 import { components, internal } from "./_generated/api";
 import { internalAction } from "./_generated/server";
 import {
@@ -10,6 +10,7 @@ import {
   getStats as fetchStats,
 } from "../engine/neo4j/memory/stats";
 import { runWithNeo4jDriver } from "./neo4jActions/_shared/driver";
+import { resolveAccessibleTeamScope } from "./profiles/accessibleProfile";
 
 const DASHBOARD_CACHE_TTL_MS = 30_000;
 
@@ -61,18 +62,6 @@ const recentActivityCache = new ActionCache(components.actionCache, {
   ttl: DASHBOARD_CACHE_TTL_MS,
 });
 
-async function resolveStrictProfile(
-  ctx: AuthActionCtx,
-  profileId: string | undefined,
-): Promise<boolean> {
-  if (profileId === undefined) return false;
-  const profile = await ctx.runQuery(
-    internal.teams.assertProfileAccessInternal,
-    { profileId, userId: ctx.userId },
-  );
-  return profile.teamId !== undefined;
-}
-
 export const getStats = authAction({
   args: {
     profileId: v.optional(v.string()),
@@ -80,7 +69,10 @@ export const getStats = authAction({
   },
   handler: async (ctx, args): Promise<StatsResult> => {
     const clerkId = await requireClerkId(ctx);
-    const strictProfile = await resolveStrictProfile(ctx, args.profileId);
+    const { strictProfile } = await resolveAccessibleTeamScope(
+      ctx,
+      args.profileId,
+    );
     return await statsCache.fetch(
       ctx,
       { clerkId, profileId: args.profileId, strictProfile },
@@ -96,7 +88,10 @@ export const getRecentActivity = authAction({
   },
   handler: async (ctx, args): Promise<ActivityItem[]> => {
     const clerkId = await requireClerkId(ctx);
-    const strictProfile = await resolveStrictProfile(ctx, args.profileId);
+    const { strictProfile } = await resolveAccessibleTeamScope(
+      ctx,
+      args.profileId,
+    );
     return await recentActivityCache.fetch(ctx, {
       clerkId,
       profileId: args.profileId,

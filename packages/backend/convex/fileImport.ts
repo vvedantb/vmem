@@ -2,12 +2,13 @@
 
 import { v } from "convex/values";
 import crypto from "node:crypto";
-import { authAction, requireClerkId, type AuthActionCtx } from "./auth";
+import { authAction, requireClerkId } from "./auth";
 import { internal } from "./_generated/api";
 import { extractFileContent } from "../engine/parsers/extractFileContent";
 import { detectFileKind } from "./files/lib";
 import type { Id } from "./_generated/dataModel";
 import type { MemoryWithTags } from "./memoryApi/types";
+import { assertAccessibleProfileIfPresent } from "./profiles/accessibleProfile";
 
 // maximum size of an uploaded file
 const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
@@ -40,18 +41,6 @@ function chooseScreenshotTitle(
   return `Screenshot from ${hostname}`;
 }
 
-async function assertProfileAccessIfPresent(
-  ctx: AuthActionCtx,
-  profileId: string | undefined,
-): Promise<void> {
-  if (!profileId) return;
-  await ctx.runQuery(internal.teams.assertProfileAccessInternal, {
-    profileId,
-    userId: ctx.userId,
-  });
-}
-
-// load an uploaded blob from storage, enforcing `MAX_UPLOAD_BYTES`
 async function loadUploadedBlob(
   ctx: {
     storage: {
@@ -85,7 +74,7 @@ export const importMemoryFromFile = authAction({
   },
   handler: async (ctx, args): Promise<MemoryWithTags> => {
     const clerkId = await requireClerkId(ctx);
-    await assertProfileAccessIfPresent(ctx, args.profileId);
+    await assertAccessibleProfileIfPresent(ctx, args.profileId);
 
     const kind = detectFileKind(args.filename, args.mimeType);
     if (kind === null) {
@@ -147,7 +136,7 @@ export const importImageMemory = authAction({
   },
   handler: async (ctx, args): Promise<MemoryWithTags> => {
     const clerkId = await requireClerkId(ctx);
-    await assertProfileAccessIfPresent(ctx, args.profileId);
+    await assertAccessibleProfileIfPresent(ctx, args.profileId);
 
     if (!args.mimeType.startsWith("image/")) {
       throw new Error(
