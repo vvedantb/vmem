@@ -147,12 +147,20 @@ pnpm dev      # Web app — http://localhost:5173
 **Other commands:**
 
 ```bash
-pnpm ext:dev         # Chrome extension watch build
+pnpm ext:dev         # Chrome extension WXT watch / HMR → dist/chrome-mv3-dev/
+pnpm ext:build       # Chrome extension production build → dist/chrome-mv3/
 pnpm typecheck:all   # web + backend + extension + packages
 pnpm test            # backend + web unit tests
 pnpm check           # full merge gate: lint + typecheck:all + knip + tests + format
 pnpm eval:bench      # bench user only — seeds, reports, cleans up (safe on shared Neo4j)
 ```
+
+**Chrome extension** — built with [WXT](https://wxt.dev). After `pnpm ext:build` (or `pnpm ext:dev`), load unpacked in Chrome from:
+
+- Production: `apps/chrome-extension/dist/chrome-mv3/`
+- Dev watch: `apps/chrome-extension/dist/chrome-mv3-dev/`
+
+See [`apps/chrome-extension/README.md`](apps/chrome-extension/README.md) for setup details.
 
 Visit `/?agent` during web dev to auto sign in as the agent user (requires `CLERK_SECRET_KEY` + `AGENT_CLERK_USER_ID` in `apps/web/.env.local`).
 
@@ -195,7 +203,7 @@ WEB_APP_URL             # http://localhost:5173 in dev
 
 Optional: `OPENROUTER_API_KEY` (server embeddings/context when users have no key), `GOOGLE_CLIENT_*` / `NOTION_CLIENT_*` (connector OAuth), `GITHUB_CLIENT_*` (codebase sync OAuth), `NEO4J_USERNAME` (defaults to `neo4j`).
 
-**Chrome extension** — copy `apps/chrome-extension/.env.example` to `apps/chrome-extension/.env.local` before `pnpm ext:build`.
+**Chrome extension** — copy `apps/chrome-extension/.env.example` to `apps/chrome-extension/.env.local` before `pnpm ext:dev` / `pnpm ext:build`. Load the built folder under `apps/chrome-extension/dist/chrome-mv3/` (or `chrome-mv3-dev/` while watching), not a flat `dist/`.
 
 **Neo4j CLI scripts** (`eval:bench`, live HTTP tests) — `packages/backend/.env.local` with `NEO4J_URI`, `NEO4J_PASSWORD`, and optionally `OPENROUTER_API_KEY`.
 
