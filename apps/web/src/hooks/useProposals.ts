@@ -1,4 +1,3 @@
-import { useCallback } from "react";
 import { useConvexAuth, useAction } from "convex/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@vmem/backend";
@@ -46,29 +45,6 @@ export function useProposals() {
     },
   });
 
-  const approve = useCallback(
-    (proposalId: string) =>
-      resolveMutation.mutateAsync({ proposalId, action: "approve" }),
-    [resolveMutation],
-  );
-
-  const reject = useCallback(
-    (proposalId: string) =>
-      resolveMutation.mutateAsync({ proposalId, action: "reject" }),
-    [resolveMutation],
-  );
-
-  // contradiction resolution: keep `winnerMemoryId`, suppress the rest
-  const keepWinner = useCallback(
-    (proposalId: string, winnerMemoryId: string) =>
-      resolveMutation.mutateAsync({
-        proposalId,
-        action: "approve",
-        winnerMemoryId,
-      }),
-    [resolveMutation],
-  );
-
   const proposals = listQuery.data ?? [];
   const pendingCount = proposals.filter((p) => p.status === "pending").length;
 
@@ -77,8 +53,15 @@ export function useProposals() {
     pendingCount,
     isLoading: listQuery.isLoading,
     isResolving: resolveMutation.isPending,
-    approve,
-    reject,
-    keepWinner,
+    approve: (proposalId: string) =>
+      resolveMutation.mutateAsync({ proposalId, action: "approve" }),
+    reject: (proposalId: string) =>
+      resolveMutation.mutateAsync({ proposalId, action: "reject" }),
+    keepWinner: (proposalId: string, winnerMemoryId: string) =>
+      resolveMutation.mutateAsync({
+        proposalId,
+        action: "approve",
+        winnerMemoryId,
+      }),
   };
 }

@@ -159,7 +159,7 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
 
   const trailTag =
     params.tags.length === 1 ? (params.tags.at(0) ?? null) : null;
-  const { trailMap } = useTrailData({ tag: trailTag });
+  const trailMap = useTrailData({ tag: trailTag });
 
   const [panelAction, setPanelAction] = useState<"edit" | "delete" | null>(
     null,
@@ -190,13 +190,8 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
   useEffect(() => {
     if (memoryId === null || isFetchingMemory) return;
 
-    if (list.isHybridSearch) {
-      if (list.isRetrieveLoading) return;
-    } else if (
-      list.isBrowseMemoriesLoading ||
-      list.isFetchingNextPage ||
-      list.hasNextPage
-    ) {
+    if (list.isMemoriesLoading) return;
+    if (!list.isHybridSearch && (list.isFetchingNextPage || list.hasNextPage)) {
       return;
     }
 
@@ -213,8 +208,7 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
     list.memoryResults,
     fetchedMemory,
     list.isHybridSearch,
-    list.isRetrieveLoading,
-    list.isBrowseMemoriesLoading,
+    list.isMemoriesLoading,
     list.isFetchingNextPage,
     list.hasNextPage,
     isFetchingMemory,
@@ -261,7 +255,7 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
     if (
       !list.hasNextPage ||
       list.isFetchingNextPage ||
-      list.isBrowseMemoriesLoading
+      list.isMemoriesLoading
     ) {
       return;
     }
@@ -274,9 +268,8 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
     memoryId !== null &&
     selectedMemory === null &&
     (isFetchingMemory ||
-      (list.isHybridSearch
-        ? list.isRetrieveLoading
-        : list.isBrowseMemoriesLoading || list.isFetchingNextPage));
+      list.isMemoriesLoading ||
+      (!list.isHybridSearch && list.isFetchingNextPage));
 
   if (list.isMemoriesLoading && list.memoryResults.length === 0) {
     return <MemoryListStatus variant="loading" />;

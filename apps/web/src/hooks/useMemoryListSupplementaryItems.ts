@@ -9,31 +9,14 @@ import {
 } from "@/lib/list-items";
 
 /** Wiki + skill rows merged into list items (shared by list entries and filter stats). */
-export function useMemoryListSupplementaryItems() {
+export function useMemoryListSupplementaryItems(): ListItem[] {
   const teamId = useActiveProfile().teamId;
   const wikiRows = useQuery(api.wiki.listTree, { teamId });
   const skillRows = useQuery(api.skills.listMy, { teamId });
 
-  const wikiItems = useMemo(
-    () => (wikiRows ? wikiRowsToListItems(wikiRows) : []),
-    [wikiRows],
-  );
-
-  const skillItems = useMemo(
-    () => (skillRows ? skillRowsToListItems(skillRows) : []),
-    [skillRows],
-  );
-
-  const supplementaryItems = useMemo<ListItem[]>(
-    () => [...wikiItems, ...skillItems],
-    [wikiItems, skillItems],
-  );
-
-  return {
-    wikiRows,
-    skillRows,
-    wikiItems,
-    skillItems,
-    supplementaryItems,
-  };
+  return useMemo<ListItem[]>(() => {
+    const wikiItems = wikiRows ? wikiRowsToListItems(wikiRows) : [];
+    const skillItems = skillRows ? skillRowsToListItems(skillRows) : [];
+    return [...wikiItems, ...skillItems];
+  }, [wikiRows, skillRows]);
 }

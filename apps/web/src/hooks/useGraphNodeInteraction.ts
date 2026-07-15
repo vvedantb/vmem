@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useAction } from "convex/react";
 import { api } from "@vmem/backend";
 import type { GraphNode, GraphEdge, RelatedNode } from "@/lib/graph/types";
@@ -9,33 +9,11 @@ import type {
 } from "@/lib/graph/graph-types";
 import { getRelatedNodes } from "@/lib/graph/graph-data";
 
-export type GraphNodeInteractionState = {
-  selectedNodeId: string | null;
-  hoveredNode: HoveredNodeInfo | null;
-  hoveredEdge: HoveredEdgeInfo | null;
-  selectedNodeData: GraphDetailNode | null;
-  relatedNodes: RelatedNode[];
-};
-
-export type GraphNodeInteractionActions = {
-  setHoveredNode: (node: HoveredNodeInfo | null) => void;
-  setHoveredEdge: (edge: HoveredEdgeInfo | null) => void;
-  handleClickNode: (nodeId: string) => void;
-  handleCloseDetail: () => void;
-  handleNavigateNode: (nodeId: string) => void;
-  handleFocusNode: (nodeId: string) => void;
-  handleBackToGlobal: () => void;
-  handleLinkNodes: (sourceId: string, targetId: string) => Promise<void>;
-};
-
-export type GraphNodeInteraction = GraphNodeInteractionState &
-  GraphNodeInteractionActions;
-
 export function useGraphNodeInteraction(args: {
   graphNodes: GraphNode[];
   graphEdges: GraphEdge[];
   onFocusChange: (id: string | null) => void;
-}): GraphNodeInteraction {
+}) {
   const getNodeContent = useAction(api.graphApi.getNodeContent);
   const linkMemories = useAction(api.relationshipApi.linkMemories);
 
@@ -55,24 +33,21 @@ export function useGraphNodeInteraction(args: {
     return map;
   }, [args.graphNodes]);
 
-  const ensureMemoryContent = useCallback(
-    (nodeId: string) => {
-      if (contentCache.has(nodeId) || inflightRef.current.has(nodeId)) return;
-      inflightRef.current.add(nodeId);
-      void getNodeContent({ memoryId: nodeId })
-        .then((content) => {
-          setContentCache((prev) => {
-            const next = new Map(prev);
-            next.set(nodeId, content);
-            return next;
-          });
-        })
-        .finally(() => {
-          inflightRef.current.delete(nodeId);
+  function ensureMemoryContent(nodeId: string) {
+    if (contentCache.has(nodeId) || inflightRef.current.has(nodeId)) return;
+    inflightRef.current.add(nodeId);
+    void getNodeContent({ memoryId: nodeId })
+      .then((content) => {
+        setContentCache((prev) => {
+          const next = new Map(prev);
+          next.set(nodeId, content);
+          return next;
         });
-    },
-    [contentCache, getNodeContent],
-  );
+      })
+      .finally(() => {
+        inflightRef.current.delete(nodeId);
+      });
+  }
 
   const selectedNode =
     selectedNodeId === null ? null : (nodeById.get(selectedNodeId) ?? null);
@@ -91,52 +66,46 @@ export function useGraphNodeInteraction(args: {
           createdAt: selectedNode.createdAt,
         };
 
-  const relatedNodes =
+  const relatedNodes: RelatedNode[] =
     selectedNodeId === null
       ? []
       : getRelatedNodes(selectedNodeId, args.graphEdges, args.graphNodes);
 
-  const handleClickNode = useCallback(
-    (nodeId: string) => {
-      setSelectedNodeId(nodeId);
-      setHoveredNode(null);
-      const node = nodeById.get(nodeId);
-      if (node && node.kind === "memory" && node.content === undefined) {
-        ensureMemoryContent(nodeId);
-      }
-    },
-    [ensureMemoryContent, nodeById],
-  );
+  function handleClickNode(nodeId: string) {
+    setSelectedNodeId(nodeId);
+    setHoveredNode(null);
+    const node = nodeById.get(nodeId);
+    if (node && node.kind === "memory" && node.content === undefined) {
+      ensureMemoryContent(nodeId);
+    }
+  }
 
-  const handleFocusNode = useCallback(
-    (nodeId: string) => {
-      const node = nodeById.get(nodeId);
-      if (!node || node.kind !== "memory") return;
-      onFocusChangeRef.current(nodeId);
-      setSelectedNodeId(null);
-    },
-    [nodeById],
-  );
+  function handleFocusNode(nodeId: string) {
+    const node = nodeById.get(nodeId);
+    if (!node || node.kind !== "memory") return;
+    onFocusChangeRef.current(nodeId);
+    setSelectedNodeId(null);
+  }
 
-  const handleCloseDetail = useCallback(() => setSelectedNodeId(null), []);
-  const handleNavigateNode = useCallback(
-    (nodeId: string) => setSelectedNodeId(nodeId),
-    [],
-  );
-  const handleBackToGlobal = useCallback(
-    () => onFocusChangeRef.current(null),
-    [],
-  );
-  const handleLinkNodes = useCallback(
-    async (sourceId: string, targetId: string) => {
-      await linkMemories({
-        memoryIdA: sourceId,
-        memoryIdB: targetId,
-        reason: "user linked",
-      });
-    },
-    [linkMemories],
-  );
+  function handleCloseDetail() {
+    setSelectedNodeId(null);
+  }
+
+  function handleNavigateNode(nodeId: string) {
+    setSelectedNodeId(nodeId);
+  }
+
+  function handleBackToGlobal() {
+    onFocusChangeRef.current(null);
+  }
+
+  async function handleLinkNodes(sourceId: string, targetId: string) {
+    await linkMemories({
+      memoryIdA: sourceId,
+      memoryIdB: targetId,
+      reason: "user linked",
+    });
+  }
 
   return {
     selectedNodeId,

@@ -1,6 +1,6 @@
 // data + filter state for one codebase symbol graph (filters in url via nuqs)
 
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useQueryStates } from "nuqs";
 import { useThemeContext } from "@/contexts/ThemeContext";
 import { useCodebaseGraphData } from "@/hooks/useCodebaseGraphData";
@@ -20,14 +20,6 @@ const DEFAULT_KINDS: CodeNodeKind[] = [
   "code-function",
   "code-class",
 ];
-
-// cheap deep-equality on string arrays for nuqs default-detection
-function sameStringSet(a: readonly string[], b: readonly string[]): boolean {
-  if (a.length !== b.length) return false;
-  const set = new Set(a);
-  for (const v of b) if (!set.has(v)) return false;
-  return true;
-}
 
 export function useCodebaseGraphController(codebaseId: string) {
   const { isDark } = useThemeContext();
@@ -92,86 +84,6 @@ export function useCodebaseGraphController(codebaseId: string) {
 
   const hasActiveSearch = params.search.trim().length > 0;
 
-  // per CLAUDE.md UI rules
-  const activeFilterCount =
-    (sameStringSet(params.kinds, DEFAULT_KINDS) ? 0 : 1) +
-    (params.processId ? 1 : 0) +
-    (params.blastRadiusOf ? 1 : 0);
-
-  // ----- Handlers -----
-
-  const onSearchChange = useCallback(
-    (q: string) => {
-      void setParams({ search: q.length === 0 ? "" : q });
-    },
-    [setParams],
-  );
-
-  const onToggleKind = useCallback(
-    (kind: CodeNodeKind) => {
-      const current = params.kinds;
-      const next = current.includes(kind)
-        ? current.filter((k) => k !== kind)
-        : [...current, kind];
-      void setParams({ kinds: next });
-    },
-    [params.kinds, setParams],
-  );
-
-  const onSetProcess = useCallback(
-    (id: string | null) => {
-      void setParams({ processId: id });
-    },
-    [setParams],
-  );
-
-  const onSelectSymbol = useCallback(
-    (id: string | null) => {
-      // unset any existing process filter when picking a symbol
-      void setParams({
-        blastRadiusOf: id,
-        processId: id ? null : params.processId,
-      });
-    },
-    [setParams, params.processId],
-  );
-
-  const onToggleBlastDirection = useCallback(() => {
-    void setParams({
-      blastDirection:
-        params.blastDirection === "upstream" ? "downstream" : "upstream",
-    });
-  }, [params.blastDirection, setParams]);
-
-  const onToggleDirectory = useCallback((dir: string) => {
-    setActiveDirectories((prev) => {
-      const next = new Set(prev);
-      next.delete(NONE_SENTINEL);
-      if (next.has(dir)) next.delete(dir);
-      else next.add(dir);
-      return next;
-    });
-  }, []);
-
-  const onSelectAllDirs = useCallback(() => {
-    setActiveDirectories(new Set());
-  }, []);
-
-  const onClearAllDirs = useCallback(() => {
-    setActiveDirectories(new Set([NONE_SENTINEL]));
-  }, []);
-
-  const onClearFilters = useCallback(() => {
-    // one write to avoid the per-field race where successive setParams calls
-    // throttle to a single URL update reflecting only the last field
-    void setParams({
-      kinds: DEFAULT_KINDS,
-      processId: null,
-      blastRadiusOf: null,
-      blastDirection: "upstream",
-    });
-  }, [setParams]);
-
   return {
     apiNodes,
     truncated,
@@ -183,7 +95,6 @@ export function useCodebaseGraphController(codebaseId: string) {
     graphEdges,
     searchMatchSet,
     hasActiveSearch,
-    activeFilterCount,
     activeKinds,
     processId: params.processId,
     blastDirection: params.blastDirection,
@@ -191,15 +102,57 @@ export function useCodebaseGraphController(codebaseId: string) {
     activeDirectories,
     search: params.search,
     isDark,
-    onSearchChange,
-    onToggleKind,
-    onSetProcess,
-    onSelectSymbol,
-    onToggleBlastDirection,
-    onToggleDirectory,
-    onSelectAllDirs,
-    onClearAllDirs,
-    onClearFilters,
+    onSearchChange: (q: string) => {
+      void setParams({ search: q.length === 0 ? "" : q });
+    },
+    onToggleKind: (kind: CodeNodeKind) => {
+      const current = params.kinds;
+      const next = current.includes(kind)
+        ? current.filter((k) => k !== kind)
+        : [...current, kind];
+      void setParams({ kinds: next });
+    },
+    onSetProcess: (id: string | null) => {
+      void setParams({ processId: id });
+    },
+    onSelectSymbol: (id: string | null) => {
+      // unset any existing process filter when picking a symbol
+      void setParams({
+        blastRadiusOf: id,
+        processId: id ? null : params.processId,
+      });
+    },
+    onToggleBlastDirection: () => {
+      void setParams({
+        blastDirection:
+          params.blastDirection === "upstream" ? "downstream" : "upstream",
+      });
+    },
+    onToggleDirectory: (dir: string) => {
+      setActiveDirectories((prev) => {
+        const next = new Set(prev);
+        next.delete(NONE_SENTINEL);
+        if (next.has(dir)) next.delete(dir);
+        else next.add(dir);
+        return next;
+      });
+    },
+    onSelectAllDirs: () => {
+      setActiveDirectories(new Set());
+    },
+    onClearAllDirs: () => {
+      setActiveDirectories(new Set([NONE_SENTINEL]));
+    },
+    onClearFilters: () => {
+      // one write to avoid the per-field race where successive setParams calls
+      // throttle to a single URL update reflecting only the last field
+      void setParams({
+        kinds: DEFAULT_KINDS,
+        processId: null,
+        blastRadiusOf: null,
+        blastDirection: "upstream",
+      });
+    },
   };
 }
 

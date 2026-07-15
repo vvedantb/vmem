@@ -16,11 +16,6 @@ interface UseTrailDataOptions {
   tag: string | null;
 }
 
-interface UseTrailDataResult {
-  trailMap: Map<string, TrailEntry>;
-  isLoading: boolean;
-}
-
 const EMPTY_TRAIL_MAP = new Map<string, TrailEntry>();
 
 function buildTrailMap(events: TopicTimelineEvents): Map<string, TrailEntry> {
@@ -35,7 +30,9 @@ function buildTrailMap(events: TopicTimelineEvents): Map<string, TrailEntry> {
   return map;
 }
 
-export function useTrailData({ tag }: UseTrailDataOptions): UseTrailDataResult {
+export function useTrailData({
+  tag,
+}: UseTrailDataOptions): Map<string, TrailEntry> {
   const getTopicTimeline = useAction(api.timelineApi.getTopicTimeline);
 
   const trailQuery = useQuery({
@@ -51,8 +48,5 @@ export function useTrailData({ tag }: UseTrailDataOptions): UseTrailDataResult {
     },
   });
 
-  return {
-    trailMap: trailQuery.data ?? EMPTY_TRAIL_MAP,
-    isLoading: trailQuery.isLoading,
-  };
+  return trailQuery.data ?? EMPTY_TRAIL_MAP;
 }

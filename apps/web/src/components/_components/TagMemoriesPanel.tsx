@@ -20,7 +20,7 @@ export function TagMemoriesPanel({
   onClose,
 }: TagMemoriesPanelProps) {
   const { isDark } = useThemeContext();
-  const { trailMap } = useTrailData({ tag });
+  const trailMap = useTrailData({ tag });
 
   const [selectedMemoryId, setSelectedMemoryId] = useState<string | null>(null);
   const [panelAction, setPanelAction] = useState<"edit" | "delete" | null>(

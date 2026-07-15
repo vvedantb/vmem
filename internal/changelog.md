@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-07-15 — Prune web graph and memory list hooks
+
+Drop unused hook exports and return aliases, narrow codebase graph filters,
+unify graph page merge, and replace timeline/version wrappers with tighter
+memory-specific APIs.
+
 ## 2026-07-15 — Web canvas pointer events and spatial/sim trim
 
 Unify canvas input on Pointer Events, drop spatial lastHash rebuilds, share

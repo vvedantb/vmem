@@ -1,6 +1,6 @@
 // non-canvas graph state (filters/search/display) shared by canvas + header
 
-import { useCallback, useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import { useAction } from "convex/react";
 import { useQuery as useTanstackQuery } from "@tanstack/react-query";
 import { api } from "@vmem/backend";
@@ -21,7 +21,6 @@ import type { MemoryType } from "@/lib/memories";
 import { graphNodeMatchesLocalSearch } from "@/lib/graph/graph-search";
 import {
   CLEARED_MEMORY_VIEW_FILTERS,
-  countActiveMemoryViewFilters,
   hasActiveMemoryViewFilters,
   type MemoryViewFilterParams,
 } from "@/lib/memory-view-filters";
@@ -94,11 +93,6 @@ export function useMemoryGraphController({
       types: params.types,
     }),
     [params.kinds, params.tags, params.sources, params.types],
-  );
-
-  const activeFilterCount = useMemo(
-    () => countActiveMemoryViewFilters(filters),
-    [filters],
   );
 
   // derived display state
@@ -182,57 +176,6 @@ export function useMemoryGraphController({
 
   const onLoadMore = fetchNextPage;
 
-  // ----- Handlers -----
-
-  const onSettingsChange = useCallback((next: GraphSettings) => {
-    setGraphSettingsState(next);
-    setGraphSettings(next);
-  }, []);
-
-  const onResetSettings = useCallback(() => {
-    setGraphSettingsState(DEFAULT_GRAPH_SETTINGS);
-    setGraphSettings(DEFAULT_GRAPH_SETTINGS);
-  }, []);
-
-  const onKindsChange = useCallback(
-    (kinds: ListItemKind[]) => {
-      void setParams({ kinds });
-    },
-    [setParams],
-  );
-
-  const onTagsChange = useCallback(
-    (tags: string[]) => {
-      void setParams({ tags });
-    },
-    [setParams],
-  );
-
-  const onSourcesChange = useCallback(
-    (sources: string[]) => {
-      void setParams({ sources });
-    },
-    [setParams],
-  );
-
-  const onTypesChange = useCallback(
-    (types: MemoryType[]) => {
-      void setParams({ types });
-    },
-    [setParams],
-  );
-
-  const onClearFilters = useCallback(() => {
-    void setParams(CLEARED_MEMORY_VIEW_FILTERS);
-  }, [setParams]);
-
-  const onSearchChange = useCallback(
-    (q: string) => {
-      void setParams({ q: q.trim().length === 0 ? null : q });
-    },
-    [setParams],
-  );
-
   return {
     // raw (nodes only — edges stay internal to buildGraphData)
     apiNodes,
@@ -265,7 +208,6 @@ export function useMemoryGraphController({
     edgeCount: graphEdges.length,
     hasActiveFilters,
     filters,
-    activeFilterCount,
 
     // display state
     graphSettings,
@@ -276,14 +218,32 @@ export function useMemoryGraphController({
     search: params.q,
 
     // handlers
-    onKindsChange,
-    onTagsChange,
-    onSourcesChange,
-    onTypesChange,
-    onClearFilters,
-    onSettingsChange,
-    onSearchChange,
-    onResetSettings,
+    onKindsChange: (kinds: ListItemKind[]) => {
+      void setParams({ kinds });
+    },
+    onTagsChange: (tags: string[]) => {
+      void setParams({ tags });
+    },
+    onSourcesChange: (sources: string[]) => {
+      void setParams({ sources });
+    },
+    onTypesChange: (types: MemoryType[]) => {
+      void setParams({ types });
+    },
+    onClearFilters: () => {
+      void setParams(CLEARED_MEMORY_VIEW_FILTERS);
+    },
+    onSettingsChange: (next: GraphSettings) => {
+      setGraphSettingsState(next);
+      setGraphSettings(next);
+    },
+    onSearchChange: (q: string) => {
+      void setParams({ q: q.trim().length === 0 ? null : q });
+    },
+    onResetSettings: () => {
+      setGraphSettingsState(DEFAULT_GRAPH_SETTINGS);
+      setGraphSettings(DEFAULT_GRAPH_SETTINGS);
+    },
   };
 }
 

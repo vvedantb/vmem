@@ -61,6 +61,31 @@ export default function CodebaseGraphHeaderControls({
   );
 }
 
+const DEFAULT_KINDS: CodeNodeKind[] = [
+  "code-file",
+  "code-function",
+  "code-class",
+];
+
+function codebaseActiveFilterCount(
+  controller: CodebaseGraphController,
+): number {
+  let count = 0;
+  if (controller.activeKinds.size !== DEFAULT_KINDS.length) {
+    count += 1;
+  } else {
+    for (const kind of DEFAULT_KINDS) {
+      if (!controller.activeKinds.has(kind)) {
+        count += 1;
+        break;
+      }
+    }
+  }
+  if (controller.processId) count += 1;
+  if (controller.selectedSymbolId) count += 1;
+  return count;
+}
+
 // ---- Filters popover ----
 
 function FiltersPopover({
@@ -79,10 +104,11 @@ function FiltersPopover({
     onToggleDirectory,
     onSelectAllDirs,
     onClearAllDirs,
-    activeFilterCount,
     onClearFilters,
     isDark,
   } = controller;
+
+  const activeFilterCount = codebaseActiveFilterCount(controller);
 
   // derive the process picker options from the current payload
   const processOptions = useMemo(
