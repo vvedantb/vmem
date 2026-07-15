@@ -1,4 +1,5 @@
 import { Button, Card, CardContent } from "@vmem/ui";
+import { formatDate } from "@vmem/shared";
 import { IconEdit, IconTrash } from "@tabler/icons-react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@vmem/backend";
@@ -37,12 +38,7 @@ export function ProfileCard({
               )}
             </div>
             <p className="text-xs text-muted mt-0.5">
-              Created{" "}
-              {new Date(profile.createdAt).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-              })}
+              Created {formatDate(profile.createdAt)}
             </p>
           </div>
         </div>

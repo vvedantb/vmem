@@ -7,6 +7,7 @@ import {
   DialogTitle,
   Badge,
 } from "@vmem/ui";
+import { formatDateTime } from "@vmem/shared";
 import type { AiLogRow, ProfileListItem } from "./types";
 import { featureLabelFor } from "./_aiLogsUtils";
 
@@ -126,7 +127,7 @@ function LogRowDetailBody({
         </Section>
 
         <Section title="Context">
-          <KV label="When" value={new Date(row.createdAt).toLocaleString()} />
+          <KV label="When" value={formatDateTime(row.createdAt)} />
           {profile ? (
             <KV
               label="Profile"

@@ -1,4 +1,5 @@
 import type {
+  GraphEdgeType,
   GraphNode,
   GraphNodeKind,
   ResolvedEdge,
@@ -11,6 +12,51 @@ import type { ConnectorLogoMap } from "./connector-logos";
 import { getConnectorLogo } from "./connector-logos";
 
 const TWO_PI = Math.PI * 2;
+
+// palette slots on GraphViewTheme.edge.normalByType — codebase edges reuse memory hues
+type EdgePaletteSlot = keyof GraphViewTheme["edge"]["normalByType"];
+
+interface EdgeStyle {
+  slot: EdgePaletteSlot;
+  widthMult: number;
+  label: string;
+}
+
+export const EDGE_STYLE: Record<GraphEdgeType, EdgeStyle> = {
+  tag: { slot: "tag", widthMult: 1, label: "tagged" },
+  relates_to: { slot: "relates_to", widthMult: 2, label: "relates to" },
+  imports: { slot: "relates_to", widthMult: 2, label: "imports" },
+  calls: { slot: "relates_to", widthMult: 2, label: "calls" },
+  wiki_parent: { slot: "wiki_parent", widthMult: 2, label: "parent of" },
+  contains: { slot: "wiki_parent", widthMult: 2, label: "contains" },
+  has_method: { slot: "wiki_parent", widthMult: 2, label: "has method" },
+  extends: { slot: "wiki_parent", widthMult: 2, label: "extends" },
+  implements: { slot: "wiki_parent", widthMult: 2, label: "implements" },
+  mentions: { slot: "mentions", widthMult: 2, label: "mentions" },
+  starts_process: { slot: "mentions", widthMult: 2, label: "starts process" },
+  includes: { slot: "mentions", widthMult: 2, label: "includes" },
+};
+
+const EDGE_PALETTE_SLOTS: readonly EdgePaletteSlot[] = [
+  "tag",
+  "relates_to",
+  "wiki_parent",
+  "mentions",
+];
+
+const ALL_EDGE_TYPES = Object.keys(EDGE_STYLE) as GraphEdgeType[];
+
+function makeIsDimmed(
+  hasHover: boolean,
+  hoveredNodeId: string | null,
+  neighborSet: Set<string>,
+  isSearchActive: boolean,
+  searchMatchSet: Set<string>,
+): (nodeId: string) => boolean {
+  return (nodeId) =>
+    (hasHover && nodeId !== hoveredNodeId && !neighborSet.has(nodeId)) ||
+    (isSearchActive && !searchMatchSet.has(nodeId));
+}
 
 // per-node color cache — avoid hashing/getComputedStyle every frame
 let colorCacheTheme: GraphViewTheme | null = null;
@@ -211,29 +257,34 @@ export function createWorldLayerCache(): WorldLayerCache {
   };
 }
 
-export function render(
-  ctx: CanvasRenderingContext2D,
-  canvasW: number,
-  canvasH: number,
-  dpr: number,
-  nodes: GraphNode[],
-  edges: ResolvedEdge[],
-  vp: ViewportState,
-  interaction: InteractionState,
-  theme: GraphViewTheme,
-  neighborSet: Set<string>,
-  focusNodeId: string | null,
-  searchMatchSet: Set<string>,
-  isSearchActive: boolean,
-  showLabels: boolean,
-  connectorLogos: ConnectorLogoMap,
+export interface RenderFrameState {
+  ctx: CanvasRenderingContext2D;
+  canvasW: number;
+  canvasH: number;
+  dpr: number;
+  nodes: GraphNode[];
+  edges: ResolvedEdge[];
+  vp: ViewportState;
+  interaction: InteractionState;
+  theme: GraphViewTheme;
+  neighborSet: Set<string>;
+  focusNodeId: string | null;
+  searchMatchSet: Set<string>;
+  isSearchActive: boolean;
+  showLabels: boolean;
+  connectorLogos: ConnectorLogoMap;
   // null cache = always draw direct (small graphs stay sharp mid-gesture)
-  worldCache: WorldLayerCache | null,
+  worldCache: WorldLayerCache | null;
   // true when only the viewport moved — blit-eligible
-  viewportOnly: boolean,
+  viewportOnly: boolean;
   // pan/zoom in flight: gesture renders skip glow; settle restores it
-  gestureActive: boolean = false,
-): void {
+  gestureActive: boolean;
+}
+
+export function render(frame: RenderFrameState): void {
+  const { ctx, canvasW, canvasH, dpr, vp, theme, worldCache, viewportOnly } =
+    frame;
+
   // blit: pan/zoom over a fresh cache
   if (
     worldCache &&
@@ -273,24 +324,7 @@ export function render(
     }
     const layerCtx = layer.getContext("2d");
     if (layerCtx) {
-      renderScene(
-        layerCtx,
-        canvasW,
-        canvasH,
-        dpr,
-        nodes,
-        edges,
-        vp,
-        interaction,
-        theme,
-        neighborSet,
-        focusNodeId,
-        searchMatchSet,
-        isSearchActive,
-        showLabels,
-        connectorLogos,
-        gestureActive,
-      );
+      renderScene({ ...frame, ctx: layerCtx });
       worldCache.scale = vp.scale;
       worldCache.offsetX = vp.offsetX;
       worldCache.offsetY = vp.offsetY;
@@ -305,7 +339,11 @@ export function render(
     }
   }
 
-  renderScene(
+  renderScene(frame);
+}
+
+function renderScene(frame: RenderFrameState): void {
+  const {
     ctx,
     canvasW,
     canvasH,
@@ -322,27 +360,11 @@ export function render(
     showLabels,
     connectorLogos,
     gestureActive,
-  );
-}
+  } = frame;
 
-function renderScene(
-  ctx: CanvasRenderingContext2D,
-  canvasW: number,
-  canvasH: number,
-  dpr: number,
-  nodes: GraphNode[],
-  edges: ResolvedEdge[],
-  vp: ViewportState,
-  interaction: InteractionState,
-  theme: GraphViewTheme,
-  neighborSet: Set<string>,
-  focusNodeId: string | null,
-  searchMatchSet: Set<string>,
-  isSearchActive: boolean,
-  showLabels: boolean,
-  connectorLogos: ConnectorLogoMap,
-  gestureActive: boolean,
-): void {
+  const nodeById = new Map<string, GraphNode>();
+  for (const node of nodes) nodeById.set(node.id, node);
+
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, canvasW, canvasH);
 
@@ -399,6 +421,13 @@ function renderScene(
   const hasHover = hoveredNodeId !== null || hoveredEdgeIndexVisual !== null;
   // edges only enter hover mode (dim non-connected, highlight connected) when the hovered…
   const hasHoveredNeighbors = hasHover && neighborSet.size > 1;
+  const isDimmed = makeIsDimmed(
+    hasHover,
+    hoveredNodeId,
+    neighborSet,
+    isSearchActive,
+    searchMatchSet,
+  );
   const lowZoom = vp.scale < 0.4;
   const veryLowZoom = vp.scale < 0.08;
   const highNodeCount = nodeCount > 5000;
@@ -421,7 +450,7 @@ function renderScene(
       (y1 > viewMaxY && y2 > viewMaxY)
     );
 
-  // --- Edges (batched by style — single beginPath/stroke per style bucket) ---
+  // --- Edges (batched by palette slot — single beginPath/stroke per slot) ---
   // skip ALL edges at very low zoom (just render node dots)
   if (!veryLowZoom && edges.length > 0) {
     // edge budget: skip tag edges when total edge count is very high, and on any edge-heavy…
@@ -429,13 +458,14 @@ function renderScene(
       edges.length > 10_000 || (gestureActive && edges.length > 1500);
 
     if (!hasHoveredNeighbors) {
-      // no hover — three batched passes, one per edge type
-      if (!skipTagEdges) {
-        ctx.strokeStyle = theme.edge.normalByType.tag;
-        ctx.lineWidth = theme.edge.width;
+      for (const slot of EDGE_PALETTE_SLOTS) {
+        if (slot === "tag" && skipTagEdges) continue;
+        const widthMult = slot === "tag" ? 1 : 2;
+        ctx.strokeStyle = theme.edge.normalByType[slot];
+        ctx.lineWidth = theme.edge.width * widthMult;
         ctx.beginPath();
         for (const edge of edges) {
-          if (edge.edgeType !== "tag") continue;
+          if (EDGE_STYLE[edge.edgeType].slot !== slot) continue;
           const sx = edge.source.x ?? 0;
           const sy = edge.source.y ?? 0;
           const tx = edge.target.x ?? 0;
@@ -446,110 +476,17 @@ function renderScene(
         }
         ctx.stroke();
       }
-
-      // relates_to + imports + calls — "user-forged" warm hue
-      ctx.strokeStyle = theme.edge.normalByType.relates_to;
-      ctx.lineWidth = theme.edge.width * 2;
-      ctx.beginPath();
-      for (const edge of edges) {
-        if (
-          edge.edgeType !== "relates_to" &&
-          edge.edgeType !== "imports" &&
-          edge.edgeType !== "calls"
-        )
-          continue;
-        const sx = edge.source.x ?? 0;
-        const sy = edge.source.y ?? 0;
-        const tx = edge.target.x ?? 0;
-        const ty = edge.target.y ?? 0;
-        if (!edgeVisible(sx, sy, tx, ty)) continue;
-        ctx.moveTo(sx, sy);
-        ctx.lineTo(tx, ty);
-      }
-      ctx.stroke();
-
-      // wiki_parent + codebase structural edges — cool blue hue
-      ctx.strokeStyle = theme.edge.normalByType.wiki_parent;
-      ctx.lineWidth = theme.edge.width * 2;
-      ctx.beginPath();
-      for (const edge of edges) {
-        if (
-          edge.edgeType !== "wiki_parent" &&
-          edge.edgeType !== "contains" &&
-          edge.edgeType !== "has_method" &&
-          edge.edgeType !== "extends" &&
-          edge.edgeType !== "implements"
-        )
-          continue;
-        const sx = edge.source.x ?? 0;
-        const sy = edge.source.y ?? 0;
-        const tx = edge.target.x ?? 0;
-        const ty = edge.target.y ?? 0;
-        if (!edgeVisible(sx, sy, tx, ty)) continue;
-        ctx.moveTo(sx, sy);
-        ctx.lineTo(tx, ty);
-      }
-      ctx.stroke();
-
-      // mentions + process flow — teal-green hue. Entity mentions and
-      // codebase process membership both signal "associated with X"
-      ctx.strokeStyle = theme.edge.normalByType.mentions;
-      ctx.lineWidth = theme.edge.width * 2;
-      ctx.beginPath();
-      for (const edge of edges) {
-        if (
-          edge.edgeType !== "mentions" &&
-          edge.edgeType !== "starts_process" &&
-          edge.edgeType !== "includes"
-        )
-          continue;
-        const sx = edge.source.x ?? 0;
-        const sy = edge.source.y ?? 0;
-        const tx = edge.target.x ?? 0;
-        const ty = edge.target.y ?? 0;
-        if (!edgeVisible(sx, sy, tx, ty)) continue;
-        ctx.moveTo(sx, sy);
-        ctx.lineTo(tx, ty);
-      }
-      ctx.stroke();
     } else {
       // hover: dim non-connected edges, then draw connected on top
-      // codebase edges reuse memory palette slots (relates_to / wiki_parent / mentions)
-      for (const edgeType of [
-        "tag",
-        "relates_to",
-        "imports",
-        "wiki_parent",
-        "mentions",
-        "calls",
-        "contains",
-        "has_method",
-        "extends",
-        "implements",
-        "starts_process",
-        "includes",
-      ] as const) {
+      for (const edgeType of ALL_EDGE_TYPES) {
         if (edgeType === "tag" && skipTagEdges) continue;
-        // tag edges stay weak; everything else stays full opacity in dim pass
-        const isStrongEdge = edgeType !== "tag";
-        const widthMultiplier = isStrongEdge ? 2 : 1;
-        // codebase types reuse the existing palette slots — see the comment
-        // on the loop. Memory types use their own slot directly
-        const typeColor =
-          edgeType === "imports" || edgeType === "calls"
-            ? theme.edge.normalByType.relates_to
-            : edgeType === "contains" ||
-                edgeType === "has_method" ||
-                edgeType === "extends" ||
-                edgeType === "implements"
-              ? theme.edge.normalByType.wiki_parent
-              : edgeType === "starts_process" || edgeType === "includes"
-                ? theme.edge.normalByType.mentions
-                : theme.edge.normalByType[edgeType];
+        const style = EDGE_STYLE[edgeType];
+        const isStrongEdge = style.widthMult > 1;
+        const typeColor = theme.edge.normalByType[style.slot];
 
         // pass 1: dimmed edges (everything not connected to the hovered node)
         ctx.strokeStyle = typeColor;
-        ctx.lineWidth = theme.edge.width * widthMultiplier;
+        ctx.lineWidth = theme.edge.width * style.widthMult;
         ctx.globalAlpha = theme.dimAlpha * (isStrongEdge ? 1 : 2);
         ctx.beginPath();
         for (const edge of edges) {
@@ -571,7 +508,7 @@ function renderScene(
         // pass 2: connected edges (on top) — single `connected` hue across all
         // types signals "lit up" consistently, 1.5× width for unmistakability
         ctx.strokeStyle = theme.edge.connected;
-        ctx.lineWidth = theme.edge.connectedWidth * widthMultiplier * 1.5;
+        ctx.lineWidth = theme.edge.connectedWidth * style.widthMult * 1.5;
         ctx.beginPath();
         for (const edge of edges) {
           if (edge.edgeType !== edgeType) continue;
@@ -615,12 +552,7 @@ function renderScene(
       if (!isOnScreen(nx, ny, baseRadius, vp, canvasW, canvasH)) continue;
 
       const isHovered = hoveredNodeId === node.id;
-      const isNeighbor = neighborSet.has(node.id);
-      const isSearchMatch = searchMatchSet.has(node.id);
-      const isDimmed =
-        (hasHover && !isHovered && !isNeighbor) ||
-        (isSearchActive && !isSearchMatch);
-      if (isDimmed) continue;
+      if (isDimmed(node.id)) continue;
 
       const color = nodeColor(node, theme);
       // clamp the *glow* radius source (not the node's visual size) so a
@@ -677,13 +609,7 @@ function renderScene(
           if (!lowZoom && !isOnScreen(nx, ny, baseRadius, vp, canvasW, canvasH))
             continue;
           if (needDimChecks) {
-            const isHovered = hoveredNodeId === node.id;
-            const isNeighbor = neighborSet.has(node.id);
-            const isSearchMatch = searchMatchSet.has(node.id);
-            const isDimmed =
-              (hasHover && !isHovered && !isNeighbor) ||
-              (isSearchActive && !isSearchMatch);
-            if (isDimmed !== dimPass) continue;
+            if (isDimmed(node.id) !== dimPass) continue;
           }
 
           const radius = Math.sqrt(
@@ -714,12 +640,7 @@ function renderScene(
       const baseRadius = node.size * 2;
       if (!isOnScreen(nx, ny, baseRadius, vp, canvasW, canvasH)) continue;
 
-      const isHovered = hoveredNodeId === node.id;
-      const isNeighbor = neighborSet.has(node.id);
-      const isSearchMatch = searchMatchSet.has(node.id);
-      const isDimmed =
-        (hasHover && !isHovered && !isNeighbor) ||
-        (isSearchActive && !isSearchMatch);
+      const isDimmedNode = isDimmed(node.id);
 
       // logo sits inset inside the circle so the tag-hash ring remains visible
       // around it — topic colour and provenance read as two distinct signals
@@ -727,7 +648,7 @@ function renderScene(
       const logoHalf = logoSize / 2;
 
       ctx.save();
-      if (isDimmed) ctx.globalAlpha = theme.dimAlpha;
+      if (isDimmedNode) ctx.globalAlpha = theme.dimAlpha;
       ctx.beginPath();
       ctx.arc(nx, ny, baseRadius, 0, TWO_PI);
       ctx.clip();
@@ -753,12 +674,7 @@ function renderScene(
       const baseRadius = node.size * 2;
       if (!isOnScreen(nx, ny, baseRadius, vp, canvasW, canvasH)) continue;
 
-      const isNeighbor = neighborSet.has(node.id);
-      const isSearchMatch = searchMatchSet.has(node.id);
-      const isDimmed =
-        (hasHover && !isHovered && !isNeighbor) ||
-        (isSearchActive && !isSearchMatch);
-      if (isDimmed) continue;
+      if (isDimmed(node.id)) continue;
 
       const color = nodeColor(node, theme);
       const outlineColor =
@@ -781,7 +697,7 @@ function renderScene(
 
   // --- Focus node highlight ring (always visible, even at low zoom) ---
   if (focusNodeId) {
-    const focusNode = nodes.find((n) => n.id === focusNodeId);
+    const focusNode = nodeById.get(focusNodeId);
     if (focusNode) {
       const nx = focusNode.x ?? 0;
       const ny = focusNode.y ?? 0;
@@ -817,16 +733,7 @@ function renderScene(
         neighborSet.has(edge.target.id);
       if (!isHoveredEdge && !isHoveredNodeEdge) continue;
 
-      const label =
-        edge.edgeType === "relates_to"
-          ? "relates to"
-          : edge.edgeType === "imports"
-            ? "imports"
-            : edge.edgeType === "wiki_parent"
-              ? "parent of"
-              : edge.edgeType === "mentions"
-                ? "mentions"
-                : "tagged";
+      const label = EDGE_STYLE[edge.edgeType].label;
 
       const mx = ((edge.source.x ?? 0) + (edge.target.x ?? 0)) / 2;
       const my = ((edge.source.y ?? 0) + (edge.target.y ?? 0)) / 2;
@@ -866,12 +773,7 @@ function renderScene(
 
       const isHovered = hoveredNodeId === node.id;
       const isNeighbor = neighborSet.has(node.id);
-      const isSearchMatch = searchMatchSet.has(node.id);
-      const isDimmed =
-        (hasHover && !isHovered && !isNeighbor) ||
-        (isSearchActive && !isSearchMatch);
-
-      if (isDimmed) continue;
+      if (isDimmed(node.id)) continue;
 
       // neighbour labels get a lenient gate (half the resting threshold): hover should reveal…
       const bigEnough = baseRadius * vp.scale >= minLabelScreenR;
@@ -891,7 +793,7 @@ function renderScene(
 
   // --- Link drag line ---
   if (interaction.linkSourceId) {
-    const sourceNode = nodes.find((n) => n.id === interaction.linkSourceId);
+    const sourceNode = nodeById.get(interaction.linkSourceId);
     if (sourceNode) {
       const sx = (sourceNode.x ?? 0) * vp.scale + vp.offsetX + canvasW / 2;
       const sy = (sourceNode.y ?? 0) * vp.scale + vp.offsetY + canvasH / 2;
@@ -911,7 +813,7 @@ function renderScene(
         interaction.hoveredNodeId &&
         interaction.hoveredNodeId !== interaction.linkSourceId
       ) {
-        const target = nodes.find((n) => n.id === interaction.hoveredNodeId);
+        const target = nodeById.get(interaction.hoveredNodeId);
         if (target) {
           const tx = (target.x ?? 0) * vp.scale + vp.offsetX + canvasW / 2;
           const ty = (target.y ?? 0) * vp.scale + vp.offsetY + canvasH / 2;

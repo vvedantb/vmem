@@ -1,10 +1,4 @@
-export function formatDate(dateInput: string | number): string {
-  return new Date(dateInput).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
+export { formatDate, formatDateTime } from "@vmem/shared";
 
 export function formatNumber(num: number): string {
   return num.toLocaleString();

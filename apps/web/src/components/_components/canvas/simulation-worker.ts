@@ -6,6 +6,7 @@ import {
   type SimulationNodeDatum,
   type SimulationLinkDatum,
 } from "d3-force";
+import type { GraphEdgeType } from "./types";
 import { physicsProfile } from "./physics-profile";
 import {
   createGraphForces,
@@ -20,10 +21,8 @@ interface WNode extends SimulationNodeDatum {
   size: number;
 }
 
-type WEdgeType = "tag" | "relates_to" | "imports" | "wiki_parent" | "mentions";
-
 interface WEdge extends SimulationLinkDatum<WNode> {
-  edgeType: WEdgeType;
+  edgeType: GraphEdgeType;
   weight: number;
 }
 
@@ -54,7 +53,7 @@ type WorkerInputMessage =
       edges: Array<{
         source: string;
         target: string;
-        edgeType: WEdgeType;
+        edgeType: GraphEdgeType;
         weight: number;
       }>;
       scalingRatio: number;
@@ -153,7 +152,7 @@ function init(
   initEdges: Array<{
     source: string;
     target: string;
-    edgeType: WEdgeType;
+    edgeType: GraphEdgeType;
     weight: number;
   }>,
   scalingRatio: number,

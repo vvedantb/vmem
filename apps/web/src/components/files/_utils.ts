@@ -72,24 +72,6 @@ export function formatFileSize(bytes: number): string {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 }
 
-export function formatDate(createdAt: number): string {
-  return new Date(createdAt).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
-export function formatDateTime(createdAt: number): string {
-  return new Date(createdAt).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
 export function fileCategoryFromMime(
   mimeType: string,
 ): Exclude<FileCategory, "folder"> {

@@ -486,26 +486,26 @@ function GraphCanvas({
       }
 
       try {
-        render(
+        render({
           ctx,
-          w,
-          h,
+          canvasW: w,
+          canvasH: h,
           dpr,
-          nodesRef.current,
-          resolvedEdgesCache,
-          viewportRef.current,
-          interactionRef.current,
-          themeRef.current,
+          nodes: nodesRef.current,
+          edges: resolvedEdgesCache,
+          vp: viewportRef.current,
+          interaction: interactionRef.current,
+          theme: themeRef.current,
           neighborSet,
-          focusNodeIdRef.current ?? null,
-          searchMatchSetRef.current,
-          isSearchActiveRef.current,
-          showLabelsRef.current,
-          connectorLogosRef.current,
+          focusNodeId: focusNodeIdRef.current ?? null,
+          searchMatchSet: searchMatchSetRef.current,
+          isSearchActive: isSearchActiveRef.current,
+          showLabels: showLabelsRef.current,
+          connectorLogos: connectorLogosRef.current,
           worldCache,
           viewportOnly,
           gestureActive,
-        );
+        });
         lastFrameWasBlit = viewportOnly && worldCache !== null;
         if (!lastFrameWasBlit) {
           lastSceneRenderAt = performance.now();

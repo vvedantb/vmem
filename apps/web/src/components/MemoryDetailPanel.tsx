@@ -21,6 +21,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@vmem/ui";
+import { formatDate } from "@vmem/shared";
 import {
   IconLoader2,
   IconTrash,
@@ -47,14 +48,6 @@ type PanelTab = "details" | "history" | "connections";
 
 const TAB_PANEL_CLASS =
   "mt-3 min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto scrollbar-thin";
-
-function formatMetaDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
 
 interface MemoryDetailPanelProps {
   memory: Memory;
@@ -152,7 +145,7 @@ export default function MemoryDetailPanel({
               </h3>
               <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
                 <time className="tabular-nums text-foreground/80">
-                  {formatMetaDate(memory.createdAt)}
+                  {formatDate(memory.createdAt)}
                 </time>
                 <span aria-hidden>·</span>
                 <Badge variant="secondary" className="h-5 px-1.5 text-[11px]">

@@ -11,10 +11,10 @@ import {
   DropdownMenuItem,
 } from "@vmem/ui";
 import { IconDotsVertical } from "@tabler/icons-react";
+import { formatDate } from "@vmem/shared";
 import {
   formatFileSize,
   formatItemCount,
-  formatDate,
   fileCategoryForNode,
   getFileIcon,
   imageThumbnailUrl,

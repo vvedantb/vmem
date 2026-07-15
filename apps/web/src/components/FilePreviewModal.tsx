@@ -17,11 +17,11 @@ import {
   IconX,
   IconLoader2,
 } from "@tabler/icons-react";
+import { formatDateTime } from "@vmem/shared";
 import type { FileTreeNode } from "@/components/files/-types";
 import {
   downloadFileNode,
   fileCategoryForNode,
-  formatDateTime,
   formatFileSize,
   getFileIcon,
   imageThumbnailUrl,

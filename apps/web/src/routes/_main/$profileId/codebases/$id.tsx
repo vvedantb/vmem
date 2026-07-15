@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import CodebaseGraphHeaderControls from "@/components/codebases/CodebaseGraphHeaderControls";
 import { useCodebaseGraphController } from "@/hooks/useCodebaseGraphController";
 import { VmemSpinner } from "@/components/svg-animations";
-import { formatRelativeTime } from "@vmem/shared";
+import { formatRelativeTime, formatDateTime } from "@vmem/shared";
 
 const CodebaseGraph = lazy(() =>
   import("@/components/codebases/CodebaseGraph").then((m) => ({
@@ -113,7 +113,7 @@ function CodebaseDetailView({
             className="text-xs text-muted whitespace-nowrap"
             title={
               codebase.lastSyncedAt
-                ? new Date(codebase.lastSyncedAt).toLocaleString()
+                ? formatDateTime(codebase.lastSyncedAt)
                 : undefined
             }
           >

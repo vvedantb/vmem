@@ -36,6 +36,22 @@ export function localTimeToUtc(localTime: string): string | null {
   return `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`;
 }
 
+export function formatDate(dateInput: string | number): string {
+  const date = dayjs(dateInput);
+  if (!date.isValid()) {
+    return typeof dateInput === "string" ? dateInput : "";
+  }
+  return date.format("MMM D, YYYY");
+}
+
+export function formatDateTime(dateInput: string | number): string {
+  const date = dayjs(dateInput);
+  if (!date.isValid()) {
+    return typeof dateInput === "string" ? dateInput : "";
+  }
+  return date.format("MMM D, YYYY, h:mm A");
+}
+
 export function formatRelativeTime(
   dateInput: string | number | null | undefined,
   options: { empty?: string } = {},

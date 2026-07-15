@@ -331,6 +331,9 @@ importers:
       '@tanstack/react-router':
         specifier: ^1.120.3
         version: 1.168.23(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@tiptap/extension-table-of-contents':
+        specifier: 3.22.3
+        version: 3.22.3(@tiptap/core@3.22.4(@tiptap/pm@3.22.4))(@tiptap/pm@3.22.4)
       '@tiptap/pm':
         specifier: ^3.22.3
         version: 3.22.4
@@ -3568,6 +3571,12 @@ packages:
     resolution: {integrity: sha512-aRHWQj42HiailXSC9LkKYM3jWMcSeGwOjbqM4PiuxQZmHVDRFmeHkfJItOdn2cSHaO0vuEVK+TvrWUWsBFi3pg==}
     peerDependencies:
       '@tiptap/core': 3.22.4
+
+  '@tiptap/extension-table-of-contents@3.22.3':
+    resolution: {integrity: sha512-29fcEbaNhokgemh+o7Z45lbsQX2uwwhDn1/QXWvWYBLUWkJr34lP4uBpmjLVtQsQ88TiFshJ2QPyDkPW+GcCEg==}
+    peerDependencies:
+      '@tiptap/core': ^3.22.3
+      '@tiptap/pm': ^3.22.3
 
   '@tiptap/extension-text@3.22.4':
     resolution: {integrity: sha512-mM69uUW5cSxIhyEpWXi/YcfyupcJMDLCPEfYi62awH0iOP/LRoCv/nHjJq4Hyj/KxRJbe8HKwIUnqaCUf7m5Pg==}
@@ -6844,6 +6853,11 @@ packages:
   utils-merge@1.0.1:
     resolution: {integrity: sha512-pMZTvIkT1d+TFGvDOqodOclx0QWkkgi6Tdoa8gC8ffGAAqz9pzPTZWAybbsHHoED/ztMtkv/VoYTYyShUn81hA==}
     engines: {node: '>= 0.4.0'}
+
+  uuid@10.0.0:
+    resolution: {integrity: sha512-8XkAphELsDnEGrDxUOHB3RGvXz6TeuYSGEZBOjtTtPm2lwhGBjLgOzLHB63IUWfBpNucQjND6d3AOudO+H3RWQ==}
+    deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+    hasBin: true
 
   uuid@14.0.0:
     resolution: {integrity: sha512-Qo+uWgilfSmAhXCMav1uYFynlQO7fMFiMVZsQqZRMIXp0O7rR7qjkj+cPvBHLgBqi960QCoo/PH2/6ZtVqKvrg==}
@@ -10274,6 +10288,12 @@ snapshots:
   '@tiptap/extension-strike@3.22.4(@tiptap/core@3.22.4(@tiptap/pm@3.22.4))':
     dependencies:
       '@tiptap/core': 3.22.4(@tiptap/pm@3.22.4)
+
+  '@tiptap/extension-table-of-contents@3.22.3(@tiptap/core@3.22.4(@tiptap/pm@3.22.4))(@tiptap/pm@3.22.4)':
+    dependencies:
+      '@tiptap/core': 3.22.4(@tiptap/pm@3.22.4)
+      '@tiptap/pm': 3.22.4
+      uuid: 10.0.0
 
   '@tiptap/extension-text@3.22.4(@tiptap/core@3.22.4(@tiptap/pm@3.22.4))':
     dependencies:
@@ -13965,6 +13985,8 @@ snapshots:
   util-deprecate@1.0.2: {}
 
   utils-merge@1.0.1: {}
+
+  uuid@10.0.0: {}
 
   uuid@14.0.0: {}
 
