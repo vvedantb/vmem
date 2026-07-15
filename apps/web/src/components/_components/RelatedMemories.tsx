@@ -68,19 +68,6 @@ export default function RelatedMemories({
       });
       return relatedId;
     },
-    onMutate: async (relatedId) => {
-      await queryClient.cancelQueries({ queryKey });
-      const previous = queryClient.getQueryData<RelatedMemoryEntry[]>(queryKey);
-      queryClient.setQueryData<RelatedMemoryEntry[]>(queryKey, (old) =>
-        old ? old.filter((entry) => entry.memory.id !== relatedId) : [],
-      );
-      return { previous };
-    },
-    onError: (_err, _relatedId, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(queryKey, context.previous);
-      }
-    },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey });
     },

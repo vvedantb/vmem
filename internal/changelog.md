@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-07-15 — Drop TanStack Query optimistic cache patches
+
+Removed `onMutate` / rollback `onError` from memory create/update/delete and
+related-memory unlink. Lists refresh via `invalidateQueries` on settle instead.
+
 ## 2026-07-15 — Reorganize web providers and loose components
 
 Moved `providers/` and `contexts/` out of `components/` to top-level

@@ -9,7 +9,6 @@ import { api } from "@vmem/backend";
 import { memoryFromApi, type Memory } from "@/lib/memories";
 import { parseConvexStorageUpload } from "@/lib/schemas";
 import { useActiveProfileId } from "@/components/workspace/active-profile";
-import { recentMemoriesQueryKey } from "@/hooks/useRecentMemories";
 
 export interface CreateMemoryInput {
   title: string;
@@ -35,7 +34,6 @@ export function useMemoryMutations() {
   const { isAuthenticated } = useConvexAuth();
   const queryClient = useQueryClient();
   const activeProfileId = useActiveProfileId();
-  const recentQueryKey = recentMemoriesQueryKey(activeProfileId);
   const createMemoryAction = useAction(api.memoryApi.createMemory);
   const updateMemoryAction = useAction(api.memoryApi.updateMemory);
   const deleteMemoryAction = useAction(api.memoryApi.deleteMemory);
@@ -62,30 +60,6 @@ export function useMemoryMutations() {
       });
       return memoryFromApi(created);
     },
-    onMutate: async (input) => {
-      await queryClient.cancelQueries({ queryKey: recentQueryKey });
-      const previous = queryClient.getQueryData<Memory[]>(recentQueryKey);
-      const optimistic: Memory = {
-        id: `temp-${Date.now()}`,
-        title: input.title.trim(),
-        content: input.content.trim(),
-        type: "knowledge",
-        source: "web",
-        sourceUrl: null,
-        sourceSyncedAt: null,
-        tags: input.tags ?? [],
-        createdAt: new Date().toISOString(),
-      };
-      queryClient.setQueryData<Memory[]>(recentQueryKey, (old) =>
-        old ? [optimistic, ...old] : [optimistic],
-      );
-      return { previous };
-    },
-    onError: (_err, _input, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(recentQueryKey, context.previous);
-      }
-    },
     onSettled: invalidateMemories,
   });
 
@@ -104,34 +78,6 @@ export function useMemoryMutations() {
         throw new Error("Memory not found");
       }
       return { memory: memoryFromApi(apiMemory), id: input.id };
-    },
-    onMutate: async (input) => {
-      await queryClient.cancelQueries({ queryKey: recentQueryKey });
-      const previous = queryClient.getQueryData<Memory[]>(recentQueryKey);
-      queryClient.setQueryData<Memory[]>(recentQueryKey, (old) =>
-        old
-          ? old.map((m) =>
-              m.id === input.id
-                ? {
-                    ...m,
-                    ...(input.title !== undefined
-                      ? { title: input.title }
-                      : {}),
-                    ...(input.content !== undefined
-                      ? { content: input.content }
-                      : {}),
-                    ...(input.tags !== undefined ? { tags: input.tags } : {}),
-                  }
-                : m,
-            )
-          : [],
-      );
-      return { previous };
-    },
-    onError: (_err, _input, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(recentQueryKey, context.previous);
-      }
     },
     onSettled: invalidateMemories,
   });
@@ -173,19 +119,6 @@ export function useMemoryMutations() {
         profileId: activeProfileId,
       });
       return id;
-    },
-    onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: recentQueryKey });
-      const previous = queryClient.getQueryData<Memory[]>(recentQueryKey);
-      queryClient.setQueryData<Memory[]>(recentQueryKey, (old) =>
-        old ? old.filter((m) => m.id !== id) : [],
-      );
-      return { previous };
-    },
-    onError: (_err, _id, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(recentQueryKey, context.previous);
-      }
     },
     onSettled: invalidateMemories,
   });
