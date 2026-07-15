@@ -25,8 +25,30 @@ export type FileNodeAction = {
   separatorBefore?: boolean;
 };
 
+type FileNodeActionSource = {
+  onOpen: (node: FileTreeNode) => void;
+  onDownload: (node: FileTreeNode) => void;
+  onMoveTo: (node: FileTreeNode) => void;
+  onRename: (node: FileTreeNode) => void;
+  onDelete: (node: FileTreeNode) => void;
+};
+
+// bind chrome callbacks to a single node for menus
+function bindFileNodeActionHandlers(
+  node: FileTreeNode,
+  source: FileNodeActionSource,
+): FileNodeActionHandlers {
+  return {
+    onOpen: () => source.onOpen(node),
+    onDownload: () => source.onDownload(node),
+    onMoveTo: () => source.onMoveTo(node),
+    onRename: () => source.onRename(node),
+    onDelete: () => source.onDelete(node),
+  };
+}
+
 // shared Open / Download / Move / Rename / Delete for context + row menus
-export function fileNodeActions(
+function fileNodeActions(
   node: FileTreeNode,
   handlers: FileNodeActionHandlers,
 ): FileNodeAction[] {
@@ -72,4 +94,12 @@ export function fileNodeActions(
   );
 
   return actions;
+}
+
+export function fileNodeActionsFor(
+  node: FileTreeNode,
+  source: FileNodeActionSource,
+): { handlers: FileNodeActionHandlers; actions: FileNodeAction[] } {
+  const handlers = bindFileNodeActionHandlers(node, source);
+  return { handlers, actions: fileNodeActions(node, handlers) };
 }

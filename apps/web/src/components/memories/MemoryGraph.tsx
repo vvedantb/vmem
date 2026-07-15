@@ -46,7 +46,7 @@ export default function MemoryGraph({
     totalMemoryCount,
     canLoadMore,
     isLoadingMore,
-    onLoadMore,
+    fetchNextPage,
     isLoading,
     isError,
     error,
@@ -147,7 +147,7 @@ export default function MemoryGraph({
             <Button
               variant="ghost"
               size="sm"
-              onClick={onLoadMore}
+              onClick={fetchNextPage}
               disabled={isLoadingMore}
               className="h-6 px-2 text-xs"
             >

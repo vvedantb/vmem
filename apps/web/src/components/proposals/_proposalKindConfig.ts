@@ -11,7 +11,7 @@ import {
 } from "@tabler/icons-react";
 import type { ProposedUpdateKind } from "./_proposalUtils";
 
-export type ProposalKindConfig = {
+type ProposalKindConfig = {
   label: string;
   Icon: TablerIcon;
   badgeVariant: BadgeProps["variant"];
@@ -25,10 +25,7 @@ export type ProposalKindConfig = {
   sourceListPrefix?: string;
 };
 
-export const PROPOSAL_KIND_CONFIG: Record<
-  ProposedUpdateKind,
-  ProposalKindConfig
-> = {
+const PROPOSAL_KIND_CONFIG: Record<ProposedUpdateKind, ProposalKindConfig> = {
   delete: {
     label: "Deletion",
     Icon: IconTrash,

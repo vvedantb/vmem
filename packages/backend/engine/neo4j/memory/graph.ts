@@ -1,4 +1,4 @@
-import type { Driver, Record as NeoRecord } from "neo4j-driver";
+import type { Driver } from "neo4j-driver";
 import { z } from "zod";
 import { clampNeo4jLimit } from "../intParams";
 import { neo4jGet, parseNeo4jInt } from "../record";
@@ -62,17 +62,6 @@ export function parseRelatesToEdgeRow(raw: unknown): RelatesToEdge | null {
 function parseEntityRow(raw: unknown): GraphData["entities"][number] | null {
   const parsed = entityRowSchema.safeParse(raw);
   return parsed.success ? parsed.data : null;
-}
-
-function rowFromRecord(
-  r: NeoRecord,
-  keys: readonly string[],
-): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
-  for (const k of keys) {
-    out[k] = neo4jGet(r, k);
-  }
-  return out;
 }
 
 export function mergeGlobalRelatesToEdges(
@@ -361,10 +350,10 @@ export async function getLocalGraph(
      WITH DISTINCT m, focusId LIMIT 500
      OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
      WITH m, focusId, collect(t.name) AS tags
-     RETURN m.id AS id, m.title AS title,
-            tags, m.createdAt AS createdAt,
-            m.source AS source, m.type AS type,
-            m.sourceType AS sourceType, focusId`,
+     RETURN {id: m.id, title: m.title, tags: tags,
+             createdAt: m.createdAt, source: m.source,
+             type: m.type, sourceType: m.sourceType} AS node,
+            focusId`,
     {
       userId,
       ...(focusId !== null ? { focusId } : {}),
@@ -378,17 +367,7 @@ export async function getLocalGraph(
     : undefined;
 
   const nodes = nodesResult.records.flatMap((r) => {
-    const node = parseGraphNodeRow(
-      rowFromRecord(r, [
-        "id",
-        "title",
-        "tags",
-        "createdAt",
-        "source",
-        "type",
-        "sourceType",
-      ] as const),
-    );
+    const node = parseGraphNodeRow(neo4jGet(r, "node"));
     return node === null ? [] : [node];
   });
   const nodeIds = nodes.map((n) => n.id);
@@ -407,7 +386,8 @@ export async function getLocalGraph(
     driver.executeQuery(
       `MATCH (a:Memory)-[r:RELATES_TO]->(b:Memory)
        WHERE a.id IN $nodeIds AND b.id IN $nodeIds
-       RETURN a.id AS source, b.id AS target, r.reason AS reason, r.score AS score`,
+       RETURN {source: a.id, target: b.id, reason: r.reason,
+               score: r.score} AS edge`,
       { nodeIds },
     ),
     driver.executeQuery(
@@ -426,30 +406,21 @@ export async function getLocalGraph(
       `MATCH (m:Memory)-[:MENTIONS]->(e:Entity)
        WHERE m.id IN $nodeIds
        WITH e, collect(m.id) AS memoryIds
-       RETURN e.normalizedName AS normalizedName, e.name AS name,
-              e.type AS type, memoryIds`,
+       RETURN {normalizedName: e.normalizedName, name: e.name,
+               type: e.type, memoryIds: memoryIds} AS entity`,
       { nodeIds },
     ),
   ]);
 
   const relatesToEdges: RelatesToEdge[] = relatesToResult.records.flatMap(
     (r) => {
-      const parsed = parseRelatesToEdgeRow(
-        rowFromRecord(r, ["source", "target", "reason", "score"] as const),
-      );
+      const parsed = parseRelatesToEdgeRow(neo4jGet(r, "edge"));
       return parsed ? [parsed] : [];
     },
   );
 
   const entities = entityResult.records.flatMap((r) => {
-    const parsed = parseEntityRow(
-      rowFromRecord(r, [
-        "normalizedName",
-        "name",
-        "type",
-        "memoryIds",
-      ] as const),
-    );
+    const parsed = parseEntityRow(neo4jGet(r, "entity"));
     return parsed ? [parsed] : [];
   });
 

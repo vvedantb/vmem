@@ -1,4 +1,5 @@
 import { finished, pipeline } from "node:stream/promises";
+import { text } from "node:stream/consumers";
 import { Readable } from "node:stream";
 import { createGunzip } from "node:zlib";
 import { extract } from "tar-stream";
@@ -68,14 +69,6 @@ async function fetchWithRetry(
   }
 }
 
-async function readStreamUtf8(stream: Readable): Promise<string> {
-  const chunks: Buffer[] = [];
-  for await (const chunk of stream) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-  }
-  return Buffer.concat(chunks).toString("utf8");
-}
-
 async function drainStream(stream: Readable): Promise<void> {
   stream.resume();
   await finished(stream);
@@ -99,7 +92,7 @@ export async function extractTsJsFromTarball(
       }
       blobs.push({
         path: repoPath,
-        content: await readStreamUtf8(stream),
+        content: await text(stream),
       });
       next();
     })().catch((err: unknown) => {

@@ -1,10 +1,8 @@
 import { z } from "zod";
 import { parseJsonString } from "../../engine/llm/extractJsonString";
 import { truncateAtWord } from "../../engine/llm/truncateAtWord";
-import {
-  sanitizeTag,
-  type TagUsage,
-} from "../../engine/neo4j/memory/tagNormalize";
+import type { TagUsage } from "../../engine/neo4j/memory/enrichment";
+import { sanitizeTag } from "../../engine/neo4j/memory/tagNormalize";
 
 const MAX_CONTENT_LENGTH = 2000;
 

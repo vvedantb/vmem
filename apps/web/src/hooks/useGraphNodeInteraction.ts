@@ -1,5 +1,6 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useAction } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
 import { api } from "@vmem/backend";
 import type { GraphNode, GraphEdge, RelatedNode } from "@/lib/graph/types";
 import type {
@@ -20,12 +21,6 @@ export function useGraphNodeInteraction(args: {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [hoveredNode, setHoveredNode] = useState<HoveredNodeInfo | null>(null);
   const [hoveredEdge, setHoveredEdge] = useState<HoveredEdgeInfo | null>(null);
-  const [contentCache, setContentCache] = useState<ReadonlyMap<string, string>>(
-    () => new Map(),
-  );
-  const inflightRef = useRef<Set<string>>(new Set());
-  const onFocusChangeRef = useRef(args.onFocusChange);
-  onFocusChangeRef.current = args.onFocusChange;
 
   const nodeById = useMemo(() => {
     const map = new Map<string, GraphNode>();
@@ -33,24 +28,21 @@ export function useGraphNodeInteraction(args: {
     return map;
   }, [args.graphNodes]);
 
-  function ensureMemoryContent(nodeId: string) {
-    if (contentCache.has(nodeId) || inflightRef.current.has(nodeId)) return;
-    inflightRef.current.add(nodeId);
-    void getNodeContent({ memoryId: nodeId })
-      .then((content) => {
-        setContentCache((prev) => {
-          const next = new Map(prev);
-          next.set(nodeId, content);
-          return next;
-        });
-      })
-      .finally(() => {
-        inflightRef.current.delete(nodeId);
-      });
-  }
-
   const selectedNode =
     selectedNodeId === null ? null : (nodeById.get(selectedNodeId) ?? null);
+
+  const selectedContentQuery = useQuery({
+    queryKey: ["graph-node-content", selectedNodeId],
+    queryFn: async () => {
+      if (selectedNodeId === null) return "";
+      return await getNodeContent({ memoryId: selectedNodeId });
+    },
+    enabled:
+      selectedNode !== null &&
+      selectedNode.kind === "memory" &&
+      selectedNode.content === undefined,
+    staleTime: 5 * 60_000,
+  });
 
   const selectedNodeData: GraphDetailNode | null =
     selectedNode === null
@@ -61,29 +53,25 @@ export function useGraphNodeInteraction(args: {
           content:
             selectedNode.content !== undefined
               ? selectedNode.content
-              : contentCache.get(selectedNode.id),
+              : selectedContentQuery.data,
           tags: selectedNode.tags,
           createdAt: selectedNode.createdAt,
         };
 
-  const relatedNodes: RelatedNode[] =
-    selectedNodeId === null
-      ? []
-      : getRelatedNodes(selectedNodeId, args.graphEdges, args.graphNodes);
+  const relatedNodes: RelatedNode[] = useMemo(() => {
+    if (selectedNodeId === null) return [];
+    return getRelatedNodes(selectedNodeId, args.graphEdges, nodeById);
+  }, [selectedNodeId, args.graphEdges, nodeById]);
 
   function handleClickNode(nodeId: string) {
     setSelectedNodeId(nodeId);
     setHoveredNode(null);
-    const node = nodeById.get(nodeId);
-    if (node && node.kind === "memory" && node.content === undefined) {
-      ensureMemoryContent(nodeId);
-    }
   }
 
   function handleFocusNode(nodeId: string) {
     const node = nodeById.get(nodeId);
     if (!node || node.kind !== "memory") return;
-    onFocusChangeRef.current(nodeId);
+    args.onFocusChange(nodeId);
     setSelectedNodeId(null);
   }
 
@@ -96,7 +84,7 @@ export function useGraphNodeInteraction(args: {
   }
 
   function handleBackToGlobal() {
-    onFocusChangeRef.current(null);
+    args.onFocusChange(null);
   }
 
   async function handleLinkNodes(sourceId: string, targetId: string) {

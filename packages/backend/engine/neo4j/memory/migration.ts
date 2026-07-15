@@ -1,10 +1,5 @@
-import type { Driver, QueryResult } from "neo4j-driver";
-import { neo4jGet, parseNeo4jInt } from "../record";
-
-function firstCount(result: QueryResult, key: string): number {
-  const record = result.records[0];
-  return record ? parseNeo4jInt(neo4jGet(record, key)) : 0;
-}
+import type { Driver } from "neo4j-driver";
+import { firstNeo4jInt } from "../record";
 
 // move memories from one profile to another
 export async function moveMemoriesBetweenProfiles(
@@ -19,7 +14,7 @@ export async function moveMemoriesBetweenProfiles(
      RETURN count(m) AS moved`,
     { userId, fromProfileId, toProfileId },
   );
-  return firstCount(result, "moved");
+  return firstNeo4jInt(result, "moved");
 }
 
 // delete all memories for a profile
@@ -34,7 +29,7 @@ export async function deleteMemoriesByProfile(
      RETURN count(m) AS deleted`,
     { userId, profileId },
   );
-  return firstCount(result, "deleted");
+  return firstNeo4jInt(result, "deleted");
 }
 
 export async function setEmbeddings(

@@ -168,7 +168,6 @@ function resolveCallsForSourceFile(
 export function resolveCalls(
   project: Project,
   parseResult: ParseResult,
-  _codebaseId: string,
 ): RelationEdge[] {
   const index = buildIndex(parseResult.symbols);
   const calls: RelationEdge[] = [];

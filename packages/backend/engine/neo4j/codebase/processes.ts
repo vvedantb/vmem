@@ -20,22 +20,18 @@ export function detectProcesses(
     name: entry.name,
     entryPointId: entry.functionId,
     entryKind: entry.kind,
-    members: bfsFrom(entry.functionId, adj, MAX_DEPTH),
+    members: bfsFrom(entry.functionId, adj),
   }));
 }
 
-function bfsFrom(
-  start: string,
-  adj: Map<string, string[]>,
-  maxDepth: number,
-): string[] {
+function bfsFrom(start: string, adj: Map<string, string[]>): string[] {
   const visited = new Set<string>([start]);
   const queue: Array<[string, number]> = [[start, 0]];
   for (let i = 0; i < queue.length; i++) {
     const item = queue[i];
     if (item === undefined) break;
     const [id, depth] = item;
-    if (depth >= maxDepth) continue;
+    if (depth >= MAX_DEPTH) continue;
     for (const n of adj.get(id) ?? []) {
       if (visited.has(n)) continue;
       visited.add(n);

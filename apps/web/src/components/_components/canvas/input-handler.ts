@@ -17,6 +17,18 @@ interface Callbacks {
   onFocusNode: (nodeId: string) => void;
 }
 
+interface CanvasInputTarget {
+  clientWidth: number;
+  clientHeight: number;
+  style: { cursor: string };
+  addEventListener: HTMLCanvasElement["addEventListener"];
+  removeEventListener: HTMLCanvasElement["removeEventListener"];
+  getBoundingClientRect: HTMLCanvasElement["getBoundingClientRect"];
+  setPointerCapture: HTMLCanvasElement["setPointerCapture"];
+  hasPointerCapture: HTMLCanvasElement["hasPointerCapture"];
+  releasePointerCapture: HTMLCanvasElement["releasePointerCapture"];
+}
+
 interface PanSample {
   x: number;
   y: number;
@@ -31,7 +43,7 @@ const TAP_MAX_MS = 300;
 const MOMENTUM_MAX_MS = 200;
 
 export function attachInputHandlers(
-  canvas: HTMLCanvasElement,
+  canvas: CanvasInputTarget,
   interaction: InteractionState,
   viewport: ViewportState,
   simRef: { current: SimulationController | null },
@@ -135,9 +147,8 @@ export function attachInputHandlers(
   }
 
   function enterPinchMode(): void {
+    finishGesture({ allowClick: false });
     mode = "pinch";
-    interaction.draggedNodeId = null;
-    interaction.isPanning = false;
     pinchStartDist = pinchDistance();
     pinchStartScale = viewport.targetScale;
     const center = pinchCenter();
@@ -228,8 +239,9 @@ export function attachInputHandlers(
     if (hitNode && e.shiftKey && e.pointerType === "mouse") {
       mode = "link";
       interaction.linkSourceId = hitNode.id;
-      interaction.mouseWorldX = worldAt(x, y).x;
-      interaction.mouseWorldY = worldAt(x, y).y;
+      const world = worldAt(x, y);
+      interaction.mouseWorldX = world.x;
+      interaction.mouseWorldY = world.y;
       return;
     }
 
@@ -301,7 +313,66 @@ export function attachInputHandlers(
     activePointers.set(e.pointerId, { x, y });
   }
 
-  function finishPointer(e: PointerEvent): void {
+  function finishGesture({
+    allowClick,
+    endX = downX,
+    endY = downY,
+    pointerType = "mouse",
+    button = 0,
+  }: {
+    allowClick: boolean;
+    endX?: number;
+    endY?: number;
+    pointerType?: string;
+    button?: number;
+  }): void {
+    if (mode === "link" && interaction.linkSourceId) {
+      const hitNode = nodeAt(endX, endY);
+      if (hitNode && hitNode.id !== interaction.linkSourceId) {
+        callbacks.onLinkNodes(interaction.linkSourceId, hitNode.id);
+      }
+    }
+    interaction.linkSourceId = null;
+    interaction.hoveredNodeId = null;
+
+    if (mode === "node-drag" && interaction.draggedNodeId) {
+      simRef.current?.dragEnd(interaction.draggedNodeId);
+      interaction.draggedNodeId = null;
+      simRef.current?.reheat();
+    }
+
+    if (mode === "pan" && interaction.isPanning && panHistory.length >= 2) {
+      applyPanMomentum(endX, endY);
+    }
+    interaction.isPanning = false;
+
+    if (
+      allowClick &&
+      !hasDragged &&
+      pointerType === "touch" &&
+      performance.now() - downTime < TAP_MAX_MS
+    ) {
+      const hitNode = nodeAt(downX, downY);
+      if (hitNode) {
+        callbacks.onClickNode(hitNode.id);
+      }
+    } else if (
+      allowClick &&
+      !hasDragged &&
+      pointerType === "mouse" &&
+      button === 0
+    ) {
+      const hitNode = nodeAt(endX, endY);
+      if (hitNode) {
+        callbacks.onClickNode(hitNode.id);
+      }
+    }
+
+    canvas.style.cursor = "default";
+    mode = "idle";
+  }
+
+  function finishPointer(e: PointerEvent, allowClick: boolean): void {
     const { x, y } = pointerCanvasXY(e);
     const hadCapture = activePointers.has(e.pointerId);
     activePointers.delete(e.pointerId);
@@ -311,49 +382,18 @@ export function attachInputHandlers(
 
     if (activePointers.size > 0) {
       if (mode === "pinch" && activePointers.size === 1) {
-        mode = "idle";
+        finishGesture({ allowClick: false, endX: x, endY: y });
       }
       return;
     }
 
-    if (mode === "link" && interaction.linkSourceId) {
-      const hitNode = nodeAt(x, y);
-      if (hitNode && hitNode.id !== interaction.linkSourceId) {
-        callbacks.onLinkNodes(interaction.linkSourceId, hitNode.id);
-      }
-      interaction.linkSourceId = null;
-      interaction.hoveredNodeId = null;
-      canvas.style.cursor = "default";
-    }
-
-    if (mode === "node-drag" && interaction.draggedNodeId) {
-      simRef.current?.dragEnd(interaction.draggedNodeId);
-      interaction.draggedNodeId = null;
-      simRef.current?.reheat();
-    }
-
-    if (mode === "pan" && interaction.isPanning && panHistory.length >= 2) {
-      applyPanMomentum(x, y);
-    }
-    interaction.isPanning = false;
-
-    if (
-      !hasDragged &&
-      e.pointerType === "touch" &&
-      performance.now() - downTime < TAP_MAX_MS
-    ) {
-      const hitNode = nodeAt(downX, downY);
-      if (hitNode) {
-        callbacks.onClickNode(hitNode.id);
-      }
-    } else if (!hasDragged && e.pointerType === "mouse" && e.button === 0) {
-      const hitNode = nodeAt(x, y);
-      if (hitNode) {
-        callbacks.onClickNode(hitNode.id);
-      }
-    }
-
-    mode = "idle";
+    finishGesture({
+      allowClick,
+      endX: x,
+      endY: y,
+      pointerType: e.pointerType,
+      button: e.button,
+    });
   }
 
   function onWheel(e: WheelEvent): void {
@@ -377,19 +417,34 @@ export function attachInputHandlers(
 
   canvas.addEventListener("pointerdown", onPointerDown);
   canvas.addEventListener("pointermove", onPointerMove);
-  canvas.addEventListener("pointerup", finishPointer);
-  canvas.addEventListener("pointercancel", finishPointer);
-  canvas.addEventListener("pointerleave", finishPointer);
+  canvas.addEventListener("pointerup", onPointerUp);
+  canvas.addEventListener("pointercancel", onPointerCancel);
+  canvas.addEventListener("pointerleave", onPointerCancel);
   canvas.addEventListener("wheel", onWheel, { passive: false });
   canvas.addEventListener("dblclick", onDblClick);
 
   return () => {
+    finishGesture({ allowClick: false });
+    for (const pointerId of activePointers.keys()) {
+      if (canvas.hasPointerCapture(pointerId)) {
+        canvas.releasePointerCapture(pointerId);
+      }
+    }
+    activePointers.clear();
     canvas.removeEventListener("pointerdown", onPointerDown);
     canvas.removeEventListener("pointermove", onPointerMove);
-    canvas.removeEventListener("pointerup", finishPointer);
-    canvas.removeEventListener("pointercancel", finishPointer);
-    canvas.removeEventListener("pointerleave", finishPointer);
+    canvas.removeEventListener("pointerup", onPointerUp);
+    canvas.removeEventListener("pointercancel", onPointerCancel);
+    canvas.removeEventListener("pointerleave", onPointerCancel);
     canvas.removeEventListener("wheel", onWheel);
     canvas.removeEventListener("dblclick", onDblClick);
   };
+
+  function onPointerUp(e: PointerEvent): void {
+    finishPointer(e, true);
+  }
+
+  function onPointerCancel(e: PointerEvent): void {
+    finishPointer(e, false);
+  }
 }

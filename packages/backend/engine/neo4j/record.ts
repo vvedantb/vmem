@@ -1,4 +1,7 @@
-import neo4j, { type Record as NeoRecord } from "neo4j-driver";
+import neo4j, {
+  type QueryResult,
+  type Record as NeoRecord,
+} from "neo4j-driver";
 import { type ZodType, z } from "zod";
 
 export function neo4jGet(record: NeoRecord, key: string): unknown {
@@ -31,6 +34,15 @@ export function parseNeo4jInt(value: unknown): number {
   throw new Error("Expected Neo4j integer or number");
 }
 
+export function neo4jInt(record: NeoRecord, key: string): number {
+  return parseNeo4jInt(neo4jGet(record, key));
+}
+
+export function firstNeo4jInt(result: QueryResult, key: string): number {
+  const record = result.records[0];
+  return record ? neo4jInt(record, key) : 0;
+}
+
 // zod schema — never throws; emits a ZodIssue so unions/safeParse can continue
 export const neo4jIntSchema = z.unknown().transform((value, ctx) => {
   if (typeof value === "number") return value;
@@ -46,15 +58,11 @@ export const stringSchema = z.string();
 
 // null before neo4jIntSchema: z.unknown() accepts null, and a throwing
 // transform would abort the union before z.null() could match (blank graph)
-export const nullableNumberSchema = z.union([
-  z.null(),
-  z.number(),
-  neo4jIntSchema,
-]);
+export const nullableNumberSchema = neo4jIntSchema.nullable();
 
 export function parseNeo4jNodeProps<T>(
   value: unknown,
-  propsSchema: ZodType<T>,
+  propsSchema: ZodType<T, z.ZodTypeDef, unknown>,
 ): T {
   if (typeof value !== "object" || value === null) {
     throw new Error("Expected Neo4j node with properties");

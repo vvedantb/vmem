@@ -602,16 +602,3 @@ export const deleteByClerkIdInternal = internalMutation({
     return null;
   },
 });
-
-// enabled skills of a team
-export const listTeamSkillsInternal = internalQuery({
-  args: { teamId: v.id("teams") },
-  handler: async (ctx, args) => {
-    const rows = await ctx.db
-      .query("skills")
-      .withIndex("by_team", (q) => q.eq("teamId", args.teamId))
-      .order("desc")
-      .collect();
-    return rows.filter(isSkillEnabled);
-  },
-});

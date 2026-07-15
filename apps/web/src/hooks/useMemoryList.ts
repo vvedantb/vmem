@@ -11,10 +11,9 @@ import { api } from "@vmem/backend";
 const MEMORY_LIST_PAGE_SIZE = 100;
 
 /** Filters forwarded to the server-paginated listMemories action. */
-export interface MemoryListFilters {
+interface MemoryListFilters {
   profileId?: string | null;
   type?: string;
-  status?: string;
   source?: string;
   tags?: string[];
   searchQuery?: string;
@@ -34,7 +33,6 @@ function useMemoryListPage(filters: MemoryListFilters) {
       normalized.profileId = filters.profileId;
     }
     if (filters.type) normalized.type = filters.type;
-    if (filters.status) normalized.status = filters.status;
     if (filters.source) normalized.source = filters.source;
     if (filters.tags && filters.tags.length > 0) {
       normalized.tags = [...filters.tags].sort();
@@ -45,7 +43,6 @@ function useMemoryListPage(filters: MemoryListFilters) {
   }, [
     filters.profileId,
     filters.type,
-    filters.status,
     filters.source,
     filters.tags,
     filters.searchQuery,
@@ -59,7 +56,6 @@ function useMemoryListPage(filters: MemoryListFilters) {
       return await listMemoriesAction({
         profileId: normalizedFilters.profileId ?? undefined,
         type: normalizedFilters.type,
-        status: normalizedFilters.status,
         source: normalizedFilters.source,
         tags: normalizedFilters.tags,
         searchQuery: normalizedFilters.searchQuery,
@@ -87,16 +83,13 @@ export function useMemoryListFlat(filters: MemoryListFilters) {
     }
     return out;
   }, [query.data]);
-  const total = query.data?.pages[0]?.total ?? 0;
   return {
     memories,
-    total,
     isLoading: query.isLoading,
     // A failed load renders identically to "no memories" otherwise —
     // callers must surface this instead of showing a silent blank list
     isError: query.isError,
     refetch: query.refetch,
-    isFetching: query.isFetching,
     isFetchingNextPage: query.isFetchingNextPage,
     hasNextPage: query.hasNextPage,
     fetchNextPage: query.fetchNextPage,

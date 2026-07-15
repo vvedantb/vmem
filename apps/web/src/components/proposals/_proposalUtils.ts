@@ -23,7 +23,6 @@ export function isSynthesisKind(kind: ProposedUpdateKind): boolean {
 }
 
 export {
-  PROPOSAL_KIND_CONFIG,
   getProposalKindConfig,
   proposalAccentClass,
   proposalApproveToast,
@@ -31,4 +30,3 @@ export {
   synthesisContentLabel,
   synthesisSourceListLabel,
 } from "./_proposalKindConfig";
-export type { ProposalKindConfig } from "./_proposalKindConfig";

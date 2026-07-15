@@ -23,7 +23,7 @@ const LINK_DISTANCE_SIZE_MULT = 3;
 // collide pad beyond rendered radius
 const COLLIDE_PAD = 12;
 // soft inertia (obsidian-like); d3 default is 0.4
-export const VELOCITY_DECAY = 0.3;
+const VELOCITY_DECAY = 0.3;
 // below this alpha the layout is visually static
 export const SLEEP_ALPHA = 0.005;
 

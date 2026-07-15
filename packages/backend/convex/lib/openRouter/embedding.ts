@@ -3,9 +3,9 @@ import {
   validateEmbeddingItems,
   type EmbeddingItem,
 } from "../../../engine/llm/embeddingResponse";
+import { createOpenRouterClient } from "../../../engine/llm/openRouterClient";
 import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
-import { createOpenRouterClient } from "./client";
 import {
   PROMPT_PREVIEW_BYTES,
   previewsEnabled,

@@ -50,22 +50,13 @@ function chunk<T>(arr: T[], size: number): T[][] {
   return out;
 }
 
-async function runQuery(
-  driver: Driver,
-  query: string,
-  params: Record<string, unknown>,
-): Promise<void> {
-  await driver.executeQuery(query, params);
-}
-
 async function deleteStale(
   driver: Driver,
   userId: string,
   codebaseId: string,
   keepIds: string[],
 ): Promise<void> {
-  await runQuery(
-    driver,
+  await driver.executeQuery(
     `
     MATCH (n { userId: $userId, codebaseId: $codebaseId })
     WHERE (n:CodeFile OR n:Function OR n:Class OR n:Interface OR n:Process)
@@ -87,8 +78,7 @@ async function upsertNodes(
   const now = Date.now();
   const updatedAtClause = touchUpdatedAt ? "SET n.updatedAt = $now" : "";
   for (const batch of chunk(rows, CHUNK_SIZE)) {
-    await runQuery(
-      driver,
+    await driver.executeQuery(
       `
       UNWIND $rows AS row
       MERGE (n:${label} { id: row.id })
@@ -191,8 +181,7 @@ async function upsertEdges(
 ): Promise<void> {
   if (edges.length === 0) return;
   for (const batch of chunk(edges, CHUNK_SIZE)) {
-    await runQuery(
-      driver,
+    await driver.executeQuery(
       `
       UNWIND $rows AS row
       MATCH (a { id: row.fromId })
@@ -229,8 +218,7 @@ async function upsertLabeledEdges(
 ): Promise<void> {
   if (rows.length === 0) return;
   for (const batch of chunk(rows, CHUNK_SIZE)) {
-    await runQuery(
-      driver,
+    await driver.executeQuery(
       `
       UNWIND $rows AS row
       MATCH (a:${fromLabel} { id: row.fromId })
@@ -282,7 +270,10 @@ export async function writeParseResult(args: WriteArgs): Promise<ParseStats> {
     processes,
   } = args;
 
-  const keepIds: string[] = [];
+  const keepIds = [
+    ...symbols.map((symbol) => symbol.id),
+    ...processes.map((process) => process.id),
+  ];
   const fileRows: UpsertRow[] = [];
   const functionRows: UpsertRow[] = [];
   const classRows: UpsertRow[] = [];
@@ -292,25 +283,19 @@ export async function writeParseResult(args: WriteArgs): Promise<ParseStats> {
   for (const sym of symbols) {
     switch (sym.kind) {
       case "file":
-        keepIds.push(sym.id);
         fileRows.push(fileRow(sym, userId, codebaseId));
         break;
       case "function":
-        keepIds.push(sym.id);
         functionRows.push(functionRow(sym, userId, codebaseId));
         break;
       case "class":
-        keepIds.push(sym.id);
         classRows.push(classRow(sym, userId, codebaseId));
         break;
       case "interface":
-        keepIds.push(sym.id);
         interfaceRows.push(interfaceRow(sym, userId, codebaseId));
         break;
     }
   }
-  for (const p of processes) keepIds.push(p.id);
-
   const buckets = new Map<string, RelationEdge[]>();
   for (const e of structuralRelations) {
     if (e.kind === "IMPORTS") importEdgeCount += 1;

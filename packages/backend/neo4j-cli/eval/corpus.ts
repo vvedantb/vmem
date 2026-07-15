@@ -2,26 +2,24 @@
 
 import { readFileSync } from "node:fs";
 import { z } from "zod";
+import type { MemoryType } from "../../engine/neo4j/memory/types";
 
-export type SeedMemoryType = "profile" | "episodic" | "knowledge";
-export type SeedMemoryStatus = "active" | "pinned";
-
-export interface SeedMemory {
+export interface BenchmarkMemory {
   id: string;
   userId: string;
   title: string;
   content: string;
-  type: SeedMemoryType;
+  type: MemoryType;
   source: string;
   confidence: number;
-  status: SeedMemoryStatus;
+  status: "active";
   tags: string[];
   createdAt: string;
   updatedAt: string;
   expiresAt: null;
 }
 
-export interface SeedRelationship {
+export interface BenchmarkRelationship {
   sourceId: string;
   targetId: string;
   reason: string;
@@ -30,8 +28,14 @@ export interface SeedRelationship {
 export interface RetrievalEvalQuery {
   query: string;
   expectedTitles: string[];
-  relevance?: Record<string, number>;
-  type?: string;
+  relevance: Record<string, number>;
+  type: string;
+}
+
+export interface BenchmarkCorpus {
+  memories: BenchmarkMemory[];
+  relationships: BenchmarkRelationship[];
+  queries: RetrievalEvalQuery[];
 }
 
 export const BENCH_USER_ID = "user_vmem_bench_eval";
@@ -47,11 +51,9 @@ interface MemSpec {
   key: string;
   title: string;
   content: string;
-  type?: SeedMemoryType;
+  type?: MemoryType;
   tags?: string[];
   ageDays?: number;
-  status?: SeedMemoryStatus;
-  confidence?: number;
 }
 interface RelSpec {
   from: string;
@@ -360,33 +362,77 @@ function exactMatchScenario(): Scenario {
 }
 
 function fillerMemories(count: number): MemSpec[] {
-  const out: MemSpec[] = [];
-  for (let i = 0; i < count; i++) {
+  return Array.from({ length: count }, (_, i) => {
     const base = FILLER_TOPICS[i % FILLER_TOPICS.length] ?? "Misc note";
-    out.push({
+    return {
       key: `filler_${String(i)}`,
       title: `${base} (#${String(i)})`,
       content: `${base}. A routine personal note, entry ${String(i)}, unrelated to the project work.`,
       type: i % 3 === 0 ? "episodic" : "knowledge",
       tags: ["misc"],
       ageDays: 30 + (i % 300),
-    });
-  }
-  return out;
+    };
+  });
 }
 
-function singleAnswerScenario(
-  key: string,
-  queryType: string,
-  memoryType: SeedMemoryType,
-  tags: string[],
-  title: string,
-  content: string,
-  query: string,
+function singleAnswerScenarios(
+  rows: z.infer<typeof factRow>[],
+  options: {
+    prefix: string;
+    queryType: string;
+    memoryType: MemoryType;
+    tags: string[];
+  },
+): Scenario[] {
+  return rows.map((row, i) => {
+    const key = `${options.prefix}${String(i)}`;
+    return {
+      memories: [
+        {
+          key,
+          title: row.title,
+          content: row.content,
+          type: options.memoryType,
+          tags: options.tags,
+        },
+      ],
+      queries: [
+        { query: row.query, type: options.queryType, relevance: { [key]: 3 } },
+      ],
+    };
+  });
+}
+
+function lexicalTrapScenario(
+  trap: (typeof TRAPS)[number],
+  i: number,
 ): Scenario {
+  const goldKey = `lt${String(i)}_gold`;
+  const trapKey = `lt${String(i)}_trap`;
   return {
-    memories: [{ key, title, content, type: memoryType, tags }],
-    queries: [{ query, type: queryType, relevance: { [key]: 3 } }],
+    memories: [
+      {
+        key: goldKey,
+        title: trap.goldTitle,
+        content: trap.goldContent,
+        type: "knowledge",
+        tags: ["fact"],
+      },
+      {
+        key: trapKey,
+        title: trap.trapTitle,
+        content: trap.trapContent,
+        type: "episodic",
+        tags: ["misc"],
+      },
+    ],
+    queries: [
+      {
+        query: trap.query,
+        type: "lexical-trap",
+        relevance: { [goldKey]: 3, [trapKey]: 0 },
+      },
+    ],
   };
 }
 
@@ -394,57 +440,19 @@ const SCENARIOS: Scenario[] = [
   ...Array.from({ length: MULTI_HOP_COUNT }, (_, i) => multiHop(i)),
   ...Array.from({ length: PROJECT_COUNT }, (_, i) => projectCluster(i)),
   ...Array.from({ length: TEMPORAL_COUNT }, (_, i) => temporalUpdate(i)),
-  ...SINGLE_FACTS.map((f, i) =>
-    singleAnswerScenario(
-      `sf${String(i)}`,
-      "single-fact",
-      "knowledge",
-      ["fact"],
-      f.title,
-      f.content,
-      f.query,
-    ),
-  ),
-  ...PREFERENCES.map((p, i) =>
-    singleAnswerScenario(
-      `pref${String(i)}`,
-      "preference",
-      "profile",
-      ["preferences"],
-      p.title,
-      p.content,
-      p.query,
-    ),
-  ),
-  ...TRAPS.map((tr, i) => {
-    const goldKey = `lt${String(i)}_gold`;
-    const trapKey = `lt${String(i)}_trap`;
-    return {
-      memories: [
-        {
-          key: goldKey,
-          title: tr.goldTitle,
-          content: tr.goldContent,
-          type: "knowledge" as const,
-          tags: ["fact"],
-        },
-        {
-          key: trapKey,
-          title: tr.trapTitle,
-          content: tr.trapContent,
-          type: "episodic" as const,
-          tags: ["misc"],
-        },
-      ],
-      queries: [
-        {
-          query: tr.query,
-          type: "lexical-trap",
-          relevance: { [goldKey]: 3, [trapKey]: 0 },
-        },
-      ],
-    };
+  ...singleAnswerScenarios(SINGLE_FACTS, {
+    prefix: "sf",
+    queryType: "single-fact",
+    memoryType: "knowledge",
+    tags: ["fact"],
   }),
+  ...singleAnswerScenarios(PREFERENCES, {
+    prefix: "pref",
+    queryType: "preference",
+    memoryType: "profile",
+    tags: ["preferences"],
+  }),
+  ...TRAPS.map((trap, i) => lexicalTrapScenario(trap, i)),
   exactMatchScenario(),
   {
     memories: [],
@@ -461,13 +469,9 @@ function isoFromAgeDays(ageDays: number): string {
   return new Date(Date.now() - ageDays * 86_400_000).toISOString();
 }
 
-export function generateBenchmarkCorpus(): {
-  memories: SeedMemory[];
-  relationships: SeedRelationship[];
-  queries: RetrievalEvalQuery[];
-} {
-  const memories: SeedMemory[] = [];
-  const relationships: SeedRelationship[] = [];
+export function generateBenchmarkCorpus(): BenchmarkCorpus {
+  const memories: BenchmarkMemory[] = [];
+  const relationships: BenchmarkRelationship[] = [];
   const queries: RetrievalEvalQuery[] = [];
   const titleByKey = new Map<string, string>();
   const seenTitles = new Set<string>();
@@ -488,8 +492,8 @@ export function generateBenchmarkCorpus(): {
       content: spec.content,
       type: spec.type ?? "knowledge",
       source: SOURCE,
-      confidence: spec.confidence ?? 0.85,
-      status: spec.status ?? "active",
+      confidence: 0.85,
+      status: "active",
       tags: spec.tags ?? [],
       createdAt,
       updatedAt: createdAt,

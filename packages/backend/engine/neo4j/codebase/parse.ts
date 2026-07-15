@@ -32,8 +32,6 @@ interface ParseInput {
 
 interface ParseContext {
   codebaseId: string;
-  project: Project;
-  blobByPath: Map<string, SourceFileBlob>;
   fileIdByPath: Map<string, string>;
   symbols: SymbolNode[];
   structuralRelations: RelationEdge[];
@@ -106,10 +104,7 @@ function isExportedNode(node: ExportableNode): boolean {
   return node.isExported() || node.isDefaultExport();
 }
 
-function buildProject(input: ParseInput): {
-  project: Project;
-  loadedPaths: string[];
-} {
+function buildProject(input: ParseInput): Project {
   const project = new Project({
     useInMemoryFileSystem: true,
     skipAddingFilesFromTsConfig: true,
@@ -125,7 +120,6 @@ function buildProject(input: ParseInput): {
     },
   });
 
-  const loadedPaths: string[] = [];
   for (const file of input.files) {
     const ext = extname(file.path);
     if (!TS_JS_EXTENSIONS.has(ext)) continue;
@@ -133,9 +127,8 @@ function buildProject(input: ParseInput): {
       scriptKind: pickScriptKind(ext),
       overwrite: true,
     });
-    loadedPaths.push(file.path);
   }
-  return { project, loadedPaths };
+  return project;
 }
 
 function registerSymbol(ctx: ParseContext, sym: SymbolNode): void {
@@ -155,20 +148,6 @@ function registerSymbol(ctx: ParseContext, sym: SymbolNode): void {
     ctx.byNameGlobal.set(sym.name, global);
   }
   global.add(sym.id);
-}
-
-function resolveImportTarget(
-  ctx: ParseContext,
-  source: SourceFile,
-  moduleSpec: string,
-): string | null {
-  const resolved = source
-    .getImportDeclarations()
-    .find((d) => d.getModuleSpecifierValue() === moduleSpec)
-    ?.getModuleSpecifierSourceFile();
-  if (!resolved) return null;
-  const targetPath = normalizeRepoPath(resolved.getFilePath());
-  return ctx.fileIdByPath.get(targetPath) ?? null;
 }
 
 function resolveHeritageTarget(
@@ -230,25 +209,6 @@ function resolveHeritageTargets(ctx: ParseContext): void {
   );
 }
 
-function looksLikeConvexBuilder(init: Node): boolean {
-  if (!Node.isCallExpression(init)) return false;
-  return convexEntryKind(init.getExpression().getText()) !== undefined;
-}
-
-function isAsyncFunctionLike(node: Node): boolean {
-  if (!Node.isArrowFunction(node) && !Node.isFunctionExpression(node)) {
-    return false;
-  }
-  const text = node.getText();
-  return text.startsWith("async ") || text.includes("async (");
-}
-
-function getParamCount(node: Node): number {
-  if (Node.isArrowFunction(node)) return node.getParameters().length;
-  if (Node.isFunctionExpression(node)) return node.getParameters().length;
-  return 0;
-}
-
 function pushFunction(
   ctx: ParseContext,
   fileId: string,
@@ -286,7 +246,10 @@ function pushVariableFunction(
   const init = v.getInitializer();
   if (!init) return;
   const isFn = Node.isArrowFunction(init) || Node.isFunctionExpression(init);
-  if (!isFn && !looksLikeConvexBuilder(init)) return;
+  const entryKind = Node.isCallExpression(init)
+    ? convexEntryKind(init.getExpression().getText())
+    : undefined;
+  if (!isFn && !entryKind) return;
   const name = v.getName();
   const id = symbolId(ctx.codebaseId, filePath, name);
   const stmt = v.getVariableStatement();
@@ -299,9 +262,10 @@ function pushVariableFunction(
     startLine: v.getStartLineNumber(),
     endLine: v.getEndLineNumber(),
     isExported: stmt ? isExportedNode(stmt) : false,
-    isAsync: isFn && isAsyncFunctionLike(init),
+    isAsync: isFn && init.isAsync(),
     isTest: fileIsTest,
-    paramCount: isFn ? getParamCount(init) : 0,
+    paramCount: isFn ? init.getParameters().length : 0,
+    entryKind,
   });
   ctx.structuralRelations.push({ kind: "CONTAINS", fromId: fileId, toId: id });
 }
@@ -409,12 +373,8 @@ function pushInterface(
   ctx.structuralRelations.push({ kind: "CONTAINS", fromId: fileId, toId: id });
 }
 
-function parseSourceFile(
-  ctx: ParseContext,
-  source: SourceFile,
-  fileBlob: SourceFileBlob,
-): void {
-  const path = fileBlob.path;
+function parseSourceFile(ctx: ParseContext, source: SourceFile): void {
+  const path = normalizeRepoPath(source.getFilePath());
   const fileId = ctx.fileIdByPath.get(path);
   if (!fileId) return;
   const fileIsTest = isTestFile(path);
@@ -422,7 +382,10 @@ function parseSourceFile(
   for (const imp of source.getImportDeclarations()) {
     const moduleSpec = imp.getModuleSpecifierValue();
     if (!moduleSpec) continue;
-    const targetId = resolveImportTarget(ctx, source, moduleSpec);
+    const resolved = imp.getModuleSpecifierSourceFile();
+    const targetId = resolved
+      ? ctx.fileIdByPath.get(normalizeRepoPath(resolved.getFilePath()))
+      : undefined;
     ctx.structuralRelations.push({
       kind: "IMPORTS",
       fromId: fileId,
@@ -451,12 +414,9 @@ export function parseRepository(input: ParseInput): {
   project: Project;
   result: ParseResult;
 } {
-  const { project, loadedPaths } = buildProject(input);
-  const blobByPath = new Map(input.files.map((f) => [f.path, f]));
+  const project = buildProject(input);
   const ctx: ParseContext = {
     codebaseId: input.codebaseId,
-    project,
-    blobByPath,
     fileIdByPath: new Map(),
     symbols: [],
     structuralRelations: [],
@@ -464,9 +424,9 @@ export function parseRepository(input: ParseInput): {
     byNameGlobal: new Map(),
   };
 
-  for (const path of loadedPaths) {
-    const blob = blobByPath.get(path);
-    if (!blob) continue;
+  for (const source of project.getSourceFiles()) {
+    const path = normalizeRepoPath(source.getFilePath());
+    const content = source.getFullText();
     const fileId = fileSymbolId(ctx.codebaseId, path);
     ctx.fileIdByPath.set(path, fileId);
     const ext = extname(path);
@@ -477,16 +437,13 @@ export function parseRepository(input: ParseInput): {
       directory: directoryOf(path),
       filename: basename(path),
       extension: ext,
-      sizeBytes: blob.content.length,
-      contentHash: contentHash(blob.content),
+      sizeBytes: content.length,
+      contentHash: contentHash(content),
     });
   }
 
-  for (const path of loadedPaths) {
-    const source = project.getSourceFile(path);
-    const blob = blobByPath.get(path);
-    if (!source || !blob) continue;
-    parseSourceFile(ctx, source, blob);
+  for (const source of project.getSourceFiles()) {
+    parseSourceFile(ctx, source);
   }
 
   resolveHeritageTargets(ctx);

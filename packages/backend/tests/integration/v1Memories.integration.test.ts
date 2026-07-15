@@ -124,8 +124,9 @@ describe.skipIf(!canRun)("HTTP v1 memories API (live)", () => {
         limit: 5,
       });
 
-      const ids = retrieveResult.memories.map((memory) => memory.id);
-      expect(ids).toContain(memoryId);
+      expect(retrieveResult.memories.map((memory) => memory.id)).toContain(
+        memoryId,
+      );
 
       const updatedTitle = `${marker}-updated`;
       const updated = await sdk.patchMemory({
@@ -152,10 +153,8 @@ describe.skipIf(!canRun)("HTTP v1 memories API (live)", () => {
 
 describe("HTTP v1 memories API (config)", () => {
   it("live-test gating matches environment", () => {
-    if (canRun) {
-      expect(apiKey?.startsWith("vmem_sk_")).toBe(true);
-      return;
-    }
-    expect(process.env.RUN_HTTP_API_TEST).not.toBe("1");
+    expect(!runLiveHttpApiTest || apiKey?.startsWith("vmem_sk_") === true).toBe(
+      true,
+    );
   });
 });

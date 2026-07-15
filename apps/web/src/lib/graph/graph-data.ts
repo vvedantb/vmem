@@ -234,7 +234,7 @@ export function buildGraphData(
 export function getRelatedNodes(
   nodeId: string,
   graphEdges: GraphEdge[],
-  graphNodes: GraphNode[],
+  nodeById: ReadonlyMap<string, GraphNode>,
 ): RelatedNode[] {
   const related = new Map<string, number>();
   for (const edge of graphEdges) {
@@ -247,7 +247,7 @@ export function getRelatedNodes(
     }
   }
   return Array.from(related.entries()).map(([id, weight]) => {
-    const node = graphNodes.find((n) => n.id === id);
+    const node = nodeById.get(id);
     return { id, title: node?.title ?? id, weight };
   });
 }

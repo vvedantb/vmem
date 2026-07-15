@@ -1,10 +1,19 @@
-import { useState } from "react";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "convex/react";
 import { api } from "@vmem/backend";
 import type { Doc } from "@vmem/backend";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@vmem/ui";
 import { toast } from "sonner";
 import { SkillFormShell } from "@/components/skills/SkillFormShell";
+import {
+  emptySkillFormValues,
+  skillFormSchema,
+  skillFormValuesFrom,
+  toastSkillFormErrors,
+  type SkillFormValues,
+} from "@/components/skills/skillForm";
 
 interface EditSkillDialogProps {
   skill: Doc<"skills"> | undefined;
@@ -19,36 +28,37 @@ export function EditSkillDialog({
 }: EditSkillDialogProps) {
   const updateSkill = useMutation(api.skills.updateSkill);
 
-  const [submitting, setSubmitting] = useState(false);
+  const form = useForm<SkillFormValues>({
+    resolver: zodResolver(skillFormSchema),
+    defaultValues: emptySkillFormValues,
+  });
 
-  const handleDone = async () => {
-    if (submitting || !skill) return;
+  const submitting = form.formState.isSubmitting;
+  const skillId = skill?._id;
 
-    const trimmedName = skill.name.trim();
-    if (trimmedName.length === 0) {
-      toast.error("Name is required");
-      return;
+  useEffect(() => {
+    if (!open || !skill) return;
+    form.reset(skillFormValuesFrom(skill));
+    // Reset only when the dialog opens or the edited skill changes — not on
+    // every live-query identity churn while the form is dirty.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- skill snapshot at open/_id
+  }, [open, skillId, form]);
+
+  const onSubmit = async (values: SkillFormValues) => {
+    if (!skill) return;
+
+    try {
+      await updateSkill({
+        id: skill._id,
+        name: values.name,
+        description: values.description.trim(),
+        instructions: values.instructions,
+      });
+      onOpenChange(false);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to update skill";
+      toast.error(msg);
     }
-    if (skill.instructions.trim().length === 0) {
-      toast.error("Instructions are required");
-      return;
-    }
-
-    if (trimmedName !== skill.name) {
-      setSubmitting(true);
-      try {
-        await updateSkill({ id: skill._id, name: trimmedName });
-      } catch (err) {
-        const msg =
-          err instanceof Error ? err.message : "Failed to update skill";
-        toast.error(msg);
-        return;
-      } finally {
-        setSubmitting(false);
-      }
-    }
-
-    onOpenChange(false);
   };
 
   if (!skill) return null;
@@ -61,22 +71,8 @@ export function EditSkillDialog({
         </DialogHeader>
 
         <SkillFormShell
-          name={skill.name}
-          description={skill.description}
-          instructions={skill.instructions}
-          onNameChange={(value) => {
-            void updateSkill({ id: skill._id, name: value });
-          }}
-          onDescriptionChange={(value) => {
-            void updateSkill({ id: skill._id, description: value });
-          }}
-          onInstructionsChange={(value) => {
-            void updateSkill({ id: skill._id, instructions: value });
-          }}
-          onSubmit={(e) => {
-            e.preventDefault();
-            void handleDone();
-          }}
+          register={form.register}
+          onSubmit={form.handleSubmit(onSubmit, toastSkillFormErrors)}
           onCancel={() => onOpenChange(false)}
           submitting={submitting}
           submitLabel="Done"

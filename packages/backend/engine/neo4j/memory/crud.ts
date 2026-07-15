@@ -2,7 +2,7 @@ import type { Driver, Integer, QueryResult, Session } from "neo4j-driver";
 import crypto from "node:crypto";
 import neo4j from "neo4j-driver";
 import { toMemoryContentFulltextQuery } from "../luceneQuery";
-import { neo4jGet, parseNeo4jInt } from "../record";
+import { firstNeo4jInt, neo4jGet, neo4jInt } from "../record";
 import { withSession } from "../session";
 import { toMemoryWithTags, toSnapshot } from "./mappers";
 import { createSemanticSimilarityEdges } from "./relationships";
@@ -10,19 +10,14 @@ import { logEvent, visibleStatusClause } from "./shared";
 import { normalizeTags } from "./tagNormalize";
 import type { MemoryStatus, MemoryType, MemoryWithTags } from "./types";
 
-export const DELETION_CLEANUP_SCOPES = {
-  single: ["chunks"],
-  bySourceType: ["chunks", "memoryEvents", "proposals", "orphanTagsAndSources"],
-  allForUser: [
-    "chunks",
-    "memoryEvents",
-    "proposals",
-    "entities",
-    "orphanTagsAndSources",
-  ],
-} as const;
-
 export type MemoryRef = { id: string; title: string; updatedAt: string };
+
+const BATCH_SOURCES = new Set([
+  "browsing-history",
+  "bookmarks",
+  "google_drive",
+  "notion",
+]);
 
 function propsClause(props: Record<string, string>): string {
   return Object.keys(props)
@@ -31,9 +26,7 @@ function propsClause(props: Record<string, string>): string {
 }
 
 function parseDeletedCount(result: QueryResult): number {
-  const firstRecord = result.records[0];
-  if (!firstRecord) return 0;
-  return parseNeo4jInt(neo4jGet(firstRecord, "deleted"));
+  return firstNeo4jInt(result, "deleted");
 }
 
 function firstMemoryRef(result: QueryResult): MemoryRef | null {
@@ -171,8 +164,7 @@ export async function runMemoryList(
      RETURN count(m) AS total`,
     queryParams,
   );
-  const countRecord = countResult.records[0];
-  const total = countRecord ? parseNeo4jInt(neo4jGet(countRecord, "total")) : 0;
+  const total = firstNeo4jInt(countResult, "total");
 
   const result = await session.run(
     `${matchPrefix}
@@ -289,13 +281,6 @@ export async function createMemory(
       { type: params.type },
       snapshot,
     );
-
-    const BATCH_SOURCES = new Set([
-      "browsing-history",
-      "bookmarks",
-      "google_drive",
-      "notion",
-    ]);
 
     if (!BATCH_SOURCES.has(params.source)) {
       const cutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
@@ -610,7 +595,7 @@ export async function findMemoryByUrl(
   return findMemoryRef(driver, { userId, url });
 }
 
-export async function incrementVisitCount(
+async function incrementVisitCount(
   driver: Driver,
   userId: string,
   memoryId: string,
@@ -629,7 +614,7 @@ export async function incrementVisitCount(
     return { visitCount: 1, lastVisitAt: now };
   }
   return {
-    visitCount: parseNeo4jInt(neo4jGet(r, "visitCount")),
+    visitCount: neo4jInt(r, "visitCount"),
     lastVisitAt: String(neo4jGet(r, "lastVisitAt")),
   };
 }

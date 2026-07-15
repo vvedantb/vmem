@@ -1,20 +1,6 @@
 import neo4j from "neo4j-driver";
 import { describe, expect, it } from "vitest";
-import { clampNeo4jLimit, toNeo4jIntParam } from "../../engine/neo4j/intParams";
-
-describe("toNeo4jIntParam", () => {
-  it("wraps float inputs as Neo4j integers (regression: MCP sends 25.0)", () => {
-    const limit = toNeo4jIntParam(25.0);
-
-    expect(neo4j.isInt(limit)).toBe(true);
-    expect(limit.toNumber()).toBe(25);
-  });
-
-  it("truncates toward zero before wrapping", () => {
-    expect(toNeo4jIntParam(3.9).toNumber()).toBe(3);
-    expect(toNeo4jIntParam(-2.9).toNumber()).toBe(-2);
-  });
-});
+import { clampNeo4jLimit } from "../../engine/neo4j/intParams";
 
 describe("clampNeo4jLimit", () => {
   it("uses fallback when value is undefined", () => {

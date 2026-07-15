@@ -1,13 +1,11 @@
 import neo4j, {
   type Driver,
+  type ManagedTransaction,
   type Record as Neo4jRecord,
-  type Session,
-  type Transaction,
 } from "neo4j-driver";
-import { neo4jGet, neo4jString, parseNeo4jInt } from "../record";
+import { neo4jInt, neo4jString } from "../record";
 import { withSession } from "../session";
 import { normalizeTags } from "./tagNormalize";
-import type { TagUsage } from "./tagNormalize";
 import { visibleStatusClause } from "./shared";
 
 type EntityInput = Array<{
@@ -22,11 +20,16 @@ export interface EntityUsage {
   mentions: number;
 }
 
+export interface TagUsage {
+  name: string;
+  uses: number;
+}
+
 function entityUsageFromRecord(r: Neo4jRecord): EntityUsage {
   return {
     name: neo4jString(r, "name"),
     type: neo4jString(r, "type"),
-    mentions: parseNeo4jInt(neo4jGet(r, "mentions")),
+    mentions: neo4jInt(r, "mentions"),
   };
 }
 
@@ -56,7 +59,7 @@ export async function getTopTags(
     { userId, limit: Math.trunc(limit) },
     (r) => ({
       name: neo4jString(r, "name"),
-      uses: parseNeo4jInt(neo4jGet(r, "uses")),
+      uses: neo4jInt(r, "uses"),
     }),
   );
 }
@@ -94,18 +97,14 @@ export async function getRecentMemoryTitles(
      LIMIT $limit`,
     { userId, excludeId, limit: neo4j.int(limit) },
     (r) => ({
-      id: String(r.get("id")),
-      title: String(r.get("title")),
+      id: neo4jString(r, "id"),
+      title: neo4jString(r, "title"),
     }),
   );
 }
 
-export function shouldReplaceMentionEdges(entities: EntityInput): boolean {
-  return entities.length > 0;
-}
-
 async function replaceMentionsEdges(
-  runner: Session | Transaction,
+  runner: ManagedTransaction,
   memoryId: string,
   userId: string,
   entities: EntityInput,
@@ -124,22 +123,6 @@ async function replaceMentionsEdges(
   );
 }
 
-async function runEnrichmentTransaction(
-  driver: Driver,
-  fn: (tx: Transaction) => Promise<void>,
-): Promise<void> {
-  return withSession(driver, async (session) => {
-    const tx = session.beginTransaction();
-    try {
-      await fn(tx);
-      await tx.commit();
-    } catch (err) {
-      await tx.rollback();
-      throw err;
-    }
-  });
-}
-
 export async function applyEnrichment(
   driver: Driver,
   memoryId: string,
@@ -148,9 +131,10 @@ export async function applyEnrichment(
   relatedIds: string[],
   entities: EntityInput = [],
 ): Promise<void> {
-  return runEnrichmentTransaction(driver, async (tx) => {
-    await tx.run(
-      `MATCH (m:Memory {id: $memoryId, userId: $userId})
+  return withSession(driver, (session) =>
+    session.executeWrite(async (tx) => {
+      await tx.run(
+        `MATCH (m:Memory {id: $memoryId, userId: $userId})
        OPTIONAL MATCH (m)-[r:TAGGED_WITH]->(:Tag)
        DELETE r
        WITH m
@@ -158,31 +142,31 @@ export async function applyEnrichment(
          MERGE (t:Tag {name: tagName})
          MERGE (m)-[:TAGGED_WITH]->(t)
        )`,
-      { memoryId, userId, tags: normalizeTags(tags) },
-    );
+        { memoryId, userId, tags: normalizeTags(tags) },
+      );
 
-    await tx.run(
-      `MATCH (m:Memory {id: $memoryId, userId: $userId})
+      await tx.run(
+        `MATCH (m:Memory {id: $memoryId, userId: $userId})
        OPTIONAL MATCH (m)-[r:RELATES_TO]-()
        WHERE r.reason = 'content similarity'
        DELETE r`,
-      { memoryId, userId },
-    );
+        { memoryId, userId },
+      );
 
-    if (relatedIds.length > 0) {
-      await tx.run(
-        `MATCH (m:Memory {id: $memoryId, userId: $userId})
+      if (relatedIds.length > 0) {
+        await tx.run(
+          `MATCH (m:Memory {id: $memoryId, userId: $userId})
          UNWIND $relatedIds AS relId
          MATCH (m2:Memory {id: relId, userId: $userId})
          MERGE (m)-[r:RELATES_TO]->(m2)
          ON CREATE SET r.reason = 'content similarity'`,
-        { memoryId, userId, relatedIds },
-      );
-    }
+          { memoryId, userId, relatedIds },
+        );
+      }
 
-    // characterization: empty entities preserve existing MENTIONS edges
-    if (shouldReplaceMentionEdges(entities)) {
-      await replaceMentionsEdges(tx, memoryId, userId, entities);
-    }
-  });
+      if (entities.length > 0) {
+        await replaceMentionsEdges(tx, memoryId, userId, entities);
+      }
+    }),
+  );
 }

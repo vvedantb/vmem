@@ -78,7 +78,6 @@ const SCOPED_NODE = "{ userId: $userId, codebaseId: $codebaseId }";
 type EdgeQuery = {
   type: OverviewEdge["type"];
   cypher: string;
-  carry: boolean;
 };
 
 const STRUCTURAL_EDGE_QUERIES: EdgeQuery[] = [
@@ -86,25 +85,21 @@ const STRUCTURAL_EDGE_QUERIES: EdgeQuery[] = [
     type: "contains",
     cypher: `MATCH (a:CodeFile ${SCOPED_NODE})-[r:CONTAINS]->(b ${SCOPED_NODE})
              RETURN a.id AS fromId, b.id AS toId, null AS confidence, null AS tier`,
-    carry: false,
   },
   {
     type: "has_method",
     cypher: `MATCH (a:Class ${SCOPED_NODE})-[r:HAS_METHOD]->(b:Function ${SCOPED_NODE})
              RETURN a.id AS fromId, b.id AS toId, null AS confidence, null AS tier`,
-    carry: false,
   },
   {
     type: "starts_process",
     cypher: `MATCH (a:Function ${SCOPED_NODE})-[r:STARTS_PROCESS]->(b:Process ${SCOPED_NODE})
              RETURN a.id AS fromId, b.id AS toId, null AS confidence, null AS tier`,
-    carry: false,
   },
   {
     type: "includes",
     cypher: `MATCH (a:Process ${SCOPED_NODE})-[r:INCLUDES]->(b:Function ${SCOPED_NODE})
              RETURN a.id AS fromId, b.id AS toId, null AS confidence, null AS tier`,
-    carry: false,
   },
 ];
 
@@ -113,25 +108,21 @@ const CONFIDENT_EDGE_QUERIES: EdgeQuery[] = [
     type: "extends",
     cypher: `MATCH (a:Class ${SCOPED_NODE})-[r:EXTENDS]->(b:Class ${SCOPED_NODE})
              RETURN a.id AS fromId, b.id AS toId, ${CALLS_CONF} AS confidence, ${CALLS_TIER} AS tier`,
-    carry: true,
   },
   {
     type: "implements",
     cypher: `MATCH (a:Class ${SCOPED_NODE})-[r:IMPLEMENTS]->(b:Interface ${SCOPED_NODE})
              RETURN a.id AS fromId, b.id AS toId, ${CALLS_CONF} AS confidence, ${CALLS_TIER} AS tier`,
-    carry: true,
   },
   {
     type: "imports",
     cypher: `MATCH (a:CodeFile ${SCOPED_NODE})-[r:IMPORTS]->(b:CodeFile ${SCOPED_NODE})
              RETURN a.id AS fromId, b.id AS toId, ${CALLS_CONF} AS confidence, ${CALLS_TIER} AS tier`,
-    carry: true,
   },
   {
     type: "calls",
     cypher: `MATCH (a:Function ${SCOPED_NODE})-[r:CALLS]->(b:Function ${SCOPED_NODE})
              RETURN a.id AS fromId, b.id AS toId, ${CALLS_CONF} AS confidence, ${CALLS_TIER} AS tier`,
-    carry: true,
   },
 ];
 
@@ -149,15 +140,6 @@ function capNodes(
     nodes: [...structural, ...functions.slice(0, cap - structural.length)],
     truncated: true,
   };
-}
-
-function pickKind(labels: string[]): OverviewNode["kind"] | null {
-  if (labels.includes("CodeFile")) return "code-file";
-  if (labels.includes("Function")) return "code-function";
-  if (labels.includes("Class")) return "code-class";
-  if (labels.includes("Interface")) return "code-interface";
-  if (labels.includes("Process")) return "code-process";
-  return null;
 }
 
 async function loadEdges(
@@ -182,7 +164,7 @@ async function loadEdges(
         truncated = true;
         break edgeLoop;
       }
-      const edge = parseOverviewEdge(rec, q.type, q.carry);
+      const edge = parseOverviewEdge(rec, q.type);
       if (!nodeIds.has(edge.fromId) || !nodeIds.has(edge.toId)) continue;
       edges.push(edge);
     }
@@ -246,7 +228,7 @@ export async function getGraphOverview(args: FilteredArgs): Promise<{
 
     let nodes: OverviewNode[] = [];
     for (const r of nodesResult.records) {
-      const node = parseOverviewNodeRecord(r, pickKind);
+      const node = parseOverviewNodeRecord(r);
       if (!node) continue;
       if (!allKinds && !wantedKinds.has(node.kind)) continue;
       nodes.push(node);
@@ -363,7 +345,7 @@ export async function getSymbolContext(
   );
   const record = result.records.at(0);
   if (!record) return null;
-  return parseSymbolContextRecord(record, pickKind);
+  return parseSymbolContextRecord(record);
 }
 
 export interface SearchSymbolsResult {
@@ -408,7 +390,7 @@ export async function searchSymbols(
     ): SearchSymbolsResult[] => {
       const rows: SearchSymbolsResult[] = [];
       for (const rec of records) {
-        const row = parseSearchSymbolRecord(rec, pickKind, nodeKey);
+        const row = parseSearchSymbolRecord(rec, nodeKey);
         if (!row) continue;
         if (args.kind && row.kind !== args.kind) continue;
         rows.push(row);

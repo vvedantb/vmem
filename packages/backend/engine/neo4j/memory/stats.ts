@@ -2,8 +2,9 @@ import neo4j, { type Driver } from "neo4j-driver";
 import { z } from "zod";
 import {
   neo4jGet,
+  firstNeo4jInt,
+  neo4jInt,
   neo4jString,
-  parseNeo4jInt,
   parseNeo4jNodeProps,
 } from "../record";
 import { withSession } from "../session";
@@ -103,18 +104,11 @@ export async function getStats(
       },
     );
 
-    const record = result.records[0];
-    const totalMemories = record ? parseNeo4jInt(neo4jGet(record, "total")) : 0;
-    const memoriesThisWeek = record
-      ? parseNeo4jInt(neo4jGet(record, "thisWeek"))
-      : 0;
-    const memoriesThisMonth = record
-      ? parseNeo4jInt(neo4jGet(record, "thisMonth"))
-      : 0;
-    const memoriesAddedToday = record
-      ? parseNeo4jInt(neo4jGet(record, "today"))
-      : 0;
-    const totalTags = record ? parseNeo4jInt(neo4jGet(record, "tagCount")) : 0;
+    const totalMemories = firstNeo4jInt(result, "total");
+    const memoriesThisWeek = firstNeo4jInt(result, "thisWeek");
+    const memoriesThisMonth = firstNeo4jInt(result, "thisMonth");
+    const memoriesAddedToday = firstNeo4jInt(result, "today");
+    const totalTags = firstNeo4jInt(result, "tagCount");
 
     const baselineResult = await session.run(
       `MATCH (m:Memory {userId: $userId})
@@ -122,10 +116,7 @@ export async function getStats(
        RETURN count(m) AS baseline`,
       { userId, ...pfM.params },
     );
-    const baselineRecord = baselineResult.records[0];
-    const baseline = baselineRecord
-      ? parseNeo4jInt(neo4jGet(baselineRecord, "baseline"))
-      : 0;
+    const baseline = firstNeo4jInt(baselineResult, "baseline");
 
     const dailyResult = await session.run(
       `MATCH (m:Memory {userId: $userId})
@@ -137,10 +128,7 @@ export async function getStats(
 
     const dailyCounts = new Map<string, number>();
     for (const rec of dailyResult.records) {
-      dailyCounts.set(
-        neo4jString(rec, "day"),
-        parseNeo4jInt(neo4jGet(rec, "newCount")),
-      );
+      dailyCounts.set(neo4jString(rec, "day"), neo4jInt(rec, "newCount"));
     }
 
     let running = baseline;

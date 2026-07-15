@@ -4,10 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx scripts/build.ts --watch",
-    "build": "tsx scripts/build.ts",
+    "dev": "wxt",
+    "build": "wxt build",
+    "postinstall": "wxt prepare",
     "test": "tsx --test tests/sync-watchdog.test.mts tests/save-toast.test.mts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "wxt prepare && tsc --noEmit"
   },
   "dependencies": {
     "@clerk/chrome-extension": "catalog:",
@@ -37,6 +38,7 @@
     "tailwindcss-animate": "^1.0.7",
     "tsx": "catalog:",
     "typescript": "catalog:",
-    "vite": "^6.0.0"
+    "vite": "^6.0.0",
+    "wxt": "^0.20.27"
   }
 }

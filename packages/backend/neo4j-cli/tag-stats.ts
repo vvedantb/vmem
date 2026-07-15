@@ -4,9 +4,8 @@ import { neo4jField, stringSchema } from "../engine/neo4j/record";
 
 async function main() {
   const driver = getDriver();
-  const session = driver.session();
   try {
-    const users = await session.run(
+    const users = await driver.executeQuery(
       `MATCH (m:Memory)
        WITH m.userId AS userId, count(m) AS memories
        OPTIONAL MATCH (t:Tag)<-[:TAGGED_WITH]-(m2:Memory {userId: userId})
@@ -25,7 +24,7 @@ async function main() {
     if (!firstUser) return;
     const heaviest = neo4jField(firstUser, "userId", stringSchema);
 
-    const hist = await session.run(
+    const hist = await driver.executeQuery(
       `MATCH (t:Tag)<-[:TAGGED_WITH]-(m:Memory {userId: $userId})
        WITH t, count(m) AS uses
        RETURN
@@ -51,7 +50,7 @@ async function main() {
       console.log(`${k}: ${String(h.get(k))}`);
     }
 
-    const top = await session.run(
+    const top = await driver.executeQuery(
       `MATCH (t:Tag)<-[:TAGGED_WITH]-(m:Memory {userId: $userId})
        WITH t.name AS tag, count(m) AS uses
        RETURN tag, uses ORDER BY uses DESC LIMIT 25`,
@@ -64,7 +63,7 @@ async function main() {
       );
     }
 
-    const singles = await session.run(
+    const singles = await driver.executeQuery(
       `MATCH (t:Tag)<-[:TAGGED_WITH]-(m:Memory {userId: $userId})
        WITH t.name AS tag, count(m) AS uses
        WHERE uses = 1
@@ -74,7 +73,6 @@ async function main() {
     console.log("\n== sample single-use tags ==");
     console.log(singles.records.map((r) => String(r.get("tag"))).join(", "));
   } finally {
-    await session.close();
     await closeDriver();
   }
 }

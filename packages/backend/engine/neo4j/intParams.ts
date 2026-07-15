@@ -1,9 +1,5 @@
 import neo4j, { type Integer } from "neo4j-driver";
 
-export function toNeo4jIntParam(value: number): Integer {
-  return neo4j.int(Math.trunc(value));
-}
-
 export function clampNeo4jLimit(
   value: number | undefined,
   fallback: number,

@@ -1,10 +1,10 @@
 import type { Driver } from "neo4j-driver";
-import { neo4jGet, parseNeo4jInt } from "./record";
+import { firstNeo4jInt } from "./record";
 import { withSession } from "./session";
 
 const SETUP_SENTINEL_INDEX = "code_symbol_search";
 
-export async function isNeo4jSetupComplete(driver: Driver): Promise<boolean> {
+async function isNeo4jSetupComplete(driver: Driver): Promise<boolean> {
   const result = await driver.executeQuery(
     `
     SHOW INDEXES
@@ -14,9 +14,7 @@ export async function isNeo4jSetupComplete(driver: Driver): Promise<boolean> {
     `,
     { name: SETUP_SENTINEL_INDEX },
   );
-  const first = result.records[0];
-  const count = first ? parseNeo4jInt(neo4jGet(first, "c")) : 0;
-  return count > 0;
+  return firstNeo4jInt(result, "c") > 0;
 }
 
 export async function ensureNeo4jSetupIfNeeded(

@@ -9,15 +9,15 @@ import {
 } from "@/lib/constants";
 
 const convex = new ConvexReactClient(CONVEX_URL);
-const EXTENSION_URL = chrome.runtime.getURL(".");
+const POPUP_URL = chrome.runtime.getURL("popup.html");
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider
       publishableKey={CLERK_PUBLISHABLE_KEY}
-      afterSignOutUrl={`${EXTENSION_URL}/popup/index.html`}
-      signInFallbackRedirectUrl={`${EXTENSION_URL}/popup/index.html`}
-      signUpFallbackRedirectUrl={`${EXTENSION_URL}/popup/index.html`}
+      afterSignOutUrl={POPUP_URL}
+      signInFallbackRedirectUrl={POPUP_URL}
+      signUpFallbackRedirectUrl={POPUP_URL}
       syncHost={CLERK_SYNC_HOST}
     >
       <ConvexProviderWithClerk client={convex} useAuth={useAuth}>

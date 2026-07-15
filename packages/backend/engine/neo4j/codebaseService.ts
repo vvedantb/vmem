@@ -37,10 +37,10 @@ export async function syncCodebase(
     codebaseId: input.codebaseId,
     files: input.files,
   });
-  const calls = resolveCalls(project, result, input.codebaseId);
+  const calls = resolveCalls(project, result);
 
   await input.onStage?.("processes");
-  const entryPoints = detectEntryPoints(project, result.symbols, calls);
+  const entryPoints = detectEntryPoints(result.symbols, calls);
   const processes = detectProcesses(input.codebaseId, entryPoints, calls);
 
   await input.onStage?.("writing");
@@ -63,17 +63,12 @@ export async function deleteCodebase(
   userId: string,
   codebaseId: string,
 ): Promise<void> {
-  const session = driver.session();
-  try {
-    await session.run(
-      `
+  await driver.executeQuery(
+    `
       MATCH (n { userId: $userId, codebaseId: $codebaseId })
       WHERE (n:CodeFile OR n:Function OR n:Class OR n:Interface OR n:Process)
       DETACH DELETE n
       `,
-      { userId, codebaseId },
-    );
-  } finally {
-    await session.close();
-  }
+    { userId, codebaseId },
+  );
 }

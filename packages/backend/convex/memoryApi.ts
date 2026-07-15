@@ -1,7 +1,6 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { authAction, authMutation, requireClerkId } from "./auth";
-import { assertTeamAccess } from "./memoryApi/auth";
 import { routeMemoryByProfile } from "./memoryApi/routing";
 import {
   runDeleteTeamMemory,
@@ -9,6 +8,7 @@ import {
   runListTeamMemories,
   runUpdateTeamMemory,
 } from "./memoryApi/team";
+import { assertAccessibleProfileIfPresent } from "./profiles/accessibleProfile";
 import type {
   MemoryListResult,
   MemoryWithTags,
@@ -35,7 +35,7 @@ export const createMemory = authAction({
     const clerkId = await requireClerkId(ctx);
     // personal profiles inherit ownership via matching userId; team
     // profiles require membership before we hit the graph
-    if (args.profileId) await assertTeamAccess(ctx, args.profileId);
+    await assertAccessibleProfileIfPresent(ctx, args.profileId);
     return await ctx.runAction(
       internal.neo4jActions.memories.createMemoryInternal,
       { clerkId, ...args },
@@ -181,7 +181,7 @@ export const retrieveMemories = authAction({
   handler: async (ctx, args): Promise<RetrieveMemoriesResult> => {
     const clerkId = await requireClerkId(ctx);
     // workspace grounding: assert access before scoping retrieval
-    if (args.profileId) await assertTeamAccess(ctx, args.profileId);
+    await assertAccessibleProfileIfPresent(ctx, args.profileId);
     // memories + userContext run in parallel
     const [memories, userContext] = await Promise.all([
       ctx.runAction(internal.neo4jActions.memories.retrieveMemoriesInternal, {

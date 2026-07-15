@@ -1,8 +1,7 @@
-import neo4j, { type Driver, type Record, type Session } from "neo4j-driver";
+import neo4j, { type Driver, type Record } from "neo4j-driver";
 import { toMemoryContentFulltextQuery } from "../luceneQuery";
 import { neo4jGet, neo4jString, parseNeo4jInt } from "../record";
 import { recencyFromAgeDays, rrfScore, toMemoryWithTags } from "./mappers";
-import { withSession } from "../session";
 import { profileFilter, visibleStatusClause } from "./shared";
 import type {
   GraphExpansion,
@@ -129,10 +128,9 @@ async function runFulltextLeg(
   }
 
   try {
-    return await withSession(driver, async (session) => {
-      const pf = profileFilter(params.profileId, "m");
-      return session.run(
-        `CALL db.index.fulltext.queryNodes('memory_content', $query)
+    const pf = profileFilter(params.profileId, "m");
+    return await driver.executeQuery(
+      `CALL db.index.fulltext.queryNodes('memory_content', $query)
        YIELD node AS m, score AS fulltextScore
        WHERE m.userId = $userId ${pf.clause} AND ${visibleStatusClause("m")}
        OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
@@ -141,14 +139,13 @@ async function runFulltextLeg(
        RETURN m, tags, fulltextScore, ageInDays, m.embedding AS embedding
        ORDER BY fulltextScore DESC
        LIMIT $legLimit`,
-        {
-          query: luceneQuery,
-          userId: params.userId,
-          ...pf.params,
-          legLimit: neo4j.int(legLimit),
-        },
-      );
-    });
+      {
+        query: luceneQuery,
+        userId: params.userId,
+        ...pf.params,
+        legLimit: neo4j.int(legLimit),
+      },
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.warn(`[retrieve] fulltext leg skipped: ${message}`);
@@ -157,13 +154,13 @@ async function runFulltextLeg(
 }
 
 async function runVectorQuery(
-  session: Session,
+  driver: Driver,
   params: RetrieveParams,
   legLimit: number,
   queryEmbedding: number[],
 ) {
   const pf = profileFilter(params.profileId, "m");
-  return session.run(
+  return driver.executeQuery(
     `CALL db.index.vector.queryNodes('memory_embedding', $k, $queryVector)
      YIELD node AS m, score AS vectorScore
      WHERE m.userId = $userId ${pf.clause} AND ${visibleStatusClause("m")}
@@ -191,23 +188,21 @@ async function runVectorLeg(
 
   const results = await Promise.all(
     queryEmbeddings.map((queryEmbedding) =>
-      withSession(driver, (session) =>
-        runVectorQuery(session, params, legLimit, queryEmbedding),
-      ),
+      runVectorQuery(driver, params, legLimit, queryEmbedding),
     ),
   );
   return mergeExpandedRankings(results, "vectorScore", legLimit);
 }
 
 async function runChunkQuery(
-  session: Session,
+  driver: Driver,
   params: RetrieveParams,
   legLimit: number,
   queryEmbedding: number[],
 ) {
   const pf = profileFilter(params.profileId, "m");
   try {
-    return await session.run(
+    return await driver.executeQuery(
       `CALL db.index.vector.queryNodes('chunk_embedding', $k, $queryVector)
        YIELD node AS c, score AS chunkScore
        WHERE c.userId = $userId
@@ -253,9 +248,7 @@ async function runChunkLeg(
 
   const results = await Promise.all(
     queryEmbeddings.map((queryEmbedding) =>
-      withSession(driver, (session) =>
-        runChunkQuery(session, params, legLimit, queryEmbedding),
-      ),
+      runChunkQuery(driver, params, legLimit, queryEmbedding),
     ),
   );
   const successfulResults = results.flatMap((result) =>
@@ -319,10 +312,9 @@ async function runEntityLeg(
   const queryEntities = queryEntityCandidates(params.query);
   if (queryEntities.length === 0) return [];
 
-  return withSession(driver, async (session) => {
-    const pf = profileFilter(params.profileId, "m");
-    const result = await session.run(
-      `MATCH (m:Memory {userId: $userId})-[:MENTIONS]->(e:Entity)
+  const pf = profileFilter(params.profileId, "m");
+  const result = await driver.executeQuery(
+    `MATCH (m:Memory {userId: $userId})-[:MENTIONS]->(e:Entity)
        WHERE (toLower(coalesce(e.name, e.normalizedName)) IN $queryEntities
           OR toLower(e.normalizedName) IN $queryEntities)
          ${pf.clause} AND ${visibleStatusClause("m")}
@@ -338,19 +330,18 @@ async function runEntityLeg(
        RETURN m, tags, overlap, rarityScore, ageInDays, m.embedding AS embedding
        ORDER BY rarityScore DESC, overlap DESC
        LIMIT $legLimit`,
-      {
-        userId: params.userId,
-        queryEntities,
-        ...pf.params,
-        legLimit: neo4j.int(legLimit),
-      },
-    );
+    {
+      userId: params.userId,
+      queryEntities,
+      ...pf.params,
+      legLimit: neo4j.int(legLimit),
+    },
+  );
 
-    return result.records.map((record, index) => ({
-      record,
-      rank: index + 1,
-    }));
-  });
+  return result.records.map((record, index) => ({
+    record,
+    rank: index + 1,
+  }));
 }
 
 async function expandViaGraph(
@@ -360,9 +351,8 @@ async function expandViaGraph(
   limit: number = 50,
 ): Promise<GraphExpansion[]> {
   if (seedIds.length === 0) return [];
-  return withSession(driver, async (session) => {
-    const result = await session.run(
-      `MATCH (seed:Memory {userId: $userId})-[:RELATES_TO]-(neighbor:Memory {userId: $userId})
+  const result = await driver.executeQuery(
+    `MATCH (seed:Memory {userId: $userId})-[:RELATES_TO]-(neighbor:Memory {userId: $userId})
        WHERE seed.id IN $seedIds AND NOT neighbor.id IN $seedIds
          AND ${visibleStatusClause("neighbor")}
        RETURN neighbor.id AS id, 1 AS hops, seed.id AS seedId, null AS bridgingEntity
@@ -378,62 +368,61 @@ async function expandViaGraph(
          AND ${visibleStatusClause("mid")}
          AND ${visibleStatusClause("neighbor")}
        RETURN neighbor.id AS id, 2 AS hops, seed.id AS seedId, null AS bridgingEntity`,
-      { seedIds, userId },
-    );
+    { seedIds, userId },
+  );
 
-    const byId = new Map<
-      string,
-      {
-        hops: number;
-        seedIds: Set<string>;
-        seedId: string | null;
-        bridgingEntity: string | null;
-      }
-    >();
+  const byId = new Map<
+    string,
+    {
+      hops: number;
+      seedIds: Set<string>;
+      seedId: string | null;
+      bridgingEntity: string | null;
+    }
+  >();
 
-    for (const record of result.records) {
-      const id = neo4jString(record, "id");
-      const hops = parseNeo4jInt(neo4jGet(record, "hops"));
-      const seedId = neo4jString(record, "seedId");
-      const bridgingRaw = neo4jGet(record, "bridgingEntity");
-      const bridgingEntity =
-        typeof bridgingRaw === "string" && bridgingRaw.length > 0
-          ? bridgingRaw
-          : null;
-      const existing = byId.get(id);
+  for (const record of result.records) {
+    const id = neo4jString(record, "id");
+    const hops = parseNeo4jInt(neo4jGet(record, "hops"));
+    const seedId = neo4jString(record, "seedId");
+    const bridgingRaw = neo4jGet(record, "bridgingEntity");
+    const bridgingEntity =
+      typeof bridgingRaw === "string" && bridgingRaw.length > 0
+        ? bridgingRaw
+        : null;
+    const existing = byId.get(id);
 
-      if (!existing) {
-        byId.set(id, {
-          hops,
-          seedIds: new Set(seedId ? [seedId] : []),
-          seedId: seedId || null,
-          bridgingEntity,
-        });
-        continue;
-      }
-
-      if (seedId) existing.seedIds.add(seedId);
-      if (hops < existing.hops) {
-        existing.hops = hops;
-        existing.seedId = seedId || existing.seedId;
-        existing.bridgingEntity = bridgingEntity;
-      } else if (existing.bridgingEntity === null && bridgingEntity !== null) {
-        existing.bridgingEntity = bridgingEntity;
-        existing.seedId = seedId || existing.seedId;
-      }
+    if (!existing) {
+      byId.set(id, {
+        hops,
+        seedIds: new Set(seedId ? [seedId] : []),
+        seedId: seedId || null,
+        bridgingEntity,
+      });
+      continue;
     }
 
-    return Array.from(byId.entries())
-      .map(([id, value]) => ({
-        id,
-        hops: value.hops,
-        seedCount: value.seedIds.size,
-        bridgingEntity: value.bridgingEntity,
-        seedId: value.seedId,
-      }))
-      .sort((a, b) => a.hops - b.hops || b.seedCount - a.seedCount)
-      .slice(0, limit);
-  });
+    if (seedId) existing.seedIds.add(seedId);
+    if (hops < existing.hops) {
+      existing.hops = hops;
+      existing.seedId = seedId || existing.seedId;
+      existing.bridgingEntity = bridgingEntity;
+    } else if (existing.bridgingEntity === null && bridgingEntity !== null) {
+      existing.bridgingEntity = bridgingEntity;
+      existing.seedId = seedId || existing.seedId;
+    }
+  }
+
+  return Array.from(byId.entries())
+    .map(([id, value]) => ({
+      id,
+      hops: value.hops,
+      seedCount: value.seedIds.size,
+      bridgingEntity: value.bridgingEntity,
+      seedId: value.seedId,
+    }))
+    .sort((a, b) => a.hops - b.hops || b.seedCount - a.seedCount)
+    .slice(0, limit);
 }
 
 async function fetchMemoryMetadata(
@@ -447,31 +436,29 @@ async function fetchMemoryMetadata(
   >
 > {
   if (ids.length === 0) return new Map();
-  return withSession(driver, async (session) => {
-    const result = await session.run(
-      `MATCH (m:Memory {userId: $userId})
+  const result = await driver.executeQuery(
+    `MATCH (m:Memory {userId: $userId})
        WHERE m.id IN $ids
        OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
        WITH m, collect(t.name) AS tags,
             duration.between(datetime(m.createdAt), datetime()).days AS ageInDays
        RETURN m, tags, ageInDays, m.embedding AS embedding`,
-      { ids, userId },
-    );
-    const map = new Map<
-      string,
-      { memory: MemoryWithTags; ageInDays: number; embedding: number[] | null }
-    >();
-    for (const record of result.records) {
-      const memory = toMemoryWithTags(record);
-      const ageInDays = parseNeo4jInt(neo4jGet(record, "ageInDays"));
-      map.set(memory.id, {
-        memory,
-        ageInDays,
-        embedding: embeddingFromRecord(record),
-      });
-    }
-    return map;
-  });
+    { ids, userId },
+  );
+  const map = new Map<
+    string,
+    { memory: MemoryWithTags; ageInDays: number; embedding: number[] | null }
+  >();
+  for (const record of result.records) {
+    const memory = toMemoryWithTags(record);
+    const ageInDays = parseNeo4jInt(neo4jGet(record, "ageInDays"));
+    map.set(memory.id, {
+      memory,
+      ageInDays,
+      embedding: embeddingFromRecord(record),
+    });
+  }
+  return map;
 }
 
 function buildReasons(

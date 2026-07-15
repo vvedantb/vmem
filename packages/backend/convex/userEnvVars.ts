@@ -60,6 +60,20 @@ export const getAllInternal = internalQuery({
   },
 });
 
+// returns the raw (encrypted) value for one env var
+export const getVarInternal = internalQuery({
+  args: { userId: v.id("users"), key: v.string() },
+  returns: v.union(v.string(), v.null()),
+  handler: async (ctx, args) => {
+    const doc = await ctx.db
+      .query("userEnvVars")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .first();
+    if (!doc) return null;
+    return doc.vars.find((entry) => entry.key === args.key)?.value ?? null;
+  },
+});
+
 // inserts or updates a single env var entry for a user
 export const upsertVarInternal = internalMutation({
   args: {

@@ -1,6 +1,6 @@
 // retrieval ablation runner over the labelled benchmark corpus
 
-import { writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { closeDriver, getDriver } from "../../engine/neo4j/driver";
@@ -70,16 +70,6 @@ function approxTokens(text: string): number {
   return Math.ceil(text.length / 4);
 }
 
-function gradeMap(query: RetrievalEvalQuery): Map<string, number> {
-  const map = new Map<string, number>(
-    query.relevance ? Object.entries(query.relevance) : [],
-  );
-  for (const title of query.expectedTitles) {
-    if (!map.has(title)) map.set(title, 1);
-  }
-  return map;
-}
-
 interface QueryOutcome {
   type: string;
   recall1: number;
@@ -133,11 +123,13 @@ function corpusStats(corpus: ReturnType<typeof generateBenchmarkCorpus>): {
   tokens: number;
   memoryCount: number;
 } {
-  let tokens = 0;
-  for (const memory of corpus.memories) {
-    tokens += approxTokens(`${memory.title} ${memory.content}`);
-  }
-  return { tokens, memoryCount: corpus.memories.length };
+  return {
+    tokens: corpus.memories.reduce(
+      (sum, memory) => sum + approxTokens(`${memory.title} ${memory.content}`),
+      0,
+    ),
+    memoryCount: corpus.memories.length,
+  };
 }
 
 async function retrieveForConfig(
@@ -164,27 +156,32 @@ async function runConfig(
   driver: ReturnType<typeof getDriver>,
   config: LegConfig,
   embeddings: Map<string, number[]>,
-  answerable: RetrievalEvalQuery[],
-  abstention: RetrievalEvalQuery[],
+  queries: RetrievalEvalQuery[],
 ): Promise<ConfigRun> {
   const outcomes: QueryOutcome[] = [];
-  for (const query of answerable) {
+  const abstentionTopScores: number[] = [];
+  for (const query of queries) {
     const { candidates, latencyMs } = await retrieveForConfig(
       driver,
       config.legs,
       embeddings,
       query.query,
     );
+    if (query.expectedTitles.length === 0) {
+      abstentionTopScores.push(candidates[0]?.trace.score ?? 0);
+      continue;
+    }
+
     const titles = candidates.map((c) => c.title);
     outcomes.push({
-      type: query.type ?? "untyped",
+      type: query.type,
       recall1: recallAtK(titles, query.expectedTitles, 1),
       recall3: recallAtK(titles, query.expectedTitles, 3),
       recall5: recallAtK(titles, query.expectedTitles, 5),
       recall10: recallAtK(titles, query.expectedTitles, 10),
       precision5: precisionAtK(titles, query.expectedTitles, 5),
       rr: reciprocalRank(titles, query.expectedTitles),
-      ndcg10: ndcgAtK(titles, gradeMap(query), K),
+      ndcg10: ndcgAtK(titles, new Map(Object.entries(query.relevance)), K),
       ctxTokens: candidates.reduce(
         (sum, c) => sum + approxTokens(`${c.title} ${c.content}`),
         0,
@@ -192,17 +189,6 @@ async function runConfig(
       latencyMs,
       topScore: candidates[0]?.trace.score ?? 0,
     });
-  }
-
-  const abstentionTopScores: number[] = [];
-  for (const query of abstention) {
-    const { candidates } = await retrieveForConfig(
-      driver,
-      config.legs,
-      embeddings,
-      query.query,
-    );
-    abstentionTopScores.push(candidates[0]?.trace.score ?? 0);
   }
 
   return { name: config.name, outcomes, abstentionTopScores };
@@ -223,7 +209,7 @@ function mdTable(header: string[], rows: string[][]): string {
 }
 
 function presentTypes(answerable: RetrievalEvalQuery[]): string[] {
-  const seen = new Set(answerable.map((q) => q.type ?? "untyped"));
+  const seen = new Set(answerable.map((q) => q.type));
   const ordered = TYPE_ORDER.filter((t) => seen.has(t));
   const extra = [...seen].filter((t) => !TYPE_ORDER.includes(t)).sort();
   return [...ordered, ...extra];
@@ -237,7 +223,7 @@ function perTypeTable(
   const types = presentTypes(answerable);
   const header = ["type", "n", ...runs.map((r) => r.name)];
   const rows = types.map((type) => {
-    const n = answerable.filter((q) => (q.type ?? "untyped") === type).length;
+    const n = answerable.filter((q) => q.type === type).length;
     const cells = runs.map((r) =>
       metric(aggregate(r.outcomes.filter((o) => o.type === type))),
     );
@@ -379,14 +365,11 @@ async function main(): Promise<void> {
 
     const runs: ConfigRun[] = [];
     for (const config of CONFIGS) {
-      runs.push(
-        await runConfig(driver, config, embeddings, answerable, abstention),
-      );
+      runs.push(await runConfig(driver, config, embeddings, corpus.queries));
     }
 
     const report = buildReport(runs, stats, answerable, abstention);
-    const dir = dirname(REPORT_PATH);
-    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+    mkdirSync(dirname(REPORT_PATH), { recursive: true });
     writeFileSync(REPORT_PATH, report, "utf8");
     console.log(report);
     console.log(`\nwritten to ${REPORT_PATH}`);

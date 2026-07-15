@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { generateBenchmarkCorpus } from "./corpus";
 import { recallAtK, reciprocalRank } from "./metrics";
 
-describe("retrieval eval metrics", () => {
+describe("retrieval metrics", () => {
   it("scores full recall when every expected title is in the top five", () => {
     const titles = ["A", "B", "C", "D", "E", "F"];
     expect(recallAtK(titles, ["B", "E"], 5)).toBe(1);
