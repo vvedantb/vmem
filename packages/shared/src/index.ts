@@ -6,6 +6,8 @@ export {
 export { parseEnvVars } from "./envParse";
 export {
   DEFAULT_LOCAL_TIME,
+  formatRelativeTime,
+  formatTimeUntil,
   localTimeToUtc,
   parseHHMM,
   utcTimeToLocal,

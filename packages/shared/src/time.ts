@@ -1,3 +1,8 @@
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+
+dayjs.extend(relativeTime);
+
 export const DEFAULT_LOCAL_TIME = "04:00";
 
 // parse "HH:MM" → hour/minute; null if malformed
@@ -29,4 +34,22 @@ export function localTimeToUtc(localTime: string): string | null {
   const d = new Date();
   d.setHours(parsed.hour, parsed.minute, 0, 0);
   return `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`;
+}
+
+export function formatRelativeTime(
+  dateInput: string | number | null | undefined,
+  options: { empty?: string } = {},
+): string {
+  if (dateInput === null || dateInput === undefined || dateInput === 0) {
+    return options.empty ?? "Never";
+  }
+  return dayjs(dateInput).fromNow();
+}
+
+export function formatTimeUntil(
+  scheduledTime: number,
+  options: { due?: string } = {},
+): string {
+  if (scheduledTime <= Date.now()) return options.due ?? "any moment";
+  return dayjs(scheduledTime).fromNow();
 }
