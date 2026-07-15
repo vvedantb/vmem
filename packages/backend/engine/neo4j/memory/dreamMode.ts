@@ -1,7 +1,11 @@
 import crypto from "node:crypto";
 import neo4j, { type Driver } from "neo4j-driver";
 import { z } from "zod";
-import type { ConfidenceAdjustment, MergeClusterMember } from "../dreamPrompt";
+import type {
+  ConfidenceAdjustment,
+  DreamClusterMember,
+  MergeClusterMember,
+} from "../dreamPrompt";
 import type { PortraitEvidenceMemory } from "../portraitPrompt";
 import { neo4jGet, parseNeo4jNodeProps } from "../record";
 import { toSnapshot } from "./mappers";
@@ -49,10 +53,9 @@ export async function findRecentMemoriesForDream(
     createdAt: string;
   }>
 > {
-  return withSession(driver, async (session) => {
-    const sinceIso = new Date(params.sinceMs).toISOString();
-    const result = await session.run(
-      `MATCH (m:Memory {userId: $userId, profileId: $profileId})
+  const sinceIso = new Date(params.sinceMs).toISOString();
+  const result = await driver.executeQuery(
+    `MATCH (m:Memory {userId: $userId, profileId: $profileId})
        WHERE m.embedding IS NOT NULL
          AND m.createdAt >= $sinceIso
          AND ${visibleStatusClause("m", false)}
@@ -60,26 +63,25 @@ export async function findRecentMemoriesForDream(
               m.embedding AS embedding, m.createdAt AS createdAt
        ORDER BY m.createdAt DESC
        LIMIT $limit`,
+    {
+      userId: params.userId,
+      profileId: params.profileId,
+      sinceIso,
+      limit: neo4j.int(params.limit),
+    },
+  );
+  return result.records.flatMap((r) => {
+    const embedding = asNumberArray(r.get("embedding"));
+    if (embedding === null) return [];
+    return [
       {
-        userId: params.userId,
-        profileId: params.profileId,
-        sinceIso,
-        limit: neo4j.int(params.limit),
+        id: String(r.get("id")),
+        title: String(r.get("title")),
+        content: String(r.get("content")),
+        embedding,
+        createdAt: String(r.get("createdAt")),
       },
-    );
-    return result.records.flatMap((r) => {
-      const embedding = asNumberArray(r.get("embedding"));
-      if (embedding === null) return [];
-      return [
-        {
-          id: String(r.get("id")),
-          title: String(r.get("title")),
-          content: String(r.get("content")),
-          embedding,
-          createdAt: String(r.get("createdAt")),
-        },
-      ];
-    });
+    ];
   });
 }
 
@@ -149,15 +151,7 @@ export async function fetchAnomalyCluster(
     embedding: number[];
     maxClusterSize: number;
   },
-): Promise<
-  Array<{
-    id: string;
-    title: string;
-    content: string;
-    tags: string[];
-    relation: "anomaly" | "related" | "shared-entity" | "semantic";
-  }>
-> {
+): Promise<DreamClusterMember[]> {
   return withSession(driver, async (session) => {
     const result = await session.run(
       `MATCH (a:Memory {id: $anomalyId, userId: $userId})
@@ -184,13 +178,7 @@ export async function fetchAnomalyCluster(
       ? aTagsRaw.filter((x): x is string => typeof x === "string")
       : [];
 
-    const cluster: Array<{
-      id: string;
-      title: string;
-      content: string;
-      tags: string[];
-      relation: "anomaly" | "related" | "shared-entity" | "semantic";
-    }> = [
+    const cluster: DreamClusterMember[] = [
       {
         id: aProps.id,
         title: aProps.title,
@@ -356,9 +344,8 @@ export async function fetchPortraitEvidence(
   driver: Driver,
   params: { userId: string; profileId: string; limit: number },
 ): Promise<PortraitEvidenceMemory[]> {
-  return withSession(driver, async (session) => {
-    const result = await session.run(
-      `MATCH (m:Memory {userId: $userId, profileId: $profileId})
+  const result = await driver.executeQuery(
+    `MATCH (m:Memory {userId: $userId, profileId: $profileId})
        WHERE ${visibleStatusClause("m", false)}
        WITH m, duration.inDays(datetime(m.createdAt), datetime()).days AS rawAge
        WITH m, CASE WHEN rawAge < 0 THEN 0 ELSE rawAge END AS ageDays
@@ -370,21 +357,20 @@ export async function fetchPortraitEvidence(
        LIMIT $limit
        RETURN m.id AS id, m.title AS title, m.content AS content,
               m.type AS type, m.status AS status, m.createdAt AS createdAt`,
-      {
-        userId: params.userId,
-        profileId: params.profileId,
-        limit: neo4j.int(params.limit),
-      },
-    );
-    return result.records.map((r) => ({
-      id: String(r.get("id")),
-      title: String(r.get("title")),
-      content: String(r.get("content")),
-      type: String(r.get("type")),
-      status: String(r.get("status")),
-      createdAt: String(r.get("createdAt")),
-    }));
-  });
+    {
+      userId: params.userId,
+      profileId: params.profileId,
+      limit: neo4j.int(params.limit),
+    },
+  );
+  return result.records.map((r) => ({
+    id: String(r.get("id")),
+    title: String(r.get("title")),
+    content: String(r.get("content")),
+    type: String(r.get("type")),
+    status: String(r.get("status")),
+    createdAt: String(r.get("createdAt")),
+  }));
 }
 
 export async function findMergeCandidates(

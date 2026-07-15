@@ -28,8 +28,8 @@ function runPipeline(files: SourceFileBlob[]) {
     codebaseId: CODEBASE_ID,
     files,
   });
-  const calls = resolveCalls(project, result, CODEBASE_ID);
-  const entryPoints = detectEntryPoints(project, result.symbols, calls);
+  const calls = resolveCalls(project, result);
+  const entryPoints = detectEntryPoints(result.symbols, calls);
   const processes = detectProcesses(CODEBASE_ID, entryPoints, calls);
   return { project, result, calls, entryPoints, processes };
 }
@@ -376,7 +376,8 @@ describe("detectEntryPoints", () => {
   it("does not emit tanstack_route for createFileRoute assignments (dead branch)", () => {
     const { entryPoints } = runPipeline(MULTI_FILE_FIXTURE);
 
-    expect(entryPoints.some((e) => e.kind === "tanstack_route")).toBe(false);
+    const kinds = entryPoints.map((e): string => e.kind);
+    expect(kinds).not.toContain("tanstack_route");
     expect(
       entryPoints.some((e) => e.functionId === symId("src/app.ts", "Route")),
     ).toBe(false);

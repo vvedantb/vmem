@@ -6,6 +6,7 @@ import { closeDriver, getDriver } from "../../engine/neo4j/driver";
 import { retrieveMemories } from "../../engine/neo4j/memory/retrieve";
 import {
   createMemory,
+  deleteMemoriesBySourceTypes,
   deleteAllMemoriesForUser,
   findMemoryBySimilarity,
   getMemory,
@@ -13,12 +14,16 @@ import {
   updateMemory,
 } from "../../engine/neo4j/memory/crud";
 import { deduplicateMemories } from "../../engine/neo4j/memory/dedup";
+import { applyEnrichment } from "../../engine/neo4j/memory/enrichment";
+import { getGraphData, getLocalGraph } from "../../engine/neo4j/memory/graph";
 import { computeContentHash } from "../../engine/neo4j/memory/mappers";
 import {
+  createProposedDelete,
   createProposedUpdate,
   listProposedUpdates,
   resolveProposal,
 } from "../../engine/neo4j/memory/proposals";
+import { firstNeo4jInt } from "../../engine/neo4j/record";
 import type { MemoryStatus } from "../../engine/neo4j/memory/types";
 
 const runLive = process.env.RUN_RETRIEVAL_EVAL === "1";
@@ -55,6 +60,15 @@ async function getContent(
   return memory?.content ?? null;
 }
 
+async function retrieve(driver: Driver, query: string) {
+  return retrieveMemories(driver, {
+    userId: USER,
+    query,
+    queryEmbedding: null,
+    limit: 10,
+  });
+}
+
 async function create(
   driver: Driver,
   opts: {
@@ -62,6 +76,8 @@ async function create(
     content: string;
     embedding?: number[];
     status?: MemoryStatus;
+    source?: string;
+    sourceType?: string;
   },
 ): Promise<string> {
   const created = await createMemory(driver, {
@@ -70,11 +86,12 @@ async function create(
     title: opts.title,
     content: opts.content,
     type: "knowledge",
-    source: SOURCE,
+    source: opts.source ?? SOURCE,
     tags: [],
     confidence: 0.9,
     embedding: opts.embedding ?? null,
     contentHash: computeContentHash(opts.title, opts.content),
+    sourceType: opts.sourceType,
   });
   if (opts.status !== undefined) {
     await updateMemory(driver, USER, created.id, { status: opts.status });
@@ -98,6 +115,15 @@ async function findSimilarWithRetry(
     await new Promise((resolve) => setTimeout(resolve, 200));
   }
   return null;
+}
+
+async function countByQuery(
+  driver: Driver,
+  cypher: string,
+  params: Record<string, unknown>,
+): Promise<number> {
+  const result = await driver.executeQuery(cypher, params);
+  return firstNeo4jInt(result, "total");
 }
 
 describe.skipIf(!runLive)("vmem behavioural suite (live Neo4j)", () => {
@@ -154,22 +180,12 @@ describe.skipIf(!runLive)("vmem behavioural suite (live Neo4j)", () => {
       content: `${token} procedure is documented here.`,
     });
 
-    const before = await retrieveMemories(driver, {
-      userId: USER,
-      query: "Zylophthalmic",
-      queryEmbedding: null,
-      limit: 10,
-    });
+    const before = await retrieve(driver, "Zylophthalmic");
     expect(before.some((c) => c.id === id)).toBe(true);
 
     await updateMemory(driver, USER, id, { status: "suppressed" });
 
-    const after = await retrieveMemories(driver, {
-      userId: USER,
-      query: "Zylophthalmic",
-      queryEmbedding: null,
-      limit: 10,
-    });
+    const after = await retrieve(driver, "Zylophthalmic");
     expect(after.some((c) => c.id === id)).toBe(false);
   }, 60_000);
 
@@ -181,12 +197,7 @@ describe.skipIf(!runLive)("vmem behavioural suite (live Neo4j)", () => {
       status: "pinned",
     });
 
-    const result = await retrieveMemories(driver, {
-      userId: USER,
-      query: "Frobnication",
-      queryEmbedding: null,
-      limit: 10,
-    });
+    const result = await retrieve(driver, "Frobnication");
     expect(result.some((c) => c.id === id)).toBe(true);
   }, 60_000);
 
@@ -197,12 +208,7 @@ describe.skipIf(!runLive)("vmem behavioural suite (live Neo4j)", () => {
       content: `${token} is thirty seconds by default.`,
     });
 
-    const result = await retrieveMemories(driver, {
-      userId: USER,
-      query: "Quux heartbeat",
-      queryEmbedding: null,
-      limit: 10,
-    });
+    const result = await retrieve(driver, "Quux heartbeat");
     expect(result.length).toBeGreaterThan(0);
     const top = result[0];
     if (top === undefined) throw new Error("expected at least one candidate");
@@ -217,6 +223,84 @@ describe.skipIf(!runLive)("vmem behavioural suite (live Neo4j)", () => {
     expect(typeof breakdown.rrf).toBe("number");
     expect(typeof breakdown.recency).toBe("number");
     expect(typeof breakdown.confidence).toBe("number");
+  }, 60_000);
+
+  it("cleans source-specific data without deleting all user entities", async () => {
+    const browserId = await create(driver, {
+      title: "Browser source memory",
+      content: "Browser memory mentions Mercury.",
+      source: "browser-source",
+      sourceType: "browser",
+    });
+    const driveId = await create(driver, {
+      title: "Drive source memory",
+      content: "Drive memory mentions Apollo.",
+      source: "drive-source",
+      sourceType: "drive",
+    });
+    await applyEnrichment(
+      driver,
+      browserId,
+      USER,
+      ["source-cleanup"],
+      [],
+      [{ name: "Mercury", normalizedName: "mercury", type: "technology" }],
+    );
+    await applyEnrichment(
+      driver,
+      driveId,
+      USER,
+      ["source-cleanup"],
+      [],
+      [{ name: "Apollo", normalizedName: "apollo", type: "technology" }],
+    );
+
+    expect(await deleteMemoriesBySourceTypes(driver, USER, ["browser"])).toBe(
+      1,
+    );
+    expect(await getMemory(driver, USER, browserId)).toBeNull();
+    expect(await getMemory(driver, USER, driveId)).not.toBeNull();
+    expect(
+      await countByQuery(
+        driver,
+        "MATCH (e:Entity {userId: $userId}) RETURN count(e) AS total",
+        { userId: USER },
+      ),
+    ).toBe(2);
+
+    await deleteAllMemoriesForUser(driver, USER);
+    expect(
+      await countByQuery(
+        driver,
+        "MATCH (e:Entity {userId: $userId}) RETURN count(e) AS total",
+        { userId: USER },
+      ),
+    ).toBe(0);
+  }, 60_000);
+
+  it("preserves mention edges when enrichment returns no entities", async () => {
+    const id = await create(driver, {
+      title: "Known entity retention",
+      content: "The memory mentions Graphite.",
+    });
+    await applyEnrichment(
+      driver,
+      id,
+      USER,
+      ["retention"],
+      [],
+      [{ name: "Graphite", normalizedName: "graphite", type: "technology" }],
+    );
+    await applyEnrichment(driver, id, USER, ["retention"], [], []);
+
+    expect(
+      await countByQuery(
+        driver,
+        `MATCH (:Memory {id: $memoryId, userId: $userId})-[r:MENTIONS]->(:Entity)
+         RETURN count(r) AS total`,
+        { memoryId: id, userId: USER },
+      ),
+    ).toBe(1);
   }, 60_000);
 
   it("applies a proposed update on approve and preserves it on reject", async () => {
@@ -259,5 +343,77 @@ describe.skipIf(!runLive)("vmem behavioural suite (live Neo4j)", () => {
       (p) => p.id === proposal2.id,
     );
     expect(stillPending).toBe(false);
+  }, 60_000);
+
+  it("approves proposal deletes without emitting a memory event", async () => {
+    const id = await create(driver, {
+      title: "Deprecated runbook",
+      content: "This runbook should be deleted.",
+    });
+    const proposal = await createProposedDelete(driver, {
+      memoryId: id,
+      reason: "source requested removal",
+    });
+
+    const result = await resolveProposal(driver, proposal.id, "approve");
+
+    expect(result?.status).toBe("approved");
+    expect(await getMemory(driver, USER, id)).toBeNull();
+    expect(
+      await countByQuery(
+        driver,
+        `MATCH (p:ProposedUpdate {id: $proposalId, status: 'approved'})
+         RETURN count(p) AS total`,
+        { proposalId: proposal.id },
+      ),
+    ).toBe(1);
+    expect(
+      await countByQuery(
+        driver,
+        `MATCH (e:MemoryEvent {event: 'proposal_approved'})
+         WHERE e.memoryId = $memoryId
+         RETURN count(e) AS total`,
+        { memoryId: id },
+      ),
+    ).toBe(0);
+  }, 60_000);
+
+  it("omits global graph scores but keeps local graph scores", async () => {
+    const sourceId = await create(driver, {
+      title: "Graph score source",
+      content: "Source graph score fixture.",
+    });
+    const targetId = await create(driver, {
+      title: "Graph score target",
+      content: "Target graph score fixture.",
+    });
+    await driver.executeQuery(
+      `MATCH (a:Memory {id: $sourceId, userId: $userId})
+       MATCH (b:Memory {id: $targetId, userId: $userId})
+       MERGE (a)-[r:RELATES_TO]->(b)
+       SET r.reason = 'test score', r.score = 0.42`,
+      { sourceId, targetId, userId: USER },
+    );
+
+    const globalGraph = await getGraphData(driver, USER, PROFILE, 10);
+    const globalEdge = globalGraph.relatesToEdges.find(
+      (edge) => edge.source === sourceId && edge.target === targetId,
+    );
+    expect(globalEdge).toEqual({
+      source: sourceId,
+      target: targetId,
+      reason: "test score",
+    });
+
+    const localGraph = await getLocalGraph(driver, USER, sourceId, PROFILE);
+    const localEdge = localGraph.relatesToEdges.find(
+      (edge) => edge.source === sourceId && edge.target === targetId,
+    );
+    expect(localEdge).toEqual({
+      source: sourceId,
+      target: targetId,
+      reason: "test score",
+      score: 0.42,
+    });
   }, 60_000);
 });

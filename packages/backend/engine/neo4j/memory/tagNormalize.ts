@@ -20,8 +20,3 @@ export function normalizeTags(tags: string[], max: number = 10): string[] {
   }
   return result;
 }
-
-export interface TagUsage {
-  name: string;
-  uses: number;
-}

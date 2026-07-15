@@ -1,12 +1,10 @@
 import type { Record as NeoRecord } from "neo4j-driver";
-import neo4j from "neo4j-driver";
 import { z } from "zod";
 import {
   neo4jField,
   neo4jGet,
   neo4jIntSchema,
   nullableNumberSchema,
-  parseNeo4jInt,
   parseNeo4jNodeProps,
   stringSchema,
 } from "../record";
@@ -19,15 +17,10 @@ import type {
 } from "./read";
 import type { ImpactNode } from "./impact";
 
-const optionalNeo4jIntSchema = z
-  .custom<number | undefined>((v) => {
-    if (v === undefined || v === null) return true;
-    return typeof v === "number" || neo4j.isInt(v);
-  })
-  .transform((v): number | undefined => {
-    if (v == null) return undefined;
-    return parseNeo4jInt(v);
-  });
+const optionalNeo4jIntSchema = z.preprocess(
+  (value) => value ?? undefined,
+  neo4jIntSchema.optional(),
+);
 
 const overviewNodePropsSchema = z.object({
   id: z.string(),
@@ -108,9 +101,8 @@ function mapOverviewNodeProps(
 
 export function parseOverviewNodeRecord(
   record: NeoRecord,
-  pickKind: (labels: string[]) => OverviewNode["kind"] | null,
 ): OverviewNode | null {
-  const parsed = parseOverviewPropsRecord(record, pickKind);
+  const parsed = parseOverviewPropsRecord(record);
   if (!parsed) return null;
   return mapOverviewNodeProps(parsed.kind, parsed.props);
 }
@@ -127,20 +119,17 @@ export function parseStringArrayField(
 export function parseOverviewEdge(
   record: NeoRecord,
   type: OverviewEdge["type"],
-  carry: boolean,
 ): OverviewEdge {
   const fromId = neo4jField(record, "fromId", stringSchema);
   const toId = neo4jField(record, "toId", stringSchema);
   const confRaw = neo4jField(record, "confidence", nullableNumberSchema);
   const tierRaw = neo4jField(record, "tier", nullableEdgeTierSchema);
-  const tier: OverviewEdge["tier"] =
-    carry && tierRaw !== null ? tierRaw : undefined;
   return {
     fromId,
     toId,
     type,
-    confidence: carry && confRaw !== null ? confRaw : undefined,
-    tier,
+    confidence: confRaw ?? undefined,
+    tier: tierRaw ?? undefined,
   };
 }
 
@@ -185,14 +174,13 @@ function nameAndQualifiedName(props: OverviewNodeProps): {
 
 function parseOverviewPropsRecord(
   record: NeoRecord,
-  pickKind: (labels: string[]) => OverviewNode["kind"] | null,
   nodeKey: "node" | "n" = "n",
 ): {
   kind: OverviewNode["kind"];
   props: OverviewNodeProps;
 } | null {
   const labels = neo4jField(record, "labels", labelsSchema);
-  const kind = pickKind(labels);
+  const kind = overviewKind(labels);
   if (!kind) return null;
   const props = parseNeo4jNodeProps(
     neo4jGet(record, nodeKey),
@@ -203,9 +191,8 @@ function parseOverviewPropsRecord(
 
 export function parseSymbolContextRecord(
   record: NeoRecord,
-  pickKind: (labels: string[]) => OverviewNode["kind"] | null,
 ): SymbolContext | null {
-  const parsed = parseOverviewPropsRecord(record, pickKind);
+  const parsed = parseOverviewPropsRecord(record);
   if (!parsed) return null;
   const { kind, props } = parsed;
   const callsIn = mapSymbolRefs(
@@ -235,10 +222,9 @@ export function parseSymbolContextRecord(
 
 export function parseSearchSymbolRecord(
   record: NeoRecord,
-  pickKind: (labels: string[]) => OverviewNode["kind"] | null,
   nodeKey: "node" | "n",
 ): SearchSymbolsResult | null {
-  const parsed = parseOverviewPropsRecord(record, pickKind, nodeKey);
+  const parsed = parseOverviewPropsRecord(record, nodeKey);
   if (!parsed) return null;
   const { kind, props } = parsed;
   return {
@@ -247,6 +233,15 @@ export function parseSearchSymbolRecord(
     ...nameAndQualifiedName(props),
     filePath: props.filePath ?? "",
   };
+}
+
+function overviewKind(labels: string[]): OverviewNode["kind"] | null {
+  if (labels.includes("CodeFile")) return "code-file";
+  if (labels.includes("Function")) return "code-function";
+  if (labels.includes("Class")) return "code-class";
+  if (labels.includes("Interface")) return "code-interface";
+  if (labels.includes("Process")) return "code-process";
+  return null;
 }
 
 export function parseImpactRecord(record: NeoRecord): ImpactNode {

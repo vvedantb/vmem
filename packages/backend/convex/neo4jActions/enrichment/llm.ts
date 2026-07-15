@@ -7,7 +7,7 @@ import {
   getTopEntities,
   getTopTags,
 } from "../../../engine/neo4j/memory/enrichment";
-import type { TagUsage } from "../../../engine/neo4j/memory/tagNormalize";
+import type { TagUsage } from "../../../engine/neo4j/memory/enrichment";
 import { callJsonChat } from "../../lib/openRouter";
 import type { OpenRouterFeature } from "../../lib/openRouter/shared";
 import type { AgentAuth } from "../agent/shared";

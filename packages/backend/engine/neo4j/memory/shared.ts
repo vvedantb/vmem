@@ -39,7 +39,7 @@ export async function logEvent(
   );
 }
 
-export interface FilterFragment {
+interface FilterFragment {
   clause: string;
   params: { profileId?: string };
 }
@@ -64,12 +64,11 @@ export function profileFilter(
   };
 }
 
-export const VISIBLE_STATUSES = ["active", "pinned"] as const;
+const VISIBLE_STATUS_LIST = "'active', 'pinned'";
 
 export function visibleStatusClause(alias = "m", coalesce = true): string {
-  const list = VISIBLE_STATUSES.map((s) => `'${s}'`).join(", ");
   if (coalesce) {
-    return `coalesce(${alias}.status, 'active') IN [${list}]`;
+    return `coalesce(${alias}.status, 'active') IN [${VISIBLE_STATUS_LIST}]`;
   }
-  return `${alias}.status IN [${list}]`;
+  return `${alias}.status IN [${VISIBLE_STATUS_LIST}]`;
 }

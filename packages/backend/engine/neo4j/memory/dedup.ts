@@ -74,15 +74,11 @@ export async function resolveCreateWithDedup(
   }
 
   if (normalizedUrl && BROWSER_SOURCES.has(params.source)) {
-    try {
-      const origin = new URL(normalizedUrl).origin;
-      const hit = await checkDuplicate(() =>
-        findMemoryByTitleAndOrigin(driver, params.userId, params.title, origin),
-      );
-      if (hit) return { memory: hit, created: false };
-    } catch {
-      // invalid URL, skip this check
-    }
+    const origin = new URL(normalizedUrl).origin;
+    const hit = await checkDuplicate(() =>
+      findMemoryByTitleAndOrigin(driver, params.userId, params.title, origin),
+    );
+    if (hit) return { memory: hit, created: false };
   }
 
   const contentHash = computeContentHash(params.title, params.content);

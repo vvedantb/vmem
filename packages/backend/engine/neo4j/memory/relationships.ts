@@ -1,20 +1,11 @@
-import neo4j, {
-  type Driver,
-  type Record as NeoRecord,
-  type Session,
-} from "neo4j-driver";
-import { neo4jGet, parseNeo4jInt } from "../record";
+import neo4j, { type Driver, type Session } from "neo4j-driver";
+import { firstNeo4jInt, neo4jString } from "../record";
 import { toMemoryWithTags } from "./mappers";
 import type { MemoryWithTags } from "./types";
 
 const SEMANTIC_EDGE_K = 20;
 const SEMANTIC_EDGE_THRESHOLD = 0.78;
 const SEMANTIC_EDGE_LIMIT = 5;
-
-function stringField(record: NeoRecord, key: string): string {
-  const value = neo4jGet(record, key);
-  return typeof value === "string" ? value : "";
-}
 
 export async function createSemanticSimilarityEdges(
   session: Session,
@@ -44,8 +35,7 @@ export async function createSemanticSimilarityEdges(
       limit: neo4j.int(SEMANTIC_EDGE_LIMIT),
     },
   );
-  const record = result.records[0];
-  return record ? parseNeo4jInt(neo4jGet(record, "created")) : 0;
+  return firstNeo4jInt(result, "created");
 }
 
 export async function linkMemories(
@@ -94,6 +84,6 @@ export async function getRelatedMemories(
   );
   return result.records.map((record) => ({
     memory: toMemoryWithTags(record),
-    reason: stringField(record, "reason"),
+    reason: neo4jString(record, "reason"),
   }));
 }

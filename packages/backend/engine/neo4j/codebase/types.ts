@@ -31,6 +31,7 @@ export interface FunctionNode {
   isAsync: boolean;
   isTest: boolean;
   paramCount: number;
+  entryKind?: EntryPoint["kind"];
 }
 
 export interface ClassNode {
@@ -87,7 +88,6 @@ export interface EntryPoint {
     | "convex_action"
     | "convex_internal"
     | "convex_http"
-    | "tanstack_route"
     | "heuristic_main"
     | "event_handler"
     | "no_incoming";

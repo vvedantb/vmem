@@ -131,34 +131,31 @@ async function insertProposal(
   link: { mode: "update_for" } | { mode: "derived_from"; userId: string },
   failMessage: string,
 ): Promise<ProposedUpdateNode> {
-  return withSession(driver, async (session) => {
-    const id = crypto.randomUUID();
-    const now = new Date().toISOString();
-    const props = { id, now, ...fields };
-
-    const result =
-      link.mode === "update_for"
-        ? await session.run(
-            `MATCH (m:Memory {id: $memoryId})
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const props = { id, now, ...fields };
+  const result =
+    link.mode === "update_for"
+      ? await driver.executeQuery(
+          `MATCH (m:Memory {id: $memoryId})
              CREATE (p:ProposedUpdate { ${PENDING_PROPOSAL_PROPS} })
              CREATE (p)-[:UPDATE_FOR]->(m)
              RETURN p`,
-            props,
-          )
-        : await session.run(
-            `CREATE (p:ProposedUpdate { ${PENDING_PROPOSAL_PROPS} })
+          props,
+        )
+      : await driver.executeQuery(
+          `CREATE (p:ProposedUpdate { ${PENDING_PROPOSAL_PROPS} })
              WITH p
              UNWIND $sourceMemoryIds AS sid
              MATCH (m:Memory {id: sid, userId: $userId})
              MERGE (p)-[:DERIVED_FROM]->(m)
              RETURN p`,
-            { ...props, userId: link.userId },
-          );
+          { ...props, userId: link.userId },
+        );
 
-    const firstRecord = result.records[0];
-    if (!firstRecord) throw new Error(failMessage);
-    return parseProposedUpdateNode(firstRecord);
-  });
+  const firstRecord = result.records[0];
+  if (!firstRecord) throw new Error(failMessage);
+  return parseProposedUpdateNode(firstRecord);
 }
 
 function insertV2Proposal(
@@ -222,9 +219,8 @@ export async function listProposedUpdates(
     strict: options?.strictProfile === true,
   });
 
-  return withSession(driver, async (session) => {
-    const result = await session.run(
-      `MATCH (p:ProposedUpdate {status: 'pending'})
+  const result = await driver.executeQuery(
+    `MATCH (p:ProposedUpdate {status: 'pending'})
        OPTIONAL MATCH (p)-[:UPDATE_FOR]->(m:Memory)
        WITH p, m
        OPTIONAL MATCH (src:Memory {userId: $userId})
@@ -239,11 +235,10 @@ export async function listProposedUpdates(
               m.content AS memoryContent,
               [s IN sources WHERE s.id IS NOT NULL] AS sourceSnaps
        ORDER BY p.createdAt DESC`,
-      { userId, ...pf.params },
-    );
+    { userId, ...pf.params },
+  );
 
-    return result.records.map(parseListedProposedUpdate);
-  });
+  return result.records.map(parseListedProposedUpdate);
 }
 
 interface ProposalLookup {
@@ -383,15 +378,6 @@ async function applyDeleteApproval(
      WITH m
      DETACH DELETE m`,
     { proposalId, now },
-  );
-  // characterization: logEvent MATCHes the memory node, so this call is a no-op after DETACH DELETE
-  await logEvent(
-    session,
-    lookup.memoryId,
-    "proposal_approved",
-    "api",
-    { kind: "delete" },
-    null,
   );
   return { status: "approved", memoryId: lookup.memoryId, kind: "delete" };
 }
@@ -698,9 +684,8 @@ export async function hasOverlappingPendingProposal(
   },
 ): Promise<boolean> {
   if (params.sourceMemoryIds.length === 0) return false;
-  return withSession(driver, async (session) => {
-    const result = await session.run(
-      `MATCH (p:ProposedUpdate {status: 'pending'})
+  const result = await driver.executeQuery(
+    `MATCH (p:ProposedUpdate {status: 'pending'})
        WHERE p.source = 'dream-mode'
          AND p.sourceMemoryIds IS NOT NULL
          AND size(p.sourceMemoryIds) > 0
@@ -715,14 +700,13 @@ export async function hasOverlappingPendingProposal(
        WHERE m.id IN p.sourceMemoryIds
        RETURN p.id AS id
        LIMIT 1`,
-      {
-        candidateIds: params.sourceMemoryIds,
-        threshold: params.overlapThreshold,
-        userId: params.userId,
-      },
-    );
-    return result.records.length > 0;
-  });
+    {
+      candidateIds: params.sourceMemoryIds,
+      threshold: params.overlapThreshold,
+      userId: params.userId,
+    },
+  );
+  return result.records.length > 0;
 }
 
 export async function createSynthesisProposal(

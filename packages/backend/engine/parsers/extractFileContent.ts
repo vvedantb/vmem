@@ -5,10 +5,12 @@ export async function extractFileContent(
   kind: "pdf" | "text",
 ): Promise<string> {
   if (kind === "pdf") {
-    const buffer = Buffer.from(await blob.arrayBuffer());
-    const { text } = await extractText(new Uint8Array(buffer), {
-      mergePages: true,
-    });
+    const { text } = await extractText(
+      new Uint8Array(await blob.arrayBuffer()),
+      {
+        mergePages: true,
+      },
+    );
     return text;
   }
   return blob.text();

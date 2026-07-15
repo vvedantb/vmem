@@ -1,7 +1,7 @@
 // openRouter embeddings when configured; otherwise deterministic synthetic vectors
 
-import { createOpenRouterClient } from "../../convex/lib/openRouter/client";
 import { validateEmbeddingItems } from "../../engine/llm/embeddingResponse";
+import { createOpenRouterClient } from "../../engine/llm/openRouterClient";
 import pRetry from "p-retry";
 
 const EMBEDDING_MODEL = "openai/text-embedding-3-small";
@@ -10,10 +10,6 @@ const EMBEDDING_BATCH_SIZE = 20;
 const EMBEDDING_MAX_INPUT_CHARS = 6000;
 const EMBEDDING_MAX_ATTEMPTS = 5;
 const EMBEDDING_RETRY_BASE_MS = 800;
-
-function truncateForEmbedding(text: string): string {
-  return text.slice(0, EMBEDDING_MAX_INPUT_CHARS);
-}
 
 function rollingHash(text: string, multiplier: number): number {
   let hash = 0;
@@ -84,7 +80,7 @@ async function generateOpenRouterEmbeddings(
   for (let offset = 0; offset < texts.length; offset += EMBEDDING_BATCH_SIZE) {
     const input = texts
       .slice(offset, offset + EMBEDDING_BATCH_SIZE)
-      .map(truncateForEmbedding);
+      .map((text) => text.slice(0, EMBEDDING_MAX_INPUT_CHARS));
     const vectors = await generateBatchWithRetry(client, input);
     result.push(...vectors);
   }

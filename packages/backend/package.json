@@ -11,8 +11,8 @@
     "deploy": "pnpm run build:mcp-graph-ui && convex deploy",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:http-api": "node --env-file=.env.local ../../node_modules/vitest/vitest.mjs run neo4j-cli/http/v1Memories.integration.test.ts",
-    "test:behavioral": "cross-env RUN_RETRIEVAL_EVAL=1 node --env-file=.env.local ../../node_modules/vitest/vitest.mjs run neo4j-cli/eval/behavioral.integration.test.ts",
+    "test:http-api": "node --env-file=.env.local ../../node_modules/vitest/vitest.mjs run tests/integration/v1Memories.integration.test.ts",
+    "test:behavioral": "cross-env RUN_RETRIEVAL_EVAL=1 node --env-file=.env.local ../../node_modules/vitest/vitest.mjs run tests/integration/neo4jBehavioral.integration.test.ts",
     "db:tag-stats": "npx tsx --env-file=.env.local neo4j-cli/tag-stats.ts",
     "eval:bench": "npx tsx --env-file=.env.local neo4j-cli/eval/benchmark.ts",
     "build:mcp-graph-ui": "node scripts/build-memory-graph-mcp-app.mjs"

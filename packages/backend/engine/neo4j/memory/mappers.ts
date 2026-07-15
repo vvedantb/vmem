@@ -24,45 +24,30 @@ export const memoryStatusSchema = z.enum([
   "expired",
 ]);
 
-const memoryNodePropsSchema = z
-  .object({
+const nullableStringSchema: z.ZodType<string | null, z.ZodTypeDef, unknown> =
+  z.preprocess((value) => value ?? null, z.string().nullable());
+
+type MemoryNodeProps = Omit<MemoryWithTags, "tags">;
+
+const memoryNodePropsSchema: z.ZodType<MemoryNodeProps, z.ZodTypeDef, unknown> =
+  z.object({
     id: z.string(),
     userId: z.string(),
-    profileId: z.string().nullish(),
+    profileId: nullableStringSchema,
     title: z.string(),
     content: z.string(),
     type: memoryTypeSchema,
     source: z.string(),
-    sourceType: z.string().nullish(),
-    sourceId: z.string().nullish(),
-    sourceUrl: z.string().nullish(),
-    sourceSyncedAt: z.string().nullish(),
+    sourceType: nullableStringSchema,
+    sourceId: nullableStringSchema,
+    sourceUrl: nullableStringSchema,
+    sourceSyncedAt: nullableStringSchema,
     confidence: z.number(),
     status: memoryStatusSchema,
     createdAt: z.string(),
     updatedAt: z.string(),
-    expiresAt: z.string().nullish(),
-  })
-  .transform(
-    (props): Omit<MemoryWithTags, "tags"> => ({
-      id: props.id,
-      userId: props.userId,
-      profileId: props.profileId ?? null,
-      title: props.title,
-      content: props.content,
-      type: props.type,
-      source: props.source,
-      sourceType: props.sourceType ?? null,
-      sourceId: props.sourceId ?? null,
-      sourceUrl: props.sourceUrl ?? null,
-      sourceSyncedAt: props.sourceSyncedAt ?? null,
-      confidence: props.confidence,
-      status: props.status,
-      createdAt: props.createdAt,
-      updatedAt: props.updatedAt,
-      expiresAt: props.expiresAt ?? null,
-    }),
-  );
+    expiresAt: nullableStringSchema,
+  });
 
 const memoryEventPropsSchema = z.object({
   id: z.string(),
@@ -153,14 +138,9 @@ export function toSnapshot(
   });
 }
 
-export function toEventFromNode(props: {
-  id: string;
-  action: string;
-  actor: string;
-  createdAt: string;
-  snapshot?: string | null;
-  details?: string | null;
-}): MemoryEvent {
+function toEventFromNode(
+  props: z.infer<typeof memoryEventPropsSchema>,
+): MemoryEvent {
   return {
     id: props.id,
     action: props.action,
@@ -172,13 +152,10 @@ export function toEventFromNode(props: {
 }
 
 export function toMemoryWithTags(record: NeoRecord): MemoryWithTags {
-  const node = neo4jGet(record, "m");
-  if (typeof node !== "object" || node === null) {
-    throw new Error("Expected Neo4j node with properties");
-  }
-  const desc = Object.getOwnPropertyDescriptor(node, "properties");
-  const properties: unknown = desc?.value;
-  const props = memoryNodePropsSchema.parse(properties);
+  const props = parseNeo4jNodeProps(
+    neo4jGet(record, "m"),
+    memoryNodePropsSchema,
+  );
   const tagsParsed = tagsArraySchema.safeParse(neo4jGet(record, "tags"));
   return {
     ...props,
@@ -192,14 +169,7 @@ export function toTimelineEvent(record: NeoRecord): TimelineEvent {
     memoryEventPropsSchema,
   );
   return {
-    ...toEventFromNode({
-      id: eventProps.id,
-      action: eventProps.action,
-      actor: eventProps.actor,
-      createdAt: eventProps.createdAt,
-      snapshot: eventProps.snapshot ?? null,
-      details: eventProps.details ?? null,
-    }),
+    ...toEventFromNode(eventProps),
     memoryId: neo4jString(record, "memoryId"),
     memoryTitle: neo4jString(record, "memoryTitle"),
   };
