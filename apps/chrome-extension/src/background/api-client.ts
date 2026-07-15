@@ -146,3 +146,22 @@ export async function updateUserSettings(
 
   await client.mutation(api.userSettings.update, args);
 }
+
+export async function getExtensionDefaultProfileId(): Promise<string | null> {
+  const client = await requireAuthenticatedClient();
+
+  return await client.query(api.userSettings.getDefaultProfile, {
+    source: "extension",
+  });
+}
+
+export async function setExtensionDefaultProfile(
+  profileId: Id<"profiles">,
+): Promise<void> {
+  const client = await requireAuthenticatedClient();
+
+  await client.mutation(api.userSettings.setDefaultProfile, {
+    source: "extension",
+    profileId,
+  });
+}

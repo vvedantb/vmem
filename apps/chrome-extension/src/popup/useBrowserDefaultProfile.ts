@@ -1,29 +1,37 @@
 import { useEffect, useState } from "react";
-import { getStorage } from "@/lib/storage";
+import { getStorage, setStorage } from "@/lib/storage";
+import { resolveExtensionProfileId } from "@/lib/resolve-extension-profile";
+import { useExtensionUserSettings } from "@/popup/useExtensionUserSettings";
 
 type ProfileLike = {
   _id: string;
   isDefault: boolean;
 };
 
-// per browser active profile from chrome.storage else account default
 export function useBrowserDefaultProfile(profiles: ProfileLike[] | undefined): {
   effectiveProfileId: string;
-  setSelectedProfileId: (profileId: string) => void;
 } {
-  const [selectedProfileId, setSelectedProfileId] = useState("");
+  const { settings } = useExtensionUserSettings();
+  const [storageProfileId, setStorageProfileId] = useState("");
 
   useEffect(() => {
     void getStorage().then((storage) => {
-      if (storage.defaultProfileId) {
-        setSelectedProfileId(storage.defaultProfileId);
-      }
+      setStorageProfileId(storage.defaultProfileId);
     });
   }, []);
 
-  return {
-    effectiveProfileId:
-      selectedProfileId || profiles?.find((p) => p.isDefault)?._id || "",
-    setSelectedProfileId,
-  };
+  useEffect(() => {
+    if (!profiles || !storageProfileId) return;
+    if (profiles.some((profile) => profile._id === storageProfileId)) return;
+    void setStorage({ defaultProfileId: "" });
+    setStorageProfileId("");
+  }, [profiles, storageProfileId]);
+
+  const effectiveProfileId = resolveExtensionProfileId({
+    storageProfileId,
+    convexExtensionDefaultId: settings?.defaultProfiles?.extension ?? null,
+    profiles,
+  });
+
+  return { effectiveProfileId };
 }

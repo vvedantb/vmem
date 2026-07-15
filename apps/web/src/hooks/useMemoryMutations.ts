@@ -45,6 +45,9 @@ export function useMemoryMutations() {
   const invalidateMemories = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: ["memories"] });
     void queryClient.invalidateQueries({ queryKey: ["memory"] });
+    void queryClient.invalidateQueries({ queryKey: ["retrieveMemories"] });
+    void queryClient.invalidateQueries({ queryKey: ["graph"] });
+    void queryClient.invalidateQueries({ queryKey: ["graph-memory-search"] });
   }, [queryClient]);
 
   const createMutation = useMutation({

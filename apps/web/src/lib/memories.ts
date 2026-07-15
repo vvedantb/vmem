@@ -1,7 +1,13 @@
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@vmem/backend";
 
-export type MemoryType = "profile" | "episodic" | "knowledge";
+export type MemoryListResult = FunctionReturnType<
+  typeof api.memoryApi.listMemories
+>;
+// single memory row from list / retrieve / getMemory api payloads
+export type MemoryApiFields = MemoryListResult["memories"][number];
+
+export type MemoryType = MemoryApiFields["type"];
 
 export const MEMORY_TYPES: readonly MemoryType[] = [
   "profile",
@@ -19,44 +25,29 @@ export function formatMemoryTypeLabel(type: MemoryType): string {
   return MEMORY_TYPE_LABELS[type];
 }
 
-export interface Memory {
-  id: string;
-  title: string;
-  content: string;
-  type: MemoryType;
-  source: string;
-  sourceUrl: string | null;
-  sourceSyncedAt: string | null;
-  tags: string[];
-  createdAt: string;
-  profileId?: string;
-}
-
 function isMemoryType(value: string): value is MemoryType {
   return MEMORY_TYPES.some((type) => type === value);
 }
 
-export type MemoryListResult = FunctionReturnType<
-  typeof api.memoryApi.listMemories
->;
-// single memory row from list / retrieve / getMemory api payloads
-export type MemoryApiFields = MemoryListResult["memories"][number];
-
 // normalise api / retrieve / getMemory payloads into the client Memory shape
-export function memoryFromApi(m: MemoryApiFields): Memory {
+export function memoryFromApi(m: MemoryApiFields) {
   return {
     id: m.id,
     title: m.title,
     content: m.content,
-    type: isMemoryType(m.type) ? m.type : "knowledge",
+    type: isMemoryType(m.type) ? m.type : ("knowledge" satisfies MemoryType),
     source: m.source,
     sourceUrl: m.sourceUrl ?? null,
     sourceSyncedAt: m.sourceSyncedAt ?? null,
     tags: m.tags,
     createdAt: m.createdAt,
-    profileId: m.profileId ?? undefined,
+    ...(m.profileId !== null && m.profileId !== undefined
+      ? { profileId: m.profileId }
+      : {}),
   };
 }
+
+export type Memory = ReturnType<typeof memoryFromApi>;
 
 const MEMORY_SOURCE_LABELS: Record<string, string> = {
   web: "Web",

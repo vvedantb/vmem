@@ -79,6 +79,7 @@ export default function ListItemRow({
         source: item.source,
         sourceUrl: item.sourceUrl,
         sourceSyncedAt: item.sourceSyncedAt,
+        ...(item.profileId !== undefined ? { profileId: item.profileId } : {}),
       };
       onMemoryClick(memory);
       return;
@@ -188,6 +189,7 @@ export default function ListItemRow({
     source: item.source,
     sourceUrl: item.sourceUrl,
     sourceSyncedAt: item.sourceSyncedAt,
+    ...(item.profileId !== undefined ? { profileId: item.profileId } : {}),
   };
 
   return (

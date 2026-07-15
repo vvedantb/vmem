@@ -10,6 +10,11 @@ import { internal } from "../_generated/api";
 import { auditLog, ResourceTypes } from "../auditLog";
 import { STALE_SYNCING_MS } from "@vmem/shared";
 import { sourceTypesForProvider } from "./sourceTypes";
+import {
+  connectorConnectionStatusValidator,
+  connectorFields,
+  connectorSyncStatusValidator,
+} from "../validators";
 
 type ConnectorProvider = NonNullable<Doc<"connectors">["provider"]>;
 
@@ -202,7 +207,7 @@ export const listForDailyConnectorSyncInternal = internalQuery({
 const googleConnectorRowValidator = v.object({
   _id: v.id("connectors"),
   provider: v.literal("google_drive"),
-  connectionStatus: v.union(v.literal("connected"), v.literal("disconnected")),
+  connectionStatus: connectorConnectionStatusValidator,
 });
 
 export const listGoogleConnectorsForUserInternal = internalQuery({
@@ -265,14 +270,12 @@ export const resetSyncStatsInternal = internalMutation({
 export const updateSyncProgressInternal = internalMutation({
   args: {
     id: v.id("connectors"),
-    syncProgress: v.optional(v.number()),
-    itemsSynced: v.optional(v.number()),
-    syncStatus: v.optional(
-      v.union(v.literal("idle"), v.literal("syncing"), v.literal("error")),
-    ),
-    lastSyncAt: v.optional(v.number()),
-    syncStartedAt: v.optional(v.number()),
-    errorMessage: v.optional(v.string()),
+    syncProgress: v.optional(connectorFields.syncProgress),
+    itemsSynced: v.optional(connectorFields.itemsSynced),
+    syncStatus: v.optional(connectorSyncStatusValidator),
+    lastSyncAt: connectorFields.lastSyncAt,
+    syncStartedAt: connectorFields.syncStartedAt,
+    errorMessage: connectorFields.errorMessage,
   },
   handler: async (ctx, args) => {
     const { id, ...updates } = args;

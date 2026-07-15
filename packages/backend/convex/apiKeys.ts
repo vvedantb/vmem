@@ -7,6 +7,7 @@ import { authAction, authMutation, authQuery } from "./auth";
 import { auditLog, ResourceTypes, severityForStatus } from "./auditLog";
 import { encodeBase64UrlBytes } from "./lib/base64";
 import { decryptToken, encryptToken } from "./lib/crypto";
+import { apiKeyFields } from "./validators";
 
 function generateApiKey(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(24));
@@ -263,12 +264,12 @@ export const getEncryptedKeyInternal = internalQuery({
 
 export const insertKeyInternal = internalMutation({
   args: {
-    userId: v.id("users"),
-    name: v.string(),
-    maskedKey: v.string(),
-    keyHash: v.string(),
-    encryptedKey: v.string(),
-    createdAt: v.number(),
+    userId: apiKeyFields.userId,
+    name: apiKeyFields.name,
+    maskedKey: apiKeyFields.maskedKey,
+    keyHash: apiKeyFields.keyHash,
+    encryptedKey: apiKeyFields.encryptedKey,
+    createdAt: apiKeyFields.createdAt,
   },
   returns: v.object({
     id: v.id("apiKeys"),

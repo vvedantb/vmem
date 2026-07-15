@@ -1,10 +1,13 @@
 import type { FunctionReturnType } from "convex/server";
 import type { api } from "@vmem/backend";
-import type { Memory, MemoryType } from "./memories";
+import type { Memory } from "./memories";
 import {
   apiGraphNodePassesFilters,
   type MemoryViewFilterParams,
 } from "./memory-view-filters";
+
+type WikiRows = FunctionReturnType<typeof api.wiki.listTree>;
+type SkillRows = FunctionReturnType<typeof api.skills.listMy>;
 
 // unified /memories list item (memory | wiki | skill) mirroring graph node kinds
 export type ListItemKind =
@@ -50,37 +53,36 @@ interface BaseListItem {
   createdAt: string;
 }
 
-interface MemoryRowItem extends BaseListItem {
-  kind: "memory";
-  type: MemoryType;
-  source: string;
-  sourceUrl: string | null;
-  sourceSyncedAt: string | null;
-  profileId?: string;
-}
+type MemoryRowItem = BaseListItem &
+  Pick<
+    Memory,
+    "type" | "source" | "sourceUrl" | "sourceSyncedAt" | "profileId"
+  > & {
+    kind: "memory";
+  };
 
-interface WikiDocumentItem extends BaseListItem {
+type WikiDocumentItem = BaseListItem & {
   kind: "wiki-document";
-  // convex id for /wiki/<wikiId>
+  // convex id for /wiki/<wikiId> (string form of WikiRows[number]["_id"])
   wikiId: string;
-}
+};
 
-interface WikiArtifactItem extends BaseListItem {
+type WikiArtifactItem = BaseListItem & {
   kind: "wiki-artifact";
   wikiId: string;
-}
+};
 
-interface WikiFolderItem extends BaseListItem {
+type WikiFolderItem = BaseListItem & {
   kind: "wiki-folder";
   wikiId: string;
   // direct child count for row meta
   childCount: number;
-}
+};
 
-interface SkillItem extends BaseListItem {
+type SkillItem = BaseListItem & {
   kind: "skill";
   skillId: string;
-}
+};
 
 export type ListItem =
   | MemoryRowItem
@@ -127,8 +129,6 @@ export function memoryToListItem(memory: Memory): ListItem {
   };
 }
 
-type WikiRows = FunctionReturnType<typeof api.wiki.listTree>;
-
 // wiki rows → list items; one pass for folder child counts
 export function wikiRowsToListItems(rows: WikiRows): ListItem[] {
   const childCount = new Map<string, number>();
@@ -173,8 +173,6 @@ export function wikiRowsToListItems(rows: WikiRows): ListItem[] {
     };
   });
 }
-
-type SkillRows = FunctionReturnType<typeof api.skills.listMy>;
 
 export function skillRowsToListItems(rows: SkillRows): ListItem[] {
   return rows

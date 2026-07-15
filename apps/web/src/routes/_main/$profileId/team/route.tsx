@@ -50,7 +50,7 @@ function TeamWorkspaceLayout() {
   }
 
   return (
-    <TeamDetailProvider detail={data}>
+    <TeamDetailProvider teamId={teamId}>
       <PageContainer
         title={data.team.name}
         showTitle={false}

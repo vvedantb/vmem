@@ -48,6 +48,153 @@ export const notificationFields = {
   createdAt: v.number(),
 };
 
+export const apiKeyStatusValidator = v.union(
+  v.literal("active"),
+  v.literal("revoked"),
+);
+
+export const apiKeyFields = {
+  userId: v.id("users"),
+  name: v.string(),
+  maskedKey: v.string(),
+  keyHash: v.string(),
+  encryptedKey: v.string(),
+  status: apiKeyStatusValidator,
+  requestCount: v.number(),
+  createdAt: v.number(),
+  lastUsedAt: v.optional(v.number()),
+  revokedAt: v.optional(v.number()),
+};
+
+export const connectorProviderValidator = v.union(
+  v.literal("google_drive"),
+  v.literal("notion"),
+);
+
+export const connectorConnectionStatusValidator = v.union(
+  v.literal("connected"),
+  v.literal("disconnected"),
+);
+
+export const connectorSyncStatusValidator = v.union(
+  v.literal("idle"),
+  v.literal("syncing"),
+  v.literal("error"),
+);
+
+export const connectorFields = {
+  userId: v.id("users"),
+  name: v.string(),
+  description: v.string(),
+  icon: v.string(),
+  provider: v.optional(connectorProviderValidator),
+  connectionStatus: connectorConnectionStatusValidator,
+  syncStatus: connectorSyncStatusValidator,
+  lastSyncAt: v.optional(v.number()),
+  syncStartedAt: v.optional(v.number()),
+  syncProgress: v.number(),
+  itemsSynced: v.number(),
+  errorMessage: v.optional(v.string()),
+};
+
+export const userSettingsThemeValidator = v.union(
+  v.literal("light"),
+  v.literal("dark"),
+  v.literal("system"),
+);
+
+export const defaultProfilesFields = {
+  web: v.optional(v.id("profiles")),
+  extension: v.optional(v.id("profiles")),
+  mcp: v.optional(v.id("profiles")),
+  mcpTeam: v.optional(v.id("profiles")),
+};
+
+export const userSettingsFields = {
+  userId: v.id("users"),
+  theme: v.optional(userSettingsThemeValidator),
+  language: v.optional(v.string()),
+  memoryAutoTag: v.optional(v.boolean()),
+  notificationsEnabled: v.optional(v.boolean()),
+  extensionAutoSyncEnabled: v.optional(v.boolean()),
+  extensionAutoSyncIntervalMinutes: v.optional(v.number()),
+  extensionSelectionPopupEnabled: v.optional(v.boolean()),
+  memoryAutoExtract: v.optional(v.boolean()),
+  memoryConfidenceThreshold: v.optional(v.number()),
+  notifyMemoryConflicts: v.optional(v.boolean()),
+  notifyNewMemories: v.optional(v.boolean()),
+  notifyMemoriesExpiring: v.optional(v.boolean()),
+  aboutMe: v.optional(v.string()),
+  preferences: v.optional(v.string()),
+  defaultProfiles: v.optional(v.object(defaultProfilesFields)),
+  dreamModeAutoAccept: v.optional(v.boolean()),
+  dreamModeScheduleEnabled: v.optional(v.boolean()),
+  dreamModeScheduleTime: v.optional(v.string()),
+  dreamModeAutomatic: v.optional(v.boolean()),
+  lastDreamRunAt: v.optional(v.number()),
+};
+
+export const userSettingsPatchFields = {
+  theme: userSettingsFields.theme,
+  language: userSettingsFields.language,
+  memoryAutoTag: userSettingsFields.memoryAutoTag,
+  notificationsEnabled: userSettingsFields.notificationsEnabled,
+  extensionAutoSyncEnabled: userSettingsFields.extensionAutoSyncEnabled,
+  extensionAutoSyncIntervalMinutes:
+    userSettingsFields.extensionAutoSyncIntervalMinutes,
+  extensionSelectionPopupEnabled:
+    userSettingsFields.extensionSelectionPopupEnabled,
+  memoryAutoExtract: userSettingsFields.memoryAutoExtract,
+  memoryConfidenceThreshold: userSettingsFields.memoryConfidenceThreshold,
+  notifyMemoryConflicts: userSettingsFields.notifyMemoryConflicts,
+  notifyNewMemories: userSettingsFields.notifyNewMemories,
+  notifyMemoriesExpiring: userSettingsFields.notifyMemoriesExpiring,
+  aboutMe: userSettingsFields.aboutMe,
+  preferences: userSettingsFields.preferences,
+  dreamModeAutoAccept: userSettingsFields.dreamModeAutoAccept,
+  dreamModeAutomatic: userSettingsFields.dreamModeAutomatic,
+};
+
+export const oauthStateFields = {
+  state: v.string(),
+  userId: v.id("users"),
+  returnUrl: v.string(),
+  expiresAt: v.number(),
+  connectorId: v.optional(v.id("connectors")),
+  provider: v.optional(v.string()),
+};
+
+export const oauthStatePayloadFields = {
+  userId: oauthStateFields.userId,
+  returnUrl: oauthStateFields.returnUrl,
+  expiresAt: oauthStateFields.expiresAt,
+  connectorId: oauthStateFields.connectorId,
+  provider: oauthStateFields.provider,
+};
+
+export const githubConnectionFields = {
+  userId: v.id("users"),
+  githubUsername: v.string(),
+  encryptedAccessToken: v.string(),
+  avatarUrl: v.optional(v.string()),
+  connectedAt: v.number(),
+};
+
+export const contextPromptCacheFields = {
+  userId: v.id("users"),
+  content: v.string(),
+  generatedAt: v.number(),
+  memoryCountAtGeneration: v.number(),
+  pendingRegeneration: v.boolean(),
+};
+
+export const contextPromptCacheContentFields = {
+  content: contextPromptCacheFields.content,
+  generatedAt: contextPromptCacheFields.generatedAt,
+  memoryCountAtGeneration: contextPromptCacheFields.memoryCountAtGeneration,
+  pendingRegeneration: contextPromptCacheFields.pendingRegeneration,
+};
+
 export const teamFields = {
   name: v.string(),
   createdBy: v.id("users"),

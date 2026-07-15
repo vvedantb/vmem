@@ -1,15 +1,9 @@
 import { v } from "convex/values";
 import { internalMutation } from "./_generated/server";
+import { oauthStateFields, oauthStatePayloadFields } from "./validators";
 
 export const insertOAuthStateInternal = internalMutation({
-  args: {
-    state: v.string(),
-    userId: v.id("users"),
-    returnUrl: v.string(),
-    expiresAt: v.number(),
-    connectorId: v.optional(v.id("connectors")),
-    provider: v.optional(v.string()),
-  },
+  args: oauthStateFields,
   handler: async (ctx, args) => {
     return await ctx.db.insert("oauthStates", args);
   },
@@ -18,16 +12,7 @@ export const insertOAuthStateInternal = internalMutation({
 // atomically consumes an OAuth state entry (read + delete)
 export const consumeOAuthStateInternal = internalMutation({
   args: { state: v.string() },
-  returns: v.union(
-    v.object({
-      userId: v.id("users"),
-      returnUrl: v.string(),
-      expiresAt: v.number(),
-      connectorId: v.optional(v.id("connectors")),
-      provider: v.optional(v.string()),
-    }),
-    v.null(),
-  ),
+  returns: v.union(v.object(oauthStatePayloadFields), v.null()),
   handler: async (ctx, args) => {
     const entry = await ctx.db
       .query("oauthStates")
