@@ -11,7 +11,7 @@ import type {
 const EMPTY_NODES: CodeNode[] = [];
 const EMPTY_EDGES: CodeEdge[] = [];
 
-export interface CodebaseGraphFilters {
+interface CodebaseGraphFilters {
   processId?: string | null;
   blastRadiusOf?: string | null;
   blastDirection?: "upstream" | "downstream";
@@ -19,8 +19,8 @@ export interface CodebaseGraphFilters {
 
 // filter-driven full-payload hook used by the canvas
 export function useCodebaseGraphData(
-  codebaseId: string | null,
-  filters: CodebaseGraphFilters = {},
+  codebaseId: string,
+  filters: CodebaseGraphFilters,
 ) {
   const { isAuthenticated } = useConvexAuth();
   const getGraph = useAction(api.codebaseSymbols.getGraph);
@@ -36,7 +36,6 @@ export function useCodebaseGraphData(
       },
     ] as const,
     queryFn: async () => {
-      if (!codebaseId) throw new Error("No codebase ID");
       return await getGraph({
         codebaseId,
         processId: filters.processId ?? undefined,
@@ -44,7 +43,7 @@ export function useCodebaseGraphData(
         blastDirection: filters.blastDirection,
       });
     },
-    enabled: isAuthenticated && !!codebaseId,
+    enabled: isAuthenticated,
     staleTime: 30_000,
   });
 

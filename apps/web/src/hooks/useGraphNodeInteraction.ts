@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useAction } from "convex/react";
 import { api } from "@vmem/backend";
 import type { GraphNode, GraphEdge, RelatedNode } from "@/lib/graph/types";
@@ -23,9 +23,6 @@ export function useGraphNodeInteraction(args: {
   const [contentCache, setContentCache] = useState<ReadonlyMap<string, string>>(
     () => new Map(),
   );
-  const inflightRef = useRef<Set<string>>(new Set());
-  const onFocusChangeRef = useRef(args.onFocusChange);
-  onFocusChangeRef.current = args.onFocusChange;
 
   const nodeById = useMemo(() => {
     const map = new Map<string, GraphNode>();
@@ -34,19 +31,15 @@ export function useGraphNodeInteraction(args: {
   }, [args.graphNodes]);
 
   function ensureMemoryContent(nodeId: string) {
-    if (contentCache.has(nodeId) || inflightRef.current.has(nodeId)) return;
-    inflightRef.current.add(nodeId);
-    void getNodeContent({ memoryId: nodeId })
-      .then((content) => {
-        setContentCache((prev) => {
-          const next = new Map(prev);
-          next.set(nodeId, content);
-          return next;
-        });
-      })
-      .finally(() => {
-        inflightRef.current.delete(nodeId);
+    if (contentCache.has(nodeId)) return;
+    void getNodeContent({ memoryId: nodeId }).then((content) => {
+      setContentCache((prev) => {
+        if (prev.has(nodeId)) return prev;
+        const next = new Map(prev);
+        next.set(nodeId, content);
+        return next;
       });
+    });
   }
 
   const selectedNode =
@@ -83,7 +76,7 @@ export function useGraphNodeInteraction(args: {
   function handleFocusNode(nodeId: string) {
     const node = nodeById.get(nodeId);
     if (!node || node.kind !== "memory") return;
-    onFocusChangeRef.current(nodeId);
+    args.onFocusChange(nodeId);
     setSelectedNodeId(null);
   }
 
@@ -96,7 +89,7 @@ export function useGraphNodeInteraction(args: {
   }
 
   function handleBackToGlobal() {
-    onFocusChangeRef.current(null);
+    args.onFocusChange(null);
   }
 
   async function handleLinkNodes(sourceId: string, targetId: string) {

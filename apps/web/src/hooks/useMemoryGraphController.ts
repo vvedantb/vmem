@@ -21,7 +21,6 @@ import type { MemoryType } from "@/lib/memories";
 import { graphNodeMatchesLocalSearch } from "@/lib/graph/graph-search";
 import {
   CLEARED_MEMORY_VIEW_FILTERS,
-  hasActiveMemoryViewFilters,
   type MemoryViewFilterParams,
 } from "@/lib/memory-view-filters";
 
@@ -126,17 +125,14 @@ export function useMemoryGraphController({
     ],
   );
 
-  const visibleNodeIds = useMemo(
-    () => new Set(graphNodes.map((node) => node.id)),
-    [graphNodes],
-  );
-
   const searchMatchSet = useMemo(() => {
     if (!isSearchActive) return EMPTY_SET;
 
     const matches = new Set<string>();
+    const visibleNodeIds = new Set<string>();
 
     for (const node of graphNodes) {
+      visibleNodeIds.add(node.id);
       if (graphNodeMatchesLocalSearch(node, searchQuery)) {
         matches.add(node.id);
       }
@@ -152,15 +148,7 @@ export function useMemoryGraphController({
     }
 
     return matches;
-  }, [
-    isSearchActive,
-    searchQuery,
-    graphNodes,
-    memorySearchResult,
-    visibleNodeIds,
-  ]);
-
-  const hasActiveFilters = hasActiveMemoryViewFilters(filters);
+  }, [isSearchActive, searchQuery, graphNodes, memorySearchResult]);
 
   // ----- Progressive global loading -----
 
@@ -173,8 +161,6 @@ export function useMemoryGraphController({
     scope === "global" &&
     hasNextPage &&
     loadedMemoryCount < GLOBAL_GRAPH_MAX_NODES;
-
-  const onLoadMore = fetchNextPage;
 
   return {
     // raw (nodes only — edges stay internal to buildGraphData)
@@ -192,7 +178,7 @@ export function useMemoryGraphController({
     totalMemoryCount,
     canLoadMore,
     isLoadingMore: isFetchingNextPage,
-    onLoadMore,
+    fetchNextPage,
 
     // derived
     graphNodes,
@@ -206,7 +192,6 @@ export function useMemoryGraphController({
     totalNodeCount: apiNodes.length,
     visibleNodeCount: graphNodes.length,
     edgeCount: graphEdges.length,
-    hasActiveFilters,
     filters,
 
     // display state
