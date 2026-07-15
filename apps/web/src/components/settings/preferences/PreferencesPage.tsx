@@ -9,7 +9,7 @@ import {
   localTimeToUtc,
   utcTimeToLocal,
 } from "@vmem/shared";
-import PageContainer from "@/components/PageContainer";
+import PageContainer from "@/components/shell/PageContainer";
 import ConfidenceThresholdSlider from "@/components/settings/ConfidenceThresholdSlider";
 import { useUserSettingsSave } from "@/hooks/useUserSettingsSave";
 import { PreferenceSection } from "./PreferenceSection";

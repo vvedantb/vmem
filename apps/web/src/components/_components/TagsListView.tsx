@@ -26,7 +26,7 @@ import {
 } from "@tabler/icons-react";
 import { buildTagStats } from "@/lib/memories";
 import { IconMemories } from "@/components/icons/sidebar";
-import { useMemoryContext } from "@/components/contexts/MemoryContext";
+import { useMemoryContext } from "@/contexts/MemoryContext";
 import { useMemoriesSearchParams } from "@/hooks/useMemoriesSearchParams";
 import { DetailEmptyState } from "@/components/_components/detail-panel/DetailEmptyState";
 import { TagMemoriesPanel } from "@/components/_components/TagMemoriesPanel";

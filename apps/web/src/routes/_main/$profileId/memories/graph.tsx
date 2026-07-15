@@ -4,7 +4,7 @@ import { VmemSpinner } from "@/components/icons/animations";
 import { useMemoryGraphControllerContext } from "./-components/MemoryGraphControllerContext";
 import { useMemoriesSearchParams } from "@/hooks/useMemoriesSearchParams";
 
-const MemoryGraph = lazy(() => import("@/components/MemoryGraph"));
+const MemoryGraph = lazy(() => import("@/components/memories/MemoryGraph"));
 
 export const Route = createFileRoute("/_main/$profileId/memories/graph")({
   component: MemoriesGraphPage,

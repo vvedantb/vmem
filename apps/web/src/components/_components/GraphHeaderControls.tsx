@@ -11,7 +11,7 @@ import {
   Switch,
   Separator,
 } from "@vmem/ui";
-import AddMemoryIconTrigger from "@/components/AddMemoryIconTrigger";
+import AddMemoryIconTrigger from "@/components/memories/AddMemoryIconTrigger";
 import HeaderSearchInput from "./HeaderSearchInput";
 import GraphLegend from "./GraphLegend";
 import type { MemoryGraphController } from "@/hooks/useMemoryGraphController";

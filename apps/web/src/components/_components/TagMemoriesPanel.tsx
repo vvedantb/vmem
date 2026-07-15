@@ -4,8 +4,8 @@ import { IconMoodEmpty, IconX } from "@tabler/icons-react";
 import type { Memory } from "@/lib/memories";
 import { memoryToListItem } from "@/lib/list-items";
 import { MemoryVirtuosoList } from "@/components/_components/MemoryVirtuosoList";
-import MemoryDetailPanel from "@/components/MemoryDetailPanel";
-import { useThemeContext } from "@/components/contexts/ThemeContext";
+import MemoryDetailPanel from "@/components/memories/MemoryDetailPanel";
+import { useThemeContext } from "@/contexts/ThemeContext";
 import { useTrailData } from "@/hooks/useTrailData";
 
 interface TagMemoriesPanelProps {

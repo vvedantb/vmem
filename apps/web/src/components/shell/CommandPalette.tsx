@@ -31,7 +31,7 @@ import {
 } from "@/components/sidebar/nav-config";
 import { useActiveProfileId } from "@/components/workspace/active-profile";
 import { workspacePathFor } from "@/components/workspace/workspace-paths";
-import { useThemeContext } from "@/components/contexts/ThemeContext";
+import { useThemeContext } from "@/contexts/ThemeContext";
 
 type MemoryHit = FunctionReturnType<
   typeof api.memoryApi.searchMemories

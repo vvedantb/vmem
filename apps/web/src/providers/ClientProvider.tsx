@@ -1,9 +1,9 @@
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { NuqsAdapter } from "nuqs/adapters/tanstack-router";
-import { MotionProvider } from "@/components/providers/MotionProvider";
-import { QueryProvider } from "@/components/providers/QueryProvider";
-import { ConvexClientProvider } from "@/components/providers/ConvexClientProvider";
-import { EnsureUser } from "@/components/providers/EnsureUser";
+import { MotionProvider } from "@/providers/MotionProvider";
+import { QueryProvider } from "@/providers/QueryProvider";
+import { ConvexClientProvider } from "@/providers/ConvexClientProvider";
+import { EnsureUser } from "@/providers/EnsureUser";
 
 export function ClientProvider({ children }: { children: React.ReactNode }) {
   return (

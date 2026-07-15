@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { createFileRoute, Outlet, useMatchRoute } from "@tanstack/react-router";
-import PageContainer from "@/components/PageContainer";
+import PageContainer from "@/components/shell/PageContainer";
 import MemoryListHeaderControls from "@/components/_components/MemoryListHeaderControls";
 import GraphHeaderControls from "@/components/_components/GraphHeaderControls";
 import { MemoriesTabs } from "./-components/MemoriesTabs";

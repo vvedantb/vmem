@@ -23,9 +23,9 @@ import {
   IconFileText,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
-import { useMemoryContext } from "@/components/contexts/MemoryContext";
+import { useMemoryContext } from "@/contexts/MemoryContext";
 import { memorySchema, type MemoryFormValues } from "@/lib/schemas";
-import { ProfileDropdown } from "./ProfileDropdown";
+import { ProfileDropdown } from "@/components/profiles/ProfileDropdown";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 import { buildTagStats } from "@/lib/memories";
 import { formatFileSize } from "@/components/files/_utils";

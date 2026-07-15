@@ -3,11 +3,11 @@ import { useConvexAuth, useAction } from "convex/react";
 import { useQuery as useTanstackQuery } from "@tanstack/react-query";
 import { IconAlertCircle, IconRefresh } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
-import { useActiveProfile } from "./workspace/active-profile";
-import { DashboardLoadingSkeleton } from "./dashboard/DashboardLoadingSkeleton";
-import { DashboardStatCards } from "./dashboard/DashboardStatCards";
-import { DreamPortraitCard } from "./dashboard/DreamPortraitCard";
-import { MemoryGrowthChart } from "./dashboard/MemoryGrowthChart";
+import { useActiveProfile } from "@/components/workspace/active-profile";
+import { DashboardLoadingSkeleton } from "./DashboardLoadingSkeleton";
+import { DashboardStatCards } from "./DashboardStatCards";
+import { DreamPortraitCard } from "./DreamPortraitCard";
+import { MemoryGrowthChart } from "./MemoryGrowthChart";
 
 export default function Dashboard() {
   const { isAuthenticated } = useConvexAuth();

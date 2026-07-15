@@ -1,5 +1,5 @@
 import { IconChecklist, IconBell } from "@tabler/icons-react";
-import { RouteTabs } from "@/components/RouteTabs";
+import { RouteTabs } from "@/components/shell/RouteTabs";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 
 export function InboxTabs() {

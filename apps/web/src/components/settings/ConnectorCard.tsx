@@ -5,17 +5,17 @@ import { toast } from "sonner";
 import { IconLoader2, IconAlertCircle, IconClock } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 import OAuthModal from "./OAuthModal";
-import { GitHubConnectorControls } from "./settings/GitHubConnectorControls";
-import DeleteConnectorDataDialog from "./settings/DeleteConnectorDataDialog";
-import DisconnectConnectorDialog from "./settings/DisconnectConnectorDialog";
-import ConnectorActionsMenu from "./settings/ConnectorActionsMenu";
+import { GitHubConnectorControls } from "./GitHubConnectorControls";
+import DeleteConnectorDataDialog from "./DeleteConnectorDataDialog";
+import DisconnectConnectorDialog from "./DisconnectConnectorDialog";
+import ConnectorActionsMenu from "./ConnectorActionsMenu";
 import {
   isConnectorConnected,
   isConnectorConnectable,
   isGitHubConnector,
   resolveConnectorIcon,
   type Connector,
-} from "./settings/connector-utils";
+} from "./connector-utils";
 import { formatRelativeTime } from "@vmem/shared";
 
 interface ConnectorCardProps {

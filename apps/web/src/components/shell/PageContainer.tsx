@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { useEffect } from "react";
 import { motion } from "motion/react";
 import { cn, motionDuration, motionEase, motionDistance } from "@vmem/ui";
-import { usePageTitle } from "./contexts/PageTitleContext";
+import { usePageTitle } from "@/contexts/PageTitleContext";
 
 interface PageContainerProps {
   title?: string;

@@ -1,9 +1,9 @@
 import { useCallback } from "react";
 import { useLocalStorage } from "usehooks-ts";
 import { useHotkey } from "@tanstack/react-hotkeys";
-import Sidebar from "@/components/Sidebar";
-import { CommandPalette } from "@/components/CommandPalette";
-import { PageTitleProvider } from "@/components/contexts/PageTitleContext";
+import Sidebar from "@/components/shell/Sidebar";
+import { CommandPalette } from "@/components/shell/CommandPalette";
+import { PageTitleProvider } from "@/contexts/PageTitleContext";
 import { WikiSidebarProvider } from "@/components/wiki/WikiSidebarContext";
 
 export default function MainShell({ children }: { children: React.ReactNode }) {

@@ -5,7 +5,7 @@ import { ClerkProvider, useAuth } from "@clerk/clerk-react";
 import { routeTree } from "./routeTree.gen";
 import { env } from "./env";
 import { convex } from "./lib/convex-client";
-import { AppSkeleton } from "./components/AppSkeleton";
+import { AppSkeleton } from "./components/shell/AppSkeleton";
 import { isChunkLoadError } from "./lib/utils/isChunkLoadError";
 import { saveMcpOauthParamsFromUrl } from "./lib/mcpOauthStorage";
 import "./globals.css";

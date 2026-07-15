@@ -11,7 +11,7 @@ import {
 } from "@vmem/ui";
 import { IconPlus } from "@tabler/icons-react";
 import { AnimatedKeyIcon, VmemSpinner } from "@/components/icons/animations";
-import ApiKeyModal from "@/components/ApiKeyModal";
+import ApiKeyModal from "@/components/api-keys/ApiKeyModal";
 import { ApiKeyRow } from "@/components/api-keys/ApiKeyRow";
 import DestructiveConfirmDialog from "@/components/settings/DestructiveConfirmDialog";
 import { EditKeyDialog } from "@/components/api-keys/EditKeyDialog";

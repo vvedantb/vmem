@@ -17,7 +17,7 @@ import {
   type Connector,
   type GitHubConnection,
 } from "./connector-utils";
-import OAuthModal from "@/components/OAuthModal";
+import OAuthModal from "@/components/settings/OAuthModal";
 import { GitHubConnectorControls } from "./GitHubConnectorControls";
 
 function ConnectorRow({

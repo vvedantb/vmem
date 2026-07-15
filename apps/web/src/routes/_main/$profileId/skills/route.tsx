@@ -11,7 +11,7 @@ import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
 import { IconBolt } from "@tabler/icons-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import PageContainer from "@/components/PageContainer";
+import PageContainer from "@/components/shell/PageContainer";
 import { SkillsHub } from "@/components/skills/SkillsHub";
 import { SystemSkillDetail } from "@/components/skills/SystemSkillDetail";
 import { ViewSkillPanel } from "@/components/skills/ViewSkillPanel";

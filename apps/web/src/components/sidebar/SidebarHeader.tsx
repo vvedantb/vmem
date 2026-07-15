@@ -7,7 +7,7 @@ import {
   IconLayoutSidebarLeftCollapse,
   IconLayoutSidebarLeftExpandFilled,
 } from "@tabler/icons-react";
-import { VmemBrand, VmemBrandText } from "@/components/VmemBrand";
+import { VmemBrand, VmemBrandText } from "@/components/shell/VmemBrand";
 import { VmemDrawInIcon } from "../icons/animations";
 import type { SidebarNavView } from "./SidebarNavigation";
 import { getSubSidebarTitle } from "./sidebar-header-titles";

@@ -6,7 +6,7 @@ import { useQuery as useTanstackQuery } from "@tanstack/react-query";
 import { api } from "@vmem/backend";
 import { getGraphSettings, setGraphSettings } from "@/lib/graph-cookies";
 import { useGraphData } from "@/hooks/useGraphData";
-import { useThemeContext } from "@/components/contexts/ThemeContext";
+import { useThemeContext } from "@/contexts/ThemeContext";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 import { useMemoriesSearchParams } from "@/hooks/useMemoriesSearchParams";
 import type { GraphScope } from "@/lib/url-state/memories";

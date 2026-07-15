@@ -2,7 +2,7 @@ import { useMutation } from "convex/react";
 import { api } from "@vmem/backend";
 import type { WikiListNode, WikiNodeId } from "./-types";
 import { toast } from "sonner";
-import { BulkSelectionDeleteBar } from "@/components/BulkSelectionDeleteBar";
+import { BulkSelectionDeleteBar } from "@/components/shell/BulkSelectionDeleteBar";
 import { collectSubtreeIds } from "./_utils";
 
 interface WikiBulkDeleteBarProps {

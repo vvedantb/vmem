@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 import { api } from "@vmem/backend";
 import { Dialog, DialogContent, DialogTitle } from "@vmem/ui";
-import PageContainer from "@/components/PageContainer";
+import PageContainer from "@/components/shell/PageContainer";
 import { buildTree, findAncestors, wikiKindHasContent } from "./_utils";
 import type { OutlineHeading } from "./_utils";
 import type { WikiNodeDoc } from "./-types";

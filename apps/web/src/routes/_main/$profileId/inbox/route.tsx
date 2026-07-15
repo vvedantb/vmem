@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { createFileRoute, Outlet, useMatchRoute } from "@tanstack/react-router";
-import PageContainer from "@/components/PageContainer";
+import PageContainer from "@/components/shell/PageContainer";
 import { InboxTabs } from "./-components/InboxTabs";
 import { NotificationsRightSection } from "./-components/NotificationsPanel";
 import { ProposalsRightSection } from "./-components/ProposalsPanel";

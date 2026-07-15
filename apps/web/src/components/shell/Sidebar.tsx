@@ -17,20 +17,23 @@ import {
 import { useUser } from "@clerk/clerk-react";
 import { useConvexAuth, useAction, useQuery } from "convex/react";
 import { api } from "@vmem/backend";
-import { useNotifications } from "./contexts/NotificationContext";
+import { useNotifications } from "@/contexts/NotificationContext";
 import { useProposals } from "@/hooks/useProposals";
 import { useMemoryEvents } from "@/hooks/useMemoryEvents";
 import { IconX } from "@tabler/icons-react";
-import { MorphingMenuIcon } from "./icons/animations";
+import { MorphingMenuIcon } from "@/components/icons/animations";
 import {
   SidebarNavigation,
   navViewFromPathname,
-} from "./sidebar/SidebarNavigation";
-import { SidebarHeader } from "./sidebar/SidebarHeader";
-import { SidebarFooter, type SidebarStats } from "./sidebar/SidebarFooter";
-import { SidebarWorkspaceSwitcher } from "./sidebar/SidebarWorkspaceSwitcher";
-import { usePageTitle } from "./contexts/PageTitleContext";
-import { useActiveProfileId } from "./workspace/active-profile";
+} from "@/components/sidebar/SidebarNavigation";
+import { SidebarHeader } from "@/components/sidebar/SidebarHeader";
+import {
+  SidebarFooter,
+  type SidebarStats,
+} from "@/components/sidebar/SidebarFooter";
+import { SidebarWorkspaceSwitcher } from "@/components/sidebar/SidebarWorkspaceSwitcher";
+import { usePageTitle } from "@/contexts/PageTitleContext";
+import { useActiveProfileId } from "@/components/workspace/active-profile";
 
 type SidebarProps = {
   isCollapsed: boolean;

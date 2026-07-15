@@ -1,7 +1,7 @@
 // animated notification icons with self-drawing effects
 
 import { motion } from "motion/react";
-import type { NotificationType } from "@/components/contexts/NotificationContext";
+import type { NotificationType } from "@/contexts/NotificationContext";
 
 interface AnimatedNotificationIconProps {
   type: NotificationType;

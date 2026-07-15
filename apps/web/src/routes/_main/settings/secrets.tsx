@@ -3,8 +3,8 @@ import { useQuery, useMutation, useAction } from "convex/react";
 import { IconInfoCircle } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 import { Card, CardContent } from "@vmem/ui";
-import PageContainer from "@/components/PageContainer";
-import { EnvVarsTable } from "@/components/EnvVarsTable";
+import PageContainer from "@/components/shell/PageContainer";
+import { EnvVarsTable } from "@/components/settings/EnvVarsTable";
 
 export const Route = createFileRoute("/_main/settings/secrets")({
   component: SecretsPage,

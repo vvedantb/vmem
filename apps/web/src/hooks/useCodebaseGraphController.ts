@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { useQueryStates } from "nuqs";
-import { useThemeContext } from "@/components/contexts/ThemeContext";
+import { useThemeContext } from "@/contexts/ThemeContext";
 import {
   useCodebaseGraphData,
   type CodeNode,

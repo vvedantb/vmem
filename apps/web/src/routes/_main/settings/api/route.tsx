@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, useMatchRoute } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { Button } from "@vmem/ui";
 import { IconPlus } from "@tabler/icons-react";
-import PageContainer from "@/components/PageContainer";
+import PageContainer from "@/components/shell/PageContainer";
 import { ApiTabs, getActiveApiTab } from "./-components/ApiTabs";
 import {
   ApiCreateKeyProvider,

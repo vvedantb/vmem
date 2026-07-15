@@ -16,7 +16,7 @@ import {
 } from "@vmem/ui";
 import { IconDots, IconPencil, IconPlus, IconTrash } from "@tabler/icons-react";
 import { toast } from "sonner";
-import PageContainer from "@/components/PageContainer";
+import PageContainer from "@/components/shell/PageContainer";
 import { ViewSkillPanel } from "@/components/skills/ViewSkillPanel";
 import { SystemSkillFormDialog } from "@/components/skills/SystemSkillFormDialog";
 import DestructiveConfirmDialog from "@/components/settings/DestructiveConfirmDialog";

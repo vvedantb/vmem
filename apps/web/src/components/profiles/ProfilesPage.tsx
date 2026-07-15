@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Button, Skeleton } from "@vmem/ui";
 import { IconPlus } from "@tabler/icons-react";
 import { api, type Id } from "@vmem/backend";
-import PageContainer from "@/components/PageContainer";
+import PageContainer from "@/components/shell/PageContainer";
 import { CreateEditProfileDialog } from "./CreateEditProfileDialog";
 import { DefaultProfilesSection } from "./DefaultProfilesSection";
 import { ProfileCard } from "./ProfileCard";

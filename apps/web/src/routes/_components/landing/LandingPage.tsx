@@ -2,7 +2,7 @@ import { IconBolt, IconBrain, IconTopologyStar3 } from "@tabler/icons-react";
 import { motion, useScroll, useTransform } from "motion/react";
 import { useMediaQuery } from "usehooks-ts";
 import { Button, motionDuration, motionEase } from "@vmem/ui";
-import { VmemBrand } from "@/components/VmemBrand";
+import { VmemBrand } from "@/components/shell/VmemBrand";
 import { LandingAmbientGraph } from "./LandingAmbientGraph";
 import { LandingHero } from "./LandingHero";
 import { LandingHowItWorks } from "./LandingHowItWorks";

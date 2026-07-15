@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-07-15 — Reorganize web providers and loose components
+
+Moved `providers/` and `contexts/` out of `components/` to top-level
+`src/providers` and `src/contexts`. Tucked loose root components into domain
+folders (`shell/`, `memories/`, etc.) so `components/` is domain-only.
+
 ## 2026-07-15 — Drop client optimistic mutation wrappers
 
 Removed Convex `.withOptimisticUpdate` from web and the chrome extension.

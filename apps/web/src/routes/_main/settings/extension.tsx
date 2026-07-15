@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { Label, Switch, Skeleton, Card, CardContent } from "@vmem/ui";
 import { api } from "@vmem/backend";
-import PageContainer from "@/components/PageContainer";
+import PageContainer from "@/components/shell/PageContainer";
 import { useUserSettingsSave } from "@/hooks/useUserSettingsSave";
 
 export const Route = createFileRoute("/_main/settings/extension")({

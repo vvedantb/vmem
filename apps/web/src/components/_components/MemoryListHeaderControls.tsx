@@ -13,11 +13,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@vmem/ui";
-import AddMemoryIconTrigger from "@/components/AddMemoryIconTrigger";
+import AddMemoryIconTrigger from "@/components/memories/AddMemoryIconTrigger";
 import HeaderSearchInput from "./HeaderSearchInput";
 import { MemoryFiltersButton } from "@/routes/_main/$profileId/memories/_components/MemoryFiltersButton";
 import { CLEARED_MEMORY_VIEW_FILTERS } from "@/lib/memory-view-filters";
-import { useThemeContext } from "@/components/contexts/ThemeContext";
+import { useThemeContext } from "@/contexts/ThemeContext";
 import type { ListViewMode } from "@/lib/url-state/memories";
 import { useMemoryListFilterStats } from "@/hooks/useMemoryListFilterStats";
 import { useMemoriesSearchParams } from "@/hooks/useMemoriesSearchParams";

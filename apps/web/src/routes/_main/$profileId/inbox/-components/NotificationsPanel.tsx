@@ -20,8 +20,8 @@ import {
   AnimatedNotificationIcon,
   AnimatedBellIcon,
 } from "@/components/icons/animations";
-import { useNotifications } from "@/components/contexts/NotificationContext";
-import type { NotificationType } from "@/components/contexts/NotificationContext";
+import { useNotifications } from "@/contexts/NotificationContext";
+import type { NotificationType } from "@/contexts/NotificationContext";
 import { formatRelativeTime } from "@vmem/shared";
 
 function getIconBackground(type: NotificationType) {

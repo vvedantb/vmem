@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { api } from "@vmem/backend";
 import { Button } from "@vmem/ui";
 import { IconDatabase, IconPlus } from "@tabler/icons-react";
-import PageContainer from "@/components/PageContainer";
+import PageContainer from "@/components/shell/PageContainer";
 import { AddRepoModal } from "@/components/codebases/AddRepoModal";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 

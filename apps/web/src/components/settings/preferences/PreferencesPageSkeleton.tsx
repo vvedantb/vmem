@@ -1,5 +1,5 @@
 import { Card, CardContent, Skeleton } from "@vmem/ui";
-import PageContainer from "@/components/PageContainer";
+import PageContainer from "@/components/shell/PageContainer";
 
 export function PreferencesPageSkeleton() {
   return (

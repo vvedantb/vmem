@@ -2,10 +2,10 @@ import { AuthLoading, Authenticated, Unauthenticated } from "convex/react";
 import { useTheme } from "next-themes";
 import { Navigate } from "@tanstack/react-router";
 import { SonnerToaster, TooltipProvider } from "@vmem/ui";
-import { AppSkeleton } from "@/components/AppSkeleton";
-import { ThemeProvider } from "@/components/contexts/ThemeContext";
-import { NotificationProvider } from "@/components/contexts/NotificationContext";
-import { MemoryProvider } from "@/components/contexts/MemoryContext";
+import { AppSkeleton } from "@/components/shell/AppSkeleton";
+import { ThemeProvider } from "@/contexts/ThemeContext";
+import { NotificationProvider } from "@/contexts/NotificationContext";
+import { MemoryProvider } from "@/contexts/MemoryContext";
 
 // forward resolved theme to sonner (light until next-themes hydrates)
 function ThemedSonnerToaster() {

@@ -24,12 +24,15 @@ import {
   relatedMemoriesQueryKey,
   uniqueRelated,
 } from "@/lib/memories";
-import { useMemoryContext } from "@/components/contexts/MemoryContext";
+import { useMemoryContext } from "@/contexts/MemoryContext";
 import { toast } from "sonner";
-import { DetailsTabView, DetailsTabEdit } from "./_components/DetailsTab";
-import HistoryTab from "./_components/HistoryTab";
-import RelatedMemories from "./_components/RelatedMemories";
-import { MemorySourceLabel } from "./_components/MemorySourceLabel";
+import {
+  DetailsTabView,
+  DetailsTabEdit,
+} from "@/components/_components/DetailsTab";
+import HistoryTab from "@/components/_components/HistoryTab";
+import RelatedMemories from "@/components/_components/RelatedMemories";
+import { MemorySourceLabel } from "@/components/_components/MemorySourceLabel";
 import DestructiveConfirmDialog from "@/components/settings/DestructiveConfirmDialog";
 
 type PanelTab = "details" | "history" | "connections";

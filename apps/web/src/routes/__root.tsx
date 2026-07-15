@@ -1,5 +1,5 @@
 import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
-import { ClientProvider } from "@/components/providers/ClientProvider";
+import { ClientProvider } from "@/providers/ClientProvider";
 import { LegacyPathRedirect } from "@/components/workspace/LegacyPathRedirect";
 
 export interface RouterContext {

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { createFileRoute, Outlet, useMatchRoute } from "@tanstack/react-router";
-import PageContainer from "@/components/PageContainer";
+import PageContainer from "@/components/shell/PageContainer";
 import { ActivityTabs } from "@/components/activity/ActivityTabs";
 import { AiLogsRightSection } from "@/components/activity/AiLogsPanel";
 import { EventsRightSection } from "@/components/activity/EventsPanel";

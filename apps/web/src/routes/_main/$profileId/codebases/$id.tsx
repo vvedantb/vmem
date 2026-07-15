@@ -4,7 +4,7 @@ import { useQuery, useAction } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api, type Id } from "@vmem/backend";
 import { isCodebaseSyncStalled } from "@vmem/shared";
-import PageContainer from "@/components/PageContainer";
+import PageContainer from "@/components/shell/PageContainer";
 import { Breadcrumb, BreadcrumbPage, Button } from "@vmem/ui";
 import {
   IconArrowLeft,

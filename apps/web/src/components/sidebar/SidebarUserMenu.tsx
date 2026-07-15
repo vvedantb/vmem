@@ -24,7 +24,7 @@ import {
   IconAlertTriangle,
   IconLoader2,
 } from "@tabler/icons-react";
-import { useThemeContext } from "../contexts/ThemeContext";
+import { useThemeContext } from "@/contexts/ThemeContext";
 import { SidebarIconTooltip } from "./SidebarIconTooltip";
 
 type SidebarUserMenuProps = {

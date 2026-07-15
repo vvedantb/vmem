@@ -10,13 +10,13 @@ import {
 } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 import MemoryDetailPanel from "./MemoryDetailPanel";
-import ListItemPreviewPanel from "./_components/ListItemPreviewPanel";
-import { MemoryVirtuosoList } from "./_components/MemoryVirtuosoList";
-import AnimatedSearchIcon from "./_components/AnimatedSearchIcon";
+import ListItemPreviewPanel from "@/components/_components/ListItemPreviewPanel";
+import { MemoryVirtuosoList } from "@/components/_components/MemoryVirtuosoList";
+import AnimatedSearchIcon from "@/components/_components/AnimatedSearchIcon";
 import { VmemSpinner } from "@/components/icons/animations";
 import { memoryFromApi, type Memory } from "@/lib/memories";
 import type { ListItem } from "@/lib/list-items";
-import { useThemeContext } from "@/components/contexts/ThemeContext";
+import { useThemeContext } from "@/contexts/ThemeContext";
 import { useTrailData } from "@/hooks/useTrailData";
 import { useMemoryListEntries } from "@/hooks/useMemoryListEntries";
 import { useMemoriesSearchParams } from "@/hooks/useMemoriesSearchParams";

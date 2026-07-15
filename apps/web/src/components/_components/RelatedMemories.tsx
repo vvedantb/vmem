@@ -30,7 +30,7 @@ import {
   uniqueRelated,
   type RelatedMemoryEntry,
 } from "@/lib/memories";
-import LinkMemoryModal from "@/components/LinkMemoryModal";
+import LinkMemoryModal from "@/components/memories/LinkMemoryModal";
 import { DetailEmptyState } from "./detail-panel/DetailEmptyState";
 import { VmemSpinner } from "@/components/icons/animations";
 
