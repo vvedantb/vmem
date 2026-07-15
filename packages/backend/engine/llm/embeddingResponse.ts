@@ -3,9 +3,28 @@ export interface EmbeddingItem {
   index: number;
 }
 
-export interface RawEmbeddingItem {
+interface RawEmbeddingItem {
   embedding: number[] | string;
   index?: number;
+}
+
+function parseEmbeddingItem(
+  item: RawEmbeddingItem,
+  dimensions: number,
+  fallbackIndex: number,
+): EmbeddingItem {
+  if (!Array.isArray(item.embedding)) {
+    throw new Error("embedding response: item missing embedding array");
+  }
+  if (item.embedding.length !== dimensions) {
+    throw new Error(
+      `embedding response: expected ${String(dimensions)} dims, got ${String(item.embedding.length)}`,
+    );
+  }
+  return {
+    embedding: item.embedding,
+    index: item.index ?? fallbackIndex,
+  };
 }
 
 export function validateEmbeddingItems(
@@ -18,22 +37,5 @@ export function validateEmbeddingItems(
       `embedding response: expected ${String(expectedCount)} items, got ${String(data.length)}`,
     );
   }
-
-  const items: EmbeddingItem[] = [];
-  for (const item of data) {
-    if (!Array.isArray(item.embedding)) {
-      throw new Error("embedding response: item missing embedding array");
-    }
-    if (item.embedding.length !== dimensions) {
-      throw new Error(
-        `embedding response: expected ${String(dimensions)} dims, got ${String(item.embedding.length)}`,
-      );
-    }
-    items.push({
-      embedding: item.embedding,
-      index: item.index ?? items.length,
-    });
-  }
-
-  return items;
+  return data.map((item, index) => parseEmbeddingItem(item, dimensions, index));
 }

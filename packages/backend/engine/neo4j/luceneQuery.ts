@@ -6,8 +6,5 @@ export function escapeLuceneQuery(text: string): string {
 
 export function toMemoryContentFulltextQuery(userQuery: string): string | null {
   const trimmed = userQuery.trim();
-  if (trimmed.length === 0) {
-    return null;
-  }
-  return escapeLuceneQuery(trimmed);
+  return trimmed.length === 0 ? null : escapeLuceneQuery(trimmed);
 }

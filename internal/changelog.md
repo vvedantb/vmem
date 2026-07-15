@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-07-15 — Engine stage 4: utility cleanup
+
+Linearize GitHub tarball extraction with `pipeline`, consolidate LLM JSON
+parsing exports, map-based embedding validation, and light Neo4j helper
+trims — with expanded characterization tests for archive and JSON edges.
+
 ## 2026-07-15 — Engine stage 3: simplify memory operations
 
 Replace Cypher Builder memory updates with explicit SET fragments, tighten
