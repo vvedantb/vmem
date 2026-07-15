@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-07-15 — Fix extension save-page success toast
+
+Keyboard shortcut save now checks `savePageFromTab` success before toasting.
+Declared `motion` on the extension package and dropped dead live-verify scripts.
+
 ## 2026-07-15 — Simplify web lib parsers, filters, and URL state
 
 Move Claude parsing into parseClaudeExport, drop list-item filter wrappers,

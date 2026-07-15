@@ -1,5 +1,6 @@
 import { savePageFromTab } from "./context-menu";
 import { injectPageToast } from "./inject-page-toast";
+import { toastForSaveResult } from "./save-toast";
 
 async function triggerScreenshot(tabId: number): Promise<void> {
   try {
@@ -37,8 +38,9 @@ export async function handleCommand(command: string): Promise<void> {
     const tabId = tab.id;
 
     try {
-      await savePageFromTab(tab);
-      await injectPageToast(tabId, "✓ Page saved to vmem", "#4ade80");
+      const result = await savePageFromTab(tab);
+      const toast = toastForSaveResult(result);
+      await injectPageToast(tabId, toast.message, toast.color);
     } catch (err) {
       console.error("[vmem] Keyboard shortcut save failed:", err);
       try {
