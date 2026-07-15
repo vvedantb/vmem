@@ -1,7 +1,7 @@
 import { IconBolt, IconBrain, IconTopologyStar3 } from "@tabler/icons-react";
 import { motion, useScroll, useTransform } from "motion/react";
 import { useMediaQuery } from "usehooks-ts";
-import { motionDuration, motionEase } from "@vmem/ui";
+import { Button, motionDuration, motionEase } from "@vmem/ui";
 import { VmemBrand } from "@/components/shell/VmemBrand";
 import { LandingAmbientGraph } from "./LandingAmbientGraph";
 import { LandingHero } from "./LandingHero";
@@ -91,7 +91,7 @@ export function LandingPage() {
         <LandingHowItWorks />
 
         <motion.footer
-          className="mt-12 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 sm:mt-16 md:mt-20"
+          className="mt-12 flex flex-col gap-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 sm:mt-16 sm:flex-row sm:items-center sm:justify-between md:mt-20"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{
@@ -104,6 +104,16 @@ export function LandingPage() {
             Graph storage, vector recall, and MCP-ready integrations for any
             agent stack.
           </p>
+          <Button
+            type="button"
+            variant="link"
+            className="h-auto shrink-0 p-0 text-left text-sm text-muted hover:text-foreground sm:text-right active:scale-100"
+            onClick={() => {
+              window.location.href = "/api/auth/agent-login";
+            }}
+          >
+            Continue without an account →
+          </Button>
         </motion.footer>
       </div>
     </div>

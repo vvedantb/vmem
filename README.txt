@@ -200,6 +200,9 @@ Chrome extension (WXT): after ext:build or ext:dev, load unpacked from
   or apps/chrome-extension/dist/chrome-mv3-dev/
 See apps/chrome-extension/README.md.
 
+Dev agent login: visit /?agent (needs CLERK_SECRET_KEY + AGENT_CLERK_USER_ID
+in apps/web/.env.local).
+
 ========================================================================
 ENVIRONMENT
 ========================================================================
@@ -215,6 +218,8 @@ Example env templates (copy to .env.local — do not commit secrets):
 Web (apps/web/.env.local):
   VITE_CONVEX_URL=https://<deployment>.convex.cloud
   VITE_CLERK_PUBLISHABLE_KEY=pk_...
+  CLERK_SECRET_KEY=sk_...            optional, /?agent
+  AGENT_CLERK_USER_ID=user_...       optional, /?agent
 
 Convex dashboard (minimum):
   CLERK_FRONTEND_API_URL

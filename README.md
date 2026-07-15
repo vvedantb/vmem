@@ -168,6 +168,8 @@ pnpm eval:bench      # bench user only — seeds, reports, cleans up (safe on sh
 
 See [`apps/chrome-extension/README.md`](apps/chrome-extension/README.md) for setup details.
 
+Visit `/?agent` during web dev to auto sign in as the agent user (requires `CLERK_SECRET_KEY` + `AGENT_CLERK_USER_ID` in `apps/web/.env.local`).
+
 ## Environment
 
 Example env files are checked in for the runnable surfaces:
@@ -187,6 +189,8 @@ Copy the relevant file to `.env.local` before running that surface.
 ```
 VITE_CONVEX_URL=https://<deployment>.convex.cloud
 VITE_CLERK_PUBLISHABLE_KEY=pk_...
+CLERK_SECRET_KEY=sk_...          # optional, for /?agent dev login
+AGENT_CLERK_USER_ID=user_...     # optional, for /?agent dev login
 ```
 
 **Convex dashboard** (Settings → Environment Variables) — minimum:
