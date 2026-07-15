@@ -1,10 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery, useMutation } from "convex/react";
-import { toast } from "sonner";
+import { useQuery } from "convex/react";
 import { Label, Switch, Skeleton, Card, CardContent } from "@vmem/ui";
 import { api } from "@vmem/backend";
 import PageContainer from "@/components/PageContainer";
-import { patchUserSettingsOptimistic } from "./-optimisticUserSettings";
+import { useUserSettingsSave } from "@/hooks/useUserSettingsSave";
 
 export const Route = createFileRoute("/_main/settings/extension")({
   component: ExtensionSettingsPage,
@@ -12,20 +11,7 @@ export const Route = createFileRoute("/_main/settings/extension")({
 
 function ExtensionSettingsPage() {
   const settings = useQuery(api.userSettings.get);
-  const updateSettings = useMutation(
-    api.userSettings.update,
-  ).withOptimisticUpdate(patchUserSettingsOptimistic);
-
-  const saveSettings = async (
-    patch: Parameters<typeof updateSettings>[0],
-  ): Promise<void> => {
-    try {
-      await updateSettings(patch);
-      toast.success("Saved!");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save");
-    }
-  };
+  const { saveSettings } = useUserSettingsSave();
 
   if (settings === undefined) {
     return (

@@ -8,7 +8,6 @@
   transform: scale(1.15);
 }
 
-.sb-chat-dot,
 .sb-file-back,
 .sb-db-top,
 .sb-bolt,
@@ -16,26 +15,6 @@
 .sb-gear {
   transform-box: fill-box;
   transform-origin: center;
-}
-
-@keyframes sb-chat-bounce {
-  0%,
-  60%,
-  100% {
-    transform: translateY(0);
-  }
-  30% {
-    transform: translateY(-2.5px);
-  }
-}
-.group:hover .sb-chat-dot-1 {
-  animation: sb-chat-bounce 1.1s ease-in-out infinite;
-}
-.group:hover .sb-chat-dot-2 {
-  animation: sb-chat-bounce 1.1s ease-in-out 0.15s infinite;
-}
-.group:hover .sb-chat-dot-3 {
-  animation: sb-chat-bounce 1.1s ease-in-out 0.3s infinite;
 }
 
 .sb-mem-core,

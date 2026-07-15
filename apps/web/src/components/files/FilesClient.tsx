@@ -4,12 +4,12 @@ import { useMemo } from "react";
 import { useQueryStates } from "nuqs";
 import type { Id } from "@vmem/backend";
 import { VmemSpinner } from "@/components/svg-animations";
-import type { FileItem, FolderBreadcrumb, FileTreeNode } from "./-types";
+import type { FolderBreadcrumb, FileTreeNode } from "./-types";
 import PageContainer from "@/components/PageContainer";
 import FileUploadModal from "@/components/FileUploadModal";
 import FilePreviewModal from "@/components/FilePreviewModal";
-import { filesSearchParams } from "./-searchParams";
-import { childCountMap, fileCategoryForNode, sortNodes } from "./_utils";
+import { filesSearchParams } from "./search-params";
+import { childCountMap, sortNodes } from "./_utils";
 import { useFileSelection } from "./_hooks/useFileSelection";
 import { useFilesData } from "./_hooks/useFilesData";
 import { useFilesActions } from "./_hooks/useFilesActions";
@@ -62,26 +62,6 @@ function resolveFolderId(
 ): Id<"fileNodes"> | null {
   if (folderIdParam === null) return null;
   return nodes.find((node) => node._id === folderIdParam)?._id ?? null;
-}
-
-function toPreviewFile(node: FileTreeNode): FileItem {
-  const fileCategory = fileCategoryForNode(node);
-  const url = node.url ?? undefined;
-  return {
-    id: node._id,
-    name: node.name,
-    itemType: node.kind,
-    mimeType: node.mimeType ?? "",
-    fileCategory,
-    size: node.size ?? 0,
-    uploadedAt: new Date(node.createdAt).toISOString(),
-    parentFolderId: node.parentId ?? null,
-    thumbnailUrl:
-      node.kind === "file" && fileCategory === "image" ? url : undefined,
-    url,
-    memoryId: node.memoryId,
-    indexStatus: node.indexStatus,
-  };
 }
 
 export default function FilesClient() {
@@ -241,7 +221,7 @@ export default function FilesClient() {
 
       <FilePreviewModal
         isOpen={actions.isPreviewOpen}
-        file={previewNodeLive ? toPreviewFile(previewNodeLive) : null}
+        node={previewNodeLive ?? null}
         onClose={actions.closePreview}
         onDelete={() => {
           if (previewNodeLive) void actions.handleDelete(previewNodeLive);

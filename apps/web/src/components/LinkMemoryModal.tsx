@@ -17,13 +17,13 @@ import { IconLink, IconLoader2, IconSearch } from "@tabler/icons-react";
 import { Virtuoso } from "react-virtuoso";
 import { toast } from "sonner";
 import { api } from "@vmem/backend";
+import { formatCompactRelativeTime } from "@vmem/shared";
 import {
   formatMemorySourceLabel,
   formatMemoryTypeLabel,
-  timeAgo,
   type Memory,
 } from "@/lib/memories";
-import { useMemoryContext } from "@/components/contexts/MemoryContext";
+import { useRecentMemories } from "@/hooks/useRecentMemories";
 import { DetailEmptyState } from "@/components/_components/detail-panel/DetailEmptyState";
 
 const TAGS_PREVIEW = 2;
@@ -124,7 +124,7 @@ function LinkMemoryRow({
             {formatMemorySourceLabel(memory.source)}
           </Badge>
           <span className="text-[11px] text-muted tabular-nums">
-            {timeAgo(memory.createdAt)}
+            {formatCompactRelativeTime(memory.createdAt)}
           </span>
           {memory.tags.slice(0, TAGS_PREVIEW).map((tag) => (
             <Badge key={tag} variant="secondary" className="h-5 text-[10px]">
@@ -150,7 +150,7 @@ export default function LinkMemoryModal({
   onLinked,
 }: LinkMemoryModalProps) {
   const linkMemories = useAction(api.relationshipApi.linkMemories);
-  const { memories } = useMemoryContext();
+  const { memories } = useRecentMemories();
   const [search, setSearch] = useState("");
   const [linkingId, setLinkingId] = useState<string | null>(null);
 

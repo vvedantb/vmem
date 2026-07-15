@@ -1,4 +1,4 @@
-import { AnimatedProgress } from "@/components/svg-animations";
+import { Progress } from "@vmem/ui";
 
 interface StorageStatusBarProps {
   itemCount: number;
@@ -21,11 +21,7 @@ export default function StorageStatusBar({
         {itemCount} {itemCount === 1 ? "item" : "items"} · {usedGB.toFixed(2)}{" "}
         GB of {limitGB} GB
       </span>
-      <AnimatedProgress
-        value={percent}
-        height={4}
-        className="flex-1 max-w-32"
-      />
+      <Progress value={percent} className="h-1 flex-1 max-w-32" />
     </div>
   );
 }

@@ -13,7 +13,6 @@ interface ThemeContextType {
   isDark: boolean;
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
-  mounted: boolean;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -68,7 +67,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         isDark,
         setTheme: handleSetTheme,
         toggleTheme,
-        mounted,
       }}
     >
       {children}

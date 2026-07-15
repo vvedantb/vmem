@@ -13,52 +13,30 @@ import { toast } from "sonner";
 import {
   IconDownload,
   IconTrash,
-  IconFile,
-  IconPhoto,
   IconFileTypePdf,
-  IconFileTypeDoc,
-  IconFileTypeXls,
   IconX,
   IconLoader2,
 } from "@tabler/icons-react";
-import type { FileItem } from "@/components/files/-types";
-import { formatFileSize } from "@/components/files/_utils";
+import type { FileTreeNode } from "@/components/files/-types";
+import {
+  downloadFileNode,
+  fileCategoryForNode,
+  formatDateTime,
+  formatFileSize,
+  getFileIcon,
+  imageThumbnailUrl,
+} from "@/components/files/_utils";
 
 interface FilePreviewModalProps {
   isOpen: boolean;
-  file: FileItem | null;
+  node: FileTreeNode | null;
   onClose: () => void;
-  onDelete: (file: FileItem) => Promise<void> | void;
-}
-
-function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
-function getFileIcon(category: string) {
-  switch (category) {
-    case "pdf":
-      return IconFileTypePdf;
-    case "image":
-      return IconPhoto;
-    case "doc":
-      return IconFileTypeDoc;
-    case "excel":
-      return IconFileTypeXls;
-    default:
-      return IconFile;
-  }
+  onDelete: (node: FileTreeNode) => Promise<void> | void;
 }
 
 export default function FilePreviewModal({
   isOpen,
-  file,
+  node,
   onClose,
   onDelete,
 }: FilePreviewModalProps) {
@@ -66,12 +44,12 @@ export default function FilePreviewModal({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleDelete = useCallback(async () => {
-    if (!file) return;
+    if (!node) return;
 
     setIsDeleting(true);
 
     try {
-      await onDelete(file);
+      await onDelete(node);
       setShowDeleteConfirm(false);
       onClose();
     } catch (error) {
@@ -81,25 +59,16 @@ export default function FilePreviewModal({
     } finally {
       setIsDeleting(false);
     }
-  }, [file, onDelete, onClose]);
+  }, [node, onDelete, onClose]);
 
   const handleDownload = useCallback(() => {
-    if (!file) return;
-    if (!file.url) {
+    if (!node) return;
+    if (!downloadFileNode(node)) {
       toast.error("Download URL unavailable");
       return;
     }
-    const link = document.createElement("a");
-    link.href = file.url;
-    link.download = file.name;
-    link.target = "_blank";
-    link.rel = "noopener";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    toast.success(`Downloading ${file.name}`);
-  }, [file]);
+    toast.success(`Downloading ${node.name}`);
+  }, [node]);
 
   const handleClose = useCallback(() => {
     setShowDeleteConfirm(false);
@@ -117,9 +86,11 @@ export default function FilePreviewModal({
     if (!open) setShowDeleteConfirm(false);
   }, []);
 
-  if (!file) return null;
+  if (!node) return null;
 
-  const FileIcon = getFileIcon(file.fileCategory);
+  const fileCategory = fileCategoryForNode(node);
+  const FileIcon = getFileIcon(fileCategory);
+  const thumbnailUrl = imageThumbnailUrl(node);
 
   return (
     <>
@@ -135,7 +106,7 @@ export default function FilePreviewModal({
                   <FileIcon size={20} className="text-muted" />
                 </div>
                 <DialogTitle className="text-foreground text-lg font-semibold truncate">
-                  {file.name}
+                  {node.name}
                 </DialogTitle>
               </div>
               <Button
@@ -151,22 +122,21 @@ export default function FilePreviewModal({
 
           <div className="space-y-6 py-2">
             <div className="rounded-lg bg-surface-secondary/50 overflow-hidden">
-              {file.fileCategory === "image" && file.thumbnailUrl ? (
+              {fileCategory === "image" && thumbnailUrl ? (
                 <div className="flex min-h-72 items-center justify-center p-4">
                   <img
-                    src={file.thumbnailUrl}
-                    alt={file.name}
+                    src={thumbnailUrl}
+                    alt={node.name}
                     className="max-h-96 max-w-full rounded object-contain"
                   />
                 </div>
-              ) : file.fileCategory === "pdf" ? (
+              ) : fileCategory === "pdf" ? (
                 <div className="flex min-h-72 flex-col items-center justify-center gap-4 p-8">
                   <IconFileTypePdf size={64} className="text-danger" />
                   <div className="text-center">
                     <p className="text-foreground font-medium">PDF Document</p>
                     <p className="text-sm text-muted mt-1">
-                      {file.previewContent ||
-                        "PDF preview not available in mock mode"}
+                      PDF preview not available
                     </p>
                   </div>
                 </div>
@@ -178,15 +148,9 @@ export default function FilePreviewModal({
                       File Preview
                     </span>
                   </div>
-                  {file.previewContent ? (
-                    <pre className="text-sm text-foreground whitespace-pre-wrap font-mono">
-                      {file.previewContent}
-                    </pre>
-                  ) : (
-                    <p className="text-sm text-muted text-center py-8">
-                      Preview not available for this file type
-                    </p>
-                  )}
+                  <p className="text-sm text-muted text-center py-8">
+                    Preview not available for this file type
+                  </p>
                 </div>
               )}
             </div>
@@ -194,15 +158,19 @@ export default function FilePreviewModal({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm font-medium text-muted mb-1">File Size</p>
-                <p className="text-foreground">{formatFileSize(file.size)}</p>
+                <p className="text-foreground">
+                  {formatFileSize(node.size ?? 0)}
+                </p>
               </div>
               <div>
                 <p className="text-sm font-medium text-muted mb-1">Type</p>
-                <p className="text-foreground">{file.mimeType}</p>
+                <p className="text-foreground">{node.mimeType ?? "Unknown"}</p>
               </div>
               <div className="col-span-2">
                 <p className="text-sm font-medium text-muted mb-1">Uploaded</p>
-                <p className="text-foreground">{formatDate(file.uploadedAt)}</p>
+                <p className="text-foreground">
+                  {formatDateTime(node.createdAt)}
+                </p>
               </div>
             </div>
           </div>
@@ -235,7 +203,7 @@ export default function FilePreviewModal({
 
           <div className="py-2">
             <p className="text-muted">
-              Are you sure you want to delete &quot;{file.name}&quot;? This
+              Are you sure you want to delete &quot;{node.name}&quot;? This
               action cannot be undone.
             </p>
           </div>

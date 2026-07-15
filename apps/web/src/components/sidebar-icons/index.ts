@@ -1,4 +1,5 @@
 // custom animated icons for the root sidebar nav
+import "./sidebar-icons.css";
 
 export { IconMemories } from "./IconMemories";
 export { IconTeams } from "./IconTeams";

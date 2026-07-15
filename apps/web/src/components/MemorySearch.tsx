@@ -10,67 +10,18 @@ import {
   IconMoodEmpty,
   IconRefresh,
 } from "@tabler/icons-react";
-import { Virtuoso } from "react-virtuoso";
 import { api } from "@vmem/backend";
 import MemoryDetailPanel from "./MemoryDetailPanel";
-import ListItemRow from "./_components/ListItemRow";
 import ListItemPreviewPanel from "./_components/ListItemPreviewPanel";
+import { MemoryVirtuosoList } from "./_components/MemoryVirtuosoList";
 import AnimatedSearchIcon from "./_components/AnimatedSearchIcon";
 import { VmemSpinner } from "@/components/svg-animations";
 import { memoryFromApi, type Memory } from "@/lib/memories";
 import type { ListItem } from "@/lib/list-items";
 import { useThemeContext } from "@/components/contexts/ThemeContext";
 import { useTrailData } from "@/hooks/useTrailData";
-import type { TrailEntry } from "@/hooks/useTrailData";
-import {
-  useMemoryListEntries,
-  type MemoryListEntry,
-} from "@/hooks/useMemoryListEntries";
-import { useMemoriesSearchParams } from "@/routes/_main/$profileId/memories/useMemoriesSearchParams";
-
-interface MemoryListVirtuosoContext {
-  selectedItemId: string | null;
-  trailMap: Map<string, TrailEntry>;
-  isDark: boolean;
-  onMemoryClick: (memory: Memory) => void;
-  onItemSelect: (item: ListItem) => void;
-  onContextEdit: (memory: Memory) => void;
-  onContextDelete: (memory: Memory) => void;
-}
-
-function MemoryListVirtuosoRow({
-  entry,
-  context,
-}: {
-  entry: MemoryListEntry;
-  context?: MemoryListVirtuosoContext;
-}) {
-  if (!context) return null;
-  return (
-    <div className="pb-1.5">
-      <ListItemRow
-        item={entry.item}
-        relevanceScore={entry.score}
-        trace={entry.trace}
-        isSelected={context.selectedItemId === entry.item.id}
-        trailEntry={context.trailMap.get(entry.item.id)}
-        isDark={context.isDark}
-        onMemoryClick={context.onMemoryClick}
-        onItemSelect={context.onItemSelect}
-        onContextEdit={context.onContextEdit}
-        onContextDelete={context.onContextDelete}
-      />
-    </div>
-  );
-}
-
-function renderMemoryListVirtuosoRow(
-  _index: number,
-  entry: MemoryListEntry,
-  context?: MemoryListVirtuosoContext,
-) {
-  return <MemoryListVirtuosoRow entry={entry} context={context} />;
-}
+import { useMemoryListEntries } from "@/hooks/useMemoryListEntries";
+import { useMemoriesSearchParams } from "@/hooks/useMemoriesSearchParams";
 
 function MemoryListStatus({
   variant,
@@ -206,8 +157,7 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
   const [params] = useMemoriesSearchParams();
   const getMemory = useAction(api.memoryApi.getMemory);
   const list = useMemoryListEntries();
-  const { theme } = useThemeContext();
-  const isDark = theme === "dark";
+  const { isDark } = useThemeContext();
 
   const trailTag =
     params.tags.length === 1 ? (params.tags.at(0) ?? null) : null;
@@ -367,13 +317,13 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
                   : "flex-1",
               )}
             >
-              <Virtuoso
-                data={list.displayItems}
-                className="scrollbar-thin"
-                context={{
-                  selectedItemId,
-                  trailMap,
-                  isDark,
+              <MemoryVirtuosoList
+                entries={list.displayItems}
+                selectedItemId={selectedItemId}
+                trailMap={trailMap}
+                isDark={isDark}
+                onEndReached={handleEndReached}
+                handlers={{
                   onMemoryClick: handleMemoryClick,
                   onItemSelect: handleItemSelect,
                   onContextEdit: (memory) => {
@@ -385,11 +335,6 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
                     setPanelAction("delete");
                   },
                 }}
-                computeItemKey={(_index, entry) => entry.item.id}
-                defaultItemHeight={44}
-                endReached={handleEndReached}
-                itemContent={renderMemoryListVirtuosoRow}
-                style={{ height: "100%" }}
               />
             </div>
 
