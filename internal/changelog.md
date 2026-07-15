@@ -6,8 +6,10 @@ Moved graph helpers and URL search schemas into `lib/`, extracted fat
 preferences/profiles/activity surfaces into components, and shared metric
 cards, confirm dialogs, and list-filter helpers across dashboard and settings.
 Sidebar `navView` is URL-derived; wiki/skills/teams use shared optimistic
-helpers and destructive confirms. Extension adopts Clerk SW Convex tokens,
-zod message unions, and `usehooks-ts` in the popup.
+helpers and destructive confirms. `DestructiveConfirmDialog` now supports
+typed confirm and covers memory/file/env/wiki/system-skill deletes.
+Extension adopts Clerk SW Convex tokens, zod message unions, and
+`usehooks-ts` in the popup.
 
 ## 2026-07-14 — Memory API contract alignment
 

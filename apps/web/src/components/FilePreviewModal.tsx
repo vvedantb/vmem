@@ -15,7 +15,6 @@ import {
   IconTrash,
   IconFileTypePdf,
   IconX,
-  IconLoader2,
 } from "@tabler/icons-react";
 import { formatDateTime } from "@vmem/shared";
 import type { FileTreeNode } from "@/components/files/-types";
@@ -26,6 +25,7 @@ import {
   getFileIcon,
   imageThumbnailUrl,
 } from "@/components/files/_utils";
+import DestructiveConfirmDialog from "@/components/settings/DestructiveConfirmDialog";
 
 interface FilePreviewModalProps {
   isOpen: boolean;
@@ -81,10 +81,6 @@ export default function FilePreviewModal({
     },
     [handleClose],
   );
-
-  const handleDeleteConfirmOpenChange = useCallback((open: boolean) => {
-    if (!open) setShowDeleteConfirm(false);
-  }, []);
 
   if (!node) return null;
 
@@ -192,46 +188,20 @@ export default function FilePreviewModal({
         </DialogContent>
       </Dialog>
 
-      <Dialog
+      <DestructiveConfirmDialog
         open={showDeleteConfirm}
-        onOpenChange={handleDeleteConfirmOpenChange}
+        onClose={() => setShowDeleteConfirm(false)}
+        title="Delete File"
+        description="This action cannot be undone."
+        confirmLabel="Delete"
+        submittingLabel="Deleting..."
+        submitting={isDeleting}
+        onConfirm={() => {
+          void handleDelete();
+        }}
       >
-        <DialogContent className="max-w-sm" hideCloseButton>
-          <DialogHeader className="border-b border-separator pb-4">
-            <DialogTitle className="text-foreground">Delete File</DialogTitle>
-          </DialogHeader>
-
-          <div className="py-2">
-            <p className="text-muted">
-              Are you sure you want to delete &quot;{node.name}&quot;? This
-              action cannot be undone.
-            </p>
-          </div>
-
-          <DialogFooter className="border-t border-separator pt-4">
-            <Button
-              variant="ghost"
-              onClick={() => setShowDeleteConfirm(false)}
-              disabled={isDeleting}
-              className="text-muted"
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={isDeleting}
-            >
-              {isDeleting ? (
-                <IconLoader2 size={16} className="animate-spin" />
-              ) : (
-                <IconTrash size={16} />
-              )}
-              {isDeleting ? "Deleting..." : "Delete"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        Are you sure you want to delete &quot;{node.name}&quot;?
+      </DestructiveConfirmDialog>
     </>
   );
 }

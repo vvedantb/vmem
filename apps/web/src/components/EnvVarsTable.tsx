@@ -19,6 +19,7 @@ import {
   TableHead,
   TableCell,
 } from "@vmem/ui";
+import DestructiveConfirmDialog from "@/components/settings/DestructiveConfirmDialog";
 import {
   IconCheck,
   IconClipboard,
@@ -512,37 +513,21 @@ export function EnvVarsTable({
         </DialogContent>
       </Dialog>
 
-      <Dialog
+      <DestructiveConfirmDialog
         open={deleteKey !== null}
-        onOpenChange={(open) => {
-          if (!open) setDeleteKey(null);
+        onClose={() => setDeleteKey(null)}
+        title="Delete Variable"
+        description="This cannot be undone."
+        confirmLabel="Delete"
+        submittingLabel="Deleting..."
+        submitting={false}
+        onConfirm={() => {
+          void confirmDelete();
         }}
       >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Variable</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted">
-            Are you sure you want to delete{" "}
-            <span className="font-mono font-medium text-foreground">
-              {deleteKey}
-            </span>
-            ? This cannot be undone.
-          </p>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setDeleteKey(null)}
-            >
-              Cancel
-            </Button>
-            <Button size="sm" variant="destructive" onClick={confirmDelete}>
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        Are you sure you want to delete{" "}
+        <span className="font-mono font-medium">{deleteKey}</span>?
+      </DestructiveConfirmDialog>
     </div>
   );
 }

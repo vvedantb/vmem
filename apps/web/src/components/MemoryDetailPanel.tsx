@@ -4,11 +4,6 @@ import { useState, useEffect } from "react";
 import { useAction } from "convex/react";
 import { useQuery as useTanstackQuery } from "@tanstack/react-query";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
   Button,
   Badge,
   Tabs,
@@ -22,13 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@vmem/ui";
 import { formatDate } from "@vmem/shared";
-import {
-  IconLoader2,
-  IconTrash,
-  IconX,
-  IconDots,
-  IconPencil,
-} from "@tabler/icons-react";
+import { IconTrash, IconX, IconDots, IconPencil } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 import type { Memory } from "@/lib/memories";
 import { formatMemoryTypeLabel } from "@/lib/memories";
@@ -41,8 +30,9 @@ import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { toast } from "sonner";
 import { DetailsTabView, DetailsTabEdit } from "./_components/DetailsTab";
 import HistoryTab from "./_components/HistoryTab";
-import ConnectionsTab from "./_components/ConnectionsTab";
+import RelatedMemories from "./_components/RelatedMemories";
 import { MemorySourceLabel } from "./_components/MemorySourceLabel";
+import DestructiveConfirmDialog from "@/components/settings/DestructiveConfirmDialog";
 
 type PanelTab = "details" | "history" | "connections";
 
@@ -239,7 +229,7 @@ export default function MemoryDetailPanel({
           </TabsContent>
 
           <TabsContent value="connections" className={TAB_PANEL_CLASS}>
-            <ConnectionsTab
+            <RelatedMemories
               memoryId={memory.id}
               onSelectRelated={onSelectRelated}
             />
@@ -247,44 +237,20 @@ export default function MemoryDetailPanel({
         </Tabs>
       </div>
 
-      <Dialog
+      <DestructiveConfirmDialog
         open={showDeleteConfirm}
-        onOpenChange={(value) => {
-          if (!value) setShowDeleteConfirm(false);
+        onClose={() => setShowDeleteConfirm(false)}
+        title="Delete Memory"
+        description="This action cannot be undone."
+        confirmLabel="Delete"
+        submittingLabel="Deleting..."
+        submitting={isDeleting}
+        onConfirm={() => {
+          void handleDelete();
         }}
       >
-        <DialogContent className="max-w-sm">
-          <DialogHeader className="pb-5">
-            <DialogTitle className="text-foreground">Delete Memory</DialogTitle>
-          </DialogHeader>
-          <p className="text-muted py-2">
-            Are you sure you want to delete &quot;{memory.title}&quot;? This
-            action cannot be undone.
-          </p>
-          <DialogFooter className="pt-5">
-            <Button
-              variant="ghost"
-              onClick={() => setShowDeleteConfirm(false)}
-              disabled={isDeleting}
-              className="text-muted"
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={isDeleting}
-            >
-              {isDeleting ? (
-                <IconLoader2 size={16} className="animate-spin" />
-              ) : (
-                <IconTrash size={16} />
-              )}
-              {isDeleting ? "Deleting..." : "Delete"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        Are you sure you want to delete &quot;{memory.title}&quot;?
+      </DestructiveConfirmDialog>
     </>
   );
 }

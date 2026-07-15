@@ -3,15 +3,7 @@
 import { useState } from "react";
 import type { WikiListNode, WikiNodeId } from "./-types";
 import { wikiKindLabel } from "./_utils";
-import {
-  Button,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@vmem/ui";
+import DestructiveConfirmDialog from "@/components/settings/DestructiveConfirmDialog";
 
 interface DeleteConfirmDialogProps {
   target: WikiListNode | null;
@@ -39,31 +31,24 @@ export default function DeleteConfirmDialog({
 
   const isFolder = target?.kind === "folder";
   const kindLabel = target ? wikiKindLabel(target.kind) : "document";
+  const title = target?.title ?? "";
 
   return (
-    <Dialog open={target !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-sm">
-        <DialogHeader>
-          <DialogTitle>Delete {kindLabel}?</DialogTitle>
-          <DialogDescription>
-            {isFolder
-              ? `"${target?.title}" and everything inside it will be permanently removed.`
-              : `"${target?.title}" will be permanently removed.`}
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <Button variant="ghost" onClick={onClose} disabled={submitting}>
-            Cancel
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={() => void handleConfirm()}
-            disabled={submitting}
-          >
-            Delete
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <DestructiveConfirmDialog
+      open={target !== null}
+      onClose={onClose}
+      title={`Delete ${kindLabel}?`}
+      description={
+        isFolder
+          ? `"${title}" and everything inside it will be permanently removed.`
+          : `"${title}" will be permanently removed.`
+      }
+      confirmLabel="Delete"
+      submittingLabel="Deleting..."
+      submitting={submitting}
+      onConfirm={() => {
+        void handleConfirm();
+      }}
+    />
   );
 }

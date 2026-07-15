@@ -9,12 +9,6 @@ import {
   BreadcrumbLink,
   BreadcrumbPage,
   Button,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -22,17 +16,12 @@ import {
   DropdownMenuTrigger,
   Switch,
 } from "@vmem/ui";
-import {
-  IconDots,
-  IconLoader2,
-  IconPencil,
-  IconPlus,
-  IconTrash,
-} from "@tabler/icons-react";
+import { IconDots, IconPencil, IconPlus, IconTrash } from "@tabler/icons-react";
 import { toast } from "sonner";
 import PageContainer from "@/components/PageContainer";
 import { ViewSkillPanel } from "@/components/skills/ViewSkillPanel";
 import { SystemSkillFormDialog } from "@/components/skills/SystemSkillFormDialog";
+import DestructiveConfirmDialog from "@/components/settings/DestructiveConfirmDialog";
 import {
   patchSystemSkillCatalog,
   type SystemSkillEntry,
@@ -311,45 +300,18 @@ export function SystemSkillDetail({
         onOpenChange={setEditing}
       />
 
-      <Dialog
+      <DestructiveConfirmDialog
         open={deleteOpen}
-        onOpenChange={(open) => {
-          if (!deleting) setDeleteOpen(open);
+        onClose={() => setDeleteOpen(false)}
+        title="Delete system skill?"
+        description={`“${entry.name}” will be removed from the catalog and uninstalled for everyone who added it.`}
+        confirmLabel="Delete"
+        submittingLabel="Deleting..."
+        submitting={deleting}
+        onConfirm={() => {
+          void handleDelete();
         }}
-      >
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Delete system skill?</DialogTitle>
-            <DialogDescription>
-              “{entry.name}” will be removed from the catalog and uninstalled
-              for everyone who added it.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setDeleteOpen(false)}
-              disabled={deleting}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={() => void handleDelete()}
-              disabled={deleting}
-            >
-              {deleting ? (
-                <IconLoader2 size={14} className="animate-spin" />
-              ) : (
-                <IconTrash size={14} />
-              )}
-              {deleting ? "Deleting..." : "Delete"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      />
     </PageContainer>
   );
 }

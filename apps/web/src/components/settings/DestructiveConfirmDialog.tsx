@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import {
   Button,
   Dialog,
@@ -9,6 +9,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  Input,
 } from "@vmem/ui";
 import { IconLoader2 } from "@tabler/icons-react";
 
@@ -21,7 +22,13 @@ type DestructiveConfirmDialogProps = {
   submittingLabel: string;
   submitting: boolean;
   onConfirm: () => void;
+  /** Highlighted line above the muted description (body slot). */
   children?: ReactNode;
+  /**
+   * When set, confirm stays disabled until the user types this phrase
+   * (case-insensitive, trimmed).
+   */
+  confirmPhrase?: string;
 };
 
 export default function DestructiveConfirmDialog({
@@ -34,7 +41,21 @@ export default function DestructiveConfirmDialog({
   submitting,
   onConfirm,
   children,
+  confirmPhrase,
 }: DestructiveConfirmDialogProps) {
+  const confirmInputId = useId();
+  const [typedConfirm, setTypedConfirm] = useState("");
+
+  useEffect(() => {
+    if (open) setTypedConfirm("");
+  }, [open]);
+
+  const phraseRequired = confirmPhrase !== undefined;
+  const phraseMatches =
+    !phraseRequired ||
+    typedConfirm.trim().toLowerCase() === confirmPhrase.trim().toLowerCase();
+  const confirmDisabled = submitting || !phraseMatches;
+
   return (
     <Dialog
       open={open}
@@ -57,6 +78,30 @@ export default function DestructiveConfirmDialog({
             <DialogDescription>{description}</DialogDescription>
           )}
         </DialogHeader>
+        {phraseRequired ? (
+          <div className="space-y-2">
+            <label htmlFor={confirmInputId} className="text-sm text-muted">
+              Type{" "}
+              <span className="font-mono text-foreground">{confirmPhrase}</span>{" "}
+              to confirm
+            </label>
+            <Input
+              id={confirmInputId}
+              autoComplete="off"
+              autoFocus
+              value={typedConfirm}
+              onChange={(e) => setTypedConfirm(e.target.value)}
+              disabled={submitting}
+              placeholder={confirmPhrase}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && phraseMatches && !submitting) {
+                  e.preventDefault();
+                  onConfirm();
+                }
+              }}
+            />
+          </div>
+        ) : null}
         <DialogFooter>
           <Button variant="ghost" onClick={onClose} disabled={submitting}>
             Cancel
@@ -64,7 +109,7 @@ export default function DestructiveConfirmDialog({
           <Button
             variant="destructive"
             onClick={onConfirm}
-            disabled={submitting}
+            disabled={confirmDisabled}
           >
             {submitting ? (
               <IconLoader2 size={14} className="animate-spin" />
