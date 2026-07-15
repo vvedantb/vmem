@@ -36,14 +36,19 @@ export type MirroredStorageKey = keyof typeof CONVEX_SETTINGS_MIRROR;
 export type MirroredConvexKey =
   (typeof CONVEX_SETTINGS_MIRROR)[MirroredStorageKey];
 
+type StorageMirrorSettings = Pick<ExtensionUserSettings, MirroredConvexKey> & {
+  defaultProfiles: ExtensionUserSettings["defaultProfiles"];
+};
+
 // project convex userSettings → the chrome.storage mirror subset
 export function convexSettingsToStorageMirror(
-  settings: Pick<ExtensionUserSettings, MirroredConvexKey>,
-): Pick<ExtensionStorage, MirroredStorageKey> {
+  settings: StorageMirrorSettings,
+): Pick<ExtensionStorage, MirroredStorageKey | "defaultProfileId"> {
   return {
     autoSyncEnabled: settings.extensionAutoSyncEnabled,
     autoSyncIntervalMinutes: settings.extensionAutoSyncIntervalMinutes,
     selectionPopupEnabled: settings.extensionSelectionPopupEnabled,
+    defaultProfileId: settings.defaultProfiles?.extension ?? "",
   };
 }
 

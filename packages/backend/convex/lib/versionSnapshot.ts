@@ -19,6 +19,38 @@ export async function resolveVersionAuthorLabel(
   return author?.fullName ?? author?.firstName ?? "Member";
 }
 
+export async function mapVersionAuthorSummaries<IdT>(
+  ctx: QueryCtx,
+  currentUserId: Id<"users">,
+  versions: Array<{
+    _id: IdT;
+    createdAt: number;
+    source: VersionSource;
+    authorUserId: Id<"users">;
+  }>,
+): Promise<
+  Array<{
+    _id: IdT;
+    createdAt: number;
+    source: VersionSource;
+    authorLabel: string;
+  }>
+> {
+  return Promise.all(
+    versions.map(async (ver) => ({
+      _id: ver._id,
+      createdAt: ver.createdAt,
+      source: ver.source,
+      authorLabel: await resolveVersionAuthorLabel(
+        ctx,
+        currentUserId,
+        ver.authorUserId,
+        ver.source,
+      ),
+    })),
+  );
+}
+
 interface SnapshotMeta {
   source: VersionSource;
   authorUserId: Id<"users">;

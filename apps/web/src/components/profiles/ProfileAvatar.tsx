@@ -1,7 +1,7 @@
 import { cn } from "@vmem/ui";
 import { getProfileIcon } from "./profile-icon";
 
-// colored icon chip used in workspace switcher / profile cards
+// coloured icon chip used in workspace switcher / profile cards
 export function ProfileAvatar({
   icon,
   color,

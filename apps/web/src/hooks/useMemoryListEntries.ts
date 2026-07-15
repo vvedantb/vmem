@@ -7,8 +7,8 @@ import { useMemoryListFlat } from "@/hooks/useMemoryList";
 import { useMemoryListSupplementaryItems } from "@/hooks/useMemoryListSupplementaryItems";
 import { useMemoriesSearchParams } from "@/hooks/useMemoriesSearchParams";
 import type { MemoryViewFilterParams } from "@/lib/memory-view-filters";
+import { kindPassesFilter } from "@/lib/memory-view-filters";
 import {
-  listItemMatchesKindFilter,
   listItemPassesFilters,
   memoryToListItem,
   searchListItems,
@@ -44,7 +44,7 @@ function passesMultiSelectFilters(
 export function useMemoryListEntries() {
   const activeProfile = useActiveProfile();
   const [params] = useMemoriesSearchParams();
-  const { supplementaryItems } = useMemoryListSupplementaryItems();
+  const supplementaryItems = useMemoryListSupplementaryItems();
 
   const filters = useMemo<MemoryViewFilterParams>(
     () => ({
@@ -105,7 +105,7 @@ export function useMemoryListEntries() {
           .filter(
             (item) =>
               passesMultiSelectFilters(item, params.types, params.sources) &&
-              listItemMatchesKindFilter(item, params.kinds),
+              kindPassesFilter(item.kind, params.kinds),
           )
       : [];
 
@@ -159,17 +159,15 @@ export function useMemoryListEntries() {
     retrieveQuery.data,
   ]);
 
-  const memoriesStatus = isHybridSearch
-    ? {
-        isLoading: retrieveQuery.isLoading,
-        isError: retrieveQuery.isError,
-        refetch: retrieveQuery.refetch,
-      }
-    : {
-        isLoading: memoryPage.isLoading,
-        isError: memoryPage.isError,
-        refetch: memoryPage.refetch,
-      };
+  const isMemoriesLoading = isHybridSearch
+    ? retrieveQuery.isLoading
+    : memoryPage.isLoading;
+  const isMemoriesError = isHybridSearch
+    ? retrieveQuery.isError
+    : memoryPage.isError;
+  const refetchMemories = isHybridSearch
+    ? retrieveQuery.refetch
+    : memoryPage.refetch;
 
   return {
     activeProfileId: activeProfile._id,
@@ -177,13 +175,11 @@ export function useMemoryListEntries() {
     memoryResults,
     isHybridSearch,
     isShowingSearchResults,
-    isMemoriesLoading: memoriesStatus.isLoading,
-    isMemoriesError: memoriesStatus.isError,
-    refetchMemories: memoriesStatus.refetch,
+    isMemoriesLoading,
+    isMemoriesError,
+    refetchMemories,
     hasNextPage: memoryPage.hasNextPage,
     fetchNextPage: memoryPage.fetchNextPage,
     isFetchingNextPage: memoryPage.isFetchingNextPage,
-    isBrowseMemoriesLoading: memoryPage.isLoading,
-    isRetrieveLoading: retrieveQuery.isLoading,
   };
 }

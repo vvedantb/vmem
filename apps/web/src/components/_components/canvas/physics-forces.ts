@@ -3,8 +3,10 @@ import {
   forceCollide,
   forceLink,
   forceManyBody,
+  forceSimulation,
   forceX,
   forceY,
+  type Simulation,
   type SimulationLinkDatum,
   type SimulationNodeDatum,
 } from "d3-force";
@@ -22,6 +24,8 @@ const LINK_DISTANCE_SIZE_MULT = 3;
 const COLLIDE_PAD = 12;
 // soft inertia (obsidian-like); d3 default is 0.4
 export const VELOCITY_DECAY = 0.3;
+// below this alpha the layout is visually static
+export const SLEEP_ALPHA = 0.005;
 
 interface PhysicsNode extends SimulationNodeDatum {
   id: string;
@@ -58,7 +62,7 @@ export function createGraphForces<
   profile: PhysicsProfile,
 ): GraphForces<N, L> {
   // no .strength() override — d3's default (1 / min(endpoint degree)) is the
-  // degree normalization described above
+  // degree normalisation described above
   const link = forceLink<N, L>(structuralEdges)
     .id((d) => d.id)
     .distance(
@@ -97,4 +101,28 @@ export function createGraphForces<
       centerY.strength(g * CENTER_MULT);
     },
   };
+}
+
+export function createStoppedSimulation<
+  N extends PhysicsNode,
+  L extends SimulationLinkDatum<N>,
+>(
+  nodes: N[],
+  forces: GraphForces<N, L>,
+  profile: PhysicsProfile,
+): Simulation<N, L> {
+  const simulation = forceSimulation<N, L>(nodes)
+    .force("link", forces.link)
+    .force("charge", forces.charge)
+    .force("centerX", forces.centerX)
+    .force("centerY", forces.centerY)
+    .alphaDecay(profile.alphaDecay)
+    .velocityDecay(VELOCITY_DECAY)
+    .stop();
+
+  if (forces.collide) {
+    simulation.force("collide", forces.collide);
+  }
+
+  return simulation;
 }

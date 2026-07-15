@@ -15,6 +15,7 @@ import { authAction, authMutation, authQuery } from "./auth";
 import { encryptToken, getEnvOrThrow } from "./lib/crypto";
 import { createGithubOctokit } from "../engine/github/octokit";
 import { z } from "zod";
+import { githubConnectionFields } from "./validators";
 
 export const getConnection = authQuery({
   args: {},
@@ -161,13 +162,7 @@ export const getConnectionInternal = internalQuery({
 });
 
 export const upsertConnectionInternal = internalMutation({
-  args: {
-    userId: v.id("users"),
-    githubUsername: v.string(),
-    encryptedAccessToken: v.string(),
-    avatarUrl: v.optional(v.string()),
-    connectedAt: v.number(),
-  },
+  args: githubConnectionFields,
   handler: async (ctx, args) => {
     const existing = await getConnectionForUser(ctx, args.userId);
     const { userId, ...fields } = args;

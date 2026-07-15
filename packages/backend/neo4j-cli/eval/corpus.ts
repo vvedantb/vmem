@@ -1,14 +1,38 @@
-// labelled retrieval benchmark corpus (~480 memories, ~74 queries)
+// labelled retrieval benchmark corpus (488 memories, 36 relationships, 84 queries)
 
 import { readFileSync } from "node:fs";
 import { z } from "zod";
-import type {
-  SeedMemory,
-  SeedMemoryType,
-  SeedMemoryStatus,
-  SeedRelationship,
-} from "../seed/types";
-import type { RetrievalEvalQuery } from "./queries";
+
+export type SeedMemoryType = "profile" | "episodic" | "knowledge";
+export type SeedMemoryStatus = "active" | "pinned";
+
+export interface SeedMemory {
+  id: string;
+  userId: string;
+  title: string;
+  content: string;
+  type: SeedMemoryType;
+  source: string;
+  confidence: number;
+  status: SeedMemoryStatus;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+  expiresAt: null;
+}
+
+export interface SeedRelationship {
+  sourceId: string;
+  targetId: string;
+  reason: string;
+}
+
+export interface RetrievalEvalQuery {
+  query: string;
+  expectedTitles: string[];
+  relevance?: Record<string, number>;
+  type?: string;
+}
 
 export const BENCH_USER_ID = "user_vmem_bench_eval";
 const SOURCE = "bench-corpus";
@@ -366,58 +390,49 @@ function singleAnswerScenario(
   };
 }
 
-function buildScenarios(): Scenario[] {
-  const scenarios: Scenario[] = [];
-
-  for (let i = 0; i < MULTI_HOP_COUNT; i++) scenarios.push(multiHop(i));
-  for (let i = 0; i < PROJECT_COUNT; i++) scenarios.push(projectCluster(i));
-  for (let i = 0; i < TEMPORAL_COUNT; i++) scenarios.push(temporalUpdate(i));
-
-  SINGLE_FACTS.forEach((f, i) => {
-    scenarios.push(
-      singleAnswerScenario(
-        `sf${String(i)}`,
-        "single-fact",
-        "knowledge",
-        ["fact"],
-        f.title,
-        f.content,
-        f.query,
-      ),
-    );
-  });
-
-  PREFERENCES.forEach((p, i) => {
-    scenarios.push(
-      singleAnswerScenario(
-        `pref${String(i)}`,
-        "preference",
-        "profile",
-        ["preferences"],
-        p.title,
-        p.content,
-        p.query,
-      ),
-    );
-  });
-
-  TRAPS.forEach((tr, i) => {
+const SCENARIOS: Scenario[] = [
+  ...Array.from({ length: MULTI_HOP_COUNT }, (_, i) => multiHop(i)),
+  ...Array.from({ length: PROJECT_COUNT }, (_, i) => projectCluster(i)),
+  ...Array.from({ length: TEMPORAL_COUNT }, (_, i) => temporalUpdate(i)),
+  ...SINGLE_FACTS.map((f, i) =>
+    singleAnswerScenario(
+      `sf${String(i)}`,
+      "single-fact",
+      "knowledge",
+      ["fact"],
+      f.title,
+      f.content,
+      f.query,
+    ),
+  ),
+  ...PREFERENCES.map((p, i) =>
+    singleAnswerScenario(
+      `pref${String(i)}`,
+      "preference",
+      "profile",
+      ["preferences"],
+      p.title,
+      p.content,
+      p.query,
+    ),
+  ),
+  ...TRAPS.map((tr, i) => {
     const goldKey = `lt${String(i)}_gold`;
     const trapKey = `lt${String(i)}_trap`;
-    scenarios.push({
+    return {
       memories: [
         {
           key: goldKey,
           title: tr.goldTitle,
           content: tr.goldContent,
-          type: "knowledge",
+          type: "knowledge" as const,
           tags: ["fact"],
         },
         {
           key: trapKey,
           title: tr.trapTitle,
           content: tr.trapContent,
-          type: "episodic",
+          type: "episodic" as const,
           tags: ["misc"],
         },
       ],
@@ -428,24 +443,19 @@ function buildScenarios(): Scenario[] {
           relevance: { [goldKey]: 3, [trapKey]: 0 },
         },
       ],
-    });
-  });
-
-  scenarios.push(exactMatchScenario());
-
-  scenarios.push({
+    };
+  }),
+  exactMatchScenario(),
+  {
     memories: [],
     queries: ABSTENTIONS.map((q) => ({
       query: q,
       type: "abstention",
       relevance: {},
     })),
-  });
-
-  scenarios.push({ memories: fillerMemories(FILLER_COUNT), queries: [] });
-
-  return scenarios;
-}
+  },
+  { memories: fillerMemories(FILLER_COUNT), queries: [] },
+];
 
 function isoFromAgeDays(ageDays: number): string {
   return new Date(Date.now() - ageDays * 86_400_000).toISOString();
@@ -487,7 +497,7 @@ export function generateBenchmarkCorpus(): {
     });
   };
 
-  for (const scenario of buildScenarios()) {
+  for (const scenario of SCENARIOS) {
     for (const mem of scenario.memories) addMemory(mem);
     for (const rel of scenario.relationships ?? []) {
       relationships.push({

@@ -194,41 +194,35 @@ export async function getRecentActivity(
     relativeTime: string;
   }[]
 > {
-  return withSession(driver, async (session) => {
-    const pf = profileFilter(profileId, "m", { strict: strictProfile });
+  const pf = profileFilter(profileId, "m", { strict: strictProfile });
 
-    const result = await session.run(
-      `MATCH (e:MemoryEvent)-[:EVENT_FOR]->(m:Memory {userId: $userId})
-       WHERE true ${pf.clause}
-       RETURN e, m.title AS memoryTitle
-       ORDER BY e.createdAt DESC
-       LIMIT $limit`,
-      { userId, ...pf.params, limit: neo4j.int(limit) },
+  const result = await driver.executeQuery(
+    `MATCH (e:MemoryEvent)-[:EVENT_FOR]->(m:Memory {userId: $userId})
+     WHERE true ${pf.clause}
+     RETURN e, m.title AS memoryTitle
+     ORDER BY e.createdAt DESC
+     LIMIT $limit`,
+    { userId, ...pf.params, limit: neo4j.int(limit) },
+  );
+
+  const now = Date.now();
+  return result.records.map((record) => {
+    const props = parseNeo4jNodeProps(
+      neo4jGet(record, "e"),
+      activityEventPropsSchema,
     );
+    const memoryTitle = neo4jString(record, "memoryTitle");
+    const meta = activityMetaFor(props.action, memoryTitle, props.actor ?? "");
 
-    const now = Date.now();
-    return result.records.map((record) => {
-      const props = parseNeo4jNodeProps(
-        neo4jGet(record, "e"),
-        activityEventPropsSchema,
-      );
-      const memoryTitle = neo4jString(record, "memoryTitle");
-      const meta = activityMetaFor(
-        props.action,
-        memoryTitle,
-        props.actor ?? "",
-      );
-
-      return {
-        id: props.id,
-        type: meta.type,
-        title: "Memory",
-        description: meta.description,
-        timestamp: props.createdAt,
-        relativeTime: formatRelativeTime(
-          now - new Date(props.createdAt).getTime(),
-        ),
-      };
-    });
+    return {
+      id: props.id,
+      type: meta.type,
+      title: "Memory",
+      description: meta.description,
+      timestamp: props.createdAt,
+      relativeTime: formatRelativeTime(
+        now - new Date(props.createdAt).getTime(),
+      ),
+    };
   });
 }

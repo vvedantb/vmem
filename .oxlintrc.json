@@ -214,7 +214,7 @@
         "apps/web/src/components/workspace/LegacyPathRedirect.tsx",
         "apps/web/src/components/workspace/WorkspaceEntryRedirect.tsx",
         "apps/web/src/hooks/useMemoryEvents.ts",
-        "apps/web/src/hooks/useTimelineEvents.ts",
+        "apps/web/src/hooks/useMemoryTimeline.ts",
         "apps/web/src/hooks/useTrailData.ts",
         "apps/web/src/routes/_main/$profileId/activity/-components/EventsPanel.tsx",
         "apps/web/src/routes/_main/$profileId/codebases/index.tsx",

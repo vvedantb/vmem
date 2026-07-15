@@ -7,28 +7,36 @@ import { useLocalStorage } from "usehooks-ts";
 import { api } from "@vmem/backend";
 import type { Doc, Id } from "@vmem/backend";
 
-const ActiveProfileContext = createContext<Doc<"profiles"> | null>(null);
+const ActiveProfileIdContext = createContext<Id<"profiles"> | null>(null);
 
 export function ActiveProfileProvider({
-  profile,
+  profileId,
   children,
 }: {
-  profile: Doc<"profiles">;
+  profileId: Id<"profiles">;
   children: ReactNode;
 }) {
   return (
-    <ActiveProfileContext.Provider value={profile}>
+    <ActiveProfileIdContext.Provider value={profileId}>
       {children}
-    </ActiveProfileContext.Provider>
+    </ActiveProfileIdContext.Provider>
   );
 }
 
 export function useActiveProfile(): Doc<"profiles"> {
-  const profile = use(ActiveProfileContext);
-  if (profile === null) {
+  const profileId = use(ActiveProfileIdContext);
+  if (profileId === null) {
     throw new Error(
       "useActiveProfile must be used inside the $profileId workspace route",
     );
+  }
+  const profiles = useQuery(api.profiles.list);
+  if (profiles === undefined) {
+    throw new Error("Active profile is loading");
+  }
+  const profile = profiles.find((p) => p._id === profileId);
+  if (profile === undefined) {
+    throw new Error("Active profile not found");
   }
   return profile;
 }
@@ -59,16 +67,16 @@ export function useActiveProfileId(): string | undefined {
 }
 
 // team id for the active workspace (undefined = personal).
-// Prefer ActiveProfileProvider when inside /$profileId; fall back to a
-// profiles.list lookup for shell/sidebar outside that provider.
+// Prefer ActiveProfileProvider when inside /$profileId; fall back to URL /
+// last-visited id for shell/sidebar outside that provider.
 export function useActiveTeamId(): Id<"teams"> | undefined {
-  const fromContext = use(ActiveProfileContext);
-  const profileId = useActiveProfileId();
+  const profileIdFromContext = use(ActiveProfileIdContext);
+  const profileIdFromRoute = useActiveProfileId();
+  const resolvedProfileId = profileIdFromContext ?? profileIdFromRoute;
   const profiles = useQuery(
     api.profiles.list,
-    fromContext === null ? {} : "skip",
+    resolvedProfileId === undefined ? "skip" : {},
   );
-  if (fromContext !== null) return fromContext.teamId;
-  if (profileId === undefined) return undefined;
-  return profiles?.find((p) => p._id === profileId)?.teamId;
+  if (resolvedProfileId === undefined) return undefined;
+  return profiles?.find((p) => p._id === resolvedProfileId)?.teamId;
 }

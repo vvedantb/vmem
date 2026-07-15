@@ -24,24 +24,45 @@ export const memoryStatusSchema = z.enum([
   "expired",
 ]);
 
-const memoryNodePropsSchema = z.object({
-  id: z.string(),
-  userId: z.string(),
-  profileId: z.string().nullable().optional(),
-  title: z.string(),
-  content: z.string(),
-  type: memoryTypeSchema,
-  source: z.string(),
-  sourceType: z.string().nullable().optional(),
-  sourceId: z.string().nullable().optional(),
-  sourceUrl: z.string().nullable().optional(),
-  sourceSyncedAt: z.string().nullable().optional(),
-  confidence: z.number(),
-  status: memoryStatusSchema,
-  createdAt: z.string(),
-  updatedAt: z.string(),
-  expiresAt: z.string().nullable().optional(),
-});
+const memoryNodePropsSchema = z
+  .object({
+    id: z.string(),
+    userId: z.string(),
+    profileId: z.string().nullish(),
+    title: z.string(),
+    content: z.string(),
+    type: memoryTypeSchema,
+    source: z.string(),
+    sourceType: z.string().nullish(),
+    sourceId: z.string().nullish(),
+    sourceUrl: z.string().nullish(),
+    sourceSyncedAt: z.string().nullish(),
+    confidence: z.number(),
+    status: memoryStatusSchema,
+    createdAt: z.string(),
+    updatedAt: z.string(),
+    expiresAt: z.string().nullish(),
+  })
+  .transform(
+    (props): Omit<MemoryWithTags, "tags"> => ({
+      id: props.id,
+      userId: props.userId,
+      profileId: props.profileId ?? null,
+      title: props.title,
+      content: props.content,
+      type: props.type,
+      source: props.source,
+      sourceType: props.sourceType ?? null,
+      sourceId: props.sourceId ?? null,
+      sourceUrl: props.sourceUrl ?? null,
+      sourceSyncedAt: props.sourceSyncedAt ?? null,
+      confidence: props.confidence,
+      status: props.status,
+      createdAt: props.createdAt,
+      updatedAt: props.updatedAt,
+      expiresAt: props.expiresAt ?? null,
+    }),
+  );
 
 const memoryEventPropsSchema = z.object({
   id: z.string(),
@@ -151,28 +172,16 @@ export function toEventFromNode(props: {
 }
 
 export function toMemoryWithTags(record: NeoRecord): MemoryWithTags {
-  const props = parseNeo4jNodeProps(
-    neo4jGet(record, "m"),
-    memoryNodePropsSchema,
-  );
+  const node = neo4jGet(record, "m");
+  if (typeof node !== "object" || node === null) {
+    throw new Error("Expected Neo4j node with properties");
+  }
+  const desc = Object.getOwnPropertyDescriptor(node, "properties");
+  const properties: unknown = desc?.value;
+  const props = memoryNodePropsSchema.parse(properties);
   const tagsParsed = tagsArraySchema.safeParse(neo4jGet(record, "tags"));
   return {
-    id: props.id,
-    userId: props.userId,
-    profileId: props.profileId ?? null,
-    title: props.title,
-    content: props.content,
-    type: props.type,
-    source: props.source,
-    sourceType: props.sourceType ?? null,
-    sourceId: props.sourceId ?? null,
-    sourceUrl: props.sourceUrl ?? null,
-    sourceSyncedAt: props.sourceSyncedAt ?? null,
-    confidence: props.confidence,
-    status: props.status,
-    createdAt: props.createdAt,
-    updatedAt: props.updatedAt,
-    expiresAt: props.expiresAt ?? null,
+    ...props,
     tags: tagsParsed.success ? tagsParsed.data : [],
   };
 }

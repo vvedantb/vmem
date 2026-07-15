@@ -4,7 +4,6 @@
   "node": {
     "externalPackages": [
       "neo4j-driver",
-      "@neo4j/cypher-builder",
       "ts-morph",
       "tar-stream",
       "@modelcontextprotocol/sdk",

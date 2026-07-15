@@ -2,9 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { IconClockHour4 } from "@tabler/icons-react";
 import { cn } from "@vmem/ui";
 import { formatDateTime } from "@vmem/shared";
-import { useTimelineEvents } from "@/hooks/useTimelineEvents";
-import { useVersionChain } from "@/hooks/useVersionChain";
-import type { VersionEntry } from "@/lib/timeline";
+import { useMemoryTimeline } from "@/hooks/useMemoryTimeline";
+import { buildVersionChain, type VersionEntry } from "@/lib/timeline";
 import DiffDisplay from "./DiffDisplay";
 import { VmemSpinner } from "@/components/icons/animations";
 import { DetailEmptyState } from "./detail-panel/DetailEmptyState";
@@ -126,12 +125,11 @@ function RetellingStrip({
 }
 
 export default function HistoryTab({ memoryId }: HistoryTabProps) {
-  const { events, isLoading } = useTimelineEvents({
-    memoryId,
-    enabled: true,
-  });
+  const { events, isLoading } = useMemoryTimeline(memoryId);
 
-  const { versions, isEmpty, totalVersions } = useVersionChain(events);
+  const versions = useMemo(() => buildVersionChain(events), [events]);
+  const totalVersions = versions.length;
+  const isEmpty = versions.length === 0;
   const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
 
   const currentSelected = selectedVersion ?? totalVersions;

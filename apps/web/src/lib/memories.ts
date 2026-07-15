@@ -1,7 +1,13 @@
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@vmem/backend";
 
-export type MemoryType = "profile" | "episodic" | "knowledge";
+export type MemoryListResult = FunctionReturnType<
+  typeof api.memoryApi.listMemories
+>;
+// single memory row from list / retrieve / getMemory api payloads
+export type MemoryApiFields = MemoryListResult["memories"][number];
+
+export type MemoryType = MemoryApiFields["type"];
 
 export const MEMORY_TYPES: readonly MemoryType[] = [
   "profile",
@@ -19,44 +25,29 @@ export function formatMemoryTypeLabel(type: MemoryType): string {
   return MEMORY_TYPE_LABELS[type];
 }
 
-export interface Memory {
-  id: string;
-  title: string;
-  content: string;
-  type: MemoryType;
-  source: string;
-  sourceUrl: string | null;
-  sourceSyncedAt: string | null;
-  tags: string[];
-  createdAt: string;
-  profileId?: string;
-}
-
 function isMemoryType(value: string): value is MemoryType {
   return MEMORY_TYPES.some((type) => type === value);
 }
 
-export type MemoryListResult = FunctionReturnType<
-  typeof api.memoryApi.listMemories
->;
-// single memory row from list / retrieve / getMemory api payloads
-export type MemoryApiFields = MemoryListResult["memories"][number];
-
-// normalize api / retrieve / getMemory payloads into the client Memory shape
-export function memoryFromApi(m: MemoryApiFields): Memory {
+// normalise api / retrieve / getMemory payloads into the client Memory shape
+export function memoryFromApi(m: MemoryApiFields) {
   return {
     id: m.id,
     title: m.title,
     content: m.content,
-    type: isMemoryType(m.type) ? m.type : "knowledge",
+    type: isMemoryType(m.type) ? m.type : ("knowledge" satisfies MemoryType),
     source: m.source,
     sourceUrl: m.sourceUrl ?? null,
     sourceSyncedAt: m.sourceSyncedAt ?? null,
     tags: m.tags,
     createdAt: m.createdAt,
-    profileId: m.profileId ?? undefined,
+    ...(m.profileId !== null && m.profileId !== undefined
+      ? { profileId: m.profileId }
+      : {}),
   };
 }
+
+export type Memory = ReturnType<typeof memoryFromApi>;
 
 const MEMORY_SOURCE_LABELS: Record<string, string> = {
   web: "Web",
@@ -92,24 +83,27 @@ export interface TagStats {
 }
 
 export function buildTagStats(memories: Memory[]): TagStats[] {
-  const counts = new Map<string, number>();
-  const latest = new Map<string, string>();
+  const stats = new Map<string, { count: number; latestCreatedAt: string }>();
 
   for (const memory of memories) {
     for (const tag of memory.tags) {
-      counts.set(tag, (counts.get(tag) ?? 0) + 1);
-      const current = latest.get(tag);
-      if (!current || memory.createdAt > current) {
-        latest.set(tag, memory.createdAt);
+      const existing = stats.get(tag);
+      if (!existing) {
+        stats.set(tag, { count: 1, latestCreatedAt: memory.createdAt });
+        continue;
+      }
+      existing.count += 1;
+      if (memory.createdAt > existing.latestCreatedAt) {
+        existing.latestCreatedAt = memory.createdAt;
       }
     }
   }
 
-  return Array.from(counts.entries())
-    .map(([tag, count]) => ({
+  return Array.from(stats.entries())
+    .map(([tag, { count, latestCreatedAt }]) => ({
       tag,
       count,
-      latestCreatedAt: latest.get(tag) ?? "",
+      latestCreatedAt,
     }))
     .sort((a, b) => a.tag.localeCompare(b.tag));
 }

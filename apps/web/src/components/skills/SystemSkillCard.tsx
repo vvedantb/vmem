@@ -7,7 +7,7 @@ interface SystemSkillCardProps {
   profileId: string;
 }
 
-// A catalog entry in the Skills Hub
+// A catalogue entry in the Skills Hub
 export function SystemSkillCard({ entry, profileId }: SystemSkillCardProps) {
   return (
     <Link

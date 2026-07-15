@@ -48,10 +48,10 @@ function isTheme(value: string): value is Theme {
 
 export function SettingsForm() {
   const { signOut } = useClerk();
-  const { settings, update } = useExtensionUserSettings();
+  const { settings, update, setExtensionDefaultProfile } =
+    useExtensionUserSettings();
   const profiles = useQuery(api.profiles.list);
-  const { effectiveProfileId, setSelectedProfileId } =
-    useBrowserDefaultProfile(profiles);
+  const { effectiveProfileId } = useBrowserDefaultProfile(profiles);
   const [autoSearchEnabled, setAutoSearchEnabled] = useState(true);
   const [autoCaptureEnabled, setAutoCaptureEnabled] = useState(false);
   const [promptCopied, setPromptCopied] = useState(false);
@@ -99,10 +99,10 @@ export function SettingsForm() {
     void setStorage({ autoCaptureEnabled: checked });
   }
 
-  // per browser only never write to account wide default
   async function handleProfileChange(profileId: string) {
-    setSelectedProfileId(profileId);
-    await setStorage({ defaultProfileId: profileId });
+    const profile = profiles?.find((entry) => entry._id === profileId);
+    if (!profile) return;
+    await setExtensionDefaultProfile(profile._id);
   }
 
   async function handleCopyAiPrompt() {
@@ -150,7 +150,7 @@ export function SettingsForm() {
 
             <SettingsSelectRow
               label="Active profile"
-              description="Where this browser saves new memories — set it separately in each Chrome profile."
+              description="Default profile for saving memories from this extension. Synced across browsers when signed in."
             >
               {profiles === undefined ? (
                 <Skeleton className="h-9 w-[160px] rounded-field" />

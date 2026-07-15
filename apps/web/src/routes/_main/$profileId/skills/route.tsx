@@ -147,7 +147,7 @@ function SkillsLayout() {
     });
   };
 
-  // the Hub is its own page — use the settings convention (centered, titled
+  // the Hub is its own page — use the settings convention (centred, titled
   // container) rather than the editor-style detail layout below
   if (onHub) {
     return (
@@ -157,7 +157,7 @@ function SkillsLayout() {
     );
   }
 
-  // A catalog system skill has its own read-only detail page
+  // A catalogue system skill has its own read-only detail page
   if (systemSkillId !== undefined) {
     return (
       <SystemSkillDetail systemSkillId={systemSkillId} profileId={profileId} />

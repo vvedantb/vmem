@@ -6,6 +6,7 @@ import { api } from "@vmem/backend";
 import type { ContentMessage, BackgroundResponse } from "@/types/messages";
 import { extractPageFromTab } from "@/lib/extract-page";
 import { useBrowserDefaultProfile } from "@/popup/useBrowserDefaultProfile";
+import { useExtensionUserSettings } from "@/popup/useExtensionUserSettings";
 import { ProfileSelect } from "./ProfileSelect";
 
 interface PageInfo {
@@ -43,8 +44,8 @@ function queryActiveTab(): Promise<chrome.tabs.Tab | undefined> {
 
 export function QuickSave() {
   const profiles = useQuery(api.profiles.list);
-  const { effectiveProfileId, setSelectedProfileId } =
-    useBrowserDefaultProfile(profiles);
+  const { setExtensionDefaultProfile } = useExtensionUserSettings();
+  const { effectiveProfileId } = useBrowserDefaultProfile(profiles);
   const [pageInfo, setPageInfo] = useState<PageInfo | null>(null);
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState<{
@@ -150,7 +151,10 @@ export function QuickSave() {
           <ProfileSelect
             profiles={profiles}
             value={effectiveProfileId}
-            onValueChange={setSelectedProfileId}
+            onValueChange={(profileId) => {
+              const profile = profiles.find((entry) => entry._id === profileId);
+              if (profile) void setExtensionDefaultProfile(profile._id);
+            }}
             disabled={saving}
           />
         </div>

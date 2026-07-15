@@ -1,26 +1,22 @@
 import type { Driver } from "neo4j-driver";
 import { neo4jGet, parseNeo4jInt } from "./record";
+import { withSession } from "./session";
 
 const SETUP_SENTINEL_INDEX = "code_symbol_search";
 
 export async function isNeo4jSetupComplete(driver: Driver): Promise<boolean> {
-  const session = driver.session();
-  try {
-    const result = await session.run(
-      `
-      SHOW INDEXES
-      YIELD name
-      WHERE name = $name
-      RETURN count(*) AS c
-      `,
-      { name: SETUP_SENTINEL_INDEX },
-    );
-    const first = result.records[0];
-    const count = first ? parseNeo4jInt(neo4jGet(first, "c")) : 0;
-    return count > 0;
-  } finally {
-    await session.close();
-  }
+  const result = await driver.executeQuery(
+    `
+    SHOW INDEXES
+    YIELD name
+    WHERE name = $name
+    RETURN count(*) AS c
+    `,
+    { name: SETUP_SENTINEL_INDEX },
+  );
+  const first = result.records[0];
+  const count = first ? parseNeo4jInt(neo4jGet(first, "c")) : 0;
+  return count > 0;
 }
 
 export async function ensureNeo4jSetupIfNeeded(
@@ -86,13 +82,10 @@ const SETUP_STATEMENTS: string[] = [
 ];
 
 export async function setupDatabase(driver: Driver): Promise<void> {
-  const session = driver.session();
-  try {
+  await withSession(driver, async (session) => {
     for (const statement of SETUP_STATEMENTS) {
       await session.run(statement);
     }
     console.log("neo4j indexes and constraints ready");
-  } finally {
-    await session.close();
-  }
+  });
 }

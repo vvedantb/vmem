@@ -80,21 +80,16 @@ async function generateOpenRouterEmbeddings(
   }
 
   const client = createOpenRouterClient(apiKey);
-  const slots: (number[] | undefined)[] = Array.from({
-    length: texts.length,
-  });
+  const result: number[][] = [];
   for (let offset = 0; offset < texts.length; offset += EMBEDDING_BATCH_SIZE) {
     const input = texts
       .slice(offset, offset + EMBEDDING_BATCH_SIZE)
       .map(truncateForEmbedding);
-
     const vectors = await generateBatchWithRetry(client, input);
-    for (let i = 0; i < vectors.length; i++) {
-      slots[offset + i] = vectors[i];
-    }
+    result.push(...vectors);
   }
 
-  return requireFilledVectors(slots, "embedding generation");
+  return result;
 }
 
 async function generateBatchWithRetry(
@@ -153,13 +148,4 @@ export async function generateCliEmbeddings(
   }
 
   return texts.map(syntheticEmbed);
-}
-
-export async function generateCliEmbedding(text: string): Promise<number[]> {
-  const vectors = await generateCliEmbeddings([text]);
-  const first = vectors[0];
-  if (!first) {
-    throw new Error("embedding generation returned no vector");
-  }
-  return first;
 }

@@ -1,5 +1,52 @@
 # Changelog
 
+## 2026-07-15 — Fix extension save-page success toast
+
+Keyboard shortcut save now checks `savePageFromTab` success before toasting.
+Declared `motion` on the extension package and dropped dead live-verify scripts.
+
+## 2026-07-15 — Simplify web lib parsers, filters, and URL state
+
+Move Claude parsing into parseClaudeExport, drop list-item filter wrappers,
+consolidate graph degree / cookie / tag / nuqs helpers, and remove dead
+formatDateTime, daily-trend, and optimisticId surfaces.
+
+## 2026-07-15 — Prune web graph and memory list hooks
+
+Drop unused hook exports and return aliases, narrow codebase graph filters,
+unify graph page merge, and replace timeline/version wrappers with tighter
+memory-specific APIs.
+
+## 2026-07-15 — Web canvas pointer events and spatial/sim trim
+
+Unify canvas input on Pointer Events, drop spatial lastHash rebuilds, share
+stopped-simulation + SLEEP_ALPHA across worker/main, delete the canvas types
+barrel, and privatize EDGE_STYLE — with hit/viewport/physics characterization tests.
+
+## 2026-07-15 — Simplify neo4j-cli benchmark and eval
+
+Collapse bench seed into a single-process `eval:bench`, fold seed/query types
+into the corpus module, drop synthetic MemoryEvents and stale eval docs, and
+point live tests at production CRUD helpers.
+
+## 2026-07-15 — Engine stage 4: utility cleanup
+
+Linearize GitHub tarball extraction with `pipeline`, consolidate LLM JSON
+parsing exports, map-based embedding validation, and light Neo4j helper
+trims — with expanded characterization tests for archive and JSON edges.
+
+## 2026-07-15 — Engine stage 3: simplify memory operations
+
+Replace Cypher Builder memory updates with explicit SET fragments, tighten
+graph/enrichment/proposal helpers, normalize mapper schemas, and add
+characterization tests for unusual deletion, graph score, and tag behaviors.
+
+## 2026-07-15 — Engine stage 2: simplify codebase graph pipeline
+
+Parse context with in-parse import/heritage resolution, leaner call resolution
+and entry detection (drop dead TanStack route branch), shared `withSession` on
+read/write/impact, and characterization tests for parse/calls/entries/processes.
+
 ## 2026-07-15 — Engine stage 1: delete shallow modules
 
 Inline codebase sync/error helpers into Convex, fold parsers and enrichment

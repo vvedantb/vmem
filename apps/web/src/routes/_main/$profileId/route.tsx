@@ -46,7 +46,7 @@ function WorkspaceLayout() {
   }
 
   return (
-    <ActiveProfileProvider profile={profile}>
+    <ActiveProfileProvider profileId={profile._id}>
       <Outlet />
     </ActiveProfileProvider>
   );

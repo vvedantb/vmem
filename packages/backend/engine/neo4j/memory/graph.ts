@@ -1,9 +1,8 @@
-import type { Driver, Record as NeoRecord, Session } from "neo4j-driver";
+import type { Driver, Record as NeoRecord } from "neo4j-driver";
 import { z } from "zod";
 import { clampNeo4jLimit } from "../intParams";
 import { neo4jGet, parseNeo4jInt } from "../record";
 import { toMemoryTypeOrUndefined, toTagEdge } from "./mappers";
-import { withSession } from "../session";
 import { profileFilter, visibleStatusClause } from "./shared";
 import type { MemoryType, TagEdge } from "./types";
 
@@ -55,7 +54,7 @@ function parseGraphNodeRow(n: unknown): GraphNode | null {
   return parsed.success ? parsed.data : null;
 }
 
-function parseRelatesToEdgeRow(raw: unknown): RelatesToEdge | null {
+export function parseRelatesToEdgeRow(raw: unknown): RelatesToEdge | null {
   const parsed = relatesToEdgeRowSchema.safeParse(raw);
   return parsed.success ? parsed.data : null;
 }
@@ -74,6 +73,30 @@ function rowFromRecord(
     out[k] = neo4jGet(r, k);
   }
   return out;
+}
+
+export function mergeGlobalRelatesToEdges(
+  rawOutEdges: unknown,
+  rawInEdges: unknown,
+): RelatesToEdge[] {
+  const relatesToEdges: RelatesToEdge[] = [];
+  const seenPairs = new Set<string>();
+  for (const raw of [rawOutEdges, rawInEdges]) {
+    for (const e of Array.isArray(raw) ? raw : []) {
+      const parsed = parseRelatesToEdgeRow(e);
+      if (!parsed) continue;
+      const key = `${parsed.source}|${parsed.target}`;
+      if (seenPairs.has(key)) continue;
+      seenPairs.add(key);
+      // characterization: global graph edges omit score while local edges include it
+      relatesToEdges.push({
+        source: parsed.source,
+        target: parsed.target,
+        reason: parsed.reason,
+      });
+    }
+  }
+  return relatesToEdges;
 }
 
 export const GLOBAL_GRAPH_MAX_NODES = 5000;
@@ -117,7 +140,7 @@ export interface GraphData {
 }
 
 async function fetchGraphNodesAndEdges(
-  session: Session,
+  driver: Driver,
   userId: string,
   profileId: string | null | undefined,
   nodeLimit: number,
@@ -152,7 +175,7 @@ async function fetchGraphNodesAndEdges(
          RETURN count(m) AS totalMemoryCount
        }`;
 
-  const result = await session.run(
+  const result = await driver.executeQuery(
     `CALL () {
        MATCH (m:Memory {userId: $userId})
        WHERE ${visibleStatusClause("m")} ${pf.clause}
@@ -218,22 +241,7 @@ async function fetchGraphNodesAndEdges(
     .map(parseGraphNodeRow)
     .filter((n): n is GraphNode => n !== null);
 
-  const relatesToEdges: RelatesToEdge[] = [];
-  const seenPairs = new Set<string>();
-  for (const raw of [rawOutEdges, rawInEdges]) {
-    for (const e of Array.isArray(raw) ? raw : []) {
-      const parsed = parseRelatesToEdgeRow(e);
-      if (!parsed) continue;
-      const key = `${parsed.source}|${parsed.target}`;
-      if (seenPairs.has(key)) continue;
-      seenPairs.add(key);
-      relatesToEdges.push({
-        source: parsed.source,
-        target: parsed.target,
-        reason: parsed.reason,
-      });
-    }
-  }
+  const relatesToEdges = mergeGlobalRelatesToEdges(rawOutEdges, rawInEdges);
 
   const entities: GraphData["entities"] = (
     Array.isArray(rawEntities) ? rawEntities : []
@@ -251,13 +259,13 @@ async function fetchGraphNodesAndEdges(
 }
 
 async function fetchTagSharedEdges(
-  session: Session,
+  driver: Driver,
   userId: string,
   profileId: string | null | undefined,
   strictProfile: boolean,
 ): Promise<TagEdge[]> {
   const pf = profileFilter(profileId, "m", { strict: strictProfile });
-  const result = await session.run(
+  const result = await driver.executeQuery(
     `MATCH (m:Memory {userId: $userId})-[:TAGGED_WITH]->(t:Tag)
      WHERE ${visibleStatusClause("m")} ${pf.clause}
      WITH t, collect(m) AS memsForTag, count(*) AS userTagCount
@@ -285,29 +293,20 @@ export async function getGraphData(
   cursor: GraphCursor | null = null,
   strictProfile: boolean = false,
 ): Promise<GraphData> {
-  const nodesEdgesSession = driver.session();
-  const tagEdgesSession = cursor === null ? driver.session() : null;
-  try {
-    const [nodesAndEdges, tagEdges] = await Promise.all([
-      fetchGraphNodesAndEdges(
-        nodesEdgesSession,
-        userId,
-        profileId,
-        nodeLimit,
-        cursor,
-        strictProfile,
-      ),
-      tagEdgesSession
-        ? fetchTagSharedEdges(tagEdgesSession, userId, profileId, strictProfile)
-        : Promise.resolve<TagEdge[]>([]),
-    ]);
-    return { ...nodesAndEdges, tagEdges };
-  } finally {
-    await Promise.all([
-      nodesEdgesSession.close(),
-      ...(tagEdgesSession ? [tagEdgesSession.close()] : []),
-    ]);
-  }
+  const [nodesAndEdges, tagEdges] = await Promise.all([
+    fetchGraphNodesAndEdges(
+      driver,
+      userId,
+      profileId,
+      nodeLimit,
+      cursor,
+      strictProfile,
+    ),
+    cursor === null
+      ? fetchTagSharedEdges(driver, userId, profileId, strictProfile)
+      : Promise.resolve<TagEdge[]>([]),
+  ]);
+  return { ...nodesAndEdges, tagEdges };
 }
 
 export async function getMemoryContent(
@@ -315,17 +314,15 @@ export async function getMemoryContent(
   userId: string,
   memoryId: string,
 ): Promise<string> {
-  return withSession(driver, async (session) => {
-    const result = await session.run(
-      `MATCH (m:Memory {id: $memoryId, userId: $userId})
-       RETURN m.content AS content`,
-      { userId, memoryId },
-    );
-    const first = result.records[0];
-    if (!first) return "";
-    const value = neo4jGet(first, "content");
-    return typeof value === "string" ? value : "";
-  });
+  const result = await driver.executeQuery(
+    `MATCH (m:Memory {id: $memoryId, userId: $userId})
+     RETURN m.content AS content`,
+    { userId, memoryId },
+  );
+  const first = result.records[0];
+  if (!first) return "";
+  const value = neo4jGet(first, "content");
+  return typeof value === "string" ? value : "";
 }
 
 export async function getLocalGraph(
@@ -336,14 +333,8 @@ export async function getLocalGraph(
   depth: number = 2,
   strictProfile: boolean = false,
 ): Promise<GraphData> {
-  const nodesSession = driver.session();
-  let nodeIds: string[];
-  let nodes: GraphNode[];
-  let resolvedFocusId: string | undefined;
-
   const pfFocus = profileFilter(profileId, "focus", { strict: strictProfile });
   const pfB = profileFilter(profileId, "b", { strict: strictProfile });
-
   const hops = Math.min(3, Math.max(1, Math.trunc(depth)));
 
   const focusMatch =
@@ -354,57 +345,53 @@ export async function getLocalGraph(
          WHERE ${visibleStatusClause("focus")} ${pfFocus.clause}
          WITH focus ORDER BY focus.createdAt DESC LIMIT 1`;
 
-  try {
-    const nodesResult = await nodesSession.run(
-      `${focusMatch}
-       OPTIONAL MATCH (focus)
-         ((a:Memory WHERE ${visibleStatusClause("a")})
-          -[:RELATES_TO]-
-          (b:Memory WHERE ${visibleStatusClause("b")}
-             AND b.userId = $userId
-             ${pfB.clause})
-         ){1,${hops}}
-         (neighbor:Memory)
-       WITH focus, collect(DISTINCT neighbor) AS neighbors
-       WITH focus.id AS focusId, [focus] + neighbors AS allNodes
-       UNWIND allNodes AS m
-       WITH DISTINCT m, focusId LIMIT 500
-       OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
-       WITH m, focusId, collect(t.name) AS tags
-       RETURN m.id AS id, m.title AS title,
-              tags, m.createdAt AS createdAt,
-              m.source AS source, m.type AS type,
-              m.sourceType AS sourceType, focusId`,
-      {
-        userId,
-        ...(focusId !== null ? { focusId } : {}),
-        ...pfFocus.params,
-      },
+  const nodesResult = await driver.executeQuery(
+    `${focusMatch}
+     OPTIONAL MATCH (focus)
+       ((a:Memory WHERE ${visibleStatusClause("a")})
+        -[:RELATES_TO]-
+        (b:Memory WHERE ${visibleStatusClause("b")}
+           AND b.userId = $userId
+           ${pfB.clause})
+       ){1,${hops}}
+       (neighbor:Memory)
+     WITH focus, collect(DISTINCT neighbor) AS neighbors
+     WITH focus.id AS focusId, [focus] + neighbors AS allNodes
+     UNWIND allNodes AS m
+     WITH DISTINCT m, focusId LIMIT 500
+     OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
+     WITH m, focusId, collect(t.name) AS tags
+     RETURN m.id AS id, m.title AS title,
+            tags, m.createdAt AS createdAt,
+            m.source AS source, m.type AS type,
+            m.sourceType AS sourceType, focusId`,
+    {
+      userId,
+      ...(focusId !== null ? { focusId } : {}),
+      ...pfFocus.params,
+    },
+  );
+
+  const firstRecord = nodesResult.records[0];
+  const resolvedFocusId = firstRecord
+    ? String(neo4jGet(firstRecord, "focusId"))
+    : undefined;
+
+  const nodes = nodesResult.records.flatMap((r) => {
+    const node = parseGraphNodeRow(
+      rowFromRecord(r, [
+        "id",
+        "title",
+        "tags",
+        "createdAt",
+        "source",
+        "type",
+        "sourceType",
+      ] as const),
     );
-
-    const firstRecord = nodesResult.records[0];
-    resolvedFocusId = firstRecord
-      ? String(neo4jGet(firstRecord, "focusId"))
-      : undefined;
-
-    nodes = nodesResult.records.flatMap((r) => {
-      const node = parseGraphNodeRow(
-        rowFromRecord(r, [
-          "id",
-          "title",
-          "tags",
-          "createdAt",
-          "source",
-          "type",
-          "sourceType",
-        ] as const),
-      );
-      return node === null ? [] : [node];
-    });
-    nodeIds = nodes.map((n) => n.id);
-  } finally {
-    await nodesSession.close();
-  }
+    return node === null ? [] : [node];
+  });
+  const nodeIds = nodes.map((n) => n.id);
 
   if (nodeIds.length === 0) {
     return {
@@ -416,74 +403,61 @@ export async function getLocalGraph(
     };
   }
 
-  const relatesToSession = driver.session();
-  const tagEdgesSession = driver.session();
-  const entitySession = driver.session();
-  try {
-    const [relatesToResult, tagEdgesResult, entityResult] = await Promise.all([
-      relatesToSession.run(
-        `MATCH (a:Memory)-[r:RELATES_TO]->(b:Memory)
-         WHERE a.id IN $nodeIds AND b.id IN $nodeIds
-         RETURN a.id AS source, b.id AS target, r.reason AS reason, r.score AS score`,
-        { nodeIds },
-      ),
-      tagEdgesSession.run(
-        `MATCH (m1:Memory)-[:TAGGED_WITH]->(t:Tag)<-[:TAGGED_WITH]-(m2:Memory)
-         WHERE m1.id IN $nodeIds AND m2.id IN $nodeIds AND m1.id < m2.id
-         WITH m1, m2, collect(DISTINCT t.name) AS sharedTagsAll
-         WITH m1, m2, sharedTagsAll, size(sharedTagsAll) AS weight
-         WHERE weight >= 2
-         RETURN m1.id AS source, m2.id AS target, weight,
-                sharedTagsAll[..5] AS sharedTags
-         ORDER BY weight DESC
-         LIMIT 2000`,
-        { nodeIds },
-      ),
-      entitySession.run(
-        `MATCH (m:Memory)-[:MENTIONS]->(e:Entity)
-         WHERE m.id IN $nodeIds
-         WITH e, collect(m.id) AS memoryIds
-         RETURN e.normalizedName AS normalizedName, e.name AS name,
-                e.type AS type, memoryIds`,
-        { nodeIds },
-      ),
-    ]);
+  const [relatesToResult, tagEdgesResult, entityResult] = await Promise.all([
+    driver.executeQuery(
+      `MATCH (a:Memory)-[r:RELATES_TO]->(b:Memory)
+       WHERE a.id IN $nodeIds AND b.id IN $nodeIds
+       RETURN a.id AS source, b.id AS target, r.reason AS reason, r.score AS score`,
+      { nodeIds },
+    ),
+    driver.executeQuery(
+      `MATCH (m1:Memory)-[:TAGGED_WITH]->(t:Tag)<-[:TAGGED_WITH]-(m2:Memory)
+       WHERE m1.id IN $nodeIds AND m2.id IN $nodeIds AND m1.id < m2.id
+       WITH m1, m2, collect(DISTINCT t.name) AS sharedTagsAll
+       WITH m1, m2, sharedTagsAll, size(sharedTagsAll) AS weight
+       WHERE weight >= 2
+       RETURN m1.id AS source, m2.id AS target, weight,
+              sharedTagsAll[..5] AS sharedTags
+       ORDER BY weight DESC
+       LIMIT 2000`,
+      { nodeIds },
+    ),
+    driver.executeQuery(
+      `MATCH (m:Memory)-[:MENTIONS]->(e:Entity)
+       WHERE m.id IN $nodeIds
+       WITH e, collect(m.id) AS memoryIds
+       RETURN e.normalizedName AS normalizedName, e.name AS name,
+              e.type AS type, memoryIds`,
+      { nodeIds },
+    ),
+  ]);
 
-    const relatesToEdges: RelatesToEdge[] = relatesToResult.records.flatMap(
-      (r) => {
-        const parsed = parseRelatesToEdgeRow(
-          rowFromRecord(r, ["source", "target", "reason", "score"] as const),
-        );
-        return parsed ? [parsed] : [];
-      },
-    );
-
-    const entities = entityResult.records.flatMap((r) => {
-      const parsed = parseEntityRow(
-        rowFromRecord(r, [
-          "normalizedName",
-          "name",
-          "type",
-          "memoryIds",
-        ] as const),
+  const relatesToEdges: RelatesToEdge[] = relatesToResult.records.flatMap(
+    (r) => {
+      const parsed = parseRelatesToEdgeRow(
+        rowFromRecord(r, ["source", "target", "reason", "score"] as const),
       );
       return parsed ? [parsed] : [];
-    });
+    },
+  );
 
-    const tagEdges = tagEdgesResult.records.map(toTagEdge);
+  const entities = entityResult.records.flatMap((r) => {
+    const parsed = parseEntityRow(
+      rowFromRecord(r, [
+        "normalizedName",
+        "name",
+        "type",
+        "memoryIds",
+      ] as const),
+    );
+    return parsed ? [parsed] : [];
+  });
 
-    return {
-      nodes,
-      relatesToEdges,
-      tagEdges,
-      entities,
-      focusNodeId: resolvedFocusId,
-    };
-  } finally {
-    await Promise.all([
-      relatesToSession.close(),
-      tagEdgesSession.close(),
-      entitySession.close(),
-    ]);
-  }
+  return {
+    nodes,
+    relatesToEdges,
+    tagEdges: tagEdgesResult.records.map(toTagEdge),
+    entities,
+    focusNodeId: resolvedFocusId,
+  };
 }

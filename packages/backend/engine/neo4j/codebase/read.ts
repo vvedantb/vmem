@@ -1,6 +1,7 @@
-import type { Driver } from "neo4j-driver";
+import type { Driver, Session } from "neo4j-driver";
 import { clampNeo4jLimit } from "../intParams";
 import { escapeLuceneQuery } from "../luceneQuery";
+import { withSession } from "../session";
 import type { ConfidenceTier } from "./types";
 import {
   parseOverviewEdge,
@@ -22,9 +23,7 @@ export interface OverviewNode {
   name: string;
   path: string;
   directory: string;
-  // process member set when kind === "code-process"
   members?: string[];
-  // convenience flags
   isExported?: boolean;
   isAsync?: boolean;
   isTest?: boolean;
@@ -63,11 +62,8 @@ interface ReadArgs {
 }
 
 interface FilteredArgs extends ReadArgs {
-  // filter the result set to one of these kinds
   kinds?: OverviewNode["kind"][];
-  // when set, restrict to members of this process
   processId?: string | null;
-  // when set, restrict to (start) ∪ blast-radius around this symbol
   blastRadiusOf?: string | null;
   blastDirection?: "upstream" | "downstream";
   blastDepth?: number;
@@ -75,8 +71,69 @@ interface FilteredArgs extends ReadArgs {
 
 const CALLS_TIER = "coalesce(r.tier, 'INFERRED')";
 const CALLS_CONF = "coalesce(r.confidence, 1.0)";
-
 const MAX_GRAPH_ARRAY = 8192;
+
+const SCOPED_NODE = "{ userId: $userId, codebaseId: $codebaseId }";
+
+type EdgeQuery = {
+  type: OverviewEdge["type"];
+  cypher: string;
+  carry: boolean;
+};
+
+const STRUCTURAL_EDGE_QUERIES: EdgeQuery[] = [
+  {
+    type: "contains",
+    cypher: `MATCH (a:CodeFile ${SCOPED_NODE})-[r:CONTAINS]->(b ${SCOPED_NODE})
+             RETURN a.id AS fromId, b.id AS toId, null AS confidence, null AS tier`,
+    carry: false,
+  },
+  {
+    type: "has_method",
+    cypher: `MATCH (a:Class ${SCOPED_NODE})-[r:HAS_METHOD]->(b:Function ${SCOPED_NODE})
+             RETURN a.id AS fromId, b.id AS toId, null AS confidence, null AS tier`,
+    carry: false,
+  },
+  {
+    type: "starts_process",
+    cypher: `MATCH (a:Function ${SCOPED_NODE})-[r:STARTS_PROCESS]->(b:Process ${SCOPED_NODE})
+             RETURN a.id AS fromId, b.id AS toId, null AS confidence, null AS tier`,
+    carry: false,
+  },
+  {
+    type: "includes",
+    cypher: `MATCH (a:Process ${SCOPED_NODE})-[r:INCLUDES]->(b:Function ${SCOPED_NODE})
+             RETURN a.id AS fromId, b.id AS toId, null AS confidence, null AS tier`,
+    carry: false,
+  },
+];
+
+const CONFIDENT_EDGE_QUERIES: EdgeQuery[] = [
+  {
+    type: "extends",
+    cypher: `MATCH (a:Class ${SCOPED_NODE})-[r:EXTENDS]->(b:Class ${SCOPED_NODE})
+             RETURN a.id AS fromId, b.id AS toId, ${CALLS_CONF} AS confidence, ${CALLS_TIER} AS tier`,
+    carry: true,
+  },
+  {
+    type: "implements",
+    cypher: `MATCH (a:Class ${SCOPED_NODE})-[r:IMPLEMENTS]->(b:Interface ${SCOPED_NODE})
+             RETURN a.id AS fromId, b.id AS toId, ${CALLS_CONF} AS confidence, ${CALLS_TIER} AS tier`,
+    carry: true,
+  },
+  {
+    type: "imports",
+    cypher: `MATCH (a:CodeFile ${SCOPED_NODE})-[r:IMPORTS]->(b:CodeFile ${SCOPED_NODE})
+             RETURN a.id AS fromId, b.id AS toId, ${CALLS_CONF} AS confidence, ${CALLS_TIER} AS tier`,
+    carry: true,
+  },
+  {
+    type: "calls",
+    cypher: `MATCH (a:Function ${SCOPED_NODE})-[r:CALLS]->(b:Function ${SCOPED_NODE})
+             RETURN a.id AS fromId, b.id AS toId, ${CALLS_CONF} AS confidence, ${CALLS_TIER} AS tier`,
+    carry: true,
+  },
+];
 
 function capNodes(
   nodes: OverviewNode[],
@@ -94,46 +151,6 @@ function capNodes(
   };
 }
 
-export async function getOverviewStats(args: ReadArgs): Promise<OverviewStats> {
-  const session = args.driver.session();
-  try {
-    const result = await session.run(
-      `
-      MATCH (f:CodeFile { userId: $userId, codebaseId: $codebaseId })
-      WITH count(f) AS fileCount
-      OPTIONAL MATCH (fn:Function { userId: $userId, codebaseId: $codebaseId })
-      WITH fileCount, count(fn) AS functionCount
-      OPTIONAL MATCH (c:Class { userId: $userId, codebaseId: $codebaseId })
-      WITH fileCount, functionCount, count(c) AS classCount
-      OPTIONAL MATCH (i:Interface { userId: $userId, codebaseId: $codebaseId })
-      WITH fileCount, functionCount, classCount, count(i) AS interfaceCount
-      OPTIONAL MATCH (p:Process { userId: $userId, codebaseId: $codebaseId })
-      WITH fileCount, functionCount, classCount, interfaceCount, count(p) AS processCount
-      OPTIONAL MATCH (:Function { userId: $userId, codebaseId: $codebaseId })-[r:CALLS]->(:Function { userId: $userId, codebaseId: $codebaseId })
-      WITH fileCount, functionCount, classCount, interfaceCount, processCount, count(r) AS callEdgeCount
-      OPTIONAL MATCH (:CodeFile { userId: $userId, codebaseId: $codebaseId })-[ir:IMPORTS]->(:CodeFile { userId: $userId, codebaseId: $codebaseId })
-      RETURN fileCount, functionCount, classCount, interfaceCount, processCount, callEdgeCount, count(ir) AS importEdgeCount
-      `,
-      { userId: args.userId, codebaseId: args.codebaseId },
-    );
-    const r = result.records[0];
-    if (!r) {
-      return {
-        fileCount: 0,
-        functionCount: 0,
-        classCount: 0,
-        interfaceCount: 0,
-        processCount: 0,
-        callEdgeCount: 0,
-        importEdgeCount: 0,
-      };
-    }
-    return parseOverviewStats(r);
-  } finally {
-    await session.close();
-  }
-}
-
 function pickKind(labels: string[]): OverviewNode["kind"] | null {
   if (labels.includes("CodeFile")) return "code-file";
   if (labels.includes("Function")) return "code-function";
@@ -141,6 +158,72 @@ function pickKind(labels: string[]): OverviewNode["kind"] | null {
   if (labels.includes("Interface")) return "code-interface";
   if (labels.includes("Process")) return "code-process";
   return null;
+}
+
+async function loadEdges(
+  session: Session,
+  userId: string,
+  codebaseId: string,
+  nodeIds: Set<string>,
+  queries: EdgeQuery[],
+): Promise<{ edges: OverviewEdge[]; truncated: boolean }> {
+  const edges: OverviewEdge[] = [];
+  let truncated = false;
+  const params = { userId, codebaseId };
+
+  edgeLoop: for (const q of queries) {
+    if (edges.length >= MAX_GRAPH_ARRAY) {
+      truncated = true;
+      break;
+    }
+    const er = await session.run(q.cypher, params);
+    for (const rec of er.records) {
+      if (edges.length >= MAX_GRAPH_ARRAY) {
+        truncated = true;
+        break edgeLoop;
+      }
+      const edge = parseOverviewEdge(rec, q.type, q.carry);
+      if (!nodeIds.has(edge.fromId) || !nodeIds.has(edge.toId)) continue;
+      edges.push(edge);
+    }
+  }
+
+  return { edges, truncated };
+}
+
+export async function getOverviewStats(args: ReadArgs): Promise<OverviewStats> {
+  const result = await args.driver.executeQuery(
+    `
+    MATCH (f:CodeFile { userId: $userId, codebaseId: $codebaseId })
+    WITH count(f) AS fileCount
+    OPTIONAL MATCH (fn:Function { userId: $userId, codebaseId: $codebaseId })
+    WITH fileCount, count(fn) AS functionCount
+    OPTIONAL MATCH (c:Class { userId: $userId, codebaseId: $codebaseId })
+    WITH fileCount, functionCount, count(c) AS classCount
+    OPTIONAL MATCH (i:Interface { userId: $userId, codebaseId: $codebaseId })
+    WITH fileCount, functionCount, classCount, count(i) AS interfaceCount
+    OPTIONAL MATCH (p:Process { userId: $userId, codebaseId: $codebaseId })
+    WITH fileCount, functionCount, classCount, interfaceCount, count(p) AS processCount
+    OPTIONAL MATCH (:Function { userId: $userId, codebaseId: $codebaseId })-[r:CALLS]->(:Function { userId: $userId, codebaseId: $codebaseId })
+    WITH fileCount, functionCount, classCount, interfaceCount, processCount, count(r) AS callEdgeCount
+    OPTIONAL MATCH (:CodeFile { userId: $userId, codebaseId: $codebaseId })-[ir:IMPORTS]->(:CodeFile { userId: $userId, codebaseId: $codebaseId })
+    RETURN fileCount, functionCount, classCount, interfaceCount, processCount, callEdgeCount, count(ir) AS importEdgeCount
+    `,
+    { userId: args.userId, codebaseId: args.codebaseId },
+  );
+  const r = result.records[0];
+  if (!r) {
+    return {
+      fileCount: 0,
+      functionCount: 0,
+      classCount: 0,
+      interfaceCount: 0,
+      processCount: 0,
+      callEdgeCount: 0,
+      importEdgeCount: 0,
+    };
+  }
+  return parseOverviewStats(r);
 }
 
 export async function getGraphOverview(args: FilteredArgs): Promise<{
@@ -151,9 +234,7 @@ export async function getGraphOverview(args: FilteredArgs): Promise<{
   const wantedKinds = new Set(args.kinds ?? []);
   const allKinds = wantedKinds.size === 0;
 
-  const session = args.driver.session();
-  try {
-    // nodes
+  return withSession(args.driver, async (session) => {
     const nodesResult = await session.run(
       `
       MATCH (n { userId: $userId, codebaseId: $codebaseId })
@@ -171,7 +252,6 @@ export async function getGraphOverview(args: FilteredArgs): Promise<{
       nodes.push(node);
     }
 
-    // process-member subset
     if (args.processId) {
       const memResult = await session.run(
         `
@@ -191,7 +271,6 @@ export async function getGraphOverview(args: FilteredArgs): Promise<{
       nodes = nodes.filter((n) => memberIds.has(n.id));
     }
 
-    // blast radius subset
     if (args.blastRadiusOf) {
       const depth = Math.max(1, Math.min(8, Math.trunc(args.blastDepth ?? 5)));
       const arrow =
@@ -216,96 +295,33 @@ export async function getGraphOverview(args: FilteredArgs): Promise<{
       nodes = nodes.filter((n) => keep.has(n.id));
     }
 
-    // cap nodes before we build the edge filter set so that any edges
-    // we drop here also drop their endpoint references
     const nodeCapResult = capNodes(nodes, MAX_GRAPH_ARRAY);
     nodes = nodeCapResult.nodes;
     let truncated = nodeCapResult.truncated;
 
     const nodeIds = new Set(nodes.map((n) => n.id));
-    const edges: OverviewEdge[] = [];
+    const structural = await loadEdges(
+      session,
+      args.userId,
+      args.codebaseId,
+      nodeIds,
+      STRUCTURAL_EDGE_QUERIES,
+    );
+    const confident = await loadEdges(
+      session,
+      args.userId,
+      args.codebaseId,
+      nodeIds,
+      CONFIDENT_EDGE_QUERIES,
+    );
+    if (structural.truncated || confident.truncated) truncated = true;
 
-    // structural edges first; CALLS last so truncation drops call noise first
-    type EdgeQuery = {
-      type: OverviewEdge["type"];
-      cypher: string;
-      carry: boolean;
+    return {
+      nodes,
+      edges: [...structural.edges, ...confident.edges],
+      truncated,
     };
-    const edgeQueries: EdgeQuery[] = [
-      {
-        type: "contains",
-        cypher: `MATCH (a:CodeFile { userId: $userId, codebaseId: $codebaseId })-[r:CONTAINS]->(b { userId: $userId, codebaseId: $codebaseId })
-                 RETURN a.id AS fromId, b.id AS toId, null AS confidence, null AS tier`,
-        carry: false,
-      },
-      {
-        type: "has_method",
-        cypher: `MATCH (a:Class { userId: $userId, codebaseId: $codebaseId })-[r:HAS_METHOD]->(b:Function { userId: $userId, codebaseId: $codebaseId })
-                 RETURN a.id AS fromId, b.id AS toId, null AS confidence, null AS tier`,
-        carry: false,
-      },
-      {
-        type: "extends",
-        cypher: `MATCH (a:Class { userId: $userId, codebaseId: $codebaseId })-[r:EXTENDS]->(b:Class { userId: $userId, codebaseId: $codebaseId })
-                 RETURN a.id AS fromId, b.id AS toId, ${CALLS_CONF} AS confidence, ${CALLS_TIER} AS tier`,
-        carry: true,
-      },
-      {
-        type: "implements",
-        cypher: `MATCH (a:Class { userId: $userId, codebaseId: $codebaseId })-[r:IMPLEMENTS]->(b:Interface { userId: $userId, codebaseId: $codebaseId })
-                 RETURN a.id AS fromId, b.id AS toId, ${CALLS_CONF} AS confidence, ${CALLS_TIER} AS tier`,
-        carry: true,
-      },
-      {
-        type: "starts_process",
-        cypher: `MATCH (a:Function { userId: $userId, codebaseId: $codebaseId })-[r:STARTS_PROCESS]->(b:Process { userId: $userId, codebaseId: $codebaseId })
-                 RETURN a.id AS fromId, b.id AS toId, null AS confidence, null AS tier`,
-        carry: false,
-      },
-      {
-        type: "includes",
-        cypher: `MATCH (a:Process { userId: $userId, codebaseId: $codebaseId })-[r:INCLUDES]->(b:Function { userId: $userId, codebaseId: $codebaseId })
-                 RETURN a.id AS fromId, b.id AS toId, null AS confidence, null AS tier`,
-        carry: false,
-      },
-      {
-        type: "imports",
-        cypher: `MATCH (a:CodeFile { userId: $userId, codebaseId: $codebaseId })-[r:IMPORTS]->(b:CodeFile { userId: $userId, codebaseId: $codebaseId })
-                 RETURN a.id AS fromId, b.id AS toId, ${CALLS_CONF} AS confidence, ${CALLS_TIER} AS tier`,
-        carry: true,
-      },
-      {
-        type: "calls",
-        cypher: `MATCH (a:Function { userId: $userId, codebaseId: $codebaseId })-[r:CALLS]->(b:Function { userId: $userId, codebaseId: $codebaseId })
-                 RETURN a.id AS fromId, b.id AS toId, ${CALLS_CONF} AS confidence, ${CALLS_TIER} AS tier`,
-        carry: true,
-      },
-    ];
-
-    edgeLoop: for (const q of edgeQueries) {
-      if (edges.length >= MAX_GRAPH_ARRAY) {
-        truncated = true;
-        break;
-      }
-      const er = await session.run(q.cypher, {
-        userId: args.userId,
-        codebaseId: args.codebaseId,
-      });
-      for (const rec of er.records) {
-        if (edges.length >= MAX_GRAPH_ARRAY) {
-          truncated = true;
-          break edgeLoop;
-        }
-        const edge = parseOverviewEdge(rec, q.type, q.carry);
-        if (!nodeIds.has(edge.fromId) || !nodeIds.has(edge.toId)) continue;
-        edges.push(edge);
-      }
-    }
-
-    return { nodes, edges, truncated };
-  } finally {
-    await session.close();
-  }
+  });
 }
 
 export interface SymbolContext {
@@ -327,32 +343,27 @@ export interface SymbolContext {
 export async function getSymbolContext(
   args: ReadArgs & { symbolId: string },
 ): Promise<SymbolContext | null> {
-  const session = args.driver.session();
-  try {
-    const result = await session.run(
-      `
-      MATCH (n { id: $symbolId, userId: $userId, codebaseId: $codebaseId })
-      WHERE (n:CodeFile OR n:Function OR n:Class OR n:Interface OR n:Process)
-      OPTIONAL MATCH (caller:Function)-[:CALLS]->(n)
-      WITH n, collect(DISTINCT { id: caller.id, name: caller.name, filePath: caller.filePath }) AS callsIn
-      OPTIONAL MATCH (n)-[:CALLS]->(callee:Function)
-      WITH n, callsIn, collect(DISTINCT { id: callee.id, name: callee.name, filePath: callee.filePath }) AS callsOut
-      OPTIONAL MATCH (proc:Process)-[:INCLUDES]->(n)
-      WITH n, callsIn, callsOut, collect(DISTINCT { id: proc.id, name: proc.name }) AS processes
-      RETURN labels(n) AS labels, n, callsIn, callsOut, processes
-      `,
-      {
-        userId: args.userId,
-        codebaseId: args.codebaseId,
-        symbolId: args.symbolId,
-      },
-    );
-    const record = result.records.at(0);
-    if (!record) return null;
-    return parseSymbolContextRecord(record, pickKind);
-  } finally {
-    await session.close();
-  }
+  const result = await args.driver.executeQuery(
+    `
+    MATCH (n { id: $symbolId, userId: $userId, codebaseId: $codebaseId })
+    WHERE (n:CodeFile OR n:Function OR n:Class OR n:Interface OR n:Process)
+    OPTIONAL MATCH (caller:Function)-[:CALLS]->(n)
+    WITH n, collect(DISTINCT { id: caller.id, name: caller.name, filePath: caller.filePath }) AS callsIn
+    OPTIONAL MATCH (n)-[:CALLS]->(callee:Function)
+    WITH n, callsIn, collect(DISTINCT { id: callee.id, name: callee.name, filePath: callee.filePath }) AS callsOut
+    OPTIONAL MATCH (proc:Process)-[:INCLUDES]->(n)
+    WITH n, callsIn, callsOut, collect(DISTINCT { id: proc.id, name: proc.name }) AS processes
+    RETURN labels(n) AS labels, n, callsIn, callsOut, processes
+    `,
+    {
+      userId: args.userId,
+      codebaseId: args.codebaseId,
+      symbolId: args.symbolId,
+    },
+  );
+  const record = result.records.at(0);
+  if (!record) return null;
+  return parseSymbolContextRecord(record, pickKind);
 }
 
 export interface SearchSymbolsResult {
@@ -371,10 +382,8 @@ export async function searchSymbols(
   },
 ): Promise<SearchSymbolsResult[]> {
   const limit = clampNeo4jLimit(args.limit, 25, 100);
-  const session = args.driver.session();
-  try {
-    // fulltext index supports Lucene syntax — escape special chars and add a
-    // wildcard so `valid` matches `validateInput`
+
+  return withSession(args.driver, async (session) => {
     const escaped = escapeLuceneQuery(args.query);
     const ftQuery = `${escaped}* OR ${escaped}~`;
     const ftResult = await session.run(
@@ -410,7 +419,6 @@ export async function searchSymbols(
     const primary = collectRows(ftResult.records, "node");
     if (primary.length > 0) return primary;
 
-    // fallback substring scan (name, qualifiedName, filePath)
     const fbResult = await session.run(
       `
       MATCH (n { userId: $userId, codebaseId: $codebaseId })
@@ -431,7 +439,5 @@ export async function searchSymbols(
       },
     );
     return collectRows(fbResult.records, "n");
-  } finally {
-    await session.close();
-  }
+  });
 }

@@ -130,7 +130,7 @@ interface SystemSkillDetailProps {
   profileId: string;
 }
 
-// read-only detail page for a catalog system skill
+// read-only detail page for a catalogue system skill
 export function SystemSkillDetail({
   systemSkillId,
   profileId,

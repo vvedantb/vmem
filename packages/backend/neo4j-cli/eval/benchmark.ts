@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { closeDriver, getDriver } from "../../engine/neo4j/driver";
 import { deleteAllMemoriesForUser } from "../../engine/neo4j/memory/crud";
 import { retrieveMemories } from "../../engine/neo4j/memory/retrieve";
-import { embeddingMode, generateCliEmbedding } from "./cliEmbeddings";
+import { embeddingMode, generateCliEmbeddings } from "./cliEmbeddings";
 import {
   mean,
   ndcgAtK,
@@ -15,8 +15,9 @@ import {
   recallAtK,
   reciprocalRank,
 } from "./metrics";
-import type { RetrievalEvalQuery } from "./queries";
+import type { RetrievalEvalQuery } from "./corpus";
 import { generateBenchmarkCorpus, BENCH_USER_ID } from "./corpus";
+import { seedBenchmarkUser } from "./seed";
 
 type Legs = NonNullable<Parameters<typeof retrieveMemories>[1]["legs"]>;
 
@@ -64,10 +65,6 @@ const TYPE_ORDER = [
   "update",
   "multi-hop",
 ];
-
-const CORPUS = generateBenchmarkCorpus();
-const ANSWERABLE = CORPUS.queries.filter((q) => q.expectedTitles.length > 0);
-const ABSTENTION = CORPUS.queries.filter((q) => q.expectedTitles.length === 0);
 
 function approxTokens(text: string): number {
   return Math.ceil(text.length / 4);
@@ -132,25 +129,15 @@ function aggregate(outcomes: QueryOutcome[]): AggMetrics {
   };
 }
 
-async function fullCorpusTokens(
-  driver: ReturnType<typeof getDriver>,
-): Promise<{ tokens: number; memoryCount: number }> {
-  const session = driver.session();
-  try {
-    const res = await session.run(
-      `MATCH (m:Memory {userId: $userId}) RETURN m.title AS title, m.content AS content`,
-      { userId: BENCH_USER_ID },
-    );
-    let tokens = 0;
-    for (const record of res.records) {
-      tokens += approxTokens(
-        `${String(record.get("title") ?? "")} ${String(record.get("content") ?? "")}`,
-      );
-    }
-    return { tokens, memoryCount: res.records.length };
-  } finally {
-    await session.close();
+function corpusStats(corpus: ReturnType<typeof generateBenchmarkCorpus>): {
+  tokens: number;
+  memoryCount: number;
+} {
+  let tokens = 0;
+  for (const memory of corpus.memories) {
+    tokens += approxTokens(`${memory.title} ${memory.content}`);
   }
+  return { tokens, memoryCount: corpus.memories.length };
 }
 
 async function retrieveForConfig(
@@ -177,9 +164,11 @@ async function runConfig(
   driver: ReturnType<typeof getDriver>,
   config: LegConfig,
   embeddings: Map<string, number[]>,
+  answerable: RetrievalEvalQuery[],
+  abstention: RetrievalEvalQuery[],
 ): Promise<ConfigRun> {
   const outcomes: QueryOutcome[] = [];
-  for (const query of ANSWERABLE) {
+  for (const query of answerable) {
     const { candidates, latencyMs } = await retrieveForConfig(
       driver,
       config.legs,
@@ -206,7 +195,7 @@ async function runConfig(
   }
 
   const abstentionTopScores: number[] = [];
-  for (const query of ABSTENTION) {
+  for (const query of abstention) {
     const { candidates } = await retrieveForConfig(
       driver,
       config.legs,
@@ -233,8 +222,8 @@ function mdTable(header: string[], rows: string[][]): string {
     .join("\n");
 }
 
-function presentTypes(): string[] {
-  const seen = new Set(ANSWERABLE.map((q) => q.type ?? "untyped"));
+function presentTypes(answerable: RetrievalEvalQuery[]): string[] {
+  const seen = new Set(answerable.map((q) => q.type ?? "untyped"));
   const ordered = TYPE_ORDER.filter((t) => seen.has(t));
   const extra = [...seen].filter((t) => !TYPE_ORDER.includes(t)).sort();
   return [...ordered, ...extra];
@@ -242,12 +231,13 @@ function presentTypes(): string[] {
 
 function perTypeTable(
   runs: ConfigRun[],
+  answerable: RetrievalEvalQuery[],
   metric: (m: AggMetrics) => string,
 ): string {
-  const types = presentTypes();
+  const types = presentTypes(answerable);
   const header = ["type", "n", ...runs.map((r) => r.name)];
   const rows = types.map((type) => {
-    const n = ANSWERABLE.filter((q) => (q.type ?? "untyped") === type).length;
+    const n = answerable.filter((q) => (q.type ?? "untyped") === type).length;
     const cells = runs.map((r) =>
       metric(aggregate(r.outcomes.filter((o) => o.type === type))),
     );
@@ -259,6 +249,8 @@ function perTypeTable(
 function buildReport(
   runs: ConfigRun[],
   corpus: { tokens: number; memoryCount: number },
+  answerable: RetrievalEvalQuery[],
+  abstention: RetrievalEvalQuery[],
 ): string {
   const today = new Date().toISOString().slice(0, 10);
 
@@ -295,8 +287,8 @@ function buildReport(
     ]),
   );
 
-  const ndcgByType = perTypeTable(runs, (m) => m.ndcg10.toFixed(3));
-  const recallByType = perTypeTable(runs, (m) => pct(m.recall5));
+  const ndcgByType = perTypeTable(runs, answerable, (m) => m.ndcg10.toFixed(3));
+  const recallByType = perTypeTable(runs, answerable, (m) => pct(m.recall5));
 
   const abstentionTable = mdTable(
     ["Config", "answerable top-1 score", "abstention top-1 score"],
@@ -315,7 +307,7 @@ function buildReport(
 
   return `# vmem internal retrieval benchmark
 
-Generated: ${today} · Corpus: ${String(corpus.memoryCount)} memories · Answerable queries: ${String(ANSWERABLE.length)} · Abstention queries: ${String(ABSTENTION.length)} · Embeddings: ${embeddingMode()}
+Generated: ${today} · Corpus: ${String(corpus.memoryCount)} memories · Answerable queries: ${String(answerable.length)} · Abstention queries: ${String(abstention.length)} · Embeddings: ${embeddingMode()}
 
 ## Retrieval quality + ablation (production \`retrieveMemories\`, per-leg toggles)
 
@@ -349,30 +341,50 @@ ${abstentionTable}
 `;
 }
 
+async function embedQueries(
+  queries: RetrievalEvalQuery[],
+): Promise<Map<string, number[]>> {
+  const uniqueQueries = [...new Set(queries.map((q) => q.query))];
+  const vectors = await generateCliEmbeddings(uniqueQueries);
+  const embeddings = new Map<string, number[]>();
+  for (let i = 0; i < uniqueQueries.length; i++) {
+    const query = uniqueQueries[i];
+    const vector = vectors[i];
+    if (query === undefined || vector === undefined) {
+      throw new Error(`missing embedding for query at index ${String(i)}`);
+    }
+    embeddings.set(query, vector);
+  }
+  return embeddings;
+}
+
 async function main(): Promise<void> {
   const driver = getDriver();
+  const corpus = generateBenchmarkCorpus();
+  const answerable = corpus.queries.filter((q) => q.expectedTitles.length > 0);
+  const abstention = corpus.queries.filter(
+    (q) => q.expectedTitles.length === 0,
+  );
+
   try {
     console.log(`vmem internal benchmark · embeddings: ${embeddingMode()}`);
+    console.log(
+      `bench corpus: ${String(corpus.memories.length)} memories, ${String(corpus.relationships.length)} relationships, ${String(corpus.queries.length)} queries`,
+    );
 
-    // embed each query once (answerable + abstention), reused across configs
-    const embeddings = new Map<string, number[]>();
-    for (const query of CORPUS.queries) {
-      embeddings.set(query.query, await generateCliEmbedding(query.query));
-    }
+    await seedBenchmarkUser(driver, corpus);
 
-    const corpus = await fullCorpusTokens(driver);
-    if (corpus.memoryCount === 0) {
-      throw new Error(
-        `no memories for bench user ${BENCH_USER_ID} — run \`pnpm eval:bench\` (seeds first).`,
-      );
-    }
+    const embeddings = await embedQueries(corpus.queries);
+    const stats = corpusStats(corpus);
 
     const runs: ConfigRun[] = [];
     for (const config of CONFIGS) {
-      runs.push(await runConfig(driver, config, embeddings));
+      runs.push(
+        await runConfig(driver, config, embeddings, answerable, abstention),
+      );
     }
 
-    const report = buildReport(runs, corpus);
+    const report = buildReport(runs, stats, answerable, abstention);
     const dir = dirname(REPORT_PATH);
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
     writeFileSync(REPORT_PATH, report, "utf8");

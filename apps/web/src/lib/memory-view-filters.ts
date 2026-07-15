@@ -1,7 +1,6 @@
 import type { MemoryType } from "./memories";
 import type { ListItemKind } from "./list-items";
 
-// URL-backed filter fields shared by /memories/list and /memories/graph
 export interface MemoryViewFilterParams {
   kinds: readonly ListItemKind[];
   tags: readonly string[];
@@ -9,37 +8,36 @@ export interface MemoryViewFilterParams {
   types: readonly MemoryType[];
 }
 
-export const CLEARED_MEMORY_VIEW_FILTERS = {
-  kinds: [] as ListItemKind[],
-  tags: [] as string[],
-  sources: [] as string[],
-  types: [] as MemoryType[],
+export const CLEARED_MEMORY_VIEW_FILTERS: {
+  kinds: ListItemKind[];
+  tags: string[];
+  sources: string[];
+  types: MemoryType[];
+} = {
+  kinds: [],
+  tags: [],
+  sources: [],
+  types: [],
 };
 
 export function kindPassesFilter(
   kind: ListItemKind,
   selectedKinds: readonly ListItemKind[],
 ): boolean {
-  if (selectedKinds.length === 0) {
-    return true;
-  }
-  return selectedKinds.includes(kind);
+  return selectedKinds.length === 0 || selectedKinds.includes(kind);
 }
 
-// memory nodes must include every selected tag; other kinds pass through
 export function tagsPassFilter(
   nodeTags: readonly string[],
   selectedTags: readonly string[],
   kind: ListItemKind,
 ): boolean {
-  if (selectedTags.length === 0) {
-    return true;
-  }
-  if (kind !== "memory") {
-    return true;
-  }
-  return selectedTags.every((tag) =>
-    nodeTags.some((nodeTag) => nodeTag.toLowerCase() === tag.toLowerCase()),
+  return (
+    selectedTags.length === 0 ||
+    kind !== "memory" ||
+    selectedTags.every((tag) =>
+      nodeTags.some((nodeTag) => nodeTag.toLowerCase() === tag.toLowerCase()),
+    )
   );
 }
 
@@ -48,13 +46,11 @@ export function sourcePassesFilter(
   selectedSources: readonly string[],
   kind: ListItemKind,
 ): boolean {
-  if (selectedSources.length === 0) {
-    return true;
-  }
-  if (kind !== "memory") {
-    return true;
-  }
-  return source !== undefined && selectedSources.includes(source);
+  return (
+    selectedSources.length === 0 ||
+    kind !== "memory" ||
+    (source !== undefined && selectedSources.includes(source))
+  );
 }
 
 export function typePassesFilter(
@@ -62,13 +58,11 @@ export function typePassesFilter(
   selectedTypes: readonly MemoryType[],
   kind: ListItemKind,
 ): boolean {
-  if (selectedTypes.length === 0) {
-    return true;
-  }
-  if (kind !== "memory") {
-    return true;
-  }
-  return type !== undefined && selectedTypes.includes(type);
+  return (
+    selectedTypes.length === 0 ||
+    kind !== "memory" ||
+    (type !== undefined && selectedTypes.includes(type))
+  );
 }
 
 export function apiGraphNodePassesFilters(
@@ -88,7 +82,6 @@ export function apiGraphNodePassesFilters(
   );
 }
 
-// per header-controls rules: each non-default filter field counts as 1
 export function countActiveMemoryViewFilters(
   params: MemoryViewFilterParams,
 ): number {

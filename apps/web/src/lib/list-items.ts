@@ -1,13 +1,13 @@
 import type { FunctionReturnType } from "convex/server";
 import type { api } from "@vmem/backend";
-import type { Memory, MemoryType } from "./memories";
+import type { Memory } from "./memories";
 import {
-  kindPassesFilter,
-  sourcePassesFilter,
-  tagsPassFilter,
+  apiGraphNodePassesFilters,
   type MemoryViewFilterParams,
-  typePassesFilter,
 } from "./memory-view-filters";
+
+type WikiRows = FunctionReturnType<typeof api.wiki.listTree>;
+type SkillRows = FunctionReturnType<typeof api.skills.listMy>;
 
 // unified /memories list item (memory | wiki | skill) mirroring graph node kinds
 export type ListItemKind =
@@ -53,37 +53,36 @@ interface BaseListItem {
   createdAt: string;
 }
 
-interface MemoryRowItem extends BaseListItem {
-  kind: "memory";
-  type: MemoryType;
-  source: string;
-  sourceUrl: string | null;
-  sourceSyncedAt: string | null;
-  profileId?: string;
-}
+type MemoryRowItem = BaseListItem &
+  Pick<
+    Memory,
+    "type" | "source" | "sourceUrl" | "sourceSyncedAt" | "profileId"
+  > & {
+    kind: "memory";
+  };
 
-interface WikiDocumentItem extends BaseListItem {
+type WikiDocumentItem = BaseListItem & {
   kind: "wiki-document";
-  // convex id for /wiki/<wikiId>
+  // convex id for /wiki/<wikiId> (string form of WikiRows[number]["_id"])
   wikiId: string;
-}
+};
 
-interface WikiArtifactItem extends BaseListItem {
+type WikiArtifactItem = BaseListItem & {
   kind: "wiki-artifact";
   wikiId: string;
-}
+};
 
-interface WikiFolderItem extends BaseListItem {
+type WikiFolderItem = BaseListItem & {
   kind: "wiki-folder";
   wikiId: string;
   // direct child count for row meta
   childCount: number;
-}
+};
 
-interface SkillItem extends BaseListItem {
+type SkillItem = BaseListItem & {
   kind: "skill";
   skillId: string;
-}
+};
 
 export type ListItem =
   | MemoryRowItem
@@ -94,51 +93,18 @@ export type ListItem =
 
 // filter helpers — memory filters pass non-memory items through; kind is cross-cutting
 
-export function listItemMatchesKindFilter(
-  item: ListItem,
-  selectedKinds: readonly ListItemKind[],
-): boolean {
-  return kindPassesFilter(item.kind, selectedKinds);
-}
-
-export function listItemMatchesTagFilter(
-  item: ListItem,
-  selectedTags: readonly string[],
-): boolean {
-  return tagsPassFilter(item.tags, selectedTags, item.kind);
-}
-
-export function listItemMatchesSourceFilter(
-  item: ListItem,
-  selectedSources: readonly string[],
-): boolean {
-  return sourcePassesFilter(
-    item.kind === "memory" ? item.source : undefined,
-    selectedSources,
-    item.kind,
-  );
-}
-
-export function listItemMatchesTypeFilter(
-  item: ListItem,
-  selectedTypes: readonly MemoryType[],
-): boolean {
-  return typePassesFilter(
-    item.kind === "memory" ? item.type : undefined,
-    selectedTypes,
-    item.kind,
-  );
-}
-
 export function listItemPassesFilters(
   item: ListItem,
   filters: Pick<MemoryViewFilterParams, "kinds" | "tags" | "sources" | "types">,
 ): boolean {
-  return (
-    listItemMatchesKindFilter(item, filters.kinds) &&
-    listItemMatchesTagFilter(item, filters.tags) &&
-    listItemMatchesSourceFilter(item, filters.sources) &&
-    listItemMatchesTypeFilter(item, filters.types)
+  return apiGraphNodePassesFilters(
+    {
+      kind: item.kind,
+      tags: item.tags,
+      source: item.kind === "memory" ? item.source : undefined,
+      type: item.kind === "memory" ? item.type : undefined,
+    },
+    filters,
   );
 }
 
@@ -162,8 +128,6 @@ export function memoryToListItem(memory: Memory): ListItem {
     profileId: memory.profileId,
   };
 }
-
-type WikiRows = FunctionReturnType<typeof api.wiki.listTree>;
 
 // wiki rows → list items; one pass for folder child counts
 export function wikiRowsToListItems(rows: WikiRows): ListItem[] {
@@ -209,8 +173,6 @@ export function wikiRowsToListItems(rows: WikiRows): ListItem[] {
     };
   });
 }
-
-type SkillRows = FunctionReturnType<typeof api.skills.listMy>;
 
 export function skillRowsToListItems(rows: SkillRows): ListItem[] {
   return rows

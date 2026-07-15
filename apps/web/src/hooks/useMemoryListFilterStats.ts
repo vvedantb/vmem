@@ -13,18 +13,7 @@ import { useMemoriesSearchParams } from "@/hooks/useMemoriesSearchParams";
 export function useMemoryListFilterStats() {
   const [params] = useMemoriesSearchParams();
   const { memories: allMemories } = useRecentMemories();
-  const { supplementaryItems } = useMemoryListSupplementaryItems();
-
-  const allItems = useMemo<ListItem[]>(() => {
-    const memoryItems = allMemories.map(memoryToListItem);
-    return [...memoryItems, ...supplementaryItems];
-  }, [allMemories, supplementaryItems]);
-
-  const distinctSources = useMemo(() => {
-    const set = new Set<string>();
-    for (const memory of allMemories) set.add(memory.source);
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [allMemories]);
+  const supplementaryItems = useMemoryListSupplementaryItems();
 
   const filters = useMemo<MemoryViewFilterParams>(
     () => ({
@@ -36,18 +25,35 @@ export function useMemoryListFilterStats() {
     [params.kinds, params.tags, params.sources, params.types],
   );
 
-  const filteredItems = useMemo(
-    () => allItems.filter((item) => listItemPassesFilters(item, filters)),
-    [allItems, filters],
-  );
+  const { allItems, distinctSources, filteredCount, totalCount } =
+    useMemo(() => {
+      const memoryItems = allMemories.map(memoryToListItem);
+      const allItems: ListItem[] = [...memoryItems, ...supplementaryItems];
+
+      const sourceSet = new Set<string>();
+      for (const memory of allMemories) sourceSet.add(memory.source);
+      const distinctSources = Array.from(sourceSet).sort((a, b) =>
+        a.localeCompare(b),
+      );
+
+      const filteredCount = allItems.filter((item) =>
+        listItemPassesFilters(item, filters),
+      ).length;
+
+      return {
+        allItems,
+        distinctSources,
+        filteredCount,
+        totalCount: allItems.length,
+      };
+    }, [allMemories, supplementaryItems, filters]);
 
   return {
     allMemories,
     allItems,
     distinctSources,
     filters,
-    filteredItems,
-    filteredCount: filteredItems.length,
-    totalCount: allItems.length,
+    filteredCount,
+    totalCount,
   };
 }

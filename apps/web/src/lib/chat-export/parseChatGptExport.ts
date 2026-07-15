@@ -1,7 +1,6 @@
 import { unzipSync } from "fflate";
 import { z } from "zod";
-import type { ExportImportRow } from "./importRows";
-import type { ParseExportResult } from "./parseChatExport";
+import type { ExportImportRow, ParseExportResult } from "./importRows";
 import { textFromUtf8 } from "./textFromUtf8";
 
 // chatGPT's `conversations.json` is a mapping graph

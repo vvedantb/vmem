@@ -73,7 +73,7 @@ async function findDuplicateInScope(
   return matches.find((cb) => cb.teamId === undefined) ?? null;
 }
 
-// normalize + readability check shared by public mutate/read paths
+// normalise + readability check shared by public mutate/read paths
 async function getReadableCodebaseOrNull(
   ctx: QueryCtx | MutationCtx,
   id: string,

@@ -94,6 +94,16 @@ export function getGraphFacets(apiNodes: ApiGraphNode[]): {
   };
 }
 
+function addEdgeDegrees(
+  degreeCount: Map<string, number>,
+  edges: readonly { source: string; target: string }[],
+): void {
+  for (const edge of edges) {
+    degreeCount.set(edge.source, (degreeCount.get(edge.source) ?? 0) + 1);
+    degreeCount.set(edge.target, (degreeCount.get(edge.target) ?? 0) + 1);
+  }
+}
+
 // ---- Build graph data ----
 
 // transforms API data into simulation-ready nodes + edges
@@ -118,24 +128,11 @@ export function buildGraphData(
     apiGraphNodePassesFilters(node, filters),
   );
 
-  // degree counting across all edge types
   const degreeCount = new Map<string, number>();
-  for (const edge of apiTagEdges) {
-    degreeCount.set(edge.source, (degreeCount.get(edge.source) ?? 0) + 1);
-    degreeCount.set(edge.target, (degreeCount.get(edge.target) ?? 0) + 1);
-  }
-  for (const rel of allRelatesToEdges) {
-    degreeCount.set(rel.source, (degreeCount.get(rel.source) ?? 0) + 1);
-    degreeCount.set(rel.target, (degreeCount.get(rel.target) ?? 0) + 1);
-  }
-  for (const wpe of apiWikiParentEdges) {
-    degreeCount.set(wpe.source, (degreeCount.get(wpe.source) ?? 0) + 1);
-    degreeCount.set(wpe.target, (degreeCount.get(wpe.target) ?? 0) + 1);
-  }
-  for (const me of apiMentionsEdges) {
-    degreeCount.set(me.source, (degreeCount.get(me.source) ?? 0) + 1);
-    degreeCount.set(me.target, (degreeCount.get(me.target) ?? 0) + 1);
-  }
+  addEdgeDegrees(degreeCount, apiTagEdges);
+  addEdgeDegrees(degreeCount, allRelatesToEdges);
+  addEdgeDegrees(degreeCount, apiWikiParentEdges);
+  addEdgeDegrees(degreeCount, apiMentionsEdges);
 
   const nodeSet = new Set(filteredNodes.map((n) => n.id));
 

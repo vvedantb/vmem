@@ -1,16 +1,16 @@
 /// <reference lib="webworker" />
 // web Worker for d3-force simulation
-import {
-  forceSimulation,
-  type Simulation,
-  type SimulationNodeDatum,
-  type SimulationLinkDatum,
+import type {
+  Simulation,
+  SimulationLinkDatum,
+  SimulationNodeDatum,
 } from "d3-force";
-import type { GraphEdgeType } from "./types";
+import type { GraphEdgeType } from "@/lib/graph/types";
 import { physicsProfile } from "./physics-profile";
 import {
   createGraphForces,
-  VELOCITY_DECAY,
+  createStoppedSimulation,
+  SLEEP_ALPHA,
   type GraphForces,
 } from "./physics-forces";
 
@@ -28,8 +28,6 @@ interface WEdge extends SimulationLinkDatum<WNode> {
 
 // ------ State ------
 
-// below this alpha (with no drag holding alphaTarget up) the layout is visually static,
-const SLEEP_ALPHA = 0.005;
 // tick cadence comes from the node-count-adaptive physics profile (see physics-profile.ts)
 let tickIntervalMs = 33;
 let ticksPerFrame = 2;
@@ -186,20 +184,7 @@ function init(
   );
   forcesRef = forces;
 
-  // .stop() kills d3's internal timer
-  sim = forceSimulation<WNode, WEdge>(nodes)
-    .force("link", forces.link)
-    .force("charge", forces.charge)
-    .force("centerX", forces.centerX)
-    .force("centerY", forces.centerY)
-    .alphaDecay(profile.alphaDecay)
-    .velocityDecay(VELOCITY_DECAY)
-    .alpha(1)
-    .stop();
-
-  if (forces.collide) {
-    sim.force("collide", forces.collide);
-  }
+  sim = createStoppedSimulation(nodes, forces, profile).alpha(1);
 
   // post the seeded (spiral / carried-over) positions immediately so the canvas paints
   postPositions();

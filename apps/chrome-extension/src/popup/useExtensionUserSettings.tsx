@@ -7,9 +7,10 @@ import {
   type ReactNode,
 } from "react";
 import { useQuery, useMutation } from "convex/react";
-import { api } from "@vmem/backend";
+import { api, type Id } from "@vmem/backend";
 import { getStorage, setStorage } from "@/lib/storage";
 import {
+  setExtensionDefaultProfile as setExtensionDefaultProfileHttp,
   updateUserSettings,
   type UserSettingsUpdateArgs,
 } from "@/background/api-client";
@@ -18,6 +19,7 @@ import { convexSettingsToStorageMirror } from "@/types/storage";
 function useExtensionUserSettingsInner() {
   const settings = useQuery(api.userSettings.get);
   const baseUpdate = useMutation(api.userSettings.update);
+  const baseSetDefaultProfile = useMutation(api.userSettings.setDefaultProfile);
 
   // optimistic ws + durable http write (popup socket can drop on close)
   const update = useCallback(
@@ -33,6 +35,29 @@ function useExtensionUserSettingsInner() {
       }
     },
     [baseUpdate],
+  );
+
+  const setExtensionDefaultProfile = useCallback(
+    async (profileId: Id<"profiles">): Promise<void> => {
+      void baseSetDefaultProfile({
+        source: "extension",
+        profileId,
+      }).catch(() => {
+        // http write below is source of truth
+      });
+
+      try {
+        await setExtensionDefaultProfileHttp(profileId);
+      } catch (error) {
+        console.warn(
+          "[vmem] Failed to persist extension default profile:",
+          error,
+        );
+      }
+
+      await setStorage({ defaultProfileId: profileId });
+    },
+    [baseSetDefaultProfile],
   );
 
   const migrationRan = useRef(false);
@@ -66,7 +91,7 @@ function useExtensionUserSettingsInner() {
     void setStorage(convexSettingsToStorageMirror(settings));
   }, [settings]);
 
-  return { settings, update };
+  return { settings, update, setExtensionDefaultProfile };
 }
 
 type ExtensionUserSettingsContextValue = ReturnType<

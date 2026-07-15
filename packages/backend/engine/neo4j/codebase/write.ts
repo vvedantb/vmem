@@ -1,7 +1,5 @@
-import Cypher from "@neo4j/cypher-builder";
 import type { Driver } from "neo4j-driver";
 import { PARSER_VERSION } from "@vmem/shared";
-import { buildAndRun } from "./buildAndRun";
 import type {
   ParseStats,
   ProcessNode,
@@ -52,24 +50,12 @@ function chunk<T>(arr: T[], size: number): T[][] {
   return out;
 }
 
-function isCodeGraphNode(n: Cypher.Node): Cypher.Predicate {
-  return Cypher.or(
-    n.hasLabel("CodeFile"),
-    n.hasLabel("Function"),
-    n.hasLabel("Class"),
-    n.hasLabel("Interface"),
-    n.hasLabel("Process"),
-  );
-}
-
-// open a session, run one clause, and always close it
-async function runClause(driver: Driver, clause: Cypher.Clause): Promise<void> {
-  const session = driver.session();
-  try {
-    await buildAndRun(session, clause);
-  } finally {
-    await session.close();
-  }
+async function runQuery(
+  driver: Driver,
+  query: string,
+  params: Record<string, unknown>,
+): Promise<void> {
+  await driver.executeQuery(query, params);
 }
 
 async function deleteStale(
@@ -78,24 +64,15 @@ async function deleteStale(
   codebaseId: string,
   keepIds: string[],
 ): Promise<void> {
-  const n = new Cypher.NamedNode("n");
-  await runClause(
+  await runQuery(
     driver,
-    new Cypher.Match(
-      new Cypher.Pattern(n, {
-        properties: {
-          userId: new Cypher.Param(userId),
-          codebaseId: new Cypher.Param(codebaseId),
-        },
-      }),
-    )
-      .where(
-        Cypher.and(
-          isCodeGraphNode(n),
-          Cypher.not(Cypher.in(n.property("id"), new Cypher.Param(keepIds))),
-        ),
-      )
-      .detachDelete(n),
+    `
+    MATCH (n { userId: $userId, codebaseId: $codebaseId })
+    WHERE (n:CodeFile OR n:Function OR n:Class OR n:Interface OR n:Process)
+      AND NOT n.id IN $keepIds
+    DETACH DELETE n
+    `,
+    { userId, codebaseId, keepIds },
   );
 }
 
@@ -108,30 +85,18 @@ async function upsertNodes(
   if (rows.length === 0) return;
   const touchUpdatedAt = options?.touchUpdatedAt ?? true;
   const now = Date.now();
+  const updatedAtClause = touchUpdatedAt ? "SET n.updatedAt = $now" : "";
   for (const batch of chunk(rows, CHUNK_SIZE)) {
-    const row = new Cypher.NamedVariable("row");
-    const n = new Cypher.NamedNode("n");
-    const nowParam = new Cypher.Param(now);
-    const setParams: Cypher.SetParam[] = [
-      [n, "+=", row.property("props")],
-      [
-        n.property("createdAt"),
-        Cypher.coalesce(n.property("createdAt"), nowParam),
-      ],
-    ];
-    if (touchUpdatedAt) {
-      setParams.splice(1, 0, [n.property("updatedAt"), nowParam]);
-    }
-    await runClause(
+    await runQuery(
       driver,
-      new Cypher.Unwind([new Cypher.Param(batch), row])
-        .merge(
-          new Cypher.Pattern(n, {
-            labels: [label],
-            properties: { id: row.property("id") },
-          }),
-        )
-        .set(...setParams),
+      `
+      UNWIND $rows AS row
+      MERGE (n:${label} { id: row.id })
+      SET n += row.props
+      ${updatedAtClause}
+      SET n.createdAt = coalesce(n.createdAt, $now)
+      `,
+      { rows: batch, now },
     );
   }
 }
@@ -142,7 +107,10 @@ function makeRow(
   codebaseId: string,
   fields: Record<string, Neo4jPropValue>,
 ): UpsertRow {
-  return { id, props: { userId, codebaseId, ...fields } };
+  return {
+    id,
+    props: { userId, codebaseId, parserVersion: PARSER_VERSION, ...fields },
+  };
 }
 
 function fileRow(f: FileNode, userId: string, codebaseId: string): UpsertRow {
@@ -223,36 +191,22 @@ async function upsertEdges(
 ): Promise<void> {
   if (edges.length === 0) return;
   for (const batch of chunk(edges, CHUNK_SIZE)) {
-    const row = new Cypher.NamedVariable("row");
-    const a = new Cypher.NamedNode("a");
-    const b = new Cypher.NamedNode("b");
-    const r = new Cypher.NamedRelationship("r");
-    await runClause(
+    await runQuery(
       driver,
-      new Cypher.Unwind([
-        new Cypher.Param(
-          batch.map((e) => ({
-            fromId: e.fromId,
-            toId: e.toId,
-            props: edgeProps(e),
-          })),
-        ),
-        row,
-      ])
-        .match(
-          new Cypher.Pattern(a, {
-            properties: { id: row.property("fromId") },
-          }),
-        )
-        .match(
-          new Cypher.Pattern(b, {
-            properties: { id: row.property("toId") },
-          }),
-        )
-        .merge(
-          new Cypher.Pattern(a).related(r, { type, direction: "right" }).to(b),
-        )
-        .set([r, "+=", row.property("props")]),
+      `
+      UNWIND $rows AS row
+      MATCH (a { id: row.fromId })
+      MATCH (b { id: row.toId })
+      MERGE (a)-[r:${type}]->(b)
+      SET r += row.props
+      `,
+      {
+        rows: batch.map((e) => ({
+          fromId: e.fromId,
+          toId: e.toId,
+          props: edgeProps(e),
+        })),
+      },
     );
   }
 }
@@ -266,7 +220,6 @@ function edgeProps(e: RelationEdge): Record<string, Neo4jPropValue> {
   return out;
 }
 
-// MERGE labeled endpoints with a fixed relationship type (no edge props)
 async function upsertLabeledEdges(
   driver: Driver,
   edgeType: EdgeKind,
@@ -276,29 +229,15 @@ async function upsertLabeledEdges(
 ): Promise<void> {
   if (rows.length === 0) return;
   for (const batch of chunk(rows, CHUNK_SIZE)) {
-    const row = new Cypher.NamedVariable("row");
-    const a = new Cypher.NamedNode("a");
-    const b = new Cypher.NamedNode("b");
-    await runClause(
+    await runQuery(
       driver,
-      new Cypher.Unwind([new Cypher.Param(batch), row])
-        .match(
-          new Cypher.Pattern(a, {
-            labels: [fromLabel],
-            properties: { id: row.property("fromId") },
-          }),
-        )
-        .match(
-          new Cypher.Pattern(b, {
-            labels: [toLabel],
-            properties: { id: row.property("toId") },
-          }),
-        )
-        .merge(
-          new Cypher.Pattern(a)
-            .related({ type: edgeType, direction: "right" })
-            .to(b),
-        ),
+      `
+      UNWIND $rows AS row
+      MATCH (a:${fromLabel} { id: row.fromId })
+      MATCH (b:${toLabel} { id: row.toId })
+      MERGE (a)-[:${edgeType}]->(b)
+      `,
+      { rows: batch },
     );
   }
 }
@@ -343,49 +282,49 @@ export async function writeParseResult(args: WriteArgs): Promise<ParseStats> {
     processes,
   } = args;
 
-  const files = symbols.filter((s): s is FileNode => s.kind === "file");
-  const fns = symbols.filter((s): s is FunctionNode => s.kind === "function");
-  const classes = symbols.filter((s): s is ClassNode => s.kind === "class");
-  const interfaces = symbols.filter(
-    (s): s is InterfaceNode => s.kind === "interface",
-  );
+  const keepIds: string[] = [];
+  const fileRows: UpsertRow[] = [];
+  const functionRows: UpsertRow[] = [];
+  const classRows: UpsertRow[] = [];
+  const interfaceRows: UpsertRow[] = [];
+  let importEdgeCount = 0;
 
-  const keepIds = [
-    ...files.map((f) => f.id),
-    ...fns.map((f) => f.id),
-    ...classes.map((c) => c.id),
-    ...interfaces.map((i) => i.id),
-    ...processes.map((p) => p.id),
-  ];
-
-  await deleteStale(driver, userId, codebaseId, keepIds);
-  await upsertNodes(
-    driver,
-    "CodeFile",
-    files.map((f) => fileRow(f, userId, codebaseId)),
-  );
-  await upsertNodes(
-    driver,
-    "Function",
-    fns.map((f) => functionRow(f, userId, codebaseId)),
-  );
-  await upsertNodes(
-    driver,
-    "Class",
-    classes.map((c) => classRow(c, userId, codebaseId)),
-  );
-  await upsertNodes(
-    driver,
-    "Interface",
-    interfaces.map((i) => interfaceRow(i, userId, codebaseId)),
-  );
+  for (const sym of symbols) {
+    switch (sym.kind) {
+      case "file":
+        keepIds.push(sym.id);
+        fileRows.push(fileRow(sym, userId, codebaseId));
+        break;
+      case "function":
+        keepIds.push(sym.id);
+        functionRows.push(functionRow(sym, userId, codebaseId));
+        break;
+      case "class":
+        keepIds.push(sym.id);
+        classRows.push(classRow(sym, userId, codebaseId));
+        break;
+      case "interface":
+        keepIds.push(sym.id);
+        interfaceRows.push(interfaceRow(sym, userId, codebaseId));
+        break;
+    }
+  }
+  for (const p of processes) keepIds.push(p.id);
 
   const buckets = new Map<string, RelationEdge[]>();
   for (const e of structuralRelations) {
+    if (e.kind === "IMPORTS") importEdgeCount += 1;
     const arr = buckets.get(e.kind);
     if (arr) arr.push(e);
     else buckets.set(e.kind, [e]);
   }
+
+  await deleteStale(driver, userId, codebaseId, keepIds);
+  await upsertNodes(driver, "CodeFile", fileRows);
+  await upsertNodes(driver, "Function", functionRows);
+  await upsertNodes(driver, "Class", classRows);
+  await upsertNodes(driver, "Interface", interfaceRows);
+
   for (const kind of [
     "IMPORTS",
     "CONTAINS",
@@ -398,28 +337,13 @@ export async function writeParseResult(args: WriteArgs): Promise<ParseStats> {
   await upsertEdges(driver, "CALLS", calls);
   await upsertProcesses(driver, userId, codebaseId, processes);
 
-  const n = new Cypher.NamedNode("n");
-  await runClause(
-    driver,
-    new Cypher.Match(
-      new Cypher.Pattern(n, {
-        properties: {
-          userId: new Cypher.Param(userId),
-          codebaseId: new Cypher.Param(codebaseId),
-        },
-      }),
-    )
-      .where(isCodeGraphNode(n))
-      .set([n.property("parserVersion"), new Cypher.Param(PARSER_VERSION)]),
-  );
-
   return {
-    fileCount: files.length,
-    functionCount: fns.length,
-    classCount: classes.length,
-    interfaceCount: interfaces.length,
+    fileCount: fileRows.length,
+    functionCount: functionRows.length,
+    classCount: classRows.length,
+    interfaceCount: interfaceRows.length,
     callEdgeCount: calls.length,
     processCount: processes.length,
-    importEdgeCount: (buckets.get("IMPORTS") ?? []).length,
+    importEdgeCount,
   };
 }

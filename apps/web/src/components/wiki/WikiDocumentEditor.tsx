@@ -114,7 +114,7 @@ export default function WikiDocumentEditor({
         return;
       }
 
-      // toc stamps heading ids that markdown does not serialize — skip no-op saves
+      // toc stamps heading ids that markdown does not serialise — skip no-op saves
       const markdown = getMarkdownFromEditor(instance);
       if (markdown === baselineMarkdownRef.current) return;
       if (loadedDocIdRef.current !== doc._id) return;

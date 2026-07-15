@@ -6,9 +6,7 @@
   "scripts": {
     "dev": "tsx scripts/build.ts --watch",
     "build": "tsx scripts/build.ts",
-    "test": "tsx --test tests/sync-watchdog.test.mts",
-    "test:live": "node scripts/live-verify.mjs",
-    "test:live:yt": "node scripts/yt-verify.mjs",
+    "test": "tsx --test tests/sync-watchdog.test.mts tests/save-toast.test.mts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -21,6 +19,7 @@
     "@vmem/ui": "workspace:*",
     "convex": "catalog:",
     "jwt-decode": "^4.0.0",
+    "motion": "^12.34.0",
     "react": "catalog:",
     "react-dom": "catalog:",
     "turndown": "^7.2.4",

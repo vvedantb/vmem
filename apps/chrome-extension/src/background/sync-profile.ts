@@ -1,20 +1,43 @@
-import { listProfiles } from "./api-client";
+import { getExtensionDefaultProfileId, listProfiles } from "./api-client";
 import { getStorage, setStorage } from "@/lib/storage";
+import { resolveExtensionProfileId } from "@/lib/resolve-extension-profile";
 
-// per browser profile for sync clears stale ids
+// per-browser mirror with convex fallback for sync clears stale ids
 export async function getSyncProfileId(): Promise<string | undefined> {
-  const { defaultProfileId } = await getStorage();
-  if (!defaultProfileId) return undefined;
+  const { defaultProfileId: storageId } = await getStorage();
 
+  let profiles;
   try {
-    const profiles = await listProfiles();
-    if (profiles.some((p) => p._id === defaultProfileId)) {
-      return defaultProfileId;
-    }
-    await setStorage({ defaultProfileId: "" });
-    return undefined;
+    profiles = await listProfiles();
   } catch {
-    // keep stored id on transient list failure
-    return defaultProfileId;
+    return storageId || undefined;
   }
+
+  if (storageId && profiles.some((profile) => profile._id === storageId)) {
+    return storageId;
+  }
+
+  if (storageId) {
+    await setStorage({ defaultProfileId: "" });
+  }
+
+  let convexDefault: string | null = null;
+  try {
+    convexDefault = await getExtensionDefaultProfileId();
+  } catch {
+    return undefined;
+  }
+
+  const resolved = resolveExtensionProfileId({
+    storageProfileId: "",
+    convexExtensionDefaultId: convexDefault,
+    profiles,
+  });
+
+  if (resolved) {
+    await setStorage({ defaultProfileId: resolved });
+    return resolved;
+  }
+
+  return undefined;
 }

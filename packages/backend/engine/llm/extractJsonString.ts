@@ -5,15 +5,30 @@ import { z, type ZodType } from "zod";
 const stringArraySchema = z.array(z.string());
 const numberArraySchema = z.array(z.number());
 
-function parseExtractedJson(raw: string, expect: "any" | "array"): unknown {
-  const extracted = tryExtractJson<unknown>(raw, { expect });
+type JsonExpect = "any" | "array";
+
+function parseLlmJson(raw: string, expect: JsonExpect): unknown {
+  const extracted = tryExtractJson(raw, { expect });
   if (extracted.found) return extracted.value;
   return JSON.parse(jsonrepair(raw));
 }
 
-// extract LLM JSON and return valid JSON text
-export function extractJsonString(raw: string): string {
-  return JSON.stringify(parseExtractedJson(raw, "any"));
+function safeParseLlmJson(raw: string, expect: JsonExpect): unknown {
+  try {
+    return parseLlmJson(raw, expect);
+  } catch {
+    return null;
+  }
+}
+
+function parseLlmJsonArray<T>(
+  raw: string,
+  schema: ZodType<T, z.ZodTypeDef, unknown>,
+): T | null {
+  const value = safeParseLlmJson(raw, "array");
+  if (value === null) return null;
+  const parsed = schema.safeParse(value);
+  return parsed.success ? parsed.data : null;
 }
 
 // parse LLM text → repaired JSON → zod; null on any failure
@@ -21,27 +36,10 @@ export function parseJsonString<T>(
   raw: string,
   schema: ZodType<T, z.ZodTypeDef, unknown>,
 ): T | null {
-  let value: unknown;
-  try {
-    value = parseExtractedJson(raw, "any");
-  } catch {
-    return null;
-  }
+  const value = safeParseLlmJson(raw, "any");
+  if (value === null) return null;
   const parsed = schema.safeParse(value);
   return parsed.success ? parsed.data : null;
-}
-
-// parse an array from LLM text
-export function parseLlmJsonArray<T>(
-  content: string,
-  schema: ZodType<T, z.ZodTypeDef, unknown>,
-): T | null {
-  try {
-    const parsed = schema.safeParse(parseExtractedJson(content, "array"));
-    return parsed.success ? parsed.data : null;
-  } catch {
-    return null;
-  }
 }
 
 // string array from LLM JSON, or newline/bullet fallback (capped at 2)

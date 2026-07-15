@@ -7,18 +7,18 @@ import {
 } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { v } from "convex/values";
+import type { Infer } from "convex/values";
 import {
   mcpScopeValidator,
   setMcpDefaultProfileForScope,
 } from "./profiles/mcpAccess";
+import {
+  userSettingsPatchFields,
+  userSettingsThemeValidator,
+} from "./validators";
 
-type ThemeValue = "light" | "dark" | "system";
-type DefaultProfilesValue = {
-  web?: Id<"profiles">;
-  extension?: Id<"profiles">;
-  mcp?: Id<"profiles">;
-  mcpTeam?: Id<"profiles">;
-} | null;
+type ThemeValue = Infer<typeof userSettingsThemeValidator>;
+type DefaultProfilesValue = Doc<"userSettings">["defaultProfiles"] | null;
 
 const defaults: {
   theme: ThemeValue;
@@ -141,26 +141,7 @@ export const getUserContextInternal = internalQuery({
 });
 
 export const update = authMutation({
-  args: {
-    theme: v.optional(
-      v.union(v.literal("light"), v.literal("dark"), v.literal("system")),
-    ),
-    language: v.optional(v.string()),
-    memoryAutoTag: v.optional(v.boolean()),
-    notificationsEnabled: v.optional(v.boolean()),
-    extensionAutoSyncEnabled: v.optional(v.boolean()),
-    extensionAutoSyncIntervalMinutes: v.optional(v.number()),
-    extensionSelectionPopupEnabled: v.optional(v.boolean()),
-    memoryAutoExtract: v.optional(v.boolean()),
-    memoryConfidenceThreshold: v.optional(v.number()),
-    notifyMemoryConflicts: v.optional(v.boolean()),
-    notifyNewMemories: v.optional(v.boolean()),
-    notifyMemoriesExpiring: v.optional(v.boolean()),
-    aboutMe: v.optional(v.string()),
-    preferences: v.optional(v.string()),
-    dreamModeAutoAccept: v.optional(v.boolean()),
-    dreamModeAutomatic: v.optional(v.boolean()),
-  },
+  args: userSettingsPatchFields,
   handler: async (ctx, args) => {
     const existing = await getSettingsDoc(ctx, ctx.userId);
 

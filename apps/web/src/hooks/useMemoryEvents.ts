@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery as useConvexQuery } from "convex/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { api } from "@vmem/backend";
@@ -43,57 +43,49 @@ export function useMemoryEvents(
   const queryClient = useQueryClient();
   const [since] = useState(() => Date.now());
   const processedRef = useRef(new Set<string>());
+  const onRelationshipEventRef = useRef(onRelationshipEvent);
+  onRelationshipEventRef.current = onRelationshipEvent;
+  const onMemoryEventRef = useRef(onMemoryEvent);
+  onMemoryEventRef.current = onMemoryEvent;
 
   const rawEvents = useConvexQuery(api.memoryEvents.getRecentEvents, {
     since,
   });
 
-  const events = useMemo(() => {
-    if (!rawEvents) return rawEvents;
-    return rawEvents.flatMap((entry) => {
-      const eventType = EVENT_FOR_ACTION[entry.action];
-      if (!eventType) return [];
-      return [
-        {
-          _id: entry._id,
-          eventType,
-          memoryId: entry.resourceId,
-          payload: entry.payload,
-        },
-      ];
-    });
-  }, [rawEvents]);
-
   useEffect(() => {
-    if (!events || events.length === 0) return;
+    if (!rawEvents || rawEvents.length === 0) return;
 
     let hasMemoryEvent = false;
 
-    for (const event of events) {
-      const eventId = event._id;
+    for (const entry of rawEvents) {
+      const eventType = EVENT_FOR_ACTION[entry.action];
+      if (!eventType) continue;
+
+      const eventId = entry._id;
       if (processedRef.current.has(eventId)) continue;
       processedRef.current.add(eventId);
 
       if (
-        event.eventType === "memory_created" ||
-        event.eventType === "memory_updated" ||
-        event.eventType === "memory_deleted"
+        eventType === "memory_created" ||
+        eventType === "memory_updated" ||
+        eventType === "memory_deleted"
       ) {
         hasMemoryEvent = true;
       }
 
       if (
-        event.eventType === "relationship_created" ||
-        event.eventType === "relationship_deleted"
+        eventType === "relationship_created" ||
+        eventType === "relationship_deleted"
       ) {
-        if (onRelationshipEvent) {
+        const handler = onRelationshipEventRef.current;
+        if (handler) {
           try {
             // oxlint-disable-next-line typescript/no-unsafe-assignment -- JSON.parse
-            const raw: unknown = JSON.parse(event.payload);
+            const raw: unknown = JSON.parse(entry.payload);
             const parsed = relationshipPayloadSchema.safeParse(raw);
             if (!parsed.success) continue;
-            onRelationshipEvent({
-              eventType: event.eventType,
+            handler({
+              eventType,
               source: parsed.data.source,
               target: parsed.data.target,
               reason: parsed.data.reason,
@@ -107,7 +99,7 @@ export function useMemoryEvents(
 
     if (hasMemoryEvent) {
       void queryClient.invalidateQueries({ queryKey: ["memories"] });
-      onMemoryEvent?.();
+      onMemoryEventRef.current?.();
     }
-  }, [events, queryClient, onRelationshipEvent, onMemoryEvent]);
+  }, [rawEvents, queryClient]);
 }

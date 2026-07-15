@@ -16,6 +16,12 @@ import {
   openRouterLogFields,
   dreamTriggerStateFields,
   notificationFields,
+  apiKeyFields,
+  connectorFields,
+  userSettingsFields,
+  oauthStateFields,
+  githubConnectionFields,
+  contextPromptCacheFields,
 } from "./validators";
 
 const schema = defineSchema({
@@ -32,44 +38,11 @@ const schema = defineSchema({
     .index("by_clerk_id", ["clerkId"])
     .index("by_email", ["email"]),
 
-  apiKeys: defineTable({
-    userId: v.id("users"),
-    name: v.string(),
-    maskedKey: v.string(),
-    keyHash: v.string(),
-    encryptedKey: v.string(),
-    status: v.union(v.literal("active"), v.literal("revoked")),
-    requestCount: v.number(),
-    createdAt: v.number(),
-    lastUsedAt: v.optional(v.number()),
-    revokedAt: v.optional(v.number()),
-  })
+  apiKeys: defineTable(apiKeyFields)
     .index("by_user", ["userId"])
     .index("by_key_hash", ["keyHash"]),
 
-  connectors: defineTable({
-    userId: v.id("users"),
-    name: v.string(),
-    description: v.string(),
-    icon: v.string(),
-    provider: v.optional(
-      v.union(v.literal("google_drive"), v.literal("notion")),
-    ),
-    connectionStatus: v.union(
-      v.literal("connected"),
-      v.literal("disconnected"),
-    ),
-    syncStatus: v.union(
-      v.literal("idle"),
-      v.literal("syncing"),
-      v.literal("error"),
-    ),
-    lastSyncAt: v.optional(v.number()),
-    syncStartedAt: v.optional(v.number()),
-    syncProgress: v.number(),
-    itemsSynced: v.number(),
-    errorMessage: v.optional(v.string()),
-  }).index("by_user", ["userId"]),
+  connectors: defineTable(connectorFields).index("by_user", ["userId"]),
 
   connectorTokens: defineTable({
     connectorId: v.id("connectors"),
@@ -80,48 +53,7 @@ const schema = defineSchema({
     scope: v.string(),
   }).index("by_connector", ["connectorId"]),
 
-  userSettings: defineTable({
-    userId: v.id("users"),
-    theme: v.optional(
-      v.union(v.literal("light"), v.literal("dark"), v.literal("system")),
-    ),
-    language: v.optional(v.string()),
-    memoryAutoTag: v.optional(v.boolean()),
-    notificationsEnabled: v.optional(v.boolean()),
-    extensionAutoSyncEnabled: v.optional(v.boolean()),
-    // history-sync period for the browser extension, in minutes (15–1440)
-    extensionAutoSyncIntervalMinutes: v.optional(v.number()),
-    extensionSelectionPopupEnabled: v.optional(v.boolean()),
-    // memory behavior defaults
-    memoryAutoExtract: v.optional(v.boolean()),
-    memoryConfidenceThreshold: v.optional(v.number()),
-    // notification preferences
-    notifyMemoryConflicts: v.optional(v.boolean()),
-    notifyNewMemories: v.optional(v.boolean()),
-    notifyMemoriesExpiring: v.optional(v.boolean()),
-    // user-provided context surfaced to AI apps on retrieval
-    aboutMe: v.optional(v.string()),
-    preferences: v.optional(v.string()),
-    // source-specific default profiles (replaces activeProfileId)
-    defaultProfiles: v.optional(
-      v.object({
-        web: v.optional(v.id("profiles")),
-        extension: v.optional(v.id("profiles")),
-        mcp: v.optional(v.id("profiles")),
-        mcpTeam: v.optional(v.id("profiles")),
-      }),
-    ),
-    // ── Dream Mode (user-wide; applies to personal profiles only) ──────
-    // when true, the Dreamer's high-confidence synthesis materializes directly as new
-    dreamModeAutoAccept: v.optional(v.boolean()),
-    // when true, a daily cron fires `runDreamForUserById` at `dreamModeScheduleTime`
-    dreamModeScheduleEnabled: v.optional(v.boolean()),
-    dreamModeScheduleTime: v.optional(v.string()), // "HH:MM" UTC
-    // dynamic Dreaming (V3)
-    dreamModeAutomatic: v.optional(v.boolean()),
-    // wall-clock ms of the last successful Dream Mode run
-    lastDreamRunAt: v.optional(v.number()),
-  }).index("by_user", ["userId"]),
+  userSettings: defineTable(userSettingsFields).index("by_user", ["userId"]),
 
   // dynamic Dreaming trigger state
   dreamTriggerState: defineTable(dreamTriggerStateFields).index("by_user", [
@@ -146,23 +78,11 @@ const schema = defineSchema({
     .index("by_user", ["userId"])
     .index("by_user_read", ["userId", "read"]),
 
-  oauthStates: defineTable({
-    state: v.string(),
-    userId: v.id("users"),
-    returnUrl: v.string(),
-    expiresAt: v.number(),
-    // connector OAuth fields (optional to not break existing GitHub flow)
-    connectorId: v.optional(v.id("connectors")),
-    provider: v.optional(v.string()),
-  }).index("by_state", ["state"]),
+  oauthStates: defineTable(oauthStateFields).index("by_state", ["state"]),
 
-  githubConnections: defineTable({
-    userId: v.id("users"),
-    githubUsername: v.string(),
-    encryptedAccessToken: v.string(),
-    avatarUrl: v.optional(v.string()),
-    connectedAt: v.number(),
-  }).index("by_user", ["userId"]),
+  githubConnections: defineTable(githubConnectionFields).index("by_user", [
+    "userId",
+  ]),
 
   codebases: defineTable(codebaseFields)
     .index("by_user", ["userId"])
@@ -231,17 +151,9 @@ const schema = defineSchema({
     .index("by_team_createdAt", ["teamId", "createdAt"]),
 
   // cached "User Profile" prose for the MCP `vmem://context_prompt` resource
-  contextPromptCache: defineTable({
-    userId: v.id("users"),
-    // markdown-formatted profile prose served to MCP clients
-    content: v.string(),
-    // wall-clock ms when the LLM last regenerated `content`
-    generatedAt: v.number(),
-    // snapshot of the user's memory count at generation time
-    memoryCountAtGeneration: v.number(),
-    // true when a memory write happened since the last regen and a regen-check is scheduled
-    pendingRegeneration: v.boolean(),
-  }).index("by_user", ["userId"]),
+  contextPromptCache: defineTable(contextPromptCacheFields).index("by_user", [
+    "userId",
+  ]),
 
   // short-lived OAuth authorization codes for the MCP `/mcp/oauth/token` exchange
   mcpAuthCodes: defineTable({

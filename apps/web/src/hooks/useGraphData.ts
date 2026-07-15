@@ -1,5 +1,5 @@
 // extracted graph data-fetching hook
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo } from "react";
 import { useConvexAuth, useAction } from "convex/react";
 import { useInfiniteQuery, type InfiniteData } from "@tanstack/react-query";
 import { useMemoryEvents } from "@/hooks/useMemoryEvents";
@@ -33,6 +33,8 @@ interface GraphCursor {
   id: string;
 }
 
+const INITIAL_GRAPH_CURSOR: GraphCursor | null = null;
+
 // ---- Page merging ----
 
 interface MergedGraph {
@@ -57,17 +59,6 @@ function mergePages(pages: GraphResponse[]): MergedGraph {
       mentionsEdges: EMPTY_MENTIONS_EDGES,
       focusNodeId: null,
       totalMemoryCount: null,
-    };
-  }
-  if (pages.length === 1) {
-    return {
-      nodes: first.nodes,
-      tagEdges: first.tagEdges,
-      relatesToEdges: first.relatesToEdges,
-      wikiParentEdges: first.wikiParentEdges,
-      mentionsEdges: first.mentionsEdges,
-      focusNodeId: first.focusNodeId ?? null,
-      totalMemoryCount: first.totalMemoryCount ?? null,
     };
   }
 
@@ -139,7 +130,7 @@ export function useGraphData(
       }
       return previousData;
     },
-    initialPageParam: null as GraphCursor | null,
+    initialPageParam: INITIAL_GRAPH_CURSOR,
     queryFn: async ({ pageParam }): Promise<GraphResponse> => {
       return await getGraphData({
         focus: scope === "local" ? (focusNodeId ?? undefined) : undefined,
@@ -166,36 +157,26 @@ export function useGraphData(
     staleTime: 30_000,
   });
 
-  const handleRelationshipEvent = useCallback(
-    (event: {
-      eventType: "relationship_created" | "relationship_deleted";
-      source: string;
-      target: string;
-      reason?: string;
-    }) => {
-      if (event.eventType === "relationship_created") {
-        setLiveRelatesToEdges((prev) => [
-          ...prev,
-          {
-            source: event.source,
-            target: event.target,
-            reason: event.reason ?? "linked",
-          },
-        ]);
-      } else {
-        setLiveRelatesToEdges((prev) =>
-          prev.filter(
-            (e) =>
-              !(e.source === event.source && e.target === event.target) &&
-              !(e.source === event.target && e.target === event.source),
-          ),
-        );
-      }
-    },
-    [],
-  );
-
-  useMemoryEvents(handleRelationshipEvent);
+  useMemoryEvents((event) => {
+    if (event.eventType === "relationship_created") {
+      setLiveRelatesToEdges((prev) => [
+        ...prev,
+        {
+          source: event.source,
+          target: event.target,
+          reason: event.reason ?? "linked",
+        },
+      ]);
+    } else {
+      setLiveRelatesToEdges((prev) =>
+        prev.filter(
+          (e) =>
+            !(e.source === event.source && e.target === event.target) &&
+            !(e.source === event.target && e.target === event.source),
+        ),
+      );
+    }
+  });
 
   const merged = useMemo(() => {
     const pages = graphQuery.data?.pages;
@@ -208,10 +189,6 @@ export function useGraphData(
     const apiEdges = merged?.relatesToEdges ?? [];
     return [...apiEdges, ...liveRelatesToEdges];
   }, [benchData, merged?.relatesToEdges, liveRelatesToEdges]);
-
-  const fetchNextPage = useCallback(() => {
-    void graphQuery.fetchNextPage();
-  }, [graphQuery]);
 
   if (benchData) {
     return {
@@ -242,10 +219,10 @@ export function useGraphData(
     isLoading: graphQuery.isLoading,
     isFetchingNextPage: graphQuery.isFetchingNextPage,
     hasNextPage: graphQuery.hasNextPage,
-    fetchNextPage,
+    fetchNextPage: () => {
+      void graphQuery.fetchNextPage();
+    },
     isError: graphQuery.isError,
     error: graphQuery.error,
   };
 }
-
-export type UseGraphDataReturn = ReturnType<typeof useGraphData>;

@@ -46,14 +46,13 @@ export function filterValidIds(
   validIds: ReadonlySet<string>,
 ): string[] {
   const seen = new Set<string>();
-  const out: string[] = [];
-  for (const id of ids ?? []) {
-    if (typeof id !== "string") continue;
-    if (!validIds.has(id) || seen.has(id)) continue;
+  return (ids ?? []).flatMap((id) => {
+    if (typeof id !== "string" || !validIds.has(id) || seen.has(id)) {
+      return [];
+    }
     seen.add(id);
-    out.push(id);
-  }
-  return out;
+    return [id];
+  });
 }
 
 export function buildDreamSynthesisPrompt(
@@ -157,23 +156,25 @@ function parseConfidenceAdjustments(
   raw: readonly unknown[] | undefined,
   validIds: ReadonlySet<string>,
 ): ConfidenceAdjustment[] {
-  if (!raw) return [];
   const seen = new Set<string>();
-  const adjustments: ConfidenceAdjustment[] = [];
-  for (const item of raw) {
+  return (raw ?? []).flatMap((item) => {
     const entry = adjustmentSchema.safeParse(item);
-    if (!entry.success) continue;
-    if (!validIds.has(entry.data.memoryId) || seen.has(entry.data.memoryId)) {
-      continue;
+    if (
+      !entry.success ||
+      !validIds.has(entry.data.memoryId) ||
+      seen.has(entry.data.memoryId)
+    ) {
+      return [];
     }
     seen.add(entry.data.memoryId);
-    adjustments.push({
-      memoryId: entry.data.memoryId,
-      newConfidence: Math.max(0.05, Math.min(1, entry.data.newConfidence)),
-      reason: entry.data.reason?.slice(0, 300) ?? "",
-    });
-  }
-  return adjustments;
+    return [
+      {
+        memoryId: entry.data.memoryId,
+        newConfidence: Math.max(0.05, Math.min(1, entry.data.newConfidence)),
+        reason: entry.data.reason?.slice(0, 300) ?? "",
+      },
+    ];
+  });
 }
 
 export function parseDreamSynthesisResponse(

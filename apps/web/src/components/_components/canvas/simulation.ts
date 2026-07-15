@@ -1,11 +1,13 @@
 // simulation controller — wraps d3-force in a Web Worker for off-main-thread physics
-import { forceSimulation } from "d3-force";
-import type { GraphNode, GraphEdge } from "./types";
+import type { GraphNode, GraphEdge } from "@/lib/graph/types";
 import { physicsProfile } from "./physics-profile";
-import { createGraphForces, VELOCITY_DECAY } from "./physics-forces";
+import {
+  createGraphForces,
+  createStoppedSimulation,
+  SLEEP_ALPHA,
+} from "./physics-forces";
 
-// below this alpha the layout is visually static
-export const SLEEP_ALPHA = 0.005;
+export { SLEEP_ALPHA };
 
 type WorkerPositionMessage = {
   type: "positions";
@@ -122,7 +124,7 @@ function createWorkerSimulation(
     weight: e.weight,
   }));
 
-  // initialize the worker simulation
+  // initialise the worker simulation
   worker.postMessage({
     type: "init",
     nodes: workerNodes,
@@ -249,19 +251,7 @@ function createMainThreadSimulation(
     profile,
   );
 
-  // .stop() kills d3's internal timer
-  const simulation = forceSimulation<GraphNode, GraphEdge>(nodes)
-    .force("link", forces.link)
-    .force("charge", forces.charge)
-    .force("centerX", forces.centerX)
-    .force("centerY", forces.centerY)
-    .alphaDecay(profile.alphaDecay)
-    .velocityDecay(VELOCITY_DECAY)
-    .stop();
-
-  if (forces.collide) {
-    simulation.force("collide", forces.collide);
-  }
+  const simulation = createStoppedSimulation(nodes, forces, profile);
 
   // warm-up (main thread — blocks, so the adaptive tick count matters even
   // more here than in the worker path)

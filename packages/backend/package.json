@@ -14,7 +14,7 @@
     "test:http-api": "node --env-file=.env.local ../../node_modules/vitest/vitest.mjs run neo4j-cli/http/v1Memories.integration.test.ts",
     "test:behavioral": "cross-env RUN_RETRIEVAL_EVAL=1 node --env-file=.env.local ../../node_modules/vitest/vitest.mjs run neo4j-cli/eval/behavioral.integration.test.ts",
     "db:tag-stats": "npx tsx --env-file=.env.local neo4j-cli/tag-stats.ts",
-    "eval:bench": "npx tsx --env-file=.env.local neo4j-cli/eval/seedBench.ts && npx tsx --env-file=.env.local neo4j-cli/eval/benchmark.ts",
+    "eval:bench": "npx tsx --env-file=.env.local neo4j-cli/eval/benchmark.ts",
     "build:mcp-graph-ui": "node scripts/build-memory-graph-mcp-app.mjs"
   },
   "dependencies": {
@@ -26,7 +26,6 @@
     "@googleapis/drive": "^20.0.0",
     "@modelcontextprotocol/ext-apps": "1.7.2",
     "@modelcontextprotocol/sdk": "catalog:",
-    "@neo4j/cypher-builder": "^3.0.1",
     "@notionhq/client": "^5.23.0",
     "@octokit/core": "^7.0.6",
     "@octokit/oauth-methods": "^6.0.2",

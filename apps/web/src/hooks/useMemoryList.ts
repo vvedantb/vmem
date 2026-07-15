@@ -26,7 +26,7 @@ function useMemoryListPage(filters: MemoryListFilters) {
   const { isAuthenticated } = useConvexAuth();
   const listMemoriesAction = useAction(api.memoryApi.listMemories);
 
-  // normalize so equivalent filter shapes produce the same cache key
+  // normalise so equivalent filter shapes produce the same cache key
   // arrays are defensively copied + sorted, strings are trimmed
   const normalizedFilters = useMemo<MemoryListFilters>(() => {
     const normalized: MemoryListFilters = {};

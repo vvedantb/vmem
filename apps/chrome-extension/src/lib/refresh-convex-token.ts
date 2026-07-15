@@ -8,7 +8,7 @@ function canUseClerkBackgroundClient(): boolean {
   );
 }
 
-// mint convex jwt via clerk's sw optimized client + syncHost session
+// mint convex jwt via clerk's sw optimised client + syncHost session
 export async function refreshConvexTokenFromClerk(): Promise<string | null> {
   if (!canUseClerkBackgroundClient()) {
     return null;

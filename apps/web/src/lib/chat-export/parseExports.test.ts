@@ -86,6 +86,22 @@ describe("parseChatGptExportJsonText", () => {
       error: "Invalid JSON.",
     });
   });
+
+  it("rejects conversations with no readable messages", () => {
+    const json = JSON.stringify([
+      {
+        title: "Empty",
+        mapping: {
+          root: { message: null, parent: null },
+        },
+      },
+    ]);
+
+    expect(parseChatGptExportJsonText(json)).toEqual({
+      ok: false,
+      error: "No conversations with readable messages were found.",
+    });
+  });
 });
 
 describe("parseClaudeExportJsonText", () => {
@@ -133,6 +149,57 @@ describe("parseClaudeExportJsonText", () => {
           content: "Assistant:\nOnly message",
         },
       ],
+    });
+  });
+
+  it("reads conversations nested under a wrapper key", () => {
+    const json = JSON.stringify({
+      conversations: [
+        {
+          id: "nested-1",
+          title: "Wrapped",
+          messages: [{ role: "user", text: "Hello" }],
+        },
+      ],
+    });
+
+    expect(parseClaudeExportJsonText(json)).toEqual({
+      ok: true,
+      rows: [
+        {
+          stableId: "nested-1",
+          title: "Wrapped",
+          content: "User:\nHello",
+        },
+      ],
+    });
+  });
+
+  it("rejects invalid JSON and empty conversation lists", () => {
+    expect(parseClaudeExportJsonText("not json")).toEqual({
+      ok: false,
+      error: "Invalid JSON.",
+    });
+    expect(parseClaudeExportJsonText("[]")).toEqual({
+      ok: false,
+      error:
+        "No conversations found. Expected a JSON array or an object with a conversations array.",
+    });
+  });
+
+  it("rejects conversations with no readable messages", () => {
+    const json = JSON.stringify([
+      {
+        uuid: "empty",
+        title: "Silent",
+        chat_messages: [{ sender: "human", text: "   " }],
+      },
+    ]);
+
+    expect(parseClaudeExportJsonText(json)).toEqual({
+      ok: false,
+      error:
+        "No readable messages found. Export chat_messages/messages if your file uses a different shape.",
     });
   });
 });

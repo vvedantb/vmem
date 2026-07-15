@@ -4,7 +4,7 @@ import { resolveCalls } from "./codebase/resolveCalls";
 import { detectEntryPoints } from "./codebase/entryPoints";
 import { detectProcesses } from "./codebase/processes";
 import { writeParseResult } from "./codebase/write";
-import { type ParseStats } from "./codebase/types";
+import type { ParseStats } from "./codebase/types";
 
 export const MAX_FILES_PER_SYNC = 3000;
 
@@ -37,7 +37,7 @@ export async function syncCodebase(
     codebaseId: input.codebaseId,
     files: input.files,
   });
-  const { calls } = resolveCalls(project, result, input.codebaseId);
+  const calls = resolveCalls(project, result, input.codebaseId);
 
   await input.onStage?.("processes");
   const entryPoints = detectEntryPoints(project, result.symbols, calls);

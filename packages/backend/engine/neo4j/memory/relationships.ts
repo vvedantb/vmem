@@ -5,7 +5,6 @@ import neo4j, {
 } from "neo4j-driver";
 import { neo4jGet, parseNeo4jInt } from "../record";
 import { toMemoryWithTags } from "./mappers";
-import { withSession } from "../session";
 import type { MemoryWithTags } from "./types";
 
 const SEMANTIC_EDGE_K = 20;
@@ -57,16 +56,14 @@ export async function linkMemories(
   reason: string,
 ): Promise<boolean> {
   if (memoryIdA === memoryIdB) return false;
-  return withSession(driver, async (session) => {
-    const result = await session.run(
-      `MATCH (a:Memory {id: $memoryIdA, userId: $userId}), (b:Memory {id: $memoryIdB, userId: $userId})
-       MERGE (a)-[r:RELATES_TO]->(b)
-       SET r.reason = $reason
-       RETURN a, b`,
-      { memoryIdA, memoryIdB, userId, reason },
-    );
-    return result.records.length > 0;
-  });
+  const result = await driver.executeQuery(
+    `MATCH (a:Memory {id: $memoryIdA, userId: $userId}), (b:Memory {id: $memoryIdB, userId: $userId})
+     MERGE (a)-[r:RELATES_TO]->(b)
+     SET r.reason = $reason
+     RETURN a, b`,
+    { memoryIdA, memoryIdB, userId, reason },
+  );
+  return result.records.length > 0;
 }
 
 export async function unlinkMemories(
@@ -75,14 +72,13 @@ export async function unlinkMemories(
   memoryIdA: string,
   memoryIdB: string,
 ): Promise<boolean> {
-  return withSession(driver, async (session) => {
-    await session.run(
-      `MATCH (a:Memory {id: $memoryIdA, userId: $userId})-[r:RELATES_TO]-(b:Memory {id: $memoryIdB, userId: $userId})
-       DELETE r`,
-      { memoryIdA, memoryIdB, userId },
-    );
-    return true;
-  });
+  await driver.executeQuery(
+    `MATCH (a:Memory {id: $memoryIdA, userId: $userId})-[r:RELATES_TO]-(b:Memory {id: $memoryIdB, userId: $userId})
+     DELETE r`,
+    { memoryIdA, memoryIdB, userId },
+  );
+  // characterization: always true even when no relationship existed
+  return true;
 }
 
 export async function getRelatedMemories(
@@ -90,16 +86,14 @@ export async function getRelatedMemories(
   userId: string,
   memoryId: string,
 ): Promise<{ memory: MemoryWithTags; reason: string }[]> {
-  return withSession(driver, async (session) => {
-    const result = await session.run(
-      `MATCH (m:Memory {id: $memoryId, userId: $userId})-[r:RELATES_TO]-(related:Memory)
-       OPTIONAL MATCH (related)-[:TAGGED_WITH]->(t:Tag)
-       RETURN related AS m, collect(DISTINCT t.name) AS tags, r.reason AS reason`,
-      { memoryId, userId },
-    );
-    return result.records.map((record) => ({
-      memory: toMemoryWithTags(record),
-      reason: stringField(record, "reason"),
-    }));
-  });
+  const result = await driver.executeQuery(
+    `MATCH (m:Memory {id: $memoryId, userId: $userId})-[r:RELATES_TO]-(related:Memory)
+     OPTIONAL MATCH (related)-[:TAGGED_WITH]->(t:Tag)
+     RETURN related AS m, collect(DISTINCT t.name) AS tags, r.reason AS reason`,
+    { memoryId, userId },
+  );
+  return result.records.map((record) => ({
+    memory: toMemoryWithTags(record),
+    reason: stringField(record, "reason"),
+  }));
 }

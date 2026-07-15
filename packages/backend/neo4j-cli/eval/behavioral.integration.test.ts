@@ -3,11 +3,13 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { Driver } from "neo4j-driver";
 import { closeDriver, getDriver } from "../../engine/neo4j/driver";
-import { neo4jField, neo4jIntSchema } from "../../engine/neo4j/record";
 import { retrieveMemories } from "../../engine/neo4j/memory/retrieve";
 import {
   createMemory,
+  deleteAllMemoriesForUser,
   findMemoryBySimilarity,
+  getMemory,
+  listMemories,
   updateMemory,
 } from "../../engine/neo4j/memory/crud";
 import { deduplicateMemories } from "../../engine/neo4j/memory/dedup";
@@ -33,50 +35,24 @@ const EMB_A = vec((i) => (i === 0 ? 1 : 0));
 const EMB_ORTHOGONAL = vec((i) => (i === 1 ? 1 : 0));
 
 async function wipeUser(driver: Driver): Promise<void> {
-  const session = driver.session();
-  try {
-    await session.run(
-      `MATCH (p:ProposedUpdate)-[:UPDATE_FOR]->(m:Memory {userId: $userId})
-       DETACH DELETE p`,
-      { userId: USER },
-    );
-    await session.run(`MATCH (m:Memory {userId: $userId}) DETACH DELETE m`, {
-      userId: USER,
-    });
-  } finally {
-    await session.close();
-  }
+  await deleteAllMemoriesForUser(driver, USER);
 }
 
 async function countMemories(driver: Driver): Promise<number> {
-  const session = driver.session();
-  try {
-    const res = await session.run(
-      `MATCH (m:Memory {userId: $userId}) RETURN count(m) AS c`,
-      { userId: USER },
-    );
-    const record = res.records[0];
-    return record ? neo4jField(record, "c", neo4jIntSchema) : 0;
-  } finally {
-    await session.close();
-  }
+  const { total } = await listMemories(driver, {
+    userId: USER,
+    limit: 1,
+    offset: 0,
+  });
+  return total;
 }
 
 async function getContent(
   driver: Driver,
   memoryId: string,
 ): Promise<string | null> {
-  const session = driver.session();
-  try {
-    const res = await session.run(
-      `MATCH (m:Memory {id: $memoryId}) RETURN m.content AS content`,
-      { memoryId },
-    );
-    const record = res.records[0];
-    return record ? String(record.get("content")) : null;
-  } finally {
-    await session.close();
-  }
+  const memory = await getMemory(driver, USER, memoryId);
+  return memory?.content ?? null;
 }
 
 async function create(

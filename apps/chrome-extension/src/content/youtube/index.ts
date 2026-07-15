@@ -290,7 +290,7 @@ function handleNavigation(): void {
   }
 }
 
-// initialization
+// initialisation
 
 function init(): void {
   // initial check

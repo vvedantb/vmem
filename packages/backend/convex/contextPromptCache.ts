@@ -3,6 +3,7 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import { getUserByClerkId } from "./auth";
+import { contextPromptCacheContentFields } from "./validators";
 
 async function getCacheRowByClerkId(
   ctx: QueryCtx | MutationCtx,
@@ -33,15 +34,7 @@ export const resolveUserIdByClerkIdInternal = internalQuery({
 // look up the cache row for a clerkId
 export const getByClerkIdInternal = internalQuery({
   args: { clerkId: v.string() },
-  returns: v.union(
-    v.object({
-      content: v.string(),
-      generatedAt: v.number(),
-      memoryCountAtGeneration: v.number(),
-      pendingRegeneration: v.boolean(),
-    }),
-    v.null(),
-  ),
+  returns: v.union(v.object(contextPromptCacheContentFields), v.null()),
   handler: async (ctx, args) => {
     const found = await getCacheRowByClerkId(ctx, args.clerkId);
     if (!found?.row) return null;

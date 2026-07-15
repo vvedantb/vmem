@@ -1,4 +1,4 @@
-import type { ViewportState } from "./types";
+import type { ViewportState } from "@/lib/graph/types";
 
 // low enough that fitToNodes can frame a 100k-node layout (world extent grows with
 const MIN_SCALE = 0.01;

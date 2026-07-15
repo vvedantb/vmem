@@ -1,5 +1,6 @@
-import { createGunzip } from "node:zlib";
+import { finished, pipeline } from "node:stream/promises";
 import { Readable } from "node:stream";
+import { createGunzip } from "node:zlib";
 import { extract } from "tar-stream";
 import pRetry from "p-retry";
 import type { SourceFileBlob } from "../neo4j/codebase/parse";
@@ -57,47 +58,76 @@ async function fetchWithRetry(
   } catch (err) {
     const lastErr = err instanceof Error ? err : new Error(String(err));
     const detail = lastErr.message;
-    const cause = readFetchCause(lastErr);
-    throw new Error(
-      `GitHub ${label} failed after ${FETCH_ATTEMPTS} attempts: ${detail}${cause ? ` (${cause})` : ""}`,
+    const nestedCause = readFetchCause(lastErr);
+    throw Object.assign(
+      new Error(
+        `GitHub ${label} failed after ${FETCH_ATTEMPTS} attempts: ${detail}${nestedCause ? ` (${nestedCause})` : ""}`,
+      ),
+      { cause: err },
     );
   }
 }
 
-async function extractTsJsFromTarball(
+async function readStreamUtf8(stream: Readable): Promise<string> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks).toString("utf8");
+}
+
+async function drainStream(stream: Readable): Promise<void> {
+  stream.resume();
+  await finished(stream);
+}
+
+export async function extractTsJsFromTarball(
   buffer: Buffer,
 ): Promise<SourceFileBlob[]> {
-  return new Promise((resolve, reject) => {
-    const blobs: SourceFileBlob[] = [];
-    const parser = extract();
+  const blobs: SourceFileBlob[] = [];
+  const parser = extract();
 
-    parser.on("entry", (header, stream, next) => {
+  parser.on("entry", (header, stream, next) => {
+    void (async () => {
       const repoPath = stripTarballRoot(header.name);
       const isFile =
         header.type === "file" || header.type === "contiguous-file";
       if (!repoPath || !isFile || !shouldIncludeRepoPath(repoPath)) {
-        stream.resume();
-        stream.on("end", next);
+        await drainStream(stream);
+        next();
         return;
       }
-
-      const chunks: Buffer[] = [];
-      stream.on("data", (chunk: Buffer) => chunks.push(chunk));
-      stream.on("end", () => {
-        blobs.push({
-          path: repoPath,
-          content: Buffer.concat(chunks).toString("utf8"),
-        });
-        next();
+      blobs.push({
+        path: repoPath,
+        content: await readStreamUtf8(stream),
       });
-      stream.on("error", reject);
+      next();
+    })().catch((err: unknown) => {
+      parser.destroy(err instanceof Error ? err : new Error(String(err)));
     });
-
-    parser.on("finish", () => resolve(blobs));
-    parser.on("error", reject);
-
-    Readable.from(buffer).pipe(createGunzip()).on("error", reject).pipe(parser);
   });
+
+  await pipeline(Readable.from(buffer), createGunzip(), parser);
+  return blobs;
+}
+
+export function assertRepositoryBlobs(
+  blobs: SourceFileBlob[],
+  repoOwner: string,
+  repoName: string,
+  branch: string,
+): SourceFileBlob[] {
+  if (blobs.length > MAX_FILES_PER_SYNC) {
+    throw new Error(
+      `Repository too large for Phase 1 sync (${blobs.length} files; limit ${MAX_FILES_PER_SYNC}).`,
+    );
+  }
+  if (blobs.length === 0) {
+    throw new Error(
+      `No TS/JS source files found in ${repoOwner}/${repoName}@${branch}`,
+    );
+  }
+  return blobs;
 }
 
 // download repo tarball and extract TS/JS sources (faster than per-file API)
@@ -128,19 +158,10 @@ export async function fetchRepositoryFromGithub(
   }
 
   const buffer = Buffer.from(await tarballResponse.arrayBuffer());
-  const blobs = await extractTsJsFromTarball(buffer);
-
-  if (blobs.length > MAX_FILES_PER_SYNC) {
-    throw new Error(
-      `Repository too large for Phase 1 sync (${blobs.length} files; limit ${MAX_FILES_PER_SYNC}).`,
-    );
-  }
-
-  if (blobs.length === 0) {
-    throw new Error(
-      `No TS/JS source files found in ${repoOwner}/${repoName}@${branch}`,
-    );
-  }
-
-  return blobs;
+  return assertRepositoryBlobs(
+    await extractTsJsFromTarball(buffer),
+    repoOwner,
+    repoName,
+    branch,
+  );
 }
