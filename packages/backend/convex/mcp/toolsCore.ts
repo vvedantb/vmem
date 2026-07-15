@@ -1,29 +1,63 @@
 import { z } from "zod";
 import type { Doc } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
-import {
-  mapActiveProfile,
-  mapProfileListItem,
-  mapWhoamiProfileListItem,
-} from "./profileMappers";
-import { scopedClerk, toolSpec } from "./toolTypes";
+import { emptyInputSchema, scopedClerk, toolSpec } from "./toolTypes";
 
-const pingSchema = z.object({});
+type ActiveProfileResult = {
+  id: string;
+  name: string;
+  color: string;
+  icon: string;
+  teamId: string | null;
+};
 
-const whoamiSchema = z.object({});
+type ProfileListItem = ActiveProfileResult & {
+  isDefault: boolean;
+};
 
-const listProfilesSchema = z.object({});
+type WhoamiProfileListItem = {
+  id: string;
+  name: string;
+  isDefault: boolean;
+  teamId: string | null;
+};
+
+function mapActiveProfile(profile: Doc<"profiles">): ActiveProfileResult {
+  return {
+    id: profile._id,
+    name: profile.name,
+    color: profile.color,
+    icon: profile.icon,
+    teamId: profile.teamId ?? null,
+  };
+}
+
+function mapProfileListItem(profile: Doc<"profiles">): ProfileListItem {
+  return {
+    ...mapActiveProfile(profile),
+    isDefault: profile.isDefault,
+  };
+}
+
+function mapWhoamiProfileListItem(
+  profile: Doc<"profiles">,
+): WhoamiProfileListItem {
+  return {
+    id: profile._id,
+    name: profile.name,
+    isDefault: profile.isDefault,
+    teamId: profile.teamId ?? null,
+  };
+}
 
 const setActiveProfileSchema = z.object({
   profileId: z.string().describe("Profile ID from list_profiles"),
 });
 
-const contextPromptGetSchema = z.object({});
-
 export const coreToolSpecs = {
   ping: toolSpec({
     name: "ping",
-    schema: pingSchema,
+    schema: emptyInputSchema,
     description: "Health check tool for connector validation.",
     errorLabel: "Ping failed",
     async run(h): Promise<unknown> {
@@ -36,7 +70,7 @@ export const coreToolSpecs = {
   }),
   whoami: toolSpec({
     name: "whoami",
-    schema: whoamiSchema,
+    schema: emptyInputSchema,
     description: (scopeLabel) =>
       `Returns the authenticated user, active ${scopeLabel} profile, and profiles visible on this ${scopeLabel} MCP connector.`,
     errorLabel: "Whoami failed",
@@ -69,7 +103,7 @@ export const coreToolSpecs = {
   }),
   list_profiles: toolSpec({
     name: "list_profiles",
-    schema: listProfilesSchema,
+    schema: emptyInputSchema,
     description: (scopeLabel) =>
       `List ${scopeLabel} profiles available on this MCP connector. Returns profile IDs, names, colors, and icons. Use set_active_profile to choose the default profile for memory tools, or pass profileId on memory_add / memory_search / memory_retrieve.`,
     errorLabel: "List profiles failed",
@@ -109,7 +143,7 @@ export const coreToolSpecs = {
   }),
   context_prompt_get: toolSpec({
     name: "context_prompt_get",
-    schema: contextPromptGetSchema,
+    schema: emptyInputSchema,
     description:
       "Returns the full vmem user profile markdown (same as MCP resource vmem://context_prompt): About, Preferences, pinned memories, profile summary, and Available Skills (name + description). Call at session start or when a skill might apply — claude.ai cannot re-read the resource mid-chat. Then call skills_get with the exact skill name to load the playbook.",
     errorLabel: "Context prompt get failed",

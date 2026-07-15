@@ -1,9 +1,7 @@
 import { z } from "zod";
 import { internal } from "../_generated/api";
 import { toSkillIndexEntry } from "../skills";
-import { toolSpec } from "./toolTypes";
-
-const skillsListSchema = z.object({});
+import { emptyInputSchema, toolSpec } from "./toolTypes";
 
 const skillsGetSchema = z.object({
   name: z.string().describe("Exact skill name (case sensitive)"),
@@ -44,7 +42,7 @@ const skillsDeleteSchema = z.object({
 export const skillsToolSpecs = {
   skills_list: toolSpec({
     name: "skills_list",
-    schema: skillsListSchema,
+    schema: emptyInputSchema,
     description:
       "List enabled skills (name + description only). Same data as the Available Skills section in context_prompt_get / vmem://context_prompt. When a task matches a skill's description, call skills_get with the exact name to load full markdown instructions before following them.",
     errorLabel: "List skills failed",

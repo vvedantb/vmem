@@ -7,9 +7,7 @@ import {
   toWikiSearchItem,
   updateWiki,
 } from "./wikiOps";
-import { toolSpec } from "./toolTypes";
-
-const wikiListSchema = z.object({});
+import { emptyInputSchema, toolSpec } from "./toolTypes";
 
 const wikiGetSchema = z.object({
   id: z.string().describe("Wiki node id from wiki_list"),
@@ -80,7 +78,7 @@ const wikiDeleteSchema = z.object({
 export const wikiToolSpecs = {
   wiki_list: toolSpec({
     name: "wiki_list",
-    schema: wikiListSchema,
+    schema: emptyInputSchema,
     description:
       "List all wiki folders, documents, and artifacts (flat index, no body). Use returned ids with wiki_get. Call this before wiki_get or wiki_update when you do not already have a node id.",
     errorLabel: "Wiki list failed",

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-07-15 — Trim MCP catalog ceremony
+
+Bind tools at registration time (drop precomputed bindable catalog), co-locate
+profile mappers into toolsCore, share emptyInputSchema, and patch the wiki
+folder path index in memory instead of refetching the tree.
+
 ## 2026-07-15 — Decompose Dream Mode pass helpers
 
 Shared DreamRunResult helpers across entry points, split profile runs into

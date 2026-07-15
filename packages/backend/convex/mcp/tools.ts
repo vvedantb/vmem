@@ -6,12 +6,8 @@ import {
   type McpToolContent,
   type ToolHandlerResult,
 } from "./content";
-import {
-  bindableToolSpecs,
-  toolSpecs,
-  type McpBindableTool,
-} from "./toolCatalog";
-import type { ToolHandlerContext } from "./toolTypes";
+import { toolSpecs } from "./toolCatalog";
+import { bindToolSpec, type ToolHandlerContext } from "./toolTypes";
 
 function handlerContext(
   clerkUserId: string,
@@ -29,7 +25,6 @@ function isToolSpecKey(key: string): key is keyof typeof toolSpecs {
 
 function registerMcpTool(
   server: McpServer,
-  spec: McpBindableTool,
   meta: CatalogEntry,
   scopeLabel: string,
   scope: McpScope,
@@ -37,6 +32,7 @@ function registerMcpTool(
 ): void {
   if (meta.scopes && !meta.scopes.includes(scope)) return;
 
+  const bindable = bindToolSpec(meta);
   const description =
     typeof meta.description === "function"
       ? meta.description(scopeLabel)
@@ -44,17 +40,22 @@ function registerMcpTool(
   const toContent: (result: ToolHandlerResult) => McpToolContent =
     meta.toContent ?? ((result) => toMcpContent(result, meta.errorLabel));
 
-  server.tool(spec.name, description, spec.schema.shape, async (params) => {
-    let result: ToolHandlerResult;
-    try {
-      result = { ok: true, data: await spec.run(h, params) };
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Unknown error";
-      console.error(`[MCP][${spec.name}]`, message);
-      result = { ok: false, error: message };
-    }
-    return toContent(result);
-  });
+  server.tool(
+    bindable.name,
+    description,
+    bindable.schema.shape,
+    async (params) => {
+      let result: ToolHandlerResult;
+      try {
+        result = { ok: true, data: await bindable.run(h, params) };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        console.error(`[MCP][${bindable.name}]`, message);
+        result = { ok: false, error: message };
+      }
+      return toContent(result);
+    },
+  );
 }
 
 export function registerTools(
@@ -68,8 +69,6 @@ export function registerTools(
 
   for (const key of Object.keys(toolSpecs)) {
     if (!isToolSpecKey(key)) continue;
-    const bindable = bindableToolSpecs[key];
-    if (!bindable) continue;
-    registerMcpTool(server, bindable, toolSpecs[key], scopeLabel, scope, h);
+    registerMcpTool(server, toolSpecs[key], scopeLabel, scope, h);
   }
 }

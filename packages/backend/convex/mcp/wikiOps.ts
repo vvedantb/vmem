@@ -7,11 +7,13 @@ import {
   wikiExcerpt,
 } from "../lib/wikiContent";
 import { wikiKindHasContent } from "../lib/wikiKind";
+import { parentKey } from "../lib/scopedTree";
 import {
   buildWikiChildrenByParent,
   findWikiChild,
   normalizeWikiPathSegments,
   wikiPathNodesFromDocs,
+  type WikiPathNode,
 } from "../wiki/path";
 
 export type WikiListItem = {
@@ -91,12 +93,12 @@ async function ensureWikiFolderPath(
     throw new Error("parentPath must name at least one folder");
   }
 
-  let nodes: Doc<"wikiNodes">[] = await ctx.runQuery(
+  const nodes: Doc<"wikiNodes">[] = await ctx.runQuery(
     internal.wiki.listByClerkIdInternal,
     { clerkId },
   );
-  let pathNodes = wikiPathNodesFromDocs(nodes);
-  let byParent = buildWikiChildrenByParent(pathNodes);
+  const pathNodes = wikiPathNodesFromDocs(nodes);
+  const byParent = buildWikiChildrenByParent(pathNodes);
   let currentParent: Id<"wikiNodes"> | undefined;
 
   for (const title of segments) {
@@ -118,12 +120,18 @@ async function ensureWikiFolderPath(
         title,
       },
     );
+    const newNode: WikiPathNode = {
+      id: newId,
+      parentId: currentParent ?? null,
+      title,
+      kind: "folder",
+    };
+    pathNodes.push(newNode);
+    const parentLookupKey = parentKey(currentParent);
+    const siblings = byParent.get(parentLookupKey) ?? [];
+    siblings.push(newNode);
+    byParent.set(parentLookupKey, siblings);
     currentParent = newId;
-    nodes = await ctx.runQuery(internal.wiki.listByClerkIdInternal, {
-      clerkId,
-    });
-    pathNodes = wikiPathNodesFromDocs(nodes);
-    byParent = buildWikiChildrenByParent(pathNodes);
   }
 
   if (!currentParent) {

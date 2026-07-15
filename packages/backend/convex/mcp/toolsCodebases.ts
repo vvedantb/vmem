@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { Doc } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
-import { toolSpec } from "./toolTypes";
+import { emptyInputSchema, toolSpec } from "./toolTypes";
 
 const codebaseSymbolKindSchema = z.enum([
   "code-file",
@@ -12,8 +12,6 @@ const codebaseSymbolKindSchema = z.enum([
 ]);
 
 const codebaseImpactDirectionSchema = z.enum(["upstream", "downstream"]);
-
-const codebasesListSchema = z.object({});
 
 const codebaseOverviewSchema = z.object({
   codebaseId: z.string().describe("Codebase ID from codebases_list"),
@@ -110,7 +108,7 @@ function mapCodebaseSummary(row: Doc<"codebases">) {
 export const codebasesToolSpecs = {
   codebases_list: toolSpec({
     name: "codebases_list",
-    schema: codebasesListSchema,
+    schema: emptyInputSchema,
     description:
       "List GitHub repositories connected to vmem. Returns codebase IDs, repo names, sync status, and parser stats. Call this first to discover codebaseId values for the other codebase_* tools. Only repos with status 'synced' have graph data in Neo4j.",
     errorLabel: "List codebases failed",
