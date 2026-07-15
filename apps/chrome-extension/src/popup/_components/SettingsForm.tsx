@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useClerk } from "@clerk/chrome-extension";
 import { useQuery } from "convex/react";
+import { useCopyToClipboard, useTimeout } from "usehooks-ts";
 import {
   IconSun,
   IconMoon,
@@ -32,7 +33,6 @@ import {
   describeSyncInterval,
   shortSyncInterval,
 } from "@/lib/constants";
-import { copyTextToClipboard } from "@/lib/copy-to-clipboard";
 import { useExtensionUserSettings } from "@/popup/useExtensionUserSettings";
 import { useBrowserDefaultProfile } from "@/popup/useBrowserDefaultProfile";
 import { SettingsSelectRow } from "./SettingsSelectRow";
@@ -55,6 +55,14 @@ export function SettingsForm() {
   const [autoSearchEnabled, setAutoSearchEnabled] = useState(true);
   const [autoCaptureEnabled, setAutoCaptureEnabled] = useState(false);
   const [promptCopied, setPromptCopied] = useState(false);
+  const [, copyToClipboard] = useCopyToClipboard();
+
+  useTimeout(
+    () => {
+      setPromptCopied(false);
+    },
+    promptCopied ? 2000 : null,
+  );
 
   useEffect(() => {
     void getStorage().then((s) => {
@@ -98,10 +106,8 @@ export function SettingsForm() {
   }
 
   async function handleCopyAiPrompt() {
-    const copied = await copyTextToClipboard(VMEM_AI_SYSTEM_PROMPT);
-    if (!copied) return;
-    setPromptCopied(true);
-    setTimeout(() => setPromptCopied(false), 2000);
+    const copied = await copyToClipboard(VMEM_AI_SYSTEM_PROMPT);
+    if (copied) setPromptCopied(true);
   }
 
   return (

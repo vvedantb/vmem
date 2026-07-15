@@ -1,5 +1,6 @@
 import { createVmemButton } from "@/content/shared/inject-button";
 import { copyVmemSystemPrompt } from "@/content/shared/copy-vmem-system-prompt";
+import { waitForProbe } from "@/content/shared/dom-utils";
 
 const COPY_ACTION = "copy-prompt";
 
@@ -35,36 +36,11 @@ function findPersonalizationMount(): Element | null {
   return null;
 }
 
-function waitForPersonalizationMount(timeout = 10000): Promise<Element | null> {
-  return new Promise((resolve) => {
-    const existing = findPersonalizationMount();
-    if (existing) {
-      resolve(existing);
-      return;
-    }
-
-    const observer = new MutationObserver(() => {
-      const mount = findPersonalizationMount();
-      if (mount) {
-        observer.disconnect();
-        resolve(mount);
-      }
-    });
-
-    observer.observe(document.body, { childList: true, subtree: true });
-
-    setTimeout(() => {
-      observer.disconnect();
-      resolve(findPersonalizationMount());
-    }, timeout);
-  });
-}
-
 export async function injectCopyPromptButton(): Promise<void> {
   if (!isPersonalizationSettingsPage()) return;
   if (document.querySelector(`[data-vmem-action="${COPY_ACTION}"]`)) return;
 
-  const mount = await waitForPersonalizationMount();
+  const mount = await waitForProbe(findPersonalizationMount);
   if (!mount) return;
 
   const button = createVmemButton("Copy vmem prompt", () => {

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useInterval } from "usehooks-ts";
 import { IconBookmark, IconHistory } from "@tabler/icons-react";
 import {
   Button,
@@ -44,22 +45,22 @@ export function ImportPanel() {
     });
   }
 
+  function updateNextSync() {
+    chrome.alarms.get("vmem-history-sync", (alarm) => {
+      if (alarm) {
+        setNextSyncLabel(formatTimeUntil(alarm.scheduledTime));
+      } else {
+        setNextSyncLabel(null);
+      }
+    });
+  }
+
   useEffect(() => {
     refreshSyncTimestamps();
-
-    function updateNextSync() {
-      chrome.alarms.get("vmem-history-sync", (alarm) => {
-        if (alarm) {
-          setNextSyncLabel(formatTimeUntil(alarm.scheduledTime));
-        } else {
-          setNextSyncLabel(null);
-        }
-      });
-    }
     updateNextSync();
-    const interval = setInterval(updateNextSync, 15_000);
-    return () => clearInterval(interval);
   }, []);
+
+  useInterval(updateNextSync, 15_000);
 
   useEffect(() => {
     function handleProgress(message: ProgressMessage) {

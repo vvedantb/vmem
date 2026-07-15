@@ -2,7 +2,15 @@ import { ConvexHttpClient } from "convex/browser";
 import { jwtDecode } from "jwt-decode";
 import { CONVEX_URL } from "@/lib/constants";
 import { getAuthToken, setAuthToken } from "@/lib/storage";
-import { refreshConvexTokenFromClerk } from "@/lib/refresh-convex-token";
+
+type TokenRefresher = () => Promise<string | null>;
+
+// wired from background/index so node tests can import auth without clerk
+let refreshConvexToken: TokenRefresher = async () => null;
+
+export function setConvexTokenRefresher(refresher: TokenRefresher): void {
+  refreshConvexToken = refresher;
+}
 
 let pendingRefresh: Promise<string | null> | null = null;
 
@@ -26,17 +34,13 @@ async function refreshTokenFromClerk(): Promise<string | null> {
 
   pendingRefresh = (async () => {
     try {
-      const token = await refreshConvexTokenFromClerk();
+      const token = await refreshConvexToken();
       if (token) {
         await setAuthToken(token);
         return token;
       }
 
       // keep popup token if sync host cookie is missing
-      return null;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      console.warn("[vmem] Clerk token refresh failed:", message);
       return null;
     } finally {
       pendingRefresh = null;

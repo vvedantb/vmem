@@ -5,6 +5,7 @@ import type { ContentMessage, BackgroundResponse } from "@/types/messages";
 import { safeSendMessage } from "@/lib/safe-message";
 import { injectInstrumentSansFont } from "@/content/shared/inject-button";
 import { createVmemLogoImg } from "@/content/shared/icons";
+import { waitForProbe } from "@/content/shared/dom-utils";
 
 // state
 
@@ -69,26 +70,10 @@ function segmentText(segment: Element): string {
 }
 
 function waitForSegments(timeoutMs: number): Promise<Element[]> {
-  return new Promise((resolve) => {
-    const existing = querySegments();
-    if (existing.length > 0) {
-      resolve(existing);
-      return;
-    }
-    const observer = new MutationObserver(() => {
-      const segments = querySegments();
-      if (segments.length > 0) {
-        clearTimeout(timer);
-        observer.disconnect();
-        resolve(segments);
-      }
-    });
-    const timer = setTimeout(() => {
-      observer.disconnect();
-      resolve(querySegments());
-    }, timeoutMs);
-    observer.observe(document.body, { childList: true, subtree: true });
-  });
+  return waitForProbe(() => {
+    const segments = querySegments();
+    return segments.length > 0 ? segments : null;
+  }, timeoutMs).then((segments) => segments ?? []);
 }
 
 // best effort: close the engagement panel we opened so the ui is undisturbed

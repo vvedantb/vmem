@@ -1,4 +1,8 @@
-import type { ContentMessage, BackgroundResponse } from "@/types/messages";
+import {
+  contentMessageSchema,
+  type ContentMessage,
+  type BackgroundResponse,
+} from "@/types/messages";
 import type { CreateMemoryParams } from "@/types/api";
 import { base64 as base64Codec } from "@scure/base";
 import { createMemory, retrieveMemories, saveScreenshot } from "./api-client";
@@ -8,23 +12,6 @@ import { cancelImport } from "./import-cancel";
 import { runAutoSyncNow } from "./sync-scheduler";
 import { getStorage } from "@/lib/storage";
 import { htmlToMarkdown } from "@/lib/page-extraction";
-import { z } from "zod";
-
-const contentMessageTypeSchema = z.object({ type: z.string() });
-
-const HANDLED_TYPES = new Set<string>([
-  "RETRIEVE_MEMORIES",
-  "SAVE_PAGE",
-  "SAVE_SELECTION",
-  "SAVE_YOUTUBE_VIDEO",
-  "CAPTURE_PROMPT",
-  "SAVE_SCREENSHOT",
-  "CAPTURE_VISIBLE_TAB",
-  "IMPORT_BOOKMARKS",
-  "IMPORT_HISTORY",
-  "CANCEL_IMPORT",
-  "DEBUG_RUN_AUTO_SYNC",
-]);
 
 type SaveResult = Extract<BackgroundResponse, { type: "SAVE_RESULT" }>;
 
@@ -46,23 +33,17 @@ async function tryCreateMemory(
 export function registerMessageHandler(): void {
   chrome.runtime.onMessage.addListener(
     (
-      message: ContentMessage,
+      message: unknown,
       _sender: chrome.runtime.MessageSender,
       sendResponse: (response: BackgroundResponse) => void,
     ) => {
-      const typeParsed = contentMessageTypeSchema.safeParse(message);
-      if (!typeParsed.success) {
+      const parsed = contentMessageSchema.safeParse(message);
+      if (!parsed.success) {
         console.log("[message-handler] Not handled, skipping");
         return false;
       }
-      const messageType = typeParsed.data.type;
-      console.log("[message-handler] Received:", messageType);
-      if (typeof messageType !== "string" || !HANDLED_TYPES.has(messageType)) {
-        console.log("[message-handler] Not handled, skipping");
-        return false;
-      }
-      console.log("[message-handler] Handling:", messageType);
-      void handleMessage(message).then(sendResponse);
+      console.log("[message-handler] Handling:", parsed.data.type);
+      void handleMessage(parsed.data).then(sendResponse);
       return true;
     },
   );

@@ -10,6 +10,10 @@ import {
 } from "./sync-scheduler";
 import { runBackgroundBootstrap } from "./bootstrap";
 import { registerSyncHostCookieListener } from "./sync-host-cookie-listener";
+import { setConvexTokenRefresher } from "./auth";
+import { refreshConvexTokenFromClerk } from "@/lib/refresh-convex-token";
+
+setConvexTokenRefresher(refreshConvexTokenFromClerk);
 
 registerAlarmListener();
 registerBookmarkListener();
