@@ -1,6 +1,6 @@
 "use client";
 
-import type { GraphEdgeType } from "./canvas/types";
+import type { GraphEdgeType } from "@/lib/graph/types";
 
 interface GraphEdgeTooltipProps {
   edgeType: GraphEdgeType;

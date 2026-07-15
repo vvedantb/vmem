@@ -1,4 +1,4 @@
-import type { GraphEdgeType, GraphNode } from "./canvas/types";
+import type { GraphEdgeType, GraphNode } from "./types";
 
 export type GraphDetailNode = Pick<
   GraphNode,

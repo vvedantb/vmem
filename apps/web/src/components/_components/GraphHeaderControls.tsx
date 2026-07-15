@@ -20,7 +20,7 @@ import type { MemoryGraphController } from "@/hooks/useMemoryGraphController";
 import { MemoryFiltersButton } from "@/routes/_main/$profileId/memories/_components/MemoryFiltersButton";
 import type { ListItemKind } from "@/lib/list-items";
 import type { MemoryType } from "@/lib/memories";
-import type { GraphSettings } from "./graph-types";
+import type { GraphSettings } from "@/lib/graph/graph-types";
 
 // ---- Slider config ----
 

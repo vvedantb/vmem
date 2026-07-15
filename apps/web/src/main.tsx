@@ -4,7 +4,7 @@ import { RouterProvider, createRouter } from "@tanstack/react-router";
 import { ClerkProvider, useAuth } from "@clerk/clerk-react";
 import { routeTree } from "./routeTree.gen";
 import { env } from "./env";
-import { convex } from "./components/providers/ClientProvider";
+import { convex } from "./lib/convex-client";
 import { AppSkeleton } from "./components/AppSkeleton";
 import { isChunkLoadError } from "./lib/utils/isChunkLoadError";
 import { saveMcpOauthParamsFromUrl } from "./lib/mcpOauthStorage";

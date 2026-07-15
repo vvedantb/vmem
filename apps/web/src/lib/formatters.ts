@@ -1,13 +1,5 @@
-import { formatRelativeTime as formatSharedRelativeTime } from "@vmem/shared";
-
-export function formatRelativeTime(
-  dateInput: string | number | null | undefined,
-): string {
-  return formatSharedRelativeTime(dateInput);
-}
-
-export function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString("en-US", {
+export function formatDate(dateInput: string | number): string {
+  return new Date(dateInput).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",

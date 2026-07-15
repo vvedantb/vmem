@@ -22,3 +22,8 @@ export const codebaseSearchParams = {
   blastDirection: parseAsStringLiteral(blastDirections).withDefault("upstream"),
   search: parseAsString.withDefault(""),
 };
+
+// URL-backed search for the codebases sidebar list (separate from graph `search`)
+export const codebasesListSearchParams = {
+  q: parseAsString.withDefault(""),
+};

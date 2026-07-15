@@ -5,7 +5,7 @@
 import { useRef } from "react";
 import { IconArrowBack } from "@tabler/icons-react";
 import { Button } from "@vmem/ui";
-import type { GraphScope } from "@/routes/_main/$profileId/memories/-searchParams";
+import type { GraphScope } from "@/lib/url-state/memories";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import GraphCanvas from "./_components/GraphCanvas";
 import type { GraphCanvasHandle } from "./_components/GraphCanvas";

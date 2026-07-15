@@ -4,7 +4,6 @@ import { useCallback, useMemo, useState, lazy, Suspense } from "react";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useAction, useQuery } from "convex/react";
 import { useQueryStates } from "nuqs";
-import { motion } from "motion/react";
 import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
 import { PARSER_VERSION } from "@vmem/shared";
@@ -14,8 +13,6 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
   cn,
-  motionDuration,
-  motionEase,
 } from "@vmem/ui";
 import {
   IconAlertCircle,
@@ -29,12 +26,13 @@ import {
 import { toast } from "sonner";
 import { CodebaseSidebarItem } from "@/components/codebases/CodebaseSidebarItem";
 import { SidebarListSearchBar } from "./SidebarListSearchBar";
-import { codebasesListSearchParams } from "@/routes/_main/$profileId/codebases/-list-searchParams";
+import { codebasesListSearchParams } from "@/lib/url-state/codebases";
 import {
   useActiveProfileId,
   useActiveTeamId,
 } from "@/components/workspace/active-profile";
 import { SharedLayoutBackground } from "./SharedLayoutBackground";
+import { SubSidebarShell } from "./SubSidebarShell";
 
 const AddRepoModal = lazy(() =>
   import("@/components/codebases/AddRepoModal").then((m) => ({
@@ -158,16 +156,7 @@ export function CodebasesSidebarNav({
   );
 
   return (
-    <motion.nav
-      className={cn(
-        "flex min-h-0 flex-1 flex-col overflow-hidden",
-        isMobile ? "pb-2" : "pr-1",
-      )}
-      initial={{ opacity: 0, x: 12 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 12 }}
-      transition={{ duration: motionDuration.fast, ease: motionEase }}
-    >
+    <SubSidebarShell isMobile={isMobile}>
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto scrollbar-thin px-1">
         {!isIconOnly && staleCodebases.length > 0 ? (
           <div className="mb-2 rounded-lg bg-warning/10 p-2.5">
@@ -310,6 +299,6 @@ export function CodebasesSidebarNav({
           />
         </Suspense>
       ) : null}
-    </motion.nav>
+    </SubSidebarShell>
   );
 }

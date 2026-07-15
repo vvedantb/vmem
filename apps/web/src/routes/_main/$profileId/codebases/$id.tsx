@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import CodebaseGraphHeaderControls from "@/components/codebases/CodebaseGraphHeaderControls";
 import { useCodebaseGraphController } from "@/hooks/useCodebaseGraphController";
 import { VmemSpinner } from "@/components/svg-animations";
-import { formatRelativeTime } from "@/lib/formatters";
+import { formatRelativeTime } from "@vmem/shared";
 
 const CodebaseGraph = lazy(() =>
   import("@/components/codebases/CodebaseGraph").then((m) => ({

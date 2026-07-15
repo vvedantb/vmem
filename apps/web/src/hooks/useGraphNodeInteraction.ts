@@ -3,16 +3,13 @@
 import { useRef, useState } from "react";
 import { useAction } from "convex/react";
 import { api } from "@vmem/backend";
-import type {
-  GraphNode,
-  GraphEdge,
-} from "@/components/_components/canvas/types";
+import type { GraphNode, GraphEdge } from "@/lib/graph/types";
 import type {
   HoveredEdgeInfo,
   HoveredNodeInfo,
   GraphDetailNode,
-} from "@/components/_components/graph-types";
-import { getRelatedNodes } from "@/components/_components/graph-data";
+} from "@/lib/graph/graph-types";
+import { getRelatedNodes } from "@/lib/graph/graph-data";
 
 export function useGraphNodeInteraction(args: {
   graphNodes: GraphNode[];

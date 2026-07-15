@@ -13,7 +13,7 @@ import type {
   ResolvedEdge,
   InteractionState,
   ViewportState,
-} from "./canvas/types";
+} from "@/lib/graph/types";
 import type { SimulationController } from "./canvas/simulation";
 import { createSimulation, SLEEP_ALPHA } from "./canvas/simulation";
 import {
@@ -34,7 +34,7 @@ import type {
   GraphSettings,
   HoveredEdgeInfo,
   HoveredNodeInfo,
-} from "./graph-types";
+} from "@/lib/graph/graph-types";
 
 export interface GraphCanvasHandle {
   zoomIn: () => void;

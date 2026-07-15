@@ -1,9 +1,5 @@
 // codebase payload → canvas GraphNode/GraphEdge
-import type {
-  GraphNode,
-  GraphEdge,
-  GraphNodeKind,
-} from "@/components/_components/canvas/types";
+import type { GraphNode, GraphEdge, GraphNodeKind } from "@/lib/graph/types";
 import type { CodeNode, CodeEdge, CodeNodeKind } from "./-types";
 
 // ---- Directory stats ----

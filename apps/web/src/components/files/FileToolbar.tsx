@@ -29,7 +29,7 @@ import {
   IconUpload,
 } from "@tabler/icons-react";
 import type { TablerIcon } from "@tabler/icons-react";
-import type { FileView, FileSortField, SortDirection } from "./-searchParams";
+import type { FileView, FileSortField, SortDirection } from "./search-params";
 
 const SORT_FIELDS: ReadonlyArray<{
   sort: FileSortField;

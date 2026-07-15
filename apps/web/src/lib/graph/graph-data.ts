@@ -3,7 +3,7 @@ import type { MemoryType } from "@/lib/memories";
 import { MEMORY_TYPES } from "@/lib/memories";
 import type { ListItemKind } from "@/lib/list-items";
 import { apiGraphNodePassesFilters } from "@/lib/memory-view-filters";
-import type { GraphNode, GraphEdge, RelatedNode } from "./canvas/types";
+import type { GraphNode, GraphEdge, RelatedNode } from "./types";
 
 // ---- API response shapes (mirrors Zod schemas in useGraphData) ----
 

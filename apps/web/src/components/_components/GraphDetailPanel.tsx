@@ -8,9 +8,10 @@ import {
   IconLoader2,
 } from "@tabler/icons-react";
 import { Badge, Button } from "@vmem/ui";
+import { formatDate } from "@/lib/formatters";
 import { AnimatePresence, motion } from "motion/react";
-import type { RelatedNode } from "./canvas/types";
-import type { GraphDetailNode } from "./graph-types";
+import type { RelatedNode } from "@/lib/graph/types";
+import type { GraphDetailNode } from "@/lib/graph/graph-types";
 
 interface GraphDetailPanelProps {
   nodeData: GraphDetailNode | null;
@@ -19,14 +20,6 @@ interface GraphDetailPanelProps {
   onNavigate: (nodeId: string) => void;
   onDelete: (nodeId: string) => Promise<boolean>;
   onFocusNode: (nodeId: string) => void;
-}
-
-function formatDate(dateString: string) {
-  return new Date(dateString).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
 }
 
 export default function GraphDetailPanel({

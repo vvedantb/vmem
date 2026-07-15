@@ -15,7 +15,7 @@ import {
   DEFAULT_GRAPH_SETTINGS,
   type HoveredEdgeInfo,
   type HoveredNodeInfo,
-} from "@/components/_components/graph-types";
+} from "@/lib/graph/graph-types";
 import { CodebaseSymbolPanel } from "./CodebaseSymbolPanel";
 import type { CodebaseGraphController } from "@/hooks/useCodebaseGraphController";
 

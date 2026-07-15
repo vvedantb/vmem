@@ -1,5 +1,5 @@
 // graph node colors (canvas + tag filters / legend)
-import type { GraphNodeKind } from "./canvas/types";
+import type { GraphNodeKind } from "@/lib/graph/types";
 
 function themeColor(token: string, fallback: string): string {
   if (typeof document === "undefined") return fallback;

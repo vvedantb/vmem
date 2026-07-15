@@ -1,13 +1,9 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { z } from "zod";
+import { landingSearchSchema } from "@/lib/url-state/landing";
 import { LandingPage } from "./_components/landing/LandingPage";
 
-const searchSchema = z.object({
-  agent: z.boolean().optional(),
-});
-
 export const Route = createFileRoute("/")({
-  validateSearch: searchSchema,
+  validateSearch: landingSearchSchema,
   beforeLoad: ({ context, search }) => {
     if (search.agent) {
       window.location.href = "/api/auth/agent-login";

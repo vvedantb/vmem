@@ -16,11 +16,8 @@ import {
   getAllDirectories,
   type DirectoryStat,
 } from "@/components/codebases/codebase-graph-data";
-import type {
-  GraphNode,
-  GraphEdge,
-} from "@/components/_components/canvas/types";
-import { codebaseSearchParams } from "@/routes/_main/$profileId/codebases/-searchParams";
+import type { GraphNode, GraphEdge } from "@/lib/graph/types";
+import { codebaseSearchParams } from "@/lib/url-state/codebases";
 
 const EMPTY_SET: Set<string> = new Set<string>();
 const NONE_SENTINEL = "__NONE__";
@@ -93,8 +90,7 @@ export interface CodebaseGraphController {
 export function useCodebaseGraphController(
   codebaseId: string,
 ): CodebaseGraphController {
-  const { theme } = useThemeContext();
-  const isDark = theme === "dark";
+  const { isDark } = useThemeContext();
 
   const [params, setParams] = useQueryStates(codebaseSearchParams, {
     history: "replace",

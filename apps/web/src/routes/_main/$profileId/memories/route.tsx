@@ -10,7 +10,7 @@ import {
   MemoryGraphControllerProvider,
   useMemoryGraphControllerContext,
 } from "./-components/MemoryGraphControllerContext";
-import { useMemoriesSearchParams } from "./useMemoriesSearchParams";
+import { useMemoriesSearchParams } from "@/hooks/useMemoriesSearchParams";
 
 export const Route = createFileRoute("/_main/$profileId/memories")({
   component: MemoriesLayout,

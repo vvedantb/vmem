@@ -5,12 +5,11 @@ import {
 } from "@tanstack/react-router";
 import { useSignIn } from "@clerk/clerk-react";
 import { useEffect, useRef } from "react";
+import { validateAgentCallbackSearch } from "@/lib/url-state/agent-callback";
 
 export const Route = createFileRoute("/agent-callback")({
   component: AgentCallback,
-  validateSearch: (search: { ticket?: string }) => ({
-    ticket: typeof search.ticket === "string" ? search.ticket : "",
-  }),
+  validateSearch: validateAgentCallbackSearch,
 });
 
 function AgentCallback() {

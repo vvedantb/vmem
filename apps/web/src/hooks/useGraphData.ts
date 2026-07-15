@@ -7,14 +7,14 @@ import { useInfiniteQuery, type InfiniteData } from "@tanstack/react-query";
 import { z } from "zod";
 import { useMemoryEvents } from "@/hooks/useMemoryEvents";
 import { api } from "@vmem/backend";
-import { generateBenchGraph } from "@/components/_components/bench-data";
+import { generateBenchGraph } from "@/lib/graph/bench-data";
 import type {
   ApiGraphNode,
   ApiTagEdge,
   ApiRelatesToEdge,
   ApiWikiParentEdge,
   ApiMentionsEdge,
-} from "@/components/_components/graph-data";
+} from "@/lib/graph/graph-data";
 
 // ---- Page sizes ----
 

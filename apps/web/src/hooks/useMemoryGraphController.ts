@@ -10,8 +10,8 @@ import { getGraphSettings, setGraphSettings } from "@/lib/graph-cookies";
 import { useGraphData } from "@/hooks/useGraphData";
 import { useThemeContext } from "@/components/contexts/ThemeContext";
 import { useActiveProfile } from "@/components/workspace/active-profile";
-import { useMemoriesSearchParams } from "@/routes/_main/$profileId/memories/useMemoriesSearchParams";
-import type { GraphScope } from "@/routes/_main/$profileId/memories/-searchParams";
+import { useMemoriesSearchParams } from "@/hooks/useMemoriesSearchParams";
+import type { GraphScope } from "@/lib/url-state/memories";
 import {
   buildGraphData,
   getAllTags,
@@ -27,22 +27,19 @@ import {
   type KindStat,
   type SourceStat,
   type TypeStat,
-} from "@/components/_components/graph-data";
-import type {
-  GraphNode,
-  GraphEdge,
-} from "@/components/_components/canvas/types";
+} from "@/lib/graph/graph-data";
+import type { GraphNode, GraphEdge } from "@/lib/graph/types";
 import type { ListItemKind } from "@/lib/list-items";
 import {
   DEFAULT_GRAPH_SETTINGS,
   type GraphSettings,
-} from "@/components/_components/graph-types";
+} from "@/lib/graph/graph-types";
 import {
   getViewTheme,
   type GraphViewTheme,
 } from "@/components/_components/graph-view-themes";
 import type { MemoryType } from "@/lib/memories";
-import { graphNodeMatchesLocalSearch } from "@/components/_components/graph-search";
+import { graphNodeMatchesLocalSearch } from "@/lib/graph/graph-search";
 import {
   CLEARED_MEMORY_VIEW_FILTERS,
   countActiveMemoryViewFilters,
@@ -124,7 +121,7 @@ export function useMemoryGraphController({
   // false = stay mounted but skip fetch (list view active)
   enabled?: boolean;
 }): MemoryGraphController {
-  const { theme } = useThemeContext();
+  const { isDark } = useThemeContext();
 
   // url filters shared with list view
   const [params, setParams] = useMemoriesSearchParams();
@@ -187,7 +184,6 @@ export function useMemoryGraphController({
   );
 
   // derived display state
-  const isDark = theme === "dark";
   const viewTheme = useMemo(() => getViewTheme(isDark), [isDark]);
 
   // derived filter stats

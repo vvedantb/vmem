@@ -4,8 +4,8 @@ import { useLayoutEffect, useRef } from "react";
 import {
   isNullishQueryValue,
   type MemoriesSearchParams,
-} from "../-searchParams";
-import { useMemoriesSearchParams } from "../useMemoriesSearchParams";
+} from "@/lib/url-state/memories";
+import { useMemoriesSearchParams } from "@/hooks/useMemoriesSearchParams";
 
 function buildUrlCleanupPatch(
   search: URLSearchParams,
