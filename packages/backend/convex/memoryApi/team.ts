@@ -1,7 +1,6 @@
 import type { Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import { requireClerkId, type AuthActionCtx } from "../auth";
-import { assertTeamAccess } from "./auth";
 import type { MemoryWithTags, MemoryListResult } from "./types";
 import type {
   TeamListMemoriesArgs,
@@ -16,7 +15,6 @@ export async function runListTeamMemories(
   ctx: AuthActionCtx,
   args: ListTeamMemoriesArgs,
 ): Promise<MemoryListResult> {
-  await assertTeamAccess(ctx, args.profileId);
   return await ctx.runAction(
     internal.neo4jActions.memories.listMemoriesForTeamInternal,
     {
@@ -36,7 +34,6 @@ export async function runGetTeamMemory(
   ctx: AuthActionCtx,
   args: { profileId: Id<"profiles">; memoryId: string },
 ): Promise<MemoryWithTags | null> {
-  await assertTeamAccess(ctx, args.profileId);
   return await ctx.runAction(
     internal.neo4jActions.memories.getMemoryForTeamInternal,
     { profileId: args.profileId, memoryId: args.memoryId },
@@ -51,12 +48,10 @@ type UpdateTeamMemoryArgs = {
   "title" | "content" | "type" | "status" | "tags" | "confidence" | "expiresAt"
 >;
 
-async function loadMutableTeamMemory(
+async function loadPreauthorizedMutableTeamMemory(
   ctx: AuthActionCtx,
   args: { profileId: Id<"profiles">; memoryId: string },
 ): Promise<MemoryWithTags | null> {
-  await assertTeamAccess(ctx, args.profileId);
-
   const memory = await ctx.runAction(
     internal.neo4jActions.memories.getMemoryForTeamInternal,
     { profileId: args.profileId, memoryId: args.memoryId },
@@ -79,7 +74,7 @@ export async function runUpdateTeamMemory(
 ): Promise<MemoryWithTags | null> {
   await requireClerkId(ctx);
 
-  const memory = await loadMutableTeamMemory(ctx, {
+  const memory = await loadPreauthorizedMutableTeamMemory(ctx, {
     profileId: args.profileId,
     memoryId: args.memoryId,
   });
@@ -107,7 +102,7 @@ export async function runDeleteTeamMemory(
 ): Promise<boolean> {
   const callerClerkId = await requireClerkId(ctx);
 
-  const memory = await loadMutableTeamMemory(ctx, {
+  const memory = await loadPreauthorizedMutableTeamMemory(ctx, {
     profileId: args.profileId,
     memoryId: args.memoryId,
   });

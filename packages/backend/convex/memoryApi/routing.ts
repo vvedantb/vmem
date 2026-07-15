@@ -1,6 +1,6 @@
 import type { Doc } from "../_generated/dataModel";
 import { requireClerkId, type AuthActionCtx } from "../auth";
-import { getAccessibleProfile } from "./auth";
+import { getAccessibleProfile } from "../profiles/accessibleProfile";
 
 // team profile the caller can access, else null (personal / missing profileId)
 export async function getTeamProfileIfApplicable(
