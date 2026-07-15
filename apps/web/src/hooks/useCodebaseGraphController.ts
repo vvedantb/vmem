@@ -3,18 +3,12 @@
 import { useCallback, useMemo, useState } from "react";
 import { useQueryStates } from "nuqs";
 import { useThemeContext } from "@/contexts/ThemeContext";
-import {
-  useCodebaseGraphData,
-  type CodeNode,
-  type CodeEdge,
-  type CodeNodeKind,
-} from "@/hooks/useCodebaseGraphData";
+import { useCodebaseGraphData } from "@/hooks/useCodebaseGraphData";
+import type { CodeNodeKind } from "@/components/codebases/-types";
 import {
   buildCodebaseGraphData,
   getAllDirectories,
-  type DirectoryStat,
 } from "@/components/codebases/codebase-graph-data";
-import type { GraphNode, GraphEdge } from "@/lib/graph/types";
 import { codebaseSearchParams } from "@/lib/url-state/codebases";
 
 const EMPTY_SET: Set<string> = new Set<string>();
@@ -34,60 +28,7 @@ function sameStringSet(a: readonly string[], b: readonly string[]): boolean {
   return true;
 }
 
-export interface CodebaseGraphController {
-  // ----- Raw data -----
-  apiNodes: CodeNode[];
-  apiEdges: CodeEdge[];
-  // true when the API capped the payload to fit Convex's array limit
-  truncated: boolean;
-  isLoading: boolean;
-  isError: boolean;
-  error: Error | null;
-
-  // ----- Derived -----
-  directories: DirectoryStat[];
-  graphNodes: GraphNode[];
-  graphEdges: GraphEdge[];
-  searchMatchSet: Set<string>;
-  totalSymbolCount: number;
-  visibleSymbolCount: number;
-  edgeCount: number;
-  hasActiveSearch: boolean;
-  hasActiveDirectoryFilter: boolean;
-  // true when any URL-backed filter is non-default
-  activeFilterCount: number;
-
-  // ----- Filter state -----
-  activeKinds: Set<CodeNodeKind>;
-  processId: string | null;
-  blastRadiusOf: string | null;
-  blastDirection: "upstream" | "downstream";
-  // mirrors `blastRadiusOf` — exposed under a friendly name for the panel
-  selectedSymbolId: string | null;
-  activeDirectories: Set<string>;
-
-  // ----- Search -----
-  search: string;
-
-  // ----- Display -----
-  isDark: boolean;
-
-  // ----- Handlers -----
-  onSearchChange: (q: string) => void;
-  onToggleKind: (kind: CodeNodeKind) => void;
-  onSetProcess: (id: string | null) => void;
-  onSelectSymbol: (id: string | null) => void;
-  onToggleBlastDirection: () => void;
-  onToggleDirectory: (dir: string) => void;
-  onSelectAllDirs: () => void;
-  onClearAllDirs: () => void;
-  // reset every URL-backed filter (kinds/process/blast/search) in one write
-  onClearFilters: () => void;
-}
-
-export function useCodebaseGraphController(
-  codebaseId: string,
-): CodebaseGraphController {
+export function useCodebaseGraphController(codebaseId: string) {
   const { isDark } = useThemeContext();
 
   const [params, setParams] = useQueryStates(codebaseSearchParams, {
@@ -155,7 +96,6 @@ export function useCodebaseGraphController(
   }, [params.search, graphNodes]);
 
   const hasActiveSearch = params.search.trim().length > 0;
-  const hasActiveDirectoryFilter = activeDirectories.size > 0;
 
   // per CLAUDE.md UI rules
   const activeFilterCount =
@@ -239,7 +179,6 @@ export function useCodebaseGraphController(
 
   return {
     apiNodes,
-    apiEdges,
     truncated,
     isLoading,
     isError,
@@ -248,15 +187,10 @@ export function useCodebaseGraphController(
     graphNodes,
     graphEdges,
     searchMatchSet,
-    totalSymbolCount: apiNodes.length,
-    visibleSymbolCount: graphNodes.length,
-    edgeCount: graphEdges.length,
     hasActiveSearch,
-    hasActiveDirectoryFilter,
     activeFilterCount,
     activeKinds,
     processId: params.processId,
-    blastRadiusOf: params.blastRadiusOf,
     blastDirection: params.blastDirection,
     selectedSymbolId: params.blastRadiusOf,
     activeDirectories,
@@ -273,3 +207,7 @@ export function useCodebaseGraphController(
     onClearFilters,
   };
 }
+
+export type CodebaseGraphController = ReturnType<
+  typeof useCodebaseGraphController
+>;
