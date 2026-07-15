@@ -1,4 +1,5 @@
 import type { ComponentType } from "react";
+import type { Accept } from "react-dropzone";
 import ClaudeLogo from "./ClaudeLogo";
 import ChatGptLogo from "./ChatGptLogo";
 import { parseChatGptExportBuffer } from "@/lib/chat-export/parseChatGptExport";
@@ -11,6 +12,11 @@ type ParseResult =
 
 type LogoProps = { className?: string };
 
+const zipOrJsonAccept: Accept = {
+  "application/zip": [".zip"],
+  "application/json": [".json"],
+};
+
 export type ImportProvider = {
   id: string;
   label: string;
@@ -18,7 +24,7 @@ export type ImportProvider = {
   Logo: ComponentType<LogoProps>;
   logoClassName: string;
   parser: (buffer: ArrayBuffer) => ParseResult;
-  instructions: { title: string; steps: string[]; accept: string };
+  instructions: { title: string; steps: string[]; accept: Accept };
   source: string;
   tag: string;
 };
@@ -41,7 +47,7 @@ export const importProviders: readonly ImportProvider[] = [
         "Confirm export and download the ZIP when it is ready.",
         "Upload that ZIP here, or extract it and upload conversations.json.",
       ],
-      accept: ".zip,.json,application/zip,application/json",
+      accept: zipOrJsonAccept,
     },
   },
   {
@@ -61,7 +67,7 @@ export const importProviders: readonly ImportProvider[] = [
         "Use the email download link within 24 hours and save the archive.",
         "Upload the ZIP or the JSON file from the export.",
       ],
-      accept: ".zip,.json,application/zip,application/json",
+      accept: zipOrJsonAccept,
     },
   },
 ];

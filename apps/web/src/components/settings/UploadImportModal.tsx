@@ -1,12 +1,12 @@
 "use client";
 
+import { useDropzone } from "react-dropzone";
 import {
   Button,
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  Input,
 } from "@vmem/ui";
 import type { ImportProvider } from "./importProviders";
 
@@ -27,18 +27,16 @@ export default function UploadImportModal({
 }: UploadImportModalProps) {
   const cfg = provider.instructions;
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (file) onFile(file);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const file = e.dataTransfer.files[0];
-    if (file) onFile(file);
-  };
+  const { getRootProps, getInputProps } = useDropzone({
+    multiple: false,
+    maxFiles: 1,
+    disabled: isParsing,
+    accept: cfg.accept,
+    onDrop: (acceptedFiles) => {
+      const file = acceptedFiles[0];
+      if (file) onFile(file);
+    },
+  });
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
@@ -51,26 +49,18 @@ export default function UploadImportModal({
             <li key={step}>{step}</li>
           ))}
         </ol>
-        <label
-          onDragOver={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-          }}
-          onDrop={handleDrop}
-          className="mt-4 flex min-h-[140px] cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-border bg-surface-secondary/20 px-4 py-8 text-center text-sm text-muted transition-colors hover:bg-surface-secondary/35"
+        <div
+          {...getRootProps({
+            className:
+              "mt-4 flex min-h-[140px] cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-border bg-surface-secondary/20 px-4 py-8 text-center text-sm text-muted transition-colors hover:bg-surface-secondary/35",
+          })}
         >
+          <input {...getInputProps()} />
           <span className="font-medium text-foreground">
             Drop export file here
           </span>
           <span className="mt-1">or click to choose a file</span>
-          <Input
-            type="file"
-            accept={cfg.accept}
-            className="sr-only"
-            onChange={handleChange}
-            disabled={isParsing}
-          />
-        </label>
+        </div>
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="outline" onClick={onClose}>
             Cancel

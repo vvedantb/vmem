@@ -8,6 +8,7 @@ cards, confirm dialogs, and list-filter helpers across dashboard and settings.
 Sidebar `navView` is URL-derived; wiki/skills/teams use shared optimistic
 helpers and destructive confirms. `DestructiveConfirmDialog` now supports
 typed confirm and covers memory/file/env/wiki/system-skill deletes.
+Upload surfaces use `react-dropzone` instead of hand-rolled drag handlers.
 Extension adopts Clerk SW Convex tokens, zod message unions, and
 `usehooks-ts` in the popup.
 

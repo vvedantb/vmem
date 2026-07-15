@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, useRef, type ReactNode } from "react";
+import type { ReactNode } from "react";
+import { useDropzone } from "react-dropzone";
 import { AnimatePresence, motion } from "motion/react";
 import { motionDuration, motionEase } from "@vmem/ui";
 import { IconUpload } from "@tabler/icons-react";
@@ -14,55 +15,25 @@ export default function FileDropZone({
   onFilesDropped,
   children,
 }: FileDropZoneProps) {
-  const [isDragging, setIsDragging] = useState(false);
-  const dragDepthRef = useRef(0);
-
-  const handleDragEnter = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dragDepthRef.current += 1;
-    setIsDragging(true);
-  }, []);
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
-    if (dragDepthRef.current === 0) setIsDragging(false);
-  }, []);
-
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-  }, []);
-
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      dragDepthRef.current = 0;
-      setIsDragging(false);
-
-      const droppedFiles = Array.from(e.dataTransfer.files);
-      if (droppedFiles.length > 0) {
-        onFilesDropped(droppedFiles);
-      }
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    noClick: true,
+    noKeyboard: true,
+    onDrop: (acceptedFiles) => {
+      if (acceptedFiles.length > 0) onFilesDropped(acceptedFiles);
     },
-    [onFilesDropped],
-  );
+  });
 
   return (
     <div
-      className="relative flex-1 min-h-0"
-      onDragEnter={handleDragEnter}
-      onDragLeave={handleDragLeave}
-      onDragOver={handleDragOver}
-      onDrop={handleDrop}
+      {...getRootProps({
+        className: "relative flex-1 min-h-0",
+      })}
     >
+      <input {...getInputProps()} />
       {children}
 
       <AnimatePresence initial={false}>
-        {isDragging && (
+        {isDragActive && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

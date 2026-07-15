@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { useDropzone } from "react-dropzone";
 import {
   Dialog,
   DialogContent,
@@ -8,7 +9,6 @@ import {
   DialogTitle,
   DialogFooter,
   Button,
-  Input,
   Progress,
 } from "@vmem/ui";
 import { toast } from "sonner";
@@ -56,11 +56,9 @@ export default function FileUploadModal({
       setQueuedFiles((prev) => [...prev, ...newQueued]);
     }
   }, [isOpen, initialFiles]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const addFiles = useCallback((newFiles: FileList | File[]) => {
-    const filesArray = Array.from(newFiles);
-    const newQueuedFiles: QueuedFile[] = filesArray.map((file) => ({
+  const addFiles = useCallback((newFiles: File[]) => {
+    const newQueuedFiles: QueuedFile[] = newFiles.map((file) => ({
       file,
       progress: 0,
       status: "pending" as const,
@@ -68,16 +66,13 @@ export default function FileUploadModal({
     setQueuedFiles((prev) => [...prev, ...newQueuedFiles]);
   }, []);
 
-  const handleFileSelect = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const { files } = e.target;
-      if (files && files.length > 0) {
-        addFiles(files);
-      }
-      e.target.value = "";
+  const { getRootProps, getInputProps } = useDropzone({
+    multiple: true,
+    disabled: isUploading,
+    onDrop: (acceptedFiles) => {
+      if (acceptedFiles.length > 0) addFiles(acceptedFiles);
     },
-    [addFiles],
-  );
+  });
 
   const removeQueuedFile = useCallback((index: number) => {
     setQueuedFiles((prev) => prev.filter((_, i) => i !== index));
@@ -207,17 +202,12 @@ export default function FileUploadModal({
 
         <div className="space-y-4 py-2">
           <div
-            onClick={() => fileInputRef.current?.click()}
-            className="relative cursor-pointer rounded-lg border-2 border-dashed border-border p-8 text-center transition-colors hover:bg-surface-secondary/35"
+            {...getRootProps({
+              className:
+                "relative cursor-pointer rounded-lg border-2 border-dashed border-border p-8 text-center transition-colors hover:bg-surface-secondary/35",
+            })}
           >
-            <Input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              onChange={handleFileSelect}
-              className="hidden"
-              disabled={isUploading}
-            />
+            <input {...getInputProps()} />
             <div className="flex flex-col items-center gap-3">
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-surface-secondary">
                 <IconUpload size={24} className="text-muted" />
