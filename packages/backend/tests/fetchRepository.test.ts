@@ -1,6 +1,7 @@
 import { pipeline } from "node:stream/promises";
 import { Writable } from "node:stream";
 import { createGzip } from "node:zlib";
+import { readFileSync } from "node:fs";
 import { pack } from "tar-stream";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -9,6 +10,7 @@ import {
   fetchRepositoryFromGithub,
   stripTarballRoot,
 } from "../engine/github/fetchRepository";
+import { createGithubOctokit } from "../engine/github/octokit";
 import { MAX_FILES_PER_SYNC } from "../engine/neo4j/codebaseService";
 
 const TARBALL_PREFIX = "owner-repo-abc123";
@@ -56,7 +58,10 @@ function prefixed(path: string): string {
 }
 
 function mockTarballResponse(buffer: Buffer): Response {
-  return new Response(new Uint8Array(buffer), { status: 200 });
+  return new Response(new Uint8Array(buffer), {
+    status: 200,
+    headers: { "Content-Type": "application/x-gzip" },
+  });
 }
 
 afterEach(() => {
@@ -148,8 +153,24 @@ describe("assertRepositoryBlobs", () => {
   });
 });
 
+describe("createGithubOctokit", () => {
+  it("returns a request-capable Octokit client with retry plugin", () => {
+    const octokit = createGithubOctokit("token");
+    expect(typeof octokit.request).toBe("function");
+    expect(typeof octokit.retry.retryRequest).toBe("function");
+  });
+});
+
 describe("fetchRepositoryFromGithub", () => {
-  it("retries transient fetch failures before succeeding", async () => {
+  it("does not import p-retry", () => {
+    const source = readFileSync(
+      new URL("../engine/github/fetchRepository.ts", import.meta.url),
+      "utf8",
+    );
+    expect(source).not.toMatch(/p-retry/);
+  });
+
+  it("retries transient 5xx responses before succeeding", async () => {
     const tarball = await buildTarGz([
       { name: prefixed("src/a.ts"), content: "export {}" },
     ]);
@@ -159,7 +180,7 @@ describe("fetchRepositoryFromGithub", () => {
       vi.fn(async () => {
         attempts += 1;
         if (attempts < 3) {
-          throw new Error("network flake");
+          return new Response("server error", { status: 500 });
         }
         return mockTarballResponse(tarball);
       }),
@@ -169,30 +190,31 @@ describe("fetchRepositoryFromGithub", () => {
       fetchRepositoryFromGithub("owner", "repo", "main", "token"),
     ).resolves.toEqual([{ path: "src/a.ts", content: "export {}" }]);
     expect(attempts).toBe(3);
-  });
+  }, 20_000);
 
-  it("throws after exhausting fetch retries", async () => {
+  it("throws after exhausting Octokit retries", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () => {
-        throw new Error("network down");
-      }),
+      vi.fn(async () => new Response("server error", { status: 500 })),
     );
 
     await expect(
       fetchRepositoryFromGithub("owner", "repo", "main", "token"),
-    ).rejects.toThrow(/failed after 3 attempts/);
-  });
-
-  it("surfaces GitHub archive HTTP errors", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => new Response("missing", { status: 404 })),
+    ).rejects.toThrow(
+      "GitHub tarball error for owner/repo@main: 500 server error",
     );
+  }, 30_000);
+
+  it("surfaces GitHub archive HTTP errors without retrying 404", async () => {
+    const fetchMock = vi.fn(
+      async () => new Response("missing", { status: 404 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
 
     await expect(
       fetchRepositoryFromGithub("owner", "repo", "main", "token"),
     ).rejects.toThrow("GitHub tarball error for owner/repo@main: 404 missing");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("rejects repositories with no TS/JS sources", async () => {

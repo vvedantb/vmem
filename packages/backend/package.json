@@ -27,6 +27,7 @@
     "@modelcontextprotocol/sdk": "catalog:",
     "@notionhq/client": "^5.23.0",
     "@octokit/core": "^7.0.6",
+    "@octokit/plugin-retry": "^8.1.0",
     "@openrouter/sdk": "^0.12.35",
     "@scure/base": "^2.2.0",
     "@vmem/sdk": "workspace:*",
