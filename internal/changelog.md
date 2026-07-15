@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-07-15 — Simplify neo4j-cli benchmark and eval
+
+Collapse bench seed into a single-process `eval:bench`, fold seed/query types
+into the corpus module, drop synthetic MemoryEvents and stale eval docs, and
+point live tests at production CRUD helpers.
+
 ## 2026-07-15 — Engine stage 4: utility cleanup
 
 Linearize GitHub tarball extraction with `pipeline`, consolidate LLM JSON
