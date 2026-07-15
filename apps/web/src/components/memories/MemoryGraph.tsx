@@ -11,7 +11,7 @@ import GraphNavControls from "@/components/_components/GraphNavControls";
 import GraphNodeTooltip from "@/components/_components/GraphNodeTooltip";
 import GraphEdgeTooltip from "@/components/_components/GraphEdgeTooltip";
 import GraphDetailPanel from "@/components/_components/GraphDetailPanel";
-import { MemoryGraphStatus } from "@/components/_components/MemoryGraphStatus";
+import { GraphStatus } from "@/components/_components/GraphStatus";
 import { useGraphNodeInteraction } from "@/hooks/useGraphNodeInteraction";
 import type { MemoryGraphController } from "@/hooks/useMemoryGraphController";
 
@@ -59,19 +59,37 @@ export default function MemoryGraph({
   });
 
   if (isLoading) {
-    return <MemoryGraphStatus variant="loading" />;
+    return <GraphStatus variant="loading" />;
   }
 
   if (isError) {
-    return <MemoryGraphStatus variant="error" errorMessage={error?.message} />;
+    return (
+      <GraphStatus
+        variant="error"
+        title="Failed to load graph"
+        description={error?.message}
+      />
+    );
   }
 
   if (apiNodes.length === 0) {
     return (
-      <MemoryGraphStatus
+      <GraphStatus
         variant="empty"
-        onViewGlobal={
-          scope === "local" ? interaction.handleBackToGlobal : undefined
+        title="No memories to visualize"
+        description="Add some memories to see them in the graph"
+        action={
+          scope === "local" ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={interaction.handleBackToGlobal}
+              className="mt-4 gap-1.5"
+            >
+              <IconArrowBack size={14} />
+              View global graph
+            </Button>
+          ) : undefined
         }
       />
     );

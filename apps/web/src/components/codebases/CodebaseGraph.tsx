@@ -1,13 +1,13 @@
 // codebase symbol-graph canvas
 
 import { useMemo, useCallback, useRef, useState } from "react";
-import { IconAlertTriangle, IconMoodEmpty } from "@tabler/icons-react";
+import { IconAlertTriangle } from "@tabler/icons-react";
 import GraphCanvas from "@/components/_components/GraphCanvas";
-import { VmemSpinner } from "@/components/icons/animations";
 import type { GraphCanvasHandle } from "@/components/_components/GraphCanvas";
 import GraphNavControls from "@/components/_components/GraphNavControls";
 import GraphNodeTooltip from "@/components/_components/GraphNodeTooltip";
 import GraphEdgeTooltip from "@/components/_components/GraphEdgeTooltip";
+import { GraphStatus } from "@/components/_components/GraphStatus";
 import { getViewTheme } from "@/components/_components/graph-view-themes";
 import {
   DEFAULT_GRAPH_SETTINGS,
@@ -19,40 +19,6 @@ import type { CodebaseGraphController } from "@/hooks/useCodebaseGraphController
 
 // canvas requires onLinkNodes; codebase graphs are structural (no manual links)
 function noopLinkNodes(_sourceId: string, _targetId: string) {}
-
-function GraphLoadingState() {
-  return (
-    <div className="flex h-full min-h-0 items-center justify-center">
-      <VmemSpinner size={24} className="text-muted" />
-    </div>
-  );
-}
-
-function GraphErrorState({ message }: { message: string }) {
-  return (
-    <div className="flex h-full min-h-0 flex-col items-center justify-center text-center">
-      <IconMoodEmpty className="w-8 h-8 text-muted mb-3" />
-      <p className="text-sm font-medium text-foreground mb-1">
-        Failed to load graph
-      </p>
-      <p className="text-xs text-muted max-w-sm">{message}</p>
-    </div>
-  );
-}
-
-function GraphEmptyState() {
-  return (
-    <div className="flex h-full min-h-0 flex-col items-center justify-center text-center">
-      <IconMoodEmpty className="w-8 h-8 text-muted mb-3" />
-      <p className="text-sm font-medium text-foreground mb-1">
-        No symbols to visualise
-      </p>
-      <p className="text-xs text-muted">
-        Sync the repository to see its symbol graph.
-      </p>
-    </div>
-  );
-}
 
 interface CodebaseGraphProps {
   codebaseId: string;
@@ -95,15 +61,27 @@ export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
   );
 
   if (isLoading) {
-    return <GraphLoadingState />;
+    return <GraphStatus variant="loading" />;
   }
 
   if (isError) {
-    return <GraphErrorState message={error?.message ?? "Unknown error"} />;
+    return (
+      <GraphStatus
+        variant="error"
+        title="Failed to load graph"
+        description={error?.message ?? "Unknown error"}
+      />
+    );
   }
 
   if (apiNodes.length === 0) {
-    return <GraphEmptyState />;
+    return (
+      <GraphStatus
+        variant="empty"
+        title="No symbols to visualise"
+        description="Sync the repository to see its symbol graph."
+      />
+    );
   }
 
   return (
