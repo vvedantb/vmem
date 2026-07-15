@@ -2,17 +2,8 @@ import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import tanstackRouter from "@tanstack/router-plugin/vite";
 import { visualizer } from "rollup-plugin-visualizer";
-import { createRequire } from "node:module";
 import path from "path";
 import { z } from "zod";
-
-const require = createRequire(import.meta.url);
-
-/** Cosmos imports default from gl-bench; Vite prefers `browser` (UMD min) which has no ESM default. */
-const glBenchEsm = path.join(
-  path.dirname(require.resolve("gl-bench/package.json")),
-  "dist/gl-bench.module.js",
-);
 
 const clerkSignInTokenSchema = z.object({
   token: z.string(),
@@ -107,7 +98,6 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),
-      "gl-bench": glBenchEsm,
     },
     // Packages using React Context MUST be deduplicated to prevent "Context not found" errors
     // When pnpm installs multiple copies (different peer deps), each has its own context instance
