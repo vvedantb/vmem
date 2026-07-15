@@ -1,6 +1,7 @@
 import Cypher from "@neo4j/cypher-builder";
 import type { Driver } from "neo4j-driver";
 import { PARSER_VERSION } from "@vmem/shared";
+import { withSession } from "../session";
 import { buildAndRun } from "./buildAndRun";
 import type {
   ParseStats,
@@ -62,14 +63,8 @@ function isCodeGraphNode(n: Cypher.Node): Cypher.Predicate {
   );
 }
 
-// open a session, run one clause, and always close it
 async function runClause(driver: Driver, clause: Cypher.Clause): Promise<void> {
-  const session = driver.session();
-  try {
-    await buildAndRun(session, clause);
-  } finally {
-    await session.close();
-  }
+  await withSession(driver, (session) => buildAndRun(session, clause));
 }
 
 async function deleteStale(
@@ -142,7 +137,10 @@ function makeRow(
   codebaseId: string,
   fields: Record<string, Neo4jPropValue>,
 ): UpsertRow {
-  return { id, props: { userId, codebaseId, ...fields } };
+  return {
+    id,
+    props: { userId, codebaseId, parserVersion: PARSER_VERSION, ...fields },
+  };
 }
 
 function fileRow(f: FileNode, userId: string, codebaseId: string): UpsertRow {
@@ -266,7 +264,6 @@ function edgeProps(e: RelationEdge): Record<string, Neo4jPropValue> {
   return out;
 }
 
-// MERGE labeled endpoints with a fixed relationship type (no edge props)
 async function upsertLabeledEdges(
   driver: Driver,
   edgeType: EdgeKind,
@@ -343,49 +340,49 @@ export async function writeParseResult(args: WriteArgs): Promise<ParseStats> {
     processes,
   } = args;
 
-  const files = symbols.filter((s): s is FileNode => s.kind === "file");
-  const fns = symbols.filter((s): s is FunctionNode => s.kind === "function");
-  const classes = symbols.filter((s): s is ClassNode => s.kind === "class");
-  const interfaces = symbols.filter(
-    (s): s is InterfaceNode => s.kind === "interface",
-  );
+  const keepIds: string[] = [];
+  const fileRows: UpsertRow[] = [];
+  const functionRows: UpsertRow[] = [];
+  const classRows: UpsertRow[] = [];
+  const interfaceRows: UpsertRow[] = [];
+  let importEdgeCount = 0;
 
-  const keepIds = [
-    ...files.map((f) => f.id),
-    ...fns.map((f) => f.id),
-    ...classes.map((c) => c.id),
-    ...interfaces.map((i) => i.id),
-    ...processes.map((p) => p.id),
-  ];
-
-  await deleteStale(driver, userId, codebaseId, keepIds);
-  await upsertNodes(
-    driver,
-    "CodeFile",
-    files.map((f) => fileRow(f, userId, codebaseId)),
-  );
-  await upsertNodes(
-    driver,
-    "Function",
-    fns.map((f) => functionRow(f, userId, codebaseId)),
-  );
-  await upsertNodes(
-    driver,
-    "Class",
-    classes.map((c) => classRow(c, userId, codebaseId)),
-  );
-  await upsertNodes(
-    driver,
-    "Interface",
-    interfaces.map((i) => interfaceRow(i, userId, codebaseId)),
-  );
+  for (const sym of symbols) {
+    switch (sym.kind) {
+      case "file":
+        keepIds.push(sym.id);
+        fileRows.push(fileRow(sym, userId, codebaseId));
+        break;
+      case "function":
+        keepIds.push(sym.id);
+        functionRows.push(functionRow(sym, userId, codebaseId));
+        break;
+      case "class":
+        keepIds.push(sym.id);
+        classRows.push(classRow(sym, userId, codebaseId));
+        break;
+      case "interface":
+        keepIds.push(sym.id);
+        interfaceRows.push(interfaceRow(sym, userId, codebaseId));
+        break;
+    }
+  }
+  for (const p of processes) keepIds.push(p.id);
 
   const buckets = new Map<string, RelationEdge[]>();
   for (const e of structuralRelations) {
+    if (e.kind === "IMPORTS") importEdgeCount += 1;
     const arr = buckets.get(e.kind);
     if (arr) arr.push(e);
     else buckets.set(e.kind, [e]);
   }
+
+  await deleteStale(driver, userId, codebaseId, keepIds);
+  await upsertNodes(driver, "CodeFile", fileRows);
+  await upsertNodes(driver, "Function", functionRows);
+  await upsertNodes(driver, "Class", classRows);
+  await upsertNodes(driver, "Interface", interfaceRows);
+
   for (const kind of [
     "IMPORTS",
     "CONTAINS",
@@ -398,28 +395,13 @@ export async function writeParseResult(args: WriteArgs): Promise<ParseStats> {
   await upsertEdges(driver, "CALLS", calls);
   await upsertProcesses(driver, userId, codebaseId, processes);
 
-  const n = new Cypher.NamedNode("n");
-  await runClause(
-    driver,
-    new Cypher.Match(
-      new Cypher.Pattern(n, {
-        properties: {
-          userId: new Cypher.Param(userId),
-          codebaseId: new Cypher.Param(codebaseId),
-        },
-      }),
-    )
-      .where(isCodeGraphNode(n))
-      .set([n.property("parserVersion"), new Cypher.Param(PARSER_VERSION)]),
-  );
-
   return {
-    fileCount: files.length,
-    functionCount: fns.length,
-    classCount: classes.length,
-    interfaceCount: interfaces.length,
+    fileCount: fileRows.length,
+    functionCount: functionRows.length,
+    classCount: classRows.length,
+    interfaceCount: interfaceRows.length,
     callEdgeCount: calls.length,
     processCount: processes.length,
-    importEdgeCount: (buckets.get("IMPORTS") ?? []).length,
+    importEdgeCount,
   };
 }

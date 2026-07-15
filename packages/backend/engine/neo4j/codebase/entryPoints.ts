@@ -5,8 +5,9 @@ import type {
   FunctionNode,
 } from "./types";
 import { convexEntryKind } from "./convexBuilders";
+import { normalizeRepoPath } from "./parse";
 import type { Project } from "ts-morph";
-import { SyntaxKind } from "ts-morph";
+import { Node } from "ts-morph";
 
 const HEURISTIC_NAMES = new Set(["main", "handler", "start"]);
 
@@ -33,25 +34,16 @@ function detectFromSource(
   }
 
   for (const sourceFile of project.getSourceFiles()) {
-    const filePath = sourceFile.getFilePath().toString();
+    const filePath = normalizeRepoPath(sourceFile.getFilePath());
     for (const v of sourceFile.getVariableDeclarations()) {
       const init = v.getInitializer();
-      if (!init || init.getKind() !== SyntaxKind.CallExpression) continue;
-      const call = init.asKindOrThrow(SyntaxKind.CallExpression);
-      const calleeText = call.getExpression().getText();
+      if (!init || !Node.isCallExpression(init)) continue;
+      const calleeText = init.getExpression().getText();
       const fnNode = fnByPathName.get(`${filePath}::${v.getName()}`);
       if (!fnNode) continue;
 
       const convexKind = convexEntryKind(calleeText);
-      if (convexKind) {
-        addEntry(fnNode, convexKind);
-        continue;
-      }
-
-      if (calleeText.startsWith("createFileRoute")) {
-        addEntry(fnNode, "tanstack_route");
-        continue;
-      }
+      if (convexKind) addEntry(fnNode, convexKind);
     }
   }
 

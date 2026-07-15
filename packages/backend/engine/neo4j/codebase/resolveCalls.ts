@@ -1,6 +1,6 @@
 import {
+  Node,
   SyntaxKind,
-  type Node,
   type Project,
   type CallExpression,
   type SourceFile,
@@ -12,22 +12,20 @@ import {
   type SymbolNode,
   type FunctionNode,
 } from "./types";
+import { normalizeRepoPath } from "./parse";
 
 interface SymbolIndex {
-  byId: Map<string, SymbolNode>;
   functionsById: Map<string, FunctionNode>;
   byFileAndName: Map<string, Map<string, string>>;
   byNameGlobal: Map<string, Set<string>>;
 }
 
 function buildIndex(symbols: SymbolNode[]): SymbolIndex {
-  const byId = new Map<string, SymbolNode>();
   const functionsById = new Map<string, FunctionNode>();
   const byFileAndName = new Map<string, Map<string, string>>();
   const byNameGlobal = new Map<string, Set<string>>();
 
   for (const sym of symbols) {
-    byId.set(sym.id, sym);
     if (sym.kind === "function") functionsById.set(sym.id, sym);
     if (sym.kind === "file") continue;
 
@@ -46,7 +44,7 @@ function buildIndex(symbols: SymbolNode[]): SymbolIndex {
     global.add(sym.id);
   }
 
-  return { byId, functionsById, byFileAndName, byNameGlobal };
+  return { functionsById, byFileAndName, byNameGlobal };
 }
 
 function lookupByName(
@@ -61,26 +59,22 @@ function findEnclosingFunctionId(
   call: CallExpression,
   perFile: Map<string, string>,
 ): string | null {
-  let ancestor: Node | undefined = call.getParent();
+  let ancestor = call.getParent();
   while (ancestor) {
-    const k = ancestor.getKind();
-    if (k === SyntaxKind.FunctionDeclaration) {
-      const fd = ancestor.asKind(SyntaxKind.FunctionDeclaration);
-      const id = lookupByName(perFile, fd?.getName());
+    if (Node.isFunctionDeclaration(ancestor)) {
+      const id = lookupByName(perFile, ancestor.getName());
       if (id) return id;
-    } else if (k === SyntaxKind.MethodDeclaration) {
-      const md = ancestor.asKind(SyntaxKind.MethodDeclaration);
-      const methodName = md?.getName();
-      const cls = md?.getFirstAncestorByKind(SyntaxKind.ClassDeclaration);
+    } else if (Node.isMethodDeclaration(ancestor)) {
+      const methodName = ancestor.getName();
+      const cls = ancestor.getFirstAncestorByKind(SyntaxKind.ClassDeclaration);
       const className = cls?.getName();
       const id =
         methodName && className
           ? lookupByName(perFile, `${className}.${methodName}`)
           : null;
       if (id) return id;
-    } else if (k === SyntaxKind.VariableDeclaration) {
-      const vd = ancestor.asKind(SyntaxKind.VariableDeclaration);
-      const id = lookupByName(perFile, vd?.getName());
+    } else if (Node.isVariableDeclaration(ancestor)) {
+      const id = lookupByName(perFile, ancestor.getName());
       if (id) return id;
     }
     ancestor = ancestor.getParent();
@@ -90,11 +84,22 @@ function findEnclosingFunctionId(
 
 function getCalleeName(call: CallExpression): string {
   const expr = call.getExpression();
-  if (expr.getKind() === SyntaxKind.PropertyAccessExpression) {
-    const pae = expr.asKindOrThrow(SyntaxKind.PropertyAccessExpression);
-    return pae.getName();
-  }
+  if (Node.isPropertyAccessExpression(expr)) return expr.getName();
   return expr.getText();
+}
+
+function getDeclName(decl: import("ts-morph").Node): string | null {
+  if (Node.isFunctionDeclaration(decl)) return decl.getName() ?? null;
+  if (Node.isMethodDeclaration(decl)) {
+    const cls = decl.getFirstAncestorByKind(SyntaxKind.ClassDeclaration);
+    const className = cls?.getName();
+    if (className) return `${className}.${decl.getName()}`;
+    return decl.getName();
+  }
+  if (Node.isVariableDeclaration(decl)) return decl.getName();
+  if (Node.isClassDeclaration(decl)) return decl.getName() ?? null;
+  if (Node.isInterfaceDeclaration(decl)) return decl.getName() ?? null;
+  return null;
 }
 
 function resolveCalleeIds(
@@ -103,151 +108,33 @@ function resolveCalleeIds(
   index: SymbolIndex,
 ): { ids: string[]; tier: "EXTRACTED" | "INFERRED" | "AMBIGUOUS" } {
   const expr = call.getExpression();
-  // symbol resolution via type checker
   let resolvedSymbol = expr.getSymbol();
-  if (
-    !resolvedSymbol &&
-    expr.getKind() === SyntaxKind.PropertyAccessExpression
-  ) {
-    resolvedSymbol = expr
-      .asKindOrThrow(SyntaxKind.PropertyAccessExpression)
-      .getNameNode()
-      .getSymbol();
+  if (!resolvedSymbol && Node.isPropertyAccessExpression(expr)) {
+    resolvedSymbol = expr.getNameNode().getSymbol();
   }
   if (resolvedSymbol) {
     for (const decl of resolvedSymbol.getDeclarations()) {
-      const declFile = decl.getSourceFile();
-      const declPath = declFile.getFilePath().toString();
-      // skip node_modules / lib.d.ts
+      const declPath = normalizeRepoPath(decl.getSourceFile().getFilePath());
       if (declPath.includes("node_modules")) continue;
       const declName = getDeclName(decl);
       if (!declName) continue;
-      const perFile = index.byFileAndName.get(declPath);
-      const id = perFile?.get(declName);
+      const id = index.byFileAndName.get(declPath)?.get(declName);
       if (id) return { ids: [id], tier: "EXTRACTED" };
     }
   }
 
-  // fallback: name match in same file
   const calleeName = getCalleeName(call);
   if (!calleeName) return { ids: [], tier: "INFERRED" };
-  const perFile = index.byFileAndName.get(callerFilePath);
-  const localId = perFile?.get(calleeName);
+  const localId = index.byFileAndName.get(callerFilePath)?.get(calleeName);
   if (localId) return { ids: [localId], tier: "INFERRED" };
 
-  // final fallback: global name match
   const globalIds = index.byNameGlobal.get(calleeName);
-  if (!globalIds || globalIds.size === 0) {
-    return { ids: [], tier: "INFERRED" };
-  }
-  const filtered = [...globalIds].filter(
-    (id) => index.byId.get(id)?.kind === "function",
-  );
+  if (!globalIds || globalIds.size === 0) return { ids: [], tier: "INFERRED" };
+
+  const filtered = [...globalIds].filter((id) => index.functionsById.has(id));
   if (filtered.length === 0) return { ids: [], tier: "INFERRED" };
   if (filtered.length === 1) return { ids: filtered, tier: "INFERRED" };
   return { ids: filtered, tier: "AMBIGUOUS" };
-}
-
-function getDeclName(decl: Node): string | null {
-  const k = decl.getKind();
-  if (k === SyntaxKind.FunctionDeclaration) {
-    return decl.asKind(SyntaxKind.FunctionDeclaration)?.getName() ?? null;
-  }
-  if (k === SyntaxKind.MethodDeclaration) {
-    const md = decl.asKind(SyntaxKind.MethodDeclaration);
-    const cls = md?.getFirstAncestorByKind(SyntaxKind.ClassDeclaration);
-    if (md && cls?.getName()) {
-      return `${cls.getName()}.${md.getName()}`;
-    }
-    return md?.getName() ?? null;
-  }
-  if (k === SyntaxKind.VariableDeclaration) {
-    return decl.asKind(SyntaxKind.VariableDeclaration)?.getName() ?? null;
-  }
-  if (k === SyntaxKind.ClassDeclaration) {
-    return decl.asKind(SyntaxKind.ClassDeclaration)?.getName() ?? null;
-  }
-  if (k === SyntaxKind.InterfaceDeclaration) {
-    return decl.asKind(SyntaxKind.InterfaceDeclaration)?.getName() ?? null;
-  }
-  return null;
-}
-
-function patchImports(
-  project: Project,
-  loadedPaths: Set<string>,
-  codebaseId: string,
-  edges: RelationEdge[],
-  index: SymbolIndex,
-): void {
-  for (const edge of edges) {
-    if (edge.kind !== "IMPORTS") continue;
-    const fromFile = index.byId.get(edge.fromId);
-    if (!fromFile || fromFile.kind !== "file") continue;
-    const importPath = edge.toId;
-    const sourceFile = project.getSourceFile(fromFile.path);
-    if (!sourceFile) continue;
-    // ts-morph resolves relative + path-aliased imports for us
-    const resolved = sourceFile
-      .getImportDeclarations()
-      .find((d) => d.getModuleSpecifierValue() === importPath)
-      ?.getModuleSpecifierSourceFile();
-    if (!resolved) {
-      // couldn't resolve — leave as-is so caller can drop it later
-      edge.toId = "";
-      continue;
-    }
-    const targetPath = resolved.getFilePath().toString();
-    if (!loadedPaths.has(targetPath)) {
-      edge.toId = "";
-      continue;
-    }
-    edge.toId = `${codebaseId}:${targetPath}`;
-    edge.confidence = CONFIDENCE_BY_TIER.EXTRACTED;
-    edge.tier = "EXTRACTED";
-  }
-}
-
-function patchHeritage(edges: RelationEdge[], index: SymbolIndex): void {
-  for (const edge of edges) {
-    if (edge.kind !== "EXTENDS" && edge.kind !== "IMPLEMENTS") continue;
-    const fromSym = index.byId.get(edge.fromId);
-    if (!fromSym || fromSym.kind !== "class") continue;
-
-    const wantKind = edge.kind === "EXTENDS" ? "class" : "interface";
-    const targetName = edge.toId;
-
-    // try same file first
-    const localId = index.byFileAndName.get(fromSym.filePath)?.get(targetName);
-    if (localId && index.byId.get(localId)?.kind === wantKind) {
-      edge.toId = localId;
-      edge.confidence = CONFIDENCE_BY_TIER.INFERRED;
-      edge.tier = "INFERRED";
-      continue;
-    }
-
-    // global by name
-    const candidates = index.byNameGlobal.get(targetName);
-    if (!candidates || candidates.size === 0) {
-      edge.toId = "";
-      continue;
-    }
-    const filtered = [...candidates].filter(
-      (cid) => index.byId.get(cid)?.kind === wantKind,
-    );
-    const first = filtered.at(0);
-    if (filtered.length === 1 && first !== undefined) {
-      edge.toId = first;
-      edge.confidence = CONFIDENCE_BY_TIER.INFERRED;
-      edge.tier = "INFERRED";
-    } else if (filtered.length === 0 || first === undefined) {
-      edge.toId = "";
-    } else {
-      edge.toId = first;
-      edge.confidence = CONFIDENCE_BY_TIER.AMBIGUOUS;
-      edge.tier = "AMBIGUOUS";
-    }
-  }
 }
 
 function resolveCallsForSourceFile(
@@ -259,21 +146,20 @@ function resolveCallsForSourceFile(
   const perFile =
     index.byFileAndName.get(callerFilePath) ?? new Map<string, string>();
   source.forEachDescendant((node) => {
-    if (node.getKind() !== SyntaxKind.CallExpression) return;
-    const call = node.asKindOrThrow(SyntaxKind.CallExpression);
-    const callerId = findEnclosingFunctionId(call, perFile);
-    if (!callerId) return; // top-level call in module init — skip in Phase 1
-    const { ids, tier } = resolveCalleeIds(call, callerFilePath, index);
+    if (!Node.isCallExpression(node)) return;
+    const callerId = findEnclosingFunctionId(node, perFile);
+    if (!callerId) return;
+    const { ids, tier } = resolveCalleeIds(node, callerFilePath, index);
     for (const calleeId of ids) {
-      if (calleeId === callerId) continue; // skip recursive self-edges
-      if (!index.functionsById.has(calleeId)) continue; // only fn→fn edges
+      if (calleeId === callerId) continue;
+      if (!index.functionsById.has(calleeId)) continue;
       emitted.push({
         kind: "CALLS",
         fromId: callerId,
         toId: calleeId,
         confidence: CONFIDENCE_BY_TIER[tier],
         tier,
-        callSiteLine: call.getStartLineNumber(),
+        callSiteLine: node.getStartLineNumber(),
       });
     }
   });
@@ -282,38 +168,17 @@ function resolveCallsForSourceFile(
 export function resolveCalls(
   project: Project,
   parseResult: ParseResult,
-  codebaseId: string,
-): { calls: RelationEdge[] } {
+  _codebaseId: string,
+): RelationEdge[] {
   const index = buildIndex(parseResult.symbols);
   const calls: RelationEdge[] = [];
 
-  const loadedPaths = new Set(
-    parseResult.symbols
-      .filter(
-        (s): s is Extract<SymbolNode, { kind: "file" }> => s.kind === "file",
-      )
-      .map((s) => s.path),
-  );
-
-  patchImports(
-    project,
-    loadedPaths,
-    codebaseId,
-    parseResult.structuralRelations,
-    index,
-  );
-  patchHeritage(parseResult.structuralRelations, index);
-
-  for (const path of loadedPaths) {
-    const source = project.getSourceFile(path);
+  for (const sym of parseResult.symbols) {
+    if (sym.kind !== "file") continue;
+    const source = project.getSourceFile(sym.path);
     if (!source) continue;
-    resolveCallsForSourceFile(source, path, index, calls);
+    resolveCallsForSourceFile(source, sym.path, index, calls);
   }
 
-  // drop placeholder edges that couldn't resolve
-  parseResult.structuralRelations = parseResult.structuralRelations.filter(
-    (e) => e.toId !== "",
-  );
-
-  return { calls };
+  return calls;
 }

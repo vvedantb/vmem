@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-07-15 — Engine stage 2: simplify codebase graph pipeline
+
+Parse context with in-parse import/heritage resolution, leaner call resolution
+and entry detection (drop dead TanStack route branch), shared `withSession` on
+read/write/impact, and characterization tests for parse/calls/entries/processes.
+
 ## 2026-07-15 — Engine stage 1: delete shallow modules
 
 Inline codebase sync/error helpers into Convex, fold parsers and enrichment

@@ -1,6 +1,5 @@
-import Cypher from "@neo4j/cypher-builder";
 import type { Driver } from "neo4j-driver";
-import { buildAndRun } from "./buildAndRun";
+import { withSession } from "../session";
 import { parseImpactRecord } from "./mappers";
 
 const DEFAULT_DEPTH = 5;
@@ -36,40 +35,30 @@ async function runImpactQuery(
   direction: "upstream" | "downstream",
 ): Promise<ImpactNode[]> {
   const safeDepth = Math.max(1, Math.min(MAX_DEPTH, Math.floor(depth)));
-  const start = new Cypher.NamedNode("start");
-  const other = new Cypher.NamedNode("other");
-  const path = new Cypher.NamedPathVariable("path");
+  const rel =
+    direction === "upstream"
+      ? `<-[:CALLS*1..${safeDepth}]-`
+      : `-[:CALLS*1..${safeDepth}]->`;
 
-  const query = new Cypher.Match(
-    new Cypher.Pattern(start, {
-      labels: ["Function"],
-      properties: {
-        id: new Cypher.Param(symbolId),
-        userId: new Cypher.Param(userId),
-        codebaseId: new Cypher.Param(codebaseId),
-      },
-    }),
-  )
-    .match(
-      new Cypher.Pattern(start)
-        .related({
-          type: "CALLS",
-          direction: direction === "upstream" ? "left" : "right",
-          length: { min: 1, max: safeDepth },
-        })
-        .to(other, { labels: ["Function"] })
-        .assignTo(path),
-    )
-    .return([other.property("id"), "id"], [Cypher.length(path), "distance"])
-    .distinct()
-    .orderBy([Cypher.length(path), "ASC"], [other.property("id"), "ASC"])
-    .limit(200);
-
-  const session = driver.session();
-  try {
-    const result = await buildAndRun(session, query);
-    return result.records.map(parseImpactRecord);
-  } finally {
-    await session.close();
-  }
+  return withSession(driver, async (session) => {
+    const result = await session.run(
+      `
+      MATCH (start:Function { id: $symbolId, userId: $userId, codebaseId: $codebaseId })
+      MATCH path = (start)${rel}(other:Function)
+      RETURN other.id AS id, length(path) AS distance
+      ORDER BY distance ASC, id ASC
+      LIMIT 200
+      `,
+      { symbolId, userId, codebaseId },
+    );
+    const seen = new Set<string>();
+    const out: ImpactNode[] = [];
+    for (const record of result.records) {
+      const node = parseImpactRecord(record);
+      if (seen.has(node.id)) continue;
+      seen.add(node.id);
+      out.push(node);
+    }
+    return out;
+  });
 }

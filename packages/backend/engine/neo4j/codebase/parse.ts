@@ -2,8 +2,7 @@ import { basename, dirname, extname } from "node:path/posix";
 import {
   Project,
   ScriptKind,
-  SyntaxKind,
-  type Node,
+  Node,
   type SourceFile,
   type ClassDeclaration,
   type InterfaceDeclaration,
@@ -13,20 +12,16 @@ import {
   type ExportableNode,
 } from "ts-morph";
 import type {
-  FileNode,
   FunctionNode,
-  ClassNode,
-  InterfaceNode,
   SymbolNode,
   RelationEdge,
   ParseResult,
 } from "./types";
+import { CONFIDENCE_BY_TIER } from "./types";
 import { convexEntryKind } from "./convexBuilders";
 
 export interface SourceFileBlob {
-  // repo-relative path with `/` separators
   path: string;
-  // raw text content
   content: string;
 }
 
@@ -35,7 +30,17 @@ interface ParseInput {
   files: SourceFileBlob[];
 }
 
-// subset of extensions ts-morph understands
+interface ParseContext {
+  codebaseId: string;
+  project: Project;
+  blobByPath: Map<string, SourceFileBlob>;
+  fileIdByPath: Map<string, string>;
+  symbols: SymbolNode[];
+  structuralRelations: RelationEdge[];
+  byFileAndName: Map<string, Map<string, string>>;
+  byNameGlobal: Map<string, Set<string>>;
+}
+
 const TS_JS_EXTENSIONS = new Set([
   ".ts",
   ".tsx",
@@ -47,7 +52,10 @@ const TS_JS_EXTENSIONS = new Set([
   ".cjs",
 ]);
 
-// extension → ScriptKind
+export function normalizeRepoPath(path: string): string {
+  return path.startsWith("/") ? path.slice(1) : path;
+}
+
 function pickScriptKind(ext: string): ScriptKind {
   switch (ext) {
     case ".tsx":
@@ -63,13 +71,11 @@ function pickScriptKind(ext: string): ScriptKind {
   }
 }
 
-// repo-root files: posix `dirname("foo.ts")` is `"."`; we store `""`
 function directoryOf(repoPath: string): string {
   const dir = dirname(repoPath);
   return dir === "." ? "" : dir;
 }
 
-// cheap stable hash (FNV-1a 32-bit) — we only need to detect content changes
 function contentHash(s: string): string {
   let h = 0x811c9dc5;
   for (let i = 0; i < s.length; i++) {
@@ -91,13 +97,11 @@ function symbolId(
   return `${codebaseId}:${path}:${symbolPath}`;
 }
 
-// match any of `.test.`/`.spec.` in filename
 function isTestFile(path: string): boolean {
   const filename = basename(path);
   return /\.(test|spec)\.[mc]?[jt]sx?$/.test(filename);
 }
 
-// true for a named export or a `export default`
 function isExportedNode(node: ExportableNode): boolean {
   return node.isExported() || node.isDefaultExport();
 }
@@ -110,13 +114,12 @@ function buildProject(input: ParseInput): {
     useInMemoryFileSystem: true,
     skipAddingFilesFromTsConfig: true,
     compilerOptions: {
-      // permissive — we want the parser to succeed even on broken code
       allowJs: true,
       checkJs: false,
       noEmit: true,
-      target: 99, // ESNext
-      module: 99, // NodeNext
-      jsx: 1, // Preserve
+      target: 99,
+      module: 99,
+      jsx: 1,
       skipLibCheck: true,
       strict: false,
     },
@@ -135,84 +138,127 @@ function buildProject(input: ParseInput): {
   return { project, loadedPaths };
 }
 
-// walk a single source file and emit symbols plus local structural edges
-function parseSourceFile(
-  codebaseId: string,
+function registerSymbol(ctx: ParseContext, sym: SymbolNode): void {
+  ctx.symbols.push(sym);
+  if (sym.kind === "file") return;
+
+  let perFile = ctx.byFileAndName.get(sym.filePath);
+  if (!perFile) {
+    perFile = new Map();
+    ctx.byFileAndName.set(sym.filePath, perFile);
+  }
+  perFile.set(sym.name, sym.id);
+
+  let global = ctx.byNameGlobal.get(sym.name);
+  if (!global) {
+    global = new Set();
+    ctx.byNameGlobal.set(sym.name, global);
+  }
+  global.add(sym.id);
+}
+
+function resolveImportTarget(
+  ctx: ParseContext,
   source: SourceFile,
-  fileBlob: SourceFileBlob,
-  symbols: SymbolNode[],
-  relations: RelationEdge[],
-): FileNode {
-  const path = fileBlob.path;
-  const fileId = fileSymbolId(codebaseId, path);
-  const ext = extname(path);
-  const fileNode: FileNode = {
-    kind: "file",
-    id: fileId,
-    path,
-    directory: directoryOf(path),
-    filename: basename(path),
-    extension: ext,
-    sizeBytes: fileBlob.content.length,
-    contentHash: contentHash(fileBlob.content),
-  };
-  symbols.push(fileNode);
+  moduleSpec: string,
+): string | null {
+  const resolved = source
+    .getImportDeclarations()
+    .find((d) => d.getModuleSpecifierValue() === moduleSpec)
+    ?.getModuleSpecifierSourceFile();
+  if (!resolved) return null;
+  const targetPath = normalizeRepoPath(resolved.getFilePath());
+  return ctx.fileIdByPath.get(targetPath) ?? null;
+}
 
-  const fileIsTest = isTestFile(path);
-
-  // imports — module path placeholder; resolveCalls patches to file id
-  for (const imp of source.getImportDeclarations()) {
-    const moduleSpec = imp.getModuleSpecifierValue();
-    if (!moduleSpec) continue;
-    relations.push({
-      kind: "IMPORTS",
-      fromId: fileId,
-      toId: moduleSpec, // placeholder — resolver replaces with target file id
-      confidence: 0,
-      tier: "INFERRED",
-      importPath: moduleSpec,
-    });
+function resolveHeritageTarget(
+  ctx: ParseContext,
+  fromFilePath: string,
+  targetName: string,
+  wantKind: "class" | "interface",
+): { id: string; tier: "INFERRED" | "AMBIGUOUS" } | null {
+  const localId = ctx.byFileAndName.get(fromFilePath)?.get(targetName);
+  const localSym = localId
+    ? ctx.symbols.find((s) => s.id === localId)
+    : undefined;
+  if (localSym?.kind === wantKind && localId !== undefined) {
+    return { id: localId, tier: "INFERRED" };
   }
 
-  for (const fn of source.getFunctions()) {
-    pushFunction(codebaseId, fileId, path, fn, fileIsTest, symbols, relations);
-  }
+  const candidates = ctx.byNameGlobal.get(targetName);
+  if (!candidates || candidates.size === 0) return null;
 
-  for (const v of source.getVariableDeclarations()) {
-    pushVariableFunction(
-      codebaseId,
-      fileId,
-      path,
-      v,
-      fileIsTest,
-      symbols,
-      relations,
+  const filtered = [...candidates].filter((cid) => {
+    const sym = ctx.symbols.find((s) => s.id === cid);
+    return sym?.kind === wantKind;
+  });
+  const first = filtered.at(0);
+  if (filtered.length === 1 && first !== undefined) {
+    return { id: first, tier: "INFERRED" };
+  }
+  if (filtered.length === 0 || first === undefined) return null;
+  return { id: first, tier: "AMBIGUOUS" };
+}
+
+function resolveHeritageTargets(ctx: ParseContext): void {
+  for (const edge of ctx.structuralRelations) {
+    if (edge.kind !== "EXTENDS" && edge.kind !== "IMPLEMENTS") continue;
+    const fromSym = ctx.symbols.find(
+      (s) => s.id === edge.fromId && s.kind === "class",
     );
+    if (!fromSym || fromSym.kind !== "class") continue;
+
+    const wantKind = edge.kind === "EXTENDS" ? "class" : "interface";
+    const targetName = edge.toId;
+    const resolved = resolveHeritageTarget(
+      ctx,
+      fromSym.filePath,
+      targetName,
+      wantKind,
+    );
+    if (!resolved) {
+      edge.toId = "";
+      continue;
+    }
+    edge.toId = resolved.id;
+    edge.confidence = CONFIDENCE_BY_TIER[resolved.tier];
+    edge.tier = resolved.tier;
   }
 
-  for (const cls of source.getClasses()) {
-    pushClass(codebaseId, fileId, path, cls, fileIsTest, symbols, relations);
-  }
+  ctx.structuralRelations = ctx.structuralRelations.filter(
+    (e) => e.toId !== "",
+  );
+}
 
-  for (const iface of source.getInterfaces()) {
-    pushInterface(codebaseId, fileId, path, iface, symbols, relations);
-  }
+function looksLikeConvexBuilder(init: import("ts-morph").Node): boolean {
+  if (!Node.isCallExpression(init)) return false;
+  return convexEntryKind(init.getExpression().getText()) !== undefined;
+}
 
-  return fileNode;
+function isAsyncFunctionLike(node: import("ts-morph").Node): boolean {
+  if (!Node.isArrowFunction(node) && !Node.isFunctionExpression(node)) {
+    return false;
+  }
+  const text = node.getText();
+  return text.startsWith("async ") || text.includes("async (");
+}
+
+function getParamCount(node: import("ts-morph").Node): number {
+  if (Node.isArrowFunction(node)) return node.getParameters().length;
+  if (Node.isFunctionExpression(node)) return node.getParameters().length;
+  return 0;
 }
 
 function pushFunction(
-  codebaseId: string,
+  ctx: ParseContext,
   fileId: string,
   filePath: string,
   fn: FunctionDeclaration,
   fileIsTest: boolean,
-  symbols: SymbolNode[],
-  relations: RelationEdge[],
 ): void {
   const name = fn.getName();
-  if (!name) return; // anonymous default-export functions are skipped Phase 1
-  const id = symbolId(codebaseId, filePath, name);
+  if (!name) return;
+  const id = symbolId(ctx.codebaseId, filePath, name);
   const node: FunctionNode = {
     kind: "function",
     id,
@@ -226,32 +272,25 @@ function pushFunction(
     isTest: fileIsTest,
     paramCount: fn.getParameters().length,
   };
-  symbols.push(node);
-  relations.push({ kind: "CONTAINS", fromId: fileId, toId: id });
+  registerSymbol(ctx, node);
+  ctx.structuralRelations.push({ kind: "CONTAINS", fromId: fileId, toId: id });
 }
 
-// const/let arrow-fn or fn-expr, or Convex builder call → Function symbol
 function pushVariableFunction(
-  codebaseId: string,
+  ctx: ParseContext,
   fileId: string,
   filePath: string,
   v: VariableDeclaration,
   fileIsTest: boolean,
-  symbols: SymbolNode[],
-  relations: RelationEdge[],
 ): void {
   const init = v.getInitializer();
   if (!init) return;
-  const isFn =
-    init.getKind() === SyntaxKind.ArrowFunction ||
-    init.getKind() === SyntaxKind.FunctionExpression;
+  const isFn = Node.isArrowFunction(init) || Node.isFunctionExpression(init);
   if (!isFn && !looksLikeConvexBuilder(init)) return;
   const name = v.getName();
-  const id = symbolId(codebaseId, filePath, name);
+  const id = symbolId(ctx.codebaseId, filePath, name);
   const stmt = v.getVariableStatement();
-  // async/paramCount only meaningful for actual fn nodes — Convex builder calls
-  // get sensible defaults (false/0) so the symbol still records correctly
-  symbols.push({
+  registerSymbol(ctx, {
     kind: "function",
     id,
     filePath,
@@ -264,53 +303,54 @@ function pushVariableFunction(
     isTest: fileIsTest,
     paramCount: isFn ? getParamCount(init) : 0,
   });
-  relations.push({ kind: "CONTAINS", fromId: fileId, toId: id });
+  ctx.structuralRelations.push({ kind: "CONTAINS", fromId: fileId, toId: id });
 }
 
-// true for `query({...})` / `mutation({...})` / etc
-function looksLikeConvexBuilder(init: Node): boolean {
-  if (init.getKind() !== SyntaxKind.CallExpression) return false;
-  const expr = init.asKindOrThrow(SyntaxKind.CallExpression).getExpression();
-  const calleeName = expr.getText();
-  return convexEntryKind(calleeName) !== undefined;
-}
-
-// cheap `async` check for an arrow-fn / fn-expr node's own text
-function isAsyncFunctionLike(node: Node): boolean {
-  if (
-    node.getKind() === SyntaxKind.ArrowFunction ||
-    node.getKind() === SyntaxKind.FunctionExpression
-  ) {
-    const text = node.getText();
-    // cheap match — async always appears at the very start of these forms
-    return text.startsWith("async ") || text.includes("async (");
-  }
-  return false;
-}
-
-function getParamCount(node: Node): number {
-  const arrow = node.asKind(SyntaxKind.ArrowFunction);
-  if (arrow) return arrow.getParameters().length;
-  const fn = node.asKind(SyntaxKind.FunctionExpression);
-  if (fn) return fn.getParameters().length;
-  return 0;
+function pushMethod(
+  ctx: ParseContext,
+  filePath: string,
+  className: string,
+  m: MethodDeclaration,
+  fileIsTest: boolean,
+): void {
+  const methodName = m.getName();
+  const symbolPath = `${className}.${methodName}`;
+  const classId = symbolId(ctx.codebaseId, filePath, className);
+  const id = symbolId(ctx.codebaseId, filePath, symbolPath);
+  registerSymbol(ctx, {
+    kind: "function",
+    id,
+    filePath,
+    name: methodName,
+    qualifiedName: `${filePath}::${symbolPath}`,
+    parentClass: className,
+    startLine: m.getStartLineNumber(),
+    endLine: m.getEndLineNumber(),
+    isExported: false,
+    isAsync: m.isAsync(),
+    isTest: fileIsTest,
+    paramCount: m.getParameters().length,
+  });
+  ctx.structuralRelations.push({
+    kind: "HAS_METHOD",
+    fromId: classId,
+    toId: id,
+  });
 }
 
 function pushClass(
-  codebaseId: string,
+  ctx: ParseContext,
   fileId: string,
   filePath: string,
   cls: ClassDeclaration,
   fileIsTest: boolean,
-  symbols: SymbolNode[],
-  relations: RelationEdge[],
 ): void {
   const name = cls.getName();
   if (!name) return;
-  const id = symbolId(codebaseId, filePath, name);
+  const id = symbolId(ctx.codebaseId, filePath, name);
   const extendsExpr = cls.getExtends();
   const extendsName = extendsExpr ? extendsExpr.getText() : undefined;
-  const node: ClassNode = {
+  registerSymbol(ctx, {
     kind: "class",
     id,
     filePath,
@@ -321,13 +361,11 @@ function pushClass(
     isExported: isExportedNode(cls),
     isAbstract: cls.isAbstract(),
     extendsName,
-  };
-  symbols.push(node);
-  relations.push({ kind: "CONTAINS", fromId: fileId, toId: id });
+  });
+  ctx.structuralRelations.push({ kind: "CONTAINS", fromId: fileId, toId: id });
 
-  // extends edge — placeholder, resolver patches
   if (extendsName) {
-    relations.push({
+    ctx.structuralRelations.push({
       kind: "EXTENDS",
       fromId: id,
       toId: extendsName,
@@ -335,9 +373,8 @@ function pushClass(
       tier: "INFERRED",
     });
   }
-  // implements edges — placeholders, resolver patches
   for (const impl of cls.getImplements()) {
-    relations.push({
+    ctx.structuralRelations.push({
       kind: "IMPLEMENTS",
       fromId: id,
       toId: impl.getText(),
@@ -346,62 +383,20 @@ function pushClass(
     });
   }
 
-  // methods
   for (const method of cls.getMethods()) {
-    pushMethod(
-      codebaseId,
-      filePath,
-      name,
-      method,
-      fileIsTest,
-      symbols,
-      relations,
-    );
+    pushMethod(ctx, filePath, name, method, fileIsTest);
   }
 }
 
-function pushMethod(
-  codebaseId: string,
-  filePath: string,
-  className: string,
-  m: MethodDeclaration,
-  fileIsTest: boolean,
-  symbols: SymbolNode[],
-  relations: RelationEdge[],
-): void {
-  const methodName = m.getName();
-  const symbolPath = `${className}.${methodName}`;
-  const classId = symbolId(codebaseId, filePath, className);
-  const id = symbolId(codebaseId, filePath, symbolPath);
-  const node: FunctionNode = {
-    kind: "function",
-    id,
-    filePath,
-    name: methodName,
-    qualifiedName: `${filePath}::${symbolPath}`,
-    parentClass: className,
-    startLine: m.getStartLineNumber(),
-    endLine: m.getEndLineNumber(),
-    isExported: false, // method export-ness is class-level
-    isAsync: m.isAsync(),
-    isTest: fileIsTest,
-    paramCount: m.getParameters().length,
-  };
-  symbols.push(node);
-  relations.push({ kind: "HAS_METHOD", fromId: classId, toId: id });
-}
-
 function pushInterface(
-  codebaseId: string,
+  ctx: ParseContext,
   fileId: string,
   filePath: string,
   iface: InterfaceDeclaration,
-  symbols: SymbolNode[],
-  relations: RelationEdge[],
 ): void {
   const name = iface.getName();
-  const id = symbolId(codebaseId, filePath, name);
-  const node: InterfaceNode = {
+  const id = symbolId(ctx.codebaseId, filePath, name);
+  registerSymbol(ctx, {
     kind: "interface",
     id,
     filePath,
@@ -410,9 +405,46 @@ function pushInterface(
     startLine: iface.getStartLineNumber(),
     endLine: iface.getEndLineNumber(),
     isExported: isExportedNode(iface),
-  };
-  symbols.push(node);
-  relations.push({ kind: "CONTAINS", fromId: fileId, toId: id });
+  });
+  ctx.structuralRelations.push({ kind: "CONTAINS", fromId: fileId, toId: id });
+}
+
+function parseSourceFile(
+  ctx: ParseContext,
+  source: SourceFile,
+  fileBlob: SourceFileBlob,
+): void {
+  const path = fileBlob.path;
+  const fileId = ctx.fileIdByPath.get(path);
+  if (!fileId) return;
+  const fileIsTest = isTestFile(path);
+
+  for (const imp of source.getImportDeclarations()) {
+    const moduleSpec = imp.getModuleSpecifierValue();
+    if (!moduleSpec) continue;
+    const targetId = resolveImportTarget(ctx, source, moduleSpec);
+    ctx.structuralRelations.push({
+      kind: "IMPORTS",
+      fromId: fileId,
+      toId: targetId ?? "",
+      confidence: targetId ? CONFIDENCE_BY_TIER.EXTRACTED : 0,
+      tier: targetId ? "EXTRACTED" : "INFERRED",
+      importPath: moduleSpec,
+    });
+  }
+
+  for (const fn of source.getFunctions()) {
+    pushFunction(ctx, fileId, path, fn, fileIsTest);
+  }
+  for (const v of source.getVariableDeclarations()) {
+    pushVariableFunction(ctx, fileId, path, v, fileIsTest);
+  }
+  for (const cls of source.getClasses()) {
+    pushClass(ctx, fileId, path, cls, fileIsTest);
+  }
+  for (const iface of source.getInterfaces()) {
+    pushInterface(ctx, fileId, path, iface);
+  }
 }
 
 export function parseRepository(input: ParseInput): {
@@ -420,26 +452,50 @@ export function parseRepository(input: ParseInput): {
   result: ParseResult;
 } {
   const { project, loadedPaths } = buildProject(input);
-  const symbols: SymbolNode[] = [];
-  const structuralRelations: RelationEdge[] = [];
-
   const blobByPath = new Map(input.files.map((f) => [f.path, f]));
+  const ctx: ParseContext = {
+    codebaseId: input.codebaseId,
+    project,
+    blobByPath,
+    fileIdByPath: new Map(),
+    symbols: [],
+    structuralRelations: [],
+    byFileAndName: new Map(),
+    byNameGlobal: new Map(),
+  };
+
+  for (const path of loadedPaths) {
+    const blob = blobByPath.get(path);
+    if (!blob) continue;
+    const fileId = fileSymbolId(ctx.codebaseId, path);
+    ctx.fileIdByPath.set(path, fileId);
+    const ext = extname(path);
+    registerSymbol(ctx, {
+      kind: "file",
+      id: fileId,
+      path,
+      directory: directoryOf(path),
+      filename: basename(path),
+      extension: ext,
+      sizeBytes: blob.content.length,
+      contentHash: contentHash(blob.content),
+    });
+  }
 
   for (const path of loadedPaths) {
     const source = project.getSourceFile(path);
     const blob = blobByPath.get(path);
     if (!source || !blob) continue;
-    parseSourceFile(
-      input.codebaseId,
-      source,
-      blob,
-      symbols,
-      structuralRelations,
-    );
+    parseSourceFile(ctx, source, blob);
   }
+
+  resolveHeritageTargets(ctx);
 
   return {
     project,
-    result: { symbols, structuralRelations },
+    result: {
+      symbols: ctx.symbols,
+      structuralRelations: ctx.structuralRelations,
+    },
   };
 }

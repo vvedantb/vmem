@@ -144,29 +144,33 @@ export function parseOverviewEdge(
   };
 }
 
-function filterRefsWithId<T extends { id: string | null }>(
-  arr: T[],
-): Array<T & { id: string }> {
-  return arr.filter((x): x is T & { id: string } => x.id !== null);
-}
-
 function mapSymbolRefs(
   refs: z.infer<typeof symbolRefListSchema>,
 ): SymbolContext["callsIn"] {
-  return filterRefsWithId(refs).map((x) => ({
-    id: x.id,
-    name: x.name ?? x.id,
-    filePath: x.filePath ?? "",
-  }));
+  return refs
+    .filter(
+      (x): x is z.infer<typeof symbolRefSchema> & { id: string } =>
+        x.id !== null,
+    )
+    .map((x) => ({
+      id: x.id,
+      name: x.name ?? x.id,
+      filePath: x.filePath ?? "",
+    }));
 }
 
 function mapProcessRefs(
   refs: z.infer<typeof processRefListSchema>,
 ): SymbolContext["processes"] {
-  return filterRefsWithId(refs).map((x) => ({
-    id: x.id,
-    name: x.name ?? x.id,
-  }));
+  return refs
+    .filter(
+      (x): x is z.infer<typeof processRefSchema> & { id: string } =>
+        x.id !== null,
+    )
+    .map((x) => ({
+      id: x.id,
+      name: x.name ?? x.id,
+    }));
 }
 
 function nameAndQualifiedName(props: OverviewNodeProps): {

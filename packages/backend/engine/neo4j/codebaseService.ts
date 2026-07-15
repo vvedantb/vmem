@@ -37,7 +37,7 @@ export async function syncCodebase(
     codebaseId: input.codebaseId,
     files: input.files,
   });
-  const { calls } = resolveCalls(project, result, input.codebaseId);
+  const calls = resolveCalls(project, result, input.codebaseId);
 
   await input.onStage?.("processes");
   const entryPoints = detectEntryPoints(project, result.symbols, calls);

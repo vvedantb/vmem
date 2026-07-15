@@ -43,7 +43,7 @@ export interface ClassNode {
   endLine: number;
   isExported: boolean;
   isAbstract: boolean;
-  // name only (resolution happens in resolveCalls/structural-edges step)
+  // name only (resolved during parse)
   extendsName?: string;
 }
 
