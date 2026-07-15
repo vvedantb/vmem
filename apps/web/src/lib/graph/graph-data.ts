@@ -157,7 +157,6 @@ export function buildGraphData(
       content: node.content,
       tags: node.tags,
       createdAt: node.createdAt,
-      color: "",
       size,
       kind: node.kind,
       sourceType: node.sourceType,

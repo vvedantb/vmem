@@ -34,7 +34,6 @@ export interface GraphNode extends SimulationNodeDatum {
   content?: string;
   tags: string[];
   createdAt: string;
-  color: string;
   size: number;
   kind: GraphNodeKind;
   // connector provenance string (e.g
@@ -80,7 +79,6 @@ export interface InteractionState {
   isPanning: boolean;
   mouseWorldX: number;
   mouseWorldY: number;
-  shiftHeld: boolean;
 }
 
 export interface RelatedNode {

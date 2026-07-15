@@ -51,7 +51,6 @@ export function attachInputHandlers(
     mouseDownX = x;
     mouseDownY = y;
     hasDragged = false;
-    interaction.shiftHeld = e.shiftKey;
     panHistory.length = 0;
     panHistory.push({ x, y, t: performance.now() });
 
@@ -275,14 +274,6 @@ export function attachInputHandlers(
     }
   }
 
-  function onKeyDown(e: KeyboardEvent) {
-    if (e.key === "Shift") interaction.shiftHeld = true;
-  }
-
-  function onKeyUp(e: KeyboardEvent) {
-    if (e.key === "Shift") interaction.shiftHeld = false;
-  }
-
   // --- Touch support ---
   let pinchStartDist = 0;
   let pinchStartScale = 1;
@@ -485,8 +476,6 @@ export function attachInputHandlers(
   canvas.addEventListener("touchstart", onTouchStart, { passive: false });
   canvas.addEventListener("touchmove", onTouchMove, { passive: false });
   canvas.addEventListener("touchend", onTouchEnd, { passive: false });
-  window.addEventListener("keydown", onKeyDown);
-  window.addEventListener("keyup", onKeyUp);
 
   return () => {
     canvas.removeEventListener("mousedown", onMouseDown);
@@ -498,7 +487,5 @@ export function attachInputHandlers(
     canvas.removeEventListener("touchstart", onTouchStart);
     canvas.removeEventListener("touchmove", onTouchMove);
     canvas.removeEventListener("touchend", onTouchEnd);
-    window.removeEventListener("keydown", onKeyDown);
-    window.removeEventListener("keyup", onKeyUp);
   };
 }

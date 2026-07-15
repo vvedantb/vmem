@@ -10,6 +10,7 @@ import {
   getAllDirectories,
 } from "@/components/codebases/codebase-graph-data";
 import { codebaseSearchParams } from "@/lib/url-state/codebases";
+import { graphNodeMatchesLocalSearch } from "@/lib/graph/graph-search";
 
 const EMPTY_SET: Set<string> = new Set<string>();
 const NONE_SENTINEL = "__NONE__";
@@ -78,17 +79,11 @@ export function useCodebaseGraphController(codebaseId: string) {
   );
 
   const searchMatchSet = useMemo<Set<string>>(() => {
-    const q = params.search.trim().toLowerCase();
+    const q = params.search.trim();
     if (q.length === 0) return EMPTY_SET;
     const matches = new Set<string>();
     for (const node of graphNodes) {
-      // `title` carries the symbol name, `content` carries the file path —
-      // both are reasonable hits for a casual "find me X" search
-      const path = node.content ?? "";
-      if (
-        node.title.toLowerCase().includes(q) ||
-        path.toLowerCase().includes(q)
-      ) {
+      if (graphNodeMatchesLocalSearch(node, q)) {
         matches.add(node.id);
       }
     }

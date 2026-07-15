@@ -6,10 +6,7 @@ export type GraphDetailNode = Pick<
 >;
 
 export interface HoveredNodeInfo {
-  id: string;
   title: string;
-  // inline content is only present when the node carried content through the graph
-  content?: string;
   viewportX: number;
   viewportY: number;
 }

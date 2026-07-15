@@ -108,7 +108,6 @@ function GraphCanvas({
     isPanning: false,
     mouseWorldX: 0,
     mouseWorldY: 0,
-    shiftHeld: false,
   });
   const spatialIndexRef = useRef(createSpatialIndex());
   const hasFittedRef = useRef(false);
@@ -204,9 +203,7 @@ function GraphCanvas({
             const sy =
               (node.y ?? 0) * vp.scale + vp.offsetY + canvas.clientHeight / 2;
             callbacksRef.current.onHoverNode({
-              id: node.id,
               title: node.title,
-              content: node.content,
               viewportX: sx,
               viewportY: sy,
             });
