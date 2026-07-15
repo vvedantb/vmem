@@ -17,11 +17,6 @@ import { api } from "@vmem/backend";
 import type { WikiListNode, WikiNodeId } from "./-types";
 import type { WikiTreeNode } from "./_utils";
 import { resolveWikiMove, WIKI_ROOT_DROP_ID } from "./_utils";
-import {
-  optimisticDeleteWikiNode,
-  optimisticMoveWikiNode,
-  optimisticRenameWikiNode,
-} from "./_optimisticMutations";
 import RenameDialog from "./RenameDialog";
 import DeleteConfirmDialog from "./DeleteConfirmDialog";
 import {
@@ -29,7 +24,6 @@ import {
   WikiRootDropZone,
   WikiTreeList,
 } from "./WikiTreeItem";
-import { optimisticCreateWikiNode } from "./_optimisticCreate";
 import { useActiveTeamId } from "@/components/workspace/active-profile";
 
 // collision strategy: a folder row always wins over the surrounding root droppable
@@ -62,18 +56,10 @@ export default function WikiTree({
   onToggleSelect,
 }: WikiTreeProps) {
   const teamId = useActiveTeamId();
-  const createNode = useMutation(api.wiki.createNode).withOptimisticUpdate(
-    optimisticCreateWikiNode,
-  );
-  const renameNode = useMutation(api.wiki.renameNode).withOptimisticUpdate(
-    (localStore, args) => optimisticRenameWikiNode(localStore, teamId, args),
-  );
-  const deleteNode = useMutation(api.wiki.deleteNode).withOptimisticUpdate(
-    (localStore, args) => optimisticDeleteWikiNode(localStore, teamId, args),
-  );
-  const moveNode = useMutation(api.wiki.moveNode).withOptimisticUpdate(
-    (localStore, args) => optimisticMoveWikiNode(localStore, teamId, args),
-  );
+  const createNode = useMutation(api.wiki.createNode);
+  const renameNode = useMutation(api.wiki.renameNode);
+  const deleteNode = useMutation(api.wiki.deleteNode);
+  const moveNode = useMutation(api.wiki.moveNode);
 
   const [renameTarget, setRenameTarget] = useState<WikiListNode | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<WikiListNode | null>(null);

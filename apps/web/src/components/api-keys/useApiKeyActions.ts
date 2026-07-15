@@ -3,23 +3,11 @@ import { useMutation, useAction } from "convex/react";
 import { useCopyToClipboard, useTimeout } from "usehooks-ts";
 import { toast } from "sonner";
 import { api } from "@vmem/backend";
-import { patchApiKeyInList, removeApiKeyFromList } from "./_optimistic";
 import type { ApiKey } from "./types";
 
 export function useApiKeyActions() {
-  const revokeApiKey = useMutation(api.apiKeys.revokeMy).withOptimisticUpdate(
-    (localStore, args) => {
-      patchApiKeyInList(localStore, args.id, (row) => ({
-        ...row,
-        status: "revoked",
-      }));
-    },
-  );
-  const deleteApiKey = useMutation(api.apiKeys.deleteMy).withOptimisticUpdate(
-    (localStore, args) => {
-      removeApiKeyFromList(localStore, args.id);
-    },
-  );
+  const revokeApiKey = useMutation(api.apiKeys.revokeMy);
+  const deleteApiKey = useMutation(api.apiKeys.deleteMy);
   const revealApiKey = useAction(api.apiKeys.revealMy);
   const [, copyToClipboard] = useCopyToClipboard();
 

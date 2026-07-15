@@ -9,7 +9,6 @@ import PageContainer from "@/components/PageContainer";
 import { buildTree, findAncestors, wikiKindHasContent } from "./_utils";
 import type { OutlineHeading } from "./_utils";
 import type { WikiNodeDoc } from "./-types";
-import { optimisticRenameWikiNode } from "./_optimisticMutations";
 import WikiOutline from "./WikiOutline";
 import { useWikiSidebar } from "./WikiSidebarContext";
 import { WikiPageBreadcrumb } from "./WikiPageBreadcrumb";
@@ -156,9 +155,7 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
   const teamId = activeProfile.teamId;
   const nodes = useQuery(api.wiki.listTree, { teamId });
   const doc = useQuery(api.wiki.getNode, docId ? { id: docId } : "skip");
-  const renameNode = useMutation(api.wiki.renameNode).withOptimisticUpdate(
-    (localStore, args) => optimisticRenameWikiNode(localStore, teamId, args),
-  );
+  const renameNode = useMutation(api.wiki.renameNode);
   const {
     outlineVisible,
     setOutlineVisible,

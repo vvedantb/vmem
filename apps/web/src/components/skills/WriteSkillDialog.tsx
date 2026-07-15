@@ -4,8 +4,6 @@ import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@vmem/ui";
 import { toast } from "sonner";
-import { optimisticId } from "@/lib/optimisticId";
-import { prependOptimisticSkillRow } from "@/components/skills/_utils";
 import { SkillFormShell } from "@/components/skills/SkillFormShell";
 import { useActiveTeamId } from "@/components/workspace/active-profile";
 
@@ -21,17 +19,7 @@ export function WriteSkillDialog({
   onCreated,
 }: WriteSkillDialogProps) {
   const teamId = useActiveTeamId();
-  const createSkill = useMutation(api.skills.createSkill).withOptimisticUpdate(
-    (localStore, args) => {
-      const current = localStore.getQuery(api.skills.listMy, { teamId });
-      if (!current) return;
-      localStore.setQuery(
-        api.skills.listMy,
-        { teamId },
-        prependOptimisticSkillRow(current, optimisticId("skills"), args),
-      );
-    },
-  );
+  const createSkill = useMutation(api.skills.createSkill);
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");

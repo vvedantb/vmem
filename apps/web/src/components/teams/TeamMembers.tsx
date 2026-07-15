@@ -12,7 +12,6 @@ import {
 import { toast } from "sonner";
 import { useTeamWorkspace, type TeamMember } from "./team-context";
 import { AddMemberDialog } from "./AddMemberDialog";
-import { optimisticallyRemoveMember } from "./_optimistic";
 import { RemoveMemberDialog } from "./RemoveMemberDialog";
 
 type PendingRemoval = {
@@ -22,9 +21,7 @@ type PendingRemoval = {
 
 export function TeamMembers() {
   const { detail: data, meta } = useTeamWorkspace();
-  const removeMember = useMutation(api.teams.removeMember).withOptimisticUpdate(
-    optimisticallyRemoveMember,
-  );
+  const removeMember = useMutation(api.teams.removeMember);
   const [addOpen, setAddOpen] = useState(false);
   const [removing, setRemoving] = useState<Id<"users"> | null>(null);
   const [pendingRemoval, setPendingRemoval] = useState<PendingRemoval | null>(

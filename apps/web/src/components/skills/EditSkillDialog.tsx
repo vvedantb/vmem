@@ -4,7 +4,6 @@ import { api } from "@vmem/backend";
 import type { Doc } from "@vmem/backend";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@vmem/ui";
 import { toast } from "sonner";
-import { optimisticUpdateSkillList } from "@/components/skills/_optimisticMutations";
 import { SkillFormShell } from "@/components/skills/SkillFormShell";
 
 interface EditSkillDialogProps {
@@ -18,10 +17,7 @@ export function EditSkillDialog({
   open,
   onOpenChange,
 }: EditSkillDialogProps) {
-  const updateSkill = useMutation(api.skills.updateSkill).withOptimisticUpdate(
-    (localStore, args) =>
-      optimisticUpdateSkillList(localStore, skill?.teamId, args),
-  );
+  const updateSkill = useMutation(api.skills.updateSkill);
 
   const [submitting, setSubmitting] = useState(false);
 

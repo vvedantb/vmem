@@ -6,14 +6,11 @@ import { Button, Card, CardContent, Input } from "@vmem/ui";
 import { IconTrash, IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { useTeamDetail } from "./team-context";
-import { optimisticallyUpdateTeam } from "./_optimistic";
 import { DeleteTeamDialog } from "./DeleteTeamDialog";
 
 export function TeamSettings() {
   const data = useTeamDetail();
-  const updateTeam = useMutation(api.teams.updateTeam).withOptimisticUpdate(
-    optimisticallyUpdateTeam,
-  );
+  const updateTeam = useMutation(api.teams.updateTeam);
   const deleteTeam = useAction(api.teams.deleteTeam);
   const navigate = useNavigate();
   const focusedNameRef = useRef<string | null>(null);

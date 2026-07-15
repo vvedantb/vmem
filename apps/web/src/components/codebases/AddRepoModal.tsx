@@ -18,7 +18,6 @@ import { sidebarSearchInputClassName } from "@/components/sidebar/sidebar-search
 import { GitHubIcon } from "@/components/icons/logos";
 import { AddRepoModalRow } from "./_components/AddRepoModalRow";
 import type { AddRepoModalRepo } from "./-types";
-import { optimisticId } from "@/lib/optimisticId";
 import { useActiveTeamId } from "@/components/workspace/active-profile";
 
 interface AddRepoModalProps {
@@ -34,38 +33,7 @@ export function AddRepoModal({
 }: AddRepoModalProps) {
   const teamId = useActiveTeamId();
   const listRepos = useAction(api.codebases.listRepos);
-  const addCodebase = useMutation(
-    api.codebases.addCodebase,
-  ).withOptimisticUpdate((localStore, args) => {
-    const list = localStore.getQuery(api.codebases.listMy, { teamId });
-    if (!list || list.length === 0) return;
-    const head = list.at(0);
-    if (!head) return;
-    const connection = localStore.getQuery(api.github.getConnection, {});
-    const now = Date.now();
-    const tempId = optimisticId("codebases");
-    localStore.setQuery(api.codebases.listMy, { teamId }, [
-      {
-        _id: tempId,
-        _creationTime: now,
-        userId: head.userId,
-        teamId: args.teamId,
-        githubConnectionId: args.githubConnectionId,
-        repoOwner: args.repoOwner,
-        repoName: args.repoName,
-        repoFullName: args.repoFullName,
-        defaultBranch: args.defaultBranch,
-        language: args.language,
-        description: args.description,
-        isPrivate: args.isPrivate,
-        status: "pending",
-        totalFiles: 0,
-        syncedFiles: 0,
-        avatarUrl: connection?.avatarUrl,
-      },
-      ...list,
-    ]);
-  });
+  const addCodebase = useMutation(api.codebases.addCodebase);
   const codebases = useQuery(api.codebases.listMy, { teamId });
   const reposQuery = useTanstackQuery({
     queryKey: ["github-repos", connectionId],

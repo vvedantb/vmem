@@ -23,21 +23,7 @@ export function PreferencesPage() {
   const aboutMeBaselineRef = useRef<string | null>(null);
   const preferencesBaselineRef = useRef<string | null>(null);
   const { saveSettings, updateSettings } = useUserSettingsSave();
-  const setDreamSchedule = useMutation(
-    api.dreamSchedule.setDreamSchedule,
-  ).withOptimisticUpdate((localStore, args) => {
-    const current = localStore.getQuery(api.userSettings.get, {});
-    if (!current) return;
-    localStore.setQuery(
-      api.userSettings.get,
-      {},
-      {
-        ...current,
-        dreamModeScheduleEnabled: args.enabled,
-        dreamModeScheduleTime: args.enabled ? (args.time ?? null) : null,
-      },
-    );
-  });
+  const setDreamSchedule = useMutation(api.dreamSchedule.setDreamSchedule);
 
   const toastIfTextFieldChanged = (
     baselineRef: { current: string | null },

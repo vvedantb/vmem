@@ -14,7 +14,6 @@ import {
 } from "@vmem/ui";
 import { IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
-import { optimisticallyCreateTeam } from "./_optimistic";
 
 interface CreateTeamDialogProps {
   open: boolean;
@@ -25,9 +24,7 @@ export function CreateTeamDialog({
   open,
   onOpenChange,
 }: CreateTeamDialogProps) {
-  const createTeam = useMutation(api.teams.create).withOptimisticUpdate(
-    optimisticallyCreateTeam,
-  );
+  const createTeam = useMutation(api.teams.create);
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [submitting, setSubmitting] = useState(false);

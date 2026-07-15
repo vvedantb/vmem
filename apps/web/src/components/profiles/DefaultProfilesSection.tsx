@@ -18,21 +18,7 @@ type Profile = FunctionReturnType<typeof api.profiles.list>[number];
 
 export function DefaultProfilesSection({ profiles }: { profiles: Profile[] }) {
   const settings = useQuery(api.userSettings.get);
-  const setDefaultProfile = useMutation(
-    api.userSettings.setDefaultProfile,
-  ).withOptimisticUpdate((localStore, args) => {
-    const current = localStore.getQuery(api.userSettings.get, {});
-    if (!current) return;
-    const defaults = current.defaultProfiles ?? {};
-    localStore.setQuery(
-      api.userSettings.get,
-      {},
-      {
-        ...current,
-        defaultProfiles: { ...defaults, [args.source]: args.profileId },
-      },
-    );
-  });
+  const setDefaultProfile = useMutation(api.userSettings.setDefaultProfile);
 
   const extensionDefaultId = settings?.defaultProfiles?.extension ?? null;
 

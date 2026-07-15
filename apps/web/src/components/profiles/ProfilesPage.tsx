@@ -4,7 +4,6 @@ import { toast } from "sonner";
 import { Button, Skeleton } from "@vmem/ui";
 import { IconPlus } from "@tabler/icons-react";
 import { api, type Id } from "@vmem/backend";
-import { optimisticId } from "@/lib/optimisticId";
 import PageContainer from "@/components/PageContainer";
 import { CreateEditProfileDialog } from "./CreateEditProfileDialog";
 import { DefaultProfilesSection } from "./DefaultProfilesSection";
@@ -13,52 +12,8 @@ import { ProfileDangerZone } from "./ProfileDangerZone";
 
 export function ProfilesPage() {
   const profiles = useQuery(api.profiles.list);
-  const createProfile = useMutation(api.profiles.create).withOptimisticUpdate(
-    (localStore, args) => {
-      const list = localStore.getQuery(api.profiles.list, {});
-      if (!list) return;
-      const first = list.at(0);
-      if (!first) return;
-      const now = Date.now();
-      const tempId = optimisticId("profiles");
-      localStore.setQuery(api.profiles.list, {}, [
-        ...list,
-        {
-          _id: tempId,
-          _creationTime: now,
-          userId: first.userId,
-          name: args.name,
-          color: args.color,
-          icon: args.icon,
-          isDefault: false,
-          createdAt: now,
-          updatedAt: now,
-        },
-      ]);
-    },
-  );
-  const updateProfile = useMutation(api.profiles.update).withOptimisticUpdate(
-    (localStore, args) => {
-      const list = localStore.getQuery(api.profiles.list, {});
-      if (!list) return;
-      const now = Date.now();
-      localStore.setQuery(
-        api.profiles.list,
-        {},
-        list.map((profile) =>
-          profile._id === args.profileId
-            ? {
-                ...profile,
-                ...(args.name !== undefined ? { name: args.name } : {}),
-                ...(args.color !== undefined ? { color: args.color } : {}),
-                ...(args.icon !== undefined ? { icon: args.icon } : {}),
-                updatedAt: now,
-              }
-            : profile,
-        ),
-      );
-    },
-  );
+  const createProfile = useMutation(api.profiles.create);
+  const updateProfile = useMutation(api.profiles.update);
   const removeProfileWithMemories = useAction(api.profiles.removeWithMemories);
 
   const [createOpen, setCreateOpen] = useState(false);

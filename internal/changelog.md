@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-07-15 — Drop client optimistic mutation wrappers
+
+Removed Convex `.withOptimisticUpdate` from web and the chrome extension.
+Mutations are plain `useMutation(api.…)` again; deleted the `_optimistic*`
+helper modules that only existed for those wrappers.
+
 ## 2026-07-15 — Nest web icon families under `components/icons`
 
 Moved `brand-icons`, `svg-animations`, and `sidebar-icons` under

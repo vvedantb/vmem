@@ -20,10 +20,6 @@ import {
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import DestructiveConfirmDialog from "@/components/settings/DestructiveConfirmDialog";
-import {
-  optimisticDeleteSkillFromList,
-  optimisticUpdateSkillList,
-} from "@/components/skills/_optimisticMutations";
 import { formatSkillForClipboard } from "./_utils";
 import { SkillHistoryPanel } from "./SkillHistoryPanel";
 
@@ -42,14 +38,8 @@ export function SkillHeaderActions({
   const [deleting, setDeleting] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
 
-  const deleteSkill = useMutation(api.skills.deleteSkill).withOptimisticUpdate(
-    (localStore, args) =>
-      optimisticDeleteSkillFromList(localStore, skill.teamId, args),
-  );
-  const updateSkill = useMutation(api.skills.updateSkill).withOptimisticUpdate(
-    (localStore, args) =>
-      optimisticUpdateSkillList(localStore, skill.teamId, args),
-  );
+  const deleteSkill = useMutation(api.skills.deleteSkill);
+  const updateSkill = useMutation(api.skills.updateSkill);
 
   const isEnabled = skill.enabled !== false;
 

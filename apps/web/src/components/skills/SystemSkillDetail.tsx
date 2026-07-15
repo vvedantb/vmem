@@ -20,10 +20,7 @@ import PageContainer from "@/components/PageContainer";
 import { ViewSkillPanel } from "@/components/skills/ViewSkillPanel";
 import { SystemSkillFormDialog } from "@/components/skills/SystemSkillFormDialog";
 import DestructiveConfirmDialog from "@/components/settings/DestructiveConfirmDialog";
-import {
-  patchSystemSkillCatalog,
-  type SystemSkillEntry,
-} from "@/components/skills/_utils";
+import { type SystemSkillEntry } from "@/components/skills/_utils";
 import { useActiveTeamId } from "@/components/workspace/active-profile";
 
 const systemSkillDetailSpinner = (
@@ -144,47 +141,9 @@ export function SystemSkillDetail({
   const catalog = useQuery(api.systemSkills.listCatalog, catalogArgs);
   const isAdmin = useQuery(api.systemSkills.amIAdmin, {}) ?? false;
 
-  const install = useMutation(api.systemSkills.install).withOptimisticUpdate(
-    (store, args) => {
-      const current = store.getQuery(api.systemSkills.listCatalog, catalogArgs);
-      if (!current) return;
-      store.setQuery(
-        api.systemSkills.listCatalog,
-        catalogArgs,
-        patchSystemSkillCatalog(current, args.systemSkillId, {
-          installed: true,
-          installEnabled: true,
-        }),
-      );
-    },
-  );
-  const uninstall = useMutation(
-    api.systemSkills.uninstall,
-  ).withOptimisticUpdate((store, args) => {
-    const current = store.getQuery(api.systemSkills.listCatalog, catalogArgs);
-    if (!current) return;
-    store.setQuery(
-      api.systemSkills.listCatalog,
-      catalogArgs,
-      patchSystemSkillCatalog(current, args.systemSkillId, {
-        installed: false,
-        installEnabled: false,
-      }),
-    );
-  });
-  const setEnabled = useMutation(
-    api.systemSkills.setInstalledEnabled,
-  ).withOptimisticUpdate((store, args) => {
-    const current = store.getQuery(api.systemSkills.listCatalog, catalogArgs);
-    if (!current) return;
-    store.setQuery(
-      api.systemSkills.listCatalog,
-      catalogArgs,
-      patchSystemSkillCatalog(current, args.systemSkillId, {
-        installEnabled: args.enabled,
-      }),
-    );
-  });
+  const install = useMutation(api.systemSkills.install);
+  const uninstall = useMutation(api.systemSkills.uninstall);
+  const setEnabled = useMutation(api.systemSkills.setInstalledEnabled);
   const adminDelete = useMutation(api.systemSkills.adminDelete);
 
   const [editing, setEditing] = useState(false);

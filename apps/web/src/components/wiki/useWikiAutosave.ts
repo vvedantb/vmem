@@ -4,8 +4,6 @@ import { useDebounceCallback } from "usehooks-ts";
 import { toast } from "sonner";
 import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
-import { optimisticUpdateWikiContent } from "./_optimisticMutations";
-
 const AUTOSAVE_MS = 800;
 const SAVE_TOAST_MS = 2000;
 
@@ -16,9 +14,7 @@ type SavePayload = {
 };
 
 export function useWikiAutosave(docId: Id<"wikiNodes">) {
-  const updateContent = useMutation(
-    api.wiki.updateContent,
-  ).withOptimisticUpdate(optimisticUpdateWikiContent);
+  const updateContent = useMutation(api.wiki.updateContent);
 
   const debouncedSaveToast = useDebounceCallback(() => {
     toast.success("Saved!");

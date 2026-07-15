@@ -13,7 +13,6 @@ import {
   Input,
 } from "@vmem/ui";
 import { IconLoader2 } from "@tabler/icons-react";
-import { patchApiKeyInList } from "./_optimistic";
 import type { ApiKey } from "./types";
 
 interface EditKeyDialogProps {
@@ -26,14 +25,7 @@ export function EditKeyDialog({ apiKey, isOpen, onClose }: EditKeyDialogProps) {
   const [draftName, setDraftName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const renameApiKey = useMutation(api.apiKeys.renameMy).withOptimisticUpdate(
-    (localStore, args) => {
-      patchApiKeyInList(localStore, args.id, (row) => ({
-        ...row,
-        name: args.name,
-      }));
-    },
-  );
+  const renameApiKey = useMutation(api.apiKeys.renameMy);
 
   useEffect(() => {
     if (isOpen && apiKey) {

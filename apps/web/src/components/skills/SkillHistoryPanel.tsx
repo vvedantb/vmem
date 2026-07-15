@@ -13,10 +13,8 @@ import {
 } from "@vmem/ui";
 import { IconHistory, IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
-import { optimisticUpdateSkillList } from "@/components/skills/_optimisticMutations";
 import { type SkillVersionListEntry } from "@/components/skills/_utils";
 import { formatRelativeTime } from "@vmem/shared";
-import { useActiveTeamId } from "@/components/workspace/active-profile";
 
 interface SkillHistoryPanelProps {
   open: boolean;
@@ -79,7 +77,6 @@ export function SkillHistoryPanel({
   onOpenChange,
   skillId,
 }: SkillHistoryPanelProps) {
-  const teamId = useActiveTeamId();
   const versions = useQuery(
     api.skillVersions.list,
     open && skillId ? { skillId } : "skip",
@@ -97,21 +94,7 @@ export function SkillHistoryPanel({
     api.skillVersions.get,
     activeVersionId ? { versionId: activeVersionId } : "skip",
   );
-  const restoreVersion = useMutation(
-    api.skills.restoreVersion,
-  ).withOptimisticUpdate((localStore, args) => {
-    const version = localStore.getQuery(api.skillVersions.get, {
-      versionId: args.versionId,
-    });
-    if (!version) return;
-    optimisticUpdateSkillList(localStore, teamId, {
-      id: version.skillId,
-      name: version.name,
-      description: version.description,
-      instructions: version.instructions,
-      enabled: version.enabled,
-    });
-  });
+  const restoreVersion = useMutation(api.skills.restoreVersion);
 
   const handleOpenChange = (next: boolean) => {
     if (!next) setSelectedId(null);

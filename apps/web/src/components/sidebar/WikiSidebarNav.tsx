@@ -10,7 +10,6 @@ import WikiSearch from "@/components/wiki/WikiSearch";
 import { WikiAddMenu } from "@/components/wiki/WikiAddMenu";
 import { WikiBulkDeleteBar } from "@/components/wiki/WikiBulkDeleteBar";
 import { buildTree, findFirstDocumentId } from "@/components/wiki/_utils";
-import { optimisticCreateWikiNode } from "@/components/wiki/_optimisticCreate";
 import { useIdSelectionMode } from "@/hooks/useIdSelectionMode";
 import {
   useActiveProfileId,
@@ -34,9 +33,7 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
       : null;
 
   const nodes = useQuery(api.wiki.listTree, { teamId });
-  const createNode = useMutation(api.wiki.createNode).withOptimisticUpdate(
-    optimisticCreateWikiNode,
-  );
+  const createNode = useMutation(api.wiki.createNode);
 
   const tree = useMemo(() => (nodes ? buildTree(nodes) : []), [nodes]);
 
@@ -167,7 +164,6 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
               <WikiBulkDeleteBar
                 selectedIds={selectedIds}
                 nodes={nodes ?? []}
-                teamId={teamId}
                 currentDocId={docId}
                 onExit={exitSelection}
                 onCurrentRemoved={() => handleSelectNode("")}

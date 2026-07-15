@@ -13,7 +13,6 @@ import {
 } from "@vmem/ui";
 import { IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
-import { optimisticallyAddMember } from "./_optimistic";
 
 interface AddMemberDialogProps {
   teamId: Id<"teams">;
@@ -26,9 +25,7 @@ export function AddMemberDialog({
   open,
   onOpenChange,
 }: AddMemberDialogProps) {
-  const addMember = useMutation(api.teams.addMember).withOptimisticUpdate(
-    optimisticallyAddMember,
-  );
+  const addMember = useMutation(api.teams.addMember);
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
 

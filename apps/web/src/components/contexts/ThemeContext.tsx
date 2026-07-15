@@ -24,13 +24,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
   const settings = useQuery(api.userSettings.get);
-  const updateSettings = useMutation(
-    api.userSettings.update,
-  ).withOptimisticUpdate((localStore, args) => {
-    const current = localStore.getQuery(api.userSettings.get, {});
-    if (!current) return;
-    localStore.setQuery(api.userSettings.get, {}, { ...current, ...args });
-  });
+  const updateSettings = useMutation(api.userSettings.update);
 
   useEffect(() => {
     setMounted(true);

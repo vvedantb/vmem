@@ -18,7 +18,6 @@ import { ViewSkillPanel } from "@/components/skills/ViewSkillPanel";
 import { SkillPageTitle } from "@/components/skills/SkillPageTitle";
 import { SkillHeaderActions } from "@/components/skills/SkillHeaderActions";
 import { EditSkillDialog } from "@/components/skills/EditSkillDialog";
-import { optimisticUpdateSkillList } from "@/components/skills/_optimisticMutations";
 import { skillsSearchParams } from "@/lib/url-state/skills";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 
@@ -42,9 +41,7 @@ function SkillsLayout() {
     typeof params.skillId === "string" ? params.skillId : undefined;
 
   const skills = useQuery(api.skills.listMy, { teamId });
-  const updateSkill = useMutation(api.skills.updateSkill).withOptimisticUpdate(
-    (localStore, args) => optimisticUpdateSkillList(localStore, teamId, args),
-  );
+  const updateSkill = useMutation(api.skills.updateSkill);
   const [{ q: searchQuery }] = useQueryStates(skillsSearchParams);
   const [modal, setModal] = useState<ModalState>({ mode: "none" });
 

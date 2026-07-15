@@ -12,8 +12,6 @@ import {
 } from "@vmem/ui";
 import { IconLoader2, IconUpload } from "@tabler/icons-react";
 import { toast } from "sonner";
-import { optimisticId } from "@/lib/optimisticId";
-import { prependOptimisticSkillRow } from "@/components/skills/_utils";
 import { useActiveTeamId } from "@/components/workspace/active-profile";
 
 interface UploadSkillDialogProps {
@@ -55,17 +53,7 @@ export function UploadSkillDialog({
   onCreated,
 }: UploadSkillDialogProps) {
   const teamId = useActiveTeamId();
-  const createSkill = useMutation(api.skills.createSkill).withOptimisticUpdate(
-    (localStore, args) => {
-      const current = localStore.getQuery(api.skills.listMy, { teamId });
-      if (!current) return;
-      localStore.setQuery(
-        api.skills.listMy,
-        { teamId },
-        prependOptimisticSkillRow(current, optimisticId("skills"), args),
-      );
-    },
-  );
+  const createSkill = useMutation(api.skills.createSkill);
   const [submitting, setSubmitting] = useState(false);
 
   const handleFile = async (file: File | undefined) => {

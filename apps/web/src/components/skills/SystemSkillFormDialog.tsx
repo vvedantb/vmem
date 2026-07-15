@@ -11,12 +11,8 @@ import {
   Switch,
 } from "@vmem/ui";
 import { toast } from "sonner";
-import {
-  patchSystemSkillCatalog,
-  type SystemSkillEntry,
-} from "@/components/skills/_utils";
+import { type SystemSkillEntry } from "@/components/skills/_utils";
 import { SkillFormShell } from "@/components/skills/SkillFormShell";
-import { useActiveTeamId } from "@/components/workspace/active-profile";
 
 interface SystemSkillFormDialogProps {
   open: boolean;
@@ -31,32 +27,8 @@ export function SystemSkillFormDialog({
   onOpenChange,
   entry,
 }: SystemSkillFormDialogProps) {
-  const teamId = useActiveTeamId();
-  const catalogArgs = { teamId };
   const adminCreate = useMutation(api.systemSkills.adminCreate);
-  const adminUpdate = useMutation(
-    api.systemSkills.adminUpdate,
-  ).withOptimisticUpdate((store, args) => {
-    const current = store.getQuery(api.systemSkills.listCatalog, catalogArgs);
-    if (!current) return;
-    store.setQuery(
-      api.systemSkills.listCatalog,
-      catalogArgs,
-      patchSystemSkillCatalog(current, args.id, {
-        ...(args.name !== undefined ? { name: args.name.trim() } : {}),
-        ...(args.description !== undefined
-          ? { description: args.description }
-          : {}),
-        ...(args.instructions !== undefined
-          ? { instructions: args.instructions }
-          : {}),
-        ...(args.category !== undefined
-          ? { category: args.category ?? undefined }
-          : {}),
-        ...(args.published !== undefined ? { published: args.published } : {}),
-      }),
-    );
-  });
+  const adminUpdate = useMutation(api.systemSkills.adminUpdate);
 
   const [createName, setCreateName] = useState("");
   const [createDescription, setCreateDescription] = useState("");
