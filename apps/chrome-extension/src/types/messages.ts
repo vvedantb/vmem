@@ -35,10 +35,10 @@ export type ContentMessage =
       profileId?: string;
     }
   | {
-      // Sent by the screenshot content script after the user crops a
-      // region. The image is base64-encoded PNG (data URL without the
-      // `data:image/png;base64,` prefix) — base64 is the only payload form
-      // chrome.runtime.sendMessage transports reliably across content/SW
+      // sent by the screenshot content script after the user crops a
+      // region the image is base64 encoded png (data url without the
+      // mime prefix) base64 is the only payload form
+      // chrome.runtime.sendMessage transports reliably across content/sw
       type: "SAVE_SCREENSHOT";
       base64Png: string;
       caption?: string;
@@ -47,16 +47,15 @@ export type ContentMessage =
       profileId?: string;
     }
   | {
-      // Asks the background SW to capture the visible viewport of the
-      // tab the message originates from. Returns a data URL the content
-      // script can load into an Image and crop client-side
+      // asks the background sw to capture the visible viewport of the
+      // tab the message originates from returns a data url the content
+      // script can load into an image and crop client side
       type: "CAPTURE_VISIBLE_TAB";
     }
   | { type: "IMPORT_BOOKMARKS" }
   | { type: "IMPORT_HISTORY"; days: number }
   | { type: "CANCEL_IMPORT" }
-  | { type: "DEBUG_RUN_AUTO_SYNC" }
-  | { type: "DEBUG_PING" };
+  | { type: "DEBUG_RUN_AUTO_SYNC" };
 
 export type BackgroundResponse =
   | { type: "RETRIEVE_RESULT"; memories: MemoryCandidate[] }
@@ -76,8 +75,7 @@ export type BackgroundResponse =
       type: "DEBUG_SYNC_RESULT";
       lastHistorySync: number;
       lastBookmarkSync: number;
-    }
-  | { type: "DEBUG_PING_RESULT"; timestamp: number };
+    };
 
 export type ProgressMessage = {
   type: "IMPORT_PROGRESS";

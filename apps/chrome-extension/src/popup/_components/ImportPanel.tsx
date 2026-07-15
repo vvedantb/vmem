@@ -11,43 +11,17 @@ import {
   SelectItem,
   Progress,
 } from "@vmem/ui";
+import { formatRelativeTime, formatTimeUntil } from "@vmem/shared";
 import type {
   ContentMessage,
   BackgroundResponse,
   ProgressMessage,
 } from "@/types/messages";
 import { getStorage, setStorage } from "@/lib/storage";
-import {
-  buildExtensionDebugReport,
-  formatExtensionDebugReport,
-} from "@/lib/extension-debug-report";
 import { useExtensionUserSettings } from "@/popup/useExtensionUserSettings";
 import { SettingsSwitchRow } from "./SettingsSwitchRow";
 
 type ImportStatus = "idle" | "importing" | "done" | "error" | "cancelled";
-
-function formatLastSync(epochMs: number): string {
-  if (epochMs === 0) return "Never synced";
-  const diffMs = Date.now() - epochMs;
-  const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return "Just now";
-  if (diffMin < 60) return `${diffMin}m ago`;
-  const diffHrs = Math.floor(diffMin / 60);
-  if (diffHrs < 24) return `${diffHrs}h ago`;
-  return `${Math.floor(diffHrs / 24)}d ago`;
-}
-
-function formatNextSync(scheduledTime: number): string {
-  const diffMs = scheduledTime - Date.now();
-  if (diffMs <= 0) return "any moment";
-  const diffMin = Math.ceil(diffMs / 60000);
-  if (diffMin === 1) return "in 1 min";
-  if (diffMin < 60) return `in ${diffMin} min`;
-  const diffHrs = Math.floor(diffMin / 60);
-  const remMin = diffMin % 60;
-  if (remMin === 0) return `in ${diffHrs}h`;
-  return `in ${diffHrs}h ${remMin}m`;
-}
 
 export function ImportPanel() {
   const { settings, update } = useExtensionUserSettings();
@@ -62,53 +36,21 @@ export function ImportPanel() {
   const [lastBookmarkSync, setLastBookmarkSync] = useState(0);
   const [lastHistorySync, setLastHistorySync] = useState(0);
   const [nextSyncLabel, setNextSyncLabel] = useState<string | null>(null);
-  const [backgroundReachable, setBackgroundReachable] = useState<
-    "checking" | "ok" | "error"
-  >("checking");
-  const [swBootPhase, setSwBootPhase] = useState<string | null>(null);
-  const [copyReportMessage, setCopyReportMessage] = useState<string | null>(
-    null,
-  );
 
   function refreshSyncTimestamps() {
     void getStorage().then((storage) => {
       setLastBookmarkSync(storage.lastBookmarkSync);
       setLastHistorySync(storage.lastHistorySync);
     });
-    void chrome.storage.local.get(["vmemSwBootPhase"]).then((stored) => {
-      const phase: unknown = stored.vmemSwBootPhase;
-      setSwBootPhase(typeof phase === "string" ? phase : null);
-    });
-  }
-
-  function pingBackground() {
-    setBackgroundReachable("checking");
-    chrome.runtime.sendMessage(
-      { type: "DEBUG_PING" },
-      (response: BackgroundResponse | undefined) => {
-        const runtimeError = chrome.runtime.lastError;
-        if (runtimeError) {
-          setBackgroundReachable("error");
-          return;
-        }
-        if (response?.type === "DEBUG_PING_RESULT") {
-          setBackgroundReachable("ok");
-          refreshSyncTimestamps();
-          return;
-        }
-        setBackgroundReachable("error");
-      },
-    );
   }
 
   useEffect(() => {
-    pingBackground();
     refreshSyncTimestamps();
 
     function updateNextSync() {
       chrome.alarms.get("vmem-history-sync", (alarm) => {
         if (alarm) {
-          setNextSyncLabel(formatNextSync(alarm.scheduledTime));
+          setNextSyncLabel(formatTimeUntil(alarm.scheduledTime));
         } else {
           setNextSyncLabel(null);
         }
@@ -205,21 +147,18 @@ export function ImportPanel() {
 
   function handleRunAutoSyncNow() {
     setResultMessage(null);
-    setBackgroundReachable("checking");
     chrome.runtime.sendMessage(
       { type: "DEBUG_RUN_AUTO_SYNC" },
       (response: BackgroundResponse | undefined) => {
         const runtimeError = chrome.runtime.lastError;
         refreshSyncTimestamps();
         if (runtimeError) {
-          setBackgroundReachable("error");
           setResultMessage(
             `Background error: ${runtimeError.message}. Reload the extension at chrome://extensions`,
           );
           return;
         }
         if (response?.type === "DEBUG_SYNC_RESULT") {
-          setBackgroundReachable("ok");
           setLastHistorySync(response.lastHistorySync);
           setLastBookmarkSync(response.lastBookmarkSync);
           setResultMessage(
@@ -227,25 +166,11 @@ export function ImportPanel() {
           );
           return;
         }
-        setBackgroundReachable("error");
         setResultMessage(
           "No response from background — reload the extension and try again",
         );
       },
     );
-  }
-
-  async function handleCopyDebugReport() {
-    setCopyReportMessage(null);
-    const report = await buildExtensionDebugReport();
-    const text = formatExtensionDebugReport(report);
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopyReportMessage("Debug report copied — paste it in chat");
-      pingBackground();
-    } catch {
-      setCopyReportMessage("Could not copy to clipboard");
-    }
   }
 
   function handleResetSync() {
@@ -261,17 +186,6 @@ export function ImportPanel() {
 
   return (
     <div className="space-y-6">
-      <p className="text-xs text-muted text-pretty">
-        &quot;Service worker (inactive)&quot; on chrome://extensions is normal
-        when idle. Background:{" "}
-        {backgroundReachable === "checking"
-          ? "checking…"
-          : backgroundReachable === "ok"
-            ? "reachable"
-            : "not reachable — reload extension"}
-        {swBootPhase ? ` · SW boot: ${swBootPhase}` : ""}
-      </p>
-
       <section className="space-y-3">
         <h3 className="text-base font-medium text-foreground">Auto-sync</h3>
         <Card className="shadow-none">
@@ -296,7 +210,7 @@ export function ImportPanel() {
         <div className="flex items-center justify-between">
           <h3 className="text-base font-medium text-foreground">Bookmarks</h3>
           <span className="text-xs text-muted">
-            {formatLastSync(lastBookmarkSync)}
+            {formatRelativeTime(lastBookmarkSync, { empty: "Never synced" })}
           </span>
         </div>
         <Card className="shadow-none">
@@ -319,7 +233,7 @@ export function ImportPanel() {
             Browsing history
           </h3>
           <span className="text-xs text-muted">
-            {formatLastSync(lastHistorySync)}
+            {formatRelativeTime(lastHistorySync, { empty: "Never synced" })}
           </span>
         </div>
         <Card className="shadow-none">
@@ -396,19 +310,6 @@ export function ImportPanel() {
         >
           Run auto-sync now
         </Button>
-
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-full text-muted"
-          onClick={() => void handleCopyDebugReport()}
-          disabled={isImporting}
-        >
-          Copy debug report for support
-        </Button>
-        {copyReportMessage ? (
-          <p className="text-xs text-muted">{copyReportMessage}</p>
-        ) : null}
 
         <Button
           variant="ghost"
