@@ -4,24 +4,13 @@ import type { ActionCtx } from "../../_generated/server";
 import { updateMemory } from "../../../engine/neo4j/memory/crud";
 import type { MemoryWithTags } from "../../../engine/neo4j/memory/types";
 import { getDriver } from "../../../engine/neo4j/driver";
+import type { UpdateMemoryInternalArgs } from "../../memoryApi/validators";
 import { toMemoryStatus, toMemoryType } from "./shared";
 import { scheduleAfterMemoryMutation } from "./lifecycle";
 
-export interface UpdateMemoryArgs {
-  clerkId: string;
-  memoryId: string;
-  title?: string;
-  content?: string;
-  type?: string;
-  status?: string;
-  tags?: string[];
-  confidence?: number;
-  expiresAt?: string | null;
-}
-
 export async function runUpdateMemory(
   ctx: ActionCtx,
-  args: UpdateMemoryArgs,
+  args: UpdateMemoryInternalArgs,
 ): Promise<MemoryWithTags | null> {
   const driver = getDriver();
   const result = await updateMemory(driver, args.clerkId, args.memoryId, {

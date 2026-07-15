@@ -19,6 +19,14 @@ import {
 } from "./team";
 import { runCreateMemory } from "./create";
 import { resolveProfileIdForClerkId } from "./shared";
+import {
+  createMemoryInternalFields,
+  listMemoriesFields,
+  searchMemoriesFields,
+  teamListMemoriesFields,
+  teamSearchMemoriesFields,
+  updateMemoryInternalFields,
+} from "../../memoryApi/validators";
 
 async function withResolvedProfileId<
   T extends { clerkId: string; profileId?: string },
@@ -32,23 +40,7 @@ async function withResolvedProfileId<
 }
 
 export const createMemoryInternal = internalAction({
-  args: {
-    clerkId: v.string(),
-    profileId: v.optional(v.string()),
-    title: v.string(),
-    content: v.string(),
-    type: v.string(),
-    source: v.string(),
-    tags: v.array(v.string()),
-    confidence: v.number(),
-    expiresAt: v.optional(v.string()),
-    url: v.optional(v.string()),
-    externalId: v.optional(v.string()),
-    sourceType: v.optional(v.string()),
-    storageId: v.optional(v.string()),
-    mimeType: v.optional(v.string()),
-    originalFilename: v.optional(v.string()),
-  },
+  args: createMemoryInternalFields,
   handler: async (ctx, args) => runCreateMemory(ctx, args),
 });
 
@@ -81,31 +73,14 @@ export const getMemoryInternal = internalAction({
 export const listMemoriesInternal = internalAction({
   args: {
     clerkId: v.string(),
-    profileId: v.optional(v.string()),
-    type: v.optional(v.string()),
-    status: v.optional(v.string()),
-    source: v.optional(v.string()),
-    tags: v.optional(v.array(v.string())),
-    searchQuery: v.optional(v.string()),
-    limit: v.number(),
-    offset: v.number(),
+    ...listMemoriesFields,
   },
   handler: async (ctx, args) =>
     runListMemories(await withResolvedProfileId(ctx, args)),
 });
 
 export const updateMemoryInternal = internalAction({
-  args: {
-    clerkId: v.string(),
-    memoryId: v.string(),
-    title: v.optional(v.string()),
-    content: v.optional(v.string()),
-    type: v.optional(v.string()),
-    status: v.optional(v.string()),
-    tags: v.optional(v.array(v.string())),
-    confidence: v.optional(v.number()),
-    expiresAt: v.optional(v.union(v.string(), v.null())),
-  },
+  args: updateMemoryInternalFields,
   handler: async (ctx, args) => runUpdateMemory(ctx, args),
 });
 
@@ -127,13 +102,7 @@ export const deleteAllMemoriesInternal = internalAction({
 export const searchMemoriesInternal = internalAction({
   args: {
     clerkId: v.string(),
-    profileId: v.optional(v.string()),
-    query: v.optional(v.string()),
-    type: v.optional(v.string()),
-    tags: v.optional(v.array(v.string())),
-    source: v.optional(v.string()),
-    limit: v.number(),
-    offset: v.number(),
+    ...searchMemoriesFields,
   },
   handler: async (ctx, args) =>
     runSearchMemories(await withResolvedProfileId(ctx, args)),
@@ -153,14 +122,7 @@ export const retrieveMemoriesInternal = internalAction({
 });
 
 export const listMemoriesForTeamInternal = internalAction({
-  args: {
-    profileId: v.string(),
-    type: v.optional(v.string()),
-    status: v.optional(v.string()),
-    tags: v.optional(v.array(v.string())),
-    limit: v.number(),
-    offset: v.number(),
-  },
+  args: teamListMemoriesFields,
   handler: async (_ctx, args) => runListMemoriesForTeam(args),
 });
 
@@ -173,15 +135,7 @@ export const getMemoryForTeamInternal = internalAction({
 });
 
 export const searchMemoriesForTeamInternal = internalAction({
-  args: {
-    profileId: v.string(),
-    query: v.optional(v.string()),
-    type: v.optional(v.string()),
-    tags: v.optional(v.array(v.string())),
-    source: v.optional(v.string()),
-    limit: v.number(),
-    offset: v.number(),
-  },
+  args: teamSearchMemoriesFields,
   handler: async (_ctx, args) => runSearchMemoriesForTeam(args),
 });
 

@@ -28,18 +28,21 @@ export const storeTokensInternal = internalMutation({
   },
   handler: async (ctx, args) => {
     const existing = await tokensForConnector(ctx, args.connectorId);
-    if (existing) {
-      await ctx.db.delete(existing._id);
-    }
-
-    return await ctx.db.insert("connectorTokens", {
+    const fields = {
       connectorId: args.connectorId,
       accessToken: args.accessToken,
       refreshToken: args.refreshToken,
       expiresAt: args.expiresAt,
       tokenType: args.tokenType,
       scope: args.scope,
-    });
+    };
+
+    if (existing) {
+      await ctx.db.patch(existing._id, fields);
+      return existing._id;
+    }
+
+    return await ctx.db.insert("connectorTokens", fields);
   },
 });
 

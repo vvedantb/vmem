@@ -234,6 +234,63 @@ async function resolveSkillOrThrow(
   return skill;
 }
 
+async function createSkillRecord(
+  ctx: MutationCtx,
+  args: {
+    userId: Id<"users">;
+    teamId?: Id<"teams">;
+    name: string;
+    description: string;
+    instructions: string;
+  },
+): Promise<Id<"skills">> {
+  const trimmedName = args.name.trim();
+  if (trimmedName.length === 0) {
+    throw new Error("Name is required");
+  }
+
+  await assertSkillNameAvailableInScope(
+    ctx,
+    args.userId,
+    args.teamId,
+    trimmedName,
+  );
+
+  const now = Date.now();
+  return await ctx.db.insert("skills", {
+    userId: args.userId,
+    teamId: args.teamId,
+    name: trimmedName,
+    description: args.description,
+    instructions: args.instructions,
+    enabled: true,
+    createdAt: now,
+    updatedAt: now,
+  });
+}
+
+async function applySkillUpdate(
+  ctx: MutationCtx,
+  skill: Doc<"skills">,
+  patch: SkillWritableFields & { updatedAt: number },
+  meta: {
+    source: "web" | "mcp";
+    authorUserId: Id<"users">;
+    force?: boolean;
+  },
+): Promise<void> {
+  await maybeSnapshotSkillVersion(ctx, skill, meta);
+  await ctx.db.patch(skill._id, patch);
+}
+
+async function deleteSkillRecord(
+  ctx: MutationCtx,
+  skillId: Id<"skills">,
+): Promise<void> {
+  await deleteVersionsForSkill(ctx, skillId);
+  await ctx.db.delete(skillId);
+}
+
 // list skills in a scope, newest-first
 export const listMy = authQuery({
   args: { teamId: v.optional(v.id("teams")) },
@@ -274,28 +331,12 @@ export const createSkill = authMutation({
   },
   handler: async (ctx, args) => {
     await requireContentScopeAccess(ctx, ctx.userId, args.teamId);
-    const trimmedName = args.name.trim();
-    if (trimmedName.length === 0) {
-      throw new Error("Name is required");
-    }
-
-    await assertSkillNameAvailableInScope(
-      ctx,
-      ctx.userId,
-      args.teamId,
-      trimmedName,
-    );
-
-    const now = Date.now();
-    const id = await ctx.db.insert("skills", {
+    const id = await createSkillRecord(ctx, {
       userId: ctx.userId,
       teamId: args.teamId,
-      name: trimmedName,
+      name: args.name,
       description: args.description,
       instructions: args.instructions,
-      enabled: true,
-      createdAt: now,
-      updatedAt: now,
     });
     await invalidateContextPromptIfPersonal(ctx, ctx.userId, args.teamId);
     return id;
@@ -322,11 +363,10 @@ export const updateSkill = authMutation({
       enabled: args.enabled,
     });
 
-    await maybeSnapshotSkillVersion(ctx, skill, {
+    await applySkillUpdate(ctx, skill, patch, {
       source: "web",
       authorUserId: ctx.userId,
     });
-    await ctx.db.patch(skill._id, patch);
     await invalidateContextPromptIfPersonal(ctx, ctx.userId, skill.teamId);
   },
 });
@@ -337,8 +377,7 @@ export const deleteSkill = authMutation({
   handler: async (ctx, args) => {
     const skill = await resolveSkillOrThrow(ctx, args.id);
     await assertContentDeletable(ctx, skill, ctx.userId);
-    await deleteVersionsForSkill(ctx, skill._id);
-    await ctx.db.delete(skill._id);
+    await deleteSkillRecord(ctx, skill._id);
     await invalidateContextPromptIfPersonal(ctx, ctx.userId, skill.teamId);
   },
 });
@@ -352,8 +391,7 @@ export const deleteSkills = authMutation({
       const skill = await ctx.db.get(id);
       if (!skill) continue;
       await assertContentDeletable(ctx, skill, ctx.userId);
-      await deleteVersionsForSkill(ctx, id);
-      await ctx.db.delete(id);
+      await deleteSkillRecord(ctx, id);
       if (skill.teamId === undefined) anyPersonal = true;
     }
     if (anyPersonal) {
@@ -464,27 +502,11 @@ export const createByClerkIdInternal = internalMutation({
       throw new Error("User not found");
     }
 
-    const trimmedName = args.name.trim();
-    if (trimmedName.length === 0) {
-      throw new Error("Name is required");
-    }
-
-    await assertSkillNameAvailableInScope(
-      ctx,
-      user._id,
-      undefined,
-      trimmedName,
-    );
-
-    const now = Date.now();
-    const id = await ctx.db.insert("skills", {
+    const id = await createSkillRecord(ctx, {
       userId: user._id,
-      name: trimmedName,
+      name: args.name,
       description: args.description,
       instructions: args.instructions,
-      enabled: true,
-      createdAt: now,
-      updatedAt: now,
     });
     await scheduleContextPromptInvalidationForUser(ctx, user._id);
 
@@ -539,13 +561,11 @@ export const updateByClerkIdInternal = internalMutation({
       enabled: args.enabled,
     });
 
-    // agent (MCP) writes always checkpoint the pre-write state
-    await maybeSnapshotSkillVersion(ctx, skill, {
+    await applySkillUpdate(ctx, skill, patch, {
       source: "mcp",
       authorUserId: user._id,
       force: true,
     });
-    await ctx.db.patch(skill._id, patch);
     await scheduleContextPromptInvalidationForUser(ctx, user._id);
 
     const updated = await ctx.db.get(skill._id);
@@ -577,8 +597,7 @@ export const deleteByClerkIdInternal = internalMutation({
       throw new Error("Skill not found");
     }
 
-    await deleteVersionsForSkill(ctx, skill._id);
-    await ctx.db.delete(skill._id);
+    await deleteSkillRecord(ctx, skill._id);
     await scheduleContextPromptInvalidationForUser(ctx, user._id);
     return null;
   },

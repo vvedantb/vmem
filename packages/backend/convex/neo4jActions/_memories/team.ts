@@ -8,24 +8,21 @@ import {
   listMemoriesForTeam,
 } from "../../../engine/neo4j/memory/team";
 import { getDriver } from "../../../engine/neo4j/driver";
+import type {
+  TeamListMemoriesArgs,
+  TeamSearchMemoriesArgs,
+} from "../../memoryApi/validators";
 import { toMemoryStatus, toMemoryType } from "./shared";
 
-export interface ListMemoriesForTeamArgs {
-  profileId: string;
-  type?: string;
-  status?: string;
-  tags?: string[];
-  limit: number;
-  offset: number;
-}
-
-export async function runListMemoriesForTeam(args: ListMemoriesForTeamArgs) {
+export async function runListMemoriesForTeam(args: TeamListMemoriesArgs) {
   const driver = getDriver();
   return await listMemoriesForTeam(driver, {
     profileId: args.profileId,
     type: toMemoryType(args.type),
     status: toMemoryStatus(args.status),
+    source: args.source,
     tags: args.tags,
+    searchQuery: args.searchQuery,
     limit: args.limit,
     offset: args.offset,
   });
@@ -39,23 +36,10 @@ export async function runGetMemoryForTeam(args: {
   return await getMemoryForTeam(driver, args.profileId, args.memoryId);
 }
 
-export interface SearchMemoriesForTeamArgs {
-  profileId: string;
-  query?: string;
-  type?: string;
-  tags?: string[];
-  source?: string;
-  limit: number;
-  offset: number;
-}
-
-export async function runSearchMemoriesForTeam(
-  args: SearchMemoriesForTeamArgs,
-) {
-  const driver = getDriver();
-  return await listMemoriesForTeam(driver, {
+export async function runSearchMemoriesForTeam(args: TeamSearchMemoriesArgs) {
+  return runListMemoriesForTeam({
     profileId: args.profileId,
-    type: toMemoryType(args.type),
+    type: args.type,
     tags: args.tags,
     source: args.source,
     searchQuery: args.query,

@@ -7,7 +7,6 @@ import {
   runDeleteTeamMemory,
   runGetTeamMemory,
   runListTeamMemories,
-  runSearchTeamMemories,
   runUpdateTeamMemory,
 } from "./memoryApi/team";
 import type {
@@ -15,6 +14,13 @@ import type {
   MemoryWithTags,
   RetrieveMemoriesResult,
 } from "./memoryApi/types";
+import {
+  createMemoryFields,
+  listMemoriesFields,
+  profileIdOptional,
+  searchMemoriesFields,
+  updateMemoryFields,
+} from "./memoryApi/validators";
 
 export const generateMemoryUploadUrl = authMutation({
   args: {},
@@ -24,20 +30,7 @@ export const generateMemoryUploadUrl = authMutation({
 });
 
 export const createMemory = authAction({
-  args: {
-    title: v.string(),
-    content: v.string(),
-    type: v.string(),
-    source: v.string(),
-    tags: v.array(v.string()),
-    confidence: v.number(),
-    expiresAt: v.optional(v.string()),
-    url: v.optional(v.string()),
-    profileId: v.optional(v.string()),
-    // external ID idempotency
-    externalId: v.optional(v.string()),
-    sourceType: v.optional(v.string()),
-  },
+  args: createMemoryFields,
   handler: async (ctx, args): Promise<MemoryWithTags> => {
     const clerkId = await requireClerkId(ctx);
     // personal profiles inherit ownership via matching userId; team
@@ -54,7 +47,7 @@ export const getMemory = authAction({
   args: {
     memoryId: v.string(),
     // active workspace; team profiles read via the member-wide path
-    profileId: v.optional(v.string()),
+    profileId: profileIdOptional,
   },
   handler: async (ctx, args): Promise<MemoryWithTags | null> =>
     routeMemoryByProfile(ctx, args.profileId, {
@@ -72,40 +65,20 @@ export const getMemory = authAction({
 });
 
 export const listMemories = authAction({
-  args: {
-    profileId: v.optional(v.string()),
-    type: v.optional(v.string()),
-    status: v.optional(v.string()),
-    source: v.optional(v.string()),
-    tags: v.optional(v.array(v.string())),
-    searchQuery: v.optional(v.string()),
-    limit: v.number(),
-    offset: v.number(),
-  },
+  args: listMemoriesFields,
   handler: async (ctx, args): Promise<MemoryListResult> =>
     routeMemoryByProfile(ctx, args.profileId, {
-      team: async (teamProfile) => {
-        // team workspace: member-wide listing
-        if (args.searchQuery !== undefined || args.source !== undefined) {
-          return runSearchTeamMemories(ctx, {
-            profileId: teamProfile._id,
-            query: args.searchQuery,
-            type: args.type,
-            tags: args.tags,
-            source: args.source,
-            limit: args.limit,
-            offset: args.offset,
-          });
-        }
-        return runListTeamMemories(ctx, {
+      team: (teamProfile) =>
+        runListTeamMemories(ctx, {
           profileId: teamProfile._id,
           type: args.type,
           status: args.status,
           tags: args.tags,
+          source: args.source,
+          searchQuery: args.searchQuery,
           limit: args.limit,
           offset: args.offset,
-        });
-      },
+        }),
       personal: (clerkId) =>
         ctx.runAction(internal.neo4jActions.memories.listMemoriesInternal, {
           clerkId,
@@ -115,18 +88,7 @@ export const listMemories = authAction({
 });
 
 export const updateMemory = authAction({
-  args: {
-    memoryId: v.string(),
-    // active workspace; team profiles use creator-or-owner permissions
-    profileId: v.optional(v.string()),
-    title: v.optional(v.string()),
-    content: v.optional(v.string()),
-    type: v.optional(v.string()),
-    status: v.optional(v.string()),
-    tags: v.optional(v.array(v.string())),
-    confidence: v.optional(v.number()),
-    expiresAt: v.optional(v.union(v.string(), v.null())),
-  },
+  args: updateMemoryFields,
   handler: async (ctx, args): Promise<MemoryWithTags | null> =>
     routeMemoryByProfile(ctx, args.profileId, {
       team: (teamProfile) => {
@@ -150,7 +112,7 @@ export const deleteMemory = authAction({
   args: {
     memoryId: v.string(),
     // active workspace; team profiles use creator-or-owner permissions
-    profileId: v.optional(v.string()),
+    profileId: profileIdOptional,
   },
   handler: async (ctx, args): Promise<boolean> =>
     routeMemoryByProfile(ctx, args.profileId, {
@@ -180,29 +142,29 @@ export const deleteAllMemories = authAction({
 });
 
 export const searchMemories = authAction({
-  args: {
-    // active workspace; team profiles search member-wide
-    profileId: v.optional(v.string()),
-    query: v.optional(v.string()),
-    type: v.optional(v.string()),
-    tags: v.optional(v.array(v.string())),
-    source: v.optional(v.string()),
-    limit: v.number(),
-    offset: v.number(),
-  },
+  args: searchMemoriesFields,
   handler: async (ctx, args): Promise<MemoryListResult> =>
     routeMemoryByProfile(ctx, args.profileId, {
-      team: (teamProfile) => {
-        const { profileId: _profileId, ...rest } = args;
-        return runSearchTeamMemories(ctx, {
+      team: (teamProfile) =>
+        runListTeamMemories(ctx, {
           profileId: teamProfile._id,
-          ...rest,
-        });
-      },
+          type: args.type,
+          tags: args.tags,
+          source: args.source,
+          searchQuery: args.query,
+          limit: args.limit,
+          offset: args.offset,
+        }),
       personal: (clerkId) =>
-        ctx.runAction(internal.neo4jActions.memories.searchMemoriesInternal, {
+        ctx.runAction(internal.neo4jActions.memories.listMemoriesInternal, {
           clerkId,
-          ...args,
+          profileId: args.profileId,
+          type: args.type,
+          tags: args.tags,
+          source: args.source,
+          searchQuery: args.query,
+          limit: args.limit,
+          offset: args.offset,
         }),
     }),
 });
@@ -211,7 +173,7 @@ export const retrieveMemories = authAction({
   args: {
     query: v.string(),
     // active workspace to ground retrieval in
-    profileId: v.optional(v.string()),
+    profileId: profileIdOptional,
     type: v.optional(v.string()),
     tags: v.optional(v.array(v.string())),
     limit: v.number(),

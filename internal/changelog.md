@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-07-15 — Simplify Convex skills/wiki/memory internals
+
+Shared skill and wiki create/update/delete helpers across web and MCP
+registrants. Unified memory list/search validators, patched connector tokens
+in place, and collapsed GitHub connection upsert to one internal mutation.
+
 ## 2026-07-15 — Drop TanStack Query optimistic cache patches
 
 Removed `onMutate` / rollback `onError` from memory create/update/delete and
