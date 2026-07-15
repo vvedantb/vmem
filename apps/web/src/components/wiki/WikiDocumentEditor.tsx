@@ -1,14 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
-import { useMutation } from "convex/react";
 import type { Editor } from "@tiptap/core";
 import { EditorContent, useEditor } from "@tiptap/react";
 import type { JSONContent } from "@tiptap/react";
-import { useDebounceCallback } from "usehooks-ts";
 import { toast } from "sonner";
-import { api } from "@vmem/backend";
-import type { Id } from "@vmem/backend";
 import { wikiEditorExtensions } from "./_editorExtensions";
 import {
   countWords,
@@ -18,6 +14,7 @@ import {
 } from "./_utils";
 import type { OutlineHeading } from "./_utils";
 import type { WikiNodeDoc } from "./-types";
+import { useWikiAutosave } from "./useWikiAutosave";
 
 interface WikiDocumentEditorProps {
   doc: WikiNodeDoc;
@@ -32,8 +29,6 @@ interface WikiDocumentEditorProps {
   jumpRequest: { pos: number; n: number };
 }
 
-const AUTOSAVE_MS = 800;
-const SAVE_TOAST_MS = 2000;
 const ACTIVE_OFFSET_PX = 80;
 
 function resolveHeadingElement(editor: Editor, pos: number): Element | null {
@@ -70,49 +65,14 @@ export default function WikiDocumentEditor({
   onWordCountChange,
   jumpRequest,
 }: WikiDocumentEditorProps) {
-  const updateContent = useMutation(
-    api.wiki.updateContent,
-  ).withOptimisticUpdate((localStore, args) => {
-    const node = localStore.getQuery(api.wiki.getNode, { id: args.id });
-    if (!node) return;
-    localStore.setQuery(
-      api.wiki.getNode,
-      { id: args.id },
-      {
-        ...node,
-        content: args.content,
-        contentText: args.contentText,
-        updatedAt: Date.now(),
-      },
-    );
-  });
+  const { queueSave, saveNow, cancelPendingSave } = useWikiAutosave(doc._id);
 
-  const loadedDocIdRef = useRef<Id<"wikiNodes"> | null>(null);
+  const loadedDocIdRef = useRef(doc._id);
   const suppressNextUpdateRef = useRef(false);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const headingsRef = useRef<OutlineHeading[]>([]);
   const computeFrameRef = useRef(0);
   const scheduleRef = useRef<() => void>(() => {});
-
-  const debouncedSaveToast = useDebounceCallback(() => {
-    toast.success("Saved!");
-  }, SAVE_TOAST_MS);
-
-  const debouncedSave = useDebounceCallback(
-    async (id: Id<"wikiNodes">, markdown: string, jsonDoc: JSONContent) => {
-      try {
-        await updateContent({
-          id,
-          content: markdown,
-          contentText: docToPlainText(jsonDoc),
-        });
-        debouncedSaveToast();
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Failed to save");
-      }
-    },
-    AUTOSAVE_MS,
-  );
 
   const publishHeadings = useCallback(
     (next: OutlineHeading[]) => {
@@ -145,9 +105,11 @@ export default function WikiDocumentEditor({
       publishHeadings(extractHeadings(jsonDoc));
       onWordCountChange(countWords(docToPlainText(jsonDoc)));
       scheduleRef.current();
-      const activeId = loadedDocIdRef.current;
-      if (activeId) {
-        void debouncedSave(activeId, getMarkdownFromEditor(instance), jsonDoc);
+      if (loadedDocIdRef.current === doc._id) {
+        queueSave({
+          content: getMarkdownFromEditor(instance),
+          contentText: docToPlainText(jsonDoc),
+        });
       }
     },
   });
@@ -250,13 +212,6 @@ export default function WikiDocumentEditor({
   }, [editor, jumpRequest]);
 
   useEffect(() => {
-    return () => {
-      debouncedSave.cancel();
-      debouncedSaveToast.cancel();
-    };
-  }, [debouncedSave, debouncedSaveToast]);
-
-  useEffect(() => {
     if (!editor) {
       onRegisterCopy(null);
       return;
@@ -286,9 +241,7 @@ export default function WikiDocumentEditor({
   const restoreToContent = useCallback(
     async (markdown: string) => {
       if (!editor) return;
-      const activeId = loadedDocIdRef.current;
-      if (!activeId) return;
-      debouncedSave.cancel();
+      cancelPendingSave();
       suppressNextUpdateRef.current = true;
       editor.commands.setContent(markdown);
       const jsonDoc = editor.getJSON();
@@ -296,21 +249,20 @@ export default function WikiDocumentEditor({
       onWordCountChange(countWords(docToPlainText(jsonDoc)));
       scheduleComputeActive();
       try {
-        await updateContent({
-          id: activeId,
+        await saveNow({
           content: getMarkdownFromEditor(editor),
           contentText: docToPlainText(jsonDoc),
           forceSnapshot: true,
         });
         toast.success("Version restored");
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Failed to restore");
+      } catch {
+        // saveNow already toasts on failure
       }
     },
     [
       editor,
-      updateContent,
-      debouncedSave,
+      cancelPendingSave,
+      saveNow,
       publishHeadings,
       onWordCountChange,
       scheduleComputeActive,

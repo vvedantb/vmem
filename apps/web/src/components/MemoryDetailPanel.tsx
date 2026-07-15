@@ -35,7 +35,7 @@ import {
   countUniqueRelated,
   relatedMemoriesQueryKey,
   uniqueRelated,
-} from "@/lib/memories-related";
+} from "@/lib/memories";
 import { useMemoryContext } from "@/components/contexts/MemoryContext";
 import { toast } from "sonner";
 import { DetailsTabView, DetailsTabEdit } from "./_components/DetailsTab";

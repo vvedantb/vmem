@@ -5,26 +5,23 @@ import { useAction, useQuery } from "convex/react";
 import { Card, CardContent, Button, Badge, Progress } from "@vmem/ui";
 import { toast } from "sonner";
 import { IconLoader2, IconAlertCircle, IconClock } from "@tabler/icons-react";
-import { api, type Doc } from "@vmem/backend";
+import { api } from "@vmem/backend";
 import OAuthModal from "./OAuthModal";
 import { GitHubConnectorControls } from "./settings/GitHubConnectorControls";
 import DeleteConnectorDataDialog from "./settings/DeleteConnectorDataDialog";
 import DisconnectConnectorDialog from "./settings/DisconnectConnectorDialog";
 import ConnectorActionsMenu from "./settings/ConnectorActionsMenu";
-import { GoogleDriveIcon, NotionIcon, GitHubIcon } from "./brand-icons";
-import { formatRelativeTime } from "@/lib/formatters";
-
-const iconMap: Record<
-  string,
-  React.ComponentType<{ size?: number; className?: string }>
-> = {
-  IconBrandGoogleDrive: GoogleDriveIcon,
-  IconBrandNotion: NotionIcon,
-  IconBrandGithub: GitHubIcon,
-};
+import {
+  isConnectorConnected,
+  isConnectorConnectable,
+  isGitHubConnector,
+  resolveConnectorIcon,
+  type Connector,
+} from "./settings/connector-utils";
+import { formatRelativeTime } from "@vmem/shared";
 
 interface ConnectorCardProps {
-  connector: Doc<"connectors">;
+  connector: Connector;
 }
 
 export default function ConnectorCard({ connector }: ConnectorCardProps) {
@@ -34,18 +31,16 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
 
   const startSyncAction = useAction(api.connectors.sync.startSync);
 
-  const isGitHub = connector.name === "GitHub";
+  const isGitHub = isGitHubConnector(connector);
   const githubConnection = useQuery(
     api.github.getConnection,
     isGitHub ? {} : "skip",
   );
 
-  const Icon = iconMap[connector.icon] || GoogleDriveIcon;
-  const isConnected = isGitHub
-    ? githubConnection !== undefined && githubConnection !== null
-    : connector.connectionStatus === "connected";
+  const Icon = resolveConnectorIcon(connector.icon);
+  const isConnected = isConnectorConnected(connector, githubConnection);
   const isSyncing = !isGitHub && connector.syncStatus === "syncing";
-  const hasProvider = isGitHub || !!connector.provider;
+  const hasProvider = isConnectorConnectable(connector);
   const canDeleteImportedData =
     hasProvider &&
     !isGitHub &&

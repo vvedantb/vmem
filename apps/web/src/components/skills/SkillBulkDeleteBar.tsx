@@ -5,6 +5,7 @@ import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
 import { toast } from "sonner";
 import { BulkSelectionDeleteBar } from "@/components/BulkSelectionDeleteBar";
+import { optimisticDeleteSkillsFromList } from "@/components/skills/_optimisticMutations";
 
 interface SkillBulkDeleteBarProps {
   selectedIds: ReadonlySet<Id<"skills">>;
@@ -21,16 +22,9 @@ export function SkillBulkDeleteBar({
 }: SkillBulkDeleteBarProps) {
   const deleteSkills = useMutation(
     api.skills.deleteSkills,
-  ).withOptimisticUpdate((localStore, args) => {
-    const current = localStore.getQuery(api.skills.listMy, { teamId });
-    if (!current) return;
-    const removeSet = new Set(args.ids);
-    localStore.setQuery(
-      api.skills.listMy,
-      { teamId },
-      current.filter((skill) => !removeSet.has(skill._id)),
-    );
-  });
+  ).withOptimisticUpdate((localStore, args) =>
+    optimisticDeleteSkillsFromList(localStore, teamId, args),
+  );
 
   const count = selectedIds.size;
   const itemWord = count === 1 ? "skill" : "skills";

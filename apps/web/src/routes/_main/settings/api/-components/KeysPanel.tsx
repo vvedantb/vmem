@@ -10,11 +10,10 @@ import {
   CardContent,
 } from "@vmem/ui";
 import { IconPlus } from "@tabler/icons-react";
-import { AnimatedKeyIcon } from "@/components/svg-animations";
+import { AnimatedKeyIcon, VmemSpinner } from "@/components/svg-animations";
 import ApiKeyModal from "@/components/ApiKeyModal";
 import { ApiKeyRow } from "@/components/api-keys/ApiKeyRow";
-import { ApiKeysLoadingSkeleton } from "@/components/api-keys/ApiKeysLoadingSkeleton";
-import { KeyConfirmDialog } from "@/components/api-keys/KeyConfirmDialog";
+import DestructiveConfirmDialog from "@/components/settings/DestructiveConfirmDialog";
 import { EditKeyDialog } from "@/components/api-keys/EditKeyDialog";
 import { useApiKeyActions } from "@/components/api-keys/useApiKeyActions";
 import type { ApiKey } from "@/components/api-keys/types";
@@ -49,8 +48,15 @@ export function KeysPanel() {
   const apiKeyList: ApiKey[] = apiKeys ?? [];
   const keyToRevoke = apiKeyList.find((key) => key.id === revokeKeyId);
   const keyToDelete = apiKeyList.find((key) => key.id === deleteKeyId);
+  const keyToEdit = apiKeyList.find((key) => key.id === editKeyId) ?? null;
 
-  if (isLoading) return <ApiKeysLoadingSkeleton />;
+  if (isLoading) {
+    return (
+      <div className="flex h-full min-h-0 items-center justify-center">
+        <VmemSpinner size={24} className="text-muted" />
+      </div>
+    );
+  }
 
   return (
     <>
@@ -123,39 +129,38 @@ export function KeysPanel() {
       <ApiKeyModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        onKeyCreated={() => {}}
       />
 
-      <KeyConfirmDialog
-        isOpen={!!revokeKeyId}
-        isBusy={isRevoking}
+      <DestructiveConfirmDialog
+        open={!!revokeKeyId}
+        onClose={() => setRevokeKeyId(null)}
         title="Revoke API Key"
-        detail="This action cannot be undone. Any applications using this key will immediately lose access."
+        description="This action cannot be undone. Any applications using this key will immediately lose access."
         confirmLabel="Revoke Key"
-        busyLabel="Revoking..."
-        onConfirm={handleRevoke}
-        onCancel={() => setRevokeKeyId(null)}
+        submittingLabel="Revoking..."
+        submitting={isRevoking}
+        onConfirm={() => void handleRevoke()}
       >
         Are you sure you want to revoke{" "}
         <span className="font-medium">{keyToRevoke?.name}</span>?
-      </KeyConfirmDialog>
+      </DestructiveConfirmDialog>
 
-      <KeyConfirmDialog
-        isOpen={!!deleteKeyId}
-        isBusy={isDeleting}
+      <DestructiveConfirmDialog
+        open={!!deleteKeyId}
+        onClose={() => setDeleteKeyId(null)}
         title="Delete API Key"
-        detail="This removes the key from your account. Active keys stop working immediately. This cannot be undone."
+        description="This removes the key from your account. Active keys stop working immediately. This cannot be undone."
         confirmLabel="Delete Key"
-        busyLabel="Deleting..."
-        onConfirm={handleDelete}
-        onCancel={() => setDeleteKeyId(null)}
+        submittingLabel="Deleting..."
+        submitting={isDeleting}
+        onConfirm={() => void handleDelete()}
       >
         Delete <span className="font-medium">{keyToDelete?.name}</span>{" "}
         permanently?
-      </KeyConfirmDialog>
+      </DestructiveConfirmDialog>
 
       <EditKeyDialog
-        apiKeyId={editKeyId}
+        apiKey={keyToEdit}
         isOpen={!!editKeyId}
         onClose={() => setEditKeyId(null)}
       />

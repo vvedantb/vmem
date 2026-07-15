@@ -15,11 +15,9 @@ import {
 } from "@vmem/ui";
 import { IconHistory, IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
-import {
-  patchSkillListMy,
-  type SkillVersionListEntry,
-} from "@/components/skills/_utils";
-import { formatRelativeTime } from "@/lib/formatters";
+import { optimisticUpdateSkillList } from "@/components/skills/_optimisticMutations";
+import { type SkillVersionListEntry } from "@/components/skills/_utils";
+import { formatRelativeTime } from "@vmem/shared";
 import { useActiveTeamId } from "@/components/workspace/active-profile";
 
 interface SkillHistoryPanelProps {
@@ -108,18 +106,13 @@ export function SkillHistoryPanel({
       versionId: args.versionId,
     });
     if (!version) return;
-    const current = localStore.getQuery(api.skills.listMy, { teamId });
-    if (!current) return;
-    localStore.setQuery(
-      api.skills.listMy,
-      { teamId },
-      patchSkillListMy(current, version.skillId, {
-        name: version.name,
-        description: version.description,
-        instructions: version.instructions,
-        enabled: version.enabled,
-      }),
-    );
+    optimisticUpdateSkillList(localStore, teamId, {
+      id: version.skillId,
+      name: version.name,
+      description: version.description,
+      instructions: version.instructions,
+      enabled: version.enabled,
+    });
   });
 
   const handleOpenChange = (next: boolean) => {

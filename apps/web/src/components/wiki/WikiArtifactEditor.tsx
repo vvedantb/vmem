@@ -7,15 +7,13 @@ import {
   useRef,
   useState,
 } from "react";
-import { useMutation } from "convex/react";
 import { useDebounceCallback } from "usehooks-ts";
 import { toast } from "sonner";
 import { IconPlayerPlay } from "@tabler/icons-react";
-import { api } from "@vmem/backend";
-import type { Id } from "@vmem/backend";
 import { Button, cn } from "@vmem/ui";
 import type { WikiNodeDoc } from "./-types";
 import { formatWikiDocForClipboard, type OutlineHeading } from "./_utils";
+import { useWikiAutosave } from "./useWikiAutosave";
 
 interface WikiArtifactEditorProps {
   doc: WikiNodeDoc;
@@ -28,9 +26,6 @@ interface WikiArtifactEditorProps {
   onActiveHeadingChange: (id: string | null) => void;
   onWordCountChange: (count: number) => void;
 }
-
-const AUTOSAVE_MS = 800;
-const SAVE_TOAST_MS = 2000;
 
 function isPreviewableLanguage(language: string | undefined): boolean {
   return language === "html" || language === "svg";
@@ -126,22 +121,7 @@ export default function WikiArtifactEditor({
   onActiveHeadingChange,
   onWordCountChange,
 }: WikiArtifactEditorProps) {
-  const updateContent = useMutation(
-    api.wiki.updateContent,
-  ).withOptimisticUpdate((localStore, args) => {
-    const node = localStore.getQuery(api.wiki.getNode, { id: args.id });
-    if (!node) return;
-    localStore.setQuery(
-      api.wiki.getNode,
-      { id: args.id },
-      {
-        ...node,
-        content: args.content,
-        contentText: args.contentText,
-        updatedAt: Date.now(),
-      },
-    );
-  });
+  const { queueSave, saveNow, cancelPendingSave } = useWikiAutosave(doc._id);
 
   // remount via key={doc._id} from parent resets draft / preview armed state
   const [draft, setDraft] = useState(() => doc.content ?? "");
@@ -152,38 +132,11 @@ export default function WikiArtifactEditor({
   const canPreview = isPreviewableLanguage(doc.language);
   const [previewArmed, setPreviewArmed] = useState(() => !isTeam);
 
-  const debouncedSaveToast = useDebounceCallback(() => {
-    toast.success("Saved!");
-  }, SAVE_TOAST_MS);
-
-  const debouncedSave = useDebounceCallback(
-    async (id: Id<"wikiNodes">, source: string) => {
-      try {
-        await updateContent({
-          id,
-          content: source,
-          contentText: source,
-        });
-        debouncedSaveToast();
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Failed to save");
-      }
-    },
-    AUTOSAVE_MS,
-  );
-
   useEffect(() => {
     onHeadingsChange([]);
     onActiveHeadingChange(null);
     onWordCountChange(0);
   }, [onHeadingsChange, onActiveHeadingChange, onWordCountChange]);
-
-  useEffect(() => {
-    return () => {
-      debouncedSave.cancel();
-      debouncedSaveToast.cancel();
-    };
-  }, [debouncedSave, debouncedSaveToast]);
 
   useEffect(() => {
     onRegisterCopy(async () => {
@@ -204,21 +157,20 @@ export default function WikiArtifactEditor({
 
   const restoreToContent = useCallback(
     async (source: string) => {
-      debouncedSave.cancel();
+      cancelPendingSave();
       setDraft(source);
       try {
-        await updateContent({
-          id: doc._id,
+        await saveNow({
           content: source,
           contentText: source,
           forceSnapshot: true,
         });
         toast.success("Restored");
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Failed to restore");
+      } catch {
+        // saveNow already toasts on failure
       }
     },
-    [debouncedSave, updateContent, doc._id],
+    [cancelPendingSave, saveNow],
   );
 
   useEffect(() => {
@@ -228,7 +180,7 @@ export default function WikiArtifactEditor({
 
   function handleChange(next: string) {
     setDraft(next);
-    void debouncedSave(doc._id, next);
+    queueSave({ content: next, contentText: next });
   }
 
   const showPreview = canPreview && previewArmed;

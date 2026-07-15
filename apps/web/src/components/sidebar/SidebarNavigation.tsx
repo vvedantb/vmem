@@ -1,8 +1,8 @@
 import type { MouseEventHandler } from "react";
 import { Link } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "motion/react";
-import { Button, cn, motionDuration, motionEase } from "@vmem/ui";
-import { IconChevronRight, IconUsers } from "@tabler/icons-react";
+import { cn, motionDuration, motionEase } from "@vmem/ui";
+import { IconUsers } from "@tabler/icons-react";
 import { IconTeams, IconSettings } from "../sidebar-icons";
 import type { NavGroup, NavItem } from "./types";
 import { navGroups, navHrefToPath, settingsNavGroups } from "./nav-config";
@@ -56,8 +56,6 @@ export type SidebarNavigationProps = {
   proposalsCount: number;
   isCollapsed: boolean;
   isMobile: boolean;
-  navView: SidebarNavView;
-  onNavViewChange: (view: SidebarNavView) => void;
   onNavigate?: MouseEventHandler<HTMLAnchorElement>;
 };
 
@@ -75,61 +73,30 @@ const teamNavGroup: NavGroup = {
   ],
 };
 
-function SubSidebarNavButton({
+function SubSidebarNavLink({
   item,
-  isActive,
+  pathname,
+  profileId,
   isIconOnly,
-  onClick,
+  onNavigate,
 }: {
   item: NavItem;
-  isActive: boolean;
+  pathname: string;
+  profileId: string | undefined;
   isIconOnly: boolean;
-  onClick: () => void;
+  onNavigate?: MouseEventHandler<HTMLAnchorElement>;
 }) {
-  const Icon = item.icon;
-
   return (
-    <SidebarIconTooltip label={item.label} enabled={isIconOnly}>
-      <Button
-        type="button"
-        variant="ghost"
-        onClick={onClick}
-        className={cn(
-          "group relative h-auto w-full justify-start rounded-lg text-sm font-medium tracking-normal transition-colors duration-200 ease-smooth",
-          sidebarNavRowClass(isIconOnly),
-          sidebarNavLinkTextClass(isActive),
-        )}
-      >
-        <span className="flex h-5 w-5 items-center justify-center text-current">
-          <Icon size={18} stroke={1.7} />
-        </span>
-        <AnimatePresence initial={false}>
-          {!isIconOnly ? (
-            <motion.span
-              key={`${item.href}-label`}
-              className="min-w-0 flex-1 text-left"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{
-                duration: motionDuration.fast,
-                ease: motionEase,
-              }}
-            >
-              {item.label}
-            </motion.span>
-          ) : null}
-        </AnimatePresence>
-        {!isIconOnly ? (
-          <IconChevronRight
-            size={16}
-            stroke={2}
-            aria-hidden
-            className="shrink-0 text-muted opacity-0 transition-opacity group-hover:opacity-100"
-          />
-        ) : null}
-      </Button>
-    </SidebarIconTooltip>
+    <NavLink
+      item={item}
+      pathname={pathname}
+      profileId={profileId}
+      isIconOnly={isIconOnly}
+      unreadCount={0}
+      proposalsCount={0}
+      showChevron
+      onNavigate={onNavigate}
+    />
   );
 }
 
@@ -142,10 +109,6 @@ function MainNav({
   isIconOnly,
   isMobile,
   onNavigate,
-  onSettingsClick,
-  onSkillsClick,
-  onWikiClick,
-  onCodebasesClick,
 }: {
   pathname: string;
   profileId: string | undefined;
@@ -155,10 +118,6 @@ function MainNav({
   isIconOnly: boolean;
   isMobile: boolean;
   onNavigate?: MouseEventHandler<HTMLAnchorElement>;
-  onSettingsClick: () => void;
-  onSkillsClick: () => void;
-  onWikiClick: () => void;
-  onCodebasesClick: () => void;
 }) {
   const groups = isTeamWorkspace
     ? [...navGroups.slice(0, 1), teamNavGroup, ...navGroups.slice(1)]
@@ -188,25 +147,18 @@ function MainNav({
                   pathname === resolvedPath ||
                   pathname.startsWith(resolvedPath + "/");
                 if (isSubSidebarHref(item.href)) {
-                  const onClick =
-                    item.href === "/$profileId/skills"
-                      ? onSkillsClick
-                      : item.href === "/$profileId/wiki"
-                        ? onWikiClick
-                        : item.href === "/$profileId/codebases"
-                          ? onCodebasesClick
-                          : onSettingsClick;
                   return (
                     <SharedLayoutBackground.Item
                       key={item.href}
                       id={item.href}
                       isActive={isActive}
                     >
-                      <SubSidebarNavButton
+                      <SubSidebarNavLink
                         item={item}
-                        isActive={isActive}
+                        pathname={pathname}
+                        profileId={profileId}
                         isIconOnly={isIconOnly}
-                        onClick={onClick}
+                        onNavigate={onNavigate}
                       />
                     </SharedLayoutBackground.Item>
                   );
@@ -332,11 +284,10 @@ export function SidebarNavigation({
   proposalsCount,
   isCollapsed,
   isMobile,
-  navView,
-  onNavViewChange,
   onNavigate,
 }: SidebarNavigationProps) {
   const isIconOnly = !isMobile && isCollapsed;
+  const navView = navViewFromPathname(pathname);
 
   return (
     <AnimatePresence mode="wait" initial={false}>
@@ -377,10 +328,6 @@ export function SidebarNavigation({
           isIconOnly={isIconOnly}
           isMobile={isMobile}
           onNavigate={onNavigate}
-          onSettingsClick={() => onNavViewChange("settings")}
-          onSkillsClick={() => onNavViewChange("skills")}
-          onWikiClick={() => onNavViewChange("wiki")}
-          onCodebasesClick={() => onNavViewChange("codebases")}
         />
       )}
     </AnimatePresence>

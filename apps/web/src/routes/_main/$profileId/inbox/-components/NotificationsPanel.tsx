@@ -22,7 +22,7 @@ import {
 } from "@/components/svg-animations";
 import { useNotifications } from "@/components/contexts/NotificationContext";
 import type { NotificationType } from "@/components/contexts/NotificationContext";
-import { formatRelativeTime } from "@/lib/formatters";
+import { formatRelativeTime } from "@vmem/shared";
 
 function getIconBackground(type: NotificationType) {
   switch (type) {

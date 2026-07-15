@@ -13,7 +13,8 @@ import {
 } from "@vmem/ui";
 import { IconEdit, IconMoon, IconTrash } from "@tabler/icons-react";
 import { IconSkills, IconWiki } from "@/components/sidebar-icons";
-import { formatMemorySourceLabel, timeAgo, type Memory } from "@/lib/memories";
+import { formatCompactRelativeTime } from "@vmem/shared";
+import { formatMemorySourceLabel, type Memory } from "@/lib/memories";
 import type { ListItem } from "@/lib/list-items";
 import type { TrailEntry } from "@/hooks/useTrailData";
 import type { MemoryTrace } from "./memory-trace";
@@ -164,7 +165,7 @@ export default function ListItemRow({
                 isSelected ? "text-foreground" : "text-muted",
               )}
             >
-              {timeAgo(item.createdAt)}
+              {formatCompactRelativeTime(item.createdAt)}
             </span>
           </div>
         </div>

@@ -1,6 +1,7 @@
 "use client";
 
-import { useMutation, useQuery } from "convex/react";
+import { useEffect, useState } from "react";
+import { useMutation } from "convex/react";
 import { toast } from "sonner";
 import { api } from "@vmem/backend";
 import {
@@ -18,18 +19,14 @@ import { patchApiKeyInList } from "./_optimistic";
 import type { ApiKey } from "./types";
 
 interface EditKeyDialogProps {
-  apiKeyId: ApiKey["id"] | null;
+  apiKey: ApiKey | null;
   isOpen: boolean;
   onClose: () => void;
 }
 
-export function EditKeyDialog({
-  apiKeyId,
-  isOpen,
-  onClose,
-}: EditKeyDialogProps) {
-  const apiKeys = useQuery(api.apiKeys.listMy, isOpen ? {} : "skip");
-  const apiKey = apiKeys?.find((row) => row.id === apiKeyId);
+export function EditKeyDialog({ apiKey, isOpen, onClose }: EditKeyDialogProps) {
+  const [draftName, setDraftName] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const renameApiKey = useMutation(api.apiKeys.renameMy).withOptimisticUpdate(
     (localStore, args) => {
@@ -40,21 +37,39 @@ export function EditKeyDialog({
     },
   );
 
-  const handleNameChange = (name: string) => {
-    if (!apiKey || name === apiKey.name) return;
+  useEffect(() => {
+    if (isOpen && apiKey) {
+      setDraftName(apiKey.name);
+    }
+  }, [isOpen, apiKey]);
 
-    void renameApiKey({ id: apiKey.id, name }).catch((err: unknown) => {
+  const handleSubmit = async () => {
+    if (!apiKey || isSubmitting) return;
+
+    const trimmed = draftName.trim();
+    if (!trimmed || trimmed === apiKey.name) {
+      onClose();
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await renameApiKey({ id: apiKey.id, name: trimmed });
+      onClose();
+    } catch (err: unknown) {
       toast.error(
         err instanceof Error ? err.message : "Failed to rename API key",
       );
-    });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <Dialog
       open={isOpen}
       onOpenChange={(open) => {
-        if (!open) onClose();
+        if (!open && !isSubmitting) onClose();
       }}
     >
       <DialogContent className="sm:max-w-sm">
@@ -68,10 +83,14 @@ export function EditKeyDialog({
           <div className="space-y-4 py-2">
             <div className="space-y-2">
               <Input
-                value={apiKey.name}
-                onChange={(e) => handleNameChange(e.target.value)}
+                value={draftName}
+                onChange={(e) => setDraftName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void handleSubmit();
+                }}
                 placeholder="e.g. Production server"
                 autoFocus
+                disabled={isSubmitting}
                 aria-label="API key name"
               />
             </div>
@@ -79,16 +98,16 @@ export function EditKeyDialog({
               <Button
                 type="button"
                 variant="ghost"
-                onClick={onClose}
+                onClick={() => void handleSubmit()}
+                disabled={isSubmitting}
                 className="text-muted"
               >
+                {isSubmitting ? (
+                  <IconLoader2 size={14} className="animate-spin" />
+                ) : null}
                 Done
               </Button>
             </DialogFooter>
-          </div>
-        ) : isOpen ? (
-          <div className="flex justify-center py-6">
-            <IconLoader2 size={20} className="animate-spin text-muted" />
           </div>
         ) : null}
       </DialogContent>

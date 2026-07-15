@@ -13,8 +13,8 @@ import {
 import { IconDotsVertical } from "@tabler/icons-react";
 import {
   formatFileSize,
-  formatDate,
   formatItemCount,
+  formatDate,
   fileCategoryForNode,
   getFileIcon,
   imageThumbnailUrl,

@@ -1,6 +1,10 @@
 import { Button } from "@vmem/ui";
-import { IconCheck, IconPencil, IconTrash, IconX } from "@tabler/icons-react";
-import { proposalAccentClass, type ProposedUpdate } from "./_proposalUtils";
+import { IconCheck, IconX } from "@tabler/icons-react";
+import {
+  getProposalKindConfig,
+  proposalAccentClass,
+  type ProposedUpdate,
+} from "./_proposalUtils";
 import {
   ProposalMutedTextBlock,
   ProposalShell,
@@ -49,6 +53,7 @@ function DeleteUpdateProposalCard({
   onApprove,
   onReject,
 }: UpdateProposalCardProps) {
+  const config = getProposalKindConfig(proposal.kind);
   const targetTitle = proposal.memorySnapshot?.title ?? "(memory unavailable)";
   const targetContent = proposal.memorySnapshot?.content ?? "";
 
@@ -59,8 +64,8 @@ function DeleteUpdateProposalCard({
       timestamp={proposal.createdAt}
       meta={
         <span className="inline-flex items-center gap-1.5">
-          <IconTrash size={14} />
-          Proposed deletion
+          <config.Icon size={14} />
+          {config.updateMetaLabel}
         </span>
       }
       actions={
@@ -77,7 +82,7 @@ function DeleteUpdateProposalCard({
             className="bg-danger text-danger-foreground"
           >
             <IconCheck size={14} />
-            Approve delete
+            {config.updateApproveLabel}
           </Button>
         </>
       }
@@ -103,6 +108,7 @@ function EditUpdateProposalCard({
   onApprove,
   onReject,
 }: UpdateProposalCardProps) {
+  const config = getProposalKindConfig(proposal.kind);
   const targetTitle = proposal.memorySnapshot?.title ?? "(memory unavailable)";
   const targetContent = proposal.memorySnapshot?.content ?? "";
 
@@ -113,8 +119,8 @@ function EditUpdateProposalCard({
       timestamp={proposal.createdAt}
       meta={
         <span className="inline-flex items-center gap-1.5">
-          <IconPencil size={14} />
-          Proposed update
+          <config.Icon size={14} />
+          {config.updateMetaLabel}
         </span>
       }
       actions={
@@ -131,7 +137,7 @@ function EditUpdateProposalCard({
             className="bg-surface text-foreground"
           >
             <IconCheck size={14} />
-            Approve update
+            {config.updateApproveLabel}
           </Button>
         </>
       }

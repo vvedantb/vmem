@@ -7,7 +7,10 @@ import { api } from "@vmem/backend";
 import { useActiveProfileId } from "@/components/workspace/active-profile";
 
 export type { ProposedUpdate } from "@/components/proposals/_proposalUtils";
-export { isSynthesisKind } from "@/components/proposals/_proposalUtils";
+export {
+  isSynthesisKind,
+  proposalApproveToast,
+} from "@/components/proposals/_proposalUtils";
 
 // pending proposals + approve/reject (tanstack cache)
 export function useProposals() {

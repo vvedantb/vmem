@@ -1,4 +1,4 @@
-import { useLocation } from "@tanstack/react-router";
+import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { motion } from "motion/react";
 import {
@@ -24,7 +24,6 @@ import { MorphingMenuIcon } from "./svg-animations";
 import {
   SidebarNavigation,
   navViewFromPathname,
-  type SidebarNavView,
 } from "./sidebar/SidebarNavigation";
 import { SidebarHeader } from "./sidebar/SidebarHeader";
 import { SidebarFooter, type SidebarStats } from "./sidebar/SidebarFooter";
@@ -42,10 +41,9 @@ export default function Sidebar({
   onToggleCollapse,
 }: SidebarProps) {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const activeProfileId = useActiveProfileId();
-  const [navView, setNavView] = useState<SidebarNavView>(() =>
-    navViewFromPathname(pathname),
-  );
+  const navView = navViewFromPathname(pathname);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const mobileMenuId = useId();
   const { isLoaded } = useUser();
@@ -126,7 +124,16 @@ export default function Sidebar({
     return () => mediaQuery.removeEventListener("change", closeOnDesktop);
   }, []);
 
-  const handleSidebarBack = () => setNavView("main");
+  const handleSidebarBack = () => {
+    if (activeProfileId === undefined) {
+      void navigate({ to: "/home" });
+      return;
+    }
+    void navigate({
+      to: "/$profileId/memories",
+      params: { profileId: activeProfileId },
+    });
+  };
 
   const mobileMenuCloseButton = (
     <DialogClose asChild>
@@ -205,8 +212,6 @@ export default function Sidebar({
                 proposalsCount={proposalsCount}
                 isCollapsed={false}
                 isMobile
-                navView={navView}
-                onNavViewChange={setNavView}
                 onNavigate={() => setMobileMenuOpen(false)}
               />
               <SidebarFooter
@@ -249,8 +254,6 @@ export default function Sidebar({
             proposalsCount={proposalsCount}
             isCollapsed={isCollapsed}
             isMobile={false}
-            navView={navView}
-            onNavViewChange={setNavView}
           />
 
           <SidebarFooter

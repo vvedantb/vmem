@@ -15,7 +15,11 @@ import {
 } from "@vmem/ui";
 import { IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
-import { patchSkillListMy } from "@/components/skills/_utils";
+import { optimisticUpdateSkillList } from "@/components/skills/_optimisticMutations";
+import {
+  SkillDescriptionSection,
+  SkillInstructionsSection,
+} from "@/components/skills/SkillPanelSections";
 
 interface EditSkillDialogProps {
   skill: Doc<"skills"> | undefined;
@@ -29,17 +33,8 @@ export function EditSkillDialog({
   onOpenChange,
 }: EditSkillDialogProps) {
   const updateSkill = useMutation(api.skills.updateSkill).withOptimisticUpdate(
-    (localStore, args) => {
-      const current = localStore.getQuery(api.skills.listMy, {
-        teamId: skill?.teamId,
-      });
-      if (!current) return;
-      localStore.setQuery(
-        api.skills.listMy,
-        { teamId: skill?.teamId },
-        patchSkillListMy(current, args.id, args),
-      );
-    },
+    (localStore, args) =>
+      optimisticUpdateSkillList(localStore, skill?.teamId, args),
   );
 
   const [submitting, setSubmitting] = useState(false);
@@ -101,34 +96,38 @@ export function EditSkillDialog({
             autoFocus
           />
 
-          <Textarea
-            id="edit-skill-description"
-            value={skill.description}
-            onChange={(e) => {
-              void updateSkill({
-                id: skill._id,
-                description: e.target.value,
-              });
-            }}
-            placeholder="What this skill is for"
-            aria-label="Description"
-            rows={3}
-            className="min-h-[4.5rem] resize-y"
-          />
+          <SkillDescriptionSection>
+            <Textarea
+              id="edit-skill-description"
+              value={skill.description}
+              onChange={(e) => {
+                void updateSkill({
+                  id: skill._id,
+                  description: e.target.value,
+                });
+              }}
+              placeholder="What this skill is for"
+              aria-label="Description"
+              rows={3}
+              className="min-h-[4.5rem] resize-y"
+            />
+          </SkillDescriptionSection>
 
-          <Textarea
-            id="edit-skill-instructions"
-            value={skill.instructions}
-            onChange={(e) => {
-              void updateSkill({
-                id: skill._id,
-                instructions: e.target.value,
-              });
-            }}
-            placeholder="Instructions"
-            aria-label="Instructions"
-            className="min-h-[240px] font-mono text-xs"
-          />
+          <SkillInstructionsSection>
+            <Textarea
+              id="edit-skill-instructions"
+              value={skill.instructions}
+              onChange={(e) => {
+                void updateSkill({
+                  id: skill._id,
+                  instructions: e.target.value,
+                });
+              }}
+              placeholder="Instructions"
+              aria-label="Instructions"
+              className="min-h-[240px] font-mono text-xs"
+            />
+          </SkillInstructionsSection>
 
           <div className="flex items-center justify-end gap-2 pt-2">
             <Button

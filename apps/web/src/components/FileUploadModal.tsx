@@ -15,14 +15,11 @@ import { toast } from "sonner";
 import {
   IconUpload,
   IconX,
-  IconFile,
-  IconPhoto,
-  IconFileTypePdf,
   IconLoader2,
   IconCheck,
   IconTrash,
 } from "@tabler/icons-react";
-import { formatFileSize } from "@/components/files/_utils";
+import { formatFileSize, getFileIconForMime } from "@/components/files/_utils";
 
 interface FileUploadModalProps {
   isOpen: boolean;
@@ -39,19 +36,12 @@ interface QueuedFile {
   error?: string;
 }
 
-function getFileIcon(mimeType: string) {
-  if (mimeType.startsWith("image/")) return IconPhoto;
-  if (mimeType === "application/pdf") return IconFileTypePdf;
-  return IconFile;
-}
-
 export default function FileUploadModal({
   isOpen,
   onClose,
   onUpload,
   initialFiles,
 }: FileUploadModalProps) {
-  const [isDragging, setIsDragging] = useState(false);
   const [queuedFiles, setQueuedFiles] = useState<QueuedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -68,18 +58,6 @@ export default function FileUploadModal({
   }, [isOpen, initialFiles]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
-  }, []);
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-  }, []);
-
   const addFiles = useCallback((newFiles: FileList | File[]) => {
     const filesArray = Array.from(newFiles);
     const newQueuedFiles: QueuedFile[] = filesArray.map((file) => ({
@@ -89,20 +67,6 @@ export default function FileUploadModal({
     }));
     setQueuedFiles((prev) => [...prev, ...newQueuedFiles]);
   }, []);
-
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setIsDragging(false);
-
-      const { files } = e.dataTransfer;
-      if (files && files.length > 0) {
-        addFiles(files);
-      }
-    },
-    [addFiles],
-  );
 
   const handleFileSelect = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -198,7 +162,6 @@ export default function FileUploadModal({
   const handleClose = useCallback(() => {
     if (!isUploading) {
       setQueuedFiles([]);
-      setIsDragging(false);
       onClose();
     }
   }, [isUploading, onClose]);
@@ -244,18 +207,8 @@ export default function FileUploadModal({
 
         <div className="space-y-4 py-2">
           <div
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
-            className={`
-              relative border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
-              ${
-                isDragging
-                  ? "border-accent bg-accent/5"
-                  : "border-border hover:bg-surface-secondary/35"
-              }
-            `}
+            className="relative cursor-pointer rounded-lg border-2 border-dashed border-border p-8 text-center transition-colors hover:bg-surface-secondary/35"
           >
             <Input
               ref={fileInputRef}
@@ -266,21 +219,16 @@ export default function FileUploadModal({
               disabled={isUploading}
             />
             <div className="flex flex-col items-center gap-3">
-              <div
-                className={`w-14 h-14 rounded-full flex items-center justify-center transition-colors ${
-                  isDragging ? "bg-accent/15" : "bg-surface-secondary"
-                }`}
-              >
-                <IconUpload
-                  size={24}
-                  className={isDragging ? "text-accent" : "text-muted"}
-                />
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-surface-secondary">
+                <IconUpload size={24} className="text-muted" />
               </div>
               <div>
-                <p className="text-foreground font-medium">
-                  {isDragging ? "Drop files here" : "Drag and drop files here"}
+                <p className="font-medium text-foreground">
+                  Choose files to upload
                 </p>
-                <p className="text-sm text-muted mt-1">or click to browse</p>
+                <p className="mt-1 text-sm text-muted">
+                  Or drop files anywhere on the files page
+                </p>
               </div>
             </div>
           </div>
@@ -296,7 +244,7 @@ export default function FileUploadModal({
               </p>
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {queuedFiles.map((queuedFile, index) => {
-                  const FileIcon = getFileIcon(queuedFile.file.type);
+                  const FileIcon = getFileIconForMime(queuedFile.file.type);
                   return (
                     <div
                       key={`${queuedFile.file.name}-${index}`}

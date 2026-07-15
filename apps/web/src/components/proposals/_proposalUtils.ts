@@ -22,19 +22,13 @@ export function isSynthesisKind(kind: ProposedUpdateKind): boolean {
   return SYNTHESIS_KINDS.has(kind);
 }
 
-export function proposalAccentClass(kind: ProposedUpdateKind): string {
-  switch (kind) {
-    case "delete":
-    case "contradiction":
-      return "bg-danger";
-    case "update":
-    case "merge":
-      return "bg-accent";
-    case "insight":
-      return "bg-surface-tertiary";
-    case "connection":
-      return "bg-success";
-    case "anomaly":
-      return "bg-warning";
-  }
-}
+export {
+  PROPOSAL_KIND_CONFIG,
+  getProposalKindConfig,
+  proposalAccentClass,
+  proposalApproveToast,
+  synthesisActionLabels,
+  synthesisContentLabel,
+  synthesisSourceListLabel,
+} from "./_proposalKindConfig";
+export type { ProposalKindConfig } from "./_proposalKindConfig";

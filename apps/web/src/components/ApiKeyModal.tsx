@@ -22,17 +22,12 @@ import { apiKeySchema, type ApiKeyFormValues } from "@/lib/schemas";
 interface ApiKeyModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onKeyCreated: () => void;
 }
 
 type ModalStep = "create" | "success";
 type CreatedKey = FunctionReturnType<typeof api.apiKeys.createMy>;
 
-export default function ApiKeyModal({
-  isOpen,
-  onClose,
-  onKeyCreated,
-}: ApiKeyModalProps) {
+export default function ApiKeyModal({ isOpen, onClose }: ApiKeyModalProps) {
   const createApiKey = useAction(api.apiKeys.createMy);
   const [step, setStep] = useState<ModalStep>("create");
   const [createdKey, setCreatedKey] = useState<CreatedKey | null>(null);
@@ -62,7 +57,6 @@ export default function ApiKeyModal({
       const created = await createApiKey({ name: name.trim() });
       setCreatedKey(created);
       setStep("success");
-      onKeyCreated();
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Failed to create API key",

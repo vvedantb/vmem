@@ -2,7 +2,8 @@
 
 import { IconChartBar } from "@tabler/icons-react";
 import { Card, CardContent, cn } from "@vmem/ui";
-import { formatRelativeTime, formatDuration } from "@/lib/formatters";
+import { formatRelativeTime } from "@vmem/shared";
+import { formatDuration } from "@/lib/formatters";
 import { isSuccessStatus, type ApiRequestEntry } from "./_utils";
 
 type StatusVariant = "success" | "error" | "warning";

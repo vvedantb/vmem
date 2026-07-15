@@ -31,7 +31,7 @@ import {
   relatedMemoriesQueryKey,
   uniqueRelated,
   type RelatedMemoryEntry,
-} from "@/lib/memories-related";
+} from "@/lib/memories";
 import LinkMemoryModal from "@/components/LinkMemoryModal";
 import { DetailEmptyState } from "./detail-panel/DetailEmptyState";
 import { VmemSpinner } from "@/components/svg-animations";

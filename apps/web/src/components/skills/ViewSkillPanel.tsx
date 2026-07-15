@@ -1,6 +1,11 @@
 "use client";
 
 import type { SkillViewFields } from "@/components/skills/_utils";
+import {
+  SkillDescriptionSection,
+  SkillInstructionsSection,
+  SkillPanelShell,
+} from "@/components/skills/SkillPanelSections";
 
 interface ViewSkillPanelProps {
   skill: SkillViewFields;
@@ -8,22 +13,20 @@ interface ViewSkillPanelProps {
 
 export function ViewSkillPanel({ skill }: ViewSkillPanelProps) {
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto scrollbar-thin px-4 pb-4 pt-2">
+    <SkillPanelShell>
       {skill.description ? (
-        <div className="space-y-1.5">
-          <p className="text-xs font-medium text-muted">Description</p>
+        <SkillDescriptionSection>
           <p className="whitespace-pre-wrap text-sm text-foreground">
             {skill.description}
           </p>
-        </div>
+        </SkillDescriptionSection>
       ) : null}
 
-      <div className="min-h-0 flex-1 space-y-1.5">
-        <p className="text-xs font-medium text-muted">Instructions</p>
+      <SkillInstructionsSection>
         <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed text-foreground">
           {skill.instructions}
         </pre>
-      </div>
-    </div>
+      </SkillInstructionsSection>
+    </SkillPanelShell>
   );
 }

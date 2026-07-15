@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import {
   Button,
   Dialog,
@@ -20,6 +21,7 @@ type DestructiveConfirmDialogProps = {
   submittingLabel: string;
   submitting: boolean;
   onConfirm: () => void;
+  children?: ReactNode;
 };
 
 export default function DestructiveConfirmDialog({
@@ -31,6 +33,7 @@ export default function DestructiveConfirmDialog({
   submittingLabel,
   submitting,
   onConfirm,
+  children,
 }: DestructiveConfirmDialogProps) {
   return (
     <Dialog
@@ -42,7 +45,17 @@ export default function DestructiveConfirmDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+          {children ? (
+            <>
+              <DialogDescription className="sr-only">{title}</DialogDescription>
+              <div className="text-sm">
+                <p className="text-foreground">{children}</p>
+                <p className="mt-1 text-muted">{description}</p>
+              </div>
+            </>
+          ) : (
+            <DialogDescription>{description}</DialogDescription>
+          )}
         </DialogHeader>
         <DialogFooter>
           <Button variant="ghost" onClick={onClose} disabled={submitting}>

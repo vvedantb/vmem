@@ -12,50 +12,37 @@ import {
 import { toast } from "sonner";
 import { useTeamWorkspace, type TeamMember } from "./team-context";
 import { AddMemberDialog } from "./AddMemberDialog";
+import { optimisticallyRemoveMember } from "./_optimistic";
+import { RemoveMemberDialog } from "./RemoveMemberDialog";
+
+type PendingRemoval = {
+  userId: Id<"users">;
+  label: string;
+};
 
 export function TeamMembers() {
   const { detail: data, meta } = useTeamWorkspace();
   const removeMember = useMutation(api.teams.removeMember).withOptimisticUpdate(
-    (localStore, args) => {
-      const detail = localStore.getQuery(api.teams.get, {
-        teamId: args.teamId,
-      });
-      if (detail) {
-        localStore.setQuery(
-          api.teams.get,
-          { teamId: args.teamId },
-          {
-            ...detail,
-            members: detail.members.filter((m) => m.userId !== args.userId),
-          },
-        );
-      }
-      const list = localStore.getQuery(api.teams.list, {});
-      if (list) {
-        localStore.setQuery(
-          api.teams.list,
-          {},
-          list.map((entry) =>
-            entry.team._id === args.teamId
-              ? { ...entry, memberCount: Math.max(0, entry.memberCount - 1) }
-              : entry,
-          ),
-        );
-      }
-    },
+    optimisticallyRemoveMember,
   );
   const [addOpen, setAddOpen] = useState(false);
   const [removing, setRemoving] = useState<Id<"users"> | null>(null);
+  const [pendingRemoval, setPendingRemoval] = useState<PendingRemoval | null>(
+    null,
+  );
   const currentUser = useQuery(api.users.getMe);
   const { user: clerkUser } = useUser();
 
-  const handleRemove = async (userId: Id<"users">, label: string) => {
-    const confirmed = window.confirm(`Remove ${label} from ${data.team.name}?`);
-    if (!confirmed) return;
-    setRemoving(userId);
+  const handleRemoveConfirm = async () => {
+    if (!pendingRemoval) return;
+    setRemoving(pendingRemoval.userId);
     try {
-      await removeMember({ teamId: data.team._id, userId });
+      await removeMember({
+        teamId: data.team._id,
+        userId: pendingRemoval.userId,
+      });
       toast.success("Member removed");
+      setPendingRemoval(null);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to remove");
     } finally {
@@ -93,7 +80,9 @@ export function TeamMembers() {
                   currentUserId={currentUser?._id}
                   clerkImageUrl={clerkUser?.imageUrl}
                   removingUserId={removing}
-                  onRemove={handleRemove}
+                  onRemove={(userId, label) =>
+                    setPendingRemoval({ userId, label })
+                  }
                 />
               ))}
             </ul>
@@ -105,6 +94,17 @@ export function TeamMembers() {
         teamId={data.team._id}
         open={addOpen}
         onOpenChange={setAddOpen}
+      />
+
+      <RemoveMemberDialog
+        open={pendingRemoval !== null}
+        memberLabel={pendingRemoval?.label ?? ""}
+        teamName={data.team.name}
+        submitting={removing !== null}
+        onClose={() => {
+          if (removing === null) setPendingRemoval(null);
+        }}
+        onConfirm={() => void handleRemoveConfirm()}
       />
     </div>
   );

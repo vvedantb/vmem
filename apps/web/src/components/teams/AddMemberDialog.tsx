@@ -13,7 +13,7 @@ import {
 } from "@vmem/ui";
 import { IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
-import { optimisticId } from "@/lib/optimisticId";
+import { optimisticallyAddMember } from "./_optimistic";
 
 interface AddMemberDialogProps {
   teamId: Id<"teams">;
@@ -27,46 +27,7 @@ export function AddMemberDialog({
   onOpenChange,
 }: AddMemberDialogProps) {
   const addMember = useMutation(api.teams.addMember).withOptimisticUpdate(
-    (localStore, args) => {
-      const detail = localStore.getQuery(api.teams.get, {
-        teamId: args.teamId,
-      });
-      if (detail) {
-        const now = Date.now();
-        const tempUserId = optimisticId("users");
-        localStore.setQuery(
-          api.teams.get,
-          { teamId: args.teamId },
-          {
-            ...detail,
-            members: [
-              ...detail.members,
-              {
-                userId: tempUserId,
-                role: "member",
-                joinedAt: now,
-                email: args.email.trim().toLowerCase(),
-                fullName: null,
-                firstName: null,
-                lastName: null,
-              },
-            ],
-          },
-        );
-      }
-      const list = localStore.getQuery(api.teams.list, {});
-      if (list) {
-        localStore.setQuery(
-          api.teams.list,
-          {},
-          list.map((entry) =>
-            entry.team._id === args.teamId
-              ? { ...entry, memberCount: entry.memberCount + 1 }
-              : entry,
-          ),
-        );
-      }
-    },
+    optimisticallyAddMember,
   );
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);

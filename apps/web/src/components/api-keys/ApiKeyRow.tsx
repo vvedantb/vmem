@@ -11,10 +11,9 @@ import {
   IconBan,
   IconTrash,
 } from "@tabler/icons-react";
-import { formatRelativeTime, formatDate, formatNumber } from "@/lib/formatters";
+import { formatRelativeTime } from "@vmem/shared";
+import { formatDate, formatNumber } from "@/lib/formatters";
 import type { ApiKey } from "./types";
-
-const MASKED_API_KEY = "vmem_sk_••••••••••••••••";
 
 function ApiKeyActiveBadge() {
   return (
@@ -28,16 +27,17 @@ function ApiKeyRevokedBadge() {
   return <Badge className="bg-danger/10 text-danger text-xs">Revoked</Badge>;
 }
 
-function ApiKeySecretCellRevoked() {
+function ApiKeySecretCellRevoked({ maskedKey }: { maskedKey: string }) {
   return (
     <div className="flex items-center gap-2">
-      <code className="text-sm text-muted font-mono">{MASKED_API_KEY}</code>
+      <code className="text-sm text-muted font-mono">{maskedKey}</code>
     </div>
   );
 }
 
 function ApiKeySecretCellActive({
   apiKeyId,
+  maskedKey,
   revealedKey,
   isRevealing,
   isRevealed,
@@ -47,6 +47,7 @@ function ApiKeySecretCellActive({
   onCopy,
 }: {
   apiKeyId: ApiKey["id"];
+  maskedKey: string;
   revealedKey: string | undefined;
   isRevealing: boolean;
   isRevealed: boolean;
@@ -58,7 +59,7 @@ function ApiKeySecretCellActive({
   return (
     <div className="flex items-center gap-2">
       <code className="text-sm text-muted font-mono">
-        {revealedKey ?? MASKED_API_KEY}
+        {revealedKey ?? maskedKey}
       </code>
       <Button
         size="icon-sm"
@@ -140,6 +141,7 @@ export function ApiKeyRow({
         {isActive ? (
           <ApiKeySecretCellActive
             apiKeyId={apiKey.id}
+            maskedKey={apiKey.maskedKey}
             revealedKey={revealedKey}
             isRevealing={isRevealing}
             isRevealed={isRevealed}
@@ -149,7 +151,7 @@ export function ApiKeyRow({
             onCopy={onCopy}
           />
         ) : (
-          <ApiKeySecretCellRevoked />
+          <ApiKeySecretCellRevoked maskedKey={apiKey.maskedKey} />
         )}
       </TableCell>
       <TableCell className="hidden lg:table-cell py-4">

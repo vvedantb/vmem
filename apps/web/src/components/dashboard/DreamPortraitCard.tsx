@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@vmem/ui";
 import { IconMoonStars } from "@tabler/icons-react";
 import { useActiveProfile } from "../workspace/active-profile";
-import { formatRelativeTime } from "@/lib/formatters";
+import { formatRelativeTime } from "@vmem/shared";
 
 // dream Mode's evolving portrait of this workspace's owner
 export function DreamPortraitCard() {
