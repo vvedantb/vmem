@@ -23,12 +23,7 @@ const DETAIL_PARENTS = new Set(["skills", "codebases", "wiki"]);
 
 // compute the path for "this same page in another workspace
 // first segments of user-level (non-workspace) routes
-const USER_LEVEL_FIRST_SEGMENTS = new Set([
-  "settings",
-  "home",
-  "mcp",
-  "agent-callback",
-]);
+const USER_LEVEL_FIRST_SEGMENTS = new Set(["settings", "home", "mcp"]);
 
 export function workspacePathFor(
   pathname: string,
