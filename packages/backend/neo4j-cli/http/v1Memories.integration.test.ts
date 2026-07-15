@@ -68,19 +68,21 @@ describe.skipIf(!canRun)("HTTP v1 memories API (live)", () => {
     expect(result.status).toBe("ok");
   });
 
-  it("rejects requests without Authorization", async () => {
-    const result = await postMemoriesProbe({
+  it.each([
+    {
+      label: "without Authorization",
       authToken: null,
-      body: { ...storeAuthProbeBody, content: "no auth header" },
-    });
-    expect(result.status).toBe(401);
-    expect(result.error).toBe("unauthorized");
-  });
-
-  it("rejects requests with an invalid API key", async () => {
-    const result = await postMemoriesProbe({
+      content: "no auth header",
+    },
+    {
+      label: "with an invalid API key",
       authToken: "vmem_sk_invalid_key_for_tests",
-      body: { ...storeAuthProbeBody, content: "bad key" },
+      content: "bad key",
+    },
+  ])("rejects requests $label", async ({ authToken, content }) => {
+    const result = await postMemoriesProbe({
+      authToken,
+      body: { ...storeAuthProbeBody, content },
     });
     expect(result.status).toBe(401);
     expect(result.error).toBe("unauthorized");
@@ -149,13 +151,11 @@ describe.skipIf(!canRun)("HTTP v1 memories API (live)", () => {
 });
 
 describe("HTTP v1 memories API (config)", () => {
-  it("when live tests are enabled, API key has the expected prefix", () => {
-    if (!canRun) return;
-    expect(apiKey?.startsWith("vmem_sk_")).toBe(true);
-  });
-
-  it("when live tests are disabled, RUN_HTTP_API_TEST is not 1", () => {
-    if (canRun) return;
+  it("live-test gating matches environment", () => {
+    if (canRun) {
+      expect(apiKey?.startsWith("vmem_sk_")).toBe(true);
+      return;
+    }
     expect(process.env.RUN_HTTP_API_TEST).not.toBe("1");
   });
 });
