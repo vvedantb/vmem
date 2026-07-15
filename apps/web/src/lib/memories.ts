@@ -92,24 +92,27 @@ export interface TagStats {
 }
 
 export function buildTagStats(memories: Memory[]): TagStats[] {
-  const counts = new Map<string, number>();
-  const latest = new Map<string, string>();
+  const stats = new Map<string, { count: number; latestCreatedAt: string }>();
 
   for (const memory of memories) {
     for (const tag of memory.tags) {
-      counts.set(tag, (counts.get(tag) ?? 0) + 1);
-      const current = latest.get(tag);
-      if (!current || memory.createdAt > current) {
-        latest.set(tag, memory.createdAt);
+      const existing = stats.get(tag);
+      if (!existing) {
+        stats.set(tag, { count: 1, latestCreatedAt: memory.createdAt });
+        continue;
+      }
+      existing.count += 1;
+      if (memory.createdAt > existing.latestCreatedAt) {
+        existing.latestCreatedAt = memory.createdAt;
       }
     }
   }
 
-  return Array.from(counts.entries())
-    .map(([tag, count]) => ({
+  return Array.from(stats.entries())
+    .map(([tag, { count, latestCreatedAt }]) => ({
       tag,
       count,
-      latestCreatedAt: latest.get(tag) ?? "",
+      latestCreatedAt,
     }))
     .sort((a, b) => a.tag.localeCompare(b.tag));
 }

@@ -5,8 +5,14 @@ import {
   resolveWikiMove,
   WIKI_ROOT_DROP_ID,
 } from "./_utils";
-import type { Doc, Id } from "@vmem/backend";
-import { optimisticId } from "@/lib/optimisticId";
+import type { Doc, Id, TableNames } from "@vmem/backend";
+
+function optimisticId<TableName extends TableNames>(
+  tableName: TableName,
+  id = crypto.randomUUID(),
+): Id<TableName> {
+  return Object.assign(id, { __tableName: tableName });
+}
 
 // stable branded wiki id for tests (`optimisticId` requires UUID-shaped strings)
 function testWikiId(suffix: string): Id<"wikiNodes"> {

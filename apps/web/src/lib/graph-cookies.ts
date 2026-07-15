@@ -29,12 +29,7 @@ export function getGraphSettings(): GraphSettings {
       JSON.parse(decodeURIComponent(raw)),
     );
     if (!parsed.success) return DEFAULT_GRAPH_SETTINGS;
-    return {
-      scalingRatio:
-        parsed.data.scalingRatio ?? DEFAULT_GRAPH_SETTINGS.scalingRatio,
-      gravity: parsed.data.gravity ?? DEFAULT_GRAPH_SETTINGS.gravity,
-      showLabels: parsed.data.showLabels ?? DEFAULT_GRAPH_SETTINGS.showLabels,
-    };
+    return { ...DEFAULT_GRAPH_SETTINGS, ...parsed.data };
   } catch {
     return DEFAULT_GRAPH_SETTINGS;
   }

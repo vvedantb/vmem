@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-07-15 — Simplify web lib parsers, filters, and URL state
+
+Move Claude parsing into parseClaudeExport, drop list-item filter wrappers,
+consolidate graph degree / cookie / tag / nuqs helpers, and remove dead
+formatDateTime, daily-trend, and optimisticId surfaces.
+
 ## 2026-07-15 — Prune web graph and memory list hooks
 
 Drop unused hook exports and return aliases, narrow codebase graph filters,

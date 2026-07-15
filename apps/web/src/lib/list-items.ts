@@ -2,11 +2,8 @@ import type { FunctionReturnType } from "convex/server";
 import type { api } from "@vmem/backend";
 import type { Memory, MemoryType } from "./memories";
 import {
-  kindPassesFilter,
-  sourcePassesFilter,
-  tagsPassFilter,
+  apiGraphNodePassesFilters,
   type MemoryViewFilterParams,
-  typePassesFilter,
 } from "./memory-view-filters";
 
 // unified /memories list item (memory | wiki | skill) mirroring graph node kinds
@@ -94,51 +91,18 @@ export type ListItem =
 
 // filter helpers — memory filters pass non-memory items through; kind is cross-cutting
 
-export function listItemMatchesKindFilter(
-  item: ListItem,
-  selectedKinds: readonly ListItemKind[],
-): boolean {
-  return kindPassesFilter(item.kind, selectedKinds);
-}
-
-export function listItemMatchesTagFilter(
-  item: ListItem,
-  selectedTags: readonly string[],
-): boolean {
-  return tagsPassFilter(item.tags, selectedTags, item.kind);
-}
-
-export function listItemMatchesSourceFilter(
-  item: ListItem,
-  selectedSources: readonly string[],
-): boolean {
-  return sourcePassesFilter(
-    item.kind === "memory" ? item.source : undefined,
-    selectedSources,
-    item.kind,
-  );
-}
-
-export function listItemMatchesTypeFilter(
-  item: ListItem,
-  selectedTypes: readonly MemoryType[],
-): boolean {
-  return typePassesFilter(
-    item.kind === "memory" ? item.type : undefined,
-    selectedTypes,
-    item.kind,
-  );
-}
-
 export function listItemPassesFilters(
   item: ListItem,
   filters: Pick<MemoryViewFilterParams, "kinds" | "tags" | "sources" | "types">,
 ): boolean {
-  return (
-    listItemMatchesKindFilter(item, filters.kinds) &&
-    listItemMatchesTagFilter(item, filters.tags) &&
-    listItemMatchesSourceFilter(item, filters.sources) &&
-    listItemMatchesTypeFilter(item, filters.types)
+  return apiGraphNodePassesFilters(
+    {
+      kind: item.kind,
+      tags: item.tags,
+      source: item.kind === "memory" ? item.source : undefined,
+      type: item.kind === "memory" ? item.type : undefined,
+    },
+    filters,
   );
 }
 

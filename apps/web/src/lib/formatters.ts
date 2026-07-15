@@ -1,4 +1,4 @@
-export { formatDate, formatDateTime } from "@vmem/shared";
+export { formatDate } from "@vmem/shared";
 
 export function formatNumber(num: number): string {
   return num.toLocaleString();
