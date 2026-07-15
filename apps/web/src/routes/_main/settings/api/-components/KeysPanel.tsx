@@ -10,7 +10,7 @@ import {
   CardContent,
 } from "@vmem/ui";
 import { IconPlus } from "@tabler/icons-react";
-import { AnimatedKeyIcon, VmemSpinner } from "@/components/svg-animations";
+import { AnimatedKeyIcon, VmemSpinner } from "@/components/icons/animations";
 import ApiKeyModal from "@/components/ApiKeyModal";
 import { ApiKeyRow } from "@/components/api-keys/ApiKeyRow";
 import DestructiveConfirmDialog from "@/components/settings/DestructiveConfirmDialog";

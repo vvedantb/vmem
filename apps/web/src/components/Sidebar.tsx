@@ -21,7 +21,7 @@ import { useNotifications } from "./contexts/NotificationContext";
 import { useProposals } from "@/hooks/useProposals";
 import { useMemoryEvents } from "@/hooks/useMemoryEvents";
 import { IconX } from "@tabler/icons-react";
-import { MorphingMenuIcon } from "./svg-animations";
+import { MorphingMenuIcon } from "./icons/animations";
 import {
   SidebarNavigation,
   navViewFromPathname,

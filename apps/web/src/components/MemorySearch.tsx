@@ -13,7 +13,7 @@ import MemoryDetailPanel from "./MemoryDetailPanel";
 import ListItemPreviewPanel from "./_components/ListItemPreviewPanel";
 import { MemoryVirtuosoList } from "./_components/MemoryVirtuosoList";
 import AnimatedSearchIcon from "./_components/AnimatedSearchIcon";
-import { VmemSpinner } from "@/components/svg-animations";
+import { VmemSpinner } from "@/components/icons/animations";
 import { memoryFromApi, type Memory } from "@/lib/memories";
 import type { ListItem } from "@/lib/list-items";
 import { useThemeContext } from "@/components/contexts/ThemeContext";

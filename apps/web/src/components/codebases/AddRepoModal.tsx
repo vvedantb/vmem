@@ -15,7 +15,7 @@ import { IconLoader2, IconSearch } from "@tabler/icons-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { sidebarSearchInputClassName } from "@/components/sidebar/sidebar-search-input";
-import { GitHubIcon } from "@/components/brand-icons";
+import { GitHubIcon } from "@/components/icons/logos";
 import { AddRepoModalRow } from "./_components/AddRepoModalRow";
 import type { AddRepoModalRepo } from "./-types";
 import { optimisticId } from "@/lib/optimisticId";

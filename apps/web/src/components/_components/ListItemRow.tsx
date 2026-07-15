@@ -12,7 +12,7 @@ import {
   TooltipTrigger,
 } from "@vmem/ui";
 import { IconEdit, IconMoon, IconTrash } from "@tabler/icons-react";
-import { IconSkills, IconWiki } from "@/components/sidebar-icons";
+import { IconSkills, IconWiki } from "@/components/icons/sidebar";
 import { formatCompactRelativeTime } from "@vmem/shared";
 import { formatMemorySourceLabel, type Memory } from "@/lib/memories";
 import type { ListItem } from "@/lib/list-items";

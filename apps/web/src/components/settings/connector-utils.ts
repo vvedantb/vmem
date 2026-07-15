@@ -5,7 +5,7 @@ import {
   GoogleDriveIcon,
   NotionIcon,
   GitHubIcon,
-} from "@/components/brand-icons";
+} from "@/components/icons/logos";
 
 export type GitHubConnection = FunctionReturnType<
   typeof api.github.getConnection

@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useQueryStates } from "nuqs";
 import type { Id } from "@vmem/backend";
-import { VmemSpinner } from "@/components/svg-animations";
+import { VmemSpinner } from "@/components/icons/animations";
 import type { FolderBreadcrumb, FileTreeNode } from "./-types";
 import PageContainer from "@/components/PageContainer";
 import FileUploadModal from "@/components/FileUploadModal";

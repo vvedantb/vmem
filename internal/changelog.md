@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-07-15 — Nest web icon families under `components/icons`
+
+Moved `brand-icons`, `svg-animations`, and `sidebar-icons` under
+`components/icons/{logos,animations,sidebar}` and updated imports. No barrel
+at `icons/`; connector logos under `public/` and canvas stay put.
+
 ## 2026-07-15 — Adopt usehooks-ts for common web utilities
 
 Replaced hand-rolled localStorage, matchMedia, debounce, clipboard+timeout,

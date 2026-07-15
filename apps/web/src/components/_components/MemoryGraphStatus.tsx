@@ -1,6 +1,6 @@
 import { IconMoodEmpty, IconArrowBack } from "@tabler/icons-react";
 import { Button } from "@vmem/ui";
-import { VmemSpinner } from "@/components/svg-animations";
+import { VmemSpinner } from "@/components/icons/animations";
 
 export function MemoryGraphStatus({
   variant,

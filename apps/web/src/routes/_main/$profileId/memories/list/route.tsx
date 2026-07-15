@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, useParams } from "@tanstack/react-router";
 import { Suspense } from "react";
 import MemorySearch from "@/components/MemorySearch";
 import TagsListView from "@/components/_components/TagsListView";
-import { VmemSpinner } from "@/components/svg-animations";
+import { VmemSpinner } from "@/components/icons/animations";
 import { useMemoriesSearchParams } from "@/hooks/useMemoriesSearchParams";
 
 // A bare Suspense renders NOTHING while suspended — a stuck query then looks like an empty workspace

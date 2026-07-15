@@ -1,4 +1,4 @@
-import { VmemSpinner } from "@/components/svg-animations";
+import { VmemSpinner } from "@/components/icons/animations";
 
 export function AppSkeleton() {
   return (

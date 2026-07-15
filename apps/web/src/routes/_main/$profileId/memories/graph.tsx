@@ -1,6 +1,6 @@
 import { lazy, Suspense } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { VmemSpinner } from "@/components/svg-animations";
+import { VmemSpinner } from "@/components/icons/animations";
 import { useMemoryGraphControllerContext } from "./-components/MemoryGraphControllerContext";
 import { useMemoriesSearchParams } from "@/hooks/useMemoriesSearchParams";
 

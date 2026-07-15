@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "motion/react";
 import { cn, motionDuration, motionEase } from "@vmem/ui";
 import { IconUsers } from "@tabler/icons-react";
-import { IconTeams, IconSettings } from "../sidebar-icons";
+import { IconTeams, IconSettings } from "../icons/sidebar";
 import type { NavGroup, NavItem } from "./types";
 import { navGroups, navHrefToPath, settingsNavGroups } from "./nav-config";
 import { NavLink } from "./NavLink";

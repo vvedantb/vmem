@@ -1,5 +1,5 @@
 import { cn } from "@vmem/ui";
-import { VmemDrawInIcon } from "@/components/svg-animations";
+import { VmemDrawInIcon } from "@/components/icons/animations";
 
 const brandTextClassName =
   "text-xl leading-none font-instrumentSerif text-foreground";

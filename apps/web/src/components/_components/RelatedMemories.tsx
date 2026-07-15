@@ -32,7 +32,7 @@ import {
 } from "@/lib/memories";
 import LinkMemoryModal from "@/components/LinkMemoryModal";
 import { DetailEmptyState } from "./detail-panel/DetailEmptyState";
-import { VmemSpinner } from "@/components/svg-animations";
+import { VmemSpinner } from "@/components/icons/animations";
 
 interface RelatedMemoriesProps {
   memoryId: string;

@@ -6,7 +6,7 @@ import { useTimelineEvents } from "@/hooks/useTimelineEvents";
 import { useVersionChain } from "@/hooks/useVersionChain";
 import type { VersionEntry } from "@/lib/timeline";
 import DiffDisplay from "./DiffDisplay";
-import { VmemSpinner } from "@/components/svg-animations";
+import { VmemSpinner } from "@/components/icons/animations";
 import { DetailEmptyState } from "./detail-panel/DetailEmptyState";
 
 interface HistoryTabProps {

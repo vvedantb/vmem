@@ -3,7 +3,7 @@
 import { useMemo, useCallback, useRef, useState } from "react";
 import { IconAlertTriangle, IconMoodEmpty } from "@tabler/icons-react";
 import GraphCanvas from "@/components/_components/GraphCanvas";
-import { VmemSpinner } from "@/components/svg-animations";
+import { VmemSpinner } from "@/components/icons/animations";
 import type { GraphCanvasHandle } from "@/components/_components/GraphCanvas";
 import GraphNavControls from "@/components/_components/GraphNavControls";
 import GraphNodeTooltip from "@/components/_components/GraphNodeTooltip";

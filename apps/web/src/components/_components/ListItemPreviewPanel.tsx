@@ -1,7 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@vmem/ui";
 import { IconArrowRight, IconX } from "@tabler/icons-react";
-import { IconSkills, IconWiki } from "@/components/sidebar-icons";
+import { IconSkills, IconWiki } from "@/components/icons/sidebar";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 import type { ListItem } from "@/lib/list-items";
 import { formatListItemKindLabel } from "@/lib/list-items";

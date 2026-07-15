@@ -9,7 +9,7 @@ import {
   CursorIcon,
   GoogleDriveIcon,
   NotionIcon,
-} from "@/components/brand-icons";
+} from "@/components/icons/logos";
 
 type MemorySourceIconProps = {
   source: string;
