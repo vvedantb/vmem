@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import { useAction, useConvexAuth, useQuery } from "convex/react";
+import { useDebounceValue } from "usehooks-ts";
 import {
   CommandDialog,
   CommandEmpty,
@@ -43,6 +44,7 @@ interface Props {
 export function CommandPalette({ onToggleSidebar }: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [debouncedQuery] = useDebounceValue(query, 180);
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const workspaceId = useActiveProfileId();
@@ -68,8 +70,8 @@ export function CommandPalette({ onToggleSidebar }: Props) {
 
   const wikiHits = useQuery(
     api.wiki.search,
-    isAuthenticated && open && query.length >= 2
-      ? { queryText: query }
+    isAuthenticated && open && debouncedQuery.length >= 2
+      ? { queryText: debouncedQuery }
       : "skip",
   );
 
@@ -77,20 +79,20 @@ export function CommandPalette({ onToggleSidebar }: Props) {
   const [memoryHits, setMemoryHits] = useState<MemoryHit[]>([]);
 
   useEffect(() => {
-    if (!open || !isAuthenticated || query.length < 2) {
+    if (!open || !isAuthenticated || debouncedQuery.length < 2) {
       setMemoryHits([]);
       return;
     }
     let cancelled = false;
-    const handle = setTimeout(async () => {
-      const res = await searchMemories({ query, limit: 8, offset: 0 });
-      if (!cancelled) setMemoryHits(res.memories);
-    }, 180);
+    void searchMemories({ query: debouncedQuery, limit: 8, offset: 0 }).then(
+      (res) => {
+        if (!cancelled) setMemoryHits(res.memories);
+      },
+    );
     return () => {
       cancelled = true;
-      clearTimeout(handle);
     };
-  }, [open, query, isAuthenticated, searchMemories]);
+  }, [open, debouncedQuery, isAuthenticated, searchMemories]);
 
   const runAndClose = (fn: () => void) => {
     fn();

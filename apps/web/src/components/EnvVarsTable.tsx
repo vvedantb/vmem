@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { parseEnvVars } from "@vmem/shared";
+import { useCopyToClipboard, useTimeout } from "usehooks-ts";
 import {
   Button,
   Dialog,
@@ -74,6 +75,9 @@ export function EnvVarsTable({
   );
   const [revealingKey, setRevealingKey] = useState<string | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [, copyToClipboard] = useCopyToClipboard();
+
+  useTimeout(() => setCopiedKey(null), copiedKey !== null ? 1500 : null);
 
   const [showBulkPaste, setShowBulkPaste] = useState(false);
   const [bulkText, setBulkText] = useState("");
@@ -197,9 +201,12 @@ export function EnvVarsTable({
       }
       value = result;
     }
-    await navigator.clipboard.writeText(value);
+    const copied = await copyToClipboard(value);
+    if (!copied) {
+      toast.error("Failed to copy to clipboard");
+      return;
+    }
     setCopiedKey(key);
-    setTimeout(() => setCopiedKey(null), 1500);
   };
 
   const handleKeyInputPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {

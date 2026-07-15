@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAction } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
+import { useCopyToClipboard, useTimeout } from "usehooks-ts";
 import {
   Dialog,
   DialogContent,
@@ -27,9 +28,12 @@ type CreatedKey = FunctionReturnType<typeof api.apiKeys.createMy>;
 
 export default function ApiKeyModal({ isOpen, onClose }: ApiKeyModalProps) {
   const createApiKey = useAction(api.apiKeys.createMy);
+  const [, copyToClipboard] = useCopyToClipboard();
   const [step, setStep] = useState<ModalStep>("create");
   const [createdKey, setCreatedKey] = useState<CreatedKey | null>(null);
   const [copied, setCopied] = useState(false);
+
+  useTimeout(() => setCopied(false), copied ? 2000 : null);
 
   const {
     register,
@@ -65,14 +69,13 @@ export default function ApiKeyModal({ isOpen, onClose }: ApiKeyModalProps) {
   const handleCopy = async () => {
     if (!createdKey) return;
 
-    try {
-      await navigator.clipboard.writeText(createdKey.key);
-      setCopied(true);
-      toast.success("API key copied to clipboard");
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
+    const ok = await copyToClipboard(createdKey.key);
+    if (!ok) {
       toast.error("Failed to copy to clipboard");
+      return;
     }
+    setCopied(true);
+    toast.success("API key copied to clipboard");
   };
 
   const handleClose = () => {

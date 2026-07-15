@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-07-15 — Adopt usehooks-ts for common web utilities
+
+Replaced hand-rolled localStorage, matchMedia, debounce, clipboard+timeout,
+and OAuth interval/listener helpers with `useLocalStorage`, `useMediaQuery`,
+`useDebounceValue`, `useCopyToClipboard`/`useTimeout`, and
+`useInterval`/`useEventListener`/`useTimeout`.
+
 ## 2026-07-15 — Web app structure simplification
 
 Moved graph helpers and URL search schemas into `lib/`, extracted fat

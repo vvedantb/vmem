@@ -1,5 +1,6 @@
 import { lazy, Suspense, useState, useEffect, useRef } from "react";
 import { useMutation, useQuery } from "convex/react";
+import { useMediaQuery } from "usehooks-ts";
 import { toast } from "sonner";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 import { api } from "@vmem/backend";
@@ -174,7 +175,7 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
     n: 0,
   });
   const [copyReady, setCopyReady] = useState(false);
-  const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const isMobileViewport = useMediaQuery("(max-width: 767px)");
   const copyDocumentRef = useRef<(() => Promise<void>) | null>(null);
   const restoreDocumentRef = useRef<
     ((markdown: string) => Promise<void>) | null
@@ -234,16 +235,6 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
   ) {
     restoreDocumentRef.current = handler;
   }
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(max-width: 767px)");
-    function updateViewport() {
-      setIsMobileViewport(mediaQuery.matches);
-    }
-    updateViewport();
-    mediaQuery.addEventListener("change", updateViewport);
-    return () => mediaQuery.removeEventListener("change", updateViewport);
-  }, []);
 
   useEffect(() => {
     if (hasDocId) return;

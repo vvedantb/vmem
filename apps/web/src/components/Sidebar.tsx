@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useMediaQuery } from "usehooks-ts";
 import { motion } from "motion/react";
 import {
   Button,
@@ -112,17 +113,10 @@ export default function Sidebar({
     setMobileMenuOpen(false);
   }, [pathname]);
 
+  const isDesktopViewport = useMediaQuery("(min-width: 768px)");
   useEffect(() => {
-    const mediaQuery = window.matchMedia("(min-width: 768px)");
-    const closeOnDesktop = (event: MediaQueryListEvent) => {
-      if (event.matches) {
-        setMobileMenuOpen(false);
-      }
-    };
-
-    mediaQuery.addEventListener("change", closeOnDesktop);
-    return () => mediaQuery.removeEventListener("change", closeOnDesktop);
-  }, []);
+    if (isDesktopViewport) setMobileMenuOpen(false);
+  }, [isDesktopViewport]);
 
   const handleSidebarBack = () => {
     if (activeProfileId === undefined) {

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAction } from "convex/react";
+import { useEventListener, useInterval, useTimeout } from "usehooks-ts";
 import {
   Dialog,
   DialogContent,
@@ -43,24 +44,34 @@ export default function OAuthModal({
 }: OAuthModalProps) {
   const [step, setStep] = useState<OAuthStep>("authorize");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [pollPopup, setPollPopup] = useState(false);
+  const [pendingClose, setPendingClose] = useState(false);
   const popupRef = useRef<Window | null>(null);
-  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const startOAuth = useAction(api.connectors.oauth.startOAuth);
 
-  // cleanup function
   const cleanup = useCallback(() => {
-    if (pollIntervalRef.current) {
-      clearInterval(pollIntervalRef.current);
-      pollIntervalRef.current = null;
-    }
+    setPollPopup(false);
     if (popupRef.current && !popupRef.current.closed) {
       popupRef.current.close();
     }
     popupRef.current = null;
   }, []);
 
-  // handle message from popup
+  const finishSuccess = useCallback(() => {
+    setStep("complete");
+    setPendingClose(true);
+  }, []);
+
+  useTimeout(
+    () => {
+      onComplete();
+      onClose();
+      setPendingClose(false);
+    },
+    pendingClose ? 1000 : null,
+  );
+
   const handleMessage = useCallback(
     (event: MessageEvent) => {
       const parsed = connectorOAuthCompleteSchema.safeParse(event.data);
@@ -69,55 +80,53 @@ export default function OAuthModal({
       cleanup();
 
       if (parsed.data.success) {
-        setStep("complete");
-        setTimeout(() => {
-          onComplete();
-          onClose();
-        }, 1000);
+        finishSuccess();
       } else {
         setStep("error");
         setErrorMessage(parsed.data.error ?? "Connection failed");
       }
     },
-    [cleanup, onComplete, onClose],
+    [cleanup, finishSuccess],
   );
 
-  // setup message listener
-  useEffect(() => {
-    window.addEventListener("message", handleMessage);
-    return () => {
-      window.removeEventListener("message", handleMessage);
-      cleanup();
-    };
-  }, [handleMessage, cleanup]);
+  useEventListener("message", handleMessage);
 
-  // reset state when modal opens
+  useInterval(
+    () => {
+      const popup = popupRef.current;
+      if (!popup || !popup.closed) return;
+      cleanup();
+      setStep((currentStep) =>
+        currentStep === "connecting" ? "authorize" : currentStep,
+      );
+    },
+    pollPopup ? 500 : null,
+  );
+
   useEffect(() => {
     if (isOpen) {
       setStep("authorize");
       setErrorMessage(null);
+      setPendingClose(false);
     } else {
       cleanup();
     }
   }, [isOpen, cleanup]);
+
+  useEffect(() => cleanup, [cleanup]);
 
   const handleAuthorize = async () => {
     setStep("connecting");
     setErrorMessage(null);
 
     try {
-      // get OAuth URL from Convex (pass origin for postMessage security)
       const result = await startOAuth({
         connectorId,
         returnUrl: window.location.origin,
       });
 
       if (result.alreadyConnected) {
-        setStep("complete");
-        setTimeout(() => {
-          onComplete();
-          onClose();
-        }, 1000);
+        finishSuccess();
         return;
       }
 
@@ -127,7 +136,6 @@ export default function OAuthModal({
         return;
       }
 
-      // open popup
       const popup = window.open(
         result.authUrl,
         "oauth-popup",
@@ -143,20 +151,7 @@ export default function OAuthModal({
       }
 
       popupRef.current = popup;
-
-      // poll for popup close (user cancelled)
-      pollIntervalRef.current = setInterval(() => {
-        if (popup.closed) {
-          cleanup();
-          // only set to authorize if we haven't received a message
-          setStep((currentStep) => {
-            if (currentStep === "connecting") {
-              return "authorize";
-            }
-            return currentStep;
-          });
-        }
-      }, 500);
+      setPollPopup(true);
     } catch (err) {
       setStep("error");
       setErrorMessage(
@@ -199,7 +194,7 @@ export default function OAuthModal({
           </DialogTitle>
         </DialogHeader>
 
-        {step === "authorize" && (
+        {step === "authorize" ? (
           <div className="space-y-4">
             <div className="flex items-center gap-3 p-4 rounded-lg bg-surface-secondary/50">
               <IconLock size={20} className="text-muted flex-shrink-0" />
@@ -229,9 +224,9 @@ export default function OAuthModal({
               </ul>
             </div>
           </div>
-        )}
+        ) : null}
 
-        {step === "connecting" && (
+        {step === "connecting" ? (
           <div className="py-8 space-y-4 text-center">
             <IconLoader2
               size={32}
@@ -249,9 +244,9 @@ export default function OAuthModal({
               <div className="h-full w-1/3 rounded-full bg-surface-tertiary animate-indeterminate" />
             </div>
           </div>
-        )}
+        ) : null}
 
-        {step === "complete" && (
+        {step === "complete" ? (
           <div className="py-8 space-y-4 text-center">
             <div className="w-12 h-12 rounded-full bg-success/10 flex items-center justify-center mx-auto">
               <IconCheck size={24} className="text-success" />
@@ -265,9 +260,9 @@ export default function OAuthModal({
               </p>
             </div>
           </div>
-        )}
+        ) : null}
 
-        {step === "error" && (
+        {step === "error" ? (
           <div className="py-8 space-y-4 text-center">
             <div className="w-12 h-12 rounded-full bg-danger/10 flex items-center justify-center mx-auto">
               <IconAlertCircle size={24} className="text-danger" />
@@ -279,10 +274,10 @@ export default function OAuthModal({
               </p>
             </div>
           </div>
-        )}
+        ) : null}
 
         <DialogFooter>
-          {step === "authorize" && (
+          {step === "authorize" ? (
             <>
               <Button
                 variant="ghost"
@@ -291,26 +286,26 @@ export default function OAuthModal({
               >
                 Cancel
               </Button>
-              <Button onClick={handleAuthorize}>
+              <Button onClick={() => void handleAuthorize()}>
                 Authorize
                 <IconExternalLink size={16} />
               </Button>
             </>
-          )}
+          ) : null}
 
-          {step === "connecting" && (
+          {step === "connecting" ? (
             <p className="text-sm text-muted w-full text-center">
               Do not close this window
             </p>
-          )}
+          ) : null}
 
-          {step === "complete" && (
+          {step === "complete" ? (
             <p className="text-sm text-muted w-full text-center">
               Redirecting...
             </p>
-          )}
+          ) : null}
 
-          {step === "error" && (
+          {step === "error" ? (
             <>
               <Button
                 variant="ghost"
@@ -321,7 +316,7 @@ export default function OAuthModal({
               </Button>
               <Button onClick={handleRetry}>Try Again</Button>
             </>
-          )}
+          ) : null}
         </DialogFooter>
       </DialogContent>
     </Dialog>
