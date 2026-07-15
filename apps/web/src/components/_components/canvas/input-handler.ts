@@ -13,7 +13,6 @@ interface Callbacks {
   onHoverNode: (node: GraphNode | null) => void;
   onHoverEdge: (idx: number | null) => void;
   onClickNode: (nodeId: string) => void;
-  onLinkNodes: (sourceId: string, targetId: string) => void;
   onFocusNode: (nodeId: string) => void;
 }
 
@@ -35,13 +34,15 @@ interface PanSample {
   t: number;
 }
 
-type InputMode = "idle" | "node-drag" | "link" | "pan" | "pinch";
+type InputMode = "idle" | "node-drag" | "pan" | "pinch";
 
 const DRAG_THRESHOLD_MOUSE = 3;
 const DRAG_THRESHOLD_TOUCH = 5;
 const TAP_MAX_MS = 300;
 const MOMENTUM_MAX_MS = 200;
 
+// AI-generated (Claude), prompt: "pointer handlers for pan drag pinch zoom and link create"
+// Modified by me: drag thresholds momentum samples; removed shift-drag link gesture
 export function attachInputHandlers(
   canvas: CanvasInputTarget,
   interaction: InteractionState,
@@ -195,24 +196,6 @@ export function attachInputHandlers(
     }
   }
 
-  function updateLinkHover(screenX: number, screenY: number): void {
-    const world = worldAt(screenX, screenY);
-    interaction.mouseWorldX = world.x;
-    interaction.mouseWorldY = world.y;
-    const hitNode = getNodeAt(
-      spatialIndexRef.current,
-      world.x,
-      world.y,
-      viewport.scale,
-    );
-    const hoveredId =
-      hitNode && hitNode.id !== interaction.linkSourceId ? hitNode.id : null;
-    if (hoveredId !== interaction.hoveredNodeId) {
-      interaction.hoveredNodeId = hoveredId;
-    }
-    canvas.style.cursor = hoveredId ? "crosshair" : "default";
-  }
-
   function onPointerDown(e: PointerEvent): void {
     if (e.button !== 0 && e.pointerType === "mouse") return;
 
@@ -236,15 +219,6 @@ export function attachInputHandlers(
     clearPanMomentum();
 
     const hitNode = nodeAt(x, y);
-    if (hitNode && e.shiftKey && e.pointerType === "mouse") {
-      mode = "link";
-      interaction.linkSourceId = hitNode.id;
-      const world = worldAt(x, y);
-      interaction.mouseWorldX = world.x;
-      interaction.mouseWorldY = world.y;
-      return;
-    }
-
     if (hitNode) {
       mode = "node-drag";
       interaction.draggedNodeId = hitNode.id;
@@ -290,12 +264,6 @@ export function attachInputHandlers(
       hasDragged = true;
     }
 
-    if (mode === "link") {
-      activePointers.set(e.pointerId, { x, y });
-      updateLinkHover(x, y);
-      return;
-    }
-
     if (mode === "node-drag" && interaction.draggedNodeId) {
       activePointers.set(e.pointerId, { x, y });
       const world = worldAt(x, y);
@@ -326,13 +294,6 @@ export function attachInputHandlers(
     pointerType?: string;
     button?: number;
   }): void {
-    if (mode === "link" && interaction.linkSourceId) {
-      const hitNode = nodeAt(endX, endY);
-      if (hitNode && hitNode.id !== interaction.linkSourceId) {
-        callbacks.onLinkNodes(interaction.linkSourceId, hitNode.id);
-      }
-    }
-    interaction.linkSourceId = null;
     interaction.hoveredNodeId = null;
 
     if (mode === "node-drag" && interaction.draggedNodeId) {

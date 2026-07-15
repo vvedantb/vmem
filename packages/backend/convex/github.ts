@@ -1,8 +1,5 @@
+import { generateState } from "arctic";
 import { v } from "convex/values";
-import {
-  exchangeWebFlowCode,
-  getWebFlowAuthorizationUrl,
-} from "@octokit/oauth-methods";
 import {
   internalAction,
   internalMutation,
@@ -12,10 +9,13 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { authAction, authMutation, authQuery } from "./auth";
+import { createGitHubOAuth } from "./lib/arcticOAuth";
 import { encryptToken, getEnvOrThrow } from "./lib/crypto";
 import { createGithubOctokit } from "../engine/github/octokit";
 import { z } from "zod";
 import { githubConnectionFields } from "./validators";
+
+const GITHUB_OAUTH_SCOPES = ["repo", "read:user"];
 
 export const getConnection = authQuery({
   args: {},
@@ -35,10 +35,10 @@ export const getConnection = authQuery({
 export const startGitHubOAuth = authAction({
   args: { returnUrl: v.string() },
   handler: async (ctx, args) => {
-    const clientId = getEnvOrThrow("GITHUB_CLIENT_ID");
     const convexSiteUrl = getEnvOrThrow("CONVEX_SITE_URL");
+    const redirectUri = `${convexSiteUrl}/api/auth/github/callback`;
 
-    const state = crypto.randomUUID();
+    const state = generateState();
     const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
 
     await ctx.runMutation(internal.oauthState.insertOAuthStateInternal, {
@@ -48,16 +48,9 @@ export const startGitHubOAuth = authAction({
       expiresAt,
     });
 
-    const redirectUri = `${convexSiteUrl}/api/auth/github/callback`;
-    const { url } = getWebFlowAuthorizationUrl({
-      clientType: "oauth-app",
-      clientId,
-      redirectUrl: redirectUri,
-      scopes: ["repo", "read:user"],
-      state,
-    });
-
-    return url;
+    return createGitHubOAuth(redirectUri)
+      .createAuthorizationURL(state, GITHUB_OAUTH_SCOPES)
+      .toString();
   },
 });
 
@@ -89,18 +82,15 @@ export const handleGitHubCallbackInternal = internalAction({
     }
 
     // 2. Exchange code for access token
-    const clientId = getEnvOrThrow("GITHUB_CLIENT_ID");
-    const clientSecret = getEnvOrThrow("GITHUB_CLIENT_SECRET");
+    const convexSiteUrl = getEnvOrThrow("CONVEX_SITE_URL");
+    const redirectUri = `${convexSiteUrl}/api/auth/github/callback`;
 
     let accessToken: string;
     try {
-      const { authentication } = await exchangeWebFlowCode({
-        clientType: "oauth-app",
-        clientId,
-        clientSecret,
-        code: args.code,
-      });
-      accessToken = authentication.token;
+      const tokens = await createGitHubOAuth(
+        redirectUri,
+      ).validateAuthorizationCode(args.code);
+      accessToken = tokens.accessToken();
     } catch {
       return {
         error: "token_exchange_failed",

@@ -1,4 +1,4 @@
-import { StrictMode } from "react";
+﻿import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
 import { ClerkProvider, useAuth } from "@clerk/clerk-react";
@@ -7,11 +7,7 @@ import { env } from "./env";
 import { convex } from "./lib/convex-client";
 import { AppSkeleton } from "./components/shell/AppSkeleton";
 import { isChunkLoadError } from "./lib/utils/isChunkLoadError";
-import { saveMcpOauthParamsFromUrl } from "./lib/mcpOauthStorage";
 import "./globals.css";
-
-// snapshot MCP OAuth params before ClerkProvider mounts
-saveMcpOauthParamsFromUrl();
 
 // handles stale deployment detection
 function handleStaleDeployment(event: Event) {

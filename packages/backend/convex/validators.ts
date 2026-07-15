@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { omit } from "convex-helpers";
 import { zodToConvex } from "convex-helpers/server/zod";
 import { z } from "zod";
 import {
@@ -134,26 +135,13 @@ export const userSettingsFields = {
   lastDreamRunAt: v.optional(v.number()),
 };
 
-export const userSettingsPatchFields = {
-  theme: userSettingsFields.theme,
-  language: userSettingsFields.language,
-  memoryAutoTag: userSettingsFields.memoryAutoTag,
-  notificationsEnabled: userSettingsFields.notificationsEnabled,
-  extensionAutoSyncEnabled: userSettingsFields.extensionAutoSyncEnabled,
-  extensionAutoSyncIntervalMinutes:
-    userSettingsFields.extensionAutoSyncIntervalMinutes,
-  extensionSelectionPopupEnabled:
-    userSettingsFields.extensionSelectionPopupEnabled,
-  memoryAutoExtract: userSettingsFields.memoryAutoExtract,
-  memoryConfidenceThreshold: userSettingsFields.memoryConfidenceThreshold,
-  notifyMemoryConflicts: userSettingsFields.notifyMemoryConflicts,
-  notifyNewMemories: userSettingsFields.notifyNewMemories,
-  notifyMemoriesExpiring: userSettingsFields.notifyMemoriesExpiring,
-  aboutMe: userSettingsFields.aboutMe,
-  preferences: userSettingsFields.preferences,
-  dreamModeAutoAccept: userSettingsFields.dreamModeAutoAccept,
-  dreamModeAutomatic: userSettingsFields.dreamModeAutomatic,
-};
+export const userSettingsPatchFields = omit(userSettingsFields, [
+  "userId",
+  "defaultProfiles",
+  "dreamModeScheduleEnabled",
+  "dreamModeScheduleTime",
+  "lastDreamRunAt",
+]);
 
 export const oauthStateFields = {
   state: v.string(),
@@ -162,15 +150,11 @@ export const oauthStateFields = {
   expiresAt: v.number(),
   connectorId: v.optional(v.id("connectors")),
   provider: v.optional(v.string()),
+  /** Google PKCE verifier — required for Google code exchange */
+  codeVerifier: v.optional(v.string()),
 };
 
-export const oauthStatePayloadFields = {
-  userId: oauthStateFields.userId,
-  returnUrl: oauthStateFields.returnUrl,
-  expiresAt: oauthStateFields.expiresAt,
-  connectorId: oauthStateFields.connectorId,
-  provider: oauthStateFields.provider,
-};
+export const oauthStatePayloadFields = omit(oauthStateFields, ["state"]);
 
 export const githubConnectionFields = {
   userId: v.id("users"),
@@ -188,12 +172,9 @@ export const contextPromptCacheFields = {
   pendingRegeneration: v.boolean(),
 };
 
-export const contextPromptCacheContentFields = {
-  content: contextPromptCacheFields.content,
-  generatedAt: contextPromptCacheFields.generatedAt,
-  memoryCountAtGeneration: contextPromptCacheFields.memoryCountAtGeneration,
-  pendingRegeneration: contextPromptCacheFields.pendingRegeneration,
-};
+export const contextPromptCacheContentFields = omit(contextPromptCacheFields, [
+  "userId",
+]);
 
 export const teamFields = {
   name: v.string(),

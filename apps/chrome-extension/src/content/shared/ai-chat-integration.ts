@@ -47,6 +47,8 @@ let initialized = false;
 
 // call once per content script registers document level listeners for
 // auto search and auto capture on the given ai chat platform
+// AI-generated (Claude), prompt: "chatgpt claude auto search panel and send time context inject"
+// Modified by me: dedupe capture and skip when context already prefixed
 export function setupAIChatIntegration(config: AIChatConfig): void {
   // guard against double init (spa re injection)
   if (initialized) return;

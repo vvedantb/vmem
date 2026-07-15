@@ -7,7 +7,7 @@ import { isCodebaseSyncStalled } from "@vmem/shared";
 import type { Doc, Id } from "./_generated/dataModel";
 import { decryptToken } from "./lib/crypto";
 import { createGithubOctokit } from "../engine/github/octokit";
-import { retrier } from "./retrier";
+import { codebaseSyncPool } from "./workpools";
 import { z } from "zod";
 import {
   assertContentDeletable,
@@ -207,11 +207,12 @@ export const removeCodebase = authMutation({
     });
     await ctx.db.delete(codebase._id);
     if (clerkId) {
-      // retried (not plain scheduled) so a transient Neo4j outage can't leave
-      await retrier.run(
+      // pooled + retried so a transient Neo4j outage cannot leave orphans
+      await codebaseSyncPool.enqueueAction(
         ctx,
         internal.neo4jActions.codebases.deleteCodebaseInternal,
         { clerkId, codebaseId: codebase._id },
+        { retry: true },
       );
     }
   },

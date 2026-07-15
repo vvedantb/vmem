@@ -107,6 +107,8 @@ function addEdgeDegrees(
 // ---- Build graph data ----
 
 // transforms API data into simulation-ready nodes + edges
+// AI-generated (Claude), prompt: "build canvas graph from api nodes with degree sized hubs"
+// Modified by me: tag relates wiki parent mentions merge without duplicate pairs
 export function buildGraphData(
   apiNodes: ApiGraphNode[],
   apiTagEdges: ApiTagEdge[],

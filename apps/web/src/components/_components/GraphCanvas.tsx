@@ -58,7 +58,6 @@ interface GraphCanvasProps {
   onHoverNode: (info: HoveredNodeInfo | null) => void;
   onHoverEdge?: (info: HoveredEdgeInfo | null) => void;
   onClickNode: (nodeId: string) => void;
-  onLinkNodes: (sourceId: string, targetId: string) => void;
   onFocusNode?: (nodeId: string) => void;
   ref?: Ref<GraphCanvasHandle>;
 }
@@ -75,7 +74,6 @@ function GraphCanvas({
   onHoverNode,
   onHoverEdge,
   onClickNode,
-  onLinkNodes,
   onFocusNode,
   ref,
 }: GraphCanvasProps) {
@@ -93,7 +91,6 @@ function GraphCanvas({
     onHoverNode,
     onHoverEdge,
     onClickNode,
-    onLinkNodes,
     onFocusNode,
   });
 
@@ -104,10 +101,7 @@ function GraphCanvas({
     hoveredNodeId: null,
     hoveredEdgeIndex: null,
     draggedNodeId: null,
-    linkSourceId: null,
     isPanning: false,
-    mouseWorldX: 0,
-    mouseWorldY: 0,
   });
   const spatialIndexRef = useRef(createSpatialIndex());
   const hasFittedRef = useRef(false);
@@ -141,7 +135,6 @@ function GraphCanvas({
     onHoverNode,
     onHoverEdge,
     onClickNode,
-    onLinkNodes,
     onFocusNode,
   };
   needsRenderRef.current = true;
@@ -242,9 +235,6 @@ function GraphCanvas({
         onClickNode(nodeId) {
           callbacksRef.current.onClickNode(nodeId);
         },
-        onLinkNodes(sourceId, targetId) {
-          callbacksRef.current.onLinkNodes(sourceId, targetId);
-        },
         onFocusNode(nodeId) {
           callbacksRef.current.onFocusNode?.(nodeId);
         },
@@ -330,6 +320,8 @@ function GraphCanvas({
     let lastVpScale = Number.NaN;
     let wasMoving = true;
 
+    // AI-generated (Claude), prompt: "raf loop that skips redraws and blits world cache during pan zoom"
+    // Modified by me: settle snapshot timing and neighbor highlight for hover focus
     function tick() {
       sim.tick();
       tickViewport(viewportRef.current);
@@ -361,10 +353,7 @@ function GraphCanvas({
       const interactionKey =
         (hoverVisualsEnabled
           ? `${ix.hoveredNodeId}|${ix.hoveredEdgeIndex}`
-          : "-") +
-        `|${ix.draggedNodeId}|` +
-        `${ix.linkSourceId}|${ix.isPanning}|` +
-        (ix.linkSourceId ? `${ix.mouseWorldX},${ix.mouseWorldY}` : "");
+          : "-") + `|${ix.draggedNodeId}|${ix.isPanning}`;
       const interactionChanged = interactionKey !== lastInteractionKey;
       lastInteractionKey = interactionKey;
 

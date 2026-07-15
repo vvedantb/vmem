@@ -1,3 +1,6 @@
+<!-- AI-generated (Claude), prompt: "document the shared package role in vmem" -->
+<!-- Modified by me: clarified what belongs versus stays in backend -->
+
 # @vmem/shared
 
 Cross-app constants and client-safe prompt helpers. Pure TypeScript — no Convex, Neo4j, or React.

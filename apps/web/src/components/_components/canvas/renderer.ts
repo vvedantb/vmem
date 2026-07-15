@@ -281,6 +281,8 @@ export interface RenderFrameState {
   gestureActive: boolean;
 }
 
+// AI-generated (Claude), prompt: "canvas renderer with world layer blit cache for pan zoom"
+// Modified by me: dimming buckets search focus and connector logo stamps
 export function render(frame: RenderFrameState): void {
   const { ctx, canvasW, canvasH, dpr, vp, theme, worldCache, viewportOnly } =
     frame;
@@ -790,40 +792,4 @@ function renderScene(frame: RenderFrameState): void {
   }
 
   ctx.restore();
-
-  // --- Link drag line ---
-  if (interaction.linkSourceId) {
-    const sourceNode = nodeById.get(interaction.linkSourceId);
-    if (sourceNode) {
-      const sx = (sourceNode.x ?? 0) * vp.scale + vp.offsetX + canvasW / 2;
-      const sy = (sourceNode.y ?? 0) * vp.scale + vp.offsetY + canvasH / 2;
-      const mx = interaction.mouseWorldX * vp.scale + vp.offsetX + canvasW / 2;
-      const my = interaction.mouseWorldY * vp.scale + vp.offsetY + canvasH / 2;
-
-      ctx.setLineDash([6, 4]);
-      ctx.strokeStyle = theme.label.color;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(sx, sy);
-      ctx.lineTo(mx, my);
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      if (
-        interaction.hoveredNodeId &&
-        interaction.hoveredNodeId !== interaction.linkSourceId
-      ) {
-        const target = nodeById.get(interaction.hoveredNodeId);
-        if (target) {
-          const tx = (target.x ?? 0) * vp.scale + vp.offsetX + canvasW / 2;
-          const ty = (target.y ?? 0) * vp.scale + vp.offsetY + canvasH / 2;
-          ctx.strokeStyle = theme.label.color;
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.arc(tx, ty, target.size * 2 * vp.scale + 8, 0, TWO_PI);
-          ctx.stroke();
-        }
-      }
-    }
-  }
 }

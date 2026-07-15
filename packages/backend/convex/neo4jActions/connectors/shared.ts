@@ -81,6 +81,8 @@ export interface SyncedDoc {
   sourceUrl: string;
 }
 
+// AI-generated (Claude), prompt: "upsert connector synced documents into memories with capped embedding and progress reporting"
+// Modified by me: embed content cap and sync complete error helpers
 export async function upsertSyncedDocs(
   ctx: ActionCtx,
   params: {

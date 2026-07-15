@@ -21,6 +21,8 @@ export function markDirty(index: SpatialIndex): void {
   index.dirty = true;
 }
 
+// AI-generated (Claude), prompt: "spatial hash hit testing for graph nodes and edge segments"
+// Modified by me: numeric cell keys and bbox reject before edge projection
 export function rebuildIndex(index: SpatialIndex, nodes: GraphNode[]): void {
   if (!index.dirty) return;
 

@@ -1,3 +1,4 @@
+import { clamp } from "es-toolkit/math";
 import { z } from "zod";
 import { parseJsonString } from "../llm/extractJsonString";
 import { truncateAtWord } from "../llm/truncateAtWord";
@@ -37,10 +38,6 @@ export interface ParsedSynthesis {
   confidenceAdjustments: ConfidenceAdjustment[];
 }
 
-function clamp01(value: number | undefined): number {
-  return value !== undefined ? Math.max(0, Math.min(1, value)) : 0;
-}
-
 export function filterValidIds(
   ids: readonly unknown[] | undefined,
   validIds: ReadonlySet<string>,
@@ -55,6 +52,8 @@ export function filterValidIds(
   });
 }
 
+// AI-generated (Claude), prompt: "build and parse dream synthesis llm prompts that emit insight connection skip and confidence adjustments"
+// Modified by me: narrowed schemas and id filtering against cluster membership
 export function buildDreamSynthesisPrompt(
   cluster: DreamClusterMember[],
 ): string {
@@ -170,7 +169,7 @@ function parseConfidenceAdjustments(
     return [
       {
         memoryId: entry.data.memoryId,
-        newConfidence: Math.max(0.05, Math.min(1, entry.data.newConfidence)),
+        newConfidence: clamp(entry.data.newConfidence, 0.05, 1),
         reason: entry.data.reason?.slice(0, 300) ?? "",
       },
     ];
@@ -191,7 +190,7 @@ export function parseDreamSynthesisResponse(
   const title = (data.title ?? "").slice(0, 200);
   const content = (data.content ?? "").slice(0, 800);
   const reason = (data.reason ?? "").slice(0, 600);
-  const confidence = clamp01(data.confidence);
+  const confidence = clamp(data.confidence ?? 0, 0, 1);
 
   const validIds = new Set<string>(clusterIds);
   const confidenceAdjustments = parseConfidenceAdjustments(
@@ -311,7 +310,7 @@ export function parseMergeSynthesisResponse(
   const sourceMemoryIds = filterValidIds(data.sourceMemoryIds, validIds);
   if (sourceMemoryIds.length < 2) return null;
 
-  const confidence = clamp01(data.confidence);
+  const confidence = clamp(data.confidence ?? 0, 0, 1);
 
   return { title, content, sourceMemoryIds, confidence };
 }

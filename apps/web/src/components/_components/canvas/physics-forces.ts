@@ -52,6 +52,8 @@ export interface GraphForces<
   setGravity: (gravity: number) => void;
 }
 
+// AI-generated (Claude), prompt: "obsidian style d3 force bundle shared by worker and main thread"
+// Modified by me: charge gravity multipliers and collide padding tuned to node size
 export function createGraphForces<
   N extends PhysicsNode,
   L extends SimulationLinkDatum<N>,

@@ -466,6 +466,8 @@ async function maybeRefreshDreamPortrait(
   }
 }
 
+// AI-generated (Claude), prompt: "run depth gated dream mode with anomaly synthesis merge passes confidence reweight and optional portrait refresh"
+// Modified by me: auto accept gates overlap checks and depth param tables
 export const runDreamForProfileInternal = internalAction({
   args: {
     clerkId: v.string(),

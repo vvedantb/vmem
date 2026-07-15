@@ -1,3 +1,5 @@
+// AI-generated (Claude), prompt: "write unit tests for chrome extension save toast success and failure messages"
+// Modified by me: tightened assert messages and colors
 import test from "node:test";
 import assert from "node:assert/strict";
 import { toastForSaveResult } from "../src/background/save-toast.ts";

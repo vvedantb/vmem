@@ -1,3 +1,6 @@
+<!-- AI-generated (Claude), prompt: "write chrome extension readme for vmem" -->
+<!-- Modified by me: updated wxt setup and env file steps -->
+
 # vmem Chrome Extension
 
 Browser extension for saving web content, conversations, bookmarks, and history to vmem.

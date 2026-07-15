@@ -1,3 +1,5 @@
+// AI-generated (Claude), prompt: "unit tests for memory text chunking threshold and overlap"
+// Modified by me: checked overlapping offsets on long prose
 import { describe, expect, it } from "vitest";
 import { chunkText, shouldChunk } from "../../engine/neo4j/chunking";
 

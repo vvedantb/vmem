@@ -1,3 +1,5 @@
+// AI-generated (Claude), prompt: "unit tests for dream auto trigger quiet window and daily cap logic"
+// Modified by me: fixed now snapshot helpers for quiet gap cases
 import { describe, expect, it } from "vitest";
 import {
   DAILY_CAP,

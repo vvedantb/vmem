@@ -1,3 +1,5 @@
+// AI-generated (Claude), prompt: "unit tests for canvas spatial index hit testing on nodes and edges"
+// Modified by me: added dirty rebuild skip case
 import { describe, expect, it } from "vitest";
 import type { GraphNode, ResolvedEdge } from "@/lib/graph/types";
 import {

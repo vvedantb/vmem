@@ -1,9 +1,9 @@
 import type { ActionCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
+import { createGoogleOAuth, oauthTokenType } from "./arcticOAuth";
 import { decryptToken, encryptToken, getEnvOrThrow } from "./crypto";
 import { pickGoogleTokenConnectorId } from "../neo4jActions/connectors/googleShared";
-import { oauthAccessTokenSchema, safeParseResponseJson } from "./jsonBoundary";
 
 type ConnectorAccessTokenResult =
   | { ok: true; accessToken: string; tokenConnectorId: Id<"connectors"> }
@@ -13,6 +13,10 @@ function isGoogleProvider(
   provider: Doc<"connectors">["provider"],
 ): provider is "google_drive" {
   return provider === "google_drive";
+}
+
+function googleCallbackRedirectUri(): string {
+  return `${getEnvOrThrow("CONVEX_SITE_URL")}/api/auth/connector/callback`;
 }
 
 export async function resolveConnectorAccessToken(
@@ -56,22 +60,13 @@ export async function resolveConnectorAccessToken(
     }
 
     const refreshToken = await decryptToken(tokens.refreshToken);
-    const refreshUrl = "https://oauth2.googleapis.com/token";
-    const clientId = getEnvOrThrow("GOOGLE_CLIENT_ID");
-    const clientSecret = getEnvOrThrow("GOOGLE_CLIENT_SECRET");
 
-    const refreshRes = await fetch(refreshUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        client_id: clientId,
-        client_secret: clientSecret,
-        refresh_token: refreshToken,
-        grant_type: "refresh_token",
-      }),
-    });
-
-    if (!refreshRes.ok) {
+    let refreshed;
+    try {
+      refreshed = await createGoogleOAuth(
+        googleCallbackRedirectUri(),
+      ).refreshAccessToken(refreshToken);
+    } catch {
       await ctx.runMutation(internal.connectors.crud.markDisconnectedInternal, {
         id: tokenConnectorId,
       });
@@ -81,30 +76,21 @@ export async function resolveConnectorAccessToken(
       return { ok: false, message: "Token refresh failed — please reconnect" };
     }
 
-    const refreshData = await safeParseResponseJson(
-      refreshRes,
-      oauthAccessTokenSchema,
-    );
-    if (!refreshData || !refreshData.access_token) {
-      console.error("Token refresh returned an unparseable response");
-      return { ok: false, message: "Token refresh failed — please reconnect" };
-    }
-
-    const encryptedAccess = await encryptToken(refreshData.access_token);
-    const encryptedRefresh = refreshData.refresh_token
-      ? await encryptToken(refreshData.refresh_token)
+    const encryptedAccess = await encryptToken(refreshed.accessToken());
+    const encryptedRefresh = refreshed.hasRefreshToken()
+      ? await encryptToken(refreshed.refreshToken())
       : tokens.refreshToken;
 
     await ctx.runMutation(internal.connectors.tokens.storeTokensInternal, {
       connectorId: tokenConnectorId,
       accessToken: encryptedAccess,
       refreshToken: encryptedRefresh,
-      expiresAt: Date.now() + (refreshData.expires_in ?? 3600) * 1000,
-      tokenType: tokens.tokenType,
+      expiresAt: refreshed.accessTokenExpiresAt().getTime(),
+      tokenType: oauthTokenType(refreshed),
       scope: tokens.scope,
     });
 
-    accessToken = refreshData.access_token;
+    accessToken = refreshed.accessToken();
   }
 
   return { ok: true, accessToken, tokenConnectorId };

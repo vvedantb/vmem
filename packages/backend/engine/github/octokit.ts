@@ -1,10 +1,15 @@
 import { Octokit } from "@octokit/core";
+import { retry } from "@octokit/plugin-retry";
 
 const GITHUB_API_VERSION = "2022-11-28";
 
-// shared Octokit client for GitHub REST (Bearer token)
-export function createGithubOctokit(token: string): Octokit {
-  return new Octokit({
+const GithubOctokit = Octokit.plugin(retry);
+
+export type GithubOctokitClient = InstanceType<typeof GithubOctokit>;
+
+// shared Octokit client for GitHub REST (Bearer token + automatic retries)
+export function createGithubOctokit(token: string): GithubOctokitClient {
+  return new GithubOctokit({
     auth: token,
     request: {
       headers: {

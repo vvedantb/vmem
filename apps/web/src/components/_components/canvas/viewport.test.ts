@@ -1,3 +1,5 @@
+// AI-generated (Claude), prompt: "write viewport zoom and fit tests that keep the pointer world point stable"
+// Modified by me: added min max scale clamp coverage
 import { describe, expect, it } from "vitest";
 import { createViewport, fitToNodes, screenToWorld, zoomAt } from "./viewport";
 

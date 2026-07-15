@@ -1,4 +1,4 @@
-import { httpRouter } from "convex/server";
+﻿import { httpRouter } from "convex/server";
 import { connectorCallback } from "./http/auth/connectorCallback";
 import { githubCallback } from "./http/auth/githubCallback";
 import { deleteMemory } from "./http/v1Memories/delete";
@@ -9,9 +9,6 @@ import {
   oauthMetadata,
   protectedResourceMetadata,
   protectedResourceMetadataTeam,
-  register as mcpRegister,
-  authorizeGet as mcpAuthorizeGet,
-  token as mcpToken,
   mcpHandler,
   mcpTeamHandler,
   health as mcpHealth,
@@ -71,24 +68,6 @@ http.route({
   path: "/.well-known/oauth-protected-resource/mcp/team",
   method: "GET",
   handler: protectedResourceMetadataTeam,
-});
-
-http.route({
-  path: "/mcp/oauth/register",
-  method: "POST",
-  handler: mcpRegister,
-});
-
-http.route({
-  path: "/mcp/oauth/authorize",
-  method: "GET",
-  handler: mcpAuthorizeGet,
-});
-
-http.route({
-  path: "/mcp/oauth/token",
-  method: "POST",
-  handler: mcpToken,
 });
 
 http.route({

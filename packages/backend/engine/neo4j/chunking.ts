@@ -40,6 +40,8 @@ function snapPastStart(
   return snapped <= start ? fallback : snapped;
 }
 
+// AI-generated (Claude), prompt: "chunk long memory text into overlapping windows snapped to word boundaries"
+// Modified by me: chose 500 token window 50 overlap and 2000 char gate
 export function chunkText(content: string): MemoryChunk[] {
   if (content.length === 0) return [];
   if (content.length <= CHUNK_TARGET_CHARS) {

@@ -1,61 +1,27 @@
 import { v } from "convex/values";
-import { start } from "@convex-dev/workflow";
 import { internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { workflow } from "./workflow";
+import { codebaseSyncPool } from "./workpools";
 
-const dailySyncResult = v.object({
-  synced: v.number(),
-  failed: v.number(),
-  skipped: v.number(),
-});
-
-// durable orchestrator
-export const dailyCodebaseSyncWorkflow = workflow
-  .define({
-    args: {},
-    returns: dailySyncResult,
-  })
-  .handler(
-    async (
-      step,
-    ): Promise<{
-      synced: number;
-      failed: number;
-      skipped: number;
-    }> => {
-      const targets = await step.runQuery(
-        internal.codebases.listForDailySyncInternal,
-        {},
-      );
-
-      let synced = 0;
-      let failed = 0;
-
-      for (const target of targets) {
-        const result = await step.runAction(
-          internal.codebaseSyncActions.syncOneCodebaseInternal,
-          { codebaseId: target.codebaseId },
-          { retry: true },
-        );
-        if (result.ok) {
-          synced += 1;
-        } else {
-          failed += 1;
-          console.error("[codebase-sync]", target.codebaseId, result.message);
-        }
-      }
-
-      return { synced, failed, skipped: 0 };
-    },
-  );
-
-// started by the global daily cron in `crons.ts`
+// Cron kickoff: enqueue one sync action per stale codebase (serial pool).
 export const kickoffDailyCodebaseSync = internalMutation({
   args: {},
   returns: v.null(),
   handler: async (ctx) => {
-    await start(ctx, internal.codebaseSync.dailyCodebaseSyncWorkflow, {});
+    const targets = await ctx.runQuery(
+      internal.codebases.listForDailySyncInternal,
+      {},
+    );
+    if (targets.length === 0) {
+      return null;
+    }
+
+    await codebaseSyncPool.enqueueActionBatch(
+      ctx,
+      internal.codebaseSyncActions.syncOneCodebaseInternal,
+      targets.map((target) => ({ codebaseId: target.codebaseId })),
+      { retry: true },
+    );
     return null;
   },
 });

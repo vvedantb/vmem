@@ -1,4 +1,4 @@
-import { defineSchema, defineTable } from "convex/server";
+﻿import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import {
   wikiNodeFields,
@@ -32,7 +32,7 @@ const schema = defineSchema({
     lastName: v.optional(v.string()),
     fullName: v.optional(v.string()),
     theme: v.optional(v.union(v.literal("light"), v.literal("dark"))),
-    // maintainer flag — gates system-skill catalog CRUD
+    // maintainer flag â€” gates system-skill catalog CRUD
     isAdmin: v.optional(v.boolean()),
   })
     .index("by_clerk_id", ["clerkId"])
@@ -154,25 +154,6 @@ const schema = defineSchema({
   contextPromptCache: defineTable(contextPromptCacheFields).index("by_user", [
     "userId",
   ]),
-
-  // short-lived OAuth authorization codes for the MCP `/mcp/oauth/token` exchange
-  mcpAuthCodes: defineTable({
-    code: v.string(),
-    clerkUserId: v.string(),
-    codeChallenge: v.string(),
-    codeChallengeMethod: v.string(),
-    redirectUri: v.string(),
-    clientId: v.string(),
-    expiresAt: v.number(),
-  }).index("by_code", ["code"]),
-
-  // dynamic OAuth client registrations issued via `/mcp/oauth/register`
-  mcpClientRegistrations: defineTable({
-    clientId: v.string(),
-    clientSecret: v.optional(v.string()),
-    redirectUris: v.array(v.string()),
-    registeredAt: v.number(),
-  }).index("by_clientId", ["clientId"]),
 });
 
 export default schema;

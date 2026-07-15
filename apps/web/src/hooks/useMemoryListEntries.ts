@@ -29,6 +29,8 @@ function unscoredEntry(item: ListItem): MemoryListEntry {
   return { item, score: null };
 }
 
+// AI-generated (Claude), prompt: "hybrid memory list that retrieves when query is active"
+// Modified by me: supplementary wiki skill merge and relative relevance scores
 export function useMemoryListEntries() {
   const activeProfile = useActiveProfile();
   const [params] = useMemoriesSearchParams();

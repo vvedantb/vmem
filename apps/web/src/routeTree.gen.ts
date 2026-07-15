@@ -9,14 +9,12 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as AgentCallbackRouteImport } from './routes/agent-callback'
 import { Route as MainRouteRouteImport } from './routes/_main/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MainHomeRouteImport } from './routes/_main/home'
 import { Route as MainProfileIdRouteRouteImport } from './routes/_main/$profileId/route'
 import { Route as MainSettingsIndexRouteImport } from './routes/_main/settings/index'
 import { Route as MainProfileIdIndexRouteImport } from './routes/_main/$profileId/index'
-import { Route as McpOauthAuthorizeRouteImport } from './routes/mcp/oauth/authorize'
 import { Route as MainSettingsUsageRouteImport } from './routes/_main/settings/usage'
 import { Route as MainSettingsSecretsRouteImport } from './routes/_main/settings/secrets'
 import { Route as MainSettingsProfilesRouteImport } from './routes/_main/settings/profiles'
@@ -66,11 +64,6 @@ import { Route as MainProfileIdMemoriesListIndexRouteImport } from './routes/_ma
 import { Route as MainProfileIdSkillsSystemSkillIdRouteImport } from './routes/_main/$profileId/skills/system.$skillId'
 import { Route as MainProfileIdMemoriesListIdRouteImport } from './routes/_main/$profileId/memories/list/$id'
 
-const AgentCallbackRoute = AgentCallbackRouteImport.update({
-  id: '/agent-callback',
-  path: '/agent-callback',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const MainRouteRoute = MainRouteRouteImport.update({
   id: '/_main',
   getParentRoute: () => rootRouteImport,
@@ -99,11 +92,6 @@ const MainProfileIdIndexRoute = MainProfileIdIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => MainProfileIdRouteRoute,
-} as any)
-const McpOauthAuthorizeRoute = McpOauthAuthorizeRouteImport.update({
-  id: '/mcp/oauth/authorize',
-  path: '/mcp/oauth/authorize',
-  getParentRoute: () => rootRouteImport,
 } as any)
 const MainSettingsUsageRoute = MainSettingsUsageRouteImport.update({
   id: '/settings/usage',
@@ -374,7 +362,6 @@ const MainProfileIdMemoriesListIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/agent-callback': typeof AgentCallbackRoute
   '/$profileId': typeof MainProfileIdRouteRouteWithChildren
   '/home': typeof MainHomeRoute
   '/$profileId/activity': typeof MainProfileIdActivityRouteRouteWithChildren
@@ -395,7 +382,6 @@ export interface FileRoutesByFullPath {
   '/settings/profiles': typeof MainSettingsProfilesRoute
   '/settings/secrets': typeof MainSettingsSecretsRoute
   '/settings/usage': typeof MainSettingsUsageRoute
-  '/mcp/oauth/authorize': typeof McpOauthAuthorizeRoute
   '/$profileId/': typeof MainProfileIdIndexRoute
   '/settings/': typeof MainSettingsIndexRoute
   '/$profileId/memories/list': typeof MainProfileIdMemoriesListRouteRouteWithChildren
@@ -431,7 +417,6 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/agent-callback': typeof AgentCallbackRoute
   '/home': typeof MainHomeRoute
   '/$profileId/files': typeof MainProfileIdFilesRoute
   '/$profileId/home': typeof MainProfileIdHomeRoute
@@ -443,7 +428,6 @@ export interface FileRoutesByTo {
   '/settings/profiles': typeof MainSettingsProfilesRoute
   '/settings/secrets': typeof MainSettingsSecretsRoute
   '/settings/usage': typeof MainSettingsUsageRoute
-  '/mcp/oauth/authorize': typeof McpOauthAuthorizeRoute
   '/$profileId': typeof MainProfileIdIndexRoute
   '/settings': typeof MainSettingsIndexRoute
   '/$profileId/activity/events': typeof MainProfileIdActivityEventsRoute
@@ -480,7 +464,6 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_main': typeof MainRouteRouteWithChildren
-  '/agent-callback': typeof AgentCallbackRoute
   '/_main/$profileId': typeof MainProfileIdRouteRouteWithChildren
   '/_main/home': typeof MainHomeRoute
   '/_main/$profileId/activity': typeof MainProfileIdActivityRouteRouteWithChildren
@@ -501,7 +484,6 @@ export interface FileRoutesById {
   '/_main/settings/profiles': typeof MainSettingsProfilesRoute
   '/_main/settings/secrets': typeof MainSettingsSecretsRoute
   '/_main/settings/usage': typeof MainSettingsUsageRoute
-  '/mcp/oauth/authorize': typeof McpOauthAuthorizeRoute
   '/_main/$profileId/': typeof MainProfileIdIndexRoute
   '/_main/settings/': typeof MainSettingsIndexRoute
   '/_main/$profileId/memories/list': typeof MainProfileIdMemoriesListRouteRouteWithChildren
@@ -539,7 +521,6 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/agent-callback'
     | '/$profileId'
     | '/home'
     | '/$profileId/activity'
@@ -560,7 +541,6 @@ export interface FileRouteTypes {
     | '/settings/profiles'
     | '/settings/secrets'
     | '/settings/usage'
-    | '/mcp/oauth/authorize'
     | '/$profileId/'
     | '/settings/'
     | '/$profileId/memories/list'
@@ -596,7 +576,6 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/agent-callback'
     | '/home'
     | '/$profileId/files'
     | '/$profileId/home'
@@ -608,7 +587,6 @@ export interface FileRouteTypes {
     | '/settings/profiles'
     | '/settings/secrets'
     | '/settings/usage'
-    | '/mcp/oauth/authorize'
     | '/$profileId'
     | '/settings'
     | '/$profileId/activity/events'
@@ -644,7 +622,6 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_main'
-    | '/agent-callback'
     | '/_main/$profileId'
     | '/_main/home'
     | '/_main/$profileId/activity'
@@ -665,7 +642,6 @@ export interface FileRouteTypes {
     | '/_main/settings/profiles'
     | '/_main/settings/secrets'
     | '/_main/settings/usage'
-    | '/mcp/oauth/authorize'
     | '/_main/$profileId/'
     | '/_main/settings/'
     | '/_main/$profileId/memories/list'
@@ -703,19 +679,10 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   MainRouteRoute: typeof MainRouteRouteWithChildren
-  AgentCallbackRoute: typeof AgentCallbackRoute
-  McpOauthAuthorizeRoute: typeof McpOauthAuthorizeRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/agent-callback': {
-      id: '/agent-callback'
-      path: '/agent-callback'
-      fullPath: '/agent-callback'
-      preLoaderRoute: typeof AgentCallbackRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_main': {
       id: '/_main'
       path: ''
@@ -757,13 +724,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/$profileId/'
       preLoaderRoute: typeof MainProfileIdIndexRouteImport
       parentRoute: typeof MainProfileIdRouteRoute
-    }
-    '/mcp/oauth/authorize': {
-      id: '/mcp/oauth/authorize'
-      path: '/mcp/oauth/authorize'
-      fullPath: '/mcp/oauth/authorize'
-      preLoaderRoute: typeof McpOauthAuthorizeRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/_main/settings/usage': {
       id: '/_main/settings/usage'
@@ -1338,8 +1298,6 @@ const MainRouteRouteWithChildren = MainRouteRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   MainRouteRoute: MainRouteRouteWithChildren,
-  AgentCallbackRoute: AgentCallbackRoute,
-  McpOauthAuthorizeRoute: McpOauthAuthorizeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

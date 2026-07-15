@@ -1,3 +1,5 @@
+// AI-generated (Claude), prompt: "test proposal lookup row schema target vs source memory id"
+// Modified by me: defaulted missing proposed title to untitled synthesis
 import { describe, expect, it } from "vitest";
 import { proposalLookupRowSchema } from "../../engine/neo4j/memory/proposals";
 

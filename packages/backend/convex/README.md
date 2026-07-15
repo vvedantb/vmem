@@ -1,3 +1,6 @@
+<!-- AI-generated (Claude), prompt: "document convex function conventions for vmem" -->
+<!-- Modified by me: added typecheck and auth helper notes -->
+
 # Convex functions
 
 All vmem backend logic lives here. See `packages/backend/README.md` for architecture and module overview.
@@ -19,4 +22,4 @@ Do not run `npx convex dev` or `npx convex deploy` from agent sessions — use c
 
 ## Docs
 
-Public API reference: [vmem.vedantb.com](https://vmem.vedantb.com).
+Product app: [vmem-staging.vedantb.com](https://vmem-staging.vedantb.com).

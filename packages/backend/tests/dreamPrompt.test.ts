@@ -1,3 +1,5 @@
+// AI-generated (Claude), prompt: "test dream synthesis prompt builders and response parsers"
+// Modified by me: clamped confidence adjustments into the valid range
 import { describe, expect, it } from "vitest";
 import {
   buildDreamSynthesisPrompt,

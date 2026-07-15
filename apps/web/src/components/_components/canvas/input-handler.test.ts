@@ -1,3 +1,5 @@
+// AI-generated (Claude), prompt: "test canvas input handlers for pointer drag zoom and selection"
+// Modified by me: swapped in a lightweight test canvas stub
 import { describe, expect, it, vi } from "vitest";
 import type {
   GraphNode,
@@ -120,10 +122,7 @@ function interactionState(): InteractionState {
     hoveredNodeId: null,
     hoveredEdgeIndex: null,
     draggedNodeId: null,
-    linkSourceId: null,
     isPanning: false,
-    mouseWorldX: 0,
-    mouseWorldY: 0,
   };
 }
 
@@ -135,7 +134,6 @@ function pointerEvent(
     clientY: number;
     pointerType?: string;
     button?: number;
-    shiftKey?: boolean;
   },
 ): Event {
   const event = new Event(type);
@@ -146,7 +144,6 @@ function pointerEvent(
     value: init.pointerType ?? "mouse",
   });
   Object.defineProperty(event, "button", { value: init.button ?? 0 });
-  Object.defineProperty(event, "shiftKey", { value: init.shiftKey ?? false });
   return event;
 }
 
@@ -162,7 +159,6 @@ function setup() {
     onHoverNode: vi.fn(),
     onHoverEdge: vi.fn(),
     onClickNode: vi.fn(),
-    onLinkNodes: vi.fn(),
     onFocusNode: vi.fn(),
   };
 

@@ -1,56 +1,26 @@
 import { v } from "convex/values";
-import { start } from "@convex-dev/workflow";
 import { internalMutation } from "../_generated/server";
 import { internal } from "../_generated/api";
-import { workflow } from "../workflow";
+import { connectorSyncPool } from "../workpools";
 
-const dailySyncResult = v.object({
-  synced: v.number(),
-  failed: v.number(),
-  skipped: v.number(),
-});
-
-export const dailyConnectorSyncWorkflow = workflow
-  .define({
-    args: {},
-    returns: dailySyncResult,
-  })
-  .handler(async (step) => {
-    const targets = await step.runQuery(
-      internal.connectors.crud.listForDailyConnectorSyncInternal,
-      {},
-    );
-
-    let synced = 0;
-    let failed = 0;
-
-    for (const target of targets) {
-      const result = await step.runAction(
-        internal.connectors.syncActions.syncOneConnectorInternal,
-        {
-          connectorId: target.connectorId,
-        },
-        { retry: true },
-      );
-      if (result.ok) {
-        synced += 1;
-      } else {
-        failed += 1;
-        console.error("[connector-sync]", target.connectorId, result.message);
-      }
-    }
-
-    return { synced, failed, skipped: 0 };
-  });
-
+// Cron kickoff: enqueue one sync action per connected connector (serial pool).
 export const kickoffDailyConnectorSync = internalMutation({
   args: {},
   returns: v.null(),
   handler: async (ctx) => {
-    await start(
-      ctx,
-      internal.connectors.syncWorkflow.dailyConnectorSyncWorkflow,
+    const targets = await ctx.runQuery(
+      internal.connectors.crud.listForDailyConnectorSyncInternal,
       {},
+    );
+    if (targets.length === 0) {
+      return null;
+    }
+
+    await connectorSyncPool.enqueueActionBatch(
+      ctx,
+      internal.connectors.syncActions.syncOneConnectorInternal,
+      targets.map((target) => ({ connectorId: target.connectorId })),
+      { retry: true },
     );
     return null;
   },

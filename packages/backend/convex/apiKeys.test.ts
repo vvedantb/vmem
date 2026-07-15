@@ -1,3 +1,5 @@
+// AI-generated (Claude), prompt: "test api key name normalize and stable sha256 hash"
+// Modified by me: rejected empty and overlong names
 import { describe, expect, it } from "vitest";
 import { hashApiKey, normalizeApiKeyName } from "./apiKeys";
 

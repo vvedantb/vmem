@@ -15,6 +15,8 @@ function delay(ms: number): Promise<void> {
 
 // shared lock + cancel + createMemory loop for bookmark/history imports
 // keeps progress messaging and per item delay identical across both paths
+// AI-generated (Claude), prompt: "locked cancelable import loop with per item delay"
+// Modified by me: progress messages and timestamp only when not cancelled
 export async function runLockedImportLoop<T>(options: {
   acquireLock: () => boolean;
   releaseLock: () => void;

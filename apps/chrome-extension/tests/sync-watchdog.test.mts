@@ -1,3 +1,5 @@
+// AI-generated (Claude), prompt: "add tests for the mv3 autosync watchdog against a chrome mock"
+// Modified by me: kept existing header notes and covered one requirement per test
 // verifies the mv3 autosync watchdog
 //
 // drives the real scheduler exports against a chrome mock

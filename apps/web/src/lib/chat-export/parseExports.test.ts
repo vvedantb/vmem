@@ -1,3 +1,5 @@
+// AI-generated (Claude), prompt: "parse chatgpt and claude export json into conversation turns"
+// Modified by me: walked active branch and skipped empty root nodes
 import { describe, expect, it } from "vitest";
 import { parseChatGptExportJsonText } from "./parseChatGptExport";
 import { parseClaudeExportJsonText } from "./parseClaudeExport";

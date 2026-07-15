@@ -1,3 +1,5 @@
+// AI-generated (Claude), prompt: "live http api integration tests for v1 memories via the sdk"
+// Modified by me: gated on http api test env and api key
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";

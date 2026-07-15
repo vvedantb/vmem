@@ -44,7 +44,7 @@ export const startSync = authAction({
       connector,
       clerkId,
       accessToken: tokenResult.accessToken,
-      execution: "retrier",
+      execution: "workpool",
     });
 
     return { started: true };

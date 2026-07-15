@@ -5,7 +5,8 @@ import { useAuth } from "@clerk/clerk-react";
 // used by useStableAuth to detect unexpected auth loss (stale deployment)
 let wasEverSignedIn = false;
 
-// debounce clerk auth loss after stale post-deploy js (avoids convex auth cascade)
+// AI-generated (Claude), prompt: "debounce clerk auth loss after stale post deploy javascript"
+// Modified by me: two second override loading so convex does not cascade
 export function useStableAuth() {
   const auth = useAuth();
   const [overrideLoading, setOverrideLoading] = useState(false);

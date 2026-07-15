@@ -1,3 +1,5 @@
+// AI-generated (Claude), prompt: "test nuqs sanitized parsers for nullish query values"
+// Modified by me: added empty string and serialized null cases
 import { describe, expect, it } from "vitest";
 import {
   createSanitizedArrayParser,

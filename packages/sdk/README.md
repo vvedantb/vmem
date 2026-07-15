@@ -1,3 +1,6 @@
+<!-- AI-generated (Claude), prompt: "write install and quick start for vmem sdk" -->
+<!-- Modified by me: aligned examples with current api key flow -->
+
 # @vmem/sdk
 
 Official JavaScript SDK for the [vmem](https://github.com/vvedantb/vmem) memory API. Save, update, and search user memories over HTTP with API key auth.
@@ -78,8 +81,7 @@ try {
 
 ## Docs
 
-- [SDK quickstart](https://vmem.vedantb.com/sdk/quickstart)
-- [HTTP Memories API](https://vmem.vedantb.com/api-reference/http-memories)
+See this README and the root monorepo [`README.md`](../../README.md) for HTTP/SDK usage. The staging app at [vmem-staging.vedantb.com](https://vmem-staging.vedantb.com) is the product UI, not a separate docs site.
 
 ## License
 
