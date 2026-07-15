@@ -5,15 +5,15 @@
 
 **A model-agnostic memory layer for AI** — store, retrieve, update, and explain what an agent knows about a user across sessions, models, and tools.
 
-Built as a Final Year Project at City, University of London. Live at [vmem-staging.vedantb.com](https://vmem-staging.vedantb.com).
+Built as a Final Year Project at City, University of London by **Vedant Bhopatrao** (Student Number: 220057806). Live at [vmem-staging.vedantb.com](https://vmem-staging.vedantb.com). Source: [github.com/vvedantb/vmem](https://github.com/vvedantb/vmem).
 
 ## The problem
 
-LLMs forget between sessions. Users repeat themselves, lose personalization when switching models, and have little control over what gets remembered. Most memory products are proprietary and tied to one ecosystem.
+LLMs forget between sessions. Users repeat themselves, lose personalisation when switching models, and have little control over what gets remembered. Most memory products are proprietary and tied to one ecosystem.
 
 ## What vmem does
 
-vmem centralizes user knowledge in a **Neo4j memory graph** with hybrid retrieval (fulltext + vectors + chunks + entities + graph expansion). Any client — web dashboard, Chrome extension, MCP host, or HTTP client — can read and write through **Convex**.
+vmem centralises user knowledge in a **Neo4j memory graph** with hybrid retrieval (fulltext + vectors + chunks + entities + graph expansion). Any client — web dashboard, Chrome extension, MCP host, or HTTP client — can read and write through **Convex**.
 
 **Differentiators:**
 
@@ -121,7 +121,7 @@ Apps import only `@vmem/backend`, `@vmem/shared`, and `@vmem/ui` at public expor
 - **Files** — Convex storage + web explorer; indexable uploads become memories
 - **Codebases** — GitHub OAuth, symbol parsing, dependency graph, daily sync at 04:00 UTC (Workpool)
 - **Connectors** — Google Drive and Notion (batch ingest → memories; daily cron at 04:00 UTC via Workpool)
-- **Skills** — personal skills + system Skills Hub catalog
+- **Skills** — personal skills + system Skills Hub catalogue
 - **Wiki** — folder tree with TipTap markdown docs and version history
 - **Import** — ChatGPT and Claude conversation exports
 
