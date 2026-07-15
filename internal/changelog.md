@@ -10,6 +10,7 @@ helpers and destructive confirms. `DestructiveConfirmDialog` now supports
 typed confirm and covers memory/file/env/wiki/system-skill deletes.
 Upload surfaces use `react-dropzone` instead of hand-rolled drag handlers.
 Skill create/edit dialogs share a `SkillFormShell` for fields and footer.
+UnifiedFilterPanel tabs share filter row/header primitives.
 Extension adopts Clerk SW Convex tokens, zod message unions, and
 `usehooks-ts` in the popup.
 

@@ -1,75 +1,33 @@
 "use client";
 
-import { Button, Checkbox, cn, TabsPrimitive } from "@vmem/ui";
 import {
   formatMemoryTypeLabel,
   MEMORY_TYPES,
   type MemoryType,
 } from "@/lib/memories";
-import { isCheckedByDefault, toggleCheckedByDefault } from "./checkedByDefault";
-
-interface TypeTabProps {
-  selectedTypes: MemoryType[];
-  onTypesChange?: (types: MemoryType[]) => void;
-  typeCounts: Record<MemoryType, number>;
-  totalCount: number;
-}
+import { FilterOptionList } from "./filter-primitives";
 
 export default function TypeTab({
   selectedTypes,
   onTypesChange,
   typeCounts,
   totalCount,
-}: TypeTabProps) {
-  const toggleType = (type: MemoryType) => {
-    onTypesChange?.(toggleCheckedByDefault(selectedTypes, type, MEMORY_TYPES));
-  };
-
+}: {
+  selectedTypes: MemoryType[];
+  onTypesChange?: (types: MemoryType[]) => void;
+  typeCounts: Record<MemoryType, number>;
+  totalCount: number;
+}) {
   return (
-    <TabsPrimitive.Content
+    <FilterOptionList
       value="type"
-      className="flex-1 flex flex-col overflow-hidden data-[state=inactive]:hidden"
-    >
-      <div className="p-2 border-b border-separator">
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => onTypesChange?.([])}
-          className={cn(
-            "h-auto w-full justify-start gap-2 rounded-md px-2 py-1.5 text-xs transition-colors active:scale-100",
-            selectedTypes.length === 0
-              ? "bg-surface-secondary font-medium text-foreground hover:bg-surface-secondary"
-              : "hover:bg-surface-tertiary",
-          )}
-        >
-          All types
-          <span className="ml-auto text-muted/50 tabular-nums">
-            {totalCount}
-          </span>
-        </Button>
-      </div>
-      <div className="flex-1 overflow-y-auto">
-        {MEMORY_TYPES.map((type) => {
-          const checked = isCheckedByDefault(selectedTypes, type);
-          return (
-            <label
-              key={type}
-              className="flex items-center gap-2 px-3 py-2 cursor-pointer border-b border-separator last:border-0 hover:bg-surface-tertiary"
-            >
-              <Checkbox
-                checked={checked}
-                onCheckedChange={() => toggleType(type)}
-              />
-              <span className="flex-1 text-xs truncate">
-                {formatMemoryTypeLabel(type)}
-              </span>
-              <span className="text-xs text-muted/50 tabular-nums">
-                {typeCounts[type]}
-              </span>
-            </label>
-          );
-        })}
-      </div>
-    </TabsPrimitive.Content>
+      allLabel="All types"
+      totalCount={totalCount}
+      selected={selectedTypes}
+      onChange={onTypesChange}
+      options={MEMORY_TYPES}
+      formatLabel={formatMemoryTypeLabel}
+      counts={typeCounts}
+    />
   );
 }
