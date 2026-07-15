@@ -6,21 +6,17 @@ import type { DataModel, Id } from "../../_generated/dataModel";
 import { internal } from "../../_generated/api";
 import { v } from "convex/values";
 import { decideDreamCheck } from "../../lib/dreamTriggerDecision";
-import { dreamDepthValidator, type DreamRunResult } from "./runProfile";
+import {
+  accumulateDreamResult,
+  dreamDepthValidator,
+  emptyDreamResult,
+  pickAggregateReason,
+  type DreamRunResult,
+} from "./runProfile";
 
 const MANUAL_RATE_LIMIT_MS = 60 * 60 * 1000;
 
 type DreamActionCtx = GenericActionCtx<DataModel>;
-
-function emptyDreamResult(reason: DreamRunResult["reason"]): DreamRunResult {
-  return {
-    proposalsCreated: 0,
-    memoriesMaterialized: 0,
-    clustersScanned: 0,
-    reweighted: 0,
-    reason,
-  };
-}
 
 function isRateLimited(lastRunAt: number | null | undefined): boolean {
   return (
@@ -170,13 +166,8 @@ export const runDreamForUserInternal = internalAction({
     depth: v.optional(dreamDepthValidator),
   },
   handler: async (ctx, args): Promise<DreamRunResult> => {
-    const aggregate: DreamRunResult = {
-      proposalsCreated: 0,
-      memoriesMaterialized: 0,
-      clustersScanned: 0,
-      reweighted: 0,
-      reason: "ok",
-    };
+    const aggregate = emptyDreamResult("ok");
+    const profileResults: DreamRunResult[] = [];
 
     const personalProfiles = await ctx.runQuery(
       internal.profiles.listPersonalByUserIdInternal,
@@ -196,8 +187,6 @@ export const runDreamForUserInternal = internalAction({
       { userId: args.userId },
     );
 
-    let nonOkReason: DreamRunResult["reason"] | null = null;
-    let okSeen = false;
     for (const profile of personalProfiles) {
       const result = await ctx.runAction(
         internal.neo4jActions.dreamMode.runDreamForProfileInternal,
@@ -209,17 +198,10 @@ export const runDreamForUserInternal = internalAction({
           depth: args.depth,
         },
       );
-      aggregate.proposalsCreated += result.proposalsCreated;
-      aggregate.memoriesMaterialized += result.memoriesMaterialized;
-      aggregate.clustersScanned += result.clustersScanned;
-      aggregate.reweighted += result.reweighted;
-      if (result.reason === "ok") {
-        okSeen = true;
-      } else if (nonOkReason === null) {
-        nonOkReason = result.reason;
-      }
+      profileResults.push(result);
+      accumulateDreamResult(aggregate, result);
     }
-    aggregate.reason = okSeen ? "ok" : (nonOkReason ?? "ok");
+    aggregate.reason = pickAggregateReason(profileResults);
 
     await ctx.runMutation(internal.userSettings.setLastDreamRunAtInternal, {
       userId: args.userId,

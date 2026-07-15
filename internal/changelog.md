@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-07-15 — Decompose Dream Mode pass helpers
+
+Shared DreamRunResult helpers across entry points, split profile runs into
+anomaly/merge/portrait passes, and dropped the duplicate public RunResult type.
+
 ## 2026-07-15 — Share HTTP respond + accessible-profile helpers
 
 API-key auth uses a request-local `respond` closure for usage logging. Dashboard,

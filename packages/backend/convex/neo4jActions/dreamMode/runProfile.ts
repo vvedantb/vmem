@@ -35,8 +35,9 @@ import {
   type DreamClusterMember,
   type ParsedSynthesis,
 } from "../../../engine/neo4j/dreamPrompt";
-import { tryOpenRouterAuth } from "../agent/shared";
+import { tryOpenRouterAuth, type AgentAuth } from "../agent/shared";
 import type { DreamDepth } from "../../lib/dreamTriggerDecision";
+import type { Doc } from "../../_generated/dataModel";
 
 const DEFAULT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
@@ -73,6 +74,51 @@ export interface DreamRunResult {
   reweighted: number;
   reason: "ok" | "no-key" | "no-recent-memories" | "rate-limited";
 }
+
+export function emptyDreamResult(
+  reason: DreamRunResult["reason"],
+): DreamRunResult {
+  return {
+    proposalsCreated: 0,
+    memoriesMaterialized: 0,
+    clustersScanned: 0,
+    reweighted: 0,
+    reason,
+  };
+}
+
+export function accumulateDreamResult(
+  target: DreamRunResult,
+  next: DreamRunResult,
+): void {
+  target.proposalsCreated += next.proposalsCreated;
+  target.memoriesMaterialized += next.memoriesMaterialized;
+  target.clustersScanned += next.clustersScanned;
+  target.reweighted += next.reweighted;
+}
+
+export function pickAggregateReason(
+  results: readonly DreamRunResult[],
+): DreamRunResult["reason"] {
+  if (results.some((r) => r.reason === "ok")) return "ok";
+  const firstNonOk = results.find((r) => r.reason !== "ok");
+  return firstNonOk?.reason ?? "ok";
+}
+
+type DreamRecentMemory = Awaited<
+  ReturnType<typeof findRecentMemoriesForDream>
+>[number];
+
+type ScoredAnomaly = Awaited<ReturnType<typeof computeSurprisalScores>>[number];
+
+type DreamPassBase = {
+  ctx: ActionCtx;
+  driver: ReturnType<typeof getDriver>;
+  auth: AgentAuth;
+  clerkId: string;
+  profileId: Id<"profiles">;
+  result: DreamRunResult;
+};
 
 async function callSynthesisLLM(
   ctx: ActionCtx,
@@ -163,6 +209,263 @@ async function fileDreamProposal(
   });
 }
 
+async function runAnomalySynthesisPass(
+  pass: DreamPassBase & { autoAccept: boolean; topAnomalies: ScoredAnomaly[] },
+): Promise<void> {
+  const {
+    ctx,
+    driver,
+    auth,
+    clerkId,
+    profileId,
+    result,
+    autoAccept,
+    topAnomalies,
+  } = pass;
+
+  for (const anomaly of topAnomalies) {
+    try {
+      const cluster = await fetchAnomalyCluster(driver, {
+        userId: clerkId,
+        anomalyId: anomaly.id,
+        embedding: anomaly.embedding,
+        maxClusterSize: MAX_CLUSTER_SIZE,
+      });
+      if (cluster.length < 2) continue;
+
+      result.clustersScanned += 1;
+
+      const synthesis = await callSynthesisLLM(
+        ctx,
+        auth.apiKey,
+        auth.userId,
+        profileId,
+        cluster,
+      );
+      if (!synthesis) continue;
+
+      if (synthesis.confidenceAdjustments.length > 0) {
+        result.reweighted += await applyConfidenceAdjustments(driver, {
+          userId: clerkId,
+          adjustments: synthesis.confidenceAdjustments,
+          maxDelta: REWEIGHT_MAX_DELTA,
+        });
+      }
+
+      if (synthesis.type === "skip") continue;
+      if (synthesis.confidence < CONFIDENCE_FLOOR) continue;
+      if (synthesis.sourceMemoryIds.length === 0) continue;
+
+      if (
+        await isOverlappingPendingProposal(
+          driver,
+          clerkId,
+          synthesis.sourceMemoryIds,
+          synthesis.title,
+        )
+      ) {
+        continue;
+      }
+
+      const isMaterializable =
+        synthesis.type === "insight" || synthesis.type === "connection";
+
+      if (autoAccept && isMaterializable) {
+        let embedding: number[] | null = null;
+        try {
+          embedding = await generateEmbedding({
+            ctx,
+            apiKey: auth.apiKey,
+            userId: auth.userId,
+            profileId,
+            feature: "dream-materialize",
+            text: `${synthesis.title}\n\n${synthesis.content}`,
+          });
+        } catch (e) {
+          console.warn(
+            `[dream] embedding failed for materialized memory, continuing without`,
+            e,
+          );
+        }
+        const contentHash = computeContentHash(
+          synthesis.title,
+          synthesis.content,
+        );
+        const { id: newMemoryId } = await materializeSynthesisAsMemory(driver, {
+          userId: clerkId,
+          profileId,
+          title: synthesis.title,
+          content: synthesis.content,
+          embedding,
+          contentHash,
+          sourceMemoryIds: synthesis.sourceMemoryIds,
+          confidence: synthesis.confidence,
+        });
+        result.memoriesMaterialized += 1;
+
+        await postMaterializeEmbedAndEnrich(ctx, driver, {
+          clerkId,
+          memoryId: newMemoryId,
+          title: synthesis.title,
+          content: synthesis.content,
+          profileId,
+          feature: "dream-materialize",
+          failureLog:
+            "[dream] embedding failed for materialized memory, continuing without",
+          embeddingAtCreate: embedding,
+        });
+
+        await ctx.runMutation(internal.memoryEvents.pushEventInternal, {
+          clerkId,
+          eventType: "dream_synthesis_materialized",
+          memoryId: newMemoryId,
+          payload: JSON.stringify({
+            kind: synthesis.type,
+            sourceMemoryIds: synthesis.sourceMemoryIds,
+            confidence: synthesis.confidence,
+          }),
+        });
+      } else {
+        await fileDreamProposal(ctx, driver, clerkId, result, {
+          kind: synthesis.type,
+          title: synthesis.title,
+          content: synthesis.content,
+          reason: synthesis.reason,
+          sourceMemoryIds: synthesis.sourceMemoryIds,
+          confidence: synthesis.confidence,
+        });
+      }
+    } catch (e) {
+      console.error(`[dream] cluster failed for anomaly ${anomaly.id}`, e);
+    }
+  }
+}
+
+async function runMergePass(
+  pass: DreamPassBase & {
+    recent: DreamRecentMemory[];
+    mergeClusters: number;
+  },
+): Promise<void> {
+  const {
+    ctx,
+    driver,
+    auth,
+    clerkId,
+    profileId,
+    result,
+    recent,
+    mergeClusters,
+  } = pass;
+
+  try {
+    const mergeCandidates = await findMergeCandidates(driver, {
+      userId: clerkId,
+      profileId,
+      pool: recent,
+      simThreshold: MERGE_SIM_THRESHOLD,
+      maxClusters: mergeClusters,
+      maxClusterSize: MAX_MERGE_CLUSTER_SIZE,
+    });
+    for (const cluster of mergeCandidates) {
+      result.clustersScanned += 1;
+      const rawText = await callJsonChat(ctx, {
+        apiKey: auth.apiKey,
+        userId: auth.userId,
+        profileId,
+        feature: "dream-synthesis",
+        role: "You are a memory reconsolidation system.",
+        prompt: buildMergeSynthesisPrompt(cluster),
+        temperature: 0.2,
+      });
+      if (rawText === null) continue;
+      const merge = parseMergeSynthesisResponse(
+        rawText,
+        cluster.map((m) => m.id),
+      );
+      if (!merge) continue;
+      if (merge.confidence < CONFIDENCE_FLOOR) continue;
+
+      if (
+        await isOverlappingPendingProposal(
+          driver,
+          clerkId,
+          merge.sourceMemoryIds,
+        )
+      ) {
+        continue;
+      }
+
+      await fileDreamProposal(ctx, driver, clerkId, result, {
+        kind: "merge",
+        title: merge.title,
+        content: merge.content,
+        reason:
+          "These memories are near-duplicate records of the same information; approving replaces them with this consolidation.",
+        sourceMemoryIds: merge.sourceMemoryIds,
+        confidence: merge.confidence,
+      });
+    }
+  } catch (e) {
+    console.error(`[dream] merge pass failed for profile ${profileId}`, e);
+  }
+}
+
+async function maybeRefreshDreamPortrait(
+  pass: DreamPassBase & { profile: Doc<"profiles"> },
+): Promise<void> {
+  const { ctx, driver, auth, clerkId, profileId, result, profile } = pass;
+
+  try {
+    const producedOutput =
+      result.proposalsCreated +
+        result.memoriesMaterialized +
+        result.reweighted >
+      0;
+    const portraitStale =
+      profile.dreamPortraitUpdatedAt === undefined ||
+      Date.now() - profile.dreamPortraitUpdatedAt > PORTRAIT_REFRESH_MS;
+    if (!producedOutput && !portraitStale) return;
+
+    const evidence = await fetchPortraitEvidence(driver, {
+      userId: clerkId,
+      profileId,
+      limit: PORTRAIT_EVIDENCE_LIMIT,
+    });
+    if (evidence.length === 0) return;
+
+    const rawText = await callJsonChat(ctx, {
+      apiKey: auth.apiKey,
+      userId: auth.userId,
+      profileId,
+      feature: "dream-portrait",
+      role: "You maintain a grounded user portrait for a memory system.",
+      prompt: buildPortraitUpdatePrompt(
+        profile.dreamPortrait ?? null,
+        evidence,
+      ),
+      temperature: 0.2,
+    });
+    let portrait: ParsedPortrait | null = null;
+    if (rawText !== null) {
+      portrait = parsePortraitResponse(
+        rawText,
+        evidence.map((m) => m.id),
+      );
+    }
+    if (!portrait) return;
+
+    await ctx.runMutation(internal.profiles.setDreamPortraitInternal, {
+      profileId,
+      portrait: portrait.portrait,
+      sourceMemoryIds: portrait.sourceMemoryIds,
+    });
+    await scheduleContextPromptInvalidationByClerkId(ctx, clerkId);
+  } catch (e) {
+    console.error(`[dream] portrait update failed for profile ${profileId}`, e);
+  }
+}
+
 export const runDreamForProfileInternal = internalAction({
   args: {
     clerkId: v.string(),
@@ -172,21 +475,12 @@ export const runDreamForProfileInternal = internalAction({
     depth: v.optional(dreamDepthValidator),
   },
   handler: async (ctx, args): Promise<DreamRunResult> => {
-    const result: DreamRunResult = {
-      proposalsCreated: 0,
-      memoriesMaterialized: 0,
-      clustersScanned: 0,
-      reweighted: 0,
-      reason: "ok",
-    };
-
     const auth = await tryOpenRouterAuth(ctx, args.clerkId);
     if (!auth) {
       console.log(
         `[dream] No OPENROUTER_API_KEY for ${args.clerkId}, skipping`,
       );
-      result.reason = "no-key";
-      return result;
+      return emptyDreamResult("no-key");
     }
 
     const profile = await ctx.runQuery(internal.profiles.getByIdInternal, {
@@ -194,7 +488,7 @@ export const runDreamForProfileInternal = internalAction({
     });
     if (!profile) {
       console.warn(`[dream] profile ${args.profileId} not found`);
-      return result;
+      return emptyDreamResult("ok");
     }
     const autoAccept =
       args.forceProposals === true
@@ -203,6 +497,15 @@ export const runDreamForProfileInternal = internalAction({
     const depthParams = DEPTH_PARAMS[args.depth ?? "standard"];
 
     const driver = getDriver();
+    const result = emptyDreamResult("ok");
+    const passBase: DreamPassBase = {
+      ctx,
+      driver,
+      auth,
+      clerkId: args.clerkId,
+      profileId: args.profileId,
+      result,
+    };
 
     const now = Date.now();
     const sinceMs = Math.max(
@@ -217,12 +520,11 @@ export const runDreamForProfileInternal = internalAction({
     });
     if (recent.length === 0) {
       console.log(`[dream] no recent memories for profile ${args.profileId}`);
-      result.reason = "no-recent-memories";
       await ctx.runMutation(internal.profiles.setLastDreamRunAtInternal, {
         profileId: args.profileId,
         timestamp: Date.now(),
       });
-      return result;
+      return emptyDreamResult("no-recent-memories");
     }
 
     const scored = await computeSurprisalScores(driver, {
@@ -236,232 +538,22 @@ export const runDreamForProfileInternal = internalAction({
       `[dream] profile=${args.profileId} recent=${String(recent.length)} scored=${String(scored.length)} top=${String(topAnomalies.length)}`,
     );
 
-    for (const anomaly of topAnomalies) {
-      try {
-        const cluster = await fetchAnomalyCluster(driver, {
-          userId: args.clerkId,
-          anomalyId: anomaly.id,
-          embedding: anomaly.embedding,
-          maxClusterSize: MAX_CLUSTER_SIZE,
-        });
-        if (cluster.length < 2) continue;
+    await runAnomalySynthesisPass({
+      ...passBase,
+      autoAccept,
+      topAnomalies,
+    });
 
-        result.clustersScanned += 1;
+    await runMergePass({
+      ...passBase,
+      recent,
+      mergeClusters: depthParams.mergeClusters,
+    });
 
-        const synthesis = await callSynthesisLLM(
-          ctx,
-          auth.apiKey,
-          auth.userId,
-          args.profileId,
-          cluster,
-        );
-        if (!synthesis) continue;
-
-        if (synthesis.confidenceAdjustments.length > 0) {
-          result.reweighted += await applyConfidenceAdjustments(driver, {
-            userId: args.clerkId,
-            adjustments: synthesis.confidenceAdjustments,
-            maxDelta: REWEIGHT_MAX_DELTA,
-          });
-        }
-
-        if (synthesis.type === "skip") continue;
-        if (synthesis.confidence < CONFIDENCE_FLOOR) continue;
-        if (synthesis.sourceMemoryIds.length === 0) continue;
-
-        if (
-          await isOverlappingPendingProposal(
-            driver,
-            args.clerkId,
-            synthesis.sourceMemoryIds,
-            synthesis.title,
-          )
-        ) {
-          continue;
-        }
-
-        const isMaterializable =
-          synthesis.type === "insight" || synthesis.type === "connection";
-
-        if (autoAccept && isMaterializable) {
-          let embedding: number[] | null = null;
-          try {
-            embedding = await generateEmbedding({
-              ctx,
-              apiKey: auth.apiKey,
-              userId: auth.userId,
-              profileId: args.profileId,
-              feature: "dream-materialize",
-              text: `${synthesis.title}\n\n${synthesis.content}`,
-            });
-          } catch (e) {
-            console.warn(
-              `[dream] embedding failed for materialized memory, continuing without`,
-              e,
-            );
-          }
-          const contentHash = computeContentHash(
-            synthesis.title,
-            synthesis.content,
-          );
-          const { id: newMemoryId } = await materializeSynthesisAsMemory(
-            driver,
-            {
-              userId: args.clerkId,
-              profileId: args.profileId,
-              title: synthesis.title,
-              content: synthesis.content,
-              embedding,
-              contentHash,
-              sourceMemoryIds: synthesis.sourceMemoryIds,
-              confidence: synthesis.confidence,
-            },
-          );
-          result.memoriesMaterialized += 1;
-
-          await postMaterializeEmbedAndEnrich(ctx, driver, {
-            clerkId: args.clerkId,
-            memoryId: newMemoryId,
-            title: synthesis.title,
-            content: synthesis.content,
-            profileId: args.profileId,
-            feature: "dream-materialize",
-            failureLog:
-              "[dream] embedding failed for materialized memory, continuing without",
-            embeddingAtCreate: embedding,
-          });
-
-          await ctx.runMutation(internal.memoryEvents.pushEventInternal, {
-            clerkId: args.clerkId,
-            eventType: "dream_synthesis_materialized",
-            memoryId: newMemoryId,
-            payload: JSON.stringify({
-              kind: synthesis.type,
-              sourceMemoryIds: synthesis.sourceMemoryIds,
-              confidence: synthesis.confidence,
-            }),
-          });
-        } else {
-          await fileDreamProposal(ctx, driver, args.clerkId, result, {
-            kind: synthesis.type,
-            title: synthesis.title,
-            content: synthesis.content,
-            reason: synthesis.reason,
-            sourceMemoryIds: synthesis.sourceMemoryIds,
-            confidence: synthesis.confidence,
-          });
-        }
-      } catch (e) {
-        console.error(`[dream] cluster failed for anomaly ${anomaly.id}`, e);
-      }
-    }
-
-    try {
-      const mergeClusters = await findMergeCandidates(driver, {
-        userId: args.clerkId,
-        profileId: args.profileId,
-        pool: recent,
-        simThreshold: MERGE_SIM_THRESHOLD,
-        maxClusters: depthParams.mergeClusters,
-        maxClusterSize: MAX_MERGE_CLUSTER_SIZE,
-      });
-      for (const cluster of mergeClusters) {
-        result.clustersScanned += 1;
-        const rawText = await callJsonChat(ctx, {
-          apiKey: auth.apiKey,
-          userId: auth.userId,
-          profileId: args.profileId,
-          feature: "dream-synthesis",
-          role: "You are a memory reconsolidation system.",
-          prompt: buildMergeSynthesisPrompt(cluster),
-          temperature: 0.2,
-        });
-        if (rawText === null) continue;
-        const merge = parseMergeSynthesisResponse(
-          rawText,
-          cluster.map((m) => m.id),
-        );
-        if (!merge) continue;
-        if (merge.confidence < CONFIDENCE_FLOOR) continue;
-
-        if (
-          await isOverlappingPendingProposal(
-            driver,
-            args.clerkId,
-            merge.sourceMemoryIds,
-          )
-        ) {
-          continue;
-        }
-
-        await fileDreamProposal(ctx, driver, args.clerkId, result, {
-          kind: "merge",
-          title: merge.title,
-          content: merge.content,
-          reason:
-            "These memories are near-duplicate records of the same information; approving replaces them with this consolidation.",
-          sourceMemoryIds: merge.sourceMemoryIds,
-          confidence: merge.confidence,
-        });
-      }
-    } catch (e) {
-      console.error(
-        `[dream] merge pass failed for profile ${args.profileId}`,
-        e,
-      );
-    }
-
-    try {
-      const producedOutput =
-        result.proposalsCreated +
-          result.memoriesMaterialized +
-          result.reweighted >
-        0;
-      const portraitStale =
-        profile.dreamPortraitUpdatedAt === undefined ||
-        Date.now() - profile.dreamPortraitUpdatedAt > PORTRAIT_REFRESH_MS;
-      if (producedOutput || portraitStale) {
-        const evidence = await fetchPortraitEvidence(driver, {
-          userId: args.clerkId,
-          profileId: args.profileId,
-          limit: PORTRAIT_EVIDENCE_LIMIT,
-        });
-        if (evidence.length > 0) {
-          const rawText = await callJsonChat(ctx, {
-            apiKey: auth.apiKey,
-            userId: auth.userId,
-            profileId: args.profileId,
-            feature: "dream-portrait",
-            role: "You maintain a grounded user portrait for a memory system.",
-            prompt: buildPortraitUpdatePrompt(
-              profile.dreamPortrait ?? null,
-              evidence,
-            ),
-            temperature: 0.2,
-          });
-          let portrait: ParsedPortrait | null = null;
-          if (rawText !== null) {
-            portrait = parsePortraitResponse(
-              rawText,
-              evidence.map((m) => m.id),
-            );
-          }
-          if (portrait) {
-            await ctx.runMutation(internal.profiles.setDreamPortraitInternal, {
-              profileId: args.profileId,
-              portrait: portrait.portrait,
-              sourceMemoryIds: portrait.sourceMemoryIds,
-            });
-            await scheduleContextPromptInvalidationByClerkId(ctx, args.clerkId);
-          }
-        }
-      }
-    } catch (e) {
-      console.error(
-        `[dream] portrait update failed for profile ${args.profileId}`,
-        e,
-      );
-    }
+    await maybeRefreshDreamPortrait({
+      ...passBase,
+      profile,
+    });
 
     await ctx.runMutation(internal.profiles.setLastDreamRunAtInternal, {
       profileId: args.profileId,

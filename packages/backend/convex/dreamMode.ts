@@ -1,22 +1,14 @@
 import { authAction, requireClerkId } from "./auth";
 import { internal } from "./_generated/api";
 import { auditLog, ResourceTypes } from "./auditLog";
-
-interface RunResult {
-  proposalsCreated: number;
-  memoriesMaterialized: number;
-  clustersScanned: number;
-  // memories whose confidence the reconsolidation pass adjusted
-  reweighted: number;
-  reason: "ok" | "no-key" | "no-recent-memories" | "rate-limited";
-}
+import type { DreamRunResult } from "./neo4jActions/dreamMode/runProfile";
 
 export const runDreamForUser = authAction({
   args: {},
-  handler: async (ctx): Promise<RunResult> => {
+  handler: async (ctx): Promise<DreamRunResult> => {
     const clerkId = await requireClerkId(ctx);
 
-    const result: RunResult = await ctx.runAction(
+    const result: DreamRunResult = await ctx.runAction(
       internal.neo4jActions.dreamMode.runDreamForActiveUser,
       {
         clerkId,
