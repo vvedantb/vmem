@@ -5,7 +5,7 @@ import type {
   ResolvedEdge,
   InteractionState,
   ViewportState,
-} from "./types";
+} from "@/lib/graph/types";
 import type { GraphViewTheme } from "../graph-view-themes";
 import { nodeColor as getNodeColor } from "../graph-colors";
 import type { ConnectorLogoMap } from "./connector-logos";
@@ -22,7 +22,7 @@ interface EdgeStyle {
   label: string;
 }
 
-export const EDGE_STYLE: Record<GraphEdgeType, EdgeStyle> = {
+const EDGE_STYLE: Record<GraphEdgeType, EdgeStyle> = {
   tag: { slot: "tag", widthMult: 1, label: "tagged" },
   relates_to: { slot: "relates_to", widthMult: 2, label: "relates to" },
   imports: { slot: "relates_to", widthMult: 2, label: "imports" },

@@ -1,11 +1,9 @@
-import type { GraphNode, ResolvedEdge } from "./types";
+import type { GraphNode, ResolvedEdge } from "@/lib/graph/types";
 
 const CELL_SIZE = 60;
 
 interface SpatialIndex {
   cells: Map<number, GraphNode[]>;
-  lastHash: string;
-  // when false, rebuildIndex skips the O(n) hash computation entirely
   dirty: boolean;
 }
 
@@ -14,19 +12,8 @@ function cellKey(cx: number, cy: number): number {
   return (cx + 32768) * 65536 + (cy + 32768);
 }
 
-function hashNodes(nodes: GraphNode[]): string {
-  let h = 0;
-  for (const n of nodes) {
-    const x = Math.round((n.x ?? 0) * 10);
-    const y = Math.round((n.y ?? 0) * 10);
-    h = ((h << 5) - h + x) | 0;
-    h = ((h << 5) - h + y) | 0;
-  }
-  return String(h);
-}
-
 export function createSpatialIndex(): SpatialIndex {
-  return { cells: new Map(), lastHash: "", dirty: true };
+  return { cells: new Map(), dirty: true };
 }
 
 // mark the index as needing a rebuild on next rebuildIndex call
@@ -36,12 +23,6 @@ export function markDirty(index: SpatialIndex): void {
 
 export function rebuildIndex(index: SpatialIndex, nodes: GraphNode[]): void {
   if (!index.dirty) return;
-
-  const hash = hashNodes(nodes);
-  if (hash === index.lastHash) {
-    index.dirty = false;
-    return;
-  }
 
   index.cells.clear();
   for (const node of nodes) {
@@ -55,7 +36,6 @@ export function rebuildIndex(index: SpatialIndex, nodes: GraphNode[]): void {
       index.cells.set(key, [node]);
     }
   }
-  index.lastHash = hash;
   index.dirty = false;
 }
 

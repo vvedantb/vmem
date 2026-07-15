@@ -59,8 +59,10 @@ async function fetchWithRetry(
     const lastErr = err instanceof Error ? err : new Error(String(err));
     const detail = lastErr.message;
     const nestedCause = readFetchCause(lastErr);
-    throw new Error(
-      `GitHub ${label} failed after ${FETCH_ATTEMPTS} attempts: ${detail}${nestedCause ? ` (${nestedCause})` : ""}`,
+    throw Object.assign(
+      new Error(
+        `GitHub ${label} failed after ${FETCH_ATTEMPTS} attempts: ${detail}${nestedCause ? ` (${nestedCause})` : ""}`,
+      ),
       { cause: err },
     );
   }

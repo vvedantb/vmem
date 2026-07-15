@@ -3,7 +3,7 @@ import type {
   InteractionState,
   ResolvedEdge,
   ViewportState,
-} from "./types";
+} from "@/lib/graph/types";
 import { screenToWorld, zoomAt } from "./viewport";
 import { getEdgeAt, getNodeAt } from "./hit-test";
 import type { createSpatialIndex } from "./hit-test";
@@ -23,6 +23,13 @@ interface PanSample {
   t: number;
 }
 
+type InputMode = "idle" | "node-drag" | "link" | "pan" | "pinch";
+
+const DRAG_THRESHOLD_MOUSE = 3;
+const DRAG_THRESHOLD_TOUCH = 5;
+const TAP_MAX_MS = 300;
+const MOMENTUM_MAX_MS = 200;
+
 export function attachInputHandlers(
   canvas: HTMLCanvasElement,
   interaction: InteractionState,
@@ -34,117 +41,116 @@ export function attachInputHandlers(
   edgesRef: { current: ResolvedEdge[] },
   callbacks: Callbacks,
 ): () => void {
-  let mouseDown = false;
-  let mouseDownX = 0;
-  let mouseDownY = 0;
+  let mode: InputMode = "idle";
+  const activePointers = new Map<number, { x: number; y: number }>();
+  let downX = 0;
+  let downY = 0;
   let hasDragged = false;
+  let downTime = 0;
   const panHistory: PanSample[] = [];
 
-  function getCanvasXY(e: MouseEvent): { x: number; y: number } {
-    const rect = canvas.getBoundingClientRect();
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  let pinchStartDist = 0;
+  let pinchStartScale = 1;
+  let lastPinchCenterX = 0;
+  let lastPinchCenterY = 0;
+
+  function canvasSize(): { w: number; h: number } {
+    return { w: canvas.clientWidth, h: canvas.clientHeight };
   }
 
-  function onMouseDown(e: MouseEvent) {
-    const { x, y } = getCanvasXY(e);
-    mouseDown = true;
-    mouseDownX = x;
-    mouseDownY = y;
-    hasDragged = false;
-    panHistory.length = 0;
-    panHistory.push({ x, y, t: performance.now() });
+  function clientCanvasXY(
+    clientX: number,
+    clientY: number,
+  ): { x: number; y: number } {
+    const rect = canvas.getBoundingClientRect();
+    return { x: clientX - rect.left, y: clientY - rect.top };
+  }
 
+  function pointerCanvasXY(e: PointerEvent): { x: number; y: number } {
+    return clientCanvasXY(e.clientX, e.clientY);
+  }
+
+  function worldAt(screenX: number, screenY: number): { x: number; y: number } {
+    const { w, h } = canvasSize();
+    return screenToWorld(viewport, screenX, screenY, w, h);
+  }
+
+  function nodeAt(screenX: number, screenY: number): GraphNode | null {
+    const world = worldAt(screenX, screenY);
+    return getNodeAt(spatialIndexRef.current, world.x, world.y, viewport.scale);
+  }
+
+  function dragThreshold(pointerType: string): number {
+    return pointerType === "touch"
+      ? DRAG_THRESHOLD_TOUCH
+      : DRAG_THRESHOLD_MOUSE;
+  }
+
+  function clearPanMomentum(): void {
     viewport.velocityX = 0;
     viewport.velocityY = 0;
+  }
 
-    const world = screenToWorld(
-      viewport,
-      x,
-      y,
-      canvas.clientWidth,
-      canvas.clientHeight,
-    );
-    const hitNode = getNodeAt(
-      spatialIndexRef.current,
-      world.x,
-      world.y,
-      viewport.scale,
-    );
+  function applyPanDelta(
+    x: number,
+    y: number,
+    lastX: number,
+    lastY: number,
+  ): void {
+    viewport.offsetX += x - lastX;
+    viewport.offsetY += y - lastY;
+    viewport.targetOffsetX = viewport.offsetX;
+    viewport.targetOffsetY = viewport.offsetY;
+  }
 
-    if (hitNode) {
-      if (e.shiftKey) {
-        interaction.linkSourceId = hitNode.id;
-        interaction.mouseWorldX = world.x;
-        interaction.mouseWorldY = world.y;
-      } else {
-        interaction.draggedNodeId = hitNode.id;
-        simRef.current?.dragStart(hitNode.id, hitNode.x ?? 0, hitNode.y ?? 0);
-      }
-    } else {
-      interaction.isPanning = true;
+  function recordPanSample(x: number, y: number): void {
+    panHistory.push({ x, y, t: performance.now() });
+    if (panHistory.length > 4) panHistory.shift();
+  }
+
+  function applyPanMomentum(endX: number, endY: number): void {
+    const oldest = panHistory.at(0);
+    if (!oldest) return;
+    const dt = performance.now() - oldest.t;
+    if (dt < MOMENTUM_MAX_MS && dt > 0) {
+      viewport.velocityX = (endX - oldest.x) / (dt / 16);
+      viewport.velocityY = (endY - oldest.y) / (dt / 16);
     }
   }
 
-  function onMouseMove(e: MouseEvent) {
-    const { x, y } = getCanvasXY(e);
-    const world = screenToWorld(
-      viewport,
-      x,
-      y,
-      canvas.clientWidth,
-      canvas.clientHeight,
-    );
+  function pinchDistance(): number {
+    const pts = [...activePointers.values()];
+    const a = pts[0];
+    const b = pts[1];
+    if (!a || !b) return 0;
+    return Math.hypot(a.x - b.x, a.y - b.y);
+  }
 
-    if (
-      mouseDown &&
-      (Math.abs(x - mouseDownX) > 3 || Math.abs(y - mouseDownY) > 3)
-    ) {
-      hasDragged = true;
-    }
+  function pinchCenter(): { x: number; y: number } {
+    const pts = [...activePointers.values()];
+    const a = pts[0];
+    const b = pts[1];
+    if (!a || !b) return { x: 0, y: 0 };
+    return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+  }
 
-    if (interaction.linkSourceId) {
-      interaction.mouseWorldX = world.x;
-      interaction.mouseWorldY = world.y;
-      const hitNode = getNodeAt(
-        spatialIndexRef.current,
-        world.x,
-        world.y,
-        viewport.scale,
-      );
-      const hoveredId =
-        hitNode && hitNode.id !== interaction.linkSourceId ? hitNode.id : null;
-      if (hoveredId !== interaction.hoveredNodeId) {
-        interaction.hoveredNodeId = hoveredId;
-      }
-      canvas.style.cursor = hoveredId ? "crosshair" : "default";
-      return;
-    }
+  function enterPinchMode(): void {
+    mode = "pinch";
+    interaction.draggedNodeId = null;
+    interaction.isPanning = false;
+    pinchStartDist = pinchDistance();
+    pinchStartScale = viewport.targetScale;
+    const center = pinchCenter();
+    lastPinchCenterX = center.x;
+    lastPinchCenterY = center.y;
+  }
 
-    if (interaction.draggedNodeId) {
-      simRef.current?.dragMove(interaction.draggedNodeId, world.x, world.y);
-      return;
-    }
-
-    if (interaction.isPanning) {
-      const last = panHistory[panHistory.length - 1];
-      if (last) {
-        viewport.offsetX += x - last.x;
-        viewport.offsetY += y - last.y;
-        viewport.targetOffsetX = viewport.offsetX;
-        viewport.targetOffsetY = viewport.offsetY;
-      }
-      panHistory.push({ x, y, t: performance.now() });
-      if (panHistory.length > 4) panHistory.shift();
-      return;
-    }
-
-    // freeze hover while a zoom gesture is in flight (spring still converging on its
+  function updateHover(screenX: number, screenY: number): void {
     if (Math.abs(viewport.targetScale - viewport.scale) > 0.001) {
       return;
     }
 
-    // hover detection — nodes take precedence over edges. When the cursor
-    // is over a node, the edge hover is cleared so the node tooltip wins
+    const world = worldAt(screenX, screenY);
     const hitNode = getNodeAt(
       spatialIndexRef.current,
       world.x,
@@ -163,37 +169,155 @@ export function attachInputHandlers(
         interaction.hoveredEdgeIndex = null;
         callbacks.onHoverEdge(null);
       }
-    } else {
-      const edgeIdx = getEdgeAt(
-        edgesRef.current,
-        world.x,
-        world.y,
-        viewport.scale,
-      );
-      if (edgeIdx !== interaction.hoveredEdgeIndex) {
-        interaction.hoveredEdgeIndex = edgeIdx;
-        callbacks.onHoverEdge(edgeIdx);
-      }
+      return;
+    }
+
+    const edgeIdx = getEdgeAt(
+      edgesRef.current,
+      world.x,
+      world.y,
+      viewport.scale,
+    );
+    if (edgeIdx !== interaction.hoveredEdgeIndex) {
+      interaction.hoveredEdgeIndex = edgeIdx;
+      callbacks.onHoverEdge(edgeIdx);
     }
   }
 
-  function onMouseUp(e: MouseEvent) {
-    const { x, y } = getCanvasXY(e);
+  function updateLinkHover(screenX: number, screenY: number): void {
+    const world = worldAt(screenX, screenY);
+    interaction.mouseWorldX = world.x;
+    interaction.mouseWorldY = world.y;
+    const hitNode = getNodeAt(
+      spatialIndexRef.current,
+      world.x,
+      world.y,
+      viewport.scale,
+    );
+    const hoveredId =
+      hitNode && hitNode.id !== interaction.linkSourceId ? hitNode.id : null;
+    if (hoveredId !== interaction.hoveredNodeId) {
+      interaction.hoveredNodeId = hoveredId;
+    }
+    canvas.style.cursor = hoveredId ? "crosshair" : "default";
+  }
 
-    if (interaction.linkSourceId) {
-      const world = screenToWorld(
-        viewport,
-        x,
-        y,
-        canvas.clientWidth,
-        canvas.clientHeight,
-      );
-      const hitNode = getNodeAt(
-        spatialIndexRef.current,
-        world.x,
-        world.y,
-        viewport.scale,
-      );
+  function onPointerDown(e: PointerEvent): void {
+    if (e.button !== 0 && e.pointerType === "mouse") return;
+
+    const { x, y } = pointerCanvasXY(e);
+    activePointers.set(e.pointerId, { x, y });
+    canvas.setPointerCapture(e.pointerId);
+
+    if (activePointers.size === 2) {
+      enterPinchMode();
+      return;
+    }
+
+    if (activePointers.size !== 1) return;
+
+    downX = x;
+    downY = y;
+    hasDragged = false;
+    downTime = performance.now();
+    panHistory.length = 0;
+    panHistory.push({ x, y, t: downTime });
+    clearPanMomentum();
+
+    const hitNode = nodeAt(x, y);
+    if (hitNode && e.shiftKey && e.pointerType === "mouse") {
+      mode = "link";
+      interaction.linkSourceId = hitNode.id;
+      interaction.mouseWorldX = worldAt(x, y).x;
+      interaction.mouseWorldY = worldAt(x, y).y;
+      return;
+    }
+
+    if (hitNode) {
+      mode = "node-drag";
+      interaction.draggedNodeId = hitNode.id;
+      simRef.current?.dragStart(hitNode.id, hitNode.x ?? 0, hitNode.y ?? 0);
+      return;
+    }
+
+    mode = "pan";
+    interaction.isPanning = true;
+  }
+
+  function onPointerMove(e: PointerEvent): void {
+    const { x, y } = pointerCanvasXY(e);
+    const stored = activePointers.get(e.pointerId);
+
+    if (!stored) {
+      if (mode === "idle" && activePointers.size === 0) {
+        updateHover(x, y);
+      }
+      return;
+    }
+
+    if (mode === "pinch" && activePointers.size >= 2) {
+      activePointers.set(e.pointerId, { x, y });
+      const dist = pinchDistance();
+      const center = pinchCenter();
+      const scaleFactor = dist / pinchStartDist;
+      const newScale = pinchStartScale * scaleFactor;
+      const clampedScale = Math.max(0.1, Math.min(5, newScale));
+      viewport.targetScale = clampedScale;
+      viewport.scale = clampedScale;
+      applyPanDelta(center.x, center.y, lastPinchCenterX, lastPinchCenterY);
+      lastPinchCenterX = center.x;
+      lastPinchCenterY = center.y;
+      return;
+    }
+
+    const threshold = dragThreshold(e.pointerType);
+    if (
+      activePointers.size === 1 &&
+      (Math.abs(x - downX) > threshold || Math.abs(y - downY) > threshold)
+    ) {
+      hasDragged = true;
+    }
+
+    if (mode === "link") {
+      activePointers.set(e.pointerId, { x, y });
+      updateLinkHover(x, y);
+      return;
+    }
+
+    if (mode === "node-drag" && interaction.draggedNodeId) {
+      activePointers.set(e.pointerId, { x, y });
+      const world = worldAt(x, y);
+      simRef.current?.dragMove(interaction.draggedNodeId, world.x, world.y);
+      return;
+    }
+
+    if (mode === "pan" && interaction.isPanning) {
+      applyPanDelta(x, y, stored.x, stored.y);
+      activePointers.set(e.pointerId, { x, y });
+      recordPanSample(x, y);
+      return;
+    }
+
+    activePointers.set(e.pointerId, { x, y });
+  }
+
+  function finishPointer(e: PointerEvent): void {
+    const { x, y } = pointerCanvasXY(e);
+    const hadCapture = activePointers.has(e.pointerId);
+    activePointers.delete(e.pointerId);
+    if (hadCapture && canvas.hasPointerCapture(e.pointerId)) {
+      canvas.releasePointerCapture(e.pointerId);
+    }
+
+    if (activePointers.size > 0) {
+      if (mode === "pinch" && activePointers.size === 1) {
+        mode = "idle";
+      }
+      return;
+    }
+
+    if (mode === "link" && interaction.linkSourceId) {
+      const hitNode = nodeAt(x, y);
       if (hitNode && hitNode.id !== interaction.linkSourceId) {
         callbacks.onLinkNodes(interaction.linkSourceId, hitNode.id);
       }
@@ -202,290 +326,70 @@ export function attachInputHandlers(
       canvas.style.cursor = "default";
     }
 
-    if (interaction.draggedNodeId) {
+    if (mode === "node-drag" && interaction.draggedNodeId) {
       simRef.current?.dragEnd(interaction.draggedNodeId);
       interaction.draggedNodeId = null;
       simRef.current?.reheat();
     }
 
-    if (interaction.isPanning && panHistory.length >= 2) {
-      const now = performance.now();
-      const oldest = panHistory.at(0);
-      if (oldest) {
-        const dt = now - oldest.t;
-        if (dt < 200 && dt > 0) {
-          viewport.velocityX = (x - oldest.x) / (dt / 16);
-          viewport.velocityY = (y - oldest.y) / (dt / 16);
-        }
-      }
-      interaction.isPanning = false;
+    if (mode === "pan" && interaction.isPanning && panHistory.length >= 2) {
+      applyPanMomentum(x, y);
     }
+    interaction.isPanning = false;
 
-    if (!hasDragged && mouseDown) {
-      const world = screenToWorld(
-        viewport,
-        x,
-        y,
-        canvas.clientWidth,
-        canvas.clientHeight,
-      );
-      const hitNode = getNodeAt(
-        spatialIndexRef.current,
-        world.x,
-        world.y,
-        viewport.scale,
-      );
+    if (
+      !hasDragged &&
+      e.pointerType === "touch" &&
+      performance.now() - downTime < TAP_MAX_MS
+    ) {
+      const hitNode = nodeAt(downX, downY);
+      if (hitNode) {
+        callbacks.onClickNode(hitNode.id);
+      }
+    } else if (!hasDragged && e.pointerType === "mouse" && e.button === 0) {
+      const hitNode = nodeAt(x, y);
       if (hitNode) {
         callbacks.onClickNode(hitNode.id);
       }
     }
 
-    mouseDown = false;
-    interaction.isPanning = false;
+    mode = "idle";
   }
 
-  function onWheel(e: WheelEvent) {
+  function onWheel(e: WheelEvent): void {
     e.preventDefault();
-    const { x, y } = getCanvasXY(e);
+    const { x, y } = clientCanvasXY(e.clientX, e.clientY);
+    const { w, h } = canvasSize();
     const factor = e.deltaY > 0 ? 0.92 : 1.08;
-    zoomAt(viewport, x, y, canvas.clientWidth, canvas.clientHeight, factor);
+    zoomAt(viewport, x, y, w, h, factor);
   }
 
-  function onDblClick(e: MouseEvent) {
-    const { x, y } = getCanvasXY(e);
-    // double-click on a node → focus local graph. On background → zoom
-    const world = screenToWorld(
-      viewport,
-      x,
-      y,
-      canvas.clientWidth,
-      canvas.clientHeight,
-    );
-    const hitNode = getNodeAt(
-      spatialIndexRef.current,
-      world.x,
-      world.y,
-      viewport.scale,
-    );
+  function onDblClick(e: MouseEvent): void {
+    const { x, y } = clientCanvasXY(e.clientX, e.clientY);
+    const hitNode = nodeAt(x, y);
+    const { w, h } = canvasSize();
     if (hitNode) {
       callbacks.onFocusNode(hitNode.id);
     } else {
-      zoomAt(viewport, x, y, canvas.clientWidth, canvas.clientHeight, 1.5);
+      zoomAt(viewport, x, y, w, h, 1.5);
     }
   }
 
-  // --- Touch support ---
-  let pinchStartDist = 0;
-  let pinchStartScale = 1;
-  let lastTouchX = 0;
-  let lastTouchY = 0;
-  let touchStartTime = 0;
-  let touchStartX = 0;
-  let touchStartY = 0;
-  let touchHasDragged = false;
-
-  function getTouchCanvasXY(touch: Touch): { x: number; y: number } {
-    const rect = canvas.getBoundingClientRect();
-    return { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
-  }
-
-  function getPinchDist(t1: Touch, t2: Touch): number {
-    const dx = t1.clientX - t2.clientX;
-    const dy = t1.clientY - t2.clientY;
-    return Math.sqrt(dx * dx + dy * dy);
-  }
-
-  function getPinchCenter(t1: Touch, t2: Touch): { x: number; y: number } {
-    const rect = canvas.getBoundingClientRect();
-    return {
-      x: (t1.clientX + t2.clientX) / 2 - rect.left,
-      y: (t1.clientY + t2.clientY) / 2 - rect.top,
-    };
-  }
-
-  function onTouchStart(e: TouchEvent) {
-    e.preventDefault();
-
-    if (e.touches.length === 2) {
-      const touch0 = e.touches.item(0);
-      const touch1 = e.touches.item(1);
-      if (!touch0 || !touch1) return;
-      // pinch start — release any single-touch state
-      interaction.draggedNodeId = null;
-      interaction.isPanning = false;
-      pinchStartDist = getPinchDist(touch0, touch1);
-      pinchStartScale = viewport.targetScale;
-      const center = getPinchCenter(touch0, touch1);
-      lastTouchX = center.x;
-      lastTouchY = center.y;
-      return;
-    }
-
-    const touch = e.touches.item(0);
-    if (!touch) return;
-    const { x, y } = getTouchCanvasXY(touch);
-    lastTouchX = x;
-    lastTouchY = y;
-    touchStartX = x;
-    touchStartY = y;
-    touchStartTime = performance.now();
-    touchHasDragged = false;
-
-    viewport.velocityX = 0;
-    viewport.velocityY = 0;
-    panHistory.length = 0;
-    panHistory.push({ x, y, t: performance.now() });
-
-    const world = screenToWorld(
-      viewport,
-      x,
-      y,
-      canvas.clientWidth,
-      canvas.clientHeight,
-    );
-    const hitNode = getNodeAt(
-      spatialIndexRef.current,
-      world.x,
-      world.y,
-      viewport.scale,
-    );
-
-    if (hitNode) {
-      interaction.draggedNodeId = hitNode.id;
-      simRef.current?.dragStart(hitNode.id, hitNode.x ?? 0, hitNode.y ?? 0);
-    } else {
-      interaction.isPanning = true;
-    }
-  }
-
-  function onTouchMove(e: TouchEvent) {
-    e.preventDefault();
-
-    if (e.touches.length === 2) {
-      const touch0 = e.touches.item(0);
-      const touch1 = e.touches.item(1);
-      if (!touch0 || !touch1) return;
-      const dist = getPinchDist(touch0, touch1);
-      const center = getPinchCenter(touch0, touch1);
-
-      // pinch zoom
-      const scaleFactor = dist / pinchStartDist;
-      const newScale = pinchStartScale * scaleFactor;
-      const clampedScale = Math.max(0.1, Math.min(5, newScale));
-      viewport.targetScale = clampedScale;
-      viewport.scale = clampedScale;
-
-      // pan with pinch center
-      viewport.offsetX += center.x - lastTouchX;
-      viewport.offsetY += center.y - lastTouchY;
-      viewport.targetOffsetX = viewport.offsetX;
-      viewport.targetOffsetY = viewport.offsetY;
-      lastTouchX = center.x;
-      lastTouchY = center.y;
-      return;
-    }
-
-    const touch = e.touches.item(0);
-    if (!touch) return;
-    const { x, y } = getTouchCanvasXY(touch);
-
-    if (Math.abs(x - touchStartX) > 5 || Math.abs(y - touchStartY) > 5) {
-      touchHasDragged = true;
-    }
-
-    if (interaction.draggedNodeId) {
-      const world = screenToWorld(
-        viewport,
-        x,
-        y,
-        canvas.clientWidth,
-        canvas.clientHeight,
-      );
-      simRef.current?.dragMove(interaction.draggedNodeId, world.x, world.y);
-      lastTouchX = x;
-      lastTouchY = y;
-      return;
-    }
-
-    if (interaction.isPanning) {
-      viewport.offsetX += x - lastTouchX;
-      viewport.offsetY += y - lastTouchY;
-      viewport.targetOffsetX = viewport.offsetX;
-      viewport.targetOffsetY = viewport.offsetY;
-      panHistory.push({ x, y, t: performance.now() });
-      if (panHistory.length > 4) panHistory.shift();
-    }
-
-    lastTouchX = x;
-    lastTouchY = y;
-  }
-
-  function onTouchEnd(e: TouchEvent) {
-    e.preventDefault();
-
-    // if still two fingers, ignore partial lift
-    if (e.touches.length > 0) return;
-
-    if (interaction.draggedNodeId) {
-      simRef.current?.dragEnd(interaction.draggedNodeId);
-      interaction.draggedNodeId = null;
-      simRef.current?.reheat();
-    }
-
-    // momentum pan
-    if (interaction.isPanning && panHistory.length >= 2) {
-      const now = performance.now();
-      const oldest = panHistory.at(0);
-      if (oldest) {
-        const dt = now - oldest.t;
-        if (dt < 200 && dt > 0) {
-          viewport.velocityX = (lastTouchX - oldest.x) / (dt / 16);
-          viewport.velocityY = (lastTouchY - oldest.y) / (dt / 16);
-        }
-      }
-    }
-    interaction.isPanning = false;
-
-    // tap detection
-    if (!touchHasDragged && performance.now() - touchStartTime < 300) {
-      const world = screenToWorld(
-        viewport,
-        touchStartX,
-        touchStartY,
-        canvas.clientWidth,
-        canvas.clientHeight,
-      );
-      const hitNode = getNodeAt(
-        spatialIndexRef.current,
-        world.x,
-        world.y,
-        viewport.scale,
-      );
-      if (hitNode) {
-        callbacks.onClickNode(hitNode.id);
-      }
-    }
-  }
-
-  canvas.addEventListener("mousedown", onMouseDown);
-  canvas.addEventListener("mousemove", onMouseMove);
-  canvas.addEventListener("mouseup", onMouseUp);
-  canvas.addEventListener("mouseleave", onMouseUp);
+  canvas.addEventListener("pointerdown", onPointerDown);
+  canvas.addEventListener("pointermove", onPointerMove);
+  canvas.addEventListener("pointerup", finishPointer);
+  canvas.addEventListener("pointercancel", finishPointer);
+  canvas.addEventListener("pointerleave", finishPointer);
   canvas.addEventListener("wheel", onWheel, { passive: false });
   canvas.addEventListener("dblclick", onDblClick);
-  canvas.addEventListener("touchstart", onTouchStart, { passive: false });
-  canvas.addEventListener("touchmove", onTouchMove, { passive: false });
-  canvas.addEventListener("touchend", onTouchEnd, { passive: false });
 
   return () => {
-    canvas.removeEventListener("mousedown", onMouseDown);
-    canvas.removeEventListener("mousemove", onMouseMove);
-    canvas.removeEventListener("mouseup", onMouseUp);
-    canvas.removeEventListener("mouseleave", onMouseUp);
+    canvas.removeEventListener("pointerdown", onPointerDown);
+    canvas.removeEventListener("pointermove", onPointerMove);
+    canvas.removeEventListener("pointerup", finishPointer);
+    canvas.removeEventListener("pointercancel", finishPointer);
+    canvas.removeEventListener("pointerleave", finishPointer);
     canvas.removeEventListener("wheel", onWheel);
     canvas.removeEventListener("dblclick", onDblClick);
-    canvas.removeEventListener("touchstart", onTouchStart);
-    canvas.removeEventListener("touchmove", onTouchMove);
-    canvas.removeEventListener("touchend", onTouchEnd);
   };
 }

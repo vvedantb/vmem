@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-07-15 — Web canvas pointer events and spatial/sim trim
+
+Unify canvas input on Pointer Events, drop spatial lastHash rebuilds, share
+stopped-simulation + SLEEP_ALPHA across worker/main, delete the canvas types
+barrel, and privatize EDGE_STYLE — with hit/viewport/physics characterization tests.
+
 ## 2026-07-15 — Simplify neo4j-cli benchmark and eval
 
 Collapse bench seed into a single-process `eval:bench`, fold seed/query types
