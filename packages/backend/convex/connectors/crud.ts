@@ -9,7 +9,7 @@ import { authAction, authMutation, authQuery, requireClerkId } from "../auth";
 import { internal } from "../_generated/api";
 import { auditLog, ResourceTypes } from "../auditLog";
 import { STALE_SYNCING_MS } from "@vmem/shared";
-import { sourceTypesForProvider } from "../../engine/neo4j/memory/connectorSourceTypes";
+import { sourceTypesForProvider } from "./sourceTypes";
 
 type ConnectorProvider = NonNullable<Doc<"connectors">["provider"]>;
 

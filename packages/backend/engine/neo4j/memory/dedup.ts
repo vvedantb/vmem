@@ -12,7 +12,7 @@ import {
   type MemoryRef,
 } from "./crud";
 import { computeContentHash } from "./mappers";
-import { withSession } from "./shared";
+import { withSession } from "../session";
 import type { MemoryType, MemoryWithTags } from "./types";
 
 const BROWSER_SOURCES: ReadonlySet<string> = new Set([

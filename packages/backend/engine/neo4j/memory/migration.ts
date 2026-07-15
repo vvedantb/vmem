@@ -1,6 +1,6 @@
 import type { Driver, QueryResult } from "neo4j-driver";
 import { neo4jGet, parseNeo4jInt } from "../record";
-import { withSession } from "./shared";
+import { withSession } from "../session";
 
 function firstCount(result: QueryResult, key: string): number {
   const record = result.records[0];

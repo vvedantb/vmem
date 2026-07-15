@@ -5,7 +5,8 @@ import type { ConfidenceAdjustment, MergeClusterMember } from "../dreamPrompt";
 import type { PortraitEvidenceMemory } from "../portraitPrompt";
 import { neo4jGet, parseNeo4jNodeProps } from "../record";
 import { toSnapshot } from "./mappers";
-import { logEvent, visibleStatusClause, withSession } from "./shared";
+import { withSession } from "../session";
+import { logEvent, visibleStatusClause } from "./shared";
 
 const dreamMemoryPropsSchema = z.object({
   id: z.string(),

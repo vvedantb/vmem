@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-07-15 — Engine stage 1: delete shallow modules
+
+Inline codebase sync/error helpers into Convex, fold parsers and enrichment
+vocabulary reads, move connector source types and `withSession` to their
+natural homes, and drop dead `syncCodebaseInternal` / engine search wrapper.
+
 ## 2026-07-15 — Trim MCP catalog ceremony
 
 Bind tools at registration time (drop precomputed bindable catalog), co-locate

@@ -1,22 +1,15 @@
 import type { Record as NeoRecord } from "neo4j-driver";
-import type { z } from "zod";
+import neo4j from "neo4j-driver";
+import { type ZodType, z } from "zod";
 import {
   neo4jField,
   neo4jGet,
   neo4jIntSchema,
+  nullableNumberSchema,
+  parseNeo4jInt,
   parseNeo4jNodeProps,
   stringSchema,
 } from "../record";
-import {
-  labelsSchema,
-  nullableEdgeTierSchema,
-  nullableNumberSchema,
-  type OverviewNodeProps,
-  overviewNodePropsSchema,
-  processRefListSchema,
-  stringArraySchema,
-  symbolRefListSchema,
-} from "./schemas";
 import type {
   OverviewEdge,
   OverviewNode,
@@ -25,6 +18,56 @@ import type {
   SymbolContext,
 } from "./read";
 import type { ImpactNode } from "./impact";
+
+const optionalNeo4jIntSchema = z
+  .custom<number | undefined>((v) => {
+    if (v === undefined || v === null) return true;
+    return typeof v === "number" || neo4j.isInt(v);
+  })
+  .transform((v): number | undefined => {
+    if (v == null) return undefined;
+    return parseNeo4jInt(v);
+  });
+
+const overviewNodePropsSchema = z.object({
+  id: z.string(),
+  name: z.string().optional(),
+  qualifiedName: z.string().optional(),
+  path: z.string().optional(),
+  filePath: z.string().optional(),
+  filename: z.string().optional(),
+  directory: z.string().optional(),
+  isExported: z.boolean().optional(),
+  isAsync: z.boolean().optional(),
+  isTest: z.boolean().optional(),
+  startLine: optionalNeo4jIntSchema,
+  endLine: optionalNeo4jIntSchema,
+});
+
+type OverviewNodeProps = z.infer<typeof overviewNodePropsSchema>;
+
+const labelsSchema = z.array(z.string());
+
+const stringArraySchema = z.array(z.string());
+
+const nullableEdgeTierSchema = z
+  .enum(["EXTRACTED", "INFERRED", "AMBIGUOUS"])
+  .nullable();
+
+const symbolRefSchema = z.object({
+  id: z.string().nullable(),
+  name: z.string().optional(),
+  filePath: z.string().optional(),
+});
+
+const symbolRefListSchema = z.array(symbolRefSchema);
+
+const processRefSchema = z.object({
+  id: z.string().nullable(),
+  name: z.string().optional(),
+});
+
+const processRefListSchema = z.array(processRefSchema);
 
 export function parseOverviewStats(record: NeoRecord): OverviewStats {
   return {

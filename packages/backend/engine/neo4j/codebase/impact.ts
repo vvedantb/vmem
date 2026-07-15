@@ -1,6 +1,6 @@
 import Cypher from "@neo4j/cypher-builder";
 import type { Driver } from "neo4j-driver";
-import { buildAndRun } from "../cypherHelpers";
+import { buildAndRun } from "./buildAndRun";
 import { parseImpactRecord } from "./mappers";
 
 const DEFAULT_DEPTH = 5;

@@ -6,7 +6,8 @@ import {
   parseNeo4jInt,
   parseNeo4jNodeProps,
 } from "../record";
-import { profileFilter, withSession } from "./shared";
+import { withSession } from "../session";
+import { profileFilter } from "./shared";
 
 const activityEventPropsSchema = z.object({
   id: z.string(),

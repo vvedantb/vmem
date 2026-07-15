@@ -1,3 +1,4 @@
+import type { CypherResult } from "@neo4j/cypher-builder";
 import Cypher from "@neo4j/cypher-builder";
 import crypto from "node:crypto";
 import neo4j, {
@@ -6,14 +7,22 @@ import neo4j, {
   type QueryResult,
   type Session,
 } from "neo4j-driver";
-import { buildAndRun } from "../cypherHelpers";
 import { toMemoryContentFulltextQuery } from "../luceneQuery";
 import { neo4jGet, parseNeo4jInt } from "../record";
+import { withSession } from "../session";
 import { toMemoryWithTags, toSnapshot } from "./mappers";
 import { createSemanticSimilarityEdges } from "./relationships";
-import { logEvent, visibleStatusClause, withSession } from "./shared";
+import { logEvent, visibleStatusClause } from "./shared";
 import { normalizeTags } from "./tagNormalize";
 import type { MemoryStatus, MemoryType, MemoryWithTags } from "./types";
+
+function buildAndRun(
+  session: Session,
+  clause: Cypher.Clause,
+): ReturnType<Session["run"]> {
+  const { cypher, params }: CypherResult = clause.build();
+  return session.run(cypher, params);
+}
 
 export type MemoryRef = { id: string; title: string; updatedAt: string };
 
