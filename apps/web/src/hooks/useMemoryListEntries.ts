@@ -7,7 +7,6 @@ import { useMemoryListFlat } from "@/hooks/useMemoryList";
 import { useMemoryListSupplementaryItems } from "@/hooks/useMemoryListSupplementaryItems";
 import { useMemoriesSearchParams } from "@/hooks/useMemoriesSearchParams";
 import type { MemoryViewFilterParams } from "@/lib/memory-view-filters";
-import { kindPassesFilter } from "@/lib/memory-view-filters";
 import {
   listItemPassesFilters,
   memoryToListItem,
@@ -28,17 +27,6 @@ export type MemoryListEntry = {
 
 function unscoredEntry(item: ListItem): MemoryListEntry {
   return { item, score: null };
-}
-
-function passesMultiSelectFilters(
-  item: ListItem,
-  types: readonly string[],
-  sources: readonly string[],
-): boolean {
-  if (item.kind !== "memory") return true;
-  if (types.length > 1 && !types.includes(item.type)) return false;
-  if (sources.length > 1 && !sources.includes(item.source)) return false;
-  return true;
 }
 
 export function useMemoryListEntries() {
@@ -102,11 +90,7 @@ export function useMemoryListEntries() {
     const memories = kindIncludesMemory
       ? memoryResults
           .map(memoryToListItem)
-          .filter(
-            (item) =>
-              passesMultiSelectFilters(item, params.types, params.sources) &&
-              kindPassesFilter(item.kind, params.kinds),
-          )
+          .filter((item) => listItemPassesFilters(item, filters))
       : [];
 
     const nonMemory = supplementaryItems.filter((item) =>
@@ -149,9 +133,6 @@ export function useMemoryListEntries() {
     memoryResults,
     supplementaryItems,
     filters,
-    params.kinds,
-    params.types,
-    params.sources,
     kindIncludesMemory,
     isHybridSearch,
     isShowingSearchResults,
