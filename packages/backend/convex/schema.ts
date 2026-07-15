@@ -92,7 +92,7 @@ const schema = defineSchema({
     // history-sync period for the browser extension, in minutes (15–1440)
     extensionAutoSyncIntervalMinutes: v.optional(v.number()),
     extensionSelectionPopupEnabled: v.optional(v.boolean()),
-    // memory behavior defaults
+    // memory behaviour defaults
     memoryAutoExtract: v.optional(v.boolean()),
     memoryConfidenceThreshold: v.optional(v.number()),
     // notification preferences

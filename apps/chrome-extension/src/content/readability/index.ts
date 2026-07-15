@@ -5,7 +5,7 @@
 // chrome.tabs.sendMessage(tabId { type: "EXTRACT_PAGE" })
 //
 // why a content script and not chrome.scripting.executeScript({ func })?
-// because executeScript({ func }) serializes the function its imports
+// because executeScript({ func }) serialises the function its imports
 // are stripped so @mozilla/readability would not be available at run
 // time a bundled content script keeps the dependency wired up
 //

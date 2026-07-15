@@ -42,7 +42,7 @@ export type MemoryListResult = FunctionReturnType<
 // single memory row from list / retrieve / getMemory api payloads
 export type MemoryApiFields = MemoryListResult["memories"][number];
 
-// normalize api / retrieve / getMemory payloads into the client Memory shape
+// normalise api / retrieve / getMemory payloads into the client Memory shape
 export function memoryFromApi(m: MemoryApiFields): Memory {
   return {
     id: m.id,

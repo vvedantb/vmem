@@ -124,7 +124,7 @@ function createWorkerSimulation(
     weight: e.weight,
   }));
 
-  // initialize the worker simulation
+  // initialise the worker simulation
   worker.postMessage({
     type: "init",
     nodes: workerNodes,

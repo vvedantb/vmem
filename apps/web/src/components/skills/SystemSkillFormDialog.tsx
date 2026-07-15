@@ -17,11 +17,11 @@ import { SkillFormShell } from "@/components/skills/SkillFormShell";
 interface SystemSkillFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  // undefined = create a new catalog skill; provided = edit it
+  // undefined = create a new catalogue skill; provided = edit it
   entry?: SystemSkillEntry;
 }
 
-// admin-only create/edit form for a catalog system skill
+// admin-only create/edit form for a catalogue system skill
 export function SystemSkillFormDialog({
   open,
   onOpenChange,

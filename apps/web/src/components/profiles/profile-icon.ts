@@ -48,5 +48,5 @@ export const PROFILE_COLORS = [
   "#8B5CF6", // violet
   "#EC4899", // pink
   "#06B6D4", // cyan
-  "#6B7280", // gray
+  "#6B7280", // grey
 ] as const;

@@ -15,7 +15,7 @@ interface PageContainerProps {
   // show title in header row
   showTitle?: boolean;
   centeredMaxWidth?: boolean;
-  // ref callback to access the scroll container (for use with virtualized lists)
+  // ref callback to access the scroll container (for use with virtualised lists)
   scrollRef?: (el: HTMLDivElement | null) => void;
   children: ReactNode;
 }

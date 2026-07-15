@@ -222,7 +222,7 @@ async function buildSkillUpdatePatch(
   return patch;
 }
 
-// normalize a skill id string and fetch the row, throwing if either fails
+// normalise a skill id string and fetch the row, throwing if either fails
 async function resolveSkillOrThrow(
   ctx: QueryCtx | MutationCtx,
   rawId: string,

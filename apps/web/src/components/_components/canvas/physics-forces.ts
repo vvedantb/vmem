@@ -62,7 +62,7 @@ export function createGraphForces<
   profile: PhysicsProfile,
 ): GraphForces<N, L> {
   // no .strength() override — d3's default (1 / min(endpoint degree)) is the
-  // degree normalization described above
+  // degree normalisation described above
   const link = forceLink<N, L>(structuralEdges)
     .id((d) => d.id)
     .distance(

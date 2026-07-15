@@ -287,7 +287,7 @@ function positionPopup(): void {
   const popupSize = 32;
   const gap = 8;
 
-  // default: centered below selection
+  // default: centred below selection
   let x = rect.left + rect.width / 2 - popupSize / 2;
   let y = rect.bottom + gap;
 
@@ -356,7 +356,7 @@ function onMouseUp(e: MouseEvent): void {
   // skip clicks inside our own popup
   if (e.target === host) return;
 
-  // use rAF to let the browser finalize the selection
+  // use rAF to let the browser finalise the selection
   requestAnimationFrame(() => {
     const selection = window.getSelection();
     if (!selection || selection.isCollapsed) return;
@@ -452,7 +452,7 @@ function setEnabled(value: boolean): void {
   }
 }
 
-// initialization
+// initialisation
 
 function init(): void {
   // attach popup event listeners (these stay regardless of toggle)

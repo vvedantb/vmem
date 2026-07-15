@@ -15,7 +15,7 @@ interface VmemPathsProps {
   leftClassName?: string;
   rightClassName?: string;
   topClassName?: string;
-  // `pathLength="100"` lets every stroke animation use a normalized 0-100 dasharray
+  // `pathLength="100"` lets every stroke animation use a normalised 0-100 dasharray
   normalizePath?: boolean;
 }
 

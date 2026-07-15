@@ -13,7 +13,7 @@ import { IconTrash, IconX } from "@tabler/icons-react";
 
 interface BulkSelectionDeleteBarProps {
   count: number;
-  // already pluralized for the confirm title ("items", "skills")
+  // already pluralised for the confirm title ("items", "skills")
   itemWord: string;
   description: ReactNode;
   onExit: () => void;
