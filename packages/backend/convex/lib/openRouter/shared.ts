@@ -1,5 +1,5 @@
+import type { FunctionArgs } from "convex/server";
 import type { ActionCtx } from "../../_generated/server";
-import type { Id } from "../../_generated/dataModel";
 import { internal } from "../../_generated/api";
 import type { OpenRouterEndpoint, OpenRouterFeature } from "./schemas";
 
@@ -10,29 +10,7 @@ export const LLM_MODEL = "qwen/qwen3-235b-a22b-2507";
 export const PROMPT_PREVIEW_BYTES = 4096;
 export const COMPLETION_PREVIEW_BYTES = 2048;
 
-interface LogPayload {
-  userId: Id<"users">;
-  profileId?: string;
-  feature: OpenRouterFeature;
-  endpoint: OpenRouterEndpoint;
-  model: string;
-  errorMessage?: string;
-  generationId?: string;
-  provider?: string;
-  finishReason?: string;
-  nativeFinishReason?: string;
-  promptTokens?: number;
-  completionTokens?: number;
-  totalTokens?: number;
-  cachedTokens?: number;
-  cacheWriteTokens?: number;
-  reasoningTokens?: number;
-  costUsd?: number;
-  upstreamCostUsd?: number;
-  isByok?: boolean;
-  promptPreview?: string;
-  completionPreview?: string;
-}
+type LogPayload = FunctionArgs<typeof internal.openRouterLogs.recordInternal>;
 
 export async function scheduleLog(
   ctx: ActionCtx,

@@ -83,13 +83,12 @@ export const revealValue = authAction({
   args: { key: v.string() },
   returns: v.union(v.string(), v.null()),
   handler: async (ctx, args): Promise<string | null> => {
-    const entries: Array<{ key: string; value: string }> = await ctx.runQuery(
-      internal.userEnvVars.getAllInternal,
-      { userId: ctx.userId },
+    const encryptedValue = await ctx.runQuery(
+      internal.userEnvVars.getVarInternal,
+      { userId: ctx.userId, key: args.key },
     );
-    const match = entries.find((entry) => entry.key === args.key);
-    if (!match) return null;
-    return await decryptToken(match.value);
+    if (encryptedValue === null) return null;
+    return await decryptToken(encryptedValue);
   },
 });
 

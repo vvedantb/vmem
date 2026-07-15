@@ -27,7 +27,6 @@ interface ProviderConfig {
   clientSecretEnv: string;
   extraAuthParams: Record<string, string>;
   tokenAuth: "body" | "basic";
-  includeScopeInTokenBody: boolean;
   tokenPolicy: (tokenData: OAuthAccessTokenData) => StoreOAuthTokensOptions;
 }
 
@@ -54,7 +53,6 @@ const PROVIDER_CONFIGS: Record<Provider, ProviderConfig> = {
     clientSecretEnv: "GOOGLE_CLIENT_SECRET",
     extraAuthParams: { access_type: "offline", prompt: "consent" },
     tokenAuth: "body",
-    includeScopeInTokenBody: false,
     tokenPolicy: expiringTokenPolicy,
   },
   notion: {
@@ -66,7 +64,6 @@ const PROVIDER_CONFIGS: Record<Provider, ProviderConfig> = {
     clientSecretEnv: "NOTION_CLIENT_SECRET",
     extraAuthParams: { owner: "user" },
     tokenAuth: "basic",
-    includeScopeInTokenBody: false,
     tokenPolicy: noExpiryTokenPolicy,
   },
 };
@@ -360,9 +357,6 @@ export const handleCallbackInternal = internalAction({
               code: args.code,
               redirect_uri: redirectUri,
               grant_type: "authorization_code",
-              ...(config.includeScopeInTokenBody
-                ? { scope: config.scopes.join(" ") }
-                : {}),
             }),
           });
     if (!exchanged.ok) {

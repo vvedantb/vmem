@@ -34,7 +34,6 @@ export const enrichMemoryInternal = internalAction({
 
       const vocabulary = await loadEnrichmentVocabulary(driver, args.clerkId, {
         excludeMemoryId: args.memoryId,
-        includeEntities: true,
       });
 
       const parsed = await callFullEnrichmentLlm(ctx, auth, {

@@ -25,16 +25,15 @@ const ENRICHMENT_ROLE =
 export type EnrichmentVocabulary = {
   recentTitles: EnrichmentCandidate[];
   topTags: TagUsage[];
-  topEntities?: KnownEntity[];
+  topEntities: KnownEntity[];
 };
 
 export async function loadEnrichmentVocabulary(
   driver: Driver,
   clerkId: string,
-  opts?: { excludeMemoryId?: string; includeEntities?: boolean },
+  opts?: { excludeMemoryId?: string },
 ): Promise<EnrichmentVocabulary> {
   const excludeMemoryId = opts?.excludeMemoryId ?? "";
-  const includeEntities = opts?.includeEntities === true;
 
   const recentTitlesPromise = getRecentMemoryTitles(
     driver,
@@ -42,14 +41,6 @@ export async function loadEnrichmentVocabulary(
     excludeMemoryId,
   );
   const topTagsPromise = getTopTags(driver, clerkId, 50);
-
-  if (!includeEntities) {
-    const [recentTitles, topTags] = await Promise.all([
-      recentTitlesPromise,
-      topTagsPromise,
-    ]);
-    return { recentTitles, topTags };
-  }
 
   const [recentTitles, topTags, topEntities] = await Promise.all([
     recentTitlesPromise,
@@ -75,7 +66,7 @@ export async function callFullEnrichmentLlm(
     params.content,
     params.vocabulary.recentTitles,
     params.vocabulary.topTags,
-    params.vocabulary.topEntities ?? [],
+    params.vocabulary.topEntities,
   );
 
   const rawText = await callJsonChat(ctx, {

@@ -17,7 +17,6 @@ import type * as codebaseSyncActions from "../codebaseSyncActions.js";
 import type * as codebases from "../codebases.js";
 import type * as connectors_crud from "../connectors/crud.js";
 import type * as connectors_oauth from "../connectors/oauth.js";
-import type * as connectors_sourceTypes from "../connectors/sourceTypes.js";
 import type * as connectors_sync from "../connectors/sync.js";
 import type * as connectors_syncActions from "../connectors/syncActions.js";
 import type * as connectors_syncWorkflow from "../connectors/syncWorkflow.js";
@@ -182,7 +181,6 @@ declare const fullApi: ApiFromModules<{
   codebases: typeof codebases;
   "connectors/crud": typeof connectors_crud;
   "connectors/oauth": typeof connectors_oauth;
-  "connectors/sourceTypes": typeof connectors_sourceTypes;
   "connectors/sync": typeof connectors_sync;
   "connectors/syncActions": typeof connectors_syncActions;
   "connectors/syncWorkflow": typeof connectors_syncWorkflow;

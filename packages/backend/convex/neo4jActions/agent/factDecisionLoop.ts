@@ -35,10 +35,8 @@ export async function runFactDecisionLoop(
   opts: FactDecisionLoopOptions,
   facts: ExtractedFact[],
   apply: ApplyFactDecision,
-): Promise<{ processed: number; skipped: number }> {
+): Promise<void> {
   const driver = getDriver();
-  let processed = 0;
-  let skipped = 0;
 
   for (let factIndex = 0; factIndex < facts.length; factIndex++) {
     const fact = facts[factIndex];
@@ -90,12 +88,10 @@ export async function runFactDecisionLoop(
             `${opts.logPrefix} Invalid decision response for fact ${String(factIndex)}`,
           );
         }
-        skipped += 1;
         return;
       }
 
       await apply({ factIndex, factText: fact.text, decision });
-      processed += 1;
     };
 
     if (opts.bestEffortPerFact) {
@@ -111,6 +107,4 @@ export async function runFactDecisionLoop(
       await runOne();
     }
   }
-
-  return { processed, skipped };
 }

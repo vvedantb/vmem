@@ -9,7 +9,6 @@ import { authAction, authMutation, authQuery, requireClerkId } from "../auth";
 import { internal } from "../_generated/api";
 import { auditLog, ResourceTypes } from "../auditLog";
 import { STALE_SYNCING_MS } from "@vmem/shared";
-import { sourceTypesForProvider } from "./sourceTypes";
 import {
   connectorConnectionStatusValidator,
   connectorFields,
@@ -305,14 +304,12 @@ export const deleteConnectorData = authAction({
       throw new Error("Connector does not support data deletion");
     }
 
-    const sourceTypes = sourceTypesForProvider(connector.provider);
-    if (!sourceTypes?.length) {
-      throw new Error("Connector does not support data deletion");
-    }
-
     const deleted = await ctx.runAction(
       internal.neo4jActions.connectorData.deleteBySourceTypesInternal,
-      { clerkId: await requireClerkId(ctx), sourceTypes: [...sourceTypes] },
+      {
+        clerkId: await requireClerkId(ctx),
+        sourceTypes: [connector.provider],
+      },
     );
 
     await ctx.runMutation(internal.connectors.crud.resetSyncStatsInternal, {
