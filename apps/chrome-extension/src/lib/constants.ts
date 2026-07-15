@@ -1,10 +1,14 @@
 export const CLERK_PUBLISHABLE_KEY =
+  import.meta.env?.VITE_CLERK_PUBLISHABLE_KEY ??
   "pk_test_ZmxleGlibGUtZHVja2xpbmctNzQuY2xlcmsuYWNjb3VudHMuZGV2JA";
 
 export const CONVEX_URL =
+  import.meta.env?.VITE_CONVEX_URL ??
   "https://outgoing-reindeer-268.eu-west-1.convex.cloud";
 
-export const CLERK_SYNC_HOST = "https://vmem-git-staging-vedantb.vercel.app";
+export const CLERK_SYNC_HOST =
+  import.meta.env?.VITE_CLERK_SYNC_HOST ??
+  "https://vmem-git-staging-vedantb.vercel.app";
 
 export const EXPORT_PROMPT = `Please save a comprehensive summary of our entire conversation to vmem. Include:
 - All key decisions made
@@ -22,24 +26,24 @@ If you catch yourself reasoning about whether to skip vmem because the topic is 
 export const VMEM_AI_SYSTEM_PROMPT_COPY_SUCCESS =
   "Copied — paste into your AI agent's system prompt";
 
-// sync interval presets shared by popup slider + background alarm clamp
+// sync presets shared by popup and background
 export const MIN_SYNC_INTERVAL_MINUTES = 15;
-export const MAX_SYNC_INTERVAL_MINUTES = 1440; // 24h
+export const MAX_SYNC_INTERVAL_MINUTES = 1440; // one day
 export const DEFAULT_SYNC_INTERVAL_MINUTES = 30;
 
-/** selectable history-sync periods (minutes), ascending. */
+// selectable sync periods in minutes
 export const SYNC_INTERVAL_PRESETS = [
   15, 30, 60, 120, 240, 360, 720, 1440,
 ] as const;
 
-/** e.g. "every 30 minutes" / "every 2 hours". */
+// human label for settings
 export function describeSyncInterval(minutes: number): string {
   if (minutes < 60) return `Every ${minutes} minutes`;
   const hours = minutes / 60;
   return hours === 1 ? "Every hour" : `Every ${hours} hours`;
 }
 
-/** Compact form for axis captions, e.g. "15m" / "24h". Assumes a preset. */
+// compact label for ticks
 export function shortSyncInterval(minutes: number): string {
   return minutes < 60 ? `${minutes}m` : `${minutes / 60}h`;
 }

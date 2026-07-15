@@ -61,7 +61,7 @@ import { authQuery, authMutation, authAction } from "./auth";
 
 ## Environment
 
-Set in the Convex dashboard (not `.env`):
+Use `.env.example` as the complete template. Copy it to `.env.local` for local CLI scripts/tests, and set the Convex runtime variables in the Convex dashboard:
 
 | Variable                          | Purpose                                   |
 | --------------------------------- | ----------------------------------------- |
@@ -73,7 +73,7 @@ Set in the Convex dashboard (not `.env`):
 | `CONVEX_SITE_URL` / `WEB_APP_URL` | OAuth redirects                           |
 | `OPENROUTER_API_KEY`              | Embeddings and context prompt generation  |
 
-Neo4j CLI scripts (`eval:bench`, `db:tag-stats`) use `packages/backend/.env.local`.
+Neo4j CLI scripts (`eval:bench`) and live HTTP tests use `packages/backend/.env.local`.
 
 ## Run
 

@@ -15,7 +15,11 @@ pnpm ext:build  # one-off production build
 
 Load `apps/chrome-extension/dist/` as an unpacked extension in Chrome: `chrome://extensions` → Developer mode → Load unpacked.
 
-Before building, set your deployment URL and Clerk key in `src/lib/constants.ts`.
+Before building, copy `.env.example` to `.env.local` and set your deployment URL and Clerk key:
+
+```bash
+cp apps/chrome-extension/.env.example apps/chrome-extension/.env.local
+```
 
 ## Features
 
