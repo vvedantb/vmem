@@ -1,3 +1,6 @@
+// AI-generated (Claude), prompt: "preferences settings page skeleton with section cards"
+// Modified by me: section count and textarea placeholders
+
 import { Card, CardContent, Skeleton } from "@vmem/ui";
 import PageContainer from "@/components/shell/PageContainer";
 

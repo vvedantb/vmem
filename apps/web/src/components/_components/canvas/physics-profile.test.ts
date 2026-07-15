@@ -1,3 +1,5 @@
+// AI-generated (Claude), prompt: "verify physics profile tiers scale with graph node count"
+// Modified by me: checked boundary counts at each tier step
 import { describe, expect, it } from "vitest";
 import { physicsProfile } from "./physics-profile";
 

@@ -1,3 +1,6 @@
+// AI-generated (Claude), prompt: "ai logs page skeleton with metric cards and table rows"
+// Modified by me: row count and card min heights
+
 import { Card, CardContent, Skeleton } from "@vmem/ui";
 
 export function AiLogsLoadingSkeleton() {

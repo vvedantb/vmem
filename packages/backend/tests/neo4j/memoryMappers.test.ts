@@ -1,3 +1,5 @@
+// AI-generated (Claude), prompt: "unit tests for neo4j memory record mappers and tag normalize"
+// Modified by me: normalized nullish legacy fields on memory with tags
 import { describe, expect, it } from "vitest";
 import type { Record as NeoRecord } from "neo4j-driver";
 import {

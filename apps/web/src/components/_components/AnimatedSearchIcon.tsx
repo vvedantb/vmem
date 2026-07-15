@@ -1,3 +1,6 @@
+// AI-generated (Claude), prompt: "search icon that morphs into an x on empty results"
+// Modified by me: smil keyframe loop and hold timing
+
 // search icon morphs to x on empty results
 interface AnimatedSearchIconProps {
   className?: string;

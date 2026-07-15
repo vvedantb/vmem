@@ -1,3 +1,5 @@
+// AI-generated (Claude), prompt: "test codebase parse call resolve entry points and process detect"
+// Modified by me: ran the full parse pipeline on fixture blobs
 import { describe, expect, it } from "vitest";
 import {
   parseRepository,

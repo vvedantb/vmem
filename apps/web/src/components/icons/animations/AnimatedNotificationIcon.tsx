@@ -1,3 +1,6 @@
+// AI-generated (Claude), prompt: "self drawing notification icons for toast types"
+// Modified by me: type colors and path timing
+
 // animated notification icons with self-drawing effects
 
 import { motion } from "motion/react";

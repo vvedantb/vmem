@@ -1,3 +1,5 @@
+// AI-generated (Claude), prompt: "live neo4j behavioural suite for memory crud retrieve enrich and proposals"
+// Modified by me: gated on retrieval eval env and kept the existing header note
 // live Neo4j behavioural suite (gated by RUN_RETRIEVAL_EVAL=1)
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";

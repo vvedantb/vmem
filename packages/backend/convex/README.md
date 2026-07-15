@@ -1,3 +1,6 @@
+<!-- AI-generated (Claude), prompt: "document convex function conventions for vmem" -->
+<!-- Modified by me: added typecheck and auth helper notes -->
+
 # Convex functions
 
 All vmem backend logic lives here. See `packages/backend/README.md` for architecture and module overview.

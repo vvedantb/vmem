@@ -95,6 +95,8 @@ export function MetricSummaryCard({
   );
 }
 
+// AI-generated (Claude), prompt: "pulse placeholder cards for metric summary grid"
+// Modified by me: count prop for multiple cards
 export function MetricSummaryCardSkeleton({ count = 1 }: { count?: number }) {
   return (
     <>

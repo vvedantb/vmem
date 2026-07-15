@@ -1,3 +1,6 @@
+// AI-generated (Claude), prompt: "api usage logs skeleton with summary cards and rows"
+// Modified by me: three column summary and table placeholders
+
 import { Card, CardContent, Skeleton } from "@vmem/ui";
 
 const SUMMARY_CARD_INDICES = [0, 1, 2];

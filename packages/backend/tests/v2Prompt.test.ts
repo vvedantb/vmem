@@ -1,3 +1,5 @@
+// AI-generated (Claude), prompt: "parse v2 fact extraction and update decision llm responses"
+// Modified by me: accepted fenced json and skipped empty fact text
 import { describe, expect, it } from "vitest";
 import {
   parseFactExtractionResponse,

@@ -1,3 +1,6 @@
+<!-- AI-generated (Claude), prompt: "write root readme for the vmem monorepo" -->
+<!-- Modified by me: clarified problem statement and architecture overview -->
+
 # vmem
 
 **A model-agnostic memory layer for AI** — store, retrieve, update, and explain what an agent knows about a user across sessions, models, and tools.

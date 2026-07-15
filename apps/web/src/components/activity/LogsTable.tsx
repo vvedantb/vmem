@@ -160,6 +160,8 @@ export function LogsTable({
   );
 }
 
+// AI-generated (Claude), prompt: "loading skeleton for ai logs table rows"
+// Modified by me: header placeholders and six pulse rows
 function AiLogsTableLoadingSkeleton() {
   return (
     <section className="flex min-h-0 flex-1 flex-col gap-3">

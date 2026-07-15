@@ -1,3 +1,6 @@
+// AI-generated (Claude), prompt: "dashboard loading skeleton with stat cards and chart"
+// Modified by me: card heights and grid breakpoints
+
 import { Card, CardContent, Skeleton } from "@vmem/ui";
 
 const STAT_CARD_SKELETON_KEYS = [0, 1, 2, 3] as const;

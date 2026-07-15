@@ -13,6 +13,8 @@ function ExtensionSettingsPage() {
   const settings = useQuery(api.userSettings.get);
   const { saveSettings } = useUserSettingsSave();
 
+  // AI-generated (Claude), prompt: "extension settings toggle row loading skeletons"
+  // Modified by me: two row layout matching real switches
   if (settings === undefined) {
     return (
       <PageContainer title="Extension" centeredMaxWidth showTitle>

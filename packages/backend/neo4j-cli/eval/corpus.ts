@@ -1,4 +1,7 @@
+// AI-generated (Claude), prompt: "build labelled retrieval benchmark corpus for vmem"
+// Modified by me: adjusted relevance labels and relationship reasons
 // labelled retrieval benchmark corpus (488 memories, 36 relationships, 84 queries)
+// sibling corpus-static.json holds the static name and topic lists (json cannot comment)
 
 import { readFileSync } from "node:fs";
 import { z } from "zod";

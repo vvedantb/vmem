@@ -1,3 +1,5 @@
+// AI-generated (Claude), prompt: "unit tests for neo4j limit clamp fallback and int type"
+// Modified by me: truncated floats before clamping
 import neo4j from "neo4j-driver";
 import { describe, expect, it } from "vitest";
 import { clampNeo4jLimit } from "../../engine/neo4j/intParams";

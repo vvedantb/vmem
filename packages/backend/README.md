@@ -1,3 +1,6 @@
+<!-- AI-generated (Claude), prompt: "document the vmem convex backend package" -->
+<!-- Modified by me: tightened architecture and module overview -->
+
 # @vmem/backend
 
 Convex backend for vmem. Auth, profiles, teams, skills, MCP HTTP, and file storage live here. The memory graph itself is in Neo4j, accessed via `neo4jActions/*` internal actions.

@@ -1,3 +1,5 @@
+// AI-generated (Claude), prompt: "test canvas input handlers for pointer drag zoom and selection"
+// Modified by me: swapped in a lightweight test canvas stub
 import { describe, expect, it, vi } from "vitest";
 import type {
   GraphNode,

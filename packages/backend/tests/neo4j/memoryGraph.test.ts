@@ -1,3 +1,5 @@
+// AI-generated (Claude), prompt: "characterization tests for global vs local relates to edge parse"
+// Modified by me: stripped score on global merge and deduped bidirectional edges
 import { describe, expect, it } from "vitest";
 import {
   mergeGlobalRelatesToEdges,

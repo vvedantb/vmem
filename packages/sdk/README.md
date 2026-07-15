@@ -1,3 +1,6 @@
+<!-- AI-generated (Claude), prompt: "write install and quick start for vmem sdk" -->
+<!-- Modified by me: aligned examples with current api key flow -->
+
 # @vmem/sdk
 
 Official JavaScript SDK for the [vmem](https://github.com/vvedantb/vmem) memory API. Save, update, and search user memories over HTTP with API key auth.

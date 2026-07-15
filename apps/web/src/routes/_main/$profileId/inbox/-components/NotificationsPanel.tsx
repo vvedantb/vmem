@@ -38,6 +38,8 @@ function getIconBackground(type: NotificationType) {
   }
 }
 
+// AI-generated (Claude), prompt: "notifications list loading skeleton with avatar rows"
+// Modified by me: four rows matching notification layout
 function LoadingSkeleton() {
   return (
     <div className="flex flex-col gap-1">
