@@ -35,11 +35,11 @@ const config: KnipConfig = {
       project: ["src/**/*.{ts,tsx}"],
     },
     "apps/chrome-extension": {
-      entry: ["src/**/*.{ts,tsx}!"],
-      project: ["src/**/*.{ts,tsx}"],
+      entry: ["src/entrypoints/**/*.{ts,tsx,html}!", "wxt.config.ts!"],
+      project: ["src/**/*.{ts,tsx}", "wxt.config.ts"],
       vite: false,
       // tailwindcss / tailwindcss-animate: used by globals.css `@import`/`@plugin`;
-      // invisible to knip because vite is off and build scripts are untracked (afe1d9b9).
+      // invisible to knip because vite is off for this workspace.
       ignoreDependencies: ["tailwindcss", "tailwindcss-animate"],
     },
     "packages/backend": {

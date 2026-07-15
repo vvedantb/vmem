@@ -8,12 +8,19 @@ From the repo root:
 
 ```bash
 pnpm install
-pnpm ext:dev    # watch build
+pnpm ext:dev    # WXT watch / HMR
 # or
 pnpm ext:build  # one-off production build
 ```
 
-Load `apps/chrome-extension/dist/` as an unpacked extension in Chrome: `chrome://extensions` → Developer mode → Load unpacked.
+Load unpacked from disk:
+
+- Production build: `apps/chrome-extension/dist/chrome-mv3/`
+- Dev watch: `apps/chrome-extension/dist/chrome-mv3-dev/`
+
+In Chrome: `chrome://extensions` → Developer mode → Load unpacked.
+
+`pnpm install` runs `wxt prepare` (via the package `postinstall`) so TypeScript can resolve WXT types. `pnpm --filter @vmem/chrome-extension typecheck` also runs prepare first.
 
 Before building, copy `.env.example` to `.env.local` and set your deployment URL and Clerk key:
 

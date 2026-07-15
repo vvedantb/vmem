@@ -1,8 +1,8 @@
-import "./theme-init";
+import "../../popup/theme-init";
 import "@/popup/globals.css";
 import { createRoot } from "react-dom/client";
-import { Providers } from "./providers";
-import { App } from "./App";
+import { Providers } from "../../popup/providers";
+import { App } from "../../popup/App";
 
 const root = document.getElementById("root");
 if (root) {
