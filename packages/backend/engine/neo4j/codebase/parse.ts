@@ -230,12 +230,12 @@ function resolveHeritageTargets(ctx: ParseContext): void {
   );
 }
 
-function looksLikeConvexBuilder(init: import("ts-morph").Node): boolean {
+function looksLikeConvexBuilder(init: Node): boolean {
   if (!Node.isCallExpression(init)) return false;
   return convexEntryKind(init.getExpression().getText()) !== undefined;
 }
 
-function isAsyncFunctionLike(node: import("ts-morph").Node): boolean {
+function isAsyncFunctionLike(node: Node): boolean {
   if (!Node.isArrowFunction(node) && !Node.isFunctionExpression(node)) {
     return false;
   }
@@ -243,7 +243,7 @@ function isAsyncFunctionLike(node: import("ts-morph").Node): boolean {
   return text.startsWith("async ") || text.includes("async (");
 }
 
-function getParamCount(node: import("ts-morph").Node): number {
+function getParamCount(node: Node): number {
   if (Node.isArrowFunction(node)) return node.getParameters().length;
   if (Node.isFunctionExpression(node)) return node.getParameters().length;
   return 0;

@@ -88,7 +88,7 @@ function getCalleeName(call: CallExpression): string {
   return expr.getText();
 }
 
-function getDeclName(decl: import("ts-morph").Node): string | null {
+function getDeclName(decl: Node): string | null {
   if (Node.isFunctionDeclaration(decl)) return decl.getName() ?? null;
   if (Node.isMethodDeclaration(decl)) {
     const cls = decl.getFirstAncestorByKind(SyntaxKind.ClassDeclaration);

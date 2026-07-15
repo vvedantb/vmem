@@ -1,5 +1,4 @@
-import { pipeline } from "node:stream/promises";
-import { finished } from "node:stream/promises";
+import { finished, pipeline } from "node:stream/promises";
 import { Readable } from "node:stream";
 import { createGunzip } from "node:zlib";
 import { extract } from "tar-stream";
@@ -59,9 +58,10 @@ async function fetchWithRetry(
   } catch (err) {
     const lastErr = err instanceof Error ? err : new Error(String(err));
     const detail = lastErr.message;
-    const cause = readFetchCause(lastErr);
+    const nestedCause = readFetchCause(lastErr);
     throw new Error(
-      `GitHub ${label} failed after ${FETCH_ATTEMPTS} attempts: ${detail}${cause ? ` (${cause})` : ""}`,
+      `GitHub ${label} failed after ${FETCH_ATTEMPTS} attempts: ${detail}${nestedCause ? ` (${nestedCause})` : ""}`,
+      { cause: err },
     );
   }
 }

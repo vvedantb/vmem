@@ -1,6 +1,6 @@
 import type { Record as NeoRecord } from "neo4j-driver";
 import neo4j from "neo4j-driver";
-import { type ZodType, z } from "zod";
+import { z } from "zod";
 import {
   neo4jField,
   neo4jGet,

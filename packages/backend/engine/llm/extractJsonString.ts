@@ -8,12 +8,12 @@ const numberArraySchema = z.array(z.number());
 type JsonExpect = "any" | "array";
 
 function parseLlmJson(raw: string, expect: JsonExpect): unknown {
-  const extracted = tryExtractJson<unknown>(raw, { expect });
+  const extracted = tryExtractJson(raw, { expect });
   if (extracted.found) return extracted.value;
   return JSON.parse(jsonrepair(raw));
 }
 
-function safeParseLlmJson(raw: string, expect: JsonExpect): unknown | null {
+function safeParseLlmJson(raw: string, expect: JsonExpect): unknown {
   try {
     return parseLlmJson(raw, expect);
   } catch {
