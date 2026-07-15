@@ -113,8 +113,6 @@ export function ProposalsRightSection() {
   );
 }
 
-// AI-generated (Claude), prompt: "proposals list loading skeleton with accent cards"
-// Modified by me: three cards with left accent bar
 function LoadingSkeleton() {
   return (
     <div className="flex flex-col gap-4">

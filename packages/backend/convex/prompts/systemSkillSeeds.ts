@@ -1,5 +1,3 @@
-// AI-generated (Claude), prompt: "seed system skills catalog for the skills hub"
-// Modified by me: rewrote wiki skill instructions for mcp tools
 // shipped catalog seeds for the Skills Hub
 
 export interface SystemSkillSeed {

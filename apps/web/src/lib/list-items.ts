@@ -198,6 +198,8 @@ export interface ListItemSearchResult {
 }
 
 // score title > tags > content, normalised to [0, 1]
+// AI-generated (Claude), prompt: "score list items by title tags content term matches"
+// Modified by me: normalised score range and empty query early return
 export function searchListItems(
   items: readonly ListItem[],
   query: string,

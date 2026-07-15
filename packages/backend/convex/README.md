@@ -22,4 +22,4 @@ Do not run `npx convex dev` or `npx convex deploy` from agent sessions — use c
 
 ## Docs
 
-Public API reference: [vmem.vedantb.com](https://vmem.vedantb.com).
+Product app: [vmem-staging.vedantb.com](https://vmem-staging.vedantb.com).

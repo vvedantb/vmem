@@ -7,6 +7,8 @@ type ProviderSyncRef =
   | typeof internal.neo4jActions.connectorSync.syncGoogleDriveInternal
   | typeof internal.neo4jActions.connectorSync.syncNotionInternal;
 
+// AI-generated (Claude), prompt: "dispatch connector provider sync through workpool enqueue or direct action execution"
+// Modified by me: retry only on thrown failures for google drive and notion
 export async function runConnectorProviderSync(
   ctx: ActionCtx,
   params: {

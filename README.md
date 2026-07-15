@@ -5,7 +5,7 @@
 
 **A model-agnostic memory layer for AI** — store, retrieve, update, and explain what an agent knows about a user across sessions, models, and tools.
 
-Built as a Final Year Project at City, University of London. Live at [vmem.vedantb.com](https://vmem.vedantb.com).
+Built as a Final Year Project at City, University of London. Live at [vmem-staging.vedantb.com](https://vmem-staging.vedantb.com).
 
 ## The problem
 
@@ -19,9 +19,9 @@ vmem centralizes user knowledge in a **Neo4j memory graph** with hybrid retrieva
 
 - **Context Trace** — every retrieval explains _why_ it matched (score breakdown, not a black box)
 - **Proposed updates** — conflicts become reviewable proposals instead of silent overwrites
-- **Implicit MCP context** — `vmem://context_prompt` injects a synthesized profile before the model responds
+- **Implicit MCP context** — `vmem://context_prompt` injects a synthesized profile before the model responds (personal MCP only)
 - **Profiles & teams** — personal and team-scoped workspaces with isolated memory graphs
-- **Dream Mode** — scheduled background synthesis that builds a user portrait and raises contradictions as proposals
+- **Dream Mode** — activity-triggered and/or scheduled background synthesis that builds a user portrait and raises contradictions as proposals
 
 ## Architecture
 
@@ -66,8 +66,9 @@ Three surfaces, same memory graph:
 
 **MCP highlights:**
 
-- **Resource:** `vmem://context_prompt` — implicit user profile injected before the model responds
-- **Tools:** `memory_*`, `skills_*`, `wiki_*`, `files_*`, `codebase_*`, `context_prompt_get`, `memory_graph` (interactive MCP App)
+- **Resource:** `vmem://context_prompt` — implicit user profile (personal scope only; not on `/mcp/team`)
+- **Core tools:** `ping`, `whoami`, `list_profiles`, `set_active_profile`, `context_prompt_get`
+- **Domain tools:** `memory_*`, `skills_*`, `wiki_*`, `files_*`, `codebases_list`, `codebase_*`, `memory_graph` (interactive MCP App)
 - **Team scope:** separate endpoint at `/mcp/team`
 
 ```typescript
@@ -82,7 +83,7 @@ await vmem.save("User prefers TypeScript over JavaScript");
 const { memories } = await vmem.search("What language does the user prefer?");
 ```
 
-See [MCP docs](https://vmem.vedantb.com/mcp/overview) and `packages/sdk/README.md` for full API details.
+See [`packages/sdk/README.md`](packages/sdk/README.md) for full HTTP/SDK API details.
 
 ## Monorepo
 
@@ -96,8 +97,9 @@ pnpm workspace (`pnpm@10.15.1`). Requires Node 20+.
 | `packages/shared`       | `@vmem/shared`           | Cross-app constants and client-safe prompt helpers           |
 | `packages/ui`           | `@vmem/ui`               | Shared shadcn/Radix component library                        |
 | `packages/sdk`          | `@vmem/sdk`              | Published HTTP SDK (`VMemory` class)                         |
+| `oxlint-plugin-vmem/`   | (repo lint plugin)       | Custom oxlint rules for vmem conventions                     |
 
-Apps import only `@vmem/backend` (Convex `api` + types) and `@vmem/shared`.
+Apps import only `@vmem/backend`, `@vmem/shared`, and `@vmem/ui` at public exports.
 
 ## What's implemented
 
@@ -117,8 +119,8 @@ Apps import only `@vmem/backend` (Convex `api` + types) and `@vmem/shared`.
 ### Data & ingest
 
 - **Files** — Convex storage + web explorer; indexable uploads become memories
-- **Codebases** — GitHub OAuth, symbol parsing, dependency graph, daily sync at 04:00 UTC
-- **Connectors** — Google Drive and Notion (batch ingest → memories; daily cron at 04:00 UTC)
+- **Codebases** — GitHub OAuth, symbol parsing, dependency graph, daily sync at 04:00 UTC (Workpool)
+- **Connectors** — Google Drive and Notion (batch ingest → memories; daily cron at 04:00 UTC via Workpool)
 - **Skills** — personal skills + system Skills Hub catalog
 - **Wiki** — folder tree with TipTap markdown docs and version history
 - **Import** — ChatGPT and Claude conversation exports
@@ -131,9 +133,10 @@ Apps import only `@vmem/backend` (Convex `api` + types) and `@vmem/shared`.
 
 ### Platform
 
-- Clerk auth, AES-GCM encrypted API keys (`vmem_sk_*`), per-user OpenRouter secrets
+- Clerk auth (MCP OAuth via Clerk + Dynamic Client Registration)
+- AES-GCM encrypted API keys (`vmem_sk_*`), per-user OpenRouter secrets
 - Activity log, OpenRouter request logs, audit trail
-- Settings playground for MCP tool testing
+- Connector OAuth via Arctic (Google PKCE, Notion, GitHub)
 
 ## Run locally
 
@@ -154,7 +157,7 @@ pnpm ext:dev         # Chrome extension WXT watch / HMR → dist/chrome-mv3-dev/
 pnpm ext:build       # Chrome extension production build → dist/chrome-mv3/
 pnpm typecheck:all   # web + backend + extension + packages
 pnpm test            # backend + web unit tests
-pnpm check           # full merge gate: lint + typecheck:all + knip + tests + format
+pnpm check           # lint + typecheck:all + knip + oxlint plugin tests + unit tests + format
 pnpm eval:bench      # bench user only — seeds, reports, cleans up (safe on shared Neo4j)
 ```
 
@@ -198,16 +201,14 @@ CLERK_SECRET_KEY
 CLERK_PUBLISHABLE_KEY   # MCP OAuth token verification
 ENCRYPTION_KEY          # base64 AES-256 for API key encryption
 NEO4J_URI
-NEO4J_USERNAME            # optional, defaults to neo4j
+NEO4J_USERNAME          # optional, defaults to neo4j
 NEO4J_PASSWORD
 CONVEX_SITE_URL         # https://<deployment>.convex.site
 WEB_APP_URL             # http://localhost:5173 in dev
 ```
 
-Optional: `OPENROUTER_API_KEY` (server embeddings/context when users have no key), `GOOGLE_CLIENT_*` / `NOTION_CLIENT_*` (connector OAuth), `GITHUB_CLIENT_*` (codebase sync OAuth), `NEO4J_USERNAME` (defaults to `neo4j`).
+Optional: `OPENROUTER_API_KEY` (server embeddings/context when users have no key), `GOOGLE_CLIENT_*` / `NOTION_CLIENT_*` (connector OAuth), `GITHUB_CLIENT_*` (codebase sync OAuth).
 
 **Chrome extension** — copy `apps/chrome-extension/.env.example` to `apps/chrome-extension/.env.local` before `pnpm ext:dev` / `pnpm ext:build`. Load the built folder under `apps/chrome-extension/dist/chrome-mv3/` (or `chrome-mv3-dev/` while watching), not a flat `dist/`.
 
 **Neo4j CLI scripts** (`eval:bench`, live HTTP tests) — `packages/backend/.env.local` with `NEO4J_URI`, `NEO4J_PASSWORD`, and optionally `OPENROUTER_API_KEY`.
-
-Public docs (hosted separately): [vmem.vedantb.com](https://vmem.vedantb.com)

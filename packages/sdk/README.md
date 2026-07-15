@@ -81,8 +81,7 @@ try {
 
 ## Docs
 
-- [SDK quickstart](https://vmem.vedantb.com/sdk/quickstart)
-- [HTTP Memories API](https://vmem.vedantb.com/api-reference/http-memories)
+See this README and the root monorepo [`README.md`](../../README.md) for HTTP/SDK usage. The staging app at [vmem-staging.vedantb.com](https://vmem-staging.vedantb.com) is the product UI, not a separate docs site.
 
 ## License
 

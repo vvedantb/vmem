@@ -29,6 +29,8 @@ function getClerkClient() {
 }
 
 /** Verifies a Clerk-issued OAuth access token (MCP bearer). Existing custom JWTs are invalid — clients must reconnect. */
+// AI-generated (Claude), prompt: "verify clerk oauth access tokens and handle mcp json rpc via streamable http transport with registered tools"
+// Modified by me: scope aware server naming and tool registration wiring
 export const verifyAccessToken = internalAction({
   args: { token: v.string() },
   returns: v.union(v.object({ clerkUserId: v.string() }), v.null()),

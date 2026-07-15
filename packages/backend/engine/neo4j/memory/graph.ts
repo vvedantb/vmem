@@ -274,6 +274,8 @@ async function fetchTagSharedEdges(
   return result.records.map(toTagEdge);
 }
 
+// AI-generated (Claude), prompt: "fetch paginated memory graph nodes relates edges and tag shared edges with profile filters"
+// Modified by me: node limit defaults and cursor behavior for large graphs
 export async function getGraphData(
   driver: Driver,
   userId: string,

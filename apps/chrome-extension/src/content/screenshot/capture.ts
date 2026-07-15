@@ -28,6 +28,8 @@ export function requestCapture(): Promise<string> {
   });
 }
 
+// AI-generated (Claude), prompt: "crop visible tab capture to selection rect with device pixel ratio"
+// Modified by me: clamp source rect and encode cropped png blob
 export async function cropImage(
   sourceDataUrl: string,
   rect: SelectionRect,

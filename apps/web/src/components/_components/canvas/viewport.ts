@@ -21,6 +21,8 @@ export function createViewport(): ViewportState {
   };
 }
 
+// AI-generated (Claude), prompt: "viewport spring zoom pan with pointer stable scale"
+// Modified by me: friction constants and min scale for large world extents
 export function tickViewport(vp: ViewportState): void {
   if (
     Math.abs(vp.velocityX) > VELOCITY_THRESHOLD ||

@@ -140,6 +140,8 @@ self.onmessage = (e: MessageEvent<WorkerInputMessage>) => {
 
 // ------ Simulation setup ------
 
+// AI-generated (Claude), prompt: "web worker force simulation with transferable position buffers"
+// Modified by me: tag edges excluded from physics and sleep when alpha cools
 function init(
   initNodes: Array<{ id: string; size: number; x: number; y: number }>,
   initEdges: Array<{

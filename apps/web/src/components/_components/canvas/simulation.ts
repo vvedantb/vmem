@@ -83,6 +83,8 @@ function seedNodePositions(nodes: GraphNode[]): void {
   }
 }
 
+// AI-generated (Claude), prompt: "worker backed simulation controller with golden spiral seeding"
+// Modified by me: position apply map and fallback when worker construction fails
 function createWorkerSimulation(
   nodes: GraphNode[],
   edges: GraphEdge[],

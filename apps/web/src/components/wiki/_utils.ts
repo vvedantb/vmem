@@ -33,6 +33,8 @@ export function wikiKindLabel(
 }
 
 // moveNode args for a wiki drop, or null if invalid/no-op
+// AI-generated (Claude), prompt: "resolve wiki drag drop parent order without cycles"
+// Modified by me: root drop id and append after sibling max order
 export function resolveWikiMove<TId extends string>(
   nodes: Array<MovableNode<TId>>,
   activeId: string,

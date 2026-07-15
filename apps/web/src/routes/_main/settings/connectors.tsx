@@ -29,8 +29,6 @@ function ConnectorsPage() {
 
   const githubConnection = useQuery(api.github.getConnection);
 
-  // AI-generated (Claude), prompt: "connector card grid loading skeletons"
-  // Modified by me: two card placeholders with action button
   if (connectors === undefined) {
     return (
       <PageContainer title="Connectors" centeredMaxWidth>

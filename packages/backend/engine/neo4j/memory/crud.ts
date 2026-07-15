@@ -178,6 +178,8 @@ export async function runMemoryList(
   return { memories, total };
 }
 
+// AI-generated (Claude), prompt: "implement memory create update delete with tag edges events cascade cleanup and similarity lookup helpers"
+// Modified by me: content hash fields and orphan tag source cleanup
 export async function createMemory(
   driver: Driver,
   params: {

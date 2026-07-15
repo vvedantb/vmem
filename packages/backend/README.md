@@ -8,7 +8,7 @@ Convex backend for vmem. Auth, profiles, teams, skills, MCP HTTP, and file stora
 ## Architecture
 
 ```
-Client (web / extension / mobile / MCP)
+Client (web / extension / MCP)
   → Convex authAction / authMutation / authQuery
   → neo4jActions/* (Node actions)
   → Neo4j memory graph

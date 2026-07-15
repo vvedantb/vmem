@@ -121,8 +121,6 @@ function ActivityEventRow({ item }: { item: ActivityItem }) {
   );
 }
 
-// AI-generated (Claude), prompt: "events list loading skeleton with icon and text rows"
-// Modified by me: four rows matching event list density
 function LoadingSkeleton() {
   return (
     <Card className="flex h-full min-h-0 flex-1 flex-col shadow-none">
