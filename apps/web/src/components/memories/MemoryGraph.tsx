@@ -110,7 +110,6 @@ export default function MemoryGraph({
         onHoverNode={interaction.setHoveredNode}
         onHoverEdge={interaction.setHoveredEdge}
         onClickNode={interaction.handleClickNode}
-        onLinkNodes={interaction.handleLinkNodes}
         onFocusNode={interaction.handleFocusNode}
       />
 

@@ -17,9 +17,6 @@ import {
 import { CodebaseSymbolPanel } from "./CodebaseSymbolPanel";
 import type { CodebaseGraphController } from "@/hooks/useCodebaseGraphController";
 
-// canvas requires onLinkNodes; codebase graphs are structural (no manual links)
-function noopLinkNodes(_sourceId: string, _targetId: string) {}
-
 interface CodebaseGraphProps {
   codebaseId: string;
   controller: CodebaseGraphController;
@@ -99,7 +96,6 @@ export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
         onHoverNode={setHoveredNode}
         onHoverEdge={setHoveredEdge}
         onClickNode={handleClickNode}
-        onLinkNodes={noopLinkNodes}
       />
 
       {/* Stats badge (top-right) */}

@@ -16,7 +16,6 @@ export function useGraphNodeInteraction(args: {
   onFocusChange: (id: string | null) => void;
 }) {
   const getNodeContent = useAction(api.graphApi.getNodeContent);
-  const linkMemories = useAction(api.relationshipApi.linkMemories);
 
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [hoveredNode, setHoveredNode] = useState<HoveredNodeInfo | null>(null);
@@ -87,14 +86,6 @@ export function useGraphNodeInteraction(args: {
     args.onFocusChange(null);
   }
 
-  async function handleLinkNodes(sourceId: string, targetId: string) {
-    await linkMemories({
-      memoryIdA: sourceId,
-      memoryIdB: targetId,
-      reason: "user linked",
-    });
-  }
-
   return {
     selectedNodeId,
     hoveredNode,
@@ -108,6 +99,5 @@ export function useGraphNodeInteraction(args: {
     handleNavigateNode,
     handleFocusNode,
     handleBackToGlobal,
-    handleLinkNodes,
   };
 }
