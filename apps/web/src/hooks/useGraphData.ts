@@ -2,7 +2,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { useConvexAuth, useAction } from "convex/react";
 import { useInfiniteQuery, type InfiniteData } from "@tanstack/react-query";
-import { z } from "zod";
 import { useMemoryEvents } from "@/hooks/useMemoryEvents";
 import { api } from "@vmem/backend";
 import { generateBenchGraph } from "@/lib/graph/bench-data";
@@ -12,6 +11,7 @@ import type {
   ApiRelatesToEdge,
   ApiWikiParentEdge,
   ApiMentionsEdge,
+  GraphResponse,
 } from "@/lib/graph/graph-data";
 
 // ---- Page sizes ----
@@ -27,73 +27,6 @@ const EMPTY_TAG_EDGES: ApiTagEdge[] = [];
 const EMPTY_WIKI_PARENT_EDGES: ApiWikiParentEdge[] = [];
 const EMPTY_MENTIONS_EDGES: ApiMentionsEdge[] = [];
 const NOOP = () => {};
-
-// ---- Zod schemas ----
-
-const graphNodeKindSchema = z.enum([
-  "memory",
-  "wiki-document",
-  "wiki-folder",
-  "skill",
-  "entity",
-]);
-
-const graphNodeSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  // inline content is only present for wiki documents and skills; memory
-  // nodes omit it (lazy-fetched via graphApi.getNodeContent on hover/click)
-  content: z.string().optional(),
-  tags: z.array(z.string()),
-  createdAt: z.string(),
-  kind: graphNodeKindSchema,
-  source: z.string().optional(),
-  sourceType: z.string().nullable(),
-  type: z.enum(["profile", "episodic", "knowledge"]).optional(),
-  entityType: z.string().optional(),
-});
-
-const relatesToEdgeSchema = z.object({
-  source: z.string(),
-  target: z.string(),
-  reason: z.string(),
-  score: z.number().optional(),
-});
-
-const tagEdgeSchema = z.object({
-  source: z.string(),
-  target: z.string(),
-  weight: z.number(),
-  sharedTags: z.array(z.string()),
-});
-
-const wikiParentEdgeSchema = z.object({
-  source: z.string(),
-  target: z.string(),
-});
-
-const mentionsEdgeSchema = z.object({
-  source: z.string(),
-  target: z.string(),
-});
-
-const graphResponseSchema = z.object({
-  nodes: z.array(graphNodeSchema),
-  relatesToEdges: z.array(relatesToEdgeSchema),
-  tagEdges: z.array(tagEdgeSchema),
-  wikiParentEdges: z.array(wikiParentEdgeSchema),
-  mentionsEdges: z.array(mentionsEdgeSchema),
-  // local mode only: the memory the graph is centred on, resolved server-side
-  // (newest memory) when no explicit focus was requested
-  focusNodeId: z.string().optional(),
-  // global mode, first page only: total active memories, for "Showing X of Y"
-  totalMemoryCount: z.number().optional(),
-  // global mode: keyset cursor for the next page; absent when exhausted
-  nextCursorCreatedAt: z.string().optional(),
-  nextCursorId: z.string().optional(),
-});
-
-type GraphResponse = z.infer<typeof graphResponseSchema>;
 
 interface GraphCursor {
   createdAt: string;
@@ -168,28 +101,6 @@ function mergePages(pages: GraphResponse[]): MergedGraph {
 
 // ---- Hook ----
 
-export interface UseGraphDataReturn {
-  apiNodes: ApiGraphNode[];
-  apiTagEdges: ApiTagEdge[];
-  allRelatesToEdges: ApiRelatesToEdge[];
-  apiWikiParentEdges: ApiWikiParentEdge[];
-  apiMentionsEdges: ApiMentionsEdge[];
-  // the memory the local graph is centred on
-  resolvedFocusNodeId: string | null;
-  // total active memories (global scope) — null until the first response
-  totalMemoryCount: number | null;
-  isLoading: boolean;
-  // true while a refetch is in flight over previous data
-  isFetching: boolean;
-  // true while the next page is loading (existing pages stay on screen)
-  isFetchingNextPage: boolean;
-  // true when the server has more pages beyond what's accumulated
-  hasNextPage: boolean;
-  fetchNextPage: () => void;
-  isError: boolean;
-  error: Error | null;
-}
-
 // fixed hop count for local (focus-neighbourhood) graph fetches
 const LOCAL_GRAPH_DEPTH = 2;
 
@@ -200,7 +111,7 @@ export function useGraphData(
   scope: "local" | "global" = "global",
   // `?bench=N` — synthetic client-side dataset, no server fetch
   benchCount: number = 0,
-): UseGraphDataReturn {
+) {
   const { isAuthenticated } = useConvexAuth();
   const getGraphData = useAction(api.graphApi.getGraphData);
   const [liveRelatesToEdges, setLiveRelatesToEdges] = useState<
@@ -230,7 +141,7 @@ export function useGraphData(
     },
     initialPageParam: null as GraphCursor | null,
     queryFn: async ({ pageParam }): Promise<GraphResponse> => {
-      const result = await getGraphData({
+      return await getGraphData({
         focus: scope === "local" ? (focusNodeId ?? undefined) : undefined,
         profileId: profileId ?? undefined,
         mode: scope,
@@ -244,7 +155,6 @@ export function useGraphData(
         cursorCreatedAt: pageParam?.createdAt,
         cursorId: pageParam?.id,
       });
-      return graphResponseSchema.parse(result);
     },
     getNextPageParam: (lastPage): GraphCursor | undefined =>
       scope === "global" &&
@@ -313,7 +223,6 @@ export function useGraphData(
       resolvedFocusNodeId: null,
       totalMemoryCount: benchData.nodes.length,
       isLoading: false,
-      isFetching: false,
       isFetchingNextPage: false,
       hasNextPage: false,
       fetchNextPage: NOOP,
@@ -331,7 +240,6 @@ export function useGraphData(
     resolvedFocusNodeId: merged?.focusNodeId ?? null,
     totalMemoryCount: merged?.totalMemoryCount ?? null,
     isLoading: graphQuery.isLoading,
-    isFetching: graphQuery.isFetching,
     isFetchingNextPage: graphQuery.isFetchingNextPage,
     hasNextPage: graphQuery.hasNextPage,
     fetchNextPage,
@@ -339,3 +247,5 @@ export function useGraphData(
     error: graphQuery.error,
   };
 }
+
+export type UseGraphDataReturn = ReturnType<typeof useGraphData>;

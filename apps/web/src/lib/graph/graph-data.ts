@@ -1,54 +1,24 @@
 // pure graph-data transformation functions
+import type { FunctionReturnType } from "convex/server";
+import { api } from "@vmem/backend";
 import type { MemoryType } from "@/lib/memories";
 import { MEMORY_TYPES } from "@/lib/memories";
 import type { ListItemKind } from "@/lib/list-items";
 import { apiGraphNodePassesFilters } from "@/lib/memory-view-filters";
 import type { GraphNode, GraphEdge, RelatedNode } from "./types";
 
-// ---- API response shapes (mirrors Zod schemas in useGraphData) ----
+// ---- API response shapes (from typed Convex action) ----
 
-// graph payload omits wiki-artifact (artifacts render as wiki-document nodes)
-type ApiGraphNodeKind = Exclude<ListItemKind, "wiki-artifact">;
+export type GraphResponse = FunctionReturnType<
+  typeof api.graphApi.getGraphData
+>;
+export type ApiGraphNode = GraphResponse["nodes"][number];
+export type ApiRelatesToEdge = GraphResponse["relatesToEdges"][number];
+export type ApiTagEdge = GraphResponse["tagEdges"][number];
+export type ApiWikiParentEdge = GraphResponse["wikiParentEdges"][number];
+export type ApiMentionsEdge = GraphResponse["mentionsEdges"][number];
 
-// `source` and `type` are only populated on memory nodes
-export interface ApiGraphNode {
-  id: string;
-  title: string;
-  tags: string[];
-  createdAt: string;
-  kind: ApiGraphNodeKind;
-  source?: string;
-  sourceType: string | null;
-  type?: MemoryType;
-  // inline content is only present for wiki documents and skills
-  content?: string;
-  // entity sub-type (person/organization/place/technology)
-  entityType?: string;
-}
-
-export interface ApiMentionsEdge {
-  source: string;
-  target: string;
-}
-
-export interface ApiTagEdge {
-  source: string;
-  target: string;
-  weight: number;
-  sharedTags: string[];
-}
-
-export interface ApiRelatesToEdge {
-  source: string;
-  target: string;
-  reason: string;
-  score?: number;
-}
-
-export interface ApiWikiParentEdge {
-  source: string;
-  target: string;
-}
+type ApiGraphNodeKind = ApiGraphNode["kind"];
 
 // ---- Tag stats ----
 

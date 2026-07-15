@@ -1,102 +1,18 @@
 // hooks for fetching the Phase-1 codebase graph payload
 import { useConvexAuth, useAction } from "convex/react";
 import { useQuery as useTanstackQuery } from "@tanstack/react-query";
-import { z } from "zod";
 import { api } from "@vmem/backend";
+import type {
+  CodeNode,
+  CodeEdge,
+  CodeNodeKind,
+  CodebaseSymbolContext,
+} from "@/components/codebases/-types";
 
-// ---- Zod schemas ----
+export type { CodeNode, CodeEdge, CodeNodeKind };
 
-const symbolKindSchema = z.union([
-  z.literal("code-file"),
-  z.literal("code-function"),
-  z.literal("code-class"),
-  z.literal("code-interface"),
-  z.literal("code-process"),
-]);
-
-const edgeTypeSchema = z.union([
-  z.literal("imports"),
-  z.literal("calls"),
-  z.literal("contains"),
-  z.literal("has_method"),
-  z.literal("extends"),
-  z.literal("implements"),
-  z.literal("starts_process"),
-  z.literal("includes"),
-]);
-
-const tierSchema = z.union([
-  z.literal("EXTRACTED"),
-  z.literal("INFERRED"),
-  z.literal("AMBIGUOUS"),
-]);
-
-const codeNodeSchema = z.object({
-  id: z.string(),
-  kind: symbolKindSchema,
-  name: z.string(),
-  path: z.string(),
-  directory: z.string(),
-  isExported: z.boolean().optional(),
-  isAsync: z.boolean().optional(),
-  isTest: z.boolean().optional(),
-});
-
-const codeEdgeSchema = z.object({
-  fromId: z.string(),
-  toId: z.string(),
-  type: edgeTypeSchema,
-  confidence: z.number().optional(),
-  tier: tierSchema.optional(),
-});
-
-const graphResponseSchema = z.object({
-  nodes: z.array(codeNodeSchema),
-  edges: z.array(codeEdgeSchema),
-  truncated: z.boolean(),
-});
-
-const symbolNeighbourSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  filePath: z.string(),
-});
-
-const symbolProcessSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-});
-
-const symbolContextSchema = z.object({
-  id: z.string(),
-  kind: symbolKindSchema,
-  name: z.string(),
-  qualifiedName: z.string(),
-  filePath: z.string(),
-  startLine: z.number().optional(),
-  endLine: z.number().optional(),
-  isExported: z.boolean().optional(),
-  isAsync: z.boolean().optional(),
-  isTest: z.boolean().optional(),
-  callsIn: z.array(symbolNeighbourSchema),
-  callsOut: z.array(symbolNeighbourSchema),
-  processes: z.array(symbolProcessSchema),
-});
-
-export type CodeNode = z.infer<typeof codeNodeSchema>;
-export type CodeEdge = z.infer<typeof codeEdgeSchema>;
-export type CodeNodeKind = z.infer<typeof symbolKindSchema>;
-type CodeSymbolContext = z.infer<typeof symbolContextSchema>;
-
-export interface UseCodebaseGraphDataReturn {
-  nodes: CodeNode[];
-  edges: CodeEdge[];
-  // true when the API capped the payload to fit Convex's array limit
-  truncated: boolean;
-  isLoading: boolean;
-  isError: boolean;
-  error: Error | null;
-}
+const EMPTY_NODES: CodeNode[] = [];
+const EMPTY_EDGES: CodeEdge[] = [];
 
 export interface CodebaseGraphFilters {
   kinds?: CodeNodeKind[];
@@ -110,7 +26,7 @@ export interface CodebaseGraphFilters {
 export function useCodebaseGraphData(
   codebaseId: string | null,
   filters: CodebaseGraphFilters = {},
-): UseCodebaseGraphDataReturn {
+) {
   const { isAuthenticated } = useConvexAuth();
   const getGraph = useAction(api.codebaseSymbols.getGraph);
 
@@ -128,7 +44,7 @@ export function useCodebaseGraphData(
     queryKey: ["codebase-graph", codebaseId, filterKey],
     queryFn: async () => {
       if (!codebaseId) throw new Error("No codebase ID");
-      const result = await getGraph({
+      return await getGraph({
         codebaseId,
         kinds: filters.kinds,
         processId: filters.processId ?? undefined,
@@ -136,15 +52,14 @@ export function useCodebaseGraphData(
         blastDirection: filters.blastDirection,
         blastDepth: filters.blastDepth,
       });
-      return graphResponseSchema.parse(result);
     },
     enabled: isAuthenticated && !!codebaseId,
     staleTime: 30_000,
   });
 
   return {
-    nodes: graphQuery.data?.nodes ?? [],
-    edges: graphQuery.data?.edges ?? [],
+    nodes: graphQuery.data?.nodes ?? EMPTY_NODES,
+    edges: graphQuery.data?.edges ?? EMPTY_EDGES,
     truncated: graphQuery.data?.truncated ?? false,
     isLoading: graphQuery.isLoading,
     isError: graphQuery.isError,
@@ -152,26 +67,22 @@ export function useCodebaseGraphData(
   };
 }
 
-export interface UseSymbolContextReturn {
-  context: CodeSymbolContext | null;
-  isLoading: boolean;
-  isError: boolean;
-}
+export type UseCodebaseGraphDataReturn = ReturnType<
+  typeof useCodebaseGraphData
+>;
 
 // detail-panel data source
 export function useSymbolContext(
   codebaseId: string | null,
   symbolId: string | null,
-): UseSymbolContextReturn {
+) {
   const { isAuthenticated } = useConvexAuth();
   const getContext = useAction(api.codebaseSymbols.getContext);
   const ctxQuery = useTanstackQuery({
     queryKey: ["codebase-symbol-context", codebaseId, symbolId],
-    queryFn: async (): Promise<CodeSymbolContext | null> => {
+    queryFn: async (): Promise<CodebaseSymbolContext | null> => {
       if (!codebaseId || !symbolId) return null;
-      const result = await getContext({ codebaseId, symbolId });
-      if (result === null) return null;
-      return symbolContextSchema.parse(result);
+      return await getContext({ codebaseId, symbolId });
     },
     enabled: isAuthenticated && !!codebaseId && !!symbolId,
     staleTime: 30_000,
@@ -182,3 +93,5 @@ export function useSymbolContext(
     isError: ctxQuery.isError,
   };
 }
+
+export type UseSymbolContextReturn = ReturnType<typeof useSymbolContext>;
