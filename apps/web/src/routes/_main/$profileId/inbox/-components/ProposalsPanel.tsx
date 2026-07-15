@@ -6,6 +6,7 @@ import SynthesisProposalCard from "@/components/proposals/SynthesisProposalCard"
 import { UpdateProposalCard } from "@/components/proposals/UpdateProposalCard";
 import {
   isSynthesisKind,
+  proposalApproveToast,
   useProposals,
   type ProposedUpdate,
 } from "@/hooks/useProposals";
@@ -24,7 +25,7 @@ export function ProposalsPanel() {
   const handleApprove = async (p: ProposedUpdate) => {
     try {
       await approve(p.id);
-      toast.success(approveMessage(p));
+      toast.success(proposalApproveToast(p.kind));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to approve");
     }
@@ -110,25 +111,6 @@ export function ProposalsRightSection() {
       <RunDreamModeButton />
     </div>
   );
-}
-
-function approveMessage(p: ProposedUpdate): string {
-  switch (p.kind) {
-    case "delete":
-      return "Memory deleted";
-    case "update":
-      return "Memory updated";
-    case "insight":
-      return "Insight saved as a new memory";
-    case "connection":
-      return "Connection saved as a new memory";
-    case "anomaly":
-      return "Anomaly saved as a new memory";
-    case "contradiction":
-      return "Contradiction acknowledged";
-    case "merge":
-      return "Memories merged — sources superseded";
-  }
 }
 
 function LoadingSkeleton() {

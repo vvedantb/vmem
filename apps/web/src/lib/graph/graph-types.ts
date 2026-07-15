@@ -1,0 +1,36 @@
+import type { GraphEdgeType, GraphNode } from "./types";
+
+export type GraphDetailNode = Pick<
+  GraphNode,
+  "id" | "title" | "content" | "tags" | "createdAt"
+>;
+
+export interface HoveredNodeInfo {
+  title: string;
+  viewportX: number;
+  viewportY: number;
+}
+
+export interface HoveredEdgeInfo {
+  edgeType: GraphEdgeType;
+  sourceTitle: string;
+  targetTitle: string;
+  // tag edges: shared tag list
+  reason: string | null;
+  // similarity score (0–1) for semantic similarity edges
+  score?: number;
+  viewportX: number;
+  viewportY: number;
+}
+
+export interface GraphSettings {
+  scalingRatio: number;
+  gravity: number;
+  showLabels: boolean;
+}
+
+export const DEFAULT_GRAPH_SETTINGS: GraphSettings = {
+  scalingRatio: 10,
+  gravity: 0.5,
+  showLabels: true,
+};

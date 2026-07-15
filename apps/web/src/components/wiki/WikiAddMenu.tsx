@@ -1,8 +1,6 @@
-"use client";
-
 import { IconCode, IconFileText, IconFolderPlus } from "@tabler/icons-react";
 import { DropdownMenuItem } from "@vmem/ui";
-import { FeatureAddMenu } from "@/components/FeatureAddMenu";
+import { FeatureAddMenu } from "@/components/shell/FeatureAddMenu";
 
 interface WikiAddMenuProps {
   onCreateDocument: () => void;

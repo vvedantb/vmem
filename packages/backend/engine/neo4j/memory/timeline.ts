@@ -1,7 +1,7 @@
 import neo4j, { type Driver } from "neo4j-driver";
 import { toMemoryContentFulltextQuery } from "../luceneQuery";
 import { toTimelineEvent } from "./mappers";
-import { withSession } from "./shared";
+import { withSession } from "../session";
 import type { ConnectionType, TimelineEvent } from "./types";
 
 async function runTimelineQuery(

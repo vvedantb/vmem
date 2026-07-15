@@ -4,7 +4,7 @@ import { useQuery, useAction } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api, type Id } from "@vmem/backend";
 import { isCodebaseSyncStalled } from "@vmem/shared";
-import PageContainer from "@/components/PageContainer";
+import PageContainer from "@/components/shell/PageContainer";
 import { Breadcrumb, BreadcrumbPage, Button } from "@vmem/ui";
 import {
   IconArrowLeft,
@@ -15,8 +15,8 @@ import {
 import { toast } from "sonner";
 import CodebaseGraphHeaderControls from "@/components/codebases/CodebaseGraphHeaderControls";
 import { useCodebaseGraphController } from "@/hooks/useCodebaseGraphController";
-import { VmemSpinner } from "@/components/svg-animations";
-import { formatRelativeTime } from "@/lib/formatters";
+import { VmemSpinner } from "@/components/icons/animations";
+import { formatRelativeTime, formatDateTime } from "@vmem/shared";
 
 const CodebaseGraph = lazy(() =>
   import("@/components/codebases/CodebaseGraph").then((m) => ({
@@ -113,7 +113,7 @@ function CodebaseDetailView({
             className="text-xs text-muted whitespace-nowrap"
             title={
               codebase.lastSyncedAt
-                ? new Date(codebase.lastSyncedAt).toLocaleString()
+                ? formatDateTime(codebase.lastSyncedAt)
                 : undefined
             }
           >

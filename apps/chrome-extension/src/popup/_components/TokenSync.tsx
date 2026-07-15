@@ -1,7 +1,6 @@
-"use client";
-
 import { useEffect } from "react";
 import { useAuth } from "@clerk/chrome-extension";
+import { useInterval } from "usehooks-ts";
 import { setAuthToken } from "@/lib/storage";
 
 export function TokenSync() {
@@ -17,22 +16,25 @@ export function TokenSync() {
 
     let active = true;
 
-    async function sync() {
-      // Get token with "convex" template so Convex can verify it
-      const token = await getToken({ template: "convex" });
+    void getToken({ template: "convex" }).then((token) => {
       if (active) {
-        await setAuthToken(token ?? "");
+        void setAuthToken(token ?? "");
       }
-    }
+    });
 
-    void sync();
-
-    const interval = setInterval(sync, 50_000);
     return () => {
       active = false;
-      clearInterval(interval);
     };
   }, [getToken, isSignedIn, isLoaded]);
+
+  useInterval(
+    () => {
+      void getToken({ template: "convex" }).then((token) => {
+        void setAuthToken(token ?? "");
+      });
+    },
+    isLoaded && isSignedIn ? 50_000 : null,
+  );
 
   return null;
 }

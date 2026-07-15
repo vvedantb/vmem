@@ -9,7 +9,7 @@ import {
 import type { TablerIcon } from "@tabler/icons-react";
 import type { Id } from "@vmem/backend";
 import type { FileCategory, FileTreeNode } from "./-types";
-import type { FileSortField, SortDirection } from "./-searchParams";
+import type { FileSortField, SortDirection } from "./search-params";
 
 // shared interaction props for list rows and grid cards
 export type FileNodeChromeProps = {
@@ -72,12 +72,30 @@ export function formatFileSize(bytes: number): string {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 }
 
-export function formatDate(createdAt: number): string {
-  return new Date(createdAt).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+export function fileCategoryFromMime(
+  mimeType: string,
+): Exclude<FileCategory, "folder"> {
+  const category = fileCategoryFor(mimeType);
+  return category === "folder" ? "generic" : category;
+}
+
+export function getFileIconForMime(mimeType: string): TablerIcon {
+  return getFileIcon(fileCategoryFromMime(mimeType));
+}
+
+export function downloadFileNode(
+  node: Pick<FileTreeNode, "url" | "name">,
+): boolean {
+  if (!node.url) return false;
+  const link = document.createElement("a");
+  link.href = node.url;
+  link.download = node.name;
+  link.target = "_blank";
+  link.rel = "noopener";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  return true;
 }
 
 export function getFileIcon(category: FileCategory): TablerIcon {

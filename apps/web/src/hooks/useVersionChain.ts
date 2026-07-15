@@ -1,5 +1,3 @@
-"use client";
-
 import { useMemo } from "react";
 import { buildVersionChain, type TimelineEvent } from "@/lib/timeline";
 

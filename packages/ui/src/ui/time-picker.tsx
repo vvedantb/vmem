@@ -1,5 +1,3 @@
-"use client";
-
 import * as React from "react";
 import { IconClock } from "@tabler/icons-react";
 import { Popover, PopoverContent, PopoverTrigger } from "./popover";

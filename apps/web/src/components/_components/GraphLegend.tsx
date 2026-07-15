@@ -1,5 +1,3 @@
-"use client";
-
 import ShapeIndicator from "./ShapeIndicator";
 import type { ListItemKind } from "@/lib/list-items";
 

@@ -2,7 +2,7 @@ import { z } from "zod";
 import {
   DEFAULT_GRAPH_SETTINGS,
   type GraphSettings,
-} from "@/components/_components/graph-types";
+} from "@/lib/graph/graph-types";
 
 const COOKIE_KEY = "vmem-graph-settings";
 const MAX_AGE = 60 * 60 * 24 * 365;

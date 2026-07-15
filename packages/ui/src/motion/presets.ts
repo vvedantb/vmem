@@ -1,5 +1,3 @@
-"use client";
-
 import type { Transition, Variants } from "motion/react";
 
 export const motionEase: [number, number, number, number] = [0.22, 1, 0.36, 1];

@@ -3,7 +3,7 @@ import {
   IconFileExport,
   IconShieldLock,
 } from "@tabler/icons-react";
-import { RouteTabs } from "@/components/RouteTabs";
+import { RouteTabs } from "@/components/shell/RouteTabs";
 
 export function DataControlsTabs() {
   return (

@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import neo4j, { type Driver } from "neo4j-driver";
-import { withSession } from "./shared";
+import { withSession } from "../session";
 
 export async function createChunksForMemory(
   driver: Driver,

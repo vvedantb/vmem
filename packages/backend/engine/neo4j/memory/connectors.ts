@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import type { Driver } from "neo4j-driver";
 import { createSemanticSimilarityEdges } from "./relationships";
-import { withSession } from "./shared";
+import { withSession } from "../session";
 
 // upsert a memory from an external source
 export async function upsertFromSource(

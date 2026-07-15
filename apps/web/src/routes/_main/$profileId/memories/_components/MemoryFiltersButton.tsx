@@ -1,5 +1,3 @@
-"use client";
-
 import { IconFilter } from "@tabler/icons-react";
 import { Button, Popover, PopoverContent, PopoverTrigger } from "@vmem/ui";
 import UnifiedFilterPanel from "@/components/_components/UnifiedFilterPanel";

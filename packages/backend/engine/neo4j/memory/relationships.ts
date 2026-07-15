@@ -5,7 +5,7 @@ import neo4j, {
 } from "neo4j-driver";
 import { neo4jGet, parseNeo4jInt } from "../record";
 import { toMemoryWithTags } from "./mappers";
-import { withSession } from "./shared";
+import { withSession } from "../session";
 import type { MemoryWithTags } from "./types";
 
 const SEMANTIC_EDGE_K = 20;

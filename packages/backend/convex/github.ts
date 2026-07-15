@@ -121,28 +121,14 @@ export const handleGitHubCallbackInternal = internalAction({
     }
 
     // 4. Encrypt and store connection
-    const existing = await ctx.runQuery(internal.github.getConnectionInternal, {
-      userId: stateEntry.userId,
-    });
     const encrypted = await encryptToken(accessToken);
-
-    if (existing) {
-      await ctx.runMutation(internal.github.updateConnectionInternal, {
-        id: existing._id,
-        githubUsername: userData.login,
-        encryptedAccessToken: encrypted,
-        avatarUrl: userData.avatar_url,
-        connectedAt: Date.now(),
-      });
-    } else {
-      await ctx.runMutation(internal.github.insertConnectionInternal, {
-        userId: stateEntry.userId,
-        githubUsername: userData.login,
-        encryptedAccessToken: encrypted,
-        avatarUrl: userData.avatar_url,
-        connectedAt: Date.now(),
-      });
-    }
+    await ctx.runMutation(internal.github.upsertConnectionInternal, {
+      userId: stateEntry.userId,
+      githubUsername: userData.login,
+      encryptedAccessToken: encrypted,
+      avatarUrl: userData.avatar_url,
+      connectedAt: Date.now(),
+    });
 
     return { error: null, returnUrl: stateEntry.returnUrl };
   },
@@ -174,7 +160,7 @@ export const getConnectionInternal = internalQuery({
   },
 });
 
-export const insertConnectionInternal = internalMutation({
+export const upsertConnectionInternal = internalMutation({
   args: {
     userId: v.id("users"),
     githubUsername: v.string(),
@@ -183,21 +169,15 @@ export const insertConnectionInternal = internalMutation({
     connectedAt: v.number(),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("githubConnections", args);
-  },
-});
+    const existing = await getConnectionForUser(ctx, args.userId);
+    const { userId, ...fields } = args;
 
-export const updateConnectionInternal = internalMutation({
-  args: {
-    id: v.id("githubConnections"),
-    githubUsername: v.string(),
-    encryptedAccessToken: v.string(),
-    avatarUrl: v.optional(v.string()),
-    connectedAt: v.number(),
-  },
-  handler: async (ctx, args) => {
-    const { id, ...fields } = args;
-    await ctx.db.patch(id, fields);
+    if (existing) {
+      await ctx.db.patch(existing._id, fields);
+      return existing._id;
+    }
+
+    return await ctx.db.insert("githubConnections", { userId, ...fields });
   },
 });
 

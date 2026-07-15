@@ -1,5 +1,3 @@
-"use client";
-
 import { useMemo } from "react";
 import { useConvexAuth, useAction } from "convex/react";
 import { useInfiniteQuery } from "@tanstack/react-query";

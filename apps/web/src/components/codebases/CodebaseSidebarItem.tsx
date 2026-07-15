@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@vmem/backend";
@@ -27,7 +25,6 @@ import {
 import { toast } from "sonner";
 import { CodebaseSidebarCard } from "./CodebaseSidebarCard";
 import type { CodebaseItem } from "./-types";
-import { useActiveTeamId } from "@/components/workspace/active-profile";
 
 interface CodebaseSidebarItemProps {
   codebase: CodebaseItem;
@@ -41,20 +38,8 @@ export function CodebaseSidebarItem({
   selected,
   onSelect,
 }: CodebaseSidebarItemProps) {
-  const teamId = useActiveTeamId();
   const setArchived = useMutation(api.codebases.setArchived);
-  const removeCodebase = useMutation(
-    api.codebases.removeCodebase,
-  ).withOptimisticUpdate((localStore, args) => {
-    const list = localStore.getQuery(api.codebases.listMy, { teamId });
-    if (list) {
-      localStore.setQuery(
-        api.codebases.listMy,
-        { teamId },
-        list.filter((row) => row._id !== args.id),
-      );
-    }
-  });
+  const removeCodebase = useMutation(api.codebases.removeCodebase);
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);

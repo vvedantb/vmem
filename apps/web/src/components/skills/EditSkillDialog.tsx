@@ -1,21 +1,10 @@
-"use client";
-
 import { useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@vmem/backend";
 import type { Doc } from "@vmem/backend";
-import {
-  Button,
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  Input,
-  Textarea,
-} from "@vmem/ui";
-import { IconLoader2 } from "@tabler/icons-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@vmem/ui";
 import { toast } from "sonner";
-import { patchSkillListMy } from "@/components/skills/_utils";
+import { SkillFormShell } from "@/components/skills/SkillFormShell";
 
 interface EditSkillDialogProps {
   skill: Doc<"skills"> | undefined;
@@ -28,19 +17,7 @@ export function EditSkillDialog({
   open,
   onOpenChange,
 }: EditSkillDialogProps) {
-  const updateSkill = useMutation(api.skills.updateSkill).withOptimisticUpdate(
-    (localStore, args) => {
-      const current = localStore.getQuery(api.skills.listMy, {
-        teamId: skill?.teamId,
-      });
-      if (!current) return;
-      localStore.setQuery(
-        api.skills.listMy,
-        { teamId: skill?.teamId },
-        patchSkillListMy(current, args.id, args),
-      );
-    },
-  );
+  const updateSkill = useMutation(api.skills.updateSkill);
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -83,71 +60,31 @@ export function EditSkillDialog({
           <DialogTitle>Edit skill</DialogTitle>
         </DialogHeader>
 
-        <form
+        <SkillFormShell
+          name={skill.name}
+          description={skill.description}
+          instructions={skill.instructions}
+          onNameChange={(value) => {
+            void updateSkill({ id: skill._id, name: value });
+          }}
+          onDescriptionChange={(value) => {
+            void updateSkill({ id: skill._id, description: value });
+          }}
+          onInstructionsChange={(value) => {
+            void updateSkill({ id: skill._id, instructions: value });
+          }}
           onSubmit={(e) => {
             e.preventDefault();
             void handleDone();
           }}
-          className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto"
-        >
-          <Input
-            id="edit-skill-name"
-            value={skill.name}
-            onChange={(e) => {
-              void updateSkill({ id: skill._id, name: e.target.value });
-            }}
-            placeholder="Name"
-            aria-label="Name"
-            autoFocus
-          />
-
-          <Textarea
-            id="edit-skill-description"
-            value={skill.description}
-            onChange={(e) => {
-              void updateSkill({
-                id: skill._id,
-                description: e.target.value,
-              });
-            }}
-            placeholder="What this skill is for"
-            aria-label="Description"
-            rows={3}
-            className="min-h-[4.5rem] resize-y"
-          />
-
-          <Textarea
-            id="edit-skill-instructions"
-            value={skill.instructions}
-            onChange={(e) => {
-              void updateSkill({
-                id: skill._id,
-                instructions: e.target.value,
-              });
-            }}
-            placeholder="Instructions"
-            aria-label="Instructions"
-            className="min-h-[240px] font-mono text-xs"
-          />
-
-          <div className="flex items-center justify-end gap-2 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => onOpenChange(false)}
-              disabled={submitting}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" size="sm" disabled={submitting}>
-              {submitting ? (
-                <IconLoader2 size={14} className="animate-spin" />
-              ) : null}
-              Done
-            </Button>
-          </div>
-        </form>
+          onCancel={() => onOpenChange(false)}
+          submitting={submitting}
+          submitLabel="Done"
+          nameId="edit-skill-name"
+          descriptionId="edit-skill-description"
+          instructionsId="edit-skill-instructions"
+          labeledSections
+        />
       </DialogContent>
     </Dialog>
   );

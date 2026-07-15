@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { AuthGate } from "@/components/providers/ClientProvider";
-import MainShell from "@/components/MainShell";
+import { AuthGate } from "@/providers/AuthGate";
+import MainShell from "@/components/shell/MainShell";
 
 export const Route = createFileRoute("/_main")({
   beforeLoad: ({ context }) => {

@@ -135,9 +135,11 @@ Apps import only `@vmem/backend` (Convex `api` + types) and `@vmem/shared`.
 ## Run locally
 
 ```bash
-git clone https://github.com/vedantb2/vmem.git
+git clone https://github.com/vvedantb/vmem.git
 cd vmem
 pnpm install
+cp apps/web/.env.example apps/web/.env.local
+cp packages/backend/.env.example packages/backend/.env.local
 pnpm convex   # Convex dev server (packages/backend)
 pnpm dev      # Web app — http://localhost:5173
 ```
@@ -156,11 +158,25 @@ Visit `/?agent` during web dev to auto sign in as the agent user (requires `CLER
 
 ## Environment
 
-**Web** — create `apps/web/.env.local`:
+Example env files are checked in for the runnable surfaces:
+
+| Path                                 | Used by                                                |
+| ------------------------------------ | ------------------------------------------------------ |
+| `.env.example`                       | SDK/HTTP scripts using `@vmem/sdk`                     |
+| `apps/web/.env.example`              | Vite web app                                           |
+| `apps/chrome-extension/.env.example` | Extension build-time Convex/Clerk config               |
+| `packages/backend/.env.example`      | Backend CLI scripts and Convex deployment var template |
+| `packages/sdk/.env.example`          | SDK examples and local package testing                 |
+
+Copy the relevant file to `.env.local` before running that surface.
+
+**Web** — `apps/web/.env.local`:
 
 ```
 VITE_CONVEX_URL=https://<deployment>.convex.cloud
 VITE_CLERK_PUBLISHABLE_KEY=pk_...
+CLERK_SECRET_KEY=sk_...          # optional, for /?agent dev login
+AGENT_CLERK_USER_ID=user_...     # optional, for /?agent dev login
 ```
 
 **Convex dashboard** (Settings → Environment Variables) — minimum:
@@ -171,6 +187,7 @@ CLERK_SECRET_KEY
 ENCRYPTION_KEY          # base64 AES-256 for API key encryption
 MCP_JWT_SECRET
 NEO4J_URI
+NEO4J_USERNAME            # optional, defaults to neo4j
 NEO4J_PASSWORD
 CONVEX_SITE_URL         # https://<deployment>.convex.site
 WEB_APP_URL             # http://localhost:5173 in dev
@@ -178,8 +195,8 @@ WEB_APP_URL             # http://localhost:5173 in dev
 
 Optional: `OPENROUTER_API_KEY` (server embeddings/context when users have no key), `GOOGLE_CLIENT_*` / `NOTION_CLIENT_*` (connector OAuth), `GITHUB_CLIENT_*` (codebase sync OAuth), `NEO4J_USERNAME` (defaults to `neo4j`).
 
-**Chrome extension** — edit `apps/chrome-extension/src/lib/constants.ts` (Convex URL + Clerk keys) before `pnpm ext:build`.
+**Chrome extension** — copy `apps/chrome-extension/.env.example` to `apps/chrome-extension/.env.local` before `pnpm ext:build`.
 
-**Neo4j CLI scripts** (`eval:bench`, `db:tag-stats`) — `packages/backend/.env.local` with `NEO4J_URI`, `NEO4J_PASSWORD`, and optionally `OPENROUTER_API_KEY`.
+**Neo4j CLI scripts** (`eval:bench`, live HTTP tests) — `packages/backend/.env.local` with `NEO4J_URI`, `NEO4J_PASSWORD`, and optionally `OPENROUTER_API_KEY`.
 
 Public docs (hosted separately): [vmem.vedantb.com](https://vmem.vedantb.com)

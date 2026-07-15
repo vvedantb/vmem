@@ -1,12 +1,15 @@
-import { extractPdfText } from "./pdf";
-import { extractTextFromBlob } from "./text";
+import { extractText } from "unpdf";
 
 export async function extractFileContent(
   blob: Blob,
   kind: "pdf" | "text",
 ): Promise<string> {
   if (kind === "pdf") {
-    return extractPdfText(Buffer.from(await blob.arrayBuffer()));
+    const buffer = Buffer.from(await blob.arrayBuffer());
+    const { text } = await extractText(new Uint8Array(buffer), {
+      mergePages: true,
+    });
+    return text;
   }
-  return extractTextFromBlob(blob);
+  return blob.text();
 }

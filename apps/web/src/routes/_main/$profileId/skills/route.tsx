@@ -1,5 +1,3 @@
-"use client";
-
 import {
   createFileRoute,
   Outlet,
@@ -13,14 +11,14 @@ import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
 import { IconBolt } from "@tabler/icons-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import PageContainer from "@/components/PageContainer";
+import PageContainer from "@/components/shell/PageContainer";
 import { SkillsHub } from "@/components/skills/SkillsHub";
 import { SystemSkillDetail } from "@/components/skills/SystemSkillDetail";
 import { ViewSkillPanel } from "@/components/skills/ViewSkillPanel";
 import { SkillPageTitle } from "@/components/skills/SkillPageTitle";
 import { SkillHeaderActions } from "@/components/skills/SkillHeaderActions";
 import { EditSkillDialog } from "@/components/skills/EditSkillDialog";
-import { skillsSearchParams } from "./-searchParams";
+import { skillsSearchParams } from "@/lib/url-state/skills";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 
 export const Route = createFileRoute("/_main/$profileId/skills")({
@@ -43,32 +41,7 @@ function SkillsLayout() {
     typeof params.skillId === "string" ? params.skillId : undefined;
 
   const skills = useQuery(api.skills.listMy, { teamId });
-  const updateSkill = useMutation(api.skills.updateSkill).withOptimisticUpdate(
-    (localStore, args) => {
-      const current = localStore.getQuery(api.skills.listMy, { teamId });
-      if (!current) return;
-      const now = Date.now();
-      localStore.setQuery(
-        api.skills.listMy,
-        { teamId },
-        current.map((row) => {
-          if (row._id !== args.id) return row;
-          return {
-            ...row,
-            ...(args.name !== undefined ? { name: args.name.trim() } : {}),
-            ...(args.description !== undefined
-              ? { description: args.description }
-              : {}),
-            ...(args.instructions !== undefined
-              ? { instructions: args.instructions }
-              : {}),
-            ...(args.enabled !== undefined ? { enabled: args.enabled } : {}),
-            updatedAt: now,
-          };
-        }),
-      );
-    },
-  );
+  const updateSkill = useMutation(api.skills.updateSkill);
   const [{ q: searchQuery }] = useQueryStates(skillsSearchParams);
   const [modal, setModal] = useState<ModalState>({ mode: "none" });
 
@@ -217,9 +190,7 @@ function SkillsLayout() {
     >
       <div className="flex h-full min-h-0 flex-1 flex-col">
         {hasSkill && viewedSkill ? (
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-            <ViewSkillPanel skill={viewedSkill} />
-          </div>
+          <ViewSkillPanel skill={viewedSkill} />
         ) : isSkillLoading || skills === undefined ? (
           <div className="flex flex-1 items-center justify-center">
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-default border-t-transparent" />

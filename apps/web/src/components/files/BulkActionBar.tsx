@@ -1,5 +1,3 @@
-"use client";
-
 import { motion, AnimatePresence } from "motion/react";
 import { Button, motionEase, motionDuration } from "@vmem/ui";
 import {

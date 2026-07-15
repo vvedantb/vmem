@@ -5,6 +5,7 @@ import {
   kindPassesFilter,
   sourcePassesFilter,
   tagsPassFilter,
+  type MemoryViewFilterParams,
   typePassesFilter,
 } from "./memory-view-filters";
 
@@ -126,6 +127,18 @@ export function listItemMatchesTypeFilter(
     item.kind === "memory" ? item.type : undefined,
     selectedTypes,
     item.kind,
+  );
+}
+
+export function listItemPassesFilters(
+  item: ListItem,
+  filters: Pick<MemoryViewFilterParams, "kinds" | "tags" | "sources" | "types">,
+): boolean {
+  return (
+    listItemMatchesKindFilter(item, filters.kinds) &&
+    listItemMatchesTagFilter(item, filters.tags) &&
+    listItemMatchesSourceFilter(item, filters.sources) &&
+    listItemMatchesTypeFilter(item, filters.types)
   );
 }
 

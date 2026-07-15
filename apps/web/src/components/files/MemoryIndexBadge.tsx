@@ -1,5 +1,3 @@
-"use client";
-
 import { Link } from "@tanstack/react-router";
 import { IconBrain } from "@tabler/icons-react";
 import type { FileTreeNode } from "./-types";

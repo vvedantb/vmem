@@ -8,30 +8,28 @@ const VMEM_LOGO_SIZE = 16;
 const CHECK_ICON = checkIcon(16);
 const ERROR_ICON = errorIcon(16);
 
-/**
- * The popup's background follows prefers-color-scheme (see styles below), so
- * the logo img must too: black logo on the light pill, white on the dark one.
- */
+// the popup's background follows prefers color scheme (see styles below) so
+// the logo img must too: black logo on the light pill white on the dark one
 function logoVariant(): VmemLogoVariant {
   return window.matchMedia("(prefers-color-scheme: dark)").matches
     ? "light"
     : "dark";
 }
 
-// Spinner is pure CSS — see styles below
+// spinner is pure css see styles below
 
-// ── State ─────────────────────────────────────────────────────────────────────
+// state
 
 type PopupState = "idle" | "ready" | "saving" | "success" | "error";
 
 let state: PopupState = "idle";
 let capturedText = "";
-let enabled = false; // Set by init() after reading storage
+let enabled = false; // set by init() after reading storage
 let hideTimer: ReturnType<typeof setTimeout> | null = null;
 let selectionChangeTimer: ReturnType<typeof setTimeout> | null = null;
 let repositionRaf: number | null = null;
 
-// ── Shadow DOM setup ──────────────────────────────────────────────────────────
+// shadow dom setup
 
 const host = document.createElement("vmem-selection-popup");
 host.setAttribute("data-vmem-selection", "true");
@@ -48,7 +46,7 @@ Object.assign(host.style, {
 
 const shadow = host.attachShadow({ mode: "closed" });
 
-// ── Styles inside shadow DOM ──────────────────────────────────────────────────
+// styles inside shadow dom
 
 const styleEl = document.createElement("style");
 styleEl.textContent = `
@@ -91,7 +89,7 @@ styleEl.textContent = `
     -webkit-user-select: none;
   }
 
-  /* Extend hit area to 40px minimum */
+  /* extend hit area to 40px minimum */
   #vmem-popup::before {
     content: '';
     position: absolute;
@@ -105,8 +103,8 @@ styleEl.textContent = `
     transform: translateY(0);
   }
 
-  /* Expand to pill on hover — only in ready state. interpolate-size lets
-     the width animate to max-content, so the label never truncates. */
+  /* expand to pill on hover only in ready state interpolate size lets
+     the width animate to max content so the label never truncates */
   #vmem-popup {
     interpolate-size: allow-keywords;
   }
@@ -122,7 +120,7 @@ styleEl.textContent = `
     transform: translateY(0) scale(0.96);
   }
 
-  /* Label — hidden by default, fades in on hover */
+  /* label hidden by default fades in on hover */
   .vmem-label {
     font-size: 13px;
     font-weight: 500;
@@ -143,7 +141,7 @@ styleEl.textContent = `
     margin-left: 6px;
   }
 
-  /* State-specific colors (drive currentColor in SVGs) */
+  /* state specific colors (drive currentColor in svgs) */
   #vmem-popup.state-success {
     background: #dcfce7;
     color: #16a34a;
@@ -153,7 +151,7 @@ styleEl.textContent = `
     color: #dc2626;
   }
 
-  /* Spinner animation */
+  /* spinner animation */
   @keyframes vmem-spin {
     to { transform: rotate(360deg); }
   }
@@ -175,7 +173,7 @@ styleEl.textContent = `
     flex-shrink: 0;
   }
 
-  /* Dark mode */
+  /* dark mode */
   @media (prefers-color-scheme: dark) {
     #vmem-popup {
       background: rgba(38, 38, 42, 0.92);
@@ -207,7 +205,7 @@ styleEl.textContent = `
 `;
 shadow.appendChild(styleEl);
 
-// ── Popup DOM ─────────────────────────────────────────────────────────────────
+// popup dom
 
 const popup = document.createElement("div");
 popup.id = "vmem-popup";
@@ -226,24 +224,24 @@ popup.appendChild(label);
 
 shadow.appendChild(popup);
 
-// ── State transitions ─────────────────────────────────────────────────────────
+// state transitions
 
 function transitionTo(next: PopupState): void {
   state = next;
 
-  // Clear pending hide timers on any transition
+  // clear pending hide timers on any transition
   if (hideTimer !== null) {
     clearTimeout(hideTimer);
     hideTimer = null;
   }
 
-  // Remove state classes + expandable (only re-added in ready state)
+  // remove state classes + expandable (only re added in ready state)
   popup.classList.remove("state-success", "state-error", "expandable");
 
   switch (next) {
     case "idle":
       popup.classList.remove("visible");
-      // Reset icon after hide animation
+      // reset icon after hide animation
       setTimeout(() => {
         if (state === "idle") {
           mountVmemLogo(iconContainer, logoVariant(), VMEM_LOGO_SIZE);
@@ -274,7 +272,7 @@ function transitionTo(next: PopupState): void {
   }
 }
 
-// ── Positioning ───────────────────────────────────────────────────────────────
+// positioning
 
 function positionPopup(): void {
   const selection = window.getSelection();
@@ -283,17 +281,17 @@ function positionPopup(): void {
   const range = selection.getRangeAt(0);
   const rect = range.getBoundingClientRect();
 
-  // Skip zero-dimension rects (collapsed or invisible selections)
+  // skip zero dimension rects (collapsed or invisible selections)
   if (rect.width === 0 && rect.height === 0) return;
 
   const popupSize = 32;
   const gap = 8;
 
-  // Default: centered below selection
+  // default: centered below selection
   let x = rect.left + rect.width / 2 - popupSize / 2;
   let y = rect.bottom + gap;
 
-  // Clamp horizontal bounds
+  // clamp horizontal bounds
   if (x + popupSize > window.innerWidth - gap) {
     x = window.innerWidth - popupSize - gap;
   }
@@ -301,12 +299,12 @@ function positionPopup(): void {
     x = gap;
   }
 
-  // Flip above if no room below
+  // flip above if no room below
   if (y + popupSize > window.innerHeight - gap) {
     y = rect.top - popupSize - gap;
   }
 
-  // Clamp to top if still off-screen
+  // clamp to top if still off screen
   if (y < gap) {
     y = gap;
   }
@@ -315,7 +313,7 @@ function positionPopup(): void {
   popup.style.top = `${y}px`;
 }
 
-// ── Save logic ────────────────────────────────────────────────────────────────
+// save logic
 
 function saveSelection(): void {
   if (state !== "ready" || capturedText.length === 0) return;
@@ -347,18 +345,18 @@ function saveSelection(): void {
   });
 }
 
-// ── Event handlers ────────────────────────────────────────────────────────────
+// event handlers
 
 function onMouseUp(e: MouseEvent): void {
   if (!enabled) return;
 
-  // Skip right-clicks (context menu)
+  // skip right clicks (context menu)
   if (e.button === 2) return;
 
-  // Skip clicks inside our own popup
+  // skip clicks inside our own popup
   if (e.target === host) return;
 
-  // Use rAF to let the browser finalize the selection
+  // use rAF to let the browser finalize the selection
   requestAnimationFrame(() => {
     const selection = window.getSelection();
     if (!selection || selection.isCollapsed) return;
@@ -375,7 +373,7 @@ function onMouseUp(e: MouseEvent): void {
 function onSelectionChange(): void {
   if (!enabled) return;
 
-  // Debounce to avoid flickering during rapid selection changes
+  // debounce to avoid flickering during rapid selection changes
   if (selectionChangeTimer !== null) {
     clearTimeout(selectionChangeTimer);
   }
@@ -384,7 +382,7 @@ function onSelectionChange(): void {
     selectionChangeTimer = null;
     const selection = window.getSelection();
 
-    // If selection is cleared and we're in ready state, hide
+    // if selection is cleared and we're in ready state, hide
     if (
       (!selection ||
         selection.isCollapsed ||
@@ -400,7 +398,7 @@ function onScrollOrResize(): void {
   if (!enabled) return;
   if (state !== "ready") return;
 
-  // Throttle repositioning with rAF
+  // throttle repositioning with rAF
   if (repositionRaf !== null) return;
 
   repositionRaf = requestAnimationFrame(() => {
@@ -411,7 +409,7 @@ function onScrollOrResize(): void {
   });
 }
 
-// Prevent click on popup from clearing the text selection
+// prevent click on popup from clearing the text selection
 function onPopupMouseDown(e: Event): void {
   e.preventDefault();
 }
@@ -422,7 +420,7 @@ function onPopupClick(e: Event): void {
   saveSelection();
 }
 
-// ── Toggle support ────────────────────────────────────────────────────────────
+// toggle support
 
 function attachListeners(): void {
   document.addEventListener("mouseup", onMouseUp, true);
@@ -437,7 +435,7 @@ function detachListeners(): void {
   window.removeEventListener("scroll", onScrollOrResize);
   window.removeEventListener("resize", onScrollOrResize);
 
-  // Hide popup if visible
+  // hide popup if visible
   if (state !== "idle") {
     transitionTo("idle");
   }
@@ -454,23 +452,23 @@ function setEnabled(value: boolean): void {
   }
 }
 
-// ── Initialization ────────────────────────────────────────────────────────────
+// initialization
 
 function init(): void {
-  // Attach popup event listeners (these stay regardless of toggle)
+  // attach popup event listeners (these stay regardless of toggle)
   popup.addEventListener("mousedown", onPopupMouseDown);
   popup.addEventListener("click", onPopupClick);
 
-  // Append host to document
+  // append host to document
   document.body.appendChild(host);
 
-  // Read initial toggle state
+  // read initial toggle state
   chrome.storage.local.get({ selectionPopupEnabled: true }, (result) => {
     const storedEnabled: unknown = result["selectionPopupEnabled"];
     setEnabled(typeof storedEnabled === "boolean" ? storedEnabled : true);
   });
 
-  // React to toggle changes in real-time
+  // react to toggle changes in real time
   chrome.storage.onChanged.addListener((changes) => {
     if ("selectionPopupEnabled" in changes) {
       const next: unknown = changes["selectionPopupEnabled"].newValue;
@@ -479,7 +477,7 @@ function init(): void {
   });
 }
 
-// Wait for document.body to be available
+// wait for document.body to be available
 if (document.body) {
   init();
 } else {

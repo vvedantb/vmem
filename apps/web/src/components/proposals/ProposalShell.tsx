@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Card, CardContent, cn } from "@vmem/ui";
-import { formatRelativeTime } from "@/lib/formatters";
+import { formatRelativeTime } from "@vmem/shared";
 
 export function ProposalFieldLabel({ children }: { children: ReactNode }) {
   return (

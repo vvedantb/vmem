@@ -1,8 +1,11 @@
 "use node";
 
 import type { ActionCtx } from "../../_generated/server";
+import type {
+  ListMemoriesInternalArgs,
+  SearchMemoriesInternalArgs,
+} from "../../memoryApi/validators";
 import { getMemory, listMemories } from "../../../engine/neo4j/memory/crud";
-import { searchMemories } from "../../../engine/neo4j/memory/search";
 import { retrieveMemories } from "../../../engine/neo4j/memory/retrieve";
 import { getDriver } from "../../../engine/neo4j/driver";
 import { callOpenRouterChat, LLM_MODEL } from "../../lib/openRouter";
@@ -25,19 +28,7 @@ export async function runGetMemory(args: {
   return await getMemory(driver, args.clerkId, args.memoryId);
 }
 
-export interface ListMemoriesArgs {
-  clerkId: string;
-  profileId?: string;
-  type?: string;
-  status?: string;
-  source?: string;
-  tags?: string[];
-  searchQuery?: string;
-  limit: number;
-  offset: number;
-}
-
-export async function runListMemories(args: ListMemoriesArgs) {
+export async function runListMemories(args: ListMemoriesInternalArgs) {
   const driver = getDriver();
   return await listMemories(driver, {
     userId: args.clerkId,
@@ -52,26 +43,14 @@ export async function runListMemories(args: ListMemoriesArgs) {
   });
 }
 
-export interface SearchMemoriesArgs {
-  clerkId: string;
-  profileId?: string;
-  query?: string;
-  type?: string;
-  tags?: string[];
-  source?: string;
-  limit: number;
-  offset: number;
-}
-
-export async function runSearchMemories(args: SearchMemoriesArgs) {
-  const driver = getDriver();
-  return await searchMemories(driver, {
-    userId: args.clerkId,
+export async function runSearchMemories(args: SearchMemoriesInternalArgs) {
+  return runListMemories({
+    clerkId: args.clerkId,
     profileId: args.profileId,
-    query: args.query,
-    type: toMemoryType(args.type),
+    type: args.type,
     tags: args.tags,
     source: args.source,
+    searchQuery: args.query,
     limit: args.limit,
     offset: args.offset,
   });

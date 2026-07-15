@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "motion/react";
@@ -27,12 +25,12 @@ import {
   IconX,
 } from "@tabler/icons-react";
 import { buildTagStats } from "@/lib/memories";
-import { IconMemories } from "@/components/sidebar-icons";
-import { useMemoryContext } from "@/components/contexts/MemoryContext";
-import { useMemoriesSearchParams } from "@/routes/_main/$profileId/memories/useMemoriesSearchParams";
+import { IconMemories } from "@/components/icons/sidebar";
+import { useMemoryContext } from "@/contexts/MemoryContext";
+import { useMemoriesSearchParams } from "@/hooks/useMemoriesSearchParams";
 import { DetailEmptyState } from "@/components/_components/detail-panel/DetailEmptyState";
 import { TagMemoriesPanel } from "@/components/_components/TagMemoriesPanel";
-import { VmemSpinner } from "@/components/svg-animations";
+import { VmemSpinner } from "@/components/icons/animations";
 
 // tag-rows view for /memories/list?view=tags
 export default function TagsListView() {

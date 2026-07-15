@@ -5,7 +5,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@vmem/backend";
 import { IconLoader2 } from "@tabler/icons-react";
-import { readLastActiveProfileId } from "./active-profile";
+import { useLastActiveProfileId } from "./active-profile";
 
 export function WorkspaceEntryRedirect({
   subPath = "/home",
@@ -22,6 +22,7 @@ export function WorkspaceEntryRedirect({
     source: "web",
   });
   const getOrCreateDefault = useMutation(api.profiles.getOrCreateDefault);
+  const [lastProfileId] = useLastActiveProfileId();
   const creatingRef = useRef(false);
 
   useEffect(() => {
@@ -38,7 +39,7 @@ export function WorkspaceEntryRedirect({
     const byId = (id: string | null) =>
       id === null ? undefined : profiles.find((p) => p._id === id);
     const target =
-      byId(readLastActiveProfileId()) ??
+      byId(lastProfileId) ??
       byId(webDefaultId) ??
       profiles.find((p) => p.isDefault) ??
       profiles[0];
@@ -48,7 +49,15 @@ export function WorkspaceEntryRedirect({
       to: `/${target._id}${subPath}${search}`,
       replace: true,
     });
-  }, [profiles, webDefaultId, getOrCreateDefault, navigate, subPath, search]);
+  }, [
+    profiles,
+    webDefaultId,
+    getOrCreateDefault,
+    navigate,
+    subPath,
+    search,
+    lastProfileId,
+  ]);
 
   return (
     <div className="flex h-full items-center justify-center py-20">

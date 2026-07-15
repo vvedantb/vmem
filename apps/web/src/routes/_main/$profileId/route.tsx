@@ -5,7 +5,7 @@ import { api, type Doc } from "@vmem/backend";
 import { IconLoader2 } from "@tabler/icons-react";
 import {
   ActiveProfileProvider,
-  rememberActiveProfileId,
+  useLastActiveProfileId,
 } from "@/components/workspace/active-profile";
 import { isLegacyFirstSegment } from "@/components/workspace/workspace-paths";
 import {
@@ -21,13 +21,14 @@ export const Route = createFileRoute("/_main/$profileId")({
 function WorkspaceLayout() {
   const { profileId } = Route.useParams();
   const profiles = useQuery(api.profiles.list);
+  const [, setLastProfileId] = useLastActiveProfileId();
   const profile: Doc<"profiles"> | undefined = profiles?.find(
     (p) => p._id === profileId,
   );
 
   useEffect(() => {
-    if (profile !== undefined) rememberActiveProfileId(profile._id);
-  }, [profile]);
+    if (profile !== undefined) setLastProfileId(profile._id);
+  }, [profile, setLastProfileId]);
 
   if (profiles === undefined) {
     return (

@@ -1,5 +1,3 @@
-"use client";
-
 // graph header: search / filters / options (+ add memory)
 
 import { useCallback, useMemo } from "react";
@@ -13,14 +11,14 @@ import {
   Switch,
   Separator,
 } from "@vmem/ui";
-import AddMemoryIconTrigger from "@/components/AddMemoryIconTrigger";
+import AddMemoryIconTrigger from "@/components/memories/AddMemoryIconTrigger";
 import HeaderSearchInput from "./HeaderSearchInput";
 import GraphLegend from "./GraphLegend";
 import type { MemoryGraphController } from "@/hooks/useMemoryGraphController";
 import { MemoryFiltersButton } from "@/routes/_main/$profileId/memories/_components/MemoryFiltersButton";
 import type { ListItemKind } from "@/lib/list-items";
 import type { MemoryType } from "@/lib/memories";
-import type { GraphSettings } from "./graph-types";
+import type { GraphSettings } from "@/lib/graph/graph-types";
 
 // ---- Slider config ----
 

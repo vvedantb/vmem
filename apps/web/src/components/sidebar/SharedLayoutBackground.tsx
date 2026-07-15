@@ -1,5 +1,3 @@
-"use client";
-
 import { cn } from "@vmem/ui";
 import { motion } from "motion/react";
 import { createContext, use, useState, type ReactNode } from "react";

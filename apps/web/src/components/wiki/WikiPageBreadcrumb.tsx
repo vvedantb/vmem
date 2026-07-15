@@ -1,5 +1,3 @@
-"use client";
-
 import { Link } from "@tanstack/react-router";
 import type { WikiListNode, WikiNodeDoc } from "./-types";
 import { Breadcrumb, BreadcrumbLink, BreadcrumbPage, Input } from "@vmem/ui";

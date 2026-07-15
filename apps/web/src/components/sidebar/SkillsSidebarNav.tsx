@@ -1,18 +1,15 @@
-"use client";
-
 import { useMemo, useState, lazy, Suspense } from "react";
 import { useLocation, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { useQueryStates } from "nuqs";
-import { motion } from "motion/react";
 import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
-import { Button, cn, motionDuration, motionEase } from "@vmem/ui";
+import { Button, cn } from "@vmem/ui";
 import { IconApps, IconBolt, IconListCheck } from "@tabler/icons-react";
 import { SkillCard } from "@/components/skills/SkillCard";
 import { SkillBulkDeleteBar } from "@/components/skills/SkillBulkDeleteBar";
 import { SkillsAddMenu } from "@/components/skills/SkillsAddMenu";
-import { skillsSearchParams } from "@/routes/_main/$profileId/skills/-searchParams";
+import { skillsSearchParams } from "@/lib/url-state/skills";
 import { SidebarListSearchBar } from "./SidebarListSearchBar";
 import { SharedLayoutBackground } from "./SharedLayoutBackground";
 import { sidebarListRowClass } from "./sidebar-nav-row";
@@ -21,6 +18,7 @@ import {
   useActiveProfileId,
   useActiveTeamId,
 } from "@/components/workspace/active-profile";
+import { SubSidebarShell } from "./SubSidebarShell";
 
 const WriteSkillDialog = lazy(() =>
   import("@/components/skills/WriteSkillDialog").then((m) => ({
@@ -204,16 +202,7 @@ export function SkillsSidebarNav({
     ) : null;
 
   return (
-    <motion.nav
-      className={cn(
-        "flex min-h-0 flex-1 flex-col overflow-hidden",
-        isMobile ? "pb-2" : "pr-1",
-      )}
-      initial={{ opacity: 0, x: 12 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 12 }}
-      transition={{ duration: motionDuration.fast, ease: motionEase }}
-    >
+    <SubSidebarShell isMobile={isMobile}>
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto scrollbar-thin px-1">
         {skills === undefined ? (
           <div className="flex items-center justify-center py-10">
@@ -325,6 +314,6 @@ export function SkillsSidebarNav({
           />
         </Suspense>
       ) : null}
-    </motion.nav>
+    </SubSidebarShell>
   );
 }

@@ -1,12 +1,6 @@
-/**
- * Builds the screenshot overlay's Shadow-DOM tree once at module load.
- * Exports the element refs the orchestrator wires events onto. Calling
- * `mountOverlay()` attaches the host to <body> when ready.
- *
- * Kept as a side-effecting module (not a factory) so the orchestrator
- * can reference these singletons directly the way the original
- * monolithic file did.
- */
+// builds the screenshot overlay shadow dom tree once at module load
+// exports element refs the orchestrator wires events onto
+// mountOverlay() attaches the host to body when ready
 
 import { mountVmemLogo } from "@/content/shared/icons";
 import { overlayCss } from "./styles";
@@ -30,8 +24,6 @@ const styleEl = document.createElement("style");
 styleEl.textContent = overlayCss;
 shadow.appendChild(styleEl);
 
-// ── Scrim + rect ────────────────────────────────────────────────────────────
-
 export const scrim = document.createElement("div");
 scrim.id = "scrim";
 
@@ -45,8 +37,6 @@ rectEl.id = "rect";
 scrim.appendChild(rectEl);
 
 shadow.appendChild(scrim);
-
-// ── Preview popup ───────────────────────────────────────────────────────────
 
 export const preview = document.createElement("div");
 preview.id = "preview";
@@ -77,16 +67,15 @@ saveLabel.textContent = "Save";
 saveBtn.appendChild(saveLabel);
 
 preview.appendChild(saveBtn);
-
 shadow.appendChild(preview);
 
-/** Attach the host to <body> once the document is ready. */
 export function mountOverlay(): void {
-  if (document.body) {
+  const attach = () => {
     document.body.appendChild(host);
+  };
+  if (document.body) {
+    attach();
   } else {
-    document.addEventListener("DOMContentLoaded", () => {
-      document.body.appendChild(host);
-    });
+    document.addEventListener("DOMContentLoaded", attach);
   }
 }

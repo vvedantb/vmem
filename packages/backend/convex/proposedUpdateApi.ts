@@ -14,6 +14,7 @@ import {
 import type { ProposedUpdateNode } from "../engine/neo4j/memory/types";
 import { postMaterializeEmbedAndEnrich } from "./neo4jActions/_memories/postMaterialize";
 import { runWithNeo4jDriver } from "./neo4jActions/_shared/driver";
+import { resolveAccessibleTeamScope } from "./profiles/accessibleProfile";
 
 export const listProposedUpdates = authAction({
   args: {
@@ -22,14 +23,10 @@ export const listProposedUpdates = authAction({
   handler: async (ctx, args): Promise<ProposedUpdateNode[]> => {
     const clerkId = await requireClerkId(ctx);
 
-    let strictProfile = false;
-    if (args.profileId !== undefined) {
-      const profile = await ctx.runQuery(
-        internal.teams.assertProfileAccessInternal,
-        { profileId: args.profileId, userId: ctx.userId },
-      );
-      strictProfile = profile.teamId !== undefined;
-    }
+    const { strictProfile } = await resolveAccessibleTeamScope(
+      ctx,
+      args.profileId,
+    );
 
     return await runWithNeo4jDriver(
       {

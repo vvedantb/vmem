@@ -1,9 +1,5 @@
 // codebase payload → canvas GraphNode/GraphEdge
-import type {
-  GraphNode,
-  GraphEdge,
-  GraphNodeKind,
-} from "@/components/_components/canvas/types";
+import type { GraphNode, GraphEdge, GraphNodeKind } from "@/lib/graph/types";
 import type { CodeNode, CodeEdge, CodeNodeKind } from "./-types";
 
 // ---- Directory stats ----
@@ -62,11 +58,9 @@ export function buildCodebaseGraphData(
   // --- Stage 1: determine which file IDs survive directory filtering. ---
   const activeDirs = options.activeDirectories;
   const filterByDir = activeDirs.size > 0;
-  const fileNodeById = new Map<string, CodeNode>();
   const survivingFileIds = new Set<string>();
   for (const node of apiNodes) {
     if (node.kind !== "code-file") continue;
-    fileNodeById.set(node.id, node);
     const dir = node.directory || "(root)";
     if (!filterByDir || activeDirs.has(dir)) {
       survivingFileIds.add(node.id);
@@ -140,7 +134,6 @@ export function buildCodebaseGraphData(
       content: node.path,
       tags,
       createdAt: "",
-      color: "",
       size,
       kind: node.kind satisfies GraphNodeKind,
       sourceType: null,

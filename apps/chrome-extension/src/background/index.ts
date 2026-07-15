@@ -1,4 +1,3 @@
-import { markBootPhase } from "./boot-marker";
 import { registerContextMenuClickListener } from "./context-menu";
 import { registerCommandListener } from "./command-handler";
 import { registerMessageHandler } from "./message-handler";
@@ -11,6 +10,10 @@ import {
 } from "./sync-scheduler";
 import { runBackgroundBootstrap } from "./bootstrap";
 import { registerSyncHostCookieListener } from "./sync-host-cookie-listener";
+import { setConvexTokenRefresher } from "./auth";
+import { refreshConvexTokenFromClerk } from "@/lib/refresh-convex-token";
+
+setConvexTokenRefresher(refreshConvexTokenFromClerk);
 
 registerAlarmListener();
 registerBookmarkListener();
@@ -18,7 +21,6 @@ registerSyncHostCookieListener();
 registerContextMenuClickListener();
 registerCommandListener();
 registerMessageHandler();
-markBootPhase("listeners-ready");
 
 void runBackgroundBootstrap();
 
@@ -46,8 +48,8 @@ chrome.storage.onChanged.addListener((changes, area) => {
     return;
   }
 
-  // The frequency slider changed the sync period — reschedule the alarm with
-  // the new period (no-op while auto-sync is disabled)
+  // the frequency slider changed the sync period reschedule the alarm with
+  // the new period (no op while auto sync is disabled)
   if (changes["autoSyncIntervalMinutes"]) {
     void rescheduleHistorySync();
   }

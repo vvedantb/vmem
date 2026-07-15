@@ -1,5 +1,3 @@
-"use client";
-
 // non-canvas graph state (filters/search/display) shared by canvas + header
 
 import { useCallback, useDeferredValue, useMemo, useState } from "react";
@@ -8,41 +6,19 @@ import { useQuery as useTanstackQuery } from "@tanstack/react-query";
 import { api } from "@vmem/backend";
 import { getGraphSettings, setGraphSettings } from "@/lib/graph-cookies";
 import { useGraphData } from "@/hooks/useGraphData";
-import { useThemeContext } from "@/components/contexts/ThemeContext";
+import { useThemeContext } from "@/contexts/ThemeContext";
 import { useActiveProfile } from "@/components/workspace/active-profile";
-import { useMemoriesSearchParams } from "@/routes/_main/$profileId/memories/useMemoriesSearchParams";
-import type { GraphScope } from "@/routes/_main/$profileId/memories/-searchParams";
-import {
-  buildGraphData,
-  getAllTags,
-  getAllKinds,
-  getAllSources,
-  getAllTypes,
-  type ApiGraphNode,
-  type ApiTagEdge,
-  type ApiRelatesToEdge,
-  type ApiWikiParentEdge,
-  type ApiMentionsEdge,
-  type TagStat,
-  type KindStat,
-  type SourceStat,
-  type TypeStat,
-} from "@/components/_components/graph-data";
-import type {
-  GraphNode,
-  GraphEdge,
-} from "@/components/_components/canvas/types";
-import type { ListItemKind } from "@/lib/list-items";
+import { useMemoriesSearchParams } from "@/hooks/useMemoriesSearchParams";
+import type { GraphScope } from "@/lib/url-state/memories";
+import { buildGraphData, getGraphFacets } from "@/lib/graph/graph-data";
 import {
   DEFAULT_GRAPH_SETTINGS,
   type GraphSettings,
-} from "@/components/_components/graph-types";
-import {
-  getViewTheme,
-  type GraphViewTheme,
-} from "@/components/_components/graph-view-themes";
+} from "@/lib/graph/graph-types";
+import { getViewTheme } from "@/components/_components/graph-view-themes";
+import type { ListItemKind } from "@/lib/list-items";
 import type { MemoryType } from "@/lib/memories";
-import { graphNodeMatchesLocalSearch } from "@/components/_components/graph-search";
+import { graphNodeMatchesLocalSearch } from "@/lib/graph/graph-search";
 import {
   CLEARED_MEMORY_VIEW_FILTERS,
   countActiveMemoryViewFilters,
@@ -55,67 +31,6 @@ const EMPTY_SET = new Set<string>();
 // cap global graph nodes (~20 load-more pages at 5k each)
 const GLOBAL_GRAPH_MAX_NODES = 100_000;
 
-export interface MemoryGraphController {
-  // raw data
-  apiNodes: ApiGraphNode[];
-  apiTagEdges: ApiTagEdge[];
-  allRelatesToEdges: ApiRelatesToEdge[];
-  apiWikiParentEdges: ApiWikiParentEdge[];
-  apiMentionsEdges: ApiMentionsEdge[];
-  isLoading: boolean;
-  isError: boolean;
-  error: Error | null;
-
-  // scope (url)
-  // local = focus neighbourhood; global = full capped graph
-  scope: GraphScope;
-  // focus centre for local graph; null in global
-  resolvedFocusNodeId: string | null;
-
-  // progressive global loading
-  loadedMemoryCount: number;
-  // total active memories; null until first response
-  totalMemoryCount: number | null;
-  canLoadMore: boolean;
-  // true while fetching next page (previous stays on screen)
-  isLoadingMore: boolean;
-  onLoadMore: () => void;
-
-  // derived
-  graphNodes: GraphNode[];
-  graphEdges: GraphEdge[];
-  searchMatchSet: Set<string>;
-  isSearchActive: boolean;
-  allTags: TagStat[];
-  allKinds: KindStat[];
-  allSources: SourceStat[];
-  allTypes: TypeStat[];
-  totalNodeCount: number;
-  visibleNodeCount: number;
-  edgeCount: number;
-  hasActiveFilters: boolean;
-  filters: MemoryViewFilterParams;
-  activeFilterCount: number;
-
-  // display (cookie)
-  graphSettings: GraphSettings;
-  viewTheme: GraphViewTheme;
-  isDark: boolean;
-
-  // search (url)
-  search: string;
-
-  // filter handlers (same shape as list view)
-  onKindsChange: (kinds: ListItemKind[]) => void;
-  onTagsChange: (tags: string[]) => void;
-  onSourcesChange: (sources: string[]) => void;
-  onTypesChange: (types: MemoryType[]) => void;
-  onClearFilters: () => void;
-  onSettingsChange: (next: GraphSettings) => void;
-  onSearchChange: (q: string) => void;
-  onResetSettings: () => void;
-}
-
 export function useMemoryGraphController({
   focusNodeId,
   enabled = true,
@@ -123,8 +38,8 @@ export function useMemoryGraphController({
   focusNodeId: string | null;
   // false = stay mounted but skip fetch (list view active)
   enabled?: boolean;
-}): MemoryGraphController {
-  const { theme } = useThemeContext();
+}) {
+  const { isDark } = useThemeContext();
 
   // url filters shared with list view
   const [params, setParams] = useMemoriesSearchParams();
@@ -187,14 +102,15 @@ export function useMemoryGraphController({
   );
 
   // derived display state
-  const isDark = theme === "dark";
   const viewTheme = useMemo(() => getViewTheme(isDark), [isDark]);
 
   // derived filter stats
-  const allTags = useMemo(() => getAllTags(apiNodes), [apiNodes]);
-  const allKinds = useMemo(() => getAllKinds(apiNodes), [apiNodes]);
-  const allSources = useMemo(() => getAllSources(apiNodes), [apiNodes]);
-  const allTypes = useMemo(() => getAllTypes(apiNodes), [apiNodes]);
+  const {
+    tags: allTags,
+    kinds: allKinds,
+    sources: allSources,
+    types: allTypes,
+  } = useMemo(() => getGraphFacets(apiNodes), [apiNodes]);
 
   const { graphNodes, graphEdges } = useMemo(
     () =>
@@ -318,12 +234,8 @@ export function useMemoryGraphController({
   );
 
   return {
-    // raw
+    // raw (nodes only — edges stay internal to buildGraphData)
     apiNodes,
-    apiTagEdges,
-    allRelatesToEdges,
-    apiWikiParentEdges,
-    apiMentionsEdges,
     isLoading,
     isError,
     error,
@@ -374,3 +286,5 @@ export function useMemoryGraphController({
     onResetSettings,
   };
 }
+
+export type MemoryGraphController = ReturnType<typeof useMemoryGraphController>;

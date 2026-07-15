@@ -1,25 +1,20 @@
-"use client";
-
 import { useMemo } from "react";
-import { useAction, useQuery as useConvexQuery } from "convex/react";
+import { useAction } from "convex/react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@vmem/backend";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 import { useMemoryListFlat } from "@/hooks/useMemoryList";
-import { useMemoriesSearchParams } from "@/routes/_main/$profileId/memories/useMemoriesSearchParams";
+import { useMemoryListSupplementaryItems } from "@/hooks/useMemoryListSupplementaryItems";
+import { useMemoriesSearchParams } from "@/hooks/useMemoriesSearchParams";
+import type { MemoryViewFilterParams } from "@/lib/memory-view-filters";
 import {
   listItemMatchesKindFilter,
-  listItemMatchesSourceFilter,
-  listItemMatchesTagFilter,
-  listItemMatchesTypeFilter,
+  listItemPassesFilters,
   memoryToListItem,
   searchListItems,
-  skillRowsToListItems,
-  wikiRowsToListItems,
   type ListItem,
-  type ListItemKind,
 } from "@/lib/list-items";
-import { memoryFromApi, type Memory } from "@/lib/memories";
+import { memoryFromApi } from "@/lib/memories";
 import {
   relativeRelevanceScore,
   type MemoryTrace,
@@ -46,25 +41,20 @@ function passesMultiSelectFilters(
   return true;
 }
 
-function filterNonMemoryItems(
-  items: ListItem[],
-  kinds: readonly ListItemKind[],
-  tags: readonly string[],
-  sources: readonly string[],
-  types: readonly Memory["type"][],
-): ListItem[] {
-  return items.filter(
-    (item) =>
-      listItemMatchesKindFilter(item, kinds) &&
-      listItemMatchesTagFilter(item, tags) &&
-      listItemMatchesSourceFilter(item, sources) &&
-      listItemMatchesTypeFilter(item, types),
-  );
-}
-
 export function useMemoryListEntries() {
   const activeProfile = useActiveProfile();
   const [params] = useMemoriesSearchParams();
+  const { supplementaryItems } = useMemoryListSupplementaryItems();
+
+  const filters = useMemo<MemoryViewFilterParams>(
+    () => ({
+      kinds: params.kinds,
+      tags: params.tags,
+      sources: params.sources,
+      types: params.types,
+    }),
+    [params.kinds, params.tags, params.sources, params.types],
+  );
 
   const normalizedQuery = params.q.trim();
   const primaryType = params.types.length > 0 ? params.types[0] : undefined;
@@ -108,13 +98,6 @@ export function useMemoryListEntries() {
     ? (retrieveQuery.data?.memories.map(memoryFromApi) ?? [])
     : memoryPage.memories;
 
-  const wikiRows = useConvexQuery(api.wiki.listTree, {
-    teamId: activeProfile.teamId,
-  });
-  const skillRows = useConvexQuery(api.skills.listMy, {
-    teamId: activeProfile.teamId,
-  });
-
   const displayItems = useMemo<MemoryListEntry[]>(() => {
     const memories = kindIncludesMemory
       ? memoryResults
@@ -126,15 +109,8 @@ export function useMemoryListEntries() {
           )
       : [];
 
-    const nonMemory = filterNonMemoryItems(
-      [
-        ...(wikiRows ? wikiRowsToListItems(wikiRows) : []),
-        ...(skillRows ? skillRowsToListItems(skillRows) : []),
-      ],
-      params.kinds,
-      params.tags,
-      params.sources,
-      params.types,
+    const nonMemory = supplementaryItems.filter((item) =>
+      listItemPassesFilters(item, filters),
     );
 
     const traceById = new Map<string, MemoryTrace>();
@@ -171,12 +147,11 @@ export function useMemoryListEntries() {
     ];
   }, [
     memoryResults,
-    wikiRows,
-    skillRows,
+    supplementaryItems,
+    filters,
     params.kinds,
-    params.tags,
-    params.sources,
     params.types,
+    params.sources,
     kindIncludesMemory,
     isHybridSearch,
     isShowingSearchResults,

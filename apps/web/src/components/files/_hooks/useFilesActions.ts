@@ -1,10 +1,9 @@
-"use client";
-
 import { useState } from "react";
 import { toast } from "sonner";
 import type { Id } from "@vmem/backend";
 import type { FileTreeNode } from "../-types";
 import type { UseFilesDataResult } from "./useFilesData";
+import { downloadFileNode } from "../_utils";
 
 type FilesMutations = Pick<
   UseFilesDataResult,
@@ -44,18 +43,10 @@ export function useFilesActions(args: {
   }
 
   function handleDownload(node: FileTreeNode) {
-    if (!node.url) {
+    if (!downloadFileNode(node)) {
       toast.error("Download URL unavailable");
       return;
     }
-    const link = document.createElement("a");
-    link.href = node.url;
-    link.download = node.name;
-    link.target = "_blank";
-    link.rel = "noopener";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
     toast.success(`Downloading ${node.name}`);
   }
 

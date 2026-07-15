@@ -1,7 +1,9 @@
-import type { z } from "zod";
+import { z } from "zod";
 import type { ActionCtx } from "../_generated/server";
 import type { McpScope } from "../profiles/mcpAccess";
 import type { McpToolContent, ToolHandlerResult } from "./content";
+
+export const emptyInputSchema = z.object({});
 
 export interface ToolHandlerContext {
   ctx: ActionCtx;

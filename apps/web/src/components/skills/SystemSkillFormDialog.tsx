@@ -1,10 +1,7 @@
-"use client";
-
 import { useState, type FormEvent } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@vmem/backend";
 import {
-  Button,
   Dialog,
   DialogContent,
   DialogHeader,
@@ -12,15 +9,10 @@ import {
   Input,
   Label,
   Switch,
-  Textarea,
 } from "@vmem/ui";
-import { IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
-import {
-  patchSystemSkillCatalog,
-  type SystemSkillEntry,
-} from "@/components/skills/_utils";
-import { useActiveTeamId } from "@/components/workspace/active-profile";
+import { type SystemSkillEntry } from "@/components/skills/_utils";
+import { SkillFormShell } from "@/components/skills/SkillFormShell";
 
 interface SystemSkillFormDialogProps {
   open: boolean;
@@ -35,32 +27,8 @@ export function SystemSkillFormDialog({
   onOpenChange,
   entry,
 }: SystemSkillFormDialogProps) {
-  const teamId = useActiveTeamId();
-  const catalogArgs = { teamId };
   const adminCreate = useMutation(api.systemSkills.adminCreate);
-  const adminUpdate = useMutation(
-    api.systemSkills.adminUpdate,
-  ).withOptimisticUpdate((store, args) => {
-    const current = store.getQuery(api.systemSkills.listCatalog, catalogArgs);
-    if (!current) return;
-    store.setQuery(
-      api.systemSkills.listCatalog,
-      catalogArgs,
-      patchSystemSkillCatalog(current, args.id, {
-        ...(args.name !== undefined ? { name: args.name.trim() } : {}),
-        ...(args.description !== undefined
-          ? { description: args.description }
-          : {}),
-        ...(args.instructions !== undefined
-          ? { instructions: args.instructions }
-          : {}),
-        ...(args.category !== undefined
-          ? { category: args.category ?? undefined }
-          : {}),
-        ...(args.published !== undefined ? { published: args.published } : {}),
-      }),
-    );
-  });
+  const adminUpdate = useMutation(api.systemSkills.adminUpdate);
 
   const [createName, setCreateName] = useState("");
   const [createDescription, setCreateDescription] = useState("");
@@ -154,7 +122,31 @@ export function SystemSkillFormDialog({
           </DialogTitle>
         </DialogHeader>
 
-        <form
+        <SkillFormShell
+          name={isEdit ? entry.name : createName}
+          description={isEdit ? entry.description : createDescription}
+          instructions={isEdit ? entry.instructions : createInstructions}
+          onNameChange={(value) => {
+            if (isEdit) {
+              void adminUpdate({ id: entry._id, name: value });
+              return;
+            }
+            setCreateName(value);
+          }}
+          onDescriptionChange={(value) => {
+            if (isEdit) {
+              void adminUpdate({ id: entry._id, description: value });
+              return;
+            }
+            setCreateDescription(value);
+          }}
+          onInstructionsChange={(value) => {
+            if (isEdit) {
+              void adminUpdate({ id: entry._id, instructions: value });
+              return;
+            }
+            setCreateInstructions(value);
+          }}
           onSubmit={(e) => {
             e.preventDefault();
             if (isEdit) {
@@ -163,106 +155,47 @@ export function SystemSkillFormDialog({
             }
             void handleCreateSubmit(e);
           }}
-          className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto"
-        >
-          <Input
-            value={isEdit ? entry.name : createName}
-            onChange={(e) => {
-              if (isEdit) {
-                void adminUpdate({ id: entry._id, name: e.target.value });
-                return;
-              }
-              setCreateName(e.target.value);
-            }}
-            placeholder="Name"
-            aria-label="Name"
-            autoFocus
-          />
-          <Input
-            value={isEdit ? (entry.category ?? "") : createCategory}
-            onChange={(e) => {
-              if (isEdit) {
-                const value = e.target.value;
-                void adminUpdate({
-                  id: entry._id,
-                  category: value.trim().length > 0 ? value : undefined,
-                });
-                return;
-              }
-              setCreateCategory(e.target.value);
-            }}
-            placeholder="Category (optional, e.g. Codebases)"
-            aria-label="Category"
-          />
-          <Textarea
-            value={isEdit ? entry.description : createDescription}
-            onChange={(e) => {
-              if (isEdit) {
-                void adminUpdate({
-                  id: entry._id,
-                  description: e.target.value,
-                });
-                return;
-              }
-              setCreateDescription(e.target.value);
-            }}
-            placeholder="What this skill is for"
-            aria-label="Description"
-            rows={3}
-            className="min-h-[4.5rem] resize-y"
-          />
-          <Textarea
-            value={isEdit ? entry.instructions : createInstructions}
-            onChange={(e) => {
-              if (isEdit) {
-                void adminUpdate({
-                  id: entry._id,
-                  instructions: e.target.value,
-                });
-                return;
-              }
-              setCreateInstructions(e.target.value);
-            }}
-            placeholder="Instructions (markdown playbook the agent follows)"
-            aria-label="Instructions"
-            className="min-h-[240px] font-mono text-xs"
-          />
-
-          <div className="flex items-center gap-2">
-            <Switch
-              id="system-skill-published"
-              checked={isEdit ? entry.published : createPublished}
-              onCheckedChange={(checked) => {
+          onCancel={() => handleOpenChange(false)}
+          submitting={submitting}
+          submitLabel={isEdit ? "Done" : "Create"}
+          instructionsPlaceholder="Instructions (markdown playbook the agent follows)"
+          afterName={
+            <Input
+              value={isEdit ? (entry.category ?? "") : createCategory}
+              onChange={(e) => {
                 if (isEdit) {
-                  void adminUpdate({ id: entry._id, published: checked });
+                  const value = e.target.value;
+                  void adminUpdate({
+                    id: entry._id,
+                    category: value.trim().length > 0 ? value : undefined,
+                  });
                   return;
                 }
-                setCreatePublished(checked);
+                setCreateCategory(e.target.value);
               }}
+              placeholder="Category (optional, e.g. Codebases)"
+              aria-label="Category"
             />
-            <Label htmlFor="system-skill-published" className="text-sm">
-              Published (visible in the Hub)
-            </Label>
-          </div>
-
-          <div className="flex items-center justify-end gap-2 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => handleOpenChange(false)}
-              disabled={submitting}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" size="sm" disabled={submitting}>
-              {submitting ? (
-                <IconLoader2 size={14} className="animate-spin" />
-              ) : null}
-              {isEdit ? "Done" : "Create"}
-            </Button>
-          </div>
-        </form>
+          }
+          beforeFooter={
+            <div className="flex items-center gap-2">
+              <Switch
+                id="system-skill-published"
+                checked={isEdit ? entry.published : createPublished}
+                onCheckedChange={(checked) => {
+                  if (isEdit) {
+                    void adminUpdate({ id: entry._id, published: checked });
+                    return;
+                  }
+                  setCreatePublished(checked);
+                }}
+              />
+              <Label htmlFor="system-skill-published" className="text-sm">
+                Published (visible in the Hub)
+              </Label>
+            </div>
+          }
+        />
       </DialogContent>
     </Dialog>
   );

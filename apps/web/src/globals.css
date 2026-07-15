@@ -1,5 +1,3 @@
-@import "./styles/sidebar-icons.css";
-
 /* transitions-dev — modal + input clear (see .claude/skills/transitions-dev/) */
 :root {
   --modal-open-dur: 250ms;

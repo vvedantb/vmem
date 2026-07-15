@@ -167,57 +167,13 @@ export function findAncestors(
   return chain;
 }
 
-// heading from tiptap json for outline pane
+// heading from tipTap toc for outline pane
 export interface OutlineHeading {
-  // stable id: position + text
   id: string;
   level: number;
   text: string;
   // proseMirror start position
   pos: number;
-}
-
-// collect headings + pm positions (nodeSize mirrors proseMirror)
-export function extractHeadings(doc: JSONContent): OutlineHeading[] {
-  const headings: OutlineHeading[] = [];
-
-  function nodeText(node: JSONContent): string {
-    if (node.type === "text") return node.text ?? "";
-    if (!node.content) return "";
-    return node.content.map(nodeText).join("");
-  }
-
-  function nodeSize(node: JSONContent): number {
-    if (node.type === "text") return (node.text ?? "").length;
-    const contentSize = (node.content ?? []).reduce(
-      (sum, child) => sum + nodeSize(child),
-      0,
-    );
-    // block/inline nodes: +2 for open/close tokens
-    return contentSize + 2;
-  }
-
-  // top-level content; doc root opens at pos 0 (+1 token)
-  let cursor = 0;
-  const topLevel = doc.content ?? [];
-  for (const child of topLevel) {
-    const startPos = cursor + 1; // doc opening token
-    if (child.type === "heading") {
-      const level =
-        typeof child.attrs?.level === "number" ? child.attrs.level : 1;
-      const text = nodeText(child);
-      if (text.length > 0) {
-        headings.push({
-          id: `${startPos}-${text}`,
-          level,
-          text,
-          pos: startPos,
-        });
-      }
-    }
-    cursor += nodeSize(child);
-  }
-  return headings;
 }
 
 // tiptap json → plain text for convex search (paragraph breaks = \n)

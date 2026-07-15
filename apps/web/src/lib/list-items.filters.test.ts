@@ -5,6 +5,7 @@ import {
   listItemMatchesSourceFilter,
   listItemMatchesTagFilter,
   listItemMatchesTypeFilter,
+  listItemPassesFilters,
 } from "./list-items";
 
 const memoryItem: ListItem = {
@@ -63,5 +64,32 @@ describe("list item filters", () => {
     expect(listItemMatchesTypeFilter(memoryItem, ["knowledge"])).toBe(true);
     expect(listItemMatchesTypeFilter(memoryItem, ["episodic"])).toBe(false);
     expect(listItemMatchesTypeFilter(wikiDoc, ["episodic"])).toBe(true);
+  });
+
+  it("combines all filters via listItemPassesFilters", () => {
+    expect(
+      listItemPassesFilters(memoryItem, {
+        kinds: ["memory"],
+        tags: ["react"],
+        sources: ["web"],
+        types: ["knowledge"],
+      }),
+    ).toBe(true);
+    expect(
+      listItemPassesFilters(memoryItem, {
+        kinds: ["wiki-document"],
+        tags: [],
+        sources: [],
+        types: [],
+      }),
+    ).toBe(false);
+    expect(
+      listItemPassesFilters(wikiDoc, {
+        kinds: [],
+        tags: ["graphql"],
+        sources: ["mcp"],
+        types: ["episodic"],
+      }),
+    ).toBe(true);
   });
 });

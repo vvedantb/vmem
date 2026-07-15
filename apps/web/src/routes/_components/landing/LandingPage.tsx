@@ -1,10 +1,8 @@
-"use client";
-
-import { useSyncExternalStore } from "react";
 import { IconBolt, IconBrain, IconTopologyStar3 } from "@tabler/icons-react";
 import { motion, useScroll, useTransform } from "motion/react";
+import { useMediaQuery } from "usehooks-ts";
 import { Button, motionDuration, motionEase } from "@vmem/ui";
-import { VmemBrand } from "@/components/VmemBrand";
+import { VmemBrand } from "@/components/shell/VmemBrand";
 import { LandingAmbientGraph } from "./LandingAmbientGraph";
 import { LandingHero } from "./LandingHero";
 import { LandingHowItWorks } from "./LandingHowItWorks";
@@ -40,20 +38,6 @@ const capabilities = [
 
 const narrowMediaQuery = "(max-width: 1023px)";
 
-function subscribeNarrowViewport(onStoreChange: () => void) {
-  const mediaQuery = window.matchMedia(narrowMediaQuery);
-  mediaQuery.addEventListener("change", onStoreChange);
-  return () => mediaQuery.removeEventListener("change", onStoreChange);
-}
-
-function getNarrowViewportSnapshot() {
-  return window.matchMedia(narrowMediaQuery).matches;
-}
-
-function getNarrowViewportServerSnapshot() {
-  return false;
-}
-
 function LandingAmbientStatic() {
   return (
     <div className="pointer-events-none absolute inset-0">
@@ -78,11 +62,7 @@ function LandingAmbientParallax() {
 }
 
 function LandingAmbientLayer() {
-  const isNarrowViewport = useSyncExternalStore(
-    subscribeNarrowViewport,
-    getNarrowViewportSnapshot,
-    getNarrowViewportServerSnapshot,
-  );
+  const isNarrowViewport = useMediaQuery(narrowMediaQuery);
 
   if (isNarrowViewport) {
     return <LandingAmbientStatic />;

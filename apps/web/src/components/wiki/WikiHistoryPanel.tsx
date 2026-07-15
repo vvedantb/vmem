@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import { useQuery } from "convex/react";
 import { EditorContent, useEditor } from "@tiptap/react";
@@ -15,7 +13,7 @@ import {
   DialogTitle,
 } from "@vmem/ui";
 import { IconHistory, IconLoader2 } from "@tabler/icons-react";
-import { formatRelativeTime } from "@/lib/formatters";
+import { formatRelativeTime } from "@vmem/shared";
 import { wikiEditorExtensions } from "./_editorExtensions";
 
 interface WikiHistoryPanelProps {

@@ -1,7 +1,6 @@
-"use client";
-
 import { useState } from "react";
-import type { ReactNode } from "react";
+import type { CSSProperties, MouseEvent, ReactNode } from "react";
+import type { DraggableAttributes } from "@dnd-kit/core";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import type { WikiListNode, WikiNodeId } from "./-types";
@@ -117,7 +116,6 @@ export function WikiRootDropZone({
       ref={setNodeRef}
       className={cn(
         "flex-1 min-h-0 overflow-y-auto scrollbar-thin rounded-md transition-[background-color]",
-        // isOver is only set during an active drag, so this is the drop hint
         isOver ? "bg-surface-secondary/40" : null,
       )}
     >
@@ -202,24 +200,12 @@ interface WikiTreeItemProps {
 }
 
 function WikiTreeItem(props: WikiTreeItemProps) {
-  if (props.mode === "bulk-select") {
-    return <WikiTreeBulkSelectItem {...props} />;
-  }
-  return <WikiTreeNavigateItem {...props} />;
-}
-
-function WikiTreeNavigateItem({
-  item,
-  depth,
-  selectedId,
-  onSelect,
-  onCreateInside,
-  onRequestRename,
-  onRequestDelete,
-}: WikiTreeItemProps) {
-  const [expanded, setExpanded] = useState(depth === 0);
-  const isFolder = item.node.kind === "folder";
-  const highlighted = selectedId === item.node._id;
+  const [expanded, setExpanded] = useState(props.depth === 0);
+  const isFolder = props.item.node.kind === "folder";
+  const isBulkSelect = props.mode === "bulk-select";
+  const highlighted = isBulkSelect
+    ? (props.selectedNodeIds?.has(props.item.node._id) ?? false)
+    : props.selectedId === props.item.node._id;
 
   const {
     attributes,
@@ -227,111 +213,98 @@ function WikiTreeNavigateItem({
     setNodeRef: setDragRef,
     transform,
     isDragging,
-  } = useDraggable({ id: item.node._id });
+  } = useDraggable({
+    id: props.item.node._id,
+    disabled: isBulkSelect,
+  });
   const { setNodeRef: setDropRef, isOver } = useDroppable({
-    id: item.node._id,
-    disabled: !isFolder,
+    id: props.item.node._id,
+    disabled: !isFolder || isBulkSelect,
   });
 
   const handleActivate = () => {
+    if (isBulkSelect) {
+      props.onToggleSelect?.(props.item.node._id);
+      return;
+    }
     if (isFolder) {
       setExpanded((prev) => !prev);
       return;
     }
-    onSelect(item.node._id);
+    props.onSelect(props.item.node._id);
+  };
+
+  const toggleExpanded = (e: MouseEvent) => {
+    e.stopPropagation();
+    setExpanded((prev) => !prev);
   };
 
   return (
     <>
       <div
-        ref={setDropRef}
+        ref={isBulkSelect ? undefined : setDropRef}
         className={cn(
           "rounded-md transition-[background-color]",
-          // highlight the folder being hovered as a drop target
-          isOver && "bg-surface-tertiary ring-1 ring-primary",
+          !isBulkSelect && isOver
+            ? "bg-surface-tertiary ring-1 ring-primary"
+            : null,
         )}
       >
         <ContextMenu>
           <ContextMenuTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              ref={setDragRef}
-              onClick={handleActivate}
-              style={{
-                transform: CSS.Translate.toString(transform),
-                opacity: isDragging ? 0.4 : undefined,
-              }}
-              {...attributes}
-              {...listeners}
-              className={cn(
-                "group h-auto w-full justify-start gap-1.5 rounded-md px-2 py-1.5 text-left text-sm font-normal transition-[background-color,color] active:scale-100",
-                highlighted
-                  ? "bg-surface-tertiary font-medium text-foreground hover:bg-surface-tertiary"
-                  : "text-muted hover:bg-surface-tertiary/50 hover:text-foreground",
-              )}
-            >
-              {isFolder ? (
-                <span
-                  role="button"
-                  tabIndex={-1}
-                  aria-label={expanded ? "Collapse folder" : "Expand folder"}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setExpanded((prev) => !prev);
-                  }}
-                  className="inline-flex shrink-0"
-                >
-                  <IconChevronRight
-                    size={14}
-                    className={cn(
-                      "text-muted transition-transform",
-                      expanded && "rotate-90",
-                    )}
-                  />
-                </span>
-              ) : (
-                <span className="inline-block w-[14px] shrink-0" />
-              )}
-              <WikiKindIcon kind={item.node.kind} />
-              <span className="truncate">{item.node.title}</span>
-              {isFolder && item.node.sourceCodebaseId ? (
-                <span
-                  title="Generated from a synced codebase"
-                  className="ml-auto inline-flex shrink-0"
-                >
-                  <IconDatabase size={13} className="text-muted" />
-                </span>
-              ) : null}
-            </Button>
+            <WikiTreeRow
+              node={props.item.node}
+              isFolder={isFolder}
+              expanded={expanded}
+              highlighted={highlighted}
+              isBulkSelect={isBulkSelect}
+              isChecked={
+                props.selectedNodeIds?.has(props.item.node._id) ?? false
+              }
+              dragRef={isBulkSelect ? undefined : setDragRef}
+              dragStyle={
+                isBulkSelect
+                  ? undefined
+                  : {
+                      transform: CSS.Translate.toString(transform),
+                      opacity: isDragging ? 0.4 : undefined,
+                    }
+              }
+              dragAttributes={isBulkSelect ? undefined : attributes}
+              dragListeners={isBulkSelect ? undefined : listeners}
+              onActivate={handleActivate}
+              onToggleExpanded={toggleExpanded}
+            />
           </ContextMenuTrigger>
           <ContextMenuContent>
             {isFolder ? (
               <WikiFolderCreateMenuItems
-                parentId={item.node._id}
-                onCreateInside={onCreateInside}
+                parentId={props.item.node._id}
+                onCreateInside={props.onCreateInside}
               />
             ) : null}
             <WikiNodeActionMenuItems
-              node={item.node}
-              onRequestRename={onRequestRename}
-              onRequestDelete={onRequestDelete}
+              node={props.item.node}
+              onRequestRename={props.onRequestRename}
+              onRequestDelete={props.onRequestDelete}
             />
           </ContextMenuContent>
         </ContextMenu>
       </div>
 
-      {isFolder && expanded && item.children.length > 0 ? (
+      {isFolder && expanded && props.item.children.length > 0 ? (
         <div className="ml-[15px] border-l border-separator pl-2">
           <WikiTreeList
-            nodes={item.children}
-            depth={depth + 1}
-            selectedId={selectedId}
-            onSelect={onSelect}
-            mode="navigate"
-            onCreateInside={onCreateInside}
-            onRequestRename={onRequestRename}
-            onRequestDelete={onRequestDelete}
+            nodes={props.item.children}
+            depth={props.depth + 1}
+            selectedId={props.selectedId}
+            onSelect={props.onSelect}
+            mode={props.mode}
+            selectedNodeIds={props.selectedNodeIds}
+            onToggleSelect={props.onToggleSelect}
+            onCreateInside={props.onCreateInside}
+            onRequestRename={props.onRequestRename}
+            onRequestDelete={props.onRequestDelete}
           />
         </div>
       ) : null}
@@ -339,113 +312,88 @@ function WikiTreeNavigateItem({
   );
 }
 
-function WikiTreeBulkSelectItem({
-  item,
-  depth,
-  selectedId,
-  onSelect,
-  selectedNodeIds,
-  onToggleSelect,
-  onCreateInside,
-  onRequestRename,
-  onRequestDelete,
-}: WikiTreeItemProps) {
-  const [expanded, setExpanded] = useState(depth === 0);
-  const isFolder = item.node.kind === "folder";
-  const isChecked = selectedNodeIds?.has(item.node._id) ?? false;
+type WikiTreeRowProps = {
+  node: WikiListNode;
+  isFolder: boolean;
+  expanded: boolean;
+  highlighted: boolean;
+  isBulkSelect: boolean;
+  isChecked: boolean;
+  dragRef?: (element: HTMLElement | null) => void;
+  dragStyle?: CSSProperties;
+  dragAttributes?: DraggableAttributes;
+  dragListeners?: Record<string, unknown>;
+  onActivate: () => void;
+  onToggleExpanded: (e: MouseEvent) => void;
+};
 
-  const handleActivate = () => {
-    onToggleSelect?.(item.node._id);
-  };
-
+function WikiTreeRow({
+  node,
+  isFolder,
+  expanded,
+  highlighted,
+  isBulkSelect,
+  isChecked,
+  dragRef,
+  dragStyle,
+  dragAttributes,
+  dragListeners,
+  onActivate,
+  onToggleExpanded,
+}: WikiTreeRowProps) {
   return (
-    <>
-      <div className="rounded-md transition-[background-color]">
-        <ContextMenu>
-          <ContextMenuTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={handleActivate}
-              className={cn(
-                "group h-auto w-full justify-start gap-1.5 rounded-md px-2 py-1.5 text-left text-sm font-normal transition-[background-color,color] active:scale-100",
-                isChecked
-                  ? "bg-surface-tertiary font-medium text-foreground hover:bg-surface-tertiary"
-                  : "text-muted hover:bg-surface-tertiary/50 hover:text-foreground",
-              )}
-            >
-              <Checkbox
-                checked={isChecked}
-                tabIndex={-1}
-                aria-hidden
-                className="pointer-events-none shrink-0"
-              />
-              {isFolder ? (
-                <span
-                  role="button"
-                  tabIndex={-1}
-                  aria-label={expanded ? "Collapse folder" : "Expand folder"}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setExpanded((prev) => !prev);
-                  }}
-                  className="inline-flex shrink-0"
-                >
-                  <IconChevronRight
-                    size={14}
-                    className={cn(
-                      "text-muted transition-transform",
-                      expanded && "rotate-90",
-                    )}
-                  />
-                </span>
-              ) : (
-                <span className="inline-block w-[14px] shrink-0" />
-              )}
-              <WikiKindIcon kind={item.node.kind} />
-              <span className="truncate">{item.node.title}</span>
-              {isFolder && item.node.sourceCodebaseId ? (
-                <span
-                  title="Generated from a synced codebase"
-                  className="ml-auto inline-flex shrink-0"
-                >
-                  <IconDatabase size={13} className="text-muted" />
-                </span>
-              ) : null}
-            </Button>
-          </ContextMenuTrigger>
-          <ContextMenuContent>
-            {isFolder ? (
-              <WikiFolderCreateMenuItems
-                parentId={item.node._id}
-                onCreateInside={onCreateInside}
-              />
-            ) : null}
-            <WikiNodeActionMenuItems
-              node={item.node}
-              onRequestRename={onRequestRename}
-              onRequestDelete={onRequestDelete}
-            />
-          </ContextMenuContent>
-        </ContextMenu>
-      </div>
-
-      {isFolder && expanded && item.children.length > 0 ? (
-        <div className="ml-[15px] border-l border-separator pl-2">
-          <WikiTreeList
-            nodes={item.children}
-            depth={depth + 1}
-            selectedId={selectedId}
-            onSelect={onSelect}
-            mode="bulk-select"
-            selectedNodeIds={selectedNodeIds}
-            onToggleSelect={onToggleSelect}
-            onCreateInside={onCreateInside}
-            onRequestRename={onRequestRename}
-            onRequestDelete={onRequestDelete}
-          />
-        </div>
+    <Button
+      type="button"
+      variant="ghost"
+      ref={dragRef}
+      onClick={onActivate}
+      style={dragStyle}
+      {...dragAttributes}
+      {...dragListeners}
+      className={cn(
+        "group h-auto w-full justify-start gap-1.5 rounded-md px-2 py-1.5 text-left text-sm font-normal transition-[background-color,color] active:scale-100",
+        highlighted
+          ? "bg-surface-tertiary font-medium text-foreground hover:bg-surface-tertiary"
+          : "text-muted hover:bg-surface-tertiary/50 hover:text-foreground",
+      )}
+    >
+      {isBulkSelect ? (
+        <Checkbox
+          checked={isChecked}
+          tabIndex={-1}
+          aria-hidden
+          className="pointer-events-none shrink-0"
+        />
       ) : null}
-    </>
+      {isFolder ? (
+        <span
+          role="button"
+          tabIndex={-1}
+          aria-label={expanded ? "Collapse folder" : "Expand folder"}
+          onClick={onToggleExpanded}
+          className="inline-flex shrink-0"
+        >
+          <IconChevronRight
+            size={14}
+            className={cn(
+              "text-muted transition-transform",
+              expanded && "rotate-90",
+            )}
+          />
+        </span>
+      ) : (
+        <span className="inline-block w-[14px] shrink-0" />
+      )}
+      <WikiKindIcon kind={node.kind} />
+      <span className="truncate">{node.title}</span>
+      {isFolder && node.sourceCodebaseId ? (
+        <span
+          title="Generated from a synced codebase"
+          className="ml-auto inline-flex shrink-0"
+        >
+          <IconDatabase size={13} className="text-muted" />
+        </span>
+      ) : null}
+    </Button>
   );
 }

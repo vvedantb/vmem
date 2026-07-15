@@ -1,17 +1,12 @@
-/**
- * CSS for the screenshot overlay's Shadow DOM. Kept as a single tagged
- * template string so the content script can attach it without an external
- * fetch. Selectors here are scoped to the shadow root, so :host applies to
- * the <vmem-screenshot-overlay> custom element.
- */
+// css for the screenshot overlay shadow dom
+// selectors are scoped to the shadow root :host is the custom element
 
 export const overlayCss = `
   @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap');
 
   :host { all: initial; }
 
-  /* Full-viewport scrim shown during the drag. Uses inset:0 with fixed
-     positioning so we cover the visible area exactly. */
+  /* full viewport scrim during drag */
   #scrim {
     position: fixed;
     inset: 0;
@@ -25,7 +20,6 @@ export const overlayCss = `
   }
   #scrim.active { display: block; }
 
-  /* Hint pill telling the user what to do. Centred at top. */
   #hint {
     position: fixed;
     top: 16px;
@@ -41,9 +35,7 @@ export const overlayCss = `
     backdrop-filter: blur(8px);
   }
 
-  /* The selection rectangle. Drawn with a punched-out look using a thick
-     box-shadow that covers the rest of the scrim - the rect itself stays
-     transparent so the user sees what they're cropping. */
+  /* selection rect punched out via thick box shadow */
   #rect {
     position: fixed;
     border: 1.5px solid #ffffff;
@@ -53,8 +45,7 @@ export const overlayCss = `
   }
   #rect.active { display: block; }
 
-  /* Preview popup. Same visual language as selection popup but pill-shaped
-     and wider to fit thumbnail + input + Save. */
+  /* preview bar same language as selection popup */
   #preview {
     position: fixed;
     display: none;
@@ -62,7 +53,7 @@ export const overlayCss = `
     gap: 10px;
     pointer-events: auto;
     box-sizing: border-box;
-    padding: 8px 8px 8px 8px;
+    padding: 8px;
     border: 1px solid transparent;
     border-radius: 14px;
     background: #ebebee;
@@ -131,16 +122,9 @@ export const overlayCss = `
     line-height: 0;
   }
 
-  /* States piggyback on the save button - replace its content + tone. */
-  #preview.state-saving button.save {
-    background: #3f3f46;
-  }
-  #preview.state-success button.save {
-    background: #16a34a;
-  }
-  #preview.state-error button.save {
-    background: #dc2626;
-  }
+  #preview.state-saving button.save { background: #3f3f46; }
+  #preview.state-success button.save { background: #16a34a; }
+  #preview.state-error button.save { background: #dc2626; }
 
   @keyframes vmem-spin { to { transform: rotate(360deg); } }
   .spinner {

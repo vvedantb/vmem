@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useCallback } from "react";
 import { useMutation } from "convex/react";
 import {
@@ -26,7 +24,6 @@ import {
   WikiRootDropZone,
   WikiTreeList,
 } from "./WikiTreeItem";
-import { optimisticCreateWikiNode } from "./_optimisticCreate";
 import { useActiveTeamId } from "@/components/workspace/active-profile";
 
 // collision strategy: a folder row always wins over the surrounding root droppable
@@ -59,88 +56,10 @@ export default function WikiTree({
   onToggleSelect,
 }: WikiTreeProps) {
   const teamId = useActiveTeamId();
-  const createNode = useMutation(api.wiki.createNode).withOptimisticUpdate(
-    optimisticCreateWikiNode,
-  );
-  const renameNode = useMutation(api.wiki.renameNode).withOptimisticUpdate(
-    (localStore, args) => {
-      const tree = localStore.getQuery(api.wiki.listTree, { teamId });
-      if (tree) {
-        localStore.setQuery(
-          api.wiki.listTree,
-          { teamId },
-          tree.map((node) =>
-            node._id === args.id
-              ? { ...node, title: args.title, updatedAt: Date.now() }
-              : node,
-          ),
-        );
-      }
-      const node = localStore.getQuery(api.wiki.getNode, { id: args.id });
-      if (node) {
-        localStore.setQuery(
-          api.wiki.getNode,
-          { id: args.id },
-          { ...node, title: args.title, updatedAt: Date.now() },
-        );
-      }
-    },
-  );
-  const deleteNode = useMutation(api.wiki.deleteNode).withOptimisticUpdate(
-    (localStore, args) => {
-      const tree = localStore.getQuery(api.wiki.listTree, { teamId });
-      if (!tree) return;
-      const childrenByParent = new Map<string, Array<WikiNodeId>>();
-      for (const node of tree) {
-        const key = node.parentId ?? "__root__";
-        const list = childrenByParent.get(key) ?? [];
-        list.push(node._id);
-        childrenByParent.set(key, list);
-      }
-      const remove = new Set<string>([args.id]);
-      const stack: Array<WikiNodeId> = [args.id];
-      while (stack.length > 0) {
-        const current = stack.pop();
-        if (current === undefined) continue;
-        for (const child of childrenByParent.get(current) ?? []) {
-          remove.add(child);
-          stack.push(child);
-        }
-      }
-      localStore.setQuery(
-        api.wiki.listTree,
-        { teamId },
-        tree.filter((node) => !remove.has(node._id)),
-      );
-      const open = localStore.getQuery(api.wiki.getNode, { id: args.id });
-      if (open) {
-        localStore.setQuery(api.wiki.getNode, { id: args.id }, null);
-      }
-    },
-  );
-
-  // drag-to-move: patch the node's parentId + order in the cached listTree so
-  // the tree reorganises instantly while the server round-trips
-  const moveNode = useMutation(api.wiki.moveNode).withOptimisticUpdate(
-    (localStore, args) => {
-      const tree = localStore.getQuery(api.wiki.listTree, { teamId });
-      if (!tree) return;
-      localStore.setQuery(
-        api.wiki.listTree,
-        { teamId },
-        tree.map((node) =>
-          node._id === args.id
-            ? {
-                ...node,
-                parentId: args.newParentId,
-                order: args.newOrder,
-                updatedAt: Date.now(),
-              }
-            : node,
-        ),
-      );
-    },
-  );
+  const createNode = useMutation(api.wiki.createNode);
+  const renameNode = useMutation(api.wiki.renameNode);
+  const deleteNode = useMutation(api.wiki.deleteNode);
+  const moveNode = useMutation(api.wiki.moveNode);
 
   const [renameTarget, setRenameTarget] = useState<WikiListNode | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<WikiListNode | null>(null);

@@ -3,7 +3,8 @@ import { z } from "zod";
 import { clampNeo4jLimit } from "../intParams";
 import { neo4jGet, parseNeo4jInt } from "../record";
 import { toMemoryTypeOrUndefined, toTagEdge } from "./mappers";
-import { profileFilter, visibleStatusClause, withSession } from "./shared";
+import { withSession } from "../session";
+import { profileFilter, visibleStatusClause } from "./shared";
 import type { MemoryType, TagEdge } from "./types";
 
 const graphNodeRowSchema = z.object({

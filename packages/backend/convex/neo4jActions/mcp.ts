@@ -7,7 +7,7 @@ import { runDeleteMemory } from "./_memories/delete";
 import { runCreateMemory } from "./_memories/create";
 import { runRetrieveMemories, runSearchMemories } from "./_memories/read";
 import { runSearchMemoriesForTeam } from "./_memories/team";
-import { toMemoryType } from "./_memories/shared";
+import { toMemoryStatus, toMemoryType } from "./_memories/shared";
 import { runStoreFromInstruction } from "./agent/storeFromInstruction";
 import type { OpenRouterRequired } from "./agent/shared";
 import type { StoreFromInstructionResult } from "./agent/storeFromInstruction";
@@ -48,7 +48,7 @@ export const mcpSearchMemories = internalAction({
           runSearchMemoriesForTeam({
             profileId,
             query: args.query,
-            type: args.type,
+            type: toMemoryType(args.type),
             tags: args.tags,
             limit,
             offset,
@@ -58,7 +58,7 @@ export const mcpSearchMemories = internalAction({
             clerkId,
             profileId,
             query: args.query,
-            type: args.type,
+            type: toMemoryType(args.type),
             tags: args.tags,
             limit,
             offset,
@@ -155,12 +155,22 @@ export const mcpUpdateMemory = internalAction({
         mcpScope: _mcpScope,
         memoryId,
         profileId: _profileId,
-        ...patch
+        title,
+        content,
+        type,
+        status,
+        tags,
+        confidence,
       } = args;
       return runUpdateMemory(ctx, {
         clerkId: memory.userId,
         memoryId,
-        ...patch,
+        title,
+        content,
+        type: toMemoryType(type),
+        status: toMemoryStatus(status),
+        tags,
+        confidence,
       });
     }),
 });

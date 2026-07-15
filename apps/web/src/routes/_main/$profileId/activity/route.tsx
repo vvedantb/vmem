@@ -1,11 +1,9 @@
-"use client";
-
 import type { ReactNode } from "react";
 import { createFileRoute, Outlet, useMatchRoute } from "@tanstack/react-router";
-import PageContainer from "@/components/PageContainer";
-import { ActivityTabs } from "./-components/ActivityTabs";
-import { AiLogsRightSection } from "./-components/AiLogsPanel";
-import { EventsRightSection } from "./-components/EventsPanel";
+import PageContainer from "@/components/shell/PageContainer";
+import { ActivityTabs } from "@/components/activity/ActivityTabs";
+import { AiLogsRightSection } from "@/components/activity/AiLogsPanel";
+import { EventsRightSection } from "@/components/activity/EventsPanel";
 
 export const Route = createFileRoute("/_main/$profileId/activity")({
   component: ActivityLayout,
@@ -30,7 +28,7 @@ function ActivityEventsLayout() {
   return <ActivityShell rightSection={<EventsRightSection />} />;
 }
 
-function ActivityAiLogsLayout() {
+function ActivityUsageLayout() {
   return <ActivityShell rightSection={<AiLogsRightSection />} />;
 }
 
@@ -39,5 +37,5 @@ function ActivityLayout() {
   if (matchRoute({ to: "/$profileId/activity/events" })) {
     return <ActivityEventsLayout />;
   }
-  return <ActivityAiLogsLayout />;
+  return <ActivityUsageLayout />;
 }

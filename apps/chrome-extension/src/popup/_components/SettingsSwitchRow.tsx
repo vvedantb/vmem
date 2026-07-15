@@ -11,7 +11,7 @@ interface SettingsSwitchRowProps {
   icon?: ReactNode;
 }
 
-/** Same row pattern as apps/web settings preferences. */
+// same row pattern as apps/web settings preferences
 export function SettingsSwitchRow({
   id,
   label,

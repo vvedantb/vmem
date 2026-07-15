@@ -1,5 +1,3 @@
-"use client";
-
 import {
   useCallback,
   useEffect,
@@ -13,7 +11,7 @@ import type {
   ResolvedEdge,
   InteractionState,
   ViewportState,
-} from "./canvas/types";
+} from "@/lib/graph/types";
 import type { SimulationController } from "./canvas/simulation";
 import { createSimulation, SLEEP_ALPHA } from "./canvas/simulation";
 import {
@@ -34,7 +32,7 @@ import type {
   GraphSettings,
   HoveredEdgeInfo,
   HoveredNodeInfo,
-} from "./graph-types";
+} from "@/lib/graph/graph-types";
 
 export interface GraphCanvasHandle {
   zoomIn: () => void;
@@ -110,7 +108,6 @@ function GraphCanvas({
     isPanning: false,
     mouseWorldX: 0,
     mouseWorldY: 0,
-    shiftHeld: false,
   });
   const spatialIndexRef = useRef(createSpatialIndex());
   const hasFittedRef = useRef(false);
@@ -206,9 +203,7 @@ function GraphCanvas({
             const sy =
               (node.y ?? 0) * vp.scale + vp.offsetY + canvas.clientHeight / 2;
             callbacksRef.current.onHoverNode({
-              id: node.id,
               title: node.title,
-              content: node.content,
               viewportX: sx,
               viewportY: sy,
             });
@@ -486,26 +481,26 @@ function GraphCanvas({
       }
 
       try {
-        render(
+        render({
           ctx,
-          w,
-          h,
+          canvasW: w,
+          canvasH: h,
           dpr,
-          nodesRef.current,
-          resolvedEdgesCache,
-          viewportRef.current,
-          interactionRef.current,
-          themeRef.current,
+          nodes: nodesRef.current,
+          edges: resolvedEdgesCache,
+          vp: viewportRef.current,
+          interaction: interactionRef.current,
+          theme: themeRef.current,
           neighborSet,
-          focusNodeIdRef.current ?? null,
-          searchMatchSetRef.current,
-          isSearchActiveRef.current,
-          showLabelsRef.current,
-          connectorLogosRef.current,
+          focusNodeId: focusNodeIdRef.current ?? null,
+          searchMatchSet: searchMatchSetRef.current,
+          isSearchActive: isSearchActiveRef.current,
+          showLabels: showLabelsRef.current,
+          connectorLogos: connectorLogosRef.current,
           worldCache,
           viewportOnly,
           gestureActive,
-        );
+        });
         lastFrameWasBlit = viewportOnly && worldCache !== null;
         if (!lastFrameWasBlit) {
           lastSceneRenderAt = performance.now();

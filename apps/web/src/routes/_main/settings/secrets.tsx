@@ -3,8 +3,8 @@ import { useQuery, useMutation, useAction } from "convex/react";
 import { IconInfoCircle } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 import { Card, CardContent } from "@vmem/ui";
-import PageContainer from "@/components/PageContainer";
-import { EnvVarsTable } from "@/components/EnvVarsTable";
+import PageContainer from "@/components/shell/PageContainer";
+import { EnvVarsTable } from "@/components/settings/EnvVarsTable";
 
 export const Route = createFileRoute("/_main/settings/secrets")({
   component: SecretsPage,
@@ -15,17 +15,7 @@ function SecretsPage() {
   const upsert = useAction(api.userEnvVarsActions.upsertVar);
   const edit = useAction(api.userEnvVarsActions.editVar);
   const reveal = useAction(api.userEnvVarsActions.revealValue);
-  const remove = useMutation(api.userEnvVars.removeVar).withOptimisticUpdate(
-    (localStore, args) => {
-      const list = localStore.getQuery(api.userEnvVars.list, {});
-      if (!list) return;
-      localStore.setQuery(
-        api.userEnvVars.list,
-        {},
-        list.filter((entry) => entry.key !== args.key),
-      );
-    },
-  );
+  const remove = useMutation(api.userEnvVars.removeVar);
   const bulkImport = useAction(api.userEnvVarsActions.bulkUpsert);
 
   return (

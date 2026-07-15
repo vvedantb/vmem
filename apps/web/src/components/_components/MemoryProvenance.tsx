@@ -1,4 +1,5 @@
 import { Badge } from "@vmem/ui";
+import { formatDateTime } from "@vmem/shared";
 import { IconExternalLink } from "@tabler/icons-react";
 import type { Memory } from "@/lib/memories";
 import { formatMemorySourceLabel } from "@/lib/memories";
@@ -7,20 +8,6 @@ import { MemorySourceLabel } from "./MemorySourceLabel";
 
 interface MemoryProvenanceProps {
   memory: Memory;
-}
-
-function formatSyncedAt(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) {
-    return iso;
-  }
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
 }
 
 export default function MemoryProvenance({ memory }: MemoryProvenanceProps) {
@@ -46,7 +33,7 @@ export default function MemoryProvenance({ memory }: MemoryProvenanceProps) {
         </Badge>
         {hasSyncedAt ? (
           <p className="text-sm text-muted">
-            Last synced {formatSyncedAt(sourceSyncedAt)}
+            Last synced {formatDateTime(sourceSyncedAt)}
           </p>
         ) : null}
         {hasUrl ? (

@@ -1,5 +1,6 @@
 import type { FunctionReturnType } from "convex/server";
 import type { api } from "@vmem/backend";
+import { createSevenDayBuckets } from "@/lib/daily-trends";
 
 export type ApiRequestEntries = FunctionReturnType<
   typeof api.auditLog.listMyApiRequestEntries
@@ -18,15 +19,6 @@ export interface ApiUsageMetrics {
   successRate: number;
   avgResponseMs: number;
   trends: ApiUsageTrends;
-}
-
-const TREND_DAY_COUNT = 7;
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-function startOfLocalDay(timestamp: number): number {
-  const date = new Date(timestamp);
-  date.setHours(0, 0, 0, 0);
-  return date.getTime();
 }
 
 export function isSuccessStatus(status: number): boolean {
@@ -57,34 +49,18 @@ export function computeApiUsageMetrics(
 }
 
 function buildDailyTrends(entries: ApiRequestEntries): ApiUsageTrends {
-  const todayStart = startOfLocalDay(Date.now());
-  const dayStarts = Array.from(
-    { length: TREND_DAY_COUNT },
-    (_, index) => todayStart - (TREND_DAY_COUNT - 1 - index) * DAY_MS,
-  );
-
-  const dayStartToBucketIndex = new Map(
-    dayStarts.map((dayStart, index) => [dayStart, index]),
-  );
-
-  const buckets = dayStarts.map((dayStart) => ({
-    dayStart,
+  const { buckets, addToBucket } = createSevenDayBuckets(() => ({
     requests: 0,
     successCount: 0,
     totalDuration: 0,
   }));
 
   for (const entry of entries) {
-    const entryDayStart = startOfLocalDay(entry.originalTimestamp);
-    const bucketIndex = dayStartToBucketIndex.get(entryDayStart);
-    if (bucketIndex === undefined) continue;
-
-    const bucket = buckets[bucketIndex];
-    if (bucket === undefined) continue;
-
-    bucket.requests += 1;
-    if (isSuccessStatus(entry.status)) bucket.successCount += 1;
-    bucket.totalDuration += entry.durationMs;
+    addToBucket(entry.originalTimestamp, (bucket) => {
+      bucket.requests += 1;
+      if (isSuccessStatus(entry.status)) bucket.successCount += 1;
+      bucket.totalDuration += entry.durationMs;
+    });
   }
 
   return {

@@ -111,6 +111,101 @@ function mergeWikiSearchHits(
   return merged;
 }
 
+type CreateWikiNodeFields = {
+  userId: Id<"users">;
+  teamId?: Id<"teams">;
+  parentId?: Id<"wikiNodes">;
+  kind: Doc<"wikiNodes">["kind"];
+  title: string;
+  content?: string;
+  contentText?: string;
+  language?: string;
+  sourceCodebaseId?: Id<"codebases">;
+};
+
+async function createWikiNodeRecord(
+  ctx: MutationCtx,
+  fields: CreateWikiNodeFields,
+): Promise<Id<"wikiNodes">> {
+  const siblings = await listScopeSiblings(
+    ctx,
+    fields.userId,
+    fields.teamId,
+    fields.parentId,
+  );
+  const now = Date.now();
+  const hasContent = wikiKindHasContent(fields.kind);
+  return await ctx.db.insert("wikiNodes", {
+    userId: fields.userId,
+    teamId: fields.teamId,
+    parentId: fields.parentId,
+    kind: fields.kind,
+    title: fields.title,
+    content: hasContent ? (fields.content ?? "") : undefined,
+    contentText: hasContent ? (fields.contentText ?? "") : undefined,
+    language:
+      fields.kind === "artifact" ? (fields.language ?? "html") : undefined,
+    order: nextSiblingOrder(siblings),
+    sourceCodebaseId: fields.sourceCodebaseId,
+    createdAt: now,
+    updatedAt: now,
+  });
+}
+
+async function searchWikiInScope(
+  ctx: QueryCtx,
+  userId: Id<"users">,
+  teamId: Id<"teams"> | undefined,
+  trimmedQuery: string,
+): Promise<Array<Doc<"wikiNodes">>> {
+  const titleMatches = await ctx.db
+    .query("wikiNodes")
+    .withSearchIndex("search_title", (q) =>
+      teamId !== undefined
+        ? q.search("title", trimmedQuery).eq("teamId", teamId)
+        : q
+            .search("title", trimmedQuery)
+            .eq("userId", userId)
+            .eq("teamId", undefined),
+    )
+    .take(MAX_SEARCH_RESULTS);
+
+  const contentMatches = await ctx.db
+    .query("wikiNodes")
+    .withSearchIndex("search_content", (q) =>
+      teamId !== undefined
+        ? q.search("contentText", trimmedQuery).eq("teamId", teamId)
+        : q
+            .search("contentText", trimmedQuery)
+            .eq("userId", userId)
+            .eq("teamId", undefined),
+    )
+    .take(MAX_SEARCH_RESULTS);
+
+  return mergeWikiSearchHits(titleMatches, contentMatches);
+}
+
+type WikiNodePatch = {
+  title?: string;
+  content?: string;
+  contentText?: string;
+  language?: string;
+};
+
+async function applyWikiNodeUpdate(
+  ctx: MutationCtx,
+  node: Doc<"wikiNodes">,
+  patch: WikiNodePatch,
+  meta: {
+    source: "web" | "mcp";
+    authorUserId: Id<"users">;
+    force?: boolean;
+  },
+): Promise<void> {
+  await maybeSnapshotWikiVersion(ctx, node, meta);
+  await ctx.db.patch(node._id, { ...patch, updatedAt: Date.now() });
+}
+
 // returns all wikiNodes in the requested scope, sorted by `order` ascending
 export const listTree = authQuery({
   args: { teamId: v.optional(v.id("teams")) },
@@ -183,30 +278,14 @@ export const createNode = authMutation({
       teamId: args.teamId,
     });
 
-    const siblings = await listScopeSiblings(
-      ctx,
-      ctx.userId,
-      args.teamId,
-      args.parentId,
-    );
-
-    const now = Date.now();
-    const hasContent = wikiKindHasContent(args.kind);
-    const id = await ctx.db.insert("wikiNodes", {
+    return await createWikiNodeRecord(ctx, {
       userId: ctx.userId,
       teamId: args.teamId,
       parentId: args.parentId,
       kind: args.kind,
       title: args.title,
-      content: hasContent ? "" : undefined,
-      contentText: hasContent ? "" : undefined,
-      language:
-        args.kind === "artifact" ? (args.language ?? "html") : undefined,
-      order: nextSiblingOrder(siblings),
-      createdAt: now,
-      updatedAt: now,
+      language: args.language,
     });
-    return id;
   },
 });
 
@@ -217,11 +296,15 @@ export const renameNode = authMutation({
     const node = await ctx.db.get(args.id);
     if (!node) throw new Error("Not found");
     await assertContentEditable(ctx, node, ctx.userId);
-    await maybeSnapshotWikiVersion(ctx, node, {
-      source: "web",
-      authorUserId: ctx.userId,
-    });
-    await ctx.db.patch(args.id, { title: args.title, updatedAt: Date.now() });
+    await applyWikiNodeUpdate(
+      ctx,
+      node,
+      { title: args.title },
+      {
+        source: "web",
+        authorUserId: ctx.userId,
+      },
+    );
   },
 });
 
@@ -241,16 +324,16 @@ export const updateContent = authMutation({
     if (!wikiKindHasContent(node.kind)) {
       throw new Error("Cannot write content to a folder");
     }
-    await maybeSnapshotWikiVersion(ctx, node, {
-      source: "web",
-      authorUserId: ctx.userId,
-      force: args.forceSnapshot,
-    });
-    await ctx.db.patch(args.id, {
-      content: args.content,
-      contentText: args.contentText,
-      updatedAt: Date.now(),
-    });
+    await applyWikiNodeUpdate(
+      ctx,
+      node,
+      { content: args.content, contentText: args.contentText },
+      {
+        source: "web",
+        authorUserId: ctx.userId,
+        force: args.forceSnapshot,
+      },
+    );
   },
 });
 
@@ -335,33 +418,7 @@ export const search = authQuery({
     await requireContentScopeAccess(ctx, ctx.userId, args.teamId);
     const trimmed = args.queryText.trim();
     if (trimmed.length === 0) return [];
-    const teamId = args.teamId;
-
-    const titleMatches = await ctx.db
-      .query("wikiNodes")
-      .withSearchIndex("search_title", (q) =>
-        teamId !== undefined
-          ? q.search("title", trimmed).eq("teamId", teamId)
-          : q
-              .search("title", trimmed)
-              .eq("userId", ctx.userId)
-              .eq("teamId", undefined),
-      )
-      .take(MAX_SEARCH_RESULTS);
-
-    const contentMatches = await ctx.db
-      .query("wikiNodes")
-      .withSearchIndex("search_content", (q) =>
-        teamId !== undefined
-          ? q.search("contentText", trimmed).eq("teamId", teamId)
-          : q
-              .search("contentText", trimmed)
-              .eq("userId", ctx.userId)
-              .eq("teamId", undefined),
-      )
-      .take(MAX_SEARCH_RESULTS);
-
-    return mergeWikiSearchHits(titleMatches, contentMatches);
+    return await searchWikiInScope(ctx, ctx.userId, args.teamId, trimmed);
   },
 });
 
@@ -402,25 +459,7 @@ export const searchByClerkIdInternal = internalQuery({
     const userId = await getUserIdByClerkId(ctx, args.clerkId);
     const trimmed = args.queryText.trim();
     if (trimmed.length === 0) return [];
-
-    const titleMatches = await ctx.db
-      .query("wikiNodes")
-      .withSearchIndex("search_title", (q) =>
-        q.search("title", trimmed).eq("userId", userId).eq("teamId", undefined),
-      )
-      .take(MAX_SEARCH_RESULTS);
-
-    const contentMatches = await ctx.db
-      .query("wikiNodes")
-      .withSearchIndex("search_content", (q) =>
-        q
-          .search("contentText", trimmed)
-          .eq("userId", userId)
-          .eq("teamId", undefined),
-      )
-      .take(MAX_SEARCH_RESULTS);
-
-    return mergeWikiSearchHits(titleMatches, contentMatches);
+    return await searchWikiInScope(ctx, userId, undefined, trimmed);
   },
 });
 
@@ -456,28 +495,15 @@ export const createByClerkIdInternal = internalMutation({
       sourceCodebaseId = cbId;
     }
 
-    const siblings = await listScopeSiblings(
-      ctx,
-      userId,
-      undefined,
-      args.parentId,
-    );
-
-    const now = Date.now();
-    const hasContent = wikiKindHasContent(args.kind);
-    return await ctx.db.insert("wikiNodes", {
+    return await createWikiNodeRecord(ctx, {
       userId,
       parentId: args.parentId,
       kind: args.kind,
       title: args.title,
-      content: hasContent ? (args.content ?? "") : undefined,
-      contentText: hasContent ? (args.contentText ?? "") : undefined,
-      language:
-        args.kind === "artifact" ? (args.language ?? "html") : undefined,
-      order: nextSiblingOrder(siblings),
+      content: args.content,
+      contentText: args.contentText,
+      language: args.language,
       sourceCodebaseId,
-      createdAt: now,
-      updatedAt: now,
     });
   },
 });
@@ -498,13 +524,7 @@ export const updateByClerkIdInternal = internalMutation({
       throw new Error("Not found");
     }
 
-    const patch: {
-      title?: string;
-      content?: string;
-      contentText?: string;
-      language?: string;
-      updatedAt: number;
-    } = { updatedAt: Date.now() };
+    const patch: WikiNodePatch = {};
 
     if (args.title !== undefined) {
       patch.title = args.title;
@@ -531,12 +551,11 @@ export const updateByClerkIdInternal = internalMutation({
 
     // agent (MCP) writes always checkpoint the pre-write state so the user can
     // see and undo exactly what the agent changed
-    await maybeSnapshotWikiVersion(ctx, node, {
+    await applyWikiNodeUpdate(ctx, node, patch, {
       source: "mcp",
       authorUserId: userId,
       force: true,
     });
-    await ctx.db.patch(node._id, patch);
     return node._id;
   },
 });

@@ -1,61 +1,12 @@
-"use client";
-
 import { useCallback, useMemo, useState } from "react";
 import { Button, Card } from "@vmem/ui";
 import { IconMoodEmpty, IconX } from "@tabler/icons-react";
-import { Virtuoso } from "react-virtuoso";
 import type { Memory } from "@/lib/memories";
 import { memoryToListItem } from "@/lib/list-items";
-import ListItemRow from "@/components/_components/ListItemRow";
-import MemoryDetailPanel from "@/components/MemoryDetailPanel";
-import { useThemeContext } from "@/components/contexts/ThemeContext";
+import { MemoryVirtuosoList } from "@/components/_components/MemoryVirtuosoList";
+import MemoryDetailPanel from "@/components/memories/MemoryDetailPanel";
+import { useThemeContext } from "@/contexts/ThemeContext";
 import { useTrailData } from "@/hooks/useTrailData";
-import type { TrailEntry } from "@/hooks/useTrailData";
-import type { MemoryListEntry } from "@/hooks/useMemoryListEntries";
-import type { ListItem } from "@/lib/list-items";
-
-interface MemoryListVirtuosoContext {
-  selectedMemoryId: string | null;
-  trailMap: Map<string, TrailEntry>;
-  isDark: boolean;
-  onMemoryClick: (memory: Memory) => void;
-  onItemSelect: (item: ListItem) => void;
-  onContextEdit: (memory: Memory) => void;
-  onContextDelete: (memory: Memory) => void;
-}
-
-function MemoryListVirtuosoRow({
-  entry,
-  context,
-}: {
-  entry: MemoryListEntry;
-  context?: MemoryListVirtuosoContext;
-}) {
-  if (!context) return null;
-  return (
-    <div className="pb-1.5">
-      <ListItemRow
-        item={entry.item}
-        relevanceScore={entry.score}
-        isSelected={context.selectedMemoryId === entry.item.id}
-        trailEntry={context.trailMap.get(entry.item.id)}
-        isDark={context.isDark}
-        onMemoryClick={context.onMemoryClick}
-        onItemSelect={context.onItemSelect}
-        onContextEdit={context.onContextEdit}
-        onContextDelete={context.onContextDelete}
-      />
-    </div>
-  );
-}
-
-function renderMemoryListVirtuosoRow(
-  _index: number,
-  entry: MemoryListEntry,
-  context?: MemoryListVirtuosoContext,
-) {
-  return <MemoryListVirtuosoRow entry={entry} context={context} />;
-}
 
 interface TagMemoriesPanelProps {
   tag: string;
@@ -68,8 +19,7 @@ export function TagMemoriesPanel({
   memories,
   onClose,
 }: TagMemoriesPanelProps) {
-  const { theme } = useThemeContext();
-  const isDark = theme === "dark";
+  const { isDark } = useThemeContext();
   const { trailMap } = useTrailData({ tag });
 
   const [selectedMemoryId, setSelectedMemoryId] = useState<string | null>(null);
@@ -179,22 +129,17 @@ export function TagMemoriesPanel({
         </div>
       ) : (
         <div className="min-h-0 flex-1">
-          <Virtuoso
-            data={displayItems}
-            className="scrollbar-thin"
-            context={{
-              selectedMemoryId,
-              trailMap,
-              isDark,
+          <MemoryVirtuosoList
+            entries={displayItems}
+            selectedItemId={selectedMemoryId}
+            trailMap={trailMap}
+            isDark={isDark}
+            handlers={{
               onMemoryClick: handleMemoryClick,
               onItemSelect: () => {},
               onContextEdit: handleContextEdit,
               onContextDelete: handleContextDelete,
             }}
-            computeItemKey={(_index, entry) => entry.item.id}
-            defaultItemHeight={44}
-            itemContent={renderMemoryListVirtuosoRow}
-            style={{ height: "100%" }}
           />
         </div>
       )}

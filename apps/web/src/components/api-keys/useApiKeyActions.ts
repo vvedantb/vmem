@@ -1,27 +1,15 @@
-"use client";
-
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback } from "react";
 import { useMutation, useAction } from "convex/react";
+import { useCopyToClipboard, useTimeout } from "usehooks-ts";
 import { toast } from "sonner";
 import { api } from "@vmem/backend";
-import { patchApiKeyInList, removeApiKeyFromList } from "./_optimistic";
 import type { ApiKey } from "./types";
 
 export function useApiKeyActions() {
-  const revokeApiKey = useMutation(api.apiKeys.revokeMy).withOptimisticUpdate(
-    (localStore, args) => {
-      patchApiKeyInList(localStore, args.id, (row) => ({
-        ...row,
-        status: "revoked",
-      }));
-    },
-  );
-  const deleteApiKey = useMutation(api.apiKeys.deleteMy).withOptimisticUpdate(
-    (localStore, args) => {
-      removeApiKeyFromList(localStore, args.id);
-    },
-  );
+  const revokeApiKey = useMutation(api.apiKeys.revokeMy);
+  const deleteApiKey = useMutation(api.apiKeys.deleteMy);
   const revealApiKey = useAction(api.apiKeys.revealMy);
+  const [, copyToClipboard] = useCopyToClipboard();
 
   const [revokeKeyId, setRevokeKeyId] = useState<ApiKey["id"] | null>(null);
   const [deleteKeyId, setDeleteKeyId] = useState<ApiKey["id"] | null>(null);
@@ -37,13 +25,7 @@ export function useApiKeyActions() {
     null,
   );
 
-  const copiedTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-
-  useEffect(() => {
-    return () => {
-      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
-    };
-  }, []);
+  useTimeout(() => setCopiedKeyId(null), copiedKeyId !== null ? 2000 : null);
 
   const handleCopyKey = useCallback(
     async (apiKeyId: ApiKey["id"]) => {
@@ -63,17 +45,15 @@ export function useApiKeyActions() {
         })());
 
       if (!keyToCopy) return;
-      try {
-        await navigator.clipboard.writeText(keyToCopy);
-        setCopiedKeyId(apiKeyId);
-        toast.success("API key copied to clipboard");
-        if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
-        copiedTimerRef.current = setTimeout(() => setCopiedKeyId(null), 2000);
-      } catch {
+      const copied = await copyToClipboard(keyToCopy);
+      if (!copied) {
         toast.error("Failed to copy to clipboard");
+        return;
       }
+      setCopiedKeyId(apiKeyId);
+      toast.success("API key copied to clipboard");
     },
-    [revealedKeys, revealApiKey],
+    [revealedKeys, revealApiKey, copyToClipboard],
   );
 
   const handleToggleReveal = useCallback(

@@ -1,6 +1,6 @@
 # @vmem/sdk
 
-Official JavaScript SDK for the [vmem](https://github.com/vedantb2/vmem) memory API. Save, update, and search user memories over HTTP with API key auth.
+Official JavaScript SDK for the [vmem](https://github.com/vvedantb/vmem) memory API. Save, update, and search user memories over HTTP with API key auth.
 
 ## Install
 

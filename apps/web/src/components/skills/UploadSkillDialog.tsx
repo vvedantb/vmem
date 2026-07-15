@@ -1,6 +1,5 @@
-"use client";
-
-import { useState, type ChangeEvent, type DragEvent } from "react";
+import { useState } from "react";
+import { useDropzone } from "react-dropzone";
 import { useMutation } from "convex/react";
 import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
@@ -10,12 +9,9 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  Input,
 } from "@vmem/ui";
 import { IconLoader2, IconUpload } from "@tabler/icons-react";
 import { toast } from "sonner";
-import { optimisticId } from "@/lib/optimisticId";
-import { prependOptimisticSkillRow } from "@/components/skills/_utils";
 import { useActiveTeamId } from "@/components/workspace/active-profile";
 
 interface UploadSkillDialogProps {
@@ -47,23 +43,17 @@ function readSkillFile(
   });
 }
 
+const skillAccept = {
+  "text/markdown": [".md", ".markdown"],
+};
+
 export function UploadSkillDialog({
   open,
   onOpenChange,
   onCreated,
 }: UploadSkillDialogProps) {
   const teamId = useActiveTeamId();
-  const createSkill = useMutation(api.skills.createSkill).withOptimisticUpdate(
-    (localStore, args) => {
-      const current = localStore.getQuery(api.skills.listMy, { teamId });
-      if (!current) return;
-      localStore.setQuery(
-        api.skills.listMy,
-        { teamId },
-        prependOptimisticSkillRow(current, optimisticId("skills"), args),
-      );
-    },
-  );
+  const createSkill = useMutation(api.skills.createSkill);
   const [submitting, setSubmitting] = useState(false);
 
   const handleFile = async (file: File | undefined) => {
@@ -104,17 +94,19 @@ export function UploadSkillDialog({
     }
   };
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    void handleFile(file);
-  };
-
-  const handleDrop = (e: DragEvent<HTMLLabelElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    void handleFile(e.dataTransfer.files[0]);
-  };
+  const { getRootProps, getInputProps } = useDropzone({
+    multiple: false,
+    maxFiles: 1,
+    disabled: submitting,
+    accept: skillAccept,
+    onDrop: (acceptedFiles, fileRejections) => {
+      if (fileRejections.length > 0) {
+        toast.error("Only .md and .markdown files are supported");
+        return;
+      }
+      void handleFile(acceptedFiles[0]);
+    },
+  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -123,14 +115,13 @@ export function UploadSkillDialog({
           <DialogTitle>Upload skill</DialogTitle>
         </DialogHeader>
 
-        <label
-          onDragOver={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-          }}
-          onDrop={handleDrop}
-          className="flex min-h-[180px] cursor-pointer flex-col items-center justify-center gap-3 rounded-lg bg-surface-secondary/20 px-4 py-8 text-center transition-colors hover:bg-surface-secondary/35"
+        <div
+          {...getRootProps({
+            className:
+              "flex min-h-[180px] cursor-pointer flex-col items-center justify-center gap-3 rounded-lg bg-surface-secondary/20 px-4 py-8 text-center transition-colors hover:bg-surface-secondary/35",
+          })}
         >
+          <input {...getInputProps()} />
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-secondary/60">
             {submitting ? (
               <IconLoader2 size={22} className="animate-spin text-muted" />
@@ -144,14 +135,7 @@ export function UploadSkillDialog({
             </p>
             <p className="text-xs text-muted">or click to choose a .md file</p>
           </div>
-          <Input
-            type="file"
-            accept=".md,.markdown,text/markdown"
-            className="sr-only"
-            onChange={handleChange}
-            disabled={submitting}
-          />
-        </label>
+        </div>
 
         <div className="flex justify-end pt-2">
           <Button

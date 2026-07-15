@@ -1,5 +1,3 @@
-"use client";
-
 import { Toaster, type ToasterProps } from "sonner";
 import "./sonner.css";
 

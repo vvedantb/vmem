@@ -1,0 +1,105 @@
+/*
+ * vmem logo animation styles.
+ *
+ * Imported once via `VmemPaths.tsx` so any caller of <VmemPaths> picks it up
+ * automatically. Used by <VmemDrawInIcon> (draw-in) and <VmemSpinner>
+ * (sequencer).
+ *
+ * The logo SVG inherits color from `currentColor`. `transform-box: fill-box`
+ * + `transform-origin: center` pivots per-petal transforms around each petal's
+ * bounding box rather than the SVG origin.
+ */
+
+/* Shared petal transform origin */
+.vmem-petal {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* Petal sequencer — opacity rotates between petals */
+@keyframes vmem-fade-pulse {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  20% {
+    opacity: 1;
+  }
+}
+.vmem-sequencer .vmem-petal:nth-child(1) {
+  animation: vmem-fade-pulse 1.5s ease-in-out infinite;
+}
+.vmem-sequencer .vmem-petal:nth-child(2) {
+  animation: vmem-fade-pulse 1.5s ease-in-out infinite;
+  animation-delay: 0.5s;
+}
+.vmem-sequencer .vmem-petal:nth-child(3) {
+  animation: vmem-fade-pulse 1.5s ease-in-out infinite;
+  animation-delay: 1s;
+}
+
+/* Stroke draw-in — strokes draw, then fill fades in */
+@keyframes vmem-draw-in {
+  0% {
+    stroke-dashoffset: 100;
+    fill-opacity: 0;
+  }
+  60% {
+    stroke-dashoffset: 0;
+    fill-opacity: 0;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    fill-opacity: 1;
+  }
+}
+.vmem-draw-in path {
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  fill-opacity: 0;
+}
+.vmem-draw-in:not(.vmem-draw-in-mounted) path {
+  animation: vmem-draw-in 1.6s ease-out forwards;
+}
+.vmem-draw-in:not(.vmem-draw-in-mounted) path:nth-child(2) {
+  animation-delay: 0.3s;
+}
+.vmem-draw-in:not(.vmem-draw-in-mounted) path:nth-child(3) {
+  animation-delay: 0.6s;
+}
+.vmem-draw-in-mounted path {
+  stroke-dashoffset: 0;
+  fill-opacity: 1;
+  animation: none;
+}
+
+/* Replay draw-in on hover-in only. After mount, paths stay settled so
+   removing :hover does not retrigger the intro animation. */
+@keyframes vmem-draw-in-hover {
+  0% {
+    stroke-dashoffset: 100;
+    fill-opacity: 0;
+  }
+  60% {
+    stroke-dashoffset: 0;
+    fill-opacity: 0;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    fill-opacity: 1;
+  }
+}
+.group:hover .vmem-draw-in-mounted path {
+  animation: vmem-draw-in-hover 1.6s ease-out forwards;
+}
+.group:hover .vmem-draw-in-mounted path:nth-child(2) {
+  animation-delay: 0.3s;
+}
+.group:hover .vmem-draw-in-mounted path:nth-child(3) {
+  animation-delay: 0.6s;
+}

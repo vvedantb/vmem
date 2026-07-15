@@ -1,17 +1,9 @@
-"use client";
-
 import { useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@vmem/backend";
 import type { Doc } from "@vmem/backend";
 import {
   Button,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -23,12 +15,12 @@ import {
   IconCopy,
   IconDots,
   IconHistory,
-  IconLoader2,
   IconPencil,
   IconTrash,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
-import { formatSkillForClipboard, patchSkillListMy } from "./_utils";
+import DestructiveConfirmDialog from "@/components/settings/DestructiveConfirmDialog";
+import { formatSkillForClipboard } from "./_utils";
 import { SkillHistoryPanel } from "./SkillHistoryPanel";
 
 interface SkillHeaderActionsProps {
@@ -46,32 +38,8 @@ export function SkillHeaderActions({
   const [deleting, setDeleting] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
 
-  const deleteSkill = useMutation(api.skills.deleteSkill).withOptimisticUpdate(
-    (localStore, args) => {
-      const current = localStore.getQuery(api.skills.listMy, {
-        teamId: skill.teamId,
-      });
-      if (!current) return;
-      localStore.setQuery(
-        api.skills.listMy,
-        { teamId: skill.teamId },
-        current.filter((row) => row._id !== args.id),
-      );
-    },
-  );
-  const updateSkill = useMutation(api.skills.updateSkill).withOptimisticUpdate(
-    (localStore, args) => {
-      const current = localStore.getQuery(api.skills.listMy, {
-        teamId: skill.teamId,
-      });
-      if (!current) return;
-      localStore.setQuery(
-        api.skills.listMy,
-        { teamId: skill.teamId },
-        patchSkillListMy(current, args.id, args),
-      );
-    },
-  );
+  const deleteSkill = useMutation(api.skills.deleteSkill);
+  const updateSkill = useMutation(api.skills.updateSkill);
 
   const isEnabled = skill.enabled !== false;
 
@@ -163,47 +131,20 @@ export function SkillHeaderActions({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Dialog
+      <DestructiveConfirmDialog
         open={deleteConfirmOpen}
-        onOpenChange={(open) => {
-          if (!deleting) setDeleteConfirmOpen(open);
+        onClose={() => setDeleteConfirmOpen(false)}
+        title="Delete skill?"
+        description="This cannot be undone."
+        confirmLabel="Delete"
+        submittingLabel="Deleting..."
+        submitting={deleting}
+        onConfirm={() => {
+          void handleDelete();
         }}
       >
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Delete skill?</DialogTitle>
-            <DialogDescription>
-              &quot;{skill.name}&quot; will be permanently removed. This cannot
-              be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setDeleteConfirmOpen(false)}
-              disabled={deleting}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={() => {
-                void handleDelete();
-              }}
-              disabled={deleting}
-            >
-              {deleting ? (
-                <IconLoader2 size={14} className="animate-spin" />
-              ) : (
-                <IconTrash size={14} />
-              )}
-              {deleting ? "Deleting..." : "Delete"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        &quot;{skill.name}&quot; will be permanently removed.
+      </DestructiveConfirmDialog>
 
       <SkillHistoryPanel
         open={historyOpen}

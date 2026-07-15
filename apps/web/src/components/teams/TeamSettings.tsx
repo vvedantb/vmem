@@ -6,66 +6,16 @@ import { Button, Card, CardContent, Input } from "@vmem/ui";
 import { IconTrash, IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { useTeamDetail } from "./team-context";
+import { DeleteTeamDialog } from "./DeleteTeamDialog";
 
 export function TeamSettings() {
   const data = useTeamDetail();
-  const updateTeam = useMutation(api.teams.updateTeam).withOptimisticUpdate(
-    (localStore, args) => {
-      const now = Date.now();
-      const list = localStore.getQuery(api.teams.list, {});
-      if (list) {
-        localStore.setQuery(
-          api.teams.list,
-          {},
-          list.map((entry) =>
-            entry.team._id === args.teamId
-              ? {
-                  ...entry,
-                  team: {
-                    ...entry.team,
-                    name: args.name,
-                    updatedAt: now,
-                  },
-                  profile:
-                    entry.profile !== null
-                      ? {
-                          ...entry.profile,
-                          name: args.name,
-                          updatedAt: now,
-                        }
-                      : null,
-                }
-              : entry,
-          ),
-        );
-      }
-      const detail = localStore.getQuery(api.teams.get, {
-        teamId: args.teamId,
-      });
-      if (detail) {
-        localStore.setQuery(
-          api.teams.get,
-          { teamId: args.teamId },
-          {
-            ...detail,
-            team: { ...detail.team, name: args.name, updatedAt: now },
-            profile:
-              detail.profile !== null
-                ? {
-                    ...detail.profile,
-                    name: args.name,
-                    updatedAt: now,
-                  }
-                : null,
-          },
-        );
-      }
-    },
-  );
+  const updateTeam = useMutation(api.teams.updateTeam);
   const deleteTeam = useAction(api.teams.deleteTeam);
   const navigate = useNavigate();
-  const nameBaselineRef = useRef<string | null>(null);
+  const focusedNameRef = useRef<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const handleNameChange = (name: string) => {
     const trimmed = name.trim();
@@ -78,21 +28,12 @@ export function TeamSettings() {
     );
   };
 
-  // Cascades: team profile, memberships, and Neo4j team memories.
   const handleDelete = async () => {
-    const typed = window.prompt(
-      `Type "${data.team.name}" to confirm deletion. This removes the team profile and all team memories.`,
-    );
-    if (typed?.trim() !== data.team.name) return;
-    const again = window.confirm(
-      "Are you absolutely sure? This cannot be undone.",
-    );
-    if (!again) return;
-
     setDeleting(true);
     try {
       await deleteTeam({ teamId: data.team._id });
       toast.success(`Deleted ${data.team.name}`);
+      setDeleteDialogOpen(false);
       await navigate({ to: "/home" });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Delete failed");
@@ -115,13 +56,13 @@ export function TeamSettings() {
           <Input
             value={data.team.name}
             onFocus={() => {
-              nameBaselineRef.current = data.team.name;
+              focusedNameRef.current = data.team.name;
             }}
             onChange={(e) => handleNameChange(e.target.value)}
             onBlur={() => {
-              const baseline = nameBaselineRef.current;
-              nameBaselineRef.current = null;
-              if (baseline !== null && baseline !== data.team.name) {
+              const focusedName = focusedNameRef.current;
+              focusedNameRef.current = null;
+              if (focusedName !== null && focusedName !== data.team.name) {
                 toast.success("Team renamed");
               }
             }}
@@ -143,7 +84,7 @@ export function TeamSettings() {
           </div>
           <Button
             variant="outline"
-            onClick={handleDelete}
+            onClick={() => setDeleteDialogOpen(true)}
             disabled={deleting}
             className="text-danger hover:text-danger"
           >
@@ -156,6 +97,16 @@ export function TeamSettings() {
           </Button>
         </CardContent>
       </Card>
+
+      <DeleteTeamDialog
+        open={deleteDialogOpen}
+        teamName={data.team.name}
+        submitting={deleting}
+        onClose={() => {
+          if (!deleting) setDeleteDialogOpen(false);
+        }}
+        onConfirm={() => void handleDelete()}
+      />
     </div>
   );
 }

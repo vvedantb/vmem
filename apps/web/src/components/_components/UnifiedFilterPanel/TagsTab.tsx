@@ -1,64 +1,40 @@
-"use client";
-
 import {
   Button,
-  Checkbox,
   cn,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  TabsPrimitive,
 } from "@vmem/ui";
 import { IconArrowsSort } from "@tabler/icons-react";
-import { Virtuoso } from "react-virtuoso";
 import type { TagSortMode, TagStats } from "@/lib/memories";
+import { FilterCheckboxRow, VirtuosoFilterTab } from "./filter-primitives";
 import { TAG_SORT_LABELS, TAG_SORT_OPTIONS } from "./types";
 
-interface TagsVirtuosoContext {
-  selectedTags: string[];
-  toggleTag: (tag: string) => void;
-}
-
-function TagVirtuosoRow({
-  tagStat,
-  context,
-}: {
-  tagStat: TagStats;
-  context?: TagsVirtuosoContext;
-}) {
-  const checked = (context?.selectedTags ?? []).some(
-    (t) => t.toLowerCase() === tagStat.tag.toLowerCase(),
-  );
-  return (
-    <label className="flex items-center gap-2 px-3 py-2 cursor-pointer border-b border-separator last:border-0 hover:bg-surface-tertiary">
-      <Checkbox
-        checked={checked}
-        onCheckedChange={() => context?.toggleTag(tagStat.tag)}
-      />
-      <span className="flex-1 text-xs truncate">{tagStat.tag}</span>
-      <span className="text-xs text-muted/50 tabular-nums">
-        {tagStat.count}
-      </span>
-    </label>
-  );
-}
-
-function renderTagVirtuosoRow(
-  _index: number,
-  tagStat: TagStats,
-  context?: TagsVirtuosoContext,
-) {
-  return <TagVirtuosoRow tagStat={tagStat} context={context} />;
-}
-
-interface TagsTabProps {
-  sortedTags: TagStats[];
+interface TagsCtx {
   selectedTags: string[];
   onTagsChange?: (tags: string[]) => void;
-  tagSortMode: TagSortMode;
-  onTagSortModeChange: (mode: TagSortMode) => void;
-  totalCount: number;
+}
+
+function renderTagRow(_i: number, tagStat: TagStats, ctx: TagsCtx) {
+  const lower = tagStat.tag.toLowerCase();
+  return (
+    <FilterCheckboxRow
+      checked={ctx.selectedTags.some((t) => t.toLowerCase() === lower)}
+      onToggle={() => {
+        if (ctx.onTagsChange == null) return;
+        const selected = ctx.selectedTags;
+        const isSelected = selected.some((t) => t.toLowerCase() === lower);
+        ctx.onTagsChange(
+          isSelected
+            ? selected.filter((t) => t.toLowerCase() !== lower)
+            : [...selected, tagStat.tag],
+        );
+      }}
+      label={tagStat.tag}
+      count={tagStat.count}
+    />
+  );
 }
 
 export default function TagsTab({
@@ -68,78 +44,48 @@ export default function TagsTab({
   tagSortMode,
   onTagSortModeChange,
   totalCount,
-}: TagsTabProps) {
-  const toggleTag = (tag: string) => {
-    if (!onTagsChange) return;
-    const isSelected = selectedTags.some(
-      (t) => t.toLowerCase() === tag.toLowerCase(),
-    );
-    if (isSelected) {
-      onTagsChange(
-        selectedTags.filter((t) => t.toLowerCase() !== tag.toLowerCase()),
-      );
-    } else {
-      onTagsChange([...selectedTags, tag]);
-    }
-  };
-
+}: {
+  sortedTags: TagStats[];
+  selectedTags: string[];
+  onTagsChange?: (tags: string[]) => void;
+  tagSortMode: TagSortMode;
+  onTagSortModeChange: (mode: TagSortMode) => void;
+  totalCount: number;
+}) {
   return (
-    <TabsPrimitive.Content
+    <VirtuosoFilterTab
       value="tags"
-      className="flex-1 flex flex-col overflow-hidden data-[state=inactive]:hidden"
-    >
-      <div className="p-2 border-b border-separator">
-        <div className="flex items-center justify-between">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => onTagsChange?.([])}
-            className={cn(
-              "h-auto justify-start gap-2 rounded-md px-2 py-1.5 text-xs transition-colors active:scale-100",
-              selectedTags.length === 0
-                ? "bg-surface-secondary font-medium text-foreground hover:bg-surface-secondary"
-                : "hover:bg-surface-tertiary",
-            )}
-          >
-            All tags
-            <span className="text-muted/50 tabular-nums">{totalCount}</span>
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon-xs" className="text-muted">
-                <IconArrowsSort size={12} stroke={1.5} />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="min-w-[120px]">
-              {TAG_SORT_OPTIONS.map((option) => (
-                <DropdownMenuItem
-                  key={option}
-                  onClick={() => onTagSortModeChange(option)}
-                  className={cn(
-                    tagSortMode === option && "font-medium text-foreground",
-                  )}
-                >
-                  {TAG_SORT_LABELS[option]}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-      {sortedTags.length === 0 ? (
-        <div className="p-3 text-xs text-muted text-center">No tags yet</div>
-      ) : (
-        <div className="flex-1 min-h-0">
-          <Virtuoso
-            data={sortedTags}
-            context={{ selectedTags, toggleTag }}
-            computeItemKey={(_index, item) => item.tag}
-            fixedItemHeight={36}
-            itemContent={renderTagVirtuosoRow}
-            style={{ height: "100%" }}
-          />
-        </div>
-      )}
-    </TabsPrimitive.Content>
+      allLabel="All tags"
+      totalCount={totalCount}
+      isAllSelected={selectedTags.length === 0}
+      onSelectAll={() => onTagsChange?.([])}
+      trailing={
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon-xs" className="text-muted">
+              <IconArrowsSort size={12} stroke={1.5} />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="min-w-[120px]">
+            {TAG_SORT_OPTIONS.map((option) => (
+              <DropdownMenuItem
+                key={option}
+                onClick={() => onTagSortModeChange(option)}
+                className={cn(
+                  tagSortMode === option && "font-medium text-foreground",
+                )}
+              >
+                {TAG_SORT_LABELS[option]}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      }
+      items={sortedTags}
+      emptyMessage="No tags yet"
+      context={{ selectedTags, onTagsChange }}
+      computeItemKey={(_i, item) => item.tag}
+      itemContent={renderTagRow}
+    />
   );
 }

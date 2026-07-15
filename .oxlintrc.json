@@ -206,7 +206,6 @@
         "apps/web/src/components/skills/SkillHistoryPanel.tsx",
         "apps/web/src/components/skills/SystemSkillFormDialog.tsx",
         "apps/web/src/components/svg-animations/AnimatedCounter.tsx",
-        "apps/web/src/components/svg-animations/AnimatedProgress.tsx",
         "apps/web/src/components/wiki/RenameDialog.tsx",
         "apps/web/src/components/wiki/WikiEditor.tsx",
         "apps/web/src/components/wiki/WikiHistoryPanel.tsx",

@@ -1,22 +1,14 @@
-"use client";
-
 import { Link } from "@tanstack/react-router";
 import { useActiveProfile } from "@/components/workspace/active-profile";
-import { Badge, Button, Progress, type BadgeProps } from "@vmem/ui";
+import { Badge, Button, Progress } from "@vmem/ui";
+import { IconCheck, IconX } from "@tabler/icons-react";
 import {
-  IconAlertTriangle,
-  IconArrowsJoin,
-  IconBulb,
-  IconCheck,
-  IconLink,
-  IconQuestionMark,
-  IconX,
-  type TablerIcon,
-} from "@tabler/icons-react";
-import {
+  getProposalKindConfig,
   proposalAccentClass,
+  synthesisActionLabels,
+  synthesisContentLabel,
+  synthesisSourceListLabel,
   type ProposedUpdate,
-  type ProposedUpdateKind,
   type SourceMemorySnapshot,
 } from "./_proposalUtils";
 import {
@@ -41,9 +33,9 @@ export default function SynthesisProposalCard({
   onKeepWinner?: (winnerMemoryId: string) => void;
 }) {
   const activeProfile = useActiveProfile();
-  const meta = getKindMeta(proposal.kind);
-  const actionLabels = getSynthesisActionLabels(proposal.kind);
-  const contentLabel = getSynthesisContentLabel(proposal.kind);
+  const meta = getProposalKindConfig(proposal.kind);
+  const actionLabels = synthesisActionLabels(proposal.kind);
+  const contentLabel = synthesisContentLabel(proposal.kind);
   const title = proposal.proposedTitle ?? "(untitled synthesis)";
   const confidencePct =
     proposal.confidence === null ? null : Math.round(proposal.confidence * 100);
@@ -60,7 +52,7 @@ export default function SynthesisProposalCard({
       timestamp={proposal.createdAt}
       meta={
         <>
-          <Badge variant={meta.variant} className="gap-1.5">
+          <Badge variant={meta.badgeVariant} className="gap-1.5">
             <meta.Icon size={12} />
             {meta.label}
           </Badge>
@@ -108,7 +100,7 @@ export default function SynthesisProposalCard({
       {sourceCount > 0 && (
         <div className="rounded-lg bg-surface-secondary/50 p-3">
           <ProposalFieldLabel>
-            {getSourceListLabel(proposal.kind, sourceCount)}
+            {synthesisSourceListLabel(proposal.kind, sourceCount)}
           </ProposalFieldLabel>
           {showKeepWinner && (
             <p className="mb-1 text-xs text-muted">
@@ -194,59 +186,4 @@ function SynthesisSourceMemoryRow({
       )}
     </div>
   );
-}
-
-interface KindMeta {
-  label: string;
-  variant: BadgeProps["variant"];
-  Icon: TablerIcon;
-}
-
-function getKindMeta(kind: ProposedUpdateKind): KindMeta {
-  switch (kind) {
-    case "insight":
-      return { label: "Insight", variant: "default", Icon: IconBulb };
-    case "connection":
-      return { label: "Connection", variant: "secondary", Icon: IconLink };
-    case "contradiction":
-      return {
-        label: "Contradiction",
-        variant: "destructive",
-        Icon: IconAlertTriangle,
-      };
-    case "anomaly":
-      return { label: "Anomaly", variant: "warning", Icon: IconQuestionMark };
-    case "merge":
-      return { label: "Merge", variant: "secondary", Icon: IconArrowsJoin };
-    default:
-      return { label: "Synthesis", variant: "outline", Icon: IconBulb };
-  }
-}
-
-function getSynthesisActionLabels(kind: ProposedUpdateKind): {
-  reject: string;
-  approve: string;
-} {
-  switch (kind) {
-    case "contradiction":
-    case "anomaly":
-      return { reject: "Dismiss", approve: "Acknowledge" };
-    case "merge":
-      return { reject: "Reject", approve: "Merge" };
-    default:
-      return { reject: "Reject", approve: "Approve" };
-  }
-}
-
-function getSynthesisContentLabel(kind: ProposedUpdateKind): string {
-  return kind === "merge" ? "Consolidated memory" : "Synthesis";
-}
-
-function getSourceListLabel(
-  kind: ProposedUpdateKind,
-  sourceCount: number,
-): string {
-  const noun = sourceCount === 1 ? "memory" : "memories";
-  const prefix = kind === "merge" ? "Replaces" : "Derived from";
-  return `${prefix} ${sourceCount} ${noun}`;
 }

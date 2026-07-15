@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useCallback } from "react";
 import { useAction } from "convex/react";
 import {
@@ -31,10 +29,10 @@ import {
   relatedMemoriesQueryKey,
   uniqueRelated,
   type RelatedMemoryEntry,
-} from "@/lib/memories-related";
-import LinkMemoryModal from "@/components/LinkMemoryModal";
+} from "@/lib/memories";
+import LinkMemoryModal from "@/components/memories/LinkMemoryModal";
 import { DetailEmptyState } from "./detail-panel/DetailEmptyState";
-import { VmemSpinner } from "@/components/svg-animations";
+import { VmemSpinner } from "@/components/icons/animations";
 
 interface RelatedMemoriesProps {
   memoryId: string;
@@ -69,19 +67,6 @@ export default function RelatedMemories({
         memoryIdB: relatedId,
       });
       return relatedId;
-    },
-    onMutate: async (relatedId) => {
-      await queryClient.cancelQueries({ queryKey });
-      const previous = queryClient.getQueryData<RelatedMemoryEntry[]>(queryKey);
-      queryClient.setQueryData<RelatedMemoryEntry[]>(queryKey, (old) =>
-        old ? old.filter((entry) => entry.memory.id !== relatedId) : [],
-      );
-      return { previous };
-    },
-    onError: (_err, _relatedId, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(queryKey, context.previous);
-      }
     },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey });

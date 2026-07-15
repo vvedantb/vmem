@@ -1,14 +1,14 @@
-"use client";
-
 import { lazy, Suspense, useState, useEffect, useRef } from "react";
 import { useMutation, useQuery } from "convex/react";
+import { useMediaQuery } from "usehooks-ts";
 import { toast } from "sonner";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 import { api } from "@vmem/backend";
 import { Dialog, DialogContent, DialogTitle } from "@vmem/ui";
-import PageContainer from "@/components/PageContainer";
+import PageContainer from "@/components/shell/PageContainer";
 import { buildTree, findAncestors, wikiKindHasContent } from "./_utils";
 import type { OutlineHeading } from "./_utils";
+import type { WikiNodeDoc } from "./-types";
 import WikiOutline from "./WikiOutline";
 import { useWikiSidebar } from "./WikiSidebarContext";
 import { WikiPageBreadcrumb } from "./WikiPageBreadcrumb";
@@ -67,7 +67,7 @@ function WikiWorkspaceEditing({
   headings,
   activeHeadingId,
   onJump,
-  docId,
+  doc,
   titleForCopy,
   onRegisterCopy,
   onRegisterRestore,
@@ -97,7 +97,7 @@ function WikiWorkspaceEditing({
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <Suspense fallback={<WikiSpinner />}>
           <WikiEditor
-            docId={docId}
+            doc={doc}
             titleForCopy={titleForCopy}
             onRegisterCopy={onRegisterCopy}
             onRegisterRestore={onRegisterRestore}
@@ -119,7 +119,7 @@ interface WikiWorkspaceBodyProps {
   headings: OutlineHeading[];
   activeHeadingId: string | null;
   onJump: (pos: number) => void;
-  docId: string | null;
+  doc: WikiNodeDoc | null | undefined;
   titleForCopy: string;
   onRegisterCopy: (handler: (() => Promise<void>) | null) => void;
   onRegisterRestore: (
@@ -155,30 +155,7 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
   const teamId = activeProfile.teamId;
   const nodes = useQuery(api.wiki.listTree, { teamId });
   const doc = useQuery(api.wiki.getNode, docId ? { id: docId } : "skip");
-  const renameNode = useMutation(api.wiki.renameNode).withOptimisticUpdate(
-    (localStore, args) => {
-      const tree = localStore.getQuery(api.wiki.listTree, { teamId });
-      if (tree) {
-        localStore.setQuery(
-          api.wiki.listTree,
-          { teamId },
-          tree.map((node) =>
-            node._id === args.id
-              ? { ...node, title: args.title, updatedAt: Date.now() }
-              : node,
-          ),
-        );
-      }
-      const node = localStore.getQuery(api.wiki.getNode, { id: args.id });
-      if (node) {
-        localStore.setQuery(
-          api.wiki.getNode,
-          { id: args.id },
-          { ...node, title: args.title, updatedAt: Date.now() },
-        );
-      }
-    },
-  );
+  const renameNode = useMutation(api.wiki.renameNode);
   const {
     outlineVisible,
     setOutlineVisible,
@@ -195,7 +172,7 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
     n: 0,
   });
   const [copyReady, setCopyReady] = useState(false);
-  const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const isMobileViewport = useMediaQuery("(max-width: 767px)");
   const copyDocumentRef = useRef<(() => Promise<void>) | null>(null);
   const restoreDocumentRef = useRef<
     ((markdown: string) => Promise<void>) | null
@@ -257,16 +234,6 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
   }
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia("(max-width: 767px)");
-    function updateViewport() {
-      setIsMobileViewport(mediaQuery.matches);
-    }
-    updateViewport();
-    mediaQuery.addEventListener("change", updateViewport);
-    return () => mediaQuery.removeEventListener("change", updateViewport);
-  }, []);
-
-  useEffect(() => {
     if (hasDocId) return;
     setOutlineVisible(false);
     setHistoryVisible(false);
@@ -308,7 +275,7 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
           headings={headings}
           activeHeadingId={activeHeadingId}
           onJump={requestJump}
-          docId={docId}
+          doc={hasDocId ? doc : null}
           titleForCopy={editableDoc?.title ?? ""}
           onRegisterCopy={handleRegisterCopy}
           onRegisterRestore={handleRegisterRestore}

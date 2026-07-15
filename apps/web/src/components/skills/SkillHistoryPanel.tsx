@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@vmem/backend";
@@ -15,12 +13,8 @@ import {
 } from "@vmem/ui";
 import { IconHistory, IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
-import {
-  patchSkillListMy,
-  type SkillVersionListEntry,
-} from "@/components/skills/_utils";
-import { formatRelativeTime } from "@/lib/formatters";
-import { useActiveTeamId } from "@/components/workspace/active-profile";
+import { type SkillVersionListEntry } from "@/components/skills/_utils";
+import { formatRelativeTime } from "@vmem/shared";
 
 interface SkillHistoryPanelProps {
   open: boolean;
@@ -83,7 +77,6 @@ export function SkillHistoryPanel({
   onOpenChange,
   skillId,
 }: SkillHistoryPanelProps) {
-  const teamId = useActiveTeamId();
   const versions = useQuery(
     api.skillVersions.list,
     open && skillId ? { skillId } : "skip",
@@ -101,26 +94,7 @@ export function SkillHistoryPanel({
     api.skillVersions.get,
     activeVersionId ? { versionId: activeVersionId } : "skip",
   );
-  const restoreVersion = useMutation(
-    api.skills.restoreVersion,
-  ).withOptimisticUpdate((localStore, args) => {
-    const version = localStore.getQuery(api.skillVersions.get, {
-      versionId: args.versionId,
-    });
-    if (!version) return;
-    const current = localStore.getQuery(api.skills.listMy, { teamId });
-    if (!current) return;
-    localStore.setQuery(
-      api.skills.listMy,
-      { teamId },
-      patchSkillListMy(current, version.skillId, {
-        name: version.name,
-        description: version.description,
-        instructions: version.instructions,
-        enabled: version.enabled,
-      }),
-    );
-  });
+  const restoreVersion = useMutation(api.skills.restoreVersion);
 
   const handleOpenChange = (next: boolean) => {
     if (!next) setSelectedId(null);

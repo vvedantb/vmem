@@ -3,13 +3,33 @@
 import { v } from "convex/values";
 import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { z } from "zod";
 import { decryptToken } from "./lib/crypto";
 import { PARSER_VERSION, STALE_SYNCING_MS } from "@vmem/shared";
-import { formatSyncError } from "../engine/codebase/formatSyncError";
-import { runCodebaseSync } from "../engine/codebase/runCodebaseSync";
+import { fetchRepositoryFromGithub } from "../engine/github/fetchRepository";
 import { ensureNeo4jSetupIfNeeded } from "../engine/neo4j/setup";
 import { getDriver } from "../engine/neo4j/driver";
-import type { SyncStage } from "../engine/neo4j/codebaseService";
+import { syncCodebase, type SyncStage } from "../engine/neo4j/codebaseService";
+
+const errorLikeSchema = z.object({
+  message: z.string().optional(),
+  data: z.string().optional(),
+});
+
+function formatSyncError(err: unknown): string {
+  if (typeof err === "string" && err.length > 0) return err;
+  if (err instanceof Error) {
+    if (err.message.length > 0) return err.message;
+    if (err.name.length > 0) return err.name;
+  }
+  const parsed = errorLikeSchema.safeParse(err);
+  if (parsed.success) {
+    const { message, data } = parsed.data;
+    if (message && message.length > 0) return message;
+    if (data && data.length > 0) return data;
+  }
+  return "Codebase sync failed";
+}
 
 const syncOneResult = v.union(
   v.object({ ok: v.literal(true) }),
@@ -106,13 +126,18 @@ export const syncOneCodebaseInternal = internalAction({
         });
       };
 
-      const result = await runCodebaseSync({
-        clerkId,
+      const files = await fetchRepositoryFromGithub(
+        codebase.repoOwner,
+        codebase.repoName,
+        codebase.defaultBranch,
+        token,
+      );
+
+      const result = await syncCodebase({
+        driver: getDriver(),
+        userId: clerkId,
         codebaseId: normalizedId,
-        repoOwner: codebase.repoOwner,
-        repoName: codebase.repoName,
-        branch: codebase.defaultBranch,
-        githubToken: token,
+        files,
         onStage: patchStage,
       });
 

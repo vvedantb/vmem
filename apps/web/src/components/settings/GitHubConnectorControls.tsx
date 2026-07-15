@@ -1,5 +1,3 @@
-"use client";
-
 import { useAction, useMutation } from "convex/react";
 import { api } from "@vmem/backend";
 import { Button } from "@vmem/ui";
@@ -90,11 +88,7 @@ export function GitHubConnectorControls({
   connection,
   returnPath = "/settings/connectors",
 }: GitHubConnectorControlsProps) {
-  const disconnectGithub = useMutation(
-    api.github.disconnect,
-  ).withOptimisticUpdate((localStore) => {
-    localStore.setQuery(api.github.getConnection, {}, null);
-  });
+  const disconnectGithub = useMutation(api.github.disconnect);
   const [disconnecting, setDisconnecting] = useState(false);
 
   if (connection === undefined) {

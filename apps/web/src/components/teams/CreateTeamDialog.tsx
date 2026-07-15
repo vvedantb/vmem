@@ -14,7 +14,6 @@ import {
 } from "@vmem/ui";
 import { IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
-import { optimisticId } from "@/lib/optimisticId";
 
 interface CreateTeamDialogProps {
   open: boolean;
@@ -25,44 +24,7 @@ export function CreateTeamDialog({
   open,
   onOpenChange,
 }: CreateTeamDialogProps) {
-  const createTeam = useMutation(api.teams.create).withOptimisticUpdate(
-    (localStore, args) => {
-      const list = localStore.getQuery(api.teams.list, {});
-      if (!list) return;
-      const head = list.at(0);
-      if (!head) return;
-      const now = Date.now();
-      const teamId = optimisticId("teams");
-      const profileId = optimisticId("profiles");
-      localStore.setQuery(api.teams.list, {}, [
-        {
-          team: {
-            _id: teamId,
-            _creationTime: now,
-            name: args.name.trim(),
-            createdBy: head.team.createdBy,
-            createdAt: now,
-            updatedAt: now,
-          },
-          role: "owner",
-          profile: {
-            _id: profileId,
-            _creationTime: now,
-            userId: head.team.createdBy,
-            name: args.name.trim(),
-            color: "#8B5CF6",
-            icon: "briefcase",
-            isDefault: false,
-            teamId,
-            createdAt: now,
-            updatedAt: now,
-          },
-          memberCount: 1,
-        },
-        ...list,
-      ]);
-    },
-  );
+  const createTeam = useMutation(api.teams.create);
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [submitting, setSubmitting] = useState(false);

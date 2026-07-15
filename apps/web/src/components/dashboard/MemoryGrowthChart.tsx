@@ -1,5 +1,3 @@
-"use client";
-
 import { IconChartBarOff } from "@tabler/icons-react";
 import { motion } from "motion/react";
 import type { FunctionReturnType } from "convex/server";

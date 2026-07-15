@@ -1,5 +1,3 @@
-"use client";
-
 import { Button, cn } from "@vmem/ui";
 import { IconLoader2, IconLock, IconPlus } from "@tabler/icons-react";
 import { codebaseLanguageColor } from "../CodebaseCardInsides";

@@ -18,7 +18,7 @@ import {
   IconActivity,
   IconInbox,
   IconSettings,
-} from "../sidebar-icons";
+} from "../icons/sidebar";
 import type { NavGroup, NavHref, SettingsNavGroup } from "./types";
 
 // workspace-scoped nav items use the `$profileId` placeholder; resolve them with

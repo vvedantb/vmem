@@ -1,5 +1,3 @@
-"use client";
-
 // directory filter for the codebase graph
 
 import { useState } from "react";

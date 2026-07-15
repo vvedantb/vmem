@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useMemo } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api, type Id } from "@vmem/backend";

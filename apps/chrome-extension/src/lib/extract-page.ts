@@ -1,10 +1,10 @@
-/** ask the page's readability content script for extracted html/text. */
+// ask the page's readability content script for extracted html/text
 
 import type { ExtractPageResult } from "@/content/readability";
 
 export type { ExtractPageResult };
 
-/** returns null on privileged urls where content scripts can't run. */
+// returns null on privileged urls where content scripts can't run
 export function extractPageFromTab(
   tabId: number,
 ): Promise<ExtractPageResult | null> {
@@ -13,8 +13,8 @@ export function extractPageFromTab(
       tabId,
       { type: "EXTRACT_PAGE" },
       (response: ExtractPageResult | undefined) => {
-        // chrome.runtime.lastError fires on privileged URLs / when the
-        // content script is not loaded. We resolve null instead of
+        // chrome.runtime.lastError fires on privileged urls / when the
+        // content script is not loaded we resolve null instead of
         // rejecting so callers can decide how to handle missing pages
         if (chrome.runtime.lastError) {
           console.warn(

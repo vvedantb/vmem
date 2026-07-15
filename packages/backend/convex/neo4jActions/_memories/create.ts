@@ -5,30 +5,13 @@ import { resolveCreateWithDedup } from "../../../engine/neo4j/memory/dedup";
 import type { MemoryWithTags } from "../../../engine/neo4j/memory/types";
 import { getDriver } from "../../../engine/neo4j/driver";
 import { bestEffortEmbedOne } from "../../lib/openRouter/bestEffortEmbed";
+import type { CreateMemoryInternalArgs } from "../../memoryApi/validators";
 import { resolveProfileIdForClerkId, toMemoryType } from "./shared";
 import { scheduleAfterMemoryMutation } from "./lifecycle";
 
-export interface CreateMemoryArgs {
-  clerkId: string;
-  profileId?: string;
-  title: string;
-  content: string;
-  type: string;
-  source: string;
-  tags: string[];
-  confidence: number;
-  expiresAt?: string;
-  url?: string;
-  externalId?: string;
-  sourceType?: string;
-  storageId?: string;
-  mimeType?: string;
-  originalFilename?: string;
-}
-
 export async function runCreateMemory(
   ctx: ActionCtx,
-  args: CreateMemoryArgs,
+  args: CreateMemoryInternalArgs,
 ): Promise<MemoryWithTags> {
   const driver = getDriver();
   const profileId = await resolveProfileIdForClerkId(

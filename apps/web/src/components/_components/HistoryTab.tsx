@@ -1,27 +1,16 @@
-"use client";
-
 import { useEffect, useMemo, useState } from "react";
 import { IconClockHour4 } from "@tabler/icons-react";
 import { cn } from "@vmem/ui";
+import { formatDateTime } from "@vmem/shared";
 import { useTimelineEvents } from "@/hooks/useTimelineEvents";
 import { useVersionChain } from "@/hooks/useVersionChain";
 import type { VersionEntry } from "@/lib/timeline";
 import DiffDisplay from "./DiffDisplay";
-import { VmemSpinner } from "@/components/svg-animations";
+import { VmemSpinner } from "@/components/icons/animations";
 import { DetailEmptyState } from "./detail-panel/DetailEmptyState";
 
 interface HistoryTabProps {
   memoryId: string;
-}
-
-function formatAbsoluteTime(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
 }
 
 function formatChangeSentence(
@@ -218,7 +207,7 @@ export default function HistoryTab({ memoryId }: HistoryTabProps) {
 
       <p className="text-xs text-muted">
         <time className="tabular-nums text-foreground/80">
-          {formatAbsoluteTime(selectedEntry.createdAt)}
+          {formatDateTime(selectedEntry.createdAt)}
         </time>
         <span aria-hidden> · </span>
         <span>{selectedEntry.actor}</span>

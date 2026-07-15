@@ -19,7 +19,7 @@ export const BADGE_TICK_ALARM_NAME = "vmem-sync-badge-tick";
 export const SETTINGS_MIRROR_ALARM_NAME = "vmem-user-settings-mirror";
 
 const BADGE_TICK_INTERVAL_MINUTES = 1;
-/** matches popup --accent. */
+// matches popup accent color
 const BADGE_BACKGROUND_COLOR = "#363636";
 const SETTINGS_MIRROR_INTERVAL_MINUTES = 5;
 const CATCHUP_MIN_INTERVAL_MS = 5 * 60 * 1000;
@@ -29,7 +29,7 @@ let lastCatchUpAttemptMs = 0;
 let bookmarkListenerRegistered = false;
 let historySyncInProgress = false;
 
-/** clamped sync interval minutes from chrome.storage. */
+// clamped sync interval minutes from chrome.storage
 export async function getHistorySyncIntervalMinutes(): Promise<number> {
   const { autoSyncIntervalMinutes } = await getStorage();
   if (!Number.isFinite(autoSyncIntervalMinutes)) {
@@ -49,7 +49,7 @@ async function ensureBadgeTickAlarm(): Promise<void> {
   });
 }
 
-/** badge countdown from the real history alarm's scheduledTime. */
+// badge countdown from the real history alarm's scheduledTime
 export async function updateSyncBadge(): Promise<void> {
   const { autoSyncEnabled } = await getStorage();
   const alarm = autoSyncEnabled
@@ -71,7 +71,7 @@ export async function updateSyncBadge(): Promise<void> {
   await chrome.action.setBadgeText({ text });
 }
 
-/** ensure history alarm exists; only recreate when period changes. */
+// ensure history alarm exists only recreate when period changes
 export async function startAutoSync(): Promise<void> {
   await ensureBadgeTickAlarm();
   const intervalMinutes = await getHistorySyncIntervalMinutes();
@@ -84,14 +84,14 @@ export async function startAutoSync(): Promise<void> {
   await updateSyncBadge();
 }
 
-/** reschedule history alarm after frequency change (if auto-sync on). */
+// reschedule history alarm after frequency change (if auto sync on)
 export async function rescheduleHistorySync(): Promise<void> {
   const { autoSyncEnabled } = await getStorage();
   if (!autoSyncEnabled) return;
   await startAutoSync();
 }
 
-/** clear history + badge alarms; bookmark listener stays wired. */
+// clear history + badge alarms bookmark listener stays wired
 export async function stopAutoSync(): Promise<void> {
   await chrome.alarms.clear(HISTORY_ALARM_NAME);
   await chrome.alarms.clear(BADGE_TICK_ALARM_NAME);
@@ -122,7 +122,7 @@ export async function refreshUserSettingsMirrorFromConvex(): Promise<void> {
   }
 }
 
-/** top-level alarm listener — must register synchronously on sw start. */
+// top level alarm listener must register synchronously on sw start
 export function registerAlarmListener(): void {
   if (alarmListenerRegistered) return;
   alarmListenerRegistered = true;
@@ -143,19 +143,19 @@ export function registerAlarmListener(): void {
   });
 }
 
-/** 5m watchdog: refresh settings, heal dropped history alarm, catch up. */
+// 5m watchdog: refresh settings heal dropped history alarm catch up
 async function handleHeartbeat(): Promise<void> {
   void refreshUserSettingsMirrorFromConvex();
 
   const { autoSyncEnabled } = await getStorage();
   if (!autoSyncEnabled) return;
 
-  // idempotent — won't reset an existing alarm's timer
+  // idempotent won't reset an existing alarm's timer
   await startAutoSync();
   await catchUpHistorySyncIfOverdue();
 }
 
-/** top-level bookmark listener — must register synchronously every sw wake. */
+// top level bookmark listener must register synchronously every sw wake
 export function registerBookmarkListener(): void {
   if (bookmarkListenerRegistered) return;
   bookmarkListenerRegistered = true;
@@ -184,7 +184,7 @@ export async function ensureSettingsMirrorAlarm(): Promise<void> {
   });
 }
 
-/** 1m badge tick + history-alarm heal while auto-sync is on. */
+// 1m badge tick + history alarm heal while auto sync is on
 async function handleBadgeTick(): Promise<void> {
   const { autoSyncEnabled } = await getStorage();
   if (!autoSyncEnabled) {
@@ -195,7 +195,7 @@ async function handleBadgeTick(): Promise<void> {
   await startAutoSync(); // heals dropped history alarm + updates badge
 }
 
-/** ensure sync alarms exist on every sw start (not just install/startup). */
+// ensure sync alarms exist on every sw start (not just install/startup)
 export async function bootstrapSyncSchedulers(): Promise<void> {
   await ensureSettingsMirrorAlarm();
   const { autoSyncEnabled } = await getStorage();
@@ -209,7 +209,7 @@ export async function bootstrapSyncSchedulers(): Promise<void> {
   void catchUpHistorySyncIfOverdue();
 }
 
-/** run history sync now if last sync is older than the interval. */
+// run history sync now if last sync is older than the interval
 export async function catchUpHistorySyncIfOverdue(): Promise<void> {
   const { autoSyncEnabled, lastHistorySync } = await getStorage();
   if (!autoSyncEnabled) return;
@@ -226,12 +226,12 @@ export async function catchUpHistorySyncIfOverdue(): Promise<void> {
   await handleHistoryAlarm();
 }
 
-/** manual/debug entry — same path as the history alarm. */
+// manual/debug entry same path as the history alarm
 export async function runAutoSyncNow(): Promise<void> {
   await handleHistoryAlarm();
 }
 
-/** persist last sync attempt (+ skip reason) for popup/debug. */
+// persist last sync attempt (+ skip reason) for popup/debug
 async function recordSyncAttempt(reason: string): Promise<void> {
   await setStorage({
     lastSyncAttemptAt: Date.now(),
@@ -239,7 +239,7 @@ async function recordSyncAttempt(reason: string): Promise<void> {
   });
 }
 
-/** history alarm handler — checks auth + auto-sync before syncing. */
+// history alarm handler checks auth + auto sync before syncing
 async function handleHistoryAlarm(): Promise<void> {
   if (historySyncInProgress) {
     await recordSyncAttempt("in-progress");
@@ -282,17 +282,15 @@ async function handleHistoryAlarm(): Promise<void> {
     console.error("[vmem] History sync failed:", message);
   } finally {
     historySyncInProgress = false;
-    // Reset the countdown — after a fire, the alarm's scheduledTime is the
+    // reset the countdown after a fire the alarm's scheduledTime is the
     // next full interval away
     void updateSyncBadge();
   }
 }
 
-/**
- * Drive an alarm handler by name and await it. Mirrors the live
- * `onAlarm` dispatch but returns the promise so callers/tests can await the
- * full sync + watchdog cycle. No-op for unknown names.
- */
+// drive an alarm handler by name and await it mirrors live onAlarm dispatch
+// but returns the promise so callers/tests can await the full sync + watchdog
+// cycle no op for unknown names
 export async function dispatchAlarm(alarmName: string): Promise<void> {
   if (alarmName === HISTORY_ALARM_NAME) {
     await handleHistoryAlarm();

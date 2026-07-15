@@ -3,6 +3,7 @@
 import { createContext, use, type ReactNode } from "react";
 import { useParams } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
+import { useLocalStorage } from "usehooks-ts";
 import { api } from "@vmem/backend";
 import type { Doc, Id } from "@vmem/backend";
 
@@ -32,30 +33,29 @@ export function useActiveProfile(): Doc<"profiles"> {
   return profile;
 }
 
-const LAST_PROFILE_STORAGE_KEY = "vmem:last-profile-id";
+export const LAST_PROFILE_STORAGE_KEY = "vmem:last-profile-id";
 
-export function rememberActiveProfileId(profileId: string): void {
-  try {
-    window.localStorage.setItem(LAST_PROFILE_STORAGE_KEY, profileId);
-  } catch {
-    // private mode / storage disabled — losing the remembered workspace is fine
-  }
-}
+// plain string (not JSON) so existing raw profile ids keep working
+const lastProfileStorageOptions = {
+  serializer: (value: string | null) => value ?? "",
+  deserializer: (value: string) => (value.length === 0 ? null : value),
+};
 
-export function readLastActiveProfileId(): string | null {
-  try {
-    return window.localStorage.getItem(LAST_PROFILE_STORAGE_KEY);
-  } catch {
-    return null;
-  }
+export function useLastActiveProfileId() {
+  return useLocalStorage<string | null>(
+    LAST_PROFILE_STORAGE_KEY,
+    null,
+    lastProfileStorageOptions,
+  );
 }
 
 // workspace id outside $profileId outlet; undefined if never visited
 export function useActiveProfileId(): string | undefined {
   const params = useParams({ strict: false });
+  const [lastProfileId] = useLastActiveProfileId();
   const profileId: string | undefined = params.profileId;
   if (typeof profileId === "string") return profileId;
-  return readLastActiveProfileId() ?? undefined;
+  return lastProfileId ?? undefined;
 }
 
 // team id for the active workspace (undefined = personal).

@@ -1,7 +1,5 @@
-"use client";
-
 import { createFileRoute, Outlet } from "@tanstack/react-router";
-import PageContainer from "@/components/PageContainer";
+import PageContainer from "@/components/shell/PageContainer";
 import { DataControlsTabs } from "./-components/DataControlsTabs";
 
 export const Route = createFileRoute("/_main/settings/data-controls")({

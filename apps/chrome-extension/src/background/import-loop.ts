@@ -13,10 +13,8 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/**
- * Shared lock + cancel + createMemory loop for bookmark/history imports.
- * Keeps progress messaging and per-item delay identical across both paths.
- */
+// shared lock + cancel + createMemory loop for bookmark/history imports
+// keeps progress messaging and per item delay identical across both paths
 export async function runLockedImportLoop<T>(options: {
   acquireLock: () => boolean;
   releaseLock: () => void;

@@ -16,7 +16,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vedantb2/vmem.git",
+    "url": "git+https://github.com/vvedantb/vmem.git",
     "directory": "packages/sdk"
   },
   "publishConfig": {

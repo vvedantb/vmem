@@ -1,6 +1,6 @@
 import { useMatchRoute } from "@tanstack/react-router";
 import { IconKey, IconChartBar } from "@tabler/icons-react";
-import { RouteTabs } from "@/components/RouteTabs";
+import { RouteTabs } from "@/components/shell/RouteTabs";
 
 export type ApiTab = "usage" | "keys";
 

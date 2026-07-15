@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
@@ -27,8 +25,8 @@ import { ProfileAvatar } from "@/components/profiles/ProfileAvatar";
 import { CreateEditProfileDialog } from "@/components/profiles/CreateEditProfileDialog";
 import { CreateTeamDialog } from "@/components/teams/CreateTeamDialog";
 import {
-  rememberActiveProfileId,
   useActiveProfileId,
+  useLastActiveProfileId,
 } from "@/components/workspace/active-profile";
 import { workspacePathFor } from "@/components/workspace/workspace-paths";
 import { SidebarIconTooltip } from "./SidebarIconTooltip";
@@ -83,6 +81,7 @@ export function SidebarWorkspaceSwitcher({
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const activeProfileId = useActiveProfileId();
+  const [, setLastProfileId] = useLastActiveProfileId();
   const profiles = useQuery(api.profiles.list);
   const createProfile = useMutation(api.profiles.create);
   const [createProfileOpen, setCreateProfileOpen] = useState(false);
@@ -107,7 +106,7 @@ export function SidebarWorkspaceSwitcher({
   const subtitle = active.teamId !== undefined ? "Team workspace" : "Personal";
 
   const switchTo = (profile: Doc<"profiles">) => {
-    rememberActiveProfileId(profile._id);
+    setLastProfileId(profile._id);
     void navigate({
       to: workspacePathFor(pathname, profile._id, profile.teamId !== undefined),
     });
@@ -121,7 +120,7 @@ export function SidebarWorkspaceSwitcher({
   }) => {
     const created = await createProfile(data);
     if (created) {
-      rememberActiveProfileId(created._id);
+      setLastProfileId(created._id);
       await navigate({
         to: "/$profileId/home",
         params: { profileId: created._id },

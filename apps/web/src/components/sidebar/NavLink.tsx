@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import type { MouseEventHandler } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { cn, motionDuration, motionEase } from "@vmem/ui";
+import { IconChevronRight } from "@tabler/icons-react";
 import type { NavItem } from "./types";
 import { navHrefToPath } from "./nav-config";
 import { SidebarIconTooltip } from "./SidebarIconTooltip";
@@ -15,6 +16,7 @@ export function NavLink({
   isIconOnly,
   unreadCount,
   proposalsCount,
+  showChevron = false,
   onNavigate,
 }: {
   item: NavItem;
@@ -24,6 +26,7 @@ export function NavLink({
   isIconOnly: boolean;
   unreadCount: number;
   proposalsCount: number;
+  showChevron?: boolean;
   onNavigate?: MouseEventHandler<HTMLAnchorElement>;
 }) {
   const resolvedPath = navHrefToPath(item.href, profileId);
@@ -47,6 +50,7 @@ export function NavLink({
           "group relative flex w-full items-center rounded-lg text-sm font-medium tracking-normal transition-colors duration-200 ease-smooth",
           sidebarNavRowClass(isIconOnly),
           sidebarNavLinkTextClass(isActive),
+          showChevron ? "h-auto" : null,
         )}
       >
         <span className="flex h-5 w-5 items-center justify-center text-current">
@@ -56,7 +60,7 @@ export function NavLink({
           {!isIconOnly ? (
             <motion.span
               key={`${item.href}-label`}
-              className="flex-1"
+              className={showChevron ? "min-w-0 flex-1 text-left" : "flex-1"}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -69,6 +73,14 @@ export function NavLink({
             </motion.span>
           ) : null}
         </AnimatePresence>
+        {showChevron && !isIconOnly ? (
+          <IconChevronRight
+            size={16}
+            stroke={2}
+            aria-hidden
+            className="shrink-0 text-muted opacity-0 transition-opacity group-hover:opacity-100"
+          />
+        ) : null}
         <AnimatePresence initial={false}>
           {showBadge && !isIconOnly ? (
             <motion.span

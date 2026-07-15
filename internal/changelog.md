@@ -1,5 +1,81 @@
 # Changelog
 
+## 2026-07-15 — Engine stage 1: delete shallow modules
+
+Inline codebase sync/error helpers into Convex, fold parsers and enrichment
+vocabulary reads, move connector source types and `withSession` to their
+natural homes, and drop dead `syncCodebaseInternal` / engine search wrapper.
+
+## 2026-07-15 — Trim MCP catalog ceremony
+
+Bind tools at registration time (drop precomputed bindable catalog), co-locate
+profile mappers into toolsCore, share emptyInputSchema, and patch the wiki
+folder path index in memory instead of refetching the tree.
+
+## 2026-07-15 — Decompose Dream Mode pass helpers
+
+Shared DreamRunResult helpers across entry points, split profile runs into
+anomaly/merge/portrait passes, and dropped the duplicate public RunResult type.
+
+## 2026-07-15 — Share HTTP respond + accessible-profile helpers
+
+API-key auth uses a request-local `respond` closure for usage logging. Dashboard,
+graph, proposals, file import, memoryApi, and HTTP share one accessible-profile
+helper for team-scope / assert checks.
+
+## 2026-07-15 — Simplify Convex skills/wiki/memory internals
+
+Shared skill and wiki create/update/delete helpers across web and MCP
+registrants. Unified memory list/search validators, patched connector tokens
+in place, and collapsed GitHub connection upsert to one internal mutation.
+
+## 2026-07-15 — Drop TanStack Query optimistic cache patches
+
+Removed `onMutate` / rollback `onError` from memory create/update/delete and
+related-memory unlink. Lists refresh via `invalidateQueries` on settle instead.
+
+## 2026-07-15 — Reorganize web providers and loose components
+
+Moved `providers/` and `contexts/` out of `components/` to top-level
+`src/providers` and `src/contexts`. Tucked loose root components into domain
+folders (`shell/`, `memories/`, etc.) so `components/` is domain-only.
+
+## 2026-07-15 — Drop client optimistic mutation wrappers
+
+Removed Convex `.withOptimisticUpdate` from web and the chrome extension.
+Mutations are plain `useMutation(api.…)` again; deleted the `_optimistic*`
+helper modules that only existed for those wrappers.
+
+## 2026-07-15 — Nest web icon families under `components/icons`
+
+Moved `brand-icons`, `svg-animations`, and `sidebar-icons` under
+`components/icons/{logos,animations,sidebar}` and updated imports. No barrel
+at `icons/`; connector logos under `public/` and canvas stay put.
+
+## 2026-07-15 — Adopt usehooks-ts for common web utilities
+
+Replaced hand-rolled localStorage, matchMedia, debounce, clipboard+timeout,
+and OAuth interval/listener helpers with `useLocalStorage`, `useMediaQuery`,
+`useDebounceValue`, `useCopyToClipboard`/`useTimeout`, and
+`useInterval`/`useEventListener`/`useTimeout`.
+
+## 2026-07-15 — Web app structure simplification
+
+Moved graph helpers and URL search schemas into `lib/`, extracted fat
+preferences/profiles/activity surfaces into components, and shared metric
+cards, confirm dialogs, and list-filter helpers across dashboard and settings.
+Sidebar `navView` is URL-derived; wiki/skills/teams use shared optimistic
+helpers and destructive confirms. `DestructiveConfirmDialog` now supports
+typed confirm and covers memory/file/env/wiki/system-skill deletes.
+Upload surfaces use `react-dropzone` instead of hand-rolled drag handlers.
+Skill create/edit dialogs share a `SkillFormShell` for fields and footer.
+UnifiedFilterPanel tabs share filter row/header primitives.
+Dropped Next.js `"use client"` directives from the Vite web app,
+`packages/ui`, and the extension popup. Activity LLM spend lives at
+`/activity/usage`; legacy `/ai-logs` and `/openrouter-logs` redirects are gone.
+Extension adopts Clerk SW Convex tokens, zod message unions, and
+`usehooks-ts` in the popup.
+
 ## 2026-07-14 — Memory API contract alignment
 
 HTTP memory routes and MCP memory tools share one zod contract for create,

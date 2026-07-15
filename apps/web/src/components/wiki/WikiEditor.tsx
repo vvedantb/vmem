@@ -1,13 +1,10 @@
-"use client";
-
-import { useQuery } from "convex/react";
-import { api } from "@vmem/backend";
 import type { OutlineHeading } from "./_utils";
+import type { WikiNodeDoc } from "./-types";
 import WikiArtifactEditor from "./WikiArtifactEditor";
 import WikiDocumentEditor from "./WikiDocumentEditor";
 
 interface WikiEditorProps {
-  docId: string | null;
+  doc: WikiNodeDoc | null | undefined;
   titleForCopy: string;
   onRegisterCopy: (handler: (() => Promise<void>) | null) => void;
   onRegisterRestore: (
@@ -22,7 +19,7 @@ interface WikiEditorProps {
 // routes to TipTap (documents) or the artifact source/preview editor — keeps
 // TipTap off the artifact path so it does not mount for code/html nodes
 export default function WikiEditor({
-  docId,
+  doc,
   titleForCopy,
   onRegisterCopy,
   onRegisterRestore,
@@ -31,18 +28,6 @@ export default function WikiEditor({
   onWordCountChange,
   jumpRequest,
 }: WikiEditorProps) {
-  const doc = useQuery(api.wiki.getNode, docId ? { id: docId } : "skip");
-
-  if (docId === null || docId.length === 0) {
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <p className="text-sm text-muted">
-          Select or create a document to start writing.
-        </p>
-      </div>
-    );
-  }
-
   if (doc === undefined) {
     return (
       <div className="flex-1 flex items-center justify-center">

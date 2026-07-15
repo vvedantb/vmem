@@ -3,15 +3,14 @@ import { internal } from "../_generated/api";
 import { requireClerkId, type AuthActionCtx } from "../auth";
 import { assertTeamAccess } from "./auth";
 import type { MemoryWithTags, MemoryListResult } from "./types";
+import type {
+  TeamListMemoriesArgs,
+  UpdateMemoryInternalArgs,
+} from "./validators";
 
-interface ListTeamMemoriesArgs {
+type ListTeamMemoriesArgs = TeamListMemoriesArgs & {
   profileId: Id<"profiles">;
-  type?: string;
-  status?: string;
-  tags?: string[];
-  limit: number;
-  offset: number;
-}
+};
 
 export async function runListTeamMemories(
   ctx: AuthActionCtx,
@@ -24,7 +23,9 @@ export async function runListTeamMemories(
       profileId: args.profileId,
       type: args.type,
       status: args.status,
+      source: args.source,
       tags: args.tags,
+      searchQuery: args.searchQuery,
       limit: args.limit,
       offset: args.offset,
     },
@@ -42,46 +43,13 @@ export async function runGetTeamMemory(
   );
 }
 
-interface SearchTeamMemoriesArgs {
-  profileId: Id<"profiles">;
-  query?: string;
-  type?: string;
-  tags?: string[];
-  source?: string;
-  limit: number;
-  offset: number;
-}
-
-export async function runSearchTeamMemories(
-  ctx: AuthActionCtx,
-  args: SearchTeamMemoriesArgs,
-): Promise<MemoryListResult> {
-  await assertTeamAccess(ctx, args.profileId);
-  return await ctx.runAction(
-    internal.neo4jActions.memories.searchMemoriesForTeamInternal,
-    {
-      profileId: args.profileId,
-      query: args.query,
-      type: args.type,
-      tags: args.tags,
-      source: args.source,
-      limit: args.limit,
-      offset: args.offset,
-    },
-  );
-}
-
-interface UpdateTeamMemoryArgs {
+type UpdateTeamMemoryArgs = {
   profileId: Id<"profiles">;
   memoryId: string;
-  title?: string;
-  content?: string;
-  type?: string;
-  status?: string;
-  tags?: string[];
-  confidence?: number;
-  expiresAt?: string | null;
-}
+} & Pick<
+  UpdateMemoryInternalArgs,
+  "title" | "content" | "type" | "status" | "tags" | "confidence" | "expiresAt"
+>;
 
 async function loadMutableTeamMemory(
   ctx: AuthActionCtx,

@@ -2,7 +2,8 @@ import neo4j, { type Driver, type Record, type Session } from "neo4j-driver";
 import { toMemoryContentFulltextQuery } from "../luceneQuery";
 import { neo4jGet, neo4jString, parseNeo4jInt } from "../record";
 import { recencyFromAgeDays, rrfScore, toMemoryWithTags } from "./mappers";
-import { profileFilter, visibleStatusClause, withSession } from "./shared";
+import { withSession } from "../session";
+import { profileFilter, visibleStatusClause } from "./shared";
 import type {
   GraphExpansion,
   MemoryCandidate,

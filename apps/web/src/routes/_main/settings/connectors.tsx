@@ -4,8 +4,8 @@ import { useQuery, useMutation } from "convex/react";
 import { Card, CardContent, Skeleton, Button } from "@vmem/ui";
 import { IconPlug, IconPlus } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
-import PageContainer from "@/components/PageContainer";
-import ConnectorCard from "@/components/ConnectorCard";
+import PageContainer from "@/components/shell/PageContainer";
+import ConnectorCard from "@/components/settings/ConnectorCard";
 import BrowseConnectorsModal from "@/components/settings/BrowseConnectorsModal";
 import { isConnectorConnected } from "@/components/settings/connector-utils";
 

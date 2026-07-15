@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback } from "react";
 import {
   Checkbox,
@@ -11,9 +9,9 @@ import {
   DropdownMenuItem,
 } from "@vmem/ui";
 import { IconDotsVertical } from "@tabler/icons-react";
+import { formatDate } from "@vmem/shared";
 import {
   formatFileSize,
-  formatDate,
   formatItemCount,
   fileCategoryForNode,
   getFileIcon,

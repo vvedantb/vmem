@@ -3,7 +3,8 @@ import type { Driver, Record as NeoRecord, Session } from "neo4j-driver";
 import { z } from "zod";
 import { neo4jGet, neo4jString, parseNeo4jNodeProps } from "../record";
 import { computeContentHash, toMemoryWithTags, toSnapshot } from "./mappers";
-import { logEvent, profileFilter, withSession } from "./shared";
+import { withSession } from "../session";
+import { logEvent, profileFilter } from "./shared";
 import {
   PROPOSED_UPDATE_KINDS,
   type ProposedUpdateKind,

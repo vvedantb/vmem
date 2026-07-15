@@ -1,29 +1,37 @@
-export function waitForElement(
-  selector: string,
+export function waitForProbe<T>(
+  probe: () => T | null | undefined,
   timeout = 10000,
-): Promise<Element | null> {
+): Promise<T | null> {
   return new Promise((resolve) => {
-    const existing = document.querySelector(selector);
-    if (existing) {
+    const existing = probe();
+    if (existing != null) {
       resolve(existing);
       return;
     }
 
     const observer = new MutationObserver(() => {
-      const element = document.querySelector(selector);
-      if (element) {
+      const found = probe();
+      if (found != null) {
+        clearTimeout(timer);
         observer.disconnect();
-        resolve(element);
+        resolve(found);
       }
     });
 
-    observer.observe(document.body, { childList: true, subtree: true });
-
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       observer.disconnect();
-      resolve(null);
+      resolve(probe() ?? null);
     }, timeout);
+
+    observer.observe(document.body, { childList: true, subtree: true });
   });
+}
+
+export function waitForElement(
+  selector: string,
+  timeout = 10000,
+): Promise<Element | null> {
+  return waitForProbe(() => document.querySelector(selector), timeout);
 }
 
 export function observeUrlChanges(callback: () => void): void {

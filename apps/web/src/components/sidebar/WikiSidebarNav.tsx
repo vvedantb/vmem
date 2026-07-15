@@ -1,24 +1,21 @@
-"use client";
-
 import { useCallback, useMemo } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
-import { motion } from "motion/react";
 import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
-import { Button, cn, motionDuration, motionEase } from "@vmem/ui";
+import { Button } from "@vmem/ui";
 import { IconBook, IconListCheck } from "@tabler/icons-react";
 import WikiTree from "@/components/wiki/WikiTree";
 import WikiSearch from "@/components/wiki/WikiSearch";
 import { WikiAddMenu } from "@/components/wiki/WikiAddMenu";
 import { WikiBulkDeleteBar } from "@/components/wiki/WikiBulkDeleteBar";
 import { buildTree, findFirstDocumentId } from "@/components/wiki/_utils";
-import { optimisticCreateWikiNode } from "@/components/wiki/_optimisticCreate";
 import { useIdSelectionMode } from "@/hooks/useIdSelectionMode";
 import {
   useActiveProfileId,
   useActiveTeamId,
 } from "@/components/workspace/active-profile";
+import { SubSidebarShell } from "./SubSidebarShell";
 
 export type WikiSidebarNavProps = {
   isIconOnly: boolean;
@@ -36,9 +33,7 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
       : null;
 
   const nodes = useQuery(api.wiki.listTree, { teamId });
-  const createNode = useMutation(api.wiki.createNode).withOptimisticUpdate(
-    optimisticCreateWikiNode,
-  );
+  const createNode = useMutation(api.wiki.createNode);
 
   const tree = useMemo(() => (nodes ? buildTree(nodes) : []), [nodes]);
 
@@ -135,16 +130,7 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
   );
 
   return (
-    <motion.nav
-      className={cn(
-        "flex min-h-0 flex-1 flex-col overflow-hidden",
-        isMobile ? "pb-2" : "pr-1",
-      )}
-      initial={{ opacity: 0, x: 12 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 12 }}
-      transition={{ duration: motionDuration.fast, ease: motionEase }}
-    >
+    <SubSidebarShell isMobile={isMobile}>
       <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden px-1">
         {nodes === undefined ? (
           <div className="flex items-center justify-center py-10">
@@ -178,7 +164,6 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
               <WikiBulkDeleteBar
                 selectedIds={selectedIds}
                 nodes={nodes ?? []}
-                teamId={teamId}
                 currentDocId={docId}
                 onExit={exitSelection}
                 onCurrentRemoved={() => handleSelectNode("")}
@@ -196,6 +181,6 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
           </>
         )}
       </div>
-    </motion.nav>
+    </SubSidebarShell>
   );
 }

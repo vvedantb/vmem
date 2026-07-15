@@ -22,19 +22,9 @@ function useExtensionUserSettingsInner() {
   // optimistic ws + durable http write (popup socket can drop on close)
   const update = useCallback(
     async (args: UserSettingsUpdateArgs): Promise<void> => {
-      void baseUpdate
-        .withOptimisticUpdate((localStore) => {
-          const current = localStore.getQuery(api.userSettings.get, {});
-          if (!current) return;
-          localStore.setQuery(
-            api.userSettings.get,
-            {},
-            { ...current, ...args },
-          );
-        })(args)
-        .catch(() => {
-          // http write below is source of truth
-        });
+      void baseUpdate(args).catch(() => {
+        // http write below is source of truth
+      });
 
       try {
         await updateUserSettings(args);

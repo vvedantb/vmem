@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { toast } from "sonner";
@@ -14,31 +12,13 @@ import { api } from "@vmem/backend";
 import {
   isConnectorConnected,
   isConnectorConnectable,
+  isGitHubConnector,
+  resolveConnectorIcon,
   type Connector,
   type GitHubConnection,
 } from "./connector-utils";
-import OAuthModal from "@/components/OAuthModal";
+import OAuthModal from "@/components/settings/OAuthModal";
 import { GitHubConnectorControls } from "./GitHubConnectorControls";
-import {
-  GoogleDriveIcon,
-  NotionIcon,
-  GitHubIcon,
-} from "@/components/brand-icons";
-
-const connectorIcons = new Map<
-  string,
-  React.ComponentType<{ size?: number; className?: string }>
->([
-  ["IconBrandGoogleDrive", GoogleDriveIcon],
-  ["IconBrandNotion", NotionIcon],
-  ["IconBrandGithub", GitHubIcon],
-]);
-
-function connectorIcon(
-  iconName: string,
-): React.ComponentType<{ size?: number; className?: string }> {
-  return connectorIcons.get(iconName) ?? GoogleDriveIcon;
-}
 
 function ConnectorRow({
   connector,
@@ -49,7 +29,7 @@ function ConnectorRow({
   githubConnection: GitHubConnection | undefined;
   onConnect: (connector: Connector) => void;
 }) {
-  const Icon = connectorIcon(connector.icon);
+  const Icon = resolveConnectorIcon(connector.icon);
 
   return (
     <div className="flex items-center gap-3 rounded-lg px-3 py-3 hover:bg-surface-tertiary/50 transition-colors min-w-0">
@@ -61,7 +41,7 @@ function ConnectorRow({
         <p className="text-xs text-muted truncate">{connector.description}</p>
       </div>
       <div className="flex-shrink-0">
-        {connector.name === "GitHub" ? (
+        {isGitHubConnector(connector) ? (
           <GitHubConnectorControls connection={githubConnection} />
         ) : (
           <Button

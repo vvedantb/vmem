@@ -1,23 +1,18 @@
-"use client";
-
 import { useCallback, useEffect, useRef } from "react";
-import { useMutation } from "convex/react";
 import type { Editor } from "@tiptap/core";
 import { EditorContent, useEditor } from "@tiptap/react";
-import type { JSONContent } from "@tiptap/react";
-import { useDebounceCallback } from "usehooks-ts";
+import { TableOfContents } from "@tiptap/extension-table-of-contents";
+import type { TableOfContentDataItem } from "@tiptap/extension-table-of-contents";
 import { toast } from "sonner";
-import { api } from "@vmem/backend";
-import type { Id } from "@vmem/backend";
 import { wikiEditorExtensions } from "./_editorExtensions";
 import {
   countWords,
   docToPlainText,
-  extractHeadings,
   formatWikiDocForClipboard,
 } from "./_utils";
 import type { OutlineHeading } from "./_utils";
 import type { WikiNodeDoc } from "./-types";
+import { useWikiAutosave } from "./useWikiAutosave";
 
 interface WikiDocumentEditorProps {
   doc: WikiNodeDoc;
@@ -32,18 +27,20 @@ interface WikiDocumentEditorProps {
   jumpRequest: { pos: number; n: number };
 }
 
-const AUTOSAVE_MS = 800;
-const SAVE_TOAST_MS = 2000;
-const ACTIVE_OFFSET_PX = 80;
-
-function resolveHeadingElement(editor: Editor, pos: number): Element | null {
-  try {
-    const { node } = editor.view.domAtPos(pos);
-    const element = node instanceof Element ? node : node.parentElement;
-    return element?.closest("h1, h2, h3, h4, h5, h6") ?? null;
-  } catch {
-    return null;
+function anchorsToHeadings(
+  anchors: TableOfContentDataItem[],
+): OutlineHeading[] {
+  const headings: OutlineHeading[] = [];
+  for (const anchor of anchors) {
+    if (anchor.textContent.length === 0) continue;
+    headings.push({
+      id: anchor.id,
+      level: anchor.originalLevel,
+      text: anchor.textContent,
+      pos: anchor.pos,
+    });
   }
+  return headings;
 }
 
 function getMarkdownFromEditor(editor: Editor): string {
@@ -70,64 +67,35 @@ export default function WikiDocumentEditor({
   onWordCountChange,
   jumpRequest,
 }: WikiDocumentEditorProps) {
-  const updateContent = useMutation(
-    api.wiki.updateContent,
-  ).withOptimisticUpdate((localStore, args) => {
-    const node = localStore.getQuery(api.wiki.getNode, { id: args.id });
-    if (!node) return;
-    localStore.setQuery(
-      api.wiki.getNode,
-      { id: args.id },
-      {
-        ...node,
-        content: args.content,
-        contentText: args.contentText,
-        updatedAt: Date.now(),
-      },
-    );
-  });
+  const { queueSave, saveNow, cancelPendingSave } = useWikiAutosave(doc._id);
 
-  const loadedDocIdRef = useRef<Id<"wikiNodes"> | null>(null);
+  const loadedDocIdRef = useRef<string | null>(null);
   const suppressNextUpdateRef = useRef(false);
+  const baselineMarkdownRef = useRef(doc.content ?? "");
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
-  const headingsRef = useRef<OutlineHeading[]>([]);
-  const computeFrameRef = useRef(0);
-  const scheduleRef = useRef<() => void>(() => {});
+  const onHeadingsChangeRef = useRef(onHeadingsChange);
+  const onActiveHeadingChangeRef = useRef(onActiveHeadingChange);
+  const onWordCountChangeRef = useRef(onWordCountChange);
 
-  const debouncedSaveToast = useDebounceCallback(() => {
-    toast.success("Saved!");
-  }, SAVE_TOAST_MS);
+  onHeadingsChangeRef.current = onHeadingsChange;
+  onActiveHeadingChangeRef.current = onActiveHeadingChange;
+  onWordCountChangeRef.current = onWordCountChange;
 
-  const debouncedSave = useDebounceCallback(
-    async (id: Id<"wikiNodes">, markdown: string, jsonDoc: JSONContent) => {
-      try {
-        await updateContent({
-          id,
-          content: markdown,
-          contentText: docToPlainText(jsonDoc),
-        });
-        debouncedSaveToast();
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Failed to save");
-      }
-    },
-    AUTOSAVE_MS,
-  );
-
-  const publishHeadings = useCallback(
-    (next: OutlineHeading[]) => {
-      headingsRef.current = next;
-      onHeadingsChange(next);
-    },
-    [onHeadingsChange],
-  );
-
-  const handleScroll = useCallback(() => {
-    scheduleRef.current();
+  const handleTocUpdate = useCallback((anchors: TableOfContentDataItem[]) => {
+    const headings = anchorsToHeadings(anchors);
+    onHeadingsChangeRef.current(headings);
+    const active = anchors.find((anchor) => anchor.isActive);
+    onActiveHeadingChangeRef.current(active?.id ?? headings[0]?.id ?? null);
   }, []);
 
   const editor = useEditor({
-    extensions: wikiEditorExtensions(),
+    extensions: [
+      ...wikiEditorExtensions(),
+      TableOfContents.configure({
+        scrollParent: () => scrollContainerRef.current ?? window,
+        onUpdate: handleTocUpdate,
+      }),
+    ],
     content: "",
     immediatelyRender: false,
     editorProps: {
@@ -137,82 +105,39 @@ export default function WikiDocumentEditor({
       },
     },
     onUpdate: ({ editor: instance }) => {
+      const jsonDoc = instance.getJSON();
+      onWordCountChangeRef.current(countWords(docToPlainText(jsonDoc)));
+
       if (suppressNextUpdateRef.current) {
         suppressNextUpdateRef.current = false;
+        baselineMarkdownRef.current = getMarkdownFromEditor(instance);
         return;
       }
-      const jsonDoc = instance.getJSON();
-      publishHeadings(extractHeadings(jsonDoc));
-      onWordCountChange(countWords(docToPlainText(jsonDoc)));
-      scheduleRef.current();
-      const activeId = loadedDocIdRef.current;
-      if (activeId) {
-        void debouncedSave(activeId, getMarkdownFromEditor(instance), jsonDoc);
-      }
+
+      // toc stamps heading ids that markdown does not serialize — skip no-op saves
+      const markdown = getMarkdownFromEditor(instance);
+      if (markdown === baselineMarkdownRef.current) return;
+      if (loadedDocIdRef.current !== doc._id) return;
+
+      baselineMarkdownRef.current = markdown;
+      queueSave({
+        content: markdown,
+        contentText: docToPlainText(jsonDoc),
+      });
     },
   });
 
-  const computeActiveHeading = useCallback(() => {
-    const container = scrollContainerRef.current;
-    if (!editor || editor.isDestroyed || !container) return;
-    const headings = headingsRef.current;
-    if (headings.length === 0) {
-      onActiveHeadingChange(null);
-      return;
-    }
-
-    const atBottom =
-      container.scrollTop + container.clientHeight >=
-      container.scrollHeight - 2;
-    const containerTop = container.getBoundingClientRect().top;
-
-    let firstId: string | null = null;
-    let activeId: string | null = null;
-    for (const heading of headings) {
-      const element = resolveHeadingElement(editor, heading.pos);
-      if (!element) continue;
-      if (firstId === null) firstId = heading.id;
-      const relativeTop = element.getBoundingClientRect().top - containerTop;
-      if (relativeTop <= ACTIVE_OFFSET_PX) {
-        activeId = heading.id;
-      } else {
-        break;
-      }
-    }
-
-    if (atBottom) {
-      for (let i = headings.length - 1; i >= 0; i--) {
-        const heading = headings[i];
-        if (heading && resolveHeadingElement(editor, heading.pos)) {
-          activeId = heading.id;
-          break;
-        }
-      }
-    }
-
-    onActiveHeadingChange(activeId ?? firstId);
-  }, [editor, onActiveHeadingChange]);
-
-  const scheduleComputeActive = useCallback(() => {
-    if (computeFrameRef.current) return;
-    computeFrameRef.current = requestAnimationFrame(() => {
-      computeFrameRef.current = 0;
-      computeActiveHeading();
-    });
-  }, [computeActiveHeading]);
-
+  // toc binds scrollParent once onCreate (often before the container ref exists)
   useEffect(() => {
-    scheduleRef.current = scheduleComputeActive;
-  }, [scheduleComputeActive]);
-
-  useEffect(() => {
-    return () => {
-      if (computeFrameRef.current) {
-        cancelAnimationFrame(computeFrameRef.current);
-        computeFrameRef.current = 0;
-      }
+    const el = scrollContainerRef.current;
+    if (!editor || editor.isDestroyed || !el) return;
+    const handler = () => {
+      editor.storage.tableOfContents.scrollHandler();
     };
-  }, []);
+    el.addEventListener("scroll", handler);
+    handler();
+    return () => el.removeEventListener("scroll", handler);
+  }, [editor]);
 
   useEffect(() => {
     if (!editor) return;
@@ -223,20 +148,11 @@ export default function WikiDocumentEditor({
 
     const markdown = doc.content ?? "";
     suppressNextUpdateRef.current = true;
+    baselineMarkdownRef.current = markdown;
     editor.commands.setContent(markdown);
     loadedDocIdRef.current = doc._id;
-    const jsonDoc = editor.getJSON();
-    publishHeadings(extractHeadings(jsonDoc));
-    onWordCountChange(countWords(docToPlainText(jsonDoc)));
-    scheduleComputeActive();
-  }, [
-    doc._id,
-    doc.content,
-    editor,
-    publishHeadings,
-    onWordCountChange,
-    scheduleComputeActive,
-  ]);
+    onWordCountChange(countWords(docToPlainText(editor.getJSON())));
+  }, [doc._id, doc.content, editor, onWordCountChange]);
 
   useEffect(() => {
     if (!editor || jumpRequest.n === 0) return;
@@ -248,13 +164,6 @@ export default function WikiDocumentEditor({
       target.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, [editor, jumpRequest]);
-
-  useEffect(() => {
-    return () => {
-      debouncedSave.cancel();
-      debouncedSaveToast.cancel();
-    };
-  }, [debouncedSave, debouncedSaveToast]);
 
   useEffect(() => {
     if (!editor) {
@@ -286,35 +195,25 @@ export default function WikiDocumentEditor({
   const restoreToContent = useCallback(
     async (markdown: string) => {
       if (!editor) return;
-      const activeId = loadedDocIdRef.current;
-      if (!activeId) return;
-      debouncedSave.cancel();
+      cancelPendingSave();
       suppressNextUpdateRef.current = true;
+      baselineMarkdownRef.current = markdown;
       editor.commands.setContent(markdown);
       const jsonDoc = editor.getJSON();
-      publishHeadings(extractHeadings(jsonDoc));
       onWordCountChange(countWords(docToPlainText(jsonDoc)));
-      scheduleComputeActive();
       try {
-        await updateContent({
-          id: activeId,
+        await saveNow({
           content: getMarkdownFromEditor(editor),
           contentText: docToPlainText(jsonDoc),
           forceSnapshot: true,
         });
+        baselineMarkdownRef.current = getMarkdownFromEditor(editor);
         toast.success("Version restored");
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Failed to restore");
+      } catch {
+        // saveNow already toasts on failure
       }
     },
-    [
-      editor,
-      updateContent,
-      debouncedSave,
-      publishHeadings,
-      onWordCountChange,
-      scheduleComputeActive,
-    ],
+    [editor, cancelPendingSave, saveNow, onWordCountChange],
   );
 
   useEffect(() => {
@@ -325,7 +224,6 @@ export default function WikiDocumentEditor({
   return (
     <div
       ref={scrollContainerRef}
-      onScroll={handleScroll}
       className="wiki-editor flex min-h-0 flex-1 flex-col overflow-y-auto scrollbar-thin"
     >
       <EditorContent editor={editor} />

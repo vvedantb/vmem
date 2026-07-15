@@ -1,7 +1,7 @@
 import Cypher from "@neo4j/cypher-builder";
 import type { Driver } from "neo4j-driver";
 import { PARSER_VERSION } from "@vmem/shared";
-import { buildAndRun } from "../cypherHelpers";
+import { buildAndRun } from "./buildAndRun";
 import type {
   ParseStats,
   ProcessNode,

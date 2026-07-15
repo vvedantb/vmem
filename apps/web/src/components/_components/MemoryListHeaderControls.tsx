@@ -1,9 +1,5 @@
-"use client";
-
 // list-view controls rendered in the page header
 
-import { useMemo } from "react";
-import { useQuery } from "convex/react";
 import {
   IconCheck,
   IconChevronDown,
@@ -17,73 +13,26 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@vmem/ui";
-import { api } from "@vmem/backend";
-import { useActiveProfile } from "@/components/workspace/active-profile";
-import AddMemoryIconTrigger from "@/components/AddMemoryIconTrigger";
+import AddMemoryIconTrigger from "@/components/memories/AddMemoryIconTrigger";
 import HeaderSearchInput from "./HeaderSearchInput";
 import { MemoryFiltersButton } from "@/routes/_main/$profileId/memories/_components/MemoryFiltersButton";
-import {
-  CLEARED_MEMORY_VIEW_FILTERS,
-  type MemoryViewFilterParams,
-} from "@/lib/memory-view-filters";
-import { useMemoryContext } from "@/components/contexts/MemoryContext";
-import { useThemeContext } from "@/components/contexts/ThemeContext";
-import type { ListViewMode } from "@/routes/_main/$profileId/memories/-searchParams";
-import {
-  listItemMatchesKindFilter,
-  listItemMatchesSourceFilter,
-  listItemMatchesTagFilter,
-  listItemMatchesTypeFilter,
-  memoryToListItem,
-  skillRowsToListItems,
-  wikiRowsToListItems,
-  type ListItem,
-} from "@/lib/list-items";
-import { useMemoriesSearchParams } from "@/routes/_main/$profileId/memories/useMemoriesSearchParams";
+import { CLEARED_MEMORY_VIEW_FILTERS } from "@/lib/memory-view-filters";
+import { useThemeContext } from "@/contexts/ThemeContext";
+import type { ListViewMode } from "@/lib/url-state/memories";
+import { useMemoryListFilterStats } from "@/hooks/useMemoryListFilterStats";
+import { useMemoriesSearchParams } from "@/hooks/useMemoriesSearchParams";
 
 export default function MemoryListHeaderControls() {
-  const teamId = useActiveProfile().teamId;
   const [params, setParams] = useMemoriesSearchParams();
-  const { memories: allMemories } = useMemoryContext();
-  const wikiRows = useQuery(api.wiki.listTree, { teamId });
-  const skillRows = useQuery(api.skills.listMy, { teamId });
-  const { theme } = useThemeContext();
-  const isDark = theme === "dark";
-
-  const allItems = useMemo<ListItem[]>(() => {
-    const memoryItems = allMemories.map(memoryToListItem);
-    const wikiItems = wikiRows ? wikiRowsToListItems(wikiRows) : [];
-    const skillItems = skillRows ? skillRowsToListItems(skillRows) : [];
-    return [...memoryItems, ...wikiItems, ...skillItems];
-  }, [allMemories, wikiRows, skillRows]);
-
-  const distinctSources = useMemo(() => {
-    const set = new Set<string>();
-    for (const m of allMemories) set.add(m.source);
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [allMemories]);
-
-  const filteredItems = useMemo(() => {
-    return allItems.filter(
-      (item) =>
-        listItemMatchesKindFilter(item, params.kinds) &&
-        listItemMatchesTagFilter(item, params.tags) &&
-        (params.sources.length === 0 ||
-          listItemMatchesSourceFilter(item, params.sources)) &&
-        (params.types.length === 0 ||
-          listItemMatchesTypeFilter(item, params.types)),
-    );
-  }, [allItems, params.kinds, params.tags, params.sources, params.types]);
-
-  const filters = useMemo<MemoryViewFilterParams>(
-    () => ({
-      kinds: params.kinds,
-      tags: params.tags,
-      sources: params.sources,
-      types: params.types,
-    }),
-    [params.kinds, params.tags, params.sources, params.types],
-  );
+  const {
+    allMemories,
+    allItems,
+    distinctSources,
+    filters,
+    filteredCount,
+    totalCount,
+  } = useMemoryListFilterStats();
+  const { isDark } = useThemeContext();
 
   const isTagsView = params.view === "tags";
 
@@ -111,8 +60,8 @@ export default function MemoryListHeaderControls() {
         allMemories={allMemories}
         allItems={allItems}
         distinctSources={distinctSources}
-        filteredCount={filteredItems.length}
-        totalCount={allItems.length}
+        filteredCount={filteredCount}
+        totalCount={totalCount}
         isDark={isDark}
         ariaLabel="Filter list"
       />

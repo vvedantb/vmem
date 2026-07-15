@@ -6,7 +6,7 @@ type ProfileLike = {
   isDefault: boolean;
 };
 
-/** per-browser active profile from chrome.storage, else account default. */
+// per browser active profile from chrome.storage else account default
 export function useBrowserDefaultProfile(profiles: ProfileLike[] | undefined): {
   effectiveProfileId: string;
   setSelectedProfileId: (profileId: string) => void;
