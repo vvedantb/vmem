@@ -1,168 +1,108 @@
 import {
   Node,
-  SyntaxKind,
   type Project,
   type CallExpression,
-  type SourceFile,
+  type Symbol as TsMorphSymbol,
 } from "ts-morph";
 import {
   CONFIDENCE_BY_TIER,
+  type ConfidenceTier,
   type ParseResult,
   type RelationEdge,
-  type SymbolNode,
   type FunctionNode,
 } from "./types";
 import { normalizeRepoPath } from "./parse";
 
-interface SymbolIndex {
-  functionsById: Map<string, FunctionNode>;
-  byFileAndName: Map<string, Map<string, string>>;
-  byNameGlobal: Map<string, Set<string>>;
+type CallTier = Extract<ConfidenceTier, "EXTRACTED" | "INFERRED" | "AMBIGUOUS">;
+
+interface FunctionIndex {
+  byId: Map<string, FunctionNode>;
+  byFileLine: Map<string, string>;
+  byFileName: Map<string, string>;
+  byName: Map<string, Set<string>>;
 }
 
-function buildIndex(symbols: SymbolNode[]): SymbolIndex {
-  const functionsById = new Map<string, FunctionNode>();
-  const byFileAndName = new Map<string, Map<string, string>>();
-  const byNameGlobal = new Map<string, Set<string>>();
+function buildIndex(symbols: ParseResult["symbols"]): FunctionIndex {
+  const byId = new Map<string, FunctionNode>();
+  const byFileLine = new Map<string, string>();
+  const byFileName = new Map<string, string>();
+  const byName = new Map<string, Set<string>>();
 
   for (const sym of symbols) {
-    if (sym.kind === "function") functionsById.set(sym.id, sym);
-    if (sym.kind === "file") continue;
-
-    let perFile = byFileAndName.get(sym.filePath);
-    if (!perFile) {
-      perFile = new Map();
-      byFileAndName.set(sym.filePath, perFile);
-    }
-    perFile.set(sym.name, sym.id);
-
-    let global = byNameGlobal.get(sym.name);
-    if (!global) {
-      global = new Set();
-      byNameGlobal.set(sym.name, global);
-    }
-    global.add(sym.id);
+    if (sym.kind !== "function") continue;
+    byId.set(sym.id, sym);
+    byFileLine.set(`${sym.filePath}:${sym.startLine}`, sym.id);
+    byFileName.set(`${sym.filePath}\0${sym.name}`, sym.id);
+    const ids = byName.get(sym.name) ?? new Set<string>();
+    ids.add(sym.id);
+    byName.set(sym.name, ids);
   }
 
-  return { functionsById, byFileAndName, byNameGlobal };
+  return { byId, byFileLine, byFileName, byName };
 }
 
-function lookupByName(
-  perFile: Map<string, string>,
-  name: string | undefined,
-): string | null {
-  if (!name) return null;
-  return perFile.get(name) ?? null;
+function idForDeclaration(
+  decl: Node,
+  index: FunctionIndex,
+): string | undefined {
+  const path = normalizeRepoPath(decl.getSourceFile().getFilePath());
+  if (path.includes("node_modules")) return undefined;
+  return index.byFileLine.get(`${path}:${decl.getStartLineNumber()}`);
 }
 
 function findEnclosingFunctionId(
   call: CallExpression,
-  perFile: Map<string, string>,
+  index: FunctionIndex,
 ): string | null {
-  let ancestor = call.getParent();
-  while (ancestor) {
-    if (Node.isFunctionDeclaration(ancestor)) {
-      const id = lookupByName(perFile, ancestor.getName());
-      if (id) return id;
-    } else if (Node.isMethodDeclaration(ancestor)) {
-      const methodName = ancestor.getName();
-      const cls = ancestor.getFirstAncestorByKind(SyntaxKind.ClassDeclaration);
-      const className = cls?.getName();
-      const id =
-        methodName && className
-          ? lookupByName(perFile, `${className}.${methodName}`)
-          : null;
-      if (id) return id;
-    } else if (Node.isVariableDeclaration(ancestor)) {
-      const id = lookupByName(perFile, ancestor.getName());
-      if (id) return id;
+  for (const ancestor of call.getAncestors()) {
+    if (
+      !Node.isFunctionDeclaration(ancestor) &&
+      !Node.isMethodDeclaration(ancestor) &&
+      !Node.isVariableDeclaration(ancestor)
+    ) {
+      continue;
     }
-    ancestor = ancestor.getParent();
+    const id = idForDeclaration(ancestor, index);
+    if (id) return id;
   }
   return null;
 }
 
-function getCalleeName(call: CallExpression): string {
+function calleeSymbol(call: CallExpression): TsMorphSymbol | undefined {
   const expr = call.getExpression();
-  if (Node.isPropertyAccessExpression(expr)) return expr.getName();
-  return expr.getText();
-}
-
-function getDeclName(decl: Node): string | null {
-  if (Node.isFunctionDeclaration(decl)) return decl.getName() ?? null;
-  if (Node.isMethodDeclaration(decl)) {
-    const cls = decl.getFirstAncestorByKind(SyntaxKind.ClassDeclaration);
-    const className = cls?.getName();
-    if (className) return `${className}.${decl.getName()}`;
-    return decl.getName();
+  if (Node.isPropertyAccessExpression(expr)) {
+    return expr.getNameNode().getSymbol() ?? expr.getSymbol();
   }
-  if (Node.isVariableDeclaration(decl)) return decl.getName();
-  if (Node.isClassDeclaration(decl)) return decl.getName() ?? null;
-  if (Node.isInterfaceDeclaration(decl)) return decl.getName() ?? null;
-  return null;
+  return expr.getSymbol();
 }
 
 function resolveCalleeIds(
   call: CallExpression,
   callerFilePath: string,
-  index: SymbolIndex,
-): { ids: string[]; tier: "EXTRACTED" | "INFERRED" | "AMBIGUOUS" } {
-  const expr = call.getExpression();
-  let resolvedSymbol = expr.getSymbol();
-  if (!resolvedSymbol && Node.isPropertyAccessExpression(expr)) {
-    resolvedSymbol = expr.getNameNode().getSymbol();
-  }
-  if (resolvedSymbol) {
-    for (const decl of resolvedSymbol.getDeclarations()) {
-      const declPath = normalizeRepoPath(decl.getSourceFile().getFilePath());
-      if (declPath.includes("node_modules")) continue;
-      const declName = getDeclName(decl);
-      if (!declName) continue;
-      const id = index.byFileAndName.get(declPath)?.get(declName);
+  index: FunctionIndex,
+): { ids: string[]; tier: CallTier } {
+  const symbol = calleeSymbol(call);
+  if (symbol) {
+    const resolved = symbol.getAliasedSymbol() ?? symbol;
+    for (const decl of resolved.getDeclarations()) {
+      const id = idForDeclaration(decl, index);
       if (id) return { ids: [id], tier: "EXTRACTED" };
     }
   }
 
-  const calleeName = getCalleeName(call);
+  const expr = call.getExpression();
+  const calleeName = Node.isPropertyAccessExpression(expr)
+    ? expr.getName()
+    : expr.getText();
   if (!calleeName) return { ids: [], tier: "INFERRED" };
-  const localId = index.byFileAndName.get(callerFilePath)?.get(calleeName);
+
+  const localId = index.byFileName.get(`${callerFilePath}\0${calleeName}`);
   if (localId) return { ids: [localId], tier: "INFERRED" };
 
-  const globalIds = index.byNameGlobal.get(calleeName);
-  if (!globalIds || globalIds.size === 0) return { ids: [], tier: "INFERRED" };
-
-  const filtered = [...globalIds].filter((id) => index.functionsById.has(id));
-  if (filtered.length === 0) return { ids: [], tier: "INFERRED" };
-  if (filtered.length === 1) return { ids: filtered, tier: "INFERRED" };
-  return { ids: filtered, tier: "AMBIGUOUS" };
-}
-
-function resolveCallsForSourceFile(
-  source: SourceFile,
-  callerFilePath: string,
-  index: SymbolIndex,
-  emitted: RelationEdge[],
-): void {
-  const perFile =
-    index.byFileAndName.get(callerFilePath) ?? new Map<string, string>();
-  source.forEachDescendant((node) => {
-    if (!Node.isCallExpression(node)) return;
-    const callerId = findEnclosingFunctionId(node, perFile);
-    if (!callerId) return;
-    const { ids, tier } = resolveCalleeIds(node, callerFilePath, index);
-    for (const calleeId of ids) {
-      if (calleeId === callerId) continue;
-      if (!index.functionsById.has(calleeId)) continue;
-      emitted.push({
-        kind: "CALLS",
-        fromId: callerId,
-        toId: calleeId,
-        confidence: CONFIDENCE_BY_TIER[tier],
-        tier,
-        callSiteLine: node.getStartLineNumber(),
-      });
-    }
-  });
+  const globalIds = [...(index.byName.get(calleeName) ?? [])];
+  if (globalIds.length === 0) return { ids: [], tier: "INFERRED" };
+  if (globalIds.length === 1) return { ids: globalIds, tier: "INFERRED" };
+  return { ids: globalIds, tier: "AMBIGUOUS" };
 }
 
 export function resolveCalls(
@@ -176,7 +116,24 @@ export function resolveCalls(
     if (sym.kind !== "file") continue;
     const source = project.getSourceFile(sym.path);
     if (!source) continue;
-    resolveCallsForSourceFile(source, sym.path, index, calls);
+
+    source.forEachDescendant((node) => {
+      if (!Node.isCallExpression(node)) return;
+      const callerId = findEnclosingFunctionId(node, index);
+      if (!callerId) return;
+      const { ids, tier } = resolveCalleeIds(node, sym.path, index);
+      for (const calleeId of ids) {
+        if (calleeId === callerId || !index.byId.has(calleeId)) continue;
+        calls.push({
+          kind: "CALLS",
+          fromId: callerId,
+          toId: calleeId,
+          confidence: CONFIDENCE_BY_TIER[tier],
+          tier,
+          callSiteLine: node.getStartLineNumber(),
+        });
+      }
+    });
   }
 
   return calls;

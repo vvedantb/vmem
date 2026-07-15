@@ -1,4 +1,6 @@
 import crypto from "node:crypto";
+import { groupBy } from "es-toolkit/array";
+import { mean } from "es-toolkit/math";
 import neo4j, { type Driver } from "neo4j-driver";
 import { z } from "zod";
 import type {
@@ -88,8 +90,7 @@ export async function findRecentMemoriesForDream(
 function surprisalFromNeighborScores(rawScores: unknown): number | null {
   const scores = asNumberArray(rawScores);
   if (scores === null || scores.length < 2) return null;
-  const mean = scores.reduce((sum, s) => sum + s, 0) / scores.length;
-  return 1 - mean;
+  return 1 - mean(scores);
 }
 
 export async function computeSurprisalScores(
@@ -462,17 +463,10 @@ export async function findMergeCandidates(
     }
 
     // components of size >= 2, biggest first
-    const components = new Map<string, MergeClusterMember[]>();
-    for (const member of members.values()) {
-      const root = find(member.id);
-      const bucket = components.get(root);
-      if (bucket) {
-        bucket.push(member);
-      } else {
-        components.set(root, [member]);
-      }
-    }
-    return [...components.values()]
+    const components = groupBy([...members.values()], (member) =>
+      find(member.id),
+    );
+    return Object.values(components)
       .filter((c) => c.length >= 2)
       .sort((a, b) => b.length - a.length)
       .slice(0, params.maxClusters)

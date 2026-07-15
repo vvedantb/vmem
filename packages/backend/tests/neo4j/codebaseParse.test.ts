@@ -271,7 +271,7 @@ describe("resolveCalls", () => {
     );
   });
 
-  it("emits CALLS edges with INFERRED tier for imported cross-file callees", () => {
+  it("emits CALLS edges with EXTRACTED tier for imported cross-file callees", () => {
     const { calls } = runPipeline(MULTI_FILE_FIXTURE);
 
     const mainToHelper = calls.find(
@@ -281,8 +281,8 @@ describe("resolveCalls", () => {
     );
     expect(mainToHelper).toMatchObject({
       kind: "CALLS",
-      tier: "INFERRED",
-      confidence: 0.7,
+      tier: "EXTRACTED",
+      confidence: 1,
     });
   });
 
@@ -308,7 +308,7 @@ describe("resolveCalls", () => {
     expect(mainToOnReady?.tier).toBe("EXTRACTED");
   });
 
-  it("emits CALLS edges with INFERRED tier for method calls on local instances", () => {
+  it("emits CALLS edges with EXTRACTED tier for method calls on local instances", () => {
     const { calls } = runPipeline(MULTI_FILE_FIXTURE);
 
     const onReadyToRun = calls.find(
@@ -316,7 +316,89 @@ describe("resolveCalls", () => {
         c.fromId === symId("src/app.ts", "onReady") &&
         c.toId === symId("lib/entity.ts", "Entity.run"),
     );
-    expect(onReadyToRun?.tier).toBe("INFERRED");
+    expect(onReadyToRun).toMatchObject({
+      kind: "CALLS",
+      tier: "EXTRACTED",
+      confidence: 1,
+    });
+  });
+
+  it("emits CALLS edges with EXTRACTED tier for import aliases", () => {
+    const files: SourceFileBlob[] = [
+      {
+        path: "utils.ts",
+        content: `export function helper(): number { return 1; }`,
+      },
+      {
+        path: "alias.ts",
+        content: `import { helper as h } from "./utils";
+
+export function wrap() {
+  h();
+}
+`,
+      },
+    ];
+
+    const { calls } = runPipeline(files);
+    expect(calls).toContainEqual(
+      expect.objectContaining({
+        fromId: symId("alias.ts", "wrap"),
+        toId: symId("utils.ts", "helper"),
+        tier: "EXTRACTED",
+        confidence: 1,
+      }),
+    );
+  });
+
+  it("emits no CALLS edges for unresolved callees", () => {
+    const files: SourceFileBlob[] = [
+      {
+        path: "missing.ts",
+        content: `export function callMissing() {
+  missingFn();
+}
+`,
+      },
+    ];
+
+    const { calls } = runPipeline(files);
+    expect(calls).toEqual([]);
+  });
+
+  it("emits EXTRACTED for the matching overload declaration line", () => {
+    const files: SourceFileBlob[] = [
+      {
+        path: "overloads.ts",
+        content: `export function format(value: string): string;
+export function format(value: number): string;
+export function format(value: string | number): string {
+  return String(value);
+}
+
+export function useFormat() {
+  format(1);
+}
+`,
+      },
+    ];
+
+    const { calls, result } = runPipeline(files);
+    const formatFns = result.symbols.filter(
+      (s): s is FunctionNode =>
+        s.kind === "function" &&
+        s.filePath === "overloads.ts" &&
+        s.name === "format",
+    );
+    // parse keeps one FunctionNode per name (implementation)
+    expect(formatFns.length).toBeGreaterThanOrEqual(1);
+
+    const edge = calls.find(
+      (c) =>
+        c.fromId === symId("overloads.ts", "useFormat") &&
+        c.toId === symId("overloads.ts", "format"),
+    );
+    expect(edge?.tier).toBe("EXTRACTED");
   });
 });
 
@@ -422,7 +504,38 @@ describe("detectProcesses", () => {
 });
 
 describe("ambiguous call resolution", () => {
-  it("emits AMBIGUOUS tier when global name matches multiple functions", () => {
+  it("emits AMBIGUOUS tier when an unresolved name matches multiple functions", () => {
+    const files: SourceFileBlob[] = [
+      {
+        path: "a/one.ts",
+        content: `export function duplicateName() { return "one"; }`,
+      },
+      {
+        path: "b/two.ts",
+        content: `export function duplicateName() { return "two"; }`,
+      },
+      {
+        path: "c/caller.ts",
+        content: `export function invoke() {
+  duplicateName();
+}
+`,
+      },
+    ];
+
+    const { calls } = runPipeline(files);
+    const ambiguous = calls.filter((c) => c.tier === "AMBIGUOUS");
+    expect(ambiguous.length).toBe(2);
+    expect(ambiguous[0]?.confidence).toBe(0.4);
+    expect(ambiguous.map((c) => c.toId).sort()).toEqual(
+      [
+        symId("a/one.ts", "duplicateName"),
+        symId("b/two.ts", "duplicateName"),
+      ].sort(),
+    );
+  });
+
+  it("emits EXTRACTED (not AMBIGUOUS) when the import resolves uniquely", () => {
     const files: SourceFileBlob[] = [
       {
         path: "a/one.ts",
@@ -444,8 +557,14 @@ export function invoke() {
     ];
 
     const { calls } = runPipeline(files);
-    const ambiguous = calls.filter((c) => c.tier === "AMBIGUOUS");
-    expect(ambiguous.length).toBeGreaterThan(0);
-    expect(ambiguous[0]?.confidence).toBe(0.4);
+    expect(calls.filter((c) => c.tier === "AMBIGUOUS")).toEqual([]);
+    expect(calls).toContainEqual(
+      expect.objectContaining({
+        fromId: symId("c/caller.ts", "invoke"),
+        toId: symId("a/one.ts", "duplicateName"),
+        tier: "EXTRACTED",
+        confidence: 1,
+      }),
+    );
   });
 });

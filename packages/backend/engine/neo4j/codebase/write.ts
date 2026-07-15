@@ -1,4 +1,5 @@
 import type { Driver } from "neo4j-driver";
+import { chunk, groupBy } from "es-toolkit/array";
 import { PARSER_VERSION } from "@vmem/shared";
 import type {
   ParseStats,
@@ -40,14 +41,6 @@ interface WriteArgs {
   structuralRelations: RelationEdge[];
   calls: RelationEdge[];
   processes: ProcessNode[];
-}
-
-function chunk<T>(arr: T[], size: number): T[][] {
-  const out: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) {
-    out.push(arr.slice(i, i + size));
-  }
-  return out;
 }
 
 async function deleteStale(
@@ -278,7 +271,6 @@ export async function writeParseResult(args: WriteArgs): Promise<ParseStats> {
   const functionRows: UpsertRow[] = [];
   const classRows: UpsertRow[] = [];
   const interfaceRows: UpsertRow[] = [];
-  let importEdgeCount = 0;
 
   for (const sym of symbols) {
     switch (sym.kind) {
@@ -296,13 +288,7 @@ export async function writeParseResult(args: WriteArgs): Promise<ParseStats> {
         break;
     }
   }
-  const buckets = new Map<string, RelationEdge[]>();
-  for (const e of structuralRelations) {
-    if (e.kind === "IMPORTS") importEdgeCount += 1;
-    const arr = buckets.get(e.kind);
-    if (arr) arr.push(e);
-    else buckets.set(e.kind, [e]);
-  }
+  const buckets = groupBy(structuralRelations, (e) => e.kind);
 
   await deleteStale(driver, userId, codebaseId, keepIds);
   await upsertNodes(driver, "CodeFile", fileRows);
@@ -317,7 +303,7 @@ export async function writeParseResult(args: WriteArgs): Promise<ParseStats> {
     "EXTENDS",
     "IMPLEMENTS",
   ] as const) {
-    await upsertEdges(driver, kind, buckets.get(kind) ?? []);
+    await upsertEdges(driver, kind, buckets[kind] ?? []);
   }
   await upsertEdges(driver, "CALLS", calls);
   await upsertProcesses(driver, userId, codebaseId, processes);
@@ -329,6 +315,6 @@ export async function writeParseResult(args: WriteArgs): Promise<ParseStats> {
     interfaceCount: interfaceRows.length,
     callEdgeCount: calls.length,
     processCount: processes.length,
-    importEdgeCount,
+    importEdgeCount: buckets.IMPORTS?.length ?? 0,
   };
 }
