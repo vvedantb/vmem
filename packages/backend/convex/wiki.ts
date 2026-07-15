@@ -216,21 +216,6 @@ export const listTree = authQuery({
   },
 });
 
-// internal variant of `listTree` that takes an explicit userId instead of deriving it from auth
-export const listForUserInternal = internalQuery({
-  args: { userId: v.id("users") },
-  returns: v.array(
-    v.object({
-      _id: v.id("wikiNodes"),
-      _creationTime: v.number(),
-      ...wikiNodeFields,
-    }),
-  ),
-  handler: async (ctx, args) => {
-    return await listScopeNodes(ctx, args.userId, undefined);
-  },
-});
-
 // workspace-scoped wiki nodes for the memory graph (personal or team)
 export const listForGraphInternal = internalQuery({
   args: {
