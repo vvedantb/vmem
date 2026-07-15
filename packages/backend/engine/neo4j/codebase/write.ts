@@ -1,8 +1,5 @@
-import Cypher from "@neo4j/cypher-builder";
 import type { Driver } from "neo4j-driver";
 import { PARSER_VERSION } from "@vmem/shared";
-import { withSession } from "../session";
-import { buildAndRun } from "./buildAndRun";
 import type {
   ParseStats,
   ProcessNode,
@@ -53,18 +50,12 @@ function chunk<T>(arr: T[], size: number): T[][] {
   return out;
 }
 
-function isCodeGraphNode(n: Cypher.Node): Cypher.Predicate {
-  return Cypher.or(
-    n.hasLabel("CodeFile"),
-    n.hasLabel("Function"),
-    n.hasLabel("Class"),
-    n.hasLabel("Interface"),
-    n.hasLabel("Process"),
-  );
-}
-
-async function runClause(driver: Driver, clause: Cypher.Clause): Promise<void> {
-  await withSession(driver, (session) => buildAndRun(session, clause));
+async function runQuery(
+  driver: Driver,
+  query: string,
+  params: Record<string, unknown>,
+): Promise<void> {
+  await driver.executeQuery(query, params);
 }
 
 async function deleteStale(
@@ -73,24 +64,15 @@ async function deleteStale(
   codebaseId: string,
   keepIds: string[],
 ): Promise<void> {
-  const n = new Cypher.NamedNode("n");
-  await runClause(
+  await runQuery(
     driver,
-    new Cypher.Match(
-      new Cypher.Pattern(n, {
-        properties: {
-          userId: new Cypher.Param(userId),
-          codebaseId: new Cypher.Param(codebaseId),
-        },
-      }),
-    )
-      .where(
-        Cypher.and(
-          isCodeGraphNode(n),
-          Cypher.not(Cypher.in(n.property("id"), new Cypher.Param(keepIds))),
-        ),
-      )
-      .detachDelete(n),
+    `
+    MATCH (n { userId: $userId, codebaseId: $codebaseId })
+    WHERE (n:CodeFile OR n:Function OR n:Class OR n:Interface OR n:Process)
+      AND NOT n.id IN $keepIds
+    DETACH DELETE n
+    `,
+    { userId, codebaseId, keepIds },
   );
 }
 
@@ -103,30 +85,18 @@ async function upsertNodes(
   if (rows.length === 0) return;
   const touchUpdatedAt = options?.touchUpdatedAt ?? true;
   const now = Date.now();
+  const updatedAtClause = touchUpdatedAt ? "SET n.updatedAt = $now" : "";
   for (const batch of chunk(rows, CHUNK_SIZE)) {
-    const row = new Cypher.NamedVariable("row");
-    const n = new Cypher.NamedNode("n");
-    const nowParam = new Cypher.Param(now);
-    const setParams: Cypher.SetParam[] = [
-      [n, "+=", row.property("props")],
-      [
-        n.property("createdAt"),
-        Cypher.coalesce(n.property("createdAt"), nowParam),
-      ],
-    ];
-    if (touchUpdatedAt) {
-      setParams.splice(1, 0, [n.property("updatedAt"), nowParam]);
-    }
-    await runClause(
+    await runQuery(
       driver,
-      new Cypher.Unwind([new Cypher.Param(batch), row])
-        .merge(
-          new Cypher.Pattern(n, {
-            labels: [label],
-            properties: { id: row.property("id") },
-          }),
-        )
-        .set(...setParams),
+      `
+      UNWIND $rows AS row
+      MERGE (n:${label} { id: row.id })
+      SET n += row.props
+      ${updatedAtClause}
+      SET n.createdAt = coalesce(n.createdAt, $now)
+      `,
+      { rows: batch, now },
     );
   }
 }
@@ -221,36 +191,22 @@ async function upsertEdges(
 ): Promise<void> {
   if (edges.length === 0) return;
   for (const batch of chunk(edges, CHUNK_SIZE)) {
-    const row = new Cypher.NamedVariable("row");
-    const a = new Cypher.NamedNode("a");
-    const b = new Cypher.NamedNode("b");
-    const r = new Cypher.NamedRelationship("r");
-    await runClause(
+    await runQuery(
       driver,
-      new Cypher.Unwind([
-        new Cypher.Param(
-          batch.map((e) => ({
-            fromId: e.fromId,
-            toId: e.toId,
-            props: edgeProps(e),
-          })),
-        ),
-        row,
-      ])
-        .match(
-          new Cypher.Pattern(a, {
-            properties: { id: row.property("fromId") },
-          }),
-        )
-        .match(
-          new Cypher.Pattern(b, {
-            properties: { id: row.property("toId") },
-          }),
-        )
-        .merge(
-          new Cypher.Pattern(a).related(r, { type, direction: "right" }).to(b),
-        )
-        .set([r, "+=", row.property("props")]),
+      `
+      UNWIND $rows AS row
+      MATCH (a { id: row.fromId })
+      MATCH (b { id: row.toId })
+      MERGE (a)-[r:${type}]->(b)
+      SET r += row.props
+      `,
+      {
+        rows: batch.map((e) => ({
+          fromId: e.fromId,
+          toId: e.toId,
+          props: edgeProps(e),
+        })),
+      },
     );
   }
 }
@@ -273,29 +229,15 @@ async function upsertLabeledEdges(
 ): Promise<void> {
   if (rows.length === 0) return;
   for (const batch of chunk(rows, CHUNK_SIZE)) {
-    const row = new Cypher.NamedVariable("row");
-    const a = new Cypher.NamedNode("a");
-    const b = new Cypher.NamedNode("b");
-    await runClause(
+    await runQuery(
       driver,
-      new Cypher.Unwind([new Cypher.Param(batch), row])
-        .match(
-          new Cypher.Pattern(a, {
-            labels: [fromLabel],
-            properties: { id: row.property("fromId") },
-          }),
-        )
-        .match(
-          new Cypher.Pattern(b, {
-            labels: [toLabel],
-            properties: { id: row.property("toId") },
-          }),
-        )
-        .merge(
-          new Cypher.Pattern(a)
-            .related({ type: edgeType, direction: "right" })
-            .to(b),
-        ),
+      `
+      UNWIND $rows AS row
+      MATCH (a:${fromLabel} { id: row.fromId })
+      MATCH (b:${toLabel} { id: row.toId })
+      MERGE (a)-[:${edgeType}]->(b)
+      `,
+      { rows: batch },
     );
   }
 }

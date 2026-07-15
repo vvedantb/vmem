@@ -50,17 +50,15 @@ export async function fetchMemoryWithTags(
   driver: Driver,
   matchProps: Record<string, string>,
 ): Promise<MemoryWithTags | null> {
-  return withSession(driver, async (session) => {
-    const result = await session.run(
-      `MATCH (m:Memory {${propsClause(matchProps)}})
-       OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
-       RETURN m, collect(t.name) AS tags`,
-      matchProps,
-    );
-    const firstRecord = result.records[0];
-    if (!firstRecord) return null;
-    return toMemoryWithTags(firstRecord);
-  });
+  const result = await driver.executeQuery(
+    `MATCH (m:Memory {${propsClause(matchProps)}})
+     OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
+     RETURN m, collect(t.name) AS tags`,
+    matchProps,
+  );
+  const firstRecord = result.records[0];
+  if (!firstRecord) return null;
+  return toMemoryWithTags(firstRecord);
 }
 
 export async function detachDeleteCount(
@@ -85,17 +83,15 @@ async function findMemoryRef(
     extraParams?: Record<string, string>;
   },
 ): Promise<MemoryRef | null> {
-  return withSession(driver, async (session) => {
-    const result = await session.run(
-      `MATCH (m:Memory {${propsClause(matchProps)}})
-       WHERE ${visibleStatusClause("m", false)}${opts?.extraWhere ? ` AND ${opts.extraWhere}` : ""}
-       RETURN m.id AS id, m.title AS title, m.updatedAt AS updatedAt
-       ${opts?.orderBy ? `ORDER BY ${opts.orderBy}` : ""}
-       LIMIT 1`,
-      { ...matchProps, ...opts?.extraParams },
-    );
-    return firstMemoryRef(result);
-  });
+  const result = await driver.executeQuery(
+    `MATCH (m:Memory {${propsClause(matchProps)}})
+     WHERE ${visibleStatusClause("m", false)}${opts?.extraWhere ? ` AND ${opts.extraWhere}` : ""}
+     RETURN m.id AS id, m.title AS title, m.updatedAt AS updatedAt
+     ${opts?.orderBy ? `ORDER BY ${opts.orderBy}` : ""}
+     LIMIT 1`,
+    { ...matchProps, ...opts?.extraParams },
+  );
+  return firstMemoryRef(result);
 }
 
 export async function runMemoryList(
@@ -619,25 +615,23 @@ export async function incrementVisitCount(
   userId: string,
   memoryId: string,
 ): Promise<{ visitCount: number; lastVisitAt: string }> {
-  return withSession(driver, async (session) => {
-    const now = new Date().toISOString();
-    const result = await session.run(
-      `MATCH (m:Memory {id: $memoryId, userId: $userId})
-       SET m.visitCount = coalesce(m.visitCount, 1) + 1,
-           m.lastVisitAt = $now,
-           m.updatedAt = $now
-       RETURN m.visitCount AS visitCount, m.lastVisitAt AS lastVisitAt`,
-      { memoryId, userId, now },
-    );
-    const r = result.records[0];
-    if (!r) {
-      return { visitCount: 1, lastVisitAt: now };
-    }
-    return {
-      visitCount: parseNeo4jInt(neo4jGet(r, "visitCount")),
-      lastVisitAt: String(neo4jGet(r, "lastVisitAt")),
-    };
-  });
+  const now = new Date().toISOString();
+  const result = await driver.executeQuery(
+    `MATCH (m:Memory {id: $memoryId, userId: $userId})
+     SET m.visitCount = coalesce(m.visitCount, 1) + 1,
+         m.lastVisitAt = $now,
+         m.updatedAt = $now
+     RETURN m.visitCount AS visitCount, m.lastVisitAt AS lastVisitAt`,
+    { memoryId, userId, now },
+  );
+  const r = result.records[0];
+  if (!r) {
+    return { visitCount: 1, lastVisitAt: now };
+  }
+  return {
+    visitCount: parseNeo4jInt(neo4jGet(r, "visitCount")),
+    lastVisitAt: String(neo4jGet(r, "lastVisitAt")),
+  };
 }
 
 export async function shortCircuitOnDedupMatch(
@@ -696,30 +690,28 @@ export async function findMemoryBySimilarity(
   updatedAt: string;
   similarity: number;
 } | null> {
-  return withSession(driver, async (session) => {
-    const result = await session.run(
-      `CALL db.index.vector.queryNodes('memory_embedding', $k, $embedding)
-       YIELD node AS m, score AS similarity
-       WHERE m.userId = $userId
-         AND ${visibleStatusClause("m", false)}
-         AND similarity >= $threshold
-       RETURN m.id AS id, m.title AS title, m.updatedAt AS updatedAt, similarity
-       ORDER BY similarity DESC
-       LIMIT 1`,
-      {
-        k: neo4j.int(5),
-        embedding,
-        userId,
-        threshold,
-      },
-    );
-    const r = result.records[0];
-    if (!r) return null;
-    return {
-      id: String(neo4jGet(r, "id")),
-      title: String(neo4jGet(r, "title")),
-      updatedAt: String(neo4jGet(r, "updatedAt")),
-      similarity: Number(neo4jGet(r, "similarity")),
-    };
-  });
+  const result = await driver.executeQuery(
+    `CALL db.index.vector.queryNodes('memory_embedding', $k, $embedding)
+     YIELD node AS m, score AS similarity
+     WHERE m.userId = $userId
+       AND ${visibleStatusClause("m", false)}
+       AND similarity >= $threshold
+     RETURN m.id AS id, m.title AS title, m.updatedAt AS updatedAt, similarity
+     ORDER BY similarity DESC
+     LIMIT 1`,
+    {
+      k: neo4j.int(5),
+      embedding,
+      userId,
+      threshold,
+    },
+  );
+  const r = result.records[0];
+  if (!r) return null;
+  return {
+    id: String(neo4jGet(r, "id")),
+    title: String(neo4jGet(r, "title")),
+    updatedAt: String(neo4jGet(r, "updatedAt")),
+    similarity: Number(neo4jGet(r, "similarity")),
+  };
 }

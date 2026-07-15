@@ -1,5 +1,4 @@
 import type { Driver } from "neo4j-driver";
-import { withSession } from "../session";
 import { parseImpactRecord } from "./mappers";
 
 const DEFAULT_DEPTH = 5;
@@ -40,25 +39,23 @@ async function runImpactQuery(
       ? `<-[:CALLS*1..${safeDepth}]-`
       : `-[:CALLS*1..${safeDepth}]->`;
 
-  return withSession(driver, async (session) => {
-    const result = await session.run(
-      `
-      MATCH (start:Function { id: $symbolId, userId: $userId, codebaseId: $codebaseId })
-      MATCH path = (start)${rel}(other:Function)
-      RETURN other.id AS id, length(path) AS distance
-      ORDER BY distance ASC, id ASC
-      LIMIT 200
-      `,
-      { symbolId, userId, codebaseId },
-    );
-    const seen = new Set<string>();
-    const out: ImpactNode[] = [];
-    for (const record of result.records) {
-      const node = parseImpactRecord(record);
-      if (seen.has(node.id)) continue;
-      seen.add(node.id);
-      out.push(node);
-    }
-    return out;
-  });
+  const result = await driver.executeQuery(
+    `
+    MATCH (start:Function { id: $symbolId, userId: $userId, codebaseId: $codebaseId })
+    MATCH path = (start)${rel}(other:Function)
+    RETURN other.id AS id, length(path) AS distance
+    ORDER BY distance ASC, id ASC
+    LIMIT 200
+    `,
+    { symbolId, userId, codebaseId },
+  );
+  const seen = new Set<string>();
+  const out: ImpactNode[] = [];
+  for (const record of result.records) {
+    const node = parseImpactRecord(record);
+    if (seen.has(node.id)) continue;
+    seen.add(node.id);
+    out.push(node);
+  }
+  return out;
 }

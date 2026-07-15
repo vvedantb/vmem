@@ -26,7 +26,6 @@
     "@googleapis/drive": "^20.0.0",
     "@modelcontextprotocol/ext-apps": "1.7.2",
     "@modelcontextprotocol/sdk": "catalog:",
-    "@neo4j/cypher-builder": "^3.0.1",
     "@notionhq/client": "^5.23.0",
     "@octokit/core": "^7.0.6",
     "@octokit/oauth-methods": "^6.0.2",

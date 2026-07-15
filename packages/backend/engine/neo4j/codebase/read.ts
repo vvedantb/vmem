@@ -192,40 +192,38 @@ async function loadEdges(
 }
 
 export async function getOverviewStats(args: ReadArgs): Promise<OverviewStats> {
-  return withSession(args.driver, async (session) => {
-    const result = await session.run(
-      `
-      MATCH (f:CodeFile { userId: $userId, codebaseId: $codebaseId })
-      WITH count(f) AS fileCount
-      OPTIONAL MATCH (fn:Function { userId: $userId, codebaseId: $codebaseId })
-      WITH fileCount, count(fn) AS functionCount
-      OPTIONAL MATCH (c:Class { userId: $userId, codebaseId: $codebaseId })
-      WITH fileCount, functionCount, count(c) AS classCount
-      OPTIONAL MATCH (i:Interface { userId: $userId, codebaseId: $codebaseId })
-      WITH fileCount, functionCount, classCount, count(i) AS interfaceCount
-      OPTIONAL MATCH (p:Process { userId: $userId, codebaseId: $codebaseId })
-      WITH fileCount, functionCount, classCount, interfaceCount, count(p) AS processCount
-      OPTIONAL MATCH (:Function { userId: $userId, codebaseId: $codebaseId })-[r:CALLS]->(:Function { userId: $userId, codebaseId: $codebaseId })
-      WITH fileCount, functionCount, classCount, interfaceCount, processCount, count(r) AS callEdgeCount
-      OPTIONAL MATCH (:CodeFile { userId: $userId, codebaseId: $codebaseId })-[ir:IMPORTS]->(:CodeFile { userId: $userId, codebaseId: $codebaseId })
-      RETURN fileCount, functionCount, classCount, interfaceCount, processCount, callEdgeCount, count(ir) AS importEdgeCount
-      `,
-      { userId: args.userId, codebaseId: args.codebaseId },
-    );
-    const r = result.records[0];
-    if (!r) {
-      return {
-        fileCount: 0,
-        functionCount: 0,
-        classCount: 0,
-        interfaceCount: 0,
-        processCount: 0,
-        callEdgeCount: 0,
-        importEdgeCount: 0,
-      };
-    }
-    return parseOverviewStats(r);
-  });
+  const result = await args.driver.executeQuery(
+    `
+    MATCH (f:CodeFile { userId: $userId, codebaseId: $codebaseId })
+    WITH count(f) AS fileCount
+    OPTIONAL MATCH (fn:Function { userId: $userId, codebaseId: $codebaseId })
+    WITH fileCount, count(fn) AS functionCount
+    OPTIONAL MATCH (c:Class { userId: $userId, codebaseId: $codebaseId })
+    WITH fileCount, functionCount, count(c) AS classCount
+    OPTIONAL MATCH (i:Interface { userId: $userId, codebaseId: $codebaseId })
+    WITH fileCount, functionCount, classCount, count(i) AS interfaceCount
+    OPTIONAL MATCH (p:Process { userId: $userId, codebaseId: $codebaseId })
+    WITH fileCount, functionCount, classCount, interfaceCount, count(p) AS processCount
+    OPTIONAL MATCH (:Function { userId: $userId, codebaseId: $codebaseId })-[r:CALLS]->(:Function { userId: $userId, codebaseId: $codebaseId })
+    WITH fileCount, functionCount, classCount, interfaceCount, processCount, count(r) AS callEdgeCount
+    OPTIONAL MATCH (:CodeFile { userId: $userId, codebaseId: $codebaseId })-[ir:IMPORTS]->(:CodeFile { userId: $userId, codebaseId: $codebaseId })
+    RETURN fileCount, functionCount, classCount, interfaceCount, processCount, callEdgeCount, count(ir) AS importEdgeCount
+    `,
+    { userId: args.userId, codebaseId: args.codebaseId },
+  );
+  const r = result.records[0];
+  if (!r) {
+    return {
+      fileCount: 0,
+      functionCount: 0,
+      classCount: 0,
+      interfaceCount: 0,
+      processCount: 0,
+      callEdgeCount: 0,
+      importEdgeCount: 0,
+    };
+  }
+  return parseOverviewStats(r);
 }
 
 export async function getGraphOverview(args: FilteredArgs): Promise<{
@@ -345,29 +343,27 @@ export interface SymbolContext {
 export async function getSymbolContext(
   args: ReadArgs & { symbolId: string },
 ): Promise<SymbolContext | null> {
-  return withSession(args.driver, async (session) => {
-    const result = await session.run(
-      `
-      MATCH (n { id: $symbolId, userId: $userId, codebaseId: $codebaseId })
-      WHERE (n:CodeFile OR n:Function OR n:Class OR n:Interface OR n:Process)
-      OPTIONAL MATCH (caller:Function)-[:CALLS]->(n)
-      WITH n, collect(DISTINCT { id: caller.id, name: caller.name, filePath: caller.filePath }) AS callsIn
-      OPTIONAL MATCH (n)-[:CALLS]->(callee:Function)
-      WITH n, callsIn, collect(DISTINCT { id: callee.id, name: callee.name, filePath: callee.filePath }) AS callsOut
-      OPTIONAL MATCH (proc:Process)-[:INCLUDES]->(n)
-      WITH n, callsIn, callsOut, collect(DISTINCT { id: proc.id, name: proc.name }) AS processes
-      RETURN labels(n) AS labels, n, callsIn, callsOut, processes
-      `,
-      {
-        userId: args.userId,
-        codebaseId: args.codebaseId,
-        symbolId: args.symbolId,
-      },
-    );
-    const record = result.records.at(0);
-    if (!record) return null;
-    return parseSymbolContextRecord(record, pickKind);
-  });
+  const result = await args.driver.executeQuery(
+    `
+    MATCH (n { id: $symbolId, userId: $userId, codebaseId: $codebaseId })
+    WHERE (n:CodeFile OR n:Function OR n:Class OR n:Interface OR n:Process)
+    OPTIONAL MATCH (caller:Function)-[:CALLS]->(n)
+    WITH n, collect(DISTINCT { id: caller.id, name: caller.name, filePath: caller.filePath }) AS callsIn
+    OPTIONAL MATCH (n)-[:CALLS]->(callee:Function)
+    WITH n, callsIn, collect(DISTINCT { id: callee.id, name: callee.name, filePath: callee.filePath }) AS callsOut
+    OPTIONAL MATCH (proc:Process)-[:INCLUDES]->(n)
+    WITH n, callsIn, callsOut, collect(DISTINCT { id: proc.id, name: proc.name }) AS processes
+    RETURN labels(n) AS labels, n, callsIn, callsOut, processes
+    `,
+    {
+      userId: args.userId,
+      codebaseId: args.codebaseId,
+      symbolId: args.symbolId,
+    },
+  );
+  const record = result.records.at(0);
+  if (!record) return null;
+  return parseSymbolContextRecord(record, pickKind);
 }
 
 export interface SearchSymbolsResult {

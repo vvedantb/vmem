@@ -1,7 +1,10 @@
 import { v } from "convex/values";
 import { authQuery } from "./auth";
 import { isContentReadable } from "./teams/auth";
-import { resolveVersionAuthorLabel } from "./lib/versionSnapshot";
+import {
+  resolveVersionAuthorLabel,
+  mapVersionAuthorSummaries,
+} from "./lib/versionSnapshot";
 
 // read-only version history for skills (snapshots written by `lib/versionSnapshot.ts`)
 
@@ -28,19 +31,7 @@ export const list = authQuery({
       .order("desc")
       .collect();
 
-    return await Promise.all(
-      versions.map(async (ver) => ({
-        _id: ver._id,
-        createdAt: ver.createdAt,
-        source: ver.source,
-        authorLabel: await resolveVersionAuthorLabel(
-          ctx,
-          ctx.userId,
-          ver.authorUserId,
-          ver.source,
-        ),
-      })),
-    );
+    return await mapVersionAuthorSummaries(ctx, ctx.userId, versions);
   },
 });
 

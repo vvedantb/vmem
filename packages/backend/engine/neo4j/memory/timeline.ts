@@ -1,7 +1,6 @@
 import neo4j, { type Driver } from "neo4j-driver";
 import { toMemoryContentFulltextQuery } from "../luceneQuery";
 import { toTimelineEvent } from "./mappers";
-import { withSession } from "../session";
 import type { ConnectionType, TimelineEvent } from "./types";
 
 async function runTimelineQuery(
@@ -9,10 +8,8 @@ async function runTimelineQuery(
   cypher: string,
   params: Record<string, unknown>,
 ): Promise<TimelineEvent[]> {
-  return withSession(driver, async (session) => {
-    const result = await session.run(cypher, params);
-    return result.records.map(toTimelineEvent);
-  });
+  const result = await driver.executeQuery(cypher, params);
+  return result.records.map(toTimelineEvent);
 }
 
 export async function getMemoryTimeline(
@@ -36,36 +33,34 @@ export async function getTopicTimeline(
   limit: number,
   offset: number,
 ): Promise<TimelineEvent[]> {
-  return withSession(driver, async (session) => {
-    const result = await session.run(
-      `MATCH (tagMatched:Memory {userId: $userId})-[:TAGGED_WITH]->(t:Tag {name: $tag})
-       WITH collect(DISTINCT tagMatched) AS tagMemories
-       UNWIND tagMemories AS tm
-       OPTIONAL MATCH (tm)-[:RELATES_TO]-(related:Memory {userId: $userId})
-       WITH tagMemories, collect(DISTINCT related) AS relatedMemories
-       WITH tagMemories, [r IN relatedMemories WHERE r IS NOT NULL AND NOT r IN tagMemories] AS onlyRelated
-       WITH tagMemories + onlyRelated AS allMemories, tagMemories
-       UNWIND allMemories AS mem
-       WITH DISTINCT mem, mem IN tagMemories AS isTagMatch
-       MATCH (e:MemoryEvent)-[:EVENT_FOR]->(mem)
-       RETURN e, mem.id AS memoryId, mem.title AS memoryTitle,
-              CASE WHEN isTagMatch THEN 'tag' ELSE 'related' END AS connectionType
-       ORDER BY e.createdAt ASC
-       SKIP $offset LIMIT $limit`,
-      {
-        userId,
-        tag,
-        offset: neo4j.int(offset),
-        limit: neo4j.int(limit),
-      },
-    );
+  const result = await driver.executeQuery(
+    `MATCH (tagMatched:Memory {userId: $userId})-[:TAGGED_WITH]->(t:Tag {name: $tag})
+     WITH collect(DISTINCT tagMatched) AS tagMemories
+     UNWIND tagMemories AS tm
+     OPTIONAL MATCH (tm)-[:RELATES_TO]-(related:Memory {userId: $userId})
+     WITH tagMemories, collect(DISTINCT related) AS relatedMemories
+     WITH tagMemories, [r IN relatedMemories WHERE r IS NOT NULL AND NOT r IN tagMemories] AS onlyRelated
+     WITH tagMemories + onlyRelated AS allMemories, tagMemories
+     UNWIND allMemories AS mem
+     WITH DISTINCT mem, mem IN tagMemories AS isTagMatch
+     MATCH (e:MemoryEvent)-[:EVENT_FOR]->(mem)
+     RETURN e, mem.id AS memoryId, mem.title AS memoryTitle,
+            CASE WHEN isTagMatch THEN 'tag' ELSE 'related' END AS connectionType
+     ORDER BY e.createdAt ASC
+     SKIP $offset LIMIT $limit`,
+    {
+      userId,
+      tag,
+      offset: neo4j.int(offset),
+      limit: neo4j.int(limit),
+    },
+  );
 
-    return result.records.map((record) => {
-      const connType = String(record.get("connectionType") ?? "");
-      const connectionType: ConnectionType =
-        connType === "related" ? "related" : "tag";
-      return { ...toTimelineEvent(record), connectionType };
-    });
+  return result.records.map((record) => {
+    const connType = String(record.get("connectionType") ?? "");
+    const connectionType: ConnectionType =
+      connType === "related" ? "related" : "tag";
+    return { ...toTimelineEvent(record), connectionType };
   });
 }
 

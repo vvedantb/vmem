@@ -1,8 +1,7 @@
-import type { Driver, Record as NeoRecord, Session } from "neo4j-driver";
+import type { Driver, Record as NeoRecord } from "neo4j-driver";
 import { z } from "zod";
 import { clampNeo4jLimit } from "../intParams";
 import { neo4jGet, parseNeo4jInt } from "../record";
-import { withSession } from "../session";
 import { toMemoryTypeOrUndefined, toTagEdge } from "./mappers";
 import { profileFilter, visibleStatusClause } from "./shared";
 import type { MemoryType, TagEdge } from "./types";
@@ -141,7 +140,7 @@ export interface GraphData {
 }
 
 async function fetchGraphNodesAndEdges(
-  session: Session,
+  driver: Driver,
   userId: string,
   profileId: string | null | undefined,
   nodeLimit: number,
@@ -176,7 +175,7 @@ async function fetchGraphNodesAndEdges(
          RETURN count(m) AS totalMemoryCount
        }`;
 
-  const result = await session.run(
+  const result = await driver.executeQuery(
     `CALL () {
        MATCH (m:Memory {userId: $userId})
        WHERE ${visibleStatusClause("m")} ${pf.clause}
@@ -260,13 +259,13 @@ async function fetchGraphNodesAndEdges(
 }
 
 async function fetchTagSharedEdges(
-  session: Session,
+  driver: Driver,
   userId: string,
   profileId: string | null | undefined,
   strictProfile: boolean,
 ): Promise<TagEdge[]> {
   const pf = profileFilter(profileId, "m", { strict: strictProfile });
-  const result = await session.run(
+  const result = await driver.executeQuery(
     `MATCH (m:Memory {userId: $userId})-[:TAGGED_WITH]->(t:Tag)
      WHERE ${visibleStatusClause("m")} ${pf.clause}
      WITH t, collect(m) AS memsForTag, count(*) AS userTagCount
@@ -295,20 +294,16 @@ export async function getGraphData(
   strictProfile: boolean = false,
 ): Promise<GraphData> {
   const [nodesAndEdges, tagEdges] = await Promise.all([
-    withSession(driver, (session) =>
-      fetchGraphNodesAndEdges(
-        session,
-        userId,
-        profileId,
-        nodeLimit,
-        cursor,
-        strictProfile,
-      ),
+    fetchGraphNodesAndEdges(
+      driver,
+      userId,
+      profileId,
+      nodeLimit,
+      cursor,
+      strictProfile,
     ),
     cursor === null
-      ? withSession(driver, (session) =>
-          fetchTagSharedEdges(session, userId, profileId, strictProfile),
-        )
+      ? fetchTagSharedEdges(driver, userId, profileId, strictProfile)
       : Promise.resolve<TagEdge[]>([]),
   ]);
   return { ...nodesAndEdges, tagEdges };
@@ -319,17 +314,15 @@ export async function getMemoryContent(
   userId: string,
   memoryId: string,
 ): Promise<string> {
-  return withSession(driver, async (session) => {
-    const result = await session.run(
-      `MATCH (m:Memory {id: $memoryId, userId: $userId})
-       RETURN m.content AS content`,
-      { userId, memoryId },
-    );
-    const first = result.records[0];
-    if (!first) return "";
-    const value = neo4jGet(first, "content");
-    return typeof value === "string" ? value : "";
-  });
+  const result = await driver.executeQuery(
+    `MATCH (m:Memory {id: $memoryId, userId: $userId})
+     RETURN m.content AS content`,
+    { userId, memoryId },
+  );
+  const first = result.records[0];
+  if (!first) return "";
+  const value = neo4jGet(first, "content");
+  return typeof value === "string" ? value : "";
 }
 
 export async function getLocalGraph(
@@ -352,33 +345,31 @@ export async function getLocalGraph(
          WHERE ${visibleStatusClause("focus")} ${pfFocus.clause}
          WITH focus ORDER BY focus.createdAt DESC LIMIT 1`;
 
-  const nodesResult = await withSession(driver, (session) =>
-    session.run(
-      `${focusMatch}
-       OPTIONAL MATCH (focus)
-         ((a:Memory WHERE ${visibleStatusClause("a")})
-          -[:RELATES_TO]-
-          (b:Memory WHERE ${visibleStatusClause("b")}
-             AND b.userId = $userId
-             ${pfB.clause})
-         ){1,${hops}}
-         (neighbor:Memory)
-       WITH focus, collect(DISTINCT neighbor) AS neighbors
-       WITH focus.id AS focusId, [focus] + neighbors AS allNodes
-       UNWIND allNodes AS m
-       WITH DISTINCT m, focusId LIMIT 500
-       OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
-       WITH m, focusId, collect(t.name) AS tags
-       RETURN m.id AS id, m.title AS title,
-              tags, m.createdAt AS createdAt,
-              m.source AS source, m.type AS type,
-              m.sourceType AS sourceType, focusId`,
-      {
-        userId,
-        ...(focusId !== null ? { focusId } : {}),
-        ...pfFocus.params,
-      },
-    ),
+  const nodesResult = await driver.executeQuery(
+    `${focusMatch}
+     OPTIONAL MATCH (focus)
+       ((a:Memory WHERE ${visibleStatusClause("a")})
+        -[:RELATES_TO]-
+        (b:Memory WHERE ${visibleStatusClause("b")}
+           AND b.userId = $userId
+           ${pfB.clause})
+       ){1,${hops}}
+       (neighbor:Memory)
+     WITH focus, collect(DISTINCT neighbor) AS neighbors
+     WITH focus.id AS focusId, [focus] + neighbors AS allNodes
+     UNWIND allNodes AS m
+     WITH DISTINCT m, focusId LIMIT 500
+     OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
+     WITH m, focusId, collect(t.name) AS tags
+     RETURN m.id AS id, m.title AS title,
+            tags, m.createdAt AS createdAt,
+            m.source AS source, m.type AS type,
+            m.sourceType AS sourceType, focusId`,
+    {
+      userId,
+      ...(focusId !== null ? { focusId } : {}),
+      ...pfFocus.params,
+    },
   );
 
   const firstRecord = nodesResult.records[0];
@@ -413,37 +404,31 @@ export async function getLocalGraph(
   }
 
   const [relatesToResult, tagEdgesResult, entityResult] = await Promise.all([
-    withSession(driver, (session) =>
-      session.run(
-        `MATCH (a:Memory)-[r:RELATES_TO]->(b:Memory)
-         WHERE a.id IN $nodeIds AND b.id IN $nodeIds
-         RETURN a.id AS source, b.id AS target, r.reason AS reason, r.score AS score`,
-        { nodeIds },
-      ),
+    driver.executeQuery(
+      `MATCH (a:Memory)-[r:RELATES_TO]->(b:Memory)
+       WHERE a.id IN $nodeIds AND b.id IN $nodeIds
+       RETURN a.id AS source, b.id AS target, r.reason AS reason, r.score AS score`,
+      { nodeIds },
     ),
-    withSession(driver, (session) =>
-      session.run(
-        `MATCH (m1:Memory)-[:TAGGED_WITH]->(t:Tag)<-[:TAGGED_WITH]-(m2:Memory)
-         WHERE m1.id IN $nodeIds AND m2.id IN $nodeIds AND m1.id < m2.id
-         WITH m1, m2, collect(DISTINCT t.name) AS sharedTagsAll
-         WITH m1, m2, sharedTagsAll, size(sharedTagsAll) AS weight
-         WHERE weight >= 2
-         RETURN m1.id AS source, m2.id AS target, weight,
-                sharedTagsAll[..5] AS sharedTags
-         ORDER BY weight DESC
-         LIMIT 2000`,
-        { nodeIds },
-      ),
+    driver.executeQuery(
+      `MATCH (m1:Memory)-[:TAGGED_WITH]->(t:Tag)<-[:TAGGED_WITH]-(m2:Memory)
+       WHERE m1.id IN $nodeIds AND m2.id IN $nodeIds AND m1.id < m2.id
+       WITH m1, m2, collect(DISTINCT t.name) AS sharedTagsAll
+       WITH m1, m2, sharedTagsAll, size(sharedTagsAll) AS weight
+       WHERE weight >= 2
+       RETURN m1.id AS source, m2.id AS target, weight,
+              sharedTagsAll[..5] AS sharedTags
+       ORDER BY weight DESC
+       LIMIT 2000`,
+      { nodeIds },
     ),
-    withSession(driver, (session) =>
-      session.run(
-        `MATCH (m:Memory)-[:MENTIONS]->(e:Entity)
-         WHERE m.id IN $nodeIds
-         WITH e, collect(m.id) AS memoryIds
-         RETURN e.normalizedName AS normalizedName, e.name AS name,
-                e.type AS type, memoryIds`,
-        { nodeIds },
-      ),
+    driver.executeQuery(
+      `MATCH (m:Memory)-[:MENTIONS]->(e:Entity)
+       WHERE m.id IN $nodeIds
+       WITH e, collect(m.id) AS memoryIds
+       RETURN e.normalizedName AS normalizedName, e.name AS name,
+              e.type AS type, memoryIds`,
+      { nodeIds },
     ),
   ]);
 

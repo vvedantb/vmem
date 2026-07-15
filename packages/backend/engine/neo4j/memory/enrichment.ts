@@ -36,10 +36,8 @@ async function runVocabularyQuery<T>(
   params: Record<string, unknown>,
   mapRecord: (r: Neo4jRecord) => T,
 ): Promise<T[]> {
-  return withSession(driver, async (session) => {
-    const result = await session.run(cypher, params);
-    return result.records.map(mapRecord);
-  });
+  const result = await driver.executeQuery(cypher, params);
+  return result.records.map(mapRecord);
 }
 
 export async function getTopTags(
