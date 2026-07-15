@@ -10,13 +10,7 @@ import { useThemeContext } from "@/contexts/ThemeContext";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 import { useMemoriesSearchParams } from "@/hooks/useMemoriesSearchParams";
 import type { GraphScope } from "@/lib/url-state/memories";
-import {
-  buildGraphData,
-  getAllTags,
-  getAllKinds,
-  getAllSources,
-  getAllTypes,
-} from "@/lib/graph/graph-data";
+import { buildGraphData, getGraphFacets } from "@/lib/graph/graph-data";
 import {
   DEFAULT_GRAPH_SETTINGS,
   type GraphSettings,
@@ -111,10 +105,12 @@ export function useMemoryGraphController({
   const viewTheme = useMemo(() => getViewTheme(isDark), [isDark]);
 
   // derived filter stats
-  const allTags = useMemo(() => getAllTags(apiNodes), [apiNodes]);
-  const allKinds = useMemo(() => getAllKinds(apiNodes), [apiNodes]);
-  const allSources = useMemo(() => getAllSources(apiNodes), [apiNodes]);
-  const allTypes = useMemo(() => getAllTypes(apiNodes), [apiNodes]);
+  const {
+    tags: allTags,
+    kinds: allKinds,
+    sources: allSources,
+    types: allTypes,
+  } = useMemo(() => getGraphFacets(apiNodes), [apiNodes]);
 
   const { graphNodes, graphEdges } = useMemo(
     () =>

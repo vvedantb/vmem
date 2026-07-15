@@ -20,30 +20,25 @@ export type ApiMentionsEdge = GraphResponse["mentionsEdges"][number];
 
 type ApiGraphNodeKind = ApiGraphNode["kind"];
 
-// ---- Tag stats ----
+// ---- Facet stats (one pass over apiNodes) ----
 
 export interface TagStat {
   tag: string;
   count: number;
 }
 
-// extracts unique tags with counts from API nodes
-export function getAllTags(apiNodes: ApiGraphNode[]): TagStat[] {
-  const tagCounts = new Map<string, number>();
-  for (const node of apiNodes) {
-    for (const tag of node.tags) {
-      tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1);
-    }
-  }
-  return Array.from(tagCounts.entries())
-    .map(([tag, count]) => ({ tag, count }))
-    .sort((a, b) => b.count - a.count);
-}
-
-// ---- Kind stats ----
-
 export interface KindStat {
   kind: ApiGraphNodeKind;
+  count: number;
+}
+
+export interface SourceStat {
+  source: string;
+  count: number;
+}
+
+export interface TypeStat {
+  type: MemoryType;
   count: number;
 }
 
@@ -56,55 +51,47 @@ const KIND_ORDER: ApiGraphNodeKind[] = [
   "skill",
 ];
 
-// returns counts for each node kind present in the data, in a stable order
-export function getAllKinds(apiNodes: ApiGraphNode[]): KindStat[] {
-  const counts = new Map<ApiGraphNodeKind, number>();
+export function getGraphFacets(apiNodes: ApiGraphNode[]): {
+  tags: TagStat[];
+  kinds: KindStat[];
+  sources: SourceStat[];
+  types: TypeStat[];
+} {
+  const tagCounts = new Map<string, number>();
+  const kindCounts = new Map<ApiGraphNodeKind, number>();
+  const sourceCounts = new Map<string, number>();
+  const typeCounts = new Map<MemoryType, number>();
+
   for (const node of apiNodes) {
-    counts.set(node.kind, (counts.get(node.kind) ?? 0) + 1);
+    kindCounts.set(node.kind, (kindCounts.get(node.kind) ?? 0) + 1);
+    for (const tag of node.tags) {
+      tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1);
+    }
+    if (node.kind !== "memory") continue;
+    if (node.source) {
+      sourceCounts.set(node.source, (sourceCounts.get(node.source) ?? 0) + 1);
+    }
+    if (node.type) {
+      typeCounts.set(node.type, (typeCounts.get(node.type) ?? 0) + 1);
+    }
   }
-  return KIND_ORDER.map((kind) => ({
-    kind,
-    count: counts.get(kind) ?? 0,
-  })).filter((s) => s.count > 0);
-}
 
-// ---- Source stats ----
-
-export interface SourceStat {
-  source: string;
-  count: number;
-}
-
-// unique memory sources with counts, sorted alphabetically
-export function getAllSources(apiNodes: ApiGraphNode[]): SourceStat[] {
-  const counts = new Map<string, number>();
-  for (const node of apiNodes) {
-    if (node.kind !== "memory" || !node.source) continue;
-    counts.set(node.source, (counts.get(node.source) ?? 0) + 1);
-  }
-  return Array.from(counts.entries())
-    .map(([source, count]) => ({ source, count }))
-    .sort((a, b) => a.source.localeCompare(b.source));
-}
-
-// ---- Type stats ----
-
-export interface TypeStat {
-  type: MemoryType;
-  count: number;
-}
-
-// memory-type counts in canonical order
-export function getAllTypes(apiNodes: ApiGraphNode[]): TypeStat[] {
-  const counts = new Map<MemoryType, number>();
-  for (const node of apiNodes) {
-    if (node.kind !== "memory" || !node.type) continue;
-    counts.set(node.type, (counts.get(node.type) ?? 0) + 1);
-  }
-  return MEMORY_TYPES.map((type) => ({
-    type,
-    count: counts.get(type) ?? 0,
-  }));
+  return {
+    tags: Array.from(tagCounts.entries())
+      .map(([tag, count]) => ({ tag, count }))
+      .sort((a, b) => b.count - a.count),
+    kinds: KIND_ORDER.map((kind) => ({
+      kind,
+      count: kindCounts.get(kind) ?? 0,
+    })).filter((s) => s.count > 0),
+    sources: Array.from(sourceCounts.entries())
+      .map(([source, count]) => ({ source, count }))
+      .sort((a, b) => a.source.localeCompare(b.source)),
+    types: MEMORY_TYPES.map((type) => ({
+      type,
+      count: typeCounts.get(type) ?? 0,
+    })),
+  };
 }
 
 // ---- Build graph data ----
