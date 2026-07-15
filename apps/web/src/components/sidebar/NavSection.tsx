@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, type ReactNode } from "react";
 import { IconChevronDown } from "@tabler/icons-react";
 import { cn } from "@vmem/ui";

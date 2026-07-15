@@ -1,5 +1,3 @@
-"use client";
-
 import { createContext, use, useState, type ReactNode } from "react";
 
 type PageTitleContextValue = {

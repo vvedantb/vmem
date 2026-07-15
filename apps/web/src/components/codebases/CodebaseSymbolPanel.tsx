@@ -1,5 +1,3 @@
-"use client";
-
 // right-side symbol detail panel
 
 import {

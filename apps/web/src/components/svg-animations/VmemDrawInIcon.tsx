@@ -1,5 +1,3 @@
-"use client";
-
 import { cn } from "@vmem/ui";
 import { VmemPaths } from "./VmemPaths";
 

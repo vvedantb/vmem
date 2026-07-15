@@ -1,5 +1,3 @@
-"use client";
-
 // codebase symbol-graph canvas
 
 import { useMemo, useCallback, useRef, useState } from "react";

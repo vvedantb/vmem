@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery as useConvexQuery } from "convex/react";
 import { useQueryClient } from "@tanstack/react-query";

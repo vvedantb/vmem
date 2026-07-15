@@ -1,5 +1,3 @@
-"use client";
-
 import { Card, CardContent, Skeleton } from "@vmem/ui";
 
 export function AiLogsLoadingSkeleton() {

@@ -1,5 +1,3 @@
-"use client";
-
 import {
   formatListItemKindLabel,
   LIST_ITEM_KINDS,

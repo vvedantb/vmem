@@ -1,5 +1,3 @@
-"use client";
-
 interface GraphNodeTooltipProps {
   title: string;
   viewportX: number;

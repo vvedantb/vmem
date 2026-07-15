@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import type { CSSProperties, MouseEvent, ReactNode } from "react";
 import type { DraggableAttributes } from "@dnd-kit/core";

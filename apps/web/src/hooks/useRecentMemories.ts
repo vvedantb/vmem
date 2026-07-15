@@ -1,5 +1,3 @@
-"use client";
-
 import { useConvexAuth, useAction } from "convex/react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@vmem/backend";

@@ -1,5 +1,3 @@
-"use client";
-
 // app-wide memory data facade — composes hooks for stable useMemoryContext API
 
 import { createContext, use, useMemo } from "react";

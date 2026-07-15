@@ -1,5 +1,3 @@
-"use client";
-
 import type { ReactNode } from "react";
 import { Button, Checkbox, cn, TabsPrimitive } from "@vmem/ui";
 import { Virtuoso } from "react-virtuoso";

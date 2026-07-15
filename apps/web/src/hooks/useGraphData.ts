@@ -1,5 +1,3 @@
-"use client";
-
 // extracted graph data-fetching hook
 import { useState, useMemo, useCallback } from "react";
 import { useConvexAuth, useAction } from "convex/react";

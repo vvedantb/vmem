@@ -1,5 +1,4 @@
 // morphing hamburger menu icon that transforms to X
-"use client";
 
 import { motion } from "motion/react";
 

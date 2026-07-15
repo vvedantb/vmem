@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import { useQuery } from "convex/react";
 import { EditorContent, useEditor } from "@tiptap/react";

@@ -1,5 +1,3 @@
-"use client";
-
 // graph header: search / filters / options (+ add memory)
 
 import { useCallback, useMemo } from "react";

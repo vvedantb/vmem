@@ -1,5 +1,3 @@
-"use client";
-
 import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useQuery } from "convex/react";

@@ -1,5 +1,4 @@
 // animated counter that counts up from 0 to target value
-"use client";
 
 import { motion, useSpring, useTransform, useInView } from "motion/react";
 import { useEffect, useRef } from "react";

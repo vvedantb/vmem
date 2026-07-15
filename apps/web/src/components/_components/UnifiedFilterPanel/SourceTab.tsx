@@ -1,5 +1,3 @@
-"use client";
-
 import { formatMemorySourceLabel } from "@/lib/memories";
 import { isCheckedByDefault, toggleCheckedByDefault } from "./checkedByDefault";
 import { FilterCheckboxRow, VirtuosoFilterTab } from "./filter-primitives";

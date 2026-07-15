@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useMemo, useState, lazy, Suspense } from "react";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useAction, useQuery } from "convex/react";

@@ -1,5 +1,3 @@
-"use client";
-
 import { useMemo } from "react";
 import { useQueryStates } from "nuqs";
 import type { Id } from "@vmem/backend";

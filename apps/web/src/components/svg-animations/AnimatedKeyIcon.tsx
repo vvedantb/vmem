@@ -1,5 +1,4 @@
 // animated key/bolt icon with sparkle effects for empty API keys state
-"use client";
 
 import { motion } from "motion/react";
 

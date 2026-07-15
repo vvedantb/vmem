@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useMemo, useRef } from "react";
 import { Button, Input, Badge, cn, floatingSurfaceClass } from "@vmem/ui";
 import { IconX } from "@tabler/icons-react";

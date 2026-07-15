@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect } from "react";
 import { useConvexAuth, useMutation } from "convex/react";
 import { api } from "@vmem/backend";

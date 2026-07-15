@@ -1,5 +1,3 @@
-"use client";
-
 import { IconPlus } from "@tabler/icons-react";
 import { Button } from "@vmem/ui";
 import AddMemoryModal from "@/components/AddMemoryModal";

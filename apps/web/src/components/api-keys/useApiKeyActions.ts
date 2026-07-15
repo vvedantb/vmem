@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useMutation, useAction } from "convex/react";
 import { toast } from "sonner";

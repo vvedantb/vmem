@@ -1,5 +1,3 @@
-"use client";
-
 import { IconChartBar } from "@tabler/icons-react";
 import { Card, CardContent, cn } from "@vmem/ui";
 import { formatRelativeTime } from "@vmem/shared";

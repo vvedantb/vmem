@@ -1,5 +1,3 @@
-"use client";
-
 import type { FunctionReturnType } from "convex/server";
 import { IconCoin, IconStack } from "@tabler/icons-react";
 import type { api } from "@vmem/backend";

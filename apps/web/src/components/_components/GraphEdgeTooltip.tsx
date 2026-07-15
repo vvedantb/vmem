@@ -1,5 +1,3 @@
-"use client";
-
 import type { GraphEdgeType } from "@/lib/graph/types";
 
 interface GraphEdgeTooltipProps {

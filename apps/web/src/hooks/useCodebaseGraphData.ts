@@ -1,5 +1,3 @@
-"use client";
-
 // hooks for fetching the Phase-1 codebase graph payload
 import { useConvexAuth, useAction } from "convex/react";
 import { useQuery as useTanstackQuery } from "@tanstack/react-query";

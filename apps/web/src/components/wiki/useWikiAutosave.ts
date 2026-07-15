@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useEffect } from "react";
 import { useMutation } from "convex/react";
 import { useDebounceCallback } from "usehooks-ts";

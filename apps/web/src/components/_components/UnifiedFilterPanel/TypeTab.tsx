@@ -1,5 +1,3 @@
-"use client";
-
 import {
   formatMemoryTypeLabel,
   MEMORY_TYPES,

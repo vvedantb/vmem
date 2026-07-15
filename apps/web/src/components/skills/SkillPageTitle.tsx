@@ -1,5 +1,3 @@
-"use client";
-
 import { Breadcrumb, BreadcrumbPage, Input } from "@vmem/ui";
 
 interface SkillPageTitleProps {

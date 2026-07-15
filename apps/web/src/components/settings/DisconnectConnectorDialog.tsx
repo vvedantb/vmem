@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { useAction, useMutation } from "convex/react";
 import { api, type Id } from "@vmem/backend";

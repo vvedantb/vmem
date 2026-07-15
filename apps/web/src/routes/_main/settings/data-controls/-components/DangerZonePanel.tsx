@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { Button, Card, CardContent } from "@vmem/ui";
 import { IconAlertTriangle, IconTrash } from "@tabler/icons-react";

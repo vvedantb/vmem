@@ -1,5 +1,3 @@
-"use client";
-
 import type { TablerIcon } from "@tabler/icons-react";
 import {
   IconBrain,

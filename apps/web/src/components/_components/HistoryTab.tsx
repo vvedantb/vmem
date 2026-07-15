@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useMemo, useState } from "react";
 import { IconClockHour4 } from "@tabler/icons-react";
 import { cn } from "@vmem/ui";

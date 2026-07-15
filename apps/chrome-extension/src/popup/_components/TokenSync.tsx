@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect } from "react";
 import { useAuth } from "@clerk/chrome-extension";
 import { useInterval } from "usehooks-ts";

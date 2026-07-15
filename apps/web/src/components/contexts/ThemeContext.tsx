@@ -1,5 +1,3 @@
-"use client";
-
 import { createContext, use, useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { useQuery, useMutation } from "convex/react";

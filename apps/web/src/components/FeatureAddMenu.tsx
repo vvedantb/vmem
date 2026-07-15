@@ -1,5 +1,3 @@
-"use client";
-
 import { IconChevronDown, IconPlus } from "@tabler/icons-react";
 import {
   Button,

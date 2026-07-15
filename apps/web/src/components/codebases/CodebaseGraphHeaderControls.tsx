@@ -1,5 +1,3 @@
-"use client";
-
 // codebase-graph header controls
 
 import { useMemo } from "react";

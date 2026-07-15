@@ -1,5 +1,3 @@
-"use client";
-
 import type { SkillViewFields } from "@/components/skills/_utils";
 import {
   SkillDescriptionSection,

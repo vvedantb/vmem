@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, type FormEvent } from "react";
 import { Button, Input, Textarea, Badge } from "@vmem/ui";
 import { toast } from "sonner";

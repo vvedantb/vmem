@@ -1,5 +1,3 @@
-"use client";
-
 import { useMemo } from "react";
 import { useAction } from "convex/react";
 import { useQuery } from "@tanstack/react-query";

@@ -1,5 +1,3 @@
-"use client";
-
 import type { ReactNode } from "react";
 import { IconSearch } from "@tabler/icons-react";
 import { ClearInput, cn } from "@vmem/ui";

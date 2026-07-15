@@ -1,5 +1,3 @@
-"use client";
-
 import { TableRow, TableCell, Badge, Button } from "@vmem/ui";
 import {
   IconCopy,

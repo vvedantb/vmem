@@ -1,5 +1,3 @@
-"use client";
-
 import { Card, CardContent, Skeleton } from "@vmem/ui";
 
 const SUMMARY_CARD_INDICES = [0, 1, 2];

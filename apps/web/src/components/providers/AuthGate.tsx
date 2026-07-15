@@ -1,5 +1,3 @@
-"use client";
-
 import { AuthLoading, Authenticated, Unauthenticated } from "convex/react";
 import { useTheme } from "next-themes";
 import { Navigate } from "@tanstack/react-router";

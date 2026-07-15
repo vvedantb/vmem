@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { useAction, useQuery } from "convex/react";
 import { Card, CardContent, Button, Badge, Progress } from "@vmem/ui";

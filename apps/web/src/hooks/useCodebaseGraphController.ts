@@ -1,5 +1,3 @@
-"use client";
-
 // data + filter state for one codebase symbol graph (filters in url via nuqs)
 
 import { useCallback, useMemo, useState } from "react";

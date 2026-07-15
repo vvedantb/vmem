@@ -1,5 +1,3 @@
-"use client";
-
 import { IconCopy, IconDots, IconHistory } from "@tabler/icons-react";
 import {
   Button,

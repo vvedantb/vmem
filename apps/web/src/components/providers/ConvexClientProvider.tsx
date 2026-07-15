@@ -1,5 +1,3 @@
-"use client";
-
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { convex } from "@/lib/convex-client";
 import { useStableAuth } from "@/hooks/useStableAuth";

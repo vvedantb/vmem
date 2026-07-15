@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useMemo, useState } from "react";
 import { Button, Card } from "@vmem/ui";
 import { IconMoodEmpty, IconX } from "@tabler/icons-react";

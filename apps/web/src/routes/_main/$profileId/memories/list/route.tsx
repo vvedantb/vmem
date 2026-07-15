@@ -1,5 +1,3 @@
-"use client";
-
 import { createFileRoute, Outlet, useParams } from "@tanstack/react-router";
 import { Suspense } from "react";
 import MemorySearch from "@/components/MemorySearch";

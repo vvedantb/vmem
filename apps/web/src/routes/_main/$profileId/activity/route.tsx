@@ -1,5 +1,3 @@
-"use client";
-
 import type { ReactNode } from "react";
 import { createFileRoute, Outlet, useMatchRoute } from "@tanstack/react-router";
 import PageContainer from "@/components/PageContainer";

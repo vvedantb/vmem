@@ -1,5 +1,3 @@
-"use client";
-
 import { useMemo } from "react";
 import type { MemoryViewFilterParams } from "@/lib/memory-view-filters";
 import {

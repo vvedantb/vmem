@@ -11,6 +11,8 @@ typed confirm and covers memory/file/env/wiki/system-skill deletes.
 Upload surfaces use `react-dropzone` instead of hand-rolled drag handlers.
 Skill create/edit dialogs share a `SkillFormShell` for fields and footer.
 UnifiedFilterPanel tabs share filter row/header primitives.
+Dropped Next.js `"use client"` directives from the Vite web app,
+`packages/ui`, and the extension popup.
 Extension adopts Clerk SW Convex tokens, zod message unions, and
 `usehooks-ts` in the popup.
 

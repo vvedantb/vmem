@@ -1,5 +1,3 @@
-"use client";
-
 import type { KeyboardEvent } from "react";
 import { cn } from "@vmem/ui";
 import { sidebarListRowClass } from "@/components/sidebar/sidebar-nav-row";

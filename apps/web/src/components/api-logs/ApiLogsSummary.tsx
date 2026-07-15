@@ -1,5 +1,3 @@
-"use client";
-
 import { IconActivity, IconCircleCheck, IconClock } from "@tabler/icons-react";
 import { formatDuration } from "@/lib/formatters";
 import { MetricSummaryCard } from "@/components/metrics/MetricSummaryCard";

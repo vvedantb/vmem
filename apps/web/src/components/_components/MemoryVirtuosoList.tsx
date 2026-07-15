@@ -1,5 +1,3 @@
-"use client";
-
 import { Virtuoso } from "react-virtuoso";
 import ListItemRow from "@/components/_components/ListItemRow";
 import type { MemoryListEntry } from "@/hooks/useMemoryListEntries";

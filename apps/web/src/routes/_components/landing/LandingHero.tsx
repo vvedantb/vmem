@@ -1,5 +1,3 @@
-"use client";
-
 import { SignInButton, SignUpButton } from "@clerk/clerk-react";
 import { motion } from "motion/react";
 import { Button, motionDuration, motionEase } from "@vmem/ui";

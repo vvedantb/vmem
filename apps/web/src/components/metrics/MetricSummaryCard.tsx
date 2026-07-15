@@ -1,5 +1,3 @@
-"use client";
-
 import type { ReactNode } from "react";
 import type { TablerIcon } from "@tabler/icons-react";
 import { motion } from "motion/react";

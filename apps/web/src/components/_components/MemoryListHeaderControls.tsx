@@ -1,5 +1,3 @@
-"use client";
-
 // list-view controls rendered in the page header
 
 import {

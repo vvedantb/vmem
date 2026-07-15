@@ -1,5 +1,3 @@
-"use client";
-
 import { IconTopologyStar3, IconList } from "@tabler/icons-react";
 import { RouteTabs } from "@/components/RouteTabs";
 import { useActiveProfile } from "@/components/workspace/active-profile";

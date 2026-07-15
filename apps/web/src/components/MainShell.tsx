@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback } from "react";
 import { useLocalStorage } from "usehooks-ts";
 import { useHotkey } from "@tanstack/react-hotkeys";

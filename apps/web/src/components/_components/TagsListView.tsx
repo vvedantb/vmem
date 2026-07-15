@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "motion/react";

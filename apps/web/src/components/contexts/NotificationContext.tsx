@@ -1,5 +1,3 @@
-"use client";
-
 import type { ReactNode } from "react";
 import { createContext, use, useCallback } from "react";
 import { useQuery, useMutation, useConvexAuth } from "convex/react";

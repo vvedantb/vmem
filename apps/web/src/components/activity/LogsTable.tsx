@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useMemo } from "react";
 import { Virtuoso } from "react-virtuoso";
 import { Badge, Button, Card, CardContent } from "@vmem/ui";

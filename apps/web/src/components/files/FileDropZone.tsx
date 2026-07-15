@@ -1,5 +1,3 @@
-"use client";
-
 import type { ReactNode } from "react";
 import { useDropzone } from "react-dropzone";
 import { AnimatePresence, motion } from "motion/react";

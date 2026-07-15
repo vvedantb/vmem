@@ -1,5 +1,3 @@
-"use client";
-
 import { motion } from "motion/react";
 import { motionDuration, motionEase } from "@vmem/ui";
 import { LandingFeatureCard, type LandingFeature } from "./LandingFeatureCard";

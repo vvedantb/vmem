@@ -1,5 +1,3 @@
-"use client";
-
 // non-canvas graph state (filters/search/display) shared by canvas + header
 
 import { useCallback, useDeferredValue, useMemo, useState } from "react";

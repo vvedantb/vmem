@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { useMutation } from "convex/react";

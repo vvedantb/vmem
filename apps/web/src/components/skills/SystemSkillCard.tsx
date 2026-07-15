@@ -1,5 +1,3 @@
-"use client";
-
 import { Link } from "@tanstack/react-router";
 import { Badge, Card, CardContent } from "@vmem/ui";
 import type { SystemSkillEntry } from "@/components/skills/_utils";

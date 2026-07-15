@@ -1,5 +1,3 @@
-"use client";
-
 import { createFileRoute, Outlet, useMatchRoute } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { Button } from "@vmem/ui";

@@ -1,5 +1,3 @@
-"use client";
-
 import { IconPencil, IconUpload } from "@tabler/icons-react";
 import { DropdownMenuItem } from "@vmem/ui";
 import { FeatureAddMenu } from "@/components/FeatureAddMenu";

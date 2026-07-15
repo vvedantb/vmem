@@ -1,5 +1,3 @@
-"use client";
-
 // force-directed graph canvas + canvas-local overlays (filters live in controller)
 
 import { useRef } from "react";

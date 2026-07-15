@@ -1,5 +1,3 @@
-"use client";
-
 import { useAction } from "convex/react";
 import { useQuery } from "@tanstack/react-query";
 import type { FunctionReturnType } from "convex/server";

@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useRef, type RefObject } from "react";
 import { Button, cn } from "@vmem/ui";
 import type { OutlineHeading } from "./_utils";

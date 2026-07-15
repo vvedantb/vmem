@@ -1,5 +1,3 @@
-"use client";
-
 import { Skeleton, cn } from "@vmem/ui";
 import { IconChartBar } from "@tabler/icons-react";
 import { SidebarUserMenu } from "./SidebarUserMenu";

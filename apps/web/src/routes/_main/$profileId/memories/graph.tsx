@@ -1,5 +1,3 @@
-"use client";
-
 import { lazy, Suspense } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { VmemSpinner } from "@/components/svg-animations";

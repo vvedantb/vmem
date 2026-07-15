@@ -1,5 +1,4 @@
 // animated notification icons with self-drawing effects
-"use client";
 
 import { motion } from "motion/react";
 import type { NotificationType } from "@/components/contexts/NotificationContext";

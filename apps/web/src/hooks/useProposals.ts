@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback } from "react";
 import { useConvexAuth, useAction } from "convex/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";

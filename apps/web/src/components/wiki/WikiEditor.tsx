@@ -1,5 +1,3 @@
-"use client";
-
 import type { OutlineHeading } from "./_utils";
 import type { WikiNodeDoc } from "./-types";
 import WikiArtifactEditor from "./WikiArtifactEditor";

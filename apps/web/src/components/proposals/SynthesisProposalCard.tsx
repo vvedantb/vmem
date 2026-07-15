@@ -1,5 +1,3 @@
-"use client";
-
 import { Link } from "@tanstack/react-router";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 import { Badge, Button, Progress } from "@vmem/ui";

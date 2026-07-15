@@ -1,5 +1,3 @@
-"use client";
-
 import type { FormEvent, ReactNode } from "react";
 import { Button, Input, Textarea } from "@vmem/ui";
 import { IconLoader2 } from "@tabler/icons-react";

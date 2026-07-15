@@ -1,5 +1,3 @@
-"use client";
-
 import { useMemo } from "react";
 import { useQueryStates } from "nuqs";
 import { useQuery, usePaginatedQuery } from "convex/react";

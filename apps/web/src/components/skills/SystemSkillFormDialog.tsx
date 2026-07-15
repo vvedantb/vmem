@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, type FormEvent } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@vmem/backend";

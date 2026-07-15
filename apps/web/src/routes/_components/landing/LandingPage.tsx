@@ -1,5 +1,3 @@
-"use client";
-
 import { useSyncExternalStore } from "react";
 import { IconBolt, IconBrain, IconTopologyStar3 } from "@tabler/icons-react";
 import { motion, useScroll, useTransform } from "motion/react";
