@@ -11,11 +11,12 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  cn,
 } from "@vmem/ui";
 import { IconLoader2 } from "@tabler/icons-react";
 import type { Doc } from "@vmem/backend";
-import { PROFILE_COLORS, PROFILE_ICON_OPTIONS } from "./profile-icon";
+import { PROFILE_COLORS } from "./profile-icon";
+import { ProfileColorPicker } from "./ProfileColorPicker";
+import { ProfileIconPicker } from "./ProfileIconPicker";
 
 const DEFAULT_COLOR: string = PROFILE_COLORS[0] ?? "#171717";
 
@@ -73,49 +74,11 @@ function CreateProfileFormContent({
         </div>
         <div className="space-y-2">
           <Label>Color</Label>
-          <div className="flex flex-wrap gap-2">
-            {PROFILE_COLORS.map((c) => (
-              <Button
-                key={c}
-                type="button"
-                variant="ghost"
-                onClick={() => setColor(c)}
-                aria-label={`Color ${c}`}
-                className={cn(
-                  "h-8 w-8 rounded-full p-0 transition-transform",
-                  color === c &&
-                    "ring-2 ring-offset-2 ring-offset-background ring-foreground scale-110",
-                )}
-                style={{ backgroundColor: c }}
-              />
-            ))}
-          </div>
+          <ProfileColorPicker value={color} onChange={setColor} />
         </div>
         <div className="space-y-2">
           <Label>Icon</Label>
-          <div className="flex flex-wrap gap-2">
-            {PROFILE_ICON_OPTIONS.map((i) => {
-              const IconComponent = i.icon;
-              return (
-                <Button
-                  key={i.name}
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={() => setIcon(i.name)}
-                  aria-label={i.name}
-                  className={cn(
-                    "h-9 w-9 rounded-lg",
-                    icon === i.name
-                      ? "bg-segment text-foreground"
-                      : "bg-surface-secondary hover:bg-surface-tertiary",
-                  )}
-                >
-                  <IconComponent className="h-4 w-4" />
-                </Button>
-              );
-            })}
-          </div>
+          <ProfileIconPicker value={icon} onChange={setIcon} />
         </div>
         {error ? <p className="text-sm text-danger">{error}</p> : null}
       </div>
@@ -172,49 +135,17 @@ function EditProfileFormContent({
         </div>
         <div className="space-y-2">
           <Label>Color</Label>
-          <div className="flex flex-wrap gap-2">
-            {PROFILE_COLORS.map((c) => (
-              <Button
-                key={c}
-                type="button"
-                variant="ghost"
-                onClick={() => onFieldUpdate({ color: c })}
-                aria-label={`Color ${c}`}
-                className={cn(
-                  "h-8 w-8 rounded-full p-0 transition-transform",
-                  profile.color === c &&
-                    "ring-2 ring-offset-2 ring-offset-background ring-foreground scale-110",
-                )}
-                style={{ backgroundColor: c }}
-              />
-            ))}
-          </div>
+          <ProfileColorPicker
+            value={profile.color}
+            onChange={(color) => onFieldUpdate({ color })}
+          />
         </div>
         <div className="space-y-2">
           <Label>Icon</Label>
-          <div className="flex flex-wrap gap-2">
-            {PROFILE_ICON_OPTIONS.map((i) => {
-              const IconComponent = i.icon;
-              return (
-                <Button
-                  key={i.name}
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={() => onFieldUpdate({ icon: i.name })}
-                  aria-label={i.name}
-                  className={cn(
-                    "h-9 w-9 rounded-lg",
-                    profile.icon === i.name
-                      ? "bg-segment text-foreground"
-                      : "bg-surface-secondary hover:bg-surface-tertiary",
-                  )}
-                >
-                  <IconComponent className="h-4 w-4" />
-                </Button>
-              );
-            })}
-          </div>
+          <ProfileIconPicker
+            value={profile.icon}
+            onChange={(icon) => onFieldUpdate({ icon })}
+          />
         </div>
         {error ? <p className="text-sm text-danger">{error}</p> : null}
       </div>

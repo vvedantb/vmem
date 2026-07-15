@@ -48,8 +48,8 @@ import {
   type Feature,
   type Range,
   type Scope,
-} from "../-searchParams";
-import type { ProfileListItem, TeamListItem } from "./-types";
+} from "@/lib/url-state/activity";
+import type { ProfileListItem, TeamListItem } from "./types";
 import { FilterOptionContent } from "./FilterOptionContent";
 
 // filters dropdown for `/ai-logs`

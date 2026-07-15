@@ -44,7 +44,7 @@ import {
   type TablerIcon,
 } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
-import { getActivityLabel } from "@/components/dashboard/_utils";
+import { getActivityLabel } from "./_eventsUtils";
 import {
   eventsSearchParams,
   EVENT_TYPES,
@@ -53,8 +53,8 @@ import {
   type EventType,
   type EventDatePreset,
   type SortDirection,
-} from "../-searchParams";
-import type { ActivityItem } from "./-types";
+} from "@/lib/url-state/activity";
+import type { ActivityItem } from "./types";
 import { FilterOptionContent } from "./FilterOptionContent";
 
 const EVENT_TYPE_ICONS: Record<EventType, TablerIcon> = {

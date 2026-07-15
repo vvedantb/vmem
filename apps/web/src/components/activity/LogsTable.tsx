@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { Virtuoso } from "react-virtuoso";
 import { Badge, Button, Card, CardContent } from "@vmem/ui";
 import { IconReceipt2 } from "@tabler/icons-react";
-import type { AiLogRow, ProfileListItem } from "./-types";
+import type { AiLogRow, ProfileListItem } from "./types";
 import {
   formatLogCost,
   formatLogTime,

@@ -1,8 +1,6 @@
-import type { AiLogRow } from "./-types";
-import { FEATURE_LABELS, FEATURES } from "../-searchParams";
-
-const TREND_DAY_COUNT = 7;
-const DAY_MS = 24 * 60 * 60 * 1000;
+import { createSevenDayBuckets } from "@/lib/daily-trends";
+import type { AiLogRow } from "./types";
+import { FEATURE_LABELS, FEATURES } from "@/lib/url-state/activity";
 
 type AiLogTrendRow = Pick<AiLogRow, "createdAt" | "costUsd" | "totalTokens">;
 
@@ -12,39 +10,22 @@ export interface AiLogsTrends {
   tokens: number[];
 }
 
-function startOfLocalDay(timestamp: number): number {
-  const date = new Date(timestamp);
-  date.setHours(0, 0, 0, 0);
-  return date.getTime();
-}
-
 // bucket loaded log rows into daily trends for sparklines
 export function computeAiLogsTrends(
   rows: readonly AiLogTrendRow[],
 ): AiLogsTrends {
-  const todayStart = startOfLocalDay(Date.now());
-  const dayStarts = Array.from({ length: TREND_DAY_COUNT }, (_, index) => {
-    return todayStart - (TREND_DAY_COUNT - 1 - index) * DAY_MS;
-  });
-
-  const buckets = dayStarts.map(() => ({
+  const { buckets, addToBucket } = createSevenDayBuckets(() => ({
     calls: 0,
     costUsd: 0,
     tokens: 0,
   }));
 
   for (const row of rows) {
-    const entryDayStart = startOfLocalDay(row.createdAt);
-    const bucketIndex = dayStarts.findIndex(
-      (dayStart) => dayStart === entryDayStart,
-    );
-    if (bucketIndex < 0) continue;
-
-    const bucket = buckets.at(bucketIndex);
-    if (bucket === undefined) continue;
-    bucket.calls += 1;
-    if (typeof row.costUsd === "number") bucket.costUsd += row.costUsd;
-    if (typeof row.totalTokens === "number") bucket.tokens += row.totalTokens;
+    addToBucket(row.createdAt, (bucket) => {
+      bucket.calls += 1;
+      if (typeof row.costUsd === "number") bucket.costUsd += row.costUsd;
+      if (typeof row.totalTokens === "number") bucket.tokens += row.totalTokens;
+    });
   }
 
   return {

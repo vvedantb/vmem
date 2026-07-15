@@ -23,13 +23,13 @@ import {
   type Range,
   type Scope,
   type SortDirection,
-} from "../-searchParams";
+} from "@/lib/url-state/activity";
 import { LogsSummary } from "./LogsSummary";
 import { LogsFiltersDropdown } from "./LogsFiltersDropdown";
 import { LogsTable } from "./LogsTable";
 import { computeAiLogsTrends } from "./_aiLogsUtils";
 import { AiLogsLoadingSkeleton } from "./AiLogsLoadingSkeleton";
-import type { ProfileListItem, TeamListItem } from "./-types";
+import type { ProfileListItem, TeamListItem } from "./types";
 
 const PAGE_SIZE = 50;
 

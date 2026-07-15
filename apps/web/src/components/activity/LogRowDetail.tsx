@@ -7,7 +7,7 @@ import {
   DialogTitle,
   Badge,
 } from "@vmem/ui";
-import type { AiLogRow, ProfileListItem } from "./-types";
+import type { AiLogRow, ProfileListItem } from "./types";
 import { featureLabelFor } from "./_aiLogsUtils";
 
 // detail dialog for one ai log row (prompt/response when logging enabled)
