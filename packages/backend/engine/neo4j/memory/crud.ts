@@ -1,12 +1,6 @@
-import type { CypherResult } from "@neo4j/cypher-builder";
-import Cypher from "@neo4j/cypher-builder";
+import type { Driver, Integer, QueryResult, Session } from "neo4j-driver";
 import crypto from "node:crypto";
-import neo4j, {
-  type Driver,
-  type Integer,
-  type QueryResult,
-  type Session,
-} from "neo4j-driver";
+import neo4j from "neo4j-driver";
 import { toMemoryContentFulltextQuery } from "../luceneQuery";
 import { neo4jGet, parseNeo4jInt } from "../record";
 import { withSession } from "../session";
@@ -16,15 +10,31 @@ import { logEvent, visibleStatusClause } from "./shared";
 import { normalizeTags } from "./tagNormalize";
 import type { MemoryStatus, MemoryType, MemoryWithTags } from "./types";
 
-function buildAndRun(
-  session: Session,
-  clause: Cypher.Clause,
-): ReturnType<Session["run"]> {
-  const { cypher, params }: CypherResult = clause.build();
-  return session.run(cypher, params);
-}
+export const DELETION_CLEANUP_SCOPES = {
+  single: ["chunks"],
+  bySourceType: ["chunks", "memoryEvents", "proposals", "orphanTagsAndSources"],
+  allForUser: [
+    "chunks",
+    "memoryEvents",
+    "proposals",
+    "entities",
+    "orphanTagsAndSources",
+  ],
+} as const;
 
 export type MemoryRef = { id: string; title: string; updatedAt: string };
+
+function propsClause(props: Record<string, string>): string {
+  return Object.keys(props)
+    .map((k) => `${k}: $${k}`)
+    .join(", ");
+}
+
+function parseDeletedCount(result: QueryResult): number {
+  const firstRecord = result.records[0];
+  if (!firstRecord) return 0;
+  return parseNeo4jInt(neo4jGet(firstRecord, "deleted"));
+}
 
 function firstMemoryRef(result: QueryResult): MemoryRef | null {
   const r = result.records[0];
@@ -34,12 +44,6 @@ function firstMemoryRef(result: QueryResult): MemoryRef | null {
     title: String(neo4jGet(r, "title")),
     updatedAt: String(neo4jGet(r, "updatedAt")),
   };
-}
-
-function propsClause(props: Record<string, unknown>): string {
-  return Object.keys(props)
-    .map((k) => `${k}: $${k}`)
-    .join(", ");
 }
 
 export async function fetchMemoryWithTags(
@@ -69,9 +73,7 @@ export async function detachDeleteCount(
      RETURN count(m) AS deleted`,
     matchProps,
   );
-  const firstRecord = result.records[0];
-  if (!firstRecord) return false;
-  return parseNeo4jInt(neo4jGet(firstRecord, "deleted")) > 0;
+  return parseDeletedCount(result) > 0;
 }
 
 async function findMemoryRef(
@@ -383,75 +385,58 @@ export async function updateMemory(
   },
 ): Promise<MemoryWithTags | null> {
   return withSession(driver, async (session) => {
-    const m = new Cypher.NamedNode("m");
-    const t = new Cypher.Node();
+    const now = new Date().toISOString();
+    const setClauses = ["m.updatedAt = $now"];
+    const params: Record<string, unknown> = { memoryId, userId, now };
 
-    const setParams: Cypher.SetParam[] = [
-      [m.property("updatedAt"), new Cypher.Param(new Date().toISOString())],
-    ];
     if (updates.title !== undefined) {
-      setParams.push([m.property("title"), new Cypher.Param(updates.title)]);
+      setClauses.push("m.title = $title");
+      params.title = updates.title;
     }
     if (updates.content !== undefined) {
-      setParams.push([
-        m.property("content"),
-        new Cypher.Param(updates.content),
-      ]);
+      setClauses.push("m.content = $content");
+      params.content = updates.content;
     }
     if (updates.type !== undefined) {
-      setParams.push([m.property("type"), new Cypher.Param(updates.type)]);
+      setClauses.push("m.type = $type");
+      params.type = updates.type;
     }
     if (updates.status !== undefined) {
-      setParams.push([m.property("status"), new Cypher.Param(updates.status)]);
+      setClauses.push("m.status = $status");
+      params.status = updates.status;
     }
     if (updates.confidence !== undefined) {
-      setParams.push([
-        m.property("confidence"),
-        new Cypher.Param(updates.confidence),
-      ]);
+      setClauses.push("m.confidence = $confidence");
+      params.confidence = updates.confidence;
     }
     if (updates.expiresAt !== undefined) {
-      setParams.push([
-        m.property("expiresAt"),
-        new Cypher.Param(updates.expiresAt),
-      ]);
+      setClauses.push("m.expiresAt = $expiresAt");
+      params.expiresAt = updates.expiresAt;
     }
 
-    const matchWithSet = new Cypher.Match(
-      new Cypher.Pattern(m, {
-        labels: ["Memory"],
-        properties: {
-          id: new Cypher.Param(memoryId),
-          userId: new Cypher.Param(userId),
-        },
-      }),
-    ).set(...setParams);
+    let cypher = `MATCH (m:Memory {id: $memoryId, userId: $userId})
+                  SET ${setClauses.join(", ")}`;
 
-    let tagUpdate: Cypher.Raw | undefined;
     if (updates.tags !== undefined) {
-      const newTags = normalizeTags(updates.tags);
-      tagUpdate = new Cypher.Raw(() => [
-        `WITH m
-OPTIONAL MATCH (m)-[r:TAGGED_WITH]->(:Tag)
-DELETE r
-WITH m
-UNWIND $newTags AS tagName
-MERGE (tag:Tag {name: tagName})
-MERGE (m)-[:TAGGED_WITH]->(tag)`,
-        { newTags },
-      ]);
+      params.newTags = normalizeTags(updates.tags);
+      // characterization: UNWIND on an empty $newTags drops the row, so tag clears
+      // apply but RETURN is empty → null result and no update event.
+      cypher += `
+        WITH m
+        OPTIONAL MATCH (m)-[r:TAGGED_WITH]->(:Tag)
+        DELETE r
+        WITH m
+        UNWIND $newTags AS tagName
+        MERGE (tag:Tag {name: tagName})
+        MERGE (m)-[:TAGGED_WITH]->(tag)`;
     }
 
-    const returnPart = new Cypher.With(m)
-      .optionalMatch(
-        new Cypher.Pattern(m)
-          .related({ type: "TAGGED_WITH", direction: "right" })
-          .to(t, { labels: ["Tag"] }),
-      )
-      .return(m, [Cypher.collect(t.property("name")).distinct(), "tags"]);
+    cypher += `
+      WITH m
+      OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
+      RETURN m, collect(t.name) AS tags`;
 
-    const query = Cypher.utils.concat(matchWithSet, tagUpdate, returnPart);
-    const result = await buildAndRun(session, query);
+    const result = await session.run(cypher, params);
 
     const firstRecord = result.records[0];
     if (!firstRecord) return null;
@@ -468,22 +453,29 @@ MERGE (m)-[:TAGGED_WITH]->(tag)`,
   });
 }
 
+async function deleteChunksForMemory(
+  session: Session,
+  memoryId: string,
+  userId: string,
+): Promise<void> {
+  await session.run(
+    `MATCH (c:Chunk {memoryId: $memoryId, userId: $userId})
+     DETACH DELETE c`,
+    { memoryId, userId },
+  );
+}
+
 export async function deleteMemory(
   driver: Driver,
   userId: string,
   memoryId: string,
 ): Promise<boolean> {
   return withSession(driver, async (session) => {
-    await session.run(
-      `MATCH (c:Chunk {memoryId: $memoryId, userId: $userId})
-       DETACH DELETE c`,
-      { memoryId, userId },
-    );
+    await deleteChunksForMemory(session, memoryId, userId);
     return detachDeleteCount(session, { id: memoryId, userId });
   });
 }
 
-// prune Tag/Source nodes no memory still references
 async function deleteOrphanTagsAndSources(session: Session): Promise<void> {
   await session.run(
     `MATCH (t:Tag)
@@ -500,6 +492,51 @@ async function deleteOrphanTagsAndSources(session: Session): Promise<void> {
 const MEMORY_SOURCE_TYPE_WHERE =
   "m.sourceType IN $sourceTypes OR m.source IN $sourceTypes";
 
+async function deleteChunksForUserMemoriesWhere(
+  session: Session,
+  userId: string,
+  memoryWhere: string,
+  extraParams: Record<string, unknown>,
+): Promise<void> {
+  await session.run(
+    `MATCH (m:Memory {userId: $userId})
+     WHERE ${memoryWhere}
+     WITH collect(m.id) AS memoryIds
+     MATCH (c:Chunk {userId: $userId})
+     WHERE c.memoryId IN memoryIds
+     DETACH DELETE c`,
+    { userId, ...extraParams },
+  );
+}
+
+async function deleteMemoryEventsForUserMemoriesWhere(
+  session: Session,
+  userId: string,
+  memoryWhere: string,
+  extraParams: Record<string, unknown>,
+): Promise<void> {
+  await session.run(
+    `MATCH (e:MemoryEvent)-[:EVENT_FOR]->(m:Memory {userId: $userId})
+     WHERE ${memoryWhere}
+     DETACH DELETE e`,
+    { userId, ...extraParams },
+  );
+}
+
+async function deleteProposalsForUserMemoriesWhere(
+  session: Session,
+  userId: string,
+  memoryWhere: string,
+  extraParams: Record<string, unknown>,
+): Promise<void> {
+  await session.run(
+    `MATCH (p:ProposedUpdate)-[:UPDATE_FOR]->(m:Memory {userId: $userId})
+     WHERE ${memoryWhere}
+     DETACH DELETE p`,
+    { userId, ...extraParams },
+  );
+}
+
 export async function deleteMemoriesBySourceTypes(
   driver: Driver,
   userId: string,
@@ -510,26 +547,24 @@ export async function deleteMemoriesBySourceTypes(
   }
 
   return withSession(driver, async (session) => {
-    await session.run(
-      `MATCH (m:Memory {userId: $userId})
-       WHERE ${MEMORY_SOURCE_TYPE_WHERE}
-       WITH collect(m.id) AS memoryIds
-       MATCH (c:Chunk {userId: $userId})
-       WHERE c.memoryId IN memoryIds
-       DETACH DELETE c`,
-      { userId, sourceTypes },
+    const extraParams = { sourceTypes };
+    await deleteChunksForUserMemoriesWhere(
+      session,
+      userId,
+      MEMORY_SOURCE_TYPE_WHERE,
+      extraParams,
     );
-    await session.run(
-      `MATCH (e:MemoryEvent)-[:EVENT_FOR]->(m:Memory {userId: $userId})
-       WHERE ${MEMORY_SOURCE_TYPE_WHERE}
-       DETACH DELETE e`,
-      { userId, sourceTypes },
+    await deleteMemoryEventsForUserMemoriesWhere(
+      session,
+      userId,
+      MEMORY_SOURCE_TYPE_WHERE,
+      extraParams,
     );
-    await session.run(
-      `MATCH (p:ProposedUpdate)-[:UPDATE_FOR]->(m:Memory {userId: $userId})
-       WHERE ${MEMORY_SOURCE_TYPE_WHERE}
-       DETACH DELETE p`,
-      { userId, sourceTypes },
+    await deleteProposalsForUserMemoriesWhere(
+      session,
+      userId,
+      MEMORY_SOURCE_TYPE_WHERE,
+      extraParams,
     );
     const result = await session.run(
       `MATCH (m:Memory {userId: $userId})
@@ -539,9 +574,7 @@ export async function deleteMemoriesBySourceTypes(
       { userId, sourceTypes },
     );
     await deleteOrphanTagsAndSources(session);
-    const firstRecord = result.records[0];
-    if (!firstRecord) return 0;
-    return parseNeo4jInt(neo4jGet(firstRecord, "deleted"));
+    return parseDeletedCount(result);
   });
 }
 
@@ -555,16 +588,8 @@ export async function deleteAllMemoriesForUser(
        DETACH DELETE c`,
       { userId },
     );
-    await session.run(
-      `MATCH (e:MemoryEvent)-[:EVENT_FOR]->(m:Memory {userId: $userId})
-       DETACH DELETE e`,
-      { userId },
-    );
-    await session.run(
-      `MATCH (p:ProposedUpdate)-[:UPDATE_FOR]->(m:Memory {userId: $userId})
-       DETACH DELETE p`,
-      { userId },
-    );
+    await deleteMemoryEventsForUserMemoriesWhere(session, userId, "true", {});
+    await deleteProposalsForUserMemoriesWhere(session, userId, "true", {});
     await session.run(
       `MATCH (e:Entity {userId: $userId})
        DETACH DELETE e`,
@@ -577,9 +602,7 @@ export async function deleteAllMemoriesForUser(
       { userId },
     );
     await deleteOrphanTagsAndSources(session);
-    const firstRecord = result.records[0];
-    if (!firstRecord) return 0;
-    return parseNeo4jInt(neo4jGet(firstRecord, "deleted"));
+    return parseDeletedCount(result);
   });
 }
 

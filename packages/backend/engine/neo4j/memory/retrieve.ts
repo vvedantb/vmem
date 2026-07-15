@@ -29,6 +29,7 @@ interface RetrieveParams {
   query: string;
   // pre-computed query embedding
   queryEmbedding: number[] | null;
+  // characterization: type and tags are accepted but not applied to retrieval legs
   type?: MemoryType;
   tags?: string[];
   limit: number;

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-07-15 — Engine stage 3: simplify memory operations
+
+Replace Cypher Builder memory updates with explicit SET fragments, tighten
+graph/enrichment/proposal helpers, normalize mapper schemas, and add
+characterization tests for unusual deletion, graph score, and tag behaviors.
+
 ## 2026-07-15 — Engine stage 2: simplify codebase graph pipeline
 
 Parse context with in-parse import/heritage resolution, leaner call resolution

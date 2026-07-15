@@ -81,6 +81,7 @@ export async function unlinkMemories(
        DELETE r`,
       { memoryIdA, memoryIdB, userId },
     );
+    // characterization: always true even when no relationship existed
     return true;
   });
 }

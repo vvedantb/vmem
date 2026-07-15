@@ -30,26 +30,37 @@ function entityUsageFromRecord(r: Neo4jRecord): EntityUsage {
   };
 }
 
+async function runVocabularyQuery<T>(
+  driver: Driver,
+  cypher: string,
+  params: Record<string, unknown>,
+  mapRecord: (r: Neo4jRecord) => T,
+): Promise<T[]> {
+  return withSession(driver, async (session) => {
+    const result = await session.run(cypher, params);
+    return result.records.map(mapRecord);
+  });
+}
+
 export async function getTopTags(
   driver: Driver,
   userId: string,
   limit: number = 50,
 ): Promise<TagUsage[]> {
-  return withSession(driver, async (session) => {
-    const result = await session.run(
-      `MATCH (t:Tag)<-[:TAGGED_WITH]-(m:Memory {userId: $userId})
-       WITH t.name AS name, count(m) AS uses
-       WHERE uses >= 2
-       RETURN name, uses
-       ORDER BY uses DESC, name ASC
-       LIMIT toInteger($limit)`,
-      { userId, limit: Math.trunc(limit) },
-    );
-    return result.records.map((r) => ({
+  return runVocabularyQuery(
+    driver,
+    `MATCH (t:Tag)<-[:TAGGED_WITH]-(m:Memory {userId: $userId})
+     WITH t.name AS name, count(m) AS uses
+     WHERE uses >= 2
+     RETURN name, uses
+     ORDER BY uses DESC, name ASC
+     LIMIT toInteger($limit)`,
+    { userId, limit: Math.trunc(limit) },
+    (r) => ({
       name: neo4jString(r, "name"),
       uses: parseNeo4jInt(neo4jGet(r, "uses")),
-    }));
-  });
+    }),
+  );
 }
 
 export async function getTopEntities(
@@ -57,18 +68,17 @@ export async function getTopEntities(
   userId: string,
   limit: number = 150,
 ): Promise<EntityUsage[]> {
-  return withSession(driver, async (session) => {
-    const result = await session.run(
-      `MATCH (e:Entity {userId: $userId})<-[:MENTIONS]-(m:Memory)
-       WITH e, count(m) AS mentions
-       WHERE mentions >= 2
-       RETURN e.name AS name, e.type AS type, mentions
-       ORDER BY mentions DESC, name ASC
-       LIMIT toInteger($limit)`,
-      { userId, limit: Math.trunc(limit) },
-    );
-    return result.records.map(entityUsageFromRecord);
-  });
+  return runVocabularyQuery(
+    driver,
+    `MATCH (e:Entity {userId: $userId})<-[:MENTIONS]-(m:Memory)
+     WITH e, count(m) AS mentions
+     WHERE mentions >= 2
+     RETURN e.name AS name, e.type AS type, mentions
+     ORDER BY mentions DESC, name ASC
+     LIMIT toInteger($limit)`,
+    { userId, limit: Math.trunc(limit) },
+    entityUsageFromRecord,
+  );
 }
 
 export async function getRecentMemoryTitles(
@@ -77,20 +87,23 @@ export async function getRecentMemoryTitles(
   excludeId: string,
   limit = 30,
 ): Promise<Array<{ id: string; title: string }>> {
-  return withSession(driver, async (session) => {
-    const result = await session.run(
-      `MATCH (m:Memory {userId: $userId})
-       WHERE m.id <> $excludeId AND ${visibleStatusClause("m", false)}
-       RETURN m.id AS id, m.title AS title
-       ORDER BY m.updatedAt DESC
-       LIMIT $limit`,
-      { userId, excludeId, limit: neo4j.int(limit) },
-    );
-    return result.records.map((r) => ({
+  return runVocabularyQuery(
+    driver,
+    `MATCH (m:Memory {userId: $userId})
+     WHERE m.id <> $excludeId AND ${visibleStatusClause("m", false)}
+     RETURN m.id AS id, m.title AS title
+     ORDER BY m.updatedAt DESC
+     LIMIT $limit`,
+    { userId, excludeId, limit: neo4j.int(limit) },
+    (r) => ({
       id: String(r.get("id")),
       title: String(r.get("title")),
-    }));
-  });
+    }),
+  );
+}
+
+export function shouldReplaceMentionEdges(entities: EntityInput): boolean {
+  return entities.length > 0;
 }
 
 async function replaceMentionsEdges(
@@ -113,6 +126,22 @@ async function replaceMentionsEdges(
   );
 }
 
+async function runEnrichmentTransaction(
+  driver: Driver,
+  fn: (tx: Transaction) => Promise<void>,
+): Promise<void> {
+  return withSession(driver, async (session) => {
+    const tx = session.beginTransaction();
+    try {
+      await fn(tx);
+      await tx.commit();
+    } catch (err) {
+      await tx.rollback();
+      throw err;
+    }
+  });
+}
+
 export async function applyEnrichment(
   driver: Driver,
   memoryId: string,
@@ -121,48 +150,41 @@ export async function applyEnrichment(
   relatedIds: string[],
   entities: EntityInput = [],
 ): Promise<void> {
-  return withSession(driver, async (session) => {
-    const tx = session.beginTransaction();
-    try {
+  return runEnrichmentTransaction(driver, async (tx) => {
+    await tx.run(
+      `MATCH (m:Memory {id: $memoryId, userId: $userId})
+       OPTIONAL MATCH (m)-[r:TAGGED_WITH]->(:Tag)
+       DELETE r
+       WITH m
+       FOREACH (tagName IN $tags |
+         MERGE (t:Tag {name: tagName})
+         MERGE (m)-[:TAGGED_WITH]->(t)
+       )`,
+      { memoryId, userId, tags: normalizeTags(tags) },
+    );
+
+    await tx.run(
+      `MATCH (m:Memory {id: $memoryId, userId: $userId})
+       OPTIONAL MATCH (m)-[r:RELATES_TO]-()
+       WHERE r.reason = 'content similarity'
+       DELETE r`,
+      { memoryId, userId },
+    );
+
+    if (relatedIds.length > 0) {
       await tx.run(
         `MATCH (m:Memory {id: $memoryId, userId: $userId})
-         OPTIONAL MATCH (m)-[r:TAGGED_WITH]->(:Tag)
-         DELETE r
-         WITH m
-         FOREACH (tagName IN $tags |
-           MERGE (t:Tag {name: tagName})
-           MERGE (m)-[:TAGGED_WITH]->(t)
-         )`,
-        { memoryId, userId, tags: normalizeTags(tags) },
+         UNWIND $relatedIds AS relId
+         MATCH (m2:Memory {id: relId, userId: $userId})
+         MERGE (m)-[r:RELATES_TO]->(m2)
+         ON CREATE SET r.reason = 'content similarity'`,
+        { memoryId, userId, relatedIds },
       );
+    }
 
-      await tx.run(
-        `MATCH (m:Memory {id: $memoryId, userId: $userId})
-         OPTIONAL MATCH (m)-[r:RELATES_TO]-()
-         WHERE r.reason = 'content similarity'
-         DELETE r`,
-        { memoryId, userId },
-      );
-
-      if (relatedIds.length > 0) {
-        await tx.run(
-          `MATCH (m:Memory {id: $memoryId, userId: $userId})
-           UNWIND $relatedIds AS relId
-           MATCH (m2:Memory {id: relId, userId: $userId})
-           MERGE (m)-[r:RELATES_TO]->(m2)
-           ON CREATE SET r.reason = 'content similarity'`,
-          { memoryId, userId, relatedIds },
-        );
-      }
-
-      if (entities.length > 0) {
-        await replaceMentionsEdges(tx, memoryId, userId, entities);
-      }
-
-      await tx.commit();
-    } catch (err) {
-      await tx.rollback();
-      throw err;
+    // characterization: empty entities preserve existing MENTIONS edges
+    if (shouldReplaceMentionEdges(entities)) {
+      await replaceMentionsEdges(tx, memoryId, userId, entities);
     }
   });
 }

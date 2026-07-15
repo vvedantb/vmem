@@ -12,6 +12,11 @@ import {
 } from "./types";
 
 const proposedUpdateStatusSchema = z.enum(["pending", "approved", "rejected"]);
+const proposedUpdateKindSchema = z.enum(PROPOSED_UPDATE_KINDS).catch("update");
+const proposalSourceSchema = z
+  .enum(["v2-extraction", "dream-mode"])
+  .catch("v2-extraction");
+const stringArraySchema = z.array(z.string()).catch([]);
 
 const proposedUpdateNodePropsSchema = z.object({
   id: z.string(),
@@ -37,14 +42,6 @@ const sourceMemorySnapshotSchema = z.object({
 const sourceMemorySnapshotsSchema = z.array(sourceMemorySnapshotSchema);
 
 type ProposedUpdateProps = z.infer<typeof proposedUpdateNodePropsSchema>;
-
-const proposedUpdateKindSchema = z.enum(PROPOSED_UPDATE_KINDS).catch("update");
-
-const proposalSourceSchema = z
-  .enum(["v2-extraction", "dream-mode"])
-  .catch("v2-extraction");
-
-const stringArraySchema = z.array(z.string()).catch([]);
 
 function toProposedUpdateNodeFromProps(
   props: ProposedUpdateProps,
@@ -95,13 +92,12 @@ function parseListedProposedUpdate(record: NeoRecord): ProposedUpdateNode {
   const sourceSnapsParsed = sourceMemorySnapshotsSchema.safeParse(
     neo4jGet(record, "sourceSnaps"),
   );
-  const sourceMemorySnapshots = sourceSnapsParsed.success
-    ? sourceSnapsParsed.data
-    : [];
 
   return toProposedUpdateNodeFromProps(props, {
     memorySnapshot,
-    sourceMemorySnapshots,
+    sourceMemorySnapshots: sourceSnapsParsed.success
+      ? sourceSnapsParsed.data
+      : [],
   });
 }
 
@@ -257,9 +253,7 @@ interface ProposalLookup {
   sourceMemoryIds: string[];
   confidence: number | null;
   sourceProfileId: string | null;
-  // `targetId` if UPDATE_FOR-bound, else first source memory id
   memoryId: string;
-  // UPDATE_FOR target's userId, else first source's userId
   userId: string;
 }
 
@@ -267,11 +261,10 @@ export interface ResolveResult {
   status: string;
   memoryId: string;
   kind: ProposedUpdateKind;
-  // set when approve materialized a new memory (synthesis kinds)
   materializedMemoryId?: string;
 }
 
-const proposalLookupRowSchema = z
+export const proposalLookupRowSchema = z
   .object({
     kind: proposedUpdateKindSchema,
     proposedTitle: z.string().nullish().catch(null),
@@ -295,6 +288,21 @@ const proposalLookupRowSchema = z
       userId: r.targetUserId || r.sourceUserId || "",
     }),
   );
+
+function parseProposalLookupRecord(record: NeoRecord): ProposalLookup | null {
+  const parsed = proposalLookupRowSchema.safeParse({
+    kind: neo4jGet(record, "kind"),
+    proposedTitle: neo4jGet(record, "proposedTitle"),
+    proposedContent: neo4jGet(record, "proposedContent"),
+    sourceMemoryIds: neo4jGet(record, "sourceMemoryIds"),
+    confidence: neo4jGet(record, "confidence"),
+    targetId: neo4jGet(record, "targetId"),
+    targetUserId: neo4jGet(record, "targetUserId"),
+    sourceUserId: neo4jGet(record, "sourceUserId"),
+    sourceProfileId: neo4jGet(record, "sourceProfileId"),
+  });
+  return parsed.success ? parsed.data : null;
+}
 
 async function lookupProposalContext(
   session: Session,
@@ -320,19 +328,20 @@ async function lookupProposalContext(
 
   const lookupRecord = lookup.records[0];
   if (!lookupRecord) return null;
+  return parseProposalLookupRecord(lookupRecord);
+}
 
-  const parsed = proposalLookupRowSchema.safeParse({
-    kind: neo4jGet(lookupRecord, "kind"),
-    proposedTitle: neo4jGet(lookupRecord, "proposedTitle"),
-    proposedContent: neo4jGet(lookupRecord, "proposedContent"),
-    sourceMemoryIds: neo4jGet(lookupRecord, "sourceMemoryIds"),
-    confidence: neo4jGet(lookupRecord, "confidence"),
-    targetId: neo4jGet(lookupRecord, "targetId"),
-    targetUserId: neo4jGet(lookupRecord, "targetUserId"),
-    sourceUserId: neo4jGet(lookupRecord, "sourceUserId"),
-    sourceProfileId: neo4jGet(lookupRecord, "sourceProfileId"),
-  });
-  return parsed.success ? parsed.data : null;
+async function setProposalStatus(
+  session: Session,
+  proposalId: string,
+  status: "rejected" | "approved",
+  now: string,
+): Promise<void> {
+  await session.run(
+    `MATCH (p:ProposedUpdate {id: $proposalId})
+     SET p.status = $status, p.resolvedAt = $now`,
+    { proposalId, now, status },
+  );
 }
 
 async function applyStatusOnly(
@@ -343,11 +352,7 @@ async function applyStatusOnly(
   status: "rejected" | "approved",
   eventName: "proposal_rejected" | "proposal_approved",
 ): Promise<ResolveResult> {
-  await session.run(
-    `MATCH (p:ProposedUpdate {id: $proposalId})
-     SET p.status = $status, p.resolvedAt = $now`,
-    { proposalId, now, status },
-  );
+  await setProposalStatus(session, proposalId, status, now);
   if (lookup.memoryId.length > 0) {
     await logEvent(
       session,
@@ -379,6 +384,7 @@ async function applyDeleteApproval(
      DETACH DELETE m`,
     { proposalId, now },
   );
+  // characterization: logEvent MATCHes the memory node, so this call is a no-op after DETACH DELETE
   await logEvent(
     session,
     lookup.memoryId,
@@ -467,11 +473,7 @@ async function rejectUnresolved(
   lookup: ProposalLookup,
   now: string,
 ): Promise<ResolveResult> {
-  await session.run(
-    `MATCH (p:ProposedUpdate {id: $proposalId})
-     SET p.status = 'rejected', p.resolvedAt = $now`,
-    { proposalId, now },
-  );
+  await setProposalStatus(session, proposalId, "rejected", now);
   return { status: "rejected", memoryId: lookup.memoryId, kind: lookup.kind };
 }
 
