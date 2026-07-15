@@ -12,7 +12,8 @@ Upload surfaces use `react-dropzone` instead of hand-rolled drag handlers.
 Skill create/edit dialogs share a `SkillFormShell` for fields and footer.
 UnifiedFilterPanel tabs share filter row/header primitives.
 Dropped Next.js `"use client"` directives from the Vite web app,
-`packages/ui`, and the extension popup.
+`packages/ui`, and the extension popup. Activity LLM spend lives at
+`/activity/usage`; legacy `/ai-logs` and `/openrouter-logs` redirects are gone.
 Extension adopts Clerk SW Convex tokens, zod message unions, and
 `usehooks-ts` in the popup.
 

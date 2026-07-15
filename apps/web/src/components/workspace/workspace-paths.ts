@@ -11,8 +11,6 @@ const LEGACY_FIRST_SEGMENTS = [
   "inbox",
   "notifications",
   "proposals",
-  "ai-logs",
-  "openrouter-logs",
   "teams",
 ] as const;
 

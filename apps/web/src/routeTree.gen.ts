@@ -40,11 +40,9 @@ import { Route as MainSettingsApiIndexRouteImport } from './routes/_main/setting
 import { Route as MainProfileIdWikiIndexRouteImport } from './routes/_main/$profileId/wiki/index'
 import { Route as MainProfileIdTeamIndexRouteImport } from './routes/_main/$profileId/team/index'
 import { Route as MainProfileIdSkillsIndexRouteImport } from './routes/_main/$profileId/skills/index'
-import { Route as MainProfileIdOpenrouterLogsIndexRouteImport } from './routes/_main/$profileId/openrouter-logs/index'
 import { Route as MainProfileIdMemoriesIndexRouteImport } from './routes/_main/$profileId/memories/index'
 import { Route as MainProfileIdInboxIndexRouteImport } from './routes/_main/$profileId/inbox/index'
 import { Route as MainProfileIdCodebasesIndexRouteImport } from './routes/_main/$profileId/codebases/index'
-import { Route as MainProfileIdAiLogsIndexRouteImport } from './routes/_main/$profileId/ai-logs/index'
 import { Route as MainProfileIdActivityIndexRouteImport } from './routes/_main/$profileId/activity/index'
 import { Route as MainSettingsDataControlsImportRouteImport } from './routes/_main/settings/data-controls/import'
 import { Route as MainSettingsDataControlsExportRouteImport } from './routes/_main/settings/data-controls/export'
@@ -61,8 +59,8 @@ import { Route as MainProfileIdMemoriesGraphRouteImport } from './routes/_main/$
 import { Route as MainProfileIdInboxProposalsRouteImport } from './routes/_main/$profileId/inbox/proposals'
 import { Route as MainProfileIdInboxNotificationsRouteImport } from './routes/_main/$profileId/inbox/notifications'
 import { Route as MainProfileIdCodebasesIdRouteImport } from './routes/_main/$profileId/codebases/$id'
+import { Route as MainProfileIdActivityUsageRouteImport } from './routes/_main/$profileId/activity/usage'
 import { Route as MainProfileIdActivityEventsRouteImport } from './routes/_main/$profileId/activity/events'
-import { Route as MainProfileIdActivityAiLogsRouteImport } from './routes/_main/$profileId/activity/ai-logs'
 import { Route as MainProfileIdMemoriesListRouteRouteImport } from './routes/_main/$profileId/memories/list/route'
 import { Route as MainProfileIdMemoriesListIndexRouteImport } from './routes/_main/$profileId/memories/list/index'
 import { Route as MainProfileIdSkillsSystemSkillIdRouteImport } from './routes/_main/$profileId/skills/system.$skillId'
@@ -229,12 +227,6 @@ const MainProfileIdSkillsIndexRoute =
     path: '/',
     getParentRoute: () => MainProfileIdSkillsRouteRoute,
   } as any)
-const MainProfileIdOpenrouterLogsIndexRoute =
-  MainProfileIdOpenrouterLogsIndexRouteImport.update({
-    id: '/openrouter-logs/',
-    path: '/openrouter-logs/',
-    getParentRoute: () => MainProfileIdRouteRoute,
-  } as any)
 const MainProfileIdMemoriesIndexRoute =
   MainProfileIdMemoriesIndexRouteImport.update({
     id: '/',
@@ -250,12 +242,6 @@ const MainProfileIdCodebasesIndexRoute =
   MainProfileIdCodebasesIndexRouteImport.update({
     id: '/codebases/',
     path: '/codebases/',
-    getParentRoute: () => MainProfileIdRouteRoute,
-  } as any)
-const MainProfileIdAiLogsIndexRoute =
-  MainProfileIdAiLogsIndexRouteImport.update({
-    id: '/ai-logs/',
-    path: '/ai-logs/',
     getParentRoute: () => MainProfileIdRouteRoute,
   } as any)
 const MainProfileIdActivityIndexRoute =
@@ -349,16 +335,16 @@ const MainProfileIdCodebasesIdRoute =
     path: '/codebases/$id',
     getParentRoute: () => MainProfileIdRouteRoute,
   } as any)
+const MainProfileIdActivityUsageRoute =
+  MainProfileIdActivityUsageRouteImport.update({
+    id: '/usage',
+    path: '/usage',
+    getParentRoute: () => MainProfileIdActivityRouteRoute,
+  } as any)
 const MainProfileIdActivityEventsRoute =
   MainProfileIdActivityEventsRouteImport.update({
     id: '/events',
     path: '/events',
-    getParentRoute: () => MainProfileIdActivityRouteRoute,
-  } as any)
-const MainProfileIdActivityAiLogsRoute =
-  MainProfileIdActivityAiLogsRouteImport.update({
-    id: '/ai-logs',
-    path: '/ai-logs',
     getParentRoute: () => MainProfileIdActivityRouteRoute,
   } as any)
 const MainProfileIdMemoriesListRouteRoute =
@@ -413,8 +399,8 @@ export interface FileRoutesByFullPath {
   '/$profileId/': typeof MainProfileIdIndexRoute
   '/settings/': typeof MainSettingsIndexRoute
   '/$profileId/memories/list': typeof MainProfileIdMemoriesListRouteRouteWithChildren
-  '/$profileId/activity/ai-logs': typeof MainProfileIdActivityAiLogsRoute
   '/$profileId/activity/events': typeof MainProfileIdActivityEventsRoute
+  '/$profileId/activity/usage': typeof MainProfileIdActivityUsageRoute
   '/$profileId/codebases/$id': typeof MainProfileIdCodebasesIdRoute
   '/$profileId/inbox/notifications': typeof MainProfileIdInboxNotificationsRoute
   '/$profileId/inbox/proposals': typeof MainProfileIdInboxProposalsRoute
@@ -431,11 +417,9 @@ export interface FileRoutesByFullPath {
   '/settings/data-controls/export': typeof MainSettingsDataControlsExportRoute
   '/settings/data-controls/import': typeof MainSettingsDataControlsImportRoute
   '/$profileId/activity/': typeof MainProfileIdActivityIndexRoute
-  '/$profileId/ai-logs/': typeof MainProfileIdAiLogsIndexRoute
   '/$profileId/codebases/': typeof MainProfileIdCodebasesIndexRoute
   '/$profileId/inbox/': typeof MainProfileIdInboxIndexRoute
   '/$profileId/memories/': typeof MainProfileIdMemoriesIndexRoute
-  '/$profileId/openrouter-logs/': typeof MainProfileIdOpenrouterLogsIndexRoute
   '/$profileId/skills/': typeof MainProfileIdSkillsIndexRoute
   '/$profileId/team/': typeof MainProfileIdTeamIndexRoute
   '/$profileId/wiki/': typeof MainProfileIdWikiIndexRoute
@@ -462,8 +446,8 @@ export interface FileRoutesByTo {
   '/mcp/oauth/authorize': typeof McpOauthAuthorizeRoute
   '/$profileId': typeof MainProfileIdIndexRoute
   '/settings': typeof MainSettingsIndexRoute
-  '/$profileId/activity/ai-logs': typeof MainProfileIdActivityAiLogsRoute
   '/$profileId/activity/events': typeof MainProfileIdActivityEventsRoute
+  '/$profileId/activity/usage': typeof MainProfileIdActivityUsageRoute
   '/$profileId/codebases/$id': typeof MainProfileIdCodebasesIdRoute
   '/$profileId/inbox/notifications': typeof MainProfileIdInboxNotificationsRoute
   '/$profileId/inbox/proposals': typeof MainProfileIdInboxProposalsRoute
@@ -480,11 +464,9 @@ export interface FileRoutesByTo {
   '/settings/data-controls/export': typeof MainSettingsDataControlsExportRoute
   '/settings/data-controls/import': typeof MainSettingsDataControlsImportRoute
   '/$profileId/activity': typeof MainProfileIdActivityIndexRoute
-  '/$profileId/ai-logs': typeof MainProfileIdAiLogsIndexRoute
   '/$profileId/codebases': typeof MainProfileIdCodebasesIndexRoute
   '/$profileId/inbox': typeof MainProfileIdInboxIndexRoute
   '/$profileId/memories': typeof MainProfileIdMemoriesIndexRoute
-  '/$profileId/openrouter-logs': typeof MainProfileIdOpenrouterLogsIndexRoute
   '/$profileId/skills': typeof MainProfileIdSkillsIndexRoute
   '/$profileId/team': typeof MainProfileIdTeamIndexRoute
   '/$profileId/wiki': typeof MainProfileIdWikiIndexRoute
@@ -523,8 +505,8 @@ export interface FileRoutesById {
   '/_main/$profileId/': typeof MainProfileIdIndexRoute
   '/_main/settings/': typeof MainSettingsIndexRoute
   '/_main/$profileId/memories/list': typeof MainProfileIdMemoriesListRouteRouteWithChildren
-  '/_main/$profileId/activity/ai-logs': typeof MainProfileIdActivityAiLogsRoute
   '/_main/$profileId/activity/events': typeof MainProfileIdActivityEventsRoute
+  '/_main/$profileId/activity/usage': typeof MainProfileIdActivityUsageRoute
   '/_main/$profileId/codebases/$id': typeof MainProfileIdCodebasesIdRoute
   '/_main/$profileId/inbox/notifications': typeof MainProfileIdInboxNotificationsRoute
   '/_main/$profileId/inbox/proposals': typeof MainProfileIdInboxProposalsRoute
@@ -541,11 +523,9 @@ export interface FileRoutesById {
   '/_main/settings/data-controls/export': typeof MainSettingsDataControlsExportRoute
   '/_main/settings/data-controls/import': typeof MainSettingsDataControlsImportRoute
   '/_main/$profileId/activity/': typeof MainProfileIdActivityIndexRoute
-  '/_main/$profileId/ai-logs/': typeof MainProfileIdAiLogsIndexRoute
   '/_main/$profileId/codebases/': typeof MainProfileIdCodebasesIndexRoute
   '/_main/$profileId/inbox/': typeof MainProfileIdInboxIndexRoute
   '/_main/$profileId/memories/': typeof MainProfileIdMemoriesIndexRoute
-  '/_main/$profileId/openrouter-logs/': typeof MainProfileIdOpenrouterLogsIndexRoute
   '/_main/$profileId/skills/': typeof MainProfileIdSkillsIndexRoute
   '/_main/$profileId/team/': typeof MainProfileIdTeamIndexRoute
   '/_main/$profileId/wiki/': typeof MainProfileIdWikiIndexRoute
@@ -584,8 +564,8 @@ export interface FileRouteTypes {
     | '/$profileId/'
     | '/settings/'
     | '/$profileId/memories/list'
-    | '/$profileId/activity/ai-logs'
     | '/$profileId/activity/events'
+    | '/$profileId/activity/usage'
     | '/$profileId/codebases/$id'
     | '/$profileId/inbox/notifications'
     | '/$profileId/inbox/proposals'
@@ -602,11 +582,9 @@ export interface FileRouteTypes {
     | '/settings/data-controls/export'
     | '/settings/data-controls/import'
     | '/$profileId/activity/'
-    | '/$profileId/ai-logs/'
     | '/$profileId/codebases/'
     | '/$profileId/inbox/'
     | '/$profileId/memories/'
-    | '/$profileId/openrouter-logs/'
     | '/$profileId/skills/'
     | '/$profileId/team/'
     | '/$profileId/wiki/'
@@ -633,8 +611,8 @@ export interface FileRouteTypes {
     | '/mcp/oauth/authorize'
     | '/$profileId'
     | '/settings'
-    | '/$profileId/activity/ai-logs'
     | '/$profileId/activity/events'
+    | '/$profileId/activity/usage'
     | '/$profileId/codebases/$id'
     | '/$profileId/inbox/notifications'
     | '/$profileId/inbox/proposals'
@@ -651,11 +629,9 @@ export interface FileRouteTypes {
     | '/settings/data-controls/export'
     | '/settings/data-controls/import'
     | '/$profileId/activity'
-    | '/$profileId/ai-logs'
     | '/$profileId/codebases'
     | '/$profileId/inbox'
     | '/$profileId/memories'
-    | '/$profileId/openrouter-logs'
     | '/$profileId/skills'
     | '/$profileId/team'
     | '/$profileId/wiki'
@@ -693,8 +669,8 @@ export interface FileRouteTypes {
     | '/_main/$profileId/'
     | '/_main/settings/'
     | '/_main/$profileId/memories/list'
-    | '/_main/$profileId/activity/ai-logs'
     | '/_main/$profileId/activity/events'
+    | '/_main/$profileId/activity/usage'
     | '/_main/$profileId/codebases/$id'
     | '/_main/$profileId/inbox/notifications'
     | '/_main/$profileId/inbox/proposals'
@@ -711,11 +687,9 @@ export interface FileRouteTypes {
     | '/_main/settings/data-controls/export'
     | '/_main/settings/data-controls/import'
     | '/_main/$profileId/activity/'
-    | '/_main/$profileId/ai-logs/'
     | '/_main/$profileId/codebases/'
     | '/_main/$profileId/inbox/'
     | '/_main/$profileId/memories/'
-    | '/_main/$profileId/openrouter-logs/'
     | '/_main/$profileId/skills/'
     | '/_main/$profileId/team/'
     | '/_main/$profileId/wiki/'
@@ -952,13 +926,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MainProfileIdSkillsIndexRouteImport
       parentRoute: typeof MainProfileIdSkillsRouteRoute
     }
-    '/_main/$profileId/openrouter-logs/': {
-      id: '/_main/$profileId/openrouter-logs/'
-      path: '/openrouter-logs'
-      fullPath: '/$profileId/openrouter-logs/'
-      preLoaderRoute: typeof MainProfileIdOpenrouterLogsIndexRouteImport
-      parentRoute: typeof MainProfileIdRouteRoute
-    }
     '/_main/$profileId/memories/': {
       id: '/_main/$profileId/memories/'
       path: '/'
@@ -978,13 +945,6 @@ declare module '@tanstack/react-router' {
       path: '/codebases'
       fullPath: '/$profileId/codebases/'
       preLoaderRoute: typeof MainProfileIdCodebasesIndexRouteImport
-      parentRoute: typeof MainProfileIdRouteRoute
-    }
-    '/_main/$profileId/ai-logs/': {
-      id: '/_main/$profileId/ai-logs/'
-      path: '/ai-logs'
-      fullPath: '/$profileId/ai-logs/'
-      preLoaderRoute: typeof MainProfileIdAiLogsIndexRouteImport
       parentRoute: typeof MainProfileIdRouteRoute
     }
     '/_main/$profileId/activity/': {
@@ -1099,18 +1059,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MainProfileIdCodebasesIdRouteImport
       parentRoute: typeof MainProfileIdRouteRoute
     }
+    '/_main/$profileId/activity/usage': {
+      id: '/_main/$profileId/activity/usage'
+      path: '/usage'
+      fullPath: '/$profileId/activity/usage'
+      preLoaderRoute: typeof MainProfileIdActivityUsageRouteImport
+      parentRoute: typeof MainProfileIdActivityRouteRoute
+    }
     '/_main/$profileId/activity/events': {
       id: '/_main/$profileId/activity/events'
       path: '/events'
       fullPath: '/$profileId/activity/events'
       preLoaderRoute: typeof MainProfileIdActivityEventsRouteImport
-      parentRoute: typeof MainProfileIdActivityRouteRoute
-    }
-    '/_main/$profileId/activity/ai-logs': {
-      id: '/_main/$profileId/activity/ai-logs'
-      path: '/ai-logs'
-      fullPath: '/$profileId/activity/ai-logs'
-      preLoaderRoute: typeof MainProfileIdActivityAiLogsRouteImport
       parentRoute: typeof MainProfileIdActivityRouteRoute
     }
     '/_main/$profileId/memories/list': {
@@ -1145,15 +1105,15 @@ declare module '@tanstack/react-router' {
 }
 
 interface MainProfileIdActivityRouteRouteChildren {
-  MainProfileIdActivityAiLogsRoute: typeof MainProfileIdActivityAiLogsRoute
   MainProfileIdActivityEventsRoute: typeof MainProfileIdActivityEventsRoute
+  MainProfileIdActivityUsageRoute: typeof MainProfileIdActivityUsageRoute
   MainProfileIdActivityIndexRoute: typeof MainProfileIdActivityIndexRoute
 }
 
 const MainProfileIdActivityRouteRouteChildren: MainProfileIdActivityRouteRouteChildren =
   {
-    MainProfileIdActivityAiLogsRoute: MainProfileIdActivityAiLogsRoute,
     MainProfileIdActivityEventsRoute: MainProfileIdActivityEventsRoute,
+    MainProfileIdActivityUsageRoute: MainProfileIdActivityUsageRoute,
     MainProfileIdActivityIndexRoute: MainProfileIdActivityIndexRoute,
   }
 
@@ -1285,9 +1245,7 @@ interface MainProfileIdRouteRouteChildren {
   MainProfileIdProposalsRoute: typeof MainProfileIdProposalsRoute
   MainProfileIdIndexRoute: typeof MainProfileIdIndexRoute
   MainProfileIdCodebasesIdRoute: typeof MainProfileIdCodebasesIdRoute
-  MainProfileIdAiLogsIndexRoute: typeof MainProfileIdAiLogsIndexRoute
   MainProfileIdCodebasesIndexRoute: typeof MainProfileIdCodebasesIndexRoute
-  MainProfileIdOpenrouterLogsIndexRoute: typeof MainProfileIdOpenrouterLogsIndexRoute
 }
 
 const MainProfileIdRouteRouteChildren: MainProfileIdRouteRouteChildren = {
@@ -1303,9 +1261,7 @@ const MainProfileIdRouteRouteChildren: MainProfileIdRouteRouteChildren = {
   MainProfileIdProposalsRoute: MainProfileIdProposalsRoute,
   MainProfileIdIndexRoute: MainProfileIdIndexRoute,
   MainProfileIdCodebasesIdRoute: MainProfileIdCodebasesIdRoute,
-  MainProfileIdAiLogsIndexRoute: MainProfileIdAiLogsIndexRoute,
   MainProfileIdCodebasesIndexRoute: MainProfileIdCodebasesIndexRoute,
-  MainProfileIdOpenrouterLogsIndexRoute: MainProfileIdOpenrouterLogsIndexRoute,
 }
 
 const MainProfileIdRouteRouteWithChildren =

@@ -8,9 +8,9 @@ export function ActivityTabs() {
     <RouteTabs
       tabs={[
         {
-          value: "ai-logs",
-          to: "/$profileId/activity/ai-logs",
-          label: "AI Logs",
+          value: "usage",
+          to: "/$profileId/activity/usage",
+          label: "Usage",
           icon: <IconReceipt2 size={16} />,
         },
         {
@@ -22,7 +22,7 @@ export function ActivityTabs() {
       ]}
       linkParams={{ profileId: profile._id }}
       getActiveValue={(matchRoute) =>
-        matchRoute({ to: "/$profileId/activity/events" }) ? "events" : "ai-logs"
+        matchRoute({ to: "/$profileId/activity/events" }) ? "events" : "usage"
       }
     />
   );

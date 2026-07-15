@@ -2,7 +2,7 @@ import { parseAsArrayOf, parseAsString, parseAsStringLiteral } from "nuqs";
 
 // URL filter state for the `/activity` subroutes
 
-// ── AI Logs subroute ──────────────────────────────────────────────────────
+// ── Usage subroute (`/activity/usage`) ────────────────────────────────────
 
 export const FEATURES = [
   "enrichment",

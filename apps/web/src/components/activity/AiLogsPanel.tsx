@@ -46,7 +46,7 @@ function useAiLogsScope(params: {
   return { scope: "personal" as const, teamIdParam: "" };
 }
 
-// AI Logs panel for `/activity`
+// LLM usage panel for `/activity/usage`
 export function AiLogsPanel() {
   const [params, setParams] = useQueryStates(aiLogsSearchParams);
   const { scope, teamIdParam } = useAiLogsScope(params);
@@ -153,7 +153,7 @@ export function AiLogsPanel() {
   );
 }
 
-// right-section actions for the AI Logs tab — filters dropdown and sort dropdown
+// right-section actions for the Usage tab — filters dropdown and sort dropdown
 export function AiLogsRightSection() {
   const [params, setParams] = useQueryStates(aiLogsSearchParams);
   const { scope, teamIdParam } = useAiLogsScope(params);

@@ -28,7 +28,7 @@ function ActivityEventsLayout() {
   return <ActivityShell rightSection={<EventsRightSection />} />;
 }
 
-function ActivityAiLogsLayout() {
+function ActivityUsageLayout() {
   return <ActivityShell rightSection={<AiLogsRightSection />} />;
 }
 
@@ -37,5 +37,5 @@ function ActivityLayout() {
   if (matchRoute({ to: "/$profileId/activity/events" })) {
     return <ActivityEventsLayout />;
   }
-  return <ActivityAiLogsLayout />;
+  return <ActivityUsageLayout />;
 }

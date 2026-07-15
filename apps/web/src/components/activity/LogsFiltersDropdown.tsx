@@ -50,7 +50,7 @@ import {
 import type { ProfileListItem, TeamListItem } from "./types";
 import { FilterOptionContent } from "./FilterOptionContent";
 
-// filters dropdown for `/ai-logs`
+// filters dropdown for `/activity/usage`
 const RANGE_OPTIONS: Range[] = ["today", "7d", "30d", "all"];
 
 const RANGE_ICONS: Record<Range, typeof IconSun> = {
