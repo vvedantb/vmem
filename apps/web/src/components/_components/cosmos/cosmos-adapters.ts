@@ -280,7 +280,7 @@ export function searchMatchIndices(
 /** Snapshot cosmos point positions keyed by node id (cosmos space 0..spaceSize). */
 export function capturePointPositions(
   indexToId: readonly string[],
-  positions: Float32Array,
+  positions: ArrayLike<number>,
 ): Map<string, { x: number; y: number }> {
   const out = new Map<string, { x: number; y: number }>();
   if (positions.length !== indexToId.length * 2) return out;

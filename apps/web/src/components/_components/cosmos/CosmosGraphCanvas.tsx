@@ -25,6 +25,7 @@ import {
   type CosmosGraphBuffers,
 } from "./cosmos-adapters";
 import { colorToRgba } from "./cosmos-color";
+import { paintCosmosGlow } from "./cosmos-glow";
 import { computeHighlightPoints } from "./cosmos-highlight";
 import {
   COSMOS_EDGE_LABEL,
@@ -76,6 +77,13 @@ function fitPaddingForNodeCount(nodeCount: number): number {
   return 0.12;
 }
 
+function graphBackgroundRgba(
+  theme: GraphViewTheme,
+): [number, number, number, number] {
+  if (theme.glow.enabled) return [0, 0, 0, 0];
+  return colorToRgba(theme.background);
+}
+
 function CosmosGraphCanvas({
   nodes,
   edges,
@@ -93,6 +101,11 @@ function CosmosGraphCanvas({
 }: CosmosGraphCanvasProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const hostRef = useRef<HTMLDivElement>(null);
+  // ── REMOVABLE: dark-theme glow (start) — to remove, delete cosmos-glow.ts and every block between these markers
+  const glowCanvasRef = useRef<HTMLCanvasElement>(null);
+  const gestureActiveRef = useRef(false);
+  const highlightedPointSetRef = useRef<Set<number> | undefined>(undefined);
+  // ── REMOVABLE: dark-theme glow (end)
   const labelCanvasRef = useRef<HTMLCanvasElement>(null);
   const graphRef = useRef<Graph | null>(null);
   const buffersRef = useRef<CosmosGraphBuffers | null>(null);
@@ -196,6 +209,12 @@ function CosmosGraphCanvas({
         : undefined,
       outlinedPointIndices: outlined.length > 0 ? outlined : undefined,
     });
+    // ── REMOVABLE: dark-theme glow (start)
+    highlightedPointSetRef.current =
+      highlightedPointIndices !== undefined
+        ? new Set(highlightedPointIndices)
+        : undefined;
+    // ── REMOVABLE: dark-theme glow (end)
   }, []);
 
   const paintLabels = useCallback((graph: Graph) => {
@@ -360,6 +379,37 @@ function CosmosGraphCanvas({
     }
   }, []);
 
+  const paintGlow = useCallback((graph: Graph) => {
+    // ── REMOVABLE: dark-theme glow (start)
+    const canvas = glowCanvasRef.current;
+    const buffers = buffersRef.current;
+    const root = rootRef.current;
+    if (!canvas || !buffers || !root) return;
+    paintCosmosGlow({
+      canvas,
+      root,
+      graph,
+      buffers,
+      theme: themeRef.current,
+      hoveredPointIndex: hoveredIndexRef.current,
+      gestureActive: gestureActiveRef.current,
+      isPointDimmed: (index) => {
+        const highlighted = highlightedPointSetRef.current;
+        if (highlighted === undefined) return false;
+        return !highlighted.has(index);
+      },
+    });
+    // ── REMOVABLE: dark-theme glow (end)
+  }, []);
+
+  const paintSceneOverlays = useCallback(
+    (graph: Graph) => {
+      paintGlow(graph);
+      paintLabels(graph);
+    },
+    [paintGlow, paintLabels],
+  );
+
   const applyConnectorLogos = useCallback((graph: Graph, force = false) => {
     const buffers = buffersRef.current;
     const atlas = logoAtlasRef.current;
@@ -411,7 +461,7 @@ function CosmosGraphCanvas({
     hoveredLinkIndexRef.current = undefined;
     logosVisibleRef.current = true;
 
-    const bg = colorToRgba(themeRef.current.background);
+    const bg = graphBackgroundRgba(themeRef.current);
     const physics = cosmosPhysicsFromSettings(
       settingsRef.current,
       nodes.length,
@@ -465,7 +515,7 @@ function CosmosGraphCanvas({
             viewportY,
           });
           applyVisualState(g);
-          paintLabels(g);
+          paintSceneOverlays(g);
         },
         onPointMouseOut: () => {
           hoveredIndexRef.current = undefined;
@@ -473,7 +523,7 @@ function CosmosGraphCanvas({
           const g = graphRef.current;
           if (!g) return;
           applyVisualState(g);
-          paintLabels(g);
+          paintSceneOverlays(g);
         },
         onLinkMouseOver: (linkIndex) => {
           hoveredLinkIndexRef.current = linkIndex;
@@ -515,7 +565,7 @@ function CosmosGraphCanvas({
             viewportY,
           });
           applyVisualState(g);
-          paintLabels(g);
+          paintSceneOverlays(g);
         },
         onLinkMouseOut: () => {
           hoveredLinkIndexRef.current = undefined;
@@ -523,7 +573,7 @@ function CosmosGraphCanvas({
           const g = graphRef.current;
           if (!g) return;
           applyVisualState(g);
-          paintLabels(g);
+          paintSceneOverlays(g);
         },
         onBackgroundClick: () => {
           hoveredIndexRef.current = undefined;
@@ -534,30 +584,38 @@ function CosmosGraphCanvas({
           if (g) applyVisualState(g);
         },
         onDragStart: () => {
+          gestureActiveRef.current = true;
           const g = graphRef.current;
           if (!g) return;
           g.unpause();
           g.start(COSMOS_SETTINGS_REHEAT_ALPHA);
+        },
+        onDragEnd: () => {
+          gestureActiveRef.current = false;
+          const g = graphRef.current;
+          if (g) paintSceneOverlays(g);
         },
         onSimulationTick: (alpha, hoveredIndex) => {
           if (typeof hoveredIndex === "number") {
             hoveredIndexRef.current = hoveredIndex;
           }
           const g = graphRef.current;
-          if (g) paintLabels(g);
+          if (g) paintSceneOverlays(g);
           // Legacy SLEEP_ALPHA ≈ 0.005 — pause once visually still.
           if (typeof alpha === "number" && alpha < 0.01) {
             g?.pause();
           }
         },
         onZoom: () => {
+          gestureActiveRef.current = true;
           const g = graphRef.current;
-          if (g) paintLabels(g);
+          if (g) paintSceneOverlays(g);
         },
         onZoomEnd: () => {
+          gestureActiveRef.current = false;
           const g = graphRef.current;
           if (!g) return;
-          paintLabels(g);
+          paintSceneOverlays(g);
           applyConnectorLogos(g);
         },
       });
@@ -597,7 +655,7 @@ function CosmosGraphCanvas({
         false,
       );
       applyVisualState(graph);
-      paintLabels(graph);
+      paintSceneOverlays(graph);
       applyConnectorLogos(graph, true);
       root.style.opacity = "1";
       graph.start(COSMOS_INITIAL_SETTLE_ALPHA);
@@ -621,7 +679,7 @@ function CosmosGraphCanvas({
       if (graphRef.current === graph) graphRef.current = null;
       buffersRef.current = null;
     };
-  }, [nodes, edges, applyVisualState, paintLabels, applyConnectorLogos]);
+  }, [nodes, edges, applyVisualState, paintSceneOverlays, applyConnectorLogos]);
 
   // Theme colours only — do not touch simulation (avoids perpetual reheat).
   useEffect(() => {
@@ -637,13 +695,13 @@ function CosmosGraphCanvas({
     graph.setLinkWidths(buffers.linkWidths);
     graph.setLinkStrength(buffers.linkStrengths);
     graph.setConfigPartial({
-      backgroundColor: colorToRgba(viewTheme.background),
+      backgroundColor: graphBackgroundRgba(viewTheme),
       pointGreyoutOpacity: viewTheme.dimAlpha,
       linkGreyoutOpacity: viewTheme.dimAlpha,
     });
     graph.render();
-    paintLabels(graph);
-  }, [viewTheme, paintLabels]);
+    paintSceneOverlays(graph);
+  }, [viewTheme, paintSceneOverlays]);
 
   // Spread / Gravity → update forces and mild reheat (legacy reheat behaviour).
   useEffect(() => {
@@ -671,24 +729,24 @@ function CosmosGraphCanvas({
   useEffect(() => {
     const graph = graphRef.current;
     if (!graph) return;
-    paintLabels(graph);
-  }, [showLabels, paintLabels]);
+    paintSceneOverlays(graph);
+  }, [showLabels, paintSceneOverlays]);
 
   const handleZoomIn = useCallback(() => {
     const graph = graphRef.current;
     if (!graph) return;
     graph.setZoomLevel(graph.getZoomLevel() * ZOOM_IN_FACTOR);
-    paintLabels(graph);
+    paintSceneOverlays(graph);
     applyConnectorLogos(graph);
-  }, [paintLabels, applyConnectorLogos]);
+  }, [paintSceneOverlays, applyConnectorLogos]);
 
   const handleZoomOut = useCallback(() => {
     const graph = graphRef.current;
     if (!graph) return;
     graph.setZoomLevel(graph.getZoomLevel() * ZOOM_OUT_FACTOR);
-    paintLabels(graph);
+    paintSceneOverlays(graph);
     applyConnectorLogos(graph);
-  }, [paintLabels, applyConnectorLogos]);
+  }, [paintSceneOverlays, applyConnectorLogos]);
 
   const handleFit = useCallback(() => {
     graphRef.current?.fitView();
@@ -713,8 +771,18 @@ function CosmosGraphCanvas({
     <div
       ref={rootRef}
       className="relative h-full w-full block"
-      style={{ touchAction: "none" }}
+      style={{
+        touchAction: "none",
+        backgroundColor: viewTheme.background,
+      }}
     >
+      {/* ── REMOVABLE: dark-theme glow (start) */}
+      <canvas
+        ref={glowCanvasRef}
+        className="pointer-events-none absolute inset-0"
+        aria-hidden
+      />
+      {/* ── REMOVABLE: dark-theme glow (end) */}
       <div ref={hostRef} className="absolute inset-0" />
       <canvas
         ref={labelCanvasRef}
