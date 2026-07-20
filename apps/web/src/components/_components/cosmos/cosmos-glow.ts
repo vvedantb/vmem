@@ -19,7 +19,7 @@ export interface PaintCosmosGlowInput {
   isPointDimmed: (index: number) => boolean;
 }
 
-export function shouldPaintCosmosGlow(
+function shouldPaintCosmosGlow(
   theme: GraphViewTheme,
   nodeCount: number,
   zoom: number,

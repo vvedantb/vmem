@@ -1,13 +1,11 @@
-export interface HoveredLinkEndpoints {
-  sourceIndex: number;
-  targetIndex: number;
-  linkIndex: number;
-}
-
 export interface ComputeHighlightPointsInput {
   hoveredPointIndex?: number;
   neighborIndices?: readonly number[];
-  hoveredLinkEndpoints?: HoveredLinkEndpoints | null;
+  hoveredLinkEndpoints?: {
+    sourceIndex: number;
+    targetIndex: number;
+    linkIndex: number;
+  } | null;
   isSearchActive: boolean;
   searchMatchIndices?: readonly number[];
 }

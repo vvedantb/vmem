@@ -48,14 +48,3 @@ export function loadConnectorLogos(): Promise<ConnectorLogoMap> {
   })();
   return cachedPromise;
 }
-
-// logo for sourceType, or null if unknown/unloaded
-export function getConnectorLogo(
-  sourceType: string | null,
-  logoMap: ConnectorLogoMap,
-): HTMLImageElement | null {
-  if (sourceType === null) return null;
-  const known = asConnectorSourceType(sourceType);
-  if (known === null) return null;
-  return logoMap.get(known) ?? null;
-}

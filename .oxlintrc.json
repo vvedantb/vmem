@@ -192,7 +192,6 @@
         "apps/web/src/components/Sidebar.tsx",
         "apps/web/src/components/_components/DetailsTab.tsx",
         "apps/web/src/components/_components/GraphCanvas.tsx",
-        "apps/web/src/components/_components/cosmos/CosmosGraphCanvas.tsx",
         "apps/web/src/components/_components/RelatedMemories.tsx",
         "apps/web/src/components/_components/TagMemoriesPanel.tsx",
         "apps/web/src/components/api-keys/EditKeyDialog.tsx",

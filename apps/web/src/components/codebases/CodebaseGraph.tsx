@@ -4,8 +4,6 @@ import { useMemo, useCallback, useRef, useState } from "react";
 import { IconAlertTriangle } from "@tabler/icons-react";
 import GraphCanvas from "@/components/_components/GraphCanvas";
 import type { GraphCanvasHandle } from "@/components/_components/GraphCanvas";
-import CosmosGraphCanvas from "@/components/_components/cosmos/CosmosGraphCanvas";
-import { isCosmosGraphRendererEnabled } from "@/components/_components/cosmos/is-cosmos-graph-renderer";
 import GraphNavControls from "@/components/_components/GraphNavControls";
 import GraphNodeTooltip from "@/components/_components/GraphNodeTooltip";
 import GraphEdgeTooltip from "@/components/_components/GraphEdgeTooltip";
@@ -18,10 +16,6 @@ import {
 } from "@/lib/graph/graph-types";
 import { CodebaseSymbolPanel } from "./CodebaseSymbolPanel";
 import type { CodebaseGraphController } from "@/hooks/useCodebaseGraphController";
-
-const GraphRenderer = isCosmosGraphRendererEnabled()
-  ? CosmosGraphCanvas
-  : GraphCanvas;
 
 interface CodebaseGraphProps {
   codebaseId: string;
@@ -89,7 +83,7 @@ export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
 
   return (
     <div className="relative h-full min-h-0">
-      <GraphRenderer
+      <GraphCanvas
         ref={canvasRef}
         nodes={graphNodes}
         edges={graphEdges}

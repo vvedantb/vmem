@@ -1,8 +1,8 @@
 import type { GraphNode } from "@/lib/graph/types";
-import { loadConnectorLogos } from "../canvas/connector-logos";
+import { loadConnectorLogos } from "./connector-logos";
 
 /** Cosmos sentinel: no image for this point (see GraphData.updatePointImageIndices). */
-export const NO_POINT_IMAGE_INDEX = -1;
+const NO_POINT_IMAGE_INDEX = -1;
 
 const ATLAS_PIXEL_SIZE = 32;
 
