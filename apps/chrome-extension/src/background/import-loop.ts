@@ -1,5 +1,7 @@
+import { delay } from "es-toolkit";
 import { createMemory } from "./api-client";
 import type { CreateMemoryParams } from "@/types/api";
+import { sendMessage } from "@/lib/messaging";
 import { isCancelled, resetCancel } from "./import-cancel";
 
 const IMPORT_ITEM_DELAY_MS = 100;
@@ -7,10 +9,6 @@ const IMPORT_ITEM_DELAY_MS = 100;
 export interface ImportResult {
   imported: number;
   locked: boolean;
-}
-
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 // shared lock + cancel + createMemory loop for bookmark/history imports
@@ -47,11 +45,10 @@ export async function runLockedImportLoop<T>(options: {
         imported++;
 
         if (!options.silent) {
-          void chrome.runtime.sendMessage({
-            type: "IMPORT_PROGRESS",
+          void sendMessage("importProgress", {
             current: processed,
             total: items.length,
-          });
+          }).catch(() => {});
         }
       } catch {
         // skip failed items (bad URL parse, createMemory errors, …)

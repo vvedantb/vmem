@@ -1,3 +1,5 @@
+import { truncate } from "es-toolkit/compat";
+import { sendMessage } from "@/lib/messaging";
 import { createMemory } from "./api-client";
 import { htmlToMarkdown } from "@/lib/page-extraction";
 import { extractPageFromTab } from "@/lib/extract-page";
@@ -35,11 +37,14 @@ export async function handleContextMenuClick(
 
   if (info.menuItemId === "screenshot-to-vmem") {
     if (typeof tab.id !== "number") return;
-    void chrome.tabs
-      .sendMessage(tab.id, { type: "START_SCREENSHOT" })
-      .catch((err: unknown) => {
-        console.warn("[vmem] Could not start screenshot on tab:", err);
-      });
+    void sendMessage("startScreenshot", undefined, tab.id).catch(
+      (err: unknown) => {
+        console.warn(
+          "[vmem] Could not start screenshot on tab:",
+          err instanceof Error ? err.message : String(err),
+        );
+      },
+    );
   }
 }
 
@@ -72,7 +77,10 @@ export async function savePageFromTab(
     const hostname = new URL(tab.url).hostname;
     const memory = await createMemory({
       title: extraction.ogTitle ?? extraction.title ?? tab.title ?? "Untitled",
-      content: truncate(markdown || extraction.content, 10000),
+      content: truncate(markdown || extraction.content, {
+        length: 10000,
+        omission: "\n\n[truncated]",
+      }),
       type: "knowledge",
       source: "browser-extension",
       tags: [hostname],
@@ -85,9 +93,4 @@ export async function savePageFromTab(
     const message = err instanceof Error ? err.message : "Unknown error";
     return { success: false, error: message };
   }
-}
-
-function truncate(text: string, maxLength: number): string {
-  if (text.length <= maxLength) return text;
-  return text.slice(0, maxLength) + "\n\n[truncated]";
 }

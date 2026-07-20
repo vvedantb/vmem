@@ -1,8 +1,7 @@
 // readability content script
 //
-// lives on every page (<all_urls> document_idle) and listens for
-// EXTRACT_PAGE requests sent from the background via
-// chrome.tabs.sendMessage(tabId { type: "EXTRACT_PAGE" })
+// lives on every page (<all_urls> document_idle) and handles
+// extractPage requests from the background via @webext-core/messaging
 //
 // why a content script and not chrome.scripting.executeScript({ func })?
 // because executeScript({ func }) serialises the function its imports
@@ -16,25 +15,9 @@
 // with no static html etc)
 
 import { Readability } from "@mozilla/readability";
-import { z } from "zod";
+import { onMessage, type ExtractPageData } from "@/lib/messaging";
 
-const extractPageMessageSchema = z.object({
-  type: z.literal("EXTRACT_PAGE"),
-});
-
-interface ExtractPageResult {
-  type: "EXTRACT_PAGE_RESULT";
-  title: string;
-  ogTitle?: string;
-  content: string;
-  html: string;
-  ogImage?: string;
-  ogDescription?: string;
-  favicon?: string;
-  // true when the result came from readability false on fallback path
-  // lets the caller log degraded extractions for debugging
-  usedReadability: boolean;
-}
+export type { ExtractPageData };
 
 const FALLBACK_MIN_CHARS = 200;
 const STRIP_SELECTORS = [
@@ -105,8 +88,6 @@ function fallbackExtract(): { content: string; html: string } {
 // run readability on a cloned document returns null when unable to parse
 function readabilityExtract(): { content: string; html: string } | null {
   // readability mutates the dom it is given cloning is required
-  // the cast is to Document because cloneNode returns Node we know
-  // document.cloneNode(true) always yields a Document
   const cloned = document.cloneNode(true);
   if (!(cloned instanceof Document)) return null;
 
@@ -125,13 +106,12 @@ function readabilityExtract(): { content: string; html: string } | null {
   }
 }
 
-function extract(): ExtractPageResult {
+function extract(): ExtractPageData {
   const { ogTitle, ogImage, ogDescription, favicon } = getOgMetadata();
   const readabilityResult = readabilityExtract();
 
   if (readabilityResult) {
     return {
-      type: "EXTRACT_PAGE_RESULT",
       title: ogTitle ?? document.title,
       ogTitle,
       content: readabilityResult.content,
@@ -145,7 +125,6 @@ function extract(): ExtractPageResult {
 
   const fallback = fallbackExtract();
   return {
-    type: "EXTRACT_PAGE_RESULT",
     title: ogTitle ?? document.title,
     ogTitle,
     content: fallback.content,
@@ -157,34 +136,22 @@ function extract(): ExtractPageResult {
   };
 }
 
-chrome.runtime.onMessage.addListener(
-  (
-    message: unknown,
-    _sender: chrome.runtime.MessageSender,
-    sendResponse: (response: ExtractPageResult) => void,
-  ) => {
-    const parsed = extractPageMessageSchema.safeParse(message);
-    if (!parsed.success) return false;
-    try {
-      sendResponse(extract());
-    } catch (err) {
-      console.error("[vmem-readability] extract failed:", err);
-      const fallback = fallbackExtract();
-      const og = getOgMetadata();
-      sendResponse({
-        type: "EXTRACT_PAGE_RESULT",
-        title: og.ogTitle ?? document.title,
-        ogTitle: og.ogTitle,
-        content: fallback.content,
-        html: fallback.html,
-        ogImage: og.ogImage,
-        ogDescription: og.ogDescription,
-        favicon: og.favicon,
-        usedReadability: false,
-      });
-    }
-    return true;
-  },
-);
-
-export type { ExtractPageResult };
+onMessage("extractPage", () => {
+  try {
+    return extract();
+  } catch (err) {
+    console.error("[vmem-readability] extract failed:", err);
+    const fallback = fallbackExtract();
+    const og = getOgMetadata();
+    return {
+      title: og.ogTitle ?? document.title,
+      ogTitle: og.ogTitle,
+      content: fallback.content,
+      html: fallback.html,
+      ogImage: og.ogImage,
+      ogDescription: og.ogDescription,
+      favicon: og.favicon,
+      usedReadability: false,
+    };
+  }
+});
