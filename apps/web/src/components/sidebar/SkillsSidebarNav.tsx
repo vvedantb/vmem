@@ -13,7 +13,7 @@ import { skillsSearchParams } from "@/lib/url-state/skills";
 import { SidebarListSearchBar } from "./SidebarListSearchBar";
 import { SharedLayoutBackground } from "./SharedLayoutBackground";
 import { sidebarListRowClass } from "./sidebar-nav-row";
-import { useIdSelectionMode } from "@/hooks/useIdSelectionMode";
+import { useIdSelection } from "@/hooks/useIdSelection";
 import {
   useActiveProfileId,
   useActiveTeamId,
@@ -67,7 +67,7 @@ export function SkillsSidebarNav({
     setSelectionMode,
     exitSelection,
     toggleSelect,
-  } = useIdSelectionMode<Id<"skills">>();
+  } = useIdSelection<Id<"skills">>();
 
   const filteredSkills = useMemo(() => {
     if (!skills) return [];

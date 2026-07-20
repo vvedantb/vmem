@@ -10,7 +10,7 @@ import WikiSearch from "@/components/wiki/WikiSearch";
 import { WikiAddMenu } from "@/components/wiki/WikiAddMenu";
 import { WikiBulkDeleteBar } from "@/components/wiki/WikiBulkDeleteBar";
 import { buildTree, findFirstDocumentId } from "@/components/wiki/_utils";
-import { useIdSelectionMode } from "@/hooks/useIdSelectionMode";
+import { useIdSelection } from "@/hooks/useIdSelection";
 import {
   useActiveProfileId,
   useActiveTeamId,
@@ -43,7 +43,7 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
     setSelectionMode,
     exitSelection,
     toggleSelect,
-  } = useIdSelectionMode<Id<"wikiNodes">>();
+  } = useIdSelection<Id<"wikiNodes">>();
 
   const handleSelectNode = useCallback(
     (id: string) => {

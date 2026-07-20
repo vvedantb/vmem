@@ -8,7 +8,7 @@ import FileUploadModal from "@/components/files/FileUploadModal";
 import FilePreviewModal from "@/components/files/FilePreviewModal";
 import { filesSearchParams } from "./search-params";
 import { childCountMap, sortNodes } from "./_utils";
-import { useFileSelection } from "./_hooks/useFileSelection";
+import { useIdSelection } from "@/hooks/useIdSelection";
 import { useFilesData } from "./_hooks/useFilesData";
 import { useFilesActions } from "./_hooks/useFilesActions";
 import BreadcrumbNav from "./BreadcrumbNav";
@@ -85,7 +85,9 @@ export default function FilesClient() {
     params.sort,
     params.sortDir,
   );
-  const selection = useFileSelection(currentItems.map((node) => node._id));
+  const selection = useIdSelection<Id<"fileNodes">>({
+    orderedIds: currentItems.map((node) => node._id),
+  });
   const folderNodes = nodes.filter((node) => node.kind === "folder");
   const breadcrumbs = buildBreadcrumbs(nodes, folderIdParam);
 
