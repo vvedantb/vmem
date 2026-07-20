@@ -1,10 +1,19 @@
 ﻿import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { internalMutation, type QueryCtx } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { authQuery } from "./auth";
 import { openRouterLogFields, openRouterLogRecordFields } from "./validators";
 import type { Id } from "./_generated/dataModel";
 import { getMembershipOrNull } from "./teams/auth";
+import {
+  insertOpenRouterLogAggregates,
+  openRouterCost,
+  openRouterModels,
+  openRouterTokens,
+  teamLogNamespace,
+  userLogNamespace,
+} from "./openRouterAggregates";
 
 export const recordInternal = internalMutation({
   args: openRouterLogRecordFields,
@@ -21,12 +30,16 @@ export const recordInternal = internalMutation({
       const profile = await ctx.db.get(profileId);
       if (profile?.teamId) teamId = profile.teamId;
     }
-    await ctx.db.insert("openRouterLogs", {
+    const id = await ctx.db.insert("openRouterLogs", {
       ...rest,
       profileId,
       teamId,
       createdAt: Date.now(),
     });
+    const doc = await ctx.db.get(id);
+    if (doc) {
+      await insertOpenRouterLogAggregates(ctx, doc, "live");
+    }
     return null;
   },
 });
@@ -100,6 +113,31 @@ async function scopedOpenRouterLogsQuery(
     .order("desc");
 }
 
+async function resolveOwnerNamespace(
+  ctx: QueryCtx,
+  opts: {
+    userId: Id<"users">;
+    scope: "personal" | "team";
+    teamId?: Id<"teams">;
+    onDenied: "throw" | "empty";
+  },
+): Promise<string | null> {
+  if (opts.scope === "personal") {
+    return userLogNamespace(opts.userId);
+  }
+  const teamId = opts.teamId;
+  if (!teamId) {
+    if (opts.onDenied === "empty") return null;
+    throw new Error("Team scope requires teamId");
+  }
+  const membership = await getMembershipOrNull(ctx, teamId, opts.userId);
+  if (!membership) {
+    if (opts.onDenied === "empty") return null;
+    throw new Error("Not authorized for this team");
+  }
+  return teamLogNamespace(teamId);
+}
+
 export const listMine = authQuery({
   args: {
     paginationOpts: paginationOptsValidator,
@@ -141,7 +179,7 @@ export const listMine = authQuery({
       throw new Error("Not authorized for this team");
     }
 
-    // optional profile filter â€” works for both scopes
+    // optional profile filter — works for both scopes
     if (args.profileId) {
       const profileId = args.profileId;
       q = q.filter((f) => f.eq(f.field("profileId"), profileId));
@@ -167,7 +205,6 @@ const summaryReturnValidator = v.object({
   totalCalls: v.number(),
   totalCostUsd: v.number(),
   totalTokens: v.number(),
-  isApprox: v.boolean(),
 });
 
 export const summaryMine = authQuery({
@@ -178,36 +215,29 @@ export const summaryMine = authQuery({
   },
   returns: summaryReturnValidator,
   handler: async (ctx, args) => {
-    const SCAN_CAP = 5000;
     const scope = args.scope ?? "personal";
     const range = args.range ?? "today";
     const cutoff = rangeCutoff(range);
-
-    const q = await scopedOpenRouterLogsQuery(ctx, {
+    const namespace = await resolveOwnerNamespace(ctx, {
       userId: ctx.userId,
       scope,
       teamId: args.teamId,
-      cutoff,
       onDenied: "throw",
     });
-    if (!q) {
+    if (namespace === null) {
       throw new Error("Not authorized for this team");
     }
-    const rows = await q.take(SCAN_CAP);
 
-    let totalCostUsd = 0;
-    let totalTokens = 0;
-    for (const row of rows) {
-      if (typeof row.costUsd === "number") totalCostUsd += row.costUsd;
-      if (typeof row.totalTokens === "number") totalTokens += row.totalTokens;
-    }
+    const bounds =
+      cutoff === null ? undefined : { lower: { key: cutoff, inclusive: true } };
 
-    return {
-      totalCalls: rows.length,
-      totalCostUsd,
-      totalTokens,
-      isApprox: rows.length === SCAN_CAP,
-    };
+    const [totalCalls, totalCostUsd, totalTokens] = await Promise.all([
+      openRouterCost.count(ctx, { namespace, bounds }),
+      openRouterCost.sum(ctx, { namespace, bounds }),
+      openRouterTokens.sum(ctx, { namespace, bounds }),
+    ]);
+
+    return { totalCalls, totalCostUsd, totalTokens };
   },
 });
 
@@ -219,19 +249,43 @@ export const distinctModelsMine = authQuery({
   returns: v.array(v.string()),
   handler: async (ctx, args) => {
     const scope = args.scope ?? "personal";
-
-    const q = await scopedOpenRouterLogsQuery(ctx, {
+    const namespace = await resolveOwnerNamespace(ctx, {
       userId: ctx.userId,
       scope,
       teamId: args.teamId,
-      cutoff: null,
       onDenied: "empty",
     });
-    if (!q) return [];
-    const rows = await q.take(1000);
+    if (namespace === null) return [];
 
-    const seen = new Set<string>();
-    for (const row of rows) seen.add(row.model);
-    return Array.from(seen).sort();
+    const models: string[] = [];
+    for await (const item of openRouterModels.iter(ctx, { namespace })) {
+      models.push(item.key);
+    }
+    return models.sort();
+  },
+});
+
+/** One-shot / resume: backfill aggregates for existing openRouterLogs rows. */
+export const backfillAggregatesPage = internalMutation({
+  args: {
+    cursor: v.optional(v.union(v.string(), v.null())),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const page = await ctx.db.query("openRouterLogs").paginate({
+      numItems: 100,
+      cursor: args.cursor ?? null,
+    });
+    for (const doc of page.page) {
+      await insertOpenRouterLogAggregates(ctx, doc, "backfill");
+    }
+    if (!page.isDone) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.openRouterLogs.backfillAggregatesPage,
+        { cursor: page.continueCursor },
+      );
+    }
+    return null;
   },
 });
