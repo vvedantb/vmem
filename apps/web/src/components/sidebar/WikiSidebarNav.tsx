@@ -170,7 +170,6 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
               />
             ) : null}
             <WikiTree
-              tree={tree}
               nodes={nodes ?? []}
               selectedId={docId}
               onSelect={handleSelectNode}
