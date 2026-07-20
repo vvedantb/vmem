@@ -3,6 +3,7 @@ import {
   useEffect,
   useImperativeHandle,
   useRef,
+  useState,
   type Ref,
 } from "react";
 import { Graph } from "@cosmos.gl/graph";
@@ -14,6 +15,7 @@ import type {
   HoveredNodeInfo,
 } from "@/lib/graph/graph-types";
 import type { GraphCanvasHandle } from "../GraphCanvas";
+import { GraphStatus } from "../GraphStatus";
 import {
   buildCosmosGraphBuffers,
   recolorCosmosGraphBuffers,
@@ -22,7 +24,9 @@ import {
   type CosmosGraphBuffers,
 } from "./cosmos-adapters";
 import { colorToRgba } from "./cosmos-color";
+import { computeHighlightPoints } from "./cosmos-highlight";
 import {
+  COSMOS_EDGE_LABEL,
   COSMOS_HIGH_NODE_COUNT,
   COSMOS_LOW_ZOOM_THRESHOLD,
   shouldShowCosmosLabel,
@@ -63,6 +67,7 @@ const ZOOM_IN_FACTOR = 1.3;
 const ZOOM_OUT_FACTOR = 0.7;
 const POINT_SAMPLING_DISTANCE = 80;
 const MAX_LABELS = 48;
+const FOCUSED_LINK_WIDTH_INCREASE = 2;
 
 function fitPaddingForNodeCount(nodeCount: number): number {
   if (nodeCount <= 10) return 0.35;
@@ -93,7 +98,9 @@ function CosmosGraphCanvas({
   const logoAtlasRef = useRef<CosmosLogoAtlas | null>(null);
   const logosVisibleRef = useRef(true);
   const hoveredIndexRef = useRef<number | undefined>(undefined);
+  const hoveredLinkIndexRef = useRef<number | undefined>(undefined);
   const physicsSettingsReadyRef = useRef(false);
+  const [webglError, setWebglError] = useState(false);
 
   const themeRef = useRef(viewTheme);
   const settingsRef = useRef(settings);
@@ -121,7 +128,7 @@ function CosmosGraphCanvas({
     onFocusNode,
   };
 
-  const applyFocusAndSearch = useCallback((graph: Graph) => {
+  const applyVisualState = useCallback((graph: Graph) => {
     const buffers = buffersRef.current;
     if (!buffers) return;
 
@@ -134,25 +141,57 @@ function CosmosGraphCanvas({
     const outlined: number[] = [];
     if (focusedPointIndex !== undefined) outlined.push(focusedPointIndex);
 
-    if (isSearchActiveRef.current) {
-      const matches = searchMatchIndices(
-        buffers.indexToId,
-        searchMatchSetRef.current,
-      );
-      graph.setConfigPartial({
-        focusedPointIndex,
-        highlightedPointIndices: matches,
-        highlightedLinkIndices:
-          matches.length > 0 ? graph.getConnectedLinkIndices(matches) : [],
-        outlinedPointIndices: outlined.length > 0 ? outlined : undefined,
-      });
-      return;
+    const zoom = graph.getZoomLevel();
+    const skipHoverHighlight =
+      buffers.indexToNode.length > COSMOS_HIGH_NODE_COUNT &&
+      zoom < COSMOS_LOW_ZOOM_THRESHOLD;
+
+    let hoveredPointIndex: number | undefined;
+    let neighborIndices: number[] | undefined;
+    let hoveredLinkEndpoints: {
+      sourceIndex: number;
+      targetIndex: number;
+      linkIndex: number;
+    } | null = null;
+
+    if (!skipHoverHighlight) {
+      const linkIdx = hoveredLinkIndexRef.current;
+      if (linkIdx !== undefined) {
+        const meta = buffers.edgeMeta[linkIdx];
+        if (meta) {
+          hoveredLinkEndpoints = {
+            sourceIndex: meta.sourceIndex,
+            targetIndex: meta.targetIndex,
+            linkIndex: linkIdx,
+          };
+        }
+      } else if (hoveredIndexRef.current !== undefined) {
+        hoveredPointIndex = hoveredIndexRef.current;
+        neighborIndices = graph.getNeighboringPointIndices(hoveredPointIndex);
+      }
     }
+
+    const searchMatches = isSearchActiveRef.current
+      ? searchMatchIndices(buffers.indexToId, searchMatchSetRef.current)
+      : undefined;
+
+    const { highlightedPointIndices, focusedLinkIndex } =
+      computeHighlightPoints({
+        hoveredPointIndex,
+        neighborIndices,
+        hoveredLinkEndpoints,
+        isSearchActive: isSearchActiveRef.current,
+        searchMatchIndices: searchMatches,
+      });
 
     graph.setConfigPartial({
       focusedPointIndex,
-      highlightedPointIndices: undefined,
-      highlightedLinkIndices: undefined,
+      focusedLinkIndex,
+      focusedLinkWidthIncrease: FOCUSED_LINK_WIDTH_INCREASE,
+      highlightedPointIndices,
+      highlightedLinkIndices: highlightedPointIndices
+        ? graph.getConnectedLinkIndices(highlightedPointIndices)
+        : undefined,
       outlinedPointIndices: outlined.length > 0 ? outlined : undefined,
     });
   }, []);
@@ -196,7 +235,10 @@ function CosmosGraphCanvas({
 
     const theme = themeRef.current;
     const hoveredIndex = hoveredIndexRef.current;
-    const hasHover = hoveredIndex !== undefined;
+    const hoveredLinkIndex = hoveredLinkIndexRef.current;
+    const hasHover =
+      hoveredIndex !== undefined || hoveredLinkIndex !== undefined;
+    const lowZoom = zoom < COSMOS_LOW_ZOOM_THRESHOLD;
     const neighborSet = new Set<number>();
     if (hoveredIndex !== undefined) {
       neighborSet.add(hoveredIndex);
@@ -266,6 +308,54 @@ function CosmosGraphCanvas({
       );
       painted += 1;
     }
+
+    if (!lowZoom && (hoveredLinkIndex !== undefined || neighborSet.size > 1)) {
+      const pillFontSize = Math.max(8, 10 / Math.max(zoom, 0.5));
+      ctx.font = `400 ${pillFontSize}px "Instrument Sans", system-ui, sans-serif`;
+      const allPositions = graph.getPointPositions();
+
+      for (let linkIdx = 0; linkIdx < buffers.edgeMeta.length; linkIdx++) {
+        const meta = buffers.edgeMeta[linkIdx];
+        if (!meta) continue;
+        const isHoveredEdge = hoveredLinkIndex === linkIdx;
+        const isHoveredNodeEdge =
+          hoveredIndex !== undefined &&
+          neighborSet.has(meta.sourceIndex) &&
+          neighborSet.has(meta.targetIndex);
+        if (!isHoveredEdge && !isHoveredNodeEdge) continue;
+
+        const sx = allPositions[meta.sourceIndex * 2];
+        const sy = allPositions[meta.sourceIndex * 2 + 1];
+        const tx = allPositions[meta.targetIndex * 2];
+        const ty = allPositions[meta.targetIndex * 2 + 1];
+        if (
+          sx === undefined ||
+          sy === undefined ||
+          tx === undefined ||
+          ty === undefined
+        ) {
+          continue;
+        }
+        const [mx, my] = graph.spaceToScreenPosition([
+          (sx + tx) / 2,
+          (sy + ty) / 2,
+        ]);
+        const label = COSMOS_EDGE_LABEL[meta.edgeType];
+        const metrics = ctx.measureText(label);
+        const padX = 4;
+        const padY = 2;
+        const bgW = metrics.width + padX * 2;
+        const bgH = pillFontSize + padY * 2;
+
+        ctx.fillStyle = theme.background + "cc";
+        ctx.beginPath();
+        ctx.roundRect(mx - bgW / 2, my - bgH / 2, bgW, bgH, 3);
+        ctx.fill();
+
+        ctx.fillStyle = theme.label.secondary;
+        ctx.fillText(label, mx, my);
+      }
+    }
   }, []);
 
   const applyConnectorLogos = useCallback((graph: Graph, force = false) => {
@@ -304,6 +394,7 @@ function CosmosGraphCanvas({
     const root = rootRef.current;
     if (!host || !root || nodes.length === 0) return;
 
+    setWebglError(false);
     let cancelled = false;
     root.style.opacity = "0";
     const buffers = buildCosmosGraphBuffers(
@@ -314,6 +405,7 @@ function CosmosGraphCanvas({
     );
     buffersRef.current = buffers;
     hoveredIndexRef.current = undefined;
+    hoveredLinkIndexRef.current = undefined;
     logosVisibleRef.current = true;
 
     const bg = colorToRgba(themeRef.current.background);
@@ -322,123 +414,155 @@ function CosmosGraphCanvas({
       nodes.length,
     );
 
-    const graph = new Graph(host, {
-      backgroundColor: bg,
-      spaceSize: SPACE_SIZE,
-      enableSimulation: true,
-      enableDrag: true,
-      enableZoom: true,
-      fitViewOnInit: true,
-      fitViewDelay: 100,
-      fitViewPadding: 0.12,
-      renderHoveredPointRing: true,
-      hoveredPointCursor: "pointer",
-      hoveredLinkCursor: "pointer",
-      pointGreyoutOpacity: themeRef.current.dimAlpha,
-      linkGreyoutOpacity: themeRef.current.dimAlpha,
-      pointSamplingDistance: POINT_SAMPLING_DISTANCE,
-      ...physics,
-      attribution: "",
-      onClick: (index, _pointPosition, event) => {
-        if (event.detail !== 2) return;
-        if (index === undefined) return;
-        const id = buffersRef.current?.indexToId[index];
-        if (id === undefined) return;
-        callbacksRef.current.onFocusNode?.(id);
-      },
-      onPointClick: (index, _pointPosition, event) => {
-        if (event.detail === 2) return;
-        const id = buffersRef.current?.indexToId[index];
-        if (id === undefined) return;
-        callbacksRef.current.onClickNode(id);
-      },
-      onPointMouseOver: (index, pointPosition) => {
-        hoveredIndexRef.current = index;
-        const buffersNow = buffersRef.current;
-        const g = graphRef.current;
-        if (!buffersNow || !g) return;
-        const node = buffersNow.indexToNode[index];
-        if (!node) return;
-        const [viewportX, viewportY] = g.spaceToScreenPosition(pointPosition);
-        callbacksRef.current.onHoverNode({
-          title: node.title,
-          viewportX,
-          viewportY,
-        });
-        paintLabels(g);
-      },
-      onPointMouseOut: () => {
-        hoveredIndexRef.current = undefined;
-        callbacksRef.current.onHoverNode(null);
-        const g = graphRef.current;
-        if (g) paintLabels(g);
-      },
-      onLinkMouseOver: (linkIndex) => {
-        const buffersNow = buffersRef.current;
-        const g = graphRef.current;
-        const meta: CosmosEdgeMeta | undefined =
-          buffersNow?.edgeMeta[linkIndex];
-        if (!buffersNow || !g || !meta) {
+    let graph: Graph;
+    try {
+      graph = new Graph(host, {
+        backgroundColor: bg,
+        spaceSize: SPACE_SIZE,
+        enableSimulation: true,
+        enableDrag: true,
+        enableZoom: true,
+        fitViewOnInit: true,
+        fitViewDelay: 100,
+        fitViewPadding: 0.12,
+        renderHoveredPointRing: true,
+        hoveredPointCursor: "pointer",
+        hoveredLinkCursor: "pointer",
+        pointGreyoutOpacity: themeRef.current.dimAlpha,
+        linkGreyoutOpacity: themeRef.current.dimAlpha,
+        focusedLinkWidthIncrease: FOCUSED_LINK_WIDTH_INCREASE,
+        pointSamplingDistance: POINT_SAMPLING_DISTANCE,
+        ...physics,
+        attribution: "",
+        onClick: (index, _pointPosition, event) => {
+          if (event.detail !== 2) return;
+          if (index === undefined) return;
+          const id = buffersRef.current?.indexToId[index];
+          if (id === undefined) return;
+          callbacksRef.current.onFocusNode?.(id);
+        },
+        onPointClick: (index, _pointPosition, event) => {
+          if (event.detail === 2) return;
+          const id = buffersRef.current?.indexToId[index];
+          if (id === undefined) return;
+          callbacksRef.current.onClickNode(id);
+        },
+        onPointMouseOver: (index, pointPosition) => {
+          hoveredIndexRef.current = index;
+          hoveredLinkIndexRef.current = undefined;
+          const buffersNow = buffersRef.current;
+          const g = graphRef.current;
+          if (!buffersNow || !g) return;
+          const node = buffersNow.indexToNode[index];
+          if (!node) return;
+          const [viewportX, viewportY] = g.spaceToScreenPosition(pointPosition);
+          callbacksRef.current.onHoverNode({
+            title: node.title,
+            viewportX,
+            viewportY,
+          });
+          applyVisualState(g);
+          paintLabels(g);
+        },
+        onPointMouseOut: () => {
+          hoveredIndexRef.current = undefined;
+          callbacksRef.current.onHoverNode(null);
+          const g = graphRef.current;
+          if (!g) return;
+          applyVisualState(g);
+          paintLabels(g);
+        },
+        onLinkMouseOver: (linkIndex) => {
+          hoveredLinkIndexRef.current = linkIndex;
+          hoveredIndexRef.current = undefined;
+          callbacksRef.current.onHoverNode(null);
+          const buffersNow = buffersRef.current;
+          const g = graphRef.current;
+          const meta: CosmosEdgeMeta | undefined =
+            buffersNow?.edgeMeta[linkIndex];
+          if (!buffersNow || !g || !meta) {
+            callbacksRef.current.onHoverEdge?.(null);
+            return;
+          }
+          const positions = g.getPointPositions();
+          const sx = positions[meta.sourceIndex * 2];
+          const sy = positions[meta.sourceIndex * 2 + 1];
+          const tx = positions[meta.targetIndex * 2];
+          const ty = positions[meta.targetIndex * 2 + 1];
+          if (
+            sx === undefined ||
+            sy === undefined ||
+            tx === undefined ||
+            ty === undefined
+          ) {
+            callbacksRef.current.onHoverEdge?.(null);
+            return;
+          }
+          const [viewportX, viewportY] = g.spaceToScreenPosition([
+            (sx + tx) / 2,
+            (sy + ty) / 2,
+          ]);
+          callbacksRef.current.onHoverEdge?.({
+            edgeType: meta.edgeType,
+            sourceTitle: meta.sourceTitle,
+            targetTitle: meta.targetTitle,
+            reason: meta.reason,
+            score: meta.score,
+            viewportX,
+            viewportY,
+          });
+          applyVisualState(g);
+          paintLabels(g);
+        },
+        onLinkMouseOut: () => {
+          hoveredLinkIndexRef.current = undefined;
           callbacksRef.current.onHoverEdge?.(null);
-          return;
-        }
-        const positions = g.getPointPositions();
-        const sx = positions[meta.sourceIndex * 2];
-        const sy = positions[meta.sourceIndex * 2 + 1];
-        const tx = positions[meta.targetIndex * 2];
-        const ty = positions[meta.targetIndex * 2 + 1];
-        if (
-          sx === undefined ||
-          sy === undefined ||
-          tx === undefined ||
-          ty === undefined
-        ) {
+          const g = graphRef.current;
+          if (!g) return;
+          applyVisualState(g);
+          paintLabels(g);
+        },
+        onBackgroundClick: () => {
+          hoveredIndexRef.current = undefined;
+          hoveredLinkIndexRef.current = undefined;
+          callbacksRef.current.onHoverNode(null);
           callbacksRef.current.onHoverEdge?.(null);
-          return;
-        }
-        const [viewportX, viewportY] = g.spaceToScreenPosition([
-          (sx + tx) / 2,
-          (sy + ty) / 2,
-        ]);
-        callbacksRef.current.onHoverEdge?.({
-          edgeType: meta.edgeType,
-          sourceTitle: meta.sourceTitle,
-          targetTitle: meta.targetTitle,
-          reason: meta.reason,
-          score: meta.score,
-          viewportX,
-          viewportY,
-        });
-      },
-      onLinkMouseOut: () => {
-        callbacksRef.current.onHoverEdge?.(null);
-      },
-      onBackgroundClick: () => {
-        callbacksRef.current.onHoverNode(null);
-        callbacksRef.current.onHoverEdge?.(null);
-      },
-      onSimulationTick: (alpha, hoveredIndex) => {
-        if (typeof hoveredIndex === "number") {
-          hoveredIndexRef.current = hoveredIndex;
-        }
-        const g = graphRef.current;
-        if (g) paintLabels(g);
-        // Legacy SLEEP_ALPHA ≈ 0.005 — pause once visually still.
-        if (typeof alpha === "number" && alpha < 0.01) {
-          g?.pause();
-        }
-      },
-      onZoom: () => {
-        const g = graphRef.current;
-        if (g) paintLabels(g);
-      },
-      onZoomEnd: () => {
-        const g = graphRef.current;
-        if (!g) return;
-        paintLabels(g);
-        applyConnectorLogos(g);
-      },
-    });
+          const g = graphRef.current;
+          if (g) applyVisualState(g);
+        },
+        onDragStart: () => {
+          const g = graphRef.current;
+          if (!g) return;
+          g.unpause();
+          g.start(COSMOS_SETTINGS_REHEAT_ALPHA);
+        },
+        onSimulationTick: (alpha, hoveredIndex) => {
+          if (typeof hoveredIndex === "number") {
+            hoveredIndexRef.current = hoveredIndex;
+          }
+          const g = graphRef.current;
+          if (g) paintLabels(g);
+          // Legacy SLEEP_ALPHA ≈ 0.005 — pause once visually still.
+          if (typeof alpha === "number" && alpha < 0.01) {
+            g?.pause();
+          }
+        },
+        onZoom: () => {
+          const g = graphRef.current;
+          if (g) paintLabels(g);
+        },
+        onZoomEnd: () => {
+          const g = graphRef.current;
+          if (!g) return;
+          paintLabels(g);
+          applyConnectorLogos(g);
+        },
+      });
+    } catch {
+      setWebglError(true);
+      root.style.opacity = "";
+      return;
+    }
 
     graphRef.current = graph;
 
@@ -448,6 +572,8 @@ function CosmosGraphCanvas({
     graph.setPointShapes(buffers.shapes);
     graph.setLinks(buffers.links);
     graph.setLinkColors(buffers.linkColors);
+    graph.setLinkWidths(buffers.linkWidths);
+    graph.setLinkStrength(buffers.linkStrengths);
     graph.render();
 
     void graph.ready.then(() => {
@@ -462,7 +588,7 @@ function CosmosGraphCanvas({
         fitPaddingForNodeCount(buffers.indexToNode.length),
         false,
       );
-      applyFocusAndSearch(graph);
+      applyVisualState(graph);
       paintLabels(graph);
       applyConnectorLogos(graph, true);
       root.style.opacity = "1";
@@ -483,7 +609,7 @@ function CosmosGraphCanvas({
       if (graphRef.current === graph) graphRef.current = null;
       buffersRef.current = null;
     };
-  }, [nodes, edges, applyFocusAndSearch, paintLabels, applyConnectorLogos]);
+  }, [nodes, edges, applyVisualState, paintLabels, applyConnectorLogos]);
 
   // Theme colours only — do not touch simulation (avoids perpetual reheat).
   useEffect(() => {
@@ -496,6 +622,8 @@ function CosmosGraphCanvas({
     graph.setPointSizes(buffers.sizes);
     graph.setPointShapes(buffers.shapes);
     graph.setLinkColors(buffers.linkColors);
+    graph.setLinkWidths(buffers.linkWidths);
+    graph.setLinkStrength(buffers.linkStrengths);
     graph.setConfigPartial({
       backgroundColor: colorToRgba(viewTheme.background),
       pointGreyoutOpacity: viewTheme.dimAlpha,
@@ -525,8 +653,8 @@ function CosmosGraphCanvas({
   useEffect(() => {
     const graph = graphRef.current;
     if (!graph) return;
-    applyFocusAndSearch(graph);
-  }, [focusNodeId, searchMatchSet, isSearchActive, applyFocusAndSearch]);
+    applyVisualState(graph);
+  }, [focusNodeId, searchMatchSet, isSearchActive, applyVisualState]);
 
   useEffect(() => {
     const graph = graphRef.current;
@@ -559,6 +687,15 @@ function CosmosGraphCanvas({
     zoomOut: handleZoomOut,
     fit: handleFit,
   }));
+
+  if (webglError) {
+    return (
+      <GraphStatus
+        variant="error"
+        title="WebGL 2 is required to display the graph"
+      />
+    );
+  }
 
   return (
     <div
