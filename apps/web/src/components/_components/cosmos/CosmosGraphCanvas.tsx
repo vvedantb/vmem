@@ -18,6 +18,7 @@ import type { GraphCanvasHandle } from "../GraphCanvas";
 import { GraphStatus } from "../GraphStatus";
 import {
   buildCosmosGraphBuffers,
+  capturePointPositions,
   recolorCosmosGraphBuffers,
   searchMatchIndices,
   type CosmosEdgeMeta,
@@ -99,6 +100,7 @@ function CosmosGraphCanvas({
   const logosVisibleRef = useRef(true);
   const hoveredIndexRef = useRef<number | undefined>(undefined);
   const hoveredLinkIndexRef = useRef<number | undefined>(undefined);
+  const lastPositionsRef = useRef(new Map<string, { x: number; y: number }>());
   const physicsSettingsReadyRef = useRef(false);
   const [webglError, setWebglError] = useState(false);
 
@@ -402,6 +404,7 @@ function CosmosGraphCanvas({
       edges,
       themeRef.current,
       SPACE_SIZE,
+      lastPositionsRef.current,
     );
     buffersRef.current = buffers;
     hoveredIndexRef.current = undefined;
@@ -579,7 +582,12 @@ function CosmosGraphCanvas({
     void graph.ready.then(() => {
       if (cancelled) return;
       graph.pause();
-      const warmupTicks = cosmosWarmupTicks(buffers.indexToNode.length);
+      const seededCount = lastPositionsRef.current.size;
+      const mostlyPersisted =
+        seededCount > 0 && seededCount >= buffers.indexToNode.length * 0.5;
+      const warmupTicks = mostlyPersisted
+        ? Math.min(cosmosWarmupTicks(buffers.indexToNode.length), 30)
+        : cosmosWarmupTicks(buffers.indexToNode.length);
       for (let i = 0; i < warmupTicks; i++) graph.step();
       graph.setZoomTransformByPointPositions(
         Float32Array.from(graph.getPointPositions()),
@@ -605,6 +613,10 @@ function CosmosGraphCanvas({
     return () => {
       cancelled = true;
       root.style.opacity = "";
+      lastPositionsRef.current = capturePointPositions(
+        buffers.indexToId,
+        graph.getPointPositions(),
+      );
       graph.destroy();
       if (graphRef.current === graph) graphRef.current = null;
       buffersRef.current = null;
