@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { toast } from "sonner";
 import { Card, CardContent, Switch, TimePicker } from "@vmem/ui";
@@ -20,19 +20,27 @@ import { PreferencesPageSkeleton } from "./PreferencesPageSkeleton";
 
 export function PreferencesPage() {
   const settings = useQuery(api.userSettings.get);
-  const aboutMeBaselineRef = useRef<string | null>(null);
-  const preferencesBaselineRef = useRef<string | null>(null);
+  const [aboutMeDraft, setAboutMeDraft] = useState<string | null>(null);
+  const [preferencesDraft, setPreferencesDraft] = useState<string | null>(null);
   const { saveSettings, updateSettings } = useUserSettingsSave();
   const setDreamSchedule = useMutation(api.dreamSchedule.setDreamSchedule);
 
-  const toastIfTextFieldChanged = (
-    baselineRef: { current: string | null },
+  const saveTextField = async (
+    field: "aboutMe" | "preferences",
+    draft: string | null,
     current: string,
-  ) => {
-    const baseline = baselineRef.current;
-    baselineRef.current = null;
-    if (baseline !== null && baseline !== current) {
+    clearDraft: () => void,
+  ): Promise<void> => {
+    if (draft === null || draft === current) {
+      clearDraft();
+      return;
+    }
+    try {
+      await updateSettings({ [field]: draft });
+      clearDraft();
       toast.success("Saved!");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save");
     }
   };
 
@@ -84,6 +92,9 @@ export function PreferencesPage() {
     return <PreferencesPageSkeleton />;
   }
 
+  const aboutMeValue = aboutMeDraft ?? settings.aboutMe;
+  const preferencesValue = preferencesDraft ?? settings.preferences;
+
   return (
     <PageContainer title="Preferences" centeredMaxWidth showTitle>
       <div className="space-y-8">
@@ -93,38 +104,43 @@ export function PreferencesPage() {
               id="about-me"
               label="About me"
               placeholder="A few lines on who you are, what you do, and what you're working toward."
-              value={settings.aboutMe}
+              value={aboutMeValue}
               maxLength={500}
               rows={4}
               onFocus={() => {
-                aboutMeBaselineRef.current = settings.aboutMe;
+                setAboutMeDraft(settings.aboutMe);
               }}
-              onChange={(next) => {
-                if (next === settings.aboutMe) return;
-                void updateSettings({ aboutMe: next });
-              }}
+              onChange={setAboutMeDraft}
               onBlur={() => {
-                toastIfTextFieldChanged(aboutMeBaselineRef, settings.aboutMe);
+                void saveTextField(
+                  "aboutMe",
+                  aboutMeDraft,
+                  settings.aboutMe,
+                  () => {
+                    setAboutMeDraft(null);
+                  },
+                );
               }}
             />
             <PreferenceTextareaRow
               id="preferences"
               label="Preferences"
               placeholder="How do you like AI to communicate with you? Tone, depth, formatting, things to avoid."
-              value={settings.preferences}
+              value={preferencesValue}
               maxLength={500}
               rows={4}
               onFocus={() => {
-                preferencesBaselineRef.current = settings.preferences;
+                setPreferencesDraft(settings.preferences);
               }}
-              onChange={(next) => {
-                if (next === settings.preferences) return;
-                void updateSettings({ preferences: next });
-              }}
+              onChange={setPreferencesDraft}
               onBlur={() => {
-                toastIfTextFieldChanged(
-                  preferencesBaselineRef,
+                void saveTextField(
+                  "preferences",
+                  preferencesDraft,
                   settings.preferences,
+                  () => {
+                    setPreferencesDraft(null);
+                  },
                 );
               }}
             />
