@@ -5,6 +5,7 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { authAction, authMutation, authQuery } from "./auth";
 import { auditLog, ResourceTypes, severityForStatus } from "./auditLog";
+import { hex } from "@scure/base";
 import { encodeBase64UrlBytes } from "./lib/base64";
 import { decryptToken, encryptToken } from "./lib/crypto";
 import { apiKeyFields } from "./validators";
@@ -19,9 +20,7 @@ export async function hashApiKey(rawKey: string): Promise<string> {
     "SHA-256",
     new TextEncoder().encode(rawKey),
   );
-  return Array.from(new Uint8Array(hashBuffer))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+  return hex.encode(new Uint8Array(hashBuffer));
 }
 
 function maskApiKey(rawKey: string): string {
