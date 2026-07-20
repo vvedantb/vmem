@@ -1,4 +1,5 @@
 import type { FunctionReturnType } from "convex/server";
+import { orderBy, startCase, uniqBy } from "es-toolkit";
 import { api } from "@vmem/backend";
 
 export type MemoryListResult = FunctionReturnType<
@@ -70,10 +71,7 @@ export function formatMemorySourceLabel(source: string): string {
   if (normalized.length === 0) {
     return source;
   }
-  return normalized
-    .split(/\s+/)
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(" ");
+  return startCase(normalized);
 }
 
 export interface TagStats {
@@ -111,20 +109,13 @@ export function buildTagStats(memories: Memory[]): TagStats[] {
 export type TagSortMode = "a-z" | "most-used" | "most-recent";
 
 export function sortTagStats(tags: TagStats[], mode: TagSortMode): TagStats[] {
-  const sorted = [...tags];
   switch (mode) {
     case "a-z":
-      return sorted.sort((a, b) => a.tag.localeCompare(b.tag));
+      return orderBy(tags, ["tag"], ["asc"]);
     case "most-used":
-      return sorted.sort(
-        (a, b) => b.count - a.count || a.tag.localeCompare(b.tag),
-      );
+      return orderBy(tags, ["count", "tag"], ["desc", "asc"]);
     case "most-recent":
-      return sorted.sort(
-        (a, b) =>
-          b.latestCreatedAt.localeCompare(a.latestCreatedAt) ||
-          a.tag.localeCompare(b.tag),
-      );
+      return orderBy(tags, ["latestCreatedAt", "tag"], ["desc", "asc"]);
   }
 }
 
@@ -141,12 +132,7 @@ export function relatedMemoriesQueryKey(memoryId: string) {
 export function uniqueRelated(
   entries: RelatedMemoriesResult,
 ): RelatedMemoryEntry[] {
-  const seen = new Set<string>();
-  return entries.filter((entry) => {
-    if (seen.has(entry.memory.id)) return false;
-    seen.add(entry.memory.id);
-    return true;
-  });
+  return uniqBy(entries, (entry) => entry.memory.id);
 }
 
 export function countUniqueRelated(entries: RelatedMemoriesResult): number {

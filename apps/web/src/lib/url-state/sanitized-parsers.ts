@@ -1,4 +1,5 @@
-import { createParser, parseAsArrayOf, parseAsString, type Parser } from "nuqs";
+import { isEqual } from "es-toolkit";
+import { createParser, parseAsArrayOf, type Parser } from "nuqs";
 
 const NULLISH_QUERY_VALUES = new Set(["", "null", '"null"', "undefined", "[]"]);
 
@@ -19,14 +20,6 @@ export const parseAsSanitizedOptionalString = createParser({
 export const parseAsSanitizedSearchQuery =
   parseAsSanitizedOptionalString.withDefault("");
 
-function arraysEqual<T>(a: readonly T[], b: readonly T[]): boolean {
-  if (a.length !== b.length) return false;
-  for (let index = 0; index < a.length; index += 1) {
-    if (a[index] !== b[index]) return false;
-  }
-  return true;
-}
-
 export function createSanitizedArrayParser<T>(itemParser: Parser<T>) {
   const base = parseAsArrayOf(itemParser, ",");
   return createParser({
@@ -38,6 +31,6 @@ export function createSanitizedArrayParser<T>(itemParser: Parser<T>) {
       if (value === null || value.length === 0) return "";
       return base.serialize(value);
     },
-    eq: arraysEqual,
+    eq: isEqual,
   }).withDefault([]);
 }

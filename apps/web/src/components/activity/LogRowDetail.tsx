@@ -7,7 +7,7 @@ import {
 } from "@vmem/ui";
 import { formatDateTime } from "@vmem/shared";
 import type { AiLogRow, ProfileListItem } from "./types";
-import { featureLabelFor } from "./_aiLogsUtils";
+import { featureLabelFor, formatLogCost } from "./_aiLogsUtils";
 
 // detail dialog for one ai log row (prompt/response when logging enabled)
 type LogRow = AiLogRow;
@@ -114,11 +114,11 @@ function LogRowDetailBody({
               value={row.reasoningTokens.toLocaleString()}
             />
           )}
-          <KV label="Cost (USD)" value={formatCost(row.costUsd)} />
+          <KV label="Cost (USD)" value={formatLogCost(row.costUsd)} />
           {row.upstreamCostUsd !== undefined && (
             <KV
               label="Upstream cost (USD)"
-              value={formatCost(row.upstreamCostUsd)}
+              value={formatLogCost(row.upstreamCostUsd)}
             />
           )}
           {row.isByok && <KV label="BYOK" value="yes" />}
@@ -214,12 +214,4 @@ function PreviewBlock({ label, body }: { label: string; body: string }) {
       </pre>
     </div>
   );
-}
-
-function formatCost(amount: number | undefined): string {
-  if (amount === undefined) return "—";
-  if (amount === 0) return "$0";
-  if (amount < 0.0001) return "<$0.0001";
-  if (amount < 1) return `$${amount.toFixed(6)}`;
-  return `$${amount.toFixed(4)}`;
 }
