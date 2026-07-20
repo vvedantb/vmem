@@ -22,6 +22,7 @@
     "@convex-dev/action-cache": "^0.3.0",
     "@convex-dev/crons": "^0.2.0",
     "@convex-dev/workpool": "^0.4.7",
+    "@cosmos.gl/graph": "catalog:",
     "@googleapis/drive": "^20.0.0",
     "@modelcontextprotocol/ext-apps": "1.7.2",
     "@modelcontextprotocol/sdk": "catalog:",

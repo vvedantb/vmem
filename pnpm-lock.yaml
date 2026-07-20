@@ -473,6 +473,9 @@ importers:
       '@convex-dev/workpool':
         specifier: ^0.4.7
         version: 0.4.7(convex-helpers@0.1.114(@standard-schema/spec@1.1.0)(convex@1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(bufferutil@4.1.0)(react@19.2.5)(utf-8-validate@6.0.6))(hono@4.12.14)(react@19.2.5)(typescript@7.0.1-rc)(zod@3.25.76))(convex@1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(bufferutil@4.1.0)(react@19.2.5)(utf-8-validate@6.0.6))
+      '@cosmos.gl/graph':
+        specifier: 'catalog:'
+        version: 3.3.0
       '@googleapis/drive':
         specifier: ^20.0.0
         version: 20.2.0
