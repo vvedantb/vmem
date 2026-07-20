@@ -57,6 +57,8 @@ export interface CosmosGraphBuffers {
   shapes: Float32Array;
   links: Float32Array;
   linkColors: Float32Array;
+  linkWidths: Float32Array;
+  linkStrengths: Float32Array;
 }
 
 function edgeEndpointId(endpoint: string | GraphNode): string {
@@ -66,12 +68,12 @@ function edgeEndpointId(endpoint: string | GraphNode): string {
 function seedPosition(
   index: number,
   count: number,
-  node: GraphNode,
+  nodeId: string,
   spaceSize: number,
+  previousPositions?: ReadonlyMap<string, { x: number; y: number }>,
 ): { x: number; y: number } {
-  if (node.x !== undefined && node.y !== undefined) {
-    return { x: node.x, y: node.y };
-  }
+  const saved = previousPositions?.get(nodeId);
+  if (saved !== undefined) return saved;
   const angle = (index / Math.max(count, 1)) * Math.PI * 2;
   const radius =
     count <= 10
@@ -121,12 +123,25 @@ export function cosmosPointShapeForKind(kind: GraphNodeKind): number {
   return COSMOS_POINT_SHAPE.Circle;
 }
 
+function linkWidthForEdgeType(
+  edgeType: GraphEdgeType,
+  theme: GraphViewTheme,
+): number {
+  const widthMult = edgeType === "tag" ? 1 : 2;
+  return theme.edge.width * widthMult;
+}
+
+function linkStrengthForEdgeType(edgeType: GraphEdgeType): number {
+  return edgeType === "tag" ? 0 : 1;
+}
+
 /** Build Cosmos index-based Float32Arrays + id↔index / edge meta maps. */
 export function buildCosmosGraphBuffers(
   nodes: GraphNode[],
   edges: GraphEdge[],
   theme: GraphViewTheme,
   spaceSize = 4096,
+  previousPositions?: ReadonlyMap<string, { x: number; y: number }>,
 ): CosmosGraphBuffers {
   const idToIndex = new Map<string, number>();
   const indexToId: string[] = [];
@@ -144,7 +159,13 @@ export function buildCosmosGraphBuffers(
     indexToId.push(node.id);
     indexToNode.push(node);
 
-    const pos = seedPosition(i, nodes.length, node, spaceSize);
+    const pos = seedPosition(
+      i,
+      nodes.length,
+      node.id,
+      spaceSize,
+      previousPositions,
+    );
     positions[i * 2] = pos.x;
     positions[i * 2 + 1] = pos.y;
 
@@ -176,6 +197,8 @@ export function buildCosmosGraphBuffers(
 
   const links = new Float32Array(resolved.length * 2);
   const linkColors = new Float32Array(resolved.length * 4);
+  const linkWidths = new Float32Array(resolved.length);
+  const linkStrengths = new Float32Array(resolved.length);
   const edgeMeta: CosmosEdgeMeta[] = [];
 
   for (let i = 0; i < resolved.length; i++) {
@@ -186,6 +209,8 @@ export function buildCosmosGraphBuffers(
 
     const slot = EDGE_SLOT[item.edge.edgeType];
     writeRgba(linkColors, i * 4, colorToRgba(theme.edge.normalByType[slot]));
+    linkWidths[i] = linkWidthForEdgeType(item.edge.edgeType, theme);
+    linkStrengths[i] = linkStrengthForEdgeType(item.edge.edgeType);
 
     edgeMeta.push({
       edgeType: item.edge.edgeType,
@@ -209,6 +234,8 @@ export function buildCosmosGraphBuffers(
     shapes,
     links,
     linkColors,
+    linkWidths,
+    linkStrengths,
   };
 }
 
@@ -232,6 +259,8 @@ export function recolorCosmosGraphBuffers(
       i * 4,
       colorToRgba(theme.edge.normalByType[EDGE_SLOT[meta.edgeType]]),
     );
+    buffers.linkWidths[i] = linkWidthForEdgeType(meta.edgeType, theme);
+    buffers.linkStrengths[i] = linkStrengthForEdgeType(meta.edgeType);
   }
 }
 
@@ -244,6 +273,23 @@ export function searchMatchIndices(
   for (let i = 0; i < indexToId.length; i++) {
     const id = indexToId[i];
     if (id !== undefined && searchMatchSet.has(id)) out.push(i);
+  }
+  return out;
+}
+
+/** Snapshot cosmos point positions keyed by node id (cosmos space 0..spaceSize). */
+export function capturePointPositions(
+  indexToId: readonly string[],
+  positions: Float32Array,
+): Map<string, { x: number; y: number }> {
+  const out = new Map<string, { x: number; y: number }>();
+  if (positions.length !== indexToId.length * 2) return out;
+  for (let i = 0; i < indexToId.length; i++) {
+    const id = indexToId[i];
+    const x = positions[i * 2];
+    const y = positions[i * 2 + 1];
+    if (id === undefined || x === undefined || y === undefined) continue;
+    out.set(id, { x, y });
   }
   return out;
 }

@@ -1,7 +1,25 @@
+import type { GraphEdgeType } from "@/lib/graph/types";
+
 const LABEL_MAX_CHARS = 26;
 export const COSMOS_LOW_ZOOM_THRESHOLD = 0.4;
 export const COSMOS_HIGH_NODE_COUNT = 5000;
 const MIN_LABEL_SCREEN_R = 6;
+
+/** Edge-type pill labels — copied from canvas/renderer.ts EDGE_STYLE. */
+export const COSMOS_EDGE_LABEL: Record<GraphEdgeType, string> = {
+  tag: "tagged",
+  relates_to: "relates to",
+  imports: "imports",
+  calls: "calls",
+  wiki_parent: "parent of",
+  contains: "contains",
+  has_method: "has method",
+  extends: "extends",
+  implements: "implements",
+  mentions: "mentions",
+  starts_process: "starts process",
+  includes: "includes",
+};
 
 export function truncateCosmosLabel(title: string): string {
   if (title.length <= LABEL_MAX_CHARS) return title;

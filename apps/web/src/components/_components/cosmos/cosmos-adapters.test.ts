@@ -6,6 +6,7 @@ import { DEFAULT_GRAPH_SETTINGS } from "@/lib/graph/graph-types";
 import { getViewTheme } from "../graph-view-themes";
 import {
   buildCosmosGraphBuffers,
+  capturePointPositions,
   COSMOS_POINT_SHAPE,
   cosmosPointShapeForKind,
   searchMatchIndices,
@@ -115,6 +116,77 @@ describe("buildCosmosGraphBuffers", () => {
     const dx = (buffers.positions[0] ?? 0) - (buffers.positions[2] ?? 0);
     const dy = (buffers.positions[1] ?? 0) - (buffers.positions[3] ?? 0);
     expect(Math.hypot(dx, dy)).toBeLessThan(200);
+  });
+
+  it("assigns link widths and strengths per edge type", () => {
+    const dark = getViewTheme(true);
+    const light = getViewTheme(false);
+    const edges: GraphEdge[] = [
+      { source: "a", target: "b", edgeType: "tag", weight: 1 },
+      { source: "a", target: "c", edgeType: "relates_to", weight: 1 },
+    ];
+    const darkBuffers = buildCosmosGraphBuffers(
+      [node("a"), node("b"), node("c")],
+      edges,
+      dark,
+    );
+    const lightBuffers = buildCosmosGraphBuffers(
+      [node("a"), node("b"), node("c")],
+      edges,
+      light,
+    );
+
+    expect(darkBuffers.linkWidths[0]).toBeCloseTo(dark.edge.width);
+    expect(darkBuffers.linkWidths[1]).toBeCloseTo(dark.edge.width * 2);
+    expect(lightBuffers.linkWidths[1]).toBeCloseTo(light.edge.width * 2);
+    expect(darkBuffers.linkStrengths[0]).toBe(0);
+    expect(darkBuffers.linkStrengths[1]).toBe(1);
+  });
+
+  it("prefers previous positions over ring seeding", () => {
+    const ringBuffers = buildCosmosGraphBuffers(
+      [node("a"), node("b")],
+      [],
+      getViewTheme(true),
+    );
+    const saved = new Map([
+      ["a", { x: 100, y: 200 }],
+      ["b", { x: 300, y: 400 }],
+    ]);
+    const persisted = buildCosmosGraphBuffers(
+      [node("a"), node("b")],
+      [],
+      getViewTheme(true),
+      4096,
+      saved,
+    );
+    expect(persisted.positions[0]).toBe(100);
+    expect(persisted.positions[1]).toBe(200);
+    expect(persisted.positions[2]).toBe(300);
+    expect(persisted.positions[3]).toBe(400);
+    expect(persisted.positions[0]).not.toBe(ringBuffers.positions[0]);
+  });
+
+  it("captures point positions and guards mismatched lengths", () => {
+    const buffers = buildCosmosGraphBuffers(
+      [node("a"), node("b")],
+      [],
+      getViewTheme(true),
+    );
+    buffers.positions[0] = 11;
+    buffers.positions[1] = 22;
+    buffers.positions[2] = 33;
+    buffers.positions[3] = 44;
+
+    const captured = capturePointPositions(
+      buffers.indexToId,
+      buffers.positions,
+    );
+    expect(captured.get("a")).toEqual({ x: 11, y: 22 });
+    expect(captured.get("b")).toEqual({ x: 33, y: 44 });
+
+    const bad = capturePointPositions(buffers.indexToId, new Float32Array(3));
+    expect(bad.size).toBe(0);
   });
 });
 
