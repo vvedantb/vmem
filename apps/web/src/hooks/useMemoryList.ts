@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { useConvexAuth, useAction } from "convex/react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import {
@@ -21,32 +20,30 @@ interface MemoryListFilters {
   enabled?: boolean;
 }
 
+function normalizeMemoryListFilters(
+  filters: MemoryListFilters,
+): MemoryListFilters {
+  const normalized: MemoryListFilters = {};
+  if (filters.profileId !== undefined && filters.profileId !== null) {
+    normalized.profileId = filters.profileId;
+  }
+  if (filters.type) normalized.type = filters.type;
+  if (filters.source) normalized.source = filters.source;
+  if (filters.tags && filters.tags.length > 0) {
+    normalized.tags = [...filters.tags].sort();
+  }
+  const trimmed = filters.searchQuery?.trim();
+  if (trimmed) normalized.searchQuery = trimmed;
+  return normalized;
+}
+
 function useMemoryListPage(filters: MemoryListFilters) {
   const { isAuthenticated } = useConvexAuth();
   const listMemoriesAction = useAction(api.memoryApi.listMemories);
 
   // normalise so equivalent filter shapes produce the same cache key
   // arrays are defensively copied + sorted, strings are trimmed
-  const normalizedFilters = useMemo<MemoryListFilters>(() => {
-    const normalized: MemoryListFilters = {};
-    if (filters.profileId !== undefined && filters.profileId !== null) {
-      normalized.profileId = filters.profileId;
-    }
-    if (filters.type) normalized.type = filters.type;
-    if (filters.source) normalized.source = filters.source;
-    if (filters.tags && filters.tags.length > 0) {
-      normalized.tags = [...filters.tags].sort();
-    }
-    const trimmed = filters.searchQuery?.trim();
-    if (trimmed) normalized.searchQuery = trimmed;
-    return normalized;
-  }, [
-    filters.profileId,
-    filters.type,
-    filters.source,
-    filters.tags,
-    filters.searchQuery,
-  ]);
+  const normalizedFilters = normalizeMemoryListFilters(filters);
 
   return useInfiniteQuery({
     queryKey: ["memories", normalizedFilters],
@@ -73,7 +70,7 @@ function useMemoryListPage(filters: MemoryListFilters) {
 /** Flat list of memories with loading flags, derived from useMemoryListPage. */
 export function useMemoryListFlat(filters: MemoryListFilters) {
   const query = useMemoryListPage(filters);
-  const memories = useMemo<Memory[]>(() => {
+  const memories: Memory[] = (() => {
     if (!query.data) return [];
     const out: Memory[] = [];
     for (const page of query.data.pages) {
@@ -82,7 +79,7 @@ export function useMemoryListFlat(filters: MemoryListFilters) {
       }
     }
     return out;
-  }, [query.data]);
+  })();
   return {
     memories,
     isLoading: query.isLoading,

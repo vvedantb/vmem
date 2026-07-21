@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { useQueryStates } from "nuqs";
 import type { Id } from "@vmem/backend";
 import { VmemSpinner } from "@/components/icons/animations";
@@ -79,7 +78,7 @@ export default function FilesClient() {
   } = useFilesData();
 
   const folderId = resolveFolderId(folderIdParam, nodes);
-  const childCounts = useMemo(() => childCountMap(nodes), [nodes]);
+  const childCounts = childCountMap(nodes);
   const currentItems = sortNodes(
     nodes.filter((node) => (node.parentId ?? null) === folderIdParam),
     params.sort,

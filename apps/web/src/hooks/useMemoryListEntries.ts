@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { useAction } from "convex/react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@vmem/backend";
@@ -36,15 +35,12 @@ export function useMemoryListEntries() {
   const [params] = useMemoriesSearchParams();
   const supplementaryItems = useMemoryListSupplementaryItems();
 
-  const filters = useMemo<MemoryViewFilterParams>(
-    () => ({
-      kinds: params.kinds,
-      tags: params.tags,
-      sources: params.sources,
-      types: params.types,
-    }),
-    [params.kinds, params.tags, params.sources, params.types],
-  );
+  const filters: MemoryViewFilterParams = {
+    kinds: params.kinds,
+    tags: params.tags,
+    sources: params.sources,
+    types: params.types,
+  };
 
   const normalizedQuery = params.q.trim();
   const primaryType = params.types.length > 0 ? params.types[0] : undefined;
@@ -88,59 +84,46 @@ export function useMemoryListEntries() {
     ? (retrieveQuery.data?.memories.map(memoryFromApi) ?? [])
     : memoryPage.memories;
 
-  const displayItems = useMemo<MemoryListEntry[]>(() => {
-    const memories = kindIncludesMemory
-      ? memoryResults
-          .map(memoryToListItem)
-          .filter((item) => listItemPassesFilters(item, filters))
-      : [];
+  const memories = kindIncludesMemory
+    ? memoryResults
+        .map(memoryToListItem)
+        .filter((item) => listItemPassesFilters(item, filters))
+    : [];
 
-    const nonMemory = supplementaryItems.filter((item) =>
-      listItemPassesFilters(item, filters),
-    );
+  const nonMemory = supplementaryItems.filter((item) =>
+    listItemPassesFilters(item, filters),
+  );
 
-    const traceById = new Map<string, MemoryTrace>();
-    let maxScore = 1;
-    if (isHybridSearch && retrieveQuery.data) {
-      let max = 0;
-      for (const candidate of retrieveQuery.data.memories) {
-        traceById.set(candidate.id, candidate.trace);
-        if (candidate.trace.score > max) max = candidate.trace.score;
-      }
-      maxScore = max > 0 ? max : 1;
+  const traceById = new Map<string, MemoryTrace>();
+  let maxScore = 1;
+  if (isHybridSearch && retrieveQuery.data) {
+    let max = 0;
+    for (const candidate of retrieveQuery.data.memories) {
+      traceById.set(candidate.id, candidate.trace);
+      if (candidate.trace.score > max) max = candidate.trace.score;
     }
+    maxScore = max > 0 ? max : 1;
+  }
 
-    const memoryEntries: MemoryListEntry[] = memories.map((item) => {
-      const trace = traceById.get(item.id);
-      if (!trace) return unscoredEntry(item);
-      return {
-        item,
-        score: relativeRelevanceScore(trace.score, maxScore),
-        trace,
-      };
-    });
+  const memoryEntries: MemoryListEntry[] = memories.map((item) => {
+    const trace = traceById.get(item.id);
+    if (!trace) return unscoredEntry(item);
+    return {
+      item,
+      score: relativeRelevanceScore(trace.score, maxScore),
+      trace,
+    };
+  });
 
-    if (!isShowingSearchResults) {
-      return [...memoryEntries, ...nonMemory.map(unscoredEntry)];
-    }
-
-    return [
-      ...memoryEntries,
-      ...searchListItems(nonMemory, normalizedQuery).map((r) => ({
-        item: r.item,
-        score: r.relevanceScore,
-      })),
-    ];
-  }, [
-    memoryResults,
-    supplementaryItems,
-    filters,
-    kindIncludesMemory,
-    isHybridSearch,
-    isShowingSearchResults,
-    normalizedQuery,
-    retrieveQuery.data,
-  ]);
+  const displayItems: MemoryListEntry[] = !isShowingSearchResults
+    ? [...memoryEntries, ...nonMemory.map(unscoredEntry)]
+    : [
+        ...memoryEntries,
+        ...searchListItems(nonMemory, normalizedQuery).map((r) => ({
+          item: r.item,
+          score: r.relevanceScore,
+        })),
+      ];
 
   const isMemoriesLoading = isHybridSearch
     ? retrieveQuery.isLoading

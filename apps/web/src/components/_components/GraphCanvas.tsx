@@ -1,10 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useImperativeHandle,
-  type Ref,
-} from "react";
+import { useEffect, useRef, useImperativeHandle, type Ref } from "react";
 import type {
   GraphNode,
   GraphEdge,
@@ -522,7 +516,7 @@ function GraphCanvas({
     };
   }, [nodes, edges]);
 
-  const handleZoomIn = useCallback(() => {
+  const handleZoomIn = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     zoomAt(
@@ -533,9 +527,9 @@ function GraphCanvas({
       canvas.clientHeight,
       1.3,
     );
-  }, []);
+  };
 
-  const handleZoomOut = useCallback(() => {
+  const handleZoomOut = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     zoomAt(
@@ -546,9 +540,9 @@ function GraphCanvas({
       canvas.clientHeight,
       0.7,
     );
-  }, []);
+  };
 
-  const handleFit = useCallback(() => {
+  const handleFit = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     fitToNodes(
@@ -557,7 +551,7 @@ function GraphCanvas({
       canvas.clientWidth,
       canvas.clientHeight,
     );
-  }, []);
+  };
 
   useImperativeHandle(ref, () => ({
     zoomIn: handleZoomIn,

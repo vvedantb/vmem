@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useState } from "react";
 import { useMutation } from "convex/react";
 import {
   dragAndDropFeature,
@@ -62,15 +62,15 @@ export default function WikiTree({
   const [renameTarget, setRenameTarget] = useState<WikiListNode | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<WikiListNode | null>(null);
 
-  const byId = useMemo(() => {
+  const byId = (() => {
     const map = new Map<string, WikiListNode>();
     for (const node of nodes) {
       map.set(node._id, node);
     }
     return map;
-  }, [nodes]);
+  })();
 
-  const childrenByParent = useMemo(() => {
+  const childrenByParent = (() => {
     const map = new Map<string, string[]>();
     const sorted = [...nodes].sort(compareWikiTreeSiblings);
     for (const node of sorted) {
@@ -80,15 +80,11 @@ export default function WikiTree({
       map.set(key, list);
     }
     return map;
-  }, [nodes]);
+  })();
 
-  const rootFolderIds = useMemo(
-    () =>
-      nodes
-        .filter((node) => node.kind === "folder" && node.parentId === undefined)
-        .map((node) => node._id),
-    [nodes],
-  );
+  const rootFolderIds = nodes
+    .filter((node) => node.kind === "folder" && node.parentId === undefined)
+    .map((node) => node._id);
 
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [seenRootFolderIds, setSeenRootFolderIds] = useState<string[]>([]);
@@ -108,27 +104,27 @@ export default function WikiTree({
 
   const isBulkSelect = mode === "bulk-select";
 
-  const handleCreateInFolder = useCallback(
-    async (parentId: WikiNodeId, kind: "folder" | "document" | "artifact") => {
-      const title =
-        kind === "folder"
-          ? "Untitled folder"
-          : kind === "artifact"
-            ? "Untitled artifact"
-            : "Untitled";
-      const newId = await createNode({
-        parentId,
-        kind,
-        title,
-        teamId,
-        language: kind === "artifact" ? "html" : undefined,
-      });
-      if (kind === "document" || kind === "artifact") {
-        onSelect(newId);
-      }
-    },
-    [createNode, onSelect, teamId],
-  );
+  const handleCreateInFolder = async (
+    parentId: WikiNodeId,
+    kind: "folder" | "document" | "artifact",
+  ) => {
+    const title =
+      kind === "folder"
+        ? "Untitled folder"
+        : kind === "artifact"
+          ? "Untitled artifact"
+          : "Untitled";
+    const newId = await createNode({
+      parentId,
+      kind,
+      title,
+      teamId,
+      language: kind === "artifact" ? "html" : undefined,
+    });
+    if (kind === "document" || kind === "artifact") {
+      onSelect(newId);
+    }
+  };
 
   const tree = useTree<WikiTreeItemData>({
     rootItemId: WIKI_ROOT_DROP_ID,

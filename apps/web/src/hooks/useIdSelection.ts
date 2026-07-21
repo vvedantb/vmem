@@ -1,4 +1,4 @@
-import { useCallback, useReducer, useRef, useState } from "react";
+import { useReducer, useRef, useState } from "react";
 
 type SelectionState<T> = {
   selectedIds: Set<T>;
@@ -83,20 +83,20 @@ export function useIdSelection<T>(options: UseIdSelectionOptions<T> = {}) {
   );
   const [selectionMode, setSelectionMode] = useState(false);
 
-  const clear = useCallback(() => {
+  const clear = () => {
     dispatch({ type: "clear" });
-  }, []);
+  };
 
-  const exitSelection = useCallback(() => {
+  const exitSelection = () => {
     setSelectionMode(false);
     dispatch({ type: "clear" });
-  }, []);
+  };
 
-  const toggle = useCallback((id: T) => {
+  const toggle = (id: T) => {
     dispatch({ type: "toggle", id });
-  }, []);
+  };
 
-  const selectAll = useCallback(() => {
+  const selectAll = () => {
     const orderedIds = orderedIdsRef.current;
     if (orderedIds === undefined) return;
     if (orderedIds.length > 0 && state.selectedIds.size === orderedIds.length) {
@@ -104,29 +104,26 @@ export function useIdSelection<T>(options: UseIdSelectionOptions<T> = {}) {
       return;
     }
     dispatch({ type: "selectAll", ids: orderedIds });
-  }, [state.selectedIds.size]);
+  };
 
-  const isSelected = useCallback(
-    (id: T) => state.selectedIds.has(id),
-    [state.selectedIds],
-  );
+  const isSelected = (id: T) => state.selectedIds.has(id);
 
-  const handleClick = useCallback(
-    (id: T, e: { ctrlKey: boolean; metaKey: boolean; shiftKey: boolean }) => {
-      if (e.shiftKey) {
-        dispatch({
-          type: "range",
-          id,
-          orderedIds: orderedIdsRef.current ?? [],
-        });
-      } else if (e.ctrlKey || e.metaKey) {
-        dispatch({ type: "toggle", id });
-      } else {
-        dispatch({ type: "select", id });
-      }
-    },
-    [],
-  );
+  const handleClick = (
+    id: T,
+    e: { ctrlKey: boolean; metaKey: boolean; shiftKey: boolean },
+  ) => {
+    if (e.shiftKey) {
+      dispatch({
+        type: "range",
+        id,
+        orderedIds: orderedIdsRef.current ?? [],
+      });
+    } else if (e.ctrlKey || e.metaKey) {
+      dispatch({ type: "toggle", id });
+    } else {
+      dispatch({ type: "select", id });
+    }
+  };
 
   const orderedIds = options.orderedIds;
 

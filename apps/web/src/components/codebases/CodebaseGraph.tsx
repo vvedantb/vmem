@@ -1,6 +1,6 @@
 // codebase symbol-graph canvas
 
-import { useMemo, useCallback, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { IconAlertTriangle } from "@tabler/icons-react";
 import GraphCanvas from "@/components/_components/GraphCanvas";
 import type { GraphCanvasHandle } from "@/components/_components/GraphCanvas";
@@ -47,15 +47,12 @@ export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
   const [hoveredNode, setHoveredNode] = useState<HoveredNodeInfo | null>(null);
   const [hoveredEdge, setHoveredEdge] = useState<HoveredEdgeInfo | null>(null);
 
-  const viewTheme = useMemo(() => getViewTheme(isDark), [isDark]);
+  const viewTheme = getViewTheme(isDark);
 
-  const handleClickNode = useCallback(
-    (nodeId: string) => {
-      onSelectSymbol(nodeId);
-      setHoveredNode(null);
-    },
-    [onSelectSymbol],
-  );
+  const handleClickNode = (nodeId: string) => {
+    onSelectSymbol(nodeId);
+    setHoveredNode(null);
+  };
 
   if (isLoading) {
     return <GraphStatus variant="loading" />;

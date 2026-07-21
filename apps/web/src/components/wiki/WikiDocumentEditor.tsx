@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import type { Editor } from "@tiptap/core";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { TableOfContents } from "@tiptap/extension-table-of-contents";
@@ -83,12 +83,12 @@ export default function WikiDocumentEditor({
   onActiveHeadingChangeRef.current = onActiveHeadingChange;
   onWordCountChangeRef.current = onWordCountChange;
 
-  const handleTocUpdate = useCallback((anchors: TableOfContentDataItem[]) => {
+  const handleTocUpdate = (anchors: TableOfContentDataItem[]) => {
     const headings = anchorsToHeadings(anchors);
     onHeadingsChangeRef.current(headings);
     const active = anchors.find((anchor) => anchor.isActive);
     onActiveHeadingChangeRef.current(active?.id ?? headings[0]?.id ?? null);
-  }, []);
+  };
 
   const editor = useEditor({
     extensions: [
@@ -194,29 +194,26 @@ export default function WikiDocumentEditor({
     return () => onRegisterCopy(null);
   }, [copyToClipboard, editor, onRegisterCopy, titleForCopy]);
 
-  const restoreToContent = useCallback(
-    async (markdown: string) => {
-      if (!editor) return;
-      cancelPendingSave();
-      suppressNextUpdateRef.current = true;
-      baselineMarkdownRef.current = markdown;
-      editor.commands.setContent(markdown);
-      const jsonDoc = editor.getJSON();
-      onWordCountChange(countWords(docToPlainText(jsonDoc)));
-      try {
-        await saveNow({
-          content: getMarkdownFromEditor(editor),
-          contentText: docToPlainText(jsonDoc),
-          forceSnapshot: true,
-        });
-        baselineMarkdownRef.current = getMarkdownFromEditor(editor);
-        toast.success("Version restored");
-      } catch {
-        // saveNow already toasts on failure
-      }
-    },
-    [editor, cancelPendingSave, saveNow, onWordCountChange],
-  );
+  const restoreToContent = async (markdown: string) => {
+    if (!editor) return;
+    cancelPendingSave();
+    suppressNextUpdateRef.current = true;
+    baselineMarkdownRef.current = markdown;
+    editor.commands.setContent(markdown);
+    const jsonDoc = editor.getJSON();
+    onWordCountChange(countWords(docToPlainText(jsonDoc)));
+    try {
+      await saveNow({
+        content: getMarkdownFromEditor(editor),
+        contentText: docToPlainText(jsonDoc),
+        forceSnapshot: true,
+      });
+      baselineMarkdownRef.current = getMarkdownFromEditor(editor);
+      toast.success("Version restored");
+    } catch {
+      // saveNow already toasts on failure
+    }
+  };
 
   useEffect(() => {
     onRegisterRestore(editor ? restoreToContent : null);

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 import { Badge, Button, Card, CardContent } from "@vmem/ui";
 import { IconReceipt2 } from "@tabler/icons-react";
@@ -81,7 +81,7 @@ export function LogsTable({
 }: LogsTableProps) {
   const [selected, setSelected] = useState<LogRow | null>(null);
   const isInitialLoading = isLoading && rows.length === 0;
-  const items = useMemo(() => Array.from(rows), [rows]);
+  const items = Array.from(rows);
 
   if (isInitialLoading) {
     return <AiLogsTableLoadingSkeleton />;

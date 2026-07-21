@@ -1,4 +1,3 @@
-import { useCallback, useMemo } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@vmem/backend";
@@ -35,7 +34,7 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
   const nodes = useQuery(api.wiki.listTree, { teamId });
   const createNode = useMutation(api.wiki.createNode);
 
-  const tree = useMemo(() => (nodes ? buildTree(nodes) : []), [nodes]);
+  const tree = nodes ? buildTree(nodes) : [];
 
   const {
     selectionMode,
@@ -45,57 +44,51 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
     toggleSelect,
   } = useIdSelection<Id<"wikiNodes">>();
 
-  const handleSelectNode = useCallback(
-    (id: string) => {
-      if (profileId === undefined) return;
-      if (id.length > 0) {
-        void navigate({
-          to: "/$profileId/wiki/$docId",
-          params: { profileId, docId: id },
-        });
-        return;
-      }
-      const firstId = findFirstDocumentId(tree);
-      if (firstId !== null) {
-        void navigate({
-          to: "/$profileId/wiki/$docId",
-          params: { profileId, docId: firstId },
-          replace: true,
-        });
-      }
-    },
-    [navigate, tree, profileId],
-  );
+  const handleSelectNode = (id: string) => {
+    if (profileId === undefined) return;
+    if (id.length > 0) {
+      void navigate({
+        to: "/$profileId/wiki/$docId",
+        params: { profileId, docId: id },
+      });
+      return;
+    }
+    const firstId = findFirstDocumentId(tree);
+    if (firstId !== null) {
+      void navigate({
+        to: "/$profileId/wiki/$docId",
+        params: { profileId, docId: firstId },
+        replace: true,
+      });
+    }
+  };
 
-  const handleCreateRoot = useCallback(
-    (kind: "folder" | "document" | "artifact") => {
-      void (async () => {
-        const title =
-          kind === "folder"
-            ? "Untitled folder"
-            : kind === "artifact"
-              ? "Untitled artifact"
-              : "Untitled";
-        const newId = await createNode({
-          parentId: undefined,
-          kind,
-          title,
-          teamId,
-          language: kind === "artifact" ? "html" : undefined,
+  const handleCreateRoot = (kind: "folder" | "document" | "artifact") => {
+    void (async () => {
+      const title =
+        kind === "folder"
+          ? "Untitled folder"
+          : kind === "artifact"
+            ? "Untitled artifact"
+            : "Untitled";
+      const newId = await createNode({
+        parentId: undefined,
+        kind,
+        title,
+        teamId,
+        language: kind === "artifact" ? "html" : undefined,
+      });
+      if (
+        (kind === "document" || kind === "artifact") &&
+        profileId !== undefined
+      ) {
+        void navigate({
+          to: "/$profileId/wiki/$docId",
+          params: { profileId, docId: newId },
         });
-        if (
-          (kind === "document" || kind === "artifact") &&
-          profileId !== undefined
-        ) {
-          void navigate({
-            to: "/$profileId/wiki/$docId",
-            params: { profileId, docId: newId },
-          });
-        }
-      })();
-    },
-    [createNode, navigate, profileId, teamId],
-  );
+      }
+    })();
+  };
 
   const toolbarAddMenu = (
     <WikiAddMenu

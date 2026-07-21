@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -77,16 +77,15 @@ export default function AddMemoryModal({
   });
 
   const currentTags = watch("tags");
-  const allTags = useMemo(() => buildTagStats(memories ?? []), [memories]);
+  const allTags = buildTagStats(memories ?? []);
   const normalizedTagInput = tagInput.trim().toLowerCase();
 
   // suggestions hide tags already on the memory and (when typing) filter by
   // substring match — same behaviour as the legacy AddMemoryForm
-  const filteredSuggestions = useMemo(() => {
-    const available = allTags.filter((t) => !currentTags.includes(t.tag));
-    if (!normalizedTagInput) return available;
-    return available.filter((t) => t.tag.includes(normalizedTagInput));
-  }, [normalizedTagInput, allTags, currentTags]);
+  const availableTags = allTags.filter((t) => !currentTags.includes(t.tag));
+  const filteredSuggestions = !normalizedTagInput
+    ? availableTags
+    : availableTags.filter((t) => t.tag.includes(normalizedTagInput));
 
   // show "Create …" only when the typed string is brand-new (not in the
   // existing tag corpus and not already on this memory)

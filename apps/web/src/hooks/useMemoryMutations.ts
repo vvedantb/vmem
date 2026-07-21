@@ -1,4 +1,3 @@
-import { useCallback } from "react";
 import {
   useConvexAuth,
   useAction,
@@ -42,13 +41,13 @@ export function useMemoryMutations() {
   );
   const importFromFile = useAction(api.fileImport.importMemoryFromFile);
 
-  const invalidateMemories = useCallback(() => {
+  const invalidateMemories = () => {
     void queryClient.invalidateQueries({ queryKey: ["memories"] });
     void queryClient.invalidateQueries({ queryKey: ["memory"] });
     void queryClient.invalidateQueries({ queryKey: ["retrieveMemories"] });
     void queryClient.invalidateQueries({ queryKey: ["graph"] });
     void queryClient.invalidateQueries({ queryKey: ["graph-memory-search"] });
-  }, [queryClient]);
+  };
 
   const createMutation = useMutation({
     mutationFn: async (input: CreateMemoryInput): Promise<Memory> => {
@@ -126,47 +125,39 @@ export function useMemoryMutations() {
     onSettled: invalidateMemories,
   });
 
-  const createMemory = useCallback(
-    async (input: CreateMemoryInput): Promise<Memory> => {
-      if (!isAuthenticated) throw new Error("Not authenticated");
-      return createMutation.mutateAsync(input);
-    },
-    [isAuthenticated, createMutation],
-  );
+  const createMemory = async (input: CreateMemoryInput): Promise<Memory> => {
+    if (!isAuthenticated) throw new Error("Not authenticated");
+    return createMutation.mutateAsync(input);
+  };
 
-  const updateMemory = useCallback(
-    async (input: UpdateMemoryInput): Promise<Memory | null> => {
-      if (!isAuthenticated) throw new Error("Not authenticated");
-      try {
-        const result = await updateMutation.mutateAsync(input);
-        return result.memory;
-      } catch {
-        return null;
-      }
-    },
-    [isAuthenticated, updateMutation],
-  );
+  const updateMemory = async (
+    input: UpdateMemoryInput,
+  ): Promise<Memory | null> => {
+    if (!isAuthenticated) throw new Error("Not authenticated");
+    try {
+      const result = await updateMutation.mutateAsync(input);
+      return result.memory;
+    } catch {
+      return null;
+    }
+  };
 
-  const deleteMemory = useCallback(
-    async (id: string): Promise<boolean> => {
-      if (!isAuthenticated) throw new Error("Not authenticated");
-      try {
-        await deleteMutation.mutateAsync(id);
-        return true;
-      } catch {
-        return false;
-      }
-    },
-    [isAuthenticated, deleteMutation],
-  );
+  const deleteMemory = async (id: string): Promise<boolean> => {
+    if (!isAuthenticated) throw new Error("Not authenticated");
+    try {
+      await deleteMutation.mutateAsync(id);
+      return true;
+    } catch {
+      return false;
+    }
+  };
 
-  const uploadMemoryFile = useCallback(
-    async (input: UploadMemoryFileInput): Promise<Memory> => {
-      if (!isAuthenticated) throw new Error("Not authenticated");
-      return uploadMutation.mutateAsync(input);
-    },
-    [isAuthenticated, uploadMutation],
-  );
+  const uploadMemoryFile = async (
+    input: UploadMemoryFileInput,
+  ): Promise<Memory> => {
+    if (!isAuthenticated) throw new Error("Not authenticated");
+    return uploadMutation.mutateAsync(input);
+  };
 
   return {
     createMemory,

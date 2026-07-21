@@ -1,6 +1,5 @@
 // codebase-graph header controls
 
-import { useMemo } from "react";
 import {
   IconFilter,
   IconFile,
@@ -112,16 +111,12 @@ function FiltersPopover({
   const activeFilterCount = codebaseActiveFilterCount(controller);
 
   // derive the process picker options from the current payload
-  const processOptions = useMemo(
-    () =>
-      apiNodes
-        .filter(
-          (n): n is CodeNode & { kind: "code-process" } =>
-            n.kind === "code-process",
-        )
-        .sort((a, b) => a.name.localeCompare(b.name)),
-    [apiNodes],
-  );
+  const processOptions = apiNodes
+    .filter(
+      (n): n is CodeNode & { kind: "code-process" } =>
+        n.kind === "code-process",
+    )
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <Popover>

@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useRef } from "react";
 import { Button, Input, Badge, cn, floatingSurfaceClass } from "@vmem/ui";
 import { IconX } from "@tabler/icons-react";
 import { buildTagStats } from "@/lib/memories";
@@ -19,18 +19,15 @@ export default function TagInputWithSuggestions({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const tagInputRef = useRef<HTMLInputElement>(null);
   const { memories } = useRecentMemories();
-  const allTags = useMemo(() => buildTagStats(memories), [memories]);
-  const selectedTagSet = useMemo(() => new Set(tags), [tags]);
+  const allTags = buildTagStats(memories);
+  const selectedTagSet = new Set(tags);
 
-  const filteredSuggestions = useMemo(() => {
-    if (!newTag.trim()) {
-      return allTags.filter((t) => !selectedTagSet.has(t.tag));
-    }
-    const input = newTag.toLowerCase();
-    return allTags.filter(
-      (t) => t.tag.includes(input) && !selectedTagSet.has(t.tag),
-    );
-  }, [newTag, allTags, selectedTagSet]);
+  const filteredSuggestions = !newTag.trim()
+    ? allTags.filter((t) => !selectedTagSet.has(t.tag))
+    : allTags.filter(
+        (t) =>
+          t.tag.includes(newTag.toLowerCase()) && !selectedTagSet.has(t.tag),
+      );
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {

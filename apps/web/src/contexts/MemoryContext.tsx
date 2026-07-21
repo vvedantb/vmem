@@ -1,6 +1,6 @@
 // app-wide memory data facade — composes hooks for stable useMemoryContext API
 
-import { createContext, use, useMemo } from "react";
+import { createContext, use } from "react";
 import { useRecentMemories } from "@/hooks/useRecentMemories";
 import {
   useMemoryMutations,
@@ -26,27 +26,19 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
   const { createMemory, updateMemory, deleteMemory, uploadMemoryFile } =
     useMemoryMutations();
 
-  const value = useMemo(
-    () => ({
-      memories,
-      isLoading,
-      createMemory,
-      updateMemory,
-      deleteMemory,
-      uploadMemoryFile,
-    }),
-    [
-      memories,
-      isLoading,
-      createMemory,
-      updateMemory,
-      deleteMemory,
-      uploadMemoryFile,
-    ],
-  );
-
   return (
-    <MemoryContext.Provider value={value}>{children}</MemoryContext.Provider>
+    <MemoryContext.Provider
+      value={{
+        memories,
+        isLoading,
+        createMemory,
+        updateMemory,
+        deleteMemory,
+        uploadMemoryFile,
+      }}
+    >
+      {children}
+    </MemoryContext.Provider>
   );
 }
 

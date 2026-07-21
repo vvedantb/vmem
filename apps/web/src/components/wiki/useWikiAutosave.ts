@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from "react";
+import { useEffect } from "react";
 import { useMutation } from "convex/react";
 import { useDebounceCallback } from "usehooks-ts";
 import { toast } from "sonner";
@@ -36,37 +36,36 @@ export function useWikiAutosave(docId: Id<"wikiNodes">) {
     }
   }, AUTOSAVE_MS);
 
-  const cancelPendingSave = useCallback(() => {
+  const cancelPendingSave = () => {
     debouncedSave.cancel();
     debouncedSaveToast.cancel();
+  };
+
+  const saveNow = async (payload: SavePayload) => {
+    cancelPendingSave();
+    try {
+      await updateContent({
+        id: docId,
+        content: payload.content,
+        contentText: payload.contentText,
+        forceSnapshot: payload.forceSnapshot,
+      });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save");
+      throw err;
+    }
+  };
+
+  const queueSave = (payload: Omit<SavePayload, "forceSnapshot">) => {
+    void debouncedSave(payload);
+  };
+
+  useEffect(() => {
+    return () => {
+      debouncedSave.cancel();
+      debouncedSaveToast.cancel();
+    };
   }, [debouncedSave, debouncedSaveToast]);
-
-  const saveNow = useCallback(
-    async (payload: SavePayload) => {
-      cancelPendingSave();
-      try {
-        await updateContent({
-          id: docId,
-          content: payload.content,
-          contentText: payload.contentText,
-          forceSnapshot: payload.forceSnapshot,
-        });
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Failed to save");
-        throw err;
-      }
-    },
-    [cancelPendingSave, docId, updateContent],
-  );
-
-  const queueSave = useCallback(
-    (payload: Omit<SavePayload, "forceSnapshot">) => {
-      void debouncedSave(payload);
-    },
-    [debouncedSave],
-  );
-
-  useEffect(() => cancelPendingSave, [cancelPendingSave]);
 
   return { queueSave, saveNow, cancelPendingSave };
 }

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { useAction } from "convex/react";
 import {
   useMutation,
@@ -73,23 +73,20 @@ export default function RelatedMemories({
     },
   });
 
-  const handleUnlink = useCallback(
-    async (relatedId: string) => {
-      setUnlinkingId(relatedId);
-      try {
-        await unlinkMutation.mutateAsync(relatedId);
-        toast.success("Memory unlinked");
-      } catch {
-        toast.error("Failed to unlink memory");
-      }
-      setUnlinkingId(null);
-    },
-    [unlinkMutation],
-  );
+  const handleUnlink = async (relatedId: string) => {
+    setUnlinkingId(relatedId);
+    try {
+      await unlinkMutation.mutateAsync(relatedId);
+      toast.success("Memory unlinked");
+    } catch {
+      toast.error("Failed to unlink memory");
+    }
+    setUnlinkingId(null);
+  };
 
-  const invalidateRelated = useCallback(() => {
+  const invalidateRelated = () => {
     void queryClient.invalidateQueries({ queryKey });
-  }, [queryClient, queryKey]);
+  };
 
   const relatedIds = new Set(entries.map((entry) => entry.memory.id));
   const unlinkTarget =

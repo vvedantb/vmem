@@ -1,4 +1,3 @@
-import { useCallback } from "react";
 import {
   Checkbox,
   cn,
@@ -46,20 +45,14 @@ export default function FileListRow({
     onDelete,
   });
 
-  const handleClick = useCallback(
-    (e: React.MouseEvent) => {
-      onClick(node._id, e);
-    },
-    [node._id, onClick],
-  );
+  const handleClick = (e: React.MouseEvent) => {
+    onClick(node._id, e);
+  };
 
-  const handleCheckboxClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      onCheckbox(node._id);
-    },
-    [node._id, onCheckbox],
-  );
+  const handleCheckboxClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onCheckbox(node._id);
+  };
 
   return (
     <FileContextMenu actions={actions}>

@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useMediaQuery } from "usehooks-ts";
 import { motion } from "motion/react";
 import {
@@ -67,26 +67,23 @@ export default function Sidebar({
   const isTeamWorkspace =
     profiles?.find((p) => p._id === activeProfileId)?.teamId !== undefined;
 
-  const refreshStats = useCallback(
-    async (fresh: boolean) => {
-      try {
-        // scope counts to the active workspace; without one (fresh browser
-        // on /settings) fall back to user-wide totals
-        const data = await getStats(
-          fresh
-            ? { fresh: true, profileId: activeProfileId }
-            : { profileId: activeProfileId },
-        );
-        setStats({
-          addedToday: data.memoriesAddedToday,
-          total: data.totalMemories,
-        });
-      } catch {
-        // silently fail -- sidebar stats are non-critical
-      }
-    },
-    [getStats, activeProfileId],
-  );
+  const refreshStats = async (fresh: boolean) => {
+    try {
+      // scope counts to the active workspace; without one (fresh browser
+      // on /settings) fall back to user-wide totals
+      const data = await getStats(
+        fresh
+          ? { fresh: true, profileId: activeProfileId }
+          : { profileId: activeProfileId },
+      );
+      setStats({
+        addedToday: data.memoriesAddedToday,
+        total: data.totalMemories,
+      });
+    } catch {
+      // silently fail -- sidebar stats are non-critical
+    }
+  };
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -95,13 +92,13 @@ export default function Sidebar({
 
   // live updates: the memory-events change feed pushes created/updated/deleted events
   const statsRefetchTimer = useRef<number | null>(null);
-  const handleMemoryEvent = useCallback(() => {
+  const handleMemoryEvent = () => {
     if (statsRefetchTimer.current !== null) return;
     statsRefetchTimer.current = window.setTimeout(() => {
       statsRefetchTimer.current = null;
       void refreshStats(true);
     }, 1500);
-  }, [refreshStats]);
+  };
   useMemoryEvents(undefined, handleMemoryEvent);
 
   useEffect(() => {

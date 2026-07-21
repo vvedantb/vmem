@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -25,33 +25,27 @@ export default function RenameDialog({
 }: RenameDialogProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleOpenChange = useCallback(
-    (open: boolean) => {
-      if (!open) onClose();
-    },
-    [onClose],
-  );
+  const handleOpenChange = (open: boolean) => {
+    if (!open) onClose();
+  };
 
-  const submit = useCallback(() => {
+  const submit = () => {
     const value = inputRef.current?.value.trim() ?? "";
     if (value && value !== currentName) {
       onRename(value);
     } else {
       onClose();
     }
-  }, [currentName, onRename, onClose]);
+  };
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        submit();
-      } else if (e.key === "Escape") {
-        onClose();
-      }
-    },
-    [submit, onClose],
-  );
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      submit();
+    } else if (e.key === "Escape") {
+      onClose();
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>

@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@vmem/backend";
 import { useActiveProfile } from "@/components/workspace/active-profile";
@@ -14,9 +13,7 @@ export function useMemoryListSupplementaryItems(): ListItem[] {
   const wikiRows = useQuery(api.wiki.listTree, { teamId });
   const skillRows = useQuery(api.skills.listMy, { teamId });
 
-  return useMemo<ListItem[]>(() => {
-    const wikiItems = wikiRows ? wikiRowsToListItems(wikiRows) : [];
-    const skillItems = skillRows ? skillRowsToListItems(skillRows) : [];
-    return [...wikiItems, ...skillItems];
-  }, [wikiRows, skillRows]);
+  const wikiItems = wikiRows ? wikiRowsToListItems(wikiRows) : [];
+  const skillItems = skillRows ? skillRowsToListItems(skillRows) : [];
+  return [...wikiItems, ...skillItems];
 }

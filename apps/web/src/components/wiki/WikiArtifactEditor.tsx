@@ -1,10 +1,4 @@
-import {
-  useCallback,
-  useDeferredValue,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { useDeferredValue, useEffect, useRef, useState } from "react";
 import { useCopyToClipboard, useDebounceCallback } from "usehooks-ts";
 import { toast } from "sonner";
 import { IconPlayerPlay } from "@tabler/icons-react";
@@ -154,23 +148,20 @@ export default function WikiArtifactEditor({
     return () => onRegisterCopy(null);
   }, [copyToClipboard, onRegisterCopy, titleForCopy]);
 
-  const restoreToContent = useCallback(
-    async (source: string) => {
-      cancelPendingSave();
-      setDraft(source);
-      try {
-        await saveNow({
-          content: source,
-          contentText: source,
-          forceSnapshot: true,
-        });
-        toast.success("Restored");
-      } catch {
-        // saveNow already toasts on failure
-      }
-    },
-    [cancelPendingSave, saveNow],
-  );
+  const restoreToContent = async (source: string) => {
+    cancelPendingSave();
+    setDraft(source);
+    try {
+      await saveNow({
+        content: source,
+        contentText: source,
+        forceSnapshot: true,
+      });
+      toast.success("Restored");
+    } catch {
+      // saveNow already toasts on failure
+    }
+  };
 
   useEffect(() => {
     onRegisterRestore(restoreToContent);
