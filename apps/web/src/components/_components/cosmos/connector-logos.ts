@@ -11,14 +11,6 @@ const LOGO_PATHS: Record<ConnectorSourceType, string> = {
   notion: "/connector-logos/notion.svg",
 };
 
-// narrow raw string to known connector source type
-function asConnectorSourceType(value: string): ConnectorSourceType | null {
-  for (const t of CONNECTOR_SOURCE_TYPES) {
-    if (value === t) return t;
-  }
-  return null;
-}
-
 let cachedPromise: Promise<ConnectorLogoMap> | null = null;
 
 function loadOne(src: string): Promise<HTMLImageElement | null> {

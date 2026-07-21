@@ -24,7 +24,6 @@ import {
   type CosmosGraphBuffers,
 } from "./cosmos/cosmos-adapters";
 import { colorToRgba } from "./cosmos/cosmos-color";
-// import { paintCosmosGlow } from "./cosmos/cosmos-glow";
 import { computeHighlightPoints } from "./cosmos/cosmos-highlight";
 import {
   COSMOS_EDGE_LABEL,
@@ -85,8 +84,6 @@ function fitPaddingForNodeCount(nodeCount: number): number {
 function graphBackgroundRgba(
   theme: GraphViewTheme,
 ): [number, number, number, number] {
-  // REMOVABLE glow off: keep WebGL background opaque (was transparent when glow.enabled)
-  // if (theme.glow.enabled) return [0, 0, 0, 0];
   return colorToRgba(theme.background);
 }
 
@@ -107,11 +104,6 @@ function GraphCanvas({
 }: GraphCanvasProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const hostRef = useRef<HTMLDivElement>(null);
-  // ── REMOVABLE: dark-theme glow (start) — to remove, delete cosmos-glow.ts and every block between these markers
-  // const glowCanvasRef = useRef<HTMLCanvasElement>(null);
-  // const gestureActiveRef = useRef(false);
-  // const highlightedPointSetRef = useRef<Set<number> | undefined>(undefined);
-  // ── REMOVABLE: dark-theme glow (end)
   const labelCanvasRef = useRef<HTMLCanvasElement>(null);
   const graphRef = useRef<Graph | null>(null);
   const buffersRef = useRef<CosmosGraphBuffers | null>(null);
@@ -215,12 +207,6 @@ function GraphCanvas({
         : undefined,
       outlinedPointIndices: outlined.length > 0 ? outlined : undefined,
     });
-    // ── REMOVABLE: dark-theme glow (start)
-    // highlightedPointSetRef.current =
-    //   highlightedPointIndices !== undefined
-    //     ? new Set(highlightedPointIndices)
-    //     : undefined;
-    // ── REMOVABLE: dark-theme glow (end)
   }, []);
 
   const paintLabels = useCallback((graph: Graph) => {
@@ -385,36 +371,11 @@ function GraphCanvas({
     }
   }, []);
 
-  const paintGlow = useCallback((graph: Graph) => {
-    // ── REMOVABLE: dark-theme glow (start)
-    void graph;
-    // const canvas = glowCanvasRef.current;
-    // const buffers = buffersRef.current;
-    // const root = rootRef.current;
-    // if (!canvas || !buffers || !root) return;
-    // paintCosmosGlow({
-    //   canvas,
-    //   root,
-    //   graph,
-    //   buffers,
-    //   theme: themeRef.current,
-    //   hoveredPointIndex: hoveredIndexRef.current,
-    //   gestureActive: gestureActiveRef.current,
-    //   isPointDimmed: (index) => {
-    //     const highlighted = highlightedPointSetRef.current;
-    //     if (highlighted === undefined) return false;
-    //     return !highlighted.has(index);
-    //   },
-    // });
-    // ── REMOVABLE: dark-theme glow (end)
-  }, []);
-
   const paintSceneOverlays = useCallback(
     (graph: Graph) => {
-      paintGlow(graph);
       paintLabels(graph);
     },
-    [paintGlow, paintLabels],
+    [paintLabels],
   );
 
   const applyConnectorLogos = useCallback((graph: Graph, force = false) => {
@@ -591,14 +552,12 @@ function GraphCanvas({
           if (g) applyVisualState(g);
         },
         onDragStart: () => {
-          // gestureActiveRef.current = true; // REMOVABLE: dark-theme glow
           const g = graphRef.current;
           if (!g) return;
           g.unpause();
           g.start(COSMOS_SETTINGS_REHEAT_ALPHA);
         },
         onDragEnd: () => {
-          // gestureActiveRef.current = false; // REMOVABLE: dark-theme glow
           const g = graphRef.current;
           if (g) paintSceneOverlays(g);
         },
@@ -614,12 +573,10 @@ function GraphCanvas({
           }
         },
         onZoom: () => {
-          // gestureActiveRef.current = true; // REMOVABLE: dark-theme glow
           const g = graphRef.current;
           if (g) paintSceneOverlays(g);
         },
         onZoomEnd: () => {
-          // gestureActiveRef.current = false; // REMOVABLE: dark-theme glow
           const g = graphRef.current;
           if (!g) return;
           paintSceneOverlays(g);
@@ -783,13 +740,6 @@ function GraphCanvas({
         backgroundColor: viewTheme.background,
       }}
     >
-      {/* ── REMOVABLE: dark-theme glow (start) */}
-      {/* <canvas
-        ref={glowCanvasRef}
-        className="pointer-events-none absolute inset-0"
-        aria-hidden
-      /> */}
-      {/* ── REMOVABLE: dark-theme glow (end) */}
       <div ref={hostRef} className="absolute inset-0" />
       <canvas
         ref={labelCanvasRef}
