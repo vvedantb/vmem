@@ -11,10 +11,7 @@ import { useActiveProfile } from "@/components/workspace/active-profile";
 import { useMemoriesSearchParams } from "@/hooks/useMemoriesSearchParams";
 import type { GraphScope } from "@/lib/url-state/memories";
 import { buildGraphData, getGraphFacets } from "@/lib/graph/graph-data";
-import {
-  DEFAULT_GRAPH_SETTINGS,
-  type GraphSettings,
-} from "@/lib/graph/graph-types";
+import type { GraphSettings } from "@/lib/graph/graph-types";
 import { getViewTheme } from "@/components/_components/graph-view-themes";
 import type { ListItemKind } from "@/lib/list-items";
 import type { MemoryType } from "@/lib/memories";
@@ -224,10 +221,6 @@ export function useMemoryGraphController({
     },
     onSearchChange: (q: string) => {
       void setParams({ q: q.trim().length === 0 ? null : q });
-    },
-    onResetSettings: () => {
-      setGraphSettingsState(DEFAULT_GRAPH_SETTINGS);
-      setGraphSettings(DEFAULT_GRAPH_SETTINGS);
     },
   };
 }

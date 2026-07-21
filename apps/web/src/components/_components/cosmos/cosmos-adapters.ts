@@ -8,7 +8,7 @@ import type { GraphViewTheme } from "../graph-view-themes";
 import { nodeColor as getNodeColor } from "../graph-colors";
 import { colorToRgba, writeRgba } from "./cosmos-color";
 
-// Palette slots on GraphViewTheme.edge.normalByType — mirrors canvas/renderer.ts
+// Palette slots on GraphViewTheme.edge.normalByType
 type EdgePaletteSlot = keyof GraphViewTheme["edge"]["normalByType"];
 
 // @cosmos.gl/graph PointShape enum values. Keep local so pure adapter tests

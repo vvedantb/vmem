@@ -1,11 +1,6 @@
-import type { GraphSettings } from "@/lib/graph/graph-types";
-
 /**
- * Map legacy GraphCanvas physics (d3-force + physics-profile) onto Cosmos GL knobs.
- *
- * Legacy settles via alphaDecay + velocityDecay (0.3) and sleeps below SLEEP_ALPHA.
- * Cosmos uses simulationDecay (bigger = cools slower) and simulationFriction
- * (lower = more damping / inert — see cosmos.gl README).
+ * Fixed Cosmos GL physics knobs (tuned from the old default Spread=10 / Gravity=0.5).
+ * Scales a few values with graph size only — no user-facing force controls.
  */
 export interface CosmosPhysicsConfig {
   simulationRepulsion: number;
@@ -22,9 +17,9 @@ export interface CosmosPhysicsConfig {
   simulationCollisionPadding: number;
 }
 
-/** Mild reheat when the user moves Spread/Gravity — mirrors legacy `reheat()`. */
-export const COSMOS_SETTINGS_REHEAT_ALPHA = 0.25;
 export const COSMOS_INITIAL_SETTLE_ALPHA = 0.08;
+/** Mild reheat after drag (same feel as the old settings reheat). */
+export const COSMOS_DRAG_REHEAT_ALPHA = 0.25;
 
 export function cosmosWarmupTicks(nodeCount: number): number {
   if (nodeCount <= 2000) return 150;
@@ -33,12 +28,11 @@ export function cosmosWarmupTicks(nodeCount: number): number {
   return 10;
 }
 
-export function cosmosPhysicsFromSettings(
-  settings: GraphSettings,
+export function cosmosPhysicsForNodeCount(
   nodeCount: number,
 ): CosmosPhysicsConfig {
-  // Legacy: charge strength ≈ -(scalingRatio * 12); Cosmos repulsion is 0–2.
-  const baseRepulsion = Math.min(2, Math.max(0.1, settings.scalingRatio / 10));
+  // Former defaults: scalingRatio 10 → repulsion 1; gravity 0.5 → 0.125 / 0.05
+  const baseRepulsion = 1;
   const simulationRepulsion =
     nodeCount <= 10
       ? baseRepulsion * 0.18
@@ -47,14 +41,9 @@ export function cosmosPhysicsFromSettings(
         : nodeCount <= 200
           ? baseRepulsion * 0.55
           : baseRepulsion;
-  // Legacy gravity 0.5 → center pull ~0.05; Cosmos gravity/center are 0–1.
-  const simulationGravity = Math.min(
-    1,
-    Math.max(0.01, settings.gravity * 0.25),
-  );
-  const simulationCenter = Math.min(1, Math.max(0, settings.gravity * 0.1));
+  const simulationGravity = 0.125;
+  const simulationCenter = 0.05;
 
-  // Faster cool-down than Cosmos default (5000); scales with graph size like physicsProfile.
   let simulationDecay: number;
   let simulationRepulsionTheta: number;
   let simulationCollision: number;
@@ -76,7 +65,6 @@ export function cosmosPhysicsFromSettings(
     simulationRepulsion,
     simulationGravity,
     simulationCenter,
-    // Default 0.85 stays "slippery"; lower = more damping (cosmos README: 0.1 inert).
     simulationFriction: 0.35,
     simulationDecay,
     simulationRepulsionTheta,
@@ -85,7 +73,6 @@ export function cosmosPhysicsFromSettings(
     simulationLinkDistance:
       nodeCount <= 10 ? 3 : nodeCount <= 50 ? 5 : nodeCount <= 200 ? 7 : 10,
     simulationCollision,
-    // Legacy collide pad was ~12 world units; Cosmos padding is relative to point size.
     simulationCollisionPadding: 0.35,
   };
 }

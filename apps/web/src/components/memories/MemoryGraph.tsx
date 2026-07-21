@@ -102,7 +102,6 @@ export default function MemoryGraph({
         nodes={graphNodes}
         edges={graphEdges}
         viewTheme={viewTheme}
-        settings={graphSettings}
         focusNodeId={resolvedFocusNodeId ?? focusNodeId}
         searchMatchSet={searchMatchSet}
         isSearchActive={isSearchActive}

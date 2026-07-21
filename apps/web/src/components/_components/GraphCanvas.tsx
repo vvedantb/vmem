@@ -9,11 +9,7 @@ import {
 import { Graph } from "@cosmos.gl/graph";
 import type { GraphNode, GraphEdge } from "@/lib/graph/types";
 import type { GraphViewTheme } from "./graph-view-themes";
-import type {
-  GraphSettings,
-  HoveredEdgeInfo,
-  HoveredNodeInfo,
-} from "@/lib/graph/graph-types";
+import type { HoveredEdgeInfo, HoveredNodeInfo } from "@/lib/graph/graph-types";
 import { GraphStatus } from "./GraphStatus";
 import {
   buildCosmosGraphBuffers,
@@ -40,9 +36,9 @@ import {
   type CosmosLogoAtlas,
 } from "./cosmos/cosmos-logos";
 import {
+  COSMOS_DRAG_REHEAT_ALPHA,
   COSMOS_INITIAL_SETTLE_ALPHA,
-  COSMOS_SETTINGS_REHEAT_ALPHA,
-  cosmosPhysicsFromSettings,
+  cosmosPhysicsForNodeCount,
   cosmosWarmupTicks,
 } from "./cosmos/cosmos-physics";
 
@@ -56,7 +52,6 @@ interface GraphCanvasProps {
   nodes: GraphNode[];
   edges: GraphEdge[];
   viewTheme: GraphViewTheme;
-  settings: GraphSettings;
   focusNodeId?: string | null;
   searchMatchSet: Set<string>;
   isSearchActive: boolean;
@@ -91,7 +86,6 @@ function GraphCanvas({
   nodes,
   edges,
   viewTheme,
-  settings,
   focusNodeId,
   searchMatchSet,
   isSearchActive,
@@ -112,11 +106,9 @@ function GraphCanvas({
   const hoveredIndexRef = useRef<number | undefined>(undefined);
   const hoveredLinkIndexRef = useRef<number | undefined>(undefined);
   const lastPositionsRef = useRef(new Map<string, { x: number; y: number }>());
-  const physicsSettingsReadyRef = useRef(false);
   const [webglError, setWebglError] = useState(false);
 
   const themeRef = useRef(viewTheme);
-  const settingsRef = useRef(settings);
   const focusNodeIdRef = useRef(focusNodeId);
   const searchMatchSetRef = useRef(searchMatchSet);
   const isSearchActiveRef = useRef(isSearchActive);
@@ -129,7 +121,6 @@ function GraphCanvas({
   });
 
   themeRef.current = viewTheme;
-  settingsRef.current = settings;
   focusNodeIdRef.current = focusNodeId;
   searchMatchSetRef.current = searchMatchSet;
   isSearchActiveRef.current = isSearchActive;
@@ -430,10 +421,7 @@ function GraphCanvas({
     logosVisibleRef.current = true;
 
     const bg = graphBackgroundRgba(themeRef.current);
-    const physics = cosmosPhysicsFromSettings(
-      settingsRef.current,
-      nodes.length,
-    );
+    const physics = cosmosPhysicsForNodeCount(nodes.length);
 
     let graph: Graph;
     try {
@@ -555,7 +543,7 @@ function GraphCanvas({
           const g = graphRef.current;
           if (!g) return;
           g.unpause();
-          g.start(COSMOS_SETTINGS_REHEAT_ALPHA);
+          g.start(COSMOS_DRAG_REHEAT_ALPHA);
         },
         onDragEnd: () => {
           const g = graphRef.current;
@@ -666,23 +654,6 @@ function GraphCanvas({
     graph.render();
     paintSceneOverlays(graph);
   }, [viewTheme, paintSceneOverlays]);
-
-  // Spread / Gravity → update forces and mild reheat (legacy reheat behaviour).
-  useEffect(() => {
-    if (!physicsSettingsReadyRef.current) {
-      physicsSettingsReadyRef.current = true;
-      return;
-    }
-    const graph = graphRef.current;
-    const buffers = buffersRef.current;
-    if (!graph || !buffers) return;
-
-    graph.setConfigPartial(
-      cosmosPhysicsFromSettings(settings, buffers.indexToNode.length),
-    );
-    graph.unpause();
-    graph.start(COSMOS_SETTINGS_REHEAT_ALPHA);
-  }, [settings]);
 
   useEffect(() => {
     const graph = graphRef.current;

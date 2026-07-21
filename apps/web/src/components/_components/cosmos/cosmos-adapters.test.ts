@@ -2,7 +2,6 @@
 // Modified by me: expanded hex and rgba color cases
 import { describe, expect, it } from "vitest";
 import type { GraphEdge, GraphNode } from "@/lib/graph/types";
-import { DEFAULT_GRAPH_SETTINGS } from "@/lib/graph/graph-types";
 import { getViewTheme } from "../graph-view-themes";
 import {
   buildCosmosGraphBuffers,
@@ -12,7 +11,7 @@ import {
   searchMatchIndices,
 } from "./cosmos-adapters";
 import { colorToRgba } from "./cosmos-color";
-import { cosmosPhysicsFromSettings } from "./cosmos-physics";
+import { cosmosPhysicsForNodeCount } from "./cosmos-physics";
 
 function node(id: string, overrides: Partial<GraphNode> = {}): GraphNode {
   return {
@@ -190,9 +189,9 @@ describe("buildCosmosGraphBuffers", () => {
   });
 });
 
-describe("cosmosPhysicsFromSettings", () => {
-  it("maps default settings into a settling Cosmos config", () => {
-    const p = cosmosPhysicsFromSettings(DEFAULT_GRAPH_SETTINGS, 500);
+describe("cosmosPhysicsForNodeCount", () => {
+  it("returns a settling Cosmos config for mid-size graphs", () => {
+    const p = cosmosPhysicsForNodeCount(500);
     expect(p.simulationRepulsion).toBe(1);
     expect(p.simulationGravity).toBeCloseTo(0.125);
     expect(p.simulationFriction).toBeLessThan(0.85);
@@ -202,8 +201,8 @@ describe("cosmosPhysicsFromSettings", () => {
   });
 
   it("keeps small local graphs tighter than overview graphs", () => {
-    const small = cosmosPhysicsFromSettings(DEFAULT_GRAPH_SETTINGS, 5);
-    const overview = cosmosPhysicsFromSettings(DEFAULT_GRAPH_SETTINGS, 500);
+    const small = cosmosPhysicsForNodeCount(5);
+    const overview = cosmosPhysicsForNodeCount(500);
     expect(small.simulationRepulsion).toBeLessThan(
       overview.simulationRepulsion,
     );
@@ -213,7 +212,7 @@ describe("cosmosPhysicsFromSettings", () => {
   });
 
   it("disables collision on very large graphs", () => {
-    const p = cosmosPhysicsFromSettings(DEFAULT_GRAPH_SETTINGS, 20_000);
+    const p = cosmosPhysicsForNodeCount(20_000);
     expect(p.simulationCollision).toBe(0);
     expect(p.simulationDecay).toBeGreaterThan(1100);
   });

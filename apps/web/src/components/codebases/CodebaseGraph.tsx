@@ -88,7 +88,6 @@ export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
         nodes={graphNodes}
         edges={graphEdges}
         viewTheme={viewTheme}
-        settings={DEFAULT_GRAPH_SETTINGS}
         focusNodeId={null}
         searchMatchSet={searchMatchSet}
         isSearchActive={hasActiveSearch}
