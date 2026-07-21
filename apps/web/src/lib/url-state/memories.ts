@@ -20,7 +20,7 @@ export type GraphScope = (typeof GRAPH_SCOPES)[number];
 
 const memoriesSearchParams = {
   focus: parseAsSanitizedOptionalString,
-  scope: parseAsStringLiteral(GRAPH_SCOPES).withDefault("local"),
+  scope: parseAsStringLiteral(GRAPH_SCOPES).withDefault("global"),
   bench: parseAsInteger.withDefault(0),
   q: parseAsSanitizedSearchQuery,
   tags: createSanitizedArrayParser(parseAsString),

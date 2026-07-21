@@ -27,12 +27,12 @@ function MemoriesGraphPage() {
           controller={graphController}
           focusNodeId={params.focus}
           scope={graphController.scope}
-          // focusing a node implies local scope (scope: null resets to the
-          // "local" default, keeping the URL clean); exiting goes global
+          // focusing a node enters local neighbourhood; clearing focus returns
+          // to the global default (scope omitted from the URL)
           onFocusChange={(id) =>
             id === null
-              ? setParams({ focus: null, scope: "global" })
-              : setParams({ focus: id, scope: null })
+              ? setParams({ focus: null, scope: null })
+              : setParams({ focus: id, scope: "local" })
           }
         />
       </Suspense>

@@ -133,13 +133,20 @@ export default function MemoryGraph({
         </div>
       ) : null}
 
-      {scope === "global" &&
-      totalMemoryCount !== null &&
-      loadedMemoryCount < totalMemoryCount ? (
+      {scope === "global" ? (
         <div className="absolute top-2 left-2 z-10 flex items-center gap-2 rounded-lg bg-surface-secondary/40 py-1 pr-1 pl-3">
           <span className="text-xs text-muted tabular-nums">
-            Showing {loadedMemoryCount.toLocaleString()} of{" "}
-            {totalMemoryCount.toLocaleString()} memories
+            {totalMemoryCount !== null &&
+            loadedMemoryCount < totalMemoryCount ? (
+              <>
+                Showing {loadedMemoryCount.toLocaleString()} of{" "}
+                {totalMemoryCount.toLocaleString()} memories
+              </>
+            ) : totalMemoryCount !== null ? (
+              <>{totalMemoryCount.toLocaleString()} memories</>
+            ) : (
+              <>{loadedMemoryCount.toLocaleString()} memories</>
+            )}
           </span>
           {canLoadMore ? (
             <Button
