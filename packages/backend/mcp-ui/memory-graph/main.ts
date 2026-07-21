@@ -57,6 +57,7 @@ const MAX_LABELS = 48;
 const ZOOM_IN_FACTOR = 1.3;
 const ZOOM_OUT_FACTOR = 0.7;
 const INITIAL_SETTLE_ALPHA = 0.08;
+const DRAG_REHEAT_ALPHA = 0.25;
 const LABEL_FONT =
   '500 11px ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif';
 
@@ -376,6 +377,11 @@ function createGraph(data: GraphPayload): void {
       onZoom: () => {
         if (graph) paintLabels(graph);
       },
+      onDragStart: () => {
+        if (!graph) return;
+        graph.unpause();
+        graph.start(DRAG_REHEAT_ALPHA);
+      },
       onSimulationTick: () => {
         if (graph) paintLabels(graph);
       },
@@ -447,6 +453,24 @@ function renderGraph(data: GraphPayload): void {
   requestTallViewport();
 }
 
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function isGraphStats(value: unknown): value is GraphPayload["stats"] {
+  if (value === null || typeof value !== "object") return false;
+  return (
+    "nodeCount" in value &&
+    isFiniteNumber(value.nodeCount) &&
+    "relatesToEdgeCount" in value &&
+    isFiniteNumber(value.relatesToEdgeCount) &&
+    "tagEdgeCount" in value &&
+    isFiniteNumber(value.tagEdgeCount) &&
+    "totalNodesBeforeCap" in value &&
+    isFiniteNumber(value.totalNodesBeforeCap)
+  );
+}
+
 function isGraphPayload(value: object): value is GraphPayload {
   return (
     "nodes" in value &&
@@ -454,7 +478,9 @@ function isGraphPayload(value: object): value is GraphPayload {
     "relatesToEdges" in value &&
     Array.isArray(value.relatesToEdges) &&
     "tagEdges" in value &&
-    Array.isArray(value.tagEdges)
+    Array.isArray(value.tagEdges) &&
+    "stats" in value &&
+    isGraphStats(value.stats)
   );
 }
 
@@ -523,8 +549,12 @@ app.ontoolcancelled = () => {
   statsEl.textContent = "Cancelled";
 };
 
+// Once the host sets a theme, OS prefers-color-scheme must not override it.
+let hostThemeLocked = false;
+
 function handleHostContext(hostCtx: McpUiHostContext) {
   if (hostCtx.theme) {
+    hostThemeLocked = true;
     applyDocumentTheme(hostCtx.theme);
     applyThemeAndRecolor(hostCtx.theme);
   }
@@ -552,6 +582,7 @@ function requestTallViewport() {
 const prefersDark = window.matchMedia("(prefers-color-scheme: dark)");
 applyThemeAndRecolor(prefersDark.matches ? "dark" : "light");
 prefersDark.addEventListener("change", (e) => {
+  if (hostThemeLocked) return;
   applyThemeAndRecolor(e.matches ? "dark" : "light");
 });
 
