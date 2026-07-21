@@ -38,9 +38,6 @@ export default function GraphHeaderControls({
       <OptionsPopover
         settings={controller.graphSettings}
         onSettingsChange={controller.onSettingsChange}
-        totalNodeCount={controller.totalNodeCount}
-        visibleNodeCount={controller.visibleNodeCount}
-        edgeCount={controller.edgeCount}
       />
       <AddMemoryIconTrigger />
     </div>
@@ -129,15 +126,9 @@ function GraphFiltersButton({
 function OptionsPopover({
   settings,
   onSettingsChange,
-  totalNodeCount,
-  visibleNodeCount,
-  edgeCount,
 }: {
   settings: GraphSettings;
   onSettingsChange: (s: GraphSettings) => void;
-  totalNodeCount: number;
-  visibleNodeCount: number;
-  edgeCount: number;
 }) {
   const handleLabelsToggle = useCallback(
     (checked: boolean) => {
@@ -171,11 +162,7 @@ function OptionsPopover({
 
         <Separator />
 
-        <GraphLegend
-          nodeCount={totalNodeCount}
-          edgeCount={edgeCount}
-          visibleNodeCount={visibleNodeCount}
-        />
+        <GraphLegend />
       </PopoverContent>
     </Popover>
   );

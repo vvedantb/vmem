@@ -1,9 +1,7 @@
 // force-directed graph canvas + canvas-local overlays (filters live in controller)
 
 import { useRef } from "react";
-import { IconArrowBack } from "@tabler/icons-react";
 import { Button } from "@vmem/ui";
-import type { GraphScope } from "@/lib/url-state/memories";
 import { useMemoryContext } from "@/contexts/MemoryContext";
 import GraphCanvas from "@/components/_components/GraphCanvas";
 import type { GraphCanvasHandle } from "@/components/_components/GraphCanvas";
@@ -17,18 +15,13 @@ import type { MemoryGraphController } from "@/hooks/useMemoryGraphController";
 
 interface MemoryGraphProps {
   controller: MemoryGraphController;
-  // explicit focus from the URL — null in local scope means "newest memory"
-  focusNodeId: string | null;
-  // id → focus that node (local scope); null → switch to the global graph
-  onFocusChange: (id: string | null) => void;
-  scope: GraphScope;
+  // deep-link highlight on the global graph (does not change the fetch)
+  focusNodeId?: string | null;
 }
 
 export default function MemoryGraph({
   controller,
-  focusNodeId,
-  onFocusChange,
-  scope,
+  focusNodeId = null,
 }: MemoryGraphProps) {
   const { deleteMemory } = useMemoryContext();
   const canvasRef = useRef<GraphCanvasHandle>(null);
@@ -41,8 +34,8 @@ export default function MemoryGraph({
     viewTheme,
     searchMatchSet,
     isSearchActive,
-    resolvedFocusNodeId,
     loadedMemoryCount,
+    loadedRelationshipCount,
     totalMemoryCount,
     canLoadMore,
     isLoadingMore,
@@ -55,7 +48,6 @@ export default function MemoryGraph({
   const interaction = useGraphNodeInteraction({
     graphNodes,
     graphEdges,
-    onFocusChange,
   });
 
   if (isLoading) {
@@ -78,19 +70,6 @@ export default function MemoryGraph({
         variant="empty"
         title="No memories to visualize"
         description="Add some memories to see them in the graph"
-        action={
-          scope === "local" ? (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={interaction.handleBackToGlobal}
-              className="mt-4 gap-1.5"
-            >
-              <IconArrowBack size={14} />
-              View global graph
-            </Button>
-          ) : undefined
-        }
       />
     );
   }
@@ -102,14 +81,13 @@ export default function MemoryGraph({
         nodes={graphNodes}
         edges={graphEdges}
         viewTheme={viewTheme}
-        focusNodeId={resolvedFocusNodeId ?? focusNodeId}
+        focusNodeId={focusNodeId}
         searchMatchSet={searchMatchSet}
         isSearchActive={isSearchActive}
         showLabels={graphSettings.showLabels}
         onHoverNode={interaction.setHoveredNode}
         onHoverEdge={interaction.setHoveredEdge}
         onClickNode={interaction.handleClickNode}
-        onFocusNode={interaction.handleFocusNode}
       />
 
       <GraphNavControls
@@ -119,48 +97,33 @@ export default function MemoryGraph({
         isDarkCanvas={viewTheme.isDarkCanvas}
       />
 
-      {scope === "local" ? (
-        <div className="absolute top-2 left-2 z-10">
+      <div className="absolute top-2 left-2 z-10 flex items-center gap-2 rounded-lg bg-surface-secondary/40 py-1 pr-1 pl-3">
+        <span className="text-xs text-muted tabular-nums">
+          {totalMemoryCount !== null && loadedMemoryCount < totalMemoryCount ? (
+            <>
+              Showing {loadedMemoryCount.toLocaleString()} of{" "}
+              {totalMemoryCount.toLocaleString()} memories
+            </>
+          ) : totalMemoryCount !== null ? (
+            <>{totalMemoryCount.toLocaleString()} memories</>
+          ) : (
+            <>{loadedMemoryCount.toLocaleString()} memories</>
+          )}
+          {" · "}
+          {loadedRelationshipCount.toLocaleString()} relationships
+        </span>
+        {canLoadMore ? (
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
-            onClick={interaction.handleBackToGlobal}
-            className="gap-1.5 bg-surface-secondary/40"
+            onClick={fetchNextPage}
+            disabled={isLoadingMore}
+            className="h-6 px-2 text-xs"
           >
-            <IconArrowBack size={14} />
-            Global graph
+            {isLoadingMore ? "Loading…" : "Load more"}
           </Button>
-        </div>
-      ) : null}
-
-      {scope === "global" ? (
-        <div className="absolute top-2 left-2 z-10 flex items-center gap-2 rounded-lg bg-surface-secondary/40 py-1 pr-1 pl-3">
-          <span className="text-xs text-muted tabular-nums">
-            {totalMemoryCount !== null &&
-            loadedMemoryCount < totalMemoryCount ? (
-              <>
-                Showing {loadedMemoryCount.toLocaleString()} of{" "}
-                {totalMemoryCount.toLocaleString()} memories
-              </>
-            ) : totalMemoryCount !== null ? (
-              <>{totalMemoryCount.toLocaleString()} memories</>
-            ) : (
-              <>{loadedMemoryCount.toLocaleString()} memories</>
-            )}
-          </span>
-          {canLoadMore ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={fetchNextPage}
-              disabled={isLoadingMore}
-              className="h-6 px-2 text-xs"
-            >
-              {isLoadingMore ? "Loading…" : "Load more"}
-            </Button>
-          ) : null}
-        </div>
-      ) : null}
+        ) : null}
+      </div>
 
       {interaction.hoveredNode && !interaction.selectedNodeId ? (
         <GraphNodeTooltip
@@ -190,7 +153,6 @@ export default function MemoryGraph({
         onClose={interaction.handleCloseDetail}
         onNavigate={interaction.handleNavigateNode}
         onDelete={deleteMemory}
-        onFocusNode={interaction.handleFocusNode}
       />
     </div>
   );

@@ -13,7 +13,6 @@ import { getRelatedNodes } from "@/lib/graph/graph-data";
 export function useGraphNodeInteraction(args: {
   graphNodes: GraphNode[];
   graphEdges: GraphEdge[];
-  onFocusChange: (id: string | null) => void;
 }) {
   const getNodeContent = useAction(api.graphApi.getNodeContent);
 
@@ -67,23 +66,12 @@ export function useGraphNodeInteraction(args: {
     setHoveredNode(null);
   }
 
-  function handleFocusNode(nodeId: string) {
-    const node = nodeById.get(nodeId);
-    if (!node || node.kind !== "memory") return;
-    args.onFocusChange(nodeId);
-    setSelectedNodeId(null);
-  }
-
   function handleCloseDetail() {
     setSelectedNodeId(null);
   }
 
   function handleNavigateNode(nodeId: string) {
     setSelectedNodeId(nodeId);
-  }
-
-  function handleBackToGlobal() {
-    args.onFocusChange(null);
   }
 
   return {
@@ -97,7 +85,5 @@ export function useGraphNodeInteraction(args: {
     handleClickNode,
     handleCloseDetail,
     handleNavigateNode,
-    handleFocusNode,
-    handleBackToGlobal,
   };
 }

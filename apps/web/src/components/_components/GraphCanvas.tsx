@@ -59,7 +59,6 @@ interface GraphCanvasProps {
   onHoverNode: (info: HoveredNodeInfo | null) => void;
   onHoverEdge?: (info: HoveredEdgeInfo | null) => void;
   onClickNode: (nodeId: string) => void;
-  onFocusNode?: (nodeId: string) => void;
   ref?: Ref<GraphCanvasHandle>;
 }
 
@@ -93,7 +92,6 @@ function GraphCanvas({
   onHoverNode,
   onHoverEdge,
   onClickNode,
-  onFocusNode,
   ref,
 }: GraphCanvasProps) {
   const rootRef = useRef<HTMLDivElement>(null);
@@ -117,7 +115,6 @@ function GraphCanvas({
     onHoverNode,
     onHoverEdge,
     onClickNode,
-    onFocusNode,
   });
 
   themeRef.current = viewTheme;
@@ -129,7 +126,6 @@ function GraphCanvas({
     onHoverNode,
     onHoverEdge,
     onClickNode,
-    onFocusNode,
   };
 
   const applyVisualState = useCallback((graph: Graph) => {
@@ -443,15 +439,7 @@ function GraphCanvas({
         pointSamplingDistance: POINT_SAMPLING_DISTANCE,
         ...physics,
         attribution: "",
-        onClick: (index, _pointPosition, event) => {
-          if (event.detail !== 2) return;
-          if (index === undefined) return;
-          const id = buffersRef.current?.indexToId[index];
-          if (id === undefined) return;
-          callbacksRef.current.onFocusNode?.(id);
-        },
-        onPointClick: (index, _pointPosition, event) => {
-          if (event.detail === 2) return;
+        onPointClick: (index) => {
           const id = buffersRef.current?.indexToId[index];
           if (id === undefined) return;
           callbacksRef.current.onClickNode(id);

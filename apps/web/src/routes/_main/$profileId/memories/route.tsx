@@ -8,7 +8,6 @@ import {
   MemoryGraphControllerProvider,
   useMemoryGraphControllerContext,
 } from "./-components/MemoryGraphControllerContext";
-import { useMemoriesSearchParams } from "@/hooks/useMemoriesSearchParams";
 
 export const Route = createFileRoute("/_main/$profileId/memories")({
   component: MemoriesLayout,
@@ -68,13 +67,9 @@ function MemoriesLayoutShell() {
 function MemoriesLayout() {
   const matchRoute = useMatchRoute();
   const isGraph = matchRoute({ to: "/$profileId/memories/graph" });
-  const [params] = useMemoriesSearchParams();
 
   return (
-    <MemoryGraphControllerProvider
-      focusNodeId={params.focus}
-      enabled={!!isGraph}
-    >
+    <MemoryGraphControllerProvider enabled={!!isGraph}>
       <MemoriesLayoutShell />
     </MemoryGraphControllerProvider>
   );

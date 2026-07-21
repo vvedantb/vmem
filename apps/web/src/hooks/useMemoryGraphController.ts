@@ -9,7 +9,6 @@ import { useGraphData } from "@/hooks/useGraphData";
 import { useThemeContext } from "@/contexts/ThemeContext";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 import { useMemoriesSearchParams } from "@/hooks/useMemoriesSearchParams";
-import type { GraphScope } from "@/lib/url-state/memories";
 import { buildGraphData, getGraphFacets } from "@/lib/graph/graph-data";
 import type { GraphSettings } from "@/lib/graph/graph-types";
 import { getViewTheme } from "@/components/_components/graph-view-themes";
@@ -27,13 +26,11 @@ const EMPTY_SET = new Set<string>();
 const GLOBAL_GRAPH_MAX_NODES = 100_000;
 
 export function useMemoryGraphController({
-  focusNodeId,
   enabled = true,
 }: {
-  focusNodeId: string | null;
   // false = stay mounted but skip fetch (list view active)
   enabled?: boolean;
-}) {
+} = {}) {
   const { isDark } = useThemeContext();
 
   // url filters shared with list view
@@ -42,15 +39,12 @@ export function useMemoryGraphController({
 
   const listMemoriesAction = useAction(api.memoryApi.listMemories);
 
-  const scope: GraphScope = params.scope;
-
   const {
     apiNodes,
     apiTagEdges,
     allRelatesToEdges,
     apiWikiParentEdges,
     apiMentionsEdges,
-    resolvedFocusNodeId,
     totalMemoryCount,
     isLoading,
     isFetchingNextPage,
@@ -58,7 +52,7 @@ export function useMemoryGraphController({
     fetchNextPage,
     isError,
     error,
-  } = useGraphData(focusNodeId, activeProfileId, enabled, scope, params.bench);
+  } = useGraphData(activeProfileId, enabled, params.bench);
 
   const searchQuery = params.q.trim();
   const deferredSearchQuery = useDeferredValue(searchQuery);
@@ -147,17 +141,23 @@ export function useMemoryGraphController({
     return matches;
   }, [isSearchActive, searchQuery, graphNodes, memorySearchResult]);
 
-  // ----- Progressive global loading -----
+  // ----- Progressive loading -----
 
   const loadedMemoryCount = useMemo(
     () => apiNodes.filter((n) => n.kind === "memory").length,
     [apiNodes],
   );
 
-  const canLoadMore =
-    scope === "global" &&
-    hasNextPage &&
-    loadedMemoryCount < GLOBAL_GRAPH_MAX_NODES;
+  const loadedRelationshipCount = useMemo(
+    () =>
+      apiTagEdges.length +
+      allRelatesToEdges.length +
+      apiWikiParentEdges.length +
+      apiMentionsEdges.length,
+    [apiTagEdges, allRelatesToEdges, apiWikiParentEdges, apiMentionsEdges],
+  );
+
+  const canLoadMore = hasNextPage && loadedMemoryCount < GLOBAL_GRAPH_MAX_NODES;
 
   return {
     // raw (nodes only — edges stay internal to buildGraphData)
@@ -166,12 +166,9 @@ export function useMemoryGraphController({
     isError,
     error,
 
-    // scope
-    scope,
-    resolvedFocusNodeId,
-
-    // progressive global loading
+    // progressive loading
     loadedMemoryCount,
+    loadedRelationshipCount,
     totalMemoryCount,
     canLoadMore,
     isLoadingMore: isFetchingNextPage,
@@ -188,7 +185,6 @@ export function useMemoryGraphController({
     allTypes,
     totalNodeCount: apiNodes.length,
     visibleNodeCount: graphNodes.length,
-    edgeCount: graphEdges.length,
     filters,
 
     // display state

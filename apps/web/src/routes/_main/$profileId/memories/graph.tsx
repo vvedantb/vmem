@@ -11,7 +11,7 @@ export const Route = createFileRoute("/_main/$profileId/memories/graph")({
 });
 
 function MemoriesGraphPage() {
-  const [params, setParams] = useMemoriesSearchParams();
+  const [params] = useMemoriesSearchParams();
   const graphController = useMemoryGraphControllerContext();
 
   return (
@@ -23,18 +23,7 @@ function MemoriesGraphPage() {
           </div>
         }
       >
-        <MemoryGraph
-          controller={graphController}
-          focusNodeId={params.focus}
-          scope={graphController.scope}
-          // focusing a node enters local neighbourhood; clearing focus returns
-          // to the global default (scope omitted from the URL)
-          onFocusChange={(id) =>
-            id === null
-              ? setParams({ focus: null, scope: null })
-              : setParams({ focus: id, scope: "local" })
-          }
-        />
+        <MemoryGraph controller={graphController} focusNodeId={params.focus} />
       </Suspense>
     </div>
   );
