@@ -74,7 +74,7 @@ export default function GraphLegend() {
           </div>
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full border border-dashed border-foreground/60" />
-            <span>Outlined · linked focus</span>
+            <span>Focused · 2-hop neighbourhood</span>
           </div>
         </div>
       </div>

@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { IconX, IconTrash, IconLoader2 } from "@tabler/icons-react";
+import {
+  IconX,
+  IconTrash,
+  IconFocusCentered,
+  IconLoader2,
+} from "@tabler/icons-react";
 import { Badge, Button } from "@vmem/ui";
 import { formatDate } from "@/lib/formatters";
 import { AnimatePresence, motion } from "motion/react";
@@ -12,6 +17,7 @@ interface GraphDetailPanelProps {
   onClose: () => void;
   onNavigate: (nodeId: string) => void;
   onDelete: (nodeId: string) => Promise<boolean>;
+  onFocusNode: (nodeId: string) => void;
 }
 
 export default function GraphDetailPanel({
@@ -20,6 +26,7 @@ export default function GraphDetailPanel({
   onClose,
   onNavigate,
   onDelete,
+  onFocusNode,
 }: GraphDetailPanelProps) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -83,6 +90,14 @@ export default function GraphDetailPanel({
 
             {/* Actions */}
             <div className="flex items-center gap-2 mt-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onFocusNode(nodeData.id)}
+              >
+                <IconFocusCentered size={14} />
+                Focus
+              </Button>
               {confirmingDelete ? (
                 <div className="flex items-center gap-2">
                   <Button

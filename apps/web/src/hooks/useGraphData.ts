@@ -20,6 +20,8 @@ import type {
 const FIRST_PAGE_SIZE = 500;
 // follow-up pages bulk-load (server caps a page at 5000)
 const NEXT_PAGE_SIZE = 5000;
+// hop count when focusing a node into its neighbourhood
+const FOCUS_GRAPH_DEPTH = 2;
 
 // stable empty-array identities for loading/bench states
 const EMPTY_NODES: ApiGraphNode[] = [];
@@ -43,6 +45,7 @@ interface MergedGraph {
   relatesToEdges: ApiRelatesToEdge[];
   wikiParentEdges: ApiWikiParentEdge[];
   mentionsEdges: ApiMentionsEdge[];
+  focusNodeId: string | null;
   totalMemoryCount: number | null;
 }
 
@@ -56,6 +59,7 @@ function mergePages(pages: GraphResponse[]): MergedGraph {
       relatesToEdges: [],
       wikiParentEdges: EMPTY_WIKI_PARENT_EDGES,
       mentionsEdges: EMPTY_MENTIONS_EDGES,
+      focusNodeId: null,
       totalMemoryCount: null,
     };
   }
@@ -83,6 +87,7 @@ function mergePages(pages: GraphResponse[]): MergedGraph {
     relatesToEdges,
     wikiParentEdges: first.wikiParentEdges,
     mentionsEdges,
+    focusNodeId: first.focusNodeId ?? null,
     totalMemoryCount: first.totalMemoryCount ?? null,
   };
 }
@@ -90,6 +95,7 @@ function mergePages(pages: GraphResponse[]): MergedGraph {
 // ---- Hook ----
 
 export function useGraphData(
+  focusNodeId: string | null,
   profileId: string | null = null,
   enabled: boolean = true,
   // `?bench=N` — synthetic client-side dataset, no server fetch
@@ -101,6 +107,7 @@ export function useGraphData(
     ApiRelatesToEdge[]
   >([]);
 
+  const isFocused = focusNodeId !== null;
   const benchData = useMemo(
     () => (benchCount > 0 ? generateBenchGraph(benchCount) : null),
     [benchCount],
@@ -110,19 +117,33 @@ export function useGraphData(
     GraphResponse,
     Error,
     InfiniteData<GraphResponse>,
-    readonly ["graph", "global", string],
+    readonly ["graph", "focus" | "global", string, string],
     GraphCursor | null
   >({
-    queryKey: ["graph", "global", profileId ?? "all"],
-    // keep the previous graph while paging, but not when switching workspaces
+    queryKey: [
+      "graph",
+      isFocused ? "focus" : "global",
+      focusNodeId ?? "none",
+      profileId ?? "all",
+    ],
+    // keep the previous graph while focus changes, but not when switching
+    // workspaces — showing another profile's nodes is misleading
     placeholderData: (previousData, previousQuery) => {
-      if (previousQuery?.queryKey[2] !== (profileId ?? "all")) {
+      if (previousQuery?.queryKey[3] !== (profileId ?? "all")) {
         return undefined;
       }
       return previousData;
     },
     initialPageParam: INITIAL_GRAPH_CURSOR,
     queryFn: async ({ pageParam }): Promise<GraphResponse> => {
+      if (isFocused) {
+        return await getGraphData({
+          focus: focusNodeId,
+          profileId: profileId ?? undefined,
+          mode: "local",
+          depth: FOCUS_GRAPH_DEPTH,
+        });
+      }
       return await getGraphData({
         profileId: profileId ?? undefined,
         mode: "global",
@@ -132,6 +153,7 @@ export function useGraphData(
       });
     },
     getNextPageParam: (lastPage): GraphCursor | undefined =>
+      !isFocused &&
       lastPage.nextCursorCreatedAt !== undefined &&
       lastPage.nextCursorId !== undefined
         ? { createdAt: lastPage.nextCursorCreatedAt, id: lastPage.nextCursorId }
@@ -180,6 +202,8 @@ export function useGraphData(
       allRelatesToEdges,
       apiWikiParentEdges: EMPTY_WIKI_PARENT_EDGES,
       apiMentionsEdges: EMPTY_MENTIONS_EDGES,
+      resolvedFocusNodeId: null,
+      isFocused: false,
       totalMemoryCount: benchData.nodes.length,
       isLoading: false,
       isFetchingNextPage: false,
@@ -196,6 +220,8 @@ export function useGraphData(
     allRelatesToEdges,
     apiWikiParentEdges: merged?.wikiParentEdges ?? EMPTY_WIKI_PARENT_EDGES,
     apiMentionsEdges: merged?.mentionsEdges ?? EMPTY_MENTIONS_EDGES,
+    resolvedFocusNodeId: merged?.focusNodeId ?? focusNodeId,
+    isFocused,
     totalMemoryCount: merged?.totalMemoryCount ?? null,
     isLoading: graphQuery.isLoading,
     isFetchingNextPage: graphQuery.isFetchingNextPage,

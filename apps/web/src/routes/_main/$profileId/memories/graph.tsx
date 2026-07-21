@@ -11,7 +11,7 @@ export const Route = createFileRoute("/_main/$profileId/memories/graph")({
 });
 
 function MemoriesGraphPage() {
-  const [params] = useMemoriesSearchParams();
+  const [params, setParams] = useMemoriesSearchParams();
   const graphController = useMemoryGraphControllerContext();
 
   return (
@@ -23,7 +23,11 @@ function MemoriesGraphPage() {
           </div>
         }
       >
-        <MemoryGraph controller={graphController} focusNodeId={params.focus} />
+        <MemoryGraph
+          controller={graphController}
+          focusNodeId={params.focus}
+          onFocusChange={(id) => setParams({ focus: id })}
+        />
       </Suspense>
     </div>
   );

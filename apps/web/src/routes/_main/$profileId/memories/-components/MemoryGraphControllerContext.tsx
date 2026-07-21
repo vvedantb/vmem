@@ -8,14 +8,16 @@ const MemoryGraphControllerContext =
   createContext<MemoryGraphController | null>(null);
 
 export function MemoryGraphControllerProvider({
+  focusNodeId,
   enabled = true,
   children,
 }: {
+  focusNodeId: string | null;
   // skip graph data fetching while inactive; see `useMemoryGraphController`
   enabled?: boolean;
   children: ReactNode;
 }) {
-  const controller = useMemoryGraphController({ enabled });
+  const controller = useMemoryGraphController({ focusNodeId, enabled });
 
   return (
     <MemoryGraphControllerContext value={controller}>
