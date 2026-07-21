@@ -36,41 +36,21 @@ async function insertOwnerAggregates(
   ctx: MutationCtx,
   doc: Doc<"openRouterLogs">,
   namespace: OwnerNamespace,
-  mode: "live" | "backfill",
 ) {
   const id = doc._id;
   const key = doc.createdAt;
-  const cost = doc.costUsd ?? 0;
-  const tokens = doc.totalTokens ?? 0;
-
-  if (mode === "backfill") {
-    await openRouterCost.insertIfDoesNotExist(ctx, {
-      namespace,
-      key,
-      id,
-      sumValue: cost,
-    });
-    await openRouterTokens.insertIfDoesNotExist(ctx, {
-      namespace,
-      key,
-      id,
-      sumValue: tokens,
-    });
-  } else {
-    await openRouterCost.insert(ctx, {
-      namespace,
-      key,
-      id,
-      sumValue: cost,
-    });
-    await openRouterTokens.insert(ctx, {
-      namespace,
-      key,
-      id,
-      sumValue: tokens,
-    });
-  }
-
+  await openRouterCost.insert(ctx, {
+    namespace,
+    key,
+    id,
+    sumValue: doc.costUsd ?? 0,
+  });
+  await openRouterTokens.insert(ctx, {
+    namespace,
+    key,
+    id,
+    sumValue: doc.totalTokens ?? 0,
+  });
   await openRouterModels.insertIfDoesNotExist(ctx, {
     namespace,
     key: doc.model,
@@ -82,10 +62,9 @@ async function insertOwnerAggregates(
 export async function insertOpenRouterLogAggregates(
   ctx: MutationCtx,
   doc: Doc<"openRouterLogs">,
-  mode: "live" | "backfill" = "live",
 ) {
-  await insertOwnerAggregates(ctx, doc, userLogNamespace(doc.userId), mode);
+  await insertOwnerAggregates(ctx, doc, userLogNamespace(doc.userId));
   if (doc.teamId !== undefined) {
-    await insertOwnerAggregates(ctx, doc, teamLogNamespace(doc.teamId), mode);
+    await insertOwnerAggregates(ctx, doc, teamLogNamespace(doc.teamId));
   }
 }

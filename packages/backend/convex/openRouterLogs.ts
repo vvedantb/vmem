@@ -1,7 +1,6 @@
 ﻿import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { internalMutation, type QueryCtx } from "./_generated/server";
-import { internal } from "./_generated/api";
 import { authQuery } from "./auth";
 import { openRouterLogFields, openRouterLogRecordFields } from "./validators";
 import type { Id } from "./_generated/dataModel";
@@ -38,7 +37,7 @@ export const recordInternal = internalMutation({
     });
     const doc = await ctx.db.get(id);
     if (doc) {
-      await insertOpenRouterLogAggregates(ctx, doc, "live");
+      await insertOpenRouterLogAggregates(ctx, doc);
     }
     return null;
   },
@@ -262,30 +261,5 @@ export const distinctModelsMine = authQuery({
       models.push(item.key);
     }
     return models.sort();
-  },
-});
-
-/** One-shot / resume: backfill aggregates for existing openRouterLogs rows. */
-export const backfillAggregatesPage = internalMutation({
-  args: {
-    cursor: v.optional(v.union(v.string(), v.null())),
-  },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    const page = await ctx.db.query("openRouterLogs").paginate({
-      numItems: 100,
-      cursor: args.cursor ?? null,
-    });
-    for (const doc of page.page) {
-      await insertOpenRouterLogAggregates(ctx, doc, "backfill");
-    }
-    if (!page.isDone) {
-      await ctx.scheduler.runAfter(
-        0,
-        internal.openRouterLogs.backfillAggregatesPage,
-        { cursor: page.continueCursor },
-      );
-    }
-    return null;
   },
 });
