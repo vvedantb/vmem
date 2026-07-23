@@ -1,6 +1,6 @@
 // non-canvas graph state (filters/search/display) shared by canvas + header
 
-import { useDeferredValue, useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import { useAction } from "convex/react";
 import { useQuery as useTanstackQuery } from "@tanstack/react-query";
 import { api } from "@vmem/backend";
@@ -97,13 +97,37 @@ export function useMemoryGraphController({
     types: allTypes,
   } = getGraphFacets(apiNodes);
 
-  const { graphNodes, graphEdges } = buildGraphData(
-    apiNodes,
-    apiTagEdges,
-    allRelatesToEdges,
-    apiWikiParentEdges,
-    apiMentionsEdges,
-    filters,
+  // Load-bearing memo, not ceremony: GraphCanvas destroys and recreates the
+  // WebGL graph (camera reset) whenever graphNodes/graphEdges identity
+  // changes. Without this boundary the compiler merges the call into a scope
+  // that also depends on isDark and searchQuery, so theme flips and search
+  // keystrokes rebuilt the graph.
+  const { graphNodes, graphEdges } = useMemo(
+    () =>
+      buildGraphData(
+        apiNodes,
+        apiTagEdges,
+        allRelatesToEdges,
+        apiWikiParentEdges,
+        apiMentionsEdges,
+        {
+          kinds: params.kinds,
+          tags: params.tags,
+          sources: params.sources,
+          types: params.types,
+        },
+      ),
+    [
+      apiNodes,
+      apiTagEdges,
+      allRelatesToEdges,
+      apiWikiParentEdges,
+      apiMentionsEdges,
+      params.kinds,
+      params.tags,
+      params.sources,
+      params.types,
+    ],
   );
 
   const searchMatchSet = (() => {
