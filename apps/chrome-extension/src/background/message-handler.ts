@@ -121,9 +121,8 @@ export function registerMessageHandler(): void {
       });
       return { dataUrl };
     } catch (err) {
-      const error = errorMessage(err);
-      console.error("[vmem] CAPTURE_VISIBLE_TAB failed:", error);
-      throw new Error(error);
+      console.error("[vmem] CAPTURE_VISIBLE_TAB failed:", errorMessage(err));
+      throw err;
     }
   });
 
@@ -139,9 +138,8 @@ export function registerMessageHandler(): void {
       });
       return { memoryId: memory.id };
     } catch (err) {
-      const error = errorMessage(err);
-      console.error("[vmem] SAVE_SCREENSHOT failed:", error);
-      throw new Error(error);
+      console.error("[vmem] SAVE_SCREENSHOT failed:", errorMessage(err));
+      throw err;
     }
   });
 

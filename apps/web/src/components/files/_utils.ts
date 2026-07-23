@@ -7,7 +7,6 @@ import {
   IconFolder,
 } from "@tabler/icons-react";
 import type { TablerIcon } from "@tabler/icons-react";
-import { countBy } from "es-toolkit";
 import type { Id } from "@vmem/backend";
 import type { FileCategory, FileTreeNode } from "./-types";
 import type { FileSortField, SortDirection } from "./search-params";
@@ -45,17 +44,10 @@ export function fileCategoryForNode(node: FileTreeNode): FileCategory {
 export function childCountMap(
   nodes: FileTreeNode[],
 ): Map<Id<"fileNodes">, number> {
-  const parentIds = nodes.flatMap((node) =>
-    node.parentId === null || node.parentId === undefined
-      ? []
-      : [node.parentId],
-  );
-  const counted = countBy(parentIds, (id) => id);
   const counts = new Map<Id<"fileNodes">, number>();
-  for (const id of new Set(parentIds)) {
-    const count = counted[id];
-    if (count !== undefined) {
-      counts.set(id, count);
+  for (const node of nodes) {
+    if (node.parentId) {
+      counts.set(node.parentId, (counts.get(node.parentId) ?? 0) + 1);
     }
   }
   return counts;
