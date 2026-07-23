@@ -1,13 +1,12 @@
 // screenshot content script
 //
-// START_SCREENSHOT from the background sw mounts a dim overlay
+// startScreenshot from the background sw mounts a dim overlay
 // user drags a viewport rect → captureVisibleTab → dpr aware crop
-// preview bar with caption + save → SAVE_SCREENSHOT
+// preview bar with caption + save → saveScreenshot
 // esc cancels click outside preview dismisses
 
-import type { ContentMessage, BackgroundResponse } from "@/types/messages";
-import { safeSendMessage } from "@/lib/safe-message";
-import { z } from "zod";
+import { computePosition, flip, offset, shift } from "@floating-ui/dom";
+import { onMessage, sendMessage } from "@/lib/messaging";
 import { mountVmemLogo } from "@/content/shared/icons";
 import { checkIcon, errorIcon } from "@/content/shared/status-icons";
 import type { Mode, SelectionRect } from "./types";
@@ -27,10 +26,6 @@ import {
 
 const CHECK_ICON = checkIcon(14);
 const ERROR_ICON = errorIcon(14);
-
-const startScreenshotMessageSchema = z.object({
-  type: z.literal("START_SCREENSHOT"),
-});
 
 let mode: Mode = "idle";
 let dragStart: { x: number; y: number } | null = null;
@@ -117,27 +112,32 @@ function positionRect(r: SelectionRect): void {
   rectEl.style.height = `${r.h}px`;
 }
 
-function positionPreview(rect: SelectionRect): void {
-  // measure off screen first
-  preview.style.left = "-9999px";
-  preview.style.top = "-9999px";
+function selectionRectToDomRect(rect: SelectionRect): DOMRect {
+  return {
+    x: rect.x,
+    y: rect.y,
+    width: rect.w,
+    height: rect.h,
+    top: rect.y,
+    left: rect.x,
+    right: rect.x + rect.w,
+    bottom: rect.y + rect.h,
+    toJSON: () => ({}),
+  };
+}
+
+async function positionPreview(rect: SelectionRect): Promise<void> {
   preview.classList.add("visible");
-  const box = preview.getBoundingClientRect();
-  preview.classList.remove("visible");
 
-  const gap = 10;
-  let x = rect.x + rect.w / 2 - box.width / 2;
-  let y = rect.y + rect.h + gap;
+  const virtualEl = {
+    getBoundingClientRect: () => selectionRectToDomRect(rect),
+  };
 
-  if (x + box.width > window.innerWidth - gap) {
-    x = window.innerWidth - box.width - gap;
-  }
-  if (x < gap) x = gap;
-
-  if (y + box.height > window.innerHeight - gap) {
-    y = rect.y - box.height - gap;
-  }
-  if (y < gap) y = gap;
+  const { x, y } = await computePosition(virtualEl, preview, {
+    placement: "bottom",
+    strategy: "fixed",
+    middleware: [offset(10), flip(), shift({ padding: 10 })],
+  });
 
   preview.style.left = `${x}px`;
   preview.style.top = `${y}px`;
@@ -146,7 +146,7 @@ function positionPreview(rect: SelectionRect): void {
 function showPreview(rect: SelectionRect, blob: Blob, dataUrl: string): void {
   croppedBlob = blob;
   thumb.src = dataUrl;
-  positionPreview(rect);
+  void positionPreview(rect);
   setMode("preview");
 }
 
@@ -213,42 +213,24 @@ async function saveScreenshot(): Promise<void> {
 
   setMode("saving");
 
-  const base64Png = await blobToBase64(croppedBlob);
-  const message: ContentMessage = {
-    type: "SAVE_SCREENSHOT",
-    base64Png,
-    caption: captionValue.trim() || undefined,
-    pageUrl: window.location.href,
-    pageTitle: document.title,
-  };
-
-  safeSendMessage<BackgroundResponse>(message, (response) => {
-    if (!response) {
-      console.error(
-        "[vmem] Screenshot save: no response from background (extension context lost or SW killed mid-request). " +
-          "Open the service worker console (chrome://extensions → service worker) for backend errors.",
-      );
-      saveBtn.title = "No response from background";
-      setMode("error");
-      return;
-    }
-    if (response.type === "SAVE_RESULT" && response.success) {
-      setMode("success");
-      return;
-    }
-    if (response.type === "SAVE_RESULT") {
-      console.error(
-        "[vmem] Screenshot save failed:",
-        response.error ?? "(no error message)",
-      );
-      saveBtn.title = response.error ?? "Save failed";
-      setMode("error");
-      return;
-    }
-    console.error("[vmem] Screenshot save: unexpected response", response);
-    saveBtn.title = "Unexpected response";
+  try {
+    const base64Png = await blobToBase64(croppedBlob);
+    await sendMessage("saveScreenshot", {
+      base64Png,
+      caption: captionValue.trim() || undefined,
+      pageUrl: window.location.href,
+      pageTitle: document.title,
+    });
+    setMode("success");
+  } catch (err) {
+    console.error(
+      "[vmem] Screenshot save failed:",
+      err instanceof Error ? err.message : String(err),
+      "— reload the page to reconnect.",
+    );
+    saveBtn.title = err instanceof Error ? err.message : "Save failed";
     setMode("error");
-  });
+  }
 }
 
 function startSelection(): void {
@@ -302,14 +284,9 @@ document.addEventListener(
   true,
 );
 
-chrome.runtime.onMessage.addListener(
-  (message: unknown, _sender, sendResponse) => {
-    const parsed = startScreenshotMessageSchema.safeParse(message);
-    if (!parsed.success) return false;
-    startSelection();
-    sendResponse({ ok: true });
-    return true;
-  },
-);
+onMessage("startScreenshot", (): { ok: true } => {
+  startSelection();
+  return { ok: true };
+});
 
 mountOverlay();

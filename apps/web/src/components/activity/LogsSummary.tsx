@@ -63,9 +63,6 @@ export function LogsSummary({ summary, range, trends }: LogsSummaryProps) {
           <p className="mt-0.5 text-xs text-muted">
             {RANGE_LABELS[range]} · {summary.totalCalls.toLocaleString()} call
             {summary.totalCalls === 1 ? "" : "s"}
-            {summary.isApprox
-              ? " (approx — based on most recent 5,000 calls)"
-              : ""}
           </p>
         </div>
       </div>

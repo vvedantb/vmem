@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { IconClockHour4 } from "@tabler/icons-react";
 import { cn } from "@vmem/ui";
 import { formatDateTime } from "@vmem/shared";
@@ -127,24 +127,20 @@ function RetellingStrip({
 export default function HistoryTab({ memoryId }: HistoryTabProps) {
   const { events, isLoading } = useMemoryTimeline(memoryId);
 
-  const versions = useMemo(() => buildVersionChain(events), [events]);
+  const versions = buildVersionChain(events);
   const totalVersions = versions.length;
   const isEmpty = versions.length === 0;
   const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
 
   const currentSelected = selectedVersion ?? totalVersions;
 
-  const selectedEntry = useMemo(
-    () => versions.find((v) => v.version === currentSelected) ?? null,
-    [versions, currentSelected],
-  );
+  const selectedEntry =
+    versions.find((v) => v.version === currentSelected) ?? null;
 
-  const previousEntry = useMemo(() => {
-    if (selectedEntry === null || selectedEntry.version <= 1) return null;
-    return (
-      versions.find((v) => v.version === selectedEntry.version - 1) ?? null
-    );
-  }, [versions, selectedEntry]);
+  const previousEntry =
+    selectedEntry === null || selectedEntry.version <= 1
+      ? null
+      : (versions.find((v) => v.version === selectedEntry.version - 1) ?? null);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {

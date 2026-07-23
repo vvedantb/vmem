@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { createContext, use, useCallback } from "react";
+import { createContext, use } from "react";
 import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { api } from "@vmem/backend";
 import type { Doc, Id } from "@vmem/backend";
@@ -38,30 +38,21 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const isLoading =
     notifications === undefined || unreadCountResult === undefined;
 
-  const markAsRead = useCallback(
-    (id: Id<"notifications">) => {
-      void markAsReadMutation({ id });
-    },
-    [markAsReadMutation],
-  );
+  const markAsRead = (id: Id<"notifications">) => {
+    void markAsReadMutation({ id });
+  };
 
-  const markAsUnread = useCallback(
-    (id: Id<"notifications">) => {
-      void markAsUnreadMutation({ id });
-    },
-    [markAsUnreadMutation],
-  );
+  const markAsUnread = (id: Id<"notifications">) => {
+    void markAsUnreadMutation({ id });
+  };
 
-  const markAllAsRead = useCallback(() => {
+  const markAllAsRead = () => {
     void markAllAsReadMutation();
-  }, [markAllAsReadMutation]);
+  };
 
-  const deleteNotification = useCallback(
-    (id: Id<"notifications">) => {
-      void deleteNotificationMutation({ id });
-    },
-    [deleteNotificationMutation],
-  );
+  const deleteNotification = (id: Id<"notifications">) => {
+    void deleteNotificationMutation({ id });
+  };
 
   return (
     <NotificationContext.Provider

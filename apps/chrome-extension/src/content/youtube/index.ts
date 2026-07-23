@@ -1,8 +1,7 @@
 // youtube content script
 // adds a "Save to vmem" button to youtube video pages that extracts the transcript
 
-import type { ContentMessage, BackgroundResponse } from "@/types/messages";
-import { safeSendMessage } from "@/lib/safe-message";
+import { sendMessage } from "@/lib/messaging";
 import { injectInstrumentSansFont } from "@/content/shared/inject-button";
 import { createVmemLogoImg } from "@/content/shared/icons";
 import { waitForProbe } from "@/content/shared/dom-utils";
@@ -196,48 +195,26 @@ async function handleSaveClick(): Promise<void> {
       ? rawTranscript.slice(0, 12000)
       : "(No transcript available)";
 
-    const message: ContentMessage = {
-      type: "SAVE_YOUTUBE_VIDEO",
+    await sendMessage("saveYoutubeVideo", {
       url: window.location.href,
       title,
       channel,
       transcript,
-    };
-
-    safeSendMessage<BackgroundResponse>(message, (response) => {
-      if (response?.type === "SAVE_RESULT" && response.success) {
-        button.innerHTML = `<span style="color: #16a34a;">✓ Saved!</span>`;
-        button.title = "Save video to vmem";
-      } else {
-        // surface the real reason: backend error message or a generic note
-        // when the response was dropped (extension reload channel closed)
-        const reason =
-          response?.type === "SAVE_RESULT" && response.error
-            ? response.error
-            : response === undefined
-              ? "Extension context unavailable — reload the page"
-              : "Unknown error";
-        console.error("[vmem] Save to vmem failed:", reason, response);
-        button.innerHTML = `<span style="color: #dc2626;">Failed</span>`;
-        button.title = `Save failed: ${reason}`;
-      }
-      setTimeout(() => {
-        button.innerHTML = originalContent;
-        button.title = "Save video to vmem";
-        button.disabled = false;
-      }, 2500);
     });
+    button.innerHTML = `<span style="color: #16a34a;">✓ Saved!</span>`;
+    button.title = "Save video to vmem";
   } catch (err) {
     const reason = err instanceof Error ? err.message : String(err);
-    console.error("[vmem] Save failed:", err);
-    button.innerHTML = `<span style="color: #dc2626;">Error</span>`;
+    console.error("[vmem] Save to vmem failed:", reason);
+    button.innerHTML = `<span style="color: #dc2626;">Failed</span>`;
     button.title = `Save failed: ${reason}`;
-    setTimeout(() => {
-      button.innerHTML = originalContent;
-      button.title = "Save video to vmem";
-      button.disabled = false;
-    }, 2500);
   }
+
+  setTimeout(() => {
+    button.innerHTML = originalContent;
+    button.title = "Save video to vmem";
+    button.disabled = false;
+  }, 2500);
 }
 
 function injectButton(): void {

@@ -5,27 +5,12 @@
 //   blobToBase64 encodes the cropped blob for SAVE_SCREENSHOT
 
 import { base64 as base64Codec } from "@scure/base";
-import type { ContentMessage, BackgroundResponse } from "@/types/messages";
-import { safeSendMessage } from "@/lib/safe-message";
+import { sendMessage } from "@/lib/messaging";
 import type { CroppedImage, SelectionRect } from "./types";
 
-export function requestCapture(): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const message: ContentMessage = { type: "CAPTURE_VISIBLE_TAB" };
-    safeSendMessage<BackgroundResponse>(message, (response) => {
-      if (!response) {
-        reject(new Error("Extension context unavailable"));
-        return;
-      }
-      if (response.type === "CAPTURE_RESULT") {
-        resolve(response.dataUrl);
-      } else if (response.type === "CAPTURE_ERROR") {
-        reject(new Error(response.error));
-      } else {
-        reject(new Error("Unexpected response from background"));
-      }
-    });
-  });
+export async function requestCapture(): Promise<string> {
+  const result = await sendMessage("captureVisibleTab");
+  return result.dataUrl;
 }
 
 // AI-generated (Claude), prompt: "crop visible tab capture to selection rect with device pixel ratio"

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Button, Checkbox, cn, TabsPrimitive } from "@vmem/ui";
 import { Virtuoso } from "react-virtuoso";
-import { isCheckedByDefault, toggleCheckedByDefault } from "./checkedByDefault";
+import { isCheckedByDefault, toggleCheckedByDefault } from "./shared";
 
 function FilterTabContent({
   value,

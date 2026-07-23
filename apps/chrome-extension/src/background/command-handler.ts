@@ -1,12 +1,16 @@
+import { sendMessage } from "@/lib/messaging";
 import { savePageFromTab } from "./context-menu";
 import { injectPageToast } from "./inject-page-toast";
 import { toastForSaveResult } from "./save-toast";
 
 async function triggerScreenshot(tabId: number): Promise<void> {
   try {
-    await chrome.tabs.sendMessage(tabId, { type: "START_SCREENSHOT" });
+    await sendMessage("startScreenshot", undefined, tabId);
   } catch (err) {
-    console.warn("[vmem] Could not start screenshot on tab:", err);
+    console.warn(
+      "[vmem] Could not start screenshot on tab:",
+      err instanceof Error ? err.message : String(err),
+    );
   }
 }
 

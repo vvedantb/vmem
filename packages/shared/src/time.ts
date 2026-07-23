@@ -85,3 +85,27 @@ export function formatTimeUntil(
   if (scheduledTime <= Date.now()) return options.due ?? "any moment";
   return dayjs(scheduledTime).fromNow();
 }
+
+// Intl compact notation (1.2k / 3m); lowercased to match existing UI
+export function formatCompactNumber(num: number): string {
+  return new Intl.NumberFormat(undefined, {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  })
+    .format(num)
+    .toLowerCase();
+}
+
+export function formatDurationMs(durationMs: number): string {
+  return `${Math.round(durationMs)}ms`;
+}
+
+// same calendar day → time only; otherwise short date + time
+export function formatSameDayOrDateTime(ts: number): string {
+  const date = dayjs(ts);
+  if (!date.isValid()) return "";
+  if (date.isSame(dayjs(), "day")) {
+    return date.format("h:mm:ss A");
+  }
+  return date.format("MMM D h:mm A");
+}

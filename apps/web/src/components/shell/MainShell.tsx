@@ -1,4 +1,3 @@
-import { useCallback } from "react";
 import { useLocalStorage } from "usehooks-ts";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import Sidebar from "@/components/shell/Sidebar";
@@ -11,10 +10,7 @@ export default function MainShell({ children }: { children: React.ReactNode }) {
     "sidebar-collapsed",
     false,
   );
-  const toggleSidebar = useCallback(
-    () => setIsSidebarCollapsed((prev) => !prev),
-    [setIsSidebarCollapsed],
-  );
+  const toggleSidebar = () => setIsSidebarCollapsed((prev) => !prev);
 
   useHotkey("Mod+I", toggleSidebar, { preventDefault: true });
 

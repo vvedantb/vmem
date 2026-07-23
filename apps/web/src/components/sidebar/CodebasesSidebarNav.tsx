@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, lazy, Suspense } from "react";
+import { useState, lazy, Suspense } from "react";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useAction, useQuery } from "convex/react";
 import { useQueryStates } from "nuqs";
@@ -64,40 +64,29 @@ export function CodebasesSidebarNav({
 
   const isConnected = connection !== undefined && connection !== null;
 
-  const staleCodebases = useMemo(
-    () =>
-      (codebases ?? []).filter(
-        (cb) =>
-          !cb.isArchived &&
-          cb.status === "synced" &&
-          (cb.parserVersion === undefined ||
-            cb.parserVersion !== PARSER_VERSION),
-      ),
-    [codebases],
+  const staleCodebases = (codebases ?? []).filter(
+    (cb) =>
+      !cb.isArchived &&
+      cb.status === "synced" &&
+      (cb.parserVersion === undefined || cb.parserVersion !== PARSER_VERSION),
   );
 
-  const filteredCodebases = useMemo(() => {
-    if (!codebases) return [];
-    const query = searchQuery.trim().toLowerCase();
-    if (query.length === 0) return codebases;
-    return codebases.filter(
-      (cb) =>
-        cb.repoName.toLowerCase().includes(query) ||
-        cb.repoOwner.toLowerCase().includes(query) ||
-        cb.repoFullName.toLowerCase().includes(query) ||
-        (cb.language?.toLowerCase().includes(query) ?? false) ||
-        (cb.description?.toLowerCase().includes(query) ?? false),
-    );
-  }, [codebases, searchQuery]);
+  const query = searchQuery.trim().toLowerCase();
+  const filteredCodebases = !codebases
+    ? []
+    : query.length === 0
+      ? codebases
+      : codebases.filter(
+          (cb) =>
+            cb.repoName.toLowerCase().includes(query) ||
+            cb.repoOwner.toLowerCase().includes(query) ||
+            cb.repoFullName.toLowerCase().includes(query) ||
+            (cb.language?.toLowerCase().includes(query) ?? false) ||
+            (cb.description?.toLowerCase().includes(query) ?? false),
+        );
 
-  const activeCodebases = useMemo(
-    () => filteredCodebases.filter((cb) => !cb.isArchived),
-    [filteredCodebases],
-  );
-  const archivedCodebases = useMemo(
-    () => filteredCodebases.filter((cb) => cb.isArchived),
-    [filteredCodebases],
-  );
+  const activeCodebases = filteredCodebases.filter((cb) => !cb.isArchived);
+  const archivedCodebases = filteredCodebases.filter((cb) => cb.isArchived);
 
   const openCodebase = (id: Id<"codebases">) => {
     if (profileId === undefined) return;
@@ -107,7 +96,7 @@ export function CodebasesSidebarNav({
     });
   };
 
-  const handleResyncAll = useCallback(async () => {
+  const handleResyncAll = async () => {
     setResyncing(true);
     try {
       const result = await syncAllMy({ teamId });
@@ -119,7 +108,7 @@ export function CodebasesSidebarNav({
     } finally {
       setResyncing(false);
     }
-  }, [syncAllMy, teamId]);
+  };
 
   const toolbarAddButton = (
     <Button

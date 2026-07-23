@@ -13,8 +13,8 @@
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.22.4",
-    "@dnd-kit/core": "^6.3.1",
-    "@dnd-kit/utilities": "^3.2.2",
+    "@headless-tree/core": "^1.7.0",
+    "@headless-tree/react": "^1.7.0",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-checkbox": "catalog:",
     "@radix-ui/react-collapsible": "catalog:",
@@ -49,6 +49,7 @@
     "convex": "catalog:",
     "d3-force": "^3.0.0",
     "diff": "^8.0.3",
+    "es-toolkit": "^1.49.0",
     "fflate": "^0.8.2",
     "motion": "^12.34.0",
     "next-themes": "^0.4.4",
@@ -66,6 +67,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@rolldown/plugin-babel": "^0.2.3",
     "@tanstack/router-plugin": "^1.167.22",
     "@types/d3-force": "^3.0.10",
     "@types/node": "catalog:node-types-20",
@@ -73,6 +75,7 @@
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "^6.0.1",
     "autoprefixer": "^10.4.20",
+    "babel-plugin-react-compiler": "1.0.0",
     "postcss": "^8.5.4",
     "rollup-plugin-visualizer": "^7.0.1",
     "tailwindcss": "catalog:tailwind3",

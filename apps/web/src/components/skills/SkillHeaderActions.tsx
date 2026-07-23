@@ -19,6 +19,7 @@ import {
   IconTrash,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
+import { useCopyToClipboard } from "usehooks-ts";
 import DestructiveConfirmDialog from "@/components/settings/DestructiveConfirmDialog";
 import { formatSkillForClipboard } from "./_utils";
 import { SkillHistoryPanel } from "./SkillHistoryPanel";
@@ -40,6 +41,7 @@ export function SkillHeaderActions({
 
   const deleteSkill = useMutation(api.skills.deleteSkill);
   const updateSkill = useMutation(api.skills.updateSkill);
+  const [, copyToClipboard] = useCopyToClipboard();
 
   const isEnabled = skill.enabled !== false;
 
@@ -52,12 +54,12 @@ export function SkillHeaderActions({
   };
 
   const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(formatSkillForClipboard(skill));
+    const ok = await copyToClipboard(formatSkillForClipboard(skill));
+    if (ok) {
       toast.success("Skill copied to clipboard");
-    } catch {
-      toast.error("Failed to copy to clipboard");
+      return;
     }
+    toast.error("Failed to copy to clipboard");
   };
 
   const handleDelete = async () => {

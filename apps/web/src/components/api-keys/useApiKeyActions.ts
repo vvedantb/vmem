@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { useMutation, useAction } from "convex/react";
 import { useCopyToClipboard, useTimeout } from "usehooks-ts";
 import { toast } from "sonner";
@@ -27,64 +27,58 @@ export function useApiKeyActions() {
 
   useTimeout(() => setCopiedKeyId(null), copiedKeyId !== null ? 2000 : null);
 
-  const handleCopyKey = useCallback(
-    async (apiKeyId: ApiKey["id"]) => {
-      const existing = revealedKeys[apiKeyId];
-      const keyToCopy =
-        existing ??
-        (await (async () => {
-          setCopyingKeyId(apiKeyId);
-          try {
-            return await revealApiKey({ id: apiKeyId });
-          } catch {
-            toast.error("Failed to retrieve API key");
-            return null;
-          } finally {
-            setCopyingKeyId(null);
-          }
-        })());
-
-      if (!keyToCopy) return;
-      const copied = await copyToClipboard(keyToCopy);
-      if (!copied) {
-        toast.error("Failed to copy to clipboard");
-        return;
-      }
-      setCopiedKeyId(apiKeyId);
-      toast.success("API key copied to clipboard");
-    },
-    [revealedKeys, revealApiKey, copyToClipboard],
-  );
-
-  const handleToggleReveal = useCallback(
-    async (apiKeyId: ApiKey["id"]) => {
-      if (revealedKeys[apiKeyId]) {
-        setRevealedKeys((prev) => {
-          const next = { ...prev };
-          delete next[apiKeyId];
-          return next;
-        });
-        return;
-      }
-
-      setRevealingKeyId(apiKeyId);
-      try {
-        const rawKey = await revealApiKey({ id: apiKeyId });
-        if (!rawKey) {
-          toast.error("Could not reveal API key");
-          return;
+  const handleCopyKey = async (apiKeyId: ApiKey["id"]) => {
+    const existing = revealedKeys[apiKeyId];
+    const keyToCopy =
+      existing ??
+      (await (async () => {
+        setCopyingKeyId(apiKeyId);
+        try {
+          return await revealApiKey({ id: apiKeyId });
+        } catch {
+          toast.error("Failed to retrieve API key");
+          return null;
+        } finally {
+          setCopyingKeyId(null);
         }
-        setRevealedKeys((prev) => ({ ...prev, [apiKeyId]: rawKey }));
-      } catch {
-        toast.error("Failed to reveal API key");
-      } finally {
-        setRevealingKeyId(null);
-      }
-    },
-    [revealedKeys, revealApiKey],
-  );
+      })());
 
-  const handleRevoke = useCallback(async () => {
+    if (!keyToCopy) return;
+    const copied = await copyToClipboard(keyToCopy);
+    if (!copied) {
+      toast.error("Failed to copy to clipboard");
+      return;
+    }
+    setCopiedKeyId(apiKeyId);
+    toast.success("API key copied to clipboard");
+  };
+
+  const handleToggleReveal = async (apiKeyId: ApiKey["id"]) => {
+    if (revealedKeys[apiKeyId]) {
+      setRevealedKeys((prev) => {
+        const next = { ...prev };
+        delete next[apiKeyId];
+        return next;
+      });
+      return;
+    }
+
+    setRevealingKeyId(apiKeyId);
+    try {
+      const rawKey = await revealApiKey({ id: apiKeyId });
+      if (!rawKey) {
+        toast.error("Could not reveal API key");
+        return;
+      }
+      setRevealedKeys((prev) => ({ ...prev, [apiKeyId]: rawKey }));
+    } catch {
+      toast.error("Failed to reveal API key");
+    } finally {
+      setRevealingKeyId(null);
+    }
+  };
+
+  const handleRevoke = async () => {
     if (!revokeKeyId) return;
 
     setIsRevoking(true);
@@ -102,9 +96,9 @@ export function useApiKeyActions() {
     } finally {
       setIsRevoking(false);
     }
-  }, [revokeKeyId, revokeApiKey]);
+  };
 
-  const handleDelete = useCallback(async () => {
+  const handleDelete = async () => {
     if (!deleteKeyId) return;
 
     setIsDeleting(true);
@@ -128,7 +122,7 @@ export function useApiKeyActions() {
     } finally {
       setIsDeleting(false);
     }
-  }, [deleteKeyId, deleteApiKey]);
+  };
 
   return {
     revokeKeyId,

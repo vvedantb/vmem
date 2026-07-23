@@ -1,6 +1,6 @@
 // non-canvas graph state (filters/search/display) shared by canvas + header
 
-import { useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useState } from "react";
 import { useAction } from "convex/react";
 import { useQuery as useTanstackQuery } from "@tanstack/react-query";
 import { api } from "@vmem/backend";
@@ -84,18 +84,15 @@ export function useMemoryGraphController({
   const [graphSettings, setGraphSettingsState] =
     useState<GraphSettings>(getGraphSettings);
 
-  const filters = useMemo<MemoryViewFilterParams>(
-    () => ({
-      kinds: params.kinds,
-      tags: params.tags,
-      sources: params.sources,
-      types: params.types,
-    }),
-    [params.kinds, params.tags, params.sources, params.types],
-  );
+  const filters: MemoryViewFilterParams = {
+    kinds: params.kinds,
+    tags: params.tags,
+    sources: params.sources,
+    types: params.types,
+  };
 
   // derived display state
-  const viewTheme = useMemo(() => getViewTheme(isDark), [isDark]);
+  const viewTheme = getViewTheme(isDark);
 
   // derived filter stats
   const {
@@ -103,29 +100,18 @@ export function useMemoryGraphController({
     kinds: allKinds,
     sources: allSources,
     types: allTypes,
-  } = useMemo(() => getGraphFacets(apiNodes), [apiNodes]);
+  } = getGraphFacets(apiNodes);
 
-  const { graphNodes, graphEdges } = useMemo(
-    () =>
-      buildGraphData(
-        apiNodes,
-        apiTagEdges,
-        allRelatesToEdges,
-        apiWikiParentEdges,
-        apiMentionsEdges,
-        filters,
-      ),
-    [
-      apiNodes,
-      apiTagEdges,
-      allRelatesToEdges,
-      apiWikiParentEdges,
-      apiMentionsEdges,
-      filters,
-    ],
+  const { graphNodes, graphEdges } = buildGraphData(
+    apiNodes,
+    apiTagEdges,
+    allRelatesToEdges,
+    apiWikiParentEdges,
+    apiMentionsEdges,
+    filters,
   );
 
-  const searchMatchSet = useMemo(() => {
+  const searchMatchSet = (() => {
     if (!isSearchActive) return EMPTY_SET;
 
     const matches = new Set<string>();
@@ -148,14 +134,11 @@ export function useMemoryGraphController({
     }
 
     return matches;
-  }, [isSearchActive, searchQuery, graphNodes, memorySearchResult]);
+  })();
 
   // ----- Progressive global loading -----
 
-  const loadedMemoryCount = useMemo(
-    () => apiNodes.filter((n) => n.kind === "memory").length,
-    [apiNodes],
-  );
+  const loadedMemoryCount = apiNodes.filter((n) => n.kind === "memory").length;
 
   const canLoadMore =
     scope === "global" &&

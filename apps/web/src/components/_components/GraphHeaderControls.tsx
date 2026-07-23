@@ -1,6 +1,5 @@
 // graph header: search / filters / options (+ add memory)
 
-import { useCallback, useMemo } from "react";
 import { IconAdjustmentsHorizontal, IconRefresh } from "@tabler/icons-react";
 import {
   Button,
@@ -102,43 +101,30 @@ function GraphFiltersButton({
     isDark,
   } = controller;
 
-  const kindCounts = useMemo<Record<ListItemKind, number>>(() => {
-    const counts: Record<ListItemKind, number> = {
-      memory: 0,
-      entity: 0,
-      "wiki-document": 0,
-      "wiki-artifact": 0,
-      "wiki-folder": 0,
-      skill: 0,
-    };
-    for (const stat of allKinds) counts[stat.kind] = stat.count;
-    return counts;
-  }, [allKinds]);
+  const kindCounts: Record<ListItemKind, number> = {
+    memory: 0,
+    entity: 0,
+    "wiki-document": 0,
+    "wiki-artifact": 0,
+    "wiki-folder": 0,
+    skill: 0,
+  };
+  for (const stat of allKinds) kindCounts[stat.kind] = stat.count;
 
-  const typeCounts = useMemo<Record<MemoryType, number>>(() => {
-    const counts: Record<MemoryType, number> = {
-      profile: 0,
-      episodic: 0,
-      knowledge: 0,
-    };
-    for (const stat of allTypes) counts[stat.type] = stat.count;
-    return counts;
-  }, [allTypes]);
+  const typeCounts: Record<MemoryType, number> = {
+    profile: 0,
+    episodic: 0,
+    knowledge: 0,
+  };
+  for (const stat of allTypes) typeCounts[stat.type] = stat.count;
 
-  const distinctSources = useMemo(
-    () => allSources.map((sourceStat) => sourceStat.source),
-    [allSources],
-  );
+  const distinctSources = allSources.map((sourceStat) => sourceStat.source);
 
-  const tagStats = useMemo(
-    () =>
-      allTags.map((tagStat) => ({
-        tag: tagStat.tag,
-        count: tagStat.count,
-        latestCreatedAt: "",
-      })),
-    [allTags],
-  );
+  const tagStats = allTags.map((tagStat) => ({
+    tag: tagStat.tag,
+    count: tagStat.count,
+    latestCreatedAt: "",
+  }));
 
   return (
     <MemoryFiltersButton
@@ -177,19 +163,16 @@ function OptionsPopover({
   visibleNodeCount: number;
   edgeCount: number;
 }) {
-  const handleSliderChange = useCallback(
-    (key: "scalingRatio" | "gravity", value: number) => {
-      onSettingsChange({ ...settings, [key]: value });
-    },
-    [settings, onSettingsChange],
-  );
+  const handleSliderChange = (
+    key: "scalingRatio" | "gravity",
+    value: number,
+  ) => {
+    onSettingsChange({ ...settings, [key]: value });
+  };
 
-  const handleLabelsToggle = useCallback(
-    (checked: boolean) => {
-      onSettingsChange({ ...settings, showLabels: checked });
-    },
-    [settings, onSettingsChange],
-  );
+  const handleLabelsToggle = (checked: boolean) => {
+    onSettingsChange({ ...settings, showLabels: checked });
+  };
 
   return (
     <Popover>

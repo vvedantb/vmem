@@ -23,6 +23,37 @@ const badgeTexts: string[] = []; // every badge text
 let local: Record<string, unknown> = {};
 let session: Record<string, unknown> = {};
 
+function makeStorageArea(getArea: () => Record<string, unknown>) {
+  return {
+    async get(
+      keys: string | string[] | Record<string, unknown>,
+    ): Promise<Record<string, unknown>> {
+      const area = getArea();
+      if (typeof keys === "string") {
+        return { [keys]: area[keys] };
+      }
+      if (Array.isArray(keys)) {
+        const result: Record<string, unknown> = {};
+        for (const key of keys) {
+          if (key in area) result[key] = area[key];
+        }
+        return result;
+      }
+      return { ...keys, ...area };
+    },
+    async set(obj: Record<string, unknown>): Promise<void> {
+      Object.assign(getArea(), obj);
+    },
+    async remove(keys: string | string[]): Promise<void> {
+      const area = getArea();
+      const list = Array.isArray(keys) ? keys : [keys];
+      for (const key of list) {
+        delete area[key];
+      }
+    },
+  };
+}
+
 function resetState(initialLocal: Record<string, unknown> = {}): void {
   alarms.clear();
   createCalls.length = 0;
@@ -50,26 +81,8 @@ Object.defineProperty(globalThis, "chrome", {
     onAlarm: { addListener(): void {} },
   },
   storage: {
-    local: {
-      async get(
-        defaults: Record<string, unknown>,
-      ): Promise<Record<string, unknown>> {
-        return { ...defaults, ...local };
-      },
-      async set(obj: Record<string, unknown>): Promise<void> {
-        Object.assign(local, obj);
-      },
-    },
-    session: {
-      async get(
-        defaults: Record<string, unknown>,
-      ): Promise<Record<string, unknown>> {
-        return { ...defaults, ...session };
-      },
-      async set(obj: Record<string, unknown>): Promise<void> {
-        Object.assign(session, obj);
-      },
-    },
+    local: makeStorageArea(() => local),
+    session: makeStorageArea(() => session),
   },
   bookmarks: { onCreated: { addListener(): void {} } },
   action: {

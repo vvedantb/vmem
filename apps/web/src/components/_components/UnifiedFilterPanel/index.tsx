@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Button, TabsPrimitive } from "@vmem/ui";
 import {
   IconCategory,
@@ -55,7 +55,7 @@ export default function UnifiedFilterPanel({
   visibleTabs = ["kind", "tags", "source", "type"],
 }: UnifiedFilterPanelProps) {
   const [tagSortMode, setTagSortMode] = useState<TagSortMode>("most-used");
-  const visibleTabSet = useMemo(() => new Set(visibleTabs), [visibleTabs]);
+  const visibleTabSet = new Set(visibleTabs);
 
   const kindCount = selectedKinds.length;
   const tagCount = selectedTags.length;
@@ -64,7 +64,7 @@ export default function UnifiedFilterPanel({
   const totalActiveCount = kindCount + tagCount + sourceCount + typeCount;
   const hasActiveFilters = totalActiveCount > 0;
 
-  const kindCounts = useMemo(() => {
+  const kindCounts = (() => {
     if (kindCountsProp) return kindCountsProp;
     const counts: Record<ListItemKind, number> = {
       memory: 0,
@@ -78,15 +78,14 @@ export default function UnifiedFilterPanel({
       counts[item.kind] += 1;
     }
     return counts;
-  }, [kindCountsProp, allItems]);
+  })();
 
-  const computedTags = useMemo(() => buildTagStats(allMemories), [allMemories]);
-  const sortedTags = useMemo(() => {
-    const tags = tagStatsProp ?? computedTags;
-    return tagStatsProp ? tags : sortTagStats(tags, tagSortMode);
-  }, [tagStatsProp, computedTags, tagSortMode]);
+  const computedTags = buildTagStats(allMemories);
+  const sortedTags = tagStatsProp
+    ? tagStatsProp
+    : sortTagStats(computedTags, tagSortMode);
 
-  const typeCounts = useMemo(() => {
+  const typeCounts = (() => {
     if (typeCountsProp) return typeCountsProp;
     const counts: Record<MemoryType, number> = {
       profile: 0,
@@ -97,7 +96,7 @@ export default function UnifiedFilterPanel({
       counts[memory.type] += 1;
     }
     return counts;
-  }, [typeCountsProp, allMemories]);
+  })();
 
   return (
     <div className="flex flex-col">

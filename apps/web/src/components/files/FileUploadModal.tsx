@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import {
   Dialog,
@@ -55,14 +55,14 @@ export default function FileUploadModal({
     }
   }, [isOpen, initialFiles]);
 
-  const addFiles = useCallback((newFiles: File[]) => {
+  const addFiles = (newFiles: File[]) => {
     const newQueuedFiles: QueuedFile[] = newFiles.map((file) => ({
       file,
       progress: 0,
       status: "pending" as const,
     }));
     setQueuedFiles((prev) => [...prev, ...newQueuedFiles]);
-  }, []);
+  };
 
   const { getRootProps, getInputProps } = useDropzone({
     multiple: true,
@@ -72,63 +72,62 @@ export default function FileUploadModal({
     },
   });
 
-  const removeQueuedFile = useCallback((index: number) => {
+  const removeQueuedFile = (index: number) => {
     setQueuedFiles((prev) => prev.filter((_, i) => i !== index));
-  }, []);
+  };
 
-  const uploadFile = useCallback(
-    async (queuedFile: QueuedFile, index: number): Promise<boolean> => {
+  const uploadFile = async (
+    queuedFile: QueuedFile,
+    index: number,
+  ): Promise<boolean> => {
+    setQueuedFiles((prev) =>
+      prev.map((f, i) =>
+        i === index ? { ...f, status: "uploading" as const } : f,
+      ),
+    );
+
+    const progressInterval = setInterval(() => {
       setQueuedFiles((prev) =>
         prev.map((f, i) =>
-          i === index ? { ...f, status: "uploading" as const } : f,
+          i === index && f.status === "uploading" && f.progress < 90
+            ? { ...f, progress: f.progress + 10 }
+            : f,
+        ),
+      );
+    }, 200);
+
+    try {
+      await onUpload(queuedFile.file);
+
+      clearInterval(progressInterval);
+
+      setQueuedFiles((prev) =>
+        prev.map((f, i) =>
+          i === index
+            ? { ...f, progress: 100, status: "complete" as const }
+            : f,
         ),
       );
 
-      const progressInterval = setInterval(() => {
-        setQueuedFiles((prev) =>
-          prev.map((f, i) =>
-            i === index && f.status === "uploading" && f.progress < 90
-              ? { ...f, progress: f.progress + 10 }
-              : f,
-          ),
-        );
-      }, 200);
+      return true;
+    } catch (error) {
+      clearInterval(progressInterval);
+      setQueuedFiles((prev) =>
+        prev.map((f, i) =>
+          i === index
+            ? {
+                ...f,
+                status: "error" as const,
+                error: error instanceof Error ? error.message : "Upload failed",
+              }
+            : f,
+        ),
+      );
+      return false;
+    }
+  };
 
-      try {
-        await onUpload(queuedFile.file);
-
-        clearInterval(progressInterval);
-
-        setQueuedFiles((prev) =>
-          prev.map((f, i) =>
-            i === index
-              ? { ...f, progress: 100, status: "complete" as const }
-              : f,
-          ),
-        );
-
-        return true;
-      } catch (error) {
-        clearInterval(progressInterval);
-        setQueuedFiles((prev) =>
-          prev.map((f, i) =>
-            i === index
-              ? {
-                  ...f,
-                  status: "error" as const,
-                  error:
-                    error instanceof Error ? error.message : "Upload failed",
-                }
-              : f,
-          ),
-        );
-        return false;
-      }
-    },
-    [onUpload],
-  );
-
-  const handleUploadAll = useCallback(async () => {
+  const handleUploadAll = async () => {
     const pendingFiles = queuedFiles.filter((f) => f.status === "pending");
     if (pendingFiles.length === 0) return;
 
@@ -150,21 +149,18 @@ export default function FileUploadModal({
         `Successfully uploaded ${successCount} file${successCount !== 1 ? "s" : ""}`,
       );
     }
-  }, [queuedFiles, uploadFile]);
+  };
 
-  const handleClose = useCallback(() => {
+  const handleClose = () => {
     if (!isUploading) {
       setQueuedFiles([]);
       onClose();
     }
-  }, [isUploading, onClose]);
+  };
 
-  const handleOpenChange = useCallback(
-    (open: boolean) => {
-      if (!open) handleClose();
-    },
-    [handleClose],
-  );
+  const handleOpenChange = (open: boolean) => {
+    if (!open) handleClose();
+  };
 
   const pendingCount = queuedFiles.filter((f) => f.status === "pending").length;
   const completeCount = queuedFiles.filter(

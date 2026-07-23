@@ -8,7 +8,10 @@ import {
 } from "@vmem/ui";
 import { IconArrowsSort } from "@tabler/icons-react";
 import type { TagSortMode, TagStats } from "@/lib/memories";
-import { FilterCheckboxRow, VirtuosoFilterTab } from "./filter-primitives";
+import {
+  FilterCheckboxRow,
+  VirtuosoFilterTab,
+} from "@/components/_components/FacetedFilter";
 import { TAG_SORT_LABELS, TAG_SORT_OPTIONS } from "./types";
 
 interface TagsCtx {

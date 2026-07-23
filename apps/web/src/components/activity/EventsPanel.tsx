@@ -55,7 +55,11 @@ import {
   type SortDirection,
 } from "@/lib/url-state/activity";
 import type { ActivityItem } from "./types";
-import { FilterOptionContent } from "./FilterOptionContent";
+import {
+  FacetedFilterBadge,
+  FacetedFilterOption,
+  toggleArrayItem,
+} from "@/components/_components/FacetedFilter";
 
 const EVENT_TYPE_ICONS: Record<EventType, TablerIcon> = {
   memory_created: IconBrain,
@@ -355,14 +359,6 @@ function EventsFiltersDropdown({
   onRangeChange: (range: EventDatePreset) => void;
   onReset: () => void;
 }) {
-  const toggleType = (type: EventType) => {
-    if (types.includes(type)) {
-      onTypesChange(types.filter((t) => t !== type));
-    } else {
-      onTypesChange([...types, type]);
-    }
-  };
-
   const activeFilterCount =
     (types.length > 0 ? 1 : 0) + (range !== "all" ? 1 : 0);
 
@@ -372,11 +368,7 @@ function EventsFiltersDropdown({
         <Button variant="outline" size="sm" className="relative gap-2">
           <IconFilter size={16} />
           Filters
-          {activeFilterCount > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-accent text-[10px] font-medium tabular-nums text-accent-foreground flex items-center justify-center leading-none">
-              {activeFilterCount}
-            </span>
-          )}
+          <FacetedFilterBadge count={activeFilterCount} />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
@@ -397,9 +389,9 @@ function EventsFiltersDropdown({
                 const DateIcon = EVENT_DATE_ICONS[preset];
                 return (
                   <DropdownMenuRadioItem key={preset} value={preset}>
-                    <FilterOptionContent icon={<DateIcon size={16} />}>
+                    <FacetedFilterOption icon={<DateIcon size={16} />}>
                       {EVENT_DATE_PRESET_LABELS[preset]}
-                    </FilterOptionContent>
+                    </FacetedFilterOption>
                   </DropdownMenuRadioItem>
                 );
               })}
@@ -418,12 +410,14 @@ function EventsFiltersDropdown({
                 <DropdownMenuCheckboxItem
                   key={type}
                   checked={types.includes(type)}
-                  onCheckedChange={() => toggleType(type)}
+                  onCheckedChange={() =>
+                    onTypesChange(toggleArrayItem(types, type))
+                  }
                   onSelect={(e) => e.preventDefault()}
                 >
-                  <FilterOptionContent icon={<TypeIcon size={16} />}>
+                  <FacetedFilterOption icon={<TypeIcon size={16} />}>
                     {EVENT_TYPE_LABELS[type]}
-                  </FilterOptionContent>
+                  </FacetedFilterOption>
                 </DropdownMenuCheckboxItem>
               );
             })}

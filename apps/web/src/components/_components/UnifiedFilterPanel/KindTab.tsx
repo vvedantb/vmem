@@ -5,7 +5,7 @@ import {
 } from "@/lib/list-items";
 import { nodeColor } from "../graph-colors";
 import ShapeIndicator from "../ShapeIndicator";
-import { FilterOptionList } from "./filter-primitives";
+import { FilterOptionList } from "@/components/_components/FacetedFilter";
 
 export default function KindTab({
   selectedKinds,

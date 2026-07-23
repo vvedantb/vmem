@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -41,7 +41,7 @@ export default function FilePreviewModal({
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const handleDelete = useCallback(async () => {
+  const handleDelete = async () => {
     if (!node) return;
 
     setIsDeleting(true);
@@ -57,28 +57,25 @@ export default function FilePreviewModal({
     } finally {
       setIsDeleting(false);
     }
-  }, [node, onDelete, onClose]);
+  };
 
-  const handleDownload = useCallback(() => {
+  const handleDownload = () => {
     if (!node) return;
     if (!downloadFileNode(node)) {
       toast.error("Download URL unavailable");
       return;
     }
     toast.success(`Downloading ${node.name}`);
-  }, [node]);
+  };
 
-  const handleClose = useCallback(() => {
+  const handleClose = () => {
     setShowDeleteConfirm(false);
     onClose();
-  }, [onClose]);
+  };
 
-  const handleOpenChange = useCallback(
-    (open: boolean) => {
-      if (!open) handleClose();
-    },
-    [handleClose],
-  );
+  const handleOpenChange = (open: boolean) => {
+    if (!open) handleClose();
+  };
 
   if (!node) return null;
 

@@ -10,7 +10,7 @@ import { useQueryStates } from "nuqs";
 import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
 import { IconBolt } from "@tabler/icons-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import PageContainer from "@/components/shell/PageContainer";
 import { SkillsHub } from "@/components/skills/SkillsHub";
 import { SystemSkillDetail } from "@/components/skills/SystemSkillDetail";
@@ -45,16 +45,17 @@ function SkillsLayout() {
   const [{ q: searchQuery }] = useQueryStates(skillsSearchParams);
   const [modal, setModal] = useState<ModalState>({ mode: "none" });
 
-  const filteredSkills = useMemo(() => {
-    if (!skills) return [];
-    const query = searchQuery.trim().toLowerCase();
-    if (query.length === 0) return skills;
-    return skills.filter(
-      (skill) =>
-        skill.name.toLowerCase().includes(query) ||
-        skill.description.toLowerCase().includes(query),
-    );
-  }, [skills, searchQuery]);
+  const query = searchQuery.trim().toLowerCase();
+  const filteredSkills =
+    skills === undefined
+      ? []
+      : query.length === 0
+        ? skills
+        : skills.filter(
+            (skill) =>
+              skill.name.toLowerCase().includes(query) ||
+              skill.description.toLowerCase().includes(query),
+          );
 
   const hasSkillId = typeof skillId === "string" && skillId.length > 0;
   const viewedSkill = hasSkillId
@@ -70,15 +71,12 @@ function SkillsLayout() {
 
   const pageTitle = hasSkill && viewedSkill ? viewedSkill.name : "Skills";
 
-  const handleNameChange = useCallback(
-    (value: string) => {
-      if (!viewedSkill) return;
-      void updateSkill({ id: viewedSkill._id, name: value });
-    },
-    [updateSkill, viewedSkill],
-  );
+  function handleNameChange(value: string) {
+    if (!viewedSkill) return;
+    void updateSkill({ id: viewedSkill._id, name: value });
+  }
 
-  const handleNameCommit = useCallback(() => {
+  function handleNameCommit() {
     if (!viewedSkill) return;
     const trimmed = viewedSkill.name.trim();
     if (trimmed.length === 0) {
@@ -88,7 +86,7 @@ function SkillsLayout() {
     if (trimmed !== viewedSkill.name) {
       void updateSkill({ id: viewedSkill._id, name: trimmed });
     }
-  }, [updateSkill, viewedSkill]);
+  }
 
   useEffect(() => {
     if (!skills || !hasSkillId) return;
