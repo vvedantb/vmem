@@ -1,5 +1,5 @@
 // extracted graph data-fetching hook
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useConvexAuth, useAction } from "convex/react";
 import { useInfiniteQuery, type InfiniteData } from "@tanstack/react-query";
 import { useMemoryEvents } from "@/hooks/useMemoryEvents";
@@ -108,10 +108,7 @@ export function useGraphData(
   >([]);
 
   const isFocused = focusNodeId !== null;
-  const benchData = useMemo(
-    () => (benchCount > 0 ? generateBenchGraph(benchCount) : null),
-    [benchCount],
-  );
+  const benchData = benchCount > 0 ? generateBenchGraph(benchCount) : null;
 
   const graphQuery = useInfiniteQuery<
     GraphResponse,
@@ -183,17 +180,12 @@ export function useGraphData(
     }
   });
 
-  const merged = useMemo(() => {
-    const pages = graphQuery.data?.pages;
-    if (!pages || pages.length === 0) return null;
-    return mergePages(pages);
-  }, [graphQuery.data]);
+  const pages = graphQuery.data?.pages;
+  const merged = pages && pages.length > 0 ? mergePages(pages) : null;
 
-  const allRelatesToEdges = useMemo(() => {
-    if (benchData) return benchData.relatesToEdges;
-    const apiEdges = merged?.relatesToEdges ?? [];
-    return [...apiEdges, ...liveRelatesToEdges];
-  }, [benchData, merged?.relatesToEdges, liveRelatesToEdges]);
+  const allRelatesToEdges = benchData
+    ? benchData.relatesToEdges
+    : [...(merged?.relatesToEdges ?? []), ...liveRelatesToEdges];
 
   if (benchData) {
     return {

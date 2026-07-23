@@ -48,7 +48,11 @@ import {
   type Scope,
 } from "@/lib/url-state/activity";
 import type { ProfileListItem, TeamListItem } from "./types";
-import { FilterOptionContent } from "./FilterOptionContent";
+import {
+  FacetedFilterBadge,
+  FacetedFilterOption,
+  toggleArrayItem,
+} from "@/components/_components/FacetedFilter";
 
 // filters dropdown for `/activity/usage`
 const RANGE_OPTIONS: Range[] = ["today", "7d", "30d", "all"];
@@ -116,33 +120,13 @@ export function LogsFiltersDropdown({
     (models.length > 0 ? 1 : 0) +
     (!isAllProfilesFilter(profileId) ? 1 : 0);
 
-  const toggleFeature = (feat: Feature) => {
-    if (features.includes(feat)) {
-      onFeaturesChange(features.filter((f) => f !== feat));
-    } else {
-      onFeaturesChange([...features, feat]);
-    }
-  };
-
-  const toggleModel = (model: string) => {
-    if (models.includes(model)) {
-      onModelsChange(models.filter((m) => m !== model));
-    } else {
-      onModelsChange([...models, model]);
-    }
-  };
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm" className="relative gap-2">
           <IconFilter size={16} />
           Filters
-          {activeFilterCount > 0 && (
-            <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-medium leading-none tabular-nums text-accent-foreground">
-              {activeFilterCount}
-            </span>
-          )}
+          <FacetedFilterBadge count={activeFilterCount} />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-52">
@@ -163,18 +147,18 @@ export function LogsFiltersDropdown({
                 }}
               >
                 <DropdownMenuRadioItem value="personal">
-                  <FilterOptionContent icon={<IconUser size={16} />}>
+                  <FacetedFilterOption icon={<IconUser size={16} />}>
                     Personal
-                  </FilterOptionContent>
+                  </FacetedFilterOption>
                 </DropdownMenuRadioItem>
                 {teams.map((t) => (
                   <DropdownMenuRadioItem
                     key={t.team._id}
                     value={`team:${t.team._id}`}
                   >
-                    <FilterOptionContent icon={<IconUsers size={16} />}>
+                    <FacetedFilterOption icon={<IconUsers size={16} />}>
                       {t.team.name}
-                    </FilterOptionContent>
+                    </FacetedFilterOption>
                   </DropdownMenuRadioItem>
                 ))}
               </DropdownMenuRadioGroup>
@@ -199,9 +183,9 @@ export function LogsFiltersDropdown({
                 const RangeIcon = RANGE_ICONS[preset];
                 return (
                   <DropdownMenuRadioItem key={preset} value={preset}>
-                    <FilterOptionContent icon={<RangeIcon size={16} />}>
+                    <FacetedFilterOption icon={<RangeIcon size={16} />}>
                       {RANGE_LABELS[preset]}
-                    </FilterOptionContent>
+                    </FacetedFilterOption>
                   </DropdownMenuRadioItem>
                 );
               })}
@@ -221,12 +205,14 @@ export function LogsFiltersDropdown({
                 <DropdownMenuCheckboxItem
                   key={feat}
                   checked={features.includes(feat)}
-                  onCheckedChange={() => toggleFeature(feat)}
+                  onCheckedChange={() =>
+                    onFeaturesChange(toggleArrayItem(features, feat))
+                  }
                   onSelect={(e) => e.preventDefault()}
                 >
-                  <FilterOptionContent icon={<FeatureIcon size={16} />}>
+                  <FacetedFilterOption icon={<FeatureIcon size={16} />}>
                     {FEATURE_LABELS[feat]}
-                  </FilterOptionContent>
+                  </FacetedFilterOption>
                 </DropdownMenuCheckboxItem>
               );
             })}
@@ -244,12 +230,14 @@ export function LogsFiltersDropdown({
                 <DropdownMenuCheckboxItem
                   key={model}
                   checked={models.includes(model)}
-                  onCheckedChange={() => toggleModel(model)}
+                  onCheckedChange={() =>
+                    onModelsChange(toggleArrayItem(models, model))
+                  }
                   onSelect={(e) => e.preventDefault()}
                 >
-                  <FilterOptionContent icon={<IconCpu size={16} />}>
+                  <FacetedFilterOption icon={<IconCpu size={16} />}>
                     <span className="truncate font-mono text-xs">{model}</span>
-                  </FilterOptionContent>
+                  </FacetedFilterOption>
                 </DropdownMenuCheckboxItem>
               ))}
             </DropdownMenuSubContent>
@@ -269,9 +257,9 @@ export function LogsFiltersDropdown({
               onValueChange={(value) => onProfileChange(value)}
             >
               <DropdownMenuRadioItem value={PROFILE_FILTER_ALL}>
-                <FilterOptionContent icon={<IconUsersGroup size={16} />}>
+                <FacetedFilterOption icon={<IconUsersGroup size={16} />}>
                   All
-                </FilterOptionContent>
+                </FacetedFilterOption>
               </DropdownMenuRadioItem>
               {(profiles ?? []).map((p) => (
                 <DropdownMenuRadioItem key={p._id} value={p._id}>

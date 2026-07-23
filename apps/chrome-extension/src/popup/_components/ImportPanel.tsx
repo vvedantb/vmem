@@ -13,11 +13,7 @@ import {
   Progress,
 } from "@vmem/ui";
 import { formatRelativeTime, formatTimeUntil } from "@vmem/shared";
-import type {
-  ContentMessage,
-  BackgroundResponse,
-  ProgressMessage,
-} from "@/types/messages";
+import { sendMessage, onMessage } from "@/lib/messaging";
 import { getStorage, setStorage } from "@/lib/storage";
 import { useExtensionUserSettings } from "@/popup/useExtensionUserSettings";
 import { SettingsSwitchRow } from "./SettingsSwitchRow";
@@ -63,14 +59,10 @@ export function ImportPanel() {
   useInterval(updateNextSync, 15_000);
 
   useEffect(() => {
-    function handleProgress(message: ProgressMessage) {
-      if (message.type === "IMPORT_PROGRESS") {
-        setProgress({ current: message.current, total: message.total });
-      }
-    }
-
-    chrome.runtime.onMessage.addListener(handleProgress);
-    return () => chrome.runtime.onMessage.removeListener(handleProgress);
+    const unsubscribe = onMessage("importProgress", ({ data }) => {
+      setProgress({ current: data.current, total: data.total });
+    });
+    return unsubscribe;
   }, []);
 
   function handleAutoSyncToggle(checked: boolean) {
@@ -78,8 +70,8 @@ export function ImportPanel() {
     void update({ extensionAutoSyncEnabled: checked });
   }
 
-  function runImport(options: {
-    message: ContentMessage;
+  async function runImport(options: {
+    importFn: () => Promise<{ count: number; locked?: boolean }>;
     setStatus: (status: ImportStatus) => void;
     successMessage: (count: number) => string;
     onSettled: () => void;
@@ -88,31 +80,27 @@ export function ImportPanel() {
     setProgress(null);
     setResultMessage(null);
 
-    chrome.runtime.sendMessage(
-      options.message,
-      (response: BackgroundResponse | undefined) => {
-        if (response?.type === "IMPORT_RESULT") {
-          if (response.locked) {
-            options.setStatus("idle");
-            setResultMessage("Sync already in progress");
-          } else {
-            options.setStatus(response.success ? "done" : "error");
-            setResultMessage(
-              response.success
-                ? options.successMessage(response.count)
-                : (response.error ?? "Sync failed"),
-            );
-            options.onSettled();
-          }
-        }
-        setProgress(null);
-      },
-    );
+    try {
+      const response = await options.importFn();
+      if (response.locked) {
+        options.setStatus("idle");
+        setResultMessage("Sync already in progress");
+      } else {
+        options.setStatus("done");
+        setResultMessage(options.successMessage(response.count));
+        options.onSettled();
+      }
+    } catch (err) {
+      options.setStatus("error");
+      setResultMessage(err instanceof Error ? err.message : String(err));
+    } finally {
+      setProgress(null);
+    }
   }
 
   function handleImportBookmarks() {
-    runImport({
-      message: { type: "IMPORT_BOOKMARKS" },
+    void runImport({
+      importFn: () => sendMessage("importBookmarks"),
       setStatus: setBookmarkStatus,
       successMessage: (count) => `Synced ${count} new bookmarks`,
       onSettled: () => setLastBookmarkSync(Date.now()),
@@ -120,11 +108,9 @@ export function ImportPanel() {
   }
 
   function handleImportHistory() {
-    runImport({
-      message: {
-        type: "IMPORT_HISTORY",
-        days: Number(historyDays),
-      },
+    void runImport({
+      importFn: () =>
+        sendMessage("importHistory", { days: Number(historyDays) }),
       setStatus: setHistoryStatus,
       successMessage: (count) => `Synced ${count} new history entries`,
       onSettled: () => setLastHistorySync(Date.now()),
@@ -132,8 +118,7 @@ export function ImportPanel() {
   }
 
   function handleCancel() {
-    const message: ContentMessage = { type: "CANCEL_IMPORT" };
-    void chrome.runtime.sendMessage(message);
+    void sendMessage("cancelImport").catch(() => {});
 
     if (bookmarkStatus === "importing") setBookmarkStatus("cancelled");
     if (historyStatus === "importing") setHistoryStatus("cancelled");
@@ -146,32 +131,20 @@ export function ImportPanel() {
   const isImporting =
     bookmarkStatus === "importing" || historyStatus === "importing";
 
-  function handleRunAutoSyncNow() {
+  async function handleRunAutoSyncNow() {
     setResultMessage(null);
-    chrome.runtime.sendMessage(
-      { type: "DEBUG_RUN_AUTO_SYNC" },
-      (response: BackgroundResponse | undefined) => {
-        const runtimeError = chrome.runtime.lastError;
-        refreshSyncTimestamps();
-        if (runtimeError) {
-          setResultMessage(
-            `Background error: ${runtimeError.message}. Reload the extension at chrome://extensions`,
-          );
-          return;
-        }
-        if (response?.type === "DEBUG_SYNC_RESULT") {
-          setLastHistorySync(response.lastHistorySync);
-          setLastBookmarkSync(response.lastBookmarkSync);
-          setResultMessage(
-            "Auto-sync run finished — check last-sync times above",
-          );
-          return;
-        }
-        setResultMessage(
-          "No response from background — reload the extension and try again",
-        );
-      },
-    );
+    try {
+      const response = await sendMessage("debugRunAutoSync");
+      setLastHistorySync(response.lastHistorySync);
+      setLastBookmarkSync(response.lastBookmarkSync);
+      setResultMessage("Auto-sync run finished — check last-sync times above");
+    } catch (err) {
+      setResultMessage(
+        `Background error: ${err instanceof Error ? err.message : String(err)}. Reload the extension at chrome://extensions`,
+      );
+    } finally {
+      refreshSyncTimestamps();
+    }
   }
 
   function handleResetSync() {
@@ -306,7 +279,7 @@ export function ImportPanel() {
           variant="outline"
           size="sm"
           className="w-full"
-          onClick={handleRunAutoSyncNow}
+          onClick={() => void handleRunAutoSyncNow()}
           disabled={isImporting}
         >
           Run auto-sync now

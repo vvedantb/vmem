@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { useQueryStates } from "nuqs";
 import { useQuery, usePaginatedQuery } from "convex/react";
 import {
@@ -60,60 +59,47 @@ export function AiLogsPanel() {
       ? normalizeTeamId(teamIdParam, teams)
       : undefined;
 
-  const listArgs = useMemo(() => {
-    if (scope === "team" && !teamId) return "skip" as const;
-    return {
-      scope,
-      teamId,
-      profileId: isAllProfilesFilter(params.profileId)
-        ? undefined
-        : normalizeProfileId(params.profileId, profiles),
-      features: params.features.length > 0 ? params.features : undefined,
-      models: params.models.length > 0 ? params.models : undefined,
-      range: params.range,
-    };
-  }, [
-    scope,
-    teamId,
-    params.profileId,
-    params.features,
-    params.models,
-    params.range,
-    profiles,
-  ]);
+  const listArgs =
+    scope === "team" && !teamId
+      ? ("skip" as const)
+      : {
+          scope,
+          teamId,
+          profileId: isAllProfilesFilter(params.profileId)
+            ? undefined
+            : normalizeProfileId(params.profileId, profiles),
+          features: params.features.length > 0 ? params.features : undefined,
+          models: params.models.length > 0 ? params.models : undefined,
+          range: params.range,
+        };
 
   const paged = usePaginatedQuery(api.openRouterLogs.listMine, listArgs, {
     initialNumItems: PAGE_SIZE,
   });
 
-  const orderedRows = useMemo(() => {
-    if (params.sortDir === "asc") return [...paged.results].reverse();
-    return paged.results;
-  }, [paged.results, params.sortDir]);
+  const orderedRows =
+    params.sortDir === "asc" ? [...paged.results].reverse() : paged.results;
 
-  const summaryArgs = useMemo(() => {
-    if (scope === "team" && !teamId) return "skip" as const;
-    return {
-      scope,
-      teamId,
-      range: params.range,
-    };
-  }, [scope, teamId, params.range]);
+  const summaryArgs =
+    scope === "team" && !teamId
+      ? ("skip" as const)
+      : {
+          scope,
+          teamId,
+          range: params.range,
+        };
 
   const summary = useQuery(api.openRouterLogs.summaryMine, summaryArgs);
 
-  const trends = useMemo(
-    () => computeAiLogsTrends(paged.results),
-    [paged.results],
-  );
+  const trends = computeAiLogsTrends(paged.results);
 
-  const profilesById = useMemo(() => {
+  const profilesById = (() => {
     const map = new Map<string, ProfileListItem>();
     for (const profile of profiles ?? []) {
       map.set(profile._id, profile);
     }
     return map;
-  }, [profiles]);
+  })();
 
   const hasActiveFilters =
     params.range !== "7d" ||

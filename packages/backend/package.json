@@ -20,6 +20,7 @@
   "dependencies": {
     "@clerk/backend": "catalog:",
     "@convex-dev/action-cache": "^0.3.0",
+    "@convex-dev/aggregate": "^0.2.2",
     "@convex-dev/crons": "^0.2.0",
     "@convex-dev/workpool": "^0.4.7",
     "@googleapis/drive": "^20.0.0",

@@ -5,9 +5,14 @@
 // auto capture: saves the user's prompt to vmem on send
 // on send: injects included memories as context prefix then cleans up
 
-import type { ContentMessage, BackgroundResponse } from "@/types/messages";
+import { debounce } from "es-toolkit";
 import type { ExtensionStorage } from "@/types/storage";
-import { safeSendMessage } from "@/lib/safe-message";
+import { sendMessage } from "@/lib/messaging";
+import {
+  autoSearchEnabledItem,
+  autoCaptureEnabledItem,
+  defaultProfileIdItem,
+} from "@/lib/storage";
 import { formatMemoriesContext } from "./format-memories-context";
 import { showToast } from "./toast";
 import {
@@ -58,31 +63,25 @@ export function setupAIChatIntegration(config: AIChatConfig): void {
 
   let settings: CachedSettings = { ...SETTING_DEFAULTS };
 
-  chrome.storage.local.get(SETTING_DEFAULTS, (result) => {
-    settings = {
-      autoSearchEnabled: Boolean(result.autoSearchEnabled),
-      autoCaptureEnabled: Boolean(result.autoCaptureEnabled),
-      defaultProfileId: String(result.defaultProfileId ?? ""),
-    };
+  void Promise.all([
+    autoSearchEnabledItem.getValue(),
+    autoCaptureEnabledItem.getValue(),
+    defaultProfileIdItem.getValue(),
+  ]).then(([autoSearchEnabled, autoCaptureEnabled, defaultProfileId]) => {
+    settings = { autoSearchEnabled, autoCaptureEnabled, defaultProfileId };
   });
 
-  chrome.storage.onChanged.addListener((changes, area) => {
-    if (area !== "local") return;
-    if (changes.autoSearchEnabled !== undefined) {
-      settings.autoSearchEnabled = Boolean(changes.autoSearchEnabled.newValue);
-      // hide panel when auto search is turned off
-      if (!settings.autoSearchEnabled) hideMemoryPanel();
-    }
-    if (changes.autoCaptureEnabled !== undefined) {
-      settings.autoCaptureEnabled = Boolean(
-        changes.autoCaptureEnabled.newValue,
-      );
-    }
-    if (changes.defaultProfileId !== undefined) {
-      settings.defaultProfileId = String(
-        changes.defaultProfileId.newValue ?? "",
-      );
-    }
+  autoSearchEnabledItem.watch((autoSearchEnabled) => {
+    settings.autoSearchEnabled = autoSearchEnabled;
+    if (!autoSearchEnabled) hideMemoryPanel();
+  });
+
+  autoCaptureEnabledItem.watch((autoCaptureEnabled) => {
+    settings.autoCaptureEnabled = autoCaptureEnabled;
+  });
+
+  defaultProfileIdItem.watch((defaultProfileId) => {
+    settings.defaultProfileId = defaultProfileId;
   });
 
   // helpers
@@ -94,8 +93,30 @@ export function setupAIChatIntegration(config: AIChatConfig): void {
 
   // auto search
 
-  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
   let lastSearchQuery = "";
+
+  async function searchMemories(
+    query: string,
+    anchor: HTMLElement,
+  ): Promise<void> {
+    showMemoryPanelLoading(anchor);
+
+    try {
+      const memories = await sendMessage("retrieveMemories", { query });
+      if (memories.length > 0) {
+        showMemoryPanel(memories, anchor);
+      } else {
+        hideMemoryPanel();
+      }
+    } catch {
+      hideMemoryPanel();
+    }
+  }
+
+  const debouncedSearch = debounce((text: string, input: HTMLElement) => {
+    lastSearchQuery = text;
+    void searchMemories(text, input);
+  }, 800);
 
   function handleInputChange(): void {
     if (!settings.autoSearchEnabled) return;
@@ -108,28 +129,7 @@ export function setupAIChatIntegration(config: AIChatConfig): void {
     // skip short or unchanged queries
     if (text.length < 10 || text === lastSearchQuery) return;
 
-    if (debounceTimer) clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-      lastSearchQuery = text;
-      searchMemories(text, input);
-    }, 800);
-  }
-
-  function searchMemories(query: string, anchor: HTMLElement): void {
-    showMemoryPanelLoading(anchor);
-
-    const message: ContentMessage = { type: "RETRIEVE_MEMORIES", query };
-
-    safeSendMessage<BackgroundResponse>(message, (response) => {
-      if (
-        response?.type === "RETRIEVE_RESULT" &&
-        response.memories.length > 0
-      ) {
-        showMemoryPanel(response.memories, anchor);
-      } else {
-        hideMemoryPanel();
-      }
-    });
+    debouncedSearch(text, input);
   }
 
   // auto capture
@@ -147,20 +147,18 @@ export function setupAIChatIntegration(config: AIChatConfig): void {
     lastCapturedText = text;
     lastCapturedTime = now;
 
-    const message: ContentMessage = {
-      type: "CAPTURE_PROMPT",
+    void sendMessage("capturePrompt", {
       prompt: text,
       url: window.location.href,
       platform: config.platform,
       profileId: settings.defaultProfileId || undefined,
-    };
-
-    safeSendMessage<BackgroundResponse>(message, (response) => {
-      if (response?.type === "SAVE_RESULT" && response.success) {
+    })
+      .then(() => {
         showToast({ type: "success", message: "Prompt saved to vmem" });
-      }
-      // silently ignore failures auto capture should never disrupt the user
-    });
+      })
+      .catch(() => {
+        // silently ignore failures auto capture should never disrupt the user
+      });
   }
 
   // send interception

@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { useQueryStates } from "nuqs";
 import type { Id } from "@vmem/backend";
 import { VmemSpinner } from "@/components/icons/animations";
@@ -8,7 +7,7 @@ import FileUploadModal from "@/components/files/FileUploadModal";
 import FilePreviewModal from "@/components/files/FilePreviewModal";
 import { filesSearchParams } from "./search-params";
 import { childCountMap, sortNodes } from "./_utils";
-import { useFileSelection } from "./_hooks/useFileSelection";
+import { useIdSelection } from "@/hooks/useIdSelection";
 import { useFilesData } from "./_hooks/useFilesData";
 import { useFilesActions } from "./_hooks/useFilesActions";
 import BreadcrumbNav from "./BreadcrumbNav";
@@ -79,13 +78,15 @@ export default function FilesClient() {
   } = useFilesData();
 
   const folderId = resolveFolderId(folderIdParam, nodes);
-  const childCounts = useMemo(() => childCountMap(nodes), [nodes]);
+  const childCounts = childCountMap(nodes);
   const currentItems = sortNodes(
     nodes.filter((node) => (node.parentId ?? null) === folderIdParam),
     params.sort,
     params.sortDir,
   );
-  const selection = useFileSelection(currentItems.map((node) => node._id));
+  const selection = useIdSelection<Id<"fileNodes">>({
+    orderedIds: currentItems.map((node) => node._id),
+  });
   const folderNodes = nodes.filter((node) => node.kind === "folder");
   const breadcrumbs = buildBreadcrumbs(nodes, folderIdParam);
 

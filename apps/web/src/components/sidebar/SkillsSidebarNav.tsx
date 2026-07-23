@@ -1,4 +1,4 @@
-import { useMemo, useState, lazy, Suspense } from "react";
+import { useState, lazy, Suspense } from "react";
 import { useLocation, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { useQueryStates } from "nuqs";
@@ -13,7 +13,7 @@ import { skillsSearchParams } from "@/lib/url-state/skills";
 import { SidebarListSearchBar } from "./SidebarListSearchBar";
 import { SharedLayoutBackground } from "./SharedLayoutBackground";
 import { sidebarListRowClass } from "./sidebar-nav-row";
-import { useIdSelectionMode } from "@/hooks/useIdSelectionMode";
+import { useIdSelection } from "@/hooks/useIdSelection";
 import {
   useActiveProfileId,
   useActiveTeamId,
@@ -54,9 +54,8 @@ export function SkillsSidebarNav({
 
   const skills = useQuery(api.skills.listMy, { teamId });
   const catalog = useQuery(api.systemSkills.listCatalog, { teamId });
-  const installedSystemSkills = useMemo(
-    () => (catalog ?? []).filter((entry) => entry.installed),
-    [catalog],
+  const installedSystemSkills = (catalog ?? []).filter(
+    (entry) => entry.installed,
   );
   const [{ q: searchQuery }, setSearchParams] =
     useQueryStates(skillsSearchParams);
@@ -67,18 +66,18 @@ export function SkillsSidebarNav({
     setSelectionMode,
     exitSelection,
     toggleSelect,
-  } = useIdSelectionMode<Id<"skills">>();
+  } = useIdSelection<Id<"skills">>();
 
-  const filteredSkills = useMemo(() => {
-    if (!skills) return [];
-    const query = searchQuery.trim().toLowerCase();
-    if (query.length === 0) return skills;
-    return skills.filter(
-      (skill) =>
-        skill.name.toLowerCase().includes(query) ||
-        skill.description.toLowerCase().includes(query),
-    );
-  }, [skills, searchQuery]);
+  const query = searchQuery.trim().toLowerCase();
+  const filteredSkills = !skills
+    ? []
+    : query.length === 0
+      ? skills
+      : skills.filter(
+          (skill) =>
+            skill.name.toLowerCase().includes(query) ||
+            skill.description.toLowerCase().includes(query),
+        );
 
   const openSkill = (id: Id<"skills">) => {
     if (profileId === undefined) return;

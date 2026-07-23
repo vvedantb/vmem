@@ -1,6 +1,6 @@
 // data + filter state for one codebase symbol graph (filters in url via nuqs)
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useQueryStates } from "nuqs";
 import { useThemeContext } from "@/contexts/ThemeContext";
 import { useCodebaseGraphData } from "@/hooks/useCodebaseGraphData";
@@ -29,20 +29,14 @@ export function useCodebaseGraphController(codebaseId: string) {
   });
 
   // adapt nuqs array → Set for membership-style access in the builder / header controls
-  const activeKinds = useMemo<Set<CodeNodeKind>>(
-    () => new Set(params.kinds),
-    [params.kinds],
-  );
+  const activeKinds = new Set(params.kinds);
 
   // kinds filtering happens client-side in `buildCodebaseGraphData` so a toggle never
-  const filters = useMemo(
-    () => ({
-      processId: params.processId,
-      blastRadiusOf: params.blastRadiusOf,
-      blastDirection: params.blastDirection,
-    }),
-    [params.processId, params.blastRadiusOf, params.blastDirection],
-  );
+  const filters = {
+    processId: params.processId,
+    blastRadiusOf: params.blastRadiusOf,
+    blastDirection: params.blastDirection,
+  };
 
   const {
     nodes: apiNodes,
@@ -55,22 +49,22 @@ export function useCodebaseGraphController(codebaseId: string) {
 
   // directories list is computed off the raw API payload so toggling a dir
   // doesn't drop options the user hasn't yet picked
-  const directories = useMemo(() => getAllDirectories(apiNodes), [apiNodes]);
+  const directories = getAllDirectories(apiNodes);
 
   const [activeDirectories, setActiveDirectories] = useState<Set<string>>(
     () => new Set(),
   );
 
-  const { graphNodes, graphEdges } = useMemo(
-    () =>
-      buildCodebaseGraphData(apiNodes, apiEdges, {
-        activeDirectories,
-        activeKinds,
-      }),
-    [apiNodes, apiEdges, activeDirectories, activeKinds],
+  const { graphNodes, graphEdges } = buildCodebaseGraphData(
+    apiNodes,
+    apiEdges,
+    {
+      activeDirectories,
+      activeKinds,
+    },
   );
 
-  const searchMatchSet = useMemo<Set<string>>(() => {
+  const searchMatchSet = (() => {
     const q = params.search.trim();
     if (q.length === 0) return EMPTY_SET;
     const matches = new Set<string>();
@@ -80,7 +74,7 @@ export function useCodebaseGraphController(codebaseId: string) {
       }
     }
     return matches;
-  }, [params.search, graphNodes]);
+  })();
 
   const hasActiveSearch = params.search.trim().length > 0;
 

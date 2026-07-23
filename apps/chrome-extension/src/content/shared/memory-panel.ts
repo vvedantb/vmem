@@ -2,6 +2,8 @@
 // displays retrieved memories with per item removal anchored above the chat input
 // uses shadow dom for style encapsulation
 
+import { computePosition, offset, shift } from "@floating-ui/dom";
+import { escape } from "es-toolkit";
 import type { MemoryCandidate } from "@/types/api";
 
 // singleton state
@@ -196,15 +198,22 @@ function ensureContainer(): void {
 
 // rendering
 
-function positionPanel(anchor: HTMLElement): void {
+async function positionPanel(anchor: HTMLElement): Promise<void> {
   if (!panelEl) return;
 
-  const rect = anchor.getBoundingClientRect();
-  const panelWidth = Math.min(rect.width, 420);
-
-  panelEl.style.bottom = `${window.innerHeight - rect.top + 8}px`;
-  panelEl.style.left = `${rect.left}px`;
+  const anchorRect = anchor.getBoundingClientRect();
+  const panelWidth = Math.min(anchorRect.width, 420);
   panelEl.style.width = `${panelWidth}px`;
+  panelEl.style.bottom = "auto";
+
+  const { x, y } = await computePosition(anchor, panelEl, {
+    placement: "top-start",
+    strategy: "fixed",
+    middleware: [offset(8), shift({ padding: 8 })],
+  });
+
+  panelEl.style.left = `${x}px`;
+  panelEl.style.top = `${y}px`;
 }
 
 function render(): void {
@@ -218,21 +227,17 @@ function render(): void {
     return;
   }
 
-  positionPanel(currentAnchor);
   panelEl.style.display = "block";
-  // trigger reflow before adding visible class
-  void panelEl.offsetWidth;
-  panelEl.classList.add("visible");
 
   const cardsHtml = included
     .map(
       (m) => `
-    <div class="memory-card" data-id="${escapeAttr(m.id)}">
+    <div class="memory-card" data-id="${escape(m.id)}">
       <div class="memory-info">
-        <span class="memory-title">${escapeHtml(m.title.slice(0, 60))}</span>
-        <span class="memory-snippet">${escapeHtml(m.content.slice(0, 100))}</span>
+        <span class="memory-title">${escape(m.title.slice(0, 60))}</span>
+        <span class="memory-snippet">${escape(m.content.slice(0, 100))}</span>
       </div>
-      <button class="remove-btn" data-id="${escapeAttr(m.id)}" title="Remove">×</button>
+      <button class="remove-btn" data-id="${escape(m.id)}" title="Remove">×</button>
     </div>`,
     )
     .join("");
@@ -245,6 +250,11 @@ function render(): void {
     <div class="panel-body">${cardsHtml}</div>
     <div class="panel-footer">Hit send to include context</div>
   `;
+
+  void positionPanel(currentAnchor);
+  // trigger reflow before adding visible class
+  void panelEl.offsetWidth;
+  panelEl.classList.add("visible");
 
   // bind events
   const clearBtn = panelEl.querySelector(".clear-all");
@@ -276,10 +286,7 @@ export function showMemoryPanelLoading(anchor: HTMLElement): void {
   memories = [];
   removedIds = new Set<string>();
 
-  positionPanel(anchor);
   panelEl.style.display = "block";
-  void panelEl.offsetWidth;
-  panelEl.classList.add("visible");
 
   panelEl.innerHTML = `
     <div class="loading-body">
@@ -287,6 +294,10 @@ export function showMemoryPanelLoading(anchor: HTMLElement): void {
       <span>Searching memories…</span>
     </div>
   `;
+
+  void positionPanel(anchor);
+  void panelEl.offsetWidth;
+  panelEl.classList.add("visible");
 }
 
 // show the memory panel with the given results anchored above the given element
@@ -320,18 +331,4 @@ export function clearMemories(): void {
   removedIds = new Set<string>();
   currentAnchor = null;
   hideMemoryPanel();
-}
-
-// helpers
-
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-function escapeAttr(str: string): string {
-  return str.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }

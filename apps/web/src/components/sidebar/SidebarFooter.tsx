@@ -1,22 +1,8 @@
+import { formatCompactNumber } from "@vmem/shared";
 import { Skeleton, cn } from "@vmem/ui";
 import { IconChartBar } from "@tabler/icons-react";
 import { SidebarUserMenu } from "./SidebarUserMenu";
 import { SidebarIconTooltip } from "./SidebarIconTooltip";
-
-// formats a number with abbreviated suffix (k, m, b) and 1 decimal place
-function formatCompactNumber(num: number): string {
-  if (num < 1000) return String(num);
-  if (num < 1_000_000) {
-    const value = num / 1000;
-    return `${value % 1 === 0 ? String(value) : value.toFixed(1)}k`;
-  }
-  if (num < 1_000_000_000) {
-    const value = num / 1_000_000;
-    return `${value % 1 === 0 ? String(value) : value.toFixed(1)}m`;
-  }
-  const value = num / 1_000_000_000;
-  return `${value % 1 === 0 ? String(value) : value.toFixed(1)}b`;
-}
 
 export interface SidebarStats {
   addedToday: number;

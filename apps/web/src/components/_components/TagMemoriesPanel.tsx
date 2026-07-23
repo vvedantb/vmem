@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useState } from "react";
 import { Button, Card } from "@vmem/ui";
 import { IconMoodEmpty, IconX } from "@tabler/icons-react";
 import type { Memory } from "@/lib/memories";
@@ -27,60 +27,46 @@ export function TagMemoriesPanel({
     null,
   );
 
-  const sortedMemories = useMemo(
-    () => [...memories].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
-    [memories],
+  const sortedMemories = [...memories].sort((a, b) =>
+    b.createdAt.localeCompare(a.createdAt),
   );
 
-  const displayItems = useMemo(
-    () =>
-      sortedMemories.map((memory) => ({
-        item: memoryToListItem(memory),
-        score: null,
-      })),
-    [sortedMemories],
-  );
+  const displayItems = sortedMemories.map((memory) => ({
+    item: memoryToListItem(memory),
+    score: null,
+  }));
 
-  const selectedMemory = useMemo(() => {
-    if (!selectedMemoryId) return null;
-    return (
-      sortedMemories.find((memory) => memory.id === selectedMemoryId) ?? null
-    );
-  }, [sortedMemories, selectedMemoryId]);
+  const selectedMemory = selectedMemoryId
+    ? (sortedMemories.find((memory) => memory.id === selectedMemoryId) ?? null)
+    : null;
 
-  const handleMemoryDelete = useCallback(
-    (deletedId: string) => {
-      if (selectedMemoryId === deletedId) {
-        setSelectedMemoryId(null);
-      }
-      if (sortedMemories.length <= 1) {
-        onClose();
-      }
-    },
-    [selectedMemoryId, sortedMemories.length, onClose],
-  );
+  const handleMemoryDelete = (deletedId: string) => {
+    if (selectedMemoryId === deletedId) {
+      setSelectedMemoryId(null);
+    }
+    if (sortedMemories.length <= 1) {
+      onClose();
+    }
+  };
 
-  const handleMemoryClick = useCallback(
-    (memory: Memory) => {
-      setPanelAction(null);
-      setSelectedMemoryId(selectedMemoryId === memory.id ? null : memory.id);
-    },
-    [selectedMemoryId],
-  );
+  const handleMemoryClick = (memory: Memory) => {
+    setPanelAction(null);
+    setSelectedMemoryId(selectedMemoryId === memory.id ? null : memory.id);
+  };
 
-  const handleContextEdit = useCallback((memory: Memory) => {
+  const handleContextEdit = (memory: Memory) => {
     setSelectedMemoryId(memory.id);
     setPanelAction("edit");
-  }, []);
+  };
 
-  const handleContextDelete = useCallback((memory: Memory) => {
+  const handleContextDelete = (memory: Memory) => {
     setSelectedMemoryId(memory.id);
     setPanelAction("delete");
-  }, []);
+  };
 
-  const handleConsumeAction = useCallback(() => {
+  const handleConsumeAction = () => {
     setPanelAction(null);
-  }, []);
+  };
 
   if (selectedMemory) {
     return (

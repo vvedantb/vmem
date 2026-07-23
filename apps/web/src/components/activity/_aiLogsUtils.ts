@@ -1,3 +1,4 @@
+import { formatCompactNumber, formatSameDayOrDateTime } from "@vmem/shared";
 import { createSevenDayBuckets } from "@/lib/daily-trends";
 import type { AiLogRow } from "./types";
 import { FEATURE_LABELS, FEATURES } from "@/lib/url-state/activity";
@@ -48,9 +49,8 @@ export function formatCostUsd(amount: number): string {
 }
 
 export function formatTokens(tokens: number): string {
-  if (tokens >= 1_000_000) return `${(tokens / 1_000_000).toFixed(2)}M`;
-  if (tokens >= 1_000) return `${(tokens / 1_000).toFixed(1)}k`;
-  return tokens.toLocaleString();
+  if (tokens < 1000) return tokens.toLocaleString();
+  return formatCompactNumber(tokens);
 }
 
 export function formatLogCost(amount: number | undefined): string {
@@ -59,26 +59,7 @@ export function formatLogCost(amount: number | undefined): string {
 }
 
 export function formatLogTime(ts: number): string {
-  const date = new Date(ts);
-  const now = new Date();
-  const sameDay =
-    date.getFullYear() === now.getFullYear() &&
-    date.getMonth() === now.getMonth() &&
-    date.getDate() === now.getDate();
-  if (sameDay) {
-    return date.toLocaleTimeString(undefined, {
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    });
-  }
-  return `${date.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-  })} ${date.toLocaleTimeString(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-  })}`;
+  return formatSameDayOrDateTime(ts);
 }
 
 export function featureLabelFor(feature: string): string {

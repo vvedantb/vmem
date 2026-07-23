@@ -2,6 +2,8 @@
 // uses shadow dom for style encapsulation so it works on any host page
 // toasts stack from bottom right and auto dismiss
 
+import { escape } from "es-toolkit";
+
 type ToastType = "success" | "error" | "loading" | "info";
 
 interface ToastEntry {
@@ -146,7 +148,7 @@ export function showToast(options: ShowToastOptions): string {
   const id = `vmem-toast-${++counter}`;
   const el = document.createElement("div");
   el.className = `toast toast-${options.type}`;
-  el.innerHTML = `<div class="toast-icon">${ICON_MAP[options.type]}</div><span class="toast-message">${escapeHtml(options.message)}</span>`;
+  el.innerHTML = `<div class="toast-icon">${ICON_MAP[options.type]}</div><span class="toast-message">${escape(options.message)}</span>`;
 
   if (listEl) listEl.appendChild(el);
   // trigger reflow then animate in
@@ -176,14 +178,4 @@ export function hideToast(id: string): void {
     entry.element.remove();
     active.delete(id);
   }, 300);
-}
-
-// helpers
-
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
 }

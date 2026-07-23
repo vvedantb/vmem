@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState } from "react";
 import { useAction } from "convex/react";
 import {
   Dialog,
@@ -152,49 +152,39 @@ export default function LinkMemoryModal({
   const [search, setSearch] = useState("");
   const [linkingId, setLinkingId] = useState<string | null>(null);
 
-  const linkableMemories = useMemo(() => {
-    return memories.filter((memory) => {
-      if (memory.id === currentMemoryId) return false;
-      if (excludeIds.has(memory.id)) return false;
-      return true;
-    });
-  }, [memories, currentMemoryId, excludeIds]);
+  const linkableMemories = memories.filter((memory) => {
+    if (memory.id === currentMemoryId) return false;
+    if (excludeIds.has(memory.id)) return false;
+    return true;
+  });
 
-  const filteredMemories = useMemo(() => {
-    const query = search.trim();
-    return linkableMemories.filter((memory) =>
-      memoryMatchesSearch(memory, query),
-    );
-  }, [linkableMemories, search]);
-
-  const handleLink = useCallback(
-    async (selectedId: string) => {
-      setLinkingId(selectedId);
-      try {
-        await linkMemories({
-          memoryIdA: currentMemoryId,
-          memoryIdB: selectedId,
-          reason: "user linked",
-        });
-        toast.success("Memory linked");
-        onLinked();
-        onOpenChange(false);
-        setSearch("");
-      } catch {
-        toast.error("Failed to link memory");
-      }
-      setLinkingId(null);
-    },
-    [currentMemoryId, linkMemories, onLinked, onOpenChange],
+  const query = search.trim();
+  const filteredMemories = linkableMemories.filter((memory) =>
+    memoryMatchesSearch(memory, query),
   );
 
-  const closeModal = useCallback(
-    (value: boolean) => {
-      onOpenChange(value);
-      if (!value) setSearch("");
-    },
-    [onOpenChange],
-  );
+  const handleLink = async (selectedId: string) => {
+    setLinkingId(selectedId);
+    try {
+      await linkMemories({
+        memoryIdA: currentMemoryId,
+        memoryIdB: selectedId,
+        reason: "user linked",
+      });
+      toast.success("Memory linked");
+      onLinked();
+      onOpenChange(false);
+      setSearch("");
+    } catch {
+      toast.error("Failed to link memory");
+    }
+    setLinkingId(null);
+  };
+
+  const closeModal = (value: boolean) => {
+    onOpenChange(value);
+    if (!value) setSearch("");
+  };
 
   const hasQuery = search.trim().length > 0;
   const isLinking = linkingId !== null;
