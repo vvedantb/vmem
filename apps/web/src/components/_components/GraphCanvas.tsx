@@ -106,6 +106,14 @@ function GraphCanvas({
   const hoveredIndexRef = useRef<number | undefined>(undefined);
   const hoveredLinkIndexRef = useRef<number | undefined>(undefined);
   const lastPositionsRef = useRef(new Map<string, { x: number; y: number }>());
+  // camera at last teardown — restored on same-node-set rebuilds (live edge
+  // events, refetches) so background data churn does not reset zoom/pan
+  const lastCameraRef = useRef<{
+    x: number;
+    y: number;
+    zoom: number;
+    nodeCount: number;
+  } | null>(null);
   const [webglError, setWebglError] = useState(false);
 
   const themeRef = useRef(viewTheme);
@@ -599,13 +607,34 @@ function GraphCanvas({
         ? Math.min(cosmosWarmupTicks(buffers.indexToNode.length), 30)
         : cosmosWarmupTicks(buffers.indexToNode.length);
       for (let i = 0; i < warmupTicks; i++) graph.step();
-      graph.setZoomTransformByPointPositions(
-        Float32Array.from(graph.getPointPositions()),
-        0,
-        undefined,
-        fitPaddingForNodeCount(buffers.indexToNode.length),
-        false,
-      );
+      // same node set as the previous graph (rebuild from a live edge event
+      // or an equal refetch) → restore the camera instead of re-fitting
+      const camera = lastCameraRef.current;
+      let persistedCount = 0;
+      for (const id of buffers.indexToId) {
+        if (lastPositionsRef.current.has(id)) persistedCount += 1;
+      }
+      const sameNodeSet =
+        camera !== null &&
+        camera.nodeCount === buffers.indexToNode.length &&
+        persistedCount === buffers.indexToNode.length;
+      if (sameNodeSet) {
+        graph.setZoomTransformByPointPositions(
+          Float32Array.from([camera.x, camera.y]),
+          0,
+          camera.zoom,
+          undefined,
+          false,
+        );
+      } else {
+        graph.setZoomTransformByPointPositions(
+          Float32Array.from(graph.getPointPositions()),
+          0,
+          undefined,
+          fitPaddingForNodeCount(buffers.indexToNode.length),
+          false,
+        );
+      }
       applyVisualState(graph);
       paintSceneOverlays(graph);
       applyConnectorLogos(graph, true);
@@ -627,6 +656,16 @@ function GraphCanvas({
         buffers.indexToId,
         graph.getPointPositions(),
       );
+      const [centerX, centerY] = graph.screenToSpacePosition([
+        root.clientWidth / 2,
+        root.clientHeight / 2,
+      ]);
+      lastCameraRef.current = {
+        x: centerX,
+        y: centerY,
+        zoom: graph.getZoomLevel(),
+        nodeCount: buffers.indexToNode.length,
+      };
       graph.destroy();
       if (graphRef.current === graph) graphRef.current = null;
       buffersRef.current = null;
