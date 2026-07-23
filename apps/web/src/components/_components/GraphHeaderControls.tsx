@@ -1,9 +1,8 @@
 // graph header: search / filters / options (+ add memory)
 
-import { IconAdjustmentsHorizontal, IconRefresh } from "@tabler/icons-react";
+import { IconAdjustmentsHorizontal } from "@tabler/icons-react";
 import {
   Button,
-  Input,
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -18,36 +17,6 @@ import { MemoryFiltersButton } from "@/routes/_main/$profileId/memories/_compone
 import type { ListItemKind } from "@/lib/list-items";
 import type { MemoryType } from "@/lib/memories";
 import type { GraphSettings } from "@/lib/graph/graph-types";
-
-// ---- Slider config ----
-
-const SLIDERS: {
-  key: "scalingRatio" | "gravity";
-  label: string;
-  min: number;
-  max: number;
-  step: number;
-  format: (v: number) => string;
-}[] = [
-  {
-    key: "scalingRatio",
-    label: "Spread",
-    min: 1,
-    max: 20,
-    step: 1,
-    format: String,
-  },
-  {
-    key: "gravity",
-    label: "Gravity",
-    min: 0.05,
-    max: 5,
-    step: 0.05,
-    format: (v) => v.toFixed(2),
-  },
-];
-
-// ---- Props ----
 
 interface GraphHeaderControlsProps {
   controller: MemoryGraphController;
@@ -68,17 +37,11 @@ export default function GraphHeaderControls({
       <OptionsPopover
         settings={controller.graphSettings}
         onSettingsChange={controller.onSettingsChange}
-        onReset={controller.onResetSettings}
-        totalNodeCount={controller.totalNodeCount}
-        visibleNodeCount={controller.visibleNodeCount}
-        edgeCount={controller.edgeCount}
       />
       <AddMemoryIconTrigger />
     </div>
   );
 }
-
-// ---- Filters popover ----
 
 function GraphFiltersButton({
   controller,
@@ -146,30 +109,13 @@ function GraphFiltersButton({
   );
 }
 
-// ---- Options popover ----
-
 function OptionsPopover({
   settings,
   onSettingsChange,
-  onReset,
-  totalNodeCount,
-  visibleNodeCount,
-  edgeCount,
 }: {
   settings: GraphSettings;
   onSettingsChange: (s: GraphSettings) => void;
-  onReset: () => void;
-  totalNodeCount: number;
-  visibleNodeCount: number;
-  edgeCount: number;
 }) {
-  const handleSliderChange = (
-    key: "scalingRatio" | "gravity",
-    value: number,
-  ) => {
-    onSettingsChange({ ...settings, [key]: value });
-  };
-
   const handleLabelsToggle = (checked: boolean) => {
     onSettingsChange({ ...settings, showLabels: checked });
   };
@@ -189,7 +135,6 @@ function OptionsPopover({
         align="end"
         className="w-72 p-3 space-y-4 max-h-[80vh] overflow-y-auto"
       >
-        {/* Labels toggle */}
         <div className="flex items-center justify-between">
           <span className="text-[11px] text-muted">Labels</span>
           <Switch
@@ -200,53 +145,7 @@ function OptionsPopover({
 
         <Separator />
 
-        {/* Sliders */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] text-muted">Forces</span>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={onReset}
-              className="flex h-auto items-center gap-0.5 p-0 text-[10px] text-muted hover:text-foreground"
-            >
-              <IconRefresh className="size-2.5" />
-              Reset
-            </Button>
-          </div>
-          {SLIDERS.map((field) => (
-            <div key={field.key}>
-              <div className="flex items-center justify-between mb-0.5">
-                <label className="text-[11px] text-muted">{field.label}</label>
-                <span className="text-[10px] tabular-nums text-foreground/70">
-                  {field.format(settings[field.key])}
-                </span>
-              </div>
-              <Input
-                type="range"
-                min={field.min}
-                max={field.max}
-                step={field.step}
-                value={settings[field.key]}
-                onChange={(e) =>
-                  handleSliderChange(field.key, parseFloat(e.target.value))
-                }
-                className="h-1.5 w-full cursor-pointer appearance-none rounded-full border-0 bg-surface-secondary p-0 shadow-none accent-accent focus-visible:ring-0"
-              />
-            </div>
-          ))}
-        </div>
-
-        <Separator />
-
-        {/* Legend — counts, shapes, edge categories, dim states.
-            Folded into Options instead of a sibling button so the toolbar stays
-            compact on mobile. */}
-        <GraphLegend
-          nodeCount={totalNodeCount}
-          edgeCount={edgeCount}
-          visibleNodeCount={visibleNodeCount}
-        />
+        <GraphLegend />
       </PopoverContent>
     </Popover>
   );

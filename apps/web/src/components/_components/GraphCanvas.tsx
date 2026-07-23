@@ -1,32 +1,46 @@
-import { useEffect, useRef, useImperativeHandle, type Ref } from "react";
-import type {
-  GraphNode,
-  GraphEdge,
-  ResolvedEdge,
-  InteractionState,
-  ViewportState,
-} from "@/lib/graph/types";
-import type { SimulationController } from "./canvas/simulation";
-import { createSimulation, SLEEP_ALPHA } from "./canvas/simulation";
 import {
-  createViewport,
-  tickViewport,
-  fitToNodes,
-  zoomAt,
-} from "./canvas/viewport";
-import { createSpatialIndex, rebuildIndex, markDirty } from "./canvas/hit-test";
-import { render, createWorldLayerCache } from "./canvas/renderer";
-import { attachInputHandlers } from "./canvas/input-handler";
-import {
-  loadConnectorLogos,
-  type ConnectorLogoMap,
-} from "./canvas/connector-logos";
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+  type Ref,
+} from "react";
+import { Graph } from "@cosmos.gl/graph";
+import type { GraphNode, GraphEdge } from "@/lib/graph/types";
 import type { GraphViewTheme } from "./graph-view-themes";
-import type {
-  GraphSettings,
-  HoveredEdgeInfo,
-  HoveredNodeInfo,
-} from "@/lib/graph/graph-types";
+import type { HoveredEdgeInfo, HoveredNodeInfo } from "@/lib/graph/graph-types";
+import { GraphStatus } from "./GraphStatus";
+import {
+  buildCosmosGraphBuffers,
+  capturePointPositions,
+  recolorCosmosGraphBuffers,
+  searchMatchIndices,
+  type CosmosEdgeMeta,
+  type CosmosGraphBuffers,
+} from "./cosmos/cosmos-adapters";
+import { colorToRgba } from "./cosmos/cosmos-color";
+import { computeHighlightPoints } from "./cosmos/cosmos-highlight";
+import {
+  COSMOS_EDGE_LABEL,
+  COSMOS_HIGH_NODE_COUNT,
+  COSMOS_LOW_ZOOM_THRESHOLD,
+  shouldShowCosmosLabel,
+  shouldSkipCosmosLabels,
+  truncateCosmosLabel,
+} from "./cosmos/cosmos-labels";
+import {
+  buildPointImageBuffers,
+  emptyPointImageIndices,
+  loadCosmosConnectorLogoAtlas,
+  type CosmosLogoAtlas,
+} from "./cosmos/cosmos-logos";
+import {
+  COSMOS_DRAG_REHEAT_ALPHA,
+  COSMOS_INITIAL_SETTLE_ALPHA,
+  cosmosPhysicsForNodeCount,
+  cosmosWarmupTicks,
+} from "./cosmos/cosmos-physics";
 
 export interface GraphCanvasHandle {
   zoomIn: () => void;
@@ -34,17 +48,10 @@ export interface GraphCanvasHandle {
   fit: () => void;
 }
 
-// every graph gets the world-layer blit cache
-const BLIT_CACHE_MIN_NODES = 0;
-
-// while a pan/zoom gesture runs over a HOT simulation, gesture frames blit a snapshot of
-const SETTLE_SNAPSHOT_MS = 150;
-
 interface GraphCanvasProps {
   nodes: GraphNode[];
   edges: GraphEdge[];
   viewTheme: GraphViewTheme;
-  settings: GraphSettings;
   focusNodeId?: string | null;
   searchMatchSet: Set<string>;
   isSearchActive: boolean;
@@ -56,11 +63,29 @@ interface GraphCanvasProps {
   ref?: Ref<GraphCanvasHandle>;
 }
 
+const SPACE_SIZE = 4096;
+const ZOOM_IN_FACTOR = 1.3;
+const ZOOM_OUT_FACTOR = 0.7;
+const POINT_SAMPLING_DISTANCE = 80;
+const MAX_LABELS = 48;
+const FOCUSED_LINK_WIDTH_INCREASE = 2;
+
+function fitPaddingForNodeCount(nodeCount: number): number {
+  if (nodeCount <= 10) return 0.35;
+  if (nodeCount <= 50) return 0.25;
+  return 0.12;
+}
+
+function graphBackgroundRgba(
+  theme: GraphViewTheme,
+): [number, number, number, number] {
+  return colorToRgba(theme.background);
+}
+
 function GraphCanvas({
   nodes,
   edges,
   viewTheme,
-  settings,
   focusNodeId,
   searchMatchSet,
   isSearchActive,
@@ -71,12 +96,27 @@ function GraphCanvas({
   onFocusNode,
   ref,
 }: GraphCanvasProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const hostRef = useRef<HTMLDivElement>(null);
+  const labelCanvasRef = useRef<HTMLCanvasElement>(null);
+  const graphRef = useRef<Graph | null>(null);
+  const buffersRef = useRef<CosmosGraphBuffers | null>(null);
+  const logoAtlasRef = useRef<CosmosLogoAtlas | null>(null);
+  const logosVisibleRef = useRef(true);
+  const hoveredIndexRef = useRef<number | undefined>(undefined);
+  const hoveredLinkIndexRef = useRef<number | undefined>(undefined);
+  const lastPositionsRef = useRef(new Map<string, { x: number; y: number }>());
+  // camera at last teardown — restored on same-node-set rebuilds (live edge
+  // events, refetches) so background data churn does not reset zoom/pan
+  const lastCameraRef = useRef<{
+    x: number;
+    y: number;
+    zoom: number;
+    nodeCount: number;
+  } | null>(null);
+  const [webglError, setWebglError] = useState(false);
 
-  const nodesRef = useRef(nodes);
-  const edgesRef = useRef(edges);
   const themeRef = useRef(viewTheme);
-  const settingsRef = useRef(settings);
   const focusNodeIdRef = useRef(focusNodeId);
   const searchMatchSetRef = useRef(searchMatchSet);
   const isSearchActiveRef = useRef(isSearchActive);
@@ -88,38 +128,6 @@ function GraphCanvas({
     onFocusNode,
   });
 
-  const simRef = useRef<SimulationController | null>(null);
-  const resolvedEdgesRef = useRef<ResolvedEdge[]>([]);
-  const viewportRef = useRef<ViewportState>(createViewport());
-  const interactionRef = useRef<InteractionState>({
-    hoveredNodeId: null,
-    hoveredEdgeIndex: null,
-    draggedNodeId: null,
-    isPanning: false,
-  });
-  const spatialIndexRef = useRef(createSpatialIndex());
-  const hasFittedRef = useRef(false);
-  // render-on-demand: set on every React render (any prop change
-  const needsRenderRef = useRef(true);
-  // last-known position per node id, saved when a simulation tears down
-  const lastPositionsRef = useRef<Map<string, { x: number; y: number }>>(
-    new Map(),
-  );
-  // connector logos preload asynchronously
-  const connectorLogosRef = useRef<ConnectorLogoMap>(new Map());
-
-  useEffect(() => {
-    let cancelled = false;
-    void loadConnectorLogos().then((map) => {
-      if (!cancelled) connectorLogosRef.current = map;
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  nodesRef.current = nodes;
-  edgesRef.current = edges;
   themeRef.current = viewTheme;
   focusNodeIdRef.current = focusNodeId;
   searchMatchSetRef.current = searchMatchSet;
@@ -131,427 +139,592 @@ function GraphCanvas({
     onClickNode,
     onFocusNode,
   };
-  needsRenderRef.current = true;
 
-  useEffect(() => {
-    if (simRef.current) {
-      simRef.current.setStrength(settings.scalingRatio);
-      simRef.current.setGravity(settings.gravity);
-    }
-    settingsRef.current = settings;
-  }, [settings]);
+  const applyVisualState = useCallback((graph: Graph) => {
+    const buffers = buffersRef.current;
+    if (!buffers) return;
 
-  useEffect(() => {
-    const maybeCanvas = canvasRef.current;
-    if (!maybeCanvas || nodes.length === 0) return;
+    const focusId = focusNodeIdRef.current;
+    const focusedPointIndex =
+      focusId !== undefined && focusId !== null
+        ? buffers.idToIndex.get(focusId)
+        : undefined;
 
-    const maybeCtx = maybeCanvas.getContext("2d");
-    if (!maybeCtx) return;
+    const outlined: number[] = [];
+    if (focusedPointIndex !== undefined) outlined.push(focusedPointIndex);
 
-    const canvas: HTMLCanvasElement = maybeCanvas;
-    const ctx: CanvasRenderingContext2D = maybeCtx;
-    const positionCache = lastPositionsRef.current;
+    const zoom = graph.getZoomLevel();
+    const skipHoverHighlight =
+      buffers.indexToNode.length > COSMOS_HIGH_NODE_COUNT &&
+      zoom < COSMOS_LOW_ZOOM_THRESHOLD;
 
-    // reset viewport fit flag
-    hasFittedRef.current = false;
+    let hoveredPointIndex: number | undefined;
+    let neighborIndices: number[] | undefined;
+    let hoveredLinkEndpoints: {
+      sourceIndex: number;
+      targetIndex: number;
+      linkIndex: number;
+    } | null = null;
 
-    // carry over resting positions from the previous simulation for nodes
-    // that survived the data swap (see lastPositionsRef)
-    for (const node of nodes) {
-      if (node.x !== undefined && node.y !== undefined) continue;
-      const prev = lastPositionsRef.current.get(node.id);
-      if (prev) {
-        node.x = prev.x;
-        node.y = prev.y;
-      }
-    }
-
-    const sim = createSimulation(
-      nodes,
-      edges,
-      settingsRef.current.scalingRatio,
-      settingsRef.current.gravity,
-    );
-    simRef.current = sim;
-
-    const cleanup = attachInputHandlers(
-      canvas,
-      interactionRef.current,
-      viewportRef.current,
-      simRef,
-      spatialIndexRef,
-      resolvedEdgesRef,
-      {
-        onHoverNode(node) {
-          if (node) {
-            const vp = viewportRef.current;
-            const sx =
-              (node.x ?? 0) * vp.scale + vp.offsetX + canvas.clientWidth / 2;
-            const sy =
-              (node.y ?? 0) * vp.scale + vp.offsetY + canvas.clientHeight / 2;
-            callbacksRef.current.onHoverNode({
-              title: node.title,
-              viewportX: sx,
-              viewportY: sy,
-            });
-          } else {
-            callbacksRef.current.onHoverNode(null);
-          }
-        },
-        onHoverEdge(idx) {
-          const edgeList = resolvedEdgesRef.current;
-          if (idx === null || idx >= edgeList.length) {
-            callbacksRef.current.onHoverEdge?.(null);
-            return;
-          }
-          const edge = edgeList[idx];
-          if (!edge) {
-            callbacksRef.current.onHoverEdge?.(null);
-            return;
-          }
-          const vp = viewportRef.current;
-          const mx = ((edge.source.x ?? 0) + (edge.target.x ?? 0)) / 2;
-          const my = ((edge.source.y ?? 0) + (edge.target.y ?? 0)) / 2;
-          const sx = mx * vp.scale + vp.offsetX + canvas.clientWidth / 2;
-          const sy = my * vp.scale + vp.offsetY + canvas.clientHeight / 2;
-          // `wiki_parent` edges carry no reason — only tag and relates_to do
-          const reason = edge.reason ?? null;
-          callbacksRef.current.onHoverEdge?.({
-            edgeType: edge.edgeType,
-            sourceTitle: edge.source.title,
-            targetTitle: edge.target.title,
-            reason,
-            score: edge.score,
-            viewportX: sx,
-            viewportY: sy,
-          });
-        },
-        onClickNode(nodeId) {
-          callbacksRef.current.onClickNode(nodeId);
-        },
-        onFocusNode(nodeId) {
-          callbacksRef.current.onFocusNode?.(nodeId);
-        },
-      },
-    );
-
-    let rafId: number;
-
-    const neighborMap = new Map<string, Set<string>>();
-    function buildNeighborMap() {
-      neighborMap.clear();
-      for (const edge of edgesRef.current) {
-        const sId =
-          typeof edge.source === "string" ? edge.source : edge.source.id;
-        const tId =
-          typeof edge.target === "string" ? edge.target : edge.target.id;
-        let sSet = neighborMap.get(sId);
-        if (!sSet) {
-          sSet = new Set();
-          neighborMap.set(sId, sSet);
+    if (!skipHoverHighlight) {
+      const linkIdx = hoveredLinkIndexRef.current;
+      if (linkIdx !== undefined) {
+        const meta = buffers.edgeMeta[linkIdx];
+        if (meta) {
+          hoveredLinkEndpoints = {
+            sourceIndex: meta.sourceIndex,
+            targetIndex: meta.targetIndex,
+            linkIndex: linkIdx,
+          };
         }
-        sSet.add(tId);
-        let tSet = neighborMap.get(tId);
-        if (!tSet) {
-          tSet = new Set();
-          neighborMap.set(tId, tSet);
-        }
-        tSet.add(sId);
-      }
-    }
-    buildNeighborMap();
-
-    const resolvedEdgesCache: ResolvedEdge[] = [];
-    resolvedEdgesRef.current = resolvedEdgesCache;
-    function resolveEdges() {
-      // build a node lookup so we can resolve string-based source/target refs ourselves
-      const nodeById = new Map<string, GraphNode>();
-      for (const n of nodesRef.current) nodeById.set(n.id, n);
-
-      resolvedEdgesCache.length = 0;
-      for (const edge of edgesRef.current) {
-        const sourceNode =
-          typeof edge.source === "object"
-            ? edge.source
-            : nodeById.get(edge.source);
-        const targetNode =
-          typeof edge.target === "object"
-            ? edge.target
-            : nodeById.get(edge.target);
-        if (sourceNode && targetNode) {
-          resolvedEdgesCache.push({
-            source: sourceNode,
-            target: targetNode,
-            edgeType: edge.edgeType,
-            weight: edge.weight,
-            reason: edge.reason,
-            score: edge.score,
-          });
-        }
+      } else if (hoveredIndexRef.current !== undefined) {
+        hoveredPointIndex = hoveredIndexRef.current;
+        neighborIndices = graph.getNeighboringPointIndices(hoveredPointIndex);
       }
     }
 
-    let lastEdgesRef = edgesRef.current;
-    // resolve edges exactly once per edges-array identity
-    let lastResolvedEdges: GraphEdge[] | null = null;
-    let frameCount = 0;
-    // spatial-index rebuild cadence while positions move
-    const indexRebuildInterval = nodes.length > 20_000 ? 10 : 3;
-    // world-layer blit cache
-    const worldCache =
-      nodes.length > BLIT_CACHE_MIN_NODES ? createWorldLayerCache() : null;
-    let lastFrameWasBlit = false;
-    // timestamp of the last full scene render — drives the snapshot-refresh
-    // cadence when a gesture runs over a hot simulation (see viewportOnly)
-    let lastSceneRenderAt = 0;
-    // sim positions version captured at the last real scene paint (blits
-    // excluded — they reuse the old bitmap). See positionsNeedPaint
-    let lastPaintedSimVersion = -1;
-    // render-on-demand state
-    let lastInteractionKey = "";
-    let lastVpOffsetX = Number.NaN;
-    let lastVpOffsetY = Number.NaN;
-    let lastVpScale = Number.NaN;
-    let wasMoving = true;
+    const searchMatches = isSearchActiveRef.current
+      ? searchMatchIndices(buffers.indexToId, searchMatchSetRef.current)
+      : undefined;
 
-    // AI-generated (Claude), prompt: "raf loop that skips redraws and blits world cache during pan zoom"
-    // Modified by me: settle snapshot timing and neighbor highlight for hover focus
-    function tick() {
-      sim.tick();
-      tickViewport(viewportRef.current);
+    const { highlightedPointIndices, focusedLinkIndex } =
+      computeHighlightPoints({
+        hoveredPointIndex,
+        neighborIndices,
+        hoveredLinkEndpoints,
+        isSearchActive: isSearchActiveRef.current,
+        searchMatchIndices: searchMatches,
+      });
 
-      const simActive = sim.alpha() >= SLEEP_ALPHA;
-      const isDragging = interactionRef.current.draggedNodeId !== null;
-      const positionsMoving = simActive || isDragging;
-      // the worker posts positions at ~30Hz while this loop runs at 60
-      const simVersion = sim.positionsVersion();
-      const positionsFresh = simVersion !== lastPaintedSimVersion;
-      const positionsNeedPaint = isDragging || (simActive && positionsFresh);
+    graph.setConfigPartial({
+      focusedPointIndex,
+      focusedLinkIndex,
+      focusedLinkWidthIncrease: FOCUSED_LINK_WIDTH_INCREASE,
+      highlightedPointIndices,
+      highlightedLinkIndices: highlightedPointIndices
+        ? graph.getConnectedLinkIndices(highlightedPointIndices)
+        : undefined,
+      outlinedPointIndices: outlined.length > 0 ? outlined : undefined,
+    });
+  }, []);
 
-      // compare viewport state frame-to-frame: catches spring/momentum from
-      // tickViewport AND direct mutations from pan/pinch/wheel handlers
-      const vp = viewportRef.current;
-      const viewportMoved =
-        vp.offsetX !== lastVpOffsetX ||
-        vp.offsetY !== lastVpOffsetY ||
-        vp.scale !== lastVpScale;
-      lastVpOffsetX = vp.offsetX;
-      lastVpOffsetY = vp.offsetY;
-      lastVpScale = vp.scale;
+  const paintLabels = useCallback((graph: Graph) => {
+    const canvas = labelCanvasRef.current;
+    const buffers = buffersRef.current;
+    const root = rootRef.current;
+    if (!canvas || !buffers || !root) return;
 
-      const ix = interactionRef.current;
-      // mirrors hoverVisuals in renderer.ts
-      const hoverVisualsEnabled = !(
-        nodesRef.current.length > 5000 && vp.scale < 0.4
-      );
-      const interactionKey =
-        (hoverVisualsEnabled
-          ? `${ix.hoveredNodeId}|${ix.hoveredEdgeIndex}`
-          : "-") + `|${ix.draggedNodeId}|${ix.isPanning}`;
-      const interactionChanged = interactionKey !== lastInteractionKey;
-      lastInteractionKey = interactionKey;
+    const dpr = window.devicePixelRatio || 1;
+    const w = root.clientWidth;
+    const h = root.clientHeight;
+    if (w === 0 || h === 0) return;
 
-      // spatial index only needs rebuilding while node positions move
-      if (positionsMoving && positionsNeedPaint) {
-        markDirty(spatialIndexRef.current);
-        frameCount++;
-        if (frameCount % indexRebuildInterval === 0) {
-          rebuildIndex(spatialIndexRef.current, nodesRef.current);
-        }
-      } else if (!positionsMoving && wasMoving) {
-        // one final rebuild + repaint on settle so hit-testing and the canvas both
-        markDirty(spatialIndexRef.current);
-        rebuildIndex(spatialIndexRef.current, nodesRef.current);
-        needsRenderRef.current = true;
+    if (
+      canvas.width !== Math.floor(w * dpr) ||
+      canvas.height !== Math.floor(h * dpr)
+    ) {
+      canvas.width = Math.floor(w * dpr);
+      canvas.height = Math.floor(h * dpr);
+      canvas.style.width = `${w}px`;
+      canvas.style.height = `${h}px`;
+    }
+
+    const ctx = canvas.getContext("2d");
+    if (ctx === null) return;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+
+    const zoom = graph.getZoomLevel();
+    if (
+      shouldSkipCosmosLabels(
+        showLabelsRef.current,
+        zoom,
+        buffers.indexToNode.length,
+      )
+    ) {
+      return;
+    }
+
+    const theme = themeRef.current;
+    const hoveredIndex = hoveredIndexRef.current;
+    const hoveredLinkIndex = hoveredLinkIndexRef.current;
+    const hasHover =
+      hoveredIndex !== undefined || hoveredLinkIndex !== undefined;
+    const lowZoom = zoom < COSMOS_LOW_ZOOM_THRESHOLD;
+    const neighborSet = new Set<number>();
+    if (hoveredIndex !== undefined) {
+      neighborSet.add(hoveredIndex);
+      for (const n of graph.getNeighboringPointIndices(hoveredIndex)) {
+        neighborSet.add(n);
       }
-      wasMoving = positionsMoving;
+    }
 
-      if (edgesRef.current !== lastEdgesRef) {
-        buildNeighborMap();
-        // clear stale edge-hover index: the old idx could now point to a
-        // different edge (or past the end) after the edges array changes
-        if (interactionRef.current.hoveredEdgeIndex !== null) {
-          interactionRef.current.hoveredEdgeIndex = null;
-          callbacksRef.current.onHoverEdge?.(null);
-        }
-        lastEdgesRef = edgesRef.current;
-        needsRenderRef.current = true;
+    const fontSize = Math.max(10, 12 / Math.max(zoom, 0.5));
+    ctx.font = `500 ${fontSize}px "Instrument Sans", system-ui, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    const { indices, positions } = graph.getSampledPoints();
+    const toDraw = new Map<number, { x: number; y: number }>();
+
+    const allPositions = graph.getPointPositions();
+    if (hoveredIndex !== undefined) {
+      for (const idx of neighborSet) {
+        const px = allPositions[idx * 2];
+        const py = allPositions[idx * 2 + 1];
+        if (px === undefined || py === undefined) continue;
+        const [sx, sy] = graph.spaceToScreenPosition([px, py]);
+        toDraw.set(idx, { x: sx, y: sy });
       }
+    }
 
-      if (lastResolvedEdges !== edgesRef.current) {
-        resolveEdges();
-        lastResolvedEdges = edgesRef.current;
-        needsRenderRef.current = true;
-      }
+    for (let i = 0; i < indices.length; i++) {
+      const idx = indices[i];
+      if (idx === undefined) continue;
+      if (toDraw.has(idx)) continue;
+      const sx = positions[i * 2];
+      const sy = positions[i * 2 + 1];
+      if (sx === undefined || sy === undefined) continue;
+      const [screenX, screenY] = graph.spaceToScreenPosition([sx, sy]);
+      toDraw.set(idx, { x: screenX, y: screenY });
+      if (toDraw.size >= MAX_LABELS) break;
+    }
 
-      const dpr = window.devicePixelRatio || 1;
-      const w = canvas.clientWidth;
-      const h = canvas.clientHeight;
+    let painted = 0;
+    for (const [idx, screen] of toDraw) {
+      if (painted >= MAX_LABELS) break;
+      const node = buffers.indexToNode[idx];
+      if (!node) continue;
 
-      if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
-        canvas.width = w * dpr;
-        canvas.height = h * dpr;
-        needsRenderRef.current = true;
-      }
-
-      // A blitted frame is approximate (scaled bitmap)
-      if (lastFrameWasBlit && !viewportMoved) {
-        needsRenderRef.current = true;
-      }
+      const pointSize = buffers.sizes[idx] ?? Math.max(2, node.size * 2);
+      const screenRadius = (pointSize / 2) * zoom;
+      const isHovered = idx === hoveredIndex;
+      const isNeighbor = neighborSet.has(idx);
 
       if (
-        !positionsNeedPaint &&
-        !viewportMoved &&
-        !interactionChanged &&
-        !needsRenderRef.current &&
-        hasFittedRef.current
+        !shouldShowCosmosLabel({
+          screenRadius,
+          isHovered,
+          isNeighbor,
+          hasHover,
+        })
       ) {
-        rafId = requestAnimationFrame(tick);
-        return;
-      }
-      const propsChanged = needsRenderRef.current;
-      needsRenderRef.current = false;
-      // pan/zoom gesture in flight: spring still converging on target
-      // scale/offset, an active pan, or leftover momentum
-      const gestureActive =
-        ix.isPanning ||
-        Math.abs(vp.targetScale - vp.scale) > 0.001 ||
-        Math.abs(vp.targetOffsetX - vp.offsetX) > 0.5 ||
-        Math.abs(vp.targetOffsetY - vp.offsetY) > 0.5 ||
-        Math.abs(vp.velocityX) > 0.5 ||
-        Math.abs(vp.velocityY) > 0.5;
-      // pan/zoom can blit a snapshot; refresh periodically while sim is hot
-      const snapshotFresh =
-        performance.now() - lastSceneRenderAt < SETTLE_SNAPSHOT_MS;
-      // re-render if snapshot scale drifted too far (avoids blurry upscale)
-      const cacheSharp =
-        worldCache !== null &&
-        worldCache.valid &&
-        vp.scale / worldCache.scale < 1.25 &&
-        vp.scale / worldCache.scale > 0.8;
-      const viewportOnly =
-        viewportMoved &&
-        !interactionChanged &&
-        !propsChanged &&
-        hasFittedRef.current &&
-        cacheSharp &&
-        (!positionsMoving || (gestureActive && snapshotFresh));
-
-      // fit on the first frame
-      if (!hasFittedRef.current) {
-        fitToNodes(viewportRef.current, nodesRef.current, w, h);
-        hasFittedRef.current = true;
+        continue;
       }
 
-      const hoveredId = interactionRef.current.hoveredNodeId;
-      const hoveredEdgeIndex = interactionRef.current.hoveredEdgeIndex;
-      const neighborSet = new Set<string>();
-      if (hoveredId) {
-        neighborSet.add(hoveredId);
-        const neighbors = neighborMap.get(hoveredId);
-        if (neighbors) {
-          for (const nId of neighbors) neighborSet.add(nId);
-        }
-      } else if (
-        hoveredEdgeIndex !== null &&
-        hoveredEdgeIndex < resolvedEdgesCache.length
-      ) {
-        const hoveredEdge = resolvedEdgesCache[hoveredEdgeIndex];
-        if (hoveredEdge) {
-          neighborSet.add(hoveredEdge.source.id);
-          neighborSet.add(hoveredEdge.target.id);
-        }
-      }
-
-      try {
-        render({
-          ctx,
-          canvasW: w,
-          canvasH: h,
-          dpr,
-          nodes: nodesRef.current,
-          edges: resolvedEdgesCache,
-          vp: viewportRef.current,
-          interaction: interactionRef.current,
-          theme: themeRef.current,
-          neighborSet,
-          focusNodeId: focusNodeIdRef.current ?? null,
-          searchMatchSet: searchMatchSetRef.current,
-          isSearchActive: isSearchActiveRef.current,
-          showLabels: showLabelsRef.current,
-          connectorLogos: connectorLogosRef.current,
-          worldCache,
-          viewportOnly,
-          gestureActive,
-        });
-        lastFrameWasBlit = viewportOnly && worldCache !== null;
-        if (!lastFrameWasBlit) {
-          lastSceneRenderAt = performance.now();
-          lastPaintedSimVersion = simVersion;
-        }
-      } catch (err) {
-        // keep the rAF loop alive — a single throw (e.g. bad canvas color)
-        // must not blank the graph until remount
-        console.error("[GraphCanvas] render failed:", err);
-      }
-
-      rafId = requestAnimationFrame(tick);
+      ctx.fillStyle = isHovered ? theme.label.color : theme.label.secondary;
+      ctx.fillText(
+        truncateCosmosLabel(node.title),
+        screen.x,
+        screen.y - Math.min(screenRadius * 0.35, fontSize * 0.5),
+      );
+      painted += 1;
     }
 
-    rafId = requestAnimationFrame(tick);
+    if (!lowZoom && (hoveredLinkIndex !== undefined || neighborSet.size > 1)) {
+      const pillFontSize = Math.max(8, 10 / Math.max(zoom, 0.5));
+      ctx.font = `400 ${pillFontSize}px "Instrument Sans", system-ui, sans-serif`;
+      const allPositions = graph.getPointPositions();
+
+      for (let linkIdx = 0; linkIdx < buffers.edgeMeta.length; linkIdx++) {
+        const meta = buffers.edgeMeta[linkIdx];
+        if (!meta) continue;
+        const isHoveredEdge = hoveredLinkIndex === linkIdx;
+        const isHoveredNodeEdge =
+          hoveredIndex !== undefined &&
+          neighborSet.has(meta.sourceIndex) &&
+          neighborSet.has(meta.targetIndex);
+        if (!isHoveredEdge && !isHoveredNodeEdge) continue;
+
+        const sx = allPositions[meta.sourceIndex * 2];
+        const sy = allPositions[meta.sourceIndex * 2 + 1];
+        const tx = allPositions[meta.targetIndex * 2];
+        const ty = allPositions[meta.targetIndex * 2 + 1];
+        if (
+          sx === undefined ||
+          sy === undefined ||
+          tx === undefined ||
+          ty === undefined
+        ) {
+          continue;
+        }
+        const [mx, my] = graph.spaceToScreenPosition([
+          (sx + tx) / 2,
+          (sy + ty) / 2,
+        ]);
+        const label = COSMOS_EDGE_LABEL[meta.edgeType];
+        const metrics = ctx.measureText(label);
+        const padX = 4;
+        const padY = 2;
+        const bgW = metrics.width + padX * 2;
+        const bgH = pillFontSize + padY * 2;
+
+        ctx.fillStyle = theme.background + "cc";
+        ctx.beginPath();
+        ctx.roundRect(mx - bgW / 2, my - bgH / 2, bgW, bgH, 3);
+        ctx.fill();
+
+        ctx.fillStyle = theme.label.secondary;
+        ctx.fillText(label, mx, my);
+      }
+    }
+  }, []);
+
+  const paintSceneOverlays = useCallback(
+    (graph: Graph) => {
+      paintLabels(graph);
+    },
+    [paintLabels],
+  );
+
+  const applyConnectorLogos = useCallback((graph: Graph, force = false) => {
+    const buffers = buffersRef.current;
+    const atlas = logoAtlasRef.current;
+    if (!buffers || !atlas || atlas.images.length === 0) return;
+
+    const zoom = graph.getZoomLevel();
+    const highNodeCount = buffers.indexToNode.length > COSMOS_HIGH_NODE_COUNT;
+    const shouldShow = zoom >= COSMOS_LOW_ZOOM_THRESHOLD && !highNodeCount;
+
+    if (!force && shouldShow === logosVisibleRef.current) return;
+    logosVisibleRef.current = shouldShow;
+
+    if (!shouldShow) {
+      graph.setPointImageIndices(
+        emptyPointImageIndices(buffers.indexToNode.length),
+      );
+      graph.render();
+      return;
+    }
+
+    const { indices, sizes } = buildPointImageBuffers(
+      buffers.indexToNode,
+      atlas.sourceTypeToAtlasIndex,
+    );
+    graph.setImageData(atlas.images);
+    graph.setPointImageIndices(indices);
+    graph.setPointImageSizes(sizes);
+    graph.render();
+  }, []);
+
+  // Create / destroy Cosmos instance when topology changes
+  useEffect(() => {
+    const host = hostRef.current;
+    const root = rootRef.current;
+    if (!host || !root || nodes.length === 0) return;
+
+    setWebglError(false);
+    let cancelled = false;
+    root.style.opacity = "0";
+    const buffers = buildCosmosGraphBuffers(
+      nodes,
+      edges,
+      themeRef.current,
+      SPACE_SIZE,
+      lastPositionsRef.current,
+    );
+    buffersRef.current = buffers;
+    hoveredIndexRef.current = undefined;
+    hoveredLinkIndexRef.current = undefined;
+    logosVisibleRef.current = true;
+
+    const bg = graphBackgroundRgba(themeRef.current);
+    const physics = cosmosPhysicsForNodeCount(nodes.length);
+
+    let graph: Graph;
+    try {
+      graph = new Graph(host, {
+        backgroundColor: bg,
+        spaceSize: SPACE_SIZE,
+        enableSimulation: true,
+        enableDrag: true,
+        enableZoom: true,
+        fitViewOnInit: true,
+        fitViewDelay: 100,
+        fitViewPadding: 0.12,
+        renderHoveredPointRing: true,
+        hoveredPointCursor: "pointer",
+        hoveredLinkCursor: "pointer",
+        pointGreyoutOpacity: themeRef.current.dimAlpha,
+        linkGreyoutOpacity: themeRef.current.dimAlpha,
+        focusedLinkWidthIncrease: FOCUSED_LINK_WIDTH_INCREASE,
+        pointSamplingDistance: POINT_SAMPLING_DISTANCE,
+        ...physics,
+        attribution: "",
+        onClick: (index, _pointPosition, event) => {
+          if (event.detail !== 2) return;
+          if (index === undefined) return;
+          const id = buffersRef.current?.indexToId[index];
+          if (id === undefined) return;
+          callbacksRef.current.onFocusNode?.(id);
+        },
+        onPointClick: (index, _pointPosition, event) => {
+          if (event.detail === 2) return;
+          const id = buffersRef.current?.indexToId[index];
+          if (id === undefined) return;
+          callbacksRef.current.onClickNode(id);
+        },
+        onPointMouseOver: (index, pointPosition) => {
+          hoveredIndexRef.current = index;
+          hoveredLinkIndexRef.current = undefined;
+          const buffersNow = buffersRef.current;
+          const g = graphRef.current;
+          if (!buffersNow || !g) return;
+          const node = buffersNow.indexToNode[index];
+          if (!node) return;
+          const [viewportX, viewportY] = g.spaceToScreenPosition(pointPosition);
+          callbacksRef.current.onHoverNode({
+            title: node.title,
+            viewportX,
+            viewportY,
+          });
+          applyVisualState(g);
+          paintSceneOverlays(g);
+        },
+        onPointMouseOut: () => {
+          hoveredIndexRef.current = undefined;
+          callbacksRef.current.onHoverNode(null);
+          const g = graphRef.current;
+          if (!g) return;
+          applyVisualState(g);
+          paintSceneOverlays(g);
+        },
+        onLinkMouseOver: (linkIndex) => {
+          hoveredLinkIndexRef.current = linkIndex;
+          hoveredIndexRef.current = undefined;
+          callbacksRef.current.onHoverNode(null);
+          const buffersNow = buffersRef.current;
+          const g = graphRef.current;
+          const meta: CosmosEdgeMeta | undefined =
+            buffersNow?.edgeMeta[linkIndex];
+          if (!buffersNow || !g || !meta) {
+            callbacksRef.current.onHoverEdge?.(null);
+            return;
+          }
+          const positions = g.getPointPositions();
+          const sx = positions[meta.sourceIndex * 2];
+          const sy = positions[meta.sourceIndex * 2 + 1];
+          const tx = positions[meta.targetIndex * 2];
+          const ty = positions[meta.targetIndex * 2 + 1];
+          if (
+            sx === undefined ||
+            sy === undefined ||
+            tx === undefined ||
+            ty === undefined
+          ) {
+            callbacksRef.current.onHoverEdge?.(null);
+            return;
+          }
+          const [viewportX, viewportY] = g.spaceToScreenPosition([
+            (sx + tx) / 2,
+            (sy + ty) / 2,
+          ]);
+          callbacksRef.current.onHoverEdge?.({
+            edgeType: meta.edgeType,
+            sourceTitle: meta.sourceTitle,
+            targetTitle: meta.targetTitle,
+            reason: meta.reason,
+            score: meta.score,
+            viewportX,
+            viewportY,
+          });
+          applyVisualState(g);
+          paintSceneOverlays(g);
+        },
+        onLinkMouseOut: () => {
+          hoveredLinkIndexRef.current = undefined;
+          callbacksRef.current.onHoverEdge?.(null);
+          const g = graphRef.current;
+          if (!g) return;
+          applyVisualState(g);
+          paintSceneOverlays(g);
+        },
+        onBackgroundClick: () => {
+          hoveredIndexRef.current = undefined;
+          hoveredLinkIndexRef.current = undefined;
+          callbacksRef.current.onHoverNode(null);
+          callbacksRef.current.onHoverEdge?.(null);
+          const g = graphRef.current;
+          if (g) applyVisualState(g);
+        },
+        onDragStart: () => {
+          const g = graphRef.current;
+          if (!g) return;
+          g.unpause();
+          g.start(COSMOS_DRAG_REHEAT_ALPHA);
+        },
+        onDragEnd: () => {
+          const g = graphRef.current;
+          if (g) paintSceneOverlays(g);
+        },
+        onSimulationTick: (alpha, hoveredIndex) => {
+          if (typeof hoveredIndex === "number") {
+            hoveredIndexRef.current = hoveredIndex;
+          }
+          const g = graphRef.current;
+          if (g) paintSceneOverlays(g);
+          // Legacy SLEEP_ALPHA ≈ 0.005 — pause once visually still.
+          if (typeof alpha === "number" && alpha < 0.01) {
+            g?.pause();
+          }
+        },
+        onZoom: () => {
+          const g = graphRef.current;
+          if (g) paintSceneOverlays(g);
+        },
+        onZoomEnd: () => {
+          const g = graphRef.current;
+          if (!g) return;
+          paintSceneOverlays(g);
+          applyConnectorLogos(g);
+        },
+      });
+    } catch {
+      setWebglError(true);
+      root.style.opacity = "";
+      return;
+    }
+
+    graphRef.current = graph;
+
+    graph.setPointPositions(buffers.positions);
+    graph.setPointColors(buffers.colors);
+    graph.setPointSizes(buffers.sizes);
+    graph.setPointShapes(buffers.shapes);
+    graph.setLinks(buffers.links);
+    graph.setLinkColors(buffers.linkColors);
+    graph.setLinkWidths(buffers.linkWidths);
+    graph.setLinkStrength(buffers.linkStrengths);
+    graph.render();
+
+    void graph.ready.then(() => {
+      if (cancelled) return;
+      graph.pause();
+      const seededCount = lastPositionsRef.current.size;
+      const mostlyPersisted =
+        seededCount > 0 && seededCount >= buffers.indexToNode.length * 0.5;
+      const warmupTicks = mostlyPersisted
+        ? Math.min(cosmosWarmupTicks(buffers.indexToNode.length), 30)
+        : cosmosWarmupTicks(buffers.indexToNode.length);
+      for (let i = 0; i < warmupTicks; i++) graph.step();
+      // same node set as the previous graph (rebuild from a live edge event
+      // or an equal refetch) → restore the camera instead of re-fitting
+      const camera = lastCameraRef.current;
+      let persistedCount = 0;
+      for (const id of buffers.indexToId) {
+        if (lastPositionsRef.current.has(id)) persistedCount += 1;
+      }
+      const sameNodeSet =
+        camera !== null &&
+        camera.nodeCount === buffers.indexToNode.length &&
+        persistedCount === buffers.indexToNode.length;
+      if (sameNodeSet) {
+        graph.setZoomTransformByPointPositions(
+          Float32Array.from([camera.x, camera.y]),
+          0,
+          camera.zoom,
+          undefined,
+          false,
+        );
+      } else {
+        graph.setZoomTransformByPointPositions(
+          Float32Array.from(graph.getPointPositions()),
+          0,
+          undefined,
+          fitPaddingForNodeCount(buffers.indexToNode.length),
+          false,
+        );
+      }
+      applyVisualState(graph);
+      paintSceneOverlays(graph);
+      applyConnectorLogos(graph, true);
+      root.style.opacity = "1";
+      graph.start(COSMOS_INITIAL_SETTLE_ALPHA);
+    });
+
+    void loadCosmosConnectorLogoAtlas().then((atlas) => {
+      if (cancelled) return;
+      logoAtlasRef.current = atlas;
+      const g = graphRef.current;
+      if (g === graph) applyConnectorLogos(g, true);
+    });
 
     return () => {
-      // snapshot final positions so the next simulation (new data) can
-      // seed surviving nodes where they already rest
-      const positions = positionCache;
-      positions.clear();
-      for (const node of nodes) {
-        if (node.x !== undefined && node.y !== undefined) {
-          positions.set(node.id, { x: node.x, y: node.y });
-        }
-      }
-      cancelAnimationFrame(rafId);
-      cleanup();
-      sim.stop();
+      cancelled = true;
+      root.style.opacity = "";
+      lastPositionsRef.current = capturePointPositions(
+        buffers.indexToId,
+        graph.getPointPositions(),
+      );
+      const [centerX, centerY] = graph.screenToSpacePosition([
+        root.clientWidth / 2,
+        root.clientHeight / 2,
+      ]);
+      lastCameraRef.current = {
+        x: centerX,
+        y: centerY,
+        zoom: graph.getZoomLevel(),
+        nodeCount: buffers.indexToNode.length,
+      };
+      graph.destroy();
+      if (graphRef.current === graph) graphRef.current = null;
+      buffersRef.current = null;
     };
-  }, [nodes, edges]);
+  }, [nodes, edges, applyVisualState, paintSceneOverlays, applyConnectorLogos]);
 
-  const handleZoomIn = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    zoomAt(
-      viewportRef.current,
-      canvas.clientWidth / 2,
-      canvas.clientHeight / 2,
-      canvas.clientWidth,
-      canvas.clientHeight,
-      1.3,
-    );
-  };
+  // Theme colours only — do not touch simulation (avoids perpetual reheat).
+  useEffect(() => {
+    const graph = graphRef.current;
+    const buffers = buffersRef.current;
+    if (!graph || !buffers) return;
 
-  const handleZoomOut = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    zoomAt(
-      viewportRef.current,
-      canvas.clientWidth / 2,
-      canvas.clientHeight / 2,
-      canvas.clientWidth,
-      canvas.clientHeight,
-      0.7,
-    );
-  };
+    recolorCosmosGraphBuffers(buffers, viewTheme);
+    graph.setPointColors(buffers.colors);
+    graph.setPointSizes(buffers.sizes);
+    graph.setPointShapes(buffers.shapes);
+    graph.setLinkColors(buffers.linkColors);
+    graph.setLinkWidths(buffers.linkWidths);
+    graph.setLinkStrength(buffers.linkStrengths);
+    graph.setConfigPartial({
+      backgroundColor: graphBackgroundRgba(viewTheme),
+      pointGreyoutOpacity: viewTheme.dimAlpha,
+      linkGreyoutOpacity: viewTheme.dimAlpha,
+    });
+    graph.render();
+    paintSceneOverlays(graph);
+  }, [viewTheme, paintSceneOverlays]);
 
-  const handleFit = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    fitToNodes(
-      viewportRef.current,
-      nodesRef.current,
-      canvas.clientWidth,
-      canvas.clientHeight,
-    );
-  };
+  useEffect(() => {
+    const graph = graphRef.current;
+    if (!graph) return;
+    applyVisualState(graph);
+  }, [focusNodeId, searchMatchSet, isSearchActive, applyVisualState]);
+
+  useEffect(() => {
+    const graph = graphRef.current;
+    if (!graph) return;
+    paintSceneOverlays(graph);
+  }, [showLabels, paintSceneOverlays]);
+
+  const handleZoomIn = useCallback(() => {
+    const graph = graphRef.current;
+    if (!graph) return;
+    graph.setZoomLevel(graph.getZoomLevel() * ZOOM_IN_FACTOR);
+    paintSceneOverlays(graph);
+    applyConnectorLogos(graph);
+  }, [paintSceneOverlays, applyConnectorLogos]);
+
+  const handleZoomOut = useCallback(() => {
+    const graph = graphRef.current;
+    if (!graph) return;
+    graph.setZoomLevel(graph.getZoomLevel() * ZOOM_OUT_FACTOR);
+    paintSceneOverlays(graph);
+    applyConnectorLogos(graph);
+  }, [paintSceneOverlays, applyConnectorLogos]);
+
+  const handleFit = useCallback(() => {
+    graphRef.current?.fitView();
+  }, []);
 
   useImperativeHandle(ref, () => ({
     zoomIn: handleZoomIn,
@@ -559,12 +732,31 @@ function GraphCanvas({
     fit: handleFit,
   }));
 
+  if (webglError) {
+    return (
+      <GraphStatus
+        variant="error"
+        title="WebGL 2 is required to display the graph"
+      />
+    );
+  }
+
   return (
-    <canvas
-      ref={canvasRef}
-      className="w-full h-full block"
-      style={{ touchAction: "none" }}
-    />
+    <div
+      ref={rootRef}
+      className="relative h-full w-full block"
+      style={{
+        touchAction: "none",
+        backgroundColor: viewTheme.background,
+      }}
+    >
+      <div ref={hostRef} className="absolute inset-0" />
+      <canvas
+        ref={labelCanvasRef}
+        className="pointer-events-none absolute inset-0"
+        aria-hidden
+      />
+    </div>
   );
 }
 
