@@ -12,11 +12,11 @@ export function sidebarNavLinkTextClass(isActive: boolean): string {
   return cn(isActive ? "text-foreground" : "text-muted hover:text-foreground");
 }
 
-// eva SharedLayoutNav spring — snappier slide between rows
+// shared-layout pill slide between sidebar rows
 export const sidebarSharedLayoutTransition = {
   type: "spring" as const,
-  stiffness: 520,
-  damping: 38,
+  stiffness: 800,
+  damping: 48,
 };
 
 // eva-aligned padding for main sidebar nav rows (SharedLayoutNav.sidebarNavLinkClass)
