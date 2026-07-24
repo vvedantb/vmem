@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
 import { useQueryStates } from "nuqs";
 import { useConvexAuth, useAction } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 import {
   Button,
@@ -220,38 +220,24 @@ export function EventsPanel() {
   const getRecentActivity = useAction(api.dashboardApi.getRecentActivity);
 
   const [params] = useQueryStates(eventsSearchParams);
-  const [activity, setActivity] = useState<ActivityItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!isAuthenticated) return;
-
-    let cancelled = false;
-    setIsLoading(true);
-    setError(null);
-
-    void getRecentActivity({
-      limit: 200,
-      profileId: activeProfileId,
-    })
-      .then((data) => {
-        if (!cancelled) setActivity(data);
-      })
-      .catch((err) => {
+  const query = useQuery({
+    queryKey: ["recent-activity", activeProfileId],
+    queryFn: async (): Promise<ActivityItem[]> => {
+      try {
+        return await getRecentActivity({
+          limit: 200,
+          profileId: activeProfileId,
+        });
+      } catch (err) {
         console.error("Failed to fetch activity:", err);
-        if (!cancelled) {
-          setError("Failed to load activity. Please try again.");
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
-      });
+        throw err;
+      }
+    },
+    enabled: isAuthenticated,
+  });
 
-    return () => {
-      cancelled = true;
-    };
-  }, [isAuthenticated, getRecentActivity, activeProfileId]);
+  const activity = query.data ?? [];
 
   const filteredAndSortedActivity = filterAndSortActivity(
     activity,
@@ -262,23 +248,9 @@ export function EventsPanel() {
 
   const hasFilters = params.types.length > 0 || params.range !== "all";
 
-  const retryFetch = () => {
-    if (!isAuthenticated) return;
-    setIsLoading(true);
-    setError(null);
-    void getRecentActivity({
-      limit: 200,
-      profileId: activeProfileId,
-    })
-      .then(setActivity)
-      .catch((err) => {
-        console.error("Failed to fetch activity:", err);
-        setError("Failed to load activity. Please try again.");
-      })
-      .finally(() => setIsLoading(false));
-  };
-
-  if (isLoading) {
+  // isPending (not isLoading) so a disabled query — auth still resolving —
+  // keeps showing the skeleton instead of flashing the empty state
+  if (query.isPending) {
     return (
       <div className="flex h-full min-h-0 flex-col">
         <LoadingSkeleton />
@@ -286,13 +258,19 @@ export function EventsPanel() {
     );
   }
 
-  if (error) {
+  if (query.isError) {
     return (
       <div className="flex h-full min-h-0 flex-col">
         <Card className="flex min-h-0 flex-1 flex-col shadow-none">
           <CardContent className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-16 text-center">
-            <p className="mb-4 text-sm text-danger">{error}</p>
-            <Button variant="outline" size="sm" onClick={retryFetch}>
+            <p className="mb-4 text-sm text-danger">
+              Failed to load activity. Please try again.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void query.refetch()}
+            >
               <IconLoader2 size={16} className="mr-2" />
               Retry
             </Button>
