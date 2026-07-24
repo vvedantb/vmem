@@ -17,7 +17,7 @@ const activityEventPropsSchema = z.object({
   createdAt: z.string(),
 });
 
-function formatRelativeTime(diffMs: number): string {
+function formatDiffAgo(diffMs: number): string {
   const diffMins = Math.floor(diffMs / 60000);
   if (diffMins < 1) return "just now";
   if (diffMins < 60) return `${diffMins}m ago`;
@@ -208,9 +208,7 @@ export async function getRecentActivity(
       title: "Memory",
       description: meta.description,
       timestamp: props.createdAt,
-      relativeTime: formatRelativeTime(
-        now - new Date(props.createdAt).getTime(),
-      ),
+      relativeTime: formatDiffAgo(now - new Date(props.createdAt).getTime()),
     };
   });
 }
