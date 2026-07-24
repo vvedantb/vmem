@@ -9,7 +9,7 @@ export type SaveToast = {
   color: string;
 };
 
-/** Pick toast copy/color from savePageFromTab's result (does not throw on failure). */
+// pick toast copy/colour from savepagefromtab's result (does not throw on failure)
 export function toastForSaveResult(result: SavePageResult): SaveToast {
   if (result.success) {
     return { message: "✓ Page saved to vmem", color: "#4ade80" };

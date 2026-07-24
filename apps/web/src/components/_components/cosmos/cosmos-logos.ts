@@ -1,12 +1,12 @@
 import type { GraphNode } from "@/lib/graph/types";
 import { loadConnectorLogos } from "./connector-logos";
 
-/** Cosmos sentinel: no image for this point (see GraphData.updatePointImageIndices). */
+// cosmos sentinel: no image for this point (see graphdata.updatepointimageindices)
 const NO_POINT_IMAGE_INDEX = -1;
 
 const ATLAS_PIXEL_SIZE = 32;
 
-/** Atlas order matches connector-logos loader (google_drive, notion). */
+// atlas order matches connector, logos loader (google_drive, notion)
 const ATLAS_SOURCE_TYPES = ["google_drive", "notion"] as const;
 
 export interface CosmosLogoAtlas {
@@ -27,7 +27,7 @@ function imageElementToImageData(
   return ctx.getImageData(0, 0, size, size);
 }
 
-/** Load connector SVGs once and convert to Cosmos ImageData atlas. */
+// load connector svgs once and convert to cosmos imagedata atlas
 export async function loadCosmosConnectorLogoAtlas(): Promise<CosmosLogoAtlas> {
   const logoMap = await loadConnectorLogos();
   const images: ImageData[] = [];
@@ -49,10 +49,8 @@ export function emptyPointImageIndices(pointCount: number): Float32Array {
   return new Float32Array(pointCount).fill(NO_POINT_IMAGE_INDEX);
 }
 
-/**
- * Assign atlas indices for memory nodes with a known connector sourceType.
- * Other points get NO_POINT_IMAGE_INDEX (-1).
- */
+// assign atlas indices for memory nodes with a known connector sourcetype
+// other points get no_point_image_index (, 1)
 export function buildPointImageBuffers(
   nodes: readonly GraphNode[],
   sourceTypeToAtlasIndex: ReadonlyMap<string, number>,

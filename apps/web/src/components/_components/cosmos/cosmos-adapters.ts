@@ -135,7 +135,7 @@ function linkStrengthForEdgeType(edgeType: GraphEdgeType): number {
   return edgeType === "tag" ? 0 : 1;
 }
 
-/** Build Cosmos index-based Float32Arrays + id↔index / edge meta maps. */
+// build cosmos index, based float32arrays + id↔index / edge meta maps
 export function buildCosmosGraphBuffers(
   nodes: GraphNode[],
   edges: GraphEdge[],
@@ -239,7 +239,7 @@ export function buildCosmosGraphBuffers(
   };
 }
 
-/** Recolor existing buffers after a theme change (keeps indices / positions). */
+// recolor existing buffers after a theme change (keeps indices / positions)
 export function recolorCosmosGraphBuffers(
   buffers: CosmosGraphBuffers,
   theme: GraphViewTheme,
@@ -264,7 +264,7 @@ export function recolorCosmosGraphBuffers(
   }
 }
 
-/** Indices of nodes matching the active search set (for Cosmos highlight). */
+// indices of nodes matching the active search set (for cosmos highlight)
 export function searchMatchIndices(
   indexToId: readonly string[],
   searchMatchSet: Set<string>,
@@ -277,7 +277,7 @@ export function searchMatchIndices(
   return out;
 }
 
-/** Snapshot cosmos point positions keyed by node id (cosmos space 0..spaceSize). */
+// snapshot cosmos point positions keyed by node id (cosmos space 0..spacesize)
 export function capturePointPositions(
   indexToId: readonly string[],
   positions: ArrayLike<number>,

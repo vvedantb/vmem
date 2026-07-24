@@ -135,7 +135,9 @@ function FiltersPopover({
         align="end"
         className="w-[calc(100vw-1rem)] max-w-[360px] p-3 sm:w-[360px] space-y-3"
       >
-        {/* Kinds */}
+        {
+          // kinds
+        }
         <div>
           <span className="text-[10px] font-medium text-muted uppercase tracking-wider">
             Kinds
@@ -163,7 +165,9 @@ function FiltersPopover({
           </div>
         </div>
 
-        {/* Process picker */}
+        {
+          // process picker
+        }
         {processOptions.length > 0 && (
           <>
             <Separator />
@@ -202,7 +206,9 @@ function FiltersPopover({
           </>
         )}
 
-        {/* Directories */}
+        {
+          // directories
+        }
         {directories.length > 0 && (
           <>
             <Separator />
@@ -217,7 +223,9 @@ function FiltersPopover({
           </>
         )}
 
-        {/* Reset */}
+        {
+          // reset
+        }
         {activeFilterCount > 0 && (
           <>
             <Separator />

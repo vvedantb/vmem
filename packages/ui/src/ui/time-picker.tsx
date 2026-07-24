@@ -3,35 +3,19 @@ import { IconClock } from "@tabler/icons-react";
 import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 import { cn } from "../utils/cn";
 
-/**
- * Custom 24-hour "HH:MM" time picker.
- *
- * Replaces `<input type="time">` because the native picker varies wildly
- * across browsers and platforms (Chrome/Firefox/Safari each render a
- * different control, and the spinner buttons feel laggy on Windows).
- *
- * UX:
- * - The trigger is styled like an Input — same height/border/radius — so
- *   it slots into forms without bespoke alignment work.
- * - Clicking the trigger (or its clock icon) opens a popover with two
- *   scrollable columns: hours 00–23 on the left, minutes 00–59 on the
- *   right. Click an item to select; the popover stays open so users can
- *   set both halves in one trip.
- * - Selected items use the same `bg-surface-tertiary` treatment used elsewhere for
- *   active states, no rings or borders, matching the design system.
- *
- * The component is fully controlled — `value` is always "HH:MM" 24h and
- * the consumer is responsible for any local↔UTC conversion. That keeps
- * the picker free of timezone logic and matches how the rest of the
- * codebase (e.g. Dream Mode) shapes scheduling values.
- */
+// custom 24, hour "hh:mm" time picker replaces `<input type="time">` because the native picker varies wildly
+// across browsers and platforms (chrome/firefox/safari each render a
+// different control, and the spinner buttons feel laggy on windows) ux:, the trigger is styled like an input, same height/border/radius, so it slots into forms without bespoke alignment work, clicking the trigger (or its clock icon) opens a popover with two scrollable columns: hours 00, 23 on the left, minutes 00, 59 on the right click an item to select, the popover stays open so users can set both halves in one trip, selected items use the same `bg, surface, tertiary` treatment used elsewhere for active states, no rings or borders, matching the design system the component is fully controlled, `value` is always "hh:mm" 24h and
+// the consumer is responsible for any local↔utc conversion that keeps
+// the picker free of timezone logic and matches how the rest of the
+// codebase (e.g dream mode) shapes scheduling values
 interface TimePickerProps {
   value: string;
   onChange: (value: string) => void;
   className?: string;
   disabled?: boolean;
   ariaLabel?: string;
-  /** Width of the trigger button. Defaults to a compact 110px. */
+  // width of the trigger button defaults to a compact 110px
   triggerClassName?: string;
 }
 
@@ -52,11 +36,9 @@ function parseValue(value: string): { hour: string; minute: string } {
   return { hour: "00", minute: "00" };
 }
 
-/**
- * Auto-scroll a column to its selected item when the popover opens. Using
- * `scrollIntoView({ block: "center" })` is good enough — the popover only
- * has 2 columns and a fixed height, so we don't need a custom scroll calc.
- */
+// auto, scroll a column to its selected item when the popover opens using
+// `scrollintoview({ block: "centre" })` is good enough, the popover only
+// has 2 columns and a fixed height, so we don't need a custom scroll calc
 function useScrollSelectedIntoView(
   ref: React.RefObject<HTMLDivElement | null>,
   selector: string,

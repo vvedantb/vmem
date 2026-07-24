@@ -58,7 +58,7 @@ async function insertOwnerAggregates(
   });
 }
 
-/** Keep aggregates in sync when a log row is inserted. */
+// keep aggregates in sync when a log row is inserted
 export async function insertOpenRouterLogAggregates(
   ctx: MutationCtx,
   doc: Doc<"openRouterLogs">,

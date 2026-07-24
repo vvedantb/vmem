@@ -5,7 +5,7 @@ export const COSMOS_LOW_ZOOM_THRESHOLD = 0.4;
 export const COSMOS_HIGH_NODE_COUNT = 5000;
 const MIN_LABEL_SCREEN_R = 6;
 
-/** Edge-type pill labels. */
+// edge, type pill labels
 export const COSMOS_EDGE_LABEL: Record<GraphEdgeType, string> = {
   tag: "tagged",
   relates_to: "relates to",
@@ -38,7 +38,7 @@ export function shouldSkipCosmosLabels(
   );
 }
 
-/** Label thinning gates for dense graphs. */
+// label thinning gates for dense graphs
 export function shouldShowCosmosLabel(opts: {
   screenRadius: number;
   isHovered: boolean;

@@ -104,8 +104,7 @@ styleEl.textContent = `
     transform: translateY(0);
   }
 
-  /* expand to pill on hover only in ready state interpolate size lets
-     the width animate to max content so the label never truncates */
+  /* expand to pill on hover only in ready state interpolate size lets the width animate to max content so the label never truncates */
   #vmem-popup {
     interpolate-size: allow-keywords;
   }
@@ -142,7 +141,7 @@ styleEl.textContent = `
     margin-left: 6px;
   }
 
-  /* state specific colors (drive currentColor in svgs) */
+  /* state specific colours (drive currentcolor in svgs) */
   #vmem-popup.state-success {
     background: #dcfce7;
     color: #16a34a;

@@ -46,7 +46,7 @@ function parseRgb(value: string): [number, number, number, number] | null {
   return [channel255(r), channel255(g), channel255(b), a];
 }
 
-/** Convert `#rgb` / `#rrggbb` / `rgb()` / `rgba()` to Cosmos `[r,g,b,a]` (0–1). */
+// convert `#rgb` / `#rrggbb` / `rgb()` / `rgba()` to cosmos `[r, g, b, a]` (0, 1)
 export function colorToRgba(color: string): [number, number, number, number] {
   const hex = parseHex(color);
   if (hex) return hex;

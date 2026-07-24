@@ -1,30 +1,17 @@
 import { Toaster, type ToasterProps } from "sonner";
 import "./sonner.css";
 
-/**
- * Sonner toaster aligned with flat tonal surfaces.
- *
- * `unstyled: true` strips Sonner's default visual styling so our classes are
- * the single source of truth. Toast surfaces use `glass-panel-strong` (flat
- * popover fill + shadow) via app globals.
- *
- * `!font-sans` is forced on the toaster section because Sonner sets its own
- * `font-family` on `[data-sonner-toaster]` from a stylesheet that ships with
- * the package (loaded after our globals), so plain inheritance from `<body>`
- * loses the cascade. The `!important` here guarantees Instrument Sans wins
- * — toasts inherit from the section, so this single class covers everything.
- *
- * Variant icons (success / error / warning / info) are tinted via a
- * `data-icon` descendant selector, leaving the rest of the toast neutral.
- *
- * Callers should pass `theme` from `next-themes` so Sonner's internal
- * `data-theme` attribute matches the active app theme (used by its focus
- * ring and a few internal states that aren't reachable via classNames).
- *
- * Stacking: `expand={false}` keeps toasts collapsed (offset + scale). Hovering
- * the stack expands them. `sonner.css` hides back-toast content while collapsed
- * because `unstyled` disables Sonner's built-in `data-styled` stack rules.
- */
+// sonner toaster aligned with flat tonal surfaces `unstyled: true` strips sonner's default visual styling so our classes are
+// the single source of truth toast surfaces use `glass, panel, strong` (flat
+// popover fill + shadow) via app globals `!font, sans` is forced on the toaster section because sonner sets its own
+// `font, family` on `[data, sonner, toaster]` from a stylesheet that ships with
+// the package (loaded after our globals), so plain inheritance from `<body>`
+// loses the cascade the `!important` here guarantees instrument sans wins, toasts inherit from the section, so this single class covers everything variant icons (success / error / warning / info) are tinted via a
+// `data, icon` descendant selector, leaving the rest of the toast neutral callers should pass `theme` from `next, themes` so sonner's internal
+// `data, theme` attribute matches the active app theme (used by its focus
+// ring and a few internal states that aren't reachable via classnames) stacking: `expand={false}` keeps toasts collapsed (offset + scale) hovering
+// the stack expands them `sonner.css` hides back, toast content while collapsed
+// because `unstyled` disables sonner's built, in `data, styled` stack rules
 function SonnerToaster(props: ToasterProps) {
   return (
     <Toaster

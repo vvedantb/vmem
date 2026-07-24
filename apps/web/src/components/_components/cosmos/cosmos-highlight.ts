@@ -25,7 +25,7 @@ function intersectWithSearch(
   return indices.filter((idx) => matchSet.has(idx));
 }
 
-/** Pure highlight state for Cosmos GL focus / greyout parity with legacy canvas. */
+// pure highlight state for cosmos gl focus / greyout parity with legacy canvas
 export function computeHighlightPoints(
   input: ComputeHighlightPointsInput,
 ): HighlightPointsResult {

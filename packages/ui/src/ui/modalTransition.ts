@@ -16,14 +16,14 @@ function clearCloseTimer(el: HTMLElement): void {
   }
 }
 
-/** Open: scales up from --modal-scale. Clears any in-flight close cleanup. */
+// open: scales up from, modal, scale clears any in, flight close cleanup
 function openModalSurface(el: HTMLElement): void {
   clearCloseTimer(el);
   el.classList.remove("is-closing");
   el.classList.add("is-open");
 }
 
-/** Close: swap to .is-closing, remove after --modal-close-dur. */
+// close: swap to is, closing, remove after, modal, close, dur
 function closeModalSurface(el: HTMLElement): void {
   clearCloseTimer(el);
   el.classList.remove("is-open");
@@ -36,7 +36,7 @@ function closeModalSurface(el: HTMLElement): void {
   closeTimers.set(el, timer);
 }
 
-/** First paint entrance — start at resting scale, then open on next frame. */
+// first paint entrance, start at resting scale, then open on next frame
 function primeModalSurface(el: HTMLElement): void {
   clearCloseTimer(el);
   el.classList.remove("is-open", "is-closing");
@@ -45,7 +45,7 @@ function primeModalSurface(el: HTMLElement): void {
   });
 }
 
-/** Sync .is-open / .is-closing with Radix data-state on the same node. */
+// sync is, open / is, closing with radix data, state on the same node
 function syncModalSurfaceFromDataState(el: HTMLElement): void {
   const state = el.getAttribute("data-state");
   if (state === "open") {
@@ -66,10 +66,8 @@ function disconnectModalSurface(el: HTMLElement): void {
   clearCloseTimer(el);
 }
 
-/**
- * Wire Radix data-state → .is-open / .is-closing on the dialog surface.
- * Call from the content ref callback so portal-mounted nodes are never missed.
- */
+// wire radix data, state → is, open / is, closing on the dialog surface
+// call from the content ref callback so portal, mounted nodes are never missed
 export function connectModalSurface(el: HTMLElement): () => void {
   if (el.getAttribute("data-state") === "open") {
     primeModalSurface(el);

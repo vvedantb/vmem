@@ -10,7 +10,7 @@ export interface ClearInputProps extends Omit<
   value: string;
   onChange: (value: string) => void;
   wrapperClassName?: string;
-  /** Icon or adornment positioned in the field's left gutter. */
+  // icon or adornment positioned in the field's left gutter
   leading?: React.ReactNode;
   clearLabel?: string;
 }

@@ -71,7 +71,7 @@ export type UseIdSelectionOptions<T> = {
   orderedIds?: readonly T[];
 };
 
-/** Shared id Set selection for files (modifiers) and wiki/skills (bulk mode). */
+// shared id set selection for files (modifiers) and wiki/skills (bulk mode)
 export function useIdSelection<T>(options: UseIdSelectionOptions<T> = {}) {
   const orderedIdsRef = useRef(options.orderedIds);
   orderedIdsRef.current = options.orderedIds;

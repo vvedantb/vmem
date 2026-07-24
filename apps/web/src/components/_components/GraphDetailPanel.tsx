@@ -42,7 +42,9 @@ export default function GraphDetailPanel({
           transition={{ type: "spring", damping: 30, stiffness: 300 }}
           className="absolute top-0 right-0 bottom-0 w-96 z-20 glass-panel-strong overflow-y-auto hidden md:flex flex-col"
         >
-          {/* Header */}
+          {
+            // header
+          }
           <div className="flex items-start justify-between p-4 pb-2">
             <div className="min-w-0 flex-1">
               <h2 className="text-base font-semibold text-foreground truncate text-balance">
@@ -64,7 +66,9 @@ export default function GraphDetailPanel({
             </Button>
           </div>
 
-          {/* Content */}
+          {
+            // content
+          }
           <div className="px-4 py-2 flex-1 min-h-0">
             {nodeData.content === undefined ? (
               <div className="flex items-center gap-2 text-xs text-muted">
@@ -77,7 +81,9 @@ export default function GraphDetailPanel({
               </p>
             )}
 
-            {/* Tags */}
+            {
+              // tags
+            }
             {nodeData.tags.length > 0 && (
               <div className="flex gap-1.5 flex-wrap mt-3">
                 {nodeData.tags.map((tag) => (
@@ -88,7 +94,9 @@ export default function GraphDetailPanel({
               </div>
             )}
 
-            {/* Actions */}
+            {
+              // actions
+            }
             <div className="flex items-center gap-2 mt-4">
               <Button
                 variant="outline"
@@ -143,7 +151,9 @@ export default function GraphDetailPanel({
               )}
             </div>
 
-            {/* Related nodes */}
+            {
+              // related nodes
+            }
             {relatedNodes.length > 0 && (
               <div className="mt-6 border-t border-separator pt-4">
                 <p className="text-xs font-medium text-muted mb-2">

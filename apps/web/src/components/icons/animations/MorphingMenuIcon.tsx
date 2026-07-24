@@ -31,7 +31,9 @@ export function MorphingMenuIcon({
       fill="none"
       className={className}
     >
-      {/* Top line - rotates to form top half of X */}
+      {
+        // top line, rotates to form top half of x
+      }
       <motion.line
         x1="4"
         y1="6"
@@ -47,7 +49,9 @@ export function MorphingMenuIcon({
         transition={{ duration: 0.25, ease: "easeInOut" }}
       />
 
-      {/* Middle line - fades out */}
+      {
+        // middle line, fades out
+      }
       <motion.line
         x1="4"
         y1="12"
@@ -62,7 +66,9 @@ export function MorphingMenuIcon({
         style={{ transformOrigin: "center" }}
       />
 
-      {/* Bottom line - rotates to form bottom half of X */}
+      {
+        // bottom line, rotates to form bottom half of x
+      }
       <motion.line
         x1="4"
         y1="18"

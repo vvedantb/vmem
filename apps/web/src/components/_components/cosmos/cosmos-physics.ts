@@ -1,7 +1,5 @@
-/**
- * Fixed Cosmos GL physics knobs (tuned from the old default Spread=10 / Gravity=0.5).
- * Scales a few values with graph size only — no user-facing force controls.
- */
+// fixed cosmos gl physics knobs (tuned from the old default spread=10 / gravity=0.5)
+// scales a few values with graph size only, no user, facing force controls
 export interface CosmosPhysicsConfig {
   simulationRepulsion: number;
   simulationGravity: number;
@@ -12,13 +10,13 @@ export interface CosmosPhysicsConfig {
   simulationRepulsionFromMouse: number;
   simulationLinkSpring: number;
   simulationLinkDistance: number;
-  /** Cosmos types this as number (0 = off); strength when on. */
+  // cosmos types this as number (0 = off), strength when on
   simulationCollision: number;
   simulationCollisionPadding: number;
 }
 
 export const COSMOS_INITIAL_SETTLE_ALPHA = 0.08;
-/** Mild reheat after drag (same feel as the old settings reheat). */
+// mild reheat after drag (same feel as the old settings reheat)
 export const COSMOS_DRAG_REHEAT_ALPHA = 0.25;
 
 export function cosmosWarmupTicks(nodeCount: number): number {

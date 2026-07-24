@@ -25,7 +25,9 @@ const EDGE_LEGEND: {
 export default function GraphLegend() {
   return (
     <div className="space-y-3 text-[11px] text-muted">
-      {/* Nodes — shape per kind; fill colour is tag-driven, not kind-fixed */}
+      {
+        // nodes, shape per kind, fill colour is tag, driven, not kind, fixed
+      }
       <div className="space-y-1">
         <p className="text-muted/80">Nodes</p>
         <p className="text-muted/60 text-[10px]">
@@ -45,7 +47,9 @@ export default function GraphLegend() {
         </div>
       </div>
 
-      {/* Edges — semantic colour per category */}
+      {
+        // edges, semantic colour per category
+      }
       <div className="space-y-1">
         <p className="text-muted/80">Edges</p>
         <div className="space-y-1 pt-0.5">
@@ -60,7 +64,9 @@ export default function GraphLegend() {
         </div>
       </div>
 
-      {/* States — what dimming/highlight means */}
+      {
+        // states, what dimming/highlight means
+      }
       <div className="space-y-1">
         <p className="text-muted/80">States</p>
         <div className="space-y-1 pt-0.5">

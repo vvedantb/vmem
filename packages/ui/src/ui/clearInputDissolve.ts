@@ -1,4 +1,4 @@
-/** transitions.dev input clear with dissolve — see 13-input-clear-dissolve.md */
+// transitions.dev input clear with dissolve, see 13, input, clear, dissolve.md
 
 function readCssNumber(
   root: HTMLElement,

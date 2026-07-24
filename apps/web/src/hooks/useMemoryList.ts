@@ -9,14 +9,14 @@ import { api } from "@vmem/backend";
 
 const MEMORY_LIST_PAGE_SIZE = 100;
 
-/** Filters forwarded to the server-paginated listMemories action. */
+// filters forwarded to the server, paginated listmemories action
 interface MemoryListFilters {
   profileId?: string | null;
   type?: string;
   source?: string;
   tags?: string[];
   searchQuery?: string;
-  /** When false, skips the paginated list query (e.g. hybrid retrieve). */
+  // when false, skips the paginated list query (e.g hybrid retrieve)
   enabled?: boolean;
 }
 
@@ -67,7 +67,7 @@ function useMemoryListPage(filters: MemoryListFilters) {
   });
 }
 
-/** Flat list of memories with loading flags, derived from useMemoryListPage. */
+// flat list of memories with loading flags, derived from usememorylistpage
 export function useMemoryListFlat(filters: MemoryListFilters) {
   const query = useMemoryListPage(filters);
   const memories: Memory[] = (() => {
