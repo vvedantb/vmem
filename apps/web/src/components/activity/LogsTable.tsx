@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Virtuoso } from "react-virtuoso";
-import { Badge, Button, Card, CardContent } from "@vmem/ui";
+import { Badge, Button, Card, CardContent, cn } from "@vmem/ui";
 import { IconReceipt2 } from "@tabler/icons-react";
 import type { AiLogRow, ProfileListItem } from "./types";
 import {
@@ -10,6 +10,9 @@ import {
   featureLabelFor,
 } from "./_aiLogsUtils";
 import { LogRowDetail } from "./LogRowDetail";
+
+// header and rows must share one template or the columns silently drift apart
+const LOG_GRID_COLS = "md:grid-cols-[132px_128px_112px_1fr_128px_88px]";
 
 type LogRow = AiLogRow;
 
@@ -113,7 +116,12 @@ export function LogsTable({
 
         <Card className="flex min-h-0 flex-1 flex-col shadow-none">
           <CardContent className="flex min-h-0 flex-1 flex-col p-2">
-            <div className="hidden shrink-0 px-2 pb-2 text-xs font-medium text-muted md:grid md:grid-cols-[132px_128px_112px_1fr_128px_88px] md:gap-3">
+            <div
+              className={cn(
+                "hidden shrink-0 px-2 pb-2 text-xs font-medium text-muted md:grid md:gap-3",
+                LOG_GRID_COLS,
+              )}
+            >
               <div>Time</div>
               <div>Feature</div>
               <div>Profile</div>
@@ -202,7 +210,9 @@ function LogRowCard({
       onClick={onClick}
       className="block h-auto w-full justify-start rounded-lg px-4 py-3 text-left font-normal hover:bg-surface-tertiary/50 focus:bg-surface-tertiary/50 active:scale-100"
     >
-      <div className="hidden md:grid md:grid-cols-[132px_128px_112px_1fr_128px_88px] md:items-center md:gap-3">
+      <div
+        className={cn("hidden md:grid md:items-center md:gap-3", LOG_GRID_COLS)}
+      >
         <span className="text-xs tabular-nums text-muted">{time}</span>
         <Badge variant="secondary" className="w-fit text-[11px] font-normal">
           {featureLabel}

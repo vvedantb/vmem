@@ -13,7 +13,6 @@ import PageContainer from "@/components/shell/PageContainer";
 import ConfidenceThresholdSlider from "@/components/settings/ConfidenceThresholdSlider";
 import { useUserSettingsSave } from "@/hooks/useUserSettingsSave";
 import { PreferenceSection } from "./PreferenceSection";
-import { PreferenceSliderRow } from "./PreferenceSliderRow";
 import { PreferenceTextareaRow } from "./PreferenceTextareaRow";
 import { PreferenceToggleRow } from "./PreferenceToggleRow";
 import { PreferencesPageSkeleton } from "./PreferencesPageSkeleton";
@@ -174,14 +173,14 @@ export function PreferencesPage() {
               void saveSettings({ memoryAutoExtract: checked });
             }}
           />
-          <PreferenceSliderRow>
+          <div>
             <ConfidenceThresholdSlider
               value={settings.memoryConfidenceThreshold}
               onChange={(value) => {
                 void saveSettings({ memoryConfidenceThreshold: value });
               }}
             />
-          </PreferenceSliderRow>
+          </div>
         </PreferenceSection>
 
         <PreferenceSection title="Dream Mode">
