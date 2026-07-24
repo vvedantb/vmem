@@ -11,12 +11,12 @@ import {
   SelectContent,
   SelectItem,
   Progress,
+  LabeledSwitchRow,
 } from "@vmem/ui";
 import { formatRelativeTime, formatTimeUntil } from "@vmem/shared";
 import { sendMessage, onMessage } from "@/lib/messaging";
 import { getStorage, setStorage } from "@/lib/storage";
 import { useExtensionUserSettings } from "@/popup/useExtensionUserSettings";
-import { SettingsSwitchRow } from "./SettingsSwitchRow";
 
 type ImportStatus = "idle" | "importing" | "done" | "error" | "cancelled";
 
@@ -164,7 +164,7 @@ export function ImportPanel() {
         <h3 className="text-base font-medium text-foreground">Auto-sync</h3>
         <Card className="shadow-none">
           <CardContent className="space-y-4 p-4">
-            <SettingsSwitchRow
+            <LabeledSwitchRow
               id="auto-sync-toggle"
               label="Sync bookmarks and history"
               description={
