@@ -141,7 +141,7 @@ export default function FilesClient() {
     isCreatingFolder: actions.isCreatingFolder,
     isSelected: selection.isSelected,
     onClick: selection.handleClick,
-    onCheckbox: selection.handleCheckbox,
+    onCheckbox: selection.toggle,
     onOpen: actions.handleOpen,
     onDownload: actions.handleDownload,
     onMoveTo: actions.handleMoveTo,
@@ -196,7 +196,7 @@ export default function FilesClient() {
               <FileListView
                 {...sharedItemViewProps}
                 isAllSelected={selection.isAllSelected}
-                onSelectAll={selection.handleSelectAll}
+                onSelectAll={selection.selectAll}
               />
             )}
           </div>

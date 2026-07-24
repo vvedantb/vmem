@@ -72,7 +72,7 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
     selectedIds,
     setSelectionMode,
     exitSelection,
-    toggleSelect,
+    toggle,
   } = useIdSelection<Id<"wikiNodes">>();
 
   const handleSelectNode = (id: string) => {
@@ -199,7 +199,7 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
               onSelect={handleSelectNode}
               mode={selectionMode && !isIconOnly ? "bulk-select" : "navigate"}
               selectedNodeIds={selectedIds}
-              onToggleSelect={toggleSelect}
+              onToggleSelect={toggle}
             />
           </>
         )}

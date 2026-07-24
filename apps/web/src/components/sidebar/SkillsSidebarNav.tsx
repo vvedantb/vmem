@@ -65,7 +65,7 @@ export function SkillsSidebarNav({
     selectedIds,
     setSelectionMode,
     exitSelection,
-    toggleSelect,
+    toggle,
   } = useIdSelection<Id<"skills">>();
 
   const query = searchQuery.trim().toLowerCase();
@@ -279,7 +279,7 @@ export function SkillsSidebarNav({
                           : "navigate"
                       }
                       checked={selectedIds.has(skill._id)}
-                      onToggleSelect={() => toggleSelect(skill._id)}
+                      onToggleSelect={() => toggle(skill._id)}
                     />
                   </SharedLayoutBackground.Item>
                 ))}
