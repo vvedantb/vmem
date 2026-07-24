@@ -5,6 +5,30 @@ import { useActiveProfile } from "@/components/workspace/active-profile";
 
 const DEFAULT_STORAGE_LIMIT = 10 * 1024 * 1024 * 1024;
 
+function collectFileSubtreeIds(
+  nodes: Array<{ _id: Id<"fileNodes">; parentId?: Id<"fileNodes"> }>,
+  rootIds: Iterable<Id<"fileNodes">>,
+): Set<Id<"fileNodes">> {
+  const childrenByParent = new Map<string, Id<"fileNodes">[]>();
+  for (const node of nodes) {
+    const key = node.parentId ?? "__root__";
+    const list = childrenByParent.get(key) ?? [];
+    list.push(node._id);
+    childrenByParent.set(key, list);
+  }
+  const result = new Set<Id<"fileNodes">>();
+  const stack: Id<"fileNodes">[] = [...rootIds];
+  while (stack.length > 0) {
+    const current = stack.pop();
+    if (current === undefined || result.has(current)) continue;
+    result.add(current);
+    for (const child of childrenByParent.get(current) ?? []) {
+      stack.push(child);
+    }
+  }
+  return result;
+}
+
 // files data layer bound directly to the live Convex `files.listTree` query
 export function useFilesData() {
   const teamId = useActiveProfile().teamId;
@@ -12,11 +36,119 @@ export function useFilesData() {
   const nodes = data?.nodes ?? [];
 
   const generateUploadUrl = useMutation(api.files.generateFileUploadUrl);
-  const createFileMutation = useMutation(api.files.createFile);
-  const createFolderMutation = useMutation(api.files.createFolder);
-  const renameMutation = useMutation(api.files.renameNode);
-  const moveMutation = useMutation(api.files.moveNodes);
-  const deleteMutation = useMutation(api.files.deleteNodes);
+  const createFileMutation = useMutation(
+    api.files.createFile,
+  ).withOptimisticUpdate((localStore, args) => {
+    const treeArgs = { teamId: args.teamId };
+    const tree = localStore.getQuery(api.files.listTree, treeArgs);
+    if (tree === undefined) return;
+    const now = Date.now();
+    const tempId = crypto.randomUUID() as Id<"fileNodes">;
+    localStore.setQuery(api.files.listTree, treeArgs, {
+      ...tree,
+      totalBytes: tree.totalBytes + args.size,
+      nodes: [
+        ...tree.nodes,
+        {
+          _id: tempId,
+          _creationTime: now,
+          userId: tree.nodes[0]?.userId ?? ("" as Id<"users">),
+          teamId: args.teamId,
+          parentId: args.parentId,
+          kind: "file" as const,
+          name: args.name,
+          mimeType: args.mimeType,
+          size: args.size,
+          storageId: args.storageId,
+          indexStatus: "pending" as const,
+          createdAt: now,
+          updatedAt: now,
+          url: null,
+        },
+      ],
+    });
+  });
+  const createFolderMutation = useMutation(
+    api.files.createFolder,
+  ).withOptimisticUpdate((localStore, args) => {
+    const treeArgs = { teamId: args.teamId };
+    const tree = localStore.getQuery(api.files.listTree, treeArgs);
+    if (tree === undefined) return;
+    const now = Date.now();
+    const tempId = crypto.randomUUID() as Id<"fileNodes">;
+    localStore.setQuery(api.files.listTree, treeArgs, {
+      ...tree,
+      nodes: [
+        ...tree.nodes,
+        {
+          _id: tempId,
+          _creationTime: now,
+          userId: tree.nodes[0]?.userId ?? ("" as Id<"users">),
+          teamId: args.teamId,
+          parentId: args.parentId,
+          kind: "folder" as const,
+          name: args.name,
+          createdAt: now,
+          updatedAt: now,
+          url: null,
+        },
+      ],
+    });
+  });
+  const renameMutation = useMutation(api.files.renameNode).withOptimisticUpdate(
+    (localStore, args) => {
+      for (const entry of localStore.getAllQueries(api.files.listTree)) {
+        if (entry.value === undefined) continue;
+        localStore.setQuery(api.files.listTree, entry.args, {
+          ...entry.value,
+          nodes: entry.value.nodes.map((n) =>
+            n._id === args.nodeId
+              ? { ...n, name: args.name, updatedAt: Date.now() }
+              : n,
+          ),
+        });
+      }
+    },
+  );
+  const moveMutation = useMutation(api.files.moveNodes).withOptimisticUpdate(
+    (localStore, args) => {
+      const moveSet = new Set(args.nodeIds);
+      for (const entry of localStore.getAllQueries(api.files.listTree)) {
+        if (entry.value === undefined) continue;
+        localStore.setQuery(api.files.listTree, entry.args, {
+          ...entry.value,
+          nodes: entry.value.nodes.map((n) =>
+            moveSet.has(n._id)
+              ? {
+                  ...n,
+                  parentId: args.targetParentId,
+                  updatedAt: Date.now(),
+                }
+              : n,
+          ),
+        });
+      }
+    },
+  );
+  const deleteMutation = useMutation(
+    api.files.deleteNodes,
+  ).withOptimisticUpdate((localStore, args) => {
+    for (const entry of localStore.getAllQueries(api.files.listTree)) {
+      if (entry.value === undefined) continue;
+      const remove = collectFileSubtreeIds(entry.value.nodes, args.nodeIds);
+      let subtract = 0;
+      for (const n of entry.value.nodes) {
+        if (remove.has(n._id) && n.kind === "file" && n.size !== undefined) {
+          subtract += n.size;
+        }
+      }
+      localStore.setQuery(api.files.listTree, entry.args, {
+        ...entry.value,
+        totalBytes: Math.max(0, entry.value.totalBytes - subtract),
+        nodes: entry.value.nodes.filter((n) => !remove.has(n._id)),
+      });
+    }
+  });
 
   const toNodeId = (
     id: Id<"fileNodes"> | null,

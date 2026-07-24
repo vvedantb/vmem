@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "convex/react";
-import { api } from "@vmem/backend";
+import { api, type Id } from "@vmem/backend";
 import {
   Dialog,
   DialogContent,
@@ -36,8 +36,68 @@ export function SystemSkillFormDialog({
   onOpenChange,
   entry,
 }: SystemSkillFormDialogProps) {
-  const adminCreate = useMutation(api.systemSkills.adminCreate);
-  const adminUpdate = useMutation(api.systemSkills.adminUpdate);
+  const adminCreate = useMutation(
+    api.systemSkills.adminCreate,
+  ).withOptimisticUpdate((localStore, args) => {
+    const now = Date.now();
+    const tempId = crypto.randomUUID() as Id<"systemSkills">;
+    for (const entry of localStore.getAllQueries(
+      api.systemSkills.listCatalog,
+    )) {
+      if (entry.value === undefined) continue;
+      localStore.setQuery(api.systemSkills.listCatalog, entry.args, [
+        {
+          _id: tempId,
+          name: args.name,
+          description: args.description,
+          instructions: args.instructions,
+          category: args.category,
+          published: args.published,
+          updatedAt: now,
+          installed: false,
+          installEnabled: false,
+        },
+        ...entry.value,
+      ]);
+    }
+  });
+  const adminUpdate = useMutation(
+    api.systemSkills.adminUpdate,
+  ).withOptimisticUpdate((localStore, args) => {
+    for (const entry of localStore.getAllQueries(
+      api.systemSkills.listCatalog,
+    )) {
+      if (entry.value === undefined) continue;
+      localStore.setQuery(
+        api.systemSkills.listCatalog,
+        entry.args,
+        entry.value.map((s) =>
+          s._id === args.id
+            ? {
+                ...s,
+                ...(args.name !== undefined ? { name: args.name } : {}),
+                ...(args.description !== undefined
+                  ? { description: args.description }
+                  : {}),
+                ...(args.instructions !== undefined
+                  ? { instructions: args.instructions }
+                  : {}),
+                ...(args.category !== undefined
+                  ? {
+                      category:
+                        args.category === null ? undefined : args.category,
+                    }
+                  : {}),
+                ...(args.published !== undefined
+                  ? { published: args.published }
+                  : {}),
+                updatedAt: Date.now(),
+              }
+            : s,
+        ),
+      );
+    }
+  });
 
   const isEdit = entry !== undefined;
 

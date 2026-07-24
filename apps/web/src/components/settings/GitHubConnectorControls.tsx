@@ -88,7 +88,13 @@ export function GitHubConnectorControls({
   connection,
   returnPath = "/settings/connectors",
 }: GitHubConnectorControlsProps) {
-  const disconnectGithub = useMutation(api.github.disconnect);
+  const disconnectGithub = useMutation(
+    api.github.disconnect,
+  ).withOptimisticUpdate((localStore) => {
+    if (localStore.getQuery(api.github.getConnection, {}) !== undefined) {
+      localStore.setQuery(api.github.getConnection, {}, null);
+    }
+  });
   const [disconnecting, setDisconnecting] = useState(false);
 
   if (connection === undefined) {

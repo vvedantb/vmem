@@ -155,7 +155,27 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
   const teamId = activeProfile.teamId;
   const nodes = useQuery(api.wiki.listTree, { teamId });
   const doc = useQuery(api.wiki.getNode, docId ? { id: docId } : "skip");
-  const renameNode = useMutation(api.wiki.renameNode);
+  const renameNode = useMutation(api.wiki.renameNode).withOptimisticUpdate(
+    (localStore, args) => {
+      for (const entry of localStore.getAllQueries(api.wiki.listTree)) {
+        if (entry.value === undefined) continue;
+        localStore.setQuery(
+          api.wiki.listTree,
+          entry.args,
+          entry.value.map((n) =>
+            n._id === args.id ? { ...n, title: args.title } : n,
+          ),
+        );
+      }
+      for (const entry of localStore.getAllQueries(api.wiki.getNode)) {
+        if (entry.value == null || entry.value._id !== args.id) continue;
+        localStore.setQuery(api.wiki.getNode, entry.args, {
+          ...entry.value,
+          title: args.title,
+        });
+      }
+    },
+  );
   const {
     outlineVisible,
     setOutlineVisible,

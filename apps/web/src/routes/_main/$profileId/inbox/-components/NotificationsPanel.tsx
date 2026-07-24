@@ -15,7 +15,7 @@ import {
 } from "@tabler/icons-react";
 import { useMutation } from "convex/react";
 import { toast } from "sonner";
-import { api } from "@vmem/backend";
+import { api, type Id } from "@vmem/backend";
 import {
   AnimatedNotificationIcon,
   AnimatedBellIcon,
@@ -167,7 +167,59 @@ export function NotificationsPanel() {
 // right-section action specific to the notifications tab
 export function NotificationsRightSection() {
   const { unreadCount, markAllAsRead } = useNotifications();
-  const sendTest = useMutation(api.notifications.sendTest);
+  const sendTest = useMutation(api.notifications.sendTest).withOptimisticUpdate(
+    (localStore) => {
+      const list = localStore.getQuery(api.notifications.listMy, {});
+      const unread = localStore.getQuery(api.notifications.unreadCount, {});
+      if (list === undefined) return;
+      const now = Date.now();
+      const samples = [
+        {
+          title: "Codebase sync failed — vvedantb/vmem",
+          description: "Bad credentials — reconnect GitHub and sync again.",
+          type: "error" as const,
+        },
+        {
+          title: "Codebase sync stalled — vvedantb/vmem",
+          description:
+            "The sync was interrupted before finishing. Open the codebase and click Sync to retry.",
+          type: "warning" as const,
+        },
+        {
+          title: "Connector sync failed — Google Drive",
+          description: "Token expired — reconnect the connector.",
+          type: "error" as const,
+        },
+        {
+          title: "Dream Mode finished",
+          description:
+            "3 proposals to review and 1 new memory. Open the Inbox to review.",
+          type: "info" as const,
+        },
+      ];
+      const optimistic = samples.map((sample, index) => ({
+        _id: crypto.randomUUID() as Id<"notifications">,
+        _creationTime: now + index,
+        userId: list[0]?.userId ?? ("" as Id<"users">),
+        title: sample.title,
+        description: sample.description,
+        type: sample.type,
+        read: false,
+        createdAt: now + index,
+      }));
+      localStore.setQuery(api.notifications.listMy, {}, [
+        ...optimistic,
+        ...list,
+      ]);
+      if (unread !== undefined) {
+        localStore.setQuery(
+          api.notifications.unreadCount,
+          {},
+          unread + optimistic.length,
+        );
+      }
+    },
+  );
   return (
     <div className="flex items-center gap-2">
       {import.meta.env.DEV && (

@@ -21,6 +21,7 @@ import {
 import { toast } from "sonner";
 import { useCopyToClipboard } from "usehooks-ts";
 import DestructiveConfirmDialog from "@/components/settings/DestructiveConfirmDialog";
+import { patchSkillInLists } from "@/lib/convex-optimistic";
 import { formatSkillForClipboard } from "./_utils";
 import { SkillHistoryPanel } from "./SkillHistoryPanel";
 
@@ -39,8 +40,23 @@ export function SkillHeaderActions({
   const [deleting, setDeleting] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
 
-  const deleteSkill = useMutation(api.skills.deleteSkill);
-  const updateSkill = useMutation(api.skills.updateSkill);
+  const deleteSkill = useMutation(api.skills.deleteSkill).withOptimisticUpdate(
+    (localStore, args) => {
+      for (const entry of localStore.getAllQueries(api.skills.listMy)) {
+        if (entry.value === undefined) continue;
+        localStore.setQuery(
+          api.skills.listMy,
+          entry.args,
+          entry.value.filter((s) => s._id !== args.id),
+        );
+      }
+    },
+  );
+  const updateSkill = useMutation(api.skills.updateSkill).withOptimisticUpdate(
+    (localStore, args) => {
+      patchSkillInLists(localStore, args);
+    },
+  );
   const [, copyToClipboard] = useCopyToClipboard();
 
   const isEnabled = skill.enabled !== false;

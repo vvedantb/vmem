@@ -14,7 +14,22 @@ type SavePayload = {
 };
 
 export function useWikiAutosave(docId: Id<"wikiNodes">) {
-  const updateContent = useMutation(api.wiki.updateContent);
+  const updateContent = useMutation(
+    api.wiki.updateContent,
+  ).withOptimisticUpdate((localStore, args) => {
+    const current = localStore.getQuery(api.wiki.getNode, { id: args.id });
+    if (current == null) return;
+    localStore.setQuery(
+      api.wiki.getNode,
+      { id: args.id },
+      {
+        ...current,
+        content: args.content,
+        contentText: args.contentText,
+        updatedAt: Date.now(),
+      },
+    );
+  });
 
   const debouncedSaveToast = useDebounceCallback(() => {
     toast.success("Saved!");

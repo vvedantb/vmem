@@ -53,7 +53,31 @@ export function UploadSkillDialog({
   onCreated,
 }: UploadSkillDialogProps) {
   const teamId = useActiveTeamId();
-  const createSkill = useMutation(api.skills.createSkill);
+  const createSkill = useMutation(api.skills.createSkill).withOptimisticUpdate(
+    (localStore, args) => {
+      const now = Date.now();
+      const tempId = crypto.randomUUID() as Id<"skills">;
+      for (const entry of localStore.getAllQueries(api.skills.listMy)) {
+        if (entry.value === undefined) continue;
+        if (entry.args.teamId !== args.teamId) continue;
+        localStore.setQuery(api.skills.listMy, entry.args, [
+          {
+            _id: tempId,
+            _creationTime: now,
+            userId: entry.value[0]?.userId ?? ("" as Id<"users">),
+            teamId: args.teamId,
+            name: args.name,
+            description: args.description,
+            instructions: args.instructions,
+            enabled: true,
+            createdAt: now,
+            updatedAt: now,
+          },
+          ...entry.value,
+        ]);
+      }
+    },
+  );
   const [submitting, setSubmitting] = useState(false);
 
   const handleFile = async (file: File | undefined) => {

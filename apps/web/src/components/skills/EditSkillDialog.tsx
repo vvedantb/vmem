@@ -14,6 +14,7 @@ import {
   toastSkillFormErrors,
   type SkillFormValues,
 } from "@/components/skills/skillForm";
+import { patchSkillInLists } from "@/lib/convex-optimistic";
 
 interface EditSkillDialogProps {
   skill: Doc<"skills"> | undefined;
@@ -26,7 +27,11 @@ export function EditSkillDialog({
   open,
   onOpenChange,
 }: EditSkillDialogProps) {
-  const updateSkill = useMutation(api.skills.updateSkill);
+  const updateSkill = useMutation(api.skills.updateSkill).withOptimisticUpdate(
+    (localStore, args) => {
+      patchSkillInLists(localStore, args);
+    },
+  );
 
   const form = useForm<SkillFormValues>({
     resolver: zodResolver(skillFormSchema),

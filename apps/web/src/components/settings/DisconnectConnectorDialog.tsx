@@ -18,7 +18,27 @@ export default function DisconnectConnectorDialog({
   connectorName,
 }: DisconnectConnectorDialogProps) {
   const disconnectOAuth = useAction(api.connectors.oauth.disconnect);
-  const markDisconnected = useMutation(api.connectors.crud.disconnect);
+  const markDisconnected = useMutation(
+    api.connectors.crud.disconnect,
+  ).withOptimisticUpdate((localStore, args) => {
+    const list = localStore.getQuery(api.connectors.crud.listMy, {});
+    if (list === undefined) return;
+    localStore.setQuery(
+      api.connectors.crud.listMy,
+      {},
+      list.map((c) =>
+        c._id === args.id
+          ? {
+              ...c,
+              connectionStatus: "disconnected" as const,
+              syncStatus: "idle" as const,
+              syncProgress: 0,
+              itemsSynced: 0,
+            }
+          : c,
+      ),
+    );
+  });
   const [submitting, setSubmitting] = useState(false);
 
   const handleConfirm = async () => {

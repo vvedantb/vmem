@@ -6,8 +6,30 @@ import { api } from "@vmem/backend";
 import type { ApiKey } from "./types";
 
 export function useApiKeyActions() {
-  const revokeApiKey = useMutation(api.apiKeys.revokeMy);
-  const deleteApiKey = useMutation(api.apiKeys.deleteMy);
+  const revokeApiKey = useMutation(api.apiKeys.revokeMy).withOptimisticUpdate(
+    (localStore, args) => {
+      const list = localStore.getQuery(api.apiKeys.listMy, {});
+      if (list === undefined) return;
+      localStore.setQuery(
+        api.apiKeys.listMy,
+        {},
+        list.map((key) =>
+          key.id === args.id ? { ...key, status: "revoked" as const } : key,
+        ),
+      );
+    },
+  );
+  const deleteApiKey = useMutation(api.apiKeys.deleteMy).withOptimisticUpdate(
+    (localStore, args) => {
+      const list = localStore.getQuery(api.apiKeys.listMy, {});
+      if (list === undefined) return;
+      localStore.setQuery(
+        api.apiKeys.listMy,
+        {},
+        list.filter((key) => key.id !== args.id),
+      );
+    },
+  );
   const revealApiKey = useAction(api.apiKeys.revealMy);
   const [, copyToClipboard] = useCopyToClipboard();
 

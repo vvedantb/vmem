@@ -23,7 +23,24 @@ export function PreferencesPage() {
   const [aboutMeDraft, setAboutMeDraft] = useState<string | null>(null);
   const [preferencesDraft, setPreferencesDraft] = useState<string | null>(null);
   const { saveSettings, updateSettings } = useUserSettingsSave();
-  const setDreamSchedule = useMutation(api.dreamSchedule.setDreamSchedule);
+  const setDreamSchedule = useMutation(
+    api.dreamSchedule.setDreamSchedule,
+  ).withOptimisticUpdate((localStore, args) => {
+    const current = localStore.getQuery(api.userSettings.get, {});
+    if (current === undefined) return;
+    localStore.setQuery(
+      api.userSettings.get,
+      {},
+      {
+        ...current,
+        dreamModeScheduleEnabled: args.enabled,
+        dreamModeScheduleTime:
+          args.enabled && args.time !== undefined
+            ? args.time
+            : current.dreamModeScheduleTime,
+      },
+    );
+  });
 
   const saveTextField = async (
     field: "aboutMe" | "preferences",

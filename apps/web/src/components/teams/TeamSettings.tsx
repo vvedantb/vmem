@@ -10,7 +10,35 @@ import { DeleteTeamDialog } from "./DeleteTeamDialog";
 
 export function TeamSettings() {
   const data = useTeamDetail();
-  const updateTeam = useMutation(api.teams.updateTeam);
+  const updateTeam = useMutation(api.teams.updateTeam).withOptimisticUpdate(
+    (localStore, args) => {
+      const detail = localStore.getQuery(api.teams.get, {
+        teamId: args.teamId,
+      });
+      if (detail != null) {
+        localStore.setQuery(
+          api.teams.get,
+          { teamId: args.teamId },
+          {
+            ...detail,
+            team: { ...detail.team, name: args.name },
+          },
+        );
+      }
+      const profiles = localStore.getQuery(api.profiles.list, {});
+      if (profiles !== undefined) {
+        localStore.setQuery(
+          api.profiles.list,
+          {},
+          profiles.map((p) =>
+            p.teamId !== undefined && (p.teamId as string) === args.teamId
+              ? { ...p, name: args.name }
+              : p,
+          ),
+        );
+      }
+    },
+  );
   const deleteTeam = useAction(api.teams.deleteTeam);
   const navigate = useNavigate();
   const focusedNameRef = useRef<string | null>(null);

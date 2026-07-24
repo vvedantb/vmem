@@ -17,8 +17,30 @@ import { convexSettingsToStorageMirror } from "@/types/storage";
 
 function useExtensionUserSettingsInner() {
   const settings = useQuery(api.userSettings.get);
-  const baseUpdate = useMutation(api.userSettings.update);
-  const baseSetDefaultProfile = useMutation(api.userSettings.setDefaultProfile);
+  const baseUpdate = useMutation(api.userSettings.update).withOptimisticUpdate(
+    (localStore, args) => {
+      const current = localStore.getQuery(api.userSettings.get, {});
+      if (current === undefined) return;
+      localStore.setQuery(api.userSettings.get, {}, { ...current, ...args });
+    },
+  );
+  const baseSetDefaultProfile = useMutation(
+    api.userSettings.setDefaultProfile,
+  ).withOptimisticUpdate((localStore, args) => {
+    const current = localStore.getQuery(api.userSettings.get, {});
+    if (current === undefined) return;
+    localStore.setQuery(
+      api.userSettings.get,
+      {},
+      {
+        ...current,
+        defaultProfiles: {
+          ...current.defaultProfiles,
+          [args.source]: args.profileId,
+        },
+      },
+    );
+  });
 
   // optimistic ws + durable http write (popup socket can drop on close)
   async function update(args: UserSettingsUpdateArgs): Promise<void> {

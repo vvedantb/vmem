@@ -19,6 +19,7 @@ import { SkillPageTitle } from "@/components/skills/SkillPageTitle";
 import { SkillHeaderActions } from "@/components/skills/SkillHeaderActions";
 import { EditSkillDialog } from "@/components/skills/EditSkillDialog";
 import { skillsSearchParams } from "@/lib/url-state/skills";
+import { patchSkillInLists } from "@/lib/convex-optimistic";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 
 export const Route = createFileRoute("/_main/$profileId/skills")({
@@ -41,7 +42,11 @@ function SkillsLayout() {
     typeof params.skillId === "string" ? params.skillId : undefined;
 
   const skills = useQuery(api.skills.listMy, { teamId });
-  const updateSkill = useMutation(api.skills.updateSkill);
+  const updateSkill = useMutation(api.skills.updateSkill).withOptimisticUpdate(
+    (localStore, args) => {
+      patchSkillInLists(localStore, args);
+    },
+  );
   const [{ q: searchQuery }] = useQueryStates(skillsSearchParams);
   const [modal, setModal] = useState<ModalState>({ mode: "none" });
 
