@@ -5,7 +5,7 @@ export type SaveOutcome = {
   memoryId?: string;
 };
 
-export type ImportOutcome = {
+type ImportOutcome = {
   count: number;
   skipped?: number;
   locked?: boolean;
@@ -23,12 +23,12 @@ export type ExtractPageData = {
   usedReadability: boolean;
 };
 
-export type DebugSyncResult = {
+type DebugSyncResult = {
   lastHistorySync: number;
   lastBookmarkSync: number;
 };
 
-export type ImportProgressData = {
+type ImportProgressData = {
   current: number;
   total: number;
 };

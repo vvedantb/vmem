@@ -92,9 +92,3 @@ export function countActiveMemoryViewFilters(
   if (params.types.length > 0) count += 1;
   return count;
 }
-
-export function hasActiveMemoryViewFilters(
-  params: MemoryViewFilterParams,
-): boolean {
-  return countActiveMemoryViewFilters(params) > 0;
-}

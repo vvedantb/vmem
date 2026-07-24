@@ -20,7 +20,7 @@ export function registerCommandListener(): void {
   });
 }
 
-export async function handleCommand(command: string): Promise<void> {
+async function handleCommand(command: string): Promise<void> {
   if (command === "take-screenshot") {
     const [tab] = await chrome.tabs.query({
       active: true,

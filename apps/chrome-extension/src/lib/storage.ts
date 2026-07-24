@@ -41,17 +41,17 @@ export const autoCaptureEnabledItem = storage.defineItem<boolean>(
   { fallback: false },
 );
 
-export const lastSyncAttemptAtItem = storage.defineItem<number>(
+const lastSyncAttemptAtItem = storage.defineItem<number>(
   "local:lastSyncAttemptAt",
   { fallback: 0 },
 );
 
-export const lastSyncSkipReasonItem = storage.defineItem<string>(
+const lastSyncSkipReasonItem = storage.defineItem<string>(
   "local:lastSyncSkipReason",
   { fallback: "" },
 );
 
-export const authTokenItem = storage.defineItem<string>("session:authToken", {
+const authTokenItem = storage.defineItem<string>("session:authToken", {
   fallback: "",
 });
 

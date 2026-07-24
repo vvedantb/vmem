@@ -7,7 +7,7 @@ const LOGO_FILES: Record<VmemLogoVariant, string> = {
   light: "icon-light.svg",
 };
 
-export function getVmemLogoUrl(variant: VmemLogoVariant): string {
+function getVmemLogoUrl(variant: VmemLogoVariant): string {
   return chrome.runtime.getURL(LOGO_FILES[variant]);
 }
 

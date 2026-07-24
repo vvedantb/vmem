@@ -64,40 +64,40 @@ function resetState(initialLocal: Record<string, unknown> = {}): void {
 
 Object.defineProperty(globalThis, "chrome", {
   value: {
-  alarms: {
-    async get(name: string): Promise<AlarmOpts | undefined> {
-      return alarms.get(name);
+    alarms: {
+      async get(name: string): Promise<AlarmOpts | undefined> {
+        return alarms.get(name);
+      },
+      async create(name: string, opts: AlarmOpts): Promise<void> {
+        createCalls.push(name);
+        alarms.set(name, {
+          ...opts,
+          scheduledTime: Date.now() + (opts.periodInMinutes ?? 0) * 60_000,
+        });
+      },
+      async clear(name: string): Promise<boolean> {
+        return alarms.delete(name);
+      },
+      onAlarm: { addListener(): void {} },
     },
-    async create(name: string, opts: AlarmOpts): Promise<void> {
-      createCalls.push(name);
-      alarms.set(name, {
-        ...opts,
-        scheduledTime: Date.now() + (opts.periodInMinutes ?? 0) * 60_000,
-      });
+    storage: {
+      local: makeStorageArea(() => local),
+      session: makeStorageArea(() => session),
     },
-    async clear(name: string): Promise<boolean> {
-      return alarms.delete(name);
+    bookmarks: { onCreated: { addListener(): void {} } },
+    action: {
+      async setBadgeText({ text }: { text: string }): Promise<void> {
+        badgeTexts.push(text);
+      },
+      async setBadgeBackgroundColor(): Promise<void> {},
     },
-    onAlarm: { addListener(): void {} },
-  },
-  storage: {
-    local: makeStorageArea(() => local),
-    session: makeStorageArea(() => session),
-  },
-  bookmarks: { onCreated: { addListener(): void {} } },
-  action: {
-    async setBadgeText({ text }: { text: string }): Promise<void> {
-      badgeTexts.push(text);
+    // no cookies api means no session or network
+    runtime: {
+      id: "test-extension",
+      getURL(p: string): string {
+        return p;
+      },
     },
-    async setBadgeBackgroundColor(): Promise<void> {},
-  },
-  // no cookies api means no session or network
-  runtime: {
-    id: "test-extension",
-    getURL(p: string): string {
-      return p;
-    },
-  },
   },
 });
 

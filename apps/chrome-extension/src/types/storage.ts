@@ -17,7 +17,7 @@ export type ExtensionStorage = {
 };
 
 // chrome.storage ↔ convex userSettings field map (sw can't subscribe to convex)
-export const CONVEX_SETTINGS_MIRROR = {
+const CONVEX_SETTINGS_MIRROR = {
   autoSyncEnabled: "extensionAutoSyncEnabled",
   autoSyncIntervalMinutes: "extensionAutoSyncIntervalMinutes",
   selectionPopupEnabled: "extensionSelectionPopupEnabled",
@@ -30,8 +30,7 @@ export const CONVEX_SETTINGS_MIRROR = {
 
 export type MirroredStorageKey = keyof typeof CONVEX_SETTINGS_MIRROR;
 
-export type MirroredConvexKey =
-  (typeof CONVEX_SETTINGS_MIRROR)[MirroredStorageKey];
+type MirroredConvexKey = (typeof CONVEX_SETTINGS_MIRROR)[MirroredStorageKey];
 
 type StorageMirrorSettings = Pick<ExtensionUserSettings, MirroredConvexKey> & {
   defaultProfiles: ExtensionUserSettings["defaultProfiles"];

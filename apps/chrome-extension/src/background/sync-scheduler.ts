@@ -30,7 +30,7 @@ let bookmarkListenerRegistered = false;
 let historySyncInProgress = false;
 
 // clamped sync interval minutes from chrome.storage
-export async function getHistorySyncIntervalMinutes(): Promise<number> {
+async function getHistorySyncIntervalMinutes(): Promise<number> {
   const { autoSyncIntervalMinutes } = await getStorage();
   if (!Number.isFinite(autoSyncIntervalMinutes)) {
     return DEFAULT_SYNC_INTERVAL_MINUTES;
@@ -50,7 +50,7 @@ async function ensureBadgeTickAlarm(): Promise<void> {
 }
 
 // badge countdown from the real history alarm's scheduledTime
-export async function updateSyncBadge(): Promise<void> {
+async function updateSyncBadge(): Promise<void> {
   const { autoSyncEnabled } = await getStorage();
   const alarm = autoSyncEnabled
     ? await chrome.alarms.get(HISTORY_ALARM_NAME)
@@ -165,7 +165,7 @@ export function registerBookmarkListener(): void {
   });
 }
 
-export async function handleBookmarkCreated(
+async function handleBookmarkCreated(
   id: string,
   bookmark: chrome.bookmarks.BookmarkTreeNode,
 ): Promise<void> {

@@ -17,8 +17,6 @@
 import { Readability } from "@mozilla/readability";
 import { onMessage, type ExtractPageData } from "@/lib/messaging";
 
-export type { ExtractPageData };
-
 const FALLBACK_MIN_CHARS = 200;
 const STRIP_SELECTORS = [
   "script",

@@ -23,7 +23,7 @@ export function registerContextMenu(): void {
 }
 
 // click handler register via registerContextMenuClickListener at sw top level
-export async function handleContextMenuClick(
+async function handleContextMenuClick(
   info: chrome.contextMenus.OnClickData,
   tab: chrome.tabs.Tab | undefined,
 ): Promise<void> {

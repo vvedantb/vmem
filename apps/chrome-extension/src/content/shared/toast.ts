@@ -166,7 +166,7 @@ export function showToast(options: ShowToastOptions): string {
 }
 
 // remove a toast by id
-export function hideToast(id: string): void {
+function hideToast(id: string): void {
   const entry = active.get(id);
   if (!entry) return;
 
