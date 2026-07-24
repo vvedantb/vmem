@@ -60,7 +60,7 @@ export async function getStats(
   memoriesThisMonth: number;
   memoriesAddedToday: number;
   totalTags: number;
-  growthData: { date: string; total: number; new: number }[];
+  growthData: { isoDate: string; total: number; new: number }[];
 }> {
   return withSession(driver, async (session) => {
     const now = new Date();
@@ -123,27 +123,24 @@ export async function getStats(
     }
 
     let running = baseline;
-    const growthData: { date: string; total: number; new: number }[] = [];
+    const growthData: { isoDate: string; total: number; new: number }[] = [];
+    // UTC throughout: the Cypher above groups by date(datetime(createdAt)),
+    // a UTC calendar day, so building these keys from local midnight would
+    // look up the wrong day whenever the process timezone is behind UTC
     const today = new Date();
-    const todayMs = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      today.getDate(),
-    ).getTime();
+    const todayMs = Date.UTC(
+      today.getUTCFullYear(),
+      today.getUTCMonth(),
+      today.getUTCDate(),
+    );
     const dayMs = 24 * 60 * 60 * 1000;
     for (let offset = 6; offset >= 0; offset--) {
-      const dayDate = new Date(todayMs - offset * dayMs);
-      const isoDay = dayDate.toISOString().slice(0, 10);
+      const isoDay = new Date(todayMs - offset * dayMs)
+        .toISOString()
+        .slice(0, 10);
       const newCount = dailyCounts.get(isoDay) ?? 0;
       running += newCount;
-      growthData.push({
-        date: dayDate.toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-        }),
-        total: running,
-        new: newCount,
-      });
+      growthData.push({ isoDate: isoDay, total: running, new: newCount });
     }
 
     return {
