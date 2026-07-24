@@ -15,6 +15,7 @@ import { IconHistory, IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { type SkillVersionListEntry } from "@/components/skills/_utils";
 import { formatRelativeTime } from "@vmem/shared";
+import { updateAllCachedQueries } from "@/lib/convex-optimistic";
 
 interface SkillHistoryPanelProps {
   open: boolean;
@@ -101,25 +102,20 @@ export function SkillHistoryPanel({
       versionId: args.versionId,
     });
     if (version === undefined || version === null) return;
-    for (const entry of localStore.getAllQueries(api.skills.listMy)) {
-      if (entry.value === undefined) continue;
-      localStore.setQuery(
-        api.skills.listMy,
-        entry.args,
-        entry.value.map((s) =>
-          s._id === version.skillId
-            ? {
-                ...s,
-                name: version.name,
-                description: version.description,
-                instructions: version.instructions,
-                enabled: version.enabled,
-                updatedAt: Date.now(),
-              }
-            : s,
-        ),
-      );
-    }
+    updateAllCachedQueries(localStore, api.skills.listMy, (skills) =>
+      skills.map((s) =>
+        s._id === version.skillId
+          ? {
+              ...s,
+              name: version.name,
+              description: version.description,
+              instructions: version.instructions,
+              enabled: version.enabled,
+              updatedAt: Date.now(),
+            }
+          : s,
+      ),
+    );
   });
 
   const handleOpenChange = (next: boolean) => {

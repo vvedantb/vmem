@@ -2,9 +2,11 @@ import { useMutation, useQuery } from "convex/react";
 import { api, type Id } from "@vmem/backend";
 import { parseConvexStorageUpload } from "@/lib/schemas";
 import { useActiveProfile } from "@/components/workspace/active-profile";
+import { tempId, updateAllCachedQueries } from "@/lib/convex-optimistic";
 
 const DEFAULT_STORAGE_LIMIT = 10 * 1024 * 1024 * 1024;
 
+// expand root ids to full subtrees (bulk delete optimistic size/entry cleanup)
 function collectFileSubtreeIds(
   nodes: Array<{ _id: Id<"fileNodes">; parentId?: Id<"fileNodes"> }>,
   rootIds: Iterable<Id<"fileNodes">>,
@@ -43,16 +45,16 @@ export function useFilesData() {
     const tree = localStore.getQuery(api.files.listTree, treeArgs);
     if (tree === undefined) return;
     const now = Date.now();
-    const tempId = crypto.randomUUID() as Id<"fileNodes">;
+    const newId = tempId<"fileNodes">();
     localStore.setQuery(api.files.listTree, treeArgs, {
       ...tree,
       totalBytes: tree.totalBytes + args.size,
       nodes: [
         ...tree.nodes,
         {
-          _id: tempId,
+          _id: newId,
           _creationTime: now,
-          userId: tree.nodes[0]?.userId ?? ("" as Id<"users">),
+          userId: tree.nodes[0]?.userId ?? tempId<"users">(),
           teamId: args.teamId,
           parentId: args.parentId,
           kind: "file" as const,
@@ -75,15 +77,15 @@ export function useFilesData() {
     const tree = localStore.getQuery(api.files.listTree, treeArgs);
     if (tree === undefined) return;
     const now = Date.now();
-    const tempId = crypto.randomUUID() as Id<"fileNodes">;
+    const newId = tempId<"fileNodes">();
     localStore.setQuery(api.files.listTree, treeArgs, {
       ...tree,
       nodes: [
         ...tree.nodes,
         {
-          _id: tempId,
+          _id: newId,
           _creationTime: now,
-          userId: tree.nodes[0]?.userId ?? ("" as Id<"users">),
+          userId: tree.nodes[0]?.userId ?? tempId<"users">(),
           teamId: args.teamId,
           parentId: args.parentId,
           kind: "folder" as const,
@@ -97,57 +99,46 @@ export function useFilesData() {
   });
   const renameMutation = useMutation(api.files.renameNode).withOptimisticUpdate(
     (localStore, args) => {
-      for (const entry of localStore.getAllQueries(api.files.listTree)) {
-        if (entry.value === undefined) continue;
-        localStore.setQuery(api.files.listTree, entry.args, {
-          ...entry.value,
-          nodes: entry.value.nodes.map((n) =>
-            n._id === args.nodeId
-              ? { ...n, name: args.name, updatedAt: Date.now() }
-              : n,
-          ),
-        });
-      }
+      updateAllCachedQueries(localStore, api.files.listTree, (tree) => ({
+        ...tree,
+        nodes: tree.nodes.map((n) =>
+          n._id === args.nodeId
+            ? { ...n, name: args.name, updatedAt: Date.now() }
+            : n,
+        ),
+      }));
     },
   );
   const moveMutation = useMutation(api.files.moveNodes).withOptimisticUpdate(
     (localStore, args) => {
       const moveSet = new Set(args.nodeIds);
-      for (const entry of localStore.getAllQueries(api.files.listTree)) {
-        if (entry.value === undefined) continue;
-        localStore.setQuery(api.files.listTree, entry.args, {
-          ...entry.value,
-          nodes: entry.value.nodes.map((n) =>
-            moveSet.has(n._id)
-              ? {
-                  ...n,
-                  parentId: args.targetParentId,
-                  updatedAt: Date.now(),
-                }
-              : n,
-          ),
-        });
-      }
+      updateAllCachedQueries(localStore, api.files.listTree, (tree) => ({
+        ...tree,
+        nodes: tree.nodes.map((n) =>
+          moveSet.has(n._id)
+            ? { ...n, parentId: args.targetParentId, updatedAt: Date.now() }
+            : n,
+        ),
+      }));
     },
   );
   const deleteMutation = useMutation(
     api.files.deleteNodes,
   ).withOptimisticUpdate((localStore, args) => {
-    for (const entry of localStore.getAllQueries(api.files.listTree)) {
-      if (entry.value === undefined) continue;
-      const remove = collectFileSubtreeIds(entry.value.nodes, args.nodeIds);
+    updateAllCachedQueries(localStore, api.files.listTree, (tree) => {
+      const remove = collectFileSubtreeIds(tree.nodes, args.nodeIds);
       let subtract = 0;
-      for (const n of entry.value.nodes) {
+      for (const n of tree.nodes) {
         if (remove.has(n._id) && n.kind === "file" && n.size !== undefined) {
           subtract += n.size;
         }
       }
-      localStore.setQuery(api.files.listTree, entry.args, {
-        ...entry.value,
-        totalBytes: Math.max(0, entry.value.totalBytes - subtract),
-        nodes: entry.value.nodes.filter((n) => !remove.has(n._id)),
-      });
-    }
+      return {
+        ...tree,
+        totalBytes: Math.max(0, tree.totalBytes - subtract),
+        nodes: tree.nodes.filter((n) => !remove.has(n._id)),
+      };
+    });
   });
 
   const toNodeId = (

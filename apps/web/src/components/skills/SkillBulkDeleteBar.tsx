@@ -3,6 +3,7 @@ import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
 import { toast } from "sonner";
 import { BulkSelectionDeleteBar } from "@/components/shell/BulkSelectionDeleteBar";
+import { removeSkillsFromLists } from "@/lib/convex-optimistic";
 
 interface SkillBulkDeleteBarProps {
   selectedIds: ReadonlySet<Id<"skills">>;
@@ -20,15 +21,7 @@ export function SkillBulkDeleteBar({
   const deleteSkills = useMutation(
     api.skills.deleteSkills,
   ).withOptimisticUpdate((localStore, args) => {
-    const remove = new Set(args.ids);
-    for (const entry of localStore.getAllQueries(api.skills.listMy)) {
-      if (entry.value === undefined) continue;
-      localStore.setQuery(
-        api.skills.listMy,
-        entry.args,
-        entry.value.filter((s) => !remove.has(s._id)),
-      );
-    }
+    removeSkillsFromLists(localStore, args.ids);
   });
 
   const count = selectedIds.size;

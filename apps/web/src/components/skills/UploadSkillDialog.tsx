@@ -13,6 +13,7 @@ import {
 import { IconLoader2, IconUpload } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { useActiveTeamId } from "@/components/workspace/active-profile";
+import { insertSkillInLists } from "@/lib/convex-optimistic";
 
 interface UploadSkillDialogProps {
   open: boolean;
@@ -55,27 +56,7 @@ export function UploadSkillDialog({
   const teamId = useActiveTeamId();
   const createSkill = useMutation(api.skills.createSkill).withOptimisticUpdate(
     (localStore, args) => {
-      const now = Date.now();
-      const tempId = crypto.randomUUID() as Id<"skills">;
-      for (const entry of localStore.getAllQueries(api.skills.listMy)) {
-        if (entry.value === undefined) continue;
-        if (entry.args.teamId !== args.teamId) continue;
-        localStore.setQuery(api.skills.listMy, entry.args, [
-          {
-            _id: tempId,
-            _creationTime: now,
-            userId: entry.value[0]?.userId ?? ("" as Id<"users">),
-            teamId: args.teamId,
-            name: args.name,
-            description: args.description,
-            instructions: args.instructions,
-            enabled: true,
-            createdAt: now,
-            updatedAt: now,
-          },
-          ...entry.value,
-        ]);
-      }
+      insertSkillInLists(localStore, args);
     },
   );
   const [submitting, setSubmitting] = useState(false);

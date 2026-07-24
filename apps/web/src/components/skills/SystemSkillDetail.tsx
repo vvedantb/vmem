@@ -22,6 +22,10 @@ import { SystemSkillFormDialog } from "@/components/skills/SystemSkillFormDialog
 import DestructiveConfirmDialog from "@/components/settings/DestructiveConfirmDialog";
 import { type SystemSkillEntry } from "@/components/skills/_utils";
 import { useActiveTeamId } from "@/components/workspace/active-profile";
+import {
+  setSystemSkillInstallState,
+  updateAllCachedQueries,
+} from "@/lib/convex-optimistic";
 
 const systemSkillDetailSpinner = (
   <div className="flex justify-center py-20">
@@ -143,71 +147,33 @@ export function SystemSkillDetail({
 
   const install = useMutation(api.systemSkills.install).withOptimisticUpdate(
     (localStore, args) => {
-      for (const entry of localStore.getAllQueries(
-        api.systemSkills.listCatalog,
-      )) {
-        if (entry.value === undefined) continue;
-        localStore.setQuery(
-          api.systemSkills.listCatalog,
-          entry.args,
-          entry.value.map((s) =>
-            s._id === args.systemSkillId
-              ? { ...s, installed: true, installEnabled: true }
-              : s,
-          ),
-        );
-      }
+      setSystemSkillInstallState(localStore, args.systemSkillId, {
+        installed: true,
+        installEnabled: true,
+      });
     },
   );
   const uninstall = useMutation(
     api.systemSkills.uninstall,
   ).withOptimisticUpdate((localStore, args) => {
-    for (const entry of localStore.getAllQueries(
-      api.systemSkills.listCatalog,
-    )) {
-      if (entry.value === undefined) continue;
-      localStore.setQuery(
-        api.systemSkills.listCatalog,
-        entry.args,
-        entry.value.map((s) =>
-          s._id === args.systemSkillId
-            ? { ...s, installed: false, installEnabled: false }
-            : s,
-        ),
-      );
-    }
+    setSystemSkillInstallState(localStore, args.systemSkillId, {
+      installed: false,
+      installEnabled: false,
+    });
   });
   const setEnabled = useMutation(
     api.systemSkills.setInstalledEnabled,
   ).withOptimisticUpdate((localStore, args) => {
-    for (const entry of localStore.getAllQueries(
-      api.systemSkills.listCatalog,
-    )) {
-      if (entry.value === undefined) continue;
-      localStore.setQuery(
-        api.systemSkills.listCatalog,
-        entry.args,
-        entry.value.map((s) =>
-          s._id === args.systemSkillId
-            ? { ...s, installEnabled: args.enabled }
-            : s,
-        ),
-      );
-    }
+    setSystemSkillInstallState(localStore, args.systemSkillId, {
+      installEnabled: args.enabled,
+    });
   });
   const adminDelete = useMutation(
     api.systemSkills.adminDelete,
   ).withOptimisticUpdate((localStore, args) => {
-    for (const entry of localStore.getAllQueries(
-      api.systemSkills.listCatalog,
-    )) {
-      if (entry.value === undefined) continue;
-      localStore.setQuery(
-        api.systemSkills.listCatalog,
-        entry.args,
-        entry.value.filter((s) => s._id !== args.id),
-      );
-    }
+    updateAllCachedQueries(localStore, api.systemSkills.listCatalog, (list) =>
+      list.filter((s) => s._id !== args.id),
+    );
   });
 
   const [editing, setEditing] = useState(false);

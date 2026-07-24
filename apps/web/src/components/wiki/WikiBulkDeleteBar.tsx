@@ -4,6 +4,7 @@ import type { WikiListNode, WikiNodeId } from "./-types";
 import { toast } from "sonner";
 import { BulkSelectionDeleteBar } from "@/components/shell/BulkSelectionDeleteBar";
 import { collectSubtreeIds } from "./_utils";
+import { removeWikiNodesFromLists } from "@/lib/convex-optimistic";
 
 interface WikiBulkDeleteBarProps {
   selectedIds: ReadonlySet<WikiNodeId>;
@@ -26,20 +27,7 @@ export function WikiBulkDeleteBar({
 }: WikiBulkDeleteBarProps) {
   const deleteNodes = useMutation(api.wiki.deleteNodes).withOptimisticUpdate(
     (localStore, args) => {
-      for (const entry of localStore.getAllQueries(api.wiki.listTree)) {
-        if (entry.value === undefined) continue;
-        const remove = collectSubtreeIds(entry.value, args.ids);
-        localStore.setQuery(
-          api.wiki.listTree,
-          entry.args,
-          entry.value.filter((n) => !remove.has(n._id)),
-        );
-      }
-      for (const entry of localStore.getAllQueries(api.wiki.getNode)) {
-        if (args.ids.some((id) => id === entry.args.id)) {
-          localStore.setQuery(api.wiki.getNode, entry.args, undefined);
-        }
-      }
+      removeWikiNodesFromLists(localStore, args.ids);
     },
   );
 

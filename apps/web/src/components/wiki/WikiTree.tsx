@@ -7,7 +7,7 @@ import {
   syncDataLoaderFeature,
 } from "@headless-tree/core";
 import { AssistiveTreeDescription, useTree } from "@headless-tree/react";
-import { api, type Id } from "@vmem/backend";
+import { api } from "@vmem/backend";
 import type { WikiListNode, WikiNodeId } from "./-types";
 import {
   collectSubtreeIds,
@@ -20,6 +20,12 @@ import DeleteConfirmDialog from "./DeleteConfirmDialog";
 import { WikiTreeRow } from "./WikiTreeItem";
 import { useActiveTeamId } from "@/components/workspace/active-profile";
 import { cn } from "@vmem/ui";
+import {
+  removeWikiNodesFromLists,
+  renameWikiNodeInLists,
+  tempId,
+  updateAllCachedQueries,
+} from "@/lib/convex-optimistic";
 
 type WikiTreeMode = "navigate" | "bulk-select";
 
@@ -67,13 +73,13 @@ export default function WikiTree({
         siblings.length === 0
           ? 0
           : Math.max(...siblings.map((s) => s.order)) + 1;
-      const tempId = crypto.randomUUID() as Id<"wikiNodes">;
+      const newId = tempId<"wikiNodes">();
       localStore.setQuery(api.wiki.listTree, listArgs, [
         ...list,
         {
-          _id: tempId,
+          _id: newId,
           _creationTime: now,
-          userId: list[0]?.userId ?? ("" as Id<"users">),
+          userId: list[0]?.userId ?? tempId<"users">(),
           teamId: args.teamId,
           parentId: args.parentId,
           kind: args.kind,
@@ -88,61 +94,23 @@ export default function WikiTree({
   );
   const renameNode = useMutation(api.wiki.renameNode).withOptimisticUpdate(
     (localStore, args) => {
-      for (const entry of localStore.getAllQueries(api.wiki.listTree)) {
-        if (entry.value === undefined) continue;
-        localStore.setQuery(
-          api.wiki.listTree,
-          entry.args,
-          entry.value.map((n) =>
-            n._id === args.id ? { ...n, title: args.title } : n,
-          ),
-        );
-      }
-      for (const entry of localStore.getAllQueries(api.wiki.getNode)) {
-        if (entry.value == null || entry.value._id !== args.id) continue;
-        localStore.setQuery(api.wiki.getNode, entry.args, {
-          ...entry.value,
-          title: args.title,
-        });
-      }
+      renameWikiNodeInLists(localStore, args);
     },
   );
   const deleteNode = useMutation(api.wiki.deleteNode).withOptimisticUpdate(
     (localStore, args) => {
-      for (const entry of localStore.getAllQueries(api.wiki.listTree)) {
-        if (entry.value === undefined) continue;
-        const remove = collectSubtreeIds(entry.value, [args.id]);
-        localStore.setQuery(
-          api.wiki.listTree,
-          entry.args,
-          entry.value.filter((n) => !remove.has(n._id)),
-        );
-      }
-      for (const entry of localStore.getAllQueries(api.wiki.getNode)) {
-        if (entry.args.id === args.id) {
-          localStore.setQuery(api.wiki.getNode, entry.args, undefined);
-        }
-      }
+      removeWikiNodesFromLists(localStore, [args.id]);
     },
   );
   const moveNode = useMutation(api.wiki.moveNode).withOptimisticUpdate(
     (localStore, args) => {
-      for (const entry of localStore.getAllQueries(api.wiki.listTree)) {
-        if (entry.value === undefined) continue;
-        localStore.setQuery(
-          api.wiki.listTree,
-          entry.args,
-          entry.value.map((n) =>
-            n._id === args.id
-              ? {
-                  ...n,
-                  parentId: args.newParentId,
-                  order: args.newOrder,
-                }
-              : n,
-          ),
-        );
-      }
+      updateAllCachedQueries(localStore, api.wiki.listTree, (nodes) =>
+        nodes.map((n) =>
+          n._id === args.id
+            ? { ...n, parentId: args.newParentId, order: args.newOrder }
+            : n,
+        ),
+      );
     },
   );
 

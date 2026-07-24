@@ -21,7 +21,10 @@ import {
 import { toast } from "sonner";
 import { useCopyToClipboard } from "usehooks-ts";
 import DestructiveConfirmDialog from "@/components/settings/DestructiveConfirmDialog";
-import { patchSkillInLists } from "@/lib/convex-optimistic";
+import {
+  patchSkillInLists,
+  removeSkillsFromLists,
+} from "@/lib/convex-optimistic";
 import { formatSkillForClipboard } from "./_utils";
 import { SkillHistoryPanel } from "./SkillHistoryPanel";
 
@@ -42,14 +45,7 @@ export function SkillHeaderActions({
 
   const deleteSkill = useMutation(api.skills.deleteSkill).withOptimisticUpdate(
     (localStore, args) => {
-      for (const entry of localStore.getAllQueries(api.skills.listMy)) {
-        if (entry.value === undefined) continue;
-        localStore.setQuery(
-          api.skills.listMy,
-          entry.args,
-          entry.value.filter((s) => s._id !== args.id),
-        );
-      }
+      removeSkillsFromLists(localStore, [args.id]);
     },
   );
   const updateSkill = useMutation(api.skills.updateSkill).withOptimisticUpdate(
@@ -62,11 +58,13 @@ export function SkillHeaderActions({
   const isEnabled = skill.enabled !== false;
 
   const handleEnabledChange = (checked: boolean) => {
-    void updateSkill({ id: skill._id, enabled: checked }).catch((err) => {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to update skill",
-      );
-    });
+    void updateSkill({ id: skill._id, enabled: checked }).catch(
+      (err: unknown) => {
+        toast.error(
+          err instanceof Error ? err.message : "Failed to update skill",
+        );
+      },
+    );
   };
 
   const handleCopy = async () => {
@@ -115,7 +113,7 @@ export function SkillHeaderActions({
             <Switch
               checked={isEnabled}
               onCheckedChange={(checked) => {
-                void handleEnabledChange(checked);
+                handleEnabledChange(checked);
               }}
               aria-label={isEnabled ? "Disable skill" : "Enable skill"}
               onClick={(e) => e.stopPropagation()}

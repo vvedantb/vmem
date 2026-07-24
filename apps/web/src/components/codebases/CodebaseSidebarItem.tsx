@@ -25,6 +25,7 @@ import {
 import { toast } from "sonner";
 import { CodebaseSidebarCard } from "./CodebaseSidebarCard";
 import type { CodebaseItem } from "./-types";
+import { updateAllCachedQueries } from "@/lib/convex-optimistic";
 
 interface CodebaseSidebarItemProps {
   codebase: CodebaseItem;
@@ -41,16 +42,11 @@ export function CodebaseSidebarItem({
   const setArchived = useMutation(
     api.codebases.setArchived,
   ).withOptimisticUpdate((localStore, args) => {
-    for (const entry of localStore.getAllQueries(api.codebases.listMy)) {
-      if (entry.value === undefined) continue;
-      localStore.setQuery(
-        api.codebases.listMy,
-        entry.args,
-        entry.value.map((c) =>
-          c._id === args.id ? { ...c, isArchived: args.archived } : c,
-        ),
-      );
-    }
+    updateAllCachedQueries(localStore, api.codebases.listMy, (list) =>
+      list.map((c) =>
+        c._id === args.id ? { ...c, isArchived: args.archived } : c,
+      ),
+    );
     for (const entry of localStore.getAllQueries(api.codebases.getById)) {
       if (entry.value == null || entry.value._id !== args.id) continue;
       localStore.setQuery(api.codebases.getById, entry.args, {
@@ -62,14 +58,9 @@ export function CodebaseSidebarItem({
   const removeCodebase = useMutation(
     api.codebases.removeCodebase,
   ).withOptimisticUpdate((localStore, args) => {
-    for (const entry of localStore.getAllQueries(api.codebases.listMy)) {
-      if (entry.value === undefined) continue;
-      localStore.setQuery(
-        api.codebases.listMy,
-        entry.args,
-        entry.value.filter((c) => c._id !== args.id),
-      );
-    }
+    updateAllCachedQueries(localStore, api.codebases.listMy, (list) =>
+      list.filter((c) => c._id !== args.id),
+    );
     for (const entry of localStore.getAllQueries(api.codebases.getById)) {
       if (entry.args.id === args.id) {
         localStore.setQuery(api.codebases.getById, entry.args, undefined);
