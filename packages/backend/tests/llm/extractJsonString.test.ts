@@ -8,34 +8,35 @@ import {
   parseLlmStringArray,
 } from "../../engine/llm/extractJsonString";
 
+const numberFieldSchema = z.object({ a: z.number() });
+const titleFieldSchema = z.object({ title: z.string() });
+
 describe("parseJsonString + jsonrepair", () => {
   it("strips think blocks, fences, and trailing commas", () => {
     expect(
       parseJsonString(
         '<think>x</think>\n```json\n{"a":1,}\n```',
-        z.object({ a: z.number() }),
+        numberFieldSchema,
       ),
     ).toEqual({ a: 1 });
   });
 
   it("validates with zod and returns null on schema mismatch", () => {
-    expect(parseJsonString('{"a":1,}', z.object({ a: z.number() }))).toEqual({
+    expect(parseJsonString('{"a":1,}', numberFieldSchema)).toEqual({
       a: 1,
     });
-    expect(parseJsonString("nope", z.object({ a: z.number() }))).toBeNull();
+    expect(parseJsonString("nope", numberFieldSchema)).toBeNull();
   });
 
   it("returns null for malformed JSON that cannot be repaired", () => {
-    expect(
-      parseJsonString("{not json at all", z.object({ a: z.number() })),
-    ).toBeNull();
+    expect(parseJsonString("{not json at all", numberFieldSchema)).toBeNull();
   });
 
   it("repairs trailing commas inside fenced object payloads", () => {
     expect(
       parseJsonString(
         'Here is the result:\n```json\n{"title": "hello",}\n```',
-        z.object({ title: z.string() }),
+        titleFieldSchema,
       ),
     ).toEqual({ title: "hello" });
   });

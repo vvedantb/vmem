@@ -11,8 +11,12 @@ import {
   type WikiPathNode,
 } from "../../convex/wiki/path";
 
+const wikiNodeIdSchema = z.custom<Id<"wikiNodes">>(
+  (v) => typeof v === "string",
+);
+
 function wikiId(raw: string): Id<"wikiNodes"> {
-  return z.custom<Id<"wikiNodes">>((v) => typeof v === "string").parse(raw);
+  return wikiNodeIdSchema.parse(raw);
 }
 
 function folder(

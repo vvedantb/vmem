@@ -32,7 +32,6 @@ const schema = defineSchema({
     lastName: v.optional(v.string()),
     fullName: v.optional(v.string()),
     theme: v.optional(v.union(v.literal("light"), v.literal("dark"))),
-    // maintainer flag â€” gates system-skill catalog CRUD
     isAdmin: v.optional(v.boolean()),
   })
     .index("by_clerk_id", ["clerkId"])

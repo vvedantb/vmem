@@ -2,8 +2,11 @@
 // Modified by me: soft fail on null for union continue paths
 import { describe, expect, it } from "vitest";
 import neo4j from "neo4j-driver";
-import { neo4jIntSchema, parseNeo4jInt } from "../../engine/neo4j/record";
-import { nullableNumberSchema } from "../../engine/neo4j/record";
+import {
+  neo4jIntSchema,
+  nullableNumberSchema,
+  parseNeo4jInt,
+} from "../../engine/neo4j/record";
 
 describe("neo4jIntSchema", () => {
   it("accepts JS numbers and Neo4j integers", () => {

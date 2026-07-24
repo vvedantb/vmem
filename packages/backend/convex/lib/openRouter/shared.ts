@@ -1,7 +1,7 @@
 import type { FunctionArgs } from "convex/server";
 import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
-import type { OpenRouterEndpoint, OpenRouterFeature } from "./schemas";
+import type { OpenRouterFeature } from "./schemas";
 
 export type { OpenRouterFeature };
 
