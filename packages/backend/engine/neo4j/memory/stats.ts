@@ -17,15 +17,6 @@ const activityEventPropsSchema = z.object({
   createdAt: z.string(),
 });
 
-function formatDiffAgo(diffMs: number): string {
-  const diffMins = Math.floor(diffMs / 60000);
-  if (diffMins < 1) return "just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  const diffHours = Math.floor(diffMs / 3600000);
-  if (diffHours < 24) return `${diffHours}h ago`;
-  return `${Math.floor(diffMs / 86400000)}d ago`;
-}
-
 function activityMetaFor(
   action: string,
   memoryTitle: string,
@@ -179,7 +170,6 @@ export async function getRecentActivity(
     title: string;
     description: string;
     timestamp: string;
-    relativeTime: string;
   }[]
 > {
   const pf = profileFilter(profileId, "m", { strict: strictProfile });
@@ -193,7 +183,6 @@ export async function getRecentActivity(
     { userId, ...pf.params, limit: neo4j.int(limit) },
   );
 
-  const now = Date.now();
   return result.records.map((record) => {
     const props = parseNeo4jNodeProps(
       neo4jGet(record, "e"),
@@ -208,7 +197,6 @@ export async function getRecentActivity(
       title: "Memory",
       description: meta.description,
       timestamp: props.createdAt,
-      relativeTime: formatDiffAgo(now - new Date(props.createdAt).getTime()),
     };
   });
 }

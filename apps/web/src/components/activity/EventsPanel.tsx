@@ -1,6 +1,7 @@
 import { useQueryStates } from "nuqs";
 import { useConvexAuth, useAction } from "convex/react";
 import { useQuery } from "@tanstack/react-query";
+import { formatCompactRelativeTime } from "@vmem/shared";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 import {
   Button,
@@ -117,7 +118,7 @@ function ActivityEventRow({ item }: { item: ActivityItem }) {
             {getActivityLabel(item.description)}
           </p>
           <p className="shrink-0 text-xs tabular-nums text-muted">
-            {item.relativeTime}
+            {formatCompactRelativeTime(item.timestamp)}
           </p>
         </div>
       </div>
