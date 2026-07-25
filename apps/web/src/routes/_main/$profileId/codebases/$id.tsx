@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { lazy, Suspense, useState, useCallback } from "react";
+import { lazy, Suspense, useState } from "react";
 import { useQuery, useAction } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api, type Id } from "@vmem/backend";
@@ -84,7 +84,7 @@ function CodebaseDetailView({
     codebase.syncStartedAt,
   );
 
-  const handleSync = useCallback(async () => {
+  const handleSync = async () => {
     setSyncing(true);
     try {
       await syncCodebase({ id });
@@ -95,7 +95,7 @@ function CodebaseDetailView({
     } finally {
       setSyncing(false);
     }
-  }, [id, syncCodebase, codebase.repoName]);
+  };
 
   return (
     <PageContainer

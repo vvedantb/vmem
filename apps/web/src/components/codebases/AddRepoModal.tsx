@@ -33,7 +33,36 @@ export function AddRepoModal({
 }: AddRepoModalProps) {
   const teamId = useActiveTeamId();
   const listRepos = useAction(api.codebases.listRepos);
-  const addCodebase = useMutation(api.codebases.addCodebase);
+  const addCodebase = useMutation(
+    api.codebases.addCodebase,
+  ).withOptimisticUpdate((localStore, args) => {
+    const listArgs = { teamId: args.teamId };
+    const list = localStore.getQuery(api.codebases.listMy, listArgs);
+    if (list === undefined) return;
+    const now = Date.now();
+    const tempId = crypto.randomUUID() as Id<"codebases">;
+    localStore.setQuery(api.codebases.listMy, listArgs, [
+      {
+        _id: tempId,
+        _creationTime: now,
+        userId: list[0]?.userId ?? ("" as Id<"users">),
+        teamId: args.teamId,
+        githubConnectionId: args.githubConnectionId,
+        repoOwner: args.repoOwner,
+        repoName: args.repoName,
+        repoFullName: args.repoFullName,
+        defaultBranch: args.defaultBranch,
+        language: args.language,
+        description: args.description,
+        isPrivate: args.isPrivate,
+        status: "pending" as const,
+        totalFiles: 0,
+        syncedFiles: 0,
+        avatarUrl: list[0]?.avatarUrl,
+      },
+      ...list,
+    ]);
+  });
   const codebases = useQuery(api.codebases.listMy, { teamId });
   const reposQuery = useTanstackQuery({
     queryKey: ["github-repos", connectionId],

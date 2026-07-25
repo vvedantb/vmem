@@ -21,7 +21,24 @@ type PendingRemoval = {
 
 export function TeamMembers() {
   const { detail: data, meta } = useTeamWorkspace();
-  const removeMember = useMutation(api.teams.removeMember);
+  const removeMember = useMutation(api.teams.removeMember).withOptimisticUpdate(
+    (localStore, args) => {
+      const detail = localStore.getQuery(api.teams.get, {
+        teamId: args.teamId,
+      });
+      if (detail == null) return;
+      localStore.setQuery(
+        api.teams.get,
+        { teamId: args.teamId },
+        {
+          ...detail,
+          members: detail.members.filter(
+            (m) => (m.userId as string) !== args.userId,
+          ),
+        },
+      );
+    },
+  );
   const [addOpen, setAddOpen] = useState(false);
   const [removing, setRemoving] = useState<Id<"users"> | null>(null);
   const [pendingRemoval, setPendingRemoval] = useState<PendingRemoval | null>(

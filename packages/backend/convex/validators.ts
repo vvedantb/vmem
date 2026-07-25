@@ -150,7 +150,7 @@ export const oauthStateFields = {
   expiresAt: v.number(),
   connectorId: v.optional(v.id("connectors")),
   provider: v.optional(v.string()),
-  /** Google PKCE verifier — required for Google code exchange */
+  // google pkce verifier, required for google code exchange
   codeVerifier: v.optional(v.string()),
 };
 

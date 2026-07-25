@@ -1,11 +1,5 @@
-import {
-  useCallback,
-  useDeferredValue,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
-import { useDebounceCallback } from "usehooks-ts";
+import { useDeferredValue, useEffect, useRef, useState } from "react";
+import { useCopyToClipboard, useDebounceCallback } from "usehooks-ts";
 import { toast } from "sonner";
 import { IconPlayerPlay } from "@tabler/icons-react";
 import { Button, cn } from "@vmem/ui";
@@ -120,6 +114,7 @@ export default function WikiArtifactEditor({
   onWordCountChange,
 }: WikiArtifactEditorProps) {
   const { queueSave, saveNow, cancelPendingSave } = useWikiAutosave(doc._id);
+  const [, copyToClipboard] = useCopyToClipboard();
 
   // remount via key={doc._id} from parent resets draft / preview armed state
   const [draft, setDraft] = useState(() => doc.content ?? "");
@@ -143,33 +138,30 @@ export default function WikiArtifactEditor({
         toast.error("Nothing to copy");
         return;
       }
-      try {
-        await navigator.clipboard.writeText(text);
+      const ok = await copyToClipboard(text);
+      if (ok) {
         toast.success("Copied to clipboard");
-      } catch {
-        toast.error("Failed to copy to clipboard");
+        return;
       }
+      toast.error("Failed to copy to clipboard");
     });
     return () => onRegisterCopy(null);
-  }, [onRegisterCopy, titleForCopy]);
+  }, [copyToClipboard, onRegisterCopy, titleForCopy]);
 
-  const restoreToContent = useCallback(
-    async (source: string) => {
-      cancelPendingSave();
-      setDraft(source);
-      try {
-        await saveNow({
-          content: source,
-          contentText: source,
-          forceSnapshot: true,
-        });
-        toast.success("Restored");
-      } catch {
-        // saveNow already toasts on failure
-      }
-    },
-    [cancelPendingSave, saveNow],
-  );
+  const restoreToContent = async (source: string) => {
+    cancelPendingSave();
+    setDraft(source);
+    try {
+      await saveNow({
+        content: source,
+        contentText: source,
+        forceSnapshot: true,
+      });
+      toast.success("Restored");
+    } catch {
+      // saveNow already toasts on failure
+    }
+  };
 
   useEffect(() => {
     onRegisterRestore(restoreToContent);

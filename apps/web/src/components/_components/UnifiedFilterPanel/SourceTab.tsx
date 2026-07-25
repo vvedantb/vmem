@@ -1,6 +1,10 @@
 import { formatMemorySourceLabel } from "@/lib/memories";
-import { isCheckedByDefault, toggleCheckedByDefault } from "./checkedByDefault";
-import { FilterCheckboxRow, VirtuosoFilterTab } from "./filter-primitives";
+import {
+  FilterCheckboxRow,
+  VirtuosoFilterTab,
+  isCheckedByDefault,
+  toggleCheckedByDefault,
+} from "@/components/_components/FacetedFilter";
 
 interface SourceCtx {
   selectedSources: string[];

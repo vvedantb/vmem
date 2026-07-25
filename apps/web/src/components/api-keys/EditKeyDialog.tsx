@@ -25,7 +25,19 @@ export function EditKeyDialog({ apiKey, isOpen, onClose }: EditKeyDialogProps) {
   const [draftName, setDraftName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const renameApiKey = useMutation(api.apiKeys.renameMy);
+  const renameApiKey = useMutation(api.apiKeys.renameMy).withOptimisticUpdate(
+    (localStore, args) => {
+      const list = localStore.getQuery(api.apiKeys.listMy, {});
+      if (list === undefined) return;
+      localStore.setQuery(
+        api.apiKeys.listMy,
+        {},
+        list.map((key) =>
+          key.id === args.id ? { ...key, name: args.name } : key,
+        ),
+      );
+    },
+  );
 
   useEffect(() => {
     if (isOpen && apiKey) {

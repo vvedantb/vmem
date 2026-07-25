@@ -12,8 +12,49 @@ import { ProfileDangerZone } from "./ProfileDangerZone";
 
 export function ProfilesPage() {
   const profiles = useQuery(api.profiles.list);
-  const createProfile = useMutation(api.profiles.create);
-  const updateProfile = useMutation(api.profiles.update);
+  const createProfile = useMutation(api.profiles.create).withOptimisticUpdate(
+    (localStore, args) => {
+      const list = localStore.getQuery(api.profiles.list, {});
+      if (list === undefined) return;
+      const now = Date.now();
+      const tempId = crypto.randomUUID() as Id<"profiles">;
+      localStore.setQuery(api.profiles.list, {}, [
+        ...list,
+        {
+          _id: tempId,
+          _creationTime: now,
+          userId: list[0]?.userId ?? ("" as Id<"users">),
+          name: args.name,
+          color: args.color,
+          icon: args.icon,
+          isDefault: false,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ]);
+    },
+  );
+  const updateProfile = useMutation(api.profiles.update).withOptimisticUpdate(
+    (localStore, args) => {
+      const list = localStore.getQuery(api.profiles.list, {});
+      if (list === undefined) return;
+      localStore.setQuery(
+        api.profiles.list,
+        {},
+        list.map((p) =>
+          p._id === args.profileId
+            ? {
+                ...p,
+                ...(args.name !== undefined ? { name: args.name } : {}),
+                ...(args.color !== undefined ? { color: args.color } : {}),
+                ...(args.icon !== undefined ? { icon: args.icon } : {}),
+                updatedAt: Date.now(),
+              }
+            : p,
+        ),
+      );
+    },
+  );
   const removeProfileWithMemories = useAction(api.profiles.removeWithMemories);
 
   const [createOpen, setCreateOpen] = useState(false);

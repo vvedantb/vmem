@@ -4,6 +4,7 @@ import {
   type McpUiHostContext,
 } from "@modelcontextprotocol/ext-apps";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { Graph } from "@cosmos.gl/graph";
 
 interface MemoryNode {
   id: string;
@@ -39,61 +40,55 @@ interface GraphPayload {
   };
 }
 
-interface SimNode {
-  id: string;
-  title: string;
-  tags: string[];
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-}
+type Rgba = [number, number, number, number];
 
-interface GraphCanvasTheme {
-  background: string;
-  gradientCenter: string | null;
-  edgeTag: string;
-  edgeRelates: string;
+interface GraphTheme {
+  background: Rgba;
+  edgeTag: Rgba;
+  edgeRelates: Rgba;
   label: string;
-  glowIntensity: number;
-  nodeFallback: string;
+  nodeFallback: Rgba;
+  dimAlpha: number;
 }
 
-const CANVAS_THEME_DARK: GraphCanvasTheme = {
-  background: "#111111",
-  gradientCenter: null,
-  edgeTag: "rgba(180,180,200,0.18)",
-  edgeRelates: "rgba(255,170,110,0.55)",
+const SPACE_SIZE = 4096;
+const POINT_SIZE = 8;
+const MAX_LABELS = 48;
+const ZOOM_IN_FACTOR = 1.3;
+const ZOOM_OUT_FACTOR = 0.7;
+const INITIAL_SETTLE_ALPHA = 0.08;
+const DRAG_REHEAT_ALPHA = 0.25;
+const LABEL_FONT =
+  '500 11px ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif';
+
+const THEME_DARK: GraphTheme = {
+  background: [0.067, 0.067, 0.067, 1],
+  edgeTag: [0.706, 0.706, 0.784, 0.18],
+  edgeRelates: [1, 0.667, 0.431, 0.55],
   label: "rgba(255,255,255,0.9)",
-  glowIntensity: 0.15,
-  nodeFallback: "#555566",
+  nodeFallback: [0.333, 0.333, 0.4, 1],
+  dimAlpha: 0.15,
 };
 
-const CANVAS_THEME_LIGHT: GraphCanvasTheme = {
-  background: "#ffffff",
-  gradientCenter: "rgba(80, 80, 180, 0.03)",
-  edgeTag: "rgba(60,70,90,0.22)",
-  edgeRelates: "rgba(200,90,30,0.65)",
+const THEME_LIGHT: GraphTheme = {
+  background: [1, 1, 1, 1],
+  edgeTag: [0.235, 0.275, 0.353, 0.22],
+  edgeRelates: [0.784, 0.353, 0.118, 0.65],
   label: "rgba(0,0,0,0.88)",
-  glowIntensity: 0.12,
-  nodeFallback: "#999999",
+  nodeFallback: [0.6, 0.6, 0.6, 1],
+  dimAlpha: 0.2,
 };
 
-let isDark = true;
-let canvasTheme: GraphCanvasTheme = CANVAS_THEME_DARK;
-let graphNodes: SimNode[] = [];
-let relatesEdges: RelatesEdge[] = [];
-let tagEdges: TagEdge[] = [];
-let animationFrame = 0;
-
-let panX = 0;
-let panY = 0;
-let zoom = 1;
-let isPanning = false;
-let panStartX = 0;
-let panStartY = 0;
-let panOriginX = 0;
-let panOriginY = 0;
+interface GraphBuffers {
+  titles: string[];
+  positions: Float32Array;
+  colors: Float32Array;
+  sizes: Float32Array;
+  links: Float32Array;
+  linkColors: Float32Array;
+  linkWidths: Float32Array;
+  linkStrengths: Float32Array;
+}
 
 function requireElement(id: string): HTMLElement {
   const el = document.getElementById(id);
@@ -109,7 +104,16 @@ function requireCanvas(id: string): HTMLCanvasElement {
   return el;
 }
 
-const canvas = requireCanvas("graph-canvas");
+function requireDiv(id: string): HTMLDivElement {
+  const el = document.getElementById(id);
+  if (!(el instanceof HTMLDivElement)) {
+    throw new Error(`#${id} div missing`);
+  }
+  return el;
+}
+
+const host = requireDiv("graph-host");
+const labelCanvas = requireCanvas("label-canvas");
 const loadingEl = requireElement("loading");
 const statsEl = requireElement("stats");
 const hintEl = requireElement("hint");
@@ -118,12 +122,12 @@ const legendStatsEl = document.getElementById("legend-stats");
 const btnZoomIn = document.getElementById("btn-zoom-in");
 const btnZoomOut = document.getElementById("btn-zoom-out");
 const btnFit = document.getElementById("btn-fit");
+const webglErrorEl = document.getElementById("webgl-error");
 
-const ctx2d = canvas.getContext("2d");
-if (!ctx2d) {
-  throw new Error("2d context unavailable");
-}
-const ctx = ctx2d;
+let isDark = true;
+let theme: GraphTheme = THEME_DARK;
+let graph: Graph | null = null;
+let buffers: GraphBuffers | null = null;
 
 function tagToHue(tag: string): number {
   let hash = 0;
@@ -133,370 +137,311 @@ function tagToHue(tag: string): number {
   return ((hash % 360) + 360) % 360;
 }
 
-function hslToHex(h: number, s: number, l: number): string {
-  s /= 100;
-  l /= 100;
-  const a = s * Math.min(l, 1 - l);
-  const f = (n: number) => {
+function hslToRgba(h: number, s: number, l: number): Rgba {
+  const sat = s / 100;
+  const lit = l / 100;
+  const a = sat * Math.min(lit, 1 - lit);
+  const f = (n: number): number => {
     const k = (n + h / 30) % 12;
-    const c = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
-    return Math.round(255 * c)
-      .toString(16)
-      .padStart(2, "0");
+    const c = lit - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+    return Math.min(1, Math.max(0, c));
   };
-  return `#${f(0)}${f(8)}${f(4)}`;
+  return [f(0), f(8), f(4), 1];
 }
 
-function tagToColor(tag: string, dark: boolean): string {
+function tagToColor(tag: string, dark: boolean): Rgba {
   const hue = tagToHue(tag);
-  return dark ? hslToHex(hue, 50, 72) : hslToHex(hue, 55, 48);
+  return dark ? hslToRgba(hue, 50, 72) : hslToRgba(hue, 55, 48);
 }
 
-function nodeColor(tags: string[]): string {
+function nodeColor(tags: string[], dark: boolean, fallback: Rgba): Rgba {
   const first = tags[0];
-  if (first !== undefined) return tagToColor(first, isDark);
-  return canvasTheme.nodeFallback;
+  if (first !== undefined) return tagToColor(first, dark);
+  return fallback;
 }
 
-function applyTheme(theme: "light" | "dark") {
-  isDark = theme === "dark";
-  canvasTheme = isDark ? CANVAS_THEME_DARK : CANVAS_THEME_LIGHT;
-  document.body.setAttribute("data-theme", theme);
+function writeRgba(target: Float32Array, offset: number, rgba: Rgba): void {
+  target[offset] = rgba[0];
+  target[offset + 1] = rgba[1];
+  target[offset + 2] = rgba[2];
+  target[offset + 3] = rgba[3];
 }
 
-function resizeCanvas() {
-  const wrap = canvas.parentElement;
-  if (!wrap) return;
-  const rect = wrap.getBoundingClientRect();
-  const dpr = window.devicePixelRatio || 1;
-  canvas.width = Math.floor(rect.width * dpr);
-  canvas.height = Math.floor(rect.height * dpr);
-  canvas.style.width = `${rect.width}px`;
-  canvas.style.height = `${rect.height}px`;
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  draw();
-}
-
-function screenToWorld(sx: number, sy: number): { x: number; y: number } {
-  const rect = canvas.getBoundingClientRect();
-  const cx = rect.width / 2;
-  const cy = rect.height / 2;
+function seedPosition(index: number, count: number): { x: number; y: number } {
+  const angle = (index / Math.max(count, 1)) * Math.PI * 2;
+  const radius = Math.max(200, Math.sqrt(count) * 42) * 0.55;
+  const cx = SPACE_SIZE / 2;
+  const cy = SPACE_SIZE / 2;
   return {
-    x: (sx - cx - panX) / zoom,
-    y: (sy - cy - panY) / zoom,
+    x: cx + Math.cos(angle) * radius,
+    y: cy + Math.sin(angle) * radius,
   };
 }
 
-function buildSimulation(data: GraphPayload) {
+function buildBuffers(data: GraphPayload, current: GraphTheme): GraphBuffers {
   const count = data.nodes.length;
-  const radius = Math.max(200, Math.sqrt(count) * 42);
-  graphNodes = data.nodes.map((n, i) => {
-    const angle = (i / Math.max(count, 1)) * Math.PI * 2;
-    return {
-      id: n.id,
-      title: n.title,
-      tags: n.tags,
-      x: Math.cos(angle) * radius * 0.55,
-      y: Math.sin(angle) * radius * 0.55,
-      vx: 0,
-      vy: 0,
-    };
-  });
-  relatesEdges = data.relatesToEdges;
-  tagEdges = data.tagEdges;
-}
+  const titles: string[] = [];
+  const positions = new Float32Array(count * 2);
+  const colors = new Float32Array(count * 4);
+  const sizes = new Float32Array(count);
+  const idToIndex = new Map<string, number>();
 
-function simulationParams(nodeCount: number) {
-  return {
-    repulsion: Math.min(1600, 650 + nodeCount * 10),
-    relatesDistance: 130,
-    tagDistance: 170,
-    centerPull: 0.008,
-  };
-}
-
-function nodeById(): Map<string, SimNode> {
-  return new Map(graphNodes.map((n) => [n.id, n]));
-}
-
-function simulateStep() {
-  const nodes = graphNodes;
-  const byId = nodeById();
-  const { repulsion, relatesDistance, tagDistance, centerPull } =
-    simulationParams(nodes.length);
-
-  for (let i = 0; i < nodes.length; i++) {
-    for (let j = i + 1; j < nodes.length; j++) {
-      const a = nodes[i];
-      const b = nodes[j];
-      if (a === undefined || b === undefined) continue;
-      let dx = a.x - b.x;
-      let dy = a.y - b.y;
-      let dist = Math.hypot(dx, dy);
-      if (dist < 1) {
-        dist = 1;
-        dx = (Math.random() - 0.5) * 0.01;
-        dy = (Math.random() - 0.5) * 0.01;
-      }
-      const force = repulsion / (dist * dist);
-      const fx = (dx / dist) * force;
-      const fy = (dy / dist) * force;
-      a.vx += fx;
-      a.vy += fy;
-      b.vx -= fx;
-      b.vy -= fy;
-    }
-  }
-
-  const link = (
-    source: string,
-    target: string,
-    strength: number,
-    distance: number,
-  ): void => {
-    const a = byId.get(source);
-    const b = byId.get(target);
-    if (!a || !b) return;
-    const dx = b.x - a.x;
-    const dy = b.y - a.y;
-    let dist = Math.hypot(dx, dy);
-    if (dist < 1) dist = 1;
-    const displacement = (dist - distance) * strength;
-    const fx = (dx / dist) * displacement;
-    const fy = (dy / dist) * displacement;
-    a.vx += fx;
-    a.vy += fy;
-    b.vx -= fx;
-    b.vy -= fy;
-  };
-
-  for (const edge of relatesEdges) {
-    link(edge.source, edge.target, 0.06, relatesDistance);
-  }
-  for (const edge of tagEdges) {
-    link(edge.source, edge.target, 0.03, tagDistance);
-  }
-
-  for (const n of nodes) {
-    n.vx += -n.x * centerPull;
-    n.vy += -n.y * centerPull;
-    n.vx *= 0.85;
-    n.vy *= 0.85;
-    n.x += n.vx;
-    n.y += n.vy;
-  }
-}
-
-function paintCanvasBackground(w: number, h: number) {
-  ctx.fillStyle = canvasTheme.background;
-  ctx.fillRect(0, 0, w, h);
-  if (canvasTheme.gradientCenter) {
-    const g = ctx.createRadialGradient(
-      w * 0.5,
-      h * 0.35,
-      0,
-      w * 0.5,
-      h * 0.5,
-      Math.max(w, h) * 0.65,
+  for (let i = 0; i < count; i++) {
+    const node = data.nodes[i];
+    if (node === undefined) continue;
+    idToIndex.set(node.id, i);
+    titles.push(node.title);
+    const pos = seedPosition(i, count);
+    positions[i * 2] = pos.x;
+    positions[i * 2 + 1] = pos.y;
+    writeRgba(
+      colors,
+      i * 4,
+      nodeColor(node.tags, isDark, current.nodeFallback),
     );
-    g.addColorStop(0, canvasTheme.gradientCenter);
-    g.addColorStop(1, "transparent");
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, w, h);
+    sizes[i] = POINT_SIZE;
   }
+
+  const edgeCount = data.relatesToEdges.length + data.tagEdges.length;
+  const links = new Float32Array(edgeCount * 2);
+  const linkColors = new Float32Array(edgeCount * 4);
+  const linkWidths = new Float32Array(edgeCount);
+  const linkStrengths = new Float32Array(edgeCount);
+
+  let linkIndex = 0;
+  const pushEdge = (
+    sourceId: string,
+    targetId: string,
+    color: Rgba,
+    width: number,
+    strength: number,
+  ): void => {
+    const source = idToIndex.get(sourceId);
+    const target = idToIndex.get(targetId);
+    if (source === undefined || target === undefined) return;
+    links[linkIndex * 2] = source;
+    links[linkIndex * 2 + 1] = target;
+    writeRgba(linkColors, linkIndex * 4, color);
+    linkWidths[linkIndex] = width;
+    linkStrengths[linkIndex] = strength;
+    linkIndex += 1;
+  };
+
+  for (const edge of data.tagEdges) {
+    pushEdge(edge.source, edge.target, current.edgeTag, 0.8, 0);
+  }
+  for (const edge of data.relatesToEdges) {
+    pushEdge(edge.source, edge.target, current.edgeRelates, 1.6, 1);
+  }
+
+  return {
+    titles,
+    positions,
+    colors,
+    sizes,
+    links: links.subarray(0, linkIndex * 2),
+    linkColors: linkColors.subarray(0, linkIndex * 4),
+    linkWidths: linkWidths.subarray(0, linkIndex),
+    linkStrengths: linkStrengths.subarray(0, linkIndex),
+  };
 }
 
-const NODE_RADIUS = 5;
-const LABEL_FONT_PX = 9;
-const LABEL_MAX_WIDTH = 72;
-
-function truncateLabel(title: string, maxWidth: number): string {
-  if (ctx.measureText(title).width <= maxWidth) return title;
-  const ellipsis = "…";
-  let end = title.length;
-  while (end > 0) {
-    const candidate = `${title.slice(0, end)}${ellipsis}`;
-    if (ctx.measureText(candidate).width <= maxWidth) return candidate;
-    end -= 1;
-  }
-  return ellipsis;
+function physicsForCount(nodeCount: number) {
+  const simulationRepulsion =
+    nodeCount <= 10
+      ? 0.18
+      : nodeCount <= 50
+        ? 0.32
+        : nodeCount <= 200
+          ? 0.55
+          : 1;
+  return {
+    simulationRepulsion,
+    simulationGravity: 0.12,
+    simulationCenter: 0.05,
+    simulationFriction: 0.35,
+    simulationDecay: nodeCount <= 2000 ? 400 : 700,
+    simulationRepulsionTheta: 0.9,
+    simulationRepulsionFromMouse: 0,
+    simulationLinkSpring: 1,
+    simulationLinkDistance:
+      nodeCount <= 10 ? 3 : nodeCount <= 50 ? 5 : nodeCount <= 200 ? 7 : 10,
+    simulationCollision: 1,
+    simulationCollisionPadding: 0.35,
+  };
 }
 
-function drawNodeLabels() {
-  if (zoom < 0.45) return;
+function truncateLabel(title: string, maxChars = 28): string {
+  if (title.length <= maxChars) return title;
+  return `${title.slice(0, Math.max(0, maxChars - 1))}…`;
+}
 
-  ctx.font = `${LABEL_FONT_PX}px ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif`;
-  ctx.fillStyle = canvasTheme.label;
+function paintLabels(g: Graph): void {
+  const current = buffers;
+  if (!current) return;
+
+  const wrap = host.parentElement;
+  if (!wrap) return;
+  const dpr = window.devicePixelRatio || 1;
+  const w = wrap.clientWidth;
+  const h = wrap.clientHeight;
+  if (w === 0 || h === 0) return;
+
+  if (
+    labelCanvas.width !== Math.floor(w * dpr) ||
+    labelCanvas.height !== Math.floor(h * dpr)
+  ) {
+    labelCanvas.width = Math.floor(w * dpr);
+    labelCanvas.height = Math.floor(h * dpr);
+    labelCanvas.style.width = `${w}px`;
+    labelCanvas.style.height = `${h}px`;
+  }
+
+  const ctx = labelCanvas.getContext("2d");
+  if (ctx === null) return;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+
+  const zoom = g.getZoomLevel();
+  if (zoom < 0.45 || current.titles.length > 5000) return;
+
+  ctx.font = LABEL_FONT;
+  ctx.fillStyle = theme.label;
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
 
-  for (const n of graphNodes) {
-    const label = truncateLabel(n.title, LABEL_MAX_WIDTH);
-    ctx.fillText(label, n.x, n.y + NODE_RADIUS + 3);
+  const { indices, positions } = g.getSampledPoints();
+  let painted = 0;
+  for (let i = 0; i < indices.length; i++) {
+    if (painted >= MAX_LABELS) break;
+    const idx = indices[i];
+    if (idx === undefined) continue;
+    const title = current.titles[idx];
+    if (title === undefined) continue;
+    const sx = positions[i * 2];
+    const sy = positions[i * 2 + 1];
+    if (sx === undefined || sy === undefined) continue;
+    const [screenX, screenY] = g.spaceToScreenPosition([sx, sy]);
+    ctx.fillText(truncateLabel(title), screenX, screenY + 8);
+    painted += 1;
   }
 }
 
-function drawNodeGlow(n: SimNode, color: string, r: number) {
-  const glowR = r * 2.5;
-  const alpha = Math.round(canvasTheme.glowIntensity * 255)
-    .toString(16)
-    .padStart(2, "0");
-  const grad = ctx.createRadialGradient(n.x, n.y, r * 0.5, n.x, n.y, glowR);
-  grad.addColorStop(0, `${color}${alpha}`);
-  grad.addColorStop(1, `${color}00`);
-  ctx.fillStyle = grad;
-  ctx.beginPath();
-  ctx.arc(n.x, n.y, glowR, 0, Math.PI * 2);
-  ctx.fill();
+function destroyGraph(): void {
+  if (graph === null) return;
+  graph.destroy();
+  graph = null;
+  buffers = null;
 }
 
-function strokeEdge(
-  a: SimNode,
-  b: SimNode,
-  strokeStyle: string,
-  lineWidth: number,
-): void {
-  ctx.beginPath();
-  ctx.setLineDash([]);
-  ctx.lineWidth = lineWidth;
-  ctx.strokeStyle = strokeStyle;
-  ctx.moveTo(a.x, a.y);
-  ctx.lineTo(b.x, b.y);
-  ctx.stroke();
-}
-
-function draw() {
-  const rect = canvas.getBoundingClientRect();
-  const w = rect.width;
-  const h = rect.height;
-  ctx.save();
-  paintCanvasBackground(w, h);
-  ctx.translate(w / 2 + panX, h / 2 + panY);
-  ctx.scale(zoom, zoom);
-
-  const byId = nodeById();
-
-  for (const edge of tagEdges) {
-    const a = byId.get(edge.source);
-    const b = byId.get(edge.target);
-    if (!a || !b) continue;
-    strokeEdge(a, b, canvasTheme.edgeTag, 0.8);
+function showWebglError(message: string): void {
+  statsEl.textContent = message;
+  if (webglErrorEl) {
+    webglErrorEl.textContent = message;
+    webglErrorEl.classList.add("visible");
   }
+}
 
-  for (const edge of relatesEdges) {
-    const a = byId.get(edge.source);
-    const b = byId.get(edge.target);
-    if (!a || !b) continue;
-    strokeEdge(a, b, canvasTheme.edgeRelates, 1.6);
+function hideWebglError(): void {
+  if (webglErrorEl) {
+    webglErrorEl.classList.remove("visible");
+    webglErrorEl.textContent = "";
   }
+}
 
-  const showGlow = graphNodes.length <= 120 && zoom >= 0.5;
-  if (showGlow) {
-    for (const n of graphNodes) {
-      drawNodeGlow(n, nodeColor(n.tags), NODE_RADIUS);
-    }
+function createGraph(data: GraphPayload): void {
+  destroyGraph();
+  hideWebglError();
+
+  const nextBuffers = buildBuffers(data, theme);
+  buffers = nextBuffers;
+  const physics = physicsForCount(data.nodes.length);
+
+  try {
+    const next = new Graph(host, {
+      backgroundColor: theme.background,
+      spaceSize: SPACE_SIZE,
+      enableSimulation: true,
+      enableDrag: true,
+      enableZoom: true,
+      fitViewOnInit: true,
+      fitViewDelay: 100,
+      fitViewPadding: data.nodes.length <= 50 ? 0.25 : 0.12,
+      renderHoveredPointRing: true,
+      hoveredPointCursor: "pointer",
+      pointGreyoutOpacity: theme.dimAlpha,
+      linkGreyoutOpacity: theme.dimAlpha,
+      pointSamplingDistance: 80,
+      ...physics,
+      attribution: "",
+      onZoom: () => {
+        if (graph) paintLabels(graph);
+      },
+      onDragStart: () => {
+        if (!graph) return;
+        graph.unpause();
+        graph.start(DRAG_REHEAT_ALPHA);
+      },
+      onSimulationTick: () => {
+        if (graph) paintLabels(graph);
+      },
+    });
+
+    next.setPointPositions(nextBuffers.positions);
+    next.setPointColors(nextBuffers.colors);
+    next.setPointSizes(nextBuffers.sizes);
+    next.setLinks(nextBuffers.links);
+    next.setLinkColors(nextBuffers.linkColors);
+    next.setLinkWidths(nextBuffers.linkWidths);
+    next.setLinkStrength(nextBuffers.linkStrengths);
+    next.render();
+    next.start(INITIAL_SETTLE_ALPHA);
+    graph = next;
+    paintLabels(next);
+  } catch (err) {
+    console.error("[vmem] cosmos WebGL init failed:", err);
+    showWebglError("WebGL 2 is required to display the graph");
   }
+}
 
-  for (const n of graphNodes) {
-    const color = nodeColor(n.tags);
-    ctx.beginPath();
-    ctx.fillStyle = color;
-    ctx.arc(n.x, n.y, NODE_RADIUS, 0, Math.PI * 2);
-    ctx.fill();
+function recolorFromPayload(data: GraphPayload): void {
+  if (!graph || !buffers) return;
+  const next = buildBuffers(data, theme);
+  next.positions.set(graph.getPointPositions());
+  buffers = next;
+  graph.setPointColors(next.colors);
+  graph.setLinkColors(next.linkColors);
+  graph.setLinkWidths(next.linkWidths);
+  graph.render();
+  paintLabels(graph);
+}
+
+let lastPayload: GraphPayload | null = null;
+
+function applyThemeAndRecolor(next: "light" | "dark"): void {
+  isDark = next === "dark";
+  theme = isDark ? THEME_DARK : THEME_LIGHT;
+  document.body.setAttribute("data-theme", next);
+  if (lastPayload && graph) {
+    recolorFromPayload(lastPayload);
+    graph.setConfigPartial({ backgroundColor: theme.background });
   }
-
-  drawNodeLabels();
-
-  ctx.restore();
-}
-
-function fitToView() {
-  if (graphNodes.length === 0) return;
-  const first = graphNodes[0];
-  if (first === undefined) return;
-  let minX = first.x;
-  let maxX = first.x;
-  let minY = first.y;
-  let maxY = first.y;
-  for (const n of graphNodes) {
-    minX = Math.min(minX, n.x);
-    maxX = Math.max(maxX, n.x);
-    minY = Math.min(minY, n.y);
-    maxY = Math.max(maxY, n.y);
-  }
-  const rect = canvas.getBoundingClientRect();
-  const padding = 64;
-  const graphW = Math.max(maxX - minX, 40);
-  const graphH = Math.max(maxY - minY, 40);
-  const scaleX = (rect.width - padding * 2) / graphW;
-  const scaleY = (rect.height - padding * 2) / graphH;
-  zoom = Math.min(2.5, Math.max(0.2, Math.min(scaleX, scaleY)));
-  const cx = (minX + maxX) / 2;
-  const cy = (minY + maxY) / 2;
-  panX = -cx * zoom;
-  panY = -cy * zoom;
-}
-
-function zoomAtPoint(mx: number, my: number, factor: number): void {
-  const before = screenToWorld(mx, my);
-  zoom = Math.min(4, Math.max(0.15, zoom * factor));
-  const after = screenToWorld(mx, my);
-  panX += (after.x - before.x) * zoom;
-  panY += (after.y - before.y) * zoom;
-  draw();
-}
-
-function zoomBy(factor: number): void {
-  const rect = canvas.getBoundingClientRect();
-  zoomAtPoint(rect.width / 2, rect.height / 2, factor);
-}
-
-function runSimulation() {
-  for (let i = 0; i < 140; i++) simulateStep();
-  fitToView();
-  draw();
-}
-
-function startLoop() {
-  if (animationFrame) cancelAnimationFrame(animationFrame);
-  let ticks = 0;
-  const tick = () => {
-    if (ticks < 50) {
-      simulateStep();
-      draw();
-      ticks += 1;
-      animationFrame = requestAnimationFrame(tick);
-    }
-  };
-  animationFrame = requestAnimationFrame(tick);
-}
-
-function isGraphPayload(value: object): value is GraphPayload {
-  return (
-    "nodes" in value &&
-    Array.isArray(value.nodes) &&
-    "relatesToEdges" in value &&
-    Array.isArray(value.relatesToEdges) &&
-    "tagEdges" in value &&
-    Array.isArray(value.tagEdges)
-  );
 }
 
 function formatCount(n: number): string {
   return n.toLocaleString();
 }
 
-function renderGraph(data: GraphPayload) {
-  buildSimulation(data);
-  runSimulation();
-  startLoop();
+function renderGraph(data: GraphPayload): void {
+  lastPayload = data;
+  createGraph(data);
 
   const edgeTotal = data.stats.relatesToEdgeCount + data.stats.tagEdgeCount;
   statsEl.textContent = `${formatCount(data.stats.nodeCount)} memories · ${formatCount(edgeTotal)} edges`;
   if (legendStatsEl) {
     legendStatsEl.textContent = `${formatCount(data.stats.nodeCount)} nodes · ${formatCount(data.stats.relatesToEdgeCount)} relates · ${formatCount(data.stats.tagEdgeCount)} tags`;
   }
-  hintEl.textContent = "Drag to pan · Scroll to zoom";
+  hintEl.textContent = "Drag to pan · Scroll to zoom · Drag nodes";
 
   if (data.truncated) {
     bannerEl.textContent = `Showing ${formatCount(data.stats.nodeCount)} of ${formatCount(data.stats.totalNodesBeforeCap)} memories. Use focus or memoryIds to narrow.`;
@@ -506,7 +451,37 @@ function renderGraph(data: GraphPayload) {
   }
 
   requestTallViewport();
-  resizeCanvas();
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function isGraphStats(value: unknown): value is GraphPayload["stats"] {
+  if (value === null || typeof value !== "object") return false;
+  return (
+    "nodeCount" in value &&
+    isFiniteNumber(value.nodeCount) &&
+    "relatesToEdgeCount" in value &&
+    isFiniteNumber(value.relatesToEdgeCount) &&
+    "tagEdgeCount" in value &&
+    isFiniteNumber(value.tagEdgeCount) &&
+    "totalNodesBeforeCap" in value &&
+    isFiniteNumber(value.totalNodesBeforeCap)
+  );
+}
+
+function isGraphPayload(value: object): value is GraphPayload {
+  return (
+    "nodes" in value &&
+    Array.isArray(value.nodes) &&
+    "relatesToEdges" in value &&
+    Array.isArray(value.relatesToEdges) &&
+    "tagEdges" in value &&
+    Array.isArray(value.tagEdges) &&
+    "stats" in value &&
+    isGraphStats(value.stats)
+  );
 }
 
 function parseStructuredContent(result: CallToolResult): GraphPayload | null {
@@ -520,56 +495,31 @@ function parseStructuredContent(result: CallToolResult): GraphPayload | null {
   return raw;
 }
 
-canvas.addEventListener(
-  "wheel",
-  (e) => {
-    e.preventDefault();
-    const factor = e.deltaY < 0 ? 1.1 : 0.9;
-    const rect = canvas.getBoundingClientRect();
-    zoomAtPoint(e.clientX - rect.left, e.clientY - rect.top, factor);
-  },
-  { passive: false },
-);
-
-canvas.addEventListener("pointerdown", (e) => {
-  isPanning = true;
-  panStartX = e.clientX;
-  panStartY = e.clientY;
-  panOriginX = panX;
-  panOriginY = panY;
-  canvas.classList.add("dragging");
-  canvas.setPointerCapture(e.pointerId);
-});
-
-canvas.addEventListener("pointermove", (e) => {
-  if (!isPanning) return;
-  panX = panOriginX + (e.clientX - panStartX);
-  panY = panOriginY + (e.clientY - panStartY);
-  draw();
-});
-
-function endPan(): void {
-  isPanning = false;
-  canvas.classList.remove("dragging");
-}
-
-canvas.addEventListener("pointerup", endPan);
-canvas.addEventListener("pointercancel", endPan);
-
 if (btnZoomIn instanceof HTMLButtonElement) {
-  btnZoomIn.addEventListener("click", () => zoomBy(1.2));
+  btnZoomIn.addEventListener("click", () => {
+    if (!graph) return;
+    graph.setZoomLevel(graph.getZoomLevel() * ZOOM_IN_FACTOR);
+    paintLabels(graph);
+  });
 }
 if (btnZoomOut instanceof HTMLButtonElement) {
-  btnZoomOut.addEventListener("click", () => zoomBy(1 / 1.2));
+  btnZoomOut.addEventListener("click", () => {
+    if (!graph) return;
+    graph.setZoomLevel(graph.getZoomLevel() * ZOOM_OUT_FACTOR);
+    paintLabels(graph);
+  });
 }
 if (btnFit instanceof HTMLButtonElement) {
   btnFit.addEventListener("click", () => {
-    fitToView();
-    draw();
+    if (!graph) return;
+    graph.fitView();
+    paintLabels(graph);
   });
 }
 
-window.addEventListener("resize", resizeCanvas);
+window.addEventListener("resize", () => {
+  if (graph) paintLabels(graph);
+});
 
 const app = new App({ name: "vmem Memory Graph", version: "1.0.0" });
 
@@ -586,6 +536,8 @@ app.ontoolresult = (result: CallToolResult) => {
   }
   const data = parseStructuredContent(result);
   if (!data || data.nodes.length === 0) {
+    destroyGraph();
+    lastPayload = null;
     statsEl.textContent = "No memories to display";
     return;
   }
@@ -597,17 +549,23 @@ app.ontoolcancelled = () => {
   statsEl.textContent = "Cancelled";
 };
 
+// Once the host sets a theme, OS prefers-color-scheme must not override it.
+let hostThemeLocked = false;
+
 function handleHostContext(hostCtx: McpUiHostContext) {
   if (hostCtx.theme) {
+    hostThemeLocked = true;
     applyDocumentTheme(hostCtx.theme);
-    applyTheme(hostCtx.theme);
-    draw();
+    applyThemeAndRecolor(hostCtx.theme);
   }
 }
 
 app.onhostcontextchanged = handleHostContext;
 
-app.onteardown = async () => ({});
+app.onteardown = async () => {
+  destroyGraph();
+  return {};
+};
 
 app.onerror = console.error;
 
@@ -622,15 +580,14 @@ function requestTallViewport() {
 }
 
 const prefersDark = window.matchMedia("(prefers-color-scheme: dark)");
-applyTheme(prefersDark.matches ? "dark" : "light");
+applyThemeAndRecolor(prefersDark.matches ? "dark" : "light");
 prefersDark.addEventListener("change", (e) => {
-  applyTheme(e.matches ? "dark" : "light");
-  draw();
+  if (hostThemeLocked) return;
+  applyThemeAndRecolor(e.matches ? "dark" : "light");
 });
 
 void app.connect().then(() => {
   const hostCtx = app.getHostContext();
   if (hostCtx) handleHostContext(hostCtx);
   requestTallViewport();
-  resizeCanvas();
 });

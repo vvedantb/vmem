@@ -2,22 +2,10 @@ import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cn } from "../utils/cn";
 
-/**
- * Breadcrumb — navigation trail for the current page location.
- *
- * Renders its children as a horizontal list with `/` separators automatically
- * inserted between them. Designed to replace the page title + back button on
- * detail pages: the parent route(s) act as the "up" affordance and the final
- * segment identifies the current page.
- *
- * Example:
- *   <Breadcrumb>
- *     <BreadcrumbLink asChild>
- *       <Link to="/codebases">Codebases</Link>
- *     </BreadcrumbLink>
- *     <BreadcrumbPage>acme-corp/api</BreadcrumbPage>
- *   </Breadcrumb>
- */
+// breadcrumb, navigation trail for the current page location renders its children as a horizontal list with `/` separators automatically
+// inserted between them designed to replace the page title + back button on
+// detail pages: the parent route(s) act as the "up" affordance and the final
+// segment identifies the current page example: <breadcrumb> <breadcrumblink aschild> <link to="/codebases">codebases</link> </breadcrumblink> <breadcrumbpage>acme, corp/api</breadcrumbpage> </breadcrumb>
 const Breadcrumb = React.forwardRef<
   HTMLElement,
   React.HTMLAttributes<HTMLElement>
@@ -47,11 +35,9 @@ const Breadcrumb = React.forwardRef<
 });
 Breadcrumb.displayName = "Breadcrumb";
 
-/**
- * Clickable breadcrumb segment (parent routes). Muted by default, shifts to
- * foreground on hover. Pass `asChild` to render as your router's Link
- * component while keeping the styling — preserves type-safe routing.
- */
+// clickable breadcrumb segment (parent routes) muted by default, shifts to
+// foreground on hover pass `aschild` to render as your router's link
+// component while keeping the styling, preserves type, safe routing
 const BreadcrumbLink = React.forwardRef<
   HTMLAnchorElement,
   React.AnchorHTMLAttributes<HTMLAnchorElement> & { asChild?: boolean }
@@ -70,10 +56,8 @@ const BreadcrumbLink = React.forwardRef<
 });
 BreadcrumbLink.displayName = "BreadcrumbLink";
 
-/**
- * Current page segment (last in the trail). Same font weight as parent links
- * but at foreground color, and not clickable — signals "you are here".
- */
+// current page segment (last in the trail) same font weight as parent links
+// but at foreground colour, and not clickable, signals "you are here"
 const BreadcrumbPage = React.forwardRef<
   HTMLSpanElement,
   React.HTMLAttributes<HTMLSpanElement>
@@ -87,9 +71,7 @@ const BreadcrumbPage = React.forwardRef<
 ));
 BreadcrumbPage.displayName = "BreadcrumbPage";
 
-/**
- * Separator rendered automatically between breadcrumb children.
- */
+// separator rendered automatically between breadcrumb children
 const BreadcrumbSeparator = () => (
   <span aria-hidden className="flex-shrink-0 text-muted/40">
     /

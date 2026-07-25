@@ -3,7 +3,8 @@ import { useQuery } from "convex/react";
 import { IconDeviceFloppy } from "@tabler/icons-react";
 import { Button, Card, CardContent, Label, Skeleton } from "@vmem/ui";
 import { api } from "@vmem/backend";
-import type { ContentMessage, BackgroundResponse } from "@/types/messages";
+import { truncate } from "es-toolkit/compat";
+import { sendMessage } from "@/lib/messaging";
 import { extractPageFromTab } from "@/lib/extract-page";
 import { useBrowserDefaultProfile } from "@/popup/useBrowserDefaultProfile";
 import { useExtensionUserSettings } from "@/popup/useExtensionUserSettings";
@@ -29,10 +30,9 @@ function truncateUrl(url: string, maxLength = 40): string {
   try {
     const parsed = new URL(url);
     const display = parsed.host + parsed.pathname;
-    if (display.length <= maxLength) return display;
-    return display.slice(0, maxLength - 1) + "…";
+    return truncate(display, { length: maxLength, omission: "…" });
   } catch {
-    return url.slice(0, maxLength);
+    return truncate(url, { length: maxLength });
   }
 }
 
@@ -82,35 +82,26 @@ export function QuickSave() {
       return;
     }
 
-    const message: ContentMessage = {
-      type: "SAVE_PAGE",
-      url: tab.url,
-      title: extraction.ogTitle ?? extraction.title ?? tab.title ?? "Untitled",
-      content: extraction.content,
-      markdown: extraction.html,
-      ogImage: extraction.ogImage,
-      ogDescription: extraction.ogDescription,
-      profileId: effectiveProfileId || undefined,
-    };
-
-    chrome.runtime.sendMessage(
-      message,
-      (response: BackgroundResponse | undefined) => {
-        setSaving(false);
-        if (response?.type === "SAVE_RESULT") {
-          setResult(
-            response.success
-              ? { success: true, message: "Page saved to vmem" }
-              : {
-                  success: false,
-                  message: response.error ?? "Failed to save",
-                },
-          );
-          return;
-        }
-        setResult({ success: false, message: "Failed to save" });
-      },
-    );
+    try {
+      await sendMessage("savePage", {
+        url: tab.url,
+        title:
+          extraction.ogTitle ?? extraction.title ?? tab.title ?? "Untitled",
+        content: extraction.content,
+        markdown: extraction.html,
+        ogImage: extraction.ogImage,
+        ogDescription: extraction.ogDescription,
+        profileId: effectiveProfileId || undefined,
+      });
+      setResult({ success: true, message: "Page saved to vmem" });
+    } catch (err) {
+      setResult({
+        success: false,
+        message: err instanceof Error ? err.message : String(err),
+      });
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (

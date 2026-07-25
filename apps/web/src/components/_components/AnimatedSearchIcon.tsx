@@ -43,21 +43,25 @@ export default function AnimatedSearchIcon({
       className={className}
       aria-hidden="true"
     >
-      {/* Lens — shrinks to a point and fades during the X phase. */}
+      {
+        // lens, shrinks to a point and fades during the x phase
+      }
       <circle cx="10" cy="10" r="7">
         <MorphAnimate name="r" values="7; 7; 0; 0; 7; 7" />
         <MorphAnimate name="opacity" values="1; 1; 0; 0; 1; 1" />
       </circle>
-      {/* Handle — repositions into the ╲ diagonal of the X. */}
+      {
+        // handle, repositions into the ╲ diagonal of the x
+      }
       <line x1="15" y1="15" x2="21" y2="21">
         <MorphAnimate name="x1" values="15; 15; 5; 5; 15; 15" />
         <MorphAnimate name="y1" values="15; 15; 5; 5; 15; 15" />
         <MorphAnimate name="x2" values="21; 21; 19; 19; 21; 21" />
         <MorphAnimate name="y2" values="21; 21; 19; 19; 21; 21" />
       </line>
-      {/* Second diagonal — starts as an invisible point at the lens center,
-          then draws out into the ╱ of the X. Returning to a zero-length
-          point lets it cleanly disappear when the glass returns. */}
+      {
+        // second diagonal, starts as an invisible point at the lens centre, then draws out into the ╱ of the x returning to a zero, length point lets it cleanly disappear when the glass returns
+      }
       <line x1="12" y1="12" x2="12" y2="12">
         <MorphAnimate name="x1" values="12; 12; 19; 19; 12; 12" />
         <MorphAnimate name="y1" values="12; 12; 5; 5; 12; 12" />

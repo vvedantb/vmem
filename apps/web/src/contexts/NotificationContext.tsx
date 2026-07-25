@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { createContext, use, useCallback } from "react";
+import { createContext, use } from "react";
 import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { api } from "@vmem/backend";
 import type { Doc, Id } from "@vmem/backend";
@@ -28,40 +28,112 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     api.notifications.unreadCount,
     isAuthenticated ? {} : "skip",
   );
-  const markAsReadMutation = useMutation(api.notifications.markAsRead);
-  const markAsUnreadMutation = useMutation(api.notifications.markAsUnread);
-  const markAllAsReadMutation = useMutation(api.notifications.markAllAsRead);
+  const markAsReadMutation = useMutation(
+    api.notifications.markAsRead,
+  ).withOptimisticUpdate((localStore, args) => {
+    const list = localStore.getQuery(api.notifications.listMy, {});
+    const unread = localStore.getQuery(api.notifications.unreadCount, {});
+    if (list === undefined) return;
+    const target = list.find((n) => n._id === args.id);
+    if (!target || target.read) {
+      localStore.setQuery(
+        api.notifications.listMy,
+        {},
+        list.map((n) => (n._id === args.id ? { ...n, read: true } : n)),
+      );
+      return;
+    }
+    localStore.setQuery(
+      api.notifications.listMy,
+      {},
+      list.map((n) => (n._id === args.id ? { ...n, read: true } : n)),
+    );
+    if (unread !== undefined) {
+      localStore.setQuery(
+        api.notifications.unreadCount,
+        {},
+        Math.max(0, unread - 1),
+      );
+    }
+  });
+  const markAsUnreadMutation = useMutation(
+    api.notifications.markAsUnread,
+  ).withOptimisticUpdate((localStore, args) => {
+    const list = localStore.getQuery(api.notifications.listMy, {});
+    const unread = localStore.getQuery(api.notifications.unreadCount, {});
+    if (list === undefined) return;
+    const target = list.find((n) => n._id === args.id);
+    if (!target || !target.read) {
+      localStore.setQuery(
+        api.notifications.listMy,
+        {},
+        list.map((n) => (n._id === args.id ? { ...n, read: false } : n)),
+      );
+      return;
+    }
+    localStore.setQuery(
+      api.notifications.listMy,
+      {},
+      list.map((n) => (n._id === args.id ? { ...n, read: false } : n)),
+    );
+    if (unread !== undefined) {
+      localStore.setQuery(api.notifications.unreadCount, {}, unread + 1);
+    }
+  });
+  const markAllAsReadMutation = useMutation(
+    api.notifications.markAllAsRead,
+  ).withOptimisticUpdate((localStore) => {
+    const list = localStore.getQuery(api.notifications.listMy, {});
+    if (list !== undefined) {
+      localStore.setQuery(
+        api.notifications.listMy,
+        {},
+        list.map((n) => ({ ...n, read: true })),
+      );
+    }
+    if (localStore.getQuery(api.notifications.unreadCount, {}) !== undefined) {
+      localStore.setQuery(api.notifications.unreadCount, {}, 0);
+    }
+  });
   const deleteNotificationMutation = useMutation(
     api.notifications.deleteNotification,
-  );
+  ).withOptimisticUpdate((localStore, args) => {
+    const list = localStore.getQuery(api.notifications.listMy, {});
+    const unread = localStore.getQuery(api.notifications.unreadCount, {});
+    if (list === undefined) return;
+    const target = list.find((n) => n._id === args.id);
+    localStore.setQuery(
+      api.notifications.listMy,
+      {},
+      list.filter((n) => n._id !== args.id),
+    );
+    if (target && !target.read && unread !== undefined) {
+      localStore.setQuery(
+        api.notifications.unreadCount,
+        {},
+        Math.max(0, unread - 1),
+      );
+    }
+  });
 
   const isLoading =
     notifications === undefined || unreadCountResult === undefined;
 
-  const markAsRead = useCallback(
-    (id: Id<"notifications">) => {
-      void markAsReadMutation({ id });
-    },
-    [markAsReadMutation],
-  );
+  const markAsRead = (id: Id<"notifications">) => {
+    void markAsReadMutation({ id });
+  };
 
-  const markAsUnread = useCallback(
-    (id: Id<"notifications">) => {
-      void markAsUnreadMutation({ id });
-    },
-    [markAsUnreadMutation],
-  );
+  const markAsUnread = (id: Id<"notifications">) => {
+    void markAsUnreadMutation({ id });
+  };
 
-  const markAllAsRead = useCallback(() => {
+  const markAllAsRead = () => {
     void markAllAsReadMutation();
-  }, [markAllAsReadMutation]);
+  };
 
-  const deleteNotification = useCallback(
-    (id: Id<"notifications">) => {
-      void deleteNotificationMutation({ id });
-    },
-    [deleteNotificationMutation],
-  );
+  const deleteNotification = (id: Id<"notifications">) => {
+    void deleteNotificationMutation({ id });
+  };
 
   return (
     <NotificationContext.Provider

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "motion/react";
 import {
@@ -40,19 +40,18 @@ export default function TagsListView() {
   // the route already scopes memories to the active workspace
   const scopedMemories = memories;
 
-  const tags = useMemo(() => {
-    const stats = buildTagStats(scopedMemories);
-    const q = params.q.trim().toLowerCase();
-    if (q.length === 0) return stats;
-    return stats.filter((s) => s.tag.toLowerCase().includes(q));
-  }, [scopedMemories, params.q]);
+  const stats = buildTagStats(scopedMemories);
+  const q = params.q.trim().toLowerCase();
+  const tags =
+    q.length === 0
+      ? stats
+      : stats.filter((s) => s.tag.toLowerCase().includes(q));
 
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
-  const selectedTagMemories = useMemo(() => {
-    if (!selectedTag) return [];
-    return scopedMemories.filter((memory) => memory.tags.includes(selectedTag));
-  }, [scopedMemories, selectedTag]);
+  const selectedTagMemories = selectedTag
+    ? scopedMemories.filter((memory) => memory.tags.includes(selectedTag))
+    : [];
 
   const [editingTag, setEditingTag] = useState<string | null>(null);
   const [newTagName, setNewTagName] = useState("");
@@ -61,25 +60,25 @@ export default function TagsListView() {
   const [deleteTag, setDeleteTag] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const handleTagClick = useCallback((tag: string) => {
+  const handleTagClick = (tag: string) => {
     setSelectedTag((current) => (current === tag ? null : tag));
-  }, []);
+  };
 
-  const closeTagPanel = useCallback(() => {
+  const closeTagPanel = () => {
     setSelectedTag(null);
-  }, []);
+  };
 
-  const startEditing = useCallback((tag: string) => {
+  const startEditing = (tag: string) => {
     setEditingTag(tag);
     setNewTagName(tag);
-  }, []);
+  };
 
-  const cancelEditing = useCallback(() => {
+  const cancelEditing = () => {
     setEditingTag(null);
     setNewTagName("");
-  }, []);
+  };
 
-  const handleSaveTag = useCallback(async () => {
+  const handleSaveTag = async () => {
     if (!editingTag || !newTagName.trim()) return;
 
     const normalizedNew = newTagName.trim().toLowerCase();
@@ -126,17 +125,9 @@ export default function TagsListView() {
     } finally {
       setIsSaving(false);
     }
-  }, [
-    editingTag,
-    newTagName,
-    memories,
-    tags,
-    updateMemory,
-    cancelEditing,
-    selectedTag,
-  ]);
+  };
 
-  const handleDeleteTag = useCallback(async () => {
+  const handleDeleteTag = async () => {
     if (!deleteTag) return;
 
     const affectedMemories = memories.filter((memory) =>
@@ -169,7 +160,7 @@ export default function TagsListView() {
     } finally {
       setIsDeleting(false);
     }
-  }, [deleteTag, memories, updateMemory, selectedTag]);
+  };
 
   if (isLoading && tags.length === 0) {
     return (

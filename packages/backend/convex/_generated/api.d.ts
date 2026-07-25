@@ -131,6 +131,7 @@ import type * as neo4jActions_memories from "../neo4jActions/memories.js";
 import type * as neo4jActions_migration from "../neo4jActions/migration.js";
 import type * as notifications from "../notifications.js";
 import type * as oauthState from "../oauthState.js";
+import type * as openRouterAggregates from "../openRouterAggregates.js";
 import type * as openRouterLogs from "../openRouterLogs.js";
 import type * as profiles from "../profiles.js";
 import type * as profiles_accessibleProfile from "../profiles/accessibleProfile.js";
@@ -293,6 +294,7 @@ declare const fullApi: ApiFromModules<{
   "neo4jActions/migration": typeof neo4jActions_migration;
   notifications: typeof notifications;
   oauthState: typeof oauthState;
+  openRouterAggregates: typeof openRouterAggregates;
   openRouterLogs: typeof openRouterLogs;
   profiles: typeof profiles;
   "profiles/accessibleProfile": typeof profiles_accessibleProfile;
@@ -358,4 +360,7 @@ export declare const components: {
   connectorSyncPool: import("@convex-dev/workpool/_generated/component.js").ComponentApi<"connectorSyncPool">;
   codebaseSyncPool: import("@convex-dev/workpool/_generated/component.js").ComponentApi<"codebaseSyncPool">;
   auditLog: import("convex-audit-log/_generated/component.js").ComponentApi<"auditLog">;
+  openRouterLogCost: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"openRouterLogCost">;
+  openRouterLogTokens: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"openRouterLogTokens">;
+  openRouterModels: import("@convex-dev/aggregate/_generated/component.js").ComponentApi<"openRouterModels">;
 };

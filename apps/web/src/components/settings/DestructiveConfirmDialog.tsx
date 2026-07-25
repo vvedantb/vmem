@@ -20,12 +20,10 @@ type DestructiveConfirmDialogProps = {
   submittingLabel: string;
   submitting: boolean;
   onConfirm: () => void;
-  /** Highlighted line above the muted description (body slot). */
+  // highlighted line above the muted description (body slot)
   children?: ReactNode;
-  /**
-   * When set, confirm stays disabled until the user types this phrase
-   * (case-insensitive, trimmed).
-   */
+  // when set, confirm stays disabled until the user types this phrase
+  // (case, insensitive, trimmed)
   confirmPhrase?: string;
 };
 

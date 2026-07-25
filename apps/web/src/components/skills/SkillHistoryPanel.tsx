@@ -94,7 +94,33 @@ export function SkillHistoryPanel({
     api.skillVersions.get,
     activeVersionId ? { versionId: activeVersionId } : "skip",
   );
-  const restoreVersion = useMutation(api.skills.restoreVersion);
+  const restoreVersion = useMutation(
+    api.skills.restoreVersion,
+  ).withOptimisticUpdate((localStore, args) => {
+    const version = localStore.getQuery(api.skillVersions.get, {
+      versionId: args.versionId,
+    });
+    if (version === undefined || version === null) return;
+    for (const entry of localStore.getAllQueries(api.skills.listMy)) {
+      if (entry.value === undefined) continue;
+      localStore.setQuery(
+        api.skills.listMy,
+        entry.args,
+        entry.value.map((s) =>
+          s._id === version.skillId
+            ? {
+                ...s,
+                name: version.name,
+                description: version.description,
+                instructions: version.instructions,
+                enabled: version.enabled,
+                updatedAt: Date.now(),
+              }
+            : s,
+        ),
+      );
+    }
+  });
 
   const handleOpenChange = (next: boolean) => {
     if (!next) setSelectedId(null);

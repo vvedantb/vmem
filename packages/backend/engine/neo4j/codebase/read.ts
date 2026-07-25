@@ -148,19 +148,24 @@ async function loadEdges(
   codebaseId: string,
   nodeIds: Set<string>,
   queries: EdgeQuery[],
+  cap: number,
 ): Promise<{ edges: OverviewEdge[]; truncated: boolean }> {
   const edges: OverviewEdge[] = [];
   let truncated = false;
   const params = { userId, codebaseId };
 
+  if (cap <= 0) {
+    return { edges, truncated: true };
+  }
+
   edgeLoop: for (const q of queries) {
-    if (edges.length >= MAX_GRAPH_ARRAY) {
+    if (edges.length >= cap) {
       truncated = true;
       break;
     }
     const er = await session.run(q.cypher, params);
     for (const rec of er.records) {
-      if (edges.length >= MAX_GRAPH_ARRAY) {
+      if (edges.length >= cap) {
         truncated = true;
         break edgeLoop;
       }
@@ -288,6 +293,7 @@ export async function getGraphOverview(args: FilteredArgs): Promise<{
       args.codebaseId,
       nodeIds,
       STRUCTURAL_EDGE_QUERIES,
+      MAX_GRAPH_ARRAY,
     );
     const confident = await loadEdges(
       session,
@@ -295,6 +301,7 @@ export async function getGraphOverview(args: FilteredArgs): Promise<{
       args.codebaseId,
       nodeIds,
       CONFIDENT_EDGE_QUERIES,
+      MAX_GRAPH_ARRAY - structural.edges.length,
     );
     if (structural.truncated || confident.truncated) truncated = true;
 

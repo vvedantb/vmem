@@ -1,4 +1,4 @@
-/** transitions.dev tabs sliding — see 16-tabs-sliding.md */
+// transitions.dev tabs sliding, see 16, tabs, sliding.md
 
 function findActiveTab(list: HTMLElement): HTMLElement | null {
   const tabs = list.querySelectorAll<HTMLElement>(".t-tab");

@@ -130,7 +130,6 @@ function MainNav({
       )}
       initial={{ opacity: 0, x: -12 }}
       animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -12 }}
       transition={{ duration: motionDuration.fast, ease: motionEase }}
     >
       <SharedLayoutBackground.Root layoutId="main-nav" className="space-y-4">
@@ -208,7 +207,6 @@ function SettingsNav({
       )}
       initial={{ opacity: 0, x: 12 }}
       animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 12 }}
       transition={{ duration: motionDuration.fast, ease: motionEase }}
     >
       <SharedLayoutBackground.Root
@@ -289,47 +287,53 @@ export function SidebarNavigation({
   const isIconOnly = !isMobile && isCollapsed;
   const navView = navViewFromPathname(pathname);
 
+  // Enter-only keyed remount — no AnimatePresence mode="wait". Wait+exit can
+  // strand the incoming panel at opacity 0 if a Convex re-render lands mid-exit.
+  if (navView === "settings") {
+    return (
+      <SettingsNav
+        key="settings"
+        pathname={pathname}
+        isIconOnly={isIconOnly}
+        isMobile={isMobile}
+        onNavigate={onNavigate}
+      />
+    );
+  }
+  if (navView === "skills") {
+    return (
+      <SkillsSidebarNav
+        key="skills"
+        isIconOnly={isIconOnly}
+        isMobile={isMobile}
+      />
+    );
+  }
+  if (navView === "wiki") {
+    return (
+      <WikiSidebarNav key="wiki" isIconOnly={isIconOnly} isMobile={isMobile} />
+    );
+  }
+  if (navView === "codebases") {
+    return (
+      <CodebasesSidebarNav
+        key="codebases"
+        isIconOnly={isIconOnly}
+        isMobile={isMobile}
+      />
+    );
+  }
   return (
-    <AnimatePresence mode="wait" initial={false}>
-      {navView === "settings" ? (
-        <SettingsNav
-          key="settings"
-          pathname={pathname}
-          isIconOnly={isIconOnly}
-          isMobile={isMobile}
-          onNavigate={onNavigate}
-        />
-      ) : navView === "skills" ? (
-        <SkillsSidebarNav
-          key="skills"
-          isIconOnly={isIconOnly}
-          isMobile={isMobile}
-        />
-      ) : navView === "wiki" ? (
-        <WikiSidebarNav
-          key="wiki"
-          isIconOnly={isIconOnly}
-          isMobile={isMobile}
-        />
-      ) : navView === "codebases" ? (
-        <CodebasesSidebarNav
-          key="codebases"
-          isIconOnly={isIconOnly}
-          isMobile={isMobile}
-        />
-      ) : (
-        <MainNav
-          key="main"
-          pathname={pathname}
-          profileId={profileId}
-          isTeamWorkspace={isTeamWorkspace}
-          unreadCount={unreadCount}
-          proposalsCount={proposalsCount}
-          isIconOnly={isIconOnly}
-          isMobile={isMobile}
-          onNavigate={onNavigate}
-        />
-      )}
-    </AnimatePresence>
+    <MainNav
+      key="main"
+      pathname={pathname}
+      profileId={profileId}
+      isTeamWorkspace={isTeamWorkspace}
+      unreadCount={unreadCount}
+      proposalsCount={proposalsCount}
+      isIconOnly={isIconOnly}
+      isMobile={isMobile}
+      onNavigate={onNavigate}
+    />
   );
 }

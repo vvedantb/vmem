@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@vmem/backend";
-import type { Doc } from "@vmem/backend";
+import type { Doc, Id } from "@vmem/backend";
 import {
   Button,
   DropdownMenu,
@@ -83,7 +83,28 @@ export function SidebarWorkspaceSwitcher({
   const activeProfileId = useActiveProfileId();
   const [, setLastProfileId] = useLastActiveProfileId();
   const profiles = useQuery(api.profiles.list);
-  const createProfile = useMutation(api.profiles.create);
+  const createProfile = useMutation(api.profiles.create).withOptimisticUpdate(
+    (localStore, args) => {
+      const list = localStore.getQuery(api.profiles.list, {});
+      if (list === undefined) return;
+      const now = Date.now();
+      const tempId = crypto.randomUUID() as Id<"profiles">;
+      localStore.setQuery(api.profiles.list, {}, [
+        ...list,
+        {
+          _id: tempId,
+          _creationTime: now,
+          userId: list[0]?.userId ?? ("" as Id<"users">),
+          name: args.name,
+          color: args.color,
+          icon: args.icon,
+          isDefault: false,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ]);
+    },
+  );
   const [createProfileOpen, setCreateProfileOpen] = useState(false);
   const [createTeamOpen, setCreateTeamOpen] = useState(false);
 

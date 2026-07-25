@@ -22,7 +22,7 @@ function requestOrigin(request: Request): string {
   return new URL(request.url).origin;
 }
 
-/** Proxies Clerk AS metadata for older MCP clients that hit this host's well-known. */
+// proxies clerk as metadata for older mcp clients that hit this host's well, known
 export const oauthMetadata = httpAction(async () => {
   const clerkFrontendApiUrl = getClerkFrontendApiUrl();
   const res = await fetch(

@@ -1,6 +1,6 @@
 // codebase symbol-graph canvas
 
-import { useMemo, useCallback, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { IconAlertTriangle } from "@tabler/icons-react";
 import GraphCanvas from "@/components/_components/GraphCanvas";
 import type { GraphCanvasHandle } from "@/components/_components/GraphCanvas";
@@ -47,15 +47,12 @@ export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
   const [hoveredNode, setHoveredNode] = useState<HoveredNodeInfo | null>(null);
   const [hoveredEdge, setHoveredEdge] = useState<HoveredEdgeInfo | null>(null);
 
-  const viewTheme = useMemo(() => getViewTheme(isDark), [isDark]);
+  const viewTheme = getViewTheme(isDark);
 
-  const handleClickNode = useCallback(
-    (nodeId: string) => {
-      onSelectSymbol(nodeId);
-      setHoveredNode(null);
-    },
-    [onSelectSymbol],
-  );
+  const handleClickNode = (nodeId: string) => {
+    onSelectSymbol(nodeId);
+    setHoveredNode(null);
+  };
 
   if (isLoading) {
     return <GraphStatus variant="loading" />;
@@ -88,7 +85,6 @@ export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
         nodes={graphNodes}
         edges={graphEdges}
         viewTheme={viewTheme}
-        settings={DEFAULT_GRAPH_SETTINGS}
         focusNodeId={null}
         searchMatchSet={searchMatchSet}
         isSearchActive={hasActiveSearch}
@@ -98,16 +94,18 @@ export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
         onClickNode={handleClickNode}
       />
 
-      {/* Stats badge (top-right) */}
+      {
+        // stats badge (top, right)
+      }
       <div className="absolute top-2 right-2 z-10 hidden md:block">
         <div className="text-[10px] text-muted bg-surface-secondary/40 rounded px-2 py-1">
           {graphNodes.length} symbols / {graphEdges.length} edges
         </div>
       </div>
 
-      {/* Truncation banner — server caps the payload at 8192 entries to
-          fit Convex's action limit. Show this so the user knows the graph
-          isn't the full picture and can narrow down via filters. */}
+      {
+        // truncation banner, server caps the payload at 8192 entries to fit convex's action limit show this so the user knows the graph isn't the full picture and can narrow down via filters
+      }
       {truncated && (
         <div className="pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 z-10 max-w-md px-3">
           <div className="flex items-start gap-2 rounded-md bg-warning/10 px-3 py-2 text-xs text-foreground">
@@ -120,7 +118,9 @@ export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
         </div>
       )}
 
-      {/* Zoom controls */}
+      {
+        // zoom controls
+      }
       <GraphNavControls
         onZoomIn={() => canvasRef.current?.zoomIn()}
         onZoomOut={() => canvasRef.current?.zoomOut()}
@@ -128,9 +128,9 @@ export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
         isDarkCanvas={viewTheme.isDarkCanvas}
       />
 
-      {/* Hover tooltips — node takes priority when both are present, and
-          we suppress them entirely while a symbol is selected so they
-          don't fight the detail panel for attention. */}
+      {
+        // hover tooltips, node takes priority when both are present, and we suppress them entirely while a symbol is selected so they don't fight the detail panel for attention
+      }
       {hoveredNode && !selectedSymbolId && (
         <GraphNodeTooltip
           title={hoveredNode.title}
@@ -150,10 +150,9 @@ export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
         />
       )}
 
-      {/* Right-side detail panel — visible whenever a symbol is selected
-          (`blastRadiusOf` URL param). The graph filters to that symbol's
-          blast radius automatically because the API call uses the same
-          param, so the panel and canvas stay in sync. */}
+      {
+        // right, side detail panel, visible whenever a symbol is selected (`blastradiusof` url param) the graph filters to that symbol's blast radius automatically because the api call uses the same param, so the panel and canvas stay in sync
+      }
       <CodebaseSymbolPanel
         codebaseId={codebaseId}
         selectedSymbolId={selectedSymbolId}

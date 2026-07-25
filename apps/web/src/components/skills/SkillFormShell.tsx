@@ -18,7 +18,7 @@ type SkillFormShellProps = {
   descriptionId?: string;
   instructionsId?: string;
   instructionsPlaceholder?: string;
-  /** Wrap description/instructions with section labels (edit dialog). */
+  // wrap description/instructions with section labels (edit dialog)
   labeledSections?: boolean;
   afterName?: ReactNode;
   beforeFooter?: ReactNode;

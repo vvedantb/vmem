@@ -23,7 +23,9 @@ function Sparkle({
 }) {
   return (
     <motion.g transform={`translate(${x}, ${y})`}>
-      {/* Four-pointed star sparkle */}
+      {
+        // four, pointed star sparkle
+      }
       <motion.path
         d={`M0 -${size} L0 ${size} M-${size} 0 L${size} 0`}
         stroke="currentColor"
@@ -63,13 +65,17 @@ export function AnimatedKeyIcon({
       strokeLinejoin="round"
       className={className}
     >
-      {/* Sparkles around the key */}
+      {
+        // sparkles around the key
+      }
       <Sparkle x={8} y={10} delay={0} size={2.5} />
       <Sparkle x={40} y={12} delay={0.4} size={2} />
       <Sparkle x={36} y={38} delay={0.8} size={2.5} />
       <Sparkle x={10} y={36} delay={1.2} size={2} />
 
-      {/* Bolt/Key icon with gentle pulse */}
+      {
+        // bolt/key icon with gentle pulse
+      }
       <motion.g
         initial={{ scale: 1 }}
         animate={{ scale: [1, 1.02, 1] }}
@@ -79,7 +85,9 @@ export function AnimatedKeyIcon({
           ease: "easeInOut",
         }}
       >
-        {/* Lightning bolt shape */}
+        {
+          // lightning bolt shape
+        }
         <motion.path
           d="M26 6L14 26h8l-4 16 16-22h-9l5-14z"
           strokeWidth="1.5"
@@ -90,7 +98,9 @@ export function AnimatedKeyIcon({
         />
       </motion.g>
 
-      {/* Subtle glow pulse behind */}
+      {
+        // subtle glow pulse behind
+      }
       <motion.circle
         cx="24"
         cy="24"

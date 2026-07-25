@@ -13,6 +13,10 @@ import { runBackgroundBootstrap } from "@/background/bootstrap";
 import { registerSyncHostCookieListener } from "@/background/sync-host-cookie-listener";
 import { setConvexTokenRefresher } from "@/background/auth";
 import { refreshConvexTokenFromClerk } from "@/lib/refresh-convex-token";
+import {
+  autoSyncEnabledItem,
+  autoSyncIntervalMinutesItem,
+} from "@/lib/storage";
 
 export default defineBackground(() => {
   setConvexTokenRefresher(refreshConvexTokenFromClerk);
@@ -37,23 +41,17 @@ export default defineBackground(() => {
     void runBackgroundBootstrap();
   });
 
-  chrome.storage.onChanged.addListener((changes, area) => {
-    if (area !== "local") return;
-
-    const autoSyncChange = changes["autoSyncEnabled"];
-    if (autoSyncChange) {
-      if (autoSyncChange.newValue === true) {
-        void startAutoSync();
-      } else {
-        void stopAutoSync();
-      }
-      return;
+  autoSyncEnabledItem.watch((enabled) => {
+    if (enabled) {
+      void startAutoSync();
+    } else {
+      void stopAutoSync();
     }
+  });
 
-    // the frequency slider changed the sync period reschedule the alarm with
-    // the new period (no op while auto sync is disabled)
-    if (changes["autoSyncIntervalMinutes"]) {
-      void rescheduleHistorySync();
-    }
+  // the frequency slider changed the sync period reschedule the alarm with
+  // the new period (no op while auto sync is disabled)
+  autoSyncIntervalMinutesItem.watch(() => {
+    void rescheduleHistorySync();
   });
 });

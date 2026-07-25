@@ -8,8 +8,7 @@ import {
   setInputText,
   type FocusPolicy,
 } from "@/content/shared/set-input-text";
-import type { ContentMessage, BackgroundResponse } from "@/types/messages";
-import { safeSendMessage } from "@/lib/safe-message";
+import { sendMessage } from "@/lib/messaging";
 
 export async function injectUseVmemButton(options: {
   inputSelector: string;
@@ -39,28 +38,30 @@ export async function injectUseVmemButton(options: {
       setVmemButtonLabel(button, "Loading...");
       button.style.opacity = "0.6";
 
-      const message: ContentMessage = {
-        type: "RETRIEVE_MEMORIES",
-        query: currentText,
-      };
+      void sendMessage("retrieveMemories", { query: currentText })
+        .then((memories) => {
+          setVmemButtonLabel(button, "Use vmem");
+          button.style.opacity = "1";
 
-      safeSendMessage<BackgroundResponse>(message, (response) => {
-        setVmemButtonLabel(button, "Use vmem");
-        button.style.opacity = "1";
-
-        if (
-          response?.type === "RETRIEVE_RESULT" &&
-          response.memories.length > 0
-        ) {
-          const context = formatMemoriesContext(response.memories);
-          setInputText(input, context + currentText, options.focus);
-        } else {
-          setVmemButtonLabel(button, "No memories found");
-          setTimeout(() => {
-            setVmemButtonLabel(button, "Use vmem");
-          }, 2000);
-        }
-      });
+          if (memories.length > 0) {
+            const context = formatMemoriesContext(memories);
+            setInputText(input, context + currentText, options.focus);
+          } else {
+            setVmemButtonLabel(button, "No memories found");
+            setTimeout(() => {
+              setVmemButtonLabel(button, "Use vmem");
+            }, 2000);
+          }
+        })
+        .catch((err: unknown) => {
+          console.warn(
+            "[vmem] retrieveMemories failed:",
+            err instanceof Error ? err.message : String(err),
+            "— reload the page to reconnect.",
+          );
+          setVmemButtonLabel(button, "Use vmem");
+          button.style.opacity = "1";
+        });
     },
     { iconOnly: true },
   );

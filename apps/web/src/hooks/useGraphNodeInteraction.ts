@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useAction } from "convex/react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@vmem/backend";
@@ -21,11 +21,8 @@ export function useGraphNodeInteraction(args: {
   const [hoveredNode, setHoveredNode] = useState<HoveredNodeInfo | null>(null);
   const [hoveredEdge, setHoveredEdge] = useState<HoveredEdgeInfo | null>(null);
 
-  const nodeById = useMemo(() => {
-    const map = new Map<string, GraphNode>();
-    for (const node of args.graphNodes) map.set(node.id, node);
-    return map;
-  }, [args.graphNodes]);
+  const nodeById = new Map<string, GraphNode>();
+  for (const node of args.graphNodes) nodeById.set(node.id, node);
 
   const selectedNode =
     selectedNodeId === null ? null : (nodeById.get(selectedNodeId) ?? null);
@@ -57,10 +54,10 @@ export function useGraphNodeInteraction(args: {
           createdAt: selectedNode.createdAt,
         };
 
-  const relatedNodes: RelatedNode[] = useMemo(() => {
-    if (selectedNodeId === null) return [];
-    return getRelatedNodes(selectedNodeId, args.graphEdges, nodeById);
-  }, [selectedNodeId, args.graphEdges, nodeById]);
+  const relatedNodes: RelatedNode[] =
+    selectedNodeId === null
+      ? []
+      : getRelatedNodes(selectedNodeId, args.graphEdges, nodeById);
 
   function handleClickNode(nodeId: string) {
     setSelectedNodeId(nodeId);

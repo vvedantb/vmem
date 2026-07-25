@@ -3,7 +3,7 @@ import {
   MEMORY_TYPES,
   type MemoryType,
 } from "@/lib/memories";
-import { FilterOptionList } from "./filter-primitives";
+import { FilterOptionList } from "@/components/_components/FacetedFilter";
 
 export default function TypeTab({
   selectedTypes,

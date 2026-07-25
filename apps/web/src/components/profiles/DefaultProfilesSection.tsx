@@ -13,12 +13,17 @@ import {
 import { IconBrandChrome } from "@tabler/icons-react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@vmem/backend";
+import { patchDefaultProfile } from "@/lib/convex-optimistic";
 
 type Profile = FunctionReturnType<typeof api.profiles.list>[number];
 
 export function DefaultProfilesSection({ profiles }: { profiles: Profile[] }) {
   const settings = useQuery(api.userSettings.get);
-  const setDefaultProfile = useMutation(api.userSettings.setDefaultProfile);
+  const setDefaultProfile = useMutation(
+    api.userSettings.setDefaultProfile,
+  ).withOptimisticUpdate((localStore, args) => {
+    patchDefaultProfile(localStore, args.source, args.profileId);
+  });
 
   const extensionDefaultId = settings?.defaultProfiles?.extension ?? null;
 

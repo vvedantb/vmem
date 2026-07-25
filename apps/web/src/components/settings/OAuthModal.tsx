@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAction } from "convex/react";
 import { useEventListener, useInterval, useTimeout } from "usehooks-ts";
 import {
@@ -50,18 +50,18 @@ export default function OAuthModal({
 
   const startOAuth = useAction(api.connectors.oauth.startOAuth);
 
-  const cleanup = useCallback(() => {
+  const cleanup = () => {
     setPollPopup(false);
     if (popupRef.current && !popupRef.current.closed) {
       popupRef.current.close();
     }
     popupRef.current = null;
-  }, []);
+  };
 
-  const finishSuccess = useCallback(() => {
+  const finishSuccess = () => {
     setStep("complete");
     setPendingClose(true);
-  }, []);
+  };
 
   useTimeout(
     () => {
@@ -72,22 +72,19 @@ export default function OAuthModal({
     pendingClose ? 1000 : null,
   );
 
-  const handleMessage = useCallback(
-    (event: MessageEvent) => {
-      const parsed = connectorOAuthCompleteSchema.safeParse(event.data);
-      if (!parsed.success) return;
+  const handleMessage = (event: MessageEvent) => {
+    const parsed = connectorOAuthCompleteSchema.safeParse(event.data);
+    if (!parsed.success) return;
 
-      cleanup();
+    cleanup();
 
-      if (parsed.data.success) {
-        finishSuccess();
-      } else {
-        setStep("error");
-        setErrorMessage(parsed.data.error ?? "Connection failed");
-      }
-    },
-    [cleanup, finishSuccess],
-  );
+    if (parsed.data.success) {
+      finishSuccess();
+    } else {
+      setStep("error");
+      setErrorMessage(parsed.data.error ?? "Connection failed");
+    }
+  };
 
   useEventListener("message", handleMessage);
 
@@ -111,9 +108,13 @@ export default function OAuthModal({
     } else {
       cleanup();
     }
-  }, [isOpen, cleanup]);
+  }, [isOpen]);
 
-  useEffect(() => cleanup, [cleanup]);
+  useEffect(() => {
+    return () => {
+      cleanup();
+    };
+  }, []);
 
   const handleAuthorize = async () => {
     setStep("connecting");

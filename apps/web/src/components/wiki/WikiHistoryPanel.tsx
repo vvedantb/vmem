@@ -88,7 +88,9 @@ export function WikiHistoryPanel({
         </DialogHeader>
 
         <div className="flex min-h-0 flex-1 gap-3">
-          {/* Version list */}
+          {
+            // version list
+          }
           <div className="flex w-56 shrink-0 flex-col overflow-y-auto rounded-lg bg-surface-secondary/40 p-1 scrollbar-thin">
             {versions === undefined ? (
               <div className="flex flex-1 items-center justify-center">
@@ -130,7 +132,9 @@ export function WikiHistoryPanel({
             )}
           </div>
 
-          {/* Preview */}
+          {
+            // preview
+          }
           <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto rounded-lg bg-surface-secondary/40 px-4 py-3 scrollbar-thin">
             {selected === undefined && activeVersionId !== null ? (
               <div className="flex flex-1 items-center justify-center">

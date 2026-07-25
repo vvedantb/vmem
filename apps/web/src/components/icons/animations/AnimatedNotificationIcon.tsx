@@ -22,7 +22,9 @@ const TYPE_COLORS: Record<NotificationType, string> = {
 function SuccessIcon({ size, color }: { size: number; color: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      {/* Circle background */}
+      {
+        // circle background
+      }
       <motion.circle
         cx="12"
         cy="12"
@@ -34,7 +36,9 @@ function SuccessIcon({ size, color }: { size: number; color: string }) {
         animate={{ pathLength: 1, opacity: 1 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
       />
-      {/* Checkmark - draws itself */}
+      {
+        // checkmark, draws itself
+      }
       <motion.path
         d="M8 12l2.5 2.5L16 9"
         stroke={color}
@@ -61,7 +65,9 @@ function WarningIcon({ size, color }: { size: number; color: string }) {
       animate={{ rotate: [0, -5, 5, -3, 3, 0] }}
       transition={{ duration: 0.5, delay: 0.2 }}
     >
-      {/* Triangle */}
+      {
+        // triangle
+      }
       <motion.path
         d="M12 2L2 20h20L12 2z"
         stroke={color}
@@ -73,7 +79,9 @@ function WarningIcon({ size, color }: { size: number; color: string }) {
         animate={{ pathLength: 1, opacity: 1 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
       />
-      {/* Exclamation line */}
+      {
+        // exclamation line
+      }
       <motion.path
         d="M12 9v4"
         stroke={color}
@@ -83,7 +91,9 @@ function WarningIcon({ size, color }: { size: number; color: string }) {
         animate={{ pathLength: 1 }}
         transition={{ duration: 0.2, delay: 0.3 }}
       />
-      {/* Exclamation dot */}
+      {
+        // exclamation dot
+      }
       <motion.circle
         cx="12"
         cy="17"
@@ -100,7 +110,9 @@ function WarningIcon({ size, color }: { size: number; color: string }) {
 function ErrorIcon({ size, color }: { size: number; color: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      {/* Circle with pulse */}
+      {
+        // circle with pulse
+      }
       <motion.circle
         cx="12"
         cy="12"
@@ -112,7 +124,9 @@ function ErrorIcon({ size, color }: { size: number; color: string }) {
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
       />
-      {/* X mark - first line */}
+      {
+        // x mark, first line
+      }
       <motion.path
         d="M15 9l-6 6"
         stroke={color}
@@ -122,7 +136,9 @@ function ErrorIcon({ size, color }: { size: number; color: string }) {
         animate={{ pathLength: 1 }}
         transition={{ duration: 0.2, delay: 0.2 }}
       />
-      {/* X mark - second line */}
+      {
+        // x mark, second line
+      }
       <motion.path
         d="M9 9l6 6"
         stroke={color}
@@ -147,7 +163,9 @@ function InfoIcon({ size, color }: { size: number; color: string }) {
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.3, ease: "easeOut" }}
     >
-      {/* Circle */}
+      {
+        // circle
+      }
       <circle
         cx="12"
         cy="12"
@@ -156,7 +174,9 @@ function InfoIcon({ size, color }: { size: number; color: string }) {
         strokeWidth="1.5"
         fill="none"
       />
-      {/* Info dot */}
+      {
+        // info dot
+      }
       <motion.circle
         cx="12"
         cy="8"
@@ -166,7 +186,9 @@ function InfoIcon({ size, color }: { size: number; color: string }) {
         animate={{ scale: 1 }}
         transition={{ duration: 0.2, delay: 0.2, type: "spring" }}
       />
-      {/* Info line */}
+      {
+        // info line
+      }
       <motion.path
         d="M12 12v4"
         stroke={color}

@@ -1,6 +1,5 @@
 // codebase-graph header controls
 
-import { useMemo } from "react";
 import {
   IconFilter,
   IconFile,
@@ -23,6 +22,7 @@ import {
   SelectValue,
 } from "@vmem/ui";
 import HeaderSearchInput from "@/components/_components/HeaderSearchInput";
+import { FacetedFilterBadge } from "@/components/_components/FacetedFilter";
 import { DirectoryFilter } from "./DirectoryFilter";
 import type { CodebaseGraphController } from "@/hooks/useCodebaseGraphController";
 import type { CodeNode, CodeNodeKind } from "./-types";
@@ -111,16 +111,12 @@ function FiltersPopover({
   const activeFilterCount = codebaseActiveFilterCount(controller);
 
   // derive the process picker options from the current payload
-  const processOptions = useMemo(
-    () =>
-      apiNodes
-        .filter(
-          (n): n is CodeNode & { kind: "code-process" } =>
-            n.kind === "code-process",
-        )
-        .sort((a, b) => a.name.localeCompare(b.name)),
-    [apiNodes],
-  );
+  const processOptions = apiNodes
+    .filter(
+      (n): n is CodeNode & { kind: "code-process" } =>
+        n.kind === "code-process",
+    )
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <Popover>
@@ -132,18 +128,16 @@ function FiltersPopover({
           className="relative"
         >
           <IconFilter size={16} />
-          {activeFilterCount > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-accent text-[10px] font-medium tabular-nums text-accent-foreground flex items-center justify-center leading-none">
-              {activeFilterCount}
-            </span>
-          )}
+          <FacetedFilterBadge count={activeFilterCount} />
         </Button>
       </PopoverTrigger>
       <PopoverContent
         align="end"
         className="w-[calc(100vw-1rem)] max-w-[360px] p-3 sm:w-[360px] space-y-3"
       >
-        {/* Kinds */}
+        {
+          // kinds
+        }
         <div>
           <span className="text-[10px] font-medium text-muted uppercase tracking-wider">
             Kinds
@@ -171,7 +165,9 @@ function FiltersPopover({
           </div>
         </div>
 
-        {/* Process picker */}
+        {
+          // process picker
+        }
         {processOptions.length > 0 && (
           <>
             <Separator />
@@ -210,7 +206,9 @@ function FiltersPopover({
           </>
         )}
 
-        {/* Directories */}
+        {
+          // directories
+        }
         {directories.length > 0 && (
           <>
             <Separator />
@@ -225,7 +223,9 @@ function FiltersPopover({
           </>
         )}
 
-        {/* Reset */}
+        {
+          // reset
+        }
         {activeFilterCount > 0 && (
           <>
             <Separator />

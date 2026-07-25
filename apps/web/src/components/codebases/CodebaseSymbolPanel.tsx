@@ -74,7 +74,9 @@ export function CodebaseSymbolPanel({
           transition={{ type: "spring", damping: 30, stiffness: 300 }}
           className="absolute top-0 right-0 bottom-0 w-80 z-20 glass-panel-strong overflow-y-auto hidden md:flex flex-col"
         >
-          {/* Header */}
+          {
+            // header
+          }
           <div className="flex items-start justify-between p-4 pb-2">
             <div className="min-w-0 flex-1 flex items-start gap-2">
               {context ? (
@@ -108,7 +110,9 @@ export function CodebaseSymbolPanel({
 
           {context ? (
             <>
-              {/* File + line range */}
+              {
+                // file + line range
+              }
               <div className="px-4 py-2 space-y-2 text-xs">
                 <div>
                   <span className="text-muted">File</span>
@@ -136,11 +140,9 @@ export function CodebaseSymbolPanel({
                 <SymbolTraitBadges context={context} />
               </div>
 
-              {/* Blast-direction toggle. Selecting a symbol always activates
-                  the blast-radius filter on the canvas (single source of truth
-                  via `blastRadiusOf` URL param) — this button just flips the
-                  direction so the user can compare upstream callers vs the
-                  downstream call tree without re-selecting. */}
+              {
+                // blast, direction toggle selecting a symbol always activates the blast, radius filter on the canvas (single source of truth via `blastradiusof` url param), this button just flips the direction so the user can compare upstream callers vs the downstream call tree without re, selecting
+              }
               {(context.kind === "code-function" ||
                 context.kind === "code-class") && (
                 <div className="px-4 pt-2 pb-3">
@@ -170,7 +172,9 @@ export function CodebaseSymbolPanel({
                 onNavigate={onSelectSymbol}
               />
 
-              {/* Processes */}
+              {
+                // processes
+              }
               {context.processes.length > 0 && (
                 <div className="px-4 py-2">
                   <div className="flex items-center gap-1.5 mb-2">

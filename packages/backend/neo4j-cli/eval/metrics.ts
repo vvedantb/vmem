@@ -1,3 +1,5 @@
+import { mean as meanOf } from "es-toolkit/math";
+
 export function recallAtK(
   titles: readonly string[],
   expectedTitles: readonly string[],
@@ -64,5 +66,5 @@ export function percentile(values: readonly number[], p: number): number {
 
 export function mean(values: readonly number[]): number {
   if (values.length === 0) return 0;
-  return values.reduce((sum, v) => sum + v, 0) / values.length;
+  return meanOf(values);
 }

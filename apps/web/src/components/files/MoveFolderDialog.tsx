@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import type { Id } from "@vmem/backend";
 import {
   Dialog,
@@ -33,17 +33,14 @@ export default function MoveFolderDialog({
     null,
   );
 
-  const handleConfirm = useCallback(() => {
+  const handleConfirm = () => {
     onMove(selectedTarget);
     onClose();
-  }, [selectedTarget, onMove, onClose]);
+  };
 
-  const handleOpenChange = useCallback(
-    (open: boolean) => {
-      if (!open) onClose();
-    },
-    [onClose],
-  );
+  const handleOpenChange = (open: boolean) => {
+    if (!open) onClose();
+  };
 
   const destinations = folders.filter(
     (folder) => folder._id !== currentFolderId,

@@ -1,5 +1,7 @@
-import type { ContentMessage, BackgroundResponse } from "@/types/messages";
-import { safeSendMessage } from "@/lib/safe-message";
+import { computePosition, flip, offset, shift } from "@floating-ui/dom";
+import { debounce } from "es-toolkit";
+import { sendMessage } from "@/lib/messaging";
+import { selectionPopupEnabledItem } from "@/lib/storage";
 import { mountVmemLogo } from "@/content/shared/icons";
 import type { VmemLogoVariant } from "@/content/shared/icons";
 import { checkIcon, errorIcon } from "@/content/shared/status-icons";
@@ -26,7 +28,6 @@ let state: PopupState = "idle";
 let capturedText = "";
 let enabled = false; // set by init() after reading storage
 let hideTimer: ReturnType<typeof setTimeout> | null = null;
-let selectionChangeTimer: ReturnType<typeof setTimeout> | null = null;
 let repositionRaf: number | null = null;
 
 // shadow dom setup
@@ -103,8 +104,7 @@ styleEl.textContent = `
     transform: translateY(0);
   }
 
-  /* expand to pill on hover only in ready state interpolate size lets
-     the width animate to max content so the label never truncates */
+  /* expand to pill on hover only in ready state interpolate size lets the width animate to max content so the label never truncates */
   #vmem-popup {
     interpolate-size: allow-keywords;
   }
@@ -141,7 +141,7 @@ styleEl.textContent = `
     margin-left: 6px;
   }
 
-  /* state specific colors (drive currentColor in svgs) */
+  /* state specific colours (drive currentcolor in svgs) */
   #vmem-popup.state-success {
     background: #dcfce7;
     color: #16a34a;
@@ -274,40 +274,31 @@ function transitionTo(next: PopupState): void {
 
 // positioning
 
-function positionPopup(): void {
+function getSelectionRect(): DOMRect | null {
   const selection = window.getSelection();
-  if (!selection || selection.isCollapsed || selection.rangeCount === 0) return;
+  if (!selection || selection.isCollapsed || selection.rangeCount === 0) {
+    return null;
+  }
 
   const range = selection.getRangeAt(0);
   const rect = range.getBoundingClientRect();
+  if (rect.width === 0 && rect.height === 0) return null;
+  return rect;
+}
 
-  // skip zero dimension rects (collapsed or invisible selections)
-  if (rect.width === 0 && rect.height === 0) return;
+async function positionPopup(): Promise<void> {
+  const rect = getSelectionRect();
+  if (!rect) return;
 
-  const popupSize = 32;
-  const gap = 8;
+  const virtualEl = {
+    getBoundingClientRect: () => rect,
+  };
 
-  // default: centred below selection
-  let x = rect.left + rect.width / 2 - popupSize / 2;
-  let y = rect.bottom + gap;
-
-  // clamp horizontal bounds
-  if (x + popupSize > window.innerWidth - gap) {
-    x = window.innerWidth - popupSize - gap;
-  }
-  if (x < gap) {
-    x = gap;
-  }
-
-  // flip above if no room below
-  if (y + popupSize > window.innerHeight - gap) {
-    y = rect.top - popupSize - gap;
-  }
-
-  // clamp to top if still off screen
-  if (y < gap) {
-    y = gap;
-  }
+  const { x, y } = await computePosition(virtualEl, popup, {
+    placement: "bottom",
+    strategy: "fixed",
+    middleware: [offset(8), flip(), shift({ padding: 8 })],
+  });
 
   popup.style.left = `${x}px`;
   popup.style.top = `${y}px`;
@@ -315,34 +306,26 @@ function positionPopup(): void {
 
 // save logic
 
-function saveSelection(): void {
+async function saveSelection(): Promise<void> {
   if (state !== "ready" || capturedText.length === 0) return;
 
   transitionTo("saving");
 
-  const message: ContentMessage = {
-    type: "SAVE_SELECTION",
-    selectedText: capturedText,
-    pageUrl: window.location.href,
-    pageTitle: document.title,
-  };
-
-  safeSendMessage<BackgroundResponse>(message, (response) => {
-    if (!response) {
-      console.error(
-        "[vmem] No response from background — extension context may be invalidated",
-      );
-      transitionTo("error");
-      return;
-    }
-
-    if (response.type === "SAVE_RESULT" && response.success) {
-      transitionTo("success");
-    } else {
-      console.error("[vmem] Save failed:", response);
-      transitionTo("error");
-    }
-  });
+  try {
+    await sendMessage("saveSelection", {
+      selectedText: capturedText,
+      pageUrl: window.location.href,
+      pageTitle: document.title,
+    });
+    transitionTo("success");
+  } catch (err) {
+    console.error(
+      "[vmem] Save failed:",
+      err instanceof Error ? err.message : String(err),
+      "— reload the page to reconnect.",
+    );
+    transitionTo("error");
+  }
 }
 
 // event handlers
@@ -365,33 +348,28 @@ function onMouseUp(e: MouseEvent): void {
     if (text.length < 3) return;
 
     capturedText = text;
-    positionPopup();
     transitionTo("ready");
+    void positionPopup();
   });
 }
 
+const onSelectionChangeDebounced = debounce(() => {
+  const selection = window.getSelection();
+
+  // if selection is cleared and we're in ready state, hide
+  if (
+    (!selection ||
+      selection.isCollapsed ||
+      selection.toString().trim().length < 3) &&
+    state === "ready"
+  ) {
+    transitionTo("idle");
+  }
+}, 100);
+
 function onSelectionChange(): void {
   if (!enabled) return;
-
-  // debounce to avoid flickering during rapid selection changes
-  if (selectionChangeTimer !== null) {
-    clearTimeout(selectionChangeTimer);
-  }
-
-  selectionChangeTimer = setTimeout(() => {
-    selectionChangeTimer = null;
-    const selection = window.getSelection();
-
-    // if selection is cleared and we're in ready state, hide
-    if (
-      (!selection ||
-        selection.isCollapsed ||
-        selection.toString().trim().length < 3) &&
-      state === "ready"
-    ) {
-      transitionTo("idle");
-    }
-  }, 100);
+  onSelectionChangeDebounced();
 }
 
 function onScrollOrResize(): void {
@@ -404,7 +382,7 @@ function onScrollOrResize(): void {
   repositionRaf = requestAnimationFrame(() => {
     repositionRaf = null;
     if (state === "ready") {
-      positionPopup();
+      void positionPopup();
     }
   });
 }
@@ -417,7 +395,7 @@ function onPopupMouseDown(e: Event): void {
 function onPopupClick(e: Event): void {
   e.preventDefault();
   e.stopPropagation();
-  saveSelection();
+  void saveSelection();
 }
 
 // toggle support
@@ -434,6 +412,7 @@ function detachListeners(): void {
   document.removeEventListener("selectionchange", onSelectionChange);
   window.removeEventListener("scroll", onScrollOrResize);
   window.removeEventListener("resize", onScrollOrResize);
+  onSelectionChangeDebounced.cancel();
 
   // hide popup if visible
   if (state !== "idle") {
@@ -462,19 +441,8 @@ function init(): void {
   // append host to document
   document.body.appendChild(host);
 
-  // read initial toggle state
-  chrome.storage.local.get({ selectionPopupEnabled: true }, (result) => {
-    const storedEnabled: unknown = result["selectionPopupEnabled"];
-    setEnabled(typeof storedEnabled === "boolean" ? storedEnabled : true);
-  });
-
-  // react to toggle changes in real time
-  chrome.storage.onChanged.addListener((changes) => {
-    if ("selectionPopupEnabled" in changes) {
-      const next: unknown = changes["selectionPopupEnabled"].newValue;
-      setEnabled(typeof next === "boolean" ? next : true);
-    }
-  });
+  void selectionPopupEnabledItem.getValue().then(setEnabled);
+  selectionPopupEnabledItem.watch(setEnabled);
 }
 
 // wait for document.body to be available

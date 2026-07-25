@@ -1,4 +1,3 @@
-import { useCallback } from "react";
 import { Checkbox, cn } from "@vmem/ui";
 import {
   formatFileSize,
@@ -36,24 +35,18 @@ export default function FileGridItem({
     onDelete,
   });
 
-  const handleClick = useCallback(
-    (e: React.MouseEvent) => {
-      onClick(node._id, e);
-    },
-    [node._id, onClick],
-  );
+  const handleClick = (e: React.MouseEvent) => {
+    onClick(node._id, e);
+  };
 
-  const handleDoubleClick = useCallback(() => {
+  const handleDoubleClick = () => {
     onOpen(node);
-  }, [node, onOpen]);
+  };
 
-  const handleCheckboxClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      onCheckbox(node._id);
-    },
-    [node._id, onCheckbox],
-  );
+  const handleCheckboxClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onCheckbox(node._id);
+  };
 
   return (
     <FileContextMenu actions={actions}>

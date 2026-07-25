@@ -2,6 +2,7 @@ import { createContext, use, useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@vmem/backend";
+import { patchUserSettingsGet } from "@/lib/convex-optimistic";
 
 type Theme = "light" | "dark" | "system";
 
@@ -24,7 +25,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
   const settings = useQuery(api.userSettings.get);
-  const updateSettings = useMutation(api.userSettings.update);
+  const updateSettings = useMutation(
+    api.userSettings.update,
+  ).withOptimisticUpdate((localStore, args) => {
+    patchUserSettingsGet(localStore, args);
+  });
 
   useEffect(() => {
     setMounted(true);

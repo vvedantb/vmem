@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useEffect } from "react";
 import { useMediaQuery } from "usehooks-ts";
 import { useExtensionUserSettings } from "./useExtensionUserSettings";
 
@@ -27,12 +27,9 @@ export function useTheme() {
     applyTheme(resolvedTheme);
   }, [resolvedTheme]);
 
-  const setTheme = useCallback(
-    (newTheme: Theme) => {
-      void update({ theme: newTheme });
-    },
-    [update],
-  );
+  function setTheme(newTheme: Theme) {
+    void update({ theme: newTheme });
+  }
 
   return {
     theme,

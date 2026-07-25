@@ -20,6 +20,7 @@
   "dependencies": {
     "@clerk/backend": "catalog:",
     "@convex-dev/action-cache": "^0.3.0",
+    "@convex-dev/aggregate": "^0.2.2",
     "@convex-dev/crons": "^0.2.0",
     "@convex-dev/workpool": "^0.4.7",
     "@googleapis/drive": "^20.0.0",
@@ -48,6 +49,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@cosmos.gl/graph": "catalog:",
     "@edge-runtime/vm": "^5.0.0",
     "@types/node": "catalog:node-types-22",
     "@types/remove-markdown": "^0.3.4",
@@ -55,6 +57,7 @@
     "convex-test": "^0.0.38",
     "cross-env": "^7.0.3",
     "esbuild": "0.25.0",
+    "gl-bench": "^1.0.42",
     "typescript": "catalog:",
     "vite": "^6.0.0",
     "vitest": "^3.2.4"

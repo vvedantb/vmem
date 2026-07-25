@@ -38,8 +38,44 @@ export function CodebaseSidebarItem({
   selected,
   onSelect,
 }: CodebaseSidebarItemProps) {
-  const setArchived = useMutation(api.codebases.setArchived);
-  const removeCodebase = useMutation(api.codebases.removeCodebase);
+  const setArchived = useMutation(
+    api.codebases.setArchived,
+  ).withOptimisticUpdate((localStore, args) => {
+    for (const entry of localStore.getAllQueries(api.codebases.listMy)) {
+      if (entry.value === undefined) continue;
+      localStore.setQuery(
+        api.codebases.listMy,
+        entry.args,
+        entry.value.map((c) =>
+          c._id === args.id ? { ...c, isArchived: args.archived } : c,
+        ),
+      );
+    }
+    for (const entry of localStore.getAllQueries(api.codebases.getById)) {
+      if (entry.value == null || entry.value._id !== args.id) continue;
+      localStore.setQuery(api.codebases.getById, entry.args, {
+        ...entry.value,
+        isArchived: args.archived,
+      });
+    }
+  });
+  const removeCodebase = useMutation(
+    api.codebases.removeCodebase,
+  ).withOptimisticUpdate((localStore, args) => {
+    for (const entry of localStore.getAllQueries(api.codebases.listMy)) {
+      if (entry.value === undefined) continue;
+      localStore.setQuery(
+        api.codebases.listMy,
+        entry.args,
+        entry.value.filter((c) => c._id !== args.id),
+      );
+    }
+    for (const entry of localStore.getAllQueries(api.codebases.getById)) {
+      if (entry.args.id === args.id) {
+        localStore.setQuery(api.codebases.getById, entry.args, undefined);
+      }
+    }
+  });
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);

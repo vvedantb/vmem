@@ -15,7 +15,17 @@ function SecretsPage() {
   const upsert = useAction(api.userEnvVarsActions.upsertVar);
   const edit = useAction(api.userEnvVarsActions.editVar);
   const reveal = useAction(api.userEnvVarsActions.revealValue);
-  const remove = useMutation(api.userEnvVars.removeVar);
+  const remove = useMutation(api.userEnvVars.removeVar).withOptimisticUpdate(
+    (localStore, args) => {
+      const list = localStore.getQuery(api.userEnvVars.list, {});
+      if (list === undefined) return;
+      localStore.setQuery(
+        api.userEnvVars.list,
+        {},
+        list.filter((entry) => entry.key !== args.key),
+      );
+    },
+  );
   const bulkImport = useAction(api.userEnvVarsActions.bulkUpsert);
 
   return (

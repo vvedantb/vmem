@@ -40,7 +40,7 @@ export interface EnvVar {
   value: string;
 }
 
-/** Unified add/edit row draft — `originalKey` is set only when editing. */
+// unified add/edit row draft, `originalkey` is set only when editing
 type EnvVarDraft =
   | { mode: "add"; key: string; value: string }
   | { mode: "edit"; originalKey: string; key: string; value: string };

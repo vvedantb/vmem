@@ -1,6 +1,5 @@
 import {
   createContext,
-  useCallback,
   useContext,
   useEffect,
   useRef,
@@ -18,47 +17,65 @@ import { convexSettingsToStorageMirror } from "@/types/storage";
 
 function useExtensionUserSettingsInner() {
   const settings = useQuery(api.userSettings.get);
-  const baseUpdate = useMutation(api.userSettings.update);
-  const baseSetDefaultProfile = useMutation(api.userSettings.setDefaultProfile);
+  const baseUpdate = useMutation(api.userSettings.update).withOptimisticUpdate(
+    (localStore, args) => {
+      const current = localStore.getQuery(api.userSettings.get, {});
+      if (current === undefined) return;
+      localStore.setQuery(api.userSettings.get, {}, { ...current, ...args });
+    },
+  );
+  const baseSetDefaultProfile = useMutation(
+    api.userSettings.setDefaultProfile,
+  ).withOptimisticUpdate((localStore, args) => {
+    const current = localStore.getQuery(api.userSettings.get, {});
+    if (current === undefined) return;
+    localStore.setQuery(
+      api.userSettings.get,
+      {},
+      {
+        ...current,
+        defaultProfiles: {
+          ...current.defaultProfiles,
+          [args.source]: args.profileId,
+        },
+      },
+    );
+  });
 
   // optimistic ws + durable http write (popup socket can drop on close)
-  const update = useCallback(
-    async (args: UserSettingsUpdateArgs): Promise<void> => {
-      void baseUpdate(args).catch(() => {
-        // http write below is source of truth
-      });
+  async function update(args: UserSettingsUpdateArgs): Promise<void> {
+    void baseUpdate(args).catch(() => {
+      // http write below is source of truth
+    });
 
-      try {
-        await updateUserSettings(args);
-      } catch (error) {
-        console.warn("[vmem] Failed to persist user settings:", error);
-      }
-    },
-    [baseUpdate],
-  );
+    try {
+      await updateUserSettings(args);
+    } catch (error) {
+      console.warn("[vmem] Failed to persist user settings:", error);
+    }
+  }
 
-  const setExtensionDefaultProfile = useCallback(
-    async (profileId: Id<"profiles">): Promise<void> => {
-      void baseSetDefaultProfile({
-        source: "extension",
-        profileId,
-      }).catch(() => {
-        // http write below is source of truth
-      });
+  async function setExtensionDefaultProfile(
+    profileId: Id<"profiles">,
+  ): Promise<void> {
+    void baseSetDefaultProfile({
+      source: "extension",
+      profileId,
+    }).catch(() => {
+      // http write below is source of truth
+    });
 
-      try {
-        await setExtensionDefaultProfileHttp(profileId);
-      } catch (error) {
-        console.warn(
-          "[vmem] Failed to persist extension default profile:",
-          error,
-        );
-      }
+    try {
+      await setExtensionDefaultProfileHttp(profileId);
+    } catch (error) {
+      console.warn(
+        "[vmem] Failed to persist extension default profile:",
+        error,
+      );
+    }
 
-      await setStorage({ defaultProfileId: profileId });
-    },
-    [baseSetDefaultProfile],
-  );
+    await setStorage({ defaultProfileId: profileId });
+  }
 
   const migrationRan = useRef(false);
 
@@ -78,13 +95,19 @@ function useExtensionUserSettingsInner() {
       ) {
         return;
       }
-      void update({
+      const args = {
         extensionAutoSyncEnabled: local.autoSyncEnabled,
         extensionAutoSyncIntervalMinutes: local.autoSyncIntervalMinutes,
         extensionSelectionPopupEnabled: local.selectionPopupEnabled,
+      };
+      void baseUpdate(args).catch(() => {
+        // http write below is source of truth
+      });
+      void updateUserSettings(args).catch((error: unknown) => {
+        console.warn("[vmem] Failed to persist user settings:", error);
       });
     });
-  }, [settings, update]);
+  }, [settings, baseUpdate]);
 
   useEffect(() => {
     if (settings === undefined) return;

@@ -37,7 +37,9 @@ export function AnimatedBellIcon({
       }}
       style={{ transformOrigin: "top center" }}
     >
-      {/* Bell body */}
+      {
+        // bell body
+      }
       <motion.path
         d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"
         initial={{ pathLength: 0 }}
@@ -45,7 +47,9 @@ export function AnimatedBellIcon({
         transition={{ duration: 0.6, ease: "easeOut" }}
       />
 
-      {/* Bell bottom curve */}
+      {
+        // bell bottom curve
+      }
       <motion.path
         d="M13.73 21a2 2 0 0 1-3.46 0"
         initial={{ pathLength: 0 }}
@@ -53,7 +57,9 @@ export function AnimatedBellIcon({
         transition={{ duration: 0.3, delay: 0.4 }}
       />
 
-      {/* Mute slash line */}
+      {
+        // mute slash line
+      }
       {muted && (
         <motion.path
           d="M2 2l20 20"
@@ -63,7 +69,9 @@ export function AnimatedBellIcon({
         />
       )}
 
-      {/* Inner clapper circle with subtle movement */}
+      {
+        // inner clapper circle with subtle movement
+      }
       <motion.circle
         cx="12"
         cy="17"

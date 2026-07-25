@@ -141,10 +141,74 @@ export function SystemSkillDetail({
   const catalog = useQuery(api.systemSkills.listCatalog, catalogArgs);
   const isAdmin = useQuery(api.systemSkills.amIAdmin, {}) ?? false;
 
-  const install = useMutation(api.systemSkills.install);
-  const uninstall = useMutation(api.systemSkills.uninstall);
-  const setEnabled = useMutation(api.systemSkills.setInstalledEnabled);
-  const adminDelete = useMutation(api.systemSkills.adminDelete);
+  const install = useMutation(api.systemSkills.install).withOptimisticUpdate(
+    (localStore, args) => {
+      for (const entry of localStore.getAllQueries(
+        api.systemSkills.listCatalog,
+      )) {
+        if (entry.value === undefined) continue;
+        localStore.setQuery(
+          api.systemSkills.listCatalog,
+          entry.args,
+          entry.value.map((s) =>
+            s._id === args.systemSkillId
+              ? { ...s, installed: true, installEnabled: true }
+              : s,
+          ),
+        );
+      }
+    },
+  );
+  const uninstall = useMutation(
+    api.systemSkills.uninstall,
+  ).withOptimisticUpdate((localStore, args) => {
+    for (const entry of localStore.getAllQueries(
+      api.systemSkills.listCatalog,
+    )) {
+      if (entry.value === undefined) continue;
+      localStore.setQuery(
+        api.systemSkills.listCatalog,
+        entry.args,
+        entry.value.map((s) =>
+          s._id === args.systemSkillId
+            ? { ...s, installed: false, installEnabled: false }
+            : s,
+        ),
+      );
+    }
+  });
+  const setEnabled = useMutation(
+    api.systemSkills.setInstalledEnabled,
+  ).withOptimisticUpdate((localStore, args) => {
+    for (const entry of localStore.getAllQueries(
+      api.systemSkills.listCatalog,
+    )) {
+      if (entry.value === undefined) continue;
+      localStore.setQuery(
+        api.systemSkills.listCatalog,
+        entry.args,
+        entry.value.map((s) =>
+          s._id === args.systemSkillId
+            ? { ...s, installEnabled: args.enabled }
+            : s,
+        ),
+      );
+    }
+  });
+  const adminDelete = useMutation(
+    api.systemSkills.adminDelete,
+  ).withOptimisticUpdate((localStore, args) => {
+    for (const entry of localStore.getAllQueries(
+      api.systemSkills.listCatalog,
+    )) {
+      if (entry.value === undefined) continue;
+      localStore.setQuery(
+        api.systemSkills.listCatalog,
+        entry.args,
+        entry.value.filter((s) => s._id !== args.id),
+      );
+    }
+  });
 
   const [editing, setEditing] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);

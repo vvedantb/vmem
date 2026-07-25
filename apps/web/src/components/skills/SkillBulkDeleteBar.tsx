@@ -17,7 +17,19 @@ export function SkillBulkDeleteBar({
   teamId,
   onExit,
 }: SkillBulkDeleteBarProps) {
-  const deleteSkills = useMutation(api.skills.deleteSkills);
+  const deleteSkills = useMutation(
+    api.skills.deleteSkills,
+  ).withOptimisticUpdate((localStore, args) => {
+    const remove = new Set(args.ids);
+    for (const entry of localStore.getAllQueries(api.skills.listMy)) {
+      if (entry.value === undefined) continue;
+      localStore.setQuery(
+        api.skills.listMy,
+        entry.args,
+        entry.value.filter((s) => !remove.has(s._id)),
+      );
+    }
+  });
 
   const count = selectedIds.size;
   const itemWord = count === 1 ? "skill" : "skills";

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -77,16 +77,15 @@ export default function AddMemoryModal({
   });
 
   const currentTags = watch("tags");
-  const allTags = useMemo(() => buildTagStats(memories ?? []), [memories]);
+  const allTags = buildTagStats(memories ?? []);
   const normalizedTagInput = tagInput.trim().toLowerCase();
 
   // suggestions hide tags already on the memory and (when typing) filter by
   // substring match — same behaviour as the legacy AddMemoryForm
-  const filteredSuggestions = useMemo(() => {
-    const available = allTags.filter((t) => !currentTags.includes(t.tag));
-    if (!normalizedTagInput) return available;
-    return available.filter((t) => t.tag.includes(normalizedTagInput));
-  }, [normalizedTagInput, allTags, currentTags]);
+  const availableTags = allTags.filter((t) => !currentTags.includes(t.tag));
+  const filteredSuggestions = !normalizedTagInput
+    ? availableTags
+    : availableTags.filter((t) => t.tag.includes(normalizedTagInput));
 
   // show "Create …" only when the typed string is brand-new (not in the
   // existing tag corpus and not already on this memory)
@@ -197,9 +196,9 @@ export default function AddMemoryModal({
           onSubmit={handleSubmit(handleCreateMemory)}
           className="flex flex-col"
         >
-          {/* Body — title + description live as borderless text on the
-              modal surface. When a file is staged for import we swap them
-              for a single attachment chip so the action is unambiguous. */}
+          {
+            // body, title + description live as borderless text on the modal surface when a file is staged for import we swap them for a single attachment chip so the action is unambiguous
+          }
           <div className="flex flex-col gap-2 px-5 pt-5 pb-4">
             {pendingFile ? (
               <div className="flex items-center gap-3 rounded-lg bg-surface-secondary/50 px-3 py-3">
@@ -246,8 +245,9 @@ export default function AddMemoryModal({
             )}
           </div>
 
-          {/* Selected tag chips sit between the body and the toolbar so
-              they read as part of the memory, not as a control. */}
+          {
+            // selected tag chips sit between the body and the toolbar so they read as part of the memory, not as a control
+          }
           {currentTags.length > 0 && (
             <Controller
               name="tags"
@@ -278,11 +278,14 @@ export default function AddMemoryModal({
             />
           )}
 
-          {/* Toolbar — tonal surface shift (no border) carries metadata
-              badges on the left and primary actions on the right. */}
+          {
+            // toolbar, tonal surface shift (no border) carries metadata badges on the left and primary actions on the right
+          }
           <div className="flex items-center justify-between gap-2 bg-surface-secondary/40 px-3 py-2">
             <div className="flex items-center gap-1">
-              {/* Profile picker styled as a borderless badge. */}
+              {
+                // profile picker styled as a borderless badge
+              }
               <ProfileDropdown
                 value={selectedProfileId}
                 onChange={setSelectedProfileId}
@@ -291,7 +294,9 @@ export default function AddMemoryModal({
                 className="h-7 min-w-0 gap-1.5 border-0 bg-transparent px-2 text-xs font-normal text-foreground shadow-none hover:bg-surface-tertiary/50 [&[data-state=open]]:bg-surface-tertiary/50 [&>svg]:size-3.5"
               />
 
-              {/* Tags badge → popover with search + suggestions + create. */}
+              {
+                // tags badge → popover with search + suggestions + create
+              }
               <Controller
                 name="tags"
                 control={control}
@@ -375,7 +380,9 @@ export default function AddMemoryModal({
                 )}
               />
 
-              {/* Attach badge — disabled once a file is staged. */}
+              {
+                // attach badge, disabled once a file is staged
+              }
               <Input
                 ref={fileInputRef}
                 type="file"

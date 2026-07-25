@@ -1,35 +1,20 @@
 // ask the page's readability content script for extracted html/text
 
-import type { ExtractPageResult } from "@/content/readability";
+import { sendMessage, type ExtractPageData } from "@/lib/messaging";
 
-export type { ExtractPageResult };
+export type { ExtractPageData };
 
 // returns null on privileged urls where content scripts can't run
-export function extractPageFromTab(
+export async function extractPageFromTab(
   tabId: number,
-): Promise<ExtractPageResult | null> {
-  return new Promise((resolve) => {
-    chrome.tabs.sendMessage(
-      tabId,
-      { type: "EXTRACT_PAGE" },
-      (response: ExtractPageResult | undefined) => {
-        // chrome.runtime.lastError fires on privileged urls / when the
-        // content script is not loaded we resolve null instead of
-        // rejecting so callers can decide how to handle missing pages
-        if (chrome.runtime.lastError) {
-          console.warn(
-            "[vmem] EXTRACT_PAGE failed:",
-            chrome.runtime.lastError.message,
-          );
-          resolve(null);
-          return;
-        }
-        if (!response || response.type !== "EXTRACT_PAGE_RESULT") {
-          resolve(null);
-          return;
-        }
-        resolve(response);
-      },
+): Promise<ExtractPageData | null> {
+  try {
+    return await sendMessage("extractPage", undefined, tabId);
+  } catch (err) {
+    console.warn(
+      "[vmem] extractPage failed:",
+      err instanceof Error ? err.message : String(err),
     );
-  });
+    return null;
+  }
 }
