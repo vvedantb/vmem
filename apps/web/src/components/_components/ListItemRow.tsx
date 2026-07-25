@@ -23,6 +23,23 @@ import { MemorySourceIcon } from "./MemorySourceIcon";
 import { nodeColor } from "./graph-colors";
 import ShapeIndicator from "./ShapeIndicator";
 
+// re-materialise the Memory shape from a memory list item — the detail
+// panel + mutations expect Memory, not ListItem
+function toMemory(item: Extract<ListItem, { kind: "memory" }>): Memory {
+  return {
+    id: item.id,
+    title: item.title,
+    content: item.content,
+    tags: item.tags,
+    createdAt: item.createdAt,
+    type: item.type,
+    source: item.source,
+    sourceUrl: item.sourceUrl,
+    sourceSyncedAt: item.sourceSyncedAt,
+    ...(item.profileId !== undefined ? { profileId: item.profileId } : {}),
+  };
+}
+
 interface ListItemRowProps {
   item: ListItem;
   relevanceScore: number | null;
@@ -67,21 +84,7 @@ export default function ListItemRow({
 
   const handleClick = () => {
     if (item.kind === "memory") {
-      // re-materialise the Memory shape from the list item so the callback
-      // keeps working on Memory — the detail panel + mutations expect it
-      const memory: Memory = {
-        id: item.id,
-        title: item.title,
-        content: item.content,
-        tags: item.tags,
-        createdAt: item.createdAt,
-        type: item.type,
-        source: item.source,
-        sourceUrl: item.sourceUrl,
-        sourceSyncedAt: item.sourceSyncedAt,
-        ...(item.profileId !== undefined ? { profileId: item.profileId } : {}),
-      };
-      onMemoryClick(memory);
+      onMemoryClick(toMemory(item));
       return;
     }
     onItemSelect(item);
@@ -178,19 +181,7 @@ export default function ListItemRow({
     return rowBody;
   }
 
-  // materialised once per render; cheap enough and keeps handlers typed to Memory
-  const memory: Memory = {
-    id: item.id,
-    title: item.title,
-    content: item.content,
-    tags: item.tags,
-    createdAt: item.createdAt,
-    type: item.type,
-    source: item.source,
-    sourceUrl: item.sourceUrl,
-    sourceSyncedAt: item.sourceSyncedAt,
-    ...(item.profileId !== undefined ? { profileId: item.profileId } : {}),
-  };
+  const memory = toMemory(item);
 
   return (
     <ContextMenu>
