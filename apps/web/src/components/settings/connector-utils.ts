@@ -1,6 +1,6 @@
 import type { ComponentType } from "react";
 import type { FunctionReturnType } from "convex/server";
-import { api } from "@vmem/backend";
+import type { api } from "@vmem/backend";
 import {
   GoogleDriveIcon,
   NotionIcon,

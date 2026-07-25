@@ -10,7 +10,3 @@ export type WikiSearchHit = FunctionReturnType<typeof api.wiki.search>[number];
 export type WikiNodeDoc = NonNullable<
   FunctionReturnType<typeof api.wiki.getNode>
 >;
-
-type WikiVersionSummary = FunctionReturnType<
-  typeof api.wikiVersions.list
->[number];

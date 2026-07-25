@@ -5,6 +5,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  Input,
 } from "@vmem/ui";
 import type { ImportProvider } from "./importProviders";
 
@@ -53,7 +54,7 @@ export default function UploadImportModal({
               "mt-4 flex min-h-[140px] cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-border bg-surface-secondary/20 px-4 py-8 text-center text-sm text-muted transition-colors hover:bg-surface-secondary/35",
           })}
         >
-          <input {...getInputProps()} />
+          <Input {...getInputProps()} />
           <span className="font-medium text-foreground">
             Drop export file here
           </span>

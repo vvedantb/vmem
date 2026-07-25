@@ -32,7 +32,6 @@ export function updateAllCachedQueries<
   }
 }
 
-type UserSettings = FunctionReturnType<typeof api.userSettings.get>;
 type UserSettingsPatch = FunctionArgs<typeof api.userSettings.update>;
 
 export function patchUserSettingsGet(
@@ -41,10 +40,14 @@ export function patchUserSettingsGet(
 ): void {
   const current = localStore.getQuery(api.userSettings.get, {});
   if (current === undefined) return;
-  localStore.setQuery(api.userSettings.get, {}, {
-    ...current,
-    ...patch,
-  } as UserSettings);
+  localStore.setQuery(
+    api.userSettings.get,
+    {},
+    {
+      ...current,
+      ...patch,
+    },
+  );
 }
 
 export function patchDefaultProfile(

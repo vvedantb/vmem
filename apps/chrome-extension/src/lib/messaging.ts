@@ -80,5 +80,6 @@ interface ProtocolMap {
   startScreenshot(): { ok: true };
 }
 
-export const { sendMessage, onMessage } =
-  defineExtensionMessaging<ProtocolMap>();
+const messenger = defineExtensionMessaging<ProtocolMap>();
+export const sendMessage = messenger.sendMessage.bind(messenger);
+export const onMessage = messenger.onMessage.bind(messenger);

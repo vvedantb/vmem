@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { IconClockHour4 } from "@tabler/icons-react";
-import { cn } from "@vmem/ui";
+import { Button, cn } from "@vmem/ui";
 import { formatDateTime } from "@vmem/shared";
 import { useMemoryTimeline } from "@/hooks/useMemoryTimeline";
 import { buildVersionChain, type VersionEntry } from "@/lib/timeline";
@@ -86,15 +86,16 @@ function RetellingStrip({
         const tone = stubTone(version.action);
 
         return (
-          <button
+          <Button
             key={version.eventId}
             type="button"
+            variant="ghost"
             role="tab"
             aria-selected={selected}
             aria-label={`Version ${version.version}`}
             onClick={() => onSelectVersion(version.version)}
             className={cn(
-              "flex shrink-0 flex-col items-center gap-1.5 rounded-lg px-2.5 py-2 transition-[background-color] duration-150",
+              "flex h-auto shrink-0 flex-col items-center justify-start gap-1.5 rounded-lg px-2.5 py-2 transition-[background-color] duration-150 active:scale-100",
               selected ? "bg-surface-tertiary" : "hover:bg-surface-tertiary",
             )}
           >
@@ -117,7 +118,7 @@ function RetellingStrip({
             >
               v{version.version}
             </span>
-          </button>
+          </Button>
         );
       })}
     </div>

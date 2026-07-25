@@ -15,14 +15,15 @@ export interface AiLogsTrends {
 export function computeAiLogsTrends(
   rows: readonly AiLogTrendRow[],
 ): AiLogsTrends {
-  const { buckets, addToBucket } = createSevenDayBuckets(() => ({
+  const dayBuckets = createSevenDayBuckets(() => ({
     calls: 0,
     costUsd: 0,
     tokens: 0,
   }));
+  const { buckets } = dayBuckets;
 
   for (const row of rows) {
-    addToBucket(row.createdAt, (bucket) => {
+    dayBuckets.addToBucket(row.createdAt, (bucket) => {
       bucket.calls += 1;
       if (typeof row.costUsd === "number") bucket.costUsd += row.costUsd;
       if (typeof row.totalTokens === "number") bucket.tokens += row.totalTokens;

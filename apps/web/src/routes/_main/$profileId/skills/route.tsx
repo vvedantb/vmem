@@ -52,16 +52,6 @@ function SkillsLayout() {
   const [modal, setModal] = useState<ModalState>({ mode: "none" });
 
   const query = searchQuery.trim().toLowerCase();
-  const filteredSkills =
-    skills === undefined
-      ? []
-      : query.length === 0
-        ? skills
-        : skills.filter(
-            (skill) =>
-              skill.name.toLowerCase().includes(query) ||
-              skill.description.toLowerCase().includes(query),
-          );
 
   const hasSkillId = typeof skillId === "string" && skillId.length > 0;
   const viewedSkill = hasSkillId
@@ -96,25 +86,25 @@ function SkillsLayout() {
 
   useEffect(() => {
     if (!skills || !hasSkillId) return;
-    if (filteredSkills.length === 0) return;
     if (isSkillLoading) return;
-    if (filteredSkills.some((skill) => skill._id === skillId)) return;
-    const first = filteredSkills.at(0);
+    const filtered =
+      query.length === 0
+        ? skills
+        : skills.filter(
+            (skill) =>
+              skill.name.toLowerCase().includes(query) ||
+              skill.description.toLowerCase().includes(query),
+          );
+    if (filtered.length === 0) return;
+    if (filtered.some((skill) => skill._id === skillId)) return;
+    const first = filtered.at(0);
     if (!first) return;
     void navigate({
       to: "/$profileId/skills/$id",
       params: { profileId, id: first._id },
       replace: true,
     });
-  }, [
-    filteredSkills,
-    hasSkillId,
-    isSkillLoading,
-    skillId,
-    navigate,
-    skills,
-    profileId,
-  ]);
+  }, [query, hasSkillId, isSkillLoading, skillId, navigate, skills, profileId]);
 
   useEffect(() => {
     if (!skills) return;
