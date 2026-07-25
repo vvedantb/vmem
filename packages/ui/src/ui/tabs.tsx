@@ -1,6 +1,7 @@
 import * as React from "react";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
 import { cn } from "../utils/cn";
+import { assignRef } from "../utils/ref";
 import { syncTabsPill } from "./tabsSliding";
 
 const Tabs = TabsPrimitive.Root;
@@ -18,11 +19,7 @@ const TabsList = React.forwardRef<
   const mergedRef = React.useCallback(
     (node: React.ComponentRef<typeof TabsPrimitive.List> | null) => {
       listRef.current = node;
-      if (typeof ref === "function") {
-        ref(node);
-      } else if (ref) {
-        ref.current = node;
-      }
+      assignRef(ref, node);
     },
     [ref],
   );

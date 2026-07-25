@@ -1,6 +1,7 @@
 import * as React from "react";
 import { IconX } from "@tabler/icons-react";
 import { cn } from "../utils/cn";
+import { assignRef } from "../utils/ref";
 import { runClearInputDissolve } from "./clearInputDissolve";
 
 export interface ClearInputProps extends Omit<
@@ -40,11 +41,7 @@ const ClearInput = React.forwardRef<HTMLInputElement, ClearInputProps>(
     const mergedRef = React.useCallback(
       (node: HTMLInputElement | null) => {
         inputRef.current = node;
-        if (typeof ref === "function") {
-          ref(node);
-        } else if (ref) {
-          ref.current = node;
-        }
+        assignRef(ref, node);
       },
       [ref],
     );
