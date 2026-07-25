@@ -3,6 +3,7 @@
 // toasts stack from bottom right and auto dismiss
 
 import { escape } from "es-toolkit";
+import { createShadowHost } from "./dom-utils";
 
 type ToastType = "success" | "error" | "loading" | "info";
 
@@ -107,23 +108,7 @@ const STYLES = `
 function ensureContainer(): void {
   if (host) return;
 
-  host = document.createElement("vmem-toast-container");
-  Object.assign(host.style, {
-    position: "fixed",
-    top: "0",
-    left: "0",
-    width: "0",
-    height: "0",
-    overflow: "visible",
-    zIndex: "2147483647",
-    pointerEvents: "none",
-  });
-
-  shadow = host.attachShadow({ mode: "closed" });
-
-  const style = document.createElement("style");
-  style.textContent = STYLES;
-  shadow.appendChild(style);
+  ({ host, shadow } = createShadowHost("vmem-toast-container", STYLES));
 
   listEl = document.createElement("div");
   listEl.id = "toast-list";

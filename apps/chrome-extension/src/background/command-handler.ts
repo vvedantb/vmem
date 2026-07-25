@@ -1,4 +1,5 @@
 import { sendMessage } from "@/lib/messaging";
+import { errorMessage } from "@/lib/error";
 import { savePageFromTab } from "./context-menu";
 import { injectPageToast } from "./inject-page-toast";
 import { toastForSaveResult } from "./save-toast";
@@ -9,7 +10,7 @@ async function triggerScreenshot(tabId: number): Promise<void> {
   } catch (err) {
     console.warn(
       "[vmem] Could not start screenshot on tab:",
-      err instanceof Error ? err.message : String(err),
+      errorMessage(err),
     );
   }
 }

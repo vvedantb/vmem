@@ -49,6 +49,24 @@ function unwrapData(
   return parsed.data.data;
 }
 
+function throwOnErrorResponse(
+  response: Response,
+  json: unknown,
+  method: string,
+  path: string,
+): void {
+  if (response.ok) return;
+
+  const parsed = parseErrorBody(json);
+  const code = parsed?.error ?? "request_failed";
+  throw new VMemoryError(
+    `VMemory API ${method} ${path} failed (${String(response.status)}): ${code}`,
+    response.status,
+    code,
+    parsed?.issues,
+  );
+}
+
 export class HttpClient {
   private readonly baseUrl: string;
   private readonly apiKey: string;
@@ -78,16 +96,7 @@ export class HttpClient {
 
     const json: unknown = await response.json().catch(() => null);
 
-    if (!response.ok) {
-      const parsed = parseErrorBody(json);
-      const code = parsed?.error ?? "request_failed";
-      throw new VMemoryError(
-        `VMemory API GET ${path} failed (${String(response.status)}): ${code}`,
-        response.status,
-        code,
-        parsed?.issues,
-      );
-    }
+    throwOnErrorResponse(response, json, "GET", path);
 
     return json;
   }
@@ -108,16 +117,7 @@ export class HttpClient {
 
     const json: unknown = await response.json().catch(() => null);
 
-    if (!response.ok) {
-      const parsed = parseErrorBody(json);
-      const code = parsed?.error ?? "request_failed";
-      throw new VMemoryError(
-        `VMemory API ${method} ${path} failed (${String(response.status)}): ${code}`,
-        response.status,
-        code,
-        parsed?.issues,
-      );
-    }
+    throwOnErrorResponse(response, json, method, path);
 
     return unwrapData(json, method, path, response.status);
   }

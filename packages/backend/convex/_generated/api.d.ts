@@ -66,7 +66,6 @@ import type * as lib_runConnectorProviderSync from "../lib/runConnectorProviderS
 import type * as lib_scopedTree from "../lib/scopedTree.js";
 import type * as lib_versionSnapshot from "../lib/versionSnapshot.js";
 import type * as lib_wikiContent from "../lib/wikiContent.js";
-import type * as lib_wikiKind from "../lib/wikiKind.js";
 import type * as mcp_bundled_memoryGraphHtml from "../mcp/bundled/memoryGraphHtml.js";
 import type * as mcp_codebases from "../mcp/codebases.js";
 import type * as mcp_content from "../mcp/content.js";
@@ -229,7 +228,6 @@ declare const fullApi: ApiFromModules<{
   "lib/scopedTree": typeof lib_scopedTree;
   "lib/versionSnapshot": typeof lib_versionSnapshot;
   "lib/wikiContent": typeof lib_wikiContent;
-  "lib/wikiKind": typeof lib_wikiKind;
   "mcp/bundled/memoryGraphHtml": typeof mcp_bundled_memoryGraphHtml;
   "mcp/codebases": typeof mcp_codebases;
   "mcp/content": typeof mcp_content;

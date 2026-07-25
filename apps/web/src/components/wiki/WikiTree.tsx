@@ -18,12 +18,12 @@ import {
 import RenameDialog from "./RenameDialog";
 import DeleteConfirmDialog from "./DeleteConfirmDialog";
 import { WikiTreeRow } from "./WikiTreeItem";
+import { defaultWikiNodeTitle, useCreateWikiNode } from "./useCreateWikiNode";
 import { useActiveTeamId } from "@/components/workspace/active-profile";
 import { cn } from "@vmem/ui";
 import {
   removeWikiNodesFromLists,
   renameWikiNodeInLists,
-  tempId,
   updateAllCachedQueries,
 } from "@/lib/convex-optimistic";
 
@@ -60,38 +60,7 @@ export default function WikiTree({
   onToggleSelect,
 }: WikiTreeProps) {
   const teamId = useActiveTeamId();
-  const createNode = useMutation(api.wiki.createNode).withOptimisticUpdate(
-    (localStore, args) => {
-      const listArgs = { teamId: args.teamId };
-      const list = localStore.getQuery(api.wiki.listTree, listArgs);
-      if (list === undefined) return;
-      const now = Date.now();
-      const siblings = list.filter(
-        (n) => (n.parentId ?? undefined) === (args.parentId ?? undefined),
-      );
-      const order =
-        siblings.length === 0
-          ? 0
-          : Math.max(...siblings.map((s) => s.order)) + 1;
-      const newId = tempId<"wikiNodes">();
-      localStore.setQuery(api.wiki.listTree, listArgs, [
-        ...list,
-        {
-          _id: newId,
-          _creationTime: now,
-          userId: list[0]?.userId ?? tempId<"users">(),
-          teamId: args.teamId,
-          parentId: args.parentId,
-          kind: args.kind,
-          title: args.title,
-          language: args.language,
-          order,
-          createdAt: now,
-          updatedAt: now,
-        },
-      ]);
-    },
-  );
+  const createNode = useCreateWikiNode();
   const renameNode = useMutation(api.wiki.renameNode).withOptimisticUpdate(
     (localStore, args) => {
       renameWikiNodeInLists(localStore, args);
@@ -163,12 +132,7 @@ export default function WikiTree({
     parentId: WikiNodeId,
     kind: "folder" | "document" | "artifact",
   ) => {
-    const title =
-      kind === "folder"
-        ? "Untitled folder"
-        : kind === "artifact"
-          ? "Untitled artifact"
-          : "Untitled";
+    const title = defaultWikiNodeTitle(kind);
     const newId = await createNode({
       parentId,
       kind,

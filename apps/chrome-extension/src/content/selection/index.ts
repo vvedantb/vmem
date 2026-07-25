@@ -5,6 +5,8 @@ import { selectionPopupEnabledItem } from "@/lib/storage";
 import { mountVmemLogo } from "@/content/shared/icons";
 import type { VmemLogoVariant } from "@/content/shared/icons";
 import { checkIcon, errorIcon } from "@/content/shared/status-icons";
+import { createShadowHost, onDocumentReady } from "@/content/shared/dom-utils";
+import { errorMessage } from "@/lib/error";
 
 const VMEM_LOGO_SIZE = 16;
 const CHECK_ICON = checkIcon(16);
@@ -32,25 +34,9 @@ let repositionRaf: number | null = null;
 
 // shadow dom setup
 
-const host = document.createElement("vmem-selection-popup");
-host.setAttribute("data-vmem-selection", "true");
-Object.assign(host.style, {
-  position: "fixed",
-  top: "0",
-  left: "0",
-  width: "0",
-  height: "0",
-  overflow: "visible",
-  zIndex: "2147483647",
-  pointerEvents: "none",
-});
-
-const shadow = host.attachShadow({ mode: "closed" });
-
-// styles inside shadow dom
-
-const styleEl = document.createElement("style");
-styleEl.textContent = `
+const { host, shadow } = createShadowHost(
+  "vmem-selection-popup",
+  `
   @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap');
 
   :host {
@@ -202,8 +188,9 @@ styleEl.textContent = `
       border-top-color: #e4e4e7;
     }
   }
-`;
-shadow.appendChild(styleEl);
+`,
+);
+host.setAttribute("data-vmem-selection", "true");
 
 // popup dom
 
@@ -321,7 +308,7 @@ async function saveSelection(): Promise<void> {
   } catch (err) {
     console.error(
       "[vmem] Save failed:",
-      err instanceof Error ? err.message : String(err),
+      errorMessage(err),
       "— reload the page to reconnect.",
     );
     transitionTo("error");
@@ -445,9 +432,4 @@ function init(): void {
   selectionPopupEnabledItem.watch(setEnabled);
 }
 
-// wait for document.body to be available
-if (document.body) {
-  init();
-} else {
-  document.addEventListener("DOMContentLoaded", init);
-}
+onDocumentReady(init);

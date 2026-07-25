@@ -145,28 +145,10 @@ export const update = authMutation({
   handler: async (ctx, args) => {
     const existing = await getSettingsDoc(ctx, ctx.userId);
 
+    // `args` is exactly `userSettingsPatchFields`, so its own keys already are
+    // the patchable fields — no separate key list to keep in sync
     const fields: Record<string, string | boolean | number> = {};
-    const optionalKeys = [
-      "theme",
-      "language",
-      "memoryAutoTag",
-      "notificationsEnabled",
-      "extensionAutoSyncEnabled",
-      "extensionAutoSyncIntervalMinutes",
-      "extensionSelectionPopupEnabled",
-      "memoryAutoExtract",
-      "memoryConfidenceThreshold",
-      "notifyMemoryConflicts",
-      "notifyNewMemories",
-      "notifyMemoriesExpiring",
-      "aboutMe",
-      "preferences",
-      "dreamModeAutoAccept",
-      "dreamModeAutomatic",
-    ] as const;
-
-    for (const key of optionalKeys) {
-      const value = args[key];
+    for (const [key, value] of Object.entries(args)) {
       if (value !== undefined) {
         fields[key] = value;
       }

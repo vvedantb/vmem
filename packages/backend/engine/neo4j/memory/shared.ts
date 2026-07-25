@@ -64,6 +64,40 @@ export function profileFilter(
   };
 }
 
+export const CREATE_DERIVED_MEMORY_CYPHER = `
+  CREATE (m:Memory {
+    id: $id,
+    userId: $userId,
+    profileId: $profileId,
+    title: $title,
+    content: $content,
+    type: 'knowledge',
+    source: 'dream-mode',
+    confidence: $confidence,
+    status: 'active',
+    createdAt: $now,
+    updatedAt: $now,
+    expiresAt: null,
+    url: null,
+    embedding: $embedding,
+    contentHash: $contentHash,
+    sourceType: null,
+    sourceId: null,
+    storageId: null,
+    mimeType: null,
+    originalFilename: null,
+    visitCount: 1,
+    firstVisitAt: $now,
+    lastVisitAt: $now
+  })
+  WITH m
+  MERGE (s:Source {name: 'dream-mode'})
+  CREATE (m)-[:FROM_SOURCE]->(s)
+  WITH m
+  UNWIND $sourceMemoryIds AS sid
+  MATCH (src:Memory {id: sid, userId: $userId})
+  MERGE (m)-[:DERIVED_FROM]->(src)`;
+
 const VISIBLE_STATUS_LIST = "'active', 'pinned'";
 
 export function visibleStatusClause(alias = "m", coalesce = true): string {

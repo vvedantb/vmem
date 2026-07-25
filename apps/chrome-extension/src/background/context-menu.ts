@@ -1,5 +1,6 @@
 import { truncate } from "es-toolkit/compat";
 import { sendMessage } from "@/lib/messaging";
+import { errorMessage } from "@/lib/error";
 import { createMemory } from "./api-client";
 import { htmlToMarkdown } from "@/lib/page-extraction";
 import { extractPageFromTab } from "@/lib/extract-page";
@@ -41,7 +42,7 @@ async function handleContextMenuClick(
       (err: unknown) => {
         console.warn(
           "[vmem] Could not start screenshot on tab:",
-          err instanceof Error ? err.message : String(err),
+          errorMessage(err),
         );
       },
     );

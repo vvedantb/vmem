@@ -2,6 +2,7 @@ import { api, type Id } from "@vmem/backend";
 import type { FunctionArgs } from "convex/server";
 import type { ConvexHttpClient } from "convex/browser";
 import { z } from "zod";
+import { errorMessage } from "@/lib/error";
 import { createAuthenticatedConvexClient } from "./auth";
 import type {
   CreateMemoryParams,
@@ -83,7 +84,7 @@ export async function saveScreenshot(params: {
       {},
     );
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
+    const msg = errorMessage(err);
     throw new Error(`generateMemoryUploadUrl failed: ${msg}`, { cause: err });
   }
 
@@ -117,7 +118,7 @@ export async function saveScreenshot(params: {
     console.log("[vmem] saveScreenshot: memory created", memory.id);
     return memory;
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
+    const msg = errorMessage(err);
     // often means importImageMemory isn't deployed yet
     throw new Error(`importImageMemory action failed: ${msg}`, { cause: err });
   }

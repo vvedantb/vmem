@@ -1,3 +1,4 @@
+import { type WikiNodeKind, wikiKindHasContent } from "@vmem/shared";
 import type { WikiListNode, WikiNodeId } from "./-types";
 import type { JSONContent } from "@tiptap/react";
 
@@ -14,22 +15,8 @@ export const WIKI_ROOT_DROP_ID = "__wiki_root__";
 interface MovableNode<TId extends string> {
   _id: TId;
   parentId?: TId;
-  kind: "folder" | "document" | "artifact";
+  kind: WikiNodeKind;
   order: number;
-}
-
-export function wikiKindHasContent(
-  kind: "folder" | "document" | "artifact",
-): boolean {
-  return kind === "document" || kind === "artifact";
-}
-
-export function wikiKindLabel(
-  kind: "folder" | "document" | "artifact",
-): string {
-  if (kind === "folder") return "folder";
-  if (kind === "artifact") return "artifact";
-  return "document";
 }
 
 // moveNode args for a wiki drop, or null if invalid/no-op

@@ -2,18 +2,11 @@
 import { internal } from "../_generated/api";
 import { extractBearerToken } from "../lib/bearerToken";
 
-function getWebAppUrl(): string {
-  const url = process.env.WEB_APP_URL;
+// read a required env var, stripping any trailing slash (used as a URL prefix)
+function requiredEnvUrl(name: string): string {
+  const url = process.env[name];
   if (!url) {
-    throw new Error("WEB_APP_URL is not set in Convex env");
-  }
-  return url.replace(/\/$/, "");
-}
-
-function getClerkFrontendApiUrl(): string {
-  const url = process.env.CLERK_FRONTEND_API_URL;
-  if (!url) {
-    throw new Error("CLERK_FRONTEND_API_URL is not set in Convex env");
+    throw new Error(`${name} is not set in Convex env`);
   }
   return url.replace(/\/$/, "");
 }
@@ -24,7 +17,7 @@ function requestOrigin(request: Request): string {
 
 // proxies clerk as metadata for older mcp clients that hit this host's well, known
 export const oauthMetadata = httpAction(async () => {
-  const clerkFrontendApiUrl = getClerkFrontendApiUrl();
+  const clerkFrontendApiUrl = requiredEnvUrl("CLERK_FRONTEND_API_URL");
   const res = await fetch(
     `${clerkFrontendApiUrl}/.well-known/oauth-authorization-server`,
   );
@@ -45,9 +38,9 @@ function createProtectedResourceMetadataAction(
     const baseUrl = requestOrigin(request);
     return Response.json({
       resource: `${baseUrl}${resourcePath}`,
-      authorization_servers: [getClerkFrontendApiUrl()],
+      authorization_servers: [requiredEnvUrl("CLERK_FRONTEND_API_URL")],
       bearer_methods_supported: ["header"],
-      resource_documentation: getWebAppUrl(),
+      resource_documentation: requiredEnvUrl("WEB_APP_URL"),
     });
   });
 }

@@ -4,7 +4,8 @@
 import { sendMessage } from "@/lib/messaging";
 import { injectInstrumentSansFont } from "@/content/shared/inject-button";
 import { createVmemLogoImg } from "@/content/shared/icons";
-import { waitForProbe } from "@/content/shared/dom-utils";
+import { onDocumentReady, waitForProbe } from "@/content/shared/dom-utils";
+import { errorMessage } from "@/lib/error";
 
 // state
 
@@ -204,7 +205,7 @@ async function handleSaveClick(): Promise<void> {
     button.innerHTML = `<span style="color: #16a34a;">✓ Saved!</span>`;
     button.title = "Save video to vmem";
   } catch (err) {
-    const reason = err instanceof Error ? err.message : String(err);
+    const reason = errorMessage(err);
     console.error("[vmem] Save to vmem failed:", reason);
     button.innerHTML = `<span style="color: #dc2626;">Failed</span>`;
     button.title = `Save failed: ${reason}`;
@@ -295,9 +296,4 @@ function init(): void {
   window.addEventListener("yt-navigate-finish", handleNavigation);
 }
 
-// start when dom is ready
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", init);
-} else {
-  init();
-}
+onDocumentReady(init);

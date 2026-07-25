@@ -3,26 +3,15 @@
 // mountOverlay() attaches the host to body when ready
 
 import { mountVmemLogo } from "@/content/shared/icons";
+import { createShadowHost, onDocumentReady } from "@/content/shared/dom-utils";
 import { overlayCss } from "./styles";
 
-export const host = document.createElement("vmem-screenshot-overlay");
+const { host, shadow } = createShadowHost(
+  "vmem-screenshot-overlay",
+  overlayCss,
+);
+export { host };
 host.setAttribute("data-vmem-screenshot", "true");
-Object.assign(host.style, {
-  position: "fixed",
-  top: "0",
-  left: "0",
-  width: "0",
-  height: "0",
-  overflow: "visible",
-  zIndex: "2147483647",
-  pointerEvents: "none",
-});
-
-const shadow = host.attachShadow({ mode: "closed" });
-
-const styleEl = document.createElement("style");
-styleEl.textContent = overlayCss;
-shadow.appendChild(styleEl);
 
 export const scrim = document.createElement("div");
 scrim.id = "scrim";
@@ -70,12 +59,7 @@ preview.appendChild(saveBtn);
 shadow.appendChild(preview);
 
 export function mountOverlay(): void {
-  const attach = () => {
+  onDocumentReady(() => {
     document.body.appendChild(host);
-  };
-  if (document.body) {
-    attach();
-  } else {
-    document.addEventListener("DOMContentLoaded", attach);
-  }
+  });
 }

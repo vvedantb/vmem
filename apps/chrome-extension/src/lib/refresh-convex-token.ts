@@ -1,5 +1,6 @@
 import { createClerkClient } from "@clerk/chrome-extension/client";
 import { CLERK_PUBLISHABLE_KEY, CLERK_SYNC_HOST } from "@/lib/constants";
+import { errorMessage } from "@/lib/error";
 
 function canUseClerkBackgroundClient(): boolean {
   return (
@@ -23,7 +24,7 @@ export async function refreshConvexTokenFromClerk(): Promise<string | null> {
     if (!clerk.session) return null;
     return (await clerk.session.getToken({ template: "convex" })) ?? null;
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = errorMessage(error);
     console.warn("[vmem] Clerk token refresh failed:", message);
     return null;
   }
