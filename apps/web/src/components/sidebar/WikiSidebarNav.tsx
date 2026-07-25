@@ -2,6 +2,7 @@ import { useNavigate, useParams } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
+import { tempId } from "@/lib/convex-optimistic";
 import { Button, Spinner } from "@vmem/ui";
 import { IconBook, IconListCheck } from "@tabler/icons-react";
 import WikiTree from "@/components/wiki/WikiTree";
@@ -45,13 +46,13 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
         siblings.length === 0
           ? 0
           : Math.max(...siblings.map((s) => s.order)) + 1;
-      const tempId = crypto.randomUUID() as Id<"wikiNodes">;
+      const optimisticId = tempId<"wikiNodes">();
       localStore.setQuery(api.wiki.listTree, listArgs, [
         ...list,
         {
-          _id: tempId,
+          _id: optimisticId,
           _creationTime: now,
-          userId: list[0]?.userId ?? ("" as Id<"users">),
+          userId: list[0]?.userId ?? tempId<"users">(),
           teamId: args.teamId,
           parentId: args.parentId,
           kind: args.kind,

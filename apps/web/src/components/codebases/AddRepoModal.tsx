@@ -2,6 +2,7 @@ import { useAction, useMutation, useQuery } from "convex/react";
 import { useQuery as useTanstackQuery } from "@tanstack/react-query";
 import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
+import { tempId } from "@/lib/convex-optimistic";
 import {
   Dialog,
   DialogContent,
@@ -40,12 +41,12 @@ export function AddRepoModal({
     const list = localStore.getQuery(api.codebases.listMy, listArgs);
     if (list === undefined) return;
     const now = Date.now();
-    const tempId = crypto.randomUUID() as Id<"codebases">;
+    const optimisticId = tempId<"codebases">();
     localStore.setQuery(api.codebases.listMy, listArgs, [
       {
-        _id: tempId,
+        _id: optimisticId,
         _creationTime: now,
-        userId: list[0]?.userId ?? ("" as Id<"users">),
+        userId: list[0]?.userId ?? tempId<"users">(),
         teamId: args.teamId,
         githubConnectionId: args.githubConnectionId,
         repoOwner: args.repoOwner,
