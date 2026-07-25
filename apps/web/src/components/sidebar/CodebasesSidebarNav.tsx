@@ -31,6 +31,7 @@ import {
 } from "@/components/workspace/active-profile";
 import { SharedLayoutBackground } from "./SharedLayoutBackground";
 import { SubSidebarShell } from "./SubSidebarShell";
+import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
 
 const AddRepoModal = lazy(() =>
   import("@/components/codebases/AddRepoModal").then((m) => ({
@@ -60,7 +61,7 @@ export function CodebasesSidebarNav({
     codebasesListSearchParams,
   );
   const [addModalOpen, setAddModalOpen] = useState(false);
-  const [resyncing, setResyncing] = useState(false);
+  const { submitting: resyncing, run: runResync } = useAsyncSubmit();
 
   const isConnected = connection !== undefined && connection !== null;
 
@@ -97,17 +98,10 @@ export function CodebasesSidebarNav({
   };
 
   const handleResyncAll = async () => {
-    setResyncing(true);
-    try {
+    await runResync(async () => {
       const result = await syncAllMy({ teamId });
       toast.success(`Re-syncing ${result.synced} codebase(s)`);
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to start re-sync";
-      toast.error(message);
-    } finally {
-      setResyncing(false);
-    }
+    }, "Failed to start re-sync");
   };
 
   const toolbarAddButton = (

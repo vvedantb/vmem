@@ -21,6 +21,7 @@ import {
 import { toast } from "sonner";
 import { useCopyToClipboard } from "usehooks-ts";
 import DestructiveConfirmDialog from "@/components/settings/DestructiveConfirmDialog";
+import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
 import {
   patchSkillInLists,
   removeSkillsFromLists,
@@ -40,7 +41,7 @@ export function SkillHeaderActions({
   onDeleted,
 }: SkillHeaderActionsProps) {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const { submitting: deleting, run } = useAsyncSubmit();
   const [historyOpen, setHistoryOpen] = useState(false);
 
   const deleteSkill = useMutation(api.skills.deleteSkill).withOptimisticUpdate(
@@ -77,17 +78,12 @@ export function SkillHeaderActions({
   };
 
   const handleDelete = async () => {
-    setDeleting(true);
-    try {
+    await run(async () => {
       await deleteSkill({ id: skill._id });
       toast.success(`Deleted ${skill.name}`);
       setDeleteConfirmOpen(false);
       onDeleted();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Delete failed");
-    } finally {
-      setDeleting(false);
-    }
+    }, "Delete failed");
   };
 
   return (

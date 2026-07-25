@@ -15,6 +15,7 @@ import { IconHistory, IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import type { SkillVersionListEntry } from "@/components/skills/_utils";
 import { formatRelativeTime } from "@vmem/shared";
+import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
 import { updateAllCachedQueries } from "@/lib/convex-optimistic";
 
 interface SkillHistoryPanelProps {
@@ -85,7 +86,7 @@ export function SkillHistoryPanel({
   const [selectedId, setSelectedId] = useState<Id<"skillVersions"> | null>(
     null,
   );
-  const [restoring, setRestoring] = useState(false);
+  const { submitting: restoring, run } = useAsyncSubmit();
 
   const activeVersionId = open
     ? resolveActiveVersionId(versions, selectedId)
@@ -125,16 +126,11 @@ export function SkillHistoryPanel({
 
   const handleRestore = async () => {
     if (!activeVersionId) return;
-    setRestoring(true);
-    try {
+    await run(async () => {
       await restoreVersion({ versionId: activeVersionId });
       toast.success("Version restored");
       handleOpenChange(false);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to restore");
-    } finally {
-      setRestoring(false);
-    }
+    }, "Failed to restore");
   };
 
   return (

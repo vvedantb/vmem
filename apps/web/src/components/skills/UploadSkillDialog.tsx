@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { useMutation } from "convex/react";
 import { api } from "@vmem/backend";
@@ -13,6 +12,7 @@ import {
 import { IconLoader2, IconUpload } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { useActiveTeamId } from "@/components/workspace/active-profile";
+import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
 import { insertSkillInLists } from "@/lib/convex-optimistic";
 
 interface UploadSkillDialogProps {
@@ -59,7 +59,7 @@ export function UploadSkillDialog({
       insertSkillInLists(localStore, args);
     },
   );
-  const [submitting, setSubmitting] = useState(false);
+  const { submitting, run } = useAsyncSubmit();
 
   const handleFile = async (file: File | undefined) => {
     if (!file || submitting) return;
@@ -69,8 +69,7 @@ export function UploadSkillDialog({
       return;
     }
 
-    setSubmitting(true);
-    try {
+    await run(async () => {
       const { name, instructions } = await readSkillFile(file);
       const trimmedName = name.trim();
       if (trimmedName.length === 0) {
@@ -91,12 +90,7 @@ export function UploadSkillDialog({
       toast.success(`Added ${trimmedName}`);
       onOpenChange(false);
       onCreated(skillId);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to upload skill";
-      toast.error(msg);
-    } finally {
-      setSubmitting(false);
-    }
+    }, "Failed to upload skill");
   };
 
   const { getRootProps, getInputProps } = useDropzone({

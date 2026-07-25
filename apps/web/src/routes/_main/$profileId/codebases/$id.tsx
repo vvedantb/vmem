@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense } from "react";
 import { useQuery, useAction } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api, type Id } from "@vmem/backend";
@@ -17,6 +17,7 @@ import CodebaseGraphHeaderControls from "@/components/codebases/CodebaseGraphHea
 import { useCodebaseGraphController } from "@/hooks/useCodebaseGraphController";
 import { VmemSpinner } from "@/components/icons/animations";
 import { formatRelativeTime, formatDateTime } from "@vmem/shared";
+import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
 
 const CodebaseGraph = lazy(() =>
   import("@/components/codebases/CodebaseGraph").then((m) => ({
@@ -75,7 +76,7 @@ function CodebaseDetailView({
   codebase: Codebase;
 }) {
   const syncCodebase = useAction(api.codebases.syncCodebase);
-  const [syncing, setSyncing] = useState(false);
+  const { submitting: syncing, run } = useAsyncSubmit();
   const controller = useCodebaseGraphController(id);
   // A stalled sync still reads `status === "syncing"`; treat it as retryable so
   // the Sync button isn't disabled forever waiting on a dead run
@@ -85,16 +86,10 @@ function CodebaseDetailView({
   );
 
   const handleSync = async () => {
-    setSyncing(true);
-    try {
+    await run(async () => {
       await syncCodebase({ id });
       toast.success(`${codebase.repoName} synced`);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Sync failed";
-      toast.error(message);
-    } finally {
-      setSyncing(false);
-    }
+    }, "Sync failed");
   };
 
   return (

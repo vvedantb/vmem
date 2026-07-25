@@ -8,6 +8,7 @@ import { memorySchema } from "@/lib/schemas";
 import TagInputWithSuggestions from "./TagInputWithSuggestions";
 import MemoryProvenance from "./MemoryProvenance";
 import { DetailSection } from "./detail-panel/DetailSection";
+import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
 
 const DETAILS_ROOT_CLASS = "min-w-0 space-y-5 overflow-x-hidden pb-2";
 
@@ -52,7 +53,7 @@ export function DetailsTabEdit({ memory, onCancel }: DetailsTabEditProps) {
   const { updateMemory } = useMemoryContext();
   const [tags, setTags] = useState(memory.tags);
   const [contentError, setContentError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { submitting: isSubmitting, run } = useAsyncSubmit();
 
   const onSave = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -69,9 +70,8 @@ export function DetailsTabEdit({ memory, onCancel }: DetailsTabEditProps) {
       return;
     }
     setContentError(null);
-    setIsSubmitting(true);
 
-    try {
+    await run(async () => {
       const updated = await updateMemory({
         id: memory.id,
         title: parsed.data.title,
@@ -85,13 +85,7 @@ export function DetailsTabEdit({ memory, onCancel }: DetailsTabEditProps) {
 
       onCancel();
       toast.success("Memory updated successfully");
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to update memory",
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
+    }, "Failed to update memory");
   };
 
   return (

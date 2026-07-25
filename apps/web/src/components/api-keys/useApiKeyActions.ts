@@ -3,6 +3,7 @@ import { useMutation, useAction } from "convex/react";
 import { useCopyToClipboard, useTimeout } from "usehooks-ts";
 import { toast } from "sonner";
 import { api } from "@vmem/backend";
+import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
 import type { ApiKey } from "./types";
 
 export function useApiKeyActions() {
@@ -36,8 +37,8 @@ export function useApiKeyActions() {
   const [revokeKeyId, setRevokeKeyId] = useState<ApiKey["id"] | null>(null);
   const [deleteKeyId, setDeleteKeyId] = useState<ApiKey["id"] | null>(null);
   const [editKeyId, setEditKeyId] = useState<ApiKey["id"] | null>(null);
-  const [isRevoking, setIsRevoking] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const { submitting: isRevoking, run: runRevoke } = useAsyncSubmit();
+  const { submitting: isDeleting, run: runDelete } = useAsyncSubmit();
   const [copiedKeyId, setCopiedKeyId] = useState<ApiKey["id"] | null>(null);
   const [copyingKeyId, setCopyingKeyId] = useState<ApiKey["id"] | null>(null);
   const [revealedKeys, setRevealedKeys] = useState<
@@ -103,28 +104,20 @@ export function useApiKeyActions() {
   const handleRevoke = async () => {
     if (!revokeKeyId) return;
 
-    setIsRevoking(true);
-    try {
+    await runRevoke(async () => {
       const revoked = await revokeApiKey({ id: revokeKeyId });
       if (!revoked) {
         throw new Error("Failed to revoke API key");
       }
       toast.success("The API key has been revoked successfully");
       setRevokeKeyId(null);
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to revoke API key",
-      );
-    } finally {
-      setIsRevoking(false);
-    }
+    }, "Failed to revoke API key");
   };
 
   const handleDelete = async () => {
     if (!deleteKeyId) return;
 
-    setIsDeleting(true);
-    try {
+    await runDelete(async () => {
       const deleted = await deleteApiKey({ id: deleteKeyId });
       if (!deleted) {
         throw new Error("Failed to delete API key");
@@ -137,13 +130,7 @@ export function useApiKeyActions() {
         delete next[deleteKeyId];
         return next;
       });
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to delete API key",
-      );
-    } finally {
-      setIsDeleting(false);
-    }
+    }, "Failed to delete API key");
   };
 
   return {

@@ -1,8 +1,8 @@
-import { useState } from "react";
 import { useAction } from "convex/react";
 import { api, type Id } from "@vmem/backend";
 import { toast } from "sonner";
 import DestructiveConfirmDialog from "./DestructiveConfirmDialog";
+import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
 
 interface DeleteConnectorDataDialogProps {
   open: boolean;
@@ -22,11 +22,10 @@ export default function DeleteConnectorDataDialog({
   connectorName,
 }: DeleteConnectorDataDialogProps) {
   const deleteData = useAction(api.connectors.crud.deleteConnectorData);
-  const [submitting, setSubmitting] = useState(false);
+  const { submitting, run } = useAsyncSubmit();
 
   const handleConfirm = async () => {
-    setSubmitting(true);
-    try {
+    await run(async () => {
       const deleted = await deleteData({ connectorId });
       toast.success(
         deleted === 1
@@ -34,13 +33,7 @@ export default function DeleteConnectorDataDialog({
           : `Removed ${String(deleted)} memories imported from ${connectorName}.`,
       );
       onClose();
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to delete connector data",
-      );
-    } finally {
-      setSubmitting(false);
-    }
+    }, "Failed to delete connector data");
   };
 
   return (

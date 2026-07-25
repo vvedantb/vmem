@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { CodebaseSidebarCard } from "./CodebaseSidebarCard";
 import type { CodebaseItem } from "./-types";
 import { updateAllCachedQueries } from "@/lib/convex-optimistic";
+import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
 
 interface CodebaseSidebarItemProps {
   codebase: CodebaseItem;
@@ -69,7 +70,7 @@ export function CodebaseSidebarItem({
   });
 
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const { submitting: deleting, run: runDelete } = useAsyncSubmit();
 
   const isArchived = codebase.isArchived ?? false;
 
@@ -88,17 +89,11 @@ export function CodebaseSidebarItem({
   };
 
   const handleDelete = async () => {
-    setDeleting(true);
-    try {
+    await runDelete(async () => {
       await removeCodebase({ id: codebase._id });
       toast.success(`Deleted ${codebase.repoName}`);
       setConfirmOpen(false);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Delete failed";
-      toast.error(msg);
-    } finally {
-      setDeleting(false);
-    }
+    }, "Delete failed");
   };
 
   return (

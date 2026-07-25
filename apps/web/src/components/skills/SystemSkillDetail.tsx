@@ -23,6 +23,7 @@ import { SystemSkillFormDialog } from "@/components/skills/SystemSkillFormDialog
 import DestructiveConfirmDialog from "@/components/settings/DestructiveConfirmDialog";
 import type { SystemSkillEntry } from "@/components/skills/_utils";
 import { useActiveTeamId } from "@/components/workspace/active-profile";
+import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
 import {
   setSystemSkillInstallState,
   updateAllCachedQueries,
@@ -179,7 +180,7 @@ export function SystemSkillDetail({
 
   const [editing, setEditing] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const { submitting: deleting, run: runDelete } = useAsyncSubmit();
 
   const entry = catalog?.find((e) => e._id === systemSkillId);
 
@@ -218,17 +219,12 @@ export function SystemSkillDetail({
   };
 
   const handleDelete = async () => {
-    setDeleting(true);
-    try {
+    await runDelete(async () => {
       await adminDelete({ id: entry._id });
       toast.success(`Deleted ${entry.name}`);
       setDeleteOpen(false);
       void backToHub();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Delete failed");
-    } finally {
-      setDeleting(false);
-    }
+    }, "Delete failed");
   };
 
   return (

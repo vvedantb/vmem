@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useMutation } from "convex/react";
-import { toast } from "sonner";
 import { api } from "@vmem/backend";
+import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
 import {
   Button,
   Dialog,
@@ -23,7 +23,7 @@ interface EditKeyDialogProps {
 
 export function EditKeyDialog({ apiKey, isOpen, onClose }: EditKeyDialogProps) {
   const [draftName, setDraftName] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { submitting: isSubmitting, run } = useAsyncSubmit();
 
   const renameApiKey = useMutation(api.apiKeys.renameMy).withOptimisticUpdate(
     (localStore, args) => {
@@ -54,17 +54,10 @@ export function EditKeyDialog({ apiKey, isOpen, onClose }: EditKeyDialogProps) {
       return;
     }
 
-    setIsSubmitting(true);
-    try {
+    await run(async () => {
       await renameApiKey({ id: apiKey.id, name: trimmed });
       onClose();
-    } catch (err: unknown) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to rename API key",
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
+    }, "Failed to rename API key");
   };
 
   return (
