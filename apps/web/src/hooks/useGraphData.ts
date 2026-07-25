@@ -20,8 +20,6 @@ import type {
 const FIRST_PAGE_SIZE = 500;
 // follow-up pages bulk-load (server caps a page at 5000)
 const NEXT_PAGE_SIZE = 5000;
-// hop count when focusing a node into its neighbourhood
-const FOCUS_GRAPH_DEPTH = 2;
 
 // stable empty-array identities for loading/bench states
 const EMPTY_NODES: ApiGraphNode[] = [];
@@ -94,10 +92,14 @@ function mergePages(pages: GraphResponse[]): MergedGraph {
 
 // ---- Hook ----
 
+// fixed hop count for local (focus-neighbourhood) graph fetches
+const LOCAL_GRAPH_DEPTH = 2;
+
 export function useGraphData(
   focusNodeId: string | null,
   profileId: string | null = null,
   enabled: boolean = true,
+  scope: "local" | "global" = "global",
   // `?bench=N` — synthetic client-side dataset, no server fetch
   benchCount: number = 0,
 ) {
@@ -107,24 +109,18 @@ export function useGraphData(
     ApiRelatesToEdge[]
   >([]);
 
-  const isFocused = focusNodeId !== null;
   const benchData = benchCount > 0 ? generateBenchGraph(benchCount) : null;
 
   const graphQuery = useInfiniteQuery<
     GraphResponse,
     Error,
     InfiniteData<GraphResponse>,
-    readonly ["graph", "focus" | "global", string, string],
+    readonly ["graph", "local" | "global", string, string],
     GraphCursor | null
   >({
-    queryKey: [
-      "graph",
-      isFocused ? "focus" : "global",
-      focusNodeId ?? "none",
-      profileId ?? "all",
-    ],
-    // keep the previous graph while focus changes, but not when switching
-    // workspaces — showing another profile's nodes is misleading
+    queryKey: ["graph", scope, focusNodeId ?? "auto", profileId ?? "all"],
+    // keep the previous graph while scope/focus changes, but not when
+    // switching workspaces — showing another profile's nodes is misleading
     placeholderData: (previousData, previousQuery) => {
       if (previousQuery?.queryKey[3] !== (profileId ?? "all")) {
         return undefined;
@@ -133,24 +129,23 @@ export function useGraphData(
     },
     initialPageParam: INITIAL_GRAPH_CURSOR,
     queryFn: async ({ pageParam }): Promise<GraphResponse> => {
-      if (isFocused) {
-        return await getGraphData({
-          focus: focusNodeId,
-          profileId: profileId ?? undefined,
-          mode: "local",
-          depth: FOCUS_GRAPH_DEPTH,
-        });
-      }
       return await getGraphData({
+        focus: scope === "local" ? (focusNodeId ?? undefined) : undefined,
         profileId: profileId ?? undefined,
-        mode: "global",
-        nodeLimit: pageParam ? NEXT_PAGE_SIZE : FIRST_PAGE_SIZE,
+        mode: scope,
+        depth: scope === "local" ? LOCAL_GRAPH_DEPTH : undefined,
+        nodeLimit:
+          scope === "global"
+            ? pageParam
+              ? NEXT_PAGE_SIZE
+              : FIRST_PAGE_SIZE
+            : undefined,
         cursorCreatedAt: pageParam?.createdAt,
         cursorId: pageParam?.id,
       });
     },
     getNextPageParam: (lastPage): GraphCursor | undefined =>
-      !isFocused &&
+      scope === "global" &&
       lastPage.nextCursorCreatedAt !== undefined &&
       lastPage.nextCursorId !== undefined
         ? { createdAt: lastPage.nextCursorCreatedAt, id: lastPage.nextCursorId }
@@ -195,7 +190,6 @@ export function useGraphData(
       apiWikiParentEdges: EMPTY_WIKI_PARENT_EDGES,
       apiMentionsEdges: EMPTY_MENTIONS_EDGES,
       resolvedFocusNodeId: null,
-      isFocused: false,
       totalMemoryCount: benchData.nodes.length,
       isLoading: false,
       isFetchingNextPage: false,
@@ -212,8 +206,7 @@ export function useGraphData(
     allRelatesToEdges,
     apiWikiParentEdges: merged?.wikiParentEdges ?? EMPTY_WIKI_PARENT_EDGES,
     apiMentionsEdges: merged?.mentionsEdges ?? EMPTY_MENTIONS_EDGES,
-    resolvedFocusNodeId: merged?.focusNodeId ?? focusNodeId,
-    isFocused,
+    resolvedFocusNodeId: merged?.focusNodeId ?? null,
     totalMemoryCount: merged?.totalMemoryCount ?? null,
     isLoading: graphQuery.isLoading,
     isFetchingNextPage: graphQuery.isFetchingNextPage,

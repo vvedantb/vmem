@@ -8,6 +8,8 @@ const COOKIE_KEY = "vmem-graph-settings";
 const MAX_AGE = 60 * 60 * 24 * 365;
 
 const graphSettingsCookieSchema = z.object({
+  scalingRatio: z.number().finite().optional(),
+  gravity: z.number().finite().optional(),
   showLabels: z.boolean().optional(),
 });
 

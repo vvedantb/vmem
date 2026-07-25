@@ -40,11 +40,11 @@ describe("getGraphSettings", () => {
   });
 
   it("merges partial cookie values over defaults", () => {
-    const partial = encodeURIComponent(JSON.stringify({ showLabels: false }));
+    const partial = encodeURIComponent(JSON.stringify({ gravity: 0.42 }));
     document.cookie = `vmem-graph-settings=${partial}; path=/`;
     expect(getGraphSettings()).toEqual({
       ...DEFAULT_GRAPH_SETTINGS,
-      showLabels: false,
+      gravity: 0.42,
     });
   });
 

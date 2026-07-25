@@ -1,5 +1,7 @@
-// synthetic graph for `?bench=n` client perf testing
-// deterministic (seed 42) so runs are comparable
+/**
+ * Synthetic graph for `?bench=N` client perf testing.
+ * Deterministic (seed 42) so runs are comparable.
+ */
 import type { ApiGraphNode, ApiRelatesToEdge, ApiTagEdge } from "./graph-data";
 
 const BENCH_MAX_NODES = 200_000;
@@ -15,7 +17,7 @@ type BenchGraph = {
   tagEdges: ApiTagEdge[];
 };
 
-// mulberry, style lcg, same sequence every run for a given seed
+/** Mulberry-style LCG; same sequence every run for a given seed. */
 function createRng(seed: number): () => number {
   let state = seed >>> 0;
   return () => {
@@ -61,8 +63,10 @@ function buildNodes(
   });
 }
 
-// clusters of size cluster_size: chain + hub links, with long, range bridges
-// when a new cluster starts
+/**
+ * Clusters of size CLUSTER_SIZE: chain + hub links, with long-range bridges
+ * when a new cluster starts.
+ */
 function buildRelatesToEdges(
   count: number,
   rng: () => number,

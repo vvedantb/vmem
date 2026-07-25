@@ -85,6 +85,7 @@ export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
         nodes={graphNodes}
         edges={graphEdges}
         viewTheme={viewTheme}
+        settings={DEFAULT_GRAPH_SETTINGS}
         focusNodeId={null}
         searchMatchSet={searchMatchSet}
         isSearchActive={hasActiveSearch}
@@ -94,18 +95,16 @@ export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
         onClickNode={handleClickNode}
       />
 
-      {
-        // stats badge (top, right)
-      }
+      {/* Stats badge (top-right) */}
       <div className="absolute top-2 right-2 z-10 hidden md:block">
         <div className="text-[10px] text-muted bg-surface-secondary/40 rounded px-2 py-1">
           {graphNodes.length} symbols / {graphEdges.length} edges
         </div>
       </div>
 
-      {
-        // truncation banner, server caps the payload at 8192 entries to fit convex's action limit show this so the user knows the graph isn't the full picture and can narrow down via filters
-      }
+      {/* Truncation banner — server caps the payload at 8192 entries to
+          fit Convex's action limit. Show this so the user knows the graph
+          isn't the full picture and can narrow down via filters. */}
       {truncated && (
         <div className="pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 z-10 max-w-md px-3">
           <div className="flex items-start gap-2 rounded-md bg-warning/10 px-3 py-2 text-xs text-foreground">
@@ -118,9 +117,7 @@ export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
         </div>
       )}
 
-      {
-        // zoom controls
-      }
+      {/* Zoom controls */}
       <GraphNavControls
         onZoomIn={() => canvasRef.current?.zoomIn()}
         onZoomOut={() => canvasRef.current?.zoomOut()}
@@ -128,9 +125,9 @@ export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
         isDarkCanvas={viewTheme.isDarkCanvas}
       />
 
-      {
-        // hover tooltips, node takes priority when both are present, and we suppress them entirely while a symbol is selected so they don't fight the detail panel for attention
-      }
+      {/* Hover tooltips — node takes priority when both are present, and
+          we suppress them entirely while a symbol is selected so they
+          don't fight the detail panel for attention. */}
       {hoveredNode && !selectedSymbolId && (
         <GraphNodeTooltip
           title={hoveredNode.title}
@@ -150,9 +147,10 @@ export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
         />
       )}
 
-      {
-        // right, side detail panel, visible whenever a symbol is selected (`blastradiusof` url param) the graph filters to that symbol's blast radius automatically because the api call uses the same param, so the panel and canvas stay in sync
-      }
+      {/* Right-side detail panel — visible whenever a symbol is selected
+          (`blastRadiusOf` URL param). The graph filters to that symbol's
+          blast radius automatically because the API call uses the same
+          param, so the panel and canvas stay in sync. */}
       <CodebaseSymbolPanel
         codebaseId={codebaseId}
         selectedSymbolId={selectedSymbolId}

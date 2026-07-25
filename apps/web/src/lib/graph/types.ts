@@ -1,3 +1,5 @@
+import type { SimulationNodeDatum, SimulationLinkDatum } from "d3-force";
+
 // kind of node shown on the graph
 export type GraphNodeKind =
   | "memory"
@@ -25,7 +27,7 @@ export type GraphEdgeType =
   | "starts_process"
   | "includes";
 
-export interface GraphNode {
+export interface GraphNode extends SimulationNodeDatum {
   id: string;
   title: string;
   // inline content — only wiki documents and skills carry this through the graph payload
@@ -40,13 +42,40 @@ export interface GraphNode {
   entityType?: string;
 }
 
-export interface GraphEdge {
+export interface GraphEdge extends SimulationLinkDatum<GraphNode> {
   source: string | GraphNode;
   target: string | GraphNode;
   edgeType: GraphEdgeType;
   weight: number;
   reason?: string;
   score?: number;
+}
+
+export interface ResolvedEdge {
+  source: GraphNode;
+  target: GraphNode;
+  edgeType: GraphEdgeType;
+  weight: number;
+  reason?: string;
+  score?: number;
+}
+
+export interface ViewportState {
+  offsetX: number;
+  offsetY: number;
+  scale: number;
+  targetScale: number;
+  targetOffsetX: number;
+  targetOffsetY: number;
+  velocityX: number;
+  velocityY: number;
+}
+
+export interface InteractionState {
+  hoveredNodeId: string | null;
+  hoveredEdgeIndex: number | null;
+  draggedNodeId: string | null;
+  isPanning: boolean;
 }
 
 export interface RelatedNode {

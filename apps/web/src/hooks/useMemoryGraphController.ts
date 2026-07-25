@@ -1,6 +1,6 @@
 // non-canvas graph state (filters/search/display) shared by canvas + header
 
-import { useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useState } from "react";
 import { useAction } from "convex/react";
 import { useQuery as useTanstackQuery } from "@tanstack/react-query";
 import { api } from "@vmem/backend";
@@ -9,8 +9,12 @@ import { useGraphData } from "@/hooks/useGraphData";
 import { useThemeContext } from "@/contexts/ThemeContext";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 import { useMemoriesSearchParams } from "@/hooks/useMemoriesSearchParams";
+import type { GraphScope } from "@/lib/url-state/memories";
 import { buildGraphData, getGraphFacets } from "@/lib/graph/graph-data";
-import type { GraphSettings } from "@/lib/graph/graph-types";
+import {
+  DEFAULT_GRAPH_SETTINGS,
+  type GraphSettings,
+} from "@/lib/graph/graph-types";
 import { getViewTheme } from "@/components/_components/graph-view-themes";
 import type { ListItemKind } from "@/lib/list-items";
 import type { MemoryType } from "@/lib/memories";
@@ -41,6 +45,8 @@ export function useMemoryGraphController({
 
   const listMemoriesAction = useAction(api.memoryApi.listMemories);
 
+  const scope: GraphScope = params.scope;
+
   const {
     apiNodes,
     apiTagEdges,
@@ -48,7 +54,6 @@ export function useMemoryGraphController({
     apiWikiParentEdges,
     apiMentionsEdges,
     resolvedFocusNodeId,
-    isFocused,
     totalMemoryCount,
     isLoading,
     isFetchingNextPage,
@@ -56,7 +61,7 @@ export function useMemoryGraphController({
     fetchNextPage,
     isError,
     error,
-  } = useGraphData(focusNodeId, activeProfileId, enabled, params.bench);
+  } = useGraphData(focusNodeId, activeProfileId, enabled, scope, params.bench);
 
   const searchQuery = params.q.trim();
   const deferredSearchQuery = useDeferredValue(searchQuery);
@@ -97,37 +102,13 @@ export function useMemoryGraphController({
     types: allTypes,
   } = getGraphFacets(apiNodes);
 
-  // Load-bearing memo, not ceremony: GraphCanvas destroys and recreates the
-  // WebGL graph (camera reset) whenever graphNodes/graphEdges identity
-  // changes. Without this boundary the compiler merges the call into a scope
-  // that also depends on isDark and searchQuery, so theme flips and search
-  // keystrokes rebuilt the graph.
-  const { graphNodes, graphEdges } = useMemo(
-    () =>
-      buildGraphData(
-        apiNodes,
-        apiTagEdges,
-        allRelatesToEdges,
-        apiWikiParentEdges,
-        apiMentionsEdges,
-        {
-          kinds: params.kinds,
-          tags: params.tags,
-          sources: params.sources,
-          types: params.types,
-        },
-      ),
-    [
-      apiNodes,
-      apiTagEdges,
-      allRelatesToEdges,
-      apiWikiParentEdges,
-      apiMentionsEdges,
-      params.kinds,
-      params.tags,
-      params.sources,
-      params.types,
-    ],
+  const { graphNodes, graphEdges } = buildGraphData(
+    apiNodes,
+    apiTagEdges,
+    allRelatesToEdges,
+    apiWikiParentEdges,
+    apiMentionsEdges,
+    filters,
   );
 
   const searchMatchSet = (() => {
@@ -159,14 +140,10 @@ export function useMemoryGraphController({
 
   const loadedMemoryCount = apiNodes.filter((n) => n.kind === "memory").length;
 
-  const loadedRelationshipCount =
-    apiTagEdges.length +
-    allRelatesToEdges.length +
-    apiWikiParentEdges.length +
-    apiMentionsEdges.length;
-
   const canLoadMore =
-    !isFocused && hasNextPage && loadedMemoryCount < GLOBAL_GRAPH_MAX_NODES;
+    scope === "global" &&
+    hasNextPage &&
+    loadedMemoryCount < GLOBAL_GRAPH_MAX_NODES;
 
   return {
     // raw (nodes only — edges stay internal to buildGraphData)
@@ -175,13 +152,12 @@ export function useMemoryGraphController({
     isError,
     error,
 
-    // focus neighbourhood
-    isFocused,
+    // scope
+    scope,
     resolvedFocusNodeId,
 
     // progressive global loading
     loadedMemoryCount,
-    loadedRelationshipCount,
     totalMemoryCount,
     canLoadMore,
     isLoadingMore: isFetchingNextPage,
@@ -198,6 +174,7 @@ export function useMemoryGraphController({
     allTypes,
     totalNodeCount: apiNodes.length,
     visibleNodeCount: graphNodes.length,
+    edgeCount: graphEdges.length,
     filters,
 
     // display state
@@ -230,6 +207,10 @@ export function useMemoryGraphController({
     },
     onSearchChange: (q: string) => {
       void setParams({ q: q.trim().length === 0 ? null : q });
+    },
+    onResetSettings: () => {
+      setGraphSettingsState(DEFAULT_GRAPH_SETTINGS);
+      setGraphSettings(DEFAULT_GRAPH_SETTINGS);
     },
   };
 }

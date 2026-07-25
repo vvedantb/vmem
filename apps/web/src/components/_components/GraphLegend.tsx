@@ -1,7 +1,13 @@
 import ShapeIndicator from "./ShapeIndicator";
 import type { ListItemKind } from "@/lib/list-items";
 
-// node shapes the renderer dispatches per kind (colour comes from first tag)
+interface GraphLegendProps {
+  nodeCount: number;
+  edgeCount: number;
+  visibleNodeCount: number;
+}
+
+// node shapes the renderer dispatches per kind
 const NODE_LEGEND: { kind: ListItemKind; label: string }[] = [
   { kind: "memory", label: "Memory" },
   { kind: "wiki-document", label: "Wiki document" },
@@ -22,16 +28,34 @@ const EDGE_LEGEND: {
   { label: "Mentions", swatchClass: "bg-success/70", thick: true },
 ];
 
-export default function GraphLegend() {
+export default function GraphLegend({
+  nodeCount,
+  edgeCount,
+  visibleNodeCount,
+}: GraphLegendProps) {
+  const fmt = (n: number) => n.toLocaleString();
+  const isFiltered = visibleNodeCount < nodeCount;
+
   return (
     <div className="space-y-3 text-[11px] text-muted">
-      {
-        // nodes, shape per kind, fill colour is tag, driven, not kind, fixed
-      }
+      {/* Stats */}
+      <p className="tabular-nums">
+        {isFiltered ? (
+          <>
+            {fmt(visibleNodeCount)} / {fmt(nodeCount)} nodes
+          </>
+        ) : (
+          <>{fmt(nodeCount)} nodes</>
+        )}
+        {" · "}
+        {fmt(edgeCount)} edges
+      </p>
+
+      {/* Nodes — shape per kind, colour = first tag */}
       <div className="space-y-1">
         <p className="text-muted/80">Nodes</p>
         <p className="text-muted/60 text-[10px]">
-          Shape = kind · colour = first tag · size = degree
+          Colour = first tag · size = degree
         </p>
         <div className="grid grid-cols-2 gap-x-3 gap-y-1 pt-0.5">
           {NODE_LEGEND.map(({ kind, label }) => (
@@ -47,9 +71,7 @@ export default function GraphLegend() {
         </div>
       </div>
 
-      {
-        // edges, semantic colour per category
-      }
+      {/* Edges — semantic colour per category */}
       <div className="space-y-1">
         <p className="text-muted/80">Edges</p>
         <div className="space-y-1 pt-0.5">
@@ -64,9 +86,7 @@ export default function GraphLegend() {
         </div>
       </div>
 
-      {
-        // states, what dimming/highlight means
-      }
+      {/* States — what dimming/highlight means */}
       <div className="space-y-1">
         <p className="text-muted/80">States</p>
         <div className="space-y-1 pt-0.5">
@@ -80,7 +100,7 @@ export default function GraphLegend() {
           </div>
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full border border-dashed border-foreground/60" />
-            <span>Focused · 2-hop neighbourhood</span>
+            <span>Focused · 2-hop subgraph</span>
           </div>
         </div>
       </div>
