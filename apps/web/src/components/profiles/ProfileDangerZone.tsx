@@ -11,7 +11,7 @@ import {
 } from "@vmem/ui";
 import { IconCheck, IconLoader2, IconTrash } from "@tabler/icons-react";
 import type { FunctionReturnType } from "convex/server";
-import { api, type Id } from "@vmem/backend";
+import type { api, Id } from "@vmem/backend";
 import { ProfileAvatar } from "./ProfileAvatar";
 
 type Profile = FunctionReturnType<typeof api.profiles.list>[number];

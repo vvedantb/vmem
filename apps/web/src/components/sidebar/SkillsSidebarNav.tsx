@@ -248,7 +248,6 @@ export function SkillsSidebarNav({
             {!isIconOnly && selectionMode ? (
               <SkillBulkDeleteBar
                 selectedIds={selectedIds}
-                teamId={teamId}
                 onExit={exitSelection}
               />
             ) : null}

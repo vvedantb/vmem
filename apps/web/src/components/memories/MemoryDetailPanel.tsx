@@ -17,12 +17,12 @@ import {
 import { formatDate } from "@vmem/shared";
 import { IconTrash, IconX, IconDots, IconPencil } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
-import type { Memory } from "@/lib/memories";
-import { formatMemoryTypeLabel } from "@/lib/memories";
 import {
   countUniqueRelated,
+  formatMemoryTypeLabel,
   relatedMemoriesQueryKey,
   uniqueRelated,
+  type Memory,
 } from "@/lib/memories";
 import { useMemoryContext } from "@/contexts/MemoryContext";
 import { toast } from "sonner";

@@ -13,7 +13,7 @@ import {
 } from "@vmem/ui";
 import { IconHistory, IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
-import { type SkillVersionListEntry } from "@/components/skills/_utils";
+import type { SkillVersionListEntry } from "@/components/skills/_utils";
 import { formatRelativeTime } from "@vmem/shared";
 import { updateAllCachedQueries } from "@/lib/convex-optimistic";
 

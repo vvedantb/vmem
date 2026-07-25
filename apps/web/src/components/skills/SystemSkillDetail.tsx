@@ -21,7 +21,7 @@ import PageContainer from "@/components/shell/PageContainer";
 import { ViewSkillPanel } from "@/components/skills/ViewSkillPanel";
 import { SystemSkillFormDialog } from "@/components/skills/SystemSkillFormDialog";
 import DestructiveConfirmDialog from "@/components/settings/DestructiveConfirmDialog";
-import { type SystemSkillEntry } from "@/components/skills/_utils";
+import type { SystemSkillEntry } from "@/components/skills/_utils";
 import { useActiveTeamId } from "@/components/workspace/active-profile";
 import {
   setSystemSkillInstallState,

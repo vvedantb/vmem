@@ -23,11 +23,12 @@ import {
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { api } from "@vmem/backend";
-import type { Memory } from "@/lib/memories";
-import { formatMemoryTypeLabel, memoryFromApi } from "@/lib/memories";
 import {
+  formatMemoryTypeLabel,
+  memoryFromApi,
   relatedMemoriesQueryKey,
   uniqueRelated,
+  type Memory,
   type RelatedMemoryEntry,
 } from "@/lib/memories";
 import LinkMemoryModal from "@/components/memories/LinkMemoryModal";

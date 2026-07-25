@@ -2,7 +2,7 @@ import { Button, Card, CardContent } from "@vmem/ui";
 import { formatDate } from "@vmem/shared";
 import { IconEdit, IconTrash } from "@tabler/icons-react";
 import type { FunctionReturnType } from "convex/server";
-import { api } from "@vmem/backend";
+import type { api } from "@vmem/backend";
 import { ProfileAvatar } from "./ProfileAvatar";
 
 type Profile = FunctionReturnType<typeof api.profiles.list>[number];

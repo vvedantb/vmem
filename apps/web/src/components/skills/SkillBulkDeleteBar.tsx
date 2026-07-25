@@ -7,7 +7,6 @@ import { removeSkillsFromLists } from "@/lib/convex-optimistic";
 
 interface SkillBulkDeleteBarProps {
   selectedIds: ReadonlySet<Id<"skills">>;
-  teamId: Id<"teams"> | undefined;
   // clear the selection and leave select mode
   onExit: () => void;
 }
@@ -15,7 +14,6 @@ interface SkillBulkDeleteBarProps {
 // selection-mode action bar for the skills sidebar
 export function SkillBulkDeleteBar({
   selectedIds,
-  teamId,
   onExit,
 }: SkillBulkDeleteBarProps) {
   const deleteSkills = useMutation(

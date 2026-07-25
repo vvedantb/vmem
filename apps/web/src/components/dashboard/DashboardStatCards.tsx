@@ -6,7 +6,7 @@ import {
   IconTags,
 } from "@tabler/icons-react";
 import type { FunctionReturnType } from "convex/server";
-import { api } from "@vmem/backend";
+import type { api } from "@vmem/backend";
 import { AnimatedCounter } from "../icons/animations";
 import { MetricSummaryCard } from "@/components/metrics/MetricSummaryCard";
 
