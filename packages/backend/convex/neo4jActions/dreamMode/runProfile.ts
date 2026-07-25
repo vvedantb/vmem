@@ -2,7 +2,7 @@
 
 import { internalAction, type ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
-import type { Id } from "../../_generated/dataModel";
+import type { Doc, Id } from "../../_generated/dataModel";
 import { v } from "convex/values";
 import { computeContentHash } from "../../../engine/neo4j/memory/mappers";
 import {
@@ -37,7 +37,6 @@ import {
 } from "../../../engine/neo4j/dreamPrompt";
 import { tryOpenRouterAuth, type AgentAuth } from "../agent/shared";
 import type { DreamDepth } from "../../lib/dreamTriggerDecision";
-import type { Doc } from "../../_generated/dataModel";
 
 const DEFAULT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;

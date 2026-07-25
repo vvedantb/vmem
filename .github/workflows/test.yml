@@ -32,6 +32,9 @@ jobs:
       - name: Format check
         run: pnpm format:check
 
+      - name: Build SDK (backend tests import its dist types)
+        run: pnpm sdk:build
+
       - name: Typecheck (all workspaces)
         run: pnpm typecheck:all
 

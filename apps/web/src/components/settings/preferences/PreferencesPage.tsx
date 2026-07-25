@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { toast } from "sonner";
-import { Card, CardContent, Switch, TimePicker } from "@vmem/ui";
+import {
+  Card,
+  CardContent,
+  LabeledSwitchRow,
+  Switch,
+  TimePicker,
+} from "@vmem/ui";
 import { api } from "@vmem/backend";
 import {
   DEFAULT_LOCAL_TIME,
@@ -13,9 +19,7 @@ import PageContainer from "@/components/shell/PageContainer";
 import ConfidenceThresholdSlider from "@/components/settings/ConfidenceThresholdSlider";
 import { useUserSettingsSave } from "@/hooks/useUserSettingsSave";
 import { PreferenceSection } from "./PreferenceSection";
-import { PreferenceSliderRow } from "./PreferenceSliderRow";
 import { PreferenceTextareaRow } from "./PreferenceTextareaRow";
-import { PreferenceToggleRow } from "./PreferenceToggleRow";
 import { PreferencesPageSkeleton } from "./PreferencesPageSkeleton";
 
 export function PreferencesPage() {
@@ -165,7 +169,7 @@ export function PreferencesPage() {
         </Card>
 
         <PreferenceSection title="Memory Behavior">
-          <PreferenceToggleRow
+          <LabeledSwitchRow
             id="auto-extract"
             label="Auto-extract memories"
             description="Automatically extract memories from conversations."
@@ -174,18 +178,18 @@ export function PreferencesPage() {
               void saveSettings({ memoryAutoExtract: checked });
             }}
           />
-          <PreferenceSliderRow>
+          <div>
             <ConfidenceThresholdSlider
               value={settings.memoryConfidenceThreshold}
               onChange={(value) => {
                 void saveSettings({ memoryConfidenceThreshold: value });
               }}
             />
-          </PreferenceSliderRow>
+          </div>
         </PreferenceSection>
 
         <PreferenceSection title="Dream Mode">
-          <PreferenceToggleRow
+          <LabeledSwitchRow
             id="dream-automatic"
             label="Automatic dreaming"
             description="Dream on its own once you go quiet after saving new memories — no schedule needed. Runs at most a few times a day, deeper when more context piled up."
@@ -194,7 +198,7 @@ export function PreferencesPage() {
               void saveSettings({ dreamModeAutomatic: checked });
             }}
           />
-          <PreferenceToggleRow
+          <LabeledSwitchRow
             id="dream-auto-accept"
             label="Auto-accept high-confidence synthesis"
             description="When on, high-confidence syntheses save as memories automatically. Otherwise they queue in your inbox for approval. Contradictions always queue regardless."
@@ -203,7 +207,7 @@ export function PreferencesPage() {
               void saveSettings({ dreamModeAutoAccept: checked });
             }}
           />
-          <PreferenceToggleRow
+          <LabeledSwitchRow
             id="dream-schedule"
             label="Daily schedule"
             description="Run Dream Mode every day at this time. Stored as UTC; the local time shown shifts by an hour on DST transitions."
@@ -237,7 +241,7 @@ export function PreferencesPage() {
         </PreferenceSection>
 
         <PreferenceSection title="Notification Preferences">
-          <PreferenceToggleRow
+          <LabeledSwitchRow
             id="notify-conflicts"
             label="Memory conflicts"
             description="Notify when proposed updates conflict with existing memories."
@@ -246,7 +250,7 @@ export function PreferencesPage() {
               void saveSettings({ notifyMemoryConflicts: checked });
             }}
           />
-          <PreferenceToggleRow
+          <LabeledSwitchRow
             id="notify-new-memories"
             label="New memories"
             description="Notify when new memories are automatically extracted."
@@ -255,7 +259,7 @@ export function PreferencesPage() {
               void saveSettings({ notifyNewMemories: checked });
             }}
           />
-          <PreferenceToggleRow
+          <LabeledSwitchRow
             id="notify-expiring"
             label="Expiring memories"
             description="Notify when memories are about to be archived."

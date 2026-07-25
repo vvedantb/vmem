@@ -4,7 +4,7 @@ import { useMediaQuery } from "usehooks-ts";
 import { toast } from "sonner";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 import { api } from "@vmem/backend";
-import { Dialog, DialogContent, DialogTitle } from "@vmem/ui";
+import { Dialog, DialogContent, DialogTitle, Spinner } from "@vmem/ui";
 import PageContainer from "@/components/shell/PageContainer";
 import { buildTree, findAncestors, wikiKindHasContent } from "./_utils";
 import type { OutlineHeading } from "./_utils";
@@ -13,6 +13,7 @@ import WikiOutline from "./WikiOutline";
 import { useWikiSidebar } from "./WikiSidebarContext";
 import { WikiPageBreadcrumb } from "./WikiPageBreadcrumb";
 import { WikiDocActionsMenu } from "./WikiDocActionsMenu";
+import { renameWikiNodeInLists } from "@/lib/convex-optimistic";
 
 const WikiEditor = lazy(() => import("./WikiEditor"));
 const WikiHistoryPanel = lazy(() =>
@@ -42,7 +43,7 @@ function resolvePhase(args: {
 function WikiSpinner() {
   return (
     <div className="flex flex-1 items-center justify-center">
-      <div className="h-5 w-5 animate-spin rounded-full border-2 border-default border-t-transparent" />
+      <Spinner size="sm" />
     </div>
   );
 }
@@ -157,23 +158,7 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
   const doc = useQuery(api.wiki.getNode, docId ? { id: docId } : "skip");
   const renameNode = useMutation(api.wiki.renameNode).withOptimisticUpdate(
     (localStore, args) => {
-      for (const entry of localStore.getAllQueries(api.wiki.listTree)) {
-        if (entry.value === undefined) continue;
-        localStore.setQuery(
-          api.wiki.listTree,
-          entry.args,
-          entry.value.map((n) =>
-            n._id === args.id ? { ...n, title: args.title } : n,
-          ),
-        );
-      }
-      for (const entry of localStore.getAllQueries(api.wiki.getNode)) {
-        if (entry.value == null || entry.value._id !== args.id) continue;
-        localStore.setQuery(api.wiki.getNode, entry.args, {
-          ...entry.value,
-          title: args.title,
-        });
-      }
+      renameWikiNodeInLists(localStore, args);
     },
   );
   const {
@@ -215,7 +200,7 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
 
   function handleTitleChange(title: string) {
     if (!editableDoc) return;
-    void renameNode({ id: editableDoc._id, title }).catch((err) => {
+    void renameNode({ id: editableDoc._id, title }).catch((err: unknown) => {
       toast.error(err instanceof Error ? err.message : "Failed to save");
     });
   }
@@ -225,16 +210,18 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
     const trimmed = editableDoc.title.trim();
     if (trimmed.length === 0) {
       void renameNode({ id: editableDoc._id, title: "Untitled" }).catch(
-        (err) => {
+        (err: unknown) => {
           toast.error(err instanceof Error ? err.message : "Failed to save");
         },
       );
       return;
     }
     if (trimmed !== editableDoc.title) {
-      void renameNode({ id: editableDoc._id, title: trimmed }).catch((err) => {
-        toast.error(err instanceof Error ? err.message : "Failed to save");
-      });
+      void renameNode({ id: editableDoc._id, title: trimmed }).catch(
+        (err: unknown) => {
+          toast.error(err instanceof Error ? err.message : "Failed to save");
+        },
+      );
     }
   }
 

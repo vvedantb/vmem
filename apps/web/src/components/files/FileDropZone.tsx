@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { useDropzone } from "react-dropzone";
 import { AnimatePresence, motion } from "motion/react";
-import { motionDuration, motionEase } from "@vmem/ui";
+import { Input, motionDuration, motionEase } from "@vmem/ui";
 import { IconUpload } from "@tabler/icons-react";
 
 interface FileDropZoneProps {
@@ -27,7 +27,7 @@ export default function FileDropZone({
         className: "relative flex-1 min-h-0",
       })}
     >
-      <input {...getInputProps()} />
+      <Input {...getInputProps()} />
       {children}
 
       <AnimatePresence initial={false}>

@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "convex/react";
-import { api, type Id } from "@vmem/backend";
+import { api } from "@vmem/backend";
 import {
   Dialog,
   DialogContent,
@@ -13,7 +13,7 @@ import {
   Switch,
 } from "@vmem/ui";
 import { toast } from "sonner";
-import { type SystemSkillEntry } from "@/components/skills/_utils";
+import type { SystemSkillEntry } from "@/components/skills/_utils";
 import { SkillFormShell } from "@/components/skills/SkillFormShell";
 import {
   emptySystemSkillFormValues,
@@ -22,6 +22,7 @@ import {
   toastSkillFormErrors,
   type SystemSkillFormValues,
 } from "@/components/skills/skillForm";
+import { tempId, updateAllCachedQueries } from "@/lib/convex-optimistic";
 
 interface SystemSkillFormDialogProps {
   open: boolean;
@@ -40,63 +41,51 @@ export function SystemSkillFormDialog({
     api.systemSkills.adminCreate,
   ).withOptimisticUpdate((localStore, args) => {
     const now = Date.now();
-    const tempId = crypto.randomUUID() as Id<"systemSkills">;
-    for (const entry of localStore.getAllQueries(
-      api.systemSkills.listCatalog,
-    )) {
-      if (entry.value === undefined) continue;
-      localStore.setQuery(api.systemSkills.listCatalog, entry.args, [
-        {
-          _id: tempId,
-          name: args.name,
-          description: args.description,
-          instructions: args.instructions,
-          category: args.category,
-          published: args.published,
-          updatedAt: now,
-          installed: false,
-          installEnabled: false,
-        },
-        ...entry.value,
-      ]);
-    }
+    const newId = tempId<"systemSkills">();
+    updateAllCachedQueries(localStore, api.systemSkills.listCatalog, (list) => [
+      {
+        _id: newId,
+        name: args.name,
+        description: args.description,
+        instructions: args.instructions,
+        category: args.category,
+        published: args.published,
+        updatedAt: now,
+        installed: false,
+        installEnabled: false,
+      },
+      ...list,
+    ]);
   });
   const adminUpdate = useMutation(
     api.systemSkills.adminUpdate,
   ).withOptimisticUpdate((localStore, args) => {
-    for (const entry of localStore.getAllQueries(
-      api.systemSkills.listCatalog,
-    )) {
-      if (entry.value === undefined) continue;
-      localStore.setQuery(
-        api.systemSkills.listCatalog,
-        entry.args,
-        entry.value.map((s) =>
-          s._id === args.id
-            ? {
-                ...s,
-                ...(args.name !== undefined ? { name: args.name } : {}),
-                ...(args.description !== undefined
-                  ? { description: args.description }
-                  : {}),
-                ...(args.instructions !== undefined
-                  ? { instructions: args.instructions }
-                  : {}),
-                ...(args.category !== undefined
-                  ? {
-                      category:
-                        args.category === null ? undefined : args.category,
-                    }
-                  : {}),
-                ...(args.published !== undefined
-                  ? { published: args.published }
-                  : {}),
-                updatedAt: Date.now(),
-              }
-            : s,
-        ),
-      );
-    }
+    updateAllCachedQueries(localStore, api.systemSkills.listCatalog, (list) =>
+      list.map((s) =>
+        s._id === args.id
+          ? {
+              ...s,
+              ...(args.name !== undefined ? { name: args.name } : {}),
+              ...(args.description !== undefined
+                ? { description: args.description }
+                : {}),
+              ...(args.instructions !== undefined
+                ? { instructions: args.instructions }
+                : {}),
+              ...(args.category !== undefined
+                ? {
+                    category:
+                      args.category === null ? undefined : args.category,
+                  }
+                : {}),
+              ...(args.published !== undefined
+                ? { published: args.published }
+                : {}),
+              updatedAt: Date.now(),
+            }
+          : s,
+      ),
+    );
   });
 
   const isEdit = entry !== undefined;
@@ -120,7 +109,7 @@ export function SystemSkillFormDialog({
     }
     form.reset(emptySystemSkillFormValues);
     // Reset on open / entry identity only — not on live-query object churn.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- entry snapshot at open/_id
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- entry snapshot at open/_id
   }, [open, entryId, form]);
 
   const handleOpenChange = (next: boolean) => {

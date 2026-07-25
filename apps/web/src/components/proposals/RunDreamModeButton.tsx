@@ -1,21 +1,20 @@
-import { useState } from "react";
 import { useAction } from "convex/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@vmem/ui";
 import { IconSparkles, IconLoader2 } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
+import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
 
 // inbox "start dreaming" button — one-shot personal-profile synthesis
 export default function RunDreamModeButton() {
   const runDreamForUser = useAction(api.dreamMode.runDreamForUser);
   const queryClient = useQueryClient();
-  const [isRunning, setIsRunning] = useState(false);
+  const { submitting: isRunning, run: runDream } = useAsyncSubmit();
 
   async function handleClick() {
     if (isRunning) return;
-    setIsRunning(true);
-    try {
+    await runDream(async () => {
       const result = await runDreamForUser({});
       switch (result.reason) {
         case "ok": {
@@ -55,13 +54,7 @@ export default function RunDreamModeButton() {
           toast.message("Dream Mode already ran in the last hour — try later");
           break;
       }
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Dream Mode failed to run",
-      );
-    } finally {
-      setIsRunning(false);
-    }
+    }, "Dream Mode failed to run");
   }
 
   return (

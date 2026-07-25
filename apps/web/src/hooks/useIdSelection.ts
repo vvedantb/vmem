@@ -139,11 +139,8 @@ export function useIdSelection<T>(options: UseIdSelectionOptions<T> = {}) {
     toggle,
     selectAll,
     handleClick,
-    handleCheckbox: toggle,
-    handleSelectAll: selectAll,
     selectionMode,
     setSelectionMode,
     exitSelection,
-    toggleSelect: toggle,
   };
 }

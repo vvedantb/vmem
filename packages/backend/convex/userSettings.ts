@@ -14,7 +14,7 @@ import {
 } from "./profiles/mcpAccess";
 import {
   userSettingsPatchFields,
-  userSettingsThemeValidator,
+  type userSettingsThemeValidator,
 } from "./validators";
 
 type ThemeValue = Infer<typeof userSettingsThemeValidator>;

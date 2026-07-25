@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@vmem/backend";
-import type { Doc, Id } from "@vmem/backend";
+import type { Doc } from "@vmem/backend";
+import { tempId } from "@/lib/convex-optimistic";
 import {
   Button,
   DropdownMenu,
@@ -88,13 +89,13 @@ export function SidebarWorkspaceSwitcher({
       const list = localStore.getQuery(api.profiles.list, {});
       if (list === undefined) return;
       const now = Date.now();
-      const tempId = crypto.randomUUID() as Id<"profiles">;
+      const optimisticId = tempId<"profiles">();
       localStore.setQuery(api.profiles.list, {}, [
         ...list,
         {
-          _id: tempId,
+          _id: optimisticId,
           _creationTime: now,
-          userId: list[0]?.userId ?? ("" as Id<"users">),
+          userId: list[0]?.userId ?? tempId<"users">(),
           name: args.name,
           color: args.color,
           icon: args.icon,

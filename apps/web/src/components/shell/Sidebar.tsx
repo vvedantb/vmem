@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "@tanstack/react-router";
-import { useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useMediaQuery } from "usehooks-ts";
 import { motion } from "motion/react";
 import {
@@ -67,23 +67,29 @@ export default function Sidebar({
   const isTeamWorkspace =
     profiles?.find((p) => p._id === activeProfileId)?.teamId !== undefined;
 
-  const refreshStats = async (fresh: boolean) => {
-    try {
-      // scope counts to the active workspace; without one (fresh browser
-      // on /settings) fall back to user-wide totals
-      const data = await getStats(
-        fresh
-          ? { fresh: true, profileId: activeProfileId }
-          : { profileId: activeProfileId },
-      );
-      setStats({
-        addedToday: data.memoriesAddedToday,
-        total: data.totalMemories,
-      });
-    } catch {
-      // silently fail -- sidebar stats are non-critical
-    }
-  };
+  // shared by the mount-effect below and handleMemoryEvent's live-update
+  // callback, so it needs a stable identity rather than a plain render-body
+  // function
+  const refreshStats = useCallback(
+    async (fresh: boolean) => {
+      try {
+        // scope counts to the active workspace; without one (fresh browser
+        // on /settings) fall back to user-wide totals
+        const data = await getStats(
+          fresh
+            ? { fresh: true, profileId: activeProfileId }
+            : { profileId: activeProfileId },
+        );
+        setStats({
+          addedToday: data.memoriesAddedToday,
+          total: data.totalMemories,
+        });
+      } catch {
+        // silently fail -- sidebar stats are non-critical
+      }
+    },
+    [getStats, activeProfileId],
+  );
 
   useEffect(() => {
     if (!isAuthenticated) return;

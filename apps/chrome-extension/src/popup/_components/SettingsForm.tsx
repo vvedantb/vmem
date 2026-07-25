@@ -23,8 +23,10 @@ import {
   SelectValue,
   SelectContent,
   SelectItem,
+  LabeledSwitchRow,
 } from "@vmem/ui";
 import { api } from "@vmem/backend";
+import { isTheme } from "@vmem/shared";
 import { getStorage, setStorage } from "@/lib/storage";
 import {
   VMEM_AI_SYSTEM_PROMPT,
@@ -36,15 +38,8 @@ import {
 import { useExtensionUserSettings } from "@/popup/useExtensionUserSettings";
 import { useBrowserDefaultProfile } from "@/popup/useBrowserDefaultProfile";
 import { SettingsSelectRow } from "./SettingsSelectRow";
-import { SettingsSwitchRow } from "./SettingsSwitchRow";
 import { SettingsSliderRow } from "./SettingsSliderRow";
 import { ProfileSelect } from "./ProfileSelect";
-
-type Theme = "light" | "dark" | "system";
-
-function isTheme(value: string): value is Theme {
-  return value === "light" || value === "dark" || value === "system";
-}
 
 export function SettingsForm() {
   const { signOut } = useClerk();
@@ -171,7 +166,7 @@ export function SettingsForm() {
         <h3 className="text-base font-medium text-foreground">Extension</h3>
         <Card className="shadow-none">
           <CardContent className="space-y-6 p-4">
-            <SettingsSwitchRow
+            <LabeledSwitchRow
               id="selection-popup-toggle"
               label="Save popup on text selection"
               description="Show a quick-save chip when you highlight text on a page."
@@ -179,7 +174,7 @@ export function SettingsForm() {
               onCheckedChange={handleSelectionPopupToggle}
               disabled={settings === undefined}
             />
-            <SettingsSwitchRow
+            <LabeledSwitchRow
               id="auto-search-toggle"
               label="Auto-search memories in chats"
               description="Inject relevant memories when you send a message in ChatGPT or Claude."
@@ -187,7 +182,7 @@ export function SettingsForm() {
               onCheckedChange={handleAutoSearchToggle}
               icon={<IconBrain size={16} />}
             />
-            <SettingsSwitchRow
+            <LabeledSwitchRow
               id="auto-capture-toggle"
               label="Auto-capture prompts"
               description="Save outgoing prompts from supported chat sites automatically."
@@ -203,7 +198,7 @@ export function SettingsForm() {
         <h3 className="text-base font-medium text-foreground">Browsing sync</h3>
         <Card className="shadow-none">
           <CardContent className="space-y-6 p-4">
-            <SettingsSwitchRow
+            <LabeledSwitchRow
               id="auto-sync-toggle"
               label="Auto-sync history & bookmarks"
               description="Periodically import new browsing history and bookmarks into your memories."

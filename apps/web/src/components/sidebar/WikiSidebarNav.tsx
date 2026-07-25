@@ -2,7 +2,8 @@ import { useNavigate, useParams } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
-import { Button } from "@vmem/ui";
+import { tempId } from "@/lib/convex-optimistic";
+import { Button, Spinner } from "@vmem/ui";
 import { IconBook, IconListCheck } from "@tabler/icons-react";
 import WikiTree from "@/components/wiki/WikiTree";
 import WikiSearch from "@/components/wiki/WikiSearch";
@@ -45,13 +46,13 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
         siblings.length === 0
           ? 0
           : Math.max(...siblings.map((s) => s.order)) + 1;
-      const tempId = crypto.randomUUID() as Id<"wikiNodes">;
+      const optimisticId = tempId<"wikiNodes">();
       localStore.setQuery(api.wiki.listTree, listArgs, [
         ...list,
         {
-          _id: tempId,
+          _id: optimisticId,
           _creationTime: now,
-          userId: list[0]?.userId ?? ("" as Id<"users">),
+          userId: list[0]?.userId ?? tempId<"users">(),
           teamId: args.teamId,
           parentId: args.parentId,
           kind: args.kind,
@@ -72,7 +73,7 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
     selectedIds,
     setSelectionMode,
     exitSelection,
-    toggleSelect,
+    toggle,
   } = useIdSelection<Id<"wikiNodes">>();
 
   const handleSelectNode = (id: string) => {
@@ -158,7 +159,7 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
       <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden px-1">
         {nodes === undefined ? (
           <div className="flex items-center justify-center py-10">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-default border-t-transparent" />
+            <Spinner size="sm" />
           </div>
         ) : tree.length === 0 ? (
           <>
@@ -199,7 +200,7 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
               onSelect={handleSelectNode}
               mode={selectionMode && !isIconOnly ? "bulk-select" : "navigate"}
               selectedNodeIds={selectedIds}
-              onToggleSelect={toggleSelect}
+              onToggleSelect={toggle}
             />
           </>
         )}

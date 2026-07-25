@@ -1,6 +1,6 @@
 import type { FunctionReturnType } from "convex/server";
 import { orderBy, startCase, uniqBy } from "es-toolkit";
-import { api } from "@vmem/backend";
+import type { api } from "@vmem/backend";
 
 export type MemoryListResult = FunctionReturnType<
   typeof api.memoryApi.listMemories

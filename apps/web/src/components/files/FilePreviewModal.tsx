@@ -24,6 +24,7 @@ import {
   imageThumbnailUrl,
 } from "@/components/files/_utils";
 import DestructiveConfirmDialog from "@/components/settings/DestructiveConfirmDialog";
+import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
 
 interface FilePreviewModalProps {
   isOpen: boolean;
@@ -38,25 +39,17 @@ export default function FilePreviewModal({
   onClose,
   onDelete,
 }: FilePreviewModalProps) {
-  const [isDeleting, setIsDeleting] = useState(false);
+  const { submitting: isDeleting, run: runDelete } = useAsyncSubmit();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleDelete = async () => {
     if (!node) return;
 
-    setIsDeleting(true);
-
-    try {
+    await runDelete(async () => {
       await onDelete(node);
       setShowDeleteConfirm(false);
       onClose();
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to delete file",
-      );
-    } finally {
-      setIsDeleting(false);
-    }
+    }, "Failed to delete file");
   };
 
   const handleDownload = () => {

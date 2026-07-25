@@ -2,8 +2,6 @@
 
 import { sendMessage, type ExtractPageData } from "@/lib/messaging";
 
-export type { ExtractPageData };
-
 // returns null on privileged urls where content scripts can't run
 export async function extractPageFromTab(
   tabId: number,

@@ -3,10 +3,10 @@ import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
 import { toast } from "sonner";
 import { BulkSelectionDeleteBar } from "@/components/shell/BulkSelectionDeleteBar";
+import { removeSkillsFromLists } from "@/lib/convex-optimistic";
 
 interface SkillBulkDeleteBarProps {
   selectedIds: ReadonlySet<Id<"skills">>;
-  teamId: Id<"teams"> | undefined;
   // clear the selection and leave select mode
   onExit: () => void;
 }
@@ -14,21 +14,12 @@ interface SkillBulkDeleteBarProps {
 // selection-mode action bar for the skills sidebar
 export function SkillBulkDeleteBar({
   selectedIds,
-  teamId,
   onExit,
 }: SkillBulkDeleteBarProps) {
   const deleteSkills = useMutation(
     api.skills.deleteSkills,
   ).withOptimisticUpdate((localStore, args) => {
-    const remove = new Set(args.ids);
-    for (const entry of localStore.getAllQueries(api.skills.listMy)) {
-      if (entry.value === undefined) continue;
-      localStore.setQuery(
-        api.skills.listMy,
-        entry.args,
-        entry.value.filter((s) => !remove.has(s._id)),
-      );
-    }
+    removeSkillsFromLists(localStore, args.ids);
   });
 
   const count = selectedIds.size;

@@ -21,7 +21,7 @@ export async function getSyncProfileId(): Promise<string | undefined> {
     await setStorage({ defaultProfileId: "" });
   }
 
-  let convexDefault: string | null = null;
+  let convexDefault: string | null;
   try {
     convexDefault = await getExtensionDefaultProfileId();
   } catch {

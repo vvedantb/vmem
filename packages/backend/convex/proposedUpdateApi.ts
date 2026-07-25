@@ -37,7 +37,7 @@ export const listProposedUpdates = authAction({
       ({ driver, userId, profileId, strictProfile: strict }) =>
         listProposedUpdatesEngine(driver, userId, {
           profileId,
-          strictProfile: strict === true,
+          strictProfile: strict,
         }),
     );
   },

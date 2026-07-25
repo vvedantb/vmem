@@ -14,6 +14,7 @@ import {
 } from "@vmem/ui";
 import { IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
+import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
 
 interface CreateTeamDialogProps {
   open: boolean;
@@ -27,27 +28,20 @@ export function CreateTeamDialog({
   const createTeam = useMutation(api.teams.create);
   const navigate = useNavigate();
   const [name, setName] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const { submitting, run } = useAsyncSubmit();
 
   const trimmed = name.trim();
   const canSubmit = trimmed.length > 0 && !submitting;
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
-    setSubmitting(true);
-    try {
+    await run(async () => {
       const { profileId } = await createTeam({ name: trimmed });
       toast.success(`Created ${trimmed}`);
       onOpenChange(false);
       setName("");
       await navigate({ to: "/$profileId/home", params: { profileId } });
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to create team";
-      toast.error(message);
-    } finally {
-      setSubmitting(false);
-    }
+    }, "Failed to create team");
   };
 
   return (

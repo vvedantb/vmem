@@ -7,6 +7,7 @@ import {
   DialogTitle,
   DialogFooter,
   Button,
+  Input,
   Progress,
 } from "@vmem/ui";
 import { toast } from "sonner";
@@ -201,7 +202,7 @@ export default function FileUploadModal({
                 "relative cursor-pointer rounded-lg border-2 border-dashed border-border p-8 text-center transition-colors hover:bg-surface-secondary/35",
             })}
           >
-            <input {...getInputProps()} />
+            <Input {...getInputProps()} />
             <div className="flex flex-col items-center gap-3">
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-surface-secondary">
                 <IconUpload size={24} className="text-muted" />

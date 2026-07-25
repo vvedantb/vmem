@@ -29,6 +29,7 @@ import { ProfileDropdown } from "@/components/profiles/ProfileDropdown";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 import { buildTagStats } from "@/lib/memories";
 import { formatFileSize } from "@/components/files/_utils";
+import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
 
 const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
 const ACCEPTED_FILE_EXTENSIONS = ".pdf,.txt,.md,.markdown";
@@ -61,7 +62,7 @@ export default function AddMemoryModal({
     string | undefined
   >();
   const [pendingFile, setPendingFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
+  const { submitting: isUploading, run: runImport } = useAsyncSubmit();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const {
@@ -132,8 +133,7 @@ export default function AddMemoryModal({
 
   const handleImportFile = async () => {
     if (!pendingFile) return;
-    setIsUploading(true);
-    try {
+    await runImport(async () => {
       await uploadMemoryFile({
         file: pendingFile,
         profileId: selectedProfileId ?? activeProfileId,
@@ -143,13 +143,7 @@ export default function AddMemoryModal({
       });
       resetForm();
       setOpen(false);
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Could not import file",
-      );
-    } finally {
-      setIsUploading(false);
-    }
+    }, "Could not import file");
   };
 
   const handleCreateMemory = async (data: MemoryFormValues) => {

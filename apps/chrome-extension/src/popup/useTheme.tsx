@@ -1,8 +1,8 @@
 import { useEffect } from "react";
 import { useMediaQuery } from "usehooks-ts";
+import type { Theme } from "@vmem/shared";
 import { useExtensionUserSettings } from "./useExtensionUserSettings";
 
-type Theme = "light" | "dark" | "system";
 type ResolvedTheme = "light" | "dark";
 
 function applyTheme(resolved: ResolvedTheme) {

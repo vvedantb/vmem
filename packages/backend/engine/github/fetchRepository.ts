@@ -139,6 +139,7 @@ export async function fetchRepositoryFromGithub(
       if (status !== undefined) {
         throw new Error(
           `GitHub tarball error for ${repoOwner}/${repoName}@${branch}: ${status} ${err.message}`,
+          { cause: err },
         );
       }
     }

@@ -15,7 +15,7 @@ import {
 } from "@tabler/icons-react";
 import { useMutation } from "convex/react";
 import { toast } from "sonner";
-import { api, type Id } from "@vmem/backend";
+import { api } from "@vmem/backend";
 import {
   AnimatedNotificationIcon,
   AnimatedBellIcon,
@@ -23,6 +23,7 @@ import {
 import { useNotifications } from "@/contexts/NotificationContext";
 import type { NotificationType } from "@/contexts/NotificationContext";
 import { formatRelativeTime } from "@vmem/shared";
+import { tempId } from "@/lib/convex-optimistic";
 
 function getIconBackground(type: NotificationType) {
   switch (type) {
@@ -198,9 +199,9 @@ export function NotificationsRightSection() {
         },
       ];
       const optimistic = samples.map((sample, index) => ({
-        _id: crypto.randomUUID() as Id<"notifications">,
+        _id: tempId<"notifications">(),
         _creationTime: now + index,
-        userId: list[0]?.userId ?? ("" as Id<"users">),
+        userId: list[0]?.userId ?? tempId<"users">(),
         title: sample.title,
         description: sample.description,
         type: sample.type,

@@ -16,6 +16,7 @@ export * from "./ui/dropdown-menu";
 export * from "./ui/hover-card";
 export * from "./ui/input";
 export * from "./ui/label";
+export * from "./ui/labeled-switch-row";
 export * from "./ui/popover";
 export * from "./ui/progress";
 export * from "./ui/select";

@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { useMutation } from "convex/react";
 import { api } from "@vmem/backend";
@@ -9,10 +8,13 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  Input,
 } from "@vmem/ui";
 import { IconLoader2, IconUpload } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { useActiveTeamId } from "@/components/workspace/active-profile";
+import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
+import { insertSkillInLists } from "@/lib/convex-optimistic";
 
 interface UploadSkillDialogProps {
   open: boolean;
@@ -55,30 +57,10 @@ export function UploadSkillDialog({
   const teamId = useActiveTeamId();
   const createSkill = useMutation(api.skills.createSkill).withOptimisticUpdate(
     (localStore, args) => {
-      const now = Date.now();
-      const tempId = crypto.randomUUID() as Id<"skills">;
-      for (const entry of localStore.getAllQueries(api.skills.listMy)) {
-        if (entry.value === undefined) continue;
-        if (entry.args.teamId !== args.teamId) continue;
-        localStore.setQuery(api.skills.listMy, entry.args, [
-          {
-            _id: tempId,
-            _creationTime: now,
-            userId: entry.value[0]?.userId ?? ("" as Id<"users">),
-            teamId: args.teamId,
-            name: args.name,
-            description: args.description,
-            instructions: args.instructions,
-            enabled: true,
-            createdAt: now,
-            updatedAt: now,
-          },
-          ...entry.value,
-        ]);
-      }
+      insertSkillInLists(localStore, args);
     },
   );
-  const [submitting, setSubmitting] = useState(false);
+  const { submitting, run } = useAsyncSubmit();
 
   const handleFile = async (file: File | undefined) => {
     if (!file || submitting) return;
@@ -88,8 +70,7 @@ export function UploadSkillDialog({
       return;
     }
 
-    setSubmitting(true);
-    try {
+    await run(async () => {
       const { name, instructions } = await readSkillFile(file);
       const trimmedName = name.trim();
       if (trimmedName.length === 0) {
@@ -110,12 +91,7 @@ export function UploadSkillDialog({
       toast.success(`Added ${trimmedName}`);
       onOpenChange(false);
       onCreated(skillId);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to upload skill";
-      toast.error(msg);
-    } finally {
-      setSubmitting(false);
-    }
+    }, "Failed to upload skill");
   };
 
   const { getRootProps, getInputProps } = useDropzone({
@@ -145,7 +121,7 @@ export function UploadSkillDialog({
               "flex min-h-[180px] cursor-pointer flex-col items-center justify-center gap-3 rounded-lg bg-surface-secondary/20 px-4 py-8 text-center transition-colors hover:bg-surface-secondary/35",
           })}
         >
-          <input {...getInputProps()} />
+          <Input {...getInputProps()} />
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-secondary/60">
             {submitting ? (
               <IconLoader2 size={22} className="animate-spin text-muted" />

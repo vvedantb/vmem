@@ -46,7 +46,7 @@ export function EditSkillDialog({
     form.reset(skillFormValuesFrom(skill));
     // Reset only when the dialog opens or the edited skill changes — not on
     // every live-query identity churn while the form is dirty.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- skill snapshot at open/_id
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- skill snapshot at open/_id
   }, [open, skillId, form]);
 
   const onSubmit = async (values: SkillFormValues) => {
