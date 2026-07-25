@@ -6,6 +6,7 @@ import { api } from "@vmem/backend";
 import { truncate } from "es-toolkit/compat";
 import { sendMessage } from "@/lib/messaging";
 import { extractPageFromTab } from "@/lib/extract-page";
+import { errorMessage } from "@/lib/error";
 import { useBrowserDefaultProfile } from "@/popup/useBrowserDefaultProfile";
 import { useExtensionUserSettings } from "@/popup/useExtensionUserSettings";
 import { ProfileSelect } from "./ProfileSelect";
@@ -97,7 +98,7 @@ export function QuickSave() {
     } catch (err) {
       setResult({
         success: false,
-        message: err instanceof Error ? err.message : String(err),
+        message: errorMessage(err),
       });
     } finally {
       setSaving(false);

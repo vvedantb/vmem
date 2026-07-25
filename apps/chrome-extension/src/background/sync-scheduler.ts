@@ -1,5 +1,6 @@
 import { api } from "@vmem/backend";
 import { getStorage, setStorage } from "@/lib/storage";
+import { errorMessage } from "@/lib/error";
 import { convexSettingsToStorageMirror } from "@/types/storage";
 import {
   DEFAULT_SYNC_INTERVAL_MINUTES,
@@ -279,7 +280,7 @@ async function handleHistoryAlarm(): Promise<void> {
       `[vmem] History sync finished — imported ${result.imported} new entries; bookmarks ${bookmarkResult.imported} new`,
     );
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = errorMessage(error);
     await recordSyncAttempt(`error: ${message}`);
     console.error("[vmem] History sync failed:", message);
   } finally {

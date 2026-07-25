@@ -5,6 +5,7 @@
 import { computePosition, offset, shift } from "@floating-ui/dom";
 import { escape } from "es-toolkit";
 import type { MemoryCandidate } from "@/types/api";
+import { createShadowHost } from "./dom-utils";
 
 // singleton state
 
@@ -171,23 +172,12 @@ const STYLES = `
 function ensureContainer(): void {
   if (host) return;
 
-  host = document.createElement("vmem-memory-panel");
-  Object.assign(host.style, {
-    position: "fixed",
-    top: "0",
-    left: "0",
-    width: "0",
-    height: "0",
-    overflow: "visible",
-    zIndex: "2147483646",
-    pointerEvents: "none",
-  });
-
-  shadow = host.attachShadow({ mode: "closed" });
-
-  const style = document.createElement("style");
-  style.textContent = STYLES;
-  shadow.appendChild(style);
+  // NOTE: one below the other overlays' 2147483647 — kept as-is, not unified
+  ({ host, shadow } = createShadowHost(
+    "vmem-memory-panel",
+    STYLES,
+    "2147483646",
+  ));
 
   panelEl = document.createElement("div");
   panelEl.id = "memory-panel";

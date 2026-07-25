@@ -7,6 +7,7 @@
 
 import { computePosition, flip, offset, shift } from "@floating-ui/dom";
 import { onMessage, sendMessage } from "@/lib/messaging";
+import { errorMessage } from "@/lib/error";
 import { mountVmemLogo } from "@/content/shared/icons";
 import { checkIcon, errorIcon } from "@/content/shared/status-icons";
 import type { Mode, SelectionRect } from "./types";
@@ -225,7 +226,7 @@ async function saveScreenshot(): Promise<void> {
   } catch (err) {
     console.error(
       "[vmem] Screenshot save failed:",
-      err instanceof Error ? err.message : String(err),
+      errorMessage(err),
       "— reload the page to reconnect.",
     );
     saveBtn.title = err instanceof Error ? err.message : "Save failed";

@@ -1,3 +1,4 @@
+import { errorMessage } from "@/lib/error";
 import { registerContextMenu } from "./context-menu";
 import {
   bootstrapSyncSchedulers,
@@ -14,7 +15,7 @@ export async function runBackgroundBootstrap(): Promise<void> {
     await bootstrapSyncSchedulers();
     void catchUpHistorySyncIfOverdue();
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = errorMessage(error);
     console.error("[vmem] Background bootstrap failed:", message);
   }
 }
