@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { createContext, use } from "react";
 import { useQuery, useMutation, useConvexAuth } from "convex/react";
+import type { OptimisticLocalStore } from "convex/browser";
 import { api } from "@vmem/backend";
 import type { Doc, Id } from "@vmem/backend";
 
@@ -17,6 +18,31 @@ interface NotificationContextType {
 }
 
 const NotificationContext = createContext<NotificationContextType | null>(null);
+
+// shared by markAsRead/markAsUnread/deleteNotification's optimistic updates:
+// each patches a notification within the cached list, then nudges the
+// cached unread count by +/-1, clamped at 0 (a re-toggle or missing
+// notification skips the count adjustment entirely by passing delta 0).
+function patchReadFlag(
+  list: Doc<"notifications">[],
+  id: Id<"notifications">,
+  read: boolean,
+): Doc<"notifications">[] {
+  return list.map((n) => (n._id === id ? { ...n, read } : n));
+}
+
+function adjustUnreadCount(
+  localStore: OptimisticLocalStore,
+  unread: number | undefined,
+  delta: number,
+): void {
+  if (unread === undefined || delta === 0) return;
+  localStore.setQuery(
+    api.notifications.unreadCount,
+    {},
+    Math.max(0, unread + delta),
+  );
+}
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated } = useConvexAuth();
@@ -35,26 +61,13 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     const unread = localStore.getQuery(api.notifications.unreadCount, {});
     if (list === undefined) return;
     const target = list.find((n) => n._id === args.id);
-    if (!target || target.read) {
-      localStore.setQuery(
-        api.notifications.listMy,
-        {},
-        list.map((n) => (n._id === args.id ? { ...n, read: true } : n)),
-      );
-      return;
-    }
     localStore.setQuery(
       api.notifications.listMy,
       {},
-      list.map((n) => (n._id === args.id ? { ...n, read: true } : n)),
+      patchReadFlag(list, args.id, true),
     );
-    if (unread !== undefined) {
-      localStore.setQuery(
-        api.notifications.unreadCount,
-        {},
-        Math.max(0, unread - 1),
-      );
-    }
+    // already read (or missing) -> no count change
+    adjustUnreadCount(localStore, unread, target && !target.read ? -1 : 0);
   });
   const markAsUnreadMutation = useMutation(
     api.notifications.markAsUnread,
@@ -63,22 +76,13 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     const unread = localStore.getQuery(api.notifications.unreadCount, {});
     if (list === undefined) return;
     const target = list.find((n) => n._id === args.id);
-    if (!target || !target.read) {
-      localStore.setQuery(
-        api.notifications.listMy,
-        {},
-        list.map((n) => (n._id === args.id ? { ...n, read: false } : n)),
-      );
-      return;
-    }
     localStore.setQuery(
       api.notifications.listMy,
       {},
-      list.map((n) => (n._id === args.id ? { ...n, read: false } : n)),
+      patchReadFlag(list, args.id, false),
     );
-    if (unread !== undefined) {
-      localStore.setQuery(api.notifications.unreadCount, {}, unread + 1);
-    }
+    // already unread (or missing) -> no count change
+    adjustUnreadCount(localStore, unread, target && target.read ? 1 : 0);
   });
   const markAllAsReadMutation = useMutation(
     api.notifications.markAllAsRead,
@@ -107,13 +111,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       {},
       list.filter((n) => n._id !== args.id),
     );
-    if (target && !target.read && unread !== undefined) {
-      localStore.setQuery(
-        api.notifications.unreadCount,
-        {},
-        Math.max(0, unread - 1),
-      );
-    }
+    adjustUnreadCount(localStore, unread, target && !target.read ? -1 : 0);
   });
 
   const isLoading =
