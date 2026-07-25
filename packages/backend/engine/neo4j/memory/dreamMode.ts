@@ -12,7 +12,11 @@ import type { PortraitEvidenceMemory } from "../portraitPrompt";
 import { neo4jGet, parseNeo4jNodeProps } from "../record";
 import { toSnapshot } from "./mappers";
 import { withSession } from "../session";
-import { logEvent, visibleStatusClause } from "./shared";
+import {
+  CREATE_DERIVED_MEMORY_CYPHER,
+  logEvent,
+  visibleStatusClause,
+} from "./shared";
 
 const dreamMemoryPropsSchema = z.object({
   id: z.string(),
@@ -276,52 +280,18 @@ export async function materializeSynthesisAsMemory(
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
 
-    await session.run(
-      `CREATE (m:Memory {
-         id: $id,
-         userId: $userId,
-         profileId: $profileId,
-         title: $title,
-         content: $content,
-         type: 'knowledge',
-         source: 'dream-mode',
-         confidence: $confidence,
-         status: 'active',
-         createdAt: $now,
-         updatedAt: $now,
-         expiresAt: null,
-         url: null,
-         embedding: $embedding,
-         contentHash: $contentHash,
-         sourceType: null,
-         sourceId: null,
-         storageId: null,
-         mimeType: null,
-         originalFilename: null,
-         visitCount: 1,
-         firstVisitAt: $now,
-         lastVisitAt: $now
-       })
-       WITH m
-       MERGE (s:Source {name: 'dream-mode'})
-       CREATE (m)-[:FROM_SOURCE]->(s)
-       WITH m
-       UNWIND $sourceMemoryIds AS sid
-       MATCH (src:Memory {id: sid, userId: $userId})
-       MERGE (m)-[:DERIVED_FROM]->(src)`,
-      {
-        id,
-        userId: params.userId,
-        profileId: params.profileId,
-        title: params.title,
-        content: params.content,
-        confidence: params.confidence,
-        now,
-        embedding: params.embedding,
-        contentHash: params.contentHash,
-        sourceMemoryIds: params.sourceMemoryIds,
-      },
-    );
+    await session.run(CREATE_DERIVED_MEMORY_CYPHER, {
+      id,
+      userId: params.userId,
+      profileId: params.profileId,
+      title: params.title,
+      content: params.content,
+      confidence: params.confidence,
+      now,
+      embedding: params.embedding,
+      contentHash: params.contentHash,
+      sourceMemoryIds: params.sourceMemoryIds,
+    });
 
     await logEvent(
       session,

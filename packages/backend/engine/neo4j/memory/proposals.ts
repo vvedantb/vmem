@@ -4,7 +4,11 @@ import { z } from "zod";
 import { neo4jGet, neo4jString, parseNeo4jNodeProps } from "../record";
 import { computeContentHash, toMemoryWithTags, toSnapshot } from "./mappers";
 import { withSession } from "../session";
-import { logEvent, profileFilter } from "./shared";
+import {
+  CREATE_DERIVED_MEMORY_CYPHER,
+  logEvent,
+  profileFilter,
+} from "./shared";
 import {
   PROPOSED_UPDATE_KINDS,
   type ProposedUpdateKind,
@@ -420,38 +424,7 @@ const MATERIALISE_DERIVED_MEMORY_CYPHER = `
   MATCH (p:ProposedUpdate {id: $proposalId})
   SET p.status = 'approved', p.resolvedAt = $now
   WITH p
-  CREATE (m:Memory {
-    id: $newMemoryId,
-    userId: $userId,
-    profileId: $profileId,
-    title: $title,
-    content: $content,
-    type: 'knowledge',
-    source: 'dream-mode',
-    confidence: $confidence,
-    status: 'active',
-    createdAt: $now,
-    updatedAt: $now,
-    expiresAt: null,
-    url: null,
-    embedding: null,
-    contentHash: $contentHash,
-    sourceType: null,
-    sourceId: null,
-    storageId: null,
-    mimeType: null,
-    originalFilename: null,
-    visitCount: 1,
-    firstVisitAt: $now,
-    lastVisitAt: $now
-  })
-  WITH m
-  MERGE (s:Source {name: 'dream-mode'})
-  CREATE (m)-[:FROM_SOURCE]->(s)
-  WITH m
-  UNWIND $sourceMemoryIds AS sid
-  MATCH (src:Memory {id: sid, userId: $userId})
-  MERGE (m)-[:DERIVED_FROM]->(src)`;
+  ${CREATE_DERIVED_MEMORY_CYPHER}`;
 
 async function rejectUnresolved(
   session: Session,
@@ -482,12 +455,13 @@ async function applyDerivedMemoryApproval(
   const materialiseParams = {
     proposalId,
     now,
-    newMemoryId,
+    id: newMemoryId,
     userId: lookup.userId,
     profileId: lookup.sourceProfileId,
     title: lookup.proposedTitle,
     content: lookup.proposedContent,
     confidence: lookup.confidence,
+    embedding: null,
     contentHash,
     sourceMemoryIds: lookup.sourceMemoryIds,
   };
