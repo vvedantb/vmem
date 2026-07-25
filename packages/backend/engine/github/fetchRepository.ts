@@ -137,9 +137,11 @@ export async function fetchRepositoryFromGithub(
     if (err instanceof Error) {
       const status = readHttpStatus(err);
       if (status !== undefined) {
+        // no `{ cause: err }` here: apps/web compiles with lib ES2020, where
+        // ErrorOptions does not exist, and it typechecks this file through
+        // @vmem/backend. err.message is interpolated above instead.
         throw new Error(
           `GitHub tarball error for ${repoOwner}/${repoName}@${branch}: ${status} ${err.message}`,
-          { cause: err },
         );
       }
     }
