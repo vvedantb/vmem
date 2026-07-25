@@ -1,8 +1,7 @@
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { useMutation, useQuery } from "convex/react";
+import { useQuery } from "convex/react";
 import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
-import { tempId } from "@/lib/convex-optimistic";
 import { Button, Spinner } from "@vmem/ui";
 import { IconBook, IconListCheck } from "@tabler/icons-react";
 import WikiTree from "@/components/wiki/WikiTree";
@@ -10,6 +9,10 @@ import WikiSearch from "@/components/wiki/WikiSearch";
 import { WikiAddMenu } from "@/components/wiki/WikiAddMenu";
 import { WikiBulkDeleteBar } from "@/components/wiki/WikiBulkDeleteBar";
 import { buildTree, findFirstDocumentId } from "@/components/wiki/_utils";
+import {
+  defaultWikiNodeTitle,
+  useCreateWikiNode,
+} from "@/components/wiki/useCreateWikiNode";
 import { useIdSelection } from "@/hooks/useIdSelection";
 import {
   useActiveProfileId,
@@ -33,38 +36,7 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
       : null;
 
   const nodes = useQuery(api.wiki.listTree, { teamId });
-  const createNode = useMutation(api.wiki.createNode).withOptimisticUpdate(
-    (localStore, args) => {
-      const listArgs = { teamId: args.teamId };
-      const list = localStore.getQuery(api.wiki.listTree, listArgs);
-      if (list === undefined) return;
-      const now = Date.now();
-      const siblings = list.filter(
-        (n) => (n.parentId ?? undefined) === (args.parentId ?? undefined),
-      );
-      const order =
-        siblings.length === 0
-          ? 0
-          : Math.max(...siblings.map((s) => s.order)) + 1;
-      const optimisticId = tempId<"wikiNodes">();
-      localStore.setQuery(api.wiki.listTree, listArgs, [
-        ...list,
-        {
-          _id: optimisticId,
-          _creationTime: now,
-          userId: list[0]?.userId ?? tempId<"users">(),
-          teamId: args.teamId,
-          parentId: args.parentId,
-          kind: args.kind,
-          title: args.title,
-          language: args.language,
-          order,
-          createdAt: now,
-          updatedAt: now,
-        },
-      ]);
-    },
-  );
+  const createNode = useCreateWikiNode();
 
   const tree = nodes ? buildTree(nodes) : [];
 
@@ -97,12 +69,7 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
 
   const handleCreateRoot = (kind: "folder" | "document" | "artifact") => {
     void (async () => {
-      const title =
-        kind === "folder"
-          ? "Untitled folder"
-          : kind === "artifact"
-            ? "Untitled artifact"
-            : "Untitled";
+      const title = defaultWikiNodeTitle(kind);
       const newId = await createNode({
         parentId: undefined,
         kind,
