@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "convex/react";
@@ -40,12 +39,6 @@ export function WriteSkillDialog({
   });
 
   const submitting = form.formState.isSubmitting;
-
-  useEffect(() => {
-    if (!open) {
-      form.reset(emptySkillFormValues);
-    }
-  }, [open, form]);
 
   const handleOpenChange = (next: boolean) => {
     if (!next) form.reset(emptySkillFormValues);

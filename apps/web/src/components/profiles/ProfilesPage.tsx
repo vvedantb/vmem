@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useAction } from "convex/react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Button, Skeleton } from "@vmem/ui";
 import { IconPlus } from "@tabler/icons-react";
@@ -71,22 +71,6 @@ export function ProfilesPage() {
     deletingProfileId !== null && profiles !== undefined
       ? profiles.find((profile) => profile._id === deletingProfileId)
       : undefined;
-
-  useEffect(() => {
-    if (!profiles) return;
-    if (
-      editingProfileId !== null &&
-      !profiles.some((profile) => profile._id === editingProfileId)
-    ) {
-      setEditingProfileId(null);
-    }
-    if (
-      deletingProfileId !== null &&
-      !profiles.some((profile) => profile._id === deletingProfileId)
-    ) {
-      setDeletingProfileId(null);
-    }
-  }, [profiles, editingProfileId, deletingProfileId]);
 
   if (profiles === undefined) {
     return (
