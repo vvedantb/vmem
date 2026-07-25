@@ -80,7 +80,13 @@ const config: KnipConfig = {
     },
   },
   ignore: ["internal/**"],
-  ignoreDependencies: ["oxlint-tsgolint", "baseline-browser-mapping"],
+  // lint-staged: used by .husky/pre-commit (`npx lint-staged`), which knip
+  // does not trace
+  ignoreDependencies: [
+    "oxlint-tsgolint",
+    "baseline-browser-mapping",
+    "lint-staged",
+  ],
   ignoreBinaries: ["convex"],
 };
 
