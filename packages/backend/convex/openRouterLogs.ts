@@ -71,6 +71,30 @@ function rangeCutoff(range: "today" | "7d" | "30d" | "all"): number | null {
   }
 }
 
+// resolve + authorize the team for a team-scoped read; `onDenied: "empty"`
+// turns both the missing-teamId and not-a-member cases into `null` instead
+// of throwing (used by the "give me an empty result" call sites)
+async function resolveAuthorizedTeamId(
+  ctx: QueryCtx,
+  opts: {
+    userId: Id<"users">;
+    teamId?: Id<"teams">;
+    onDenied: "throw" | "empty";
+  },
+): Promise<Id<"teams"> | null> {
+  const teamId = opts.teamId;
+  if (!teamId) {
+    if (opts.onDenied === "empty") return null;
+    throw new Error("Team scope requires teamId");
+  }
+  const membership = await getMembershipOrNull(ctx, teamId, opts.userId);
+  if (!membership) {
+    if (opts.onDenied === "empty") return null;
+    throw new Error("Not authorized for this team");
+  }
+  return teamId;
+}
+
 async function scopedOpenRouterLogsQuery(
   ctx: QueryCtx,
   opts: {
@@ -82,16 +106,8 @@ async function scopedOpenRouterLogsQuery(
   },
 ) {
   if (opts.scope === "team") {
-    const teamId = opts.teamId;
-    if (!teamId) {
-      if (opts.onDenied === "empty") return null;
-      throw new Error("Team scope requires teamId");
-    }
-    const membership = await getMembershipOrNull(ctx, teamId, opts.userId);
-    if (!membership) {
-      if (opts.onDenied === "empty") return null;
-      throw new Error("Not authorized for this team");
-    }
+    const teamId = await resolveAuthorizedTeamId(ctx, opts);
+    if (!teamId) return null;
     return ctx.db
       .query("openRouterLogs")
       .withIndex("by_team_createdAt", (idx) =>
@@ -124,16 +140,8 @@ async function resolveOwnerNamespace(
   if (opts.scope === "personal") {
     return userLogNamespace(opts.userId);
   }
-  const teamId = opts.teamId;
-  if (!teamId) {
-    if (opts.onDenied === "empty") return null;
-    throw new Error("Team scope requires teamId");
-  }
-  const membership = await getMembershipOrNull(ctx, teamId, opts.userId);
-  if (!membership) {
-    if (opts.onDenied === "empty") return null;
-    throw new Error("Not authorized for this team");
-  }
+  const teamId = await resolveAuthorizedTeamId(ctx, opts);
+  if (!teamId) return null;
   return teamLogNamespace(teamId);
 }
 
