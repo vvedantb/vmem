@@ -16,7 +16,7 @@ import {
   deleteVersionsForWikiNode,
   maybeSnapshotWikiVersion,
 } from "./lib/versionSnapshot";
-import { wikiKindHasContent } from "./lib/wikiKind";
+import { wikiKindHasContent } from "@vmem/shared";
 
 const wikiKindValidator = v.union(
   v.literal("folder"),

@@ -1,6 +1,6 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
-import { wikiKindHasContent } from "./wikiKind";
+import { wikiKindHasContent } from "@vmem/shared";
 
 // edits within this window by the same author/source coalesce into one version
 const BURST_MS = 15 * 60 * 1000;

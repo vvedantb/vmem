@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { WikiListNode, WikiNodeId } from "./-types";
-import { wikiKindLabel } from "./_utils";
+import { wikiKindLabel } from "@vmem/shared";
 import {
   Button,
   Dialog,

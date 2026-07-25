@@ -6,7 +6,7 @@ import {
   mergeMarkdownForAppend,
   wikiExcerpt,
 } from "../lib/wikiContent";
-import { wikiKindHasContent } from "../lib/wikiKind";
+import { wikiKindHasContent } from "@vmem/shared";
 import { parentKey } from "../lib/scopedTree";
 import {
   buildWikiChildrenByParent,
