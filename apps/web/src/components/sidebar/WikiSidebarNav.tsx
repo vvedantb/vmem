@@ -2,7 +2,7 @@ import { useNavigate, useParams } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
-import { Button } from "@vmem/ui";
+import { Button, Spinner } from "@vmem/ui";
 import { IconBook, IconListCheck } from "@tabler/icons-react";
 import WikiTree from "@/components/wiki/WikiTree";
 import WikiSearch from "@/components/wiki/WikiSearch";
@@ -158,7 +158,7 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
       <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden px-1">
         {nodes === undefined ? (
           <div className="flex items-center justify-center py-10">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-default border-t-transparent" />
+            <Spinner size="sm" />
           </div>
         ) : tree.length === 0 ? (
           <>

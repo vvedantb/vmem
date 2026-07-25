@@ -12,6 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  Spinner,
   Switch,
 } from "@vmem/ui";
 import { IconDots, IconPencil, IconPlus, IconTrash } from "@tabler/icons-react";
@@ -29,7 +30,7 @@ import {
 
 const systemSkillDetailSpinner = (
   <div className="flex justify-center py-20">
-    <div className="h-5 w-5 animate-spin rounded-full border-2 border-default border-t-transparent" />
+    <Spinner size="sm" />
   </div>
 );
 

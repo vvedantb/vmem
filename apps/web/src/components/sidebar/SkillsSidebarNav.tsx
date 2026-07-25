@@ -4,7 +4,7 @@ import { useQuery } from "convex/react";
 import { useQueryStates } from "nuqs";
 import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
-import { Button, cn } from "@vmem/ui";
+import { Button, Spinner, cn } from "@vmem/ui";
 import { IconApps, IconBolt, IconListCheck } from "@tabler/icons-react";
 import { SkillCard } from "@/components/skills/SkillCard";
 import { SkillBulkDeleteBar } from "@/components/skills/SkillBulkDeleteBar";
@@ -205,7 +205,7 @@ export function SkillsSidebarNav({
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto scrollbar-thin px-1">
         {skills === undefined ? (
           <div className="flex items-center justify-center py-10">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-default border-t-transparent" />
+            <Spinner size="sm" />
           </div>
         ) : skills.length === 0 ? (
           <>

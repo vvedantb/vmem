@@ -4,7 +4,7 @@ import { useMediaQuery } from "usehooks-ts";
 import { toast } from "sonner";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 import { api } from "@vmem/backend";
-import { Dialog, DialogContent, DialogTitle } from "@vmem/ui";
+import { Dialog, DialogContent, DialogTitle, Spinner } from "@vmem/ui";
 import PageContainer from "@/components/shell/PageContainer";
 import { buildTree, findAncestors, wikiKindHasContent } from "./_utils";
 import type { OutlineHeading } from "./_utils";
@@ -43,7 +43,7 @@ function resolvePhase(args: {
 function WikiSpinner() {
   return (
     <div className="flex flex-1 items-center justify-center">
-      <div className="h-5 w-5 animate-spin rounded-full border-2 border-default border-t-transparent" />
+      <Spinner size="sm" />
     </div>
   );
 }

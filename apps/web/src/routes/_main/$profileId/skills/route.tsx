@@ -9,6 +9,7 @@ import { useMutation, useQuery } from "convex/react";
 import { useQueryStates } from "nuqs";
 import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
+import { Spinner } from "@vmem/ui";
 import { IconBolt } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import PageContainer from "@/components/shell/PageContainer";
@@ -196,7 +197,7 @@ function SkillsLayout() {
           <ViewSkillPanel skill={viewedSkill} />
         ) : isSkillLoading || skills === undefined ? (
           <div className="flex flex-1 items-center justify-center">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-default border-t-transparent" />
+            <Spinner size="sm" />
           </div>
         ) : skills.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center text-center">
