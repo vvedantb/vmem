@@ -8,6 +8,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  Input,
 } from "@vmem/ui";
 import { IconLoader2, IconUpload } from "@tabler/icons-react";
 import { toast } from "sonner";
@@ -120,7 +121,7 @@ export function UploadSkillDialog({
               "flex min-h-[180px] cursor-pointer flex-col items-center justify-center gap-3 rounded-lg bg-surface-secondary/20 px-4 py-8 text-center transition-colors hover:bg-surface-secondary/35",
           })}
         >
-          <input {...getInputProps()} />
+          <Input {...getInputProps()} />
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-secondary/60">
             {submitting ? (
               <IconLoader2 size={22} className="animate-spin text-muted" />

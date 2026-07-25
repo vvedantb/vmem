@@ -194,31 +194,38 @@ export default function WikiDocumentEditor({
     return () => onRegisterCopy(null);
   }, [copyToClipboard, editor, onRegisterCopy, titleForCopy]);
 
-  const restoreToContent = async (markdown: string) => {
-    if (!editor) return;
-    cancelPendingSave();
-    suppressNextUpdateRef.current = true;
-    baselineMarkdownRef.current = markdown;
-    editor.commands.setContent(markdown);
-    const jsonDoc = editor.getJSON();
-    onWordCountChange(countWords(docToPlainText(jsonDoc)));
-    try {
-      await saveNow({
-        content: getMarkdownFromEditor(editor),
-        contentText: docToPlainText(jsonDoc),
-        forceSnapshot: true,
-      });
-      baselineMarkdownRef.current = getMarkdownFromEditor(editor);
-      toast.success("Version restored");
-    } catch {
-      // saveNow already toasts on failure
-    }
-  };
-
   useEffect(() => {
-    onRegisterRestore(editor ? restoreToContent : null);
+    if (!editor) {
+      onRegisterRestore(null);
+      return;
+    }
+    onRegisterRestore(async (markdown: string) => {
+      cancelPendingSave();
+      suppressNextUpdateRef.current = true;
+      baselineMarkdownRef.current = markdown;
+      editor.commands.setContent(markdown);
+      const jsonDoc = editor.getJSON();
+      onWordCountChange(countWords(docToPlainText(jsonDoc)));
+      try {
+        await saveNow({
+          content: getMarkdownFromEditor(editor),
+          contentText: docToPlainText(jsonDoc),
+          forceSnapshot: true,
+        });
+        baselineMarkdownRef.current = getMarkdownFromEditor(editor);
+        toast.success("Version restored");
+      } catch {
+        // saveNow already toasts on failure
+      }
+    });
     return () => onRegisterRestore(null);
-  }, [editor, restoreToContent, onRegisterRestore]);
+  }, [
+    cancelPendingSave,
+    editor,
+    onRegisterRestore,
+    onWordCountChange,
+    saveNow,
+  ]);
 
   return (
     <div

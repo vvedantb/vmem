@@ -49,7 +49,7 @@ function resetSelectionState(): void {
 }
 
 function setSaveButtonState(
-  icon: "logo" | string,
+  icon: string,
   label: string,
   disabled: boolean,
   title?: string,

@@ -59,8 +59,10 @@ export function DetailsTabEdit({ memory, onCancel }: DetailsTabEditProps) {
     event.preventDefault();
     const form = event.currentTarget;
     const formData = new FormData(form);
-    const title = String(formData.get("title") ?? "");
-    const content = String(formData.get("content") ?? "");
+    const rawTitle = formData.get("title");
+    const rawContent = formData.get("content");
+    const title = typeof rawTitle === "string" ? rawTitle : "";
+    const content = typeof rawContent === "string" ? rawContent : "";
     const parsed = memorySchema.safeParse({ title, content, tags });
     if (!parsed.success) {
       const contentIssue = parsed.error.issues.find(

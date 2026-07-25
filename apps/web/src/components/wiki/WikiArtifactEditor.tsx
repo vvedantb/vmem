@@ -2,7 +2,7 @@ import { useDeferredValue, useEffect, useRef, useState } from "react";
 import { useCopyToClipboard } from "usehooks-ts";
 import { toast } from "sonner";
 import { IconPlayerPlay } from "@tabler/icons-react";
-import { Button, cn } from "@vmem/ui";
+import { Button, Textarea, cn } from "@vmem/ui";
 import type { WikiNodeDoc } from "./-types";
 import { formatWikiDocForClipboard, type OutlineHeading } from "./_utils";
 import { useWikiAutosave } from "./useWikiAutosave";
@@ -148,25 +148,23 @@ export default function WikiArtifactEditor({
     return () => onRegisterCopy(null);
   }, [copyToClipboard, onRegisterCopy, titleForCopy]);
 
-  const restoreToContent = async (source: string) => {
-    cancelPendingSave();
-    setDraft(source);
-    try {
-      await saveNow({
-        content: source,
-        contentText: source,
-        forceSnapshot: true,
-      });
-      toast.success("Restored");
-    } catch {
-      // saveNow already toasts on failure
-    }
-  };
-
   useEffect(() => {
-    onRegisterRestore(restoreToContent);
+    onRegisterRestore(async (source: string) => {
+      cancelPendingSave();
+      setDraft(source);
+      try {
+        await saveNow({
+          content: source,
+          contentText: source,
+          forceSnapshot: true,
+        });
+        toast.success("Restored");
+      } catch {
+        // saveNow already toasts on failure
+      }
+    });
     return () => onRegisterRestore(null);
-  }, [onRegisterRestore, restoreToContent]);
+  }, [cancelPendingSave, onRegisterRestore, saveNow]);
 
   function handleChange(next: string) {
     setDraft(next);
@@ -218,11 +216,11 @@ export default function WikiArtifactEditor({
             showPreview ? "md:border-r md:border-separator" : null,
           )}
         >
-          <textarea
+          <Textarea
             value={draft}
             onChange={(e) => handleChange(e.target.value)}
             spellCheck={false}
-            className="h-full min-h-[280px] w-full resize-none bg-transparent px-3 py-4 font-mono text-[13px] leading-relaxed text-foreground outline-none md:px-6 md:py-6"
+            className="h-full min-h-[280px] w-full resize-none border-0 bg-transparent px-3 py-4 font-mono text-[13px] leading-relaxed text-foreground outline-none focus-visible:ring-0 md:px-6 md:py-6"
             aria-label="Artifact source"
           />
         </div>

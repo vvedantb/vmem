@@ -142,10 +142,11 @@ export default function RelatedMemories({
                 key={entry.memory.id}
                 className="flex min-w-0 items-start gap-1 rounded-lg px-2 py-2.5 transition-[background-color] hover:bg-surface-tertiary"
               >
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
                   onClick={() => onSelectRelated(related)}
-                  className="flex min-w-0 flex-1 flex-col items-start gap-2 overflow-hidden rounded-none border-0 bg-transparent p-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                  className="flex h-auto min-w-0 flex-1 flex-col items-start justify-start gap-2 overflow-hidden rounded-none border-0 bg-transparent p-0 text-left hover:bg-transparent active:scale-100"
                 >
                   <div className="min-w-0 w-full overflow-hidden">
                     <p className="truncate text-sm font-medium text-foreground">
@@ -169,7 +170,7 @@ export default function RelatedMemories({
                       {formatMemoryTypeLabel(related.type)}
                     </Badge>
                   </div>
-                </button>
+                </Button>
                 <Button
                   variant="ghost"
                   size="icon-sm"
