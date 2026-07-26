@@ -12,11 +12,14 @@ export interface GoogleDriveSyncArgs {
   accessToken: string;
 }
 
-const GOOGLE_DRIVE_MIME_TYPES = [
-  "application/vnd.google-apps.document",
-  "application/vnd.google-apps.spreadsheet",
-  "application/vnd.google-apps.presentation",
-];
+// Drive only accepts a specific export format per editor type: asking a
+// spreadsheet for `text/plain` is a hard 400. Sheets export as CSV (first tab
+// only — Drive has no multi-tab text format).
+const GOOGLE_DRIVE_EXPORT_MIME_TYPES: Record<string, string> = {
+  "application/vnd.google-apps.document": "text/plain",
+  "application/vnd.google-apps.spreadsheet": "text/csv",
+  "application/vnd.google-apps.presentation": "text/plain",
+};
 
 export async function runGoogleDriveSync(
   ctx: ActionCtx,
@@ -32,7 +35,9 @@ export async function runGoogleDriveSync(
     label: "Google Drive",
     fetchPage: async (cursor) => {
       const listResponse = await drive.files.list({
-        q: GOOGLE_DRIVE_MIME_TYPES.map((t) => `mimeType='${t}'`).join(" or "),
+        q: Object.keys(GOOGLE_DRIVE_EXPORT_MIME_TYPES)
+          .map((t) => `mimeType='${t}'`)
+          .join(" or "),
         fields: "nextPageToken, files(id, name, mimeType, webViewLink)",
         pageSize: 100,
         pageToken: cursor,
@@ -45,11 +50,14 @@ export async function runGoogleDriveSync(
         identify: (file) => file.name ?? file.id ?? "unknown",
         toDoc: async (file) => {
           const fileId = file.id;
-          if (!fileId || !file.name) return null;
+          if (!fileId || !file.name || !file.mimeType) return null;
+
+          const exportMimeType = GOOGLE_DRIVE_EXPORT_MIME_TYPES[file.mimeType];
+          if (exportMimeType === undefined) return null;
 
           const exportResponse = await drive.files.export({
             fileId,
-            mimeType: "text/plain",
+            mimeType: exportMimeType,
           });
 
           const content =

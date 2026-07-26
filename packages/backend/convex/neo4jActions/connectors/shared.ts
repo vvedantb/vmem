@@ -239,9 +239,11 @@ export async function mapSyncedDocs<T>(
       const doc = await params.toDoc(item);
       if (doc !== null) docs.push(doc);
     } catch (err) {
+      // Message only: provider SDK errors (Gaxios especially) serialise the
+      // whole request/response object and bury the rest of the sync log.
+      const reason = err instanceof Error ? err.message : String(err);
       console.error(
-        `Failed to sync ${params.label} ${params.identify(item)}:`,
-        err,
+        `Failed to sync ${params.label} ${params.identify(item)}: ${reason}`,
       );
     }
   }
