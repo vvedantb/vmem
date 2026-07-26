@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useRef,
   useState,
   type Ref,
@@ -128,17 +129,28 @@ function GraphCanvas({
     onFocusNode,
   });
 
-  themeRef.current = viewTheme;
-  focusNodeIdRef.current = focusNodeId;
-  searchMatchSetRef.current = searchMatchSet;
-  isSearchActiveRef.current = isSearchActive;
-  showLabelsRef.current = showLabels;
-  callbacksRef.current = {
-    onHoverNode,
-    onHoverEdge,
-    onClickNode,
-    onFocusNode,
-  };
+  // Mirrors the latest props into refs so the long-lived paint/interaction
+  // callbacks below (handed to cosmos.gl once, with empty dep arrays) can read
+  // current values without being rebuilt. Writing these during render breaks
+  // under concurrent rendering — a render that is discarded would still have
+  // updated the refs — so the writes happen at commit instead.
+  //
+  // useLayoutEffect, declared before every other effect in this component, so
+  // the refs are current before any passive effect calls applyVisualState /
+  // paintSceneOverlays, which read them.
+  useLayoutEffect(() => {
+    themeRef.current = viewTheme;
+    focusNodeIdRef.current = focusNodeId;
+    searchMatchSetRef.current = searchMatchSet;
+    isSearchActiveRef.current = isSearchActive;
+    showLabelsRef.current = showLabels;
+    callbacksRef.current = {
+      onHoverNode,
+      onHoverEdge,
+      onClickNode,
+      onFocusNode,
+    };
+  });
 
   const applyVisualState = useCallback((graph: Graph) => {
     const buffers = buffersRef.current;

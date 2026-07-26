@@ -72,14 +72,15 @@ export default function Sidebar({
   // function
   const refreshStats = useCallback(
     async (fresh: boolean) => {
+      // scope counts to the active workspace; without one (fresh browser
+      // on /settings) fall back to user-wide totals. Built outside the try
+      // because React Compiler bails on a whole file when a conditional
+      // expression sits inside a try/catch.
+      const args = fresh
+        ? { fresh: true, profileId: activeProfileId }
+        : { profileId: activeProfileId };
       try {
-        // scope counts to the active workspace; without one (fresh browser
-        // on /settings) fall back to user-wide totals
-        const data = await getStats(
-          fresh
-            ? { fresh: true, profileId: activeProfileId }
-            : { profileId: activeProfileId },
-        );
+        const data = await getStats(args);
         setStats({
           addedToday: data.memoriesAddedToday,
           total: data.totalMemories,
