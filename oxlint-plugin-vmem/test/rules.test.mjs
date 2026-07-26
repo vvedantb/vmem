@@ -27,6 +27,11 @@ assertValid(
 
 assertValid("no-deep-package-imports", `import { cn } from "@vmem/ui/cn";\n`);
 
+assertValid(
+  "no-deep-package-imports",
+  `import { tagToColor } from "@vmem/shared/graph";\n`,
+);
+
 assertInvalid("no-ts-nocheck", `// @ts-nocheck\nexport const x = 1;\n`);
 
 assertValid("no-ts-nocheck", `export const x = 1;\n`);

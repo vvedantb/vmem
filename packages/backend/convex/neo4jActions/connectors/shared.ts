@@ -219,3 +219,90 @@ export async function withConnectorSyncError<T>(
     throw err;
   }
 }
+
+/**
+ * Turn one page of provider items into `SyncedDoc`s. Items the provider can't
+ * give us a document for are skipped (return `null`) and items that blow up
+ * are logged and skipped so one bad document can't fail the whole sync.
+ */
+export async function mapSyncedDocs<T>(
+  items: T[],
+  params: {
+    label: string;
+    identify: (item: T) => string;
+    toDoc: (item: T) => Promise<SyncedDoc | null>;
+  },
+): Promise<SyncedDoc[]> {
+  const docs: SyncedDoc[] = [];
+  for (const item of items) {
+    try {
+      const doc = await params.toDoc(item);
+      if (doc !== null) docs.push(doc);
+    } catch (err) {
+      console.error(
+        `Failed to sync ${params.label} ${params.identify(item)}:`,
+        err,
+      );
+    }
+  }
+  return docs;
+}
+
+export interface ConnectorPage {
+  docs: SyncedDoc[];
+  /** Items the provider returned for this page, before per-item failures. */
+  found: number;
+  nextCursor: string | undefined;
+}
+
+/**
+ * The shared cursor-paginated connector sync: set up the driver/profile/embed
+ * auth, walk every page the provider hands back, upsert as we go, and report
+ * progress + completion. Providers only supply `fetchPage`.
+ */
+export async function runPaginatedConnectorSync(
+  ctx: ActionCtx,
+  params: {
+    clerkId: string;
+    connectorId: Id<"connectors">;
+    label: string;
+    fetchPage: (cursor: string | undefined) => Promise<ConnectorPage>;
+  },
+): Promise<{ synced: number }> {
+  const setup = await setupSync(ctx, params.clerkId);
+
+  return withConnectorSyncError(
+    ctx,
+    params.connectorId,
+    params.label,
+    async () => {
+      let cursor: string | undefined;
+      let totalSynced = 0;
+      let totalFound = 0;
+
+      do {
+        const page = await params.fetchPage(cursor);
+        totalFound += page.found;
+
+        totalSynced = await upsertSyncedDocs(ctx, {
+          setup,
+          clerkId: params.clerkId,
+          docs: page.docs,
+          totalSynced,
+          connectorId: params.connectorId,
+          totalFound,
+        });
+
+        cursor = page.nextCursor;
+      } while (cursor);
+
+      await markSyncComplete(ctx, {
+        connectorId: params.connectorId,
+        clerkId: params.clerkId,
+        totalSynced,
+      });
+
+      return { synced: totalSynced };
+    },
+  );
+}

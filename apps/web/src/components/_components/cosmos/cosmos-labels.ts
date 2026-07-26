@@ -1,6 +1,8 @@
+import { truncateCosmosLabel } from "@vmem/shared/graph";
 import type { GraphEdgeType } from "@/lib/graph/types";
 
-const LABEL_MAX_CHARS = 26;
+export { truncateCosmosLabel };
+
 export const COSMOS_LOW_ZOOM_THRESHOLD = 0.4;
 export const COSMOS_HIGH_NODE_COUNT = 5000;
 const MIN_LABEL_SCREEN_R = 6;
@@ -20,11 +22,6 @@ export const COSMOS_EDGE_LABEL: Record<GraphEdgeType, string> = {
   starts_process: "starts process",
   includes: "includes",
 };
-
-export function truncateCosmosLabel(title: string): string {
-  if (title.length <= LABEL_MAX_CHARS) return title;
-  return title.slice(0, LABEL_MAX_CHARS - 1) + "…";
-}
 
 export function shouldSkipCosmosLabels(
   showLabels: boolean,

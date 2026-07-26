@@ -1,5 +1,10 @@
 import crypto from "node:crypto";
 import type { Record as NeoRecord } from "neo4j-driver";
+import {
+  memoryNodeSchema,
+  memoryStatusSchema,
+  memoryTypeSchema,
+} from "@vmem/sdk";
 import { z } from "zod";
 import {
   neo4jGet,
@@ -9,6 +14,7 @@ import {
 } from "../record";
 import type {
   MemoryEvent,
+  MemoryNode,
   MemoryStatus,
   MemoryType,
   MemoryWithTags,
@@ -16,36 +22,18 @@ import type {
   TimelineEvent,
 } from "./types";
 
-export const memoryTypeSchema = z.enum(["profile", "episodic", "knowledge"]);
-export const memoryStatusSchema = z.enum([
-  "active",
-  "pinned",
-  "suppressed",
-  "expired",
-]);
-
 const nullableStringSchema: z.ZodType<string | null, z.ZodTypeDef, unknown> =
   z.preprocess((value) => value ?? null, z.string().nullable());
 
-type MemoryNodeProps = Omit<MemoryWithTags, "tags">;
-
-const memoryNodePropsSchema: z.ZodType<MemoryNodeProps, z.ZodTypeDef, unknown> =
-  z.object({
-    id: z.string(),
-    userId: z.string(),
+// Neo4j omits null-valued properties entirely, so the nullable fields have to
+// tolerate `undefined` on the way in. Everything else comes from the contract.
+const memoryNodePropsSchema: z.ZodType<MemoryNode, z.ZodTypeDef, unknown> =
+  memoryNodeSchema.extend({
     profileId: nullableStringSchema,
-    title: z.string(),
-    content: z.string(),
-    type: memoryTypeSchema,
-    source: z.string(),
     sourceType: nullableStringSchema,
     sourceId: nullableStringSchema,
     sourceUrl: nullableStringSchema,
     sourceSyncedAt: nullableStringSchema,
-    confidence: z.number(),
-    status: memoryStatusSchema,
-    createdAt: z.string(),
-    updatedAt: z.string(),
     expiresAt: nullableStringSchema,
   });
 

@@ -1,9 +1,6 @@
 import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
-import {
-  retrieveBodySchema,
-  type RetrieveBody,
-} from "../../memoryApi/contract";
+import { retrieveBodySchema, type RetrieveBody } from "@vmem/sdk";
 import {
   guardProfileAccess,
   withApiKeyAuth,

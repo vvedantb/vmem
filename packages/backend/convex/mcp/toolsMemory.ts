@@ -9,7 +9,7 @@ import {
   retrieveBodySchema,
   structuredStoreBodySchema,
   structuredUpdateBodySchema,
-} from "../memoryApi/contract";
+} from "@vmem/sdk";
 import { scopedMemory, toolSpec } from "./toolTypes";
 
 const memorySearchSchema = z.object({

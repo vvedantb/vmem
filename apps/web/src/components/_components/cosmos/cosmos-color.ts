@@ -54,14 +54,3 @@ export function colorToRgba(color: string): [number, number, number, number] {
   if (rgb) return rgb;
   return [0.5, 0.5, 0.5, 1];
 }
-
-export function writeRgba(
-  target: Float32Array,
-  offset: number,
-  rgba: [number, number, number, number],
-): void {
-  target[offset] = rgba[0];
-  target[offset + 1] = rgba[1];
-  target[offset + 2] = rgba[2];
-  target[offset + 3] = rgba[3];
-}

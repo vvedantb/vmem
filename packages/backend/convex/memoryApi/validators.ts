@@ -1,6 +1,6 @@
 import { v, type Infer } from "convex/values";
 import { zodToConvex } from "convex-helpers/server/zod";
-import { memoryStatusSchema, memoryTypeSchema } from "./contract";
+import { memoryStatusSchema, memoryTypeSchema } from "@vmem/sdk";
 
 export const memoryTypeValidator = zodToConvex(memoryTypeSchema);
 export const memoryStatusValidator = zodToConvex(memoryStatusSchema);

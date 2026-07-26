@@ -7,6 +7,12 @@ import {
   type Ref,
 } from "react";
 import { Graph } from "@cosmos.gl/graph";
+import {
+  COSMOS_DRAG_REHEAT_ALPHA,
+  COSMOS_INITIAL_SETTLE_ALPHA,
+  cosmosPhysicsForNodeCount,
+  cosmosWarmupTicks,
+} from "@vmem/shared/graph";
 import type { GraphNode, GraphEdge } from "@/lib/graph/types";
 import type { GraphViewTheme } from "./graph-view-themes";
 import type { HoveredEdgeInfo, HoveredNodeInfo } from "@/lib/graph/graph-types";
@@ -35,12 +41,6 @@ import {
   loadCosmosConnectorLogoAtlas,
   type CosmosLogoAtlas,
 } from "./cosmos/cosmos-logos";
-import {
-  COSMOS_DRAG_REHEAT_ALPHA,
-  COSMOS_INITIAL_SETTLE_ALPHA,
-  cosmosPhysicsForNodeCount,
-  cosmosWarmupTicks,
-} from "./cosmos/cosmos-physics";
 
 export interface GraphCanvasHandle {
   zoomIn: () => void;

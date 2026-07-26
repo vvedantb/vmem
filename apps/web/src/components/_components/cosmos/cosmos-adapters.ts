@@ -6,7 +6,8 @@ import type {
 } from "@/lib/graph/types";
 import type { GraphViewTheme } from "../graph-view-themes";
 import { nodeColor as getNodeColor } from "../graph-colors";
-import { colorToRgba, writeRgba } from "./cosmos-color";
+import { writeRgba } from "@vmem/shared/graph";
+import { colorToRgba } from "./cosmos-color";
 
 // Palette slots on GraphViewTheme.edge.normalByType
 type EdgePaletteSlot = keyof GraphViewTheme["edge"]["normalByType"];

@@ -5,11 +5,21 @@ import {
 } from "@modelcontextprotocol/ext-apps";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { Graph } from "@cosmos.gl/graph";
+import type { MemoryType } from "@vmem/sdk";
+import {
+  COSMOS_DRAG_REHEAT_ALPHA,
+  COSMOS_INITIAL_SETTLE_ALPHA,
+  cosmosPhysicsForNodeCount,
+  tagToRgba,
+  truncateCosmosLabel,
+  writeRgba,
+  type Rgba,
+} from "@vmem/shared/graph";
 
 interface MemoryNode {
   id: string;
   title: string;
-  type?: "profile" | "episodic" | "knowledge";
+  type?: MemoryType;
   tags: string[];
   createdAt: string;
 }
@@ -40,8 +50,6 @@ interface GraphPayload {
   };
 }
 
-type Rgba = [number, number, number, number];
-
 interface GraphTheme {
   background: Rgba;
   edgeTag: Rgba;
@@ -56,8 +64,6 @@ const POINT_SIZE = 8;
 const MAX_LABELS = 48;
 const ZOOM_IN_FACTOR = 1.3;
 const ZOOM_OUT_FACTOR = 0.7;
-const INITIAL_SETTLE_ALPHA = 0.08;
-const DRAG_REHEAT_ALPHA = 0.25;
 const LABEL_FONT =
   '500 11px ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif';
 
@@ -129,42 +135,10 @@ let theme: GraphTheme = THEME_DARK;
 let graph: Graph | null = null;
 let buffers: GraphBuffers | null = null;
 
-function tagToHue(tag: string): number {
-  let hash = 0;
-  for (let i = 0; i < tag.length; i++) {
-    hash = tag.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return ((hash % 360) + 360) % 360;
-}
-
-function hslToRgba(h: number, s: number, l: number): Rgba {
-  const sat = s / 100;
-  const lit = l / 100;
-  const a = sat * Math.min(lit, 1 - lit);
-  const f = (n: number): number => {
-    const k = (n + h / 30) % 12;
-    const c = lit - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
-    return Math.min(1, Math.max(0, c));
-  };
-  return [f(0), f(8), f(4), 1];
-}
-
-function tagToColor(tag: string, dark: boolean): Rgba {
-  const hue = tagToHue(tag);
-  return dark ? hslToRgba(hue, 50, 72) : hslToRgba(hue, 55, 48);
-}
-
 function nodeColor(tags: string[], dark: boolean, fallback: Rgba): Rgba {
   const first = tags[0];
-  if (first !== undefined) return tagToColor(first, dark);
+  if (first !== undefined) return tagToRgba(first, dark);
   return fallback;
-}
-
-function writeRgba(target: Float32Array, offset: number, rgba: Rgba): void {
-  target[offset] = rgba[0];
-  target[offset + 1] = rgba[1];
-  target[offset + 2] = rgba[2];
-  target[offset + 3] = rgba[3];
 }
 
 function seedPosition(index: number, count: number): { x: number; y: number } {
@@ -246,36 +220,6 @@ function buildBuffers(data: GraphPayload, current: GraphTheme): GraphBuffers {
   };
 }
 
-function physicsForCount(nodeCount: number) {
-  const simulationRepulsion =
-    nodeCount <= 10
-      ? 0.18
-      : nodeCount <= 50
-        ? 0.32
-        : nodeCount <= 200
-          ? 0.55
-          : 1;
-  return {
-    simulationRepulsion,
-    simulationGravity: 0.12,
-    simulationCenter: 0.05,
-    simulationFriction: 0.35,
-    simulationDecay: nodeCount <= 2000 ? 400 : 700,
-    simulationRepulsionTheta: 0.9,
-    simulationRepulsionFromMouse: 0,
-    simulationLinkSpring: 1,
-    simulationLinkDistance:
-      nodeCount <= 10 ? 3 : nodeCount <= 50 ? 5 : nodeCount <= 200 ? 7 : 10,
-    simulationCollision: 1,
-    simulationCollisionPadding: 0.35,
-  };
-}
-
-function truncateLabel(title: string, maxChars = 28): string {
-  if (title.length <= maxChars) return title;
-  return `${title.slice(0, Math.max(0, maxChars - 1))}…`;
-}
-
 function paintLabels(g: Graph): void {
   const current = buffers;
   if (!current) return;
@@ -322,7 +266,7 @@ function paintLabels(g: Graph): void {
     const sy = positions[i * 2 + 1];
     if (sx === undefined || sy === undefined) continue;
     const [screenX, screenY] = g.spaceToScreenPosition([sx, sy]);
-    ctx.fillText(truncateLabel(title), screenX, screenY + 8);
+    ctx.fillText(truncateCosmosLabel(title), screenX, screenY + 8);
     painted += 1;
   }
 }
@@ -355,7 +299,7 @@ function createGraph(data: GraphPayload): void {
 
   const nextBuffers = buildBuffers(data, theme);
   buffers = nextBuffers;
-  const physics = physicsForCount(data.nodes.length);
+  const physics = cosmosPhysicsForNodeCount(data.nodes.length);
 
   try {
     const next = new Graph(host, {
@@ -380,7 +324,7 @@ function createGraph(data: GraphPayload): void {
       onDragStart: () => {
         if (!graph) return;
         graph.unpause();
-        graph.start(DRAG_REHEAT_ALPHA);
+        graph.start(COSMOS_DRAG_REHEAT_ALPHA);
       },
       onSimulationTick: () => {
         if (graph) paintLabels(graph);
@@ -395,7 +339,7 @@ function createGraph(data: GraphPayload): void {
     next.setLinkWidths(nextBuffers.linkWidths);
     next.setLinkStrength(nextBuffers.linkStrengths);
     next.render();
-    next.start(INITIAL_SETTLE_ALPHA);
+    next.start(COSMOS_INITIAL_SETTLE_ALPHA);
     graph = next;
     paintLabels(next);
   } catch (err) {

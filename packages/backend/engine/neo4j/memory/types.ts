@@ -1,28 +1,17 @@
-export type MemoryType = "profile" | "episodic" | "knowledge";
-export type MemoryStatus = "active" | "pinned" | "suppressed" | "expired";
+// The memory wire shapes live in `@vmem/sdk` so the HTTP API, MCP tools, the
+// engine and the SDK cannot drift. Only engine-internal shapes are declared here.
+import type { MatchedChunk, MemoryWithTags } from "@vmem/sdk";
 
-export interface MemoryNode {
-  id: string;
-  userId: string;
-  profileId: string | null;
-  title: string;
-  content: string;
-  type: MemoryType;
-  source: string;
-  sourceType: string | null;
-  sourceId: string | null;
-  sourceUrl: string | null;
-  sourceSyncedAt: string | null;
-  confidence: number;
-  status: MemoryStatus;
-  createdAt: string;
-  updatedAt: string;
-  expiresAt: string | null;
-}
-
-export interface MemoryWithTags extends MemoryNode {
-  tags: string[];
-}
+export type {
+  GraphPathTrace,
+  MatchedChunk,
+  MemoryCandidate,
+  MemoryNode,
+  MemoryStatus,
+  MemoryType,
+  MemoryWithTags,
+  ScoreBreakdown,
+} from "@vmem/sdk";
 
 export interface MemorySnapshot {
   title: string;
@@ -50,44 +39,12 @@ export interface TimelineEvent extends MemoryEvent {
   connectionType?: ConnectionType;
 }
 
-export interface ScoreBreakdown {
-  fulltext: number;
-  vector: number;
-  chunk: number;
-  entity: number;
-  rrf: number;
-  recency: number;
-  confidence: number;
-  graphPath?: GraphPathTrace;
-  rerankerScore?: number;
-}
-
-export interface MatchedChunk {
-  content: string;
-  position: number;
-}
-
-export interface MemoryCandidate extends MemoryWithTags {
-  trace: {
-    score: number;
-    scoreBreakdown: ScoreBreakdown;
-    reason: string;
-  };
-  matchedChunk?: MatchedChunk;
-}
-
 export interface GraphExpansion {
   id: string;
   hops: number;
   seedCount: number;
   bridgingEntity: string | null;
   seedId: string | null;
-}
-
-export interface GraphPathTrace {
-  seedTitle: string;
-  bridgingEntity: string | null;
-  hops: number;
 }
 
 export interface MergedEntry {

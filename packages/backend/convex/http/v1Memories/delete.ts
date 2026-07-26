@@ -1,6 +1,6 @@
 import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
-import { deleteBodySchema, type DeleteBody } from "../../memoryApi/contract";
+import { deleteBodySchema, type DeleteBody } from "@vmem/sdk";
 import { withApiKeyAuth, type ApiKeyAuth } from "./apiKeyAuth";
 
 async function runDeleteHandler(

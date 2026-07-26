@@ -5,7 +5,7 @@ import {
   isInstructionStoreBody,
   storeBodySchema,
   type StoreBody,
-} from "../../memoryApi/contract";
+} from "@vmem/sdk";
 import type { OpenRouterRequired } from "../../neo4jActions/agent/shared";
 import type { StoreFromInstructionResult } from "../../neo4jActions/agent/storeFromInstruction";
 import {

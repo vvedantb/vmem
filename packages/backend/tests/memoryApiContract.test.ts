@@ -1,15 +1,15 @@
 // AI-generated (Claude), prompt: "contract tests for memory api request schemas and sdk response parse"
 // Modified by me: covered store update delete and structured bodies
 import { describe, expect, it } from "vitest";
-import { parseMemoryWithTagsResponse } from "@vmem/sdk";
 import {
   deleteBodySchema,
+  parseMemoryWithTagsResponse,
   retrieveBodySchema,
   storeBodySchema,
   structuredStoreBodySchema,
   structuredUpdateBodySchema,
   updateBodySchema,
-} from "../convex/memoryApi/contract";
+} from "@vmem/sdk";
 
 const validStructuredStore = {
   title: "Prefers pnpm",
