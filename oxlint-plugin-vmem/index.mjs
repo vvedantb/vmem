@@ -15,6 +15,7 @@ import preferSchemaInferredTypes from "./rules/prefer-schema-inferred-types.mjs"
 import noDeepPackageImports from "./rules/no-deep-package-imports.mjs";
 import noConditionalTests from "./rules/no-conditional-tests.mjs";
 import noInlineZodSchema from "./rules/no-inline-zod-schema.mjs";
+import noValueBlockInTry from "./rules/no-value-block-in-try.mjs";
 
 export default {
   meta: { name: "vmem" },
@@ -30,5 +31,6 @@ export default {
     "no-deep-package-imports": noDeepPackageImports,
     "no-conditional-tests": noConditionalTests,
     "no-inline-zod-schema": noInlineZodSchema,
+    "no-value-block-in-try": noValueBlockInTry,
   },
 };
