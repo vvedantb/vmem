@@ -1,3 +1,3 @@
-// sub-sidebar search: flat surface, no border in any state
+// sub-sidebar search: flat rounded surface, no border in any state
 export const sidebarSearchInputClassName =
-  "h-8 border-0 bg-surface-secondary/60 pl-8 text-sm shadow-none transition-[background-color] hover:bg-surface-tertiary/50 focus-visible:border-0 focus-visible:bg-surface-tertiary/80 focus-visible:ring-0 focus-visible:outline-none";
+  "h-8 w-full rounded-field border-0 bg-surface-secondary/60 pl-8 pr-8 text-sm shadow-none transition-[background-color] hover:bg-surface-tertiary/50 focus-visible:border-0 focus-visible:bg-surface-tertiary/80 focus-visible:ring-0 focus-visible:outline-none sm:w-full md:w-full";
