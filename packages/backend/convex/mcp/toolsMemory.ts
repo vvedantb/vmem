@@ -16,7 +16,10 @@ const memorySearchSchema = z.object({
   query: z.string().optional().describe("Text to search for"),
   type: memoryTypeSchema.optional().describe("Filter by memory type"),
   tags: z.array(z.string()).optional().describe("Filter by tags"),
-  source: z.string().optional().describe("Filter by source"),
+  source: z
+    .string()
+    .optional()
+    .describe("Filter by source (e.g. notion, google_drive, claude, mcp)"),
   profileId: z
     .string()
     .optional()
@@ -149,6 +152,7 @@ export const memoryToolSpecs = {
         query: params.query,
         type: params.type,
         tags: params.tags,
+        source: params.source,
         limit: params.limit,
         offset: params.offset,
         profileId: params.profileId,
