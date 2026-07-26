@@ -434,6 +434,9 @@ importers:
       '@rolldown/plugin-babel':
         specifier: ^0.2.3
         version: 0.2.3(@babel/core@7.29.0)(@babel/plugin-transform-runtime@7.29.0(@babel/core@7.29.0))(@babel/runtime@7.29.7)(rolldown@1.1.2)(vite@8.1.0(@types/node@20.19.39)(esbuild@0.27.7)(jiti@1.21.7)(terser@5.46.1)(tsx@4.21.0)(yaml@2.9.0))
+      '@rolldown/plugin-transform-imports':
+        specifier: ^0.1.1
+        version: 0.1.1(rolldown@1.1.2)(vite@8.1.0(@types/node@20.19.39)(esbuild@0.27.7)(jiti@1.21.7)(terser@5.46.1)(tsx@4.21.0)(yaml@2.9.0))
       '@tanstack/router-plugin':
         specifier: ^1.167.22
         version: 1.167.22(@tanstack/react-router@1.168.23(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(vite@8.1.0(@types/node@20.19.39)(esbuild@0.27.7)(jiti@1.21.7)(terser@5.46.1)(tsx@4.21.0)(yaml@2.9.0))
@@ -3049,6 +3052,16 @@ packages:
         optional: true
       '@babel/runtime':
         optional: true
+      vite:
+        optional: true
+
+  '@rolldown/plugin-transform-imports@0.1.1':
+    resolution: {integrity: sha512-X5HYPM/OxWHNG2fOC1eEESuEoGlA1zGrx2csYmFgwPAH+bUjfllLBQeEQ49+Rk9f0x3Z4L72aU0tpxANy5tD/Q==}
+    engines: {node: '>=22.12.0 || ^24.0.0'}
+    peerDependencies:
+      rolldown: ^1.0.0-rc.13
+      vite: ^8.0.0
+    peerDependenciesMeta:
       vite:
         optional: true
 
@@ -6138,6 +6151,9 @@ packages:
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
 
+  magic-string@1.1.0:
+    resolution: {integrity: sha512-kS3VHe0nEPST2saQV4Rbkchcd3UBRkVTQHo1D3h/ZTwFDhai/mfKkmtPAtD129EOI7K3HlHIsFOt0WrI2/oU9g==}
+
   magicast@0.5.3:
     resolution: {integrity: sha512-pVKE4UdSQ7DvHzivsCIFx2BJn1mHG6KsyrFcaxFx6tONdneEuThrDx0Cj3AMg58KyN4pzYT+LHOotxDQDjNvkw==}
 
@@ -7039,6 +7055,15 @@ packages:
   rimraf@5.0.10:
     resolution: {integrity: sha512-l0OE8wL34P4nJH/H2ffoaniAokM2qSmrtXHmlpvYr5AVVX8msAyW0l8NVJFDxlSK4u3Uh/f41cQheDVdnYijwQ==}
     hasBin: true
+
+  rolldown-string@0.3.1:
+    resolution: {integrity: sha512-dv8GOXkYqUQdI0rsXB8hmzO95pKWSuX2eg5/JSJa9czfEVIFuKNR7ZJDfat8LlmD35RAhWY+evS7/wXXqFDfSg==}
+    engines: {node: '>=20.19.0'}
+    peerDependencies:
+      rolldown: '*'
+    peerDependenciesMeta:
+      rolldown:
+        optional: true
 
   rolldown@1.1.2:
     resolution: {integrity: sha512-x0CrQQqCXWGeI8dTvFfN/Dnv3yMKT9hv5jFjlOreKAx9wqLq9wz7VvLLHyaAXC90/CpggTu9SisSbsJJTPSjNQ==}
@@ -10739,6 +10764,13 @@ snapshots:
       '@babel/runtime': 7.29.7
       vite: 8.1.0(@types/node@20.19.39)(esbuild@0.27.7)(jiti@1.21.7)(terser@5.46.1)(tsx@4.21.0)(yaml@2.9.0)
 
+  '@rolldown/plugin-transform-imports@0.1.1(rolldown@1.1.2)(vite@8.1.0(@types/node@20.19.39)(esbuild@0.27.7)(jiti@1.21.7)(terser@5.46.1)(tsx@4.21.0)(yaml@2.9.0))':
+    dependencies:
+      rolldown: 1.1.2
+      rolldown-string: 0.3.1(rolldown@1.1.2)
+    optionalDependencies:
+      vite: 8.1.0(@types/node@20.19.39)(esbuild@0.27.7)(jiti@1.21.7)(terser@5.46.1)(tsx@4.21.0)(yaml@2.9.0)
+
   '@rolldown/pluginutils@1.0.0-beta.27': {}
 
   '@rolldown/pluginutils@1.0.0-rc.7': {}
@@ -13917,6 +13949,10 @@ snapshots:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.5
 
+  magic-string@1.1.0:
+    dependencies:
+      '@jridgewell/sourcemap-codec': 1.5.5
+
   magicast@0.5.3:
     dependencies:
       '@babel/parser': 7.29.7
@@ -15038,6 +15074,12 @@ snapshots:
   rimraf@5.0.10:
     dependencies:
       glob: 10.5.0
+
+  rolldown-string@0.3.1(rolldown@1.1.2):
+    dependencies:
+      magic-string: 1.1.0
+    optionalDependencies:
+      rolldown: 1.1.2
 
   rolldown@1.1.2:
     dependencies:

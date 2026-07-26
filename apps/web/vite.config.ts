@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import babel from "@rolldown/plugin-babel";
+import transformImports from "@rolldown/plugin-transform-imports";
 import tanstackRouter from "@tanstack/router-plugin/vite";
 import { visualizer } from "rollup-plugin-visualizer";
 import path from "path";
@@ -23,6 +24,14 @@ export default defineConfig(({ command }) => ({
       autoCodeSplitting: true,
     }),
     react(),
+    // The tabler barrel re-exports 6095 icons and rolldown resolves every one
+    // of them before it can tree-shake. Rewrite each named import to the icon
+    // module itself so the barrel is never loaded.
+    transformImports({
+      "@tabler/icons-react": {
+        transform: "@tabler/icons-react/dist/esm/icons/{{member}}.mjs",
+      },
+    }),
     // React Compiler runs on builds only. Measured over apps/web/src it costs
     // ~24s of Babel CPU (~31ms median per file) and accounts for ~90% of the
     // Babel pass. Vite does not cache source transforms to disk, so in dev every
