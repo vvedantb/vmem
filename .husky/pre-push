@@ -1,0 +1,8 @@
+# Gate pushes on TypeScript across every package, then on React Compiler
+# bailouts. Local `tsc` only — never `convex codegen` here, because codegen
+# uploads to the linked deployment.
+echo "pre-push: typechecking all packages..."
+pnpm typecheck:all || exit 1
+
+echo "pre-push: checking for new React Compiler bailouts..."
+node scripts/compiler-check.mjs || exit 1

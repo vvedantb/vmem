@@ -30,9 +30,12 @@ skills-lock.json.bak
 # Internal docs, plans, dissertation — local only
 internal/
 
-# Agent workflow specs + local scripts — not shared
+# Agent workflow specs + local scripts — not shared. The compiler-check pair
+# is the exception: the pre-push hook runs it, so it must ship.
 docs/superpowers/
-scripts/
+scripts/*
+!scripts/compiler-check.mjs
+!scripts/compiler-check-baseline.json
 
 # Presentation deck — tracked only on feat/presentation-slides (PR #105).
 # Ignored on mainline so /slides stays out of staging/prod until that PR merges.
