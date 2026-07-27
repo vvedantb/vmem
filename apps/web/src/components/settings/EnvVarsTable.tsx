@@ -255,9 +255,10 @@ export function EnvVarsTable({
       toast.error(
         err instanceof Error ? err.message : "Failed to reveal value",
       );
-    } finally {
-      setRevealingKey(null);
     }
+    // After the try rather than in a `finally`: React Compiler bails on the
+    // whole file when it meets one. The catch swallows, so this always runs.
+    setRevealingKey(null);
   };
 
   const copyValue = async (key: string) => {

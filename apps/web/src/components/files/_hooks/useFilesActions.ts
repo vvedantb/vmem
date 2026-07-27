@@ -66,9 +66,10 @@ export function useFilesActions(args: {
       toast.success("Renamed");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to rename");
-    } finally {
-      setRenameNodeId(null);
     }
+    // After the try rather than in a `finally`: React Compiler bails on the
+    // whole file when it meets one. The catch swallows, so this always runs.
+    setRenameNodeId(null);
   }
 
   async function handleMoveConfirm(targetFolderId: Id<"fileNodes"> | null) {
@@ -77,10 +78,9 @@ export function useFilesActions(args: {
       toast.success("Items moved");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to move");
-    } finally {
-      args.clearSelection();
-      setPendingMoveIds([]);
     }
+    args.clearSelection();
+    setPendingMoveIds([]);
   }
 
   function handleBulkDownload() {
@@ -97,9 +97,8 @@ export function useFilesActions(args: {
       toast.success("Items deleted");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to delete");
-    } finally {
-      args.clearSelection();
     }
+    args.clearSelection();
   }
 
   async function handleNewFolderConfirm(name: string) {

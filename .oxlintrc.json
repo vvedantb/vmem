@@ -125,34 +125,6 @@
       "rules": { "vmem/no-value-block-in-try": "error" }
     },
     {
-      // Pre-existing React Compiler bailouts, listed so new code cannot add
-      // more. Shrink this list; do not grow it.
-      "files": [
-        "apps/web/src/components/api-keys/useApiKeyActions.ts",
-        "apps/web/src/components/codebases/AddRepoModal.tsx",
-        "apps/web/src/components/codebases/CodebaseSidebarItem.tsx",
-        "apps/web/src/components/files/_hooks/useFilesActions.ts",
-        "apps/web/src/components/memories/AddMemoryModal.tsx",
-        "apps/web/src/components/profiles/CreateEditProfileDialog.tsx",
-        "apps/web/src/components/profiles/ProfileDangerZone.tsx",
-        "apps/web/src/components/settings/DisconnectConnectorDialog.tsx",
-        "apps/web/src/components/settings/EnvVarsTable.tsx",
-        "apps/web/src/components/settings/GitHubConnectorControls.tsx",
-        "apps/web/src/components/settings/ImportPageClient.tsx",
-        "apps/web/src/components/settings/preferences/PreferencesPage.tsx",
-        "apps/web/src/components/shell/BulkSelectionDeleteBar.tsx",
-        "apps/web/src/components/skills/SystemSkillFormDialog.tsx",
-        "apps/web/src/components/teams/TeamMembers.tsx",
-        "apps/web/src/components/wiki/DeleteConfirmDialog.tsx",
-        "apps/web/src/components/wiki/RenameDialog.tsx",
-        "apps/web/src/components/wiki/WikiBulkDeleteBar.tsx",
-        "apps/web/src/components/wiki/WikiHistoryPanel.tsx",
-        "apps/web/src/hooks/useAsyncSubmit.ts",
-        "apps/web/src/routes/_main/settings/data-controls/-components/DeleteAllMemoriesDialog.tsx"
-      ],
-      "rules": { "vmem/no-value-block-in-try": "off" }
-    },
-    {
       "files": ["apps/web/**"],
       "rules": {
         "react/forbid-elements": [

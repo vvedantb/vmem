@@ -20,17 +20,20 @@ export default function DeleteAllMemoriesDialog({ open, onClose }: Props) {
     setSubmitting(true);
     try {
       const deleted = await deleteAll();
-      toast.success(
-        deleted === 1
-          ? "Deleted 1 memory and all related data."
-          : `Deleted ${String(deleted)} memories and all related data.`,
-      );
+      // if/else rather than a ternary, and the reset after the try rather than
+      // in a `finally`: React Compiler bails on the whole file for either.
+      if (deleted === 1) {
+        toast.success("Deleted 1 memory and all related data.");
+      } else {
+        toast.success(
+          `Deleted ${String(deleted)} memories and all related data.`,
+        );
+      }
       onClose();
     } catch {
       toast.error("Couldn't delete your memories. Try again in a moment.");
-    } finally {
-      setSubmitting(false);
     }
+    setSubmitting(false);
   };
 
   return (

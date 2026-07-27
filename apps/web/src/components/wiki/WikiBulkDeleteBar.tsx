@@ -47,8 +47,12 @@ export function WikiBulkDeleteBar({
         try {
           await deleteNodes({ ids });
           toast.success(`Deleted ${count} ${itemWord}`);
-          if (currentDocId !== null && removeSet.has(currentDocId)) {
-            onCurrentRemoved();
+          // Nested ifs rather than `&&`: React Compiler bails on the whole
+          // file for a logical expression inside a try.
+          if (currentDocId !== null) {
+            if (removeSet.has(currentDocId)) {
+              onCurrentRemoved();
+            }
           }
         } catch (err) {
           toast.error(err instanceof Error ? err.message : "Failed to delete");

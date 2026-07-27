@@ -67,19 +67,25 @@ export function PreferencesPage() {
 
   const handleScheduleToggle = async (enabled: boolean): Promise<void> => {
     if (settings === undefined) return;
+    // Resolved above the try: React Compiler bails on the whole file for a `??`
+    // inside one. localTimeToUtc is pure, so running it on the disable path too
+    // costs nothing.
+    const utcTime =
+      settings.dreamModeScheduleTime ?? localTimeToUtc(DEFAULT_LOCAL_TIME);
+    // A single if/else chain rather than an early return plus a throw: React
+    // Compiler bails on the whole file for a ThrowStatement inside a try.
     try {
       if (!enabled) {
         await setDreamSchedule({ enabled: false });
         toast.success("Daily Dream Mode disabled");
-        return;
+      } else if (utcTime === null) {
+        toast.error("Invalid default time");
+      } else {
+        await setDreamSchedule({ enabled: true, time: utcTime });
+        toast.success(
+          `Daily Dream Mode scheduled for ${utcTimeToLocal(utcTime)}`,
+        );
       }
-      const savedTime = settings.dreamModeScheduleTime;
-      const utcTime = savedTime ?? localTimeToUtc(DEFAULT_LOCAL_TIME);
-      if (utcTime === null) throw new Error("Invalid default time");
-      await setDreamSchedule({ enabled: true, time: utcTime });
-      toast.success(
-        `Daily Dream Mode scheduled for ${utcTimeToLocal(utcTime)}`,
-      );
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Failed to update schedule",

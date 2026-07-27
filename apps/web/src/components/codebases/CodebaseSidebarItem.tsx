@@ -75,13 +75,14 @@ export function CodebaseSidebarItem({
   const isArchived = codebase.isArchived ?? false;
 
   const handleArchiveToggle = async () => {
+    // The message is built above the try: React Compiler bails on the whole
+    // file for a conditional expression inside one.
+    const successMessage = isArchived
+      ? `Unarchived ${codebase.repoName}`
+      : `Archived ${codebase.repoName}`;
     try {
       await setArchived({ id: codebase._id, archived: !isArchived });
-      toast.success(
-        isArchived
-          ? `Unarchived ${codebase.repoName}`
-          : `Archived ${codebase.repoName}`,
-      );
+      toast.success(successMessage);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Action failed";
       toast.error(msg);

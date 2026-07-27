@@ -51,20 +51,19 @@ export function useApiKeyActions() {
   useTimeout(() => setCopiedKeyId(null), copiedKeyId !== null ? 2000 : null);
 
   const handleCopyKey = async (apiKeyId: ApiKey["id"]) => {
-    const existing = revealedKeys[apiKeyId];
-    const keyToCopy =
-      existing ??
-      (await (async () => {
-        setCopyingKeyId(apiKeyId);
-        try {
-          return await revealApiKey({ id: apiKeyId });
-        } catch {
-          toast.error("Failed to retrieve API key");
-          return null;
-        } finally {
-          setCopyingKeyId(null);
-        }
-      })());
+    // Plain statements rather than an async IIFE inside a `??`, because the
+    // reset below used to be a `finally` and React Compiler bails on the whole
+    // file when it meets one.
+    let keyToCopy = revealedKeys[apiKeyId] ?? null;
+    if (keyToCopy === null) {
+      setCopyingKeyId(apiKeyId);
+      try {
+        keyToCopy = await revealApiKey({ id: apiKeyId });
+      } catch {
+        toast.error("Failed to retrieve API key");
+      }
+      setCopyingKeyId(null);
+    }
 
     if (!keyToCopy) return;
     const copied = await copyToClipboard(keyToCopy);
@@ -87,18 +86,19 @@ export function useApiKeyActions() {
     }
 
     setRevealingKeyId(apiKeyId);
+    // if/else and a trailing reset rather than an early return in a `finally`:
+    // React Compiler bails on the whole file when it meets a `finally` clause.
     try {
       const rawKey = await revealApiKey({ id: apiKeyId });
-      if (!rawKey) {
+      if (rawKey) {
+        setRevealedKeys((prev) => ({ ...prev, [apiKeyId]: rawKey }));
+      } else {
         toast.error("Could not reveal API key");
-        return;
       }
-      setRevealedKeys((prev) => ({ ...prev, [apiKeyId]: rawKey }));
     } catch {
       toast.error("Failed to reveal API key");
-    } finally {
-      setRevealingKeyId(null);
     }
+    setRevealingKeyId(null);
   };
 
   const handleRevoke = async () => {

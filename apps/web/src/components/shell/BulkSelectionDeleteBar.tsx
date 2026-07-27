@@ -40,9 +40,10 @@ export function BulkSelectionDeleteBar({
       onExit();
     } catch {
       // caller owns error toasting; keep the dialog open for retry
-    } finally {
-      setDeleting(false);
     }
+    // After the try rather than in a `finally`: React Compiler bails on the
+    // whole file when it meets one. The catch swallows, so this always runs.
+    setDeleting(false);
   };
 
   return (

@@ -107,6 +107,11 @@ export function AddRepoModal({
 
   const handleAdd = async (repo: AddRepoModalRepo) => {
     setAdding(repo.fullName);
+    // The `??` defaults are hoisted above the try and the reset sits after it
+    // rather than in a `finally`: React Compiler bails on the whole file for
+    // either construct.
+    const language = repo.language ?? undefined;
+    const description = repo.description ?? undefined;
     try {
       await addCodebase({
         githubConnectionId: connectionId,
@@ -114,8 +119,8 @@ export function AddRepoModal({
         repoName: repo.name,
         repoFullName: repo.fullName,
         defaultBranch: repo.defaultBranch,
-        language: repo.language ?? undefined,
-        description: repo.description ?? undefined,
+        language,
+        description,
         isPrivate: repo.isPrivate,
         teamId,
       });
@@ -125,9 +130,8 @@ export function AddRepoModal({
       const message =
         err instanceof Error ? err.message : "Failed to add repository";
       toast.error(message);
-    } finally {
-      setAdding(null);
     }
+    setAdding(null);
   };
 
   const listSummary = loading

@@ -47,9 +47,10 @@ function CreateProfileFormContent({
       onOpenChange(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save profile");
-    } finally {
-      setSaving(false);
     }
+    // After the try rather than in a `finally`: React Compiler bails on the
+    // whole file when it meets one. The catch swallows, so this always runs.
+    setSaving(false);
   };
 
   return (

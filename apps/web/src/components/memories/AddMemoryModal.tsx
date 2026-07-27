@@ -147,11 +147,11 @@ export default function AddMemoryModal({
   };
 
   const handleCreateMemory = async (data: MemoryFormValues) => {
+    // Resolved above the try: React Compiler bails on the whole file for a
+    // `??` inside one.
+    const profileId = selectedProfileId ?? activeProfileId;
     try {
-      await createMemory({
-        ...data,
-        profileId: selectedProfileId ?? activeProfileId,
-      });
+      await createMemory({ ...data, profileId });
       toast.success("Memory saved");
       resetForm();
       setOpen(false);

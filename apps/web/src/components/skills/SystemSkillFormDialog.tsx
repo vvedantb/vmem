@@ -120,6 +120,9 @@ export function SystemSkillFormDialog({
   const onSubmit = async (values: SystemSkillFormValues) => {
     const trimmedCategory = values.category.trim();
     const category = trimmedCategory.length > 0 ? trimmedCategory : undefined;
+    // Hoisted above the try: React Compiler bails on the whole file for a `??`
+    // inside one. Update clears the category with null; create just omits it.
+    const categoryOrNull = category ?? null;
 
     try {
       if (entry !== undefined) {
@@ -128,7 +131,7 @@ export function SystemSkillFormDialog({
           name: values.name,
           description: values.description.trim(),
           instructions: values.instructions,
-          category: category ?? null,
+          category: categoryOrNull,
           published: values.published,
         });
         onOpenChange(false);
