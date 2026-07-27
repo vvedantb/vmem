@@ -1,4 +1,4 @@
-import { useReducer, useRef, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 
 type SelectionState<T> = {
   selectedIds: Set<T>;
@@ -73,8 +73,12 @@ export type UseIdSelectionOptions<T> = {
 
 // shared id set selection for files (modifiers) and wiki/skills (bulk mode)
 export function useIdSelection<T>(options: UseIdSelectionOptions<T> = {}) {
+  // Written in an effect (not during render) so React Compiler can compile
+  // the file; the selection handlers that read it only run on user events.
   const orderedIdsRef = useRef(options.orderedIds);
-  orderedIdsRef.current = options.orderedIds;
+  useEffect(() => {
+    orderedIdsRef.current = options.orderedIds;
+  }, [options.orderedIds]);
 
   const [state, dispatch] = useReducer(
     (prev: SelectionState<T>, action: SelectionAction<T>) =>

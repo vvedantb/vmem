@@ -118,8 +118,12 @@ export default function WikiArtifactEditor({
 
   // remount via key={doc._id} from parent resets draft / preview armed state
   const [draft, setDraft] = useState(() => doc.content ?? "");
+  // Written in an effect (not during render) so React Compiler can compile
+  // the file; the copy/save callbacks that read it only run after commit.
   const draftRef = useRef(draft);
-  draftRef.current = draft;
+  useEffect(() => {
+    draftRef.current = draft;
+  }, [draft]);
 
   const isTeam = doc.teamId !== undefined;
   const canPreview = isPreviewableLanguage(doc.language);

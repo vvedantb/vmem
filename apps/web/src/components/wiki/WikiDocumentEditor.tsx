@@ -79,9 +79,14 @@ export default function WikiDocumentEditor({
   const onActiveHeadingChangeRef = useRef(onActiveHeadingChange);
   const onWordCountChangeRef = useRef(onWordCountChange);
 
-  onHeadingsChangeRef.current = onHeadingsChange;
-  onActiveHeadingChangeRef.current = onActiveHeadingChange;
-  onWordCountChangeRef.current = onWordCountChange;
+  // Written in an effect (not during render) so React Compiler can compile
+  // the file. Declared before the editor-content effects below, so the refs
+  // are fresh by the time any editor event can fire.
+  useEffect(() => {
+    onHeadingsChangeRef.current = onHeadingsChange;
+    onActiveHeadingChangeRef.current = onActiveHeadingChange;
+    onWordCountChangeRef.current = onWordCountChange;
+  }, [onHeadingsChange, onActiveHeadingChange, onWordCountChange]);
 
   const handleTocUpdate = (anchors: TableOfContentDataItem[]) => {
     const headings = anchorsToHeadings(anchors);

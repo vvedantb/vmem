@@ -43,10 +43,15 @@ export function useMemoryEvents(
   const queryClient = useQueryClient();
   const [since] = useState(() => Date.now());
   const processedRef = useRef(new Set<string>());
+  // Written in an effect (not during render) so React Compiler can compile
+  // the file. Declared before the event-processing effect below, so the refs
+  // are fresh by the time it runs in the same commit.
   const onRelationshipEventRef = useRef(onRelationshipEvent);
-  onRelationshipEventRef.current = onRelationshipEvent;
   const onMemoryEventRef = useRef(onMemoryEvent);
-  onMemoryEventRef.current = onMemoryEvent;
+  useEffect(() => {
+    onRelationshipEventRef.current = onRelationshipEvent;
+    onMemoryEventRef.current = onMemoryEvent;
+  }, [onRelationshipEvent, onMemoryEvent]);
 
   const rawEvents = useConvexQuery(api.memoryEvents.getRecentEvents, {
     since,
