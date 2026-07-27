@@ -17,13 +17,6 @@ const glBenchEsm = path.join(
 
 export default defineConfig(({ command }) => ({
   plugins: [
-    tanstackRouter({
-      routesDirectory: "./src/routes",
-      routeFileIgnorePattern:
-        "([sS]earchParams\\.ts|_components|_utils\\.ts|Client\\.tsx|Panel\\.tsx)",
-      autoCodeSplitting: true,
-    }),
-    react(),
     // The tabler barrel re-exports 6095 icons and rolldown resolves every one
     // of them before it can tree-shake. Rewrite each named import to the icon
     // module itself so the barrel is never loaded.
@@ -32,6 +25,13 @@ export default defineConfig(({ command }) => ({
         transform: "@tabler/icons-react/dist/esm/icons/{{member}}.mjs",
       },
     }),
+    tanstackRouter({
+      routesDirectory: "./src/routes",
+      routeFileIgnorePattern:
+        "([sS]earchParams\\.ts|_components|_utils\\.ts|Client\\.tsx|Panel\\.tsx)",
+      autoCodeSplitting: true,
+    }),
+    react(),
     // React Compiler runs on builds only. Measured over apps/web/src it costs
     // ~24s of Babel CPU (~31ms median per file) and accounts for ~90% of the
     // Babel pass. Vite does not cache source transforms to disk, so in dev every
