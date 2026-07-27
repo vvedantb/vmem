@@ -1,7 +1,6 @@
 import { defineConfig } from "vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import babel from "@rolldown/plugin-babel";
-import transformImports from "@rolldown/plugin-transform-imports";
 import tanstackRouter from "@tanstack/router-plugin/vite";
 import { visualizer } from "rollup-plugin-visualizer";
 import path from "path";
@@ -15,36 +14,8 @@ const glBenchEsm = path.join(
   "dist/gl-bench.module.js",
 );
 
-/**
- * The tabler barrel re-exports 6095 icons and rolldown resolves every one of
- * them before it can tree-shake. Rewrite each named import to the icon module
- * itself so the barrel is never loaded.
- *
- * The plugin's own transform filter is `/\.[jt]sx?$/`, which misses the virtual
- * modules TanStack Router's code-splitter emits (`route.tsx?tsr-split=...`) —
- * i.e. the route files that import the most icons. Widen it to allow a query.
- */
-function tablerBarrelBypass() {
-  const plugin = transformImports({
-    "@tabler/icons-react": {
-      transform: "@tabler/icons-react/dist/esm/icons/{{member}}.mjs",
-    },
-  });
-  const { transform } = plugin;
-  if (
-    transform &&
-    typeof transform === "object" &&
-    transform.filter &&
-    !Array.isArray(transform.filter)
-  ) {
-    transform.filter.id = /\.[jt]sx?(\?|$)/;
-  }
-  return plugin;
-}
-
 export default defineConfig(({ command }) => ({
   plugins: [
-    tablerBarrelBypass(),
     tanstackRouter({
       routesDirectory: "./src/routes",
       routeFileIgnorePattern:
