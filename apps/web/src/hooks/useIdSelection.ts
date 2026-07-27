@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useRef, useState } from "react";
+import { useReducer, useState } from "react";
 
 type SelectionState<T> = {
   selectedIds: Set<T>;
@@ -73,13 +73,9 @@ export type UseIdSelectionOptions<T> = {
 
 // shared id set selection for files (modifiers) and wiki/skills (bulk mode)
 export function useIdSelection<T>(options: UseIdSelectionOptions<T> = {}) {
-  // Written in an effect (not during render) so React Compiler can compile
-  // the file; the selection handlers that read it only run on user events.
-  const orderedIdsRef = useRef(options.orderedIds);
-  useEffect(() => {
-    orderedIdsRef.current = options.orderedIds;
-  }, [options.orderedIds]);
-
+  // The handlers below close over options.orderedIds directly — React
+  // Compiler recreates them when it changes, so no latest-value ref is needed
+  // (writing one during render would bail the whole file out anyway).
   const [state, dispatch] = useReducer(
     (prev: SelectionState<T>, action: SelectionAction<T>) =>
       selectionReducer(prev, action),
@@ -101,7 +97,7 @@ export function useIdSelection<T>(options: UseIdSelectionOptions<T> = {}) {
   };
 
   const selectAll = () => {
-    const orderedIds = orderedIdsRef.current;
+    const orderedIds = options.orderedIds;
     if (orderedIds === undefined) return;
     if (orderedIds.length > 0 && state.selectedIds.size === orderedIds.length) {
       dispatch({ type: "clear" });
@@ -120,7 +116,7 @@ export function useIdSelection<T>(options: UseIdSelectionOptions<T> = {}) {
       dispatch({
         type: "range",
         id,
-        orderedIds: orderedIdsRef.current ?? [],
+        orderedIds: options.orderedIds ?? [],
       });
     } else if (e.ctrlKey || e.metaKey) {
       dispatch({ type: "toggle", id });
