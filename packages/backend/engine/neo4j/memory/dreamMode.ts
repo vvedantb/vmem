@@ -19,11 +19,8 @@ import {
   visibleStatusClause,
 } from "./shared";
 
-// Team dream passes read across every member's memories in the profile, so
-// ownership matching drops userId and keys on profileId alone — DreamScope's
-// userId is for writes/attribution only (see scope.ts). Personal branches
-// must stay byte-identical to the historical Cypher, so each read function
-// picks the right shape via these two helpers instead of a generic filter.
+// team dream reads every member's memories, so reads key on profileId alone
+// dreamScope userId is for writes only, personal cypher must stay byte-identical
 function ownerMatchProps(scope: DreamScope, includeProfileId = false): string {
   if (scope.kind === "team") return "profileId: $profileId";
   return includeProfileId
@@ -120,8 +117,6 @@ function surprisalFromNeighborScores(rawScores: unknown): number | null {
   return 1 - mean(scores);
 }
 
-// AI-generated (Claude), prompt: "compute embedding surprisal score anomaly clusters and high similarity merge candidates in neo4j"
-// Modified by me: tuned neighbor k cluster size and merge similarity thresholds
 export async function computeSurprisalScores(
   driver: Driver,
   params: {
@@ -297,9 +292,7 @@ export async function materializeSynthesisAsMemory(
   params: {
     userId: string;
     profileId: string;
-    // Picks the derived-memory Cypher's source match (see shared.ts):
-    // personal keys sources on userId, team on profileId alone so
-    // DERIVED_FROM edges reach every member's contributions.
+    // personal DERIVED_FROM keys on userId, team on profileId so all members' sources link
     graphScope: ScopeKind;
     title: string;
     content: string;
@@ -403,7 +396,6 @@ export async function findMergeCandidates(
       while ((parent.get(root) ?? root) !== root) {
         root = parent.get(root) ?? root;
       }
-      // path compression
       let cur = id;
       while (cur !== root) {
         const next = parent.get(cur) ?? root;
@@ -465,7 +457,6 @@ export async function findMergeCandidates(
       }
     }
 
-    // components of size >= 2, biggest first
     const components = groupBy([...members.values()], (member) =>
       find(member.id),
     );

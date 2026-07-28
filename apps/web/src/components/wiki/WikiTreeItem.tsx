@@ -99,7 +99,7 @@ export type WikiTreeRowProps = {
   isBulkSelect: boolean;
   isChecked: boolean;
   isDragging: boolean;
-  // headless-tree item.getProps() — spreads onto the row button
+  // headless tree item.getProps() spreads onto the row button
   itemProps: ButtonHTMLAttributes<HTMLButtonElement>;
   onToggleExpanded: (e: MouseEvent) => void;
   onCreateInside: (

@@ -11,8 +11,8 @@ import type { SkillFormValues } from "@/components/skills/skillForm";
 type SkillFormFieldName = keyof SkillFormValues;
 
 type SkillFormShellProps = {
-  // Narrower than UseFormRegister so SystemSkillFormValues (superset) is assignable —
-  // RHF's UseFormRegister is invariant in the form values type.
+  // narrower than UseFormRegister so SystemSkillFormValues (superset) is assignable
+  // rHF's UseFormRegister is invariant in the form values type.
   register: (
     name: SkillFormFieldName,
   ) => UseFormRegisterReturn<SkillFormFieldName>;

@@ -47,7 +47,6 @@ function isAcceptedFile(file: File): boolean {
   );
 }
 
-// linear-style memory creation modal
 export default function AddMemoryModal({
   trigger,
 }: {
@@ -81,15 +80,13 @@ export default function AddMemoryModal({
   const allTags = buildTagStats(memories ?? []);
   const normalizedTagInput = tagInput.trim().toLowerCase();
 
-  // suggestions hide tags already on the memory and (when typing) filter by
-  // substring match — same behaviour as the legacy AddMemoryForm
+  // hide tags already on this memory, filter suggestions by typed substring
   const availableTags = allTags.filter((t) => !currentTags.includes(t.tag));
   const filteredSuggestions = !normalizedTagInput
     ? availableTags
     : availableTags.filter((t) => t.tag.includes(normalizedTagInput));
 
-  // show "Create …" only when the typed string is brand-new (not in the
-  // existing tag corpus and not already on this memory)
+  // show create option only for tags not in corpus or on this memory
   const canCreateTag =
     normalizedTagInput.length > 0 &&
     !currentTags.includes(normalizedTagInput) &&
@@ -106,8 +103,7 @@ export default function AddMemoryModal({
     onChange(currentTags.filter((t) => t !== tag));
   };
 
-  // single source of truth for "the modal closed" — fires for cancel,
-  // escape, click-outside, and post-submit success paths
+  // resetForm runs for every close path including post-submit success
   const resetForm = () => {
     reset();
     setTagInput("");
@@ -147,8 +143,7 @@ export default function AddMemoryModal({
   };
 
   const handleCreateMemory = async (data: MemoryFormValues) => {
-    // Resolved above the try: React Compiler bails on the whole file for a
-    // `??` inside one.
+    // profileId above try because ?? inside try bails react compiler
     const profileId = selectedProfileId ?? activeProfileId;
     try {
       await createMemory({ ...data, profileId });
@@ -190,9 +185,7 @@ export default function AddMemoryModal({
           onSubmit={handleSubmit(handleCreateMemory)}
           className="flex flex-col"
         >
-          {/* title + description sit as borderless text on the modal surface;
-              swapped for a single attachment chip while a file is staged, so
-              the action stays unambiguous */}
+          {/* swap title area for file chip so import action stays unambiguous */}
           <div className="flex flex-col gap-2 px-5 pt-5 pb-4">
             {pendingFile ? (
               <div className="flex items-center gap-3 rounded-lg bg-surface-secondary/50 px-3 py-3">
@@ -239,8 +232,7 @@ export default function AddMemoryModal({
             )}
           </div>
 
-          {/* tag chips sit between the body and the toolbar so they read as
-              part of the memory, not as a control */}
+          {/* tags between body and toolbar read as memory metadata, not controls */}
           {currentTags.length > 0 && (
             <Controller
               name="tags"
@@ -271,8 +263,7 @@ export default function AddMemoryModal({
             />
           )}
 
-          {/* tonal surface shift, no border — metadata badges on the left,
-              primary actions on the right */}
+          {/* tonal footer separates metadata badges from primary actions */}
           <div className="flex items-center justify-between gap-2 bg-surface-secondary/40 px-3 py-2">
             <div className="flex items-center gap-1">
               <ProfileDropdown
@@ -374,7 +365,7 @@ export default function AddMemoryModal({
                 disabled={isBusy}
                 className="hidden"
               />
-              {/* disabled once a file is staged — only one attachment at a time */}
+              {/* one attachment at a time so attach disables after staging */}
               <Button
                 type="button"
                 variant="ghost"

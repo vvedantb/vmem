@@ -75,7 +75,7 @@ function crossedBoundary(
   );
 }
 
-// snapshot wiki pre-patch state; call before `ctx.db.patch`
+// snapshot wiki pre patch state. call before ctx.db.patch
 export async function maybeSnapshotWikiVersion(
   ctx: MutationCtx,
   node: Doc<"wikiNodes">,
@@ -126,7 +126,7 @@ function skillUnchanged(
   );
 }
 
-// snapshot skill pre-patch state; call before `ctx.db.patch`
+// snapshot skill pre patch state. call before ctx.db.patch
 export async function maybeSnapshotSkillVersion(
   ctx: MutationCtx,
   skill: Doc<"skills">,

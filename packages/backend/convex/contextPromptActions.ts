@@ -15,7 +15,7 @@ import { callOpenRouterChat, LLM_MODEL } from "./lib/openRouter";
 const PINNED_LIMIT = 20;
 // number of recent active memories the summarizer model sees
 const RECENT_LIMIT = 50;
-// per-memory char cap when feeding the summarizer — keeps prompt finite
+// per-memory char cap when feeding the summarizer, keeps prompt finite
 const RECENT_CONTENT_CHAR_CAP = 400;
 
 type MemorySnippet = Pick<MemoryWithTags, "title" | "content">;
@@ -28,8 +28,7 @@ function formatPinnedSection(pinned: MemorySnippet[]): string {
 }
 
 function buildSummaryPrompt(recent: MemorySnippet[]): string {
-  // truncate per-memory content so a chatty user doesn't blow the
-  // prompt budget. The summarizer is just looking for themes anyway
+  // truncate per-memory content so a chatty user doesn't blow the prompt budget. the summarizer is just looking for themes anyway
   const lines = recent.map((m) => {
     const trimmed =
       m.content.length > RECENT_CONTENT_CHAR_CAP
@@ -60,8 +59,7 @@ async function callSummarizer(
     const { content } = await callOpenRouterChat(ctx, {
       apiKey,
       userId,
-      // no profileId — context-prompt cache is a single user-wide row,
-      // not bound to any one profile
+      // no profileId: context prompt cache is a single user-wide row, not bound to any one profile
       feature: "context-prompt",
       model: LLM_MODEL,
       messages: [
@@ -81,12 +79,12 @@ async function callSummarizer(
   }
 }
 
-// build a fresh context-prompt markdown for a user and persist it
+// build a fresh context prompt markdown for a user and persist it
 export const regenerateContextPromptInternal = internalAction({
   args: { clerkId: v.string() },
   returns: v.null(),
   handler: async (ctx, args) => {
-    // resolve clerkId → users._id so we can read userSettings (which is keyed on the internal id)
+    // resolve clerkId to users._id so we can read userSettings (keyed on the internal id)
     const userId = await ctx.runQuery(
       internal.contextPromptCache.resolveUserIdByClerkIdInternal,
       { clerkId: args.clerkId },
@@ -105,8 +103,7 @@ export const regenerateContextPromptInternal = internalAction({
 
     const driver = getDriver();
 
-    // pull pinned (verbatim) and recent (for summarizer). Two cheap
-    // index-backed Cypher calls — no fanout per memory
+    // pull pinned (verbatim) and recent (for summarizer). two cheap index-backed cypher calls, no per-memory fan-out
     const pinnedPage = await listMemories(driver, {
       userId: args.clerkId,
       status: "pinned",
@@ -128,14 +125,13 @@ export const regenerateContextPromptInternal = internalAction({
       content: m.content,
     }));
 
-    // profile summary is best-effort. Without an OpenRouter key we still
-    // produce a useful prompt (about/preferences/pinned)
+    // profile summary is best-effort. without an openRouter key we still produce a useful prompt (about/preferences/pinned)
     const auth = await tryOpenRouterAuth(ctx, args.clerkId);
     const summary = auth
       ? await callSummarizer(ctx, auth.apiKey, auth.userId, recentSnippets)
       : null;
 
-    // dream-maintained portrait of the MCP-active profile
+    // dream maintained portrait of the mcp active profile
     const dreamPortrait = await ctx.runQuery(
       internal.profiles.getPortraitForContextPromptInternal,
       { clerkId: args.clerkId },
@@ -165,7 +161,6 @@ export const regenerateContextPromptInternal = internalAction({
     sections.push("## Profile Summary");
     sections.push(summary ?? "_(summary unavailable)_");
 
-    // effective skills = personal + installed system skills (resolved live)
     const skillRows = await ctx.runQuery(
       internal.skills.listEffectiveByClerkIdInternal,
       { clerkId: args.clerkId },
@@ -207,8 +202,7 @@ export const regenerateIfPendingInternal = internalAction({
       { clerkId: args.clerkId },
     );
     if (!cache || !cache.pendingRegeneration) {
-      // either no cache row yet (someone else's regen is already running)
-      // or the flag was cleared by an earlier debounce winner
+      // either no cache row yet (someone else's regen is already running) or the flag was cleared by an earlier debounce winner
       return null;
     }
     await ctx.runAction(

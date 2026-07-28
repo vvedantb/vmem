@@ -105,8 +105,6 @@ function resolveCalleeIds(
   return { ids: globalIds, tier: "AMBIGUOUS" };
 }
 
-// AI-generated (Claude), prompt: "resolve call expressions to callee symbol ids with confidence tiers for local inferred and ambiguous matches"
-// Modified by me: tightened enclosing function lookup and ambiguous multi match behavior
 export function resolveCalls(
   project: Project,
   parseResult: ParseResult,

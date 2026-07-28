@@ -1,5 +1,3 @@
-// AI-generated (Claude), prompt: "unit tests for rrf score and recency decay by memory type"
-// Modified by me: covered profile knowledge and episodic buckets
 import { describe, expect, it } from "vitest";
 import {
   recencyFromAgeDays,

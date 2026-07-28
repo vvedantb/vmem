@@ -25,7 +25,7 @@ export function isSuccessStatus(status: number): boolean {
   return status >= 200 && status < 300;
 }
 
-// aggregate request volume, success rate, latency, and 7-day trends
+// aggregate request volume, success rate, latency, and 7 day trends
 export function computeApiUsageMetrics(
   entries: ApiRequestEntries,
 ): ApiUsageMetrics {

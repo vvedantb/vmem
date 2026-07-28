@@ -50,7 +50,7 @@ export const resolveProposal = authAction({
     action: v.string(),
     // contradiction proposals, memory id to keep
     winnerMemoryId: v.optional(v.string()),
-    // team proposals, shared profile so a nonowner can look up the memory
+    // team proposals: shared profile so a non-owner can look up the memory
     profileId: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<ResolveResult | null> => {
@@ -75,7 +75,7 @@ export const resolveProposal = authAction({
           ctx,
           args.profileId,
         );
-        // team derived memories belong to the owner, so nonowners need the profile lookup
+        // team-derived memories belong to the owner, so non-owners need the profile lookup
         const detail =
           teamId !== undefined && args.profileId !== undefined
             ? await getMemoryForTeam(

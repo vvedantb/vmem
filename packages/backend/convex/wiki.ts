@@ -26,7 +26,6 @@ const wikiKindValidator = v.union(
 
 const MAX_SEARCH_RESULTS = 20;
 
-// every node in a scope: a team's wiki, or the user's personal nodes
 async function listScopeNodes(
   ctx: QueryCtx | MutationCtx,
   userId: Id<"users">,
@@ -45,7 +44,6 @@ async function listScopeNodes(
   return nodes.filter((n) => n.teamId === undefined);
 }
 
-// siblings under one parent within a scope (for order assignment)
 async function listScopeSiblings(
   ctx: QueryCtx | MutationCtx,
   userId: Id<"users">,
@@ -69,13 +67,12 @@ async function listScopeSiblings(
   return siblings.filter((n) => n.teamId === undefined);
 }
 
-// `order = max(sibling.order) + 1`, or 0 when the parent has no children
+// order = max(sibling.order) + 1, or 0 when the parent has no children
 function nextSiblingOrder(siblings: Array<Doc<"wikiNodes">>): number {
   if (siblings.length === 0) return 0;
   return Math.max(...siblings.map((s) => s.order)) + 1;
 }
 
-// parent must exist, be a folder, and live in the same scope
 async function assertWikiParentFolder(
   ctx: QueryCtx | MutationCtx,
   parentId: Id<"wikiNodes"> | undefined,
@@ -95,7 +92,6 @@ async function assertWikiParentFolder(
   }
 }
 
-// dedupe title + content hits, documents first in input order, capped
 function mergeWikiSearchHits(
   titleMatches: Array<Doc<"wikiNodes">>,
   contentMatches: Array<Doc<"wikiNodes">>,
@@ -206,7 +202,6 @@ async function applyWikiNodeUpdate(
   await ctx.db.patch(node._id, { ...patch, updatedAt: Date.now() });
 }
 
-// returns all wikiNodes in the requested scope, sorted by `order` ascending
 export const listTree = authQuery({
   args: { teamId: v.optional(v.id("teams")) },
   handler: async (ctx, args) => {
@@ -216,7 +211,7 @@ export const listTree = authQuery({
   },
 });
 
-// workspace-scoped wiki nodes for the memory graph (personal or team)
+// workspace scoped wiki nodes for the memory graph (personal or team)
 export const listForGraphInternal = internalQuery({
   args: {
     userId: v.id("users"),
@@ -234,7 +229,6 @@ export const listForGraphInternal = internalQuery({
   },
 });
 
-// fetch a single node by id
 export const getNode = authQuery({
   args: { id: v.string() },
   handler: async (ctx, args) => {
@@ -247,7 +241,6 @@ export const getNode = authQuery({
   },
 });
 
-// create a new folder or document under `parentId` (or at root when undefined), in
 export const createNode = authMutation({
   args: {
     parentId: v.optional(v.id("wikiNodes")),
@@ -274,7 +267,6 @@ export const createNode = authMutation({
   },
 });
 
-// rename a folder or document (any team member for team nodes)
 export const renameNode = authMutation({
   args: { id: v.id("wikiNodes"), title: v.string() },
   handler: async (ctx, args) => {
@@ -293,7 +285,6 @@ export const renameNode = authMutation({
   },
 });
 
-// persist editor content
 export const updateContent = authMutation({
   args: {
     id: v.id("wikiNodes"),
@@ -322,7 +313,6 @@ export const updateContent = authMutation({
   },
 });
 
-// recursively delete a node and every descendant
 async function deleteWikiSubtree(
   ctx: MutationCtx,
   actorUserId: Id<"users">,
@@ -350,7 +340,6 @@ export const deleteNode = authMutation({
   },
 });
 
-// bulk-delete several nodes, each recursively (with its version snapshots)
 export const deleteNodes = authMutation({
   args: { ids: v.array(v.id("wikiNodes")) },
   handler: async (ctx, args) => {
@@ -362,7 +351,6 @@ export const deleteNodes = authMutation({
   },
 });
 
-// move a node to a new parent and/or reorder within its siblings
 export const moveNode = authMutation({
   args: {
     id: v.id("wikiNodes"),
@@ -378,7 +366,7 @@ export const moveNode = authMutation({
         userId: node.userId,
         teamId: node.teamId,
       });
-      // guard against cycles: parent cannot be a descendant of node
+      // guard against cycles, parent cannot be a descendant of node
       let cursor: Doc<"wikiNodes"> | null = await ctx.db.get(args.newParentId);
       while (cursor !== null) {
         if (cursor._id === node._id) {
@@ -396,7 +384,6 @@ export const moveNode = authMutation({
   },
 });
 
-// union search across title + content full-text indexes, within one scope (personal
 export const search = authQuery({
   args: { queryText: v.string(), teamId: v.optional(v.id("teams")) },
   handler: async (ctx, args) => {
@@ -457,7 +444,7 @@ export const createByClerkIdInternal = internalMutation({
     content: v.optional(v.string()),
     contentText: v.optional(v.string()),
     language: v.optional(v.string()),
-    // plain-string codebase id (MCP threads ids as strings); validated below
+    // plain string codebase id (mcp threads ids as strings). validated below
     sourceCodebaseId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -534,8 +521,7 @@ export const updateByClerkIdInternal = internalMutation({
       patch.language = args.language;
     }
 
-    // agent (MCP) writes always checkpoint the pre-write state so the user can
-    // see and undo exactly what the agent changed
+    // agent (mcp) writes always checkpoint pre-write state so the user can see and undo exactly what the agent changed
     await applyWikiNodeUpdate(ctx, node, patch, {
       source: "mcp",
       authorUserId: userId,

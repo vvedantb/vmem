@@ -27,11 +27,11 @@ import { tempId, updateAllCachedQueries } from "@/lib/convex-optimistic";
 interface SystemSkillFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  // undefined = create a new catalogue skill; provided = edit it
+  // undefined = create a new catalogue skill provided = edit it
   entry?: SystemSkillEntry;
 }
 
-// admin-only create/edit form for a catalogue system skill
+// admin only create/edit form for a catalogue system skill
 export function SystemSkillFormDialog({
   open,
   onOpenChange,
@@ -108,7 +108,7 @@ export function SystemSkillFormDialog({
       return;
     }
     form.reset(emptySystemSkillFormValues);
-    // Reset on open / entry identity only — not on live-query object churn.
+    // reset on open / entry identity only not on live query object churn.
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- entry snapshot at open/_id
   }, [open, entryId, form]);
 
@@ -120,8 +120,8 @@ export function SystemSkillFormDialog({
   const onSubmit = async (values: SystemSkillFormValues) => {
     const trimmedCategory = values.category.trim();
     const category = trimmedCategory.length > 0 ? trimmedCategory : undefined;
-    // Hoisted above the try: React Compiler bails on the whole file for a `??`
-    // inside one. Update clears the category with null; create just omits it.
+    // hoisted above the try React Compiler bails on the whole file for a `??`
+    // inside one. Update clears the category with null create just omits it.
     const categoryOrNull = category ?? null;
 
     try {

@@ -95,9 +95,7 @@ export async function getStorage(): Promise<ExtensionStorage> {
   };
 }
 
-// existential pairing of a field name with the item that backs it, so a
-// single generic pass can build a type-safe partial update without a
-// hand-written union type or one `if` block per field
+// pair each storage key with its wxt item so setStorage stays type safe
 type StorageEntry<K extends keyof ExtensionStorage> = {
   key: K;
   item: WxtStorageItem<ExtensionStorage[K], Record<string, never>>;
@@ -119,9 +117,7 @@ const STORAGE_ENTRIES = [
   { key: "lastSyncSkipReason", item: lastSyncSkipReasonItem },
 ] satisfies readonly AnyStorageEntry[];
 
-// setStorage silently ignores any field missing from STORAGE_ENTRIES, so fail
-// the build instead if a new ExtensionStorage field is not registered above.
-// Assert<false> violates the constraint, so an unregistered field is an error.
+// fail the build when a new ExtensionStorage field is not registered above
 type Assert<T extends true> = T;
 type _AllFieldsRegistered = Assert<
   Exclude<

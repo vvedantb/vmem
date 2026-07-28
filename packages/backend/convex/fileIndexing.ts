@@ -37,7 +37,7 @@ export const indexFileNodeInternal = internalAction({
     const result = await ctx.runQuery(internal.files.getNodeForIndexInternal, {
       fileNodeId: args.fileNodeId,
     });
-    // node already deleted — deleteSubtree scheduled its own cleanup
+    // node already deleted, deleteSubtree scheduled its own cleanup
     if (!result) return;
     const { node, clerkId } = result;
 
@@ -78,7 +78,7 @@ export const indexFileNodeInternal = internalAction({
       content = await extractFileContent(blob, kind);
     } catch (err) {
       console.error(`[fileIndexing] extraction failed for ${node.name}`, err);
-      // old memory (if any) is untouched here — keep the reference
+      // old memory (if any) is untouched here, keep the reference
       await ctx.runMutation(internal.files.setIndexResultInternal, {
         fileNodeId: args.fileNodeId,
         indexStatus: "failed",
@@ -116,8 +116,7 @@ export const indexFileNodeInternal = internalAction({
       profileId = defaultProfile._id;
     }
 
-    // overwrite path: drop the previous derived memory so the re-create
-    // gets a fresh dedup/embed/enrich/chunk pass
+    // overwrite path: drop the previous derived memory so re-create gets a fresh dedup/embed/enrich/chunk pass
     if (staleMemoryId) {
       await cleanupFileMemory(
         ctx,
@@ -163,14 +162,12 @@ export const indexFileNodeInternal = internalAction({
   },
 });
 
-// delete derived memories after their file nodes were removed
 export const cleanupFileMemoriesInternal = internalAction({
   args: {
     entries: v.array(v.object({ memoryId: v.string(), clerkId: v.string() })),
   },
   handler: async (ctx, args): Promise<void> => {
-    // A folder delete can contain several identical-content files that
-    // collapsed onto one memory — clean each memory once
+    // a folder delete can contain several identical content files that collapsed onto one memory, clean each memory once
     const seen = new Set<string>();
     for (const entry of args.entries) {
       if (seen.has(entry.memoryId)) continue;
@@ -180,7 +177,7 @@ export const cleanupFileMemoriesInternal = internalAction({
   },
 });
 
-// one-shot backfill: index every file uploaded before indexing shipped (no `indexStatus` yet)
+// one-shot backfill: index every file uploaded before indexing shipped (no indexStatus yet)
 export const backfillFileNodeIndex = internalAction({
   args: {},
   handler: async (ctx): Promise<{ scheduled: number }> => {

@@ -1,5 +1,3 @@
-// AI-generated (Claude), prompt: "unit tests for retrieval recall metrics and benchmark corpus invariants"
-// Modified by me: locked expected memory query and abstention counts
 import { describe, expect, it } from "vitest";
 import { generateBenchmarkCorpus } from "./corpus";
 import { recallAtK, reciprocalRank } from "./metrics";

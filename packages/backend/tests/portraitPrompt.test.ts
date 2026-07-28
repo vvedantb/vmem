@@ -1,5 +1,3 @@
-// AI-generated (Claude), prompt: "test portrait prompt build and grounded response parse"
-// Modified by me: required source memory ids from the evidence set
 import { describe, expect, it } from "vitest";
 import {
   buildPortraitUpdatePrompt,

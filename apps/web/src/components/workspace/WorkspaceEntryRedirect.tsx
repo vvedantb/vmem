@@ -11,7 +11,7 @@ export function WorkspaceEntryRedirect({
   subPath = "/home",
   search = "",
 }: {
-  // workspace-relative path to land on, e.g
+  // workspace relative path to land on, e.g
   subPath?: string;
   // query string (including leading "?") to preserve across the redirect
   search?: string;

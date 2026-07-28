@@ -9,7 +9,7 @@ function isStorageId(value: string): value is Id<"_storage"> {
   return value.length > 0;
 }
 
-// parse `{ storageId }` from Convex's signed file-upload POST response
+// parse `{ storageId }` from Convex's signed file upload POST response
 export function parseConvexStorageUpload(json: unknown): Id<"_storage"> | null {
   const parsed = convexStorageUploadSchema.safeParse(json);
   if (!parsed.success || !isStorageId(parsed.data.storageId)) return null;

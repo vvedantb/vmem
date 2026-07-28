@@ -1,5 +1,4 @@
-// internal types shared by the screenshot overlay state machine
-// drag handler and capture pipeline not part of the public message api
+// screenshot overlay types for drag handler and capture pipeline
 
 export type Mode =
   | "idle"

@@ -53,7 +53,7 @@ export default function DisconnectConnectorDialog({
     } catch {
       toast.error("Failed to disconnect");
     }
-    // After the try rather than in a `finally`: React Compiler bails on the
+    // after the try rather than in a `finally` React Compiler bails on the
     // whole file when it meets one. The catch swallows, so this always runs.
     setSubmitting(false);
   };

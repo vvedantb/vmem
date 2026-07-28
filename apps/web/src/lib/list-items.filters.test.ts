@@ -1,5 +1,3 @@
-// AI-generated (Claude), prompt: "unit tests for memory list filter predicates and search"
-// Modified by me: covered kind source type and tag filter paths
 import { describe, expect, it } from "vitest";
 import type { ListItem } from "./list-items";
 import { listItemPassesFilters, searchListItems } from "./list-items";

@@ -1,6 +1,4 @@
-// in page toast notification system for vmem
-// uses shadow dom for style encapsulation so it works on any host page
-// toasts stack from bottom right and auto dismiss
+// shadow-dom toasts for any host page, stack bottom-right, auto-dismiss
 
 import { escape } from "es-toolkit";
 import { createShadowHost } from "./dom-utils";
@@ -13,15 +11,11 @@ interface ToastEntry {
   timer: ReturnType<typeof setTimeout> | null;
 }
 
-// singleton state
-
 let host: HTMLElement | null = null;
 let shadow: ShadowRoot | null = null;
 let listEl: HTMLElement | null = null;
 let counter = 0;
 const active = new Map<string, ToastEntry>();
-
-// icons
 
 const CHECK_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
 const ERROR_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
@@ -34,8 +28,6 @@ const ICON_MAP: Record<ToastType, string> = {
   info: INFO_SVG,
   loading: SPINNER_HTML,
 };
-
-// styles
 
 const STYLES = `
   :host { all: initial; }
@@ -103,8 +95,6 @@ const STYLES = `
   @keyframes spin { to { transform: rotate(360deg); } }
 `;
 
-// container setup
-
 function ensureContainer(): void {
   if (host) return;
 
@@ -117,16 +107,13 @@ function ensureContainer(): void {
   document.documentElement.appendChild(host);
 }
 
-// public api
-
 export interface ShowToastOptions {
   type: ToastType;
   message: string;
-  // auto dismiss after ms default 3000 pass 0 to keep open
+  // duration: pass 0 to keep open, default 3000ms
   duration?: number;
 }
 
-// show a toast notification returns a unique toast id for later removal
 export function showToast(options: ShowToastOptions): string {
   ensureContainer();
 
@@ -136,7 +123,6 @@ export function showToast(options: ShowToastOptions): string {
   el.innerHTML = `<div class="toast-icon">${ICON_MAP[options.type]}</div><span class="toast-message">${escape(options.message)}</span>`;
 
   if (listEl) listEl.appendChild(el);
-  // trigger reflow then animate in
   void el.offsetWidth;
   el.classList.add("show");
 
@@ -150,7 +136,6 @@ export function showToast(options: ShowToastOptions): string {
   return id;
 }
 
-// remove a toast by id
 function hideToast(id: string): void {
   const entry = active.get(id);
   if (!entry) return;

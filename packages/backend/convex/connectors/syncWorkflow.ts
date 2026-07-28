@@ -3,7 +3,7 @@ import { internalMutation } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { connectorSyncPool } from "../workpools";
 
-// Cron kickoff: enqueue one sync action per connected connector (serial pool).
+// cron kickoff, enqueue one sync action per connected connector (serial pool).
 export const kickoffDailyConnectorSync = internalMutation({
   args: {},
   returns: v.null(),

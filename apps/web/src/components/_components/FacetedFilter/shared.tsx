@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-// opt, in multi, select: empty array means "no filter"
+// opt, in multi, select empty array means "no filter"
 export function toggleArrayItem<T>(selected: readonly T[], item: T): T[] {
   if (selected.includes(item)) {
     return selected.filter((value) => value !== item);
@@ -8,7 +8,7 @@ export function toggleArrayItem<T>(selected: readonly T[], item: T): T[] {
   return [...selected, item];
 }
 
-// checked, by, default multi, select: empty array means "all selected"
+// checked, by, default multi, select empty array means "all selected"
 export function isCheckedByDefault<T extends string>(
   selected: readonly T[],
   option: T,

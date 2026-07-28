@@ -60,7 +60,7 @@ export function TeamMembers() {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to remove");
     }
-    // After the try rather than in a `finally`: React Compiler bails on the
+    // after the try rather than in a `finally` React Compiler bails on the
     // whole file when it meets one. The catch swallows, so this always runs.
     setRemoving(null);
   };

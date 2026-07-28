@@ -1,5 +1,3 @@
-// data + filter state for one codebase symbol graph (filters in url via nuqs)
-
 import { useState } from "react";
 import { useQueryStates } from "nuqs";
 import { useThemeContext } from "@/contexts/ThemeContext";
@@ -28,10 +26,9 @@ export function useCodebaseGraphController(codebaseId: string) {
     history: "replace",
   });
 
-  // adapt nuqs array → Set for membership-style access in the builder / header controls
   const activeKinds = new Set(params.kinds);
 
-  // kinds filtering happens client-side in `buildCodebaseGraphData` so a toggle never
+  // kinds filter client-side so toggling never refetches the payload
   const filters = {
     processId: params.processId,
     blastRadiusOf: params.blastRadiusOf,
@@ -47,8 +44,7 @@ export function useCodebaseGraphController(codebaseId: string) {
     error,
   } = useCodebaseGraphData(codebaseId, filters);
 
-  // directories list is computed off the raw API payload so toggling a dir
-  // doesn't drop options the user hasn't yet picked
+  // dir list from raw api so toggles never hide unpicked options
   const directories = getAllDirectories(apiNodes);
 
   const [activeDirectories, setActiveDirectories] = useState<Set<string>>(
@@ -110,7 +106,7 @@ export function useCodebaseGraphController(codebaseId: string) {
       void setParams({ processId: id });
     },
     onSelectSymbol: (id: string | null) => {
-      // unset any existing process filter when picking a symbol
+      // symbol-focus clears process filter to avoid conflicting scopes
       void setParams({
         blastRadiusOf: id,
         processId: id ? null : params.processId,
@@ -138,8 +134,7 @@ export function useCodebaseGraphController(codebaseId: string) {
       setActiveDirectories(new Set([NONE_SENTINEL]));
     },
     onClearFilters: () => {
-      // one write to avoid the per-field race where successive setParams calls
-      // throttle to a single URL update reflecting only the last field
+      // single setParams avoids nuqs race where batched writes keep only the last field
       void setParams({
         kinds: DEFAULT_KINDS,
         processId: null,

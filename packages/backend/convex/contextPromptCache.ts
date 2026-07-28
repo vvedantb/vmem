@@ -21,7 +21,7 @@ async function getCacheRowByClerkId(
   return { user, row };
 }
 
-// resolve a clerkId to the internal Convex `users._id`
+// resolve a clerkId to the internal convex users._id
 export const resolveUserIdByClerkIdInternal = internalQuery({
   args: { clerkId: v.string() },
   returns: v.union(v.id("users"), v.null()),
@@ -67,7 +67,7 @@ export const markPendingByClerkIdInternal = internalMutation({
       return true;
     }
     if (existing.pendingRegeneration) {
-      // already pending — a debounce check is already scheduled
+      // already pending, a debounce check is already scheduled
       return false;
     }
     await ctx.db.patch(existing._id, { pendingRegeneration: true });
@@ -75,7 +75,6 @@ export const markPendingByClerkIdInternal = internalMutation({
   },
 });
 
-// persist freshly generated content and clear the pending flag
 export const upsertByClerkIdInternal = internalMutation({
   args: {
     clerkId: v.string(),

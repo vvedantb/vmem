@@ -36,7 +36,7 @@ export type MemoryEventType = z.infer<typeof memoryEventTypeSchema>;
 
 const eventTypeValidator = zodToConvex(memoryEventTypeSchema);
 
-// maps change-feed event types to audit-log action strings
+// maps change feed event types to audit log action strings
 export const ACTION_FOR_EVENT: Record<MemoryEventType, string> = {
   memory_created: "memory.created",
   memory_updated: "memory.updated",

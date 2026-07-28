@@ -1,6 +1,6 @@
 import TurndownService from "turndown";
 
-// html → markdown via turndown (runs in extension/background not page cs)
+// html to markdown via turndown in extension context, not page content-scripts
 export function htmlToMarkdown(html: string): string {
   const turndownService = new TurndownService({
     headingStyle: "atx",

@@ -6,7 +6,7 @@ import { IconSparkles, IconLoader2 } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
 
-// inbox "start dreaming" button — one-shot personal-profile synthesis
+// inbox "start dreaming" button — one-shot personal profile synthesis
 export default function RunDreamModeButton() {
   const runDreamForUser = useAction(api.dreamMode.runDreamForUser);
   const queryClient = useQueryClient();

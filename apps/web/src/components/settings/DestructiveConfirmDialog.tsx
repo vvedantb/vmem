@@ -23,7 +23,7 @@ type DestructiveConfirmDialogProps = {
   // highlighted line above the muted description (body slot)
   children?: ReactNode;
   // when set, confirm stays disabled until the user types this phrase
-  // (case, insensitive, trimmed)
+  // (case-insensitive, trimmed)
   confirmPhrase?: string;
 };
 
@@ -42,7 +42,7 @@ export default function DestructiveConfirmDialog({
   const confirmInputId = useId();
   const [typedConfirm, setTypedConfirm] = useState("");
   // reset the typed phrase whenever the dialog transitions to open, without an
-  // effect: adjust state during render (see react.dev "Adjusting state when a
+  // effect adjust state during render (see react.dev "Adjusting state when a
   // prop changes"), tracked against the previously seen `open` value
   const [prevOpen, setPrevOpen] = useState(open);
   if (open !== prevOpen) {

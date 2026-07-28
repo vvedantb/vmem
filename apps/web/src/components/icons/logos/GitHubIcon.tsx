@@ -4,7 +4,7 @@ interface IconProps {
 }
 
 export default function GitHubIcon({ size = 24, className }: IconProps) {
-  // gitHub's logo is intentionally monochrome (black/white based on theme)
+  // GitHub's logo is intentionally monochrome (black/white based on theme)
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"

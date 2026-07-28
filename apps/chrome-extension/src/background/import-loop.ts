@@ -11,10 +11,7 @@ export interface ImportResult {
   locked: boolean;
 }
 
-// shared lock + cancel + createMemory loop for bookmark/history imports
-// keeps progress messaging and per item delay identical across both paths
-// AI-generated (Claude), prompt: "locked cancelable import loop with per item delay"
-// Modified by me: progress messages and timestamp only when not cancelled
+// shared import loop keeps bookmark and history progress behavior identical
 export async function runLockedImportLoop<T>(options: {
   acquireLock: () => boolean;
   releaseLock: () => void;
@@ -51,7 +48,7 @@ export async function runLockedImportLoop<T>(options: {
           }).catch(() => {});
         }
       } catch {
-        // skip failed items (bad URL parse, createMemory errors, …)
+        // skip bad urls and createMemory failures
       }
 
       await delay(IMPORT_ITEM_DELAY_MS);

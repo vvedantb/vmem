@@ -124,9 +124,8 @@ export async function getStats(
 
     let running = baseline;
     const growthData: { isoDate: string; total: number; new: number }[] = [];
-    // UTC throughout: the Cypher above groups by date(datetime(createdAt)),
-    // a UTC calendar day, so building these keys from local midnight would
-    // look up the wrong day whenever the process timezone is behind UTC
+    // cypher groups by utc calendar day, local midnight keys would miss the right bucket
+    // whenever the process timezone sits behind utc
     const today = new Date();
     const todayMs = Date.UTC(
       today.getUTCFullYear(),

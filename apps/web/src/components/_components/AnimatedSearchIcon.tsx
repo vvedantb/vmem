@@ -1,13 +1,9 @@
-// AI-generated (Claude), prompt: "search icon that morphs into an x on empty results"
-// Modified by me: smil keyframe loop and hold timing
-
-// search icon morphs to x on empty results
 interface AnimatedSearchIconProps {
   className?: string;
   size?: number;
 }
 
-// morph loop keyframes: glass → x → hold → glass
+// morph loop keyframes glass → x → hold → glass
 const KEY_TIMES = "0; 0.2; 0.4; 0.7; 0.9; 1";
 const KEY_SPLINES = "0 0 1 1; 0.42 0 0.58 1; 0 0 1 1; 0.42 0 0.58 1; 0 0 1 1";
 const DUR = "3.5s";

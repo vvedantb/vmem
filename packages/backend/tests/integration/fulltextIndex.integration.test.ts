@@ -1,9 +1,6 @@
-// Live Neo4j suite for fulltext index drift, gated by RUN_RETRIEVAL_EVAL=1.
-//
-// setup.ts declares memory_content over [title, content], but `CREATE ... IF NOT
-// EXISTS` keeps whatever index already exists. On 28 July 2026 the live database
-// indexed content only, so a memory whose keywords lived in its title was
-// unretrievable. This suite runs the repair and proves the title path works.
+// live neo4j full-text index drift suite, gated by RUN_RETRIEVAL_EVAL=1
+// create if not exists keeps stale index properties on existing databases
+// july 2026 live db indexed content only, title keywords were unretrievable
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { Driver } from "neo4j-driver";
 import { z } from "zod";
@@ -27,7 +24,7 @@ const QUERY = "zarquon flibbertigibbet";
 
 const propertyListSchema = z.array(z.string());
 
-// Repopulation after a drop is asynchronous and Aura is not fast about it.
+// repopulation after a drop is async, aura can take minutes
 async function waitForIndex(driver: Driver): Promise<string[]> {
   for (let attempt = 0; attempt < 120; attempt++) {
     const result = await driver.executeQuery(
@@ -63,7 +60,7 @@ describe.skipIf(!runLive)("fulltext index drift (live Neo4j)", () => {
     async () => {
       await deleteAllMemoriesForUser(driver, USER);
 
-      // idempotent: a no-op once memory_content already indexes title
+      // idempotent: no-op once memory_content already indexes title
       await ensureNeo4jSetupIfNeeded(driver);
       const properties = await waitForIndex(driver);
       expect(properties).toEqual(expect.arrayContaining(["title", "content"]));

@@ -11,7 +11,7 @@ type MemoryEventType =
   | "relationship_created"
   | "relationship_deleted";
 
-// inverse of `ACTION_FOR_EVENT` in `packages/backend/convex/memoryEvents.ts`
+// mirrors ACTION_FOR_EVENT in packages/backend/convex/memoryEvents.ts
 const EVENT_FOR_ACTION: Record<string, MemoryEventType> = {
   "memory.created": "memory_created",
   "memory.updated": "memory_updated",
@@ -37,15 +37,13 @@ type RelationshipEventHandler = (event: RelationshipEvent) => void;
 
 export function useMemoryEvents(
   onRelationshipEvent?: RelationshipEventHandler,
-  // called once per batch of new memory created/updated/deleted events
+  // fires once per batch of memory create, update, or delete events
   onMemoryEvent?: () => void,
 ) {
   const queryClient = useQueryClient();
   const [since] = useState(() => Date.now());
   const processedRef = useRef(new Set<string>());
-  // Written in an effect (not during render) so React Compiler can compile
-  // the file. Declared before the event-processing effect below, so the refs
-  // are fresh by the time it runs in the same commit.
+  // refs updated in effect so react compiler can compile this file
   const onRelationshipEventRef = useRef(onRelationshipEvent);
   const onMemoryEventRef = useRef(onMemoryEvent);
   useEffect(() => {
@@ -96,7 +94,7 @@ export function useMemoryEvents(
               reason: parsed.data.reason,
             });
           } catch {
-            // ignore malformed payload
+            // malformed relationship payloads are ignored
           }
         }
       }

@@ -104,8 +104,8 @@ export function GitHubConnectorControls({
   if (connection) {
     const handleDisconnect = async (): Promise<boolean> => {
       setDisconnecting(true);
-      // One exit point and a trailing reset rather than a `finally`: React
-      // Compiler bails on the whole file when it meets one.
+      // one exit point and a trailing reset rather than a `finally` React
+      // compiler bails on the whole file when it meets one.
       let disconnected = false;
       try {
         await disconnectGithub();

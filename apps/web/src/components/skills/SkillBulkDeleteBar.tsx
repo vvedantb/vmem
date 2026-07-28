@@ -11,7 +11,7 @@ interface SkillBulkDeleteBarProps {
   onExit: () => void;
 }
 
-// selection-mode action bar for the skills sidebar
+// selection mode action bar for the skills sidebar
 export function SkillBulkDeleteBar({
   selectedIds,
   onExit,

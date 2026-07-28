@@ -19,7 +19,7 @@ function ConnectorsPage() {
   const [showBrowse, setShowBrowse] = useState(false);
   const seededRef = useRef(false);
 
-  // seedDefaults is idempotent — creates missing connectors and updates providers
+  // seedDefaults is idempotent creates missing connectors and updates providers
   useEffect(() => {
     if (connectors !== undefined && !seededRef.current) {
       seededRef.current = true;

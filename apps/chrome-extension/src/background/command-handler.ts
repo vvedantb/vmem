@@ -51,7 +51,7 @@ async function handleCommand(command: string): Promise<void> {
       try {
         await injectPageToast(tabId, "✗ Failed to save page", "#f87171");
       } catch {
-        // tab may have navigated away
+        // tab may have navigated before toast injection
       }
     }
   }

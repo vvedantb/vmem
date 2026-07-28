@@ -9,14 +9,13 @@ import { api } from "@vmem/backend";
 
 const MEMORY_LIST_PAGE_SIZE = 100;
 
-// filters forwarded to the server, paginated listmemories action
 interface MemoryListFilters {
   profileId?: string | null;
   type?: string;
   source?: string;
   tags?: string[];
   searchQuery?: string;
-  // when false, skips the paginated list query (e.g hybrid retrieve)
+  // false skips paginated fetch when hybrid retrieve handles search
   enabled?: boolean;
 }
 
@@ -41,8 +40,7 @@ function useMemoryListPage(filters: MemoryListFilters) {
   const { isAuthenticated } = useConvexAuth();
   const listMemoriesAction = useAction(api.memoryApi.listMemories);
 
-  // normalise so equivalent filter shapes produce the same cache key
-  // arrays are defensively copied + sorted, strings are trimmed
+  // normalize filter shapes so equivalent inputs share a cache key
   const normalizedFilters = normalizeMemoryListFilters(filters);
 
   return useInfiniteQuery({
@@ -67,7 +65,6 @@ function useMemoryListPage(filters: MemoryListFilters) {
   });
 }
 
-// flat list of memories with loading flags, derived from usememorylistpage
 export function useMemoryListFlat(filters: MemoryListFilters) {
   const query = useMemoryListPage(filters);
   const memories: Memory[] = (() => {
@@ -83,8 +80,7 @@ export function useMemoryListFlat(filters: MemoryListFilters) {
   return {
     memories,
     isLoading: query.isLoading,
-    // A failed load renders identically to "no memories" otherwise —
-    // callers must surface this instead of showing a silent blank list
+    // failed load looks like empty list so callers must surface isError
     isError: query.isError,
     refetch: query.refetch,
     isFetchingNextPage: query.isFetchingNextPage,

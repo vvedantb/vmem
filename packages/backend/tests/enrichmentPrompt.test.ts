@@ -1,5 +1,3 @@
-// AI-generated (Claude), prompt: "test enrichment prompt building and tag normalize helpers"
-// Modified by me: merged case variants and capped tag list length
 import { describe, expect, it } from "vitest";
 import {
   buildFullEnrichmentPrompt,

@@ -38,8 +38,8 @@ export function ProfileDangerZone({
 
   const handleDelete = async () => {
     setDeleting(true);
-    // The reset is duplicated into a rethrowing catch rather than a `finally`:
-    // React Compiler bails on the whole file for a `finally`, and for a `try`
+    // the reset is duplicated into a rethrowing catch rather than a `finally`
+    // react Compiler bails on the whole file for a `finally`, and for a `try`
     // with no `catch` at all.
     try {
       await onDelete(moveToProfileId);

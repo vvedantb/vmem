@@ -1,5 +1,5 @@
-// in memory locks to prevent overlapping bookmark/history syncs
-// sw restart resets both to false correct since no sync survives a restart
+// in-memory locks prevent overlapping bookmark and history syncs
+// sw restart clears them because no sync survives restart
 
 let bookmarkLockHeld = false;
 let historyLockHeld = false;

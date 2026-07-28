@@ -40,13 +40,10 @@ export interface CreateWithDedupParams {
   storageId?: string;
   mimeType?: string;
   originalFilename?: string;
-  // called only after exact-match checks miss
+  // semantic similarity runs only after cheaper exact checks miss
   embed: () => Promise<number[] | null>;
 }
 
-// create-memory path with ordered dedup short-circuits
-// AI-generated (Claude), prompt: "create memories with ordered dedup short circuits across external id url title origin content hash and semantic similarity"
-// Modified by me: browser source origin rule and 0.95 semantic threshold
 export async function resolveCreateWithDedup(
   driver: Driver,
   params: CreateWithDedupParams,

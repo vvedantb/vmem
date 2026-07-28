@@ -1,6 +1,4 @@
-// builds the screenshot overlay shadow dom tree once at module load
-// exports element refs the orchestrator wires events onto
-// mountOverlay() attaches the host to body when ready
+// screenshot overlay shadow-dom built once at module load
 
 import { mountVmemLogo } from "@/content/shared/icons";
 import { createShadowHost, onDocumentReady } from "@/content/shared/dom-utils";

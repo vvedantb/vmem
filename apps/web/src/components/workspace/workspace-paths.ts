@@ -1,4 +1,4 @@
-// pure path helpers for the workspace-prefixed route tree (`/$profileId/...`)
+// pure path helpers for the workspace prefixed route tree (`/$profileId/...`)
 
 // first path segments that belonged to the pre-workspace route tree
 const LEGACY_FIRST_SEGMENTS = [
@@ -22,7 +22,7 @@ export function isLegacyFirstSegment(segment: string): boolean {
 const DETAIL_PARENTS = new Set(["skills", "codebases", "wiki"]);
 
 // compute the path for "this same page in another workspace
-// first segments of user-level (non-workspace) routes
+// first segments of user level (non workspace) routes
 const USER_LEVEL_FIRST_SEGMENTS = new Set(["settings", "home", "mcp"]);
 
 export function workspacePathFor(
@@ -32,8 +32,8 @@ export function workspacePathFor(
 ): string {
   const segments = pathname.split("/").filter(Boolean);
   const root = segments[0];
-  // switching workspace from a user-level page lands on the new
-  // workspace's home rather than mangling /settings/* into a sub-path
+  // switching workspace from a user level page lands on the new
+  // workspace's home rather than mangling /settings/* into a sub path
   if (root === undefined || USER_LEVEL_FIRST_SEGMENTS.has(root)) {
     return `/${nextProfileId}/home`;
   }

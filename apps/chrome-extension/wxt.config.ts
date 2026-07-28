@@ -5,7 +5,7 @@ import tailwindcss from "@tailwindcss/vite";
 
 const root = import.meta.dirname;
 
-// mv3: avoid downleveling for legacy browsers (Clerk chunks + esbuild)
+// skip legacy browser downleveling for clerk chunks and esbuild
 const extensionBuildTarget = "chrome120";
 
 export default defineConfig({

@@ -79,7 +79,7 @@ export function mergeGlobalRelatesToEdges(
       const key = `${parsed.source}|${parsed.target}`;
       if (seenPairs.has(key)) continue;
       seenPairs.add(key);
-      // characterization: global graph edges omit score while local edges include it
+      // global graph edges omit score, local edges include it for ranking
       relatesToEdges.push({
         source: parsed.source,
         target: parsed.target,
@@ -271,8 +271,6 @@ async function fetchTagSharedEdges(
   return result.records.map(toTagEdge);
 }
 
-// AI-generated (Claude), prompt: "fetch paginated memory graph nodes relates edges and tag shared edges with profile filters"
-// Modified by me: node limit defaults and cursor behavior for large graphs
 export async function getGraphData(
   driver: Driver,
   scope: MemoryReadScope,

@@ -21,16 +21,16 @@ export interface UnifiedFilterPanelProps {
   // all items (memories + wiki + skills) for kind counts (list view)
   allItems?: ListItem[];
 
-  // kinds - supports both array (list) and Set (graph) styles
+  // kinds supports both array (list) and Set (graph) styles
   selectedKinds?: ListItemKind[];
   onKindsChange?: (kinds: ListItemKind[]) => void;
-  // graph-style kind counts - if provided, used instead of computing from allItems
+  // graph-style kind counts if provided, used instead of computing from allItems
   kindCounts?: Record<ListItemKind, number>;
 
-  // tags - supports both array (list) and Set (graph) styles
+  // tags supports both array (list) and Set (graph) styles
   selectedTags?: string[];
   onTagsChange?: (tags: string[]) => void;
-  // graph-style tag stats - if provided, used instead of computing from allMemories
+  // graph-style tag stats if provided, used instead of computing from allMemories
   tagStats?: TagStats[];
 
   // sources (list view only)
@@ -41,7 +41,7 @@ export interface UnifiedFilterPanelProps {
   // types (list view only)
   selectedTypes?: MemoryType[];
   onTypesChange?: (types: MemoryType[]) => void;
-  // graph-style type counts - if provided, used instead of computing from allMemories
+  // graph-style type counts if provided, used instead of computing from allMemories
   typeCounts?: Record<MemoryType, number>;
 
   // result count

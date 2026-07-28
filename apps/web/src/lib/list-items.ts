@@ -18,7 +18,7 @@ export type ListItemKind =
   | "skill"
   | "entity";
 
-// kind order for filter ui — fixed, never shuffle
+// kind order for filter ui fixed, never shuffle
 export const LIST_ITEM_KINDS: readonly ListItemKind[] = [
   "memory",
   "entity",
@@ -42,14 +42,14 @@ export function formatListItemKindLabel(kind: ListItemKind): string {
 }
 
 interface BaseListItem {
-  // namespaced id (wiki:/skill: or raw memory id)
+  // namespaced id (wiki/skill or raw memory id)
   id: string;
   title: string;
-  // body for search scoring; empty for folders
+  // body for search scoring empty for folders
   content: string;
   // always an array (empty for non-memory)
   tags: string[];
-  // iso timestamp — sortable as string
+  // iso timestamp sortable as string
   createdAt: string;
 }
 
@@ -91,7 +91,7 @@ export type ListItem =
   | WikiFolderItem
   | SkillItem;
 
-// filter helpers — memory filters pass non-memory items through; kind is cross-cutting
+// filter helpers: memory filters pass non-memory items through, kind is cross-cutting
 
 export function listItemPassesFilters(
   item: ListItem,
@@ -107,8 +107,6 @@ export function listItemPassesFilters(
     filters,
   );
 }
-
-// builders
 
 const WIKI_PREFIX = "wiki:";
 const SKILL_PREFIX = "skill:";
@@ -129,7 +127,7 @@ export function memoryToListItem(memory: Memory): ListItem {
   };
 }
 
-// wiki rows → list items; one pass for folder child counts
+// wiki rows → list items one pass for folder child counts
 export function wikiRowsToListItems(rows: WikiRows): ListItem[] {
   const childCount = new Map<string, number>();
   for (const row of rows) {
@@ -190,16 +188,12 @@ export function skillRowsToListItems(rows: SkillRows): ListItem[] {
     );
 }
 
-// search
-
 export interface ListItemSearchResult {
   item: ListItem;
   relevanceScore: number;
 }
 
 // score title > tags > content, normalised to [0, 1]
-// AI-generated (Claude), prompt: "score list items by title tags content term matches"
-// Modified by me: normalised score range and empty query early return
 export function searchListItems(
   items: readonly ListItem[],
   query: string,

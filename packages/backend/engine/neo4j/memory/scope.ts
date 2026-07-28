@@ -1,5 +1,5 @@
-// personal keys on the owners clerk id, team keys on the shared profile alone
-// so every member reads and links everyone elses memories
+// personal keys on the owner's clerk id, team keys on the shared profile alone
+// so every member reads and links everyone else's memories
 // team ignores userId, membership is checked in convex before the engine call
 
 export type ScopeKind = "personal" | "team";
@@ -10,7 +10,7 @@ export type MemoryReadScope =
 
 export interface DreamScope {
   kind: ScopeKind;
-  // personal is the owners clerk id, team is the team owners clerk id for writes only
+  // personal: userId is the owner's clerk id, team: userId is write attribution only
   userId: string;
   profileId: string;
 }

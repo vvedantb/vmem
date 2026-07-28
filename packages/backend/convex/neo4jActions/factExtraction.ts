@@ -39,8 +39,7 @@ export const extractFactsAndDecideInternal = internalAction({
       return { extracted: 0, applied: 0 };
     }
 
-    // resolved rather than defaulted: the capture may target a team profile, and
-    // reconciliation has to read the whole shared profile to see teammates' facts
+    // resolved rather than defaulted, the capture may target a team profile, and reconciliation has to read the whole shared profile to see teammates' facts
     const graphScope =
       args.profileId === undefined
         ? "personal"

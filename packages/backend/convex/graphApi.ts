@@ -15,7 +15,7 @@ import {
 import type { MemoryReadScope } from "../engine/neo4j/memory/scope";
 import type { MemoryType } from "../engine/neo4j/memory/types";
 
-// Convex enforces a hard 8192 element limit on ANY array in a return value
+// convex enforces a hard 8192 element limit on any array in a return value
 const MAX_NODES = 5000;
 const MAX_EDGES = 8000;
 
@@ -74,12 +74,11 @@ function capGraph(data: GraphData): CappedMemoryGraph {
   const nodes = data.nodes.slice(0, MAX_NODES);
   const nodeIds = new Set(nodes.map((n) => n.id));
 
-  // keep RELATES_TO edges only when both ends are in this page — otherwise a
-  // team-scoped page can ship dangling ids that belong to another workspace
+  // keep relates_to edges only when both ends are in this page, otherwise a team-scoped page can ship dangling ids from another workspace
   const relatesToEdges = data.relatesToEdges
     .filter((e) => nodeIds.has(e.source) && nodeIds.has(e.target))
     .slice(0, MAX_EDGES);
-  // tag edges span the whole graph (first page only) — no node filter
+  // tag edges span the whole graph (first page only), no node filter
   const tagEdges = data.tagEdges.slice(0, MAX_EDGES);
 
   const entities = data.entities
@@ -138,7 +137,7 @@ async function fetchCappedMemoryGraph(args: {
   return capGraph(raw);
 }
 
-// kept for MCP (`mcp/graph.ts`) which is not a `"use node"` module
+// kept for mcp (mcp/graph.ts) which is not a "use node" module
 export const getGraphDataInternal = internalAction({
   args: {
     clerkId: v.string(),

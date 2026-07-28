@@ -5,7 +5,7 @@ import { getDriver } from "../../../engine/neo4j/driver";
 
 type Neo4jUserArgs = { clerkId: string };
 
-// thin internalAction pass-through
+// thin internalaction pass through
 export async function runWithNeo4jDriver<Args extends Neo4jUserArgs, Result>(
   args: Args,
   fn: (

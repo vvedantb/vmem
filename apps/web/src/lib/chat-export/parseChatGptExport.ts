@@ -3,9 +3,6 @@ import { z } from "zod";
 import type { ExportImportRow, ParseExportResult } from "./importRows";
 import { textFromUtf8 } from "./textFromUtf8";
 
-// chatGPT's `conversations.json` is a mapping graph
-
-// A block inside `content.parts`: a bare string or an object holding text
 const partSchema = z
   .union([
     z.string(),
@@ -124,7 +121,6 @@ function messageTime(message: Message): number {
   return message.create_time ?? message.update_time ?? 0;
 }
 
-// flatten a conversation into ordered role/text lines
 function linearizeConversation(
   conv: Conversation,
 ): { role: string; text: string }[] {

@@ -1,4 +1,4 @@
-// pure graph-data transformation functions
+// pure graph data transformation functions
 import type { FunctionReturnType } from "convex/server";
 import type { api } from "@vmem/backend";
 import type { MemoryType } from "@/lib/memories";
@@ -6,8 +6,6 @@ import { MEMORY_TYPES } from "@/lib/memories";
 import type { ListItemKind } from "@/lib/list-items";
 import { apiGraphNodePassesFilters } from "@/lib/memory-view-filters";
 import type { GraphNode, GraphEdge, RelatedNode } from "./types";
-
-// ---- API response shapes (from typed Convex action) ----
 
 export type GraphResponse = FunctionReturnType<
   typeof api.graphApi.getGraphData
@@ -19,8 +17,6 @@ export type ApiWikiParentEdge = GraphResponse["wikiParentEdges"][number];
 export type ApiMentionsEdge = GraphResponse["mentionsEdges"][number];
 
 type ApiGraphNodeKind = ApiGraphNode["kind"];
-
-// ---- Facet stats (one pass over apiNodes) ----
 
 export interface TagStat {
   tag: string;
@@ -42,7 +38,7 @@ export interface TypeStat {
   count: number;
 }
 
-// canonical display order for kinds — never shuffle regardless of data
+// canonical display order for kinds never shuffle regardless of data
 const KIND_ORDER: ApiGraphNodeKind[] = [
   "memory",
   "entity",
@@ -104,11 +100,7 @@ function addEdgeDegrees(
   }
 }
 
-// ---- Build graph data ----
-
 // transforms API data into simulation-ready nodes + edges
-// AI-generated (Claude), prompt: "build canvas graph from api nodes with degree sized hubs"
-// Modified by me: tag relates wiki parent mentions merge without duplicate pairs
 export function buildGraphData(
   apiNodes: ApiGraphNode[],
   apiTagEdges: ApiTagEdge[],
@@ -140,7 +132,7 @@ export function buildGraphData(
 
   const graphNodes: GraphNode[] = filteredNodes.map((node) => {
     const degree = degreeCount.get(node.id) ?? 0;
-    // uncapped multiplicative scale so super-hubs visibly dominate
+    // uncapped multiplicative scale so super hubs visibly dominate
     const scaled = 3 * (1 + degree * 0.05);
     let size: number;
     if (node.kind === "entity") {
@@ -181,7 +173,7 @@ export function buildGraphData(
     }
   }
 
-  // relates-to edges (skip if already covered by a tag edge for same pair)
+  // relates to edges (skip if already covered by a tag edge for same pair)
   for (const rel of allRelatesToEdges) {
     if (nodeSet.has(rel.source) && nodeSet.has(rel.target)) {
       const pairKey =
@@ -203,7 +195,7 @@ export function buildGraphData(
   }
 
   // wiki parent→child edges (folder hierarchy). Always a distinct pair from
-  // tag/relates_to edges since wiki ids are namespaced with "wiki:"
+  // tag/relates_to edges since wiki ids are namespaced with "wiki "
   for (const wpe of apiWikiParentEdges) {
     if (nodeSet.has(wpe.source) && nodeSet.has(wpe.target)) {
       graphEdges.push({
@@ -215,7 +207,7 @@ export function buildGraphData(
     }
   }
 
-  // memory→Entity MENTIONS edges. Entity ids are namespaced with "entity:"
+  // memory→Entity MENTIONS edges. Entity ids are namespaced with "entity "
   // so they never collide with memory/wiki/skill ids
   for (const me of apiMentionsEdges) {
     if (nodeSet.has(me.source) && nodeSet.has(me.target)) {
@@ -230,8 +222,6 @@ export function buildGraphData(
 
   return { graphNodes, graphEdges };
 }
-
-// ---- Related nodes for detail panel ----
 
 export function getRelatedNodes(
   nodeId: string,

@@ -1,2 +1,2 @@
-// ambient declarations for css side effect imports (e.g. import "@/popup/globals.css")
+// ambient declarations for css side effect imports
 declare module "*.css";

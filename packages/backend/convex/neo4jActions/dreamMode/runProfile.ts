@@ -117,9 +117,8 @@ type DreamPassBase = {
   auth: AgentAuth;
   clerkId: string;
   profileId: Id<"profiles">;
-  // team-vs-personal read/write scope for the engine calls below. userId is
-  // always args.clerkId — for team profiles that's already the team owner's
-  // clerkId, resolved upstream in entryPoints.ts before this action runs.
+  // team vs personal read/write scope for the engine calls below
+  // scope.userId is always args.clerkId: for team profiles that's the team owner's clerkId, resolved upstream in entryPoints.ts
   scope: DreamScope;
   result: DreamRunResult;
 };
@@ -459,8 +458,6 @@ async function maybeRefreshDreamPortrait(
   }
 }
 
-// AI-generated (Claude), prompt: "run depth gated dream mode with anomaly synthesis merge passes confidence reweight and optional portrait refresh"
-// Modified by me: auto accept gates overlap checks and depth param tables
 export const runDreamForProfileInternal = internalAction({
   args: {
     clerkId: v.string(),
@@ -493,9 +490,8 @@ export const runDreamForProfileInternal = internalAction({
 
     const driver = getDriver();
     const result = emptyDreamResult("ok");
-    // Team dream passes read across every member's memories in the profile;
-    // args.clerkId is already the team owner's clerkId for team profiles
-    // (resolved upstream in entryPoints.ts), so it doubles as scope.userId.
+    // team dream reads across every member's memories in the profile
+    // args.clerkId is the team owner's clerkId for team profiles (resolved upstream in entryPoints.ts), so it doubles as scope.userId
     const scope: DreamScope = {
       kind: profile.teamId !== undefined ? "team" : "personal",
       userId: args.clerkId,

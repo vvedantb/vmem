@@ -249,7 +249,7 @@ export function EventsPanel() {
 
   const hasFilters = params.types.length > 0 || params.range !== "all";
 
-  // isPending (not isLoading) so a disabled query — auth still resolving —
+  // isPending (not isLoading) so a disabled query auth still resolving
   // keeps showing the skeleton instead of flashing the empty state
   if (query.isPending) {
     return (
@@ -304,7 +304,7 @@ export function EventsPanel() {
   );
 }
 
-// events-specific filters + sort dropdowns
+// events specific filters + sort dropdowns
 export function EventsRightSection() {
   const [params, setParams] = useQueryStates(eventsSearchParams);
 

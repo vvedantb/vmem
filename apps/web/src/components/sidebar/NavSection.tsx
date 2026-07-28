@@ -29,10 +29,8 @@ export function NavSection({ title, isIconOnly, children }: NavSectionProps) {
         className={cn(
           sidebarSectionButtonClass,
           "h-auto justify-start rounded-none active:scale-100",
-          // ghost's text-muted/hover:text-foreground are utilities layer and
-          // beat .sidebar-section-label's @layer components rule on
-          // specificity ties — force the win with !important so the
-          // dimmer color-mix tone from globals.css still applies.
+          // ghost utilities beat sidebar section label specificity
+          // force-win with !important — dimmer color-mix still applies
           "![color:color-mix(in_oklch,var(--muted)_55%,transparent)]",
           "hover:!bg-transparent hover:![color:color-mix(in_oklch,var(--muted)_80%,transparent)]",
         )}

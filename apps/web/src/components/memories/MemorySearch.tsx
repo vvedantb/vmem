@@ -149,7 +149,7 @@ interface MemorySearchProps {
   memoryId: string | null;
 }
 
-// /memories list view — browse + hybrid retrieve, wiki/skills merged in
+// /memories list view browse + hybrid retrieve, wiki/skills merged in
 export default function MemorySearch({ memoryId }: MemorySearchProps) {
   const navigate = useNavigate();
   const [params] = useMemoriesSearchParams();

@@ -252,8 +252,6 @@ async function upsertProcesses(
   await upsertLabeledEdges(driver, "INCLUDES", "Process", "Function", includes);
 }
 
-// AI-generated (Claude), prompt: "upsert parsed codebase graph into neo4j with stale node deletion and typed edge batches"
-// Modified by me: batched row shapes and process include edges for sync safety
 export async function writeParseResult(args: WriteArgs): Promise<ParseStats> {
   const {
     driver,

@@ -1,5 +1,3 @@
-// AI-generated (Claude), prompt: "contract tests for memory api request schemas and sdk response parse"
-// Modified by me: covered store update delete and structured bodies
 import { describe, expect, it } from "vitest";
 import {
   deleteBodySchema,

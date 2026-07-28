@@ -29,7 +29,7 @@ async function resolveUserIdAndEnvVars(
   return { userId: user._id, all: await resolveUserEnvVars(ctx, user._id) };
 }
 
-// soft-fail lookup: null when user or env var missing
+// soft-fail lookup, null when user or env var missing
 export async function tryUserAndApiKeyByClerkId(
   ctx: ActionCtx,
   clerkId: string,

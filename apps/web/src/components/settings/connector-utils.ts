@@ -42,7 +42,7 @@ export function isConnectorConnected(
   return connector.connectionStatus === "connected";
 }
 
-// connectable in UI — has OAuth provider or dedicated GitHub flow
+// connectable in UI has OAuth provider or dedicated GitHub flow
 export function isConnectorConnectable(connector: Connector): boolean {
   return isGitHubConnector(connector) || connector.provider !== undefined;
 }

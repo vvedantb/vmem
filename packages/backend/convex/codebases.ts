@@ -97,14 +97,13 @@ async function requireReadableCodebase(
   return codebase;
 }
 
-// list codebases in a scope
 export const listMy = authQuery({
   args: { teamId: v.optional(v.id("teams")) },
   handler: async (ctx, args) => {
     await requireContentScopeAccess(ctx, ctx.userId, args.teamId);
     const codebases = await listScopeCodebases(ctx, ctx.userId, args.teamId);
 
-    // resolve the avatar from the caller's *current* GitHub connection rather than
+    // resolve avatar from the caller's current github connection, not the stored codebase row
     const connection = await ctx.db
       .query("githubConnections")
       .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
@@ -201,13 +200,13 @@ export const removeCodebase = authMutation({
   handler: async (ctx, args) => {
     const codebase = await requireReadableCodebase(ctx, args.id, ctx.userId);
     await assertContentDeletable(ctx, codebase, ctx.userId);
-    // delete the Convex row immediately (keeps the optimistic update snappy) and schedule Neo4j cleanup
+    // delete the convex row immediately (keeps the optimistic update snappy) and schedule neo4j cleanup
     const clerkId = await ctx.runQuery(internal.auth.getClerkIdInternal, {
       userId: codebase.userId,
     });
     await ctx.db.delete(codebase._id);
     if (clerkId) {
-      // pooled + retried so a transient Neo4j outage cannot leave orphans
+      // pooled + retried so a transient neo4j outage cannot leave orphans
       await codebaseSyncPool.enqueueAction(
         ctx,
         internal.neo4jActions.codebases.deleteCodebaseInternal,
@@ -257,8 +256,7 @@ export const syncCodebase = authAction({
 export const syncAllMy = authAction({
   args: { teamId: v.optional(v.id("teams")) },
   handler: async (ctx, args) => {
-    // explicit type breaks the circular inference caused by re-entering
-    // `api.codebases.syncCodebase` below (this action references itself)
+    // explicit type breaks circular inference from re-entering api.codebases.syncCodebase below (this action references itself)
     const allCodebases: Array<{ _id: string; isArchived?: boolean }> =
       await ctx.runQuery(internal.codebases.listMyInternal, {
         userId: ctx.userId,
@@ -268,12 +266,10 @@ export const syncAllMy = authAction({
     const codebases = allCodebases.filter((cb) => !cb.isArchived);
     for (const cb of codebases) {
       try {
-        // re-entering the public sync action keeps all the auth/token
-        // wiring centralised — no need to duplicate it here
+        // re-entering the public sync action keeps auth/token wiring centralised, no need to duplicate it here
         await ctx.runAction(api.codebases.syncCodebase, { id: cb._id });
       } catch (err) {
-        // per-codebase errors are already recorded on the row by syncCodebase;
-        // continue to the next one rather than aborting the whole batch
+        // per-codebase errors are already recorded on the row by syncCodebase. continue to the next one rather than aborting the whole batch
         console.error("syncAllMy: codebase failed", cb._id, err);
       }
     }
@@ -288,7 +284,7 @@ export const normalizeCodebaseId = internalQuery({
   },
 });
 
-// readable by owner or team member — used by sync / symbol actions
+// readable by owner or team member, used by sync / symbol actions
 export const getAccessibleByIdInternal = internalQuery({
   args: { id: v.id("codebases"), userId: v.id("users") },
   handler: async (ctx, args) => {
@@ -299,7 +295,7 @@ export const getAccessibleByIdInternal = internalQuery({
   },
 });
 
-// resolve Neo4j access for a viewer
+// resolve neo4j access for a viewer
 export const resolveNeo4jAccessInternal = internalQuery({
   args: { codebaseId: v.string(), userId: v.id("users") },
   handler: async (ctx, args) => {
@@ -314,7 +310,7 @@ export const resolveNeo4jAccessInternal = internalQuery({
   },
 });
 
-// owner-only lookup (MCP personal scope)
+// owner-only lookup (mcp personal scope)
 export const getByIdInternal = internalQuery({
   args: { id: v.id("codebases"), userId: v.id("users") },
   handler: async (ctx, args) => {
@@ -340,7 +336,7 @@ export const updateStatusInternal = internalMutation({
     syncedFiles: v.optional(v.number()),
     lastSyncedAt: v.optional(v.number()),
     errorMessage: v.optional(v.string()),
-    // phase 1 stats — present only on the final "synced" patch
+    // phase 1 stats, present only on the final "synced" patch
     functionCount: v.optional(v.number()),
     classCount: v.optional(v.number()),
     interfaceCount: v.optional(v.number()),
@@ -360,8 +356,7 @@ export const updateStatusInternal = internalMutation({
     syncStartedAt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    // patch only the keys actually supplied so callers can update e.g
-    // just `parseStage` mid-sync without clobbering counts/stats
+    // patch only supplied keys so callers can update e.g. parseStage mid-sync without clobbering counts/stats
     const { id, ...rest } = args;
     const patch = Object.fromEntries(
       Object.entries(rest).filter(([, value]) => value !== undefined),
@@ -370,7 +365,6 @@ export const updateStatusInternal = internalMutation({
   },
 });
 
-// internal lister — used by `syncAllMy` and MCP
 export const listMyInternal = internalQuery({
   args: {
     userId: v.id("users"),
@@ -389,7 +383,7 @@ export const getByIdForSyncInternal = internalQuery({
   },
 });
 
-// flip codebases wedged in `syncing` past the stale window to `error`
+// flip codebases wedged in syncing past the stale window to error
 export const recoverStaleSyncingInternal = internalMutation({
   args: {},
   returns: v.number(),
@@ -429,8 +423,7 @@ export const listForDailySyncInternal = internalQuery({
 
     for (const cb of all) {
       if (cb.isArchived) continue;
-      // skip rows that are genuinely mid-sync; a stalled `syncing` row is
-      // eligible for a re-run (same predicate the UI and recovery sweep use)
+      // skip rows genuinely mid-sync. a stalled syncing row is eligible for a re-run (same predicate the ui and recovery sweep use)
       if (
         cb.status === "syncing" &&
         !isCodebaseSyncStalled(cb.status, cb.syncStartedAt)

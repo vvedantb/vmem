@@ -102,9 +102,8 @@ function parseListedProposedUpdate(record: NeoRecord): ProposedUpdateNode {
   });
 }
 
-// teamProfileId / materializeUserId are set only for team-scoped synthesis
-// proposals (see insertProposal's derived_from branch); passing null for
-// personal/v2-extraction proposals leaves the properties unset on the node.
+// team synthesis proposals set team profile and materialize userId on the node
+// personal and v2 extraction pass null so those properties stay unset
 const PENDING_PROPOSAL_PROPS = `id: $id,
          memoryId: $memoryId,
          proposedContent: $proposedContent,
@@ -152,9 +151,8 @@ async function insertProposal(
   } else {
     const { scope } = link;
     const isTeam = scope.kind === "team";
-    // Team synthesis reads across every member's memories, so the
-    // derived_from source match keys on the shared profileId alone;
-    // personal keeps the historical per-owner userId match.
+    // team synthesis reads every member's memories so DERIVED_FROM matches profileId alone
+    // personal keeps the historical per-owner userId match
     const sourceMatchProps = isTeam
       ? "profileId: $profileId"
       : "userId: $userId";
@@ -243,9 +241,8 @@ export async function listProposedUpdates(
   const pfSrc = profileFilter(options?.profileId, "src", {
     strict: options?.strictProfile === true,
   });
-  // Team profile inboxes are shared: every member should see every proposal
-  // whose sources live in the profile, not only proposals touching memories
-  // they personally created, so the source match drops the userId constraint.
+  // team inboxes are shared, list proposals for any source in the profile
+  // not only memories the viewer created, so userId is dropped from the source match
   const srcMatch = isTeamProfile
     ? "MATCH (src:Memory)"
     : "MATCH (src:Memory {userId: $userId})";
@@ -278,12 +275,11 @@ interface ProposalLookup {
   proposedContent: string;
   sourceMemoryIds: string[];
   confidence: number | null;
-  // profileId to use when materialising the derived memory — the shared
-  // team profileId for team proposals, else the first source's profileId.
+  // profileId for materializing the derived memory: team profile or first source profile
   sourceProfileId: string | null;
   memoryId: string;
   userId: string;
-  // which derived-memory Cypher (shared.ts createDerivedMemoryCypher) to run
+  // which derived memory cypher variant to run for this proposal
   scopeKind: ScopeKind;
 }
 
@@ -627,8 +623,6 @@ async function applyContradictionResolution(
   };
 }
 
-// AI-generated (Claude), prompt: "resolve proposed updates with kind specific approve reject paths including contradiction winner selection"
-// Modified by me: event snapshots and pending overlap guards for dream proposals
 export async function resolveProposal(
   driver: Driver,
   proposalId: string,

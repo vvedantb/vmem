@@ -107,8 +107,8 @@ export function AddRepoModal({
 
   const handleAdd = async (repo: AddRepoModalRepo) => {
     setAdding(repo.fullName);
-    // The `??` defaults are hoisted above the try and the reset sits after it
-    // rather than in a `finally`: React Compiler bails on the whole file for
+    // the `??` defaults are hoisted above the try and the reset sits after it
+    // rather than in a `finally` React Compiler bails on the whole file for
     // either construct.
     const language = repo.language ?? undefined;
     const description = repo.description ?? undefined;

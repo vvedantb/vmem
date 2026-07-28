@@ -24,7 +24,7 @@ async function requireAdmin(
   }
 }
 
-// invalidate the cached MCP context prompt for everyone who installed a skill
+// invalidate the cached mcp context prompt for everyone who installed a skill
 async function invalidateInstallers(
   ctx: MutationCtx,
   systemSkillId: Id<"systemSkills">,
@@ -34,13 +34,12 @@ async function invalidateInstallers(
     .withIndex("by_systemSkill", (q) => q.eq("systemSkillId", systemSkillId))
     .collect();
   for (const install of installs) {
-    // context prompt is personal-only — skip team-scoped installs
+    // context prompt is personal only, skip team-scoped installs
     if (install.teamId !== undefined) continue;
     await scheduleContextPromptInvalidationForUser(ctx, install.userId);
   }
 }
 
-// find an install link in a workspace scope
 async function findInstall(
   ctx: QueryCtx | MutationCtx,
   userId: Id<"users">,
@@ -89,7 +88,6 @@ export const amIAdmin = authQuery({
   },
 });
 
-// the Hub catalog for the current workspace
 export const listCatalog = authQuery({
   args: { teamId: v.optional(v.id("teams")) },
   handler: async (ctx, args) => {
@@ -128,7 +126,7 @@ export const install = authMutation({
   handler: async (ctx, args) => {
     await requireContentScopeAccess(ctx, ctx.userId, args.teamId);
     const sys = await ctx.db.get(args.systemSkillId);
-    // hide drafts from non-admins (treat as not found)
+    // hide drafts from nonadmins (treat as not found)
     if (!sys || (!sys.published && !(await isAdminUser(ctx, ctx.userId)))) {
       throw new Error("System skill not found");
     }
@@ -183,7 +181,6 @@ export const install = authMutation({
   },
 });
 
-// remove the install link in this workspace
 export const uninstall = authMutation({
   args: {
     systemSkillId: v.id("systemSkills"),
@@ -205,7 +202,6 @@ export const uninstall = authMutation({
   },
 });
 
-// enable/disable an install without removing it
 export const setInstalledEnabled = authMutation({
   args: {
     systemSkillId: v.id("systemSkills"),

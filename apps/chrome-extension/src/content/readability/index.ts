@@ -1,18 +1,6 @@
-// readability content script
-//
-// lives on every page (<all_urls> document_idle) and handles
-// extractPage requests from the background via @webext-core/messaging
-//
-// why a content script and not chrome.scripting.executeScript({ func })?
-// because executeScript({ func }) serialises the function its imports
-// are stripped so @mozilla/readability would not be available at run
-// time a bundled content script keeps the dependency wired up
-//
-// the handler runs readability on a cloned document (readability mutates
-// the dom it is given mozilla docs are explicit on this) and falls back
-// to the previous strip list extraction when readability returns null
-// or an article body shorter than 200 characters (paywall js heavy spa
-// with no static html etc)
+// bundled content-script keeps @mozilla/readability available, executeScript cannot
+// handles extractPage from background, clones dom because readability mutates it
+// falls back to strip list when readability returns null or very short text
 
 import { Readability } from "@mozilla/readability";
 import { onMessage, type ExtractPageData } from "@/lib/messaging";
@@ -66,7 +54,6 @@ function getOgMetadata(): {
   return { ogTitle, ogImage, ogDescription, favicon };
 }
 
-// strip list extraction used as a fallback when readability fails
 function fallbackExtract(): { content: string; html: string } {
   const bodyClone = document.body.cloneNode(true);
   if (!(bodyClone instanceof HTMLElement)) {
@@ -83,9 +70,8 @@ function fallbackExtract(): { content: string; html: string } {
   };
 }
 
-// run readability on a cloned document returns null when unable to parse
 function readabilityExtract(): { content: string; html: string } | null {
-  // readability mutates the dom it is given cloning is required
+  // readability mutates the dom, clone before parsing
   const cloned = document.cloneNode(true);
   if (!(cloned instanceof Document)) return null;
 

@@ -1,4 +1,4 @@
-// V2 fact-extraction & decision prompts (mem0-derived)
+// v2 fact extraction & decision prompts (mem0 derived)
 
 import { z } from "zod";
 import { parseJsonString } from "../../engine/llm/extractJsonString";
@@ -18,11 +18,11 @@ export type UpdateDecisionEvent = "ADD" | "UPDATE" | "DELETE" | "NONE";
 
 export interface UpdateDecision {
   event: UpdateDecisionEvent;
-  // existing memory id targeted by UPDATE / DELETE
+  // existing memory id targeted by update / delete
   id?: string;
-  // proposed text for ADD / UPDATE
+  // proposed text for add / update
   text?: string;
-  // existing memory text for UPDATE (lets us include diff in proposal reason)
+  // existing memory text for update (lets us include diff in proposal reason)
   oldMemory?: string;
 }
 
@@ -31,7 +31,7 @@ export interface RetrievedCandidate {
   text: string;
 }
 
-// stage A — extract atomic facts
+// stage a: extract atomic facts
 
 export function buildFactExtractionPrompt(
   capturedPrompt: string,
@@ -107,7 +107,7 @@ ${capturedPrompt}
 # Your output (JSON only)`;
 }
 
-// stage B — decide ADD / UPDATE / DELETE / NONE per fact
+// stage b: decide add / update / delete / none per-fact
 
 export function buildUpdateDecisionPrompt(
   fact: string,
@@ -172,8 +172,6 @@ ${candidatesBlock}
 # Your output (JSON only)`;
 }
 
-// parsers
-
 const factItemSchema = z.object({
   id: z.number().optional().catch(undefined),
   text: z.string().trim().min(1),
@@ -235,8 +233,7 @@ export function parseUpdateDecisionResponse(
   const text = optionalNonEmptyString(parsed.text);
   const oldMemory = optionalNonEmptyString(parsed.old_memory);
 
-  // per-event validation. Reject malformed responses so the caller can
-  // skip cleanly instead of writing a corrupt proposal
+  // per event validation. reject malformed responses so the caller can skip cleanly instead of writing a corrupt proposal
   if (event === "ADD" && !text) return null;
   if (event === "UPDATE" && (!id || !text)) return null;
   if (event === "DELETE" && !id) return null;

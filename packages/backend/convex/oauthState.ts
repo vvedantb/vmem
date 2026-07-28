@@ -9,7 +9,7 @@ export const insertOAuthStateInternal = internalMutation({
   },
 });
 
-// atomically consumes an OAuth state entry (read + delete)
+// atomically consumes an oauth state entry (read + delete)
 export const consumeOAuthStateInternal = internalMutation({
   args: { state: v.string() },
   returns: v.union(v.object(oauthStatePayloadFields), v.null()),

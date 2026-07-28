@@ -1,5 +1,3 @@
-// AI-generated (Claude), prompt: "test llm json extract with fence strip repair and zod validate"
-// Modified by me: handled think blocks and trailing commas
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import {

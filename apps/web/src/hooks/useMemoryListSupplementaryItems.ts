@@ -7,7 +7,6 @@ import {
   type ListItem,
 } from "@/lib/list-items";
 
-// wiki + skill rows merged into list items (shared by list entries and filter stats)
 export function useMemoryListSupplementaryItems(): ListItem[] {
   const teamId = useActiveProfile().teamId;
   const wikiRows = useQuery(api.wiki.listTree, { teamId });

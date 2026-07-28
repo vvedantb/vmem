@@ -1,5 +1,3 @@
-// AI-generated (Claude), prompt: "live http api integration tests for v1 memories via the sdk"
-// Modified by me: gated on http api test env and api key
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
@@ -18,7 +16,7 @@ const errorBodySchema = z.object({
   error: z.string(),
 });
 
-// authenticated-only sdk cannot probe missing/bad auth; keep a tiny raw post
+// sdk needs auth: raw fetch probes missing and bad tokens
 async function postMemoriesProbe(args: {
   authToken: string | null;
   body: object;
@@ -52,7 +50,7 @@ const storeAuthProbeBody = {
 };
 
 describe.skipIf(!canRun)("HTTP v1 memories API (live)", () => {
-  // Construct only when gated on — VMemory rejects an empty apiKey.
+  // construct only when gated: vmem rejects an empty api-key
   const client =
     apiKey !== undefined && apiKey.length > 0
       ? new VMemory({ baseUrl, apiKey })

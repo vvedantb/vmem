@@ -10,7 +10,7 @@ interface HeaderSearchInputProps {
   inputClassName?: string;
 }
 
-// Stable rounded search field — no enter/clear animations, no layout jump.
+// stable rounded search field no enter/clear animations, no layout jump.
 export default function HeaderSearchInput({
   value,
   onChange,

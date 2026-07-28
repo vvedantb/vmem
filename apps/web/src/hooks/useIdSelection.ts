@@ -67,15 +67,13 @@ function selectionReducer<T>(
 }
 
 export type UseIdSelectionOptions<T> = {
-  // enables shift-range + select-all against a stable visual order
+  // shift range and select all need a stable visual order
   orderedIds?: readonly T[];
 };
 
-// shared id set selection for files (modifiers) and wiki/skills (bulk mode)
 export function useIdSelection<T>(options: UseIdSelectionOptions<T> = {}) {
-  // The handlers below close over options.orderedIds directly — React
-  // Compiler recreates them when it changes, so no latest-value ref is needed
-  // (writing one during render would bail the whole file out anyway).
+  // handlers close over orderedIds directly so no latest value ref is needed
+  // writing a ref during render would bail react compiler for this file
   const [state, dispatch] = useReducer(
     (prev: SelectionState<T>, action: SelectionAction<T>) =>
       selectionReducer(prev, action),

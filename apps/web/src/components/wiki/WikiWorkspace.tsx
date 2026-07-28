@@ -151,7 +151,7 @@ interface WikiWorkspaceProps {
   docId: string | null;
 }
 
-// wiki editor shell — redirects live in WikiDocRouteRedirect
+// wiki editor shell redirects live in WikiDocRouteRedirect
 export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
   const activeProfile = useActiveProfile();
   const teamId = activeProfile.teamId;

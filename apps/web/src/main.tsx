@@ -9,23 +9,21 @@ import { AppSkeleton } from "./components/shell/AppSkeleton";
 import { isChunkLoadError } from "./lib/utils/isChunkLoadError";
 import "./globals.css";
 
-// handles stale deployment detection
+// reload when deploy serves stale chunk hashes
 function handleStaleDeployment(event: Event) {
   event.preventDefault();
   try {
     void convex.close();
   } catch {
-    // webSocket may already be closed
+    // socket may already be closed during teardown
   }
   window.location.reload();
 }
 
-// after a new Vercel deployment, cached HTML may reference old chunk hashes that no longer exist
-// reload the page so the browser fetches the new HTML with correct asset references
+// vite preload errors mean cached html points at removed chunks
 window.addEventListener("vite:preloadError", handleStaleDeployment);
 
-// catch chunk loading failures that bypass Vite's preload detection
-// (e.g. dynamic imports triggered by route navigation or lazy components)
+// route lazy imports can fail the same way outside preload
 window.addEventListener("error", (event) => {
   if (isChunkLoadError(event.error)) {
     handleStaleDeployment(event);

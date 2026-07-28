@@ -13,7 +13,7 @@ export type MemoryLifecycleEventType =
   | "memory_updated"
   | "memory_deleted";
 
-// shared post-mutation scheduling
+// shared post mutation scheduling
 export async function scheduleAfterMemoryMutation(
   ctx: ActionCtx,
   params: {

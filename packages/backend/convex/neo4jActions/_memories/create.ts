@@ -80,8 +80,7 @@ export async function runCreateMemory(
           profileId,
         }
       : undefined,
-    // The dynamic memory-count dream trigger only ever scans the creator's
-    // personal profiles, so bumping it on team writes is wasted work.
+    // the dynamic memory count dream trigger only ever scans the creator's personal profiles, so bumping it on team writes is wasted work.
     checkDream: args.source !== "dream-mode" && graphScope !== "team",
   });
 

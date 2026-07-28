@@ -30,7 +30,6 @@ export const list = authQuery({
   },
 });
 
-// removes a single env var by key
 export const removeVar = authMutation({
   args: { key: v.string() },
   returns: v.null(),
@@ -44,7 +43,6 @@ export const removeVar = authMutation({
   },
 });
 
-// returns raw (encrypted) env var entries for a user
 export const getAllInternal = internalQuery({
   args: { userId: v.id("users") },
   returns: v.array(
@@ -60,7 +58,6 @@ export const getAllInternal = internalQuery({
   },
 });
 
-// returns the raw (encrypted) value for one env var
 export const getVarInternal = internalQuery({
   args: { userId: v.id("users"), key: v.string() },
   returns: v.union(v.string(), v.null()),
@@ -71,7 +68,6 @@ export const getVarInternal = internalQuery({
   },
 });
 
-// inserts or updates a single env var entry for a user
 export const upsertVarInternal = internalMutation({
   args: {
     userId: v.id("users"),

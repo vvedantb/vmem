@@ -41,7 +41,7 @@ export interface BenchmarkCorpus {
 export const BENCH_USER_ID = "user_vmem_bench_eval";
 const SOURCE = "bench-corpus";
 
-// tunable scale knobs
+// scale corpus size for ablations
 const MULTI_HOP_COUNT = 12;
 const PROJECT_COUNT = 8;
 const TEMPORAL_COUNT = 12;
@@ -110,8 +110,8 @@ const corpusStaticSchema = z.object({
   fillerTopics: z.array(z.string()).min(1),
 });
 
-// JSON.parse is typed `any` — re-enter as unknown for zod
-// oxlint-disable-next-line typescript/no-unsafe-assignment -- JSON.parse
+// json.parse returns any: narrow through unknown for zod
+// oxlint-disable-next-line typescript/no-unsafe-assignment
 const corpusStaticRaw: unknown = JSON.parse(
   readFileSync(new URL("./corpus-static.json", import.meta.url), "utf8"),
 );

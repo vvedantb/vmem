@@ -9,7 +9,7 @@ const MAX_CONTENT_LENGTH = 2000;
 const ENTITY_TYPES = ["person", "organization", "place", "technology"] as const;
 export type EntityType = (typeof ENTITY_TYPES)[number];
 
-// hyphens count as spaces for IDENTITY (display names keep them)
+// hyphens count as spaces for identity (display names keep them)
 export function normalizeEntityName(name: string): string {
   return name
     .trim()
@@ -204,7 +204,7 @@ const fullEnrichmentResponseSchema = z.object({
 const unknownArraySchema = z.array(z.unknown());
 const relatedMemoryIdsSchema = z.array(z.string());
 
-// parse entities from LLM response
+// parse entities from llm response
 function parseEntities(raw: unknown): ExtractedEntity[] {
   const arrayResult = unknownArraySchema.safeParse(raw);
   if (!arrayResult.success) return [];
@@ -215,7 +215,7 @@ function parseEntities(raw: unknown): ExtractedEntity[] {
     if (!parsed.success) continue;
     const { name, type } = parsed.data;
     const normalizedName = normalizeEntityName(name);
-    // dedup on name alone (no type): entity identity in the graph is (userId, normalizedName)
+    // dedup on name alone (no type), entity identity in the graph is (userId, normalizedName)
     if (seen.has(normalizedName)) continue;
     seen.add(normalizedName);
     result.push({ name, normalizedName, type });

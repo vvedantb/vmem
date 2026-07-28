@@ -1,12 +1,11 @@
-// css for the screenshot overlay shadow dom
-// selectors are scoped to the shadow root :host is the custom element
+// screenshot overlay styles scoped to shadow-root
 
 export const overlayCss = `
   @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap');
 
   :host { all: initial; }
 
-  /* full viewport scrim during drag */
+  /* viewport scrim during drag */
   #scrim {
     position: fixed;
     inset: 0;
@@ -35,7 +34,7 @@ export const overlayCss = `
     backdrop-filter: blur(8px);
   }
 
-  /* selection rect punched out via thick box shadow */
+  /* selection cutout via thick box shadow */
   #rect {
     position: fixed;
     border: 1.5px solid #ffffff;
@@ -45,7 +44,7 @@ export const overlayCss = `
   }
   #rect.active { display: block; }
 
-  /* preview bar same language as selection popup */
+  /* preview bar matches selection popup styling */
   #preview {
     position: fixed;
     display: none;

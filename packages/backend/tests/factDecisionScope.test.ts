@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { retrievalScope } from "../convex/neo4jActions/agent/factDecisionLoop";
 
-// used to hardcode personal scope, so team instructions re added facts teammates already had
+// used to hardcode personal scope, so team instructions re-added facts teammates already had
 const CLERK = "user_2abcCallerClerkId";
 const PROFILE = "profile_team_shared";
 

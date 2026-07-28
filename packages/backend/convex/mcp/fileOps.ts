@@ -14,7 +14,7 @@ import {
   toArrayBuffer,
 } from "../lib/base64";
 
-// inline-content caps. MCP tool args/results are JSON, so bytes ride as base64
+// inline content caps. mcp tool args/results are json, so bytes ride as base64
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB (Convex 16 MiB action-arg limit w/ base64 overhead)
 const MAX_INLINE_IMAGE_BYTES = 4 * 1024 * 1024; // return image bytes inline up to 4 MB
 const MAX_INLINE_TEXT_BYTES = 100 * 1024; // return text inline up to 100 KB
@@ -33,9 +33,9 @@ export type FileGetResult = {
   mimeType: string;
   size: number;
   downloadUrl: string | null;
-  // present for images ≤ 4 MB — lets the agent render the image directly
+  // present for images ≤ 4 mb, lets the agent render the image directly
   contentBase64?: string;
-  // present for text-like files ≤ 100 KB
+  // present for text like files ≤ 100 kb
   text?: string;
 };
 
@@ -51,7 +51,7 @@ export type FileDeleteResult = {
   deletedCount: number;
 };
 
-// decode base64 (tolerating a `data:` URL prefix) into a backing ArrayBuffer
+// decode base64 (tolerating a data-url prefix) into a backing ArrayBuffer
 function decodeBase64(input: string): {
   buffer: ArrayBuffer;
   dataUrlMime?: string;

@@ -81,8 +81,6 @@ export interface SyncedDoc {
   sourceUrl: string;
 }
 
-// AI-generated (Claude), prompt: "upsert connector synced documents into memories with capped embedding and progress reporting"
-// Modified by me: embed content cap and sync complete error helpers
 export async function upsertSyncedDocs(
   ctx: ActionCtx,
   params: {
@@ -220,11 +218,6 @@ export async function withConnectorSyncError<T>(
   }
 }
 
-/**
- * Turn one page of provider items into `SyncedDoc`s. Items the provider can't
- * give us a document for are skipped (return `null`) and items that blow up
- * are logged and skipped so one bad document can't fail the whole sync.
- */
 export async function mapSyncedDocs<T>(
   items: T[],
   params: {
@@ -239,8 +232,7 @@ export async function mapSyncedDocs<T>(
       const doc = await params.toDoc(item);
       if (doc !== null) docs.push(doc);
     } catch (err) {
-      // Message only: provider SDK errors (Gaxios especially) serialise the
-      // whole request/response object and bury the rest of the sync log.
+      // message only, provider sdk errors (gaxios especially) serialise the whole request/response object and bury the rest of the sync log.
       const reason = err instanceof Error ? err.message : String(err);
       console.error(
         `Failed to sync ${params.label} ${params.identify(item)}: ${reason}`,
@@ -252,16 +244,10 @@ export async function mapSyncedDocs<T>(
 
 export interface ConnectorPage {
   docs: SyncedDoc[];
-  /** Items the provider returned for this page, before per-item failures. */
   found: number;
   nextCursor: string | undefined;
 }
 
-/**
- * The shared cursor-paginated connector sync: set up the driver/profile/embed
- * auth, walk every page the provider hands back, upsert as we go, and report
- * progress + completion. Providers only supply `fetchPage`.
- */
 export async function runPaginatedConnectorSync(
   ctx: ActionCtx,
   params: {

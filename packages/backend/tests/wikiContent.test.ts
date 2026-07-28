@@ -1,5 +1,3 @@
-// AI-generated (Claude), prompt: "test markdown to plain text and append merge for wiki content"
-// Modified by me: stripped images strikethrough and joined with blank line
 import { describe, expect, it } from "vitest";
 import {
   markdownToPlainText,

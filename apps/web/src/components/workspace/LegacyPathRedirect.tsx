@@ -76,7 +76,7 @@ export function LegacyPathRedirect() {
   const first = segments[0];
   const isLegacy = first !== undefined && isLegacyFirstSegment(first);
 
-  // signed-out visitors on a legacy (or unknown) path go to the landing page
+  // signed out visitors on a legacy (or unknown) path go to the landing page
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       void navigate({ to: "/", replace: true });

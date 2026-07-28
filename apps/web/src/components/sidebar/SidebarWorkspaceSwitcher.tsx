@@ -74,7 +74,7 @@ export function SidebarWorkspaceSwitcher({
   collapsed,
   onNavigate,
 }: {
-  // collapsed (icon-only) rail shows just the avatar; dropdown opens to the side
+  // collapsed (icon-only) rail shows just the avatar — dropdown opens to the side
   collapsed: boolean;
   // called after any navigation (mobile menu close)
   onNavigate?: () => void;

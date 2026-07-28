@@ -81,7 +81,7 @@ function CodebaseDetailView({
   const syncCodebase = useAction(api.codebases.syncCodebase);
   const { submitting: syncing, run } = useAsyncSubmit();
   const controller = useCodebaseGraphController(id);
-  // A stalled sync still reads `status === "syncing"`; treat it as retryable so
+  // a stalled sync still reads `status === "syncing"` treat it as retryable so
   // the Sync button isn't disabled forever waiting on a dead run
   const stalled = isCodebaseSyncStalled(
     codebase.status,

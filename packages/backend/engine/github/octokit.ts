@@ -7,7 +7,7 @@ const GithubOctokit = Octokit.plugin(retry);
 
 export type GithubOctokitClient = InstanceType<typeof GithubOctokit>;
 
-// shared Octokit client for GitHub REST (Bearer token + automatic retries)
+// shared octokit client with bearer auth and automatic retries
 export function createGithubOctokit(token: string): GithubOctokitClient {
   return new GithubOctokit({
     auth: token,

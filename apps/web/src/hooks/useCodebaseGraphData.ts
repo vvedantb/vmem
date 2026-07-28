@@ -1,4 +1,3 @@
-// hooks for fetching the Phase-1 codebase graph payload
 import { useConvexAuth, useAction } from "convex/react";
 import { useQuery as useTanstackQuery } from "@tanstack/react-query";
 import { api } from "@vmem/backend";
@@ -17,7 +16,6 @@ interface CodebaseGraphFilters {
   blastDirection?: "upstream" | "downstream";
 }
 
-// filter-driven full-payload hook used by the canvas
 export function useCodebaseGraphData(
   codebaseId: string,
   filters: CodebaseGraphFilters,
@@ -57,7 +55,6 @@ export function useCodebaseGraphData(
   };
 }
 
-// detail-panel data source
 export function useSymbolContext(
   codebaseId: string | null,
   symbolId: string | null,

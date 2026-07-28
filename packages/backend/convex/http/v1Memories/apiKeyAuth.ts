@@ -43,7 +43,7 @@ async function resolveApiKeyAuth(
   };
 }
 
-// checks profile access only when a profileId is present; no-op otherwise
+// checks profile access only when a profileId is present. no-op otherwise
 export async function guardProfileAccess(
   ctx: ActionCtx,
   auth: ApiKeyAuth,

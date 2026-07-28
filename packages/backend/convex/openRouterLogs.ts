@@ -18,7 +18,7 @@ export const recordInternal = internalMutation({
   args: openRouterLogRecordFields,
   returns: v.null(),
   handler: async (ctx, args) => {
-    // normalise the string profileId from the caller into a typed Convex Id<"profiles">
+    // normalise the string profileId from the caller into a typed Id<"profiles">
     const { profileId: rawProfileId, ...rest } = args;
     const profileId = rawProfileId
       ? (ctx.db.normalizeId("profiles", rawProfileId) ?? undefined)
@@ -71,9 +71,7 @@ function rangeCutoff(range: "today" | "7d" | "30d" | "all"): number | null {
   }
 }
 
-// resolve + authorize the team for a team-scoped read; `onDenied: "empty"`
-// turns both the missing-teamId and not-a-member cases into `null` instead
-// of throwing (used by the "give me an empty result" call sites)
+// resolve + authorize the team for a team-scoped read. on denied + "empty": missing teamId and non-member both become null instead of throw
 async function resolveAuthorizedTeamId(
   ctx: QueryCtx,
   opts: {
@@ -186,13 +184,13 @@ export const listMine = authQuery({
       throw new Error("Not authorized for this team");
     }
 
-    // optional profile filter — works for both scopes
+    // optional profile filter, works for both scopes
     if (args.profileId) {
       const profileId = args.profileId;
       q = q.filter((f) => f.eq(f.field("profileId"), profileId));
     }
 
-    // multi-value filters: features[], models[]
+    // multi value filters, features[], models[]
     if (features.length > 0) {
       q = q.filter((f) =>
         f.or(...features.map((feat) => f.eq(f.field("feature"), feat))),

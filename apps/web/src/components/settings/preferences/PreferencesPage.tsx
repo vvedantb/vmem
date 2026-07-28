@@ -67,13 +67,13 @@ export function PreferencesPage() {
 
   const handleScheduleToggle = async (enabled: boolean): Promise<void> => {
     if (settings === undefined) return;
-    // Resolved above the try: React Compiler bails on the whole file for a `??`
+    // resolved above the try React Compiler bails on the whole file for a `??`
     // inside one. localTimeToUtc is pure, so running it on the disable path too
     // costs nothing.
     const utcTime =
       settings.dreamModeScheduleTime ?? localTimeToUtc(DEFAULT_LOCAL_TIME);
-    // A single if/else chain rather than an early return plus a throw: React
-    // Compiler bails on the whole file for a ThrowStatement inside a try.
+    // a single if/else chain rather than an early return plus a throw React
+    // compiler bails on the whole file for a ThrowStatement inside a try.
     try {
       if (!enabled) {
         await setDreamSchedule({ enabled: false });

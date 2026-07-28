@@ -19,10 +19,8 @@ interface NotificationContextType {
 
 const NotificationContext = createContext<NotificationContextType | null>(null);
 
-// shared by markAsRead/markAsUnread/deleteNotification's optimistic updates:
-// each patches a notification within the cached list, then nudges the
-// cached unread count by +/-1, clamped at 0 (a re-toggle or missing
-// notification skips the count adjustment entirely by passing delta 0).
+// shared optimistic patch for read, unread, and delete notification actions
+// patches cached list and nudges unread count, clamped at zero
 function patchReadFlag(
   list: Doc<"notifications">[],
   id: Id<"notifications">,
@@ -66,7 +64,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       {},
       patchReadFlag(list, args.id, true),
     );
-    // already read (or missing) -> no count change
+    // already read (or missing) > no count change
     adjustUnreadCount(localStore, unread, target && !target.read ? -1 : 0);
   });
   const markAsUnreadMutation = useMutation(
@@ -81,7 +79,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       {},
       patchReadFlag(list, args.id, false),
     );
-    // already unread (or missing) -> no count change
+    // already unread (or missing) > no count change
     adjustUnreadCount(localStore, unread, target && target.read ? 1 : 0);
   });
   const markAllAsReadMutation = useMutation(

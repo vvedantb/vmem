@@ -51,8 +51,7 @@ export function observeUrlChanges(callback: () => void): void {
   window.addEventListener("hashchange", check);
 }
 
-// run fn once the document is ready to receive dom mutations safe to call
-// even if the content script was injected after load already happened
+// safe after late injection because it waits for domcontentloaded when needed
 export function onDocumentReady(fn: () => void): void {
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", fn);
@@ -61,8 +60,7 @@ export function onDocumentReady(fn: () => void): void {
   }
 }
 
-// fixed full viewport pointer events none shadow host used by every
-// content script overlay caller still owns appending host to the document
+// shared full-viewport shadow host, caller appends it to the document
 export function createShadowHost(
   tag: string,
   css: string,

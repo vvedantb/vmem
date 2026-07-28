@@ -22,7 +22,6 @@ function validateKey(rawKey: string): string {
   return key;
 }
 
-// encrypts and upserts a single env var
 export const upsertVar = authAction({
   args: {
     key: v.string(),
@@ -41,7 +40,6 @@ export const upsertVar = authAction({
   },
 });
 
-// renames an env var key and/or updates its value
 export const editVar = authAction({
   args: {
     oldKey: v.string(),
@@ -78,7 +76,6 @@ export const editVar = authAction({
   },
 });
 
-// returns the decrypted plaintext for a single env var, or `null` if missing
 export const revealValue = authAction({
   args: { key: v.string() },
   returns: v.union(v.string(), v.null()),
@@ -92,7 +89,6 @@ export const revealValue = authAction({
   },
 });
 
-// encrypts and upserts many env vars in one call (e.g
 export const bulkUpsert = authAction({
   args: {
     entries: v.array(

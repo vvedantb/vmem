@@ -31,7 +31,7 @@ function parseLlmJsonArray<T>(
   return parsed.success ? parsed.data : null;
 }
 
-// parse LLM text → repaired JSON → zod; null on any failure
+// llm text is repaired then zod-parsed, null on any failure
 export function parseJsonString<T>(
   raw: string,
   schema: ZodType<T, z.ZodTypeDef, unknown>,
@@ -42,7 +42,7 @@ export function parseJsonString<T>(
   return parsed.success ? parsed.data : null;
 }
 
-// string array from LLM JSON, or newline/bullet fallback (capped at 2)
+// string array from llm json, newline/bullet fallback capped at two items
 export function parseLlmStringArray(content: string): string[] {
   const values = parseLlmJsonArray(content, stringArraySchema);
   const trimmed = values?.map((v) => v.trim()).filter((v) => v.length > 0);
@@ -55,7 +55,7 @@ export function parseLlmStringArray(content: string): string[] {
     .slice(0, 2);
 }
 
-// number array from LLM JSON; null unless length matches expectedCount
+// number array from llm json, null unless length matches expected count
 export function parseLlmNumberArray(
   content: string,
   expectedCount: number,

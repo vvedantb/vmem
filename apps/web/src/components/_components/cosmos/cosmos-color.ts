@@ -1,4 +1,4 @@
-// Parse CSS color strings into Cosmos RGBA floats (channels 0–1).
+// parse CSS color strings into Cosmos RGBA floats (channels 0–1).
 
 const HEX_RE = /^#([\da-f]{3}|[\da-f]{6}|[\da-f]{8})$/i;
 const RGB_RE =

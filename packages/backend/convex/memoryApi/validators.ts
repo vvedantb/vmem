@@ -101,8 +101,7 @@ export const teamSearchMemoriesFields = {
   ...paginationFields,
 };
 
-// clerkId is the calling member: OpenRouter auth and attribution only, never
-// a filter — the team profile alone scopes the retrieval.
+// clerkId is the calling member: openRouter auth and attribution only, never a filter. the team profile alone scopes retrieval.
 export const teamRetrieveMemoriesFields = {
   clerkId: v.string(),
   profileId: v.string(),

@@ -30,8 +30,7 @@ async function runRetrieveHandler(
     limit: body.limit ?? 10,
   };
 
-  // A team profile retrieves across every member's memories in it. Access is
-  // already asserted above, so the profile id alone is the scope.
+  // a team profile retrieves across every member's memories in it. access is already asserted above, so the profile id alone is the scope.
   const graphScope =
     body.profileId === undefined
       ? "personal"

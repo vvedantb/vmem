@@ -107,7 +107,7 @@ function GraphCanvas({
   const hoveredIndexRef = useRef<number | undefined>(undefined);
   const hoveredLinkIndexRef = useRef<number | undefined>(undefined);
   const lastPositionsRef = useRef(new Map<string, { x: number; y: number }>());
-  // camera at last teardown — restored on same-node-set rebuilds (live edge
+  // camera at last teardown restored on same node set rebuilds (live edge
   // events, refetches) so background data churn does not reset zoom/pan
   const lastCameraRef = useRef<{
     x: number;
@@ -129,15 +129,9 @@ function GraphCanvas({
     onFocusNode,
   });
 
-  // Mirrors the latest props into refs so the long-lived paint/interaction
-  // callbacks below (handed to cosmos.gl once, with empty dep arrays) can read
-  // current values without being rebuilt. Writing these during render breaks
-  // under concurrent rendering — a render that is discarded would still have
-  // updated the refs — so the writes happen at commit instead.
-  //
-  // useLayoutEffect, declared before every other effect in this component, so
-  // the refs are current before any passive effect calls applyVisualState /
-  // paintSceneOverlays, which read them.
+  // mirror latest props into refs for long-lived cosmos callbacks
+  // write at commit via layout effect so concurrent renders do not clobber refs
+  // layout effect runs before passive effects that read these refs
   useLayoutEffect(() => {
     themeRef.current = viewTheme;
     focusNodeIdRef.current = focusNodeId;
@@ -419,7 +413,7 @@ function GraphCanvas({
     graph.render();
   }, []);
 
-  // Create / destroy Cosmos instance when topology changes
+  // create / destroy Cosmos instance when topology changes
   useEffect(() => {
     const host = hostRef.current;
     const root = rootRef.current;
@@ -575,7 +569,7 @@ function GraphCanvas({
           }
           const g = graphRef.current;
           if (g) paintSceneOverlays(g);
-          // Legacy SLEEP_ALPHA ≈ 0.005 — pause once visually still.
+          // legacy SLEEP_ALPHA ≈ 0.005 pause once visually still.
           if (typeof alpha === "number" && alpha < 0.01) {
             g?.pause();
           }
@@ -684,7 +678,7 @@ function GraphCanvas({
     };
   }, [nodes, edges, applyVisualState, paintSceneOverlays, applyConnectorLogos]);
 
-  // Theme colours only — do not touch simulation (avoids perpetual reheat).
+  // theme colours only — do not touch simulation (avoids perpetual reheat)
   useEffect(() => {
     const graph = graphRef.current;
     const buffers = buffersRef.current;

@@ -1,4 +1,4 @@
-// pure dream-trigger decision logic (unit-tested)
+// pure dream trigger decision logic (unit tested)
 
 export const QUIET_MS = 30 * 60 * 1000;
 export const MIN_NEW_MEMORIES = 5;
@@ -31,8 +31,6 @@ export function depthForCount(newMemoryCount: number): DreamDepth {
   return "deep";
 }
 
-// AI-generated (Claude), prompt: "decide whether to auto run dream mode with quiet window pile threshold daily cap and depth by new memory count"
-// Modified by me: calibrated quiet min gap and daily cap constants
 export function decideDreamCheck(
   state: DreamTriggerSnapshot,
   automaticEnabled: boolean,

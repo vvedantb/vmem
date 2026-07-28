@@ -1,6 +1,4 @@
-// AI-generated (Claude), prompt: "live neo4j behavioural suite for memory crud retrieve enrich and proposals"
-// Modified by me: gated on retrieval eval env and kept the existing header note
-// live Neo4j behavioural suite (gated by RUN_RETRIEVAL_EVAL=1)
+// live neo4j behavioural suite, gated by RUN_RETRIEVAL_EVAL=1
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { Driver } from "neo4j-driver";
@@ -162,11 +160,11 @@ describe.skipIf(!runLive)("vmem behavioural suite (live Neo4j)", () => {
       embedding: EMB_A,
     });
 
-    // identical embedding → cosine 1.0 ≥ 0.95 → flagged as a near-duplicate
+    // identical embedding scores 1.0, above the 0.95 duplicate threshold
     const match = await findSimilarWithRetry(driver, EMB_A, 0.95);
     expect(match?.id).toBe(id);
 
-    // orthogonal embedding → cosine 0 < 0.95 → not a duplicate
+    // orthogonal embedding scores below threshold, so not a duplicate
     const noMatch = await findMemoryBySimilarity(
       driver,
       USER,
@@ -307,7 +305,7 @@ describe.skipIf(!runLive)("vmem behavioural suite (live Neo4j)", () => {
   }, 60_000);
 
   it("applies a proposed update on approve and preserves it on reject", async () => {
-    // approve path: the proposal surfaces, then supersedes on approval
+    // on approve: the proposal surfaces then supersedes the memory
     const id = await create(driver, {
       title: "Password hashing",
       content: "Passwords are hashed with bcrypt.",
@@ -330,7 +328,7 @@ describe.skipIf(!runLive)("vmem behavioural suite (live Neo4j)", () => {
       "Passwords are hashed with Argon2id.",
     );
 
-    // reject path: the memory is preserved and the proposal stops being pending
+    // on reject: the memory stays and the proposal leaves pending
     const id2 = await create(driver, {
       title: "Primary region",
       content: "Production runs in us-east-1.",

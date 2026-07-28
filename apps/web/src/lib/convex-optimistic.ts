@@ -7,18 +7,14 @@ import type {
 import { api, type Id, type TableNames } from "@vmem/backend";
 import { collectSubtreeIds } from "@/components/wiki/_utils";
 
-// Convex `Id<T>` is a branded string with no public constructor
-// (`string & { __tableName: T }`), so a placeholder id for an optimistic
-// insert or an unobserved foreign-key fallback always requires a cast.
-// This is the ONE place in the app that does it.
+// branded id has no public constructor so optimistic inserts need a cast here
+// this is the only place in the app that fabricates placeholder ids
 export function tempId<T extends TableNames>(): Id<T> {
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Id<T> is a branded string; there is no way to construct one without a cast
   return crypto.randomUUID() as Id<T>;
 }
 
-// shared core behind every "patch every cached instance of this query" loop.
-// Call this directly with an inline mapFn for one-off patches — only add a
-// named wrapper below it when 2+ call sites would share it.
+// patches every cached copy of a query, add named wrappers only at 2+ call sites
 export function updateAllCachedQueries<
   Query extends FunctionReference<"query">,
 >(
@@ -82,7 +78,7 @@ export function patchDefaultProfile(
   }
 }
 
-// skills — each below has 2+ callers; restoreVersion has one and inlines
+// skills each below has 2+ callers restoreVersion has one and inlines
 // updateAllCachedQueries directly at its call site instead of living here.
 type SkillUpdateArgs = FunctionArgs<typeof api.skills.updateSkill>;
 type SkillCreateArgs = FunctionArgs<typeof api.skills.createSkill>;
@@ -112,8 +108,7 @@ export function patchSkillInLists(
 
 export function removeSkillsFromLists(
   localStore: OptimisticLocalStore,
-  // deleteSkill's `id` arg is a plain string, deleteSkills' `ids` are
-  // branded Id<"skills"> — widen to string so both call through here
+  // plain string or branded skill id so both delete mutations share one helper
   ids: Iterable<string>,
 ): void {
   const remove = new Set(ids);
@@ -122,7 +117,7 @@ export function removeSkillsFromLists(
   );
 }
 
-// used by both WriteSkillDialog and UploadSkillDialog — same optimistic
+// used by both WriteSkillDialog and UploadSkillDialog same optimistic
 // insert, only the args source (form vs. parsed file) differs
 export function insertSkillInLists(
   localStore: OptimisticLocalStore,
@@ -151,8 +146,8 @@ export function insertSkillInLists(
   }
 }
 
-// system skills (admin catalog) — install/uninstall/setEnabled share this one
-// shape at 3 call sites in SystemSkillDetail; adminCreate/Update/Delete each
+// system skills (admin catalog) install/uninstall/setEnabled share this one
+// shape at 3 call sites in SystemSkillDetail adminCreate/Update/Delete each
 // have one caller and inline updateAllCachedQueries at their call site.
 type SystemSkillList = FunctionReturnType<typeof api.systemSkills.listCatalog>;
 type SystemSkillEntry = SystemSkillList[number];
@@ -167,11 +162,8 @@ export function setSystemSkillInstallState(
   );
 }
 
-// wiki — renameWikiNodeInLists (WikiTree + WikiWorkspace) and
-// removeWikiNodesFromLists (WikiTree's deleteNode + WikiBulkDeleteBar's
-// deleteNodes — same subtree-collect + filter + getNode-invalidate body,
-// differing only in single-id vs multi-id args) each have 2 callers.
-// moveNode has one caller and inlines at its call site.
+// rename and subtree delete each have two callers so they live here
+// moveNode has one caller and inlines updateAllCachedQueries at its site
 type WikiRenameArgs = FunctionArgs<typeof api.wiki.renameNode>;
 
 export function renameWikiNodeInLists(

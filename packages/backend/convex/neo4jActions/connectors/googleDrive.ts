@@ -1,6 +1,6 @@
 "use node";
 
-// scoped per-API package — monolithic googleapis dominates typecheck time
+// scoped per api package, monolithic googleapis dominates typecheck time
 import { drive as driveApi, auth as googleAuth } from "@googleapis/drive";
 import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
@@ -12,9 +12,7 @@ export interface GoogleDriveSyncArgs {
   accessToken: string;
 }
 
-// Drive only accepts a specific export format per editor type: asking a
-// spreadsheet for `text/plain` is a hard 400. Sheets export as CSV (first tab
-// only — Drive has no multi-tab text format).
+// drive only accepts a specific export format per editor type, asking a spreadsheet for text/plain is a hard 400. sheets export as csv (first tab only, drive has no multi tab text format).
 const GOOGLE_DRIVE_EXPORT_MIME_TYPES: Record<string, string> = {
   "application/vnd.google-apps.document": "text/plain",
   "application/vnd.google-apps.spreadsheet": "text/csv",

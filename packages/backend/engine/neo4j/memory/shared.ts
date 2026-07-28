@@ -65,9 +65,8 @@ export function profileFilter(
   };
 }
 
-// Derived-memory source linking differs by scope: personal keeps the
-// historical userId match; team keys on profileId alone so DERIVED_FROM
-// edges reach every member's source memories, not just the owner's.
+// personal DERIVED_FROM keeps userId match, team uses profileId alone
+// so edges reach every member's sources, not just the owner's
 export function createDerivedMemoryCypher(kind: ScopeKind): string {
   const sourceMatch =
     kind === "team"

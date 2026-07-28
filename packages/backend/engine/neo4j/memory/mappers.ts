@@ -25,8 +25,8 @@ import type {
 const nullableStringSchema: z.ZodType<string | null, z.ZodTypeDef, unknown> =
   z.preprocess((value) => value ?? null, z.string().nullable());
 
-// Neo4j omits null-valued properties entirely, so the nullable fields have to
-// tolerate `undefined` on the way in. Everything else comes from the contract.
+// neo4j omits null-valued properties entirely, nullable fields must tolerate undefined
+// everything else comes from the shared sdk contract
 const memoryNodePropsSchema: z.ZodType<MemoryNode, z.ZodTypeDef, unknown> =
   memoryNodeSchema.extend({
     profileId: nullableStringSchema,
@@ -65,7 +65,7 @@ function parseJsonField<T>(
 ): T | null {
   if (val === null || val === undefined) return null;
   try {
-    // JSON.parse is typed `any` — re-enter as unknown for zod
+    // JSON.parse returns any, so re-enter as unknown before zod
     // oxlint-disable-next-line typescript/no-unsafe-assignment -- JSON.parse
     const raw: unknown = JSON.parse(val);
     const parsed = schema.safeParse(raw);
@@ -75,8 +75,6 @@ function parseJsonField<T>(
   }
 }
 
-// AI-generated (Claude), prompt: "define classic rrf score and type aware recency decay for profile knowledge and episodic memories"
-// Modified by me: picked age buckets to match product freshness expectations
 export function rrfScore(rank: number, k = 60): number {
   return 1 / (k + rank);
 }

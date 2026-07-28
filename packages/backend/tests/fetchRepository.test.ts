@@ -1,5 +1,3 @@
-// AI-generated (Claude), prompt: "test github tarball extract strip root and ts js blob filters"
-// Modified by me: built gzip tar fixtures in memory for extract paths
 import { pipeline } from "node:stream/promises";
 import { Writable } from "node:stream";
 import { createGzip } from "node:zlib";

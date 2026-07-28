@@ -102,7 +102,7 @@ export async function runMemoryList(
     offset: number;
   },
 ): Promise<{ memories: MemoryWithTags[]; total: number }> {
-  // count + page stay separate: a combined query drops the count when the page is empty
+  // count and page stay separate because a combined query loses count on empty pages
   const queryParams: Record<
     string,
     string | number | Integer | string[] | null
@@ -179,8 +179,6 @@ export async function runMemoryList(
   return { memories, total };
 }
 
-// AI-generated (Claude), prompt: "implement memory create update delete with tag edges events cascade cleanup and similarity lookup helpers"
-// Modified by me: content hash fields and orphan tag source cleanup
 export async function createMemory(
   driver: Driver,
   params: {
@@ -288,10 +286,8 @@ export async function createMemory(
 
     if (!BATCH_SOURCES.has(params.source)) {
       const cutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
-      // Same-user match always applies: cross-member writes within the window
-      // are not "one session". Team creates additionally confine the match to
-      // the profile, so a team memory cannot pick up a 'same session' edge to
-      // the creator's own personal memories written minutes earlier.
+      // same session edges never cross members, team also limits to the shared profile
+      // so a team memory cannot link to the creator's personal memories from minutes ago
       const m2Props =
         params.graphScope === "team"
           ? "{ userId: $userId, source: $source, profileId: $profileId }"
@@ -417,8 +413,7 @@ export async function updateMemory(
 
     if (updates.tags !== undefined) {
       params.newTags = normalizeTags(updates.tags);
-      // characterization: UNWIND on an empty $newTags drops the row, so tag clears
-      // apply but RETURN is empty → null result and no update event.
+      // empty tag list makes unwind drop the row, tags clear but no update event fires
       cypher += `
         WITH m
         OPTIONAL MATCH (m)-[r:TAGGED_WITH]->(:Tag)

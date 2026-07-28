@@ -23,7 +23,6 @@ export interface FunctionNode {
   filePath: string;
   name: string;
   qualifiedName: string;
-  // set when this is a method of a class
   parentClass?: string;
   startLine: number;
   endLine: number;
@@ -44,7 +43,7 @@ export interface ClassNode {
   endLine: number;
   isExported: boolean;
   isAbstract: boolean;
-  // name only (resolved during parse)
+  // heritage name before parse resolves the target symbol
   extendsName?: string;
 }
 
@@ -71,12 +70,12 @@ export interface RelationEdge {
     | "IMPLEMENTS";
   fromId: string;
   toId: string;
-  // only present on edges that carry confidence (IMPORTS / CALLS / EXTENDS / IMPLEMENTS)
+  // confidence tier applies only on imports, calls, extends and implements
   confidence?: number;
   tier?: ConfidenceTier;
-  // IMPORTS-specific: source-text path string from the import statement
+  // imports carry the source text path from the statement
   importPath?: string;
-  // CALLS-specific: line of the call site
+  // calls record the call-site line for navigation
   callSiteLine?: number;
 }
 
@@ -99,7 +98,7 @@ export interface ProcessNode {
   name: string;
   entryPointId: string;
   entryKind: EntryPoint["kind"];
-  // function ids reachable from the entry point (depth ≤ 8)
+  // function ids reachable from the entry within depth eight
   members: string[];
 }
 

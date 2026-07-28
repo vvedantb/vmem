@@ -33,7 +33,7 @@ import { DetailEmptyState } from "@/components/_components/detail-panel/DetailEm
 import { TagMemoriesPanel } from "@/components/_components/TagMemoriesPanel";
 import { VmemSpinner } from "@/components/icons/animations";
 
-// tag-rows view for /memories/list?view=tags
+// tag rows view for /memories/list?view=tags
 export default function TagsListView() {
   const { memories, isLoading, updateMemory } = useMemoryContext();
   const [params] = useMemoriesSearchParams();

@@ -7,7 +7,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { MemoryProvider } from "@/contexts/MemoryContext";
 
-// forward resolved theme to sonner (light until next-themes hydrates)
+// forward resolved theme to sonner (light until next themes hydrates)
 function ThemedSonnerToaster() {
   const { resolvedTheme } = useTheme();
   return (

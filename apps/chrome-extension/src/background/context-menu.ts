@@ -5,7 +5,7 @@ import { createMemory } from "./api-client";
 import { htmlToMarkdown } from "@/lib/page-extraction";
 import { extractPageFromTab } from "@/lib/extract-page";
 
-// recreate context menus (idempotent across install/startup)
+// idempotent menu registration across install and startup
 export function registerContextMenu(): void {
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({
@@ -17,13 +17,11 @@ export function registerContextMenu(): void {
     chrome.contextMenus.create({
       id: "screenshot-to-vmem",
       title: "Screenshot region to vmem",
-      // viewport capture show on any click target
       contexts: ["all"],
     });
   });
 }
 
-// click handler register via registerContextMenuClickListener at sw top level
 async function handleContextMenuClick(
   info: chrome.contextMenus.OnClickData,
   tab: chrome.tabs.Tab | undefined,
@@ -49,14 +47,12 @@ async function handleContextMenuClick(
   }
 }
 
-// register click listener synchronously at sw top level
 export function registerContextMenuClickListener(): void {
   chrome.contextMenus.onClicked.addListener((info, tab) => {
     void handleContextMenuClick(info, tab);
   });
 }
 
-// save active tab page (context menu / keyboard shortcut)
 export async function savePageFromTab(
   tab: chrome.tabs.Tab,
 ): Promise<{ success: boolean; memoryId?: string; error?: string }> {
@@ -70,7 +66,7 @@ export async function savePageFromTab(
       throw new Error("Failed to extract page content");
     }
 
-    // turndown runs in the extension context, not the content script
+    // turndown runs in the extension context, not the content-script
     const markdown = extraction.html
       ? htmlToMarkdown(extraction.html)
       : extraction.content;

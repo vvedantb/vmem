@@ -57,7 +57,7 @@ function getMarkdownFromEditor(editor: Editor): string {
   return editor.getText();
 }
 
-// tipTap body for wiki documents only — artifacts use WikiArtifactEditor
+// TipTap body for wiki documents only — artifacts use WikiArtifactEditor
 export default function WikiDocumentEditor({
   doc,
   titleForCopy,
@@ -79,8 +79,8 @@ export default function WikiDocumentEditor({
   const onActiveHeadingChangeRef = useRef(onActiveHeadingChange);
   const onWordCountChangeRef = useRef(onWordCountChange);
 
-  // Written in an effect (not during render) so React Compiler can compile
-  // the file. Declared before the editor-content effects below, so the refs
+  // written in an effect (not during render) so React Compiler can compile
+  // the file. Declared before the editor content effects below, so the refs
   // are fresh by the time any editor event can fire.
   useEffect(() => {
     onHeadingsChangeRef.current = onHeadingsChange;
@@ -121,7 +121,7 @@ export default function WikiDocumentEditor({
         return;
       }
 
-      // toc stamps heading ids that markdown does not serialise — skip no-op saves
+      // toc stamps heading ids markdown lacks — skip no-op saves
       const markdown = getMarkdownFromEditor(instance);
       if (markdown === baselineMarkdownRef.current) return;
       if (loadedDocIdRef.current !== doc._id) return;

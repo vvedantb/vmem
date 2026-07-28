@@ -1,5 +1,3 @@
-// AI-generated (Claude), prompt: "unit tests for bearer token header parsing"
-// Modified by me: covered missing malformed and case insensitive bearer
 import { describe, expect, it } from "vitest";
 import { extractBearerToken } from "../../convex/lib/bearerToken";
 

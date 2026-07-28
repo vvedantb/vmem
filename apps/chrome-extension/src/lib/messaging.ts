@@ -19,7 +19,7 @@ export type ExtractPageData = {
   ogImage?: string;
   ogDescription?: string;
   favicon?: string;
-  // true when the result came from readability false on fallback path
+  // readability: true when parsed, false on fallback extraction
   usedReadability: boolean;
 };
 

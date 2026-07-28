@@ -21,7 +21,7 @@ import {
 } from "../icons/sidebar";
 import type { NavGroup, NavHref, SettingsNavGroup } from "./types";
 
-// workspace-scoped nav items use the `$profileId` placeholder; resolve them with
+// workspace scoped nav items use the `$profileId` placeholder resolve them with
 export const navGroups: NavGroup[] = [
   {
     title: "Library",
@@ -59,7 +59,7 @@ export function navHrefToPath(
   return href.replace("$profileId", profileId);
 }
 
-// settings sub-nav, grouped into 3 sections rendered with headers in the settings
+// settings sub nav, grouped into 3 sections rendered with headers in the settings
 export const settingsNavGroups: SettingsNavGroup[] = [
   {
     title: "General",

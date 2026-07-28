@@ -7,8 +7,6 @@ type ProviderSyncRef =
   | typeof internal.neo4jActions.connectorSync.syncGoogleDriveInternal
   | typeof internal.neo4jActions.connectorSync.syncNotionInternal;
 
-// AI-generated (Claude), prompt: "dispatch connector provider sync through workpool enqueue or direct action execution"
-// Modified by me: retry only on thrown failures for google drive and notion
 export async function runConnectorProviderSync(
   ctx: ActionCtx,
   params: {
@@ -42,7 +40,7 @@ export async function runConnectorProviderSync(
   }
 
   if (params.execution === "workpool") {
-    // Retries only on thrown failures; successful returns (any value) are not retried.
+    // retries only on thrown failures. successful returns (any value) are not retried.
     await connectorSyncPool.enqueueAction(ctx, syncRef, syncArgs, {
       retry: true,
     });

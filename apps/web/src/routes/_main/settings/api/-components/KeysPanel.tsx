@@ -20,7 +20,6 @@ import type { ApiKey } from "@/components/api-keys/types";
 import { api } from "@vmem/backend";
 import { useApiCreateKeyModal } from "./ApiCreateKeyContext";
 
-// keys panel for `/settings/api`
 export function KeysPanel() {
   const { isCreateModalOpen, setIsCreateModalOpen } = useApiCreateKeyModal();
   const apiKeys = useQuery(api.apiKeys.listMy, {});

@@ -10,7 +10,7 @@ import type { ReactNode } from "react";
 
 interface FeatureAddMenuProps {
   children: ReactNode;
-  // `toolbar` = icon-only for the sidebar chrome row; `labeled` = full Add button
+  // `toolbar` = icon-only for the sidebar chrome row, `labeled` = full Add button
   variant?: "toolbar" | "labeled";
   className?: string;
 }

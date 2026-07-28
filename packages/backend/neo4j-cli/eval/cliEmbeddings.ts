@@ -1,4 +1,4 @@
-// openRouter embeddings when configured; otherwise deterministic synthetic vectors
+// openrouter embeddings when configured, else deterministic synthetic vectors
 
 import { validateEmbeddingItems } from "../../engine/llm/embeddingResponse";
 import { createOpenRouterClient } from "../../engine/llm/openRouterClient";

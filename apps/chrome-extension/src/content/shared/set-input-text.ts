@@ -1,6 +1,6 @@
 export type FocusPolicy = "before" | "after";
 
-// set contenteditable input text with platform specific focus ordering
+// set contenteditable input text with platform-specific focus order
 export function setInputText(
   el: HTMLElement,
   text: string,

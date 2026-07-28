@@ -7,9 +7,6 @@ import { setEmbeddings } from "../../../engine/neo4j/memory/migration";
 import { bestEffortEmbedOne } from "../../lib/openRouter/bestEffortEmbed";
 import type { OpenRouterFeature } from "../../lib/openRouter/shared";
 
-// best-effort embed (unless already at create) + schedule enrichment
-// AI-generated (Claude), prompt: "after materializing a memory embed content and schedule enrichment without blocking the write path"
-// Modified by me: best effort embed failures and enrichment scheduling hooks
 export async function postMaterializeEmbedAndEnrich(
   ctx: ActionCtx,
   driver: Driver,
@@ -21,7 +18,7 @@ export async function postMaterializeEmbedAndEnrich(
     profileId?: string;
     feature: OpenRouterFeature;
     failureLog: string;
-    // omit to embed here; set (incl
+    // omit to embed here. set (incl
     embeddingAtCreate?: number[] | null;
   },
 ): Promise<void> {

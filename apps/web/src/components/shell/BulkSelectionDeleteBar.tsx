@@ -20,7 +20,7 @@ interface BulkSelectionDeleteBarProps {
   onDelete: () => Promise<void>;
 }
 
-// shared selection-mode shell: count + delete/cancel + confirm dialog
+// shared selection mode shell count + delete/cancel + confirm dialog
 export function BulkSelectionDeleteBar({
   count,
   itemWord,
@@ -39,9 +39,9 @@ export function BulkSelectionDeleteBar({
       setConfirmOpen(false);
       onExit();
     } catch {
-      // caller owns error toasting; keep the dialog open for retry
+      // caller owns error toasting keep the dialog open for retry
     }
-    // After the try rather than in a `finally`: React Compiler bails on the
+    // after the try rather than in a `finally` React Compiler bails on the
     // whole file when it meets one. The catch swallows, so this always runs.
     setDeleting(false);
   };

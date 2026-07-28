@@ -16,7 +16,7 @@ const LIST_VIEW_MODES = ["memories", "tags"] as const;
 export type ListViewMode = (typeof LIST_VIEW_MODES)[number];
 
 const memoriesSearchParams = {
-  // when set, load that node's neighbourhood (2-hop); absent → global graph
+  // when set, load that node's neighbourhood (2-hop) — absent → global graph
   focus: parseAsSanitizedOptionalString,
   bench: parseAsInteger.withDefault(0),
   q: parseAsSanitizedSearchQuery,

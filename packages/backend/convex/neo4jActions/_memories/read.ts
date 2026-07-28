@@ -66,7 +66,7 @@ export interface RetrieveMemoriesArgs {
   limit: number;
 }
 
-// Same shape, but the profile is mandatory: it is the whole scope key.
+// same shape, but the profile is mandatory, it is the whole scope key.
 export interface TeamRetrieveMemoriesArgs extends RetrieveMemoriesArgs {
   profileId: string;
 }
@@ -201,8 +201,7 @@ export async function runRetrieveMemories(
   });
 }
 
-// Team scope keys on the shared profile alone. The caller's clerkId is still
-// carried for OpenRouter auth, embedding budgets, and attribution.
+// team scope keys on the shared profile alone. the caller's clerkId is still carried for openRouter auth, embedding budgets, and attribution.
 export async function runRetrieveMemoriesForTeam(
   ctx: ActionCtx,
   args: TeamRetrieveMemoriesArgs,

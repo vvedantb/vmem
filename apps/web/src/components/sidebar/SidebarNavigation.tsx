@@ -34,7 +34,7 @@ function isSubSidebarHref(href: string): href is SubSidebarHref {
 
 export function navViewFromPathname(pathname: string): SidebarNavView {
   if (pathname.startsWith("/settings")) return "settings";
-  // workspace routes carry the profile id as their first segment — strip it
+  // workspace routes carry the profile id as their first segment strip it
   // before matching sections
   const sub = pathname.replace(/^\/[^/]+/, "");
   if (sub.startsWith("/skills")) return "skills";
@@ -45,7 +45,7 @@ export function navViewFromPathname(pathname: string): SidebarNavView {
 
 export type SidebarNavigationProps = {
   pathname: string;
-  // active workspace id for resolving workspace-scoped nav hrefs
+  // active workspace id for resolving workspace scoped nav hrefs
   profileId: string | undefined;
   // team workspaces get an extra "Team" nav group (members / settings)
   isTeamWorkspace: boolean;
@@ -70,8 +70,8 @@ const teamNavGroup: NavGroup = {
   ],
 };
 
-// shared shell for MainNav/SettingsNav: slide-in nav + shared-layout pill +
-// collapsible sections. Per-item rendering (incl. the active-highlight check
+// shared shell for MainNav/SettingsNav slide in nav + shared layout pill +
+// collapsible sections. Per item rendering (incl. the active highlight check
 // feeding SharedLayoutBackground.Item) is the caller's concern.
 function NavGroupList({
   groups,
@@ -230,7 +230,7 @@ export function SidebarNavigation({
   const isIconOnly = !isMobile && isCollapsed;
   const navView = navViewFromPathname(pathname);
 
-  // Enter-only keyed remount — no AnimatePresence mode="wait". Wait+exit can
+  // enter only keyed remount no AnimatePresence mode="wait". Wait+exit can
   // strand the incoming panel at opacity 0 if a Convex re-render lands mid-exit.
   if (navView === "settings") {
     return (

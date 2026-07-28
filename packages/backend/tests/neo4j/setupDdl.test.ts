@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { DECLARED_DDL_NAMES } from "../../engine/neo4j/setup";
 
-// DECLARED_DDL_NAMES drives the "is setup complete?" check. If a statement stops
-// yielding a name, the check silently stops covering it and a new index never
-// reaches an existing database — the bug this list exists to prevent.
+// declared ddl names drive setup completion checks
+// if a statement stops yielding a name the check silently skips it
+// new indexes then never reach existing databases, which this test prevents
 describe("DECLARED_DDL_NAMES", () => {
   it("names every setup statement exactly once", () => {
     expect(new Set(DECLARED_DDL_NAMES).size).toBe(DECLARED_DDL_NAMES.length);
@@ -16,7 +16,7 @@ describe("DECLARED_DDL_NAMES", () => {
         "memory_id",
         "memory_content",
         "memory_embedding",
-        // team scope matches on profileId alone
+        // team scope matches on profile-id alone
         "memory_profile_id",
         "chunk_content",
         "chunk_embedding",

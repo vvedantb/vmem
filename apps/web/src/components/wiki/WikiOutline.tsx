@@ -4,12 +4,12 @@ import type { OutlineHeading } from "./_utils";
 
 interface WikiOutlineProps {
   headings: OutlineHeading[];
-  // heading the reader is currently scrolled to — highlighted with an accent rail
+  // heading the reader is currently scrolled to highlighted with an accent rail
   activeHeadingId: string | null;
   onJump: (pos: number) => void;
 }
 
-// per-level label opacity
+// per level label opacity
 function labelOpacity(level: number): number {
   if (level <= 1) return 1;
   if (level === 2) return 0.75;
@@ -65,7 +65,7 @@ function WikiOutlineRow({
   );
 }
 
-// right-pane outline: flat list of headings extracted from the editor JSON
+// right pane outline flat list of headings extracted from the editor JSON
 export default function WikiOutline({
   headings,
   activeHeadingId,

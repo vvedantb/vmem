@@ -1,13 +1,9 @@
-// floating memory panel for auto search results
-// displays retrieved memories with per item removal anchored above the chat input
-// uses shadow dom for style encapsulation
+// floating memory panel above chat input, shadow-dom for host-page isolation
 
 import { computePosition, offset, shift } from "@floating-ui/dom";
 import { escape } from "es-toolkit";
 import type { MemoryCandidate } from "@/types/api";
 import { createShadowHost } from "./dom-utils";
-
-// singleton state
 
 let host: HTMLElement | null = null;
 let shadow: ShadowRoot | null = null;
@@ -15,8 +11,6 @@ let panelEl: HTMLElement | null = null;
 let memories: MemoryCandidate[] = [];
 let removedIds = new Set<string>();
 let currentAnchor: HTMLElement | null = null;
-
-// styles
 
 const STYLES = `
   :host { all: initial; }
@@ -167,12 +161,10 @@ const STYLES = `
   }
 `;
 
-// container setup
-
 function ensureContainer(): void {
   if (host) return;
 
-  // NOTE: one below the other overlays' 2147483647 — kept as-is, not unified
+  // one below toast z-index, kept separate on purpose
   ({ host, shadow } = createShadowHost(
     "vmem-memory-panel",
     STYLES,
@@ -185,8 +177,6 @@ function ensureContainer(): void {
 
   document.documentElement.appendChild(host);
 }
-
-// rendering
 
 async function positionPanel(anchor: HTMLElement): Promise<void> {
   if (!panelEl) return;
@@ -242,11 +232,9 @@ function render(): void {
   `;
 
   void positionPanel(currentAnchor);
-  // trigger reflow before adding visible class
   void panelEl.offsetWidth;
   panelEl.classList.add("visible");
 
-  // bind events
   const clearBtn = panelEl.querySelector(".clear-all");
   if (clearBtn) {
     clearBtn.addEventListener("click", () => {
@@ -265,9 +253,6 @@ function render(): void {
   });
 }
 
-// public api
-
-// show the panel in a loading state while memories are being fetched
 export function showMemoryPanelLoading(anchor: HTMLElement): void {
   ensureContainer();
   if (!panelEl) return;
@@ -290,7 +275,6 @@ export function showMemoryPanelLoading(anchor: HTMLElement): void {
   panelEl.classList.add("visible");
 }
 
-// show the memory panel with the given results anchored above the given element
 export function showMemoryPanel(
   newMemories: MemoryCandidate[],
   anchor: HTMLElement,
@@ -302,7 +286,6 @@ export function showMemoryPanel(
   render();
 }
 
-// hide the memory panel without clearing state
 export function hideMemoryPanel(): void {
   if (panelEl) {
     panelEl.classList.remove("visible");
@@ -310,12 +293,10 @@ export function hideMemoryPanel(): void {
   }
 }
 
-// get the memories the user hasn't removed
 export function getIncludedMemories(): MemoryCandidate[] {
   return memories.filter((m) => !removedIds.has(m.id));
 }
 
-// clear all memories and hide the panel
 export function clearMemories(): void {
   memories = [];
   removedIds = new Set<string>();

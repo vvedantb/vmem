@@ -42,11 +42,11 @@ function kindColor(
   if (kind === "code-process") {
     return isDark ? hslToHex(25, 70, 65) : hslToHex(25, 75, 50);
   }
-  // wiki-document fallback
+  // wiki document fallback
   return isDark ? hslToHex(35, 55, 70) : hslToHex(35, 60, 50);
 }
 
-// memory: first tag hue; other kinds: fixed; theme override wins
+// memory first tag hue other kinds fixed theme override wins
 export function nodeColor(
   tags: string[],
   kind: GraphNodeKind,

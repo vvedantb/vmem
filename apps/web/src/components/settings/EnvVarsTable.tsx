@@ -41,7 +41,7 @@ export interface EnvVar {
   value: string;
 }
 
-// unified add/edit row draft, `originalkey` is set only when editing
+// unified add/edit row draft — `originalKey` set only when editing
 type EnvVarDraft =
   | { mode: "add"; key: string; value: string }
   | { mode: "edit"; originalKey: string; key: string; value: string };
@@ -256,7 +256,7 @@ export function EnvVarsTable({
         err instanceof Error ? err.message : "Failed to reveal value",
       );
     }
-    // After the try rather than in a `finally`: React Compiler bails on the
+    // after the try rather than in a `finally` React Compiler bails on the
     // whole file when it meets one. The catch swallows, so this always runs.
     setRevealingKey(null);
   };

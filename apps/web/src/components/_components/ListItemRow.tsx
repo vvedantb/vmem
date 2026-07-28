@@ -23,7 +23,7 @@ import { MemorySourceIcon } from "./MemorySourceIcon";
 import { nodeColor } from "./graph-colors";
 import ShapeIndicator from "./ShapeIndicator";
 
-// re-materialise the Memory shape from a memory list item — the detail
+// re materialise the Memory shape from a memory list item the detail
 // panel + mutations expect Memory, not ListItem
 function toMemory(item: Extract<ListItem, { kind: "memory" }>): Memory {
   return {
@@ -43,7 +43,7 @@ function toMemory(item: Extract<ListItem, { kind: "memory" }>): Memory {
 interface ListItemRowProps {
   item: ListItem;
   relevanceScore: number | null;
-  // context trace for hybrid-search memory hits
+  // context trace for hybrid search memory hits
   trace?: MemoryTrace;
   isSelected: boolean;
   trailEntry?: TrailEntry;
@@ -55,7 +55,7 @@ interface ListItemRowProps {
   onContextDelete: (memory: Memory) => void;
 }
 
-// unified /memories row; memory gets context menu, others don't
+// unified /memories row memory gets context menu, others don't
 export default function ListItemRow({
   item,
   relevanceScore,
@@ -203,7 +203,7 @@ export default function ListItemRow({
   );
 }
 
-// renders the kind-specific leading icon for list rows
+// renders the kind specific leading icon for list rows
 function KindMeta({
   item,
   isSelected,

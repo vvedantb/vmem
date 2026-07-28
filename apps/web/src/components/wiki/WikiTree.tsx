@@ -44,13 +44,13 @@ interface WikiTreeProps {
   nodes: Array<WikiListNode>;
   selectedId: string | null;
   onSelect: (id: WikiNodeId | "") => void;
-  // navigate = open node; bulk-select = checkbox toggle
+  // navigate = open node bulk select = checkbox toggle
   mode?: WikiTreeMode;
   selectedNodeIds?: ReadonlySet<WikiNodeId>;
   onToggleSelect?: (id: WikiNodeId) => void;
 }
 
-// left-pane document/folder tree
+// left pane document/folder tree
 export default function WikiTree({
   nodes,
   selectedId,
@@ -148,7 +148,7 @@ export default function WikiTree({
   const tree = useTree<WikiTreeItemData>({
     rootItemId: WIKI_ROOT_DROP_ID,
     indent: 16,
-    // reorder lines are how we expose "drop to root"; order itself stays append-only via resolveWikiMove
+    // reorder lines expose "drop to root" — order stays append-only via resolveWikiMove
     canReorder: true,
     state: {
       expandedItems,
@@ -187,7 +187,7 @@ export default function WikiTree({
     canDrag: () => !isBulkSelect,
     canDrop: (items, target) => {
       if (isBulkSelect) return false;
-      // target.item is the new parent (folder, or root when dropping between top-level rows)
+      // target.item is the new parent (folder, or root when dropping between top level rows)
       if (!target.item.isFolder()) return false;
       const dragged = items[0];
       if (dragged === undefined) return false;

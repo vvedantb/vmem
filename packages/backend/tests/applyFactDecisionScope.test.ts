@@ -78,7 +78,7 @@ describe("applyFactUpdateOrDelete target lookup", () => {
     });
 
     expect(outcome).toBe("update");
-    // by userId only so legacy memories with no profile still resolve
+    // by user-id only so legacy memories with no profile still resolve
     expect(getMemory).toHaveBeenCalledWith(driver, CLERK, TARGET);
     expect(getMemoryForTeam).not.toHaveBeenCalled();
   });

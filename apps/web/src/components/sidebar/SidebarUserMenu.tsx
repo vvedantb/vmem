@@ -28,7 +28,7 @@ import { useThemeContext } from "@/contexts/ThemeContext";
 import { SidebarIconTooltip } from "./SidebarIconTooltip";
 
 type SidebarUserMenuProps = {
-  // collapsed (icon-only) rail shows just the avatar; dropdown opens to the side
+  // collapsed (icon-only) rail shows just the avatar — dropdown opens to the side
   collapsed: boolean;
 };
 

@@ -29,8 +29,7 @@ export interface FactDecisionLoopOptions {
   bestEffortPerFact?: boolean;
 }
 
-// team writes must read the whole shared profile or every member re adds the same fact
-// personal scope would also pull in the callers legacy memories with no profile
+// team writes must read the whole shared profile or every member re adds the same fact personal scope would also pull in the callers legacy memories with no profile
 export function retrievalScope(
   opts: Pick<
     FactDecisionLoopOptions,

@@ -73,7 +73,7 @@ export async function unlinkMemories(
      DELETE r`,
     { memoryIdA, memoryIdB, userId },
   );
-  // characterization: always true even when no relationship existed
+  // delete is idempotent, callers expect true even when no edge existed
   return true;
 }
 

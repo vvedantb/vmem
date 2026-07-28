@@ -34,7 +34,7 @@ export interface GraphNode {
   createdAt: string;
   size: number;
   kind: GraphNodeKind;
-  // connector provenance string (e.g
+  // connector provenance string (e.g. "github")
   sourceType: string | null;
   // entity sub-type (person/organization/place/technology)
   entityType?: string;

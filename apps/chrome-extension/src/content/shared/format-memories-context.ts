@@ -1,6 +1,6 @@
 import type { MemoryCandidate } from "@/types/api";
 
-// format memories as a context prefix for ai chat inputs
+// format memories as context prefix for ai-chat inputs
 export function formatMemoriesContext(memories: MemoryCandidate[]): string {
   if (memories.length === 0) return "";
 

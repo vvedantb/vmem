@@ -61,21 +61,20 @@ export default function Sidebar({
   const getStats = useAction(api.dashboardApi.getStats);
   const [stats, setStats] = useState<SidebarStats>({ addedToday: 0, total: 0 });
 
-  // whether the active workspace is a team profile — drives the conditional
+  // whether the active workspace is a team profile drives the conditional
   // "Team" nav group (members / team settings)
   const profiles = useQuery(api.profiles.list, isAuthenticated ? {} : "skip");
   const isTeamWorkspace =
     profiles?.find((p) => p._id === activeProfileId)?.teamId !== undefined;
 
-  // shared by the mount-effect below and handleMemoryEvent's live-update
-  // callback, so it needs a stable identity rather than a plain render-body
+  // shared by the mount effect below and handleMemoryEvent's live update
+  // callback, so it needs a stable identity rather than a plain render body
   // function
   const refreshStats = useCallback(
     async (fresh: boolean) => {
-      // scope counts to the active workspace; without one (fresh browser
-      // on /settings) fall back to user-wide totals. Built outside the try
-      // because React Compiler bails on a whole file when a conditional
-      // expression sits inside a try/catch.
+      // scope counts to the active workspace, or user-wide totals when no profile
+      // built outside try because react compiler bails when a conditional
+      // expression sits inside try/catch
       const args = fresh
         ? { fresh: true, profileId: activeProfileId }
         : { profileId: activeProfileId };
@@ -86,7 +85,7 @@ export default function Sidebar({
           total: data.totalMemories,
         });
       } catch {
-        // silently fail -- sidebar stats are non-critical
+        // silently fail — sidebar stats are non-critical
       }
     },
     [getStats, activeProfileId],
@@ -97,7 +96,7 @@ export default function Sidebar({
     void refreshStats(false);
   }, [isAuthenticated, refreshStats]);
 
-  // live updates: the memory-events change feed pushes created/updated/deleted events
+  // live updates: memory-events feed pushes created/updated/deleted events
   const statsRefetchTimer = useRef<number | null>(null);
   const handleMemoryEvent = () => {
     if (statsRefetchTimer.current !== null) return;

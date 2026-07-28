@@ -67,7 +67,7 @@ export function useFilesActions(args: {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to rename");
     }
-    // After the try rather than in a `finally`: React Compiler bails on the
+    // after the try rather than in a `finally` React Compiler bails on the
     // whole file when it meets one. The catch swallows, so this always runs.
     setRenameNodeId(null);
   }

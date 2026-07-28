@@ -51,7 +51,7 @@ export function useApiKeyActions() {
   useTimeout(() => setCopiedKeyId(null), copiedKeyId !== null ? 2000 : null);
 
   const handleCopyKey = async (apiKeyId: ApiKey["id"]) => {
-    // Plain statements rather than an async IIFE inside a `??`, because the
+    // plain statements rather than an async IIFE inside a `??`, because the
     // reset below used to be a `finally` and React Compiler bails on the whole
     // file when it meets one.
     let keyToCopy = revealedKeys[apiKeyId] ?? null;
@@ -86,8 +86,8 @@ export function useApiKeyActions() {
     }
 
     setRevealingKeyId(apiKeyId);
-    // if/else and a trailing reset rather than an early return in a `finally`:
-    // React Compiler bails on the whole file when it meets a `finally` clause.
+    // if/else and a trailing reset rather than an early return in a `finally`
+    // react Compiler bails on the whole file when it meets a `finally` clause.
     try {
       const rawKey = await revealApiKey({ id: apiKeyId });
       if (rawKey) {

@@ -1,5 +1,5 @@
 // live neo4j suite for team scoping, gated by RUN_RETRIEVAL_EVAL=1
-// inside a team profile every member reads and links everyone elses memories
+// inside a team profile every member reads and links everyone else's memories
 // personal and legacy memories with no profile must not leak in
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -175,7 +175,7 @@ const POOLING_QUERY = "connection pooling limits";
 const POOLING_TITLE = "Postgres connection pooling limits";
 const POOLING_CONTENT = "The shared pool caps at 40 connections per service.";
 
-// fulltext is eventually consistent, so leak checks poll until a control memory lands
+// full-text is eventually consistent, so leak checks poll until a control memory lands
 async function retrieveOnceIndexed(
   driver: Driver,
   scope: MemoryReadScope,
@@ -196,7 +196,7 @@ async function retrieveOnceIndexed(
   return idsOf(candidates);
 }
 
-// graph expansion polls on the fulltext seed first
+// graph expansion polls on the full-text seed first
 function expansionRetrieveOnceSeeded(
   driver: Driver,
   query: string,
@@ -229,8 +229,6 @@ describe.skipIf(!runLive)("team scope (live Neo4j)", () => {
     await wipe(driver);
   });
 
-  // read side
-
   it("retrieves a teammate's team-profile memory", async () => {
     const aTeam = await create(driver, {
       userId: USER_A,
@@ -251,7 +249,7 @@ describe.skipIf(!runLive)("team scope (live Neo4j)", () => {
   });
 
   it("never leaks a member's personal-profile memory into team scope", async () => {
-    // Bs team memory is the control, once it lands the index is warm
+    // member b's team memory warms the index before we assert the leak
     const bTeam = await create(driver, {
       userId: USER_B,
       profileId: TEAM_PROFILE,
@@ -500,14 +498,12 @@ describe.skipIf(!runLive)("team scope (live Neo4j)", () => {
     });
     await relate(driver, aTeam, bTeam, "cross member");
 
-    // B focuses a node A owns, impossible under the old userId scoping
+    // member b can focus a node owned by a, old scoping keyed on user-id blocked this
     const graph = await getLocalGraph(driver, TEAM_SCOPE, aTeam);
 
     expect(graph.focusNodeId).toBe(aTeam);
     expect(graph.nodes.map((node) => node.id)).toContain(bTeam);
   });
-
-  // write side
 
   it("links near-identical memories across members inside a team profile", async () => {
     const aTeam = await create(driver, {
@@ -519,7 +515,7 @@ describe.skipIf(!runLive)("team scope (live Neo4j)", () => {
       embedding: EMB_A,
     });
 
-    // the vector index lags the write, so retry the create driven edge check
+    // the vector index lags the write, so retry the create-driven edge check
     const reasons = await retryUntil(
       async () => {
         const bTeam = await create(driver, {
@@ -627,8 +623,6 @@ describe.skipIf(!runLive)("team scope (live Neo4j)", () => {
 
     expect(await edgeReasons(driver, aPersonal, aTeam)).toEqual([]);
   });
-
-  // dream mode
 
   it("feeds both members' memories into a team dream pass", async () => {
     const sinceMs = Date.now() - 60_000;
@@ -752,7 +746,7 @@ describe.skipIf(!runLive)("team scope (live Neo4j)", () => {
 
     expect(record?.get("userId")).toBe(OWNER);
     expect(record?.get("profileId")).toBe(TEAM_PROFILE);
-    // the owner keyed source match used to drop both members edges silently
+    // the owner-keyed source match used to drop both members' edges silently
     expect(
       Array.isArray(sourceIds) ? sourceIds.map(String).sort() : [],
     ).toEqual([aTeam, bTeam].sort());
@@ -800,7 +794,7 @@ describe.skipIf(!runLive)("team scope (live Neo4j)", () => {
     const sourceIds = record?.get("sourceIds");
     const sourceStatuses = record?.get("sourceStatuses");
 
-    // materializeUserId carries the owner, so a nonowner still lands the shared memory
+    // materializeUserId carries the owner, so a non-owner still lands the shared memory
     expect(record?.get("userId")).toBe(OWNER);
     expect(record?.get("profileId")).toBe(TEAM_PROFILE);
     expect(

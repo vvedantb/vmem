@@ -49,8 +49,6 @@ export default defineBackground(() => {
     }
   });
 
-  // the frequency slider changed the sync period reschedule the alarm with
-  // the new period (no op while auto sync is disabled)
   autoSyncIntervalMinutesItem.watch(() => {
     void rescheduleHistorySync();
   });

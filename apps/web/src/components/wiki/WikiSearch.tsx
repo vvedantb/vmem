@@ -66,7 +66,7 @@ interface WikiSearchProps {
   className?: string;
 }
 
-// debounced wiki search (title + contentText, workspace-scoped)
+// debounced wiki search (title + contentText, workspace scoped)
 export default function WikiSearch({
   onSelect,
   actions,

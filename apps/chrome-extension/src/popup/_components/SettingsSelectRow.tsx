@@ -6,7 +6,7 @@ interface SettingsSelectRowProps {
   children: ReactNode;
 }
 
-// label + select control row matches web settings layout
+// label and select row matching web settings layout
 export function SettingsSelectRow({
   label,
   description,

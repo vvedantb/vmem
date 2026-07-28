@@ -2,7 +2,7 @@
 import { internal } from "../_generated/api";
 import { extractBearerToken } from "../lib/bearerToken";
 
-// read a required env var, stripping any trailing slash (used as a URL prefix)
+// read a required env var, stripping any trailing slash (used as a url prefix)
 function requiredEnvUrl(name: string): string {
   const url = process.env[name];
   if (!url) {
@@ -60,8 +60,6 @@ function unauthorized(message: string, resourceMetadataUrl: string): Response {
   });
 }
 
-// AI-generated (Claude), prompt: "serve mcp over http with clerk bearer auth and oauth protected resource metadata for personal and team scopes"
-// Modified by me: unauthorized www authenticate headers and stateless method restrictions
 async function runMcpEndpoint(
   ctx: ActionCtx,
   request: Request,

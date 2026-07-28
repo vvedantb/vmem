@@ -1,5 +1,5 @@
-// The memory wire shapes live in `@vmem/sdk` so the HTTP API, MCP tools, the
-// engine and the SDK cannot drift. Only engine-internal shapes are declared here.
+// memory wire shapes live in the sdk package so API, MCP, engine and sdk stay aligned
+// only engine internal shapes are declared here
 import type { MatchedChunk, MemoryWithTags } from "@vmem/sdk";
 
 export type {

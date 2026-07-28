@@ -1,4 +1,4 @@
-// codebase symbol-graph canvas
+// codebase symbol graph canvas
 
 import { useRef, useState } from "react";
 import { IconAlertTriangle } from "@tabler/icons-react";
@@ -42,8 +42,8 @@ export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
     onToggleBlastDirection,
   } = controller;
 
-  // hovered-node / hovered-edge state stays canvas-local: it's high-
-  // frequency and not worth putting in the controller (or the URL)
+  // hovered-node / hovered-edge state stays canvas-local: high-frequency,
+  // not worth the controller (or URL)
   const [hoveredNode, setHoveredNode] = useState<HoveredNodeInfo | null>(null);
   const [hoveredEdge, setHoveredEdge] = useState<HoveredEdgeInfo | null>(null);
 
@@ -104,7 +104,8 @@ export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
       </div>
 
       {
-        // truncation banner, server caps the payload at 8192 entries to fit convex's action limit show this so the user knows the graph isn't the full picture and can narrow down via filters
+        // truncation banner: server caps payload at 8192 entries (Convex action limit).
+        // shown so users know the graph is sliced and can narrow via filters.
       }
       {truncated && (
         <div className="pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 z-10 max-w-md px-3">
@@ -129,7 +130,8 @@ export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
       />
 
       {
-        // hover tooltips, node takes priority when both are present, and we suppress them entirely while a symbol is selected so they don't fight the detail panel for attention
+        // hover tooltips — node wins when both present, suppressed while a symbol is
+        // selected so they don't fight the detail panel
       }
       {hoveredNode && !selectedSymbolId && (
         <GraphNodeTooltip
@@ -151,7 +153,8 @@ export function CodebaseGraph({ codebaseId, controller }: CodebaseGraphProps) {
       )}
 
       {
-        // right, side detail panel, visible whenever a symbol is selected (`blastradiusof` url param) the graph filters to that symbol's blast radius automatically because the api call uses the same param, so the panel and canvas stay in sync
+        // right-side detail panel when a symbol is selected (`blastRadiusOf` URL param).
+        // graph filters to that blast radius via the same API param so panel + canvas stay in sync.
       }
       <CodebaseSymbolPanel
         codebaseId={codebaseId}

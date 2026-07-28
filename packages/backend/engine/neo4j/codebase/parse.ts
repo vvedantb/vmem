@@ -410,8 +410,6 @@ function parseSourceFile(ctx: ParseContext, source: SourceFile): void {
   }
 }
 
-// AI-generated (Claude), prompt: "parse a typescript repo with ts morph into files functions classes interfaces and heritage relations"
-// Modified by me: hardened id schemes test file detection and heritage resolution
 export function parseRepository(input: ParseInput): {
   project: Project;
   result: ParseResult;

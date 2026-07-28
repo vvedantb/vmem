@@ -1,5 +1,3 @@
-// AI-generated (Claude), prompt: "unit tests for cosmos graph buffers and color parse"
-// Modified by me: expanded hex and rgba color cases
 import { describe, expect, it } from "vitest";
 import { cosmosPhysicsForNodeCount } from "@vmem/shared/graph";
 import type { GraphEdge, GraphNode } from "@/lib/graph/types";

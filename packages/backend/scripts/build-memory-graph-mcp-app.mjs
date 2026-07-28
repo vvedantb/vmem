@@ -16,7 +16,7 @@ const outFile = path.join(
   "memoryGraphHtml.ts",
 );
 
-// Cosmos imports default from gl-bench; package `browser` field points at UMD.
+// cosmos default import from gl-bench: browser field points at umd bundle
 const glBenchEsm = path.join(
   path.dirname(require.resolve("gl-bench/package.json")),
   "dist/gl-bench.module.js",

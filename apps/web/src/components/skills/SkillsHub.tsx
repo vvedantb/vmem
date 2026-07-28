@@ -82,7 +82,7 @@ interface SkillsHubProps {
   profileId: string;
 }
 
-// the Skills Hub — browse maintainer-curated system skills
+// the Skills Hub browse maintainer curated system skills
 export function SkillsHub({ profileId }: SkillsHubProps) {
   const teamId = useActiveTeamId();
   const catalog = useQuery(api.systemSkills.listCatalog, { teamId });

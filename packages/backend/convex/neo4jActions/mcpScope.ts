@@ -14,14 +14,14 @@ export const scopedMcpArgs = {
   mcpScope: mcpScopeValidator,
 };
 
-// Discriminated on mcpScope, mirroring MemoryReadScope's kind union: team is
-// keyed on profileId alone (the whole team scope), so it statically requires
-// one; personal keeps the same shape it has always resolved to.
+// discriminated on McpScope, mirroring MemoryReadScope's kind union
+// team: keyed on profileId alone (the whole team scope), so it statically requires one
+// personal: keeps the same shape it has always resolved to
 export type McpResolvedScope =
   | { clerkId: string; mcpScope: "team"; profileId: string }
   | { clerkId: string; mcpScope: "personal"; profileId: string };
 
-// resolve MCP profile scope, then run the handler with the resolved ids
+// resolve mcp profile scope, then run the handler with the resolved ids
 export async function withMcpMemoryScope<T>(
   ctx: ActionCtx,
   args: { clerkId: string; mcpScope: McpScope; profileId?: string },

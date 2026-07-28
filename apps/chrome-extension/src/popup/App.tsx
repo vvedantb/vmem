@@ -54,7 +54,7 @@ function ThemeApplier() {
   return null;
 }
 
-// fixed height popup: each tab scrolls inside gutter keeps layout stable
+// fixed height popup, each tab scrolls inside its gutter
 const tabContentClassName =
   "min-h-0 flex-1 overflow-y-auto scrollbar-thin [scrollbar-gutter:stable] py-5 pl-5 pr-2 mr-1.5";
 

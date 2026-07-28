@@ -35,7 +35,7 @@ function SkillsLayout() {
   const navigate = useNavigate();
   const params = useParams({ strict: false });
   const skillId = typeof params.id === "string" ? params.id : undefined;
-  // the Hub is a child route (/skills/hub) rendered by this layout — same
+  // the Hub is a child route (/skills/hub) rendered by this layout same
   // pattern as the skill detail view (the layout owns rendering)
   const pathname = useLocation({ select: (l) => l.pathname });
   const onHub = pathname.endsWith("/skills/hub");
@@ -141,8 +141,8 @@ function SkillsLayout() {
     });
   };
 
-  // the Hub is its own page — use the settings convention (centred, titled
-  // container) rather than the editor-style detail layout below
+  // hub is its own page: settings convention (centred, titled container)
+  // rather than the editor-style detail layout below
   if (onHub) {
     return (
       <PageContainer title="Skills Hub" centeredMaxWidth showTitle>
@@ -151,7 +151,7 @@ function SkillsLayout() {
     );
   }
 
-  // A catalogue system skill has its own read-only detail page
+  // catalogue system skill has its own read-only detail page
   if (systemSkillId !== undefined) {
     return (
       <SystemSkillDetail systemSkillId={systemSkillId} profileId={profileId} />

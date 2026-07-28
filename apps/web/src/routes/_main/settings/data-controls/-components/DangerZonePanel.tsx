@@ -3,7 +3,6 @@ import { Button, Card, CardContent } from "@vmem/ui";
 import { IconAlertTriangle, IconTrash } from "@tabler/icons-react";
 import DeleteAllMemoriesDialog from "./DeleteAllMemoriesDialog";
 
-// body of the Data Control tab
 export function DangerZonePanel() {
   const [confirmOpen, setConfirmOpen] = useState(false);
 

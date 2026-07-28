@@ -12,7 +12,7 @@ import {
 import type { ScopeKind } from "../../../engine/neo4j/memory/scope";
 import type { McpScope } from "../../profiles/mcpAccess";
 
-// stable wrappers — call sites keep importing from this module
+// stable wrappers, call sites keep importing from this module
 export const toMemoryType = toMemoryTypeOrUndefined;
 export const toMemoryStatus = toMemoryStatusOrUndefined;
 
@@ -29,8 +29,7 @@ export async function resolveProfileScopeForClerkId(
     return { profileId: explicitProfileId, graphScope };
   }
 
-  // Active MCP profile and the default profile are always personal — see
-  // getActiveProfileForMcpScope / getOrCreateDefaultProfile.
+  // active mcp profile and the default profile are always personal, see getActiveProfileForMcpScope / getOrCreateDefaultProfile
   const mcpActive = await ctx.runQuery(
     internal.profiles.getActiveProfileForMcpInternal,
     { clerkId },

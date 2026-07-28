@@ -1,5 +1,3 @@
-// AI-generated (Claude), prompt: "test codebase parse call resolve entry points and process detect"
-// Modified by me: ran the full parse pipeline on fixture blobs
 import { describe, expect, it } from "vitest";
 import {
   parseRepository,
@@ -392,7 +390,7 @@ export function useFormat() {
         s.filePath === "overloads.ts" &&
         s.name === "format",
     );
-    // parse keeps one FunctionNode per name (implementation)
+    // overloads collapse to one function node per name
     expect(formatFns.length).toBeGreaterThanOrEqual(1);
 
     const edge = calls.find(

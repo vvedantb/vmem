@@ -32,7 +32,7 @@ async function revokeTokenBestEffort(
   try {
     await revoke();
   } catch {
-    // best effort — continue even if revocation fails
+    // best-effort, continue even if revocation fails
   }
 }
 
@@ -79,8 +79,6 @@ const startOAuthResult = v.object({
   alreadyConnected: v.boolean(),
 });
 
-// AI-generated (Claude), prompt: "implement connector oauth start and callback with state consume pkce token exchange and encrypted token storage"
-// Modified by me: provider specific token policies and audit logging
 export const startOAuth = authAction({
   args: { connectorId: v.id("connectors"), returnUrl: v.string() },
   returns: startOAuthResult,
@@ -233,8 +231,6 @@ function oauthCallbackError(
   return { error, frontendUrl, connectorId };
 }
 
-// AI-generated (Claude), prompt: "implement connector oauth start and callback with state consume pkce token exchange and encrypted token storage"
-// Modified by me: provider specific token policies and audit logging
 export const handleCallbackInternal = internalAction({
   args: { code: v.string(), state: v.string() },
   handler: async (ctx, args): Promise<OAuthCallbackResult> => {

@@ -40,11 +40,11 @@ export default function PageContainer({
   }, [title, setPageTitle]);
 
   const hasSections = Boolean(leftSection || centerSection || rightSection);
-  // breadcrumb takes precedence over the h1 title — don't render both
-  // default: show title if sections exist, unless explicitly set
+  // breadcrumb takes precedence over the h1 title don't render both
+  // default show title if sections exist, unless explicitly set
   const showTitleInHeader =
     !breadcrumb && Boolean(title) && (showTitle ?? hasSections);
-  // title and breadcrumb are desktop-only (md+); mobile uses the shell topbar
+  // title and breadcrumb are desktop only (md+) mobile uses the shell topbar
   const hasMobileHeaderContent = hasSections;
   const hasHeader =
     Boolean(breadcrumb) || showTitleInHeader || hasMobileHeaderContent;

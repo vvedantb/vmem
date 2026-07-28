@@ -23,7 +23,7 @@ export function wikiExcerpt(text: string, maxLength = 200): string {
   return `${trimmed.slice(0, maxLength)}…`;
 }
 
-// plain-text mirror for Convex full-text search
+// plain-text mirror for convex full-text search
 export function markdownToPlainText(markdown: string): string {
   return removeMarkdown(markdown)
     .replace(/\n{2,}/g, "\n")

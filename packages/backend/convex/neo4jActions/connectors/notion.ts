@@ -9,7 +9,7 @@ import {
   runPaginatedConnectorSync,
 } from "./shared";
 
-// markdown endpoint requires Notion-Version >= 2026-03-11; SDK default is older
+// markdown endpoint requires notion version >= 2026 03 11. sdk default is older
 const NOTION_MARKDOWN_API_VERSION = "2026-03-11";
 
 export interface NotionSyncArgs {

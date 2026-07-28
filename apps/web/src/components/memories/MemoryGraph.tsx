@@ -16,9 +16,9 @@ import type { MemoryGraphController } from "@/hooks/useMemoryGraphController";
 
 interface MemoryGraphProps {
   controller: MemoryGraphController;
-  // URL focus — when set, controller fetches that node's neighbourhood
+  // URL focus-node: when set, controller fetches that node's neighbourhood
   focusNodeId: string | null;
-  // id → enter neighbourhood; null → back to global graph
+  // id → enter neighbourhood, null → back to global graph
   onFocusChange: (id: string | null) => void;
 }
 

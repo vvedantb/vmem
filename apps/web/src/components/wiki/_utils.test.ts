@@ -1,5 +1,3 @@
-// AI-generated (Claude), prompt: "test wiki tree build sibling sort and move resolve helpers"
-// Modified by me: used branded optimistic wiki ids for fixtures
 import { describe, expect, it } from "vitest";
 import {
   buildTree,
@@ -16,7 +14,7 @@ function optimisticId<TableName extends TableNames>(
   return Object.assign(id, { __tableName: tableName });
 }
 
-// stable branded wiki id for tests (`optimisticId` requires UUID-shaped strings)
+// stable branded wiki id for tests (`optimisticId` requires UUID shaped strings)
 function testWikiId(suffix: string): Id<"wikiNodes"> {
   const tail = suffix.padEnd(12, "0").slice(0, 12);
   return optimisticId("wikiNodes", `00000000-0000-4000-8000-${tail}`);
@@ -89,7 +87,7 @@ describe("buildTree", () => {
   });
 });
 
-// plain-string node fixture; `resolveWikiMove` is generic over the id type
+// plain string node fixture `resolveWikiMove` is generic over the id type
 interface TestNode {
   _id: string;
   parentId?: string;
@@ -97,11 +95,6 @@ interface TestNode {
   order: number;
 }
 
-// folder-a (0)
-//   doc-1 (0)
-//   folder-b (1)
-//     doc-2 (0)
-// doc-3 (1)   [root]
 const nodes: TestNode[] = [
   { _id: "folder-a", kind: "folder", order: 0 },
   { _id: "doc-1", parentId: "folder-a", kind: "document", order: 0 },

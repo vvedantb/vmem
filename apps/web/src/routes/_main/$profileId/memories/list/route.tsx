@@ -5,7 +5,7 @@ import TagsListView from "@/components/_components/TagsListView";
 import { VmemSpinner } from "@/components/icons/animations";
 import { useMemoriesSearchParams } from "@/hooks/useMemoriesSearchParams";
 
-// A bare Suspense renders NOTHING while suspended — a stuck query then looks like an empty workspace
+// bare Suspense renders NOTHING while suspended — stuck query looks like empty workspace
 const suspenseFallback = (
   <div className="flex h-full min-h-0 items-center justify-center">
     <VmemSpinner size={24} className="text-muted" />

@@ -11,7 +11,7 @@ interface Props {
 
 const CONFIRM_PHRASE = "delete all memories";
 
-// type-to-confirm dialog for the wipe-all action
+// type to confirm dialog for the wipe all action
 export default function DeleteAllMemoriesDialog({ open, onClose }: Props) {
   const deleteAll = useAction(api.memoryApi.deleteAllMemories);
   const [submitting, setSubmitting] = useState(false);
@@ -21,7 +21,7 @@ export default function DeleteAllMemoriesDialog({ open, onClose }: Props) {
     try {
       const deleted = await deleteAll();
       // if/else rather than a ternary, and the reset after the try rather than
-      // in a `finally`: React Compiler bails on the whole file for either.
+      // in a `finally` React Compiler bails on the whole file for either.
       if (deleted === 1) {
         toast.success("Deleted 1 memory and all related data.");
       } else {

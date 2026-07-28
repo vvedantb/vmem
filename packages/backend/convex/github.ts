@@ -31,7 +31,6 @@ export const getConnection = authQuery({
   },
 });
 
-// initiates the GitHub OAuth flow
 export const startGitHubOAuth = authAction({
   args: { returnUrl: v.string() },
   handler: async (ctx, args) => {
@@ -54,13 +53,11 @@ export const startGitHubOAuth = authAction({
   },
 });
 
-// subset of GitHub user profile we need
 const githubUserProfileSchema = z.object({
   login: z.string().optional(),
   avatar_url: z.string().optional(),
 });
 
-// handles the GitHub OAuth callback
 type OAuthCallbackResult = {
   error: string | null;
   returnUrl: string | null;
@@ -69,7 +66,6 @@ type OAuthCallbackResult = {
 export const handleGitHubCallbackInternal = internalAction({
   args: { code: v.string(), state: v.string() },
   handler: async (ctx, args): Promise<OAuthCallbackResult> => {
-    // 1. Consume and validate state
     const stateEntry = await ctx.runMutation(
       internal.oauthState.consumeOAuthStateInternal,
       { state: args.state },
@@ -81,7 +77,6 @@ export const handleGitHubCallbackInternal = internalAction({
       return { error: "expired_state", returnUrl: stateEntry.returnUrl };
     }
 
-    // 2. Exchange code for access token
     const convexSiteUrl = getEnvOrThrow("CONVEX_SITE_URL");
     const redirectUri = `${convexSiteUrl}/api/auth/github/callback`;
 
@@ -98,7 +93,6 @@ export const handleGitHubCallbackInternal = internalAction({
       };
     }
 
-    // 3. Fetch GitHub user profile
     const octokit = createGithubOctokit(accessToken);
     let userData: z.infer<typeof githubUserProfileSchema>;
     try {
@@ -111,7 +105,6 @@ export const handleGitHubCallbackInternal = internalAction({
       return { error: "user_fetch_failed", returnUrl: stateEntry.returnUrl };
     }
 
-    // 4. Encrypt and store connection
     const encrypted = await encryptToken(accessToken);
     await ctx.runMutation(internal.github.upsertConnectionInternal, {
       userId: stateEntry.userId,
@@ -166,7 +159,6 @@ export const upsertConnectionInternal = internalMutation({
   },
 });
 
-// encrypted token for internal use (decryption happens in actions)
 export const getDecryptedTokenInternal = internalQuery({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {

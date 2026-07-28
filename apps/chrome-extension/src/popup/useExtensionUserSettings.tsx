@@ -42,10 +42,10 @@ function useExtensionUserSettingsInner() {
     );
   });
 
-  // optimistic ws + durable http write (popup socket can drop on close)
+  // optimistic websocket, durable http: popup socket can drop on close
   async function update(args: UserSettingsUpdateArgs): Promise<void> {
     void baseUpdate(args).catch(() => {
-      // http write below is source of truth
+      // http: write below is authoritative
     });
 
     try {
@@ -62,7 +62,7 @@ function useExtensionUserSettingsInner() {
       source: "extension",
       profileId,
     }).catch(() => {
-      // http write below is source of truth
+      // http: write below is authoritative
     });
 
     try {
@@ -101,7 +101,7 @@ function useExtensionUserSettingsInner() {
         extensionSelectionPopupEnabled: local.selectionPopupEnabled,
       };
       void baseUpdate(args).catch(() => {
-        // http write below is source of truth
+        // http: write below is authoritative
       });
       void updateUserSettings(args).catch((error: unknown) => {
         console.warn("[vmem] Failed to persist user settings:", error);

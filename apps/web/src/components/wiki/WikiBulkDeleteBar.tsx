@@ -17,7 +17,7 @@ interface WikiBulkDeleteBarProps {
   onCurrentRemoved: () => void;
 }
 
-// selection-mode action bar for the wiki tree
+// selection mode action bar for the wiki tree
 export function WikiBulkDeleteBar({
   selectedIds,
   nodes,
@@ -47,7 +47,7 @@ export function WikiBulkDeleteBar({
         try {
           await deleteNodes({ ids });
           toast.success(`Deleted ${count} ${itemWord}`);
-          // Nested ifs rather than `&&`: React Compiler bails on the whole
+          // nested ifs rather than `&&` React Compiler bails on the whole
           // file for a logical expression inside a try.
           if (currentDocId !== null) {
             if (removeSet.has(currentDocId)) {

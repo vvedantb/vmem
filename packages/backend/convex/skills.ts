@@ -14,32 +14,29 @@ import {
   requireContentScopeAccess,
 } from "./teams/auth";
 
-// missing `enabled` is treated as enabled for existing rows
+// missing enabled is treated as enabled for existing rows
 function isSkillEnabled(skill: { enabled?: boolean }): boolean {
   return skill.enabled !== false;
 }
 
-// A skill as seen by every prompt surface, regardless of whether it is a personal
 export interface EffectiveSkill {
   name: string;
   description: string;
   instructions: string;
   enabled: boolean;
   source: "personal" | "system";
-  // the personal skill's id — present only for `source === "personal"`
+  // the personal skill's id, present only for source === "personal"
   skillId?: Id<"skills">;
-  // present only for `source === "system"`
+  // present only for source === "system"
   systemSkillId?: Id<"systemSkills">;
 }
 
 export type SkillIndexSlice = Pick<EffectiveSkill, "name" | "description">;
 
-// name + description for skills index surfaces (MCP, context prompt, chat)
 export function toSkillIndexEntry(skill: SkillIndexSlice): SkillIndexSlice {
   return { name: skill.name, description: skill.description };
 }
 
-// resolve a user's EFFECTIVE skills = their enabled personal skills + the system
 async function resolveEffectiveSkills(
   ctx: QueryCtx | MutationCtx,
   userId: Id<"users">,
@@ -92,7 +89,6 @@ async function resolveEffectiveSkills(
   return out;
 }
 
-// true when this workspace has an install of a system skill with this name
 async function scopeHasInstalledSystemSkillNamed(
   ctx: QueryCtx | MutationCtx,
   userId: Id<"users">,
@@ -122,7 +118,6 @@ async function scopeHasInstalledSystemSkillNamed(
   return false;
 }
 
-// name-uniqueness lookup within one scope
 async function findSkillByNameInScope(
   ctx: QueryCtx | MutationCtx,
   userId: Id<"users">,
@@ -152,7 +147,6 @@ async function invalidateContextPromptIfPersonal(
   await scheduleContextPromptInvalidationForUser(ctx, userId);
 }
 
-// reject a skill name already taken in the target scope
 async function assertSkillNameAvailableInScope(
   ctx: QueryCtx | MutationCtx,
   userId: Id<"users">,
@@ -177,7 +171,6 @@ async function assertSkillNameAvailableInScope(
   }
 }
 
-// user-editable skill fields, all optional (a patch or an update request)
 type SkillWritableFields = {
   name?: string;
   description?: string;
@@ -185,7 +178,6 @@ type SkillWritableFields = {
   enabled?: boolean;
 };
 
-// assemble the patch for a skill update from optionally-provided fields, applying the
 async function buildSkillUpdatePatch(
   ctx: QueryCtx | MutationCtx,
   skill: Doc<"skills">,
@@ -222,7 +214,6 @@ async function buildSkillUpdatePatch(
   return patch;
 }
 
-// normalise a skill id string and fetch the row, throwing if either fails
 async function resolveSkillOrThrow(
   ctx: QueryCtx | MutationCtx,
   rawId: string,
@@ -291,7 +282,6 @@ async function deleteSkillRecord(
   await ctx.db.delete(skillId);
 }
 
-// list skills in a scope, newest-first
 export const listMy = authQuery({
   args: { teamId: v.optional(v.id("teams")) },
   handler: async (ctx, args) => {
@@ -313,7 +303,7 @@ export const listMy = authQuery({
   },
 });
 
-// the caller's effective skills (enabled personal + installed-and-enabled system
+// the caller's effective skills: enabled personal + installed system skills
 export const listEffectiveSkills = authQuery({
   args: {},
   handler: async (ctx): Promise<EffectiveSkill[]> => {
@@ -321,7 +311,6 @@ export const listEffectiveSkills = authQuery({
   },
 });
 
-// create a new skill in a scope
 export const createSkill = authMutation({
   args: {
     name: v.string(),
@@ -343,7 +332,6 @@ export const createSkill = authMutation({
   },
 });
 
-// update an existing skill
 export const updateSkill = authMutation({
   args: {
     id: v.string(),
@@ -371,7 +359,6 @@ export const updateSkill = authMutation({
   },
 });
 
-// delete a skill
 export const deleteSkill = authMutation({
   args: { id: v.string() },
   handler: async (ctx, args) => {
@@ -382,7 +369,6 @@ export const deleteSkill = authMutation({
   },
 });
 
-// bulk-delete skills (each with its version snapshots)
 export const deleteSkills = authMutation({
   args: { ids: v.array(v.id("skills")) },
   handler: async (ctx, args) => {
@@ -400,7 +386,6 @@ export const deleteSkills = authMutation({
   },
 });
 
-// restore a skill to a previous version
 export const restoreVersion = authMutation({
   args: { versionId: v.id("skillVersions") },
   handler: async (ctx, args) => {
@@ -439,9 +424,8 @@ export const restoreVersion = authMutation({
   },
 });
 
-// internal helpers (used by MCP HTTP routes after JWT verification) --- MCP stays
+// internal helpers for mcp http routes after jwt verification
 
-// effective skills (personal + installed system skills) for a Clerk user id
 export const listEffectiveByClerkIdInternal = internalQuery({
   args: { clerkId: v.string() },
   handler: async (ctx, args): Promise<EffectiveSkill[]> => {
@@ -451,7 +435,7 @@ export const listEffectiveByClerkIdInternal = internalQuery({
   },
 });
 
-// resolve one effective skill by name for a Clerk user id (personal first, then
+// resolve one effective skill by name for clerkId (personal first, then system)
 export const getEffectiveByNameInternal = internalQuery({
   args: { clerkId: v.string(), name: v.string() },
   handler: async (ctx, args): Promise<EffectiveSkill | null> => {
@@ -463,7 +447,7 @@ export const getEffectiveByNameInternal = internalQuery({
   },
 });
 
-// workspace-scoped enabled skills for the memory graph (personal or team)
+// workspace scoped enabled skills for the memory graph (personal or team)
 export const listForGraphInternal = internalQuery({
   args: {
     userId: v.id("users"),
@@ -488,7 +472,6 @@ export const listForGraphInternal = internalQuery({
   },
 });
 
-// create a skill for a given Clerk user id (MCP after JWT verification)
 export const createByClerkIdInternal = internalMutation({
   args: {
     clerkId: v.string(),
@@ -518,7 +501,6 @@ export const createByClerkIdInternal = internalMutation({
   },
 });
 
-// update a skill for a given Clerk user id (MCP after JWT verification)
 export const updateByClerkIdInternal = internalMutation({
   args: {
     clerkId: v.string(),
@@ -576,7 +558,6 @@ export const updateByClerkIdInternal = internalMutation({
   },
 });
 
-// delete a skill by name for a given Clerk user id (MCP after JWT verification)
 export const deleteByClerkIdInternal = internalMutation({
   args: { clerkId: v.string(), name: v.string() },
   returns: v.null(),

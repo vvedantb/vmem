@@ -23,8 +23,6 @@ export type SyncStage =
   | "writing"
   | "done";
 
-// AI-generated (Claude), prompt: "orchestrate codebase sync from fetch through parse call resolution process detection and neo4j write"
-// Modified by me: enforced max files per sync and wiring to convex sync actions
 export async function syncCodebase(
   input: SyncCodebaseInput,
 ): Promise<ParseStats> {

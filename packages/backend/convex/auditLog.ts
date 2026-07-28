@@ -17,7 +17,7 @@ const apiRequestEntrySchema = z.object({
   timestamp: z.number().optional(),
 });
 
-// shared audit-log client for the whole backend
+// shared audit log client for the whole backend
 export const auditLog = new AuditLog(components.auditLog, {
   piiFields: [
     "email",
@@ -32,7 +32,7 @@ export const auditLog = new AuditLog(components.auditLog, {
   ],
 });
 
-// stable `resourceType` constants so all callers write the same string
+// stable resourceType constants so all callers write the same string
 export const ResourceTypes = {
   MEMORY: "memory",
   PROPOSED_UPDATE: "proposed_update",
@@ -45,7 +45,7 @@ export const ResourceTypes = {
   USER: "user",
 } as const;
 
-// 2xx → info, 4xx → warning, 5xx → error
+// 2xx to info, 4xx to warning, 5xx to error
 export function severityForStatus(
   status: number,
 ): "info" | "warning" | "error" {

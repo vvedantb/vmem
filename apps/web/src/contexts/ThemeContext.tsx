@@ -31,7 +31,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // apply Convex theme to the document when settings load or change externally
-  // do not depend on nextTheme — that caused a revert flicker while mutations were in flight
+  // do not depend on nextTheme that caused a revert flicker while mutations were in flight
   useEffect(() => {
     if (!mounted || settings === undefined) return;
     const convexTheme = settings.theme ?? "system";

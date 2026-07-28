@@ -3,7 +3,7 @@ import { internal } from "./_generated/api";
 
 const crons = cronJobs();
 
-// 04:00 UTC daily — stale codebases sync via workpool (one action per repo)
+// 0400 utc daily, stale codebases sync via workpool (one action per repo)
 crons.cron(
   "daily codebase sync",
   "0 4 * * *",
@@ -11,7 +11,7 @@ crons.cron(
   {},
 );
 
-// 04:00 UTC daily — full connector ingest for every connected provider
+// 0400 utc daily, full connector ingest for every connected provider
 crons.cron(
   "daily connector sync",
   "0 4 * * *",
@@ -19,8 +19,7 @@ crons.cron(
   {},
 );
 
-// every 30 min — flip codebases stuck in `syncing` past the stale window to
-// `error` so a dead sync action stops spinning forever in the UI
+// every 30 min, flip codebases stuck in syncing past the stale window to error so a dead sync action stops spinning forever in the ui
 crons.interval(
   "recover stale codebase syncs",
   { minutes: 30 },

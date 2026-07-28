@@ -3,7 +3,7 @@ import { IconBrain } from "@tabler/icons-react";
 import type { FileTreeNode } from "./-types";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 
-// memory-graph indexing indicator for a file row/card
+// memory graph indexing indicator for a file row/card
 export default function MemoryIndexBadge({ node }: { node: FileTreeNode }) {
   const profileId = useActiveProfile()._id;
 

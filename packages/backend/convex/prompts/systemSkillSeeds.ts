@@ -1,4 +1,4 @@
-// shipped catalog seeds for the Skills Hub
+// shipped catalog seeds for the skills hub
 
 export interface SystemSkillSeed {
   name: string;

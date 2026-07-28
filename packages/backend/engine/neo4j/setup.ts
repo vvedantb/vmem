@@ -3,10 +3,8 @@ import { z } from "zod";
 import { neo4jField, neo4jString, stringSchema } from "./record";
 import { withSession } from "./session";
 
-// Fulltext indexes are declared as data rather than Cypher because the live
-// property set has to be compared against the declaration. `CREATE ... IF NOT
-// EXISTS` silently keeps an existing index whatever it indexes, so a widened
-// declaration never reaches a database that already has the old index.
+// full-text index specs live as data so we can compare live property sets
+// create-if-not-exists keeps an old index silently, so drift never self-heals
 interface FulltextIndexSpec {
   name: string;
   alias: string;
@@ -51,9 +49,8 @@ function sameProperties(live: string[], declared: string[]): boolean {
   return declared.every((property) => liveSet.has(property));
 }
 
-// Neo4j cannot widen a fulltext index in place, so drift means drop + recreate.
-// Repopulation is asynchronous: the index answers nothing until it is ONLINE
-// again, which is why this logs loudly. Returns the names it rebuilt.
+// neo4j cannot widen a full-text index in place: drift means drop then recreate
+// repopulation is async and the index answers nothing until online again
 async function repairDriftedFulltextIndexes(driver: Driver): Promise<string[]> {
   const result = await driver.executeQuery(
     `SHOW INDEXES YIELD name, type, properties
@@ -72,13 +69,13 @@ async function repairDriftedFulltextIndexes(driver: Driver): Promise<string[]> {
   const rebuilt: string[] = [];
   for (const spec of FULLTEXT_INDEXES) {
     const actual = live.get(spec.name);
-    if (actual === undefined) continue; // absent, so the CREATE statement covers it
+    if (actual === undefined) continue; // missing index is created by setup statements below
     if (sameProperties(actual, spec.properties)) continue;
     console.warn(
       `neo4j fulltext index ${spec.name} indexes [${actual.join(", ")}] but should index [${spec.properties.join(", ")}] — dropping and recreating; it returns no results until repopulation finishes`,
     );
     await withSession(driver, async (session) => {
-      // index names cannot be parameterised; these are module constants
+      // index names cannot be parameterised, these are module constants
       await session.run(`DROP INDEX ${spec.name}`);
       await session.run(fulltextCreateCypher(spec));
     });
@@ -87,8 +84,7 @@ async function repairDriftedFulltextIndexes(driver: Driver): Promise<string[]> {
   return rebuilt;
 }
 
-// Uniqueness constraints are backed by an index of the same name, so one
-// SHOW INDEXES covers both halves of SETUP_STATEMENTS.
+// uniqueness constraints share an index name, one show indexes covers both halves
 async function findMissingDdl(driver: Driver): Promise<string[]> {
   const result = await driver.executeQuery(
     `SHOW INDEXES YIELD name WHERE name IN $names RETURN name`,
@@ -121,7 +117,7 @@ const SETUP_STATEMENTS: string[] = [
   "CREATE INDEX memory_type IF NOT EXISTS FOR (m:Memory) ON (m.type)",
   "CREATE INDEX memory_status IF NOT EXISTS FOR (m:Memory) ON (m.status)",
   "CREATE INDEX memory_user_created IF NOT EXISTS FOR (m:Memory) ON (m.userId, m.createdAt)",
-  // 1536 dims = openai/text-embedding-3-small
+  // 1536 dimensions match the text embedding 3 small model
   `CREATE VECTOR INDEX memory_embedding IF NOT EXISTS
    FOR (m:Memory) ON (m.embedding)
    OPTIONS {indexConfig: {\`vector.dimensions\`: 1536, \`vector.similarity_function\`: 'cosine'}}`,
@@ -136,7 +132,7 @@ const SETUP_STATEMENTS: string[] = [
    FOR (m:Memory) ON (m.userId, m.status)`,
   `CREATE INDEX memory_user_status_created IF NOT EXISTS
    FOR (m:Memory) ON (m.userId, m.status, m.createdAt)`,
-  // entity identity is (userId, normalizedName) — type is not part of the key
+  // entity identity is userId plus normalizedName, type is not part of the key
   `CREATE CONSTRAINT entity_user_name IF NOT EXISTS
    FOR (e:Entity) REQUIRE (e.userId, e.normalizedName) IS UNIQUE`,
   `CREATE INDEX entity_user_id IF NOT EXISTS FOR (e:Entity) ON (e.userId)`,
@@ -164,8 +160,7 @@ const SETUP_STATEMENTS: string[] = [
   ...FULLTEXT_INDEXES.map(fulltextCreateCypher),
 ];
 
-// Every statement names the index or constraint it creates, so the names can be
-// derived instead of duplicated — a hand-kept list is exactly what drifts.
+// each statement names its ddl object so names are derived, not duplicated by hand
 const DDL_NAME_PATTERN = /(?:CONSTRAINT|INDEX)\s+(\w+)\s+IF NOT EXISTS/;
 
 function ddlName(statement: string): string {
@@ -186,7 +181,7 @@ export async function setupDatabase(driver: Driver): Promise<void> {
     }
     console.log("neo4j indexes and constraints ready");
   });
-  // the CREATE statements above are no-ops for an index that already exists
-  // under the wrong property set, so drift repair has to follow them
+  // create above is a no-op when an index exists under the wrong property set
+  // drift repair has to run after setup so widened specs actually take effect
   await repairDriftedFulltextIndexes(driver);
 }

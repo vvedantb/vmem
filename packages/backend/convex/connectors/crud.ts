@@ -60,7 +60,7 @@ const DEFAULT_CONNECTORS: DefaultConnector[] = [
     name: "GitHub",
     description: "Connect repositories, issues, and documentation from GitHub",
     icon: "IconBrandGithub",
-    // no provider — dedicated GitHub integration (githubConnections)
+    // no provider: dedicated github integration (githubConnections)
   },
 ];
 

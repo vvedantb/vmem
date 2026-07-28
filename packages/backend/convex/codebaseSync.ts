@@ -3,7 +3,7 @@ import { internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { codebaseSyncPool } from "./workpools";
 
-// Cron kickoff: enqueue one sync action per stale codebase (serial pool).
+// cron kickoff, enqueue one sync action per stale codebase (serial pool).
 export const kickoffDailyCodebaseSync = internalMutation({
   args: {},
   returns: v.null(),

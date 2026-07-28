@@ -17,8 +17,8 @@ interface WikiEditorProps {
   jumpRequest: { pos: number; n: number };
 }
 
-// routes to TipTap (documents) or the artifact source/preview editor — keeps
-// TipTap off the artifact path so it does not mount for code/html nodes
+// routes to TipTap (documents) or artifact source/preview editor.
+// keeps TipTap off the artifact path so code/html nodes do not mount it
 export default function WikiEditor({
   doc,
   titleForCopy,

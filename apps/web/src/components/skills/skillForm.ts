@@ -2,7 +2,7 @@ import type { FieldErrors } from "react-hook-form";
 import { z } from "zod";
 import { toast } from "sonner";
 
-// shared create/edit skill fields — name + instructions required (trimmed)
+// shared create/edit skill fields name + instructions required (trimmed)
 export const skillFormSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
   description: z.string(),
@@ -59,7 +59,7 @@ export function systemSkillFormValuesFrom(fields: {
   };
 }
 
-// preserve toast validation UX from the pre-RHF dialogs
+// preserve toast validation UX from the pre RHF dialogs
 export function toastSkillFormErrors(
   errors: FieldErrors<SkillFormValues | SystemSkillFormValues>,
 ): void {
