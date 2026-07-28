@@ -39,6 +39,8 @@ const SETTING_DEFAULTS: CachedSettings = {
 
 let initialized = false;
 
+// AI-generated (Claude), prompt: "chatgpt claude auto search panel and send time context inject"
+// Modified by me: dedupe capture and skip when context already prefixed
 export function setupAIChatIntegration(config: AIChatConfig): void {
   if (initialized) return;
   initialized = true;

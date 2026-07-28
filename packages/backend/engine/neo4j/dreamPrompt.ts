@@ -52,6 +52,8 @@ export function filterValidIds(
   });
 }
 
+// AI-generated (Claude), prompt: "build and parse dream synthesis llm prompts that emit insight connection skip and confidence adjustments"
+// Modified by me: narrowed schemas and id filtering against cluster membership
 export function buildDreamSynthesisPrompt(
   cluster: DreamClusterMember[],
 ): string {

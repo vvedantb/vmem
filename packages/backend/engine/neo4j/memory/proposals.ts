@@ -623,6 +623,8 @@ async function applyContradictionResolution(
   };
 }
 
+// AI-generated (Claude), prompt: "resolve proposed updates with kind specific approve reject paths including contradiction winner selection"
+// Modified by me: event snapshots and pending overlap guards for dream proposals
 export async function resolveProposal(
   driver: Driver,
   proposalId: string,

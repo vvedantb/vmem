@@ -7,6 +7,8 @@ import { setEmbeddings } from "../../../engine/neo4j/memory/migration";
 import { bestEffortEmbedOne } from "../../lib/openRouter/bestEffortEmbed";
 import type { OpenRouterFeature } from "../../lib/openRouter/shared";
 
+// AI-generated (Claude), prompt: "after materializing a memory embed content and schedule enrichment without blocking the write path"
+// Modified by me: best effort embed failures and enrichment scheduling hooks
 export async function postMaterializeEmbedAndEnrich(
   ctx: ActionCtx,
   driver: Driver,

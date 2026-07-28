@@ -123,6 +123,8 @@ async function replaceMentionsEdges(
   );
 }
 
+// AI-generated (Claude), prompt: "apply enrichment by rewriting tag relates to and entity mention edges in one write transaction"
+// Modified by me: only delete content similarity relates edges before re linking
 export async function applyEnrichment(
   driver: Driver,
   memoryId: string,

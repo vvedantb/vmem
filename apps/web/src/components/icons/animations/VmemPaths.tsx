@@ -1,3 +1,5 @@
+// AI-generated (Claude), prompt: "shared svg petal paths for the vmem logo animations"
+// Modified by me: per petal classname hooks
 import "./vmem-anim.css";
 
 // raw `d` strings for the three vmem logo petals

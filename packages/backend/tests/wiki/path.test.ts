@@ -1,3 +1,5 @@
+// AI-generated (Claude), prompt: "unit tests for wiki folder path normalize and resolve"
+// Modified by me: resolved nested slash paths against folder fixtures
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import type { Id } from "../../convex/_generated/dataModel";

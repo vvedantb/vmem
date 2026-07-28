@@ -60,6 +60,8 @@ function unauthorized(message: string, resourceMetadataUrl: string): Response {
   });
 }
 
+// AI-generated (Claude), prompt: "serve mcp over http with clerk bearer auth and oauth protected resource metadata for personal and team scopes"
+// Modified by me: unauthorized www authenticate headers and stateless method restrictions
 async function runMcpEndpoint(
   ctx: ActionCtx,
   request: Request,

@@ -1,3 +1,5 @@
+// AI-generated (Claude), prompt: "convex auth isolation tests for skills list create and update"
+// Modified by me: kept the vite client reference at the top
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
 import { describe, expect, it } from "vitest";

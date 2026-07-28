@@ -1,3 +1,5 @@
+// AI-generated (Claude), prompt: "unit tests for url normalize tracking param strip and casing"
+// Modified by me: removed fragments and trailing path slashes
 import { describe, expect, it } from "vitest";
 import { normalizeUrl } from "../../engine/neo4j/url";
 

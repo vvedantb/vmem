@@ -12,6 +12,8 @@ export interface ImportResult {
 }
 
 // shared import loop keeps bookmark and history progress behavior identical
+// AI-generated (Claude), prompt: "locked cancelable import loop with per item delay"
+// Modified by me: progress messages and timestamp only when not cancelled
 export async function runLockedImportLoop<T>(options: {
   acquireLock: () => boolean;
   releaseLock: () => void;

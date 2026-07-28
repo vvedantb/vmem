@@ -44,6 +44,8 @@ export interface CreateWithDedupParams {
   embed: () => Promise<number[] | null>;
 }
 
+// AI-generated (Claude), prompt: "create memories with ordered dedup short circuits across external id url title origin content hash and semantic similarity"
+// Modified by me: browser source origin rule and 0.95 semantic threshold
 export async function resolveCreateWithDedup(
   driver: Driver,
   params: CreateWithDedupParams,

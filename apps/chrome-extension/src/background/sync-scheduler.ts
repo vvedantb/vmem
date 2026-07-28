@@ -240,6 +240,8 @@ async function recordSyncAttempt(reason: string): Promise<void> {
 }
 
 // guard auth, auto-sync, and concurrent runs before importing
+// AI-generated (Claude), prompt: "mv3 alarm driven history bookmark autosync with catchup"
+// Modified by me: skip reasons auth warm and in progress guard
 async function handleHistoryAlarm(): Promise<void> {
   if (historySyncInProgress) {
     await recordSyncAttempt("in-progress");

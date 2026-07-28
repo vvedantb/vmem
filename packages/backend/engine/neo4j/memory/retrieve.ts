@@ -344,6 +344,8 @@ async function runEntityLeg(
   }));
 }
 
+// AI-generated (Claude), prompt: "expand top retrieval seeds via relates to and shared entity paths with hop and seed aggregation"
+// Modified by me: capped expansion and preferred bridging entity when hops tie
 async function expandViaGraph(
   driver: Driver,
   seedIds: string[],
@@ -528,6 +530,8 @@ function hasStrongDirectMatch(entry: MergedEntry): boolean {
   );
 }
 
+// AI-generated (Claude), prompt: "score merged retrieval candidates with weighted rrf then boost only strong direct matches by recency and confidence"
+// Modified by me: adjusted signal thresholds and reason strings for product traces
 function scoreEntry(
   entry: MergedEntry,
   queryEmbedding: number[] | null,
@@ -689,6 +693,8 @@ function cosineSimilarity(a: number[] | null, b: number[] | null): number {
   return dot / (Math.sqrt(aMagnitude) * Math.sqrt(bMagnitude));
 }
 
+// AI-generated (Claude), prompt: "suppress near duplicate retrieval hits by embedding cosine while preserving deferred lower ranked copies"
+// Modified by me: set 0.92 threshold after eval sweeps
 function applyDedup(
   scored: ScoredEntry[],
   queryEmbedding: number[] | null,
@@ -760,6 +766,8 @@ async function applyReranker(
   ];
 }
 
+// AI-generated (Claude), prompt: "implement hybrid memory retrieval with weighted rrf fusion across fulltext vector chunk entity and graph legs"
+// Modified by me: tuned leg weights thresholds and feature flags for query expansion and rerank
 export async function retrieveMemories(
   driver: Driver,
   params: RetrieveParams,

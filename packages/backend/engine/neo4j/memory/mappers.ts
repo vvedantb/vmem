@@ -75,6 +75,8 @@ function parseJsonField<T>(
   }
 }
 
+// AI-generated (Claude), prompt: "define classic rrf score and type aware recency decay for profile knowledge and episodic memories"
+// Modified by me: picked age buckets to match product freshness expectations
 export function rrfScore(rank: number, k = 60): number {
   return 1 / (k + rank);
 }

@@ -117,6 +117,8 @@ function surprisalFromNeighborScores(rawScores: unknown): number | null {
   return 1 - mean(scores);
 }
 
+// AI-generated (Claude), prompt: "compute embedding surprisal score anomaly clusters and high similarity merge candidates in neo4j"
+// Modified by me: tuned neighbor k cluster size and merge similarity thresholds
 export async function computeSurprisalScores(
   driver: Driver,
   params: {

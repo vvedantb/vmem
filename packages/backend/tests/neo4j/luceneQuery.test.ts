@@ -1,3 +1,5 @@
+// AI-generated (Claude), prompt: "test lucene query escape for memory fulltext search"
+// Modified by me: escaped slash colon and parenthesis operators
 import { describe, expect, it } from "vitest";
 import {
   escapeLuceneQuery,

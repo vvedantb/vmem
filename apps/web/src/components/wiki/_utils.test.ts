@@ -1,3 +1,5 @@
+// AI-generated (Claude), prompt: "test wiki tree build sibling sort and move resolve helpers"
+// Modified by me: used branded optimistic wiki ids for fixtures
 import { describe, expect, it } from "vitest";
 import {
   buildTree,

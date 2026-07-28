@@ -1,3 +1,5 @@
+// AI-generated (Claude), prompt: "test content hash ignores whitespace and casing"
+// Modified by me: asserted stable 32 char hex digests
 import { describe, expect, it } from "vitest";
 import { computeContentHash } from "../../engine/neo4j/memory/mappers";
 

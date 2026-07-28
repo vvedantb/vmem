@@ -1,3 +1,5 @@
+// AI-generated (Claude), prompt: "swinging bell icon for empty notification states"
+// Modified by me: muted color and swing amplitude
 // animated bell icon with swing animation for empty notification state
 
 import { motion } from "motion/react";

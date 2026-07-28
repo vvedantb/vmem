@@ -1,3 +1,5 @@
+// AI-generated (Claude), prompt: "vmem logo that draws in on mount with stroke animation"
+// Modified by me: replay cleanup when draw in finishes
 import { cn } from "@vmem/ui";
 import { VmemPaths } from "./VmemPaths";
 

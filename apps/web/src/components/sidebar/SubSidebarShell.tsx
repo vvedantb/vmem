@@ -1,3 +1,5 @@
+// AI-generated (Claude), prompt: "slide fade enter exit for nested sidebar panels"
+// Modified by me: mobile padding and motion duration
 import type { ReactNode } from "react";
 import { motion } from "motion/react";
 import { cn, motionDuration, motionEase } from "@vmem/ui";

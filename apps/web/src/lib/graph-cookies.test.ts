@@ -1,3 +1,5 @@
+// AI-generated (Claude), prompt: "test graph settings cookie merge with defaults"
+// Modified by me: stubbed document cookie jar in beforeeach
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_GRAPH_SETTINGS } from "@/lib/graph/graph-types";
 import { getGraphSettings } from "./graph-cookies";

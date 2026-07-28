@@ -1,3 +1,5 @@
+// AI-generated (Claude), prompt: "validate embedding response items order indexes and dimensions"
+// Modified by me: threw on item count mismatch
 import { describe, expect, it } from "vitest";
 import { validateEmbeddingItems } from "../../engine/llm/embeddingResponse";
 

@@ -1,3 +1,5 @@
+// AI-generated (Claude), prompt: "key icon with sparkle particles for empty api keys"
+// Modified by me: sparkle positions and timing
 // animated key/bolt icon with sparkle effects for empty API keys state
 
 import { motion } from "motion/react";
