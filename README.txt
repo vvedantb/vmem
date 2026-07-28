@@ -7,22 +7,18 @@ Student Number: 220057806
 FOR MARKERS (read this first)
 ========================================================================
 
-Hosted product (preferred for marking):
-  https://vmem-staging.vedantb.com/
-
-Source repository:
-  https://github.com/vvedantb/vmem
-
-This ZIP contains the source needed to run vmem locally. Secrets (.env.local)
-are NOT included. Use the hosted URL above unless you need a full local stack
-(Convex + Neo4j + Clerk).
-
-Quick test on the hosted site:
+Quick test (no local setup needed):
   1. Open https://vmem-staging.vedantb.com/
   2. Sign in with Clerk (create an account if needed)
   3. Open a profile workspace
   4. Add a memory (list or graph view) and confirm it appears
   5. Optional: open Settings and review API keys / connectors
+
+Source repository: https://github.com/vvedantb/vmem
+
+This ZIP contains the source needed to run vmem locally. Secrets (.env.local)
+are NOT included. Use the hosted URL above unless you need a full local stack
+(Convex + Neo4j + Clerk) — see INSTALL AND RUN LOCALLY below.
 
 ========================================================================
 ZIP FOLDER STRUCTURE
@@ -157,8 +153,7 @@ Data and ingest
   - Files — Convex storage + web explorer
   - Codebases — GitHub OAuth, symbol parse, daily sync 04:00 UTC (Workpool)
   - Connectors — Google Drive and Notion (daily cron via Workpool)
-  - Skills — personal + system Skills Hub catalogue
-  - Wiki — TipTap markdown tree + versions
+  - Skills / Wiki — personal skills catalogue; TipTap markdown wiki + versions
   - Import — ChatGPT and Claude conversation exports
 
 Chrome extension
@@ -177,14 +172,14 @@ INSTALL AND RUN LOCALLY
 ========================================================================
 
 Prerequisites: Node 20+, pnpm 10.15.1, a Convex project, Neo4j, Clerk app.
+Fill in env values first — see ENVIRONMENT below.
 
-  git clone https://github.com/vvedantb/vmem.git
-  cd vmem
-  pnpm install
-  cp apps/web/.env.example apps/web/.env.local
-  cp packages/backend/.env.example packages/backend/.env.local
-  pnpm convex    # Convex dev (packages/backend)
-  pnpm dev       # Web — http://localhost:5173
+  1. git clone https://github.com/vvedantb/vmem.git && cd vmem
+  2. pnpm install
+  3. cp apps/web/.env.example apps/web/.env.local
+     cp packages/backend/.env.example packages/backend/.env.local
+  4. pnpm convex    (Convex dev server)
+  5. pnpm dev       (web app -> http://localhost:5173)
 
 Other commands:
 

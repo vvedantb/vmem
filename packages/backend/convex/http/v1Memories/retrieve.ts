@@ -22,17 +22,33 @@ async function runRetrieveHandler(
     return forbidden;
   }
 
-  const memories = await ctx.runAction(
-    internal.neo4jActions.memories.retrieveMemoriesInternal,
-    {
-      clerkId: auth.clerkId,
-      profileId: body.profileId,
-      query: body.query,
-      type: body.type,
-      tags: body.tags,
-      limit: body.limit ?? 10,
-    },
-  );
+  const retrieveArgs = {
+    clerkId: auth.clerkId,
+    query: body.query,
+    type: body.type,
+    tags: body.tags,
+    limit: body.limit ?? 10,
+  };
+
+  // A team profile retrieves across every member's memories in it. Access is
+  // already asserted above, so the profile id alone is the scope.
+  const graphScope =
+    body.profileId === undefined
+      ? "personal"
+      : await ctx.runQuery(internal.profiles.getProfileScopeInternal, {
+          profileId: body.profileId,
+        });
+
+  const memories =
+    graphScope === "team" && body.profileId !== undefined
+      ? await ctx.runAction(
+          internal.neo4jActions.memories.retrieveMemoriesForTeamInternal,
+          { ...retrieveArgs, profileId: body.profileId },
+        )
+      : await ctx.runAction(
+          internal.neo4jActions.memories.retrieveMemoriesInternal,
+          { ...retrieveArgs, profileId: body.profileId },
+        );
 
   const userContext = await ctx.runQuery(
     internal.userSettings.getUserContextInternal,

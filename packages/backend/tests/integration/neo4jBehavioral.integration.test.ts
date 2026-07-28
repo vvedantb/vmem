@@ -64,7 +64,7 @@ async function getContent(
 
 async function retrieve(driver: Driver, query: string) {
   return retrieveMemories(driver, {
-    userId: USER,
+    scope: { kind: "personal", userId: USER },
     query,
     queryEmbedding: null,
     limit: 10,
@@ -85,6 +85,7 @@ async function create(
   const created = await createMemory(driver, {
     userId: USER,
     profileId: PROFILE,
+    graphScope: "personal",
     title: opts.title,
     content: opts.content,
     type: "knowledge",
@@ -397,7 +398,11 @@ describe.skipIf(!runLive)("vmem behavioural suite (live Neo4j)", () => {
       { sourceId, targetId, userId: USER },
     );
 
-    const globalGraph = await getGraphData(driver, USER, PROFILE, 10);
+    const globalGraph = await getGraphData(
+      driver,
+      { kind: "personal", userId: USER, profileId: PROFILE },
+      10,
+    );
     const globalEdge = globalGraph.relatesToEdges.find(
       (edge) => edge.source === sourceId && edge.target === targetId,
     );
@@ -407,7 +412,11 @@ describe.skipIf(!runLive)("vmem behavioural suite (live Neo4j)", () => {
       reason: "test score",
     });
 
-    const localGraph = await getLocalGraph(driver, USER, sourceId, PROFILE);
+    const localGraph = await getLocalGraph(
+      driver,
+      { kind: "personal", userId: USER, profileId: PROFILE },
+      sourceId,
+    );
     const localEdge = localGraph.relatesToEdges.find(
       (edge) => edge.source === sourceId && edge.target === targetId,
     );

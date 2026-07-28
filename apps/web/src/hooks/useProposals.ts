@@ -9,7 +9,7 @@ export {
   proposalApproveToast,
 } from "@/components/proposals/_proposalUtils";
 
-// pending proposals + approve/reject (tanstack cache)
+// pending proposals plus approve and reject
 export function useProposals() {
   const { isAuthenticated } = useConvexAuth();
   const activeProfileId = useActiveProfileId();
@@ -32,14 +32,16 @@ export function useProposals() {
       action: "approve" | "reject";
       winnerMemoryId?: string;
     }) => {
+      // pass the profile so team approvals can find owner attributed memories
       return await resolveAction({
         proposalId: input.proposalId,
         action: input.action,
         winnerMemoryId: input.winnerMemoryId,
+        profileId: activeProfileId,
       });
     },
     onSuccess: () => {
-      // approving a delete proposal hard-deletes the underlying memory, so we invalidate
+      // delete approval removes the memory, so refresh both lists
       void queryClient.invalidateQueries({ queryKey: ["proposals"] });
       void queryClient.invalidateQueries({ queryKey: ["memories"] });
     },

@@ -6,7 +6,7 @@ import type { MemoryWithTags } from "../../../engine/neo4j/memory/types";
 import { getDriver } from "../../../engine/neo4j/driver";
 import { bestEffortEmbedOne } from "../../lib/openRouter/bestEffortEmbed";
 import type { CreateMemoryInternalArgs } from "../../memoryApi/validators";
-import { resolveProfileIdForClerkId, toMemoryType } from "./shared";
+import { resolveProfileScopeForClerkId, toMemoryType } from "./shared";
 import { scheduleAfterMemoryMutation } from "./lifecycle";
 
 export async function runCreateMemory(
@@ -14,7 +14,7 @@ export async function runCreateMemory(
   args: CreateMemoryInternalArgs,
 ): Promise<MemoryWithTags> {
   const driver = getDriver();
-  const profileId = await resolveProfileIdForClerkId(
+  const { profileId, graphScope } = await resolveProfileScopeForClerkId(
     ctx,
     args.clerkId,
     args.profileId,
@@ -23,6 +23,7 @@ export async function runCreateMemory(
   const { memory, created } = await resolveCreateWithDedup(driver, {
     userId: args.clerkId,
     profileId,
+    graphScope,
     title: args.title,
     content: args.content,
     type: toMemoryType(args.type) ?? "knowledge",
@@ -79,7 +80,9 @@ export async function runCreateMemory(
           profileId,
         }
       : undefined,
-    checkDream: args.source !== "dream-mode",
+    // The dynamic memory-count dream trigger only ever scans the creator's
+    // personal profiles, so bumping it on team writes is wasted work.
+    checkDream: args.source !== "dream-mode" && graphScope !== "team",
   });
 
   return memory;

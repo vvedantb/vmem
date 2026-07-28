@@ -101,6 +101,17 @@ export const teamSearchMemoriesFields = {
   ...paginationFields,
 };
 
+// clerkId is the calling member: OpenRouter auth and attribution only, never
+// a filter — the team profile alone scopes the retrieval.
+export const teamRetrieveMemoriesFields = {
+  clerkId: v.string(),
+  profileId: v.string(),
+  query: v.string(),
+  type: v.optional(v.string()),
+  tags: v.optional(v.array(v.string())),
+  limit: v.number(),
+};
+
 export const createMemoryInternalArgs = v.object(createMemoryInternalFields);
 export type CreateMemoryInternalArgs = Infer<typeof createMemoryInternalArgs>;
 

@@ -37,6 +37,7 @@ import {
 } from "../../../engine/neo4j/dreamPrompt";
 import { tryOpenRouterAuth, type AgentAuth } from "../agent/shared";
 import type { DreamDepth } from "../../lib/dreamTriggerDecision";
+import type { DreamScope } from "../../../engine/neo4j/memory/scope";
 
 const DEFAULT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
@@ -116,6 +117,10 @@ type DreamPassBase = {
   auth: AgentAuth;
   clerkId: string;
   profileId: Id<"profiles">;
+  // team-vs-personal read/write scope for the engine calls below. userId is
+  // always args.clerkId — for team profiles that's already the team owner's
+  // clerkId, resolved upstream in entryPoints.ts before this action runs.
+  scope: DreamScope;
   result: DreamRunResult;
 };
 
@@ -154,12 +159,12 @@ type SynthesisProposalKind =
 
 async function isOverlappingPendingProposal(
   driver: ReturnType<typeof getDriver>,
-  clerkId: string,
+  scope: DreamScope,
   sourceMemoryIds: string[],
   logLabel?: string,
 ): Promise<boolean> {
   const overlaps = await hasOverlappingPendingProposal(driver, {
-    userId: clerkId,
+    scope,
     sourceMemoryIds,
     overlapThreshold: DEDUP_OVERLAP_THRESHOLD,
   });
@@ -174,7 +179,7 @@ async function isOverlappingPendingProposal(
 async function fileDreamProposal(
   ctx: ActionCtx,
   driver: ReturnType<typeof getDriver>,
-  clerkId: string,
+  scope: DreamScope,
   result: DreamRunResult,
   proposal: {
     kind: SynthesisProposalKind;
@@ -186,7 +191,7 @@ async function fileDreamProposal(
   },
 ): Promise<void> {
   const created = await createSynthesisProposal(driver, {
-    userId: clerkId,
+    scope,
     kind: proposal.kind,
     proposedTitle: proposal.title,
     proposedContent: proposal.content,
@@ -197,7 +202,7 @@ async function fileDreamProposal(
   result.proposalsCreated += 1;
 
   await ctx.runMutation(internal.memoryEvents.pushEventInternal, {
-    clerkId,
+    clerkId: scope.userId,
     eventType: "dream_synthesis_proposed",
     memoryId: created.id,
     payload: JSON.stringify({
@@ -217,6 +222,7 @@ async function runAnomalySynthesisPass(
     auth,
     clerkId,
     profileId,
+    scope,
     result,
     autoAccept,
     topAnomalies,
@@ -225,7 +231,7 @@ async function runAnomalySynthesisPass(
   for (const anomaly of topAnomalies) {
     try {
       const cluster = await fetchAnomalyCluster(driver, {
-        userId: clerkId,
+        scope,
         anomalyId: anomaly.id,
         embedding: anomaly.embedding,
         maxClusterSize: MAX_CLUSTER_SIZE,
@@ -245,7 +251,7 @@ async function runAnomalySynthesisPass(
 
       if (synthesis.confidenceAdjustments.length > 0) {
         result.reweighted += await applyConfidenceAdjustments(driver, {
-          userId: clerkId,
+          scope,
           adjustments: synthesis.confidenceAdjustments,
           maxDelta: REWEIGHT_MAX_DELTA,
         });
@@ -258,7 +264,7 @@ async function runAnomalySynthesisPass(
       if (
         await isOverlappingPendingProposal(
           driver,
-          clerkId,
+          scope,
           synthesis.sourceMemoryIds,
           synthesis.title,
         )
@@ -293,6 +299,7 @@ async function runAnomalySynthesisPass(
         const { id: newMemoryId } = await materializeSynthesisAsMemory(driver, {
           userId: clerkId,
           profileId,
+          graphScope: scope.kind,
           title: synthesis.title,
           content: synthesis.content,
           embedding,
@@ -325,7 +332,7 @@ async function runAnomalySynthesisPass(
           }),
         });
       } else {
-        await fileDreamProposal(ctx, driver, clerkId, result, {
+        await fileDreamProposal(ctx, driver, scope, result, {
           kind: synthesis.type,
           title: synthesis.title,
           content: synthesis.content,
@@ -346,21 +353,12 @@ async function runMergePass(
     mergeClusters: number;
   },
 ): Promise<void> {
-  const {
-    ctx,
-    driver,
-    auth,
-    clerkId,
-    profileId,
-    result,
-    recent,
-    mergeClusters,
-  } = pass;
+  const { ctx, driver, auth, profileId, scope, result, recent, mergeClusters } =
+    pass;
 
   try {
     const mergeCandidates = await findMergeCandidates(driver, {
-      userId: clerkId,
-      profileId,
+      scope,
       pool: recent,
       simThreshold: MERGE_SIM_THRESHOLD,
       maxClusters: mergeClusters,
@@ -386,16 +384,12 @@ async function runMergePass(
       if (merge.confidence < CONFIDENCE_FLOOR) continue;
 
       if (
-        await isOverlappingPendingProposal(
-          driver,
-          clerkId,
-          merge.sourceMemoryIds,
-        )
+        await isOverlappingPendingProposal(driver, scope, merge.sourceMemoryIds)
       ) {
         continue;
       }
 
-      await fileDreamProposal(ctx, driver, clerkId, result, {
+      await fileDreamProposal(ctx, driver, scope, result, {
         kind: "merge",
         title: merge.title,
         content: merge.content,
@@ -413,7 +407,8 @@ async function runMergePass(
 async function maybeRefreshDreamPortrait(
   pass: DreamPassBase & { profile: Doc<"profiles"> },
 ): Promise<void> {
-  const { ctx, driver, auth, clerkId, profileId, result, profile } = pass;
+  const { ctx, driver, auth, clerkId, profileId, scope, result, profile } =
+    pass;
 
   try {
     const producedOutput =
@@ -427,8 +422,7 @@ async function maybeRefreshDreamPortrait(
     if (!producedOutput && !portraitStale) return;
 
     const evidence = await fetchPortraitEvidence(driver, {
-      userId: clerkId,
-      profileId,
+      scope,
       limit: PORTRAIT_EVIDENCE_LIMIT,
     });
     if (evidence.length === 0) return;
@@ -499,12 +493,21 @@ export const runDreamForProfileInternal = internalAction({
 
     const driver = getDriver();
     const result = emptyDreamResult("ok");
+    // Team dream passes read across every member's memories in the profile;
+    // args.clerkId is already the team owner's clerkId for team profiles
+    // (resolved upstream in entryPoints.ts), so it doubles as scope.userId.
+    const scope: DreamScope = {
+      kind: profile.teamId !== undefined ? "team" : "personal",
+      userId: args.clerkId,
+      profileId: args.profileId,
+    };
     const passBase: DreamPassBase = {
       ctx,
       driver,
       auth,
       clerkId: args.clerkId,
       profileId: args.profileId,
+      scope,
       result,
     };
 
@@ -514,8 +517,7 @@ export const runDreamForProfileInternal = internalAction({
       now - MAX_WINDOW_MS,
     );
     const recent = await findRecentMemoriesForDream(driver, {
-      userId: args.clerkId,
-      profileId: args.profileId,
+      scope,
       sinceMs,
       limit: RECENT_MEMORY_LIMIT,
     });
@@ -529,7 +531,7 @@ export const runDreamForProfileInternal = internalAction({
     }
 
     const scored = await computeSurprisalScores(driver, {
-      userId: args.clerkId,
+      scope,
       memories: recent,
       k: SURPRISAL_NEIGHBORS,
     });

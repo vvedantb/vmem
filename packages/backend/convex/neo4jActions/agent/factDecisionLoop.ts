@@ -2,6 +2,10 @@
 
 import type { ActionCtx } from "../../_generated/server";
 import { retrieveMemories } from "../../../engine/neo4j/memory/retrieve";
+import type {
+  MemoryReadScope,
+  ScopeKind,
+} from "../../../engine/neo4j/memory/scope";
 import { getDriver } from "../../../engine/neo4j/driver";
 import { bestEffortEmbedOneWithAuth } from "../../lib/openRouter/bestEffortEmbed";
 import type { ExtractedFact, UpdateDecision } from "../../prompts/v2Prompt";
@@ -17,10 +21,33 @@ export interface FactDecisionLoopOptions {
   auth: AgentAuth;
   clerkId: string;
   profileId?: string;
+  // personal or team ownership of the profile being written to
+  graphScope?: ScopeKind;
   retrieveWithProfileId?: boolean;
   excludeMemoryIds?: string[];
   logPrefix: string;
   bestEffortPerFact?: boolean;
+}
+
+// team writes must read the whole shared profile or every member re adds the same fact
+// personal scope would also pull in the callers legacy memories with no profile
+export function retrievalScope(
+  opts: Pick<
+    FactDecisionLoopOptions,
+    "clerkId" | "profileId" | "graphScope" | "retrieveWithProfileId"
+  >,
+): MemoryReadScope {
+  if (opts.graphScope === "team" && opts.profileId !== undefined) {
+    return { kind: "team", profileId: opts.profileId };
+  }
+  if (opts.retrieveWithProfileId && opts.profileId !== undefined) {
+    return {
+      kind: "personal",
+      userId: opts.clerkId,
+      profileId: opts.profileId,
+    };
+  }
+  return { kind: "personal", userId: opts.clerkId };
 }
 
 export interface FactDecisionOutcome {
@@ -54,19 +81,12 @@ export async function runFactDecisionLoop(
         failureLog: `${opts.logPrefix} Fact embedding failed for "${fact.text.slice(0, 40)}..."`,
       });
 
-      const retrieveBase = {
-        userId: opts.clerkId,
+      const retrieved = await retrieveMemories(driver, {
+        scope: retrievalScope(opts),
         query: fact.text,
         queryEmbedding: factEmbedding,
         limit: RETRIEVAL_TOP_K,
-      };
-
-      const retrieveOpts =
-        opts.retrieveWithProfileId && opts.profileId !== undefined
-          ? { ...retrieveBase, profileId: opts.profileId }
-          : retrieveBase;
-
-      const retrieved = await retrieveMemories(driver, retrieveOpts);
+      });
 
       let filtered = retrieved;
       if (opts.excludeMemoryIds && opts.excludeMemoryIds.length > 0) {

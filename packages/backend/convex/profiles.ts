@@ -16,6 +16,7 @@ import {
   getActiveProfileForMcpScope,
   listProfilesByClerkIdAndScope,
   mcpScopeValidator,
+  resolveMcpMemoryScope,
   resolveProfileIdForMcpScope,
 } from "./profiles/mcpAccess";
 
@@ -78,6 +79,19 @@ export const getByIdInternal = internalQuery({
   },
 });
 
+// team-ness of a profile, resolved once at write time so the Neo4j engine
+// can scope RELATES_TO edge creation. No authz here — callers assert access.
+export const getProfileScopeInternal = internalQuery({
+  args: { profileId: v.string() },
+  returns: v.union(v.literal("personal"), v.literal("team")),
+  handler: async (ctx, args) => {
+    const id = ctx.db.normalizeId("profiles", args.profileId);
+    if (!id) return "personal";
+    const profile = await ctx.db.get(id);
+    return profile?.teamId !== undefined ? "team" : "personal";
+  },
+});
+
 // profile used for MCP memory tools when no profileId is passed
 export const getActiveProfileForMcpInternal = internalQuery({
   args: { clerkId: v.string() },
@@ -107,6 +121,20 @@ export const resolveProfileIdForMcpScopeInternal = internalQuery({
       args.scope,
       args.profileId,
     );
+  },
+});
+
+// MCP memory scope resolution: profileId plus whether it is a team profile.
+// Reuses resolveProfileIdForMcpScope's authz so membership checks cannot drift.
+export const resolveMcpMemoryScopeInternal = internalQuery({
+  args: {
+    clerkId: v.string(),
+    scope: mcpScopeValidator,
+    profileId: v.optional(v.string()),
+  },
+  returns: v.object({ profileId: v.string(), team: v.boolean() }),
+  handler: async (ctx, args) => {
+    return resolveMcpMemoryScope(ctx, args.clerkId, args.scope, args.profileId);
   },
 });
 

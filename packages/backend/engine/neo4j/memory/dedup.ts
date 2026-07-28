@@ -13,6 +13,7 @@ import {
 } from "./crud";
 import { computeContentHash } from "./mappers";
 import { withSession } from "../session";
+import type { ScopeKind } from "./scope";
 import type { MemoryType, MemoryWithTags } from "./types";
 
 const BROWSER_SOURCES: ReadonlySet<string> = new Set([
@@ -25,6 +26,7 @@ const SEMANTIC_DEDUP_THRESHOLD = 0.95;
 export interface CreateWithDedupParams {
   userId: string;
   profileId: string;
+  graphScope: ScopeKind;
   title: string;
   content: string;
   type: MemoryType;
@@ -114,6 +116,7 @@ export async function resolveCreateWithDedup(
   const memory = await createMemory(driver, {
     userId: params.userId,
     profileId: params.profileId,
+    graphScope: params.graphScope,
     title: params.title,
     content: params.content,
     type: params.type,

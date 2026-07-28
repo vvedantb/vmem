@@ -17,6 +17,17 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 
+// The root toolchain has no zod, so this is the boundary parser: same job as a
+// schema, and it keeps `JSON.parse` from leaking an unchecked value downstream.
+const baselineSchema = {
+  parse: (value) => {
+    if (!Array.isArray(value) || value.some((k) => typeof k !== "string")) {
+      throw new Error("baseline must be an array of strings");
+    }
+    return value;
+  },
+};
+
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const WEB = path.join(ROOT, "apps", "web");
 const BASELINE_PATH = path.join(
@@ -93,7 +104,7 @@ for (const file of walk(path.join(WEB, "src"))) {
   }
 }
 
-const keys = [...found.keys()].sort();
+const keys = [...found.keys()].sort((a, b) => a.localeCompare(b));
 
 if (UPDATE) {
   writeFileSync(BASELINE_PATH, JSON.stringify(keys, null, 2) + "\n");
@@ -103,7 +114,9 @@ if (UPDATE) {
 
 let baseline = [];
 try {
-  baseline = JSON.parse(readFileSync(BASELINE_PATH, "utf8"));
+  baseline = baselineSchema.parse(
+    JSON.parse(readFileSync(BASELINE_PATH, "utf8")),
+  );
 } catch {
   console.error(
     "compiler-check: no baseline found. Run `node scripts/compiler-check.mjs --update` first.",

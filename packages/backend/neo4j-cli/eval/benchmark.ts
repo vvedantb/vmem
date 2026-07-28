@@ -143,7 +143,7 @@ async function retrieveForConfig(
 }> {
   const start = performance.now();
   const candidates = await retrieveMemories(driver, {
-    userId: BENCH_USER_ID,
+    scope: { kind: "personal", userId: BENCH_USER_ID },
     query,
     queryEmbedding: embeddings.get(query) ?? null,
     limit: K,

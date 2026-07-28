@@ -7,6 +7,7 @@ import {
   runGetMemory,
   runListMemories,
   runRetrieveMemories,
+  runRetrieveMemoriesForTeam,
   runSearchMemories,
 } from "./_memories/read";
 import { runUpdateMemory } from "./_memories/update";
@@ -18,12 +19,13 @@ import {
   runSearchMemoriesForTeam,
 } from "./_memories/team";
 import { runCreateMemory } from "./_memories/create";
-import { resolveProfileIdForClerkId } from "./_memories/shared";
+import { resolveProfileScopeForClerkId } from "./_memories/shared";
 import {
   createMemoryInternalFields,
   listMemoriesFields,
   searchMemoriesFields,
   teamListMemoriesFields,
+  teamRetrieveMemoriesFields,
   teamSearchMemoriesFields,
   updateMemoryInternalFields,
 } from "../memoryApi/validators";
@@ -31,7 +33,7 @@ import {
 async function withResolvedProfileId<
   T extends { clerkId: string; profileId?: string },
 >(ctx: ActionCtx, args: T) {
-  const profileId = await resolveProfileIdForClerkId(
+  const { profileId } = await resolveProfileScopeForClerkId(
     ctx,
     args.clerkId,
     args.profileId,
@@ -119,6 +121,11 @@ export const retrieveMemoriesInternal = internalAction({
   },
   handler: async (ctx, args) =>
     runRetrieveMemories(ctx, await withResolvedProfileId(ctx, args)),
+});
+
+export const retrieveMemoriesForTeamInternal = internalAction({
+  args: teamRetrieveMemoriesFields,
+  handler: async (ctx, args) => runRetrieveMemoriesForTeam(ctx, args),
 });
 
 export const listMemoriesForTeamInternal = internalAction({

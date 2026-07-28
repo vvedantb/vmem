@@ -3,17 +3,27 @@
 
 # vmem
 
-**A model-agnostic memory layer for AI** — store, retrieve, update, and explain what an agent knows about a user across sessions, models, and tools.
+Model-agnostic memory layer for AI: store, retrieve, update, and explain what an agent knows about a user across sessions, models, and tools.
 
-Built as a Final Year Project at City, University of London by **Vedant Bhopatrao** (Student Number: 220057806). Live at [vmem-staging.vedantb.com](https://vmem-staging.vedantb.com). Source: [github.com/vvedantb/vmem](https://github.com/vvedantb/vmem).
+Final Year Project, City, University of London — **Vedant Bhopatrao** (220057806). Live: [vmem-staging.vedantb.com](https://vmem-staging.vedantb.com). Source: [github.com/vvedantb/vmem](https://github.com/vvedantb/vmem).
+
+## Quick start
+
+1. `git clone https://github.com/vvedantb/vmem.git && cd vmem`
+2. `pnpm install`
+3. `cp apps/web/.env.example apps/web/.env.local` and `cp packages/backend/.env.example packages/backend/.env.local`
+4. `pnpm convex` — starts Convex dev server
+5. `pnpm dev` — web app at http://localhost:5173
+
+Fill in env values first — see [Environment](#environment).
 
 ## The problem
 
-LLMs forget between sessions. Users repeat themselves, lose personalisation when switching models, and have little control over what gets remembered. Most memory products are proprietary and tied to one ecosystem.
+LLMs forget between sessions. Users repeat themselves, lose personalisation on model switches, and cannot control what gets remembered. Most memory products are proprietary, single-ecosystem.
 
 ## What vmem does
 
-vmem centralises user knowledge in a **Neo4j memory graph** with hybrid retrieval (fulltext + vectors + chunks + entities + graph expansion). Any client — web dashboard, Chrome extension, MCP host, or HTTP client — can read and write through **Convex**.
+Centralises user knowledge in a **Neo4j memory graph** with hybrid retrieval (fulltext + vectors + chunks + entities + graph expansion). Web, Chrome extension, MCP host, or HTTP client — all read/write through **Convex**.
 
 **Differentiators:**
 
@@ -118,11 +128,10 @@ Apps import only `@vmem/backend`, `@vmem/shared`, and `@vmem/ui` at public expor
 
 ### Data & ingest
 
-- **Files** — Convex storage + web explorer; indexable uploads become memories
-- **Codebases** — GitHub OAuth, symbol parsing, dependency graph, daily sync at 04:00 UTC (Workpool)
-- **Connectors** — Google Drive and Notion (batch ingest → memories; daily cron at 04:00 UTC via Workpool)
-- **Skills** — personal skills + system Skills Hub catalogue
-- **Wiki** — folder tree with TipTap markdown docs and version history
+- **Files** — Convex storage + web explorer; uploads become memories
+- **Codebases** — GitHub OAuth, symbol parsing, dependency graph, daily sync 04:00 UTC
+- **Connectors** — Google Drive, Notion (batch ingest, daily cron)
+- **Skills / Wiki** — personal skills catalogue; TipTap markdown wiki with version history
 - **Import** — ChatGPT and Claude conversation exports
 
 ### Chrome extension
@@ -140,17 +149,7 @@ Apps import only `@vmem/backend`, `@vmem/shared`, and `@vmem/ui` at public expor
 
 ## Run locally
 
-```bash
-git clone https://github.com/vvedantb/vmem.git
-cd vmem
-pnpm install
-cp apps/web/.env.example apps/web/.env.local
-cp packages/backend/.env.example packages/backend/.env.local
-pnpm convex   # Convex dev server (packages/backend)
-pnpm dev      # Web app — http://localhost:5173
-```
-
-**Other commands:**
+Steps above under [Quick start](#quick-start). Other commands:
 
 ```bash
 pnpm ext:dev         # Chrome extension WXT watch / HMR → dist/chrome-mv3-dev/

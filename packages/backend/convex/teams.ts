@@ -18,6 +18,7 @@ import {
 import {
   runAssertMemoryMutablePermissionInternal,
   runAssertProfileAccessInternal,
+  runGetOwnerUserIdInternal,
   runResolveMemoryScopeInternal,
 } from "./teams/auth";
 
@@ -95,7 +96,7 @@ export const assertProfileAccessInternal = internalQuery({
 export const resolveMemoryScopeInternal = internalQuery({
   args: {
     userId: v.id("users"),
-    profileId: v.optional(v.id("profiles")),
+    profileId: v.optional(v.string()),
   },
   handler: async (ctx, args) => runResolveMemoryScopeInternal(ctx, args),
 });
@@ -109,4 +110,10 @@ export const assertMemoryMutablePermissionInternal = internalQuery({
   },
   handler: async (ctx, args) =>
     runAssertMemoryMutablePermissionInternal(ctx, args),
+});
+
+// current owner (Convex userId) of a team, or null if no owner row exists
+export const getOwnerUserIdInternal = internalQuery({
+  args: { teamId: v.id("teams") },
+  handler: async (ctx, args) => runGetOwnerUserIdInternal(ctx, args),
 });

@@ -6,6 +6,7 @@ import { internal } from "./_generated/api";
 import { auditLog, ResourceTypes } from "./auditLog";
 import { getDriver } from "../engine/neo4j/driver";
 import { getMemory } from "../engine/neo4j/memory/crud";
+import { getMemoryForTeam } from "../engine/neo4j/memory/team";
 import {
   listProposedUpdates as listProposedUpdatesEngine,
   resolveProposal as resolveProposalEngine,
@@ -47,8 +48,10 @@ export const resolveProposal = authAction({
   args: {
     proposalId: v.string(),
     action: v.string(),
-    // contradiction proposals: memory id to keep
+    // contradiction proposals, memory id to keep
     winnerMemoryId: v.optional(v.string()),
+    // team proposals, shared profile so a nonowner can look up the memory
+    profileId: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<ResolveResult | null> => {
     const clerkId = await requireClerkId(ctx);
@@ -68,7 +71,19 @@ export const resolveProposal = authAction({
     if (result && result.status === "approved" && result.materializedMemoryId) {
       const materializedMemoryId = result.materializedMemoryId;
       try {
-        const detail = await getMemory(driver, clerkId, materializedMemoryId);
+        const { teamId } = await resolveAccessibleTeamScope(
+          ctx,
+          args.profileId,
+        );
+        // team derived memories belong to the owner, so nonowners need the profile lookup
+        const detail =
+          teamId !== undefined && args.profileId !== undefined
+            ? await getMemoryForTeam(
+                driver,
+                args.profileId,
+                materializedMemoryId,
+              )
+            : await getMemory(driver, clerkId, materializedMemoryId);
         if (detail) {
           await postMaterializeEmbedAndEnrich(ctx, driver, {
             clerkId,

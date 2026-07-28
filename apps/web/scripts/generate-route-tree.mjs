@@ -24,4 +24,4 @@ const config = getConfig(
 
 const generator = new Generator({ config, root: projectRoot });
 await generator.run();
-console.log("Regenerated", path.join(projectRoot, "src/routeTree.gen.ts"));
+console.info("Regenerated", path.join(projectRoot, "src/routeTree.gen.ts"));

@@ -3,7 +3,9 @@ import { z } from "zod";
 import { clampNeo4jLimit } from "../intParams";
 import { neo4jGet, parseNeo4jInt } from "../record";
 import { toMemoryTypeOrUndefined, toTagEdge } from "./mappers";
-import { profileFilter, visibleStatusClause } from "./shared";
+import { memoryScopeFilter } from "./scope";
+import type { MemoryReadScope } from "./scope";
+import { visibleStatusClause } from "./shared";
 import type { MemoryType, TagEdge } from "./types";
 
 const graphNodeRowSchema = z.object({
@@ -130,11 +132,9 @@ export interface GraphData {
 
 async function fetchGraphNodesAndEdges(
   driver: Driver,
-  userId: string,
-  profileId: string | null | undefined,
+  scope: MemoryReadScope,
   nodeLimit: number,
   cursor: GraphCursor | null,
-  strictProfile: boolean,
 ): Promise<{
   nodes: GraphNode[];
   relatesToEdges: RelatesToEdge[];
@@ -142,9 +142,9 @@ async function fetchGraphNodesAndEdges(
   totalMemoryCount: number | undefined;
   nextCursor: GraphCursor | undefined;
 }> {
-  const pf = profileFilter(profileId, "m", { strict: strictProfile });
-  const pfA = profileFilter(profileId, "a", { strict: strictProfile });
-  const pfB = profileFilter(profileId, "b", { strict: strictProfile });
+  const sf = memoryScopeFilter(scope, "m");
+  const sfA = memoryScopeFilter(scope, "a");
+  const sfB = memoryScopeFilter(scope, "b");
   const limit = Math.max(
     1,
     Math.min(
@@ -159,15 +159,15 @@ async function fetchGraphNodesAndEdges(
   const countLeg = cursor
     ? ""
     : `CALL () {
-         MATCH (m:Memory {userId: $userId})
-         WHERE ${visibleStatusClause("m")} ${pf.clause}
+         MATCH (m:Memory)
+         WHERE ${sf.clause} AND ${visibleStatusClause("m")}
          RETURN count(m) AS totalMemoryCount
        }`;
 
   const result = await driver.executeQuery(
     `CALL () {
-       MATCH (m:Memory {userId: $userId})
-       WHERE ${visibleStatusClause("m")} ${pf.clause}
+       MATCH (m:Memory)
+       WHERE ${sf.clause} AND ${visibleStatusClause("m")}
        ${cursorClause}
        WITH m ORDER BY m.createdAt DESC, m.id DESC LIMIT $nodeLimit
        OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
@@ -181,14 +181,12 @@ async function fetchGraphNodesAndEdges(
      }
      CALL (nodeIds) {
        MATCH (a:Memory)-[r:RELATES_TO]->(b:Memory)
-       WHERE a.id IN nodeIds AND b.userId = $userId
-         ${pfB.clause}
+       WHERE a.id IN nodeIds AND ${sfB.clause}
        RETURN collect({source: a.id, target: b.id, reason: r.reason, score: r.score}) AS outEdges
      }
      CALL (nodeIds) {
        MATCH (a:Memory)-[r:RELATES_TO]->(b:Memory)
-       WHERE b.id IN nodeIds AND a.userId = $userId
-         ${pfA.clause}
+       WHERE b.id IN nodeIds AND ${sfA.clause}
        RETURN collect({source: a.id, target: b.id, reason: r.reason, score: r.score}) AS inEdges
      }
      CALL (nodeIds) {
@@ -203,7 +201,6 @@ async function fetchGraphNodesAndEdges(
      ${countLeg}
      RETURN nodes, outEdges, inEdges, entities${cursor ? "" : ", totalMemoryCount"}`,
     {
-      userId,
       nodeLimit: clampNeo4jLimit(
         limit,
         GLOBAL_GRAPH_DEFAULT_LIMIT,
@@ -212,7 +209,9 @@ async function fetchGraphNodesAndEdges(
       ...(cursor
         ? { cursorCreatedAt: cursor.createdAt, cursorId: cursor.id }
         : {}),
-      ...pf.params,
+      ...sf.params,
+      ...sfA.params,
+      ...sfB.params,
     },
   );
 
@@ -249,14 +248,12 @@ async function fetchGraphNodesAndEdges(
 
 async function fetchTagSharedEdges(
   driver: Driver,
-  userId: string,
-  profileId: string | null | undefined,
-  strictProfile: boolean,
+  scope: MemoryReadScope,
 ): Promise<TagEdge[]> {
-  const pf = profileFilter(profileId, "m", { strict: strictProfile });
+  const sf = memoryScopeFilter(scope, "m");
   const result = await driver.executeQuery(
-    `MATCH (m:Memory {userId: $userId})-[:TAGGED_WITH]->(t:Tag)
-     WHERE ${visibleStatusClause("m")} ${pf.clause}
+    `MATCH (m:Memory)-[:TAGGED_WITH]->(t:Tag)
+     WHERE ${sf.clause} AND ${visibleStatusClause("m")}
      WITH t, collect(m) AS memsForTag, count(*) AS userTagCount
      WHERE userTagCount >= 2 AND userTagCount <= 500
      UNWIND memsForTag AS m1
@@ -269,7 +266,7 @@ async function fetchTagSharedEdges(
             sharedTagsAll[..5] AS sharedTags
      ORDER BY weight DESC
      LIMIT 5000`,
-    { userId, ...pf.params },
+    { ...sf.params },
   );
   return result.records.map(toTagEdge);
 }
@@ -278,23 +275,14 @@ async function fetchTagSharedEdges(
 // Modified by me: node limit defaults and cursor behavior for large graphs
 export async function getGraphData(
   driver: Driver,
-  userId: string,
-  profileId?: string | null,
+  scope: MemoryReadScope,
   nodeLimit: number = GLOBAL_GRAPH_MAX_NODES,
   cursor: GraphCursor | null = null,
-  strictProfile: boolean = false,
 ): Promise<GraphData> {
   const [nodesAndEdges, tagEdges] = await Promise.all([
-    fetchGraphNodesAndEdges(
-      driver,
-      userId,
-      profileId,
-      nodeLimit,
-      cursor,
-      strictProfile,
-    ),
+    fetchGraphNodesAndEdges(driver, scope, nodeLimit, cursor),
     cursor === null
-      ? fetchTagSharedEdges(driver, userId, profileId, strictProfile)
+      ? fetchTagSharedEdges(driver, scope)
       : Promise.resolve<TagEdge[]>([]),
   ]);
   return { ...nodesAndEdges, tagEdges };
@@ -302,13 +290,15 @@ export async function getGraphData(
 
 export async function getMemoryContent(
   driver: Driver,
-  userId: string,
+  scope: MemoryReadScope,
   memoryId: string,
 ): Promise<string> {
+  const sf = memoryScopeFilter(scope, "m");
   const result = await driver.executeQuery(
-    `MATCH (m:Memory {id: $memoryId, userId: $userId})
+    `MATCH (m:Memory {id: $memoryId})
+     WHERE ${sf.clause}
      RETURN m.content AS content`,
-    { userId, memoryId },
+    { memoryId, ...sf.params },
   );
   const first = result.records[0];
   if (!first) return "";
@@ -318,22 +308,20 @@ export async function getMemoryContent(
 
 export async function getLocalGraph(
   driver: Driver,
-  userId: string,
+  scope: MemoryReadScope,
   focusId: string | null,
-  profileId?: string | null,
   depth: number = 2,
-  strictProfile: boolean = false,
 ): Promise<GraphData> {
-  const pfFocus = profileFilter(profileId, "focus", { strict: strictProfile });
-  const pfB = profileFilter(profileId, "b", { strict: strictProfile });
+  const sfFocus = memoryScopeFilter(scope, "focus");
+  const sfB = memoryScopeFilter(scope, "b");
   const hops = Math.min(3, Math.max(1, Math.trunc(depth)));
 
   const focusMatch =
     focusId !== null
-      ? `MATCH (focus:Memory {id: $focusId, userId: $userId})
-         WHERE ${visibleStatusClause("focus")} ${pfFocus.clause}`
-      : `MATCH (focus:Memory {userId: $userId})
-         WHERE ${visibleStatusClause("focus")} ${pfFocus.clause}
+      ? `MATCH (focus:Memory {id: $focusId})
+         WHERE ${sfFocus.clause} AND ${visibleStatusClause("focus")}`
+      : `MATCH (focus:Memory)
+         WHERE ${sfFocus.clause} AND ${visibleStatusClause("focus")}
          WITH focus ORDER BY focus.createdAt DESC LIMIT 1`;
 
   const nodesResult = await driver.executeQuery(
@@ -342,8 +330,7 @@ export async function getLocalGraph(
        ((a:Memory WHERE ${visibleStatusClause("a")})
         -[:RELATES_TO]-
         (b:Memory WHERE ${visibleStatusClause("b")}
-           AND b.userId = $userId
-           ${pfB.clause})
+           AND ${sfB.clause})
        ){1,${hops}}
        (neighbor:Memory)
      WITH focus, collect(DISTINCT neighbor) AS neighbors
@@ -357,9 +344,9 @@ export async function getLocalGraph(
              type: m.type, sourceType: m.sourceType} AS node,
             focusId`,
     {
-      userId,
       ...(focusId !== null ? { focusId } : {}),
-      ...pfFocus.params,
+      ...sfFocus.params,
+      ...sfB.params,
     },
   );
 

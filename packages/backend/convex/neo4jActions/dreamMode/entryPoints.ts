@@ -145,9 +145,23 @@ export const runDreamForProfileById = internalAction({
       return emptyDreamResult("no-recent-memories");
     }
 
+    // Derived memories need a real clerkId owner, since clerkId-keyed
+    // subsystems (OpenRouter auth, memory events, embedding budgets) require
+    // one — team access itself is profileId-routed, so ownership does not
+    // gate reads. Resolve the CURRENT team owner, not the profile's creator
+    // (profile.userId), since ownership can change after team creation.
+    let ownerUserId = profile.userId;
+    if (profile.teamId !== undefined) {
+      const resolvedOwner = await ctx.runQuery(
+        internal.teams.getOwnerUserIdInternal,
+        { teamId: profile.teamId },
+      );
+      if (resolvedOwner !== null) ownerUserId = resolvedOwner;
+    }
+
     return runScheduledAndNotify(
       ctx,
-      profile.userId,
+      ownerUserId,
       `owner of ${args.profileId}`,
       (clerkId) =>
         ctx.runAction(

@@ -1,6 +1,7 @@
 import neo4j, { type Driver, type Session } from "neo4j-driver";
 import { firstNeo4jInt, neo4jString } from "../record";
 import { toMemoryWithTags } from "./mappers";
+import type { ScopeKind } from "./scope";
 import type { MemoryWithTags } from "./types";
 
 const SEMANTIC_EDGE_K = 20;
@@ -10,13 +11,17 @@ const SEMANTIC_EDGE_LIMIT = 5;
 export async function createSemanticSimilarityEdges(
   session: Session,
   memoryId: string,
-  userId: string,
+  scope: { graphScope: ScopeKind; userId: string; profileId: string },
   embedding: number[],
 ): Promise<number> {
+  const candidateClause =
+    scope.graphScope === "team"
+      ? "candidate.profileId = $profileId"
+      : "candidate.userId = $userId";
   const result = await session.run(
     `CALL db.index.vector.queryNodes('memory_embedding', $k, $embedding)
      YIELD node AS candidate, score AS similarity
-     WHERE candidate.userId = $userId
+     WHERE ${candidateClause}
        AND candidate.id <> $id
        AND similarity >= $threshold
      WITH candidate, similarity
@@ -29,7 +34,8 @@ export async function createSemanticSimilarityEdges(
     {
       k: neo4j.int(SEMANTIC_EDGE_K),
       embedding,
-      userId,
+      userId: scope.userId,
+      profileId: scope.profileId,
       id: memoryId,
       threshold: SEMANTIC_EDGE_THRESHOLD,
       limit: neo4j.int(SEMANTIC_EDGE_LIMIT),

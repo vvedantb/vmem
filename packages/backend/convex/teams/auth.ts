@@ -153,7 +153,7 @@ export async function runAssertProfileAccessInternal(
 
 interface ResolveMemoryScopeArgs {
   userId: Id<"users">;
-  profileId?: Id<"profiles">;
+  profileId?: string;
 }
 
 type MemoryScope =
@@ -176,7 +176,10 @@ export async function runResolveMemoryScopeInternal(
     return { kind: "personal", clerkId: user.clerkId };
   }
 
-  const profile = await ctx.db.get(args.profileId);
+  const profileId = ctx.db.normalizeId("profiles", args.profileId);
+  if (!profileId) throw new Error("Profile not found");
+
+  const profile = await ctx.db.get(profileId);
   if (!profile) throw new Error("Profile not found");
 
   if (profile.teamId) {
@@ -196,6 +199,23 @@ export async function runResolveMemoryScopeInternal(
     throw new Error("Profile not accessible");
   }
   return { kind: "personal", clerkId: user.clerkId };
+}
+
+interface GetOwnerUserIdArgs {
+  teamId: Id<"teams">;
+}
+
+// current owner of a team, or null if no owner row exists (e.g. team mid-transfer)
+export async function runGetOwnerUserIdInternal(
+  ctx: QueryCtx,
+  args: GetOwnerUserIdArgs,
+): Promise<Id<"users"> | null> {
+  const members = await ctx.db
+    .query("teamMembers")
+    .withIndex("by_team", (q) => q.eq("teamId", args.teamId))
+    .collect();
+  const owner = members.find((m) => m.role === "owner");
+  return owner?.userId ?? null;
 }
 
 interface AssertMemoryMutablePermissionArgs {

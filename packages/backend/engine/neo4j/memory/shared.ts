@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import type { Session } from "neo4j-driver";
+import type { ScopeKind } from "./scope";
 
 export async function logEvent(
   session: Session,
@@ -64,7 +65,15 @@ export function profileFilter(
   };
 }
 
-export const CREATE_DERIVED_MEMORY_CYPHER = `
+// Derived-memory source linking differs by scope: personal keeps the
+// historical userId match; team keys on profileId alone so DERIVED_FROM
+// edges reach every member's source memories, not just the owner's.
+export function createDerivedMemoryCypher(kind: ScopeKind): string {
+  const sourceMatch =
+    kind === "team"
+      ? "MATCH (src:Memory {id: sid, profileId: $profileId})"
+      : "MATCH (src:Memory {id: sid, userId: $userId})";
+  return `
   CREATE (m:Memory {
     id: $id,
     userId: $userId,
@@ -95,8 +104,9 @@ export const CREATE_DERIVED_MEMORY_CYPHER = `
   CREATE (m)-[:FROM_SOURCE]->(s)
   WITH m
   UNWIND $sourceMemoryIds AS sid
-  MATCH (src:Memory {id: sid, userId: $userId})
+  ${sourceMatch}
   MERGE (m)-[:DERIVED_FROM]->(src)`;
+}
 
 const VISIBLE_STATUS_LIST = "'active', 'pinned'";
 

@@ -68,10 +68,15 @@ export async function upsertFromSource(
     const wasCreated = Boolean(firstRecord.get("wasCreated"));
 
     if (wasCreated && params.embedding !== null) {
+      // Connector-synced memories are always personal — see params above.
       await createSemanticSimilarityEdges(
         session,
         memoryId,
-        params.userId,
+        {
+          graphScope: "personal",
+          userId: params.userId,
+          profileId: params.profileId,
+        },
         params.embedding,
       );
     }

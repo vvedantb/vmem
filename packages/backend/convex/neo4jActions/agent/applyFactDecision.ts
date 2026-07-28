@@ -6,17 +6,24 @@ import {
   createProposedDelete,
   createProposedUpdate,
 } from "../../../engine/neo4j/memory/proposals";
+import type { MemoryReadScope } from "../../../engine/neo4j/memory/scope";
+import { getMemoryForTeam } from "../../../engine/neo4j/memory/team";
 import type { ProposedUpdateNode } from "../../../engine/neo4j/memory/types";
 import type { UpdateDecision } from "../../prompts/v2Prompt";
 
+// same scope as retrieval, or teammate targets look missing and get dropped
+// personal stays by userId so legacy memories with no profile still resolve
 async function memoryExists(
   driver: Driver,
-  clerkId: string,
+  scope: MemoryReadScope,
   memoryId: string,
   eventLabel: "UPDATE" | "DELETE",
   logPrefix?: string,
 ): Promise<boolean> {
-  const target = await getMemory(driver, clerkId, memoryId);
+  const target =
+    scope.kind === "team"
+      ? await getMemoryForTeam(driver, scope.profileId, memoryId)
+      : await getMemory(driver, scope.userId, memoryId);
   if (target) return true;
   if (logPrefix) {
     console.warn(
@@ -29,7 +36,7 @@ async function memoryExists(
 export async function applyFactUpdateOrDelete(
   driver: Driver,
   params: {
-    clerkId: string;
+    scope: MemoryReadScope;
     factText: string;
     decision: UpdateDecision;
     buildUpdateReason: (args: {
@@ -45,7 +52,7 @@ export async function applyFactUpdateOrDelete(
   },
 ): Promise<"update" | "delete" | "none" | "missing-target"> {
   const {
-    clerkId,
+    scope,
     factText,
     decision,
     buildUpdateReason,
@@ -59,7 +66,7 @@ export async function applyFactUpdateOrDelete(
     const proposedContent = decision.text;
     if (!memoryId || !proposedContent) return "none";
 
-    if (!(await memoryExists(driver, clerkId, memoryId, "UPDATE", logPrefix))) {
+    if (!(await memoryExists(driver, scope, memoryId, "UPDATE", logPrefix))) {
       return "missing-target";
     }
 
@@ -76,7 +83,7 @@ export async function applyFactUpdateOrDelete(
     const memoryId = decision.id;
     if (!memoryId) return "none";
 
-    if (!(await memoryExists(driver, clerkId, memoryId, "DELETE", logPrefix))) {
+    if (!(await memoryExists(driver, scope, memoryId, "DELETE", logPrefix))) {
       return "missing-target";
     }
 

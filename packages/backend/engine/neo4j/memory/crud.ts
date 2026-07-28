@@ -6,6 +6,7 @@ import { firstNeo4jInt, neo4jGet, neo4jInt } from "../record";
 import { withSession } from "../session";
 import { toMemoryWithTags, toSnapshot } from "./mappers";
 import { createSemanticSimilarityEdges } from "./relationships";
+import type { ScopeKind } from "./scope";
 import { logEvent, visibleStatusClause } from "./shared";
 import { normalizeTags } from "./tagNormalize";
 import type { MemoryStatus, MemoryType, MemoryWithTags } from "./types";
@@ -185,6 +186,7 @@ export async function createMemory(
   params: {
     userId: string;
     profileId: string;
+    graphScope: ScopeKind;
     title: string;
     content: string;
     type: MemoryType;
@@ -286,14 +288,23 @@ export async function createMemory(
 
     if (!BATCH_SOURCES.has(params.source)) {
       const cutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+      // Same-user match always applies: cross-member writes within the window
+      // are not "one session". Team creates additionally confine the match to
+      // the profile, so a team memory cannot pick up a 'same session' edge to
+      // the creator's own personal memories written minutes earlier.
+      const m2Props =
+        params.graphScope === "team"
+          ? "{ userId: $userId, source: $source, profileId: $profileId }"
+          : "{ userId: $userId, source: $source }";
       await session.run(
-        `MATCH (m:Memory {id: $id}), (m2:Memory {userId: $userId, source: $source})
+        `MATCH (m:Memory {id: $id}), (m2:Memory ${m2Props})
          WHERE m2.id <> $id AND m2.createdAt > $cutoff
          MERGE (m2)-[r:RELATES_TO]->(m)
          ON CREATE SET r.reason = 'same session'`,
         {
           id,
           userId: params.userId,
+          profileId: params.profileId,
           source: params.source,
           cutoff,
         },
@@ -304,7 +315,11 @@ export async function createMemory(
       await createSemanticSimilarityEdges(
         session,
         id,
-        params.userId,
+        {
+          graphScope: params.graphScope,
+          userId: params.userId,
+          profileId: params.profileId,
+        },
         params.embedding,
       );
     }

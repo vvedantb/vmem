@@ -170,8 +170,8 @@ export async function getMemoryGraphForMcp(
   ctx: ActionCtx,
   args: GetMemoryGraphForMcpArgs,
 ): Promise<McpMemoryGraphResult> {
-  const profileId = await ctx.runQuery(
-    internal.profiles.resolveProfileIdForMcpScopeInternal,
+  const { profileId, team: teamProfile } = await ctx.runQuery(
+    internal.profiles.resolveMcpMemoryScopeInternal,
     {
       clerkId: args.clerkId,
       scope: args.mcpScope,
@@ -192,7 +192,7 @@ export async function getMemoryGraphForMcp(
     clerkId: args.clerkId,
     focus,
     profileId,
-    strictProfile: args.mcpScope === "team",
+    teamProfile,
     // plain global view gets sliced to `limit` below anyway — fetch only that many from Neo4j
     nodeLimit: isPlainGlobal ? limit : undefined,
   });

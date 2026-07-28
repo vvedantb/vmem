@@ -12,11 +12,35 @@ import type { PortraitEvidenceMemory } from "../portraitPrompt";
 import { neo4jGet, parseNeo4jNodeProps } from "../record";
 import { toSnapshot } from "./mappers";
 import { withSession } from "../session";
+import type { DreamScope, ScopeKind } from "./scope";
 import {
-  CREATE_DERIVED_MEMORY_CYPHER,
+  createDerivedMemoryCypher,
   logEvent,
   visibleStatusClause,
 } from "./shared";
+
+// Team dream passes read across every member's memories in the profile, so
+// ownership matching drops userId and keys on profileId alone — DreamScope's
+// userId is for writes/attribution only (see scope.ts). Personal branches
+// must stay byte-identical to the historical Cypher, so each read function
+// picks the right shape via these two helpers instead of a generic filter.
+function ownerMatchProps(scope: DreamScope, includeProfileId = false): string {
+  if (scope.kind === "team") return "profileId: $profileId";
+  return includeProfileId
+    ? "userId: $userId, profileId: $profileId"
+    : "userId: $userId";
+}
+
+function ownerWhereClause(
+  scope: DreamScope,
+  alias: string,
+  includeProfileId = false,
+): string {
+  if (scope.kind === "team") return `${alias}.profileId = $profileId`;
+  return includeProfileId
+    ? `${alias}.userId = $userId AND ${alias}.profileId = $profileId`
+    : `${alias}.userId = $userId`;
+}
 
 const dreamMemoryPropsSchema = z.object({
   id: z.string(),
@@ -45,8 +69,7 @@ function asNumberArray(value: unknown): number[] | null {
 export async function findRecentMemoriesForDream(
   driver: Driver,
   params: {
-    userId: string;
-    profileId: string;
+    scope: DreamScope;
     sinceMs: number;
     limit: number;
   },
@@ -61,7 +84,7 @@ export async function findRecentMemoriesForDream(
 > {
   const sinceIso = new Date(params.sinceMs).toISOString();
   const result = await driver.executeQuery(
-    `MATCH (m:Memory {userId: $userId, profileId: $profileId})
+    `MATCH (m:Memory {${ownerMatchProps(params.scope, true)}})
        WHERE m.embedding IS NOT NULL
          AND m.createdAt >= $sinceIso
          AND ${visibleStatusClause("m", false)}
@@ -70,8 +93,8 @@ export async function findRecentMemoriesForDream(
        ORDER BY m.createdAt DESC
        LIMIT $limit`,
     {
-      userId: params.userId,
-      profileId: params.profileId,
+      userId: params.scope.userId,
+      profileId: params.scope.profileId,
       sinceIso,
       limit: neo4j.int(params.limit),
     },
@@ -102,7 +125,7 @@ function surprisalFromNeighborScores(rawScores: unknown): number | null {
 export async function computeSurprisalScores(
   driver: Driver,
   params: {
-    userId: string;
+    scope: DreamScope;
     memories: Array<{ id: string; embedding: number[] | null | undefined }>;
     k: number;
   },
@@ -120,7 +143,7 @@ export async function computeSurprisalScores(
       const result = await session.run(
         `CALL db.index.vector.queryNodes('memory_embedding', $k, $embedding)
          YIELD node, score
-         WHERE node.userId = $userId
+         WHERE ${ownerWhereClause(params.scope, "node")}
            AND node.id <> $memoryId
            AND ${visibleStatusClause("node", false)}
          WITH score
@@ -131,7 +154,8 @@ export async function computeSurprisalScores(
           k: neo4j.int(params.k + 5),
           kInner: neo4j.int(params.k),
           embedding,
-          userId: params.userId,
+          userId: params.scope.userId,
+          profileId: params.scope.profileId,
           memoryId: memory.id,
         },
       );
@@ -153,7 +177,7 @@ const SEMANTIC_MIN_SCORE = 0.55;
 export async function fetchAnomalyCluster(
   driver: Driver,
   params: {
-    userId: string;
+    scope: DreamScope;
     anomalyId: string;
     embedding: number[];
     maxClusterSize: number;
@@ -161,17 +185,21 @@ export async function fetchAnomalyCluster(
 ): Promise<DreamClusterMember[]> {
   return withSession(driver, async (session) => {
     const result = await session.run(
-      `MATCH (a:Memory {id: $anomalyId, userId: $userId})
-       OPTIONAL MATCH (a)-[:RELATES_TO]-(rel:Memory {userId: $userId})
+      `MATCH (a:Memory {id: $anomalyId, ${ownerMatchProps(params.scope)}})
+       OPTIONAL MATCH (a)-[:RELATES_TO]-(rel:Memory {${ownerMatchProps(params.scope)}})
          WHERE rel.id <> a.id AND ${visibleStatusClause("rel", false)}
        WITH a, collect(DISTINCT rel) AS relMems
-       OPTIONAL MATCH (a)-[:MENTIONS]->(e:Entity)<-[:MENTIONS]-(em:Memory {userId: $userId})
+       OPTIONAL MATCH (a)-[:MENTIONS]->(e:Entity)<-[:MENTIONS]-(em:Memory {${ownerMatchProps(params.scope)}})
          WHERE em.id <> a.id AND ${visibleStatusClause("em", false)}
        WITH a, relMems, collect(DISTINCT em) AS entityMems
        OPTIONAL MATCH (a)-[:TAGGED_WITH]->(at:Tag)
        WITH a, relMems, entityMems, collect(DISTINCT at.name) AS aTags
        RETURN a, aTags, relMems, entityMems`,
-      { userId: params.userId, anomalyId: params.anomalyId },
+      {
+        userId: params.scope.userId,
+        profileId: params.scope.profileId,
+        anomalyId: params.anomalyId,
+      },
     );
     const firstRecord = result.records[0];
     if (!firstRecord) return [];
@@ -228,7 +256,7 @@ export async function fetchAnomalyCluster(
       const semantic = await session.run(
         `CALL db.index.vector.queryNodes('memory_embedding', $k, $embedding)
          YIELD node, score
-         WHERE node.userId = $userId
+         WHERE ${ownerWhereClause(params.scope, "node")}
            AND NOT node.id IN $excludeIds
            AND ${visibleStatusClause("node", false)}
            AND score >= $minScore
@@ -239,7 +267,8 @@ export async function fetchAnomalyCluster(
           k: neo4j.int(SEMANTIC_NEIGHBOR_COUNT + excludeIds.length + 2),
           kInner: neo4j.int(SEMANTIC_NEIGHBOR_COUNT),
           embedding: params.embedding,
-          userId: params.userId,
+          userId: params.scope.userId,
+          profileId: params.scope.profileId,
           excludeIds,
           minScore: SEMANTIC_MIN_SCORE,
         },
@@ -268,6 +297,10 @@ export async function materializeSynthesisAsMemory(
   params: {
     userId: string;
     profileId: string;
+    // Picks the derived-memory Cypher's source match (see shared.ts):
+    // personal keys sources on userId, team on profileId alone so
+    // DERIVED_FROM edges reach every member's contributions.
+    graphScope: ScopeKind;
     title: string;
     content: string;
     embedding: number[] | null;
@@ -280,7 +313,7 @@ export async function materializeSynthesisAsMemory(
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
 
-    await session.run(CREATE_DERIVED_MEMORY_CYPHER, {
+    await session.run(createDerivedMemoryCypher(params.graphScope), {
       id,
       userId: params.userId,
       profileId: params.profileId,
@@ -315,10 +348,10 @@ export async function materializeSynthesisAsMemory(
 
 export async function fetchPortraitEvidence(
   driver: Driver,
-  params: { userId: string; profileId: string; limit: number },
+  params: { scope: DreamScope; limit: number },
 ): Promise<PortraitEvidenceMemory[]> {
   const result = await driver.executeQuery(
-    `MATCH (m:Memory {userId: $userId, profileId: $profileId})
+    `MATCH (m:Memory {${ownerMatchProps(params.scope, true)}})
        WHERE ${visibleStatusClause("m", false)}
        WITH m, duration.inDays(datetime(m.createdAt), datetime()).days AS rawAge
        WITH m, CASE WHEN rawAge < 0 THEN 0 ELSE rawAge END AS ageDays
@@ -331,8 +364,8 @@ export async function fetchPortraitEvidence(
        RETURN m.id AS id, m.title AS title, m.content AS content,
               m.type AS type, m.status AS status, m.createdAt AS createdAt`,
     {
-      userId: params.userId,
-      profileId: params.profileId,
+      userId: params.scope.userId,
+      profileId: params.scope.profileId,
       limit: neo4j.int(params.limit),
     },
   );
@@ -349,8 +382,7 @@ export async function fetchPortraitEvidence(
 export async function findMergeCandidates(
   driver: Driver,
   params: {
-    userId: string;
-    profileId: string;
+    scope: DreamScope;
     pool: Array<{
       id: string;
       title: string;
@@ -388,12 +420,11 @@ export async function findMergeCandidates(
 
     for (const seed of params.pool) {
       const result = await session.run(
-        `MATCH (seed:Memory {id: $seedId, userId: $userId})
+        `MATCH (seed:Memory {id: $seedId, ${ownerMatchProps(params.scope)}})
          WHERE seed.status = 'active'
          CALL db.index.vector.queryNodes('memory_embedding', $k, $embedding)
          YIELD node, score
-         WHERE node.userId = $userId
-           AND node.profileId = $profileId
+         WHERE ${ownerWhereClause(params.scope, "node", true)}
            AND node.id <> $seedId
            AND node.status = 'active'
            AND score >= $threshold
@@ -402,8 +433,8 @@ export async function findMergeCandidates(
          LIMIT $kInner`,
         {
           seedId: seed.id,
-          userId: params.userId,
-          profileId: params.profileId,
+          userId: params.scope.userId,
+          profileId: params.scope.profileId,
           embedding: seed.embedding,
           threshold: params.simThreshold,
           k: neo4j.int(8),
@@ -449,7 +480,7 @@ export async function findMergeCandidates(
 export async function applyConfidenceAdjustments(
   driver: Driver,
   params: {
-    userId: string;
+    scope: DreamScope;
     adjustments: ConfidenceAdjustment[];
     maxDelta: number;
   },
@@ -460,7 +491,7 @@ export async function applyConfidenceAdjustments(
     const now = new Date().toISOString();
     for (const adj of params.adjustments) {
       const result = await session.run(
-        `MATCH (m:Memory {id: $memoryId, userId: $userId})
+        `MATCH (m:Memory {id: $memoryId, ${ownerMatchProps(params.scope)}})
          WHERE m.status = 'active' AND m.confidence IS NOT NULL
          WITH m, m.confidence AS old
          WITH m, old,
@@ -480,7 +511,8 @@ export async function applyConfidenceAdjustments(
          RETURN old AS oldConfidence, final AS newConfidence`,
         {
           memoryId: adj.memoryId,
-          userId: params.userId,
+          userId: params.scope.userId,
+          profileId: params.scope.profileId,
           proposed: adj.newConfidence,
           maxDelta: params.maxDelta,
           now,

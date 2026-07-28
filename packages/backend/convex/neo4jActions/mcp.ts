@@ -5,7 +5,11 @@ import { v } from "convex/values";
 import { runUpdateMemory } from "./_memories/update";
 import { runDeleteMemory } from "./_memories/delete";
 import { runCreateMemory } from "./_memories/create";
-import { runRetrieveMemories, runSearchMemories } from "./_memories/read";
+import {
+  runRetrieveMemories,
+  runRetrieveMemoriesForTeam,
+  runSearchMemories,
+} from "./_memories/read";
 import { runSearchMemoriesForTeam } from "./_memories/team";
 import { toMemoryStatus, toMemoryType } from "./_memories/shared";
 import { runStoreFromInstruction } from "./agent/storeFromInstruction";
@@ -19,7 +23,6 @@ import {
   memoryMatchesMcpScope,
   runForMcpScope,
   scopedMcpArgs,
-  toTeamRetrieveCandidates,
   withMcpMemoryScope,
   type McpResolvedScope,
 } from "./mcpScope";
@@ -81,15 +84,13 @@ export const mcpRetrieveMemories = internalAction({
     withMcpMemoryScope(ctx, args, (scope) => {
       const limit = args.limit ?? 10;
       return runForMcpScope(scope, {
-        team: async (profileId) => {
-          const result = await runSearchMemoriesForTeam({
+        team: (profileId) =>
+          runRetrieveMemoriesForTeam(ctx, {
+            clerkId: args.clerkId,
             profileId,
             query: args.query,
             limit,
-            offset: 0,
-          });
-          return toTeamRetrieveCandidates(result.memories);
-        },
+          }),
         personal: ({ clerkId, profileId }) =>
           runRetrieveMemories(ctx, {
             clerkId,
