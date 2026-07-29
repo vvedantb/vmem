@@ -20,16 +20,30 @@ Memories live in Neo4j. Convex handles auth, profiles, teams, the web/API surfac
 Other bits worth knowing: conflicting updates become proposals instead of silent overwrites, team workspaces share one profile graph, Dream Mode synthesises higher-level memories in the background.
 
 
-Layout
+Folder structure / Layout
 
 pnpm workspace, Node 20+, pnpm 10.15.1.
 
-  apps/web                 dashboard (Vite, React, TanStack Router)
-  apps/chrome-extension    MV3 extension (WXT) - save pages, inject context
-  packages/backend         Convex functions + Neo4j engine under engine/
-  packages/shared          shared helpers
-  packages/ui              shared UI
-  packages/sdk             @vmem/sdk
+vmem/
+  README.txt                 This file
+  README.md                  Same content, Markdown
+  package.json               Root pnpm workspace scripts
+  pnpm-workspace.yaml
+  tsconfig.base.json
+  apps/
+    web/                     Vite + React dashboard
+    chrome-extension/        WXT Chrome extension (MV3)
+  packages/
+    backend/                 Convex backend + Neo4j engine (engine/)
+    shared/                  Shared constants and helpers
+    ui/                      Shared UI primitives
+    sdk/                     Published HTTP SDK (@vmem/sdk)
+  oxlint-plugin-vmem/        Custom lint rules
+  scripts/                   Repo maintenance scripts
+  .github/                   CI workflows
+  .env.example               Env templates (also under apps/* and packages/*)
+
+Not included: node_modules, .git, dist, .env.local, secrets.
 
 .env.example files live at the root and under apps/* / packages/*. 
 
@@ -60,20 +74,28 @@ Running locally
 You need Node 20+, pnpm, a Convex project, Neo4j, and a Clerk app. Copy the
 example env files and fill them in before starting anything.
 
-  git clone https://github.com/vvedantb/vmem.git && cd vmem
+From the zip:
+
+  unzip vmem-product-package.zip && cd vmem
   pnpm install
   cp apps/web/.env.example apps/web/.env.local
   cp packages/backend/.env.example packages/backend/.env.local
   pnpm convex
   pnpm dev
 
+Or from git:
+
+  git clone https://github.com/vvedantb/vmem.git && cd vmem
+  (then the same install / env / convex / dev steps)
+
 Web app is at http://localhost:5173.
 
-  pnpm ext:dev / pnpm ext:build   extension under apps/chrome-extension/dist/
+  pnpm build                     production web build (apps/web)
+  pnpm ext:dev / pnpm ext:build  extension under apps/chrome-extension/dist/
   pnpm typecheck:all
   pnpm test
   pnpm check
-  pnpm eval:bench                 retrieval bench (bench user only)
+  pnpm eval:bench                retrieval bench (bench user only)
 
 More on the extension: apps/chrome-extension/README.md.
 
