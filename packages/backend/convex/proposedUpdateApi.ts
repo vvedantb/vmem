@@ -12,6 +12,7 @@ import {
   resolveProposal as resolveProposalEngine,
   type ResolveResult,
 } from "../engine/neo4j/memory/proposals";
+import type { MemoryReadScope } from "../engine/neo4j/memory/scope";
 import type { ProposedUpdateNode } from "../engine/neo4j/memory/types";
 import { postMaterializeEmbedAndEnrich } from "./neo4jActions/_memories/postMaterialize";
 import { runWithNeo4jDriver } from "./neo4jActions/_shared/driver";
@@ -60,9 +61,19 @@ export const resolveProposal = authAction({
       args.action === "approve" || args.action === "reject"
         ? args.action
         : "reject";
+
+    // throws when the caller cannot reach the profile, so this both picks the
+    // scope and is the membership half of the authorisation
+    const { teamId } = await resolveAccessibleTeamScope(ctx, args.profileId);
+    const scope: MemoryReadScope =
+      teamId !== undefined && args.profileId !== undefined
+        ? { kind: "team", profileId: args.profileId }
+        : { kind: "personal", userId: clerkId };
+
     const driver = getDriver();
     const result = await resolveProposalEngine(
       driver,
+      scope,
       args.proposalId,
       action,
       args.winnerMemoryId,
@@ -71,16 +82,12 @@ export const resolveProposal = authAction({
     if (result && result.status === "approved" && result.materializedMemoryId) {
       const materializedMemoryId = result.materializedMemoryId;
       try {
-        const { teamId } = await resolveAccessibleTeamScope(
-          ctx,
-          args.profileId,
-        );
         // team-derived memories belong to the owner, so non-owners need the profile lookup
         const detail =
-          teamId !== undefined && args.profileId !== undefined
+          scope.kind === "team"
             ? await getMemoryForTeam(
                 driver,
-                args.profileId,
+                scope.profileId,
                 materializedMemoryId,
               )
             : await getMemory(driver, clerkId, materializedMemoryId);

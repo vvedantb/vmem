@@ -778,7 +778,13 @@ describe.skipIf(!runLive)("team scope (live Neo4j)", () => {
       confidence: 0.85,
     });
 
-    const resolved = await resolveProposal(driver, proposal.id, "approve");
+    // approved under team scope by a member who is not the owner
+    const resolved = await resolveProposal(
+      driver,
+      TEAM_SCOPE,
+      proposal.id,
+      "approve",
+    );
     expect(resolved?.status).toBe("approved");
 
     const result = await driver.executeQuery(

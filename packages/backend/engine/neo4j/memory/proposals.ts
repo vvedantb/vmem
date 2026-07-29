@@ -4,7 +4,7 @@ import { z } from "zod";
 import { neo4jGet, neo4jString, parseNeo4jNodeProps } from "../record";
 import { computeContentHash, toMemoryWithTags, toSnapshot } from "./mappers";
 import { withSession } from "../session";
-import type { DreamScope, ScopeKind } from "./scope";
+import type { DreamScope, MemoryReadScope, ScopeKind } from "./scope";
 import { createDerivedMemoryCypher, logEvent, profileFilter } from "./shared";
 import {
   PROPOSED_UPDATE_KINDS,
@@ -281,6 +281,40 @@ interface ProposalLookup {
   userId: string;
   // which derived memory cypher variant to run for this proposal
   scopeKind: ScopeKind;
+  // who is allowed to resolve it, kept apart from the fields above because
+  // those describe where the result is written, not who may ask for it
+  scopeCheck: ProposalScopeCheck;
+}
+
+// the proposal's own ownership, straight off the node and its memories
+export interface ProposalScopeCheck {
+  // set only by team synthesis proposals
+  teamProfileId: string | null;
+  // update and delete proposals point at one target memory
+  targetUserId: string | null;
+  targetProfileId: string | null;
+  // synthesis proposals have no target, so the first source stands in
+  sourceUserId: string | null;
+  sourceProfileId: string | null;
+}
+
+// resolving takes a proposal uuid, so without this any signed in caller could
+// approve or reject a stranger's proposal, and approving a delete destroys the memory
+export function canResolveProposal(
+  check: ProposalScopeCheck,
+  scope: MemoryReadScope,
+): boolean {
+  if (scope.kind === "team") {
+    // a v2 extraction proposal against a team memory carries no teamProfileId,
+    // so fall back to the profile of the memory the proposal points at
+    const governing =
+      check.teamProfileId ?? check.targetProfileId ?? check.sourceProfileId;
+    return governing !== null && governing === scope.profileId;
+  }
+  // team synthesis materialises to the team owner, never through a personal call
+  if (check.teamProfileId !== null) return false;
+  const owner = check.targetUserId ?? check.sourceUserId;
+  return owner !== null && owner === scope.userId;
 }
 
 export interface ResolveResult {
@@ -299,6 +333,7 @@ export const proposalLookupRowSchema = z
     confidence: z.number().nullish().catch(null),
     targetId: z.string().nullish().catch(null),
     targetUserId: z.string().nullish().catch(null),
+    targetProfileId: z.string().nullish().catch(null),
     sourceUserId: z.string().nullish().catch(null),
     sourceProfileId: z.string().nullish().catch(null),
     teamProfileId: z.string().nullish().catch(null),
@@ -307,6 +342,13 @@ export const proposalLookupRowSchema = z
   .transform((r): ProposalLookup => {
     const isTeam = typeof r.teamProfileId === "string";
     return {
+      scopeCheck: {
+        teamProfileId: r.teamProfileId ?? null,
+        targetUserId: r.targetUserId ?? null,
+        targetProfileId: r.targetProfileId ?? null,
+        sourceUserId: r.sourceUserId ?? null,
+        sourceProfileId: r.sourceProfileId ?? null,
+      },
       kind: r.kind,
       proposedTitle: r.proposedTitle || "Untitled synthesis",
       proposedContent: r.proposedContent ?? "",
@@ -333,6 +375,7 @@ function parseProposalLookupRecord(record: NeoRecord): ProposalLookup | null {
     confidence: neo4jGet(record, "confidence"),
     targetId: neo4jGet(record, "targetId"),
     targetUserId: neo4jGet(record, "targetUserId"),
+    targetProfileId: neo4jGet(record, "targetProfileId"),
     sourceUserId: neo4jGet(record, "sourceUserId"),
     sourceProfileId: neo4jGet(record, "sourceProfileId"),
     teamProfileId: neo4jGet(record, "teamProfileId"),
@@ -358,6 +401,7 @@ async function lookupProposalContext(
        p.confidence AS confidence,
        target.id AS targetId,
        target.userId AS targetUserId,
+       target.profileId AS targetProfileId,
        firstSource.userId AS sourceUserId,
        firstSource.profileId AS sourceProfileId,
        p.teamProfileId AS teamProfileId,
@@ -627,6 +671,7 @@ async function applyContradictionResolution(
 // Modified by me: event snapshots and pending overlap guards for dream proposals
 export async function resolveProposal(
   driver: Driver,
+  scope: MemoryReadScope,
   proposalId: string,
   action: "approve" | "reject",
   winnerMemoryId?: string,
@@ -635,6 +680,9 @@ export async function resolveProposal(
     const now = new Date().toISOString();
     const lookup = await lookupProposalContext(session, proposalId);
     if (!lookup) return null;
+    // same null as a missing proposal on purpose, a caller who may not resolve it
+    // should not learn that the id exists
+    if (!canResolveProposal(lookup.scopeCheck, scope)) return null;
 
     if (action === "reject") {
       return applyStatusOnly(

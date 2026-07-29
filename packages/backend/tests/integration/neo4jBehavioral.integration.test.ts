@@ -26,11 +26,13 @@ import {
   resolveProposal,
 } from "../../engine/neo4j/memory/proposals";
 import { firstNeo4jInt } from "../../engine/neo4j/record";
+import type { MemoryReadScope } from "../../engine/neo4j/memory/scope";
 import type { MemoryStatus } from "../../engine/neo4j/memory/types";
 
 const runLive = process.env.RUN_RETRIEVAL_EVAL === "1";
 
 const USER = "user_vmem_behavioral_test";
+const USER_SCOPE: MemoryReadScope = { kind: "personal", userId: USER };
 const PROFILE = "profile_behavioral_test";
 const SOURCE = "behavioral-test";
 const EMBED_DIM = 1536;
@@ -325,7 +327,20 @@ describe.skipIf(!runLive)("vmem behavioural suite (live Neo4j)", () => {
       "Passwords are hashed with bcrypt.",
     );
 
-    await resolveProposal(driver, proposal.id, "approve");
+    // a stranger holding the uuid resolves nothing and the proposal stays pending
+    expect(
+      await resolveProposal(
+        driver,
+        { kind: "personal", userId: `${USER}_intruder` },
+        proposal.id,
+        "approve",
+      ),
+    ).toBeNull();
+    expect(await getContent(driver, id)).toBe(
+      "Passwords are hashed with bcrypt.",
+    );
+
+    await resolveProposal(driver, USER_SCOPE, proposal.id, "approve");
     expect(await getContent(driver, id)).toBe(
       "Passwords are hashed with Argon2id.",
     );
@@ -340,7 +355,7 @@ describe.skipIf(!runLive)("vmem behavioural suite (live Neo4j)", () => {
       proposedContent: "Production runs in eu-west-1.",
       reason: "test reject path",
     });
-    await resolveProposal(driver, proposal2.id, "reject");
+    await resolveProposal(driver, USER_SCOPE, proposal2.id, "reject");
     expect(await getContent(driver, id2)).toBe("Production runs in us-east-1.");
     const stillPending = (await listProposedUpdates(driver, USER)).some(
       (p) => p.id === proposal2.id,
@@ -358,7 +373,12 @@ describe.skipIf(!runLive)("vmem behavioural suite (live Neo4j)", () => {
       reason: "source requested removal",
     });
 
-    const result = await resolveProposal(driver, proposal.id, "approve");
+    const result = await resolveProposal(
+      driver,
+      USER_SCOPE,
+      proposal.id,
+      "approve",
+    );
 
     expect(result?.status).toBe("approved");
     expect(await getMemory(driver, USER, id)).toBeNull();
