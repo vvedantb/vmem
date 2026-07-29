@@ -8,7 +8,7 @@ Create a Clerk account if you do not have one, open a profile, add a memory from
 
 Source: https://github.com/vvedantb/vmem
 
-This package is the source tree. It does not include .env.local or other secrets. You do not need a local stack for marking - use the hosted URL unless you specifically want Convex + Neo4j + Clerk running on your  machine.
+This package is the source tree. It does not include .env.local or other secrets. You do not need a local stack for marking - use the hosted URL unless you specifically want Convex + Neo4j + Clerk running on your machine.
 
 
 What it is
