@@ -5,7 +5,7 @@ import {
   parentKey,
 } from "../lib/scopedTree";
 
-// minimal wiki tree shape for path resolution (no Convex coupling in tests)
+// minimal wiki tree shape for path resolution (no convex coupling in tests)
 export interface WikiPathNode {
   id: Id<"wikiNodes">;
   parentId: Id<"wikiNodes"> | null;

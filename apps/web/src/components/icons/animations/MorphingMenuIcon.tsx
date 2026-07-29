@@ -1,6 +1,5 @@
 // AI-generated (Claude), prompt: "hamburger icon that morphs into an x"
 // Modified by me: open state spring and stroke weight
-
 // morphing hamburger menu icon that transforms to X
 
 import { motion } from "motion/react";

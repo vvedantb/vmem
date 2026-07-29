@@ -34,8 +34,8 @@ function TeamWorkspaceLayout() {
   }, [teamId, navigate, profile._id]);
 
   if (teamId === undefined || data === null) {
-    // not a team workspace (or membership just got revoked) — the effect
-    // above redirects; render nothing meanwhile
+    // not a team workspace (or membership just got revoked) the effect
+    // above redirects render nothing meanwhile
     return null;
   }
 

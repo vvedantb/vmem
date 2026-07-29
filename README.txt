@@ -1,234 +1,102 @@
-vmem — Product Package README
-Final Year Project, City St George's, University of London
-Student: Vedant Bhopatrao
-Student Number: 220057806
+vmem - Universal LLM Memory Layer
+BSc Final Year Project - City St George's, University of London
+Vedant Bhopatrao (220057806)
 
-========================================================================
-FOR MARKERS (read this first)
-========================================================================
+Hosted build: https://vmem-staging.vedantb.com/
 
-Hosted product (preferred for marking):
-  https://vmem-staging.vedantb.com/
+Create a Clerk account if you do not have one, open a profile, add a memory from the list or graph, and check it shows up. Settings has API keys and connectors if you want to explore further.
 
-Source repository:
-  https://github.com/vvedantb/vmem
+Source: https://github.com/vvedantb/vmem
 
-This ZIP contains the source needed to run vmem locally. Secrets (.env.local)
-are NOT included. Use the hosted URL above unless you need a full local stack
-(Convex + Neo4j + Clerk).
+This package is the source tree. It does not include .env.local or other secrets. You do not need a local stack for marking - use the hosted URL unless you specifically want Convex + Neo4j + Clerk running on your machine.
 
-Quick test on the hosted site:
-  1. Open https://vmem-staging.vedantb.com/
-  2. Sign in with Clerk (create an account if needed)
-  3. Open a profile workspace
-  4. Add a memory (list or graph view) and confirm it appears
-  5. Optional: open Settings and review API keys / connectors
 
-========================================================================
-ZIP FOLDER STRUCTURE
-========================================================================
+What it is
 
-vmem/
-  README.txt                 This file (also upload separately to Moodle)
-  README.md                  Same content as Markdown for developers
-  package.json               Root pnpm workspace scripts
-  pnpm-workspace.yaml
-  apps/
-    web/                     Vite + React dashboard
-    chrome-extension/        WXT Chrome extension (MV3)
-  packages/
-    backend/                 Convex backend + Neo4j engine (engine/)
-    shared/                  Shared constants / helpers
-    ui/                      Shared UI primitives
-    sdk/                     Published HTTP SDK (@vmem/sdk)
-  oxlint-plugin-vmem/        Custom lint rules
-  .env.example               Env templates (also under apps/* and packages/*)
+vmem is a memory layer for AI tools. LLMs forget between sessions and across providers. This project keeps a shared, inspectable graph of what the user knows and cares about, and exposes it over MCP, HTTP, and a small SDK.
 
-Not included in the ZIP (by design):
-  node_modules/, .git/, dist/, .env.local, secrets, large build artefacts
+Memories live in Neo4j. Convex handles auth, profiles, teams, the web/API surface, and scheduled work. The web app and Chrome extension are clients on top of that. Retrieval mixes fulltext, vectors, chunks, entities, and a hop of graph expansion, then explains the match in a Context Trace rather than returning a black-box rank.
 
-========================================================================
-WHAT IS VMEM
-========================================================================
+Other bits worth knowing: conflicting updates become proposals instead of silent overwrites, team workspaces share one profile graph, Dream Mode synthesises higher-level memories in the background.
 
-A model-agnostic memory layer for AI — store, retrieve, update, and explain
-what an agent knows about a user across sessions, models, and tools.
 
-vmem centralises user knowledge in a Neo4j memory graph with hybrid retrieval
-(fulltext + vectors + chunks + entities + graph expansion). Clients (web,
-Chrome extension, MCP host, HTTP/SDK) talk to Convex; Neo4j holds the graph.
+Layout
 
-Differentiators:
-  - Context Trace — retrieval explains why it matched (score breakdown)
-  - Proposed updates — conflicts become reviewable proposals
-  - Implicit MCP context — vmem://context_prompt (personal MCP only)
-  - Profiles and teams — isolated memory workspaces
-  - Dream Mode — activity-triggered and/or scheduled synthesis
+pnpm workspace, Node 20+, pnpm 10.15.1.
 
-Architecture (high level):
+  apps/web                 dashboard (Vite, React, TanStack Router)
+  apps/chrome-extension    MV3 extension (WXT) - save pages, inject context
+  packages/backend         Convex functions + Neo4j engine under engine/
+  packages/shared          shared helpers
+  packages/ui              shared UI
+  packages/sdk             @vmem/sdk
 
-  Web dashboard | Chrome extension | MCP hosts | HTTP / SDK
-                 \________\________/________/
-                          |
-                    Convex (packages/backend)
-                    auth, profiles, MCP HTTP, connectors, files, crons
-                          |
-                    engine/ (Neo4j + parsers) via "use node" actions
-                          |
-                    Neo4j graph
+.env.example files live at the root and under apps/* / packages/*. 
 
-Layers:
-  Convex   — Auth (Clerk), API keys, profiles, teams, connectors, files,
-             MCP/HTTP endpoints, scheduled jobs
-  Neo4j    — Memory nodes, tags, entities, RELATES_TO, chunks, codebase graph
-  engine/  — Retrieval, enrichment, connector ingest, GitHub parsing
+The zip does not contain node_modules, .git, dist, or secrets.
 
-========================================================================
-HOW AGENTS INTEGRATE
-========================================================================
 
-  MCP     https://<deployment>.convex.site/mcp
-          Auth: Clerk OAuth bearer tokens
-          Best for: Claude Desktop, Cursor, Windsurf, etc.
+Talking to it from an agent
 
-  HTTP    /api/v1/memories/*
-          Auth: Authorization: Bearer vmem_sk_...
-          Best for: backends, scripts, CI
+  MCP   https://<deployment>.convex.site/mcp
+        Clerk OAuth. Team scope is at /mcp/team.
+        Personal MCP also exposes vmem://context_prompt.
 
-  SDK     @vmem/sdk
-          Auth: API key
-          Best for: TypeScript/JS integrations
+  HTTP  /api/v1/memories/* with Bearer vmem_sk_...
 
-MCP notes:
-  - Resource: vmem://context_prompt (personal scope only; not on /mcp/team)
-  - Core tools: ping, whoami, list_profiles, set_active_profile, context_prompt_get
-  - Domain tools: memory_*, skills_*, wiki_*, files_*, codebases_list, codebase_*,
-    memory_graph
-  - Team endpoint: /mcp/team
-
-Example (SDK):
+  SDK   npm package @vmem/sdk - see packages/sdk/README.md
 
   import { VMemory } from "@vmem/sdk";
-
   const vmem = new VMemory({
     apiKey: process.env.VMEM_API_KEY,
     baseUrl: process.env.VMEM_BASE_URL,
   });
-
   await vmem.save("User prefers TypeScript over JavaScript");
-  const { memories } = await vmem.search("What language does the user prefer?");
+  const { memories } = await vmem.search("preferred language");
 
-See packages/sdk/README.md for full HTTP/SDK details.
 
-========================================================================
-MONOREPO LAYOUT
-========================================================================
+Running locally
 
-pnpm workspace (pnpm@10.15.1). Requires Node 20+.
+You need Node 20+, pnpm, a Convex project, Neo4j, and a Clerk app. Copy the
+example env files and fill them in before starting anything.
 
-  apps/web                 web app (Vite + React 19 + TanStack Router)
-  apps/chrome-extension    Chrome extension (WXT) — save pages, chat export,
-                           inject context into ChatGPT/Claude
-  packages/backend         Convex + Neo4j engine + MCP HTTP
-  packages/shared          Cross-app constants / helpers
-  packages/ui              Shared UI library
-  packages/sdk             Published HTTP SDK (VMemory)
-  oxlint-plugin-vmem/      Custom oxlint rules
-
-Apps import only @vmem/backend, @vmem/shared, and @vmem/ui at public exports.
-
-========================================================================
-WHAT IS IMPLEMENTED
-========================================================================
-
-Memory
-  - CRUD, hybrid retrieval with Context Trace, proposed-update inbox
-  - Types: profile, episodic, knowledge
-  - Lifecycle: active, pinned, suppressed, expired
-  - Enrichment (OpenRouter), semantic auto-linking, file upload indexing
-  - Graph view, tag filters, version history
-
-Workspaces
-  - Profiles as /$profileId/... routes
-  - Teams with shared graph and team MCP
-  - Inbox (proposals/notifications), activity log
-
-Data and ingest
-  - Files — Convex storage + web explorer
-  - Codebases — GitHub OAuth, symbol parse, daily sync 04:00 UTC (Workpool)
-  - Connectors — Google Drive and Notion (daily cron via Workpool)
-  - Skills — personal + system Skills Hub catalogue
-  - Wiki — TipTap markdown tree + versions
-  - Import — ChatGPT and Claude conversation exports
-
-Chrome extension
-  - Chat export, save page/screenshot/YouTube transcript
-  - Inject context into supported chat UIs
-  - Bookmark/history bulk import and auto-sync
-
-Platform
-  - Clerk auth (MCP OAuth via Clerk Dynamic Client Registration)
-  - Encrypted API keys (vmem_sk_*), per-user OpenRouter secrets
-  - Activity / OpenRouter logs, audit trail
-  - Connector OAuth via Arctic (Google PKCE, Notion, GitHub)
-
-========================================================================
-INSTALL AND RUN LOCALLY
-========================================================================
-
-Prerequisites: Node 20+, pnpm 10.15.1, a Convex project, Neo4j, Clerk app.
-
-  git clone https://github.com/vvedantb/vmem.git
-  cd vmem
+  git clone https://github.com/vvedantb/vmem.git && cd vmem
   pnpm install
   cp apps/web/.env.example apps/web/.env.local
   cp packages/backend/.env.example packages/backend/.env.local
-  pnpm convex    # Convex dev (packages/backend)
-  pnpm dev       # Web — http://localhost:5173
+  pnpm convex
+  pnpm dev
 
-Other commands:
+Web app is at http://localhost:5173.
 
-  pnpm ext:dev         Chrome extension WXT watch -> dist/chrome-mv3-dev/
-  pnpm ext:build       Production build -> dist/chrome-mv3/
+  pnpm ext:dev / pnpm ext:build   extension under apps/chrome-extension/dist/
   pnpm typecheck:all
   pnpm test
-  pnpm check           Full merge gate
-  pnpm eval:bench      Retrieval bench (bench user only)
+  pnpm check
+  pnpm eval:bench                 retrieval bench (bench user only)
 
-Chrome extension (WXT): after ext:build or ext:dev, load unpacked from
-  apps/chrome-extension/dist/chrome-mv3/
-  or apps/chrome-extension/dist/chrome-mv3-dev/
-See apps/chrome-extension/README.md.
+More on the extension: apps/chrome-extension/README.md.
 
-========================================================================
-ENVIRONMENT
-========================================================================
 
-Example env templates (copy to .env.local — do not commit secrets):
+Environment
 
-  .env.example                       SDK / HTTP scripts
-  apps/web/.env.example              Web app
-  apps/chrome-extension/.env.example Extension
-  packages/backend/.env.example      Backend CLI + Convex var template
-  packages/sdk/.env.example          SDK examples
+Templates (copy to .env.local):
 
-Web (apps/web/.env.local):
-  VITE_CONVEX_URL=https://<deployment>.convex.cloud
-  VITE_CLERK_PUBLISHABLE_KEY=pk_...
+  .env.example
+  apps/web/.env.example
+  apps/chrome-extension/.env.example
+  packages/backend/.env.example
+  packages/sdk/.env.example
 
-Convex dashboard (minimum):
-  CLERK_FRONTEND_API_URL
-  CLERK_SECRET_KEY
-  CLERK_PUBLISHABLE_KEY              MCP OAuth token verification
-  ENCRYPTION_KEY                     base64 AES-256
-  NEO4J_URI
-  NEO4J_USERNAME                     optional, defaults to neo4j
-  NEO4J_PASSWORD
-  CONVEX_SITE_URL                    https://<deployment>.convex.site
-  WEB_APP_URL                        http://localhost:5173 in dev
+Web needs at least:
+  VITE_CONVEX_URL
+  VITE_CLERK_PUBLISHABLE_KEY
 
-Optional: OPENROUTER_API_KEY, GOOGLE_CLIENT_*, NOTION_CLIENT_*, GITHUB_CLIENT_*.
+Convex dashboard needs at least:
+  CLERK_FRONTEND_API_URL, CLERK_SECRET_KEY, CLERK_PUBLISHABLE_KEY
+  ENCRYPTION_KEY (base64)
+  NEO4J_URI, NEO4J_PASSWORD (NEO4J_USERNAME defaults to neo4j)
+  CONVEX_SITE_URL, WEB_APP_URL
+  OPENROUTER_API_KEY
 
-========================================================================
-END
-========================================================================
+Optional: GOOGLE_CLIENT_*, NOTION_CLIENT_*, GITHUB_CLIENT_*.

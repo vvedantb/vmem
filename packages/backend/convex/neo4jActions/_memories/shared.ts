@@ -9,34 +9,40 @@ import {
   toMemoryStatusOrUndefined,
   toMemoryTypeOrUndefined,
 } from "../../../engine/neo4j/memory/mappers";
+import type { ScopeKind } from "../../../engine/neo4j/memory/scope";
 import type { McpScope } from "../../profiles/mcpAccess";
 
-// stable wrappers — call sites keep importing from this module
+// stable wrappers, call sites keep importing from this module
 export const toMemoryType = toMemoryTypeOrUndefined;
 export const toMemoryStatus = toMemoryStatusOrUndefined;
 
-export async function resolveProfileIdForClerkId(
+export async function resolveProfileScopeForClerkId(
   ctx: ActionCtx,
   clerkId: string,
   explicitProfileId?: string,
-): Promise<string> {
+): Promise<{ profileId: string; graphScope: ScopeKind }> {
   if (explicitProfileId) {
-    return explicitProfileId;
+    const graphScope = await ctx.runQuery(
+      internal.profiles.getProfileScopeInternal,
+      { profileId: explicitProfileId },
+    );
+    return { profileId: explicitProfileId, graphScope };
   }
 
+  // active mcp profile and the default profile are always personal, see getActiveProfileForMcpScope / getOrCreateDefaultProfile
   const mcpActive = await ctx.runQuery(
     internal.profiles.getActiveProfileForMcpInternal,
     { clerkId },
   );
   if (mcpActive) {
-    return mcpActive._id;
+    return { profileId: mcpActive._id, graphScope: "personal" };
   }
 
   const profile = await ctx.runMutation(
     internal.profiles.getOrCreateDefaultByClerkIdInternal,
     { clerkId },
   );
-  return profile._id;
+  return { profileId: profile._id, graphScope: "personal" };
 }
 
 export async function resolveProfileIdForMcpScope(

@@ -145,7 +145,7 @@ export const pushForClerkIdInternal = internalMutation({
   },
 });
 
-// emit one notification per real producer shape so the Inbox can be exercised without
+// emit one notification per real producer shape so the inbox can be exercised without
 export const sendTest = authMutation({
   args: {},
   returns: v.null(),

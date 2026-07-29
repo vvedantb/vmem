@@ -28,11 +28,12 @@ import { buildTagStats } from "@/lib/memories";
 import { IconMemories } from "@/components/icons/sidebar";
 import { useMemoryContext } from "@/contexts/MemoryContext";
 import { useMemoriesSearchParams } from "@/hooks/useMemoriesSearchParams";
+import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
 import { DetailEmptyState } from "@/components/_components/detail-panel/DetailEmptyState";
 import { TagMemoriesPanel } from "@/components/_components/TagMemoriesPanel";
 import { VmemSpinner } from "@/components/icons/animations";
 
-// tag-rows view for /memories/list?view=tags
+// tag rows view for /memories/list?view=tags
 export default function TagsListView() {
   const { memories, isLoading, updateMemory } = useMemoryContext();
   const [params] = useMemoriesSearchParams();
@@ -55,10 +56,10 @@ export default function TagsListView() {
 
   const [editingTag, setEditingTag] = useState<string | null>(null);
   const [newTagName, setNewTagName] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
+  const { submitting: isSaving, run: runSaveTag } = useAsyncSubmit();
 
   const [deleteTag, setDeleteTag] = useState<string | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const { submitting: isDeleting, run: runDeleteTag } = useAsyncSubmit();
 
   const handleTagClick = (tag: string) => {
     setSelectedTag((current) => (current === tag ? null : tag));
@@ -100,8 +101,7 @@ export default function TagsListView() {
       return;
     }
 
-    setIsSaving(true);
-    try {
+    await runSaveTag(async () => {
       await Promise.all(
         affectedMemories.map((memory) => {
           const renamed = memory.tags.map((tag) =>
@@ -120,11 +120,7 @@ export default function TagsListView() {
 
       toast.success(`Tag renamed to "${normalizedNew}"`);
       cancelEditing();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to rename tag");
-    } finally {
-      setIsSaving(false);
-    }
+    }, "Failed to rename tag");
   };
 
   const handleDeleteTag = async () => {
@@ -138,8 +134,7 @@ export default function TagsListView() {
       return;
     }
 
-    setIsDeleting(true);
-    try {
+    await runDeleteTag(async () => {
       await Promise.all(
         affectedMemories.map((memory) =>
           updateMemory({
@@ -155,11 +150,7 @@ export default function TagsListView() {
 
       toast.success(`Tag "${deleteTag}" deleted from all memories`);
       setDeleteTag(null);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete tag");
-    } finally {
-      setIsDeleting(false);
-    }
+    }, "Failed to delete tag");
   };
 
   if (isLoading && tags.length === 0) {

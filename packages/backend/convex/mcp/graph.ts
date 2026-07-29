@@ -123,7 +123,7 @@ function capEdges<T extends { source: string; target: string }>(
 function capMemoryGraph(
   graph: McpGraphSlice,
   limit: number,
-  // true server-side total for plain global fetches, where the Neo4j query itself is
+  // true server-side total for plain global fetches (neo4j query is already limited)
   totalAvailable?: number,
 ): McpGraphSlice & {
   truncated: boolean;
@@ -165,13 +165,13 @@ export interface GetMemoryGraphForMcpArgs {
   limit?: number;
 }
 
-// cap + seed-expand Neo4j graph data for the MCP memory-graph app tool
+// cap + seed expand neo4j graph data for the mcp memory graph app tool
 export async function getMemoryGraphForMcp(
   ctx: ActionCtx,
   args: GetMemoryGraphForMcpArgs,
 ): Promise<McpMemoryGraphResult> {
-  const profileId = await ctx.runQuery(
-    internal.profiles.resolveProfileIdForMcpScopeInternal,
+  const { profileId, team: teamProfile } = await ctx.runQuery(
+    internal.profiles.resolveMcpMemoryScopeInternal,
     {
       clerkId: args.clerkId,
       scope: args.mcpScope,
@@ -192,8 +192,8 @@ export async function getMemoryGraphForMcp(
     clerkId: args.clerkId,
     focus,
     profileId,
-    strictProfile: args.mcpScope === "team",
-    // plain global view gets sliced to `limit` below anyway — fetch only that many from Neo4j
+    teamProfile,
+    // plain global view gets sliced to limit below anyway, fetch only that many from neo4j
     nodeLimit: isPlainGlobal ? limit : undefined,
   });
 

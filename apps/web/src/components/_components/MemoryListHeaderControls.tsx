@@ -1,4 +1,4 @@
-// list-view controls rendered in the page header
+// list view controls rendered in the page header
 
 import {
   IconCheck,

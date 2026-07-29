@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { toast } from "sonner";
-import { Card, CardContent, Switch, TimePicker } from "@vmem/ui";
+import {
+  Card,
+  CardContent,
+  LabeledSwitchRow,
+  Switch,
+  TimePicker,
+} from "@vmem/ui";
 import { api } from "@vmem/backend";
 import {
   DEFAULT_LOCAL_TIME,
@@ -13,9 +19,7 @@ import PageContainer from "@/components/shell/PageContainer";
 import ConfidenceThresholdSlider from "@/components/settings/ConfidenceThresholdSlider";
 import { useUserSettingsSave } from "@/hooks/useUserSettingsSave";
 import { PreferenceSection } from "./PreferenceSection";
-import { PreferenceSliderRow } from "./PreferenceSliderRow";
 import { PreferenceTextareaRow } from "./PreferenceTextareaRow";
-import { PreferenceToggleRow } from "./PreferenceToggleRow";
 import { PreferencesPageSkeleton } from "./PreferencesPageSkeleton";
 
 export function PreferencesPage() {
@@ -63,19 +67,25 @@ export function PreferencesPage() {
 
   const handleScheduleToggle = async (enabled: boolean): Promise<void> => {
     if (settings === undefined) return;
+    // resolved above the try React Compiler bails on the whole file for a `??`
+    // inside one. localTimeToUtc is pure, so running it on the disable path too
+    // costs nothing.
+    const utcTime =
+      settings.dreamModeScheduleTime ?? localTimeToUtc(DEFAULT_LOCAL_TIME);
+    // a single if/else chain rather than an early return plus a throw React
+    // compiler bails on the whole file for a ThrowStatement inside a try.
     try {
       if (!enabled) {
         await setDreamSchedule({ enabled: false });
         toast.success("Daily Dream Mode disabled");
-        return;
+      } else if (utcTime === null) {
+        toast.error("Invalid default time");
+      } else {
+        await setDreamSchedule({ enabled: true, time: utcTime });
+        toast.success(
+          `Daily Dream Mode scheduled for ${utcTimeToLocal(utcTime)}`,
+        );
       }
-      const savedTime = settings.dreamModeScheduleTime;
-      const utcTime = savedTime ?? localTimeToUtc(DEFAULT_LOCAL_TIME);
-      if (utcTime === null) throw new Error("Invalid default time");
-      await setDreamSchedule({ enabled: true, time: utcTime });
-      toast.success(
-        `Daily Dream Mode scheduled for ${utcTimeToLocal(utcTime)}`,
-      );
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Failed to update schedule",
@@ -165,7 +175,7 @@ export function PreferencesPage() {
         </Card>
 
         <PreferenceSection title="Memory Behavior">
-          <PreferenceToggleRow
+          <LabeledSwitchRow
             id="auto-extract"
             label="Auto-extract memories"
             description="Automatically extract memories from conversations."
@@ -174,18 +184,18 @@ export function PreferencesPage() {
               void saveSettings({ memoryAutoExtract: checked });
             }}
           />
-          <PreferenceSliderRow>
+          <div>
             <ConfidenceThresholdSlider
               value={settings.memoryConfidenceThreshold}
               onChange={(value) => {
                 void saveSettings({ memoryConfidenceThreshold: value });
               }}
             />
-          </PreferenceSliderRow>
+          </div>
         </PreferenceSection>
 
         <PreferenceSection title="Dream Mode">
-          <PreferenceToggleRow
+          <LabeledSwitchRow
             id="dream-automatic"
             label="Automatic dreaming"
             description="Dream on its own once you go quiet after saving new memories — no schedule needed. Runs at most a few times a day, deeper when more context piled up."
@@ -194,7 +204,7 @@ export function PreferencesPage() {
               void saveSettings({ dreamModeAutomatic: checked });
             }}
           />
-          <PreferenceToggleRow
+          <LabeledSwitchRow
             id="dream-auto-accept"
             label="Auto-accept high-confidence synthesis"
             description="When on, high-confidence syntheses save as memories automatically. Otherwise they queue in your inbox for approval. Contradictions always queue regardless."
@@ -203,7 +213,7 @@ export function PreferencesPage() {
               void saveSettings({ dreamModeAutoAccept: checked });
             }}
           />
-          <PreferenceToggleRow
+          <LabeledSwitchRow
             id="dream-schedule"
             label="Daily schedule"
             description="Run Dream Mode every day at this time. Stored as UTC; the local time shown shifts by an hour on DST transitions."
@@ -237,7 +247,7 @@ export function PreferencesPage() {
         </PreferenceSection>
 
         <PreferenceSection title="Notification Preferences">
-          <PreferenceToggleRow
+          <LabeledSwitchRow
             id="notify-conflicts"
             label="Memory conflicts"
             description="Notify when proposed updates conflict with existing memories."
@@ -246,7 +256,7 @@ export function PreferencesPage() {
               void saveSettings({ notifyMemoryConflicts: checked });
             }}
           />
-          <PreferenceToggleRow
+          <LabeledSwitchRow
             id="notify-new-memories"
             label="New memories"
             description="Notify when new memories are automatically extracted."
@@ -255,7 +265,7 @@ export function PreferencesPage() {
               void saveSettings({ notifyNewMemories: checked });
             }}
           />
-          <PreferenceToggleRow
+          <LabeledSwitchRow
             id="notify-expiring"
             label="Expiring memories"
             description="Notify when memories are about to be archived."

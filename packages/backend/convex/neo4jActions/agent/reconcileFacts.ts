@@ -9,6 +9,7 @@ import type {
 import type { ExtractedFact, UpdateDecision } from "../../prompts/v2Prompt";
 import { applyFactUpdateOrDelete } from "./applyFactDecision";
 import {
+  retrievalScope,
   runFactDecisionLoop,
   type FactDecisionLoopOptions,
 } from "./factDecisionLoop";
@@ -29,7 +30,7 @@ type ReasonArgs = {
   decision: UpdateDecision;
 };
 
-// shared decision-loop + ADD/UPDATE/DELETE apply
+// shared decision loop plus add, update, delete apply
 export async function reconcileExtractedFacts(
   ctx: ActionCtx,
   params: {
@@ -39,6 +40,7 @@ export async function reconcileExtractedFacts(
     facts: ExtractedFact[];
     loop: Pick<
       FactDecisionLoopOptions,
+      | "graphScope"
       | "retrieveWithProfileId"
       | "excludeMemoryIds"
       | "logPrefix"
@@ -50,7 +52,7 @@ export async function reconcileExtractedFacts(
     }) => Promise<MemoryWithTags | undefined>;
     buildUpdateReason: (args: ReasonArgs) => string;
     buildDeleteReason: (args: ReasonArgs) => string;
-    // when set, forwarded to apply (v2 warns on missing targets; SDK does not)
+    // when set, forwarded to apply so v2 can warn on missing targets
     applyLogPrefix?: string;
   },
 ): Promise<ReconcileFactsResult> {
@@ -58,12 +60,21 @@ export async function reconcileExtractedFacts(
   const applied: MemoryWithTags[] = [];
   const proposals: AgentProposal[] = [];
 
+  // one scope for retrieve and apply, otherwise a valid target gets dropped
+  const scope = retrievalScope({
+    clerkId: params.clerkId,
+    profileId: params.profileId,
+    graphScope: params.loop.graphScope,
+    retrieveWithProfileId: params.loop.retrieveWithProfileId,
+  });
+
   await runFactDecisionLoop(
     {
       ctx,
       auth: params.auth,
       clerkId: params.clerkId,
       profileId: params.profileId,
+      graphScope: params.loop.graphScope,
       retrieveWithProfileId: params.loop.retrieveWithProfileId,
       excludeMemoryIds: params.loop.excludeMemoryIds,
       logPrefix: params.loop.logPrefix,
@@ -83,7 +94,7 @@ export async function reconcileExtractedFacts(
       }
 
       await applyFactUpdateOrDelete(driver, {
-        clerkId: params.clerkId,
+        scope,
         factText,
         decision,
         logPrefix: params.applyLogPrefix,
@@ -106,7 +117,7 @@ export async function reconcileExtractedFacts(
   return { applied, proposals };
 }
 
-// v2 prompt-capture reason templates (notification path)
+// v2 prompt capture reason templates
 export function buildV2UpdateReason({
   factText,
   decision,
@@ -121,7 +132,7 @@ export function buildV2DeleteReason({ factText }: ReasonArgs): string {
   return `New fact contradicts: "${factText}"`;
 }
 
-// SDK / agent instruction reason templates
+// sdk and agent instruction reason templates
 export function buildSdkUpdateReason(
   instruction: string,
   { factText, decision }: ReasonArgs,

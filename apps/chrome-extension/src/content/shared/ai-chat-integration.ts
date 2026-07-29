@@ -1,9 +1,4 @@
-// ai chat integration: auto search memories + auto capture prompts
-// works with chatgpt and claude via platform specific config
-//
-// auto search: debounced memory retrieval as user types → floating panel
-// auto capture: saves the user's prompt to vmem on send
-// on send: injects included memories as context prefix then cleans up
+// auto-search memories while typing, capture prompts, inject context on send
 
 import { debounce } from "es-toolkit";
 import type { ExtensionStorage } from "@/types/storage";
@@ -23,8 +18,6 @@ import {
   clearMemories,
 } from "./memory-panel";
 
-// config
-
 export interface AIChatConfig {
   platform: "chatgpt" | "claude";
   inputSelector: string;
@@ -32,8 +25,6 @@ export interface AIChatConfig {
   getInputText: (el: HTMLElement) => string;
   setInputText: (el: HTMLElement, text: string) => void;
 }
-
-// cached settings (read once kept in sync via storage listener)
 
 type CachedSettings = Pick<
   ExtensionStorage,
@@ -46,20 +37,13 @@ const SETTING_DEFAULTS: CachedSettings = {
   defaultProfileId: "",
 };
 
-// setup
-
 let initialized = false;
 
-// call once per content script registers document level listeners for
-// auto search and auto capture on the given ai chat platform
 // AI-generated (Claude), prompt: "chatgpt claude auto search panel and send time context inject"
 // Modified by me: dedupe capture and skip when context already prefixed
 export function setupAIChatIntegration(config: AIChatConfig): void {
-  // guard against double init (spa re injection)
   if (initialized) return;
   initialized = true;
-
-  // settings cache
 
   let settings: CachedSettings = { ...SETTING_DEFAULTS };
 
@@ -84,14 +68,10 @@ export function setupAIChatIntegration(config: AIChatConfig): void {
     settings.defaultProfileId = defaultProfileId;
   });
 
-  // helpers
-
   function getInput(): HTMLElement | null {
     const el = document.querySelector(config.inputSelector);
     return el instanceof HTMLElement ? el : null;
   }
-
-  // auto search
 
   let lastSearchQuery = "";
 
@@ -126,13 +106,10 @@ export function setupAIChatIntegration(config: AIChatConfig): void {
 
     const text = config.getInputText(input).trim();
 
-    // skip short or unchanged queries
     if (text.length < 10 || text === lastSearchQuery) return;
 
     debouncedSearch(text, input);
   }
-
-  // auto capture
 
   let lastCapturedText = "";
   let lastCapturedTime = 0;
@@ -141,7 +118,6 @@ export function setupAIChatIntegration(config: AIChatConfig): void {
     if (!settings.autoCaptureEnabled) return;
     if (text.length < 20) return;
 
-    // dedupe: skip identical text within 5 seconds
     const now = Date.now();
     if (text === lastCapturedText && now - lastCapturedTime < 5000) return;
     lastCapturedText = text;
@@ -157,11 +133,9 @@ export function setupAIChatIntegration(config: AIChatConfig): void {
         showToast({ type: "success", message: "Prompt saved to vmem" });
       })
       .catch(() => {
-        // silently ignore failures auto capture should never disrupt the user
+        // auto-capture must never disrupt the chat flow
       });
   }
-
-  // send interception
 
   function handleSend(): void {
     const input = getInput();
@@ -170,31 +144,25 @@ export function setupAIChatIntegration(config: AIChatConfig): void {
     const originalText = config.getInputText(input).trim();
     if (!originalText) return;
 
-    // skip if the input already contains injected context (e.g. from "Use vmem" button)
     const hasExistingContext = originalText.startsWith("[Context from vmem]");
 
-    // 1. capture the original prompt (before modification) async non blocking
     if (!hasExistingContext) {
       capturePrompt(originalText);
     }
 
-    // 2. inject included memories as a context prefix (synchronous)
     const included = getIncludedMemories();
     if (included.length > 0 && !hasExistingContext) {
       const context = formatMemoriesContext(included);
       config.setInputText(input, context + originalText);
     }
 
-    // 3. clean up after a short delay (let the platform read the modified input)
+    // let the platform read the prefixed input before clearing panel state
     setTimeout(() => {
       clearMemories();
       lastSearchQuery = "";
     }, 200);
   }
 
-  // event listeners
-
-  // input monitoring for auto search
   document.addEventListener("input", (e) => {
     const input = getInput();
     if (!input) return;
@@ -204,7 +172,7 @@ export function setupAIChatIntegration(config: AIChatConfig): void {
     }
   });
 
-  // send button click capture phase so we run before the platform's handler
+  // capture phase runs before the platform send handler
   document.addEventListener(
     "click",
     (e) => {
@@ -218,7 +186,6 @@ export function setupAIChatIntegration(config: AIChatConfig): void {
     true,
   );
 
-  // enter key in input capture phase
   document.addEventListener(
     "keydown",
     (e) => {

@@ -1,6 +1,6 @@
-// MIGRATION: removing `@convex-dev/workflow` + `@convex-dev/action-retrier`.
-// In-flight Workflow runs / ActionRetrier jobs will not resume after deploy.
-// Prefer deploying when daily syncs are idle (outside 04:00 UTC cron window).
+// migration: removing @convex-dev/workflow + @convex-dev/action-retrier
+// in-flight workflow runs / action-retrier jobs will not resume after deploy
+// prefer deploying when daily syncs are idle (outside 0400 utc cron window)
 import { defineApp } from "convex/server";
 import actionCache from "@convex-dev/action-cache/convex.config";
 import aggregate from "@convex-dev/aggregate/convex.config";
@@ -14,7 +14,7 @@ app.use(crons);
 app.use(workpool, { name: "connectorSyncPool" });
 app.use(workpool, { name: "codebaseSyncPool" });
 app.use(auditLog);
-// OpenRouter usage: cost/tokens by createdAt + distinct models (namespaced u:/t:)
+// openRouter usage: cost/tokens by createdAt + distinct models (namespaced u,/t,)
 app.use(aggregate, { name: "openRouterLogCost" });
 app.use(aggregate, { name: "openRouterLogTokens" });
 app.use(aggregate, { name: "openRouterModels" });

@@ -13,8 +13,10 @@ import {
 } from "@vmem/ui";
 import { IconHistory, IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
-import { type SkillVersionListEntry } from "@/components/skills/_utils";
+import type { SkillVersionListEntry } from "@/components/skills/_utils";
 import { formatRelativeTime } from "@vmem/shared";
+import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
+import { updateAllCachedQueries } from "@/lib/convex-optimistic";
 
 interface SkillHistoryPanelProps {
   open: boolean;
@@ -84,7 +86,7 @@ export function SkillHistoryPanel({
   const [selectedId, setSelectedId] = useState<Id<"skillVersions"> | null>(
     null,
   );
-  const [restoring, setRestoring] = useState(false);
+  const { submitting: restoring, run } = useAsyncSubmit();
 
   const activeVersionId = open
     ? resolveActiveVersionId(versions, selectedId)
@@ -101,25 +103,20 @@ export function SkillHistoryPanel({
       versionId: args.versionId,
     });
     if (version === undefined || version === null) return;
-    for (const entry of localStore.getAllQueries(api.skills.listMy)) {
-      if (entry.value === undefined) continue;
-      localStore.setQuery(
-        api.skills.listMy,
-        entry.args,
-        entry.value.map((s) =>
-          s._id === version.skillId
-            ? {
-                ...s,
-                name: version.name,
-                description: version.description,
-                instructions: version.instructions,
-                enabled: version.enabled,
-                updatedAt: Date.now(),
-              }
-            : s,
-        ),
-      );
-    }
+    updateAllCachedQueries(localStore, api.skills.listMy, (skills) =>
+      skills.map((s) =>
+        s._id === version.skillId
+          ? {
+              ...s,
+              name: version.name,
+              description: version.description,
+              instructions: version.instructions,
+              enabled: version.enabled,
+              updatedAt: Date.now(),
+            }
+          : s,
+      ),
+    );
   });
 
   const handleOpenChange = (next: boolean) => {
@@ -129,16 +126,11 @@ export function SkillHistoryPanel({
 
   const handleRestore = async () => {
     if (!activeVersionId) return;
-    setRestoring(true);
-    try {
+    await run(async () => {
       await restoreVersion({ versionId: activeVersionId });
       toast.success("Version restored");
       handleOpenChange(false);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to restore");
-    } finally {
-      setRestoring(false);
-    }
+    }, "Failed to restore");
   };
 
   return (

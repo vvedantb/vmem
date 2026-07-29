@@ -1,6 +1,5 @@
 // AI-generated (Claude), prompt: "spring based counter that counts up when in view"
 // Modified by me: duration and format value support
-
 // animated counter that counts up from 0 to target value
 
 import { motion, useSpring, useTransform, useInView } from "motion/react";

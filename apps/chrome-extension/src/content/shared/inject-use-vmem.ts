@@ -9,6 +9,7 @@ import {
   type FocusPolicy,
 } from "@/content/shared/set-input-text";
 import { sendMessage } from "@/lib/messaging";
+import { errorMessage } from "@/lib/error";
 
 export async function injectUseVmemButton(options: {
   inputSelector: string;
@@ -56,7 +57,7 @@ export async function injectUseVmemButton(options: {
         .catch((err: unknown) => {
           console.warn(
             "[vmem] retrieveMemories failed:",
-            err instanceof Error ? err.message : String(err),
+            errorMessage(err),
             "— reload the page to reconnect.",
           );
           setVmemButtonLabel(button, "Use vmem");

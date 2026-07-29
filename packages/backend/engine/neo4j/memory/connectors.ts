@@ -3,7 +3,6 @@ import type { Driver } from "neo4j-driver";
 import { createSemanticSimilarityEdges } from "./relationships";
 import { withSession } from "../session";
 
-// upsert a memory from an external source
 export async function upsertFromSource(
   driver: Driver,
   params: {
@@ -68,10 +67,15 @@ export async function upsertFromSource(
     const wasCreated = Boolean(firstRecord.get("wasCreated"));
 
     if (wasCreated && params.embedding !== null) {
+      // similarity edges use personal graph scope because connector sync is always personal
       await createSemanticSimilarityEdges(
         session,
         memoryId,
-        params.userId,
+        {
+          graphScope: "personal",
+          userId: params.userId,
+          profileId: params.profileId,
+        },
         params.embedding,
       );
     }

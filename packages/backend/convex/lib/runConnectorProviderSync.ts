@@ -42,7 +42,7 @@ export async function runConnectorProviderSync(
   }
 
   if (params.execution === "workpool") {
-    // Retries only on thrown failures; successful returns (any value) are not retried.
+    // retries only on thrown failures. successful returns (any value) are not retried.
     await connectorSyncPool.enqueueAction(ctx, syncRef, syncArgs, {
       retry: true,
     });

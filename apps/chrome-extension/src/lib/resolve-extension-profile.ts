@@ -3,7 +3,7 @@ type ProfileLike = {
   isDefault: boolean;
 };
 
-// storage override → convex extension default → account default profile
+// storage override, then convex extension default, then account default
 export function resolveExtensionProfileId(params: {
   storageProfileId: string;
   convexExtensionDefaultId: string | null | undefined;

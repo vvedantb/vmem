@@ -17,12 +17,12 @@ function teamProfileCronName(profileId: string): string {
   return `dream-mode:${profileId}`;
 }
 
-// build a daily cronspec ("M H * * *") from "HH:MM"
+// build a daily cronspec ("m h * * *") from "hh,mm"
 function cronspecForTime(hour: number, minute: number): string {
   return `${String(minute)} ${String(hour)} * * *`;
 }
 
-// parse+validate an enable/time pair, throwing the shared user-facing error on malformed input
+// parse + validate an enable/time pair, throwing the shared user-facing error on malformed input
 function requireParsedSchedule(
   enabled: boolean,
   time: string | undefined,
@@ -34,7 +34,7 @@ function requireParsedSchedule(
   return parsed;
 }
 
-// delete-then-register a named daily cron (the cron component has no upsert primitive)
+// delete then register a named daily cron (the cron component has no upsert primitive)
 async function replaceDailyCron<F extends SchedulableFunctionReference>(
   ctx: MutationCtx,
   name: string,
@@ -57,18 +57,18 @@ async function replaceDailyCron<F extends SchedulableFunctionReference>(
   }
 }
 
-// set or clear the user's daily Dream Mode schedule
+// set or clear the user's daily dream mode schedule
 export const setDreamSchedule = authMutation({
   args: {
     enabled: v.boolean(),
-    // "HH:MM" in UTC
+    // "hh,mm" in utc
     time: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const parsed = requireParsedSchedule(args.enabled, args.time);
     const name = userCronName(ctx.userId);
 
-    // persist on userSettings so the UI shows the saved value on refresh
+    // persist on userSettings so the ui shows the saved value on refresh
     const settings = await ctx.db
       .query("userSettings")
       .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
@@ -107,12 +107,12 @@ export const setDreamSchedule = authMutation({
   },
 });
 
-// per-team-profile schedule (kept from V1)
+// per-team profile schedule (kept from v1)
 export const setDreamScheduleForTeamProfile = authMutation({
   args: {
     profileId: v.id("profiles"),
     enabled: v.boolean(),
-    // "HH:MM" in UTC
+    // "hh,mm" in utc
     time: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -168,7 +168,7 @@ export const setDreamScheduleForTeamProfile = authMutation({
   },
 });
 
-// read-only view of registered Dream Mode crons for the current user
+// read-only view of registered dream mode crons for the current user
 export const listDreamCrons = authQuery({
   args: {},
   handler: async (ctx) => {

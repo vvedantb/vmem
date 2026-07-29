@@ -5,22 +5,19 @@ import { selectionPopupEnabledItem } from "@/lib/storage";
 import { mountVmemLogo } from "@/content/shared/icons";
 import type { VmemLogoVariant } from "@/content/shared/icons";
 import { checkIcon, errorIcon } from "@/content/shared/status-icons";
+import { createShadowHost, onDocumentReady } from "@/content/shared/dom-utils";
+import { errorMessage } from "@/lib/error";
 
 const VMEM_LOGO_SIZE = 16;
 const CHECK_ICON = checkIcon(16);
 const ERROR_ICON = errorIcon(16);
 
-// the popup's background follows prefers color scheme (see styles below) so
-// the logo img must too: black logo on the light pill white on the dark one
+// logo variant follows system theme so contrast stays on the pill
 function logoVariant(): VmemLogoVariant {
   return window.matchMedia("(prefers-color-scheme: dark)").matches
     ? "light"
     : "dark";
 }
-
-// spinner is pure css see styles below
-
-// state
 
 type PopupState = "idle" | "ready" | "saving" | "success" | "error";
 
@@ -30,27 +27,9 @@ let enabled = false; // set by init() after reading storage
 let hideTimer: ReturnType<typeof setTimeout> | null = null;
 let repositionRaf: number | null = null;
 
-// shadow dom setup
-
-const host = document.createElement("vmem-selection-popup");
-host.setAttribute("data-vmem-selection", "true");
-Object.assign(host.style, {
-  position: "fixed",
-  top: "0",
-  left: "0",
-  width: "0",
-  height: "0",
-  overflow: "visible",
-  zIndex: "2147483647",
-  pointerEvents: "none",
-});
-
-const shadow = host.attachShadow({ mode: "closed" });
-
-// styles inside shadow dom
-
-const styleEl = document.createElement("style");
-styleEl.textContent = `
+const { host, shadow } = createShadowHost(
+  "vmem-selection-popup",
+  `
   @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap');
 
   :host {
@@ -90,7 +69,7 @@ styleEl.textContent = `
     -webkit-user-select: none;
   }
 
-  /* extend hit area to 40px minimum */
+  /* minimum 40px hit target */
   #vmem-popup::before {
     content: '';
     position: absolute;
@@ -104,7 +83,7 @@ styleEl.textContent = `
     transform: translateY(0);
   }
 
-  /* expand to pill on hover only in ready state interpolate size lets the width animate to max content so the label never truncates */
+  /* pill expands on hover in ready state */
   #vmem-popup {
     interpolate-size: allow-keywords;
   }
@@ -120,7 +99,7 @@ styleEl.textContent = `
     transform: translateY(0) scale(0.96);
   }
 
-  /* label hidden by default fades in on hover */
+  /* label fades in on hover */
   .vmem-label {
     font-size: 13px;
     font-weight: 500;
@@ -141,7 +120,7 @@ styleEl.textContent = `
     margin-left: 6px;
   }
 
-  /* state specific colours (drive currentcolor in svgs) */
+  /* success and error tints */
   #vmem-popup.state-success {
     background: #dcfce7;
     color: #16a34a;
@@ -202,10 +181,9 @@ styleEl.textContent = `
       border-top-color: #e4e4e7;
     }
   }
-`;
-shadow.appendChild(styleEl);
-
-// popup dom
+`,
+);
+host.setAttribute("data-vmem-selection", "true");
 
 const popup = document.createElement("div");
 popup.id = "vmem-popup";
@@ -224,24 +202,19 @@ popup.appendChild(label);
 
 shadow.appendChild(popup);
 
-// state transitions
-
 function transitionTo(next: PopupState): void {
   state = next;
 
-  // clear pending hide timers on any transition
   if (hideTimer !== null) {
     clearTimeout(hideTimer);
     hideTimer = null;
   }
 
-  // remove state classes + expandable (only re added in ready state)
   popup.classList.remove("state-success", "state-error", "expandable");
 
   switch (next) {
     case "idle":
       popup.classList.remove("visible");
-      // reset icon after hide animation
       setTimeout(() => {
         if (state === "idle") {
           mountVmemLogo(iconContainer, logoVariant(), VMEM_LOGO_SIZE);
@@ -271,8 +244,6 @@ function transitionTo(next: PopupState): void {
       break;
   }
 }
-
-// positioning
 
 function getSelectionRect(): DOMRect | null {
   const selection = window.getSelection();
@@ -304,8 +275,6 @@ async function positionPopup(): Promise<void> {
   popup.style.top = `${y}px`;
 }
 
-// save logic
-
 async function saveSelection(): Promise<void> {
   if (state !== "ready" || capturedText.length === 0) return;
 
@@ -321,25 +290,21 @@ async function saveSelection(): Promise<void> {
   } catch (err) {
     console.error(
       "[vmem] Save failed:",
-      err instanceof Error ? err.message : String(err),
+      errorMessage(err),
       "— reload the page to reconnect.",
     );
     transitionTo("error");
   }
 }
 
-// event handlers
-
 function onMouseUp(e: MouseEvent): void {
   if (!enabled) return;
 
-  // skip right clicks (context menu)
   if (e.button === 2) return;
 
-  // skip clicks inside our own popup
   if (e.target === host) return;
 
-  // use rAF to let the browser finalise the selection
+  // wait for the browser to finalize the selection
   requestAnimationFrame(() => {
     const selection = window.getSelection();
     if (!selection || selection.isCollapsed) return;
@@ -356,7 +321,6 @@ function onMouseUp(e: MouseEvent): void {
 const onSelectionChangeDebounced = debounce(() => {
   const selection = window.getSelection();
 
-  // if selection is cleared and we're in ready state, hide
   if (
     (!selection ||
       selection.isCollapsed ||
@@ -376,7 +340,6 @@ function onScrollOrResize(): void {
   if (!enabled) return;
   if (state !== "ready") return;
 
-  // throttle repositioning with rAF
   if (repositionRaf !== null) return;
 
   repositionRaf = requestAnimationFrame(() => {
@@ -387,7 +350,6 @@ function onScrollOrResize(): void {
   });
 }
 
-// prevent click on popup from clearing the text selection
 function onPopupMouseDown(e: Event): void {
   e.preventDefault();
 }
@@ -397,8 +359,6 @@ function onPopupClick(e: Event): void {
   e.stopPropagation();
   void saveSelection();
 }
-
-// toggle support
 
 function attachListeners(): void {
   document.addEventListener("mouseup", onMouseUp, true);
@@ -414,7 +374,6 @@ function detachListeners(): void {
   window.removeEventListener("resize", onScrollOrResize);
   onSelectionChangeDebounced.cancel();
 
-  // hide popup if visible
   if (state !== "idle") {
     transitionTo("idle");
   }
@@ -431,23 +390,14 @@ function setEnabled(value: boolean): void {
   }
 }
 
-// initialisation
-
 function init(): void {
-  // attach popup event listeners (these stay regardless of toggle)
   popup.addEventListener("mousedown", onPopupMouseDown);
   popup.addEventListener("click", onPopupClick);
 
-  // append host to document
   document.body.appendChild(host);
 
   void selectionPopupEnabledItem.getValue().then(setEnabled);
   selectionPopupEnabledItem.watch(setEnabled);
 }
 
-// wait for document.body to be available
-if (document.body) {
-  init();
-} else {
-  document.addEventListener("DOMContentLoaded", init);
-}
+onDocumentReady(init);

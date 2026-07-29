@@ -8,7 +8,6 @@ import { useRecentMemories } from "@/hooks/useRecentMemories";
 import { useMemoryListSupplementaryItems } from "@/hooks/useMemoryListSupplementaryItems";
 import { useMemoriesSearchParams } from "@/hooks/useMemoriesSearchParams";
 
-// filter dropdown counts and option sources for the memories list header
 export function useMemoryListFilterStats() {
   const [params] = useMemoriesSearchParams();
   const { memories: allMemories } = useRecentMemories();

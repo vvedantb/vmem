@@ -3,10 +3,15 @@
  *
  * Apps/packages must import `@vmem/backend` and `@vmem/shared` at the package
  * root — never `@vmem/backend/…` or `@vmem/shared/…`. `@vmem/ui/cn` is allowed
- * (it is a published subpath export).
+ * (it is a published subpath export), as are the specifiers in ALLOWED below.
  */
 
 const ROOT_ONLY = new Set(["@vmem/backend", "@vmem/shared", "@vmem/sdk"]);
+
+// Declared subpath exports. `@vmem/shared/graph` is deliberately separate from
+// the root so the MCP UI graph bundle can pull in the cosmos helpers without
+// dragging the dayjs setup in `time.ts` along with them.
+const ALLOWED = new Set(["@vmem/shared/graph"]);
 
 const messageFor = (pkg) =>
   `Do not deep-import \`${pkg}\`. Import from the package root only ` +
@@ -25,6 +30,7 @@ export default {
       ImportDeclaration(node) {
         const specifier = node.source?.value;
         if (typeof specifier !== "string") return;
+        if (ALLOWED.has(specifier)) return;
 
         for (const pkg of ROOT_ONLY) {
           if (specifier === pkg) return;

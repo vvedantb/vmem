@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
-import { Label, Switch, Skeleton, Card, CardContent } from "@vmem/ui";
+import { Skeleton, Card, CardContent, LabeledSwitchRow } from "@vmem/ui";
 import { api } from "@vmem/backend";
 import PageContainer from "@/components/shell/PageContainer";
 import { useUserSettingsSave } from "@/hooks/useUserSettingsSave";
@@ -34,43 +34,24 @@ function ExtensionSettingsPage() {
     <PageContainer title="Extension" centeredMaxWidth showTitle>
       <Card className="shadow-none">
         <CardContent className="space-y-6 p-6">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <Label htmlFor="ext-auto-sync" className="text-sm font-medium">
-                Auto-sync
-              </Label>
-              <p className="mt-1 text-xs text-muted">
-                Sync bookmarks and browsing history on a schedule.
-              </p>
-            </div>
-            <Switch
-              id="ext-auto-sync"
-              checked={settings.extensionAutoSyncEnabled}
-              onCheckedChange={(checked) => {
-                void saveSettings({ extensionAutoSyncEnabled: checked });
-              }}
-            />
-          </div>
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <Label
-                htmlFor="ext-selection-popup"
-                className="text-sm font-medium"
-              >
-                Save popup on text selection
-              </Label>
-              <p className="mt-1 text-xs text-muted">
-                Show a quick-save control when you select text on a page.
-              </p>
-            </div>
-            <Switch
-              id="ext-selection-popup"
-              checked={settings.extensionSelectionPopupEnabled}
-              onCheckedChange={(checked) => {
-                void saveSettings({ extensionSelectionPopupEnabled: checked });
-              }}
-            />
-          </div>
+          <LabeledSwitchRow
+            id="ext-auto-sync"
+            label="Auto-sync"
+            description="Sync bookmarks and browsing history on a schedule."
+            checked={settings.extensionAutoSyncEnabled}
+            onCheckedChange={(checked) => {
+              void saveSettings({ extensionAutoSyncEnabled: checked });
+            }}
+          />
+          <LabeledSwitchRow
+            id="ext-selection-popup"
+            label="Save popup on text selection"
+            description="Show a quick-save control when you select text on a page."
+            checked={settings.extensionSelectionPopupEnabled}
+            onCheckedChange={(checked) => {
+              void saveSettings({ extensionSelectionPopupEnabled: checked });
+            }}
+          />
         </CardContent>
       </Card>
     </PageContainer>

@@ -2,6 +2,7 @@ import { useAction, useMutation, useQuery } from "convex/react";
 import { useQuery as useTanstackQuery } from "@tanstack/react-query";
 import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
+import { tempId } from "@/lib/convex-optimistic";
 import {
   Dialog,
   DialogContent,
@@ -40,12 +41,12 @@ export function AddRepoModal({
     const list = localStore.getQuery(api.codebases.listMy, listArgs);
     if (list === undefined) return;
     const now = Date.now();
-    const tempId = crypto.randomUUID() as Id<"codebases">;
+    const optimisticId = tempId<"codebases">();
     localStore.setQuery(api.codebases.listMy, listArgs, [
       {
-        _id: tempId,
+        _id: optimisticId,
         _creationTime: now,
-        userId: list[0]?.userId ?? ("" as Id<"users">),
+        userId: list[0]?.userId ?? tempId<"users">(),
         teamId: args.teamId,
         githubConnectionId: args.githubConnectionId,
         repoOwner: args.repoOwner,
@@ -106,6 +107,11 @@ export function AddRepoModal({
 
   const handleAdd = async (repo: AddRepoModalRepo) => {
     setAdding(repo.fullName);
+    // the `??` defaults are hoisted above the try and the reset sits after it
+    // rather than in a `finally` React Compiler bails on the whole file for
+    // either construct.
+    const language = repo.language ?? undefined;
+    const description = repo.description ?? undefined;
     try {
       await addCodebase({
         githubConnectionId: connectionId,
@@ -113,8 +119,8 @@ export function AddRepoModal({
         repoName: repo.name,
         repoFullName: repo.fullName,
         defaultBranch: repo.defaultBranch,
-        language: repo.language ?? undefined,
-        description: repo.description ?? undefined,
+        language,
+        description,
         isPrivate: repo.isPrivate,
         teamId,
       });
@@ -124,9 +130,8 @@ export function AddRepoModal({
       const message =
         err instanceof Error ? err.message : "Failed to add repository";
       toast.error(message);
-    } finally {
-      setAdding(null);
     }
+    setAdding(null);
   };
 
   const listSummary = loading

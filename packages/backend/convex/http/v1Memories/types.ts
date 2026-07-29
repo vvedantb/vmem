@@ -1,7 +1,7 @@
 import type { FunctionReturnType } from "convex/server";
 import { z } from "zod";
 import type { MemoryCandidate } from "../../../engine/neo4j/memory/types";
-import { internal } from "../../_generated/api";
+import type { internal } from "../../_generated/api";
 import type { OpenRouterRequired } from "../../neo4jActions/agent/shared";
 
 export type RetrieveHttpResult = {

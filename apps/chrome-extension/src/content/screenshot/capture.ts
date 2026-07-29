@@ -1,8 +1,4 @@
-// pure capture/crop pipeline for the screenshot overlay
-//
-//   requestCapture asks the background sw for a viewport png
-//   cropImage clips that png to the dragged rect (dpr aware)
-//   blobToBase64 encodes the cropped blob for SAVE_SCREENSHOT
+// viewport capture, dpr-aware crop, base64 encode for saveScreenshot
 
 import { base64 as base64Codec } from "@scure/base";
 import { sendMessage } from "@/lib/messaging";
@@ -21,7 +17,7 @@ export async function cropImage(
 ): Promise<CroppedImage> {
   const img = await loadImage(sourceDataUrl);
 
-  // captureVisibleTab is at devicePixelRatio map css rect → image pixels
+  // map css selection rect to device pixel capture coordinates
   const dpr = window.devicePixelRatio || 1;
   const sx = Math.max(0, Math.min(Math.round(rect.x * dpr), img.naturalWidth));
   const sy = Math.max(0, Math.min(Math.round(rect.y * dpr), img.naturalHeight));

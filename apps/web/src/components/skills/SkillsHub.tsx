@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@vmem/backend";
-import { Button } from "@vmem/ui";
+import { Button, Spinner } from "@vmem/ui";
 import { IconApps, IconPlus } from "@tabler/icons-react";
 import { SystemSkillCard } from "@/components/skills/SystemSkillCard";
 import { SystemSkillFormDialog } from "@/components/skills/SystemSkillFormDialog";
@@ -10,7 +10,7 @@ import { useActiveTeamId } from "@/components/workspace/active-profile";
 
 const skillsHubSpinner = (
   <div className="flex justify-center py-20">
-    <div className="h-5 w-5 animate-spin rounded-full border-2 border-default border-t-transparent" />
+    <Spinner size="sm" />
   </div>
 );
 
@@ -82,7 +82,7 @@ interface SkillsHubProps {
   profileId: string;
 }
 
-// the Skills Hub — browse maintainer-curated system skills
+// the Skills Hub browse maintainer curated system skills
 export function SkillsHub({ profileId }: SkillsHubProps) {
   const teamId = useActiveTeamId();
   const catalog = useQuery(api.systemSkills.listCatalog, { teamId });

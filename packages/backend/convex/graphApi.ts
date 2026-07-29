@@ -12,10 +12,10 @@ import {
   getMemoryContent,
   type GraphData,
 } from "../engine/neo4j/memory/graph";
+import type { MemoryReadScope } from "../engine/neo4j/memory/scope";
 import type { MemoryType } from "../engine/neo4j/memory/types";
-import { resolveAccessibleTeamScope } from "./profiles/accessibleProfile";
 
-// Convex enforces a hard 8192 element limit on ANY array in a return value
+// convex enforces a hard 8192 element limit on any array in a return value
 const MAX_NODES = 5000;
 const MAX_EDGES = 8000;
 
@@ -74,12 +74,11 @@ function capGraph(data: GraphData): CappedMemoryGraph {
   const nodes = data.nodes.slice(0, MAX_NODES);
   const nodeIds = new Set(nodes.map((n) => n.id));
 
-  // keep RELATES_TO edges only when both ends are in this page — otherwise a
-  // team-scoped page can ship dangling ids that belong to another workspace
+  // keep relates_to edges only when both ends are in this page, otherwise a team-scoped page can ship dangling ids from another workspace
   const relatesToEdges = data.relatesToEdges
     .filter((e) => nodeIds.has(e.source) && nodeIds.has(e.target))
     .slice(0, MAX_EDGES);
-  // tag edges span the whole graph (first page only) — no node filter
+  // tag edges span the whole graph (first page only), no node filter
   const tagEdges = data.tagEdges.slice(0, MAX_EDGES);
 
   const entities = data.entities
@@ -114,7 +113,7 @@ async function fetchCappedMemoryGraph(args: {
   clerkId: string;
   focus?: string;
   profileId?: string;
-  strictProfile?: boolean;
+  teamProfile?: boolean;
   mode?: "local" | "global";
   depth?: number;
   nodeLimit?: number;
@@ -128,34 +127,23 @@ async function fetchCappedMemoryGraph(args: {
     args.cursorCreatedAt !== undefined && args.cursorId !== undefined
       ? { createdAt: args.cursorCreatedAt, id: args.cursorId }
       : null;
-  const strictProfile = args.strictProfile === true;
+  const scope: MemoryReadScope =
+    args.teamProfile === true && args.profileId !== undefined
+      ? { kind: "team", profileId: args.profileId }
+      : { kind: "personal", userId: args.clerkId, profileId: args.profileId };
   const raw = isLocal
-    ? await getLocalGraph(
-        driver,
-        args.clerkId,
-        args.focus ?? null,
-        args.profileId,
-        args.depth,
-        strictProfile,
-      )
-    : await fetchGraphData(
-        driver,
-        args.clerkId,
-        args.profileId,
-        args.nodeLimit,
-        cursor,
-        strictProfile,
-      );
+    ? await getLocalGraph(driver, scope, args.focus ?? null, args.depth)
+    : await fetchGraphData(driver, scope, args.nodeLimit, cursor);
   return capGraph(raw);
 }
 
-// kept for MCP (`mcp/graph.ts`) which is not a `"use node"` module
+// kept for mcp (mcp/graph.ts) which is not a "use node" module
 export const getGraphDataInternal = internalAction({
   args: {
     clerkId: v.string(),
     focus: v.optional(v.string()),
     profileId: v.optional(v.string()),
-    strictProfile: v.optional(v.boolean()),
+    teamProfile: v.optional(v.boolean()),
     mode: v.optional(v.union(v.literal("local"), v.literal("global"))),
     depth: v.optional(v.number()),
     nodeLimit: v.optional(v.number()),
@@ -185,19 +173,24 @@ export const getGraphData = authAction({
     const isFirstPage = args.cursorCreatedAt === undefined;
     const includeAccountAtoms = !isLocal && isFirstPage;
 
-    let strictProfile = false;
+    let teamProfile = false;
     let teamId: Id<"teams"> | undefined;
     if (args.profileId !== undefined) {
-      const scope = await resolveAccessibleTeamScope(ctx, args.profileId);
-      strictProfile = scope.strictProfile;
-      teamId = scope.teamId;
+      const scope = await ctx.runQuery(
+        internal.teams.resolveMemoryScopeInternal,
+        { userId: ctx.userId, profileId: args.profileId },
+      );
+      if (scope.kind === "team") {
+        teamProfile = true;
+        teamId = scope.teamId;
+      }
     }
 
     const memoryGraph = await fetchCappedMemoryGraph({
       clerkId,
       focus: args.focus,
       profileId: args.profileId,
-      strictProfile,
+      teamProfile,
       mode: args.mode,
       depth: args.depth,
       nodeLimit: args.nodeLimit,
@@ -294,9 +287,24 @@ export const getGraphData = authAction({
 export const getNodeContent = authAction({
   args: {
     memoryId: v.string(),
+    profileId: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<string> => {
     const clerkId = await requireClerkId(ctx);
-    return await getMemoryContent(getDriver(), clerkId, args.memoryId);
+    let scope: MemoryReadScope = {
+      kind: "personal",
+      userId: clerkId,
+      profileId: args.profileId,
+    };
+    if (args.profileId !== undefined) {
+      const resolved = await ctx.runQuery(
+        internal.teams.resolveMemoryScopeInternal,
+        { userId: ctx.userId, profileId: args.profileId },
+      );
+      if (resolved.kind === "team") {
+        scope = { kind: "team", profileId: resolved.profileId };
+      }
+    }
+    return await getMemoryContent(getDriver(), scope, args.memoryId);
   },
 });

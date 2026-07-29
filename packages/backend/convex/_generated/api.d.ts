@@ -66,7 +66,6 @@ import type * as lib_runConnectorProviderSync from "../lib/runConnectorProviderS
 import type * as lib_scopedTree from "../lib/scopedTree.js";
 import type * as lib_versionSnapshot from "../lib/versionSnapshot.js";
 import type * as lib_wikiContent from "../lib/wikiContent.js";
-import type * as lib_wikiKind from "../lib/wikiKind.js";
 import type * as mcp_bundled_memoryGraphHtml from "../mcp/bundled/memoryGraphHtml.js";
 import type * as mcp_codebases from "../mcp/codebases.js";
 import type * as mcp_content from "../mcp/content.js";
@@ -87,7 +86,6 @@ import type * as mcp_toolsSkills from "../mcp/toolsSkills.js";
 import type * as mcp_toolsWiki from "../mcp/toolsWiki.js";
 import type * as mcp_wikiOps from "../mcp/wikiOps.js";
 import type * as memoryApi from "../memoryApi.js";
-import type * as memoryApi_contract from "../memoryApi/contract.js";
 import type * as memoryApi_routing from "../memoryApi/routing.js";
 import type * as memoryApi_team from "../memoryApi/team.js";
 import type * as memoryApi_types from "../memoryApi/types.js";
@@ -229,7 +227,6 @@ declare const fullApi: ApiFromModules<{
   "lib/scopedTree": typeof lib_scopedTree;
   "lib/versionSnapshot": typeof lib_versionSnapshot;
   "lib/wikiContent": typeof lib_wikiContent;
-  "lib/wikiKind": typeof lib_wikiKind;
   "mcp/bundled/memoryGraphHtml": typeof mcp_bundled_memoryGraphHtml;
   "mcp/codebases": typeof mcp_codebases;
   "mcp/content": typeof mcp_content;
@@ -250,7 +247,6 @@ declare const fullApi: ApiFromModules<{
   "mcp/toolsWiki": typeof mcp_toolsWiki;
   "mcp/wikiOps": typeof mcp_wikiOps;
   memoryApi: typeof memoryApi;
-  "memoryApi/contract": typeof memoryApi_contract;
   "memoryApi/routing": typeof memoryApi_routing;
   "memoryApi/team": typeof memoryApi_team;
   "memoryApi/types": typeof memoryApi_types;

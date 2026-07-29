@@ -7,7 +7,7 @@ import {
   syncDataLoaderFeature,
 } from "@headless-tree/core";
 import { AssistiveTreeDescription, useTree } from "@headless-tree/react";
-import { api, type Id } from "@vmem/backend";
+import { api } from "@vmem/backend";
 import type { WikiListNode, WikiNodeId } from "./-types";
 import {
   collectSubtreeIds,
@@ -18,8 +18,14 @@ import {
 import RenameDialog from "./RenameDialog";
 import DeleteConfirmDialog from "./DeleteConfirmDialog";
 import { WikiTreeRow } from "./WikiTreeItem";
+import { defaultWikiNodeTitle, useCreateWikiNode } from "./useCreateWikiNode";
 import { useActiveTeamId } from "@/components/workspace/active-profile";
 import { cn } from "@vmem/ui";
+import {
+  removeWikiNodesFromLists,
+  renameWikiNodeInLists,
+  updateAllCachedQueries,
+} from "@/lib/convex-optimistic";
 
 type WikiTreeMode = "navigate" | "bulk-select";
 
@@ -38,13 +44,13 @@ interface WikiTreeProps {
   nodes: Array<WikiListNode>;
   selectedId: string | null;
   onSelect: (id: WikiNodeId | "") => void;
-  // navigate = open node; bulk-select = checkbox toggle
+  // navigate = open node bulk select = checkbox toggle
   mode?: WikiTreeMode;
   selectedNodeIds?: ReadonlySet<WikiNodeId>;
   onToggleSelect?: (id: WikiNodeId) => void;
 }
 
-// left-pane document/folder tree
+// left pane document/folder tree
 export default function WikiTree({
   nodes,
   selectedId,
@@ -54,95 +60,26 @@ export default function WikiTree({
   onToggleSelect,
 }: WikiTreeProps) {
   const teamId = useActiveTeamId();
-  const createNode = useMutation(api.wiki.createNode).withOptimisticUpdate(
-    (localStore, args) => {
-      const listArgs = { teamId: args.teamId };
-      const list = localStore.getQuery(api.wiki.listTree, listArgs);
-      if (list === undefined) return;
-      const now = Date.now();
-      const siblings = list.filter(
-        (n) => (n.parentId ?? undefined) === (args.parentId ?? undefined),
-      );
-      const order =
-        siblings.length === 0
-          ? 0
-          : Math.max(...siblings.map((s) => s.order)) + 1;
-      const tempId = crypto.randomUUID() as Id<"wikiNodes">;
-      localStore.setQuery(api.wiki.listTree, listArgs, [
-        ...list,
-        {
-          _id: tempId,
-          _creationTime: now,
-          userId: list[0]?.userId ?? ("" as Id<"users">),
-          teamId: args.teamId,
-          parentId: args.parentId,
-          kind: args.kind,
-          title: args.title,
-          language: args.language,
-          order,
-          createdAt: now,
-          updatedAt: now,
-        },
-      ]);
-    },
-  );
+  const createNode = useCreateWikiNode();
   const renameNode = useMutation(api.wiki.renameNode).withOptimisticUpdate(
     (localStore, args) => {
-      for (const entry of localStore.getAllQueries(api.wiki.listTree)) {
-        if (entry.value === undefined) continue;
-        localStore.setQuery(
-          api.wiki.listTree,
-          entry.args,
-          entry.value.map((n) =>
-            n._id === args.id ? { ...n, title: args.title } : n,
-          ),
-        );
-      }
-      for (const entry of localStore.getAllQueries(api.wiki.getNode)) {
-        if (entry.value == null || entry.value._id !== args.id) continue;
-        localStore.setQuery(api.wiki.getNode, entry.args, {
-          ...entry.value,
-          title: args.title,
-        });
-      }
+      renameWikiNodeInLists(localStore, args);
     },
   );
   const deleteNode = useMutation(api.wiki.deleteNode).withOptimisticUpdate(
     (localStore, args) => {
-      for (const entry of localStore.getAllQueries(api.wiki.listTree)) {
-        if (entry.value === undefined) continue;
-        const remove = collectSubtreeIds(entry.value, [args.id]);
-        localStore.setQuery(
-          api.wiki.listTree,
-          entry.args,
-          entry.value.filter((n) => !remove.has(n._id)),
-        );
-      }
-      for (const entry of localStore.getAllQueries(api.wiki.getNode)) {
-        if (entry.args.id === args.id) {
-          localStore.setQuery(api.wiki.getNode, entry.args, undefined);
-        }
-      }
+      removeWikiNodesFromLists(localStore, [args.id]);
     },
   );
   const moveNode = useMutation(api.wiki.moveNode).withOptimisticUpdate(
     (localStore, args) => {
-      for (const entry of localStore.getAllQueries(api.wiki.listTree)) {
-        if (entry.value === undefined) continue;
-        localStore.setQuery(
-          api.wiki.listTree,
-          entry.args,
-          entry.value.map((n) =>
-            n._id === args.id
-              ? {
-                  ...n,
-                  parentId: args.newParentId,
-                  order: args.newOrder,
-                }
-              : n,
-          ),
-        );
-      }
+      updateAllCachedQueries(localStore, api.wiki.listTree, (nodes) =>
+        nodes.map((n) =>
+          n._id === args.id
+            ? { ...n, parentId: args.newParentId, order: args.newOrder }
+            : n,
+        ),
+      );
     },
   );
 
@@ -195,12 +132,7 @@ export default function WikiTree({
     parentId: WikiNodeId,
     kind: "folder" | "document" | "artifact",
   ) => {
-    const title =
-      kind === "folder"
-        ? "Untitled folder"
-        : kind === "artifact"
-          ? "Untitled artifact"
-          : "Untitled";
+    const title = defaultWikiNodeTitle(kind);
     const newId = await createNode({
       parentId,
       kind,
@@ -216,7 +148,7 @@ export default function WikiTree({
   const tree = useTree<WikiTreeItemData>({
     rootItemId: WIKI_ROOT_DROP_ID,
     indent: 16,
-    // reorder lines are how we expose "drop to root"; order itself stays append-only via resolveWikiMove
+    // reorder lines expose "drop to root" — order stays append-only via resolveWikiMove
     canReorder: true,
     state: {
       expandedItems,
@@ -255,7 +187,7 @@ export default function WikiTree({
     canDrag: () => !isBulkSelect,
     canDrop: (items, target) => {
       if (isBulkSelect) return false;
-      // target.item is the new parent (folder, or root when dropping between top-level rows)
+      // target.item is the new parent (folder, or root when dropping between top level rows)
       if (!target.item.isFolder()) return false;
       const dragged = items[0];
       if (dragged === undefined) return false;

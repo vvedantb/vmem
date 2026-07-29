@@ -83,7 +83,6 @@ export const authAction = authActionBuilder;
 
 export type AuthActionCtx = ActionCtx & { userId: Id<"users"> };
 
-// returns the Clerk subject ID for an authenticated action context
 export async function requireClerkId(ctx: AuthActionCtx): Promise<string> {
   const clerkId = await ctx.runQuery(internal.auth.getClerkIdInternal, {
     userId: ctx.userId,
@@ -131,7 +130,7 @@ export const ensureUserExists = mutation({
       fullName,
     });
 
-    // auto-create default "Personal" profile for new users
+    // auto create default "personal" profile for new users
     const now = Date.now();
     await ctx.db.insert("profiles", {
       userId,
@@ -155,7 +154,6 @@ export const me = query({
   },
 });
 
-// returns the Clerk subject ID for a given Convex user
 export const getClerkIdInternal = internalQuery({
   args: { userId: v.id("users") },
   returns: v.union(v.string(), v.null()),

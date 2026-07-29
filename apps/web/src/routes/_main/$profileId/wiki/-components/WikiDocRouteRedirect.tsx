@@ -12,18 +12,17 @@ export function WikiDocRouteRedirect() {
   const params = useParams({ strict: false });
   const docId = typeof params.docId === "string" ? params.docId : null;
   const nodes = useQuery(api.wiki.listTree, { teamId: activeProfile.teamId });
-  const tree = nodes ? buildTree(nodes) : [];
 
   useEffect(() => {
     if (!nodes) return;
 
-    // keep document/artifact URLs; only redirect bare /wiki or folder ids
+    // keep document/artifact URLs only redirect bare /wiki or folder ids
     if (docId !== null) {
       const node = nodes.find((n) => n._id === docId);
       if (!node || node.kind === "document" || node.kind === "artifact") return;
     }
 
-    const firstId = findFirstDocumentId(tree);
+    const firstId = findFirstDocumentId(buildTree(nodes));
     if (firstId === null || firstId === docId) return;
 
     void navigate({
@@ -31,7 +30,7 @@ export function WikiDocRouteRedirect() {
       params: { profileId: activeProfile._id, docId: firstId },
       replace: true,
     });
-  }, [nodes, docId, tree, navigate, activeProfile._id]);
+  }, [nodes, docId, navigate, activeProfile._id]);
 
   return null;
 }

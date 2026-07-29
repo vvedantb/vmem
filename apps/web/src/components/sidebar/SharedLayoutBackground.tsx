@@ -1,6 +1,5 @@
 // AI-generated (Claude), prompt: "shared layout pill that springs between sidebar rows"
 // Modified by me: hover id context and active fallback
-
 import { cn } from "@vmem/ui";
 import { motion } from "motion/react";
 import { createContext, use, useState, type ReactNode } from "react";

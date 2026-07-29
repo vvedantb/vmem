@@ -14,7 +14,7 @@ const glBenchEsm = path.join(
   "dist/gl-bench.module.js",
 );
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [
     tanstackRouter({
       routesDirectory: "./src/routes",
@@ -23,9 +23,15 @@ export default defineConfig({
       autoCodeSplitting: true,
     }),
     react(),
-    babel({
-      presets: [reactCompilerPreset()],
-    }),
+    // React Compiler runs on builds only. Measured over apps/web/src it costs
+    // ~24s of Babel CPU (~31ms median per file) and accounts for ~90% of the
+    // Babel pass. Vite does not cache source transforms to disk, so in dev every
+    // restart re-pays it on every module a page pulls. Set REACT_COMPILER=1 to
+    // force it on in dev when reproducing a bug only seen in compiled output.
+    (command === "build" || process.env.REACT_COMPILER === "1") &&
+      babel({
+        presets: [reactCompilerPreset()],
+      }),
     process.env.ANALYZE === "true" &&
       visualizer({
         filename: "stats.html",
@@ -89,4 +95,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));

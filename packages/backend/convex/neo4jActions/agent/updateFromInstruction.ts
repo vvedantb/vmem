@@ -48,6 +48,7 @@ export async function runUpdateFromInstruction(
     auth: prepared.auth,
     facts: prepared.facts,
     loop: {
+      graphScope: prepared.graphScope,
       retrieveWithProfileId: true,
       logPrefix: "[agent]",
     },

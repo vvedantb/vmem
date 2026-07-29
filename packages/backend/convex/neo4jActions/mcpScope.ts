@@ -4,10 +4,7 @@ import type { ActionCtx } from "../_generated/server";
 import { v } from "convex/values";
 import { getDriver } from "../../engine/neo4j/driver";
 import { getMemory } from "../../engine/neo4j/memory/crud";
-import type {
-  MemoryCandidate,
-  MemoryWithTags,
-} from "../../engine/neo4j/memory/types";
+import type { MemoryWithTags } from "../../engine/neo4j/memory/types";
 import { mcpScopeValidator, type McpScope } from "../profiles/mcpAccess";
 import { resolveProfileIdForMcpScope } from "./_memories/shared";
 import { runGetMemoryForTeam } from "./_memories/team";
@@ -17,13 +14,14 @@ export const scopedMcpArgs = {
   mcpScope: mcpScopeValidator,
 };
 
-export interface McpResolvedScope {
-  clerkId: string;
-  mcpScope: McpScope;
-  profileId: string;
-}
+// discriminated on McpScope, mirroring MemoryReadScope's kind union
+// team: keyed on profileId alone (the whole team scope), so it statically requires one
+// personal: keeps the same shape it has always resolved to
+export type McpResolvedScope =
+  | { clerkId: string; mcpScope: "team"; profileId: string }
+  | { clerkId: string; mcpScope: "personal"; profileId: string };
 
-// resolve MCP profile scope, then run the handler with the resolved ids
+// resolve mcp profile scope, then run the handler with the resolved ids
 export async function withMcpMemoryScope<T>(
   ctx: ActionCtx,
   args: { clerkId: string; mcpScope: McpScope; profileId?: string },
@@ -35,11 +33,10 @@ export async function withMcpMemoryScope<T>(
     args.mcpScope,
     args.profileId,
   );
-  return run({
-    clerkId: args.clerkId,
-    mcpScope: args.mcpScope,
-    profileId,
-  });
+  if (args.mcpScope === "team") {
+    return run({ clerkId: args.clerkId, mcpScope: "team", profileId });
+  }
+  return run({ clerkId: args.clerkId, mcpScope: "personal", profileId });
 }
 
 // team vs personal branch after scope resolution
@@ -95,26 +92,4 @@ export async function loadMemoryForMcpScope(args: {
     throw new Error("Memory not found");
   }
   return memory;
-}
-
-// fake-RRF candidates for team MCP retrieve (search has no hybrid trace)
-export function toTeamRetrieveCandidates(
-  memories: MemoryWithTags[],
-): MemoryCandidate[] {
-  return memories.map((memory, index) => ({
-    ...memory,
-    trace: {
-      score: 1 / (index + 1),
-      scoreBreakdown: {
-        fulltext: 1 / (index + 1),
-        vector: 0,
-        chunk: 0,
-        entity: 0,
-        rrf: 1 / (index + 1),
-        recency: 0,
-        confidence: memory.confidence,
-      },
-      reason: "team profile search",
-    },
-  }));
 }

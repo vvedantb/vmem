@@ -1,7 +1,8 @@
 import { IconChartBarOff } from "@tabler/icons-react";
 import { motion } from "motion/react";
 import type { FunctionReturnType } from "convex/server";
-import { api } from "@vmem/backend";
+import type { api } from "@vmem/backend";
+import { formatMonthDay } from "@vmem/shared";
 import { Card, CardContent } from "@vmem/ui";
 
 type GrowthData = FunctionReturnType<
@@ -111,7 +112,7 @@ export function MemoryGrowthChart({ growthData }: { growthData: GrowthData }) {
 
                   return (
                     <div
-                      key={`${day.date}-${index}`}
+                      key={`${day.isoDate}-${index}`}
                       className="flex flex-1 flex-col items-center"
                     >
                       <div
@@ -143,10 +144,10 @@ export function MemoryGrowthChart({ growthData }: { growthData: GrowthData }) {
               <div className="mt-3 flex justify-between gap-1">
                 {growthData.map((day, index) => (
                   <div
-                    key={`label-${day.date}-${index}`}
+                    key={`label-${day.isoDate}-${index}`}
                     className="flex-1 text-center text-[11px] text-muted sm:text-xs"
                   >
-                    {day.date}
+                    {formatMonthDay(day.isoDate)}
                   </div>
                 ))}
               </div>

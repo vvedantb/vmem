@@ -1,6 +1,5 @@
 // AI-generated (Claude), prompt: "shared svg petal paths for the vmem logo animations"
 // Modified by me: per petal classname hooks
-
 import "./vmem-anim.css";
 
 // raw `d` strings for the three vmem logo petals
@@ -14,11 +13,11 @@ const PATH_TOP =
 interface VmemPathsProps {
   // class applied to every petal — combine with `:nth-child` selectors
   pathClassName?: string;
-  // per-petal classes when you need to target individuals by name
+  // per petal classes when you need to target individuals by name
   leftClassName?: string;
   rightClassName?: string;
   topClassName?: string;
-  // `pathLength="100"` lets every stroke animation use a normalised 0-100 dasharray
+  // `pathLength="100"` lets every stroke animation use a normalised 0 100 dasharray
   normalizePath?: boolean;
 }
 

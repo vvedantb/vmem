@@ -6,7 +6,7 @@ import { auditLog, ResourceTypes } from "../auditLog";
 
 interface RemoveArgs {
   profileId: Id<"profiles">;
-  // when set, move Neo4j memories here before deletion
+  // when set, move neo4j memories here before deletion
   moveMemoriesToProfileId?: Id<"profiles">;
 }
 

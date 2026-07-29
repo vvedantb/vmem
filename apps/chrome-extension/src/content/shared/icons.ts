@@ -1,4 +1,4 @@
-// public/icon-{dark,light}.svg copied from apps/web/public
+// logo svgs copied from apps/web/public
 
 export type VmemLogoVariant = "dark" | "light";
 
@@ -7,7 +7,7 @@ const LOGO_FILES: Record<VmemLogoVariant, string> = {
   light: "icon-light.svg",
 };
 
-export function getVmemLogoUrl(variant: VmemLogoVariant): string {
+function getVmemLogoUrl(variant: VmemLogoVariant): string {
   return chrome.runtime.getURL(LOGO_FILES[variant]);
 }
 

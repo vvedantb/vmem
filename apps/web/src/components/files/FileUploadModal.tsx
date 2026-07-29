@@ -7,6 +7,7 @@ import {
   DialogTitle,
   DialogFooter,
   Button,
+  Input,
   Progress,
 } from "@vmem/ui";
 import { toast } from "sonner";
@@ -22,7 +23,7 @@ import { formatFileSize, getFileIconForMime } from "@/components/files/_utils";
 interface FileUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  // persist a single file (Convex upload-url flow lives in the caller)
+  // persist a single file (Convex upload url flow lives in the caller)
   onUpload: (file: File) => Promise<void>;
   initialFiles?: File[];
 }
@@ -43,7 +44,7 @@ export default function FileUploadModal({
   const [queuedFiles, setQueuedFiles] = useState<QueuedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
-  // pre-populate queue when initialFiles are provided (e.g. from drop zone)
+  // pre populate queue when initialFiles are provided (e.g. from drop zone)
   useEffect(() => {
     if (isOpen && initialFiles && initialFiles.length > 0) {
       const newQueued: QueuedFile[] = initialFiles.map((file) => ({
@@ -201,7 +202,7 @@ export default function FileUploadModal({
                 "relative cursor-pointer rounded-lg border-2 border-dashed border-border p-8 text-center transition-colors hover:bg-surface-secondary/35",
             })}
           >
-            <input {...getInputProps()} />
+            <Input {...getInputProps()} />
             <div className="flex flex-col items-center gap-3">
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-surface-secondary">
                 <IconUpload size={24} className="text-muted" />

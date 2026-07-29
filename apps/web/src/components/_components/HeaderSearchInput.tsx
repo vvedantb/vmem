@@ -7,15 +7,17 @@ interface HeaderSearchInputProps {
   placeholder?: string;
   label?: string;
   className?: string;
+  inputClassName?: string;
 }
 
-// always-visible toolbar search
+// stable rounded search field no enter/clear animations, no layout jump.
 export default function HeaderSearchInput({
   value,
   onChange,
   placeholder = "Search...",
   label = "Search",
   className,
+  inputClassName,
 }: HeaderSearchInputProps) {
   const active = value.trim().length > 0;
 
@@ -33,24 +35,28 @@ export default function HeaderSearchInput({
         aria-label={label}
         enterKeyHint="search"
         className={cn(
-          "h-8 w-full min-w-0 border border-border bg-surface-secondary pl-8 text-xs shadow-none sm:w-44 md:w-52",
-          "placeholder:text-muted/70",
-          "focus-visible:border-focus-border focus-visible:bg-surface-tertiary focus-visible:ring-2 focus-visible:ring-focus-ring",
-          active && "border-foreground/20 bg-surface-tertiary/90 pr-8",
+          // match outline toolbar buttons beside it (view / filters / add)
+          "h-8 w-full min-w-0 rounded-lg border border-border bg-transparent pl-8 pr-8 text-xs shadow-none sm:w-44 md:w-52",
+          "placeholder:text-muted/70 hover:bg-default",
+          "focus-visible:border-border focus-visible:bg-default focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+          inputClassName,
         )}
       />
-      {active ? (
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          aria-label="Clear search"
-          className="absolute right-0.5 top-1/2 z-[1] h-7 w-7 -translate-y-1/2 text-muted hover:text-foreground"
-          onClick={() => onChange("")}
-        >
-          <IconX size={14} stroke={1.75} />
-        </Button>
-      ) : null}
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        aria-label="Clear search"
+        tabIndex={active ? 0 : -1}
+        aria-hidden={!active}
+        className={cn(
+          "absolute right-0.5 top-1/2 z-[1] h-7 w-7 -translate-y-1/2 text-muted hover:text-foreground",
+          !active && "pointer-events-none opacity-0",
+        )}
+        onClick={() => onChange("")}
+      >
+        <IconX size={14} stroke={1.75} />
+      </Button>
     </div>
   );
 }

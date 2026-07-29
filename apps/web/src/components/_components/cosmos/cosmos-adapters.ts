@@ -6,9 +6,10 @@ import type {
 } from "@/lib/graph/types";
 import type { GraphViewTheme } from "../graph-view-themes";
 import { nodeColor as getNodeColor } from "../graph-colors";
-import { colorToRgba, writeRgba } from "./cosmos-color";
+import { writeRgba } from "@vmem/shared/graph";
+import { colorToRgba } from "./cosmos-color";
 
-// Palette slots on GraphViewTheme.edge.normalByType
+// palette slots on GraphViewTheme.edge.normalByType
 type EdgePaletteSlot = keyof GraphViewTheme["edge"]["normalByType"];
 
 // @cosmos.gl/graph PointShape enum values. Keep local so pure adapter tests
@@ -170,7 +171,7 @@ export function buildCosmosGraphBuffers(
     positions[i * 2 + 1] = pos.y;
 
     paintNodeColor(colors, i, node, theme);
-    // Canvas draws radius ≈ size * 2; Cosmos size is diameter-ish — keep proportional
+    // canvas draws radius ≈ size * 2 Cosmos size is diameter ish keep proportional
     sizes[i] = Math.max(2, node.size * 2);
     shapes[i] = cosmosPointShapeForKind(node.kind);
   }

@@ -2,7 +2,9 @@ import neo4j, { type Driver, type Record } from "neo4j-driver";
 import { toMemoryContentFulltextQuery } from "../luceneQuery";
 import { neo4jGet, neo4jString, parseNeo4jInt } from "../record";
 import { recencyFromAgeDays, rrfScore, toMemoryWithTags } from "./mappers";
-import { profileFilter, visibleStatusClause } from "./shared";
+import type { MemoryReadScope } from "./scope";
+import { chunkScopeWhereLine, memoryScopeFilter } from "./scope";
+import { visibleStatusClause } from "./shared";
 import type {
   GraphExpansion,
   MemoryCandidate,
@@ -23,12 +25,10 @@ const RECENCY_BOOST = 0.5;
 const CONFIDENCE_BOOST = 0.3;
 
 interface RetrieveParams {
-  userId: string;
-  profileId?: string | null;
+  scope: MemoryReadScope;
   query: string;
-  // pre-computed query embedding
   queryEmbedding: number[] | null;
-  // characterization: type and tags are accepted but not applied to retrieval legs
+  // type and tags are accepted for API compat but not applied to retrieval legs
   type?: MemoryType;
   tags?: string[];
   limit: number;
@@ -128,11 +128,11 @@ async function runFulltextLeg(
   }
 
   try {
-    const pf = profileFilter(params.profileId, "m");
+    const sf = memoryScopeFilter(params.scope, "m");
     return await driver.executeQuery(
       `CALL db.index.fulltext.queryNodes('memory_content', $query)
        YIELD node AS m, score AS fulltextScore
-       WHERE m.userId = $userId ${pf.clause} AND ${visibleStatusClause("m")}
+       WHERE ${sf.clause} AND ${visibleStatusClause("m")}
        OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
        WITH m, collect(t.name) AS tags, fulltextScore,
             duration.between(datetime(m.createdAt), datetime()).days AS ageInDays
@@ -141,8 +141,7 @@ async function runFulltextLeg(
        LIMIT $legLimit`,
       {
         query: luceneQuery,
-        userId: params.userId,
-        ...pf.params,
+        ...sf.params,
         legLimit: neo4j.int(legLimit),
       },
     );
@@ -159,11 +158,11 @@ async function runVectorQuery(
   legLimit: number,
   queryEmbedding: number[],
 ) {
-  const pf = profileFilter(params.profileId, "m");
+  const sf = memoryScopeFilter(params.scope, "m");
   return driver.executeQuery(
     `CALL db.index.vector.queryNodes('memory_embedding', $k, $queryVector)
      YIELD node AS m, score AS vectorScore
-     WHERE m.userId = $userId ${pf.clause} AND ${visibleStatusClause("m")}
+     WHERE ${sf.clause} AND ${visibleStatusClause("m")}
      OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
      WITH m, collect(t.name) AS tags, vectorScore,
           duration.between(datetime(m.createdAt), datetime()).days AS ageInDays
@@ -172,8 +171,7 @@ async function runVectorQuery(
     {
       k: neo4j.int(legLimit),
       queryVector: queryEmbedding,
-      userId: params.userId,
-      ...pf.params,
+      ...sf.params,
     },
   );
 }
@@ -200,14 +198,16 @@ async function runChunkQuery(
   legLimit: number,
   queryEmbedding: number[],
 ) {
-  const pf = profileFilter(params.profileId, "m");
+  // chunks have no profileId, team scope constrains only the joined memory
+  const cf = chunkScopeWhereLine(params.scope, "c");
+  const sf = memoryScopeFilter(params.scope, "m");
   try {
     return await driver.executeQuery(
       `CALL db.index.vector.queryNodes('chunk_embedding', $k, $queryVector)
        YIELD node AS c, score AS chunkScore
-       WHERE c.userId = $userId
+       ${cf.clause}
        MATCH (m:Memory {id: c.memoryId})
-       WHERE m.userId = $userId ${pf.clause} AND ${visibleStatusClause("m")}
+       WHERE ${sf.clause} AND ${visibleStatusClause("m")}
        OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
        WITH m, collect(DISTINCT t.name) AS tags, chunkScore, c.content AS chunkContent,
             c.position AS chunkPosition,
@@ -218,8 +218,8 @@ async function runChunkQuery(
       {
         k: neo4j.int(legLimit),
         queryVector: queryEmbedding,
-        userId: params.userId,
-        ...pf.params,
+        ...cf.params,
+        ...sf.params,
       },
     );
   } catch (err) {
@@ -312,12 +312,13 @@ async function runEntityLeg(
   const queryEntities = queryEntityCandidates(params.query);
   if (queryEntities.length === 0) return [];
 
-  const pf = profileFilter(params.profileId, "m");
+  const sf = memoryScopeFilter(params.scope, "m");
   const result = await driver.executeQuery(
-    `MATCH (m:Memory {userId: $userId})-[:MENTIONS]->(e:Entity)
-       WHERE (toLower(coalesce(e.name, e.normalizedName)) IN $queryEntities
+    `MATCH (m:Memory)-[:MENTIONS]->(e:Entity)
+       WHERE ${sf.clause}
+         AND (toLower(coalesce(e.name, e.normalizedName)) IN $queryEntities
           OR toLower(e.normalizedName) IN $queryEntities)
-         ${pf.clause} AND ${visibleStatusClause("m")}
+         AND ${visibleStatusClause("m")}
        WITH m,
             count(DISTINCT e) AS overlap,
             sum(CASE
@@ -331,9 +332,8 @@ async function runEntityLeg(
        ORDER BY rarityScore DESC, overlap DESC
        LIMIT $legLimit`,
     {
-      userId: params.userId,
       queryEntities,
-      ...pf.params,
+      ...sf.params,
       legLimit: neo4j.int(legLimit),
     },
   );
@@ -349,28 +349,37 @@ async function runEntityLeg(
 async function expandViaGraph(
   driver: Driver,
   seedIds: string[],
-  userId: string,
+  scope: MemoryReadScope,
   limit: number = 50,
 ): Promise<GraphExpansion[]> {
   if (seedIds.length === 0) return [];
+  // personal expansion is intentionally not profile-filtered
+  // team must filter every hop or entity bridges could surface personal memories
+  const skip = { skipPersonalProfile: true };
+  const seedF = memoryScopeFilter(scope, "seed", skip);
+  const midF = memoryScopeFilter(scope, "mid", skip);
+  const neighborF = memoryScopeFilter(scope, "neighbor", skip);
   const result = await driver.executeQuery(
-    `MATCH (seed:Memory {userId: $userId})-[:RELATES_TO]-(neighbor:Memory {userId: $userId})
-       WHERE seed.id IN $seedIds AND NOT neighbor.id IN $seedIds
+    `MATCH (seed:Memory)-[:RELATES_TO]-(neighbor:Memory)
+       WHERE ${seedF.clause} AND ${neighborF.clause}
+         AND seed.id IN $seedIds AND NOT neighbor.id IN $seedIds
          AND ${visibleStatusClause("neighbor")}
        RETURN neighbor.id AS id, 1 AS hops, seed.id AS seedId, null AS bridgingEntity
        UNION ALL
-       MATCH (seed:Memory {userId: $userId})-[:MENTIONS]->(e:Entity)<-[:MENTIONS]-(neighbor:Memory {userId: $userId})
-       WHERE seed.id IN $seedIds AND NOT neighbor.id IN $seedIds
+       MATCH (seed:Memory)-[:MENTIONS]->(e:Entity)<-[:MENTIONS]-(neighbor:Memory)
+       WHERE ${seedF.clause} AND ${neighborF.clause}
+         AND seed.id IN $seedIds AND NOT neighbor.id IN $seedIds
          AND ${visibleStatusClause("neighbor")}
        RETURN neighbor.id AS id, 1 AS hops, seed.id AS seedId,
               coalesce(e.name, e.normalizedName) AS bridgingEntity
        UNION ALL
-       MATCH (seed:Memory {userId: $userId})-[:RELATES_TO]-(mid:Memory {userId: $userId})-[:RELATES_TO]-(neighbor:Memory {userId: $userId})
-       WHERE seed.id IN $seedIds AND NOT neighbor.id IN $seedIds AND NOT mid.id IN $seedIds
+       MATCH (seed:Memory)-[:RELATES_TO]-(mid:Memory)-[:RELATES_TO]-(neighbor:Memory)
+       WHERE ${seedF.clause} AND ${midF.clause} AND ${neighborF.clause}
+         AND seed.id IN $seedIds AND NOT neighbor.id IN $seedIds AND NOT mid.id IN $seedIds
          AND ${visibleStatusClause("mid")}
          AND ${visibleStatusClause("neighbor")}
        RETURN neighbor.id AS id, 2 AS hops, seed.id AS seedId, null AS bridgingEntity`,
-    { seedIds, userId },
+    { seedIds, ...seedF.params },
   );
 
   const byId = new Map<
@@ -430,7 +439,7 @@ async function expandViaGraph(
 async function fetchMemoryMetadata(
   driver: Driver,
   ids: string[],
-  userId: string,
+  scope: MemoryReadScope,
 ): Promise<
   Map<
     string,
@@ -438,14 +447,16 @@ async function fetchMemoryMetadata(
   >
 > {
   if (ids.length === 0) return new Map();
+  // same scoping as expand-via-graph so graph-expanded teammate memories hydrate
+  const sf = memoryScopeFilter(scope, "m", { skipPersonalProfile: true });
   const result = await driver.executeQuery(
-    `MATCH (m:Memory {userId: $userId})
-       WHERE m.id IN $ids
+    `MATCH (m:Memory)
+       WHERE ${sf.clause} AND m.id IN $ids
        OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
        WITH m, collect(t.name) AS tags,
             duration.between(datetime(m.createdAt), datetime()).days AS ageInDays
        RETURN m, tags, ageInDays, m.embedding AS embedding`,
-    { ids, userId },
+    { ids, ...sf.params },
   );
   const map = new Map<
     string,
@@ -802,7 +813,7 @@ export async function retrieveMemories(
 
   const graphNeighbors =
     useGraph && seedIds.length > 0
-      ? await expandViaGraph(driver, seedIds, params.userId, params.limit * 10)
+      ? await expandViaGraph(driver, seedIds, params.scope, params.limit * 10)
       : [];
 
   const graphOnlyIds = graphNeighbors
@@ -811,7 +822,7 @@ export async function retrieveMemories(
   const graphOnlyMetadata = await fetchMemoryMetadata(
     driver,
     graphOnlyIds,
-    params.userId,
+    params.scope,
   );
 
   graphNeighbors.forEach((neighbor, index) => {

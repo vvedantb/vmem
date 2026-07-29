@@ -3,7 +3,7 @@ import { components } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 
-// namespace keys: personal `u:${userId}`, team `t:${teamId}`
+// namespace keys: personal u,${userId}, team t,${teamId}
 type OwnerNamespace = string;
 
 export const openRouterCost = new DirectAggregate<{

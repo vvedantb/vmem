@@ -32,7 +32,6 @@ const schema = defineSchema({
     lastName: v.optional(v.string()),
     fullName: v.optional(v.string()),
     theme: v.optional(v.union(v.literal("light"), v.literal("dark"))),
-    // maintainer flag â€” gates system-skill catalog CRUD
     isAdmin: v.optional(v.boolean()),
   })
     .index("by_clerk_id", ["clerkId"])
@@ -55,7 +54,7 @@ const schema = defineSchema({
 
   userSettings: defineTable(userSettingsFields).index("by_user", ["userId"]),
 
-  // dynamic Dreaming trigger state
+  // dynamic dreaming trigger state
   dreamTriggerState: defineTable(dreamTriggerStateFields).index("by_user", [
     "userId",
   ]),
@@ -99,12 +98,12 @@ const schema = defineSchema({
   // immutable pre-overwrite snapshots of skills (see lib/versionSnapshot.ts)
   skillVersions: defineTable(skillVersionFields).index("by_skill", ["skillId"]),
 
-  // global maintainer-curated skill catalog (the Skills Hub)
+  // global maintainer curated skill catalog (the skills hub)
   systemSkills: defineTable(systemSkillFields)
     .index("by_name", ["name"])
     .index("by_published", ["published"]),
 
-  // per-user (personal) or per-team install LINK to a systemSkills row
+  // per-user (personal) or per-team install link to a systemSkills row
   userSystemSkills: defineTable(userSystemSkillFields)
     .index("by_user", ["userId"])
     .index("by_user_systemSkill", ["userId", "systemSkillId"])
@@ -136,13 +135,12 @@ const schema = defineSchema({
     .index("by_user_parent", ["userId", "parentId"])
     .index("by_team", ["teamId"])
     .index("by_team_parent", ["teamId", "parentId"])
-    // reverse lookup for the index-cleanup guard: is any surviving file still
-    // pointing at this derived memory? (identical-content files share one)
+    // reverse lookup for the index cleanup guard, is any surviving file still pointing at this derived memory? (identical content files share one)
     .index("by_memory", ["memoryId"]),
 
   userEnvVars: defineTable(userEnvVarFields).index("by_user", ["userId"]),
 
-  // one row per OpenRouter API call
+  // one row per openRouter api call
   openRouterLogs: defineTable(openRouterLogFields)
     .index("by_user", ["userId"])
     .index("by_user_createdAt", ["userId", "createdAt"])
@@ -150,7 +148,7 @@ const schema = defineSchema({
     .index("by_profile_createdAt", ["profileId", "createdAt"])
     .index("by_team_createdAt", ["teamId", "createdAt"]),
 
-  // cached "User Profile" prose for the MCP `vmem://context_prompt` resource
+  // cached "user profile" prose for the mcp vmem,//context_prompt resource
   contextPromptCache: defineTable(contextPromptCacheFields).index("by_user", [
     "userId",
   ]),

@@ -9,6 +9,7 @@ import { useMutation, useQuery } from "convex/react";
 import { useQueryStates } from "nuqs";
 import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
+import { Spinner } from "@vmem/ui";
 import { IconBolt } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import PageContainer from "@/components/shell/PageContainer";
@@ -34,7 +35,7 @@ function SkillsLayout() {
   const navigate = useNavigate();
   const params = useParams({ strict: false });
   const skillId = typeof params.id === "string" ? params.id : undefined;
-  // the Hub is a child route (/skills/hub) rendered by this layout — same
+  // the Hub is a child route (/skills/hub) rendered by this layout same
   // pattern as the skill detail view (the layout owns rendering)
   const pathname = useLocation({ select: (l) => l.pathname });
   const onHub = pathname.endsWith("/skills/hub");
@@ -51,16 +52,6 @@ function SkillsLayout() {
   const [modal, setModal] = useState<ModalState>({ mode: "none" });
 
   const query = searchQuery.trim().toLowerCase();
-  const filteredSkills =
-    skills === undefined
-      ? []
-      : query.length === 0
-        ? skills
-        : skills.filter(
-            (skill) =>
-              skill.name.toLowerCase().includes(query) ||
-              skill.description.toLowerCase().includes(query),
-          );
 
   const hasSkillId = typeof skillId === "string" && skillId.length > 0;
   const viewedSkill = hasSkillId
@@ -95,25 +86,25 @@ function SkillsLayout() {
 
   useEffect(() => {
     if (!skills || !hasSkillId) return;
-    if (filteredSkills.length === 0) return;
     if (isSkillLoading) return;
-    if (filteredSkills.some((skill) => skill._id === skillId)) return;
-    const first = filteredSkills.at(0);
+    const filtered =
+      query.length === 0
+        ? skills
+        : skills.filter(
+            (skill) =>
+              skill.name.toLowerCase().includes(query) ||
+              skill.description.toLowerCase().includes(query),
+          );
+    if (filtered.length === 0) return;
+    if (filtered.some((skill) => skill._id === skillId)) return;
+    const first = filtered.at(0);
     if (!first) return;
     void navigate({
       to: "/$profileId/skills/$id",
       params: { profileId, id: first._id },
       replace: true,
     });
-  }, [
-    filteredSkills,
-    hasSkillId,
-    isSkillLoading,
-    skillId,
-    navigate,
-    skills,
-    profileId,
-  ]);
+  }, [query, hasSkillId, isSkillLoading, skillId, navigate, skills, profileId]);
 
   useEffect(() => {
     if (!skills) return;
@@ -150,8 +141,8 @@ function SkillsLayout() {
     });
   };
 
-  // the Hub is its own page — use the settings convention (centred, titled
-  // container) rather than the editor-style detail layout below
+  // hub is its own page: settings convention (centred, titled container)
+  // rather than the editor-style detail layout below
   if (onHub) {
     return (
       <PageContainer title="Skills Hub" centeredMaxWidth showTitle>
@@ -160,7 +151,7 @@ function SkillsLayout() {
     );
   }
 
-  // A catalogue system skill has its own read-only detail page
+  // catalogue system skill has its own read-only detail page
   if (systemSkillId !== undefined) {
     return (
       <SystemSkillDetail systemSkillId={systemSkillId} profileId={profileId} />
@@ -196,7 +187,7 @@ function SkillsLayout() {
           <ViewSkillPanel skill={viewedSkill} />
         ) : isSkillLoading || skills === undefined ? (
           <div className="flex flex-1 items-center justify-center">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-default border-t-transparent" />
+            <Spinner size="sm" />
           </div>
         ) : skills.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center text-center">

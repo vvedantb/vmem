@@ -1,6 +1,6 @@
 // AI-generated (Claude), prompt: "live neo4j behavioural suite for memory crud retrieve enrich and proposals"
 // Modified by me: gated on retrieval eval env and kept the existing header note
-// live Neo4j behavioural suite (gated by RUN_RETRIEVAL_EVAL=1)
+// live neo4j behavioural suite, gated by RUN_RETRIEVAL_EVAL=1
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { Driver } from "neo4j-driver";
@@ -26,11 +26,13 @@ import {
   resolveProposal,
 } from "../../engine/neo4j/memory/proposals";
 import { firstNeo4jInt } from "../../engine/neo4j/record";
+import type { MemoryReadScope } from "../../engine/neo4j/memory/scope";
 import type { MemoryStatus } from "../../engine/neo4j/memory/types";
 
 const runLive = process.env.RUN_RETRIEVAL_EVAL === "1";
 
 const USER = "user_vmem_behavioral_test";
+const USER_SCOPE: MemoryReadScope = { kind: "personal", userId: USER };
 const PROFILE = "profile_behavioral_test";
 const SOURCE = "behavioral-test";
 const EMBED_DIM = 1536;
@@ -64,7 +66,7 @@ async function getContent(
 
 async function retrieve(driver: Driver, query: string) {
   return retrieveMemories(driver, {
-    userId: USER,
+    scope: { kind: "personal", userId: USER },
     query,
     queryEmbedding: null,
     limit: 10,
@@ -85,6 +87,7 @@ async function create(
   const created = await createMemory(driver, {
     userId: USER,
     profileId: PROFILE,
+    graphScope: "personal",
     title: opts.title,
     content: opts.content,
     type: "knowledge",
@@ -161,11 +164,11 @@ describe.skipIf(!runLive)("vmem behavioural suite (live Neo4j)", () => {
       embedding: EMB_A,
     });
 
-    // identical embedding → cosine 1.0 ≥ 0.95 → flagged as a near-duplicate
+    // identical embedding scores 1.0, above the 0.95 duplicate threshold
     const match = await findSimilarWithRetry(driver, EMB_A, 0.95);
     expect(match?.id).toBe(id);
 
-    // orthogonal embedding → cosine 0 < 0.95 → not a duplicate
+    // orthogonal embedding scores below threshold, so not a duplicate
     const noMatch = await findMemoryBySimilarity(
       driver,
       USER,
@@ -306,7 +309,7 @@ describe.skipIf(!runLive)("vmem behavioural suite (live Neo4j)", () => {
   }, 60_000);
 
   it("applies a proposed update on approve and preserves it on reject", async () => {
-    // approve path: the proposal surfaces, then supersedes on approval
+    // on approve: the proposal surfaces then supersedes the memory
     const id = await create(driver, {
       title: "Password hashing",
       content: "Passwords are hashed with bcrypt.",
@@ -324,12 +327,25 @@ describe.skipIf(!runLive)("vmem behavioural suite (live Neo4j)", () => {
       "Passwords are hashed with bcrypt.",
     );
 
-    await resolveProposal(driver, proposal.id, "approve");
+    // a stranger holding the uuid resolves nothing and the proposal stays pending
+    expect(
+      await resolveProposal(
+        driver,
+        { kind: "personal", userId: `${USER}_intruder` },
+        proposal.id,
+        "approve",
+      ),
+    ).toBeNull();
+    expect(await getContent(driver, id)).toBe(
+      "Passwords are hashed with bcrypt.",
+    );
+
+    await resolveProposal(driver, USER_SCOPE, proposal.id, "approve");
     expect(await getContent(driver, id)).toBe(
       "Passwords are hashed with Argon2id.",
     );
 
-    // reject path: the memory is preserved and the proposal stops being pending
+    // on reject: the memory stays and the proposal leaves pending
     const id2 = await create(driver, {
       title: "Primary region",
       content: "Production runs in us-east-1.",
@@ -339,7 +355,7 @@ describe.skipIf(!runLive)("vmem behavioural suite (live Neo4j)", () => {
       proposedContent: "Production runs in eu-west-1.",
       reason: "test reject path",
     });
-    await resolveProposal(driver, proposal2.id, "reject");
+    await resolveProposal(driver, USER_SCOPE, proposal2.id, "reject");
     expect(await getContent(driver, id2)).toBe("Production runs in us-east-1.");
     const stillPending = (await listProposedUpdates(driver, USER)).some(
       (p) => p.id === proposal2.id,
@@ -357,7 +373,12 @@ describe.skipIf(!runLive)("vmem behavioural suite (live Neo4j)", () => {
       reason: "source requested removal",
     });
 
-    const result = await resolveProposal(driver, proposal.id, "approve");
+    const result = await resolveProposal(
+      driver,
+      USER_SCOPE,
+      proposal.id,
+      "approve",
+    );
 
     expect(result?.status).toBe("approved");
     expect(await getMemory(driver, USER, id)).toBeNull();
@@ -397,7 +418,11 @@ describe.skipIf(!runLive)("vmem behavioural suite (live Neo4j)", () => {
       { sourceId, targetId, userId: USER },
     );
 
-    const globalGraph = await getGraphData(driver, USER, PROFILE, 10);
+    const globalGraph = await getGraphData(
+      driver,
+      { kind: "personal", userId: USER, profileId: PROFILE },
+      10,
+    );
     const globalEdge = globalGraph.relatesToEdges.find(
       (edge) => edge.source === sourceId && edge.target === targetId,
     );
@@ -407,7 +432,11 @@ describe.skipIf(!runLive)("vmem behavioural suite (live Neo4j)", () => {
       reason: "test score",
     });
 
-    const localGraph = await getLocalGraph(driver, USER, sourceId, PROFILE);
+    const localGraph = await getLocalGraph(
+      driver,
+      { kind: "personal", userId: USER, profileId: PROFILE },
+      sourceId,
+    );
     const localEdge = localGraph.relatesToEdges.find(
       (edge) => edge.source === sourceId && edge.target === targetId,
     );

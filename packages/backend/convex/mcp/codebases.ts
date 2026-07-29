@@ -28,7 +28,7 @@ type GraphResult = Awaited<ReturnType<typeof getGraphOverview>>;
 type ImpactResult = { nodes: ImpactNode[] };
 type SearchResult = { results: SearchSymbolsResult[] };
 
-// MCP/JSON may deliver floats (e.g
+// mcp/json may deliver floats (e.g
 function normalizeOptionalInt(value: number | undefined): number | undefined {
   if (value === undefined) return undefined;
   return Math.trunc(value);

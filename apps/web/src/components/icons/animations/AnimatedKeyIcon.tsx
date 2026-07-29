@@ -1,6 +1,5 @@
 // AI-generated (Claude), prompt: "key icon with sparkle particles for empty api keys"
 // Modified by me: sparkle positions and timing
-
 // animated key/bolt icon with sparkle effects for empty API keys state
 
 import { motion } from "motion/react";
@@ -24,7 +23,7 @@ function Sparkle({
   return (
     <motion.g transform={`translate(${x}, ${y})`}>
       {
-        // four, pointed star sparkle
+        // four-pointed star sparkle
       }
       <motion.path
         d={`M0 -${size} L0 ${size} M-${size} 0 L${size} 0`}

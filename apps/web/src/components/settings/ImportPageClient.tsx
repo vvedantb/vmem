@@ -66,21 +66,26 @@ export default function ImportPageClient() {
     const p = findProvider(step.providerId);
     if (!p) return;
     setParsing(true);
+    // the reset is duplicated into a rethrowing catch rather than a `finally`
+    // react Compiler bails on the whole file for a `finally`, and for a `try`
+    // with no `catch` at all.
     try {
       const buf = await file.arrayBuffer();
       const result = p.parser(buf);
-      if (!result.ok) {
+      if (result.ok) {
+        setStep({
+          phase: "select",
+          providerId: step.providerId,
+          rows: result.rows,
+        });
+      } else {
         toast.error(result.error);
-        return;
       }
-      setStep({
-        phase: "select",
-        providerId: step.providerId,
-        rows: result.rows,
-      });
-    } finally {
+    } catch (err) {
       setParsing(false);
+      throw err;
     }
+    setParsing(false);
   };
 
   const closeSelect = () => {

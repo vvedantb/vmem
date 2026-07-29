@@ -104,16 +104,18 @@ export function GitHubConnectorControls({
   if (connection) {
     const handleDisconnect = async (): Promise<boolean> => {
       setDisconnecting(true);
+      // one exit point and a trailing reset rather than a `finally` React
+      // compiler bails on the whole file when it meets one.
+      let disconnected = false;
       try {
         await disconnectGithub();
         toast.success("GitHub disconnected");
-        return true;
+        disconnected = true;
       } catch {
         toast.error("Failed to disconnect");
-        return false;
-      } finally {
-        setDisconnecting(false);
       }
+      setDisconnecting(false);
+      return disconnected;
     };
 
     return (

@@ -20,7 +20,7 @@ function chooseTitle(extractedText: string, filename: string): string {
     .find((line) => line.trim().length > 0);
   if (!firstLine) return filename;
   const trimmed = firstLine.trim().replace(/^#+\s*/, "");
-  // cap at 200 chars so we don't end up with a wall-of-text title
+  // cap at 200 chars so we don't end up with a wall of text title
   return trimmed.length > 200 ? trimmed.slice(0, 200) : trimmed;
 }
 
@@ -64,7 +64,7 @@ async function loadUploadedBlob(
   return blob;
 }
 
-// process an uploaded file (already in Convex storage): 1
+// process an uploaded file (already in convex storage), 1
 export const importMemoryFromFile = authAction({
   args: {
     storageId: v.id("_storage"),
@@ -83,8 +83,7 @@ export const importMemoryFromFile = authAction({
       );
     }
 
-    // pull the blob from storage. Returns null if storageId is invalid or
-    // the file was deleted before we got to it
+    // pull the blob from storage. returns null if storageId is invalid or the file was deleted before we got to it
     const blob = await loadUploadedBlob(ctx, args.storageId, "file");
 
     const content = await extractFileContent(blob, kind);
@@ -95,7 +94,7 @@ export const importMemoryFromFile = authAction({
       );
     }
 
-    // content hash → stable externalId
+    // content hash to stable externalId
     const externalId = crypto
       .createHash("sha256")
       .update(content)
@@ -124,7 +123,7 @@ export const importMemoryFromFile = authAction({
   },
 });
 
-// process an uploaded screenshot/image (already in Convex storage): 1
+// process an uploaded screenshot/image (already in convex storage), 1
 export const importImageMemory = authAction({
   args: {
     storageId: v.id("_storage"),
@@ -152,13 +151,13 @@ export const importImageMemory = authAction({
       : "screenshot";
     const title = chooseScreenshotTitle(caption, args.pageTitle, hostname);
 
-    // use the storageId as the externalId so re-saving the exact same blob (same
+    // hash storageId as externalId so re-saving the same blob dedupes
     const externalId = crypto
       .createHash("sha256")
       .update(args.storageId)
       .digest("hex");
 
-    // screenshots intentionally don't pass `url` to createMemoryInternal
+    // screenshots intentionally don't pass url to creatememoryinternal
     const contentParts: string[] = [];
     if (caption.length > 0) contentParts.push(caption);
     if (args.pageUrl) contentParts.push(`Source: ${args.pageUrl}`);

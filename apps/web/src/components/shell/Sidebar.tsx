@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "@tanstack/react-router";
-import { useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useMediaQuery } from "usehooks-ts";
 import { motion } from "motion/react";
 import {
@@ -61,36 +61,42 @@ export default function Sidebar({
   const getStats = useAction(api.dashboardApi.getStats);
   const [stats, setStats] = useState<SidebarStats>({ addedToday: 0, total: 0 });
 
-  // whether the active workspace is a team profile — drives the conditional
+  // whether the active workspace is a team profile drives the conditional
   // "Team" nav group (members / team settings)
   const profiles = useQuery(api.profiles.list, isAuthenticated ? {} : "skip");
   const isTeamWorkspace =
     profiles?.find((p) => p._id === activeProfileId)?.teamId !== undefined;
 
-  const refreshStats = async (fresh: boolean) => {
-    try {
-      // scope counts to the active workspace; without one (fresh browser
-      // on /settings) fall back to user-wide totals
-      const data = await getStats(
-        fresh
-          ? { fresh: true, profileId: activeProfileId }
-          : { profileId: activeProfileId },
-      );
-      setStats({
-        addedToday: data.memoriesAddedToday,
-        total: data.totalMemories,
-      });
-    } catch {
-      // silently fail -- sidebar stats are non-critical
-    }
-  };
+  // shared by the mount effect below and handleMemoryEvent's live update
+  // callback, so it needs a stable identity rather than a plain render body
+  // function
+  const refreshStats = useCallback(
+    async (fresh: boolean) => {
+      // scope counts to the active workspace, or user-wide totals when no profile
+      // built outside try because react compiler bails when a conditional
+      // expression sits inside try/catch
+      const args = fresh
+        ? { fresh: true, profileId: activeProfileId }
+        : { profileId: activeProfileId };
+      try {
+        const data = await getStats(args);
+        setStats({
+          addedToday: data.memoriesAddedToday,
+          total: data.totalMemories,
+        });
+      } catch {
+        // silently fail — sidebar stats are non-critical
+      }
+    },
+    [getStats, activeProfileId],
+  );
 
   useEffect(() => {
     if (!isAuthenticated) return;
     void refreshStats(false);
   }, [isAuthenticated, refreshStats]);
 
-  // live updates: the memory-events change feed pushes created/updated/deleted events
+  // live updates: memory-events feed pushes created/updated/deleted events
   const statsRefetchTimer = useRef<number | null>(null);
   const handleMemoryEvent = () => {
     if (statsRefetchTimer.current !== null) return;

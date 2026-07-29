@@ -1,0 +1,8 @@
+[
+  "apps/web/src/components/charts/Sparkline.tsx :: [hoisting] EnterSSA: Expected identifier to be defined before being used",
+  "apps/web/src/components/files/FileUploadModal.tsx :: Expected all references to a variable to be consistently local or context references",
+  "apps/web/src/components/icons/animations/AnimatedCounter.tsx :: (BuildHIR::node.lowerReorderableExpression) Expression type `ArrowFunctionExpression` cannot be safely reordered",
+  "apps/web/src/components/memories/AddMemoryModal.tsx :: Use of incompatible library",
+  "apps/web/src/components/wiki/WikiDocumentEditor.tsx :: Cannot access refs during render",
+  "apps/web/src/providers/ConvexClientProvider.tsx :: Hooks may not be referenced as normal values, they must be called. See https://react.dev/reference/rules/react-calls-components-and-hooks#never-pass-around-hooks-as-regular-values"
+]

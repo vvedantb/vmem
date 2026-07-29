@@ -12,6 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  Spinner,
   Switch,
 } from "@vmem/ui";
 import { IconDots, IconPencil, IconPlus, IconTrash } from "@tabler/icons-react";
@@ -20,12 +21,17 @@ import PageContainer from "@/components/shell/PageContainer";
 import { ViewSkillPanel } from "@/components/skills/ViewSkillPanel";
 import { SystemSkillFormDialog } from "@/components/skills/SystemSkillFormDialog";
 import DestructiveConfirmDialog from "@/components/settings/DestructiveConfirmDialog";
-import { type SystemSkillEntry } from "@/components/skills/_utils";
+import type { SystemSkillEntry } from "@/components/skills/_utils";
 import { useActiveTeamId } from "@/components/workspace/active-profile";
+import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
+import {
+  setSystemSkillInstallState,
+  updateAllCachedQueries,
+} from "@/lib/convex-optimistic";
 
 const systemSkillDetailSpinner = (
   <div className="flex justify-center py-20">
-    <div className="h-5 w-5 animate-spin rounded-full border-2 border-default border-t-transparent" />
+    <Spinner size="sm" />
   </div>
 );
 
@@ -143,76 +149,38 @@ export function SystemSkillDetail({
 
   const install = useMutation(api.systemSkills.install).withOptimisticUpdate(
     (localStore, args) => {
-      for (const entry of localStore.getAllQueries(
-        api.systemSkills.listCatalog,
-      )) {
-        if (entry.value === undefined) continue;
-        localStore.setQuery(
-          api.systemSkills.listCatalog,
-          entry.args,
-          entry.value.map((s) =>
-            s._id === args.systemSkillId
-              ? { ...s, installed: true, installEnabled: true }
-              : s,
-          ),
-        );
-      }
+      setSystemSkillInstallState(localStore, args.systemSkillId, {
+        installed: true,
+        installEnabled: true,
+      });
     },
   );
   const uninstall = useMutation(
     api.systemSkills.uninstall,
   ).withOptimisticUpdate((localStore, args) => {
-    for (const entry of localStore.getAllQueries(
-      api.systemSkills.listCatalog,
-    )) {
-      if (entry.value === undefined) continue;
-      localStore.setQuery(
-        api.systemSkills.listCatalog,
-        entry.args,
-        entry.value.map((s) =>
-          s._id === args.systemSkillId
-            ? { ...s, installed: false, installEnabled: false }
-            : s,
-        ),
-      );
-    }
+    setSystemSkillInstallState(localStore, args.systemSkillId, {
+      installed: false,
+      installEnabled: false,
+    });
   });
   const setEnabled = useMutation(
     api.systemSkills.setInstalledEnabled,
   ).withOptimisticUpdate((localStore, args) => {
-    for (const entry of localStore.getAllQueries(
-      api.systemSkills.listCatalog,
-    )) {
-      if (entry.value === undefined) continue;
-      localStore.setQuery(
-        api.systemSkills.listCatalog,
-        entry.args,
-        entry.value.map((s) =>
-          s._id === args.systemSkillId
-            ? { ...s, installEnabled: args.enabled }
-            : s,
-        ),
-      );
-    }
+    setSystemSkillInstallState(localStore, args.systemSkillId, {
+      installEnabled: args.enabled,
+    });
   });
   const adminDelete = useMutation(
     api.systemSkills.adminDelete,
   ).withOptimisticUpdate((localStore, args) => {
-    for (const entry of localStore.getAllQueries(
-      api.systemSkills.listCatalog,
-    )) {
-      if (entry.value === undefined) continue;
-      localStore.setQuery(
-        api.systemSkills.listCatalog,
-        entry.args,
-        entry.value.filter((s) => s._id !== args.id),
-      );
-    }
+    updateAllCachedQueries(localStore, api.systemSkills.listCatalog, (list) =>
+      list.filter((s) => s._id !== args.id),
+    );
   });
 
   const [editing, setEditing] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const { submitting: deleting, run: runDelete } = useAsyncSubmit();
 
   const entry = catalog?.find((e) => e._id === systemSkillId);
 
@@ -251,17 +219,12 @@ export function SystemSkillDetail({
   };
 
   const handleDelete = async () => {
-    setDeleting(true);
-    try {
+    await runDelete(async () => {
       await adminDelete({ id: entry._id });
       toast.success(`Deleted ${entry.name}`);
       setDeleteOpen(false);
       void backToHub();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Delete failed");
-    } finally {
-      setDeleting(false);
-    }
+    }, "Delete failed");
   };
 
   return (

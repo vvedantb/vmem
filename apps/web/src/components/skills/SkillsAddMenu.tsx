@@ -5,7 +5,7 @@ import { FeatureAddMenu } from "@/components/shell/FeatureAddMenu";
 interface SkillsAddMenuProps {
   onWriteSkill: () => void;
   onUploadSkill: () => void;
-  // `toolbar` = icon-only for the sidebar chrome row; `labeled` = full Add button
+  // `toolbar` = icon-only for the sidebar chrome row, `labeled` = full Add button
   variant?: "toolbar" | "labeled";
   className?: string;
 }

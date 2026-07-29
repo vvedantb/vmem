@@ -86,6 +86,19 @@ export function formatTimeUntil(
   return dayjs(scheduledTime).fromNow();
 }
 
+// short month + day in the viewer's locale ("24 Jul" in en-GB, "Jul 24" in
+// en-US). Takes an ISO day ("YYYY-MM-DD"), parsed as UTC so a date-only string
+// never shifts a day in timezones behind UTC.
+export function formatMonthDay(isoDay: string): string {
+  const date = new Date(`${isoDay}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return isoDay;
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(date);
+}
+
 // Intl compact notation (1.2k / 3m); lowercased to match existing UI
 export function formatCompactNumber(num: number): string {
   return new Intl.NumberFormat(undefined, {

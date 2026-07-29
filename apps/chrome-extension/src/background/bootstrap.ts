@@ -1,3 +1,4 @@
+import { errorMessage } from "@/lib/error";
 import { registerContextMenu } from "./context-menu";
 import {
   bootstrapSyncSchedulers,
@@ -5,8 +6,7 @@ import {
   refreshUserSettingsMirrorFromConvex,
 } from "./sync-scheduler";
 
-// shared sw bootstrap path: context menu + settings mirror + sync alarms
-// used on cold start onInstalled and onStartup so those paths stay identical
+// same bootstrap path for cold start, install, and startup listeners
 export async function runBackgroundBootstrap(): Promise<void> {
   try {
     registerContextMenu();
@@ -14,7 +14,7 @@ export async function runBackgroundBootstrap(): Promise<void> {
     await bootstrapSyncSchedulers();
     void catchUpHistorySyncIfOverdue();
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = errorMessage(error);
     console.error("[vmem] Background bootstrap failed:", message);
   }
 }

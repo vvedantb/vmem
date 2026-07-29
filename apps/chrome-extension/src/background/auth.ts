@@ -5,7 +5,7 @@ import { getAuthToken, setAuthToken } from "@/lib/storage";
 
 type TokenRefresher = () => Promise<string | null>;
 
-// wired from background/index so node tests can import auth without clerk
+// injected from background entry so tests can import auth without clerk
 let refreshConvexToken: TokenRefresher = async () => null;
 
 export function setConvexTokenRefresher(refresher: TokenRefresher): void {
@@ -28,7 +28,7 @@ function isTokenExpired(token: string): boolean {
   }
 }
 
-// mint convex jwt in the service worker
+// refresh convex jwt in the service-worker
 async function refreshTokenFromClerk(): Promise<string | null> {
   if (pendingRefresh) return pendingRefresh;
 
@@ -40,7 +40,7 @@ async function refreshTokenFromClerk(): Promise<string | null> {
         return token;
       }
 
-      // keep popup token if sync host cookie is missing
+      // keep popup token when syncHost session cookie is missing
       return null;
     } finally {
       pendingRefresh = null;

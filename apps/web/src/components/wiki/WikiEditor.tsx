@@ -1,3 +1,4 @@
+import { Spinner } from "@vmem/ui";
 import type { OutlineHeading } from "./_utils";
 import type { WikiNodeDoc } from "./-types";
 import WikiArtifactEditor from "./WikiArtifactEditor";
@@ -16,8 +17,8 @@ interface WikiEditorProps {
   jumpRequest: { pos: number; n: number };
 }
 
-// routes to TipTap (documents) or the artifact source/preview editor — keeps
-// TipTap off the artifact path so it does not mount for code/html nodes
+// routes to TipTap (documents) or artifact source/preview editor.
+// keeps TipTap off the artifact path so code/html nodes do not mount it
 export default function WikiEditor({
   doc,
   titleForCopy,
@@ -31,7 +32,7 @@ export default function WikiEditor({
   if (doc === undefined) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <div className="h-5 w-5 animate-spin rounded-full border-2 border-default border-t-transparent" />
+        <Spinner size="sm" />
       </div>
     );
   }

@@ -1,5 +1,9 @@
 // graph node colors (canvas + tag filters / legend)
+// tag hue hashing + hsl conversion are shared with the MCP UI graph renderer
+import { hslToHex, tagToColor } from "@vmem/shared/graph";
 import type { GraphNodeKind } from "@/lib/graph/types";
+
+export { tagToColor };
 
 function themeColor(token: string, fallback: string): string {
   if (typeof document === "undefined") return fallback;
@@ -7,33 +11,6 @@ function themeColor(token: string, fallback: string): string {
     .getPropertyValue(token)
     .trim();
   return value.length > 0 ? value : fallback;
-}
-
-function tagToHue(tag: string): number {
-  let hash = 0;
-  for (let i = 0; i < tag.length; i++) {
-    hash = tag.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return ((hash % 360) + 360) % 360;
-}
-
-function hslToHex(h: number, s: number, l: number): string {
-  s /= 100;
-  l /= 100;
-  const a = s * Math.min(l, 1 - l);
-  const f = (n: number) => {
-    const k = (n + h / 30) % 12;
-    const c = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
-    return Math.round(255 * c)
-      .toString(16)
-      .padStart(2, "0");
-  };
-  return `#${f(0)}${f(8)}${f(4)}`;
-}
-
-export function tagToColor(tag: string, isDark: boolean): string {
-  const hue = tagToHue(tag);
-  return isDark ? hslToHex(hue, 50, 72) : hslToHex(hue, 55, 48);
 }
 
 // fixed hsl colors for tagless node kinds (matches tagToColor space)
@@ -65,11 +42,11 @@ function kindColor(
   if (kind === "code-process") {
     return isDark ? hslToHex(25, 70, 65) : hslToHex(25, 75, 50);
   }
-  // wiki-document fallback
+  // wiki document fallback
   return isDark ? hslToHex(35, 55, 70) : hslToHex(35, 60, 50);
 }
 
-// memory: first tag hue; other kinds: fixed; theme override wins
+// memory first tag hue other kinds fixed theme override wins
 export function nodeColor(
   tags: string[],
   kind: GraphNodeKind,

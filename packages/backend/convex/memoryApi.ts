@@ -33,8 +33,7 @@ export const createMemory = authAction({
   args: createMemoryFields,
   handler: async (ctx, args): Promise<MemoryWithTags> => {
     const clerkId = await requireClerkId(ctx);
-    // personal profiles inherit ownership via matching userId; team
-    // profiles require membership before we hit the graph
+    // personal profiles inherit ownership via matching userId. team profiles require membership before we hit the graph
     await assertAccessibleProfileIfPresent(ctx, args.profileId);
     return await ctx.runAction(
       internal.neo4jActions.memories.createMemoryInternal,
@@ -46,7 +45,7 @@ export const createMemory = authAction({
 export const getMemory = authAction({
   args: {
     memoryId: v.string(),
-    // active workspace; team profiles read via the member-wide path
+    // active workspace. team profiles read via the member-wide path
     profileId: profileIdOptional,
   },
   handler: async (ctx, args): Promise<MemoryWithTags | null> =>
@@ -111,7 +110,7 @@ export const updateMemory = authAction({
 export const deleteMemory = authAction({
   args: {
     memoryId: v.string(),
-    // active workspace; team profiles use creator-or-owner permissions
+    // active workspace. team profiles use creator or owner permissions
     profileId: profileIdOptional,
   },
   handler: async (ctx, args): Promise<boolean> =>
@@ -129,7 +128,6 @@ export const deleteMemory = authAction({
     }),
 });
 
-// delete every memory the calling user owns, along with all per-user dependents
 export const deleteAllMemories = authAction({
   args: {},
   handler: async (ctx): Promise<number> => {
@@ -179,14 +177,27 @@ export const retrieveMemories = authAction({
     limit: v.number(),
   },
   handler: async (ctx, args): Promise<RetrieveMemoriesResult> => {
-    const clerkId = await requireClerkId(ctx);
-    // workspace grounding: assert access before scoping retrieval
-    await assertAccessibleProfileIfPresent(ctx, args.profileId);
-    // memories + userContext run in parallel
+    // memories + usercontext run in parallel
     const [memories, userContext] = await Promise.all([
-      ctx.runAction(internal.neo4jActions.memories.retrieveMemoriesInternal, {
-        clerkId,
-        ...args,
+      // routeMemoryByProfile asserts access, then team scope retrieves across every member's memories in the shared profile
+      routeMemoryByProfile(ctx, args.profileId, {
+        team: (teamProfile, clerkId) =>
+          ctx.runAction(
+            internal.neo4jActions.memories.retrieveMemoriesForTeamInternal,
+            {
+              clerkId,
+              profileId: teamProfile._id,
+              query: args.query,
+              type: args.type,
+              tags: args.tags,
+              limit: args.limit,
+            },
+          ),
+        personal: (clerkId) =>
+          ctx.runAction(
+            internal.neo4jActions.memories.retrieveMemoriesInternal,
+            { clerkId, ...args },
+          ),
       }),
       ctx.runQuery(internal.userSettings.getUserContextInternal, {
         userId: ctx.userId,

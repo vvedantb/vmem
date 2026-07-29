@@ -1,5 +1,5 @@
 import type { FunctionReturnType } from "convex/server";
-import { api } from "@vmem/backend";
+import type { api } from "@vmem/backend";
 
 export type TimelineEvent = FunctionReturnType<
   typeof api.timelineApi.getMemoryTimeline

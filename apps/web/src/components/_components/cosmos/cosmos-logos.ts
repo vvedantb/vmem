@@ -1,7 +1,7 @@
 import type { GraphNode } from "@/lib/graph/types";
 import { loadConnectorLogos } from "./connector-logos";
 
-// cosmos sentinel: no image for this point (see graphdata.updatepointimageindices)
+// cosmos sentinel no image for this point (see graphdata.updatepointimageindices)
 const NO_POINT_IMAGE_INDEX = -1;
 
 const ATLAS_PIXEL_SIZE = 32;
@@ -62,7 +62,7 @@ export function buildPointImageBuffers(
     const node = nodes[i];
     if (node === undefined) continue;
 
-    // Cosmos point size ≈ node.size * 2; logo slightly inset inside the circle
+    // cosmos point size ≈ node.size * 2 logo slightly inset inside the circle
     const pointSize = Math.max(2, node.size * 2);
     sizes[i] = pointSize * 0.7;
 

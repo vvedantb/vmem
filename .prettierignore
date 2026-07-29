@@ -2,6 +2,7 @@
 # formatting them fights the generator and dirties the tree on every dev run)
 **/routeTree.gen.ts
 **/_generated/**
+**/.wxt/**
 **/dist/**
 **/build/**
 **/.next/**

@@ -6,11 +6,8 @@ import {
   mapVersionAuthorSummaries,
 } from "./lib/versionSnapshot";
 
-// read-only version history for skills (snapshots written by `lib/versionSnapshot.ts`)
-
 const sourceValidator = v.union(v.literal("web"), v.literal("mcp"));
 
-// version list for a skill — lightweight (no body), newest first
 export const list = authQuery({
   args: { skillId: v.id("skills") },
   returns: v.array(
@@ -35,7 +32,6 @@ export const list = authQuery({
   },
 });
 
-// full version by id, for the read-only preview pane
 export const get = authQuery({
   args: { versionId: v.id("skillVersions") },
   returns: v.union(

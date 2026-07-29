@@ -61,7 +61,7 @@ function buildNodes(
   });
 }
 
-// clusters of size cluster_size: chain + hub links, with long, range bridges
+// clusters of size cluster_size chain + hub links, with long, range bridges
 // when a new cluster starts
 function buildRelatesToEdges(
   count: number,

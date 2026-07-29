@@ -13,7 +13,7 @@ import {
   NotFoundPage,
 } from "@/components/workspace/LegacyPathRedirect";
 
-// workspace layout: validates the `$profileId` URL segment against the profiles
+// workspace layout validates the `$profileId` URL segment against the profiles
 export const Route = createFileRoute("/_main/$profileId")({
   component: WorkspaceLayout,
 });

@@ -25,6 +25,8 @@ import {
 import { toast } from "sonner";
 import { CodebaseSidebarCard } from "./CodebaseSidebarCard";
 import type { CodebaseItem } from "./-types";
+import { updateAllCachedQueries } from "@/lib/convex-optimistic";
+import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
 
 interface CodebaseSidebarItemProps {
   codebase: CodebaseItem;
@@ -41,16 +43,11 @@ export function CodebaseSidebarItem({
   const setArchived = useMutation(
     api.codebases.setArchived,
   ).withOptimisticUpdate((localStore, args) => {
-    for (const entry of localStore.getAllQueries(api.codebases.listMy)) {
-      if (entry.value === undefined) continue;
-      localStore.setQuery(
-        api.codebases.listMy,
-        entry.args,
-        entry.value.map((c) =>
-          c._id === args.id ? { ...c, isArchived: args.archived } : c,
-        ),
-      );
-    }
+    updateAllCachedQueries(localStore, api.codebases.listMy, (list) =>
+      list.map((c) =>
+        c._id === args.id ? { ...c, isArchived: args.archived } : c,
+      ),
+    );
     for (const entry of localStore.getAllQueries(api.codebases.getById)) {
       if (entry.value == null || entry.value._id !== args.id) continue;
       localStore.setQuery(api.codebases.getById, entry.args, {
@@ -62,14 +59,9 @@ export function CodebaseSidebarItem({
   const removeCodebase = useMutation(
     api.codebases.removeCodebase,
   ).withOptimisticUpdate((localStore, args) => {
-    for (const entry of localStore.getAllQueries(api.codebases.listMy)) {
-      if (entry.value === undefined) continue;
-      localStore.setQuery(
-        api.codebases.listMy,
-        entry.args,
-        entry.value.filter((c) => c._id !== args.id),
-      );
-    }
+    updateAllCachedQueries(localStore, api.codebases.listMy, (list) =>
+      list.filter((c) => c._id !== args.id),
+    );
     for (const entry of localStore.getAllQueries(api.codebases.getById)) {
       if (entry.args.id === args.id) {
         localStore.setQuery(api.codebases.getById, entry.args, undefined);
@@ -78,18 +70,19 @@ export function CodebaseSidebarItem({
   });
 
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const { submitting: deleting, run: runDelete } = useAsyncSubmit();
 
   const isArchived = codebase.isArchived ?? false;
 
   const handleArchiveToggle = async () => {
+    // the message is built above the try React Compiler bails on the whole
+    // file for a conditional expression inside one.
+    const successMessage = isArchived
+      ? `Unarchived ${codebase.repoName}`
+      : `Archived ${codebase.repoName}`;
     try {
       await setArchived({ id: codebase._id, archived: !isArchived });
-      toast.success(
-        isArchived
-          ? `Unarchived ${codebase.repoName}`
-          : `Archived ${codebase.repoName}`,
-      );
+      toast.success(successMessage);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Action failed";
       toast.error(msg);
@@ -97,17 +90,11 @@ export function CodebaseSidebarItem({
   };
 
   const handleDelete = async () => {
-    setDeleting(true);
-    try {
+    await runDelete(async () => {
       await removeCodebase({ id: codebase._id });
       toast.success(`Deleted ${codebase.repoName}`);
       setConfirmOpen(false);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Delete failed";
-      toast.error(msg);
-    } finally {
-      setDeleting(false);
-    }
+    }, "Delete failed");
   };
 
   return (

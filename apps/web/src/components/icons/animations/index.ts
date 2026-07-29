@@ -1,4 +1,4 @@
-// SVG Animation Components Handcrafted animated SVG components for enhanced UI feedback
+// handcrafted animated SVG components for enhanced UI feedback
 
 export { AnimatedNotificationIcon } from "./AnimatedNotificationIcon";
 export { AnimatedBellIcon } from "./AnimatedBellIcon";

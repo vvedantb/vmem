@@ -5,8 +5,7 @@ let fontInjected = false;
 
 const VMEM_LABEL_SELECTOR = "[data-vmem-label]";
 
-// updates button copy without removing the logo icon icon only buttons have
-// no label span so status text goes to the tooltip/aria-label instead
+// icon-only buttons put status text on title and aria-label instead
 export function setVmemButtonLabel(
   button: HTMLButtonElement,
   text: string,
@@ -20,9 +19,7 @@ export function setVmemButtonLabel(
   button.setAttribute("aria-label", text);
 }
 
-// injects the instrument sans google font stylesheet into the host page
-// idempotent safe to call from any content script that renders text in
-// the host page (vs inside a shadow dom which doesn't see this link)
+// load instrument sans on host pages, shadow-dom overlays cannot see this link
 export function injectInstrumentSansFont(): void {
   if (fontInjected) return;
   fontInjected = true;
@@ -54,7 +51,6 @@ export function createVmemButton(
   });
 
   if (options?.iconOnly) {
-    // circular icon only variant: the text becomes the tooltip/aria-label
     button.append(icon);
     button.title = text;
     button.setAttribute("aria-label", text);

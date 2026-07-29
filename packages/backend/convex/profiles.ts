@@ -16,6 +16,7 @@ import {
   getActiveProfileForMcpScope,
   listProfilesByClerkIdAndScope,
   mcpScopeValidator,
+  resolveMcpMemoryScope,
   resolveProfileIdForMcpScope,
 } from "./profiles/mcpAccess";
 
@@ -24,13 +25,11 @@ export const list = authQuery({
   handler: async (ctx) => runList(ctx),
 });
 
-// get the currently active profile, or create default if none exists
 export const getOrCreateDefault = authMutation({
   args: {},
   handler: async (ctx) => runGetOrCreateDefault(ctx),
 });
 
-// create a new profile
 export const create = authMutation({
   args: {
     name: v.string(),
@@ -40,7 +39,6 @@ export const create = authMutation({
   handler: async (ctx, args) => runCreate(ctx, args),
 });
 
-// update an existing profile (rename, recolor, re-icon)
 export const update = authMutation({
   args: {
     profileId: v.id("profiles"),
@@ -51,7 +49,6 @@ export const update = authMutation({
   handler: async (ctx, args) => runUpdate(ctx, args),
 });
 
-// delete a profile and handle its memories (action that can call Neo4j)
 export const removeWithMemories = authAction({
   args: {
     profileId: v.id("profiles"),
@@ -61,7 +58,6 @@ export const removeWithMemories = authAction({
   handler: async (ctx, args) => runRemoveWithMemories(ctx, args),
 });
 
-// internal mutation for deleting a profile (used by action)
 export const removeInternalMutation = internalMutation({
   args: {
     profileId: v.id("profiles"),
@@ -78,7 +74,19 @@ export const getByIdInternal = internalQuery({
   },
 });
 
-// profile used for MCP memory tools when no profileId is passed
+// whether the profile is team or personal, resolved once at write-time so the neo4j engine can scope relates_to edge creation. no authz here, callers assert access.
+export const getProfileScopeInternal = internalQuery({
+  args: { profileId: v.string() },
+  returns: v.union(v.literal("personal"), v.literal("team")),
+  handler: async (ctx, args) => {
+    const id = ctx.db.normalizeId("profiles", args.profileId);
+    if (!id) return "personal";
+    const profile = await ctx.db.get(id);
+    return profile?.teamId !== undefined ? "team" : "personal";
+  },
+});
+
+// profile used for mcp memory tools when no profileId is passed
 export const getActiveProfileForMcpInternal = internalQuery({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
@@ -110,6 +118,19 @@ export const resolveProfileIdForMcpScopeInternal = internalQuery({
   },
 });
 
+// mcp memory scope: profileId plus whether the profile is team. reuses resolveProfileIdForMcpScope authz so membership checks cannot drift.
+export const resolveMcpMemoryScopeInternal = internalQuery({
+  args: {
+    clerkId: v.string(),
+    scope: mcpScopeValidator,
+    profileId: v.optional(v.string()),
+  },
+  returns: v.object({ profileId: v.string(), team: v.boolean() }),
+  handler: async (ctx, args) => {
+    return resolveMcpMemoryScope(ctx, args.clerkId, args.scope, args.profileId);
+  },
+});
+
 export const getOrCreateDefaultByClerkIdInternal = internalMutation({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
@@ -130,7 +151,6 @@ export const listByClerkIdAndScopeInternal = internalQuery({
   },
 });
 
-// list personal (non-team) profiles owned by a user
 export const listPersonalByUserIdInternal = internalQuery({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
@@ -142,7 +162,6 @@ export const listPersonalByUserIdInternal = internalQuery({
   },
 });
 
-// get a team's profile (every team has exactly one — created with the team)
 export const getByTeamInternal = internalQuery({
   args: { teamId: v.id("teams") },
   handler: async (ctx, args) => {
@@ -166,7 +185,6 @@ export const setLastDreamRunAtInternal = internalMutation({
   },
 });
 
-// dream Mode V3 — store the evolving portrait the Dreamer produced for this profile,
 export const setDreamPortraitInternal = internalMutation({
   args: {
     profileId: v.id("profiles"),
@@ -187,7 +205,7 @@ export const setDreamPortraitInternal = internalMutation({
   },
 });
 
-// portrait for the user-wide MCP context prompt
+// portrait for the user-wide mcp context prompt
 export const getPortraitForContextPromptInternal = internalQuery({
   args: { clerkId: v.string() },
   returns: v.union(

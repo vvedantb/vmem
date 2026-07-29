@@ -1,4 +1,4 @@
-// best-effort embeddings — null when no API key or provider failure
+// best-effort embeddings, null when no api key or provider failure
 
 import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";

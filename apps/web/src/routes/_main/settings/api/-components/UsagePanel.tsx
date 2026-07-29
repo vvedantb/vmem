@@ -7,7 +7,6 @@ import { computeApiUsageMetrics } from "@/components/api-logs/_utils";
 
 const DISPLAY_LIMIT = 100;
 
-// usage panel for `/settings/api`
 export function UsagePanel() {
   const entries = useQuery(api.auditLog.listMyApiRequestEntries, {
     limit: 1000,

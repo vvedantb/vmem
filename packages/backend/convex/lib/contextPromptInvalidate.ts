@@ -7,7 +7,7 @@ type ContextPromptInvalidationCtx = Pick<
   "runMutation" | "scheduler"
 >;
 
-// debounced MCP context-prompt invalidation (60s)
+// debounced mcp context prompt invalidation (60s)
 export async function scheduleContextPromptInvalidationByClerkId(
   ctx: ContextPromptInvalidationCtx,
   clerkId: string,

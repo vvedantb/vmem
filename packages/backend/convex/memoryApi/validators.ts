@@ -1,6 +1,6 @@
 import { v, type Infer } from "convex/values";
 import { zodToConvex } from "convex-helpers/server/zod";
-import { memoryStatusSchema, memoryTypeSchema } from "./contract";
+import { memoryStatusSchema, memoryTypeSchema } from "@vmem/sdk";
 
 export const memoryTypeValidator = zodToConvex(memoryTypeSchema);
 export const memoryStatusValidator = zodToConvex(memoryStatusSchema);
@@ -99,6 +99,16 @@ export const teamSearchMemoriesFields = {
   tags: v.optional(v.array(v.string())),
   source: v.optional(v.string()),
   ...paginationFields,
+};
+
+// clerkId is the calling member: openRouter auth and attribution only, never a filter. the team profile alone scopes retrieval.
+export const teamRetrieveMemoriesFields = {
+  clerkId: v.string(),
+  profileId: v.string(),
+  query: v.string(),
+  type: v.optional(v.string()),
+  tags: v.optional(v.array(v.string())),
+  limit: v.number(),
 };
 
 export const createMemoryInternalArgs = v.object(createMemoryInternalFields);

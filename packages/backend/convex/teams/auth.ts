@@ -44,7 +44,7 @@ export async function getTeamProfileOrNull(
     .first();
 }
 
-// Clerk ids of every member of a team (members without a clerkId skipped)
+// clerk ids of every member of a team (members without a clerkId skipped)
 export async function getTeamMemberClerkIds(
   ctx: QueryCtx | MutationCtx,
   teamId: Id<"teams">,
@@ -66,7 +66,6 @@ interface ScopedContentDoc {
   teamId?: Id<"teams">;
 }
 
-// list/create gate: membership when a teamId scope is requested
 export async function requireContentScopeAccess(
   ctx: QueryCtx | MutationCtx,
   userId: Id<"users">,
@@ -88,7 +87,7 @@ export async function isContentReadable(
   return membership !== null;
 }
 
-// edit gate: personal → owner only; team → any member (collaborative)
+// edit gate: personal to owner only. team to any member (collaborative)
 export async function assertContentEditable(
   ctx: QueryCtx | MutationCtx,
   doc: ScopedContentDoc,
@@ -102,7 +101,6 @@ export async function assertContentEditable(
   if (!membership) throw new Error("Not found");
 }
 
-// delete gate: personal → owner; team → creator or team owner
 export async function assertContentDeletable(
   ctx: QueryCtx | MutationCtx,
   doc: ScopedContentDoc,
@@ -153,7 +151,7 @@ export async function runAssertProfileAccessInternal(
 
 interface ResolveMemoryScopeArgs {
   userId: Id<"users">;
-  profileId?: Id<"profiles">;
+  profileId?: string;
 }
 
 type MemoryScope =
@@ -176,7 +174,10 @@ export async function runResolveMemoryScopeInternal(
     return { kind: "personal", clerkId: user.clerkId };
   }
 
-  const profile = await ctx.db.get(args.profileId);
+  const profileId = ctx.db.normalizeId("profiles", args.profileId);
+  if (!profileId) throw new Error("Profile not found");
+
+  const profile = await ctx.db.get(profileId);
   if (!profile) throw new Error("Profile not found");
 
   if (profile.teamId) {
@@ -198,6 +199,23 @@ export async function runResolveMemoryScopeInternal(
   return { kind: "personal", clerkId: user.clerkId };
 }
 
+interface GetOwnerUserIdArgs {
+  teamId: Id<"teams">;
+}
+
+// current owner of a team, or null if no owner row exists (e.g. team mid-transfer)
+export async function runGetOwnerUserIdInternal(
+  ctx: QueryCtx,
+  args: GetOwnerUserIdArgs,
+): Promise<Id<"users"> | null> {
+  const members = await ctx.db
+    .query("teamMembers")
+    .withIndex("by_team", (q) => q.eq("teamId", args.teamId))
+    .collect();
+  const owner = members.find((m) => m.role === "owner");
+  return owner?.userId ?? null;
+}
+
 interface AssertMemoryMutablePermissionArgs {
   userId: Id<"users">;
   memoryCreatorClerkId: string;
@@ -213,8 +231,7 @@ export async function runAssertMemoryMutablePermissionInternal(
 
   if (user.clerkId === args.memoryCreatorClerkId) return true;
 
-  // non-creator: must be the team's owner. Personal-profile mutations
-  // by non-creators are never allowed
+  // non-creator: must be the team's owner. personal profile mutations by non-creators are never allowed
   if (!args.profileId) throw new Error("Not allowed");
   const profile = await ctx.db.get(args.profileId);
   if (!profile?.teamId) throw new Error("Not allowed");

@@ -21,7 +21,7 @@ export function NavLink({
 }: {
   item: NavItem;
   pathname: string;
-  // active workspace id; workspace hrefs fall back to /home without one
+  // active workspace id workspace hrefs fall back to /home without one
   profileId: string | undefined;
   isIconOnly: boolean;
   unreadCount: number;

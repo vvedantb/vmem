@@ -1,19 +1,16 @@
-import type { MouseEventHandler } from "react";
-import { Link } from "@tanstack/react-router";
-import { AnimatePresence, motion } from "motion/react";
+import type { MouseEventHandler, ReactNode } from "react";
+import { motion } from "motion/react";
 import { cn, motionDuration, motionEase } from "@vmem/ui";
 import { IconUsers } from "@tabler/icons-react";
 import { IconTeams, IconSettings } from "../icons/sidebar";
 import type { NavGroup, NavItem } from "./types";
 import { navGroups, navHrefToPath, settingsNavGroups } from "./nav-config";
 import { NavLink } from "./NavLink";
-import { SidebarIconTooltip } from "./SidebarIconTooltip";
 import { SkillsSidebarNav } from "./SkillsSidebarNav";
 import { WikiSidebarNav } from "./WikiSidebarNav";
 import { CodebasesSidebarNav } from "./CodebasesSidebarNav";
 import { SharedLayoutBackground } from "./SharedLayoutBackground";
 import { NavSection } from "./NavSection";
-import { sidebarNavRowClass, sidebarNavLinkTextClass } from "./sidebar-nav-row";
 
 export type SidebarNavView =
   | "main"
@@ -37,7 +34,7 @@ function isSubSidebarHref(href: string): href is SubSidebarHref {
 
 export function navViewFromPathname(pathname: string): SidebarNavView {
   if (pathname.startsWith("/settings")) return "settings";
-  // workspace routes carry the profile id as their first segment — strip it
+  // workspace routes carry the profile id as their first segment strip it
   // before matching sections
   const sub = pathname.replace(/^\/[^/]+/, "");
   if (sub.startsWith("/skills")) return "skills";
@@ -48,7 +45,7 @@ export function navViewFromPathname(pathname: string): SidebarNavView {
 
 export type SidebarNavigationProps = {
   pathname: string;
-  // active workspace id for resolving workspace-scoped nav hrefs
+  // active workspace id for resolving workspace scoped nav hrefs
   profileId: string | undefined;
   // team workspaces get an extra "Team" nav group (members / settings)
   isTeamWorkspace: boolean;
@@ -73,30 +70,46 @@ const teamNavGroup: NavGroup = {
   ],
 };
 
-function SubSidebarNavLink({
-  item,
-  pathname,
-  profileId,
+// shared shell for MainNav/SettingsNav slide in nav + shared layout pill +
+// collapsible sections. Per item rendering (incl. the active highlight check
+// feeding SharedLayoutBackground.Item) is the caller's concern.
+function NavGroupList({
+  groups,
   isIconOnly,
-  onNavigate,
+  isMobile,
+  layoutId,
+  slideDirection,
+  renderItem,
 }: {
-  item: NavItem;
-  pathname: string;
-  profileId: string | undefined;
+  groups: { title: string; items: NavItem[] }[];
   isIconOnly: boolean;
-  onNavigate?: MouseEventHandler<HTMLAnchorElement>;
+  isMobile: boolean;
+  layoutId: string;
+  slideDirection: number;
+  renderItem: (item: NavItem) => ReactNode;
 }) {
   return (
-    <NavLink
-      item={item}
-      pathname={pathname}
-      profileId={profileId}
-      isIconOnly={isIconOnly}
-      unreadCount={0}
-      proposalsCount={0}
-      showChevron
-      onNavigate={onNavigate}
-    />
+    <motion.nav
+      className={cn(
+        "flex-1 space-y-4 overflow-y-auto scrollbar-thin",
+        isMobile ? "pb-2" : "pr-1",
+      )}
+      initial={{ opacity: 0, x: slideDirection }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: motionDuration.fast, ease: motionEase }}
+    >
+      <SharedLayoutBackground.Root layoutId={layoutId} className="space-y-4">
+        {groups.map((group) => (
+          <NavSection
+            key={group.title}
+            title={group.title}
+            isIconOnly={isIconOnly}
+          >
+            <div className="space-y-1">{group.items.map(renderItem)}</div>
+          </NavSection>
+        ))}
+      </SharedLayoutBackground.Root>
+    </motion.nav>
   );
 }
 
@@ -122,69 +135,40 @@ function MainNav({
   const groups = isTeamWorkspace
     ? [...navGroups.slice(0, 1), teamNavGroup, ...navGroups.slice(1)]
     : navGroups;
+
+  function renderItem(item: NavItem) {
+    const resolvedPath = navHrefToPath(item.href, profileId);
+    const isActive =
+      pathname === resolvedPath || pathname.startsWith(resolvedPath + "/");
+    return (
+      <SharedLayoutBackground.Item
+        key={item.href}
+        id={item.href}
+        isActive={isActive}
+      >
+        <NavLink
+          item={item}
+          pathname={pathname}
+          profileId={profileId}
+          isIconOnly={isIconOnly}
+          unreadCount={unreadCount}
+          proposalsCount={proposalsCount}
+          showChevron={isSubSidebarHref(item.href)}
+          onNavigate={onNavigate}
+        />
+      </SharedLayoutBackground.Item>
+    );
+  }
+
   return (
-    <motion.nav
-      className={cn(
-        "flex-1 space-y-4 overflow-y-auto scrollbar-thin",
-        isMobile ? "pb-2" : "pr-1",
-      )}
-      initial={{ opacity: 0, x: -12 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: motionDuration.fast, ease: motionEase }}
-    >
-      <SharedLayoutBackground.Root layoutId="main-nav" className="space-y-4">
-        {groups.map((group) => (
-          <NavSection
-            key={group.title}
-            title={group.title}
-            isIconOnly={isIconOnly}
-          >
-            <div className="space-y-1">
-              {group.items.map((item) => {
-                const resolvedPath = navHrefToPath(item.href, profileId);
-                const isActive =
-                  pathname === resolvedPath ||
-                  pathname.startsWith(resolvedPath + "/");
-                if (isSubSidebarHref(item.href)) {
-                  return (
-                    <SharedLayoutBackground.Item
-                      key={item.href}
-                      id={item.href}
-                      isActive={isActive}
-                    >
-                      <SubSidebarNavLink
-                        item={item}
-                        pathname={pathname}
-                        profileId={profileId}
-                        isIconOnly={isIconOnly}
-                        onNavigate={onNavigate}
-                      />
-                    </SharedLayoutBackground.Item>
-                  );
-                }
-                return (
-                  <SharedLayoutBackground.Item
-                    key={item.href}
-                    id={item.href}
-                    isActive={isActive}
-                  >
-                    <NavLink
-                      item={item}
-                      pathname={pathname}
-                      profileId={profileId}
-                      isIconOnly={isIconOnly}
-                      unreadCount={unreadCount}
-                      proposalsCount={proposalsCount}
-                      onNavigate={onNavigate}
-                    />
-                  </SharedLayoutBackground.Item>
-                );
-              })}
-            </div>
-          </NavSection>
-        ))}
-      </SharedLayoutBackground.Root>
-    </motion.nav>
+    <NavGroupList
+      groups={groups}
+      isIconOnly={isIconOnly}
+      isMobile={isMobile}
+      layoutId="main-nav"
+      slideDirection={-12}
+      renderItem={renderItem}
+    />
   );
 }
 
@@ -199,78 +183,37 @@ function SettingsNav({
   isMobile: boolean;
   onNavigate?: MouseEventHandler<HTMLAnchorElement>;
 }) {
-  return (
-    <motion.nav
-      className={cn(
-        "flex-1 space-y-4 overflow-y-auto scrollbar-thin",
-        isMobile ? "pb-2" : "pr-1",
-      )}
-      initial={{ opacity: 0, x: 12 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: motionDuration.fast, ease: motionEase }}
-    >
-      <SharedLayoutBackground.Root
-        layoutId="settings-nav"
-        className="space-y-4"
+  function renderItem(item: NavItem) {
+    const isActive =
+      pathname === item.href || pathname.startsWith(item.href + "/");
+    return (
+      <SharedLayoutBackground.Item
+        key={item.href}
+        id={item.href}
+        isActive={isActive}
       >
-        {settingsNavGroups.map((group) => (
-          <NavSection
-            key={group.title}
-            title={group.title}
-            isIconOnly={isIconOnly}
-          >
-            <div className="space-y-1">
-              {group.items.map((item) => {
-                const isActive =
-                  pathname === item.href ||
-                  pathname.startsWith(item.href + "/");
-                const Icon = item.icon;
-                return (
-                  <SharedLayoutBackground.Item
-                    key={item.href}
-                    id={item.href}
-                    isActive={isActive}
-                  >
-                    <SidebarIconTooltip label={item.label} enabled={isIconOnly}>
-                      <Link
-                        to={item.href}
-                        onClick={onNavigate}
-                        className={cn(
-                          "group relative flex w-full items-center rounded-lg text-sm font-medium tracking-normal transition-colors duration-200 ease-smooth",
-                          sidebarNavRowClass(isIconOnly),
-                          sidebarNavLinkTextClass(isActive),
-                        )}
-                      >
-                        <span className="flex h-5 w-5 items-center justify-center text-current">
-                          <Icon size={18} stroke={1.7} />
-                        </span>
-                        <AnimatePresence initial={false}>
-                          {!isIconOnly ? (
-                            <motion.span
-                              key={`${item.href}-label`}
-                              className="flex-1"
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              exit={{ opacity: 0 }}
-                              transition={{
-                                duration: motionDuration.fast,
-                                ease: motionEase,
-                              }}
-                            >
-                              {item.label}
-                            </motion.span>
-                          ) : null}
-                        </AnimatePresence>
-                      </Link>
-                    </SidebarIconTooltip>
-                  </SharedLayoutBackground.Item>
-                );
-              })}
-            </div>
-          </NavSection>
-        ))}
-      </SharedLayoutBackground.Root>
-    </motion.nav>
+        <NavLink
+          item={item}
+          pathname={pathname}
+          profileId={undefined}
+          isIconOnly={isIconOnly}
+          unreadCount={0}
+          proposalsCount={0}
+          onNavigate={onNavigate}
+        />
+      </SharedLayoutBackground.Item>
+    );
+  }
+
+  return (
+    <NavGroupList
+      groups={settingsNavGroups}
+      isIconOnly={isIconOnly}
+      isMobile={isMobile}
+      layoutId="settings-nav"
+      slideDirection={12}
+      renderItem={renderItem}
+    />
   );
 }
 
@@ -287,7 +230,7 @@ export function SidebarNavigation({
   const isIconOnly = !isMobile && isCollapsed;
   const navView = navViewFromPathname(pathname);
 
-  // Enter-only keyed remount — no AnimatePresence mode="wait". Wait+exit can
+  // enter only keyed remount no AnimatePresence mode="wait". Wait+exit can
   // strand the incoming panel at opacity 0 if a Convex re-render lands mid-exit.
   if (navView === "settings") {
     return (

@@ -13,13 +13,13 @@ export type CreateMemoryParams = FunctionArgs<
   typeof api.memoryApi.createMemory
 >;
 
-// subset of profile fields the extension ui/sw need
+// profile fields needed by extension ui and service-worker
 export type Profile = Pick<
   FunctionReturnType<typeof api.profiles.list>[number],
   "_id" | "name" | "color" | "icon" | "isDefault"
 >;
 
-// live userSettings query shape single source of truth from convex
+// userSettings query shape from convex
 export type ExtensionUserSettings = FunctionReturnType<
   typeof api.userSettings.get
 >;

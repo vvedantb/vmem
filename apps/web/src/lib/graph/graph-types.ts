@@ -15,9 +15,9 @@ export interface HoveredEdgeInfo {
   edgeType: GraphEdgeType;
   sourceTitle: string;
   targetTitle: string;
-  // tag edges: shared tag list
+  // tag edges shared tag list
   reason: string | null;
-  // similarity score (0–1) for semantic similarity edges
+  // similarity score (0 1) for semantic similarity edges
   score?: number;
   viewportX: number;
   viewportY: number;

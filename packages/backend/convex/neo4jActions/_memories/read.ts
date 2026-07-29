@@ -7,6 +7,7 @@ import type {
 } from "../../memoryApi/validators";
 import { getMemory, listMemories } from "../../../engine/neo4j/memory/crud";
 import { retrieveMemories } from "../../../engine/neo4j/memory/retrieve";
+import type { MemoryReadScope } from "../../../engine/neo4j/memory/scope";
 import { getDriver } from "../../../engine/neo4j/driver";
 import { callOpenRouterChat, LLM_MODEL } from "../../lib/openRouter";
 import {
@@ -63,6 +64,11 @@ export interface RetrieveMemoriesArgs {
   type?: string;
   tags?: string[];
   limit: number;
+}
+
+// same shape, but the profile is mandatory, it is the whole scope key.
+export interface TeamRetrieveMemoriesArgs extends RetrieveMemoriesArgs {
+  profileId: string;
 }
 
 async function tryRetrievalChat(
@@ -144,9 +150,10 @@ async function rerankRetrievalCandidates(
   return scores;
 }
 
-export async function runRetrieveMemories(
+async function runRetrieveWithScope(
   ctx: ActionCtx,
   args: RetrieveMemoriesArgs,
+  scope: MemoryReadScope,
 ) {
   const driver = getDriver();
   const queryEmbedding = await bestEffortEmbedOne({
@@ -159,8 +166,7 @@ export async function runRetrieveMemories(
   });
 
   return await retrieveMemories(driver, {
-    userId: args.clerkId,
-    profileId: args.profileId,
+    scope,
     query: args.query,
     queryEmbedding,
     type: toMemoryType(args.type),
@@ -181,5 +187,27 @@ export async function runRetrieveMemories(
     },
     rerankCandidates: (query, candidates) =>
       rerankRetrievalCandidates(ctx, args, query, candidates),
+  });
+}
+
+export async function runRetrieveMemories(
+  ctx: ActionCtx,
+  args: RetrieveMemoriesArgs,
+) {
+  return await runRetrieveWithScope(ctx, args, {
+    kind: "personal",
+    userId: args.clerkId,
+    profileId: args.profileId,
+  });
+}
+
+// team scope keys on the shared profile alone. the caller's clerkId is still carried for openRouter auth, embedding budgets, and attribution.
+export async function runRetrieveMemoriesForTeam(
+  ctx: ActionCtx,
+  args: TeamRetrieveMemoriesArgs,
+) {
+  return await runRetrieveWithScope(ctx, args, {
+    kind: "team",
+    profileId: args.profileId,
   });
 }

@@ -11,13 +11,12 @@ export const getMe = query({
   },
 });
 
-// get user by Clerk ID (internal, for MCP profile resolution)
 export const getByClerkIdInternal = internalQuery({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => getUserByClerkId(ctx, args.clerkId),
 });
 
-// resolve clerkIds → minimal user info for attribution in team memory lists
+// resolve clerkIds to minimal user info for attribution in team memory lists
 export const getByClerkIds = authQuery({
   args: { clerkIds: v.array(v.string()) },
   handler: async (ctx, args) => {

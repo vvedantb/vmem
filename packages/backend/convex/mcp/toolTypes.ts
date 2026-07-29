@@ -24,10 +24,10 @@ export interface ToolSpec<Shape extends z.ZodRawShape> {
   readonly schema: z.ZodObject<Shape>;
   readonly description: string | ((scopeLabel: string) => string);
   readonly errorLabel: string;
-  // omit to register on every MCP scope
+  // omit to register on every mcp scope
   readonly scopes?: readonly McpScope[];
   readonly toContent?: (result: ToolHandlerResult) => McpToolContent;
-  // method syntax: bivariant params so ToolSpec<> erases into ErasedToolSpec
+  // method syntax, bivariant params so toolspec<> erases into erasedtoolspec
   run(
     h: ToolHandlerContext,
     params: z.infer<z.ZodObject<Shape>>,
@@ -49,11 +49,11 @@ export type McpBindableTool = {
   ) => Promise<unknown>;
 };
 
-// structural erase of ToolSpec<> so heterogeneous catalog entries can bind
+// structural erase of toolspec<> so heterogeneous catalog entries can bind
 type ErasedToolSpec = {
   readonly name: string;
   readonly schema: z.ZodObject<z.ZodRawShape>;
-  // method syntax keeps `run` bivariant so specific ToolSpec shapes assign here
+  // method syntax keeps run bivariant so specific toolspec shapes assign here
   run(
     h: ToolHandlerContext,
     params: z.infer<z.ZodObject<z.ZodRawShape>>,

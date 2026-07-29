@@ -1,9 +1,6 @@
-// Regenerates src/routeTree.gen.ts without starting the Vite dev server.
-// The TanStack Router Vite plugin normally regenerates this file during dev/build.
-// This script invokes the same Generator the plugin uses, so CI/typecheck runs
-// can refresh the route tree after adding/removing routes.
-//
-// Usage: `node scripts/generate-route-tree.mjs` from apps/web.
+// regenerates routeTree.gen.ts without starting the vite dev server
+// invokes the same tanstack router generator the vite plugin uses
+// run from apps/web via the generate route tree script
 
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -24,4 +21,4 @@ const config = getConfig(
 
 const generator = new Generator({ config, root: projectRoot });
 await generator.run();
-console.log("Regenerated", path.join(projectRoot, "src/routeTree.gen.ts"));
+console.info("Regenerated", path.join(projectRoot, "src/routeTree.gen.ts"));

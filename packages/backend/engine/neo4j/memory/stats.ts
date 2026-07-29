@@ -17,15 +17,6 @@ const activityEventPropsSchema = z.object({
   createdAt: z.string(),
 });
 
-function formatRelativeTime(diffMs: number): string {
-  const diffMins = Math.floor(diffMs / 60000);
-  if (diffMins < 1) return "just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  const diffHours = Math.floor(diffMs / 3600000);
-  if (diffHours < 24) return `${diffHours}h ago`;
-  return `${Math.floor(diffMs / 86400000)}d ago`;
-}
-
 function activityMetaFor(
   action: string,
   memoryTitle: string,
@@ -69,7 +60,7 @@ export async function getStats(
   memoriesThisMonth: number;
   memoriesAddedToday: number;
   totalTags: number;
-  growthData: { date: string; total: number; new: number }[];
+  growthData: { isoDate: string; total: number; new: number }[];
 }> {
   return withSession(driver, async (session) => {
     const now = new Date();
@@ -132,27 +123,23 @@ export async function getStats(
     }
 
     let running = baseline;
-    const growthData: { date: string; total: number; new: number }[] = [];
+    const growthData: { isoDate: string; total: number; new: number }[] = [];
+    // cypher groups by utc calendar day, local midnight keys would miss the right bucket
+    // whenever the process timezone sits behind utc
     const today = new Date();
-    const todayMs = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      today.getDate(),
-    ).getTime();
+    const todayMs = Date.UTC(
+      today.getUTCFullYear(),
+      today.getUTCMonth(),
+      today.getUTCDate(),
+    );
     const dayMs = 24 * 60 * 60 * 1000;
     for (let offset = 6; offset >= 0; offset--) {
-      const dayDate = new Date(todayMs - offset * dayMs);
-      const isoDay = dayDate.toISOString().slice(0, 10);
+      const isoDay = new Date(todayMs - offset * dayMs)
+        .toISOString()
+        .slice(0, 10);
       const newCount = dailyCounts.get(isoDay) ?? 0;
       running += newCount;
-      growthData.push({
-        date: dayDate.toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-        }),
-        total: running,
-        new: newCount,
-      });
+      growthData.push({ isoDate: isoDay, total: running, new: newCount });
     }
 
     return {
@@ -179,7 +166,6 @@ export async function getRecentActivity(
     title: string;
     description: string;
     timestamp: string;
-    relativeTime: string;
   }[]
 > {
   const pf = profileFilter(profileId, "m", { strict: strictProfile });
@@ -193,7 +179,6 @@ export async function getRecentActivity(
     { userId, ...pf.params, limit: neo4j.int(limit) },
   );
 
-  const now = Date.now();
   return result.records.map((record) => {
     const props = parseNeo4jNodeProps(
       neo4jGet(record, "e"),
@@ -208,9 +193,6 @@ export async function getRecentActivity(
       title: "Memory",
       description: meta.description,
       timestamp: props.createdAt,
-      relativeTime: formatRelativeTime(
-        now - new Date(props.createdAt).getTime(),
-      ),
     };
   });
 }

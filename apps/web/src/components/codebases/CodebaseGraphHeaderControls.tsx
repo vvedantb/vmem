@@ -1,4 +1,4 @@
-// codebase-graph header controls
+// codebase graph header controls
 
 import {
   IconFilter,
@@ -85,8 +85,6 @@ function codebaseActiveFilterCount(
   if (controller.selectedSymbolId) count += 1;
   return count;
 }
-
-// ---- Filters popover ----
 
 function FiltersPopover({
   controller,

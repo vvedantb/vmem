@@ -1,6 +1,6 @@
 import type { ComponentType } from "react";
 import type { FunctionReturnType } from "convex/server";
-import { api } from "@vmem/backend";
+import type { api } from "@vmem/backend";
 import {
   GoogleDriveIcon,
   NotionIcon,
@@ -42,7 +42,7 @@ export function isConnectorConnected(
   return connector.connectionStatus === "connected";
 }
 
-// connectable in UI — has OAuth provider or dedicated GitHub flow
+// connectable in UI has OAuth provider or dedicated GitHub flow
 export function isConnectorConnectable(connector: Connector): boolean {
   return isGitHubConnector(connector) || connector.provider !== undefined;
 }

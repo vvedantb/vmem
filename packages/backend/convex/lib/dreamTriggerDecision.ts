@@ -1,4 +1,4 @@
-// pure dream-trigger decision logic (unit-tested)
+// pure dream trigger decision logic (unit tested)
 
 export const QUIET_MS = 30 * 60 * 1000;
 export const MIN_NEW_MEMORIES = 5;

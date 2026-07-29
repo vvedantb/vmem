@@ -8,7 +8,7 @@ import {
 } from "../../engine/neo4j/setup";
 import { getDriver } from "../../engine/neo4j/driver";
 
-// force full Neo4j DDL (manual / after new indexes ship in setup.ts)
+// force full neo4j ddl (manual / after new indexes ship in setup.ts)
 export const ensureNeo4jSetup = internalAction({
   args: {},
   returns: v.null(),

@@ -14,7 +14,7 @@ import {
 } from "./profiles/mcpAccess";
 import {
   userSettingsPatchFields,
-  userSettingsThemeValidator,
+  type userSettingsThemeValidator,
 } from "./validators";
 
 type ThemeValue = Infer<typeof userSettingsThemeValidator>;
@@ -60,7 +60,7 @@ const defaults: {
   dreamModeAutoAccept: false,
   dreamModeScheduleEnabled: false,
   dreamModeScheduleTime: null,
-  // dynamic Dreaming is on by default — soft-fails without an API key
+  // dynamic dreaming is on by default, soft-fails without an api key
   dreamModeAutomatic: true,
   lastDreamRunAt: null,
 };
@@ -122,7 +122,6 @@ export const get = authQuery({
   },
 });
 
-// internal query used by actions to fetch the user-provided context (About Me /
 export const getUserContextInternal = internalQuery({
   args: { userId: v.id("users") },
   returns: v.object({
@@ -145,28 +144,9 @@ export const update = authMutation({
   handler: async (ctx, args) => {
     const existing = await getSettingsDoc(ctx, ctx.userId);
 
+    // args is exactly userSettingsPatchFields, so its own keys already are the patchable fields, no separate key list to keep in sync
     const fields: Record<string, string | boolean | number> = {};
-    const optionalKeys = [
-      "theme",
-      "language",
-      "memoryAutoTag",
-      "notificationsEnabled",
-      "extensionAutoSyncEnabled",
-      "extensionAutoSyncIntervalMinutes",
-      "extensionSelectionPopupEnabled",
-      "memoryAutoExtract",
-      "memoryConfidenceThreshold",
-      "notifyMemoryConflicts",
-      "notifyNewMemories",
-      "notifyMemoriesExpiring",
-      "aboutMe",
-      "preferences",
-      "dreamModeAutoAccept",
-      "dreamModeAutomatic",
-    ] as const;
-
-    for (const key of optionalKeys) {
-      const value = args[key];
+    for (const [key, value] of Object.entries(args)) {
       if (value !== undefined) {
         fields[key] = value;
       }
@@ -184,7 +164,6 @@ export const update = authMutation({
   },
 });
 
-// internal: stamp `lastDreamRunAt` on the user's settings row
 export const setLastDreamRunAtInternal = internalMutation({
   args: {
     userId: v.id("users"),
@@ -203,7 +182,6 @@ export const setLastDreamRunAtInternal = internalMutation({
   },
 });
 
-// internal: read the user's Dream Mode config (auto-accept + last run)
 export const getDreamConfigInternal = internalQuery({
   args: { userId: v.id("users") },
   returns: v.object({
@@ -219,7 +197,6 @@ export const getDreamConfigInternal = internalQuery({
   },
 });
 
-// get default profile for a specific source (web, extension, or mcp)
 export const getDefaultProfile = authQuery({
   args: {
     source: v.union(v.literal("web"), v.literal("extension"), v.literal("mcp")),
@@ -231,7 +208,6 @@ export const getDefaultProfile = authQuery({
   },
 });
 
-// set default profile for a specific source
 export const setDefaultProfile = authMutation({
   args: {
     source: v.union(v.literal("web"), v.literal("extension"), v.literal("mcp")),

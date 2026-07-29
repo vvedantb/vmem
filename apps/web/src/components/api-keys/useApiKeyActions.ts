@@ -3,6 +3,7 @@ import { useMutation, useAction } from "convex/react";
 import { useCopyToClipboard, useTimeout } from "usehooks-ts";
 import { toast } from "sonner";
 import { api } from "@vmem/backend";
+import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
 import type { ApiKey } from "./types";
 
 export function useApiKeyActions() {
@@ -36,8 +37,8 @@ export function useApiKeyActions() {
   const [revokeKeyId, setRevokeKeyId] = useState<ApiKey["id"] | null>(null);
   const [deleteKeyId, setDeleteKeyId] = useState<ApiKey["id"] | null>(null);
   const [editKeyId, setEditKeyId] = useState<ApiKey["id"] | null>(null);
-  const [isRevoking, setIsRevoking] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const { submitting: isRevoking, run: runRevoke } = useAsyncSubmit();
+  const { submitting: isDeleting, run: runDelete } = useAsyncSubmit();
   const [copiedKeyId, setCopiedKeyId] = useState<ApiKey["id"] | null>(null);
   const [copyingKeyId, setCopyingKeyId] = useState<ApiKey["id"] | null>(null);
   const [revealedKeys, setRevealedKeys] = useState<
@@ -50,20 +51,19 @@ export function useApiKeyActions() {
   useTimeout(() => setCopiedKeyId(null), copiedKeyId !== null ? 2000 : null);
 
   const handleCopyKey = async (apiKeyId: ApiKey["id"]) => {
-    const existing = revealedKeys[apiKeyId];
-    const keyToCopy =
-      existing ??
-      (await (async () => {
-        setCopyingKeyId(apiKeyId);
-        try {
-          return await revealApiKey({ id: apiKeyId });
-        } catch {
-          toast.error("Failed to retrieve API key");
-          return null;
-        } finally {
-          setCopyingKeyId(null);
-        }
-      })());
+    // plain statements rather than an async IIFE inside a `??`, because the
+    // reset below used to be a `finally` and React Compiler bails on the whole
+    // file when it meets one.
+    let keyToCopy = revealedKeys[apiKeyId] ?? null;
+    if (keyToCopy === null) {
+      setCopyingKeyId(apiKeyId);
+      try {
+        keyToCopy = await revealApiKey({ id: apiKeyId });
+      } catch {
+        toast.error("Failed to retrieve API key");
+      }
+      setCopyingKeyId(null);
+    }
 
     if (!keyToCopy) return;
     const copied = await copyToClipboard(keyToCopy);
@@ -86,45 +86,38 @@ export function useApiKeyActions() {
     }
 
     setRevealingKeyId(apiKeyId);
+    // if/else and a trailing reset rather than an early return in a `finally`
+    // react Compiler bails on the whole file when it meets a `finally` clause.
     try {
       const rawKey = await revealApiKey({ id: apiKeyId });
-      if (!rawKey) {
+      if (rawKey) {
+        setRevealedKeys((prev) => ({ ...prev, [apiKeyId]: rawKey }));
+      } else {
         toast.error("Could not reveal API key");
-        return;
       }
-      setRevealedKeys((prev) => ({ ...prev, [apiKeyId]: rawKey }));
     } catch {
       toast.error("Failed to reveal API key");
-    } finally {
-      setRevealingKeyId(null);
     }
+    setRevealingKeyId(null);
   };
 
   const handleRevoke = async () => {
     if (!revokeKeyId) return;
 
-    setIsRevoking(true);
-    try {
+    await runRevoke(async () => {
       const revoked = await revokeApiKey({ id: revokeKeyId });
       if (!revoked) {
         throw new Error("Failed to revoke API key");
       }
       toast.success("The API key has been revoked successfully");
       setRevokeKeyId(null);
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to revoke API key",
-      );
-    } finally {
-      setIsRevoking(false);
-    }
+    }, "Failed to revoke API key");
   };
 
   const handleDelete = async () => {
     if (!deleteKeyId) return;
 
-    setIsDeleting(true);
-    try {
+    await runDelete(async () => {
       const deleted = await deleteApiKey({ id: deleteKeyId });
       if (!deleted) {
         throw new Error("Failed to delete API key");
@@ -137,13 +130,7 @@ export function useApiKeyActions() {
         delete next[deleteKeyId];
         return next;
       });
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to delete API key",
-      );
-    } finally {
-      setIsDeleting(false);
-    }
+    }, "Failed to delete API key");
   };
 
   return {

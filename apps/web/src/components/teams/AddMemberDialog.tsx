@@ -13,6 +13,7 @@ import {
 } from "@vmem/ui";
 import { IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
+import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
 
 interface AddMemberDialogProps {
   teamId: Id<"teams">;
@@ -27,24 +28,19 @@ export function AddMemberDialog({
 }: AddMemberDialogProps) {
   const addMember = useMutation(api.teams.addMember);
   const [email, setEmail] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const { submitting, run } = useAsyncSubmit();
 
   const trimmed = email.trim();
   const canSubmit = trimmed.length > 0 && !submitting;
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
-    setSubmitting(true);
-    try {
+    await run(async () => {
       await addMember({ teamId, email: trimmed });
       toast.success(`Added ${trimmed}`);
       onOpenChange(false);
       setEmail("");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to add member");
-    } finally {
-      setSubmitting(false);
-    }
+    }, "Failed to add member");
   };
 
   return (

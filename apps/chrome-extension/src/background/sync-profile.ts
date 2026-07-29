@@ -2,7 +2,7 @@ import { getExtensionDefaultProfileId, listProfiles } from "./api-client";
 import { getStorage, setStorage } from "@/lib/storage";
 import { resolveExtensionProfileId } from "@/lib/resolve-extension-profile";
 
-// per-browser mirror with convex fallback for sync clears stale ids
+// chrome.storage profile with convex fallback when local id goes stale
 export async function getSyncProfileId(): Promise<string | undefined> {
   const { defaultProfileId: storageId } = await getStorage();
 
@@ -21,7 +21,7 @@ export async function getSyncProfileId(): Promise<string | undefined> {
     await setStorage({ defaultProfileId: "" });
   }
 
-  let convexDefault: string | null = null;
+  let convexDefault: string | null;
   try {
     convexDefault = await getExtensionDefaultProfileId();
   } catch {

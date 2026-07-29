@@ -2,14 +2,12 @@
 import type { GraphNode, GraphEdge, GraphNodeKind } from "@/lib/graph/types";
 import type { CodeNode, CodeEdge, CodeNodeKind } from "./-types";
 
-// ---- Directory stats ----
-
 export interface DirectoryStat {
   directory: string;
   count: number;
 }
 
-// unique dirs with file counts (code-file only), count desc
+// unique dirs with file counts (code file only), count desc
 export function getAllDirectories(nodes: CodeNode[]): DirectoryStat[] {
   const dirCounts = new Map<string, number>();
   for (const node of nodes) {
@@ -22,9 +20,7 @@ export function getAllDirectories(nodes: CodeNode[]): DirectoryStat[] {
     .sort((a, b) => b.count - a.count);
 }
 
-// ---- Node-size scaling ----
-
-// per-kind base size + degree scale (processes/files weigh more)
+// per kind base size + degree scale (processes/files weigh more)
 const SIZE_CONFIG: Record<
   CodeNodeKind,
   { base: number; perDegree: number; max: number }
@@ -36,10 +32,8 @@ const SIZE_CONFIG: Record<
   "code-function": { base: 2.5, perDegree: 0.3, max: 7 },
 };
 
-// ---- Build graph data ----
-
 interface BuildOptions {
-  // empty = show all dirs; otherwise restrict files to these
+  // empty = show all dirs otherwise restrict files to these
   activeDirectories: Set<string>;
   // empty set = hide everything
   activeKinds: Set<CodeNodeKind>;
@@ -55,7 +49,6 @@ export function buildCodebaseGraphData(
     return { graphNodes: [], graphEdges: [] };
   }
 
-  // --- Stage 1: determine which file IDs survive directory filtering. ---
   const activeDirs = options.activeDirectories;
   const filterByDir = activeDirs.size > 0;
   const survivingFileIds = new Set<string>();
@@ -67,7 +60,7 @@ export function buildCodebaseGraphData(
     }
   }
 
-  // stage 2: child→parent file map from CONTAINS / HAS_METHOD edges
+  // stage 2 child→parent file map from CONTAINS / HAS_METHOD edges
   const nodeById = new Map(apiNodes.map((n) => [n.id, n]));
   const symbolToFile = new Map<string, string>();
   const classToFile = new Map<string, string>();
@@ -86,7 +79,6 @@ export function buildCodebaseGraphData(
     }
   }
 
-  // --- Stage 3: Decide which nodes survive directory + kind filtering. ---
   const surviving = new Set<string>();
   for (const node of apiNodes) {
     if (!options.activeKinds.has(node.kind)) continue;
@@ -95,11 +87,11 @@ export function buildCodebaseGraphData(
       continue;
     }
     if (node.kind === "code-process") {
-      // processes are top-level entities (not directory-scoped) — keep them
+      // processes are top level entities (not directory scoped) keep them
       surviving.add(node.id);
       continue;
     }
-    // function / Class / Interface — keep when host file survived. If we have
+    // function / Class / Interface keep when host file survived. If we have
     // no parent record (older payload, orphan symbol), keep it as a fallback
     const parentFile = symbolToFile.get(node.id);
     if (!filterByDir || !parentFile || survivingFileIds.has(parentFile)) {
@@ -107,7 +99,6 @@ export function buildCodebaseGraphData(
     }
   }
 
-  // --- Stage 4: Compute degree per node for size scaling. ---
   const degree = new Map<string, number>();
   for (const edge of apiEdges) {
     if (!surviving.has(edge.fromId) || !surviving.has(edge.toId)) continue;
@@ -115,7 +106,6 @@ export function buildCodebaseGraphData(
     degree.set(edge.toId, (degree.get(edge.toId) ?? 0) + 1);
   }
 
-  // --- Stage 5: Map to canvas GraphNode shape. ---
   const graphNodes: GraphNode[] = [];
   for (const node of apiNodes) {
     if (!surviving.has(node.id)) continue;
@@ -129,8 +119,8 @@ export function buildCodebaseGraphData(
     graphNodes.push({
       id: node.id,
       title: node.name,
-      // inline the path into `content` so the search match-set check (which
-      // looks at title + content) can fuzzy-match on file paths
+      // inline the path into `content` so the search match set check (which
+      // looks at title + content) can fuzzy match on file paths
       content: node.path,
       tags,
       createdAt: "",
@@ -140,8 +130,7 @@ export function buildCodebaseGraphData(
     });
   }
 
-  // --- Stage 6: Map to canvas GraphEdge shape. ---
-  // CodeEdge.type is a subset of GraphEdgeType — pass through directly.
+  // codeEdge.type is a subset of GraphEdgeType pass through directly.
   // confidence drives visual weight on the renderer where supported
   const graphEdges: GraphEdge[] = [];
   for (const edge of apiEdges) {

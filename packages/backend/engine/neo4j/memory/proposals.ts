@@ -4,7 +4,8 @@ import { z } from "zod";
 import { neo4jGet, neo4jString, parseNeo4jNodeProps } from "../record";
 import { computeContentHash, toMemoryWithTags, toSnapshot } from "./mappers";
 import { withSession } from "../session";
-import { logEvent, profileFilter } from "./shared";
+import type { DreamScope, MemoryReadScope, ScopeKind } from "./scope";
+import { createDerivedMemoryCypher, logEvent, profileFilter } from "./shared";
 import {
   PROPOSED_UPDATE_KINDS,
   type ProposedUpdateKind,
@@ -101,6 +102,8 @@ function parseListedProposedUpdate(record: NeoRecord): ProposedUpdateNode {
   });
 }
 
+// team synthesis proposals set team profile and materialize userId on the node
+// personal and v2 extraction pass null so those properties stay unset
 const PENDING_PROPOSAL_PROPS = `id: $id,
          memoryId: $memoryId,
          proposedContent: $proposedContent,
@@ -112,7 +115,9 @@ const PENDING_PROPOSAL_PROPS = `id: $id,
          resolvedAt: null,
          sourceMemoryIds: $sourceMemoryIds,
          confidence: $confidence,
-         source: $source`;
+         source: $source,
+         teamProfileId: $teamProfileId,
+         materializeUserId: $materializeUserId`;
 
 interface InsertProposalFields {
   memoryId: string;
@@ -128,30 +133,47 @@ interface InsertProposalFields {
 async function insertProposal(
   driver: Driver,
   fields: InsertProposalFields,
-  link: { mode: "update_for" } | { mode: "derived_from"; userId: string },
+  link: { mode: "update_for" } | { mode: "derived_from"; scope: DreamScope },
   failMessage: string,
 ): Promise<ProposedUpdateNode> {
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
-  const props = { id, now, ...fields };
-  const result =
-    link.mode === "update_for"
-      ? await driver.executeQuery(
-          `MATCH (m:Memory {id: $memoryId})
+
+  let result;
+  if (link.mode === "update_for") {
+    result = await driver.executeQuery(
+      `MATCH (m:Memory {id: $memoryId})
              CREATE (p:ProposedUpdate { ${PENDING_PROPOSAL_PROPS} })
              CREATE (p)-[:UPDATE_FOR]->(m)
              RETURN p`,
-          props,
-        )
-      : await driver.executeQuery(
-          `CREATE (p:ProposedUpdate { ${PENDING_PROPOSAL_PROPS} })
+      { id, now, ...fields, teamProfileId: null, materializeUserId: null },
+    );
+  } else {
+    const { scope } = link;
+    const isTeam = scope.kind === "team";
+    // team synthesis reads every member's memories so DERIVED_FROM matches profileId alone
+    // personal keeps the historical per-owner userId match
+    const sourceMatchProps = isTeam
+      ? "profileId: $profileId"
+      : "userId: $userId";
+    result = await driver.executeQuery(
+      `CREATE (p:ProposedUpdate { ${PENDING_PROPOSAL_PROPS} })
              WITH p
              UNWIND $sourceMemoryIds AS sid
-             MATCH (m:Memory {id: sid, userId: $userId})
+             MATCH (m:Memory {id: sid, ${sourceMatchProps}})
              MERGE (p)-[:DERIVED_FROM]->(m)
              RETURN p`,
-          { ...props, userId: link.userId },
-        );
+      {
+        id,
+        now,
+        ...fields,
+        userId: scope.userId,
+        profileId: scope.profileId,
+        teamProfileId: isTeam ? scope.profileId : null,
+        materializeUserId: isTeam ? scope.userId : null,
+      },
+    );
+  }
 
   const firstRecord = result.records[0];
   if (!firstRecord) throw new Error(failMessage);
@@ -212,18 +234,24 @@ export async function listProposedUpdates(
   userId: string,
   options?: { profileId?: string | null; strictProfile?: boolean },
 ): Promise<ProposedUpdateNode[]> {
+  const isTeamProfile = options?.strictProfile === true;
   const pf = profileFilter(options?.profileId, "m", {
     strict: options?.strictProfile === true,
   });
   const pfSrc = profileFilter(options?.profileId, "src", {
     strict: options?.strictProfile === true,
   });
+  // team inboxes are shared, list proposals for any source in the profile
+  // not only memories the viewer created, so userId is dropped from the source match
+  const srcMatch = isTeamProfile
+    ? "MATCH (src:Memory)"
+    : "MATCH (src:Memory {userId: $userId})";
 
   const result = await driver.executeQuery(
     `MATCH (p:ProposedUpdate {status: 'pending'})
        OPTIONAL MATCH (p)-[:UPDATE_FOR]->(m:Memory)
        WITH p, m
-       OPTIONAL MATCH (src:Memory {userId: $userId})
+       OPTIONAL ${srcMatch}
          WHERE src.id IN coalesce(p.sourceMemoryIds, [])
          ${pfSrc.clause}
        WITH p, m,
@@ -247,9 +275,46 @@ interface ProposalLookup {
   proposedContent: string;
   sourceMemoryIds: string[];
   confidence: number | null;
+  // profileId for materializing the derived memory: team profile or first source profile
   sourceProfileId: string | null;
   memoryId: string;
   userId: string;
+  // which derived memory cypher variant to run for this proposal
+  scopeKind: ScopeKind;
+  // who is allowed to resolve it, kept apart from the fields above because
+  // those describe where the result is written, not who may ask for it
+  scopeCheck: ProposalScopeCheck;
+}
+
+// the proposal's own ownership, straight off the node and its memories
+export interface ProposalScopeCheck {
+  // set only by team synthesis proposals
+  teamProfileId: string | null;
+  // update and delete proposals point at one target memory
+  targetUserId: string | null;
+  targetProfileId: string | null;
+  // synthesis proposals have no target, so the first source stands in
+  sourceUserId: string | null;
+  sourceProfileId: string | null;
+}
+
+// resolving takes a proposal uuid, so without this any signed in caller could
+// approve or reject a stranger's proposal, and approving a delete destroys the memory
+export function canResolveProposal(
+  check: ProposalScopeCheck,
+  scope: MemoryReadScope,
+): boolean {
+  if (scope.kind === "team") {
+    // a v2 extraction proposal against a team memory carries no teamProfileId,
+    // so fall back to the profile of the memory the proposal points at
+    const governing =
+      check.teamProfileId ?? check.targetProfileId ?? check.sourceProfileId;
+    return governing !== null && governing === scope.profileId;
+  }
+  // team synthesis materialises to the team owner, never through a personal call
+  if (check.teamProfileId !== null) return false;
+  const owner = check.targetUserId ?? check.sourceUserId;
+  return owner !== null && owner === scope.userId;
 }
 
 export interface ResolveResult {
@@ -268,21 +333,38 @@ export const proposalLookupRowSchema = z
     confidence: z.number().nullish().catch(null),
     targetId: z.string().nullish().catch(null),
     targetUserId: z.string().nullish().catch(null),
+    targetProfileId: z.string().nullish().catch(null),
     sourceUserId: z.string().nullish().catch(null),
     sourceProfileId: z.string().nullish().catch(null),
+    teamProfileId: z.string().nullish().catch(null),
+    materializeUserId: z.string().nullish().catch(null),
   })
-  .transform(
-    (r): ProposalLookup => ({
+  .transform((r): ProposalLookup => {
+    const isTeam = typeof r.teamProfileId === "string";
+    return {
+      scopeCheck: {
+        teamProfileId: r.teamProfileId ?? null,
+        targetUserId: r.targetUserId ?? null,
+        targetProfileId: r.targetProfileId ?? null,
+        sourceUserId: r.sourceUserId ?? null,
+        sourceProfileId: r.sourceProfileId ?? null,
+      },
       kind: r.kind,
       proposedTitle: r.proposedTitle || "Untitled synthesis",
       proposedContent: r.proposedContent ?? "",
       sourceMemoryIds: r.sourceMemoryIds,
       confidence: r.confidence ?? null,
-      sourceProfileId: r.sourceProfileId ?? null,
+      sourceProfileId:
+        typeof r.teamProfileId === "string"
+          ? r.teamProfileId
+          : (r.sourceProfileId ?? null),
       memoryId: r.targetId || r.sourceMemoryIds[0] || "",
-      userId: r.targetUserId || r.sourceUserId || "",
-    }),
-  );
+      userId: isTeam
+        ? (r.materializeUserId ?? "")
+        : r.targetUserId || r.sourceUserId || "",
+      scopeKind: isTeam ? "team" : "personal",
+    };
+  });
 
 function parseProposalLookupRecord(record: NeoRecord): ProposalLookup | null {
   const parsed = proposalLookupRowSchema.safeParse({
@@ -293,8 +375,11 @@ function parseProposalLookupRecord(record: NeoRecord): ProposalLookup | null {
     confidence: neo4jGet(record, "confidence"),
     targetId: neo4jGet(record, "targetId"),
     targetUserId: neo4jGet(record, "targetUserId"),
+    targetProfileId: neo4jGet(record, "targetProfileId"),
     sourceUserId: neo4jGet(record, "sourceUserId"),
     sourceProfileId: neo4jGet(record, "sourceProfileId"),
+    teamProfileId: neo4jGet(record, "teamProfileId"),
+    materializeUserId: neo4jGet(record, "materializeUserId"),
   });
   return parsed.success ? parsed.data : null;
 }
@@ -316,8 +401,11 @@ async function lookupProposalContext(
        p.confidence AS confidence,
        target.id AS targetId,
        target.userId AS targetUserId,
+       target.profileId AS targetProfileId,
        firstSource.userId AS sourceUserId,
-       firstSource.profileId AS sourceProfileId`,
+       firstSource.profileId AS sourceProfileId,
+       p.teamProfileId AS teamProfileId,
+       p.materializeUserId AS materializeUserId`,
     { proposalId },
   );
 
@@ -416,42 +504,13 @@ async function applyUpdateApproval(
   };
 }
 
-const MATERIALISE_DERIVED_MEMORY_CYPHER = `
+function materialiseDerivedMemoryCypher(kind: ScopeKind): string {
+  return `
   MATCH (p:ProposedUpdate {id: $proposalId})
   SET p.status = 'approved', p.resolvedAt = $now
   WITH p
-  CREATE (m:Memory {
-    id: $newMemoryId,
-    userId: $userId,
-    profileId: $profileId,
-    title: $title,
-    content: $content,
-    type: 'knowledge',
-    source: 'dream-mode',
-    confidence: $confidence,
-    status: 'active',
-    createdAt: $now,
-    updatedAt: $now,
-    expiresAt: null,
-    url: null,
-    embedding: null,
-    contentHash: $contentHash,
-    sourceType: null,
-    sourceId: null,
-    storageId: null,
-    mimeType: null,
-    originalFilename: null,
-    visitCount: 1,
-    firstVisitAt: $now,
-    lastVisitAt: $now
-  })
-  WITH m
-  MERGE (s:Source {name: 'dream-mode'})
-  CREATE (m)-[:FROM_SOURCE]->(s)
-  WITH m
-  UNWIND $sourceMemoryIds AS sid
-  MATCH (src:Memory {id: sid, userId: $userId})
-  MERGE (m)-[:DERIVED_FROM]->(src)`;
+  ${createDerivedMemoryCypher(kind)}`;
+}
 
 async function rejectUnresolved(
   session: Session,
@@ -482,19 +541,21 @@ async function applyDerivedMemoryApproval(
   const materialiseParams = {
     proposalId,
     now,
-    newMemoryId,
+    id: newMemoryId,
     userId: lookup.userId,
     profileId: lookup.sourceProfileId,
     title: lookup.proposedTitle,
     content: lookup.proposedContent,
     confidence: lookup.confidence,
+    embedding: null,
     contentHash,
     sourceMemoryIds: lookup.sourceMemoryIds,
   };
 
+  const materialiseCypher = materialiseDerivedMemoryCypher(lookup.scopeKind);
   const result = options.supersedeSources
     ? await session.run(
-        `${MATERIALISE_DERIVED_MEMORY_CYPHER}
+        `${materialiseCypher}
          WITH m, src
          WHERE src.status = 'active'
          SET src.status = 'suppressed', src.updatedAt = $now
@@ -502,7 +563,7 @@ async function applyDerivedMemoryApproval(
          RETURN collect(src.id) AS supersededIds`,
         materialiseParams,
       )
-    : await session.run(MATERIALISE_DERIVED_MEMORY_CYPHER, materialiseParams);
+    : await session.run(materialiseCypher, materialiseParams);
 
   await logEvent(
     session,
@@ -610,6 +671,7 @@ async function applyContradictionResolution(
 // Modified by me: event snapshots and pending overlap guards for dream proposals
 export async function resolveProposal(
   driver: Driver,
+  scope: MemoryReadScope,
   proposalId: string,
   action: "approve" | "reject",
   winnerMemoryId?: string,
@@ -618,6 +680,9 @@ export async function resolveProposal(
     const now = new Date().toISOString();
     const lookup = await lookupProposalContext(session, proposalId);
     if (!lookup) return null;
+    // same null as a missing proposal on purpose, a caller who may not resolve it
+    // should not learn that the id exists
+    if (!canResolveProposal(lookup.scopeCheck, scope)) return null;
 
     if (action === "reject") {
       return applyStatusOnly(
@@ -680,12 +745,14 @@ export async function resolveProposal(
 export async function hasOverlappingPendingProposal(
   driver: Driver,
   params: {
-    userId: string;
+    scope: DreamScope;
     sourceMemoryIds: string[];
     overlapThreshold: number;
   },
 ): Promise<boolean> {
   if (params.sourceMemoryIds.length === 0) return false;
+  const ownerMatch =
+    params.scope.kind === "team" ? "profileId: $profileId" : "userId: $userId";
   const result = await driver.executeQuery(
     `MATCH (p:ProposedUpdate {status: 'pending'})
        WHERE p.source = 'dream-mode'
@@ -698,14 +765,15 @@ export async function hasOverlappingPendingProposal(
        WHERE overlapCount > 0
          AND (toFloat(overlapCount) / toFloat(existingSize)) >= $threshold
        WITH p
-       MATCH (m:Memory {userId: $userId})
+       MATCH (m:Memory {${ownerMatch}})
        WHERE m.id IN p.sourceMemoryIds
        RETURN p.id AS id
        LIMIT 1`,
     {
       candidateIds: params.sourceMemoryIds,
       threshold: params.overlapThreshold,
-      userId: params.userId,
+      userId: params.scope.userId,
+      profileId: params.scope.profileId,
     },
   );
   return result.records.length > 0;
@@ -714,7 +782,7 @@ export async function hasOverlappingPendingProposal(
 export async function createSynthesisProposal(
   driver: Driver,
   params: {
-    userId: string;
+    scope: DreamScope;
     kind: "insight" | "connection" | "contradiction" | "anomaly" | "merge";
     proposedTitle: string;
     proposedContent: string;
@@ -735,7 +803,7 @@ export async function createSynthesisProposal(
       sourceMemoryIds: params.sourceMemoryIds,
       confidence: params.confidence,
     },
-    { mode: "derived_from", userId: params.userId },
+    { mode: "derived_from", scope: params.scope },
     "Failed to create synthesis proposal",
   );
 }

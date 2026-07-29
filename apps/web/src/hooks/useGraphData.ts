@@ -1,4 +1,3 @@
-// extracted graph data-fetching hook
 import { useState } from "react";
 import { useConvexAuth, useAction } from "convex/react";
 import { useInfiniteQuery, type InfiniteData } from "@tanstack/react-query";
@@ -14,16 +13,14 @@ import type {
   GraphResponse,
 } from "@/lib/graph/graph-data";
 
-// ---- Page sizes ----
-
-// first page stays small so the graph paints fast on entry
+// small first page so graph paints quickly on entry
 const FIRST_PAGE_SIZE = 500;
-// follow-up pages bulk-load (server caps a page at 5000)
+// later pages bulk load up to server cap
 const NEXT_PAGE_SIZE = 5000;
-// hop count when focusing a node into its neighbourhood
+// depth when drilling into a focus-node neighbourhood
 const FOCUS_GRAPH_DEPTH = 2;
 
-// stable empty-array identities for loading/bench states
+// stable empty refs avoid useless rerenders while loading
 const EMPTY_NODES: ApiGraphNode[] = [];
 const EMPTY_TAG_EDGES: ApiTagEdge[] = [];
 const EMPTY_WIKI_PARENT_EDGES: ApiWikiParentEdge[] = [];
@@ -37,8 +34,6 @@ interface GraphCursor {
 
 const INITIAL_GRAPH_CURSOR: GraphCursor | null = null;
 
-// ---- Page merging ----
-
 interface MergedGraph {
   nodes: ApiGraphNode[];
   tagEdges: ApiTagEdge[];
@@ -49,7 +44,6 @@ interface MergedGraph {
   totalMemoryCount: number | null;
 }
 
-// flattens accumulated pages into one graph:
 function mergePages(pages: GraphResponse[]): MergedGraph {
   const first = pages.at(0);
   if (first === undefined) {
@@ -92,13 +86,11 @@ function mergePages(pages: GraphResponse[]): MergedGraph {
   };
 }
 
-// ---- Hook ----
-
 export function useGraphData(
   focusNodeId: string | null,
   profileId: string | null = null,
   enabled: boolean = true,
-  // `?bench=N` — synthetic client-side dataset, no server fetch
+  // bench query param skips server and uses synthetic data
   benchCount: number = 0,
 ) {
   const { isAuthenticated } = useConvexAuth();
@@ -123,8 +115,7 @@ export function useGraphData(
       focusNodeId ?? "none",
       profileId ?? "all",
     ],
-    // keep the previous graph while focus changes, but not when switching
-    // workspaces — showing another profile's nodes is misleading
+    // keep stale graph on focus-node change but clear when profile switches
     placeholderData: (previousData, previousQuery) => {
       if (previousQuery?.queryKey[3] !== (profileId ?? "all")) {
         return undefined;

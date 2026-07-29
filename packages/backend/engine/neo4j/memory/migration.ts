@@ -1,7 +1,6 @@
 import type { Driver } from "neo4j-driver";
 import { firstNeo4jInt } from "../record";
 
-// move memories from one profile to another
 export async function moveMemoriesBetweenProfiles(
   driver: Driver,
   userId: string,
@@ -17,7 +16,6 @@ export async function moveMemoriesBetweenProfiles(
   return firstNeo4jInt(result, "moved");
 }
 
-// delete all memories for a profile
 export async function deleteMemoriesByProfile(
   driver: Driver,
   userId: string,

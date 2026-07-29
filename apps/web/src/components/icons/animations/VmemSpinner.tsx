@@ -1,13 +1,12 @@
 // AI-generated (Claude), prompt: "vmem logo spinner as a branded loading indicator"
 // Modified by me: size prop and currentcolor styling
-
 import { cn } from "@vmem/ui";
 import { VmemPaths } from "./VmemPaths";
 
 interface VmemSpinnerProps {
   // pixel size for both width and height
   size?: number;
-  // extra classes — `currentColor` driven, so `text-muted` etc
+  // extra classes, `currentColor`-driven (e.g. `text-muted`)
   className?: string;
 }
 

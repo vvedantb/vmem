@@ -1,10 +1,11 @@
 import { truncate } from "es-toolkit/compat";
 import { sendMessage } from "@/lib/messaging";
+import { errorMessage } from "@/lib/error";
 import { createMemory } from "./api-client";
 import { htmlToMarkdown } from "@/lib/page-extraction";
 import { extractPageFromTab } from "@/lib/extract-page";
 
-// recreate context menus (idempotent across install/startup)
+// idempotent menu registration across install and startup
 export function registerContextMenu(): void {
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({
@@ -16,14 +17,12 @@ export function registerContextMenu(): void {
     chrome.contextMenus.create({
       id: "screenshot-to-vmem",
       title: "Screenshot region to vmem",
-      // viewport capture show on any click target
       contexts: ["all"],
     });
   });
 }
 
-// click handler register via registerContextMenuClickListener at sw top level
-export async function handleContextMenuClick(
+async function handleContextMenuClick(
   info: chrome.contextMenus.OnClickData,
   tab: chrome.tabs.Tab | undefined,
 ): Promise<void> {
@@ -41,21 +40,19 @@ export async function handleContextMenuClick(
       (err: unknown) => {
         console.warn(
           "[vmem] Could not start screenshot on tab:",
-          err instanceof Error ? err.message : String(err),
+          errorMessage(err),
         );
       },
     );
   }
 }
 
-// register click listener synchronously at sw top level
 export function registerContextMenuClickListener(): void {
   chrome.contextMenus.onClicked.addListener((info, tab) => {
     void handleContextMenuClick(info, tab);
   });
 }
 
-// save active tab page (context menu / keyboard shortcut)
 export async function savePageFromTab(
   tab: chrome.tabs.Tab,
 ): Promise<{ success: boolean; memoryId?: string; error?: string }> {
@@ -69,7 +66,7 @@ export async function savePageFromTab(
       throw new Error("Failed to extract page content");
     }
 
-    // turndown runs in the extension context, not the content script
+    // turndown runs in the extension context, not the content-script
     const markdown = extraction.html
       ? htmlToMarkdown(extraction.html)
       : extraction.content;

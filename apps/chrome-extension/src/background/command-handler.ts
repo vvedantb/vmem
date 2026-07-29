@@ -1,4 +1,5 @@
 import { sendMessage } from "@/lib/messaging";
+import { errorMessage } from "@/lib/error";
 import { savePageFromTab } from "./context-menu";
 import { injectPageToast } from "./inject-page-toast";
 import { toastForSaveResult } from "./save-toast";
@@ -9,7 +10,7 @@ async function triggerScreenshot(tabId: number): Promise<void> {
   } catch (err) {
     console.warn(
       "[vmem] Could not start screenshot on tab:",
-      err instanceof Error ? err.message : String(err),
+      errorMessage(err),
     );
   }
 }
@@ -20,7 +21,7 @@ export function registerCommandListener(): void {
   });
 }
 
-export async function handleCommand(command: string): Promise<void> {
+async function handleCommand(command: string): Promise<void> {
   if (command === "take-screenshot") {
     const [tab] = await chrome.tabs.query({
       active: true,
@@ -50,7 +51,7 @@ export async function handleCommand(command: string): Promise<void> {
       try {
         await injectPageToast(tabId, "✗ Failed to save page", "#f87171");
       } catch {
-        // tab may have navigated away
+        // tab may have navigated before toast injection
       }
     }
   }

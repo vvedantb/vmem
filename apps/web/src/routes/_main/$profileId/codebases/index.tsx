@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { useEffect, useState } from "react";
 import { api } from "@vmem/backend";
-import { Button } from "@vmem/ui";
+import { Button, Spinner } from "@vmem/ui";
 import { IconDatabase, IconPlus } from "@tabler/icons-react";
 import PageContainer from "@/components/shell/PageContainer";
 import { AddRepoModal } from "@/components/codebases/AddRepoModal";
@@ -36,7 +36,7 @@ function CodebasesIndexPage() {
     return (
       <PageContainer title="Codebases">
         <div className="flex items-center justify-center py-20">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-default border-t-transparent" />
+          <Spinner size="sm" />
         </div>
       </PageContainer>
     );

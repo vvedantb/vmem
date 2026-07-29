@@ -1,17 +1,13 @@
-// youtube content script
-// adds a "Save to vmem" button to youtube video pages that extracts the transcript
+// save button on video pages, transcript via dom because caption apis need botguard
 
 import { sendMessage } from "@/lib/messaging";
 import { injectInstrumentSansFont } from "@/content/shared/inject-button";
 import { createVmemLogoImg } from "@/content/shared/icons";
-import { waitForProbe } from "@/content/shared/dom-utils";
-
-// state
+import { onDocumentReady, waitForProbe } from "@/content/shared/dom-utils";
+import { errorMessage } from "@/lib/error";
 
 let currentVideoId: string | null = null;
 let buttonInjected = false;
-
-// video id extraction
 
 function getVideoId(): string | null {
   const urlParams = new URLSearchParams(window.location.search);
@@ -19,7 +15,6 @@ function getVideoId(): string | null {
 }
 
 function getVideoTitle(): string {
-  // try multiple selectors for video title
   const titleEl =
     document.querySelector(
       "h1.ytd-video-primary-info-renderer yt-formatted-string",
@@ -40,16 +35,7 @@ function getChannelName(): string {
   return channelEl?.textContent?.trim() || "Unknown Channel";
 }
 
-// transcript extraction
-//
-// youtube gates raw caption endpoints behind a per video proof of origin token
-// minted by the page's BotGuard: `timedtext` URLs return an empty 200 without
-// it and the InnerTube transcript endpoints reject JSON replays (the page
-// itself now sends an encrypted protobuf body) the only reliable path left is
-// the one youtube's own ui uses programmatically open the "Show transcript"
-// panel and read the rendered segments out of the DOM then close the panel
-
-// matches both the new view model markup and the old polymer renderer
+// caption endpoints need botguard, so open the transcript panel and read dom segments
 const SEGMENT_SELECTOR =
   "transcript-segment-view-model, ytd-transcript-segment-renderer";
 
@@ -57,11 +43,8 @@ function querySegments(): Element[] {
   return [...document.querySelectorAll(SEGMENT_SELECTOR)];
 }
 
-// pull the caption text out of a rendered segment excluding the timestamp
-// and its a11y duplicate ("0:07" / "7 seconds") that share the element
+// skip timestamp and its a11y duplicate in each segment
 function segmentText(segment: Element): string {
-  // new markup: <span role="text"> holds just the snippet
-  // old markup: yt-formatted-string.segment-text
   const snippet =
     segment.querySelector('span[role="text"]') ||
     segment.querySelector(".segment-text");
@@ -75,7 +58,6 @@ function waitForSegments(timeoutMs: number): Promise<Element[]> {
   }, timeoutMs).then((segments) => segments ?? []);
 }
 
-// best effort: close the engagement panel we opened so the ui is undisturbed
 function closeTranscriptPanel(segment: Element): void {
   const panel = segment.closest("ytd-engagement-panel-section-list-renderer");
   const closeButton =
@@ -86,15 +68,12 @@ function closeTranscriptPanel(segment: Element): void {
 
 async function getTranscript(): Promise<string | null> {
   try {
-    // segments already in the DOM means the user has the panel open read
-    // them directly and leave the panel alone
     const preexisting = querySegments();
     if (preexisting.length > 0) {
+      // user already opened the panel, read without closing it
       return preexisting.map(segmentText).filter(Boolean).join(" ") || null;
     }
 
-    // the "Show transcript" button only exists when the video has captions
-    // .click() works even while the description is collapsed
     const openButton = document.querySelector<HTMLButtonElement>(
       "ytd-video-description-transcript-section-renderer button",
     );
@@ -121,11 +100,7 @@ async function getTranscript(): Promise<string | null> {
   }
 }
 
-// button injection
-
 function createSaveButton(): HTMLButtonElement {
-  // make sure instrument sans is loaded on the youtube page before we
-  // render the button cheap + idempotent
   injectInstrumentSansFont();
 
   const button = document.createElement("button");
@@ -135,8 +110,7 @@ function createSaveButton(): HTMLButtonElement {
   label.textContent = "Save to vmem";
   button.append(createVmemLogoImg("dark", 20), label);
 
-  // button shape mirrors youtube's chip style for visual fit but the
-  // typography stays on brand with instrument sans
+  // chip shape matches youtube, instrument sans keeps vmem typography
   button.style.cssText = `
     display: inline-flex;
     align-items: center;
@@ -179,7 +153,6 @@ async function handleSaveClick(): Promise<void> {
     return;
   }
 
-  // show loading state
   const originalContent = button.innerHTML;
   button.innerHTML = `<span style="opacity: 0.7;">Saving...</span>`;
   button.disabled = true;
@@ -188,9 +161,7 @@ async function handleSaveClick(): Promise<void> {
     const title = getVideoTitle();
     const channel = getChannelName();
     const rawTranscript = await getTranscript();
-    // cap before sending chrome.runtime messages have to round trip through
-    // structured clone and the backend slices to 10k anyway keeping a small
-    // headroom lets the channel prefix fit in the final payload
+    // cap before messaging, backend slices at 10k and channel prefix needs room
     const transcript = rawTranscript
       ? rawTranscript.slice(0, 12000)
       : "(No transcript available)";
@@ -204,7 +175,7 @@ async function handleSaveClick(): Promise<void> {
     button.innerHTML = `<span style="color: #16a34a;">✓ Saved!</span>`;
     button.title = "Save video to vmem";
   } catch (err) {
-    const reason = err instanceof Error ? err.message : String(err);
+    const reason = errorMessage(err);
     console.error("[vmem] Save to vmem failed:", reason);
     button.innerHTML = `<span style="color: #dc2626;">Failed</span>`;
     button.title = `Save failed: ${reason}`;
@@ -218,10 +189,8 @@ async function handleSaveClick(): Promise<void> {
 }
 
 function injectButton(): void {
-  // don't inject if already present
   if (document.getElementById("vmem-youtube-save")) return;
 
-  // find youtube's action buttons container
   const actionsContainer =
     document.querySelector("#actions #top-level-buttons-computed") ||
     document.querySelector("#menu-container #top-level-buttons-computed") ||
@@ -243,12 +212,9 @@ function removeButton(): void {
   }
 }
 
-// navigation handling
-
 function handleNavigation(): void {
   const videoId = getVideoId();
 
-  // if we're not on a video page, remove button
   if (!videoId) {
     if (buttonInjected) {
       removeButton();
@@ -257,30 +223,24 @@ function handleNavigation(): void {
     return;
   }
 
-  // if video changed, remove old button
   if (videoId !== currentVideoId) {
     removeButton();
     currentVideoId = videoId;
 
-    // inject button after a short delay to let youtube render
+    // youtube renders action buttons after navigation
     setTimeout(injectButton, 1500);
   }
 }
 
-// initialisation
-
 function init(): void {
-  // initial check
   handleNavigation();
 
-  // youtube is an spa watch for navigation events
   const observer = new MutationObserver(() => {
     const videoId = getVideoId();
     if (videoId !== currentVideoId) {
       handleNavigation();
     }
 
-    // also try to inject button if it's missing but we're on a video page
     if (videoId && !document.getElementById("vmem-youtube-save")) {
       injectButton();
     }
@@ -291,13 +251,7 @@ function init(): void {
     subtree: true,
   });
 
-  // also listen for youtube's custom navigation events
   window.addEventListener("yt-navigate-finish", handleNavigation);
 }
 
-// start when dom is ready
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", init);
-} else {
-  init();
-}
+onDocumentReady(init);

@@ -11,7 +11,7 @@ import {
   requireTeamRole,
 } from "./auth";
 
-const TEAM_PROFILE_COLOR = "#8B5CF6"; // violet — visually distinct from personal default
+const TEAM_PROFILE_COLOR = "#8B5CF6"; // violet, distinct from personal default
 const TEAM_PROFILE_ICON = "briefcase";
 
 export async function runCreate(
@@ -92,7 +92,6 @@ export async function runUpdateTeam(
   return { updated: true };
 }
 
-// delete a team
 export async function runDeleteTeam(
   ctx: AuthActionCtx,
   args: { teamId: string },

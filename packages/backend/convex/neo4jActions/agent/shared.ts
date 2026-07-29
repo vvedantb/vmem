@@ -6,8 +6,9 @@ import type { Id } from "../../_generated/dataModel";
 import { callJsonChat } from "../../lib/openRouter";
 import { tryUserAndApiKeyByClerkId } from "../../lib/envVars";
 import { runCreateMemory } from "../_memories/create";
-import { resolveProfileIdForClerkId } from "../_memories/shared";
+import { resolveProfileScopeForClerkId } from "../_memories/shared";
 import type { MemoryWithTags } from "../../../engine/neo4j/memory/types";
+import type { ScopeKind } from "../../../engine/neo4j/memory/scope";
 import {
   parseFactExtractionResponse,
   parseUpdateDecisionResponse,
@@ -27,7 +28,7 @@ export type AgentAuth = {
   apiKey: string;
 };
 
-// soft-fail: null when user or OPENROUTER_API_KEY is missing
+// soft-fail, null when user or OPENROUTER_API_KEY is missing
 export async function tryOpenRouterAuth(
   ctx: ActionCtx,
   clerkId: string,
@@ -87,7 +88,7 @@ export async function extractFactsFromInstruction(
   return parseFactExtractionResponse(extractionRaw);
 }
 
-// stable per-fact externalId — hash segments joined with NUL
+// stable per-fact externalId, hash segments joined with NUL
 export function computeFactExternalId(parts: readonly string[]): string {
   const h = crypto.createHash("sha256");
   for (const [i, part] of parts.entries()) {
@@ -110,7 +111,6 @@ const EXTRACTED_FACT_META = {
   },
 } as const;
 
-// create a memory from an extracted fact (SDK store/update or v2 prompt-capture)
 export async function createExtractedFactMemory(
   ctx: ActionCtx,
   args: {
@@ -150,13 +150,14 @@ export async function prepareInstructionFacts(
   | {
       auth: AgentAuth;
       profileId: string;
+      graphScope: ScopeKind;
       facts: ExtractedFactsResponse["facts"];
     }
 > {
   const auth = await requireOpenRouterAuth(ctx, args.clerkId);
   if ("error" in auth) return auth;
 
-  const profileId = await resolveProfileIdForClerkId(
+  const { profileId, graphScope } = await resolveProfileScopeForClerkId(
     ctx,
     args.clerkId,
     args.profileId,
@@ -172,7 +173,7 @@ export async function prepareInstructionFacts(
     return { empty: true };
   }
 
-  return { auth, profileId, facts: extracted.facts };
+  return { auth, profileId, graphScope, facts: extracted.facts };
 }
 
 export function toDecisionCandidates(

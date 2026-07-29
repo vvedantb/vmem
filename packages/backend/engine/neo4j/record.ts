@@ -43,7 +43,7 @@ export function firstNeo4jInt(result: QueryResult, key: string): number {
   return record ? neo4jInt(record, key) : 0;
 }
 
-// zod schema — never throws; emits a ZodIssue so unions/safeParse can continue
+// zod transform that emits an issue instead of throwing for union safeParse
 export const neo4jIntSchema = z.unknown().transform((value, ctx) => {
   if (typeof value === "number") return value;
   if (neo4j.isInt(value)) return value.toNumber();
@@ -56,8 +56,8 @@ export const neo4jIntSchema = z.unknown().transform((value, ctx) => {
 
 export const stringSchema = z.string();
 
-// null before neo4jIntSchema: z.unknown() accepts null, and a throwing
-// transform would abort the union before z.null() could match (blank graph)
+// null must precede neo4j int schema because unknown accepts null
+// a throwing transform would abort the union before null arm could match
 export const nullableNumberSchema = neo4jIntSchema.nullable();
 
 export function parseNeo4jNodeProps<T>(

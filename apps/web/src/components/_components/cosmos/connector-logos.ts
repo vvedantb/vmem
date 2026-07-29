@@ -22,7 +22,7 @@ function loadOne(src: string): Promise<HTMLImageElement | null> {
   });
 }
 
-// load connector logos once; missing assets omitted
+// load connector logos once missing assets omitted
 export function loadConnectorLogos(): Promise<ConnectorLogoMap> {
   if (cachedPromise) return cachedPromise;
   cachedPromise = (async () => {

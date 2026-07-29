@@ -25,7 +25,7 @@ export function isSuccessStatus(status: number): boolean {
   return status >= 200 && status < 300;
 }
 
-// aggregate request volume, success rate, latency, and 7-day trends
+// aggregate request volume, success rate, latency, and 7 day trends
 export function computeApiUsageMetrics(
   entries: ApiRequestEntries,
 ): ApiUsageMetrics {
@@ -49,14 +49,15 @@ export function computeApiUsageMetrics(
 }
 
 function buildDailyTrends(entries: ApiRequestEntries): ApiUsageTrends {
-  const { buckets, addToBucket } = createSevenDayBuckets(() => ({
+  const dayBuckets = createSevenDayBuckets(() => ({
     requests: 0,
     successCount: 0,
     totalDuration: 0,
   }));
+  const { buckets } = dayBuckets;
 
   for (const entry of entries) {
-    addToBucket(entry.originalTimestamp, (bucket) => {
+    dayBuckets.addToBucket(entry.originalTimestamp, (bucket) => {
       bucket.requests += 1;
       if (isSuccessStatus(entry.status)) bucket.successCount += 1;
       bucket.totalDuration += entry.durationMs;

@@ -219,3 +219,80 @@ export async function withConnectorSyncError<T>(
     throw err;
   }
 }
+
+export async function mapSyncedDocs<T>(
+  items: T[],
+  params: {
+    label: string;
+    identify: (item: T) => string;
+    toDoc: (item: T) => Promise<SyncedDoc | null>;
+  },
+): Promise<SyncedDoc[]> {
+  const docs: SyncedDoc[] = [];
+  for (const item of items) {
+    try {
+      const doc = await params.toDoc(item);
+      if (doc !== null) docs.push(doc);
+    } catch (err) {
+      // message only, provider sdk errors (gaxios especially) serialise the whole request/response object and bury the rest of the sync log.
+      const reason = err instanceof Error ? err.message : String(err);
+      console.error(
+        `Failed to sync ${params.label} ${params.identify(item)}: ${reason}`,
+      );
+    }
+  }
+  return docs;
+}
+
+export interface ConnectorPage {
+  docs: SyncedDoc[];
+  found: number;
+  nextCursor: string | undefined;
+}
+
+export async function runPaginatedConnectorSync(
+  ctx: ActionCtx,
+  params: {
+    clerkId: string;
+    connectorId: Id<"connectors">;
+    label: string;
+    fetchPage: (cursor: string | undefined) => Promise<ConnectorPage>;
+  },
+): Promise<{ synced: number }> {
+  const setup = await setupSync(ctx, params.clerkId);
+
+  return withConnectorSyncError(
+    ctx,
+    params.connectorId,
+    params.label,
+    async () => {
+      let cursor: string | undefined;
+      let totalSynced = 0;
+      let totalFound = 0;
+
+      do {
+        const page = await params.fetchPage(cursor);
+        totalFound += page.found;
+
+        totalSynced = await upsertSyncedDocs(ctx, {
+          setup,
+          clerkId: params.clerkId,
+          docs: page.docs,
+          totalSynced,
+          connectorId: params.connectorId,
+          totalFound,
+        });
+
+        cursor = page.nextCursor;
+      } while (cursor);
+
+      await markSyncComplete(ctx, {
+        connectorId: params.connectorId,
+        clerkId: params.clerkId,
+        totalSynced,
+      });
+
+      return { synced: totalSynced };
+    },
+  );
+}

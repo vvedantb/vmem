@@ -17,12 +17,12 @@ import {
 import { formatDate } from "@vmem/shared";
 import { IconTrash, IconX, IconDots, IconPencil } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
-import type { Memory } from "@/lib/memories";
-import { formatMemoryTypeLabel } from "@/lib/memories";
 import {
   countUniqueRelated,
+  formatMemoryTypeLabel,
   relatedMemoriesQueryKey,
   uniqueRelated,
+  type Memory,
 } from "@/lib/memories";
 import { useMemoryContext } from "@/contexts/MemoryContext";
 import { toast } from "sonner";
@@ -34,6 +34,7 @@ import HistoryTab from "@/components/_components/HistoryTab";
 import RelatedMemories from "@/components/_components/RelatedMemories";
 import { MemorySourceLabel } from "@/components/_components/MemorySourceLabel";
 import DestructiveConfirmDialog from "@/components/settings/DestructiveConfirmDialog";
+import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
 
 type PanelTab = "details" | "history" | "connections";
 
@@ -60,7 +61,7 @@ export default function MemoryDetailPanel({
 }: MemoryDetailPanelProps) {
   const [activeTab, setActiveTab] = useState<PanelTab>("details");
   const [isEditing, setIsEditing] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const { submitting: isDeleting, run: runDelete } = useAsyncSubmit();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const { deleteMemory } = useMemoryContext();
@@ -99,9 +100,7 @@ export default function MemoryDetailPanel({
   }, [onClose, showDeleteConfirm, isEditing]);
 
   async function handleDelete() {
-    setIsDeleting(true);
-
-    try {
+    await runDelete(async () => {
       const deleted = await deleteMemory(memory.id);
       if (!deleted) {
         throw new Error("Memory not found");
@@ -111,13 +110,7 @@ export default function MemoryDetailPanel({
       setShowDeleteConfirm(false);
       onClose();
       toast.success("Memory deleted successfully");
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to delete memory",
-      );
-    } finally {
-      setIsDeleting(false);
-    }
+    }, "Failed to delete memory");
   }
 
   function handleStartEdit() {

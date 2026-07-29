@@ -6,6 +6,7 @@ import { firstNeo4jInt, neo4jGet, neo4jInt } from "../record";
 import { withSession } from "../session";
 import { toMemoryWithTags, toSnapshot } from "./mappers";
 import { createSemanticSimilarityEdges } from "./relationships";
+import type { ScopeKind } from "./scope";
 import { logEvent, visibleStatusClause } from "./shared";
 import { normalizeTags } from "./tagNormalize";
 import type { MemoryStatus, MemoryType, MemoryWithTags } from "./types";
@@ -101,7 +102,7 @@ export async function runMemoryList(
     offset: number;
   },
 ): Promise<{ memories: MemoryWithTags[]; total: number }> {
-  // count + page stay separate: a combined query drops the count when the page is empty
+  // count and page stay separate because a combined query loses count on empty pages
   const queryParams: Record<
     string,
     string | number | Integer | string[] | null
@@ -185,6 +186,7 @@ export async function createMemory(
   params: {
     userId: string;
     profileId: string;
+    graphScope: ScopeKind;
     title: string;
     content: string;
     type: MemoryType;
@@ -286,14 +288,21 @@ export async function createMemory(
 
     if (!BATCH_SOURCES.has(params.source)) {
       const cutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+      // same session edges never cross members, team also limits to the shared profile
+      // so a team memory cannot link to the creator's personal memories from minutes ago
+      const m2Props =
+        params.graphScope === "team"
+          ? "{ userId: $userId, source: $source, profileId: $profileId }"
+          : "{ userId: $userId, source: $source }";
       await session.run(
-        `MATCH (m:Memory {id: $id}), (m2:Memory {userId: $userId, source: $source})
+        `MATCH (m:Memory {id: $id}), (m2:Memory ${m2Props})
          WHERE m2.id <> $id AND m2.createdAt > $cutoff
          MERGE (m2)-[r:RELATES_TO]->(m)
          ON CREATE SET r.reason = 'same session'`,
         {
           id,
           userId: params.userId,
+          profileId: params.profileId,
           source: params.source,
           cutoff,
         },
@@ -304,7 +313,11 @@ export async function createMemory(
       await createSemanticSimilarityEdges(
         session,
         id,
-        params.userId,
+        {
+          graphScope: params.graphScope,
+          userId: params.userId,
+          profileId: params.profileId,
+        },
         params.embedding,
       );
     }
@@ -402,8 +415,7 @@ export async function updateMemory(
 
     if (updates.tags !== undefined) {
       params.newTags = normalizeTags(updates.tags);
-      // characterization: UNWIND on an empty $newTags drops the row, so tag clears
-      // apply but RETURN is empty → null result and no update event.
+      // empty tag list makes unwind drop the row, tags clear but no update event fires
       cypher += `
         WITH m
         OPTIONAL MATCH (m)-[r:TAGGED_WITH]->(:Tag)

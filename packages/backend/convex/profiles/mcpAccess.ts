@@ -172,6 +172,32 @@ export async function resolveProfileIdForMcpScope(
   return activeProfile._id;
 }
 
+export interface McpMemoryScopeResolution {
+  profileId: string;
+  team: boolean;
+}
+
+// resolves the mcp profile via the same authz path as resolveProfileIdForMcpScope,
+// then reports whether the profile is team, so callers (e.g. mcp memory graph) avoid a second authz model
+export async function resolveMcpMemoryScope(
+  ctx: QueryCtx,
+  clerkId: string,
+  scope: McpScope,
+  explicitProfileId?: string,
+): Promise<McpMemoryScopeResolution> {
+  const profileId = await resolveProfileIdForMcpScope(
+    ctx,
+    clerkId,
+    scope,
+    explicitProfileId,
+  );
+  const normalizedProfileId = ctx.db.normalizeId("profiles", profileId);
+  const profile = normalizedProfileId
+    ? await ctx.db.get(normalizedProfileId)
+    : null;
+  return { profileId, team: profile?.teamId !== undefined };
+}
+
 export async function setMcpDefaultProfileForScope(
   ctx: MutationCtx,
   clerkId: string,

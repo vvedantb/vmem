@@ -20,7 +20,7 @@ function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : "Unknown error";
 }
 
-// decode base64 png payload without utf 8 mangling binary bytes
+// decode base64 png without treating binary bytes as utf-8 text
 function base64PngToBlob(base64: string): Blob {
   const decoded = base64Codec.decode(base64);
   const bytes = new Uint8Array(decoded.length);
@@ -38,7 +38,6 @@ export function registerMessageHandler(): void {
   });
 
   onMessage("savePage", async ({ data }) => {
-    // convert html to markdown if provided otherwise use plain content
     const contentToSave = data.markdown
       ? htmlToMarkdown(data.markdown)
       : data.content;
@@ -113,9 +112,7 @@ export function registerMessageHandler(): void {
 
   onMessage("captureVisibleTab", async () => {
     try {
-      // omitting windowId targets the currently focused window which
-      // is the one the user is interacting with when they triggered
-      // the screenshot shortcut
+      // focused window: tab the user triggered the keyboard-shortcut from
       const dataUrl = await chrome.tabs.captureVisibleTab({
         format: "png",
       });

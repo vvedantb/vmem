@@ -1,4 +1,4 @@
-import { useMatchRoute } from "@tanstack/react-router";
+import type { useMatchRoute } from "@tanstack/react-router";
 import { IconKey, IconChartBar } from "@tabler/icons-react";
 import { RouteTabs } from "@/components/shell/RouteTabs";
 

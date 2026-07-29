@@ -9,6 +9,7 @@ import type {
   GraphDetailNode,
 } from "@/lib/graph/graph-types";
 import { getRelatedNodes } from "@/lib/graph/graph-data";
+import { useActiveProfile } from "@/components/workspace/active-profile";
 
 export function useGraphNodeInteraction(args: {
   graphNodes: GraphNode[];
@@ -16,6 +17,7 @@ export function useGraphNodeInteraction(args: {
   onFocusChange: (id: string | null) => void;
 }) {
   const getNodeContent = useAction(api.graphApi.getNodeContent);
+  const activeProfileId = useActiveProfile()._id;
 
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [hoveredNode, setHoveredNode] = useState<HoveredNodeInfo | null>(null);
@@ -28,10 +30,13 @@ export function useGraphNodeInteraction(args: {
     selectedNodeId === null ? null : (nodeById.get(selectedNodeId) ?? null);
 
   const selectedContentQuery = useQuery({
-    queryKey: ["graph-node-content", selectedNodeId],
+    queryKey: ["graph-node-content", selectedNodeId, activeProfileId],
     queryFn: async () => {
       if (selectedNodeId === null) return "";
-      return await getNodeContent({ memoryId: selectedNodeId });
+      return await getNodeContent({
+        memoryId: selectedNodeId,
+        profileId: activeProfileId,
+      });
     },
     enabled:
       selectedNode !== null &&

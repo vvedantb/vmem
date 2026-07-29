@@ -10,7 +10,7 @@ import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-  cn,
+  Spinner,
 } from "@vmem/ui";
 import {
   IconAlertCircle,
@@ -31,6 +31,7 @@ import {
 } from "@/components/workspace/active-profile";
 import { SharedLayoutBackground } from "./SharedLayoutBackground";
 import { SubSidebarShell } from "./SubSidebarShell";
+import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
 
 const AddRepoModal = lazy(() =>
   import("@/components/codebases/AddRepoModal").then((m) => ({
@@ -60,7 +61,7 @@ export function CodebasesSidebarNav({
     codebasesListSearchParams,
   );
   const [addModalOpen, setAddModalOpen] = useState(false);
-  const [resyncing, setResyncing] = useState(false);
+  const { submitting: resyncing, run: runResync } = useAsyncSubmit();
 
   const isConnected = connection !== undefined && connection !== null;
 
@@ -97,17 +98,10 @@ export function CodebasesSidebarNav({
   };
 
   const handleResyncAll = async () => {
-    setResyncing(true);
-    try {
+    await runResync(async () => {
       const result = await syncAllMy({ teamId });
       toast.success(`Re-syncing ${result.synced} codebase(s)`);
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to start re-sync";
-      toast.error(message);
-    } finally {
-      setResyncing(false);
-    }
+    }, "Failed to start re-sync");
   };
 
   const toolbarAddButton = (
@@ -201,7 +195,7 @@ export function CodebasesSidebarNav({
 
         {codebases === undefined ? (
           <div className="flex items-center justify-center py-10">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-default border-t-transparent" />
+            <Spinner size="sm" />
           </div>
         ) : codebases.length === 0 ? (
           <div className="flex flex-col items-center justify-center px-2 py-10 text-center">

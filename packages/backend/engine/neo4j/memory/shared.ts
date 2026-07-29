@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import type { Session } from "neo4j-driver";
+import type { ScopeKind } from "./scope";
 
 export async function logEvent(
   session: Session,
@@ -62,6 +63,48 @@ export function profileFilter(
     clause: `AND (${alias}.profileId = $profileId OR ${alias}.profileId IS NULL)`,
     params: { profileId },
   };
+}
+
+// personal DERIVED_FROM keeps userId match, team uses profileId alone
+// so edges reach every member's sources, not just the owner's
+export function createDerivedMemoryCypher(kind: ScopeKind): string {
+  const sourceMatch =
+    kind === "team"
+      ? "MATCH (src:Memory {id: sid, profileId: $profileId})"
+      : "MATCH (src:Memory {id: sid, userId: $userId})";
+  return `
+  CREATE (m:Memory {
+    id: $id,
+    userId: $userId,
+    profileId: $profileId,
+    title: $title,
+    content: $content,
+    type: 'knowledge',
+    source: 'dream-mode',
+    confidence: $confidence,
+    status: 'active',
+    createdAt: $now,
+    updatedAt: $now,
+    expiresAt: null,
+    url: null,
+    embedding: $embedding,
+    contentHash: $contentHash,
+    sourceType: null,
+    sourceId: null,
+    storageId: null,
+    mimeType: null,
+    originalFilename: null,
+    visitCount: 1,
+    firstVisitAt: $now,
+    lastVisitAt: $now
+  })
+  WITH m
+  MERGE (s:Source {name: 'dream-mode'})
+  CREATE (m)-[:FROM_SOURCE]->(s)
+  WITH m
+  UNWIND $sourceMemoryIds AS sid
+  ${sourceMatch}
+  MERGE (m)-[:DERIVED_FROM]->(src)`;
 }
 
 const VISIBLE_STATUS_LIST = "'active', 'pinned'";

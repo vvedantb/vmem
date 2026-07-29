@@ -1,4 +1,4 @@
-import { useReducer, useRef, useState } from "react";
+import { useReducer, useState } from "react";
 
 type SelectionState<T> = {
   selectedIds: Set<T>;
@@ -67,15 +67,13 @@ function selectionReducer<T>(
 }
 
 export type UseIdSelectionOptions<T> = {
-  // enables shift-range + select-all against a stable visual order
+  // shift range and select all need a stable visual order
   orderedIds?: readonly T[];
 };
 
-// shared id set selection for files (modifiers) and wiki/skills (bulk mode)
 export function useIdSelection<T>(options: UseIdSelectionOptions<T> = {}) {
-  const orderedIdsRef = useRef(options.orderedIds);
-  orderedIdsRef.current = options.orderedIds;
-
+  // handlers close over orderedIds directly so no latest value ref is needed
+  // writing a ref during render would bail react compiler for this file
   const [state, dispatch] = useReducer(
     (prev: SelectionState<T>, action: SelectionAction<T>) =>
       selectionReducer(prev, action),
@@ -97,7 +95,7 @@ export function useIdSelection<T>(options: UseIdSelectionOptions<T> = {}) {
   };
 
   const selectAll = () => {
-    const orderedIds = orderedIdsRef.current;
+    const orderedIds = options.orderedIds;
     if (orderedIds === undefined) return;
     if (orderedIds.length > 0 && state.selectedIds.size === orderedIds.length) {
       dispatch({ type: "clear" });
@@ -116,7 +114,7 @@ export function useIdSelection<T>(options: UseIdSelectionOptions<T> = {}) {
       dispatch({
         type: "range",
         id,
-        orderedIds: orderedIdsRef.current ?? [],
+        orderedIds: options.orderedIds ?? [],
       });
     } else if (e.ctrlKey || e.metaKey) {
       dispatch({ type: "toggle", id });
@@ -139,11 +137,8 @@ export function useIdSelection<T>(options: UseIdSelectionOptions<T> = {}) {
     toggle,
     selectAll,
     handleClick,
-    handleCheckbox: toggle,
-    handleSelectAll: selectAll,
     selectionMode,
     setSelectionMode,
     exitSelection,
-    toggleSelect: toggle,
   };
 }

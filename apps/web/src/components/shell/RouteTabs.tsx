@@ -14,9 +14,9 @@ type MatchRoute = ReturnType<typeof useMatchRoute>;
 interface RouteTabsProps {
   tabs: RouteTabItem[];
   getActiveValue: (matchRoute: MatchRoute) => string;
-  // passed to every tab `<Link>` (e.g
+  // passed to every tab `<Link>` (e.g. `$profileId`)
   linkParams?: LinkProps["params"];
-  // preserved on tab navigation (e.g
+  // preserved on tab navigation (e.g. current search params)
   search?: LinkProps["search"];
 }
 

@@ -1,3 +1,4 @@
+import { type WikiNodeKind, wikiKindHasContent } from "@vmem/shared";
 import type { WikiListNode, WikiNodeId } from "./-types";
 import type { JSONContent } from "@tiptap/react";
 
@@ -7,29 +8,15 @@ export interface WikiTreeNode {
   children: WikiTreeNode[];
 }
 
-// sidebar root droppable — move to top level (parentId undefined)
+// sidebar root droppable move to top level (parentId undefined)
 export const WIKI_ROOT_DROP_ID = "__wiki_root__";
 
 // minimal shape resolveWikiMove needs
 interface MovableNode<TId extends string> {
   _id: TId;
   parentId?: TId;
-  kind: "folder" | "document" | "artifact";
+  kind: WikiNodeKind;
   order: number;
-}
-
-export function wikiKindHasContent(
-  kind: "folder" | "document" | "artifact",
-): boolean {
-  return kind === "document" || kind === "artifact";
-}
-
-export function wikiKindLabel(
-  kind: "folder" | "document" | "artifact",
-): string {
-  if (kind === "folder") return "folder";
-  if (kind === "artifact") return "artifact";
-  return "document";
 }
 
 // moveNode args for a wiki drop, or null if invalid/no-op
@@ -73,7 +60,7 @@ export function resolveWikiMove<TId extends string>(
   return { id: active._id, newParentId, newOrder };
 }
 
-// folders first, then docs; each group a–z by title
+// folders first, then docs each group a z by title
 export function compareWikiTreeSiblings(
   a: Pick<WikiListNode, "kind" | "title">,
   b: Pick<WikiListNode, "kind" | "title">,
@@ -84,7 +71,7 @@ export function compareWikiTreeSiblings(
   return a.title.localeCompare(b.title, undefined, { sensitivity: "base" });
 }
 
-// flat listTree → tree; display sort only (order still used for dnd)
+// flat listTree → tree display sort only (order still used for dnd)
 export function buildTree(nodes: Array<WikiListNode>): WikiTreeNode[] {
   const childrenByParent = new Map<string, Array<WikiListNode>>();
   const ROOT_KEY = "__root__";
@@ -136,7 +123,7 @@ export function collectSubtreeIds(
   return result;
 }
 
-// first document or artifact in display order (depth-first), or null
+// first document or artifact in display order (depth first), or null
 export function findFirstDocumentId(tree: WikiTreeNode[]): WikiNodeId | null {
   for (const item of tree) {
     if (wikiKindHasContent(item.node.kind)) {
@@ -169,12 +156,12 @@ export function findAncestors(
   return chain;
 }
 
-// heading from tipTap toc for outline pane
+// heading from TipTap toc for outline pane
 export interface OutlineHeading {
   id: string;
   level: number;
   text: string;
-  // proseMirror start position
+  // ProseMirror start position
   pos: number;
 }
 
@@ -191,7 +178,7 @@ export function docToPlainText(doc: JSONContent): string {
   return walk(doc).trim();
 }
 
-// whitespace-separated word count
+// whitespace separated word count
 export function countWords(text: string): number {
   const trimmed = text.trim();
   if (trimmed.length === 0) return 0;

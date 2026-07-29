@@ -2,6 +2,7 @@ import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { IconX } from "@tabler/icons-react";
 import { cn } from "../utils/cn";
+import { assignRef } from "../utils/ref";
 import { connectModalSurface } from "./modalTransition";
 
 const Dialog = DialogPrimitive.Root;
@@ -43,11 +44,7 @@ const DialogContent = React.forwardRef<
         surfaceCleanupRef.current = connectModalSurface(node);
       }
 
-      if (typeof ref === "function") {
-        ref(node);
-      } else if (ref) {
-        ref.current = node;
-      }
+      assignRef(ref, node);
     },
     [ref],
   );

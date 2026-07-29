@@ -11,12 +11,13 @@ import {
   SelectContent,
   SelectItem,
   Progress,
+  LabeledSwitchRow,
 } from "@vmem/ui";
 import { formatRelativeTime, formatTimeUntil } from "@vmem/shared";
 import { sendMessage, onMessage } from "@/lib/messaging";
 import { getStorage, setStorage } from "@/lib/storage";
+import { errorMessage } from "@/lib/error";
 import { useExtensionUserSettings } from "@/popup/useExtensionUserSettings";
-import { SettingsSwitchRow } from "./SettingsSwitchRow";
 
 type ImportStatus = "idle" | "importing" | "done" | "error" | "cancelled";
 
@@ -92,7 +93,7 @@ export function ImportPanel() {
       }
     } catch (err) {
       options.setStatus("error");
-      setResultMessage(err instanceof Error ? err.message : String(err));
+      setResultMessage(errorMessage(err));
     } finally {
       setProgress(null);
     }
@@ -140,7 +141,7 @@ export function ImportPanel() {
       setResultMessage("Auto-sync run finished — check last-sync times above");
     } catch (err) {
       setResultMessage(
-        `Background error: ${err instanceof Error ? err.message : String(err)}. Reload the extension at chrome://extensions`,
+        `Background error: ${errorMessage(err)}. Reload the extension at chrome://extensions`,
       );
     } finally {
       refreshSyncTimestamps();
@@ -164,7 +165,7 @@ export function ImportPanel() {
         <h3 className="text-base font-medium text-foreground">Auto-sync</h3>
         <Card className="shadow-none">
           <CardContent className="space-y-4 p-4">
-            <SettingsSwitchRow
+            <LabeledSwitchRow
               id="auto-sync-toggle"
               label="Sync bookmarks and history"
               description={

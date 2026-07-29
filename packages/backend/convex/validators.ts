@@ -7,7 +7,7 @@ import {
   openRouterFeatureSchema,
 } from "./lib/openRouter/schemas";
 
-// table field validators — used in schema.ts and return validators
+// table field validators, used in schema.ts and return validators
 export const profileFields = {
   userId: v.id("users"),
   name: v.string(),
@@ -225,7 +225,7 @@ export const userEnvVarFields = {
 
 export const codebaseFields = {
   userId: v.id("users"),
-  // personal when absent; team drive when set (same pattern as skills/wiki/files)
+  // personal when absent. team drive when set (same pattern as skills/wiki/files)
   teamId: v.optional(v.id("teams")),
   githubConnectionId: v.id("githubConnections"),
   repoOwner: v.string(),
@@ -266,7 +266,7 @@ export const codebaseFields = {
   isArchived: v.optional(v.boolean()),
 };
 
-// Neo4j codebase symbol node kinds (graph / impact / MCP args)
+// neo4j codebase symbol node kinds (graph / impact / mcp args)
 export const codebaseSymbolKindValidator = v.union(
   v.literal("code-file"),
   v.literal("code-function"),
@@ -275,7 +275,7 @@ export const codebaseSymbolKindValidator = v.union(
   v.literal("code-process"),
 );
 
-// blast-radius / impact traversal direction
+// blast radius / impact traversal direction
 export const codebaseDirectionValidator = v.union(
   v.literal("upstream"),
   v.literal("downstream"),
@@ -324,7 +324,7 @@ export const wikiNodeFields = {
   title: v.string(),
   content: v.optional(v.string()),
   contentText: v.optional(v.string()),
-  // artifact source language (html | svg | tsx | sql | …); absent on folders/docs
+  // artifact source language (html | svg | tsx | sql | …). absent on folders/docs
   language: v.optional(v.string()),
   order: v.number(),
   sourceCodebaseId: v.optional(v.id("codebases")),
@@ -378,7 +378,7 @@ export const systemSkillFields = {
 
 export const userSystemSkillFields = {
   userId: v.id("users"),
-  // personal when absent; team workspace install when set (shared with members)
+  // personal when absent. team workspace install when set (shared with members)
   teamId: v.optional(v.id("teams")),
   systemSkillId: v.id("systemSkills"),
   enabled: v.boolean(),

@@ -9,7 +9,7 @@ interface MemoryTraceHoverProps {
   children: ReactNode;
 }
 
-// hover breakdown for hybrid-search memory hits — explains why a memory matched
+// hover breakdown for hybrid search memory hits explains why a memory matched
 export default function MemoryTraceHover({
   title,
   trace,

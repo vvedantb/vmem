@@ -1,22 +1,18 @@
 // AI-generated (Claude), prompt: "unit tests for neo4j memory record mappers and tag normalize"
 // Modified by me: normalized nullish legacy fields on memory with tags
 import { describe, expect, it } from "vitest";
-import type { Record as NeoRecord } from "neo4j-driver";
+import neo4j from "neo4j-driver";
+import { z } from "zod";
 import {
   toMemoryWithTags,
   toSnapshot,
 } from "../../engine/neo4j/memory/mappers";
 import { normalizeTags } from "../../engine/neo4j/memory/tagNormalize";
 
-function memoryNodeRecord(
-  props: Record<string, unknown>,
-  tags: unknown,
-): NeoRecord {
-  return {
-    get: (key: string) => (key === "m" ? { properties: props } : tags),
-    keys: ["m", "tags"],
-    length: 2,
-  } as NeoRecord;
+const snapshotTagsSchema = z.object({ tags: z.array(z.string()) });
+
+function memoryNodeRecord(props: Record<string, unknown>, tags: unknown) {
+  return new neo4j.Record(["m", "tags"], [{ properties: props }, tags]);
 }
 
 describe("toMemoryWithTags", () => {
@@ -68,16 +64,18 @@ describe("toMemoryWithTags", () => {
 describe("characterization: creation snapshots retain original tags", () => {
   it("toSnapshot keeps caller tags while storage uses normalizeTags", () => {
     const originalTags = ["Super Cars", "TypeScript!!!"];
-    const snapshot = JSON.parse(
-      toSnapshot({
-        title: "T",
-        content: "C",
-        type: "knowledge",
-        status: "active",
-        confidence: 0.5,
-        tags: originalTags,
-      }),
-    ) as { tags: string[] };
+    const snapshot = snapshotTagsSchema.parse(
+      JSON.parse(
+        toSnapshot({
+          title: "T",
+          content: "C",
+          type: "knowledge",
+          status: "active",
+          confidence: 0.5,
+          tags: originalTags,
+        }),
+      ),
+    );
 
     expect(snapshot.tags).toEqual(originalTags);
     expect(normalizeTags(originalTags)).toEqual(["super-cars", "typescript"]);

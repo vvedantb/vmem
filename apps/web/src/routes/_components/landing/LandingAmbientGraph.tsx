@@ -1,4 +1,4 @@
-// decorative graph atmosphere — presentational only, no interaction
+// decorative graph atmosphere presentational only, no interaction
 // CSS loaded via LandingPage (`./landing.css`)
 
 const ambientGraphSvg = (

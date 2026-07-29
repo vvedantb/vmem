@@ -5,7 +5,7 @@ import {
   isInstructionUpdateBody,
   updateBodySchema,
   type UpdateBody,
-} from "../../memoryApi/contract";
+} from "@vmem/sdk";
 import type { OpenRouterRequired } from "../../neo4jActions/agent/shared";
 import type { UpdateFromInstructionResult } from "../../neo4jActions/agent/updateFromInstruction";
 import {

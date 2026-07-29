@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { WikiListNode, WikiNodeId } from "./-types";
-import { wikiKindLabel } from "./_utils";
+import { wikiKindLabel } from "@vmem/shared";
 import DestructiveConfirmDialog from "@/components/settings/DestructiveConfirmDialog";
 
 interface DeleteConfirmDialogProps {
@@ -20,11 +20,16 @@ export default function DeleteConfirmDialog({
   const handleConfirm = async () => {
     if (!target) return;
     setSubmitting(true);
+    // the reset is duplicated into a rethrowing catch rather than a `finally`
+    // react Compiler bails on the whole file for a `finally`, and for a `try`
+    // with no `catch` at all.
     try {
       await onConfirm(target._id);
-    } finally {
+    } catch (err) {
       setSubmitting(false);
+      throw err;
     }
+    setSubmitting(false);
   };
 
   const isFolder = target?.kind === "folder";

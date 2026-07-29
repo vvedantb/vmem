@@ -1,5 +1,3 @@
-// non-canvas graph state (filters/search/display) shared by canvas + header
-
 import { useDeferredValue, useMemo, useState } from "react";
 import { useAction } from "convex/react";
 import { useQuery as useTanstackQuery } from "@tanstack/react-query";
@@ -22,7 +20,7 @@ import {
 
 const EMPTY_SET = new Set<string>();
 
-// cap global graph nodes (~20 load-more pages at 5k each)
+// caps load more at roughly twenty pages of five k nodes
 const GLOBAL_GRAPH_MAX_NODES = 100_000;
 
 export function useMemoryGraphController({
@@ -30,12 +28,11 @@ export function useMemoryGraphController({
   enabled = true,
 }: {
   focusNodeId: string | null;
-  // false = stay mounted but skip fetch (list view active)
+  // skip fetch while list view is active but stay mounted
   enabled?: boolean;
 }) {
   const { isDark } = useThemeContext();
 
-  // url filters shared with list view
   const [params, setParams] = useMemoriesSearchParams();
   const activeProfileId = useActiveProfile()._id;
 
@@ -75,7 +72,7 @@ export function useMemoryGraphController({
     staleTime: 30_000,
   });
 
-  // cookie-backed display state (per-user, non-shareable)
+  // display prefs live in cookies because they are not shareable URL state
   const [graphSettings, setGraphSettingsState] =
     useState<GraphSettings>(getGraphSettings);
 
@@ -86,10 +83,8 @@ export function useMemoryGraphController({
     types: params.types,
   };
 
-  // derived display state
   const viewTheme = getViewTheme(isDark);
 
-  // derived filter stats
   const {
     tags: allTags,
     kinds: allKinds,
@@ -97,11 +92,8 @@ export function useMemoryGraphController({
     types: allTypes,
   } = getGraphFacets(apiNodes);
 
-  // Load-bearing memo, not ceremony: GraphCanvas destroys and recreates the
-  // WebGL graph (camera reset) whenever graphNodes/graphEdges identity
-  // changes. Without this boundary the compiler merges the call into a scope
-  // that also depends on isDark and searchQuery, so theme flips and search
-  // keystrokes rebuilt the graph.
+  // memo isolates graph build from theme/search so canvas identity stays stable.
+  // without it GraphCanvas remounts WebGL and resets camera on every keystroke.
   const { graphNodes, graphEdges } = useMemo(
     () =>
       buildGraphData(
@@ -155,8 +147,6 @@ export function useMemoryGraphController({
     return matches;
   })();
 
-  // ----- Progressive global loading -----
-
   const loadedMemoryCount = apiNodes.filter((n) => n.kind === "memory").length;
 
   const loadedRelationshipCount =
@@ -169,17 +159,14 @@ export function useMemoryGraphController({
     !isFocused && hasNextPage && loadedMemoryCount < GLOBAL_GRAPH_MAX_NODES;
 
   return {
-    // raw (nodes only — edges stay internal to buildGraphData)
     apiNodes,
     isLoading,
     isError,
     error,
 
-    // focus neighbourhood
     isFocused,
     resolvedFocusNodeId,
 
-    // progressive global loading
     loadedMemoryCount,
     loadedRelationshipCount,
     totalMemoryCount,
@@ -187,7 +174,6 @@ export function useMemoryGraphController({
     isLoadingMore: isFetchingNextPage,
     fetchNextPage,
 
-    // derived
     graphNodes,
     graphEdges,
     searchMatchSet,
@@ -200,15 +186,12 @@ export function useMemoryGraphController({
     visibleNodeCount: graphNodes.length,
     filters,
 
-    // display state
     graphSettings,
     viewTheme,
     isDark,
 
-    // search (URL — shared with list view via `q`)
     search: params.q,
 
-    // handlers
     onKindsChange: (kinds: ListItemKind[]) => {
       void setParams({ kinds });
     },

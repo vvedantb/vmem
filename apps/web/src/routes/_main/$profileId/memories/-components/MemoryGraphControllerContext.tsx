@@ -13,7 +13,7 @@ export function MemoryGraphControllerProvider({
   children,
 }: {
   focusNodeId: string | null;
-  // skip graph data fetching while inactive; see `useMemoryGraphController`
+  // skip graph data fetching while inactive — see `useMemoryGraphController`
   enabled?: boolean;
   children: ReactNode;
 }) {

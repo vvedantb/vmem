@@ -5,7 +5,7 @@ import {
 import { copyTextToClipboard } from "@/lib/copy-to-clipboard";
 import { showToast } from "@/content/shared/toast";
 
-// copy the shared vmem system prompt and toast success/failure
+// copy shared vmem system-prompt and toast the result
 export function copyVmemSystemPrompt(): void {
   void copyTextToClipboard(VMEM_AI_SYSTEM_PROMPT).then((copied) => {
     if (copied) {

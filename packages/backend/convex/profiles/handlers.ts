@@ -87,7 +87,7 @@ export async function runUpdate(
     throw new Error("Profile not found");
   }
 
-  // personal profiles: unique name per user. Team profiles share the team namespace
+  // personal profiles: unique name per-user. team profiles share the team namespace
   if (
     !profile.teamId &&
     args.name !== undefined &&

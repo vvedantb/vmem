@@ -57,7 +57,7 @@ function getMarkdownFromEditor(editor: Editor): string {
   return editor.getText();
 }
 
-// tipTap body for wiki documents only — artifacts use WikiArtifactEditor
+// TipTap body for wiki documents only — artifacts use WikiArtifactEditor
 export default function WikiDocumentEditor({
   doc,
   titleForCopy,
@@ -79,9 +79,14 @@ export default function WikiDocumentEditor({
   const onActiveHeadingChangeRef = useRef(onActiveHeadingChange);
   const onWordCountChangeRef = useRef(onWordCountChange);
 
-  onHeadingsChangeRef.current = onHeadingsChange;
-  onActiveHeadingChangeRef.current = onActiveHeadingChange;
-  onWordCountChangeRef.current = onWordCountChange;
+  // written in an effect (not during render) so React Compiler can compile
+  // the file. Declared before the editor content effects below, so the refs
+  // are fresh by the time any editor event can fire.
+  useEffect(() => {
+    onHeadingsChangeRef.current = onHeadingsChange;
+    onActiveHeadingChangeRef.current = onActiveHeadingChange;
+    onWordCountChangeRef.current = onWordCountChange;
+  }, [onHeadingsChange, onActiveHeadingChange, onWordCountChange]);
 
   const handleTocUpdate = (anchors: TableOfContentDataItem[]) => {
     const headings = anchorsToHeadings(anchors);
@@ -116,7 +121,7 @@ export default function WikiDocumentEditor({
         return;
       }
 
-      // toc stamps heading ids that markdown does not serialise — skip no-op saves
+      // toc stamps heading ids markdown lacks — skip no-op saves
       const markdown = getMarkdownFromEditor(instance);
       if (markdown === baselineMarkdownRef.current) return;
       if (loadedDocIdRef.current !== doc._id) return;
@@ -194,31 +199,38 @@ export default function WikiDocumentEditor({
     return () => onRegisterCopy(null);
   }, [copyToClipboard, editor, onRegisterCopy, titleForCopy]);
 
-  const restoreToContent = async (markdown: string) => {
-    if (!editor) return;
-    cancelPendingSave();
-    suppressNextUpdateRef.current = true;
-    baselineMarkdownRef.current = markdown;
-    editor.commands.setContent(markdown);
-    const jsonDoc = editor.getJSON();
-    onWordCountChange(countWords(docToPlainText(jsonDoc)));
-    try {
-      await saveNow({
-        content: getMarkdownFromEditor(editor),
-        contentText: docToPlainText(jsonDoc),
-        forceSnapshot: true,
-      });
-      baselineMarkdownRef.current = getMarkdownFromEditor(editor);
-      toast.success("Version restored");
-    } catch {
-      // saveNow already toasts on failure
-    }
-  };
-
   useEffect(() => {
-    onRegisterRestore(editor ? restoreToContent : null);
+    if (!editor) {
+      onRegisterRestore(null);
+      return;
+    }
+    onRegisterRestore(async (markdown: string) => {
+      cancelPendingSave();
+      suppressNextUpdateRef.current = true;
+      baselineMarkdownRef.current = markdown;
+      editor.commands.setContent(markdown);
+      const jsonDoc = editor.getJSON();
+      onWordCountChange(countWords(docToPlainText(jsonDoc)));
+      try {
+        await saveNow({
+          content: getMarkdownFromEditor(editor),
+          contentText: docToPlainText(jsonDoc),
+          forceSnapshot: true,
+        });
+        baselineMarkdownRef.current = getMarkdownFromEditor(editor);
+        toast.success("Version restored");
+      } catch {
+        // saveNow already toasts on failure
+      }
+    });
     return () => onRegisterRestore(null);
-  }, [editor, restoreToContent, onRegisterRestore]);
+  }, [
+    cancelPendingSave,
+    editor,
+    onRegisterRestore,
+    onWordCountChange,
+    saveNow,
+  ]);
 
   return (
     <div

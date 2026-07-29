@@ -39,12 +39,21 @@ export const extractFactsAndDecideInternal = internalAction({
       return { extracted: 0, applied: 0 };
     }
 
+    // resolved rather than defaulted, the capture may target a team profile, and reconciliation has to read the whole shared profile to see teammates' facts
+    const graphScope =
+      args.profileId === undefined
+        ? "personal"
+        : await ctx.runQuery(internal.profiles.getProfileScopeInternal, {
+            profileId: args.profileId,
+          });
+
     const { applied, proposals } = await reconcileExtractedFacts(ctx, {
       clerkId: args.clerkId,
       profileId: args.profileId,
       auth,
       facts: extracted.facts,
       loop: {
+        graphScope,
         retrieveWithProfileId: false,
         excludeMemoryIds: [args.sourceMemoryId],
         logPrefix: "[v2]",

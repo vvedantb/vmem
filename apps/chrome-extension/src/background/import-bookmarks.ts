@@ -38,7 +38,6 @@ function flattenBookmarks(
   return result;
 }
 
-// walk up the bookmark tree to build the folder path for a single bookmark
 async function getBookmarkPath(
   bookmark: chrome.bookmarks.BookmarkTreeNode,
 ): Promise<string[]> {
@@ -55,8 +54,7 @@ async function getBookmarkPath(
   return path;
 }
 
-// bulk import bookmarks only items added since last sync
-// first run (lastBookmarkSync === 0) imports everything
+// import bookmarks added since last sync, first-run imports all
 export async function importBookmarks(silent = false): Promise<ImportResult> {
   let profileId: string | undefined;
 
@@ -70,7 +68,6 @@ export async function importBookmarks(silent = false): Promise<ImportResult> {
     loadItems: async () => {
       const { lastBookmarkSync } = await getStorage();
       const tree = await chrome.bookmarks.getTree();
-      // this browser's workspace selection (see sync-profile.ts)
       profileId = await getSyncProfileId();
       return flattenBookmarks(tree).filter(
         (b) => b.dateAdded > lastBookmarkSync,
@@ -89,8 +86,6 @@ export async function importBookmarks(silent = false): Promise<ImportResult> {
   });
 }
 
-// sync a single newly created bookmark (from chrome.bookmarks.onCreated)
-// skips if auto sync disabled not logged in is a folder or lock is held
 export async function syncSingleBookmark(
   _id: string,
   bookmark: chrome.bookmarks.BookmarkTreeNode,

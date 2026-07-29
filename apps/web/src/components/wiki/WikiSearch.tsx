@@ -2,14 +2,10 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { useDebounceValue } from "usehooks-ts";
-import {
-  IconSearch,
-  IconCode,
-  IconFileText,
-  IconFolder,
-} from "@tabler/icons-react";
+import { IconCode, IconFileText, IconFolder } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
-import { Button, cn, Input } from "@vmem/ui";
+import { Button, cn } from "@vmem/ui";
+import HeaderSearchInput from "@/components/_components/HeaderSearchInput";
 import { sidebarSearchInputClassName } from "@/components/sidebar/sidebar-search-input";
 import { useActiveTeamId } from "@/components/workspace/active-profile";
 import type { WikiNodeId, WikiSearchHit } from "./-types";
@@ -70,7 +66,7 @@ interface WikiSearchProps {
   className?: string;
 }
 
-// debounced wiki search (title + contentText, workspace-scoped)
+// debounced wiki search (title + contentText, workspace scoped)
 export default function WikiSearch({
   onSelect,
   actions,
@@ -91,18 +87,14 @@ export default function WikiSearch({
   return (
     <div className={cn("flex min-w-0 flex-col gap-1.5", className)}>
       <div className="flex min-w-0 items-center gap-1">
-        <div className="relative min-w-0 flex-1">
-          <IconSearch
-            size={14}
-            className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted"
-          />
-          <Input
-            value={raw}
-            onChange={(e) => setRaw(e.target.value)}
-            placeholder="Search"
-            className={sidebarSearchInputClassName}
-          />
-        </div>
+        <HeaderSearchInput
+          value={raw}
+          onChange={setRaw}
+          placeholder="Search"
+          label="Search wiki"
+          className="min-w-0 flex-1 sm:flex-1"
+          inputClassName={sidebarSearchInputClassName}
+        />
         {actions}
       </div>
       {isSearching ? (

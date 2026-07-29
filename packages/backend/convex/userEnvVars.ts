@@ -1,6 +1,15 @@
 import { v } from "convex/values";
 import { internalQuery, internalMutation } from "./_generated/server";
+import type { QueryCtx } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 import { authQuery, authMutation } from "./auth";
+
+function getUserEnvVarsDoc(ctx: QueryCtx, userId: Id<"users">) {
+  return ctx.db
+    .query("userEnvVars")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .first();
+}
 
 export const list = authQuery({
   args: {},
@@ -11,10 +20,7 @@ export const list = authQuery({
     }),
   ),
   handler: async (ctx) => {
-    const doc = await ctx.db
-      .query("userEnvVars")
-      .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
-      .first();
+    const doc = await getUserEnvVarsDoc(ctx, ctx.userId);
 
     if (!doc) return [];
     return doc.vars.map((entry) => ({
@@ -24,15 +30,11 @@ export const list = authQuery({
   },
 });
 
-// removes a single env var by key
 export const removeVar = authMutation({
   args: { key: v.string() },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const doc = await ctx.db
-      .query("userEnvVars")
-      .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
-      .first();
+    const doc = await getUserEnvVarsDoc(ctx, ctx.userId);
     if (!doc) return null;
 
     const vars = doc.vars.filter((entry) => entry.key !== args.key);
@@ -41,7 +43,6 @@ export const removeVar = authMutation({
   },
 });
 
-// returns raw (encrypted) env var entries for a user
 export const getAllInternal = internalQuery({
   args: { userId: v.id("users") },
   returns: v.array(
@@ -51,30 +52,22 @@ export const getAllInternal = internalQuery({
     }),
   ),
   handler: async (ctx, args) => {
-    const doc = await ctx.db
-      .query("userEnvVars")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
-      .first();
+    const doc = await getUserEnvVarsDoc(ctx, args.userId);
     if (!doc) return [];
     return doc.vars;
   },
 });
 
-// returns the raw (encrypted) value for one env var
 export const getVarInternal = internalQuery({
   args: { userId: v.id("users"), key: v.string() },
   returns: v.union(v.string(), v.null()),
   handler: async (ctx, args) => {
-    const doc = await ctx.db
-      .query("userEnvVars")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
-      .first();
+    const doc = await getUserEnvVarsDoc(ctx, args.userId);
     if (!doc) return null;
     return doc.vars.find((entry) => entry.key === args.key)?.value ?? null;
   },
 });
 
-// inserts or updates a single env var entry for a user
 export const upsertVarInternal = internalMutation({
   args: {
     userId: v.id("users"),
@@ -84,10 +77,7 @@ export const upsertVarInternal = internalMutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const doc = await ctx.db
-      .query("userEnvVars")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
-      .first();
+    const doc = await getUserEnvVarsDoc(ctx, args.userId);
 
     const keysToStrip = new Set<string>([args.key]);
     if (args.preservedPrevKey && args.preservedPrevKey !== args.key) {

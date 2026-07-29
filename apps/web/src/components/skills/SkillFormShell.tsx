@@ -1,5 +1,5 @@
 import type { FormEvent, ReactNode } from "react";
-import type { UseFormRegister } from "react-hook-form";
+import type { UseFormRegisterReturn } from "react-hook-form";
 import { Button, Input, Textarea } from "@vmem/ui";
 import { IconLoader2 } from "@tabler/icons-react";
 import {
@@ -8,8 +8,14 @@ import {
 } from "@/components/skills/SkillPanelSections";
 import type { SkillFormValues } from "@/components/skills/skillForm";
 
+type SkillFormFieldName = keyof SkillFormValues;
+
 type SkillFormShellProps = {
-  register: UseFormRegister<SkillFormValues>;
+  // narrower than UseFormRegister so SystemSkillFormValues (superset) is assignable
+  // rHF's UseFormRegister is invariant in the form values type.
+  register: (
+    name: SkillFormFieldName,
+  ) => UseFormRegisterReturn<SkillFormFieldName>;
   onSubmit: (e: FormEvent) => void;
   onCancel: () => void;
   submitting: boolean;

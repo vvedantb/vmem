@@ -1,9 +1,6 @@
 import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
-import {
-  retrieveBodySchema,
-  type RetrieveBody,
-} from "../../memoryApi/contract";
+import { retrieveBodySchema, type RetrieveBody } from "@vmem/sdk";
 import {
   guardProfileAccess,
   withApiKeyAuth,
@@ -25,17 +22,32 @@ async function runRetrieveHandler(
     return forbidden;
   }
 
-  const memories = await ctx.runAction(
-    internal.neo4jActions.memories.retrieveMemoriesInternal,
-    {
-      clerkId: auth.clerkId,
-      profileId: body.profileId,
-      query: body.query,
-      type: body.type,
-      tags: body.tags,
-      limit: body.limit ?? 10,
-    },
-  );
+  const retrieveArgs = {
+    clerkId: auth.clerkId,
+    query: body.query,
+    type: body.type,
+    tags: body.tags,
+    limit: body.limit ?? 10,
+  };
+
+  // a team profile retrieves across every member's memories in it. access is already asserted above, so the profile id alone is the scope.
+  const graphScope =
+    body.profileId === undefined
+      ? "personal"
+      : await ctx.runQuery(internal.profiles.getProfileScopeInternal, {
+          profileId: body.profileId,
+        });
+
+  const memories =
+    graphScope === "team" && body.profileId !== undefined
+      ? await ctx.runAction(
+          internal.neo4jActions.memories.retrieveMemoriesForTeamInternal,
+          { ...retrieveArgs, profileId: body.profileId },
+        )
+      : await ctx.runAction(
+          internal.neo4jActions.memories.retrieveMemoriesInternal,
+          { ...retrieveArgs, profileId: body.profileId },
+        );
 
   const userContext = await ctx.runQuery(
     internal.userSettings.getUserContextInternal,

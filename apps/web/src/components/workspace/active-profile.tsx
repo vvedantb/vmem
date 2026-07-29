@@ -57,7 +57,7 @@ export function useLastActiveProfileId() {
   );
 }
 
-// workspace id outside $profileId outlet; undefined if never visited
+// workspace id outside $profileId outlet undefined if never visited
 export function useActiveProfileId(): string | undefined {
   const params = useParams({ strict: false });
   const [lastProfileId] = useLastActiveProfileId();
@@ -67,8 +67,8 @@ export function useActiveProfileId(): string | undefined {
 }
 
 // team id for the active workspace (undefined = personal).
-// Prefer ActiveProfileProvider when inside /$profileId; fall back to URL /
-// last-visited id for shell/sidebar outside that provider.
+// prefer ActiveProfileProvider when inside /$profileId — fall back to URL /
+// last visited id for shell/sidebar outside that provider.
 export function useActiveTeamId(): Id<"teams"> | undefined {
   const profileIdFromContext = use(ActiveProfileIdContext);
   const profileIdFromRoute = useActiveProfileId();

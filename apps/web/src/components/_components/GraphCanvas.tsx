@@ -2,11 +2,18 @@ import {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useRef,
   useState,
   type Ref,
 } from "react";
 import { Graph } from "@cosmos.gl/graph";
+import {
+  COSMOS_DRAG_REHEAT_ALPHA,
+  COSMOS_INITIAL_SETTLE_ALPHA,
+  cosmosPhysicsForNodeCount,
+  cosmosWarmupTicks,
+} from "@vmem/shared/graph";
 import type { GraphNode, GraphEdge } from "@/lib/graph/types";
 import type { GraphViewTheme } from "./graph-view-themes";
 import type { HoveredEdgeInfo, HoveredNodeInfo } from "@/lib/graph/graph-types";
@@ -35,12 +42,6 @@ import {
   loadCosmosConnectorLogoAtlas,
   type CosmosLogoAtlas,
 } from "./cosmos/cosmos-logos";
-import {
-  COSMOS_DRAG_REHEAT_ALPHA,
-  COSMOS_INITIAL_SETTLE_ALPHA,
-  cosmosPhysicsForNodeCount,
-  cosmosWarmupTicks,
-} from "./cosmos/cosmos-physics";
 
 export interface GraphCanvasHandle {
   zoomIn: () => void;
@@ -106,7 +107,7 @@ function GraphCanvas({
   const hoveredIndexRef = useRef<number | undefined>(undefined);
   const hoveredLinkIndexRef = useRef<number | undefined>(undefined);
   const lastPositionsRef = useRef(new Map<string, { x: number; y: number }>());
-  // camera at last teardown — restored on same-node-set rebuilds (live edge
+  // camera at last teardown restored on same node set rebuilds (live edge
   // events, refetches) so background data churn does not reset zoom/pan
   const lastCameraRef = useRef<{
     x: number;
@@ -128,17 +129,22 @@ function GraphCanvas({
     onFocusNode,
   });
 
-  themeRef.current = viewTheme;
-  focusNodeIdRef.current = focusNodeId;
-  searchMatchSetRef.current = searchMatchSet;
-  isSearchActiveRef.current = isSearchActive;
-  showLabelsRef.current = showLabels;
-  callbacksRef.current = {
-    onHoverNode,
-    onHoverEdge,
-    onClickNode,
-    onFocusNode,
-  };
+  // mirror latest props into refs for long-lived cosmos callbacks
+  // write at commit via layout effect so concurrent renders do not clobber refs
+  // layout effect runs before passive effects that read these refs
+  useLayoutEffect(() => {
+    themeRef.current = viewTheme;
+    focusNodeIdRef.current = focusNodeId;
+    searchMatchSetRef.current = searchMatchSet;
+    isSearchActiveRef.current = isSearchActive;
+    showLabelsRef.current = showLabels;
+    callbacksRef.current = {
+      onHoverNode,
+      onHoverEdge,
+      onClickNode,
+      onFocusNode,
+    };
+  });
 
   const applyVisualState = useCallback((graph: Graph) => {
     const buffers = buffersRef.current;
@@ -407,7 +413,7 @@ function GraphCanvas({
     graph.render();
   }, []);
 
-  // Create / destroy Cosmos instance when topology changes
+  // create / destroy Cosmos instance when topology changes
   useEffect(() => {
     const host = hostRef.current;
     const root = rootRef.current;
@@ -563,7 +569,7 @@ function GraphCanvas({
           }
           const g = graphRef.current;
           if (g) paintSceneOverlays(g);
-          // Legacy SLEEP_ALPHA ≈ 0.005 — pause once visually still.
+          // legacy SLEEP_ALPHA ≈ 0.005 pause once visually still.
           if (typeof alpha === "number" && alpha < 0.01) {
             g?.pause();
           }
@@ -672,7 +678,7 @@ function GraphCanvas({
     };
   }, [nodes, edges, applyVisualState, paintSceneOverlays, applyConnectorLogos]);
 
-  // Theme colours only — do not touch simulation (avoids perpetual reheat).
+  // theme colours only — do not touch simulation (avoids perpetual reheat)
   useEffect(() => {
     const graph = graphRef.current;
     const buffers = buffersRef.current;

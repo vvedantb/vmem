@@ -4,53 +4,27 @@ export type {
   HealthResult,
   MatchedChunk,
   MemoryCandidate,
+  MemoryStatus,
+  MemoryType,
   MemoryWithTags,
   RetrieveResult,
   ScoreBreakdown,
   StoreInstructionResult,
   UpdateInstructionResult,
   UserContext,
-} from "./validators";
-import type { MemoryStatus, MemoryType } from "./validators";
-export type { MemoryStatus, MemoryType } from "./validators";
+} from "./contract";
+import type {
+  DeleteBody,
+  RetrieveBody,
+  StructuredStoreBody,
+  StructuredUpdateBody,
+} from "./contract";
 
-export interface StructuredCreateMemoryInput {
-  title: string;
-  content: string;
-  type: MemoryType;
-  source: string;
-  tags?: string[];
-  confidence?: number;
-  expiresAt?: string;
-  url?: string;
-  profileId?: string;
-  externalId?: string;
-  sourceType?: string;
-}
-
-export interface StructuredPatchMemoryInput {
-  id: string;
-  title?: string;
-  content?: string;
-  type?: MemoryType;
-  status?: MemoryStatus;
-  tags?: string[];
-  confidence?: number;
-  expiresAt?: string | null;
-}
-
-export interface StructuredDeleteMemoryInput {
-  id: string;
-}
-
-export interface StructuredRetrieveInput {
-  query: string;
-  limit?: number;
-  type?: MemoryType;
-  tags?: string[];
-  profileId?: string;
-  summarize?: boolean;
-}
+// Friendlier names for the structured request bodies the client accepts.
+export type StructuredCreateMemoryInput = StructuredStoreBody;
+export type StructuredPatchMemoryInput = StructuredUpdateBody;
+export type StructuredDeleteMemoryInput = DeleteBody;
+export type StructuredRetrieveInput = RetrieveBody;
 
 export interface VMemoryOptions {
   apiKey?: string;

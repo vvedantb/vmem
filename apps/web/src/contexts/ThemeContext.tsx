@@ -2,9 +2,8 @@ import { createContext, use, useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@vmem/backend";
+import { isTheme, type Theme } from "@vmem/shared";
 import { patchUserSettingsGet } from "@/lib/convex-optimistic";
-
-type Theme = "light" | "dark" | "system";
 
 interface ThemeContextType {
   theme: Theme;
@@ -15,10 +14,6 @@ interface ThemeContextType {
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
-
-function isTheme(value: string | undefined): value is Theme {
-  return value === "light" || value === "dark" || value === "system";
-}
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { resolvedTheme, setTheme: setNextTheme } = useTheme();
@@ -36,7 +31,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // apply Convex theme to the document when settings load or change externally
-  // do not depend on nextTheme — that caused a revert flicker while mutations were in flight
+  // do not depend on nextTheme that caused a revert flicker while mutations were in flight
   useEffect(() => {
     if (!mounted || settings === undefined) return;
     const convexTheme = settings.theme ?? "system";

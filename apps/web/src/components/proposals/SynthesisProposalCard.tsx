@@ -29,7 +29,7 @@ export default function SynthesisProposalCard({
   isResolving: boolean;
   onApprove: () => void;
   onReject: () => void;
-  // contradictions: resolve by keeping this source memory and suppressing the rest
+  // contradictions resolve by keeping this source memory and suppressing the rest
   onKeepWinner?: (winnerMemoryId: string) => void;
 }) {
   const activeProfile = useActiveProfile();

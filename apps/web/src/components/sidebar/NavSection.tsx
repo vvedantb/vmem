@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { IconChevronDown } from "@tabler/icons-react";
-import { cn } from "@vmem/ui";
+import { Button, cn } from "@vmem/ui";
 import {
   sidebarSectionButtonClass,
   sidebarSectionChevronClass,
@@ -21,19 +21,31 @@ export function NavSection({ title, isIconOnly, children }: NavSectionProps) {
 
   return (
     <div>
-      <button
+      <Button
         type="button"
+        variant="ghost"
         aria-expanded={open}
         onClick={() => setOpen((prev) => !prev)}
-        className={sidebarSectionButtonClass}
+        className={cn(
+          sidebarSectionButtonClass,
+          "h-auto justify-start rounded-none active:scale-100",
+          // ghost utilities beat sidebar section label specificity
+          // force-win with !important — dimmer color-mix still applies
+          "![color:color-mix(in_oklch,var(--muted)_55%,transparent)]",
+          "hover:!bg-transparent hover:![color:color-mix(in_oklch,var(--muted)_80%,transparent)]",
+        )}
       >
         <span>{title}</span>
         <IconChevronDown
           size={12}
           aria-hidden
-          className={cn(sidebarSectionChevronClass, !open && "-rotate-90")}
+          className={cn(
+            sidebarSectionChevronClass,
+            "size-3",
+            !open && "-rotate-90",
+          )}
         />
-      </button>
+      </Button>
       {open ? <div className="space-y-1 pl-2">{children}</div> : null}
     </div>
   );

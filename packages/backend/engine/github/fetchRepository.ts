@@ -29,7 +29,7 @@ function bufferFromTarballBody(
   return Buffer.from(data);
 }
 
-// gitHub tarballs prefix paths with `owner-repo-sha/`
+// github tarballs prefix every path with owner-repo-sha/
 export function stripTarballRoot(entryPath: string): string | null {
   const slash = entryPath.indexOf("/");
   if (slash === -1) return null;
@@ -102,7 +102,7 @@ function readHttpStatus(err: Error): number | undefined {
   return typeof status === "number" ? status : undefined;
 }
 
-// download repo tarball and extract TS/JS sources (faster than per-file API)
+// tarball fetch beats per-file API for bulk source extraction
 export async function fetchRepositoryFromGithub(
   repoOwner: string,
   repoName: string,
@@ -139,6 +139,7 @@ export async function fetchRepositoryFromGithub(
       if (status !== undefined) {
         throw new Error(
           `GitHub tarball error for ${repoOwner}/${repoName}@${branch}: ${status} ${err.message}`,
+          { cause: err },
         );
       }
     }

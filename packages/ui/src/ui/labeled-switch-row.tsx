@@ -1,18 +1,19 @@
 import type { ReactNode } from "react";
-import { Label, Switch } from "@vmem/ui";
+import { Label } from "./label";
+import { Switch } from "./switch";
 
-interface SettingsSwitchRowProps {
+interface LabeledSwitchRowProps {
   id: string;
   label: string;
   description?: string;
   checked: boolean;
-  onCheckedChange: (checked: boolean) => void;
+  onCheckedChange?: (checked: boolean) => void;
   disabled?: boolean;
   icon?: ReactNode;
+  trailing?: ReactNode;
 }
 
-// same row pattern as apps/web settings preferences
-export function SettingsSwitchRow({
+export function LabeledSwitchRow({
   id,
   label,
   description,
@@ -20,7 +21,8 @@ export function SettingsSwitchRow({
   onCheckedChange,
   disabled,
   icon,
-}: SettingsSwitchRowProps) {
+  trailing,
+}: LabeledSwitchRowProps) {
   return (
     <div className="flex items-center justify-between gap-3">
       <div className="flex min-w-0 items-start gap-2">
@@ -36,12 +38,14 @@ export function SettingsSwitchRow({
           ) : null}
         </div>
       </div>
-      <Switch
-        id={id}
-        checked={checked}
-        onCheckedChange={onCheckedChange}
-        disabled={disabled}
-      />
+      {trailing ?? (
+        <Switch
+          id={id}
+          checked={checked}
+          onCheckedChange={onCheckedChange}
+          disabled={disabled}
+        />
+      )}
     </div>
   );
 }

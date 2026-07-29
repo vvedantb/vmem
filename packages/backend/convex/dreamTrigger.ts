@@ -23,8 +23,7 @@ async function isAutomaticEnabled(
     .query("userSettings")
     .withIndex("by_user", (q) => q.eq("userId", userId))
     .first();
-  // absent = true: Dynamic Dreaming is on by default (soft-fails without
-  // an OpenRouter key, so default-on costs nothing for unconfigured users)
+  // absent = true: dynamic dreaming on by default (soft-fails without openRouter key, so default on costs nothing for unconfigured users)
   return settings?.dreamModeAutomatic ?? true;
 }
 
@@ -118,7 +117,7 @@ async function patchState(
   if (state) await ctx.db.patch(state._id, patch);
 }
 
-// stand down: the check decided not to dream
+// stand down, the check decided not to dream
 export const clearPendingInternal = internalMutation({
   args: { userId: v.id("users") },
   returns: v.null(),

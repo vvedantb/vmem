@@ -6,7 +6,7 @@ import {
   mergeMarkdownForAppend,
   wikiExcerpt,
 } from "../lib/wikiContent";
-import { wikiKindHasContent } from "../lib/wikiKind";
+import { wikiKindHasContent } from "@vmem/shared";
 import { parentKey } from "../lib/scopedTree";
 import {
   buildWikiChildrenByParent,
@@ -194,7 +194,7 @@ export async function createWiki(
 
   const hasContent = wikiKindHasContent(args.kind);
   const content = hasContent ? (args.contentMarkdown ?? "") : undefined;
-  // documents: markdown → plain text for search; artifacts: mirror raw source
+  // documents, markdown to plain text for search. artifacts, mirror raw source
   const contentText =
     content === undefined
       ? undefined

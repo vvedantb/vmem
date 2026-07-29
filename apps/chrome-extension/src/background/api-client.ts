@@ -2,6 +2,7 @@ import { api, type Id } from "@vmem/backend";
 import type { FunctionArgs } from "convex/server";
 import type { ConvexHttpClient } from "convex/browser";
 import { z } from "zod";
+import { errorMessage } from "@/lib/error";
 import { createAuthenticatedConvexClient } from "./auth";
 import type {
   CreateMemoryParams,
@@ -10,7 +11,7 @@ import type {
   Profile,
 } from "@/types/api";
 
-// userSettings.update args from the convex validator
+// convex userSettings.update argument type
 export type UserSettingsUpdateArgs = FunctionArgs<
   typeof api.userSettings.update
 >;
@@ -61,7 +62,7 @@ export async function retrieveMemories(
   return result.memories;
 }
 
-// upload screenshot → storage → importImageMemory
+// upload png to storage then create image memory
 export async function saveScreenshot(params: {
   blob: Blob;
   caption?: string;
@@ -83,7 +84,7 @@ export async function saveScreenshot(params: {
       {},
     );
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
+    const msg = errorMessage(err);
     throw new Error(`generateMemoryUploadUrl failed: ${msg}`, { cause: err });
   }
 
@@ -117,8 +118,8 @@ export async function saveScreenshot(params: {
     console.log("[vmem] saveScreenshot: memory created", memory.id);
     return memory;
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    // often means importImageMemory isn't deployed yet
+    const msg = errorMessage(err);
+    // importImageMemory may be missing on older backend deploys
     throw new Error(`importImageMemory action failed: ${msg}`, { cause: err });
   }
 }
@@ -138,7 +139,7 @@ export async function listProfiles(): Promise<Profile[]> {
   );
 }
 
-// durable settings write via http popup websocket can drop on close
+// http: survives popup close when websocket drops
 export async function updateUserSettings(
   args: UserSettingsUpdateArgs,
 ): Promise<void> {

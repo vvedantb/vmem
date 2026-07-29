@@ -1,12 +1,8 @@
-// screenshot content script
-//
-// startScreenshot from the background sw mounts a dim overlay
-// user drags a viewport rect → captureVisibleTab → dpr aware crop
-// preview bar with caption + save → saveScreenshot
-// esc cancels click outside preview dismisses
+// drag to select, crop visible tab capture, preview and save screenshot
 
 import { computePosition, flip, offset, shift } from "@floating-ui/dom";
 import { onMessage, sendMessage } from "@/lib/messaging";
+import { errorMessage } from "@/lib/error";
 import { mountVmemLogo } from "@/content/shared/icons";
 import { checkIcon, errorIcon } from "@/content/shared/status-icons";
 import type { Mode, SelectionRect } from "./types";
@@ -48,7 +44,7 @@ function resetSelectionState(): void {
 }
 
 function setSaveButtonState(
-  icon: "logo" | string,
+  icon: string,
   label: string,
   disabled: boolean,
   title?: string,
@@ -60,7 +56,7 @@ function setSaveButtonState(
   }
   saveLabel.textContent = label;
   saveBtn.disabled = disabled;
-  // omit title to preserve hover error text set before entering error mode
+  // keep prior error tooltip when save fails
   if (title !== undefined) saveBtn.title = title;
 }
 
@@ -175,7 +171,6 @@ function onScrimMouseUp(e: MouseEvent): void {
   const finalRect = dragRect;
   dragStart = null;
 
-  // reject tiny drags likely a stray click
   if (finalRect.w < 8 || finalRect.h < 8) {
     setMode("idle");
     return;
@@ -185,7 +180,7 @@ function onScrimMouseUp(e: MouseEvent): void {
 }
 
 async function captureAndCrop(rect: SelectionRect): Promise<void> {
-  // hide overlay before capture so it is not in the png
+  // hide overlay so it is not captured in the png
   clearOverlay();
   await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
@@ -225,7 +220,7 @@ async function saveScreenshot(): Promise<void> {
   } catch (err) {
     console.error(
       "[vmem] Screenshot save failed:",
-      err instanceof Error ? err.message : String(err),
+      errorMessage(err),
       "— reload the page to reconnect.",
     );
     saveBtn.title = err instanceof Error ? err.message : "Save failed";
@@ -253,7 +248,6 @@ captionInput.addEventListener("keydown", (e) => {
     e.preventDefault();
     setMode("idle");
   }
-  // stop the page from intercepting typing
   e.stopPropagation();
 });
 

@@ -30,7 +30,7 @@ import type { ProfileListItem, TeamListItem } from "./types";
 
 const PAGE_SIZE = 50;
 
-// effective scope for the AI logs, derived rather than written back to the URL
+// effective scope for AI logs — derived, not written back to the URL
 function useAiLogsScope(params: {
   scope: Scope | null;
   teamId: string | null;
@@ -45,12 +45,12 @@ function useAiLogsScope(params: {
   return { scope: "personal" as const, teamIdParam: "" };
 }
 
-// LLM usage panel for `/activity/usage`
+// lLM usage panel for `/activity/usage`
 export function AiLogsPanel() {
   const [params, setParams] = useQueryStates(aiLogsSearchParams);
   const { scope, teamIdParam } = useAiLogsScope(params);
 
-  // profiles + teams power the scope selector and the per-row profile badge lookup
+  // profiles + teams power the scope selector and the per row profile badge lookup
   const profiles = useQuery(api.profiles.list);
   const teams = useQuery(api.teams.list);
 
@@ -235,7 +235,7 @@ function SortDropdown({
   );
 }
 
-// helpers — match a string to a typed Id by checking against the user's
+// helpers match a string to a typed Id by checking against the user's
 // known set, so we never push a malformed id to the backend
 function normalizeTeamId(
   raw: string,

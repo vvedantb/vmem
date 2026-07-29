@@ -18,7 +18,7 @@ export const recordInternal = internalMutation({
   args: openRouterLogRecordFields,
   returns: v.null(),
   handler: async (ctx, args) => {
-    // normalise the string profileId from the caller into a typed Convex Id<"profiles">
+    // normalise the string profileId from the caller into a typed Id<"profiles">
     const { profileId: rawProfileId, ...rest } = args;
     const profileId = rawProfileId
       ? (ctx.db.normalizeId("profiles", rawProfileId) ?? undefined)
@@ -71,6 +71,28 @@ function rangeCutoff(range: "today" | "7d" | "30d" | "all"): number | null {
   }
 }
 
+// resolve + authorize the team for a team-scoped read. on denied + "empty": missing teamId and non-member both become null instead of throw
+async function resolveAuthorizedTeamId(
+  ctx: QueryCtx,
+  opts: {
+    userId: Id<"users">;
+    teamId?: Id<"teams">;
+    onDenied: "throw" | "empty";
+  },
+): Promise<Id<"teams"> | null> {
+  const teamId = opts.teamId;
+  if (!teamId) {
+    if (opts.onDenied === "empty") return null;
+    throw new Error("Team scope requires teamId");
+  }
+  const membership = await getMembershipOrNull(ctx, teamId, opts.userId);
+  if (!membership) {
+    if (opts.onDenied === "empty") return null;
+    throw new Error("Not authorized for this team");
+  }
+  return teamId;
+}
+
 async function scopedOpenRouterLogsQuery(
   ctx: QueryCtx,
   opts: {
@@ -82,16 +104,8 @@ async function scopedOpenRouterLogsQuery(
   },
 ) {
   if (opts.scope === "team") {
-    const teamId = opts.teamId;
-    if (!teamId) {
-      if (opts.onDenied === "empty") return null;
-      throw new Error("Team scope requires teamId");
-    }
-    const membership = await getMembershipOrNull(ctx, teamId, opts.userId);
-    if (!membership) {
-      if (opts.onDenied === "empty") return null;
-      throw new Error("Not authorized for this team");
-    }
+    const teamId = await resolveAuthorizedTeamId(ctx, opts);
+    if (!teamId) return null;
     return ctx.db
       .query("openRouterLogs")
       .withIndex("by_team_createdAt", (idx) =>
@@ -124,16 +138,8 @@ async function resolveOwnerNamespace(
   if (opts.scope === "personal") {
     return userLogNamespace(opts.userId);
   }
-  const teamId = opts.teamId;
-  if (!teamId) {
-    if (opts.onDenied === "empty") return null;
-    throw new Error("Team scope requires teamId");
-  }
-  const membership = await getMembershipOrNull(ctx, teamId, opts.userId);
-  if (!membership) {
-    if (opts.onDenied === "empty") return null;
-    throw new Error("Not authorized for this team");
-  }
+  const teamId = await resolveAuthorizedTeamId(ctx, opts);
+  if (!teamId) return null;
   return teamLogNamespace(teamId);
 }
 
@@ -178,13 +184,13 @@ export const listMine = authQuery({
       throw new Error("Not authorized for this team");
     }
 
-    // optional profile filter — works for both scopes
+    // optional profile filter, works for both scopes
     if (args.profileId) {
       const profileId = args.profileId;
       q = q.filter((f) => f.eq(f.field("profileId"), profileId));
     }
 
-    // multi-value filters: features[], models[]
+    // multi value filters, features[], models[]
     if (features.length > 0) {
       q = q.filter((f) =>
         f.or(...features.map((feat) => f.eq(f.field("feature"), feat))),

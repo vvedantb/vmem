@@ -2,8 +2,6 @@ import { parseAsArrayOf, parseAsString, parseAsStringLiteral } from "nuqs";
 
 // URL filter state for the `/activity` subroutes
 
-// ── Usage subroute (`/activity/usage`) ────────────────────────────────────
-
 export const FEATURES = [
   "enrichment",
   "dream-synthesis",
@@ -69,8 +67,6 @@ export const aiLogsSearchParams = {
   range: parseAsStringLiteral(aiLogsRanges).withDefault("7d"),
   sortDir: parseAsStringLiteral(sortDirections).withDefault("desc"),
 };
-
-// ── Events subroute ───────────────────────────────────────────────────────
 
 export const EVENT_TYPES = [
   "memory_created",

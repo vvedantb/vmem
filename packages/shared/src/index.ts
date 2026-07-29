@@ -11,6 +11,7 @@ export {
   formatDate,
   formatDateTime,
   formatDurationMs,
+  formatMonthDay,
   formatRelativeTime,
   formatSameDayOrDateTime,
   formatTimeUntil,
@@ -22,3 +23,5 @@ export {
   buildSkillsIndexAddition,
   type SkillIndexEntry,
 } from "./prompts/memoryRagPrompt";
+export { isTheme, type Theme } from "./theme";
+export { type WikiNodeKind, wikiKindHasContent, wikiKindLabel } from "./wiki";

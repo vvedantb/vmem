@@ -1,4 +1,4 @@
-// graph header: search / filters / options (+ add memory)
+// graph header search / filters / options (+ add memory)
 
 import { IconAdjustmentsHorizontal } from "@tabler/icons-react";
 import {

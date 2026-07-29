@@ -34,13 +34,14 @@ import {
   IconX,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
+import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
 
 export interface EnvVar {
   key: string;
   value: string;
 }
 
-// unified add/edit row draft, `originalkey` is set only when editing
+// unified add/edit row draft — `originalKey` set only when editing
 type EnvVarDraft =
   | { mode: "add"; key: string; value: string }
   | { mode: "edit"; originalKey: string; key: string; value: string };
@@ -146,7 +147,7 @@ export function EnvVarsTable({
   const [draft, setDraft] = useState<EnvVarDraft | null>(null);
 
   const [deleteKey, setDeleteKey] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+  const { submitting: saving, run: runSave } = useAsyncSubmit();
 
   const [revealedValues, setRevealedValues] = useState<Record<string, string>>(
     {},
@@ -159,7 +160,7 @@ export function EnvVarsTable({
 
   const [showBulkPaste, setShowBulkPaste] = useState(false);
   const [bulkText, setBulkText] = useState("");
-  const [bulkSaving, setBulkSaving] = useState(false);
+  const { submitting: bulkSaving, run: runBulkImport } = useAsyncSubmit();
 
   const sortedVars = (vars ?? [])
     .slice()
@@ -194,15 +195,10 @@ export function EnvVarsTable({
 
     if (draft.mode === "add") {
       if (!draft.key.trim() || !draft.value.trim()) return;
-      setSaving(true);
-      try {
+      await runSave(async () => {
         await onUpsert(draft.key.trim(), draft.value);
         clearDraft();
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Failed to save");
-      } finally {
-        setSaving(false);
-      }
+      }, "Failed to save");
       return;
     }
 
@@ -213,8 +209,7 @@ export function EnvVarsTable({
       clearDraft();
       return;
     }
-    setSaving(true);
-    try {
+    await runSave(async () => {
       await onEdit(draft.originalKey, newKey, newValue);
       setRevealedValues((prev) => {
         const next = { ...prev };
@@ -223,11 +218,7 @@ export function EnvVarsTable({
         return next;
       });
       clearDraft();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save");
-    } finally {
-      setSaving(false);
-    }
+    }, "Failed to save");
   };
 
   const confirmDelete = async () => {
@@ -264,9 +255,10 @@ export function EnvVarsTable({
       toast.error(
         err instanceof Error ? err.message : "Failed to reveal value",
       );
-    } finally {
-      setRevealingKey(null);
     }
+    // after the try rather than in a `finally` React Compiler bails on the
+    // whole file when it meets one. The catch swallows, so this always runs.
+    setRevealingKey(null);
   };
 
   const copyValue = async (key: string) => {
@@ -300,16 +292,11 @@ export function EnvVarsTable({
   const handleBulkImport = async () => {
     const parsed = parseEnvVars(bulkText);
     if (parsed.length === 0) return;
-    setBulkSaving(true);
-    try {
+    await runBulkImport(async () => {
       await onBulkImport(parsed);
       setShowBulkPaste(false);
       setBulkText("");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to import");
-    } finally {
-      setBulkSaving(false);
-    }
+    }, "Failed to import");
   };
 
   const parsedPreview = parseEnvVars(bulkText);

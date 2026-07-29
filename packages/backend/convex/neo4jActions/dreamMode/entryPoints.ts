@@ -25,7 +25,7 @@ function isRateLimited(lastRunAt: number | null | undefined): boolean {
   );
 }
 
-// resolve clerkId for a scheduled dream actor; returns no-key result on miss
+// resolve clerkId for a scheduled dream actor. returns no-key result on miss
 async function withClerkId(
   ctx: DreamActionCtx,
   userId: Id<"users">,
@@ -145,9 +145,20 @@ export const runDreamForProfileById = internalAction({
       return emptyDreamResult("no-recent-memories");
     }
 
+    // derived memories need a real clerkId owner: clerkId-scoped subsystems (openRouter auth, memory events, embedding budgets) require one
+    // team access is profileId-routed, so ownership does not gate reads. resolve the current team owner, not profile.userId (ownership can change after team creation)
+    let ownerUserId = profile.userId;
+    if (profile.teamId !== undefined) {
+      const resolvedOwner = await ctx.runQuery(
+        internal.teams.getOwnerUserIdInternal,
+        { teamId: profile.teamId },
+      );
+      if (resolvedOwner !== null) ownerUserId = resolvedOwner;
+    }
+
     return runScheduledAndNotify(
       ctx,
-      profile.userId,
+      ownerUserId,
       `owner of ${args.profileId}`,
       (clerkId) =>
         ctx.runAction(

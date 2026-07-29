@@ -18,14 +18,15 @@ export async function routeMemoryByProfile<T>(
   ctx: AuthActionCtx,
   profileId: string | undefined,
   handlers: {
-    team: (teamProfile: Doc<"profiles">) => Promise<T>;
+    // clerkId is the calling member, for attribution rather than scoping
+    team: (teamProfile: Doc<"profiles">, clerkId: string) => Promise<T>;
     personal: (clerkId: string) => Promise<T>;
   },
 ): Promise<T> {
   const clerkId = await requireClerkId(ctx);
   const teamProfile = await getTeamProfileIfApplicable(ctx, profileId);
   if (teamProfile) {
-    return handlers.team(teamProfile);
+    return handlers.team(teamProfile, clerkId);
   }
   return handlers.personal(clerkId);
 }

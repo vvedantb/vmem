@@ -1,9 +1,10 @@
 import { useQuery, useMutation, useAction } from "convex/react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Button, Skeleton } from "@vmem/ui";
 import { IconPlus } from "@tabler/icons-react";
 import { api, type Id } from "@vmem/backend";
+import { tempId } from "@/lib/convex-optimistic";
 import PageContainer from "@/components/shell/PageContainer";
 import { CreateEditProfileDialog } from "./CreateEditProfileDialog";
 import { DefaultProfilesSection } from "./DefaultProfilesSection";
@@ -17,13 +18,13 @@ export function ProfilesPage() {
       const list = localStore.getQuery(api.profiles.list, {});
       if (list === undefined) return;
       const now = Date.now();
-      const tempId = crypto.randomUUID() as Id<"profiles">;
+      const optimisticId = tempId<"profiles">();
       localStore.setQuery(api.profiles.list, {}, [
         ...list,
         {
-          _id: tempId,
+          _id: optimisticId,
           _creationTime: now,
-          userId: list[0]?.userId ?? ("" as Id<"users">),
+          userId: list[0]?.userId ?? tempId<"users">(),
           name: args.name,
           color: args.color,
           icon: args.icon,
@@ -71,22 +72,6 @@ export function ProfilesPage() {
     deletingProfileId !== null && profiles !== undefined
       ? profiles.find((profile) => profile._id === deletingProfileId)
       : undefined;
-
-  useEffect(() => {
-    if (!profiles) return;
-    if (
-      editingProfileId !== null &&
-      !profiles.some((profile) => profile._id === editingProfileId)
-    ) {
-      setEditingProfileId(null);
-    }
-    if (
-      deletingProfileId !== null &&
-      !profiles.some((profile) => profile._id === deletingProfileId)
-    ) {
-      setDeletingProfileId(null);
-    }
-  }, [profiles, editingProfileId, deletingProfileId]);
 
   if (profiles === undefined) {
     return (

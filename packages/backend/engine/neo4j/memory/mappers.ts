@@ -1,5 +1,10 @@
 import crypto from "node:crypto";
 import type { Record as NeoRecord } from "neo4j-driver";
+import {
+  memoryNodeSchema,
+  memoryStatusSchema,
+  memoryTypeSchema,
+} from "@vmem/sdk";
 import { z } from "zod";
 import {
   neo4jGet,
@@ -9,6 +14,7 @@ import {
 } from "../record";
 import type {
   MemoryEvent,
+  MemoryNode,
   MemoryStatus,
   MemoryType,
   MemoryWithTags,
@@ -16,36 +22,18 @@ import type {
   TimelineEvent,
 } from "./types";
 
-export const memoryTypeSchema = z.enum(["profile", "episodic", "knowledge"]);
-export const memoryStatusSchema = z.enum([
-  "active",
-  "pinned",
-  "suppressed",
-  "expired",
-]);
-
 const nullableStringSchema: z.ZodType<string | null, z.ZodTypeDef, unknown> =
   z.preprocess((value) => value ?? null, z.string().nullable());
 
-type MemoryNodeProps = Omit<MemoryWithTags, "tags">;
-
-const memoryNodePropsSchema: z.ZodType<MemoryNodeProps, z.ZodTypeDef, unknown> =
-  z.object({
-    id: z.string(),
-    userId: z.string(),
+// neo4j omits null-valued properties entirely, nullable fields must tolerate undefined
+// everything else comes from the shared sdk contract
+const memoryNodePropsSchema: z.ZodType<MemoryNode, z.ZodTypeDef, unknown> =
+  memoryNodeSchema.extend({
     profileId: nullableStringSchema,
-    title: z.string(),
-    content: z.string(),
-    type: memoryTypeSchema,
-    source: z.string(),
     sourceType: nullableStringSchema,
     sourceId: nullableStringSchema,
     sourceUrl: nullableStringSchema,
     sourceSyncedAt: nullableStringSchema,
-    confidence: z.number(),
-    status: memoryStatusSchema,
-    createdAt: z.string(),
-    updatedAt: z.string(),
     expiresAt: nullableStringSchema,
   });
 
@@ -77,7 +65,7 @@ function parseJsonField<T>(
 ): T | null {
   if (val === null || val === undefined) return null;
   try {
-    // JSON.parse is typed `any` — re-enter as unknown for zod
+    // JSON.parse returns any, so re-enter as unknown before zod
     // oxlint-disable-next-line typescript/no-unsafe-assignment -- JSON.parse
     const raw: unknown = JSON.parse(val);
     const parsed = schema.safeParse(raw);
