@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { useTheme } from "next-themes";
 import { cn } from "@vmem/ui";
+import { hslToHex, tagToColor } from "@vmem/shared/graph";
 import {
   edgeTouchesNode,
   previewEdges,
@@ -10,7 +12,22 @@ import {
 } from "./landing-preview-data";
 
 const defaultSnippet =
-  "Select a node to see what recall surfaces — connected context, not keywords.";
+  "Select a node to see what recall surfaces — connected context, not a keyword dump.";
+
+function nodeFill(node: PreviewNode, isDark: boolean): string {
+  if (node.kind === "entity") {
+    return isDark ? hslToHex(45, 70, 65) : hslToHex(45, 75, 45);
+  }
+  if (node.kind === "skill") {
+    return isDark ? hslToHex(285, 55, 72) : hslToHex(285, 60, 50);
+  }
+  if (node.kind === "wiki-document") {
+    return isDark ? hslToHex(35, 55, 70) : hslToHex(35, 60, 50);
+  }
+  const tag = node.tags[0];
+  if (tag !== undefined) return tagToColor(tag, isDark);
+  return isDark ? "#888888" : "#999999";
+}
 
 function toggleNode(
   current: PreviewNodeId | null,
@@ -19,12 +36,84 @@ function toggleNode(
   return current === next ? null : next;
 }
 
-interface PreviewGraphEdgeProps {
-  edge: PreviewEdge;
-  activeNodeId: PreviewNodeId | null;
+export function LandingMemoryPreview() {
+  const [activeNodeId, setActiveNodeId] = useState<PreviewNodeId | null>(null);
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
+
+  const activeNode = previewNodes.find((node) => node.id === activeNodeId);
+  const snippet = activeNode?.snippet ?? defaultSnippet;
+  const matchLabel = activeNodeId === null ? "…" : "1 match";
+
+  return (
+    <div
+      className="flex h-full flex-col px-3 pb-4 md:px-4"
+      onMouseLeave={() => setActiveNodeId(null)}
+    >
+      <div className="mb-3 overflow-x-auto rounded-lg bg-surface-secondary px-3 py-2 font-mono text-[10px] leading-relaxed text-muted scrollbar-thin">
+        <span className="whitespace-nowrap">
+          <span className="text-foreground/75">mcp</span>{" "}
+          <span className="text-foreground">memory.retrieve</span>
+          <span className="text-muted"> → {matchLabel}</span>
+        </span>
+      </div>
+
+      <svg
+        viewBox="0 0 640 360"
+        className="min-h-0 w-full flex-1 select-none"
+        aria-label="Interactive memory graph preview"
+        fill="none"
+      >
+        {previewEdges.map((edge) => (
+          <PreviewGraphEdge
+            key={`${edge.from}-${edge.to}`}
+            edge={edge}
+            activeNodeId={activeNodeId}
+          />
+        ))}
+
+        {activeNodeId === null ? <PreviewRecallIndicator /> : null}
+
+        <path
+          id="landing-recall-path"
+          d="M320 176 L508 108"
+          stroke="none"
+          fill="none"
+        />
+
+        {previewNodes.map((node) => (
+          <PreviewGraphNode
+            key={node.id}
+            node={node}
+            fill={nodeFill(node, isDark)}
+            activeNodeId={activeNodeId}
+            onHover={setActiveNodeId}
+            onToggle={(nodeId) =>
+              setActiveNodeId((current) => toggleNode(current, nodeId))
+            }
+          />
+        ))}
+      </svg>
+
+      <p
+        className={cn(
+          "mt-1 min-h-[2.75rem] text-pretty text-[11px] leading-relaxed transition-[color] duration-200 sm:text-xs",
+          activeNodeId === null ? "text-muted" : "text-foreground",
+        )}
+      >
+        {snippet}
+      </p>
+    </div>
+  );
 }
 
-function PreviewGraphEdge({ edge, activeNodeId }: PreviewGraphEdgeProps) {
+function PreviewGraphEdge({
+  edge,
+  activeNodeId,
+}: {
+  edge: PreviewEdge;
+  activeNodeId: PreviewNodeId | null;
+}) {
   const isActive = edgeTouchesNode(edge, activeNodeId);
   const isDimmed = activeNodeId !== null && !isActive;
 
@@ -32,38 +121,34 @@ function PreviewGraphEdge({ edge, activeNodeId }: PreviewGraphEdgeProps) {
     <path
       d={edge.d}
       stroke="currentColor"
-      strokeWidth={edge.isRecall && isActive ? 1.35 : 1}
+      strokeWidth={edge.isRecall && isActive ? 1.6 : 1}
       strokeDasharray={edge.isRecall ? "3 5" : undefined}
-      className={edge.isRecall ? "landing-graph-dash" : undefined}
-      opacity={isDimmed ? 0.12 : isActive && edge.isRecall ? 0.75 : 0.32}
+      className={cn(
+        "text-foreground/80",
+        edge.isRecall ? "landing-graph-dash" : undefined,
+      )}
+      opacity={isDimmed ? 0.12 : isActive && edge.isRecall ? 0.75 : 0.28}
     />
   );
 }
 
-interface PreviewGraphNodeProps {
-  node: PreviewNode;
-  activeNodeId: PreviewNodeId | null;
-  onHover: (nodeId: PreviewNodeId) => void;
-  onToggle: (nodeId: PreviewNodeId) => void;
-}
-
 function PreviewGraphNode({
   node,
+  fill,
   activeNodeId,
   onHover,
   onToggle,
-}: PreviewGraphNodeProps) {
+}: {
+  node: PreviewNode;
+  fill: string;
+  activeNodeId: PreviewNodeId | null;
+  onHover: (nodeId: PreviewNodeId) => void;
+  onToggle: (nodeId: PreviewNodeId) => void;
+}) {
   const isActive = activeNodeId === node.id;
   const isDimmed = activeNodeId !== null && !isActive;
-  const hitRadius = node.r + 12;
-
+  const hitRadius = node.r + 14;
   const nodeRadius = isActive ? node.r * (node.isCenter ? 1.12 : 1.18) : node.r;
-
-  const nodeClassName = cn(
-    "transition-[opacity]",
-    node.isCenter && activeNodeId === null ? "landing-preview-pulse" : "",
-    isActive ? "opacity-100" : "opacity-55",
-  );
 
   return (
     <g
@@ -90,15 +175,18 @@ function PreviewGraphNode({
         cx={node.cx}
         cy={node.cy}
         r={nodeRadius}
-        fill="currentColor"
-        className={nodeClassName}
+        fill={fill}
+        className={cn(
+          "transition-[opacity]",
+          node.isCenter && activeNodeId === null ? "landing-preview-pulse" : "",
+        )}
       />
       <text
         x={node.cx}
         y={node.labelY}
         textAnchor="middle"
         className={cn(
-          "pointer-events-none text-[9px] font-medium transition-[fill] sm:text-[10px]",
+          "pointer-events-none text-[10px] font-medium",
           isActive ? "fill-foreground" : "fill-muted",
         )}
         style={{ fontFamily: "Instrument Sans, system-ui, sans-serif" }}
@@ -111,7 +199,7 @@ function PreviewGraphNode({
 
 function PreviewRecallIndicator() {
   return (
-    <circle r="3" fill="currentColor" className="text-foreground">
+    <circle r="3.5" fill="currentColor" className="text-foreground">
       <animateMotion
         dur="3.2s"
         repeatCount="indefinite"
@@ -122,103 +210,5 @@ function PreviewRecallIndicator() {
         <mpath href="#landing-recall-path" />
       </animateMotion>
     </circle>
-  );
-}
-
-function PreviewSnippetText({
-  activeNodeId,
-  snippet,
-}: {
-  activeNodeId: PreviewNodeId | null;
-  snippet: string;
-}) {
-  if (activeNodeId === null) {
-    return (
-      <p className="mt-3 min-h-[3rem] text-pretty text-[11px] leading-relaxed text-muted transition-[color] sm:min-h-[2.5rem] sm:text-xs">
-        {snippet}
-      </p>
-    );
-  }
-
-  return (
-    <p className="mt-3 min-h-[3rem] text-pretty text-[11px] leading-relaxed text-foreground transition-[color] sm:min-h-[2.5rem] sm:text-xs">
-      {snippet}
-    </p>
-  );
-}
-
-export function LandingMemoryPreview() {
-  const [activeNodeId, setActiveNodeId] = useState<PreviewNodeId | null>(null);
-
-  const activeNode = previewNodes.find((node) => node.id === activeNodeId);
-  const snippet = activeNode?.snippet ?? defaultSnippet;
-  const matchLabel = activeNodeId === null ? "…" : "1 match";
-
-  const handleNodeHover = (nodeId: PreviewNodeId) => {
-    setActiveNodeId(nodeId);
-  };
-
-  const handleNodeToggle = (nodeId: PreviewNodeId) => {
-    setActiveNodeId((current) => toggleNode(current, nodeId));
-  };
-
-  return (
-    <div
-      className="relative touch-manipulation overflow-hidden rounded-3xl bg-surface px-3.5 pb-4 pt-3 sm:px-5 sm:pb-5"
-      onMouseLeave={() => setActiveNodeId(null)}
-    >
-      <div className="mb-3 flex items-baseline justify-between gap-2">
-        <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted sm:tracking-[0.2em]">
-          Memory graph
-        </p>
-        <p className="font-instrumentSerif text-sm tabular-nums text-muted/80">
-          128 nodes
-        </p>
-      </div>
-
-      <div className="mb-3 overflow-x-auto rounded-2xl bg-surface-secondary px-3 py-2 font-mono text-[10px] leading-relaxed text-muted">
-        <span className="whitespace-nowrap">
-          <span className="text-foreground/75">mcp</span>{" "}
-          <span className="text-foreground">memory.retrieve</span>
-          <span className="text-muted"> → {matchLabel}</span>
-        </span>
-      </div>
-
-      <svg
-        viewBox="0 0 320 188"
-        className="w-full select-none text-foreground/90"
-        aria-label="Interactive memory graph preview"
-        fill="none"
-      >
-        {previewEdges.map((edge) => (
-          <PreviewGraphEdge
-            key={`${edge.from}-${edge.to}`}
-            edge={edge}
-            activeNodeId={activeNodeId}
-          />
-        ))}
-
-        {activeNodeId === null ? <PreviewRecallIndicator /> : null}
-
-        <path
-          id="landing-recall-path"
-          d="M160 94 L248 58"
-          stroke="none"
-          fill="none"
-        />
-
-        {previewNodes.map((node) => (
-          <PreviewGraphNode
-            key={node.id}
-            node={node}
-            activeNodeId={activeNodeId}
-            onHover={handleNodeHover}
-            onToggle={handleNodeToggle}
-          />
-        ))}
-      </svg>
-
-      <PreviewSnippetText activeNodeId={activeNodeId} snippet={snippet} />
-    </div>
   );
 }

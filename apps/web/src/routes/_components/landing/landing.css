@@ -27,32 +27,26 @@
   background-size: 128px 128px;
 }
 
-/* Keeps hero copy readable — graph atmosphere fades left → right */
+/* Centered hero: keep a readable well, graph atmosphere around the edges */
 .landing-hero-read-scrim {
-  background: linear-gradient(
-    100deg,
+  background: radial-gradient(
+    ellipse 72% 58% at 50% 42%,
     var(--background) 0%,
-    var(--background) 36%,
-    color-mix(in oklch, var(--background) 88%, transparent) 48%,
-    color-mix(in oklch, var(--background) 45%, transparent) 62%,
-    transparent 78%
+    color-mix(in oklch, var(--background) 82%, transparent) 46%,
+    transparent 74%
   );
 }
 
 .landing-ambient-graph-mask {
-  mask-image: linear-gradient(
-    to right,
-    transparent 0%,
-    transparent 18%,
-    black 42%,
-    black 100%
+  mask-image: radial-gradient(
+    ellipse 88% 78% at 50% 48%,
+    transparent 8%,
+    black 62%
   );
-  -webkit-mask-image: linear-gradient(
-    to right,
-    transparent 0%,
-    transparent 18%,
-    black 42%,
-    black 100%
+  -webkit-mask-image: radial-gradient(
+    ellipse 88% 78% at 50% 48%,
+    transparent 8%,
+    black 62%
   );
 }
 
@@ -182,33 +176,37 @@
   animation: landing-ambient-node-h 5.8s ease-in-out infinite;
 }
 
-/* Mobile / tablet: solid read zone at top, graph atmosphere lower on the page */
+html:has(#top) {
+  scroll-behavior: smooth;
+}
+
 @media (max-width: 1023px) {
   .landing-hero-read-scrim {
-    background: linear-gradient(
-      180deg,
+    background: radial-gradient(
+      ellipse 90% 70% at 50% 28%,
       var(--background) 0%,
-      var(--background) 38%,
-      color-mix(in oklch, var(--background) 92%, transparent) 52%,
-      color-mix(in oklch, var(--background) 55%, transparent) 68%,
-      transparent 100%
+      color-mix(in oklch, var(--background) 88%, transparent) 52%,
+      transparent 78%
     );
   }
+}
 
-  .landing-ambient-graph-mask {
-    mask-image: linear-gradient(
-      180deg,
-      transparent 0%,
-      transparent 28%,
-      black 52%,
-      black 100%
-    );
-    -webkit-mask-image: linear-gradient(
-      180deg,
-      transparent 0%,
-      transparent 28%,
-      black 52%,
-      black 100%
-    );
+@media (prefers-reduced-motion: reduce) {
+  html:has(#top) {
+    scroll-behavior: auto;
+  }
+
+  .landing-graph-dash,
+  .landing-preview-pulse,
+  .landing-ambient-drift,
+  .landing-ambient-node-a,
+  .landing-ambient-node-b,
+  .landing-ambient-node-c,
+  .landing-ambient-node-d,
+  .landing-ambient-node-e,
+  .landing-ambient-node-f,
+  .landing-ambient-node-g,
+  .landing-ambient-node-h {
+    animation: none !important;
   }
 }

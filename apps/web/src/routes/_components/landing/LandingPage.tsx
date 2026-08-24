@@ -1,111 +1,30 @@
-import { IconBolt, IconBrain, IconTopologyStar3 } from "@tabler/icons-react";
-import { motion, useScroll, useTransform } from "motion/react";
-import { useMediaQuery } from "usehooks-ts";
-import { motionDuration, motionEase } from "@vmem/ui";
-import { VmemBrand } from "@/components/shell/VmemBrand";
 import { LandingAmbientGraph } from "./LandingAmbientGraph";
+import { LandingAppStage } from "./LandingAppStage";
+import { LandingFooter } from "./LandingFooter";
 import { LandingHero } from "./LandingHero";
 import { LandingHowItWorks } from "./LandingHowItWorks";
+import { LandingNav } from "./LandingNav";
+import { LandingRecallDemo } from "./LandingRecallDemo";
+import { LandingSurfaces } from "./LandingSurfaces";
 import "./landing.css";
-
-const features = [
-  {
-    icon: IconTopologyStar3,
-    title: "Graph-native memory",
-    description: "See context as a network — not a flat list of notes.",
-    offsetClassName: "lg:translate-x-0",
-  },
-  {
-    icon: IconBrain,
-    title: "Built for recall",
-    description: "Episodic, knowledge, and profile memories that persist.",
-    offsetClassName: "lg:translate-x-5",
-  },
-  {
-    icon: IconBolt,
-    title: "Agent-ready",
-    description: "MCP, HTTP API, and skills your agents can call.",
-    offsetClassName: "lg:translate-x-2.5",
-  },
-] as const;
-
-const capabilities = [
-  { label: "Graph memory", tone: "accent" },
-  { label: "MCP", tone: "muted" },
-  { label: "HTTP API", tone: "muted" },
-  { label: "Skills", tone: "muted" },
-] as const;
-
-const narrowMediaQuery = "(max-width: 1023px)";
-
-function LandingAmbientStatic() {
-  return (
-    <div className="pointer-events-none absolute inset-0">
-      <LandingAmbientGraph />
-    </div>
-  );
-}
-
-function LandingAmbientParallax() {
-  const { scrollY } = useScroll();
-  const ambientY = useTransform(scrollY, [0, 480], [0, 56]);
-  const ambientOpacity = useTransform(scrollY, [0, 320], [1, 0.72]);
-
-  return (
-    <motion.div
-      className="pointer-events-none absolute inset-0"
-      style={{ y: ambientY, opacity: ambientOpacity }}
-    >
-      <LandingAmbientGraph />
-    </motion.div>
-  );
-}
-
-function LandingAmbientLayer() {
-  const isNarrowViewport = useMediaQuery(narrowMediaQuery);
-
-  if (isNarrowViewport) {
-    return <LandingAmbientStatic />;
-  }
-
-  return <LandingAmbientParallax />;
-}
 
 export function LandingPage() {
   return (
-    <div className="relative min-h-[100dvh] bg-background text-foreground">
-      <LandingAmbientLayer />
-
-      <div className="relative mx-auto flex w-full max-w-7xl flex-col px-5 py-8 sm:px-8 sm:py-10 lg:px-12">
-        <motion.header
-          className="group"
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: motionDuration.base, ease: motionEase }}
-        >
-          <VmemBrand />
-        </motion.header>
-
-        <LandingHero features={features} capabilities={capabilities} />
-
-        <LandingHowItWorks />
-
-        <motion.footer
-          className="mt-12 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 sm:mt-16 md:mt-20"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{
-            duration: motionDuration.base,
-            ease: motionEase,
-            delay: 0.55,
-          }}
-        >
-          <p className="max-w-sm text-pretty text-xs leading-relaxed text-muted">
-            Graph storage, vector recall, and MCP-ready integrations for any
-            agent stack.
-          </p>
-        </motion.footer>
+    <div
+      id="top"
+      className="relative min-h-[100dvh] bg-background text-foreground"
+    >
+      <div className="relative">
+        <LandingAmbientGraph />
+        <LandingNav />
+        <LandingHero />
       </div>
+
+      <LandingAppStage />
+      <LandingRecallDemo />
+      <LandingHowItWorks />
+      <LandingSurfaces />
+      <LandingFooter />
     </div>
   );
 }
