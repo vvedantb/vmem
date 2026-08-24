@@ -1,4 +1,4 @@
-// Runs babel-plugin-react-compiler (the exact version the build uses) over
+// Runs oxc-transform-react (the exact compiler the Vite plugin uses) over
 // apps/web/src and fails when a file bails out of compilation for a reason not
 // recorded in the baseline. A bailout is silent at build time — the compiler
 // just skips memoizing the whole file — so this is the only gate that notices.
@@ -37,12 +37,9 @@ const BASELINE_PATH = path.join(
 );
 const UPDATE = process.argv.includes("--update");
 
-// Resolve babel + the compiler through apps/web so we test what the build runs.
+// Resolve through apps/web so we test what the Vite plugin runs.
 const req = createRequire(path.join(WEB, "package.json"));
-const babel = createRequire(req.resolve("@rolldown/plugin-babel"))(
-  "@babel/core",
-);
-const compilerPlugin = req.resolve("babel-plugin-react-compiler");
+const { transformSync } = req("oxc-transform-react");
 
 function walk(dir, out = []) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -55,6 +52,20 @@ function walk(dir, out = []) {
   return out;
 }
 
+function offsetToLine(source, offset) {
+  let line = 1;
+  const end = Math.min(Math.max(0, offset), source.length);
+  for (let i = 0; i < end; i++) {
+    if (source.charCodeAt(i) === 10) line++;
+  }
+  return line;
+}
+
+/** Recoverable compiler diagnostics only — parse failures are tsc's job. */
+function isCompilerDiagnostic(error) {
+  return error.severity !== "Advice";
+}
+
 // key: "relpath :: reason"  ->  [line, line, ...] for display only
 const found = new Map();
 
@@ -62,45 +73,25 @@ for (const file of walk(path.join(WEB, "src"))) {
   const code = readFileSync(file, "utf8");
   if (code.includes('"use no memo"')) continue; // deliberate opt-out
   const rel = path.relative(ROOT, file).split(path.sep).join("/");
-  try {
-    babel.transformSync(code, {
-      filename: file,
-      babelrc: false,
-      configFile: false,
-      sourceMaps: false,
-      parserOpts: {
-        plugins: file.endsWith(".tsx") ? ["typescript", "jsx"] : ["typescript"],
-      },
-      plugins: [
-        [
-          compilerPlugin,
-          {
-            logger: {
-              logEvent(_fn, ev) {
-                if (ev.kind !== "CompileError") return;
-                const detail = ev.detail ?? {};
-                const reason = String(detail.reason ?? "unknown reason");
-                const key = `${rel} :: ${reason}`;
-                const lines = found.get(key) ?? [];
-                // Dig any source location out of the detail for the report.
-                const dig = (o) => {
-                  if (!o || typeof o !== "object") return;
-                  if (o.loc?.start?.line) lines.push(o.loc.start.line);
-                  for (const k in o) dig(o[k]);
-                };
-                dig(detail);
-                found.set(
-                  key,
-                  [...new Set(lines)].sort((a, b) => a - b),
-                );
-              },
-            },
-          },
-        ],
-      ],
-    });
-  } catch {
-    // Parse failures are tsc's job, not this script's.
+  const result = transformSync(file, code, {
+    reactCompiler: { target: "19" },
+    jsx: { runtime: "automatic" },
+  });
+  if (result.fatal) continue;
+  for (const error of result.errors) {
+    if (!isCompilerDiagnostic(error)) continue;
+    const reason = String(error.message ?? "unknown reason");
+    const key = `${rel} :: ${reason}`;
+    const lines = found.get(key) ?? [];
+    for (const label of error.labels ?? []) {
+      if (typeof label.start === "number") {
+        lines.push(offsetToLine(code, label.start));
+      }
+    }
+    found.set(
+      key,
+      [...new Set(lines)].sort((a, b) => a - b),
+    );
   }
 }
 

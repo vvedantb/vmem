@@ -39,6 +39,10 @@
     "import/no-named-as-default": "off", // default/named interop from CJS deps
     "import/no-named-as-default-member": "off", // default/named interop from CJS deps
     "react/react-in-jsx-scope": "off", // tsconfig `jsx: react-jsx` — React import not required
+    "react/hooks": "off", // ConvexProviderWithClerk takes a hook as a prop
+    "react/exhaustive-effect-dependencies": "off", // overlaps react/exhaustive-deps
+    "react/capitalized-calls": "off", // compiler nursery; not in recommended
+    "react/memo-dependencies": "off", // compiler nursery; not in recommended
     "typescript/no-explicit-any": "error",
     "typescript/no-non-null-assertion": "error",
     "typescript/no-unsafe-type-assertion": "error",
@@ -94,7 +98,23 @@
     ],
     "no-console": ["error", { "allow": ["warn", "error", "info"] }],
     "react/rules-of-hooks": "error",
-    "react/exhaustive-deps": "error"
+    "react/exhaustive-deps": "error",
+    // React Compiler recommended rules that are clean on this repo.
+    // The rest stay off: they duplicate grandfathered effects and known
+    // compiler-check baseline bailouts. `--deny-warnings` treats warn as fail.
+    "react/error-boundaries": "error",
+    "react/globals": "error",
+    "react/immutability": "error",
+    "react/preserve-manual-memoization": "error",
+    "react/set-state-in-render": "error",
+    "react/use-memo": "error",
+    "react/void-use-memo": "error",
+    "react/incompatible-library": "off",
+    "react/purity": "off",
+    "react/refs": "off",
+    "react/set-state-in-effect": "off",
+    "react/static-components": "off",
+    "react/unsupported-syntax": "off"
   },
   "overrides": [
     {

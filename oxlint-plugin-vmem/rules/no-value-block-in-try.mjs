@@ -144,7 +144,7 @@ function walk(node, report, compiled, nameHint) {
  * function drops memoization for every component in that file, silently and
  * with no build error. That makes it invisible without a rule like this one.
  *
- * Scope was established empirically against babel-plugin-react-compiler, then
+ * Scope was established empirically against React Compiler, then
  * checked to report zero false positives across apps/web.
  */
 export default {

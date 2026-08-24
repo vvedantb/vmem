@@ -1,10 +1,11 @@
 import { defineConfig } from "vite";
-import react, { reactCompilerPreset } from "@vitejs/plugin-react";
-import babel from "@rolldown/plugin-babel";
+import react from "@vitejs/plugin-react";
 import tanstackRouter from "@tanstack/router-plugin/vite";
 import { visualizer } from "rollup-plugin-visualizer";
 import path from "path";
 import { createRequire } from "module";
+// Loaded by `react({ compiler: true })`; imported here so knip sees the peer.
+import "oxc-transform-react";
 
 const require = createRequire(import.meta.url);
 
@@ -14,7 +15,7 @@ const glBenchEsm = path.join(
   "dist/gl-bench.module.js",
 );
 
-export default defineConfig(({ command }) => ({
+export default defineConfig({
   plugins: [
     tanstackRouter({
       routesDirectory: "./src/routes",
@@ -22,16 +23,7 @@ export default defineConfig(({ command }) => ({
         "([sS]earchParams\\.ts|_components|_utils\\.ts|Client\\.tsx|Panel\\.tsx)",
       autoCodeSplitting: true,
     }),
-    react(),
-    // React Compiler runs on builds only. Measured over apps/web/src it costs
-    // ~24s of Babel CPU (~31ms median per file) and accounts for ~90% of the
-    // Babel pass. Vite does not cache source transforms to disk, so in dev every
-    // restart re-pays it on every module a page pulls. Set REACT_COMPILER=1 to
-    // force it on in dev when reproducing a bug only seen in compiled output.
-    (command === "build" || process.env.REACT_COMPILER === "1") &&
-      babel({
-        presets: [reactCompilerPreset()],
-      }),
+    react({ compiler: true }),
     process.env.ANALYZE === "true" &&
       visualizer({
         filename: "stats.html",
@@ -95,4 +87,4 @@ export default defineConfig(({ command }) => ({
       },
     },
   },
-}));
+});

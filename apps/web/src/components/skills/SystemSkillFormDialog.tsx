@@ -109,7 +109,7 @@ export function SystemSkillFormDialog({
     }
     form.reset(emptySystemSkillFormValues);
     // reset on open / entry identity only not on live query object churn.
-    // oxlint-disable-next-line react-hooks/exhaustive-deps -- entry snapshot at open/_id
+    // oxlint-disable-next-line react/exhaustive-deps -- entry snapshot at open/_id
   }, [open, entryId, form]);
 
   const handleOpenChange = (next: boolean) => {

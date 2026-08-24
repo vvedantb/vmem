@@ -242,7 +242,7 @@ export function parse(body: unknown) {
 );
 
 // no-value-block-in-try — React Compiler bails on the whole file for these.
-// Scope below mirrors what babel-plugin-react-compiler actually rejects.
+// Scope below mirrors what React Compiler actually rejects.
 
 const inHook = (body) => `function useThing(a, b, fn, xs) {
 ${body}
