@@ -1,9 +1,7 @@
 import { v, type Infer } from "convex/values";
-import { zodToConvex } from "convex-helpers/server/zod";
-import { memoryStatusSchema, memoryTypeSchema } from "@vmem/sdk";
+import { memoryStatusValidator, memoryTypeValidator } from "../validators";
 
-export const memoryTypeValidator = zodToConvex(memoryTypeSchema);
-export const memoryStatusValidator = zodToConvex(memoryStatusSchema);
+export { memoryStatusValidator, memoryTypeValidator };
 export const profileIdOptional = v.optional(v.string());
 
 export const paginationFields = {

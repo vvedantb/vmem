@@ -1,11 +1,11 @@
-import crypto from "node:crypto";
 import type { Record as NeoRecord } from "neo4j-driver";
-import {
-  memoryNodeSchema,
-  memoryStatusSchema,
-  memoryTypeSchema,
-} from "@vmem/sdk";
+import { memoryNodeSchema } from "@vmem/sdk";
 import { z } from "zod";
+import { computeContentHash } from "../../memory/hash";
+import {
+  toMemoryStatusOrUndefined,
+  toMemoryTypeOrUndefined,
+} from "../../memory/parse";
 import {
   neo4jGet,
   neo4jString,
@@ -15,12 +15,17 @@ import {
 import type {
   MemoryEvent,
   MemoryNode,
-  MemoryStatus,
   MemoryType,
   MemoryWithTags,
   TagEdge,
   TimelineEvent,
 } from "./types";
+
+export {
+  computeContentHash,
+  toMemoryStatusOrUndefined,
+  toMemoryTypeOrUndefined,
+};
 
 const nullableStringSchema: z.ZodType<string | null, z.ZodTypeDef, unknown> =
   z.preprocess((value) => value ?? null, z.string().nullable());
@@ -96,22 +101,6 @@ export function recencyFromAgeDays(age: number, type: MemoryType): number {
   return 0.3;
 }
 
-export function toMemoryTypeOrUndefined(
-  val: string | null | undefined,
-): MemoryType | undefined {
-  if (val === null || val === undefined) return undefined;
-  const parsed = memoryTypeSchema.safeParse(val);
-  return parsed.success ? parsed.data : undefined;
-}
-
-export function toMemoryStatusOrUndefined(
-  val: string | null | undefined,
-): MemoryStatus | undefined {
-  if (val === null || val === undefined) return undefined;
-  const parsed = memoryStatusSchema.safeParse(val);
-  return parsed.success ? parsed.data : undefined;
-}
-
 export function toSnapshot(
   m: Pick<
     MemoryWithTags,
@@ -176,12 +165,4 @@ export function toTagEdge(record: NeoRecord): TagEdge {
     weight: parseNeo4jInt(neo4jGet(record, "weight")),
     sharedTags,
   };
-}
-
-export function computeContentHash(title: string, content: string): string {
-  const normalized = `${title}\n${content}`
-    .trim()
-    .replace(/\s+/g, " ")
-    .toLowerCase();
-  return crypto.createHash("md5").update(normalized).digest("hex");
 }

@@ -1,11 +1,44 @@
 import { v } from "convex/values";
 import { omit } from "convex-helpers";
 import { zodToConvex } from "convex-helpers/server/zod";
+import { memoryStatusSchema, memoryTypeSchema } from "@vmem/sdk";
 import { z } from "zod";
 import {
   openRouterEndpointSchema,
   openRouterFeatureSchema,
 } from "./lib/openRouter/schemas";
+
+export const memoryTypeValidator = zodToConvex(memoryTypeSchema);
+export const memoryStatusValidator = zodToConvex(memoryStatusSchema);
+
+// clerk id + profile id match the Neo4j Memory node; tags are stored on the row
+export const memoryFields = {
+  memoryId: v.string(),
+  userId: v.string(),
+  profileId: v.optional(v.string()),
+  title: v.string(),
+  content: v.string(),
+  type: memoryTypeValidator,
+  source: v.string(),
+  confidence: v.number(),
+  status: memoryStatusValidator,
+  tags: v.array(v.string()),
+  createdAt: v.number(),
+  updatedAt: v.number(),
+  expiresAt: v.optional(v.number()),
+  url: v.optional(v.string()),
+  contentHash: v.string(),
+  sourceType: v.optional(v.string()),
+  sourceId: v.optional(v.string()),
+  sourceUrl: v.optional(v.string()),
+  sourceSyncedAt: v.optional(v.number()),
+  storageId: v.optional(v.string()),
+  mimeType: v.optional(v.string()),
+  originalFilename: v.optional(v.string()),
+  visitCount: v.number(),
+  firstVisitAt: v.number(),
+  lastVisitAt: v.number(),
+};
 
 // table field validators, used in schema.ts and return validators
 export const profileFields = {

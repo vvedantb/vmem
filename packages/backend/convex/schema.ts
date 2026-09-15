@@ -22,6 +22,7 @@ import {
   oauthStateFields,
   githubConnectionFields,
   contextPromptCacheFields,
+  memoryFields,
 } from "./validators";
 
 const schema = defineSchema({
@@ -152,6 +153,12 @@ const schema = defineSchema({
   contextPromptCache: defineTable(contextPromptCacheFields).index("by_user", [
     "userId",
   ]),
+
+  // phase 1 convex memory rows. retrieval/graph still live in neo4j
+  memories: defineTable(memoryFields)
+    .index("by_memory_id", ["memoryId"])
+    .index("by_user_created", ["userId", "createdAt"])
+    .index("by_profile_created", ["profileId", "createdAt"]),
 });
 
 export default schema;
