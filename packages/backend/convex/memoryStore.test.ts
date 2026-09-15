@@ -473,4 +473,160 @@ describe("convex memoryStore", () => {
     expect(hits[0]?.trace.score).toBe(1);
     expect(hits[0]?.trace.reason).toContain("substring");
   });
+
+  it("verification matrix: personal create/get/list/update/search/delete", async () => {
+    const t = convexTest(schema, modules);
+
+    const created = await t.mutation(
+      internal.memoryStore.functions.createMemoryInternal,
+      createArgs({
+        title: "Prefers pnpm",
+        content: "Use pnpm for vmem installs",
+        tags: ["tooling"],
+      }),
+    );
+
+    const fetched = await t.query(
+      internal.memoryStore.functions.getMemoryInternal,
+      { userId: USER_A, memoryId: created.id },
+    );
+    expect(fetched?.id).toBe(created.id);
+    expect(fetched?.content).toBe("Use pnpm for vmem installs");
+
+    const listed = await t.query(
+      internal.memoryStore.functions.listMemoriesInternal,
+      {
+        userId: USER_A,
+        profileId: PERSONAL_PROFILE,
+        limit: 10,
+        offset: 0,
+      },
+    );
+    expect(listed.total).toBe(1);
+    expect(listed.memories[0]?.id).toBe(created.id);
+
+    const updated = await t.mutation(
+      internal.memoryStore.functions.updateMemoryInternal,
+      {
+        userId: USER_A,
+        memoryId: created.id,
+        title: "Prefers pnpm workspaces",
+        content: "Use pnpm workspaces for vmem",
+      },
+    );
+    expect(updated?.title).toBe("Prefers pnpm workspaces");
+
+    const searched = await t.query(
+      internal.memoryStore.functions.listMemoriesInternal,
+      {
+        userId: USER_A,
+        profileId: PERSONAL_PROFILE,
+        searchQuery: "workspaces",
+        limit: 10,
+        offset: 0,
+      },
+    );
+    expect(searched.total).toBe(1);
+    expect(searched.memories[0]?.id).toBe(created.id);
+
+    const retrieveHits = searched.memories.map((memory) =>
+      toMemoryCandidate(memory, "workspaces"),
+    );
+    expect(retrieveHits[0]?.trace.score).toBe(1);
+
+    const deleted = await t.mutation(
+      internal.memoryStore.functions.deleteMemoryInternal,
+      { userId: USER_A, memoryId: created.id },
+    );
+    expect(deleted).toBe(true);
+
+    const missing = await t.query(
+      internal.memoryStore.functions.getMemoryInternal,
+      { userId: USER_A, memoryId: created.id },
+    );
+    expect(missing).toBeNull();
+  });
+
+  it("verification matrix: team create/get/list/update/search/delete", async () => {
+    const t = convexTest(schema, modules);
+
+    const created = await t.mutation(
+      internal.memoryStore.functions.createMemoryInternal,
+      createArgs({
+        userId: USER_A,
+        profileId: TEAM_PROFILE,
+        title: "Team pnpm",
+        content: "shared pnpm note",
+      }),
+    );
+
+    const fetched = await t.query(
+      internal.memoryStore.functions.getMemoryForTeamInternal,
+      { profileId: TEAM_PROFILE, memoryId: created.id },
+    );
+    expect(fetched?.title).toBe("Team pnpm");
+    expect(fetched?.userId).toBe(USER_A);
+
+    const listed = await t.query(
+      internal.memoryStore.functions.listMemoriesForTeamInternal,
+      { profileId: TEAM_PROFILE, limit: 10, offset: 0 },
+    );
+    expect(listed.total).toBe(1);
+
+    const updated = await t.mutation(
+      internal.memoryStore.functions.updateMemoryInternal,
+      {
+        userId: USER_A,
+        memoryId: created.id,
+        title: "Team pnpm updated",
+        content: "shared pnpm note v2",
+      },
+    );
+    expect(updated?.title).toBe("Team pnpm updated");
+
+    const searched = await t.query(
+      internal.memoryStore.functions.listMemoriesForTeamInternal,
+      {
+        profileId: TEAM_PROFILE,
+        searchQuery: "pnpm",
+        limit: 10,
+        offset: 0,
+      },
+    );
+    expect(searched.total).toBe(1);
+    expect(
+      searched.memories.map((memory) => toMemoryCandidate(memory, "pnpm"))[0]
+        ?.trace.score,
+    ).toBe(1);
+
+    const miss = await t.query(
+      internal.memoryStore.functions.listMemoriesForTeamInternal,
+      {
+        profileId: TEAM_PROFILE,
+        searchQuery: "webpack",
+        limit: 10,
+        offset: 0,
+      },
+    );
+    expect(miss.total).toBe(0);
+
+    const personal = await t.query(
+      internal.memoryStore.functions.listMemoriesInternal,
+      {
+        userId: USER_A,
+        profileId: PERSONAL_PROFILE,
+        limit: 10,
+        offset: 0,
+      },
+    );
+    expect(personal.memories.some((memory) => memory.id === created.id)).toBe(
+      false,
+    );
+
+    const deleted = await t.mutation(
+      internal.memoryStore.functions.deleteTeamMemoryAsOwnerInternal,
+      { profileId: TEAM_PROFILE, memoryId: created.id },
+    );
+    expect(deleted).toBe(true);
+  });
 });
