@@ -1,66 +1,115 @@
-"use node";
-
 import { v } from "convex/values";
-import { ActionCache } from "@convex-dev/action-cache";
-import { authAction, requireClerkId } from "./auth";
-import { components, internal } from "./_generated/api";
-import { internalAction } from "./_generated/server";
-import {
-  getRecentActivity as fetchRecentActivity,
-  getStats as fetchStats,
-} from "../engine/neo4j/memory/stats";
-import { runWithNeo4jDriver } from "./neo4jActions/_shared/driver";
+import { authAction, requireClerkId, type AuthActionCtx } from "./auth";
+import { internal } from "./_generated/api";
+import type { MemoryWithTags } from "./memoryApi/types";
 import { resolveAccessibleTeamScope } from "./profiles/accessibleProfile";
 
-const DASHBOARD_CACHE_TTL_MS = 30_000;
+type StatsResult = {
+  totalMemories: number;
+  memoriesThisWeek: number;
+  memoriesThisMonth: number;
+  memoriesAddedToday: number;
+  totalTags: number;
+  growthData: { isoDate: string; total: number; new: number }[];
+};
 
-type StatsResult = Awaited<ReturnType<typeof fetchStats>>;
-type ActivityItem = Awaited<ReturnType<typeof fetchRecentActivity>>[number];
+type ActivityItem = {
+  id: string;
+  type: string;
+  title: string;
+  description: string;
+  timestamp: string;
+};
 
-export const getStatsInternal = internalAction({
-  args: {
-    clerkId: v.string(),
-    profileId: v.optional(v.string()),
-    strictProfile: v.optional(v.boolean()),
-  },
-  handler: async (_ctx, args) =>
-    runWithNeo4jDriver(args, ({ driver, userId, profileId, strictProfile }) =>
-      fetchStats(driver, userId, profileId ?? null, strictProfile === true),
-    ),
-});
+function startOfUtcDay(ms: number): number {
+  const date = new Date(ms);
+  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+}
 
-export const getRecentActivityInternal = internalAction({
-  args: {
-    clerkId: v.string(),
-    profileId: v.optional(v.string()),
-    strictProfile: v.optional(v.boolean()),
-    limit: v.optional(v.number()),
-  },
-  handler: async (_ctx, args) =>
-    runWithNeo4jDriver(
-      args,
-      ({ driver, userId, profileId, strictProfile, limit }) =>
-        fetchRecentActivity(
-          driver,
-          userId,
-          profileId ?? null,
-          limit ?? 10,
-          strictProfile === true,
-        ),
-    ),
-});
+function isoDateUtc(ms: number): string {
+  return new Date(ms).toISOString().slice(0, 10);
+}
 
-const statsCache = new ActionCache(components.actionCache, {
-  action: internal.dashboardApi.getStatsInternal,
-  name: "getStatsInternal-v2",
-  ttl: DASHBOARD_CACHE_TTL_MS,
-});
+function computeStats(memories: MemoryWithTags[]): StatsResult {
+  const now = Date.now();
+  const todayStart = startOfUtcDay(now);
+  const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
+  const monthAgo = now - 30 * 24 * 60 * 60 * 1000;
+  const createdTimes = memories.map((memory) => Date.parse(memory.createdAt));
 
-const recentActivityCache = new ActionCache(components.actionCache, {
-  action: internal.dashboardApi.getRecentActivityInternal,
-  name: "getRecentActivityInternal-v2",
-  ttl: DASHBOARD_CACHE_TTL_MS,
-});
+  const tags = new Set<string>();
+  for (const memory of memories) {
+    for (const tag of memory.tags) tags.add(tag);
+  }
+
+  const dayStart = todayStart - 6 * 24 * 60 * 60 * 1000;
+  const dailyNew = new Map<string, number>();
+  for (let i = 0; i < 7; i++) {
+    dailyNew.set(isoDateUtc(dayStart + i * 24 * 60 * 60 * 1000), 0);
+  }
+  let baseline = 0;
+  for (const createdAt of createdTimes) {
+    if (createdAt < dayStart) {
+      baseline += 1;
+      continue;
+    }
+    const key = isoDateUtc(createdAt);
+    const current = dailyNew.get(key);
+    if (current !== undefined) dailyNew.set(key, current + 1);
+  }
+
+  const growthData: StatsResult["growthData"] = [];
+  let running = baseline;
+  for (let i = 0; i < 7; i++) {
+    const isoDate = isoDateUtc(dayStart + i * 24 * 60 * 60 * 1000);
+    const added = dailyNew.get(isoDate) ?? 0;
+    running += added;
+    growthData.push({ isoDate, total: running, new: added });
+  }
+
+  return {
+    totalMemories: memories.length,
+    memoriesThisWeek: createdTimes.filter((ms) => ms >= weekAgo).length,
+    memoriesThisMonth: createdTimes.filter((ms) => ms >= monthAgo).length,
+    memoriesAddedToday: createdTimes.filter((ms) => ms >= todayStart).length,
+    totalTags: tags.size,
+    growthData,
+  };
+}
+
+function recentActivity(
+  memories: MemoryWithTags[],
+  limit: number,
+): ActivityItem[] {
+  return [...memories]
+    .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
+    .slice(0, limit)
+    .map((memory) => ({
+      id: memory.id,
+      type: "memory_updated",
+      title: "Memory",
+      description: `Updated "${memory.title}"`,
+      timestamp: memory.updatedAt,
+    }));
+}
+
+async function loadScopedMemories(
+  ctx: AuthActionCtx,
+  clerkId: string,
+  profileId: string | undefined,
+  teamId: string | undefined,
+): Promise<MemoryWithTags[]> {
+  if (teamId !== undefined && profileId !== undefined) {
+    return await ctx.runQuery(
+      internal.memoryStore.functions.collectScopedMemoriesInternal,
+      { kind: "team", profileId },
+    );
+  }
+  return await ctx.runQuery(
+    internal.memoryStore.functions.collectScopedMemoriesInternal,
+    { kind: "personal", userId: clerkId, profileId },
+  );
+}
 
 export const getStats = authAction({
   args: {
@@ -69,15 +118,14 @@ export const getStats = authAction({
   },
   handler: async (ctx, args): Promise<StatsResult> => {
     const clerkId = await requireClerkId(ctx);
-    const { strictProfile } = await resolveAccessibleTeamScope(
+    const { teamId } = await resolveAccessibleTeamScope(ctx, args.profileId);
+    const memories = await loadScopedMemories(
       ctx,
+      clerkId,
       args.profileId,
+      teamId,
     );
-    return await statsCache.fetch(
-      ctx,
-      { clerkId, profileId: args.profileId, strictProfile },
-      args.fresh ? { force: true } : undefined,
-    );
+    return computeStats(memories);
   },
 });
 
@@ -88,15 +136,13 @@ export const getRecentActivity = authAction({
   },
   handler: async (ctx, args): Promise<ActivityItem[]> => {
     const clerkId = await requireClerkId(ctx);
-    const { strictProfile } = await resolveAccessibleTeamScope(
+    const { teamId } = await resolveAccessibleTeamScope(ctx, args.profileId);
+    const memories = await loadScopedMemories(
       ctx,
-      args.profileId,
-    );
-    return await recentActivityCache.fetch(ctx, {
       clerkId,
-      profileId: args.profileId,
-      strictProfile,
-      limit: args.limit,
-    });
+      args.profileId,
+      teamId,
+    );
+    return recentActivity(memories, args.limit ?? 10);
   },
 });

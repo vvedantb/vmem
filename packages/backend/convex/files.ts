@@ -4,6 +4,7 @@ import { internalMutation, internalQuery } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
+import { updateMemory } from "./memoryStore/helpers";
 import { getUserIdByClerkId } from "./lib/clerkUser";
 import {
   FILE_STORAGE_LIMIT_BYTES,
@@ -213,15 +214,9 @@ export const renameNode = authMutation({
     if (node.kind === "file" && node.memoryId) {
       const creator = await ctx.db.get(node.userId);
       if (creator?.clerkId) {
-        await ctx.scheduler.runAfter(
-          0,
-          internal.neo4jActions.memories.updateMemoryInternal,
-          {
-            clerkId: creator.clerkId,
-            memoryId: node.memoryId,
-            title: args.name,
-          },
-        );
+        await updateMemory(ctx, creator.clerkId, node.memoryId, {
+          title: args.name,
+        });
       }
     }
   },

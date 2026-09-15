@@ -1,26 +1,26 @@
-import type { MemoryWithTags } from "../../../engine/neo4j/memory/types";
 import type { ActionCtx } from "../../_generated/server";
-import { internal } from "../../_generated/api";
 import {
   isInstructionStoreBody,
   storeBodySchema,
+  type MemoryWithTags,
   type StoreBody,
 } from "@vmem/sdk";
-import type { OpenRouterRequired } from "../../neo4jActions/agent/shared";
-import type { StoreFromInstructionResult } from "../../neo4jActions/agent/storeFromInstruction";
+import {
+  createMemoryForClerk,
+  storeMemoryFromInstruction,
+} from "../../memoryRuntime";
 import {
   guardProfileAccess,
   withApiKeyAuth,
   type ApiKeyAuth,
 } from "./apiKeyAuth";
-import { isOpenRouterRequired, openRouterRequiredResponse } from "./types";
 
 async function runStoreHandler(
   ctx: ActionCtx,
   auth: ApiKeyAuth,
   body: StoreBody,
 ): Promise<
-  Response | MemoryWithTags | StoreFromInstructionResult | OpenRouterRequired
+  Response | MemoryWithTags | { created: MemoryWithTags[]; summary: string }
 > {
   const forbidden = await guardProfileAccess(ctx, auth, body.profileId);
   if (forbidden) {
@@ -28,23 +28,14 @@ async function runStoreHandler(
   }
 
   if (isInstructionStoreBody(body)) {
-    const result = await ctx.runAction(
-      internal.neo4jActions.agent.storeFromInstructionInternal,
-      {
-        clerkId: auth.clerkId,
-        instruction: body.instruction,
-        profileId: body.profileId,
-      },
-    );
-
-    if (isOpenRouterRequired(result)) {
-      return openRouterRequiredResponse();
-    }
-
-    return result;
+    return storeMemoryFromInstruction(ctx, {
+      clerkId: auth.clerkId,
+      instruction: body.instruction,
+      profileId: body.profileId,
+    });
   }
 
-  return ctx.runAction(internal.neo4jActions.memories.createMemoryInternal, {
+  return createMemoryForClerk(ctx, {
     clerkId: auth.clerkId,
     profileId: body.profileId,
     title: body.title,

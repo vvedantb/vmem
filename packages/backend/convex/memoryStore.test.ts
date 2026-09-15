@@ -3,6 +3,7 @@ import { convexTest } from "convex-test";
 import { describe, expect, it } from "vitest";
 import { internal } from "./_generated/api";
 import schema from "./schema";
+import { toMemoryCandidate } from "../engine/memory/retrieve";
 
 const modules = import.meta.glob("./**/*.ts");
 
@@ -286,7 +287,7 @@ describe("convex memoryStore", () => {
 
   it("keeps a caller-supplied memoryId and is idempotent on create", async () => {
     const t = convexTest(schema, modules);
-    const memoryId = "neo4j-stable-id";
+    const memoryId = "stable-memory-id";
 
     const created = await t.mutation(
       internal.memoryStore.functions.createMemoryInternal,
@@ -347,96 +348,129 @@ describe("convex memoryStore", () => {
     expect(remainingB.memories[0]?.title).toBe("B stays");
   });
 
-  it("backfills by memoryId without overwriting existing rows", async () => {
+  it("searches, upserts by source, and deletes by profile", async () => {
     const t = convexTest(schema, modules);
-    const createdAt = "2024-01-02T03:04:05.000Z";
-    const updatedAt = "2024-06-07T08:09:10.000Z";
+
+    await t.mutation(
+      internal.memoryStore.functions.createMemoryInternal,
+      createArgs({
+        title: "Prefers pnpm",
+        content: "Use pnpm for vmem installs",
+        tags: ["tooling"],
+      }),
+    );
+    await t.mutation(
+      internal.memoryStore.functions.createMemoryInternal,
+      createArgs({
+        memoryId: "other-note",
+        title: "Coffee order",
+        content: "Oat latte",
+        tags: ["food"],
+      }),
+    );
+
+    const searched = await t.query(
+      internal.memoryStore.functions.listMemoriesInternal,
+      {
+        userId: USER_A,
+        profileId: PERSONAL_PROFILE,
+        searchQuery: "pnpm",
+        limit: 10,
+        offset: 0,
+      },
+    );
+    expect(searched.total).toBe(1);
+    expect(searched.memories[0]?.title).toBe("Prefers pnpm");
 
     const first = await t.mutation(
-      internal.memoryStore.functions.insertBackfillBatchInternal,
+      internal.memoryStore.functions.upsertMemoryFromSourceInternal,
       {
-        rows: [
-          {
-            memoryId: "neo4j-legacy",
-            userId: USER_A,
-            title: "Legacy suppressed",
-            content: "copied from neo4j",
-            type: "episodic",
-            source: "api",
-            tags: ["History"],
-            confidence: 0.4,
-            contentHash: "hash-legacy",
-            status: "suppressed",
-            createdAt,
-            updatedAt,
-            sourceId: "src-1",
-          },
-          {
-            memoryId: "neo4j-team",
-            userId: USER_B,
-            profileId: TEAM_PROFILE,
-            title: "Team copied",
-            content: "team graph row",
-            type: "knowledge",
-            source: "mcp",
-            tags: ["team"],
-            confidence: 1,
-            contentHash: "hash-team",
-            status: "pinned",
-            createdAt,
-            updatedAt,
-          },
-        ],
+        userId: USER_A,
+        profileId: PERSONAL_PROFILE,
+        title: "Drive doc",
+        content: "first body",
+        sourceType: "google_drive",
+        sourceId: "doc-1",
+        sourceUrl: "https://drive.google.com/file/d/doc-1",
       },
     );
-    expect(first).toBe(2);
-
-    const again = await t.mutation(
-      internal.memoryStore.functions.insertBackfillBatchInternal,
+    const second = await t.mutation(
+      internal.memoryStore.functions.upsertMemoryFromSourceInternal,
       {
-        rows: [
-          {
-            memoryId: "neo4j-legacy",
-            userId: USER_A,
-            title: "should not replace",
-            content: "ignored",
-            type: "knowledge",
-            source: "api",
-            tags: [],
-            confidence: 1,
-            contentHash: "other-hash",
-            status: "active",
-            createdAt,
-            updatedAt,
-          },
-        ],
+        userId: USER_A,
+        profileId: PERSONAL_PROFILE,
+        title: "Drive doc updated",
+        content: "second body",
+        sourceType: "google_drive",
+        sourceId: "doc-1",
+        sourceUrl: "https://drive.google.com/file/d/doc-1",
       },
     );
-    expect(again).toBe(0);
+    expect(second.id).toBe(first.id);
+    expect(second.title).toBe("Drive doc updated");
+    expect(second.content).toBe("second body");
 
-    const existing = await t.query(
-      internal.memoryStore.functions.existingMemoryIdsInternal,
-      { memoryIds: ["neo4j-legacy", "missing", "neo4j-team"] },
+    const teamMemory = await t.mutation(
+      internal.memoryStore.functions.createMemoryInternal,
+      createArgs({
+        memoryId: "team-row",
+        userId: USER_B,
+        profileId: TEAM_PROFILE,
+        title: "Team copied",
+        content: "team graph row",
+      }),
     );
-    expect(existing.sort()).toEqual(["neo4j-legacy", "neo4j-team"]);
+    expect(teamMemory.userId).toBe(USER_B);
 
-    const fetched = await t.query(
-      internal.memoryStore.functions.getMemoryInternal,
-      { userId: USER_A, memoryId: "neo4j-legacy" },
+    const deleted = await t.mutation(
+      internal.memoryStore.functions.deleteMemoriesByProfileInternal,
+      { profileId: TEAM_PROFILE },
     );
-    expect(fetched?.title).toBe("Legacy suppressed");
-    expect(fetched?.status).toBe("suppressed");
-    expect(fetched?.profileId).toBeNull();
-    expect(fetched?.createdAt).toBe(createdAt);
-    expect(fetched?.updatedAt).toBe(updatedAt);
-    expect(fetched?.type).toBe("episodic");
+    expect(deleted).toBe(1);
 
     const teamGet = await t.query(
       internal.memoryStore.functions.getMemoryForTeamInternal,
-      { profileId: TEAM_PROFILE, memoryId: "neo4j-team" },
+      { profileId: TEAM_PROFILE, memoryId: "team-row" },
     );
-    expect(teamGet?.title).toBe("Team copied");
-    expect(teamGet?.status).toBe("pinned");
-    expect(teamGet?.userId).toBe(USER_B);
+    expect(teamGet).toBeNull();
+  });
+
+  it("maps search hits through retrieve substring scoring", async () => {
+    const t = convexTest(schema, modules);
+
+    await t.mutation(
+      internal.memoryStore.functions.createMemoryInternal,
+      createArgs({
+        title: "Prefers pnpm",
+        content: "Use pnpm for vmem installs",
+      }),
+    );
+    await t.mutation(
+      internal.memoryStore.functions.createMemoryInternal,
+      createArgs({
+        memoryId: "coffee",
+        title: "Coffee order",
+        content: "Oat latte",
+      }),
+    );
+
+    const listed = await t.query(
+      internal.memoryStore.functions.listMemoriesInternal,
+      {
+        userId: USER_A,
+        profileId: PERSONAL_PROFILE,
+        searchQuery: "pnpm",
+        limit: 10,
+        offset: 0,
+      },
+    );
+    expect(listed.total).toBe(1);
+
+    const hits = listed.memories.map((memory) =>
+      toMemoryCandidate(memory, "pnpm"),
+    );
+    expect(hits).toHaveLength(1);
+    expect(hits[0]?.trace.score).toBe(1);
+    expect(hits[0]?.trace.reason).toContain("substring");
   });
 });

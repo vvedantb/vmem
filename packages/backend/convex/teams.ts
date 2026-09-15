@@ -67,7 +67,7 @@ export const prepareDeleteTeamInternal = internalMutation({
   handler: async (ctx, args) => runPrepareDeleteTeamInternal(ctx, args),
 });
 
-// phase 2, drop memberships, profile, team (neo4j already purged)
+// drop memberships, profile, team (memories already purged)
 export const finalizeDeleteTeamInternal = internalMutation({
   args: { teamId: v.string(), actorUserId: v.id("users") },
   handler: async (ctx, args) => runFinalizeDeleteTeamInternal(ctx, args),

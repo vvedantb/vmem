@@ -102,8 +102,8 @@ export const previewNodes: PreviewNode[] = [
     r: 12,
     label: "episodic",
     labelY: 204,
-    snippet: "Debugged Neo4j sync lag during the March graph refactor.",
-    tags: ["neo4j", "graph"],
+    snippet: "Debugged Convex retrieve lag during the March memory refactor.",
+    tags: ["convex", "memory"],
     kind: "memory",
     isCenter: true,
   },
@@ -114,7 +114,7 @@ export const previewNodes: PreviewNode[] = [
     r: 9,
     label: "knowledge",
     labelY: 90,
-    snippet: "vmem stores memories in Neo4j with Convex orchestration.",
+    snippet: "vmem stores memories in Convex with Clerk auth.",
     tags: ["vmem", "architecture"],
     kind: "memory",
   },
@@ -179,16 +179,16 @@ export const previewEdges: PreviewEdge[] = [
 export const demoMemories: DemoMemory[] = [
   {
     id: "episodic",
-    title: "Neo4j sync lag during graph refactor",
+    title: "Convex retrieve lag during memory refactor",
     content:
-      "Debugged Neo4j sync lag during the March graph refactor. The stall was a missing index on profileId, not the writer itself.",
+      "Debugged Convex retrieve lag during the March memory refactor. The stall was a missing index on profileId, not the writer itself.",
     type: "episodic",
     source: "cursor",
-    tags: ["neo4j", "graph"],
+    tags: ["convex", "memory"],
     createdAt: daysAgo(2),
     connections: [
       {
-        title: "vmem stores memories in Neo4j",
+        title: "vmem stores memories in Convex",
         reason: "same stack",
       },
       {
@@ -199,16 +199,16 @@ export const demoMemories: DemoMemory[] = [
   },
   {
     id: "knowledge",
-    title: "vmem stores memories in Neo4j",
+    title: "vmem stores memories in Convex",
     content:
-      "vmem stores memories in Neo4j with Convex orchestration. Retrieval mixes fulltext, vectors, chunks, entities, and one hop of graph expansion.",
+      "vmem stores memories in Convex. Retrieval is substring search over title and content, then explains the match in a Context Trace.",
     type: "knowledge",
     source: "mcp",
     tags: ["vmem", "architecture"],
     createdAt: daysAgo(5),
     connections: [
       {
-        title: "Neo4j sync lag during graph refactor",
+        title: "Convex retrieve lag during memory refactor",
         reason: "same stack",
       },
       {
@@ -244,7 +244,7 @@ export const demoMemories: DemoMemory[] = [
     createdAt: daysAgo(14),
     connections: [
       {
-        title: "vmem stores memories in Neo4j",
+        title: "vmem stores memories in Convex",
         reason: "project stack",
       },
     ],
@@ -260,7 +260,7 @@ export const demoMemories: DemoMemory[] = [
     createdAt: daysAgo(3),
     connections: [
       {
-        title: "Neo4j sync lag during graph refactor",
+        title: "Convex retrieve lag during memory refactor",
         reason: "same session",
       },
     ],
@@ -276,7 +276,7 @@ export const demoMemories: DemoMemory[] = [
     createdAt: daysAgo(7),
     connections: [
       {
-        title: "vmem stores memories in Neo4j",
+        title: "vmem stores memories in Convex",
         reason: "documents this",
       },
     ],
@@ -325,9 +325,9 @@ export const demoQueries: DemoQuery[] = [
     ],
   },
   {
-    id: "neo4j",
-    label: "Neo4j lag",
-    query: "Why was Neo4j sync slow in March?",
+    id: "convex",
+    label: "Convex lag",
+    query: "Why was Convex retrieve slow in March?",
     hits: [
       {
         memoryId: "episodic",
@@ -335,7 +335,7 @@ export const demoQueries: DemoQuery[] = [
         trace: {
           score: 0.97,
           reason:
-            "Matched because: fulltext hit on Neo4j sync lag, semantic match on graph refactor, recent episodic memory",
+            "Matched because: substring hit on Convex retrieve lag, title match on memory refactor, recent episodic memory",
           scoreBreakdown: {
             fulltext: 0.96,
             vector: 0.91,
@@ -352,7 +352,7 @@ export const demoQueries: DemoQuery[] = [
         trace: {
           score: 0.72,
           reason:
-            "Matched because: semantic match on Neo4j storage, expanded one hop from the lag memory",
+            "Matched because: substring match on Convex storage, listed from the lag memory",
           scoreBreakdown: {
             fulltext: 0.48,
             vector: 0.81,
@@ -446,7 +446,7 @@ export const demoWikiTree: DemoWikiNode = {
       kind: "document",
       heading: "Stack notes",
       paragraphs: [
-        "Memories live in Neo4j. Convex handles auth, profiles, teams, and scheduled work.",
+        "Memories live in Convex. Convex also handles auth, profiles, teams, and scheduled work.",
         "The web app, Chrome extension, MCP server, HTTP API, and SDK are clients on the same graph.",
       ],
     },

@@ -7,6 +7,7 @@ import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { extractFileContent } from "../engine/parsers/extractFileContent";
 import { detectFileKind } from "./files/lib";
+import { createMemoryForClerk, deleteMemoryForClerk } from "./memoryRuntime";
 
 async function cleanupFileMemory(
   ctx: ActionCtx,
@@ -25,10 +26,7 @@ async function cleanupFileMemory(
   );
   if (!memory || memory.sourceType !== "file-node") return;
 
-  await ctx.runAction(internal.neo4jActions.memories.deleteMemoryInternal, {
-    clerkId: entry.clerkId,
-    memoryId: entry.memoryId,
-  });
+  await deleteMemoryForClerk(ctx, entry.clerkId, entry.memoryId);
 }
 
 // index one file node into the memory graph
@@ -127,24 +125,21 @@ export const indexFileNodeInternal = internalAction({
     }
 
     try {
-      const memory = await ctx.runAction(
-        internal.neo4jActions.memories.createMemoryInternal,
-        {
-          clerkId,
-          profileId,
-          title: node.name,
-          content,
-          type: "knowledge",
-          source: "file-upload",
-          tags: ["files", kind],
-          confidence: 1.0,
-          externalId: node._id,
-          sourceType: "file-node",
-          storageId: node.storageId,
-          mimeType: node.mimeType,
-          originalFilename: node.name,
-        },
-      );
+      const memory = await createMemoryForClerk(ctx, {
+        clerkId,
+        profileId,
+        title: node.name,
+        content,
+        type: "knowledge",
+        source: "file-upload",
+        tags: ["files", kind],
+        confidence: 1.0,
+        externalId: node._id,
+        sourceType: "file-node",
+        storageId: node.storageId,
+        mimeType: node.mimeType,
+        originalFilename: node.name,
+      });
       await ctx.runMutation(internal.files.setIndexResultInternal, {
         fileNodeId: args.fileNodeId,
         indexStatus: "indexed",

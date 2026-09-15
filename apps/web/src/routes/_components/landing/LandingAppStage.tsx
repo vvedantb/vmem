@@ -7,7 +7,6 @@ import {
   IconWiki,
   IconSkills,
   IconFiles,
-  IconCodebases,
   IconActivity,
   IconInbox,
   IconSettings,
@@ -29,12 +28,6 @@ const libraryItems = [
   { id: "wiki", label: "Wiki", icon: IconWiki, interactive: true },
   { id: "skills", label: "Skills", icon: IconSkills, interactive: true },
   { id: "files", label: "Files", icon: IconFiles, interactive: false },
-  {
-    id: "codebases",
-    label: "Codebases",
-    icon: IconCodebases,
-    interactive: false,
-  },
 ] as const;
 
 const accountItems = [

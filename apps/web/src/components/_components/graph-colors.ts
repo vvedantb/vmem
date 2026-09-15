@@ -3,8 +3,6 @@
 import { hslToHex, tagToColor } from "@vmem/shared/graph";
 import type { GraphNodeKind } from "@/lib/graph/types";
 
-export { tagToColor };
-
 function themeColor(token: string, fallback: string): string {
   if (typeof document === "undefined") return fallback;
   const value = getComputedStyle(document.documentElement)

@@ -116,7 +116,7 @@ type CreateWikiNodeFields = {
   content?: string;
   contentText?: string;
   language?: string;
-  sourceCodebaseId?: Id<"codebases">;
+  sourceCodebaseId?: string;
 };
 
 async function createWikiNodeRecord(
@@ -444,8 +444,6 @@ export const createByClerkIdInternal = internalMutation({
     content: v.optional(v.string()),
     contentText: v.optional(v.string()),
     language: v.optional(v.string()),
-    // plain string codebase id (mcp threads ids as strings). validated below
-    sourceCodebaseId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const userId = await getUserIdByClerkId(ctx, args.clerkId);
@@ -453,19 +451,6 @@ export const createByClerkIdInternal = internalMutation({
       userId,
       teamId: undefined,
     });
-
-    // validate the optional codebase link belongs to this user
-    let sourceCodebaseId: Id<"codebases"> | undefined;
-    if (
-      args.sourceCodebaseId !== undefined &&
-      args.sourceCodebaseId.length > 0
-    ) {
-      const cbId = ctx.db.normalizeId("codebases", args.sourceCodebaseId);
-      if (!cbId) throw new Error("Invalid codebase id");
-      const cb = await ctx.db.get(cbId);
-      if (!cb || cb.userId !== userId) throw new Error("Codebase not found");
-      sourceCodebaseId = cbId;
-    }
 
     return await createWikiNodeRecord(ctx, {
       userId,
@@ -475,7 +460,6 @@ export const createByClerkIdInternal = internalMutation({
       content: args.content,
       contentText: args.contentText,
       language: args.language,
-      sourceCodebaseId,
     });
   },
 });

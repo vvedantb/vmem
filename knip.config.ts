@@ -51,7 +51,6 @@ const config: KnipConfig = {
       entry: [
         "convex/**/*.ts!",
         "engine/**/*.ts!",
-        "neo4j-cli/**/*.ts!",
         "tests/**/*.ts!",
         "index.ts!",
         // Build tooling invoked via `deploy` -> `build:mcp-graph-ui`; pulls in esbuild.
@@ -64,7 +63,6 @@ const config: KnipConfig = {
       project: [
         "convex/**/*.ts",
         "engine/**/*.ts",
-        "neo4j-cli/**/*.ts",
         "tests/**/*.ts",
         "scripts/**/*.mjs",
         "mcp-ui/**/*.ts",

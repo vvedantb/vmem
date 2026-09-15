@@ -1,6 +1,4 @@
 import { z } from "zod";
-import { internal } from "../_generated/api";
-import { isOpenRouterRequired } from "../http/v1Memories/types";
 import {
   deleteBodySchema,
   instructionStoreBodySchema,
@@ -11,6 +9,23 @@ import {
   structuredUpdateBodySchema,
 } from "@vmem/sdk";
 import { scopedMemory, toolSpec } from "./toolTypes";
+import {
+  loadMemoryForMcpScope,
+  runForMcpScope,
+  withMcpMemoryScope,
+} from "./memoryScope";
+import {
+  createMemoryForClerk,
+  deleteMemoryForClerk,
+  listMemoriesForClerk,
+  listMemoriesForTeamProfile,
+  retrieveMemoriesForClerk,
+  retrieveMemoriesForTeamProfile,
+  storeMemoryFromInstruction,
+  toMemoryStatus,
+  toMemoryType,
+  updateMemoryForClerk,
+} from "../memoryRuntime";
 
 const memorySearchSchema = z.object({
   query: z.string().optional().describe("Text to search for"),
@@ -81,7 +96,7 @@ const memoryAddSchema = structuredStoreBodySchema
       .array(z.string())
       .optional()
       .describe(
-        "1-3 broad recurring THEME tags (lowercase-hyphenated, e.g. 'react', 'health'). Reuse tags you've seen on the user's existing memories; never mint hyper-specific one-offs — named people/products belong in the content, not tags. Omit to let server enrichment tag automatically.",
+        "1-3 broad recurring THEME tags (lowercase-hyphenated, e.g. 'react', 'health'). Reuse tags you've seen on the user's existing memories; never mint hyper-specific one-offs — named people/products belong in the content, not tags.",
       ),
     confidence: z
       .number()
@@ -147,15 +162,32 @@ export const memoryToolSpecs = {
       "Search your memories by query text, type, tags, or source. Returns matching memories with metadata. Defaults to the active profile unless profileId is specified.",
     errorLabel: "Search failed",
     async run(h, params): Promise<unknown> {
-      return h.ctx.runAction(internal.neo4jActions.mcp.mcpSearchMemories, {
-        ...scopedMemory(h),
-        query: params.query,
-        type: params.type,
-        tags: params.tags,
-        source: params.source,
-        limit: params.limit,
-        offset: params.offset,
-        profileId: params.profileId,
+      return withMcpMemoryScope(h.ctx, scopedMemory(h), (scope) => {
+        const limit = params.limit ?? 20;
+        const offset = params.offset ?? 0;
+        return runForMcpScope(scope, {
+          team: (profileId) =>
+            listMemoriesForTeamProfile(h.ctx, {
+              profileId,
+              type: params.type,
+              tags: params.tags,
+              source: params.source,
+              searchQuery: params.query,
+              limit,
+              offset,
+            }),
+          personal: ({ clerkId, profileId }) =>
+            listMemoriesForClerk(h.ctx, {
+              clerkId,
+              profileId,
+              type: params.type,
+              tags: params.tags,
+              source: params.source,
+              searchQuery: params.query,
+              limit,
+              offset,
+            }),
+        });
       });
     },
   }),
@@ -163,14 +195,26 @@ export const memoryToolSpecs = {
     name: "memory_retrieve",
     schema: memoryRetrieveSchema,
     description:
-      "Retrieve the most relevant memories for a natural language query. Returns scored results with Context Trace explaining WHY each memory matched (score breakdown: fulltext, recency, confidence). Defaults to the active profile unless profileId is specified.",
+      "Retrieve the most relevant memories for a query using substring search over title and content. Defaults to the active profile unless profileId is specified.",
     errorLabel: "Retrieve failed",
     async run(h, params): Promise<unknown> {
-      return h.ctx.runAction(internal.neo4jActions.mcp.mcpRetrieveMemories, {
-        ...scopedMemory(h),
-        query: params.query,
-        limit: params.limit,
-        profileId: params.profileId,
+      return withMcpMemoryScope(h.ctx, scopedMemory(h), (scope) => {
+        const limit = params.limit ?? 10;
+        return runForMcpScope(scope, {
+          team: (profileId) =>
+            retrieveMemoriesForTeamProfile(h.ctx, {
+              profileId,
+              query: params.query,
+              limit,
+            }),
+          personal: ({ clerkId, profileId }) =>
+            retrieveMemoriesForClerk(h.ctx, {
+              clerkId,
+              profileId,
+              query: params.query,
+              limit,
+            }),
+        });
       });
     },
   }),
@@ -181,41 +225,34 @@ export const memoryToolSpecs = {
       "Store a new memory. Use type 'profile' for stable user facts, 'episodic' for past events/interactions, 'knowledge' for durable extracted knowledge. Adds to the active profile unless profileId is specified.",
     errorLabel: "Add memory failed",
     async run(h, params): Promise<unknown> {
-      return h.ctx.runAction(internal.neo4jActions.mcp.mcpCreateMemory, {
-        ...scopedMemory(h),
-        title: params.title,
-        content: params.content,
-        type: params.type,
-        source: params.source,
-        tags: params.tags,
-        confidence: params.confidence,
-        profileId: params.profileId,
-      });
+      return withMcpMemoryScope(h.ctx, scopedMemory(h), (scope) =>
+        createMemoryForClerk(h.ctx, {
+          clerkId: scope.clerkId,
+          profileId: scope.profileId,
+          title: params.title,
+          content: params.content,
+          type: toMemoryType(params.type) ?? "knowledge",
+          source: params.source ?? "mcp",
+          tags: params.tags ?? [],
+          confidence: params.confidence ?? 1.0,
+        }),
+      );
     },
   }),
   memory_add_instruction: toolSpec({
     name: "memory_add_instruction",
     schema: memoryAddInstructionSchema,
     description:
-      "Store memories from a natural-language instruction. The server extracts atomic facts with an LLM and creates one memory per fact (requires OpenRouter). Use when the agent should remember a conversation summary without drafting title/content itself. Prefer memory_add when you already have a single clear fact with title and type.",
+      "Store a memory from a natural-language instruction. Prefer memory_add when you already have a single clear fact with title and type.",
     errorLabel: "Add from instruction failed",
     async run(h, params): Promise<unknown> {
-      const data = await h.ctx.runAction(
-        internal.neo4jActions.mcp.mcpAddFromInstruction,
-        {
-          ...scopedMemory(h),
+      return withMcpMemoryScope(h.ctx, scopedMemory(h), (scope) =>
+        storeMemoryFromInstruction(h.ctx, {
+          clerkId: scope.clerkId,
           instruction: params.instruction,
-          profileId: params.profileId,
-        },
+          profileId: scope.profileId,
+        }),
       );
-
-      if (isOpenRouterRequired(data)) {
-        throw new Error(
-          "OpenRouter is required for instruction-based extraction. Add OPENROUTER_API_KEY in vmem settings.",
-        );
-      }
-
-      return data;
     },
   }),
   memory_update: toolSpec({
@@ -225,15 +262,23 @@ export const memoryToolSpecs = {
       "Update an existing memory by ID. Only include fields you want to change.",
     errorLabel: "Update failed",
     async run(h, params): Promise<unknown> {
-      return h.ctx.runAction(internal.neo4jActions.mcp.mcpUpdateMemory, {
-        ...scopedMemory(h),
-        memoryId: params.id,
-        title: params.title,
-        content: params.content,
-        type: params.type,
-        status: params.status,
-        tags: params.tags,
-        confidence: params.confidence,
+      return withMcpMemoryScope(h.ctx, scopedMemory(h), async (scope) => {
+        const memory = await loadMemoryForMcpScope(h.ctx, {
+          clerkId: scope.clerkId,
+          mcpScope: scope.mcpScope,
+          profileId: scope.profileId,
+          memoryId: params.id,
+        });
+        return updateMemoryForClerk(h.ctx, {
+          clerkId: memory.userId,
+          memoryId: params.id,
+          title: params.title,
+          content: params.content,
+          type: toMemoryType(params.type),
+          status: toMemoryStatus(params.status),
+          tags: params.tags,
+          confidence: params.confidence,
+        });
       });
     },
   }),
@@ -243,11 +288,17 @@ export const memoryToolSpecs = {
     description: "Delete a memory by ID. This is permanent.",
     errorLabel: "Delete failed",
     async run(h, params): Promise<unknown> {
-      const deleted = await h.ctx.runAction(
-        internal.neo4jActions.mcp.mcpDeleteMemory,
-        {
-          ...scopedMemory(h),
-          memoryId: params.id,
+      const deleted = await withMcpMemoryScope(
+        h.ctx,
+        scopedMemory(h),
+        async (scope) => {
+          const memory = await loadMemoryForMcpScope(h.ctx, {
+            clerkId: scope.clerkId,
+            mcpScope: scope.mcpScope,
+            profileId: scope.profileId,
+            memoryId: params.id,
+          });
+          return deleteMemoryForClerk(h.ctx, memory.userId, params.id);
         },
       );
       return { deleted };
@@ -257,13 +308,18 @@ export const memoryToolSpecs = {
     name: "memory_related",
     schema: memoryRelatedSchema,
     description:
-      "List memories explicitly linked to a given memory via RELATES_TO edges (1-hop). Returns full memory bodies plus linkReason for each edge. Use after memory_retrieve when you need all structural neighbors of one memory, not query-ranked top-k.",
+      "List memories linked to a given memory. Graph links are not stored; this always returns an empty list.",
     errorLabel: "Related memories failed",
     async run(h, params): Promise<unknown> {
-      return h.ctx.runAction(internal.neo4jActions.mcp.mcpGetRelatedMemories, {
-        ...scopedMemory(h),
-        memoryId: params.memoryId,
+      await withMcpMemoryScope(h.ctx, scopedMemory(h), async (scope) => {
+        await loadMemoryForMcpScope(h.ctx, {
+          clerkId: scope.clerkId,
+          mcpScope: scope.mcpScope,
+          profileId: scope.profileId,
+          memoryId: params.memoryId,
+        });
       });
+      return [];
     },
   }),
 };

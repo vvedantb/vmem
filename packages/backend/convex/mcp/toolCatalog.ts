@@ -1,4 +1,3 @@
-import { codebasesToolSpecs } from "./toolsCodebases";
 import { coreToolSpecs } from "./toolsCore";
 import { filesToolSpecs } from "./toolsFiles";
 import { memoryToolSpecs } from "./toolsMemory";
@@ -11,5 +10,4 @@ export const toolSpecs = {
   ...skillsToolSpecs,
   ...wikiToolSpecs,
   ...filesToolSpecs,
-  ...codebasesToolSpecs,
 };

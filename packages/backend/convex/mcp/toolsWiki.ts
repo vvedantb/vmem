@@ -44,12 +44,6 @@ const wikiCreateSchema = z.object({
     .describe(
       'Artifact language hint, e.g. "html", "svg", "tsx", "sql" (artifacts only; defaults to html)',
     ),
-  sourceCodebaseId: z
-    .string()
-    .optional()
-    .describe(
-      "On a folder: link it to a synced codebase (id from codebases_list). Set on the root folder of a generated codebase knowledge base.",
-    ),
 });
 
 const wikiUpdateSchema = z.object({
@@ -139,7 +133,6 @@ export const wikiToolSpecs = {
         parentPath: params.parentPath,
         contentMarkdown: params.contentMarkdown,
         language: params.language,
-        sourceCodebaseId: params.sourceCodebaseId,
       });
     },
   }),

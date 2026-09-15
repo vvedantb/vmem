@@ -4,13 +4,12 @@ import { internalAction, type ActionCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
-import { listMemories } from "../engine/neo4j/memory/crud";
-import { getDriver } from "../engine/neo4j/driver";
-import type { MemoryWithTags } from "../engine/neo4j/memory/types";
+import type { MemoryWithTags } from "./memoryApi/types";
 import { buildSkillsIndexAddition } from "@vmem/shared";
 import { toSkillIndexEntry } from "./skills";
-import { tryOpenRouterAuth } from "./neo4jActions/agent/shared";
+import { tryUserAndApiKeyByClerkId } from "./lib/envVars";
 import { callOpenRouterChat, LLM_MODEL } from "./lib/openRouter";
+import { listMemoriesForClerk } from "./memoryRuntime";
 
 const PINNED_LIMIT = 20;
 // number of recent active memories the summarizer model sees
@@ -101,17 +100,14 @@ export const regenerateContextPromptInternal = internalAction({
       { userId },
     );
 
-    const driver = getDriver();
-
-    // pull pinned (verbatim) and recent (for summarizer). two cheap index-backed cypher calls, no per-memory fan-out
-    const pinnedPage = await listMemories(driver, {
-      userId: args.clerkId,
+    const pinnedPage = await listMemoriesForClerk(ctx, {
+      clerkId: args.clerkId,
       status: "pinned",
       limit: PINNED_LIMIT,
       offset: 0,
     });
-    const recentPage = await listMemories(driver, {
-      userId: args.clerkId,
+    const recentPage = await listMemoriesForClerk(ctx, {
+      clerkId: args.clerkId,
       limit: RECENT_LIMIT,
       offset: 0,
     });
@@ -126,7 +122,11 @@ export const regenerateContextPromptInternal = internalAction({
     }));
 
     // profile summary is best-effort. without an openRouter key we still produce a useful prompt (about/preferences/pinned)
-    const auth = await tryOpenRouterAuth(ctx, args.clerkId);
+    const auth = await tryUserAndApiKeyByClerkId(
+      ctx,
+      args.clerkId,
+      "OPENROUTER_API_KEY",
+    );
     const summary = auth
       ? await callSummarizer(ctx, auth.apiKey, auth.userId, recentSnippets)
       : null;

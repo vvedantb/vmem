@@ -2,7 +2,7 @@
  * The single source of truth for the vmem memory wire contract.
  *
  * Everything that speaks memories over the wire — the HTTP `/v1/memories`
- * handlers, the MCP tools, the Neo4j engine mappers, the mcp-ui graph bundle
+ * handlers, the MCP tools, the Convex memory store, the mcp-ui graph bundle
  * and this SDK — derives its shapes from here. Do not redeclare these schemas
  * or hand-roll the equivalent interfaces anywhere else.
  */

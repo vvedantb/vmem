@@ -19,15 +19,12 @@ function ConnectorsPage() {
   const [showBrowse, setShowBrowse] = useState(false);
   const seededRef = useRef(false);
 
-  // seedDefaults is idempotent creates missing connectors and updates providers
   useEffect(() => {
     if (connectors !== undefined && !seededRef.current) {
       seededRef.current = true;
       void seedDefaults();
     }
   }, [connectors, seedDefaults]);
-
-  const githubConnection = useQuery(api.github.getConnection);
 
   if (connectors === undefined) {
     return (
@@ -55,7 +52,7 @@ function ConnectorsPage() {
   }
 
   const connectedConnectors = connectors
-    .filter((connector) => isConnectorConnected(connector, githubConnection))
+    .filter((connector) => isConnectorConnected(connector))
     .sort((a, b) => a.name.localeCompare(b.name));
 
   return (
@@ -81,8 +78,7 @@ function ConnectorsPage() {
               No connectors connected
             </p>
             <p className="mb-6 max-w-sm text-sm text-muted text-balance">
-              Connect Google Drive, Notion, or GitHub to sync content into your
-              memories.
+              Connect Google Drive or Notion to sync content into your memories.
             </p>
             <Button
               variant="outline"

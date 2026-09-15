@@ -3,22 +3,21 @@
 
 # @vmem/backend
 
-Convex backend for vmem. Auth, profiles, teams, skills, MCP HTTP, and file storage live here. The memory graph itself is in Neo4j, accessed via `neo4jActions/*` internal actions.
+Convex backend for vmem. Auth, profiles, teams, skills, MCP HTTP, files, connectors, and memories live here. Memory CRUD, search, and retrieve run on the Convex `memories` table.
 
 ## Architecture
 
 ```
 Client (web / extension / MCP)
   → Convex authAction / authMutation / authQuery
-  → neo4jActions/* (Node actions)
-  → Neo4j memory graph
+  → memoryStore (Convex memories table)
 ```
 
 Public HTTP routes (MCP, OAuth, health) are registered in `convex/http.ts` on the deployment's `.convex.site` origin.
 
 ## Schema (Convex tables)
 
-Memories are **not** stored in Convex — they live in Neo4j. Convex holds metadata, auth, and app state:
+Memories are stored in Convex (`memories`). Convex also holds metadata, auth, and app state:
 
 | Table                            | Description                                |
 | -------------------------------- | ------------------------------------------ |
@@ -28,7 +27,7 @@ Memories are **not** stored in Convex — they live in Neo4j. Convex holds metad
 | `teams` / `teamMembers`          | Team membership                            |
 | `skills`                         | Reusable instruction modules               |
 | `wikiNodes`                      | Personal wiki tree                         |
-| `codebases`                      | Connected GitHub repositories              |
+| `memories`                       | Memory CRUD, search, and retrieve          |
 | `connectors` / `connectorTokens` | External service integrations              |
 | `userSettings`                   | Preferences, about me, active profile      |
 | `contextPromptCache`             | Cached MCP context prompt markdown         |
@@ -51,7 +50,7 @@ Audit trails (memory lifecycle, API key events, proposed-update resolutions) liv
 | `contextPromptApi.ts`                    | Synthesized user profile for MCP                                      |
 | `apiKeys.ts`                             | Create, list, revoke, reveal API keys                                 |
 | `mcp/`                                   | MCP tools, resources, Clerk OAuth token verify                        |
-| `neo4jActions/`                          | Node actions wrapping Neo4j memory service                            |
+| `memoryStore/`                           | Convex memory table helpers and internals                             |
 
 ## Auth builders
 
@@ -71,11 +70,10 @@ Use `.env.example` as the complete template. Copy it to `.env.local` for local C
 | `CLERK_FRONTEND_API_URL`          | Clerk JWKS + MCP AS discovery                  |
 | `CLERK_SECRET_KEY`                | Clerk Backend API / MCP token verify           |
 | `CLERK_PUBLISHABLE_KEY`           | MCP OAuth token verify (`authenticateRequest`) |
-| `NEO4J_URI` / `NEO4J_PASSWORD`    | Memory graph                                   |
 | `CONVEX_SITE_URL` / `WEB_APP_URL` | OAuth redirects / resource docs                |
 | `OPENROUTER_API_KEY`              | Embeddings and context prompt generation       |
 
-Neo4j CLI scripts (`eval:bench`) and live HTTP tests use `packages/backend/.env.local`.
+Live HTTP tests use `packages/backend/.env.local`.
 
 ## Run
 

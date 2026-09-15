@@ -156,14 +156,9 @@ export const sendTest = authMutation({
       type: Doc<"notifications">["type"];
     }> = [
       {
-        title: "Codebase sync failed — vvedantb/vmem",
-        description: "Bad credentials — reconnect GitHub and sync again.",
-        type: "error",
-      },
-      {
-        title: "Codebase sync stalled — vvedantb/vmem",
+        title: "Connector sync stalled — Notion",
         description:
-          "The sync was interrupted before finishing. Open the codebase and click Sync to retry.",
+          "The sync was interrupted before finishing. Reconnect the connector and sync again.",
         type: "warning",
       },
       {

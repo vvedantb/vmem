@@ -101,16 +101,10 @@ export async function runDeleteTeam(
     { teamId: args.teamId, userId: ctx.userId },
   );
 
-  const memberClerkIds = await ctx.runQuery(
-    internal.teams.getTeamMemberClerkIdsInternal,
-    { teamId: args.teamId },
+  await ctx.runMutation(
+    internal.memoryStore.functions.deleteMemoriesByProfileInternal,
+    { profileId: teamProfileId },
   );
-  for (const clerkId of memberClerkIds) {
-    await ctx.runAction(
-      internal.neo4jActions.migration.deleteMemoriesByProfile,
-      { clerkId, profileId: teamProfileId },
-    );
-  }
 
   await ctx.runMutation(internal.teams.finalizeDeleteTeamInternal, {
     teamId: args.teamId,

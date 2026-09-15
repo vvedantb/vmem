@@ -1,8 +1,4 @@
-export {
-  PARSER_VERSION,
-  STALE_SYNCING_MS,
-  isCodebaseSyncStalled,
-} from "./codebase";
+export { STALE_SYNCING_MS } from "./codebase";
 export { parseEnvVars } from "./envParse";
 export {
   DEFAULT_LOCAL_TIME,

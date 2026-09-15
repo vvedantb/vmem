@@ -3,7 +3,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import { createGoogleOAuth, oauthTokenType } from "./arcticOAuth";
 import { decryptToken, encryptToken, getEnvOrThrow } from "./crypto";
-import { pickGoogleTokenConnectorId } from "../neo4jActions/connectors/googleShared";
+import { pickGoogleTokenConnectorId } from "../connectors/googleShared";
 
 type ConnectorAccessTokenResult =
   | { ok: true; accessToken: string; tokenConnectorId: Id<"connectors"> }

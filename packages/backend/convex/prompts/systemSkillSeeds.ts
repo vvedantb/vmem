@@ -17,43 +17,34 @@ via the wiki tools; nothing is written to the repo or to GitHub. Use this the
 FIRST time a codebase needs a knowledge base; use \`update-wiki\` to refresh it later.
 
 You have vmem's MCP tools available. The relevant ones:
-- \`codebases_list\` — vmem's synced codebases (id, repo name, language, stats).
-- \`codebase_overview\` / \`codebase_graph\` / \`codebase_search\` / \`codebase_context\` — vmem's parsed graph for a synced codebase (files, functions, classes, interfaces, processes, and call/import edges). \`codebase_graph\` with \`kinds:["code-process"]\` returns the detected entry-point flows — the best raw material for a "how it works" page.
 - \`wiki_list\` / \`wiki_search\` / \`wiki_get\` — read the existing wiki.
-- \`wiki_create\` — create a folder or a document. On a folder you may pass \`sourceCodebaseId\` to link it to a vmem codebase.
+- \`wiki_create\` — create a folder or a document.
 - \`wiki_update\` — replace or append a document's markdown.
 
-## Step 1 — Locate the codebase and decide the link
+## Step 1 — Survey the repo
 
 1. Determine the repo you are working in (its \`owner/name\`).
-2. Call \`codebases_list\`. If a synced codebase matches this repo, note its \`id\` — you will pass it as \`sourceCodebaseId\` and you can read structure from vmem's graph instead of re-reading every file.
-3. If there is no match, that is fine — read structure from the local working tree instead, and omit \`sourceCodebaseId\`.
-
-## Step 2 — Survey, then PLAN the pages (adaptive)
-
-Survey the codebase before writing anything:
-- If synced: \`codebase_overview\` for stats, then \`codebase_graph\` (start with \`kinds:["code-file"]\` and \`kinds:["code-process"]\`) for structure and flows. Use \`codebase_search\` / \`codebase_context\` to drill into key symbols.
-- If not synced: read the README, manifests (package.json / pyproject / go.mod / etc.), entry points, and the directory layout.
+2. Read the README, manifests (package.json / pyproject / go.mod / etc.), entry points, and the directory layout.
 
 Then decide a page set that FITS THIS REPO — do not force a fixed template. Typical pages, include only those that apply:
 - **Overview** — what it is, language/stack, how to run it.
 - **Architecture** — major modules and how they depend on each other.
-- **Entry points & flows** — the request/process flows (lean on \`code-process\` nodes when synced).
-- **Key modules** — the most-connected files/classes and what they do.
+- **Entry points & flows** — the request/process flows.
+- **Key modules** — the most important files/classes and what they do.
 - **Data model** — schema/tables/types, if the repo has one.
 - **Conventions** — notable patterns a new contributor must follow.
 
 Keep it proportional: a small repo may need 3 pages, a large one 6–8.
 
-## Step 3 — Don't duplicate
+## Step 2 — Don't duplicate
 
 Before creating anything, \`wiki_search\` / \`wiki_list\` for an existing knowledge-base folder for this repo (e.g. titled "<owner/repo> — Knowledge Base"). If it already exists, STOP and run \`update-wiki\` instead — that refreshes pages in place rather than duplicating the folder.
 
-## Step 4 — Create the linked folder
+## Step 3 — Create the folder
 
-\`wiki_create\` a **folder** titled \`"<owner/repo> — Knowledge Base"\`. When you found a matching synced codebase in Step 1, pass its id as \`sourceCodebaseId\` so vmem links the folder to the codebase (the web UI shows a "Generated from <repo>" badge). Keep the returned folder id.
+\`wiki_create\` a **folder** titled \`"<owner/repo> — Knowledge Base"\`. Keep the returned folder id.
 
-## Step 5 — Write the pages (grounded)
+## Step 4 — Write the pages (grounded)
 
 For each planned page, \`wiki_create\` a **document** under the folder (\`parentId\` = the folder id) with markdown content. Rules:
 - **Ground every claim in the code.** Reference real file paths and symbol names (e.g. \`src/auth/login.ts\`, \`createSession()\`). Never invent files, functions, or behaviour.
@@ -61,9 +52,9 @@ For each planned page, \`wiki_create\` a **document** under the folder (\`parent
 - Use clear headings, short paragraphs, and code spans for identifiers.
 - Prefer linking related pages by name so the knowledge base reads as a connected whole.
 
-## Step 6 — Report
+## Step 5 — Report
 
-Tell the user the folder you created, the pages written, and whether it was linked to a synced codebase. Suggest running \`update-wiki\` after significant changes to keep the knowledge base current.`;
+Tell the user the folder you created and the pages written. Suggest running \`update-wiki\` after significant changes to keep the knowledge base current.`;
 
 const UPDATE_WIKI_INSTRUCTIONS = `# update-wiki — Refresh a Codebase Knowledge Base
 
@@ -72,18 +63,17 @@ code. Use this AFTER the codebase has changed and a knowledge base (built with
 \`setup-wiki\`) already exists. Update pages in place — do not rebuild from scratch.
 Everything stays in vmem via the wiki tools.
 
-Relevant tools: \`codebases_list\`, \`codebase_overview\` / \`codebase_graph\` / \`codebase_search\` / \`codebase_context\`, \`wiki_list\`, \`wiki_search\`, \`wiki_get\`, \`wiki_update\`, \`wiki_create\`.
+Relevant tools: \`wiki_list\`, \`wiki_search\`, \`wiki_get\`, \`wiki_update\`, \`wiki_create\`.
 
 ## Step 1 — Find the existing knowledge base
 
-1. Determine the repo (\`owner/name\`); \`codebases_list\` to find the matching synced codebase id (if any).
+1. Determine the repo (\`owner/name\`).
 2. \`wiki_search\` / \`wiki_list\` for the knowledge-base folder for this repo (e.g. "<owner/repo> — Knowledge Base"). If there is NONE, stop and tell the user to run \`setup-wiki\` first — this skill only refreshes an existing base.
 3. \`wiki_get\` each page in the folder so you know what the base currently claims.
 
 ## Step 2 — Find what changed
 
-- If synced: \`codebase_overview\` + \`codebase_graph\` for the current structure and flows; compare against what the pages describe. \`codebase_search\` / \`codebase_context\` to confirm specific symbols still exist.
-- If not synced: read the current working tree (README, manifests, entry points, changed areas).
+- Read the current working tree (README, manifests, entry points, changed areas).
 - Identify three buckets: (a) pages whose described files/symbols changed or no longer exist, (b) new modules/flows that have no page yet, (c) pages that are still accurate.
 
 ## Step 3 — Update in place

@@ -1,20 +1,12 @@
-"use node";
-
 import { v } from "convex/values";
 import { authAction, requireClerkId } from "./auth";
-import { getDriver } from "../engine/neo4j/driver";
-import {
-  getMemoryTimeline as fetchMemoryTimeline,
-  getSearchTimeline as fetchSearchTimeline,
-  getTopicTimeline as fetchTopicTimeline,
-} from "../engine/neo4j/memory/timeline";
-import type { TimelineEvent } from "../engine/neo4j/memory/types";
+import type { TimelineEvent } from "./memoryApi/types";
 
 export const getMemoryTimeline = authAction({
   args: { memoryId: v.string() },
-  handler: async (ctx, args): Promise<TimelineEvent[]> => {
-    const clerkId = await requireClerkId(ctx);
-    return await fetchMemoryTimeline(getDriver(), clerkId, args.memoryId);
+  handler: async (ctx): Promise<TimelineEvent[]> => {
+    await requireClerkId(ctx);
+    return [];
   },
 });
 
@@ -24,15 +16,9 @@ export const getTopicTimeline = authAction({
     limit: v.number(),
     offset: v.number(),
   },
-  handler: async (ctx, args): Promise<TimelineEvent[]> => {
-    const clerkId = await requireClerkId(ctx);
-    return await fetchTopicTimeline(
-      getDriver(),
-      clerkId,
-      args.tag,
-      args.limit,
-      args.offset,
-    );
+  handler: async (ctx): Promise<TimelineEvent[]> => {
+    await requireClerkId(ctx);
+    return [];
   },
 });
 
@@ -42,14 +28,8 @@ export const getSearchTimeline = authAction({
     limit: v.number(),
     offset: v.number(),
   },
-  handler: async (ctx, args): Promise<TimelineEvent[]> => {
-    const clerkId = await requireClerkId(ctx);
-    return await fetchSearchTimeline(
-      getDriver(),
-      clerkId,
-      args.query,
-      args.limit,
-      args.offset,
-    );
+  handler: async (ctx): Promise<TimelineEvent[]> => {
+    await requireClerkId(ctx);
+    return [];
   },
 });

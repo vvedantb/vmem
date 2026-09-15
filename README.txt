@@ -8,14 +8,14 @@ Create a Clerk account if you do not have one, open a profile, add a memory from
 
 Source: https://github.com/vvedantb/vmem
 
-This package is the source tree. It does not include .env.local or other secrets. You do not need a local stack for marking - use the hosted URL unless you specifically want Convex + Neo4j + Clerk running on your machine.
+This package is the source tree. It does not include .env.local or other secrets. You do not need a local stack for marking - use the hosted URL unless you specifically want Convex + Clerk running on your machine.
 
 
 What it is
 
 vmem is a memory layer for AI tools. LLMs forget between sessions and across providers. This project keeps a shared, inspectable graph of what the user knows and cares about, and exposes it over MCP, HTTP, and a small SDK.
 
-Memories live in Neo4j. Convex handles auth, profiles, teams, the web/API surface, and scheduled work. The web app and Chrome extension are clients on top of that. Retrieval mixes fulltext, vectors, chunks, entities, and a hop of graph expansion, then explains the match in a Context Trace rather than returning a black-box rank.
+Memories live in Convex. Convex also handles auth, profiles, teams, the web/API surface, and scheduled work. The web app and Chrome extension are clients on top of that. Retrieval is substring search over title and content, then explains the match in a Context Trace.
 
 Other bits worth knowing: conflicting updates become proposals instead of silent overwrites, team workspaces share one profile graph, Dream Mode synthesises higher-level memories in the background.
 
@@ -34,7 +34,7 @@ vmem/
     web/                     Vite + React dashboard
     chrome-extension/        WXT Chrome extension (MV3)
   packages/
-    backend/                 Convex backend + Neo4j engine (engine/)
+    backend/                 Convex backend + memory helpers (engine/)
     shared/                  Shared constants and helpers
     ui/                      Shared UI primitives
     sdk/                     Published HTTP SDK (@vmem/sdk)
@@ -71,7 +71,7 @@ Talking to it from an agent
 
 Running locally
 
-You need Node 20+, pnpm, a Convex project, Neo4j, and a Clerk app. Copy the
+You need Node 20+, pnpm, a Convex project, and a Clerk app. Copy the
 example env files and fill them in before starting anything.
 
 From the zip:
@@ -95,7 +95,6 @@ Web app is at http://localhost:5173.
   pnpm typecheck:all
   pnpm test
   pnpm check
-  pnpm eval:bench                retrieval bench (bench user only)
 
 More on the extension: apps/chrome-extension/README.md.
 
@@ -117,8 +116,7 @@ Web needs at least:
 Convex dashboard needs at least:
   CLERK_FRONTEND_API_URL, CLERK_SECRET_KEY, CLERK_PUBLISHABLE_KEY
   ENCRYPTION_KEY (base64)
-  NEO4J_URI, NEO4J_PASSWORD (NEO4J_USERNAME defaults to neo4j)
   CONVEX_SITE_URL, WEB_APP_URL
   OPENROUTER_API_KEY
 
-Optional: GOOGLE_CLIENT_*, NOTION_CLIENT_*, GITHUB_CLIENT_*.
+Optional: GOOGLE_CLIENT_*, NOTION_CLIENT_*.

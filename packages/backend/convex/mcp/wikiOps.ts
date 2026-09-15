@@ -164,7 +164,6 @@ export type CreateWikiArgs = {
   parentPath?: string;
   contentMarkdown?: string;
   language?: string;
-  sourceCodebaseId?: string;
 };
 
 export async function createWiki(
@@ -212,7 +211,6 @@ export async function createWiki(
       content,
       contentText,
       language: args.language,
-      sourceCodebaseId: args.sourceCodebaseId,
     },
   );
 

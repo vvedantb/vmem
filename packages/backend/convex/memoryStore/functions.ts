@@ -4,17 +4,20 @@ import { memoryWithTagsSchema } from "@vmem/sdk";
 import { internalMutation, internalQuery } from "../_generated/server";
 import { memoryStatusValidator, memoryTypeValidator } from "../validators";
 import {
+  collectScopedMemories,
   createMemory,
+  deleteMemoriesByProfile,
+  deleteMemoriesBySourceTypes,
   deleteMemoriesForUser,
   deleteMemory,
   deleteTeamMemoryAsOwner,
-  existingMemoryIds,
   getMemory,
   getMemoryForTeam,
-  insertBackfillBatch,
   listMemories,
   listMemoriesForTeam,
+  reassignMemoriesProfile,
   updateMemory,
+  upsertMemoryFromSource,
 } from "./helpers";
 
 const memoryWithTagsValidator = zodToConvex(memoryWithTagsSchema);
@@ -44,27 +47,6 @@ const updateContentFields = {
   expiresAt: v.optional(v.union(v.string(), v.null())),
 };
 
-const backfillRowFields = {
-  memoryId: v.string(),
-  userId: v.string(),
-  profileId: v.optional(v.string()),
-  title: v.string(),
-  content: v.string(),
-  type: memoryTypeValidator,
-  source: v.string(),
-  tags: v.array(v.string()),
-  confidence: v.number(),
-  contentHash: v.string(),
-  status: memoryStatusValidator,
-  createdAt: v.string(),
-  updatedAt: v.string(),
-  expiresAt: v.optional(v.string()),
-  sourceType: v.optional(v.string()),
-  sourceId: v.optional(v.string()),
-  sourceUrl: v.optional(v.string()),
-  sourceSyncedAt: v.optional(v.string()),
-};
-
 export const createMemoryInternal = internalMutation({
   args: {
     memoryId: v.optional(v.string()),
@@ -76,7 +58,7 @@ export const createMemoryInternal = internalMutation({
     source: v.string(),
     tags: v.array(v.string()),
     confidence: v.number(),
-    contentHash: v.string(),
+    contentHash: v.optional(v.string()),
     status: v.optional(memoryStatusValidator),
     createdAt: v.optional(v.number()),
     updatedAt: v.optional(v.number()),
@@ -151,6 +133,30 @@ export const listMemoriesForTeamInternal = internalQuery({
     }),
 });
 
+export const collectScopedMemoriesInternal = internalQuery({
+  args: {
+    kind: v.union(v.literal("personal"), v.literal("team")),
+    userId: v.optional(v.string()),
+    profileId: v.optional(v.string()),
+  },
+  returns: v.array(memoryWithTagsValidator),
+  handler: async (ctx, args) => {
+    if (args.kind === "team") {
+      if (args.profileId === undefined) return [];
+      return collectScopedMemories(ctx, {
+        kind: "team",
+        profileId: args.profileId,
+      });
+    }
+    if (args.userId === undefined) return [];
+    return collectScopedMemories(ctx, {
+      kind: "personal",
+      userId: args.userId,
+      profileId: args.profileId,
+    });
+  },
+});
+
 export const updateMemoryInternal = internalMutation({
   args: {
     userId: v.string(),
@@ -197,18 +203,55 @@ export const deleteMemoriesForUserInternal = internalMutation({
   handler: async (ctx, args) => deleteMemoriesForUser(ctx, args.userId),
 });
 
-export const existingMemoryIdsInternal = internalQuery({
-  args: {
-    memoryIds: v.array(v.string()),
-  },
-  returns: v.array(v.string()),
-  handler: async (ctx, args) => existingMemoryIds(ctx, args.memoryIds),
+export const deleteMemoriesByProfileInternal = internalMutation({
+  args: { profileId: v.string() },
+  returns: v.number(),
+  handler: async (ctx, args) => deleteMemoriesByProfile(ctx, args.profileId),
 });
 
-export const insertBackfillBatchInternal = internalMutation({
+export const reassignMemoriesProfileInternal = internalMutation({
   args: {
-    rows: v.array(v.object(backfillRowFields)),
+    fromProfileId: v.string(),
+    toProfileId: v.string(),
   },
   returns: v.number(),
-  handler: async (ctx, args) => insertBackfillBatch(ctx, args.rows),
+  handler: async (ctx, args) =>
+    reassignMemoriesProfile(ctx, args.fromProfileId, args.toProfileId),
+});
+
+export const deleteMemoriesBySourceTypesInternal = internalMutation({
+  args: {
+    userId: v.string(),
+    sourceTypes: v.array(v.string()),
+  },
+  returns: v.number(),
+  handler: async (ctx, args) =>
+    deleteMemoriesBySourceTypes(ctx, args.userId, args.sourceTypes),
+});
+
+export const upsertMemoryFromSourceInternal = internalMutation({
+  args: {
+    userId: v.string(),
+    profileId: v.string(),
+    title: v.string(),
+    content: v.string(),
+    sourceType: v.string(),
+    sourceId: v.string(),
+    sourceUrl: v.string(),
+  },
+  returns: memoryWithTagsValidator,
+  handler: async (ctx, args) =>
+    upsertMemoryFromSource(ctx, {
+      userId: args.userId,
+      profileId: args.profileId,
+      title: args.title,
+      content: args.content,
+      type: "knowledge",
+      source: args.sourceType,
+      tags: [],
+      confidence: 1,
+      sourceType: args.sourceType,
+      sourceId: args.sourceId,
+      sourceUrl: args.sourceUrl,
+    }),
 });

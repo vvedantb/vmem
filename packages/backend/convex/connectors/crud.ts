@@ -9,6 +9,7 @@ import { authAction, authMutation, authQuery, requireClerkId } from "../auth";
 import { internal } from "../_generated/api";
 import { auditLog, ResourceTypes } from "../auditLog";
 import { STALE_SYNCING_MS } from "@vmem/shared";
+import { scheduleContextPromptInvalidationByClerkId } from "../lib/contextPromptInvalidate";
 import {
   connectorConnectionStatusValidator,
   connectorFields,
@@ -55,12 +56,6 @@ const DEFAULT_CONNECTORS: DefaultConnector[] = [
     description: "Sync pages, databases, and wikis from Notion",
     icon: "IconBrandNotion",
     provider: "notion",
-  },
-  {
-    name: "GitHub",
-    description: "Connect repositories, issues, and documentation from GitHub",
-    icon: "IconBrandGithub",
-    // no provider: dedicated github integration (githubConnections)
   },
 ];
 
@@ -304,13 +299,17 @@ export const deleteConnectorData = authAction({
       throw new Error("Connector does not support data deletion");
     }
 
-    const deleted = await ctx.runAction(
-      internal.neo4jActions.connectorData.deleteBySourceTypesInternal,
+    const clerkId = await requireClerkId(ctx);
+    const deleted = await ctx.runMutation(
+      internal.memoryStore.functions.deleteMemoriesBySourceTypesInternal,
       {
-        clerkId: await requireClerkId(ctx),
+        userId: clerkId,
         sourceTypes: [connector.provider],
       },
     );
+    if (deleted > 0) {
+      await scheduleContextPromptInvalidationByClerkId(ctx, clerkId);
+    }
 
     await ctx.runMutation(internal.connectors.crud.resetSyncStatsInternal, {
       id: args.connectorId,

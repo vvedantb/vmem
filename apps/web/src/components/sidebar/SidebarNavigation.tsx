@@ -8,22 +8,15 @@ import { navGroups, navHrefToPath, settingsNavGroups } from "./nav-config";
 import { NavLink } from "./NavLink";
 import { SkillsSidebarNav } from "./SkillsSidebarNav";
 import { WikiSidebarNav } from "./WikiSidebarNav";
-import { CodebasesSidebarNav } from "./CodebasesSidebarNav";
 import { SharedLayoutBackground } from "./SharedLayoutBackground";
 import { NavSection } from "./NavSection";
 
-export type SidebarNavView =
-  | "main"
-  | "settings"
-  | "skills"
-  | "wiki"
-  | "codebases";
+export type SidebarNavView = "main" | "settings" | "skills" | "wiki";
 
 const subSidebarHrefs = [
   "/$profileId/skills",
   "/settings",
   "/$profileId/wiki",
-  "/$profileId/codebases",
 ] as const;
 
 type SubSidebarHref = (typeof subSidebarHrefs)[number];
@@ -39,7 +32,6 @@ export function navViewFromPathname(pathname: string): SidebarNavView {
   const sub = pathname.replace(/^\/[^/]+/, "");
   if (sub.startsWith("/skills")) return "skills";
   if (sub.startsWith("/wiki")) return "wiki";
-  if (sub.startsWith("/codebases")) return "codebases";
   return "main";
 }
 
@@ -255,15 +247,6 @@ export function SidebarNavigation({
   if (navView === "wiki") {
     return (
       <WikiSidebarNav key="wiki" isIconOnly={isIconOnly} isMobile={isMobile} />
-    );
-  }
-  if (navView === "codebases") {
-    return (
-      <CodebasesSidebarNav
-        key="codebases"
-        isIconOnly={isIconOnly}
-        isMobile={isMobile}
-      />
     );
   }
   return (

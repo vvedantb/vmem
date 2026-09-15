@@ -1,4 +1,4 @@
-import { GitHub, Google, Notion, type OAuth2Tokens } from "arctic";
+import { Google, Notion, type OAuth2Tokens } from "arctic";
 import { getEnvOrThrow } from "./crypto";
 
 export function createGoogleOAuth(redirectURI: string): Google {
@@ -13,14 +13,6 @@ export function createNotionOAuth(redirectURI: string): Notion {
   return new Notion(
     getEnvOrThrow("NOTION_CLIENT_ID"),
     getEnvOrThrow("NOTION_CLIENT_SECRET"),
-    redirectURI,
-  );
-}
-
-export function createGitHubOAuth(redirectURI: string | null): GitHub {
-  return new GitHub(
-    getEnvOrThrow("GITHUB_CLIENT_ID"),
-    getEnvOrThrow("GITHUB_CLIENT_SECRET"),
     redirectURI,
   );
 }

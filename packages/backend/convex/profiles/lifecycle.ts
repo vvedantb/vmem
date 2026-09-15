@@ -6,7 +6,7 @@ import { auditLog, ResourceTypes } from "../auditLog";
 
 interface RemoveArgs {
   profileId: Id<"profiles">;
-  // when set, move neo4j memories here before deletion
+  // when set, move memories here before deletion
   moveMemoriesToProfileId?: Id<"profiles">;
 }
 
@@ -21,24 +21,18 @@ export async function runRemoveWithMemories(
     throw new Error("Use teams.deleteTeam to remove a team profile");
   }
 
-  const clerkId = await ctx.runQuery(internal.auth.getClerkIdInternal, {
-    userId: ctx.userId,
-  });
-  if (!clerkId) throw new Error("User not found");
-
   if (args.moveMemoriesToProfileId) {
-    await ctx.runAction(
-      internal.neo4jActions.migration.moveMemoriesBetweenProfiles,
+    await ctx.runMutation(
+      internal.memoryStore.functions.reassignMemoriesProfileInternal,
       {
-        clerkId,
         fromProfileId: args.profileId,
         toProfileId: args.moveMemoriesToProfileId,
       },
     );
   } else {
-    await ctx.runAction(
-      internal.neo4jActions.migration.deleteMemoriesByProfile,
-      { clerkId, profileId: args.profileId },
+    await ctx.runMutation(
+      internal.memoryStore.functions.deleteMemoriesByProfileInternal,
+      { profileId: args.profileId },
     );
   }
 

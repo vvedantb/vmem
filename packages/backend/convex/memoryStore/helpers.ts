@@ -1,4 +1,5 @@
 import type { MemoryStatus, MemoryType, MemoryWithTags } from "@vmem/sdk";
+import { computeContentHash } from "../../engine/memory/hash";
 import {
   memoryMatchesListFilter,
   pageMemoryList,
@@ -22,7 +23,7 @@ export interface CreateMemoryStoreParams {
   source: string;
   tags: string[];
   confidence: number;
-  contentHash: string;
+  contentHash?: string;
   status?: MemoryStatus;
   createdAt?: number;
   updatedAt?: number;
@@ -117,6 +118,8 @@ export async function createMemory(
   const now = Date.now();
   const createdAt = params.createdAt ?? now;
   const updatedAt = params.updatedAt ?? now;
+  const contentHash =
+    params.contentHash ?? computeContentHash(params.title, params.content);
   const expiresAt =
     params.expiresAt === undefined
       ? undefined
@@ -141,7 +144,7 @@ export async function createMemory(
     updatedAt,
     expiresAt,
     url: params.url,
-    contentHash: params.contentHash,
+    contentHash,
     sourceType: params.sourceType,
     sourceId: params.sourceId,
     sourceUrl: params.sourceUrl,
@@ -215,6 +218,12 @@ export async function updateMemory(
   if (!doc || doc.userId !== userId) return null;
 
   const now = Date.now();
+  const nextTitle = updates.title ?? doc.title;
+  const nextContent = updates.content ?? doc.content;
+  const contentHash =
+    updates.title !== undefined || updates.content !== undefined
+      ? computeContentHash(nextTitle, nextContent)
+      : doc.contentHash;
   if (updates.expiresAt === null) {
     const {
       _id,
@@ -223,12 +232,13 @@ export async function updateMemory(
       ...fields
     } = {
       ...doc,
-      title: updates.title ?? doc.title,
-      content: updates.content ?? doc.content,
+      title: nextTitle,
+      content: nextContent,
       type: updates.type ?? doc.type,
       status: updates.status ?? doc.status,
       tags: updates.tags === undefined ? doc.tags : normalizeTags(updates.tags),
       confidence: updates.confidence ?? doc.confidence,
+      contentHash,
       updatedAt: now,
     };
     await ctx.db.replace(_id, fields);
@@ -244,6 +254,9 @@ export async function updateMemory(
         : {}),
       ...(updates.confidence !== undefined
         ? { confidence: updates.confidence }
+        : {}),
+      ...(updates.title !== undefined || updates.content !== undefined
+        ? { contentHash }
         : {}),
       ...(updates.expiresAt !== undefined
         ? { expiresAt: parseIsoMillis(updates.expiresAt) }
@@ -294,68 +307,92 @@ export async function deleteMemoriesForUser(
   return docs.length;
 }
 
-export async function existingMemoryIds(
-  ctx: QueryCtx | MutationCtx,
-  memoryIds: string[],
-): Promise<string[]> {
-  const found: string[] = [];
-  for (const memoryId of memoryIds) {
-    const doc = await findByMemoryId(ctx, memoryId);
-    if (doc) found.push(memoryId);
-  }
-  return found;
-}
-
-interface BackfillMemoryStoreRow {
-  memoryId: string;
-  userId: string;
-  profileId?: string;
-  title: string;
-  content: string;
-  type: MemoryType;
-  source: string;
-  tags: string[];
-  confidence: number;
-  contentHash: string;
-  status: MemoryStatus;
-  createdAt: string;
-  updatedAt: string;
-  expiresAt?: string;
-  sourceType?: string;
-  sourceId?: string;
-  sourceUrl?: string;
-  sourceSyncedAt?: string;
-}
-
-export async function insertBackfillBatch(
+export async function deleteMemoriesByProfile(
   ctx: MutationCtx,
-  rows: BackfillMemoryStoreRow[],
+  profileId: string,
 ): Promise<number> {
-  let inserted = 0;
-  for (const row of rows) {
-    const existing = await findByMemoryId(ctx, row.memoryId);
-    if (existing) continue;
-    await createMemory(ctx, {
-      memoryId: row.memoryId,
-      userId: row.userId,
-      profileId: row.profileId,
-      title: row.title,
-      content: row.content,
-      type: row.type,
-      source: row.source,
-      tags: row.tags,
-      confidence: row.confidence,
-      contentHash: row.contentHash,
-      status: row.status,
-      createdAt: parseIsoMillis(row.createdAt),
-      updatedAt: parseIsoMillis(row.updatedAt),
-      expiresAt: row.expiresAt,
-      sourceType: row.sourceType,
-      sourceId: row.sourceId,
-      sourceUrl: row.sourceUrl,
-      sourceSyncedAt: row.sourceSyncedAt,
-    });
-    inserted += 1;
+  const docs = await ctx.db
+    .query("memories")
+    .withIndex("by_profile_created", (q) => q.eq("profileId", profileId))
+    .collect();
+  for (const doc of docs) {
+    await ctx.db.delete(doc._id);
   }
-  return inserted;
+  return docs.length;
+}
+
+export async function reassignMemoriesProfile(
+  ctx: MutationCtx,
+  fromProfileId: string,
+  toProfileId: string,
+): Promise<number> {
+  const docs = await ctx.db
+    .query("memories")
+    .withIndex("by_profile_created", (q) => q.eq("profileId", fromProfileId))
+    .collect();
+  for (const doc of docs) {
+    await ctx.db.patch(doc._id, { profileId: toProfileId });
+  }
+  return docs.length;
+}
+
+export async function deleteMemoriesBySourceTypes(
+  ctx: MutationCtx,
+  userId: string,
+  sourceTypes: string[],
+): Promise<number> {
+  if (sourceTypes.length === 0) return 0;
+  const wanted = new Set(sourceTypes);
+  const docs = await ctx.db
+    .query("memories")
+    .withIndex("by_user_created", (q) => q.eq("userId", userId))
+    .collect();
+  let deleted = 0;
+  for (const doc of docs) {
+    if (doc.sourceType === undefined || !wanted.has(doc.sourceType)) continue;
+    await ctx.db.delete(doc._id);
+    deleted += 1;
+  }
+  return deleted;
+}
+
+export async function upsertMemoryFromSource(
+  ctx: MutationCtx,
+  params: CreateMemoryStoreParams & { sourceId: string; sourceType: string },
+): Promise<MemoryWithTags> {
+  const docs = await ctx.db
+    .query("memories")
+    .withIndex("by_user_created", (q) => q.eq("userId", params.userId))
+    .collect();
+  const existing = docs.find(
+    (doc) =>
+      doc.sourceType === params.sourceType && doc.sourceId === params.sourceId,
+  );
+  if (existing) {
+    const updated = await updateMemory(ctx, params.userId, existing.memoryId, {
+      title: params.title,
+      content: params.content,
+    });
+    if (updated) {
+      await ctx.db.patch(existing._id, {
+        sourceUrl: params.sourceUrl,
+        sourceSyncedAt: Date.now(),
+      });
+      const refreshed = await findByMemoryId(ctx, existing.memoryId);
+      if (refreshed) return toMemoryWithTags(refreshed);
+      return updated;
+    }
+  }
+  return await createMemory(ctx, {
+    ...params,
+    sourceSyncedAt: params.sourceSyncedAt ?? new Date().toISOString(),
+  });
+}
+
+export async function collectScopedMemories(
+  ctx: QueryCtx | MutationCtx,
+  scope: MemoryReadScope,
+): Promise<MemoryWithTags[]> {
+  const docs = await listScopedDocs(ctx, scope);
+  return docs.map(toMemoryWithTags);
 }

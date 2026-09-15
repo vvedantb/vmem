@@ -3,9 +3,6 @@
   "typescriptCompiler": "tsc",
   "node": {
     "externalPackages": [
-      "neo4j-driver",
-      "ts-morph",
-      "tar-stream",
       "@modelcontextprotocol/sdk",
       "@googleapis/drive",
       "@notionhq/client"
