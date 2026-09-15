@@ -31,8 +31,13 @@ const config: KnipConfig = {
       project: ["oxlint-plugin-vmem/**/*.mjs"],
     },
     "apps/web": {
-      entry: ["src/main.tsx!", "src/routes/**/*.tsx!", "vite.config.ts!"],
-      project: ["src/**/*.{ts,tsx}"],
+      entry: [
+        "src/main.tsx!",
+        "src/routes/**/*.tsx!",
+        "vite.config.ts!",
+        "scripts/generate-og-image.mjs!",
+      ],
+      project: ["src/**/*.{ts,tsx}", "scripts/generate-og-image.mjs"],
     },
     "apps/chrome-extension": {
       entry: ["src/entrypoints/**/*.{ts,tsx,html}!", "wxt.config.ts!"],
@@ -46,7 +51,6 @@ const config: KnipConfig = {
       entry: [
         "convex/**/*.ts!",
         "engine/**/*.ts!",
-        "neo4j-cli/**/*.ts!",
         "tests/**/*.ts!",
         "index.ts!",
         // Build tooling invoked via `deploy` -> `build:mcp-graph-ui`; pulls in esbuild.
@@ -59,7 +63,6 @@ const config: KnipConfig = {
       project: [
         "convex/**/*.ts",
         "engine/**/*.ts",
-        "neo4j-cli/**/*.ts",
         "tests/**/*.ts",
         "scripts/**/*.mjs",
         "mcp-ui/**/*.ts",

@@ -12,7 +12,6 @@ import {
   teamFields,
   teamMemberFields,
   userEnvVarFields,
-  codebaseFields,
   openRouterLogFields,
   dreamTriggerStateFields,
   notificationFields,
@@ -20,8 +19,8 @@ import {
   connectorFields,
   userSettingsFields,
   oauthStateFields,
-  githubConnectionFields,
   contextPromptCacheFields,
+  memoryFields,
 } from "./validators";
 
 const schema = defineSchema({
@@ -78,16 +77,6 @@ const schema = defineSchema({
     .index("by_user_read", ["userId", "read"]),
 
   oauthStates: defineTable(oauthStateFields).index("by_state", ["state"]),
-
-  githubConnections: defineTable(githubConnectionFields).index("by_user", [
-    "userId",
-  ]),
-
-  codebases: defineTable(codebaseFields)
-    .index("by_user", ["userId"])
-    .index("by_user_repo", ["userId", "repoFullName"])
-    .index("by_team", ["teamId"])
-    .index("by_team_repo", ["teamId", "repoFullName"]),
 
   skills: defineTable(skillFields)
     .index("by_user", ["userId"])
@@ -152,6 +141,12 @@ const schema = defineSchema({
   contextPromptCache: defineTable(contextPromptCacheFields).index("by_user", [
     "userId",
   ]),
+
+  // convex memory rows; memory CRUD and search live here
+  memories: defineTable(memoryFields)
+    .index("by_memory_id", ["memoryId"])
+    .index("by_user_created", ["userId", "createdAt"])
+    .index("by_profile_created", ["profileId", "createdAt"]),
 });
 
 export default schema;

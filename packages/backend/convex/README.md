@@ -8,7 +8,7 @@ All vmem backend logic lives here. See `packages/backend/README.md` for architec
 ## Conventions
 
 - Protected functions use `authQuery`, `authMutation`, or `authAction` from `auth.ts` — never raw Convex builders for user-facing APIs
-- Neo4j operations go through `internal.neo4jActions.*` Node actions — never call Neo4j directly from queries/mutations
+- Memory CRUD goes through `memoryStore` internals — Convex is the only memory runtime
 - Table field definitions live in `validators.ts` as exported `xxxFields` objects, used in both `schema.ts` and return validators
 - Never manually define interfaces for Convex documents — use `Doc<"tableName">`, `Id<"fieldName">`, `FunctionReturnType<typeof api.fn>`
 

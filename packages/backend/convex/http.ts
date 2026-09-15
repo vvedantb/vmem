@@ -1,6 +1,5 @@
 ﻿import { httpRouter } from "convex/server";
 import { connectorCallback } from "./http/auth/connectorCallback";
-import { githubCallback } from "./http/auth/githubCallback";
 import { deleteMemory } from "./http/v1Memories/delete";
 import { retrieveMemories } from "./http/v1Memories/retrieve";
 import { storeMemory } from "./http/v1Memories/store";
@@ -15,12 +14,6 @@ import {
 } from "./mcp/native";
 
 const http = httpRouter();
-
-http.route({
-  path: "/api/auth/github/callback",
-  method: "GET",
-  handler: githubCallback,
-});
 
 http.route({
   path: "/api/auth/connector/callback",

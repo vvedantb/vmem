@@ -6,11 +6,13 @@ import {
   withApiKeyAuth,
   type ApiKeyAuth,
 } from "./apiKeyAuth";
+import type { RetrieveHttpResult } from "./types";
 import {
-  isOpenRouterRequired,
-  openRouterRequiredResponse,
-  type RetrieveHttpResult,
-} from "./types";
+  retrieveMemoriesForClerk,
+  retrieveMemoriesForTeamProfile,
+  summarizeRetrievedMemories,
+} from "../../memoryRuntime";
+import { getProfileKind } from "../../memoryScope";
 
 async function runRetrieveHandler(
   ctx: ActionCtx,
@@ -22,32 +24,24 @@ async function runRetrieveHandler(
     return forbidden;
   }
 
-  const retrieveArgs = {
-    clerkId: auth.clerkId,
-    query: body.query,
-    type: body.type,
-    tags: body.tags,
-    limit: body.limit ?? 10,
-  };
-
-  // a team profile retrieves across every member's memories in it. access is already asserted above, so the profile id alone is the scope.
-  const graphScope =
-    body.profileId === undefined
-      ? "personal"
-      : await ctx.runQuery(internal.profiles.getProfileScopeInternal, {
-          profileId: body.profileId,
-        });
-
+  const graphScope = await getProfileKind(ctx, body.profileId);
   const memories =
     graphScope === "team" && body.profileId !== undefined
-      ? await ctx.runAction(
-          internal.neo4jActions.memories.retrieveMemoriesForTeamInternal,
-          { ...retrieveArgs, profileId: body.profileId },
-        )
-      : await ctx.runAction(
-          internal.neo4jActions.memories.retrieveMemoriesInternal,
-          { ...retrieveArgs, profileId: body.profileId },
-        );
+      ? await retrieveMemoriesForTeamProfile(ctx, {
+          profileId: body.profileId,
+          query: body.query,
+          type: body.type,
+          tags: body.tags,
+          limit: body.limit ?? 10,
+        })
+      : await retrieveMemoriesForClerk(ctx, {
+          clerkId: auth.clerkId,
+          profileId: body.profileId,
+          query: body.query,
+          type: body.type,
+          tags: body.tags,
+          limit: body.limit ?? 10,
+        });
 
   const userContext = await ctx.runQuery(
     internal.userSettings.getUserContextInternal,
@@ -60,28 +54,10 @@ async function runRetrieveHandler(
     return { memories, userContext };
   }
 
-  const summaryResult = await ctx.runAction(
-    internal.neo4jActions.agent.summarizeRetrieveInternal,
-    {
-      clerkId: auth.clerkId,
-      profileId: body.profileId,
-      query: body.query,
-      memories: memories.map((memory) => ({
-        id: memory.id,
-        title: memory.title,
-        content: memory.content,
-      })),
-    },
-  );
-
-  if (isOpenRouterRequired(summaryResult)) {
-    return openRouterRequiredResponse();
-  }
-
   return {
     memories,
     userContext,
-    summary: summaryResult.summary,
+    summary: summarizeRetrievedMemories(memories),
   };
 }
 

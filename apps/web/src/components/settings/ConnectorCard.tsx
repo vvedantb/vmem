@@ -1,18 +1,16 @@
 import { useState } from "react";
-import { useAction, useQuery } from "convex/react";
+import { useAction } from "convex/react";
 import { Card, CardContent, Button, Badge, Progress } from "@vmem/ui";
 import { toast } from "sonner";
 import { IconLoader2, IconAlertCircle, IconClock } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 import OAuthModal from "./OAuthModal";
-import { GitHubConnectorControls } from "./GitHubConnectorControls";
 import DeleteConnectorDataDialog from "./DeleteConnectorDataDialog";
 import DisconnectConnectorDialog from "./DisconnectConnectorDialog";
 import ConnectorActionsMenu from "./ConnectorActionsMenu";
 import {
   isConnectorConnected,
   isConnectorConnectable,
-  isGitHubConnector,
   resolveConnectorIcon,
   type Connector,
 } from "./connector-utils";
@@ -29,19 +27,12 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
 
   const startSyncAction = useAction(api.connectors.sync.startSync);
 
-  const isGitHub = isGitHubConnector(connector);
-  const githubConnection = useQuery(
-    api.github.getConnection,
-    isGitHub ? {} : "skip",
-  );
-
   const Icon = resolveConnectorIcon(connector.icon);
-  const isConnected = isConnectorConnected(connector, githubConnection);
-  const isSyncing = !isGitHub && connector.syncStatus === "syncing";
+  const isConnected = isConnectorConnected(connector);
+  const isSyncing = connector.syncStatus === "syncing";
   const hasProvider = isConnectorConnectable(connector);
   const canDeleteImportedData =
     hasProvider &&
-    !isGitHub &&
     (isConnected ||
       connector.itemsSynced > 0 ||
       connector.lastSyncAt !== undefined);
@@ -91,16 +82,7 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
               </div>
               <p className="text-sm text-muted mt-1">{connector.description}</p>
 
-              {isGitHub && githubConnection ? (
-                <p className="mt-1 text-sm text-muted">
-                  Connected as{" "}
-                  <span className="font-medium text-foreground">
-                    {githubConnection.githubUsername}
-                  </span>
-                </p>
-              ) : null}
-
-              {isConnected && !isGitHub && (
+              {isConnected && (
                 <div className="flex items-center gap-4 mt-3 text-xs text-muted">
                   <span className="flex items-center gap-1">
                     <IconClock size={14} />
@@ -133,9 +115,7 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
           </div>
 
           <div className="mt-4 flex flex-wrap justify-end gap-2">
-            {isGitHub ? (
-              <GitHubConnectorControls connection={githubConnection} />
-            ) : isConnected ? (
+            {isConnected ? (
               <ConnectorActionsMenu
                 connectorName={connector.name}
                 isSyncing={isSyncing}
@@ -162,7 +142,11 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
                     onDeleteData={() => setShowDeleteDataDialog(true)}
                   />
                 ) : null}
-                <Button size="sm" variant="secondary">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => setShowOAuthModal(true)}
+                >
                   Connect
                 </Button>
               </>
@@ -171,7 +155,7 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
         </CardContent>
       </Card>
 
-      {hasProvider && !isGitHub ? (
+      {hasProvider ? (
         <>
           <OAuthModal
             isOpen={showOAuthModal}

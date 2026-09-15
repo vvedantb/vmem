@@ -74,7 +74,7 @@ export const getByIdInternal = internalQuery({
   },
 });
 
-// whether the profile is team or personal, resolved once at write-time so the neo4j engine can scope relates_to edge creation. no authz here, callers assert access.
+// whether the profile is team or personal. no authz here, callers assert access.
 export const getProfileScopeInternal = internalQuery({
   args: { profileId: v.string() },
   returns: v.union(v.literal("personal"), v.literal("team")),

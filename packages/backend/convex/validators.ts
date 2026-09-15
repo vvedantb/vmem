@@ -1,11 +1,44 @@
 import { v } from "convex/values";
 import { omit } from "convex-helpers";
 import { zodToConvex } from "convex-helpers/server/zod";
+import { memoryStatusSchema, memoryTypeSchema } from "@vmem/sdk";
 import { z } from "zod";
 import {
   openRouterEndpointSchema,
   openRouterFeatureSchema,
 } from "./lib/openRouter/schemas";
+
+export const memoryTypeValidator = zodToConvex(memoryTypeSchema);
+export const memoryStatusValidator = zodToConvex(memoryStatusSchema);
+
+// clerk id + optional profile id; tags are stored on the row
+export const memoryFields = {
+  memoryId: v.string(),
+  userId: v.string(),
+  profileId: v.optional(v.string()),
+  title: v.string(),
+  content: v.string(),
+  type: memoryTypeValidator,
+  source: v.string(),
+  confidence: v.number(),
+  status: memoryStatusValidator,
+  tags: v.array(v.string()),
+  createdAt: v.number(),
+  updatedAt: v.number(),
+  expiresAt: v.optional(v.number()),
+  url: v.optional(v.string()),
+  contentHash: v.string(),
+  sourceType: v.optional(v.string()),
+  sourceId: v.optional(v.string()),
+  sourceUrl: v.optional(v.string()),
+  sourceSyncedAt: v.optional(v.number()),
+  storageId: v.optional(v.string()),
+  mimeType: v.optional(v.string()),
+  originalFilename: v.optional(v.string()),
+  visitCount: v.number(),
+  firstVisitAt: v.number(),
+  lastVisitAt: v.number(),
+};
 
 // table field validators, used in schema.ts and return validators
 export const profileFields = {
@@ -156,14 +189,6 @@ export const oauthStateFields = {
 
 export const oauthStatePayloadFields = omit(oauthStateFields, ["state"]);
 
-export const githubConnectionFields = {
-  userId: v.id("users"),
-  githubUsername: v.string(),
-  encryptedAccessToken: v.string(),
-  avatarUrl: v.optional(v.string()),
-  connectedAt: v.number(),
-};
-
 export const contextPromptCacheFields = {
   userId: v.id("users"),
   content: v.string(),
@@ -223,64 +248,6 @@ export const userEnvVarFields = {
   updatedAt: v.number(),
 };
 
-export const codebaseFields = {
-  userId: v.id("users"),
-  // personal when absent. team drive when set (same pattern as skills/wiki/files)
-  teamId: v.optional(v.id("teams")),
-  githubConnectionId: v.id("githubConnections"),
-  repoOwner: v.string(),
-  repoName: v.string(),
-  repoFullName: v.string(),
-  defaultBranch: v.string(),
-  language: v.optional(v.string()),
-  description: v.optional(v.string()),
-  isPrivate: v.optional(v.boolean()),
-  status: v.union(
-    v.literal("pending"),
-    v.literal("syncing"),
-    v.literal("synced"),
-    v.literal("error"),
-  ),
-  totalFiles: v.number(),
-  totalEdges: v.optional(v.number()),
-  syncedFiles: v.number(),
-  lastSyncedAt: v.optional(v.number()),
-  errorMessage: v.optional(v.string()),
-  functionCount: v.optional(v.number()),
-  classCount: v.optional(v.number()),
-  interfaceCount: v.optional(v.number()),
-  callEdgeCount: v.optional(v.number()),
-  processCount: v.optional(v.number()),
-  parserVersion: v.optional(v.string()),
-  lastParseError: v.optional(v.string()),
-  parseStage: v.optional(
-    v.union(
-      v.literal("fetching"),
-      v.literal("parsing"),
-      v.literal("processes"),
-      v.literal("writing"),
-      v.literal("done"),
-    ),
-  ),
-  syncStartedAt: v.optional(v.number()),
-  isArchived: v.optional(v.boolean()),
-};
-
-// neo4j codebase symbol node kinds (graph / impact / mcp args)
-export const codebaseSymbolKindValidator = v.union(
-  v.literal("code-file"),
-  v.literal("code-function"),
-  v.literal("code-class"),
-  v.literal("code-interface"),
-  v.literal("code-process"),
-);
-
-// blast radius / impact traversal direction
-export const codebaseDirectionValidator = v.union(
-  v.literal("upstream"),
-  v.literal("downstream"),
-);
-
 export const openRouterLogRecordFields = {
   userId: v.id("users"),
   profileId: v.optional(v.string()),
@@ -327,7 +294,7 @@ export const wikiNodeFields = {
   // artifact source language (html | svg | tsx | sql | …). absent on folders/docs
   language: v.optional(v.string()),
   order: v.number(),
-  sourceCodebaseId: v.optional(v.id("codebases")),
+  sourceCodebaseId: v.optional(v.string()),
   createdAt: v.number(),
   updatedAt: v.number(),
 };

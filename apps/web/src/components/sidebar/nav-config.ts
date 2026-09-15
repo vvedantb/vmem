@@ -12,7 +12,6 @@ import {
 import {
   IconMemories,
   IconFiles,
-  IconCodebases,
   IconSkills,
   IconWiki,
   IconActivity,
@@ -31,11 +30,6 @@ export const navGroups: NavGroup[] = [
       { href: "/$profileId/wiki", label: "Wiki", icon: IconWiki },
       { href: "/$profileId/skills", label: "Skills", icon: IconSkills },
       { href: "/$profileId/files", label: "Files", icon: IconFiles },
-      {
-        href: "/$profileId/codebases",
-        label: "Codebases",
-        icon: IconCodebases,
-      },
     ],
   },
   {

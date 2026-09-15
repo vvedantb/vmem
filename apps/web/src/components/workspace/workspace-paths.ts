@@ -4,7 +4,6 @@
 const LEGACY_FIRST_SEGMENTS = [
   "memories",
   "files",
-  "codebases",
   "skills",
   "wiki",
   "activity",
@@ -19,7 +18,7 @@ export function isLegacyFirstSegment(segment: string): boolean {
 }
 
 // sections whose immediate child segment is a detail id we drop on switch
-const DETAIL_PARENTS = new Set(["skills", "codebases", "wiki"]);
+const DETAIL_PARENTS = new Set(["skills", "wiki"]);
 
 // compute the path for "this same page in another workspace
 // first segments of user level (non workspace) routes

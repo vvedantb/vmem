@@ -3,12 +3,12 @@
 import { v } from "convex/values";
 import crypto from "node:crypto";
 import { authAction, requireClerkId } from "./auth";
-import { internal } from "./_generated/api";
 import { extractFileContent } from "../engine/parsers/extractFileContent";
 import { detectFileKind } from "./files/lib";
 import type { Id } from "./_generated/dataModel";
 import type { MemoryWithTags } from "./memoryApi/types";
 import { assertAccessibleProfileIfPresent } from "./profiles/accessibleProfile";
+import { createMemoryForClerk } from "./memoryRuntime";
 
 // maximum size of an uploaded file
 const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
@@ -102,24 +102,21 @@ export const importMemoryFromFile = authAction({
 
     const title = chooseTitle(content, args.filename);
 
-    return await ctx.runAction(
-      internal.neo4jActions.memories.createMemoryInternal,
-      {
-        clerkId,
-        profileId: args.profileId,
-        title,
-        content,
-        type: "knowledge",
-        source: "file-upload",
-        tags: [kind === "pdf" ? "pdf" : "text", "upload"],
-        confidence: 1.0,
-        externalId,
-        sourceType: "file-upload",
-        storageId: args.storageId,
-        mimeType: args.mimeType,
-        originalFilename: args.filename,
-      },
-    );
+    return await createMemoryForClerk(ctx, {
+      clerkId,
+      profileId: args.profileId,
+      title,
+      content,
+      type: "knowledge",
+      source: "file-upload",
+      tags: [kind === "pdf" ? "pdf" : "text", "upload"],
+      confidence: 1.0,
+      externalId,
+      sourceType: "file-upload",
+      storageId: args.storageId,
+      mimeType: args.mimeType,
+      originalFilename: args.filename,
+    });
   },
 });
 
@@ -162,24 +159,21 @@ export const importImageMemory = authAction({
     if (caption.length > 0) contentParts.push(caption);
     if (args.pageUrl) contentParts.push(`Source: ${args.pageUrl}`);
 
-    return await ctx.runAction(
-      internal.neo4jActions.memories.createMemoryInternal,
-      {
-        clerkId,
-        profileId: args.profileId,
-        title,
-        content: contentParts.join("\n\n"),
-        type: "knowledge",
-        source: "browser-extension",
-        tags: [hostname, "screenshot"],
-        confidence: 1.0,
-        externalId,
-        sourceType: "screenshot",
-        storageId: args.storageId,
-        mimeType: args.mimeType,
-        originalFilename: `screenshot-${Date.now()}.png`,
-      },
-    );
+    return await createMemoryForClerk(ctx, {
+      clerkId,
+      profileId: args.profileId,
+      title,
+      content: contentParts.join("\n\n"),
+      type: "knowledge",
+      source: "browser-extension",
+      tags: [hostname, "screenshot"],
+      confidence: 1.0,
+      externalId,
+      sourceType: "screenshot",
+      storageId: args.storageId,
+      mimeType: args.mimeType,
+      originalFilename: `screenshot-${Date.now()}.png`,
+    });
   },
 });
 

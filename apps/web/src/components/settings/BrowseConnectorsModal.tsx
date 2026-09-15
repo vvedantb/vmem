@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useQuery } from "convex/react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -8,25 +7,19 @@ import {
   DialogTitle,
   Button,
 } from "@vmem/ui";
-import { api } from "@vmem/backend";
 import {
   isConnectorConnected,
   isConnectorConnectable,
-  isGitHubConnector,
   resolveConnectorIcon,
   type Connector,
-  type GitHubConnection,
 } from "./connector-utils";
 import OAuthModal from "@/components/settings/OAuthModal";
-import { GitHubConnectorControls } from "./GitHubConnectorControls";
 
 function ConnectorRow({
   connector,
-  githubConnection,
   onConnect,
 }: {
   connector: Connector;
-  githubConnection: GitHubConnection | undefined;
   onConnect: (connector: Connector) => void;
 }) {
   const Icon = resolveConnectorIcon(connector.icon);
@@ -41,17 +34,13 @@ function ConnectorRow({
         <p className="text-xs text-muted truncate">{connector.description}</p>
       </div>
       <div className="flex-shrink-0">
-        {isGitHubConnector(connector) ? (
-          <GitHubConnectorControls connection={githubConnection} />
-        ) : (
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => onConnect(connector)}
-          >
-            Connect
-          </Button>
-        )}
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => onConnect(connector)}
+        >
+          Connect
+        </Button>
       </div>
     </div>
   );
@@ -70,13 +59,10 @@ export default function BrowseConnectorsModal({
 }: BrowseConnectorsModalProps) {
   const [oauthConnector, setOauthConnector] = useState<Connector | null>(null);
 
-  const githubConnection = useQuery(api.github.getConnection);
-
   const availableConnectors = connectors
     .filter(
       (connector) =>
-        isConnectorConnectable(connector) &&
-        !isConnectorConnected(connector, githubConnection),
+        isConnectorConnectable(connector) && !isConnectorConnected(connector),
     )
     .sort((a, b) => a.name.localeCompare(b.name));
 
@@ -109,7 +95,6 @@ export default function BrowseConnectorsModal({
               <ConnectorRow
                 key={connector._id}
                 connector={connector}
-                githubConnection={githubConnection}
                 onConnect={handleConnect}
               />
             ))}

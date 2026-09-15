@@ -16,7 +16,7 @@ import {
   GOOGLE_OAUTH_SCOPES,
   pickGoogleTokenConnectorId,
   scopeIncludesDrive,
-} from "../neo4jActions/connectors/googleShared";
+} from "./googleShared";
 
 type ConnectorOAuthProvider = "google_drive" | "notion";
 

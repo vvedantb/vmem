@@ -87,7 +87,7 @@ export const setDreamSchedule = authMutation({
       ctx,
       name,
       parsed,
-      internal.neo4jActions.dreamMode.runDreamForUserById,
+      internal.dreamMode.runDreamForUserById,
       { userId: ctx.userId },
     );
 
@@ -148,7 +148,7 @@ export const setDreamScheduleForTeamProfile = authMutation({
       ctx,
       name,
       parsed,
-      internal.neo4jActions.dreamMode.runDreamForProfileById,
+      internal.dreamMode.runDreamForProfileById,
       { profileId: args.profileId },
     );
 

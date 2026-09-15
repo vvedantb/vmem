@@ -4,8 +4,8 @@ import { internal } from "../_generated/api";
 import { connectorSyncPool } from "../workpools";
 
 type ProviderSyncRef =
-  | typeof internal.neo4jActions.connectorSync.syncGoogleDriveInternal
-  | typeof internal.neo4jActions.connectorSync.syncNotionInternal;
+  | typeof internal.connectors.providerSync.syncGoogleDriveInternal
+  | typeof internal.connectors.providerSync.syncNotionInternal;
 
 // AI-generated (Claude), prompt: "dispatch connector provider sync through workpool enqueue or direct action execution"
 // Modified by me: retry only on thrown failures for google drive and notion
@@ -32,10 +32,10 @@ export async function runConnectorProviderSync(
   let syncRef: ProviderSyncRef;
   switch (provider) {
     case "google_drive":
-      syncRef = internal.neo4jActions.connectorSync.syncGoogleDriveInternal;
+      syncRef = internal.connectors.providerSync.syncGoogleDriveInternal;
       break;
     case "notion":
-      syncRef = internal.neo4jActions.connectorSync.syncNotionInternal;
+      syncRef = internal.connectors.providerSync.syncNotionInternal;
       break;
     default:
       throw new Error(`Unsupported provider: ${String(provider)}`);

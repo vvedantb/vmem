@@ -6,6 +6,12 @@ import type {
   TeamListMemoriesArgs,
   UpdateMemoryInternalArgs,
 } from "./validators";
+import {
+  listMemoriesForTeamProfile,
+  updateMemoryForClerk,
+  deleteMemoryForClerk,
+} from "../memoryRuntime";
+import { scheduleContextPromptInvalidationByClerkId } from "../lib/contextPromptInvalidate";
 
 type ListTeamMemoriesArgs = TeamListMemoriesArgs & {
   profileId: Id<"profiles">;
@@ -15,27 +21,24 @@ export async function runListTeamMemories(
   ctx: AuthActionCtx,
   args: ListTeamMemoriesArgs,
 ): Promise<MemoryListResult> {
-  return await ctx.runAction(
-    internal.neo4jActions.memories.listMemoriesForTeamInternal,
-    {
-      profileId: args.profileId,
-      type: args.type,
-      status: args.status,
-      source: args.source,
-      tags: args.tags,
-      searchQuery: args.searchQuery,
-      limit: args.limit,
-      offset: args.offset,
-    },
-  );
+  return await listMemoriesForTeamProfile(ctx, {
+    profileId: args.profileId,
+    type: args.type,
+    status: args.status,
+    source: args.source,
+    tags: args.tags,
+    searchQuery: args.searchQuery,
+    limit: args.limit,
+    offset: args.offset,
+  });
 }
 
 export async function runGetTeamMemory(
   ctx: AuthActionCtx,
   args: { profileId: Id<"profiles">; memoryId: string },
 ): Promise<MemoryWithTags | null> {
-  return await ctx.runAction(
-    internal.neo4jActions.memories.getMemoryForTeamInternal,
+  return await ctx.runQuery(
+    internal.memoryStore.functions.getMemoryForTeamInternal,
     { profileId: args.profileId, memoryId: args.memoryId },
   );
 }
@@ -52,13 +55,9 @@ async function loadPreauthorizedMutableTeamMemory(
   ctx: AuthActionCtx,
   args: { profileId: Id<"profiles">; memoryId: string },
 ): Promise<MemoryWithTags | null> {
-  const memory = await ctx.runAction(
-    internal.neo4jActions.memories.getMemoryForTeamInternal,
-    { profileId: args.profileId, memoryId: args.memoryId },
-  );
+  const memory = await runGetTeamMemory(ctx, args);
   if (!memory) return null;
 
-  // per-user cypher matches on creator clerkId (including owner as caller)
   await ctx.runQuery(internal.teams.assertMemoryMutablePermissionInternal, {
     userId: ctx.userId,
     memoryCreatorClerkId: memory.userId,
@@ -80,20 +79,17 @@ export async function runUpdateTeamMemory(
   });
   if (!memory) throw new Error("Memory not found");
 
-  return await ctx.runAction(
-    internal.neo4jActions.memories.updateMemoryInternal,
-    {
-      clerkId: memory.userId,
-      memoryId: args.memoryId,
-      title: args.title,
-      content: args.content,
-      type: args.type,
-      status: args.status,
-      tags: args.tags,
-      confidence: args.confidence,
-      expiresAt: args.expiresAt,
-    },
-  );
+  return await updateMemoryForClerk(ctx, {
+    clerkId: memory.userId,
+    memoryId: args.memoryId,
+    title: args.title,
+    content: args.content,
+    type: args.type,
+    status: args.status,
+    tags: args.tags,
+    confidence: args.confidence,
+    expiresAt: args.expiresAt,
+  });
 }
 
 export async function runDeleteTeamMemory(
@@ -109,18 +105,18 @@ export async function runDeleteTeamMemory(
   if (!memory) return false;
 
   if (memory.userId === callerClerkId) {
-    return await ctx.runAction(
-      internal.neo4jActions.memories.deleteMemoryInternal,
-      { clerkId: callerClerkId, memoryId: args.memoryId },
-    );
+    return await deleteMemoryForClerk(ctx, callerClerkId, args.memoryId);
   }
 
-  return await ctx.runAction(
-    internal.neo4jActions.memories.deleteTeamMemoryAsOwnerInternal,
+  const deleted = await ctx.runMutation(
+    internal.memoryStore.functions.deleteTeamMemoryAsOwnerInternal,
     {
       profileId: args.profileId,
       memoryId: args.memoryId,
-      ownerClerkId: callerClerkId,
     },
   );
+  if (deleted) {
+    await scheduleContextPromptInvalidationByClerkId(ctx, memory.userId);
+  }
+  return deleted;
 }

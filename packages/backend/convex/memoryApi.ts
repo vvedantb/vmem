@@ -21,6 +21,15 @@ import {
   searchMemoriesFields,
   updateMemoryFields,
 } from "./memoryApi/validators";
+import {
+  createMemoryForClerk,
+  deleteMemoryForClerk,
+  getMemoryForClerk,
+  listMemoriesForClerk,
+  retrieveMemoriesForClerk,
+  retrieveMemoriesForTeamProfile,
+  updateMemoryForClerk,
+} from "./memoryRuntime";
 
 export const generateMemoryUploadUrl = authMutation({
   args: {},
@@ -33,19 +42,27 @@ export const createMemory = authAction({
   args: createMemoryFields,
   handler: async (ctx, args): Promise<MemoryWithTags> => {
     const clerkId = await requireClerkId(ctx);
-    // personal profiles inherit ownership via matching userId. team profiles require membership before we hit the graph
     await assertAccessibleProfileIfPresent(ctx, args.profileId);
-    return await ctx.runAction(
-      internal.neo4jActions.memories.createMemoryInternal,
-      { clerkId, ...args },
-    );
+    return await createMemoryForClerk(ctx, {
+      clerkId,
+      profileId: args.profileId,
+      title: args.title,
+      content: args.content,
+      type: args.type,
+      source: args.source,
+      tags: args.tags,
+      confidence: args.confidence,
+      expiresAt: args.expiresAt,
+      url: args.url,
+      externalId: args.externalId,
+      sourceType: args.sourceType,
+    });
   },
 });
 
 export const getMemory = authAction({
   args: {
     memoryId: v.string(),
-    // active workspace. team profiles read via the member-wide path
     profileId: profileIdOptional,
   },
   handler: async (ctx, args): Promise<MemoryWithTags | null> =>
@@ -55,11 +72,7 @@ export const getMemory = authAction({
           profileId: teamProfile._id,
           memoryId: args.memoryId,
         }),
-      personal: (clerkId) =>
-        ctx.runAction(internal.neo4jActions.memories.getMemoryInternal, {
-          clerkId,
-          memoryId: args.memoryId,
-        }),
+      personal: (clerkId) => getMemoryForClerk(ctx, clerkId, args.memoryId),
     }),
 });
 
@@ -79,9 +92,16 @@ export const listMemories = authAction({
           offset: args.offset,
         }),
       personal: (clerkId) =>
-        ctx.runAction(internal.neo4jActions.memories.listMemoriesInternal, {
+        listMemoriesForClerk(ctx, {
           clerkId,
-          ...args,
+          profileId: args.profileId,
+          type: args.type,
+          status: args.status,
+          source: args.source,
+          tags: args.tags,
+          searchQuery: args.searchQuery,
+          limit: args.limit,
+          offset: args.offset,
         }),
     }),
 });
@@ -99,10 +119,7 @@ export const updateMemory = authAction({
       },
       personal: (clerkId) => {
         const { profileId: _profileId, ...rest } = args;
-        return ctx.runAction(
-          internal.neo4jActions.memories.updateMemoryInternal,
-          { clerkId, ...rest },
-        );
+        return updateMemoryForClerk(ctx, { clerkId, ...rest });
       },
     }),
 });
@@ -110,7 +127,6 @@ export const updateMemory = authAction({
 export const deleteMemory = authAction({
   args: {
     memoryId: v.string(),
-    // active workspace. team profiles use creator or owner permissions
     profileId: profileIdOptional,
   },
   handler: async (ctx, args): Promise<boolean> =>
@@ -120,11 +136,7 @@ export const deleteMemory = authAction({
           profileId: teamProfile._id,
           memoryId: args.memoryId,
         }),
-      personal: (clerkId) =>
-        ctx.runAction(internal.neo4jActions.memories.deleteMemoryInternal, {
-          clerkId,
-          memoryId: args.memoryId,
-        }),
+      personal: (clerkId) => deleteMemoryForClerk(ctx, clerkId, args.memoryId),
     }),
 });
 
@@ -132,9 +144,9 @@ export const deleteAllMemories = authAction({
   args: {},
   handler: async (ctx): Promise<number> => {
     const clerkId = await requireClerkId(ctx);
-    return await ctx.runAction(
-      internal.neo4jActions.memories.deleteAllMemoriesInternal,
-      { clerkId },
+    return await ctx.runMutation(
+      internal.memoryStore.functions.deleteMemoriesForUserInternal,
+      { userId: clerkId },
     );
   },
 });
@@ -154,12 +166,12 @@ export const searchMemories = authAction({
           offset: args.offset,
         }),
       personal: (clerkId) =>
-        ctx.runAction(internal.neo4jActions.memories.listMemoriesInternal, {
+        listMemoriesForClerk(ctx, {
           clerkId,
           profileId: args.profileId,
           type: args.type,
-          tags: args.tags,
           source: args.source,
+          tags: args.tags,
           searchQuery: args.query,
           limit: args.limit,
           offset: args.offset,
@@ -170,34 +182,31 @@ export const searchMemories = authAction({
 export const retrieveMemories = authAction({
   args: {
     query: v.string(),
-    // active workspace to ground retrieval in
     profileId: profileIdOptional,
     type: v.optional(v.string()),
     tags: v.optional(v.array(v.string())),
     limit: v.number(),
   },
   handler: async (ctx, args): Promise<RetrieveMemoriesResult> => {
-    // memories + usercontext run in parallel
     const [memories, userContext] = await Promise.all([
-      // routeMemoryByProfile asserts access, then team scope retrieves across every member's memories in the shared profile
       routeMemoryByProfile(ctx, args.profileId, {
-        team: (teamProfile, clerkId) =>
-          ctx.runAction(
-            internal.neo4jActions.memories.retrieveMemoriesForTeamInternal,
-            {
-              clerkId,
-              profileId: teamProfile._id,
-              query: args.query,
-              type: args.type,
-              tags: args.tags,
-              limit: args.limit,
-            },
-          ),
+        team: (teamProfile) =>
+          retrieveMemoriesForTeamProfile(ctx, {
+            profileId: teamProfile._id,
+            query: args.query,
+            type: args.type,
+            tags: args.tags,
+            limit: args.limit,
+          }),
         personal: (clerkId) =>
-          ctx.runAction(
-            internal.neo4jActions.memories.retrieveMemoriesInternal,
-            { clerkId, ...args },
-          ),
+          retrieveMemoriesForClerk(ctx, {
+            clerkId,
+            profileId: args.profileId,
+            query: args.query,
+            type: args.type,
+            tags: args.tags,
+            limit: args.limit,
+          }),
       }),
       ctx.runQuery(internal.userSettings.getUserContextInternal, {
         userId: ctx.userId,
