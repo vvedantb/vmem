@@ -13,6 +13,7 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { parseIsoMillis, toMemoryWithTags } from "./mappers";
 
 export interface CreateMemoryStoreParams {
+  memoryId?: string;
   userId: string;
   profileId: string;
   title: string;
@@ -106,8 +107,11 @@ export async function createMemory(
   ctx: MutationCtx,
   params: CreateMemoryStoreParams,
 ): Promise<MemoryWithTags> {
+  const memoryId = params.memoryId ?? crypto.randomUUID();
+  const existing = await findByMemoryId(ctx, memoryId);
+  if (existing) return toMemoryWithTags(existing);
+
   const now = Date.now();
-  const memoryId = crypto.randomUUID();
   const expiresAt =
     params.expiresAt === undefined
       ? undefined
@@ -269,4 +273,18 @@ export async function deleteTeamMemoryAsOwner(
   }
   await ctx.db.delete(doc._id);
   return true;
+}
+
+export async function deleteMemoriesForUser(
+  ctx: MutationCtx,
+  userId: string,
+): Promise<number> {
+  const docs = await ctx.db
+    .query("memories")
+    .withIndex("by_user_created", (q) => q.eq("userId", userId))
+    .collect();
+  for (const doc of docs) {
+    await ctx.db.delete(doc._id);
+  }
+  return docs.length;
 }

@@ -8,6 +8,7 @@ import { bestEffortEmbedOne } from "../../lib/openRouter/bestEffortEmbed";
 import type { CreateMemoryInternalArgs } from "../../memoryApi/validators";
 import { resolveProfileScopeForClerkId, toMemoryType } from "./shared";
 import { scheduleAfterMemoryMutation } from "./lifecycle";
+import { dualWriteCreate } from "./dualWrite";
 
 export async function runCreateMemory(
   ctx: ActionCtx,
@@ -49,6 +50,14 @@ export async function runCreateMemory(
   });
 
   if (!created) return memory;
+
+  await dualWriteCreate(ctx, memory, {
+    url: args.url,
+    storageId: args.storageId,
+    mimeType: args.mimeType,
+    originalFilename: args.originalFilename,
+    fallbackProfileId: profileId,
+  });
 
   const shouldExtractFacts =
     args.source === "prompt-capture" && args.sourceType !== "v2-extracted";

@@ -7,6 +7,7 @@ import {
 } from "../../../engine/neo4j/memory/crud";
 import { getDriver } from "../../../engine/neo4j/driver";
 import { scheduleAfterMemoryMutation } from "./lifecycle";
+import { dualWriteDelete, dualWriteDeleteAllForUser } from "./dualWrite";
 
 export async function runDeleteMemory(
   ctx: ActionCtx,
@@ -16,6 +17,7 @@ export async function runDeleteMemory(
   const deleted = await deleteMemory(driver, args.clerkId, args.memoryId);
 
   if (deleted) {
+    await dualWriteDelete(ctx, args.clerkId, args.memoryId);
     await scheduleAfterMemoryMutation(ctx, {
       clerkId: args.clerkId,
       event: {
@@ -36,6 +38,7 @@ export async function runDeleteAllMemories(
   const driver = getDriver();
   const deleted = await deleteAllMemoriesForUser(driver, args.clerkId);
   if (deleted > 0) {
+    await dualWriteDeleteAllForUser(ctx, args.clerkId);
     await scheduleAfterMemoryMutation(ctx, { clerkId: args.clerkId });
   }
   return deleted;

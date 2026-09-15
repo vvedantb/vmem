@@ -97,6 +97,7 @@ import type * as memoryStore_mappers from "../memoryStore/mappers.js";
 import type * as neo4jActions__memories_chunks from "../neo4jActions/_memories/chunks.js";
 import type * as neo4jActions__memories_create from "../neo4jActions/_memories/create.js";
 import type * as neo4jActions__memories_delete from "../neo4jActions/_memories/delete.js";
+import type * as neo4jActions__memories_dualWrite from "../neo4jActions/_memories/dualWrite.js";
 import type * as neo4jActions__memories_lifecycle from "../neo4jActions/_memories/lifecycle.js";
 import type * as neo4jActions__memories_postMaterialize from "../neo4jActions/_memories/postMaterialize.js";
 import type * as neo4jActions__memories_read from "../neo4jActions/_memories/read.js";
@@ -261,6 +262,7 @@ declare const fullApi: ApiFromModules<{
   "neo4jActions/_memories/chunks": typeof neo4jActions__memories_chunks;
   "neo4jActions/_memories/create": typeof neo4jActions__memories_create;
   "neo4jActions/_memories/delete": typeof neo4jActions__memories_delete;
+  "neo4jActions/_memories/dualWrite": typeof neo4jActions__memories_dualWrite;
   "neo4jActions/_memories/lifecycle": typeof neo4jActions__memories_lifecycle;
   "neo4jActions/_memories/postMaterialize": typeof neo4jActions__memories_postMaterialize;
   "neo4jActions/_memories/read": typeof neo4jActions__memories_read;

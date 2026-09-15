@@ -13,6 +13,7 @@ const TEAM_PROFILE = "profile_team";
 
 function createArgs(
   overrides: {
+    memoryId?: string;
     userId?: string;
     profileId?: string;
     title?: string;
@@ -25,6 +26,7 @@ function createArgs(
   const title = overrides.title ?? "Prefers pnpm";
   const content = overrides.content ?? "Use pnpm for vmem";
   return {
+    memoryId: overrides.memoryId,
     userId: overrides.userId ?? USER_A,
     profileId: overrides.profileId ?? PERSONAL_PROFILE,
     title,
@@ -279,5 +281,68 @@ describe("convex memoryStore", () => {
     expect(listed.total).toBe(1);
     expect(listed.memories[0]?.id).toBe("legacy-mem");
     expect(listed.memories[0]?.profileId).toBeNull();
+  });
+
+  it("keeps a caller-supplied memoryId and is idempotent on create", async () => {
+    const t = convexTest(schema, modules);
+    const memoryId = "neo4j-stable-id";
+
+    const created = await t.mutation(
+      internal.memoryStore.functions.createMemoryInternal,
+      createArgs({ memoryId, title: "First write" }),
+    );
+    expect(created.id).toBe(memoryId);
+
+    const again = await t.mutation(
+      internal.memoryStore.functions.createMemoryInternal,
+      createArgs({ memoryId, title: "Second write" }),
+    );
+    expect(again.id).toBe(memoryId);
+    expect(again.title).toBe("First write");
+
+    const listed = await t.query(
+      internal.memoryStore.functions.listMemoriesInternal,
+      { userId: USER_A, limit: 10, offset: 0 },
+    );
+    expect(listed.total).toBe(1);
+  });
+
+  it("deletes every memory for one clerk userId", async () => {
+    const t = convexTest(schema, modules);
+
+    await t.mutation(
+      internal.memoryStore.functions.createMemoryInternal,
+      createArgs({ title: "A1" }),
+    );
+    await t.mutation(
+      internal.memoryStore.functions.createMemoryInternal,
+      createArgs({
+        userId: USER_A,
+        profileId: TEAM_PROFILE,
+        title: "A team",
+      }),
+    );
+    await t.mutation(
+      internal.memoryStore.functions.createMemoryInternal,
+      createArgs({ userId: USER_B, title: "B stays" }),
+    );
+
+    const deleted = await t.mutation(
+      internal.memoryStore.functions.deleteMemoriesForUserInternal,
+      { userId: USER_A },
+    );
+    expect(deleted).toBe(2);
+
+    const remainingA = await t.query(
+      internal.memoryStore.functions.listMemoriesInternal,
+      { userId: USER_A, limit: 10, offset: 0 },
+    );
+    const remainingB = await t.query(
+      internal.memoryStore.functions.listMemoriesInternal,
+      { userId: USER_B, limit: 10, offset: 0 },
+    );
+    expect(remainingA.total).toBe(0);
+    expect(remainingB.total).toBe(1);
+    expect(remainingB.memories[0]?.title).toBe("B stays");
   });
 });

@@ -13,6 +13,7 @@ import type {
   TeamSearchMemoriesArgs,
 } from "../../memoryApi/validators";
 import { toMemoryStatus, toMemoryType } from "./shared";
+import { dualWriteDeleteTeamAsOwner } from "./dualWrite";
 
 export async function runListMemoriesForTeam(args: TeamListMemoriesArgs) {
   const driver = getDriver();
@@ -60,6 +61,7 @@ export async function runDeleteTeamMemoryAsOwner(
   );
 
   if (deleted) {
+    await dualWriteDeleteTeamAsOwner(ctx, args.profileId, args.memoryId);
     await ctx.runMutation(internal.memoryEvents.pushEventInternal, {
       clerkId: args.ownerClerkId,
       eventType: "memory_deleted",

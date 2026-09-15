@@ -5,6 +5,7 @@ import { internalMutation, internalQuery } from "../_generated/server";
 import { memoryStatusValidator, memoryTypeValidator } from "../validators";
 import {
   createMemory,
+  deleteMemoriesForUser,
   deleteMemory,
   deleteTeamMemoryAsOwner,
   getMemory,
@@ -43,6 +44,7 @@ const updateContentFields = {
 
 export const createMemoryInternal = internalMutation({
   args: {
+    memoryId: v.optional(v.string()),
     userId: v.string(),
     profileId: v.string(),
     title: v.string(),
@@ -159,4 +161,12 @@ export const deleteTeamMemoryAsOwnerInternal = internalMutation({
   returns: v.boolean(),
   handler: async (ctx, args) =>
     deleteTeamMemoryAsOwner(ctx, args.profileId, args.memoryId),
+});
+
+export const deleteMemoriesForUserInternal = internalMutation({
+  args: {
+    userId: v.string(),
+  },
+  returns: v.number(),
+  handler: async (ctx, args) => deleteMemoriesForUser(ctx, args.userId),
 });

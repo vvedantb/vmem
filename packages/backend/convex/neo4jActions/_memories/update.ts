@@ -7,6 +7,7 @@ import { getDriver } from "../../../engine/neo4j/driver";
 import type { UpdateMemoryInternalArgs } from "../../memoryApi/validators";
 import { toMemoryStatus, toMemoryType } from "./shared";
 import { scheduleAfterMemoryMutation } from "./lifecycle";
+import { dualWriteUpdate } from "./dualWrite";
 
 export async function runUpdateMemory(
   ctx: ActionCtx,
@@ -24,6 +25,18 @@ export async function runUpdateMemory(
   });
 
   if (!result) return result;
+
+  await dualWriteUpdate(ctx, {
+    userId: args.clerkId,
+    memoryId: args.memoryId,
+    title: args.title,
+    content: args.content,
+    type: toMemoryType(args.type),
+    status: toMemoryStatus(args.status),
+    tags: args.tags,
+    confidence: args.confidence,
+    expiresAt: args.expiresAt,
+  });
 
   await scheduleAfterMemoryMutation(ctx, {
     clerkId: args.clerkId,
