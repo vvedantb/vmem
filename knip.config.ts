@@ -31,8 +31,13 @@ const config: KnipConfig = {
       project: ["oxlint-plugin-vmem/**/*.mjs"],
     },
     "apps/web": {
-      entry: ["src/main.tsx!", "src/routes/**/*.tsx!", "vite.config.ts!"],
-      project: ["src/**/*.{ts,tsx}"],
+      entry: [
+        "src/main.tsx!",
+        "src/routes/**/*.tsx!",
+        "vite.config.ts!",
+        "scripts/generate-og-image.mjs!",
+      ],
+      project: ["src/**/*.{ts,tsx}", "scripts/generate-og-image.mjs"],
     },
     "apps/chrome-extension": {
       entry: ["src/entrypoints/**/*.{ts,tsx,html}!", "wxt.config.ts!"],

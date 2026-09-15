@@ -6,7 +6,6 @@
  */
 
 import sharp from "sharp";
-import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -66,8 +65,6 @@ async function generateOgImage() {
   const outputPath = path.join(publicDir, "og-image.png");
 
   await sharp(Buffer.from(svg)).png().toFile(outputPath);
-
-  console.log(`OG image saved to ${outputPath}`);
 }
 
-generateOgImage().catch(console.error);
+await generateOgImage();

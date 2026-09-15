@@ -40,7 +40,7 @@ export interface DemoMemory {
   connections: readonly { title: string; reason: string }[];
 }
 
-export interface DemoTrace {
+interface DemoTrace {
   score: number;
   reason: string;
   scoreBreakdown: {
