@@ -122,7 +122,7 @@ assertInvalid(
 assertInvalid(
   "no-engine-imports-convex",
   `import { mutation } from "../../convex/_generated/server";\nexport const x = mutation;\n`,
-  { filename: "packages/backend/engine/neo4j/memory.ts" },
+  { filename: "packages/backend/engine/memory/hash.ts" },
 );
 
 assertValid(

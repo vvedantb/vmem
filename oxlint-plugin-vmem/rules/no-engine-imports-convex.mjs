@@ -3,7 +3,7 @@ import { toPosix } from "../utils.mjs";
 
 const message =
   "engine/ must not import from convex/. The engine layer is provider-agnostic " +
-  "(Neo4j/LLM logic, reusable outside Convex); depending on convex/ inverts the " +
+  "(hash/retrieve/LLM helpers, reusable outside Convex); depending on convex/ inverts the " +
   "layering. Move the shared code into engine/, or have convex/ pass it in.";
 
 export default {

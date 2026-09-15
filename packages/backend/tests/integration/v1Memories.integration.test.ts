@@ -1,25 +1,31 @@
 // AI-generated (Claude), prompt: "live http api integration tests for v1 memories via the sdk"
-// Modified by me: gated on http api test env and api key
+// Modified by me: health/401 probes need no API key; CRUD stays key-gated
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { VMemory } from "@vmem/sdk";
 
 const DEFAULT_HTTP_API_BASE_URL =
-  "https://outgoing-reindeer-268.eu-west-1.convex.site";
+  "https://clear-bear-690.eu-west-1.convex.site";
 
 const runLiveHttpApiTest = process.env.RUN_HTTP_API_TEST === "1";
 const apiKey = process.env.VMEM_API_KEY;
 const baseUrl = process.env.VMEM_HTTP_API_BASE_URL ?? DEFAULT_HTTP_API_BASE_URL;
 
-const canRun = runLiveHttpApiTest && apiKey !== undefined && apiKey.length > 0;
+const hasApiKey = apiKey !== undefined && apiKey.length > 0;
+const canRunCrud = runLiveHttpApiTest && hasApiKey;
 
 const errorBodySchema = z.object({
   error: z.string(),
 });
 
-// sdk needs auth: raw fetch probes missing and bad tokens
-async function postMemoriesProbe(args: {
+const healthBodySchema = z.object({
+  status: z.string(),
+});
+
+async function postJson(args: {
+  path: string;
+  method: "POST" | "PATCH" | "DELETE";
   authToken: string | null;
   body: object;
 }): Promise<{ status: number; error: string | null }> {
@@ -28,8 +34,8 @@ async function postMemoriesProbe(args: {
     headers.set("Authorization", `Bearer ${args.authToken}`);
   }
 
-  const response = await fetch(`${baseUrl}/api/v1/memories`, {
-    method: "POST",
+  const response = await fetch(`${baseUrl}${args.path}`, {
+    method: args.method,
     headers,
     body: JSON.stringify(args.body),
   });
@@ -51,8 +57,62 @@ const storeAuthProbeBody = {
   confidence: 1,
 };
 
-describe.skipIf(!canRun)("HTTP v1 memories API (live)", () => {
-  // construct only when gated: vmem rejects an empty api-key
+describe.skipIf(!runLiveHttpApiTest)(
+  "HTTP v1 memories API (live auth gate)",
+  () => {
+    it("GET /health returns ok", async () => {
+      const response = await fetch(`${baseUrl}/health`);
+      const json: unknown = await response.json().catch(() => null);
+      const parsed = healthBodySchema.safeParse(json);
+      expect(response.status).toBe(200);
+      expect(parsed.success ? parsed.data.status : null).toBe("ok");
+    });
+
+    it.each([
+      {
+        label: "store without Authorization",
+        path: "/api/v1/memories" as const,
+        method: "POST" as const,
+        authToken: null,
+        body: storeAuthProbeBody,
+      },
+      {
+        label: "store with an invalid API key",
+        path: "/api/v1/memories" as const,
+        method: "POST" as const,
+        authToken: "vmem_sk_invalid_key_for_tests",
+        body: storeAuthProbeBody,
+      },
+      {
+        label: "retrieve without Authorization",
+        path: "/api/v1/memories/retrieve" as const,
+        method: "POST" as const,
+        authToken: null,
+        body: { query: "pnpm" },
+      },
+      {
+        label: "update without Authorization",
+        path: "/api/v1/memories" as const,
+        method: "PATCH" as const,
+        authToken: null,
+        body: { id: "mem_missing", title: "x" },
+      },
+      {
+        label: "delete without Authorization",
+        path: "/api/v1/memories" as const,
+        method: "DELETE" as const,
+        authToken: null,
+        body: { id: "mem_missing" },
+      },
+    ])("rejects $label", async ({ path, method, authToken, body }) => {
+      const result = await postJson({ path, method, authToken, body });
+      expect(result.status).toBe(401);
+      expect(result.error).toBe("unauthorized");
+    });
+  },
+);
+
+describe.skipIf(!canRunCrud)("HTTP v1 memories API (live CRUD)", () => {
   const client =
     apiKey !== undefined && apiKey.length > 0
       ? new VMemory({ baseUrl, apiKey })
@@ -65,33 +125,10 @@ describe.skipIf(!canRun)("HTTP v1 memories API (live)", () => {
     return client;
   }
 
-  it("GET /health returns ok", async () => {
-    const result = await vmem().health();
-    expect(result.status).toBe("ok");
-  });
-
-  it.each([
-    {
-      label: "without Authorization",
-      authToken: null,
-      content: "no auth header",
-    },
-    {
-      label: "with an invalid API key",
-      authToken: "vmem_sk_invalid_key_for_tests",
-      content: "bad key",
-    },
-  ])("rejects requests $label", async ({ authToken, content }) => {
-    const result = await postMemoriesProbe({
-      authToken,
-      body: { ...storeAuthProbeBody, content },
-    });
-    expect(result.status).toBe(401);
-    expect(result.error).toBe("unauthorized");
-  });
-
   it("rejects invalid store payloads", async () => {
-    const result = await postMemoriesProbe({
+    const result = await postJson({
+      path: "/api/v1/memories",
+      method: "POST",
       authToken: apiKey ?? "",
       body: { title: "missing required fields" },
     });
@@ -154,9 +191,11 @@ describe.skipIf(!canRun)("HTTP v1 memories API (live)", () => {
 });
 
 describe("HTTP v1 memories API (config)", () => {
-  it("live-test gating matches environment", () => {
-    expect(!runLiveHttpApiTest || apiKey?.startsWith("vmem_sk_") === true).toBe(
-      true,
-    );
+  it("ignores empty or well-formed vmem API keys", () => {
+    expect(
+      apiKey === undefined ||
+        apiKey.length === 0 ||
+        apiKey.startsWith("vmem_sk_"),
+    ).toBe(true);
   });
 });
