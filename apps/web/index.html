@@ -3,8 +3,63 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>vmem</title>
+    <title>vmem — Memory engine for AI agents</title>
+    <meta
+      name="description"
+      content="Graph storage, vector recall, and MCP-ready integrations for any agent stack. Store context from chats and tools, connect it in a graph, and retrieve the slice that matters."
+    />
     <link rel="icon" href="/favicon.png" />
+    <link rel="canonical" href="https://vmem.vedantb.com/" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://vmem.vedantb.com/" />
+    <meta property="og:title" content="vmem — Memory engine for AI agents" />
+    <meta
+      property="og:description"
+      content="Graph storage, vector recall, and MCP-ready integrations for any agent stack. Store context from chats and tools, connect it in a graph, and retrieve the slice that matters."
+    />
+    <meta property="og:image" content="https://vmem.vedantb.com/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="vmem" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="vmem — Memory engine for AI agents" />
+    <meta
+      name="twitter:description"
+      content="Graph storage, vector recall, and MCP-ready integrations for any agent stack."
+    />
+    <meta
+      name="twitter:image"
+      content="https://vmem.vedantb.com/og-image.png"
+    />
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "vmem",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Web",
+        "description": "Memory engine for AI agents. Graph storage, vector recall, and MCP-ready integrations for any agent stack.",
+        "url": "https://vmem.vedantb.com/",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "featureList": [
+          "Graph-native memory storage",
+          "Vector search and recall",
+          "MCP integration",
+          "HTTP API",
+          "SDK for Node.js"
+        ]
+      }
+    </script>
 
     <!-- Preconnect to Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -27,5 +82,56 @@
   <body class="font-sans antialiased">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+
+    <!-- SEO fallback for crawlers that don't execute JavaScript -->
+    <noscript>
+      <div
+        style="
+          max-width: 800px;
+          margin: 40px auto;
+          padding: 20px;
+          font-family: system-ui, sans-serif;
+        "
+      >
+        <h1>vmem — Memory engine for AI agents</h1>
+        <p>Memory your agents can actually use.</p>
+        <p>
+          Store context from chats and tools, connect it in a graph, and
+          retrieve the slice that matters — with a Context Trace that shows why
+          each memory matched.
+        </p>
+        <h2>How it works</h2>
+        <ul>
+          <li>
+            <strong>Store</strong> — Capture context from chat, tools, and HTTP
+            — tagged by profile, so workspaces stay separate.
+          </li>
+          <li>
+            <strong>Connect</strong> — Memories link in a graph. Relationships
+            survive between sessions instead of sitting in a flat list.
+          </li>
+          <li>
+            <strong>Recall</strong> — Agents pull the right slice via MCP,
+            skills, or the API — and get a Context Trace with the answer.
+          </li>
+        </ul>
+        <h2>Features</h2>
+        <ul>
+          <li>
+            Graph-native memory — See context as a network, not a flat list.
+          </li>
+          <li>
+            Built for recall — Episodic, knowledge, and profile memories that
+            persist.
+          </li>
+          <li>Agent-ready — MCP, HTTP API, and skills your agents can call.</li>
+        </ul>
+        <h2>Surfaces</h2>
+        <p>MCP, HTTP, and an SDK on the same graph.</p>
+        <p>
+          <a href="https://vmem.vedantb.com/">Get started with vmem</a>
+        </p>
+      </div>
+    </noscript>
   </body>
 </html>
