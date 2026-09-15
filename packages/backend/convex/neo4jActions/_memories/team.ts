@@ -4,7 +4,6 @@ import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import {
   deleteTeamMemoryAsOwner,
-  getMemoryForTeam,
   listMemoriesForTeam,
 } from "../../../engine/neo4j/memory/team";
 import { getDriver } from "../../../engine/neo4j/driver";
@@ -15,7 +14,7 @@ import type {
 import { toMemoryStatus, toMemoryType } from "./shared";
 import { dualWriteDeleteTeamAsOwner } from "./dualWrite";
 
-export async function runListMemoriesForTeam(args: TeamListMemoriesArgs) {
+async function runListMemoriesForTeam(args: TeamListMemoriesArgs) {
   const driver = getDriver();
   return await listMemoriesForTeam(driver, {
     profileId: args.profileId,
@@ -27,14 +26,6 @@ export async function runListMemoriesForTeam(args: TeamListMemoriesArgs) {
     limit: args.limit,
     offset: args.offset,
   });
-}
-
-export async function runGetMemoryForTeam(args: {
-  profileId: string;
-  memoryId: string;
-}) {
-  const driver = getDriver();
-  return await getMemoryForTeam(driver, args.profileId, args.memoryId);
 }
 
 export async function runSearchMemoriesForTeam(args: TeamSearchMemoriesArgs) {

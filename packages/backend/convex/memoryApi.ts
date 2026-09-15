@@ -144,23 +144,26 @@ export const searchMemories = authAction({
   handler: async (ctx, args): Promise<MemoryListResult> =>
     routeMemoryByProfile(ctx, args.profileId, {
       team: (teamProfile) =>
-        runListTeamMemories(ctx, {
-          profileId: teamProfile._id,
-          type: args.type,
-          tags: args.tags,
-          source: args.source,
-          searchQuery: args.query,
-          limit: args.limit,
-          offset: args.offset,
-        }),
+        ctx.runAction(
+          internal.neo4jActions.memories.searchMemoriesForTeamInternal,
+          {
+            profileId: teamProfile._id,
+            query: args.query,
+            type: args.type,
+            tags: args.tags,
+            source: args.source,
+            limit: args.limit,
+            offset: args.offset,
+          },
+        ),
       personal: (clerkId) =>
-        ctx.runAction(internal.neo4jActions.memories.listMemoriesInternal, {
+        ctx.runAction(internal.neo4jActions.memories.searchMemoriesInternal, {
           clerkId,
           profileId: args.profileId,
+          query: args.query,
           type: args.type,
           tags: args.tags,
           source: args.source,
-          searchQuery: args.query,
           limit: args.limit,
           offset: args.offset,
         }),

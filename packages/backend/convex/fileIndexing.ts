@@ -6,8 +6,6 @@ import type { ActionCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { extractFileContent } from "../engine/parsers/extractFileContent";
-import { getDriver } from "../engine/neo4j/driver";
-import { getMemory } from "../engine/neo4j/memory/crud";
 import { detectFileKind } from "./files/lib";
 
 async function cleanupFileMemory(
@@ -21,7 +19,10 @@ async function cleanupFileMemory(
   );
   if (stillReferenced) return;
 
-  const memory = await getMemory(getDriver(), entry.clerkId, entry.memoryId);
+  const memory = await ctx.runQuery(
+    internal.memoryStore.functions.getMemoryInternal,
+    { userId: entry.clerkId, memoryId: entry.memoryId },
+  );
   if (!memory || memory.sourceType !== "file-node") return;
 
   await ctx.runAction(internal.neo4jActions.memories.deleteMemoryInternal, {

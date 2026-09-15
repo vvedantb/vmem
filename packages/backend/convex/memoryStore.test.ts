@@ -345,4 +345,97 @@ describe("convex memoryStore", () => {
     expect(remainingB.total).toBe(1);
     expect(remainingB.memories[0]?.title).toBe("B stays");
   });
+
+  it("backfills by memoryId without overwriting existing rows", async () => {
+    const t = convexTest(schema, modules);
+    const createdAt = "2024-01-02T03:04:05.000Z";
+    const updatedAt = "2024-06-07T08:09:10.000Z";
+
+    const first = await t.mutation(
+      internal.memoryStore.functions.insertBackfillBatchInternal,
+      {
+        rows: [
+          {
+            memoryId: "neo4j-legacy",
+            userId: USER_A,
+            title: "Legacy suppressed",
+            content: "copied from neo4j",
+            type: "episodic",
+            source: "api",
+            tags: ["History"],
+            confidence: 0.4,
+            contentHash: "hash-legacy",
+            status: "suppressed",
+            createdAt,
+            updatedAt,
+            sourceId: "src-1",
+          },
+          {
+            memoryId: "neo4j-team",
+            userId: USER_B,
+            profileId: TEAM_PROFILE,
+            title: "Team copied",
+            content: "team graph row",
+            type: "knowledge",
+            source: "mcp",
+            tags: ["team"],
+            confidence: 1,
+            contentHash: "hash-team",
+            status: "pinned",
+            createdAt,
+            updatedAt,
+          },
+        ],
+      },
+    );
+    expect(first).toBe(2);
+
+    const again = await t.mutation(
+      internal.memoryStore.functions.insertBackfillBatchInternal,
+      {
+        rows: [
+          {
+            memoryId: "neo4j-legacy",
+            userId: USER_A,
+            title: "should not replace",
+            content: "ignored",
+            type: "knowledge",
+            source: "api",
+            tags: [],
+            confidence: 1,
+            contentHash: "other-hash",
+            status: "active",
+            createdAt,
+            updatedAt,
+          },
+        ],
+      },
+    );
+    expect(again).toBe(0);
+
+    const existing = await t.query(
+      internal.memoryStore.functions.existingMemoryIdsInternal,
+      { memoryIds: ["neo4j-legacy", "missing", "neo4j-team"] },
+    );
+    expect(existing.sort()).toEqual(["neo4j-legacy", "neo4j-team"]);
+
+    const fetched = await t.query(
+      internal.memoryStore.functions.getMemoryInternal,
+      { userId: USER_A, memoryId: "neo4j-legacy" },
+    );
+    expect(fetched?.title).toBe("Legacy suppressed");
+    expect(fetched?.status).toBe("suppressed");
+    expect(fetched?.profileId).toBeNull();
+    expect(fetched?.createdAt).toBe(createdAt);
+    expect(fetched?.updatedAt).toBe(updatedAt);
+    expect(fetched?.type).toBe("episodic");
+
+    const teamGet = await t.query(
+      internal.memoryStore.functions.getMemoryForTeamInternal,
+      { profileId: TEAM_PROFILE, memoryId: "neo4j-team" },
+    );
+    expect(teamGet?.title).toBe("Team copied");
+    expect(teamGet?.status).toBe("pinned");
+    expect(teamGet?.userId).toBe(USER_B);
+  });
 });

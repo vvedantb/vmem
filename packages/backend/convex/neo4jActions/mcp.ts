@@ -1,6 +1,6 @@
 "use node";
 
-import { internalAction } from "../_generated/server";
+import { internalAction, type ActionCtx } from "../_generated/server";
 import { v } from "convex/values";
 import { runUpdateMemory } from "./_memories/update";
 import { runDeleteMemory } from "./_memories/delete";
@@ -130,8 +130,12 @@ export const mcpCreateMemory = internalAction({
     ),
 });
 
-async function loadScopedMemory(scope: McpResolvedScope, memoryId: string) {
-  return loadMemoryForMcpScope({
+async function loadScopedMemory(
+  ctx: ActionCtx,
+  scope: McpResolvedScope,
+  memoryId: string,
+) {
+  return loadMemoryForMcpScope(ctx, {
     clerkId: scope.clerkId,
     mcpScope: scope.mcpScope,
     profileId: scope.profileId,
@@ -153,7 +157,7 @@ export const mcpUpdateMemory = internalAction({
   },
   handler: async (ctx, args) =>
     withMcpMemoryScope(ctx, args, async (scope) => {
-      const memory = await loadScopedMemory(scope, args.memoryId);
+      const memory = await loadScopedMemory(ctx, scope, args.memoryId);
       const {
         clerkId: _clerkId,
         mcpScope: _mcpScope,
@@ -187,7 +191,7 @@ export const mcpDeleteMemory = internalAction({
   },
   handler: async (ctx, args) =>
     withMcpMemoryScope(ctx, args, async (scope) => {
-      const memory = await loadScopedMemory(scope, args.memoryId);
+      const memory = await loadScopedMemory(ctx, scope, args.memoryId);
       return runDeleteMemory(ctx, {
         clerkId: memory.userId,
         memoryId: args.memoryId,
@@ -222,7 +226,7 @@ export const mcpGetRelatedMemories = internalAction({
   },
   handler: async (ctx, args): Promise<RelatedMemoryRow[]> =>
     withMcpMemoryScope(ctx, args, async (scope) => {
-      const memory = await loadScopedMemory(scope, args.memoryId);
+      const memory = await loadScopedMemory(ctx, scope, args.memoryId);
       const rows = await getRelatedMemories(
         getDriver(),
         memory.userId,

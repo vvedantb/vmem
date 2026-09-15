@@ -2,10 +2,11 @@
 
 import { internalAction, type ActionCtx } from "../_generated/server";
 import { v } from "convex/values";
+import { internal } from "../_generated/api";
+import type { MemoryWithTags } from "@vmem/sdk";
 import { runBackfillChunks, runChunkMemory } from "./_memories/chunks";
+import { runBackfillMemoryStore } from "./_memories/backfill";
 import {
-  runGetMemory,
-  runListMemories,
   runRetrieveMemories,
   runRetrieveMemoriesForTeam,
   runSearchMemories,
@@ -14,12 +15,11 @@ import { runUpdateMemory } from "./_memories/update";
 import { runDeleteAllMemories, runDeleteMemory } from "./_memories/delete";
 import {
   runDeleteTeamMemoryAsOwner,
-  runGetMemoryForTeam,
-  runListMemoriesForTeam,
   runSearchMemoriesForTeam,
 } from "./_memories/team";
 import { runCreateMemory } from "./_memories/create";
 import { resolveProfileScopeForClerkId } from "./_memories/shared";
+import type { MemoryListResult } from "../memoryApi/types";
 import {
   createMemoryInternalFields,
   listMemoriesFields,
@@ -69,7 +69,11 @@ export const getMemoryInternal = internalAction({
     clerkId: v.string(),
     memoryId: v.string(),
   },
-  handler: async (_ctx, args) => runGetMemory(args),
+  handler: async (ctx, args): Promise<MemoryWithTags | null> =>
+    ctx.runQuery(internal.memoryStore.functions.getMemoryInternal, {
+      userId: args.clerkId,
+      memoryId: args.memoryId,
+    }),
 });
 
 export const listMemoriesInternal = internalAction({
@@ -77,8 +81,23 @@ export const listMemoriesInternal = internalAction({
     clerkId: v.string(),
     ...listMemoriesFields,
   },
-  handler: async (ctx, args) =>
-    runListMemories(await withResolvedProfileId(ctx, args)),
+  handler: async (ctx, args): Promise<MemoryListResult> => {
+    const resolved = await withResolvedProfileId(ctx, args);
+    return await ctx.runQuery(
+      internal.memoryStore.functions.listMemoriesInternal,
+      {
+        userId: resolved.clerkId,
+        profileId: resolved.profileId,
+        type: resolved.type,
+        status: resolved.status,
+        source: resolved.source,
+        tags: resolved.tags,
+        searchQuery: resolved.searchQuery,
+        limit: resolved.limit,
+        offset: resolved.offset,
+      },
+    );
+  },
 });
 
 export const updateMemoryInternal = internalAction({
@@ -130,7 +149,17 @@ export const retrieveMemoriesForTeamInternal = internalAction({
 
 export const listMemoriesForTeamInternal = internalAction({
   args: teamListMemoriesFields,
-  handler: async (_ctx, args) => runListMemoriesForTeam(args),
+  handler: async (ctx, args): Promise<MemoryListResult> =>
+    ctx.runQuery(internal.memoryStore.functions.listMemoriesForTeamInternal, {
+      profileId: args.profileId,
+      type: args.type,
+      status: args.status,
+      source: args.source,
+      tags: args.tags,
+      searchQuery: args.searchQuery,
+      limit: args.limit,
+      offset: args.offset,
+    }),
 });
 
 export const getMemoryForTeamInternal = internalAction({
@@ -138,7 +167,11 @@ export const getMemoryForTeamInternal = internalAction({
     profileId: v.string(),
     memoryId: v.string(),
   },
-  handler: async (_ctx, args) => runGetMemoryForTeam(args),
+  handler: async (ctx, args): Promise<MemoryWithTags | null> =>
+    ctx.runQuery(internal.memoryStore.functions.getMemoryForTeamInternal, {
+      profileId: args.profileId,
+      memoryId: args.memoryId,
+    }),
 });
 
 export const searchMemoriesForTeamInternal = internalAction({
@@ -153,4 +186,33 @@ export const deleteTeamMemoryAsOwnerInternal = internalAction({
     ownerClerkId: v.string(),
   },
   handler: async (ctx, args) => runDeleteTeamMemoryAsOwner(ctx, args),
+});
+
+const backfillPageResultValidator = v.object({
+  scanned: v.number(),
+  inserted: v.number(),
+  wouldInsert: v.number(),
+  skipped: v.number(),
+  invalid: v.number(),
+  nextCursor: v.union(
+    v.object({ createdAt: v.string(), id: v.string() }),
+    v.null(),
+  ),
+  done: v.boolean(),
+  dryRun: v.boolean(),
+});
+
+// Operator-only Neo4j → Convex copy. Defaults to dry-run. Repeat with the
+// returned cursor until done=true. Do not schedule from product paths.
+export const backfillMemoryStoreInternal = internalAction({
+  args: {
+    dryRun: v.optional(v.boolean()),
+    limit: v.optional(v.number()),
+    cursorCreatedAt: v.optional(v.string()),
+    cursorId: v.optional(v.string()),
+    userId: v.optional(v.string()),
+    profileId: v.optional(v.string()),
+  },
+  returns: backfillPageResultValidator,
+  handler: async (ctx, args) => runBackfillMemoryStore(ctx, args),
 });

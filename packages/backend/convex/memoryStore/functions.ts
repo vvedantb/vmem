@@ -8,8 +8,10 @@ import {
   deleteMemoriesForUser,
   deleteMemory,
   deleteTeamMemoryAsOwner,
+  existingMemoryIds,
   getMemory,
   getMemoryForTeam,
+  insertBackfillBatch,
   listMemories,
   listMemoriesForTeam,
   updateMemory,
@@ -42,11 +44,32 @@ const updateContentFields = {
   expiresAt: v.optional(v.union(v.string(), v.null())),
 };
 
+const backfillRowFields = {
+  memoryId: v.string(),
+  userId: v.string(),
+  profileId: v.optional(v.string()),
+  title: v.string(),
+  content: v.string(),
+  type: memoryTypeValidator,
+  source: v.string(),
+  tags: v.array(v.string()),
+  confidence: v.number(),
+  contentHash: v.string(),
+  status: memoryStatusValidator,
+  createdAt: v.string(),
+  updatedAt: v.string(),
+  expiresAt: v.optional(v.string()),
+  sourceType: v.optional(v.string()),
+  sourceId: v.optional(v.string()),
+  sourceUrl: v.optional(v.string()),
+  sourceSyncedAt: v.optional(v.string()),
+};
+
 export const createMemoryInternal = internalMutation({
   args: {
     memoryId: v.optional(v.string()),
     userId: v.string(),
-    profileId: v.string(),
+    profileId: v.optional(v.string()),
     title: v.string(),
     content: v.string(),
     type: memoryTypeValidator,
@@ -54,6 +77,9 @@ export const createMemoryInternal = internalMutation({
     tags: v.array(v.string()),
     confidence: v.number(),
     contentHash: v.string(),
+    status: v.optional(memoryStatusValidator),
+    createdAt: v.optional(v.number()),
+    updatedAt: v.optional(v.number()),
     expiresAt: v.optional(v.string()),
     url: v.optional(v.string()),
     sourceType: v.optional(v.string()),
@@ -169,4 +195,20 @@ export const deleteMemoriesForUserInternal = internalMutation({
   },
   returns: v.number(),
   handler: async (ctx, args) => deleteMemoriesForUser(ctx, args.userId),
+});
+
+export const existingMemoryIdsInternal = internalQuery({
+  args: {
+    memoryIds: v.array(v.string()),
+  },
+  returns: v.array(v.string()),
+  handler: async (ctx, args) => existingMemoryIds(ctx, args.memoryIds),
+});
+
+export const insertBackfillBatchInternal = internalMutation({
+  args: {
+    rows: v.array(v.object(backfillRowFields)),
+  },
+  returns: v.number(),
+  handler: async (ctx, args) => insertBackfillBatch(ctx, args.rows),
 });

@@ -5,7 +5,7 @@ import type {
   ListMemoriesInternalArgs,
   SearchMemoriesInternalArgs,
 } from "../../memoryApi/validators";
-import { getMemory, listMemories } from "../../../engine/neo4j/memory/crud";
+import { listMemories } from "../../../engine/neo4j/memory/crud";
 import { retrieveMemories } from "../../../engine/neo4j/memory/retrieve";
 import type { MemoryReadScope } from "../../../engine/neo4j/memory/scope";
 import { getDriver } from "../../../engine/neo4j/driver";
@@ -21,15 +21,7 @@ import {
 } from "../../lib/openRouter/bestEffortEmbed";
 import { toMemoryStatus, toMemoryType } from "./shared";
 
-export async function runGetMemory(args: {
-  clerkId: string;
-  memoryId: string;
-}) {
-  const driver = getDriver();
-  return await getMemory(driver, args.clerkId, args.memoryId);
-}
-
-export async function runListMemories(args: ListMemoriesInternalArgs) {
+async function runListMemories(args: ListMemoriesInternalArgs) {
   const driver = getDriver();
   return await listMemories(driver, {
     userId: args.clerkId,

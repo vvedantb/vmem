@@ -2,12 +2,10 @@
 
 import type { ActionCtx } from "../_generated/server";
 import { v } from "convex/values";
-import { getDriver } from "../../engine/neo4j/driver";
-import { getMemory } from "../../engine/neo4j/memory/crud";
+import { internal } from "../_generated/api";
 import type { MemoryWithTags } from "../../engine/neo4j/memory/types";
 import { mcpScopeValidator, type McpScope } from "../profiles/mcpAccess";
 import { resolveProfileIdForMcpScope } from "./_memories/shared";
-import { runGetMemoryForTeam } from "./_memories/team";
 
 export const scopedMcpArgs = {
   clerkId: v.string(),
@@ -67,24 +65,30 @@ export function memoryMatchesMcpScope(
   return memory.profileId === profileId || memory.profileId === null;
 }
 
-export async function loadMemoryForMcpScope(args: {
-  clerkId: string;
-  mcpScope: McpScope;
-  profileId: string;
-  memoryId: string;
-}): Promise<MemoryWithTags> {
+export async function loadMemoryForMcpScope(
+  ctx: Pick<ActionCtx, "runQuery">,
+  args: {
+    clerkId: string;
+    mcpScope: McpScope;
+    profileId: string;
+    memoryId: string;
+  },
+): Promise<MemoryWithTags> {
   if (args.mcpScope === "team") {
-    const memory = await runGetMemoryForTeam({
-      profileId: args.profileId,
-      memoryId: args.memoryId,
-    });
+    const memory = await ctx.runQuery(
+      internal.memoryStore.functions.getMemoryForTeamInternal,
+      { profileId: args.profileId, memoryId: args.memoryId },
+    );
     if (!memory) {
       throw new Error("Memory not found");
     }
     return memory;
   }
 
-  const memory = await getMemory(getDriver(), args.clerkId, args.memoryId);
+  const memory = await ctx.runQuery(
+    internal.memoryStore.functions.getMemoryInternal,
+    { userId: args.clerkId, memoryId: args.memoryId },
+  );
   if (
     !memory ||
     !memoryMatchesMcpScope(memory, args.mcpScope, args.profileId)

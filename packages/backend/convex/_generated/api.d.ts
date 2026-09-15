@@ -94,6 +94,7 @@ import type * as memoryEvents from "../memoryEvents.js";
 import type * as memoryStore_functions from "../memoryStore/functions.js";
 import type * as memoryStore_helpers from "../memoryStore/helpers.js";
 import type * as memoryStore_mappers from "../memoryStore/mappers.js";
+import type * as neo4jActions__memories_backfill from "../neo4jActions/_memories/backfill.js";
 import type * as neo4jActions__memories_chunks from "../neo4jActions/_memories/chunks.js";
 import type * as neo4jActions__memories_create from "../neo4jActions/_memories/create.js";
 import type * as neo4jActions__memories_delete from "../neo4jActions/_memories/delete.js";
@@ -259,6 +260,7 @@ declare const fullApi: ApiFromModules<{
   "memoryStore/functions": typeof memoryStore_functions;
   "memoryStore/helpers": typeof memoryStore_helpers;
   "memoryStore/mappers": typeof memoryStore_mappers;
+  "neo4jActions/_memories/backfill": typeof neo4jActions__memories_backfill;
   "neo4jActions/_memories/chunks": typeof neo4jActions__memories_chunks;
   "neo4jActions/_memories/create": typeof neo4jActions__memories_create;
   "neo4jActions/_memories/delete": typeof neo4jActions__memories_delete;

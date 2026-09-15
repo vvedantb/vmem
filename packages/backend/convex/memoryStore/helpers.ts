@@ -15,7 +15,7 @@ import { parseIsoMillis, toMemoryWithTags } from "./mappers";
 export interface CreateMemoryStoreParams {
   memoryId?: string;
   userId: string;
-  profileId: string;
+  profileId?: string;
   title: string;
   content: string;
   type: MemoryType;
@@ -23,6 +23,9 @@ export interface CreateMemoryStoreParams {
   tags: string[];
   confidence: number;
   contentHash: string;
+  status?: MemoryStatus;
+  createdAt?: number;
+  updatedAt?: number;
   expiresAt?: string;
   url?: string;
   sourceType?: string;
@@ -112,6 +115,8 @@ export async function createMemory(
   if (existing) return toMemoryWithTags(existing);
 
   const now = Date.now();
+  const createdAt = params.createdAt ?? now;
+  const updatedAt = params.updatedAt ?? now;
   const expiresAt =
     params.expiresAt === undefined
       ? undefined
@@ -124,16 +129,16 @@ export async function createMemory(
   const id = await ctx.db.insert("memories", {
     memoryId,
     userId: params.userId,
-    profileId: params.profileId,
+    ...(params.profileId === undefined ? {} : { profileId: params.profileId }),
     title: params.title,
     content: params.content,
     type: params.type,
     source: params.source,
     confidence: params.confidence,
-    status: "active",
+    status: params.status ?? "active",
     tags: normalizeTags(params.tags),
-    createdAt: now,
-    updatedAt: now,
+    createdAt,
+    updatedAt,
     expiresAt,
     url: params.url,
     contentHash: params.contentHash,
@@ -145,8 +150,8 @@ export async function createMemory(
     mimeType: params.mimeType,
     originalFilename: params.originalFilename,
     visitCount: 1,
-    firstVisitAt: now,
-    lastVisitAt: now,
+    firstVisitAt: createdAt,
+    lastVisitAt: updatedAt,
   });
 
   const created = await ctx.db.get(id);
@@ -287,4 +292,70 @@ export async function deleteMemoriesForUser(
     await ctx.db.delete(doc._id);
   }
   return docs.length;
+}
+
+export async function existingMemoryIds(
+  ctx: QueryCtx | MutationCtx,
+  memoryIds: string[],
+): Promise<string[]> {
+  const found: string[] = [];
+  for (const memoryId of memoryIds) {
+    const doc = await findByMemoryId(ctx, memoryId);
+    if (doc) found.push(memoryId);
+  }
+  return found;
+}
+
+interface BackfillMemoryStoreRow {
+  memoryId: string;
+  userId: string;
+  profileId?: string;
+  title: string;
+  content: string;
+  type: MemoryType;
+  source: string;
+  tags: string[];
+  confidence: number;
+  contentHash: string;
+  status: MemoryStatus;
+  createdAt: string;
+  updatedAt: string;
+  expiresAt?: string;
+  sourceType?: string;
+  sourceId?: string;
+  sourceUrl?: string;
+  sourceSyncedAt?: string;
+}
+
+export async function insertBackfillBatch(
+  ctx: MutationCtx,
+  rows: BackfillMemoryStoreRow[],
+): Promise<number> {
+  let inserted = 0;
+  for (const row of rows) {
+    const existing = await findByMemoryId(ctx, row.memoryId);
+    if (existing) continue;
+    await createMemory(ctx, {
+      memoryId: row.memoryId,
+      userId: row.userId,
+      profileId: row.profileId,
+      title: row.title,
+      content: row.content,
+      type: row.type,
+      source: row.source,
+      tags: row.tags,
+      confidence: row.confidence,
+      contentHash: row.contentHash,
+      status: row.status,
+      createdAt: parseIsoMillis(row.createdAt),
+      updatedAt: parseIsoMillis(row.updatedAt),
+      expiresAt: row.expiresAt,
+      sourceType: row.sourceType,
+      sourceId: row.sourceId,
+      sourceUrl: row.sourceUrl,
+      sourceSyncedAt: row.sourceSyncedAt,
+    });
+    inserted += 1;
+  }
+  return inserted;
 }
