@@ -1,0 +1,17 @@
+# vmem robots.txt
+# https://vmem.vedantb.com/
+
+User-agent: *
+
+# Allow public landing page
+Allow: /$
+
+# Disallow authenticated app routes
+Disallow: /home
+Disallow: /settings
+Disallow: /inbox
+Disallow: /notifications
+Disallow: /proposals
+
+# Sitemap
+Sitemap: https://vmem.vedantb.com/sitemap.xml
