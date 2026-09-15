@@ -165,10 +165,11 @@ describe("convex memoryStore", () => {
       { profileId: TEAM_PROFILE, limit: 10, offset: 0 },
     );
     expect(teamList.total).toBe(2);
-    expect(teamList.memories.map((memory) => memory.title).sort()).toEqual([
-      "Team note A",
-      "Team note B",
-    ]);
+    expect(
+      teamList.memories
+        .map((memory) => memory.title)
+        .sort((a, b) => a.localeCompare(b)),
+    ).toEqual(["Team note A", "Team note B"]);
 
     const teamGet = await t.query(
       internal.memoryStore.functions.getMemoryForTeamInternal,
