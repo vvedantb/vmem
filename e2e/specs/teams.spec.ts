@@ -11,7 +11,9 @@ import {
 test.describe("teams / sharing", { tag: ["@teams", "@smoke"] }, () => {
   test("personal workspace has no Team rail item and can open create team", async ({
     page,
+    profileId,
   }) => {
+    await expect(page).toHaveURL(new RegExp(`/${profileId}/home`));
     await expect(
       page.getByRole("link", { name: "Team", exact: true }),
     ).toHaveCount(0);
@@ -29,7 +31,9 @@ test.describe("teams / sharing", { tag: ["@teams", "@smoke"] }, () => {
 test.describe("teams / sharing", { tag: ["@teams"] }, () => {
   test("create, members, settings, invalid invite, delete", async ({
     page,
+    profileId,
   }) => {
+    await expect(page).toHaveURL(new RegExp(`/${profileId}/`));
     const teamName = `e2e-team-${Date.now()}`;
     await createTeam(page, teamName);
 

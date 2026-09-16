@@ -73,6 +73,8 @@ test.describe("settings", { tag: ["@settings", "@smoke"] }, () => {
 
     await page.getByRole("tab", { name: "Keys" }).click();
     await expect(page).toHaveURL(/\/settings\/api\/keys/);
+    await expect(page.getByRole("heading", { name: "API keys" })).toBeVisible();
+    await gotoSettings(page, "/api/keys");
     await expect(page.getByRole("button", { name: "New Key" })).toBeVisible();
   });
 
@@ -141,9 +143,9 @@ test.describe("settings", { tag: ["@settings", "@smoke"] }, () => {
       page.getByRole("menuitem", { name: "Manage account" }),
     ).toBeVisible();
     await page.getByRole("menuitem", { name: "Manage account" }).click();
-    await expect(page.getByText(/profile details|email address/i)).toBeVisible({
-      timeout: 20_000,
-    });
+    await expect(
+      page.getByRole("heading", { name: "Profile details" }),
+    ).toBeVisible({ timeout: 20_000 });
     await page.keyboard.press("Escape");
   });
 
@@ -159,9 +161,7 @@ test.describe("settings", { tag: ["@settings", "@smoke"] }, () => {
     ).toBeVisible();
 
     await page.getByRole("tab", { name: "Export" }).click();
-    await expect(
-      page.getByRole("heading", { name: "Export coming soon" }),
-    ).toBeVisible();
+    await expect(page.getByText("Export coming soon")).toBeVisible();
 
     await page.getByRole("tab", { name: "Data Control" }).click();
     await expect(

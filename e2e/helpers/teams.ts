@@ -1,13 +1,22 @@
 import { expect, type Page } from "@playwright/test";
-import { waitForAppShell } from "./nav";
+import { profileIdFromUrl, waitForAppShell } from "./nav";
 
 export async function openWorkspaceSwitcher(page: Page): Promise<void> {
-  const labeled = page.getByRole("button", { name: /Switch workspace/ });
-  if (await labeled.isVisible().catch(() => false)) {
-    await labeled.click();
-    return;
+  if (profileIdFromUrl(page.url()) === undefined) {
+    await page.goto("/home");
+    await waitForAppShell(page);
   }
-  await page.getByRole("button", { name: /Team workspace|Personal/ }).click();
+  const showSidebar = page.getByRole("button", { name: "Show sidebar" });
+  if (await showSidebar.isVisible().catch(() => false)) {
+    await showSidebar.click();
+  }
+  const trigger = page
+    .getByRole("button", { name: /Switch workspace/ })
+    .or(
+      page.getByRole("button").filter({ hasText: /Personal|Team workspace/ }),
+    );
+  await expect(trigger.first()).toBeVisible({ timeout: 20_000 });
+  await trigger.first().click();
 }
 
 export async function createTeam(page: Page, name: string): Promise<void> {
