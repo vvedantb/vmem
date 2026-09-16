@@ -17,8 +17,9 @@ export function TokenSync() {
     let active = true;
 
     void getToken({ template: "convex" }).then((token) => {
-      if (active) {
-        void setAuthToken(token ?? "");
+      // chrome.cookies.get(__client) is empty under CHIPS; keep the page-minted JWT
+      if (active && token) {
+        void setAuthToken(token);
       }
     });
 
@@ -30,7 +31,9 @@ export function TokenSync() {
   useInterval(
     () => {
       void getToken({ template: "convex" }).then((token) => {
-        void setAuthToken(token ?? "");
+        if (token) {
+          void setAuthToken(token);
+        }
       });
     },
     isLoaded && isSignedIn ? 50_000 : null,

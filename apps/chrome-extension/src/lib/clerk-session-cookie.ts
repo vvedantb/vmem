@@ -39,11 +39,14 @@ export function clerkSessionIdFromJwt(jwt: string): string | null {
 export function clerkConvexTokenUrl(
   frontendApiHost: string,
   sessionId: string,
+  options?: { native?: boolean },
 ): string {
   const url = new URL(
     `https://${frontendApiHost}/v1/client/sessions/${sessionId}/tokens/convex`,
   );
-  url.searchParams.set("_is_native", "1");
+  if (options?.native !== false) {
+    url.searchParams.set("_is_native", "1");
+  }
   return url.toString();
 }
 

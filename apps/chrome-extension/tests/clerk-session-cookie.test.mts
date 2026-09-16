@@ -37,6 +37,10 @@ await test("clerkConvexTokenUrl is the native FAPI mint path", () => {
     clerkConvexTokenUrl("clerk.vedantb.com", "sess_1"),
     "https://clerk.vedantb.com/v1/client/sessions/sess_1/tokens/convex?_is_native=1",
   );
+  assert.equal(
+    clerkConvexTokenUrl("clerk.vedantb.com", "sess_1", { native: false }),
+    "https://clerk.vedantb.com/v1/client/sessions/sess_1/tokens/convex",
+  );
 });
 
 await test("convexJwtFromClerkResponse requires a jwt string", () => {

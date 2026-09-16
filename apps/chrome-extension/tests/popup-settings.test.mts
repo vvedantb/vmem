@@ -192,6 +192,7 @@ await test("background message handler registers save, import, and screenshot me
     "cancelImport",
     "debugRunAutoSync",
     "syncClerkSession",
+    "syncClerkConvexToken",
   ]) {
     assert.match(src, new RegExp(`onMessage\\("${name}"`));
   }

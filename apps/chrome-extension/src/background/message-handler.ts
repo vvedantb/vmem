@@ -217,4 +217,10 @@ export function registerMessageHandler(): void {
     await setAuthToken(token);
     return { ok: true };
   });
+
+  onMessage("syncClerkConvexToken", async ({ data }) => {
+    if (data.token.length < 20) return { ok: false };
+    await setAuthToken(data.token);
+    return { ok: true };
+  });
 }

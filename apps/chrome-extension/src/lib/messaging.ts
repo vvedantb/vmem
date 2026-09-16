@@ -79,6 +79,7 @@ interface ProtocolMap {
   extractPage(): ExtractPageData;
   startScreenshot(): { ok: true };
   syncClerkSession(data: { sessionJwt: string }): { ok: boolean };
+  syncClerkConvexToken(data: { token: string }): { ok: boolean };
 }
 
 const messenger = defineExtensionMessaging<ProtocolMap>();

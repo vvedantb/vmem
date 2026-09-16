@@ -9,6 +9,10 @@ import type { Page } from "puppeteer-core";
 import { TargetType } from "puppeteer-core";
 import { z } from "zod";
 import {
+  clerkSessionIdFromJwt,
+  readSessionJwtFromCookieHeader,
+} from "../../src/lib/clerk-session-cookie.ts";
+import {
   artifactDir,
   ensureArtifactDir,
   launchUnpackedExtension,
@@ -425,6 +429,72 @@ async function runLive(): Promise<LiveMatrix> {
     await writeFile(
       path.join(artifactDir, "live_page_session_cookie.json"),
       JSON.stringify({ pageHasSessionCookie }, null, 2),
+    );
+    const pageCookieHeader = await web.evaluate(() => document.cookie);
+    const pageSessionJwt = readSessionJwtFromCookieHeader(pageCookieHeader);
+    const pageSessionId = pageSessionJwt
+      ? clerkSessionIdFromJwt(pageSessionJwt)
+      : null;
+    const mintProbe = {
+      cookieOk: pageSessionJwt !== null,
+      sidOk: pageSessionId !== null,
+      credentials: { status: 0, hasJwt: false, error: "skipped" },
+      bearer: { status: 0, hasJwt: false, error: "skipped" },
+    };
+    if (pageSessionId) {
+      const cookieUrl = `https://clerk.vedantb.com/v1/client/sessions/${pageSessionId}/tokens/convex`;
+      const nativeUrl = `${cookieUrl}?_is_native=1`;
+      mintProbe.credentials = await web.evaluate(async (url: string) => {
+        try {
+          const response = await fetch(url, {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: "{}",
+          });
+          const text = await response.text();
+          return { status: response.status, hasJwt: text.includes('"jwt"') };
+        } catch (error) {
+          return {
+            status: 0,
+            hasJwt: false,
+            error: error instanceof Error ? error.message : String(error),
+          };
+        }
+      }, cookieUrl);
+      if (pageSessionJwt) {
+        mintProbe.bearer = await web.evaluate(
+          async (url: string, jwt: string) => {
+            try {
+              const response = await fetch(url, {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${jwt}`,
+                  "Content-Type": "application/json",
+                },
+                body: "{}",
+              });
+              const text = await response.text();
+              return {
+                status: response.status,
+                hasJwt: text.includes('"jwt"'),
+              };
+            } catch (error) {
+              return {
+                status: 0,
+                hasJwt: false,
+                error: error instanceof Error ? error.message : String(error),
+              };
+            }
+          },
+          nativeUrl,
+          pageSessionJwt,
+        );
+      }
+    }
+    await writeFile(
+      path.join(artifactDir, "live_token_mint.json"),
+      JSON.stringify(mintProbe, null, 2),
     );
     await sleep(3_000);
 
