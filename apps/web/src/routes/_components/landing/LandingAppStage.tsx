@@ -18,11 +18,12 @@ import { landingShellClass } from "./LandingReveal";
 import { LandingHomePreview } from "./LandingHomePreview";
 import { LandingMemoryPreview } from "./LandingMemoryPreview";
 import { LandingListPreview } from "./LandingListPreview";
+import { LandingTimelinePreview } from "./LandingTimelinePreview";
 import { LandingWikiPreview } from "./LandingWikiPreview";
 import { LandingSkillsPreview } from "./LandingSkillsPreview";
 
 export type LandingStageView = "home" | "memories" | "wiki" | "skills";
-type MemoriesTab = "graph" | "list";
+type MemoriesTab = "graph" | "list" | "timeline";
 
 const libraryItems = [
   { id: "memories", label: "Memories", icon: IconMemories, interactive: true },
@@ -160,6 +161,7 @@ function StageBody({
   if (view === "wiki") return <LandingWikiPreview />;
   if (view === "skills") return <LandingSkillsPreview />;
   if (memoriesTab === "list") return <LandingListPreview />;
+  if (memoriesTab === "timeline") return <LandingTimelinePreview />;
   return <LandingMemoryPreview />;
 }
 
@@ -253,6 +255,18 @@ function MemoriesTabs({
         )}
       >
         List
+      </Button>
+      <Button
+        type="button"
+        size="sm"
+        variant={value === "timeline" ? "secondary" : "ghost"}
+        onClick={() => onChange("timeline")}
+        className={cn(
+          "h-8 rounded-full px-3",
+          value === "timeline" ? "text-foreground" : "text-muted",
+        )}
+      >
+        Timeline
       </Button>
     </div>
   );
