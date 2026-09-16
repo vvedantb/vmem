@@ -43,3 +43,8 @@ jobs:
 
       - name: Run unit tests (backend + web)
         run: pnpm test
+
+      - name: Live MCP unauth probes
+        run: pnpm --filter @vmem/backend exec vitest run tests/mcp/live.integration.test.ts
+        env:
+          RUN_MCP_LIVE: "1"
