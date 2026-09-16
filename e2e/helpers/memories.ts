@@ -167,6 +167,29 @@ export async function deleteMemoryByTitle(
   return true;
 }
 
+export async function cleanupDisposableMemories(
+  page: Page,
+  prefix: string,
+): Promise<void> {
+  await searchMemories(page, prefix);
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const leftover = page
+      .getByTestId("list-item-row")
+      .filter({ hasText: new RegExp(`^${prefix}`) });
+    const visible = await leftover
+      .first()
+      .waitFor({ state: "visible", timeout: 3_000 })
+      .then(() => true)
+      .catch(() => false);
+    if (!visible) return;
+    const title = (await leftover.first().innerText()).trim().split("\n")[0];
+    if (title === undefined || title.length === 0) return;
+    const deleted = await deleteMemoryByTitle(page, title);
+    if (!deleted) return;
+    await searchMemories(page, prefix);
+  }
+}
+
 export async function expectFilterPanelChrome(page: Page): Promise<void> {
   await page.getByRole("button", { name: "Filter list" }).click();
   const kindTab = page.getByRole("tab", { name: "Kind" });
