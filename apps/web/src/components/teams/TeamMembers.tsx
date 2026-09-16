@@ -110,6 +110,7 @@ export function TeamMembers() {
         action={
           meta.isOwner ? (
             <Button
+              type="button"
               variant="outline"
               size="sm"
               onClick={() => setAddOpen(true)}

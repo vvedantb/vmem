@@ -71,6 +71,7 @@ export function AddMemberDialog({
             id="add-member-email"
             autoFocus
             type="email"
+            aria-label="Email"
             placeholder="teammate@company.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}

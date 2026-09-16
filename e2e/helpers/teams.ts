@@ -31,7 +31,11 @@ export async function createTeam(page: Page, name: string): Promise<void> {
   await expect(page.getByText(`Created ${name}`)).toBeVisible({
     timeout: 20_000,
   });
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   await waitForAppShell(page);
+  await expect(
+    page.getByRole("link", { name: "Team", exact: true }),
+  ).toBeVisible({ timeout: 20_000 });
 }
 
 export async function gotoTeamMembers(page: Page): Promise<void> {
@@ -50,6 +54,30 @@ export async function gotoTeamSettings(page: Page): Promise<void> {
   await expect(page.getByRole("heading", { name: "Team name" })).toBeVisible({
     timeout: 20_000,
   });
+}
+
+export async function deleteTeamNamed(
+  page: Page,
+  teamName: string,
+): Promise<void> {
+  await page.goto("/home");
+  await waitForAppShell(page);
+  await openWorkspaceSwitcher(page);
+  const item = page.getByRole("menuitem").filter({ hasText: teamName });
+  if (
+    !(await item
+      .first()
+      .isVisible()
+      .catch(() => false))
+  ) {
+    await page.keyboard.press("Escape");
+    return;
+  }
+  await item.first().click();
+  await waitForAppShell(page);
+  await gotoTeamMembers(page);
+  await gotoTeamSettings(page);
+  await deleteCurrentTeam(page, teamName);
 }
 
 export async function deleteCurrentTeam(

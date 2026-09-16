@@ -3,6 +3,7 @@ import { gotoSettings } from "../helpers/nav";
 import {
   createTeam,
   deleteCurrentTeam,
+  deleteTeamNamed,
   gotoTeamMembers,
   gotoTeamSettings,
   openWorkspaceSwitcher,
@@ -43,8 +44,11 @@ test.describe("teams / sharing", { tag: ["@teams"] }, () => {
       await expect(page.getByText("owner", { exact: true })).toBeVisible();
 
       await page.getByRole("button", { name: "Add member" }).click();
-      const add = page.getByRole("dialog");
-      await add.getByLabel("Email").fill("notarealuser@example.com");
+      const add = page.getByRole("dialog", { name: "Add member" });
+      await expect(
+        add.getByRole("heading", { name: "Add member" }),
+      ).toBeVisible({ timeout: 20_000 });
+      await add.locator("#add-member-email").fill("notarealuser@example.com");
       await add.getByRole("button", { name: "Add" }).click();
       await expect(
         page.getByText(
@@ -61,12 +65,7 @@ test.describe("teams / sharing", { tag: ["@teams"] }, () => {
       await gotoTeamSettings(page);
       await deleteCurrentTeam(page, teamName);
     } catch (err) {
-      await page.goto("/home").catch(() => undefined);
-      const stillOnTeam = page.url().includes("/team/");
-      if (stillOnTeam) {
-        await gotoTeamSettings(page).catch(() => undefined);
-        await deleteCurrentTeam(page, teamName).catch(() => undefined);
-      }
+      await deleteTeamNamed(page, teamName).catch(() => undefined);
       throw err;
     }
 
