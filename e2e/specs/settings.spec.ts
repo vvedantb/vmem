@@ -5,7 +5,7 @@ test.describe("settings", { tag: ["@settings", "@smoke"] }, () => {
   test("preferences", async ({ page }) => {
     await gotoSettings(page, "/preferences");
     await expect(
-      page.getByRole("heading", { name: "Preferences" }),
+      page.getByRole("heading", { name: "Preferences", exact: true }),
     ).toBeVisible({ timeout: 20_000 });
     await expect(page.getByLabel("About me")).toBeVisible();
     await expect(

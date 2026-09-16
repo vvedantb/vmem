@@ -12,18 +12,18 @@ test.describe(
       ).toBeVisible();
       const main = mainContent(page);
       await expect(
-        main.getByRole("paragraph", { name: "Total memories" }),
+        main.locator("p").filter({ hasText: /^Total memories$/ }),
       ).toBeVisible({
         timeout: 30_000,
       });
       await expect(
-        main.getByRole("paragraph", { name: "Added today" }),
+        main.locator("p").filter({ hasText: /^Added today$/ }),
       ).toBeVisible();
       await expect(
-        main.getByRole("paragraph", { name: "This week" }),
+        main.locator("p").filter({ hasText: /^This week$/ }),
       ).toBeVisible();
       await expect(
-        main.getByRole("paragraph", { name: "Tags used" }),
+        main.locator("p").filter({ hasText: /^Tags used$/ }),
       ).toBeVisible();
       await expect(page.getByRole("link", { name: "Memories" })).toBeVisible();
     });
