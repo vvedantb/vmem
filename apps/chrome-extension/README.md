@@ -43,7 +43,7 @@ pnpm --filter @vmem/chrome-extension test:e2e  # headed Chrome load of dist/chro
 pnpm --filter @vmem/chrome-extension test:e2e:live  # signed-in matrix (needs env)
 ```
 
-Live signed-in coverage is opt-in so CI never sees the test password. Export `VMEM_TEST_EMAIL` and `VMEM_TEST_PASSWORD` in the shell (do not put them in git) then run `test:e2e:live`. The harness signs in on `https://vmem.vedantb.com` in the same Chrome profile as the unpacked extension, checks the popup, saves via **Alt+S**, and deletes the test memory.
+Live signed-in coverage is opt-in so CI never sees the test password. Export `VMEM_TEST_EMAIL` and `VMEM_TEST_PASSWORD` in the shell (do not put them in git) then run `test:e2e:live`. The harness signs in on `https://vmem.vedantb.com` in the same Chrome profile as the unpacked extension, checks the popup, saves via **Alt+S**, and deletes the test memory. Headed-pass notes live in `tests/e2e/RESULTS.md`.
 
 Unit tests cover popup copy, save-page toasts, screenshot permission-block, ChatGPT/Claude fixture inject, bookmark/history import cancel, and background handlers. The e2e script is optional: CI does not require Google Chrome, and a blocked MV3 load is recorded rather than treated as a unit-test failure.
 

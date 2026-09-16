@@ -413,9 +413,11 @@ async function runLive(): Promise<LiveMatrix> {
       if (signedIn && !copied) cookieSync = "native";
     }
 
+    await screenshot(popup, "live_popup_signed_in.png");
+
     let tokenReady = false;
     if (signedIn) {
-      const tokenDeadline = Date.now() + 20_000;
+      const tokenDeadline = Date.now() + 8_000;
       while (Date.now() < tokenDeadline) {
         tokenReady = await popup
           .evaluate(async () => {
@@ -430,7 +432,6 @@ async function runLive(): Promise<LiveMatrix> {
       }
     }
 
-    await screenshot(popup, "live_popup_signed_in.png");
     matrix.signedInPopup = {
       ok: signedIn,
       reason: signedIn
