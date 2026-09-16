@@ -49,6 +49,26 @@ export async function createMemory(
   });
 }
 
+export async function listMemories(args: {
+  searchQuery?: string;
+  source?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<{ memories: MemoryWithTags[]; total: number }> {
+  const client = await requireAuthenticatedClient();
+  return await client.action(api.memoryApi.listMemories, {
+    searchQuery: args.searchQuery,
+    source: args.source,
+    limit: args.limit ?? 20,
+    offset: args.offset ?? 0,
+  });
+}
+
+export async function deleteMemory(memoryId: string): Promise<boolean> {
+  const client = await requireAuthenticatedClient();
+  return await client.action(api.memoryApi.deleteMemory, { memoryId });
+}
+
 export async function retrieveMemories(
   query: string,
   limit = 5,

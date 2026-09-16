@@ -18,3 +18,12 @@ export function htmlToMarkdown(html: string): string {
   const markdown = turndownService.turndown(html);
   return markdown.slice(0, 50000);
 }
+
+// MV3 service workers have no `document`; Turndown throws there
+export function htmlToMarkdownSafe(html: string, fallback: string): string {
+  try {
+    return htmlToMarkdown(html);
+  } catch {
+    return fallback;
+  }
+}

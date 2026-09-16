@@ -17,6 +17,25 @@ import {
 
 declare global {
   var __vmemSaveTab: ((tab: chrome.tabs.Tab) => Promise<unknown>) | undefined;
+  var __vmemHarvestToken:
+    | (() => Promise<{ ok: boolean; reason: string }>)
+    | undefined;
+  var __vmemListMemories:
+    | ((args: {
+        searchQuery?: string;
+        limit?: number;
+        offset?: number;
+      }) => Promise<{
+        memories: Array<{
+          id: string;
+          title: string;
+          sourceUrl: string | null;
+        }>;
+        total: number;
+      }>)
+    | undefined;
+  var __vmemDeleteMemory: ((id: string) => Promise<boolean>) | undefined;
+  var __vmemAuthTokenLength: (() => Promise<number>) | undefined;
 }
 
 const email = process.env.VMEM_TEST_EMAIL ?? "";
@@ -25,19 +44,29 @@ const enabled = email.length > 0 && password.length > 0;
 const marker = `vmem-ext-live-${Date.now()}`;
 const saveUrl = `https://example.com/?q=${marker}`;
 
+type Check = { ok: boolean; reason: string };
+
 type LiveMatrix = {
-  signedInPopup: { ok: boolean; reason: string };
-  savePage: { ok: boolean; reason: string; toast?: string };
-  memoryVisible: { ok: boolean; reason: string };
-  cleanup: { ok: boolean; reason: string };
-  chatgptInject: { ok: boolean; reason: string; injectedExport?: boolean };
+  signedOutPopup: Check;
+  savePageAuthError: Check;
+  signedInPopup: Check;
+  jwtSync: Check;
+  savePage: Check & { toast?: string; memoryId?: string };
+  convexMemory: Check;
+  captureVisible: Check;
+  cleanup: Check;
+  chatgptInject: Check & { injectedExport?: boolean };
 };
 
 function emptyMatrix(reason: string): LiveMatrix {
   return {
+    signedOutPopup: { ok: false, reason },
+    savePageAuthError: { ok: false, reason },
     signedInPopup: { ok: false, reason },
+    jwtSync: { ok: false, reason },
     savePage: { ok: false, reason },
-    memoryVisible: { ok: false, reason },
+    convexMemory: { ok: false, reason },
+    captureVisible: { ok: false, reason },
     cleanup: { ok: false, reason },
     chatgptInject: { ok: false, reason },
   };
@@ -48,25 +77,6 @@ async function screenshot(page: Page, name: string): Promise<void> {
     path: path.join(artifactDir, name),
     fullPage: false,
   });
-}
-
-async function clickFirstMatching(
-  page: Page,
-  selector: string,
-  predicate: (text: string) => boolean,
-): Promise<boolean> {
-  const roots = [page, ...page.frames()];
-  for (const root of roots) {
-    const handles = await root.$$(selector).catch(() => []);
-    for (const handle of handles) {
-      const text = await root.evaluate((el) => el.textContent ?? "", handle);
-      if (predicate(text.replace(/\s+/g, " ").trim())) {
-        await handle.click();
-        return true;
-      }
-    }
-  }
-  return false;
 }
 
 const axPropertySchema = z.object({
@@ -234,6 +244,13 @@ function popupLooksSignedIn(text: string): boolean {
   );
 }
 
+function popupLooksSignedOut(text: string): boolean {
+  return (
+    text.includes("Sign in to start saving memories") &&
+    !text.includes("Import")
+  );
+}
+
 async function freezeLandingMotion(page: Page): Promise<void> {
   await page.emulateMediaFeatures([
     { name: "prefers-reduced-motion", value: "reduce" },
@@ -351,35 +368,72 @@ async function openPopup(
   return popup;
 }
 
-async function deleteVisibleTestMemory(page: Page): Promise<boolean> {
-  const opened = await clickFirstMatching(
-    page,
-    "button, a, [role='button']",
-    (text) => text.includes("Example Domain"),
-  );
-  if (!opened) {
-    const byMarker = await page.evaluate((token) => {
-      return document.body.innerText.includes(token);
-    }, marker);
-    if (!byMarker) return false;
-  }
-  await sleep(800);
-  const trash = await page.$('[aria-label="Delete"], button:has(svg)');
-  const clickedTrash = await clickFirstMatching(
-    page,
-    "button",
-    (text) => text === "Delete" || text.includes("Delete"),
-  );
-  if (!clickedTrash && trash) await trash.click();
-  await sleep(400);
-  await clickFirstMatching(
-    page,
-    "button",
-    (text) =>
-      text === "Delete" || text === "Confirm" || text === "Delete memory",
-  );
-  await sleep(1_000);
-  return true;
+async function extensionWorker(
+  browser: Awaited<ReturnType<typeof launchUnpackedExtension>>["browser"],
+  extensionId: string,
+) {
+  const workerTarget = browser.targets().find((target) => {
+    return (
+      target.type() === TargetType.SERVICE_WORKER &&
+      target.url().startsWith(`chrome-extension://${extensionId}`)
+    );
+  });
+  const worker = await workerTarget?.worker();
+  if (!worker) throw new Error("no extension service worker");
+  return worker;
+}
+
+async function closeWelcomeTabs(
+  worker: Awaited<ReturnType<typeof extensionWorker>>,
+): Promise<void> {
+  await worker.evaluate(async () => {
+    const tabs = await chrome.tabs.query({});
+    for (const tab of tabs) {
+      if (tab.id && tab.url?.includes("welcome.html")) {
+        await chrome.tabs.remove(tab.id);
+      }
+    }
+  });
+}
+
+const harvestResultSchema = z.object({
+  ok: z.boolean(),
+  reason: z.string(),
+});
+
+const memoryListSchema = z.object({
+  memories: z.array(
+    z.object({
+      id: z.string(),
+      title: z.string(),
+      sourceUrl: z.string().nullable().optional(),
+    }),
+  ),
+  total: z.number(),
+});
+
+async function saveExampleTab(
+  worker: Awaited<ReturnType<typeof extensionWorker>>,
+): Promise<string> {
+  return worker.evaluate(async () => {
+    const saveTab = globalThis.__vmemSaveTab;
+    if (typeof saveTab !== "function") return "no save hook";
+    const tabs = await chrome.tabs.query({});
+    for (const tab of tabs) {
+      if (tab.id && tab.url?.includes("welcome.html")) {
+        await chrome.tabs.remove(tab.id);
+      }
+    }
+    const example = (await chrome.tabs.query({})).find((tab) =>
+      tab.url?.includes("example.com"),
+    );
+    if (!example?.id) {
+      const urls = (await chrome.tabs.query({})).map((tab) => tab.url);
+      return `no example tab: ${urls.join(",")}`;
+    }
+    const result: unknown = await saveTab(example);
+    return JSON.stringify({ url: example.url, result });
+  });
 }
 
 async function runLive(): Promise<LiveMatrix> {
@@ -388,6 +442,47 @@ async function runLive(): Promise<LiveMatrix> {
   const { browser, extensionId } = await launchUnpackedExtension();
 
   try {
+    const worker = await extensionWorker(browser, extensionId);
+    await closeWelcomeTabs(worker);
+
+    const signedOutPopup = await openPopup(browser, extensionId);
+    const signedOutText = await signedOutPopup.evaluate(
+      () => document.body.innerText,
+    );
+    await screenshot(signedOutPopup, "live_popup_signed_out.png");
+    matrix.signedOutPopup = {
+      ok: popupLooksSignedOut(signedOutText),
+      reason: popupLooksSignedOut(signedOutText)
+        ? "popup shows signed-out copy"
+        : `popup copy: ${signedOutText.slice(0, 180)}`,
+    };
+    await signedOutPopup.close().catch(() => {});
+
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1280, height: 800 });
+    await page.goto(saveUrl, {
+      waitUntil: "domcontentloaded",
+      timeout: 20_000,
+    });
+    await page.bringToFront();
+    const unauthRaw = await saveExampleTab(worker);
+    const unauth = savePageOutcomeFromUnknown(
+      (() => {
+        try {
+          return JSON.parse(unauthRaw) as unknown;
+        } catch {
+          return { success: false, error: unauthRaw };
+        }
+      })(),
+    );
+    const unauthError = unauth?.error ?? unauthRaw;
+    matrix.savePageAuthError = {
+      ok: /not authenticated/i.test(unauthError),
+      reason: /not authenticated/i.test(unauthError)
+        ? "save-page rejected without a Convex JWT"
+        : `expected auth error, got ${unauthRaw.slice(0, 240)}`,
+    };
+
     const web = await browser.newPage();
     try {
       await signInOnVmem(web);
@@ -395,7 +490,9 @@ async function runLive(): Promise<LiveMatrix> {
     } catch (err) {
       await screenshot(web, "live_web_sign_in_failed.png");
       const reason = err instanceof Error ? err.message : String(err);
-      return emptyMatrix(`sign-in failed: ${reason}`);
+      matrix.signedInPopup = { ok: false, reason: `sign-in failed: ${reason}` };
+      matrix.jwtSync = { ok: false, reason: `sign-in failed: ${reason}` };
+      return matrix;
     }
 
     const sessionCookies = await listSessionCookies(web);
@@ -404,6 +501,42 @@ async function runLive(): Promise<LiveMatrix> {
       JSON.stringify(sessionCookies, null, 2),
     );
     await sleep(1_500);
+
+    const harvestRaw = await worker.evaluate(async () => {
+      const run = globalThis.__vmemHarvestToken;
+      if (typeof run !== "function") {
+        return JSON.stringify({ ok: false, reason: "no harvest hook" });
+      }
+      return JSON.stringify(await run());
+    });
+    const harvest = harvestResultSchema.safeParse(
+      (() => {
+        try {
+          return JSON.parse(harvestRaw) as unknown;
+        } catch {
+          return { ok: false, reason: harvestRaw };
+        }
+      })(),
+    );
+    let tokenLength = 0;
+    const tokenDeadline = Date.now() + 12_000;
+    while (Date.now() < tokenDeadline) {
+      tokenLength = await worker
+        .evaluate(async () => {
+          const read = globalThis.__vmemAuthTokenLength;
+          return typeof read === "function" ? await read() : 0;
+        })
+        .catch(() => 0);
+      if (tokenLength > 40) break;
+      await sleep(400);
+    }
+    matrix.jwtSync = {
+      ok: tokenLength > 40,
+      reason:
+        tokenLength > 40
+          ? `session:authToken length=${tokenLength}; harvest=${harvest.success ? harvest.data.reason : harvestRaw}`
+          : `token missing after harvest=${harvestRaw}; cookies=${JSON.stringify(sessionCookies)}`,
+    };
 
     const popup = await openPopup(browser, extensionId);
     let popupText = await popup.evaluate(() => document.body.innerText);
@@ -424,207 +557,181 @@ async function runLive(): Promise<LiveMatrix> {
       vmemSession: null,
     }));
     const signedIn = popupLooksSignedIn(popupText);
-    const cookieSync = signedIn
-      ? cookieProbe.clerkClient
-        ? "native-fapi"
-        : "native"
-      : "missing";
-
+    const cookieSync = cookieProbe.clerkClient
+      ? "native-fapi"
+      : cookieProbe.vmemClient
+        ? "native-web"
+        : "missing";
     await screenshot(popup, "live_popup_signed_in.png");
-
-    let tokenReady = false;
-    if (signedIn) {
-      const tokenDeadline = Date.now() + 8_000;
-      while (Date.now() < tokenDeadline) {
-        tokenReady = await popup
-          .evaluate(async () => {
-            const data = await chrome.storage.session.get(null);
-            return Object.values(data).some(
-              (value) => typeof value === "string" && value.length > 40,
-            );
-          })
-          .catch(() => false);
-        if (tokenReady) break;
-        await sleep(400);
-      }
-    }
-
     matrix.signedInPopup = {
       ok: signedIn,
       reason: signedIn
-        ? `popup shows Save / Import tabs (${cookieSync}, token=${tokenReady}); chrome.cookies __client vmem=${cookieProbe.vmemClient} clerk=${cookieProbe.clerkClient}`
+        ? `popup shows Save / Import tabs (${cookieSync}); chrome.cookies __client vmem=${cookieProbe.vmemClient} clerk=${cookieProbe.clerkClient}`
         : `popup copy: ${popupText.slice(0, 180)}; cookies=${JSON.stringify(sessionCookies)}; probe=${JSON.stringify(cookieProbe)}`,
     };
     await popup.close().catch(() => {});
 
-    const page = await browser.newPage();
-    await page.setViewport({ width: 1280, height: 800 });
-    await page.goto(saveUrl, {
-      waitUntil: "domcontentloaded",
-      timeout: 20_000,
-    });
     await page.bringToFront();
-    await sleep(500);
-    await page.keyboard.down("Alt");
-    await page.keyboard.press("KeyS");
-    await page.keyboard.up("Alt");
-    const toastSeen = await page
+    await sleep(300);
+    const toastWait = page
       .waitForFunction(
         () =>
           /Page saved to vmem|Failed to save page/.test(
             document.body.innerText,
           ),
-        { timeout: 8_000 },
+        { timeout: 25_000 },
       )
       .then(() => true)
       .catch(() => false);
-    let pageText = await page.evaluate(() => document.body.innerText);
-    let saveOk = toastSeen && pageText.includes("Page saved to vmem");
-    let saveReason = saveOk
-      ? "Alt+S success toast"
-      : toastSeen
-        ? "failure toast"
-        : "no Alt+S toast";
-
-    if (!saveOk) {
-      const workerTarget = browser.targets().find((target) => {
-        return (
-          target.type() === TargetType.SERVICE_WORKER &&
-          target.url().startsWith(`chrome-extension://${extensionId}`)
-        );
-      });
-      const worker = await workerTarget?.worker();
-      if (worker) {
-        await page.bringToFront();
-        await sleep(300);
-        const toastWait = page
-          .waitForFunction(
-            () =>
-              /Page saved to vmem|Failed to save page/.test(
-                document.body.innerText,
-              ),
-            { timeout: 25_000 },
-          )
-          .then(() => true)
-          .catch(() => false);
-        const swResult = await worker
-          .evaluate(async () => {
-            const saveTab = globalThis.__vmemSaveTab;
-            if (typeof saveTab !== "function") return "no save hook";
-            const tabs = await chrome.tabs.query({});
-            for (const tab of tabs) {
-              if (tab.id && tab.url?.includes("welcome.html")) {
-                await chrome.tabs.remove(tab.id);
-              }
-            }
-            const example = (await chrome.tabs.query({})).find((tab) =>
-              tab.url?.includes("example.com"),
-            );
-            if (!example?.id) {
-              const urls = (await chrome.tabs.query({})).map((tab) => tab.url);
-              return `no example tab: ${urls.join(",")}`;
-            }
-            const result: unknown = await saveTab(example);
-            return JSON.stringify({ url: example.url, result });
-          })
-          .catch((err: unknown) =>
-            err instanceof Error ? err.message : String(err),
-          );
-        const swToast = await toastWait;
-        pageText = await page.evaluate(() => document.body.innerText);
-        const parsed = (() => {
-          try {
-            const raw: unknown = JSON.parse(swResult);
-            return savePageOutcomeFromUnknown(raw);
-          } catch {
-            return null;
-          }
-        })();
-        saveOk =
-          (swToast && pageText.includes("Page saved to vmem")) ||
-          Boolean(parsed?.success && parsed.memoryId);
-        saveReason = saveOk
-          ? parsed?.memoryId
-            ? `save-page memoryId=${parsed.memoryId}`
-            : "service-worker save-page toast"
-          : `${saveReason}; sw=${swResult}; toast=${swToast ? pageText.slice(0, 120) : "none"}`;
+    const swResult = await saveExampleTab(worker).catch((err: unknown) =>
+      err instanceof Error ? err.message : String(err),
+    );
+    const swToast = await toastWait;
+    const pageText = await page.evaluate(() => document.body.innerText);
+    const parsed = (() => {
+      try {
+        return savePageOutcomeFromUnknown(JSON.parse(swResult) as unknown);
+      } catch {
+        return null;
       }
-    }
-
+    })();
+    const saveOk = Boolean(parsed?.success && parsed.memoryId);
     await screenshot(page, "live_save_toast.png");
     matrix.savePage = {
       ok: saveOk,
-      reason: saveReason,
+      memoryId: parsed?.memoryId,
+      reason: saveOk
+        ? `save-page memoryId=${parsed?.memoryId}`
+        : `sw=${swResult}; toast=${swToast ? pageText.slice(0, 120) : "none"}`,
       toast: pageText.includes("Page saved to vmem")
         ? "✓ Page saved to vmem"
         : pageText.includes("Failed to save page")
           ? "✗ Failed to save page"
           : undefined,
     };
+
+    const captureRaw = await worker.evaluate(async () => {
+      try {
+        const dataUrl = await chrome.tabs.captureVisibleTab({ format: "png" });
+        return JSON.stringify({
+          ok: dataUrl.startsWith("data:image/png"),
+          length: dataUrl.length,
+        });
+      } catch (err) {
+        return JSON.stringify({
+          ok: false,
+          reason: err instanceof Error ? err.message : String(err),
+        });
+      }
+    });
+    const capture = z
+      .object({
+        ok: z.boolean(),
+        length: z.number().optional(),
+        reason: z.string().optional(),
+      })
+      .safeParse(
+        (() => {
+          try {
+            return JSON.parse(captureRaw) as unknown;
+          } catch {
+            return { ok: false, reason: captureRaw };
+          }
+        })(),
+      );
+    matrix.captureVisible = {
+      ok: capture.success && capture.data.ok === true,
+      reason:
+        capture.success && capture.data.ok
+          ? `png ${capture.data.length ?? 0} bytes`
+          : `capture failed: ${capture.success ? (capture.data.reason ?? "not png") : captureRaw}`,
+    };
+
+    if (saveOk && parsed?.memoryId) {
+      const listRaw = await worker.evaluate(async (token) => {
+        const list = globalThis.__vmemListMemories;
+        if (typeof list !== "function") return "no list hook";
+        try {
+          const result = await list({
+            searchQuery: token,
+            limit: 20,
+            offset: 0,
+          });
+          return JSON.stringify({
+            total: result.total,
+            memories: result.memories.map((memory) => ({
+              id: memory.id,
+              title: memory.title,
+              sourceUrl: memory.sourceUrl,
+            })),
+          });
+        } catch (err) {
+          return `list failed: ${err instanceof Error ? err.message : String(err)}`;
+        }
+      }, marker);
+      const listed = memoryListSchema.safeParse(
+        (() => {
+          try {
+            return JSON.parse(listRaw) as unknown;
+          } catch {
+            return null;
+          }
+        })(),
+      );
+      const found =
+        listed.success &&
+        listed.data.memories.some(
+          (memory) =>
+            memory.id === parsed.memoryId ||
+            memory.sourceUrl?.includes(marker) === true ||
+            memory.title.includes("Example Domain"),
+        );
+      matrix.convexMemory = {
+        ok: Boolean(found),
+        reason: found
+          ? `Convex listMemories found ${parsed.memoryId}`
+          : `list=${listRaw.slice(0, 280)}`,
+      };
+
+      const deletedRaw = await worker.evaluate(async (memoryId) => {
+        const remove = globalThis.__vmemDeleteMemory;
+        if (typeof remove !== "function") return "no delete hook";
+        try {
+          return JSON.stringify({ ok: await remove(memoryId) });
+        } catch (err) {
+          return `delete failed: ${err instanceof Error ? err.message : String(err)}`;
+        }
+      }, parsed.memoryId);
+      const deleted = (() => {
+        try {
+          const parsedDelete: unknown = JSON.parse(deletedRaw);
+          return z.object({ ok: z.boolean() }).safeParse(parsedDelete);
+        } catch {
+          return { success: false as const };
+        }
+      })();
+      matrix.cleanup = {
+        ok: deleted.success && deleted.data.ok,
+        reason:
+          deleted.success && deleted.data.ok
+            ? "Convex deleteMemory removed the test row"
+            : deletedRaw,
+      };
+    } else {
+      matrix.convexMemory = {
+        ok: false,
+        reason: "skipped — save-page did not return a memoryId",
+      };
+      matrix.cleanup = {
+        ok: false,
+        reason: "skipped — nothing to delete",
+      };
+    }
+
     await writeFile(
       path.join(artifactDir, "live_matrix.json"),
       JSON.stringify({ marker, email, matrix }, null, 2),
     );
-
-    const dash = await browser.newPage();
-    try {
-      await dash.setViewport({ width: 1280, height: 800 });
-      await dash.goto("https://vmem.vedantb.com/memories/list", {
-        waitUntil: "domcontentloaded",
-        timeout: 30_000,
-      });
-      await sleep(2_500);
-      const search = await dash.$(
-        'input[placeholder*="Search" i], input[type="search"]',
-      );
-      if (search) {
-        await search.click({ clickCount: 3 });
-        await search.type(marker, { delay: 15 });
-        await dash.keyboard.press("Enter");
-        await sleep(2_000);
-      }
-      await screenshot(dash, "live_memory_list.png");
-      const listText = await dash.evaluate(() => document.body.innerText);
-      const visible =
-        listText.includes(marker) || listText.includes("Example Domain");
-      matrix.memoryVisible = {
-        ok: visible,
-        reason: visible
-          ? "memory listed after save"
-          : `list copy: ${listText.slice(0, 240)}`,
-      };
-
-      if (visible) {
-        const deleted = await deleteVisibleTestMemory(dash);
-        await sleep(1_500);
-        await screenshot(dash, "live_memory_cleanup.png");
-        const after = await dash.evaluate(() => document.body.innerText);
-        const gone = deleted && !after.includes(marker);
-        matrix.cleanup = {
-          ok: gone || deleted,
-          reason: gone
-            ? "test memory deleted"
-            : deleted
-              ? "delete clicked; marker still in DOM"
-              : "could not trigger delete",
-        };
-      } else {
-        matrix.cleanup = {
-          ok: false,
-          reason: "skipped — memory not found to delete",
-        };
-      }
-    } catch (err) {
-      const reason = err instanceof Error ? err.message : String(err);
-      if (!matrix.memoryVisible.ok) {
-        matrix.memoryVisible = { ok: false, reason: `dashboard: ${reason}` };
-      }
-      if (matrix.cleanup.reason === "not run") {
-        matrix.cleanup = { ok: false, reason: `skipped — ${reason}` };
-      }
-    } finally {
-      await dash.close().catch(() => {});
-    }
 
     const chatgpt = await browser.newPage();
     try {
@@ -699,6 +806,28 @@ await test("live signed-in matrix requires VMEM_TEST_EMAIL and VMEM_TEST_PASSWOR
 });
 
 await test(
+  "popup starts signed-out before the web session exists",
+  {
+    skip: !enabled,
+  },
+  () => {
+    assert.equal(matrix.signedOutPopup.ok, true, matrix.signedOutPopup.reason);
+  },
+);
+
+await test(
+  "save-page fails closed without a Convex JWT",
+  { skip: !enabled },
+  () => {
+    assert.equal(
+      matrix.savePageAuthError.ok,
+      true,
+      matrix.savePageAuthError.reason,
+    );
+  },
+);
+
+await test(
   "extension popup syncs Clerk session from the web app cookie",
   { skip: !enabled },
   () => {
@@ -707,18 +836,36 @@ await test(
 );
 
 await test(
-  "Alt+S saves the current page with a matching success toast",
-  { skip: !enabled },
+  "web Clerk session mints a Convex JWT into the extension",
+  {
+    skip: !enabled,
+  },
   () => {
-    assert.equal(matrix.savePage.ok, true, matrix.savePage.reason);
+    assert.equal(matrix.jwtSync.ok, true, matrix.jwtSync.reason);
+  },
+);
+
+await test("save-page creates a Convex memory", { skip: !enabled }, () => {
+  assert.equal(matrix.savePage.ok, true, matrix.savePage.reason);
+});
+
+await test(
+  "saved memory is visible via Convex listMemories",
+  {
+    skip: !enabled,
+  },
+  () => {
+    assert.equal(matrix.convexMemory.ok, true, matrix.convexMemory.reason);
   },
 );
 
 await test(
-  "saved memory appears in the dashboard list",
-  { skip: !enabled },
+  "captureVisibleTab returns a png from the example page",
+  {
+    skip: !enabled,
+  },
   () => {
-    assert.equal(matrix.memoryVisible.ok, true, matrix.memoryVisible.reason);
+    assert.equal(matrix.captureVisible.ok, true, matrix.captureVisible.reason);
   },
 );
 
