@@ -9,6 +9,11 @@ import {
 loadE2EEnvFiles();
 
 const authEnabled = hasE2ECredentials();
+if (!authEnabled) {
+  console.warn(
+    "E2E_USER_PASSWORD unset — running unauth landing only. See e2e/README.md.",
+  );
+}
 const startWebServer = process.env.E2E_WEB_SERVER === "1";
 
 export default defineConfig({

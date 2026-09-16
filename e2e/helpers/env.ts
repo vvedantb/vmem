@@ -1,10 +1,9 @@
 import { existsSync, readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 
-const e2eDir = dirname(fileURLToPath(import.meta.url));
+const e2eDir = resolve(process.cwd(), "e2e");
 
-export const AUTH_STATE_PATH = resolve(e2eDir, "../.auth/user.json");
+export const AUTH_STATE_PATH = resolve(e2eDir, ".auth/user.json");
 export const DEFAULT_E2E_EMAIL = "eva@vedantb.com";
 export const DEFAULT_E2E_BASE_URL = "https://vmem.vedantb.com";
 
@@ -26,7 +25,12 @@ function stripQuotes(value: string): string {
 
 // tiny dotenv loader so we do not add a dotenv dependency
 export function loadE2EEnvFiles(): void {
-  const files = [resolve(e2eDir, "../.env.local"), resolve(e2eDir, "../.env")];
+  const files = [
+    resolve(e2eDir, ".env.local"),
+    resolve(e2eDir, ".env"),
+    resolve(process.cwd(), ".env.local"),
+    resolve(process.cwd(), ".env"),
+  ];
   for (const file of files) {
     if (!existsSync(file)) continue;
     const text = readFileSync(file, "utf8");
