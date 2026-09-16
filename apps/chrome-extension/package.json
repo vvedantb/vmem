@@ -8,7 +8,8 @@
     "build": "wxt build",
     "postinstall": "wxt prepare",
     "test": "tsx --import ./tests/register-backend-stub.mjs --test --test-concurrency=1 tests/*.test.mts",
-    "test:e2e": "tsx --import ./tests/register-backend-stub.mjs --test --test-concurrency=1 tests/e2e/*.e2e.mts",
+    "test:e2e": "tsx --import ./tests/register-backend-stub.mjs --test --test-concurrency=1 tests/e2e/load-extension.e2e.mts",
+    "test:e2e:live": "tsx --import ./tests/register-backend-stub.mjs --test --test-concurrency=1 tests/e2e/signed-in.live.e2e.mts",
     "typecheck": "wxt prepare && tsc --noEmit"
   },
   "dependencies": {
