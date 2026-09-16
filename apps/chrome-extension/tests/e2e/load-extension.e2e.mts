@@ -1,6 +1,6 @@
 // optional headed Chrome load of the unpacked MV3 build
 // AI-generated (Claude), prompt: "puppeteer-core harness to load unpacked chrome-mv3 extension"
-// Modified by me: chrome 137+ unsafe debugging flags, popup screenshot, never fail CI when chrome cannot load extensions
+// Modified by me: puppeteer enableExtensions + pipe for chrome 137+, wait for signed-out copy
 import test from "node:test";
 import assert from "node:assert/strict";
 import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
@@ -8,7 +8,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { existsSync } from "node:fs";
-import puppeteer, { TargetType } from "puppeteer-core";
+import puppeteer, { TargetType, type Page } from "puppeteer-core";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const extensionRoot = path.resolve(here, "../..");
@@ -31,53 +31,142 @@ type LoadResult = {
   reason: string;
   extensionId?: string;
   popupPath?: string;
+  targets?: string[];
 };
+
+type Browser = Awaited<ReturnType<typeof puppeteer.launch>>;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+async function persistLoadResult(
+  result: LoadResult,
+  extra: Record<string, unknown> = {},
+): Promise<void> {
+  await mkdir(artifactDir, { recursive: true });
+  await writeFile(
+    path.join(artifactDir, "extension_load.json"),
+    JSON.stringify({ ...result, distDir, chromeBin, ...extra }, null, 2),
+  );
+}
+
+async function probePage(
+  browser: Browser,
+  name: string,
+  url: string,
+  inspect: (page: Page) => Promise<Record<string, unknown>>,
+): Promise<Record<string, unknown>> {
+  const page = await browser.newPage();
+  await page.setViewport({ width: 1280, height: 800 });
+  try {
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20_000 });
+    await sleep(2_500);
+    const details = await inspect(page);
+    await page.screenshot({ path: path.join(artifactDir, `${name}.png`) });
+    return { url: page.url(), title: await page.title(), ...details };
+  } catch (err) {
+    return {
+      ok: false,
+      reason: err instanceof Error ? err.message : String(err),
+    };
+  } finally {
+    await page.close().catch(() => {});
+  }
+}
+
+async function probeLivePages(
+  browser: Browser,
+): Promise<Record<string, unknown>> {
+  const chatgpt = await probePage(
+    browser,
+    "chatgpt",
+    "https://chatgpt.com/",
+    async (page) => ({
+      injectedExport: Boolean(await page.$("[data-vmem-action='export']")),
+      injectedUseVmem: Boolean(await page.$("[data-vmem]")),
+      bodyPreview: (await page.evaluate(() => document.body.innerText)).slice(
+        0,
+        300,
+      ),
+    }),
+  );
+  const claude = await probePage(
+    browser,
+    "claude",
+    "https://claude.ai/",
+    async (page) => ({
+      injectedExport: Boolean(await page.$("[data-vmem-action='export']")),
+      bodyPreview: (await page.evaluate(() => document.body.innerText)).slice(
+        0,
+        300,
+      ),
+    }),
+  );
+  const settings = await probePage(
+    browser,
+    "settings_extension",
+    "https://vmem.vedantb.com/settings/extension",
+    async (page) => {
+      const text = await page.evaluate(() => document.body.innerText);
+      return {
+        hasCodebasePrompt: /codebase/i.test(text),
+        bodyPreview: text.slice(0, 300),
+      };
+    },
+  );
+  return { chatgpt, claude, settings };
+}
+
 async function loadUnpacked(): Promise<LoadResult> {
   if (!chromeBin) {
-    return { ok: false, reason: "google-chrome is not installed" };
+    const result = { ok: false, reason: "google-chrome is not installed" };
+    await persistLoadResult(result);
+    return result;
   }
   if (!existsSync(path.join(distDir, "manifest.json"))) {
-    return {
+    const result = {
       ok: false,
       reason: `unpacked build missing at ${distDir} — run pnpm ext:build`,
     };
+    await persistLoadResult(result);
+    return result;
   }
 
   const userDataDir = await mkdtemp(path.join(os.tmpdir(), "vmem-ext-"));
-  let browser: Awaited<ReturnType<typeof puppeteer.launch>> | undefined;
+  let browser: Browser | undefined;
 
   try {
     browser = await puppeteer.launch({
       executablePath: chromeBin,
       headless: false,
       userDataDir,
+      pipe: true,
+      enableExtensions: [distDir],
       args: [
         "--no-sandbox",
         "--disable-gpu",
         "--disable-dev-shm-usage",
         "--enable-unsafe-extension-debugging",
-        `--disable-extensions-except=${distDir}`,
-        `--load-extension=${distDir}`,
       ],
     });
 
     const deadline = Date.now() + 20_000;
     let extensionId: string | undefined;
+    let targets: string[] = [];
     while (Date.now() < deadline) {
-      const targets = browser.targets();
-      const worker = targets.find(
-        (target) =>
+      targets = browser.targets().map((target) => {
+        return `${target.type()}:${target.url()}`;
+      });
+      const worker = browser.targets().find((target) => {
+        return (
           target.type() === TargetType.SERVICE_WORKER &&
-          target.url().startsWith("chrome-extension://"),
-      );
-      const extTarget = targets.find((target) =>
-        target.url().startsWith("chrome-extension://"),
-      );
+          target.url().startsWith("chrome-extension://")
+        );
+      });
+      const extTarget = browser.targets().find((target) => {
+        return target.url().startsWith("chrome-extension://");
+      });
       const url = worker?.url() ?? extTarget?.url();
       if (url) {
         extensionId = new URL(url).hostname;
@@ -87,49 +176,61 @@ async function loadUnpacked(): Promise<LoadResult> {
     }
 
     if (!extensionId) {
-      return {
+      const result = {
         ok: false,
         reason:
           "Chrome launched but no chrome-extension:// target appeared (MV3 load-extension blocked in this environment)",
+        targets,
       };
+      await persistLoadResult(result);
+      return result;
     }
 
     const popupUrl = `chrome-extension://${extensionId}/popup.html`;
     const page = await browser.newPage();
+    await page.setViewport({ width: 380, height: 525 });
     await page.goto(popupUrl, {
       waitUntil: "domcontentloaded",
       timeout: 15_000,
     });
-    await mkdir(artifactDir, { recursive: true });
+    await page
+      .waitForFunction(
+        () =>
+          document.body.innerText.includes("Sign in to start saving memories"),
+        { timeout: 15_000 },
+      )
+      .catch(() => {});
     const popupPath = path.join(artifactDir, "extension_popup_signed_out.png");
-    await page.screenshot({ path: popupPath, fullPage: true });
+    await page.screenshot({ path: popupPath });
     const bodyText = await page.evaluate(() => document.body.innerText);
+    const live = await probeLivePages(browser);
 
-    await writeFile(
-      path.join(artifactDir, "extension_load.json"),
-      JSON.stringify(
-        {
-          ok: true,
-          extensionId,
-          popupUrl,
-          bodyPreview: bodyText.slice(0, 500),
-          distDir,
-        },
-        null,
-        2,
-      ),
-    );
-
-    return { ok: true, reason: "loaded", extensionId, popupPath };
+    const result = {
+      ok: true,
+      reason: "loaded",
+      extensionId,
+      popupPath,
+      targets,
+    };
+    await persistLoadResult(result, {
+      popupUrl,
+      bodyPreview: bodyText.slice(0, 500),
+      signedOut: /Sign in to start saving memories/.test(bodyText),
+      live,
+    });
+    return result;
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    return { ok: false, reason: message };
+    const result = { ok: false, reason: message };
+    await persistLoadResult(result);
+    return result;
   } finally {
     await browser?.close().catch(() => {});
   }
 }
 
 const result = await loadUnpacked();
+console.log("[vmem e2e]", result.ok, result.reason);
 
 await test("e2e harness records whether unpacked MV3 load succeeded", () => {
   assert.equal(typeof result.ok, "boolean");
@@ -138,7 +239,10 @@ await test("e2e harness records whether unpacked MV3 load succeeded", () => {
 
 await test("e2e unpacked load path is the WXT chrome-mv3 dist folder", () => {
   assert.ok(distDir.endsWith(`${path.sep}dist${path.sep}chrome-mv3`));
-  assert.equal(path.basename(path.dirname(distDir)), "chrome-extension");
+  assert.equal(
+    path.basename(path.resolve(distDir, "..", "..")),
+    "chrome-extension",
+  );
 });
 
 await test("README tells developers to load dist/chrome-mv3 unpacked", async () => {
