@@ -3,6 +3,6 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "mint dev --port 3001"
+    "dev": "npx --yes mint@latest dev --port 3001 --no-open"
   }
 }

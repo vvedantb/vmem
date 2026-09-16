@@ -12,4 +12,4 @@ This branch restores `apps/docs` (and the monorepo wiring for `pnpm docs:dev`) o
 pnpm docs:dev
 ```
 
-Requires the [Mintlify CLI](https://www.mintlify.com/docs/installation) (`mint`) on your PATH.
+Runs the Mintlify CLI via `npx` from `apps/docs` (no global `mint` install required). Preview: http://localhost:3001
