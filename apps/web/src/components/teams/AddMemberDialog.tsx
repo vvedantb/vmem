@@ -61,10 +61,17 @@ export function AddMemberDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
-          <label className="text-xs font-medium text-muted">Email</label>
+          <label
+            htmlFor="add-member-email"
+            className="text-xs font-medium text-muted"
+          >
+            Email
+          </label>
           <Input
+            id="add-member-email"
             autoFocus
             type="email"
+            aria-label="Email"
             placeholder="teammate@company.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}

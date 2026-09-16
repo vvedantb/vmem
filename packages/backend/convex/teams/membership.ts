@@ -1,6 +1,8 @@
 import type { Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { auditLog, ResourceTypes } from "../auditLog";
+import { userFacingError } from "../lib/userFacingError";
+import { normalizeAccountEmail } from "../lib/accountEmail";
 import {
   type AuthMutationCtx,
   getMembershipOrNull,
@@ -23,24 +25,24 @@ export async function runAddMember(
   args: { teamId: string; email: string },
 ): Promise<{ added: true; userId: Id<"users"> }> {
   const teamId = ctx.db.normalizeId("teams", args.teamId);
-  if (!teamId) throw new Error("Team not found");
+  if (!teamId) userFacingError("Team not found");
 
   await requireTeamRole(ctx, teamId, ctx.userId, ["owner"]);
 
-  const email = args.email.trim().toLowerCase();
-  if (!email) throw new Error("Email is required");
+  const email = normalizeAccountEmail(args.email);
+  if (!email) userFacingError("Email is required");
 
   const user = await ctx.db
     .query("users")
     .withIndex("by_email", (q) => q.eq("email", email))
     .first();
   if (!user) {
-    throw new Error("No vmem account for that email");
+    userFacingError("No vmem account for that email");
   }
 
   const existing = await getMembershipOrNull(ctx, teamId, user._id);
   if (existing) {
-    throw new Error("User is already a member of this team");
+    userFacingError("User is already a member of this team");
   }
 
   await ctx.db.insert("teamMembers", {
@@ -67,18 +69,18 @@ export async function runRemoveMember(
   args: { teamId: string; userId: string },
 ): Promise<{ removed: true }> {
   const teamId = ctx.db.normalizeId("teams", args.teamId);
-  if (!teamId) throw new Error("Team not found");
+  if (!teamId) userFacingError("Team not found");
 
   const targetUserId = ctx.db.normalizeId("users", args.userId);
-  if (!targetUserId) throw new Error("User not found");
+  if (!targetUserId) userFacingError("User not found");
 
   await requireTeamRole(ctx, teamId, ctx.userId, ["owner"]);
 
   const target = await getMembershipOrNull(ctx, teamId, targetUserId);
-  if (!target) throw new Error("User is not a member");
+  if (!target) userFacingError("User is not a member");
 
   if (target.role === "owner" && (await countTeamOwners(ctx, teamId)) <= 1) {
-    throw new Error("Cannot remove the last owner");
+    userFacingError("Cannot remove the last owner");
   }
 
   await ctx.db.delete(target._id);
@@ -100,16 +102,16 @@ export async function runLeaveTeam(
   args: { teamId: string },
 ): Promise<{ left: true }> {
   const teamId = ctx.db.normalizeId("teams", args.teamId);
-  if (!teamId) throw new Error("Team not found");
+  if (!teamId) userFacingError("Team not found");
 
   const membership = await getMembershipOrNull(ctx, teamId, ctx.userId);
-  if (!membership) throw new Error("Not a member of this team");
+  if (!membership) userFacingError("Not a member of this team");
 
   if (
     membership.role === "owner" &&
     (await countTeamOwners(ctx, teamId)) <= 1
   ) {
-    throw new Error(
+    userFacingError(
       "You are the last owner. Transfer ownership before leaving.",
     );
   }

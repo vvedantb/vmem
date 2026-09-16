@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
+import { convexErrorMessage } from "@/lib/convex-error";
 
 /**
  * wraps async actions with submitting state and toast on failure.
@@ -15,7 +16,7 @@ export function useAsyncSubmit() {
     try {
       await fn();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : fallbackMessage);
+      toast.error(convexErrorMessage(err, fallbackMessage));
     }
     setSubmitting(false);
   };

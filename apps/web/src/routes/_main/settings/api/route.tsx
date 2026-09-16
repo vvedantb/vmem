@@ -1,9 +1,9 @@
-import { createFileRoute, Outlet, useMatchRoute } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useLocation } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { Button } from "@vmem/ui";
 import { IconPlus } from "@tabler/icons-react";
 import { SettingsPage } from "@/components/settings/SettingsPage";
-import { ApiTabs, getActiveApiTab } from "./-components/ApiTabs";
+import { ApiTabs, apiTabFromPathname } from "./-components/ApiTabs";
 import {
   ApiCreateKeyProvider,
   useApiCreateKeyModal,
@@ -20,6 +20,7 @@ function ApiNewKeyButton() {
     <Button
       variant="outline"
       size="sm"
+      aria-label="New Key"
       onClick={() => setIsCreateModalOpen(true)}
     >
       <IconPlus size={16} />
@@ -52,8 +53,8 @@ function ApiPageShell({
 }
 
 function ApiLayout() {
-  const matchRoute = useMatchRoute();
-  const activeTab = getActiveApiTab(matchRoute);
+  const pathname = useLocation({ select: (location) => location.pathname });
+  const activeTab = apiTabFromPathname(pathname);
 
   return (
     <ApiCreateKeyProvider>

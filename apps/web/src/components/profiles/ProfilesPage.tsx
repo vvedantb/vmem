@@ -5,6 +5,7 @@ import { Button, Skeleton } from "@vmem/ui";
 import { IconPlus } from "@tabler/icons-react";
 import { api, type Id } from "@vmem/backend";
 import { tempId } from "@/lib/convex-optimistic";
+import { convexErrorMessage } from "@/lib/convex-error";
 import { SettingsPage } from "@/components/settings/SettingsPage";
 import { SettingsSection } from "@/components/settings/SettingsSection";
 import { CreateEditProfileDialog } from "./CreateEditProfileDialog";
@@ -14,6 +15,7 @@ import { ProfileDangerZone } from "./ProfileDangerZone";
 
 export function ProfilesPage() {
   const profiles = useQuery(api.profiles.list);
+  const me = useQuery(api.users.getMe);
   const createProfile = useMutation(api.profiles.create).withOptimisticUpdate(
     (localStore, args) => {
       const list = localStore.getQuery(api.profiles.list, {});
@@ -118,14 +120,23 @@ export function ProfilesPage() {
         description="Each profile is a separate memory workspace."
         bodyClassName="grid gap-4 sm:grid-cols-2"
       >
-        {profiles.map((profile) => (
-          <ProfileCard
-            key={profile._id}
-            profile={profile}
-            onEdit={() => setEditingProfileId(profile._id)}
-            onDelete={() => setDeletingProfileId(profile._id)}
-          />
-        ))}
+        {profiles.map((profile) => {
+          const isTeam = profile.teamId !== undefined;
+          const canEdit = !isTeam || profile.userId === me?._id;
+          const canDelete = !isTeam && !profile.isDefault;
+          return (
+            <ProfileCard
+              key={profile._id}
+              profile={profile}
+              onEdit={
+                canEdit ? () => setEditingProfileId(profile._id) : undefined
+              }
+              onDelete={
+                canDelete ? () => setDeletingProfileId(profile._id) : undefined
+              }
+            />
+          );
+        })}
       </SettingsSection>
 
       <CreateEditProfileDialog
@@ -145,9 +156,7 @@ export function ProfilesPage() {
               profileId: editingProfile._id,
               ...patch,
             }).catch((err: unknown) => {
-              toast.error(
-                err instanceof Error ? err.message : "Failed to update profile",
-              );
+              toast.error(convexErrorMessage(err, "Failed to update profile"));
             });
           }}
         />

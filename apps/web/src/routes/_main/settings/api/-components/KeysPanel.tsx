@@ -69,6 +69,7 @@ export function KeysPanel() {
               <Button
                 variant="outline"
                 size="sm"
+                aria-label="New Key"
                 onClick={() => setIsCreateModalOpen(true)}
               >
                 <IconPlus size={16} />

@@ -3,6 +3,7 @@ import type { FunctionArgs } from "convex/server";
 import { toast } from "sonner";
 import { api } from "@vmem/backend";
 import { patchUserSettingsGet } from "@/lib/convex-optimistic";
+import { convexErrorMessage } from "@/lib/convex-error";
 
 type UserSettingsPatch = FunctionArgs<typeof api.userSettings.update>;
 
@@ -18,7 +19,7 @@ export function useUserSettingsSave() {
       await updateSettings(patch);
       toast.success("Saved!");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save");
+      toast.error(convexErrorMessage(err, "Failed to save"));
     }
   };
 

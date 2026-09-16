@@ -12,6 +12,7 @@ import {
 } from "@vmem/ui";
 import { IconLoader2 } from "@tabler/icons-react";
 import type { Doc } from "@vmem/backend";
+import { convexErrorMessage } from "@/lib/convex-error";
 import { PROFILE_COLORS } from "./profile-icon";
 import { ProfileColorPicker } from "./ProfileColorPicker";
 import { ProfileIconPicker } from "./ProfileIconPicker";
@@ -46,7 +47,7 @@ function CreateProfileFormContent({
       await onSave({ name: name.trim(), color, icon });
       onOpenChange(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save profile");
+      setError(convexErrorMessage(err, "Failed to save profile"));
     }
     // after the try rather than in a `finally` React Compiler bails on the
     // whole file when it meets one. The catch swallows, so this always runs.

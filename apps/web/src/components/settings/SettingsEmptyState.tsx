@@ -24,7 +24,7 @@ export function SettingsEmptyState({
   return (
     <div className="flex flex-col items-center justify-center px-4 py-16 text-center">
       <Icon size={28} className="mb-5 text-muted opacity-50" />
-      <p className="text-sm font-medium text-foreground">{title}</p>
+      <h4 className="text-sm font-medium text-foreground">{title}</h4>
       {description ? (
         <p className="mt-2 max-w-sm text-xs leading-relaxed text-muted">
           {description}
