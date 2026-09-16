@@ -462,14 +462,30 @@ async function runLive(): Promise<LiveMatrix> {
       if (worker) {
         await page.bringToFront();
         await sleep(300);
+        const toastWait = page
+          .waitForFunction(
+            () =>
+              /Page saved to vmem|Failed to save page/.test(
+                document.body.innerText,
+              ),
+            { timeout: 25_000 },
+          )
+          .then(() => true)
+          .catch(() => false);
         const swResult = await worker
           .evaluate(async () => {
-            const fn = (
+            const saveTab = (
               globalThis as unknown as {
-                __vmemHandleCommand?: (command: string) => Promise<void>;
+                __vmemSaveTab?: (
+                  tab: chrome.tabs.Tab,
+                ) => Promise<{
+                  success: boolean;
+                  memoryId?: string;
+                  error?: string;
+                }>;
               }
-            ).__vmemHandleCommand;
-            if (typeof fn !== "function") return "no command hook";
+            ).__vmemSaveTab;
+            if (typeof saveTab !== "function") return "no save hook";
             const tabs = await chrome.tabs.query({});
             for (const tab of tabs) {
               if (tab.id && tab.url?.includes("welcome.html")) {
@@ -483,30 +499,32 @@ async function runLive(): Promise<LiveMatrix> {
               const urls = (await chrome.tabs.query({})).map((tab) => tab.url);
               return `no example tab: ${urls.join(",")}`;
             }
-            await chrome.tabs.update(example.id, { active: true });
-            if (typeof example.windowId === "number") {
-              await chrome.windows.update(example.windowId, { focused: true });
-            }
-            await fn("save-page");
-            return `invoked:${example.url}`;
+            const result = await saveTab(example);
+            return JSON.stringify({ url: example.url, ...result });
           })
           .catch((err: unknown) =>
             err instanceof Error ? err.message : String(err),
           );
-        const swToast = await page
-          .waitForFunction(
-            () =>
-              /Page saved to vmem|Failed to save page/.test(
-                document.body.innerText,
-              ),
-            { timeout: 20_000 },
-          )
-          .then(() => true)
-          .catch(() => false);
+        const swToast = await toastWait;
         pageText = await page.evaluate(() => document.body.innerText);
-        saveOk = swToast && pageText.includes("Page saved to vmem");
+        const parsed = (() => {
+          try {
+            return JSON.parse(swResult) as {
+              success?: boolean;
+              memoryId?: string;
+              error?: string;
+            };
+          } catch {
+            return null;
+          }
+        })();
+        saveOk =
+          (swToast && pageText.includes("Page saved to vmem")) ||
+          Boolean(parsed?.success && parsed.memoryId);
         saveReason = saveOk
-          ? "service-worker save-page command"
+          ? parsed?.memoryId
+            ? `save-page memoryId=${parsed.memoryId}`
+            : "service-worker save-page toast"
           : `${saveReason}; sw=${swResult}; toast=${swToast ? pageText.slice(0, 120) : "none"}`;
       }
     }
