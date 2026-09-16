@@ -113,6 +113,30 @@ describe("rankMemories", () => {
       withGraph.find((hit) => hit.id === "mem_gold")?.trace.reason,
     ).toContain("related via stored link");
   });
+
+  it("ranks a prefer-title over a recency trap that shares one token", () => {
+    const prefer = memory({
+      id: "mem_prefer",
+      title: "Prefers morning workouts",
+      content: "Trains in the morning before work.",
+    });
+    const trap = memory({
+      id: "mem_trap",
+      title: "Error E2002 means the request timed out",
+      content:
+        "When the service returns E2002, it indicates that the request timed out.",
+      updatedAt: "2026-09-01T00:00:00.000Z",
+    });
+    const ranked = rankMemories(
+      [trap, prefer],
+      "when do I prefer to work out",
+      {
+        limit: 2,
+        nowMs: Date.parse("2026-09-16T00:00:00.000Z"),
+      },
+    );
+    expect(ranked[0]?.id).toBe("mem_prefer");
+  });
 });
 
 describe("retrieveMemoriesFromPool", () => {

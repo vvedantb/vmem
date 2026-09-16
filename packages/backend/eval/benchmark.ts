@@ -24,6 +24,37 @@ interface LegConfig {
   legs: RetrievalLegs;
 }
 
+// Neo4j-era production retrieveMemories, 2026-07-18, OpenRouter embeddings.
+export const NEO4J_FULL_HYBRID = {
+  recall1: 0.724,
+  recall3: 0.901,
+  recall5: 0.92,
+  recall10: 0.933,
+  precision5: 0.264,
+  mrr: 0.974,
+  ndcg10: 0.857,
+};
+
+const NEO4J_ABLATION: Record<
+  string,
+  { recall1: number; recall5: number; mrr: number; ndcg10: number }
+> = {
+  "vector-only": { recall1: 0.718, recall5: 0.917, mrr: 0.971, ndcg10: 0.841 },
+  "bm25-only": { recall1: 0.647, recall5: 0.84, mrr: 0.913, ndcg10: 0.792 },
+  "hybrid (no graph)": {
+    recall1: 0.731,
+    recall5: 0.917,
+    mrr: 0.981,
+    ndcg10: 0.852,
+  },
+  "full hybrid": {
+    recall1: 0.724,
+    recall5: 0.92,
+    mrr: 0.974,
+    ndcg10: 0.857,
+  },
+};
+
 export const EVAL_CONFIGS: LegConfig[] = [
   {
     name: "vector-only",
@@ -121,6 +152,16 @@ function pct(value: number): string {
   return `${(value * 100).toFixed(1)}%`;
 }
 
+function signedPct(value: number): string {
+  const shown = `${(value * 100).toFixed(1)}%`;
+  return value >= 0 ? `+${shown}` : shown;
+}
+
+function signedFixed(value: number): string {
+  const shown = value.toFixed(3);
+  return value >= 0 ? `+${shown}` : shown;
+}
+
 function mdTable(header: string[], rows: string[][]): string {
   return [header, header.map(() => "---"), ...rows]
     .map((cells) => `| ${cells.join(" | ")} |`)
@@ -191,6 +232,90 @@ export function buildEvalReport(
     ]),
   );
 
+  const hybrid = overall.find((r) => r.name === "full hybrid")?.agg;
+  const vsNeo4j =
+    hybrid === undefined
+      ? ""
+      : `
+
+## vs Neo4j full hybrid (2026-07-18, OpenRouter embeddings)
+
+Success bar: Convex full hybrid ≥ Neo4j on recall@5, MRR, and nDCG@10.
+
+${mdTable(
+  ["Metric", "Neo4j full hybrid", "Convex full hybrid", "Δ"],
+  [
+    [
+      "recall@1",
+      pct(NEO4J_FULL_HYBRID.recall1),
+      pct(hybrid.recall1),
+      signedPct(hybrid.recall1 - NEO4J_FULL_HYBRID.recall1),
+    ],
+    [
+      "recall@3",
+      pct(NEO4J_FULL_HYBRID.recall3),
+      pct(hybrid.recall3),
+      signedPct(hybrid.recall3 - NEO4J_FULL_HYBRID.recall3),
+    ],
+    [
+      "recall@5",
+      pct(NEO4J_FULL_HYBRID.recall5),
+      pct(hybrid.recall5),
+      signedPct(hybrid.recall5 - NEO4J_FULL_HYBRID.recall5),
+    ],
+    [
+      "recall@10",
+      pct(NEO4J_FULL_HYBRID.recall10),
+      pct(hybrid.recall10),
+      signedPct(hybrid.recall10 - NEO4J_FULL_HYBRID.recall10),
+    ],
+    [
+      "P@5",
+      pct(NEO4J_FULL_HYBRID.precision5),
+      pct(hybrid.precision5),
+      signedPct(hybrid.precision5 - NEO4J_FULL_HYBRID.precision5),
+    ],
+    [
+      "MRR",
+      NEO4J_FULL_HYBRID.mrr.toFixed(3),
+      hybrid.mrr.toFixed(3),
+      signedFixed(hybrid.mrr - NEO4J_FULL_HYBRID.mrr),
+    ],
+    [
+      "nDCG@10",
+      NEO4J_FULL_HYBRID.ndcg10.toFixed(3),
+      hybrid.ndcg10.toFixed(3),
+      signedFixed(hybrid.ndcg10 - NEO4J_FULL_HYBRID.ndcg10),
+    ],
+  ],
+)}
+
+### Ablation vs the same Neo4j run
+
+${mdTable(
+  [
+    "Config",
+    "Neo4j R@5",
+    "Convex R@5",
+    "Neo4j MRR",
+    "Convex MRR",
+    "Neo4j nDCG@10",
+    "Convex nDCG@10",
+  ],
+  overall.map(({ name, agg }) => {
+    const neo = NEO4J_ABLATION[name];
+    return [
+      name,
+      neo === undefined ? "—" : pct(neo.recall5),
+      pct(agg.recall5),
+      neo === undefined ? "—" : neo.mrr.toFixed(3),
+      agg.mrr.toFixed(3),
+      neo === undefined ? "—" : neo.ndcg10.toFixed(3),
+      agg.ndcg10.toFixed(3),
+    ];
+  }),
+)}`;
+
   return `# vmem Convex retrieval eval
 
 Generated: ${today} · Corpus: ${String(corpus.memoryCount)} memories · Answerable queries: ${String(answerable.length)} · Abstention queries: ${String(abstention.length)} · Embeddings: ${embeddingMode()}
@@ -206,12 +331,14 @@ ${perTypeTable(runs, answerable, (m) => m.ndcg10.toFixed(3))}
 ## Recall@5 by query type
 
 ${perTypeTable(runs, answerable, (m) => pct(m.recall5))}
+${vsNeo4j}
 
 ## Notes
 
 - Legs: \`vector-only\` / \`bm25-only\` are naive single-channel baselines. \`hybrid (no graph)\` is lexical+vector+recency. \`full hybrid\` adds 1-hop stored memory links.
 - Query types: **single-fact / preference** one clear answer. **exact-match** distinctive codes among lookalikes. **project** sibling facts that never repeat the codename. **lexical-trap** repeats a query keyword in a different sense (graded 0). **update** stale vs current, recency separates them. **multi-hop** gold is one stored link from a bridge that shares the query entity.
 - Pure retrieval metrics + latency. No LLM judge. Neo4j is not used.
+- Convex numbers in this environment use deterministic synthetic embeddings unless \`OPENROUTER_API_KEY\` is set. The Neo4j 2026-07-18 bar used OpenRouter \`text-embedding-3-small\`.
 `;
 }
 

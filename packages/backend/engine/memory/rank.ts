@@ -1,6 +1,6 @@
 import type { MemoryCandidate, MemoryWithTags } from "@vmem/sdk";
 import { expandGraphNeighbors, type MemoryLinkEdge } from "./links";
-import { expandQueryTerms } from "./synonyms";
+import { expandQueryTerms, phraseAwareQueryTokens } from "./synonyms";
 import { contentTokens, tokenize } from "./tokens";
 
 const BM25_K1 = 1.4;
@@ -12,7 +12,7 @@ const RECENCY_HALFLIFE_DAYS = 365;
 const MS_PER_DAY = 86_400_000;
 const GRAPH_SEED_LIMIT = 5;
 const GRAPH_NEIGHBOR_LIMIT = 40;
-const GRAPH_SEED_SCORE_FLOOR = 0.22;
+const GRAPH_SEED_SCORE_FLOOR = 0.4;
 const GRAPH_NEIGHBOR_FROM_SEED = 0.9;
 
 export interface RetrievalLegs {
@@ -127,7 +127,7 @@ function phraseScore(memory: MemoryWithTags, query: string): number {
   const content = memory.content.toLowerCase();
   if (title.includes(needle)) return 1;
   if (content.includes(needle)) return 0.86;
-  const queryTokens = contentTokens(query, true);
+  const queryTokens = phraseAwareQueryTokens(query);
   if (queryTokens.length === 0) return 0;
   const titleSet = new Set(contentTokens(memory.title, true));
   const contentSet = new Set(contentTokens(memory.content, true));
@@ -137,8 +137,13 @@ function phraseScore(memory: MemoryWithTags, query: string): number {
     if (titleSet.has(token)) titleHits += 1;
     if (contentSet.has(token)) contentHits += 1;
   }
-  if (titleHits === queryTokens.length) return 0.72;
-  if (contentHits === queryTokens.length) return 0.55;
+  if (titleHits === queryTokens.length) return 1;
+  if (contentHits === queryTokens.length) return 0.86;
+  const titleFrac = titleHits / queryTokens.length;
+  const contentFrac = contentHits / queryTokens.length;
+  if (titleFrac >= 0.4) return 0.45 + 0.5 * titleFrac;
+  if (contentFrac >= 0.4) return 0.3 + 0.3 * contentFrac;
+  if (titleFrac > 0) return 0.2 * titleFrac;
   return 0;
 }
 
@@ -432,9 +437,6 @@ export function rankMemories(
 
   const rrf = new Map<string, number>();
   addRrf(rrf, seedRrf);
-  if (useRecency && trimmed.length > 0) {
-    addRrf(rrf, rrfFromScores(ids, recencyRaw));
-  }
   if (useGraph) addRrf(rrf, rrfFromScores(ids, graphRaw));
   const rrfNorm = normalizeMap(rrf);
 

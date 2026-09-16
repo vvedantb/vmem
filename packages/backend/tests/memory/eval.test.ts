@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { generateBenchmarkCorpus } from "../../eval/corpus";
-import { aggregate, runAblation } from "../../eval/benchmark";
+import {
+  aggregate,
+  NEO4J_FULL_HYBRID,
+  runAblation,
+} from "../../eval/benchmark";
 import { parseFactExtractionResponse } from "../../engine/memory/extractFacts";
 import { recallAtK, reciprocalRank } from "../../eval/metrics";
 
@@ -83,10 +87,10 @@ describe("Convex labelled ablation", () => {
     expect(full.ndcg10).toBeGreaterThan(noGraph.ndcg10);
     expect(full.ndcg10).toBeGreaterThan(vector.ndcg10);
     expect(full.ndcg10).toBeGreaterThan(bm25.ndcg10);
-    expect(full.recall5).toBeGreaterThan(bm25.recall5);
-    expect(full.recall5).toBeGreaterThan(0.9);
+    expect(full.recall5).toBeGreaterThanOrEqual(NEO4J_FULL_HYBRID.recall5);
+    expect(full.mrr).toBeGreaterThanOrEqual(NEO4J_FULL_HYBRID.mrr);
+    expect(full.ndcg10).toBeGreaterThanOrEqual(NEO4J_FULL_HYBRID.ndcg10);
     expect(full.recall10).toBeGreaterThanOrEqual(bm25.recall10);
-    expect(full.mrr).toBeGreaterThan(0.9);
 
     const byType = (name: string, type: string) =>
       aggregate(
