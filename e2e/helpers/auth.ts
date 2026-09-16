@@ -30,13 +30,17 @@ async function fillClerkSignIn(
   await identifier.fill(creds.email);
 
   const passwordField = dialog.locator('input[type="password"]');
+  const continueButton = dialog.getByRole("button", {
+    name: "Continue",
+    exact: true,
+  });
   if (!(await passwordField.isVisible().catch(() => false))) {
-    await dialog.getByRole("button", { name: /continue/i }).click();
+    await continueButton.click();
     await expect(passwordField).toBeVisible({ timeout: 20_000 });
   }
 
   await passwordField.fill(creds.password);
-  await dialog.getByRole("button", { name: /continue|sign in/i }).click();
+  await continueButton.click();
 }
 
 export async function signInAsEva(
