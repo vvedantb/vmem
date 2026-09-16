@@ -20,7 +20,7 @@ export function statCardValue(page: Page, label: string): Locator {
   return mainContent(page)
     .locator("p")
     .filter({ hasText: new RegExp(`^${label}$`) })
-    .locator("xpath=../following-sibling::p[1]");
+    .locator("xpath=following::p[contains(@class,'text-3xl')][1]");
 }
 
 export function sidebarPanel(page: Page): Locator {

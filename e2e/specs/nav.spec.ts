@@ -187,7 +187,9 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
   test("workspace switcher lists the current profile", async ({ page }) => {
     await gotoWorkspace(page, "/home");
     const menu = await openWorkspaceSwitcher(page);
-    await expect(menu.getByText("Personal")).toBeVisible();
+    await expect(
+      menu.getByRole("menuitem", { name: "Personal" }),
+    ).toBeVisible();
     await expect(
       menu.getByRole("menuitem", { name: "Create profile" }),
     ).toBeVisible();
