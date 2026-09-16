@@ -417,6 +417,16 @@ const memoryGetSchema = z.object({
   source: z.string().optional(),
 });
 
+const captureResultSchema = z.object({
+  ok: z.boolean(),
+  length: z.number().optional(),
+  reason: z.string().optional(),
+});
+
+const deleteResultSchema = z.object({
+  ok: z.boolean(),
+});
+
 async function saveExampleTab(
   worker: Awaited<ReturnType<typeof extensionWorker>>,
 ): Promise<string> {
@@ -629,23 +639,17 @@ async function runLive(): Promise<LiveMatrix> {
         });
       }
     });
-    const capture = z
-      .object({
-        ok: z.boolean(),
-        length: z.number().optional(),
-        reason: z.string().optional(),
-      })
-      .safeParse(
-        (() => {
-          try {
-            return JSON.parse(captureRaw) as unknown;
-          } catch {
-            return { ok: false, reason: captureRaw };
-          }
-        })(),
-      );
+    const capture = captureResultSchema.safeParse(
+      (() => {
+        try {
+          return JSON.parse(captureRaw) as unknown;
+        } catch {
+          return { ok: false, reason: captureRaw };
+        }
+      })(),
+    );
     matrix.captureVisible = {
-      ok: capture.success && capture.data.ok === true,
+      ok: capture.success && capture.data.ok,
       reason:
         capture.success && capture.data.ok
           ? `png ${capture.data.length ?? 0} bytes`
@@ -681,10 +685,10 @@ async function runLive(): Promise<LiveMatrix> {
       const found =
         fetched.success &&
         fetched.data.id === parsed.memoryId &&
-        (fetched.data.sourceUrl?.includes(marker) === true ||
+        (fetched.data.sourceUrl?.includes(marker) ||
           fetched.data.title.includes("Example Domain"));
       matrix.convexMemory = {
-        ok: Boolean(found),
+        ok: found,
         reason: found
           ? `Convex getMemory ${parsed.memoryId} title=${fetched.success ? fetched.data.title : ""} sourceUrl=${fetched.success ? (fetched.data.sourceUrl ?? "") : ""}`
           : `get=${fetchedRaw.slice(0, 280)}`,
@@ -702,7 +706,7 @@ async function runLive(): Promise<LiveMatrix> {
       const deleted = (() => {
         try {
           const parsedDelete: unknown = JSON.parse(deletedRaw);
-          return z.object({ ok: z.boolean() }).safeParse(parsedDelete);
+          return deleteResultSchema.safeParse(parsedDelete);
         } catch {
           return { success: false as const };
         }

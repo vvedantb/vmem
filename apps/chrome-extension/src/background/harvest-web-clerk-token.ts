@@ -13,6 +13,21 @@ type ClerkTokenProbe = {
   token?: string;
 };
 
+type ClerkGetToken = (opts: { template: string }) => Promise<string | null>;
+
+type ClerkSessionLike = {
+  getToken: ClerkGetToken;
+};
+
+type ClerkLike = {
+  session?: ClerkSessionLike | null;
+};
+
+declare global {
+  // MAIN-world Clerk on the signed-in vmem tab
+  var Clerk: ClerkLike | undefined;
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -31,15 +46,7 @@ export function isWebAppSyncUrl(
 
 // injected into the vmem tab MAIN world; must not close over module scope
 async function readConvexTokenFromPage(): Promise<ClerkTokenProbe> {
-  const clerk = (
-    globalThis as {
-      Clerk?: {
-        session?: {
-          getToken: (opts: { template: string }) => Promise<string | null>;
-        } | null;
-      };
-    }
-  ).Clerk;
+  const clerk = globalThis.Clerk;
   if (!clerk) return { ok: false, reason: "no-clerk" };
   if (!clerk.session) return { ok: false, reason: "no-session" };
   try {
@@ -66,7 +73,7 @@ export async function harvestConvexTokenFromTab(
       world: "MAIN",
       func: readConvexTokenFromPage,
     });
-    const probe = injected[0]?.result as ClerkTokenProbe | undefined;
+    const probe = injected[0]?.result;
     if (!probe) return { ok: false, reason: "no-inject-result" };
     if (!probe.ok || !probe.token) {
       return { ok: false, reason: probe.reason };
