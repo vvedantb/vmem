@@ -3,7 +3,6 @@ import type { WikiListNode, WikiNodeId } from "./-types";
 import {
   IconChevronRight,
   IconCode,
-  IconDatabase,
   IconFileText,
   IconFolder,
   IconFolderPlus,
@@ -169,14 +168,6 @@ export function WikiTreeRow({
           )}
           <WikiKindIcon kind={node.kind} />
           <span className="truncate">{node.title}</span>
-          {isFolder && node.sourceCodebaseId ? (
-            <span
-              title="Generated from a synced codebase"
-              className="ml-auto inline-flex shrink-0"
-            >
-              <IconDatabase size={13} className="text-muted" />
-            </span>
-          ) : null}
         </Button>
       </ContextMenuTrigger>
       <ContextMenuContent>

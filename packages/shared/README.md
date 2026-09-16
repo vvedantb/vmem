@@ -37,10 +37,12 @@ Do not use `@vmem/backend/*` subpaths from client code.
 ```
 packages/shared/src/
 ├── index.ts              # public barrel
-├── codebase.ts
 ├── envParse.ts
-├── skillSegments.ts
+├── graph.ts
+├── sync.ts
+├── theme.ts
 ├── time.ts
+├── wiki.ts
 └── prompts/
     └── memoryRagPrompt.ts
 ```

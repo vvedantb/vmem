@@ -54,16 +54,8 @@ describe("COSMOS_EDGE_LABEL", () => {
     const edgeTypes: GraphEdgeType[] = [
       "tag",
       "relates_to",
-      "imports",
-      "calls",
       "wiki_parent",
-      "contains",
-      "has_method",
-      "extends",
-      "implements",
       "mentions",
-      "starts_process",
-      "includes",
     ];
     for (const edgeType of edgeTypes) {
       expect(COSMOS_EDGE_LABEL[edgeType].length).toBeGreaterThan(0);

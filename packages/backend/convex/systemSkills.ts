@@ -4,7 +4,10 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { authQuery, authMutation } from "./auth";
 import { scheduleContextPromptInvalidationForUser } from "./lib/contextPromptInvalidate";
-import { SYSTEM_SKILL_SEEDS } from "./prompts/systemSkillSeeds";
+import {
+  RETIRED_SYSTEM_SKILL_NAMES,
+  SYSTEM_SKILL_SEEDS,
+} from "./prompts/systemSkillSeeds";
 import { requireContentScopeAccess } from "./teams/auth";
 
 async function isAdminUser(
@@ -307,25 +310,39 @@ export const adminUpdate = authMutation({
   },
 });
 
+async function deleteSystemSkillRow(
+  ctx: MutationCtx,
+  systemSkillId: Id<"systemSkills">,
+): Promise<void> {
+  const installs = await ctx.db
+    .query("userSystemSkills")
+    .withIndex("by_systemSkill", (q) => q.eq("systemSkillId", systemSkillId))
+    .collect();
+  await invalidateInstallers(ctx, systemSkillId);
+  for (const install of installs) {
+    await ctx.db.delete(install._id);
+  }
+  await ctx.db.delete(systemSkillId);
+}
+
 export const adminDelete = authMutation({
   args: { id: v.id("systemSkills") },
   handler: async (ctx, args) => {
     await requireAdmin(ctx, ctx.userId);
-    const installs = await ctx.db
-      .query("userSystemSkills")
-      .withIndex("by_systemSkill", (q) => q.eq("systemSkillId", args.id))
-      .collect();
-    for (const install of installs) {
-      await ctx.db.delete(install._id);
-    }
-    await invalidateInstallers(ctx, args.id);
-    await ctx.db.delete(args.id);
+    await deleteSystemSkillRow(ctx, args.id);
   },
 });
 
 export const seedSystemSkillsInternal = internalMutation({
   args: {},
   handler: async (ctx) => {
+    for (const name of RETIRED_SYSTEM_SKILL_NAMES) {
+      const retired = await ctx.db
+        .query("systemSkills")
+        .withIndex("by_name", (q) => q.eq("name", name))
+        .first();
+      if (retired) await deleteSystemSkillRow(ctx, retired._id);
+    }
     for (const seed of SYSTEM_SKILL_SEEDS) {
       const existing = await ctx.db
         .query("systemSkills")

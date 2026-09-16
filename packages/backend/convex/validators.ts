@@ -305,7 +305,6 @@ export const wikiNodeFields = {
   // artifact source language (html | svg | tsx | sql | …). absent on folders/docs
   language: v.optional(v.string()),
   order: v.number(),
-  sourceCodebaseId: v.optional(v.string()),
   createdAt: v.number(),
   updatedAt: v.number(),
 };

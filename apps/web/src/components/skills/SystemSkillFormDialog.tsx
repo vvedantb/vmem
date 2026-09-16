@@ -170,7 +170,7 @@ export function SystemSkillFormDialog({
           instructionsPlaceholder="Instructions (markdown playbook the agent follows)"
           afterName={
             <Input
-              placeholder="Category (optional, e.g. Codebases)"
+              placeholder="Category (optional, e.g. Learning)"
               aria-label="Category"
               {...form.register("category")}
             />

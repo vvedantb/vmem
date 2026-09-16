@@ -92,18 +92,6 @@ describe("buildCosmosGraphBuffers", () => {
     );
     expect(cosmosPointShapeForKind("skill")).toBe(COSMOS_POINT_SHAPE.Hexagon);
     expect(cosmosPointShapeForKind("entity")).toBe(COSMOS_POINT_SHAPE.Star);
-    expect(cosmosPointShapeForKind("code-file")).toBe(
-      COSMOS_POINT_SHAPE.Square,
-    );
-    expect(cosmosPointShapeForKind("code-class")).toBe(
-      COSMOS_POINT_SHAPE.Hexagon,
-    );
-    expect(cosmosPointShapeForKind("code-interface")).toBe(
-      COSMOS_POINT_SHAPE.Diamond,
-    );
-    expect(cosmosPointShapeForKind("code-process")).toBe(
-      COSMOS_POINT_SHAPE.Star,
-    );
   });
 
   it("seeds tiny graphs tightly instead of on the large overview ring", () => {

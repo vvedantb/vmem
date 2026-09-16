@@ -116,7 +116,6 @@ type CreateWikiNodeFields = {
   content?: string;
   contentText?: string;
   language?: string;
-  sourceCodebaseId?: string;
 };
 
 async function createWikiNodeRecord(
@@ -142,7 +141,6 @@ async function createWikiNodeRecord(
     language:
       fields.kind === "artifact" ? (fields.language ?? "html") : undefined,
     order: nextSiblingOrder(siblings),
-    sourceCodebaseId: fields.sourceCodebaseId,
     createdAt: now,
     updatedAt: now,
   });
@@ -225,7 +223,24 @@ export const listForGraphInternal = internalQuery({
     }),
   ),
   handler: async (ctx, args) => {
-    return await listScopeNodes(ctx, args.userId, args.teamId);
+    const nodes = await listScopeNodes(ctx, args.userId, args.teamId);
+    // project to schema fields so extra properties on older wiki docs
+    // cannot fail the return validator
+    return nodes.map((node) => ({
+      _id: node._id,
+      _creationTime: node._creationTime,
+      userId: node.userId,
+      teamId: node.teamId,
+      parentId: node.parentId,
+      kind: node.kind,
+      title: node.title,
+      content: node.content,
+      contentText: node.contentText,
+      language: node.language,
+      order: node.order,
+      createdAt: node.createdAt,
+      updatedAt: node.updatedAt,
+    }));
   },
 });
 
