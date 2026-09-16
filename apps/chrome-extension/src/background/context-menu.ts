@@ -2,7 +2,7 @@ import { truncate } from "es-toolkit/compat";
 import { sendMessage } from "@/lib/messaging";
 import { errorMessage } from "@/lib/error";
 import { createMemory } from "./api-client";
-import { htmlToMarkdown } from "@/lib/page-extraction";
+import { htmlToMarkdownSafe } from "@/lib/page-extraction";
 import { extractPageFromTab } from "@/lib/extract-page";
 
 // idempotent menu registration across install and startup
@@ -67,14 +67,9 @@ export async function savePageFromTab(
     }
 
     // turndown needs a DOM; MV3 service workers do not have `document`
-    let body = extraction.content;
-    if (extraction.html) {
-      try {
-        body = htmlToMarkdown(extraction.html);
-      } catch {
-        body = extraction.content;
-      }
-    }
+    const body = extraction.html
+      ? htmlToMarkdownSafe(extraction.html, extraction.content)
+      : extraction.content;
 
     const hostname = new URL(tab.url).hostname;
     const memory = await createMemory({

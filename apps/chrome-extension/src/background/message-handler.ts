@@ -7,7 +7,7 @@ import { cancelImport } from "./import-cancel";
 import { runAutoSyncNow } from "./sync-scheduler";
 import { lastBookmarkSyncItem, lastHistorySyncItem } from "@/lib/storage";
 import { onMessage, type SaveOutcome } from "@/lib/messaging";
-import { htmlToMarkdown } from "@/lib/page-extraction";
+import { htmlToMarkdownSafe } from "@/lib/page-extraction";
 
 async function createMemoryOrThrow(
   params: CreateMemoryParams,
@@ -28,7 +28,7 @@ export function savePageCreateParams(data: {
   profileId?: string;
 }): CreateMemoryParams {
   const contentToSave = data.markdown
-    ? htmlToMarkdown(data.markdown)
+    ? htmlToMarkdownSafe(data.markdown, data.content)
     : data.content;
   return {
     title: data.title,

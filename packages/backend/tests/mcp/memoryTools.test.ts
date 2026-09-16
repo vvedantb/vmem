@@ -102,6 +102,8 @@ describe("MCP memory tool surfaces", () => {
     expect(retrieveBlock).toContain("type: params.type");
     expect(retrieveBlock).toContain("tags: params.tags");
     expect(retrieveBlock).toContain("status: params.status");
+    expect(retrieveBlock).toContain("params.limit ?? 10");
+    expect(source).toContain("Max results (default 10)");
     expect(
       memoryToolSpecs.memory_retrieve.schema.safeParse({
         query: "london",

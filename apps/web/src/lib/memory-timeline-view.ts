@@ -18,6 +18,9 @@ const TIMELINE_SPAN_MS: Record<Exclude<TimelineSpan, "all">, number> = {
   year: 365 * DAY_MS,
 };
 
+// a single recent memory would otherwise collapse the scrubber to a point
+const MIN_TIMELINE_RANGE_MS = DAY_MS;
+
 export const TIMELINE_SCRUBBER_STEPS = 1000;
 export const TIMELINE_DENSITY_BUCKETS = 48;
 
@@ -44,13 +47,46 @@ export function memoryTimelineRange(
     if (ms > max) max = ms;
   }
   if (!Number.isFinite(min) || !Number.isFinite(max)) return null;
-  return { startMs: min, endMs: Math.max(max, nowMs) };
+  const endMs = Math.max(max, nowMs);
+  const startMs =
+    endMs - min < MIN_TIMELINE_RANGE_MS ? endMs - MIN_TIMELINE_RANGE_MS : min;
+  return { startMs, endMs };
 }
 
 export function clampNumber(value: number, min: number, max: number): number {
   if (value < min) return min;
   if (value > max) return max;
   return value;
+}
+
+export function latestCreatedAtMs(
+  createdAts: readonly string[],
+): number | null {
+  let max = Number.NEGATIVE_INFINITY;
+  for (const iso of createdAts) {
+    const ms = parseCreatedAtMs(iso);
+    if (ms === null) continue;
+    if (ms > max) max = ms;
+  }
+  return Number.isFinite(max) ? max : null;
+}
+
+export function defaultPlayheadMs(
+  createdAts: readonly string[],
+  range: MemoryTimelineRange,
+): number {
+  const latest = latestCreatedAtMs(createdAts);
+  if (latest === null) return range.endMs;
+  return clampNumber(latest, range.startMs, range.endMs);
+}
+
+export function resolvedPlayheadMs(
+  playheadMs: number | null,
+  createdAts: readonly string[],
+  range: MemoryTimelineRange,
+): number {
+  if (playheadMs === null) return defaultPlayheadMs(createdAts, range);
+  return clampNumber(playheadMs, range.startMs, range.endMs);
 }
 
 export function spanDurationMs(span: TimelineSpan, rangeMs: number): number {
@@ -63,6 +99,8 @@ export function windowForPlayhead(
   spanMs: number,
   range: MemoryTimelineRange,
 ): MemoryTimelineRange {
+  const rangeMs = range.endMs - range.startMs;
+  if (spanMs >= rangeMs) return { startMs: range.startMs, endMs: range.endMs };
   const endMs = clampNumber(playheadMs, range.startMs, range.endMs);
   const startMs = Math.max(range.startMs, endMs - spanMs);
   return { startMs, endMs };

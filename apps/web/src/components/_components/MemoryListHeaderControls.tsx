@@ -52,7 +52,9 @@ export default function MemoryListHeaderControls({
         value={params.q}
         onChange={(q) => setParams({ q: q.trim().length === 0 ? null : q })}
         placeholder={
-          isTagsView ? "Search tags..." : "Search memories, wiki, and skills..."
+          hideViewSwitcher || !isTagsView
+            ? "Search memories, wiki, and skills..."
+            : "Search tags..."
         }
         label="Search"
       />

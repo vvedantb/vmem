@@ -2,6 +2,7 @@ import { ConvexHttpClient } from "convex/browser";
 import { jwtDecode } from "jwt-decode";
 import { CONVEX_URL } from "@/lib/constants";
 import { getAuthToken, setAuthToken } from "@/lib/storage";
+import { harvestConvexTokenFromOpenVmemTabs } from "./harvest-web-clerk-token";
 
 type TokenRefresher = () => Promise<string | null>;
 
@@ -67,11 +68,30 @@ async function getConvexAuthToken(): Promise<string | null> {
 export async function warmBackgroundAuth(): Promise<void> {
   const stored = await getStoredToken();
   if (stored && !isTokenExpired(stored)) return;
-  await getConvexAuthToken();
+  const refreshed = await getConvexAuthToken();
+  if (refreshed) return;
+  try {
+    await harvestConvexTokenFromOpenVmemTabs();
+  } catch {
+    // harvest is best-effort; missing chrome.tabs should not fail bootstrap
+  }
+}
+
+async function getConvexAuthTokenOrHarvest(): Promise<string | null> {
+  const fromClerk = await getConvexAuthToken();
+  if (fromClerk) return fromClerk;
+
+  try {
+    const harvested = await harvestConvexTokenFromOpenVmemTabs();
+    if (!harvested.ok) return null;
+  } catch {
+    return null;
+  }
+  return getConvexAuthToken();
 }
 
 export async function createAuthenticatedConvexClient(): Promise<ConvexHttpClient | null> {
-  const token = await getConvexAuthToken();
+  const token = await getConvexAuthTokenOrHarvest();
   if (!token) return null;
 
   const client = new ConvexHttpClient(CONVEX_URL);

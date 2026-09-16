@@ -20,13 +20,24 @@ import { registerSyncHostCookieListener } from "@/background/sync-host-cookie-li
 import { setConvexTokenRefresher } from "@/background/auth";
 import { refreshConvexTokenFromClerk } from "@/lib/refresh-convex-token";
 import {
+  harvestConvexTokenFromOpenVmemTabs,
+  registerWebClerkTokenHarvest,
+} from "@/background/harvest-web-clerk-token";
+import { deleteMemory, getMemory, listMemories } from "@/background/api-client";
+import {
   autoSyncEnabledItem,
   autoSyncIntervalMinutesItem,
+  getAuthToken,
 } from "@/lib/storage";
 
 declare global {
   var __vmemHandleCommand: typeof handleCommand | undefined;
   var __vmemSaveTab: typeof savePageFromTab | undefined;
+  var __vmemHarvestToken: typeof harvestConvexTokenFromOpenVmemTabs | undefined;
+  var __vmemListMemories: typeof listMemories | undefined;
+  var __vmemGetMemory: typeof getMemory | undefined;
+  var __vmemDeleteMemory: typeof deleteMemory | undefined;
+  var __vmemAuthTokenLength: (() => Promise<number>) | undefined;
 }
 
 export default defineBackground(() => {
@@ -35,6 +46,7 @@ export default defineBackground(() => {
   registerAlarmListener();
   registerBookmarkListener();
   registerSyncHostCookieListener();
+  registerWebClerkTokenHarvest();
   registerContextMenuClickListener();
   registerCommandListener();
   registerMessageHandler();
@@ -42,6 +54,11 @@ export default defineBackground(() => {
   // live e2e invokes the same path as Alt+S when OS shortcuts do not fire
   globalThis.__vmemHandleCommand = handleCommand;
   globalThis.__vmemSaveTab = savePageFromTab;
+  globalThis.__vmemHarvestToken = harvestConvexTokenFromOpenVmemTabs;
+  globalThis.__vmemListMemories = listMemories;
+  globalThis.__vmemGetMemory = getMemory;
+  globalThis.__vmemDeleteMemory = deleteMemory;
+  globalThis.__vmemAuthTokenLength = async () => (await getAuthToken()).length;
 
   void runBackgroundBootstrap();
 

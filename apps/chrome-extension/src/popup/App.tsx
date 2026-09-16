@@ -129,8 +129,8 @@ function SignedOutContent() {
           <IconInfoCircle size={14} stroke={1.8} className="mt-0.5 shrink-0" />
           <div className="flex min-w-0 flex-col gap-1.5">
             <span className="text-pretty">
-              Dev build: sign in on the vmem site first so this extension can
-              sync your session.
+              Sign in on the vmem site first so this extension can sync your
+              session.
             </span>
             <a
               href={CLERK_SYNC_HOST}

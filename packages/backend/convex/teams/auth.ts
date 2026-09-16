@@ -1,6 +1,7 @@
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { AuthActionCtx } from "../auth";
+import { userFacingError } from "../lib/userFacingError";
 
 export type AuthQueryCtx = QueryCtx & { userId: Id<"users"> };
 export type AuthMutationCtx = MutationCtx & { userId: Id<"users"> };
@@ -26,9 +27,9 @@ export async function requireTeamRole(
   allowed: Array<"owner" | "member">,
 ): Promise<Doc<"teamMembers">> {
   const membership = await getMembershipOrNull(ctx, teamId, userId);
-  if (!membership) throw new Error("Not a member of this team");
+  if (!membership) userFacingError("Not a member of this team");
   if (!allowed.includes(membership.role)) {
-    throw new Error(`Requires role: ${allowed.join(" or ")}`);
+    userFacingError(`Requires role: ${allowed.join(" or ")}`);
   }
   return membership;
 }

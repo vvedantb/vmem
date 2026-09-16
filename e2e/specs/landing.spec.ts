@@ -22,11 +22,59 @@ test.describe("landing (signed out)", { tag: ["@landing", "@smoke"] }, () => {
     await expect(page).toHaveURL(/\/$/);
   });
 
+  test("product stage exposes a scrubbable memories timeline", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const product = page.locator("#product");
+    await expect(
+      product.getByRole("button", { name: "Timeline" }),
+    ).toBeVisible();
+    await product.getByRole("button", { name: "Timeline" }).click();
+    await expect(
+      product.getByRole("slider", { name: "Scrub through memory time" }),
+    ).toBeVisible();
+    await expect(
+      product.getByRole("button", { name: "Jump to now" }),
+    ).toBeVisible();
+    const spans = product.getByRole("group", { name: "Time window size" });
+    await spans.getByRole("button", { name: "All", exact: true }).click();
+    await expect(
+      spans.getByRole("button", { name: "All", exact: true }),
+    ).toHaveAttribute("aria-pressed", "true");
+  });
+
   test("/codebases is not a public product surface", async ({ page }) => {
     await page.goto("/codebases");
     await expect(
       page.getByRole("heading", { name: /Memory your agents can/i }),
     ).toBeVisible();
     await expect(page.getByRole("link", { name: /codebases/i })).toHaveCount(0);
+  });
+
+  test("/home while signed out stays on the marketing page", async ({
+    page,
+  }) => {
+    await page.goto("/home");
+    await expect(
+      page.getByRole("heading", { name: /Memory your agents can/i }),
+    ).toBeVisible({ timeout: 20_000 });
+    await expect(
+      page.getByRole("button", { name: "Sign in" }).first(),
+    ).toBeVisible();
+    await expect(page.getByRole("link", { name: "Memories" })).toHaveCount(0);
+    await expect(page).not.toHaveURL(/\/[^/]+\/home/);
+  });
+
+  test("Sign in opens the Clerk modal", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "Sign in" }).first().click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible({ timeout: 20_000 });
+    await expect(
+      dialog
+        .getByLabel(/email address/i)
+        .or(dialog.locator('input[name="identifier"]')),
+    ).toBeVisible();
   });
 });

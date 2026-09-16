@@ -6,9 +6,9 @@ import ShapeIndicator from "@/components/_components/ShapeIndicator";
 import { formatMemorySourceLabel } from "@/lib/memories";
 import MemoryTimelineScrubber from "@/components/memories/MemoryTimelineScrubber";
 import {
-  clampNumber,
   itemCreatedInWindow,
   memoryTimelineRange,
+  resolvedPlayheadMs,
   spanDurationMs,
   windowCountLabel,
   windowForPlayhead,
@@ -31,11 +31,7 @@ export function LandingTimelinePreview() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const resolvedPlayhead =
-    range === null
-      ? null
-      : playheadMs === null
-        ? range.endMs
-        : clampNumber(playheadMs, range.startMs, range.endMs);
+    range === null ? null : resolvedPlayheadMs(playheadMs, createdAts, range);
   const window =
     range === null || resolvedPlayhead === null
       ? null

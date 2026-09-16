@@ -21,10 +21,6 @@ export default function Dashboard() {
     queryFn: async () => getStats({ profileId: activeProfile._id }),
   });
 
-  if (statsQuery.isLoading) {
-    return <DashboardLoadingSkeleton />;
-  }
-
   if (statsQuery.isError) {
     const error =
       statsQuery.error instanceof Error
@@ -51,10 +47,13 @@ export default function Dashboard() {
     );
   }
 
-  const stats = statsQuery.data;
-  if (!stats) {
-    return null;
+  // isPending (not isLoading): a disabled query while Convex auth resolves
+  // would otherwise render blank instead of the skeleton.
+  if (statsQuery.isPending || statsQuery.data === undefined) {
+    return <DashboardLoadingSkeleton />;
   }
+
+  const stats = statsQuery.data;
 
   return (
     <div className="flex flex-col gap-8">

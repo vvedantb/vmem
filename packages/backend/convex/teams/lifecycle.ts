@@ -2,6 +2,7 @@ import type { Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { auditLog, ResourceTypes } from "../auditLog";
+import { userFacingError } from "../lib/userFacingError";
 import {
   type AuthActionCtx,
   type AuthMutationCtx,
@@ -19,7 +20,7 @@ export async function runCreate(
   args: { name: string },
 ): Promise<{ teamId: Id<"teams">; profileId: Id<"profiles"> }> {
   const name = args.name.trim();
-  if (!name) throw new Error("Team name is required");
+  if (!name) userFacingError("Team name is required");
 
   const now = Date.now();
   const teamId = await ctx.db.insert("teams", {
@@ -64,11 +65,11 @@ export async function runUpdateTeam(
   args: { teamId: string; name: string },
 ): Promise<{ updated: true }> {
   const teamId = ctx.db.normalizeId("teams", args.teamId);
-  if (!teamId) throw new Error("Team not found");
+  if (!teamId) userFacingError("Team not found");
 
   await requireTeamRole(ctx, teamId, ctx.userId, ["owner"]);
   const name = args.name.trim();
-  if (!name) throw new Error("Team name is required");
+  if (!name) userFacingError("Team name is required");
 
   const before = await ctx.db.get(teamId);
   const now = Date.now();
@@ -118,14 +119,14 @@ export async function runPrepareDeleteTeamInternal(
   args: { teamId: string; userId: Id<"users"> },
 ): Promise<Id<"profiles">> {
   const teamId = ctx.db.normalizeId("teams", args.teamId);
-  if (!teamId) throw new Error("Team not found");
+  if (!teamId) userFacingError("Team not found");
 
   const membership = await getMembershipOrNull(ctx, teamId, args.userId);
   if (!membership || membership.role !== "owner") {
-    throw new Error("Owner role required");
+    userFacingError("Owner role required");
   }
   const profile = await getTeamProfileOrNull(ctx, teamId);
-  if (!profile) throw new Error("Team profile missing");
+  if (!profile) userFacingError("Team profile missing");
   return profile._id;
 }
 
@@ -134,7 +135,7 @@ export async function runFinalizeDeleteTeamInternal(
   args: { teamId: string; actorUserId: Id<"users"> },
 ): Promise<void> {
   const teamId = ctx.db.normalizeId("teams", args.teamId);
-  if (!teamId) throw new Error("Team not found");
+  if (!teamId) userFacingError("Team not found");
 
   const team = await ctx.db.get(teamId);
   const members = await ctx.db

@@ -61,7 +61,19 @@ export default defineConfig({
           {
             name: "chromium",
             dependencies: ["setup"],
-            testIgnore: /specs\/landing\.spec\.ts|auth\.setup\.ts/,
+            testIgnore:
+              /specs\/landing\.spec\.ts|auth\.setup\.ts|specs\/sign-out\.spec\.ts/,
+            use: {
+              ...devices["Desktop Chrome"],
+              storageState: AUTH_STATE_PATH,
+            },
+          },
+          {
+            // Clerk sign-out invalidates the shared Eva session. Run after
+            // every other authenticated spec, then restore storageState.
+            name: "signout",
+            dependencies: ["chromium"],
+            testMatch: /specs\/sign-out\.spec\.ts/,
             use: {
               ...devices["Desktop Chrome"],
               storageState: AUTH_STATE_PATH,

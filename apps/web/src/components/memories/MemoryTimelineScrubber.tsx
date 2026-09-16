@@ -49,7 +49,10 @@ export default function MemoryTimelineScrubber({
   const playheadLabel = formatDateTime(playheadMs);
 
   return (
-    <div className="shrink-0 rounded-lg bg-surface-secondary/60 px-3 py-3 sm:px-4">
+    <div
+      data-testid="memory-timeline-scrubber"
+      className="shrink-0 rounded-lg bg-surface-secondary px-3 py-3 sm:px-4"
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
           <p className="text-sm font-medium text-foreground" aria-live="polite">
@@ -86,29 +89,34 @@ export default function MemoryTimelineScrubber({
         </div>
       </div>
 
-      <div className="relative mt-3">
+      <div className="relative mt-3 pt-8">
         <div
-          className="pointer-events-none absolute inset-x-0 bottom-3 flex h-8 items-end gap-px"
+          className="pointer-events-none absolute inset-x-0 top-0 flex h-8 items-end gap-px"
           aria-hidden="true"
         >
           {buckets.map((count, index) => (
             <div
               key={index}
-              className="min-w-0 flex-1 rounded-t-sm bg-accent/45"
+              className="min-w-0 flex-1 rounded-t-sm bg-accent"
               style={{
-                height: `${Math.max(8, (count / maxCount) * 100)}%`,
-                opacity: count === 0 ? 0.18 : 0.7,
+                height: `${Math.max(10, (count / maxCount) * 100)}%`,
+                opacity: count === 0 ? 0.18 : 0.72,
               }}
             />
           ))}
         </div>
 
         <div
-          className="pointer-events-none absolute bottom-1 top-0 rounded-sm bg-accent/15"
+          className="pointer-events-none absolute bottom-3 top-1 rounded-sm bg-accent/20 ring-1 ring-accent/25"
           style={{
             left: percent(windowLeft),
             width: percent(Math.max(windowWidth, 0.012)),
           }}
+          aria-hidden="true"
+        />
+
+        <div
+          className="pointer-events-none absolute inset-x-0 bottom-[0.85rem] h-2 rounded-full bg-foreground/20"
           aria-hidden="true"
         />
 
@@ -123,14 +131,7 @@ export default function MemoryTimelineScrubber({
           aria-valuemax={TIMELINE_SCRUBBER_STEPS}
           aria-valuenow={sliderValue}
           aria-valuetext={playheadLabel}
-          className={cn(
-            "relative z-[1] mt-6 h-11 w-full cursor-pointer appearance-none border-0 bg-transparent px-0 py-0 shadow-none",
-            "hover:bg-transparent focus-visible:border-0 focus-visible:bg-transparent focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-            "[&::-webkit-slider-runnable-track]:h-2 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-default/85",
-            "[&::-webkit-slider-thumb]:mt-[-6px] [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-background [&::-webkit-slider-thumb]:bg-accent [&::-webkit-slider-thumb]:shadow-sm",
-            "[&::-moz-range-track]:h-2 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-default/85",
-            "[&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-background [&::-moz-range-thumb]:bg-accent",
-          )}
+          className="timeline-scrubber relative z-[1] mt-0 h-11 w-full cursor-pointer border-0 bg-transparent px-0 py-0 shadow-none hover:bg-transparent focus-visible:border-0 focus-visible:bg-transparent focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           onChange={(event) => {
             const next = Number(event.target.value);
             onPlayheadChange(
@@ -147,7 +148,7 @@ export default function MemoryTimelineScrubber({
           variant="ghost"
           size="sm"
           className="h-7 px-2 text-[11px] text-muted hover:text-foreground"
-          onClick={() => onPlayheadChange(range.endMs)}
+          onClick={() => onPlayheadChange(Number.POSITIVE_INFINITY)}
         >
           Jump to now
         </Button>
