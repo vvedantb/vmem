@@ -40,16 +40,18 @@ export function LandingFooter() {
               Sign in
             </Button>
           </SignInButton>
-          <Button
-            type="button"
-            variant="link"
-            className="h-auto p-0 text-sm text-muted hover:text-foreground active:scale-100"
-            onClick={() => {
-              window.location.href = AGENT_LOGIN_PATH;
-            }}
-          >
-            Continue without an account
-          </Button>
+          {import.meta.env.DEV ? (
+            <Button
+              type="button"
+              variant="link"
+              className="h-auto p-0 text-sm text-muted hover:text-foreground active:scale-100"
+              onClick={() => {
+                window.location.href = AGENT_LOGIN_PATH;
+              }}
+            >
+              Continue without an account
+            </Button>
+          ) : null}
           <a
             href={VMEM_GITHUB_URL}
             target="_blank"
