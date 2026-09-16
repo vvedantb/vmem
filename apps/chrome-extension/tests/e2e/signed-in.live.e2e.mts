@@ -369,33 +369,32 @@ async function openPopup(
 }
 
 async function deleteVisibleTestMemory(page: Page): Promise<boolean> {
-  const opened = await clickFirstMatching(
-    page,
-    "button, a, [role='button']",
-    (text) => text.includes("Example Domain"),
-  );
-  if (!opened) {
-    const byMarker = await page.evaluate((token) => {
-      return document.body.innerText.includes(token);
-    }, marker);
-    if (!byMarker) return false;
+  const opened = await page.evaluate(() => {
+    const rows = Array.from(
+      document.querySelectorAll('[data-testid="list-item-row"]'),
+    );
+    const row = rows.find((el) =>
+      (el.textContent ?? "").includes("Example Domain"),
+    );
+    if (!(row instanceof HTMLElement)) return false;
+    row.click();
+    return true;
+  });
+  if (!opened) return false;
+  await sleep(700);
+  const actions = await page.$('[aria-label="Memory actions"]');
+  if (actions) {
+    await actions.click();
+    await sleep(300);
   }
-  await sleep(800);
-  const trash = await page.$('[aria-label="Delete"], button:has(svg)');
-  const clickedTrash = await clickFirstMatching(
-    page,
-    "button",
-    (text) => text === "Delete" || text.includes("Delete"),
-  );
-  if (!clickedTrash && trash) await trash.click();
-  await sleep(400);
   await clickFirstMatching(
     page,
-    "button",
-    (text) =>
-      text === "Delete" || text === "Confirm" || text === "Delete memory",
+    "button, [role='menuitem']",
+    (text) => text === "Delete" || text.startsWith("Delete"),
   );
-  await sleep(1_000);
+  await sleep(400);
+  await clickFirstMatching(page, "button", (text) => text === "Delete");
+  await sleep(1_200);
   return true;
 }
 
