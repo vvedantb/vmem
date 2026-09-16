@@ -23,6 +23,7 @@ export type CookieStub = {
   sameSite?: "unspecified" | "no_restriction" | "lax" | "strict";
   session?: boolean;
   expirationDate?: number;
+  storeId?: string;
   partitionKey?: { topLevelSite?: string; hasCrossSiteAncestor?: boolean };
 };
 

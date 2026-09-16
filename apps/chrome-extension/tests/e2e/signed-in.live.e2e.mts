@@ -437,6 +437,10 @@ async function runLive(): Promise<LiveMatrix> {
       vmemSession: null,
       clientCookies: [],
     }));
+    await writeFile(
+      path.join(artifactDir, "live_cookie_probe.json"),
+      JSON.stringify(cookieProbe, null, 2),
+    );
     const signedIn = popupLooksSignedIn(popupText);
     const cookieSync = signedIn
       ? cookieProbe.clerkClient
@@ -494,7 +498,7 @@ async function runLive(): Promise<LiveMatrix> {
     matrix.signedInPopup = {
       ok: signedIn,
       reason: signedIn
-        ? `popup shows Save / Import tabs (${cookieSync}, token=${tokenReady}); chrome.cookies __client vmem=${cookieProbe.vmemClient} clerk=${cookieProbe.clerkClient}`
+        ? `popup shows Save / Import tabs (${cookieSync}, token=${tokenReady}); chrome.cookies __client vmem=${cookieProbe.vmemClient} clerk=${cookieProbe.clerkClient} session=${cookieProbe.vmemSession} listed=${JSON.stringify(cookieProbe.clientCookies)}`
         : `popup copy: ${popupText.slice(0, 180)}; cookies=${JSON.stringify(sessionCookies)}; probe=${JSON.stringify(cookieProbe)}`,
     };
     await popup.close().catch(() => {});

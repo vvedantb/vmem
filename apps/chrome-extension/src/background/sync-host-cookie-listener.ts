@@ -78,7 +78,9 @@ function sameSiteForSet(
 // Clerk JWTHandler uses cookies.get({ url: syncHost, name: "__client" }), which
 // misses CHIPS-partitioned FAPI cookies. Copy the value into the unpartitioned
 // host-only store so popup + SW can mint a Convex JWT.
-export async function ensureUnpartitionedClerkClientCookie(): Promise<boolean> {
+export async function ensureUnpartitionedClerkClientCookie(
+  source?: chrome.cookies.Cookie,
+): Promise<boolean> {
   const url = `${CLERK_COOKIE_SYNC_HOST}/`;
   try {
     const visible = await chrome.cookies.get({
@@ -87,22 +89,33 @@ export async function ensureUnpartitionedClerkClientCookie(): Promise<boolean> {
     });
     if (visible?.value) return true;
 
-    const cookie = (await listClientCookies()).find(
-      (candidate) =>
-        candidate.value.length > 0 && isSyncHostSessionCookie(candidate),
-    );
-    if (!cookie) return false;
+    const fromEvent =
+      source?.name === PROD_SESSION_COOKIE && source.value.length > 0
+        ? source
+        : undefined;
+    const cookie =
+      fromEvent ??
+      (await listClientCookies()).find(
+        (candidate) =>
+          candidate.value.length > 0 && isSyncHostSessionCookie(candidate),
+      );
+    if (!cookie?.value) return false;
 
-    await chrome.cookies.set({
+    const details: chrome.cookies.SetDetails = {
       url,
       name: PROD_SESSION_COOKIE,
       value: cookie.value,
       path: cookie.path || "/",
       secure: true,
-      httpOnly: cookie.httpOnly,
+      httpOnly: true,
       sameSite: sameSiteForSet(cookie.sameSite),
-      expirationDate: cookie.expirationDate,
-    });
+    };
+    if (typeof cookie.expirationDate === "number") {
+      details.expirationDate = cookie.expirationDate;
+    }
+    if (cookie.storeId) details.storeId = cookie.storeId;
+
+    await chrome.cookies.set(details);
 
     const mirrored = await chrome.cookies.get({
       url,
@@ -118,8 +131,10 @@ export async function ensureUnpartitionedClerkClientCookie(): Promise<boolean> {
   }
 }
 
-async function warmAuthFromSyncHostCookie(): Promise<void> {
-  await ensureUnpartitionedClerkClientCookie();
+async function warmAuthFromSyncHostCookie(
+  source?: chrome.cookies.Cookie,
+): Promise<void> {
+  await ensureUnpartitionedClerkClientCookie(source);
   await warmBackgroundAuth();
   void catchUpHistorySyncIfOverdue();
 }
@@ -135,6 +150,6 @@ export function registerSyncHostCookieListener(): void {
     if (!cookie) return;
     if (!isSyncHostSessionCookie(cookie)) return;
 
-    void warmAuthFromSyncHostCookie();
+    void warmAuthFromSyncHostCookie(cookie);
   });
 }
