@@ -7,14 +7,14 @@ import { getStorage, setStorage } from "@/lib/storage";
 
 export type { ImportResult };
 
-interface FlatBookmark {
+export interface FlatBookmark {
   title: string;
   url: string;
   folderPath: string[];
   dateAdded: number;
 }
 
-function flattenBookmarks(
+export function flattenBookmarks(
   nodes: chrome.bookmarks.BookmarkTreeNode[],
   path: string[] = [],
 ): FlatBookmark[] {

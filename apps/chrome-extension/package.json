@@ -7,7 +7,8 @@
     "dev": "wxt",
     "build": "wxt build",
     "postinstall": "wxt prepare",
-    "test": "tsx --test tests/sync-watchdog.test.mts tests/save-toast.test.mts",
+    "test": "tsx --import ./tests/register-backend-stub.mjs --test --test-concurrency=1 tests/*.test.mts",
+    "test:e2e": "tsx --import ./tests/register-backend-stub.mjs --test --test-concurrency=1 tests/e2e/*.e2e.mts",
     "typecheck": "wxt prepare && tsc --noEmit"
   },
   "dependencies": {
@@ -37,6 +38,8 @@
     "@types/react-dom": "catalog:",
     "@types/turndown": "^5.0.6",
     "@vitejs/plugin-react": "^4.4.0",
+    "happy-dom": "^20.0.2",
+    "puppeteer-core": "^24.34.0",
     "tailwindcss": "catalog:tailwind4",
     "tailwindcss-animate": "^1.0.7",
     "tsx": "catalog:",

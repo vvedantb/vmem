@@ -40,8 +40,16 @@ const config: KnipConfig = {
       project: ["src/**/*.{ts,tsx}", "scripts/generate-og-image.mjs"],
     },
     "apps/chrome-extension": {
-      entry: ["src/entrypoints/**/*.{ts,tsx,html}!", "wxt.config.ts!"],
-      project: ["src/**/*.{ts,tsx}", "wxt.config.ts"],
+      entry: [
+        "src/entrypoints/**/*.{ts,tsx,html}!",
+        "wxt.config.ts!",
+        "tests/**/*.{mts,ts,mjs}!",
+      ],
+      project: [
+        "src/**/*.{ts,tsx}",
+        "wxt.config.ts",
+        "tests/**/*.{mts,ts,mjs}",
+      ],
       vite: false,
       // tailwindcss / tailwindcss-animate: used by globals.css `@import`/`@plugin`;
       // invisible to knip because vite is off for this workspace.

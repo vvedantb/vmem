@@ -35,7 +35,9 @@ export default defineConfig({
       "cookies",
     ],
     host_permissions: [
+      "https://vmem.vedantb.com/*",
       "https://vmem-git-staging-vedantb.vercel.app/*",
+      "https://clerk.vedantb.com/*",
       "https://flexible-duckling-74.clerk.accounts.dev/*",
       "https://chat.openai.com/*",
       "https://chatgpt.com/*",

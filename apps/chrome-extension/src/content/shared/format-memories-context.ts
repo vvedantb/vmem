@@ -1,7 +1,9 @@
 import type { MemoryCandidate } from "@/types/api";
 
 // format memories as context prefix for ai-chat inputs
-export function formatMemoriesContext(memories: MemoryCandidate[]): string {
+export function formatMemoriesContext(
+  memories: ReadonlyArray<Pick<MemoryCandidate, "title" | "content">>,
+): string {
   if (memories.length === 0) return "";
 
   const lines = memories.map((m) => `- ${m.title}: ${m.content.slice(0, 200)}`);

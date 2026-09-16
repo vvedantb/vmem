@@ -20,8 +20,90 @@ function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : "Unknown error";
 }
 
+export function savePageCreateParams(data: {
+  url: string;
+  title: string;
+  content: string;
+  markdown?: string;
+  profileId?: string;
+}): CreateMemoryParams {
+  const contentToSave = data.markdown
+    ? htmlToMarkdown(data.markdown)
+    : data.content;
+  return {
+    title: data.title,
+    content: contentToSave.slice(0, 10000),
+    type: "knowledge",
+    source: "browser-extension",
+    tags: [new URL(data.url).hostname],
+    confidence: 1.0,
+    url: data.url,
+    profileId: data.profileId,
+  };
+}
+
+export function saveYoutubeCreateParams(data: {
+  url: string;
+  title: string;
+  channel: string;
+  transcript: string;
+  profileId?: string;
+}): CreateMemoryParams {
+  const content = `Channel: ${data.channel}\n\nTranscript:\n${data.transcript}`;
+  return {
+    title: data.title,
+    content: content.slice(0, 10000),
+    type: "knowledge",
+    source: "youtube",
+    tags: ["youtube", data.channel],
+    confidence: 1.0,
+    url: data.url,
+    profileId: data.profileId,
+  };
+}
+
+export function capturePromptCreateParams(data: {
+  prompt: string;
+  url: string;
+  platform: string;
+  profileId?: string;
+}): CreateMemoryParams {
+  const trimmed = data.prompt.trim();
+  const title = trimmed.length > 80 ? trimmed.slice(0, 80) + "…" : trimmed;
+  return {
+    title,
+    content: data.prompt.slice(0, 10000),
+    type: "knowledge",
+    source: "prompt-capture",
+    tags: [new URL(data.url).hostname, data.platform, "prompt"],
+    confidence: 0.8,
+    url: data.url,
+    profileId: data.profileId,
+  };
+}
+
+export function saveSelectionCreateParams(data: {
+  selectedText: string;
+  pageUrl: string;
+  profileId?: string;
+}): CreateMemoryParams {
+  const trimmed = data.selectedText.trim();
+  const title = trimmed.length > 80 ? trimmed.slice(0, 80) + "…" : trimmed;
+  const hostname = new URL(data.pageUrl).hostname;
+  return {
+    title,
+    content: data.selectedText.slice(0, 10000),
+    type: "knowledge",
+    source: "browser-extension",
+    tags: [hostname, "selection"],
+    confidence: 1.0,
+    url: data.pageUrl,
+    profileId: data.profileId,
+  };
+}
+
 // decode base64 png without treating binary bytes as utf-8 text
-function base64PngToBlob(base64: string): Blob {
+export function base64PngToBlob(base64: string): Blob {
   const decoded = base64Codec.decode(base64);
   const bytes = new Uint8Array(decoded.length);
   bytes.set(decoded);
@@ -38,72 +120,27 @@ export function registerMessageHandler(): void {
   });
 
   onMessage("savePage", async ({ data }) => {
-    const contentToSave = data.markdown
-      ? htmlToMarkdown(data.markdown)
-      : data.content;
-    return createMemoryOrThrow({
-      title: data.title,
-      content: contentToSave.slice(0, 10000),
-      type: "knowledge",
-      source: "browser-extension",
-      tags: [new URL(data.url).hostname],
-      confidence: 1.0,
-      url: data.url,
-      profileId: data.profileId,
-    });
+    return createMemoryOrThrow(savePageCreateParams(data));
   });
 
   onMessage("saveYoutubeVideo", async ({ data }) => {
-    const content = `Channel: ${data.channel}\n\nTranscript:\n${data.transcript}`;
-    return createMemoryOrThrow({
-      title: data.title,
-      content: content.slice(0, 10000),
-      type: "knowledge",
-      source: "youtube",
-      tags: ["youtube", data.channel],
-      confidence: 1.0,
-      url: data.url,
-      profileId: data.profileId,
-    });
+    return createMemoryOrThrow(saveYoutubeCreateParams(data));
   });
 
   onMessage("capturePrompt", async ({ data }) => {
-    const trimmed = data.prompt.trim();
-    const title = trimmed.length > 80 ? trimmed.slice(0, 80) + "…" : trimmed;
-    return createMemoryOrThrow({
-      title,
-      content: data.prompt.slice(0, 10000),
-      type: "knowledge",
-      source: "prompt-capture",
-      tags: [new URL(data.url).hostname, data.platform, "prompt"],
-      confidence: 0.8,
-      url: data.url,
-      profileId: data.profileId,
-    });
+    return createMemoryOrThrow(capturePromptCreateParams(data));
   });
 
   onMessage("saveSelection", async ({ data }) => {
-    const trimmed = data.selectedText.trim();
-    const title = trimmed.length > 80 ? trimmed.slice(0, 80) + "…" : trimmed;
-    const hostname = new URL(data.pageUrl).hostname;
-
+    const params = saveSelectionCreateParams(data);
     console.log("[vmem] Saving selection:", {
-      title,
-      hostname,
+      title: params.title,
+      hostname: new URL(data.pageUrl).hostname,
       textLength: data.selectedText.length,
     });
 
     try {
-      return await createMemoryOrThrow({
-        title,
-        content: data.selectedText.slice(0, 10000),
-        type: "knowledge",
-        source: "browser-extension",
-        tags: [hostname, "selection"],
-        confidence: 1.0,
-        url: data.pageUrl,
-        profileId: data.profileId,
-      });
+      return await createMemoryOrThrow(params);
     } catch (err) {
       console.error("[vmem] SAVE_SELECTION failed:", errorMessage(err));
       throw err;

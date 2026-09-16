@@ -26,7 +26,7 @@
     "fix:deps": "syncpack fix-mismatches",
     "sdk:build": "pnpm --filter @vmem/sdk build",
     "sdk:typecheck": "pnpm --filter @vmem/sdk typecheck",
-    "test": "pnpm --filter @vmem/backend test && pnpm --filter web test"
+    "test": "pnpm --filter @vmem/backend test && pnpm --filter web test && pnpm --filter @vmem/chrome-extension test"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx,mjs,cjs,json,css,md,mdx,html,yml,yaml}": "prettier --write"
