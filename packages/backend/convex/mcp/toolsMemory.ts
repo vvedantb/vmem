@@ -75,7 +75,7 @@ const memoryRetrieveSchema = retrieveBodySchema
       .min(1)
       .max(50)
       .optional()
-      .describe("Max results (default 5)"),
+      .describe("Max results (default 10)"),
   });
 
 const memoryAddSchema = structuredStoreBodySchema

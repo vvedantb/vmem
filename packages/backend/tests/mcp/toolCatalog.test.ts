@@ -86,6 +86,7 @@ describe("MCP tool catalog", () => {
     expect(retrieveBlock).toContain("type: params.type");
     expect(retrieveBlock).toContain("tags: params.tags");
     expect(retrieveBlock).toContain("status: params.status");
+    expect(source).toContain("Max results (default 10)");
     expect(
       memoryToolSpecs.memory_retrieve.schema.safeParse({
         query: "london",

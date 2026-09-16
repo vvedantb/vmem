@@ -188,6 +188,128 @@ describe.skipIf(!canRunCrud)("HTTP v1 memories API (live CRUD)", () => {
       }
     }
   }, 30_000);
+
+  it("returns 404 not_found for missing update and delete ids", async () => {
+    const missingUpdate = await postJson({
+      path: "/api/v1/memories",
+      method: "PATCH",
+      authToken: apiKey ?? "",
+      body: { id: "mem_does_not_exist", title: "x" },
+    });
+    expect(missingUpdate.status).toBe(404);
+    expect(missingUpdate.error).toBe("not_found");
+
+    const missingDelete = await postJson({
+      path: "/api/v1/memories",
+      method: "DELETE",
+      authToken: apiKey ?? "",
+      body: { id: "mem_does_not_exist" },
+    });
+    expect(missingDelete.status).toBe(404);
+    expect(missingDelete.error).toBe("not_found");
+  }, 20_000);
+
+  it("rejects invalid retrieve payloads", async () => {
+    const result = await postJson({
+      path: "/api/v1/memories/retrieve",
+      method: "POST",
+      authToken: apiKey ?? "",
+      body: { limit: 5 },
+    });
+    expect(result.status).toBe(400);
+    expect(result.error).toBe("invalid_request");
+  });
+
+  it("instruction store returns 422 openrouter_required", async () => {
+    const result = await postJson({
+      path: "/api/v1/memories",
+      method: "POST",
+      authToken: apiKey ?? "",
+      body: {
+        instruction: `live-e2e instruction ${randomUUID()} remember nothing durable`,
+      },
+    });
+    expect(result.status).toBe(422);
+    expect(result.error).toBe("openrouter_required");
+  }, 30_000);
+
+  it("filters, empty hits, summarize, and hybrid ranking", async () => {
+    const marker = `e2e-http-${randomUUID()}`;
+    const sdk = vmem();
+    const ids: string[] = [];
+
+    try {
+      const pnpm = await sdk.createMemory({
+        title: `${marker} prefers pnpm`,
+        content:
+          "The user uses pnpm as the package manager for the vmem monorepo.",
+        type: "knowledge",
+        source: "vitest-http-api",
+        tags: [marker, "tooling"],
+        confidence: 1,
+      });
+      const coffee = await sdk.createMemory({
+        title: `${marker} coffee order`,
+        content: "Oat latte every morning, unrelated to package managers.",
+        type: "episodic",
+        source: "vitest-http-api",
+        tags: [marker, "food"],
+        confidence: 1,
+      });
+      ids.push(pnpm.id, coffee.id);
+
+      const ranked = await sdk.searchMemories({
+        query: "what package manager does the user use for vmem",
+        tags: [marker],
+        limit: 5,
+      });
+      expect(ranked.memories.length).toBeGreaterThan(0);
+      expect(ranked.memories[0]?.id).toBe(pnpm.id);
+      const pnpmHit = ranked.memories.find((memory) => memory.id === pnpm.id);
+      expect(pnpmHit?.trace.scoreBreakdown.fulltext).toBeGreaterThan(0);
+      expect(pnpmHit?.trace.reason.length).toBeGreaterThan(0);
+
+      const toolingOnly = await sdk.searchMemories({
+        query: marker,
+        tags: ["tooling", marker],
+        type: "knowledge",
+        limit: 10,
+      });
+      expect(toolingOnly.memories.map((memory) => memory.id)).toContain(
+        pnpm.id,
+      );
+      expect(toolingOnly.memories.map((memory) => memory.id)).not.toContain(
+        coffee.id,
+      );
+
+      const empty = await sdk.searchMemories({
+        query: marker,
+        tags: [`${marker}-missing-tag`],
+        limit: 10,
+      });
+      expect(empty.memories).toEqual([]);
+
+      const summarizedEmpty = await sdk.searchMemories({
+        query: marker,
+        tags: [`${marker}-missing-tag`],
+        summarize: true,
+        limit: 5,
+      });
+      expect(summarizedEmpty.summary).toBe("No relevant memories found.");
+
+      const summarized = await sdk.searchMemories({
+        query: "pnpm package manager vmem",
+        tags: [marker],
+        summarize: true,
+        limit: 5,
+      });
+      expect(summarized.summary).toContain("pnpm");
+    } finally {
+      for (const id of ids) {
+        await sdk.deleteMemory({ id }).catch(() => undefined);
+      }
+    }
+  }, 45_000);
 });
 
 describe("HTTP v1 memories API (config)", () => {
