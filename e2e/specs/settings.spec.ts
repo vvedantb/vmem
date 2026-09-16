@@ -19,7 +19,9 @@ test.describe("settings", { tag: ["@settings", "@smoke"] }, () => {
 
   test("profiles", async ({ page }) => {
     await gotoSettings(page, "/profiles");
-    await expect(page.getByRole("heading", { name: "Profiles" })).toBeVisible({
+    await expect(
+      page.getByRole("heading", { name: "Profiles", exact: true }),
+    ).toBeVisible({
       timeout: 20_000,
     });
     await expect(
@@ -44,7 +46,9 @@ test.describe("settings", { tag: ["@settings", "@smoke"] }, () => {
 
   test("secrets", async ({ page }) => {
     await gotoSettings(page, "/secrets");
-    await expect(page.getByRole("heading", { name: "Secrets" })).toBeVisible({
+    await expect(
+      page.getByRole("heading", { name: "Secrets", exact: true }),
+    ).toBeVisible({
       timeout: 20_000,
     });
     await expect(
@@ -55,11 +59,11 @@ test.describe("settings", { tag: ["@settings", "@smoke"] }, () => {
 
   test("connectors", async ({ page }) => {
     await gotoSettings(page, "/connectors");
-    await expect(page.getByRole("heading", { name: "Connectors" })).toBeVisible(
-      {
-        timeout: 20_000,
-      },
-    );
+    await expect(
+      page.getByRole("heading", { name: "Connectors", exact: true }),
+    ).toBeVisible({
+      timeout: 20_000,
+    });
     await expect(
       page.getByRole("button", { name: "Browse Connectors" }).first(),
     ).toBeVisible();
@@ -67,7 +71,9 @@ test.describe("settings", { tag: ["@settings", "@smoke"] }, () => {
 
   test("extension", async ({ page }) => {
     await gotoSettings(page, "/extension");
-    await expect(page.getByRole("heading", { name: "Extension" })).toBeVisible({
+    await expect(
+      page.getByRole("heading", { name: "Extension", exact: true }),
+    ).toBeVisible({
       timeout: 20_000,
     });
     await expect(page.getByText("Auto-sync")).toBeVisible();
