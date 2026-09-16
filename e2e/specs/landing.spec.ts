@@ -52,10 +52,7 @@ test.describe("landing (signed out)", { tag: ["@landing", "@smoke"] }, () => {
         name: /Put memory under the agents you already use/i,
       }),
     ).toBeVisible();
-
-    if (await htmlHasLandingFoucGuard(page)) {
-      await expect(page.locator("html")).toHaveClass(/dark/);
-    }
+    expect(await htmlHasLandingFoucGuard(page)).toBe(true);
   });
 
   test("Sign in and Get started open Clerk modals", async ({ page }) => {
@@ -148,12 +145,21 @@ test.describe(
       await expect(
         page.getByRole("button", { name: "Get started" }).first(),
       ).toBeVisible();
-      if (await isDarkOnlyLanding(page)) {
-        await page.getByRole("button", { name: "Open menu" }).click();
-        await expect(
-          page.getByRole("menuitem", { name: "How it works" }),
-        ).toBeVisible();
+    });
+
+    test("dark landing opens How it works from the menu", async ({ page }) => {
+      await page.goto("/");
+      await waitForMarketingHero(page);
+      if (!(await isDarkOnlyLanding(page))) {
+        test.skip(
+          true,
+          "Hosted build does not yet include the #163 dark-only landing",
+        );
       }
+      await page.getByRole("button", { name: "Open menu" }).click();
+      await expect(
+        page.getByRole("menuitem", { name: "How it works" }),
+      ).toBeVisible();
     });
   },
 );
