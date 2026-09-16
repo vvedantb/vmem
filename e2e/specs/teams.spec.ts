@@ -48,7 +48,7 @@ test.describe("teams / sharing", { tag: ["@teams"] }, () => {
       await expect(
         add.getByRole("heading", { name: "Add member" }),
       ).toBeVisible({ timeout: 20_000 });
-      await add.locator("#add-member-email").fill("notarealuser@example.com");
+      await add.getByRole("textbox").fill("notarealuser@example.com");
       await add.getByRole("button", { name: "Add" }).click();
       await expect(
         page.getByText(
@@ -58,7 +58,10 @@ test.describe("teams / sharing", { tag: ["@teams"] }, () => {
       await add.getByRole("button", { name: "Cancel" }).click();
 
       await gotoTeamSettings(page);
-      const nameField = page.getByLabel("Name").or(page.locator("#team-name"));
+      const nameField = page
+        .locator("#team-name")
+        .or(page.getByLabel("Name"))
+        .or(page.locator("#main-content input"));
       await expect(nameField.first()).toHaveValue(teamName);
 
       await page.getByRole("tab", { name: "Members" }).click();
