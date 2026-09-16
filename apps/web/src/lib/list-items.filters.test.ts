@@ -202,6 +202,10 @@ describe("searchListItems", () => {
   it("returns empty results for blank queries", () => {
     expect(searchListItems([memoryItem], "   ")).toEqual([]);
   });
+
+  it("returns empty results when no title, tag, or content matches", () => {
+    expect(searchListItems([memoryItem], "zzz-no-such-e2e-xyz")).toEqual([]);
+  });
 });
 
 describe("buildTagStats", () => {
