@@ -1,0 +1,61 @@
+name: E2E
+
+on:
+  push:
+    branches: [main, staging]
+  pull_request:
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: smoke (@smoke on PRs) or full
+        default: full
+        type: choice
+        options: [smoke, full]
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  playwright:
+    name: Playwright
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run suite
+        env:
+          E2E_BASE_URL: https://vmem.vedantb.com
+          E2E_USER_EMAIL: ${{ secrets.E2E_USER_EMAIL }}
+          E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
+        run: |
+          suite="${{ github.event.inputs.suite }}"
+          if [ "${{ github.event_name }}" = "schedule" ] || [ "$suite" = "full" ]; then
+            pnpm test:e2e
+          else
+            pnpm test:e2e:smoke
+          fi
+
+      - name: Upload report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: e2e/playwright-report
+          retention-days: 7
