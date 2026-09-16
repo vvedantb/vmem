@@ -41,7 +41,7 @@ jobs:
       - name: Oxlint plugin unit tests
         run: pnpm test:oxlint-plugin
 
-      - name: Run unit tests (backend + web)
+      - name: Run unit tests (backend + web + chrome extension)
         run: pnpm test
 
       - name: Live MCP unauth probes

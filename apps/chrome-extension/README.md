@@ -35,13 +35,29 @@ After code changes with `pnpm ext:dev`, most UI updates hot-reload; for backgrou
 
 `pnpm install` runs `wxt prepare` (package `postinstall`) so TypeScript can resolve WXT types. `pnpm --filter @vmem/chrome-extension typecheck` also runs prepare first.
 
-### Smoke checks
+### Tests
 
-- Popup opens from the toolbar icon
-- **Alt+S** saves the current page (success/failure toast reflects the real result)
-- **Alt+Shift+S** starts a region screenshot when permitted
-- ChatGPT / Claude tabs show the injected export / use-vmem controls
-- Sign in on the vmem web app first so the extension can read the sync-host session cookie
+```bash
+pnpm --filter @vmem/chrome-extension test      # unit / integration (CI)
+pnpm --filter @vmem/chrome-extension test:e2e  # headed Chrome load of dist/chrome-mv3/
+```
+
+Unit tests cover popup copy, save-page toasts, screenshot permission-block, ChatGPT/Claude fixture inject, bookmark/history import cancel, and background handlers. The e2e script is optional: CI does not require Google Chrome, and a blocked MV3 load is recorded rather than treated as a unit-test failure.
+
+Load unpacked from **exactly** `apps/chrome-extension/dist/chrome-mv3/` (production) or `dist/chrome-mv3-dev/` (watch). Do not load the package root.
+
+### Manual checklist (when MV3 load-extension is blocked)
+
+Sign in on `https://vmem.vedantb.com` in the same Chrome profile, then:
+
+1. Popup signed-out vs signed-in (Save / Import / Settings tabs only when signed in)
+2. Save page via popup, context menu, and **Alt+S** — toast matches success/failure; memory appears in the dashboard
+3. Region screenshot **Alt+Shift+S** on a normal https page; chrome:// / extension pages stay a no-op
+4. ChatGPT: Export to vmem + Use vmem inject next to the composer
+5. Claude: same
+6. Import bookmarks / history (small range) and Cancel — no hang
+7. Settings deep-link `https://vmem.vedantb.com/settings/extension` has auto-sync + selection popup, no codebase prompts
+8. Delete any memories created during the check
 
 ## Features
 

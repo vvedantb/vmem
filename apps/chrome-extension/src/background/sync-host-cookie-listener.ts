@@ -7,12 +7,15 @@ const PROD_SESSION_COOKIE = "__client";
 
 let listenerRegistered = false;
 
-function syncHostCookieDomain(): string {
-  const hostname = new URL(CLERK_SYNC_HOST).hostname;
+export function syncHostCookieDomain(syncHost: string): string {
+  const hostname = new URL(syncHost).hostname;
   return hostname.startsWith("www.") ? hostname.slice(4) : hostname;
 }
 
-function isSyncHostSessionCookie(cookie: chrome.cookies.Cookie): boolean {
+export function isSessionCookieOnSyncHost(
+  cookie: Pick<chrome.cookies.Cookie, "name" | "domain">,
+  syncHost: string,
+): boolean {
   if (
     cookie.name !== DEV_SESSION_COOKIE &&
     cookie.name !== PROD_SESSION_COOKIE
@@ -23,9 +26,13 @@ function isSyncHostSessionCookie(cookie: chrome.cookies.Cookie): boolean {
   const domain = cookie.domain.startsWith(".")
     ? cookie.domain.slice(1)
     : cookie.domain;
-  const syncDomain = syncHostCookieDomain();
+  const syncDomain = syncHostCookieDomain(syncHost);
 
   return domain === syncDomain || domain.endsWith(`.${syncDomain}`);
+}
+
+function isSyncHostSessionCookie(cookie: chrome.cookies.Cookie): boolean {
+  return isSessionCookieOnSyncHost(cookie, CLERK_SYNC_HOST);
 }
 
 // web sign-in updates syncHost cookies, warm auth so auto-sync works without popup

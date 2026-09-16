@@ -5,7 +5,16 @@ import { getStorage, setStorage } from "@/lib/storage";
 
 export type { ImportResult };
 
-const SKIP_PREFIXES = ["chrome://", "chrome-extension://", "about:", "edge://"];
+const SKIP_HISTORY_URL_PREFIXES = [
+  "chrome://",
+  "chrome-extension://",
+  "about:",
+  "edge://",
+] as const;
+
+export function isImportableHistoryUrl(url: string): boolean {
+  return !SKIP_HISTORY_URL_PREFIXES.some((prefix) => url.startsWith(prefix));
+}
 
 // import history since last sync, manual-sync can pass a day-lookback
 export async function importHistory(
@@ -43,7 +52,7 @@ export async function importHistory(
 
       const filtered = entries.filter((entry) => {
         if (!entry.url) return false;
-        return !SKIP_PREFIXES.some((prefix) => entry.url?.startsWith(prefix));
+        return isImportableHistoryUrl(entry.url);
       });
 
       const seen = new Set<string>();

@@ -21,6 +21,8 @@ export async function runLockedImportLoop<T>(options: {
   loadItems: () => Promise<T[]>;
   toCreateParams: (item: T) => CreateMemoryParams | null;
   persistSyncTimestamp: () => Promise<void>;
+  createItem?: (params: CreateMemoryParams) => Promise<unknown>;
+  itemDelayMs?: number;
 }): Promise<ImportResult> {
   if (!options.acquireLock()) {
     return { imported: 0, locked: true };
@@ -29,6 +31,8 @@ export async function runLockedImportLoop<T>(options: {
   try {
     resetCancel();
     const items = await options.loadItems();
+    const createItem = options.createItem ?? createMemory;
+    const itemDelayMs = options.itemDelayMs ?? IMPORT_ITEM_DELAY_MS;
     let imported = 0;
     let processed = 0;
 
@@ -39,7 +43,7 @@ export async function runLockedImportLoop<T>(options: {
         const params = options.toCreateParams(item);
         if (!params) continue;
 
-        await createMemory(params);
+        await createItem(params);
         processed++;
         imported++;
 
@@ -53,7 +57,7 @@ export async function runLockedImportLoop<T>(options: {
         // skip bad urls and createMemory failures
       }
 
-      await delay(IMPORT_ITEM_DELAY_MS);
+      await delay(itemDelayMs);
     }
 
     return { imported, locked: false };
