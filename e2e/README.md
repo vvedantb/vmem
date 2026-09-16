@@ -17,9 +17,10 @@ Never commit passwords. Copy `e2e/.env.example` to `e2e/.env.local` or export:
 | `E2E_USER_EMAIL`    | recommended                 | `eva@vedantb.com`                              |
 | `E2E_USER_PASSWORD` | yes for authenticated specs | —                                              |
 | `E2E_BASE_URL`      | no                          | `https://vmem.vedantb.com`                     |
+| `E2E_DOCS_URL`      | no                          | `http://localhost:3001` (skipped if down)      |
 | `E2E_WEB_SERVER`    | no                          | unset. Set `1` to boot `pnpm --filter web dev` |
 
-Without `E2E_USER_PASSWORD`, only the signed-out `unauth` project (landing) runs.
+Without `E2E_USER_PASSWORD`, only the signed-out `unauth` project (landing, public SEO, docs skip) runs.
 
 GitHub Actions: set repository secrets `E2E_USER_EMAIL` and `E2E_USER_PASSWORD`. The `e2e.yml` workflow already wires them through.
 
@@ -50,6 +51,8 @@ Grep tags (title + Playwright `tag`):
 
 ```bash
 pnpm test:e2e -- --grep @landing
+pnpm test:e2e -- --grep @public
+pnpm test:e2e -- --grep @docs
 pnpm test:e2e -- --grep @home
 pnpm test:e2e -- --grep @memories
 pnpm test:e2e -- --grep @graph

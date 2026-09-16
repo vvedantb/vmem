@@ -6,7 +6,7 @@ import { LandingPage } from "./_components/landing/LandingPage";
 export const Route = createFileRoute("/")({
   validateSearch: landingSearchSchema,
   beforeLoad: ({ context, search }) => {
-    if (search.agent) {
+    if (search.agent && import.meta.env.DEV) {
       window.location.href = AGENT_LOGIN_PATH;
     }
     if (context.isSignedIn) {

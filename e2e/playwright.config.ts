@@ -48,7 +48,7 @@ export default defineConfig({
   projects: [
     {
       name: "unauth",
-      testMatch: /specs\/landing\.spec\.ts/,
+      testMatch: /specs\/(landing|public|docs)\.spec\.ts/,
       use: { ...devices["Desktop Chrome"] },
     },
     ...(authEnabled
@@ -62,7 +62,7 @@ export default defineConfig({
             name: "chromium",
             dependencies: ["setup"],
             testIgnore:
-              /specs\/landing\.spec\.ts|auth\.setup\.ts|specs\/sign-out\.spec\.ts/,
+              /specs\/(landing|public|docs)\.spec\.ts|auth\.setup\.ts|specs\/sign-out\.spec\.ts/,
             use: {
               ...devices["Desktop Chrome"],
               storageState: AUTH_STATE_PATH,
