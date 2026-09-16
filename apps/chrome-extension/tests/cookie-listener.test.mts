@@ -11,6 +11,7 @@ const {
   isSessionCookieOnSyncHost,
   syncHostCookieDomain,
   registerSyncHostCookieListener,
+  ensureUnpartitionedClerkClientCookie,
 } = await import("../src/background/sync-host-cookie-listener.ts");
 
 await test("syncHostCookieDomain strips www", () => {
@@ -81,4 +82,27 @@ await test("registerSyncHostCookieListener is idempotent and ignores removals", 
     },
   });
   assert.equal(chromeState.cookieChangeListeners.length, 1);
+});
+
+await test("ensureUnpartitionedClerkClientCookie copies a partitioned __client into cookies.get", async () => {
+  const { CLERK_COOKIE_SYNC_HOST } = await import("../src/lib/constants.ts");
+  const hostname = new URL(CLERK_COOKIE_SYNC_HOST).hostname;
+  chromeState.cookieJar = [
+    {
+      name: "__client",
+      domain: `.${hostname}`,
+      value: "clerk-client-jwt",
+      path: "/",
+      httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+      partitionKey: { topLevelSite: "https://vmem.vedantb.com" },
+    },
+  ];
+
+  assert.equal(await ensureUnpartitionedClerkClientCookie(), true);
+  assert.equal(chromeState.cookieSets.length, 1);
+  assert.equal(chromeState.cookieSets[0]?.name, "__client");
+  assert.equal(chromeState.cookieSets[0]?.value, "clerk-client-jwt");
+  assert.equal(chromeState.cookieSets[0]?.domain, hostname);
 });

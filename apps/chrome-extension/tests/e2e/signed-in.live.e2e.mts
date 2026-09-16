@@ -212,16 +212,29 @@ async function popupCookieProbe(page: Page): Promise<{
   vmemClient: string | null;
   clerkClient: string | null;
   vmemSession: string | null;
+  clientCookies: Array<{
+    domain: string;
+    partition: string;
+    valueLength: number;
+  }>;
 }> {
   return page.evaluate(async () => {
     const slice = async (url: string, name: string) => {
       const cookie = await chrome.cookies.get({ url, name });
       return cookie ? cookie.domain : null;
     };
+    const listed = await chrome.cookies
+      .getAll({ name: "__client", partitionKey: {} })
+      .catch(() => chrome.cookies.getAll({ name: "__client" }));
     return {
       vmemClient: await slice("https://vmem.vedantb.com/", "__client"),
       clerkClient: await slice("https://clerk.vedantb.com/", "__client"),
       vmemSession: await slice("https://vmem.vedantb.com/", "__session"),
+      clientCookies: listed.map((cookie) => ({
+        domain: cookie.domain,
+        partition: cookie.partitionKey?.topLevelSite ?? "",
+        valueLength: cookie.value.length,
+      })),
     };
   });
 }
@@ -422,6 +435,7 @@ async function runLive(): Promise<LiveMatrix> {
       vmemClient: null,
       clerkClient: null,
       vmemSession: null,
+      clientCookies: [],
     }));
     const signedIn = popupLooksSignedIn(popupText);
     const cookieSync = signedIn
@@ -436,6 +450,34 @@ async function runLive(): Promise<LiveMatrix> {
     if (signedIn) {
       const tokenDeadline = Date.now() + 8_000;
       while (Date.now() < tokenDeadline) {
+        tokenReady = await popup
+          .evaluate(async () => {
+            const data = await chrome.storage.session.get(null);
+            return Object.values(data).some(
+              (value) => typeof value === "string" && value.length > 40,
+            );
+          })
+          .catch(() => false);
+        if (tokenReady) break;
+        await sleep(400);
+      }
+    }
+
+    if (signedIn && !tokenReady) {
+      await popup.reload({ waitUntil: "domcontentloaded" }).catch(() => {});
+      await popup
+        .waitForFunction(
+          () =>
+            document.body.innerText.includes("Save to vmem") ||
+            document.body.innerText.includes(
+              "Sign in to start saving memories",
+            ),
+          { timeout: 15_000 },
+        )
+        .catch(() => {});
+      popupText = await popup.evaluate(() => document.body.innerText);
+      const retryDeadline = Date.now() + 8_000;
+      while (Date.now() < retryDeadline) {
         tokenReady = await popup
           .evaluate(async () => {
             const data = await chrome.storage.session.get(null);
