@@ -47,10 +47,7 @@ test.describe("memories tags data", { tag: ["@memories", "@tags"] }, () => {
       await expect(page).toHaveURL(/view=tags/);
       await searchMemories(page, tag);
       await expect(
-        page
-          .getByTestId("tag-row")
-          .filter({ hasText: tag })
-          .or(page.getByText(tag, { exact: true })),
+        page.getByTestId("tag-row").filter({ hasText: tag }),
       ).toBeVisible({ timeout: 20_000 });
 
       await page.getByText(tag, { exact: true }).first().click();
@@ -60,8 +57,14 @@ test.describe("memories tags data", { tag: ["@memories", "@tags"] }, () => {
       await page.getByRole("menuitem", { name: "Memories" }).click();
       await deleteMemoryByTitle(page, title);
     } catch (error) {
-      await gotoWorkspace(page, "/memories/list").catch(() => undefined);
-      await openMemoriesList(page).catch(() => undefined);
+      await page
+        .getByRole("button", { name: /Change view/ })
+        .click()
+        .catch(() => undefined);
+      await page
+        .getByRole("menuitem", { name: "Memories" })
+        .click()
+        .catch(() => undefined);
       await deleteMemoryByTitle(page, title).catch(() => undefined);
       throw error;
     }

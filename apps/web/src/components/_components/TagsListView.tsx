@@ -169,7 +169,7 @@ export default function TagsListView() {
         title={isFiltering ? "No tags match" : "No tags yet"}
         description={
           isFiltering
-            ? "Try a different search or clear the profile filter."
+            ? "Try a different search."
             : "Add tags to memories to start grouping them."
         }
       />
