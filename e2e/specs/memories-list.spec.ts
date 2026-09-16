@@ -1,7 +1,6 @@
 import { expect, test } from "../fixtures";
 import { gotoWorkspace } from "../helpers/nav";
 import {
-  cleanupSliceMemories,
   clearSearch,
   createDisposableMemory,
   deleteMemoryByTitle,
@@ -20,12 +19,10 @@ test.describe("memories list", { tag: ["@memories", "@smoke"] }, () => {
   test("search, create a disposable memory, and delete it", async ({
     page,
   }) => {
-    test.setTimeout(90_000);
     const title = disposableMemoryTitle("list");
     const content = `${title} disposable e2e body`;
     await gotoWorkspace(page, "/memories/list");
     await openMemoriesList(page);
-    await cleanupSliceMemories(page);
 
     try {
       await createDisposableMemory(page, title, content);
