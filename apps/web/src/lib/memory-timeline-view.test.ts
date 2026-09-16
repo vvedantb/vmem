@@ -189,5 +189,24 @@ describe("default playhead", () => {
     expect(defaultPlayheadMs(created, range)).toBe(latest);
     expect(resolvedPlayheadMs(null, created, range)).toBe(latest);
     expect(resolvedPlayheadMs(range.endMs, created, range)).toBe(range.endMs);
+    expect(resolvedPlayheadMs(Number.POSITIVE_INFINITY, created, range)).toBe(
+      range.endMs,
+    );
+  });
+});
+
+describe("jump to now", () => {
+  it("keeps the playhead on the live edge when the range end moves", () => {
+    const range = { startMs: 0, endMs: 100 };
+    const later = { startMs: 0, endMs: 130 };
+    const playhead = Number.POSITIVE_INFINITY;
+    expect(resolvedPlayheadMs(playhead, [], range)).toBe(100);
+    expect(progressFromPlayhead(playhead, range)).toBe(1);
+    expect(resolvedPlayheadMs(playhead, [], later)).toBe(130);
+    expect(progressFromPlayhead(playhead, later)).toBe(1);
+    expect(windowForPlayhead(playhead, 30, later)).toEqual({
+      startMs: 100,
+      endMs: 130,
+    });
   });
 });

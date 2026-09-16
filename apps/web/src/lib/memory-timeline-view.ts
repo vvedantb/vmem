@@ -19,7 +19,7 @@ const TIMELINE_SPAN_MS: Record<Exclude<TimelineSpan, "all">, number> = {
 };
 
 // a single recent memory would otherwise collapse the scrubber to a point
-export const MIN_TIMELINE_RANGE_MS = DAY_MS;
+const MIN_TIMELINE_RANGE_MS = DAY_MS;
 
 export const TIMELINE_SCRUBBER_STEPS = 1000;
 export const TIMELINE_DENSITY_BUCKETS = 48;

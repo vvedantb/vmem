@@ -148,7 +148,7 @@ export default function MemoryTimelineScrubber({
           variant="ghost"
           size="sm"
           className="h-7 px-2 text-[11px] text-muted hover:text-foreground"
-          onClick={() => onPlayheadChange(range.endMs)}
+          onClick={() => onPlayheadChange(Number.POSITIVE_INFINITY)}
         >
           Jump to now
         </Button>
