@@ -80,11 +80,13 @@ describe("Convex labelled ablation", () => {
       return;
     }
 
-    expect(full.ndcg10).toBeGreaterThanOrEqual(noGraph.ndcg10);
+    expect(full.ndcg10).toBeGreaterThan(noGraph.ndcg10);
     expect(full.ndcg10).toBeGreaterThan(vector.ndcg10);
     expect(full.ndcg10).toBeGreaterThan(bm25.ndcg10);
-    expect(full.mrr).toBeGreaterThan(bm25.mrr);
-    expect(full.recall5).toBeGreaterThan(0.7);
+    expect(full.recall5).toBeGreaterThan(bm25.recall5);
+    expect(full.recall5).toBeGreaterThan(0.9);
+    expect(full.recall10).toBeGreaterThanOrEqual(bm25.recall10);
+    expect(full.mrr).toBeGreaterThan(0.9);
 
     const byType = (name: string, type: string) =>
       aggregate(

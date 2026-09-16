@@ -459,13 +459,7 @@ export function rankMemories(
       0.08 * parts.entity +
       0.16 * parts.graph +
       0.04 * parts.recency;
-    const strongDirect =
-      parts.fulltext >= 0.35 ||
-      parts.vector > 0.15 ||
-      parts.chunk > 0.4 ||
-      parts.entity > 0.3;
-    const recencyMultiplier =
-      useRecency && strongDirect ? 0.7 + 0.3 * parts.recency : 1;
+    const recencyMultiplier = useRecency ? 0.7 + 0.3 * parts.recency : 1;
     const score =
       trimmed.length === 0
         ? parts.recency
