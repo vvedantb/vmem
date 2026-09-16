@@ -191,6 +191,26 @@ describe("retrieveMemoriesFromPool", () => {
     ]);
   });
 
+  it("applies source so web retrieve cannot return mcp rows", () => {
+    const web = memory({
+      id: "mem_web",
+      title: "Prefers pnpm",
+      content: "Use pnpm for vmem",
+      source: "web",
+    });
+    const mcp = memory({
+      id: "mem_mcp",
+      title: "Prefers pnpm",
+      content: "Use pnpm for vmem",
+      source: "mcp",
+    });
+    expect(
+      retrieveMemoriesFromPool([web, mcp], "pnpm", { source: "web" }).map(
+        (hit) => hit.id,
+      ),
+    ).toEqual(["mem_web"]);
+  });
+
   it("hides suppressed rows unless status is requested", () => {
     const hidden = memory({
       id: "mem_hidden",

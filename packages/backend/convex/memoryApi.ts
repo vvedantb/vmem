@@ -186,6 +186,7 @@ export const retrieveMemories = authAction({
     type: v.optional(v.string()),
     tags: v.optional(v.array(v.string())),
     status: v.optional(v.string()),
+    source: v.optional(v.string()),
     limit: v.number(),
   },
   handler: async (ctx, args): Promise<RetrieveMemoriesResult> => {
@@ -199,6 +200,7 @@ export const retrieveMemories = authAction({
             type: args.type,
             tags: args.tags,
             status: args.status,
+            source: args.source,
             limit: args.limit,
           }),
         personal: (clerkId) =>
@@ -209,6 +211,7 @@ export const retrieveMemories = authAction({
             type: args.type,
             tags: args.tags,
             status: args.status,
+            source: args.source,
             limit: args.limit,
           }),
       }),

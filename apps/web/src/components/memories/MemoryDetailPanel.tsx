@@ -101,10 +101,7 @@ export default function MemoryDetailPanel({
 
   async function handleDelete() {
     await runDelete(async () => {
-      const deleted = await deleteMemory(memory.id);
-      if (!deleted) {
-        throw new Error("Memory not found");
-      }
+      await deleteMemory(memory.id);
 
       onMemoryDelete(memory.id);
       setShowDeleteConfirm(false);

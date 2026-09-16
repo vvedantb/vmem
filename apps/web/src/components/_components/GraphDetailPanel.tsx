@@ -15,6 +15,17 @@ interface GraphDetailPanelProps {
   onFocusNode: (nodeId: string) => void;
 }
 
+async function runGraphDelete(
+  onDelete: (nodeId: string) => Promise<boolean>,
+  nodeId: string,
+): Promise<boolean> {
+  try {
+    return await onDelete(nodeId);
+  } catch {
+    return false;
+  }
+}
+
 export default function GraphDetailPanel({
   nodeData,
   relatedNodes,
@@ -84,7 +95,7 @@ export default function GraphDetailPanel({
                   disabled={isDeleting}
                   onClick={async () => {
                     setIsDeleting(true);
-                    const deleted = await onDelete(nodeData.id);
+                    const deleted = await runGraphDelete(onDelete, nodeData.id);
                     setIsDeleting(false);
                     if (deleted) {
                       setConfirmingDelete(false);

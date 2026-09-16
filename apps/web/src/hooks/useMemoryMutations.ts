@@ -130,26 +130,16 @@ export function useMemoryMutations() {
     return createMutation.mutateAsync(input);
   };
 
-  const updateMemory = async (
-    input: UpdateMemoryInput,
-  ): Promise<Memory | null> => {
+  const updateMemory = async (input: UpdateMemoryInput): Promise<Memory> => {
     if (!isAuthenticated) throw new Error("Not authenticated");
-    try {
-      const result = await updateMutation.mutateAsync(input);
-      return result.memory;
-    } catch {
-      return null;
-    }
+    const result = await updateMutation.mutateAsync(input);
+    return result.memory;
   };
 
   const deleteMemory = async (id: string): Promise<boolean> => {
     if (!isAuthenticated) throw new Error("Not authenticated");
-    try {
-      await deleteMutation.mutateAsync(id);
-      return true;
-    } catch {
-      return false;
-    }
+    await deleteMutation.mutateAsync(id);
+    return true;
   };
 
   const uploadMemoryFile = async (
