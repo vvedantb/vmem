@@ -1,3 +1,4 @@
+import { memoryMatchesLexical } from "./rank";
 import { isVisibleStatus } from "./scope";
 
 export interface MemoryListFilter {
@@ -18,15 +19,10 @@ export interface MemoryListable {
 }
 
 function matchesSearchQuery(
-  memory: Pick<MemoryListable, "title" | "content">,
+  memory: Pick<MemoryListable, "title" | "content" | "tags">,
   searchQuery: string | undefined,
 ): boolean {
-  const needle = searchQuery?.trim().toLowerCase() ?? "";
-  if (needle.length === 0) return true;
-  return (
-    memory.title.toLowerCase().includes(needle) ||
-    memory.content.toLowerCase().includes(needle)
-  );
+  return memoryMatchesLexical(memory, searchQuery);
 }
 
 function matchesAllTags(

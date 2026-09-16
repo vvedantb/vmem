@@ -1,5 +1,6 @@
 ﻿import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { MEMORY_EMBEDDING_DIMENSIONS } from "../engine/memory/searchableText";
 import {
   wikiNodeFields,
   wikiNodeVersionFields,
@@ -146,7 +147,16 @@ const schema = defineSchema({
   memories: defineTable(memoryFields)
     .index("by_memory_id", ["memoryId"])
     .index("by_user_created", ["userId", "createdAt"])
-    .index("by_profile_created", ["profileId", "createdAt"]),
+    .index("by_profile_created", ["profileId", "createdAt"])
+    .searchIndex("search_text", {
+      searchField: "searchableText",
+      filterFields: ["userId", "profileId"],
+    })
+    .vectorIndex("by_embedding", {
+      vectorField: "embedding",
+      dimensions: MEMORY_EMBEDDING_DIMENSIONS,
+      filterFields: ["userId", "profileId"],
+    }),
 });
 
 export default schema;

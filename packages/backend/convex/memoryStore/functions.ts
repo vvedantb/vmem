@@ -11,11 +11,14 @@ import {
   deleteMemoriesForUser,
   deleteMemory,
   deleteTeamMemoryAsOwner,
+  getMemoriesByDocIds,
   getMemory,
   getMemoryForTeam,
   listMemories,
   listMemoriesForTeam,
+  patchMemoryEmbedding,
   reassignMemoriesProfile,
+  searchMemoriesText,
   updateMemory,
   upsertMemoryFromSource,
 } from "./helpers";
@@ -254,4 +257,55 @@ export const upsertMemoryFromSourceInternal = internalMutation({
       sourceId: args.sourceId,
       sourceUrl: args.sourceUrl,
     }),
+});
+
+export const searchMemoriesTextInternal = internalQuery({
+  args: {
+    kind: v.union(v.literal("personal"), v.literal("team")),
+    userId: v.optional(v.string()),
+    profileId: v.optional(v.string()),
+    query: v.string(),
+  },
+  returns: v.array(
+    v.object({
+      memory: memoryWithTagsValidator,
+      rank: v.number(),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    if (args.kind === "team") {
+      if (args.profileId === undefined) return [];
+      return searchMemoriesText(
+        ctx,
+        { kind: "team", profileId: args.profileId },
+        args.query,
+      );
+    }
+    if (args.userId === undefined) return [];
+    return searchMemoriesText(
+      ctx,
+      {
+        kind: "personal",
+        userId: args.userId,
+        profileId: args.profileId,
+      },
+      args.query,
+    );
+  },
+});
+
+export const getMemoriesByDocIdsInternal = internalQuery({
+  args: { ids: v.array(v.id("memories")) },
+  returns: v.array(v.union(memoryWithTagsValidator, v.null())),
+  handler: async (ctx, args) => getMemoriesByDocIds(ctx, args.ids),
+});
+
+export const patchMemoryEmbeddingInternal = internalMutation({
+  args: {
+    memoryId: v.string(),
+    embedding: v.array(v.float64()),
+  },
+  returns: v.boolean(),
+  handler: async (ctx, args) =>
+    patchMemoryEmbedding(ctx, args.memoryId, args.embedding),
 });

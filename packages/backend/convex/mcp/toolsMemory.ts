@@ -19,6 +19,8 @@ import {
   deleteMemoryForClerk,
   listMemoriesForClerk,
   listMemoriesForTeamProfile,
+  relatedMemoriesForClerk,
+  relatedMemoriesForTeamProfile,
   retrieveMemoriesForClerk,
   retrieveMemoriesForTeamProfile,
   storeMemoryFromInstruction,
@@ -195,7 +197,7 @@ export const memoryToolSpecs = {
     name: "memory_retrieve",
     schema: memoryRetrieveSchema,
     description:
-      "Retrieve the most relevant memories for a query using substring search over title and content. Defaults to the active profile unless profileId is specified.",
+      "Retrieve the most relevant memories for a query using hybrid full-text, synonym, recency, and optional vector ranking. Defaults to the active profile unless profileId is specified.",
     errorLabel: "Retrieve failed",
     async run(h, params): Promise<unknown> {
       return withMcpMemoryScope(h.ctx, scopedMemory(h), (scope) => {
@@ -203,6 +205,7 @@ export const memoryToolSpecs = {
         return runForMcpScope(scope, {
           team: (profileId) =>
             retrieveMemoriesForTeamProfile(h.ctx, {
+              clerkId: scope.clerkId,
               profileId,
               query: params.query,
               limit,
@@ -308,18 +311,24 @@ export const memoryToolSpecs = {
     name: "memory_related",
     schema: memoryRelatedSchema,
     description:
-      "List memories linked to a given memory. Graph links are not stored; this always returns an empty list.",
+      "List memories related to a given memory by shared tags and similar title or content.",
     errorLabel: "Related memories failed",
     async run(h, params): Promise<unknown> {
-      await withMcpMemoryScope(h.ctx, scopedMemory(h), async (scope) => {
-        await loadMemoryForMcpScope(h.ctx, {
-          clerkId: scope.clerkId,
-          mcpScope: scope.mcpScope,
-          profileId: scope.profileId,
-          memoryId: params.memoryId,
-        });
-      });
-      return [];
+      return withMcpMemoryScope(h.ctx, scopedMemory(h), (scope) =>
+        runForMcpScope(scope, {
+          team: (profileId) =>
+            relatedMemoriesForTeamProfile(h.ctx, {
+              profileId,
+              memoryId: params.memoryId,
+            }),
+          personal: ({ clerkId, profileId }) =>
+            relatedMemoriesForClerk(h.ctx, {
+              clerkId,
+              profileId,
+              memoryId: params.memoryId,
+            }),
+        }),
+      );
     },
   }),
 };

@@ -8,8 +8,10 @@ import {
   memoryMatchesScope,
   type MemoryReadScope,
 } from "../../engine/memory/scope";
+import { buildSearchableText } from "../../engine/memory/searchableText";
+import { expandedSearchText } from "../../engine/memory/synonyms";
 import { normalizeTags } from "../../engine/memory/tags";
-import type { Doc } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { parseIsoMillis, toMemoryWithTags } from "./mappers";
 
@@ -155,6 +157,11 @@ export async function createMemory(
     visitCount: 1,
     firstVisitAt: createdAt,
     lastVisitAt: updatedAt,
+    searchableText: buildSearchableText(
+      params.title,
+      params.content,
+      normalizeTags(params.tags),
+    ),
   });
 
   const created = await ctx.db.get(id);
@@ -220,10 +227,17 @@ export async function updateMemory(
   const now = Date.now();
   const nextTitle = updates.title ?? doc.title;
   const nextContent = updates.content ?? doc.content;
-  const contentHash =
-    updates.title !== undefined || updates.content !== undefined
-      ? computeContentHash(nextTitle, nextContent)
-      : doc.contentHash;
+  const nextTags =
+    updates.tags === undefined ? doc.tags : normalizeTags(updates.tags);
+  const textChanged =
+    updates.title !== undefined || updates.content !== undefined;
+  const contentChanged = textChanged || updates.tags !== undefined;
+  const contentHash = textChanged
+    ? computeContentHash(nextTitle, nextContent)
+    : doc.contentHash;
+  const searchableText = contentChanged
+    ? buildSearchableText(nextTitle, nextContent, nextTags)
+    : doc.searchableText;
   if (updates.expiresAt === null) {
     const {
       _id,
@@ -236,9 +250,10 @@ export async function updateMemory(
       content: nextContent,
       type: updates.type ?? doc.type,
       status: updates.status ?? doc.status,
-      tags: updates.tags === undefined ? doc.tags : normalizeTags(updates.tags),
+      tags: nextTags,
       confidence: updates.confidence ?? doc.confidence,
       contentHash,
+      searchableText,
       updatedAt: now,
     };
     await ctx.db.replace(_id, fields);
@@ -249,15 +264,11 @@ export async function updateMemory(
       ...(updates.content !== undefined ? { content: updates.content } : {}),
       ...(updates.type !== undefined ? { type: updates.type } : {}),
       ...(updates.status !== undefined ? { status: updates.status } : {}),
-      ...(updates.tags !== undefined
-        ? { tags: normalizeTags(updates.tags) }
-        : {}),
+      ...(updates.tags !== undefined ? { tags: nextTags } : {}),
       ...(updates.confidence !== undefined
         ? { confidence: updates.confidence }
         : {}),
-      ...(updates.title !== undefined || updates.content !== undefined
-        ? { contentHash }
-        : {}),
+      ...(contentChanged ? { contentHash, searchableText } : {}),
       ...(updates.expiresAt !== undefined
         ? { expiresAt: parseIsoMillis(updates.expiresAt) }
         : {}),
@@ -395,4 +406,64 @@ export async function collectScopedMemories(
 ): Promise<MemoryWithTags[]> {
   const docs = await listScopedDocs(ctx, scope);
   return docs.map(toMemoryWithTags);
+}
+
+const FTS_TAKE = 32;
+
+export async function searchMemoriesText(
+  ctx: QueryCtx,
+  scope: MemoryReadScope,
+  query: string,
+): Promise<Array<{ memory: MemoryWithTags; rank: number }>> {
+  const trimmed = query.trim();
+  if (trimmed.length === 0) return [];
+  const search = expandedSearchText(trimmed);
+  if (search.length === 0) return [];
+
+  const hits =
+    scope.kind === "team"
+      ? await ctx.db
+          .query("memories")
+          .withSearchIndex("search_text", (q) =>
+            q.search("searchableText", search).eq("profileId", scope.profileId),
+          )
+          .take(FTS_TAKE)
+      : await ctx.db
+          .query("memories")
+          .withSearchIndex("search_text", (q) =>
+            q.search("searchableText", search).eq("userId", scope.userId),
+          )
+          .take(FTS_TAKE);
+
+  const out: Array<{ memory: MemoryWithTags; rank: number }> = [];
+  let rank = 1;
+  for (const doc of hits) {
+    if (!memoryMatchesScope(doc, scope)) continue;
+    out.push({ memory: toMemoryWithTags(doc), rank });
+    rank += 1;
+  }
+  return out;
+}
+
+export async function getMemoriesByDocIds(
+  ctx: QueryCtx,
+  ids: Array<Id<"memories">>,
+): Promise<Array<MemoryWithTags | null>> {
+  const out: Array<MemoryWithTags | null> = [];
+  for (const id of ids) {
+    const doc = await ctx.db.get(id);
+    out.push(doc ? toMemoryWithTags(doc) : null);
+  }
+  return out;
+}
+
+export async function patchMemoryEmbedding(
+  ctx: MutationCtx,
+  memoryId: string,
+  embedding: number[],
+): Promise<boolean> {
+  const doc = await findByMemoryId(ctx, memoryId);
+  if (!doc) return false;
+  await ctx.db.patch(doc._id, { embedding });
+  return true;
 }

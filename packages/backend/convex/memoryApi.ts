@@ -190,8 +190,9 @@ export const retrieveMemories = authAction({
   handler: async (ctx, args): Promise<RetrieveMemoriesResult> => {
     const [memories, userContext] = await Promise.all([
       routeMemoryByProfile(ctx, args.profileId, {
-        team: (teamProfile) =>
+        team: (teamProfile, clerkId) =>
           retrieveMemoriesForTeamProfile(ctx, {
+            clerkId,
             profileId: teamProfile._id,
             query: args.query,
             type: args.type,

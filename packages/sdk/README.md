@@ -50,7 +50,7 @@ const vmem = new VMemory({
 
 - **API key** (`VMEM_API_KEY` or `apiKey`) — required for all calls.
 - **Base URL** (`VMEM_BASE_URL` or `baseUrl`) — your Convex site URL (`https://<deployment>.convex.site`).
-- **OpenRouter key** (dashboard env) — required for agentic `save()` and `update()`, and for `search({ summarize: true })`.
+- **OpenRouter key** (dashboard env) — optional. When set, vmem embeds memories on write and can blend vector similarity into retrieve. Agentic `save()` / `update()` store the instruction as a knowledge memory without an LLM (they do not return `openrouter_required`).
 
 ## API
 
@@ -73,8 +73,8 @@ import { VMemory, isVMemoryError } from "@vmem/sdk";
 try {
   await vmem.save("...");
 } catch (error) {
-  if (isVMemoryError(error) && error.code === "openrouter_required") {
-    // Add OPENROUTER_API_KEY in vmem dashboard settings
+  if (isVMemoryError(error) && error.code === "unauthorized") {
+    // Check VMEM_API_KEY / VMEM_BASE_URL
   }
 }
 ```

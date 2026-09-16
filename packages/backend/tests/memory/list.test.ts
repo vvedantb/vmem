@@ -51,6 +51,9 @@ describe("memoryMatchesListFilter", () => {
     expect(memoryMatchesListFilter(row, { searchQuery: "webpack" })).toBe(
       false,
     );
+    expect(
+      memoryMatchesListFilter(row, { searchQuery: "package manager" }),
+    ).toBe(true);
   });
 });
 

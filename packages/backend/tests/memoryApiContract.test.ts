@@ -3,6 +3,7 @@
 import { describe, expect, it } from "vitest";
 import {
   deleteBodySchema,
+  memoryCandidateSchema,
   parseMemoryWithTagsResponse,
   retrieveBodySchema,
   storeBodySchema,
@@ -140,6 +141,27 @@ describe("memoryApi contract request schemas", () => {
       updateBodySchema.safeParse({
         instruction: "User no longer uses yarn",
         profileId: "profile_1",
+      }).success,
+    ).toBe(true);
+  });
+
+  it("parses retrieve candidates with real trace channels", () => {
+    expect(
+      memoryCandidateSchema.safeParse({
+        ...validMemoryResponse,
+        trace: {
+          score: 0.8,
+          scoreBreakdown: {
+            fulltext: 0.9,
+            vector: 0,
+            chunk: 0.4,
+            entity: 0.2,
+            rrf: 1,
+            recency: 0.7,
+            confidence: 0.9,
+          },
+          reason: "fulltext and synonym match",
+        },
       }).success,
     ).toBe(true);
   });

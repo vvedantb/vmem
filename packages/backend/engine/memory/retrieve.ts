@@ -1,35 +1,28 @@
 import type { MemoryCandidate, MemoryWithTags } from "@vmem/sdk";
+import { rankMemories } from "./rank";
 
-function emptyScoreBreakdown(fulltext: number, confidence: number) {
-  return {
-    fulltext,
-    vector: 0,
-    chunk: 0,
-    entity: 0,
-    rrf: fulltext,
-    recency: 0,
-    confidence,
-  };
-}
+export { rankMemories } from "./rank";
 
 export function toMemoryCandidate(
   memory: MemoryWithTags,
   query: string,
 ): MemoryCandidate {
-  const needle = query.trim().toLowerCase();
-  const hay = `${memory.title}\n${memory.content}`.toLowerCase();
-  const fulltext = needle.length === 0 || hay.includes(needle) ? 1 : 0;
+  const [ranked] = rankMemories([memory], query, { limit: 1 });
+  if (ranked !== undefined) return ranked;
   return {
     ...memory,
     trace: {
-      score: fulltext,
-      scoreBreakdown: emptyScoreBreakdown(fulltext, memory.confidence),
-      reason:
-        needle.length === 0
-          ? "recent memories"
-          : fulltext === 1
-            ? "title or content substring match"
-            : "listed without substring match",
+      score: 0,
+      scoreBreakdown: {
+        fulltext: 0,
+        vector: 0,
+        chunk: 0,
+        entity: 0,
+        rrf: 0,
+        recency: 0,
+        confidence: memory.confidence,
+      },
+      reason: "no lexical match",
     },
   };
 }

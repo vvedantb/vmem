@@ -38,6 +38,8 @@ export const memoryFields = {
   visitCount: v.number(),
   firstVisitAt: v.number(),
   lastVisitAt: v.number(),
+  searchableText: v.optional(v.string()),
+  embedding: v.optional(v.array(v.float64())),
 };
 
 // table field validators, used in schema.ts and return validators
