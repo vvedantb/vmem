@@ -14,7 +14,7 @@ interface MemoryContextType {
   memories: Memory[];
   isLoading: boolean;
   createMemory: (input: CreateMemoryInput) => Promise<Memory>;
-  updateMemory: (input: UpdateMemoryInput) => Promise<Memory | null>;
+  updateMemory: (input: UpdateMemoryInput) => Promise<Memory>;
   deleteMemory: (id: string) => Promise<boolean>;
   uploadMemoryFile: (input: UploadMemoryFileInput) => Promise<Memory>;
 }

@@ -100,7 +100,8 @@ Unit CI in `test.yml` is unchanged.
 - **`/home` workspace redirect** used to race `useActiveProfile` before the profile query resolved. Current main wraps the outlet in `ActiveProfileProvider` with the loaded profile; fixtures still wait for `/$profileId/...` plus `#main-content` before clicking sidebar.
 - **Dashboard stats** are a Convex action — allow ~30s for "Total memories".
 - **Graph WebGL** may be empty on a fresh workspace (`No memories to visualize`) or skip in environments without WebGL2. The spec accepts canvas or the empty heading and fails on "Failed to load graph".
-- **Search after create** is hybrid; the list spec uses a unique `e2e-list-<timestamp>` title and always attempts delete in `catch`.
-- **Do not** leave `e2e-*` memories behind. The list spec deletes the row it created.
+- **Search after create** is hybrid; list specs use a unique `e2e-<area>-<timestamp>-<rand>` title and always attempt delete in `catch`.
+- **Do not** leave `e2e-*` memories behind. CRUD/filter specs delete the row they created.
+- **Type/status editors** are not in the web create/edit UI (create is always `knowledge`; status stays `active`). Filters cover type/tag/source/kind. Status is API/MCP-only.
 
 Chrome extension e2e (`pnpm --filter @vmem/chrome-extension test:e2e`) is a separate Puppeteer harness and is not this suite.

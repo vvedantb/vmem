@@ -9,6 +9,7 @@ import {
 } from "./list-items";
 import {
   apiGraphNodePassesFilters,
+  exclusiveApiFilterValue,
   kindPassesFilter,
   sourcePassesFilter,
   tagsPassFilter,
@@ -201,6 +202,14 @@ describe("searchListItems", () => {
 
   it("returns empty results for blank queries", () => {
     expect(searchListItems([memoryItem], "   ")).toEqual([]);
+  });
+});
+
+describe("exclusiveApiFilterValue", () => {
+  it("forwards a value only when exactly one option is selected", () => {
+    expect(exclusiveApiFilterValue([])).toBeUndefined();
+    expect(exclusiveApiFilterValue(["knowledge"])).toBe("knowledge");
+    expect(exclusiveApiFilterValue(["knowledge", "episodic"])).toBeUndefined();
   });
 });
 

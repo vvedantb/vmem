@@ -52,6 +52,7 @@ interface DetailsTabEditProps {
 export function DetailsTabEdit({ memory, onCancel }: DetailsTabEditProps) {
   const { updateMemory } = useMemoryContext();
   const [tags, setTags] = useState(memory.tags);
+  const [titleError, setTitleError] = useState<string | null>(null);
   const [contentError, setContentError] = useState<string | null>(null);
   const { submitting: isSubmitting, run } = useAsyncSubmit();
 
@@ -65,25 +66,26 @@ export function DetailsTabEdit({ memory, onCancel }: DetailsTabEditProps) {
     const content = typeof rawContent === "string" ? rawContent : "";
     const parsed = memorySchema.safeParse({ title, content, tags });
     if (!parsed.success) {
+      const titleIssue = parsed.error.issues.find(
+        (issue) => issue.path[0] === "title",
+      );
       const contentIssue = parsed.error.issues.find(
         (issue) => issue.path[0] === "content",
       );
-      setContentError(contentIssue?.message ?? "Invalid memory content");
+      setTitleError(titleIssue?.message ?? null);
+      setContentError(contentIssue?.message ?? null);
       return;
     }
+    setTitleError(null);
     setContentError(null);
 
     await run(async () => {
-      const updated = await updateMemory({
+      await updateMemory({
         id: memory.id,
         title: parsed.data.title,
         content: parsed.data.content,
         tags: parsed.data.tags,
       });
-
-      if (!updated) {
-        throw new Error("Memory not found");
-      }
 
       onCancel();
       toast.success("Memory updated successfully");
@@ -100,6 +102,9 @@ export function DetailsTabEdit({ memory, onCancel }: DetailsTabEditProps) {
           disabled={isSubmitting}
           className="h-10 rounded-field border-border bg-field-background text-foreground text-base font-semibold placeholder:text-field-placeholder"
         />
+        {titleError ? (
+          <p className="text-sm text-danger">{titleError}</p>
+        ) : null}
         <Textarea
           name="content"
           defaultValue={memory.content}

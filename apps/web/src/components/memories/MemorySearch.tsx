@@ -16,6 +16,7 @@ import AnimatedSearchIcon from "@/components/_components/AnimatedSearchIcon";
 import { VmemSpinner } from "@/components/icons/animations";
 import { memoryFromApi, type Memory } from "@/lib/memories";
 import type { ListItem } from "@/lib/list-items";
+import { countActiveMemoryViewFilters } from "@/lib/memory-view-filters";
 import { useThemeContext } from "@/contexts/ThemeContext";
 import { useTrailData } from "@/hooks/useTrailData";
 import { useMemoryListEntries } from "@/hooks/useMemoryListEntries";
@@ -83,7 +84,7 @@ function MemoryListStatus({
         No results found
       </h3>
       <p className="text-sm text-muted">
-        Try searching with different keywords
+        Try different keywords or clear filters
       </p>
     </div>
   );
@@ -284,71 +285,76 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
     );
   }
 
-  if (!list.isShowingSearchResults && list.displayItems.length === 0) {
+  const hasActiveFilters =
+    countActiveMemoryViewFilters({
+      kinds: params.kinds,
+      tags: params.tags,
+      sources: params.sources,
+      types: params.types,
+    }) > 0;
+
+  if (list.displayItems.length === 0) {
+    if (list.isShowingSearchResults || hasActiveFilters) {
+      return <MemoryListStatus variant="no-results" />;
+    }
     return <MemoryListStatus variant="empty" />;
   }
 
   return (
     <div className="relative flex h-full min-h-0 flex-col">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        {list.isShowingSearchResults && list.displayItems.length === 0 ? (
-          <MemoryListStatus variant="no-results" />
-        ) : (
+        <div
+          className={cn(
+            "flex min-h-0 flex-1 gap-4",
+            hasSidePanel ? "flex-col lg:flex-row" : "",
+          )}
+        >
           <div
             className={cn(
-              "flex min-h-0 flex-1 gap-4",
-              hasSidePanel ? "flex-col lg:flex-row" : "",
+              "min-h-0 min-w-0",
+              hasSidePanel ? "hidden sm:block lg:min-w-0 lg:flex-1" : "flex-1",
             )}
           >
-            <div
-              className={cn(
-                "min-h-0 min-w-0",
-                hasSidePanel
-                  ? "hidden sm:block lg:min-w-0 lg:flex-1"
-                  : "flex-1",
-              )}
-            >
-              <MemoryVirtuosoList
-                entries={list.displayItems}
-                selectedItemId={selectedItemId}
-                trailMap={trailMap}
-                isDark={isDark}
-                onEndReached={handleEndReached}
-                handlers={{
-                  onMemoryClick: handleMemoryClick,
-                  onItemSelect: handleItemSelect,
-                  onContextEdit: (memory) => {
-                    openMemory(memory.id);
-                    setPanelAction("edit");
-                  },
-                  onContextDelete: (memory) => {
-                    openMemory(memory.id);
-                    setPanelAction("delete");
-                  },
+            <MemoryVirtuosoList
+              entries={list.displayItems}
+              selectedItemId={selectedItemId}
+              trailMap={trailMap}
+              isDark={isDark}
+              onEndReached={handleEndReached}
+              handlers={{
+                onMemoryClick: handleMemoryClick,
+                onItemSelect: handleItemSelect,
+                onContextEdit: (memory) => {
+                  openMemory(memory.id);
+                  setPanelAction("edit");
+                },
+                onContextDelete: (memory) => {
+                  openMemory(memory.id);
+                  setPanelAction("delete");
+                },
+              }}
+            />
+          </div>
+
+          {hasSidePanel ? (
+            <div className="flex h-full min-h-0 w-full flex-col overflow-hidden lg:min-w-0 lg:flex-1">
+              <MemoryListSidePanel
+                previewItem={previewItem}
+                selectedMemory={selectedMemory}
+                memoryId={memoryId}
+                isPanelLoading={isPanelLoading}
+                panelAction={panelAction}
+                onClosePreview={() => setPreviewItem(null)}
+                onCloseMemory={closeMemory}
+                onMemoryDelete={(deletedId) => {
+                  if (memoryId === deletedId) closeMemory();
                 }}
+                onSelectRelated={(memory) => openMemory(memory.id)}
+                onConsumeAction={() => setPanelAction(null)}
               />
             </div>
-
-            {hasSidePanel ? (
-              <div className="flex h-full min-h-0 w-full flex-col overflow-hidden lg:min-w-0 lg:flex-1">
-                <MemoryListSidePanel
-                  previewItem={previewItem}
-                  selectedMemory={selectedMemory}
-                  memoryId={memoryId}
-                  isPanelLoading={isPanelLoading}
-                  panelAction={panelAction}
-                  onClosePreview={() => setPreviewItem(null)}
-                  onCloseMemory={closeMemory}
-                  onMemoryDelete={(deletedId) => {
-                    if (memoryId === deletedId) closeMemory();
-                  }}
-                  onSelectRelated={(memory) => openMemory(memory.id)}
-                  onConsumeAction={() => setPanelAction(null)}
-                />
-              </div>
-            ) : null}
-          </div>
-        )}
+          ) : null}
+        </div>
       </div>
     </div>
   );

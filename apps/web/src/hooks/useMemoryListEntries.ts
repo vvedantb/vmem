@@ -5,7 +5,10 @@ import { useActiveProfile } from "@/components/workspace/active-profile";
 import { useMemoryListFlat } from "@/hooks/useMemoryList";
 import { useMemoryListSupplementaryItems } from "@/hooks/useMemoryListSupplementaryItems";
 import { useMemoriesSearchParams } from "@/hooks/useMemoriesSearchParams";
-import type { MemoryViewFilterParams } from "@/lib/memory-view-filters";
+import {
+  exclusiveApiFilterValue,
+  type MemoryViewFilterParams,
+} from "@/lib/memory-view-filters";
 import {
   listItemPassesFilters,
   memoryToListItem,
@@ -44,9 +47,8 @@ export function useMemoryListEntries(options?: { fetchAll?: boolean }) {
   };
 
   const normalizedQuery = params.q.trim();
-  const primaryType = params.types.length > 0 ? params.types[0] : undefined;
-  const primarySource =
-    params.sources.length > 0 ? params.sources[0] : undefined;
+  const exclusiveType = exclusiveApiFilterValue(params.types);
+  const exclusiveSource = exclusiveApiFilterValue(params.sources);
   const kindIncludesMemory =
     params.kinds.length === 0 || params.kinds.includes("memory");
   const isHybridSearch = normalizedQuery.length > 0 && kindIncludesMemory;
@@ -54,8 +56,8 @@ export function useMemoryListEntries(options?: { fetchAll?: boolean }) {
 
   const memoryPage = useMemoryListFlat({
     profileId: activeProfile._id,
-    type: primaryType,
-    source: primarySource,
+    type: exclusiveType,
+    source: exclusiveSource,
     tags: params.tags,
     searchQuery: isHybridSearch ? undefined : normalizedQuery || undefined,
     enabled: !isHybridSearch,
@@ -68,7 +70,8 @@ export function useMemoryListEntries(options?: { fetchAll?: boolean }) {
       "retrieveMemories",
       activeProfile._id,
       normalizedQuery,
-      primaryType,
+      exclusiveType,
+      exclusiveSource,
       params.tags,
     ],
     enabled: isHybridSearch,
@@ -76,7 +79,8 @@ export function useMemoryListEntries(options?: { fetchAll?: boolean }) {
       retrieveMemoriesAction({
         query: normalizedQuery,
         profileId: activeProfile._id,
-        type: primaryType,
+        type: exclusiveType,
+        source: exclusiveSource,
         tags: params.tags.length > 0 ? params.tags : undefined,
         limit: 25,
       }),

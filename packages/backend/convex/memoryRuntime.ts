@@ -245,6 +245,7 @@ export async function retrieveMemoriesForClerk(
     type?: string;
     tags?: string[];
     status?: string;
+    source?: string;
     limit: number;
   },
 ): Promise<MemoryCandidate[]> {
@@ -256,6 +257,7 @@ export async function retrieveMemoriesForClerk(
     type: args.type,
     tags: args.tags,
     status: args.status,
+    source: args.source,
     limit: args.limit,
   });
 }
@@ -269,6 +271,7 @@ export async function retrieveMemoriesForTeamProfile(
     type?: string;
     tags?: string[];
     status?: string;
+    source?: string;
     limit: number;
   },
 ): Promise<MemoryCandidate[]> {
@@ -280,6 +283,7 @@ export async function retrieveMemoriesForTeamProfile(
     type: args.type,
     tags: args.tags,
     status: args.status,
+    source: args.source,
     limit: args.limit,
   });
 }
@@ -294,6 +298,7 @@ async function retrieveRanked(
     type?: string;
     tags?: string[];
     status?: string;
+    source?: string;
     limit: number;
   },
 ): Promise<MemoryCandidate[]> {
@@ -301,6 +306,7 @@ async function retrieveRanked(
     type: args.type,
     tags: args.tags,
     status: args.status,
+    source: args.source,
   };
   const listed =
     args.kind === "team" && args.profileId !== undefined

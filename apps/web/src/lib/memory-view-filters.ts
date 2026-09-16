@@ -92,3 +92,11 @@ export function countActiveMemoryViewFilters(
   if (params.types.length > 0) count += 1;
   return count;
 }
+
+// list/retrieve APIs take one type/source string. only forward a constraint
+// when the UI has exactly one value so multi-select can still client-filter.
+export function exclusiveApiFilterValue<T>(
+  selected: readonly T[],
+): T | undefined {
+  return selected.length === 1 ? selected[0] : undefined;
+}
