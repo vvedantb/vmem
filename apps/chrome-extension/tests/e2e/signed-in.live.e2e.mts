@@ -399,14 +399,20 @@ async function runLive(): Promise<LiveMatrix> {
       await popup.close().catch(() => {});
       await sleep(1_000);
       popup = await openPopup(browser, extensionId);
-      popupText = await popup.evaluate(() => document.body.innerText);
+      const deadline = Date.now() + 12_000;
+      while (Date.now() < deadline) {
+        popupText = await popup.evaluate(() => document.body.innerText).catch(() => "");
+        if (popupLooksSignedIn(popupText) || popupText.includes("Sign in to start saving memories")) {
+          break;
+        }
+        await sleep(500);
+      }
       cookieProbe = await popupCookieProbe(popup).catch(() => cookieProbe);
       signedIn = popupLooksSignedIn(popupText);
       cookieSync = signedIn && copied ? "copied-from-fapi" : cookieSync;
       if (signedIn && !copied) cookieSync = "native";
     }
 
-    await sleep(2_000);
     await screenshot(popup, "live_popup_signed_in.png");
     matrix.signedInPopup = {
       ok: signedIn,
@@ -464,8 +470,25 @@ async function runLive(): Promise<LiveMatrix> {
               }
             ).__vmemHandleCommand;
             if (typeof fn !== "function") return "no command hook";
+            const tabs = await chrome.tabs.query({});
+            for (const tab of tabs) {
+              if (tab.id && tab.url?.includes("welcome.html")) {
+                await chrome.tabs.remove(tab.id);
+              }
+            }
+            const example = (await chrome.tabs.query({})).find((tab) =>
+              tab.url?.includes("example.com"),
+            );
+            if (!example?.id) {
+              const urls = (await chrome.tabs.query({})).map((tab) => tab.url);
+              return `no example tab: ${urls.join(",")}`;
+            }
+            await chrome.tabs.update(example.id, { active: true });
+            if (typeof example.windowId === "number") {
+              await chrome.windows.update(example.windowId, { focused: true });
+            }
             await fn("save-page");
-            return "invoked";
+            return `invoked:${example.url}`;
           })
           .catch((err: unknown) =>
             err instanceof Error ? err.message : String(err),
@@ -498,52 +521,69 @@ async function runLive(): Promise<LiveMatrix> {
           ? "✗ Failed to save page"
           : undefined,
     };
-
-    await web.bringToFront();
-    await web.goto("https://vmem.vedantb.com/memories/list", {
-      waitUntil: "domcontentloaded",
-      timeout: 20_000,
-    });
-    await sleep(2_500);
-    const search = await web.$(
-      'input[placeholder*="Search" i], input[type="search"]',
+    await writeFile(
+      path.join(artifactDir, "live_matrix.json"),
+      JSON.stringify({ marker, email, matrix }, null, 2),
     );
-    if (search) {
-      await search.click({ clickCount: 3 });
-      await search.type(marker, { delay: 15 });
-      await web.keyboard.press("Enter");
-      await sleep(2_000);
-    }
-    await screenshot(web, "live_memory_list.png");
-    const listText = await web.evaluate(() => document.body.innerText);
-    const visible =
-      listText.includes(marker) || listText.includes("Example Domain");
-    matrix.memoryVisible = {
-      ok: visible,
-      reason: visible
-        ? "memory listed after save"
-        : `list copy: ${listText.slice(0, 240)}`,
-    };
 
-    if (visible) {
-      const deleted = await deleteVisibleTestMemory(web);
-      await sleep(1_500);
-      await screenshot(web, "live_memory_cleanup.png");
-      const after = await web.evaluate(() => document.body.innerText);
-      const gone = deleted && !after.includes(marker);
-      matrix.cleanup = {
-        ok: gone || deleted,
-        reason: gone
-          ? "test memory deleted"
-          : deleted
-            ? "delete clicked; marker still in DOM"
-            : "could not trigger delete",
+    const dash = await browser.newPage();
+    try {
+      await dash.setViewport({ width: 1280, height: 800 });
+      await dash.goto("https://vmem.vedantb.com/memories/list", {
+        waitUntil: "domcontentloaded",
+        timeout: 30_000,
+      });
+      await sleep(2_500);
+      const search = await dash.$(
+        'input[placeholder*="Search" i], input[type="search"]',
+      );
+      if (search) {
+        await search.click({ clickCount: 3 });
+        await search.type(marker, { delay: 15 });
+        await dash.keyboard.press("Enter");
+        await sleep(2_000);
+      }
+      await screenshot(dash, "live_memory_list.png");
+      const listText = await dash.evaluate(() => document.body.innerText);
+      const visible =
+        listText.includes(marker) || listText.includes("Example Domain");
+      matrix.memoryVisible = {
+        ok: visible,
+        reason: visible
+          ? "memory listed after save"
+          : `list copy: ${listText.slice(0, 240)}`,
       };
-    } else {
-      matrix.cleanup = {
-        ok: false,
-        reason: "skipped — memory not found to delete",
-      };
+
+      if (visible) {
+        const deleted = await deleteVisibleTestMemory(dash);
+        await sleep(1_500);
+        await screenshot(dash, "live_memory_cleanup.png");
+        const after = await dash.evaluate(() => document.body.innerText);
+        const gone = deleted && !after.includes(marker);
+        matrix.cleanup = {
+          ok: gone || deleted,
+          reason: gone
+            ? "test memory deleted"
+            : deleted
+              ? "delete clicked; marker still in DOM"
+              : "could not trigger delete",
+        };
+      } else {
+        matrix.cleanup = {
+          ok: false,
+          reason: "skipped — memory not found to delete",
+        };
+      }
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      if (!matrix.memoryVisible.ok) {
+        matrix.memoryVisible = { ok: false, reason: `dashboard: ${reason}` };
+      }
+      if (matrix.cleanup.reason === "not run") {
+        matrix.cleanup = { ok: false, reason: `skipped — ${reason}` };
+      }
+    } finally {
+      await dash.close().catch(() => {});
     }
 
     const chatgpt = await browser.newPage();
