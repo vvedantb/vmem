@@ -11,7 +11,6 @@ import {
   motionEase,
 } from "@vmem/ui";
 import { formatCompactRelativeTime } from "@vmem/shared";
-import { tagToColor } from "@vmem/shared/graph";
 import { MemorySourceIcon } from "@/components/_components/MemorySourceIcon";
 import ShapeIndicator from "@/components/_components/ShapeIndicator";
 import { formatMemorySourceLabel, formatMemoryTypeLabel } from "@/lib/memories";
@@ -20,6 +19,7 @@ import {
   demoSkillMemory,
   type DemoMemory,
 } from "./landing-preview-data";
+import { LANDING_MONO } from "./landingContent";
 
 type PanelTab = "details" | "connections";
 
@@ -61,7 +61,7 @@ function ListRow({
   isSelected: boolean;
   onSelect: () => void;
 }) {
-  const color = tagToColor(memory.tags[0] ?? memory.type, true);
+  const color = LANDING_MONO.mid;
 
   return (
     <Button

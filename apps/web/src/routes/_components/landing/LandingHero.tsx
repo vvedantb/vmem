@@ -28,7 +28,7 @@ export function LandingHero() {
           variants={landingItemVariants}
         >
           <span
-            className="landing-pulse-dot size-1.5 rounded-full bg-danger"
+            className="landing-pulse-dot size-1.5 rounded-full bg-foreground"
             aria-hidden
           />
           Memory engine for AI agents

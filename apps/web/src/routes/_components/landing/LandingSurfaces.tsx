@@ -66,7 +66,7 @@ export function LandingSurfaces() {
                 className="flex h-full flex-col bg-background"
               >
                 <div className="flex flex-1 flex-col px-5 pb-4 pt-5 sm:px-6">
-                  <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-danger">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted">
                     {surface.label}
                   </p>
                   <h3 className="mt-2 text-base font-medium text-foreground">

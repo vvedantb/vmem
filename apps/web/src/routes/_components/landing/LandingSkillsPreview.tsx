@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { Button, cn } from "@vmem/ui";
 import ShapeIndicator from "@/components/_components/ShapeIndicator";
-import { hslToHex } from "@vmem/shared/graph";
 import { demoSkills, skillAt } from "./landing-preview-data";
+import { LANDING_MONO } from "./landingContent";
 
 export function LandingSkillsPreview() {
   const [selected, setSelected] = useState(0);
-  const color = hslToHex(285, 55, 72);
+  const color = LANDING_MONO.mid;
   const skill = skillAt(selected);
 
   return (

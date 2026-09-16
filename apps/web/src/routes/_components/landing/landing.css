@@ -26,11 +26,11 @@
   0%,
   100% {
     opacity: 0.45;
-    box-shadow: 0 0 0 0 color-mix(in oklch, var(--danger) 45%, transparent);
+    box-shadow: 0 0 0 0 color-mix(in oklch, var(--foreground) 35%, transparent);
   }
   50% {
     opacity: 1;
-    box-shadow: 0 0 0 6px color-mix(in oklch, var(--danger) 0%, transparent);
+    box-shadow: 0 0 0 6px color-mix(in oklch, var(--foreground) 0%, transparent);
   }
 }
 
@@ -54,12 +54,12 @@
   background-image:
     radial-gradient(
       ellipse 90% 55% at 50% -12%,
-      color-mix(in oklch, var(--danger) 18%, transparent),
+      color-mix(in oklch, var(--foreground) 8%, transparent),
       transparent 58%
     ),
     radial-gradient(
       ellipse 45% 35% at 100% 100%,
-      color-mix(in oklch, var(--danger) 8%, transparent),
+      color-mix(in oklch, var(--foreground) 4%, transparent),
       transparent 55%
     ),
     linear-gradient(

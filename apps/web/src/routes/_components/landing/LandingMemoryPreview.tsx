@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { cn } from "@vmem/ui";
-import { hslToHex, tagToColor } from "@vmem/shared/graph";
 import {
   edgeTouchesNode,
   previewEdges,
@@ -9,17 +8,16 @@ import {
   type PreviewNode,
   type PreviewNodeId,
 } from "./landing-preview-data";
+import { LANDING_MONO } from "./landingContent";
 
 const defaultSnippet =
   "Select a node to see what recall surfaces — connected context, not a keyword dump.";
 
 function nodeFill(node: PreviewNode): string {
-  if (node.kind === "entity") return hslToHex(45, 70, 65);
-  if (node.kind === "skill") return hslToHex(285, 55, 72);
-  if (node.kind === "wiki-document") return hslToHex(35, 55, 70);
-  const tag = node.tags[0];
-  if (tag !== undefined) return tagToColor(tag, true);
-  return "#888888";
+  if (node.kind === "entity") return LANDING_MONO.bright;
+  if (node.kind === "skill") return LANDING_MONO.mid;
+  if (node.kind === "wiki-document") return LANDING_MONO.dim;
+  return LANDING_MONO.mid;
 }
 
 function toggleNode(

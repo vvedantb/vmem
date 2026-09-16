@@ -41,7 +41,7 @@ export function LandingHomePreview() {
             index={1}
             animate
             trendData={[...demoDashboard.newTrend]}
-            strokeClassName="text-accent"
+            strokeClassName="text-foreground/70"
           />
           <MetricSummaryCard
             label="This week"

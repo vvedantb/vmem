@@ -13,3 +13,10 @@ export const LANDING_HERO_CAPABILITIES = [
   "HTTP API",
   "Skills",
 ] as const;
+
+/** Gray fills for landing product mocks. Marketing chrome is monochrome. */
+export const LANDING_MONO = {
+  bright: "#d4d4d4",
+  mid: "#a8a8a8",
+  dim: "#7a7a7a",
+} as const;

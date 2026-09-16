@@ -62,7 +62,7 @@ export function LandingHowItWorks() {
           <LandingLattice className="md:grid-cols-3">
             {steps.map((step) => (
               <div key={step.title} className="bg-background p-6 sm:p-7">
-                <p className="font-mono text-[11px] tracking-[0.28em] text-danger">
+                <p className="font-mono text-[11px] tracking-[0.28em] text-muted">
                   {step.index}
                 </p>
                 <p className="mt-3 text-base font-medium text-foreground">

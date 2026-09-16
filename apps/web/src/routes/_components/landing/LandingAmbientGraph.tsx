@@ -81,8 +81,8 @@ export function LandingAmbientGraph() {
         }}
       />
 
-      <div className="absolute -right-[12%] top-[2%] h-[min(78dvh,580px)] w-[min(78vw,580px)] rounded-full bg-danger/[0.08] blur-3xl" />
-      <div className="absolute -left-[6%] bottom-[8%] h-80 w-80 rounded-full bg-danger/[0.05] blur-3xl" />
+      <div className="absolute -right-[12%] top-[2%] h-[min(78dvh,580px)] w-[min(78vw,580px)] rounded-full bg-foreground/[0.06] blur-3xl" />
+      <div className="absolute -left-[6%] bottom-[8%] h-80 w-80 rounded-full bg-surface-tertiary/40 blur-3xl" />
 
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_55%_at_50%_42%,transparent_18%,var(--background)_88%)]" />
 

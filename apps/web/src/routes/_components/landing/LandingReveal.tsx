@@ -83,7 +83,7 @@ export function LandingSection({
 
 function LandingSectionEyebrow({ children }: { children: ReactNode }) {
   return (
-    <p className="mb-3 font-mono text-[11px] font-medium uppercase tracking-[0.22em] text-danger sm:text-xs sm:tracking-[0.28em]">
+    <p className="mb-3 font-mono text-[11px] font-medium uppercase tracking-[0.22em] text-muted sm:text-xs sm:tracking-[0.28em]">
       {children}
     </p>
   );
