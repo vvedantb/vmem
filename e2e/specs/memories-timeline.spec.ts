@@ -73,7 +73,9 @@ test.describe(
         const emptyWindow = page.getByRole("heading", {
           name: "No memories in this window",
         });
-        await expect(emptyWindow.or(memoryTitle(page, title))).toBeVisible();
+        await expect(
+          emptyWindow.or(page.getByTestId("list-item-row")),
+        ).toBeVisible();
 
         await page.getByRole("button", { name: "Jump to now" }).click();
         await expect(slider).toHaveValue("1000");

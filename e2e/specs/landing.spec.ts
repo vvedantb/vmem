@@ -37,11 +37,11 @@ test.describe("landing (signed out)", { tag: ["@landing", "@smoke"] }, () => {
     await expect(
       product.getByRole("button", { name: "Jump to now" }),
     ).toBeVisible();
-    await product.getByRole("button", { name: "All" }).click();
-    await expect(product.getByRole("button", { name: "All" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    const spans = product.getByRole("group", { name: "Time window size" });
+    await spans.getByRole("button", { name: "All", exact: true }).click();
+    await expect(
+      spans.getByRole("button", { name: "All", exact: true }),
+    ).toHaveAttribute("aria-pressed", "true");
   });
 
   test("/codebases is not a public product surface", async ({ page }) => {
