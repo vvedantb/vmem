@@ -23,6 +23,7 @@ declare global {
   var __vmemListMemories:
     | ((args: {
         searchQuery?: string;
+        source?: string;
         limit?: number;
         offset?: number;
       }) => Promise<{
@@ -33,6 +34,14 @@ declare global {
         }>;
         total: number;
       }>)
+    | undefined;
+  var __vmemGetMemory:
+    | ((memoryId: string) => Promise<{
+        id: string;
+        title: string;
+        sourceUrl: string | null;
+        source: string;
+      } | null>)
     | undefined;
   var __vmemDeleteMemory: ((id: string) => Promise<boolean>) | undefined;
   var __vmemAuthTokenLength: (() => Promise<number>) | undefined;
@@ -401,15 +410,11 @@ const harvestResultSchema = z.object({
   reason: z.string(),
 });
 
-const memoryListSchema = z.object({
-  memories: z.array(
-    z.object({
-      id: z.string(),
-      title: z.string(),
-      sourceUrl: z.string().nullable().optional(),
-    }),
-  ),
-  total: z.number(),
+const memoryGetSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  sourceUrl: z.string().nullable().optional(),
+  source: z.string().optional(),
 });
 
 async function saveExampleTab(
@@ -648,49 +653,41 @@ async function runLive(): Promise<LiveMatrix> {
     };
 
     if (saveOk && parsed?.memoryId) {
-      const listRaw = await worker.evaluate(async (token) => {
-        const list = globalThis.__vmemListMemories;
-        if (typeof list !== "function") return "no list hook";
+      const fetchedRaw = await worker.evaluate(async (memoryId) => {
+        const get = globalThis.__vmemGetMemory;
+        if (typeof get !== "function") return "no get hook";
         try {
-          const result = await list({
-            searchQuery: token,
-            limit: 20,
-            offset: 0,
-          });
+          const memory = await get(memoryId);
+          if (!memory) return JSON.stringify(null);
           return JSON.stringify({
-            total: result.total,
-            memories: result.memories.map((memory) => ({
-              id: memory.id,
-              title: memory.title,
-              sourceUrl: memory.sourceUrl,
-            })),
+            id: memory.id,
+            title: memory.title,
+            sourceUrl: memory.sourceUrl,
+            source: memory.source,
           });
         } catch (err) {
-          return `list failed: ${err instanceof Error ? err.message : String(err)}`;
+          return `get failed: ${err instanceof Error ? err.message : String(err)}`;
         }
-      }, marker);
-      const listed = memoryListSchema.safeParse(
+      }, parsed.memoryId);
+      const fetched = memoryGetSchema.safeParse(
         (() => {
           try {
-            return JSON.parse(listRaw) as unknown;
+            return JSON.parse(fetchedRaw) as unknown;
           } catch {
             return null;
           }
         })(),
       );
       const found =
-        listed.success &&
-        listed.data.memories.some(
-          (memory) =>
-            memory.id === parsed.memoryId ||
-            memory.sourceUrl?.includes(marker) === true ||
-            memory.title.includes("Example Domain"),
-        );
+        fetched.success &&
+        fetched.data.id === parsed.memoryId &&
+        (fetched.data.sourceUrl?.includes(marker) === true ||
+          fetched.data.title.includes("Example Domain"));
       matrix.convexMemory = {
         ok: Boolean(found),
         reason: found
-          ? `Convex listMemories found ${parsed.memoryId}`
-          : `list=${listRaw.slice(0, 280)}`,
+          ? `Convex getMemory ${parsed.memoryId} title=${fetched.success ? fetched.data.title : ""} sourceUrl=${fetched.success ? (fetched.data.sourceUrl ?? "") : ""}`
+          : `get=${fetchedRaw.slice(0, 280)}`,
       };
 
       const deletedRaw = await worker.evaluate(async (memoryId) => {
@@ -850,7 +847,7 @@ await test("save-page creates a Convex memory", { skip: !enabled }, () => {
 });
 
 await test(
-  "saved memory is visible via Convex listMemories",
+  "saved memory is visible via Convex getMemory",
   {
     skip: !enabled,
   },

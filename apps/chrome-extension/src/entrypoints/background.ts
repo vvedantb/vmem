@@ -23,7 +23,7 @@ import {
   harvestConvexTokenFromOpenVmemTabs,
   registerWebClerkTokenHarvest,
 } from "@/background/harvest-web-clerk-token";
-import { deleteMemory, listMemories } from "@/background/api-client";
+import { deleteMemory, getMemory, listMemories } from "@/background/api-client";
 import {
   autoSyncEnabledItem,
   autoSyncIntervalMinutesItem,
@@ -35,6 +35,7 @@ declare global {
   var __vmemSaveTab: typeof savePageFromTab | undefined;
   var __vmemHarvestToken: typeof harvestConvexTokenFromOpenVmemTabs | undefined;
   var __vmemListMemories: typeof listMemories | undefined;
+  var __vmemGetMemory: typeof getMemory | undefined;
   var __vmemDeleteMemory: typeof deleteMemory | undefined;
   var __vmemAuthTokenLength: (() => Promise<number>) | undefined;
 }
@@ -55,6 +56,7 @@ export default defineBackground(() => {
   globalThis.__vmemSaveTab = savePageFromTab;
   globalThis.__vmemHarvestToken = harvestConvexTokenFromOpenVmemTabs;
   globalThis.__vmemListMemories = listMemories;
+  globalThis.__vmemGetMemory = getMemory;
   globalThis.__vmemDeleteMemory = deleteMemory;
   globalThis.__vmemAuthTokenLength = async () => (await getAuthToken()).length;
 

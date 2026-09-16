@@ -49,6 +49,13 @@ export async function createMemory(
   });
 }
 
+export async function getMemory(
+  memoryId: string,
+): Promise<MemoryWithTags | null> {
+  const client = await requireAuthenticatedClient();
+  return await client.action(api.memoryApi.getMemory, { memoryId });
+}
+
 export async function listMemories(args: {
   searchQuery?: string;
   source?: string;
