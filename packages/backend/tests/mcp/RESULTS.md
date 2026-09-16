@@ -8,7 +8,7 @@ Harness: extends PR #155 (`packages/backend/tests/mcp/*`, `tests/integration/v1M
 
 ## How authenticated
 
-**HTTP `/api/v1/memories`:** Clerk Frontend API native sign-in (`_is_native=1` + password), then Convex JWT template `convex`, then `apiKeys:createMy` as `mcp-live-e2e-harness` (`vmem_sk_…`). Bearer `Authorization: Bearer vmem_sk_…`. Revoke that key in Settings when done.
+**HTTP `/api/v1/memories`:** Clerk Frontend API native sign-in (`_is_native=1` + password), then Convex JWT template `convex`, then `apiKeys:createMy` as `mcp-live-e2e-harness` (`vmem_sk_…`). Bearer `Authorization: Bearer vmem_sk_…`. That key was **revoked after the run**.
 
 **MCP `/mcp`:** Clerk Dynamic Client Registration against `https://clerk.vedantb.com/oauth/register` works. Authorize always redirects to `https://accounts.vedantb.com` (hosted Account Portal). That host is behind Cloudflare bot fight. From this datacenter IP, CF usually stays on “Just a moment… / Verify you are human”. One headed-Chrome pass reached the password form and signed in, then `oauth-consent` failed to load its JS chunk (403 / wrong MIME). Clerk `oauth_token` was **not** minted.
 
