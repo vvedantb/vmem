@@ -100,7 +100,7 @@ const config: KnipConfig = {
       project: ["src/**/*.{ts,tsx}"],
     },
   },
-  ignore: ["internal/**"],
+  ignore: ["apps/docs/**", "internal/**"],
   // lint-staged: used by .husky/pre-commit (`npx lint-staged`), which knip
   // does not trace
   ignoreDependencies: [
@@ -108,7 +108,7 @@ const config: KnipConfig = {
     "baseline-browser-mapping",
     "lint-staged",
   ],
-  ignoreBinaries: ["convex"],
+  ignoreBinaries: ["convex", "mint"],
 };
 
 export default config;

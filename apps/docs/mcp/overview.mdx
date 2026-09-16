@@ -1,0 +1,78 @@
+---
+title: "MCP Overview"
+description: "Connect vmem to any MCP-compatible AI client"
+---
+
+## What is MCP?
+
+The Model Context Protocol (MCP) is a standard for connecting AI models to external data and tools. vmem uses MCP to provide memory capabilities to any compatible client — Claude, Cursor, Windsurf, and more.
+
+## How vmem Uses MCP
+
+vmem uses MCP primitives differently from most memory tools:
+
+| Primitive     | Standard Usage                       | vmem Usage                                                             |
+| ------------- | ------------------------------------ | ---------------------------------------------------------------------- |
+| **Resources** | Context injected before LLM responds | Synthesized user profile auto-loaded via `vmem://context_prompt`       |
+| **Tools**     | LLM explicitly calls them            | `memory_add`, `memory_search`, `memory_retrieve` — intentional actions |
+| **Apps**      | Interactive UI in the host           | `memory_graph` interactive graph                                       |
+
+The key insight: **reading memories is implicit, writing is explicit.**
+
+## MCP Endpoints
+
+```
+POST https://<your-deployment>.convex.site/mcp
+POST https://<your-deployment>.convex.site/mcp/team
+```
+
+Authenticated via Clerk OAuth. See [MCP Setup](/mcp/setup).
+
+Skills, wiki, files, and `vmem://context_prompt` are **personal** only. Memory tools work on both connectors.
+
+## Quick Tool Reference
+
+| Tool                     | Description                                                | Scope    |
+| ------------------------ | ---------------------------------------------------------- | -------- |
+| `ping`                   | Health check                                               | both     |
+| `whoami`                 | Authenticated user ID and active profile                   | both     |
+| `list_profiles`          | List available profiles                                    | both     |
+| `set_active_profile`     | Set default profile for MCP memory tools                   | both     |
+| `context_prompt_get`     | Same markdown as `vmem://context_prompt`                   | personal |
+| `memory_search`          | Search memories by query, type, tags                       | both     |
+| `memory_retrieve`        | Hybrid retrieval with context trace                        | both     |
+| `memory_add`             | Store a new memory                                         | both     |
+| `memory_add_instruction` | Extract and store facts from natural language (OpenRouter) | both     |
+| `memory_update`          | Update an existing memory                                  | both     |
+| `memory_delete`          | Delete a memory                                            | both     |
+| `memory_related`         | Neighbours by shared tags / similar text                   | both     |
+| `memory_graph`           | Interactive MCP App graph                                  | both     |
+| `skills_*`               | list / get / create / update / delete                      | personal |
+| `wiki_*`                 | list / get / search / create / update / delete             | personal |
+| `files_*`                | list / get / upload / delete                               | personal |
+
+There are **no** `codebase_*` tools on `main`. See [Codebases (removed)](/features/codebases).
+
+See [MCP Tools Reference](/mcp/tools) for full parameter details.
+
+## MCP Resource
+
+| URI                     | Description                                                                      |
+| ----------------------- | -------------------------------------------------------------------------------- |
+| `vmem://context_prompt` | Synthesized user profile (about, preferences, pinned memories, activity summary) |
+
+Personal connector only. See [Implicit Memory](/mcp/implicit-memory).
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Setup" icon="wrench" href="/mcp/setup">
+    Configure Claude, Cursor, or other MCP clients
+  </Card>
+  <Card title="Implicit Memory" icon="brain" href="/mcp/implicit-memory">
+    How context injection works without tool calls
+  </Card>
+  <Card title="Tools Reference" icon="code" href="/mcp/tools">
+    Full tool parameter documentation
+  </Card>
+</CardGroup>

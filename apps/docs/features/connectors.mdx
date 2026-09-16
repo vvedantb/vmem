@@ -1,0 +1,34 @@
+---
+title: "Connectors"
+description: "Sync data from external services into vmem"
+---
+
+## Overview
+
+Connectors integrate external data sources with vmem. Connect services from **Settings → Connectors** (`/settings/connectors`).
+
+## Available Connectors
+
+| Connector    | Status    | Auth  |
+| ------------ | --------- | ----- |
+| Google Drive | Available | OAuth |
+| Notion       | Available | OAuth |
+
+Gmail, OneDrive, Linear, Dropbox, Slack, and GitHub connectors are **not** wired on current `main`. GitHub codebase sync is [removed](/features/codebases).
+
+## OAuth Setup
+
+| Connector    | Variables                                  |
+| ------------ | ------------------------------------------ |
+| Google Drive | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
+| Notion       | `NOTION_CLIENT_ID`, `NOTION_CLIENT_SECRET` |
+
+Also required: `CONVEX_SITE_URL` for OAuth callback redirects.
+
+## How Connectors Work
+
+1. User initiates OAuth from the connectors settings page
+2. Convex handles the OAuth flow
+3. Tokens are encrypted at rest (AES-GCM, same as API keys)
+4. Sync jobs pull data from the connected service
+5. Imported content can become memories

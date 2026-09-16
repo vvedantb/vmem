@@ -1,0 +1,62 @@
+---
+title: "Proposed Updates"
+description: "How vmem intended to handle conflicting information"
+---
+
+## The Problem
+
+Imagine a user tells an AI assistant: "I prefer Python." A week later, they say: "Actually, I've switched to TypeScript." What should the memory system do?
+
+Most systems silently overwrite. The old memory is gone — no record of what changed or why.
+
+## Designed behaviour
+
+When vmem detected that new information conflicted with an existing memory, it created a **proposed update** instead of overwriting. The original memory stayed unchanged until you approved the change.
+
+```
+New memory extracted: "User prefers TypeScript"
+  → vmem detects conflict with: "User prefers Python"
+  → Creates a proposed update (pending)
+  → User reviews and approves/rejects via Inbox or API
+```
+
+## Current status on main
+
+<Warning>
+`proposedUpdateApi.listProposedUpdates` currently returns an empty list, and `resolveProposal` returns `null`. HTTP / SDK instruction `update()` reuses the same fact-extraction path as `save()` and returns `{ created, summary }` — it does **not** emit inbox proposals. Dream Mode handlers are no-ops. The Inbox → Proposals UI still exists as a shell.
+</Warning>
+
+The types below describe the historical / intended shape so existing clients and the inbox UI stay documented.
+
+## Proposal Kinds
+
+| Kind            | Description                                                 |
+| --------------- | ----------------------------------------------------------- |
+| `update`        | Replace memory content with proposed content on approve     |
+| `delete`        | Delete the target memory on approve                         |
+| `insight`       | Synthesize a new memory from connected sources (Dream Mode) |
+| `connection`    | Link related memories with a new relationship               |
+| `contradiction` | Flag conflicting information for review                     |
+| `anomaly`       | Surface unusual patterns in memory data                     |
+
+## Managing Proposals
+
+### Via Dashboard
+
+Go to **Inbox → Proposals** (`/{profileId}/inbox/proposals`).
+
+### Via API
+
+```typescript
+const proposals = await convex.action(
+  api.proposedUpdateApi.listProposedUpdates,
+  {},
+);
+
+await convex.action(api.proposedUpdateApi.resolveProposal, {
+  proposalId: "proposal_abc",
+  action: "approve", // or "reject"
+});
+```
+
+See [Proposed Updates API](/api-reference/proposed-updates).

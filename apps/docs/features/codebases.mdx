@@ -1,0 +1,14 @@
+---
+title: "Codebases (removed)"
+description: "GitHub codebase indexing is not part of current main"
+---
+
+<Warning>
+  GitHub codebase indexing is **not** a live product feature on `main`. There is
+  no `/codebases` route, no `GITHUB_CLIENT_*` env, and no `codebase_*` MCP
+  tools. Memories and the memory graph live in Convex only.
+</Warning>
+
+An earlier snapshot of this repo connected GitHub repositories, parsed symbols, and exposed `codebases_list` / `codebase_search` / `codebase_impact` MCP tools backed by Neo4j.
+
+Do not configure GitHub OAuth expecting that pipeline. For agent-facing code context, store facts as memories or keep notes in [Wiki & Files](/features/wiki-and-files).

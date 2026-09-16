@@ -50,7 +50,8 @@ apps/chrome-extension/scripts/
 # Oxlint report — local only
 oxlint-report.json
 
-# Playwright E2E (web)
+# Mintlify local preview
+**/.mintlify/
 e2e/.auth/
 e2e/test-results/
 e2e/playwright-report/

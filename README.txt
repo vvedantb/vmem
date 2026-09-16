@@ -33,6 +33,7 @@ vmem/
   apps/
     web/                     Vite + React dashboard
     chrome-extension/        WXT Chrome extension (MV3)
+    docs/                    Mintlify documentation site
   packages/
     backend/                 Convex backend + memory helpers (engine/)
     shared/                  Shared constants and helpers
@@ -92,6 +93,7 @@ Web app is at http://localhost:5173.
 
   pnpm build                     production web build (apps/web)
   pnpm ext:dev / pnpm ext:build  extension under apps/chrome-extension/dist/
+  pnpm docs:dev                  Mintlify docs at http://localhost:3001
   pnpm typecheck:all
   pnpm test
   pnpm check

@@ -281,6 +281,8 @@ importers:
         specifier: ^0.20.27
         version: 0.20.27(@types/node@25.9.1)(eslint@10.7.0(jiti@2.7.0))(jiti@2.7.0)(lightningcss@1.32.0)(oxc-parser@0.137.0)(rolldown@1.1.2)(rollup@4.60.2)(terser@5.46.1)(tsx@4.21.0)(yaml@2.9.0)
 
+  apps/docs: {}
+
   apps/web:
     dependencies:
       '@clerk/clerk-react':

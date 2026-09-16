@@ -1,0 +1,58 @@
+---
+title: "Skills"
+description: "Create and manage reusable instruction modules"
+---
+
+Convex functions in `skills`.
+
+## List My Skills
+
+```typescript
+await client.query(api.skills.listMy, {});
+```
+
+---
+
+## Create Skill
+
+<ParamField body="name" type="string" required />
+<ParamField body="description" type="string" required />
+<ParamField body="instructions" type="string" required>
+  Markdown instruction content
+</ParamField>
+
+```typescript
+await client.mutation(api.skills.createSkill, {
+  name: "Code Review",
+  description: "Standard code review checklist",
+  instructions: "## Checklist\n- [ ] Tests pass\n- [ ] No `any` types",
+});
+```
+
+---
+
+## Update Skill
+
+<ParamField body="id" type="string" required />
+<ParamField body="name" type="string" />
+<ParamField body="description" type="string" />
+<ParamField body="instructions" type="string" />
+
+```typescript
+await client.mutation(api.skills.updateSkill, {
+  id: "skill_abc",
+  instructions: "Updated markdown instructions",
+});
+```
+
+---
+
+## Delete Skill
+
+<ParamField body="id" type="string" required />
+
+```typescript
+await client.mutation(api.skills.deleteSkill, { id: "skill_abc" });
+```
+
+Skills are also accessible via MCP tools `skills_list`, `skills_get`, `skills_create`, and `skills_update`. See [Skills feature](/features/skills).

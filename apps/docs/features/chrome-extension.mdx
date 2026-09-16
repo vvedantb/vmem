@@ -1,0 +1,61 @@
+---
+title: "Chrome Extension"
+description: "Save web content and inject memories into ChatGPT and Claude"
+---
+
+## Overview
+
+The vmem Chrome extension connects your browser to your vmem account. Save pages, export conversations, inject memories into AI chats, and bulk-import bookmarks and history.
+
+## Installation
+
+```bash
+cp apps/chrome-extension/.env.example apps/chrome-extension/.env.local
+# VITE_CONVEX_URL, VITE_CLERK_PUBLISHABLE_KEY, VITE_CLERK_SYNC_HOST
+pnpm ext:build
+```
+
+Load `apps/chrome-extension/dist/chrome-mv3/` (production) or `apps/chrome-extension/dist/chrome-mv3-dev/` (`pnpm ext:dev`) as an unpacked extension:
+
+1. Open `chrome://extensions`
+2. Enable **Developer mode**
+3. Click **Load unpacked**
+4. Select the `chrome-mv3` or `chrome-mv3-dev` folder — not the package root
+
+For development with auto-rebuild:
+
+```bash
+pnpm ext:dev
+```
+
+If `.env.local` is missing, the extension falls back to `apps/chrome-extension/src/lib/constants.ts`.
+
+## Features
+
+### Export to vmem
+
+Button injected into ChatGPT and Claude conversation pages. Exports the conversation as episodic memories via Convex `memoryApi.createMemory`.
+
+### Use vmem
+
+Retrieves relevant memories for your current message and prepends them as context before you send. Works on ChatGPT and Claude.
+
+### Save Page
+
+Right-click context menu or popup button to save any web page as a knowledge memory.
+
+### Import Bookmarks
+
+Bulk import browser bookmarks as knowledge memories from the extension popup.
+
+### Import History
+
+Bulk import browsing history as episodic memories.
+
+## Authentication
+
+The extension uses the same Clerk auth as the web app (chrome-extension Clerk + cookie sync) and calls `api.memoryApi.*` with a Convex client. It does not use HTTP API keys.
+
+## Settings
+
+Configure the extension from the web dashboard at **Settings → Extension** (`/settings/extension`).

@@ -1,0 +1,64 @@
+---
+title: "Context Trace"
+description: "Transparent retrieval scoring — know why every memory matched"
+---
+
+## What is Context Trace?
+
+When you retrieve memories from vmem, every result comes with a **context trace** — a breakdown of exactly why that memory was returned and how it scored.
+
+## How Retrieval Works
+
+When you call `memoryApi.retrieveMemories` or `POST /api/v1/memories/retrieve`, vmem scores candidates across:
+
+1. **Fulltext** — Keyword / BM25 / Convex full-text match against title and content
+2. **Vector** — Embedding similarity (when an OpenRouter key is configured)
+3. **Chunk** — Paragraph-level match within long memories
+4. **Entity** — Tag / proper-name overlap between query and memory
+5. **RRF** — Reciprocal rank fusion of the ranked legs
+6. **Recency** — How recently the memory was created or updated
+7. **Confidence** — The memory's stored confidence score
+8. **Graph path** (optional) — 1-hop neighbour via Convex `memoryLinks`
+
+Each signal contributes to a composite score, and the trace shows the contribution of each.
+
+## Response Shape
+
+Each retrieved memory includes a `trace` object:
+
+```json
+{
+  "id": "mem_abc123",
+  "title": "Preferred stack",
+  "content": "User prefers Next.js with Convex backend",
+  "trace": {
+    "score": 0.87,
+    "reason": "Strong vector match + recent update",
+    "scoreBreakdown": {
+      "fulltext": 0.3,
+      "vector": 0.85,
+      "chunk": 0.0,
+      "entity": 0.1,
+      "rrf": 0.72,
+      "recency": 0.9,
+      "confidence": 0.95
+    }
+  },
+  "matchedChunk": {
+    "content": "User prefers Next.js with Convex backend",
+    "position": 0
+  }
+}
+```
+
+When retrieval matches a specific paragraph inside a long memory, `matchedChunk` shows which passage triggered the match.
+
+## Use Cases
+
+- **Debugging retrieval** — understand why the wrong memory surfaced
+- **Transparency** — show end users why certain context was used
+- **Audit** — maintain a record of what informed each LLM response
+
+## API
+
+See [Retrieve Memories](/api-reference/memories#retrieve-memories) and [HTTP Memories API](/api-reference/http-memories).

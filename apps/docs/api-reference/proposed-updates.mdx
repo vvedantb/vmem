@@ -1,0 +1,44 @@
+---
+title: "Proposed Updates"
+description: "Review and resolve conflicting memory updates"
+---
+
+Convex `authAction`s in `proposedUpdateApi`.
+
+<Warning>
+  On current `main` these handlers are stubs: `listProposedUpdates` returns `[]`
+  and `resolveProposal` returns `null`. See [Proposed Updates
+  concept](/concepts/proposed-updates).
+</Warning>
+
+## List Proposed Updates
+
+```typescript
+await client.action(api.proposedUpdateApi.listProposedUpdates, {
+  profileId: "optional-profile-id",
+});
+```
+
+**Returns:** `ProposedUpdateNode[]` (currently always empty)
+
+---
+
+## Resolve Proposal
+
+<ParamField body="proposalId" type="string" required>
+  The proposal ID
+</ParamField>
+<ParamField body="action" type="string" required>
+  `"approve"` or `"reject"`
+</ParamField>
+<ParamField body="winnerMemoryId" type="string" />
+<ParamField body="profileId" type="string" />
+
+```typescript
+await client.action(api.proposedUpdateApi.resolveProposal, {
+  proposalId: "proposal_abc",
+  action: "approve",
+});
+```
+
+**Returns:** `{ status, materializedMemoryId? } | null`
