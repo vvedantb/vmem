@@ -143,12 +143,15 @@ export function installChromeMock(): ChromeMockState {
         async captureVisibleTab(): Promise<string> {
           throw new Error("Cannot capture chrome:// or extension pages");
         },
+        onUpdated: { addListener(): void {} },
       },
       scripting: {
         async executeScript(opts: {
           target: { tabId: number };
           args?: unknown[];
-        }): Promise<unknown[]> {
+          world?: string;
+          func?: (...args: unknown[]) => unknown;
+        }): Promise<Array<{ result?: unknown }>> {
           state.executeScriptCalls.push({
             tabId: opts.target.tabId,
             args: opts.args ?? [],

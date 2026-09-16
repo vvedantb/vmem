@@ -17,8 +17,9 @@ export function TokenSync() {
     let active = true;
 
     void getToken({ template: "convex" }).then((token) => {
-      if (active) {
-        void setAuthToken(token ?? "");
+      // keep a web-tab harvested JWT when popup getToken is blocked
+      if (active && token) {
+        void setAuthToken(token);
       }
     });
 
@@ -30,7 +31,7 @@ export function TokenSync() {
   useInterval(
     () => {
       void getToken({ template: "convex" }).then((token) => {
-        void setAuthToken(token ?? "");
+        if (token) void setAuthToken(token);
       });
     },
     isLoaded && isSignedIn ? 50_000 : null,

@@ -1,21 +1,28 @@
 # Chrome extension live signed-in matrix
 
-Follow-up to #156. Credentials are env-only (`VMEM_TEST_EMAIL` / `VMEM_TEST_PASSWORD`); they are not in git.
+Follow-up to #156/#157. Credentials are env-only (`VMEM_TEST_EMAIL` / `VMEM_TEST_PASSWORD`); they are not in git.
 
 Account: `eva@vedantb.com` against `https://vmem.vedantb.com` (Convex `https://clear-bear-690.eu-west-1.convex.cloud`).
 
 Run: `pnpm ext:build && pnpm --filter @vmem/chrome-extension test:e2e:live`
 
-## Matrix (headed Chromium 148, same profile as unpacked `dist/chrome-mv3`)
+Headed Chromium 148, unpacked `dist/chrome-mv3`, production Clerk `pk_live_` + FAPI sync host.
 
-| Check             | Result         | Notes                                                                                                                                                                                 |
-| ----------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Web sign-in       | **pass**       | Clerk modal on `vmem.vedantb.com` → `/home` as Eva                                                                                                                                    |
-| Popup cookie sync | **partial**    | Popup shows Save / Import after copying `__client` onto the sync host. Native `chrome.cookies.get({ url: vmem.vedantb.com, name: "__client" })` is null                               |
-| Alt+S / save page | **fail**       | `Not authenticated - please sign in via the extension popup`. `session:authToken` never populated                                                                                     |
-| Memory listed     | **skipped**    | No memory created (account still `0 total`)                                                                                                                                           |
-| Cleanup           | **skipped**    | Nothing to delete                                                                                                                                                                     |
-| ChatGPT inject    | **logged-out** | `chatgpt.com` reachable without a ChatGPT session. `[data-vmem]` Use vmem injects next to the composer. Export control (`[data-vmem-action=export]`) not found — header selector miss |
+## Matrix (2026-09-16)
+
+| Check                         | Result             | Notes                                                                                                                            |
+| ----------------------------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| Install / unpacked load       | **pass**           | WXT `dist/chrome-mv3`, service worker `background.js`                                                                            |
+| Popup signed-out              | **pass**           | “Sign in to start saving memories”; copy no longer says Dev build                                                                |
+| Save-page without JWT         | **pass**           | `Not authenticated - please sign in via the extension popup`                                                                     |
+| Web sign-in                   | **pass**           | Clerk modal on `vmem.vedantb.com` → `/home` as Eva                                                                               |
+| Popup signed-in               | **pass**           | Save / Import / Settings after web session. `chrome.cookies.get(__client)` from the popup is still null; Clerk UI still hydrates |
+| Cookie/JWT sync               | **pass**           | `window.Clerk.session.getToken({ template: "convex" })` harvested from the vmem tab → `session:authToken` length 1200            |
+| Save page (SW = Alt+S path)   | **pass**           | `memoryId=f5a2fd4f-d981-4c5c-b67d-805a8c90b836`. OS Alt+S does not fire under automation                                         |
+| Capture (`captureVisibleTab`) | **pass**           | PNG 24834 bytes from the example.com tab                                                                                         |
+| Memory in Convex              | **pass**           | `getMemory(id)` returned title `Example Domain`. `listMemories({ searchQuery: url-marker })` does not match URL-only markers     |
+| Cleanup                       | **pass**           | Convex `deleteMemory` removed the test row                                                                                       |
+| ChatGPT inject                | **pass (partial)** | Logged-out chatgpt.com: Use vmem inject present. Export control needs signed-in ChatGPT header                                   |
 
 ## Cookie jar after web sign-in (names/domains only)
 
@@ -23,12 +30,27 @@ Run: `pnpm ext:build && pnpm --filter @vmem/chrome-extension test:e2e:live`
 - `__session` / `__session_*` — `vmem.vedantb.com`
 - `__client_uat` — `.vedantb.com`
 
-`@clerk/chrome-extension` reads `__client` at `syncHost` (`https://vmem.vedantb.com`). Production Clerk stores that cookie on the FAPI host, so the extension does not see a native session. The live harness copies `__client` onto `vmem.vedantb.com` for the popup; Clerk UI then shows signed-in, but `TokenSync` never writes a Convex JWT (`token=false` after 20s).
+`@clerk/chrome-extension` still cannot `chrome.cookies.get` that HttpOnly `__client` from the popup in this environment. The product path that unblocks save-page is harvesting the Convex JWT from `window.Clerk` on the signed-in vmem origin (MAIN world `executeScript`), then storing it as `session:authToken`.
 
-## Product fix landed here
+## Product fixes in this branch
 
-`savePageFromTab` ran Turndown in the MV3 service worker (`document is not defined`). It now falls back to extracted text so Alt+S can proceed once auth is present.
+- Harvest Convex JWT from the signed-in vmem tab; retry while Clerk hydrates
+- `TokenSync` does not wipe a harvested JWT when popup `getToken` returns null
+- `htmlToMarkdownSafe` so popup `savePage` does not crash Turndown in the MV3 service worker
+- Signed-out popup copy no longer prefixed with “Dev build”
 
-## Remaining gap
+## Residual
 
-Background `createMemory` still fails until the popup (or SW Clerk client) can mint `getToken({ template: "convex" })` from a real `__client` cookie on the sync host. Aligning Clerk cookie domain with `VITE_CLERK_SYNC_HOST`, or pointing `syncHost` at `https://clerk.vedantb.com`, is the likely product follow-up.
+- Native `chrome.cookies.get({ url: clerk.vedantb.com, name: "__client" })` remains null here. JWT harvest covers save/capture; adding the unpacked extension id to Clerk `allowed_origins` would still help popup `getToken`.
+- `getMemory` returned an empty `sourceUrl` even though save-page passed `url`. Create still lands in Convex (title/content/source). Backend `url` vs `sourceUrl` mapping is outside this extension PR.
+- ChatGPT **Export** and Claude inject need those sites signed-in.
+- Region screenshot overlay (Alt+Shift+S) was not driven live; `captureVisibleTab` was.
+
+## How to re-run
+
+```bash
+export VMEM_TEST_EMAIL=eva@vedantb.com
+export VMEM_TEST_PASSWORD='…'   # never commit
+pnpm ext:build
+pnpm --filter @vmem/chrome-extension test:e2e:live
+```

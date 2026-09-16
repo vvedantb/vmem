@@ -16,7 +16,10 @@ import {
 import { resolveExtensionProfileId } from "../src/lib/resolve-extension-profile.ts";
 import { convexSettingsToStorageMirror } from "../src/types/storage.ts";
 import { errorMessage } from "../src/lib/error.ts";
-import { htmlToMarkdown } from "../src/lib/page-extraction.ts";
+import {
+  htmlToMarkdown,
+  htmlToMarkdownSafe,
+} from "../src/lib/page-extraction.ts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
@@ -46,6 +49,15 @@ await test("popup has distinct signed-out and signed-in states", () => {
   assert.match(popupApp, /QuickSave/);
   assert.match(popupApp, /ImportPanel/);
   assert.match(popupApp, /SettingsForm/);
+  assert.doesNotMatch(popupApp, /Dev build:/);
+});
+
+await test("popup TokenSync does not wipe a harvested JWT when getToken returns null", () => {
+  const tokenSync = readRepo(
+    "apps/chrome-extension/src/popup/_components/TokenSync.tsx",
+  );
+  assert.match(tokenSync, /if \(active && token\)/);
+  assert.doesNotMatch(tokenSync, /setAuthToken\(token \?\? ""\)/);
 });
 
 await test("popup settings do not prompt for codebase sync", () => {
@@ -136,6 +148,10 @@ await test("htmlToMarkdown converts headings and drops empty links", () => {
   assert.match(md, /# Title/);
   assert.match(md, /Hello/);
   assert.match(md, /world/);
+});
+
+await test("htmlToMarkdownSafe keeps converted markdown in node", () => {
+  assert.match(htmlToMarkdownSafe("<h1>Safe</h1>", "fallback"), /# Safe/);
 });
 
 await test("wxt manifest maps Alt+S / Alt+Shift+S and prod Clerk host permissions", () => {
