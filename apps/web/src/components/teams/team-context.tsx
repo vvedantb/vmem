@@ -1,7 +1,6 @@
 import { createContext, use, type ReactNode } from "react";
-import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { api, type Id } from "@vmem/backend";
+import type { api } from "@vmem/backend";
 
 export type TeamDetail = NonNullable<FunctionReturnType<typeof api.teams.get>>;
 export type TeamMember = TeamDetail["members"][number];
@@ -11,36 +10,32 @@ type TeamWorkspaceContextValue = {
   meta: { isOwner: boolean };
 };
 
-const TeamIdContext = createContext<Id<"teams"> | null>(null);
+const TeamWorkspaceContext = createContext<TeamWorkspaceContextValue | null>(
+  null,
+);
 
 export function TeamDetailProvider({
-  teamId,
+  detail,
   children,
 }: {
-  teamId: Id<"teams">;
+  detail: TeamDetail;
   children: ReactNode;
 }) {
   return (
-    <TeamIdContext.Provider value={teamId}>{children}</TeamIdContext.Provider>
+    <TeamWorkspaceContext.Provider
+      value={{ detail, meta: { isOwner: detail.role === "owner" } }}
+    >
+      {children}
+    </TeamWorkspaceContext.Provider>
   );
 }
 
 export function useTeamWorkspace(): TeamWorkspaceContextValue {
-  const teamId = use(TeamIdContext);
-  if (teamId === null) {
+  const value = use(TeamWorkspaceContext);
+  if (value === null) {
     throw new Error("useTeamWorkspace must be used within TeamDetailProvider");
   }
-  const detail = useQuery(api.teams.get, { teamId });
-  if (detail === undefined) {
-    throw new Error("Team detail is loading");
-  }
-  if (detail === null) {
-    throw new Error("Team not found");
-  }
-  return {
-    detail,
-    meta: { isOwner: detail.role === "owner" },
-  };
+  return value;
 }
 
 export function useTeamDetail(): TeamDetail {
