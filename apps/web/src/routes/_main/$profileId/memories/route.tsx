@@ -49,6 +49,15 @@ function ListMemoriesLayout() {
   );
 }
 
+function TimelineMemoriesLayout() {
+  return (
+    <MemoriesPageShell
+      rightSection={<MemoryListHeaderControls hideViewSwitcher />}
+      noScroll
+    />
+  );
+}
+
 function DefaultMemoriesLayout() {
   return <MemoriesPageShell />;
 }
@@ -61,10 +70,13 @@ function MemoriesLayoutShell() {
   if (matchRoute({ to: "/$profileId/memories/list", fuzzy: true })) {
     return <ListMemoriesLayout />;
   }
+  if (matchRoute({ to: "/$profileId/memories/timeline" })) {
+    return <TimelineMemoriesLayout />;
+  }
   return <DefaultMemoriesLayout />;
 }
 
-// keeps `MemoriesTabs` mounted across graph/list subroutes so the sliding pill animates
+// keeps `MemoriesTabs` mounted across graph/list/timeline subroutes so the sliding pill animates
 function MemoriesLayout() {
   const matchRoute = useMatchRoute();
   const isGraph = matchRoute({ to: "/$profileId/memories/graph" });

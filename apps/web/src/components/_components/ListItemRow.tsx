@@ -15,30 +15,13 @@ import { IconEdit, IconMoon, IconTrash } from "@tabler/icons-react";
 import { IconSkills, IconWiki } from "@/components/icons/sidebar";
 import { formatCompactRelativeTime } from "@vmem/shared";
 import { formatMemorySourceLabel, type Memory } from "@/lib/memories";
-import type { ListItem } from "@/lib/list-items";
+import { listItemToMemory, type ListItem } from "@/lib/list-items";
 import type { TrailEntry } from "@/hooks/useTrailData";
 import type { MemoryTrace } from "./memory-trace";
 import MemoryTraceHover from "./MemoryTraceHover";
 import { MemorySourceIcon } from "./MemorySourceIcon";
 import { nodeColor } from "./graph-colors";
 import ShapeIndicator from "./ShapeIndicator";
-
-// re materialise the Memory shape from a memory list item the detail
-// panel + mutations expect Memory, not ListItem
-function toMemory(item: Extract<ListItem, { kind: "memory" }>): Memory {
-  return {
-    id: item.id,
-    title: item.title,
-    content: item.content,
-    tags: item.tags,
-    createdAt: item.createdAt,
-    type: item.type,
-    source: item.source,
-    sourceUrl: item.sourceUrl,
-    sourceSyncedAt: item.sourceSyncedAt,
-    ...(item.profileId !== undefined ? { profileId: item.profileId } : {}),
-  };
-}
 
 interface ListItemRowProps {
   item: ListItem;
@@ -84,7 +67,7 @@ export default function ListItemRow({
 
   const handleClick = () => {
     if (item.kind === "memory") {
-      onMemoryClick(toMemory(item));
+      onMemoryClick(listItemToMemory(item));
       return;
     }
     onItemSelect(item);
@@ -182,7 +165,7 @@ export default function ListItemRow({
     return rowBody;
   }
 
-  const memory = toMemory(item);
+  const memory = listItemToMemory(item);
 
   return (
     <ContextMenu>

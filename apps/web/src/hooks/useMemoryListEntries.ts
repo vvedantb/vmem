@@ -31,7 +31,7 @@ function unscoredEntry(item: ListItem): MemoryListEntry {
 // hybrid list uses retrieve when search is active, otherwise paginated list
 // AI-generated (Claude), prompt: "hybrid memory list that retrieves when query is active"
 // Modified by me: supplementary wiki skill merge and relative relevance scores
-export function useMemoryListEntries() {
+export function useMemoryListEntries(options?: { fetchAll?: boolean }) {
   const activeProfile = useActiveProfile();
   const [params] = useMemoriesSearchParams();
   const supplementaryItems = useMemoryListSupplementaryItems();
@@ -59,6 +59,7 @@ export function useMemoryListEntries() {
     tags: params.tags,
     searchQuery: isHybridSearch ? undefined : normalizedQuery || undefined,
     enabled: !isHybridSearch,
+    fetchAll: options?.fetchAll === true,
   });
 
   const retrieveMemoriesAction = useAction(api.memoryApi.retrieveMemories);

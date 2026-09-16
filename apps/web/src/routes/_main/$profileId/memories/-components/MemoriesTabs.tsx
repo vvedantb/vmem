@@ -1,4 +1,4 @@
-import { IconTopologyStar3, IconList } from "@tabler/icons-react";
+import { IconTopologyStar3, IconList, IconTimeline } from "@tabler/icons-react";
 import { RouteTabs } from "@/components/shell/RouteTabs";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 import { MemoriesSearchUrlSanitizer } from "./MemoriesSearchUrlSanitizer";
@@ -22,12 +22,20 @@ export function MemoriesTabs() {
             label: "List",
             icon: <IconList size={16} />,
           },
+          {
+            value: "timeline",
+            to: "/$profileId/memories/timeline",
+            label: "Timeline",
+            icon: <IconTimeline size={16} />,
+          },
         ]}
         linkParams={{ profileId: profile._id }}
         getActiveValue={(matchRoute) => {
           if (matchRoute({ to: "/$profileId/memories/list", fuzzy: true }))
             return "list";
           if (matchRoute({ to: "/$profileId/memories/graph" })) return "graph";
+          if (matchRoute({ to: "/$profileId/memories/timeline" }))
+            return "timeline";
           return "";
         }}
         search

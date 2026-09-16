@@ -2,7 +2,11 @@
 // Modified by me: covered kind source type and tag filter paths
 import { describe, expect, it } from "vitest";
 import type { ListItem } from "./list-items";
-import { listItemPassesFilters, searchListItems } from "./list-items";
+import {
+  listItemPassesFilters,
+  listItemToMemory,
+  searchListItems,
+} from "./list-items";
 import {
   apiGraphNodePassesFilters,
   kindPassesFilter,
@@ -153,6 +157,23 @@ describe("memory view filter predicates", () => {
         types: ["episodic"],
       }),
     ).toBe(true);
+  });
+});
+
+describe("listItemToMemory", () => {
+  it("round-trips a memory list item", () => {
+    expect(listItemToMemory(memoryItem)).toEqual({
+      id: "mem-1",
+      title: "Memory",
+      content: "Body",
+      tags: ["React", "TypeScript"],
+      createdAt: "2026-01-01T00:00:00.000Z",
+      type: "knowledge",
+      source: "web",
+      sourceUrl: null,
+      sourceSyncedAt: null,
+      profileId: "profile-a",
+    });
   });
 });
 
