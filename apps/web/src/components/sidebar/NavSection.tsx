@@ -1,10 +1,5 @@
-import { useState, type ReactNode } from "react";
-import { IconChevronDown } from "@tabler/icons-react";
-import { Button, cn } from "@vmem/ui";
-import {
-  sidebarSectionButtonClass,
-  sidebarSectionChevronClass,
-} from "./sidebar-nav-row";
+import type { ReactNode } from "react";
+import { sidebarSectionLabelClass } from "./sidebar-nav-row";
 
 type NavSectionProps = {
   title: string;
@@ -12,41 +7,12 @@ type NavSectionProps = {
   children: ReactNode;
 };
 
+// Eva SettingsSidebar / RepoNavSections: static label, always-open items, no indent.
 export function NavSection({ title, isIconOnly, children }: NavSectionProps) {
-  const [open, setOpen] = useState(true);
-
-  if (isIconOnly) {
-    return <div className="space-y-1">{children}</div>;
-  }
-
   return (
     <div>
-      <Button
-        type="button"
-        variant="ghost"
-        aria-expanded={open}
-        onClick={() => setOpen((prev) => !prev)}
-        className={cn(
-          sidebarSectionButtonClass,
-          "h-auto justify-start rounded-none active:scale-100",
-          // ghost utilities beat sidebar section label specificity
-          // force-win with !important — dimmer color-mix still applies
-          "![color:color-mix(in_oklch,var(--muted)_55%,transparent)]",
-          "hover:!bg-transparent hover:![color:color-mix(in_oklch,var(--muted)_80%,transparent)]",
-        )}
-      >
-        <span>{title}</span>
-        <IconChevronDown
-          size={12}
-          aria-hidden
-          className={cn(
-            sidebarSectionChevronClass,
-            "size-3",
-            !open && "-rotate-90",
-          )}
-        />
-      </Button>
-      {open ? <div className="space-y-1 pl-2">{children}</div> : null}
+      {isIconOnly ? null : <p className={sidebarSectionLabelClass}>{title}</p>}
+      <div className="space-y-1">{children}</div>
     </div>
   );
 }

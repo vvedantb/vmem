@@ -63,7 +63,7 @@ const teamNavGroup: NavGroup = {
 };
 
 // shared shell for MainNav/SettingsNav slide in nav + shared layout pill +
-// collapsible sections. Per item rendering (incl. the active highlight check
+// static section labels. Per item rendering (incl. the active highlight check
 // feeding SharedLayoutBackground.Item) is the caller's concern.
 function NavGroupList({
   groups,
@@ -97,7 +97,7 @@ function NavGroupList({
             title={group.title}
             isIconOnly={isIconOnly}
           >
-            <div className="space-y-1">{group.items.map(renderItem)}</div>
+            {group.items.map(renderItem)}
           </NavSection>
         ))}
       </SharedLayoutBackground.Root>

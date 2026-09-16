@@ -321,10 +321,6 @@
   .sidebar-section-label {
     color: color-mix(in oklch, var(--muted) 55%, transparent);
   }
-
-  .sidebar-section-label:hover {
-    color: color-mix(in oklch, var(--muted) 80%, transparent);
-  }
 }
 
 @layer utilities {
