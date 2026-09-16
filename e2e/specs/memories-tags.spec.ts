@@ -16,10 +16,9 @@ test.describe(
       await expect(
         page.getByRole("textbox", { name: "Search" }),
       ).toHaveAttribute("placeholder", /Search tags/i);
-
-      const empty = page.getByRole("heading", { name: "Nothing here yet" });
-      const rows = page.getByTestId("tag-row");
-      await expect(empty.or(rows.first())).toBeVisible({ timeout: 20_000 });
+      await expect(page.getByText("No tags yet")).toBeVisible({
+        timeout: 20_000,
+      });
     });
   },
 );

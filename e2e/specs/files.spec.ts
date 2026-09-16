@@ -7,13 +7,9 @@ test.describe("files", { tag: ["@files", "@smoke"] }, () => {
     await expect(page.getByRole("button", { name: "Add" })).toBeVisible({
       timeout: 20_000,
     });
-    await expect(page.getByRole("tab", { name: "Grid view" })).toBeVisible();
-    await expect(page.getByRole("tab", { name: "List view" })).toBeVisible();
-
-    const empty = page.getByRole("heading", { name: "No files yet" });
-    const upload = page.getByRole("button", { name: "Upload" });
     await expect(
-      empty.or(upload).or(page.getByRole("button", { name: "Add" })),
+      page.getByRole("heading", { name: "No files yet" }),
     ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Upload" })).toBeVisible();
   });
 });

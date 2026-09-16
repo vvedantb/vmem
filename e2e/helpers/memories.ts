@@ -4,6 +4,10 @@ export function disposableMemoryTitle(area = "list"): string {
   return `e2e-${area}-${Date.now()}`;
 }
 
+export function mainContent(page: Page) {
+  return page.locator("#main-content");
+}
+
 export async function openMemoriesList(page: Page): Promise<void> {
   await page.getByRole("tab", { name: "List" }).click();
   await expect(page.getByRole("textbox", { name: "Search" })).toBeVisible({
@@ -36,8 +40,9 @@ export async function createDisposableMemory(
   await expect(page.getByText("Memory saved")).toBeVisible({ timeout: 20_000 });
 }
 
-export function memoryRow(page: Page, title: string) {
-  return page.getByTestId("list-item-row").filter({ hasText: title });
+// title text in the list (prod has no list-item-row testid yet)
+export function memoryTitle(page: Page, title: string) {
+  return mainContent(page).getByText(title, { exact: true });
 }
 
 export async function deleteMemoryByTitle(
@@ -45,15 +50,14 @@ export async function deleteMemoryByTitle(
   title: string,
 ): Promise<boolean> {
   await searchMemories(page, title);
-  const row = memoryRow(page, title);
-  const visible = await row
-    .first()
+  const rowTitle = memoryTitle(page, title);
+  const visible = await rowTitle
     .waitFor({ state: "visible", timeout: 8_000 })
     .then(() => true)
     .catch(() => false);
   if (!visible) return false;
 
-  await row.first().click();
+  await rowTitle.click();
   await page.getByRole("button", { name: "Memory actions" }).click();
   await page.getByRole("menuitem", { name: "Delete" }).click();
   const dialog = page.getByRole("dialog");
@@ -64,6 +68,26 @@ export async function deleteMemoryByTitle(
   await expect(page.getByText("Memory deleted successfully")).toBeVisible({
     timeout: 20_000,
   });
-  await expect(row).toHaveCount(0);
+  await expect(rowTitle).toHaveCount(0);
   return true;
+}
+
+export async function cleanupDisposableMemories(
+  page: Page,
+  prefix: string,
+): Promise<void> {
+  await searchMemories(page, prefix);
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const leftover = mainContent(page).getByText(new RegExp(`^${prefix}`));
+    const visible = await leftover
+      .first()
+      .waitFor({ state: "visible", timeout: 3_000 })
+      .then(() => true)
+      .catch(() => false);
+    if (!visible) return;
+    const title = (await leftover.first().innerText()).trim();
+    if (title.length === 0) return;
+    const deleted = await deleteMemoryByTitle(page, title);
+    if (!deleted) return;
+  }
 }

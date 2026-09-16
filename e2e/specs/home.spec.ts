@@ -1,4 +1,5 @@
 import { expect, test } from "../fixtures";
+import { mainContent } from "../helpers/memories";
 
 test.describe(
   "home / dashboard",
@@ -9,12 +10,17 @@ test.describe(
       await expect(
         page.getByRole("heading", { name: "Dashboard" }),
       ).toBeVisible();
-      await expect(page.getByText("Total memories")).toBeVisible({
+      const main = mainContent(page);
+      await expect(
+        main.getByText("Total memories", { exact: true }),
+      ).toBeVisible({
         timeout: 30_000,
       });
-      await expect(page.getByText("Added today")).toBeVisible();
-      await expect(page.getByText("This week")).toBeVisible();
-      await expect(page.getByText("Tags used")).toBeVisible();
+      await expect(
+        main.getByText("Added today", { exact: true }),
+      ).toBeVisible();
+      await expect(main.getByText("This week", { exact: true })).toBeVisible();
+      await expect(main.getByText("Tags used", { exact: true })).toBeVisible();
       await expect(page.getByRole("link", { name: "Memories" })).toBeVisible();
     });
   },

@@ -55,11 +55,11 @@ test.describe("settings", { tag: ["@settings", "@smoke"] }, () => {
 
   test("connectors", async ({ page }) => {
     await gotoSettings(page, "/connectors");
-    await expect(
-      page
-        .getByRole("heading", { name: "Connectors" })
-        .or(page.getByRole("button", { name: "Browse Connectors" })),
-    ).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole("heading", { name: "Connectors" })).toBeVisible(
+      {
+        timeout: 20_000,
+      },
+    );
     await expect(
       page.getByRole("button", { name: "Browse Connectors" }).first(),
     ).toBeVisible();
