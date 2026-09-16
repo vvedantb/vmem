@@ -46,11 +46,12 @@ describe("toMemoryCandidate", () => {
     tags: ["tooling"],
   };
 
-  it("scores substring matches in title or content", () => {
+  it("scores lexical matches in title or content", () => {
     const hit = toMemoryCandidate(memory, "pnpm");
-    expect(hit.trace.score).toBe(1);
-    expect(hit.trace.scoreBreakdown.fulltext).toBe(1);
-    expect(hit.trace.reason).toContain("substring");
+    expect(hit.trace.score).toBeGreaterThan(0);
+    expect(hit.trace.scoreBreakdown.fulltext).toBeGreaterThan(0);
+    expect(hit.trace.scoreBreakdown.rrf).toBeGreaterThan(0);
+    expect(hit.trace.reason).not.toContain("substring");
   });
 
   it("scores zero when the query is absent", () => {

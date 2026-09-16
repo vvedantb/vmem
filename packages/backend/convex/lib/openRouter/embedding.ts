@@ -3,6 +3,7 @@ import {
   validateEmbeddingItems,
   type EmbeddingItem,
 } from "../../../engine/llm/embeddingResponse";
+import { MEMORY_EMBEDDING_DIMENSIONS } from "../../../engine/memory/searchableText";
 import { createOpenRouterClient } from "../../../engine/llm/openRouterClient";
 import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
@@ -15,7 +16,7 @@ import {
 } from "./shared";
 
 const EMBEDDING_MODEL = "openai/text-embedding-3-small";
-const EMBEDDING_DIMENSIONS = 1536;
+const EMBEDDING_DIMENSIONS = MEMORY_EMBEDDING_DIMENSIONS;
 
 const EMBEDDING_PRICE_USD_PER_1K: Record<string, number> = {
   "openai/text-embedding-3-small": 0.00002,

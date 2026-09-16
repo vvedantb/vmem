@@ -185,17 +185,20 @@ export const retrieveMemories = authAction({
     profileId: profileIdOptional,
     type: v.optional(v.string()),
     tags: v.optional(v.array(v.string())),
+    status: v.optional(v.string()),
     limit: v.number(),
   },
   handler: async (ctx, args): Promise<RetrieveMemoriesResult> => {
     const [memories, userContext] = await Promise.all([
       routeMemoryByProfile(ctx, args.profileId, {
-        team: (teamProfile) =>
+        team: (teamProfile, clerkId) =>
           retrieveMemoriesForTeamProfile(ctx, {
+            clerkId,
             profileId: teamProfile._id,
             query: args.query,
             type: args.type,
             tags: args.tags,
+            status: args.status,
             limit: args.limit,
           }),
         personal: (clerkId) =>
@@ -205,6 +208,7 @@ export const retrieveMemories = authAction({
             query: args.query,
             type: args.type,
             tags: args.tags,
+            status: args.status,
             limit: args.limit,
           }),
       }),

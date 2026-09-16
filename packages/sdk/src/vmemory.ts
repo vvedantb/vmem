@@ -64,6 +64,7 @@ type RetrieveBodyInput = {
   limit?: number;
   type?: string;
   tags?: string[];
+  status?: string;
   summarize?: boolean;
   profileId?: string;
 };
@@ -75,6 +76,7 @@ function buildRetrieveBody(query: string, options: RetrieveBodyInput): object {
     ...(options.profileId ? { profileId: options.profileId } : {}),
     ...(options.type ? { type: options.type } : {}),
     ...(options.tags ? { tags: options.tags } : {}),
+    ...(options.status ? { status: options.status } : {}),
     ...(options.summarize ? { summarize: true } : {}),
   };
 }
@@ -134,6 +136,7 @@ export class VMemory {
       limit?: number;
       type?: string;
       tags?: string[];
+      status?: string;
       summarize?: boolean;
     },
   ): Promise<RetrieveResult> {
@@ -143,6 +146,7 @@ export class VMemory {
         limit: options?.limit,
         type: options?.type,
         tags: options?.tags,
+        status: options?.status,
         summarize: options?.summarize,
         profileId: this.resolveProfileId(options),
       }),

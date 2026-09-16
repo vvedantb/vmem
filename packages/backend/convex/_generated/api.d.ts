@@ -88,6 +88,7 @@ import type * as memoryApi_routing from "../memoryApi/routing.js";
 import type * as memoryApi_team from "../memoryApi/team.js";
 import type * as memoryApi_types from "../memoryApi/types.js";
 import type * as memoryApi_validators from "../memoryApi/validators.js";
+import type * as memoryEmbed from "../memoryEmbed.js";
 import type * as memoryEvents from "../memoryEvents.js";
 import type * as memoryRuntime from "../memoryRuntime.js";
 import type * as memoryScope from "../memoryScope.js";
@@ -213,6 +214,7 @@ declare const fullApi: ApiFromModules<{
   "memoryApi/team": typeof memoryApi_team;
   "memoryApi/types": typeof memoryApi_types;
   "memoryApi/validators": typeof memoryApi_validators;
+  memoryEmbed: typeof memoryEmbed;
   memoryEvents: typeof memoryEvents;
   memoryRuntime: typeof memoryRuntime;
   memoryScope: typeof memoryScope;

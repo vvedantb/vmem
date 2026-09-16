@@ -68,6 +68,15 @@ describe("convex memoryStore", () => {
     expect(listed.total).toBe(1);
     expect(listed.memories[0]?.id).toBe(created.id);
 
+    await t.run(async (ctx) => {
+      const doc = await ctx.db
+        .query("memories")
+        .withIndex("by_memory_id", (q) => q.eq("memoryId", created.id))
+        .first();
+      expect(doc?.searchableText).toContain("Prefers pnpm");
+      expect(doc?.searchableText).toContain("tooling");
+    });
+
     const fetched = await t.query(
       internal.memoryStore.functions.getMemoryInternal,
       { userId: USER_A, memoryId: created.id },
@@ -245,6 +254,63 @@ describe("convex memoryStore", () => {
     );
     expect(searched.total).toBe(1);
     expect(searched.memories[0]?.id).toBe(visible.id);
+  });
+
+  it("list type and tag filters drop other types and untagged rows", async () => {
+    const t = convexTest(schema, modules);
+
+    const profile = await t.mutation(
+      internal.memoryStore.functions.createMemoryInternal,
+      createArgs({
+        memoryId: "profile-london",
+        title: "Lives in London",
+        content: "Based in London",
+        type: "profile",
+        tags: ["city"],
+      }),
+    );
+    const knowledge = await t.mutation(
+      internal.memoryStore.functions.createMemoryInternal,
+      createArgs({
+        memoryId: "knowledge-pnpm",
+        title: "Prefers pnpm",
+        content: "Use pnpm for vmem",
+        type: "knowledge",
+        tags: ["PNPM"],
+      }),
+    );
+    await t.mutation(
+      internal.memoryStore.functions.createMemoryInternal,
+      createArgs({
+        memoryId: "episodic-alice",
+        title: "Met Alice",
+        content: "Coffee with Alice",
+        type: "episodic",
+        tags: ["people"],
+      }),
+    );
+
+    const byType = await t.query(
+      internal.memoryStore.functions.listMemoriesInternal,
+      {
+        userId: USER_A,
+        type: "profile",
+        limit: 10,
+        offset: 0,
+      },
+    );
+    expect(byType.memories.map((memory) => memory.id)).toEqual([profile.id]);
+
+    const byTag = await t.query(
+      internal.memoryStore.functions.listMemoriesInternal,
+      {
+        userId: USER_A,
+        tags: ["pnpm"],
+        limit: 10,
+        offset: 0,
+      },
+    );
+    expect(byTag.memories.map((memory) => memory.id)).toEqual([knowledge.id]);
   });
 
   it("includes legacy personal memories that have no profileId", async () => {
@@ -435,7 +501,7 @@ describe("convex memoryStore", () => {
     expect(teamGet).toBeNull();
   });
 
-  it("maps search hits through retrieve substring scoring", async () => {
+  it("maps search hits through hybrid retrieve ranking", async () => {
     const t = convexTest(schema, modules);
 
     await t.mutation(
@@ -459,7 +525,7 @@ describe("convex memoryStore", () => {
       {
         userId: USER_A,
         profileId: PERSONAL_PROFILE,
-        searchQuery: "pnpm",
+        searchQuery: "package manager",
         limit: 10,
         offset: 0,
       },
@@ -467,11 +533,12 @@ describe("convex memoryStore", () => {
     expect(listed.total).toBe(1);
 
     const hits = listed.memories.map((memory) =>
-      toMemoryCandidate(memory, "pnpm"),
+      toMemoryCandidate(memory, "package manager"),
     );
     expect(hits).toHaveLength(1);
-    expect(hits[0]?.trace.score).toBe(1);
-    expect(hits[0]?.trace.reason).toContain("substring");
+    expect(hits[0]?.trace.score).toBeGreaterThan(0);
+    expect(hits[0]?.trace.scoreBreakdown.fulltext).toBeGreaterThan(0);
+    expect(hits[0]?.trace.reason).not.toContain("substring");
   });
 
   it("verification matrix: personal create/get/list/update/search/delete", async () => {
@@ -532,7 +599,7 @@ describe("convex memoryStore", () => {
     const retrieveHits = searched.memories.map((memory) =>
       toMemoryCandidate(memory, "workspaces"),
     );
-    expect(retrieveHits[0]?.trace.score).toBe(1);
+    expect(retrieveHits[0]?.trace.score).toBeGreaterThan(0);
 
     const deleted = await t.mutation(
       internal.memoryStore.functions.deleteMemoryInternal,
@@ -597,7 +664,7 @@ describe("convex memoryStore", () => {
     expect(
       searched.memories.map((memory) => toMemoryCandidate(memory, "pnpm"))[0]
         ?.trace.score,
-    ).toBe(1);
+    ).toBeGreaterThan(0);
 
     const miss = await t.query(
       internal.memoryStore.functions.listMemoriesForTeamInternal,
@@ -628,5 +695,95 @@ describe("convex memoryStore", () => {
       { profileId: TEAM_PROFILE, memoryId: created.id },
     );
     expect(deleted).toBe(true);
+  });
+
+  it("instruction-style rows store without an LLM and FTS can find them", async () => {
+    const t = convexTest(schema, modules);
+    const created = await t.mutation(
+      internal.memoryStore.functions.createMemoryInternal,
+      createArgs({
+        memoryId: "from-instruction",
+        title: "Remember dark mode",
+        content: "User prefers dark mode and uses pnpm for vmem",
+        source: "instruction",
+        tags: ["instruction"],
+      }),
+    );
+    expect(created.source).toBe("instruction");
+    expect(created.tags).toEqual(["instruction"]);
+
+    const listed = await t.query(
+      internal.memoryStore.functions.listMemoriesInternal,
+      {
+        userId: USER_A,
+        profileId: PERSONAL_PROFILE,
+        searchQuery: "dark mode",
+        limit: 10,
+        offset: 0,
+      },
+    );
+    expect(listed.memories.some((memory) => memory.id === created.id)).toBe(
+      true,
+    );
+
+    const fts = await t.query(
+      internal.memoryStore.functions.searchMemoriesTextInternal,
+      {
+        kind: "personal",
+        userId: USER_A,
+        profileId: PERSONAL_PROFILE,
+        query: "dark mode pnpm",
+      },
+    );
+    expect(Array.isArray(fts)).toBe(true);
+  });
+
+  it("keeps team FTS hits off the personal profile", async () => {
+    const t = convexTest(schema, modules);
+    await t.mutation(
+      internal.memoryStore.functions.createMemoryInternal,
+      createArgs({
+        userId: USER_A,
+        profileId: TEAM_PROFILE,
+        title: "Team secret",
+        content: "shared pnpm note",
+      }),
+    );
+
+    const teamList = await t.query(
+      internal.memoryStore.functions.listMemoriesForTeamInternal,
+      {
+        profileId: TEAM_PROFILE,
+        searchQuery: "pnpm",
+        limit: 10,
+        offset: 0,
+      },
+    );
+    expect(
+      teamList.memories.some((memory) => memory.title === "Team secret"),
+    ).toBe(true);
+
+    const personalFts = await t.query(
+      internal.memoryStore.functions.searchMemoriesTextInternal,
+      {
+        kind: "personal",
+        userId: USER_A,
+        profileId: PERSONAL_PROFILE,
+        query: "pnpm",
+      },
+    );
+    expect(
+      personalFts.every((hit) => hit.memory.profileId !== TEAM_PROFILE),
+    ).toBe(true);
+
+    const teamFts = await t.query(
+      internal.memoryStore.functions.searchMemoriesTextInternal,
+      {
+        kind: "team",
+        profileId: TEAM_PROFILE,
+        query: "pnpm",
+      },
+    );
+    expect(Array.isArray(teamFts)).toBe(true);
   });
 });

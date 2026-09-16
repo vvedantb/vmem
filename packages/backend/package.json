@@ -12,6 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:http-api": "node --env-file=.env.local ../../node_modules/vitest/vitest.mjs run tests/integration/v1Memories.integration.test.ts",
+    "test:memory-bench": "vitest run tests/memory/benchmark/retrieve.bench.test.ts",
     "build:mcp-graph-ui": "node scripts/build-memory-graph-mcp-app.mjs"
   },
   "dependencies": {

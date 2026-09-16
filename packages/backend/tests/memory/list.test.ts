@@ -47,10 +47,15 @@ describe("memoryMatchesListFilter", () => {
     expect(memoryMatchesListFilter(row, { tags: ["pnpm", "missing"] })).toBe(
       false,
     );
+    expect(memoryMatchesListFilter(row, { tags: ["PNPM"] })).toBe(true);
+    expect(memoryMatchesListFilter(row, { type: " profile " })).toBe(true);
     expect(memoryMatchesListFilter(row, { type: "episodic" })).toBe(false);
     expect(memoryMatchesListFilter(row, { searchQuery: "webpack" })).toBe(
       false,
     );
+    expect(
+      memoryMatchesListFilter(row, { searchQuery: "package manager" }),
+    ).toBe(true);
   });
 });
 

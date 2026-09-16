@@ -28,10 +28,12 @@ async function runRetrieveHandler(
   const memories =
     graphScope === "team" && body.profileId !== undefined
       ? await retrieveMemoriesForTeamProfile(ctx, {
+          clerkId: auth.clerkId,
           profileId: body.profileId,
           query: body.query,
           type: body.type,
           tags: body.tags,
+          status: body.status,
           limit: body.limit ?? 10,
         })
       : await retrieveMemoriesForClerk(ctx, {
@@ -40,6 +42,7 @@ async function runRetrieveHandler(
           query: body.query,
           type: body.type,
           tags: body.tags,
+          status: body.status,
           limit: body.limit ?? 10,
         });
 

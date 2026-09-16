@@ -1,6 +1,11 @@
 import { v } from "convex/values";
 import { authAction, requireClerkId } from "./auth";
 import type { MemoryWithTags } from "./memoryApi/types";
+import {
+  relatedMemoriesForClerk,
+  relatedMemoriesForTeamProfile,
+} from "./memoryRuntime";
+import { getProfileKind } from "./memoryScope";
 
 type RelatedMemory = { memory: MemoryWithTags; reason: string };
 
@@ -28,9 +33,23 @@ export const unlinkMemories = authAction({
 });
 
 export const getRelatedMemories = authAction({
-  args: { memoryId: v.string() },
-  handler: async (ctx): Promise<RelatedMemory[]> => {
-    await requireClerkId(ctx);
-    return [];
+  args: {
+    memoryId: v.string(),
+    profileId: v.optional(v.string()),
+  },
+  handler: async (ctx, args): Promise<RelatedMemory[]> => {
+    const clerkId = await requireClerkId(ctx);
+    const kind = await getProfileKind(ctx, args.profileId);
+    if (kind === "team" && args.profileId !== undefined) {
+      return relatedMemoriesForTeamProfile(ctx, {
+        profileId: args.profileId,
+        memoryId: args.memoryId,
+      });
+    }
+    return relatedMemoriesForClerk(ctx, {
+      clerkId,
+      profileId: args.profileId,
+      memoryId: args.memoryId,
+    });
   },
 });

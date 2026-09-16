@@ -10,6 +10,10 @@ import {
   storeMemoryFromInstruction,
 } from "../../memoryRuntime";
 import {
+  isOpenRouterRequiredError,
+  openRouterRequiredResponse,
+} from "../../../engine/memory/openRouterRequired";
+import {
   guardProfileAccess,
   withApiKeyAuth,
   type ApiKeyAuth,
@@ -28,11 +32,18 @@ async function runStoreHandler(
   }
 
   if (isInstructionStoreBody(body)) {
-    return storeMemoryFromInstruction(ctx, {
-      clerkId: auth.clerkId,
-      instruction: body.instruction,
-      profileId: body.profileId,
-    });
+    try {
+      return await storeMemoryFromInstruction(ctx, {
+        clerkId: auth.clerkId,
+        instruction: body.instruction,
+        profileId: body.profileId,
+      });
+    } catch (error) {
+      if (isOpenRouterRequiredError(error)) {
+        return openRouterRequiredResponse();
+      }
+      throw error;
+    }
   }
 
   return createMemoryForClerk(ctx, {

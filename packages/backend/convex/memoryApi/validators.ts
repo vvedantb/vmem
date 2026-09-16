@@ -106,6 +106,7 @@ export const teamRetrieveMemoriesFields = {
   query: v.string(),
   type: v.optional(v.string()),
   tags: v.optional(v.array(v.string())),
+  status: v.optional(v.string()),
   limit: v.number(),
 };
 
