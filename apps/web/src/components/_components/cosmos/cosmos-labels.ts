@@ -11,16 +11,8 @@ const MIN_LABEL_SCREEN_R = 6;
 export const COSMOS_EDGE_LABEL: Record<GraphEdgeType, string> = {
   tag: "tagged",
   relates_to: "relates to",
-  imports: "imports",
-  calls: "calls",
   wiki_parent: "parent of",
-  contains: "contains",
-  has_method: "has method",
-  extends: "extends",
-  implements: "implements",
   mentions: "mentions",
-  starts_process: "starts process",
-  includes: "includes",
 };
 
 export function shouldSkipCosmosLabels(

@@ -1,4 +1,4 @@
-export { STALE_SYNCING_MS } from "./codebase";
+export { STALE_SYNCING_MS } from "./sync";
 export { parseEnvVars } from "./envParse";
 export {
   DEFAULT_LOCAL_TIME,

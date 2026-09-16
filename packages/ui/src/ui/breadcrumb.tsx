@@ -5,7 +5,7 @@ import { cn } from "../utils/cn";
 // breadcrumb, navigation trail for the current page location renders its children as a horizontal list with `/` separators automatically
 // inserted between them designed to replace the page title + back button on
 // detail pages: the parent route(s) act as the "up" affordance and the final
-// segment identifies the current page example: <breadcrumb> <breadcrumblink aschild> <link to="/codebases">codebases</link> </breadcrumblink> <breadcrumbpage>acme, corp/api</breadcrumbpage> </breadcrumb>
+// segment identifies the current page example: <breadcrumb> <breadcrumblink aschild> <link to="/wiki">wiki</link> </breadcrumblink> <breadcrumbpage>overview</breadcrumbpage> </breadcrumb>
 const Breadcrumb = React.forwardRef<
   HTMLElement,
   React.HTMLAttributes<HTMLElement>

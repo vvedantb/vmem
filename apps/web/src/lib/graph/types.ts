@@ -4,26 +4,9 @@ export type GraphNodeKind =
   | "wiki-document"
   | "wiki-folder"
   | "skill"
-  | "entity"
-  | "code-file"
-  | "code-function"
-  | "code-class"
-  | "code-interface"
-  | "code-process";
+  | "entity";
 
-export type GraphEdgeType =
-  | "tag"
-  | "relates_to"
-  | "imports"
-  | "wiki_parent"
-  | "mentions"
-  | "calls"
-  | "contains"
-  | "has_method"
-  | "extends"
-  | "implements"
-  | "starts_process"
-  | "includes";
+export type GraphEdgeType = "tag" | "relates_to" | "wiki_parent" | "mentions";
 
 export interface GraphNode {
   id: string;
@@ -34,7 +17,7 @@ export interface GraphNode {
   createdAt: string;
   size: number;
   kind: GraphNodeKind;
-  // connector provenance string (e.g. "github")
+  // connector provenance string (e.g. "notion")
   sourceType: string | null;
   // entity sub-type (person/organization/place/technology)
   entityType?: string;

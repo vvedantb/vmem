@@ -25,16 +25,8 @@ export const COSMOS_POINT_SHAPE = {
 const EDGE_SLOT: Record<GraphEdgeType, EdgePaletteSlot> = {
   tag: "tag",
   relates_to: "relates_to",
-  imports: "relates_to",
-  calls: "relates_to",
   wiki_parent: "wiki_parent",
-  contains: "wiki_parent",
-  has_method: "wiki_parent",
-  extends: "wiki_parent",
-  implements: "wiki_parent",
   mentions: "mentions",
-  starts_process: "mentions",
-  includes: "mentions",
 };
 
 export interface CosmosEdgeMeta {
@@ -117,10 +109,6 @@ export function cosmosPointShapeForKind(kind: GraphNodeKind): number {
   if (kind === "wiki-document") return COSMOS_POINT_SHAPE.Diamond;
   if (kind === "skill") return COSMOS_POINT_SHAPE.Hexagon;
   if (kind === "entity") return COSMOS_POINT_SHAPE.Star;
-  if (kind === "code-file") return COSMOS_POINT_SHAPE.Square;
-  if (kind === "code-class") return COSMOS_POINT_SHAPE.Hexagon;
-  if (kind === "code-interface") return COSMOS_POINT_SHAPE.Diamond;
-  if (kind === "code-process") return COSMOS_POINT_SHAPE.Star;
   return COSMOS_POINT_SHAPE.Circle;
 }
 

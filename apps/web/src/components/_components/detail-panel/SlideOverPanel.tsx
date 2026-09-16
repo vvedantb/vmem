@@ -11,7 +11,7 @@ interface SlideOverPanelProps {
   children: ReactNode;
 }
 
-// shared right-side slide-over shell for graph/codebase detail panels
+// shared right-side slide-over shell for graph detail panels
 export function SlideOverPanel({
   open,
   width,
