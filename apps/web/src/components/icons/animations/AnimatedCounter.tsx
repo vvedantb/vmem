@@ -29,7 +29,9 @@ export function AnimatedCounter({
   const ref = useRef<HTMLSpanElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-50px" });
 
-  const springValue = useSpring(0, {
+  // Count up from 0 only when waiting to scroll into view. Otherwise start at
+  // `value` so remounts (home ↔ settings) do not flash zeros.
+  const springValue = useSpring(animateOnView ? 0 : value, {
     stiffness: 100 / duration,
     damping: 30,
     restDelta: 0.01,

@@ -71,7 +71,13 @@ export function DashboardStatCards({
         <MetricSummaryCard
           key={card.label}
           label={card.label}
-          value={<AnimatedCounter value={card.value} duration={0.8} />}
+          value={
+            <AnimatedCounter
+              value={card.value}
+              duration={0.8}
+              animateOnView={false}
+            />
+          }
           icon={card.icon}
           index={index}
           animate

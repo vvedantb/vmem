@@ -61,6 +61,7 @@ pnpm test:e2e -- --grep @inbox
 pnpm test:e2e -- --grep @activity
 pnpm test:e2e -- --grep @settings
 pnpm test:e2e -- --grep @nav
+pnpm test:e2e -- --grep @auth
 pnpm test:e2e -- --grep @smoke
 ```
 
@@ -75,13 +76,13 @@ HTML report: `e2e/playwright-report/` (open with `pnpm exec playwright show-repo
 
 ## Layout
 
-| Path                       | Role                                                           |
-| -------------------------- | -------------------------------------------------------------- |
-| `e2e/playwright.config.ts` | baseURL, projects, trace, HTML report                          |
-| `e2e/auth.setup.ts`        | Clerk login → `e2e/.auth/user.json`                            |
-| `e2e/fixtures.ts`          | waits out `/home` → `/$profileId/home` (ActiveProfileProvider) |
-| `e2e/helpers/`             | env, auth, nav, disposable memories                            |
-| `e2e/specs/`               | one file per product area                                      |
+| Path                       | Role                                                               |
+| -------------------------- | ------------------------------------------------------------------ |
+| `e2e/playwright.config.ts` | baseURL, projects, trace, HTML report                              |
+| `e2e/auth.setup.ts`        | Clerk login → `e2e/.auth/user.json`                                |
+| `e2e/fixtures.ts`          | waits out `/home` → `/$profileId/home` (ActiveProfileProvider)     |
+| `e2e/helpers/`             | env, auth, nav, shell, disposable memories                         |
+| `e2e/specs/`               | one file per product area (`auth.spec.ts` covers session/sign-out) |
 
 Authenticated tests depend on the `setup` project. Landing runs without storage so signed-in redirects cannot hide the marketing page.
 
