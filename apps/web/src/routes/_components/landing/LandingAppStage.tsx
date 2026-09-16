@@ -55,9 +55,9 @@ export function LandingAppStage() {
   return (
     <section
       id="product"
-      className={cn(landingShellClass, "scroll-mt-24 pb-4 sm:pb-8")}
+      className={cn(landingShellClass, "scroll-mt-24 py-10 sm:py-16")}
     >
-      <div className="landing-app-frame relative overflow-hidden rounded-[1.5rem] bg-background p-2 shadow-panel outline outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10">
+      <div className="landing-app-frame relative overflow-hidden rounded-[1.5rem] border border-separator bg-background p-2">
         <div className="flex min-h-[32rem] overflow-hidden rounded-2xl sm:min-h-[36rem] lg:min-h-[42rem]">
           <aside className="hidden shrink-0 md:flex">
             <div className="flex w-16 flex-col items-center border-r border-separator bg-background">

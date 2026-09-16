@@ -1,9 +1,9 @@
 import { SignInButton, SignUpButton } from "@clerk/clerk-react";
+import { IconArrowRight } from "@tabler/icons-react";
 import { motion } from "motion/react";
 import { Button, motionDuration, motionEase } from "@vmem/ui";
+import { LANDING_HERO_CAPABILITIES } from "./landingContent";
 import { landingItemVariants, landingShellClass } from "./LandingReveal";
-
-const capabilities = ["Graph memory", "MCP", "HTTP API", "Skills"] as const;
 
 const heroContainer = {
   hidden: {},
@@ -14,7 +14,9 @@ const heroContainer = {
 
 export function LandingHero() {
   return (
-    <section className={cnHero}>
+    <section
+      className={`${landingShellClass} pb-16 pt-12 sm:pb-20 sm:pt-20 lg:pb-24 lg:pt-24`}
+    >
       <motion.div
         className="mx-auto max-w-3xl text-center"
         initial="hidden"
@@ -22,9 +24,13 @@ export function LandingHero() {
         variants={heroContainer}
       >
         <motion.p
-          className="mb-4 text-[11px] font-medium uppercase tracking-[0.18em] text-muted sm:text-xs sm:tracking-[0.26em]"
+          className="mb-6 inline-flex items-center gap-2 rounded-full border border-separator bg-surface/70 px-3 py-1 text-xs text-muted"
           variants={landingItemVariants}
         >
+          <span
+            className="landing-pulse-dot size-1.5 rounded-full bg-danger"
+            aria-hidden
+          />
           Memory engine for AI agents
         </motion.p>
 
@@ -47,30 +53,13 @@ export function LandingHero() {
         </motion.p>
 
         <motion.div
-          className="mt-5 flex flex-wrap items-center justify-center gap-1.5 sm:mt-6 sm:gap-2"
-          variants={landingItemVariants}
-        >
-          {capabilities.map((label, index) => (
-            <span
-              key={label}
-              className={
-                index === 0
-                  ? "rounded-full bg-foreground px-2.5 py-1 text-[11px] text-background sm:px-3 sm:text-xs"
-                  : "rounded-full bg-surface px-2.5 py-1 text-[11px] text-muted sm:px-3 sm:text-xs"
-              }
-            >
-              {label}
-            </span>
-          ))}
-        </motion.div>
-
-        <motion.div
-          className="mt-7 flex flex-col items-stretch justify-center gap-2.5 sm:mt-8 sm:flex-row sm:items-center sm:gap-3"
+          className="mt-7 flex flex-col items-stretch justify-center gap-2.5 sm:mt-9 sm:flex-row sm:items-center sm:gap-3"
           variants={landingItemVariants}
         >
           <SignUpButton mode="modal">
-            <Button size="lg" className="w-full sm:w-auto">
+            <Button size="lg" className="w-full sm:w-auto sm:min-w-40">
               Get started
+              <IconArrowRight size={16} aria-hidden />
             </Button>
           </SignUpButton>
           <SignInButton mode="modal">
@@ -79,9 +68,21 @@ export function LandingHero() {
             </Button>
           </SignInButton>
         </motion.div>
+
+        <motion.ul
+          className="mt-8 flex flex-wrap items-center justify-center gap-2 sm:mt-10"
+          variants={landingItemVariants}
+        >
+          {LANDING_HERO_CAPABILITIES.map((label) => (
+            <li
+              key={label}
+              className="rounded-full border border-separator bg-surface/60 px-3 py-1 font-mono text-[11px] text-muted"
+            >
+              {label}
+            </li>
+          ))}
+        </motion.ul>
       </motion.div>
     </section>
   );
 }
-
-const cnHero = `${landingShellClass} pb-10 pt-8 sm:pb-14 sm:pt-16 lg:pb-16 lg:pt-20`;

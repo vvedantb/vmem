@@ -3,7 +3,7 @@
 
 const ambientGraphSvg = (
   <svg
-    className="landing-ambient-drift landing-ambient-graph-mask absolute inset-0 h-full w-full text-foreground/[0.11] dark:text-foreground/[0.07]"
+    className="landing-ambient-drift landing-ambient-graph-mask absolute inset-0 h-full w-full text-foreground/[0.08]"
     viewBox="0 0 900 700"
     preserveAspectRatio="xMidYMid slice"
     fill="none"
@@ -73,7 +73,7 @@ export function LandingAmbientGraph() {
       aria-hidden
     >
       <div
-        className="landing-ambient-graph-mask absolute inset-0 opacity-[0.45] dark:opacity-[0.3]"
+        className="landing-ambient-graph-mask absolute inset-0 opacity-[0.28]"
         style={{
           backgroundImage:
             "radial-gradient(circle, color-mix(in oklch, var(--foreground) 8%, transparent) 1px, transparent 1px)",
@@ -81,10 +81,8 @@ export function LandingAmbientGraph() {
         }}
       />
 
-      <div className="landing-grain absolute inset-0 opacity-[0.035] mix-blend-multiply dark:opacity-[0.05] dark:mix-blend-soft-light" />
-
-      <div className="absolute -right-[12%] top-[2%] h-[min(78dvh,580px)] w-[min(78vw,580px)] rounded-full bg-surface-secondary/85 blur-3xl dark:bg-surface-secondary/30" />
-      <div className="absolute -left-[6%] bottom-[8%] h-80 w-80 rounded-full bg-surface-tertiary/55 blur-3xl dark:bg-surface-tertiary/18" />
+      <div className="absolute -right-[12%] top-[2%] h-[min(78dvh,580px)] w-[min(78vw,580px)] rounded-full bg-danger/[0.08] blur-3xl" />
+      <div className="absolute -left-[6%] bottom-[8%] h-80 w-80 rounded-full bg-danger/[0.05] blur-3xl" />
 
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_55%_at_50%_42%,transparent_18%,var(--background)_88%)]" />
 

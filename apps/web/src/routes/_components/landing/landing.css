@@ -22,9 +22,60 @@
   animation: landing-preview-pulse 2.8s ease-in-out infinite;
 }
 
-.landing-grain {
+@keyframes landing-pulse-dot {
+  0%,
+  100% {
+    opacity: 0.45;
+    box-shadow: 0 0 0 0 color-mix(in oklch, var(--danger) 45%, transparent);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 0 6px color-mix(in oklch, var(--danger) 0%, transparent);
+  }
+}
+
+.landing-pulse-dot {
+  animation: landing-pulse-dot 2.4s ease-in-out infinite;
+}
+
+.landing-grain::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  opacity: 0.22;
+  mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
   background-size: 128px 128px;
+}
+
+.landing-atmosphere {
+  background-color: var(--background);
+  background-image:
+    radial-gradient(
+      ellipse 90% 55% at 50% -12%,
+      color-mix(in oklch, var(--danger) 18%, transparent),
+      transparent 58%
+    ),
+    radial-gradient(
+      ellipse 45% 35% at 100% 100%,
+      color-mix(in oklch, var(--danger) 8%, transparent),
+      transparent 55%
+    ),
+    linear-gradient(
+      color-mix(in oklch, var(--foreground) 5.5%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      color-mix(in oklch, var(--foreground) 5.5%, transparent) 1px,
+      transparent 1px
+    );
+  background-size:
+    100% 100%,
+    100% 100%,
+    56px 56px,
+    56px 56px;
 }
 
 /* Centered hero: keep a readable well, graph atmosphere around the edges */
@@ -198,6 +249,7 @@ html:has(#top) {
 
   .landing-graph-dash,
   .landing-preview-pulse,
+  .landing-pulse-dot,
   .landing-ambient-drift,
   .landing-ambient-node-a,
   .landing-ambient-node-b,

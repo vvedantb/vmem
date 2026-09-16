@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useTheme } from "next-themes";
 import { AnimatePresence, motion } from "motion/react";
 import {
   Badge,
@@ -62,9 +61,7 @@ function ListRow({
   isSelected: boolean;
   onSelect: () => void;
 }) {
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === "dark";
-  const color = tagToColor(memory.tags[0] ?? memory.type, isDark);
+  const color = tagToColor(memory.tags[0] ?? memory.type, true);
 
   return (
     <Button

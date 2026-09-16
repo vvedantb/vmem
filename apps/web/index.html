@@ -7,6 +7,15 @@
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
     <title>vmem — Memory engine for AI agents</title>
+    <script>
+      (function () {
+        try {
+          if (location.pathname === "/" || location.pathname === "") {
+            document.documentElement.classList.add("dark");
+          }
+        } catch (e) {}
+      })();
+    </script>
     <meta
       name="description"
       content="Graph storage, vector recall, and MCP-ready integrations for any agent stack. Store context from chats and tools, connect it in a graph, and retrieve the slice that matters."

@@ -12,8 +12,9 @@ import {
 import {
   LandingReveal,
   LandingRevealItem,
-  LandingSectionEyebrow,
-  landingShellClass,
+  LandingSection,
+  LandingSectionHeading,
+  landingPanelClass,
 } from "./LandingReveal";
 
 export function LandingRecallDemo() {
@@ -27,26 +28,15 @@ export function LandingRecallDemo() {
   };
 
   return (
-    <section
-      id="recall"
-      className={cn(landingShellClass, "scroll-mt-24 py-16 sm:py-24")}
-    >
+    <LandingSection id="recall">
       <LandingReveal className="grid gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-start lg:gap-16">
         <div>
           <LandingRevealItem>
-            <LandingSectionEyebrow>Recall</LandingSectionEyebrow>
-          </LandingRevealItem>
-          <LandingRevealItem>
-            <h2 className="max-w-md text-balance font-instrumentSerif text-3xl leading-[1.05] tracking-tight text-foreground sm:text-5xl">
-              Ask like an agent would
-            </h2>
-          </LandingRevealItem>
-          <LandingRevealItem>
-            <p className="mt-4 max-w-md text-pretty text-sm leading-relaxed text-muted sm:text-base">
-              Hybrid search mixes fulltext, vectors, chunks, entities, and one
-              hop of graph expansion. Every hit ships a Context Trace so you can
-              see why it matched.
-            </p>
+            <LandingSectionHeading
+              eyebrow="Recall"
+              heading="Ask like an agent would"
+              intro="Hybrid search mixes fulltext, vectors, chunks, entities, and one hop of graph expansion. Every hit ships a Context Trace so you can see why it matched."
+            />
           </LandingRevealItem>
           <LandingRevealItem>
             <div className="mt-6 flex flex-wrap gap-2">
@@ -67,7 +57,7 @@ export function LandingRecallDemo() {
         </div>
 
         <LandingRevealItem>
-          <div className="overflow-hidden rounded-[1.5rem] bg-surface p-2 shadow-soft outline outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10">
+          <div className={cn(landingPanelClass, "p-2")}>
             <div className="rounded-2xl bg-surface-secondary px-3.5 py-3 font-mono text-[11px] leading-relaxed text-muted sm:text-xs">
               <span className="text-foreground/70">mcp</span>{" "}
               <span className="text-foreground">memory.retrieve</span>
@@ -119,7 +109,7 @@ export function LandingRecallDemo() {
           </div>
         </LandingRevealItem>
       </LandingReveal>
-    </section>
+    </LandingSection>
   );
 }
 
