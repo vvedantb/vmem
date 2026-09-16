@@ -65,6 +65,9 @@ const PHRASES: ReadonlyArray<readonly [string, readonly string[]]> = [
   ["colour scheme", ["theme", "dark", "light"]],
   ["dark mode", ["dark", "theme"]],
   ["light mode", ["light", "theme"]],
+  ["work out", ["workout", "workouts"]],
+  ["payment terms", ["invoice", "invoices", "net"]],
+  ["primary key", ["uuid", "primary"]],
   ["where live", ["london", "uk"]],
 ];
 
@@ -95,22 +98,33 @@ const PHRASE_LOOKUP: ReadonlyMap<string, readonly string[]> = (() => {
 })();
 
 export function expandQueryTerms(query: string): string[] {
-  const rawTokens = tokenize(query);
-  const stemmed = contentTokens(query, true);
+  const core = phraseAwareQueryTokens(query);
   const extras: string[] = [];
-
-  for (let i = 0; i < rawTokens.length - 1; i += 1) {
-    const two = phraseKey(`${rawTokens[i] ?? ""} ${rawTokens[i + 1] ?? ""}`);
-    const hit = PHRASE_LOOKUP.get(two);
-    if (hit !== undefined) extras.push(...hit);
-  }
-
-  for (const token of stemmed) {
+  for (const token of core) {
     const cluster = TOKEN_TO_CLUSTER.get(token);
     if (cluster !== undefined) extras.push(...cluster);
   }
+  return uniqueTokens([...core, ...extras]);
+}
 
-  return uniqueTokens([...stemmed, ...extras]);
+// Content tokens with matched phrases replaced by their expansions, no
+// synonym clusters. PhraseScore uses this so "work out" does not keep "out".
+export function phraseAwareQueryTokens(query: string): string[] {
+  const rawTokens = tokenize(query);
+  const drop = new Set<string>();
+  const extras: string[] = [];
+  for (let i = 0; i < rawTokens.length - 1; i += 1) {
+    const left = rawTokens[i];
+    const right = rawTokens[i + 1];
+    if (left === undefined || right === undefined) continue;
+    const hit = PHRASE_LOOKUP.get(phraseKey(`${left} ${right}`));
+    if (hit === undefined) continue;
+    extras.push(...hit);
+    drop.add(stem(left));
+    drop.add(stem(right));
+  }
+  const kept = contentTokens(query, true).filter((token) => !drop.has(token));
+  return uniqueTokens([...kept, ...extras]);
 }
 
 export function expandedSearchText(query: string): string {

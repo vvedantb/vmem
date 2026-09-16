@@ -22,6 +22,7 @@ import {
   oauthStateFields,
   contextPromptCacheFields,
   memoryFields,
+  memoryLinkFields,
 } from "./validators";
 
 const schema = defineSchema({
@@ -157,6 +158,12 @@ const schema = defineSchema({
       dimensions: MEMORY_EMBEDDING_DIMENSIONS,
       filterFields: ["userId", "profileId"],
     }),
+
+  memoryLinks: defineTable(memoryLinkFields)
+    .index("by_user", ["userId"])
+    .index("by_user_source", ["userId", "sourceId"])
+    .index("by_user_target", ["userId", "targetId"])
+    .index("by_source_target", ["sourceId", "targetId"]),
 });
 
 export default schema;

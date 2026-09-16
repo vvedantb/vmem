@@ -17,7 +17,12 @@ import {
 } from "../engine/memory/retrieve";
 import { tryUserAndApiKeyByClerkId } from "./lib/envVars";
 import { bestEffortEmbedOne } from "./lib/openRouter/bestEffortEmbed";
+import { callJsonChat } from "./lib/openRouter/jsonChat";
 import { scheduleContextPromptInvalidationByClerkId } from "./lib/contextPromptInvalidate";
+import {
+  buildFactExtractionPrompt,
+  parseFactExtractionResponse,
+} from "../engine/memory/extractFacts";
 
 type MemoryCtx = Pick<ActionCtx, "runQuery" | "runMutation" | "scheduler">;
 
@@ -210,7 +215,7 @@ export async function deleteMemoryForClerk(
   return deleted;
 }
 
-const RETRIEVE_RECENT_CAP = 500;
+const RETRIEVE_RECENT_CAP = 200;
 const VECTOR_CANDIDATE_LIMIT = 32;
 
 async function scheduleMemoryEmbedding(
@@ -315,7 +320,7 @@ async function retrieveRanked(
             offset: 0,
           });
 
-  const [ftsHits, vectorHits] = await Promise.all([
+  const [ftsHits, vectorHits, links] = await Promise.all([
     ctx.runQuery(internal.memoryStore.functions.searchMemoriesTextInternal, {
       kind: args.kind,
       userId: args.clerkId,
@@ -323,6 +328,12 @@ async function retrieveRanked(
       query: args.query,
     }),
     vectorScoresForQuery(ctx, args),
+    args.clerkId === undefined
+      ? Promise.resolve([])
+      : ctx.runQuery(
+          internal.memoryStore.functions.listMemoryLinksForUserInternal,
+          { userId: args.clerkId },
+        ),
   ]);
 
   const byId = new Map<string, MemoryWithTags>();
@@ -347,6 +358,7 @@ async function retrieveRanked(
     limit: args.limit,
     vectorScores: vectorHits.scores,
     ftsRanks,
+    links,
     ...listFilter,
   });
 }
@@ -454,7 +466,7 @@ export async function relatedMemoriesForTeamProfile(
 }
 
 export async function storeMemoryFromInstruction(
-  ctx: MemoryCtx,
+  ctx: ActionCtx,
   args: { clerkId: string; instruction: string; profileId?: string },
 ): Promise<{ created: MemoryWithTags[]; summary: string }> {
   const openRouter = await tryUserAndApiKeyByClerkId(
@@ -465,22 +477,41 @@ export async function storeMemoryFromInstruction(
   if (!openRouter) throw new OpenRouterRequiredError();
 
   const instruction = args.instruction.trim();
-  // OpenRouter is required (HTTP 422 / MCP openrouter_required without a key).
-  // With a key, persist the instruction as one knowledge memory — LLM fact
-  // extraction is not restored post-Neo4j.
-  const created = await createMemoryForClerk(ctx, {
-    clerkId: args.clerkId,
+  const now = new Date().toISOString();
+  const extractionRaw = await callJsonChat(ctx, {
+    apiKey: openRouter.apiKey,
+    userId: openRouter.userId,
     profileId: args.profileId,
-    title: instruction.slice(0, 80) || "Instruction",
-    content: instruction,
-    type: "knowledge",
-    source: "instruction",
-    tags: ["instruction"],
-    confidence: 0.9,
-    sourceType: "instruction",
+    feature: "fact-extraction",
+    prompt: buildFactExtractionPrompt(instruction, now, now),
   });
+  const extracted = extractionRaw
+    ? parseFactExtractionResponse(extractionRaw)
+    : null;
+  const facts =
+    extracted?.facts
+      .map((fact) => fact.text)
+      .filter((text) => text.length > 0) ?? [];
+
+  const texts = facts.length > 0 ? facts : [instruction];
+  const created: MemoryWithTags[] = [];
+  for (const text of texts) {
+    created.push(
+      await createMemoryForClerk(ctx, {
+        clerkId: args.clerkId,
+        profileId: args.profileId,
+        title: text.slice(0, 80) || "Instruction",
+        content: text,
+        type: "knowledge",
+        source: facts.length > 0 ? "sdk-extracted" : "instruction",
+        tags: facts.length > 0 ? ["sdk-extracted"] : ["instruction"],
+        confidence: 0.9,
+        sourceType: facts.length > 0 ? "sdk-extracted" : "instruction",
+      }),
+    );
+  }
   return {
-    created: [created],
-    summary: "Stored 1 memory from instruction.",
+    created,
+    summary: `Stored ${String(created.length)} ${created.length === 1 ? "memory" : "memories"} from the instruction.`,
   };
 }
