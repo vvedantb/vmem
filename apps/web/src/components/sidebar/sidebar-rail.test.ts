@@ -112,7 +112,7 @@ describe("shell uses a rail + panel + drawer", () => {
   it("does not draw a right border on the panel against floating content", () => {
     const sidebar = read("../shell/Sidebar.tsx");
     expect(sidebar).not.toMatch(/overflow-hidden border-r border-separator/);
-    expect(read("../shell/MainShell.tsx")).toContain("md:rounded-2xl");
+    expect(read("../shell/MainShell.tsx")).toContain("md:rounded-lg");
     expect(read("../shell/MainShell.tsx")).toContain("md:p-2");
   });
 
