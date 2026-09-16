@@ -1,15 +1,12 @@
 import { useState } from "react";
 import { Button, cn } from "@vmem/ui";
 import ShapeIndicator from "@/components/_components/ShapeIndicator";
-import { hslToHex } from "@vmem/shared/graph";
-import { useTheme } from "next-themes";
 import { demoSkills, skillAt } from "./landing-preview-data";
+import { LANDING_MONO } from "./landingContent";
 
 export function LandingSkillsPreview() {
   const [selected, setSelected] = useState(0);
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === "dark";
-  const color = isDark ? hslToHex(285, 55, 72) : hslToHex(285, 60, 50);
+  const color = LANDING_MONO.mid;
   const skill = skillAt(selected);
 
   return (

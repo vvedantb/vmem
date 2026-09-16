@@ -1,19 +1,16 @@
 import { SignInButton, SignUpButton } from "@clerk/clerk-react";
+import { IconBrandGithub } from "@tabler/icons-react";
 import { motion } from "motion/react";
 import { Button, cn, motionDuration, motionEase } from "@vmem/ui";
 import { VmemBrand } from "@/components/shell/VmemBrand";
+import { LANDING_NAV_LINKS, VMEM_GITHUB_URL } from "./landingContent";
+import { LandingNavMenu } from "./LandingNavMenu";
 import { landingShellClass } from "./LandingReveal";
-
-const navLinks = [
-  { href: "#product", label: "Product" },
-  { href: "#recall", label: "Recall" },
-  { href: "#surfaces", label: "Surfaces" },
-] as const;
 
 export function LandingNav() {
   return (
     <motion.header
-      className="sticky top-0 z-30 bg-background/80 shadow-[0_1px_0_rgba(0,0,0,0.06)] backdrop-blur-md dark:shadow-[0_1px_0_rgba(255,255,255,0.08)]"
+      className="sticky top-0 z-30 border-b border-separator bg-background/80 backdrop-blur-md"
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: motionDuration.base, ease: motionEase }}
@@ -26,14 +23,14 @@ export function LandingNav() {
       >
         <a
           href="#top"
-          className="group min-w-0 shrink-0"
+          className="group min-w-0 shrink-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           aria-label="vmem home"
         >
           <VmemBrand />
         </a>
 
         <nav className="hidden items-center gap-1 md:flex" aria-label="Page">
-          {navLinks.map((link) => (
+          {LANDING_NAV_LINKS.map((link) => (
             <a
               key={link.href}
               href={link.href}
@@ -44,9 +41,28 @@ export function LandingNav() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
+          <Button
+            asChild
+            variant="ghost"
+            size="icon-sm"
+            className="hidden sm:inline-flex"
+          >
+            <a
+              href={VMEM_GITHUB_URL}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="vmem on GitHub"
+            >
+              <IconBrandGithub size={18} />
+            </a>
+          </Button>
           <SignInButton mode="modal">
-            <Button variant="ghost" size="sm" className="hidden sm:inline-flex">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-muted hover:text-foreground"
+            >
               Sign in
             </Button>
           </SignInButton>
@@ -55,6 +71,7 @@ export function LandingNav() {
               Get started
             </Button>
           </SignUpButton>
+          <LandingNavMenu />
         </div>
       </div>
     </motion.header>

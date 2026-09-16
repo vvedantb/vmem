@@ -1,7 +1,5 @@
 import { useState } from "react";
-import { useTheme } from "next-themes";
 import { cn } from "@vmem/ui";
-import { hslToHex, tagToColor } from "@vmem/shared/graph";
 import {
   edgeTouchesNode,
   previewEdges,
@@ -10,23 +8,16 @@ import {
   type PreviewNode,
   type PreviewNodeId,
 } from "./landing-preview-data";
+import { LANDING_MONO } from "./landingContent";
 
 const defaultSnippet =
   "Select a node to see what recall surfaces — connected context, not a keyword dump.";
 
-function nodeFill(node: PreviewNode, isDark: boolean): string {
-  if (node.kind === "entity") {
-    return isDark ? hslToHex(45, 70, 65) : hslToHex(45, 75, 45);
-  }
-  if (node.kind === "skill") {
-    return isDark ? hslToHex(285, 55, 72) : hslToHex(285, 60, 50);
-  }
-  if (node.kind === "wiki-document") {
-    return isDark ? hslToHex(35, 55, 70) : hslToHex(35, 60, 50);
-  }
-  const tag = node.tags[0];
-  if (tag !== undefined) return tagToColor(tag, isDark);
-  return isDark ? "#888888" : "#999999";
+function nodeFill(node: PreviewNode): string {
+  if (node.kind === "entity") return LANDING_MONO.bright;
+  if (node.kind === "skill") return LANDING_MONO.mid;
+  if (node.kind === "wiki-document") return LANDING_MONO.dim;
+  return LANDING_MONO.mid;
 }
 
 function toggleNode(
@@ -38,8 +29,6 @@ function toggleNode(
 
 export function LandingMemoryPreview() {
   const [activeNodeId, setActiveNodeId] = useState<PreviewNodeId | null>(null);
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === "dark";
 
   const activeNode = previewNodes.find((node) => node.id === activeNodeId);
   const snippet = activeNode?.snippet ?? defaultSnippet;
@@ -85,7 +74,7 @@ export function LandingMemoryPreview() {
           <PreviewGraphNode
             key={node.id}
             node={node}
-            fill={nodeFill(node, isDark)}
+            fill={nodeFill(node)}
             activeNodeId={activeNodeId}
             onHover={setActiveNodeId}
             onToggle={(nodeId) =>

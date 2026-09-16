@@ -1,10 +1,11 @@
 import { IconBolt, IconBrain, IconTopologyStar3 } from "@tabler/icons-react";
 import { LandingFeatureCard } from "./LandingFeatureCard";
 import {
+  LandingLattice,
   LandingReveal,
   LandingRevealItem,
-  LandingSectionEyebrow,
-  landingShellClass,
+  LandingSection,
+  LandingSectionHeading,
 } from "./LandingReveal";
 
 const steps = [
@@ -48,41 +49,32 @@ const features = [
 
 export function LandingHowItWorks() {
   return (
-    <section className={`${landingShellClass} py-16 sm:py-24`}>
+    <LandingSection id="how">
       <LandingReveal>
         <LandingRevealItem>
-          <LandingSectionEyebrow>How it works</LandingSectionEyebrow>
-        </LandingRevealItem>
-        <LandingRevealItem>
-          <h2 className="max-w-lg text-balance font-instrumentSerif text-3xl leading-[1.05] tracking-tight text-foreground sm:text-5xl">
-            Store, connect, then recall
-          </h2>
+          <LandingSectionHeading
+            eyebrow="How it works"
+            heading="Store, connect, then recall"
+          />
         </LandingRevealItem>
 
-        <div className="mt-10 grid gap-8 md:grid-cols-3 md:gap-6 lg:gap-10">
-          {steps.map((step, index) => (
-            <LandingRevealItem key={step.title}>
-              <div className="relative min-w-0">
-                {index < steps.length - 1 ? (
-                  <span
-                    aria-hidden
-                    className="landing-step-rule pointer-events-none absolute left-[2.25rem] top-5 hidden h-px bg-separator md:block lg:left-[2.75rem]"
-                    style={{ width: "calc(100% - 1rem)" }}
-                  />
-                ) : null}
-                <p className="font-instrumentSerif text-2xl tabular-nums text-muted/50 sm:text-3xl">
+        <LandingRevealItem className="mt-10">
+          <LandingLattice className="md:grid-cols-3">
+            {steps.map((step) => (
+              <div key={step.title} className="bg-background p-6 sm:p-7">
+                <p className="font-mono text-[11px] tracking-[0.28em] text-muted">
                   {step.index}
                 </p>
-                <p className="mt-1.5 text-base font-medium text-foreground sm:mt-2">
+                <p className="mt-3 text-base font-medium text-foreground">
                   {step.title}
                 </p>
-                <p className="mt-1 max-w-xs text-pretty text-sm leading-relaxed text-muted sm:mt-1.5">
+                <p className="mt-1.5 max-w-xs text-pretty text-sm leading-relaxed text-muted">
                   {step.description}
                 </p>
               </div>
-            </LandingRevealItem>
-          ))}
-        </div>
+            ))}
+          </LandingLattice>
+        </LandingRevealItem>
 
         <div className="mt-12 grid gap-3 sm:grid-cols-3">
           {features.map((feature) => (
@@ -92,6 +84,6 @@ export function LandingHowItWorks() {
           ))}
         </div>
       </LandingReveal>
-    </section>
+    </LandingSection>
   );
 }

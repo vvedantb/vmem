@@ -1,10 +1,9 @@
-import { SignUpButton } from "@clerk/clerk-react";
-import { Button } from "@vmem/ui";
 import {
+  LandingLattice,
   LandingReveal,
   LandingRevealItem,
-  LandingSectionEyebrow,
-  landingShellClass,
+  LandingSection,
+  LandingSectionHeading,
 } from "./LandingReveal";
 
 const surfaces = [
@@ -49,32 +48,25 @@ const { memories } = await vmem.search(
 
 export function LandingSurfaces() {
   return (
-    <section
-      id="surfaces"
-      className={`${landingShellClass} scroll-mt-24 py-16 sm:py-24`}
-    >
+    <LandingSection id="surfaces">
       <LandingReveal>
         <LandingRevealItem>
-          <LandingSectionEyebrow>Surfaces</LandingSectionEyebrow>
-        </LandingRevealItem>
-        <LandingRevealItem>
-          <h2 className="max-w-lg text-balance font-instrumentSerif text-3xl leading-[1.05] tracking-tight text-foreground sm:text-5xl">
-            MCP, HTTP, and an SDK on the same graph
-          </h2>
-        </LandingRevealItem>
-        <LandingRevealItem>
-          <p className="mt-4 max-w-xl text-pretty text-sm leading-relaxed text-muted sm:text-base">
-            The dashboard is how you inspect it. Agents talk to it through the
-            same store.
-          </p>
+          <LandingSectionHeading
+            eyebrow="Surfaces"
+            heading="MCP, HTTP, and an SDK on the same graph"
+            intro="The dashboard is how you inspect it. Agents talk to it through the same store."
+          />
         </LandingRevealItem>
 
-        <div className="mt-10 grid gap-4 lg:grid-cols-3">
-          {surfaces.map((surface) => (
-            <LandingRevealItem key={surface.id}>
-              <article className="flex h-full flex-col overflow-hidden rounded-[1.5rem] bg-surface p-2 shadow-soft outline outline-1 -outline-offset-1 outline-black/10 transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-0.5 dark:outline-white/10">
-                <div className="flex flex-1 flex-col rounded-2xl px-4 pb-4 pt-3">
-                  <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted">
+        <LandingRevealItem className="mt-10">
+          <LandingLattice className="lg:grid-cols-3">
+            {surfaces.map((surface) => (
+              <article
+                key={surface.id}
+                className="flex h-full flex-col bg-background"
+              >
+                <div className="flex flex-1 flex-col px-5 pb-4 pt-5 sm:px-6">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted">
                     {surface.label}
                   </p>
                   <h3 className="mt-2 text-base font-medium text-foreground">
@@ -84,31 +76,14 @@ export function LandingSurfaces() {
                     {surface.description}
                   </p>
                 </div>
-                <pre className="overflow-x-auto rounded-2xl bg-surface-secondary px-4 py-3 font-mono text-[11px] leading-relaxed text-muted scrollbar-thin">
+                <pre className="overflow-x-auto border-t border-separator bg-surface px-5 py-4 font-mono text-[11px] leading-relaxed text-muted scrollbar-thin sm:px-6">
                   {surface.code}
                 </pre>
               </article>
-            </LandingRevealItem>
-          ))}
-        </div>
-
-        <LandingRevealItem>
-          <div className="mt-16 flex flex-col items-start justify-between gap-6 rounded-[1.5rem] bg-surface px-6 py-8 sm:flex-row sm:items-center sm:px-8">
-            <div>
-              <p className="font-instrumentSerif text-3xl leading-tight text-foreground text-balance">
-                Put memory under the agents you already use
-              </p>
-              <p className="mt-2 max-w-md text-pretty text-sm text-muted">
-                Create an account, open a profile, add a memory. Check it shows
-                up on the graph.
-              </p>
-            </div>
-            <SignUpButton mode="modal">
-              <Button size="lg">Get started</Button>
-            </SignUpButton>
-          </div>
+            ))}
+          </LandingLattice>
         </LandingRevealItem>
       </LandingReveal>
-    </section>
+    </LandingSection>
   );
 }

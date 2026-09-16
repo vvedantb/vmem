@@ -1,5 +1,6 @@
 import { LandingAmbientGraph } from "./LandingAmbientGraph";
 import { LandingAppStage } from "./LandingAppStage";
+import { LandingCta } from "./LandingCta";
 import { LandingFooter } from "./LandingFooter";
 import { LandingHero } from "./LandingHero";
 import { LandingHowItWorks } from "./LandingHowItWorks";
@@ -14,16 +15,21 @@ export function LandingPage() {
       id="top"
       className="relative min-h-[100dvh] bg-background text-foreground"
     >
-      <div className="relative">
-        <LandingAmbientGraph />
-        <LandingNav />
-        <LandingHero />
-      </div>
+      <LandingNav />
 
-      <LandingAppStage />
-      <LandingRecallDemo />
-      <LandingHowItWorks />
-      <LandingSurfaces />
+      <main>
+        <div className="landing-atmosphere landing-grain relative overflow-hidden border-b border-separator">
+          <LandingAmbientGraph />
+          <LandingHero />
+        </div>
+
+        <LandingAppStage />
+        <LandingRecallDemo />
+        <LandingHowItWorks />
+        <LandingSurfaces />
+        <LandingCta />
+      </main>
+
       <LandingFooter />
     </div>
   );
