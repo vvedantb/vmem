@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import puppeteer, { TargetType, type Browser } from "puppeteer-core";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-export const extensionRoot = path.resolve(here, "../..");
+export const extensionRoot = path.resolve(here, "../../..");
 export const distDir = path.join(extensionRoot, "dist/chrome-mv3");
 export const chromeBin =
   process.env.CHROME_PATH ??
@@ -52,6 +52,7 @@ export async function launchUnpackedExtension(): Promise<{
     userDataDir,
     pipe: true,
     enableExtensions: [distDir],
+    protocolTimeout: 120_000,
     args: [
       "--no-sandbox",
       "--disable-gpu",

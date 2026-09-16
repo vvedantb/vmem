@@ -63,85 +63,130 @@ async function clickFirstMatching(
   return false;
 }
 
-async function typeInto(
-  page: Page,
-  selector: string,
-  value: string,
-): Promise<void> {
-  const deadline = Date.now() + 20_000;
-  while (Date.now() < deadline) {
-    const targets = [page, ...page.frames()];
-    for (const target of targets) {
-      const el = await target.$(selector).catch(() => null);
-      if (!el) continue;
-      const box = await el.boundingBox().catch(() => null);
-      if (!box) continue;
-      await el.click({ clickCount: 3 });
-      await el.type(value, { delay: 15 });
-      return;
-    }
-    await sleep(250);
+type AxNode = {
+  role?: { value?: string };
+  name?: { value?: string };
+};
+
+async function axLabels(page: Page): Promise<string[]> {
+  const client = await page.createCDPSession();
+  try {
+    const { nodes } = (await client.send("Accessibility.getFullAXTree")) as {
+      nodes: AxNode[];
+    };
+    return nodes
+      .map((node) => `${node.role?.value ?? ""}:${node.name?.value ?? ""}`)
+      .filter((label) => !label.endsWith(":"));
+  } finally {
+    await client.detach().catch(() => {});
   }
-  throw new Error(`missing ${selector}`);
+}
+
+async function writeAxDump(page: Page, name: string): Promise<string[]> {
+  const labels = await axLabels(page).catch((err: unknown) => [
+    `error:${err instanceof Error ? err.message : String(err)}`,
+  ]);
+  await writeFile(
+    path.join(artifactDir, name),
+    JSON.stringify(labels, null, 2),
+  );
+  return labels;
+}
+
+function axHasPassword(labels: string[]): boolean {
+  return labels.some((label) => /password/i.test(label));
+}
+
+async function freezeLandingMotion(page: Page): Promise<void> {
+  await page.emulateMediaFeatures([
+    { name: "prefers-reduced-motion", value: "reduce" },
+  ]);
+  await page.evaluate(() => {
+    const style = document.createElement("style");
+    style.textContent =
+      "*, *::before, *::after { animation: none !important; transition: none !important; }";
+    document.head.appendChild(style);
+    for (const canvas of document.querySelectorAll("canvas")) canvas.remove();
+  });
 }
 
 async function signInOnVmem(page: Page): Promise<void> {
   await page.setViewport({ width: 1280, height: 800 });
+  await page.emulateMediaFeatures([
+    { name: "prefers-reduced-motion", value: "reduce" },
+  ]);
   await page.goto("https://vmem.vedantb.com", {
     waitUntil: "domcontentloaded",
     timeout: 30_000,
   });
-  await page
-    .waitForFunction(
-      () =>
-        Array.from(document.querySelectorAll("button")).some(
-          (b) => (b.textContent ?? "").trim() === "Sign in",
-        ),
-      { timeout: 20_000 },
-    )
-    .catch(() => {});
+  // landing graph/motion hydrates after first paint; CDP JS hangs if we query too early
+  await sleep(6_000);
+  await freezeLandingMotion(page);
+  await screenshot(page, "live_web_landing.png");
 
-  const clicked = await clickFirstMatching(
-    page,
-    "button",
-    (text) => text === "Sign in",
-  );
+  const clicked = await page.evaluate(() => {
+    const buttons = Array.from(document.querySelectorAll("button"));
+    const btn = buttons.find((b) => (b.textContent ?? "").trim() === "Sign in");
+    if (!(btn instanceof HTMLButtonElement)) return false;
+    btn.click();
+    return true;
+  });
   if (!clicked) {
     throw new Error("Sign in button not found on vmem.vedantb.com");
   }
+  await sleep(1_500);
+  await screenshot(page, "live_web_clerk_modal.png");
 
-  await typeInto(
-    page,
-    'input[name="identifier"], input[type="email"], input[autocomplete="username"]',
-    email,
-  );
-  await clickFirstMatching(
-    page,
-    "button",
-    (text) => text === "Continue" || text === "Next",
-  );
+  // Clerk overlay makes Runtime.callFunctionOn hang. Do not click the
+  // dimmed backdrop (that dismisses the modal). One identifier click,
+  // then Tab/Enter to Continue.
+  await page.mouse.click(640, 370);
+  await sleep(150);
+  await page.keyboard.down("Control");
+  await page.keyboard.press("KeyA");
+  await page.keyboard.up("Control");
+  await page.keyboard.type(email, { delay: 20 });
+  await screenshot(page, "live_web_email_typed.png");
+  const afterEmail = await writeAxDump(page, "live_ax_after_email.json");
 
-  await typeInto(
-    page,
-    'input[name="password"], input[type="password"]',
-    password,
-  );
-  const submitted =
-    (await clickFirstMatching(
-      page,
-      "button",
-      (text) => text === "Continue" || text === "Sign in" || text === "Log in",
-    )) || (await page.keyboard.press("Enter").then(() => true));
-  if (!submitted) {
-    throw new Error("password continue button not found");
+  await page.keyboard.press("Enter");
+  await sleep(1_800);
+  let afterContinue = await writeAxDump(page, "live_ax_after_continue.json");
+  if (!axHasPassword(afterContinue)) {
+    await page.keyboard.press("Tab");
+    await sleep(120);
+    await page.keyboard.press("Enter");
+    await sleep(1_800);
+    afterContinue = await writeAxDump(page, "live_ax_after_tab_enter.json");
+  }
+  if (!axHasPassword(afterContinue)) {
+    // Continue sits just under the identifier; a single click only.
+    await page.mouse.click(640, 418);
+    await sleep(1_800);
+    afterContinue = await writeAxDump(page, "live_ax_after_continue_click.json");
+  }
+  await screenshot(page, "live_web_password.png");
+  if (!axHasPassword(afterContinue) && !axHasPassword(afterEmail)) {
+    throw new Error(
+      `Clerk password field not in accessibility tree after identifier; sample=${afterContinue.slice(0, 20).join(" | ")}`,
+    );
   }
 
-  await page.waitForFunction(
-    () =>
-      location.pathname.includes("/home") ||
-      location.pathname.includes("/memories") ||
-      /Memories|Inbox|Skills/.test(document.body.innerText),
-    { timeout: 45_000 },
+  await page.keyboard.type(password, { delay: 20 });
+  await page.keyboard.press("Enter");
+  await sleep(2_000);
+  await screenshot(page, "live_web_after_credentials.png");
+  const deadline = Date.now() + 25_000;
+  while (Date.now() < deadline) {
+    const url = page.url();
+    if (url.includes("/home") || url.includes("/memories")) {
+      return;
+    }
+    await sleep(500);
+  }
+  const afterSubmit = await writeAxDump(page, "live_ax_after_submit.json");
+  throw new Error(
+    `still on ${page.url()} after submitting credentials; ax=${afterSubmit.slice(0, 12).join(" | ")}`,
   );
 }
 
@@ -351,55 +396,52 @@ async function runLive(): Promise<LiveMatrix> {
   }
 }
 
-await test("live signed-in matrix requires VMEM_TEST_EMAIL and VMEM_TEST_PASSWORD", () => {
-  if (!enabled) {
-    console.log(
-      "[vmem e2e live] skipped — set VMEM_TEST_EMAIL and VMEM_TEST_PASSWORD",
-    );
-  }
-  assert.equal(typeof enabled, "boolean");
-});
-
-if (!enabled) {
-  await test(
-    "live signed-in matrix skipped without credentials",
-    { skip: true },
-    () => {},
-  );
-} else {
-  const matrix = await runLive();
+const matrix = enabled ? await runLive() : emptyMatrix("credentials not set");
+if (enabled) {
   await ensureArtifactDir();
   await writeFile(
     path.join(artifactDir, "live_matrix.json"),
-    JSON.stringify(
-      {
-        marker,
-        email,
-        matrix,
-      },
-      null,
-      2,
-    ),
+    JSON.stringify({ marker, email, matrix }, null, 2),
   );
   console.log("[vmem e2e live]", JSON.stringify(matrix, null, 2));
-
-  await test("extension popup syncs Clerk session from the web app cookie", () => {
-    assert.equal(matrix.signedInPopup.ok, true, matrix.signedInPopup.reason);
-  });
-
-  await test("Alt+S saves the current page with a matching success toast", () => {
-    assert.equal(matrix.savePage.ok, true, matrix.savePage.reason);
-  });
-
-  await test("saved memory appears in the dashboard list", () => {
-    assert.equal(matrix.memoryVisible.ok, true, matrix.memoryVisible.reason);
-  });
-
-  await test("test memory is deleted after the run", () => {
-    assert.equal(matrix.cleanup.ok, true, matrix.cleanup.reason);
-  });
-
-  await test("ChatGPT inject probe recorded a result", () => {
-    assert.ok(matrix.chatgptInject.reason.length > 0);
-  });
+} else {
+  console.log(
+    "[vmem e2e live] skipped — set VMEM_TEST_EMAIL and VMEM_TEST_PASSWORD",
+  );
 }
+
+await test("live signed-in matrix requires VMEM_TEST_EMAIL and VMEM_TEST_PASSWORD", () => {
+  assert.equal(typeof enabled, "boolean");
+});
+
+await test(
+  "extension popup syncs Clerk session from the web app cookie",
+  { skip: !enabled },
+  () => {
+    assert.equal(matrix.signedInPopup.ok, true, matrix.signedInPopup.reason);
+  },
+);
+
+await test(
+  "Alt+S saves the current page with a matching success toast",
+  { skip: !enabled },
+  () => {
+    assert.equal(matrix.savePage.ok, true, matrix.savePage.reason);
+  },
+);
+
+await test(
+  "saved memory appears in the dashboard list",
+  { skip: !enabled },
+  () => {
+    assert.equal(matrix.memoryVisible.ok, true, matrix.memoryVisible.reason);
+  },
+);
+
+await test("test memory is deleted after the run", { skip: !enabled }, () => {
+  assert.equal(matrix.cleanup.ok, true, matrix.cleanup.reason);
+});
+
+await test("ChatGPT inject probe recorded a result", { skip: !enabled }, () => {
+  assert.ok(matrix.chatgptInject.reason.length > 0);
+});
