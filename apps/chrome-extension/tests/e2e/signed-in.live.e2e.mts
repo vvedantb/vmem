@@ -699,20 +699,18 @@ async function runLive(): Promise<LiveMatrix> {
         waitUntil: "domcontentloaded",
         timeout: 30_000,
       });
-      await sleep(2_500);
-      const search = await dash.$(
-        'input[placeholder*="Search" i], input[type="search"]',
-      );
-      if (search) {
-        await search.click({ clickCount: 3 });
-        await search.type(marker, { delay: 15 });
-        await dash.keyboard.press("Enter");
-        await sleep(2_000);
+      // URL markers are not indexed for search; wait for the Example Domain row
+      let listText = "";
+      let visible = false;
+      const listDeadline = Date.now() + 20_000;
+      while (Date.now() < listDeadline) {
+        listText = await dash.evaluate(() => document.body.innerText);
+        visible =
+          listText.includes("Example Domain") || listText.includes(marker);
+        if (visible) break;
+        await sleep(500);
       }
       await screenshot(dash, "live_memory_list.png");
-      const listText = await dash.evaluate(() => document.body.innerText);
-      const visible =
-        listText.includes(marker) || listText.includes("Example Domain");
       matrix.memoryVisible = {
         ok: visible,
         reason: visible
@@ -721,17 +719,31 @@ async function runLive(): Promise<LiveMatrix> {
       };
 
       if (visible) {
-        const deleted = await deleteVisibleTestMemory(dash);
-        await sleep(1_500);
+        let deleted = false;
+        for (let attempt = 0; attempt < 4; attempt++) {
+          const clicked = await deleteVisibleTestMemory(dash);
+          if (!clicked) break;
+          deleted = true;
+          await sleep(1_200);
+          const remaining = await dash.evaluate(() => document.body.innerText);
+          if (
+            !remaining.includes("Example Domain") &&
+            !remaining.includes(marker)
+          ) {
+            break;
+          }
+        }
+        await sleep(800);
         await screenshot(dash, "live_memory_cleanup.png");
         const after = await dash.evaluate(() => document.body.innerText);
-        const gone = deleted && !after.includes(marker);
+        const gone =
+          !after.includes("Example Domain") && !after.includes(marker);
         matrix.cleanup = {
           ok: gone || deleted,
           reason: gone
             ? "test memory deleted"
             : deleted
-              ? "delete clicked; marker still in DOM"
+              ? "delete clicked; Example Domain still in DOM"
               : "could not trigger delete",
         };
       } else {
@@ -769,7 +781,7 @@ async function runLive(): Promise<LiveMatrix> {
           ),
           hasUse: Boolean(document.querySelector("[data-vmem]")),
           hasUseCopy: /Use vmem|Export to vmem/.test(text),
-          loggedIn: !/Log in to get responses tailored to you/.test(text),
+          loggedIn: !/Log in|Sign up for free/.test(text),
           preview: text.slice(0, 280),
         };
       });
