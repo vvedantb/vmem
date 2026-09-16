@@ -173,6 +173,7 @@ export function SidebarWorkspaceSwitcher({
             <Button
               type="button"
               variant="ghost"
+              aria-label={`Switch workspace, ${active.name}`}
               className="h-auto w-full justify-start gap-2.5 rounded-lg bg-surface-secondary p-2 text-left hover:bg-surface-tertiary active:scale-100"
             >
               <ProfileAvatar

@@ -12,6 +12,8 @@ import {
   mcpScopeValidator,
   setMcpDefaultProfileForScope,
 } from "./profiles/mcpAccess";
+import { getMembershipOrNull } from "./teams/auth";
+import { userFacingError } from "./lib/userFacingError";
 import {
   userSettingsPatchFields,
   type userSettingsThemeValidator,
@@ -214,10 +216,21 @@ export const setDefaultProfile = authMutation({
     profileId: v.id("profiles"),
   },
   handler: async (ctx, args) => {
-    // verify profile belongs to user
     const profile = await ctx.db.get(args.profileId);
-    if (!profile || profile.userId !== ctx.userId) {
-      throw new Error("Profile not found");
+    if (!profile) {
+      userFacingError("Profile not found");
+    }
+    if (profile.teamId) {
+      const membership = await getMembershipOrNull(
+        ctx,
+        profile.teamId,
+        ctx.userId,
+      );
+      if (!membership) {
+        userFacingError("Profile not found");
+      }
+    } else if (profile.userId !== ctx.userId) {
+      userFacingError("Profile not found");
     }
 
     const existing = await getSettingsDoc(ctx, ctx.userId);

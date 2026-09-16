@@ -4,6 +4,7 @@ import { useQuery } from "convex/react";
 import { api } from "@vmem/backend";
 import { IconLoader2 } from "@tabler/icons-react";
 import PageContainer from "@/components/shell/PageContainer";
+import { SettingsStack } from "@/components/settings/SettingsStack";
 import { TeamDetailProvider } from "@/components/teams/team-context";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 import { TeamWorkspaceTabs } from "./-components/TeamTabs";
@@ -30,8 +31,12 @@ function TeamWorkspaceLayout() {
         params: { profileId: profile._id },
         replace: true,
       });
+      return;
     }
-  }, [teamId, navigate, profile._id]);
+    if (data === null) {
+      void navigate({ to: "/home", replace: true });
+    }
+  }, [teamId, data, navigate, profile._id]);
 
   if (teamId === undefined || data === null) {
     // not a team workspace (or membership just got revoked) the effect
@@ -57,7 +62,9 @@ function TeamWorkspaceLayout() {
         centeredMaxWidth
         leftSection={<TeamWorkspaceTabs />}
       >
-        <Outlet />
+        <SettingsStack>
+          <Outlet />
+        </SettingsStack>
       </PageContainer>
     </TeamDetailProvider>
   );

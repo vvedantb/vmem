@@ -11,6 +11,7 @@ import { IconBrandChrome } from "@tabler/icons-react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@vmem/backend";
 import { patchDefaultProfile } from "@/lib/convex-optimistic";
+import { convexErrorMessage } from "@/lib/convex-error";
 import { SettingsSection } from "@/components/settings/SettingsSection";
 import { SettingsField } from "@/components/settings/SettingsField";
 
@@ -38,7 +39,7 @@ export function DefaultProfilesSection({ profiles }: { profiles: Profile[] }) {
       });
       toast.success("Saved!");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save");
+      toast.error(convexErrorMessage(err, "Failed to save"));
     }
   };
 
@@ -55,7 +56,7 @@ export function DefaultProfilesSection({ profiles }: { profiles: Profile[] }) {
             Browser extension
           </span>
         }
-        description="MCP clients will ask which profile to save to."
+        description="Memories captured by the browser extension save to this profile."
       >
         <Select
           value={extensionDefault?._id ?? ""}

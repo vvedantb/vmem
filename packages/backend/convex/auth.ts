@@ -9,6 +9,7 @@ import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { DEFAULT_PROFILE_COLOR } from "./profiles/helpers";
+import { normalizeAccountEmail } from "./lib/accountEmail";
 
 export async function getUserByClerkId(
   ctx: QueryCtx | MutationCtx,
@@ -109,12 +110,14 @@ export const ensureUserExists = mutation({
     }
 
     const existingUser = await getUserByClerkId(ctx, clerkUserId);
+    const email = normalizeAccountEmail(identity.email);
 
     if (existingUser) {
+      if (email !== undefined && existingUser.email !== email) {
+        await ctx.db.patch(existingUser._id, { email });
+      }
       return { userId: existingUser._id, wasCreated: false };
     }
-
-    const email = identity.email || undefined;
     const firstName =
       typeof identity.givenName === "string" ? identity.givenName : undefined;
     const lastName =

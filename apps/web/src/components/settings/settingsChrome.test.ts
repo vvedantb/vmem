@@ -35,6 +35,11 @@ describe("settings chrome mirrors Eva", () => {
     expect(read("SettingsPage.tsx")).toContain("insetHeader");
     expect(read("SettingsSection.tsx")).toContain('bodyVariant = "form"');
     expect(read("SettingsToggleRow.tsx")).toContain("min-h-10");
+    expect(read("../teams/TeamSettings.tsx")).toContain("SettingsSection");
+    expect(read("../teams/TeamMembers.tsx")).toContain("SettingsSection");
+    expect(read("../teams/TeamSettings.tsx")).not.toMatch(
+      /onChange=\{\(e\) => handleNameChange/,
+    );
   });
 
   it("routes settings pages through SettingsPage", () => {
@@ -49,5 +54,16 @@ describe("settings chrome mirrors Eva", () => {
       expect(source).toContain("SettingsPage");
       expect(source).not.toMatch(/<PageContainer/);
     }
+  });
+
+  it("does not tell people the extension default is an MCP picker", () => {
+    const source = read("../profiles/DefaultProfilesSection.tsx");
+    expect(source).toContain("Browser extension");
+    expect(source).toContain(
+      "Memories captured by the browser extension save to this profile.",
+    );
+    expect(source).not.toContain(
+      "MCP clients will ask which profile to save to.",
+    );
   });
 });

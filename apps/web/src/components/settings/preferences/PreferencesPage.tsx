@@ -14,6 +14,7 @@ import { SettingsPage } from "@/components/settings/SettingsPage";
 import { SettingsSection } from "@/components/settings/SettingsSection";
 import { SettingsToggleRow } from "@/components/settings/SettingsToggleRow";
 import { useUserSettingsSave } from "@/hooks/useUserSettingsSave";
+import { convexErrorMessage } from "@/lib/convex-error";
 import { PreferenceTextareaRow } from "./PreferenceTextareaRow";
 import { PreferencesPageSkeleton } from "./PreferencesPageSkeleton";
 
@@ -56,7 +57,7 @@ export function PreferencesPage() {
       clearDraft();
       toast.success("Saved!");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save");
+      toast.error(convexErrorMessage(err, "Failed to save"));
     }
   };
 
@@ -82,9 +83,7 @@ export function PreferencesPage() {
         );
       }
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to update schedule",
-      );
+      toast.error(convexErrorMessage(err, "Failed to update schedule"));
     }
   };
 
@@ -104,9 +103,7 @@ export function PreferencesPage() {
         toast.success(`Schedule updated to ${localTime}`);
       }
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to update schedule",
-      );
+      toast.error(convexErrorMessage(err, "Failed to update schedule"));
     }
   };
 

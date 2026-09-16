@@ -1,18 +1,23 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
+import { useNavigate } from "@tanstack/react-router";
 import { api, type Id } from "@vmem/backend";
-import { Badge, Button, Card, CardContent } from "@vmem/ui";
+import { Badge, Button } from "@vmem/ui";
 import { useUser } from "@clerk/clerk-react";
 import {
   IconPlus,
   IconTrash,
   IconLoader2,
   IconUser,
+  IconLogout,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
+import { convexErrorMessage } from "@/lib/convex-error";
+import { SettingsSection } from "@/components/settings/SettingsSection";
 import { useTeamWorkspace, type TeamMember } from "./team-context";
 import { AddMemberDialog } from "./AddMemberDialog";
 import { RemoveMemberDialog } from "./RemoveMemberDialog";
+import { LeaveTeamDialog } from "./LeaveTeamDialog";
 
 type PendingRemoval = {
   userId: Id<"users">;
@@ -21,6 +26,7 @@ type PendingRemoval = {
 
 export function TeamMembers() {
   const { detail: data, meta } = useTeamWorkspace();
+  const navigate = useNavigate();
   const removeMember = useMutation(api.teams.removeMember).withOptimisticUpdate(
     (localStore, args) => {
       const detail = localStore.getQuery(api.teams.get, {
@@ -39,7 +45,23 @@ export function TeamMembers() {
       );
     },
   );
+  const leaveTeam = useMutation(api.teams.leaveTeam).withOptimisticUpdate(
+    (localStore, args) => {
+      const profiles = localStore.getQuery(api.profiles.list, {});
+      if (profiles !== undefined) {
+        localStore.setQuery(
+          api.profiles.list,
+          {},
+          profiles.filter(
+            (p) => (p.teamId as string | undefined) !== args.teamId,
+          ),
+        );
+      }
+    },
+  );
   const [addOpen, setAddOpen] = useState(false);
+  const [leaveOpen, setLeaveOpen] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const [removing, setRemoving] = useState<Id<"users"> | null>(null);
   const [pendingRemoval, setPendingRemoval] = useState<PendingRemoval | null>(
     null,
@@ -58,52 +80,85 @@ export function TeamMembers() {
       toast.success("Member removed");
       setPendingRemoval(null);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to remove");
+      toast.error(convexErrorMessage(err, "Failed to remove"));
     }
     // after the try rather than in a `finally` React Compiler bails on the
     // whole file when it meets one. The catch swallows, so this always runs.
     setRemoving(null);
   };
 
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-muted">
-          {data.members.length}{" "}
-          {data.members.length === 1 ? "member" : "members"}
-        </div>
-        {meta.isOwner ? (
-          <Button variant="outline" size="sm" onClick={() => setAddOpen(true)}>
-            <IconPlus size={16} />
-            Add member
-          </Button>
-        ) : null}
-      </div>
+  const handleLeaveConfirm = async () => {
+    setLeaving(true);
+    try {
+      await leaveTeam({ teamId: data.team._id });
+      toast.success(`Left ${data.team.name}`);
+      setLeaveOpen(false);
+      await navigate({ to: "/home" });
+    } catch (err) {
+      toast.error(convexErrorMessage(err, "Failed to leave team"));
+      setLeaving(false);
+    }
+  };
 
-      <Card className="shadow-none">
-        <CardContent className="p-2">
-          {data.members.length === 0 ? (
-            <div className="py-10 text-center text-sm text-muted">
-              No members yet.
-            </div>
-          ) : (
-            <ul className="flex flex-col gap-1">
-              {data.members.map((member) => (
-                <MemberRow
-                  key={member.userId}
-                  member={member}
-                  currentUserId={currentUser?._id}
-                  clerkImageUrl={clerkUser?.imageUrl}
-                  removingUserId={removing}
-                  onRemove={(userId, label) =>
-                    setPendingRemoval({ userId, label })
-                  }
-                />
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+  const memberCount = data.members.length;
+
+  return (
+    <>
+      <SettingsSection
+        title="Members"
+        description={`${memberCount} ${memberCount === 1 ? "member" : "members"}. Everyone can read and write team memories.`}
+        action={
+          meta.isOwner ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setAddOpen(true)}
+            >
+              <IconPlus size={16} />
+              Add member
+            </Button>
+          ) : null
+        }
+        bodyVariant="list"
+      >
+        {memberCount === 0 ? (
+          <div className="px-4 py-10 text-center text-sm text-muted">
+            No members yet.
+          </div>
+        ) : (
+          <ul>
+            {data.members.map((member) => (
+              <MemberRow
+                key={member.userId}
+                member={member}
+                currentUserId={currentUser?._id}
+                clerkImageUrl={clerkUser?.imageUrl}
+                removingUserId={removing}
+                onRemove={(userId, label) =>
+                  setPendingRemoval({ userId, label })
+                }
+              />
+            ))}
+          </ul>
+        )}
+      </SettingsSection>
+
+      {meta.isOwner ? null : (
+        <SettingsSection
+          title="Leave team"
+          description="You'll lose access to this shared profile and its memories."
+        >
+          <Button
+            variant="outline"
+            onClick={() => setLeaveOpen(true)}
+            disabled={leaving}
+            className="text-danger hover:text-danger"
+          >
+            <IconLogout size={14} className="mr-1.5" />
+            Leave team
+          </Button>
+        </SettingsSection>
+      )}
 
       <AddMemberDialog
         teamId={data.team._id}
@@ -121,7 +176,17 @@ export function TeamMembers() {
         }}
         onConfirm={() => void handleRemoveConfirm()}
       />
-    </div>
+
+      <LeaveTeamDialog
+        open={leaveOpen}
+        teamName={data.team.name}
+        submitting={leaving}
+        onClose={() => {
+          if (!leaving) setLeaveOpen(false);
+        }}
+        onConfirm={() => void handleLeaveConfirm()}
+      />
+    </>
   );
 }
 
@@ -146,7 +211,7 @@ function MemberRow({
   const isRemoving = removingUserId === member.userId;
 
   return (
-    <li className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 transition-[background-color] hover:bg-surface-tertiary/50">
+    <li className="flex items-center justify-between gap-3 px-4 py-3">
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <MemberAvatar imageUrl={isSelf ? clerkImageUrl : undefined} />
         <div className="min-w-0">
@@ -169,6 +234,7 @@ function MemberRow({
           <Button
             variant="ghost"
             size="sm"
+            aria-label={`Remove ${name}`}
             onClick={() => onRemove(member.userId, name)}
             disabled={isRemoving}
             className="text-muted hover:text-danger"
