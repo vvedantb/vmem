@@ -75,12 +75,15 @@ Web app is at http://localhost:5173.
 pnpm ext:dev / pnpm ext:build   # extension under apps/chrome-extension/dist/
 pnpm typecheck:all
 pnpm test
+pnpm test:e2e                   # Playwright web suite (see e2e/README.md)
 pnpm check
 ```
 
 Graph client perf bench (synthetic, no Convex): open `/memories?bench=5000`. Retrieval quality bench: `pnpm --filter @vmem/backend test:memory-bench`.
 
 More on the extension: [`apps/chrome-extension/README.md`](apps/chrome-extension/README.md).
+
+Web Playwright E2E (landing + authenticated smokes against production or local Vite): [`e2e/README.md`](e2e/README.md). Needs `E2E_USER_EMAIL` / `E2E_USER_PASSWORD` for signed-in specs.
 
 ## Environment
 

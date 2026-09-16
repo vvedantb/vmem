@@ -1,5 +1,7 @@
 node_modules
 .env.local
+e2e/.env
+e2e/.env.local
 .mcp.json
 .next
 .turbo
@@ -47,3 +49,11 @@ apps/chrome-extension/scripts/
 
 # Oxlint report — local only
 oxlint-report.json
+
+# Playwright E2E (web)
+e2e/.auth/
+e2e/test-results/
+e2e/playwright-report/
+e2e/blob-report/
+playwright-report/
+test-results/

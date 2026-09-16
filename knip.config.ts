@@ -27,8 +27,15 @@ const config: KnipConfig = {
   },
   workspaces: {
     ".": {
-      entry: ["oxlint-plugin-vmem/index.mjs"],
-      project: ["oxlint-plugin-vmem/**/*.mjs"],
+      entry: [
+        "oxlint-plugin-vmem/index.mjs",
+        "e2e/playwright.config.ts!",
+        "e2e/auth.setup.ts!",
+        "e2e/fixtures.ts!",
+        "e2e/specs/**/*.ts!",
+        "e2e/helpers/**/*.ts!",
+      ],
+      project: ["oxlint-plugin-vmem/**/*.mjs", "e2e/**/*.ts"],
     },
     "apps/web": {
       entry: [

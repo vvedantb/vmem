@@ -298,6 +298,7 @@ function TagRow({
 }) {
   const rowBody = (
     <div
+      data-testid="tag-row"
       className={cn(
         "cursor-pointer rounded-lg px-3 py-2.5 transition-[background-color] hover:bg-surface-tertiary",
         isSelected && "bg-surface-secondary",

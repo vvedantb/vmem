@@ -92,6 +92,7 @@ export default function ListItemRow({
 
   const rowBody = (
     <div
+      data-testid="list-item-row"
       className={cn(
         "cursor-pointer rounded-lg px-3 py-2.5 transition-[background-color] hover:bg-surface-tertiary",
         isSelected && "bg-surface-secondary",

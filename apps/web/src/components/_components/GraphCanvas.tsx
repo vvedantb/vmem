@@ -751,6 +751,9 @@ function GraphCanvas({
     <div
       ref={rootRef}
       className="relative h-full w-full block"
+      data-testid="memory-graph"
+      role="img"
+      aria-label="Memory graph"
       style={{
         touchAction: "none",
         backgroundColor: viewTheme.background,

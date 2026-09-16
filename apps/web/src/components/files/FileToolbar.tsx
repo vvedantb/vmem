@@ -105,10 +105,10 @@ export default function FileToolbar({
         }}
       >
         <TabsList className="h-8">
-          <TabsTrigger value="grid" className="h-6 px-2">
+          <TabsTrigger value="grid" className="h-6 px-2" aria-label="Grid view">
             <IconLayoutGrid size={15} />
           </TabsTrigger>
-          <TabsTrigger value="list" className="h-6 px-2">
+          <TabsTrigger value="list" className="h-6 px-2" aria-label="List view">
             <IconList size={15} />
           </TabsTrigger>
         </TabsList>
