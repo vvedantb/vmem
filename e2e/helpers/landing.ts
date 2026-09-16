@@ -10,6 +10,17 @@ function parseRgb(
   return { r: Number(match[1]), g: Number(match[2]), b: Number(match[3]) };
 }
 
+function isDarkBackground(color: string): boolean {
+  const rgb = parseRgb(color);
+  if (rgb !== undefined) {
+    return (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000 < 50;
+  }
+  const oklch = /oklch\(\s*([\d.]+)%?/.exec(color);
+  if (oklch === null) return false;
+  const lightness = Number(oklch[1]);
+  return lightness <= 1 ? lightness < 0.4 : lightness < 40;
+}
+
 function isVividRed(color: string): boolean {
   const rgb = parseRgb(color);
   if (rgb === undefined) return false;
@@ -53,11 +64,10 @@ export async function assertDarkCanvas(page: Page): Promise<void> {
   const background = await page.evaluate(
     () => getComputedStyle(document.body).backgroundColor,
   );
-  const rgb = parseRgb(background);
-  expect(rgb, `body background ${background}`).toBeDefined();
-  if (rgb === undefined) return;
-  const luminance = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
-  expect(luminance, `body background ${background}`).toBeLessThan(50);
+  expect(
+    isDarkBackground(background),
+    `body background should be dark (${background})`,
+  ).toBe(true);
 }
 
 export function trackFailedStaticAssets(page: Page): string[] {

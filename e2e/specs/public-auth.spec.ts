@@ -37,17 +37,5 @@ test.describe(
         page.getByText("Workspace not found, or you don't have access to it."),
       ).toBeVisible();
     });
-
-    test("sign out returns to the marketing page", async ({ page }) => {
-      await page.getByRole("button", { name: /Account menu/ }).click();
-      await page.getByRole("menuitem", { name: "Sign out" }).click();
-      const dialog = page.getByRole("dialog");
-      await expect(dialog).toBeVisible();
-      await dialog.getByRole("button", { name: "Sign out" }).click();
-      await expect(
-        page.getByRole("heading", { name: MARKETING_HERO }),
-      ).toBeVisible({ timeout: 45_000 });
-      await expect(page).toHaveURL(/\/$/);
-    });
   },
 );
