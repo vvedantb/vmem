@@ -1,4 +1,3 @@
-import { createElement } from "react";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -36,23 +35,21 @@ function testDetail(): TeamDetail {
 }
 
 function TeamName() {
-  return createElement("span", null, useTeamWorkspace().detail.team.name);
+  return <span>{useTeamWorkspace().detail.team.name}</span>;
 }
 
 describe("useTeamWorkspace", () => {
   it("returns the layout-provided team detail without re-querying Convex", () => {
     const html = renderToStaticMarkup(
-      createElement(
-        TeamDetailProvider,
-        { detail: testDetail() },
-        createElement(TeamName),
-      ),
+      <TeamDetailProvider detail={testDetail()}>
+        <TeamName />
+      </TeamDetailProvider>,
     );
     expect(html).toContain("Acme");
   });
 
   it("throws only when used outside TeamDetailProvider", () => {
-    expect(() => renderToStaticMarkup(createElement(TeamName))).toThrow(
+    expect(() => renderToStaticMarkup(<TeamName />)).toThrow(
       /must be used within TeamDetailProvider/,
     );
   });

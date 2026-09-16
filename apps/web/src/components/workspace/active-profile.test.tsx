@@ -1,14 +1,10 @@
-import { createElement } from "react";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { Doc, Id, TableNames } from "@vmem/backend";
-import {
-  ActiveProfileProvider,
-  useActiveProfile,
-} from "./active-profile";
+import { ActiveProfileProvider, useActiveProfile } from "./active-profile";
 
 function optimisticId<TableName extends TableNames>(
   tableName: TableName,
@@ -32,24 +28,22 @@ function testProfile(): Doc<"profiles"> {
 }
 
 function ProfileName() {
-  return createElement("span", null, useActiveProfile().name);
+  return <span>{useActiveProfile().name}</span>;
 }
 
 describe("useActiveProfile", () => {
   it("returns the layout-provided profile without re-querying Convex", () => {
     const profile = testProfile();
     const html = renderToStaticMarkup(
-      createElement(
-        ActiveProfileProvider,
-        { profile },
-        createElement(ProfileName),
-      ),
+      <ActiveProfileProvider profile={profile}>
+        <ProfileName />
+      </ActiveProfileProvider>,
     );
     expect(html).toContain("Personal");
   });
 
   it("throws only when used outside the workspace provider", () => {
-    expect(() => renderToStaticMarkup(createElement(ProfileName))).toThrow(
+    expect(() => renderToStaticMarkup(<ProfileName />)).toThrow(
       /must be used inside the \$profileId workspace route/,
     );
   });
