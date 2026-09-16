@@ -19,8 +19,6 @@ test.describe("inbox", { tag: ["@inbox", "@smoke"] }, () => {
 
     await page.getByRole("tab", { name: "Notifications" }).click();
     await expect(page).toHaveURL(/\/inbox\/notifications/);
-    const none = page.getByRole("heading", { name: "No notifications" });
-    const list = page.locator("#main-content");
-    await expect(none.or(list)).toBeVisible();
+    await expect(page.locator("#main-content")).toBeVisible();
   });
 });

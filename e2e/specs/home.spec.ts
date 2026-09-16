@@ -12,15 +12,19 @@ test.describe(
       ).toBeVisible();
       const main = mainContent(page);
       await expect(
-        main.getByText("Total memories", { exact: true }),
+        main.getByRole("paragraph", { name: "Total memories" }),
       ).toBeVisible({
         timeout: 30_000,
       });
       await expect(
-        main.getByText("Added today", { exact: true }),
+        main.getByRole("paragraph", { name: "Added today" }),
       ).toBeVisible();
-      await expect(main.getByText("This week", { exact: true })).toBeVisible();
-      await expect(main.getByText("Tags used", { exact: true })).toBeVisible();
+      await expect(
+        main.getByRole("paragraph", { name: "This week" }),
+      ).toBeVisible();
+      await expect(
+        main.getByRole("paragraph", { name: "Tags used" }),
+      ).toBeVisible();
       await expect(page.getByRole("link", { name: "Memories" })).toBeVisible();
     });
   },
