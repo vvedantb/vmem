@@ -86,4 +86,18 @@ describe("memory retrieval quality benchmark", () => {
     expect(improvedR1).toBeGreaterThan(baselineR1);
     expect(improvedMrr).toBeGreaterThan(baselineMrr);
   });
+
+  it("fails substring on synonym and paraphrase queries that hybrid ranks", () => {
+    const hardIds = new Set(
+      SYNTHETIC_QUERIES.filter(
+        (entry) => entry.kind === "synonym" || entry.kind === "paraphrase",
+      ).map((entry) => entry.id),
+    );
+    const baselineHard = baseline.metrics.filter((row) => hardIds.has(row.id));
+    const improvedHard = improved.metrics.filter((row) => hardIds.has(row.id));
+    expect(mean(baselineHard.map((row) => row.mrr))).toBeLessThan(0.5);
+    expect(mean(baselineHard.map((row) => row.recall1))).toBeLessThan(0.5);
+    expect(mean(improvedHard.map((row) => row.mrr))).toBe(1);
+    expect(mean(improvedHard.map((row) => row.recall5))).toBe(1);
+  });
 });

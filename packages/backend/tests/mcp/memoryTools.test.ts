@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { memoryToolSpecs } from "../../convex/mcp/toolsMemory";
 import { toolSpecs } from "../../convex/mcp/toolCatalog";
@@ -81,6 +84,37 @@ describe("MCP memory tool surfaces", () => {
     expect(memoryToolSpecs.memory_retrieve.description).toContain("hybrid");
     expect(memoryToolSpecs.memory_retrieve.description).not.toContain(
       "substring",
+    );
+  });
+
+  it("retrieve schema and handler pass type, tags, and status filters", () => {
+    const source = readFileSync(
+      join(
+        dirname(fileURLToPath(import.meta.url)),
+        "../../convex/mcp/toolsMemory.ts",
+      ),
+      "utf8",
+    );
+    const retrieveBlock = source.slice(
+      source.indexOf("memory_retrieve:"),
+      source.indexOf("memory_add:"),
+    );
+    expect(retrieveBlock).toContain("type: params.type");
+    expect(retrieveBlock).toContain("tags: params.tags");
+    expect(retrieveBlock).toContain("status: params.status");
+    expect(
+      memoryToolSpecs.memory_retrieve.schema.safeParse({
+        query: "london",
+        type: "profile",
+        tags: ["pnpm"],
+        status: "pinned",
+      }).success,
+    ).toBe(true);
+  });
+
+  it("instruction add documents the OpenRouter gate", () => {
+    expect(memoryToolSpecs.memory_add_instruction.description).toContain(
+      "openrouter_required",
     );
   });
 });

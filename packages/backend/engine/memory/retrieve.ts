@@ -1,7 +1,28 @@
 import type { MemoryCandidate, MemoryWithTags } from "@vmem/sdk";
-import { rankMemories } from "./rank";
+import { memoryMatchesListFilter, type MemoryListFilter } from "./list";
+import { rankMemories, type RankMemoriesOptions } from "./rank";
 
 export { rankMemories } from "./rank";
+
+export interface RetrieveMemoriesOptions
+  extends RankMemoriesOptions, MemoryListFilter {}
+
+export function retrieveMemoriesFromPool(
+  memories: readonly MemoryWithTags[],
+  query: string,
+  options: RetrieveMemoriesOptions = {},
+): MemoryCandidate[] {
+  const filter: MemoryListFilter = {
+    type: options.type,
+    status: options.status,
+    source: options.source,
+    tags: options.tags,
+  };
+  const pool = memories.filter((memory) =>
+    memoryMatchesListFilter(memory, filter),
+  );
+  return rankMemories(pool, query, options);
+}
 
 export function toMemoryCandidate(
   memory: MemoryWithTags,
@@ -27,6 +48,8 @@ export function toMemoryCandidate(
   };
 }
 
+// Honest non-LLM fallback: join ranked titles. Does not call OpenRouter and
+// does not return 422. LLM summaries stay gated elsewhere.
 export function summarizeRetrievedMemories(
   memories: Array<Pick<MemoryWithTags, "title">>,
 ): string {

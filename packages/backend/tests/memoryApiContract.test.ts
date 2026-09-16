@@ -94,6 +94,8 @@ describe("memoryApi contract request schemas", () => {
       retrieveBodySchema.safeParse({
         query: "pnpm",
         type: "episodic",
+        status: "pinned",
+        tags: ["PNPM"],
         limit: 50,
         summarize: true,
       }).success,

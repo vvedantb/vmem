@@ -4,7 +4,7 @@ import { internal } from "../_generated/api";
 import { decryptToken } from "./crypto";
 
 async function resolveUserEnvVars(
-  ctx: ActionCtx,
+  ctx: Pick<ActionCtx, "runQuery">,
   userId: Id<"users">,
 ): Promise<Record<string, string>> {
   const entries: Array<{ key: string; value: string }> = await ctx.runQuery(
@@ -19,7 +19,7 @@ async function resolveUserEnvVars(
 }
 
 async function resolveUserIdAndEnvVars(
-  ctx: ActionCtx,
+  ctx: Pick<ActionCtx, "runQuery">,
   clerkId: string,
 ): Promise<{ userId: Id<"users">; all: Record<string, string> } | null> {
   const user = await ctx.runQuery(internal.users.getByClerkIdInternal, {
@@ -31,7 +31,7 @@ async function resolveUserIdAndEnvVars(
 
 // soft-fail lookup, null when user or env var missing
 export async function tryUserAndApiKeyByClerkId(
-  ctx: ActionCtx,
+  ctx: Pick<ActionCtx, "runQuery">,
   clerkId: string,
   key: string,
 ): Promise<{ userId: Id<"users">; apiKey: string } | null> {

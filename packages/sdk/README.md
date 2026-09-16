@@ -50,20 +50,20 @@ const vmem = new VMemory({
 
 - **API key** (`VMEM_API_KEY` or `apiKey`) — required for all calls.
 - **Base URL** (`VMEM_BASE_URL` or `baseUrl`) — your Convex site URL (`https://<deployment>.convex.site`).
-- **OpenRouter key** (dashboard env) — optional. When set, vmem embeds memories on write and can blend vector similarity into retrieve. Agentic `save()` / `update()` store the instruction as a knowledge memory without an LLM (they do not return `openrouter_required`).
+- **OpenRouter key** (dashboard env) — required for agentic `save()` / `update()`. Those calls return HTTP 422 `{ error: "openrouter_required" }` when the key is missing. When set, vmem also embeds memories on write and can blend vector similarity into retrieve. `search({ summarize: true })` joins ranked titles (no LLM, no 422).
 
 ## API
 
-| Method                    | Description                                             |
-| ------------------------- | ------------------------------------------------------- |
-| `save(instruction)`       | Extract facts from natural language and create memories |
-| `update(instruction)`     | Reconcile changes; conflicting updates become proposals |
-| `search(query, options?)` | Hybrid semantic search; optional `summarize: true`      |
-| `createMemory(body)`      | Structured create (escape hatch)                        |
-| `patchMemory(body)`       | Structured update by `id`                               |
-| `deleteMemory(body)`      | Structured delete by `id`                               |
-| `searchMemories(body)`    | Structured search                                       |
-| `health()`                | `GET /health` (unauthenticated liveness check)          |
+| Method                    | Description                                                                     |
+| ------------------------- | ------------------------------------------------------------------------------- |
+| `save(instruction)`       | Requires OpenRouter; 422 `openrouter_required` without it                       |
+| `update(instruction)`     | Same OpenRouter gate as `save()`                                                |
+| `search(query, options?)` | Hybrid retrieve; `type`/`tags`/`status` filters; `summarize: true` joins titles |
+| `createMemory(body)`      | Structured create (escape hatch)                                                |
+| `patchMemory(body)`       | Structured update by `id`                                                       |
+| `deleteMemory(body)`      | Structured delete by `id`                                                       |
+| `searchMemories(body)`    | Structured search                                                               |
+| `health()`                | `GET /health` (unauthenticated liveness check)                                  |
 
 ## Errors
 
@@ -73,8 +73,8 @@ import { VMemory, isVMemoryError } from "@vmem/sdk";
 try {
   await vmem.save("...");
 } catch (error) {
-  if (isVMemoryError(error) && error.code === "unauthorized") {
-    // Check VMEM_API_KEY / VMEM_BASE_URL
+  if (isVMemoryError(error) && error.code === "openrouter_required") {
+    // Set OPENROUTER_API_KEY in the vmem dashboard
   }
 }
 ```

@@ -8,12 +8,14 @@ import {
   toMemoryTypeOrUndefined,
 } from "../engine/memory/parse";
 import { memoryMatchesListFilter } from "../engine/memory/list";
+import { OpenRouterRequiredError } from "../engine/memory/openRouterRequired";
 import { relatedMemories } from "../engine/memory/rank";
 import {
-  rankMemories,
+  retrieveMemoriesFromPool,
   summarizeRetrievedMemories,
   toMemoryCandidate,
 } from "../engine/memory/retrieve";
+import { tryUserAndApiKeyByClerkId } from "./lib/envVars";
 import { bestEffortEmbedOne } from "./lib/openRouter/bestEffortEmbed";
 import { scheduleContextPromptInvalidationByClerkId } from "./lib/contextPromptInvalidate";
 
@@ -237,6 +239,7 @@ export async function retrieveMemoriesForClerk(
     query: string;
     type?: string;
     tags?: string[];
+    status?: string;
     limit: number;
   },
 ): Promise<MemoryCandidate[]> {
@@ -247,6 +250,7 @@ export async function retrieveMemoriesForClerk(
     query: args.query,
     type: args.type,
     tags: args.tags,
+    status: args.status,
     limit: args.limit,
   });
 }
@@ -259,6 +263,7 @@ export async function retrieveMemoriesForTeamProfile(
     query: string;
     type?: string;
     tags?: string[];
+    status?: string;
     limit: number;
   },
 ): Promise<MemoryCandidate[]> {
@@ -269,6 +274,7 @@ export async function retrieveMemoriesForTeamProfile(
     query: args.query,
     type: args.type,
     tags: args.tags,
+    status: args.status,
     limit: args.limit,
   });
 }
@@ -282,15 +288,20 @@ async function retrieveRanked(
     query: string;
     type?: string;
     tags?: string[];
+    status?: string;
     limit: number;
   },
 ): Promise<MemoryCandidate[]> {
+  const listFilter = {
+    type: args.type,
+    tags: args.tags,
+    status: args.status,
+  };
   const listed =
     args.kind === "team" && args.profileId !== undefined
       ? await listMemoriesForTeamProfile(ctx, {
           profileId: args.profileId,
-          type: args.type,
-          tags: args.tags,
+          ...listFilter,
           limit: RETRIEVE_RECENT_CAP,
           offset: 0,
         })
@@ -299,8 +310,7 @@ async function retrieveRanked(
         : await listMemoriesForClerk(ctx, {
             clerkId: args.clerkId,
             profileId: args.profileId,
-            type: args.type,
-            tags: args.tags,
+            ...listFilter,
             limit: RETRIEVE_RECENT_CAP,
             offset: 0,
           });
@@ -318,14 +328,12 @@ async function retrieveRanked(
   const byId = new Map<string, MemoryWithTags>();
   for (const memory of listed.memories) byId.set(memory.id, memory);
   for (const hit of ftsHits) {
-    if (
-      memoryMatchesListFilter(hit.memory, { type: args.type, tags: args.tags })
-    ) {
+    if (memoryMatchesListFilter(hit.memory, listFilter)) {
       byId.set(hit.memory.id, hit.memory);
     }
   }
   for (const hit of vectorHits.memories) {
-    if (memoryMatchesListFilter(hit, { type: args.type, tags: args.tags })) {
+    if (memoryMatchesListFilter(hit, listFilter)) {
       byId.set(hit.id, hit);
     }
   }
@@ -335,10 +343,11 @@ async function retrieveRanked(
     ftsRanks.set(hit.memory.id, 1 / hit.rank);
   }
 
-  return rankMemories([...byId.values()], args.query, {
+  return retrieveMemoriesFromPool([...byId.values()], args.query, {
     limit: args.limit,
     vectorScores: vectorHits.scores,
     ftsRanks,
+    ...listFilter,
   });
 }
 
@@ -448,9 +457,17 @@ export async function storeMemoryFromInstruction(
   ctx: MemoryCtx,
   args: { clerkId: string; instruction: string; profileId?: string },
 ): Promise<{ created: MemoryWithTags[]; summary: string }> {
+  const openRouter = await tryUserAndApiKeyByClerkId(
+    ctx,
+    args.clerkId,
+    "OPENROUTER_API_KEY",
+  );
+  if (!openRouter) throw new OpenRouterRequiredError();
+
   const instruction = args.instruction.trim();
-  // Non-LLM fallback: persist the instruction as one knowledge memory.
-  // Does not require OpenRouter and does not return HTTP 422.
+  // OpenRouter is required (HTTP 422 / MCP openrouter_required without a key).
+  // With a key, persist the instruction as one knowledge memory — LLM fact
+  // extraction is not restored post-Neo4j.
   const created = await createMemoryForClerk(ctx, {
     clerkId: args.clerkId,
     profileId: args.profileId,

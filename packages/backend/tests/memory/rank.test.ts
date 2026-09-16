@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { MemoryWithTags } from "@vmem/sdk";
 import { relatedMemories, rankMemories } from "../../engine/memory/rank";
-import { toMemoryCandidate } from "../../engine/memory/retrieve";
+import {
+  retrieveMemoriesFromPool,
+  toMemoryCandidate,
+} from "../../engine/memory/retrieve";
 
 function memory(
   overrides: Partial<MemoryWithTags> &
@@ -71,6 +74,79 @@ describe("rankMemories", () => {
   it("drops unrelated rows when the query has no lexical signal", () => {
     const ranked = rankMemories([pnpm, coffee], "webpack bundler");
     expect(ranked.map((hit) => hit.id)).toEqual([]);
+  });
+});
+
+describe("retrieveMemoriesFromPool", () => {
+  const profile = memory({
+    id: "mem_profile",
+    title: "Lives in London",
+    content: "Based in London, UK.",
+    type: "profile",
+    tags: ["city"],
+  });
+  const knowledge = memory({
+    id: "mem_knowledge",
+    title: "Prefers pnpm",
+    content: "Use pnpm for vmem",
+    type: "knowledge",
+    tags: ["pnpm"],
+  });
+  const episodic = memory({
+    id: "mem_episodic",
+    title: "Met Alice",
+    content: "Coffee with Alice",
+    type: "episodic",
+    tags: ["people"],
+  });
+  const extraPnpm = memory({
+    id: "mem_pnpm_profile",
+    title: "Uses pnpm at work",
+    content: "Package installs use pnpm.",
+    type: "profile",
+    tags: ["PNPM"],
+  });
+
+  it("applies type so profile retrieve cannot return knowledge or episodic", () => {
+    const ranked = retrieveMemoriesFromPool(
+      [knowledge, profile, episodic],
+      "",
+      { type: "profile", limit: 10 },
+    );
+    expect(ranked.map((hit) => hit.id)).toEqual(["mem_profile"]);
+    expect(ranked.every((hit) => hit.type === "profile")).toBe(true);
+  });
+
+  it("narrows tags including unsanitized filter values", () => {
+    const ranked = retrieveMemoriesFromPool(
+      [knowledge, profile, episodic, extraPnpm],
+      "",
+      { tags: ["PNPM"], limit: 10 },
+    );
+    expect(ranked.map((hit) => hit.id).sort()).toEqual([
+      "mem_knowledge",
+      "mem_pnpm_profile",
+    ]);
+  });
+
+  it("hides suppressed rows unless status is requested", () => {
+    const hidden = memory({
+      id: "mem_hidden",
+      title: "Prefers pnpm",
+      content: "Use pnpm",
+      tags: ["pnpm"],
+      status: "suppressed",
+    });
+    expect(
+      retrieveMemoriesFromPool([knowledge, hidden], "pnpm").map(
+        (hit) => hit.id,
+      ),
+    ).toEqual(["mem_knowledge"]);
+    expect(
+      retrieveMemoriesFromPool([knowledge, hidden], "pnpm", {
+        status: "suppressed",
+      }).map((hit) => hit.id),
+    ).toEqual(["mem_hidden"]);
   });
 });
 

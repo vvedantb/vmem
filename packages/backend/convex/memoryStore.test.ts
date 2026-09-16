@@ -256,6 +256,63 @@ describe("convex memoryStore", () => {
     expect(searched.memories[0]?.id).toBe(visible.id);
   });
 
+  it("list type and tag filters drop other types and untagged rows", async () => {
+    const t = convexTest(schema, modules);
+
+    const profile = await t.mutation(
+      internal.memoryStore.functions.createMemoryInternal,
+      createArgs({
+        memoryId: "profile-london",
+        title: "Lives in London",
+        content: "Based in London",
+        type: "profile",
+        tags: ["city"],
+      }),
+    );
+    const knowledge = await t.mutation(
+      internal.memoryStore.functions.createMemoryInternal,
+      createArgs({
+        memoryId: "knowledge-pnpm",
+        title: "Prefers pnpm",
+        content: "Use pnpm for vmem",
+        type: "knowledge",
+        tags: ["PNPM"],
+      }),
+    );
+    await t.mutation(
+      internal.memoryStore.functions.createMemoryInternal,
+      createArgs({
+        memoryId: "episodic-alice",
+        title: "Met Alice",
+        content: "Coffee with Alice",
+        type: "episodic",
+        tags: ["people"],
+      }),
+    );
+
+    const byType = await t.query(
+      internal.memoryStore.functions.listMemoriesInternal,
+      {
+        userId: USER_A,
+        type: "profile",
+        limit: 10,
+        offset: 0,
+      },
+    );
+    expect(byType.memories.map((memory) => memory.id)).toEqual([profile.id]);
+
+    const byTag = await t.query(
+      internal.memoryStore.functions.listMemoriesInternal,
+      {
+        userId: USER_A,
+        tags: ["pnpm"],
+        limit: 10,
+        offset: 0,
+      },
+    );
+    expect(byTag.memories.map((memory) => memory.id)).toEqual([knowledge.id]);
+  });
+
   it("includes legacy personal memories that have no profileId", async () => {
     const t = convexTest(schema, modules);
     const now = Date.now();

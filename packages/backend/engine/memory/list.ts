@@ -1,5 +1,6 @@
 import { memoryMatchesLexical } from "./rank";
 import { isVisibleStatus } from "./scope";
+import { sanitizeTag } from "./tags";
 
 export interface MemoryListFilter {
   type?: string;
@@ -30,20 +31,32 @@ function matchesAllTags(
   filterTags: string[] | undefined,
 ): boolean {
   if (filterTags === undefined || filterTags.length === 0) return true;
-  const have = new Set(memoryTags);
-  return filterTags.every((tag) => have.has(tag));
+  const wanted = filterTags.map(sanitizeTag).filter((tag) => tag.length > 0);
+  if (wanted.length === 0) return true;
+  const have = new Set(
+    memoryTags.map((tag) => sanitizeTag(tag)).filter((tag) => tag.length > 0),
+  );
+  return wanted.every((tag) => have.has(tag));
+}
+
+function normalizedOrUndefined(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed === undefined || trimmed.length === 0 ? undefined : trimmed;
 }
 
 export function memoryMatchesListFilter(
   memory: MemoryListable,
   filter: MemoryListFilter,
 ): boolean {
-  if (filter.type !== undefined && memory.type !== filter.type) return false;
-  if (filter.source !== undefined && memory.source !== filter.source) {
+  const type = normalizedOrUndefined(filter.type);
+  if (type !== undefined && memory.type !== type) return false;
+  const source = normalizedOrUndefined(filter.source);
+  if (source !== undefined && memory.source !== source) {
     return false;
   }
-  if (filter.status !== undefined) {
-    if (memory.status !== filter.status) return false;
+  const status = normalizedOrUndefined(filter.status);
+  if (status !== undefined) {
+    if (memory.status !== status) return false;
   } else if (!isVisibleStatus(memory.status)) {
     return false;
   }

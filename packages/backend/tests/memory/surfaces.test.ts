@@ -29,5 +29,25 @@ describe("memory surface inventory", () => {
     expect(sdk).toContain("async deleteMemory(");
     expect(sdk).toContain("async searchMemories(");
     expect(sdk).toContain("/api/v1/memories/retrieve");
+    expect(sdk).toContain("options.status");
+  });
+
+  it("HTTP instruction store/update return 422 openrouter_required without a key", () => {
+    const store = readFileSync(
+      join(backendRoot, "convex/http/v1Memories/store.ts"),
+      "utf8",
+    );
+    const update = readFileSync(
+      join(backendRoot, "convex/http/v1Memories/update.ts"),
+      "utf8",
+    );
+    const retrieve = readFileSync(
+      join(backendRoot, "convex/http/v1Memories/retrieve.ts"),
+      "utf8",
+    );
+    expect(store).toContain("openRouterRequiredResponse");
+    expect(update).toContain("openRouterRequiredResponse");
+    expect(retrieve).toContain("summarizeRetrievedMemories");
+    expect(retrieve).not.toContain("openRouterRequiredResponse");
   });
 });

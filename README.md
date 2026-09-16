@@ -17,7 +17,7 @@ This repo is the source tree. It does not include `.env.local` or other secrets.
 
 vmem is a memory layer for AI tools. LLMs forget between sessions and across providers. This project keeps a shared, inspectable graph of what the user knows and cares about, and exposes it over MCP, HTTP, and a small SDK.
 
-Memories live in Convex. Convex also handles auth, profiles, teams, the web/API surface, and scheduled work. The web app and Chrome extension are clients on top of that. Retrieval ranks memories with Convex full-text search, lexical/synonym overlap, recency, and optional vector similarity when an OpenRouter embedding key is configured. Each hit still explains itself in a Context Trace.
+Memories live in Convex. Convex also handles auth, profiles, teams, the web/API surface, and scheduled work. The web app and Chrome extension are clients on top of that. Retrieval ranks memories with Convex full-text search, lexical/synonym overlap, recency, and optional vector similarity when an OpenRouter embedding key is configured. List and retrieve honor `type`, `tags`, and `status` filters (tags are normalized to lowercase-hyphenated). Agentic instruction store/update requires `OPENROUTER_API_KEY` and returns HTTP 422 `openrouter_required` without it. `summarize: true` joins ranked titles and does not call an LLM. Each hit still explains itself in a Context Trace.
 
 Other bits worth knowing: conflicting updates become proposals instead of silent overwrites, team workspaces share one profile graph, Dream Mode synthesises higher-level memories in the background.
 
