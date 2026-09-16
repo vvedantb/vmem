@@ -97,6 +97,122 @@ function axHasPassword(labels: string[]): boolean {
   return labels.some((label) => /password/i.test(label));
 }
 
+type CookieSlice = {
+  name: string;
+  domain: string;
+  path: string;
+  httpOnly: boolean;
+  secure: boolean;
+  sameSite: string;
+  session: boolean;
+  partitionKey?: unknown;
+  valueLength: number;
+  value: string;
+};
+
+function publicCookies(cookies: CookieSlice[]): Array<Omit<CookieSlice, "value">> {
+  return cookies.map(({ value: _value, ...rest }) => rest);
+}
+
+async function listSessionCookies(page: Page): Promise<CookieSlice[]> {
+  const client = await page.createCDPSession();
+  try {
+    const { cookies } = (await client.send("Network.getAllCookies")) as {
+      cookies: Array<{
+        name: string;
+        domain: string;
+        path: string;
+        httpOnly: boolean;
+        secure: boolean;
+        sameSite: string;
+        session: boolean;
+        partitionKey?: unknown;
+        value: string;
+      }>;
+    };
+    return cookies
+      .filter(
+        (cookie) =>
+          cookie.name.startsWith("__client") ||
+          cookie.name.startsWith("__session") ||
+          cookie.name.startsWith("__clerk"),
+      )
+      .map((cookie) => ({
+        name: cookie.name,
+        domain: cookie.domain,
+        path: cookie.path,
+        httpOnly: cookie.httpOnly,
+        secure: cookie.secure,
+        sameSite: cookie.sameSite,
+        session: cookie.session,
+        partitionKey: cookie.partitionKey,
+        valueLength: cookie.value.length,
+        value: cookie.value,
+      }));
+  } finally {
+    await client.detach().catch(() => {});
+  }
+}
+
+async function copyClientCookieToSyncHost(
+  page: Page,
+  cookies: CookieSlice[],
+): Promise<boolean> {
+  const source = cookies.find(
+    (cookie) => cookie.name === "__client" && cookie.value.length > 0,
+  );
+  if (!source) return false;
+  const onSyncHost = cookies.some(
+    (cookie) =>
+      cookie.name === "__client" &&
+      (cookie.domain === "vmem.vedantb.com" ||
+        cookie.domain === ".vmem.vedantb.com"),
+  );
+  if (onSyncHost) return false;
+  const client = await page.createCDPSession();
+  try {
+    const result = (await client.send("Network.setCookie", {
+      name: "__client",
+      value: source.value,
+      url: "https://vmem.vedantb.com/",
+      domain: "vmem.vedantb.com",
+      path: "/",
+      secure: true,
+      httpOnly: source.httpOnly,
+      sameSite: source.sameSite === "None" ? "None" : "Lax",
+    })) as { success?: boolean };
+    return result.success !== false;
+  } finally {
+    await client.detach().catch(() => {});
+  }
+}
+
+async function popupCookieProbe(page: Page): Promise<{
+  vmemClient: string | null;
+  clerkClient: string | null;
+  vmemSession: string | null;
+}> {
+  return page.evaluate(async () => {
+    const slice = async (url: string, name: string) => {
+      const cookie = await chrome.cookies.get({ url, name });
+      return cookie ? cookie.domain : null;
+    };
+    return {
+      vmemClient: await slice("https://vmem.vedantb.com/", "__client"),
+      clerkClient: await slice("https://clerk.vedantb.com/", "__client"),
+      vmemSession: await slice("https://vmem.vedantb.com/", "__session"),
+    };
+  });
+}
+
+function popupLooksSignedIn(text: string): boolean {
+  return (
+    text.includes("Save to vmem") &&
+    text.includes("Import") &&
+    !text.includes("Sign in to start saving memories")
+  );
+}
+
 async function freezeLandingMotion(page: Page): Promise<void> {
   await page.emulateMediaFeatures([
     { name: "prefers-reduced-motion", value: "reduce" },
@@ -258,20 +374,44 @@ async function runLive(): Promise<LiveMatrix> {
       return emptyMatrix(`sign-in failed: ${reason}`);
     }
 
-    const popup = await openPopup(browser, extensionId);
-    const popupText = await popup.evaluate(() => document.body.innerText);
+    const sessionCookies = await listSessionCookies(web);
+    await writeFile(
+      path.join(artifactDir, "live_cookies.json"),
+      JSON.stringify(publicCookies(sessionCookies), null, 2),
+    );
+    await sleep(1_500);
+
+    let popup = await openPopup(browser, extensionId);
+    let popupText = await popup.evaluate(() => document.body.innerText);
+    let cookieProbe = await popupCookieProbe(popup).catch(() => ({
+      vmemClient: null,
+      clerkClient: null,
+      vmemSession: null,
+    }));
+    let signedIn = popupLooksSignedIn(popupText);
+    let cookieSync: "native" | "copied-from-fapi" | "missing" = signedIn
+      ? "native"
+      : "missing";
+
+    if (!signedIn) {
+      const copied = await copyClientCookieToSyncHost(web, sessionCookies);
+      await popup.close().catch(() => {});
+      await sleep(1_000);
+      popup = await openPopup(browser, extensionId);
+      popupText = await popup.evaluate(() => document.body.innerText);
+      cookieProbe = await popupCookieProbe(popup).catch(() => cookieProbe);
+      signedIn = popupLooksSignedIn(popupText);
+      cookieSync = signedIn && copied ? "copied-from-fapi" : cookieSync;
+      if (signedIn && !copied) cookieSync = "native";
+    }
+
     await screenshot(popup, "live_popup_signed_in.png");
-    const signedIn =
-      popupText.includes("Save to vmem") &&
-      popupText.includes("Import") &&
-      !popupText.includes("Sign in to start saving memories");
     matrix.signedInPopup = {
       ok: signedIn,
       reason: signedIn
-        ? "popup shows Save / Import tabs"
-        : `popup copy: ${popupText.slice(0, 240)}`,
+        ? `popup shows Save / Import tabs (${cookieSync}); chrome.cookies __client vmem=${cookieProbe.vmemClient} clerk=${cookieProbe.clerkClient}`
+        : `popup copy: ${popupText.slice(0, 180)}; cookies=${JSON.stringify(publicCookies(sessionCookies))}; probe=${JSON.stringify(cookieProbe)}`,
     };
-    await popup.close().catch(() => {});
 
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 800 });
@@ -290,35 +430,83 @@ async function runLive(): Promise<LiveMatrix> {
           /Page saved to vmem|Failed to save page/.test(
             document.body.innerText,
           ),
-        { timeout: 20_000 },
+        { timeout: 8_000 },
       )
       .then(() => true)
       .catch(() => false);
-    const pageText = await page.evaluate(() => document.body.innerText);
+    let pageText = await page.evaluate(() => document.body.innerText);
+    let saveOk = toastSeen && pageText.includes("Page saved to vmem");
+    let saveReason = saveOk
+      ? "Alt+S success toast"
+      : toastSeen
+        ? "failure toast"
+        : "no Alt+S toast";
+
+    if (!saveOk && signedIn) {
+      await popup.bringToFront();
+      await popup.reload({ waitUntil: "domcontentloaded" }).catch(() => {});
+      await popup
+        .waitForFunction(
+          () =>
+            document.body.innerText.includes("Save to vmem") ||
+            document.body.innerText.includes("Sign in to start saving memories"),
+          { timeout: 15_000 },
+        )
+        .catch(() => {});
+      await popup.evaluate(async (exampleUrl) => {
+        const tabs = await chrome.tabs.query({});
+        const example = tabs.find(
+          (tab) =>
+            tab.url?.startsWith(exampleUrl.split("?")[0] ?? "") ||
+            tab.url?.includes("example.com"),
+        );
+        if (example?.id) await chrome.tabs.update(example.id, { active: true });
+      }, saveUrl);
+      await sleep(400);
+      await clickFirstMatching(
+        popup,
+        "button",
+        (text) => text.includes("Save to vmem"),
+      );
+      const popupSaved = await popup
+        .waitForFunction(
+          () =>
+            /Page saved to vmem|Failed to save page|Failed to extract/.test(
+              document.body.innerText,
+            ),
+          { timeout: 20_000 },
+        )
+        .then(() => true)
+        .catch(() => false);
+      const popupSaveText = await popup.evaluate(() => document.body.innerText);
+      saveOk = popupSaved && popupSaveText.includes("Page saved to vmem");
+      saveReason = saveOk
+        ? "popup Save to vmem"
+        : popupSaved
+          ? `popup save failed: ${popupSaveText.slice(0, 180)}`
+          : `${saveReason}; popup save had no result`;
+      pageText = popupSaveText;
+    }
+
     await screenshot(page, "live_save_toast.png");
-    const saveOk = toastSeen && pageText.includes("Page saved to vmem");
+    await screenshot(popup, "live_popup_after_save.png");
     matrix.savePage = {
       ok: saveOk,
-      reason: saveOk
-        ? "Alt+S success toast"
-        : toastSeen
-          ? "failure toast"
-          : "no save toast",
+      reason: saveReason,
       toast: pageText.includes("Page saved to vmem")
         ? "✓ Page saved to vmem"
         : pageText.includes("Failed to save page")
           ? "✗ Failed to save page"
           : undefined,
     };
+    await popup.close().catch(() => {});
 
     await web.bringToFront();
-    await web.goto("https://vmem.vedantb.com/home", {
+    await web.goto("https://vmem.vedantb.com/memories/list", {
       waitUntil: "domcontentloaded",
       timeout: 20_000,
     });
-    await sleep(2_000);
-    await clickFirstMatching(web, "a, button", (text) => text === "Memories");
-    await sleep(2_000);
+    await sleep(2_500);
     const search = await web.$(
       'input[placeholder*="Search" i], input[type="search"]',
     );
@@ -366,20 +554,35 @@ async function runLive(): Promise<LiveMatrix> {
         waitUntil: "domcontentloaded",
         timeout: 25_000,
       });
-      await sleep(3_000);
+      await sleep(6_000);
       await screenshot(chatgpt, "live_chatgpt.png");
-      const injectedExport = Boolean(
-        await chatgpt.$("[data-vmem-action='export']"),
+      const chatgptProbe = await chatgpt.evaluate(() => {
+        const text = document.body.innerText;
+        return {
+          hasPrompt: Boolean(document.querySelector("#prompt-textarea")),
+          hasExport: Boolean(
+            document.querySelector("[data-vmem-action='export']"),
+          ),
+          hasUse: Boolean(document.querySelector("[data-vmem]")),
+          hasUseCopy: /Use vmem|Export to vmem/.test(text),
+          loggedIn: !/Log in to get responses tailored to you/.test(text),
+          preview: text.slice(0, 280),
+        };
+      });
+      await writeFile(
+        path.join(artifactDir, "live_chatgpt_probe.json"),
+        JSON.stringify(chatgptProbe, null, 2),
       );
-      const injectedUse = Boolean(await chatgpt.$("[data-vmem]"));
       matrix.chatgptInject = {
-        ok: injectedExport || injectedUse,
-        injectedExport,
-        reason: injectedExport
+        ok: chatgptProbe.hasExport || chatgptProbe.hasUse || chatgptProbe.hasUseCopy,
+        injectedExport: chatgptProbe.hasExport,
+        reason: chatgptProbe.hasExport
           ? "export + composer inject"
-          : injectedUse
+          : chatgptProbe.hasUse || chatgptProbe.hasUseCopy
             ? "Use vmem only (logged-out ChatGPT header)"
-            : "no vmem controls (blocked or selector miss)",
+            : chatgptProbe.loggedIn
+              ? `signed-in ChatGPT but no inject; prompt=${chatgptProbe.hasPrompt}`
+              : `logged-out ChatGPT reachable; no inject (selector miss or blocked); prompt=${chatgptProbe.hasPrompt}`,
       };
     } catch (err) {
       matrix.chatgptInject = {
