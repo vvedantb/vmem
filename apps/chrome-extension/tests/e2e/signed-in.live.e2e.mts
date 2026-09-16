@@ -416,7 +416,17 @@ async function runLive(): Promise<LiveMatrix> {
       path.join(artifactDir, "live_cookies.json"),
       JSON.stringify(sessionCookies, null, 2),
     );
-    await sleep(1_500);
+    const pageHasSessionCookie = await web.evaluate(() =>
+      document.cookie.split(";").some((part) => {
+        const name = part.split("=")[0]?.trim() ?? "";
+        return name === "__session" || name.startsWith("__session_");
+      }),
+    );
+    await writeFile(
+      path.join(artifactDir, "live_page_session_cookie.json"),
+      JSON.stringify({ pageHasSessionCookie }, null, 2),
+    );
+    await sleep(3_000);
 
     const popup = await openPopup(browser, extensionId);
     let popupText = await popup.evaluate(() => document.body.innerText);
@@ -498,7 +508,7 @@ async function runLive(): Promise<LiveMatrix> {
     matrix.signedInPopup = {
       ok: signedIn,
       reason: signedIn
-        ? `popup shows Save / Import tabs (${cookieSync}, token=${tokenReady}); chrome.cookies __client vmem=${cookieProbe.vmemClient} clerk=${cookieProbe.clerkClient} session=${cookieProbe.vmemSession} listed=${JSON.stringify(cookieProbe.clientCookies)}`
+        ? `popup shows Save / Import tabs (${cookieSync}, token=${tokenReady}); chrome.cookies __client vmem=${cookieProbe.vmemClient} clerk=${cookieProbe.clerkClient} session=${cookieProbe.vmemSession} listed=${JSON.stringify(cookieProbe.clientCookies)}; pageHasSessionCookie=${pageHasSessionCookie}`
         : `popup copy: ${popupText.slice(0, 180)}; cookies=${JSON.stringify(sessionCookies)}; probe=${JSON.stringify(cookieProbe)}`,
     };
     await popup.close().catch(() => {});

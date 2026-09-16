@@ -78,6 +78,7 @@ interface ProtocolMap {
   importProgress(data: ImportProgressData): void;
   extractPage(): ExtractPageData;
   startScreenshot(): { ok: true };
+  syncClerkSession(data: { sessionJwt: string }): { ok: boolean };
 }
 
 const messenger = defineExtensionMessaging<ProtocolMap>();

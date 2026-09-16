@@ -191,6 +191,7 @@ await test("background message handler registers save, import, and screenshot me
     "importHistory",
     "cancelImport",
     "debugRunAutoSync",
+    "syncClerkSession",
   ]) {
     assert.match(src, new RegExp(`onMessage\\("${name}"`));
   }
