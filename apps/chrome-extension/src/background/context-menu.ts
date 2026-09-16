@@ -66,15 +66,20 @@ export async function savePageFromTab(
       throw new Error("Failed to extract page content");
     }
 
-    // turndown runs in the extension context, not the content-script
-    const markdown = extraction.html
-      ? htmlToMarkdown(extraction.html)
-      : extraction.content;
+    // turndown needs a DOM; MV3 service workers do not have `document`
+    let body = extraction.content;
+    if (extraction.html) {
+      try {
+        body = htmlToMarkdown(extraction.html);
+      } catch {
+        body = extraction.content;
+      }
+    }
 
     const hostname = new URL(tab.url).hostname;
     const memory = await createMemory({
       title: extraction.ogTitle ?? extraction.title ?? tab.title ?? "Untitled",
-      content: truncate(markdown || extraction.content, {
+      content: truncate(body || extraction.content, {
         length: 10000,
         omission: "\n\n[truncated]",
       }),

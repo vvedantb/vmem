@@ -1,4 +1,4 @@
-import { CLERK_SYNC_HOST } from "@/lib/constants";
+import { CLERK_COOKIE_SYNC_HOST, CLERK_SYNC_HOST } from "@/lib/constants";
 import { warmBackgroundAuth } from "./auth";
 import { catchUpHistorySyncIfOverdue } from "./sync-scheduler";
 
@@ -32,7 +32,10 @@ export function isSessionCookieOnSyncHost(
 }
 
 function isSyncHostSessionCookie(cookie: chrome.cookies.Cookie): boolean {
-  return isSessionCookieOnSyncHost(cookie, CLERK_SYNC_HOST);
+  return (
+    isSessionCookieOnSyncHost(cookie, CLERK_COOKIE_SYNC_HOST) ||
+    isSessionCookieOnSyncHost(cookie, CLERK_SYNC_HOST)
+  );
 }
 
 // web sign-in updates syncHost cookies, warm auth so auto-sync works without popup

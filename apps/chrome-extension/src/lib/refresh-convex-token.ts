@@ -1,5 +1,5 @@
 import { createClerkClient } from "@clerk/chrome-extension/client";
-import { CLERK_PUBLISHABLE_KEY, CLERK_SYNC_HOST } from "@/lib/constants";
+import { CLERK_COOKIE_SYNC_HOST, CLERK_PUBLISHABLE_KEY } from "@/lib/constants";
 import { errorMessage } from "@/lib/error";
 
 function canUseClerkBackgroundClient(): boolean {
@@ -18,7 +18,7 @@ export async function refreshConvexTokenFromClerk(): Promise<string | null> {
   try {
     const clerk = await createClerkClient({
       publishableKey: CLERK_PUBLISHABLE_KEY,
-      syncHost: CLERK_SYNC_HOST,
+      syncHost: CLERK_COOKIE_SYNC_HOST,
       background: true,
     });
     if (!clerk.session) return null;
