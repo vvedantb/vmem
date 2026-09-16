@@ -1,5 +1,6 @@
 import { errorMessage } from "@/lib/error";
 import { registerContextMenu } from "./context-menu";
+import { ensureUnpartitionedClerkClientCookie } from "./sync-host-cookie-listener";
 import {
   bootstrapSyncSchedulers,
   catchUpHistorySyncIfOverdue,
@@ -10,6 +11,7 @@ import {
 export async function runBackgroundBootstrap(): Promise<void> {
   try {
     registerContextMenu();
+    await ensureUnpartitionedClerkClientCookie();
     await refreshUserSettingsMirrorFromConvex();
     await bootstrapSyncSchedulers();
     void catchUpHistorySyncIfOverdue();

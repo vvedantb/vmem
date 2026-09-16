@@ -5,7 +5,12 @@ import { importBookmarks } from "./import-bookmarks";
 import { importHistory } from "./import-history";
 import { cancelImport } from "./import-cancel";
 import { runAutoSyncNow } from "./sync-scheduler";
-import { lastBookmarkSyncItem, lastHistorySyncItem } from "@/lib/storage";
+import {
+  lastBookmarkSyncItem,
+  lastHistorySyncItem,
+  setAuthToken,
+} from "@/lib/storage";
+import { mintConvexTokenFromSessionJwt } from "@/lib/mint-convex-token";
 import { onMessage, type SaveOutcome } from "@/lib/messaging";
 import { htmlToMarkdown } from "@/lib/page-extraction";
 
@@ -204,5 +209,18 @@ export function registerMessageHandler(): void {
       lastBookmarkSyncItem.getValue(),
     ]);
     return { lastHistorySync, lastBookmarkSync };
+  });
+
+  onMessage("syncClerkSession", async ({ data }) => {
+    const token = await mintConvexTokenFromSessionJwt(data.sessionJwt);
+    if (!token) return { ok: false };
+    await setAuthToken(token);
+    return { ok: true };
+  });
+
+  onMessage("syncClerkConvexToken", async ({ data }) => {
+    if (data.token.length < 20) return { ok: false };
+    await setAuthToken(data.token);
+    return { ok: true };
   });
 }

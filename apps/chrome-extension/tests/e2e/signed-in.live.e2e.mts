@@ -9,6 +9,10 @@ import type { Page } from "puppeteer-core";
 import { TargetType } from "puppeteer-core";
 import { z } from "zod";
 import {
+  clerkSessionIdFromJwt,
+  readSessionJwtFromCookieHeader,
+} from "../../src/lib/clerk-session-cookie.ts";
+import {
   artifactDir,
   ensureArtifactDir,
   launchUnpackedExtension,
@@ -212,16 +216,29 @@ async function popupCookieProbe(page: Page): Promise<{
   vmemClient: string | null;
   clerkClient: string | null;
   vmemSession: string | null;
+  clientCookies: Array<{
+    domain: string;
+    partition: string;
+    valueLength: number;
+  }>;
 }> {
   return page.evaluate(async () => {
     const slice = async (url: string, name: string) => {
       const cookie = await chrome.cookies.get({ url, name });
       return cookie ? cookie.domain : null;
     };
+    const listed = await chrome.cookies
+      .getAll({ name: "__client", partitionKey: {} })
+      .catch(() => chrome.cookies.getAll({ name: "__client" }));
     return {
       vmemClient: await slice("https://vmem.vedantb.com/", "__client"),
       clerkClient: await slice("https://clerk.vedantb.com/", "__client"),
       vmemSession: await slice("https://vmem.vedantb.com/", "__session"),
+      clientCookies: listed.map((cookie) => ({
+        domain: cookie.domain,
+        partition: cookie.partitionKey?.topLevelSite ?? "",
+        valueLength: cookie.value.length,
+      })),
     };
   });
 }
@@ -352,33 +369,32 @@ async function openPopup(
 }
 
 async function deleteVisibleTestMemory(page: Page): Promise<boolean> {
-  const opened = await clickFirstMatching(
-    page,
-    "button, a, [role='button']",
-    (text) => text.includes("Example Domain"),
-  );
-  if (!opened) {
-    const byMarker = await page.evaluate((token) => {
-      return document.body.innerText.includes(token);
-    }, marker);
-    if (!byMarker) return false;
+  const opened = await page.evaluate(() => {
+    const rows = Array.from(
+      document.querySelectorAll('[data-testid="list-item-row"]'),
+    );
+    const row = rows.find((el) =>
+      (el.textContent ?? "").includes("Example Domain"),
+    );
+    if (!(row instanceof HTMLElement)) return false;
+    row.click();
+    return true;
+  });
+  if (!opened) return false;
+  await sleep(700);
+  const actions = await page.$('[aria-label="Memory actions"]');
+  if (actions) {
+    await actions.click();
+    await sleep(300);
   }
-  await sleep(800);
-  const trash = await page.$('[aria-label="Delete"], button:has(svg)');
-  const clickedTrash = await clickFirstMatching(
-    page,
-    "button",
-    (text) => text === "Delete" || text.includes("Delete"),
-  );
-  if (!clickedTrash && trash) await trash.click();
-  await sleep(400);
   await clickFirstMatching(
     page,
-    "button",
-    (text) =>
-      text === "Delete" || text === "Confirm" || text === "Delete memory",
+    "button, [role='menuitem']",
+    (text) => text === "Delete" || text.startsWith("Delete"),
   );
-  await sleep(1_000);
+  await sleep(400);
+  await clickFirstMatching(page, "button", (text) => text === "Delete");
+  await sleep(1_200);
   return true;
 }
 
@@ -403,7 +419,83 @@ async function runLive(): Promise<LiveMatrix> {
       path.join(artifactDir, "live_cookies.json"),
       JSON.stringify(sessionCookies, null, 2),
     );
-    await sleep(1_500);
+    const pageHasSessionCookie = await web.evaluate(() =>
+      document.cookie.split(";").some((part) => {
+        const name = part.split("=")[0]?.trim() ?? "";
+        return name === "__session" || name.startsWith("__session_");
+      }),
+    );
+    await writeFile(
+      path.join(artifactDir, "live_page_session_cookie.json"),
+      JSON.stringify({ pageHasSessionCookie }, null, 2),
+    );
+    const pageCookieHeader = await web.evaluate(() => document.cookie);
+    const pageSessionJwt = readSessionJwtFromCookieHeader(pageCookieHeader);
+    const pageSessionId = pageSessionJwt
+      ? clerkSessionIdFromJwt(pageSessionJwt)
+      : null;
+    const mintProbe = {
+      cookieOk: pageSessionJwt !== null,
+      sidOk: pageSessionId !== null,
+      credentials: { status: 0, hasJwt: false, error: "skipped" },
+      bearer: { status: 0, hasJwt: false, error: "skipped" },
+    };
+    if (pageSessionId) {
+      const cookieUrl = `https://clerk.vedantb.com/v1/client/sessions/${pageSessionId}/tokens/convex`;
+      const nativeUrl = `${cookieUrl}?_is_native=1`;
+      mintProbe.credentials = await web.evaluate(async (url: string) => {
+        try {
+          const response = await fetch(url, {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: "{}",
+          });
+          const text = await response.text();
+          return { status: response.status, hasJwt: text.includes('"jwt"') };
+        } catch (error) {
+          return {
+            status: 0,
+            hasJwt: false,
+            error: error instanceof Error ? error.message : String(error),
+          };
+        }
+      }, cookieUrl);
+      if (pageSessionJwt) {
+        mintProbe.bearer = await web.evaluate(
+          async (url: string, jwt: string) => {
+            try {
+              const response = await fetch(url, {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${jwt}`,
+                  "Content-Type": "application/json",
+                },
+                body: "{}",
+              });
+              const text = await response.text();
+              return {
+                status: response.status,
+                hasJwt: text.includes('"jwt"'),
+              };
+            } catch (error) {
+              return {
+                status: 0,
+                hasJwt: false,
+                error: error instanceof Error ? error.message : String(error),
+              };
+            }
+          },
+          nativeUrl,
+          pageSessionJwt,
+        );
+      }
+    }
+    await writeFile(
+      path.join(artifactDir, "live_token_mint.json"),
+      JSON.stringify(mintProbe, null, 2),
+    );
+    await sleep(3_000);
 
     const popup = await openPopup(browser, extensionId);
     let popupText = await popup.evaluate(() => document.body.innerText);
@@ -422,7 +514,12 @@ async function runLive(): Promise<LiveMatrix> {
       vmemClient: null,
       clerkClient: null,
       vmemSession: null,
+      clientCookies: [],
     }));
+    await writeFile(
+      path.join(artifactDir, "live_cookie_probe.json"),
+      JSON.stringify(cookieProbe, null, 2),
+    );
     const signedIn = popupLooksSignedIn(popupText);
     const cookieSync = signedIn
       ? cookieProbe.clerkClient
@@ -449,10 +546,38 @@ async function runLive(): Promise<LiveMatrix> {
       }
     }
 
+    if (signedIn && !tokenReady) {
+      await popup.reload({ waitUntil: "domcontentloaded" }).catch(() => {});
+      await popup
+        .waitForFunction(
+          () =>
+            document.body.innerText.includes("Save to vmem") ||
+            document.body.innerText.includes(
+              "Sign in to start saving memories",
+            ),
+          { timeout: 15_000 },
+        )
+        .catch(() => {});
+      popupText = await popup.evaluate(() => document.body.innerText);
+      const retryDeadline = Date.now() + 8_000;
+      while (Date.now() < retryDeadline) {
+        tokenReady = await popup
+          .evaluate(async () => {
+            const data = await chrome.storage.session.get(null);
+            return Object.values(data).some(
+              (value) => typeof value === "string" && value.length > 40,
+            );
+          })
+          .catch(() => false);
+        if (tokenReady) break;
+        await sleep(400);
+      }
+    }
+
     matrix.signedInPopup = {
       ok: signedIn,
       reason: signedIn
-        ? `popup shows Save / Import tabs (${cookieSync}, token=${tokenReady}); chrome.cookies __client vmem=${cookieProbe.vmemClient} clerk=${cookieProbe.clerkClient}`
+        ? `popup shows Save / Import tabs (${cookieSync}, token=${tokenReady}); chrome.cookies __client vmem=${cookieProbe.vmemClient} clerk=${cookieProbe.clerkClient} session=${cookieProbe.vmemSession} listed=${JSON.stringify(cookieProbe.clientCookies)}; pageHasSessionCookie=${pageHasSessionCookie}`
         : `popup copy: ${popupText.slice(0, 180)}; cookies=${JSON.stringify(sessionCookies)}; probe=${JSON.stringify(cookieProbe)}`,
     };
     await popup.close().catch(() => {});
@@ -573,20 +698,18 @@ async function runLive(): Promise<LiveMatrix> {
         waitUntil: "domcontentloaded",
         timeout: 30_000,
       });
-      await sleep(2_500);
-      const search = await dash.$(
-        'input[placeholder*="Search" i], input[type="search"]',
-      );
-      if (search) {
-        await search.click({ clickCount: 3 });
-        await search.type(marker, { delay: 15 });
-        await dash.keyboard.press("Enter");
-        await sleep(2_000);
+      // URL markers are not indexed for search; wait for the Example Domain row
+      let listText = "";
+      let visible = false;
+      const listDeadline = Date.now() + 20_000;
+      while (Date.now() < listDeadline) {
+        listText = await dash.evaluate(() => document.body.innerText);
+        visible =
+          listText.includes("Example Domain") || listText.includes(marker);
+        if (visible) break;
+        await sleep(500);
       }
       await screenshot(dash, "live_memory_list.png");
-      const listText = await dash.evaluate(() => document.body.innerText);
-      const visible =
-        listText.includes(marker) || listText.includes("Example Domain");
       matrix.memoryVisible = {
         ok: visible,
         reason: visible
@@ -595,17 +718,31 @@ async function runLive(): Promise<LiveMatrix> {
       };
 
       if (visible) {
-        const deleted = await deleteVisibleTestMemory(dash);
-        await sleep(1_500);
+        let deleted = false;
+        for (let attempt = 0; attempt < 4; attempt++) {
+          const clicked = await deleteVisibleTestMemory(dash);
+          if (!clicked) break;
+          deleted = true;
+          await sleep(1_200);
+          const remaining = await dash.evaluate(() => document.body.innerText);
+          if (
+            !remaining.includes("Example Domain") &&
+            !remaining.includes(marker)
+          ) {
+            break;
+          }
+        }
+        await sleep(800);
         await screenshot(dash, "live_memory_cleanup.png");
         const after = await dash.evaluate(() => document.body.innerText);
-        const gone = deleted && !after.includes(marker);
+        const gone =
+          !after.includes("Example Domain") && !after.includes(marker);
         matrix.cleanup = {
           ok: gone || deleted,
           reason: gone
             ? "test memory deleted"
             : deleted
-              ? "delete clicked; marker still in DOM"
+              ? "delete clicked; Example Domain still in DOM"
               : "could not trigger delete",
         };
       } else {
@@ -643,7 +780,7 @@ async function runLive(): Promise<LiveMatrix> {
           ),
           hasUse: Boolean(document.querySelector("[data-vmem]")),
           hasUseCopy: /Use vmem|Export to vmem/.test(text),
-          loggedIn: !/Log in to get responses tailored to you/.test(text),
+          loggedIn: !/Log in|Sign up for free/.test(text),
           preview: text.slice(0, 280),
         };
       });

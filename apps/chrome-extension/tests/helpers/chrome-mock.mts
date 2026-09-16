@@ -13,9 +13,23 @@ export type TabStub = {
   title?: string;
 };
 
+export type CookieStub = {
+  name: string;
+  domain: string;
+  value?: string;
+  path?: string;
+  httpOnly?: boolean;
+  secure?: boolean;
+  sameSite?: "unspecified" | "no_restriction" | "lax" | "strict";
+  session?: boolean;
+  expirationDate?: number;
+  storeId?: string;
+  partitionKey?: { topLevelSite?: string; hasCrossSiteAncestor?: boolean };
+};
+
 export type CookieChangeStub = {
   removed: boolean;
-  cookie?: { name: string; domain: string };
+  cookie?: CookieStub;
 };
 
 export type ChromeMockState = {
@@ -24,6 +38,8 @@ export type ChromeMockState = {
   alarms: Map<string, AlarmOpts>;
   executeScriptCalls: Array<{ tabId: number; args: unknown[] }>;
   contextMenusCreated: Array<Record<string, unknown>>;
+  cookieJar: CookieStub[];
+  cookieSets: CookieStub[];
   cookieChangeListeners: Array<(changeInfo: CookieChangeStub) => void>;
   commandListeners: Array<(command: string) => void>;
   activeTab: TabStub | undefined;
@@ -67,6 +83,8 @@ export function installChromeMock(): ChromeMockState {
     alarms: new Map(),
     executeScriptCalls: [],
     contextMenusCreated: [],
+    cookieJar: [],
+    cookieSets: [],
     cookieChangeListeners: [],
     commandListeners: [],
     activeTab: {
@@ -167,6 +185,66 @@ export function installChromeMock(): ChromeMockState {
         onClicked: { addListener(): void {} },
       },
       cookies: {
+        async get(details: { url: string; name: string }) {
+          const hostname = new URL(details.url).hostname;
+          return (
+            state.cookieJar.find((cookie) => {
+              if (cookie.name !== details.name) return false;
+              if (cookie.partitionKey?.topLevelSite) return false;
+              const domain = cookie.domain.startsWith(".")
+                ? cookie.domain.slice(1)
+                : cookie.domain;
+              return hostname === domain || hostname.endsWith(`.${domain}`);
+            }) ?? null
+          );
+        },
+        async getAll(details: {
+          name?: string;
+          partitionKey?: { topLevelSite?: string };
+        }) {
+          return state.cookieJar.filter((cookie) => {
+            if (details.name && cookie.name !== details.name) return false;
+            if (
+              details.partitionKey?.topLevelSite &&
+              cookie.partitionKey?.topLevelSite !==
+                details.partitionKey.topLevelSite
+            ) {
+              return false;
+            }
+            return true;
+          });
+        },
+        async set(details: {
+          url: string;
+          name?: string;
+          value?: string;
+          path?: string;
+          httpOnly?: boolean;
+          secure?: boolean;
+          sameSite?: CookieStub["sameSite"];
+          expirationDate?: number;
+        }) {
+          const cookie: CookieStub = {
+            name: details.name ?? "",
+            domain: new URL(details.url).hostname,
+            value: details.value,
+            path: details.path,
+            httpOnly: details.httpOnly,
+            secure: details.secure,
+            sameSite: details.sameSite,
+            expirationDate: details.expirationDate,
+          };
+          state.cookieSets.push(cookie);
+          state.cookieJar = state.cookieJar.filter(
+            (existing) =>
+              !(
+                existing.name === cookie.name &&
+                existing.domain === cookie.domain &&
+                !existing.partitionKey
+              ),
+          );
+          state.cookieJar.push(cookie);
+        },
         onChanged: {
           addListener(fn: (changeInfo: CookieChangeStub) => void): void {
             state.cookieChangeListeners.push(fn);
