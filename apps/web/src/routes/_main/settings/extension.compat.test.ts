@@ -7,7 +7,10 @@ import { describe, expect, it } from "vitest";
 import { settingsNavGroups } from "@/components/sidebar/nav-config";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const pageSource = readFileSync(path.join(here, "extension.tsx"), "utf8");
+const pageSource = readFileSync(
+  path.join(here, "../../../components/settings/ExtensionSettingsClient.tsx"),
+  "utf8",
+);
 
 describe("/settings/extension compatibility", () => {
   it("is linked from settings nav", () => {

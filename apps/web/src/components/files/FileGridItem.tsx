@@ -64,7 +64,7 @@ export default function FileGridItem({
         <div
           className={cn(
             "absolute left-2 top-2 z-10 transition-opacity",
-            isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+            isSelected ? "opacity-100" : "reveal-on-hover",
           )}
           onClick={handleCheckboxClick}
         >

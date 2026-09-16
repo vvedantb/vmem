@@ -154,7 +154,7 @@ export function SystemSkillFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="flex max-h-[min(90vh,760px)] flex-col sm:max-w-lg">
+      <DialogContent className="flex max-h-[min(90dvh,760px)] flex-col sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>
             {isEdit ? "Edit system skill" : "New system skill"}

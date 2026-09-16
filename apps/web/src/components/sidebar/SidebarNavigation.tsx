@@ -4,10 +4,11 @@ import { cn, motionDuration, motionEase } from "@vmem/ui";
 import { IconUsers } from "@tabler/icons-react";
 import { IconTeams, IconSettings } from "../icons/sidebar";
 import type { NavGroup, NavItem } from "./types";
-import { navGroups, navHrefToPath, settingsNavGroups } from "./nav-config";
+import { navGroups, navHrefToPath } from "./nav-config";
 import { NavLink } from "./NavLink";
 import { SkillsSidebarNav } from "./SkillsSidebarNav";
 import { WikiSidebarNav } from "./WikiSidebarNav";
+import { SettingsSidebar } from "./SettingsSidebar";
 import { SharedLayoutBackground } from "./SharedLayoutBackground";
 import { NavSection } from "./NavSection";
 
@@ -164,51 +165,6 @@ function MainNav({
   );
 }
 
-function SettingsNav({
-  pathname,
-  isIconOnly,
-  isMobile,
-  onNavigate,
-}: {
-  pathname: string;
-  isIconOnly: boolean;
-  isMobile: boolean;
-  onNavigate?: MouseEventHandler<HTMLAnchorElement>;
-}) {
-  function renderItem(item: NavItem) {
-    const isActive =
-      pathname === item.href || pathname.startsWith(item.href + "/");
-    return (
-      <SharedLayoutBackground.Item
-        key={item.href}
-        id={item.href}
-        isActive={isActive}
-      >
-        <NavLink
-          item={item}
-          pathname={pathname}
-          profileId={undefined}
-          isIconOnly={isIconOnly}
-          unreadCount={0}
-          proposalsCount={0}
-          onNavigate={onNavigate}
-        />
-      </SharedLayoutBackground.Item>
-    );
-  }
-
-  return (
-    <NavGroupList
-      groups={settingsNavGroups}
-      isIconOnly={isIconOnly}
-      isMobile={isMobile}
-      layoutId="settings-nav"
-      slideDirection={12}
-      renderItem={renderItem}
-    />
-  );
-}
-
 export function SidebarNavigation({
   pathname,
   profileId,
@@ -226,7 +182,7 @@ export function SidebarNavigation({
   // strand the incoming panel at opacity 0 if a Convex re-render lands mid-exit.
   if (navView === "settings") {
     return (
-      <SettingsNav
+      <SettingsSidebar
         key="settings"
         pathname={pathname}
         isIconOnly={isIconOnly}

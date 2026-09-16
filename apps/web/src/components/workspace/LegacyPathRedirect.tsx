@@ -11,7 +11,7 @@ import { WorkspaceEntryRedirect } from "./WorkspaceEntryRedirect";
 
 function CenteredSpinner() {
   return (
-    <div className="flex h-full min-h-[60vh] items-center justify-center">
+    <div className="flex h-full min-h-[60dvh] items-center justify-center">
       <IconLoader2 size={20} className="animate-spin text-muted" />
     </div>
   );
@@ -23,7 +23,7 @@ export function NotFoundPage({
   message?: string;
 }) {
   return (
-    <div className="flex h-full min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
+    <div className="flex h-full min-h-[60dvh] flex-col items-center justify-center gap-4 text-center">
       <p className="text-sm text-muted">{message}</p>
       <Link to="/home">
         <Button variant="outline" size="sm">

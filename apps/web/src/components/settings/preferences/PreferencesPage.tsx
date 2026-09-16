@@ -1,13 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { toast } from "sonner";
-import {
-  Card,
-  CardContent,
-  LabeledSwitchRow,
-  Switch,
-  TimePicker,
-} from "@vmem/ui";
+import { Switch, TimePicker } from "@vmem/ui";
 import { api } from "@vmem/backend";
 import {
   DEFAULT_LOCAL_TIME,
@@ -15,10 +9,11 @@ import {
   localTimeToUtc,
   utcTimeToLocal,
 } from "@vmem/shared";
-import PageContainer from "@/components/shell/PageContainer";
 import ConfidenceThresholdSlider from "@/components/settings/ConfidenceThresholdSlider";
+import { SettingsPage } from "@/components/settings/SettingsPage";
+import { SettingsSection } from "@/components/settings/SettingsSection";
+import { SettingsToggleRow } from "@/components/settings/SettingsToggleRow";
 import { useUserSettingsSave } from "@/hooks/useUserSettingsSave";
-import { PreferenceSection } from "./PreferenceSection";
 import { PreferenceTextareaRow } from "./PreferenceTextareaRow";
 import { PreferencesPageSkeleton } from "./PreferencesPageSkeleton";
 
@@ -123,159 +118,207 @@ export function PreferencesPage() {
   const preferencesValue = preferencesDraft ?? settings.preferences;
 
   return (
-    <PageContainer title="Preferences" centeredMaxWidth showTitle>
-      <div className="space-y-8">
-        <Card className="shadow-none">
-          <CardContent className="space-y-6 p-6">
-            <PreferenceTextareaRow
-              id="about-me"
-              label="About me"
-              placeholder="A few lines on who you are, what you do, and what you're working toward."
-              value={aboutMeValue}
-              maxLength={500}
-              rows={4}
-              onFocus={() => {
-                setAboutMeDraft(settings.aboutMe);
-              }}
-              onChange={setAboutMeDraft}
-              onBlur={() => {
-                void saveTextField(
-                  "aboutMe",
-                  aboutMeDraft,
-                  settings.aboutMe,
-                  () => {
-                    setAboutMeDraft(null);
-                  },
-                );
-              }}
-            />
-            <PreferenceTextareaRow
-              id="preferences"
-              label="Preferences"
-              placeholder="How do you like AI to communicate with you? Tone, depth, formatting, things to avoid."
-              value={preferencesValue}
-              maxLength={500}
-              rows={4}
-              onFocus={() => {
-                setPreferencesDraft(settings.preferences);
-              }}
-              onChange={setPreferencesDraft}
-              onBlur={() => {
-                void saveTextField(
-                  "preferences",
-                  preferencesDraft,
-                  settings.preferences,
-                  () => {
-                    setPreferencesDraft(null);
-                  },
-                );
-              }}
-            />
-          </CardContent>
-        </Card>
-
-        <PreferenceSection title="Memory Behavior">
-          <LabeledSwitchRow
-            id="auto-extract"
-            label="Auto-extract memories"
-            description="Automatically extract memories from conversations."
-            checked={settings.memoryAutoExtract}
-            onCheckedChange={(checked) => {
-              void saveSettings({ memoryAutoExtract: checked });
+    <SettingsPage title="Preferences">
+      <SettingsSection
+        title="About you"
+        description="How vmem should talk about you and how you like AI to communicate."
+      >
+        <div className="grid gap-5">
+          <PreferenceTextareaRow
+            id="about-me"
+            label="About me"
+            placeholder="A few lines on who you are, what you do, and what you're working toward."
+            value={aboutMeValue}
+            maxLength={500}
+            rows={4}
+            onFocus={() => {
+              setAboutMeDraft(settings.aboutMe);
+            }}
+            onChange={setAboutMeDraft}
+            onBlur={() => {
+              void saveTextField(
+                "aboutMe",
+                aboutMeDraft,
+                settings.aboutMe,
+                () => {
+                  setAboutMeDraft(null);
+                },
+              );
             }}
           />
-          <div>
-            <ConfidenceThresholdSlider
-              value={settings.memoryConfidenceThreshold}
-              onChange={(value) => {
-                void saveSettings({ memoryConfidenceThreshold: value });
+          <PreferenceTextareaRow
+            id="preferences"
+            label="Preferences"
+            placeholder="How do you like AI to communicate with you? Tone, depth, formatting, things to avoid."
+            value={preferencesValue}
+            maxLength={500}
+            rows={4}
+            onFocus={() => {
+              setPreferencesDraft(settings.preferences);
+            }}
+            onChange={setPreferencesDraft}
+            onBlur={() => {
+              void saveTextField(
+                "preferences",
+                preferencesDraft,
+                settings.preferences,
+                () => {
+                  setPreferencesDraft(null);
+                },
+              );
+            }}
+          />
+        </div>
+      </SettingsSection>
+
+      <SettingsSection
+        title="Memory behavior"
+        description="What gets extracted from conversations, and how confident it has to be."
+      >
+        <div className="grid gap-5">
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <label
+                htmlFor="auto-extract"
+                className="text-sm font-medium text-foreground"
+              >
+                Auto-extract memories
+              </label>
+              <p className="mt-1 text-pretty text-xs leading-relaxed text-muted">
+                Automatically extract memories from conversations.
+              </p>
+            </div>
+            <Switch
+              id="auto-extract"
+              checked={settings.memoryAutoExtract}
+              onCheckedChange={(checked) => {
+                void saveSettings({ memoryAutoExtract: checked });
               }}
             />
           </div>
-        </PreferenceSection>
+          <ConfidenceThresholdSlider
+            value={settings.memoryConfidenceThreshold}
+            onChange={(value) => {
+              void saveSettings({ memoryConfidenceThreshold: value });
+            }}
+          />
+        </div>
+      </SettingsSection>
 
-        <PreferenceSection title="Dream Mode">
-          <LabeledSwitchRow
-            id="dream-automatic"
-            label="Automatic dreaming"
-            description="Dream on its own once you go quiet after saving new memories — no schedule needed. Runs at most a few times a day, deeper when more context piled up."
-            checked={settings.dreamModeAutomatic}
-            onCheckedChange={(checked) => {
-              void saveSettings({ dreamModeAutomatic: checked });
-            }}
-          />
-          <LabeledSwitchRow
-            id="dream-auto-accept"
-            label="Auto-accept high-confidence synthesis"
-            description="When on, high-confidence syntheses save as memories automatically. Otherwise they queue in your inbox for approval. Contradictions always queue regardless."
-            checked={settings.dreamModeAutoAccept}
-            onCheckedChange={(checked) => {
-              void saveSettings({ dreamModeAutoAccept: checked });
-            }}
-          />
-          <LabeledSwitchRow
-            id="dream-schedule"
-            label="Daily schedule"
-            description="Run Dream Mode every day at this time. Stored as UTC; the local time shown shifts by an hour on DST transitions."
-            checked={settings.dreamModeScheduleEnabled}
-            trailing={
-              <div className="flex items-center gap-2">
-                <TimePicker
-                  value={
-                    settings.dreamModeScheduleTime !== null
-                      ? utcTimeToLocal(settings.dreamModeScheduleTime)
-                      : DEFAULT_LOCAL_TIME
-                  }
-                  onChange={(next) => {
-                    void handleScheduleTimeChange(next);
-                  }}
-                  ariaLabel="Dream Mode schedule time"
-                />
-                <Switch
-                  id="dream-schedule"
-                  checked={settings.dreamModeScheduleEnabled}
-                  onCheckedChange={(checked) => {
-                    void handleScheduleToggle(checked);
-                  }}
-                />
-              </div>
-            }
-          />
-          <p className="text-xs text-muted">
-            Last dreamt: {formatRelativeTime(settings.lastDreamRunAt)}
-          </p>
-        </PreferenceSection>
+      <SettingsSection
+        title="Dream Mode"
+        description="How vmem consolidates memories when you go quiet."
+        bodyVariant="list"
+      >
+        <SettingsToggleRow
+          htmlFor="dream-automatic"
+          title="Automatic dreaming"
+          description="Dream on its own once you go quiet after saving new memories — no schedule needed. Runs at most a few times a day, deeper when more context piled up."
+          action={
+            <Switch
+              id="dream-automatic"
+              checked={settings.dreamModeAutomatic}
+              onCheckedChange={(checked) => {
+                void saveSettings({ dreamModeAutomatic: checked });
+              }}
+            />
+          }
+        />
+        <SettingsToggleRow
+          htmlFor="dream-auto-accept"
+          title="Auto-accept high-confidence synthesis"
+          description="When on, high-confidence syntheses save as memories automatically. Otherwise they queue in your inbox for approval. Contradictions always queue regardless."
+          action={
+            <Switch
+              id="dream-auto-accept"
+              checked={settings.dreamModeAutoAccept}
+              onCheckedChange={(checked) => {
+                void saveSettings({ dreamModeAutoAccept: checked });
+              }}
+            />
+          }
+        />
+        <SettingsToggleRow
+          htmlFor="dream-schedule"
+          title="Daily schedule"
+          description="Run Dream Mode every day at this time. Stored as UTC; the local time shown shifts by an hour on DST transitions."
+          className="max-sm:flex-wrap"
+          action={
+            <div className="flex items-center gap-2">
+              <TimePicker
+                value={
+                  settings.dreamModeScheduleTime !== null
+                    ? utcTimeToLocal(settings.dreamModeScheduleTime)
+                    : DEFAULT_LOCAL_TIME
+                }
+                onChange={(next) => {
+                  void handleScheduleTimeChange(next);
+                }}
+                ariaLabel="Dream Mode schedule time"
+              />
+              <Switch
+                id="dream-schedule"
+                checked={settings.dreamModeScheduleEnabled}
+                onCheckedChange={(checked) => {
+                  void handleScheduleToggle(checked);
+                }}
+              />
+            </div>
+          }
+        />
+        <p className="px-4 py-3 text-xs text-muted">
+          Last dreamt: {formatRelativeTime(settings.lastDreamRunAt)}
+        </p>
+      </SettingsSection>
 
-        <PreferenceSection title="Notification Preferences">
-          <LabeledSwitchRow
-            id="notify-conflicts"
-            label="Memory conflicts"
-            description="Notify when proposed updates conflict with existing memories."
-            checked={settings.notifyMemoryConflicts}
-            onCheckedChange={(checked) => {
-              void saveSettings({ notifyMemoryConflicts: checked });
-            }}
-          />
-          <LabeledSwitchRow
-            id="notify-new-memories"
-            label="New memories"
-            description="Notify when new memories are automatically extracted."
-            checked={settings.notifyNewMemories}
-            onCheckedChange={(checked) => {
-              void saveSettings({ notifyNewMemories: checked });
-            }}
-          />
-          <LabeledSwitchRow
-            id="notify-expiring"
-            label="Expiring memories"
-            description="Notify when memories are about to be archived."
-            checked={settings.notifyMemoriesExpiring}
-            onCheckedChange={(checked) => {
-              void saveSettings({ notifyMemoriesExpiring: checked });
-            }}
-          />
-        </PreferenceSection>
-      </div>
-    </PageContainer>
+      <SettingsSection
+        title="Notification preferences"
+        description="Choose which events should ping you."
+        bodyVariant="list"
+      >
+        <SettingsToggleRow
+          htmlFor="notify-conflicts"
+          title="Memory conflicts"
+          description="Notify when proposed updates conflict with existing memories."
+          action={
+            <Switch
+              id="notify-conflicts"
+              checked={settings.notifyMemoryConflicts}
+              onCheckedChange={(checked) => {
+                void saveSettings({ notifyMemoryConflicts: checked });
+              }}
+            />
+          }
+        />
+        <SettingsToggleRow
+          htmlFor="notify-new-memories"
+          title="New memories"
+          description="Notify when new memories are automatically extracted."
+          action={
+            <Switch
+              id="notify-new-memories"
+              checked={settings.notifyNewMemories}
+              onCheckedChange={(checked) => {
+                void saveSettings({ notifyNewMemories: checked });
+              }}
+            />
+          }
+        />
+        <SettingsToggleRow
+          htmlFor="notify-expiring"
+          title="Expiring memories"
+          description="Notify when memories are about to be archived."
+          action={
+            <Switch
+              id="notify-expiring"
+              checked={settings.notifyMemoriesExpiring}
+              onCheckedChange={(checked) => {
+                void saveSettings({ notifyMemoriesExpiring: checked });
+              }}
+            />
+          }
+        />
+      </SettingsSection>
+    </SettingsPage>
   );
 }

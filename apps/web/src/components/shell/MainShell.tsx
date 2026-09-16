@@ -18,7 +18,7 @@ export default function MainShell({ children }: { children: React.ReactNode }) {
     <PageTitleProvider>
       <WikiSidebarProvider>
         <CommandPalette onToggleSidebar={toggleSidebar} />
-        <div className="relative h-screen overflow-hidden bg-background">
+        <div className="relative h-dvh overflow-hidden bg-background">
           <a
             href="#main-content"
             className="sr-only focus:absolute focus:left-3 focus:top-[max(0.75rem,env(safe-area-inset-top))] focus:z-[100] focus:block focus:rounded-lg focus:bg-surface-secondary focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
@@ -32,11 +32,11 @@ export default function MainShell({ children }: { children: React.ReactNode }) {
           <main
             id="main-content"
             tabIndex={-1}
-            className={`relative z-10 flex h-full pt-[calc(3.5rem+env(safe-area-inset-top,0px))] outline-none md:h-screen md:p-2 md:px-2 md:pb-2 md:pt-2 ${
+            className={`relative z-10 flex h-full min-h-0 outline-none md:p-2 ${
               isSidebarCollapsed ? "md:ml-20" : "md:ml-72"
             } md:transition-[margin-left] md:[transition-duration:280ms] md:[transition-timing-function:cubic-bezier(0.22,1,0.36,1)]`}
           >
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-surface md:rounded-lg">
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-surface pt-[var(--vmem-mobile-header-height)] md:rounded-lg md:pt-0">
               {children}
             </div>
           </main>

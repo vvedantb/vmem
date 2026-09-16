@@ -5,7 +5,8 @@ import { Button, Skeleton } from "@vmem/ui";
 import { IconPlus } from "@tabler/icons-react";
 import { api, type Id } from "@vmem/backend";
 import { tempId } from "@/lib/convex-optimistic";
-import PageContainer from "@/components/shell/PageContainer";
+import { SettingsPage } from "@/components/settings/SettingsPage";
+import { SettingsSection } from "@/components/settings/SettingsSection";
 import { CreateEditProfileDialog } from "./CreateEditProfileDialog";
 import { DefaultProfilesSection } from "./DefaultProfilesSection";
 import { ProfileCard } from "./ProfileCard";
@@ -75,12 +76,14 @@ export function ProfilesPage() {
 
   if (profiles === undefined) {
     return (
-      <PageContainer title="Profiles" centeredMaxWidth showTitle>
-        <div className="space-y-4">
+      <SettingsPage title="Profiles">
+        <SettingsSection title="Default profiles">
           <Skeleton className="h-24 w-full" />
+        </SettingsSection>
+        <SettingsSection title="Workspaces">
           <Skeleton className="h-24 w-full" />
-        </div>
-      </PageContainer>
+        </SettingsSection>
+      </SettingsPage>
     );
   }
 
@@ -98,68 +101,67 @@ export function ProfilesPage() {
   };
 
   return (
-    <PageContainer
+    <SettingsPage
       title="Profiles"
-      centeredMaxWidth
-      showTitle
-      rightSection={
+      headerRight={
         <Button size="sm" onClick={() => setCreateOpen(true)}>
-          <IconPlus className="h-4 w-4 mr-1.5" />
-          New Profile
+          <IconPlus className="h-4 w-4" />
+          New
+          <span className="max-sm:sr-only"> Profile</span>
         </Button>
       }
     >
-      <div className="space-y-6">
-        <DefaultProfilesSection profiles={profiles} />
+      <DefaultProfilesSection profiles={profiles} />
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          {profiles.map((profile) => (
-            <ProfileCard
-              key={profile._id}
-              profile={profile}
-              onEdit={() => setEditingProfileId(profile._id)}
-              onDelete={() => setDeletingProfileId(profile._id)}
-            />
-          ))}
-        </div>
+      <SettingsSection
+        title="Workspaces"
+        description="Each profile is a separate memory workspace."
+        bodyClassName="grid gap-4 sm:grid-cols-2"
+      >
+        {profiles.map((profile) => (
+          <ProfileCard
+            key={profile._id}
+            profile={profile}
+            onEdit={() => setEditingProfileId(profile._id)}
+            onDelete={() => setDeletingProfileId(profile._id)}
+          />
+        ))}
+      </SettingsSection>
 
+      <CreateEditProfileDialog
+        profile={null}
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onSave={handleCreate}
+      />
+
+      {editingProfile && (
         <CreateEditProfileDialog
-          profile={null}
-          open={createOpen}
-          onOpenChange={setCreateOpen}
-          onSave={handleCreate}
+          profile={editingProfile}
+          open={!!editingProfile}
+          onOpenChange={(open) => !open && setEditingProfileId(null)}
+          onFieldUpdate={(patch) => {
+            void updateProfile({
+              profileId: editingProfile._id,
+              ...patch,
+            }).catch((err: unknown) => {
+              toast.error(
+                err instanceof Error ? err.message : "Failed to update profile",
+              );
+            });
+          }}
         />
+      )}
 
-        {editingProfile && (
-          <CreateEditProfileDialog
-            profile={editingProfile}
-            open={!!editingProfile}
-            onOpenChange={(open) => !open && setEditingProfileId(null)}
-            onFieldUpdate={(patch) => {
-              void updateProfile({
-                profileId: editingProfile._id,
-                ...patch,
-              }).catch((err: unknown) => {
-                toast.error(
-                  err instanceof Error
-                    ? err.message
-                    : "Failed to update profile",
-                );
-              });
-            }}
-          />
-        )}
-
-        {deletingProfile && (
-          <ProfileDangerZone
-            profile={deletingProfile}
-            profiles={profiles}
-            open={!!deletingProfile}
-            onOpenChange={(open) => !open && setDeletingProfileId(null)}
-            onDelete={handleDelete}
-          />
-        )}
-      </div>
-    </PageContainer>
+      {deletingProfile && (
+        <ProfileDangerZone
+          profile={deletingProfile}
+          profiles={profiles}
+          open={!!deletingProfile}
+          onOpenChange={(open) => !open && setDeletingProfileId(null)}
+          onDelete={handleDelete}
+        />
+      )}
+    </SettingsPage>
   );
 }

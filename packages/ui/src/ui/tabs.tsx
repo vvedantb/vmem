@@ -78,7 +78,10 @@ const TabsList = React.forwardRef<
   return (
     <TabsPrimitive.List
       ref={mergedRef}
-      className={cn("t-tabs", className)}
+      className={cn(
+        "t-tabs max-sm:max-w-full max-sm:justify-center-safe max-sm:overflow-x-auto max-sm:scrollbar-none",
+        className,
+      )}
       {...props}
     >
       <span ref={pillRef} className="t-tabs-pill" aria-hidden="true" />

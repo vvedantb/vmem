@@ -112,7 +112,7 @@ export default function UnifiedFilterPanel({
               className={FILTER_TAB_TRIGGER_CLASS}
             >
               <IconShape size={14} />
-              <span className="hidden sm:inline">Kind</span>
+              <span className="max-sm:sr-only sm:inline">Kind</span>
               {filterTabBadge(kindCount)}
             </TabsPrimitive.Trigger>
           ) : null}
@@ -123,7 +123,7 @@ export default function UnifiedFilterPanel({
               className={FILTER_TAB_TRIGGER_CLASS}
             >
               <IconTag size={14} />
-              <span className="hidden sm:inline">Tags</span>
+              <span className="max-sm:sr-only sm:inline">Tags</span>
               {filterTabBadge(tagCount)}
             </TabsPrimitive.Trigger>
           ) : null}
@@ -134,7 +134,7 @@ export default function UnifiedFilterPanel({
               className={FILTER_TAB_TRIGGER_CLASS}
             >
               <IconPlug size={14} />
-              <span className="hidden sm:inline">Source</span>
+              <span className="max-sm:sr-only sm:inline">Source</span>
               {filterTabBadge(sourceCount)}
             </TabsPrimitive.Trigger>
           ) : null}
@@ -145,7 +145,7 @@ export default function UnifiedFilterPanel({
               className={FILTER_TAB_TRIGGER_CLASS}
             >
               <IconCategory size={14} />
-              <span className="hidden sm:inline">Type</span>
+              <span className="max-sm:sr-only sm:inline">Type</span>
               {filterTabBadge(typeCount)}
             </TabsPrimitive.Trigger>
           ) : null}

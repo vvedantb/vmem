@@ -302,7 +302,7 @@ export default function WikiWorkspace({ docId }: WikiWorkspaceProps) {
       >
         <DialogContent className="sm:max-w-sm">
           <DialogTitle className="sr-only">Outline</DialogTitle>
-          <div className="max-h-[60vh] overflow-y-auto scrollbar-thin">
+          <div className="max-h-[60dvh] overflow-y-auto scrollbar-thin">
             <WikiOutline
               headings={headings}
               activeHeadingId={activeHeadingId}

@@ -32,7 +32,7 @@ function WorkspaceLayout() {
 
   if (profiles === undefined) {
     return (
-      <div className="flex h-full min-h-[60vh] items-center justify-center">
+      <div className="flex h-full min-h-[60dvh] items-center justify-center">
         <IconLoader2 size={20} className="animate-spin text-muted" />
       </div>
     );

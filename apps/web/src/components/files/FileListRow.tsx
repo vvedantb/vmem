@@ -110,7 +110,7 @@ export default function FileListRow({
               <Button
                 variant="ghost"
                 size="icon-sm"
-                className="text-muted opacity-0 group-hover:opacity-100 transition-opacity"
+                className="text-muted reveal-on-hover"
                 onClick={(e) => e.stopPropagation()}
               >
                 <IconDotsVertical size={16} stroke={1.5} />

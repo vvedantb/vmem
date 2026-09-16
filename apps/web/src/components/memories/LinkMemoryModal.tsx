@@ -191,7 +191,7 @@ export default function LinkMemoryModal({
 
   return (
     <Dialog open={open} onOpenChange={closeModal}>
-      <DialogContent className="flex max-h-[min(32rem,90vh)] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
+      <DialogContent className="flex max-h-[min(32rem,90dvh)] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
         <DialogHeader className="space-y-1.5 px-6 pb-4 pt-6">
           <DialogTitle className="text-foreground">Link memory</DialogTitle>
           <DialogDescription className="text-sm text-muted">

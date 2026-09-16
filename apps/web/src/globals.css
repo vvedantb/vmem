@@ -7,6 +7,12 @@
   --modal-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --tabs-dur: 200ms;
   --tabs-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Height of the fixed below-`md` app header in `Sidebar.tsx`, including the
+     notch inset (`viewport-fit=cover` in index.html makes it non-zero). Every
+     layout that offsets content for that header must use this, not a literal
+     `pt-14`, or the header overlaps content on a notched phone. */
+  --vmem-mobile-header-height: calc(3.5rem + env(safe-area-inset-top, 0px));
 }
 
 @tailwind base;
@@ -274,6 +280,17 @@
     padding: 3px;
     border-radius: 48px;
     background: var(--tabs-bar-bg);
+    max-width: 100%;
+  }
+  @media (max-width: 639px) {
+    .t-tabs {
+      justify-content: safe center;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .t-tabs::-webkit-scrollbar {
+      display: none;
+    }
   }
   .t-tab {
     position: relative;
@@ -324,6 +341,67 @@
 }
 
 @layer utilities {
+  /* Extends sub-40px controls to a 40×40px tap target without changing layout.
+     Only force `relative` when the element is otherwise static — absolute /
+     fixed / sticky already form a containing block for ::after. */
+  .hit-target:not(.absolute):not(.fixed):not(.sticky) {
+    position: relative;
+  }
+  .hit-target::after {
+    content: "";
+    position: absolute;
+    inset: -8px;
+  }
+
+  @media (max-width: 639px) {
+    .max-sm\:hit-target:not(.absolute):not(.fixed):not(.sticky) {
+      position: relative;
+    }
+    .max-sm\:hit-target::after {
+      content: "";
+      position: absolute;
+      inset: -8px;
+    }
+  }
+
+  /*
+   * Row / message / attachment actions that only appear on `group-hover`.
+   * Touch has no hover, so on a phone those controls are not merely hard to
+   * find — they are unreachable. Visible below `sm`; hidden on hover-capable
+   * viewports at `sm` and up, restored on group-hover / focus.
+   */
+  .reveal-on-hover {
+    opacity: 1;
+  }
+
+  @media (hover: hover) and (min-width: 640px) {
+    .reveal-on-hover {
+      opacity: 0;
+    }
+    .reveal-on-hover:is(:where(.group):hover *),
+    .reveal-on-hover:is(:where(.group):focus-within *),
+    .reveal-on-hover:focus-visible {
+      opacity: 1;
+    }
+  }
+
+  .justify-center-safe {
+    justify-content: safe center;
+  }
+
+  @media (max-width: 639px) {
+    .max-sm\:justify-center-safe {
+      justify-content: safe center;
+    }
+  }
+
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
   /* Firefox-only fallback: standard scrollbar properties are ignored by Chrome
      121+ when webkit rules exist, so gate them with @supports to give webkit
      precedence. Chrome gets the instant 6px thumb; Firefox gets thin themed. */

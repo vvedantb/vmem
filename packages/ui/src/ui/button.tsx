@@ -19,13 +19,11 @@ const buttonVariants = cva(
       },
       size: {
         default: "h-10 px-4 py-2",
-        sm: "h-8 rounded-lg px-3 text-xs",
+        sm: "h-8 rounded-lg px-3 text-xs max-sm:hit-target",
         lg: "h-11 px-6",
         icon: "h-10 w-10",
-        "icon-sm":
-          "h-8 w-8 rounded-lg relative before:absolute before:inset-[-4px] before:content-['']",
-        "icon-xs":
-          "h-7 w-7 rounded-md relative before:absolute before:inset-[-6px] before:content-['']",
+        "icon-sm": "h-8 w-8 rounded-lg max-sm:hit-target",
+        "icon-xs": "h-7 w-7 rounded-md hit-target",
       },
     },
     defaultVariants: {

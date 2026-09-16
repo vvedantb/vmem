@@ -133,7 +133,7 @@ function OptionsPopover({
       </PopoverTrigger>
       <PopoverContent
         align="end"
-        className="w-72 p-3 space-y-4 max-h-[80vh] overflow-y-auto"
+        className="w-72 p-3 space-y-4 max-h-[80dvh] overflow-y-auto"
       >
         <div className="flex items-center justify-between">
           <span className="text-[11px] text-muted">Labels</span>

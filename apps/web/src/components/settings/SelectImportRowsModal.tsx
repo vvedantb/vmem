@@ -59,7 +59,7 @@ export default function SelectImportRowsModal({
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-lg">
+      <DialogContent className="flex max-h-[85dvh] flex-col sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="text-foreground">
             Choose conversations to import
