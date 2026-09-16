@@ -85,7 +85,7 @@ export async function harvestConvexTokenFromTab(
   }
 }
 
-export async function harvestConvexTokenFromTabWithRetry(
+async function harvestConvexTokenFromTabWithRetry(
   tabId: number,
   attempts = 10,
   delayMs = 400,
