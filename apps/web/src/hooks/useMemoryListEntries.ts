@@ -47,9 +47,13 @@ export function useMemoryListEntries(options?: { fetchAll?: boolean }) {
   const primaryType = params.types.length > 0 ? params.types[0] : undefined;
   const primarySource =
     params.sources.length > 0 ? params.sources[0] : undefined;
+  const fetchAll = options?.fetchAll === true;
   const kindIncludesMemory =
     params.kinds.length === 0 || params.kinds.includes("memory");
-  const isHybridSearch = normalizedQuery.length > 0 && kindIncludesMemory;
+  // timeline already loaded every row; keep search lexical so a miss is empty
+  // instead of semantic neighbors from retrieveMemories
+  const isHybridSearch =
+    normalizedQuery.length > 0 && kindIncludesMemory && !fetchAll;
   const isShowingSearchResults = normalizedQuery.length > 0;
 
   const memoryPage = useMemoryListFlat({
@@ -57,9 +61,10 @@ export function useMemoryListEntries(options?: { fetchAll?: boolean }) {
     type: primaryType,
     source: primarySource,
     tags: params.tags,
-    searchQuery: isHybridSearch ? undefined : normalizedQuery || undefined,
+    searchQuery:
+      fetchAll || isHybridSearch ? undefined : normalizedQuery || undefined,
     enabled: !isHybridSearch,
-    fetchAll: options?.fetchAll === true,
+    fetchAll,
   });
 
   const retrieveMemoriesAction = useAction(api.memoryApi.retrieveMemories);
@@ -91,6 +96,10 @@ export function useMemoryListEntries(options?: { fetchAll?: boolean }) {
         .map(memoryToListItem)
         .filter((item) => listItemPassesFilters(item, filters))
     : [];
+  const searchedMemories =
+    fetchAll && isShowingSearchResults
+      ? searchListItems(memories, normalizedQuery).map((result) => result.item)
+      : memories;
 
   const nonMemory = supplementaryItems.filter((item) =>
     listItemPassesFilters(item, filters),
@@ -107,7 +116,7 @@ export function useMemoryListEntries(options?: { fetchAll?: boolean }) {
     maxScore = max > 0 ? max : 1;
   }
 
-  const memoryEntries: MemoryListEntry[] = memories.map((item) => {
+  const memoryEntries: MemoryListEntry[] = searchedMemories.map((item) => {
     const trace = traceById.get(item.id);
     if (!trace) return unscoredEntry(item);
     return {

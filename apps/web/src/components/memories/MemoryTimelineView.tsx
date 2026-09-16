@@ -16,9 +16,9 @@ import { useMemoryListEntries } from "@/hooks/useMemoryListEntries";
 import { useMemoriesSearchParams } from "@/hooks/useMemoriesSearchParams";
 import { useTrailData } from "@/hooks/useTrailData";
 import {
-  clampNumber,
   itemCreatedInWindow,
   memoryTimelineRange,
+  resolvedPlayheadMs,
   spanDurationMs,
   windowCountLabel,
   windowForPlayhead,
@@ -113,6 +113,18 @@ function TimelineStatus({
 }
 
 export default function MemoryTimelineView() {
+  const [params] = useMemoriesSearchParams();
+  const filterKey = [
+    params.q,
+    params.tags.join("\0"),
+    params.types.join("\0"),
+    params.sources.join("\0"),
+    params.kinds.join("\0"),
+  ].join("|");
+  return <MemoryTimelineBody key={filterKey} />;
+}
+
+function MemoryTimelineBody() {
   const [params, setParams] = useMemoriesSearchParams();
   const list = useMemoryListEntries({ fetchAll: true });
   const { isDark } = useThemeContext();
@@ -138,11 +150,7 @@ export default function MemoryTimelineView() {
 
   const span: TimelineSpan = params.span;
   const resolvedPlayhead =
-    range === null
-      ? null
-      : playheadMs === null
-        ? range.endMs
-        : clampNumber(playheadMs, range.startMs, range.endMs);
+    range === null ? null : resolvedPlayheadMs(playheadMs, createdAts, range);
   const window =
     range === null || resolvedPlayhead === null
       ? null

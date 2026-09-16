@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   clampNumber,
+  defaultPlayheadMs,
   densityBuckets,
   itemCreatedInWindow,
+  latestCreatedAtMs,
   memoryTimelineRange,
   playheadFromProgress,
   progressFromPlayhead,
+  resolvedPlayheadMs,
   spanDurationMs,
   windowCountLabel,
   windowForPlayhead,
@@ -29,16 +32,27 @@ describe("memoryTimelineRange", () => {
     });
   });
 
-  it("does not end before the latest memory", () => {
+  it("does not end before the latest memory and pads short ranges", () => {
+    const june = Date.parse("2026-06-01T00:00:00.000Z");
     expect(
       memoryTimelineRange(
         ["2026-06-01T00:00:00.000Z"],
         Date.parse("2026-01-01T00:00:00.000Z"),
       ),
     ).toEqual({
-      startMs: Date.parse("2026-06-01T00:00:00.000Z"),
-      endMs: Date.parse("2026-06-01T00:00:00.000Z"),
+      startMs: june - 24 * 60 * 60 * 1000,
+      endMs: june,
     });
+  });
+
+  it("pads a same-day cluster so the scrubber has width", () => {
+    const now = Date.parse("2026-04-01T12:00:00.000Z");
+    const created = Date.parse("2026-04-01T11:00:00.000Z");
+    expect(memoryTimelineRange(["2026-04-01T11:00:00.000Z"], now)).toEqual({
+      startMs: now - 24 * 60 * 60 * 1000,
+      endMs: now,
+    });
+    expect(created).toBeGreaterThan(now - 24 * 60 * 60 * 1000);
   });
 });
 
@@ -63,6 +77,17 @@ describe("windowForPlayhead", () => {
     });
     expect(windowForPlayhead(200, 30, range)).toEqual({
       startMs: 70,
+      endMs: 100,
+    });
+  });
+
+  it("uses the full range when the span covers it", () => {
+    expect(windowForPlayhead(40, 100, range)).toEqual({
+      startMs: 0,
+      endMs: 100,
+    });
+    expect(windowForPlayhead(40, 1000, range)).toEqual({
+      startMs: 0,
       endMs: 100,
     });
   });
@@ -147,5 +172,41 @@ describe("clampNumber", () => {
     expect(clampNumber(5, 0, 10)).toBe(5);
     expect(clampNumber(-1, 0, 10)).toBe(0);
     expect(clampNumber(11, 0, 10)).toBe(10);
+  });
+});
+
+describe("default playhead", () => {
+  it("snaps to the latest memory instead of now", () => {
+    const created = ["2026-01-01T00:00:00.000Z", "2026-03-01T00:00:00.000Z"];
+    const latest = Date.parse("2026-03-01T00:00:00.000Z");
+    const range = memoryTimelineRange(
+      created,
+      Date.parse("2026-04-01T00:00:00.000Z"),
+    );
+    expect(range).not.toBeNull();
+    if (range === null) return;
+    expect(latestCreatedAtMs(created)).toBe(latest);
+    expect(defaultPlayheadMs(created, range)).toBe(latest);
+    expect(resolvedPlayheadMs(null, created, range)).toBe(latest);
+    expect(resolvedPlayheadMs(range.endMs, created, range)).toBe(range.endMs);
+    expect(resolvedPlayheadMs(Number.POSITIVE_INFINITY, created, range)).toBe(
+      range.endMs,
+    );
+  });
+});
+
+describe("jump to now", () => {
+  it("keeps the playhead on the live edge when the range end moves", () => {
+    const range = { startMs: 0, endMs: 100 };
+    const later = { startMs: 0, endMs: 130 };
+    const playhead = Number.POSITIVE_INFINITY;
+    expect(resolvedPlayheadMs(playhead, [], range)).toBe(100);
+    expect(progressFromPlayhead(playhead, range)).toBe(1);
+    expect(resolvedPlayheadMs(playhead, [], later)).toBe(130);
+    expect(progressFromPlayhead(playhead, later)).toBe(1);
+    expect(windowForPlayhead(playhead, 30, later)).toEqual({
+      startMs: 100,
+      endMs: 130,
+    });
   });
 });
