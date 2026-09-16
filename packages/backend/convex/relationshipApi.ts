@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 import { authAction, requireClerkId } from "./auth";
 import type { MemoryWithTags } from "./memoryApi/types";
 import {
@@ -15,9 +16,17 @@ export const linkMemories = authAction({
     memoryIdB: v.string(),
     reason: v.string(),
   },
-  handler: async (ctx): Promise<boolean> => {
-    await requireClerkId(ctx);
-    return false;
+  handler: async (ctx, args): Promise<boolean> => {
+    const clerkId = await requireClerkId(ctx);
+    return await ctx.runMutation(
+      internal.memoryStore.functions.linkMemoriesInternal,
+      {
+        userId: clerkId,
+        memoryIdA: args.memoryIdA,
+        memoryIdB: args.memoryIdB,
+        reason: args.reason,
+      },
+    );
   },
 });
 
@@ -26,9 +35,16 @@ export const unlinkMemories = authAction({
     memoryIdA: v.string(),
     memoryIdB: v.string(),
   },
-  handler: async (ctx): Promise<boolean> => {
-    await requireClerkId(ctx);
-    return false;
+  handler: async (ctx, args): Promise<boolean> => {
+    const clerkId = await requireClerkId(ctx);
+    return await ctx.runMutation(
+      internal.memoryStore.functions.unlinkMemoriesInternal,
+      {
+        userId: clerkId,
+        memoryIdA: args.memoryIdA,
+        memoryIdB: args.memoryIdB,
+      },
+    );
   },
 });
 

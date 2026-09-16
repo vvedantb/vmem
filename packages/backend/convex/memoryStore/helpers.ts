@@ -11,6 +11,7 @@ import {
 import { buildSearchableText } from "../../engine/memory/searchableText";
 import { expandedSearchText } from "../../engine/memory/synonyms";
 import { normalizeTags } from "../../engine/memory/tags";
+import type { MemoryLinkEdge } from "../../engine/memory/links";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { parseIsoMillis, toMemoryWithTags } from "./mappers";
@@ -280,6 +281,44 @@ export async function updateMemory(
   return toMemoryWithTags(updated);
 }
 
+async function deleteLinksForMemory(
+  ctx: MutationCtx,
+  userId: string,
+  memoryId: string,
+): Promise<void> {
+  const sources = await ctx.db
+    .query("memoryLinks")
+    .withIndex("by_user_source", (q) =>
+      q.eq("userId", userId).eq("sourceId", memoryId),
+    )
+    .collect();
+  const targets = await ctx.db
+    .query("memoryLinks")
+    .withIndex("by_user_target", (q) =>
+      q.eq("userId", userId).eq("targetId", memoryId),
+    )
+    .collect();
+  const seen = new Set<string>();
+  for (const row of [...sources, ...targets]) {
+    if (seen.has(row._id)) continue;
+    seen.add(row._id);
+    await ctx.db.delete(row._id);
+  }
+}
+
+async function deleteLinksForUser(
+  ctx: MutationCtx,
+  userId: string,
+): Promise<void> {
+  const rows = await ctx.db
+    .query("memoryLinks")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .collect();
+  for (const row of rows) {
+    await ctx.db.delete(row._id);
+  }
+}
+
 export async function deleteMemory(
   ctx: MutationCtx,
   userId: string,
@@ -287,6 +326,7 @@ export async function deleteMemory(
 ): Promise<boolean> {
   const doc = await findByMemoryId(ctx, memoryId);
   if (!doc || doc.userId !== userId) return false;
+  await deleteLinksForMemory(ctx, userId, memoryId);
   await ctx.db.delete(doc._id);
   return true;
 }
@@ -300,6 +340,7 @@ export async function deleteTeamMemoryAsOwner(
   if (!doc || !memoryMatchesScope(doc, { kind: "team", profileId })) {
     return false;
   }
+  await deleteLinksForMemory(ctx, doc.userId, memoryId);
   await ctx.db.delete(doc._id);
   return true;
 }
@@ -312,6 +353,7 @@ export async function deleteMemoriesForUser(
     .query("memories")
     .withIndex("by_user_created", (q) => q.eq("userId", userId))
     .collect();
+  await deleteLinksForUser(ctx, userId);
   for (const doc of docs) {
     await ctx.db.delete(doc._id);
   }
@@ -466,4 +508,82 @@ export async function patchMemoryEmbedding(
   if (!doc) return false;
   await ctx.db.patch(doc._id, { embedding });
   return true;
+}
+
+function orderedLinkIds(
+  a: string,
+  b: string,
+): { sourceId: string; targetId: string } {
+  return a < b ? { sourceId: a, targetId: b } : { sourceId: b, targetId: a };
+}
+
+export async function linkMemories(
+  ctx: MutationCtx,
+  params: {
+    userId: string;
+    profileId?: string;
+    memoryIdA: string;
+    memoryIdB: string;
+    reason: string;
+  },
+): Promise<boolean> {
+  if (params.memoryIdA === params.memoryIdB) return false;
+  const a = await findByMemoryId(ctx, params.memoryIdA);
+  const b = await findByMemoryId(ctx, params.memoryIdB);
+  if (!a || !b) return false;
+  if (a.userId !== params.userId || b.userId !== params.userId) return false;
+  const { sourceId, targetId } = orderedLinkIds(
+    params.memoryIdA,
+    params.memoryIdB,
+  );
+  const existing = await ctx.db
+    .query("memoryLinks")
+    .withIndex("by_source_target", (q) =>
+      q.eq("sourceId", sourceId).eq("targetId", targetId),
+    )
+    .first();
+  if (existing) return true;
+  await ctx.db.insert("memoryLinks", {
+    userId: params.userId,
+    ...(params.profileId === undefined ? {} : { profileId: params.profileId }),
+    sourceId,
+    targetId,
+    reason: params.reason.trim() || "related",
+    createdAt: Date.now(),
+  });
+  return true;
+}
+
+export async function unlinkMemories(
+  ctx: MutationCtx,
+  params: { userId: string; memoryIdA: string; memoryIdB: string },
+): Promise<boolean> {
+  const { sourceId, targetId } = orderedLinkIds(
+    params.memoryIdA,
+    params.memoryIdB,
+  );
+  const existing = await ctx.db
+    .query("memoryLinks")
+    .withIndex("by_source_target", (q) =>
+      q.eq("sourceId", sourceId).eq("targetId", targetId),
+    )
+    .first();
+  if (!existing || existing.userId !== params.userId) return false;
+  await ctx.db.delete(existing._id);
+  return true;
+}
+
+export async function listMemoryLinksForUser(
+  ctx: QueryCtx | MutationCtx,
+  userId: string,
+): Promise<MemoryLinkEdge[]> {
+  const rows = await ctx.db
+    .query("memoryLinks")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .collect();
+  return rows.map((row) => ({
+    sourceId: row.sourceId,
+    targetId: row.targetId,
+    reason: row.reason,
+  }));
 }

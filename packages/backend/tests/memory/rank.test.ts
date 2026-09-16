@@ -75,6 +75,44 @@ describe("rankMemories", () => {
     const ranked = rankMemories([pnpm, coffee], "webpack bundler");
     expect(ranked.map((hit) => hit.id)).toEqual([]);
   });
+
+  it("lifts a stored 1-hop neighbor that does not mention the query", () => {
+    const bridge = memory({
+      id: "mem_bridge",
+      title: "the Helios incident was escalated to platform on-call",
+      content:
+        "When Helios went down the incident was escalated to platform on-call.",
+    });
+    const gold = memory({
+      id: "mem_gold",
+      title: "Dana carries the platform pager",
+      content: "Dana is first to acknowledge platform pages.",
+    });
+    const withoutGraph = rankMemories(
+      [bridge, gold, coffee],
+      "who responded to the Helios incident",
+      { limit: 5, legs: { graph: false } },
+    );
+    const withGraph = rankMemories(
+      [bridge, gold, coffee],
+      "who responded to the Helios incident",
+      {
+        limit: 5,
+        links: [
+          {
+            sourceId: "mem_bridge",
+            targetId: "mem_gold",
+            reason: "platform on-call owns Helios",
+          },
+        ],
+      },
+    );
+    expect(withoutGraph.map((hit) => hit.id)).not.toContain("mem_gold");
+    expect(withGraph.map((hit) => hit.id)).toContain("mem_gold");
+    expect(
+      withGraph.find((hit) => hit.id === "mem_gold")?.trace.reason,
+    ).toContain("related via stored link");
+  });
 });
 
 describe("retrieveMemoriesFromPool", () => {

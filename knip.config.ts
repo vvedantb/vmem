@@ -55,6 +55,8 @@ const config: KnipConfig = {
         "index.ts!",
         // Build tooling invoked via `deploy` -> `build:mcp-graph-ui`; pulls in esbuild.
         "scripts/**/*.mjs!",
+        // labelled Convex retrieval ablation; invoked via `eval:bench`.
+        "eval/**/*.ts!",
         // esbuild entry for `build:mcp-graph-ui`. Nothing imports it, so it has
         // to be an entry, not just a project file — otherwise knip cannot see
         // its @cosmos.gl/graph import and reports that dep as unused.
@@ -63,6 +65,7 @@ const config: KnipConfig = {
       project: [
         "convex/**/*.ts",
         "engine/**/*.ts",
+        "eval/**/*.ts",
         "tests/**/*.ts",
         "scripts/**/*.mjs",
         "mcp-ui/**/*.ts",

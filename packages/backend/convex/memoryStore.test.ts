@@ -786,4 +786,70 @@ describe("convex memoryStore", () => {
     );
     expect(Array.isArray(teamFts)).toBe(true);
   });
+
+  it("persists undirected memory links and drops them with the memory", async () => {
+    const t = convexTest(schema, modules);
+    const a = await t.mutation(
+      internal.memoryStore.functions.createMemoryInternal,
+      createArgs({ memoryId: "mem_a", title: "Helios overview" }),
+    );
+    const b = await t.mutation(
+      internal.memoryStore.functions.createMemoryInternal,
+      createArgs({
+        memoryId: "mem_b",
+        title: "Dana leads platform",
+        content: "Dana leads the platform team.",
+      }),
+    );
+
+    const linked = await t.mutation(
+      internal.memoryStore.functions.linkMemoriesInternal,
+      {
+        userId: USER_A,
+        memoryIdA: a.id,
+        memoryIdB: b.id,
+        reason: "platform owns Helios",
+      },
+    );
+    expect(linked).toBe(true);
+
+    const again = await t.mutation(
+      internal.memoryStore.functions.linkMemoriesInternal,
+      {
+        userId: USER_A,
+        memoryIdA: b.id,
+        memoryIdB: a.id,
+        reason: "duplicate",
+      },
+    );
+    expect(again).toBe(true);
+
+    const listed = await t.query(
+      internal.memoryStore.functions.listMemoryLinksForUserInternal,
+      { userId: USER_A },
+    );
+    expect(listed).toHaveLength(1);
+    expect(listed[0]?.reason).toBe("platform owns Helios");
+
+    const crossUser = await t.mutation(
+      internal.memoryStore.functions.linkMemoriesInternal,
+      {
+        userId: USER_B,
+        memoryIdA: a.id,
+        memoryIdB: b.id,
+        reason: "stolen",
+      },
+    );
+    expect(crossUser).toBe(false);
+
+    await t.mutation(internal.memoryStore.functions.deleteMemoryInternal, {
+      userId: USER_A,
+      memoryId: a.id,
+    });
+    const afterDelete = await t.query(
+      internal.memoryStore.functions.listMemoryLinksForUserInternal,
+      { userId: USER_A },
+    );
+    expect(afterDelete).toHaveLength(0);
+  });
 });

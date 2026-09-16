@@ -1,4 +1,5 @@
 import type { MemoryCandidate, MemoryWithTags } from "@vmem/sdk";
+import { expandGraphNeighbors, type MemoryLinkEdge } from "./links";
 import { expandQueryTerms } from "./synonyms";
 import { contentTokens, tokenize } from "./tokens";
 
@@ -9,12 +10,34 @@ const TITLE_WEIGHT = 3;
 const TAG_WEIGHT = 2;
 const RECENCY_HALFLIFE_DAYS = 365;
 const MS_PER_DAY = 86_400_000;
+const GRAPH_SEED_LIMIT = 5;
+const GRAPH_NEIGHBOR_LIMIT = 40;
+const GRAPH_SEED_SCORE_FLOOR = 0.22;
+const GRAPH_NEIGHBOR_FROM_SEED = 0.9;
+
+export interface RetrievalLegs {
+  fulltext?: boolean;
+  vector?: boolean;
+  chunk?: boolean;
+  entity?: boolean;
+  graph?: boolean;
+  recency?: boolean;
+}
 
 export interface RankMemoriesOptions {
   limit?: number;
   nowMs?: number;
   vectorScores?: ReadonlyMap<string, number>;
   ftsRanks?: ReadonlyMap<string, number>;
+  legs?: RetrievalLegs;
+  links?: readonly MemoryLinkEdge[];
+}
+
+function legOn(
+  legs: RetrievalLegs | undefined,
+  key: keyof RetrievalLegs,
+): boolean {
+  return legs?.[key] !== false;
 }
 
 export interface RelatedMemoryHit {
@@ -235,6 +258,7 @@ function reasonFor(args: {
   chunk: number;
   entity: number;
   recency: number;
+  graph: number;
 }): string {
   if (args.query.trim().length === 0) return "recent memories";
   const parts: string[] = [];
@@ -244,6 +268,7 @@ function reasonFor(args: {
   if (args.vector > 0.15) parts.push("vector similarity");
   if (args.chunk > 0.4) parts.push("chunk overlap");
   if (args.entity > 0.3) parts.push("tag or entity match");
+  if (args.graph > 0) parts.push("related via stored link");
   if (args.recency > 0.7) parts.push("recency");
   if (parts.length === 0) return "weak lexical match";
   return parts.join("; ");
@@ -280,7 +305,17 @@ export function rankMemories(
   const limit = options.limit ?? memories.length;
   const nowMs = options.nowMs ?? Date.now();
   const trimmed = query.trim();
+  const useFulltext = legOn(options.legs, "fulltext");
+  const useVector = legOn(options.legs, "vector");
+  const useChunk = legOn(options.legs, "chunk");
+  const useEntity = legOn(options.legs, "entity");
+  const useRecency = legOn(options.legs, "recency");
+  const useGraph =
+    legOn(options.legs, "graph") &&
+    options.links !== undefined &&
+    options.links.length > 0;
   const docs = memories.map(tokenizeDoc);
+  const byId = new Map(docs.map((doc) => [doc.memory.id, doc]));
   const queryTerms = expandQueryTerms(trimmed);
   const df = new Map<string, number>();
   let lengthSum = 0;
@@ -298,6 +333,11 @@ export function rankMemories(
   const recencyRaw = new Map<string, number>();
   const vectorRaw = new Map<string, number>();
   const ftsRaw = new Map<string, number>();
+  const graphRaw = new Map<string, number>();
+  const graphPath = new Map<
+    string,
+    { seedTitle: string; bridgingEntity: string | null; hops: number }
+  >();
   const breakdown = new Map<
     string,
     {
@@ -306,6 +346,7 @@ export function rankMemories(
       chunk: number;
       entity: number;
       recency: number;
+      graph: number;
       confidence: number;
     }
   >();
@@ -314,13 +355,22 @@ export function rankMemories(
     const phrase = phraseScore(doc.memory, trimmed);
     const bm25 = bm25Score(doc, queryTerms, df, docs.length, avgLength);
     const fulltext =
-      trimmed.length === 0 ? 0 : clamp01(Math.max(phrase, Math.tanh(bm25 / 4)));
-    const chunk = trimmed.length === 0 ? 0 : chunkScore(doc.memory, queryTerms);
+      !useFulltext || trimmed.length === 0
+        ? 0
+        : clamp01(Math.max(phrase, Math.tanh(bm25 / 4)));
+    const chunk =
+      !useChunk || trimmed.length === 0
+        ? 0
+        : chunkScore(doc.memory, queryTerms);
     const entity =
-      trimmed.length === 0 ? 0 : entityScore(doc.memory, trimmed, queryTerms);
-    const recency = recencyScore(doc.memory, nowMs);
-    const vector = clamp01(options.vectorScores?.get(doc.memory.id) ?? 0);
-    const fts = options.ftsRanks?.get(doc.memory.id);
+      !useEntity || trimmed.length === 0
+        ? 0
+        : entityScore(doc.memory, trimmed, queryTerms);
+    const recency = useRecency ? recencyScore(doc.memory, nowMs) : 0;
+    const vector = useVector
+      ? clamp01(options.vectorScores?.get(doc.memory.id) ?? 0)
+      : 0;
+    const fts = useFulltext ? options.ftsRanks?.get(doc.memory.id) : undefined;
     fulltextRaw.set(doc.memory.id, fulltext);
     chunkRaw.set(doc.memory.id, chunk);
     entityRaw.set(doc.memory.id, entity);
@@ -333,22 +383,59 @@ export function rankMemories(
       chunk,
       entity,
       recency,
+      graph: 0,
       confidence: doc.memory.confidence,
     });
   }
 
   const ids = docs.map((doc) => doc.memory.id);
-  const rrf = new Map<string, number>();
+  const seedRrf = new Map<string, number>();
   if (trimmed.length === 0) {
-    addRrf(rrf, rrfFromScores(ids, recencyRaw));
+    addRrf(seedRrf, rrfFromScores(ids, recencyRaw));
   } else {
-    addRrf(rrf, rrfFromScores(ids, fulltextRaw));
-    addRrf(rrf, rrfFromScores(ids, chunkRaw));
-    addRrf(rrf, rrfFromScores(ids, entityRaw));
-    addRrf(rrf, rrfFromScores(ids, recencyRaw));
-    addRrf(rrf, rrfFromScores(ids, vectorRaw));
-    addRrf(rrf, rrfFromScores(ids, ftsRaw));
+    if (useFulltext) {
+      addRrf(seedRrf, rrfFromScores(ids, fulltextRaw));
+      addRrf(seedRrf, rrfFromScores(ids, ftsRaw));
+    }
+    if (useChunk) addRrf(seedRrf, rrfFromScores(ids, chunkRaw));
+    if (useEntity) addRrf(seedRrf, rrfFromScores(ids, entityRaw));
+    if (useVector) addRrf(seedRrf, rrfFromScores(ids, vectorRaw));
   }
+
+  if (useGraph && options.links !== undefined && trimmed.length > 0) {
+    const seedOrder = [...ids].sort(
+      (a, b) => (seedRrf.get(b) ?? 0) - (seedRrf.get(a) ?? 0),
+    );
+    const seedIds = seedOrder.slice(0, GRAPH_SEED_LIMIT);
+    const seedTitleById = new Map(
+      seedIds.map((id) => [id, byId.get(id)?.memory.title ?? id]),
+    );
+    const neighbors = expandGraphNeighbors(
+      seedIds,
+      seedTitleById,
+      options.links,
+      GRAPH_NEIGHBOR_LIMIT,
+    );
+    for (let i = 0; i < neighbors.length; i += 1) {
+      const neighbor = neighbors[i];
+      if (neighbor === undefined) continue;
+      graphRaw.set(neighbor.id, 1 / (i + 1));
+      graphPath.set(neighbor.id, {
+        seedTitle: neighbor.seedTitle,
+        bridgingEntity: neighbor.reason,
+        hops: neighbor.hops,
+      });
+      const parts = breakdown.get(neighbor.id);
+      if (parts) parts.graph = clamp01(1 / (neighbor.hops + i * 0.05));
+    }
+  }
+
+  const rrf = new Map<string, number>();
+  addRrf(rrf, seedRrf);
+  if (useRecency && trimmed.length > 0) {
+    addRrf(rrf, rrfFromScores(ids, recencyRaw));
+  }
+  if (useGraph) addRrf(rrf, rrfFromScores(ids, graphRaw));
   const rrfNorm = normalizeMap(rrf);
 
   const scored: MemoryCandidate[] = [];
@@ -361,20 +448,29 @@ export function rankMemories(
       parts.fulltext > 0 ||
       parts.vector > 0.05 ||
       parts.entity > 0 ||
-      parts.chunk > 0;
+      parts.chunk > 0 ||
+      parts.graph > 0;
     if (!relevant) continue;
     const blended =
-      0.38 * parts.fulltext +
-      0.18 * rrfScore +
-      0.14 * parts.vector +
+      0.28 * parts.fulltext +
+      0.14 * rrfScore +
+      0.2 * parts.vector +
       0.1 * parts.chunk +
       0.08 * parts.entity +
-      0.09 * parts.recency +
-      0.03 * parts.confidence;
+      0.16 * parts.graph +
+      0.04 * parts.recency;
+    const strongDirect =
+      parts.fulltext >= 0.35 ||
+      parts.vector > 0.15 ||
+      parts.chunk > 0.4 ||
+      parts.entity > 0.3;
+    const recencyMultiplier =
+      useRecency && strongDirect ? 0.7 + 0.3 * parts.recency : 1;
     const score =
       trimmed.length === 0
         ? parts.recency
-        : clamp01(blended * (0.55 + 0.45 * parts.recency));
+        : clamp01(blended * recencyMultiplier);
+    const path = graphPath.get(doc.memory.id);
     scored.push({
       ...doc.memory,
       trace: {
@@ -387,6 +483,7 @@ export function rankMemories(
           rrf: rrfScore,
           recency: parts.recency,
           confidence: parts.confidence,
+          ...(path === undefined ? {} : { graphPath: path }),
         },
         reason: reasonFor({
           query: trimmed,
@@ -395,9 +492,68 @@ export function rankMemories(
           chunk: parts.chunk,
           entity: parts.entity,
           recency: parts.recency,
+          graph: parts.graph,
         }),
       },
     });
+  }
+
+  if (useGraph && trimmed.length > 0) {
+    const byHitId = new Map(scored.map((hit) => [hit.id, hit]));
+    const strongSeeds = [...scored]
+      .filter((hit) => hit.trace.score >= GRAPH_SEED_SCORE_FLOOR)
+      .sort((a, b) => b.trace.score - a.trace.score)
+      .slice(0, GRAPH_SEED_LIMIT);
+    for (const neighbor of expandGraphNeighbors(
+      strongSeeds.map((seed) => seed.id),
+      new Map(strongSeeds.map((seed) => [seed.id, seed.title])),
+      options.links ?? [],
+      GRAPH_NEIGHBOR_LIMIT,
+    )) {
+      const seedScore = byHitId.get(neighbor.seedId)?.trace.score ?? 0;
+      const boosted = clamp01(seedScore * GRAPH_NEIGHBOR_FROM_SEED);
+      const path = {
+        seedTitle: neighbor.seedTitle,
+        bridgingEntity: neighbor.reason,
+        hops: neighbor.hops,
+      };
+      const existing = byHitId.get(neighbor.id);
+      if (existing === undefined) {
+        const doc = byId.get(neighbor.id);
+        if (doc === undefined) continue;
+        const parts = breakdown.get(neighbor.id);
+        const hit: MemoryCandidate = {
+          ...doc.memory,
+          trace: {
+            score: boosted,
+            scoreBreakdown: {
+              fulltext: parts?.fulltext ?? 0,
+              vector: parts?.vector ?? 0,
+              chunk: parts?.chunk ?? 0,
+              entity: parts?.entity ?? 0,
+              rrf: rrfNorm.get(neighbor.id) ?? 0,
+              recency: parts?.recency ?? 0,
+              confidence: doc.memory.confidence,
+              graphPath: path,
+            },
+            reason: "related via stored link",
+          },
+        };
+        scored.push(hit);
+        byHitId.set(hit.id, hit);
+        continue;
+      }
+      if (boosted > existing.trace.score) {
+        existing.trace.score = boosted;
+      }
+      existing.trace.scoreBreakdown = {
+        ...existing.trace.scoreBreakdown,
+        graphPath: path,
+      };
+      if (!existing.trace.reason.includes("related via stored link")) {
+        existing.trace.reason = `${existing.trace.reason}; related via stored link`;
+      }
+    }
   }
 
   scored.sort((a, b) => {

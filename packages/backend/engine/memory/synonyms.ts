@@ -51,6 +51,7 @@ const CLUSTERS: readonly (readonly string[])[] = [
   ["london", "uk", "britain", "england", "live", "lives", "based"],
   ["dog", "dogs", "puppy", "pet", "pets", "maple"],
   ["run", "runs", "running", "jog", "jogging", "5k"],
+  ["now", "current", "currently", "latest"],
   ["react", "frontend", "ui"],
   ["alice", "person", "people"],
 ];

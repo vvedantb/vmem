@@ -42,6 +42,15 @@ export const memoryFields = {
   embedding: v.optional(v.array(v.float64())),
 };
 
+export const memoryLinkFields = {
+  userId: v.string(),
+  profileId: v.optional(v.string()),
+  sourceId: v.string(),
+  targetId: v.string(),
+  reason: v.string(),
+  createdAt: v.number(),
+};
+
 // table field validators, used in schema.ts and return validators
 export const profileFields = {
   userId: v.id("users"),

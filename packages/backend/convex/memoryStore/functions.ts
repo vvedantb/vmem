@@ -14,11 +14,14 @@ import {
   getMemoriesByDocIds,
   getMemory,
   getMemoryForTeam,
+  linkMemories,
   listMemories,
   listMemoriesForTeam,
+  listMemoryLinksForUser,
   patchMemoryEmbedding,
   reassignMemoriesProfile,
   searchMemoriesText,
+  unlinkMemories,
   updateMemory,
   upsertMemoryFromSource,
 } from "./helpers";
@@ -308,4 +311,38 @@ export const patchMemoryEmbeddingInternal = internalMutation({
   returns: v.boolean(),
   handler: async (ctx, args) =>
     patchMemoryEmbedding(ctx, args.memoryId, args.embedding),
+});
+
+const memoryLinkEdgeValidator = v.object({
+  sourceId: v.string(),
+  targetId: v.string(),
+  reason: v.string(),
+});
+
+export const linkMemoriesInternal = internalMutation({
+  args: {
+    userId: v.string(),
+    profileId: v.optional(v.string()),
+    memoryIdA: v.string(),
+    memoryIdB: v.string(),
+    reason: v.string(),
+  },
+  returns: v.boolean(),
+  handler: async (ctx, args) => linkMemories(ctx, args),
+});
+
+export const unlinkMemoriesInternal = internalMutation({
+  args: {
+    userId: v.string(),
+    memoryIdA: v.string(),
+    memoryIdB: v.string(),
+  },
+  returns: v.boolean(),
+  handler: async (ctx, args) => unlinkMemories(ctx, args),
+});
+
+export const listMemoryLinksForUserInternal = internalQuery({
+  args: { userId: v.string() },
+  returns: v.array(memoryLinkEdgeValidator),
+  handler: async (ctx, args) => listMemoryLinksForUser(ctx, args.userId),
 });
