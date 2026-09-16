@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useLocalStorage } from "usehooks-ts";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import Sidebar from "@/components/shell/Sidebar";
@@ -10,6 +11,7 @@ export default function MainShell({ children }: { children: React.ReactNode }) {
     "sidebar-collapsed",
     false,
   );
+  const [commandOpen, setCommandOpen] = useState(false);
   const toggleSidebar = () => setIsSidebarCollapsed((prev) => !prev);
 
   useHotkey("Mod+I", toggleSidebar, { preventDefault: true });
@@ -17,7 +19,11 @@ export default function MainShell({ children }: { children: React.ReactNode }) {
   return (
     <PageTitleProvider>
       <WikiSidebarProvider>
-        <CommandPalette onToggleSidebar={toggleSidebar} />
+        <CommandPalette
+          open={commandOpen}
+          onOpenChange={setCommandOpen}
+          onToggleSidebar={toggleSidebar}
+        />
         <div className="relative h-dvh overflow-hidden bg-background">
           <a
             href="#main-content"
@@ -28,12 +34,15 @@ export default function MainShell({ children }: { children: React.ReactNode }) {
           <Sidebar
             isCollapsed={isSidebarCollapsed}
             onToggleCollapse={toggleSidebar}
+            onOpenSearch={() => setCommandOpen(true)}
           />
           <main
             id="main-content"
             tabIndex={-1}
             className={`relative z-10 flex h-full min-h-0 outline-none md:p-2 ${
-              isSidebarCollapsed ? "md:ml-20" : "md:ml-72"
+              isSidebarCollapsed
+                ? "md:ml-[var(--vmem-sidebar-rail-width)]"
+                : "md:ml-[var(--vmem-sidebar-width)]"
             } md:transition-[margin-left] md:[transition-duration:280ms] md:[transition-timing-function:cubic-bezier(0.22,1,0.36,1)]`}
           >
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-surface pt-[var(--vmem-mobile-header-height)] md:rounded-lg md:pt-0">
