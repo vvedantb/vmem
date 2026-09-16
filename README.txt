@@ -100,6 +100,9 @@ Web app is at http://localhost:5173.
 
 More on the extension: apps/chrome-extension/README.md.
 
+Dev agent login: visit /?agent (needs CLERK_SECRET_KEY + AGENT_CLERK_USER_ID
+in apps/web/.env.local). Landing also has Continue without an account.
+
 
 Environment
 
@@ -114,6 +117,8 @@ Templates (copy to .env.local):
 Web needs at least:
   VITE_CONVEX_URL
   VITE_CLERK_PUBLISHABLE_KEY
+  CLERK_SECRET_KEY          optional, local /?agent ticket login
+  AGENT_CLERK_USER_ID       optional, Clerk user_… to sign in as
 
 Convex dashboard needs at least:
   CLERK_FRONTEND_API_URL, CLERK_SECRET_KEY, CLERK_PUBLISHABLE_KEY

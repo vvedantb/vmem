@@ -87,6 +87,8 @@ More on the extension: [`apps/chrome-extension/README.md`](apps/chrome-extension
 
 Web Playwright E2E (landing + authenticated smokes against production or local Vite): [`e2e/README.md`](e2e/README.md). Needs `E2E_USER_EMAIL` / `E2E_USER_PASSWORD` for signed-in specs.
 
+Visit `/?agent` during web dev to auto sign in as the agent user (requires `CLERK_SECRET_KEY` + `AGENT_CLERK_USER_ID` in `apps/web/.env.local`). The landing footer also has **Continue without an account**.
+
 ## Environment
 
 Templates (copy to `.env.local`):
@@ -102,6 +104,8 @@ Web needs at least:
 ```
 VITE_CONVEX_URL
 VITE_CLERK_PUBLISHABLE_KEY
+CLERK_SECRET_KEY            # optional, local /?agent ticket login
+AGENT_CLERK_USER_ID         # optional, Clerk user_… to sign in as
 ```
 
 Convex dashboard needs at least:
