@@ -27,8 +27,11 @@ const popupApp = readRepo("apps/chrome-extension/src/popup/App.tsx");
 const settingsForm = readRepo(
   "apps/chrome-extension/src/popup/_components/SettingsForm.tsx",
 );
-const dashboardExtension = readRepo(
+const dashboardExtensionRoute = readRepo(
   "apps/web/src/routes/_main/settings/extension.tsx",
+);
+const dashboardExtensionPage = readRepo(
+  "apps/web/src/components/settings/ExtensionSettingsClient.tsx",
 );
 const navConfig = readRepo("apps/web/src/components/sidebar/nav-config.ts");
 
@@ -51,12 +54,14 @@ await test("popup settings do not prompt for codebase sync", () => {
 await test("dashboard /settings/extension stays in nav and has no codebase prompts", () => {
   assert.match(navConfig, /href: "\/settings\/extension"/);
   assert.match(
-    dashboardExtension,
+    dashboardExtensionRoute,
     /createFileRoute\("\/_main\/settings\/extension"\)/,
   );
-  assert.match(dashboardExtension, /extensionAutoSyncEnabled/);
-  assert.match(dashboardExtension, /extensionSelectionPopupEnabled/);
-  assert.equal(/codebase/i.test(dashboardExtension), false);
+  assert.match(dashboardExtensionRoute, /ExtensionSettingsClient/);
+  assert.match(dashboardExtensionPage, /extensionAutoSyncEnabled/);
+  assert.match(dashboardExtensionPage, /extensionSelectionPopupEnabled/);
+  assert.equal(/codebase/i.test(dashboardExtensionRoute), false);
+  assert.equal(/codebase/i.test(dashboardExtensionPage), false);
 });
 
 await test("sync interval labels stay human-readable", () => {
