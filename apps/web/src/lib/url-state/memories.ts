@@ -6,6 +6,7 @@ import {
 } from "nuqs";
 import { MEMORY_TYPES } from "@/lib/memories";
 import { LIST_ITEM_KINDS } from "@/lib/list-items";
+import { TIMELINE_SPANS } from "@/lib/memory-timeline-view";
 import {
   createSanitizedArrayParser,
   parseAsSanitizedOptionalString,
@@ -25,6 +26,7 @@ const memoriesSearchParams = {
   types: createSanitizedArrayParser(parseAsStringLiteral(MEMORY_TYPES)),
   kinds: createSanitizedArrayParser(parseAsStringLiteral(LIST_ITEM_KINDS)),
   view: parseAsStringLiteral(LIST_VIEW_MODES).withDefault("memories"),
+  span: parseAsStringLiteral(TIMELINE_SPANS).withDefault("week"),
 };
 
 export type MemoriesSearchParams = inferParserType<typeof memoriesSearchParams>;

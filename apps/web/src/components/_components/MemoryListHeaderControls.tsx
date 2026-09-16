@@ -22,7 +22,11 @@ import type { ListViewMode } from "@/lib/url-state/memories";
 import { useMemoryListFilterStats } from "@/hooks/useMemoryListFilterStats";
 import { useMemoriesSearchParams } from "@/hooks/useMemoriesSearchParams";
 
-export default function MemoryListHeaderControls() {
+export default function MemoryListHeaderControls({
+  hideViewSwitcher = false,
+}: {
+  hideViewSwitcher?: boolean;
+}) {
   const [params, setParams] = useMemoriesSearchParams();
   const {
     allMemories,
@@ -38,10 +42,12 @@ export default function MemoryListHeaderControls() {
 
   return (
     <div className="flex items-center gap-1.5">
-      <ViewDropdown
-        view={params.view}
-        onChange={(view) => setParams({ view })}
-      />
+      {hideViewSwitcher ? null : (
+        <ViewDropdown
+          view={params.view}
+          onChange={(view) => setParams({ view })}
+        />
+      )}
       <HeaderSearchInput
         value={params.q}
         onChange={(q) => setParams({ q: q.trim().length === 0 ? null : q })}

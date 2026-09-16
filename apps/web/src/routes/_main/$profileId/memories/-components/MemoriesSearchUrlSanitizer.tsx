@@ -33,6 +33,11 @@ function buildUrlCleanupPatch(
     patch.view = "memories";
   }
 
+  const rawSpan = search.get("span");
+  if (rawSpan !== null && isNullishQueryValue(rawSpan)) {
+    patch.span = "week";
+  }
+
   return Object.keys(patch).length > 0 ? patch : null;
 }
 

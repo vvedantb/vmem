@@ -1,5 +1,5 @@
 import { useConvexAuth, useAction } from "convex/react";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import {
   memoryFromApi,
   type Memory,
@@ -8,6 +8,8 @@ import {
 import { api } from "@vmem/backend";
 
 const MEMORY_LIST_PAGE_SIZE = 100;
+const MEMORY_LIST_ALL_PAGE_SIZE = 200;
+const MEMORY_LIST_ALL_CAP = 10_000;
 
 interface MemoryListFilters {
   profileId?: string | null;
@@ -17,6 +19,8 @@ interface MemoryListFilters {
   searchQuery?: string;
   // false skips paginated fetch when hybrid retrieve handles search
   enabled?: boolean;
+  // one shot: walk listMemories offsets until every matching row is loaded
+  fetchAll?: boolean;
 }
 
 function normalizeMemoryListFilters(
@@ -33,7 +37,18 @@ function normalizeMemoryListFilters(
   }
   const trimmed = filters.searchQuery?.trim();
   if (trimmed) normalized.searchQuery = trimmed;
+  if (filters.fetchAll) normalized.fetchAll = true;
   return normalized;
+}
+
+function listMemoriesArgs(filters: MemoryListFilters) {
+  return {
+    profileId: filters.profileId ?? undefined,
+    type: filters.type,
+    source: filters.source,
+    tags: filters.tags,
+    searchQuery: filters.searchQuery,
+  };
 }
 
 function useMemoryListPage(filters: MemoryListFilters) {
@@ -45,15 +60,12 @@ function useMemoryListPage(filters: MemoryListFilters) {
 
   return useInfiniteQuery({
     queryKey: ["memories", normalizedFilters],
-    enabled: isAuthenticated && filters.enabled !== false,
+    enabled:
+      isAuthenticated && filters.enabled !== false && filters.fetchAll !== true,
     initialPageParam: 0,
     queryFn: async ({ pageParam }): Promise<MemoryListResult> => {
       return await listMemoriesAction({
-        profileId: normalizedFilters.profileId ?? undefined,
-        type: normalizedFilters.type,
-        source: normalizedFilters.source,
-        tags: normalizedFilters.tags,
-        searchQuery: normalizedFilters.searchQuery,
+        ...listMemoriesArgs(normalizedFilters),
         limit: MEMORY_LIST_PAGE_SIZE,
         offset: pageParam,
       });
@@ -65,12 +77,57 @@ function useMemoryListPage(filters: MemoryListFilters) {
   });
 }
 
+function useMemoryListAllPages(filters: MemoryListFilters) {
+  const { isAuthenticated } = useConvexAuth();
+  const listMemoriesAction = useAction(api.memoryApi.listMemories);
+  const normalizedFilters = normalizeMemoryListFilters(filters);
+
+  return useQuery({
+    queryKey: ["memories", "all", normalizedFilters],
+    enabled:
+      isAuthenticated && filters.enabled !== false && filters.fetchAll === true,
+    queryFn: async (): Promise<Memory[]> => {
+      const out: Memory[] = [];
+      let offset = 0;
+      let total = Number.POSITIVE_INFINITY;
+      while (out.length < total && out.length < MEMORY_LIST_ALL_CAP) {
+        const page = await listMemoriesAction({
+          ...listMemoriesArgs(normalizedFilters),
+          limit: MEMORY_LIST_ALL_PAGE_SIZE,
+          offset,
+        });
+        total = page.total;
+        for (const row of page.memories) {
+          out.push(memoryFromApi(row));
+        }
+        if (page.memories.length === 0) break;
+        offset = out.length;
+      }
+      return out;
+    },
+  });
+}
+
 export function useMemoryListFlat(filters: MemoryListFilters) {
-  const query = useMemoryListPage(filters);
+  const paged = useMemoryListPage(filters);
+  const all = useMemoryListAllPages(filters);
+
+  if (filters.fetchAll === true) {
+    return {
+      memories: all.data ?? [],
+      isLoading: all.isLoading,
+      isError: all.isError,
+      refetch: all.refetch,
+      isFetchingNextPage: false,
+      hasNextPage: false,
+      fetchNextPage: async () => undefined,
+    };
+  }
+
   const memories: Memory[] = (() => {
-    if (!query.data) return [];
+    if (!paged.data) return [];
     const out: Memory[] = [];
-    for (const page of query.data.pages) {
+    for (const page of paged.data.pages) {
       for (const m of page.memories) {
         out.push(memoryFromApi(m));
       }
@@ -79,12 +136,12 @@ export function useMemoryListFlat(filters: MemoryListFilters) {
   })();
   return {
     memories,
-    isLoading: query.isLoading,
+    isLoading: paged.isLoading,
     // failed load looks like empty list so callers must surface isError
-    isError: query.isError,
-    refetch: query.refetch,
-    isFetchingNextPage: query.isFetchingNextPage,
-    hasNextPage: query.hasNextPage,
-    fetchNextPage: query.fetchNextPage,
+    isError: paged.isError,
+    refetch: paged.refetch,
+    isFetchingNextPage: paged.isFetchingNextPage,
+    hasNextPage: paged.hasNextPage,
+    fetchNextPage: paged.fetchNextPage,
   };
 }

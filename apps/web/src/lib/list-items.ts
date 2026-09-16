@@ -127,6 +127,23 @@ export function memoryToListItem(memory: Memory): ListItem {
   };
 }
 
+export function listItemToMemory(
+  item: Extract<ListItem, { kind: "memory" }>,
+): Memory {
+  return {
+    id: item.id,
+    title: item.title,
+    content: item.content,
+    tags: item.tags,
+    createdAt: item.createdAt,
+    type: item.type,
+    source: item.source,
+    sourceUrl: item.sourceUrl,
+    sourceSyncedAt: item.sourceSyncedAt,
+    ...(item.profileId !== undefined ? { profileId: item.profileId } : {}),
+  };
+}
+
 // wiki rows → list items one pass for folder child counts
 export function wikiRowsToListItems(rows: WikiRows): ListItem[] {
   const childCount = new Map<string, number>();
