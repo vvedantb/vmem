@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
-import PageContainer from "@/components/shell/PageContainer";
+import { SettingsPage } from "@/components/settings/SettingsPage";
 import { DataControlsTabs } from "./-components/DataControlsTabs";
 
 export const Route = createFileRoute("/_main/settings/data-controls")({
@@ -8,13 +8,12 @@ export const Route = createFileRoute("/_main/settings/data-controls")({
 
 function DataControlsLayout() {
   return (
-    <PageContainer
+    <SettingsPage
       title="Data Controls"
-      showTitle={false}
-      centeredMaxWidth
-      leftSection={<DataControlsTabs />}
+      tabs={<DataControlsTabs />}
+      stack={false}
     >
       <Outlet />
-    </PageContainer>
+    </SettingsPage>
   );
 }

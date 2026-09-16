@@ -105,7 +105,7 @@ function ViewDropdown({
           aria-label={`Change view (current: ${current.label})`}
         >
           <CurrentIcon size={14} />
-          <span className="hidden sm:inline">{current.label}</span>
+          <span className="max-sm:sr-only sm:inline">{current.label}</span>
           <IconChevronDown size={12} className="text-muted" />
         </Button>
       </DropdownMenuTrigger>

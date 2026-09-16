@@ -212,7 +212,7 @@ function SortDropdown({
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="sm" className="gap-2">
           <Icon size={16} />
-          <span className="hidden sm:inline">{label}</span>
+          <span className="max-sm:sr-only sm:inline">{label}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">

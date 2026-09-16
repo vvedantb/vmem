@@ -65,7 +65,7 @@ export function WriteSkillDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="flex max-h-[min(90vh,720px)] flex-col sm:max-w-lg">
+      <DialogContent className="flex max-h-[min(90dvh,720px)] flex-col sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Write skill</DialogTitle>
         </DialogHeader>

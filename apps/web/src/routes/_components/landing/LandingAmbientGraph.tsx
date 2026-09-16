@@ -83,7 +83,7 @@ export function LandingAmbientGraph() {
 
       <div className="landing-grain absolute inset-0 opacity-[0.035] mix-blend-multiply dark:opacity-[0.05] dark:mix-blend-soft-light" />
 
-      <div className="absolute -right-[12%] top-[2%] h-[min(78vh,580px)] w-[min(78vw,580px)] rounded-full bg-surface-secondary/85 blur-3xl dark:bg-surface-secondary/30" />
+      <div className="absolute -right-[12%] top-[2%] h-[min(78dvh,580px)] w-[min(78vw,580px)] rounded-full bg-surface-secondary/85 blur-3xl dark:bg-surface-secondary/30" />
       <div className="absolute -left-[6%] bottom-[8%] h-80 w-80 rounded-full bg-surface-tertiary/55 blur-3xl dark:bg-surface-tertiary/18" />
 
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_55%_at_50%_42%,transparent_18%,var(--background)_88%)]" />

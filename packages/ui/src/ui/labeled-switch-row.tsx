@@ -24,7 +24,7 @@ export function LabeledSwitchRow({
   trailing,
 }: LabeledSwitchRowProps) {
   return (
-    <div className="flex items-center justify-between gap-3">
+    <div className="flex items-center justify-between gap-3 max-sm:flex-wrap">
       <div className="flex min-w-0 items-start gap-2">
         {icon ? (
           <span className="mt-0.5 shrink-0 text-muted">{icon}</span>
@@ -39,12 +39,14 @@ export function LabeledSwitchRow({
         </div>
       </div>
       {trailing ?? (
-        <Switch
-          id={id}
-          checked={checked}
-          onCheckedChange={onCheckedChange}
-          disabled={disabled}
-        />
+        <div className="flex min-h-10 shrink-0 items-center">
+          <Switch
+            id={id}
+            checked={checked}
+            onCheckedChange={onCheckedChange}
+            disabled={disabled}
+          />
+        </div>
       )}
     </div>
   );

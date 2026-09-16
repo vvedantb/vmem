@@ -22,13 +22,7 @@ export interface NavGroup {
   items: NavItem[];
 }
 
-interface SettingsNavItem {
-  href: NavHref;
-  label: string;
-  icon: NavIcon;
-}
-
 export interface SettingsNavGroup {
   title: string;
-  items: SettingsNavItem[];
+  items: NavItem[];
 }

@@ -6,8 +6,6 @@ import {
   TableHead,
   TableBody,
   TableRow,
-  Card,
-  CardContent,
 } from "@vmem/ui";
 import { IconPlus } from "@tabler/icons-react";
 import { AnimatedKeyIcon, VmemSpinner } from "@/components/icons/animations";
@@ -19,6 +17,8 @@ import { useApiKeyActions } from "@/components/api-keys/useApiKeyActions";
 import type { ApiKey } from "@/components/api-keys/types";
 import { api } from "@vmem/backend";
 import { useApiCreateKeyModal } from "./ApiCreateKeyContext";
+import { SettingsSection } from "@/components/settings/SettingsSection";
+import { SettingsEmptyState } from "@/components/settings/SettingsEmptyState";
 
 export function KeysPanel() {
   const { isCreateModalOpen, setIsCreateModalOpen } = useApiCreateKeyModal();
@@ -60,69 +60,65 @@ export function KeysPanel() {
   return (
     <>
       {apiKeyList.length === 0 ? (
-        <Card className="shadow-none">
-          <CardContent className="py-16 text-center">
-            <AnimatedKeyIcon size={48} className="mx-auto mb-4 text-muted" />
-            <h3 className="mb-2 text-lg font-medium text-foreground text-balance">
-              No API keys yet
-            </h3>
-            <p className="mb-6 text-muted">
-              Create your first API key to start using vMemory programmatically.
-            </p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsCreateModalOpen(true)}
-            >
-              <IconPlus size={16} />
-              New Key
-            </Button>
-          </CardContent>
-        </Card>
+        <SettingsSection title="API keys">
+          <SettingsEmptyState
+            icon={AnimatedKeyIcon}
+            title="No API keys yet"
+            description="Create your first API key to start using vMemory programmatically."
+            action={
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsCreateModalOpen(true)}
+              >
+                <IconPlus size={16} />
+                New Key
+              </Button>
+            }
+          />
+        </SettingsSection>
       ) : (
-        <Card className="shadow-none overflow-hidden">
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-surface-tertiary/50">
-                  <TableHead className="font-medium text-muted">NAME</TableHead>
-                  <TableHead className="hidden font-medium text-muted sm:table-cell">
-                    STATUS
-                  </TableHead>
-                  <TableHead className="hidden font-medium text-muted md:table-cell">
-                    KEY
-                  </TableHead>
-                  <TableHead className="hidden font-medium text-muted lg:table-cell">
-                    REQUESTS
-                  </TableHead>
-                  <TableHead className="hidden font-medium text-muted sm:table-cell">
-                    LAST USED
-                  </TableHead>
-                  <TableHead className="text-right font-medium text-muted sm:w-auto">
-                    ACTIONS
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {apiKeyList.map((apiKey) => (
-                  <ApiKeyRow
-                    key={apiKey.id}
-                    apiKey={apiKey}
-                    revealedKey={revealedKeys[apiKey.id]}
-                    revealingKeyId={revealingKeyId}
-                    copyingKeyId={copyingKeyId}
-                    copiedKeyId={copiedKeyId}
-                    onToggleReveal={handleToggleReveal}
-                    onCopy={handleCopyKey}
-                    onEdit={setEditKeyId}
-                    onRevoke={setRevokeKeyId}
-                    onDelete={setDeleteKeyId}
-                  />
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        <SettingsSection title="API keys" bodyVariant="list">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="font-medium text-muted">NAME</TableHead>
+                <TableHead className="hidden font-medium text-muted sm:table-cell">
+                  STATUS
+                </TableHead>
+                <TableHead className="hidden font-medium text-muted md:table-cell">
+                  KEY
+                </TableHead>
+                <TableHead className="hidden font-medium text-muted lg:table-cell">
+                  REQUESTS
+                </TableHead>
+                <TableHead className="hidden font-medium text-muted sm:table-cell">
+                  LAST USED
+                </TableHead>
+                <TableHead className="text-right font-medium text-muted sm:w-auto">
+                  ACTIONS
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {apiKeyList.map((apiKey) => (
+                <ApiKeyRow
+                  key={apiKey.id}
+                  apiKey={apiKey}
+                  revealedKey={revealedKeys[apiKey.id]}
+                  revealingKeyId={revealingKeyId}
+                  copyingKeyId={copyingKeyId}
+                  copiedKeyId={copiedKeyId}
+                  onToggleReveal={handleToggleReveal}
+                  onCopy={handleCopyKey}
+                  onEdit={setEditKeyId}
+                  onRevoke={setRevokeKeyId}
+                  onDelete={setDeleteKeyId}
+                />
+              ))}
+            </TableBody>
+          </Table>
+        </SettingsSection>
       )}
 
       <ApiKeyModal

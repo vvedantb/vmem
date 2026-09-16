@@ -152,7 +152,7 @@ export default function Sidebar({
   return (
     <>
       <Dialog open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-        <div className="fixed inset-x-0 top-0 z-40 flex min-h-14 items-center gap-3 bg-background px-3 pb-0 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] pt-[max(0px,env(safe-area-inset-top))] md:hidden">
+        <header className="fixed inset-x-0 top-0 z-40 flex h-[var(--vmem-mobile-header-height)] items-center gap-2 bg-surface/80 px-3 pt-[env(safe-area-inset-top,0px)] pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] backdrop-blur-md md:hidden">
           <Button
             type="button"
             variant="ghost"
@@ -161,23 +161,25 @@ export default function Sidebar({
             aria-label="Open navigation menu"
             aria-expanded={mobileMenuOpen}
             aria-controls={mobileMenuId}
-            className="h-11 w-11 shrink-0 rounded-lg text-muted hover:bg-surface-tertiary/50 hover:text-foreground"
+            className="-ml-1 h-11 w-11 shrink-0 rounded-lg text-muted hover:bg-surface-tertiary/50 hover:text-foreground"
           >
             <MorphingMenuIcon isOpen={mobileMenuOpen} size={20} />
           </Button>
           {pageTitle ? (
-            <h1 className="min-w-0 flex-1 truncate text-lg leading-none font-instrumentSerif text-foreground">
+            <h1 className="pointer-events-none absolute inset-x-14 top-[env(safe-area-inset-top,0px)] bottom-0 flex items-center justify-center truncate text-center text-base font-instrumentSerif font-semibold tracking-[-0.02em] text-foreground text-balance">
               {pageTitle}
             </h1>
           ) : null}
-        </div>
+          {/* Balances the menu button so the title stays visually centred. */}
+          <div className="ml-auto h-11 w-11 shrink-0" aria-hidden="true" />
+        </header>
 
         <DialogPortal>
           <DialogOverlay className="md:hidden" />
           <DialogRawContent
             id={mobileMenuId}
             aria-label="Navigation menu"
-            className="bg-overlay shadow-lg fixed inset-y-3 left-3 right-3 z-50 flex w-auto max-w-sm flex-col overflow-hidden overscroll-contain rounded-lg text-overlay-foreground outline-none md:hidden"
+            className="bg-overlay shadow-lg fixed inset-y-3 left-3 right-3 z-50 flex w-auto max-w-sm flex-col overflow-hidden overscroll-contain rounded-lg pb-[env(safe-area-inset-bottom,0px)] pt-[env(safe-area-inset-top,0px)] text-overlay-foreground outline-none md:hidden"
           >
             <DialogTitle className="sr-only">Navigation menu</DialogTitle>
 
@@ -227,7 +229,7 @@ export default function Sidebar({
       </Dialog>
 
       <motion.aside
-        className="fixed left-0 top-0 z-40 hidden h-screen overflow-hidden bg-background md:block"
+        className="fixed left-0 top-0 z-40 hidden h-dvh overflow-hidden bg-background md:block"
         animate={{ width: isCollapsed ? 80 : 288 }}
         transition={{ duration: motionTiming.sidebar, ease: motionEase }}
       >

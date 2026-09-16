@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, useMatchRoute } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { Button } from "@vmem/ui";
 import { IconPlus } from "@tabler/icons-react";
-import PageContainer from "@/components/shell/PageContainer";
+import { SettingsPage } from "@/components/settings/SettingsPage";
 import { ApiTabs, getActiveApiTab } from "./-components/ApiTabs";
 import {
   ApiCreateKeyProvider,
@@ -23,36 +23,31 @@ function ApiNewKeyButton() {
       onClick={() => setIsCreateModalOpen(true)}
     >
       <IconPlus size={16} />
-      New Key
+      New
+      <span className="max-sm:sr-only"> Key</span>
     </Button>
   );
 }
 
-function ApiUsagePageShell({ children }: { children: ReactNode }) {
+function ApiPageShell({
+  headerRight,
+  fillHeight,
+  children,
+}: {
+  headerRight?: ReactNode;
+  fillHeight?: boolean;
+  children: ReactNode;
+}) {
   return (
-    <PageContainer
+    <SettingsPage
       title="API"
-      showTitle={false}
-      centeredMaxWidth
-      noScroll
-      leftSection={<ApiTabs />}
+      headerRight={headerRight}
+      tabs={<ApiTabs />}
+      stack={false}
+      fillHeight={fillHeight}
     >
       {children}
-    </PageContainer>
-  );
-}
-
-function ApiKeysPageShell({ children }: { children: ReactNode }) {
-  return (
-    <PageContainer
-      title="API"
-      showTitle={false}
-      centeredMaxWidth
-      leftSection={<ApiTabs />}
-      rightSection={<ApiNewKeyButton />}
-    >
-      {children}
-    </PageContainer>
+    </SettingsPage>
   );
 }
 
@@ -60,15 +55,14 @@ function ApiLayout() {
   const matchRoute = useMatchRoute();
   const activeTab = getActiveApiTab(matchRoute);
 
-  const pageShell =
-    activeTab === "usage" ? ApiUsagePageShell : ApiKeysPageShell;
-  const PageShell = pageShell;
-
   return (
     <ApiCreateKeyProvider>
-      <PageShell>
+      <ApiPageShell
+        headerRight={activeTab === "keys" ? <ApiNewKeyButton /> : undefined}
+        fillHeight={activeTab === "usage"}
+      >
         <Outlet />
-      </PageShell>
+      </ApiPageShell>
     </ApiCreateKeyProvider>
   );
 }

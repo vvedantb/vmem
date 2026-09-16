@@ -70,7 +70,7 @@ export function EditSkillDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[min(90vh,720px)] flex-col sm:max-w-lg">
+      <DialogContent className="flex max-h-[min(90dvh,720px)] flex-col sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Edit skill</DialogTitle>
         </DialogHeader>

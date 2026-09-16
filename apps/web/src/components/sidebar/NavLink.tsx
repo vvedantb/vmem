@@ -78,7 +78,7 @@ export function NavLink({
             size={16}
             stroke={2}
             aria-hidden
-            className="shrink-0 text-muted opacity-0 transition-opacity group-hover:opacity-100"
+            className="shrink-0 text-muted reveal-on-hover"
           />
         ) : null}
         <AnimatePresence initial={false}>

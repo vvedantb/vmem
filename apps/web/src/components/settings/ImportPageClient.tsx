@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useAction } from "convex/react";
 import { api } from "@vmem/backend";
-import { Button, Card, CardContent } from "@vmem/ui";
+import { Button } from "@vmem/ui";
 import { toast } from "sonner";
 import UploadImportModal from "./UploadImportModal";
 import SelectImportRowsModal from "./SelectImportRowsModal";
 import { importProviders, type ImportProvider } from "./importProviders";
 import type { ExportImportRow } from "@/lib/chat-export/importRows";
+import { SettingsSection } from "@/components/settings/SettingsSection";
 
 type ImportStep =
   | { phase: "idle" }
@@ -27,22 +28,21 @@ function ImportProviderCard({
 }) {
   const Logo = provider.Logo;
   return (
-    <section className="space-y-3">
-      <div className="flex items-center gap-3">
-        <Logo className={`h-6 w-6 shrink-0 ${provider.logoClassName}`} />
-        <h3 className="text-base font-medium text-foreground text-balance">
+    <SettingsSection
+      title={
+        <span className="inline-flex items-center gap-3">
+          <Logo className={`h-5 w-5 shrink-0 ${provider.logoClassName}`} />
           {provider.label}
-        </h3>
-      </div>
-      <Card className="shadow-none">
-        <CardContent className="p-6">
-          <p className="mb-5 text-sm text-muted">{provider.description}</p>
-          <Button type="button" onClick={() => onImport(provider.id)}>
-            Import
-          </Button>
-        </CardContent>
-      </Card>
-    </section>
+        </span>
+      }
+    >
+      <p className="mb-5 text-sm leading-relaxed text-muted">
+        {provider.description}
+      </p>
+      <Button type="button" onClick={() => onImport(provider.id)}>
+        Import
+      </Button>
+    </SettingsSection>
   );
 }
 
@@ -134,7 +134,7 @@ export default function ImportPageClient() {
 
   return (
     <>
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
         {importProviders.map((p) => (
           <ImportProviderCard key={p.id} provider={p} onImport={openUpload} />
         ))}

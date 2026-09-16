@@ -11,6 +11,18 @@ interface PageContainerProps {
   leftSection?: ReactNode;
   centerSection?: ReactNode;
   rightSection?: ReactNode;
+  /**
+   * Secondary refine row under the title (filters, search, segmented controls).
+   * Kept out of `rightSection` so the title row stays quiet. Eva `toolbar`.
+   */
+  toolbar?: ReactNode;
+  /** Route / view tabs under the title (and under toolbar when both exist). */
+  tabs?: ReactNode;
+  /**
+   * Indent the title row by the card gutter (`px-4`) so the page title lines up
+   * with the section titles inside the cards below. Eva `insetHeader`.
+   */
+  insetHeader?: boolean;
   noScroll?: boolean;
   // show title in header row
   showTitle?: boolean;
@@ -20,12 +32,19 @@ interface PageContainerProps {
   children: ReactNode;
 }
 
+/**
+ * Page chrome: title row, optional toolbar/tabs, then the scrolling body.
+ * Mirrors Eva `PageWrapper` + `PageHeader` — no separate header background.
+ */
 export default function PageContainer({
   title,
   breadcrumb,
   leftSection,
   centerSection,
   rightSection,
+  toolbar,
+  tabs,
+  insetHeader = false,
   noScroll = false,
   showTitle,
   centeredMaxWidth = false,
@@ -40,14 +59,21 @@ export default function PageContainer({
   }, [title, setPageTitle]);
 
   const hasSections = Boolean(leftSection || centerSection || rightSection);
+  const hasToolbar = toolbar != null;
+  const hasTabs = tabs != null;
   // breadcrumb takes precedence over the h1 title don't render both
   // default show title if sections exist, unless explicitly set
   const showTitleInHeader =
     !breadcrumb && Boolean(title) && (showTitle ?? hasSections);
   // title and breadcrumb are desktop only (md+) mobile uses the shell topbar
-  const hasMobileHeaderContent = hasSections;
+  const hasMobileHeaderContent = hasSections || hasToolbar || hasTabs;
   const hasHeader =
-    Boolean(breadcrumb) || showTitleInHeader || hasMobileHeaderContent;
+    Boolean(breadcrumb) ||
+    showTitleInHeader ||
+    hasMobileHeaderContent ||
+    hasToolbar ||
+    hasTabs;
+  const hasHeaderRight = rightSection != null;
 
   const childTransition = {
     duration: motionDuration.fast,
@@ -65,23 +91,24 @@ export default function PageContainer({
       {hasHeader && (
         <div
           className={cn(
-            "mb-5 flex-shrink-0 px-3 md:px-4",
-            hasMobileHeaderContent
-              ? "min-h-10 pt-3 md:pt-4"
-              : "hidden min-h-10 pt-4 md:block",
+            "relative flex-shrink-0 p-3 sm:px-4",
+            hasMobileHeaderContent ? null : "hidden md:block",
+            centeredMaxWidth && "mx-auto w-full max-w-5xl",
           )}
         >
           <div
             className={cn(
-              "flex min-h-10 w-full min-w-0 items-center justify-between gap-2 md:gap-4",
-              centeredMaxWidth && "mx-auto w-full max-w-5xl",
+              "relative grid items-center gap-2 sm:gap-3",
+              hasHeaderRight
+                ? "grid-cols-[minmax(0,1fr)_minmax(0,auto)] md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]"
+                : "grid-cols-1",
+              insetHeader && "px-4",
             )}
           >
             <div
               className={cn(
-                "flex min-w-0 items-center gap-2 md:gap-4",
-                ((breadcrumb && !centerSection) || leftSection) &&
-                  "min-w-0 flex-1",
+                "flex min-w-0 items-center gap-2 sm:gap-3",
+                hasHeaderRight && !centerSection ? "md:col-span-2" : null,
               )}
             >
               {breadcrumb ? (
@@ -95,7 +122,7 @@ export default function PageContainer({
                 </motion.div>
               ) : (
                 showTitleInHeader && (
-                  <h1 className="hidden min-w-0 truncate text-2xl leading-tight font-instrumentSerif text-foreground text-balance md:block">
+                  <h1 className="hidden min-w-0 flex-1 truncate text-lg font-instrumentSerif font-semibold tracking-[-0.02em] text-foreground text-balance md:block md:text-xl">
                     {title}
                   </h1>
                 )
@@ -112,8 +139,9 @@ export default function PageContainer({
               )}
             </div>
             {centerSection ? (
-              <div className="hidden min-w-0 md:flex md:flex-1 md:justify-center">
+              <div className="hidden min-w-0 justify-center md:flex">
                 <motion.div
+                  className="w-full max-w-xl"
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ ...childTransition, delay: 0.06 }}
@@ -122,20 +150,20 @@ export default function PageContainer({
                 </motion.div>
               </div>
             ) : null}
-            {rightSection && (
+            {hasHeaderRight ? (
               <motion.div
-                className="flex-shrink-0 ml-auto"
+                className="flex min-h-10 max-sm:min-w-0 max-sm:flex-wrap items-center justify-end gap-1.5 sm:gap-2 justify-self-end"
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ ...childTransition, delay: 0.1 }}
               >
                 {rightSection}
               </motion.div>
-            )}
+            ) : null}
           </div>
           {centerSection && (
             <motion.div
-              className="mt-3 flex justify-center md:hidden"
+              className="mt-2 md:hidden"
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ ...childTransition, delay: 0.06 }}
@@ -143,6 +171,20 @@ export default function PageContainer({
               {centerSection}
             </motion.div>
           )}
+          {hasToolbar || hasTabs ? (
+            <div className={cn("mt-3 space-y-3", insetHeader && "px-4")}>
+              {hasToolbar ? (
+                <div className="flex min-h-9 flex-wrap items-center gap-1.5 sm:gap-2">
+                  {toolbar}
+                </div>
+              ) : null}
+              {hasTabs ? (
+                <div className="min-w-0 max-sm:max-w-full max-sm:overflow-x-auto">
+                  {tabs}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       )}
       <motion.div
@@ -161,8 +203,9 @@ export default function PageContainer({
               ? "flex h-full min-h-0 flex-1 flex-col"
               : "flex-1 space-y-8",
             centeredMaxWidth && "max-w-5xl mx-auto w-full",
-            "px-3 pb-3 md:px-4 md:pb-4",
-            !hasHeader && "pt-3 md:pt-4",
+            hasHeader
+              ? "px-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] sm:px-4 md:pb-4"
+              : "px-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] pt-3 sm:px-4 md:pb-4 md:pt-4",
           )}
         >
           {children}

@@ -87,7 +87,7 @@ export function WikiHistoryPanel({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex h-[min(80vh,640px)] max-w-3xl flex-col gap-3">
+      <DialogContent className="flex h-[min(80dvh,640px)] max-w-3xl flex-col gap-3">
         <DialogHeader>
           <DialogTitle>Version history</DialogTitle>
         </DialogHeader>
