@@ -1,8 +1,6 @@
 import { useMemo, useState } from "react";
-import { useTheme } from "next-themes";
 import { Button, cn } from "@vmem/ui";
 import { formatCompactRelativeTime } from "@vmem/shared";
-import { tagToColor } from "@vmem/shared/graph";
 import { MemorySourceIcon } from "@/components/_components/MemorySourceIcon";
 import ShapeIndicator from "@/components/_components/ShapeIndicator";
 import { formatMemorySourceLabel } from "@/lib/memories";
@@ -17,6 +15,7 @@ import {
   type TimelineSpan,
 } from "@/lib/memory-timeline-view";
 import { demoMemories, type DemoMemory } from "./landing-preview-data";
+import { LANDING_MONO } from "./landingContent";
 
 export function LandingTimelinePreview() {
   const createdAts = useMemo(
@@ -98,9 +97,7 @@ function TimelineRow({
   isSelected: boolean;
   onSelect: () => void;
 }) {
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === "dark";
-  const color = tagToColor(memory.tags[0] ?? memory.type, isDark);
+  const color = LANDING_MONO.mid;
 
   return (
     <Button

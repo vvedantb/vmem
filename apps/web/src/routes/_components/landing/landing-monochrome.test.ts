@@ -15,6 +15,7 @@ describe("landing is monochrome", () => {
     for (const name of files) {
       const source = readFileSync(path.join(here, name), "utf8");
       expect(source, name).not.toMatch(/\bdanger\b/);
+      expect(source, name).not.toMatch(/tagToColor/);
     }
   });
 
