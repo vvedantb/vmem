@@ -413,11 +413,28 @@ async function runLive(): Promise<LiveMatrix> {
       if (signedIn && !copied) cookieSync = "native";
     }
 
+    let tokenReady = false;
+    if (signedIn) {
+      const tokenDeadline = Date.now() + 20_000;
+      while (Date.now() < tokenDeadline) {
+        tokenReady = await popup
+          .evaluate(async () => {
+            const data = await chrome.storage.session.get(null);
+            return Object.values(data).some(
+              (value) => typeof value === "string" && value.length > 40,
+            );
+          })
+          .catch(() => false);
+        if (tokenReady) break;
+        await sleep(400);
+      }
+    }
+
     await screenshot(popup, "live_popup_signed_in.png");
     matrix.signedInPopup = {
       ok: signedIn,
       reason: signedIn
-        ? `popup shows Save / Import tabs (${cookieSync}); chrome.cookies __client vmem=${cookieProbe.vmemClient} clerk=${cookieProbe.clerkClient}`
+        ? `popup shows Save / Import tabs (${cookieSync}, token=${tokenReady}); chrome.cookies __client vmem=${cookieProbe.vmemClient} clerk=${cookieProbe.clerkClient}`
         : `popup copy: ${popupText.slice(0, 180)}; cookies=${JSON.stringify(publicCookies(sessionCookies))}; probe=${JSON.stringify(cookieProbe)}`,
     };
     await popup.close().catch(() => {});
