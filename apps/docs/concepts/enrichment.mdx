@@ -1,0 +1,32 @@
+---
+title: "Enrichment"
+description: "What happens after a memory is written"
+---
+
+<Note>
+  The old Neo4j enrichment pipeline (LLM tags, `:RELATES_TO` / `:MENTIONS`
+  edges, `enrichMemoryInternal`) is **not** on current `main`. Writes still
+  persist the memory immediately.
+</Note>
+
+## What happens on write
+
+After a memory is created (web, MCP `memory_add`, HTTP, Chrome extension, import):
+
+1. The row is stored in the Convex `memories` table
+2. If an OpenRouter key is available, vmem **embeds** the memory so later retrieve can blend vector similarity
+3. Context prompt regeneration is scheduled (60s debounce)
+
+There is no separate client-side enrichment queue.
+
+## Instruction extraction
+
+Agentic `save()` / `memory_add_instruction` / HTTP `{ "instruction": "..." }` still call OpenRouter for **fact extraction** (`feature: "fact-extraction"`). That path is gated: missing key → HTTP `422 openrouter_required`. It creates new memories; it does not currently enqueue conflict proposals.
+
+## Related memories
+
+`memory_related` finds neighbours by **shared tags and similar title/content**, not a Neo4j edge table.
+
+## Requirements
+
+Embeddings and fact extraction need `OPENROUTER_API_KEY` (deployment env or the per-user secret in **Settings → Secrets**). If the key is missing, structured creates still succeed; instruction writes fail with `openrouter_required`.

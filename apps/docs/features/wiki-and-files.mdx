@@ -1,0 +1,38 @@
+---
+title: "Wiki & Files"
+description: "Personal wiki and file storage"
+---
+
+## Wiki
+
+A personal wiki for long-form notes and documentation, separate from memories.
+
+Route: `/{workspace}/wiki`
+
+### Features
+
+- Folder and document tree
+- Create, rename, move, and delete nodes
+- Markdown content editing
+- Full-text search across wiki documents
+
+Wiki nodes are stored in Convex (`wikiNodes`) with `kind` distinguishing folders from documents. MCP tools: `wiki_list`, `wiki_get`, `wiki_search`, `wiki_create`, `wiki_update`, `wiki_delete` (personal connector).
+
+## Files
+
+A file manager for uploads, folders, and previews.
+
+Route: `/{workspace}/files`
+
+### Features
+
+- Folder hierarchy with breadcrumb navigation
+- Upload files via drag-and-drop
+- Inline preview for supported file types
+- Move, rename, and delete files and folders
+
+Files are stored in Convex file storage with metadata in Convex tables. MCP tools: `files_list`, `files_get`, `files_upload`, `files_delete` (personal connector).
+
+## Relationship to Memories
+
+Wiki and Files are separate from the `memories` table. PDF and text-like uploads through `files_upload` or the memory create form (`fileImport.importMemoryFromFile`) can be indexed so they show up in `memory_search` / `memory_retrieve`.

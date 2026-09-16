@@ -29,6 +29,7 @@ pnpm workspace, Node 20+, pnpm 10.15.1.
 | ----------------------- | ------------------------------------------------- |
 | `apps/web`              | dashboard (Vite, React, TanStack Router)          |
 | `apps/chrome-extension` | MV3 extension (WXT) — save pages, inject context  |
+| `apps/docs`             | Mintlify docs (`pnpm docs:dev`)                   |
 | `packages/backend`      | Convex functions + memory helpers under `engine/` |
 | `packages/shared`       | shared helpers                                    |
 | `packages/ui`           | shared UI                                         |
@@ -73,6 +74,7 @@ Web app is at http://localhost:5173.
 
 ```bash
 pnpm ext:dev / pnpm ext:build   # extension under apps/chrome-extension/dist/
+pnpm docs:dev                   # Mintlify docs — http://localhost:3001
 pnpm typecheck:all
 pnpm test
 pnpm test:e2e                   # Playwright web suite (see e2e/README.md)
@@ -81,7 +83,7 @@ pnpm check
 
 Graph client perf bench (synthetic, no Convex): open `/memories?bench=5000`. Retrieval quality bench: `pnpm --filter @vmem/backend test:memory-bench`.
 
-More on the extension: [`apps/chrome-extension/README.md`](apps/chrome-extension/README.md).
+More on the extension: [`apps/chrome-extension/README.md`](apps/chrome-extension/README.md). Docs site: [`apps/docs`](apps/docs).
 
 Web Playwright E2E (landing + authenticated smokes against production or local Vite): [`e2e/README.md`](e2e/README.md). Needs `E2E_USER_EMAIL` / `E2E_USER_PASSWORD` for signed-in specs.
 

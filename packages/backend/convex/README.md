@@ -23,3 +23,5 @@ Do not run `npx convex dev` or `npx convex deploy` from agent sessions — use c
 ## Docs
 
 Product app: [vmem-staging.vedantb.com](https://vmem-staging.vedantb.com).
+
+Mintlify reference: `apps/docs` (preview with `pnpm docs:dev` from repo root).

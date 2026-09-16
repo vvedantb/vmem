@@ -1,0 +1,399 @@
+---
+title: "MCP Tools"
+description: "Complete reference for all vmem MCP tools"
+---
+
+Tools are registered from `packages/backend/convex/mcp/tools*.ts` and require a Clerk OAuth bearer token. Memory tools work on `/mcp` and `/mcp/team`. Skills, wiki, files, and `context_prompt_get` are personal-only.
+
+## ping
+
+Health check for connector validation.
+
+**Parameters:** none
+
+**Returns:**
+
+```json
+{ "ok": true, "timestamp": "2026-05-22T12:00:00.000Z" }
+```
+
+---
+
+## whoami
+
+Returns the authenticated user ID and active profile.
+
+**Parameters:** none
+
+---
+
+## list_profiles
+
+List all profiles available to the user. Returns profile IDs, names, colors, and icons.
+
+**Parameters:** none
+
+Use `set_active_profile` to choose the default profile for MCP memory tools, or pass `profileId` on individual memory calls.
+
+---
+
+## set_active_profile
+
+Set the default profile for MCP memory tools (`memory_add`, `memory_search`, `memory_retrieve` when `profileId` is omitted). Does not change web or extension defaults.
+
+<ParamField body="profileId" type="string" required>
+  Profile ID from `list_profiles`
+</ParamField>
+
+**Returns:** `{ id, name, color, icon }` for the active profile.
+
+---
+
+## context_prompt_get
+
+Personal connector only. Returns the same markdown as `vmem://context_prompt` (about, preferences, pinned memories, profile summary, available skills). Useful on hosts that cannot re-read the resource mid-chat.
+
+**Parameters:** none
+
+---
+
+## memory_search
+
+Search memories by query text, type, tags, or source.
+
+<ParamField body="query" type="string">
+  Text to search for
+</ParamField>
+<ParamField body="type" type="string">
+  Filter: `profile`, `episodic`, or `knowledge`
+</ParamField>
+<ParamField body="tags" type="string[]">
+  Filter by tags
+</ParamField>
+<ParamField body="source" type="string">
+  Filter by source
+</ParamField>
+<ParamField body="profileId" type="string">
+  Profile to search in (defaults to active profile)
+</ParamField>
+<ParamField body="limit" type="number">
+  Max results, 1–100 (default 20)
+</ParamField>
+<ParamField body="offset" type="number">
+  Pagination offset (default 0)
+</ParamField>
+
+**Returns:** `{ memories: [...], total: number }`
+
+---
+
+## memory_retrieve
+
+Retrieve the most relevant memories for a natural language query. Returns scored results with Context Trace.
+
+<ParamField body="query" type="string" required>
+  Natural language query
+</ParamField>
+<ParamField body="type" type="string">
+  Filter by memory type
+</ParamField>
+<ParamField body="tags" type="string[]">
+  Filter by tags
+</ParamField>
+<ParamField body="status" type="string">
+  Filter by status (default: active and pinned)
+</ParamField>
+<ParamField body="profileId" type="string">
+  Profile to search in (defaults to active profile)
+</ParamField>
+<ParamField body="limit" type="number">
+  Max results, 1–50 (default 5)
+</ParamField>
+
+**Returns:** Ranked memories with `trace.scoreBreakdown` (fulltext, vector, chunk, entity, rrf, recency, confidence).
+
+See [Context Trace](/concepts/context-trace) for score field details.
+
+---
+
+## memory_add
+
+Store a new memory.
+
+<ParamField body="title" type="string" required>
+  Short title
+</ParamField>
+<ParamField body="content" type="string" required>
+  Memory content
+</ParamField>
+<ParamField body="type" type="string" required>
+  `profile`, `episodic`, or `knowledge`
+</ParamField>
+<ParamField body="source" type="string" required>
+  Origin (e.g. `claude`, `chatgpt`, `manual`)
+</ParamField>
+<ParamField body="tags" type="string[]">
+  Tags for categorization
+</ParamField>
+<ParamField body="confidence" type="number">
+  0–1 (default 1.0)
+</ParamField>
+<ParamField body="profileId" type="string">
+  Profile to add to (defaults to active profile)
+</ParamField>
+
+**Returns:** Created memory object.
+
+---
+
+## memory_add_instruction
+
+Store memories from natural language. The server uses OpenRouter to extract atomic facts and creates memories (same pipeline as `POST /api/v1/memories` with `{ "instruction": "..." }`).
+
+<ParamField body="instruction" type="string" required>
+  What to remember (conversation summary, preferences, decisions, etc.)
+</ParamField>
+<ParamField body="profileId" type="string">
+  Profile to add to (defaults to active MCP profile)
+</ParamField>
+
+**Returns:** `{ created: Memory[], summary: string }` or an error if OpenRouter is not configured.
+
+---
+
+## memory_update
+
+Update an existing memory. Only include fields you want to change.
+
+<ParamField body="id" type="string" required>
+  Memory ID
+</ParamField>
+<ParamField body="title" type="string" />
+<ParamField body="content" type="string" />
+<ParamField body="type" type="string" />
+<ParamField body="status" type="string">
+  `active`, `pinned`, `suppressed`, or `expired`
+</ParamField>
+<ParamField body="tags" type="string[]">
+  Replaces all existing tags
+</ParamField>
+<ParamField body="confidence" type="number">
+  0–1
+</ParamField>
+
+**Returns:** Updated memory object.
+
+---
+
+## memory_delete
+
+Permanently delete a memory.
+
+<ParamField body="id" type="string" required>
+  Memory ID
+</ParamField>
+
+**Returns:** `{ deleted: true }`
+
+---
+
+## memory_related
+
+List memories related to a given memory by shared tags and similar title or content.
+
+<ParamField body="memoryId" type="string" required>
+  Memory ID from `memory_search` or `memory_retrieve`
+</ParamField>
+
+**Returns:** Array of `{ memory, linkReason }`.
+
+---
+
+## memory_graph
+
+MCP App: interactive memory graph. Requires an MCP Apps–capable host.
+
+<ParamField body="profileId" type="string">
+  Profile ID (defaults to active MCP profile)
+</ParamField>
+<ParamField body="focus" type="string">
+  Center on one memory id and its neighbourhood
+</ParamField>
+<ParamField body="memoryIds" type="string[]">
+  Memory ids from a prior search; those nodes plus one-hop neighbours
+</ParamField>
+<ParamField body="limit" type="number">
+  Max memory nodes (default 80, max 100)
+</ParamField>
+
+---
+
+## skills_list
+
+List skills authored by the authenticated user. Personal connector only.
+
+**Parameters:** none
+
+---
+
+## skills_get
+
+Fetch a single skill by exact name, including full markdown instructions.
+
+<ParamField body="name" type="string" required>
+  Exact skill name (case sensitive)
+</ParamField>
+
+---
+
+## skills_create
+
+Create a new enabled skill when you have identified a repeatable workflow and no existing skill covers it.
+
+<ParamField body="name" type="string" required>
+  Unique skill name
+</ParamField>
+<ParamField body="description" type="string" required>
+  When to use this skill
+</ParamField>
+<ParamField body="instructions" type="string" required>
+  Full markdown instructions
+</ParamField>
+
+---
+
+## skills_update
+
+<ParamField body="name" type="string" required>
+  Current skill name (exact, case sensitive)
+</ParamField>
+<ParamField body="newName" type="string">
+  New unique name (rename)
+</ParamField>
+<ParamField body="description" type="string" />
+<ParamField body="instructions" type="string" />
+<ParamField body="enabled" type="boolean">
+  `false` to disable, `true` to re-enable
+</ParamField>
+
+At least one of `newName`, `description`, `instructions`, or `enabled` is required.
+
+---
+
+## skills_delete
+
+<ParamField body="name" type="string" required>
+  Exact skill name (case sensitive)
+</ParamField>
+
+**Returns:** `{ deleted: true }`
+
+---
+
+## wiki_list
+
+Flat index of all wiki folders and documents (no body). Personal connector only.
+
+**Parameters:** none
+
+**Returns:** Array of `{ id, title, kind, parentId, order, updatedAt }`
+
+---
+
+## wiki_get
+
+<ParamField body="id" type="string" required>
+  Wiki node id from `wiki_list`
+</ParamField>
+
+---
+
+## wiki_search
+
+<ParamField body="query" type="string" required>
+  Search text
+</ParamField>
+
+**Returns:** Array of `{ id, title, kind, excerpt }`
+
+---
+
+## wiki_create
+
+<ParamField body="kind" type="string" required>
+  `folder` or `document`
+</ParamField>
+<ParamField body="title" type="string" required />
+<ParamField body="parentId" type="string">
+  Parent folder id (omit for root)
+</ParamField>
+<ParamField body="contentMarkdown" type="string">
+  Initial markdown body (documents only)
+</ParamField>
+
+---
+
+## wiki_update
+
+<ParamField body="id" type="string" required />
+<ParamField body="title" type="string" />
+<ParamField body="contentMarkdown" type="string" />
+<ParamField body="contentMode" type="string">
+  `replace` (default) or `append` when `contentMarkdown` is set
+</ParamField>
+
+---
+
+## wiki_delete
+
+<ParamField body="id" type="string" required />
+
+**Returns:** `{ deletedCount: number }` — includes the root node and all descendants.
+
+---
+
+## files_list
+
+List files and folders in the shared filesystem. Personal connector only.
+
+<ParamField body="path" type="string">
+  Folder path (omit to list the entire tree)
+</ParamField>
+
+---
+
+## files_get
+
+<ParamField body="path" type="string" required>
+  File path from `files_list`
+</ParamField>
+
+Images up to 4 MB and text up to 100 KB may be returned inline. A `downloadUrl` is always included for larger files.
+
+---
+
+## files_upload
+
+<ParamField body="path" type="string" required>
+  Destination path. Missing folders are created; existing files are overwritten.
+</ParamField>
+<ParamField body="contentBase64" type="string">
+  Base64-encoded bytes (data: URL prefix allowed). Provide this **or**
+  `sourceUrl`.
+</ParamField>
+<ParamField body="sourceUrl" type="string">
+  URL the server fetches and stores.
+</ParamField>
+<ParamField body="mimeType" type="string">
+  MIME type; inferred when omitted.
+</ParamField>
+
+Max 10 MB. PDF and text-like files are indexed into memories and appear in `memory_search` / `memory_retrieve`.
+
+---
+
+## files_delete
+
+<ParamField body="path" type="string" required>
+  File or folder path. Folders delete recursively.
+</ParamField>

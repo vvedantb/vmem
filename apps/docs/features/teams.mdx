@@ -1,0 +1,46 @@
+---
+title: "Teams"
+description: "Shared company knowledge with team-scoped memories"
+---
+
+## Overview
+
+Teams let multiple users share a memory profile for company knowledge. Each team has one profile; all members can read and write memories on it.
+
+Teams live in the sidebar workspace switcher; a team workspace has Members and Team settings pages under `/{workspace}/team/`.
+
+## Creating a Team
+
+1. Open the workspace switcher
+2. Create a team and enter a name
+3. A team profile is created automatically
+
+## Team Members
+
+Team owners can invite members by email. Members get read/write access to the team profile's memories.
+
+| Action                | Who              |
+| --------------------- | ---------------- |
+| View team memories    | Any member       |
+| Create memories       | Any member       |
+| Update own memories   | Original creator |
+| Update any memory     | Team owner       |
+| Delete own memories   | Original creator |
+| Delete any memory     | Team owner       |
+| Invite/remove members | Team owner       |
+
+Creator attribution is preserved on each memory and surfaced in the UI.
+
+## Team Memories API
+
+Use the same `memoryApi.*` actions as personal memories and pass the team's `profileId`. Membership is checked in Convex before the row is read or written.
+
+MCP team scope is a separate endpoint: `https://<deployment>.convex.site/mcp/team`. Skills, wiki, files, and `vmem://context_prompt` are personal-connector only.
+
+See [Teams API Reference](/api-reference/teams) and [Memories API](/api-reference/memories).
+
+## Profiles
+
+Team profiles appear alongside personal profiles. Switching to a team profile changes where new memories are saved.
+
+Dashboard stats always show user-wide totals, not filtered by team profile.

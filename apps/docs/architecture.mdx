@@ -1,0 +1,78 @@
+---
+title: "Architecture"
+description: "How vmem's components fit together"
+---
+
+## Overview
+
+vmem is a pnpm monorepo with a Convex backend, Vite web dashboard, and Chrome extension. First-party clients talk to Convex with Clerk sessions. Programmatic third-party access uses API key Bearer auth on Convex HTTP routes (`/api/v1/memories/*`). Agents connect over MCP at `/mcp` (personal) and `/mcp/team`.
+
+```
+┌──────────────────────────────────────────────────┐
+│  Clients                                         │
+│  ┌──────────┐  ┌──────────────┐  ┌────────────┐  │
+│  │ Web App  │  │ Chrome Ext.  │  │ MCP / HTTP │  │
+│  │ (Vite)   │  │              │  │ / SDK      │  │
+│  └────┬─────┘  └──────┬───────┘  └─────┬──────┘  │
+└───────┼───────────────┼────────────────┼─────────┘
+        └───────────────┴────────────────┘
+                        │
+            ┌───────────▼───────────┐
+            │  Convex               │
+            │  • Clerk auth         │
+            │  • memories table     │
+            │  • MCP HTTP (/mcp)    │
+            │  • File storage       │
+            │  • Profiles, teams    │
+            └───────────────────────┘
+```
+
+## Monorepo Layout
+
+| Path                    | Purpose                                         |
+| ----------------------- | ----------------------------------------------- |
+| `apps/web`              | Vite + React + TanStack Router dashboard        |
+| `apps/chrome-extension` | Browser extension for ChatGPT/Claude/page saves |
+| `apps/docs`             | Mintlify documentation site                     |
+| `packages/backend`      | Convex functions, memory engine, MCP server     |
+| `packages/shared`       | Shared helpers                                  |
+| `packages/ui`           | Shared shadcn/ui component library (`@vmem/ui`) |
+| `packages/sdk`          | `@vmem/sdk` HTTP client                         |
+
+A native Expo app and GitHub codebase indexer used to live in this repo. They are **not** on `main` — see [Mobile (removed)](/features/mobile) and [Codebases (removed)](/features/codebases).
+
+## Data Flow
+
+### Writing a Memory
+
+1. Client calls `memoryApi.createMemory` (Convex `authAction`) or `POST /api/v1/memories`
+2. Convex verifies identity (Clerk session or API key) and resolves the profile
+3. The row is written to the Convex `memories` table (tags, optional expiry, source metadata)
+4. When an OpenRouter key is configured, an embedding is stored for vector search
+5. Context prompt regeneration is scheduled (60s debounce)
+
+### Retrieving Memories
+
+1. Client calls `memoryApi.retrieveMemories` or `POST /api/v1/memories/retrieve`
+2. Hybrid ranking: Convex full-text + lexical overlap + optional vector similarity + tag/entity overlap + 1-hop `memoryLinks` neighbours + recency
+3. Each result includes a **context trace** explaining the score
+4. User settings (`aboutMe`, `preferences`) are merged in parallel as `userContext`
+
+### MCP Implicit Memory
+
+1. MCP client reads `vmem://context_prompt` at conversation start (personal connector only)
+2. Convex returns cached markdown profile (or a placeholder on first read)
+3. Background job regenerates the profile from pinned memories + recent activity
+4. LLM sees user context without any tool call
+
+## Authentication
+
+| Surface                    | Auth                                              |
+| -------------------------- | ------------------------------------------------- |
+| Web app / Chrome extension | Clerk session → Convex `authAction` / `authQuery` |
+| HTTP `/api/v1/memories/*`  | `Authorization: Bearer vmem_sk_…`                 |
+| MCP `/mcp` and `/mcp/team` | Clerk OAuth access token                          |
+
+Protected Convex functions use `authAction`, `authMutation`, or `authQuery` builders that inject `ctx.userId`. There is no `MCP_JWT_SECRET` — MCP verifies the Clerk OAuth token directly.
+
+API keys (`vmem_sk_*`) are created in the dashboard and AES-GCM encrypted at rest.

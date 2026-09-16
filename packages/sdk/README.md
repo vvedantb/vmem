@@ -81,7 +81,10 @@ try {
 
 ## Docs
 
-See this README and the root monorepo [`README.md`](../../README.md) for HTTP/SDK usage. The staging app at [vmem-staging.vedantb.com](https://vmem-staging.vedantb.com) is the product UI, not a separate docs site.
+- SDK quickstart: [`apps/docs/sdk/quickstart.mdx`](../../apps/docs/sdk/quickstart.mdx)
+- HTTP Memories API: [`apps/docs/api-reference/http-memories.mdx`](../../apps/docs/api-reference/http-memories.mdx)
+
+Preview locally with `pnpm docs:dev`. Product UI: [vmem-staging.vedantb.com](https://vmem-staging.vedantb.com).
 
 ## License
 

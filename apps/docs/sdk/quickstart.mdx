@@ -1,0 +1,96 @@
+---
+title: "SDK Quickstart"
+description: "Use the VMemory JavaScript SDK with API keys"
+---
+
+The `@vmem/sdk` package wraps the HTTP Memories API with a simple agentic interface.
+
+## Install
+
+```bash
+npm install @vmem/sdk
+```
+
+In the monorepo:
+
+```bash
+pnpm add @vmem/sdk --filter your-app
+```
+
+## Configure
+
+Create an API key in **Settings → API → Keys**, then set:
+
+```bash
+export VMEM_API_KEY="vmem_sk_..."
+export VMEM_BASE_URL="https://<your-deployment>.convex.site"
+```
+
+Agentic `save()` and `update()` require an **OpenRouter API key** in vmem (dashboard secret or deployment env). Missing key → HTTP `422` `{ error: "openrouter_required" }`.
+
+## Usage
+
+```typescript
+import { VMemory } from "@vmem/sdk";
+
+const vmem = new VMemory();
+
+await vmem.save("User switched from Neovim to Helix");
+await vmem.update("Actually they use Zed now, not Helix");
+
+const result = await vmem.search("What editor does the user prefer?");
+console.log(result.memories);
+console.log(result.userContext);
+```
+
+Pass options explicitly instead of env vars:
+
+```typescript
+const vmem = new VMemory({
+  apiKey: process.env.VMEM_API_KEY,
+  baseUrl: process.env.VMEM_BASE_URL,
+  profileId: "optional-profile-id",
+});
+```
+
+## Methods
+
+| Method                    | HTTP                             | Description                                         |
+| ------------------------- | -------------------------------- | --------------------------------------------------- |
+| `save(instruction)`       | `POST /api/v1/memories`          | Extract facts and create memories (OpenRouter)      |
+| `update(instruction)`     | `PATCH /api/v1/memories`         | Same OpenRouter gate as `save()`                    |
+| `search(query, options?)` | `POST /api/v1/memories/retrieve` | Hybrid retrieve; `type` / `tags` / `status` filters |
+| `createMemory(body)`      | `POST /api/v1/memories`          | Structured create (escape hatch)                    |
+| `patchMemory(body)`       | `PATCH /api/v1/memories`         | Structured update by `id`                           |
+| `deleteMemory(body)`      | `DELETE /api/v1/memories`        | Structured delete by `id`                           |
+| `searchMemories(body)`    | `POST /api/v1/memories/retrieve` | Structured retrieve                                 |
+| `health()`                | `GET /health`                    | Unauthenticated `{ status: "ok" }`                  |
+
+## Search options
+
+```typescript
+const result = await vmem.search("What stack do I use?", {
+  limit: 5,
+  summarize: true,
+});
+```
+
+When `summarize: true`, the response includes a `summary` field that joins ranked titles (no LLM, no 422).
+
+## Errors
+
+The SDK throws `VMemoryError` with `status` and `code`:
+
+```typescript
+import { VMemory, isVMemoryError } from "@vmem/sdk";
+
+try {
+  await vmem.save("...");
+} catch (error) {
+  if (isVMemoryError(error) && error.code === "openrouter_required") {
+    // Add OPENROUTER_API_KEY in dashboard settings
+  }
+}
+```
+
+See [HTTP Memories API](/api-reference/http-memories) for full request/response shapes.
