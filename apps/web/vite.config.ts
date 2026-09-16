@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import tanstackRouter from "@tanstack/router-plugin/vite";
 import { visualizer } from "rollup-plugin-visualizer";
@@ -6,8 +6,39 @@ import path from "path";
 import { createRequire } from "module";
 // Loaded by `react({ compiler: true })`; imported here so knip sees the peer.
 import "oxc-transform-react";
+import {
+  AGENT_LOGIN_PATH,
+  createAgentLoginResult,
+} from "./src/lib/dev-agent-login";
 
 const require = createRequire(import.meta.url);
+
+function agentLoginPlugin(): Plugin {
+  let env: Record<string, string>;
+
+  return {
+    name: "agent-login",
+    configureServer(server) {
+      env = loadEnv("development", server.config.root, "");
+
+      server.middlewares.use(AGENT_LOGIN_PATH, async (_req, res) => {
+        const result = await createAgentLoginResult({
+          secretKey: env.CLERK_SECRET_KEY,
+          agentUserId: env.AGENT_CLERK_USER_ID,
+        });
+
+        if (result.kind === "redirect") {
+          res.writeHead(302, { Location: result.location });
+          res.end();
+          return;
+        }
+
+        res.writeHead(result.status, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(result.body));
+      });
+    },
+  };
+}
 
 /** Cosmos imports default from gl-bench; Vite prefers `browser` (UMD min) which has no ESM default. */
 const glBenchEsm = path.join(
@@ -24,6 +55,7 @@ export default defineConfig({
       autoCodeSplitting: true,
     }),
     react({ compiler: true }),
+    agentLoginPlugin(),
     process.env.ANALYZE === "true" &&
       visualizer({
         filename: "stats.html",

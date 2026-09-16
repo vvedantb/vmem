@@ -1,6 +1,7 @@
 import { SignInButton } from "@clerk/clerk-react";
 import { Button } from "@vmem/ui";
 import { VmemBrand } from "@/components/shell/VmemBrand";
+import { AGENT_LOGIN_PATH } from "@/lib/dev-agent-login";
 import { landingShellClass } from "./LandingReveal";
 
 export function LandingFooter() {
@@ -16,11 +17,23 @@ export function LandingFooter() {
             agent stack.
           </p>
         </div>
-        <SignInButton mode="modal">
-          <Button variant="ghost" size="sm">
-            Sign in
+        <div className="flex flex-col items-start gap-3 sm:items-end">
+          <SignInButton mode="modal">
+            <Button variant="ghost" size="sm">
+              Sign in
+            </Button>
+          </SignInButton>
+          <Button
+            type="button"
+            variant="link"
+            className="h-auto p-0 text-sm text-muted hover:text-foreground active:scale-100"
+            onClick={() => {
+              window.location.href = AGENT_LOGIN_PATH;
+            }}
+          >
+            Continue without an account →
           </Button>
-        </SignInButton>
+        </div>
       </div>
     </footer>
   );
