@@ -4,7 +4,11 @@ import { cn, motionDuration, motionEase } from "@vmem/ui";
 import { IconUsers } from "@tabler/icons-react";
 import { IconTeams, IconSettings } from "../icons/sidebar";
 import type { NavGroup, NavItem } from "./types";
-import { navGroups, navHrefToPath } from "./nav-config";
+import {
+  navHrefToPath,
+  navViewFromPathname,
+  railSectionFromPathname,
+} from "./nav-config";
 import { NavLink } from "./NavLink";
 import { SkillsSidebarNav } from "./SkillsSidebarNav";
 import { WikiSidebarNav } from "./WikiSidebarNav";
@@ -12,44 +16,13 @@ import { SettingsSidebar } from "./SettingsSidebar";
 import { SharedLayoutBackground } from "./SharedLayoutBackground";
 import { NavSection } from "./NavSection";
 
-export type SidebarNavView = "main" | "settings" | "skills" | "wiki";
-
-const subSidebarHrefs = [
-  "/$profileId/skills",
-  "/settings",
-  "/$profileId/wiki",
-] as const;
-
-type SubSidebarHref = (typeof subSidebarHrefs)[number];
-
-function isSubSidebarHref(href: string): href is SubSidebarHref {
-  return subSidebarHrefs.some((subHref) => subHref === href);
-}
-
-export function navViewFromPathname(pathname: string): SidebarNavView {
-  if (pathname.startsWith("/settings")) return "settings";
-  // workspace routes carry the profile id as their first segment strip it
-  // before matching sections
-  const sub = pathname.replace(/^\/[^/]+/, "");
-  if (sub.startsWith("/skills")) return "skills";
-  if (sub.startsWith("/wiki")) return "wiki";
-  return "main";
-}
-
 export type SidebarNavigationProps = {
   pathname: string;
-  // active workspace id for resolving workspace scoped nav hrefs
   profileId: string | undefined;
-  // team workspaces get an extra "Team" nav group (members / settings)
-  isTeamWorkspace: boolean;
-  unreadCount: number;
-  proposalsCount: number;
-  isCollapsed: boolean;
   isMobile: boolean;
   onNavigate?: MouseEventHandler<HTMLAnchorElement>;
 };
 
-// extra nav group shown only when the active workspace belongs to a team
 const teamNavGroup: NavGroup = {
   title: "Team",
   icon: IconTeams,
@@ -63,19 +36,14 @@ const teamNavGroup: NavGroup = {
   ],
 };
 
-// shared shell for MainNav/SettingsNav slide in nav + shared layout pill +
-// static section labels. Per item rendering (incl. the active highlight check
-// feeding SharedLayoutBackground.Item) is the caller's concern.
 function NavGroupList({
   groups,
-  isIconOnly,
   isMobile,
   layoutId,
   slideDirection,
   renderItem,
 }: {
   groups: { title: string; items: NavItem[] }[];
-  isIconOnly: boolean;
   isMobile: boolean;
   layoutId: string;
   slideDirection: number;
@@ -93,11 +61,7 @@ function NavGroupList({
     >
       <SharedLayoutBackground.Root layoutId={layoutId} className="space-y-4">
         {groups.map((group) => (
-          <NavSection
-            key={group.title}
-            title={group.title}
-            isIconOnly={isIconOnly}
-          >
+          <NavSection key={group.title} title={group.title} isIconOnly={false}>
             {group.items.map(renderItem)}
           </NavSection>
         ))}
@@ -106,33 +70,21 @@ function NavGroupList({
   );
 }
 
-function MainNav({
+function TeamNav({
   pathname,
   profileId,
-  isTeamWorkspace,
-  unreadCount,
-  proposalsCount,
-  isIconOnly,
   isMobile,
   onNavigate,
 }: {
   pathname: string;
   profileId: string | undefined;
-  isTeamWorkspace: boolean;
-  unreadCount: number;
-  proposalsCount: number;
-  isIconOnly: boolean;
   isMobile: boolean;
   onNavigate?: MouseEventHandler<HTMLAnchorElement>;
 }) {
-  const groups = isTeamWorkspace
-    ? [...navGroups.slice(0, 1), teamNavGroup, ...navGroups.slice(1)]
-    : navGroups;
-
   function renderItem(item: NavItem) {
     const resolvedPath = navHrefToPath(item.href, profileId);
     const isActive =
-      pathname === resolvedPath || pathname.startsWith(resolvedPath + "/");
+      pathname === resolvedPath || pathname.startsWith(`${resolvedPath}/`);
     return (
       <SharedLayoutBackground.Item
         key={item.href}
@@ -143,10 +95,9 @@ function MainNav({
           item={item}
           pathname={pathname}
           profileId={profileId}
-          isIconOnly={isIconOnly}
-          unreadCount={unreadCount}
-          proposalsCount={proposalsCount}
-          showChevron={isSubSidebarHref(item.href)}
+          isIconOnly={false}
+          unreadCount={0}
+          proposalsCount={0}
           onNavigate={onNavigate}
         />
       </SharedLayoutBackground.Item>
@@ -155,10 +106,9 @@ function MainNav({
 
   return (
     <NavGroupList
-      groups={groups}
-      isIconOnly={isIconOnly}
+      groups={[teamNavGroup]}
       isMobile={isMobile}
-      layoutId="main-nav"
+      layoutId="team-nav"
       slideDirection={-12}
       renderItem={renderItem}
     />
@@ -168,24 +118,18 @@ function MainNav({
 export function SidebarNavigation({
   pathname,
   profileId,
-  isTeamWorkspace,
-  unreadCount,
-  proposalsCount,
-  isCollapsed,
   isMobile,
   onNavigate,
 }: SidebarNavigationProps) {
-  const isIconOnly = !isMobile && isCollapsed;
   const navView = navViewFromPathname(pathname);
+  const section = railSectionFromPathname(pathname);
 
-  // enter only keyed remount no AnimatePresence mode="wait". Wait+exit can
-  // strand the incoming panel at opacity 0 if a Convex re-render lands mid-exit.
   if (navView === "settings") {
     return (
       <SettingsSidebar
         key="settings"
         pathname={pathname}
-        isIconOnly={isIconOnly}
+        isIconOnly={false}
         isMobile={isMobile}
         onNavigate={onNavigate}
       />
@@ -193,29 +137,22 @@ export function SidebarNavigation({
   }
   if (navView === "skills") {
     return (
-      <SkillsSidebarNav
-        key="skills"
-        isIconOnly={isIconOnly}
-        isMobile={isMobile}
-      />
+      <SkillsSidebarNav key="skills" isIconOnly={false} isMobile={isMobile} />
     );
   }
   if (navView === "wiki") {
+    return <WikiSidebarNav key="wiki" isIconOnly={false} isMobile={isMobile} />;
+  }
+  if (section === "team") {
     return (
-      <WikiSidebarNav key="wiki" isIconOnly={isIconOnly} isMobile={isMobile} />
+      <TeamNav
+        key="team"
+        pathname={pathname}
+        profileId={profileId}
+        isMobile={isMobile}
+        onNavigate={onNavigate}
+      />
     );
   }
-  return (
-    <MainNav
-      key="main"
-      pathname={pathname}
-      profileId={profileId}
-      isTeamWorkspace={isTeamWorkspace}
-      unreadCount={unreadCount}
-      proposalsCount={proposalsCount}
-      isIconOnly={isIconOnly}
-      isMobile={isMobile}
-      onNavigate={onNavigate}
-    />
-  );
+  return null;
 }

@@ -4,6 +4,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   Button,
   Dialog,
@@ -20,20 +21,13 @@ import {
   IconLogout,
   IconSun,
   IconMoon,
-  IconSelector,
   IconAlertTriangle,
   IconLoader2,
 } from "@tabler/icons-react";
 import { useThemeContext } from "@/contexts/ThemeContext";
-import { SidebarIconTooltip } from "./SidebarIconTooltip";
+import { RAIL_TILE_CLASS, railTileStateClass } from "./sidebar-nav-row";
 
-type SidebarUserMenuProps = {
-  // collapsed (icon-only) rail shows just the avatar — dropdown opens to the side
-  collapsed: boolean;
-};
-
-// footer identity card + account menu (theme, sign out)
-export function SidebarUserMenu({ collapsed }: SidebarUserMenuProps) {
+export function SidebarUserMenu() {
   const { user } = useUser();
   const { openUserProfile, signOut } = useClerk();
   const { isDark, toggleTheme } = useThemeContext();
@@ -50,7 +44,6 @@ export function SidebarUserMenu({ collapsed }: SidebarUserMenuProps) {
     try {
       await signOut();
     } catch {
-      // on failure, drop the pending state so the user can retry or cancel
       setIsSigningOut(false);
     }
   };
@@ -59,55 +52,41 @@ export function SidebarUserMenu({ collapsed }: SidebarUserMenuProps) {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          {collapsed ? (
-            <SidebarIconTooltip label={name} enabled>
-              <Button
-                type="button"
-                variant="ghost"
-                className="mx-auto h-auto rounded-lg p-1 hover:bg-surface-tertiary/50 active:scale-100"
-              >
-                <img
-                  src={user.imageUrl}
-                  alt={name}
-                  className="h-7 w-7 rounded-full object-cover outline outline-1 -outline-offset-1 outline-separator"
-                />
-              </Button>
-            </SidebarIconTooltip>
-          ) : (
-            <Button
-              type="button"
-              variant="ghost"
-              className="h-auto w-full justify-start gap-2.5 rounded-lg bg-surface-secondary p-2 text-left hover:bg-surface-tertiary active:scale-100"
-            >
-              <img
-                src={user.imageUrl}
-                alt={name}
-                className="h-7 w-7 shrink-0 rounded-full object-cover outline outline-1 -outline-offset-1 outline-separator"
-              />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium leading-tight text-foreground">
-                  {name}
-                </p>
-                {email && (
-                  <p className="truncate text-xs leading-tight text-muted">
-                    {email}
-                  </p>
-                )}
-              </div>
-              <IconSelector className="h-4 w-4 shrink-0 text-muted" />
-            </Button>
-          )}
+          <Button
+            type="button"
+            variant="ghost"
+            title={name}
+            aria-label={`Account menu for ${name}`}
+            className={cn(
+              RAIL_TILE_CLASS,
+              "h-11 w-11 p-0",
+              railTileStateClass(false),
+            )}
+          >
+            <img
+              src={user.imageUrl}
+              alt=""
+              className="h-7 w-7 rounded-full object-cover outline outline-1 -outline-offset-1 outline-separator"
+            />
+          </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
-          align={collapsed ? "center" : "start"}
-          side={collapsed ? "right" : "top"}
-          sideOffset={collapsed ? 8 : 6}
-          className={cn(
-            collapsed
-              ? "w-56"
-              : "w-[var(--radix-dropdown-menu-trigger-width)] min-w-56",
-          )}
+          align="center"
+          side="right"
+          sideOffset={8}
+          className="w-56"
         >
+          <DropdownMenuLabel className="flex items-center gap-2 font-normal normal-case tracking-normal">
+            <img
+              src={user.imageUrl}
+              alt=""
+              className="h-6 w-6 shrink-0 rounded-full object-cover outline outline-1 -outline-offset-1 outline-separator"
+            />
+            <span className="truncate text-sm font-medium text-foreground">
+              {name}
+            </span>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={() => openUserProfile()}>
             <IconUserCog />
             Manage account

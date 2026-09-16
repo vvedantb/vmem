@@ -1,8 +1,5 @@
 import { formatCompactNumber } from "@vmem/shared";
-import { Skeleton, cn } from "@vmem/ui";
-import { IconChartBar } from "@tabler/icons-react";
-import { SidebarUserMenu } from "./SidebarUserMenu";
-import { SidebarIconTooltip } from "./SidebarIconTooltip";
+import { cn } from "@vmem/ui";
 
 export interface SidebarStats {
   addedToday: number;
@@ -14,36 +11,10 @@ function todaySharePercent(addedToday: number, total: number): number {
   return Math.min(100, (addedToday / total) * 100);
 }
 
-function StatsCard({
-  isIconOnly,
-  stats,
-}: {
-  isIconOnly: boolean;
-  stats: SidebarStats;
-}) {
+function StatsCard({ stats }: { stats: SidebarStats }) {
   const todayLabel = formatCompactNumber(stats.addedToday);
   const totalLabel = formatCompactNumber(stats.total);
   const sharePercent = todaySharePercent(stats.addedToday, stats.total);
-
-  if (isIconOnly) {
-    const statsLabel = `${todayLabel} today · ${totalLabel} total`;
-
-    return (
-      <div className="flex justify-center">
-        <SidebarIconTooltip label={statsLabel} enabled>
-          <div className="relative flex h-8 w-8 cursor-default items-center justify-center text-muted">
-            <IconChartBar className="h-4 w-4" />
-            {stats.addedToday > 0 ? (
-              <span
-                aria-hidden
-                className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-foreground"
-              />
-            ) : null}
-          </div>
-        </SidebarIconTooltip>
-      </div>
-    );
-  }
 
   return (
     <div className="px-2">
@@ -82,39 +53,21 @@ function StatsCard({
 }
 
 export type SidebarFooterProps = {
-  isCollapsed: boolean;
   isMobile: boolean;
-  isAuthLoading: boolean;
   stats: SidebarStats;
   showStats: boolean;
 };
 
 export function SidebarFooter({
-  isCollapsed,
   isMobile,
-  isAuthLoading,
   stats,
   showStats,
 }: SidebarFooterProps) {
-  const isIconOnly = !isMobile && isCollapsed;
+  if (!showStats) return null;
 
   return (
-    <div className={cn("space-y-4 pt-3")}>
-      {showStats ? <StatsCard isIconOnly={isIconOnly} stats={stats} /> : null}
-
-      <div className={cn(isMobile ? "pr-2" : "px-2")}>
-        {isAuthLoading ? (
-          <div className={cn(isIconOnly ? "flex justify-center py-1" : "")}>
-            <Skeleton
-              className={cn(
-                isIconOnly ? "h-9 w-9 rounded-full" : "h-11 w-full rounded-lg",
-              )}
-            />
-          </div>
-        ) : (
-          <SidebarUserMenu collapsed={isIconOnly} />
-        )}
-      </div>
+    <div className={cn("pt-3", isMobile ? "pb-1" : "pb-3")}>
+      <StatsCard stats={stats} />
     </div>
   );
 }

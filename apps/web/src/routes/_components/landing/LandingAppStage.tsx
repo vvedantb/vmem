@@ -1,6 +1,5 @@
-import { useState, type ComponentType, type ReactNode } from "react";
+import { useState, type ComponentType } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { IconHome } from "@tabler/icons-react";
 import { Button, cn, motionDuration, motionEase } from "@vmem/ui";
 import {
   IconMemories,
@@ -13,7 +12,10 @@ import {
 } from "@/components/icons/sidebar";
 import { VmemBrandText } from "@/components/shell/VmemBrand";
 import { VmemDrawInIcon } from "@/components/icons/animations";
-import { sidebarSectionLabelClass } from "@/components/sidebar/sidebar-nav-row";
+import {
+  RAIL_TILE_CLASS,
+  railTileStateClass,
+} from "@/components/sidebar/sidebar-nav-row";
 import { landingShellClass } from "./LandingReveal";
 import { LandingHomePreview } from "./LandingHomePreview";
 import { LandingMemoryPreview } from "./LandingMemoryPreview";
@@ -56,22 +58,20 @@ export function LandingAppStage() {
     >
       <div className="landing-app-frame relative overflow-hidden rounded-[1.5rem] bg-background p-2 shadow-panel outline outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10">
         <div className="flex min-h-[32rem] overflow-hidden rounded-2xl sm:min-h-[36rem] lg:min-h-[42rem]">
-          <aside className="hidden w-52 shrink-0 flex-col bg-background md:flex">
-            <div className="flex h-12 items-center gap-2 px-3">
-              <VmemDrawInIcon size={18} className="text-foreground" />
-              <VmemBrandText className="text-lg" />
-            </div>
-            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-2 pb-3 scrollbar-thin">
-              <NavButton
-                label="Home"
-                icon={IconHome}
-                isActive={view === "home"}
-                onClick={() => setView("home")}
-                reduceMotion={reduceMotion === true}
-              />
-              <NavSection title="Library">
+          <aside className="hidden shrink-0 md:flex">
+            <div className="flex w-16 flex-col items-center border-r border-separator bg-background">
+              <div className="flex w-full flex-col items-center gap-1.5 pt-3">
+                <LandingRailTile
+                  label="Home"
+                  icon={VmemDrawInIcon}
+                  isActive={view === "home"}
+                  onClick={() => setView("home")}
+                />
+                <div className="h-px w-8 bg-separator" aria-hidden />
+              </div>
+              <div className="flex w-full flex-1 flex-col items-center gap-1.5 py-2">
                 {libraryItems.map((item) => (
-                  <NavButton
+                  <LandingRailTile
                     key={item.id}
                     label={item.label}
                     icon={item.icon}
@@ -86,28 +86,36 @@ export function LandingAppStage() {
                         setView(item.id);
                       }
                     }}
-                    reduceMotion={reduceMotion === true}
                   />
                 ))}
-              </NavSection>
-              <NavSection title="Account">
+                <div className="h-px w-8 bg-separator" aria-hidden />
                 {accountItems.map((item) => (
-                  <NavButton
+                  <LandingRailTile
                     key={item.id}
                     label={item.label}
                     icon={item.icon}
                     isActive={false}
                     disabled
-                    reduceMotion={reduceMotion === true}
                   />
                 ))}
-              </NavSection>
+              </div>
             </div>
-            <div className="px-4 py-3">
-              <p className="text-[11px] text-muted">
-                <span className="tabular-nums text-foreground">128</span>{" "}
-                memories
-              </p>
+            <div className="flex w-40 flex-col bg-background">
+              <div className="flex h-12 items-center justify-center px-3">
+                <h2 className="truncate font-instrumentSerif text-lg leading-none text-foreground">
+                  {pageTitle[view]}
+                </h2>
+              </div>
+              <div className="flex items-center gap-2 px-3">
+                <VmemDrawInIcon size={16} className="text-foreground" />
+                <VmemBrandText className="text-base" />
+              </div>
+              <div className="mt-auto px-4 py-3">
+                <p className="text-[11px] text-muted">
+                  <span className="tabular-nums text-foreground">128</span>{" "}
+                  memories
+                </p>
+              </div>
             </div>
           </aside>
 
@@ -163,35 +171,18 @@ function StageBody({
   return <LandingMemoryPreview />;
 }
 
-function NavSection({
-  title,
-  children,
-}: {
-  title: string;
-  children: ReactNode;
-}) {
-  return (
-    <div>
-      <p className={sidebarSectionLabelClass}>{title}</p>
-      <div className="space-y-1">{children}</div>
-    </div>
-  );
-}
-
-function NavButton({
+function LandingRailTile({
   label,
   icon: Icon,
   isActive,
   disabled = false,
   onClick,
-  reduceMotion,
 }: {
   label: string;
-  icon?: ComponentType<{ size?: number; stroke?: number }>;
+  icon: ComponentType<{ size?: number; className?: string }>;
   isActive: boolean;
   disabled?: boolean;
   onClick?: () => void;
-  reduceMotion: boolean;
 }) {
   return (
     <Button
@@ -199,24 +190,16 @@ function NavButton({
       variant="ghost"
       disabled={disabled}
       onClick={onClick}
+      aria-label={label}
       aria-current={isActive ? "page" : undefined}
       className={cn(
-        "relative h-10 w-full justify-start gap-3 rounded-lg px-3 text-sm font-medium",
-        isActive ? "text-foreground" : "text-muted",
-        disabled ? "cursor-default opacity-55" : "hover:text-foreground",
+        RAIL_TILE_CLASS,
+        "group h-11 w-11 p-0",
+        railTileStateClass(isActive),
+        disabled && "cursor-default",
       )}
     >
-      {isActive ? (
-        <motion.span
-          layoutId={reduceMotion ? undefined : "landing-nav-pill"}
-          className="absolute inset-0 rounded-lg bg-surface-tertiary"
-          transition={{ type: "spring", stiffness: 800, damping: 48 }}
-        />
-      ) : null}
-      <span className="relative flex h-5 w-5 items-center justify-center">
-        {Icon ? <Icon size={18} stroke={1.7} /> : null}
-      </span>
-      <span className="relative">{label}</span>
+      <Icon size={22} className="text-current" />
     </Button>
   );
 }

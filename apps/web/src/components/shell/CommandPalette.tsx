@@ -39,10 +39,22 @@ type MemoryHit = FunctionReturnType<
 
 interface Props {
   onToggleSidebar: () => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function CommandPalette({ onToggleSidebar }: Props) {
-  const [open, setOpen] = useState(false);
+export function CommandPalette({
+  onToggleSidebar,
+  open: openProp,
+  onOpenChange,
+}: Props) {
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const isControlled = openProp !== undefined;
+  const open = isControlled ? openProp : uncontrolledOpen;
+  const setOpen = (next: boolean) => {
+    if (!isControlled) setUncontrolledOpen(next);
+    onOpenChange?.(next);
+  };
   const [query, setQuery] = useState("");
   const [debouncedQuery] = useDebounceValue(query, 180);
   const navigate = useNavigate();
@@ -51,7 +63,7 @@ export function CommandPalette({ onToggleSidebar }: Props) {
   const { theme, toggleTheme } = useThemeContext();
   const { isAuthenticated } = useConvexAuth();
 
-  useHotkey("Mod+K", () => setOpen((o) => !o), { preventDefault: true });
+  useHotkey("Mod+K", () => setOpen(!open), { preventDefault: true });
 
   const handleOpenChange = (next: boolean) => {
     setOpen(next);

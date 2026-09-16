@@ -24,3 +24,19 @@ export function sidebarNavRowClass(isIconOnly: boolean): string {
 
 // Eva-aligned padding for denser sidebar list rows (skills, wiki)
 export const sidebarListRowClass = "gap-2 px-3 py-1.5";
+
+// Eva RepoRail tiles — size-11, rounded-lg, press scale on the rail
+export const RAIL_TILE_CLASS =
+  "relative flex size-11 items-center justify-center rounded-lg border active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring";
+
+const railTileActiveClass =
+  "border-transparent bg-surface-tertiary text-foreground";
+
+export function railTileStateClass(active: boolean): string {
+  return active
+    ? railTileActiveClass
+    : "border-transparent text-muted opacity-75 hover:bg-surface-tertiary/50 hover:opacity-100 hover:text-foreground";
+}
+
+export const RAIL_BADGE_CLASS =
+  "absolute -bottom-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-semibold leading-none text-accent-foreground";

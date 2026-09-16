@@ -1,53 +1,55 @@
-import { useLocation, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { useMediaQuery } from "usehooks-ts";
-import { motion } from "motion/react";
+import { useLocation } from "@tanstack/react-router";
 import {
-  Button,
-  Dialog,
-  DialogOverlay,
-  DialogPortal,
-  DialogRawContent,
-  DialogClose,
-  DialogTitle,
-  motionDistance,
-  motionTiming,
-  motionEase,
-} from "@vmem/ui";
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react";
+import { useMediaQuery } from "usehooks-ts";
+import { AnimatePresence, motion, type PanInfo } from "motion/react";
+import { Button, cn, motionEase, motionTiming } from "@vmem/ui";
 import { useUser } from "@clerk/clerk-react";
 import { useConvexAuth, useAction, useQuery } from "convex/react";
 import { api } from "@vmem/backend";
 import { useNotifications } from "@/contexts/NotificationContext";
 import { useProposals } from "@/hooks/useProposals";
 import { useMemoryEvents } from "@/hooks/useMemoryEvents";
-import { IconX } from "@tabler/icons-react";
 import { MorphingMenuIcon } from "@/components/icons/animations";
-import {
-  SidebarNavigation,
-  navViewFromPathname,
-} from "@/components/sidebar/SidebarNavigation";
+import { SidebarNavigation } from "@/components/sidebar/SidebarNavigation";
 import { SidebarHeader } from "@/components/sidebar/SidebarHeader";
 import {
   SidebarFooter,
   type SidebarStats,
 } from "@/components/sidebar/SidebarFooter";
 import { SidebarWorkspaceSwitcher } from "@/components/sidebar/SidebarWorkspaceSwitcher";
+import {
+  SidebarRail,
+  sidebarRailWidthClass,
+} from "@/components/sidebar/SidebarRail";
+import {
+  panelTitleBySection,
+  railSectionFromPathname,
+  type SidebarLayout,
+} from "@/components/sidebar/nav-config";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import { useActiveProfileId } from "@/components/workspace/active-profile";
 
 type SidebarProps = {
   isCollapsed: boolean;
   onToggleCollapse: () => void;
+  onOpenSearch: () => void;
 };
 
 export default function Sidebar({
   isCollapsed,
   onToggleCollapse,
+  onOpenSearch,
 }: SidebarProps) {
   const { pathname } = useLocation();
-  const navigate = useNavigate();
   const activeProfileId = useActiveProfileId();
-  const navView = navViewFromPathname(pathname);
+  const section = railSectionFromPathname(pathname);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const mobileMenuId = useId();
   const { isLoaded } = useUser();
@@ -56,25 +58,16 @@ export default function Sidebar({
   const { pendingCount: proposalsCount } = useProposals();
   const { pageTitle } = usePageTitle();
 
-  // lift stats fetching here so it persists across mobile menu open/close
   const { isAuthenticated } = useConvexAuth();
   const getStats = useAction(api.dashboardApi.getStats);
   const [stats, setStats] = useState<SidebarStats>({ addedToday: 0, total: 0 });
 
-  // whether the active workspace is a team profile drives the conditional
-  // "Team" nav group (members / team settings)
   const profiles = useQuery(api.profiles.list, isAuthenticated ? {} : "skip");
   const isTeamWorkspace =
     profiles?.find((p) => p._id === activeProfileId)?.teamId !== undefined;
 
-  // shared by the mount effect below and handleMemoryEvent's live update
-  // callback, so it needs a stable identity rather than a plain render body
-  // function
   const refreshStats = useCallback(
     async (fresh: boolean) => {
-      // scope counts to the active workspace, or user-wide totals when no profile
-      // built outside try because react compiler bails when a conditional
-      // expression sits inside try/catch
       const args = fresh
         ? { fresh: true, profileId: activeProfileId }
         : { profileId: activeProfileId };
@@ -96,7 +89,6 @@ export default function Sidebar({
     void refreshStats(false);
   }, [isAuthenticated, refreshStats]);
 
-  // live updates: memory-events feed pushes created/updated/deleted events
   const statsRefetchTimer = useRef<number | null>(null);
   const handleMemoryEvent = () => {
     if (statsRefetchTimer.current !== null) return;
@@ -115,155 +107,148 @@ export default function Sidebar({
     };
   }, []);
 
-  useEffect(() => {
-    setMobileMenuOpen(false);
-  }, [pathname]);
-
   const isDesktopViewport = useMediaQuery("(min-width: 768px)");
+  const layout: SidebarLayout = isDesktopViewport ? "desktop" : "drawer";
+
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
+    if (mobileMenuOpen) setMobileMenuOpen(false);
+  }
+
   useEffect(() => {
     if (isDesktopViewport) setMobileMenuOpen(false);
   }, [isDesktopViewport]);
 
-  const handleSidebarBack = () => {
-    if (activeProfileId === undefined) {
-      void navigate({ to: "/home" });
-      return;
+  const closeMobileMenu = () => setMobileMenuOpen(false);
+
+  const handleDrawerDragEnd = (
+    _event: MouseEvent | TouchEvent | PointerEvent,
+    info: PanInfo,
+  ) => {
+    if (isDesktopViewport || !mobileMenuOpen) return;
+    if (info.offset.x < -72 || info.velocity.x < -500) {
+      closeMobileMenu();
     }
-    void navigate({
-      to: "/$profileId/memories",
-      params: { profileId: activeProfileId },
-    });
   };
 
-  const mobileMenuCloseButton = (
-    <DialogClose asChild>
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon-sm"
-        aria-label="Close navigation menu"
-        className="rounded-full text-muted transition-colors hover:bg-surface-tertiary/50 hover:text-foreground"
-      >
-        <IconX className="h-5 w-5" />
-      </Button>
-    </DialogClose>
-  );
+  const closeOnEscape = (event: KeyboardEvent) => {
+    if (event.key === "Escape" && !isDesktopViewport && mobileMenuOpen) {
+      closeMobileMenu();
+    }
+  };
+
+  const showWorkspaceSwitcher =
+    section !== "settings" && section !== "skills" && section !== "wiki";
+  const showStats = showWorkspaceSwitcher;
 
   return (
     <>
-      <Dialog open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-        <header className="fixed inset-x-0 top-0 z-40 flex h-[var(--vmem-mobile-header-height)] items-center gap-2 bg-surface/80 px-3 pt-[env(safe-area-inset-top,0px)] pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] backdrop-blur-md md:hidden">
-          <Button
+      <header
+        onKeyDown={closeOnEscape}
+        className="fixed inset-x-0 top-0 z-30 flex h-[var(--vmem-mobile-header-height)] items-center gap-2 bg-background/80 px-3 pt-[env(safe-area-inset-top,0px)] pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] backdrop-blur-md md:hidden"
+      >
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={() => setMobileMenuOpen(true)}
+          aria-label="Open navigation menu"
+          aria-expanded={mobileMenuOpen}
+          aria-controls={mobileMenuId}
+          className="-ml-1 h-11 w-11 shrink-0 rounded-lg text-muted hover:bg-surface-tertiary/50 hover:text-foreground"
+        >
+          <MorphingMenuIcon isOpen={mobileMenuOpen} size={20} />
+        </Button>
+        {pageTitle ? (
+          <h1 className="pointer-events-none absolute inset-x-14 top-[env(safe-area-inset-top,0px)] bottom-0 flex items-center justify-center truncate text-center text-base font-instrumentSerif font-semibold tracking-[-0.02em] text-foreground text-balance">
+            {pageTitle}
+          </h1>
+        ) : null}
+        <div className="ml-auto h-11 w-11 shrink-0" aria-hidden="true" />
+      </header>
+
+      <AnimatePresence initial={false}>
+        {mobileMenuOpen && !isDesktopViewport ? (
+          <motion.button
             type="button"
-            variant="ghost"
-            size="icon"
-            onClick={() => setMobileMenuOpen(true)}
-            aria-label="Open navigation menu"
-            aria-expanded={mobileMenuOpen}
-            aria-controls={mobileMenuId}
-            className="-ml-1 h-11 w-11 shrink-0 rounded-lg text-muted hover:bg-surface-tertiary/50 hover:text-foreground"
-          >
-            <MorphingMenuIcon isOpen={mobileMenuOpen} size={20} />
-          </Button>
-          {pageTitle ? (
-            <h1 className="pointer-events-none absolute inset-x-14 top-[env(safe-area-inset-top,0px)] bottom-0 flex items-center justify-center truncate text-center text-base font-instrumentSerif font-semibold tracking-[-0.02em] text-foreground text-balance">
-              {pageTitle}
-            </h1>
-          ) : null}
-          {/* Balances the menu button so the title stays visually centred. */}
-          <div className="ml-auto h-11 w-11 shrink-0" aria-hidden="true" />
-        </header>
-
-        <DialogPortal>
-          <DialogOverlay className="md:hidden" />
-          <DialogRawContent
-            id={mobileMenuId}
-            aria-label="Navigation menu"
-            className="bg-overlay shadow-lg fixed inset-y-3 left-3 right-3 z-50 flex w-auto max-w-sm flex-col overflow-hidden overscroll-contain rounded-lg pb-[env(safe-area-inset-bottom,0px)] pt-[env(safe-area-inset-top,0px)] text-overlay-foreground outline-none md:hidden"
-          >
-            <DialogTitle className="sr-only">Navigation menu</DialogTitle>
-
-            <motion.div
-              className="flex min-h-0 flex-1 flex-col p-4"
-              initial={{ opacity: 0, x: -motionDistance.routeX }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: motionTiming.sidebar, ease: motionEase }}
-            >
-              <SidebarHeader
-                navView={navView}
-                isCollapsed={false}
-                isMobile
-                onBack={handleSidebarBack}
-                onToggleCollapse={onToggleCollapse}
-                mobileCloseButton={mobileMenuCloseButton}
-                onLogoNavigate={() => setMobileMenuOpen(false)}
-              />
-              {navView === "main" ? (
-                <div className="mb-4">
-                  <SidebarWorkspaceSwitcher
-                    collapsed={false}
-                    onNavigate={() => setMobileMenuOpen(false)}
-                  />
-                </div>
-              ) : null}
-              <SidebarNavigation
-                pathname={pathname}
-                profileId={activeProfileId}
-                isTeamWorkspace={isTeamWorkspace}
-                unreadCount={unreadCount}
-                proposalsCount={proposalsCount}
-                isCollapsed={false}
-                isMobile
-                onNavigate={() => setMobileMenuOpen(false)}
-              />
-              <SidebarFooter
-                isCollapsed={false}
-                isMobile
-                isAuthLoading={isAuthLoading}
-                stats={stats}
-                showStats={navView === "main"}
-              />
-            </motion.div>
-          </DialogRawContent>
-        </DialogPortal>
-      </Dialog>
+            aria-label="Close navigation"
+            className="fixed inset-0 z-40 bg-backdrop/80 md:hidden"
+            onClick={closeMobileMenu}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: motionTiming.sidebar, ease: motionEase }}
+          />
+        ) : null}
+      </AnimatePresence>
 
       <motion.aside
-        className="fixed left-0 top-0 z-40 hidden h-dvh overflow-hidden bg-background md:block"
-        animate={{ width: isCollapsed ? 80 : 288 }}
+        id={mobileMenuId}
+        data-sidebar-layout={layout}
+        inert={!isDesktopViewport && !mobileMenuOpen}
+        onKeyDown={closeOnEscape}
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 flex bg-background pb-[env(safe-area-inset-bottom,0px)] pt-[env(safe-area-inset-top,0px)] md:py-0",
+          "w-[min(var(--vmem-sidebar-width),calc(100vw-1.5rem))]",
+          sidebarRailWidthClass(isCollapsed),
+          "md:transition-[width] md:[transition-duration:280ms] md:[transition-timing-function:cubic-bezier(0.22,1,0.36,1)]",
+        )}
+        initial={false}
+        animate={{ x: isDesktopViewport || mobileMenuOpen ? 0 : "-100%" }}
         transition={{ duration: motionTiming.sidebar, ease: motionEase }}
+        drag={!isDesktopViewport && mobileMenuOpen ? "x" : false}
+        dragDirectionLock
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={{ left: 0.45, right: 0.08 }}
+        onDragEnd={handleDrawerDragEnd}
       >
-        <div className="flex h-full flex-col p-4 pt-7">
-          <SidebarHeader
-            navView={navView}
-            isCollapsed={isCollapsed}
-            isMobile={false}
-            onBack={handleSidebarBack}
-            onToggleCollapse={onToggleCollapse}
-          />
-
-          {navView === "main" ? (
-            <div className="mb-4">
-              <SidebarWorkspaceSwitcher collapsed={isCollapsed} />
+        <SidebarRail
+          layout={layout}
+          pathname={pathname}
+          profileId={activeProfileId}
+          isTeamWorkspace={isTeamWorkspace}
+          unreadCount={unreadCount}
+          proposalsCount={proposalsCount}
+          isCollapsed={isCollapsed}
+          isAuthLoading={isAuthLoading}
+          onToggleCollapse={onToggleCollapse}
+          onOpenSearch={onOpenSearch}
+          onNavigate={closeMobileMenu}
+        />
+        <div
+          className={cn(
+            "relative flex h-full min-w-0 flex-1 flex-col overflow-hidden border-r border-separator bg-background",
+            isCollapsed && "md:hidden",
+          )}
+        >
+          <div className="px-2 pt-3">
+            <SidebarHeader
+              title={panelTitleBySection[section]}
+              isMobile={!isDesktopViewport}
+              onClose={closeMobileMenu}
+            />
+          </div>
+          {showWorkspaceSwitcher ? (
+            <div className="mb-4 px-4">
+              <SidebarWorkspaceSwitcher
+                collapsed={false}
+                onNavigate={closeMobileMenu}
+              />
             </div>
           ) : null}
-
-          <SidebarNavigation
-            pathname={pathname}
-            profileId={activeProfileId}
-            isTeamWorkspace={isTeamWorkspace}
-            unreadCount={unreadCount}
-            proposalsCount={proposalsCount}
-            isCollapsed={isCollapsed}
-            isMobile={false}
-          />
-
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-2">
+            <SidebarNavigation
+              pathname={pathname}
+              profileId={activeProfileId}
+              isMobile={!isDesktopViewport}
+              onNavigate={closeMobileMenu}
+            />
+          </div>
           <SidebarFooter
-            isCollapsed={isCollapsed}
-            isMobile={false}
-            isAuthLoading={isAuthLoading}
+            isMobile={!isDesktopViewport}
             stats={stats}
-            showStats={navView === "main"}
+            showStats={showStats}
           />
         </div>
       </motion.aside>

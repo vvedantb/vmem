@@ -13,6 +13,10 @@
      layout that offsets content for that header must use this, not a literal
      `pt-14`, or the header overlaps content on a notched phone. */
   --vmem-mobile-header-height: calc(3.5rem + env(safe-area-inset-top, 0px));
+
+  /* Eva/vibot shell: always-on icon rail + expandable panel. */
+  --vmem-sidebar-rail-width: 4rem;
+  --vmem-sidebar-width: 20rem;
 }
 
 @tailwind base;
