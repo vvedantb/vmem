@@ -80,10 +80,5 @@ test.describe(
       await waitForMarketingHero(page);
       await expect(page).toHaveURL(/\/$/);
     });
-
-    test("/home signed out returns to marketing", async ({ page }) => {
-      await page.goto("/home");
-      await waitForMarketingHero(page);
-    });
   },
 );

@@ -59,9 +59,15 @@ test.describe("landing (signed out)", { tag: ["@landing", "@smoke"] }, () => {
     await page.goto("/");
     await waitForMarketingHero(page);
     await page.getByRole("button", { name: "Sign in" }).first().click();
-    await expect(page.getByRole("dialog")).toBeVisible();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await expect(
+      dialog
+        .getByLabel(/email address/i)
+        .or(dialog.locator('input[name="identifier"]')),
+    ).toBeVisible();
     await page.keyboard.press("Escape");
-    await expect(page.getByRole("dialog")).toBeHidden();
+    await expect(dialog).toBeHidden();
 
     await page.getByRole("button", { name: "Get started" }).first().click();
     await expect(page.getByRole("dialog")).toBeVisible();
@@ -115,18 +121,6 @@ test.describe("landing (signed out)", { tag: ["@landing", "@smoke"] }, () => {
     ).toBeVisible();
     await expect(page.getByRole("link", { name: "Memories" })).toHaveCount(0);
     await expect(page).not.toHaveURL(/\/[^/]+\/home/);
-  });
-
-  test("Sign in opens the Clerk modal", async ({ page }) => {
-    await page.goto("/");
-    await page.getByRole("button", { name: "Sign in" }).first().click();
-    const dialog = page.getByRole("dialog");
-    await expect(dialog).toBeVisible({ timeout: 20_000 });
-    await expect(
-      dialog
-        .getByLabel(/email address/i)
-        .or(dialog.locator('input[name="identifier"]')),
-    ).toBeVisible();
   });
 });
 
