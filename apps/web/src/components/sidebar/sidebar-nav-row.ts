@@ -1,11 +1,9 @@
 import { cn } from "@vmem/ui";
 
-// section headers dimmer than full text-muted tabs (see .sidebar-section-label)
-export const sidebarSectionButtonClass =
-  "sidebar-section-label flex w-full items-center gap-1.5 px-1 py-1 text-[11px] font-medium uppercase tracking-[0.08em] transition-colors";
-
-export const sidebarSectionChevronClass =
-  "shrink-0 text-current transition-transform duration-200";
+// Eva SharedLayoutNav.sidebarSectionLabelClass — static section chrome,
+// sentence case (no uppercase), padded to match nav rows so items sit flush.
+export const sidebarSectionLabelClass =
+  "sidebar-section-label px-3 py-1 text-[11px] font-medium tracking-[-0.01em]";
 
 // inactive tabs use full muted active uses foreground
 export function sidebarNavLinkTextClass(isActive: boolean): string {

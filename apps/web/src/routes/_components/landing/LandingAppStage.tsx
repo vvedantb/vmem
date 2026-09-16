@@ -13,6 +13,7 @@ import {
 } from "@/components/icons/sidebar";
 import { VmemBrandText } from "@/components/shell/VmemBrand";
 import { VmemDrawInIcon } from "@/components/icons/animations";
+import { sidebarSectionLabelClass } from "@/components/sidebar/sidebar-nav-row";
 import { landingShellClass } from "./LandingReveal";
 import { LandingHomePreview } from "./LandingHomePreview";
 import { LandingMemoryPreview } from "./LandingMemoryPreview";
@@ -171,10 +172,8 @@ function NavSection({
 }) {
   return (
     <div>
-      <p className="px-3 py-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted/55">
-        {title}
-      </p>
-      <div className="space-y-1 pl-2">{children}</div>
+      <p className={sidebarSectionLabelClass}>{title}</p>
+      <div className="space-y-1">{children}</div>
     </div>
   );
 }
