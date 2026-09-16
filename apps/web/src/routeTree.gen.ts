@@ -51,9 +51,9 @@ import { Route as MainProfileIdTeamSettingsRouteImport } from './routes/_main/$p
 import { Route as MainProfileIdTeamMembersRouteImport } from './routes/_main/$profileId/team/members'
 import { Route as MainProfileIdSkillsHubRouteImport } from './routes/_main/$profileId/skills/hub'
 import { Route as MainProfileIdSkillsIdRouteImport } from './routes/_main/$profileId/skills/$id'
+import { Route as MainProfileIdMemoriesTimelineRouteImport } from './routes/_main/$profileId/memories/timeline'
 import { Route as MainProfileIdMemoriesTagsRouteImport } from './routes/_main/$profileId/memories/tags'
 import { Route as MainProfileIdMemoriesGraphRouteImport } from './routes/_main/$profileId/memories/graph'
-import { Route as MainProfileIdMemoriesTimelineRouteImport } from './routes/_main/$profileId/memories/timeline'
 import { Route as MainProfileIdInboxProposalsRouteImport } from './routes/_main/$profileId/inbox/proposals'
 import { Route as MainProfileIdInboxNotificationsRouteImport } from './routes/_main/$profileId/inbox/notifications'
 import { Route as MainProfileIdActivityUsageRouteImport } from './routes/_main/$profileId/activity/usage'
@@ -286,6 +286,12 @@ const MainProfileIdSkillsIdRoute = MainProfileIdSkillsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => MainProfileIdSkillsRouteRoute,
 } as any)
+const MainProfileIdMemoriesTimelineRoute =
+  MainProfileIdMemoriesTimelineRouteImport.update({
+    id: '/timeline',
+    path: '/timeline',
+    getParentRoute: () => MainProfileIdMemoriesRouteRoute,
+  } as any)
 const MainProfileIdMemoriesTagsRoute =
   MainProfileIdMemoriesTagsRouteImport.update({
     id: '/tags',
@@ -296,12 +302,6 @@ const MainProfileIdMemoriesGraphRoute =
   MainProfileIdMemoriesGraphRouteImport.update({
     id: '/graph',
     path: '/graph',
-    getParentRoute: () => MainProfileIdMemoriesRouteRoute,
-  } as any)
-const MainProfileIdMemoriesTimelineRoute =
-  MainProfileIdMemoriesTimelineRouteImport.update({
-    id: '/timeline',
-    path: '/timeline',
     getParentRoute: () => MainProfileIdMemoriesRouteRoute,
   } as any)
 const MainProfileIdInboxProposalsRoute =
@@ -383,8 +383,8 @@ export interface FileRoutesByFullPath {
   '/$profileId/inbox/notifications': typeof MainProfileIdInboxNotificationsRoute
   '/$profileId/inbox/proposals': typeof MainProfileIdInboxProposalsRoute
   '/$profileId/memories/graph': typeof MainProfileIdMemoriesGraphRoute
-  '/$profileId/memories/timeline': typeof MainProfileIdMemoriesTimelineRoute
   '/$profileId/memories/tags': typeof MainProfileIdMemoriesTagsRoute
+  '/$profileId/memories/timeline': typeof MainProfileIdMemoriesTimelineRoute
   '/$profileId/skills/$id': typeof MainProfileIdSkillsIdRoute
   '/$profileId/skills/hub': typeof MainProfileIdSkillsHubRoute
   '/$profileId/team/members': typeof MainProfileIdTeamMembersRoute
@@ -427,8 +427,8 @@ export interface FileRoutesByTo {
   '/$profileId/inbox/notifications': typeof MainProfileIdInboxNotificationsRoute
   '/$profileId/inbox/proposals': typeof MainProfileIdInboxProposalsRoute
   '/$profileId/memories/graph': typeof MainProfileIdMemoriesGraphRoute
-  '/$profileId/memories/timeline': typeof MainProfileIdMemoriesTimelineRoute
   '/$profileId/memories/tags': typeof MainProfileIdMemoriesTagsRoute
+  '/$profileId/memories/timeline': typeof MainProfileIdMemoriesTimelineRoute
   '/$profileId/skills/$id': typeof MainProfileIdSkillsIdRoute
   '/$profileId/skills/hub': typeof MainProfileIdSkillsHubRoute
   '/$profileId/team/members': typeof MainProfileIdTeamMembersRoute
@@ -483,8 +483,8 @@ export interface FileRoutesById {
   '/_main/$profileId/inbox/notifications': typeof MainProfileIdInboxNotificationsRoute
   '/_main/$profileId/inbox/proposals': typeof MainProfileIdInboxProposalsRoute
   '/_main/$profileId/memories/graph': typeof MainProfileIdMemoriesGraphRoute
-  '/_main/$profileId/memories/timeline': typeof MainProfileIdMemoriesTimelineRoute
   '/_main/$profileId/memories/tags': typeof MainProfileIdMemoriesTagsRoute
+  '/_main/$profileId/memories/timeline': typeof MainProfileIdMemoriesTimelineRoute
   '/_main/$profileId/skills/$id': typeof MainProfileIdSkillsIdRoute
   '/_main/$profileId/skills/hub': typeof MainProfileIdSkillsHubRoute
   '/_main/$profileId/team/members': typeof MainProfileIdTeamMembersRoute
@@ -539,8 +539,8 @@ export interface FileRouteTypes {
     | '/$profileId/inbox/notifications'
     | '/$profileId/inbox/proposals'
     | '/$profileId/memories/graph'
-    | '/$profileId/memories/timeline'
     | '/$profileId/memories/tags'
+    | '/$profileId/memories/timeline'
     | '/$profileId/skills/$id'
     | '/$profileId/skills/hub'
     | '/$profileId/team/members'
@@ -583,8 +583,8 @@ export interface FileRouteTypes {
     | '/$profileId/inbox/notifications'
     | '/$profileId/inbox/proposals'
     | '/$profileId/memories/graph'
-    | '/$profileId/memories/timeline'
     | '/$profileId/memories/tags'
+    | '/$profileId/memories/timeline'
     | '/$profileId/skills/$id'
     | '/$profileId/skills/hub'
     | '/$profileId/team/members'
@@ -638,8 +638,8 @@ export interface FileRouteTypes {
     | '/_main/$profileId/inbox/notifications'
     | '/_main/$profileId/inbox/proposals'
     | '/_main/$profileId/memories/graph'
-    | '/_main/$profileId/memories/timeline'
     | '/_main/$profileId/memories/tags'
+    | '/_main/$profileId/memories/timeline'
     | '/_main/$profileId/skills/$id'
     | '/_main/$profileId/skills/hub'
     | '/_main/$profileId/team/members'
@@ -964,6 +964,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MainProfileIdSkillsIdRouteImport
       parentRoute: typeof MainProfileIdSkillsRouteRoute
     }
+    '/_main/$profileId/memories/timeline': {
+      id: '/_main/$profileId/memories/timeline'
+      path: '/timeline'
+      fullPath: '/$profileId/memories/timeline'
+      preLoaderRoute: typeof MainProfileIdMemoriesTimelineRouteImport
+      parentRoute: typeof MainProfileIdMemoriesRouteRoute
+    }
     '/_main/$profileId/memories/tags': {
       id: '/_main/$profileId/memories/tags'
       path: '/tags'
@@ -976,13 +983,6 @@ declare module '@tanstack/react-router' {
       path: '/graph'
       fullPath: '/$profileId/memories/graph'
       preLoaderRoute: typeof MainProfileIdMemoriesGraphRouteImport
-      parentRoute: typeof MainProfileIdMemoriesRouteRoute
-    }
-    '/_main/$profileId/memories/timeline': {
-      id: '/_main/$profileId/memories/timeline'
-      path: '/timeline'
-      fullPath: '/$profileId/memories/timeline'
-      preLoaderRoute: typeof MainProfileIdMemoriesTimelineRouteImport
       parentRoute: typeof MainProfileIdMemoriesRouteRoute
     }
     '/_main/$profileId/inbox/proposals': {
@@ -1099,8 +1099,8 @@ const MainProfileIdMemoriesListRouteRouteWithChildren =
 interface MainProfileIdMemoriesRouteRouteChildren {
   MainProfileIdMemoriesListRouteRoute: typeof MainProfileIdMemoriesListRouteRouteWithChildren
   MainProfileIdMemoriesGraphRoute: typeof MainProfileIdMemoriesGraphRoute
-  MainProfileIdMemoriesTimelineRoute: typeof MainProfileIdMemoriesTimelineRoute
   MainProfileIdMemoriesTagsRoute: typeof MainProfileIdMemoriesTagsRoute
+  MainProfileIdMemoriesTimelineRoute: typeof MainProfileIdMemoriesTimelineRoute
   MainProfileIdMemoriesIndexRoute: typeof MainProfileIdMemoriesIndexRoute
 }
 
@@ -1109,8 +1109,8 @@ const MainProfileIdMemoriesRouteRouteChildren: MainProfileIdMemoriesRouteRouteCh
     MainProfileIdMemoriesListRouteRoute:
       MainProfileIdMemoriesListRouteRouteWithChildren,
     MainProfileIdMemoriesGraphRoute: MainProfileIdMemoriesGraphRoute,
-    MainProfileIdMemoriesTimelineRoute: MainProfileIdMemoriesTimelineRoute,
     MainProfileIdMemoriesTagsRoute: MainProfileIdMemoriesTagsRoute,
+    MainProfileIdMemoriesTimelineRoute: MainProfileIdMemoriesTimelineRoute,
     MainProfileIdMemoriesIndexRoute: MainProfileIdMemoriesIndexRoute,
   }
 
