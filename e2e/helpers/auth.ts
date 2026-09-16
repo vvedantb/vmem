@@ -52,3 +52,15 @@ export async function signInAsEva(
   await fillClerkSignIn(page, creds);
   return waitForAppShell(page);
 }
+
+export async function signOutFromApp(page: Page): Promise<void> {
+  await page.getByRole("button", { name: /Account menu for/i }).click();
+  await page.getByRole("menuitem", { name: "Sign out" }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("heading", { name: "Sign out" })).toBeVisible();
+  await dialog.getByRole("button", { name: "Sign out" }).click();
+  await expect(
+    page.getByRole("button", { name: "Sign in" }).first(),
+  ).toBeVisible({ timeout: 30_000 });
+  await expect(page).toHaveURL(/\/$/);
+}

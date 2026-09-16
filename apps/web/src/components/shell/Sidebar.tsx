@@ -60,7 +60,7 @@ export default function Sidebar({
 
   const { isAuthenticated } = useConvexAuth();
   const getStats = useAction(api.dashboardApi.getStats);
-  const [stats, setStats] = useState<SidebarStats>({ addedToday: 0, total: 0 });
+  const [stats, setStats] = useState<SidebarStats | null>(null);
 
   const profiles = useQuery(api.profiles.list, isAuthenticated ? {} : "skip");
   const isTeamWorkspace =
@@ -249,8 +249,8 @@ export default function Sidebar({
           </div>
           <SidebarFooter
             isMobile={!isDesktopViewport}
-            stats={stats}
-            showStats={showStats}
+            stats={stats ?? { addedToday: 0, total: 0 }}
+            showStats={showStats && stats !== null}
           />
         </div>
       </motion.aside>
