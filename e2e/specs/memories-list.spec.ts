@@ -112,11 +112,9 @@ test.describe("memories search retrieve", { tag: ["@memories"] }, () => {
       await createDisposableMemory(page, title, `${title} retrieve body`);
       await searchMemories(page, title);
       await expectMemoryVisible(page, title);
-
-      const rows = page.getByTestId("list-item-row");
-      if ((await rows.count()) > 0) {
-        await expect(rows.first()).toContainText(title);
-      }
+      await expect(page.getByTestId("list-item-row").first()).toContainText(
+        title,
+      );
 
       const missing = `zzz-nosuch-vmem-${Date.now().toString(36)}`;
       await searchMemories(page, missing);
