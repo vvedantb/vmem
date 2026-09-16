@@ -10,6 +10,36 @@ export const CLERK_SYNC_HOST =
   import.meta.env?.VITE_CLERK_SYNC_HOST ??
   "https://vmem-git-staging-vedantb.vercel.app";
 
+// Clerk publishable keys encode the Frontend API host in base64 after pk_live_/pk_test_.
+export function clerkFrontendApiHost(publishableKey: string): string | null {
+  const parts = publishableKey.split("_");
+  if (parts.length < 3) return null;
+  const encoded = parts.slice(2).join("_");
+  try {
+    const padded = encoded + "=".repeat((4 - (encoded.length % 4)) % 4);
+    const host = atob(padded).replace(/\$+$/g, "").trim();
+    return host.length > 0 ? host : null;
+  } catch {
+    return null;
+  }
+}
+
+// Production stores __client on the FAPI host, not the web app. Dev keeps the app origin
+// because the session cookie is __clerk_db_jwt on localhost / preview.
+export function clerkCookieSyncHost(
+  publishableKey: string,
+  webSyncHost: string,
+): string {
+  if (!publishableKey.startsWith("pk_live_")) return webSyncHost;
+  const host = clerkFrontendApiHost(publishableKey);
+  return host ? `https://${host}` : webSyncHost;
+}
+
+export const CLERK_COOKIE_SYNC_HOST = clerkCookieSyncHost(
+  CLERK_PUBLISHABLE_KEY,
+  CLERK_SYNC_HOST,
+);
+
 export const EXPORT_PROMPT = `Please save a comprehensive summary of our entire conversation to vmem. Include:
 - All key decisions made
 - Important facts and context discussed

@@ -24,6 +24,11 @@ import {
   autoSyncIntervalMinutesItem,
 } from "@/lib/storage";
 
+declare global {
+  var __vmemHandleCommand: typeof handleCommand | undefined;
+  var __vmemSaveTab: typeof savePageFromTab | undefined;
+}
+
 export default defineBackground(() => {
   setConvexTokenRefresher(refreshConvexTokenFromClerk);
 
@@ -35,10 +40,8 @@ export default defineBackground(() => {
   registerMessageHandler();
 
   // live e2e invokes the same path as Alt+S when OS shortcuts do not fire
-  Object.assign(globalThis, {
-    __vmemHandleCommand: handleCommand,
-    __vmemSaveTab: savePageFromTab,
-  });
+  globalThis.__vmemHandleCommand = handleCommand;
+  globalThis.__vmemSaveTab = savePageFromTab;
 
   void runBackgroundBootstrap();
 

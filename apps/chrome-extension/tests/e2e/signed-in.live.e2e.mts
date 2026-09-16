@@ -7,12 +7,17 @@ import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { Page } from "puppeteer-core";
 import { TargetType } from "puppeteer-core";
+import { z } from "zod";
 import {
   artifactDir,
   ensureArtifactDir,
   launchUnpackedExtension,
   sleep,
 } from "./helpers/launch-extension.mts";
+
+declare global {
+  var __vmemSaveTab: ((tab: chrome.tabs.Tab) => Promise<unknown>) | undefined;
+}
 
 const email = process.env.VMEM_TEST_EMAIL ?? "";
 const password = process.env.VMEM_TEST_PASSWORD ?? "";
@@ -64,20 +69,37 @@ async function clickFirstMatching(
   return false;
 }
 
-type AxNode = {
-  role?: { value?: string };
-  name?: { value?: string };
-};
+const axPropertySchema = z.object({
+  value: z.string(),
+});
+
+const axNodeSchema = z.object({
+  role: axPropertySchema.optional(),
+  name: axPropertySchema.optional(),
+});
+
+const axTreeSchema = z.object({
+  nodes: z.array(axNodeSchema),
+});
+
+function axLabelsFromPayload(payload: unknown): string[] {
+  const parsed = axTreeSchema.safeParse(payload);
+  if (!parsed.success) return [];
+  const labels: string[] = [];
+  for (const node of parsed.data.nodes) {
+    const role = node.role?.value ?? "";
+    const name = node.name?.value ?? "";
+    const label = `${role}:${name}`;
+    if (!label.endsWith(":")) labels.push(label);
+  }
+  return labels;
+}
 
 async function axLabels(page: Page): Promise<string[]> {
   const client = await page.createCDPSession();
   try {
-    const { nodes } = (await client.send("Accessibility.getFullAXTree")) as {
-      nodes: AxNode[];
-    };
-    return nodes
-      .map((node) => `${node.role?.value ?? ""}:${node.name?.value ?? ""}`)
-      .filter((label) => !label.endsWith(":"));
+    const payload: unknown = await client.send("Accessibility.getFullAXTree");
+    return axLabelsFromPayload(payload);
   } finally {
     await client.detach().catch(() => {});
   }
@@ -98,6 +120,21 @@ function axHasPassword(labels: string[]): boolean {
   return labels.some((label) => /password/i.test(label));
 }
 
+const networkCookieSchema = z.object({
+  name: z.string(),
+  domain: z.string().optional(),
+  path: z.string().optional(),
+  httpOnly: z.boolean().optional(),
+  secure: z.boolean().optional(),
+  sameSite: z.string().optional(),
+  session: z.boolean().optional(),
+  value: z.string().optional(),
+});
+
+const networkCookieJarSchema = z.object({
+  cookies: z.array(networkCookieSchema),
+});
+
 type CookieSlice = {
   name: string;
   domain: string;
@@ -106,86 +143,69 @@ type CookieSlice = {
   secure: boolean;
   sameSite: string;
   session: boolean;
-  partitionKey?: unknown;
   valueLength: number;
-  value: string;
 };
 
-function publicCookies(cookies: CookieSlice[]): Array<Omit<CookieSlice, "value">> {
-  return cookies.map(({ value: _value, ...rest }) => rest);
+function cookieSlicesFromPayload(payload: unknown): CookieSlice[] {
+  const parsed = networkCookieJarSchema.safeParse(payload);
+  if (!parsed.success) return [];
+  const slices: CookieSlice[] = [];
+  for (const cookie of parsed.data.cookies) {
+    if (
+      !cookie.name.startsWith("__client") &&
+      !cookie.name.startsWith("__session") &&
+      !cookie.name.startsWith("__clerk")
+    ) {
+      continue;
+    }
+    slices.push({
+      name: cookie.name,
+      domain: cookie.domain ?? "",
+      path: cookie.path ?? "",
+      httpOnly: cookie.httpOnly === true,
+      secure: cookie.secure === true,
+      sameSite: cookie.sameSite ?? "",
+      session: cookie.session === true,
+      valueLength: cookie.value?.length ?? 0,
+    });
+  }
+  return slices;
 }
 
 async function listSessionCookies(page: Page): Promise<CookieSlice[]> {
   const client = await page.createCDPSession();
   try {
-    const { cookies } = (await client.send("Network.getAllCookies")) as {
-      cookies: Array<{
-        name: string;
-        domain: string;
-        path: string;
-        httpOnly: boolean;
-        secure: boolean;
-        sameSite: string;
-        session: boolean;
-        partitionKey?: unknown;
-        value: string;
-      }>;
-    };
-    return cookies
-      .filter(
-        (cookie) =>
-          cookie.name.startsWith("__client") ||
-          cookie.name.startsWith("__session") ||
-          cookie.name.startsWith("__clerk"),
-      )
-      .map((cookie) => ({
-        name: cookie.name,
-        domain: cookie.domain,
-        path: cookie.path,
-        httpOnly: cookie.httpOnly,
-        secure: cookie.secure,
-        sameSite: cookie.sameSite,
-        session: cookie.session,
-        partitionKey: cookie.partitionKey,
-        valueLength: cookie.value.length,
-        value: cookie.value,
-      }));
+    const payload: unknown = await client.send("Network.getAllCookies");
+    return cookieSlicesFromPayload(payload);
   } finally {
     await client.detach().catch(() => {});
   }
 }
 
-async function copyClientCookieToSyncHost(
-  page: Page,
-  cookies: CookieSlice[],
-): Promise<boolean> {
-  const source = cookies.find(
-    (cookie) => cookie.name === "__client" && cookie.value.length > 0,
-  );
-  if (!source) return false;
-  const onSyncHost = cookies.some(
-    (cookie) =>
-      cookie.name === "__client" &&
-      (cookie.domain === "vmem.vedantb.com" ||
-        cookie.domain === ".vmem.vedantb.com"),
-  );
-  if (onSyncHost) return false;
-  const client = await page.createCDPSession();
-  try {
-    const result = (await client.send("Network.setCookie", {
-      name: "__client",
-      value: source.value,
-      url: "https://vmem.vedantb.com/",
-      domain: "vmem.vedantb.com",
-      path: "/",
-      secure: true,
-      httpOnly: source.httpOnly,
-      sameSite: source.sameSite === "None" ? "None" : "Lax",
-    })) as { success?: boolean };
-    return result.success !== false;
-  } finally {
-    await client.detach().catch(() => {});
+const savePageOutcomeSchema = z.object({
+  success: z.boolean(),
+  memoryId: z.string().optional(),
+  error: z.string().optional(),
+  url: z.string().optional(),
+});
+
+type SavePageOutcome = z.infer<typeof savePageOutcomeSchema>;
+
+const savePageSwPayloadSchema = z.object({
+  url: z.string().optional(),
+  result: savePageOutcomeSchema.optional(),
+});
+
+function savePageOutcomeFromUnknown(value: unknown): SavePageOutcome | null {
+  const nested = savePageSwPayloadSchema.safeParse(value);
+  if (nested.success && nested.data.result) {
+    return {
+      ...nested.data.result,
+      url: nested.data.result.url ?? nested.data.url,
+    };
   }
+  const direct = savePageOutcomeSchema.safeParse(value);
+  return direct.success ? direct.data : null;
 }
 
 async function popupCookieProbe(page: Page): Promise<{
@@ -280,7 +300,10 @@ async function signInOnVmem(page: Page): Promise<void> {
     // Continue sits just under the identifier; a single click only.
     await page.mouse.click(640, 418);
     await sleep(1_800);
-    afterContinue = await writeAxDump(page, "live_ax_after_continue_click.json");
+    afterContinue = await writeAxDump(
+      page,
+      "live_ax_after_continue_click.json",
+    );
   }
   await screenshot(page, "live_web_password.png");
   if (!axHasPassword(afterContinue) && !axHasPassword(afterEmail)) {
@@ -378,40 +401,34 @@ async function runLive(): Promise<LiveMatrix> {
     const sessionCookies = await listSessionCookies(web);
     await writeFile(
       path.join(artifactDir, "live_cookies.json"),
-      JSON.stringify(publicCookies(sessionCookies), null, 2),
+      JSON.stringify(sessionCookies, null, 2),
     );
     await sleep(1_500);
 
-    let popup = await openPopup(browser, extensionId);
+    const popup = await openPopup(browser, extensionId);
     let popupText = await popup.evaluate(() => document.body.innerText);
-    let cookieProbe = await popupCookieProbe(popup).catch(() => ({
+    const signedInDeadline = Date.now() + 15_000;
+    while (
+      Date.now() < signedInDeadline &&
+      !popupLooksSignedIn(popupText) &&
+      !popupText.includes("Sign in to start saving memories")
+    ) {
+      await sleep(500);
+      popupText = await popup
+        .evaluate(() => document.body.innerText)
+        .catch(() => popupText);
+    }
+    const cookieProbe = await popupCookieProbe(popup).catch(() => ({
       vmemClient: null,
       clerkClient: null,
       vmemSession: null,
     }));
-    let signedIn = popupLooksSignedIn(popupText);
-    let cookieSync: "native" | "copied-from-fapi" | "missing" = signedIn
-      ? "native"
+    const signedIn = popupLooksSignedIn(popupText);
+    const cookieSync = signedIn
+      ? cookieProbe.clerkClient
+        ? "native-fapi"
+        : "native"
       : "missing";
-
-    if (!signedIn) {
-      const copied = await copyClientCookieToSyncHost(web, sessionCookies);
-      await popup.close().catch(() => {});
-      await sleep(1_000);
-      popup = await openPopup(browser, extensionId);
-      const deadline = Date.now() + 12_000;
-      while (Date.now() < deadline) {
-        popupText = await popup.evaluate(() => document.body.innerText).catch(() => "");
-        if (popupLooksSignedIn(popupText) || popupText.includes("Sign in to start saving memories")) {
-          break;
-        }
-        await sleep(500);
-      }
-      cookieProbe = await popupCookieProbe(popup).catch(() => cookieProbe);
-      signedIn = popupLooksSignedIn(popupText);
-      cookieSync = signedIn && copied ? "copied-from-fapi" : cookieSync;
-      if (signedIn && !copied) cookieSync = "native";
-    }
 
     await screenshot(popup, "live_popup_signed_in.png");
 
@@ -436,7 +453,7 @@ async function runLive(): Promise<LiveMatrix> {
       ok: signedIn,
       reason: signedIn
         ? `popup shows Save / Import tabs (${cookieSync}, token=${tokenReady}); chrome.cookies __client vmem=${cookieProbe.vmemClient} clerk=${cookieProbe.clerkClient}`
-        : `popup copy: ${popupText.slice(0, 180)}; cookies=${JSON.stringify(publicCookies(sessionCookies))}; probe=${JSON.stringify(cookieProbe)}`,
+        : `popup copy: ${popupText.slice(0, 180)}; cookies=${JSON.stringify(sessionCookies)}; probe=${JSON.stringify(cookieProbe)}`,
     };
     await popup.close().catch(() => {});
 
@@ -492,17 +509,7 @@ async function runLive(): Promise<LiveMatrix> {
           .catch(() => false);
         const swResult = await worker
           .evaluate(async () => {
-            const saveTab = (
-              globalThis as unknown as {
-                __vmemSaveTab?: (
-                  tab: chrome.tabs.Tab,
-                ) => Promise<{
-                  success: boolean;
-                  memoryId?: string;
-                  error?: string;
-                }>;
-              }
-            ).__vmemSaveTab;
+            const saveTab = globalThis.__vmemSaveTab;
             if (typeof saveTab !== "function") return "no save hook";
             const tabs = await chrome.tabs.query({});
             for (const tab of tabs) {
@@ -517,8 +524,8 @@ async function runLive(): Promise<LiveMatrix> {
               const urls = (await chrome.tabs.query({})).map((tab) => tab.url);
               return `no example tab: ${urls.join(",")}`;
             }
-            const result = await saveTab(example);
-            return JSON.stringify({ url: example.url, ...result });
+            const result: unknown = await saveTab(example);
+            return JSON.stringify({ url: example.url, result });
           })
           .catch((err: unknown) =>
             err instanceof Error ? err.message : String(err),
@@ -527,11 +534,8 @@ async function runLive(): Promise<LiveMatrix> {
         pageText = await page.evaluate(() => document.body.innerText);
         const parsed = (() => {
           try {
-            return JSON.parse(swResult) as {
-              success?: boolean;
-              memoryId?: string;
-              error?: string;
-            };
+            const raw: unknown = JSON.parse(swResult);
+            return savePageOutcomeFromUnknown(raw);
           } catch {
             return null;
           }
@@ -648,7 +652,10 @@ async function runLive(): Promise<LiveMatrix> {
         JSON.stringify(chatgptProbe, null, 2),
       );
       matrix.chatgptInject = {
-        ok: chatgptProbe.hasExport || chatgptProbe.hasUse || chatgptProbe.hasUseCopy,
+        ok:
+          chatgptProbe.hasExport ||
+          chatgptProbe.hasUse ||
+          chatgptProbe.hasUseCopy,
         injectedExport: chatgptProbe.hasExport,
         reason: chatgptProbe.hasExport
           ? "export + composer inject"

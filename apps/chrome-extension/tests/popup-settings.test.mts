@@ -10,6 +10,8 @@ import {
   describeSyncInterval,
   shortSyncInterval,
   DEFAULT_SYNC_INTERVAL_MINUTES,
+  clerkCookieSyncHost,
+  clerkFrontendApiHost,
 } from "../src/lib/constants.ts";
 import { resolveExtensionProfileId } from "../src/lib/resolve-extension-profile.ts";
 import { convexSettingsToStorageMirror } from "../src/types/storage.ts";
@@ -139,6 +141,33 @@ await test("wxt manifest maps Alt+S / Alt+Shift+S and prod Clerk host permission
   assert.match(wxt, /default: "Alt\+Shift\+S"/);
   assert.match(wxt, /https:\/\/vmem\.vedantb\.com\/\*/);
   assert.match(wxt, /https:\/\/clerk\.vedantb\.com\/\*/);
+});
+
+await test("live Clerk cookie sync host is the FAPI origin, not the web app", () => {
+  assert.equal(
+    clerkFrontendApiHost("pk_live_Y2xlcmsudmVkYW50Yi5jb20k"),
+    "clerk.vedantb.com",
+  );
+  assert.equal(
+    clerkCookieSyncHost(
+      "pk_live_Y2xlcmsudmVkYW50Yi5jb20k",
+      "https://vmem.vedantb.com",
+    ),
+    "https://clerk.vedantb.com",
+  );
+  assert.equal(
+    clerkCookieSyncHost(
+      "pk_test_ZmxleGlibGUtZHVja2xpbmctNzQuY2xlcmsuYWNjb3VudHMuZGV2JA",
+      "http://localhost:5173",
+    ),
+    "http://localhost:5173",
+  );
+  const providers = readRepo("apps/chrome-extension/src/popup/providers.tsx");
+  assert.match(providers, /CLERK_COOKIE_SYNC_HOST/);
+  const tokenRefresh = readRepo(
+    "apps/chrome-extension/src/lib/refresh-convex-token.ts",
+  );
+  assert.match(tokenRefresh, /CLERK_COOKIE_SYNC_HOST/);
 });
 
 await test("background message handler registers save, import, and screenshot messages", () => {
