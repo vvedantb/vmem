@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { Page } from "puppeteer-core";
+import { TargetType } from "puppeteer-core";
 import {
   artifactDir,
   ensureArtifactDir,
@@ -405,6 +406,7 @@ async function runLive(): Promise<LiveMatrix> {
       if (signedIn && !copied) cookieSync = "native";
     }
 
+    await sleep(2_000);
     await screenshot(popup, "live_popup_signed_in.png");
     matrix.signedInPopup = {
       ok: signedIn,
@@ -412,6 +414,7 @@ async function runLive(): Promise<LiveMatrix> {
         ? `popup shows Save / Import tabs (${cookieSync}); chrome.cookies __client vmem=${cookieProbe.vmemClient} clerk=${cookieProbe.clerkClient}`
         : `popup copy: ${popupText.slice(0, 180)}; cookies=${JSON.stringify(publicCookies(sessionCookies))}; probe=${JSON.stringify(cookieProbe)}`,
     };
+    await popup.close().catch(() => {});
 
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 800 });
@@ -442,54 +445,50 @@ async function runLive(): Promise<LiveMatrix> {
         ? "failure toast"
         : "no Alt+S toast";
 
-    if (!saveOk && signedIn) {
-      await popup.bringToFront();
-      await popup.reload({ waitUntil: "domcontentloaded" }).catch(() => {});
-      await popup
-        .waitForFunction(
-          () =>
-            document.body.innerText.includes("Save to vmem") ||
-            document.body.innerText.includes("Sign in to start saving memories"),
-          { timeout: 15_000 },
-        )
-        .catch(() => {});
-      await popup.evaluate(async (exampleUrl) => {
-        const tabs = await chrome.tabs.query({});
-        const example = tabs.find(
-          (tab) =>
-            tab.url?.startsWith(exampleUrl.split("?")[0] ?? "") ||
-            tab.url?.includes("example.com"),
+    if (!saveOk) {
+      const workerTarget = browser.targets().find((target) => {
+        return (
+          target.type() === TargetType.SERVICE_WORKER &&
+          target.url().startsWith(`chrome-extension://${extensionId}`)
         );
-        if (example?.id) await chrome.tabs.update(example.id, { active: true });
-      }, saveUrl);
-      await sleep(400);
-      await clickFirstMatching(
-        popup,
-        "button",
-        (text) => text.includes("Save to vmem"),
-      );
-      const popupSaved = await popup
-        .waitForFunction(
-          () =>
-            /Page saved to vmem|Failed to save page|Failed to extract/.test(
-              document.body.innerText,
-            ),
-          { timeout: 20_000 },
-        )
-        .then(() => true)
-        .catch(() => false);
-      const popupSaveText = await popup.evaluate(() => document.body.innerText);
-      saveOk = popupSaved && popupSaveText.includes("Page saved to vmem");
-      saveReason = saveOk
-        ? "popup Save to vmem"
-        : popupSaved
-          ? `popup save failed: ${popupSaveText.slice(0, 180)}`
-          : `${saveReason}; popup save had no result`;
-      pageText = popupSaveText;
+      });
+      const worker = await workerTarget?.worker();
+      if (worker) {
+        await page.bringToFront();
+        await sleep(300);
+        const swResult = await worker
+          .evaluate(async () => {
+            const fn = (
+              globalThis as unknown as {
+                __vmemHandleCommand?: (command: string) => Promise<void>;
+              }
+            ).__vmemHandleCommand;
+            if (typeof fn !== "function") return "no command hook";
+            await fn("save-page");
+            return "invoked";
+          })
+          .catch((err: unknown) =>
+            err instanceof Error ? err.message : String(err),
+          );
+        const swToast = await page
+          .waitForFunction(
+            () =>
+              /Page saved to vmem|Failed to save page/.test(
+                document.body.innerText,
+              ),
+            { timeout: 20_000 },
+          )
+          .then(() => true)
+          .catch(() => false);
+        pageText = await page.evaluate(() => document.body.innerText);
+        saveOk = swToast && pageText.includes("Page saved to vmem");
+        saveReason = saveOk
+          ? "service-worker save-page command"
+          : `${saveReason}; sw=${swResult}; toast=${swToast ? pageText.slice(0, 120) : "none"}`;
+      }
     }
 
     await screenshot(page, "live_save_toast.png");
-    await screenshot(popup, "live_popup_after_save.png");
     matrix.savePage = {
       ok: saveOk,
       reason: saveReason,
@@ -499,7 +498,6 @@ async function runLive(): Promise<LiveMatrix> {
           ? "✗ Failed to save page"
           : undefined,
     };
-    await popup.close().catch(() => {});
 
     await web.bringToFront();
     await web.goto("https://vmem.vedantb.com/memories/list", {

@@ -57,6 +57,9 @@ export async function launchUnpackedExtension(): Promise<{
       "--no-sandbox",
       "--disable-gpu",
       "--disable-dev-shm-usage",
+      "--disable-backgrounding-occluded-windows",
+      "--disable-renderer-backgrounding",
+      "--disable-background-timer-throttling",
       "--enable-unsafe-extension-debugging",
     ],
   });

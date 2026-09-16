@@ -1,6 +1,9 @@
 import { defineBackground } from "wxt/utils/define-background";
 import { registerContextMenuClickListener } from "@/background/context-menu";
-import { registerCommandListener } from "@/background/command-handler";
+import {
+  handleCommand,
+  registerCommandListener,
+} from "@/background/command-handler";
 import { registerMessageHandler } from "@/background/message-handler";
 import {
   registerAlarmListener,
@@ -27,6 +30,11 @@ export default defineBackground(() => {
   registerContextMenuClickListener();
   registerCommandListener();
   registerMessageHandler();
+
+  // live e2e invokes the same path as Alt+S when OS shortcuts do not fire
+  Object.assign(globalThis, {
+    __vmemHandleCommand: handleCommand,
+  });
 
   void runBackgroundBootstrap();
 
