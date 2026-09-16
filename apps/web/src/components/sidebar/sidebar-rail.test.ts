@@ -108,4 +108,18 @@ describe("shell uses a rail + panel + drawer", () => {
     expect(navigation).toContain("WikiSidebarNav");
     expect(navigation).toContain('section === "team"');
   });
+
+  it("does not draw a right border on the panel against floating content", () => {
+    const sidebar = read("../shell/Sidebar.tsx");
+    expect(sidebar).not.toMatch(/overflow-hidden border-r border-separator/);
+    expect(read("../shell/MainShell.tsx")).toContain("md:rounded-2xl");
+    expect(read("../shell/MainShell.tsx")).toContain("md:p-2");
+  });
+
+  it("keeps the rail/panel divider only while the panel is open", () => {
+    const rail = read("SidebarRail.tsx");
+    expect(rail).toContain("showRailPanelDivider");
+    expect(rail).toContain("border-r border-separator");
+    expect(rail).toContain('layout === "desktop" && isCollapsed');
+  });
 });

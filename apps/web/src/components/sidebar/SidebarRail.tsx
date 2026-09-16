@@ -50,8 +50,17 @@ export function SidebarRail({
   );
   const collapseLabel = isCollapsed ? "Show sidebar" : "Hide sidebar";
 
+  const showRailPanelDivider = !(layout === "desktop" && isCollapsed);
+
   return (
-    <div className="flex h-full w-[var(--vmem-sidebar-rail-width)] shrink-0 flex-col items-center border-r border-separator bg-background">
+    <div
+      className={cn(
+        "flex h-full w-[var(--vmem-sidebar-rail-width)] shrink-0 flex-col items-center bg-background",
+        // Internal rail/panel divider only. When the panel is hidden this would
+        // sit on the outer edge against the floating main content.
+        showRailPanelDivider && "border-r border-separator",
+      )}
+    >
       <SidebarRailNav
         layout={layout}
         pathname={pathname}

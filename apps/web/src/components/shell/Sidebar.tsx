@@ -218,7 +218,9 @@ export default function Sidebar({
         />
         <div
           className={cn(
-            "relative flex h-full min-w-0 flex-1 flex-col overflow-hidden border-r border-separator bg-background",
+            // No border-r: MainShell floats the content card (md:p-2 + radius)
+            // beside this panel, so a right edge line reads as a hard divider.
+            "relative flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-background",
             isCollapsed && "md:hidden",
           )}
         >

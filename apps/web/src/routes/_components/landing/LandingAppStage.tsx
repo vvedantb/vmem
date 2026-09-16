@@ -120,7 +120,7 @@ export function LandingAppStage() {
             </div>
           </aside>
 
-          <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-surface md:rounded-lg">
+          <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-surface md:rounded-2xl">
             <div className="flex shrink-0 flex-col gap-3 px-3 pt-3 md:px-4 md:pt-4">
               <div className="flex min-h-10 items-center justify-between gap-3">
                 <h2 className="font-instrumentSerif text-2xl leading-tight text-foreground text-balance">
