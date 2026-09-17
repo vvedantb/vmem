@@ -13,7 +13,8 @@ import {
 // (`packages/backend/tests/memory/extraction-research-gliner-jev.md`).
 
 export const JEV_GATE_HEAD = 20;
-export const DEFAULT_JEV_RELEVANCE_THRESHOLD = 0.7;
+// Live smoke (Convex vmem query): keep 0.66 vs drop 0.03. 0.7 would drop gold.
+export const DEFAULT_JEV_RELEVANCE_THRESHOLD = 0.5;
 const JEV_HIT_CONTENT_CHARS = 500;
 export const JEV_BEST_NONE = "none";
 export const JEV_SCORE_CRITERIA = [
@@ -83,6 +84,14 @@ function bestHitIndex(
   return undefined;
 }
 
+function choiceConfidence(
+  answers: SystemOneResponse["answers"],
+): number | undefined {
+  const answer = answers.best;
+  if (answer === undefined || answer.type !== "choice") return undefined;
+  return answer.confidence;
+}
+
 function appendJevReason(reason: string, noul: number | undefined): string {
   if (noul === undefined) return reason;
   if (reason.includes("Jev relevant")) return reason;
@@ -94,6 +103,7 @@ function annotateHit(
   noul: number | undefined,
   jevScore: { score: number; confidence: number } | undefined,
   isBest: boolean,
+  bestConfidence: number | undefined,
 ): MemoryCandidate {
   return {
     ...hit,
@@ -105,13 +115,15 @@ function annotateHit(
         ...(noul === undefined
           ? {}
           : { jevRelevant: noul, jevConfidence: noul }),
-        ...(jevScore === undefined
-          ? {}
-          : {
-              jevScore: jevScore.score,
-              jevConfidence: jevScore.confidence,
-            }),
-        ...(isBest ? { jevBest: true } : {}),
+        ...(jevScore === undefined ? {} : { jevScore: jevScore.score }),
+        ...(isBest
+          ? {
+              jevBest: true,
+              ...(bestConfidence === undefined
+                ? {}
+                : { jevConfidence: bestConfidence }),
+            }
+          : {}),
       },
     },
   };
@@ -130,19 +142,15 @@ export function buildJevRetrieveQuestions(
     questions[relevantKey(i)] = {
       type: "noul",
       instructions: KEEP_INSTRUCTIONS,
-      noul: {
-        criteria: {
-          true: "The memory actually answers the query; shared keywords are not enough",
-          false: "Lexical overlap, wrong sense, stale, or unrelated",
-        },
+      criteria: {
+        true: "The memory actually answers the query; shared keywords are not enough",
+        false: "Lexical overlap, wrong sense, stale, or unrelated",
       },
     };
     questions[scoreKey(i)] = {
       type: "score",
       instructions: SCORE_INSTRUCTIONS,
-      score: {
-        criteria: [...JEV_SCORE_CRITERIA],
-      },
+      criteria: [...JEV_SCORE_CRITERIA],
     };
     choiceCriteria[hitOptionKey(i)] = `${hit.title}: ${truncateAtWord(
       hit.content,
@@ -152,9 +160,7 @@ export function buildJevRetrieveQuestions(
   questions.best = {
     type: "choice",
     instructions: BEST_INSTRUCTIONS,
-    choice: {
-      criteria: choiceCriteria,
-    },
+    criteria: choiceCriteria,
   };
   return questions;
 }
@@ -219,6 +225,7 @@ function applyAnswers(
   const head = hits.slice(0, JEV_GATE_HEAD);
   const tail = hits.slice(JEV_GATE_HEAD);
   const bestIndex = bestHitIndex(response.answers, head.length);
+  const bestConf = choiceConfidence(response.answers);
   const kept: MemoryCandidate[] = [];
   for (let i = 0; i < head.length; i += 1) {
     const hit = head[i];
@@ -231,6 +238,7 @@ function applyAnswers(
         noul,
         scoreForIndex(response.answers, i),
         bestIndex === i,
+        bestConf,
       ),
     );
   }

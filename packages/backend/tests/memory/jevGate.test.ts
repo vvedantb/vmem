@@ -60,6 +60,9 @@ const coffee = hit(
   "Oat latte every morning",
   0.4,
 );
+const m1 = hit("m1", "Convex is vmem store", "Memories live in Convex", 0.8);
+const m2 = hit("m2", "Coffee order", "Oat latte every morning", 0.5);
+const m3 = hit("m3", "Helix editor", "User prefers Helix", 0.4);
 
 function gateResponse(overrides: {
   pnpm?: number;
@@ -67,6 +70,7 @@ function gateResponse(overrides: {
   pnpmScore?: number;
   coffeeScore?: number;
   best?: string;
+  bestConfidence?: number;
 }): SystemOneResponse {
   return {
     model: "jev-latest",
@@ -99,7 +103,7 @@ function gateResponse(overrides: {
         type: "choice",
         choice: overrides.best ?? "h0",
         probabilities: { h0: 0.8, h1: 0.1, none: 0.1 },
-        confidence: 0.7,
+        confidence: overrides.bestConfidence ?? 0.7,
       },
     },
   };
@@ -119,44 +123,101 @@ describe("wantsJevJudge", () => {
 });
 
 describe("buildJevRetrieveQuestions", () => {
-  it("packs noul keep, score rubric, and choice best id per the live schema", () => {
+  it("packs noul keep, score rubric, and choice best with top-level criteria", () => {
     const questions = buildJevRetrieveQuestions([pnpm, coffee]);
     expect(questions.rel_0).toEqual({
       type: "noul",
       instructions:
         "Keep this memory as an answer to the query (not a lexical trap)?",
-      noul: {
-        criteria: {
-          true: "The memory actually answers the query; shared keywords are not enough",
-          false: "Lexical overlap, wrong sense, stale, or unrelated",
-        },
+      criteria: {
+        true: "The memory actually answers the query; shared keywords are not enough",
+        false: "Lexical overlap, wrong sense, stale, or unrelated",
       },
     });
     expect(questions.sc_0).toEqual({
       type: "score",
       instructions: "How well does this memory answer the query?",
-      score: {
-        criteria: [...JEV_SCORE_CRITERIA],
-      },
+      criteria: [...JEV_SCORE_CRITERIA],
     });
     expect(questions.rel_1?.type).toBe("noul");
     expect(questions.sc_1?.type).toBe("score");
     expect(questions.best).toMatchObject({
       type: "choice",
-      choice: {
-        criteria: expect.objectContaining({
-          [JEV_BEST_NONE]: "None of the memories correctly answer the query",
-          h0: expect.stringContaining("Prefers pnpm"),
-          h1: expect.stringContaining("Coffee order"),
-        }),
-      },
+      criteria: expect.objectContaining({
+        [JEV_BEST_NONE]: "None of the memories correctly answer the query",
+        h0: expect.stringContaining("Prefers pnpm"),
+        h1: expect.stringContaining("Coffee order"),
+      }),
     });
-    expect(questions.best).not.toHaveProperty("criteria");
-    expect(questions.sc_0).not.toHaveProperty("criteria");
+    expect(questions.best).not.toHaveProperty("choice");
+    expect(questions.sc_0).not.toHaveProperty("score");
   });
 });
 
 describe("applyJevRetrieveGate", () => {
+  it("keeps live-smoke Convex vmem gold and drops lexical traps", async () => {
+    const evaluate = vi.fn(async () => ({
+      model: "jev-latest",
+      answers: {
+        rel_0: { type: "noul" as const, noul: 0.66 },
+        rel_1: { type: "noul" as const, noul: 0.03 },
+        rel_2: { type: "noul" as const, noul: 0.03 },
+        sc_0: {
+          type: "score" as const,
+          score: 2,
+          legend: {
+            "0": "irrelevant",
+            "1": "weakly related",
+            "2": "directly answers",
+          },
+          probabilities: { "0": 0.1, "1": 0.2, "2": 0.7 },
+          confidence: 0.7,
+        },
+        sc_1: {
+          type: "score" as const,
+          score: 0,
+          legend: {
+            "0": "irrelevant",
+            "1": "weakly related",
+            "2": "directly answers",
+          },
+          probabilities: { "0": 0.9, "1": 0.08, "2": 0.02 },
+          confidence: 0.8,
+        },
+        sc_2: {
+          type: "score" as const,
+          score: 0,
+          legend: {
+            "0": "irrelevant",
+            "1": "weakly related",
+            "2": "directly answers",
+          },
+          probabilities: { "0": 0.9, "1": 0.08, "2": 0.02 },
+          confidence: 0.8,
+        },
+        best: {
+          type: "choice" as const,
+          choice: "h0",
+          probabilities: { h0: 0.85, h1: 0.07, h2: 0.05, none: 0.03 },
+          confidence: 0.77,
+        },
+      },
+    }));
+    const gated = await applyJevRetrieveGate({
+      query: "Convex vmem",
+      hits: [m1, m2, m3],
+      apiKey: "test-key",
+      evaluate,
+    });
+    expect(evaluate).toHaveBeenCalledOnce();
+    expect(gated.map((row) => row.id)).toEqual(["m1"]);
+    expect(gated[0]?.trace.scoreBreakdown.jevRelevant).toBe(0.66);
+    expect(gated[0]?.trace.scoreBreakdown.jevBest).toBe(true);
+    expect(gated[0]?.trace.scoreBreakdown.jevConfidence).toBe(0.77);
+    expect(DEFAULT_JEV_RELEVANCE_THRESHOLD).toBeLessThan(0.66);
+    expect(DEFAULT_JEV_RELEVANCE_THRESHOLD).toBeGreaterThan(0.03);
+  });
+
   it("drops hits below the Noul threshold and promotes the Choice winner", async () => {
     const evaluate = vi.fn(async () =>
       gateResponse({ pnpm: 0.91, coffee: 0.12, best: "h0" }),
@@ -172,7 +233,6 @@ describe("applyJevRetrieveGate", () => {
     expect(gated.map((row) => row.id)).toEqual(["mem_pnpm"]);
     expect(gated[0]?.trace.scoreBreakdown.jevRelevant).toBe(0.91);
     expect(gated[0]?.trace.scoreBreakdown.jevScore).toBe(2);
-    expect(gated[0]?.trace.scoreBreakdown.jevConfidence).toBe(0.8);
     expect(gated[0]?.trace.scoreBreakdown.jevBest).toBe(true);
     expect(gated[0]?.trace.scoreBreakdown.fulltext).toBe(0.9);
     expect(gated[0]?.trace.reason).toContain("Jev relevant");

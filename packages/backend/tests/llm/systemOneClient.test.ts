@@ -22,37 +22,24 @@ const sampleQuestions: Record<string, SystemOneQuestion> = {
   is_urgent: {
     type: "noul",
     instructions: "Does this convey urgency?",
-    noul: {
-      criteria: {
-        true: "Explicitly time-sensitive",
-        false: "No urgency expressed",
-      },
+    criteria: {
+      true: "Explicitly time-sensitive",
+      false: "No urgency expressed",
     },
   },
   department: {
     type: "choice",
     instructions: "Which team should handle this?",
-    choice: {
-      criteria: {
-        billing: "Payments",
-        technical: "Bugs",
-        sales: "Pricing",
-      },
+    criteria: {
+      billing: "Payments",
+      technical: "Bugs",
+      sales: "Pricing",
     },
   },
   frustration: {
     type: "score",
     instructions: "How frustrated is the customer?",
-    score: {
-      criteria: ["Calm", "Frustrated", "Very angry"],
-    },
-  },
-  logo: {
-    type: "bounding_box",
-    instructions: "Where is the logo?",
-    bounding_box: {
-      criteria: ["logo"],
-    },
+    criteria: ["Calm", "Frustrated", "Very angry"],
   },
 };
 
@@ -70,11 +57,6 @@ const sampleAnswers = {
     legend: { "0": "Calm", "1": "Frustrated", "2": "Very angry" },
     probabilities: { "0": 0.05, "1": 0.3, "2": 0.65 },
     confidence: 0.78,
-  },
-  logo: {
-    type: "bounding_box" as const,
-    bounding_box: { x0: 12, y0: 8, x1: 40, y1: 22 },
-    confidence: 0.7,
   },
 };
 
@@ -113,13 +95,8 @@ describe("readSystemOneApiKey", () => {
 });
 
 describe("evaluateSystemOne", () => {
-  it("POSTs nested noul/choice/score/bounding_box questions with bearer auth", async () => {
-    expect(SYSTEMONE_QUESTION_TYPES).toEqual([
-      "noul",
-      "choice",
-      "score",
-      "bounding_box",
-    ]);
+  it("POSTs top-level noul/choice/score criteria with bearer auth", async () => {
+    expect(SYSTEMONE_QUESTION_TYPES).toEqual(["noul", "choice", "score"]);
     const fetchImpl = vi.fn(
       async (_url: string | URL | Request, _init?: RequestInit) =>
         jsonResponse({
@@ -158,11 +135,10 @@ describe("evaluateSystemOne", () => {
     expect(result.answers.is_urgent).toEqual({ type: "noul", noul: 0.92 });
     expect(result.answers.department).toEqual(sampleAnswers.department);
     expect(result.answers.frustration).toEqual(sampleAnswers.frustration);
-    expect(result.answers.logo).toEqual(sampleAnswers.logo);
     expect(result.usage).toEqual({ input_tokens: 312, output_tokens: 48 });
   });
 
-  it("rejects boolean questions and score without score.criteria", async () => {
+  it("rejects boolean, bounding_box, and nested score.criteria", async () => {
     const fetchImpl = vi.fn(async () => jsonResponse({ model: "jev-latest" }));
     const invalid = {
       apiKey: "test-key",
@@ -174,9 +150,19 @@ describe("evaluateSystemOne", () => {
       evaluateSystemOne({
         ...invalid,
         questions: {
-          keep: {
-            type: "boolean",
-            instructions: "keep?",
+          keep: { type: "boolean", instructions: "keep?" },
+        },
+      }),
+    ).rejects.toBeInstanceOf(SystemOneParseError);
+
+    await expect(
+      evaluateSystemOne({
+        ...invalid,
+        questions: {
+          box: {
+            type: "bounding_box",
+            instructions: "where?",
+            bounding_box: { criteria: ["logo"] },
           },
         },
       }),
@@ -189,7 +175,9 @@ describe("evaluateSystemOne", () => {
           relevance: {
             type: "score",
             instructions: "How relevant?",
-            criteria: ["irrelevant", "weakly related", "directly answers"],
+            score: {
+              criteria: ["irrelevant", "weakly related", "directly answers"],
+            },
           },
         },
       }),

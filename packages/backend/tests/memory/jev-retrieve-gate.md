@@ -56,11 +56,11 @@ After FTS / vector / graph / rank (and optional local `rerank: true`):
 
 1. Over-fetch up to 20 hits.
 2. One `POST https://api.typesafe.ai/v1/systemone` (`model: jev-latest`, `Authorization: Bearer $TYPESAFE_API_KEY`).
-3. Question `type` values are only `noul`, `choice`, `score`, and `bounding_box` (never `boolean`). Score questions require nested `score.criteria` (rubric labels). Retrieve-gate sends:
+3. Question `type` values are only `noul`, `choice`, and `score` (never `boolean`). **`criteria` is top-level** on the question: noul `{ true, false }`, choice object map, score ordered string array. Retrieve-gate sends:
    - per-hit **noul** keep?
-   - per-hit **score** with `score.criteria`: `irrelevant` / `weakly related` / `directly answers`
-   - optional **choice** over hit ids plus `none`
-4. Drop if noul `< 0.7` (`DEFAULT_JEV_RELEVANCE_THRESHOLD`). Rank survivors by score, then noul. Promote the Choice winner.
+   - per-hit **score** with `criteria`: `irrelevant` / `weakly related` / `directly answers`
+   - **choice** over hit ids plus `none`
+4. Drop if noul `< 0.5` (`DEFAULT_JEV_RELEVANCE_THRESHOLD`). Live smoke (Convex vmem): keep 0.66, drop 0.03 / 0.03, `best` confidence 0.77. Rank survivors by score, then noul. Promote the Choice winner.
 5. Context Trace keeps BM25 / vector / graph / temporal. Adds `jevRelevant`, `jevScore`, `jevConfidence`, optional `jevBest`.
 
 Jev 1.13 is weak at date math — `temporal.ts` still owns windows. State includes `referenceDate` when the caller sent one; timestamps are not compared in-model.
@@ -91,4 +91,4 @@ Queries and mutations **cannot** `fetch`. Do not move this call onto a query.
 
 ## Calibrate later
 
-Threshold `0.7` is a starting point. Freeze questions with `ai evaluate` (default model `typesafe-ai/jev`) on labelled abstentions + lexical traps before changing `t`. Live System One calls are skipped in CI; unit tests mock HTTP.
+Threshold `0.5` sits between live keep `0.66` and trap `0.03`. Freeze questions with `ai evaluate` (default model `typesafe-ai/jev`) on labelled abstentions + lexical traps before changing `t`. Live System One calls are skipped in CI; unit tests mock HTTP. No API keys in the repo.
