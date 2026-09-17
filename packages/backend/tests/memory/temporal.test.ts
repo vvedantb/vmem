@@ -16,11 +16,12 @@ describe("classifyQueryTemporal", () => {
     expect(
       classifyQueryTemporal("where is headquarters currently", NOW),
     ).toEqual({ kind: "current" });
-    const dated = classifyQueryTemporal("what happened on 2026-08-08", NOW);
-    expect(dated.kind).toBe("window");
-    if (dated.kind === "window") {
-      expect(dated.startMs).toBe(Date.UTC(2026, 7, 8));
-    }
+    expect(classifyQueryTemporal("what happened on 2026-08-08", NOW)).toEqual(
+      expect.objectContaining({
+        kind: "window",
+        startMs: Date.UTC(2026, 7, 8),
+      }),
+    );
   });
 });
 
