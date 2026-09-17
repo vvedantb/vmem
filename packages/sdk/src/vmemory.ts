@@ -69,7 +69,8 @@ type RetrieveBodyInput = {
   summarize?: boolean;
   profileId?: string;
   threshold?: number;
-  rerank?: boolean;
+  rerank?: boolean | "jev";
+  judge?: "jev";
   referenceDate?: string;
 };
 
@@ -87,6 +88,7 @@ function buildRetrieveBody(query: string, options: RetrieveBodyInput): object {
       ? { threshold: options.threshold }
       : {}),
     ...(options.rerank !== undefined ? { rerank: options.rerank } : {}),
+    ...(options.judge !== undefined ? { judge: options.judge } : {}),
     ...(options.referenceDate ? { referenceDate: options.referenceDate } : {}),
   };
 }
@@ -150,7 +152,8 @@ export class VMemory {
       source?: string;
       summarize?: boolean;
       threshold?: number;
-      rerank?: boolean;
+      rerank?: boolean | "jev";
+      judge?: "jev";
       referenceDate?: string;
     },
   ): Promise<RetrieveResult> {
@@ -165,6 +168,7 @@ export class VMemory {
         summarize: options?.summarize,
         threshold: options?.threshold,
         rerank: options?.rerank,
+        judge: options?.judge,
         referenceDate: options?.referenceDate,
         profileId: this.resolveProfileId(options),
       }),

@@ -54,16 +54,16 @@ const vmem = new VMemory({
 
 ## API
 
-| Method                    | Description                                                                     |
-| ------------------------- | ------------------------------------------------------------------------------- |
-| `save(instruction)`       | Requires OpenRouter; 422 `openrouter_required` without it                       |
-| `update(instruction)`     | Same OpenRouter gate as `save()`                                                |
-| `search(query, options?)` | Hybrid retrieve; `type`/`tags`/`status` filters; `summarize: true` joins titles |
-| `createMemory(body)`      | Structured create (escape hatch)                                                |
-| `patchMemory(body)`       | Structured update by `id`                                                       |
-| `deleteMemory(body)`      | Structured delete by `id`                                                       |
-| `searchMemories(body)`    | Structured search                                                               |
-| `health()`                | `GET /health` (unauthenticated liveness check)                                  |
+| Method                    | Description                                                                                              |
+| ------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `save(instruction)`       | Requires OpenRouter; 422 `openrouter_required` without it                                                |
+| `update(instruction)`     | Same OpenRouter gate as `save()`                                                                         |
+| `search(query, options?)` | Hybrid retrieve; `type`/`tags`/`status` filters; `summarize: true` joins titles; optional `judge: "jev"` |
+| `createMemory(body)`      | Structured create (escape hatch)                                                                         |
+| `patchMemory(body)`       | Structured update by `id`                                                                                |
+| `deleteMemory(body)`      | Structured delete by `id`                                                                                |
+| `searchMemories(body)`    | Structured search                                                                                        |
+| `health()`                | `GET /health` (unauthenticated liveness check)                                                           |
 
 ## Errors
 

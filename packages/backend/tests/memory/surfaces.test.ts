@@ -31,6 +31,7 @@ describe("memory surface inventory", () => {
     expect(sdk).toContain("/api/v1/memories/retrieve");
     expect(sdk).toContain("options.status");
     expect(sdk).toContain("options.source");
+    expect(sdk).toContain("options.judge");
   });
 
   it("HTTP instruction store/update return 422 openrouter_required without a key", () => {
@@ -51,6 +52,7 @@ describe("memory surface inventory", () => {
     expect(update).toContain("updateMemoryFromInstruction");
     expect(retrieve).toContain("summarizeRetrievedMemories");
     expect(retrieve).toContain("source: body.source");
+    expect(retrieve).toContain("judge: body.judge");
     expect(retrieve).not.toContain("openRouterRequiredResponse");
   });
 

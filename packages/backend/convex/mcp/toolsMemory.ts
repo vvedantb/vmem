@@ -87,10 +87,16 @@ const memoryRetrieveSchema = retrieveBodySchema
       .optional()
       .describe("Drop hits whose blended score is below this threshold"),
     rerank: z
-      .boolean()
+      .union([z.boolean(), z.literal("jev")])
       .optional()
       .describe(
-        "Optional lightweight rerank of the top 20 hits; keeps Context Trace legs",
+        'true = local top-20 rerank. "jev" = TypeSafe Jev retrieve-gate (skipped if TYPESAFE_API_KEY is unset)',
+      ),
+    judge: z
+      .literal("jev")
+      .optional()
+      .describe(
+        "Optional TypeSafe Jev relevance gate on the top 20 hits. No-op without TYPESAFE_API_KEY.",
       ),
     referenceDate: z
       .string()
@@ -224,7 +230,7 @@ export const memoryToolSpecs = {
     name: "memory_retrieve",
     schema: memoryRetrieveSchema,
     description:
-      "Retrieve the most relevant memories for a query using hybrid full-text, synonym, recency, temporal, and optional vector ranking. type, tags, status, and source filters are applied before ranking. Optional threshold / rerank keep the Context Trace. Defaults to the active profile unless profileId is specified.",
+      "Retrieve the most relevant memories for a query using hybrid full-text, synonym, recency, temporal, and optional vector ranking. type, tags, status, and source filters are applied before ranking. Optional threshold / rerank keep the Context Trace. Set judge to jev (or rerank to jev) to run a TypeSafe Jev relevance gate on the top 20 hits when TYPESAFE_API_KEY is set. Defaults to the active profile unless profileId is specified.",
     errorLabel: "Retrieve failed",
     async run(h, params): Promise<unknown> {
       return withMcpMemoryScope(
@@ -245,6 +251,7 @@ export const memoryToolSpecs = {
                 limit,
                 threshold: params.threshold,
                 rerank: params.rerank,
+                judge: params.judge,
                 referenceDate: params.referenceDate,
               }),
             personal: ({ clerkId, profileId }) =>
@@ -259,6 +266,7 @@ export const memoryToolSpecs = {
                 limit,
                 threshold: params.threshold,
                 rerank: params.rerank,
+                judge: params.judge,
                 referenceDate: params.referenceDate,
               }),
           });

@@ -202,11 +202,25 @@ Hybrid retrieval with context trace scoring. Also returns user settings context 
   Filter by status
 </ParamField>
 <ParamField body="profileId" type="string" />
+<ParamField body="threshold" type="number">
+  Drop hits whose blended score is below this value (0–1)
+</ParamField>
+<ParamField body="rerank" type="boolean | 'jev'">
+  `true` for the local top-20 extra. `"jev"` for the TypeSafe retrieve-gate.
+</ParamField>
+<ParamField body="judge" type="string">
+  Set to `jev` for the TypeSafe retrieve-gate. Skipped without
+  `TYPESAFE_API_KEY`.
+</ParamField>
+<ParamField body="referenceDate" type="string">
+  ISO date used as “now” for last-week / currently temporal scoring
+</ParamField>
 
 ```typescript
 await client.action(api.memoryApi.retrieveMemories, {
   query: "What tech stack does the user prefer?",
   limit: 8,
+  judge: "jev",
 });
 ```
 

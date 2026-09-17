@@ -114,13 +114,17 @@ Retrieve the most relevant memories for a natural language query. Returns scored
 </ParamField>
 <ParamField body="rerank" type="boolean">
   Optional lightweight rerank of the top 20 hits. Context Trace legs stay on the
-  hit.
+  hit. Pass `"jev"` instead to run the TypeSafe Jev retrieve-gate.
+</ParamField>
+<ParamField body="judge" type="string">
+  Set to `jev` to run TypeSafe Jev on the top 20 hits. No-op without
+  `TYPESAFE_API_KEY`. Does not 422.
 </ParamField>
 <ParamField body="referenceDate" type="string">
   ISO date used as “now” for last-week / currently temporal scoring
 </ParamField>
 
-**Returns:** Ranked memories with `trace.scoreBreakdown` (fulltext, vector, chunk, entity, rrf, recency, temporal, confidence, optional rerankerScore).
+**Returns:** Ranked memories with `trace.scoreBreakdown` (fulltext, vector, chunk, entity, rrf, recency, temporal, confidence, optional rerankerScore / jevRelevant / jevConfidence / jevBest).
 
 See [Context Trace](/concepts/context-trace) for score field details.
 

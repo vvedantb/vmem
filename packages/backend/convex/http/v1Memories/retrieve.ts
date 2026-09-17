@@ -38,6 +38,7 @@ async function runRetrieveHandler(
           limit: body.limit ?? 10,
           threshold: body.threshold,
           rerank: body.rerank,
+          judge: body.judge,
           referenceDate: body.referenceDate,
         })
       : await retrieveMemoriesForClerk(ctx, {
@@ -51,6 +52,7 @@ async function runRetrieveHandler(
           limit: body.limit ?? 10,
           threshold: body.threshold,
           rerank: body.rerank,
+          judge: body.judge,
           referenceDate: body.referenceDate,
         });
 

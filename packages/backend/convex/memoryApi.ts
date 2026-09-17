@@ -189,7 +189,8 @@ export const retrieveMemories = authAction({
     source: v.optional(v.string()),
     limit: v.number(),
     threshold: v.optional(v.number()),
-    rerank: v.optional(v.boolean()),
+    rerank: v.optional(v.union(v.boolean(), v.literal("jev"))),
+    judge: v.optional(v.literal("jev")),
     referenceDate: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<RetrieveMemoriesResult> => {
@@ -207,6 +208,7 @@ export const retrieveMemories = authAction({
             limit: args.limit,
             threshold: args.threshold,
             rerank: args.rerank,
+            judge: args.judge,
             referenceDate: args.referenceDate,
           }),
         personal: (clerkId) =>
@@ -221,6 +223,7 @@ export const retrieveMemories = authAction({
             limit: args.limit,
             threshold: args.threshold,
             rerank: args.rerank,
+            judge: args.judge,
             referenceDate: args.referenceDate,
           }),
       }),
