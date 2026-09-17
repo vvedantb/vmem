@@ -92,24 +92,23 @@ curl -X POST "https://<deployment>.convex.site/api/v1/memories/retrieve" \
   -H "Content-Type: application/json" \
   -d '{
     "query": "What stack does the user prefer?",
-    "limit": 10,
-    "judge": "jev"
+    "limit": 10
   }'
 ```
 
-| Field           | Type               | Required                                                      |
-| --------------- | ------------------ | ------------------------------------------------------------- |
-| `query`         | string             | yes                                                           |
-| `limit`         | number             | no (default `10`, max `50`)                                   |
-| `type`          | string             | no                                                            |
-| `tags`          | string[]           | no                                                            |
-| `status`        | string             | no                                                            |
-| `profileId`     | string             | no                                                            |
-| `summarize`     | boolean            | no — joins ranked titles (no LLM)                             |
-| `threshold`     | number             | no — drop hits below this hybrid score                        |
-| `rerank`        | boolean or `"jev"` | no — `true` = local top-20 extra; `"jev"` = TypeSafe Jev gate |
-| `judge`         | `"jev"`            | no — same Jev gate as `rerank: "jev"`                         |
-| `referenceDate` | string             | no — ISO date for temporal scoring                            |
+| Field           | Type               | Required                                                                               |
+| --------------- | ------------------ | -------------------------------------------------------------------------------------- |
+| `query`         | string             | yes                                                                                    |
+| `limit`         | number             | no (default `10`, max `50`)                                                            |
+| `type`          | string             | no                                                                                     |
+| `tags`          | string[]           | no                                                                                     |
+| `status`        | string             | no                                                                                     |
+| `profileId`     | string             | no                                                                                     |
+| `summarize`     | boolean            | no — joins ranked titles (no LLM)                                                      |
+| `threshold`     | number             | no — drop hits below this hybrid score                                                 |
+| `rerank`        | boolean or `"jev"` | no — `true` = local top-20 extra (skipped when Jev runs); `"jev"` is an accepted no-op |
+| `judge`         | `"jev"` or `"off"` | no — Jev is on when `TYPESAFE_API_KEY` is set; `"off"` skips it for ablation           |
+| `referenceDate` | string             | no — ISO date for temporal scoring                                                     |
 
 **Returns:**
 
@@ -121,7 +120,7 @@ curl -X POST "https://<deployment>.convex.site/api/v1/memories/retrieve" \
 }
 ```
 
-Jev is opt-in. Omit `judge` / `rerank: "jev"`, or leave `TYPESAFE_API_KEY` unset, and retrieve stays on the hybrid ranker (no 422).
+Jev runs automatically when `TYPESAFE_API_KEY` is set. Omit the flag, or leave the key unset, and retrieve stays on the hybrid ranker (no 422). Pass `judge: "off"` to skip Jev for ablation.
 
 ---
 

@@ -206,11 +206,12 @@ Hybrid retrieval with context trace scoring. Also returns user settings context 
   Drop hits whose blended score is below this value (0–1)
 </ParamField>
 <ParamField body="rerank" type="boolean | 'jev'">
-  `true` for the local top-20 extra. `"jev"` for the TypeSafe retrieve-gate.
+  `true` for the local top-20 extra (skipped when Jev runs). `"jev"` is an
+  accepted no-op.
 </ParamField>
 <ParamField body="judge" type="string">
-  Set to `jev` for the TypeSafe retrieve-gate. Skipped without
-  `TYPESAFE_API_KEY`.
+  Jev keep/best is on when `TYPESAFE_API_KEY` is set. Pass `off` to skip.
+  `"jev"` is accepted and ignored.
 </ParamField>
 <ParamField body="referenceDate" type="string">
   ISO date used as “now” for last-week / currently temporal scoring
@@ -220,7 +221,6 @@ Hybrid retrieval with context trace scoring. Also returns user settings context 
 await client.action(api.memoryApi.retrieveMemories, {
   query: "What tech stack does the user prefer?",
   limit: 8,
-  judge: "jev",
 });
 ```
 

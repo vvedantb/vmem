@@ -1,6 +1,6 @@
 # Jev retrieve-gate (TypeSafe System One)
 
-Opt-in second-stage judge after hybrid retrieve. Default ranking is unchanged when the flag is omitted or `TYPESAFE_API_KEY` is unset.
+Second-stage keep / score / best after hybrid retrieve. **On by default** when `TYPESAFE_API_KEY` is set. No client flag required. Missing key or Jev HTTP failure → hybrid hits only (no 422).
 
 What to drop now that this is live: [jev-simplify.md](./jev-simplify.md).
 
@@ -27,36 +27,30 @@ TYPESAFE_API_KEY
 
 Per-user override: dashboard **Settings → Secrets** with the same key name (`userEnvVars`). Lookup is user secret first, then deployment `process.env`.
 
-3. Pass the flag on retrieve (HTTP / SDK / MCP / Convex action):
+3. Call retrieve as usual. HTTP / SDK / MCP / Convex / dashboard / Chrome extension all get the gate when the key is present:
 
 ```json
 {
   "query": "What package manager does the user prefer?",
-  "limit": 10,
-  "judge": "jev"
+  "limit": 10
 }
 ```
-
-`rerank: "jev"` is an alias for the same gate. Prefer `judge: "jev"`. `rerank: true` is the local #179 top-20 extra (not a cross-encoder) and does **not** call Jev. When Jev is requested, the local extra is skipped — Jev owns keep / score / best.
 
 SDK:
 
 ```ts
 await vmem.search("What package manager does the user prefer?", {
-  judge: "jev",
   limit: 10,
 });
 ```
 
-MCP `memory_retrieve`: `{ "query": "…", "judge": "jev" }`.
-
-Missing key → hybrid hits only (no 422). Jev HTTP failure → same fail-open.
+Ablation / labelled IR (skip Jev): `judge: "off"`. `judge: "jev"` and `rerank: "jev"` are accepted no-ops. `rerank: true` is the local #179 top-20 extra (not a cross-encoder); it is skipped when Jev actually runs.
 
 ## What it does
 
 After FTS / vector / graph / rank (hybrid candidate generation is unchanged):
 
-1. Over-fetch up to 20 hits.
+1. Over-fetch up to 20 hits (only when a TypeSafe key resolved).
 2. One `POST https://api.typesafe.ai/v1/systemone` (`model: jev-latest`, `Authorization: Bearer $TYPESAFE_API_KEY`).
 3. Question `type` values are only `noul`, `choice`, and `score` (never `boolean`). **`criteria` is top-level** on the question: noul `{ true, false }`, choice object map, score ordered string array. Retrieve-gate sends:
    - per-hit **noul** keep?

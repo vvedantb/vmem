@@ -70,7 +70,7 @@ type RetrieveBodyInput = {
   profileId?: string;
   threshold?: number;
   rerank?: boolean | "jev";
-  judge?: "jev";
+  judge?: "jev" | "off";
   referenceDate?: string;
 };
 
@@ -153,7 +153,7 @@ export class VMemory {
       summarize?: boolean;
       threshold?: number;
       rerank?: boolean | "jev";
-      judge?: "jev";
+      judge?: "jev" | "off";
       referenceDate?: string;
     },
   ): Promise<RetrieveResult> {

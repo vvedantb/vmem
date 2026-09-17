@@ -38,6 +38,7 @@ import {
   jevRankPoolLimit,
   wantsJevJudge,
   wantsLocalRerank,
+  type RetrieveJudgeOptions,
 } from "../engine/memory/jevGate";
 import {
   readSystemOneApiKey,
@@ -337,10 +338,8 @@ export async function retrieveMemoriesForClerk(
     source?: string;
     limit: number;
     threshold?: number;
-    rerank?: boolean | "jev";
-    judge?: "jev";
     referenceDate?: string;
-  },
+  } & RetrieveJudgeOptions,
 ): Promise<MemoryCandidate[]> {
   return retrieveRanked(ctx, {
     kind: "personal",
@@ -371,10 +370,8 @@ export async function retrieveMemoriesForTeamProfile(
     source?: string;
     limit: number;
     threshold?: number;
-    rerank?: boolean | "jev";
-    judge?: "jev";
     referenceDate?: string;
-  },
+  } & RetrieveJudgeOptions,
 ): Promise<MemoryCandidate[]> {
   return retrieveRanked(ctx, {
     kind: "team",
@@ -451,17 +448,17 @@ async function maybeApplyJevRetrieveGate(
   args: {
     clerkId?: string;
     query: string;
-    judge?: "jev";
-    rerank?: boolean | "jev";
     limit: number;
     referenceDate?: string;
-  },
+    apiKey?: string;
+  } & RetrieveJudgeOptions,
   ranked: MemoryCandidate[],
 ): Promise<MemoryCandidate[]> {
   if (!wantsJevJudge(args)) return ranked;
   if (ranked.length === 0) return ranked;
   if (args.query.trim().length === 0) return ranked;
-  const apiKey = await resolveSystemOneApiKey(ctx, args.clerkId);
+  const apiKey =
+    args.apiKey ?? (await resolveSystemOneApiKey(ctx, args.clerkId));
   if (apiKey === undefined) return ranked;
   return applyJevRetrieveGate({
     query: args.query,
@@ -477,11 +474,10 @@ async function finishRetrieve(
   args: {
     clerkId?: string;
     query: string;
-    judge?: "jev";
-    rerank?: boolean | "jev";
     limit: number;
     referenceDate?: string;
-  },
+    apiKey?: string;
+  } & RetrieveJudgeOptions,
   ranked: MemoryCandidate[],
 ): Promise<MemoryCandidate[]> {
   const gated = await maybeApplyJevRetrieveGate(ctx, args, ranked);
@@ -501,10 +497,8 @@ async function retrieveRanked(
     source?: string;
     limit: number;
     threshold?: number;
-    rerank?: boolean | "jev";
-    judge?: "jev";
     referenceDate?: string;
-  },
+  } & RetrieveJudgeOptions,
 ): Promise<MemoryCandidate[]> {
   const listFilter = {
     type: args.type,
@@ -513,24 +507,19 @@ async function retrieveRanked(
     source: args.source,
   };
   const trimmed = args.query.trim();
-  const jev = wantsJevJudge(args);
-  const rankOpts = {
-    limit: jevRankPoolLimit(args.limit, jev),
-    nowMs: parseReferenceMs(args.referenceDate, Date.now()),
-    threshold: args.threshold,
-    rerank: wantsLocalRerank(args),
-    ...listFilter,
-  };
+  const nowMs = parseReferenceMs(args.referenceDate, Date.now());
   if (trimmed.length === 0) {
     const recent = await listRecentForRetrieve(ctx, args);
-    return finishRetrieve(
-      ctx,
-      args,
-      retrieveMemoriesFromPool(recent, args.query, rankOpts),
-    );
+    return retrieveMemoriesFromPool(recent, args.query, {
+      limit: args.limit,
+      nowMs,
+      threshold: args.threshold,
+      rerank: wantsLocalRerank(args, false),
+      ...listFilter,
+    }).slice(0, Math.max(0, args.limit));
   }
 
-  const [ftsHits, vectorHits, links] = await Promise.all([
+  const [ftsHits, vectorHits, links, apiKey] = await Promise.all([
     ctx.runQuery(internal.memoryStore.functions.searchMemoriesTextInternal, {
       kind: args.kind,
       userId: args.clerkId,
@@ -544,7 +533,18 @@ async function retrieveRanked(
           internal.memoryStore.functions.listMemoryLinksForUserInternal,
           { userId: args.clerkId },
         ),
+    wantsJevJudge(args)
+      ? resolveSystemOneApiKey(ctx, args.clerkId)
+      : Promise.resolve(undefined),
   ]);
+  const jev = apiKey !== undefined;
+  const rankOpts = {
+    limit: jevRankPoolLimit(args.limit, jev),
+    nowMs,
+    threshold: args.threshold,
+    rerank: wantsLocalRerank(args, jev),
+    ...listFilter,
+  };
 
   const byId = new Map<string, MemoryWithTags>();
   const ftsRanks = new Map<string, number>();
@@ -620,7 +620,7 @@ async function retrieveRanked(
     const recent = await listRecentForRetrieve(ctx, args);
     return finishRetrieve(
       ctx,
-      args,
+      { ...args, apiKey },
       retrieveMemoriesFromPool(recent, args.query, {
         ...rankOpts,
         vectorScores: vectorHits.scores,
@@ -632,7 +632,7 @@ async function retrieveRanked(
 
   return finishRetrieve(
     ctx,
-    args,
+    { ...args, apiKey },
     retrieveMemoriesFromPool([...byId.values()], args.query, {
       ...rankOpts,
       vectorScores: vectorHits.scores,

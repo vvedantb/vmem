@@ -190,7 +190,7 @@ export const retrieveMemories = authAction({
     limit: v.number(),
     threshold: v.optional(v.number()),
     rerank: v.optional(v.union(v.boolean(), v.literal("jev"))),
-    judge: v.optional(v.literal("jev")),
+    judge: v.optional(v.union(v.literal("jev"), v.literal("off"))),
     referenceDate: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<RetrieveMemoriesResult> => {

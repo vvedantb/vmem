@@ -107,6 +107,9 @@ describe("memoryApi contract request schemas", () => {
       }).success,
     ).toBe(true);
     expect(
+      retrieveBodySchema.safeParse({ query: "pnpm", judge: "off" }).success,
+    ).toBe(true);
+    expect(
       retrieveBodySchema.safeParse({ query: "pnpm", rerank: "jev" }).success,
     ).toBe(true);
     expect(

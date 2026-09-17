@@ -21,7 +21,7 @@ When you call `memoryApi.retrieveMemories` or `POST /api/v1/memories/retrieve`, 
 8. **Confidence** — The memory's stored confidence score
 9. **Graph path** (optional) — 1-hop neighbour via Convex `memoryLinks`
 10. **Rerank** (optional) — Extra top-20 blend when `rerank: true`; stored as `rerankerScore` without dropping other legs
-11. **Jev** (optional) — TypeSafe System One retrieve-gate when `judge: "jev"` or `rerank: "jev"` and `TYPESAFE_API_KEY` is set. Stores `jevRelevant` / `jevConfidence` / `jevBest`. Missing key skips the gate.
+11. **Jev** — TypeSafe System One retrieve-gate when `TYPESAFE_API_KEY` is set. Stores `jevRelevant` / `jevConfidence` / `jevBest`. Missing key skips the gate. Pass `judge: "off"` to skip on purpose.
 
 Each signal contributes to a composite score, and the trace shows the contribution of each.
 
