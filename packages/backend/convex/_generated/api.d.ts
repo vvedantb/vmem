@@ -90,6 +90,7 @@ import type * as memoryApi_types from "../memoryApi/types.js";
 import type * as memoryApi_validators from "../memoryApi/validators.js";
 import type * as memoryEmbed from "../memoryEmbed.js";
 import type * as memoryEvents from "../memoryEvents.js";
+import type * as memoryExtract from "../memoryExtract.js";
 import type * as memoryRuntime from "../memoryRuntime.js";
 import type * as memoryScope from "../memoryScope.js";
 import type * as memoryStore_functions from "../memoryStore/functions.js";
@@ -217,6 +218,7 @@ declare const fullApi: ApiFromModules<{
   "memoryApi/validators": typeof memoryApi_validators;
   memoryEmbed: typeof memoryEmbed;
   memoryEvents: typeof memoryEvents;
+  memoryExtract: typeof memoryExtract;
   memoryRuntime: typeof memoryRuntime;
   memoryScope: typeof memoryScope;
   "memoryStore/functions": typeof memoryStore_functions;

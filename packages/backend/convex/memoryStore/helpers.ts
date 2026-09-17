@@ -16,6 +16,11 @@ import type { MemoryLinkEdge } from "../../engine/memory/links";
 import { UPDATES_LINK_REASON } from "../../engine/memory/supersede";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
+import {
+  applyFallbackEntityExtraction,
+  deleteEntitiesForMemory,
+  deleteEntitiesForUser,
+} from "./entities";
 import { parseIsoMillis, toMemoryWithTags } from "./mappers";
 
 export interface CreateMemoryStoreParams {
@@ -169,6 +174,7 @@ export async function createMemory(
 
   const created = await ctx.db.get(id);
   if (!created) throw new Error("Failed to create memory");
+  await applyFallbackEntityExtraction(ctx, created);
   return toMemoryWithTags(created);
 }
 
@@ -276,6 +282,9 @@ async function applyMemoryUpdates(
 
   const updated = await findByMemoryId(ctx, doc.memoryId);
   if (!updated) return null;
+  if (contentChanged) {
+    await applyFallbackEntityExtraction(ctx, updated);
+  }
   return toMemoryWithTags(updated);
 }
 
@@ -397,6 +406,7 @@ export async function deleteMemory(
 ): Promise<boolean> {
   const doc = await findByMemoryId(ctx, memoryId);
   if (!doc || doc.userId !== userId) return false;
+  await deleteEntitiesForMemory(ctx, userId, memoryId);
   await deleteLinksForMemory(ctx, userId, memoryId);
   await ctx.db.delete(doc._id);
   return true;
@@ -411,6 +421,7 @@ export async function deleteTeamMemoryAsOwner(
   if (!doc || !memoryMatchesScope(doc, { kind: "team", profileId })) {
     return false;
   }
+  await deleteEntitiesForMemory(ctx, doc.userId, memoryId);
   await deleteLinksForMemory(ctx, doc.userId, memoryId);
   await ctx.db.delete(doc._id);
   return true;
@@ -424,6 +435,7 @@ export async function deleteMemoriesForUser(
     .query("memories")
     .withIndex("by_user_created", (q) => q.eq("userId", userId))
     .collect();
+  await deleteEntitiesForUser(ctx, userId);
   await deleteLinksForUser(ctx, userId);
   for (const doc of docs) {
     await ctx.db.delete(doc._id);
@@ -611,6 +623,7 @@ export async function linkMemories(
     memoryIdA: string;
     memoryIdB: string;
     reason: string;
+    origin?: "manual" | "entity" | "extract";
   },
 ): Promise<boolean> {
   if (params.memoryIdA === params.memoryIdB) return false;
@@ -633,7 +646,20 @@ export async function linkMemories(
       q.eq("sourceId", sourceId).eq("targetId", targetId),
     )
     .first();
-  if (existing) return true;
+  if (existing) {
+    const nextOrigin = params.origin ?? "manual";
+    const nextReason = params.reason.trim() || "related";
+    if (
+      nextOrigin === "manual" &&
+      (existing.origin === "entity" || existing.origin === "extract")
+    ) {
+      await ctx.db.patch(existing._id, {
+        reason: nextReason,
+        origin: nextOrigin,
+      });
+    }
+    return true;
+  }
   await ctx.db.insert("memoryLinks", {
     userId: params.userId,
     ...(params.profileId === undefined ? {} : { profileId: params.profileId }),
@@ -641,6 +667,7 @@ export async function linkMemories(
     targetId,
     reason: params.reason.trim() || "related",
     createdAt: Date.now(),
+    origin: params.origin ?? "manual",
   });
   return true;
 }

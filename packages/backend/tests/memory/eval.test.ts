@@ -4,6 +4,7 @@ import {
   aggregate,
   NEO4J_FULL_HYBRID,
   runAblation,
+  runAutoLinkAblation,
   runPooledComparison,
 } from "../../eval/benchmark";
 import { parseFactExtractionResponse } from "../../engine/memory/extractFacts";
@@ -123,6 +124,29 @@ describe("Convex labelled ablation", () => {
     expect(widened.ndcg10).toBeGreaterThanOrEqual(legacy.ndcg10);
     expect(widened.recall5).toBeGreaterThanOrEqual(NEO4J_FULL_HYBRID.recall5);
     expect(widened.latencyP95).toBeLessThan(100);
+  }, 60_000);
+});
+
+describe("auto-extracted links (no planted relationships)", () => {
+  it("recovers multi-hop and project-fact graph gains", async () => {
+    const { runs, autoLinkCount } = await runAutoLinkAblation();
+    expect(autoLinkCount).toBeGreaterThan(30);
+
+    const byType = (name: string, type: string) =>
+      aggregate(
+        runs
+          .find((run) => run.name === name)
+          ?.outcomes.filter((row) => row.type === type) ?? [],
+      );
+    const fullMulti = byType("full hybrid", "multi-hop");
+    const noGraphMulti = byType("hybrid (no graph)", "multi-hop");
+    expect(fullMulti.ndcg10).toBeGreaterThan(noGraphMulti.ndcg10);
+    expect(fullMulti.recall5).toBeGreaterThan(noGraphMulti.recall5);
+
+    const fullProject = byType("full hybrid", "project");
+    const noGraphProject = byType("hybrid (no graph)", "project");
+    expect(fullProject.ndcg10).toBeGreaterThan(noGraphProject.ndcg10);
+    expect(fullProject.recall5).toBeGreaterThan(noGraphProject.recall5);
   }, 60_000);
 });
 

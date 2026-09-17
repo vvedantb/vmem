@@ -27,10 +27,12 @@ import {
 } from "./metrics";
 import {
   EVAL_K,
+  autoLinksFromCorpus,
   linksFromCorpus,
   retrieveEval,
   toEvalMemory,
 } from "./retrieve";
+import type { MemoryLinkEdge } from "../engine/memory/links";
 
 interface LegConfig {
   name: string;
@@ -379,6 +381,7 @@ export async function runCorpusAblation(
   options: {
     caps?: RetrieveCandidateCaps;
     configs?: LegConfig[];
+    links?: readonly MemoryLinkEdge[];
   } = {},
 ): Promise<{
   runs: ConfigRun[];
@@ -387,7 +390,7 @@ export async function runCorpusAblation(
   stats: { memoryCount: number; tokens: number };
 }> {
   const memories = corpus.memories.map(toEvalMemory);
-  const links = linksFromCorpus(corpus);
+  const links = options?.links ?? linksFromCorpus(corpus);
   const answerable = corpus.queries.filter((q) => q.expectedTitles.length > 0);
   const abstention = corpus.queries.filter(
     (q) => q.expectedTitles.length === 0,
@@ -492,6 +495,16 @@ export async function runAblation(): Promise<{
     await runCorpusAblation(corpus);
   const report = buildEvalReport(runs, stats, answerable, abstention);
   return { runs, report, answerable };
+}
+
+export async function runAutoLinkAblation(): Promise<{
+  runs: ConfigRun[];
+  autoLinkCount: number;
+}> {
+  const corpus = generateBenchmarkCorpus();
+  const autoLinks = autoLinksFromCorpus(corpus);
+  const { runs } = await runCorpusAblation(corpus, { links: autoLinks });
+  return { runs, autoLinkCount: autoLinks.length };
 }
 
 export function buildHardEvalReport(

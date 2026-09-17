@@ -154,12 +154,60 @@ export const getGraphData = authAction({
         sourceType: null,
       }));
 
+    const [links, entityGraph] = await Promise.all([
+      ctx.runQuery(
+        internal.memoryStore.functions.listMemoryLinksForUserInternal,
+        { userId: clerkId },
+      ),
+      ctx.runQuery(
+        internal.memoryStore.functions.listEntitiesForGraphInternal,
+        { userId: clerkId },
+      ),
+    ]);
+
+    const memoryIds = new Set(memories.map((memory) => memory.id));
+    const relatesToEdges = links
+      .filter(
+        (link) => memoryIds.has(link.sourceId) && memoryIds.has(link.targetId),
+      )
+      .map((link) => ({
+        source: link.sourceId,
+        target: link.targetId,
+        reason: link.reason,
+      }));
+
+    const mentionsEdges = entityGraph.mentions.filter((edge) =>
+      memoryIds.has(edge.memoryId),
+    );
+    const mentionedEntityIds = new Set(
+      mentionsEdges.map((edge) => edge.entityId),
+    );
+    const entityNodes: GraphNodeEntry[] = entityGraph.nodes
+      .filter((node) => mentionedEntityIds.has(node.id))
+      .map((node) => ({
+        id: node.id,
+        title: node.name,
+        tags: [],
+        createdAt: new Date(node.createdAt).toISOString(),
+        kind: "entity",
+        sourceType: null,
+        entityType: node.type,
+      }));
+
     return {
-      nodes: [...memoryNodes(memories), ...wikiNodes, ...skillNodes],
-      relatesToEdges: [],
+      nodes: [
+        ...memoryNodes(memories),
+        ...entityNodes,
+        ...wikiNodes,
+        ...skillNodes,
+      ],
+      relatesToEdges,
       tagEdges: [],
       wikiParentEdges,
-      mentionsEdges: [],
+      mentionsEdges: mentionsEdges.map((edge) => ({
+        source: edge.memoryId,
+        target: edge.entityId,
+      })),
       focusNodeId: args.focus,
       totalMemoryCount: memories.length,
     };

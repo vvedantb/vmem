@@ -96,14 +96,26 @@ export async function getMemoryGraphForMcp(
 
   const totalNodesBeforeCap = nodes.length;
   const sliced = nodes.slice(0, limit);
+  const visible = new Set(sliced.map((node) => node.id));
+  const links = await ctx.runQuery(
+    internal.memoryStore.functions.listMemoryLinksForUserInternal,
+    { userId: args.clerkId },
+  );
+  const relatesToEdges = links
+    .filter((link) => visible.has(link.sourceId) && visible.has(link.targetId))
+    .map((link) => ({
+      source: link.sourceId,
+      target: link.targetId,
+      reason: link.reason,
+    }));
   return {
     nodes: sliced,
-    relatesToEdges: [],
+    relatesToEdges,
     tagEdges: [],
     truncated: totalNodesBeforeCap > limit,
     stats: {
       nodeCount: sliced.length,
-      relatesToEdgeCount: 0,
+      relatesToEdgeCount: relatesToEdges.length,
       tagEdgeCount: 0,
       totalNodesBeforeCap,
     },

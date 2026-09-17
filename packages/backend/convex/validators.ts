@@ -42,12 +42,45 @@ export const memoryFields = {
   embedding: v.optional(v.array(v.float64())),
 };
 
+export const memoryLinkOriginValidator = v.union(
+  v.literal("manual"),
+  v.literal("entity"),
+  v.literal("extract"),
+);
+
 export const memoryLinkFields = {
   userId: v.string(),
   profileId: v.optional(v.string()),
   sourceId: v.string(),
   targetId: v.string(),
   reason: v.string(),
+  createdAt: v.number(),
+  origin: v.optional(memoryLinkOriginValidator),
+};
+
+export const memoryEntityTypeValidator = v.union(
+  v.literal("person"),
+  v.literal("organization"),
+  v.literal("place"),
+  v.literal("technology"),
+  v.literal("project"),
+);
+
+export const memoryEntityFields = {
+  userId: v.string(),
+  profileId: v.optional(v.string()),
+  name: v.string(),
+  normalizedName: v.string(),
+  type: memoryEntityTypeValidator,
+  createdAt: v.number(),
+};
+
+export const memoryEntityMentionFields = {
+  userId: v.string(),
+  profileId: v.optional(v.string()),
+  memoryId: v.string(),
+  entityId: v.id("memoryEntities"),
+  normalizedName: v.string(),
   createdAt: v.number(),
 };
 
