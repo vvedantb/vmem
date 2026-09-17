@@ -4,7 +4,7 @@
 **Date:** 2026-09-17. Public sources checked that day.  
 **Goal:** make the Convex memory layer (MCP + HTTP retrieve) competitive on **retrieval quality** and **extreme-case robustness**, not on marketing copy.
 
-This file sits next to the labelled ranker tests. Run the IR eval with `pnpm --filter @vmem/backend eval:bench` (`packages/backend/eval/*`, gated in `tests/memory/eval.test.ts` and `tests/mcp/retrieveQuality.test.ts`). Same-corpus vendor IR: `tests/memory/competitive/vmem-vs-mem0-supermemory.md` (`eval:competitive`).
+This file sits next to the labelled ranker tests. Run the IR eval with `pnpm --filter @vmem/backend eval:bench` (`packages/backend/eval/*`, gated in `tests/memory/eval.test.ts` and `tests/mcp/retrieveQuality.test.ts`).
 
 ---
 
