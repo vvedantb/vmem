@@ -15,7 +15,7 @@
 
 IR numbers after #179 (synthetic embeddings): labelled R@5 **99.7–100%**, nDCG@10 **0.974–0.975**, temporal nDCG **0.780 → 1.000**, all 6 abstentions score **< 0.8**. Tables: `packages/backend/eval/RESULTS.md`.
 
-**Access (do not put keys in this file or in git):** TypeSafe Jev is **already usable** for P0/P1 experiments. Vedant has TypeSafe access and an API key; there is **no waitlist step**. Do not ask for the key. Do not embed it. Load it from the local environment only (see §4.2).
+**Access (do not put keys in this file, git, or the PR):** P0/P1 Jev experiments can use env `TYPESAFE_API_KEY` **immediately** (no waitlist). That variable is stored on the engineer box for local spikes. Do not request, print, or embed the key. Cloud-agent spikes must have the same name added to the **saved Cursor environment / secret store** separately — never by committing it. Details: §4.2.
 
 GLiNER is a **separate** path. It still needs a hosting decision. Jev access does not unblock GLiNER, and GLiNER hosting does not block Jev experiments.
 
@@ -165,25 +165,32 @@ Evaluation is **AI SDK / Gateway evaluate only** — not the OpenAI-compatible G
 
 ### 4.2 Access and how a spike should call it
 
-**Usable now.** No waitlist. No “request access” step in this repo.
+**Usable now.** No waitlist. P0/P1 Jev experiments read env **`TYPESAFE_API_KEY` immediately**.
 
-Prefer, in order:
+Where the key lives (names only — never print or commit the value):
 
-1. **Vercel AI Gateway** `typesafe-ai/jev` via `experimental_evaluate` (string id or `gateway.evaluationModel('typesafe-ai/jev')`). Same path as [vercel-labs/ai-cli](https://github.com/vercel-labs/ai-cli) (`ai evaluate` defaults to this model). Enables Zero Data Retention per request: `providerOptions.gateway.zeroDataRetention`.
-2. **TypeSafe official API** `POST /v1/systemone` or `typeSafeAi.evaluationModel('jev-latest')` when we want native `confidence` / Noul without the Gateway wrapper.
+| Where | What to do |
+| --- | --- |
+| **Engineer box (local spikes)** | `TYPESAFE_API_KEY` is already stored in the local environment. Scripts and `curl` / `typesafe-sdk` can run against TypeSafe’s official API without any further access step. |
+| **Cloud-agent spikes** | Add `TYPESAFE_API_KEY` to the **saved Cursor environment / secret store** for that environment. Do **not** put the value in the PR, this markdown, `.env.example`, or chat. Until that secret is on the environment, live Jev tests must skip (same pattern as unset `OPENROUTER_API_KEY` → synthetic embeddings). |
+| **This repo / PR** | No secrets. Do not request the key. Do not embed it. |
 
-Env vars a spike should **read** (names only; never commit values):
+Call path for those local/cloud spikes: **TypeSafe official API** `POST https://api.typesafe.ai/v1/systemone` with `Authorization: Bearer` from `TYPESAFE_API_KEY`, model `jev-latest` (or `typesafe-sdk` / `typeSafeAi.evaluationModel('jev-latest')`, mapping `TYPESAFE_API_KEY` if the SDK’s default name is `TYPESAFE_AI_API_KEY`).
 
-| Name | Where it is already defined | Spike use |
-| --- | --- | --- |
-| `AI_GATEWAY_API_KEY` | Vercel AI Gateway; `ai-cli` | Preferred for Gateway `typesafe-ai/jev` and `ai evaluate` |
-| `TYPESAFE_API_KEY` | TypeSafe docs / Python SDK / curl | Direct `api.typesafe.ai` |
-| `TYPESAFE_AI_API_KEY` | `@ai-sdk/typesafe-ai` | Direct provider if we skip Gateway |
-| `JEV_API_KEY` | **Local alias only** | If set, treat as a synonym for `TYPESAFE_API_KEY`. Do not add a new Convex dashboard secret under this name unless we later productize the direct API |
+**Optional extra**, only if a Gateway key is also present: Vercel AI Gateway `typesafe-ai/jev` via `experimental_evaluate`, and [vercel-labs/ai-cli](https://github.com/vercel-labs/ai-cli) `ai evaluate` (defaults to that model; needs `AI_GATEWAY_API_KEY`). Gateway is not required for P0/P1 while `TYPESAFE_API_KEY` is set. Zero Data Retention on Gateway: `providerOptions.gateway.zeroDataRetention`.
 
-Resolution for scripts: `AI_GATEWAY_API_KEY` → else `TYPESAFE_API_KEY` → else `TYPESAFE_AI_API_KEY` → else `JEV_API_KEY`. If none is set, skip the live Jev test (same pattern as `OPENROUTER_API_KEY` → synthetic embeddings). Do not 422 production retrieve if Jev is missing; the heuristic `#179` threshold stays the floor.
+Env names a spike may **read** (never commit values):
 
-Do **not** invent a fourth production secret. Do **not** paste keys into issues, PRs, or this markdown.
+| Name | Role |
+| --- | --- |
+| `TYPESAFE_API_KEY` | **Canonical for P0/P1.** On the engineer box now; add to the Cursor environment for cloud agents. TypeSafe docs / Python SDK / curl. |
+| `TYPESAFE_AI_API_KEY` | `@ai-sdk/typesafe-ai` default. If only `TYPESAFE_API_KEY` is set, alias it in the spike — do not invent a second secret. |
+| `AI_GATEWAY_API_KEY` | Optional. Gateway `typesafe-ai/jev` and `ai evaluate`. |
+| `JEV_API_KEY` | Optional local alias for `TYPESAFE_API_KEY`. Do not add a Convex dashboard secret under this name unless we later productize it. |
+
+Resolution for scripts: `TYPESAFE_API_KEY` → else `TYPESAFE_AI_API_KEY` → else `JEV_API_KEY` → else `AI_GATEWAY_API_KEY` (Gateway path). If none is set, skip the live Jev test. Do not 422 production retrieve if Jev is missing; the heuristic `#179` threshold stays the floor.
+
+Do **not** paste keys into issues, PRs, logs, or this markdown.
 
 Production later (only if the spike wins): store the chosen key the same way as `OPENROUTER_API_KEY` (`userEnvVars` + `tryUserAndApiKeyByClerkId`), not in the repo.
 
@@ -211,15 +218,15 @@ Optional later (after the retrieve gate): replace or shadow `factDecision.ts` AD
 
 ### 4.4 vercel-labs/ai-cli
 
-[vercel-labs/ai-cli](https://github.com/vercel-labs/ai-cli) (`npm i -g ai-cli`, Node 22+) is the **question-iteration** tool for this spike, not the production runtime.
+[vercel-labs/ai-cli](https://github.com/vercel-labs/ai-cli) (`npm i -g ai-cli`, Node 22+) is an optional **question-iteration** helper, not required for P0/P1 and not the production runtime.
 
 - `ai evaluate` wraps `experimental_evaluate`. Default model **`typesafe-ai/jev`**. Override with `-m` or `AI_CLI_EVALUATION_MODEL`.
 - Stdin → `state`; `--boolean` / `--choice` / `--score` or `--questions triage.json`.
 - stdout is the SDK JSON (`answers`, `usage`, `providerMetadata`). Thresholds live in `jq`, not the CLI (`jq -e '.answers.refund.probability >= 0.9'`).
 - `ai models --type evaluation` / `ai models typesafe-ai/jev` for catalog + pricing.
-- Needs `AI_GATEWAY_API_KEY`. 30s evaluate timeout default.
+- Needs **`AI_GATEWAY_API_KEY`**. The engineer box’s `TYPESAFE_API_KEY` does **not** satisfy this CLI. If only `TYPESAFE_API_KEY` is set, iterate questions with TypeSafe’s official API / `typesafe-sdk` instead.
 
-Use it to freeze instructions + `t` on labelled query/hit pairs **before** wiring a Convex action. Convex retrieve should call the SDK/API directly, not shell out to `ai`.
+Use whichever path is keyed to freeze instructions + `t` on labelled query/hit pairs **before** wiring a Convex action. Convex retrieve should call the SDK/API directly, not shell out to `ai`.
 
 ---
 
@@ -243,14 +250,14 @@ Use it to freeze instructions + `t` on labelled query/hit pairs **before** wirin
 
 ## 6. Recommendations
 
-Two independent tracks. Do not couple them. Jev experiments start **now** (key already exists). GLiNER starts with an offline accuracy pass, then a hosting choice.
+Two independent tracks. Do not couple them. P0/P1 Jev experiments use env `TYPESAFE_API_KEY` **immediately** (engineer box; cloud agents only after that name is in the saved Cursor environment). GLiNER starts with an offline accuracy pass, then a hosting choice.
 
 ### P0 — Jev retrieve-gate experiment (do immediately)
 
 **Goal:** calibrated relevance / abstention on top of #179, without changing write-time extract.
 
-1. Freeze 1–2 question files (`relevant`, maybe `trap`) using `ai evaluate` against labelled query + top-20 hits from the current ranker. Include abstentions, lexical traps, negations.
-2. Script in `packages/backend/tests/memory/` (or `eval/`) that reads `AI_GATEWAY_API_KEY` (else `TYPESAFE_API_KEY` / `TYPESAFE_AI_API_KEY` / `JEV_API_KEY`), calls Gateway `typesafe-ai/jev` or TypeSafe `jev-latest`, never prints the key.
+1. Freeze 1–2 question files (`relevant`, maybe `trap`) against labelled query + top-20 hits from the current ranker. Include abstentions, lexical traps, negations. Prefer TypeSafe official API with `TYPESAFE_API_KEY`; `ai evaluate` only if `AI_GATEWAY_API_KEY` is also present.
+2. Script in `packages/backend/tests/memory/` (or `eval/`) that reads **`TYPESAFE_API_KEY` first**, calls `jev-latest` (or Gateway `typesafe-ai/jev` if a Gateway key is set), never prints the key. Skip when unset so cloud agents without the secret still pass.
 3. Report: abstention @ `t ∈ {0.5, 0.7, 0.8, 0.9}` vs recall@5 / nDCG@10 on answerable queries; extra latency; cost from `usage.inputTokens`.
 4. Accept: a threshold that keeps labelled R@5 ≥ Neo4j bar (92%) **and** drops all 6 abstentions, without a large lexical-trap regression. If no such `t`, keep #179 heuristics and stop.
 
@@ -277,18 +284,20 @@ Implementation sketch if it wins (P1 productize): Convex retrieve action, top 20
 - Asking Jev to do date math, counting, or Jaccard.
 - Running GLiNER inside the Convex isolate.
 - New graph database.
-- Committing or requesting API keys.
+- Committing, requesting, printing, or embedding API keys (including in PRs). Cloud-agent Jev needs `TYPESAFE_API_KEY` in the saved Cursor environment, not in git.
 - Blocking retrieve on either model being configured.
 
 ---
 
 ## 7. Spike checklist
 
-**Jev (this week, access already there)**
+**Jev (this week — `TYPESAFE_API_KEY` on the engineer box; no waitlist)**
 
-- [ ] Confirm Gateway catalog: `ai models --type evaluation` / `ai models typesafe-ai/jev` (uses `AI_GATEWAY_API_KEY`).
+- [ ] Local spike: official API / `typesafe-sdk` with env `TYPESAFE_API_KEY` (do not print it).
+- [ ] Cloud-agent spike: confirm `TYPESAFE_API_KEY` is in the saved Cursor environment / secret store; if not, skip live calls. Do not add the value to the PR.
+- [ ] Optional: `ai models --type evaluation` / `ai evaluate` only when `AI_GATEWAY_API_KEY` is set.
 - [ ] Hand-label ~30 `{query, hit, relevant}` rows from labelled + hard corpora (include 6 abstentions + traps).
-- [ ] Iterate instructions with `ai evaluate --questions …`; lock `t` in code.
+- [ ] Iterate instructions; lock `t` in code.
 - [ ] Live script skipped-when-unset; no secrets in logs.
 - [ ] Write accept/reject in `eval/` next to RESULTS.md.
 
