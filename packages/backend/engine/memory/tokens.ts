@@ -1,5 +1,6 @@
 const STOPWORDS = new Set([
   "a",
+  "about",
   "an",
   "and",
   "are",
@@ -30,6 +31,7 @@ const STOPWORDS = new Set([
   "it",
   "its",
   "just",
+  "know",
   "me",
   "my",
   "no",
@@ -73,13 +75,35 @@ const STOPWORDS = new Set([
 ]);
 
 export function tokenize(text: string): string[] {
-  const parts = text.toLowerCase().split(/[^\p{L}\p{N}]+/u);
+  const parts = text.split(/[^\p{L}\p{N}]+/u);
   const tokens: string[] = [];
   for (const part of parts) {
     if (part.length === 0) continue;
-    tokens.push(part);
+    tokens.push(part.toLowerCase());
+    if (part.length <= 3) continue;
+    for (const piece of splitCompound(part)) {
+      const lower = piece.toLowerCase();
+      if (lower.length < 2 || lower === part.toLowerCase()) continue;
+      tokens.push(lower);
+    }
   }
   return tokens;
+}
+
+function splitCompound(part: string): string[] {
+  return part
+    .replace(/([a-z])([A-Z])/g, "$1\0$2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1\0$2")
+    .replace(/([a-zA-Z])(\d)/g, "$1\0$2")
+    .replace(/(\d)([a-zA-Z])/g, "$1\0$2")
+    .split("\0")
+    .filter((piece) => piece.length > 0);
+}
+
+export function hasWholeWord(text: string, term: string): boolean {
+  if (term.length === 0) return false;
+  const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(?:^|[^a-z0-9])${escaped}(?:$|[^a-z0-9])`, "i").test(text);
 }
 
 export function stem(token: string): string {
@@ -91,6 +115,8 @@ export function stem(token: string): string {
     next = next.slice(0, -3);
   } else if (next.endsWith("ed") && next.length > 4) {
     next = next.slice(0, -2);
+  } else if (next.endsWith("ves") && next.length > 4) {
+    next = next.slice(0, -1);
   } else if (next.endsWith("es") && next.length > 4) {
     next = next.slice(0, -2);
   } else if (next.endsWith("s") && next.length > 3 && !next.endsWith("ss")) {

@@ -2,8 +2,15 @@ import { writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { RetrievalLegs } from "../engine/memory/rank";
-import { generateBenchmarkCorpus, type RetrievalEvalQuery } from "./corpus";
+import {
+  generateBenchmarkCorpus,
+  type BenchmarkCorpus,
+  type RetrievalEvalQuery,
+} from "./corpus";
+import { generateHardCorpus } from "./hard-corpus";
 import { embeddingMode, generateEvalEmbeddings } from "./embeddings";
+import { buildSearchableText } from "../engine/memory/searchableText";
+import { queryEmbeddingText } from "../engine/memory/synonyms";
 import {
   mean,
   ndcgAtK,
@@ -33,6 +40,16 @@ export const NEO4J_FULL_HYBRID = {
   precision5: 0.264,
   mrr: 0.974,
   ndcg10: 0.857,
+};
+
+// Full hybrid on generateHardCorpus() before this ranking pass (synthetic embeddings).
+export const HARD_FULL_HYBRID_BEFORE: Pick<
+  AggMetrics,
+  "recall5" | "mrr" | "ndcg10"
+> = {
+  recall5: 0.781,
+  mrr: 0.703,
+  ndcg10: 0.674,
 };
 
 const NEO4J_ABLATION: Record<
@@ -93,6 +110,14 @@ const TYPE_ORDER = [
   "lexical-trap",
   "update",
   "multi-hop",
+  "paraphrase",
+  "long-tail",
+  "multi-hop-2",
+  "tag-conflict",
+  "tag-filter",
+  "type-intent",
+  "type-filter",
+  "distractor",
 ];
 
 function approxTokens(text: string): number {
@@ -335,19 +360,19 @@ ${vsNeo4j}
 
 ## Notes
 
-- Legs: \`vector-only\` / \`bm25-only\` are naive single-channel baselines. \`hybrid (no graph)\` is lexical+vector+recency. \`full hybrid\` adds 1-hop stored memory links.
+- Legs: \`vector-only\` / \`bm25-only\` are naive single-channel baselines. \`hybrid (no graph)\` is lexical+vector+recency. \`full hybrid\` adds stored memory links (up to 2 hops) as a second pass.
 - Query types: **single-fact / preference** one clear answer. **exact-match** distinctive codes among lookalikes. **project** sibling facts that never repeat the codename. **lexical-trap** repeats a query keyword in a different sense (graded 0). **update** stale vs current, recency separates them. **multi-hop** gold is one stored link from a bridge that shares the query entity.
 - Pure retrieval metrics + latency. No LLM judge. Neo4j is not used.
 - Convex numbers in this environment use deterministic synthetic embeddings unless \`OPENROUTER_API_KEY\` is set. The Neo4j 2026-07-18 bar used OpenRouter \`text-embedding-3-small\`.
 `;
 }
 
-export async function runAblation(): Promise<{
+export async function runCorpusAblation(corpus: BenchmarkCorpus): Promise<{
   runs: ConfigRun[];
-  report: string;
   answerable: RetrievalEvalQuery[];
+  abstention: RetrievalEvalQuery[];
+  stats: { memoryCount: number; tokens: number };
 }> {
-  const corpus = generateBenchmarkCorpus();
   const memories = corpus.memories.map(toEvalMemory);
   const links = linksFromCorpus(corpus);
   const answerable = corpus.queries.filter((q) => q.expectedTitles.length > 0);
@@ -356,9 +381,13 @@ export async function runAblation(): Promise<{
   );
   const uniqueQueries = [...new Set(corpus.queries.map((q) => q.query))];
   const memoryVectors = await generateEvalEmbeddings(
-    memories.map((memory) => `${memory.title}\n\n${memory.content}`),
+    memories.map((memory) =>
+      buildSearchableText(memory.title, memory.content, memory.tags),
+    ),
   );
-  const queryVectors = await generateEvalEmbeddings(uniqueQueries);
+  const queryVectors = await generateEvalEmbeddings(
+    uniqueQueries.map((query) => queryEmbeddingText(query)),
+  );
   const memoryEmbeddings = new Map<string, number[]>();
   for (let i = 0; i < memories.length; i += 1) {
     const memory = memories[i];
@@ -396,6 +425,7 @@ export async function runAblation(): Promise<{
         links,
         limit: EVAL_K,
         nowMs,
+        filter: query.filter,
       });
       const latencyMs = performance.now() - started;
       if (query.expectedTitles.length === 0) {
@@ -434,7 +464,119 @@ export async function runAblation(): Promise<{
       0,
     ),
   };
+  return { runs, answerable, abstention, stats };
+}
+
+export async function runAblation(): Promise<{
+  runs: ConfigRun[];
+  report: string;
+  answerable: RetrievalEvalQuery[];
+}> {
+  const corpus = generateBenchmarkCorpus();
+  const { runs, answerable, abstention, stats } =
+    await runCorpusAblation(corpus);
   const report = buildEvalReport(runs, stats, answerable, abstention);
+  return { runs, report, answerable };
+}
+
+export function buildHardEvalReport(
+  runs: ConfigRun[],
+  corpus: { tokens: number; memoryCount: number },
+  answerable: RetrievalEvalQuery[],
+  before?: Pick<AggMetrics, "recall5" | "mrr" | "ndcg10">,
+): string {
+  const today = new Date().toISOString().slice(0, 10);
+  const overall = runs.map((r) => ({
+    name: r.name,
+    agg: aggregate(r.outcomes),
+  }));
+  const overallTable = mdTable(
+    [
+      "Config",
+      "recall@1",
+      "recall@3",
+      "recall@5",
+      "recall@10",
+      "P@5",
+      "MRR",
+      "nDCG@10",
+    ],
+    overall.map(({ name, agg }) => [
+      name,
+      pct(agg.recall1),
+      pct(agg.recall3),
+      pct(agg.recall5),
+      pct(agg.recall10),
+      pct(agg.precision5),
+      agg.mrr.toFixed(3),
+      agg.ndcg10.toFixed(3),
+    ]),
+  );
+  const hybrid = overall.find((r) => r.name === "full hybrid")?.agg;
+  const vsBefore =
+    hybrid === undefined || before === undefined
+      ? ""
+      : `
+## vs previous Convex full hybrid on this suite
+
+${mdTable(
+  ["Metric", "Before", "After", "Δ"],
+  [
+    [
+      "recall@5",
+      pct(before.recall5),
+      pct(hybrid.recall5),
+      signedPct(hybrid.recall5 - before.recall5),
+    ],
+    [
+      "MRR",
+      before.mrr.toFixed(3),
+      hybrid.mrr.toFixed(3),
+      signedFixed(hybrid.mrr - before.mrr),
+    ],
+    [
+      "nDCG@10",
+      before.ndcg10.toFixed(3),
+      hybrid.ndcg10.toFixed(3),
+      signedFixed(hybrid.ndcg10 - before.ndcg10),
+    ],
+  ],
+)}`;
+
+  return `# vmem Convex hard retrieval eval
+
+Generated: ${today} · Corpus: ${String(corpus.memoryCount)} memories · Answerable queries: ${String(answerable.length)} · Embeddings: ${embeddingMode()}
+
+## Retrieval quality + ablation
+
+${overallTable}
+
+## nDCG@10 by query type
+
+${perTypeTable(runs, answerable, (m) => m.ndcg10.toFixed(3))}
+
+## Recall@5 by query type
+
+${perTypeTable(runs, answerable, (m) => pct(m.recall5))}
+${vsBefore}
+
+## Notes
+
+- Query types: **paraphrase** shares little surface form with gold. **long-tail** near-duplicate entity names. **multi-hop-2** gold is two stored links from the query entity. **tag-conflict** staging vs production. **tag-filter / type-filter** apply retrieve filters. **type-intent** must prefer profile without a filter. **distractor** recent keyword traps.
+- Convex-only. No Neo4j. No LLM judge.
+`;
+}
+
+export async function runHardAblation(
+  before?: Pick<AggMetrics, "recall5" | "mrr" | "ndcg10">,
+): Promise<{
+  runs: ConfigRun[];
+  report: string;
+  answerable: RetrievalEvalQuery[];
+}> {
+  const corpus = generateHardCorpus();
+  const { runs, answerable, stats } = await runCorpusAblation(corpus);
+  const report = buildHardEvalReport(runs, stats, answerable, before);
   return { runs, report, answerable };
 }
 
@@ -443,15 +585,24 @@ const isDirectRun =
   fileURLToPath(import.meta.url) === process.argv[1];
 
 if (isDirectRun) {
-  runAblation()
-    .then(({ report }) => {
-      const reportPath = fileURLToPath(
+  Promise.all([runAblation(), runHardAblation(HARD_FULL_HYBRID_BEFORE)])
+    .then(([labelled, hard]) => {
+      const labelledPath = fileURLToPath(
         new URL("../../../internal/bench/vmem-convex-eval.md", import.meta.url),
       );
-      mkdirSync(dirname(reportPath), { recursive: true });
-      writeFileSync(reportPath, report, "utf8");
-      console.log(report);
-      console.log(`\nwritten to ${reportPath}`);
+      const hardPath = fileURLToPath(
+        new URL(
+          "../../../internal/bench/vmem-convex-hard-eval.md",
+          import.meta.url,
+        ),
+      );
+      mkdirSync(dirname(labelledPath), { recursive: true });
+      writeFileSync(labelledPath, labelled.report, "utf8");
+      writeFileSync(hardPath, hard.report, "utf8");
+      console.log(labelled.report);
+      console.log(hard.report);
+      console.log(`\nwritten to ${labelledPath}`);
+      console.log(`written to ${hardPath}`);
     })
     .catch((error: unknown) => {
       console.error(error instanceof Error ? error.message : String(error));

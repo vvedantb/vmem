@@ -15,6 +15,7 @@
     "test:memory-bench": "vitest run tests/memory/benchmark/retrieve.bench.test.ts",
     "test:memory-eval": "vitest run tests/memory/eval.test.ts",
     "eval:bench": "vitest run tests/memory/eval.test.ts",
+    "eval:hard": "vitest run tests/memory/hard-eval.test.ts",
     "test:mcp": "vitest run tests/mcp",
     "test:mcp-live": "RUN_MCP_LIVE=1 vitest run tests/mcp/live.integration.test.ts tests/mcp/retrieveQuality.test.ts tests/mcp/extreme.test.ts",
     "build:mcp-graph-ui": "node scripts/build-memory-graph-mcp-app.mjs"

@@ -35,6 +35,10 @@ const CLUSTERS: readonly (readonly string[])[] = [
     "beverage",
     "caffeine",
     "oat",
+    "dairy",
+    "creamer",
+    "splash",
+    "milk",
   ],
   [
     "prefer",
@@ -48,11 +52,34 @@ const CLUSTERS: readonly (readonly string[])[] = [
     "favourite",
   ],
   ["install", "installs", "installed", "installation"],
-  ["london", "uk", "britain", "england", "live", "lives", "based"],
+  ["london", "uk", "britain", "england"],
   ["dog", "dogs", "puppy", "pet", "pets", "maple"],
   ["run", "runs", "running", "jog", "jogging", "5k"],
   ["react", "frontend", "ui"],
   ["alice", "person", "people"],
+  ["thesis", "dissertation", "filing", "deadline", "submit", "submitted"],
+  ["indent", "indents", "tab", "tabs", "space", "spaces"],
+  ["kindle", "ereader", "ebook", "print", "paper"],
+  ["window", "seat", "seats", "plane", "flight", "flights"],
+  ["async", "standup", "standups", "meeting", "status"],
+  ["invoice", "invoices", "bill", "bills", "settle", "payment", "net"],
+  [
+    "credential",
+    "credentials",
+    "password",
+    "hash",
+    "hashing",
+    "argon2id",
+    "argon",
+  ],
+  ["mockup", "mockups", "figma", "design"],
+  ["iphone", "ios"],
+  ["ticket", "tickets", "sla", "reply", "respond", "response"],
+  ["identifier", "uuid", "primary", "key", "rows"],
+  ["production", "prod"],
+  ["staging", "stage"],
+  ["pager", "paging", "pages", "page", "oncall"],
+  ["dri", "owner", "owns", "accountable"],
 ];
 
 const PHRASES: ReadonlyArray<readonly [string, readonly string[]]> = [
@@ -68,7 +95,21 @@ const PHRASES: ReadonlyArray<readonly [string, readonly string[]]> = [
   ["work out", ["workout", "workouts"]],
   ["payment terms", ["invoice", "invoices", "net"]],
   ["primary key", ["uuid", "primary"]],
-  ["where live", ["london", "uk"]],
+  ["where live", ["lives", "based"]],
+  ["turned in", ["submit", "submitted", "filing", "deadline", "thesis"]],
+  ["dairy free", ["oat", "milk", "coffee"]],
+  ["plant based", ["oat", "milk"]],
+  ["morning cup", ["coffee", "oat", "latte"]],
+  ["indent character", ["tab", "tabs", "indent"]],
+  ["written status", ["async", "standup", "standups"]],
+  ["settle bills", ["invoice", "invoices", "net"]],
+  ["stored credentials", ["password", "hash", "argon2id"]],
+  ["product mockups", ["figma", "design"]],
+  ["iphone os", ["ios"]],
+  ["customer ticket", ["support", "sla", "response"]],
+  ["identifier type", ["uuid", "primary"]],
+  ["e reader", ["kindle", "ereader", "ebook"]],
+  ["source of truth", ["catalog", "s2nexus"]],
 ];
 
 const TOKEN_TO_CLUSTER: ReadonlyMap<string, readonly string[]> = (() => {
@@ -131,4 +172,12 @@ export function expandedSearchText(query: string): string {
   const original = tokenize(query);
   const expanded = expandQueryTerms(query);
   return uniqueTokens([...original, ...expanded]).join(" ");
+}
+
+export function queryEmbeddingText(query: string): string {
+  const trimmed = query.trim();
+  if (trimmed.length === 0) return trimmed;
+  const expanded = expandedSearchText(trimmed);
+  if (expanded.length === 0) return trimmed;
+  return `${trimmed}\n${expanded}`;
 }

@@ -29,7 +29,9 @@ describe("MCP retrieve uses the labelled Convex hybrid ranker", () => {
     const pool = read("engine/memory/retrieve.ts");
     expect(pool).toContain("return rankMemories(pool, query, options)");
     const evalRetrieve = read("eval/retrieve.ts");
-    expect(evalRetrieve).toContain("return rankMemories(memories, query,");
+    expect(evalRetrieve).toContain(
+      "return retrieveMemoriesFromPool(memories, query,",
+    );
   });
 
   it("full hybrid on the labelled corpus meets the Neo4j 2026-07-18 bar", async () => {

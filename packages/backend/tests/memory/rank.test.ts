@@ -114,6 +114,147 @@ describe("rankMemories", () => {
     ).toContain("related via stored link");
   });
 
+  it("lifts a 2-hop neighbor that does not mention the query", () => {
+    const seed = memory({
+      id: "mem_seed",
+      title: "Quasar persists into Aurora",
+      content: "Quasar writes durable state into Aurora every night.",
+    });
+    const mid = memory({
+      id: "mem_mid",
+      title: "Aurora paging is owned by the storage team",
+      content: "When Aurora pages, the storage rota is the escalation path.",
+    });
+    const gold = memory({
+      id: "mem_gold2",
+      title: "Asha is first responder for the rota",
+      content: "Asha acknowledges that rota before anyone else on the shift.",
+    });
+    const links = [
+      {
+        sourceId: "mem_seed",
+        targetId: "mem_mid",
+        reason: "Quasar stored in Aurora",
+      },
+      {
+        sourceId: "mem_mid",
+        targetId: "mem_gold2",
+        reason: "storage on-call for Aurora",
+      },
+    ];
+    const without = rankMemories(
+      [seed, mid, gold, coffee],
+      "who pages when Quasar storage fails",
+      {
+        limit: 5,
+        legs: { graph: false },
+      },
+    );
+    const withGraph = rankMemories(
+      [seed, mid, gold, coffee],
+      "who pages when Quasar storage fails",
+      { limit: 5, links },
+    );
+    expect(without.map((hit) => hit.id)).not.toContain("mem_gold2");
+    expect(withGraph.map((hit) => hit.id)).toContain("mem_gold2");
+    expect(withGraph.findIndex((hit) => hit.id === "mem_gold2")).toBeLessThan(
+      3,
+    );
+  });
+
+  it("prefers a whole-word entity over a camelCase lookalike", () => {
+    const helios = memory({
+      id: "mem_helios",
+      title: "Asha is DRI for Helios",
+      content: "Asha owns Helios end to end, including incidents.",
+    });
+    const heliosRun = memory({
+      id: "mem_heliosrun",
+      title: "Benno is DRI for HeliosRun",
+      content: "HeliosRun is a separate batch pipeline. Benno owns it.",
+    });
+    const ranked = rankMemories([heliosRun, helios], "who is DRI for Helios", {
+      limit: 2,
+    });
+    expect(ranked[0]?.id).toBe("mem_helios");
+  });
+
+  it("does not let a recent keyword trap beat an older gold on a non-temporal query", () => {
+    const gold = memory({
+      id: "mem_prod",
+      title: "Card capture deadline",
+      content: "The live payments timeout aborts an auth after two seconds.",
+      tags: ["payments", "production"],
+      updatedAt: "2026-06-01T00:00:00.000Z",
+    });
+    const trap = memory({
+      id: "mem_stage",
+      title: "Payments timeout tuned last night",
+      content: "Timeout for payments is thirty seconds.",
+      tags: ["payments", "staging"],
+      updatedAt: "2026-09-16T00:00:00.000Z",
+    });
+    const ranked = rankMemories([trap, gold], "production payments timeout", {
+      limit: 2,
+      nowMs: Date.parse("2026-09-17T00:00:00.000Z"),
+    });
+    expect(ranked[0]?.id).toBe("mem_prod");
+  });
+
+  it("attaches the best matching chunk", () => {
+    const ranked = rankMemories(
+      [
+        memory({
+          id: "mem_long",
+          title: "Runbook",
+          content:
+            "Unrelated intro. Vault canary is orange-mule-42 and must stay unique. Trailing noise.",
+        }),
+      ],
+      "vault canary token",
+      { limit: 1 },
+    );
+    expect(ranked[0]?.matchedChunk?.content.toLowerCase()).toContain("canary");
+    expect(ranked[0]?.trace.scoreBreakdown.rerankerScore).toBeGreaterThan(0);
+  });
+
+  it("ranks a profile live-in fact over office and trip notes", () => {
+    const profile = memory({
+      id: "mem_live",
+      title: "Lives in Lisbon",
+      content: "Based in Lisbon, Portugal, near the river.",
+      type: "profile",
+      tags: ["city"],
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    });
+    const office = memory({
+      id: "mem_office",
+      title: "Lisbon office has twelve desks",
+      content: "The Lisbon office is a knowledge note about seating.",
+      updatedAt: "2026-09-01T00:00:00.000Z",
+    });
+    const trip = memory({
+      id: "mem_trip",
+      title: "Flew to Lisbon last May",
+      content: "Weekend trip to Lisbon for a conference.",
+      type: "episodic",
+      updatedAt: "2026-09-10T00:00:00.000Z",
+    });
+    const standup = memory({
+      id: "mem_standup",
+      title: "Prefers async standups over live ones",
+      content: "Would rather post a written standup than attend a live call.",
+      type: "profile",
+      updatedAt: "2026-08-01T00:00:00.000Z",
+    });
+    const ranked = rankMemories(
+      [office, trip, profile, standup],
+      "where does the user live",
+      { limit: 3, nowMs: Date.parse("2026-09-17T00:00:00.000Z") },
+    );
+    expect(ranked[0]?.id).toBe("mem_live");
+  });
+
   it("ranks a prefer-title over a recency trap that shares one token", () => {
     const prefer = memory({
       id: "mem_prefer",
