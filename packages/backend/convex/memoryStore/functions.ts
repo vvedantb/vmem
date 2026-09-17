@@ -2,7 +2,11 @@ import { v } from "convex/values";
 import { zodToConvex } from "convex-helpers/server/zod";
 import { memoryWithTagsSchema } from "@vmem/sdk";
 import { internalMutation, internalQuery } from "../_generated/server";
-import { memoryStatusValidator, memoryTypeValidator } from "../validators";
+import {
+  memoryEntityTypeValidator,
+  memoryStatusValidator,
+  memoryTypeValidator,
+} from "../validators";
 import {
   collectScopedMemories,
   createMemory,
@@ -27,6 +31,12 @@ import {
   upsertMemoryFromSource,
   supersedeMemories,
 } from "./helpers";
+import {
+  applyLlmEntityExtraction,
+  listEntitiesForGraph,
+  listKnownEntities,
+  listRecentMemoryCandidates,
+} from "./entities";
 
 const memoryWithTagsValidator = zodToConvex(memoryWithTagsSchema);
 
@@ -372,6 +382,9 @@ export const linkMemoriesInternal = internalMutation({
     memoryIdA: v.string(),
     memoryIdB: v.string(),
     reason: v.string(),
+    origin: v.optional(
+      v.union(v.literal("manual"), v.literal("entity"), v.literal("extract")),
+    ),
   },
   returns: v.boolean(),
   handler: async (ctx, args) => linkMemories(ctx, args),
@@ -391,4 +404,78 @@ export const listMemoryLinksForUserInternal = internalQuery({
   args: { userId: v.string() },
   returns: v.array(memoryLinkEdgeValidator),
   handler: async (ctx, args) => listMemoryLinksForUser(ctx, args.userId),
+});
+
+const extractedEntityValidator = v.object({
+  name: v.string(),
+  normalizedName: v.string(),
+  type: memoryEntityTypeValidator,
+  match: v.union(v.literal("token"), v.literal("team"), v.literal("project")),
+});
+
+const knownEntityValidator = v.object({
+  name: v.string(),
+  normalizedName: v.string(),
+  type: v.string(),
+});
+
+export const listKnownEntitiesInternal = internalQuery({
+  args: { userId: v.string() },
+  returns: v.array(knownEntityValidator),
+  handler: async (ctx, args) => listKnownEntities(ctx, args.userId),
+});
+
+export const listRecentMemoryCandidatesInternal = internalQuery({
+  args: {
+    userId: v.string(),
+    profileId: v.optional(v.string()),
+    excludeMemoryId: v.string(),
+  },
+  returns: v.array(
+    v.object({
+      id: v.string(),
+      title: v.string(),
+      tags: v.array(v.string()),
+    }),
+  ),
+  handler: async (ctx, args) =>
+    listRecentMemoryCandidates(
+      ctx,
+      args.userId,
+      args.profileId,
+      args.excludeMemoryId,
+    ),
+});
+
+export const applyLlmEntityExtractionInternal = internalMutation({
+  args: {
+    userId: v.string(),
+    memoryId: v.string(),
+    entities: v.array(extractedEntityValidator),
+    relatedMemoryIds: v.array(v.string()),
+  },
+  returns: v.number(),
+  handler: async (ctx, args) => applyLlmEntityExtraction(ctx, args),
+});
+
+export const listEntitiesForGraphInternal = internalQuery({
+  args: { userId: v.string() },
+  returns: v.object({
+    nodes: v.array(
+      v.object({
+        id: v.string(),
+        name: v.string(),
+        normalizedName: v.string(),
+        type: v.string(),
+        createdAt: v.number(),
+      }),
+    ),
+    mentions: v.array(
+      v.object({
+        memoryId: v.string(),
+        entityId: v.string(),
+      }),
+    ),
+  }),
+  handler: async (ctx, args) => listEntitiesForGraph(ctx, args.userId),
 });

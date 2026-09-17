@@ -23,6 +23,8 @@ import {
   contextPromptCacheFields,
   memoryFields,
   memoryLinkFields,
+  memoryEntityFields,
+  memoryEntityMentionFields,
   proposedUpdateFields,
   presentationSessionFields,
   presentationVoteFields,
@@ -167,6 +169,15 @@ const schema = defineSchema({
     .index("by_user_source", ["userId", "sourceId"])
     .index("by_user_target", ["userId", "targetId"])
     .index("by_source_target", ["sourceId", "targetId"]),
+
+  memoryEntities: defineTable(memoryEntityFields)
+    .index("by_user", ["userId"])
+    .index("by_user_normalized", ["userId", "normalizedName"]),
+
+  memoryEntityMentions: defineTable(memoryEntityMentionFields)
+    .index("by_memory", ["memoryId"])
+    .index("by_entity", ["entityId"])
+    .index("by_user_normalized", ["userId", "normalizedName"]),
 
   proposedUpdates: defineTable(proposedUpdateFields)
     .index("by_proposal_id", ["proposalId"])

@@ -139,6 +139,12 @@ export async function createMemoryForClerk(
     content: created.content,
     tags: created.tags,
   });
+  await scheduleMemoryEntityExtraction(ctx, {
+    clerkId: args.clerkId,
+    memoryId: created.id,
+    profileId: created.profileId ?? args.profileId,
+    updatedAt: created.updatedAt,
+  });
   return created;
 }
 
@@ -230,6 +236,12 @@ export async function updateMemoryForClerk(
         content: updated.content,
         tags: updated.tags,
       });
+      await scheduleMemoryEntityExtraction(ctx, {
+        clerkId: args.clerkId,
+        memoryId: updated.id,
+        profileId: updated.profileId ?? undefined,
+        updatedAt: updated.updatedAt,
+      });
     }
   }
   return updated;
@@ -267,6 +279,27 @@ async function scheduleMemoryEmbedding(
     profileId: args.profileId ?? undefined,
     text: buildSearchableText(args.title, args.content, args.tags ?? []),
   });
+}
+
+async function scheduleMemoryEntityExtraction(
+  ctx: MemoryCtx,
+  args: {
+    clerkId: string;
+    memoryId: string;
+    profileId?: string | null;
+    updatedAt: string;
+  },
+): Promise<void> {
+  await ctx.scheduler.runAfter(
+    0,
+    internal.memoryExtract.extractMemoryEntitiesInternal,
+    {
+      clerkId: args.clerkId,
+      memoryId: args.memoryId,
+      profileId: args.profileId ?? undefined,
+      updatedAt: args.updatedAt,
+    },
+  );
 }
 
 export async function retrieveMemoriesForClerk(
@@ -897,6 +930,27 @@ export async function storeMemoryFromInstruction(
     });
     candidates = applied.candidates;
     if (applied.created && applied.applied) created.push(applied.applied);
+  }
+  if (created.length > 1) {
+    for (let i = 0; i < created.length; i += 1) {
+      const left = created[i];
+      if (left === undefined) continue;
+      for (let j = i + 1; j < created.length; j += 1) {
+        const right = created[j];
+        if (right === undefined) continue;
+        await ctx.runMutation(
+          internal.memoryStore.functions.linkMemoriesInternal,
+          {
+            userId: args.clerkId,
+            profileId: left.profileId ?? args.profileId,
+            memoryIdA: left.id,
+            memoryIdB: right.id,
+            reason: "extracted together",
+            origin: "extract",
+          },
+        );
+      }
+    }
   }
   return {
     created,

@@ -937,12 +937,50 @@ describe("convex memoryStore", () => {
       internal.memoryStore.functions.listMemoryLinksForUserInternal,
       { userId: USER_A },
     );
-    expect(links).toHaveLength(1);
-    expect(links[0]?.reason).toBe("updates");
+    expect(links.some((link) => link.reason === "updates")).toBe(true);
 
     const ranked = listed.memories.map((memory) =>
       toMemoryCandidate(memory, "what editor currently"),
     );
     expect(ranked.some((hit) => hit.id === stale.id)).toBe(false);
+  });
+
+  it("auto-extracts entities and links memories that share them", async () => {
+    const t = convexTest(schema, modules);
+    const aliceDark = await t.mutation(
+      internal.memoryStore.functions.createMemoryInternal,
+      createArgs({
+        memoryId: "mem_alice_dark",
+        title: "Alice prefers dark mode",
+        content: "Alice uses dark mode in every editor.",
+      }),
+    );
+    const aliceLondon = await t.mutation(
+      internal.memoryStore.functions.createMemoryInternal,
+      createArgs({
+        memoryId: "mem_alice_london",
+        title: "Alice lives in London",
+        content: "Alice is based in London.",
+      }),
+    );
+
+    const listed = await t.query(
+      internal.memoryStore.functions.listMemoryLinksForUserInternal,
+      { userId: USER_A },
+    );
+    expect(listed).toHaveLength(1);
+    expect(listed[0]?.reason.toLowerCase()).toContain("alice");
+    const ids = new Set([listed[0]?.sourceId, listed[0]?.targetId]);
+    expect(ids.has(aliceDark.id)).toBe(true);
+    expect(ids.has(aliceLondon.id)).toBe(true);
+
+    const graph = await t.query(
+      internal.memoryStore.functions.listEntitiesForGraphInternal,
+      { userId: USER_A },
+    );
+    expect(graph.nodes.some((node) => node.normalizedName === "alice")).toBe(
+      true,
+    );
+    expect(graph.mentions.length).toBeGreaterThanOrEqual(2);
   });
 });

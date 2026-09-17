@@ -5,6 +5,7 @@ import {
   rankedFtsHits,
   selectRetrieveCandidates,
 } from "../engine/memory/candidates";
+import { autoLinksFromMemories } from "../engine/memory/entities";
 import { retrieveMemoriesFromPool } from "../engine/memory/retrieve";
 import {
   FTS_TAKE,
@@ -47,6 +48,10 @@ export function linksFromCorpus(corpus: BenchmarkCorpus): MemoryLinkEdge[] {
     targetId: rel.targetId,
     reason: rel.reason,
   }));
+}
+
+export function autoLinksFromCorpus(corpus: BenchmarkCorpus): MemoryLinkEdge[] {
+  return autoLinksFromMemories(corpus.memories);
 }
 
 export function vectorScoresForQuery(
