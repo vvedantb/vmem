@@ -45,6 +45,8 @@ const config: KnipConfig = {
         "scripts/generate-og-image.mjs!",
       ],
       project: ["src/**/*.{ts,tsx}", "scripts/generate-og-image.mjs"],
+      // CSS `@import "shadow-plugin"` — knip does not trace stylesheet imports.
+      ignoreDependencies: ["shadow-plugin"],
     },
     "apps/chrome-extension": {
       entry: [
@@ -58,9 +60,13 @@ const config: KnipConfig = {
         "tests/**/*.{mts,ts,mjs}",
       ],
       vite: false,
-      // tailwindcss / tailwindcss-animate: used by globals.css `@import`/`@plugin`;
-      // invisible to knip because vite is off for this workspace.
-      ignoreDependencies: ["tailwindcss", "tailwindcss-animate"],
+      // tailwindcss / tailwindcss-animate / shadow-plugin: used by globals.css
+      // `@import`/`@plugin`; invisible to knip because vite is off here.
+      ignoreDependencies: [
+        "tailwindcss",
+        "tailwindcss-animate",
+        "shadow-plugin",
+      ],
     },
     "packages/backend": {
       entry: [

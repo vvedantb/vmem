@@ -1,3 +1,5 @@
+@import "shadow-plugin";
+
 /* transitions-dev — modal + tabs (see .claude/skills/transitions-dev/) */
 :root {
   --modal-open-dur: 250ms;
@@ -42,7 +44,9 @@
  *
  * Floating UI
  *   --overlay        Dialogs, popovers, dropdowns, tooltips
- *   --overlay-shadow Elevation shadow for floating overlays (dropdowns, dialogs, etc.)
+ *   --overlay-shadow Legacy elevation token; floating overlays use
+ *                    `smooth-shadow-ring-*` from shadow-plugin instead
+ *                    (never `border` + `shadow` on the same overlay)
  *   --backdrop       Modal scrim (black + opacity); pair with backdrop-blur on overlay
  *
  * Controls
@@ -385,7 +389,6 @@
 
   .glass-panel-strong {
     @apply bg-overlay;
-    box-shadow: var(--overlay-shadow);
   }
 
   /* Opacity modifiers don't work on bare oklch --muted; mix explicitly. */

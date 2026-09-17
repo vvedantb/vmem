@@ -3,7 +3,6 @@ import { Command as CommandPrimitive } from "cmdk";
 import { IconSearch } from "@tabler/icons-react";
 import { Dialog, DialogContent } from "./dialog";
 import { cn } from "../utils/cn";
-import { floatingSurfaceClass } from "./_menu-classes";
 
 const Command = React.forwardRef<
   React.ComponentRef<typeof CommandPrimitive>,
@@ -12,8 +11,7 @@ const Command = React.forwardRef<
   <CommandPrimitive
     ref={ref}
     className={cn(
-      "flex h-full w-full flex-col overflow-hidden",
-      floatingSurfaceClass,
+      "flex h-full w-full flex-col overflow-hidden rounded-lg bg-overlay text-overlay-foreground",
       className,
     )}
     {...props}

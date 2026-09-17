@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "shadow-plugin";
 @plugin "tailwindcss-animate";
 
 @source "../../node_modules/@vmem/ui/src/**/*.{ts,tsx}";
@@ -259,11 +260,10 @@ input[type="range"] {
   }
 }
 
-/* floating overlays matches apps/web */
+/* floating overlays matches apps/web; elevation is `smooth-shadow-ring-*` */
 .glass-panel-strong {
   background: var(--overlay);
   color: var(--overlay-foreground);
-  box-shadow: var(--overlay-shadow);
 }
 
 /* transitions.dev tabs sliding (matches apps/web) */

@@ -28,7 +28,7 @@ export function SlideOverPanel({
           animate={{ x: 0 }}
           exit={{ x: "100%" }}
           transition={{ type: "spring", damping: 30, stiffness: 300 }}
-          className={`absolute top-0 right-0 bottom-0 ${width} z-20 glass-panel-strong overflow-y-auto hidden md:flex flex-col`}
+          className={`absolute top-0 right-0 bottom-0 ${width} z-20 glass-panel-strong smooth-shadow-ring-xl overflow-y-auto hidden md:flex flex-col`}
         >
           <div className="flex items-start justify-between p-4 pb-2">
             {header}

@@ -96,6 +96,9 @@ catalogs:
     react-dom:
       specifier: 19.2.0
       version: 19.2.0
+    shadow-plugin:
+      specifier: ^1.2.4
+      version: 1.2.7
     sonner:
       specifier: ^2.0.3
       version: 2.0.7
@@ -228,6 +231,9 @@ importers:
       react-dom:
         specifier: 'catalog:'
         version: 19.2.0(react@19.2.0)
+      shadow-plugin:
+        specifier: 'catalog:'
+        version: 1.2.7
       turndown:
         specifier: ^7.2.4
         version: 7.2.4
@@ -426,6 +432,9 @@ importers:
       react-virtuoso:
         specifier: ^4.18.4
         version: 4.18.5(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      shadow-plugin:
+        specifier: 'catalog:'
+        version: 1.2.7
       sonner:
         specifier: 'catalog:'
         version: 2.0.7(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -7463,6 +7472,9 @@ packages:
 
   setprototypeof@1.2.0:
     resolution: {integrity: sha512-E5LDX7Wrp85Kil5bhZv46j8jOeboKq5JMmYM3gVGdGH8xFpPWXUMsNrlODCrkoxMEeNi/XZIwuRvY4XNwYMJpw==}
+
+  shadow-plugin@1.2.7:
+    resolution: {integrity: sha512-VW+flas6o3jhkE2Um6gf3FFSLXSCoP//yhS4DP2KWeUEgDsbxA0A+mObqcZZVEbClFXZ3XByhCDkDddR1cgDvg==}
 
   sharp@0.35.4:
     resolution: {integrity: sha512-n++8XWcj+jCOr2IOl7h8LbKnGBDY4aPbmprMONBNFdn0ImXqpGVv5zliDs0V9HbmbCQLpbuo2ej9rAoOQTvMDA==}
@@ -15808,6 +15820,8 @@ snapshots:
   setimmediate@1.0.5: {}
 
   setprototypeof@1.2.0: {}
+
+  shadow-plugin@1.2.7: {}
 
   sharp@0.35.4(@types/node@20.19.39):
     dependencies:
