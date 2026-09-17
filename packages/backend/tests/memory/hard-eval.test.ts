@@ -27,6 +27,7 @@ describe("hard labelled corpus invariants", () => {
     expect(types.has("tag-conflict")).toBe(true);
     expect(types.has("type-filter")).toBe(true);
     expect(types.has("distractor")).toBe(true);
+    expect(types.has("temporal")).toBe(true);
     expect(answerable.some((q) => q.filter !== undefined)).toBe(true);
   });
 });
@@ -34,7 +35,9 @@ describe("hard labelled corpus invariants", () => {
 describe("Convex hard labelled ablation", () => {
   it("full hybrid beats the previous hard-suite bar", async () => {
     const { runs, report } = await runHardAblation(HARD_FULL_HYBRID_BEFORE);
-    console.log(`\n${report}\n`);
+    if (process.env.EVAL_VERBOSE) {
+      console.log(`\n${report}\n`);
+    }
     const full = aggregate(
       runs.find((run) => run.name === "full hybrid")?.outcomes ?? [],
     );
@@ -54,6 +57,10 @@ describe("Convex hard labelled ablation", () => {
     expect(byType("full hybrid", "multi-hop-2").ndcg10).toBeGreaterThan(
       byType("hybrid (no graph)", "multi-hop-2").ndcg10,
     );
+    expect(byType("full hybrid", "temporal").ndcg10).toBeGreaterThan(0.7);
+    expect(byType("full hybrid", "temporal").ndcg10).toBeGreaterThan(
+      byType("hybrid (no temporal)", "temporal").ndcg10,
+    );
   }, 60_000);
 
   it("index candidate pool beats legacy 200∪32∪32 on the hard suite", async () => {
@@ -61,7 +68,9 @@ describe("Convex hard labelled ablation", () => {
       generateHardCorpus(),
       "hard",
     );
-    console.log(`\n${report}\n`);
+    if (process.env.EVAL_VERBOSE) {
+      console.log(`\n${report}\n`);
+    }
     expect(widened.recall5).toBeGreaterThanOrEqual(legacy.recall5);
     expect(widened.recall10).toBeGreaterThanOrEqual(legacy.recall10);
     expect(widened.recall5).toBeGreaterThanOrEqual(0.9);

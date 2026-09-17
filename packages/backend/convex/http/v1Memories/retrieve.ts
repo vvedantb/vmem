@@ -36,6 +36,9 @@ async function runRetrieveHandler(
           status: body.status,
           source: body.source,
           limit: body.limit ?? 10,
+          threshold: body.threshold,
+          rerank: body.rerank,
+          referenceDate: body.referenceDate,
         })
       : await retrieveMemoriesForClerk(ctx, {
           clerkId: auth.clerkId,
@@ -46,6 +49,9 @@ async function runRetrieveHandler(
           status: body.status,
           source: body.source,
           limit: body.limit ?? 10,
+          threshold: body.threshold,
+          rerank: body.rerank,
+          referenceDate: body.referenceDate,
         });
 
   const userContext = await ctx.runQuery(

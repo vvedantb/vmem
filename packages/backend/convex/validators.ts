@@ -1,7 +1,11 @@
 import { v } from "convex/values";
 import { omit } from "convex-helpers";
 import { zodToConvex } from "convex-helpers/server/zod";
-import { memoryStatusSchema, memoryTypeSchema } from "@vmem/sdk";
+import {
+  memoryStatusSchema,
+  memoryTypeSchema,
+  temporalKindSchema,
+} from "@vmem/sdk";
 import { z } from "zod";
 import {
   openRouterEndpointSchema,
@@ -40,6 +44,9 @@ export const memoryFields = {
   lastVisitAt: v.number(),
   searchableText: v.optional(v.string()),
   embedding: v.optional(v.array(v.float64())),
+  eventStart: v.optional(v.union(v.number(), v.null())),
+  eventEnd: v.optional(v.union(v.number(), v.null())),
+  temporalKind: v.optional(v.union(zodToConvex(temporalKindSchema), v.null())),
 };
 
 export const memoryLinkOriginValidator = v.union(

@@ -218,6 +218,61 @@ describe("rankMemories", () => {
     expect(ranked[0]?.trace.scoreBreakdown.rerankerScore).toBeGreaterThan(0);
   });
 
+  it("boosts event windows over same-age recency for last-week queries", () => {
+    const nowMs = Date.parse("2026-09-17T12:00:00.000Z");
+    const week = memory({
+      id: "mem_week",
+      title: "Summit dinner with Alice",
+      content: "Sat with Alice at the product summit dinner.",
+      type: "episodic",
+      eventStart: "2026-09-07T00:00:00.000Z",
+      eventEnd: "2026-09-08T00:00:00.000Z",
+      temporalKind: "event",
+      createdAt: "2026-09-15T00:00:00.000Z",
+      updatedAt: "2026-09-15T00:00:00.000Z",
+    });
+    const yday = memory({
+      id: "mem_yday",
+      title: "Standup with Alice",
+      content: "Alice joined the morning standup.",
+      type: "episodic",
+      eventStart: "2026-09-16T00:00:00.000Z",
+      eventEnd: "2026-09-17T00:00:00.000Z",
+      temporalKind: "event",
+      createdAt: "2026-09-15T00:00:00.000Z",
+      updatedAt: "2026-09-15T00:00:00.000Z",
+    });
+    const ranked = rankMemories([yday, week], "Alice last week", {
+      limit: 2,
+      nowMs,
+    });
+    expect(ranked[0]?.id).toBe("mem_week");
+    expect(ranked[0]?.trace.scoreBreakdown.temporal).toBeGreaterThan(
+      ranked[1]?.trace.scoreBreakdown.temporal ?? 0,
+    );
+    expect(ranked[0]?.trace.reason).toContain("temporal");
+  });
+
+  it("keeps Context Trace legs when optional rerank is on", () => {
+    const ranked = rankMemories([pnpm, coffee], "pnpm", {
+      limit: 2,
+      rerank: true,
+    });
+    expect(ranked[0]?.id).toBe("mem_pnpm");
+    expect(ranked[0]?.trace.scoreBreakdown.fulltext).toBeGreaterThan(0);
+    expect(ranked[0]?.trace.scoreBreakdown.rerankerScore).toBeGreaterThan(0);
+  });
+
+  it("drops hits below a score threshold", () => {
+    const all = rankMemories([pnpm, coffee], "pnpm");
+    expect(all.length).toBeGreaterThan(0);
+    const floor = (all[0]?.trace.score ?? 0) + 0.01;
+    const filtered = rankMemories([pnpm, coffee], "pnpm", {
+      threshold: floor,
+    });
+    expect(filtered).toEqual([]);
+  });
+
   it("ranks a profile live-in fact over office and trip notes", () => {
     const profile = memory({
       id: "mem_live",

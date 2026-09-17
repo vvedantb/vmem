@@ -80,6 +80,22 @@ const memoryRetrieveSchema = retrieveBodySchema
       .max(50)
       .optional()
       .describe("Max results (default 10)"),
+    threshold: z
+      .number()
+      .min(0)
+      .max(1)
+      .optional()
+      .describe("Drop hits whose blended score is below this threshold"),
+    rerank: z
+      .boolean()
+      .optional()
+      .describe(
+        "Optional lightweight rerank of the top 20 hits; keeps Context Trace legs",
+      ),
+    referenceDate: z
+      .string()
+      .optional()
+      .describe("ISO date used for last-week / currently temporal scoring"),
   });
 
 const memoryAddSchema = structuredStoreBodySchema
@@ -208,7 +224,7 @@ export const memoryToolSpecs = {
     name: "memory_retrieve",
     schema: memoryRetrieveSchema,
     description:
-      "Retrieve the most relevant memories for a query using hybrid full-text, synonym, recency, and optional vector ranking. type, tags, status, and source filters are applied before ranking. Defaults to the active profile unless profileId is specified.",
+      "Retrieve the most relevant memories for a query using hybrid full-text, synonym, recency, temporal, and optional vector ranking. type, tags, status, and source filters are applied before ranking. Optional threshold / rerank keep the Context Trace. Defaults to the active profile unless profileId is specified.",
     errorLabel: "Retrieve failed",
     async run(h, params): Promise<unknown> {
       return withMcpMemoryScope(
@@ -227,6 +243,9 @@ export const memoryToolSpecs = {
                 status: params.status,
                 source: params.source,
                 limit,
+                threshold: params.threshold,
+                rerank: params.rerank,
+                referenceDate: params.referenceDate,
               }),
             personal: ({ clerkId, profileId }) =>
               retrieveMemoriesForClerk(h.ctx, {
@@ -238,6 +257,9 @@ export const memoryToolSpecs = {
                 status: params.status,
                 source: params.source,
                 limit,
+                threshold: params.threshold,
+                rerank: params.rerank,
+                referenceDate: params.referenceDate,
               }),
           });
         },

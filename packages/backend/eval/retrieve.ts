@@ -39,6 +39,13 @@ export function toEvalMemory(memory: BenchmarkMemory): MemoryWithTags {
     updatedAt: memory.updatedAt,
     expiresAt: memory.expiresAt,
     tags: memory.tags,
+    ...(memory.eventStart === undefined
+      ? {}
+      : { eventStart: memory.eventStart }),
+    ...(memory.eventEnd === undefined ? {} : { eventEnd: memory.eventEnd }),
+    ...(memory.temporalKind === undefined
+      ? {}
+      : { temporalKind: memory.temporalKind }),
   };
 }
 
@@ -97,6 +104,8 @@ export function retrieveEval(
     filter?: RetrievalEvalFilter;
     ftsRanks?: ReadonlyMap<string, number>;
     caps?: RetrieveCandidateCaps;
+    threshold?: number;
+    rerank?: boolean;
   },
 ): MemoryCandidate[] {
   const useVector = options.legs.vector !== false;
@@ -125,6 +134,8 @@ export function retrieveEval(
       tags: options.filter?.tags,
       status: options.filter?.status,
       source: options.filter?.source,
+      threshold: options.threshold,
+      rerank: options.rerank,
       vectorScores: useVector ? selected.vectorScores : undefined,
       ftsRanks: useFulltext ? selected.ftsRanks : undefined,
     });
@@ -139,6 +150,8 @@ export function retrieveEval(
     tags: options.filter?.tags,
     status: options.filter?.status,
     source: options.filter?.source,
+    threshold: options.threshold,
+    rerank: options.rerank,
     vectorScores: useVector ? allVectorScores : undefined,
     ftsRanks:
       useFulltext && query.trim().length > 0

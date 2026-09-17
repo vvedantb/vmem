@@ -55,6 +55,12 @@ export default function MemoryTraceHover({
               value={scoreBreakdown.entity}
             />
           ) : null}
+          {(scoreBreakdown.temporal ?? 0) > 0 ? (
+            <MemoryScoreBar
+              label="Temporal"
+              value={scoreBreakdown.temporal ?? 0}
+            />
+          ) : null}
         </div>
         <p className="mt-3 text-[11px] italic leading-snug text-muted">
           {trace.reason}

@@ -100,6 +100,9 @@ describe("memoryApi contract request schemas", () => {
         source: "mcp",
         limit: 50,
         summarize: true,
+        threshold: 0.8,
+        rerank: true,
+        referenceDate: "2026-09-17",
       }).success,
     ).toBe(true);
     expect(

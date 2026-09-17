@@ -188,6 +188,9 @@ export const retrieveMemories = authAction({
     status: v.optional(v.string()),
     source: v.optional(v.string()),
     limit: v.number(),
+    threshold: v.optional(v.number()),
+    rerank: v.optional(v.boolean()),
+    referenceDate: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<RetrieveMemoriesResult> => {
     const [memories, userContext] = await Promise.all([
@@ -202,6 +205,9 @@ export const retrieveMemories = authAction({
             status: args.status,
             source: args.source,
             limit: args.limit,
+            threshold: args.threshold,
+            rerank: args.rerank,
+            referenceDate: args.referenceDate,
           }),
         personal: (clerkId) =>
           retrieveMemoriesForClerk(ctx, {
@@ -213,6 +219,9 @@ export const retrieveMemories = authAction({
             status: args.status,
             source: args.source,
             limit: args.limit,
+            threshold: args.threshold,
+            rerank: args.rerank,
+            referenceDate: args.referenceDate,
           }),
       }),
       ctx.runQuery(internal.userSettings.getUserContextInternal, {

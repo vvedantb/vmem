@@ -17,8 +17,10 @@ When you call `memoryApi.retrieveMemories` or `POST /api/v1/memories/retrieve`, 
 4. **Entity** — Tag / proper-name overlap between query and memory
 5. **RRF** — Reciprocal rank fusion of the ranked legs
 6. **Recency** — How recently the memory was created or updated
-7. **Confidence** — The memory's stored confidence score
-8. **Graph path** (optional) — 1-hop neighbour via Convex `memoryLinks`
+7. **Temporal** — Event / state windows vs the query (`last week`, `currently`, explicit dates). Additive; lexical still dominates.
+8. **Confidence** — The memory's stored confidence score
+9. **Graph path** (optional) — 1-hop neighbour via Convex `memoryLinks`
+10. **Rerank** (optional) — Extra top-20 blend when `rerank: true`; stored as `rerankerScore` without dropping other legs
 
 Each signal contributes to a composite score, and the trace shows the contribution of each.
 
@@ -41,7 +43,9 @@ Each retrieved memory includes a `trace` object:
       "entity": 0.1,
       "rrf": 0.72,
       "recency": 0.9,
-      "confidence": 0.95
+      "temporal": 0.8,
+      "confidence": 0.95,
+      "rerankerScore": 0.88
     }
   },
   "matchedChunk": {

@@ -2,7 +2,7 @@
 // tag+type filters, and keyword-stuffed distractors. Separate from the Neo4j
 // comparison corpus so that bar stays frozen.
 
-import type { MemoryType } from "@vmem/sdk";
+import type { MemoryType, TemporalKind } from "@vmem/sdk";
 import type {
   BenchmarkCorpus,
   BenchmarkMemory,
@@ -22,6 +22,9 @@ interface MemSpec {
   type?: MemoryType;
   tags?: string[];
   ageDays?: number;
+  eventStartAgeDays?: number;
+  eventEndAgeDays?: number;
+  temporalKind?: TemporalKind;
 }
 
 interface RelSpec {
@@ -717,6 +720,112 @@ const FILLER_BASES = [
   "PagerDuty of bringing snacks to the office",
 ];
 
+function temporalWindowScenarios(): Scenario[] {
+  const dated = isoFromAgeDays(40).slice(0, 10);
+  return [
+    {
+      memories: [
+        {
+          key: "ht_yday",
+          title: "Coffee with Priya",
+          content: "Sat with Priya after standup.",
+          type: "episodic",
+          tags: ["event"],
+          ageDays: 1,
+          eventStartAgeDays: 1,
+          eventEndAgeDays: 1,
+          temporalKind: "event",
+        },
+        {
+          key: "ht_week",
+          title: "Offsite dinner with Priya",
+          content: "Sat with Priya at the offsite dinner.",
+          type: "episodic",
+          tags: ["event"],
+          ageDays: 1,
+          eventStartAgeDays: 10,
+          eventEndAgeDays: 10,
+          temporalKind: "event",
+        },
+      ],
+      queries: [
+        {
+          query: "Priya last week",
+          type: "temporal",
+          relevance: { ht_week: 3, ht_yday: 0 },
+        },
+      ],
+    },
+    {
+      memories: [
+        {
+          key: "ht_pager_old",
+          title: "Primary pager is Elena",
+          content: "Elena carries the primary pager.",
+          tags: ["pager"],
+          ageDays: 4,
+          eventStartAgeDays: 180,
+          temporalKind: "state",
+        },
+        {
+          key: "ht_pager_now",
+          title: "Primary pager is Farid",
+          content: "Farid carries the primary pager.",
+          tags: ["pager"],
+          ageDays: 4,
+          eventStartAgeDays: 4,
+          temporalKind: "state",
+        },
+      ],
+      queries: [
+        {
+          query: "who currently carries the primary pager",
+          type: "temporal",
+          relevance: { ht_pager_now: 3, ht_pager_old: 1 },
+        },
+      ],
+    },
+    {
+      memories: [
+        {
+          key: "ht_plan",
+          title: "Planning the Polar afterparty",
+          content: "Going to host the Polar afterparty next week.",
+          type: "episodic",
+          tags: ["plan"],
+          ageDays: 1,
+          eventStartAgeDays: -7,
+          eventEndAgeDays: -7,
+          temporalKind: "plan",
+        },
+        {
+          key: "ht_show",
+          title: "Saw the Polar concert",
+          content: "Attended the Polar concert.",
+          type: "episodic",
+          tags: ["event"],
+          ageDays: 1,
+          eventStartAgeDays: 40,
+          eventEndAgeDays: 40,
+          temporalKind: "event",
+        },
+      ],
+      queries: [
+        {
+          query: `Polar on ${dated}`,
+          type: "temporal",
+          relevance: { ht_show: 3, ht_plan: 0 },
+        },
+        {
+          query: "what Polar event is coming up",
+          type: "temporal",
+          relevance: { ht_plan: 3, ht_show: 0 },
+        },
+      ],
+    },
+  ];
+}
+
 function fillerMemories(count: number): MemSpec[] {
   return Array.from({ length: count }, (_, i) => {
     const base = FILLER_BASES[i % FILLER_BASES.length] ?? "Misc note";
@@ -738,6 +847,7 @@ const SCENARIOS: Scenario[] = [
   ...tagConflictScenarios(),
   ...typeFilterScenarios(),
   ...distractorScenarios(),
+  ...temporalWindowScenarios(),
   { memories: fillerMemories(FILLER_COUNT), queries: [] },
 ];
 
@@ -761,6 +871,14 @@ export function generateHardCorpus(): BenchmarkCorpus {
     titleByKey.set(spec.key, spec.title);
     const ageDays = spec.ageDays ?? 60;
     const createdAt = isoFromAgeDays(ageDays);
+    const eventStart =
+      spec.eventStartAgeDays === undefined
+        ? undefined
+        : isoFromAgeDays(spec.eventStartAgeDays);
+    const eventEnd =
+      spec.eventEndAgeDays === undefined
+        ? undefined
+        : isoFromAgeDays(spec.eventEndAgeDays);
     memories.push({
       id: `hard_${spec.key}`,
       userId: BENCH_USER_ID,
@@ -774,6 +892,11 @@ export function generateHardCorpus(): BenchmarkCorpus {
       createdAt,
       updatedAt: createdAt,
       expiresAt: null,
+      ...(eventStart === undefined ? {} : { eventStart }),
+      ...(eventEnd === undefined ? {} : { eventEnd }),
+      ...(spec.temporalKind === undefined
+        ? {}
+        : { temporalKind: spec.temporalKind }),
     });
   };
 

@@ -55,16 +55,16 @@ const vmem = new VMemory({
 
 ## Methods
 
-| Method                    | HTTP                             | Description                                         |
-| ------------------------- | -------------------------------- | --------------------------------------------------- |
-| `save(instruction)`       | `POST /api/v1/memories`          | Extract facts and create memories (OpenRouter)      |
-| `update(instruction)`     | `PATCH /api/v1/memories`         | Same OpenRouter gate as `save()`                    |
-| `search(query, options?)` | `POST /api/v1/memories/retrieve` | Hybrid retrieve; `type` / `tags` / `status` filters |
-| `createMemory(body)`      | `POST /api/v1/memories`          | Structured create (escape hatch)                    |
-| `patchMemory(body)`       | `PATCH /api/v1/memories`         | Structured update by `id`                           |
-| `deleteMemory(body)`      | `DELETE /api/v1/memories`        | Structured delete by `id`                           |
-| `searchMemories(body)`    | `POST /api/v1/memories/retrieve` | Structured retrieve                                 |
-| `health()`                | `GET /health`                    | Unauthenticated `{ status: "ok" }`                  |
+| Method                    | HTTP                             | Description                                                                            |
+| ------------------------- | -------------------------------- | -------------------------------------------------------------------------------------- |
+| `save(instruction)`       | `POST /api/v1/memories`          | Extract facts and create memories (OpenRouter)                                         |
+| `update(instruction)`     | `PATCH /api/v1/memories`         | Same OpenRouter gate as `save()`                                                       |
+| `search(query, options?)` | `POST /api/v1/memories/retrieve` | Hybrid retrieve; `type` / `tags` / `status` / `threshold` / `rerank` / `referenceDate` |
+| `createMemory(body)`      | `POST /api/v1/memories`          | Structured create (escape hatch)                                                       |
+| `patchMemory(body)`       | `PATCH /api/v1/memories`         | Structured update by `id`                                                              |
+| `deleteMemory(body)`      | `DELETE /api/v1/memories`        | Structured delete by `id`                                                              |
+| `searchMemories(body)`    | `POST /api/v1/memories/retrieve` | Structured retrieve                                                                    |
+| `health()`                | `GET /health`                    | Unauthenticated `{ status: "ok" }`                                                     |
 
 ## Search options
 
@@ -72,6 +72,9 @@ const vmem = new VMemory({
 const result = await vmem.search("What stack do I use?", {
   limit: 5,
   summarize: true,
+  threshold: 0.8,
+  rerank: true,
+  referenceDate: "2026-09-17",
 });
 ```
 

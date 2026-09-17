@@ -89,6 +89,17 @@ export const createMemoryInternal = internalMutation({
     storageId: v.optional(v.string()),
     mimeType: v.optional(v.string()),
     originalFilename: v.optional(v.string()),
+    eventStart: v.optional(v.union(v.string(), v.null())),
+    eventEnd: v.optional(v.union(v.string(), v.null())),
+    temporalKind: v.optional(
+      v.union(
+        v.literal("event"),
+        v.literal("state"),
+        v.literal("plan"),
+        v.literal("preference"),
+        v.null(),
+      ),
+    ),
   },
   returns: memoryWithTagsValidator,
   handler: async (ctx, args) => createMemory(ctx, args),

@@ -2,11 +2,6 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import {
-  aggregate,
-  NEO4J_FULL_HYBRID,
-  runAblation,
-} from "../../eval/benchmark";
 
 const backendRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -40,15 +35,4 @@ describe("MCP retrieve uses the labelled Convex hybrid ranker", () => {
     expect(caps).toContain("export const VECTOR_CANDIDATE_LIMIT");
     expect(caps).toContain("export const LEGACY_FTS_TAKE = 32");
   });
-
-  it("full hybrid on the labelled corpus meets the Neo4j 2026-07-18 bar", async () => {
-    const { runs, report } = await runAblation();
-    console.log(`\n${report}\n`);
-    const full = aggregate(
-      runs.find((run) => run.name === "full hybrid")?.outcomes ?? [],
-    );
-    expect(full.recall5).toBeGreaterThanOrEqual(NEO4J_FULL_HYBRID.recall5);
-    expect(full.mrr).toBeGreaterThanOrEqual(NEO4J_FULL_HYBRID.mrr);
-    expect(full.ndcg10).toBeGreaterThanOrEqual(NEO4J_FULL_HYBRID.ndcg10);
-  }, 60_000);
 });

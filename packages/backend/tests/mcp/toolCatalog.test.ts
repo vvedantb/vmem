@@ -87,6 +87,9 @@ describe("MCP tool catalog", () => {
     expect(retrieveBlock).toContain("tags: params.tags");
     expect(retrieveBlock).toContain("status: params.status");
     expect(retrieveBlock).toContain("source: params.source");
+    expect(retrieveBlock).toContain("threshold: params.threshold");
+    expect(retrieveBlock).toContain("rerank: params.rerank");
+    expect(retrieveBlock).toContain("referenceDate: params.referenceDate");
     expect(source).toContain("Max results (default 10)");
     expect(
       memoryToolSpecs.memory_retrieve.schema.safeParse({
