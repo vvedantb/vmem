@@ -92,3 +92,15 @@ Queries and mutations **cannot** `fetch`. Do not move this call onto a query.
 ## Calibrate later
 
 Threshold `0.5` sits between live keep `0.66` and trap `0.03`. Freeze questions with `ai evaluate` (default model `typesafe-ai/jev`) on labelled abstentions + lexical traps before changing `t`. Live System One calls are skipped in CI; unit tests mock HTTP. No API keys in the repo.
+
+## Labelled IR comparison
+
+Hybrid vs hybrid+Jev on the real labelled harness (`packages/backend/eval/*`, 493 memories, 81 answerable, 6 abstentions):
+
+```bash
+EVAL_JEV=1 pnpm --filter @vmem/backend eval:jev
+```
+
+Requires `TYPESAFE_API_KEY` (or `TYPESAFE_AI_API_KEY` / `JEV_API_KEY`). The eval fails closed if the key is missing — it does not mock System One or copy hybrid numbers. `pnpm test` / `eval:bench` stay hybrid-only.
+
+Results: [`benchmark/jev-gate-results.md`](./benchmark/jev-gate-results.md). Optional `EVAL_JEV_CONCURRENCY` (default 4).

@@ -6,6 +6,16 @@ import {
   selectRetrieveCandidates,
 } from "../engine/memory/candidates";
 import { autoLinksFromMemories } from "../engine/memory/entities";
+import {
+  readSystemOneApiKey,
+  type EvaluateSystemOneArgs,
+  type SystemOneResponse,
+} from "../engine/llm/systemOneClient";
+import {
+  applyJevRetrieveGate,
+  jevRankPoolLimit,
+  wantsJevJudge,
+} from "../engine/memory/jevGate";
 import { retrieveMemoriesFromPool } from "../engine/memory/retrieve";
 import {
   FTS_TAKE,
@@ -19,6 +29,45 @@ import type {
 } from "./corpus";
 
 export const EVAL_K = 10;
+
+export const EVAL_JEV_KEY_REQUIRED =
+  "EVAL_JEV requires TYPESAFE_API_KEY (or TYPESAFE_AI_API_KEY / JEV_API_KEY). Mocking System One is not valid for labelled Jev numbers.";
+
+export function evalJevEnabled(
+  env: Record<string, string | undefined> = process.env,
+): boolean {
+  const raw = env.EVAL_JEV?.trim().toLowerCase();
+  return raw === "1" || raw === "true" || raw === "yes";
+}
+
+export function evalJevConcurrency(
+  env: Record<string, string | undefined> = process.env,
+): number {
+  const parsed = Number.parseInt(env.EVAL_JEV_CONCURRENCY ?? "4", 10);
+  if (!Number.isFinite(parsed) || parsed < 1) return 4;
+  return Math.min(parsed, 8);
+}
+
+export type RetrieveEvalRerank = boolean | "jev";
+
+export interface RetrieveEvalOptions {
+  legs: RetrievalLegs;
+  queryEmbedding: readonly number[];
+  memoryEmbeddings: ReadonlyMap<string, number[]>;
+  links: readonly MemoryLinkEdge[];
+  limit?: number;
+  nowMs?: number;
+  filter?: RetrievalEvalFilter;
+  ftsRanks?: ReadonlyMap<string, number>;
+  caps?: RetrieveCandidateCaps;
+  threshold?: number;
+  rerank?: RetrieveEvalRerank;
+  judge?: "jev";
+  apiKey?: string;
+  requireJevKey?: boolean;
+  jevThreshold?: number;
+  evaluate?: (args: EvaluateSystemOneArgs) => Promise<SystemOneResponse>;
+}
 
 export function toEvalMemory(memory: BenchmarkMemory): MemoryWithTags {
   return {
@@ -91,23 +140,53 @@ export function ftsRanksForQuery(
   return out;
 }
 
-export function retrieveEval(
+function resolvedEvalApiKey(options: RetrieveEvalOptions): string | undefined {
+  if (options.apiKey !== undefined) {
+    const explicit = options.apiKey.trim();
+    return explicit.length > 0 ? explicit : undefined;
+  }
+  return readSystemOneApiKey();
+}
+
+async function finishEvalRetrieve(
+  query: string,
+  ranked: MemoryCandidate[],
+  options: RetrieveEvalOptions,
+  userLimit: number,
+  jev: boolean,
+): Promise<MemoryCandidate[]> {
+  const sliced = ranked.slice(0, userLimit);
+  if (!jev) return sliced;
+  const apiKey = resolvedEvalApiKey(options);
+  if (apiKey === undefined) {
+    if (options.requireJevKey) {
+      throw new Error(EVAL_JEV_KEY_REQUIRED);
+    }
+    return sliced;
+  }
+  const referenceDate =
+    options.nowMs === undefined
+      ? undefined
+      : new Date(options.nowMs).toISOString().slice(0, 10);
+  return applyJevRetrieveGate({
+    query,
+    hits: ranked,
+    apiKey,
+    limit: userLimit,
+    referenceDate,
+    threshold: options.jevThreshold,
+    evaluate: options.evaluate,
+  });
+}
+
+export async function retrieveEval(
   memories: readonly MemoryWithTags[],
   query: string,
-  options: {
-    legs: RetrievalLegs;
-    queryEmbedding: readonly number[];
-    memoryEmbeddings: ReadonlyMap<string, number[]>;
-    links: readonly MemoryLinkEdge[];
-    limit?: number;
-    nowMs?: number;
-    filter?: RetrievalEvalFilter;
-    ftsRanks?: ReadonlyMap<string, number>;
-    caps?: RetrieveCandidateCaps;
-    threshold?: number;
-    rerank?: boolean;
-  },
-): MemoryCandidate[] {
+  options: RetrieveEvalOptions,
+): Promise<MemoryCandidate[]> {
+  const jev = wantsJevJudge(options);
+  const userLimit = options.limit ?? EVAL_K;
+  const rankLimit = jevRankPoolLimit(userLimit, jev);
   const useVector = options.legs.vector !== false;
   const useFulltext = options.legs.fulltext !== false;
   const allVectorScores = useVector
@@ -117,32 +196,8 @@ export function retrieveEval(
         options.memoryEmbeddings,
       )
     : new Map<string, number>();
-
-  if (options.caps !== undefined) {
-    const selected = selectRetrieveCandidates(memories, query, {
-      caps: options.caps,
-      vectorScores: allVectorScores,
-      links: options.links,
-      filter: options.filter,
-    });
-    return retrieveMemoriesFromPool(selected.pool, query, {
-      limit: options.limit ?? EVAL_K,
-      nowMs: options.nowMs,
-      legs: options.legs,
-      links: options.links,
-      type: options.filter?.type,
-      tags: options.filter?.tags,
-      status: options.filter?.status,
-      source: options.filter?.source,
-      threshold: options.threshold,
-      rerank: options.rerank,
-      vectorScores: useVector ? selected.vectorScores : undefined,
-      ftsRanks: useFulltext ? selected.ftsRanks : undefined,
-    });
-  }
-
-  return retrieveMemoriesFromPool(memories, query, {
-    limit: options.limit ?? EVAL_K,
+  const rankOpts = {
+    limit: rankLimit,
     nowMs: options.nowMs,
     legs: options.legs,
     links: options.links,
@@ -151,11 +206,31 @@ export function retrieveEval(
     status: options.filter?.status,
     source: options.filter?.source,
     threshold: options.threshold,
-    rerank: options.rerank,
+    rerank: options.rerank === true,
+  };
+
+  if (options.caps !== undefined) {
+    const selected = selectRetrieveCandidates(memories, query, {
+      caps: options.caps,
+      vectorScores: allVectorScores,
+      links: options.links,
+      filter: options.filter,
+    });
+    const ranked = retrieveMemoriesFromPool(selected.pool, query, {
+      ...rankOpts,
+      vectorScores: useVector ? selected.vectorScores : undefined,
+      ftsRanks: useFulltext ? selected.ftsRanks : undefined,
+    });
+    return finishEvalRetrieve(query, ranked, options, userLimit, jev);
+  }
+
+  const ranked = retrieveMemoriesFromPool(memories, query, {
+    ...rankOpts,
     vectorScores: useVector ? allVectorScores : undefined,
     ftsRanks:
       useFulltext && query.trim().length > 0
         ? (options.ftsRanks ?? ftsRanksForQuery(memories, query))
         : undefined,
   });
+  return finishEvalRetrieve(query, ranked, options, userLimit, jev);
 }

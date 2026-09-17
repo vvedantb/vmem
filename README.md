@@ -81,7 +81,7 @@ pnpm test:e2e                   # Playwright web suite (see e2e/README.md)
 pnpm check
 ```
 
-Graph client perf bench (synthetic, no Convex): open `/memories?bench=5000`. Retrieval quality bench: `pnpm --filter @vmem/backend test:memory-bench`. Labelled IR eval: `pnpm --filter @vmem/backend eval:bench`. SuperMemory / Mem0 competitive brief: [`packages/backend/tests/memory/competitive-brief.md`](packages/backend/tests/memory/competitive-brief.md).
+Graph client perf bench (synthetic, no Convex): open `/memories?bench=5000`. Retrieval quality bench: `pnpm --filter @vmem/backend test:memory-bench`. Labelled IR eval: `pnpm --filter @vmem/backend eval:bench`. Hybrid vs Jev on that harness: `EVAL_JEV=1 pnpm --filter @vmem/backend eval:jev`. SuperMemory / Mem0 competitive brief: [`packages/backend/tests/memory/competitive-brief.md`](packages/backend/tests/memory/competitive-brief.md).
 
 More on the extension: [`apps/chrome-extension/README.md`](apps/chrome-extension/README.md). Docs site: [`apps/docs`](apps/docs).
 

@@ -1,6 +1,7 @@
 import { writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import pRetry from "p-retry";
 import type { RetrievalLegs } from "../engine/memory/rank";
 import {
   generateBenchmarkCorpus,
@@ -12,6 +13,16 @@ import { generateTailCorpus } from "./tail-corpus";
 import { embeddingMode, generateEvalEmbeddings } from "./embeddings";
 import { buildSearchableText } from "../engine/memory/searchableText";
 import { queryEmbeddingText } from "../engine/memory/synonyms";
+import {
+  evaluateSystemOne,
+  readSystemOneApiKey,
+  type EvaluateSystemOneArgs,
+  type SystemOneResponse,
+} from "../engine/llm/systemOneClient";
+import {
+  DEFAULT_JEV_RELEVANCE_THRESHOLD,
+  wantsJevJudge,
+} from "../engine/memory/jevGate";
 import {
   INDEX_RETRIEVE_CAPS,
   LEGACY_RETRIEVE_CAPS,
@@ -26,17 +37,22 @@ import {
   reciprocalRank,
 } from "./metrics";
 import {
+  EVAL_JEV_KEY_REQUIRED,
   EVAL_K,
   autoLinksFromCorpus,
+  evalJevConcurrency,
   linksFromCorpus,
   retrieveEval,
   toEvalMemory,
+  type RetrieveEvalRerank,
 } from "./retrieve";
 import type { MemoryLinkEdge } from "../engine/memory/links";
 
 interface LegConfig {
   name: string;
   legs: RetrievalLegs;
+  judge?: "jev";
+  rerank?: RetrieveEvalRerank;
 }
 
 // Neo4j-era production retrieveMemories, 2026-07-18, OpenRouter embeddings.
@@ -142,6 +158,8 @@ function approxTokens(text: string): number {
 
 export interface QueryOutcome {
   type: string;
+  query: string;
+  titles: string[];
   recall1: number;
   recall3: number;
   recall5: number;
@@ -152,12 +170,25 @@ export interface QueryOutcome {
   ctxTokens: number;
   latencyMs: number;
   topScore: number;
+  jevFailOpen: boolean;
+  empty: boolean;
+}
+
+interface JevCallStats {
+  calls: number;
+  failures: number;
+  inputTokens: number;
+  outputTokens: number;
+  nearTies: number;
+  dropped: number;
 }
 
 export interface ConfigRun {
   name: string;
   outcomes: QueryOutcome[];
   abstentionTopScores: number[];
+  abstentionEmpty: number;
+  jev?: JevCallStats;
 }
 
 export interface AggMetrics {
@@ -383,12 +414,90 @@ ${vsNeo4j}
 `;
 }
 
+const JEV_NEAR_TIE_LOW = 0.45;
+const JEV_NEAR_TIE_HIGH = 0.55;
+
+function emptyJevCallStats(): JevCallStats {
+  return {
+    calls: 0,
+    failures: 0,
+    inputTokens: 0,
+    outputTokens: 0,
+    nearTies: 0,
+    dropped: 0,
+  };
+}
+
+function wrapLiveJevEvaluate(stats: JevCallStats) {
+  return async (args: EvaluateSystemOneArgs): Promise<SystemOneResponse> => {
+    try {
+      const response = await pRetry(async () => evaluateSystemOne(args), {
+        retries: 2,
+        minTimeout: 1500,
+        factor: 2,
+      });
+      stats.calls += 1;
+      stats.inputTokens += response.usage?.input_tokens ?? 0;
+      stats.outputTokens += response.usage?.output_tokens ?? 0;
+      for (const answer of Object.values(response.answers)) {
+        if (answer.type !== "noul") continue;
+        if (answer.noul < DEFAULT_JEV_RELEVANCE_THRESHOLD) {
+          stats.dropped += 1;
+        }
+        if (
+          answer.noul >= JEV_NEAR_TIE_LOW &&
+          answer.noul <= JEV_NEAR_TIE_HIGH
+        ) {
+          stats.nearTies += 1;
+        }
+      }
+      return response;
+    } catch (error) {
+      stats.failures += 1;
+      throw error;
+    }
+  };
+}
+
+async function mapPool<T, R>(
+  items: readonly T[],
+  concurrency: number,
+  fn: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  const slots: Array<R | undefined> = Array.from({ length: items.length });
+  let next = 0;
+  const worker = async (): Promise<void> => {
+    while (true) {
+      const index = next;
+      next += 1;
+      const item = items[index];
+      if (item === undefined) return;
+      slots[index] = await fn(item, index);
+    }
+  };
+  const n = Math.max(1, Math.min(concurrency, Math.max(1, items.length)));
+  await Promise.all(Array.from({ length: n }, () => worker()));
+  return slots.map((row, index) => {
+    if (row === undefined) {
+      throw new Error(`missing mapPool result at ${String(index)}`);
+    }
+    return row;
+  });
+}
+
 export async function runCorpusAblation(
   corpus: BenchmarkCorpus,
   options: {
     caps?: RetrieveCandidateCaps;
     configs?: LegConfig[];
     links?: readonly MemoryLinkEdge[];
+    judge?: "jev";
+    rerank?: RetrieveEvalRerank;
+    requireJevKey?: boolean;
+    jevThreshold?: number;
+    apiKey?: string;
+    evaluate?: (args: EvaluateSystemOneArgs) => Promise<SystemOneResponse>;
+    concurrency?: number;
   } = {},
 ): Promise<{
   runs: ConfigRun[];
@@ -434,15 +543,22 @@ export async function runCorpusAblation(
   const nowMs = Date.now();
   const runs: ConfigRun[] = [];
   for (const config of configs) {
-    const outcomes: QueryOutcome[] = [];
-    const abstentionTopScores: number[] = [];
-    for (const query of corpus.queries) {
+    const judge = config.judge ?? options.judge;
+    const rerank = config.rerank ?? options.rerank;
+    const jev = wantsJevJudge({ judge, rerank });
+    const jevStats = jev ? emptyJevCallStats() : undefined;
+    const evaluate = jev
+      ? (options.evaluate ??
+        (jevStats === undefined ? undefined : wrapLiveJevEvaluate(jevStats)))
+      : undefined;
+    const concurrency = options.concurrency ?? (jev ? evalJevConcurrency() : 1);
+    const rows = await mapPool(corpus.queries, concurrency, async (query) => {
       const queryEmbedding = queryEmbeddings.get(query.query);
       if (queryEmbedding === undefined) {
         throw new Error(`missing embedding for ${query.query}`);
       }
       const started = performance.now();
-      const candidates = retrieveEval(memories, query.query, {
+      const candidates = await retrieveEval(memories, query.query, {
         legs: config.legs,
         queryEmbedding,
         memoryEmbeddings,
@@ -451,35 +567,67 @@ export async function runCorpusAblation(
         nowMs,
         filter: query.filter,
         caps: options.caps,
+        judge,
+        rerank,
+        requireJevKey: options.requireJevKey,
+        jevThreshold: options.jevThreshold,
+        apiKey: options.apiKey,
+        evaluate,
       });
-      const latencyMs = performance.now() - started;
-      if (query.expectedTitles.length === 0) {
-        abstentionTopScores.push(candidates[0]?.trace.score ?? 0);
+      return {
+        query,
+        candidates,
+        latencyMs: performance.now() - started,
+      };
+    });
+    const outcomes: QueryOutcome[] = [];
+    const abstentionTopScores: number[] = [];
+    let abstentionEmpty = 0;
+    for (const row of rows) {
+      const titles = row.candidates.map((c) => c.title);
+      const jevFailOpen =
+        jev &&
+        row.candidates.length > 0 &&
+        row.candidates.every(
+          (hit) => hit.trace.scoreBreakdown.jevRelevant === undefined,
+        );
+      if (row.query.expectedTitles.length === 0) {
+        abstentionTopScores.push(row.candidates[0]?.trace.score ?? 0);
+        if (row.candidates.length === 0) abstentionEmpty += 1;
         continue;
       }
-      const titles = candidates.map((c) => c.title);
       outcomes.push({
-        type: query.type,
-        recall1: recallAtK(titles, query.expectedTitles, 1),
-        recall3: recallAtK(titles, query.expectedTitles, 3),
-        recall5: recallAtK(titles, query.expectedTitles, 5),
-        recall10: recallAtK(titles, query.expectedTitles, 10),
-        precision5: precisionAtK(titles, query.expectedTitles, 5),
-        rr: reciprocalRank(titles, query.expectedTitles),
+        type: row.query.type,
+        query: row.query.query,
+        titles,
+        recall1: recallAtK(titles, row.query.expectedTitles, 1),
+        recall3: recallAtK(titles, row.query.expectedTitles, 3),
+        recall5: recallAtK(titles, row.query.expectedTitles, 5),
+        recall10: recallAtK(titles, row.query.expectedTitles, 10),
+        precision5: precisionAtK(titles, row.query.expectedTitles, 5),
+        rr: reciprocalRank(titles, row.query.expectedTitles),
         ndcg10: ndcgAtK(
           titles,
-          new Map(Object.entries(query.relevance)),
+          new Map(Object.entries(row.query.relevance)),
           EVAL_K,
         ),
-        ctxTokens: candidates.reduce(
+        ctxTokens: row.candidates.reduce(
           (sum, c) => sum + approxTokens(`${c.title} ${c.content}`),
           0,
         ),
-        latencyMs,
-        topScore: candidates[0]?.trace.score ?? 0,
+        latencyMs: row.latencyMs,
+        topScore: row.candidates[0]?.trace.score ?? 0,
+        jevFailOpen,
+        empty: row.candidates.length === 0,
       });
     }
-    runs.push({ name: config.name, outcomes, abstentionTopScores });
+    runs.push({
+      name: config.name,
+      outcomes,
+      abstentionTopScores,
+      abstentionEmpty,
+      ...(jevStats === undefined ? {} : { jev: jevStats }),
+    });
     await new Promise<void>((resolve) => {
       setImmediate(resolve);
     });
@@ -745,6 +893,250 @@ export async function runTailGoldComparison(): Promise<{
   const corpus = generateTailCorpus();
   const comparison = await runPooledComparison(corpus, "tail gold");
   return { corpus, ...comparison };
+}
+
+const JEV_GATE_EVAL_CONFIGS: LegConfig[] = [
+  { name: "full hybrid", legs: {} },
+  { name: "full hybrid + jev", legs: {}, judge: "jev" },
+];
+
+function goldDrops(
+  hybrid: QueryOutcome[],
+  gated: QueryOutcome[],
+  answerable: RetrievalEvalQuery[],
+): Array<{ query: string; type: string; missing: string[] }> {
+  const out: Array<{ query: string; type: string; missing: string[] }> = [];
+  const n = Math.min(hybrid.length, gated.length, answerable.length);
+  for (let i = 0; i < n; i += 1) {
+    const query = answerable[i];
+    const before = hybrid[i];
+    const after = gated[i];
+    if (query === undefined || before === undefined || after === undefined) {
+      continue;
+    }
+    const afterSet = new Set(after.titles);
+    const missing = query.expectedTitles.filter(
+      (title) => before.titles.includes(title) && !afterSet.has(title),
+    );
+    if (missing.length === 0) continue;
+    out.push({ query: query.query, type: query.type, missing });
+  }
+  return out;
+}
+
+function buildJevGateReport(args: {
+  hybrid: ConfigRun;
+  gated: ConfigRun;
+  stats: { memoryCount: number; tokens: number };
+  answerable: RetrievalEvalQuery[];
+  abstention: RetrievalEvalQuery[];
+}): string {
+  const today = new Date().toISOString().slice(0, 10);
+  const hybridAgg = aggregate(args.hybrid.outcomes);
+  const gatedAgg = aggregate(args.gated.outcomes);
+  const jev = args.gated.jev ?? emptyJevCallStats();
+  const drops = goldDrops(
+    args.hybrid.outcomes,
+    args.gated.outcomes,
+    args.answerable,
+  );
+  const failOpen = args.gated.outcomes.filter((row) => row.jevFailOpen).length;
+  const emptyAnswerable = args.gated.outcomes.filter((row) => row.empty).length;
+  const recallDrop = args.gated.outcomes.filter(
+    (row, i) => row.recall5 < (args.hybrid.outcomes[i]?.recall5 ?? 0),
+  ).length;
+  const overallTable = mdTable(
+    [
+      "Config",
+      "recall@1",
+      "recall@3",
+      "recall@5",
+      "recall@10",
+      "P@5",
+      "MRR",
+      "nDCG@10",
+      "ctx tok",
+      "p50 ms",
+      "p95 ms",
+    ],
+    [
+      [
+        "full hybrid",
+        pct(hybridAgg.recall1),
+        pct(hybridAgg.recall3),
+        pct(hybridAgg.recall5),
+        pct(hybridAgg.recall10),
+        pct(hybridAgg.precision5),
+        hybridAgg.mrr.toFixed(3),
+        hybridAgg.ndcg10.toFixed(3),
+        String(Math.round(hybridAgg.meanCtxTokens)),
+        hybridAgg.latencyP50.toFixed(0),
+        hybridAgg.latencyP95.toFixed(0),
+      ],
+      [
+        "full hybrid + jev",
+        pct(gatedAgg.recall1),
+        pct(gatedAgg.recall3),
+        pct(gatedAgg.recall5),
+        pct(gatedAgg.recall10),
+        pct(gatedAgg.precision5),
+        gatedAgg.mrr.toFixed(3),
+        gatedAgg.ndcg10.toFixed(3),
+        String(Math.round(gatedAgg.meanCtxTokens)),
+        gatedAgg.latencyP50.toFixed(0),
+        gatedAgg.latencyP95.toFixed(0),
+      ],
+    ],
+  );
+  const deltaTable = mdTable(
+    ["Metric", "hybrid", "hybrid + Jev", "Δ"],
+    [
+      [
+        "recall@1",
+        pct(hybridAgg.recall1),
+        pct(gatedAgg.recall1),
+        signedPct(gatedAgg.recall1 - hybridAgg.recall1),
+      ],
+      [
+        "recall@5",
+        pct(hybridAgg.recall5),
+        pct(gatedAgg.recall5),
+        signedPct(gatedAgg.recall5 - hybridAgg.recall5),
+      ],
+      [
+        "recall@10",
+        pct(hybridAgg.recall10),
+        pct(gatedAgg.recall10),
+        signedPct(gatedAgg.recall10 - hybridAgg.recall10),
+      ],
+      [
+        "P@5",
+        pct(hybridAgg.precision5),
+        pct(gatedAgg.precision5),
+        signedPct(gatedAgg.precision5 - hybridAgg.precision5),
+      ],
+      [
+        "MRR",
+        hybridAgg.mrr.toFixed(3),
+        gatedAgg.mrr.toFixed(3),
+        signedFixed(gatedAgg.mrr - hybridAgg.mrr),
+      ],
+      [
+        "nDCG@10",
+        hybridAgg.ndcg10.toFixed(3),
+        gatedAgg.ndcg10.toFixed(3),
+        signedFixed(gatedAgg.ndcg10 - hybridAgg.ndcg10),
+      ],
+    ],
+  );
+  const dropLines =
+    drops.length === 0
+      ? "None. Jev did not remove a gold title that hybrid had in the top 10."
+      : mdTable(
+          ["type", "query", "dropped gold"],
+          drops
+            .slice(0, 20)
+            .map((row) => [row.type, row.query, row.missing.join("; ")]),
+        );
+  const neoKeep =
+    gatedAgg.recall5 >= NEO4J_FULL_HYBRID.recall5
+      ? "yes"
+      : "no (below Neo4j 92.0% R@5 bar)";
+
+  return `# vmem labelled retrieve: hybrid vs hybrid + Jev
+
+Generated: ${today} · Corpus: ${String(args.stats.memoryCount)} memories · Answerable: ${String(args.answerable.length)} · Abstention: ${String(args.abstention.length)} · Embeddings: ${embeddingMode()} · Jev: live System One \`jev-latest\` · Noul keep threshold: ${String(DEFAULT_JEV_RELEVANCE_THRESHOLD)}
+
+Re-run (needs \`TYPESAFE_API_KEY\`):
+
+\`\`\`bash
+EVAL_JEV=1 pnpm --filter @vmem/backend eval:jev
+\`\`\`
+
+CI \`eval:bench\` / \`pnpm test\` stay hybrid-only. \`EVAL_JEV=1\` without a TypeSafe key fails closed (no mock numbers).
+
+## Side-by-side
+
+${overallTable}
+
+${deltaTable}
+
+## nDCG@10 by query type
+
+${perTypeTable([args.hybrid, args.gated], args.answerable, (m) => m.ndcg10.toFixed(3))}
+
+## Recall@5 by query type
+
+${perTypeTable([args.hybrid, args.gated], args.answerable, (m) => pct(m.recall5))}
+
+## Abstention (6 queries with no gold)
+
+| Config | empty lists | top-score max | top-score mean |
+| --- | --- | --- | --- |
+| full hybrid | ${String(args.hybrid.abstentionEmpty)} / ${String(args.abstention.length)} | ${Math.max(0, ...args.hybrid.abstentionTopScores).toFixed(3)} | ${mean(args.hybrid.abstentionTopScores).toFixed(3)} |
+| full hybrid + jev | ${String(args.gated.abstentionEmpty)} / ${String(args.abstention.length)} | ${Math.max(0, ...args.gated.abstentionTopScores).toFixed(3)} | ${mean(args.gated.abstentionTopScores).toFixed(3)} |
+
+## Jev gate diagnostics
+
+| | |
+| --- | --- |
+| System One calls | ${String(jev.calls)} |
+| Fail-open (HTTP/parse; hybrid kept) | ${String(jev.failures)} query errors, ${String(failOpen)} answerable lists with no \`jevRelevant\` |
+| Hits dropped (noul < ${String(DEFAULT_JEV_RELEVANCE_THRESHOLD)}) | ${String(jev.dropped)} |
+| Near-ties (noul in [0.45, 0.55], kept at 0.5) | ${String(jev.nearTies)} |
+| Answerable queries emptied by the gate | ${String(emptyAnswerable)} |
+| Answerable queries with recall@5 drop | ${String(recallDrop)} |
+| Gold titles hybrid had in top 10 that Jev removed | ${String(drops.length)} |
+| input_tokens (if API returned usage) | ${String(jev.inputTokens)} |
+| output_tokens (if API returned usage) | ${String(jev.outputTokens)} |
+| R@5 still ≥ Neo4j 92.0% | ${neoKeep} |
+
+### Gold titles removed by Jev
+
+${dropLines}
+
+## Notes / caveats
+
+- Same labelled harness as \`eval:bench\` (\`packages/backend/eval/*\`). Not the synthetic \`tests/memory/benchmark/retrieve.bench.test.ts\` toy.
+- Hybrid over-fetches 20 hits when \`judge: "jev"\`, Jev judges that head, eval slices to k=10. Threshold **0.5** keeps near-ties; live smoke gold was 0.66 and traps 0.03.
+- Jev is weak at date math — temporal windows still come from \`temporal.ts\`.
+- Missing \`TYPESAFE_API_KEY\` on retrieve in prod fail-opens to hybrid. This labelled comparison **requires** a live key.
+- Embeddings are synthetic unless \`OPENROUTER_API_KEY\` is set. Jev judges title/content, so the embedder only changes the hybrid head it sees.
+- Token usage is whatever System One returned; dollar cost is not inferred.
+`;
+}
+
+export async function runJevGateComparison(): Promise<{
+  hybrid: ConfigRun;
+  gated: ConfigRun;
+  report: string;
+  answerable: RetrievalEvalQuery[];
+  abstention: RetrievalEvalQuery[];
+}> {
+  if (readSystemOneApiKey() === undefined) {
+    throw new Error(EVAL_JEV_KEY_REQUIRED);
+  }
+  const corpus = generateBenchmarkCorpus();
+  const { runs, answerable, abstention, stats } = await runCorpusAblation(
+    corpus,
+    {
+      configs: JEV_GATE_EVAL_CONFIGS,
+      requireJevKey: true,
+    },
+  );
+  const hybrid = runs.find((run) => run.name === "full hybrid");
+  const gated = runs.find((run) => run.name === "full hybrid + jev");
+  if (hybrid === undefined || gated === undefined) {
+    throw new Error("jev gate comparison missing hybrid or gated run");
+  }
+  const report = buildJevGateReport({
+    hybrid,
+    gated,
+    stats,
+    answerable,
+    abstention,
+  });
+  return { hybrid, gated, report, answerable, abstention };
 }
 
 const isDirectRun =
