@@ -40,10 +40,10 @@ describe("labelled benchmark corpus invariants", () => {
   );
 
   it("has expected counts", () => {
-    expect(corpus.memories).toHaveLength(488);
+    expect(corpus.memories).toHaveLength(493);
     expect(corpus.relationships).toHaveLength(36);
-    expect(corpus.queries).toHaveLength(84);
-    expect(answerable).toHaveLength(78);
+    expect(corpus.queries).toHaveLength(87);
+    expect(answerable).toHaveLength(81);
     expect(abstention).toHaveLength(6);
   });
 
@@ -111,6 +111,16 @@ describe("Convex labelled ablation", () => {
 
     expect(byType("full hybrid", "lexical-trap").ndcg10).toBeGreaterThan(0.7);
     expect(byType("full hybrid", "update").ndcg10).toBeGreaterThan(0.7);
+    expect(byType("full hybrid", "temporal").ndcg10).toBeGreaterThan(0.7);
+    expect(byType("full hybrid", "temporal").ndcg10).toBeGreaterThan(
+      byType("hybrid (no temporal)", "temporal").ndcg10,
+    );
+
+    const fullRun = runs.find((run) => run.name === "full hybrid");
+    expect(fullRun).toBeDefined();
+    expect(
+      (fullRun?.abstentionTopScores ?? []).every((score) => score < 0.8),
+    ).toBe(true);
   }, 60_000);
 
   it("index candidate pool beats legacy 200∪32∪32 on the labelled corpus", async () => {

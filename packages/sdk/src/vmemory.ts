@@ -68,6 +68,9 @@ type RetrieveBodyInput = {
   source?: string;
   summarize?: boolean;
   profileId?: string;
+  threshold?: number;
+  rerank?: boolean;
+  referenceDate?: string;
 };
 
 function buildRetrieveBody(query: string, options: RetrieveBodyInput): object {
@@ -80,6 +83,11 @@ function buildRetrieveBody(query: string, options: RetrieveBodyInput): object {
     ...(options.status ? { status: options.status } : {}),
     ...(options.source ? { source: options.source } : {}),
     ...(options.summarize ? { summarize: true } : {}),
+    ...(options.threshold !== undefined
+      ? { threshold: options.threshold }
+      : {}),
+    ...(options.rerank !== undefined ? { rerank: options.rerank } : {}),
+    ...(options.referenceDate ? { referenceDate: options.referenceDate } : {}),
   };
 }
 
@@ -141,6 +149,9 @@ export class VMemory {
       status?: string;
       source?: string;
       summarize?: boolean;
+      threshold?: number;
+      rerank?: boolean;
+      referenceDate?: string;
     },
   ): Promise<RetrieveResult> {
     const data = await this.client.post(
@@ -152,6 +163,9 @@ export class VMemory {
         status: options?.status,
         source: options?.source,
         summarize: options?.summarize,
+        threshold: options?.threshold,
+        rerank: options?.rerank,
+        referenceDate: options?.referenceDate,
         profileId: this.resolveProfileId(options),
       }),
     );

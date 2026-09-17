@@ -107,10 +107,20 @@ Retrieve the most relevant memories for a natural language query. Returns scored
   Profile to search in (defaults to active profile)
 </ParamField>
 <ParamField body="limit" type="number">
-  Max results, 1–50 (default 5)
+  Max results, 1–50 (default 10)
+</ParamField>
+<ParamField body="threshold" type="number">
+  Drop hits whose blended score is below this value (0–1)
+</ParamField>
+<ParamField body="rerank" type="boolean">
+  Optional lightweight rerank of the top 20 hits. Context Trace legs stay on the
+  hit.
+</ParamField>
+<ParamField body="referenceDate" type="string">
+  ISO date used as “now” for last-week / currently temporal scoring
 </ParamField>
 
-**Returns:** Ranked memories with `trace.scoreBreakdown` (fulltext, vector, chunk, entity, rrf, recency, confidence).
+**Returns:** Ranked memories with `trace.scoreBreakdown` (fulltext, vector, chunk, entity, rrf, recency, temporal, confidence, optional rerankerScore).
 
 See [Context Trace](/concepts/context-trace) for score field details.
 

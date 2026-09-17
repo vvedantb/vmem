@@ -1,6 +1,11 @@
 import type { MemoryCandidate, MemoryWithTags } from "@vmem/sdk";
 import { expandGraphNeighbors, type MemoryLinkEdge } from "./links";
 import { expandQueryTerms, phraseAwareQueryTokens } from "./synonyms";
+import {
+  classifyQueryTemporal,
+  hasTemporalIntent,
+  temporalScore,
+} from "./temporal";
 import { contentTokens, hasWholeWord, tokenize } from "./tokens";
 
 const BM25_K1 = 1.4;
@@ -35,6 +40,7 @@ export interface RetrievalLegs {
   entity?: boolean;
   graph?: boolean;
   recency?: boolean;
+  temporal?: boolean;
 }
 
 export interface RankMemoriesOptions {
@@ -44,6 +50,8 @@ export interface RankMemoriesOptions {
   ftsRanks?: ReadonlyMap<string, number>;
   legs?: RetrievalLegs;
   links?: readonly MemoryLinkEdge[];
+  threshold?: number;
+  rerank?: boolean;
 }
 
 function legOn(
@@ -272,12 +280,6 @@ function entityScore(
   return clamp01(Math.max(tagPart, namePart, rarePart));
 }
 
-function isTemporalQuery(query: string): boolean {
-  return /\b(current|currently|now|latest|today|recent|recently)\b/i.test(
-    query,
-  );
-}
-
 function isResidenceQuery(query: string): boolean {
   return /\b(live|lives|lived)\b/i.test(query);
 }
@@ -485,6 +487,7 @@ function reasonFor(args: {
   entity: number;
   recency: number;
   graph: number;
+  temporal: number;
 }): string {
   if (args.query.trim().length === 0) return "recent memories";
   const parts: string[] = [];
@@ -495,6 +498,7 @@ function reasonFor(args: {
   if (args.chunk > 0.4) parts.push("chunk overlap");
   if (args.entity > 0.3) parts.push("tag or entity match");
   if (args.graph > 0) parts.push("related via stored link");
+  if (args.temporal > 0.45) parts.push("temporal match");
   if (args.recency > 0.7) parts.push("recency");
   if (parts.length === 0) return "weak lexical match";
   return parts.join("; ");
@@ -558,7 +562,9 @@ export function rankMemories(
   }
   const avgLength = docs.length === 0 ? 1 : lengthSum / docs.length;
   const rareTerms = rareQueryTerms(coreTerms, df, docs.length);
-  const temporal = isTemporalQuery(trimmed);
+  const useTemporal = legOn(options.legs, "temporal");
+  const queryTemporal = classifyQueryTemporal(trimmed, nowMs);
+  const temporalQuery = hasTemporalIntent(queryTemporal);
   const fulltextRaw = new Map<string, number>();
   const chunkRaw = new Map<string, number>();
   const entityRaw = new Map<string, number>();
@@ -584,6 +590,7 @@ export function rankMemories(
       graph: number;
       typeIntent: number;
       residence: number;
+      temporal: number;
       confidence: number;
     }
   >();
@@ -614,6 +621,9 @@ export function rankMemories(
         ? 0
         : entityScore(doc.memory, trimmed, queryTerms, rareTerms);
     const recency = useRecency ? recencyScore(doc.memory, nowMs) : 0;
+    const temporal = useTemporal
+      ? temporalScore(doc.memory, queryTemporal, nowMs)
+      : 0;
     const vector = useVector
       ? clamp01(options.vectorScores?.get(doc.memory.id) ?? 0)
       : 0;
@@ -637,6 +647,7 @@ export function rankMemories(
       typeIntent: typeIntentScore(trimmed, doc.memory),
       residence:
         isResidenceQuery(trimmed) && hasResidenceFact(doc.memory) ? 1 : 0,
+      temporal,
       confidence: doc.memory.confidence,
     });
   }
@@ -728,14 +739,14 @@ export function rankMemories(
       0.1 * parts.typeIntent +
       0.2 * parts.residence;
     const recencyMultiplier = useRecency
-      ? temporal
+      ? temporalQuery
         ? 0.6 + 0.4 * parts.recency
         : 0.82 + 0.18 * parts.recency
       : 1;
     const firstPass =
       trimmed.length === 0
         ? parts.recency
-        : clamp01(blended * recencyMultiplier);
+        : clamp01(blended * recencyMultiplier + 0.22 * parts.temporal);
     const cover = coreCoverage(doc.memory, coreTerms);
     const titleCover =
       isResidenceQuery(trimmed) && parts.residence === 0
@@ -747,7 +758,8 @@ export function rankMemories(
         0.15 * parts.entity +
         0.1 * parts.vector +
         0.15 * parts.typeIntent +
-        0.25 * parts.residence,
+        0.25 * parts.residence +
+        0.2 * parts.temporal,
     );
     const score =
       parts.graph > 0
@@ -766,6 +778,7 @@ export function rankMemories(
           entity: parts.entity,
           rrf: rrfScore,
           recency: parts.recency,
+          temporal: parts.temporal,
           confidence: parts.confidence,
           rerankerScore: rerank,
           ...(path === undefined ? {} : { graphPath: path }),
@@ -778,6 +791,7 @@ export function rankMemories(
           entity: parts.entity,
           recency: parts.recency,
           graph: parts.graph,
+          temporal: parts.temporal,
         }),
       },
       ...(chunk === undefined
@@ -843,6 +857,7 @@ export function rankMemories(
               entity: parts?.entity ?? 0,
               rrf: rrfNorm.get(neighbor.id) ?? 0,
               recency: parts?.recency ?? 0,
+              temporal: parts?.temporal ?? 0,
               confidence: doc.memory.confidence,
               graphPath: path,
             },
@@ -873,7 +888,33 @@ export function rankMemories(
     }
     return Date.parse(b.updatedAt) - Date.parse(a.updatedAt);
   });
-  return scored.slice(0, Math.max(0, limit));
+
+  if (options.rerank === true && trimmed.length > 0 && scored.length > 1) {
+    const headCount = Math.min(20, scored.length);
+    const head = scored.slice(0, headCount);
+    const tail = scored.slice(headCount);
+    for (const hit of head) {
+      const temporal = hit.trace.scoreBreakdown.temporal ?? 0;
+      const extra = clamp01(hit.trace.score + 0.22 * temporal);
+      hit.trace.scoreBreakdown.rerankerScore = extra;
+      hit.trace.score = extra;
+    }
+    head.sort((a, b) => {
+      const aRerank = a.trace.scoreBreakdown.rerankerScore ?? a.trace.score;
+      const bRerank = b.trace.scoreBreakdown.rerankerScore ?? b.trace.score;
+      if (bRerank !== aRerank) return bRerank - aRerank;
+      return b.trace.score - a.trace.score;
+    });
+    scored.length = 0;
+    scored.push(...head, ...tail);
+  }
+
+  const threshold = options.threshold;
+  const kept =
+    threshold === undefined
+      ? scored
+      : scored.filter((hit) => hit.trace.score >= threshold);
+  return kept.slice(0, Math.max(0, limit));
 }
 
 export function relatedMemories(

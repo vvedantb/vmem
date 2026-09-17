@@ -96,15 +96,18 @@ curl -X POST "https://<deployment>.convex.site/api/v1/memories/retrieve" \
   }'
 ```
 
-| Field       | Type     | Required                          |
-| ----------- | -------- | --------------------------------- |
-| `query`     | string   | yes                               |
-| `limit`     | number   | no (default `10`, max `50`)       |
-| `type`      | string   | no                                |
-| `tags`      | string[] | no                                |
-| `status`    | string   | no                                |
-| `profileId` | string   | no                                |
-| `summarize` | boolean  | no — joins ranked titles (no LLM) |
+| Field           | Type     | Required                           |
+| --------------- | -------- | ---------------------------------- |
+| `query`         | string   | yes                                |
+| `limit`         | number   | no (default `10`, max `50`)        |
+| `type`          | string   | no                                 |
+| `tags`          | string[] | no                                 |
+| `status`        | string   | no                                 |
+| `profileId`     | string   | no                                 |
+| `summarize`     | boolean  | no — joins ranked titles (no LLM)  |
+| `threshold`     | number   | no — drop hits below this score    |
+| `rerank`        | boolean  | no — lightweight top-20 rerank     |
+| `referenceDate` | string   | no — ISO date for temporal scoring |
 
 **Returns:**
 

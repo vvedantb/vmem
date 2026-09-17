@@ -198,6 +198,12 @@ function RecallHit({
                   value={hit.trace.scoreBreakdown.entity}
                 />
               ) : null}
+              {(hit.trace.scoreBreakdown.temporal ?? 0) > 0 ? (
+                <MemoryScoreBar
+                  label="Temporal"
+                  value={hit.trace.scoreBreakdown.temporal ?? 0}
+                />
+              ) : null}
             </div>
             <p className="mt-3 text-[11px] italic leading-snug text-muted">
               {hit.trace.reason}

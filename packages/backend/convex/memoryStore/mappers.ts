@@ -1,5 +1,6 @@
 import type { MemoryWithTags } from "@vmem/sdk";
 import type { Doc } from "../_generated/dataModel";
+import { temporalFieldsFromStore } from "../../engine/memory/temporal";
 
 function toIso(ms: number): string {
   return new Date(ms).toISOString();
@@ -32,6 +33,11 @@ export function toMemoryWithTags(doc: Doc<"memories">): MemoryWithTags {
     createdAt: toIso(doc.createdAt),
     updatedAt: toIso(doc.updatedAt),
     expiresAt: doc.expiresAt === undefined ? null : toIso(doc.expiresAt),
+    ...temporalFieldsFromStore({
+      eventStart: doc.eventStart,
+      eventEnd: doc.eventEnd,
+      temporalKind: doc.temporalKind,
+    }),
     tags: doc.tags,
   };
 }

@@ -4,6 +4,9 @@ import { parseJsonString } from "../llm/extractJsonString";
 export interface ExtractedFact {
   id: number;
   text: string;
+  temporalKind?: "event" | "state" | "plan" | "preference";
+  eventStart?: string;
+  eventEnd?: string;
 }
 
 export interface ExtractedFactsResponse {
@@ -53,10 +56,15 @@ Current date: ${currentDate}
 
 {
   "facts": [
-    { "id": 0, "text": "I prefer TypeScript over JavaScript" },
-    { "id": 1, "text": "I am building a memory app called vmem" }
+    { "id": 0, "text": "I prefer TypeScript over JavaScript", "temporalKind": "preference" },
+    { "id": 1, "text": "I am building a memory app called vmem", "temporalKind": "state" },
+    { "id": 2, "text": "I met Alice at the summit on 2026-09-10", "temporalKind": "event", "eventStart": "2026-09-10", "eventEnd": "2026-09-10" }
   ]
 }
+
+When a fact is time-bounded, include:
+- temporalKind: "event" (something that happened), "state" (current truth), "plan" (future), or "preference"
+- eventStart / eventEnd as ISO dates (YYYY-MM-DD) when the message names a date or relative day. Resolve relative phrases against the observation date. Omit them when unknown.
 
 If no durable facts: { "facts": [] }
 
@@ -70,6 +78,12 @@ ${capturedPrompt}
 const factItemSchema = z.object({
   id: z.number().optional().catch(undefined),
   text: z.string().trim().min(1),
+  temporalKind: z
+    .enum(["event", "state", "plan", "preference"])
+    .optional()
+    .catch(undefined),
+  eventStart: z.string().trim().min(1).optional().catch(undefined),
+  eventEnd: z.string().trim().min(1).optional().catch(undefined),
 });
 
 const factExtractionResponseSchema = z.object({
@@ -86,7 +100,19 @@ export function parseFactExtractionResponse(
   for (const item of parsed.facts) {
     const fact = factItemSchema.safeParse(item);
     if (!fact.success) continue;
-    facts.push({ id: fact.data.id ?? facts.length, text: fact.data.text });
+    facts.push({
+      id: fact.data.id ?? facts.length,
+      text: fact.data.text,
+      ...(fact.data.temporalKind === undefined
+        ? {}
+        : { temporalKind: fact.data.temporalKind }),
+      ...(fact.data.eventStart === undefined
+        ? {}
+        : { eventStart: fact.data.eventStart }),
+      ...(fact.data.eventEnd === undefined
+        ? {}
+        : { eventEnd: fact.data.eventEnd }),
+    });
   }
   return { facts };
 }

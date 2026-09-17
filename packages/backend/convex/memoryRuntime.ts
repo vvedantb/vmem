@@ -1,4 +1,9 @@
-import type { MemoryCandidate, MemoryType, MemoryWithTags } from "@vmem/sdk";
+import type {
+  MemoryCandidate,
+  MemoryType,
+  MemoryWithTags,
+  TemporalKind,
+} from "@vmem/sdk";
 import { internal } from "./_generated/api";
 import type { ActionCtx } from "./_generated/server";
 import type { MemoryListResult } from "./memoryApi/types";
@@ -20,6 +25,7 @@ import {
 } from "../engine/memory/retrieveCaps";
 import { queryEmbeddingText } from "../engine/memory/synonyms";
 import { buildSearchableText } from "../engine/memory/searchableText";
+import { parseReferenceMs } from "../engine/memory/temporal";
 import { OpenRouterRequiredError } from "../engine/memory/openRouterRequired";
 import { relatedMemories } from "../engine/memory/rank";
 import {
@@ -34,6 +40,7 @@ import { scheduleContextPromptInvalidationByClerkId } from "./lib/contextPromptI
 import {
   buildFactExtractionPrompt,
   parseFactExtractionResponse,
+  type ExtractedFact,
 } from "../engine/memory/extractFacts";
 import {
   buildFactDecisionPrompt,
@@ -72,6 +79,9 @@ export interface CreateMemoryRuntimeArgs {
   storageId?: string;
   mimeType?: string;
   originalFilename?: string;
+  eventStart?: string | null;
+  eventEnd?: string | null;
+  temporalKind?: TemporalKind | null;
 }
 
 export interface ListMemoryRuntimeArgs {
@@ -125,6 +135,9 @@ export async function createMemoryForClerk(
       storageId: args.storageId,
       mimeType: args.mimeType,
       originalFilename: args.originalFilename,
+      eventStart: args.eventStart,
+      eventEnd: args.eventEnd,
+      temporalKind: args.temporalKind,
     },
   );
   await scheduleContextPromptInvalidationByClerkId(ctx, args.clerkId);
@@ -313,6 +326,9 @@ export async function retrieveMemoriesForClerk(
     status?: string;
     source?: string;
     limit: number;
+    threshold?: number;
+    rerank?: boolean;
+    referenceDate?: string;
   },
 ): Promise<MemoryCandidate[]> {
   return retrieveRanked(ctx, {
@@ -325,6 +341,9 @@ export async function retrieveMemoriesForClerk(
     status: args.status,
     source: args.source,
     limit: args.limit,
+    threshold: args.threshold,
+    rerank: args.rerank,
+    referenceDate: args.referenceDate,
   });
 }
 
@@ -339,6 +358,9 @@ export async function retrieveMemoriesForTeamProfile(
     status?: string;
     source?: string;
     limit: number;
+    threshold?: number;
+    rerank?: boolean;
+    referenceDate?: string;
   },
 ): Promise<MemoryCandidate[]> {
   return retrieveRanked(ctx, {
@@ -351,6 +373,9 @@ export async function retrieveMemoriesForTeamProfile(
     status: args.status,
     source: args.source,
     limit: args.limit,
+    threshold: args.threshold,
+    rerank: args.rerank,
+    referenceDate: args.referenceDate,
   });
 }
 
@@ -404,6 +429,9 @@ async function retrieveRanked(
     status?: string;
     source?: string;
     limit: number;
+    threshold?: number;
+    rerank?: boolean;
+    referenceDate?: string;
   },
 ): Promise<MemoryCandidate[]> {
   const listFilter = {
@@ -413,12 +441,16 @@ async function retrieveRanked(
     source: args.source,
   };
   const trimmed = args.query.trim();
+  const rankOpts = {
+    limit: args.limit,
+    nowMs: parseReferenceMs(args.referenceDate, Date.now()),
+    threshold: args.threshold,
+    rerank: args.rerank,
+    ...listFilter,
+  };
   if (trimmed.length === 0) {
     const recent = await listRecentForRetrieve(ctx, args);
-    return retrieveMemoriesFromPool(recent, args.query, {
-      limit: args.limit,
-      ...listFilter,
-    });
+    return retrieveMemoriesFromPool(recent, args.query, rankOpts);
   }
 
   const [ftsHits, vectorHits, links] = await Promise.all([
@@ -510,20 +542,18 @@ async function retrieveRanked(
   if (byId.size === 0) {
     const recent = await listRecentForRetrieve(ctx, args);
     return retrieveMemoriesFromPool(recent, args.query, {
-      limit: args.limit,
+      ...rankOpts,
       vectorScores: vectorHits.scores,
       ftsRanks,
       links,
-      ...listFilter,
     });
   }
 
   return retrieveMemoriesFromPool([...byId.values()], args.query, {
-    limit: args.limit,
+    ...rankOpts,
     vectorScores: vectorHits.scores,
     ftsRanks,
     links,
-    ...listFilter,
   });
 }
 
@@ -704,6 +734,9 @@ async function writeInstructionMemory(
     profileId: string;
     text: string;
     extracted: boolean;
+    temporalKind?: ExtractedFact["temporalKind"];
+    eventStart?: string;
+    eventEnd?: string;
   },
 ): Promise<MemoryWithTags> {
   const source = args.extracted ? "sdk-extracted" : "instruction";
@@ -717,13 +750,16 @@ async function writeInstructionMemory(
     tags: [source],
     confidence: 0.9,
     sourceType: source,
+    temporalKind: args.temporalKind,
+    eventStart: args.eventStart,
+    eventEnd: args.eventEnd,
   });
 }
 
 async function extractInstructionFacts(
   ctx: ActionCtx,
   args: { clerkId: string; instruction: string; profileId?: string },
-): Promise<{ texts: string[]; extracted: boolean }> {
+): Promise<{ facts: ExtractedFact[]; extracted: boolean }> {
   const openRouter = await tryUserAndApiKeyByClerkId(
     ctx,
     args.clerkId,
@@ -743,12 +779,9 @@ async function extractInstructionFacts(
   const extracted = extractionRaw
     ? parseFactExtractionResponse(extractionRaw)
     : null;
-  const facts =
-    extracted?.facts
-      .map((fact) => fact.text)
-      .filter((text) => text.length > 0) ?? [];
+  const facts = extracted?.facts.filter((fact) => fact.text.length > 0) ?? [];
   return {
-    texts: facts.length > 0 ? facts : [instruction],
+    facts: facts.length > 0 ? facts : [{ id: 0, text: instruction }],
     extracted: facts.length > 0,
   };
 }
@@ -767,6 +800,7 @@ async function applyInstructionDecision(
     profileId: string;
     scope: MemoryReadScope;
     extracted: boolean;
+    fact: ExtractedFact;
     decision: FactDecision;
     memoriesById: Map<string, MemoryWithTags>;
     candidates: DecisionCandidate[];
@@ -802,6 +836,9 @@ async function applyInstructionDecision(
     profileId: args.profileId,
     text: decision.text,
     extracted: args.extracted,
+    temporalKind: args.fact.temporalKind,
+    eventStart: args.fact.eventStart,
+    eventEnd: args.fact.eventEnd,
   });
   if (decision.event === "UPDATE" && decision.targetId !== undefined) {
     await supersedeInstructionTargets(
@@ -898,7 +935,7 @@ export async function storeMemoryFromInstruction(
   ctx: ActionCtx,
   args: { clerkId: string; instruction: string; profileId?: string },
 ): Promise<{ created: MemoryWithTags[]; summary: string }> {
-  const { texts, extracted } = await extractInstructionFacts(ctx, args);
+  const { facts, extracted } = await extractInstructionFacts(ctx, args);
   const { profileId, scope } = await instructionWriteScope(
     ctx,
     args.clerkId,
@@ -910,12 +947,12 @@ export async function storeMemoryFromInstruction(
     collected.memories.map((memory) => [memory.id, memory]),
   );
   const created: MemoryWithTags[] = [];
-  for (const text of texts) {
+  for (const fact of facts) {
     const decision = await decideInstructionFact(ctx, {
       clerkId: args.clerkId,
       profileId,
       kind: scope.kind,
-      factText: text,
+      factText: fact.text,
       candidates,
       useLlm: false,
     });
@@ -924,6 +961,7 @@ export async function storeMemoryFromInstruction(
       profileId,
       scope,
       extracted,
+      fact,
       decision,
       memoriesById,
       candidates,
@@ -973,7 +1011,7 @@ export async function updateMemoryFromInstruction(
   }>;
   summary: string;
 }> {
-  const { texts, extracted } = await extractInstructionFacts(ctx, args);
+  const { facts, extracted } = await extractInstructionFacts(ctx, args);
   const { profileId, scope } = await instructionWriteScope(
     ctx,
     args.clerkId,
@@ -986,12 +1024,12 @@ export async function updateMemoryFromInstruction(
   );
   const applied: MemoryWithTags[] = [];
   let superseded = 0;
-  for (const text of texts) {
+  for (const fact of facts) {
     const decision = await decideInstructionFact(ctx, {
       clerkId: args.clerkId,
       profileId,
       kind: scope.kind,
-      factText: text,
+      factText: fact.text,
       candidates,
       useLlm: true,
     });
@@ -1000,6 +1038,7 @@ export async function updateMemoryFromInstruction(
       profileId,
       scope,
       extracted,
+      fact,
       decision,
       memoriesById,
       candidates,

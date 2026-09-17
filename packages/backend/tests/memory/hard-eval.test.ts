@@ -27,6 +27,7 @@ describe("hard labelled corpus invariants", () => {
     expect(types.has("tag-conflict")).toBe(true);
     expect(types.has("type-filter")).toBe(true);
     expect(types.has("distractor")).toBe(true);
+    expect(types.has("temporal")).toBe(true);
     expect(answerable.some((q) => q.filter !== undefined)).toBe(true);
   });
 });
@@ -53,6 +54,10 @@ describe("Convex hard labelled ablation", () => {
     expect(byType("full hybrid", "type-intent").ndcg10).toBe(1);
     expect(byType("full hybrid", "multi-hop-2").ndcg10).toBeGreaterThan(
       byType("hybrid (no graph)", "multi-hop-2").ndcg10,
+    );
+    expect(byType("full hybrid", "temporal").ndcg10).toBeGreaterThan(0.7);
+    expect(byType("full hybrid", "temporal").ndcg10).toBeGreaterThan(
+      byType("hybrid (no temporal)", "temporal").ndcg10,
     );
   }, 60_000);
 

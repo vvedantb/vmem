@@ -90,6 +90,7 @@ export const EVAL_CONFIGS: LegConfig[] = [
       entity: false,
       graph: false,
       recency: false,
+      temporal: false,
     },
   },
   {
@@ -101,11 +102,16 @@ export const EVAL_CONFIGS: LegConfig[] = [
       entity: false,
       graph: false,
       recency: false,
+      temporal: false,
     },
   },
   {
     name: "hybrid (no graph)",
     legs: { graph: false },
+  },
+  {
+    name: "hybrid (no temporal)",
+    legs: { temporal: false },
   },
   { name: "full hybrid", legs: {} },
 ];
@@ -127,6 +133,7 @@ const TYPE_ORDER = [
   "type-filter",
   "distractor",
   "tail-gold",
+  "temporal",
 ];
 
 function approxTokens(text: string): number {
@@ -369,8 +376,8 @@ ${vsNeo4j}
 
 ## Notes
 
-- Legs: \`vector-only\` / \`bm25-only\` are naive single-channel baselines. \`hybrid (no graph)\` is lexical+vector+recency. \`full hybrid\` adds stored memory links (up to 2 hops) as a second pass.
-- Query types: **single-fact / preference** one clear answer. **exact-match** distinctive codes among lookalikes. **project** sibling facts that never repeat the codename. **lexical-trap** repeats a query keyword in a different sense (graded 0). **update** stale vs current, recency separates them. **multi-hop** gold is one stored link from a bridge that shares the query entity.
+- Legs: \`vector-only\` / \`bm25-only\` are naive single-channel baselines (temporal off). \`hybrid (no graph)\` is lexical+vector+recency+temporal. \`hybrid (no temporal)\` is full hybrid without the event-window leg. \`full hybrid\` adds stored memory links (up to 2 hops) as a second pass.
+- Query types: **single-fact / preference** one clear answer. **exact-match** distinctive codes among lookalikes. **project** sibling facts that never repeat the codename. **lexical-trap** repeats a query keyword in a different sense (graded 0). **update** stale vs current, recency separates them. **multi-hop** gold is one stored link from a bridge that shares the query entity. **temporal** event windows / currently vs same-age stale, not list order.
 - Pure retrieval metrics + latency. No LLM judge. Neo4j is not used.
 - Convex numbers in this environment use deterministic synthetic embeddings unless \`OPENROUTER_API_KEY\` is set. The Neo4j 2026-07-18 bar used OpenRouter \`text-embedding-3-small\`.
 `;
@@ -590,7 +597,7 @@ ${vsBefore}
 
 ## Notes
 
-- Query types: **paraphrase** shares little surface form with gold. **long-tail** near-duplicate entity names. **multi-hop-2** gold is two stored links from the query entity. **tag-conflict** staging vs production. **tag-filter / type-filter** apply retrieve filters. **type-intent** must prefer profile without a filter. **distractor** recent keyword traps.
+- Query types: **paraphrase** shares little surface form with gold. **long-tail** near-duplicate entity names. **multi-hop-2** gold is two stored links from the query entity. **tag-conflict** staging vs production. **tag-filter / type-filter** apply retrieve filters. **type-intent** must prefer profile without a filter. **distractor** recent keyword traps. **temporal** last-week vs yesterday and currently vs same-age stale.
 - Convex-only. No Neo4j. No LLM judge.
 `;
 }
@@ -751,13 +758,10 @@ if (isDirectRun) {
   ])
     .then(([labelled, hard, labelledPool, hardPool, tail]) => {
       const labelledPath = fileURLToPath(
-        new URL("../../../internal/bench/vmem-convex-eval.md", import.meta.url),
+        new URL("./labelled-bench.md", import.meta.url),
       );
       const hardPath = fileURLToPath(
-        new URL(
-          "../../../internal/bench/vmem-convex-hard-eval.md",
-          import.meta.url,
-        ),
+        new URL("./hard-bench.md", import.meta.url),
       );
       const poolPath = fileURLToPath(
         new URL(

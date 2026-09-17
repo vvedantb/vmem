@@ -50,6 +50,7 @@ interface DemoTrace {
     confidence: number;
     chunk: number;
     entity: number;
+    temporal?: number;
   };
 }
 

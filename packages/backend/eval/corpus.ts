@@ -1,8 +1,8 @@
-// labelled retrieval benchmark corpus (488 memories, 36 relationships, 84 queries)
+// labelled retrieval benchmark corpus (493 memories, 36 relationships, 87 queries)
 
 import { readFileSync } from "node:fs";
 import { z } from "zod";
-import type { MemoryType } from "@vmem/sdk";
+import type { MemoryType, TemporalKind } from "@vmem/sdk";
 
 export interface BenchmarkMemory {
   id: string;
@@ -17,6 +17,9 @@ export interface BenchmarkMemory {
   createdAt: string;
   updatedAt: string;
   expiresAt: null;
+  eventStart?: string | null;
+  eventEnd?: string | null;
+  temporalKind?: TemporalKind | null;
 }
 
 export interface BenchmarkRelationship {
@@ -53,7 +56,7 @@ const SOURCE = "bench-corpus";
 const MULTI_HOP_COUNT = 12;
 const PROJECT_COUNT = 8;
 const TEMPORAL_COUNT = 12;
-const FILLER_COUNT = 350;
+const FILLER_COUNT = 349;
 
 interface MemSpec {
   key: string;
@@ -62,6 +65,9 @@ interface MemSpec {
   type?: MemoryType;
   tags?: string[];
   ageDays?: number;
+  eventStartAgeDays?: number;
+  eventEndAgeDays?: number;
+  temporalKind?: TemporalKind;
 }
 interface RelSpec {
   from: string;
@@ -369,6 +375,95 @@ function exactMatchScenario(): Scenario {
   };
 }
 
+function temporalWindowScenario(): Scenario {
+  const concertDay = isoFromAgeDays(40).slice(0, 10);
+  return {
+    memories: [
+      {
+        key: "tw_yday",
+        title: "Standup with Alice",
+        content: "Sat with Alice at morning standup.",
+        type: "episodic",
+        tags: ["event"],
+        ageDays: 2,
+        eventStartAgeDays: 1,
+        eventEndAgeDays: 1,
+        temporalKind: "event",
+      },
+      {
+        key: "tw_week",
+        title: "Summit dinner with Alice",
+        content: "Sat with Alice at the product summit dinner.",
+        type: "episodic",
+        tags: ["event"],
+        ageDays: 2,
+        eventStartAgeDays: 10,
+        eventEndAgeDays: 10,
+        temporalKind: "event",
+      },
+      {
+        key: "tw_office_old",
+        title: "Headquarters is in Berlin",
+        content: "The company headquarters is in Berlin.",
+        type: "knowledge",
+        tags: ["office"],
+        ageDays: 5,
+        eventStartAgeDays: 200,
+        temporalKind: "state",
+      },
+      {
+        key: "tw_office_now",
+        title: "Headquarters is in Lisbon",
+        content: "The company headquarters is in Lisbon.",
+        type: "knowledge",
+        tags: ["office"],
+        ageDays: 5,
+        eventStartAgeDays: 5,
+        temporalKind: "state",
+      },
+      {
+        key: "tw_rehearsal",
+        title: "Attended the Helix rehearsal",
+        content: "Went to the Helix rehearsal.",
+        type: "episodic",
+        tags: ["event"],
+        ageDays: 2,
+        eventStartAgeDays: 1,
+        eventEndAgeDays: 1,
+        temporalKind: "event",
+      },
+      {
+        key: "tw_concert",
+        title: "Attended the Helix concert",
+        content: "Went to the Helix concert.",
+        type: "episodic",
+        tags: ["event"],
+        ageDays: 2,
+        eventStartAgeDays: 40,
+        eventEndAgeDays: 40,
+        temporalKind: "event",
+      },
+    ],
+    queries: [
+      {
+        query: "Alice last week",
+        type: "temporal",
+        relevance: { tw_week: 3, tw_yday: 0 },
+      },
+      {
+        query: "where is headquarters currently",
+        type: "temporal",
+        relevance: { tw_office_now: 3, tw_office_old: 1 },
+      },
+      {
+        query: `Helix on ${concertDay}`,
+        type: "temporal",
+        relevance: { tw_concert: 3, tw_rehearsal: 0 },
+      },
+    ],
+  };
+}
+
 function fillerMemories(count: number): MemSpec[] {
   return Array.from({ length: count }, (_, i) => {
     const base = FILLER_TOPICS[i % FILLER_TOPICS.length] ?? "Misc note";
@@ -462,6 +557,7 @@ const SCENARIOS: Scenario[] = [
   }),
   ...TRAPS.map((trap, i) => lexicalTrapScenario(trap, i)),
   exactMatchScenario(),
+  temporalWindowScenario(),
   {
     memories: [],
     queries: ABSTENTIONS.map((q) => ({
@@ -493,6 +589,14 @@ export function generateBenchmarkCorpus(): BenchmarkCorpus {
     titleByKey.set(spec.key, spec.title);
     const ageDays = spec.ageDays ?? 60;
     const createdAt = isoFromAgeDays(ageDays);
+    const eventStart =
+      spec.eventStartAgeDays === undefined
+        ? undefined
+        : isoFromAgeDays(spec.eventStartAgeDays);
+    const eventEnd =
+      spec.eventEndAgeDays === undefined
+        ? undefined
+        : isoFromAgeDays(spec.eventEndAgeDays);
     memories.push({
       id: `bench_${spec.key}`,
       userId: BENCH_USER_ID,
@@ -506,6 +610,11 @@ export function generateBenchmarkCorpus(): BenchmarkCorpus {
       createdAt,
       updatedAt: createdAt,
       expiresAt: null,
+      ...(eventStart === undefined ? {} : { eventStart }),
+      ...(eventEnd === undefined ? {} : { eventEnd }),
+      ...(spec.temporalKind === undefined
+        ? {}
+        : { temporalKind: spec.temporalKind }),
     });
   };
 

@@ -41,6 +41,7 @@ export function toMemoryCandidate(
         entity: 0,
         rrf: 0,
         recency: 0,
+        temporal: 0,
         confidence: memory.confidence,
       },
       reason: "no lexical match",

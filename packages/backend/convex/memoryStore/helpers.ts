@@ -1,4 +1,9 @@
-import type { MemoryStatus, MemoryType, MemoryWithTags } from "@vmem/sdk";
+import type {
+  MemoryStatus,
+  MemoryType,
+  MemoryWithTags,
+  TemporalKind,
+} from "@vmem/sdk";
 import { computeContentHash } from "../../engine/memory/hash";
 import {
   memoryMatchesListFilter,
@@ -14,6 +19,11 @@ import { buildSearchableText } from "../../engine/memory/searchableText";
 import { normalizeTags } from "../../engine/memory/tags";
 import type { MemoryLinkEdge } from "../../engine/memory/links";
 import { UPDATES_LINK_REASON } from "../../engine/memory/supersede";
+import {
+  inferTemporalFields,
+  parseMillis,
+  toTemporalStoreFields,
+} from "../../engine/memory/temporal";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import {
@@ -46,6 +56,9 @@ export interface CreateMemoryStoreParams {
   storageId?: string;
   mimeType?: string;
   originalFilename?: string;
+  eventStart?: string | null;
+  eventEnd?: string | null;
+  temporalKind?: TemporalKind | null;
 }
 
 export interface ListMemoryStoreParams {
@@ -66,11 +79,43 @@ export interface UpdateMemoryStoreParams {
   tags?: string[];
   confidence?: number;
   expiresAt?: string | null;
+  eventStart?: string | null;
+  eventEnd?: string | null;
+  temporalKind?: TemporalKind | null;
 }
 
 export interface MemoryListStoreResult {
   memories: MemoryWithTags[];
   total: number;
+}
+
+function resolveTemporalStore(args: {
+  title: string;
+  content: string;
+  type: MemoryType;
+  nowMs: number;
+  eventStart?: string | null;
+  eventEnd?: string | null;
+  temporalKind?: TemporalKind | null;
+}): {
+  eventStart: number | null;
+  eventEnd: number | null;
+  temporalKind: TemporalKind | null;
+} {
+  if (
+    args.eventStart !== undefined ||
+    args.eventEnd !== undefined ||
+    args.temporalKind !== undefined
+  ) {
+    return {
+      temporalKind: args.temporalKind ?? null,
+      eventStart: parseMillis(args.eventStart) ?? null,
+      eventEnd: parseMillis(args.eventEnd) ?? null,
+    };
+  }
+  return toTemporalStoreFields(
+    inferTemporalFields(args.title, args.content, args.nowMs, args.type),
+  );
 }
 
 async function findByMemoryId(
@@ -138,6 +183,15 @@ export async function createMemory(
     params.sourceSyncedAt === undefined
       ? undefined
       : parseIsoMillis(params.sourceSyncedAt);
+  const temporal = resolveTemporalStore({
+    title: params.title,
+    content: params.content,
+    type: params.type,
+    nowMs: createdAt,
+    eventStart: params.eventStart,
+    eventEnd: params.eventEnd,
+    temporalKind: params.temporalKind,
+  });
 
   const id = await ctx.db.insert("memories", {
     memoryId,
@@ -170,6 +224,9 @@ export async function createMemory(
       params.content,
       normalizeTags(params.tags),
     ),
+    eventStart: temporal.eventStart,
+    eventEnd: temporal.eventEnd,
+    temporalKind: temporal.temporalKind,
   });
 
   const created = await ctx.db.get(id);
@@ -243,6 +300,24 @@ async function applyMemoryUpdates(
   const searchableText = contentChanged
     ? buildSearchableText(nextTitle, nextContent, nextTags)
     : doc.searchableText;
+  const nextType = updates.type ?? doc.type;
+  const temporalChanged =
+    textChanged ||
+    updates.type !== undefined ||
+    updates.eventStart !== undefined ||
+    updates.eventEnd !== undefined ||
+    updates.temporalKind !== undefined;
+  const temporal = temporalChanged
+    ? resolveTemporalStore({
+        title: nextTitle,
+        content: nextContent,
+        type: nextType,
+        nowMs: now,
+        eventStart: updates.eventStart,
+        eventEnd: updates.eventEnd,
+        temporalKind: updates.temporalKind,
+      })
+    : undefined;
   if (updates.expiresAt === null) {
     const {
       _id,
@@ -253,13 +328,14 @@ async function applyMemoryUpdates(
       ...doc,
       title: nextTitle,
       content: nextContent,
-      type: updates.type ?? doc.type,
+      type: nextType,
       status: updates.status ?? doc.status,
       tags: nextTags,
       confidence: updates.confidence ?? doc.confidence,
       contentHash,
       searchableText,
       updatedAt: now,
+      ...(temporal === undefined ? {} : temporal),
     };
     await ctx.db.replace(_id, fields);
   } else {
@@ -277,6 +353,7 @@ async function applyMemoryUpdates(
       ...(updates.expiresAt !== undefined
         ? { expiresAt: parseIsoMillis(updates.expiresAt) }
         : {}),
+      ...(temporal === undefined ? {} : temporal),
     });
   }
 

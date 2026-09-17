@@ -17,9 +17,16 @@ export const memoryStatusSchema = z.enum([
   "suppressed",
   "expired",
 ]);
+export const temporalKindSchema = z.enum([
+  "event",
+  "state",
+  "plan",
+  "preference",
+]);
 
 export type MemoryType = z.infer<typeof memoryTypeSchema>;
 export type MemoryStatus = z.infer<typeof memoryStatusSchema>;
+export type TemporalKind = z.infer<typeof temporalKindSchema>;
 
 // ── Memory shapes ────────────────────────────────────────────────────────────
 
@@ -40,6 +47,9 @@ export const memoryNodeSchema = z.object({
   createdAt: z.string(),
   updatedAt: z.string(),
   expiresAt: z.string().nullable(),
+  eventStart: z.string().nullable().optional(),
+  eventEnd: z.string().nullable().optional(),
+  temporalKind: temporalKindSchema.nullable().optional(),
 });
 
 export const memoryWithTagsSchema = memoryNodeSchema.extend({
@@ -60,6 +70,7 @@ export const scoreBreakdownSchema = z.object({
   rrf: z.number(),
   recency: z.number(),
   confidence: z.number(),
+  temporal: z.number().optional(),
   graphPath: graphPathTraceSchema.optional(),
   rerankerScore: z.number().optional(),
 });
@@ -136,6 +147,9 @@ export const retrieveBodySchema = z.object({
   limit: z.number().int().min(1).max(50).optional(),
   profileId: z.string().optional(),
   summarize: z.boolean().optional(),
+  threshold: z.number().min(0).max(1).optional(),
+  rerank: z.boolean().optional(),
+  referenceDate: z.string().optional(),
 });
 
 export const structuredUpdateBodySchema = z.object({
