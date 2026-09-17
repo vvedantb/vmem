@@ -55,10 +55,13 @@ Missing key → hybrid hits only (no 422). Jev HTTP failure → same fail-open.
 After FTS / vector / graph / rank (and optional local `rerank: true`):
 
 1. Over-fetch up to 20 hits.
-2. One `POST https://api.typesafe.ai/v1/systemone` (`model: jev-latest`).
-3. **Noul** per hit: P(relevant). Drop if `< 0.7` (`DEFAULT_JEV_RELEVANCE_THRESHOLD`).
-4. **Choice** over hit ids plus `none`: promote the winner among survivors.
-5. Context Trace keeps BM25 / vector / graph / temporal. Adds `jevRelevant`, `jevConfidence`, optional `jevBest`.
+2. One `POST https://api.typesafe.ai/v1/systemone` (`model: jev-latest`, `Authorization: Bearer $TYPESAFE_API_KEY`).
+3. Question `type` values are only `noul`, `choice`, `score`, and `bounding_box` (never `boolean`). Score questions require nested `score.criteria` (rubric labels). Retrieve-gate sends:
+   - per-hit **noul** keep?
+   - per-hit **score** with `score.criteria`: `irrelevant` / `weakly related` / `directly answers`
+   - optional **choice** over hit ids plus `none`
+4. Drop if noul `< 0.7` (`DEFAULT_JEV_RELEVANCE_THRESHOLD`). Rank survivors by score, then noul. Promote the Choice winner.
+5. Context Trace keeps BM25 / vector / graph / temporal. Adds `jevRelevant`, `jevScore`, `jevConfidence`, optional `jevBest`.
 
 Jev 1.13 is weak at date math — `temporal.ts` still owns windows. State includes `referenceDate` when the caller sent one; timestamps are not compared in-model.
 

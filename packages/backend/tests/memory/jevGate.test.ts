@@ -5,6 +5,7 @@ import {
   DEFAULT_JEV_RELEVANCE_THRESHOLD,
   JEV_BEST_NONE,
   JEV_GATE_HEAD,
+  JEV_SCORE_CRITERIA,
   applyJevRetrieveGate,
   buildJevRetrieveQuestions,
   jevRankPoolLimit,
@@ -63,6 +64,8 @@ const coffee = hit(
 function gateResponse(overrides: {
   pnpm?: number;
   coffee?: number;
+  pnpmScore?: number;
+  coffeeScore?: number;
   best?: string;
 }): SystemOneResponse {
   return {
@@ -70,6 +73,28 @@ function gateResponse(overrides: {
     answers: {
       rel_0: { type: "noul", noul: overrides.pnpm ?? 0.95 },
       rel_1: { type: "noul", noul: overrides.coffee ?? 0.1 },
+      sc_0: {
+        type: "score",
+        score: overrides.pnpmScore ?? 2,
+        legend: {
+          "0": "irrelevant",
+          "1": "weakly related",
+          "2": "directly answers",
+        },
+        probabilities: { "0": 0.05, "1": 0.1, "2": 0.85 },
+        confidence: 0.8,
+      },
+      sc_1: {
+        type: "score",
+        score: overrides.coffeeScore ?? 0,
+        legend: {
+          "0": "irrelevant",
+          "1": "weakly related",
+          "2": "directly answers",
+        },
+        probabilities: { "0": 0.9, "1": 0.08, "2": 0.02 },
+        confidence: 0.75,
+      },
       best: {
         type: "choice",
         choice: overrides.best ?? "h0",
@@ -94,26 +119,40 @@ describe("wantsJevJudge", () => {
 });
 
 describe("buildJevRetrieveQuestions", () => {
-  it("packs a Noul per hit plus a Choice over ids including none", () => {
+  it("packs noul keep, score rubric, and choice best id per the live schema", () => {
     const questions = buildJevRetrieveQuestions([pnpm, coffee]);
     expect(questions.rel_0).toEqual({
       type: "noul",
       instructions:
-        "Is this memory a correct answer to the query (not a lexical trap)?",
-      criteria: {
-        true: "The memory actually answers the query; shared keywords are not enough",
-        false: "Lexical overlap, wrong sense, stale, or unrelated",
+        "Keep this memory as an answer to the query (not a lexical trap)?",
+      noul: {
+        criteria: {
+          true: "The memory actually answers the query; shared keywords are not enough",
+          false: "Lexical overlap, wrong sense, stale, or unrelated",
+        },
+      },
+    });
+    expect(questions.sc_0).toEqual({
+      type: "score",
+      instructions: "How well does this memory answer the query?",
+      score: {
+        criteria: [...JEV_SCORE_CRITERIA],
       },
     });
     expect(questions.rel_1?.type).toBe("noul");
+    expect(questions.sc_1?.type).toBe("score");
     expect(questions.best).toMatchObject({
       type: "choice",
-      criteria: expect.objectContaining({
-        [JEV_BEST_NONE]: "None of the memories correctly answer the query",
-        h0: expect.stringContaining("Prefers pnpm"),
-        h1: expect.stringContaining("Coffee order"),
-      }),
+      choice: {
+        criteria: expect.objectContaining({
+          [JEV_BEST_NONE]: "None of the memories correctly answer the query",
+          h0: expect.stringContaining("Prefers pnpm"),
+          h1: expect.stringContaining("Coffee order"),
+        }),
+      },
     });
+    expect(questions.best).not.toHaveProperty("criteria");
+    expect(questions.sc_0).not.toHaveProperty("criteria");
   });
 });
 
@@ -132,7 +171,8 @@ describe("applyJevRetrieveGate", () => {
     expect(evaluate).toHaveBeenCalledOnce();
     expect(gated.map((row) => row.id)).toEqual(["mem_pnpm"]);
     expect(gated[0]?.trace.scoreBreakdown.jevRelevant).toBe(0.91);
-    expect(gated[0]?.trace.scoreBreakdown.jevConfidence).toBe(0.91);
+    expect(gated[0]?.trace.scoreBreakdown.jevScore).toBe(2);
+    expect(gated[0]?.trace.scoreBreakdown.jevConfidence).toBe(0.8);
     expect(gated[0]?.trace.scoreBreakdown.jevBest).toBe(true);
     expect(gated[0]?.trace.scoreBreakdown.fulltext).toBe(0.9);
     expect(gated[0]?.trace.reason).toContain("Jev relevant");
@@ -140,7 +180,13 @@ describe("applyJevRetrieveGate", () => {
 
   it("promotes the Choice winner among hits that pass the Noul threshold", async () => {
     const evaluate = vi.fn(async () =>
-      gateResponse({ pnpm: 0.88, coffee: 0.8, best: "h1" }),
+      gateResponse({
+        pnpm: 0.88,
+        coffee: 0.8,
+        pnpmScore: 2,
+        coffeeScore: 1,
+        best: "h1",
+      }),
     );
     const gated = await applyJevRetrieveGate({
       query: "what package manager?",

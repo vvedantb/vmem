@@ -3,10 +3,13 @@ import {
   SYSTEMONE_API_KEY_ENV_NAMES,
   SYSTEMONE_DEFAULT_MODEL,
   SYSTEMONE_ENDPOINT,
+  SYSTEMONE_QUESTION_TYPES,
   SystemOneHttpError,
   SystemOneParseError,
   evaluateSystemOne,
   readSystemOneApiKey,
+  type EvaluateSystemOneArgs,
+  type SystemOneQuestion,
 } from "../../engine/llm/systemOneClient";
 
 function jsonResponse(body: unknown, status: number = 200): Response {
@@ -15,6 +18,44 @@ function jsonResponse(body: unknown, status: number = 200): Response {
     headers: { "Content-Type": "application/json" },
   });
 }
+
+const sampleQuestions: Record<string, SystemOneQuestion> = {
+  is_urgent: {
+    type: "noul",
+    instructions: "Does this convey urgency?",
+    noul: {
+      criteria: {
+        true: "Explicitly time-sensitive",
+        false: "No urgency expressed",
+      },
+    },
+  },
+  department: {
+    type: "choice",
+    instructions: "Which team should handle this?",
+    choice: {
+      criteria: {
+        billing: "Payments",
+        technical: "Bugs",
+        sales: "Pricing",
+      },
+    },
+  },
+  frustration: {
+    type: "score",
+    instructions: "How frustrated is the customer?",
+    score: {
+      criteria: ["Calm", "Frustrated", "Very angry"],
+    },
+  },
+  logo: {
+    type: "bounding_box",
+    instructions: "Where is the logo?",
+    bounding_box: {
+      criteria: ["logo"],
+    },
+  },
+};
 
 const sampleAnswers = {
   is_urgent: { type: "noul" as const, noul: 0.92 },
@@ -30,6 +71,11 @@ const sampleAnswers = {
     legend: { "0": "Calm", "1": "Frustrated", "2": "Very angry" },
     probabilities: { "0": 0.05, "1": 0.3, "2": 0.65 },
     confidence: 0.78,
+  },
+  logo: {
+    type: "bounding_box" as const,
+    bounding_box: { x0: 12, y0: 8, x1: 40, y1: 22 },
+    confidence: 0.7,
   },
 };
 
@@ -68,7 +114,13 @@ describe("readSystemOneApiKey", () => {
 });
 
 describe("evaluateSystemOne", () => {
-  it("POSTs state and typed questions to System One with bearer auth", async () => {
+  it("POSTs nested noul/choice/score/bounding_box questions with bearer auth", async () => {
+    expect(SYSTEMONE_QUESTION_TYPES).toEqual([
+      "noul",
+      "choice",
+      "score",
+      "bounding_box",
+    ]);
     const fetchImpl = vi.fn(
       async (_url: string | URL | Request, _init?: RequestInit) =>
         jsonResponse({
@@ -82,26 +134,7 @@ describe("evaluateSystemOne", () => {
       apiKey: "test-key",
       fetchImpl,
       state: "Help! payouts failing.",
-      questions: {
-        is_urgent: {
-          type: "noul",
-          instructions: "Does this convey urgency?",
-        },
-        department: {
-          type: "choice",
-          instructions: "Which team should handle this?",
-          criteria: {
-            billing: "Payments",
-            technical: "Bugs",
-            sales: "Pricing",
-          },
-        },
-        frustration: {
-          type: "score",
-          instructions: "How frustrated is the customer?",
-          criteria: ["Calm", "Frustrated", "Very angry"],
-        },
-      },
+      questions: sampleQuestions,
     });
 
     expect(fetchImpl).toHaveBeenCalledOnce();
@@ -120,32 +153,50 @@ describe("evaluateSystemOne", () => {
       JSON.stringify({
         state: "Help! payouts failing.",
         model: SYSTEMONE_DEFAULT_MODEL,
-        questions: {
-          is_urgent: {
-            type: "noul",
-            instructions: "Does this convey urgency?",
-          },
-          department: {
-            type: "choice",
-            instructions: "Which team should handle this?",
-            criteria: {
-              billing: "Payments",
-              technical: "Bugs",
-              sales: "Pricing",
-            },
-          },
-          frustration: {
-            type: "score",
-            instructions: "How frustrated is the customer?",
-            criteria: ["Calm", "Frustrated", "Very angry"],
-          },
-        },
+        questions: sampleQuestions,
       }),
     );
     expect(result.answers.is_urgent).toEqual({ type: "noul", noul: 0.92 });
     expect(result.answers.department).toEqual(sampleAnswers.department);
     expect(result.answers.frustration).toEqual(sampleAnswers.frustration);
+    expect(result.answers.logo).toEqual(sampleAnswers.logo);
     expect(result.usage).toEqual({ input_tokens: 312, output_tokens: 48 });
+  });
+
+  it("rejects boolean questions and score without score.criteria", async () => {
+    const fetchImpl = vi.fn(async () => jsonResponse({ model: "jev-latest" }));
+    const invalid = {
+      apiKey: "test-key",
+      fetchImpl,
+      state: "x",
+    };
+
+    await expect(
+      evaluateSystemOne({
+        ...invalid,
+        questions: {
+          keep: {
+            type: "boolean",
+            instructions: "keep?",
+          },
+        } as EvaluateSystemOneArgs["questions"],
+      }),
+    ).rejects.toBeInstanceOf(SystemOneParseError);
+
+    await expect(
+      evaluateSystemOne({
+        ...invalid,
+        questions: {
+          relevance: {
+            type: "score",
+            instructions: "How relevant?",
+            criteria: ["irrelevant", "weakly related", "directly answers"],
+          },
+        } as EvaluateSystemOneArgs["questions"],
+      }),
+    ).rejects.toBeInstanceOf(SystemOneParseError);
+
+    expect(fetchImpl).not.toHaveBeenCalled();
   });
 
   it("throws on HTTP errors and invalid bodies without leaking the key", async () => {

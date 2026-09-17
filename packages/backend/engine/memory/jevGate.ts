@@ -16,9 +16,15 @@ export const JEV_GATE_HEAD = 20;
 export const DEFAULT_JEV_RELEVANCE_THRESHOLD = 0.7;
 const JEV_HIT_CONTENT_CHARS = 500;
 export const JEV_BEST_NONE = "none";
+export const JEV_SCORE_CRITERIA = [
+  "irrelevant",
+  "weakly related",
+  "directly answers",
+] as const;
 
-const RELEVANT_INSTRUCTIONS =
-  "Is this memory a correct answer to the query (not a lexical trap)?";
+const KEEP_INSTRUCTIONS =
+  "Keep this memory as an answer to the query (not a lexical trap)?";
+const SCORE_INSTRUCTIONS = "How well does this memory answer the query?";
 const BEST_INSTRUCTIONS =
   "Which memory is the single best answer to the query? Pick none if none are relevant.";
 
@@ -38,6 +44,10 @@ function relevantKey(index: number): string {
   return `rel_${String(index)}`;
 }
 
+function scoreKey(index: number): string {
+  return `sc_${String(index)}`;
+}
+
 function hitOptionKey(index: number): string {
   return `h${String(index)}`;
 }
@@ -49,6 +59,15 @@ function noulForIndex(
   const answer = answers[relevantKey(index)];
   if (answer === undefined || answer.type !== "noul") return undefined;
   return answer.noul;
+}
+
+function scoreForIndex(
+  answers: SystemOneResponse["answers"],
+  index: number,
+): { score: number; confidence: number } | undefined {
+  const answer = answers[scoreKey(index)];
+  if (answer === undefined || answer.type !== "score") return undefined;
+  return { score: answer.score, confidence: answer.confidence };
 }
 
 function bestHitIndex(
@@ -73,6 +92,7 @@ function appendJevReason(reason: string, noul: number | undefined): string {
 function annotateHit(
   hit: MemoryCandidate,
   noul: number | undefined,
+  jevScore: { score: number; confidence: number } | undefined,
   isBest: boolean,
 ): MemoryCandidate {
   return {
@@ -85,6 +105,12 @@ function annotateHit(
         ...(noul === undefined
           ? {}
           : { jevRelevant: noul, jevConfidence: noul }),
+        ...(jevScore === undefined
+          ? {}
+          : {
+              jevScore: jevScore.score,
+              jevConfidence: jevScore.confidence,
+            }),
         ...(isBest ? { jevBest: true } : {}),
       },
     },
@@ -103,10 +129,19 @@ export function buildJevRetrieveQuestions(
     if (hit === undefined) continue;
     questions[relevantKey(i)] = {
       type: "noul",
-      instructions: RELEVANT_INSTRUCTIONS,
-      criteria: {
-        true: "The memory actually answers the query; shared keywords are not enough",
-        false: "Lexical overlap, wrong sense, stale, or unrelated",
+      instructions: KEEP_INSTRUCTIONS,
+      noul: {
+        criteria: {
+          true: "The memory actually answers the query; shared keywords are not enough",
+          false: "Lexical overlap, wrong sense, stale, or unrelated",
+        },
+      },
+    };
+    questions[scoreKey(i)] = {
+      type: "score",
+      instructions: SCORE_INSTRUCTIONS,
+      score: {
+        criteria: [...JEV_SCORE_CRITERIA],
       },
     };
     choiceCriteria[hitOptionKey(i)] = `${hit.title}: ${truncateAtWord(
@@ -117,7 +152,9 @@ export function buildJevRetrieveQuestions(
   questions.best = {
     type: "choice",
     instructions: BEST_INSTRUCTIONS,
-    criteria: choiceCriteria,
+    choice: {
+      criteria: choiceCriteria,
+    },
   };
   return questions;
 }
@@ -156,6 +193,24 @@ function buildJevRetrieveState(
   };
 }
 
+function compareKept(a: MemoryCandidate, b: MemoryCandidate): number {
+  const aScore = a.trace.scoreBreakdown.jevScore;
+  const bScore = b.trace.scoreBreakdown.jevScore;
+  if (aScore !== bScore) {
+    if (aScore === undefined) return 1;
+    if (bScore === undefined) return -1;
+    return bScore - aScore;
+  }
+  const aJev = a.trace.scoreBreakdown.jevRelevant;
+  const bJev = b.trace.scoreBreakdown.jevRelevant;
+  if (aJev !== bJev) {
+    if (aJev === undefined) return 1;
+    if (bJev === undefined) return -1;
+    return bJev - aJev;
+  }
+  return b.trace.score - a.trace.score;
+}
+
 function applyAnswers(
   hits: readonly MemoryCandidate[],
   response: SystemOneResponse,
@@ -170,18 +225,16 @@ function applyAnswers(
     if (hit === undefined) continue;
     const noul = noulForIndex(response.answers, i);
     if (noul !== undefined && noul < threshold) continue;
-    kept.push(annotateHit(hit, noul, bestIndex === i));
+    kept.push(
+      annotateHit(
+        hit,
+        noul,
+        scoreForIndex(response.answers, i),
+        bestIndex === i,
+      ),
+    );
   }
-  kept.sort((a, b) => {
-    const aJev = a.trace.scoreBreakdown.jevRelevant;
-    const bJev = b.trace.scoreBreakdown.jevRelevant;
-    if (aJev !== bJev) {
-      if (aJev === undefined) return 1;
-      if (bJev === undefined) return -1;
-      return bJev - aJev;
-    }
-    return b.trace.score - a.trace.score;
-  });
+  kept.sort(compareKept);
   if (bestIndex !== undefined) {
     const bestHit = head[bestIndex];
     if (bestHit !== undefined) {

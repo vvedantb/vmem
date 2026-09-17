@@ -10,6 +10,13 @@ export const SYSTEMONE_API_KEY_ENV_NAMES = [
   "JEV_API_KEY",
 ] as const;
 
+export const SYSTEMONE_QUESTION_TYPES = [
+  "noul",
+  "choice",
+  "score",
+  "bounding_box",
+] as const;
+
 const noulCriteriaSchema = z.object({
   true: z.string().optional(),
   false: z.string().optional(),
@@ -18,25 +25,42 @@ const noulCriteriaSchema = z.object({
 const noulQuestionSchema = z.object({
   type: z.literal("noul"),
   instructions: z.string(),
-  criteria: noulCriteriaSchema.optional(),
+  noul: z
+    .object({
+      criteria: noulCriteriaSchema.optional(),
+    })
+    .optional(),
 });
 
 const choiceQuestionSchema = z.object({
   type: z.literal("choice"),
   instructions: z.string(),
-  criteria: z.record(z.string().nullable()),
+  choice: z.object({
+    criteria: z.record(z.string().nullable()),
+  }),
 });
 
 const scoreQuestionSchema = z.object({
   type: z.literal("score"),
   instructions: z.string(),
-  criteria: z.array(z.string()).min(2),
+  score: z.object({
+    criteria: z.array(z.string()).min(2),
+  }),
+});
+
+const boundingBoxQuestionSchema = z.object({
+  type: z.literal("bounding_box"),
+  instructions: z.string(),
+  bounding_box: z.object({
+    criteria: z.array(z.string()).optional(),
+  }),
 });
 
 const systemOneQuestionSchema = z.discriminatedUnion("type", [
   noulQuestionSchema,
   choiceQuestionSchema,
   scoreQuestionSchema,
+  boundingBoxQuestionSchema,
 ]);
 
 const noulAnswerSchema = z.object({
@@ -59,10 +83,22 @@ const scoreAnswerSchema = z.object({
   confidence: z.number(),
 });
 
+const boundingBoxAnswerSchema = z.object({
+  type: z.literal("bounding_box"),
+  bounding_box: z.object({
+    x0: z.number(),
+    y0: z.number(),
+    x1: z.number(),
+    y1: z.number(),
+  }),
+  confidence: z.number().optional(),
+});
+
 const systemOneAnswerSchema = z.discriminatedUnion("type", [
   noulAnswerSchema,
   choiceAnswerSchema,
   scoreAnswerSchema,
+  boundingBoxAnswerSchema,
 ]);
 
 const systemOneQuestionsMapSchema = z.record(systemOneQuestionSchema);

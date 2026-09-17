@@ -75,6 +75,7 @@ export const scoreBreakdownSchema = z.object({
   rerankerScore: z.number().optional(),
   jevRelevant: z.number().optional(),
   jevConfidence: z.number().optional(),
+  jevScore: z.number().optional(),
   jevBest: z.boolean().optional(),
 });
 
