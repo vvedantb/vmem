@@ -64,7 +64,11 @@ const pnpm = toEvalMemory(
   benchMemory("mem_pnpm", "Prefers pnpm", "Use pnpm for vmem installs"),
 );
 const coffee = toEvalMemory(
-  benchMemory("mem_coffee", "Coffee order", "Oat latte every morning"),
+  benchMemory(
+    "mem_coffee",
+    "Coffee order",
+    "Oat latte every morning — not a package manager",
+  ),
 );
 
 async function ranked(
@@ -90,13 +94,14 @@ async function ranked(
 }
 
 describe("labelled eval retrieve Jev wiring", () => {
-  it("applies judge jev after hybrid and drops noul below 0.5", async () => {
+  it("applies judge jev after hybrid and keeps low-noul hits reranked", async () => {
     const gated = await ranked("jev", {
       apiKey: "test-key",
       evaluate: async () => jevAnswers([0.66, 0.03]),
     });
-    expect(gated.map((row) => row.id)).toEqual(["mem_pnpm"]);
+    expect(gated.map((row) => row.id)).toEqual(["mem_pnpm", "mem_coffee"]);
     expect(gated[0]?.trace.scoreBreakdown.jevRelevant).toBe(0.66);
+    expect(gated[1]?.trace.scoreBreakdown.jevRelevant).toBe(0.03);
   });
 
   it("treats rerank jev as the same gate", async () => {
@@ -105,7 +110,7 @@ describe("labelled eval retrieve Jev wiring", () => {
       apiKey: "test-key",
       evaluate: async () => jevAnswers([0.91, 0.12]),
     });
-    expect(gated.map((row) => row.id)).toEqual(["mem_pnpm"]);
+    expect(gated.map((row) => row.id)).toEqual(["mem_pnpm", "mem_coffee"]);
   });
 
   it("fails closed when EVAL_JEV requires a live key", async () => {
@@ -120,7 +125,7 @@ describe("labelled eval retrieve Jev wiring", () => {
       apiKey: "test-key",
       evaluate: async () => jevAnswers([0.66, 0.03]),
     });
-    expect(gated.map((row) => row.id)).toEqual(["mem_pnpm"]);
+    expect(gated.map((row) => row.id)).toEqual(["mem_pnpm", "mem_coffee"]);
     expect(gated[0]?.trace.scoreBreakdown.jevRelevant).toBe(0.66);
   });
 

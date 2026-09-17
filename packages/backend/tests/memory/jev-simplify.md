@@ -2,7 +2,7 @@
 
 After [#182](https://github.com/vvedantb/vmem/pull/182) on clear-bear-690, fold Jev into default retrieve and drop overlapping second-stage ranking.
 
-**Lock:** hybrid retrieve still generates candidates (`rank.ts` FTS + vector + graph + temporal). Jev is the second-stage keep / score / best judge when `TYPESAFE_API_KEY` is set. GLiNER stays deferred.
+**Lock:** hybrid retrieve still generates candidates (`rank.ts` FTS + vector + graph + temporal). Jev is the second-stage **reranker** (score / best, no noul hard-drop) when `TYPESAFE_API_KEY` is set. GLiNER stays deferred.
 
 Sibling: [jev-retrieve-gate.md](./jev-retrieve-gate.md). Research: [extraction-research-gliner-jev.md](./extraction-research-gliner-jev.md) (#181).
 
@@ -27,7 +27,7 @@ In-process eval (`eval/retrieve.ts`) never calls System One — labelled IR stay
 
 ## P0 this PR (safe)
 
-1. **Default Jev on.** If a TypeSafe key resolves, over-fetch 20 and gate. No `judge: "jev"` required on HTTP / SDK / MCP / Convex / dashboard / Chrome. Missing key or HTTP failure fail-opens to hybrid (no 422). `judge: "off"` skips the gate for ablation.
+1. **Default Jev on.** If a TypeSafe key resolves, over-fetch 20 and rerank. No `judge: "jev"` required on HTTP / SDK / MCP / Convex / dashboard / Chrome. Missing key or HTTP failure fail-opens to hybrid (no 422). `judge: "off"` skips Jev for ablation.
 2. **Jev supersedes local extra.** `retrieveRanked` passes `rerank: wantsLocalRerank(args, jev)` into `rankMemories`. The extra still runs when Jev is off or the key is missing.
 3. **Honest Context Trace.** Local extra mutates `trace.score` only. `rerankerScore` stays the cover blend.
 4. **No hybrid gut.** Caps, FTS/vector union, graph hops, temporal rules, OpenRouter embeddings unchanged. Key lookup is parallel with FTS/vector so we do not over-fetch 20 without a key.
@@ -38,7 +38,7 @@ In-process eval (`eval/retrieve.ts`) never calls System One — labelled IR stay
 - When Jev is on, either ignore hybrid `threshold` or apply it only as a noul floor — do not mix 0–1 blend with noul `t`.
 - Jev Choice for `factDecision` (after hash-NONE).
 - UI: show jev\* on Context Trace hover.
-- Calibrate noul `t` on labelled abstentions + traps (`ai evaluate`); freeze before changing `0.5`.
+- Calibrate noul on labelled abstentions + traps (`ai evaluate`). Do not bring back a retrieve hard-drop until labelled R@5 stays at hybrid-only.
 
 ## Explicit non-goals
 

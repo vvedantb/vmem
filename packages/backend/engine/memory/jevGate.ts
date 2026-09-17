@@ -13,7 +13,8 @@ import {
 // (`packages/backend/tests/memory/extraction-research-gliner-jev.md`).
 
 export const JEV_GATE_HEAD = 20;
-// Live smoke (Convex vmem query): keep 0.66 vs drop 0.03. 0.7 would drop gold.
+// Live-smoke calibration (Convex vmem): gold ~0.66 vs trap ~0.03.
+// Not a retrieve filter — Jev reranks the head; it does not hard-drop.
 export const DEFAULT_JEV_RELEVANCE_THRESHOLD = 0.5;
 const JEV_HIT_CONTENT_CHARS = 500;
 export const JEV_BEST_NONE = "none";
@@ -231,19 +232,17 @@ function compareKept(a: MemoryCandidate, b: MemoryCandidate): number {
 function applyAnswers(
   hits: readonly MemoryCandidate[],
   response: SystemOneResponse,
-  threshold: number,
 ): MemoryCandidate[] {
   const head = hits.slice(0, JEV_GATE_HEAD);
   const tail = hits.slice(JEV_GATE_HEAD);
   const bestIndex = bestHitIndex(response.answers, head.length);
   const bestConf = choiceConfidence(response.answers);
-  const kept: MemoryCandidate[] = [];
+  const ranked: MemoryCandidate[] = [];
   for (let i = 0; i < head.length; i += 1) {
     const hit = head[i];
     if (hit === undefined) continue;
     const noul = noulForIndex(response.answers, i);
-    if (noul !== undefined && noul < threshold) continue;
-    kept.push(
+    ranked.push(
       annotateHit(
         hit,
         noul,
@@ -253,18 +252,18 @@ function applyAnswers(
       ),
     );
   }
-  kept.sort(compareKept);
+  ranked.sort(compareKept);
   if (bestIndex !== undefined) {
     const bestHit = head[bestIndex];
     if (bestHit !== undefined) {
-      const idx = kept.findIndex((row) => row.id === bestHit.id);
+      const idx = ranked.findIndex((row) => row.id === bestHit.id);
       if (idx > 0) {
-        const [best] = kept.splice(idx, 1);
-        if (best !== undefined) kept.unshift(best);
+        const [best] = ranked.splice(idx, 1);
+        if (best !== undefined) ranked.unshift(best);
       }
     }
   }
-  return [...kept, ...tail];
+  return [...ranked, ...tail];
 }
 
 export async function applyJevRetrieveGate(args: {
@@ -273,7 +272,6 @@ export async function applyJevRetrieveGate(args: {
   apiKey: string;
   referenceDate?: string;
   limit?: number;
-  threshold?: number;
   evaluate?: (args: EvaluateSystemOneArgs) => Promise<SystemOneResponse>;
 }): Promise<MemoryCandidate[]> {
   const limit = args.limit ?? args.hits.length;
@@ -281,7 +279,6 @@ export async function applyJevRetrieveGate(args: {
   if (args.query.trim().length === 0 || args.hits.length === 0) {
     return original.slice(0, Math.max(0, limit));
   }
-  const threshold = args.threshold ?? DEFAULT_JEV_RELEVANCE_THRESHOLD;
   const head = args.hits.slice(0, JEV_GATE_HEAD);
   const evaluate = args.evaluate ?? evaluateSystemOne;
   try {
@@ -290,10 +287,7 @@ export async function applyJevRetrieveGate(args: {
       state: buildJevRetrieveState(args.query, head, args.referenceDate),
       questions: buildJevRetrieveQuestions(head),
     });
-    return applyAnswers(args.hits, response, threshold).slice(
-      0,
-      Math.max(0, limit),
-    );
+    return applyAnswers(args.hits, response).slice(0, Math.max(0, limit));
   } catch {
     return original.slice(0, Math.max(0, limit));
   }

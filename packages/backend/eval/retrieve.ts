@@ -76,7 +76,6 @@ export interface RetrieveEvalOptions {
   jevDefaultOn?: boolean;
   apiKey?: string;
   requireJevKey?: boolean;
-  jevThreshold?: number;
   evaluate?: (args: EvaluateSystemOneArgs) => Promise<SystemOneResponse>;
 }
 
@@ -241,7 +240,6 @@ async function finishEvalRetrieve(
     apiKey,
     limit: userLimit,
     referenceDate,
-    threshold: options.jevThreshold,
     evaluate: options.evaluate,
   });
 }

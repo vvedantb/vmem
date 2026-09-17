@@ -96,7 +96,7 @@ const memoryRetrieveSchema = retrieveBodySchema
       .enum(["jev", "off"])
       .optional()
       .describe(
-        'Jev keep/best is on by default when TYPESAFE_API_KEY is set. Pass "off" to skip (eval / ablation). "jev" is accepted and ignored.',
+        'Jev rerank is on by default when TYPESAFE_API_KEY is set. Pass "off" to skip (eval / ablation). "jev" is accepted and ignored.',
       ),
     referenceDate: z
       .string()
@@ -230,7 +230,7 @@ export const memoryToolSpecs = {
     name: "memory_retrieve",
     schema: memoryRetrieveSchema,
     description:
-      'Retrieve the most relevant memories for a query using hybrid full-text, synonym, recency, temporal, and optional vector ranking. type, tags, status, and source filters are applied before ranking. Optional threshold drops low hybrid scores. TypeSafe Jev keep/best runs on the top 20 when TYPESAFE_API_KEY is set (fail-open without the key). Pass judge: "off" to skip Jev for ablation. Defaults to the active profile unless profileId is specified.',
+      'Retrieve the most relevant memories for a query using hybrid full-text, synonym, recency, temporal, and optional vector ranking. type, tags, status, and source filters are applied before ranking. Optional threshold drops low hybrid scores. TypeSafe Jev reranks the top 20 when TYPESAFE_API_KEY is set (fail-open without the key; no noul hard-drop). Pass judge: "off" to skip Jev for ablation. Defaults to the active profile unless profileId is specified.',
     errorLabel: "Retrieve failed",
     async run(h, params): Promise<unknown> {
       return withMcpMemoryScope(

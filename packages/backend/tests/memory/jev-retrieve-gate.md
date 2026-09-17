@@ -1,6 +1,6 @@
 # Jev retrieve-gate (TypeSafe System One)
 
-Second-stage keep / score / best after hybrid retrieve. **On by default** when `TYPESAFE_API_KEY` is set. No client flag required. Missing key or Jev HTTP failure → hybrid hits only (no 422).
+Second-stage score / best **rerank** after hybrid retrieve (no noul hard-drop). **On by default** when `TYPESAFE_API_KEY` is set. No client flag required. Missing key or Jev HTTP failure → hybrid hits only (no 422).
 
 What to drop now that this is live: [jev-simplify.md](./jev-simplify.md).
 
@@ -56,7 +56,7 @@ After FTS / vector / graph / rank (hybrid candidate generation is unchanged):
    - per-hit **noul** keep?
    - per-hit **score** with `criteria`: `irrelevant` / `weakly related` / `directly answers`
    - **choice** over hit ids plus `none`
-4. Drop if noul `< 0.5` (`DEFAULT_JEV_RELEVANCE_THRESHOLD`). Live smoke (Convex vmem): keep 0.66, drop 0.03 / 0.03, `best` confidence 0.77. Rank survivors by score, then noul. Promote the Choice winner.
+4. Annotate every head hit with `jevRelevant` / `jevScore`. Rank the **full** head by score, then noul, then hybrid; promote the Choice winner. **Do not hard-drop** on noul, and do not empty the list on `best: none`. Slice to the caller limit after rerank. Live smoke (Convex vmem): gold 0.66 vs traps 0.03 / 0.03, `best` confidence 0.77 — traps stay in the list, ranked below gold.
 5. Context Trace keeps BM25 / vector / graph / temporal. Adds `jevRelevant`, `jevScore`, `jevConfidence`, optional `jevBest`.
 
 Jev 1.13 is weak at date math — `temporal.ts` still owns windows. State includes `referenceDate` when the caller sent one; timestamps are not compared in-model.
@@ -85,9 +85,17 @@ Queries and mutations **cannot** `fetch`. Do not move this call onto a query.
 
 `AI_GATEWAY_API_KEY` is for Vercel AI Gateway `typesafe-ai/jev`, not `api.typesafe.ai`. This gate talks to TypeSafe directly.
 
+## Rerank, no hard-drop
+
+Hard-drop at noul `< 0.5` in `applyAnswers` cut labelled R@5: default Jev was **84.6%** vs hybrid-only **100%** because project / update / multi-hop gold left the top 5. Jev was already good at ranking (MRR 1.000) and at lexical-trap nDCG.
+
+So the gate **only reranks**. Every head hit is annotated and sorted (`compareKept` + best-first). Low-noul traps stay in the list instead of disappearing. `best: none` does not return `[]` — hybrid still needs those hits at k=5. Fail-open on API/parse errors is unchanged.
+
+`DEFAULT_JEV_RELEVANCE_THRESHOLD` (0.5) stays as the live-smoke calibration (keep 0.66 vs trap 0.03) for eval diagnostics, not as a retrieve filter.
+
 ## Calibrate later
 
-Threshold `0.5` sits between live keep `0.66` and trap `0.03`. Freeze questions with `ai evaluate` (default model `typesafe-ai/jev`) on labelled abstentions + lexical traps before changing `t`. Live System One calls are skipped in CI; unit tests mock HTTP. No API keys in the repo.
+Freeze questions with `ai evaluate` (default model `typesafe-ai/jev`) on labelled abstentions + lexical traps before treating noul as a drop again. Live System One calls are skipped in CI; unit tests mock HTTP. No API keys in the repo.
 
 ## Labelled IR comparison
 
