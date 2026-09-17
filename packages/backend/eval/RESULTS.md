@@ -22,4 +22,4 @@ Labelled before: `tests/mcp/RESULTS.md` (488 memories, 78 answerable). Hard befo
 
 Full tables: `labelled-bench.md`, `hard-bench.md`. Re-run: `pnpm --filter @vmem/backend eval:bench` and `eval:hard`.
 
-Hybrid vs TypeSafe Jev (`judge: "jev"`) on the same labelled harness: `tests/memory/benchmark/jev-gate-results.md`. Re-run: `EVAL_JEV=1 pnpm --filter @vmem/backend eval:jev` (live System One; no mock).
+Hybrid vs TypeSafe Jev on the same labelled harness (main result = default-on Jev; control = `judge: "off"`): `tests/memory/benchmark/jev-gate-results.md`. Re-run: `EVAL_JEV=1 pnpm --filter @vmem/backend eval:jev` (live System One; no mock).

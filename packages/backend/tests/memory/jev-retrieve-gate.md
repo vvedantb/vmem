@@ -95,7 +95,7 @@ Threshold `0.5` sits between live keep `0.66` and trap `0.03`. Freeze questions 
 
 ## Labelled IR comparison
 
-Hybrid vs hybrid+Jev on the real labelled harness (`packages/backend/eval/*`, 493 memories, 81 answerable, 6 abstentions):
+Default-on Jev vs hybrid-only (`judge: "off"`) on the real labelled harness (`packages/backend/eval/*`, 493 memories, 81 answerable, 6 abstentions). Main result is **default (Jev on)** — the always-on path (product default lands in a separate PR). Hybrid-only is the control.
 
 ```bash
 EVAL_JEV=1 pnpm --filter @vmem/backend eval:jev

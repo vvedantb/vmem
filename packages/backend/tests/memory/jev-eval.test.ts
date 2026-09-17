@@ -7,6 +7,7 @@ import {
   evalJevEnabled,
   retrieveEval,
   toEvalMemory,
+  type EvalJudge,
   type RetrieveEvalOptions,
 } from "../../eval/retrieve";
 import { runJevGateComparison } from "../../eval/benchmark";
@@ -67,7 +68,7 @@ const coffee = toEvalMemory(
 );
 
 async function ranked(
-  judge: "jev" | undefined,
+  judge: EvalJudge | undefined,
   extras: Partial<RetrieveEvalOptions> = {},
 ) {
   return retrieveEval([pnpm, coffee], "what package manager?", {
@@ -112,10 +113,36 @@ describe("labelled eval retrieve Jev wiring", () => {
       ranked("jev", { requireJevKey: true, apiKey: "" }),
     ).rejects.toThrow(EVAL_JEV_KEY_REQUIRED);
   });
+
+  it("applies Jev by default when jevDefaultOn is set", async () => {
+    const gated = await ranked(undefined, {
+      jevDefaultOn: true,
+      apiKey: "test-key",
+      evaluate: async () => jevAnswers([0.66, 0.03]),
+    });
+    expect(gated.map((row) => row.id)).toEqual(["mem_pnpm"]);
+    expect(gated[0]?.trace.scoreBreakdown.jevRelevant).toBe(0.66);
+  });
+
+  it("judge off skips Jev even when default-on", async () => {
+    let called = false;
+    const gated = await ranked("off", {
+      jevDefaultOn: true,
+      apiKey: "test-key",
+      evaluate: async () => {
+        called = true;
+        return jevAnswers([0.66, 0.03]);
+      },
+    });
+    expect(called).toBe(false);
+    expect(
+      gated.every((hit) => hit.trace.scoreBreakdown.jevRelevant === undefined),
+    ).toBe(true);
+  });
 });
 
 describe.skipIf(!evalJevEnabled())(
-  "labelled hybrid vs hybrid+Jev (live System One)",
+  "labelled default (Jev on) vs hybrid-only (live System One)",
   () => {
     it("reports side-by-side IR metrics from real Jev calls", async () => {
       const { hybrid, gated, report } = await runJevGateComparison();
@@ -123,6 +150,7 @@ describe.skipIf(!evalJevEnabled())(
       expect(hybrid.outcomes).toHaveLength(81);
       expect(gated.outcomes).toHaveLength(81);
       expect(gated.jev?.calls).toBeGreaterThan(0);
+      expect(hybrid.jev).toBeUndefined();
     }, 900_000);
   },
 );

@@ -27,7 +27,7 @@ describe("MCP retrieve uses the labelled Convex hybrid ranker", () => {
     const evalRetrieve = read("eval/retrieve.ts");
     expect(evalRetrieve).toContain("retrieveMemoriesFromPool");
     expect(evalRetrieve).toContain("applyJevRetrieveGate");
-    expect(evalRetrieve).toContain("wantsJevJudge");
+    expect(evalRetrieve).toContain("evalWantsJev");
     expect(evalRetrieve).toContain("jevRankPoolLimit");
     expect(runtime).toContain("getMemoriesByMemoryIdsInternal");
     expect(runtime).toContain("RETRIEVE_RANK_POOL_CAP");

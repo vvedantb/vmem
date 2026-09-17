@@ -14,7 +14,6 @@ import {
 import {
   applyJevRetrieveGate,
   jevRankPoolLimit,
-  wantsJevJudge,
 } from "../engine/memory/jevGate";
 import { retrieveMemoriesFromPool } from "../engine/memory/retrieve";
 import {
@@ -49,6 +48,17 @@ export function evalJevConcurrency(
 }
 
 export type RetrieveEvalRerank = boolean | "jev";
+export type EvalJudge = "jev" | "off";
+
+export function evalWantsJev(options: {
+  judge?: EvalJudge;
+  rerank?: RetrieveEvalRerank;
+  jevDefaultOn?: boolean;
+}): boolean {
+  if (options.judge === "off") return false;
+  if (options.judge === "jev" || options.rerank === "jev") return true;
+  return options.jevDefaultOn === true;
+}
 
 export interface RetrieveEvalOptions {
   legs: RetrievalLegs;
@@ -62,7 +72,8 @@ export interface RetrieveEvalOptions {
   caps?: RetrieveCandidateCaps;
   threshold?: number;
   rerank?: RetrieveEvalRerank;
-  judge?: "jev";
+  judge?: EvalJudge;
+  jevDefaultOn?: boolean;
   apiKey?: string;
   requireJevKey?: boolean;
   jevThreshold?: number;
@@ -184,7 +195,7 @@ export async function retrieveEval(
   query: string,
   options: RetrieveEvalOptions,
 ): Promise<MemoryCandidate[]> {
-  const jev = wantsJevJudge(options);
+  const jev = evalWantsJev(options);
   const userLimit = options.limit ?? EVAL_K;
   const rankLimit = jevRankPoolLimit(userLimit, jev);
   const useVector = options.legs.vector !== false;

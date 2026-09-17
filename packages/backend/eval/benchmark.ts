@@ -19,10 +19,7 @@ import {
   type EvaluateSystemOneArgs,
   type SystemOneResponse,
 } from "../engine/llm/systemOneClient";
-import {
-  DEFAULT_JEV_RELEVANCE_THRESHOLD,
-  wantsJevJudge,
-} from "../engine/memory/jevGate";
+import { DEFAULT_JEV_RELEVANCE_THRESHOLD } from "../engine/memory/jevGate";
 import {
   INDEX_RETRIEVE_CAPS,
   LEGACY_RETRIEVE_CAPS,
@@ -41,9 +38,11 @@ import {
   EVAL_K,
   autoLinksFromCorpus,
   evalJevConcurrency,
+  evalWantsJev,
   linksFromCorpus,
   retrieveEval,
   toEvalMemory,
+  type EvalJudge,
   type RetrieveEvalRerank,
 } from "./retrieve";
 import type { MemoryLinkEdge } from "../engine/memory/links";
@@ -51,7 +50,7 @@ import type { MemoryLinkEdge } from "../engine/memory/links";
 interface LegConfig {
   name: string;
   legs: RetrievalLegs;
-  judge?: "jev";
+  judge?: EvalJudge;
   rerank?: RetrieveEvalRerank;
 }
 
@@ -491,8 +490,9 @@ export async function runCorpusAblation(
     caps?: RetrieveCandidateCaps;
     configs?: LegConfig[];
     links?: readonly MemoryLinkEdge[];
-    judge?: "jev";
+    judge?: EvalJudge;
     rerank?: RetrieveEvalRerank;
+    jevDefaultOn?: boolean;
     requireJevKey?: boolean;
     jevThreshold?: number;
     apiKey?: string;
@@ -545,7 +545,11 @@ export async function runCorpusAblation(
   for (const config of configs) {
     const judge = config.judge ?? options.judge;
     const rerank = config.rerank ?? options.rerank;
-    const jev = wantsJevJudge({ judge, rerank });
+    const jev = evalWantsJev({
+      judge,
+      rerank,
+      jevDefaultOn: options.jevDefaultOn,
+    });
     const jevStats = jev ? emptyJevCallStats() : undefined;
     const evaluate = jev
       ? (options.evaluate ??
@@ -569,6 +573,7 @@ export async function runCorpusAblation(
         caps: options.caps,
         judge,
         rerank,
+        jevDefaultOn: options.jevDefaultOn,
         requireJevKey: options.requireJevKey,
         jevThreshold: options.jevThreshold,
         apiKey: options.apiKey,
@@ -895,9 +900,12 @@ export async function runTailGoldComparison(): Promise<{
   return { corpus, ...comparison };
 }
 
+const HYBRID_ONLY_EVAL_NAME = "hybrid-only (judge: off)";
+const DEFAULT_JEV_EVAL_NAME = "default (Jev on)";
+
 const JEV_GATE_EVAL_CONFIGS: LegConfig[] = [
-  { name: "full hybrid", legs: {} },
-  { name: "full hybrid + jev", legs: {}, judge: "jev" },
+  { name: HYBRID_ONLY_EVAL_NAME, legs: {}, judge: "off" },
+  { name: DEFAULT_JEV_EVAL_NAME, legs: {} },
 ];
 
 function goldDrops(
@@ -961,20 +969,7 @@ function buildJevGateReport(args: {
     ],
     [
       [
-        "full hybrid",
-        pct(hybridAgg.recall1),
-        pct(hybridAgg.recall3),
-        pct(hybridAgg.recall5),
-        pct(hybridAgg.recall10),
-        pct(hybridAgg.precision5),
-        hybridAgg.mrr.toFixed(3),
-        hybridAgg.ndcg10.toFixed(3),
-        String(Math.round(hybridAgg.meanCtxTokens)),
-        hybridAgg.latencyP50.toFixed(0),
-        hybridAgg.latencyP95.toFixed(0),
-      ],
-      [
-        "full hybrid + jev",
+        DEFAULT_JEV_EVAL_NAME,
         pct(gatedAgg.recall1),
         pct(gatedAgg.recall3),
         pct(gatedAgg.recall5),
@@ -986,10 +981,23 @@ function buildJevGateReport(args: {
         gatedAgg.latencyP50.toFixed(0),
         gatedAgg.latencyP95.toFixed(0),
       ],
+      [
+        HYBRID_ONLY_EVAL_NAME,
+        pct(hybridAgg.recall1),
+        pct(hybridAgg.recall3),
+        pct(hybridAgg.recall5),
+        pct(hybridAgg.recall10),
+        pct(hybridAgg.precision5),
+        hybridAgg.mrr.toFixed(3),
+        hybridAgg.ndcg10.toFixed(3),
+        String(Math.round(hybridAgg.meanCtxTokens)),
+        hybridAgg.latencyP50.toFixed(0),
+        hybridAgg.latencyP95.toFixed(0),
+      ],
     ],
   );
   const deltaTable = mdTable(
-    ["Metric", "hybrid", "hybrid + Jev", "Δ"],
+    ["Metric", "hybrid-only", "default (Jev)", "Δ"],
     [
       [
         "recall@1",
@@ -1043,9 +1051,11 @@ function buildJevGateReport(args: {
       ? "yes"
       : "no (below Neo4j 92.0% R@5 bar)";
 
-  return `# vmem labelled retrieve: hybrid vs hybrid + Jev
+  return `# vmem labelled retrieve: default (Jev on) vs hybrid-only
 
 Generated: ${today} · Corpus: ${String(args.stats.memoryCount)} memories · Answerable: ${String(args.answerable.length)} · Abstention: ${String(args.abstention.length)} · Embeddings: ${embeddingMode()} · Jev: live System One \`jev-latest\` · Noul keep threshold: ${String(DEFAULT_JEV_RELEVANCE_THRESHOLD)}
+
+Main result is **default (Jev on)** — the always-on retrieve path. Hybrid-only is the control (\`judge: "off"\`).
 
 Re-run (needs \`TYPESAFE_API_KEY\`):
 
@@ -1061,20 +1071,22 @@ ${overallTable}
 
 ${deltaTable}
 
+Δ is default (Jev) minus hybrid-only.
+
 ## nDCG@10 by query type
 
-${perTypeTable([args.hybrid, args.gated], args.answerable, (m) => m.ndcg10.toFixed(3))}
+${perTypeTable([args.gated, args.hybrid], args.answerable, (m) => m.ndcg10.toFixed(3))}
 
 ## Recall@5 by query type
 
-${perTypeTable([args.hybrid, args.gated], args.answerable, (m) => pct(m.recall5))}
+${perTypeTable([args.gated, args.hybrid], args.answerable, (m) => pct(m.recall5))}
 
 ## Abstention (6 queries with no gold)
 
 | Config | empty lists | top-score max | top-score mean |
 | --- | --- | --- | --- |
-| full hybrid | ${String(args.hybrid.abstentionEmpty)} / ${String(args.abstention.length)} | ${Math.max(0, ...args.hybrid.abstentionTopScores).toFixed(3)} | ${mean(args.hybrid.abstentionTopScores).toFixed(3)} |
-| full hybrid + jev | ${String(args.gated.abstentionEmpty)} / ${String(args.abstention.length)} | ${Math.max(0, ...args.gated.abstentionTopScores).toFixed(3)} | ${mean(args.gated.abstentionTopScores).toFixed(3)} |
+| ${DEFAULT_JEV_EVAL_NAME} | ${String(args.gated.abstentionEmpty)} / ${String(args.abstention.length)} | ${Math.max(0, ...args.gated.abstentionTopScores).toFixed(3)} | ${mean(args.gated.abstentionTopScores).toFixed(3)} |
+| ${HYBRID_ONLY_EVAL_NAME} | ${String(args.hybrid.abstentionEmpty)} / ${String(args.abstention.length)} | ${Math.max(0, ...args.hybrid.abstentionTopScores).toFixed(3)} | ${mean(args.hybrid.abstentionTopScores).toFixed(3)} |
 
 ## Jev gate diagnostics
 
@@ -1085,11 +1097,11 @@ ${perTypeTable([args.hybrid, args.gated], args.answerable, (m) => pct(m.recall5)
 | Hits dropped (noul < ${String(DEFAULT_JEV_RELEVANCE_THRESHOLD)}) | ${String(jev.dropped)} |
 | Near-ties (noul in [0.45, 0.55], kept at 0.5) | ${String(jev.nearTies)} |
 | Answerable queries emptied by the gate | ${String(emptyAnswerable)} |
-| Answerable queries with recall@5 drop | ${String(recallDrop)} |
-| Gold titles hybrid had in top 10 that Jev removed | ${String(drops.length)} |
+| Answerable queries with recall@5 drop vs hybrid-only | ${String(recallDrop)} |
+| Gold titles hybrid-only had in top 10 that Jev removed | ${String(drops.length)} |
 | input_tokens (if API returned usage) | ${String(jev.inputTokens)} |
 | output_tokens (if API returned usage) | ${String(jev.outputTokens)} |
-| R@5 still ≥ Neo4j 92.0% | ${neoKeep} |
+| default (Jev) R@5 still ≥ Neo4j 92.0% | ${neoKeep} |
 
 ### Gold titles removed by Jev
 
@@ -1098,7 +1110,8 @@ ${dropLines}
 ## Notes / caveats
 
 - Same labelled harness as \`eval:bench\` (\`packages/backend/eval/*\`). Not the synthetic \`tests/memory/benchmark/retrieve.bench.test.ts\` toy.
-- Hybrid over-fetches 20 hits when \`judge: "jev"\`, Jev judges that head, eval slices to k=10. Threshold **0.5** keeps near-ties; live smoke gold was 0.66 and traps 0.03.
+- Product retrieve is still opt-in (\`judge: "jev"\`). Always-on default is a separate PR. This eval temporarily treats Jev as default and disables it with eval-only \`judge: "off"\`.
+- Default-on over-fetches 20 hits, Jev judges that head, eval slices to k=10. Threshold **0.5** keeps near-ties; live smoke gold was 0.66 and traps 0.03.
 - Jev is weak at date math — temporal windows still come from \`temporal.ts\`.
 - Missing \`TYPESAFE_API_KEY\` on retrieve in prod fail-opens to hybrid. This labelled comparison **requires** a live key.
 - Embeddings are synthetic unless \`OPENROUTER_API_KEY\` is set. Jev judges title/content, so the embedder only changes the hybrid head it sees.
@@ -1121,13 +1134,16 @@ export async function runJevGateComparison(): Promise<{
     corpus,
     {
       configs: JEV_GATE_EVAL_CONFIGS,
+      jevDefaultOn: true,
       requireJevKey: true,
     },
   );
-  const hybrid = runs.find((run) => run.name === "full hybrid");
-  const gated = runs.find((run) => run.name === "full hybrid + jev");
+  const hybrid = runs.find((run) => run.name === HYBRID_ONLY_EVAL_NAME);
+  const gated = runs.find((run) => run.name === DEFAULT_JEV_EVAL_NAME);
   if (hybrid === undefined || gated === undefined) {
-    throw new Error("jev gate comparison missing hybrid or gated run");
+    throw new Error(
+      "jev gate comparison missing hybrid-only or default (Jev) run",
+    );
   }
   const report = buildJevGateReport({
     hybrid,
