@@ -135,7 +135,7 @@ describe.skipIf(!canRun)("HTTP v1 memories extreme live matrix", () => {
     }
   }, 30_000);
 
-  it("wrong profileId is 403; revoked and garbage keys are 401", async () => {
+  it("wrong profileId is 403; garbage keys are 401", async () => {
     const wrongProfile = await postJson({
       path: "/api/v1/memories/retrieve",
       method: "POST",
@@ -160,24 +160,30 @@ describe.skipIf(!canRun)("HTTP v1 memories extreme live matrix", () => {
       },
     });
     expect(garbage.status).toBe(401);
+  }, 20_000);
 
-    if (
-      convexJwt !== undefined &&
-      convexJwt.length > 0 &&
-      revokeKey !== undefined &&
-      revokeKey.length > 0 &&
-      revokeKeyId !== undefined &&
-      revokeKeyId.length > 0
-    ) {
+  it.skipIf(
+    convexJwt === undefined ||
+      convexJwt.length === 0 ||
+      revokeKey === undefined ||
+      revokeKey.length === 0 ||
+      revokeKeyId === undefined ||
+      revokeKeyId.length === 0,
+  )(
+    "revoked API key is 401",
+    async () => {
+      const jwt = convexJwt ?? "";
+      const key = revokeKey ?? "";
+      const keyId = revokeKeyId ?? "";
       const revoke = await fetch(`${convexUrl}/api/mutation`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${convexJwt}`,
+          Authorization: `Bearer ${jwt}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           path: "apiKeys:revokeMy",
-          args: { id: revokeKeyId },
+          args: { id: keyId },
           format: "json",
         }),
       });
@@ -185,13 +191,14 @@ describe.skipIf(!canRun)("HTTP v1 memories extreme live matrix", () => {
       const after = await postJson({
         path: "/api/v1/memories/retrieve",
         method: "POST",
-        authToken: revokeKey,
+        authToken: key,
         body: { query: "pnpm" },
       });
       expect(after.status).toBe(401);
       expect(after.error).toBe("unauthorized");
-    }
-  }, 30_000);
+    },
+    20_000,
+  );
 
   it("idempotent-ish delete: second delete is 404; update missing is 404", async () => {
     const sdk = vmem();
@@ -332,6 +339,8 @@ describe.skipIf(!canRun)("HTTP v1 memories extreme live matrix", () => {
         tags: [marker],
         limit: 10,
       });
+      // Live prod currently strips `source` from retrieveBodySchema (fixed in
+      // this PR; fails until Convex deploy). In-process MCP already passes.
       expect
         .soft(bySource.memories.map((memory) => memory.id))
         .toEqual([coffee.id]);
@@ -350,6 +359,7 @@ describe.skipIf(!canRun)("HTTP v1 memories extreme live matrix", () => {
         tags: [marker],
         limit: 5,
       });
+      // Live prod ASCII tokenizer drops Arabic terms (fixed in this PR).
       expect.soft(tea.memories.map((memory) => memory.id)).toContain(arabic.id);
 
       const longHit = await sdk.searchMemories({
@@ -366,9 +376,9 @@ describe.skipIf(!canRun)("HTTP v1 memories extreme live matrix", () => {
       });
       expect(Array.isArray(emoji.memories)).toBe(true);
     } finally {
-      await Promise.all(
-        ids.map((id) => sdk.deleteMemory({ id }).catch(() => undefined)),
-      );
+      for (const id of ids) {
+        await sdk.deleteMemory({ id }).catch(() => undefined);
+      }
     }
   }, 90_000);
 
