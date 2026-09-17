@@ -151,7 +151,7 @@ export function readSystemOneApiKey(
 export interface EvaluateSystemOneArgs {
   apiKey: string;
   state: unknown;
-  questions: Record<string, SystemOneQuestion>;
+  questions: unknown;
   model?: string;
   fetchImpl?: typeof fetch;
   timeoutMs?: number;

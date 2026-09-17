@@ -8,7 +8,6 @@ import {
   SystemOneParseError,
   evaluateSystemOne,
   readSystemOneApiKey,
-  type EvaluateSystemOneArgs,
   type SystemOneQuestion,
 } from "../../engine/llm/systemOneClient";
 
@@ -179,7 +178,7 @@ describe("evaluateSystemOne", () => {
             type: "boolean",
             instructions: "keep?",
           },
-        } as EvaluateSystemOneArgs["questions"],
+        },
       }),
     ).rejects.toBeInstanceOf(SystemOneParseError);
 
@@ -192,7 +191,7 @@ describe("evaluateSystemOne", () => {
             instructions: "How relevant?",
             criteria: ["irrelevant", "weakly related", "directly answers"],
           },
-        } as EvaluateSystemOneArgs["questions"],
+        },
       }),
     ).rejects.toBeInstanceOf(SystemOneParseError);
 
