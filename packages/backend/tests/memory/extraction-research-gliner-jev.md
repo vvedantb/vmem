@@ -4,6 +4,16 @@
 **Date:** 2026-09-17. Public sources checked that day.  
 **Sibling:** `competitive-brief.md` (SuperMemory / Mem0). This note is the **extraction** follow-on after P0 retrieve work landed.
 
+**Recommended architecture (lock this):**
+
+```text
+write  →  GLiNER   extract structure into Convex KB (entities, relations, attributes, records)
+read   →  hybrid retrieve (rank.ts) + Jev judge (relevance / confidence / abstention)
+agent  →  consume KB / RAG (MCP, HTTP, SDK, vmem://context_prompt) — no second extract
+```
+
+GLiNER does **not** judge retrieve. Jev does **not** generate fact text. The agent does **not** re-extract; it reads ranked memories.
+
 **Shipped on `main` before this note:**
 
 | PR | What landed |
@@ -15,27 +25,39 @@
 
 IR numbers after #179 (synthetic embeddings): labelled R@5 **99.7–100%**, nDCG@10 **0.974–0.975**, temporal nDCG **0.780 → 1.000**, all 6 abstentions score **< 0.8**. Tables: `packages/backend/eval/RESULTS.md`.
 
-**Access (do not put keys in this file, git, or the PR):** P0/P1 Jev experiments can use env `TYPESAFE_API_KEY` **immediately** (no waitlist). That variable is stored on the engineer box for local spikes. Do not request, print, or embed the key. Cloud-agent spikes must have the same name added to the **saved Cursor environment / secret store** separately — never by committing it. Details: §4.2.
+**Jev API (live key, no waitlist):** `POST https://api.typesafe.ai/v1/systemone` with `Authorization: Bearer $TYPESAFE_API_KEY`, model **`jev-latest`**. `TYPESAFE_API_KEY` is on the engineer box for local spikes. Do not request, print, or embed the key. Cloud-agent spikes need the same name in the **saved Cursor environment / secret store** — never in the PR. Details: §4.2.
 
-GLiNER is a **separate** path. It still needs a hosting decision. Jev access does not unblock GLiNER, and GLiNER hosting does not block Jev experiments.
+GLiNER hosting is still a write-path decision (sidecar vs API). It does not block the Jev retrieve-judge spike (separate agent). Jev access does not host GLiNER.
 
 ---
 
 ## 1. Why this note exists
 
-The competitive brief’s remaining quality gap after ranking is **write-time structure** and **calibrated retrieve decisions**.
+The competitive brief’s remaining quality gap after ranking is **write-time structure** and **calibrated retrieve decisions**. The stack below is the target, not three optional experiments.
 
-- SuperMemory / Mem0 extract typed entities, edges, and temporal spans when memories are added. vmem now does a **regex fallback + optional OpenRouter JSON enrich** (#177) and **rule + LLM temporal fields** (#179). That is real, but it is still “names + clique links,” not a schema-decoded graph.
-- Retrieve now has a **heuristic** `threshold` / `rerank` (#179). Competitors expose a second-stage judge. Jev is a decision model built for that slot: state in, typed probabilities out, no string generation.
+```text
+ingest / instruction
+        │
+        ▼
+   GLiNER write extract ──► Convex memories + memoryEntities + memoryLinks  (KB)
+        │
+        ▼
+   hybrid retrieve (FTS + vector + graph + temporal)
+        │
+        ▼
+   Jev retrieve judge ──► keep / drop / abstain with calibrated P
+        │
+        ▼
+   Agent consumes KB / RAG  (MCP tools, HTTP /api/v1/memories, SDK, vmem://context_prompt)
+```
 
-Two tools, two jobs:
-
-| Tool | Job in vmem | Can emit fact text? |
+| Layer | Job in vmem | Can emit fact text? |
 | --- | --- | --- |
-| **GLiNER2.5** | On-write spans, typed entities, relations, attributes, records | No (spans / labels / graphs) |
-| **Jev** | Retrieve gate, relevance, confidence thresholds, later ADD/UPDATE/DELETE/NONE | No (Choice / Score / Boolean only) |
+| **GLiNER2.5** | Write extract: spans, typed entities, relations, attributes, records into Convex | No (spans / labels / graphs) |
+| **Jev** | Retrieve judge: relevance, confidence, abstention; later ADD/UPDATE/DELETE/NONE | No (Choice / Score / Boolean only) |
+| **Agent** | Consume ranked memories as KB/RAG. Search, cite, follow links. Do not re-extract. | Uses generative models for the user, not for memory rows |
 
-Atomic first-person facts (`extractFacts.ts` → OpenRouter `qwen/qwen3-235b-a22b-2507`) stay on a generative model.
+Today’s OpenRouter `extractFacts.ts` first-person split stays until GLiNER records (or a small generative rewrite) prove they can replace it. Structure on write is GLiNER’s job; judging hits is Jev’s; talking to the user is the agent’s.
 
 ---
 
@@ -69,7 +91,9 @@ Sources: `engine/memory/extractFacts.ts`, `entities.ts`, `temporal.ts`, `factDec
 
 ---
 
-## 3. GLiNER2.5 (on-write structure)
+## 3. GLiNER2.5 (write extract)
+
+This is the **write-extract** layer of the locked stack: ingest → GLiNER → Convex KB. Not a retrieve model.
 
 **Primary:** [Introducing GLiNER2.5](https://fastino.ai/blog/gliner2-5-span-free-information-extraction) (Mary Newhauser & Urchade Zaratiana, 2026-08-24).  
 **Product:** [fastino.ai/models/gliner2-5](https://fastino.ai/models/gliner2-5).  
@@ -139,7 +163,7 @@ Keep regex fallback as the write-path floor (same contract as today’s LLM enri
 
 ---
 
-## 4. TypeSafe Jev (retrieve gate)
+## 4. TypeSafe Jev (retrieve judge)
 
 **Primary:** [Introducing System One Models & Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) (Diogo Almeida, 2026-09-15).  
 **Gateway:** model id **`typesafe-ai/jev`** — [Vercel model page](https://vercel.com/ai-gateway/models/jev), [changelog](https://vercel.com/changelog/typesafe-ai-jev-now-available-on-ai-gateway) (2026-09-16).  
@@ -165,38 +189,46 @@ Evaluation is **AI SDK / Gateway evaluate only** — not the OpenAI-compatible G
 
 ### 4.2 Access and how a spike should call it
 
-**Usable now.** No waitlist. P0/P1 Jev experiments read env **`TYPESAFE_API_KEY` immediately**.
+**Usable now.** No waitlist. Live key. P0/P1 Jev experiments call:
+
+```http
+POST https://api.typesafe.ai/v1/systemone
+Authorization: Bearer <TYPESAFE_API_KEY>
+Content-Type: application/json
+```
+
+Body: `{ "state": …, "model": "jev-latest", "questions": { … } }`. Read the bearer from env **`TYPESAFE_API_KEY`**. Never print it.
 
 Where the key lives (names only — never print or commit the value):
 
 | Where | What to do |
 | --- | --- |
-| **Engineer box (local spikes)** | `TYPESAFE_API_KEY` is already stored in the local environment. Scripts and `curl` / `typesafe-sdk` can run against TypeSafe’s official API without any further access step. |
-| **Cloud-agent spikes** | Add `TYPESAFE_API_KEY` to the **saved Cursor environment / secret store** for that environment. Do **not** put the value in the PR, this markdown, `.env.example`, or chat. Until that secret is on the environment, live Jev tests must skip (same pattern as unset `OPENROUTER_API_KEY` → synthetic embeddings). |
+| **Engineer box (local spikes)** | `TYPESAFE_API_KEY` is already stored. `curl` / `typesafe-sdk` against the official API with no further access step. |
+| **Cloud-agent spikes** | Add `TYPESAFE_API_KEY` to the **saved Cursor environment / secret store**. Do **not** put the value in the PR, this markdown, `.env.example`, or chat. Until that secret is on the environment, live Jev tests must skip (same pattern as unset `OPENROUTER_API_KEY` → synthetic embeddings). |
 | **This repo / PR** | No secrets. Do not request the key. Do not embed it. |
 
-Call path for those local/cloud spikes: **TypeSafe official API** `POST https://api.typesafe.ai/v1/systemone` with `Authorization: Bearer` from `TYPESAFE_API_KEY`, model `jev-latest` (or `typesafe-sdk` / `typeSafeAi.evaluationModel('jev-latest')`, mapping `TYPESAFE_API_KEY` if the SDK’s default name is `TYPESAFE_AI_API_KEY`).
+Optional SDK mapping: `typesafe-sdk` / `typeSafeAi.evaluationModel('jev-latest')` may expect `TYPESAFE_AI_API_KEY` — alias from `TYPESAFE_API_KEY` in the spike; do not invent a second secret.
 
-**Optional extra**, only if a Gateway key is also present: Vercel AI Gateway `typesafe-ai/jev` via `experimental_evaluate`, and [vercel-labs/ai-cli](https://github.com/vercel-labs/ai-cli) `ai evaluate` (defaults to that model; needs `AI_GATEWAY_API_KEY`). Gateway is not required for P0/P1 while `TYPESAFE_API_KEY` is set. Zero Data Retention on Gateway: `providerOptions.gateway.zeroDataRetention`.
+**Optional extra**, only if a Gateway key is also present: Vercel AI Gateway `typesafe-ai/jev` via `experimental_evaluate`, and [vercel-labs/ai-cli](https://github.com/vercel-labs/ai-cli) `ai evaluate`. Gateway is **not** required for P0/P1 while `TYPESAFE_API_KEY` is set.
 
 Env names a spike may **read** (never commit values):
 
 | Name | Role |
 | --- | --- |
-| `TYPESAFE_API_KEY` | **Canonical for P0/P1.** On the engineer box now; add to the Cursor environment for cloud agents. TypeSafe docs / Python SDK / curl. |
-| `TYPESAFE_AI_API_KEY` | `@ai-sdk/typesafe-ai` default. If only `TYPESAFE_API_KEY` is set, alias it in the spike — do not invent a second secret. |
-| `AI_GATEWAY_API_KEY` | Optional. Gateway `typesafe-ai/jev` and `ai evaluate`. |
+| `TYPESAFE_API_KEY` | **Canonical.** Engineer box now; Cursor environment for cloud agents. Bearer for `POST /v1/systemone`. |
+| `TYPESAFE_AI_API_KEY` | `@ai-sdk/typesafe-ai` default. Alias from `TYPESAFE_API_KEY` if needed. |
+| `AI_GATEWAY_API_KEY` | Optional. Gateway `typesafe-ai/jev` and `ai evaluate` only. |
 | `JEV_API_KEY` | Optional local alias for `TYPESAFE_API_KEY`. Do not add a Convex dashboard secret under this name unless we later productize it. |
 
-Resolution for scripts: `TYPESAFE_API_KEY` → else `TYPESAFE_AI_API_KEY` → else `JEV_API_KEY` → else `AI_GATEWAY_API_KEY` (Gateway path). If none is set, skip the live Jev test. Do not 422 production retrieve if Jev is missing; the heuristic `#179` threshold stays the floor.
+Resolution for scripts: `TYPESAFE_API_KEY` → else `TYPESAFE_AI_API_KEY` → else `JEV_API_KEY`. If none is set, skip the live Jev test. Do not 422 production retrieve if Jev is missing; the heuristic `#179` threshold stays the floor.
 
 Do **not** paste keys into issues, PRs, logs, or this markdown.
 
-Production later (only if the spike wins): store the chosen key the same way as `OPENROUTER_API_KEY` (`userEnvVars` + `tryUserAndApiKeyByClerkId`), not in the repo.
+Production later (only if the spike wins): store `TYPESAFE_API_KEY` the same way as `OPENROUTER_API_KEY` (`userEnvVars` + `tryUserAndApiKeyByClerkId`), not in the repo.
 
 ### 4.3 Fit vs current retrieve
 
-Jev is a **second-stage gate on already-ranked hits**, not a replacement for `rank.ts`. TypeSafe’s own RAG cookbook is “filter in code first, then Noul for relevance.” That matches our FTS/vector pool.
+Jev is a **second-stage retrieve judge on already-ranked hits**, not a replacement for `rank.ts`. TypeSafe’s own RAG cookbook is “filter in code first, then Noul for relevance.” That matches our FTS/vector pool. The agent then consumes the judged list as KB/RAG.
 
 Proposed call (one round-trip, many questions):
 
@@ -248,35 +280,45 @@ Use whichever path is keyed to freeze instructions + `t` on labelled query/hit p
 
 ---
 
-## 6. Recommendations
+## 6. Recommended architecture
 
-Two independent tracks. Do not couple them. P0/P1 Jev experiments use env `TYPESAFE_API_KEY` **immediately** (engineer box; cloud agents only after that name is in the saved Cursor environment). GLiNER starts with an offline accuracy pass, then a hosting choice.
+**Lock:** GLiNER (write extract) + Jev (retrieve judge) + Agent (consume KB/RAG). Convex remains the store. No graph DB. No second extract on the agent path.
 
-### P0 — Jev retrieve-gate experiment (do immediately)
+| Layer | Owns | Does not own |
+| --- | --- | --- |
+| **GLiNER** | On write: mentions, typed relations, attributes, records → `memoryEntities` / `memoryLinks` / optional record fields. Regex fallback until the sidecar/API is up. | Retrieve scoring. User-facing prose. |
+| **Jev** | After `rank.ts`: P(relevant), trap/stale flags, calibrated abstention on top-k. Call `POST https://api.typesafe.ai/v1/systemone` (`jev-latest`, Bearer `TYPESAFE_API_KEY`). | Fact-text generation. Date math (`temporal.ts` stays in code). |
+| **Agent** | MCP `memory_retrieve` / HTTP / SDK / `vmem://context_prompt`. Cite traces, follow `memoryLinks`. | Re-running extract on every turn. |
 
-**Goal:** calibrated relevance / abstention on top of #179, without changing write-time extract.
+Implementation can proceed in parallel without changing the vision:
 
-1. Freeze 1–2 question files (`relevant`, maybe `trap`) against labelled query + top-20 hits from the current ranker. Include abstentions, lexical traps, negations. Prefer TypeSafe official API with `TYPESAFE_API_KEY`; `ai evaluate` only if `AI_GATEWAY_API_KEY` is also present.
-2. Script in `packages/backend/tests/memory/` (or `eval/`) that reads **`TYPESAFE_API_KEY` first**, calls `jev-latest` (or Gateway `typesafe-ai/jev` if a Gateway key is set), never prints the key. Skip when unset so cloud agents without the secret still pass.
-3. Report: abstention @ `t ∈ {0.5, 0.7, 0.8, 0.9}` vs recall@5 / nDCG@10 on answerable queries; extra latency; cost from `usage.inputTokens`.
-4. Accept: a threshold that keeps labelled R@5 ≥ Neo4j bar (92%) **and** drops all 6 abstentions, without a large lexical-trap regression. If no such `t`, keep #179 heuristics and stop.
+1. **Jev retrieve-judge spike — separate agent, not this PR.** Official API + `TYPESAFE_API_KEY`. Top-20 hits in, keep/drop/abstain out. Skip if the env is unset. Productize only if labelled R@5 stays ≥ Neo4j 92% and the 6 abstentions drop. Keep Context Trace; add `jevRelevant` / `jevConfidence`.
+2. **GLiNER write-extract spike.** Offline JointIE vs `extractEntitiesFallback`, then sidecar vs hosted API. Merge with fallback; never 422. OpenRouter `extractFacts.ts` remains until records/rewrite are proven.
+3. **Agent consume.** No new extract. Once Jev gates retrieve, MCP/HTTP/SDK already feed the agent. Optional later: expose entity nodes more clearly on `memory_graph` / related.
 
-Implementation sketch if it wins (P1 productize): Convex retrieve action, top 20 only, extra Context Trace fields, missing key ⇒ current ranker. Do not block MCP/HTTP retrieve on Jev.
+### P0 — Jev retrieve judge (next PR, separate agent)
 
-### P0 — GLiNER on-write spike (separate; hosting still required)
+**Goal:** calibrated relevance / abstention on top of #179.
 
-**Goal:** better mentions + typed edges than regex+LLM enrich, feeding the same `memoryEntities` / `memoryLinks` #177 already ranks.
+1. `POST https://api.typesafe.ai/v1/systemone`, model `jev-latest`, Bearer `TYPESAFE_API_KEY`.
+2. State = `{ query, referenceDate, hits: [{ id, title, content, … }] }`; questions = per-hit `boolean` relevant (+ optional stale / trap).
+3. Calibrate `t` on labelled abstentions + lexical traps. Never print the key. Skip when unset.
+4. Accept: R@5 ≥ 92% **and** all 6 abstentions dropped, no large trap regression. Else keep #179 heuristics.
 
-1. Offline JointIE vs `extractEntitiesFallback` on the labelled corpus + Alice two-fact fixture. Metric: mention precision/recall, auto-link count (today CI wants **> 30** unplanted), unplanted multi-hop/project nDCG vs hybrid-no-graph.
-2. Only if it wins: choose sidecar vs hosted API; merge with fallback; `origin: entity`; never 422.
-3. Do not replace `extractFacts.ts` in this spike.
+### P0 — GLiNER write extract (hosting still required)
 
-### P1 — only after the matching P0 wins
+**Goal:** replace regex+LLM enrich as the write extractor in the stack above.
 
-- Ship the Jev gate behind `rerank` or a new `gate: "jev"` flag; keep title-join summarize.
-- Optional: Jev Choice for `factDecision` ADD/UPDATE/DELETE/NONE (still hash-NONE first).
-- Optional: GLiNER span attributes → `temporalKind` vs rules; take whichever wins the temporal ablation.
-- MemoryBench / conversation ingest still wait on extract quality, as the competitive brief said.
+1. Offline JointIE vs `extractEntitiesFallback` on the labelled corpus + Alice two-fact fixture. Metric: mention precision/recall, auto-link count (CI wants **> 30** unplanted), unplanted multi-hop/project nDCG vs hybrid-no-graph.
+2. If it wins: sidecar vs hosted API; merge with fallback; `origin: entity`.
+3. Do not replace `extractFacts.ts` in the first GLiNER PR.
+
+### P1 — after the matching P0 wins
+
+- Ship Jev behind `rerank` or `gate: "jev"`; title-join summarize unchanged.
+- Optional: Jev Choice for `factDecision` ADD/UPDATE/DELETE/NONE (hash-NONE first).
+- Optional: GLiNER span attributes → `temporalKind` vs rules.
+- MemoryBench / conversation ingest still wait on write-extract quality.
 
 ### Explicit non-goals
 
@@ -284,28 +326,32 @@ Implementation sketch if it wins (P1 productize): Convex retrieve action, top 20
 - Asking Jev to do date math, counting, or Jaccard.
 - Running GLiNER inside the Convex isolate.
 - New graph database.
+- Agent-side re-extract (the agent consumes the KB).
 - Committing, requesting, printing, or embedding API keys (including in PRs). Cloud-agent Jev needs `TYPESAFE_API_KEY` in the saved Cursor environment, not in git.
 - Blocking retrieve on either model being configured.
+- Implementing the Jev spike in this research PR.
 
 ---
 
 ## 7. Spike checklist
 
-**Jev (this week — `TYPESAFE_API_KEY` on the engineer box; no waitlist)**
+**Jev retrieve judge (separate agent; `TYPESAFE_API_KEY` on the engineer box; no waitlist)**
 
-- [ ] Local spike: official API / `typesafe-sdk` with env `TYPESAFE_API_KEY` (do not print it).
-- [ ] Cloud-agent spike: confirm `TYPESAFE_API_KEY` is in the saved Cursor environment / secret store; if not, skip live calls. Do not add the value to the PR.
-- [ ] Optional: `ai models --type evaluation` / `ai evaluate` only when `AI_GATEWAY_API_KEY` is set.
-- [ ] Hand-label ~30 `{query, hit, relevant}` rows from labelled + hard corpora (include 6 abstentions + traps).
-- [ ] Iterate instructions; lock `t` in code.
-- [ ] Live script skipped-when-unset; no secrets in logs.
+- [ ] `POST https://api.typesafe.ai/v1/systemone` with Bearer `TYPESAFE_API_KEY`, model `jev-latest` (do not print the key).
+- [ ] Cloud-agent: same env name in the saved Cursor environment; skip live calls if unset. Do not add the value to a PR.
+- [ ] Hand-label ~30 `{query, hit, relevant}` rows (6 abstentions + traps).
+- [ ] Lock `t` in code; skip-when-unset; no secrets in logs.
 - [ ] Write accept/reject in `eval/` next to RESULTS.md.
 
-**GLiNER (parallel, no Jev dependency)**
+**GLiNER write extract (parallel track; hosting TBD)**
 
 - [ ] `gliner2.5-base-v1` JointIE on corpus dump.
 - [ ] Diff vs fallback; decide hosting only if mention+link quality moves multi-hop.
 - [ ] Fallback-merge design unchanged from #177.
+
+**Agent consume**
+
+- [ ] No extract on the agent path. After Jev ships, MCP/HTTP/SDK retrieve is the RAG interface; keep Context Trace.
 
 ---
 
