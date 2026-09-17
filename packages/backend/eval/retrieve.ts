@@ -159,6 +159,62 @@ function resolvedEvalApiKey(options: RetrieveEvalOptions): string | undefined {
   return readSystemOneApiKey();
 }
 
+export function rankEvalRetrieve(
+  memories: readonly MemoryWithTags[],
+  query: string,
+  options: RetrieveEvalOptions,
+): MemoryCandidate[] {
+  const jev = evalWantsJev(options);
+  const userLimit = options.limit ?? EVAL_K;
+  const rankLimit = jevRankPoolLimit(userLimit, jev);
+  const useVector = options.legs.vector !== false;
+  const useFulltext = options.legs.fulltext !== false;
+  const allVectorScores = useVector
+    ? vectorScoresForQuery(
+        memories,
+        options.queryEmbedding,
+        options.memoryEmbeddings,
+      )
+    : new Map<string, number>();
+  const rankOpts = {
+    limit: rankLimit,
+    nowMs: options.nowMs,
+    legs: options.legs,
+    links: options.links,
+    type: options.filter?.type,
+    tags: options.filter?.tags,
+    status: options.filter?.status,
+    source: options.filter?.source,
+    threshold: options.threshold,
+    rerank: options.rerank === true,
+  };
+
+  let ranked: MemoryCandidate[];
+  if (options.caps !== undefined) {
+    const selected = selectRetrieveCandidates(memories, query, {
+      caps: options.caps,
+      vectorScores: allVectorScores,
+      links: options.links,
+      filter: options.filter,
+    });
+    ranked = retrieveMemoriesFromPool(selected.pool, query, {
+      ...rankOpts,
+      vectorScores: useVector ? selected.vectorScores : undefined,
+      ftsRanks: useFulltext ? selected.ftsRanks : undefined,
+    });
+  } else {
+    ranked = retrieveMemoriesFromPool(memories, query, {
+      ...rankOpts,
+      vectorScores: useVector ? allVectorScores : undefined,
+      ftsRanks:
+        useFulltext && query.trim().length > 0
+          ? (options.ftsRanks ?? ftsRanksForQuery(memories, query))
+          : undefined,
+    });
+  }
+  return jev ? ranked : ranked.slice(0, userLimit);
+}
+
 async function finishEvalRetrieve(
   query: string,
   ranked: MemoryCandidate[],
@@ -197,51 +253,6 @@ export async function retrieveEval(
 ): Promise<MemoryCandidate[]> {
   const jev = evalWantsJev(options);
   const userLimit = options.limit ?? EVAL_K;
-  const rankLimit = jevRankPoolLimit(userLimit, jev);
-  const useVector = options.legs.vector !== false;
-  const useFulltext = options.legs.fulltext !== false;
-  const allVectorScores = useVector
-    ? vectorScoresForQuery(
-        memories,
-        options.queryEmbedding,
-        options.memoryEmbeddings,
-      )
-    : new Map<string, number>();
-  const rankOpts = {
-    limit: rankLimit,
-    nowMs: options.nowMs,
-    legs: options.legs,
-    links: options.links,
-    type: options.filter?.type,
-    tags: options.filter?.tags,
-    status: options.filter?.status,
-    source: options.filter?.source,
-    threshold: options.threshold,
-    rerank: options.rerank === true,
-  };
-
-  if (options.caps !== undefined) {
-    const selected = selectRetrieveCandidates(memories, query, {
-      caps: options.caps,
-      vectorScores: allVectorScores,
-      links: options.links,
-      filter: options.filter,
-    });
-    const ranked = retrieveMemoriesFromPool(selected.pool, query, {
-      ...rankOpts,
-      vectorScores: useVector ? selected.vectorScores : undefined,
-      ftsRanks: useFulltext ? selected.ftsRanks : undefined,
-    });
-    return finishEvalRetrieve(query, ranked, options, userLimit, jev);
-  }
-
-  const ranked = retrieveMemoriesFromPool(memories, query, {
-    ...rankOpts,
-    vectorScores: useVector ? allVectorScores : undefined,
-    ftsRanks:
-      useFulltext && query.trim().length > 0
-        ? (options.ftsRanks ?? ftsRanksForQuery(memories, query))
-        : undefined,
-  });
+  const ranked = rankEvalRetrieve(memories, query, options);
   return finishEvalRetrieve(query, ranked, options, userLimit, jev);
 }

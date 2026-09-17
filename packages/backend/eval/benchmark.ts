@@ -41,6 +41,7 @@ import {
   evalWantsJev,
   linksFromCorpus,
   retrieveEval,
+  rankEvalRetrieve,
   toEvalMemory,
   type EvalJudge,
   type RetrieveEvalRerank,
@@ -555,36 +556,57 @@ export async function runCorpusAblation(
       ? (options.evaluate ??
         (jevStats === undefined ? undefined : wrapLiveJevEvaluate(jevStats)))
       : undefined;
-    const concurrency = options.concurrency ?? (jev ? evalJevConcurrency() : 1);
-    const rows = await mapPool(corpus.queries, concurrency, async (query) => {
-      const queryEmbedding = queryEmbeddings.get(query.query);
-      if (queryEmbedding === undefined) {
-        throw new Error(`missing embedding for ${query.query}`);
-      }
-      const started = performance.now();
-      const candidates = await retrieveEval(memories, query.query, {
-        legs: config.legs,
-        queryEmbedding,
-        memoryEmbeddings,
-        links,
-        limit: EVAL_K,
-        nowMs,
-        filter: query.filter,
-        caps: options.caps,
-        judge,
-        rerank,
-        jevDefaultOn: options.jevDefaultOn,
-        requireJevKey: options.requireJevKey,
-        jevThreshold: options.jevThreshold,
-        apiKey: options.apiKey,
-        evaluate,
-      });
-      return {
-        query,
-        candidates,
-        latencyMs: performance.now() - started,
-      };
-    });
+    const evalOpts = {
+      legs: config.legs,
+      memoryEmbeddings,
+      links,
+      limit: EVAL_K,
+      nowMs,
+      caps: options.caps,
+      judge,
+      rerank,
+      jevDefaultOn: options.jevDefaultOn,
+      requireJevKey: options.requireJevKey,
+      jevThreshold: options.jevThreshold,
+      apiKey: options.apiKey,
+      evaluate,
+    };
+    const concurrency = options.concurrency ?? evalJevConcurrency();
+    const rows = jev
+      ? await mapPool(corpus.queries, concurrency, async (query) => {
+          const queryEmbedding = queryEmbeddings.get(query.query);
+          if (queryEmbedding === undefined) {
+            throw new Error(`missing embedding for ${query.query}`);
+          }
+          const started = performance.now();
+          const candidates = await retrieveEval(memories, query.query, {
+            ...evalOpts,
+            queryEmbedding,
+            filter: query.filter,
+          });
+          return {
+            query,
+            candidates,
+            latencyMs: performance.now() - started,
+          };
+        })
+      : corpus.queries.map((query) => {
+          const queryEmbedding = queryEmbeddings.get(query.query);
+          if (queryEmbedding === undefined) {
+            throw new Error(`missing embedding for ${query.query}`);
+          }
+          const started = performance.now();
+          const candidates = rankEvalRetrieve(memories, query.query, {
+            ...evalOpts,
+            queryEmbedding,
+            filter: query.filter,
+          });
+          return {
+            query,
+            candidates,
+            latencyMs: performance.now() - started,
+          };
+        });
     const outcomes: QueryOutcome[] = [];
     const abstentionTopScores: number[] = [];
     let abstentionEmpty = 0;
