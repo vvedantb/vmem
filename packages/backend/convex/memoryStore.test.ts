@@ -877,4 +877,72 @@ describe("convex memoryStore", () => {
     );
     expect(afterDelete).toHaveLength(0);
   });
+
+  it("supersedes prior rows so default list and retrieve hide them", async () => {
+    const t = convexTest(schema, modules);
+    const stale = await t.mutation(
+      internal.memoryStore.functions.createMemoryInternal,
+      createArgs({
+        memoryId: "mem_stale",
+        title: "Editor was Vim",
+        content: "Historically the editor was Vim.",
+      }),
+    );
+    const current = await t.mutation(
+      internal.memoryStore.functions.createMemoryInternal,
+      createArgs({
+        memoryId: "mem_current",
+        title: "Editor is now Helix",
+        content: "As of recently, the editor is Helix; Vim is deprecated.",
+      }),
+    );
+
+    const superseded = await t.mutation(
+      internal.memoryStore.functions.supersedeMemoriesInternal,
+      {
+        kind: "personal",
+        userId: USER_A,
+        profileId: PERSONAL_PROFILE,
+        predecessorIds: [stale.id],
+        successorId: current.id,
+        reason: "updates",
+      },
+    );
+    expect(superseded).toBe(1);
+
+    const listed = await t.query(
+      internal.memoryStore.functions.listMemoriesInternal,
+      {
+        userId: USER_A,
+        profileId: PERSONAL_PROFILE,
+        limit: 10,
+        offset: 0,
+      },
+    );
+    expect(listed.memories.map((memory) => memory.id)).toEqual([current.id]);
+
+    const hidden = await t.query(
+      internal.memoryStore.functions.listMemoriesInternal,
+      {
+        userId: USER_A,
+        profileId: PERSONAL_PROFILE,
+        status: "suppressed",
+        limit: 10,
+        offset: 0,
+      },
+    );
+    expect(hidden.memories.map((memory) => memory.id)).toEqual([stale.id]);
+
+    const links = await t.query(
+      internal.memoryStore.functions.listMemoryLinksForUserInternal,
+      { userId: USER_A },
+    );
+    expect(links).toHaveLength(1);
+    expect(links[0]?.reason).toBe("updates");
+
+    const ranked = listed.memories.map((memory) =>
+      toMemoryCandidate(memory, "what editor currently"),
+    );
+    expect(ranked.some((hit) => hit.id === stale.id)).toBe(false);
+  });
 });

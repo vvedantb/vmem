@@ -3,13 +3,7 @@ title: "Proposed Updates"
 description: "Review and resolve conflicting memory updates"
 ---
 
-Convex `authAction`s in `proposedUpdateApi`.
-
-<Warning>
-  On current `main` these handlers are stubs: `listProposedUpdates` returns `[]`
-  and `resolveProposal` returns `null`. See [Proposed Updates
-  concept](/concepts/proposed-updates).
-</Warning>
+Convex `authAction`s in `proposedUpdateApi`. Pending rows live in the `proposedUpdates` table. Dream Mode writes `merge` proposals; instruction update applies supersedes immediately so retrieve is not blocked on inbox review.
 
 ## List Proposed Updates
 
@@ -19,7 +13,7 @@ await client.action(api.proposedUpdateApi.listProposedUpdates, {
 });
 ```
 
-**Returns:** `ProposedUpdateNode[]` (currently always empty)
+**Returns:** `ProposedUpdateNode[]` (pending proposals for the caller / profile)
 
 ---
 

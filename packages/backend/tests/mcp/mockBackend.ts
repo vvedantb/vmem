@@ -375,6 +375,10 @@ async function dispatch(
       clerkIdArgsSchema.parse(args);
       return false;
     }
+    case "dreamTrigger:bumpActivityByClerkIdInternal": {
+      clerkIdArgsSchema.parse(args);
+      return false;
+    }
     case "memoryStore/functions:createMemoryInternal": {
       const parsed = createMemoryArgsSchema.parse(args);
       const created = makeMemory(store, parsed);

@@ -23,6 +23,7 @@ import {
   contextPromptCacheFields,
   memoryFields,
   memoryLinkFields,
+  proposedUpdateFields,
   presentationSessionFields,
   presentationVoteFields,
 } from "./validators";
@@ -166,6 +167,11 @@ const schema = defineSchema({
     .index("by_user_source", ["userId", "sourceId"])
     .index("by_user_target", ["userId", "targetId"])
     .index("by_source_target", ["sourceId", "targetId"]),
+
+  proposedUpdates: defineTable(proposedUpdateFields)
+    .index("by_proposal_id", ["proposalId"])
+    .index("by_user_status", ["userId", "status"])
+    .index("by_profile_status", ["profileId", "status"]),
 
   presentationSessions: defineTable(presentationSessionFields).index(
     "by_code",

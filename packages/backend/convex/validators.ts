@@ -51,6 +51,57 @@ export const memoryLinkFields = {
   createdAt: v.number(),
 };
 
+export const proposedUpdateKindValidator = v.union(
+  v.literal("update"),
+  v.literal("delete"),
+  v.literal("insight"),
+  v.literal("connection"),
+  v.literal("contradiction"),
+  v.literal("anomaly"),
+  v.literal("merge"),
+);
+
+export const proposedUpdateStatusValidator = v.union(
+  v.literal("pending"),
+  v.literal("approved"),
+  v.literal("rejected"),
+);
+
+export const proposedUpdateSourceValidator = v.union(
+  v.literal("v2-extraction"),
+  v.literal("dream-mode"),
+);
+
+const proposedMemorySnapshotFields = {
+  title: v.string(),
+  content: v.string(),
+};
+
+const proposedSourceSnapshotFields = {
+  id: v.string(),
+  title: v.string(),
+  content: v.string(),
+};
+
+export const proposedUpdateFields = {
+  proposalId: v.string(),
+  userId: v.string(),
+  profileId: v.optional(v.string()),
+  memoryId: v.string(),
+  proposedContent: v.string(),
+  proposedTitle: v.optional(v.string()),
+  reason: v.string(),
+  kind: proposedUpdateKindValidator,
+  status: proposedUpdateStatusValidator,
+  createdAt: v.number(),
+  resolvedAt: v.optional(v.number()),
+  sourceMemoryIds: v.array(v.string()),
+  confidence: v.optional(v.number()),
+  source: proposedUpdateSourceValidator,
+  memorySnapshot: v.optional(v.object(proposedMemorySnapshotFields)),
+  sourceMemorySnapshots: v.array(v.object(proposedSourceSnapshotFields)),
+};
+
 // table field validators, used in schema.ts and return validators
 export const profileFields = {
   userId: v.id("users"),

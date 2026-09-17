@@ -48,6 +48,7 @@ describe("memory surface inventory", () => {
     );
     expect(store).toContain("openRouterRequiredResponse");
     expect(update).toContain("openRouterRequiredResponse");
+    expect(update).toContain("updateMemoryFromInstruction");
     expect(retrieve).toContain("summarizeRetrievedMemories");
     expect(retrieve).toContain("source: body.source");
     expect(retrieve).not.toContain("openRouterRequiredResponse");

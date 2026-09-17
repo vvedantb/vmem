@@ -272,7 +272,7 @@ export const memoryToolSpecs = {
     name: "memory_add_instruction",
     schema: memoryAddInstructionSchema,
     description:
-      "Store a memory from a natural-language instruction. Requires OPENROUTER_API_KEY; fails with openrouter_required without it. Prefer memory_add when you already have a single clear fact with title and type.",
+      "Store a memory from a natural-language instruction. Requires OPENROUTER_API_KEY; fails with openrouter_required without it. Exact duplicates are skipped; near-duplicates supersede the prior row. Prefer memory_add when you already have a single clear fact with title and type.",
     errorLabel: "Add from instruction failed",
     async run(h, params): Promise<unknown> {
       return withMcpMemoryScope(

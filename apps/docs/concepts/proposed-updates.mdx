@@ -20,13 +20,11 @@ New memory extracted: "User prefers TypeScript"
   → User reviews and approves/rejects via Inbox or API
 ```
 
-## Current status on main
+Instruction **update** (`PATCH { instruction }` / SDK `update()`) extracts facts, retrieves related rows, and **supersedes** the prior memory (status `suppressed`, `updates` link) instead of inserting a duplicate. Retrieve therefore sees the latest fact even when stale and current share a timestamp.
 
-<Warning>
-`proposedUpdateApi.listProposedUpdates` currently returns an empty list, and `resolveProposal` returns `null`. HTTP / SDK instruction `update()` reuses the same fact-extraction path as `save()` and returns `{ created, summary }` — it does **not** emit inbox proposals. Dream Mode handlers are no-ops. The Inbox → Proposals UI still exists as a shell.
-</Warning>
+Dream Mode clusters near-duplicate hashes/lexical overlap on Convex and writes **merge** proposals. Approving a merge materializes one row and supersedes the sources. `listProposedUpdates` / `resolveProposal` persist in the `proposedUpdates` table.
 
-The types below describe the historical / intended shape so existing clients and the inbox UI stay documented.
+The types below describe the inbox proposal shape.
 
 ## Proposal Kinds
 
@@ -38,6 +36,7 @@ The types below describe the historical / intended shape so existing clients and
 | `connection`    | Link related memories with a new relationship               |
 | `contradiction` | Flag conflicting information for review                     |
 | `anomaly`       | Surface unusual patterns in memory data                     |
+| `merge`         | Collapse near-duplicate Convex rows into one keeper         |
 
 ## Managing Proposals
 

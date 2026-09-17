@@ -4,10 +4,11 @@ import {
   updateBodySchema,
   type MemoryWithTags,
   type UpdateBody,
+  type UpdateInstructionResult,
 } from "@vmem/sdk";
 import {
-  storeMemoryFromInstruction,
   updateMemoryForClerk,
+  updateMemoryFromInstruction,
 } from "../../memoryRuntime";
 import {
   isOpenRouterRequiredError,
@@ -23,12 +24,7 @@ async function runUpdateHandler(
   ctx: ActionCtx,
   auth: ApiKeyAuth,
   body: UpdateBody,
-): Promise<
-  | Response
-  | MemoryWithTags
-  | null
-  | { created: MemoryWithTags[]; summary: string }
-> {
+): Promise<Response | MemoryWithTags | null | UpdateInstructionResult> {
   if (isInstructionUpdateBody(body)) {
     const forbidden = await guardProfileAccess(ctx, auth, body.profileId);
     if (forbidden) {
@@ -36,7 +32,7 @@ async function runUpdateHandler(
     }
 
     try {
-      return await storeMemoryFromInstruction(ctx, {
+      return await updateMemoryFromInstruction(ctx, {
         clerkId: auth.clerkId,
         instruction: body.instruction,
         profileId: body.profileId,
