@@ -7,5 +7,6 @@ export default defineConfig({
       ["convex/**", "edge-runtime"],
       ["tests/**", "node"],
     ],
+    disableConsoleIntercept: true,
   },
 });

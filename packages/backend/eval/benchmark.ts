@@ -480,6 +480,9 @@ export async function runCorpusAblation(
       });
     }
     runs.push({ name: config.name, outcomes, abstentionTopScores });
+    await new Promise<void>((resolve) => {
+      setImmediate(resolve);
+    });
   }
 
   const stats = {
