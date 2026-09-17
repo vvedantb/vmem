@@ -89,4 +89,4 @@ Typecheck without a running dev server:
 cd packages/backend && npx convex codegen --typecheck enable
 ```
 
-Labelled retrieve eval (IR, no LLM judge): `pnpm --filter @vmem/backend eval:bench`. SuperMemory / Mem0 gap analysis and Convex-only roadmap: `tests/memory/competitive-brief.md`. TypeSafe Jev retrieve-gate: `tests/memory/jev-retrieve-gate.md`.
+Labelled retrieve eval (IR, no LLM judge): `pnpm --filter @vmem/backend eval:bench`. Default-on Jev vs hybrid-only (`judge: "off"`) on that harness: `EVAL_JEV=1 pnpm --filter @vmem/backend eval:jev` (needs `TYPESAFE_API_KEY`; does not mock). SuperMemory / Mem0 gap analysis and Convex-only roadmap: `tests/memory/competitive-brief.md`. TypeSafe Jev retrieve-gate: `tests/memory/jev-retrieve-gate.md`.
