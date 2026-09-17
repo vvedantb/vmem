@@ -12,6 +12,7 @@ import {
   deleteMemory,
   deleteTeamMemoryAsOwner,
   getMemoriesByDocIds,
+  getMemoriesByMemoryIds,
   getMemory,
   getMemoryForTeam,
   linkMemories,
@@ -301,6 +302,12 @@ export const getMemoriesByDocIdsInternal = internalQuery({
   args: { ids: v.array(v.id("memories")) },
   returns: v.array(v.union(memoryWithTagsValidator, v.null())),
   handler: async (ctx, args) => getMemoriesByDocIds(ctx, args.ids),
+});
+
+export const getMemoriesByMemoryIdsInternal = internalQuery({
+  args: { ids: v.array(v.string()) },
+  returns: v.array(v.union(memoryWithTagsValidator, v.null())),
+  handler: async (ctx, args) => getMemoriesByMemoryIds(ctx, args.ids),
 });
 
 export const patchMemoryEmbeddingInternal = internalMutation({

@@ -4,6 +4,7 @@ import {
   aggregate,
   NEO4J_FULL_HYBRID,
   runAblation,
+  runPooledComparison,
 } from "../../eval/benchmark";
 import { parseFactExtractionResponse } from "../../engine/memory/extractFacts";
 import { recallAtK, reciprocalRank } from "../../eval/metrics";
@@ -109,6 +110,19 @@ describe("Convex labelled ablation", () => {
 
     expect(byType("full hybrid", "lexical-trap").ndcg10).toBeGreaterThan(0.7);
     expect(byType("full hybrid", "update").ndcg10).toBeGreaterThan(0.7);
+  }, 60_000);
+
+  it("index candidate pool beats legacy 200∪32∪32 on the labelled corpus", async () => {
+    const { legacy, widened, report } = await runPooledComparison(
+      generateBenchmarkCorpus(),
+      "labelled",
+    );
+    console.log(`\n${report}\n`);
+    expect(widened.recall5).toBeGreaterThanOrEqual(legacy.recall5);
+    expect(widened.mrr).toBeGreaterThanOrEqual(legacy.mrr);
+    expect(widened.ndcg10).toBeGreaterThanOrEqual(legacy.ndcg10);
+    expect(widened.recall5).toBeGreaterThanOrEqual(NEO4J_FULL_HYBRID.recall5);
+    expect(widened.latencyP95).toBeLessThan(100);
   }, 60_000);
 });
 

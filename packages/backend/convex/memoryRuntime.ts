@@ -7,7 +7,17 @@ import {
   toMemoryStatusOrUndefined,
   toMemoryTypeOrUndefined,
 } from "../engine/memory/parse";
+import { expandGraphNeighbors } from "../engine/memory/links";
 import { memoryMatchesListFilter } from "../engine/memory/list";
+import { memoryMatchesScope } from "../engine/memory/scope";
+import {
+  clampVectorLimit,
+  RETRIEVE_GRAPH_MAX_HOPS,
+  RETRIEVE_GRAPH_NEIGHBOR_LIMIT,
+  RETRIEVE_RANK_POOL_CAP,
+  RETRIEVE_RECENT_CAP,
+  VECTOR_CANDIDATE_LIMIT,
+} from "../engine/memory/retrieveCaps";
 import { queryEmbeddingText } from "../engine/memory/synonyms";
 import { buildSearchableText } from "../engine/memory/searchableText";
 import { OpenRouterRequiredError } from "../engine/memory/openRouterRequired";
@@ -223,9 +233,6 @@ export async function deleteMemoryForClerk(
   return deleted;
 }
 
-const RETRIEVE_RECENT_CAP = 200;
-const VECTOR_CANDIDATE_LIMIT = 32;
-
 async function scheduleMemoryEmbedding(
   ctx: MemoryCtx,
   args: {
@@ -297,6 +304,44 @@ export async function retrieveMemoriesForTeamProfile(
   });
 }
 
+async function listRecentForRetrieve(
+  ctx: ActionCtx,
+  args: {
+    kind: "personal" | "team";
+    clerkId?: string;
+    profileId?: string;
+    type?: string;
+    tags?: string[];
+    status?: string;
+    source?: string;
+  },
+): Promise<MemoryWithTags[]> {
+  if (args.kind === "team" && args.profileId !== undefined) {
+    const listed = await listMemoriesForTeamProfile(ctx, {
+      profileId: args.profileId,
+      type: args.type,
+      tags: args.tags,
+      status: args.status,
+      source: args.source,
+      limit: RETRIEVE_RECENT_CAP,
+      offset: 0,
+    });
+    return listed.memories;
+  }
+  if (args.clerkId === undefined) return [];
+  const listed = await listMemoriesForClerk(ctx, {
+    clerkId: args.clerkId,
+    profileId: args.profileId,
+    type: args.type,
+    tags: args.tags,
+    status: args.status,
+    source: args.source,
+    limit: RETRIEVE_RECENT_CAP,
+    offset: 0,
+  });
+  return listed.memories;
+}
+
 async function retrieveRanked(
   ctx: ActionCtx,
   args: {
@@ -317,23 +362,14 @@ async function retrieveRanked(
     status: args.status,
     source: args.source,
   };
-  const listed =
-    args.kind === "team" && args.profileId !== undefined
-      ? await listMemoriesForTeamProfile(ctx, {
-          profileId: args.profileId,
-          ...listFilter,
-          limit: RETRIEVE_RECENT_CAP,
-          offset: 0,
-        })
-      : args.clerkId === undefined
-        ? { memories: [], total: 0 }
-        : await listMemoriesForClerk(ctx, {
-            clerkId: args.clerkId,
-            profileId: args.profileId,
-            ...listFilter,
-            limit: RETRIEVE_RECENT_CAP,
-            offset: 0,
-          });
+  const trimmed = args.query.trim();
+  if (trimmed.length === 0) {
+    const recent = await listRecentForRetrieve(ctx, args);
+    return retrieveMemoriesFromPool(recent, args.query, {
+      limit: args.limit,
+      ...listFilter,
+    });
+  }
 
   const [ftsHits, vectorHits, links] = await Promise.all([
     ctx.runQuery(internal.memoryStore.functions.searchMemoriesTextInternal, {
@@ -352,21 +388,84 @@ async function retrieveRanked(
   ]);
 
   const byId = new Map<string, MemoryWithTags>();
-  for (const memory of listed.memories) byId.set(memory.id, memory);
+  const ftsRanks = new Map<string, number>();
   for (const hit of ftsHits) {
-    if (memoryMatchesListFilter(hit.memory, listFilter)) {
+    ftsRanks.set(hit.memory.id, 1 / hit.rank);
+    if (
+      byId.size < RETRIEVE_RANK_POOL_CAP &&
+      memoryMatchesListFilter(hit.memory, listFilter)
+    ) {
       byId.set(hit.memory.id, hit.memory);
     }
   }
   for (const hit of vectorHits.memories) {
-    if (memoryMatchesListFilter(hit, listFilter)) {
+    if (
+      byId.size < RETRIEVE_RANK_POOL_CAP &&
+      memoryMatchesListFilter(hit, listFilter)
+    ) {
       byId.set(hit.id, hit);
     }
   }
 
-  const ftsRanks = new Map<string, number>();
-  for (const hit of ftsHits) {
-    ftsRanks.set(hit.memory.id, 1 / hit.rank);
+  if (links.length > 0 && byId.size > 0 && byId.size < RETRIEVE_RANK_POOL_CAP) {
+    const seedTitleById = new Map(
+      [...byId.values()].map((memory) => [memory.id, memory.title]),
+    );
+    const neighbors = expandGraphNeighbors(
+      [...byId.keys()],
+      seedTitleById,
+      links,
+      RETRIEVE_GRAPH_NEIGHBOR_LIMIT,
+      RETRIEVE_GRAPH_MAX_HOPS,
+    );
+    const missing = neighbors
+      .map((neighbor) => neighbor.id)
+      .filter((id) => !byId.has(id))
+      .slice(0, RETRIEVE_RANK_POOL_CAP - byId.size);
+    if (missing.length > 0) {
+      const docs = await ctx.runQuery(
+        internal.memoryStore.functions.getMemoriesByMemoryIdsInternal,
+        { ids: missing },
+      );
+      for (const memory of docs) {
+        if (memory === null || memory === undefined) continue;
+        if (!memoryMatchesListFilter(memory, listFilter)) continue;
+        if (args.kind === "team") {
+          if (args.profileId === undefined) continue;
+          if (
+            !memoryMatchesScope(memory, {
+              kind: "team",
+              profileId: args.profileId,
+            })
+          ) {
+            continue;
+          }
+        } else if (args.clerkId !== undefined) {
+          if (
+            !memoryMatchesScope(memory, {
+              kind: "personal",
+              userId: args.clerkId,
+              profileId: args.profileId,
+            })
+          ) {
+            continue;
+          }
+        }
+        if (byId.size >= RETRIEVE_RANK_POOL_CAP) break;
+        byId.set(memory.id, memory);
+      }
+    }
+  }
+
+  if (byId.size === 0) {
+    const recent = await listRecentForRetrieve(ctx, args);
+    return retrieveMemoriesFromPool(recent, args.query, {
+      limit: args.limit,
+      vectorScores: vectorHits.scores,
+      ftsRanks,
+      links,
+      ...listFilter,
+    });
   }
 
   return retrieveMemoriesFromPool([...byId.values()], args.query, {
@@ -409,12 +508,12 @@ async function vectorScoresForQuery(
     args.kind === "team" && profileId !== undefined
       ? await ctx.vectorSearch("memories", "by_embedding", {
           vector: embedding,
-          limit: VECTOR_CANDIDATE_LIMIT,
+          limit: clampVectorLimit(VECTOR_CANDIDATE_LIMIT),
           filter: (q) => q.eq("profileId", profileId),
         })
       : await ctx.vectorSearch("memories", "by_embedding", {
           vector: embedding,
-          limit: VECTOR_CANDIDATE_LIMIT,
+          limit: clampVectorLimit(VECTOR_CANDIDATE_LIMIT),
           filter: (q) => q.eq("userId", clerkId),
         });
   if (hits.length === 0) return empty;

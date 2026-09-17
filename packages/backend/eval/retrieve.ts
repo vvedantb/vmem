@@ -1,9 +1,15 @@
 import type { MemoryCandidate, MemoryWithTags } from "@vmem/sdk";
 import type { RetrievalLegs } from "../engine/memory/rank";
 import type { MemoryLinkEdge } from "../engine/memory/links";
+import {
+  rankedFtsHits,
+  selectRetrieveCandidates,
+} from "../engine/memory/candidates";
 import { retrieveMemoriesFromPool } from "../engine/memory/retrieve";
-import { expandQueryTerms } from "../engine/memory/synonyms";
-import { contentTokens } from "../engine/memory/tokens";
+import {
+  FTS_TAKE,
+  type RetrieveCandidateCaps,
+} from "../engine/memory/retrieveCaps";
 import { cosineSimilarity } from "./embeddings";
 import type {
   BenchmarkCorpus,
@@ -57,35 +63,18 @@ export function vectorScoresForQuery(
   return scores;
 }
 
-const FTS_TAKE = 32;
-
 export function ftsRanksForQuery(
   memories: readonly MemoryWithTags[],
   query: string,
+  take: number = FTS_TAKE,
 ): Map<string, number> {
-  const terms = expandQueryTerms(query);
-  if (terms.length === 0) return new Map();
-  const scored: Array<{ id: string; hits: number }> = [];
-  for (const memory of memories) {
-    const doc = new Set(
-      contentTokens(
-        `${memory.title} ${memory.content} ${memory.tags.join(" ")}`,
-        false,
-      ),
-    );
-    let hits = 0;
-    for (const term of terms) {
-      if (doc.has(term)) hits += 1;
-    }
-    if (hits > 0) scored.push({ id: memory.id, hits });
-  }
-  scored.sort((a, b) => b.hits - a.hits);
+  const scored = rankedFtsHits(memories, query);
   const out = new Map<string, number>();
-  const take = Math.min(FTS_TAKE, scored.length);
-  for (let i = 0; i < take; i += 1) {
+  const limit = Math.min(take, scored.length);
+  for (let i = 0; i < limit; i += 1) {
     const row = scored[i];
     if (row === undefined) continue;
-    out.set(row.id, 1 / (i + 1));
+    out.set(row.memory.id, 1 / (i + 1));
   }
   return out;
 }
@@ -102,10 +91,40 @@ export function retrieveEval(
     nowMs?: number;
     filter?: RetrievalEvalFilter;
     ftsRanks?: ReadonlyMap<string, number>;
+    caps?: RetrieveCandidateCaps;
   },
 ): MemoryCandidate[] {
   const useVector = options.legs.vector !== false;
   const useFulltext = options.legs.fulltext !== false;
+  const allVectorScores = useVector
+    ? vectorScoresForQuery(
+        memories,
+        options.queryEmbedding,
+        options.memoryEmbeddings,
+      )
+    : new Map<string, number>();
+
+  if (options.caps !== undefined) {
+    const selected = selectRetrieveCandidates(memories, query, {
+      caps: options.caps,
+      vectorScores: allVectorScores,
+      links: options.links,
+      filter: options.filter,
+    });
+    return retrieveMemoriesFromPool(selected.pool, query, {
+      limit: options.limit ?? EVAL_K,
+      nowMs: options.nowMs,
+      legs: options.legs,
+      links: options.links,
+      type: options.filter?.type,
+      tags: options.filter?.tags,
+      status: options.filter?.status,
+      source: options.filter?.source,
+      vectorScores: useVector ? selected.vectorScores : undefined,
+      ftsRanks: useFulltext ? selected.ftsRanks : undefined,
+    });
+  }
+
   return retrieveMemoriesFromPool(memories, query, {
     limit: options.limit ?? EVAL_K,
     nowMs: options.nowMs,
@@ -115,13 +134,7 @@ export function retrieveEval(
     tags: options.filter?.tags,
     status: options.filter?.status,
     source: options.filter?.source,
-    vectorScores: useVector
-      ? vectorScoresForQuery(
-          memories,
-          options.queryEmbedding,
-          options.memoryEmbeddings,
-        )
-      : undefined,
+    vectorScores: useVector ? allVectorScores : undefined,
     ftsRanks:
       useFulltext && query.trim().length > 0
         ? (options.ftsRanks ?? ftsRanksForQuery(memories, query))

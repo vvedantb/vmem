@@ -8,8 +8,9 @@ import {
   memoryMatchesScope,
   type MemoryReadScope,
 } from "../../engine/memory/scope";
+import { ftsQueryTexts } from "../../engine/memory/candidates";
+import { clampFtsTake, FTS_TAKE } from "../../engine/memory/retrieveCaps";
 import { buildSearchableText } from "../../engine/memory/searchableText";
-import { expandedSearchText } from "../../engine/memory/synonyms";
 import { normalizeTags } from "../../engine/memory/tags";
 import type { MemoryLinkEdge } from "../../engine/memory/links";
 import type { Doc, Id } from "../_generated/dataModel";
@@ -450,39 +451,42 @@ export async function collectScopedMemories(
   return docs.map(toMemoryWithTags);
 }
 
-const FTS_TAKE = 32;
-
 export async function searchMemoriesText(
   ctx: QueryCtx,
   scope: MemoryReadScope,
   query: string,
+  take: number = FTS_TAKE,
 ): Promise<Array<{ memory: MemoryWithTags; rank: number }>> {
-  const trimmed = query.trim();
-  if (trimmed.length === 0) return [];
-  const search = expandedSearchText(trimmed);
-  if (search.length === 0) return [];
-
-  const hits =
-    scope.kind === "team"
-      ? await ctx.db
-          .query("memories")
-          .withSearchIndex("search_text", (q) =>
-            q.search("searchableText", search).eq("profileId", scope.profileId),
-          )
-          .take(FTS_TAKE)
-      : await ctx.db
-          .query("memories")
-          .withSearchIndex("search_text", (q) =>
-            q.search("searchableText", search).eq("userId", scope.userId),
-          )
-          .take(FTS_TAKE);
-
+  const queries = ftsQueryTexts(query);
+  if (queries.length === 0) return [];
+  const limit = clampFtsTake(take);
+  const seen = new Set<string>();
   const out: Array<{ memory: MemoryWithTags; rank: number }> = [];
-  let rank = 1;
-  for (const doc of hits) {
-    if (!memoryMatchesScope(doc, scope)) continue;
-    out.push({ memory: toMemoryWithTags(doc), rank });
-    rank += 1;
+
+  for (const search of queries) {
+    const hits =
+      scope.kind === "team"
+        ? await ctx.db
+            .query("memories")
+            .withSearchIndex("search_text", (q) =>
+              q
+                .search("searchableText", search)
+                .eq("profileId", scope.profileId),
+            )
+            .take(limit)
+        : await ctx.db
+            .query("memories")
+            .withSearchIndex("search_text", (q) =>
+              q.search("searchableText", search).eq("userId", scope.userId),
+            )
+            .take(limit);
+    for (const doc of hits) {
+      if (seen.has(doc.memoryId)) continue;
+      if (!memoryMatchesScope(doc, scope)) continue;
+      seen.add(doc.memoryId);
+      out.push({ memory: toMemoryWithTags(doc), rank: out.length + 1 });
+      if (out.length >= limit) return out;
+    }
   }
   return out;
 }
@@ -494,6 +498,18 @@ export async function getMemoriesByDocIds(
   const out: Array<MemoryWithTags | null> = [];
   for (const id of ids) {
     const doc = await ctx.db.get(id);
+    out.push(doc ? toMemoryWithTags(doc) : null);
+  }
+  return out;
+}
+
+export async function getMemoriesByMemoryIds(
+  ctx: QueryCtx,
+  ids: readonly string[],
+): Promise<Array<MemoryWithTags | null>> {
+  const out: Array<MemoryWithTags | null> = [];
+  for (const memoryId of ids) {
+    const doc = await findByMemoryId(ctx, memoryId);
     out.push(doc ? toMemoryWithTags(doc) : null);
   }
   return out;

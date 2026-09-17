@@ -8,9 +8,15 @@ import {
   type RetrievalEvalQuery,
 } from "./corpus";
 import { generateHardCorpus } from "./hard-corpus";
+import { generateTailCorpus } from "./tail-corpus";
 import { embeddingMode, generateEvalEmbeddings } from "./embeddings";
 import { buildSearchableText } from "../engine/memory/searchableText";
 import { queryEmbeddingText } from "../engine/memory/synonyms";
+import {
+  INDEX_RETRIEVE_CAPS,
+  LEGACY_RETRIEVE_CAPS,
+  type RetrieveCandidateCaps,
+} from "../engine/memory/retrieveCaps";
 import {
   mean,
   ndcgAtK,
@@ -118,6 +124,7 @@ const TYPE_ORDER = [
   "type-intent",
   "type-filter",
   "distractor",
+  "tail-gold",
 ];
 
 function approxTokens(text: string): number {
@@ -367,7 +374,13 @@ ${vsNeo4j}
 `;
 }
 
-export async function runCorpusAblation(corpus: BenchmarkCorpus): Promise<{
+export async function runCorpusAblation(
+  corpus: BenchmarkCorpus,
+  options: {
+    caps?: RetrieveCandidateCaps;
+    configs?: LegConfig[];
+  } = {},
+): Promise<{
   runs: ConfigRun[];
   answerable: RetrievalEvalQuery[];
   abstention: RetrievalEvalQuery[];
@@ -407,9 +420,10 @@ export async function runCorpusAblation(corpus: BenchmarkCorpus): Promise<{
     queryEmbeddings.set(query, vector);
   }
 
+  const configs = options.configs ?? EVAL_CONFIGS;
   const nowMs = Date.now();
   const runs: ConfigRun[] = [];
-  for (const config of EVAL_CONFIGS) {
+  for (const config of configs) {
     const outcomes: QueryOutcome[] = [];
     const abstentionTopScores: number[] = [];
     for (const query of corpus.queries) {
@@ -426,6 +440,7 @@ export async function runCorpusAblation(corpus: BenchmarkCorpus): Promise<{
         limit: EVAL_K,
         nowMs,
         filter: query.filter,
+        caps: options.caps,
       });
       const latencyMs = performance.now() - started;
       if (query.expectedTitles.length === 0) {
@@ -580,13 +595,148 @@ export async function runHardAblation(
   return { runs, report, answerable };
 }
 
+export async function runPooledHybrid(
+  corpus: BenchmarkCorpus,
+  caps: RetrieveCandidateCaps,
+): Promise<{ metrics: AggMetrics }> {
+  const { runs } = await runCorpusAblation(corpus, {
+    caps,
+    configs: [{ name: "full hybrid", legs: {} }],
+  });
+  const full = aggregate(
+    runs.find((run) => run.name === "full hybrid")?.outcomes ?? [],
+  );
+  return { metrics: full };
+}
+
+export function buildPooledComparisonReport(args: {
+  label: string;
+  memoryCount: number;
+  queryCount: number;
+  legacy: AggMetrics;
+  widened: AggMetrics;
+}): string {
+  const today = new Date().toISOString().slice(0, 10);
+  return `# vmem Convex retrieve pool comparison — ${args.label}
+
+Generated: ${today} · Corpus: ${String(args.memoryCount)} memories · Answerable queries: ${String(args.queryCount)} · Embeddings: ${embeddingMode()}
+
+Production-like candidate generation (then the same hybrid ranker):
+
+${mdTable(
+  [
+    "Pool",
+    "recall@1",
+    "recall@5",
+    "recall@10",
+    "MRR",
+    "nDCG@10",
+    "p50 ms",
+    "p95 ms",
+  ],
+  [
+    [
+      "legacy last 200 ∪ 32 FTS ∪ 32 vectors",
+      pct(args.legacy.recall1),
+      pct(args.legacy.recall5),
+      pct(args.legacy.recall10),
+      args.legacy.mrr.toFixed(3),
+      args.legacy.ndcg10.toFixed(3),
+      args.legacy.latencyP50.toFixed(1),
+      args.legacy.latencyP95.toFixed(1),
+    ],
+    [
+      "index FTS 256 ∪ vector 256 ∪ 2-hop links (cap 384)",
+      pct(args.widened.recall1),
+      pct(args.widened.recall5),
+      pct(args.widened.recall10),
+      args.widened.mrr.toFixed(3),
+      args.widened.ndcg10.toFixed(3),
+      args.widened.latencyP50.toFixed(1),
+      args.widened.latencyP95.toFixed(1),
+    ],
+  ],
+)}
+
+${mdTable(
+  ["Metric", "Before (200∪32∪32)", "After (index pool)", "Δ"],
+  [
+    [
+      "recall@5",
+      pct(args.legacy.recall5),
+      pct(args.widened.recall5),
+      signedPct(args.widened.recall5 - args.legacy.recall5),
+    ],
+    [
+      "MRR",
+      args.legacy.mrr.toFixed(3),
+      args.widened.mrr.toFixed(3),
+      signedFixed(args.widened.mrr - args.legacy.mrr),
+    ],
+    [
+      "nDCG@10",
+      args.legacy.ndcg10.toFixed(3),
+      args.widened.ndcg10.toFixed(3),
+      signedFixed(args.widened.ndcg10 - args.legacy.ndcg10),
+    ],
+  ],
+)}
+
+Recency list is not the search universe. Convex-only. No Neo4j.
+`;
+}
+
+export async function runPooledComparison(
+  corpus: BenchmarkCorpus,
+  label: string,
+): Promise<{
+  legacy: AggMetrics;
+  widened: AggMetrics;
+  report: string;
+}> {
+  const [legacyRun, widenedRun] = await Promise.all([
+    runPooledHybrid(corpus, LEGACY_RETRIEVE_CAPS),
+    runPooledHybrid(corpus, INDEX_RETRIEVE_CAPS),
+  ]);
+  const answerable = corpus.queries.filter((q) => q.expectedTitles.length > 0);
+  const report = buildPooledComparisonReport({
+    label,
+    memoryCount: corpus.memories.length,
+    queryCount: answerable.length,
+    legacy: legacyRun.metrics,
+    widened: widenedRun.metrics,
+  });
+  return {
+    legacy: legacyRun.metrics,
+    widened: widenedRun.metrics,
+    report,
+  };
+}
+
+export async function runTailGoldComparison(): Promise<{
+  corpus: ReturnType<typeof generateTailCorpus>;
+  legacy: AggMetrics;
+  widened: AggMetrics;
+  report: string;
+}> {
+  const corpus = generateTailCorpus();
+  const comparison = await runPooledComparison(corpus, "tail gold");
+  return { corpus, ...comparison };
+}
+
 const isDirectRun =
   process.argv[1] !== undefined &&
   fileURLToPath(import.meta.url) === process.argv[1];
 
 if (isDirectRun) {
-  Promise.all([runAblation(), runHardAblation(HARD_FULL_HYBRID_BEFORE)])
-    .then(([labelled, hard]) => {
+  Promise.all([
+    runAblation(),
+    runHardAblation(HARD_FULL_HYBRID_BEFORE),
+    runPooledComparison(generateBenchmarkCorpus(), "labelled"),
+    runPooledComparison(generateHardCorpus(), "hard"),
+    runTailGoldComparison(),
+  ])
+    .then(([labelled, hard, labelledPool, hardPool, tail]) => {
       const labelledPath = fileURLToPath(
         new URL("../../../internal/bench/vmem-convex-eval.md", import.meta.url),
       );
@@ -596,13 +746,28 @@ if (isDirectRun) {
           import.meta.url,
         ),
       );
+      const poolPath = fileURLToPath(
+        new URL(
+          "../../../internal/bench/vmem-convex-pool-eval.md",
+          import.meta.url,
+        ),
+      );
       mkdirSync(dirname(labelledPath), { recursive: true });
       writeFileSync(labelledPath, labelled.report, "utf8");
       writeFileSync(hardPath, hard.report, "utf8");
+      writeFileSync(
+        poolPath,
+        [labelledPool.report, hardPool.report, tail.report].join("\n---\n\n"),
+        "utf8",
+      );
       console.log(labelled.report);
       console.log(hard.report);
+      console.log(labelledPool.report);
+      console.log(hardPool.report);
+      console.log(tail.report);
       console.log(`\nwritten to ${labelledPath}`);
       console.log(`written to ${hardPath}`);
+      console.log(`written to ${poolPath}`);
     })
     .catch((error: unknown) => {
       console.error(error instanceof Error ? error.message : String(error));

@@ -738,6 +738,31 @@ describe("convex memoryStore", () => {
     expect(Array.isArray(fts)).toBe(true);
   });
 
+  it("FTS search returns more than the old 32-hit cap", async () => {
+    const t = convexTest(schema, modules);
+    for (let i = 0; i < 40; i += 1) {
+      await t.mutation(
+        internal.memoryStore.functions.createMemoryInternal,
+        createArgs({
+          memoryId: `fts-${String(i)}`,
+          title: `Sharedterm note ${String(i)}`,
+          content: `sharedterm padding ${String(i)}`,
+          tags: ["fts"],
+        }),
+      );
+    }
+    const fts = await t.query(
+      internal.memoryStore.functions.searchMemoriesTextInternal,
+      {
+        kind: "personal",
+        userId: USER_A,
+        profileId: PERSONAL_PROFILE,
+        query: "sharedterm",
+      },
+    );
+    expect(fts.length).toBeGreaterThan(32);
+  });
+
   it("keeps team FTS hits off the personal profile", async () => {
     const t = convexTest(schema, modules);
     await t.mutation(
