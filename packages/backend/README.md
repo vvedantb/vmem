@@ -86,3 +86,5 @@ Typecheck without a running dev server:
 ```bash
 cd packages/backend && npx convex codegen --typecheck enable
 ```
+
+Labelled retrieve eval (IR, no LLM judge): `pnpm --filter @vmem/backend eval:bench`. SuperMemory / Mem0 gap analysis and Convex-only roadmap: `tests/memory/competitive-brief.md`.
