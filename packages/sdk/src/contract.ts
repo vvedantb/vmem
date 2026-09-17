@@ -73,6 +73,9 @@ export const scoreBreakdownSchema = z.object({
   temporal: z.number().optional(),
   graphPath: graphPathTraceSchema.optional(),
   rerankerScore: z.number().optional(),
+  jevRelevant: z.number().optional(),
+  jevConfidence: z.number().optional(),
+  jevBest: z.boolean().optional(),
 });
 
 export const matchedChunkSchema = z.object({
@@ -148,7 +151,8 @@ export const retrieveBodySchema = z.object({
   profileId: z.string().optional(),
   summarize: z.boolean().optional(),
   threshold: z.number().min(0).max(1).optional(),
-  rerank: z.boolean().optional(),
+  rerank: z.union([z.boolean(), z.literal("jev")]).optional(),
+  judge: z.literal("jev").optional(),
   referenceDate: z.string().optional(),
 });
 

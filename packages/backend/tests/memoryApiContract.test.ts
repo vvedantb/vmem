@@ -102,9 +102,19 @@ describe("memoryApi contract request schemas", () => {
         summarize: true,
         threshold: 0.8,
         rerank: true,
+        judge: "jev",
         referenceDate: "2026-09-17",
       }).success,
     ).toBe(true);
+    expect(
+      retrieveBodySchema.safeParse({ query: "pnpm", rerank: "jev" }).success,
+    ).toBe(true);
+    expect(
+      retrieveBodySchema.safeParse({ query: "pnpm", judge: "gliner" }).success,
+    ).toBe(false);
+    expect(
+      retrieveBodySchema.safeParse({ query: "pnpm", rerank: "gliner" }).success,
+    ).toBe(false);
     expect(
       retrieveBodySchema.safeParse({ query: "pnpm", limit: 51 }).success,
     ).toBe(false);
@@ -175,7 +185,12 @@ describe("memoryApi contract request schemas", () => {
             entity: 0.2,
             rrf: 1,
             recency: 0.7,
+            temporal: 0.2,
             confidence: 0.9,
+            rerankerScore: 0.85,
+            jevRelevant: 0.91,
+            jevConfidence: 0.91,
+            jevBest: true,
           },
           reason: "fulltext and synonym match",
         },

@@ -113,6 +113,8 @@ describe("MCP memory tool surfaces", () => {
         tags: ["pnpm"],
         status: "pinned",
         source: "mcp",
+        judge: "jev",
+        rerank: "jev",
       }).success,
     ).toBe(true);
   });

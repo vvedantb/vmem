@@ -54,9 +54,10 @@ A native Expo app and GitHub codebase indexer used to live in this repo. They ar
 ### Retrieving Memories
 
 1. Client calls `memoryApi.retrieveMemories` or `POST /api/v1/memories/retrieve`
-2. Hybrid ranking: Convex full-text + lexical overlap + optional vector similarity + tag/entity overlap + 1-hop `memoryLinks` neighbours + recency
-3. Each result includes a **context trace** explaining the score
-4. User settings (`aboutMe`, `preferences`) are merged in parallel as `userContext`
+2. Hybrid ranking: Convex full-text + lexical overlap + optional vector similarity + tag/entity overlap + 1-hop `memoryLinks` neighbours + recency + temporal
+3. Optional TypeSafe Jev gate (`judge: "jev"`) scores the top 20 hits when `TYPESAFE_API_KEY` is set on the Convex action. This uses `fetch` from the retrieve **action** / **httpAction** — not from a query.
+4. Each result includes a **context trace** explaining the score
+5. User settings (`aboutMe`, `preferences`) are merged in parallel as `userContext`
 
 ### MCP Implicit Memory
 

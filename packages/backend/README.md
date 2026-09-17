@@ -73,6 +73,7 @@ Use `.env.example` as the complete template. Copy it to `.env.local` for local C
 | `CLERK_PUBLISHABLE_KEY`           | MCP OAuth token verify (`authenticateRequest`) |
 | `CONVEX_SITE_URL` / `WEB_APP_URL` | OAuth redirects / resource docs                |
 | `OPENROUTER_API_KEY`              | Embeddings and context prompt generation       |
+| `TYPESAFE_API_KEY`                | Optional Jev retrieve-gate (`judge: "jev"`)    |
 
 Live HTTP tests use `packages/backend/.env.local`.
 
@@ -88,4 +89,4 @@ Typecheck without a running dev server:
 cd packages/backend && npx convex codegen --typecheck enable
 ```
 
-Labelled retrieve eval (IR, no LLM judge): `pnpm --filter @vmem/backend eval:bench`. SuperMemory / Mem0 gap analysis and Convex-only roadmap: `tests/memory/competitive-brief.md`.
+Labelled retrieve eval (IR, no LLM judge): `pnpm --filter @vmem/backend eval:bench`. SuperMemory / Mem0 gap analysis and Convex-only roadmap: `tests/memory/competitive-brief.md`. TypeSafe Jev retrieve-gate: `tests/memory/jev-retrieve-gate.md`.
