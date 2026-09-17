@@ -28,6 +28,7 @@
     "motion": "^12.34.0",
     "react": "catalog:",
     "react-dom": "catalog:",
+    "shadow-plugin": "catalog:",
     "turndown": "^7.2.4",
     "usehooks-ts": "^3.1.1",
     "zod": "catalog:"

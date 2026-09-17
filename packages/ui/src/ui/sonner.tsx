@@ -3,7 +3,7 @@ import "./sonner.css";
 
 // sonner toaster aligned with flat tonal surfaces `unstyled: true` strips sonner's default visual styling so our classes are
 // the single source of truth toast surfaces use `glass, panel, strong` (flat
-// popover fill + shadow) via app globals `!font, sans` is forced on the toaster section because sonner sets its own
+// popover fill) plus `smooth-shadow-ring-md` `!font, sans` is forced on the toaster section because sonner sets its own
 // `font, family` on `[data, sonner, toaster]` from a stylesheet that ships with
 // the package (loaded after our globals), so plain inheritance from `<body>`
 // loses the cascade the `!important` here guarantees instrument sans wins, toasts inherit from the section, so this single class covers everything variant icons (success / error / warning / info) are tinted via a
@@ -23,7 +23,7 @@ function SonnerToaster(props: ToasterProps) {
         unstyled: true,
         classNames: {
           toast:
-            "group toast glass-panel-strong flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm text-foreground",
+            "group toast glass-panel-strong flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm text-foreground smooth-shadow-ring-md",
           title: "font-medium leading-snug",
           description: "text-[13px] leading-snug text-muted",
           actionButton:

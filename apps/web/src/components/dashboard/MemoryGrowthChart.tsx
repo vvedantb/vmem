@@ -119,7 +119,7 @@ export function MemoryGrowthChart({ growthData }: { growthData: GrowthData }) {
                         className="group relative w-full max-w-12"
                         style={{ height: plotHeight }}
                       >
-                        <div className="pointer-events-none absolute -top-9 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap glass-panel-strong rounded-full px-2.5 py-1 text-xs text-foreground opacity-0 transition-opacity group-hover:opacity-100">
+                        <div className="pointer-events-none absolute -top-9 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap glass-panel-strong smooth-shadow-ring-md rounded-full px-2.5 py-1 text-xs text-foreground opacity-0 transition-opacity group-hover:opacity-100">
                           {day.total} total (+{day.new})
                         </div>
 

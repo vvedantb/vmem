@@ -62,7 +62,7 @@ const DialogContent = React.forwardRef<
       <DialogPrimitive.Content
         ref={mergedRef}
         className={cn(
-          "glass-panel-strong t-modal fixed left-1/2 top-1/2 z-50 grid w-full max-w-lg max-sm:w-[calc(100vw-2rem)] max-h-[90dvh] gap-4 overflow-y-auto rounded-lg p-6 text-overlay-foreground",
+          "glass-panel-strong t-modal fixed left-1/2 top-1/2 z-50 grid w-full max-w-lg max-sm:w-[calc(100vw-2rem)] max-h-[90dvh] gap-4 overflow-y-auto rounded-lg p-6 text-overlay-foreground smooth-shadow-ring-xl",
           className,
         )}
         {...props}
