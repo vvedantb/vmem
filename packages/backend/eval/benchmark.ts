@@ -1132,7 +1132,7 @@ ${dropLines}
 ## Notes / caveats
 
 - Same labelled harness as \`eval:bench\` (\`packages/backend/eval/*\`). Not the synthetic \`tests/memory/benchmark/retrieve.bench.test.ts\` toy.
-- Product retrieve is still opt-in (\`judge: "jev"\`). Always-on default is a separate PR. This eval temporarily treats Jev as default and disables it with eval-only \`judge: "off"\`.
+- Product retrieve is default-on when \`TYPESAFE_API_KEY\` is set (PR #183). Eval disables with harness-only \`judge: "off"\`.
 - Default-on over-fetches 20 hits, Jev judges that head, eval slices to k=10. Threshold **0.5** keeps near-ties; live smoke gold was 0.66 and traps 0.03.
 - Jev is weak at date math — temporal windows still come from \`temporal.ts\`.
 - Missing \`TYPESAFE_API_KEY\` on retrieve in prod fail-opens to hybrid. This labelled comparison **requires** a live key.
