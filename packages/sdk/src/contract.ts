@@ -132,6 +132,7 @@ export const retrieveBodySchema = z.object({
   type: memoryTypeSchema.optional(),
   tags: z.array(z.string()).optional(),
   status: memoryStatusSchema.optional(),
+  source: z.string().optional(),
   limit: z.number().int().min(1).max(50).optional(),
   profileId: z.string().optional(),
   summarize: z.boolean().optional(),

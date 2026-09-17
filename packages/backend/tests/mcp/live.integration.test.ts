@@ -114,6 +114,43 @@ describe.skipIf(!runLive)("live MCP catalog / auth (no token)", () => {
     );
     expect(teamMissing.wwwAuthenticate).toContain("mcp/team");
   }, 20_000);
+
+  it("malformed JSON and oversized bodies are rejected before tool dispatch", async () => {
+    const missingAuth = await fetch(`${site}/mcp`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json, text/event-stream",
+      },
+      body: "{not-json",
+    });
+    expect(missingAuth.status).toBe(401);
+
+    const invalidAuth = await fetch(`${site}/mcp`, {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer not-a-real-token",
+        "Content-Type": "application/json",
+        Accept: "application/json, text/event-stream",
+      },
+      body: "{not-json",
+    });
+    expect(invalidAuth.status).toBe(401);
+
+    const oversized = await fetch(`${site}/mcp`, {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer not-a-real-token",
+        "Content-Type": "application/json",
+        Accept: "application/json, text/event-stream",
+      },
+      body: `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"pad":"${"x".repeat(200_000)}"}}`,
+    });
+    expect([401, 413, 400]).toContain(oversized.status);
+
+    const getPersonal = await fetch(`${site}/mcp`, { method: "GET" });
+    expect([401, 405]).toContain(getPersonal.status);
+  }, 20_000);
 });
 
 describe.skipIf(!runLive)("live MCP rejects non-OAuth bearers", () => {

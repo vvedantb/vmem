@@ -63,10 +63,17 @@ export const skillsToolSpecs = {
     errorLabel: "Get skill failed",
     scopes: ["personal"],
     async run(h, params): Promise<unknown> {
-      return h.ctx.runQuery(internal.skills.getEffectiveByNameInternal, {
-        clerkId: h.clerkUserId,
-        name: params.name,
-      });
+      const skill = await h.ctx.runQuery(
+        internal.skills.getEffectiveByNameInternal,
+        {
+          clerkId: h.clerkUserId,
+          name: params.name,
+        },
+      );
+      if (!skill) {
+        throw new Error("Skill not found");
+      }
+      return skill;
     },
   }),
   skills_create: toolSpec({

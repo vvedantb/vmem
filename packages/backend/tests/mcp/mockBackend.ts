@@ -1,5 +1,5 @@
 import { getFunctionName } from "convex/server";
-import type { MemoryType, MemoryWithTags } from "@vmem/sdk";
+import type { MemoryStatus, MemoryType, MemoryWithTags } from "@vmem/sdk";
 import { memoryTypeSchema } from "@vmem/sdk";
 import { z } from "zod";
 import type { ActionCtx } from "../../convex/_generated/server";
@@ -251,15 +251,6 @@ export function createMockStore(): MockStore {
   };
 }
 
-function memoryQueryMatches(
-  memory: MemoryWithTags,
-  searchQuery: string | undefined,
-): boolean {
-  if (searchQuery === undefined || searchQuery.trim().length === 0) return true;
-  const haystack = `${memory.title}\n${memory.content}`.toLowerCase();
-  return haystack.includes(searchQuery.toLowerCase());
-}
-
 function listMemories(
   store: MockStore,
   args: z.infer<typeof listMemoriesArgsSchema>,
@@ -280,7 +271,7 @@ function listMemories(
       return false;
     }
     if (!memoryMatchesListFilter(memory, args)) return false;
-    return memoryQueryMatches(memory, args.searchQuery);
+    return true;
   });
   const sliced = filtered.slice(args.offset, args.offset + args.limit);
   return { memories: sliced, total: filtered.length };
@@ -353,6 +344,13 @@ async function dispatch(
     case "profiles:resolveProfileIdForMcpScopeInternal": {
       const parsed = resolveProfileArgsSchema.parse(args);
       if (parsed.profileId !== undefined && parsed.profileId.length > 0) {
+        const known = new Set([
+          store.personalProfile._id,
+          store.teamProfile._id,
+        ]);
+        if (!known.has(parsed.profileId)) {
+          throw new Error("Profile not found");
+        }
         return parsed.profileId;
       }
       return parsed.scope === "team"
@@ -713,6 +711,8 @@ export function seedMemory(
     content: string;
     tags?: string[];
     type?: MemoryType;
+    source?: string;
+    status?: MemoryStatus;
     profileId?: string;
   },
 ): MemoryWithTags {
@@ -722,10 +722,13 @@ export function seedMemory(
     title: args.title,
     content: args.content,
     type: args.type ?? "knowledge",
-    source: "mcp",
+    source: args.source ?? "mcp",
     tags: args.tags ?? [],
     confidence: 1,
   });
+  if (args.status !== undefined) {
+    created.status = args.status;
+  }
   store.memories.push(created);
   return created;
 }

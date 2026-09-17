@@ -87,26 +87,41 @@ async function callCatalogTool(
   };
 
   if (name === MEMORY_GRAPH_TOOL) {
-    const graph = await getMemoryGraphForMcp(ctx, {
-      clerkId: MOCK_CLERK_ID,
-      mcpScope: session.scope,
-      profileId:
-        typeof args.profileId === "string" ? args.profileId : undefined,
-      focus: typeof args.focus === "string" ? args.focus : undefined,
-      memoryIds: Array.isArray(args.memoryIds)
-        ? args.memoryIds.filter((id): id is string => typeof id === "string")
-        : undefined,
-      limit: typeof args.limit === "number" ? args.limit : undefined,
-    });
-    return {
-      content: [
-        {
-          type: "text",
-          text: `Memory graph: ${String(graph.stats.nodeCount)} memories.`,
-        },
-      ],
-      structuredContent: graph,
-    };
+    try {
+      const limit = args.limit;
+      if (
+        limit !== undefined &&
+        (typeof limit !== "number" ||
+          !Number.isInteger(limit) ||
+          limit < 1 ||
+          limit > 100)
+      ) {
+        throw new Error("Invalid limit");
+      }
+      const graph = await getMemoryGraphForMcp(ctx, {
+        clerkId: MOCK_CLERK_ID,
+        mcpScope: session.scope,
+        profileId:
+          typeof args.profileId === "string" ? args.profileId : undefined,
+        focus: typeof args.focus === "string" ? args.focus : undefined,
+        memoryIds: Array.isArray(args.memoryIds)
+          ? args.memoryIds.filter((id): id is string => typeof id === "string")
+          : undefined,
+        limit: typeof args.limit === "number" ? args.limit : undefined,
+      });
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Memory graph: ${String(graph.stats.nodeCount)} memories.`,
+          },
+        ],
+        structuredContent: graph,
+      };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      return toMcpContent({ ok: false, error: message }, "Memory graph failed");
+    }
   }
 
   const spec = Object.values(toolSpecs).find((entry) => entry.name === name);

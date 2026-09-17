@@ -96,6 +96,7 @@ describe("memoryApi contract request schemas", () => {
         type: "episodic",
         status: "pinned",
         tags: ["PNPM"],
+        source: "mcp",
         limit: 50,
         summarize: true,
       }).success,

@@ -65,6 +65,10 @@ const memoryRetrieveSchema = retrieveBodySchema
     status: memoryStatusSchema
       .optional()
       .describe("Filter by status (default: active and pinned)"),
+    source: z
+      .string()
+      .optional()
+      .describe("Filter by source (e.g. notion, google_drive, claude, mcp)"),
     profileId: z
       .string()
       .optional()
@@ -167,67 +171,77 @@ export const memoryToolSpecs = {
       "Search your memories by query text, type, tags, or source. Returns matching memories with metadata. Defaults to the active profile unless profileId is specified.",
     errorLabel: "Search failed",
     async run(h, params): Promise<unknown> {
-      return withMcpMemoryScope(h.ctx, scopedMemory(h), (scope) => {
-        const limit = params.limit ?? 20;
-        const offset = params.offset ?? 0;
-        return runForMcpScope(scope, {
-          team: (profileId) =>
-            listMemoriesForTeamProfile(h.ctx, {
-              profileId,
-              type: params.type,
-              tags: params.tags,
-              source: params.source,
-              searchQuery: params.query,
-              limit,
-              offset,
-            }),
-          personal: ({ clerkId, profileId }) =>
-            listMemoriesForClerk(h.ctx, {
-              clerkId,
-              profileId,
-              type: params.type,
-              tags: params.tags,
-              source: params.source,
-              searchQuery: params.query,
-              limit,
-              offset,
-            }),
-        });
-      });
+      return withMcpMemoryScope(
+        h.ctx,
+        { ...scopedMemory(h), profileId: params.profileId },
+        (scope) => {
+          const limit = params.limit ?? 20;
+          const offset = params.offset ?? 0;
+          return runForMcpScope(scope, {
+            team: (profileId) =>
+              listMemoriesForTeamProfile(h.ctx, {
+                profileId,
+                type: params.type,
+                tags: params.tags,
+                source: params.source,
+                searchQuery: params.query,
+                limit,
+                offset,
+              }),
+            personal: ({ clerkId, profileId }) =>
+              listMemoriesForClerk(h.ctx, {
+                clerkId,
+                profileId,
+                type: params.type,
+                tags: params.tags,
+                source: params.source,
+                searchQuery: params.query,
+                limit,
+                offset,
+              }),
+          });
+        },
+      );
     },
   }),
   memory_retrieve: toolSpec({
     name: "memory_retrieve",
     schema: memoryRetrieveSchema,
     description:
-      "Retrieve the most relevant memories for a query using hybrid full-text, synonym, recency, and optional vector ranking. type, tags, and status filters are applied before ranking. Defaults to the active profile unless profileId is specified.",
+      "Retrieve the most relevant memories for a query using hybrid full-text, synonym, recency, and optional vector ranking. type, tags, status, and source filters are applied before ranking. Defaults to the active profile unless profileId is specified.",
     errorLabel: "Retrieve failed",
     async run(h, params): Promise<unknown> {
-      return withMcpMemoryScope(h.ctx, scopedMemory(h), (scope) => {
-        const limit = params.limit ?? 10;
-        return runForMcpScope(scope, {
-          team: (profileId) =>
-            retrieveMemoriesForTeamProfile(h.ctx, {
-              clerkId: scope.clerkId,
-              profileId,
-              query: params.query,
-              type: params.type,
-              tags: params.tags,
-              status: params.status,
-              limit,
-            }),
-          personal: ({ clerkId, profileId }) =>
-            retrieveMemoriesForClerk(h.ctx, {
-              clerkId,
-              profileId,
-              query: params.query,
-              type: params.type,
-              tags: params.tags,
-              status: params.status,
-              limit,
-            }),
-        });
-      });
+      return withMcpMemoryScope(
+        h.ctx,
+        { ...scopedMemory(h), profileId: params.profileId },
+        (scope) => {
+          const limit = params.limit ?? 10;
+          return runForMcpScope(scope, {
+            team: (profileId) =>
+              retrieveMemoriesForTeamProfile(h.ctx, {
+                clerkId: scope.clerkId,
+                profileId,
+                query: params.query,
+                type: params.type,
+                tags: params.tags,
+                status: params.status,
+                source: params.source,
+                limit,
+              }),
+            personal: ({ clerkId, profileId }) =>
+              retrieveMemoriesForClerk(h.ctx, {
+                clerkId,
+                profileId,
+                query: params.query,
+                type: params.type,
+                tags: params.tags,
+                status: params.status,
+                source: params.source,
+                limit,
+              }),
+          });
+        },
+      );
     },
   }),
   memory_add: toolSpec({
@@ -237,17 +251,20 @@ export const memoryToolSpecs = {
       "Store a new memory. Use type 'profile' for stable user facts, 'episodic' for past events/interactions, 'knowledge' for durable extracted knowledge. Adds to the active profile unless profileId is specified.",
     errorLabel: "Add memory failed",
     async run(h, params): Promise<unknown> {
-      return withMcpMemoryScope(h.ctx, scopedMemory(h), (scope) =>
-        createMemoryForClerk(h.ctx, {
-          clerkId: scope.clerkId,
-          profileId: scope.profileId,
-          title: params.title,
-          content: params.content,
-          type: toMemoryType(params.type) ?? "knowledge",
-          source: params.source ?? "mcp",
-          tags: params.tags ?? [],
-          confidence: params.confidence ?? 1.0,
-        }),
+      return withMcpMemoryScope(
+        h.ctx,
+        { ...scopedMemory(h), profileId: params.profileId },
+        (scope) =>
+          createMemoryForClerk(h.ctx, {
+            clerkId: scope.clerkId,
+            profileId: scope.profileId,
+            title: params.title,
+            content: params.content,
+            type: toMemoryType(params.type) ?? "knowledge",
+            source: params.source ?? "mcp",
+            tags: params.tags ?? [],
+            confidence: params.confidence ?? 1.0,
+          }),
       );
     },
   }),
@@ -258,12 +275,15 @@ export const memoryToolSpecs = {
       "Store a memory from a natural-language instruction. Requires OPENROUTER_API_KEY; fails with openrouter_required without it. Prefer memory_add when you already have a single clear fact with title and type.",
     errorLabel: "Add from instruction failed",
     async run(h, params): Promise<unknown> {
-      return withMcpMemoryScope(h.ctx, scopedMemory(h), (scope) =>
-        storeMemoryFromInstruction(h.ctx, {
-          clerkId: scope.clerkId,
-          instruction: params.instruction,
-          profileId: scope.profileId,
-        }),
+      return withMcpMemoryScope(
+        h.ctx,
+        { ...scopedMemory(h), profileId: params.profileId },
+        (scope) =>
+          storeMemoryFromInstruction(h.ctx, {
+            clerkId: scope.clerkId,
+            instruction: params.instruction,
+            profileId: scope.profileId,
+          }),
       );
     },
   }),
@@ -323,8 +343,14 @@ export const memoryToolSpecs = {
       "List memories related to a given memory by shared tags and similar title or content.",
     errorLabel: "Related memories failed",
     async run(h, params): Promise<unknown> {
-      return withMcpMemoryScope(h.ctx, scopedMemory(h), (scope) =>
-        runForMcpScope(scope, {
+      return withMcpMemoryScope(h.ctx, scopedMemory(h), async (scope) => {
+        await loadMemoryForMcpScope(h.ctx, {
+          clerkId: scope.clerkId,
+          mcpScope: scope.mcpScope,
+          profileId: scope.profileId,
+          memoryId: params.memoryId,
+        });
+        return runForMcpScope(scope, {
           team: (profileId) =>
             relatedMemoriesForTeamProfile(h.ctx, {
               profileId,
@@ -336,8 +362,8 @@ export const memoryToolSpecs = {
               profileId,
               memoryId: params.memoryId,
             }),
-        }),
-      );
+        });
+      });
     },
   }),
 };

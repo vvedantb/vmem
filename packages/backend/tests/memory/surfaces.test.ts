@@ -30,6 +30,7 @@ describe("memory surface inventory", () => {
     expect(sdk).toContain("async searchMemories(");
     expect(sdk).toContain("/api/v1/memories/retrieve");
     expect(sdk).toContain("options.status");
+    expect(sdk).toContain("options.source");
   });
 
   it("HTTP instruction store/update return 422 openrouter_required without a key", () => {
@@ -48,6 +49,15 @@ describe("memory surface inventory", () => {
     expect(store).toContain("openRouterRequiredResponse");
     expect(update).toContain("openRouterRequiredResponse");
     expect(retrieve).toContain("summarizeRetrievedMemories");
+    expect(retrieve).toContain("source: body.source");
     expect(retrieve).not.toContain("openRouterRequiredResponse");
+  });
+
+  it("API key usage accounting cannot fail the request", () => {
+    const auth = readFileSync(
+      join(backendRoot, "convex/http/v1Memories/apiKeyAuth.ts"),
+      "utf8",
+    );
+    expect(auth).toContain("recordUsage failed");
   });
 });

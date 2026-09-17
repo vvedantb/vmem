@@ -34,6 +34,7 @@ async function runRetrieveHandler(
           type: body.type,
           tags: body.tags,
           status: body.status,
+          source: body.source,
           limit: body.limit ?? 10,
         })
       : await retrieveMemoriesForClerk(ctx, {
@@ -43,6 +44,7 @@ async function runRetrieveHandler(
           type: body.type,
           tags: body.tags,
           status: body.status,
+          source: body.source,
           limit: body.limit ?? 10,
         });
 
