@@ -1,0 +1,9 @@
+export { default as GoogleDriveIcon } from "./GoogleDriveIcon";
+export { default as GmailIcon } from "./GmailIcon";
+export { default as OneDriveIcon } from "./OneDriveIcon";
+export { default as DropboxIcon } from "./DropboxIcon";
+export { default as NotionIcon } from "./NotionIcon";
+export { default as GitHubIcon } from "./GitHubIcon";
+export { default as LinearIcon } from "./LinearIcon";
+export { default as SharePointIcon } from "./SharePointIcon";
+export { default as EvaIcon } from "./EvaIcon";
