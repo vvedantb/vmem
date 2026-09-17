@@ -90,13 +90,13 @@ const memoryRetrieveSchema = retrieveBodySchema
       .union([z.boolean(), z.literal("jev")])
       .optional()
       .describe(
-        'true = local top-20 rerank. "jev" = TypeSafe Jev retrieve-gate (skipped if TYPESAFE_API_KEY is unset)',
+        'true = local #179 top-20 extra (ignored when Jev runs). "jev" is accepted and ignored — Jev is on by default when TYPESAFE_API_KEY is set.',
       ),
     judge: z
-      .literal("jev")
+      .enum(["jev", "off"])
       .optional()
       .describe(
-        "Optional TypeSafe Jev relevance gate on the top 20 hits. No-op without TYPESAFE_API_KEY.",
+        'Jev keep/best is on by default when TYPESAFE_API_KEY is set. Pass "off" to skip (eval / ablation). "jev" is accepted and ignored.',
       ),
     referenceDate: z
       .string()
@@ -230,7 +230,7 @@ export const memoryToolSpecs = {
     name: "memory_retrieve",
     schema: memoryRetrieveSchema,
     description:
-      "Retrieve the most relevant memories for a query using hybrid full-text, synonym, recency, temporal, and optional vector ranking. type, tags, status, and source filters are applied before ranking. Optional threshold / rerank keep the Context Trace. Set judge to jev (or rerank to jev) to run a TypeSafe Jev relevance gate on the top 20 hits when TYPESAFE_API_KEY is set. Defaults to the active profile unless profileId is specified.",
+      'Retrieve the most relevant memories for a query using hybrid full-text, synonym, recency, temporal, and optional vector ranking. type, tags, status, and source filters are applied before ranking. Optional threshold drops low hybrid scores. TypeSafe Jev keep/best runs on the top 20 when TYPESAFE_API_KEY is set (fail-open without the key). Pass judge: "off" to skip Jev for ablation. Defaults to the active profile unless profileId is specified.',
     errorLabel: "Retrieve failed",
     async run(h, params): Promise<unknown> {
       return withMcpMemoryScope(

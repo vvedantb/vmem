@@ -29,11 +29,22 @@ const SCORE_INSTRUCTIONS = "How well does this memory answer the query?";
 const BEST_INSTRUCTIONS =
   "Which memory is the single best answer to the query? Pick none if none are relevant.";
 
-export function wantsJevJudge(options: {
-  judge?: "jev";
+export type RetrieveJudgeOptions = {
+  judge?: "jev" | "off";
   rerank?: boolean | "jev";
-}): boolean {
-  return options.judge === "jev" || options.rerank === "jev";
+};
+
+/** Default on. `judge: "off"` is ablation-only. `judge: "jev"` / `rerank: "jev"` are accepted no-ops. */
+export function wantsJevJudge(options: RetrieveJudgeOptions): boolean {
+  return options.judge !== "off";
+}
+
+/** #179 local top-20 extra. Skipped when the Jev gate will actually run. */
+export function wantsLocalRerank(
+  options: RetrieveJudgeOptions,
+  jevActive: boolean = wantsJevJudge(options),
+): boolean {
+  return options.rerank === true && !jevActive;
 }
 
 export function jevRankPoolLimit(userLimit: number, jev: boolean): number {

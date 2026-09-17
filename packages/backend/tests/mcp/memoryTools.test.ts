@@ -117,6 +117,18 @@ describe("MCP memory tool surfaces", () => {
         rerank: "jev",
       }).success,
     ).toBe(true);
+    expect(
+      memoryToolSpecs.memory_retrieve.schema.safeParse({
+        query: "london",
+        judge: "off",
+      }).success,
+    ).toBe(true);
+    expect(memoryToolSpecs.memory_retrieve.description).toContain(
+      "TYPESAFE_API_KEY",
+    );
+    expect(memoryToolSpecs.memory_retrieve.description).toContain(
+      'judge: "off"',
+    );
   });
 
   it("instruction add documents the OpenRouter gate", () => {

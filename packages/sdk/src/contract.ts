@@ -153,7 +153,7 @@ export const retrieveBodySchema = z.object({
   summarize: z.boolean().optional(),
   threshold: z.number().min(0).max(1).optional(),
   rerank: z.union([z.boolean(), z.literal("jev")]).optional(),
-  judge: z.literal("jev").optional(),
+  judge: z.enum(["jev", "off"]).optional(),
   referenceDate: z.string().optional(),
 });
 

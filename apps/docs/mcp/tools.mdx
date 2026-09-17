@@ -113,12 +113,12 @@ Retrieve the most relevant memories for a natural language query. Returns scored
   Drop hits whose blended score is below this value (0–1)
 </ParamField>
 <ParamField body="rerank" type="boolean">
-  Optional lightweight rerank of the top 20 hits. Context Trace legs stay on the
-  hit. Pass `"jev"` instead to run the TypeSafe Jev retrieve-gate.
+  Optional local extra on the top 20 hits. Skipped when Jev runs. Context Trace
+  legs stay on the hit. `"jev"` is an accepted no-op.
 </ParamField>
 <ParamField body="judge" type="string">
-  Set to `jev` to run TypeSafe Jev on the top 20 hits. No-op without
-  `TYPESAFE_API_KEY`. Does not 422.
+  Jev keep/best is on when `TYPESAFE_API_KEY` is set. Pass `off` to skip for
+  ablation. Does not 422 without the key.
 </ParamField>
 <ParamField body="referenceDate" type="string">
   ISO date used as “now” for last-week / currently temporal scoring

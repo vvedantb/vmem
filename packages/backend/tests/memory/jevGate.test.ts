@@ -10,6 +10,7 @@ import {
   buildJevRetrieveQuestions,
   jevRankPoolLimit,
   wantsJevJudge,
+  wantsLocalRerank,
 } from "../../engine/memory/jevGate";
 
 function hit(
@@ -110,15 +111,27 @@ function gateResponse(overrides: {
 }
 
 describe("wantsJevJudge", () => {
-  it("is opt-in via judge or rerank string, not local boolean rerank", () => {
-    expect(wantsJevJudge({})).toBe(false);
-    expect(wantsJevJudge({ rerank: true })).toBe(false);
-    expect(wantsJevJudge({ rerank: false })).toBe(false);
+  it("defaults on; judge off is ablation-only", () => {
+    expect(wantsJevJudge({})).toBe(true);
+    expect(wantsJevJudge({ rerank: true })).toBe(true);
+    expect(wantsJevJudge({ rerank: false })).toBe(true);
     expect(wantsJevJudge({ judge: "jev" })).toBe(true);
     expect(wantsJevJudge({ rerank: "jev" })).toBe(true);
+    expect(wantsJevJudge({ judge: "off" })).toBe(false);
+    expect(wantsJevJudge({ judge: "off", rerank: "jev" })).toBe(false);
     expect(jevRankPoolLimit(10, false)).toBe(10);
     expect(jevRankPoolLimit(10, true)).toBe(JEV_GATE_HEAD);
     expect(jevRankPoolLimit(50, true)).toBe(50);
+  });
+
+  it("skips local #179 extra when Jev will run", () => {
+    expect(wantsLocalRerank({})).toBe(false);
+    expect(wantsLocalRerank({ rerank: true })).toBe(false);
+    expect(wantsLocalRerank({ rerank: true, judge: "off" })).toBe(true);
+    expect(wantsLocalRerank({ rerank: true }, false)).toBe(true);
+    expect(wantsLocalRerank({ rerank: true }, true)).toBe(false);
+    expect(wantsLocalRerank({ rerank: "jev" })).toBe(false);
+    expect(wantsLocalRerank({ judge: "jev", rerank: true })).toBe(false);
   });
 });
 
