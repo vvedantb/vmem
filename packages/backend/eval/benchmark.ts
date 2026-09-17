@@ -495,7 +495,6 @@ export async function runCorpusAblation(
     rerank?: RetrieveEvalRerank;
     jevDefaultOn?: boolean;
     requireJevKey?: boolean;
-    jevThreshold?: number;
     apiKey?: string;
     evaluate?: (args: EvaluateSystemOneArgs) => Promise<SystemOneResponse>;
     concurrency?: number;
@@ -567,7 +566,6 @@ export async function runCorpusAblation(
       rerank,
       jevDefaultOn: options.jevDefaultOn,
       requireJevKey: options.requireJevKey,
-      jevThreshold: options.jevThreshold,
       apiKey: options.apiKey,
       evaluate,
     };
@@ -1075,7 +1073,7 @@ function buildJevGateReport(args: {
 
   return `# vmem labelled retrieve: default (Jev on) vs hybrid-only
 
-Generated: ${today} · Corpus: ${String(args.stats.memoryCount)} memories · Answerable: ${String(args.answerable.length)} · Abstention: ${String(args.abstention.length)} · Embeddings: ${embeddingMode()} · Jev: live System One \`jev-latest\` · Noul keep threshold: ${String(DEFAULT_JEV_RELEVANCE_THRESHOLD)}
+Generated: ${today} · Corpus: ${String(args.stats.memoryCount)} memories · Answerable: ${String(args.answerable.length)} · Abstention: ${String(args.abstention.length)} · Embeddings: ${embeddingMode()} · Jev: live System One \`jev-latest\` · Rerank only (no noul hard-drop; diagnostic floor ${String(DEFAULT_JEV_RELEVANCE_THRESHOLD)})
 
 Main result is **default (Jev on)** — the always-on retrieve path. Hybrid-only is the control (\`judge: "off"\`).
 
@@ -1116,8 +1114,8 @@ ${perTypeTable([args.gated, args.hybrid], args.answerable, (m) => pct(m.recall5)
 | --- | --- |
 | System One calls | ${String(jev.calls)} |
 | Fail-open (HTTP/parse; hybrid kept) | ${String(jev.failures)} query errors, ${String(failOpen)} answerable lists with no \`jevRelevant\` |
-| Hits dropped (noul < ${String(DEFAULT_JEV_RELEVANCE_THRESHOLD)}) | ${String(jev.dropped)} |
-| Near-ties (noul in [0.45, 0.55], kept at 0.5) | ${String(jev.nearTies)} |
+| Hits with noul < ${String(DEFAULT_JEV_RELEVANCE_THRESHOLD)} (still kept) | ${String(jev.dropped)} |
+| Near-ties (noul in [0.45, 0.55]) | ${String(jev.nearTies)} |
 | Answerable queries emptied by the gate | ${String(emptyAnswerable)} |
 | Answerable queries with recall@5 drop vs hybrid-only | ${String(recallDrop)} |
 | Gold titles hybrid-only had in top 10 that Jev removed | ${String(drops.length)} |
@@ -1133,7 +1131,7 @@ ${dropLines}
 
 - Same labelled harness as \`eval:bench\` (\`packages/backend/eval/*\`). Not the synthetic \`tests/memory/benchmark/retrieve.bench.test.ts\` toy.
 - Product retrieve is default-on when \`TYPESAFE_API_KEY\` is set (PR #183). Eval disables with harness-only \`judge: "off"\`.
-- Default-on over-fetches 20 hits, Jev judges that head, eval slices to k=10. Threshold **0.5** keeps near-ties; live smoke gold was 0.66 and traps 0.03.
+- Default-on over-fetches 20 hits, Jev annotates and reranks that head, eval slices to k=10. noul **0.5** is diagnostic only (live smoke gold 0.66 vs traps 0.03); low-noul hits stay in the list.
 - Jev is weak at date math — temporal windows still come from \`temporal.ts\`.
 - Missing \`TYPESAFE_API_KEY\` on retrieve in prod fail-opens to hybrid. This labelled comparison **requires** a live key.
 - Embeddings are synthetic unless \`OPENROUTER_API_KEY\` is set. Jev judges title/content, so the embedder only changes the hybrid head it sees.

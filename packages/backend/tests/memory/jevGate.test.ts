@@ -168,7 +168,7 @@ describe("buildJevRetrieveQuestions", () => {
 });
 
 describe("applyJevRetrieveGate", () => {
-  it("keeps live-smoke Convex vmem gold and drops lexical traps", async () => {
+  it("ranks live-smoke Convex vmem gold first and keeps lexical traps", async () => {
     const evaluate = vi.fn(async () => ({
       model: "jev-latest",
       answers: {
@@ -223,15 +223,17 @@ describe("applyJevRetrieveGate", () => {
       evaluate,
     });
     expect(evaluate).toHaveBeenCalledOnce();
-    expect(gated.map((row) => row.id)).toEqual(["m1"]);
+    expect(gated.map((row) => row.id)).toEqual(["m1", "m2", "m3"]);
     expect(gated[0]?.trace.scoreBreakdown.jevRelevant).toBe(0.66);
     expect(gated[0]?.trace.scoreBreakdown.jevBest).toBe(true);
     expect(gated[0]?.trace.scoreBreakdown.jevConfidence).toBe(0.77);
+    expect(gated[1]?.trace.scoreBreakdown.jevRelevant).toBe(0.03);
+    expect(gated[2]?.trace.scoreBreakdown.jevRelevant).toBe(0.03);
     expect(DEFAULT_JEV_RELEVANCE_THRESHOLD).toBeLessThan(0.66);
     expect(DEFAULT_JEV_RELEVANCE_THRESHOLD).toBeGreaterThan(0.03);
   });
 
-  it("drops hits below the Noul threshold and promotes the Choice winner", async () => {
+  it("keeps low-noul hits and orders by Jev score then noul", async () => {
     const evaluate = vi.fn(async () =>
       gateResponse({ pnpm: 0.91, coffee: 0.12, best: "h0" }),
     );
@@ -240,18 +242,20 @@ describe("applyJevRetrieveGate", () => {
       hits: [pnpm, coffee],
       apiKey: "test-key",
       evaluate,
-      threshold: DEFAULT_JEV_RELEVANCE_THRESHOLD,
     });
     expect(evaluate).toHaveBeenCalledOnce();
-    expect(gated.map((row) => row.id)).toEqual(["mem_pnpm"]);
+    expect(gated.map((row) => row.id)).toEqual(["mem_pnpm", "mem_coffee"]);
     expect(gated[0]?.trace.scoreBreakdown.jevRelevant).toBe(0.91);
     expect(gated[0]?.trace.scoreBreakdown.jevScore).toBe(2);
     expect(gated[0]?.trace.scoreBreakdown.jevBest).toBe(true);
     expect(gated[0]?.trace.scoreBreakdown.fulltext).toBe(0.9);
     expect(gated[0]?.trace.reason).toContain("Jev relevant");
+    expect(gated[1]?.trace.scoreBreakdown.jevRelevant).toBe(0.12);
+    expect(gated[1]?.trace.scoreBreakdown.jevScore).toBe(0);
+    expect(gated[1]?.id).toBe("mem_coffee");
   });
 
-  it("promotes the Choice winner among hits that pass the Noul threshold", async () => {
+  it("promotes the Choice winner to the front of the reranked list", async () => {
     const evaluate = vi.fn(async () =>
       gateResponse({
         pnpm: 0.88,
@@ -270,6 +274,32 @@ describe("applyJevRetrieveGate", () => {
     expect(gated.map((row) => row.id)).toEqual(["mem_coffee", "mem_pnpm"]);
     expect(gated[0]?.trace.scoreBreakdown.jevBest).toBe(true);
     expect(gated[1]?.trace.scoreBreakdown.jevBest).toBeUndefined();
+  });
+
+  it("keeps the full head when best is none and every noul is below 0.5", async () => {
+    const evaluate = vi.fn(async () =>
+      gateResponse({
+        pnpm: 0.1,
+        coffee: 0.12,
+        pnpmScore: 0,
+        coffeeScore: 1,
+        best: JEV_BEST_NONE,
+      }),
+    );
+    const gated = await applyJevRetrieveGate({
+      query: "what package manager?",
+      hits: [pnpm, coffee],
+      apiKey: "test-key",
+      evaluate,
+    });
+    expect(evaluate).toHaveBeenCalledOnce();
+    expect(gated).toHaveLength(2);
+    expect(gated.map((row) => row.id)).toEqual(["mem_coffee", "mem_pnpm"]);
+    expect(gated[0]?.trace.scoreBreakdown.jevScore).toBe(1);
+    expect(gated[1]?.trace.scoreBreakdown.jevScore).toBe(0);
+    expect(
+      gated.every((row) => row.trace.scoreBreakdown.jevBest !== true),
+    ).toBe(true);
   });
 
   it("keeps hybrid ranking when Jev throws", async () => {
