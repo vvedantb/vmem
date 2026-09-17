@@ -42,25 +42,57 @@ export function expandGraphNeighbors(
   seedTitleById: ReadonlyMap<string, string>,
   links: readonly MemoryLinkEdge[],
   limit: number,
+  maxHops: number = 1,
 ): GraphNeighborHit[] {
-  if (seedIds.length === 0 || links.length === 0 || limit <= 0) return [];
+  if (
+    seedIds.length === 0 ||
+    links.length === 0 ||
+    limit <= 0 ||
+    maxHops <= 0
+  ) {
+    return [];
+  }
   const adjacency = adjacencyFromLinks(links);
   const seen = new Set(seedIds);
   const hits: GraphNeighborHit[] = [];
+  let frontier: GraphNeighborHit[] = [];
   for (const seedId of seedIds) {
     const neighbors = adjacency.get(seedId) ?? [];
     for (const neighbor of neighbors) {
       if (seen.has(neighbor.id)) continue;
       seen.add(neighbor.id);
-      hits.push({
+      const hit: GraphNeighborHit = {
         id: neighbor.id,
         hops: 1,
         seedId,
         seedTitle: seedTitleById.get(seedId) ?? seedId,
         reason: neighbor.reason,
-      });
+      };
+      hits.push(hit);
+      frontier.push(hit);
       if (hits.length >= limit) return hits;
     }
+  }
+  for (let hop = 2; hop <= maxHops; hop += 1) {
+    const next: GraphNeighborHit[] = [];
+    for (const parent of frontier) {
+      const neighbors = adjacency.get(parent.id) ?? [];
+      for (const neighbor of neighbors) {
+        if (seen.has(neighbor.id)) continue;
+        seen.add(neighbor.id);
+        const hit: GraphNeighborHit = {
+          id: neighbor.id,
+          hops: hop,
+          seedId: parent.seedId,
+          seedTitle: parent.seedTitle,
+          reason: neighbor.reason,
+        };
+        hits.push(hit);
+        next.push(hit);
+        if (hits.length >= limit) return hits;
+      }
+    }
+    frontier = next;
   }
   return hits;
 }

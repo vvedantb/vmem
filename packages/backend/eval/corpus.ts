@@ -25,11 +25,19 @@ export interface BenchmarkRelationship {
   reason: string;
 }
 
+export interface RetrievalEvalFilter {
+  type?: string;
+  tags?: string[];
+  status?: string;
+  source?: string;
+}
+
 export interface RetrievalEvalQuery {
   query: string;
   expectedTitles: string[];
   relevance: Record<string, number>;
   type: string;
+  filter?: RetrievalEvalFilter;
 }
 
 export interface BenchmarkCorpus {

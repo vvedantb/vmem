@@ -8,6 +8,8 @@ import {
   toMemoryTypeOrUndefined,
 } from "../engine/memory/parse";
 import { memoryMatchesListFilter } from "../engine/memory/list";
+import { queryEmbeddingText } from "../engine/memory/synonyms";
+import { buildSearchableText } from "../engine/memory/searchableText";
 import { OpenRouterRequiredError } from "../engine/memory/openRouterRequired";
 import { relatedMemories } from "../engine/memory/rank";
 import {
@@ -108,6 +110,7 @@ export async function createMemoryForClerk(
     profileId: created.profileId ?? args.profileId,
     title: created.title,
     content: created.content,
+    tags: created.tags,
   });
   return created;
 }
@@ -187,13 +190,18 @@ export async function updateMemoryForClerk(
   );
   if (updated) {
     await scheduleContextPromptInvalidationByClerkId(ctx, args.clerkId);
-    if (args.title !== undefined || args.content !== undefined) {
+    if (
+      args.title !== undefined ||
+      args.content !== undefined ||
+      args.tags !== undefined
+    ) {
       await scheduleMemoryEmbedding(ctx, {
         clerkId: args.clerkId,
         memoryId: updated.id,
         profileId: updated.profileId ?? undefined,
         title: updated.title,
         content: updated.content,
+        tags: updated.tags,
       });
     }
   }
@@ -226,13 +234,14 @@ async function scheduleMemoryEmbedding(
     profileId?: string | null;
     title: string;
     content: string;
+    tags?: readonly string[];
   },
 ): Promise<void> {
   await ctx.scheduler.runAfter(0, internal.memoryEmbed.embedMemoryInternal, {
     clerkId: args.clerkId,
     memoryId: args.memoryId,
     profileId: args.profileId ?? undefined,
-    text: `${args.title}\n${args.content}`,
+    text: buildSearchableText(args.title, args.content, args.tags ?? []),
   });
 }
 
@@ -390,7 +399,7 @@ async function vectorScoresForQuery(
     profileId: args.profileId,
     feature: "memory-search",
     failureLog: "[memoryRuntime] query embedding failed",
-    text: args.query,
+    text: queryEmbeddingText(args.query),
   });
   if (!embedding) return empty;
 
