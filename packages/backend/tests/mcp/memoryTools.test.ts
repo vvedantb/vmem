@@ -102,6 +102,8 @@ describe("MCP memory tool surfaces", () => {
     expect(retrieveBlock).toContain("type: params.type");
     expect(retrieveBlock).toContain("tags: params.tags");
     expect(retrieveBlock).toContain("status: params.status");
+    expect(retrieveBlock).toContain("source: params.source");
+    expect(source).toContain("params.profileId");
     expect(retrieveBlock).toContain("params.limit ?? 10");
     expect(source).toContain("Max results (default 10)");
     expect(
@@ -110,6 +112,7 @@ describe("MCP memory tool surfaces", () => {
         type: "profile",
         tags: ["pnpm"],
         status: "pinned",
+        source: "mcp",
       }).success,
     ).toBe(true);
   });

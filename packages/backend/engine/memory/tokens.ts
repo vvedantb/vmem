@@ -73,7 +73,7 @@ const STOPWORDS = new Set([
 ]);
 
 export function tokenize(text: string): string[] {
-  const parts = text.toLowerCase().split(/[^a-z0-9]+/);
+  const parts = text.toLowerCase().split(/[^\p{L}\p{N}]+/u);
   const tokens: string[] = [];
   for (const part of parts) {
     if (part.length === 0) continue;

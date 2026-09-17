@@ -80,14 +80,18 @@ export function withApiKeyAuth<T>(
     }
 
     const respond = async (response: Response): Promise<Response> => {
-      await ctx.runMutation(internal.apiKeys.recordUsageInternal, {
-        keyHash: auth.keyHash,
-        endpoint,
-        method,
-        status: response.status,
-        durationMs: Date.now() - startedAt,
-        createdAt: Date.now(),
-      });
+      try {
+        await ctx.runMutation(internal.apiKeys.recordUsageInternal, {
+          keyHash: auth.keyHash,
+          endpoint,
+          method,
+          status: response.status,
+          durationMs: Date.now() - startedAt,
+          createdAt: Date.now(),
+        });
+      } catch (err) {
+        console.error(`[HTTP][${endpoint}] recordUsage failed`, err);
+      }
       return response;
     };
 

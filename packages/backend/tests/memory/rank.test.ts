@@ -211,6 +211,24 @@ describe("retrieveMemoriesFromPool", () => {
     ).toEqual(["mem_web"]);
   });
 
+  it("ranks a unicode token query over an ascii distractor", () => {
+    const arabic = memory({
+      id: "mem_ar",
+      title: "Prefers green tea",
+      content: "المستخدم يحب الشاي الأخضر في الصباح",
+    });
+    const coffee = memory({
+      id: "mem_en",
+      title: "Coffee order",
+      content: "Oat latte every morning",
+    });
+    expect(
+      retrieveMemoriesFromPool([coffee, arabic], "أين الشاي", { limit: 5 }).map(
+        (hit) => hit.id,
+      ),
+    ).toEqual(["mem_ar"]);
+  });
+
   it("hides suppressed rows unless status is requested", () => {
     const hidden = memory({
       id: "mem_hidden",

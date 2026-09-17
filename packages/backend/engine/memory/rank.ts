@@ -289,7 +289,9 @@ export function memoryMatchesLexical(
   if (needle.length === 0) return true;
   if (haystack(memory).includes(needle)) return true;
   const queryTerms = expandQueryTerms(needle);
-  if (queryTerms.length === 0) return true;
+  // Stopword-only / emoji-only queries have no tokens. Do not treat that as
+  // "match every memory" — substring already had a chance above.
+  if (queryTerms.length === 0) return false;
   const docTerms = new Set(
     contentTokens(
       `${memory.title} ${memory.content} ${memory.tags.join(" ")}`,

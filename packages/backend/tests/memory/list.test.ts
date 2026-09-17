@@ -56,6 +56,22 @@ describe("memoryMatchesListFilter", () => {
     expect(
       memoryMatchesListFilter(row, { searchQuery: "package manager" }),
     ).toBe(true);
+    expect(memoryMatchesListFilter(row, { searchQuery: "what is the" })).toBe(
+      false,
+    );
+    expect(memoryMatchesListFilter(row, { searchQuery: "🔥" })).toBe(false);
+  });
+
+  it("matches unicode words that ASCII tokenization would drop", () => {
+    const row = memory({
+      title: "Prefers green tea",
+      content: "المستخدم يحب الشاي الأخضر",
+      tags: ["tea"],
+    });
+    expect(memoryMatchesListFilter(row, { searchQuery: "أين الشاي" })).toBe(
+      true,
+    );
+    expect(memoryMatchesListFilter(row, { searchQuery: "你好" })).toBe(false);
   });
 });
 
