@@ -32,6 +32,13 @@ describe("MCP retrieve uses the labelled Convex hybrid ranker", () => {
     expect(evalRetrieve).toContain(
       "return retrieveMemoriesFromPool(memories, query,",
     );
+    expect(runtime).toContain("getMemoriesByMemoryIdsInternal");
+    expect(runtime).toContain("RETRIEVE_RANK_POOL_CAP");
+    expect(runtime).toContain("VECTOR_CANDIDATE_LIMIT");
+    const caps = read("engine/memory/retrieveCaps.ts");
+    expect(caps).toContain("export const FTS_TAKE = 256");
+    expect(caps).toContain("export const VECTOR_CANDIDATE_LIMIT");
+    expect(caps).toContain("export const LEGACY_FTS_TAKE = 32");
   });
 
   it("full hybrid on the labelled corpus meets the Neo4j 2026-07-18 bar", async () => {

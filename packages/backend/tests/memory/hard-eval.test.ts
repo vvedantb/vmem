@@ -4,6 +4,7 @@ import {
   aggregate,
   HARD_FULL_HYBRID_BEFORE,
   runHardAblation,
+  runPooledComparison,
 } from "../../eval/benchmark";
 
 describe("hard labelled corpus invariants", () => {
@@ -53,5 +54,18 @@ describe("Convex hard labelled ablation", () => {
     expect(byType("full hybrid", "multi-hop-2").ndcg10).toBeGreaterThan(
       byType("hybrid (no graph)", "multi-hop-2").ndcg10,
     );
+  }, 60_000);
+
+  it("index candidate pool beats legacy 200∪32∪32 on the hard suite", async () => {
+    const { legacy, widened, report } = await runPooledComparison(
+      generateHardCorpus(),
+      "hard",
+    );
+    console.log(`\n${report}\n`);
+    expect(widened.recall5).toBeGreaterThanOrEqual(legacy.recall5);
+    expect(widened.recall10).toBeGreaterThanOrEqual(legacy.recall10);
+    expect(widened.recall5).toBeGreaterThanOrEqual(0.9);
+    expect(widened.ndcg10).toBeGreaterThanOrEqual(0.9);
+    expect(widened.latencyP95).toBeLessThan(100);
   }, 60_000);
 });

@@ -68,6 +68,7 @@ const searchTextArgsSchema = z.object({
   profileId: z.string().optional(),
   query: z.string(),
 });
+const memoryIdsArgsSchema = z.object({ ids: z.array(z.string()) });
 const collectScopedArgsSchema = z.object({
   kind: z.enum(["personal", "team"]),
   userId: z.string().optional(),
@@ -449,6 +450,12 @@ async function dispatch(
         )
         .map(({ memory, index }) => ({ memory, rank: index + 1 }));
       return hits;
+    }
+    case "memoryStore/functions:getMemoriesByMemoryIdsInternal": {
+      const parsed = memoryIdsArgsSchema.parse(args);
+      return parsed.ids.map(
+        (id) => store.memories.find((memory) => memory.id === id) ?? null,
+      );
     }
     case "memoryStore/functions:listMemoryLinksForUserInternal": {
       const parsed = userIdArgsSchema.parse(args);
