@@ -13,6 +13,7 @@ import { clampFtsTake, FTS_TAKE } from "../../engine/memory/retrieveCaps";
 import { buildSearchableText } from "../../engine/memory/searchableText";
 import { normalizeTags } from "../../engine/memory/tags";
 import type { MemoryLinkEdge } from "../../engine/memory/links";
+import { UPDATES_LINK_REASON } from "../../engine/memory/supersede";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { parseIsoMillis, toMemoryWithTags } from "./mappers";
@@ -217,15 +218,11 @@ export async function listMemoriesForTeam(
   return pageFiltered(docs, params);
 }
 
-export async function updateMemory(
+async function applyMemoryUpdates(
   ctx: MutationCtx,
-  userId: string,
-  memoryId: string,
+  doc: Doc<"memories">,
   updates: UpdateMemoryStoreParams,
 ): Promise<MemoryWithTags | null> {
-  const doc = await findByMemoryId(ctx, memoryId);
-  if (!doc || doc.userId !== userId) return null;
-
   const now = Date.now();
   const nextTitle = updates.title ?? doc.title;
   const nextContent = updates.content ?? doc.content;
@@ -277,9 +274,82 @@ export async function updateMemory(
     });
   }
 
-  const updated = await findByMemoryId(ctx, memoryId);
+  const updated = await findByMemoryId(ctx, doc.memoryId);
   if (!updated) return null;
   return toMemoryWithTags(updated);
+}
+
+function docMatchesWriteScope(
+  doc: Doc<"memories">,
+  scope: MemoryReadScope,
+): boolean {
+  if (scope.kind === "team") {
+    return memoryMatchesScope(doc, scope);
+  }
+  return doc.userId === scope.userId;
+}
+
+export async function updateMemory(
+  ctx: MutationCtx,
+  userId: string,
+  memoryId: string,
+  updates: UpdateMemoryStoreParams,
+): Promise<MemoryWithTags | null> {
+  const doc = await findByMemoryId(ctx, memoryId);
+  if (!doc || doc.userId !== userId) return null;
+  return applyMemoryUpdates(ctx, doc, updates);
+}
+
+async function updateMemoryInScope(
+  ctx: MutationCtx,
+  scope: MemoryReadScope,
+  memoryId: string,
+  updates: UpdateMemoryStoreParams,
+): Promise<MemoryWithTags | null> {
+  const doc = await findByMemoryId(ctx, memoryId);
+  if (!doc || !docMatchesWriteScope(doc, scope)) return null;
+  return applyMemoryUpdates(ctx, doc, updates);
+}
+
+export async function supersedeMemories(
+  ctx: MutationCtx,
+  params: {
+    scope: MemoryReadScope;
+    predecessorIds: string[];
+    successorId?: string;
+    reason?: string;
+  },
+): Promise<number> {
+  const successorId = params.successorId;
+  const reason = params.reason?.trim() || UPDATES_LINK_REASON;
+  let count = 0;
+  const seen = new Set<string>();
+  for (const predecessorId of params.predecessorIds) {
+    if (predecessorId === successorId || seen.has(predecessorId)) continue;
+    seen.add(predecessorId);
+    const updated = await updateMemoryInScope(
+      ctx,
+      params.scope,
+      predecessorId,
+      { status: "suppressed" },
+    );
+    if (!updated) continue;
+    count += 1;
+    if (successorId === undefined) continue;
+    await linkMemories(ctx, {
+      userId: updated.userId,
+      profileId: updated.profileId ?? writeProfileId(params.scope),
+      memoryIdA: predecessorId,
+      memoryIdB: successorId,
+      reason,
+    });
+  }
+  return count;
+}
+
+function writeProfileId(scope: MemoryReadScope): string | undefined {
+  if (scope.kind === "team") return scope.profileId;
+  return scope.profileId ?? undefined;
 }
 
 async function deleteLinksForMemory(
@@ -547,7 +617,12 @@ export async function linkMemories(
   const a = await findByMemoryId(ctx, params.memoryIdA);
   const b = await findByMemoryId(ctx, params.memoryIdB);
   if (!a || !b) return false;
-  if (a.userId !== params.userId || b.userId !== params.userId) return false;
+  const sameUser = a.userId === params.userId && b.userId === params.userId;
+  const sameProfile =
+    params.profileId !== undefined &&
+    a.profileId === params.profileId &&
+    b.profileId === params.profileId;
+  if (!sameUser && !sameProfile) return false;
   const { sourceId, targetId } = orderedLinkIds(
     params.memoryIdA,
     params.memoryIdB,

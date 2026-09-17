@@ -2,7 +2,7 @@ import type { MemoryCandidate, MemoryType, MemoryWithTags } from "@vmem/sdk";
 import { internal } from "./_generated/api";
 import type { ActionCtx } from "./_generated/server";
 import type { MemoryListResult } from "./memoryApi/types";
-import { resolveProfileIdForClerkId } from "./memoryScope";
+import { getProfileKind, resolveProfileIdForClerkId } from "./memoryScope";
 import {
   toMemoryStatusOrUndefined,
   toMemoryTypeOrUndefined,
@@ -35,6 +35,20 @@ import {
   buildFactExtractionPrompt,
   parseFactExtractionResponse,
 } from "../engine/memory/extractFacts";
+import {
+  buildFactDecisionPrompt,
+  parseFactDecisionResponse,
+  resolveFactDecision,
+} from "../engine/memory/factDecision";
+import {
+  instructionTitle,
+  UPDATES_LINK_REASON,
+  visibleDecisionCandidates,
+  type DecisionCandidate,
+  type FactDecision,
+} from "../engine/memory/supersede";
+import { scheduleDreamTriggerCheck } from "./lib/dreamTriggerInvalidate";
+import type { MemoryReadScope } from "../engine/memory/scope";
 
 type MemoryCtx = Pick<ActionCtx, "runQuery" | "runMutation" | "scheduler">;
 
@@ -114,6 +128,9 @@ export async function createMemoryForClerk(
     },
   );
   await scheduleContextPromptInvalidationByClerkId(ctx, args.clerkId);
+  if (args.source !== "dream-merge") {
+    await scheduleDreamTriggerCheck(ctx, args.clerkId);
+  }
   await scheduleMemoryEmbedding(ctx, {
     clerkId: args.clerkId,
     memoryId: created.id,
@@ -579,10 +596,101 @@ export async function relatedMemoriesForTeamProfile(
   );
 }
 
-export async function storeMemoryFromInstruction(
+async function instructionWriteScope(
+  ctx: Pick<ActionCtx, "runQuery" | "runMutation">,
+  clerkId: string,
+  profileId?: string,
+): Promise<{
+  profileId: string;
+  kind: "personal" | "team";
+  scope: MemoryReadScope;
+}> {
+  const resolved = await resolveProfileIdForClerkId(ctx, clerkId, profileId);
+  const kind = await getProfileKind(ctx, resolved);
+  const scope: MemoryReadScope =
+    kind === "team"
+      ? { kind: "team", profileId: resolved }
+      : { kind: "personal", userId: clerkId, profileId: resolved };
+  return { profileId: resolved, kind, scope };
+}
+
+function scopeMutationArgs(scope: MemoryReadScope): {
+  kind: "personal" | "team";
+  userId?: string;
+  profileId?: string;
+} {
+  if (scope.kind === "team") {
+    return { kind: "team", profileId: scope.profileId };
+  }
+  return {
+    kind: "personal",
+    userId: scope.userId,
+    profileId: scope.profileId ?? undefined,
+  };
+}
+
+async function collectInstructionCandidates(
+  ctx: Pick<ActionCtx, "runQuery" | "runMutation">,
+  scope: MemoryReadScope,
+): Promise<{ memories: MemoryWithTags[]; candidates: DecisionCandidate[] }> {
+  const memories = await ctx.runQuery(
+    internal.memoryStore.functions.collectScopedMemoriesInternal,
+    scope.kind === "team"
+      ? { kind: "team", profileId: scope.profileId }
+      : {
+          kind: "personal",
+          userId: scope.userId,
+          profileId: scope.profileId ?? undefined,
+        },
+  );
+  return { memories, candidates: visibleDecisionCandidates(memories) };
+}
+
+async function supersedeInstructionTargets(
+  ctx: Pick<ActionCtx, "runMutation">,
+  scope: MemoryReadScope,
+  predecessorIds: string[],
+  successorId?: string,
+): Promise<void> {
+  if (predecessorIds.length === 0) return;
+  await ctx.runMutation(
+    internal.memoryStore.functions.supersedeMemoriesInternal,
+    {
+      ...scopeMutationArgs(scope),
+      predecessorIds,
+      successorId,
+      reason: UPDATES_LINK_REASON,
+    },
+  );
+}
+
+async function writeInstructionMemory(
+  ctx: ActionCtx,
+  args: {
+    clerkId: string;
+    profileId: string;
+    text: string;
+    extracted: boolean;
+  },
+): Promise<MemoryWithTags> {
+  const source = args.extracted ? "sdk-extracted" : "instruction";
+  return createMemoryForClerk(ctx, {
+    clerkId: args.clerkId,
+    profileId: args.profileId,
+    title: instructionTitle(args.text),
+    content: args.text,
+    type: "knowledge",
+    source,
+    tags: [source],
+    confidence: 0.9,
+    sourceType: source,
+  });
+}
+
+async function extractInstructionFacts(
   ctx: ActionCtx,
   args: { clerkId: string; instruction: string; profileId?: string },
-): Promise<{ created: MemoryWithTags[]; summary: string }> {
+): Promise<{ texts: string[]; extracted: boolean }> {
   const openRouter = await tryUserAndApiKeyByClerkId(
     ctx,
     args.clerkId,
@@ -606,26 +714,251 @@ export async function storeMemoryFromInstruction(
     extracted?.facts
       .map((fact) => fact.text)
       .filter((text) => text.length > 0) ?? [];
+  return {
+    texts: facts.length > 0 ? facts : [instruction],
+    extracted: facts.length > 0,
+  };
+}
 
-  const texts = facts.length > 0 ? facts : [instruction];
+function dropCandidate(
+  candidates: DecisionCandidate[],
+  id: string,
+): DecisionCandidate[] {
+  return candidates.filter((candidate) => candidate.id !== id);
+}
+
+async function applyInstructionDecision(
+  ctx: ActionCtx,
+  args: {
+    clerkId: string;
+    profileId: string;
+    scope: MemoryReadScope;
+    extracted: boolean;
+    decision: FactDecision;
+    memoriesById: Map<string, MemoryWithTags>;
+    candidates: DecisionCandidate[];
+  },
+): Promise<{
+  applied: MemoryWithTags | null;
+  created: boolean;
+  candidates: DecisionCandidate[];
+}> {
+  const { decision } = args;
+  if (decision.event === "NONE") {
+    const existing =
+      decision.targetId === undefined
+        ? null
+        : (args.memoriesById.get(decision.targetId) ?? null);
+    return { applied: existing, created: false, candidates: args.candidates };
+  }
+  if (decision.event === "DELETE") {
+    if (decision.targetId !== undefined) {
+      await supersedeInstructionTargets(ctx, args.scope, [decision.targetId]);
+      args.memoriesById.delete(decision.targetId);
+    }
+    return {
+      applied: null,
+      created: false,
+      candidates: decision.targetId
+        ? dropCandidate(args.candidates, decision.targetId)
+        : args.candidates,
+    };
+  }
+  const created = await writeInstructionMemory(ctx, {
+    clerkId: args.clerkId,
+    profileId: args.profileId,
+    text: decision.text,
+    extracted: args.extracted,
+  });
+  if (decision.event === "UPDATE" && decision.targetId !== undefined) {
+    await supersedeInstructionTargets(
+      ctx,
+      args.scope,
+      [decision.targetId],
+      created.id,
+    );
+    args.memoriesById.delete(decision.targetId);
+  }
+  args.memoriesById.set(created.id, created);
+  const nextCandidates = dropCandidate(
+    args.candidates,
+    decision.targetId ?? "",
+  );
+  nextCandidates.push({
+    id: created.id,
+    title: created.title,
+    content: created.content,
+  });
+  return { applied: created, created: true, candidates: nextCandidates };
+}
+
+async function decideInstructionFact(
+  ctx: ActionCtx,
+  args: {
+    clerkId: string;
+    profileId: string;
+    kind: "personal" | "team";
+    factText: string;
+    candidates: DecisionCandidate[];
+    useLlm: boolean;
+  },
+): Promise<FactDecision> {
+  if (!args.useLlm) {
+    return resolveFactDecision({
+      factText: args.factText,
+      candidates: args.candidates,
+    });
+  }
+  const related =
+    args.kind === "team"
+      ? await retrieveMemoriesForTeamProfile(ctx, {
+          clerkId: args.clerkId,
+          profileId: args.profileId,
+          query: args.factText,
+          limit: 8,
+        })
+      : await retrieveMemoriesForClerk(ctx, {
+          clerkId: args.clerkId,
+          profileId: args.profileId,
+          query: args.factText,
+          limit: 8,
+        });
+  const byId = new Map(
+    args.candidates.map((candidate) => [candidate.id, candidate]),
+  );
+  for (const hit of related) {
+    if (!byId.has(hit.id)) {
+      byId.set(hit.id, {
+        id: hit.id,
+        title: hit.title,
+        content: hit.content,
+      });
+    }
+  }
+  const candidates = [...byId.values()];
+  const openRouter = await tryUserAndApiKeyByClerkId(
+    ctx,
+    args.clerkId,
+    "OPENROUTER_API_KEY",
+  );
+  let llmDecision: FactDecision | null = null;
+  if (openRouter) {
+    const raw = await callJsonChat(ctx, {
+      apiKey: openRouter.apiKey,
+      userId: openRouter.userId,
+      profileId: args.profileId,
+      feature: "fact-extraction",
+      prompt: buildFactDecisionPrompt(args.factText, candidates),
+    });
+    llmDecision = raw
+      ? parseFactDecisionResponse(raw, args.factText, candidates)
+      : null;
+  }
+  return resolveFactDecision({
+    factText: args.factText,
+    candidates,
+    llmDecision,
+  });
+}
+
+export async function storeMemoryFromInstruction(
+  ctx: ActionCtx,
+  args: { clerkId: string; instruction: string; profileId?: string },
+): Promise<{ created: MemoryWithTags[]; summary: string }> {
+  const { texts, extracted } = await extractInstructionFacts(ctx, args);
+  const { profileId, scope } = await instructionWriteScope(
+    ctx,
+    args.clerkId,
+    args.profileId,
+  );
+  const collected = await collectInstructionCandidates(ctx, scope);
+  let candidates = collected.candidates;
+  const memoriesById = new Map(
+    collected.memories.map((memory) => [memory.id, memory]),
+  );
   const created: MemoryWithTags[] = [];
   for (const text of texts) {
-    created.push(
-      await createMemoryForClerk(ctx, {
-        clerkId: args.clerkId,
-        profileId: args.profileId,
-        title: text.slice(0, 80) || "Instruction",
-        content: text,
-        type: "knowledge",
-        source: facts.length > 0 ? "sdk-extracted" : "instruction",
-        tags: facts.length > 0 ? ["sdk-extracted"] : ["instruction"],
-        confidence: 0.9,
-        sourceType: facts.length > 0 ? "sdk-extracted" : "instruction",
-      }),
-    );
+    const decision = await decideInstructionFact(ctx, {
+      clerkId: args.clerkId,
+      profileId,
+      kind: scope.kind,
+      factText: text,
+      candidates,
+      useLlm: false,
+    });
+    const applied = await applyInstructionDecision(ctx, {
+      clerkId: args.clerkId,
+      profileId,
+      scope,
+      extracted,
+      decision,
+      memoriesById,
+      candidates,
+    });
+    candidates = applied.candidates;
+    if (applied.created && applied.applied) created.push(applied.applied);
   }
   return {
     created,
     summary: `Stored ${String(created.length)} ${created.length === 1 ? "memory" : "memories"} from the instruction.`,
+  };
+}
+
+export async function updateMemoryFromInstruction(
+  ctx: ActionCtx,
+  args: { clerkId: string; instruction: string; profileId?: string },
+): Promise<{
+  applied: MemoryWithTags[];
+  proposals: Array<{
+    id: string;
+    memoryId: string;
+    proposedContent: string;
+    reason: string;
+    kind: string;
+    status: string;
+  }>;
+  summary: string;
+}> {
+  const { texts, extracted } = await extractInstructionFacts(ctx, args);
+  const { profileId, scope } = await instructionWriteScope(
+    ctx,
+    args.clerkId,
+    args.profileId,
+  );
+  const collected = await collectInstructionCandidates(ctx, scope);
+  let candidates = collected.candidates;
+  const memoriesById = new Map(
+    collected.memories.map((memory) => [memory.id, memory]),
+  );
+  const applied: MemoryWithTags[] = [];
+  let superseded = 0;
+  for (const text of texts) {
+    const decision = await decideInstructionFact(ctx, {
+      clerkId: args.clerkId,
+      profileId,
+      kind: scope.kind,
+      factText: text,
+      candidates,
+      useLlm: true,
+    });
+    const result = await applyInstructionDecision(ctx, {
+      clerkId: args.clerkId,
+      profileId,
+      scope,
+      extracted,
+      decision,
+      memoriesById,
+      candidates,
+    });
+    candidates = result.candidates;
+    if (decision.event === "UPDATE" || decision.event === "DELETE") {
+      superseded += 1;
+    }
+    if (result.applied) applied.push(result.applied);
+  }
+  return {
+    applied,
+    proposals: [],
+    summary: `Applied ${String(applied.length)} ${applied.length === 1 ? "memory" : "memories"} and superseded ${String(superseded)} ${superseded === 1 ? "row" : "rows"}.`,
   };
 }

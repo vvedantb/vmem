@@ -28,6 +28,7 @@ Memories are stored in Convex (`memories`). Convex also holds metadata, auth, an
 | `skills`                         | Reusable instruction modules               |
 | `wikiNodes`                      | Personal wiki tree                         |
 | `memories`                       | Memory CRUD, search, and retrieve          |
+| `proposedUpdates`                | Inbox merge/update proposals               |
 | `connectors` / `connectorTokens` | External service integrations              |
 | `userSettings`                   | Preferences, about me, active profile      |
 | `contextPromptCache`             | Cached MCP context prompt markdown         |

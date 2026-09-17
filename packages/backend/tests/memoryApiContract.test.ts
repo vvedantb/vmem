@@ -5,6 +5,7 @@ import {
   deleteBodySchema,
   memoryCandidateSchema,
   parseMemoryWithTagsResponse,
+  parseUpdateInstructionResult,
   retrieveBodySchema,
   storeBodySchema,
   structuredStoreBodySchema,
@@ -146,6 +147,16 @@ describe("memoryApi contract request schemas", () => {
         profileId: "profile_1",
       }).success,
     ).toBe(true);
+  });
+
+  it("parses instruction update results with applied memories", () => {
+    expect(
+      parseUpdateInstructionResult({
+        applied: [validMemoryResponse],
+        proposals: [],
+        summary: "Applied 1 memory and superseded 1 row.",
+      }).applied,
+    ).toHaveLength(1);
   });
 
   it("parses retrieve candidates with real trace channels", () => {

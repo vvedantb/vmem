@@ -163,7 +163,7 @@ curl -X PATCH "https://<deployment>.convex.site/api/v1/memories" \
 | `instruction` | string | yes      |
 | `profileId`   | string | no       |
 
-On current `main` this reuses the store instruction pipeline and returns `{ created, summary }` (same as `save()`), not `{ applied, proposals }`.
+Extracts facts, then ADD / UPDATE (supersede) / DELETE / NONE against existing rows. Matching prior rows are marked `suppressed` and linked with reason `updates` so retrieve sees the latest. Returns `{ applied, proposals, summary }`. `proposals` is empty when the update is applied immediately.
 
 ---
 

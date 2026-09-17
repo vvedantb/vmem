@@ -389,6 +389,33 @@ describe("retrieveMemoriesFromPool", () => {
       }).map((hit) => hit.id),
     ).toEqual(["mem_hidden"]);
   });
+
+  it("hides a same-age stale row once it is suppressed", () => {
+    const timestamp = "2026-09-01T00:00:00.000Z";
+    const stale = memory({
+      id: "mem_stale",
+      title: "Editor was Vim",
+      content: "Historically the editor was Vim.",
+      status: "suppressed",
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+    const current = memory({
+      id: "mem_current",
+      title: "Editor is now Helix",
+      content: "As of recently, the editor is Helix; Vim is deprecated.",
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+    const ranked = retrieveMemoriesFromPool(
+      [stale, current],
+      "what editor currently",
+      {
+        limit: 5,
+      },
+    );
+    expect(ranked.map((hit) => hit.id)).toEqual(["mem_current"]);
+  });
 });
 
 describe("toMemoryCandidate", () => {

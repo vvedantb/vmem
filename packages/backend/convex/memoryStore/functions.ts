@@ -25,6 +25,7 @@ import {
   unlinkMemories,
   updateMemory,
   upsertMemoryFromSource,
+  supersedeMemories,
 } from "./helpers";
 
 const memoryWithTagsValidator = zodToConvex(memoryWithTagsSchema);
@@ -181,6 +182,44 @@ export const updateMemoryInternal = internalMutation({
       confidence: args.confidence,
       expiresAt: args.expiresAt,
     }),
+});
+
+const memoryScopeFields = {
+  kind: v.union(v.literal("personal"), v.literal("team")),
+  userId: v.optional(v.string()),
+  profileId: v.optional(v.string()),
+};
+
+export const supersedeMemoriesInternal = internalMutation({
+  args: {
+    ...memoryScopeFields,
+    predecessorIds: v.array(v.string()),
+    successorId: v.optional(v.string()),
+    reason: v.optional(v.string()),
+  },
+  returns: v.number(),
+  handler: async (ctx, args) => {
+    if (args.kind === "team") {
+      if (args.profileId === undefined) return 0;
+      return supersedeMemories(ctx, {
+        scope: { kind: "team", profileId: args.profileId },
+        predecessorIds: args.predecessorIds,
+        successorId: args.successorId,
+        reason: args.reason,
+      });
+    }
+    if (args.userId === undefined) return 0;
+    return supersedeMemories(ctx, {
+      scope: {
+        kind: "personal",
+        userId: args.userId,
+        profileId: args.profileId,
+      },
+      predecessorIds: args.predecessorIds,
+      successorId: args.successorId,
+      reason: args.reason,
+    });
+  },
 });
 
 export const deleteMemoryInternal = internalMutation({
