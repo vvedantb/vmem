@@ -32,6 +32,7 @@ export function SlideDeck({
   allowNavigation = true,
   showOutline = true,
 }: SlideDeckProps) {
+  "use no memo";
   const containerRef = useRef<HTMLDivElement>(null);
   const stageAreaRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
