@@ -23,6 +23,8 @@ import {
   contextPromptCacheFields,
   memoryFields,
   memoryLinkFields,
+  presentationSessionFields,
+  presentationVoteFields,
 } from "./validators";
 
 const schema = defineSchema({
@@ -164,6 +166,21 @@ const schema = defineSchema({
     .index("by_user_source", ["userId", "sourceId"])
     .index("by_user_target", ["userId", "targetId"])
     .index("by_source_target", ["sourceId", "targetId"]),
+
+  presentationSessions: defineTable(presentationSessionFields).index(
+    "by_code",
+    ["code"],
+  ),
+
+  presentationVotes: defineTable(presentationVoteFields)
+    .index("by_code_poll", ["code", "pollId"])
+    .index("by_code_poll_participant", ["code", "pollId", "participantKey"])
+    .index("by_code_poll_participant_option", [
+      "code",
+      "pollId",
+      "participantKey",
+      "optionId",
+    ]),
 });
 
 export default schema;

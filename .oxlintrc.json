@@ -265,6 +265,17 @@
       "rules": {
         "no-restricted-imports": "off"
       }
+    },
+    {
+      // /slides deck: timer, keyboard, and resize-driven. Isolated from the
+      // product UI — not a pattern to copy into the app.
+      "files": [
+        "apps/web/src/routes/slides.tsx",
+        "apps/web/src/routes/_components/slides/**"
+      ],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
     }
   ]
 }
