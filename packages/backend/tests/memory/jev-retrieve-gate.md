@@ -2,6 +2,8 @@
 
 Opt-in second-stage judge after hybrid retrieve. Default ranking is unchanged when the flag is omitted or `TYPESAFE_API_KEY` is unset.
 
+What to drop now that this is live: [jev-simplify.md](./jev-simplify.md).
+
 **GLiNER is not in this change.** On-write JointIE / span extraction is a separate P0; hosting (sidecar vs API) is still the blocker. Do not call GLiNER at retrieve time. Research: [PR #181](https://github.com/vvedantb/vmem/pull/181) (`extraction-research-gliner-jev.md`).
 
 ## Enable
@@ -35,7 +37,7 @@ Per-user override: dashboard **Settings → Secrets** with the same key name (`u
 }
 ```
 
-`rerank: "jev"` is the same gate. `rerank: true` stays the local #179 top-20 extra and does **not** call Jev.
+`rerank: "jev"` is an alias for the same gate. Prefer `judge: "jev"`. `rerank: true` is the local #179 top-20 extra (not a cross-encoder) and does **not** call Jev. When Jev is requested, the local extra is skipped — Jev owns keep / score / best.
 
 SDK:
 
@@ -52,7 +54,7 @@ Missing key → hybrid hits only (no 422). Jev HTTP failure → same fail-open.
 
 ## What it does
 
-After FTS / vector / graph / rank (and optional local `rerank: true`):
+After FTS / vector / graph / rank (hybrid candidate generation is unchanged):
 
 1. Over-fetch up to 20 hits.
 2. One `POST https://api.typesafe.ai/v1/systemone` (`model: jev-latest`, `Authorization: Bearer $TYPESAFE_API_KEY`).

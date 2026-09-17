@@ -51,6 +51,7 @@ export interface RankMemoriesOptions {
   legs?: RetrievalLegs;
   links?: readonly MemoryLinkEdge[];
   threshold?: number;
+  /** Local #179 top-20 extra. Not a cross-encoder; runtime skips this when Jev is on. */
   rerank?: boolean;
 }
 
@@ -752,7 +753,7 @@ export function rankMemories(
       isResidenceQuery(trimmed) && parts.residence === 0
         ? cover.title * 0.15
         : cover.title;
-    const rerank = clamp01(
+    const coverScore = clamp01(
       0.45 * titleCover +
         0.15 * cover.content +
         0.15 * parts.entity +
@@ -763,8 +764,8 @@ export function rankMemories(
     );
     const score =
       parts.graph > 0
-        ? Math.max(firstPass, clamp01(0.75 * firstPass + 0.25 * rerank))
-        : clamp01(0.7 * firstPass + 0.3 * rerank);
+        ? Math.max(firstPass, clamp01(0.75 * firstPass + 0.25 * coverScore))
+        : clamp01(0.7 * firstPass + 0.3 * coverScore);
     const path = graphPath.get(doc.memory.id);
     const chunk = chunkHit.get(doc.memory.id);
     scored.push({
@@ -780,7 +781,7 @@ export function rankMemories(
           recency: parts.recency,
           temporal: parts.temporal,
           confidence: parts.confidence,
-          rerankerScore: rerank,
+          rerankerScore: coverScore,
           ...(path === undefined ? {} : { graphPath: path }),
         },
         reason: reasonFor({
@@ -889,21 +890,19 @@ export function rankMemories(
     return Date.parse(b.updatedAt) - Date.parse(a.updatedAt);
   });
 
+  // Optional #179 extra on the already-ranked head. Does not clobber
+  // cover-blend `rerankerScore`. Runtime skips this when Jev is on.
   if (options.rerank === true && trimmed.length > 0 && scored.length > 1) {
     const headCount = Math.min(20, scored.length);
     const head = scored.slice(0, headCount);
     const tail = scored.slice(headCount);
     for (const hit of head) {
       const temporal = hit.trace.scoreBreakdown.temporal ?? 0;
-      const extra = clamp01(hit.trace.score + 0.22 * temporal);
-      hit.trace.scoreBreakdown.rerankerScore = extra;
-      hit.trace.score = extra;
+      hit.trace.score = clamp01(hit.trace.score + 0.22 * temporal);
     }
     head.sort((a, b) => {
-      const aRerank = a.trace.scoreBreakdown.rerankerScore ?? a.trace.score;
-      const bRerank = b.trace.scoreBreakdown.rerankerScore ?? b.trace.score;
-      if (bRerank !== aRerank) return bRerank - aRerank;
-      return b.trace.score - a.trace.score;
+      if (b.trace.score !== a.trace.score) return b.trace.score - a.trace.score;
+      return Date.parse(b.updatedAt) - Date.parse(a.updatedAt);
     });
     scored.length = 0;
     scored.push(...head, ...tail);

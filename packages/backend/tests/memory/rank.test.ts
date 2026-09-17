@@ -263,6 +263,20 @@ describe("rankMemories", () => {
     expect(ranked[0]?.trace.scoreBreakdown.rerankerScore).toBeGreaterThan(0);
   });
 
+  it("does not clobber cover-blend rerankerScore when local extra is on", () => {
+    const base = rankMemories([pnpm, coffee], "pnpm", { limit: 2 });
+    const extra = rankMemories([pnpm, coffee], "pnpm", {
+      limit: 2,
+      rerank: true,
+    });
+    expect(extra[0]?.trace.scoreBreakdown.rerankerScore).toBe(
+      base[0]?.trace.scoreBreakdown.rerankerScore,
+    );
+    expect(extra[0]?.trace.scoreBreakdown.fulltext).toBe(
+      base[0]?.trace.scoreBreakdown.fulltext,
+    );
+  });
+
   it("drops hits below a score threshold", () => {
     const all = rankMemories([pnpm, coffee], "pnpm");
     expect(all.length).toBeGreaterThan(0);

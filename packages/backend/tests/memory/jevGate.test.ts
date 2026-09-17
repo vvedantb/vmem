@@ -10,6 +10,7 @@ import {
   buildJevRetrieveQuestions,
   jevRankPoolLimit,
   wantsJevJudge,
+  wantsLocalRerank,
 } from "../../engine/memory/jevGate";
 
 function hit(
@@ -119,6 +120,15 @@ describe("wantsJevJudge", () => {
     expect(jevRankPoolLimit(10, false)).toBe(10);
     expect(jevRankPoolLimit(10, true)).toBe(JEV_GATE_HEAD);
     expect(jevRankPoolLimit(50, true)).toBe(50);
+  });
+
+  it("skips local #179 extra when Jev is requested", () => {
+    expect(wantsLocalRerank({})).toBe(false);
+    expect(wantsLocalRerank({ rerank: true })).toBe(true);
+    expect(wantsLocalRerank({ rerank: false })).toBe(false);
+    expect(wantsLocalRerank({ rerank: "jev" })).toBe(false);
+    expect(wantsLocalRerank({ judge: "jev" })).toBe(false);
+    expect(wantsLocalRerank({ judge: "jev", rerank: true })).toBe(false);
   });
 });
 

@@ -29,11 +29,19 @@ const SCORE_INSTRUCTIONS = "How well does this memory answer the query?";
 const BEST_INSTRUCTIONS =
   "Which memory is the single best answer to the query? Pick none if none are relevant.";
 
-export function wantsJevJudge(options: {
+export type RetrieveJudgeOptions = {
   judge?: "jev";
   rerank?: boolean | "jev";
-}): boolean {
+};
+
+/** Canonical flag is `judge: "jev"`. `rerank: "jev"` is the same gate. */
+export function wantsJevJudge(options: RetrieveJudgeOptions): boolean {
   return options.judge === "jev" || options.rerank === "jev";
+}
+
+/** #179 local top-20 extra. Skipped when Jev is on — Jev owns keep/best. */
+export function wantsLocalRerank(options: RetrieveJudgeOptions): boolean {
+  return options.rerank === true && !wantsJevJudge(options);
 }
 
 export function jevRankPoolLimit(userLimit: number, jev: boolean): number {

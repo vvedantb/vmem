@@ -37,6 +37,7 @@ import {
   applyJevRetrieveGate,
   jevRankPoolLimit,
   wantsJevJudge,
+  wantsLocalRerank,
 } from "../engine/memory/jevGate";
 import {
   readSystemOneApiKey,
@@ -517,7 +518,7 @@ async function retrieveRanked(
     limit: jevRankPoolLimit(args.limit, jev),
     nowMs: parseReferenceMs(args.referenceDate, Date.now()),
     threshold: args.threshold,
-    rerank: args.rerank === true,
+    rerank: wantsLocalRerank(args),
     ...listFilter,
   };
   if (trimmed.length === 0) {
