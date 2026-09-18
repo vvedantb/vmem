@@ -1,35 +1,43 @@
 import type { MouseEventHandler } from "react";
-import { IconActivity, IconReceipt2 } from "@tabler/icons-react";
+import { IconBell, IconChecklist } from "@tabler/icons-react";
 import type { NavItem } from "./types";
 import { StackedSidebarNav } from "./StackedSidebarNav";
 
-const activityNavItems: NavItem[] = [
-  { href: "/$profileId/activity/usage", label: "Usage", icon: IconReceipt2 },
-  { href: "/$profileId/activity/events", label: "Events", icon: IconActivity },
+const inboxNavItems: NavItem[] = [
+  {
+    href: "/$profileId/inbox/proposals",
+    label: "Proposals",
+    icon: IconChecklist,
+  },
+  {
+    href: "/$profileId/inbox/notifications",
+    label: "Notifications",
+    icon: IconBell,
+  },
 ];
 
-type ActivitySidebarNavProps = {
+type InboxSidebarNavProps = {
   pathname: string;
   profileId: string | undefined;
   isMobile: boolean;
   onNavigate?: MouseEventHandler<HTMLAnchorElement>;
 };
 
-export function ActivitySidebarNav({
+export function InboxSidebarNav({
   pathname,
   profileId,
   isMobile,
   onNavigate,
-}: ActivitySidebarNavProps) {
+}: InboxSidebarNavProps) {
   return (
     <StackedSidebarNav
-      items={activityNavItems}
+      items={inboxNavItems}
       pathname={pathname}
       profileId={profileId}
       isMobile={isMobile}
       onNavigate={onNavigate}
-      layoutId="activity-nav"
-      aria-label="Activity views"
+      layoutId="inbox-nav"
+      aria-label="Inbox views"
     />
   );
 }

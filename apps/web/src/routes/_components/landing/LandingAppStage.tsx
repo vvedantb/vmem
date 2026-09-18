@@ -6,7 +6,6 @@ import {
   IconWiki,
   IconSkills,
   IconFiles,
-  IconActivity,
   IconInbox,
   IconSettings,
 } from "@/components/icons/sidebar";
@@ -35,8 +34,6 @@ const libraryItems = [
 ] as const;
 
 const accountItems = [
-  { id: "activity", label: "Activity", icon: IconActivity },
-  { id: "inbox", label: "Inbox", icon: IconInbox },
   { id: "settings", label: "Settings", icon: IconSettings },
 ] as const;
 
@@ -67,6 +64,12 @@ export function LandingAppStage() {
                   icon={VmemDrawInIcon}
                   isActive={view === "home"}
                   onClick={() => setView("home")}
+                />
+                <LandingRailTile
+                  label="Inbox"
+                  icon={IconInbox}
+                  isActive={false}
+                  disabled
                 />
                 <div className="h-px w-8 bg-separator" aria-hidden />
               </div>

@@ -13,7 +13,8 @@ import { NavLink } from "./NavLink";
 import { SkillsSidebarNav } from "./SkillsSidebarNav";
 import { WikiSidebarNav } from "./WikiSidebarNav";
 import { MemoriesSidebarNav } from "./MemoriesSidebarNav";
-import { ActivitySidebarNav } from "./ActivitySidebarNav";
+import { HomeSidebarNav } from "./HomeSidebarNav";
+import { InboxSidebarNav } from "./InboxSidebarNav";
 import { SettingsSidebar } from "./SettingsSidebar";
 import { SharedLayoutBackground } from "./SharedLayoutBackground";
 import { NavSection } from "./NavSection";
@@ -156,10 +157,21 @@ export function SidebarNavigation({
       />
     );
   }
-  if (navView === "activity") {
+  if (navView === "home") {
     return (
-      <ActivitySidebarNav
-        key="activity"
+      <HomeSidebarNav
+        key="home"
+        pathname={pathname}
+        profileId={profileId}
+        isMobile={isMobile}
+        onNavigate={onNavigate}
+      />
+    );
+  }
+  if (navView === "inbox") {
+    return (
+      <InboxSidebarNav
+        key="inbox"
         pathname={pathname}
         profileId={profileId}
         isMobile={isMobile}
