@@ -39,7 +39,9 @@ describe("railSectionFromPathname", () => {
     expect(navViewFromPathname("/settings/api")).toBe("settings");
     expect(navViewFromPathname("/p1/skills/hub")).toBe("skills");
     expect(navViewFromPathname("/p1/wiki/abc")).toBe("wiki");
-    expect(navViewFromPathname("/p1/memories")).toBe("main");
+    expect(navViewFromPathname("/p1/memories")).toBe("memories");
+    expect(navViewFromPathname("/p1/memories/graph")).toBe("memories");
+    expect(navViewFromPathname("/p1/activity/events")).toBe("activity");
   });
 });
 
@@ -101,11 +103,13 @@ describe("shell uses a rail + panel + drawer", () => {
     expect(sidebar).not.toContain("DialogPortal");
   });
 
-  it("keeps settings / skills / wiki as panel modes", () => {
+  it("keeps settings / skills / wiki / memories / activity as panel modes", () => {
     const navigation = read("SidebarNavigation.tsx");
     expect(navigation).toContain("SettingsSidebar");
     expect(navigation).toContain("SkillsSidebarNav");
     expect(navigation).toContain("WikiSidebarNav");
+    expect(navigation).toContain("MemoriesSidebarNav");
+    expect(navigation).toContain("ActivitySidebarNav");
     expect(navigation).toContain('section === "team"');
   });
 
@@ -121,5 +125,41 @@ describe("shell uses a rail + panel + drawer", () => {
     expect(rail).toContain("showRailPanelDivider");
     expect(rail).toContain("border-r border-separator");
     expect(rail).toContain('layout === "desktop" && isCollapsed');
+  });
+});
+
+describe("nested sidebar chrome", () => {
+  it("hosts memory and activity view tabs in the panel", () => {
+    const memories = read("MemoriesSidebarNav.tsx");
+    expect(memories).toContain("fullWidth");
+    expect(memories).toContain("Graph");
+    expect(memories).toContain("List");
+    expect(memories).toContain("Timeline");
+    expect(memories).toContain('aria-label="Memory views"');
+
+    const activity = read("ActivitySidebarNav.tsx");
+    expect(activity).toContain("fullWidth");
+    expect(activity).toContain("Usage");
+    expect(activity).toContain("Events");
+    expect(activity).toContain('aria-label="Activity views"');
+
+    expect(
+      read("../../routes/_main/$profileId/memories/route.tsx"),
+    ).not.toContain("leftSection");
+    expect(
+      read("../../routes/_main/$profileId/activity/route.tsx"),
+    ).not.toContain("leftSection");
+  });
+
+  it("parks a plus-only add control on the skills and wiki title row", () => {
+    expect(read("SkillsSidebarNav.tsx")).toContain("SidebarHeaderTrailing");
+    expect(read("WikiSidebarNav.tsx")).toContain("SidebarHeaderTrailing");
+    expect(read("SidebarHeader.tsx")).toContain('titleAlign === "start"');
+
+    const addMenu = read("../shell/FeatureAddMenu.tsx");
+    expect(addMenu).toContain('aria-label="Add"');
+    expect(addMenu).toContain("IconPlus");
+    expect(addMenu).not.toContain("IconChevronDown");
+    expect(addMenu).not.toMatch(/>\s*Add\s*</);
   });
 });

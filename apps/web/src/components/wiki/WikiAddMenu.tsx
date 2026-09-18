@@ -6,20 +6,15 @@ interface WikiAddMenuProps {
   onCreateDocument: () => void;
   onCreateArtifact: () => void;
   onCreateFolder: () => void;
-  // `toolbar` = icon-only for the sidebar chrome row, `labeled` = full Add button
-  variant?: "toolbar" | "labeled";
-  className?: string;
 }
 
 export function WikiAddMenu({
   onCreateDocument,
   onCreateArtifact,
   onCreateFolder,
-  variant = "labeled",
-  className,
 }: WikiAddMenuProps) {
   return (
-    <FeatureAddMenu variant={variant} className={className}>
+    <FeatureAddMenu>
       <DropdownMenuItem onSelect={onCreateDocument}>
         <IconFileText size={16} />
         New document

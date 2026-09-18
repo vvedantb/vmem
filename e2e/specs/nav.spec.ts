@@ -55,6 +55,9 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
     await expect(
       sidebarPanel(page).getByRole("heading", { name: "Wiki" }),
     ).toBeVisible();
+    await expect(
+      sidebarPanel(page).getByRole("button", { name: "Add" }),
+    ).toBeVisible();
     await expect(main).toBeVisible();
     await assertNoFatalChrome(page);
 
@@ -62,6 +65,9 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
     await expect(page).toHaveURL(new RegExp(`/${profileId}/skills`));
     await expect(
       sidebarPanel(page).getByRole("heading", { name: "Skills" }),
+    ).toBeVisible();
+    await expect(
+      sidebarPanel(page).getByRole("button", { name: "Add" }),
     ).toBeVisible();
     await assertNoFatalChrome(page);
 
