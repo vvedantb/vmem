@@ -14,7 +14,11 @@ export function mainContent(page: Page) {
 }
 
 export async function openMemoriesList(page: Page): Promise<void> {
-  await page.getByRole("tab", { name: "List" }).click();
+  await page
+    .locator("[data-sidebar-layout]")
+    .getByRole("link", { name: "List", exact: true })
+    .or(page.getByRole("tab", { name: "List", exact: true }))
+    .click();
   await expect(page.getByRole("textbox", { name: "Search" })).toBeVisible({
     timeout: 20_000,
   });

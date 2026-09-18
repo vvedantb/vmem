@@ -1,5 +1,6 @@
 import { expect, test } from "../fixtures";
 import { gotoWorkspace } from "../helpers/nav";
+import { sidebarViewLink } from "../helpers/shell";
 
 test.describe(
   "memories graph",
@@ -7,10 +8,11 @@ test.describe(
   () => {
     test("graph chrome loads", async ({ page }) => {
       await gotoWorkspace(page, "/memories/graph");
-      await expect(page.getByRole("tab", { name: "Graph" })).toBeVisible({
+      await expect(sidebarViewLink(page, "Graph")).toBeVisible({
         timeout: 20_000,
       });
-      await expect(page.getByRole("tab", { name: "List" })).toBeVisible();
+      await expect(sidebarViewLink(page, "List")).toBeVisible();
+      await expect(sidebarViewLink(page, "Timeline")).toBeVisible();
       await expect(
         page.getByRole("textbox", { name: "Search nodes" }),
       ).toBeVisible();

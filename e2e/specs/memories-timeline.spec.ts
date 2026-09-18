@@ -1,5 +1,6 @@
 import { expect, test } from "../fixtures";
 import { gotoWorkspace } from "../helpers/nav";
+import { sidebarViewLink } from "../helpers/shell";
 import {
   cleanupDisposableMemories,
   createDisposableMemory,
@@ -12,19 +13,21 @@ test.describe(
   "memories timeline",
   { tag: ["@memories", "@timeline", "@smoke"] },
   () => {
-    test("timeline chrome loads from the memories tabs", async ({ page }) => {
+    test("timeline chrome loads from the memories sidebar", async ({
+      page,
+    }) => {
       await gotoWorkspace(page, "/memories/graph");
-      await expect(page.getByRole("tab", { name: "Timeline" })).toBeVisible({
+      await expect(sidebarViewLink(page, "Timeline")).toBeVisible({
         timeout: 20_000,
       });
-      await page.getByRole("tab", { name: "Timeline" }).click();
+      await sidebarViewLink(page, "Timeline").click();
       await expect(page).toHaveURL(/\/memories\/timeline/);
       await expect(page.getByRole("textbox", { name: "Search" })).toBeVisible();
       await expect(
         page.getByRole("button", { name: "Add memory" }),
       ).toBeVisible();
-      await expect(page.getByRole("tab", { name: "Graph" })).toBeVisible();
-      await expect(page.getByRole("tab", { name: "List" })).toBeVisible();
+      await expect(sidebarViewLink(page, "Graph")).toBeVisible();
+      await expect(sidebarViewLink(page, "List")).toBeVisible();
 
       const empty = page.getByRole("heading", { name: "Nothing here yet" });
       const slider = page.getByRole("slider", {
@@ -111,13 +114,13 @@ test.describe(
         await page.getByRole("textbox", { name: "Search" }).fill("");
         await expect(slider).toBeVisible();
 
-        await page.getByRole("tab", { name: "List" }).click();
+        await sidebarViewLink(page, "List").click();
         await expect(page).toHaveURL(/\/memories\/list/);
         await expect(memoryTitle(page, title)).toBeVisible({ timeout: 20_000 });
         await page.getByRole("button", { name: /Change view/ }).click();
         await page.getByRole("menuitem", { name: "Tags" }).click();
         await expect(page).toHaveURL(/view=tags/);
-        await page.getByRole("tab", { name: "Timeline" }).click();
+        await sidebarViewLink(page, "Timeline").click();
         await expect(page).toHaveURL(/\/memories\/timeline/);
         await expect(slider).toBeVisible({ timeout: 20_000 });
 

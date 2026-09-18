@@ -17,6 +17,7 @@ export function NavLink({
   unreadCount,
   proposalsCount,
   showChevron = false,
+  preserveSearch = false,
   onNavigate,
 }: {
   item: NavItem;
@@ -27,6 +28,8 @@ export function NavLink({
   unreadCount: number;
   proposalsCount: number;
   showChevron?: boolean;
+  // keep current search params (memory graph/list/timeline filters)
+  preserveSearch?: boolean;
   onNavigate?: MouseEventHandler<HTMLAnchorElement>;
 }) {
   const resolvedPath = navHrefToPath(item.href, profileId);
@@ -45,6 +48,7 @@ export function NavLink({
     <SidebarIconTooltip label={item.label} enabled={isIconOnly}>
       <Link
         to={resolvedPath}
+        search={preserveSearch ? true : undefined}
         onClick={onNavigate}
         className={cn(
           "group relative flex w-full items-center rounded-lg text-sm font-medium tracking-normal transition-colors duration-200 ease-smooth",
