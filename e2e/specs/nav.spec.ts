@@ -43,18 +43,11 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
 
     await clickRail(page, "Memories");
     await expect(page).toHaveURL(new RegExp(`/${profileId}/memories`));
-    const memoriesPanel = sidebarPanel(page);
-    await expect(memoriesPanel.getByRole("tab", { name: "Graph" })).toBeVisible(
-      {
-        timeout: 20_000,
-      },
-    );
-    await expect(
-      memoriesPanel.getByRole("tab", { name: "List" }),
-    ).toBeVisible();
-    await expect(
-      memoriesPanel.getByRole("tab", { name: "Timeline" }),
-    ).toBeVisible();
+    await expect(page.getByRole("tab", { name: "Graph" })).toBeVisible({
+      timeout: 20_000,
+    });
+    await expect(page.getByRole("tab", { name: "List" })).toBeVisible();
+    await expect(page.getByRole("tab", { name: "Timeline" })).toBeVisible();
     await assertNoFatalChrome(page);
 
     await clickRail(page, "Wiki");
@@ -87,9 +80,7 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
 
     await clickRail(page, "Activity");
     await expect(page).toHaveURL(new RegExp(`/${profileId}/activity`));
-    await expect(
-      sidebarPanel(page).getByRole("tab", { name: "Usage" }),
-    ).toBeVisible({
+    await expect(page.getByRole("tab", { name: "Usage" })).toBeVisible({
       timeout: 20_000,
     });
     await assertNoFatalChrome(page);
