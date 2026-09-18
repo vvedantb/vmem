@@ -129,20 +129,30 @@ describe("shell uses a rail + panel + drawer", () => {
 });
 
 describe("nested sidebar chrome", () => {
-  it("hosts memory and activity view tabs in the panel", () => {
+  it("hosts memory and activity views as stacked sidebar rows", () => {
     const memories = read("MemoriesSidebarNav.tsx");
-    expect(memories).toContain("fullWidth");
+    expect(memories).toContain("StackedSidebarNav");
     expect(memories).toContain("Graph");
     expect(memories).toContain("List");
     expect(memories).toContain("Timeline");
     expect(memories).toContain('aria-label="Memory views"');
+    expect(memories).not.toContain("RouteTabs");
+    expect(memories).not.toContain("fullWidth");
 
     const activity = read("ActivitySidebarNav.tsx");
-    expect(activity).toContain("fullWidth");
+    expect(activity).toContain("StackedSidebarNav");
     expect(activity).toContain("Usage");
     expect(activity).toContain("Events");
     expect(activity).toContain('aria-label="Activity views"');
+    expect(activity).not.toContain("RouteTabs");
+    expect(activity).not.toContain("fullWidth");
 
+    const stacked = read("StackedSidebarNav.tsx");
+    expect(stacked).toContain("NavLink");
+    expect(stacked).toContain("SharedLayoutBackground");
+    expect(stacked).not.toContain("RouteTabs");
+
+    expect(read("../shell/RouteTabs.tsx")).not.toContain("fullWidth");
     expect(
       read("../../routes/_main/$profileId/memories/route.tsx"),
     ).not.toContain("leftSection");

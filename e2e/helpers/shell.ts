@@ -27,6 +27,14 @@ export function sidebarPanel(page: Page): Locator {
   return page.locator("[data-sidebar-layout]");
 }
 
+// Production e2e still sees #190 tab triggers until this ships; the stacked
+// sidebar rows are links. Accept either so smoke stays green across the cutover.
+export function sidebarViewLink(page: Page, name: string): Locator {
+  return sidebarPanel(page)
+    .getByRole("link", { name, exact: true })
+    .or(page.getByRole("tab", { name, exact: true }));
+}
+
 export async function openWorkspaceSwitcher(page: Page): Promise<Locator> {
   const trigger = sidebarPanel(page)
     .locator("button")

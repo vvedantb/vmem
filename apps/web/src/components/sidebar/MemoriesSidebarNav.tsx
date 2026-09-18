@@ -1,52 +1,45 @@
-import { RouteTabs } from "@/components/shell/RouteTabs";
-import { useActiveProfileId } from "@/components/workspace/active-profile";
-import { SubSidebarShell } from "./SubSidebarShell";
+import type { MouseEventHandler } from "react";
+import { IconList, IconTimeline, IconTopologyStar3 } from "@tabler/icons-react";
+import type { NavItem } from "./types";
+import { StackedSidebarNav } from "./StackedSidebarNav";
+
+const memoriesNavItems: NavItem[] = [
+  {
+    href: "/$profileId/memories/graph",
+    label: "Graph",
+    icon: IconTopologyStar3,
+  },
+  { href: "/$profileId/memories/list", label: "List", icon: IconList },
+  {
+    href: "/$profileId/memories/timeline",
+    label: "Timeline",
+    icon: IconTimeline,
+  },
+];
 
 type MemoriesSidebarNavProps = {
+  pathname: string;
+  profileId: string | undefined;
   isMobile: boolean;
+  onNavigate?: MouseEventHandler<HTMLAnchorElement>;
 };
 
-export function MemoriesSidebarNav({ isMobile }: MemoriesSidebarNavProps) {
-  const profileId = useActiveProfileId();
-
+export function MemoriesSidebarNav({
+  pathname,
+  profileId,
+  isMobile,
+  onNavigate,
+}: MemoriesSidebarNavProps) {
   return (
-    <SubSidebarShell isMobile={isMobile}>
-      {profileId === undefined ? null : (
-        <div className="flex h-11 w-full shrink-0 items-center px-1">
-          <RouteTabs
-            fullWidth
-            aria-label="Memory views"
-            tabs={[
-              {
-                value: "graph",
-                to: "/$profileId/memories/graph",
-                label: "Graph",
-              },
-              {
-                value: "list",
-                to: "/$profileId/memories/list",
-                label: "List",
-              },
-              {
-                value: "timeline",
-                to: "/$profileId/memories/timeline",
-                label: "Timeline",
-              },
-            ]}
-            linkParams={{ profileId }}
-            getActiveValue={(matchRoute) => {
-              if (matchRoute({ to: "/$profileId/memories/list", fuzzy: true }))
-                return "list";
-              if (matchRoute({ to: "/$profileId/memories/graph" }))
-                return "graph";
-              if (matchRoute({ to: "/$profileId/memories/timeline" }))
-                return "timeline";
-              return "";
-            }}
-            search
-          />
-        </div>
-      )}
-    </SubSidebarShell>
+    <StackedSidebarNav
+      items={memoriesNavItems}
+      pathname={pathname}
+      profileId={profileId}
+      isMobile={isMobile}
+      onNavigate={onNavigate}
+      layoutId="memories-nav"
+      aria-label="Memory views"
+      preserveSearch
+    />
   );
 }

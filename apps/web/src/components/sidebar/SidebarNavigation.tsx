@@ -146,10 +146,26 @@ export function SidebarNavigation({
     return <WikiSidebarNav key="wiki" isIconOnly={false} isMobile={isMobile} />;
   }
   if (navView === "memories") {
-    return <MemoriesSidebarNav key="memories" isMobile={isMobile} />;
+    return (
+      <MemoriesSidebarNav
+        key="memories"
+        pathname={pathname}
+        profileId={profileId}
+        isMobile={isMobile}
+        onNavigate={onNavigate}
+      />
+    );
   }
   if (navView === "activity") {
-    return <ActivitySidebarNav key="activity" isMobile={isMobile} />;
+    return (
+      <ActivitySidebarNav
+        key="activity"
+        pathname={pathname}
+        profileId={profileId}
+        isMobile={isMobile}
+        onNavigate={onNavigate}
+      />
+    );
   }
   if (section === "team") {
     return (

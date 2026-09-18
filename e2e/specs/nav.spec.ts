@@ -6,6 +6,7 @@ import {
   clickRail,
   openWorkspaceSwitcher,
   sidebarPanel,
+  sidebarViewLink,
 } from "../helpers/shell";
 
 test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
@@ -43,11 +44,11 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
 
     await clickRail(page, "Memories");
     await expect(page).toHaveURL(new RegExp(`/${profileId}/memories`));
-    await expect(page.getByRole("tab", { name: "Graph" })).toBeVisible({
+    await expect(sidebarViewLink(page, "Graph")).toBeVisible({
       timeout: 20_000,
     });
-    await expect(page.getByRole("tab", { name: "List" })).toBeVisible();
-    await expect(page.getByRole("tab", { name: "Timeline" })).toBeVisible();
+    await expect(sidebarViewLink(page, "List")).toBeVisible();
+    await expect(sidebarViewLink(page, "Timeline")).toBeVisible();
     await assertNoFatalChrome(page);
 
     await clickRail(page, "Wiki");
@@ -80,9 +81,10 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
 
     await clickRail(page, "Activity");
     await expect(page).toHaveURL(new RegExp(`/${profileId}/activity`));
-    await expect(page.getByRole("tab", { name: "Usage" })).toBeVisible({
+    await expect(sidebarViewLink(page, "Usage")).toBeVisible({
       timeout: 20_000,
     });
+    await expect(sidebarViewLink(page, "Events")).toBeVisible();
     await assertNoFatalChrome(page);
 
     await clickRail(page, "Inbox");

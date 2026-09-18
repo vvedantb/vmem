@@ -7,11 +7,17 @@ import { cn, motionDuration, motionEase } from "@vmem/ui";
 type SubSidebarShellProps = {
   isMobile: boolean;
   children: ReactNode;
+  "aria-label"?: string;
 };
 
-export function SubSidebarShell({ isMobile, children }: SubSidebarShellProps) {
+export function SubSidebarShell({
+  isMobile,
+  children,
+  "aria-label": ariaLabel,
+}: SubSidebarShellProps) {
   return (
     <motion.nav
+      aria-label={ariaLabel}
       className={cn(
         "flex min-h-0 flex-1 flex-col overflow-hidden",
         isMobile ? "pb-2" : "pr-1",

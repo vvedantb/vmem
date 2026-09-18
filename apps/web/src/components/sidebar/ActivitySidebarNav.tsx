@@ -1,42 +1,35 @@
-import { RouteTabs } from "@/components/shell/RouteTabs";
-import { useActiveProfileId } from "@/components/workspace/active-profile";
-import { SubSidebarShell } from "./SubSidebarShell";
+import type { MouseEventHandler } from "react";
+import { IconActivity, IconReceipt2 } from "@tabler/icons-react";
+import type { NavItem } from "./types";
+import { StackedSidebarNav } from "./StackedSidebarNav";
+
+const activityNavItems: NavItem[] = [
+  { href: "/$profileId/activity/usage", label: "Usage", icon: IconReceipt2 },
+  { href: "/$profileId/activity/events", label: "Events", icon: IconActivity },
+];
 
 type ActivitySidebarNavProps = {
+  pathname: string;
+  profileId: string | undefined;
   isMobile: boolean;
+  onNavigate?: MouseEventHandler<HTMLAnchorElement>;
 };
 
-export function ActivitySidebarNav({ isMobile }: ActivitySidebarNavProps) {
-  const profileId = useActiveProfileId();
-
+export function ActivitySidebarNav({
+  pathname,
+  profileId,
+  isMobile,
+  onNavigate,
+}: ActivitySidebarNavProps) {
   return (
-    <SubSidebarShell isMobile={isMobile}>
-      {profileId === undefined ? null : (
-        <div className="flex h-11 w-full shrink-0 items-center px-1">
-          <RouteTabs
-            fullWidth
-            aria-label="Activity views"
-            tabs={[
-              {
-                value: "usage",
-                to: "/$profileId/activity/usage",
-                label: "Usage",
-              },
-              {
-                value: "events",
-                to: "/$profileId/activity/events",
-                label: "Events",
-              },
-            ]}
-            linkParams={{ profileId }}
-            getActiveValue={(matchRoute) =>
-              matchRoute({ to: "/$profileId/activity/events" })
-                ? "events"
-                : "usage"
-            }
-          />
-        </div>
-      )}
-    </SubSidebarShell>
+    <StackedSidebarNav
+      items={activityNavItems}
+      pathname={pathname}
+      profileId={profileId}
+      isMobile={isMobile}
+      onNavigate={onNavigate}
+      layoutId="activity-nav"
+      aria-label="Activity views"
+    />
   );
 }
