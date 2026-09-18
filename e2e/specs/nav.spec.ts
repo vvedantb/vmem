@@ -18,12 +18,14 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
     await expect(page.getByRole("link", { name: "Wiki" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Skills" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Files" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Activity" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Inbox" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Settings" })).toBeVisible();
     await expect(
       page.getByRole("link", { name: "Home", exact: true }),
     ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "Activity", exact: true }),
+    ).toHaveCount(0);
     await expect(page.getByRole("link", { name: /codebases/i })).toHaveCount(0);
 
     await page.goto("/codebases");
@@ -79,21 +81,6 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
     });
     await assertNoFatalChrome(page);
 
-    await clickRail(page, "Activity");
-    await expect(page).toHaveURL(new RegExp(`/${profileId}/activity`));
-    await expect(sidebarViewLink(page, "Usage")).toBeVisible({
-      timeout: 20_000,
-    });
-    await expect(sidebarViewLink(page, "Events")).toBeVisible();
-    await assertNoFatalChrome(page);
-
-    await clickRail(page, "Inbox");
-    await expect(page).toHaveURL(new RegExp(`/${profileId}/inbox`));
-    await expect(page.getByRole("tab", { name: "Proposals" })).toBeVisible({
-      timeout: 20_000,
-    });
-    await assertNoFatalChrome(page);
-
     await clickRail(page, "Home");
     await expect(page).toHaveURL(new RegExp(`/${profileId}/home`));
     await expect(
@@ -102,6 +89,26 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
     await expect(
       sidebarPanel(page).getByRole("heading", { name: "Home" }),
     ).toBeVisible();
+    await expect(sidebarViewLink(page, "Usage")).toBeVisible();
+    await expect(sidebarViewLink(page, "Events")).toBeVisible();
+    await assertNoFatalChrome(page);
+
+    await sidebarViewLink(page, "Usage").click();
+    await expect(page).toHaveURL(new RegExp(`/${profileId}/activity/usage`));
+    await expect(
+      sidebarPanel(page).getByRole("heading", { name: "Home" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "Home", exact: true }),
+    ).toHaveAttribute("aria-current", "page");
+    await assertNoFatalChrome(page);
+
+    await clickRail(page, "Inbox");
+    await expect(page).toHaveURL(new RegExp(`/${profileId}/inbox`));
+    await expect(sidebarViewLink(page, "Proposals")).toBeVisible({
+      timeout: 20_000,
+    });
+    await expect(sidebarViewLink(page, "Notifications")).toBeVisible();
     await assertNoFatalChrome(page);
 
     await clickRail(page, "Settings");

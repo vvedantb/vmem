@@ -4,9 +4,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   homeRailHref,
+  inboxRailItem,
   isRailItemActive,
   navHrefToPath,
-  railAccountItems,
   railLibraryItems,
   railSectionFromPathname,
   settingsRailItem,
@@ -30,7 +30,8 @@ describe("railSectionFromPathname", () => {
     expect(railSectionFromPathname("/p1/skills/hub")).toBe("skills");
     expect(railSectionFromPathname("/p1/files")).toBe("files");
     expect(railSectionFromPathname("/p1/inbox/proposals")).toBe("inbox");
-    expect(railSectionFromPathname("/p1/activity/events")).toBe("activity");
+    expect(railSectionFromPathname("/p1/activity/events")).toBe("home");
+    expect(railSectionFromPathname("/p1/activity/usage")).toBe("home");
     expect(railSectionFromPathname("/p1/team/settings")).toBe("team");
     expect(railSectionFromPathname("/settings/preferences")).toBe("settings");
   });
@@ -41,16 +42,19 @@ describe("railSectionFromPathname", () => {
     expect(navViewFromPathname("/p1/wiki/abc")).toBe("wiki");
     expect(navViewFromPathname("/p1/memories")).toBe("memories");
     expect(navViewFromPathname("/p1/memories/graph")).toBe("memories");
-    expect(navViewFromPathname("/p1/activity/events")).toBe("activity");
+    expect(navViewFromPathname("/p1/home")).toBe("home");
+    expect(navViewFromPathname("/p1/activity/events")).toBe("home");
+    expect(navViewFromPathname("/p1/inbox/proposals")).toBe("inbox");
+    expect(navViewFromPathname("/p1/inbox/notifications")).toBe("inbox");
   });
 });
 
 describe("rail destinations cover the previous sidebar nav", () => {
-  it("keeps library, account, team, settings, and home reachable", () => {
+  it("keeps library, inbox, team, settings, and home reachable", () => {
     const hrefs = [
       homeRailHref,
+      inboxRailItem.href,
       ...railLibraryItems.map((item) => item.href),
-      ...railAccountItems.map((item) => item.href),
       teamRailItem.href,
       settingsRailItem.href,
     ];
@@ -61,12 +65,12 @@ describe("rail destinations cover the previous sidebar nav", () => {
         "/$profileId/wiki",
         "/$profileId/skills",
         "/$profileId/files",
-        "/$profileId/activity",
         "/$profileId/inbox",
         "/$profileId/team/members",
         "/settings",
       ]),
     );
+    expect(hrefs).not.toContain("/$profileId/activity");
   });
 
   it("does not advertise codebases", () => {
@@ -103,13 +107,15 @@ describe("shell uses a rail + panel + drawer", () => {
     expect(sidebar).not.toContain("DialogPortal");
   });
 
-  it("keeps settings / skills / wiki / memories / activity as panel modes", () => {
+  it("keeps settings / skills / wiki / memories / home / inbox as panel modes", () => {
     const navigation = read("SidebarNavigation.tsx");
     expect(navigation).toContain("SettingsSidebar");
     expect(navigation).toContain("SkillsSidebarNav");
     expect(navigation).toContain("WikiSidebarNav");
     expect(navigation).toContain("MemoriesSidebarNav");
-    expect(navigation).toContain("ActivitySidebarNav");
+    expect(navigation).toContain("HomeSidebarNav");
+    expect(navigation).toContain("InboxSidebarNav");
+    expect(navigation).not.toContain("ActivitySidebarNav");
     expect(navigation).toContain('section === "team"');
   });
 
@@ -126,10 +132,25 @@ describe("shell uses a rail + panel + drawer", () => {
     expect(rail).toContain("border-r border-separator");
     expect(rail).toContain('layout === "desktop" && isCollapsed');
   });
+
+  it("places inbox under home with the divider beneath, and no activity rail tile", () => {
+    const railNav = read("SidebarRailNav.tsx");
+    const homeIdx = railNav.indexOf('label="Home"');
+    const inboxIdx = railNav.indexOf("item={inboxRailItem}", homeIdx);
+    const dividerIdx = railNav.indexOf("<RailDivider />", inboxIdx);
+    const libraryIdx = railNav.indexOf("railLibraryItems.map", dividerIdx);
+    expect(homeIdx).toBeGreaterThan(-1);
+    expect(inboxIdx).toBeGreaterThan(homeIdx);
+    expect(dividerIdx).toBeGreaterThan(inboxIdx);
+    expect(libraryIdx).toBeGreaterThan(dividerIdx);
+    expect(railNav).not.toContain("railAccountItems");
+    expect(railNav).not.toContain("IconActivity");
+    expect(railNav).not.toMatch(/label:\s*"Activity"/);
+  });
 });
 
 describe("nested sidebar chrome", () => {
-  it("hosts memory and activity views as stacked sidebar rows", () => {
+  it("hosts memory, home, and inbox views as stacked sidebar rows", () => {
     const memories = read("MemoriesSidebarNav.tsx");
     expect(memories).toContain("StackedSidebarNav");
     expect(memories).toContain("Graph");
@@ -139,13 +160,23 @@ describe("nested sidebar chrome", () => {
     expect(memories).not.toContain("RouteTabs");
     expect(memories).not.toContain("fullWidth");
 
-    const activity = read("ActivitySidebarNav.tsx");
-    expect(activity).toContain("StackedSidebarNav");
-    expect(activity).toContain("Usage");
-    expect(activity).toContain("Events");
-    expect(activity).toContain('aria-label="Activity views"');
-    expect(activity).not.toContain("RouteTabs");
-    expect(activity).not.toContain("fullWidth");
+    const home = read("HomeSidebarNav.tsx");
+    expect(home).toContain("StackedSidebarNav");
+    expect(home).toContain("Usage");
+    expect(home).toContain("Events");
+    expect(home).toContain("/$profileId/activity/usage");
+    expect(home).toContain("/$profileId/activity/events");
+    expect(home).toContain('aria-label="Home views"');
+    expect(home).not.toContain("RouteTabs");
+    expect(home).not.toContain("fullWidth");
+
+    const inbox = read("InboxSidebarNav.tsx");
+    expect(inbox).toContain("StackedSidebarNav");
+    expect(inbox).toContain("Proposals");
+    expect(inbox).toContain("Notifications");
+    expect(inbox).toContain('aria-label="Inbox views"');
+    expect(inbox).not.toContain("RouteTabs");
+    expect(inbox).not.toContain("fullWidth");
 
     const stacked = read("StackedSidebarNav.tsx");
     expect(stacked).toContain("NavLink");
@@ -159,6 +190,12 @@ describe("nested sidebar chrome", () => {
     expect(
       read("../../routes/_main/$profileId/activity/route.tsx"),
     ).not.toContain("leftSection");
+    expect(read("../../routes/_main/$profileId/inbox/route.tsx")).not.toContain(
+      "leftSection",
+    );
+    expect(read("../../routes/_main/$profileId/inbox/route.tsx")).not.toContain(
+      "InboxTabs",
+    );
   });
 
   it("parks a plus-only add control on the skills and wiki title row", () => {

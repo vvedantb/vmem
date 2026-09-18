@@ -14,7 +14,6 @@ import {
   IconFiles,
   IconSkills,
   IconWiki,
-  IconActivity,
   IconInbox,
   IconSettings,
   IconTeams,
@@ -28,7 +27,6 @@ export type RailSection =
   | "skills"
   | "files"
   | "inbox"
-  | "activity"
   | "team"
   | "settings";
 
@@ -41,10 +39,11 @@ export const railLibraryItems: NavItem[] = [
   { href: "/$profileId/files", label: "Files", icon: IconFiles },
 ];
 
-export const railAccountItems: NavItem[] = [
-  { href: "/$profileId/activity", label: "Activity", icon: IconActivity },
-  { href: "/$profileId/inbox", label: "Inbox", icon: IconInbox },
-];
+export const inboxRailItem: NavItem = {
+  href: "/$profileId/inbox",
+  label: "Inbox",
+  icon: IconInbox,
+};
 
 export const homeRailHref = "/$profileId/home" satisfies NavHref;
 
@@ -70,7 +69,7 @@ export const navGroups: NavGroup[] = [
   {
     title: "Account",
     icon: IconUserCircle,
-    items: [...railAccountItems, settingsRailItem],
+    items: [inboxRailItem, settingsRailItem],
   },
 ];
 
@@ -81,7 +80,6 @@ export const panelTitleBySection: Record<RailSection, string> = {
   skills: "Skills",
   files: "Files",
   inbox: "Inbox",
-  activity: "Activity",
   team: "Team",
   settings: "Settings",
 };
@@ -99,7 +97,9 @@ export function railSectionFromPathname(pathname: string): RailSection {
   ) {
     return "inbox";
   }
-  if (sub.startsWith("/activity")) return "activity";
+  // Usage / Events stay at `/activity/*` so existing deep links work; they
+  // belong to the Home rail section rather than a separate Activity item.
+  if (sub.startsWith("/activity")) return "home";
   if (sub.startsWith("/team")) return "team";
   if (sub.startsWith("/memories")) return "memories";
   return "home";
@@ -111,7 +111,8 @@ type SidebarNavView =
   | "skills"
   | "wiki"
   | "memories"
-  | "activity";
+  | "inbox"
+  | "home";
 
 export function navViewFromPathname(pathname: string): SidebarNavView {
   const section = railSectionFromPathname(pathname);
@@ -120,7 +121,8 @@ export function navViewFromPathname(pathname: string): SidebarNavView {
     section === "skills" ||
     section === "wiki" ||
     section === "memories" ||
-    section === "activity"
+    section === "inbox" ||
+    section === "home"
   ) {
     return section;
   }

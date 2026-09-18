@@ -4,9 +4,9 @@ import { Button, cn } from "@vmem/ui";
 import type { NavHref, NavItem } from "./types";
 import {
   homeRailHref,
+  inboxRailItem,
   isRailItemActive,
   navHrefToPath,
-  railAccountItems,
   railLibraryItems,
   railSectionFromPathname,
   teamRailItem,
@@ -160,6 +160,14 @@ export function SidebarRailNav({
         >
           <VmemDrawInIcon size={22} className="text-current" />
         </RailLinkTile>
+        <RailNavItem
+          item={inboxRailItem}
+          pathname={pathname}
+          profileId={profileId}
+          unreadCount={unreadCount}
+          proposalsCount={proposalsCount}
+          onNavigate={onNavigate}
+        />
         <RailDivider />
       </div>
       <div className="flex w-full flex-1 flex-col items-center gap-1.5 overflow-y-auto py-2 scrollbar-thin">
@@ -174,27 +182,18 @@ export function SidebarRailNav({
             onNavigate={onNavigate}
           />
         ))}
-        <RailDivider />
-        {railAccountItems.map((item) => (
-          <RailNavItem
-            key={item.href}
-            item={item}
-            pathname={pathname}
-            profileId={profileId}
-            unreadCount={unreadCount}
-            proposalsCount={proposalsCount}
-            onNavigate={onNavigate}
-          />
-        ))}
         {isTeamWorkspace ? (
-          <RailNavItem
-            item={teamRailItem}
-            pathname={pathname}
-            profileId={profileId}
-            unreadCount={unreadCount}
-            proposalsCount={proposalsCount}
-            onNavigate={onNavigate}
-          />
+          <>
+            <RailDivider />
+            <RailNavItem
+              item={teamRailItem}
+              pathname={pathname}
+              profileId={profileId}
+              unreadCount={unreadCount}
+              proposalsCount={proposalsCount}
+              onNavigate={onNavigate}
+            />
+          </>
         ) : null}
       </div>
     </>

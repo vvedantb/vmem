@@ -147,7 +147,7 @@ export default function Sidebar({
     section !== "skills" &&
     section !== "wiki" &&
     section !== "memories" &&
-    section !== "activity";
+    section !== "inbox";
   const showStats = showWorkspaceSwitcher;
   const titleAlign =
     section === "skills" || section === "wiki" ? "start" : "center";
