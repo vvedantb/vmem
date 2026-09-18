@@ -25,3 +25,5 @@ Full tables: `labelled-bench.md`, `hard-bench.md`. Re-run: `pnpm --filter @vmem/
 Hybrid vs TypeSafe Jev on the same labelled harness (main result = default-on Jev; control = `judge: "off"`): `tests/memory/benchmark/jev-gate-results.md`. Re-run: `EVAL_JEV=1 pnpm --filter @vmem/backend eval:jev` (live System One; no mock).
 
 Same labelled corpus vs Mem0 / SuperMemory (fail-closed without keys; no invented numbers): `tests/memory/competitive/vmem-vs-mem0-supermemory.md`. Re-run: `EVAL_COMPETITIVE=1 pnpm --filter @vmem/backend eval:competitive`.
+
+LoCoMo utterance-IR (MemoryBench datasets, no answer/judge LLM): `tests/memory/competitive/memorybench-ir-port.md`. Re-run: `pnpm --filter @vmem/backend eval:locomo-ir`.

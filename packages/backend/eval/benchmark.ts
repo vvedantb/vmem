@@ -150,6 +150,9 @@ const TYPE_ORDER = [
   "distractor",
   "tail-gold",
   "temporal",
+  "single-hop",
+  "world-knowledge",
+  "adversarial",
 ];
 
 function approxTokens(text: string): number {
@@ -498,6 +501,7 @@ export async function runCorpusAblation(
     apiKey?: string;
     evaluate?: (args: EvaluateSystemOneArgs) => Promise<SystemOneResponse>;
     concurrency?: number;
+    nowMs?: number;
   } = {},
 ): Promise<{
   runs: ConfigRun[];
@@ -540,7 +544,7 @@ export async function runCorpusAblation(
   }
 
   const configs = options.configs ?? EVAL_CONFIGS;
-  const nowMs = Date.now();
+  const nowMs = options.nowMs ?? Date.now();
   const runs: ConfigRun[] = [];
   for (const config of configs) {
     const judge = config.judge ?? options.judge;
