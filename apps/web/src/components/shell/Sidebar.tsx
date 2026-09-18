@@ -19,6 +19,7 @@ import { useMemoryEvents } from "@/hooks/useMemoryEvents";
 import { MorphingMenuIcon } from "@/components/icons/animations";
 import { SidebarNavigation } from "@/components/sidebar/SidebarNavigation";
 import { SidebarHeader } from "@/components/sidebar/SidebarHeader";
+import { SidebarHeaderTrailingProvider } from "@/components/sidebar/SidebarHeaderTrailing";
 import {
   SidebarFooter,
   type SidebarStats,
@@ -51,6 +52,9 @@ export default function Sidebar({
   const activeProfileId = useActiveProfileId();
   const section = railSectionFromPathname(pathname);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [headerTrailing, setHeaderTrailing] = useState<HTMLDivElement | null>(
+    null,
+  );
   const mobileMenuId = useId();
   const { isLoaded } = useUser();
   const isAuthLoading = !isLoaded;
@@ -139,8 +143,14 @@ export default function Sidebar({
   };
 
   const showWorkspaceSwitcher =
-    section !== "settings" && section !== "skills" && section !== "wiki";
+    section !== "settings" &&
+    section !== "skills" &&
+    section !== "wiki" &&
+    section !== "memories" &&
+    section !== "activity";
   const showStats = showWorkspaceSwitcher;
+  const titleAlign =
+    section === "skills" || section === "wiki" ? "start" : "center";
 
   return (
     <>
@@ -224,34 +234,38 @@ export default function Sidebar({
             isCollapsed && "md:hidden",
           )}
         >
-          <div className="px-2 pt-3">
-            <SidebarHeader
-              title={panelTitleBySection[section]}
-              isMobile={!isDesktopViewport}
-              onClose={closeMobileMenu}
-            />
-          </div>
-          {showWorkspaceSwitcher ? (
-            <div className="mb-4 px-4">
-              <SidebarWorkspaceSwitcher
-                collapsed={false}
+          <SidebarHeaderTrailingProvider target={headerTrailing}>
+            <div className="px-2 pt-3">
+              <SidebarHeader
+                title={panelTitleBySection[section]}
+                isMobile={!isDesktopViewport}
+                onClose={closeMobileMenu}
+                titleAlign={titleAlign}
+                trailingRef={setHeaderTrailing}
+              />
+            </div>
+            {showWorkspaceSwitcher ? (
+              <div className="mb-4 px-4">
+                <SidebarWorkspaceSwitcher
+                  collapsed={false}
+                  onNavigate={closeMobileMenu}
+                />
+              </div>
+            ) : null}
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-2">
+              <SidebarNavigation
+                pathname={pathname}
+                profileId={activeProfileId}
+                isMobile={!isDesktopViewport}
                 onNavigate={closeMobileMenu}
               />
             </div>
-          ) : null}
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-2">
-            <SidebarNavigation
-              pathname={pathname}
-              profileId={activeProfileId}
+            <SidebarFooter
               isMobile={!isDesktopViewport}
-              onNavigate={closeMobileMenu}
+              stats={stats ?? { addedToday: 0, total: 0 }}
+              showStats={showStats && stats !== null}
             />
-          </div>
-          <SidebarFooter
-            isMobile={!isDesktopViewport}
-            stats={stats ?? { addedToday: 0, total: 0 }}
-            showStats={showStats && stats !== null}
-          />
+          </SidebarHeaderTrailingProvider>
         </div>
       </motion.aside>
     </>

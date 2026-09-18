@@ -19,6 +19,7 @@ import {
   useActiveTeamId,
 } from "@/components/workspace/active-profile";
 import { SubSidebarShell } from "./SubSidebarShell";
+import { SidebarHeaderTrailing } from "./SidebarHeaderTrailing";
 
 export type WikiSidebarNavProps = {
   isIconOnly: boolean;
@@ -91,17 +92,6 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
 
   const toolbarAddMenu = (
     <WikiAddMenu
-      variant="toolbar"
-      onCreateDocument={() => handleCreateRoot("document")}
-      onCreateArtifact={() => handleCreateRoot("artifact")}
-      onCreateFolder={() => handleCreateRoot("folder")}
-    />
-  );
-
-  const labeledAddMenu = (
-    <WikiAddMenu
-      variant="labeled"
-      className="w-full"
       onCreateDocument={() => handleCreateRoot("document")}
       onCreateArtifact={() => handleCreateRoot("artifact")}
       onCreateFolder={() => handleCreateRoot("folder")}
@@ -123,33 +113,28 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
 
   return (
     <SubSidebarShell isMobile={isMobile}>
+      {!isIconOnly ? (
+        <SidebarHeaderTrailing>{toolbarAddMenu}</SidebarHeaderTrailing>
+      ) : null}
       <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden px-1">
         {nodes === undefined ? (
           <div className="flex items-center justify-center py-10">
             <Spinner size="sm" />
           </div>
         ) : tree.length === 0 ? (
-          <>
-            {!isIconOnly ? labeledAddMenu : null}
-            <div className="flex flex-col items-center justify-center px-2 py-10 text-center">
-              <IconBook size={28} className="mb-2 text-muted" />
-              {!isIconOnly ? (
-                <p className="text-xs text-muted">No documents yet</p>
-              ) : null}
-            </div>
-          </>
+          <div className="flex flex-col items-center justify-center px-2 py-10 text-center">
+            <IconBook size={28} className="mb-2 text-muted" />
+            {!isIconOnly ? (
+              <p className="text-xs text-muted">No documents yet</p>
+            ) : null}
+          </div>
         ) : (
           <>
             {!isIconOnly && !selectionMode ? (
               <WikiSearch
                 onSelect={handleSelectNode}
                 className="shrink-0"
-                actions={
-                  <>
-                    {toolbarAddMenu}
-                    {selectButton}
-                  </>
-                }
+                actions={selectButton}
               />
             ) : null}
             {!isIconOnly && selectionMode ? (

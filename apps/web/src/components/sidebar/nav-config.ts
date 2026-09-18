@@ -105,11 +105,23 @@ export function railSectionFromPathname(pathname: string): RailSection {
   return "home";
 }
 
-type SidebarNavView = "main" | "settings" | "skills" | "wiki";
+type SidebarNavView =
+  | "main"
+  | "settings"
+  | "skills"
+  | "wiki"
+  | "memories"
+  | "activity";
 
 export function navViewFromPathname(pathname: string): SidebarNavView {
   const section = railSectionFromPathname(pathname);
-  if (section === "settings" || section === "skills" || section === "wiki") {
+  if (
+    section === "settings" ||
+    section === "skills" ||
+    section === "wiki" ||
+    section === "memories" ||
+    section === "activity"
+  ) {
     return section;
   }
   return "main";

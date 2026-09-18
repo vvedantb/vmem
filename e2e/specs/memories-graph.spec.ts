@@ -1,5 +1,6 @@
 import { expect, test } from "../fixtures";
 import { gotoWorkspace } from "../helpers/nav";
+import { sidebarPanel } from "../helpers/shell";
 
 test.describe(
   "memories graph",
@@ -7,10 +8,11 @@ test.describe(
   () => {
     test("graph chrome loads", async ({ page }) => {
       await gotoWorkspace(page, "/memories/graph");
-      await expect(page.getByRole("tab", { name: "Graph" })).toBeVisible({
+      const panel = sidebarPanel(page);
+      await expect(panel.getByRole("tab", { name: "Graph" })).toBeVisible({
         timeout: 20_000,
       });
-      await expect(page.getByRole("tab", { name: "List" })).toBeVisible();
+      await expect(panel.getByRole("tab", { name: "List" })).toBeVisible();
       await expect(
         page.getByRole("textbox", { name: "Search nodes" }),
       ).toBeVisible();

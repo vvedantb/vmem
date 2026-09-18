@@ -3,7 +3,7 @@ import { createFileRoute, Outlet, useMatchRoute } from "@tanstack/react-router";
 import PageContainer from "@/components/shell/PageContainer";
 import MemoryListHeaderControls from "@/components/_components/MemoryListHeaderControls";
 import GraphHeaderControls from "@/components/_components/GraphHeaderControls";
-import { MemoriesTabs } from "./-components/MemoriesTabs";
+import { MemoriesSearchUrlSanitizer } from "./-components/MemoriesSearchUrlSanitizer";
 import {
   MemoryGraphControllerProvider,
   useMemoryGraphControllerContext,
@@ -25,7 +25,6 @@ function MemoriesPageShell({
     <PageContainer
       title="Memories"
       showTitle={false}
-      leftSection={<MemoriesTabs />}
       rightSection={rightSection}
       noScroll={noScroll}
     >
@@ -76,7 +75,8 @@ function MemoriesLayoutShell() {
   return <DefaultMemoriesLayout />;
 }
 
-// keeps `MemoriesTabs` mounted across graph/list/timeline subroutes so the sliding pill animates
+// Graph/List/Timeline tabs live in the memories sidebar; this layout stays
+// mounted across those subroutes so graph controller + URL cleanup persist.
 function MemoriesLayout() {
   const matchRoute = useMatchRoute();
   const isGraph = matchRoute({ to: "/$profileId/memories/graph" });
@@ -87,6 +87,7 @@ function MemoriesLayout() {
       focusNodeId={params.focus}
       enabled={!!isGraph}
     >
+      <MemoriesSearchUrlSanitizer />
       <MemoriesLayoutShell />
     </MemoryGraphControllerProvider>
   );

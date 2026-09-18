@@ -43,17 +43,27 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
 
     await clickRail(page, "Memories");
     await expect(page).toHaveURL(new RegExp(`/${profileId}/memories`));
-    await expect(page.getByRole("tab", { name: "Graph" })).toBeVisible({
-      timeout: 20_000,
-    });
-    await expect(page.getByRole("tab", { name: "List" })).toBeVisible();
-    await expect(page.getByRole("tab", { name: "Timeline" })).toBeVisible();
+    const memoriesPanel = sidebarPanel(page);
+    await expect(memoriesPanel.getByRole("tab", { name: "Graph" })).toBeVisible(
+      {
+        timeout: 20_000,
+      },
+    );
+    await expect(
+      memoriesPanel.getByRole("tab", { name: "List" }),
+    ).toBeVisible();
+    await expect(
+      memoriesPanel.getByRole("tab", { name: "Timeline" }),
+    ).toBeVisible();
     await assertNoFatalChrome(page);
 
     await clickRail(page, "Wiki");
     await expect(page).toHaveURL(new RegExp(`/${profileId}/wiki`));
     await expect(
       sidebarPanel(page).getByRole("heading", { name: "Wiki" }),
+    ).toBeVisible();
+    await expect(
+      sidebarPanel(page).getByRole("button", { name: "Add" }),
     ).toBeVisible();
     await expect(main).toBeVisible();
     await assertNoFatalChrome(page);
@@ -62,6 +72,9 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
     await expect(page).toHaveURL(new RegExp(`/${profileId}/skills`));
     await expect(
       sidebarPanel(page).getByRole("heading", { name: "Skills" }),
+    ).toBeVisible();
+    await expect(
+      sidebarPanel(page).getByRole("button", { name: "Add" }),
     ).toBeVisible();
     await assertNoFatalChrome(page);
 
@@ -74,7 +87,9 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
 
     await clickRail(page, "Activity");
     await expect(page).toHaveURL(new RegExp(`/${profileId}/activity`));
-    await expect(page.getByRole("tab", { name: "Usage" })).toBeVisible({
+    await expect(
+      sidebarPanel(page).getByRole("tab", { name: "Usage" }),
+    ).toBeVisible({
       timeout: 20_000,
     });
     await assertNoFatalChrome(page);

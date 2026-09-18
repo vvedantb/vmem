@@ -13,6 +13,7 @@ import { skillsSearchParams } from "@/lib/url-state/skills";
 import { SidebarListSearchBar } from "./SidebarListSearchBar";
 import { SharedLayoutBackground } from "./SharedLayoutBackground";
 import { sidebarListRowClass } from "./sidebar-nav-row";
+import { SidebarHeaderTrailing } from "./SidebarHeaderTrailing";
 import { useIdSelection } from "@/hooks/useIdSelection";
 import {
   useActiveProfileId,
@@ -93,16 +94,6 @@ export function SkillsSidebarNav({
 
   const toolbarAddMenu = (
     <SkillsAddMenu
-      variant="toolbar"
-      onWriteSkill={() => setCreateModal("write")}
-      onUploadSkill={() => setCreateModal("upload")}
-    />
-  );
-
-  const labeledAddMenu = (
-    <SkillsAddMenu
-      variant="labeled"
-      className="w-full"
       onWriteSkill={() => setCreateModal("write")}
       onUploadSkill={() => setCreateModal("upload")}
     />
@@ -202,6 +193,9 @@ export function SkillsSidebarNav({
 
   return (
     <SubSidebarShell isMobile={isMobile}>
+      {!isIconOnly ? (
+        <SidebarHeaderTrailing>{toolbarAddMenu}</SidebarHeaderTrailing>
+      ) : null}
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto scrollbar-thin px-1">
         {skills === undefined ? (
           <div className="flex items-center justify-center py-10">
@@ -209,12 +203,7 @@ export function SkillsSidebarNav({
           </div>
         ) : skills.length === 0 ? (
           <>
-            {!isIconOnly ? (
-              <div className="flex flex-col gap-2">
-                {labeledAddMenu}
-                {hubSection}
-              </div>
-            ) : null}
+            {!isIconOnly ? hubSection : null}
             <div className="flex flex-col items-center justify-center px-2 py-10 text-center">
               <IconBolt size={28} className="mb-2 text-muted" />
               {!isIconOnly ? (
@@ -234,12 +223,7 @@ export function SkillsSidebarNav({
                     }}
                     placeholder="Search skills"
                     aria-label="Search skills"
-                    actions={
-                      <>
-                        {toolbarAddMenu}
-                        {selectButton}
-                      </>
-                    }
+                    actions={selectButton}
                   />
                 </div>
                 {hubSection}

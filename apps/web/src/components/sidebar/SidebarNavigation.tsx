@@ -12,6 +12,8 @@ import {
 import { NavLink } from "./NavLink";
 import { SkillsSidebarNav } from "./SkillsSidebarNav";
 import { WikiSidebarNav } from "./WikiSidebarNav";
+import { MemoriesSidebarNav } from "./MemoriesSidebarNav";
+import { ActivitySidebarNav } from "./ActivitySidebarNav";
 import { SettingsSidebar } from "./SettingsSidebar";
 import { SharedLayoutBackground } from "./SharedLayoutBackground";
 import { NavSection } from "./NavSection";
@@ -142,6 +144,12 @@ export function SidebarNavigation({
   }
   if (navView === "wiki") {
     return <WikiSidebarNav key="wiki" isIconOnly={false} isMobile={isMobile} />;
+  }
+  if (navView === "memories") {
+    return <MemoriesSidebarNav key="memories" isMobile={isMobile} />;
+  }
+  if (navView === "activity") {
+    return <ActivitySidebarNav key="activity" isMobile={isMobile} />;
   }
   if (section === "team") {
     return (

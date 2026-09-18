@@ -65,6 +65,9 @@ export default function PageContainer({
   // default show title if sections exist, unless explicitly set
   const showTitleInHeader =
     !breadcrumb && Boolean(title) && (showTitle ?? hasSections);
+  const hasLeftChrome = Boolean(
+    breadcrumb || showTitleInHeader || leftSection || centerSection,
+  );
   // title and breadcrumb are desktop only (md+) mobile uses the shell topbar
   const hasMobileHeaderContent = hasSections || hasToolbar || hasTabs;
   const hasHeader =
@@ -98,46 +101,50 @@ export default function PageContainer({
         >
           <div
             className={cn(
-              "relative grid items-center gap-2 sm:gap-3",
-              hasHeaderRight
-                ? "grid-cols-[minmax(0,1fr)_minmax(0,auto)] md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]"
-                : "grid-cols-1",
+              "relative items-center gap-2 sm:gap-3",
+              hasHeaderRight && hasLeftChrome
+                ? "grid grid-cols-[minmax(0,1fr)_minmax(0,auto)] md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]"
+                : hasHeaderRight
+                  ? "flex justify-end"
+                  : "grid grid-cols-1",
               insetHeader && "px-4",
             )}
           >
-            <div
-              className={cn(
-                "flex min-w-0 items-center gap-2 sm:gap-3",
-                hasHeaderRight && !centerSection ? "md:col-span-2" : null,
-              )}
-            >
-              {breadcrumb ? (
-                <motion.div
-                  className="hidden min-w-0 flex-1 md:flex"
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={childTransition}
-                >
-                  {breadcrumb}
-                </motion.div>
-              ) : (
-                showTitleInHeader && (
-                  <h1 className="hidden min-w-0 flex-1 truncate text-lg font-instrumentSerif font-semibold tracking-[-0.02em] text-foreground text-balance md:block md:text-xl">
-                    {title}
-                  </h1>
-                )
-              )}
-              {leftSection && (
-                <motion.div
-                  className="flex-shrink-0"
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={childTransition}
-                >
-                  {leftSection}
-                </motion.div>
-              )}
-            </div>
+            {hasLeftChrome ? (
+              <div
+                className={cn(
+                  "flex min-w-0 items-center gap-2 sm:gap-3",
+                  hasHeaderRight && !centerSection ? "md:col-span-2" : null,
+                )}
+              >
+                {breadcrumb ? (
+                  <motion.div
+                    className="hidden min-w-0 flex-1 md:flex"
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={childTransition}
+                  >
+                    {breadcrumb}
+                  </motion.div>
+                ) : (
+                  showTitleInHeader && (
+                    <h1 className="hidden min-w-0 flex-1 truncate text-lg font-instrumentSerif font-semibold tracking-[-0.02em] text-foreground text-balance md:block md:text-xl">
+                      {title}
+                    </h1>
+                  )
+                )}
+                {leftSection && (
+                  <motion.div
+                    className="flex-shrink-0"
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={childTransition}
+                  >
+                    {leftSection}
+                  </motion.div>
+                )}
+              </div>
+            ) : null}
             {centerSection ? (
               <div className="hidden min-w-0 justify-center md:flex">
                 <motion.div
