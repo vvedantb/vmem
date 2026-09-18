@@ -106,7 +106,7 @@ Same key as product retrieve. [TypeSafe](https://platform.typesafe.ai) — inter
 
 ## Caveats
 
-- **Self-reported vendor benches ≠ this harness.** Mem0 LoCoMo 92.5 / LongMemEval 94.4 and SuperMemory LongMemEval-S 85.4 / LoCoMo P@1 59.7 are LLM-judge QA (or different IR corpora). They cannot be subtracted from labelled R@5.
+- **Self-reported vendor benches ≠ this harness.** Mem0 LoCoMo 92.5 / LongMemEval 94.4 and SuperMemory LongMemEval-S 85.4 / LoCoMo P@1 59.7 are LLM-judge QA (or different IR corpora). They cannot be subtracted from labelled R@5. For a no-LLM LoCoMo _retrieval_ port (gold `dia_id` spans), see [`memorybench-ir-port.md`](./memorybench-ir-port.md) (`eval:locomo-ir`).
 - **Write semantics differ.** vmem hybrid-only ranks the exact labelled rows (titles are native). Mem0 is stored with `infer: false` so IR units survive; that is **not** Mem0’s default extraction `add(messages)`. SuperMemory document ingest still extracts memories asynchronously; hybrid search may return rewritten facts. Title matching can under-count if the vendor drops the title string.
 - **vmem production retrieve** is hybrid + Jev rerank when `TYPESAFE_API_KEY` is set (#183/#187). CI `eval:bench` is hybrid-only. Do not treat pre-#187 hard-drop Jev (R@5 84.6%, 16 gold titles removed) as current default.
 - **Candidate generation.** vmem labelled numbers use the in-process index pool. Mem0/SuperMemory search their hosted indexes. Caps, thresholds, and recency lists are not identical.
