@@ -89,6 +89,8 @@ describe("LoCoMo-IR mapping", () => {
     const sliced = sliceLocomoSamples([sample], 2);
     expect(sliced[0]?.queries).toHaveLength(2);
     expect(sliced[0]?.memories).toHaveLength(sample.memories.length);
+    const unlimited = sliceLocomoSamples([sample], undefined);
+    expect(unlimited[0]?.queries).toHaveLength(sample.queries.length);
   });
 });
 
@@ -172,9 +174,9 @@ describe("LoCoMo-IR CLI parsing", () => {
     expect(
       parseLocomoIrJudge(["node", "run.ts"], { LOCOMO_IR_JUDGE: "JEV" }),
     ).toBe("jev");
-    expect(
-      parseLocomoIrJudge(["node", "run.ts", "--judge", "jev"], {}),
-    ).toBe("jev");
+    expect(parseLocomoIrJudge(["node", "run.ts", "--judge", "jev"], {})).toBe(
+      "jev",
+    );
     expect(
       parseLocomoIrJudge(["node", "run.ts", "--judge=off"], {
         LOCOMO_IR_JUDGE: "jev",
@@ -187,24 +189,30 @@ describe("LoCoMo-IR CLI parsing", () => {
 });
 
 describe.skipIf(!evalLocomoIrEnabled())(
-  "LoCoMo-IR live smoke (download locomo10, no LLM)",
+  "LoCoMo-IR live smoke (download locomo10, no LLM answer judge)",
   () => {
-    it("runs a -l subset through the labelled retrieve path", async () => {
-      const limit = parseLocomoIrLimit();
-      const result = await runLocomoIr({
-        limit: limit ?? 8,
-        ablation: locomoIrWantsAblation(),
-        judge: parseLocomoIrJudge(),
-      });
-      console.log(`\n${result.report}\n`);
-      expect(result.memoryCount).toBeGreaterThan(0);
-      expect(result.answerable).toBeGreaterThan(0);
-      expect(result.answerable).toBeLessThanOrEqual(limit ?? 8);
-      expect(result.metrics.recall5).toBeGreaterThanOrEqual(0);
-      expect(result.metrics.recall5).toBeLessThanOrEqual(1);
-      expect(result.metrics.mrr).toBeGreaterThanOrEqual(0);
-      expect(result.metrics.ndcg10).toBeGreaterThanOrEqual(0);
-      expect(result.metrics.ndcg10).toBeLessThanOrEqual(1);
-    }, 180_000);
+    const limit = parseLocomoIrLimit();
+    it(
+      "runs a -l subset through the labelled retrieve path",
+      async () => {
+        const result = await runLocomoIr({
+          limit,
+          ablation: locomoIrWantsAblation(),
+          judge: parseLocomoIrJudge(),
+        });
+        console.log(`\n${result.report}\n`);
+        expect(result.memoryCount).toBeGreaterThan(0);
+        expect(result.answerable).toBeGreaterThan(0);
+        if (limit !== undefined) {
+          expect(result.answerable).toBeLessThanOrEqual(limit);
+        }
+        expect(result.metrics.recall5).toBeGreaterThanOrEqual(0);
+        expect(result.metrics.recall5).toBeLessThanOrEqual(1);
+        expect(result.metrics.mrr).toBeGreaterThanOrEqual(0);
+        expect(result.metrics.ndcg10).toBeGreaterThanOrEqual(0);
+        expect(result.metrics.ndcg10).toBeLessThanOrEqual(1);
+      },
+      limit === undefined ? 3_600_000 : 180_000,
+    );
   },
 );

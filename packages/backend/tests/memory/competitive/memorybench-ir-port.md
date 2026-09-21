@@ -142,15 +142,15 @@ MemoryBench already _has_ an IR-shaped report table, but it is **not** gold-ID I
 
 Assumptions: gpt-4o list-ish ~\$2.50 / 1M input, ~\$10 / 1M output; MemoryBench README example ~1823 context tokens; **3 LLM calls/question** (answer + judge + retrieval-eval). These are order-of-magnitude planning numbers, **not** benchmark results.
 
-| Path                              | LLM calls                           | Rough LLM \$                                                                                   | Keys                                            | What you get                                            |
-| --------------------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------- | ----------------------------------------------- | ------------------------------------------------------- |
-| MemoryBench LoCoMo full (~1986 Q) | ~6k                                 | **tens of dollars** (often \$30–80 with retries/fatter contexts) + hours of ingest/rate limits | OpenAI/Anthropic/Google **and** a memory vendor | MemScore quality% (answer correctness)                  |
-| MemoryBench LongMemEval (500 Q)   | ~1.5k                               | **lower LLM \$ than LoCoMo, much heavier ingest** (per-Q haystack)                             | same                                            | same, plus session-recall _if_ you restore dropped gold |
-| MemoryBench “retrieval metrics”   | extra LLM per Q                     | folded into the rows above                                                                     | judge key                                       | Hit@K / fake-recall via LLM relevance                   |
-| **This LoCoMo-IR default**        | **0**                               | **\$0** (synthetic embeddings)                                                                 | none                                            | labelled recall@k / MRR / nDCG@10 + search latency      |
-| LoCoMo-IR + Jev (`LOCOMO_IR_JUDGE=jev`) | 1 System One call / query (retrieve rerank only) | TypeSafe Jev, not gpt-4o answer+judge                                                    | `TYPESAFE_API_KEY` (fail-open without it)       | same IR metrics after prod-like Jev rerank              |
-| LoCoMo-IR + OpenRouter embeds     | 0 chat                              | ~cents (`text-embedding-3-small` on ~0.5–6k texts)                                             | `OPENROUTER_API_KEY` optional                   | same IR, better vectors                                 |
-| Smallest hybrid                   | 20–50 judge calls on a fixed sample | a few dollars, once                                                                            | OpenAI                                          | IR ranking + a tiny quality% sanity check               |
+| Path                                    | LLM calls                                        | Rough LLM \$                                                                                   | Keys                                            | What you get                                            |
+| --------------------------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------- | ----------------------------------------------- | ------------------------------------------------------- |
+| MemoryBench LoCoMo full (~1986 Q)       | ~6k                                              | **tens of dollars** (often \$30–80 with retries/fatter contexts) + hours of ingest/rate limits | OpenAI/Anthropic/Google **and** a memory vendor | MemScore quality% (answer correctness)                  |
+| MemoryBench LongMemEval (500 Q)         | ~1.5k                                            | **lower LLM \$ than LoCoMo, much heavier ingest** (per-Q haystack)                             | same                                            | same, plus session-recall _if_ you restore dropped gold |
+| MemoryBench “retrieval metrics”         | extra LLM per Q                                  | folded into the rows above                                                                     | judge key                                       | Hit@K / fake-recall via LLM relevance                   |
+| **This LoCoMo-IR default**              | **0**                                            | **\$0** (synthetic embeddings)                                                                 | none                                            | labelled recall@k / MRR / nDCG@10 + search latency      |
+| LoCoMo-IR + Jev (`LOCOMO_IR_JUDGE=jev`) | 1 System One call / query (retrieve rerank only) | TypeSafe Jev, not gpt-4o answer+judge                                                          | `TYPESAFE_API_KEY` (fail-open without it)       | same IR metrics after prod-like Jev rerank              |
+| LoCoMo-IR + OpenRouter embeds           | 0 chat                                           | ~cents (`text-embedding-3-small` on ~0.5–6k texts)                                             | `OPENROUTER_API_KEY` optional                   | same IR, better vectors                                 |
+| Smallest hybrid                         | 20–50 judge calls on a fixed sample              | a few dollars, once                                                                            | OpenAI                                          | IR ranking + a tiny quality% sanity check               |
 
 Paying for full answer+judge does **not** help iterate the Convex ranker; IR does. Paying for a 20-Q judge slice is only justified when someone needs a number that can sit next to a vendor MemScore blog post — and even then it is a **different metric**.
 
@@ -181,7 +181,7 @@ ConvoMem: match `message_evidences` by speaker+text onto ingested messages; trea
 | -------------------------------- | -------------------------------------------------------------------------- |
 | `eval/locomo/load.ts`            | Download/cache `locomo10.json`                                             |
 | `eval/locomo/convert.ts`         | Turns → memories, evidence → gold titles                                   |
-| `eval/locomo/run.ts`             | `eval:locomo-ir`, limit + `LOCOMO_IR_JUDGE` parsing, report                 |
+| `eval/locomo/run.ts`             | `eval:locomo-ir`, limit + `LOCOMO_IR_JUDGE` parsing, report                |
 | `eval/locomo/fixture.ts`         | Offline schema fixture (not locomo10 scores)                               |
 | `tests/memory/locomo-ir.test.ts` | Mapping + fixture retrieve always; live `-l` smoke when `EVAL_LOCOMO_IR=1` |
 
