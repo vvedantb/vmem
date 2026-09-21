@@ -36,6 +36,11 @@ import {
 
 const unknownJsonSchema = z.unknown();
 const skillsListSchema = z.array(skillsIndexEntrySchema);
+const skillsRecommendSchema = z.object({
+  query: z.string(),
+  source: z.enum(["jev", "lexical"]),
+  skills: z.array(skillsIndexEntrySchema.extend({ score: z.number() })),
+});
 const wikiListSchema = z.array(wikiNodeResultSchema);
 
 function parseToolPayload(result: McpToolContent): unknown {
@@ -86,7 +91,7 @@ describe("in-process MCP catalog", () => {
     expect(names.some((name) => name.includes("codebase"))).toBe(false);
   });
 
-  it("omits personal-only tools on the team connector", async () => {
+  it("omits wiki, files, and context_prompt on the team connector", async () => {
     const client = new InProcessMcpClient({
       session: createInProcessSession("team"),
       token: MOCK_MCP_TOKEN,
@@ -94,7 +99,10 @@ describe("in-process MCP catalog", () => {
     const names = await client.listTools();
     expect(names.sort()).toEqual(catalogNamesForScope("team").sort());
     expect(names).not.toContain("context_prompt_get");
-    expect(names.some((name) => name.startsWith("skills_"))).toBe(false);
+    expect(names.some((name) => name.startsWith("skills_"))).toBe(true);
+    expect(names).toContain("skills_recommend");
+    expect(names.some((name) => name.startsWith("wiki_"))).toBe(false);
+    expect(names.some((name) => name.startsWith("files_"))).toBe(false);
   });
 });
 
@@ -326,6 +334,79 @@ describe("in-process MCP core, skills, wiki, and files tools", () => {
     expect(deleted.isError ?? false).toBe(false);
   });
 
+  it("recommends skills with lexical fail-open and isolates personal vs team grants", async () => {
+    const personalSession = createInProcessSession("personal");
+    const personal = new InProcessMcpClient({
+      session: personalSession,
+      token: MOCK_MCP_TOKEN,
+    });
+    const team = new InProcessMcpClient({
+      session: { store: personalSession.store, scope: "team" },
+      token: MOCK_MCP_TOKEN,
+    });
+
+    await personal.callTool("skills_create", {
+      name: "wiki-writeup",
+      description: "Chapter-style wiki explainer to read later",
+      instructions: "Write the wiki",
+    });
+    await personal.callTool("skills_create", {
+      name: "deploy-vercel",
+      description: "Ship a web app to Vercel production",
+      instructions: "Deploy",
+    });
+    await team.callTool("skills_create", {
+      name: "team-runbook",
+      description: "Shared team incident response",
+      instructions: "Page the on-call",
+    });
+
+    const recommended = skillsRecommendSchema.parse(
+      parseToolPayload(
+        await personal.callTool("skills_recommend", {
+          query: "write a wiki explainer to read later",
+        }),
+      ),
+    );
+    expect(recommended.source).toBe("lexical");
+    expect(recommended.skills[0]?.name).toBe("wiki-writeup");
+    expect(recommended.skills.map((skill) => skill.name)).not.toContain(
+      "team-runbook",
+    );
+
+    const personalListed = skillsListSchema.parse(
+      parseToolPayload(await personal.callTool("skills_list")),
+    );
+    const teamListed = skillsListSchema.parse(
+      parseToolPayload(await team.callTool("skills_list")),
+    );
+    expect(personalListed.map((skill) => skill.name)).toContain("wiki-writeup");
+    expect(personalListed.map((skill) => skill.name)).not.toContain(
+      "team-runbook",
+    );
+    expect(teamListed.map((skill) => skill.name)).toContain("team-runbook");
+    expect(teamListed.map((skill) => skill.name)).not.toContain("wiki-writeup");
+
+    const teamGetPersonal = await team.callTool("skills_get", {
+      name: "wiki-writeup",
+    });
+    expect(teamGetPersonal.isError).toBe(true);
+    const personalGetTeam = await personal.callTool("skills_get", {
+      name: "team-runbook",
+    });
+    expect(personalGetTeam.isError).toBe(true);
+
+    const deletedCross = await personal.callTool("skills_delete", {
+      name: "team-runbook",
+    });
+    expect(deletedCross.isError).toBe(true);
+    expect(
+      skillsListSchema
+        .parse(parseToolPayload(await team.callTool("skills_list")))
+        .map((skill) => skill.name),
+    ).toContain("team-runbook");
+  });
+
   it("creates, reads, searches, updates, and deletes a wiki document", async () => {
     const client = new InProcessMcpClient({ token: MOCK_MCP_TOKEN });
     const created = wikiNodeResultSchema.parse(
@@ -415,6 +496,7 @@ describe("in-process MCP core, skills, wiki, and files tools", () => {
     const cases: Array<{ name: string; args: Record<string, unknown> }> = [
       { name: "set_active_profile", args: {} },
       { name: "skills_get", args: {} },
+      { name: "skills_recommend", args: {} },
       { name: "skills_create", args: { name: "x" } },
       { name: "skills_update", args: {} },
       { name: "skills_delete", args: {} },

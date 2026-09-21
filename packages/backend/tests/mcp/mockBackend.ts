@@ -78,12 +78,14 @@ const userIdArgsSchema = z.object({ userId: z.string() });
 const skillNameArgsSchema = z.object({
   clerkId: z.string(),
   name: z.string(),
+  scope: z.enum(["personal", "team"]).optional(),
 });
 const skillCreateArgsSchema = z.object({
   clerkId: z.string(),
   name: z.string(),
   description: z.string(),
   instructions: z.string(),
+  scope: z.enum(["personal", "team"]).optional(),
 });
 const skillUpdateArgsSchema = z.object({
   clerkId: z.string(),
@@ -92,6 +94,7 @@ const skillUpdateArgsSchema = z.object({
   description: z.string().optional(),
   instructions: z.string().optional(),
   enabled: z.boolean().optional(),
+  scope: z.enum(["personal", "team"]).optional(),
 });
 const wikiIdArgsSchema = z.object({
   clerkId: z.string(),
@@ -310,6 +313,20 @@ function wikiById(store: MockStore, id: string): MockWikiNode | null {
   return store.wiki.find((node) => node._id === id) ?? null;
 }
 
+function skillGrantForScope(
+  scope: "personal" | "team" | undefined,
+): "personal" | "team" {
+  return scope === "team" ? "team" : "personal";
+}
+
+function mockSkillsForScope(
+  store: MockStore,
+  scope: "personal" | "team" | undefined,
+): MockSkill[] {
+  const grant = skillGrantForScope(scope);
+  return store.skills.filter((skill) => (skill.grant ?? "personal") === grant);
+}
+
 function functionName(ref: ConvexFnRef): string {
   return getFunctionName(ref);
 }
@@ -479,15 +496,23 @@ async function dispatch(
       ).memories;
     }
     case "skills:listEffectiveByClerkIdInternal": {
-      clerkIdArgsSchema.parse(args);
-      return store.skills.filter((skill) => skill.enabled);
+      const parsed = z
+        .object({
+          clerkId: z.string(),
+          scope: z.enum(["personal", "team"]).optional(),
+        })
+        .parse(args);
+      return mockSkillsForScope(store, parsed.scope).filter(
+        (skill) => skill.enabled,
+      );
     }
     case "skills:getEffectiveByNameInternal": {
       const parsed = skillNameArgsSchema.parse(args);
       const lookup = parsed.name.trim().toLowerCase();
       return (
-        store.skills.find((skill) => skill.name.toLowerCase() === lookup) ??
-        null
+        mockSkillsForScope(store, parsed.scope).find(
+          (skill) => skill.name.toLowerCase() === lookup,
+        ) ?? null
       );
     }
     case "skills:createByClerkIdInternal": {
@@ -498,13 +523,16 @@ async function dispatch(
         instructions: parsed.instructions,
         enabled: true,
         source: "personal",
+        grant: skillGrantForScope(parsed.scope),
       };
       store.skills.push(created);
       return created;
     }
     case "skills:updateByClerkIdInternal": {
       const parsed = skillUpdateArgsSchema.parse(args);
-      const skill = store.skills.find((row) => row.name === parsed.name);
+      const skill = mockSkillsForScope(store, parsed.scope).find(
+        (row) => row.name === parsed.name,
+      );
       if (!skill) throw new Error("Skill not found");
       if (parsed.newName !== undefined) skill.name = parsed.newName;
       if (parsed.description !== undefined)
@@ -517,8 +545,10 @@ async function dispatch(
     }
     case "skills:deleteByClerkIdInternal": {
       const parsed = skillNameArgsSchema.parse(args);
+      const grant = skillGrantForScope(parsed.scope);
       const index = store.skills.findIndex(
-        (skill) => skill.name === parsed.name,
+        (skill) =>
+          skill.name === parsed.name && (skill.grant ?? "personal") === grant,
       );
       if (index < 0) throw new Error("Skill not found");
       store.skills.splice(index, 1);

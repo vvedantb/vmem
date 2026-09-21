@@ -23,6 +23,7 @@ export const CORE_TOOL_NAMES = [
 
 export const SKILLS_TOOL_NAMES = [
   "skills_list",
+  "skills_recommend",
   "skills_get",
   "skills_create",
   "skills_update",

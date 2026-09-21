@@ -39,6 +39,7 @@ describe("codebase graph feature is gone", () => {
     expect(SYSTEM_SKILL_SEEDS.map((seed) => seed.name)).toEqual([
       "wiki-writeup",
       "teach-me",
+      "search-skills-first",
     ]);
     expect(
       SYSTEM_SKILL_SEEDS.some((seed) => seed.category === "Codebases"),

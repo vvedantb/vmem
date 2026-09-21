@@ -145,7 +145,7 @@ export const coreToolSpecs = {
     name: "context_prompt_get",
     schema: emptyInputSchema,
     description:
-      "Returns the full vmem user profile markdown (same as MCP resource vmem://context_prompt): About, Preferences, pinned memories, profile summary, and Available Skills (name + description). Call at session start or when a skill might apply — claude.ai cannot re-read the resource mid-chat. Then call skills_get with the exact skill name to load the playbook.",
+      "Returns the full vmem user profile markdown (same as MCP resource vmem://context_prompt): About, Preferences, pinned memories, profile summary, and Available Skills (name + description). Call at session start or when a skill might apply — claude.ai cannot re-read the resource mid-chat. Then call skills_recommend or skills_get with the exact skill name to load the playbook.",
     errorLabel: "Context prompt get failed",
     scopes: ["personal"],
     async run(h): Promise<unknown> {

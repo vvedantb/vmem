@@ -7,6 +7,8 @@ export interface SystemSkillSeed {
   category?: string;
   // former names of this seed
   previousNames?: string[];
+  // always appears in MCP / context_prompt Available Skills, even if not installed
+  alwaysInclude?: boolean;
 }
 
 const WIKI_WRITEUP_INSTRUCTIONS = `# wiki-writeup — Async learning (read later)
@@ -97,6 +99,28 @@ for each **validated** step only.
 - Skip validation on "just continue".
 - Save wrong explanations as canonical wiki text.`;
 
+const SEARCH_SKILLS_FIRST_INSTRUCTIONS = `# search-skills-first — Look up the matching playbook before acting
+
+At the **start of a task** (and whenever the work changes), search the skills library before improvising.
+
+## Workflow
+
+1. Call \`skills_recommend\` with a short task/query string when that tool is available. Otherwise call \`skills_list\`.
+2. If a returned skill's description matches the task, call \`skills_get\` with that **exact name** and follow its markdown instructions.
+3. Enabled skills are also MCP resources at \`vmem://skills/<name>\` (same markdown). Prefer tools mid-chat if the host cannot re-read resources.
+4. Do **not** bulk-load every playbook — do not \`skills_get\` the whole index, and do not paste every skill body into context.
+
+## After lookup
+
+- Matching playbook loaded → follow it.
+- No match → proceed normally. Use \`skills_create\` only for a repeatable gap after checking the index.
+
+## Notes
+
+- Available Skills in \`vmem://context_prompt\` / \`context_prompt_get\` is an index (name + description), not full instructions.
+- Personal \`/mcp\` and team \`/mcp/team\` each see only skills granted to that connector.
+`;
+
 export const RETIRED_SYSTEM_SKILL_NAMES = [
   "setup-wiki",
   "update-wiki",
@@ -119,5 +143,13 @@ export const SYSTEM_SKILL_SEEDS: SystemSkillSeed[] = [
       "/teach-me <topic> — interactive tutor: one step per turn, validate before advancing; checkpoint progress to Learning/ wiki. Not one-shot wiki-writeup.",
     instructions: TEACH_ME_INSTRUCTIONS,
     previousNames: ["validate-my-understanding-and-teach-me"],
+  },
+  {
+    name: "search-skills-first",
+    category: "Meta",
+    alwaysInclude: true,
+    description:
+      "At task start: skills_recommend (or skills_list), then skills_get for matching names. Do not bulk-load every playbook.",
+    instructions: SEARCH_SKILLS_FIRST_INSTRUCTIONS,
   },
 ];

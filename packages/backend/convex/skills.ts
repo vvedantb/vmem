@@ -9,6 +9,15 @@ import {
   maybeSnapshotSkillVersion,
 } from "./lib/versionSnapshot";
 import {
+  mcpScopeValidator,
+  getActiveProfileForMcpScope,
+  type McpScope,
+} from "./profiles/mcpAccess";
+import {
+  SYSTEM_SKILL_SEEDS,
+  type SystemSkillSeed,
+} from "./prompts/systemSkillSeeds";
+import {
   assertContentDeletable,
   assertContentEditable,
   requireContentScopeAccess,
@@ -19,12 +28,20 @@ function isSkillEnabled(skill: { enabled?: boolean }): boolean {
   return skill.enabled !== false;
 }
 
+export type SkillMcpGrant = {
+  userId: Id<"users">;
+  // undefined = personal MCP. set = that team's MCP grant (membership).
+  teamId: Id<"teams"> | undefined;
+};
+
 export interface EffectiveSkill {
   name: string;
   description: string;
   instructions: string;
   enabled: boolean;
   source: "personal" | "system";
+  // personal MCP vs the granting team. never mixed across connectors.
+  grant: "personal" | "team";
   // the personal skill's id, present only for source === "personal"
   skillId?: Id<"skills">;
   // present only for source === "system"
@@ -37,17 +54,124 @@ export function toSkillIndexEntry(skill: SkillIndexSlice): SkillIndexSlice {
   return { name: skill.name, description: skill.description };
 }
 
+export function skillMatchesMcpGrant(
+  skill: { teamId?: Id<"teams"> },
+  grant: SkillMcpGrant,
+): boolean {
+  return skill.teamId === grant.teamId;
+}
+
+function grantLabel(teamId: Id<"teams"> | undefined): "personal" | "team" {
+  return teamId === undefined ? "personal" : "team";
+}
+
+function bootstrapSeeds(): SystemSkillSeed[] {
+  return SYSTEM_SKILL_SEEDS.filter((seed) => seed.alwaysInclude === true);
+}
+
+async function resolveMcpSkillGrant(
+  ctx: QueryCtx | MutationCtx,
+  clerkId: string,
+  scope: McpScope | undefined,
+): Promise<SkillMcpGrant | null> {
+  const user = await getUserByClerkId(ctx, clerkId);
+  if (!user) return null;
+  if (scope !== "team") {
+    return { userId: user._id, teamId: undefined };
+  }
+  const profile = await getActiveProfileForMcpScope(ctx, clerkId, "team");
+  if (!profile?.teamId) {
+    throw new Error("No team profiles available. Join or create a team first.");
+  }
+  return { userId: user._id, teamId: profile.teamId };
+}
+
+async function appendBootstrapSkills(
+  ctx: QueryCtx | MutationCtx,
+  teamId: Id<"teams"> | undefined,
+  out: EffectiveSkill[],
+  seen: Set<string>,
+): Promise<void> {
+  for (const seed of bootstrapSeeds()) {
+    const key = seed.name.toLowerCase();
+    if (seen.has(key)) continue;
+    const row = await ctx.db
+      .query("systemSkills")
+      .withIndex("by_name", (q) => q.eq("name", seed.name))
+      .first();
+    seen.add(key);
+    out.push({
+      name: row?.name ?? seed.name,
+      description: row?.description ?? seed.description,
+      instructions: row?.instructions ?? seed.instructions,
+      enabled: true,
+      source: "system",
+      grant: grantLabel(teamId),
+      systemSkillId: row?._id,
+    });
+  }
+}
+
 async function resolveEffectiveSkills(
   ctx: QueryCtx | MutationCtx,
   userId: Id<"users">,
+  teamId?: Id<"teams">,
 ): Promise<EffectiveSkill[]> {
+  const out: EffectiveSkill[] = [];
+  const seen = new Set<string>();
+  const grant = grantLabel(teamId);
+
+  if (teamId !== undefined) {
+    const teamRows = await ctx.db
+      .query("skills")
+      .withIndex("by_team", (q) => q.eq("teamId", teamId))
+      .collect();
+    for (const skill of teamRows) {
+      if (!isSkillEnabled(skill)) continue;
+      const key = skill.name.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({
+        name: skill.name,
+        description: skill.description,
+        instructions: skill.instructions,
+        enabled: true,
+        source: "personal",
+        grant,
+        skillId: skill._id,
+      });
+    }
+
+    const installs = await ctx.db
+      .query("userSystemSkills")
+      .withIndex("by_team", (q) => q.eq("teamId", teamId))
+      .collect();
+    for (const install of installs) {
+      if (!install.enabled) continue;
+      const sys = await ctx.db.get(install.systemSkillId);
+      if (!sys) continue;
+      const key = sys.name.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({
+        name: sys.name,
+        description: sys.description,
+        instructions: sys.instructions,
+        enabled: true,
+        source: "system",
+        grant,
+        systemSkillId: sys._id,
+      });
+    }
+
+    await appendBootstrapSkills(ctx, teamId, out, seen);
+    return out;
+  }
+
   const personalRows = await ctx.db
     .query("skills")
     .withIndex("by_user", (q) => q.eq("userId", userId))
     .collect();
-
-  const out: EffectiveSkill[] = [];
-  const seen = new Set<string>();
 
   for (const skill of personalRows) {
     if (skill.teamId !== undefined || !isSkillEnabled(skill)) continue;
@@ -60,6 +184,7 @@ async function resolveEffectiveSkills(
       instructions: skill.instructions,
       enabled: true,
       source: "personal",
+      grant: "personal",
       skillId: skill._id,
     });
   }
@@ -82,10 +207,12 @@ async function resolveEffectiveSkills(
       instructions: sys.instructions,
       enabled: true,
       source: "system",
+      grant: "personal",
       systemSkillId: sys._id,
     });
   }
 
+  await appendBootstrapSkills(ctx, undefined, out, seen);
   return out;
 }
 
@@ -427,22 +554,33 @@ export const restoreVersion = authMutation({
 // internal helpers for mcp http routes after jwt verification
 
 export const listEffectiveByClerkIdInternal = internalQuery({
-  args: { clerkId: v.string() },
+  args: {
+    clerkId: v.string(),
+    scope: v.optional(mcpScopeValidator),
+  },
   handler: async (ctx, args): Promise<EffectiveSkill[]> => {
-    const user = await getUserByClerkId(ctx, args.clerkId);
-    if (!user) return [];
-    return await resolveEffectiveSkills(ctx, user._id);
+    const grant = await resolveMcpSkillGrant(ctx, args.clerkId, args.scope);
+    if (!grant) return [];
+    return await resolveEffectiveSkills(ctx, grant.userId, grant.teamId);
   },
 });
 
 // resolve one effective skill by name for clerkId (personal first, then system)
 export const getEffectiveByNameInternal = internalQuery({
-  args: { clerkId: v.string(), name: v.string() },
+  args: {
+    clerkId: v.string(),
+    name: v.string(),
+    scope: v.optional(mcpScopeValidator),
+  },
   handler: async (ctx, args): Promise<EffectiveSkill | null> => {
-    const user = await getUserByClerkId(ctx, args.clerkId);
-    if (!user) return null;
+    const grant = await resolveMcpSkillGrant(ctx, args.clerkId, args.scope);
+    if (!grant) return null;
     const lookup = args.name.trim().toLowerCase();
-    const effective = await resolveEffectiveSkills(ctx, user._id);
+    const effective = await resolveEffectiveSkills(
+      ctx,
+      grant.userId,
+      grant.teamId,
+    );
     return effective.find((s) => s.name.toLowerCase() === lookup) ?? null;
   },
 });
@@ -478,20 +616,22 @@ export const createByClerkIdInternal = internalMutation({
     name: v.string(),
     description: v.string(),
     instructions: v.string(),
+    scope: v.optional(mcpScopeValidator),
   },
   handler: async (ctx, args) => {
-    const user = await getUserByClerkId(ctx, args.clerkId);
-    if (!user) {
+    const grant = await resolveMcpSkillGrant(ctx, args.clerkId, args.scope);
+    if (!grant) {
       throw new Error("User not found");
     }
 
     const id = await createSkillRecord(ctx, {
-      userId: user._id,
+      userId: grant.userId,
+      teamId: grant.teamId,
       name: args.name,
       description: args.description,
       instructions: args.instructions,
     });
-    await scheduleContextPromptInvalidationForUser(ctx, user._id);
+    await invalidateContextPromptIfPersonal(ctx, grant.userId, grant.teamId);
 
     const created = await ctx.db.get(id);
     if (!created) {
@@ -509,6 +649,7 @@ export const updateByClerkIdInternal = internalMutation({
     description: v.optional(v.string()),
     instructions: v.optional(v.string()),
     enabled: v.optional(v.boolean()),
+    scope: v.optional(mcpScopeValidator),
   },
   handler: async (ctx, args) => {
     const hasPatch =
@@ -520,21 +661,22 @@ export const updateByClerkIdInternal = internalMutation({
       throw new Error("At least one field to update is required");
     }
 
-    const user = await getUserByClerkId(ctx, args.clerkId);
-    if (!user) {
+    const grant = await resolveMcpSkillGrant(ctx, args.clerkId, args.scope);
+    if (!grant) {
       throw new Error("User not found");
     }
 
     const lookupName = args.name.trim();
     const skill = await findSkillByNameInScope(
       ctx,
-      user._id,
-      undefined,
+      grant.userId,
+      grant.teamId,
       lookupName,
     );
-    if (!skill) {
+    if (!skill || !skillMatchesMcpGrant(skill, grant)) {
       throw new Error("Skill not found");
     }
+    await assertContentEditable(ctx, skill, grant.userId);
 
     const patch = await buildSkillUpdatePatch(ctx, skill, {
       name: args.newName,
@@ -545,10 +687,10 @@ export const updateByClerkIdInternal = internalMutation({
 
     await applySkillUpdate(ctx, skill, patch, {
       source: "mcp",
-      authorUserId: user._id,
+      authorUserId: grant.userId,
       force: true,
     });
-    await scheduleContextPromptInvalidationForUser(ctx, user._id);
+    await invalidateContextPromptIfPersonal(ctx, grant.userId, skill.teamId);
 
     const updated = await ctx.db.get(skill._id);
     if (!updated) {
@@ -559,27 +701,32 @@ export const updateByClerkIdInternal = internalMutation({
 });
 
 export const deleteByClerkIdInternal = internalMutation({
-  args: { clerkId: v.string(), name: v.string() },
+  args: {
+    clerkId: v.string(),
+    name: v.string(),
+    scope: v.optional(mcpScopeValidator),
+  },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const user = await getUserByClerkId(ctx, args.clerkId);
-    if (!user) {
+    const grant = await resolveMcpSkillGrant(ctx, args.clerkId, args.scope);
+    if (!grant) {
       throw new Error("User not found");
     }
 
     const lookupName = args.name.trim();
     const skill = await findSkillByNameInScope(
       ctx,
-      user._id,
-      undefined,
+      grant.userId,
+      grant.teamId,
       lookupName,
     );
-    if (!skill) {
+    if (!skill || !skillMatchesMcpGrant(skill, grant)) {
       throw new Error("Skill not found");
     }
+    await assertContentDeletable(ctx, skill, grant.userId);
 
     await deleteSkillRecord(ctx, skill._id);
-    await scheduleContextPromptInvalidationForUser(ctx, user._id);
+    await invalidateContextPromptIfPersonal(ctx, grant.userId, skill.teamId);
     return null;
   },
 });

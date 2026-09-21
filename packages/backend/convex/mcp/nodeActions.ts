@@ -87,7 +87,7 @@ export const handleMcpRequest = internalAction({
 
       registerTools(server, clerkUserId, ctx, scope);
       registerMemoryGraphApp(server, clerkUserId, ctx, scope);
-      registerResources(server, clerkUserId, ctx, scope);
+      await registerResources(server, clerkUserId, ctx, scope);
 
       const transport = new WebStandardStreamableHTTPServerTransport({
         sessionIdGenerator: undefined,
