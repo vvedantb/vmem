@@ -512,7 +512,9 @@ async function retrieveRanked(
           internal.memoryStore.functions.listMemoryLinksForUserInternal,
           { userId: args.clerkId },
         ),
-    wantsJevJudge(args) ? resolveSystemOneApiKey() : undefined,
+    wantsJevJudge(args)
+      ? Promise.resolve(resolveSystemOneApiKey())
+      : Promise.resolve(undefined),
   ]);
   const jev = apiKey !== undefined;
   const rankOpts = {
