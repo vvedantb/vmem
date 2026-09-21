@@ -1,7 +1,7 @@
 import type { FunctionArgs } from "convex/server";
 import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
-import { AI_GATEWAY_CHAT_MODEL } from "../../../engine/llm/aiGatewayClient";
+import { AI_GATEWAY_CHAT_MODEL } from "../../../engine/llm/aiGateway";
 import type { OpenRouterFeature } from "./schemas";
 
 export type { OpenRouterFeature };

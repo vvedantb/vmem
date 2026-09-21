@@ -36,6 +36,7 @@
     "@scure/base": "^2.2.0",
     "@vmem/sdk": "workspace:*",
     "@vmem/shared": "workspace:*",
+    "ai": "^7.0.108",
     "arctic": "~3.7.0",
     "convex": "catalog:",
     "convex-audit-log": "^0.2.0",

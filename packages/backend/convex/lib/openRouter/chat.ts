@@ -1,6 +1,6 @@
 import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
-import { createGatewayChatCompletion } from "../../../engine/llm/aiGatewayClient";
+import { generateGatewayText } from "../../../engine/llm/aiGateway";
 import {
   COMPLETION_PREVIEW_BYTES,
   PROMPT_PREVIEW_BYTES,
@@ -42,26 +42,30 @@ export async function callOpenRouterChat(
   let completionTokens: number | undefined;
   let totalTokens: number | undefined;
   let cachedTokens: number | undefined;
+  let cacheWriteTokens: number | undefined;
   let reasoningTokens: number | undefined;
   let costUsd: number | undefined;
 
   try {
-    const json = await createGatewayChatCompletion({
-      apiKey: args.apiKey,
+    if (args.apiKey.length === 0) {
+      throw new Error("AI_GATEWAY_API_KEY is not set");
+    }
+    const json = await generateGatewayText({
       model: args.model,
       messages: args.messages,
       temperature: args.temperature ?? 0.1,
     });
 
-    content = json.content;
-    generationId = json.id;
+    content = json.text.length > 0 ? json.text : null;
+    generationId = json.responseId;
     finishReason = json.finishReason;
-    promptTokens = json.usage.promptTokens;
-    completionTokens = json.usage.completionTokens;
-    totalTokens = json.usage.totalTokens;
-    cachedTokens = json.usage.cachedTokens;
-    reasoningTokens = json.usage.reasoningTokens;
-    costUsd = json.usage.costUsd;
+    promptTokens = json.promptTokens;
+    completionTokens = json.completionTokens;
+    totalTokens = json.totalTokens;
+    cachedTokens = json.cachedTokens;
+    cacheWriteTokens = json.cacheWriteTokens;
+    reasoningTokens = json.reasoningTokens;
+    costUsd = json.costUsd;
 
     if (content === null) {
       errorMessage = "no string content in choices[0].message";
@@ -88,6 +92,7 @@ export async function callOpenRouterChat(
     completionTokens,
     totalTokens,
     cachedTokens,
+    cacheWriteTokens,
     reasoningTokens,
     costUsd,
     promptPreview,

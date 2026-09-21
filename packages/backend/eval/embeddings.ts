@@ -1,16 +1,13 @@
 import { validateEmbeddingItems } from "../engine/llm/embeddingResponse";
 import {
   AI_GATEWAY_EMBEDDING_MODEL,
-  createGatewayEmbeddings,
-} from "../engine/llm/aiGatewayClient";
-import pRetry from "p-retry";
+  embedGatewayTexts,
+} from "../engine/llm/aiGateway";
 
 const EMBEDDING_MODEL = AI_GATEWAY_EMBEDDING_MODEL;
 export const EVAL_EMBEDDING_DIMENSIONS = 1536;
 const EMBEDDING_BATCH_SIZE = 20;
 const EMBEDDING_MAX_INPUT_CHARS = 6000;
-const EMBEDDING_MAX_ATTEMPTS = 5;
-const EMBEDDING_RETRY_BASE_MS = 800;
 
 function rollingHash(text: string, multiplier: number): number {
   let hash = 0;
@@ -105,44 +102,29 @@ async function generateGatewayEmbeddings(texts: string[]): Promise<number[][]> {
     const input = texts
       .slice(offset, offset + EMBEDDING_BATCH_SIZE)
       .map((text) => text.slice(0, EMBEDDING_MAX_INPUT_CHARS));
-    const vectors = await generateBatchWithRetry(apiKey, input);
+    const vectors = await generateBatch(input);
     result.push(...vectors);
   }
 
   return result;
 }
 
-async function generateBatchWithRetry(
-  apiKey: string,
-  input: string[],
-): Promise<number[][]> {
-  return pRetry(
-    async () => {
-      const response = await createGatewayEmbeddings({
-        apiKey,
-        model: EMBEDDING_MODEL,
-        input,
-        dimensions: EVAL_EMBEDDING_DIMENSIONS,
-      });
-      const slots: (number[] | undefined)[] = Array.from({
-        length: input.length,
-      });
-      for (const item of validateEmbeddingItems(
-        response.data,
-        input.length,
-        EVAL_EMBEDDING_DIMENSIONS,
-      )) {
-        slots[item.index] = item.embedding;
-      }
-      return requireFilledVectors(slots, "embedding response");
-    },
-    {
-      retries: EMBEDDING_MAX_ATTEMPTS - 1,
-      factor: 1,
-      randomize: true,
-      minTimeout: EMBEDDING_RETRY_BASE_MS,
-    },
-  );
+async function generateBatch(input: string[]): Promise<number[][]> {
+  const response = await embedGatewayTexts({
+    model: EMBEDDING_MODEL,
+    values: input,
+  });
+  const slots: (number[] | undefined)[] = Array.from({
+    length: input.length,
+  });
+  for (const item of validateEmbeddingItems(
+    response.embeddings.map((embedding, index) => ({ embedding, index })),
+    input.length,
+    EVAL_EMBEDDING_DIMENSIONS,
+  )) {
+    slots[item.index] = item.embedding;
+  }
+  return requireFilledVectors(slots, "embedding response");
 }
 
 let syntheticWarningShown = false;
