@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 export const AI_GATEWAY_BASE_URL = "https://ai-gateway.vercel.sh/v1";
 
 export const AI_GATEWAY_CHAT_MODEL = "alibaba/qwen3.7-flash";
@@ -37,42 +39,104 @@ export interface GatewayEmbeddingResponse {
 
 type FetchImpl = typeof fetch;
 
-function finiteNumber(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value)
-    ? value
-    : undefined;
-}
+const finite = z.number().finite();
+const costSchema = z.union([finite, z.string()]);
 
-function costNumber(value: unknown): number | undefined {
-  if (typeof value === "number" && Number.isFinite(value)) return value;
+const usageSchema = z
+  .object({
+    prompt_tokens: finite.optional(),
+    completion_tokens: finite.optional(),
+    total_tokens: finite.optional(),
+    cost: costSchema.optional(),
+    prompt_tokens_details: z
+      .object({ cached_tokens: finite.optional() })
+      .passthrough()
+      .optional(),
+    completion_tokens_details: z
+      .object({ reasoning_tokens: finite.optional() })
+      .passthrough()
+      .optional(),
+  })
+  .passthrough();
+
+const providerMetadataSchema = z
+  .object({
+    gateway: z.object({ cost: costSchema.optional() }).passthrough().optional(),
+  })
+  .passthrough();
+
+const gatewayBodySchema = z
+  .object({
+    id: z.string().optional(),
+    usage: usageSchema.optional(),
+    providerMetadata: providerMetadataSchema.optional(),
+    provider_metadata: providerMetadataSchema.optional(),
+    choices: z
+      .array(
+        z
+          .object({
+            finish_reason: z.string().nullable().optional(),
+            message: z
+              .object({ content: z.string().nullable().optional() })
+              .passthrough()
+              .optional(),
+          })
+          .passthrough(),
+      )
+      .optional(),
+    data: z
+      .array(
+        z
+          .object({
+            index: finite.optional(),
+            embedding: z.union([z.array(finite), z.string()]).optional(),
+          })
+          .passthrough(),
+      )
+      .optional(),
+    error: z
+      .object({ message: z.string().optional() })
+      .passthrough()
+      .optional(),
+  })
+  .passthrough();
+
+type GatewayBody = z.infer<typeof gatewayBodySchema>;
+
+function readCost(value: number | string | undefined): number | undefined {
+  if (typeof value === "number") return value;
   if (typeof value !== "string" || value.trim().length === 0) return undefined;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-function asRecord(value: unknown): Record<string, unknown> | undefined {
-  if (value !== null && typeof value === "object" && !Array.isArray(value)) {
-    return value as Record<string, unknown>;
-  }
-  return undefined;
+function emptyUsage(): GatewayUsage {
+  return {
+    promptTokens: undefined,
+    completionTokens: undefined,
+    totalTokens: undefined,
+    cachedTokens: undefined,
+    reasoningTokens: undefined,
+    costUsd: undefined,
+  };
+}
+
+function usageFromBody(body: GatewayBody): GatewayUsage {
+  const metadata = body.providerMetadata ?? body.provider_metadata;
+  return {
+    promptTokens: body.usage?.prompt_tokens,
+    completionTokens: body.usage?.completion_tokens,
+    totalTokens: body.usage?.total_tokens,
+    cachedTokens: body.usage?.prompt_tokens_details?.cached_tokens,
+    reasoningTokens: body.usage?.completion_tokens_details?.reasoning_tokens,
+    costUsd: readCost(metadata?.gateway?.cost) ?? readCost(body.usage?.cost),
+  };
 }
 
 export function parseGatewayUsage(body: unknown): GatewayUsage {
-  const root = asRecord(body);
-  const usage = asRecord(root?.usage);
-  const promptDetails = asRecord(usage?.prompt_tokens_details);
-  const completionDetails = asRecord(usage?.completion_tokens_details);
-  const providerMetadata =
-    asRecord(root?.providerMetadata) ?? asRecord(root?.provider_metadata);
-  const gateway = asRecord(providerMetadata?.gateway);
-  return {
-    promptTokens: finiteNumber(usage?.prompt_tokens),
-    completionTokens: finiteNumber(usage?.completion_tokens),
-    totalTokens: finiteNumber(usage?.total_tokens),
-    cachedTokens: finiteNumber(promptDetails?.cached_tokens),
-    reasoningTokens: finiteNumber(completionDetails?.reasoning_tokens),
-    costUsd: costNumber(gateway?.cost) ?? costNumber(usage?.cost),
-  };
+  const parsed = gatewayBodySchema.safeParse(body);
+  if (!parsed.success) return emptyUsage();
+  return usageFromBody(parsed.data);
 }
 
 function errorMessageFromBody(
@@ -80,8 +144,8 @@ function errorMessageFromBody(
   status: number,
   raw: string,
 ): string {
-  const error = asRecord(asRecord(body)?.error);
-  const message = error?.message;
+  const parsed = gatewayBodySchema.safeParse(body);
+  const message = parsed.success ? parsed.data.error?.message : undefined;
   if (typeof message === "string" && message.length > 0) {
     return `ai gateway http ${String(status)}: ${message}`;
   }
@@ -128,6 +192,14 @@ async function postGateway(args: {
   return json;
 }
 
+function parseGatewayBody(json: unknown, label: string): GatewayBody {
+  const parsed = gatewayBodySchema.safeParse(json);
+  if (!parsed.success) {
+    throw new Error(`ai gateway: ${label} response failed validation`);
+  }
+  return parsed.data;
+}
+
 export async function createGatewayChatCompletion(args: {
   apiKey: string;
   model: string;
@@ -146,18 +218,14 @@ export async function createGatewayChatCompletion(args: {
       stream: false,
     },
   });
-  const root = asRecord(json);
-  const choices = Array.isArray(root?.choices) ? root.choices : [];
-  const choice = asRecord(choices[0]);
-  const message = asRecord(choice?.message);
-  const content = message?.content;
-  const finishReason = choice?.finish_reason;
-  const id = root?.id;
+  const body = parseGatewayBody(json, "chat");
+  const choice = body.choices?.[0];
+  const content = choice?.message?.content;
   return {
-    id: typeof id === "string" ? id : undefined,
+    id: body.id,
     content: typeof content === "string" ? content : null,
-    finishReason: typeof finishReason === "string" ? finishReason : undefined,
-    usage: parseGatewayUsage(json),
+    finishReason: choice?.finish_reason ?? undefined,
+    usage: usageFromBody(body),
   };
 }
 
@@ -178,24 +246,13 @@ export async function createGatewayEmbeddings(args: {
       ...(args.dimensions === undefined ? {} : { dimensions: args.dimensions }),
     },
   });
-  const root = asRecord(json);
-  const data = Array.isArray(root?.data) ? root.data : [];
-  const id = root?.id;
+  const body = parseGatewayBody(json, "embedding");
   return {
-    id: typeof id === "string" ? id : undefined,
-    data: data.map((item) => {
-      const record = asRecord(item);
-      const embedding = record?.embedding;
-      const index = record?.index;
-      return {
-        embedding: Array.isArray(embedding)
-          ? (embedding as number[])
-          : typeof embedding === "string"
-            ? embedding
-            : [],
-        index: typeof index === "number" ? index : undefined,
-      };
-    }),
-    usage: parseGatewayUsage(json),
+    id: body.id,
+    data: (body.data ?? []).map((item) => ({
+      embedding: item.embedding ?? [],
+      index: item.index,
+    })),
+    usage: usageFromBody(body),
   };
 }

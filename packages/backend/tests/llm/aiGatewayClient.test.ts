@@ -26,8 +26,20 @@ function postedCall(fetchImpl: ReturnType<typeof mockFetch>): {
   init: RequestInit;
 } {
   const call = fetchImpl.mock.calls[0];
-  if (!call?.[1]) throw new Error("fetch was not called");
-  return { url: String(call[0]), init: call[1] };
+  const input = call?.[0];
+  const init = call?.[1];
+  if (typeof input !== "string" || !init) {
+    throw new Error("fetch was not called");
+  }
+  return { url: input, init };
+}
+
+function parsedBody(init: RequestInit): unknown {
+  if (typeof init.body !== "string") {
+    throw new Error("expected a string request body");
+  }
+  const parsed: unknown = JSON.parse(init.body);
+  return parsed;
 }
 
 describe("AI Gateway client", () => {
@@ -64,7 +76,7 @@ describe("AI Gateway client", () => {
     expect(new Headers(init.headers).get("Authorization")).toBe(
       "Bearer gw-test",
     );
-    expect(JSON.parse(String(init.body))).toEqual({
+    expect(parsedBody(init)).toEqual({
       model: "alibaba/qwen3.7-flash",
       messages: [{ role: "user", content: "hi" }],
       temperature: 0.1,
@@ -106,7 +118,7 @@ describe("AI Gateway client", () => {
     expect(new Headers(init.headers).get("Authorization")).toBe(
       "Bearer gw-test",
     );
-    expect(JSON.parse(String(init.body))).toEqual({
+    expect(parsedBody(init)).toEqual({
       model: "openai/text-embedding-3-small",
       input: ["hello"],
       dimensions: 1536,
