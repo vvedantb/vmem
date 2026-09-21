@@ -46,7 +46,7 @@ function ImportProviderCard({
   );
 }
 
-// panel body for the Import tab on `/settings/data-controls/import`
+// panel body for Sources → Import (`/$profileId/sources/import`)
 export default function ImportPageClient() {
   const createMemory = useAction(api.memoryApi.createMemory);
   const [step, setStep] = useState<ImportStep>({ phase: "idle" });

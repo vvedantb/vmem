@@ -16,7 +16,7 @@ test.describe("settings", { tag: ["@settings", "@smoke"] }, () => {
     await expect(nav.getByText("Integrations", { exact: true })).toBeVisible();
     await expect(nav.getByRole("link", { name: "Profiles" })).toBeVisible();
     await expect(nav.getByRole("link", { name: "API" })).toBeVisible();
-    await expect(nav.getByRole("link", { name: "Connectors" })).toBeVisible();
+    await expect(nav.getByRole("link", { name: "Connectors" })).toHaveCount(0);
     await expect(nav.getByRole("link", { name: "Extension" })).toBeVisible();
     await expect(
       nav.getByRole("link", { name: "Data Controls" }),
@@ -77,8 +77,9 @@ test.describe("settings", { tag: ["@settings", "@smoke"] }, () => {
     await expect(page.getByRole("button", { name: "New Key" })).toBeVisible();
   });
 
-  test("connectors", async ({ page }) => {
+  test("connectors redirects into sources", async ({ page }) => {
     await gotoSettings(page, "/connectors");
+    await expect(page).toHaveURL(/\/sources\/connectors/, { timeout: 20_000 });
     await expect(
       page.getByRole("heading", { name: "Connectors", exact: true }),
     ).toBeVisible({
@@ -86,6 +87,17 @@ test.describe("settings", { tag: ["@settings", "@smoke"] }, () => {
     });
     await expect(
       page.getByRole("button", { name: "Browse Connectors" }).first(),
+    ).toBeVisible();
+  });
+
+  test("import redirects into sources", async ({ page }) => {
+    await gotoSettings(page, "/data-controls/import");
+    await expect(page).toHaveURL(/\/sources\/import/, { timeout: 20_000 });
+    await expect(
+      page.getByRole("heading", { name: "Import", exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Import", exact: true }).first(),
     ).toBeVisible();
   });
 
@@ -137,16 +149,12 @@ test.describe("settings", { tag: ["@settings", "@smoke"] }, () => {
 
   test("data controls", async ({ page }) => {
     await gotoSettings(page, "/data-controls");
-    await expect(page.getByRole("tab", { name: "Import" })).toBeVisible({
+    await expect(page).toHaveURL(/\/settings\/data-controls\/export/, {
       timeout: 20_000,
     });
+    await expect(page.getByRole("tab", { name: "Import" })).toHaveCount(0);
     await expect(page.getByRole("tab", { name: "Export" })).toBeVisible();
     await expect(page.getByRole("tab", { name: "Data Control" })).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "Import" }).first(),
-    ).toBeVisible();
-
-    await page.getByRole("tab", { name: "Export" }).click();
     await expect(page.getByText("Export coming soon")).toBeVisible();
 
     await page.getByRole("tab", { name: "Data Control" }).click();

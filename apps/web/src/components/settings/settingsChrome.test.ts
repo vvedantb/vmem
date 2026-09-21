@@ -20,11 +20,11 @@ describe("settings chrome mirrors Eva", () => {
         "/settings/preferences",
         "/settings/profiles",
         "/settings/api",
-        "/settings/connectors",
         "/settings/extension",
         "/settings/data-controls",
       ]),
     );
+    expect(hrefs).not.toContain("/settings/connectors");
     expect(hrefs).not.toContain("/settings/secrets");
     expect(read("../../routeTree.gen.ts")).not.toContain("/settings/secrets");
   });

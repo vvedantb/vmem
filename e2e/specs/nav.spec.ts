@@ -18,6 +18,7 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
     await expect(page.getByRole("link", { name: "Wiki" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Skills" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Files" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Sources" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Inbox" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Settings" })).toBeVisible();
     await expect(
@@ -80,6 +81,17 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
     await expect(page.getByRole("button", { name: "Add" })).toBeVisible({
       timeout: 20_000,
     });
+    await assertNoFatalChrome(page);
+
+    await clickRail(page, "Sources");
+    await expect(page).toHaveURL(new RegExp(`/${profileId}/sources`));
+    await expect(sidebarViewLink(page, "Connectors")).toBeVisible({
+      timeout: 20_000,
+    });
+    await expect(sidebarViewLink(page, "Import")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Connectors", exact: true }),
+    ).toBeVisible();
     await assertNoFatalChrome(page);
 
     await clickRail(page, "Home");
@@ -157,15 +169,6 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
         },
       },
       {
-        name: "Connectors",
-        url: /\/settings\/connectors/,
-        check: async () => {
-          await expect(
-            page.getByRole("heading", { name: "Connectors", exact: true }),
-          ).toBeVisible();
-        },
-      },
-      {
         name: "Extension",
         url: /\/settings\/extension/,
         check: async () => {
@@ -178,7 +181,10 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
         name: "Data Controls",
         url: /\/settings\/data-controls/,
         check: async () => {
-          await expect(page.getByRole("tab", { name: "Import" })).toBeVisible();
+          await expect(page.getByRole("tab", { name: "Export" })).toBeVisible();
+          await expect(page.getByRole("tab", { name: "Import" })).toHaveCount(
+            0,
+          );
         },
       },
     ];

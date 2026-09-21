@@ -25,6 +25,7 @@ export type RailSection =
   | "wiki"
   | "skills"
   | "files"
+  | "sources"
   | "inbox"
   | "team"
   | "settings";
@@ -36,6 +37,20 @@ export const railLibraryItems: NavItem[] = [
   { href: "/$profileId/wiki", label: "Wiki", icon: IconWiki },
   { href: "/$profileId/skills", label: "Skills", icon: IconSkills },
   { href: "/$profileId/files", label: "Files", icon: IconFiles },
+  { href: "/$profileId/sources", label: "Sources", icon: IconPlugConnected },
+];
+
+export const sourcesNavItems: NavItem[] = [
+  {
+    href: "/$profileId/sources/connectors",
+    label: "Connectors",
+    icon: IconPlugConnected,
+  },
+  {
+    href: "/$profileId/sources/import",
+    label: "Import",
+    icon: IconFileImport,
+  },
 ];
 
 export const inboxRailItem: NavItem = {
@@ -78,6 +93,7 @@ export const panelTitleBySection: Record<RailSection, string> = {
   wiki: "Wiki",
   skills: "Skills",
   files: "Files",
+  sources: "Sources",
   inbox: "Inbox",
   team: "Team",
   settings: "Settings",
@@ -89,6 +105,7 @@ export function railSectionFromPathname(pathname: string): RailSection {
   if (sub.startsWith("/wiki")) return "wiki";
   if (sub.startsWith("/skills")) return "skills";
   if (sub.startsWith("/files")) return "files";
+  if (sub.startsWith("/sources")) return "sources";
   if (
     sub.startsWith("/inbox") ||
     sub.startsWith("/notifications") ||
@@ -111,7 +128,8 @@ type SidebarNavView =
   | "wiki"
   | "memories"
   | "inbox"
-  | "home";
+  | "home"
+  | "sources";
 
 export function navViewFromPathname(pathname: string): SidebarNavView {
   const section = railSectionFromPathname(pathname);
@@ -121,7 +139,8 @@ export function navViewFromPathname(pathname: string): SidebarNavView {
     section === "wiki" ||
     section === "memories" ||
     section === "inbox" ||
-    section === "home"
+    section === "home" ||
+    section === "sources"
   ) {
     return section;
   }
@@ -167,11 +186,6 @@ export const settingsNavGroups: SettingsNavGroup[] = [
   {
     title: "Integrations",
     items: [
-      {
-        href: "/settings/connectors",
-        label: "Connectors",
-        icon: IconPlugConnected,
-      },
       { href: "/settings/extension", label: "Extension", icon: IconPuzzle },
       {
         href: "/settings/data-controls",
