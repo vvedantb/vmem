@@ -18,18 +18,18 @@ Create `apps/web/.env.local`:
 
 Set these in the **Convex dashboard** (Settings → Environment Variables). The same names are in `packages/backend/.env.example` for local CLI tests.
 
-| Variable                 | Required | Description                                                              |
-| ------------------------ | -------- | ------------------------------------------------------------------------ |
-| `CLERK_FRONTEND_API_URL` | Yes      | Clerk JWKS domain for Convex auth                                        |
-| `CLERK_SECRET_KEY`       | Yes      | Clerk secret key (MCP OAuth token verify)                                |
-| `CLERK_PUBLISHABLE_KEY`  | Yes      | Clerk publishable key (MCP token verify)                                 |
-| `ENCRYPTION_KEY`         | Yes      | Base64-encoded AES-256 key for API key encryption                        |
-| `CONVEX_SITE_URL`        | Yes      | Your `.convex.site` URL (OAuth redirects)                                |
-| `WEB_APP_URL`            | Yes      | Web app origin (MCP OAuth callbacks)                                     |
-| `OPENROUTER_API_KEY`     | No       | Embeddings / fact extraction (Convex deployment env only)                |
-| `TYPESAFE_API_KEY`       | No       | TypeSafe Jev retrieve rerank and Dream Mode merge metadata (on when set) |
+| Variable                 | Required | Description                                                                |
+| ------------------------ | -------- | -------------------------------------------------------------------------- |
+| `CLERK_FRONTEND_API_URL` | Yes      | Clerk JWKS domain for Convex auth                                          |
+| `CLERK_SECRET_KEY`       | Yes      | Clerk secret key (MCP OAuth token verify)                                  |
+| `CLERK_PUBLISHABLE_KEY`  | Yes      | Clerk publishable key (MCP token verify)                                   |
+| `ENCRYPTION_KEY`         | Yes      | Base64-encoded AES-256 key for API key encryption                          |
+| `CONVEX_SITE_URL`        | Yes      | Your `.convex.site` URL (OAuth redirects)                                  |
+| `WEB_APP_URL`            | Yes      | Web app origin (MCP OAuth callbacks)                                       |
+| `AI_GATEWAY_API_KEY`     | No       | Embeddings / fact extraction via Vercel AI Gateway (Convex deployment env) |
+| `TYPESAFE_API_KEY`       | No       | TypeSafe Jev retrieve rerank and Dream Mode merge metadata (on when set)   |
 
-There is **no** in-app Settings → Secrets page. Operators set `OPENROUTER_API_KEY` and `TYPESAFE_API_KEY` on the Convex deployment (dashboard Environment Variables or `npx convex env set`). Instruction `save` / `update` over HTTP return `422 openrouter_required` when `OPENROUTER_API_KEY` is missing from the deployment.
+There is **no** in-app Settings → Secrets page. Operators set `AI_GATEWAY_API_KEY` and `TYPESAFE_API_KEY` on the Convex deployment (dashboard Environment Variables or `npx convex env set`). Instruction `save` / `update` over HTTP return `422 openrouter_required` when `AI_GATEWAY_API_KEY` is missing from the deployment. The error code stays `openrouter_required` so existing clients keep matching it.
 
 Optional Jev retrieve rerank and Dream Mode near-duplicate merge metadata: set `TYPESAFE_API_KEY` on the Convex deployment. Retrieve reranks automatically (no noul hard-drop). Dream Mode always creates a proposal for each heuristic cluster; Jev may override the keeper and the auto-accept signal. Missing key fail-opens to hybrid retrieve / heuristic merge (no 422). HTTP/SDK retrieve may pass `judge: "off"` for labelled ablation; LoCoMo CLI uses `LOCOMO_IR_JUDGE`. Live MCP retrieve does not expose that flag. Enablement notes live in `packages/backend/tests/memory/jev-retrieve-gate.md`.
 

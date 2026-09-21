@@ -12,7 +12,7 @@ When you retrieve memories from vmem, every result comes with a **context trace*
 When you call `memoryApi.retrieveMemories` or `POST /api/v1/memories/retrieve`, vmem scores candidates across:
 
 1. **Fulltext** — Keyword / BM25 / Convex full-text match against title and content
-2. **Vector** — Embedding similarity (when an OpenRouter key is configured)
+2. **Vector** — Embedding similarity (when `AI_GATEWAY_API_KEY` is configured)
 3. **Chunk** — Paragraph-level match within long memories
 4. **Entity** — Tag / proper-name overlap between query and memory
 5. **RRF** — Reciprocal rank fusion of the ranked legs

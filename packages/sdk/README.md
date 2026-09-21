@@ -50,14 +50,14 @@ const vmem = new VMemory({
 
 - **API key** (`VMEM_API_KEY` or `apiKey`) — required for all calls.
 - **Base URL** (`VMEM_BASE_URL` or `baseUrl`) — your Convex site URL (`https://<deployment>.convex.site`).
-- **OpenRouter key** (dashboard env) — required for agentic `save()` / `update()`. Those calls return HTTP 422 `{ error: "openrouter_required" }` when the key is missing. When set, vmem also embeds memories on write and can blend vector similarity into retrieve. `search({ summarize: true })` joins ranked titles (no LLM, no 422).
+- **AI Gateway key** (`AI_GATEWAY_API_KEY` on the Convex deployment) — required for agentic `save()` / `update()`. Those calls return HTTP 422 `{ error: "openrouter_required" }` when the key is missing. The error code string is unchanged for existing clients. When set, vmem also embeds memories on write and can blend vector similarity into retrieve. `search({ summarize: true })` joins ranked titles (no LLM, no 422).
 
 ## API
 
 | Method                    | Description                                                                                                                                                              |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `save(instruction)`       | Requires OpenRouter; 422 `openrouter_required` without it                                                                                                                |
-| `update(instruction)`     | Same OpenRouter gate as `save()`                                                                                                                                         |
+| `save(instruction)`       | Requires `AI_GATEWAY_API_KEY`; 422 `openrouter_required` without it                                                                                                      |
+| `update(instruction)`     | Same AI Gateway gate as `save()`                                                                                                                                         |
 | `search(query, options?)` | Hybrid retrieve; `type`/`tags`/`status` filters; `summarize: true` joins titles; Jev rerank when the deployment has `TYPESAFE_API_KEY` (`judge: "off"` is ablation-only) |
 | `createMemory(body)`      | Structured create (escape hatch)                                                                                                                                         |
 | `patchMemory(body)`       | Structured update by `id`                                                                                                                                                |
@@ -74,7 +74,7 @@ try {
   await vmem.save("...");
 } catch (error) {
   if (isVMemoryError(error) && error.code === "openrouter_required") {
-    // Set OPENROUTER_API_KEY on the Convex deployment
+    // Set AI_GATEWAY_API_KEY on the Convex deployment
   }
 }
 ```

@@ -48,7 +48,7 @@ A native Expo app and GitHub codebase indexer used to live in this repo. They ar
 1. Client calls `memoryApi.createMemory` (Convex `authAction`) or `POST /api/v1/memories`
 2. Convex verifies identity (Clerk session or API key) and resolves the profile
 3. The row is written to the Convex `memories` table (tags, optional expiry, source metadata)
-4. When an OpenRouter key is configured, an embedding is stored for vector search
+4. When `AI_GATEWAY_API_KEY` is configured, an embedding is stored for vector search
 5. Context prompt regeneration is scheduled (60s debounce)
 
 ### Retrieving Memories
@@ -64,7 +64,7 @@ A native Expo app and GitHub codebase indexer used to live in this repo. They ar
 1. The dream pass (Convex **action**) clusters visible memories with `clusterNearDuplicateMemories`
 2. When `TYPESAFE_API_KEY` is set, TypeSafe Jev annotates each cluster (merge noul, keeper, auto-accept). Missing key or Jev errors **fail-open** to the heuristic (same spirit as retrieve). Jev never skips creating a proposal.
 3. Every heuristic cluster becomes an inbox **merge** proposal. Auto-accept still materializes only when Jev marks the merge safe (or when Jev fail-opens)
-4. Jev does not write merged title/content or dream portraits — OpenRouter / the existing generative path still owns prose
+4. Jev does not write merged title/content or dream portraits — AI Gateway / the existing generative path still owns prose
 
 ### MCP Implicit Memory
 

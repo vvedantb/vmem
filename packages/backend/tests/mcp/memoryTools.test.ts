@@ -131,7 +131,10 @@ describe("MCP memory tool surfaces", () => {
     );
   });
 
-  it("instruction add documents the OpenRouter gate", () => {
+  it("instruction add documents the AI Gateway gate", () => {
+    expect(memoryToolSpecs.memory_add_instruction.description).toContain(
+      "AI_GATEWAY_API_KEY",
+    );
     expect(memoryToolSpecs.memory_add_instruction.description).toContain(
       "openrouter_required",
     );

@@ -33,7 +33,6 @@
     "@modelcontextprotocol/ext-apps": "1.7.2",
     "@modelcontextprotocol/sdk": "catalog:",
     "@notionhq/client": "^5.23.0",
-    "@openrouter/sdk": "^0.12.35",
     "@scure/base": "^2.2.0",
     "@vmem/sdk": "workspace:*",
     "@vmem/shared": "workspace:*",

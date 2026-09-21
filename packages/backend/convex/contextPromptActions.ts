@@ -121,7 +121,7 @@ export const regenerateContextPromptInternal = internalAction({
       content: m.content,
     }));
 
-    // profile summary is best-effort. without an openRouter key we still produce a useful prompt (about/preferences/pinned)
+    // profile summary is best-effort. without an AI Gateway key we still produce a useful prompt (about/preferences/pinned)
     const apiKey = readOpenRouterApiKey();
     const summary = apiKey
       ? await callSummarizer(ctx, apiKey, userId, recentSnippets)

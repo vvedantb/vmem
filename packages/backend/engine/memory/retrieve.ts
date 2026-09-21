@@ -49,7 +49,7 @@ export function toMemoryCandidate(
   };
 }
 
-// Honest non-LLM fallback: join ranked titles. Does not call OpenRouter and
+// Honest non-LLM fallback: join ranked titles. Does not call the LLM and
 // does not return 422. LLM summaries stay gated elsewhere.
 export function summarizeRetrievedMemories(
   memories: Array<Pick<MemoryWithTags, "title">>,

@@ -68,7 +68,7 @@ Retrieve already runs as an **action**:
 | Surface                                | Convex primitive    | `fetch`                             |
 | -------------------------------------- | ------------------- | ----------------------------------- |
 | Dashboard `memoryApi.retrieveMemories` | `authAction`        | yes                                 |
-| `POST /api/v1/memories/retrieve`       | `httpAction`        | yes (same as OpenRouter embeddings) |
+| `POST /api/v1/memories/retrieve`       | `httpAction`        | yes (same as AI Gateway embeddings) |
 | MCP `memory_retrieve`                  | `/mcp` `httpAction` | yes                                 |
 
 Queries and mutations **cannot** `fetch`. Do not move this call onto a query.
@@ -111,7 +111,7 @@ Results: [`benchmark/jev-gate-results.md`](./benchmark/jev-gate-results.md). Opt
 
 ## Dream Mode merge (always-on, no hard-drop)
 
-Same TypeSafe client (`evaluateSystemOne` / `TYPESAFE_API_KEY`) as retrieve. Dream Mode still **clusters heuristically** (`clusterNearDuplicateMemories` / `pickClusterKeeper`) and still uses **OpenRouter** for dream portraits and other prose. Jev annotates each heuristic near-dup cluster; it does **not** drop clusters.
+Same TypeSafe client (`evaluateSystemOne` / `TYPESAFE_API_KEY`) as retrieve. Dream Mode still **clusters heuristically** (`clusterNearDuplicateMemories` / `pickClusterKeeper`) and still uses **AI Gateway** for dream portraits and other prose. Jev annotates each heuristic near-dup cluster; it does **not** drop clusters.
 
 The dream pass already runs as a Convex **action**, so Jev `fetch`es from there (mutations still cannot). Per cluster, Jev answers:
 

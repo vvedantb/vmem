@@ -4,7 +4,10 @@ import {
   type EmbeddingItem,
 } from "../../../engine/llm/embeddingResponse";
 import { MEMORY_EMBEDDING_DIMENSIONS } from "../../../engine/memory/searchableText";
-import { createOpenRouterClient } from "../../../engine/llm/openRouterClient";
+import {
+  AI_GATEWAY_EMBEDDING_MODEL,
+  createGatewayEmbeddings,
+} from "../../../engine/llm/aiGatewayClient";
 import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
 import {
@@ -15,7 +18,7 @@ import {
   type OpenRouterFeature,
 } from "./shared";
 
-const EMBEDDING_MODEL = "openai/text-embedding-3-small";
+const EMBEDDING_MODEL = AI_GATEWAY_EMBEDDING_MODEL;
 const EMBEDDING_DIMENSIONS = MEMORY_EMBEDDING_DIMENSIONS;
 
 const EMBEDDING_PRICE_USD_PER_1K: Record<string, number> = {
@@ -91,27 +94,22 @@ async function postEmbeddingChunkWithRetry(
         : undefined;
 
       try {
-        const client = createOpenRouterClient(args.apiKey);
-        const response = await client.embeddings.generate({
-          requestBody: {
-            model: EMBEDDING_MODEL,
-            input: args.input,
-          },
+        const response = await createGatewayEmbeddings({
+          apiKey: args.apiKey,
+          model: EMBEDDING_MODEL,
+          input: args.input,
+          dimensions: EMBEDDING_DIMENSIONS,
         });
-
-        if (typeof response === "string") {
-          throw new Error("embedding response: unexpected string body");
-        }
 
         const items = validateEmbeddingItems(
           response.data,
           args.input.length,
           EMBEDDING_DIMENSIONS,
         );
-        const promptTokens = response.usage?.promptTokens ?? undefined;
-        const totalTokens = response.usage?.totalTokens ?? undefined;
+        const promptTokens = response.usage.promptTokens;
+        const totalTokens = response.usage.totalTokens;
         const costUsd =
-          response.usage?.cost ?? computeEmbeddingCost(totalTokens);
+          response.usage.costUsd ?? computeEmbeddingCost(totalTokens);
 
         await scheduleLog(args.ctx, {
           userId: args.userId,

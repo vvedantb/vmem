@@ -529,9 +529,6 @@ importers:
       '@notionhq/client':
         specifier: ^5.23.0
         version: 5.23.0
-      '@openrouter/sdk':
-        specifier: ^0.12.35
-        version: 0.12.35
       '@scure/base':
         specifier: ^2.2.0
         version: 2.2.0
@@ -2077,9 +2074,6 @@ packages:
   '@notionhq/client@5.23.0':
     resolution: {integrity: sha512-vTlkart40A89+l7+aRGNXLr+z3Af94dbaj/PFtommcwqCxWF9aByXmKgCGteD77It8u4ePE1DSL8eIVSANFGPg==}
     engines: {node: '>=18'}
-
-  '@openrouter/sdk@0.12.35':
-    resolution: {integrity: sha512-s4QVLLnG1AmfW3TjnnHUqGfsCkzwVK+kboGcZmKbde09m1DPqgzl4RUFt/HJ5v97MX8aEaN0UG3mKv2S+qj2Gw==}
 
   '@oslojs/asn1@1.0.0':
     resolution: {integrity: sha512-zw/wn0sj0j0QKbIXfIlnEcTviaCzYOY3V5rAyjR6YtOByFtJiT574+8p9Wlach0lZH9fddD4yb9laEAIl4vXQA==}
@@ -9757,10 +9751,6 @@ snapshots:
       fastq: 1.20.1
 
   '@notionhq/client@5.23.0': {}
-
-  '@openrouter/sdk@0.12.35':
-    dependencies:
-      zod: 4.3.6
 
   '@oslojs/asn1@1.0.0':
     dependencies:
