@@ -28,7 +28,7 @@ POST https://<your-deployment>.convex.site/mcp/team
 
 Authenticated via Clerk OAuth. See [MCP Setup](/mcp/setup).
 
-Skills, wiki, files, and `vmem://context_prompt` are **personal** only. Memory tools work on both connectors.
+Skills, wiki, files, and `vmem://context_prompt` used to be personal-only. **Skills tools and `vmem://skills/<name>` resources now work on both connectors**, scoped by grant (personal skills on `/mcp`, team skills on `/mcp/team`). Wiki, files, and `vmem://context_prompt` stay personal. Memory tools work on both connectors.
 
 ## Quick Tool Reference
 
@@ -47,7 +47,7 @@ Skills, wiki, files, and `vmem://context_prompt` are **personal** only. Memory t
 | `memory_delete`          | Delete a memory                                            | both     |
 | `memory_related`         | Neighbours by shared tags / similar text                   | both     |
 | `memory_graph`           | Interactive MCP App graph                                  | both     |
-| `skills_*`               | list / get / create / update / delete                      | personal |
+| `skills_*`               | list / recommend / get / create / update / delete          | both     |
 | `wiki_*`                 | list / get / search / create / update / delete             | personal |
 | `files_*`                | list / get / upload / delete                               | personal |
 
@@ -60,8 +60,9 @@ See [MCP Tools Reference](/mcp/tools) for full parameter details.
 | URI                     | Description                                                                      |
 | ----------------------- | -------------------------------------------------------------------------------- |
 | `vmem://context_prompt` | Synthesized user profile (about, preferences, pinned memories, activity summary) |
+| `vmem://skills/<name>`  | Enabled skill playbook (markdown instructions + description). Personal and team. |
 
-Personal connector only. See [Implicit Memory](/mcp/implicit-memory).
+`vmem://context_prompt` is personal-connector only. `vmem://skills/<name>` is registered for enabled skills granted to that connector (personal or team). See [Implicit Memory](/mcp/implicit-memory).
 
 ## Next Steps
 

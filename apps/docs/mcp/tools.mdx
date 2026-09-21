@@ -3,7 +3,7 @@ title: "MCP Tools"
 description: "Complete reference for all vmem MCP tools"
 ---
 
-Tools are registered from `packages/backend/convex/mcp/tools*.ts` and require a Clerk OAuth bearer token. Memory tools work on `/mcp` and `/mcp/team`. Skills, wiki, files, and `context_prompt_get` are personal-only.
+Tools are registered from `packages/backend/convex/mcp/tools*.ts` and require a Clerk OAuth bearer token. Memory tools work on `/mcp` and `/mcp/team`. Skills tools also work on both connectors (personal skills on `/mcp`, team-granted skills on `/mcp/team`). Wiki, files, and `context_prompt_get` are personal-only.
 
 ## ping
 
@@ -244,9 +244,28 @@ MCP App: interactive memory graph. Requires an MCP Apps–capable host.
 
 ## skills_list
 
-List skills authored by the authenticated user. Personal connector only.
+List enabled skills granted to this connector (name + description only).
 
 **Parameters:** none
+
+Personal `/mcp` returns the caller's personal skills. Team `/mcp/team` returns only that team's skills.
+
+---
+
+## skills_recommend
+
+Shortlist enabled skills that fit a short task. Uses TypeSafe Jev when `TYPESAFE_API_KEY` is set (same client as retrieve). Fail-open to lexical name/description ranking if the key or Jev is unavailable — the tool does not hard-fail.
+
+<ParamField body="query" type="string" required>
+  Short task or question to match against enabled skills
+</ParamField>
+<ParamField body="limit" type="number">
+  Max skills to return, 1–20 (default 8)
+</ParamField>
+
+**Returns:** `{ query, source: "jev" | "lexical", skills: [{ name, description, score }] }`
+
+Then call `skills_get` with an exact name for full markdown.
 
 ---
 

@@ -210,7 +210,8 @@ describe.skipIf(!runLive || !hasToken)("live MCP authenticated tools", () => {
     }
     expect(names).toContain(MEMORY_GRAPH_TOOL);
     expect(names).not.toContain("context_prompt_get");
-    expect(names.some((name) => name.startsWith("skills_"))).toBe(false);
+    expect(names.some((name) => name.startsWith("skills_"))).toBe(true);
+    expect(names).toContain("skills_recommend");
     expect(names.some((name) => name.startsWith("wiki_"))).toBe(false);
     expect(names.some((name) => name.startsWith("files_"))).toBe(false);
     expect(names.some((name) => name.toLowerCase().includes("neo4j"))).toBe(

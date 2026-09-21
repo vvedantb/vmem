@@ -35,7 +35,7 @@ Creator attribution is preserved on each memory and surfaced in the UI.
 
 Use the same `memoryApi.*` actions as personal memories and pass the team's `profileId`. Membership is checked in Convex before the row is read or written.
 
-MCP team scope is a separate endpoint: `https://<deployment>.convex.site/mcp/team`. Skills, wiki, files, and `vmem://context_prompt` are personal-connector only.
+MCP team scope is a separate endpoint: `https://<deployment>.convex.site/mcp/team`. Skills tools on `/mcp/team` see only skills granted to that team (membership is the grant). Personal `/mcp` sees personal skills only. Wiki, files, and `vmem://context_prompt` stay personal-connector only.
 
 See [Teams API Reference](/api-reference/teams) and [Memories API](/api-reference/memories).
 

@@ -42,7 +42,7 @@ describe("MCP tool catalog", () => {
     expect(toolSpecs.memory_search).toBe(memoryToolSpecs.memory_search);
   });
 
-  it("exposes personal-only tools on personal scope and hides them on team", () => {
+  it("exposes skills on both scopes and hides wiki/files/context_prompt on team", () => {
     const personal = catalogNamesForScope("personal");
     const team = catalogNamesForScope("team");
     expect(personal).toEqual(expect.arrayContaining([...SKILLS_TOOL_NAMES]));
@@ -51,10 +51,10 @@ describe("MCP tool catalog", () => {
     expect(personal).toContain("context_prompt_get");
     expect(personal).toContain(MEMORY_GRAPH_TOOL);
     expect(team).toEqual(expect.arrayContaining([...MEMORY_TOOL_NAMES]));
+    expect(team).toEqual(expect.arrayContaining([...SKILLS_TOOL_NAMES]));
     expect(team).toContain("ping");
     expect(team).toContain(MEMORY_GRAPH_TOOL);
     expect(team).not.toContain("context_prompt_get");
-    expect(team.some((name) => name.startsWith("skills_"))).toBe(false);
     expect(team.some((name) => name.startsWith("wiki_"))).toBe(false);
     expect(team.some((name) => name.startsWith("files_"))).toBe(false);
   });

@@ -85,6 +85,9 @@ const schema = defineSchema({
 
   oauthStates: defineTable(oauthStateFields).index("by_state", ["state"]),
 
+  // MCP grants: personal `/mcp` sees owner skills with teamId unset.
+  // Team `/mcp/team` sees skills whose teamId matches the active team profile.
+  // Membership is the grant — personal and team skills never leak across connectors.
   skills: defineTable(skillFields)
     .index("by_user", ["userId"])
     .index("by_user_name", ["userId", "name"])
