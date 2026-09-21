@@ -12,7 +12,6 @@ import {
   userSystemSkillFields,
   teamFields,
   teamMemberFields,
-  userEnvVarFields,
   openRouterLogFields,
   dreamTriggerStateFields,
   notificationFields,
@@ -136,8 +135,6 @@ const schema = defineSchema({
     .index("by_team_parent", ["teamId", "parentId"])
     // reverse lookup for the index cleanup guard, is any surviving file still pointing at this derived memory? (identical content files share one)
     .index("by_memory", ["memoryId"]),
-
-  userEnvVars: defineTable(userEnvVarFields).index("by_user", ["userId"]),
 
   // one row per openRouter api call
   openRouterLogs: defineTable(openRouterLogFields)

@@ -43,7 +43,7 @@ export default function RunDreamModeButton() {
           break;
         }
         case "no-key":
-          toast.error("Set OPENROUTER_API_KEY in settings to use Dream Mode");
+          toast.error("Sign in to run Dream Mode");
           break;
         case "no-recent-memories":
           toast.message(

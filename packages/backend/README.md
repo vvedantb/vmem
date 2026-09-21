@@ -19,22 +19,21 @@ Public HTTP routes (MCP, OAuth, health) are registered in `convex/http.ts` on th
 
 Memories are stored in Convex (`memories`). Convex also holds metadata, auth, and app state:
 
-| Table                            | Description                                |
-| -------------------------------- | ------------------------------------------ |
-| `users`                          | Clerk-linked user records                  |
-| `apiKeys`                        | API keys — AES-GCM encrypted at rest       |
-| `profiles`                       | Personal and team memory profiles          |
-| `teams` / `teamMembers`          | Team membership                            |
-| `skills`                         | Reusable instruction modules               |
-| `wikiNodes`                      | Personal wiki tree                         |
-| `memories`                       | Memory CRUD, search, and retrieve          |
-| `proposedUpdates`                | Inbox merge/update proposals               |
-| `connectors` / `connectorTokens` | External service integrations              |
-| `userSettings`                   | Preferences, about me, active profile      |
-| `contextPromptCache`             | Cached MCP context prompt markdown         |
-| `notifications`                  | In-app notifications                       |
-| `userEnvVars`                    | User-scoped env vars (e.g. OpenRouter key) |
-| `openRouterLogs`                 | LLM/embedding call audit trail             |
+| Table                            | Description                           |
+| -------------------------------- | ------------------------------------- |
+| `users`                          | Clerk-linked user records             |
+| `apiKeys`                        | API keys — AES-GCM encrypted at rest  |
+| `profiles`                       | Personal and team memory profiles     |
+| `teams` / `teamMembers`          | Team membership                       |
+| `skills`                         | Reusable instruction modules          |
+| `wikiNodes`                      | Personal wiki tree                    |
+| `memories`                       | Memory CRUD, search, and retrieve     |
+| `proposedUpdates`                | Inbox merge/update proposals          |
+| `connectors` / `connectorTokens` | External service integrations         |
+| `userSettings`                   | Preferences, about me, active profile |
+| `contextPromptCache`             | Cached MCP context prompt markdown    |
+| `notifications`                  | In-app notifications                  |
+| `openRouterLogs`                 | LLM/embedding call audit trail        |
 
 Audit trails (memory lifecycle, API key events, proposed-update resolutions) live in the `convex-audit-log` component — see `auditLog.ts`.
 
@@ -63,7 +62,7 @@ import { authQuery, authMutation, authAction } from "./auth";
 
 ## Environment
 
-Use `.env.example` as the complete template. Copy it to `.env.local` for local CLI scripts/tests, and set the Convex runtime variables in the Convex dashboard:
+Use `.env.example` as the complete template. Copy it to `.env.local` for local CLI scripts/tests, and set the Convex runtime variables on the **Convex deployment** (dashboard → Settings → Environment Variables, or `npx convex env set`). There is no in-app Secrets page; OpenRouter and TypeSafe/Jev keys are deployment env only:
 
 | Variable                          | Purpose                                                                                                   |
 | --------------------------------- | --------------------------------------------------------------------------------------------------------- |
@@ -72,7 +71,7 @@ Use `.env.example` as the complete template. Copy it to `.env.local` for local C
 | `CLERK_SECRET_KEY`                | Clerk Backend API / MCP token verify                                                                      |
 | `CLERK_PUBLISHABLE_KEY`           | MCP OAuth token verify (`authenticateRequest`)                                                            |
 | `CONVEX_SITE_URL` / `WEB_APP_URL` | OAuth redirects / resource docs                                                                           |
-| `OPENROUTER_API_KEY`              | Embeddings and fact extraction (Convex deployment env only; not Settings → Secrets)                       |
+| `OPENROUTER_API_KEY`              | Embeddings and context prompt generation                                                                  |
 | `TYPESAFE_API_KEY`                | Jev retrieve rerank and Dream Mode merge metadata (on when set; HTTP/SDK `judge: "off"` is ablation-only) |
 | `MEM0_API_KEY`                    | Optional labelled IR vs Mem0 (`eval:competitive`)                                                         |
 | `SUPERMEMORY_API_KEY`             | Optional labelled IR vs SuperMemory (`eval:competitive`)                                                  |

@@ -29,9 +29,9 @@ Set these in the **Convex dashboard** (Settings → Environment Variables). The 
 | `OPENROUTER_API_KEY`     | No       | Embeddings / fact extraction (Convex deployment env only)                |
 | `TYPESAFE_API_KEY`       | No       | TypeSafe Jev retrieve rerank and Dream Mode merge metadata (on when set) |
 
-`OPENROUTER_API_KEY` is **deployment env only** (Convex dashboard Environment Variables or `npx convex env set`). It is not read from in-app **Settings → Secrets**. Instruction `save` / `update` over HTTP return `422 openrouter_required` when the deployment key is missing.
+There is **no** in-app Settings → Secrets page. Operators set `OPENROUTER_API_KEY` and `TYPESAFE_API_KEY` on the Convex deployment (dashboard Environment Variables or `npx convex env set`). Instruction `save` / `update` over HTTP return `422 openrouter_required` when `OPENROUTER_API_KEY` is missing from the deployment.
 
-Optional Jev retrieve rerank and Dream Mode near-duplicate merge metadata: set `TYPESAFE_API_KEY` in the Convex dashboard (or a per-user secret with the same name in **Settings → Secrets**). Retrieve reranks automatically (no noul hard-drop). Dream Mode always creates a proposal for each heuristic cluster; Jev may override the keeper and the auto-accept signal. Missing key fail-opens to hybrid retrieve / heuristic merge (no 422). HTTP/SDK retrieve may pass `judge: "off"` for labelled ablation; LoCoMo CLI uses `LOCOMO_IR_JUDGE`. Live MCP retrieve does not expose that flag. Enablement notes live in `packages/backend/tests/memory/jev-retrieve-gate.md`.
+Optional Jev retrieve rerank and Dream Mode near-duplicate merge metadata: set `TYPESAFE_API_KEY` on the Convex deployment. Retrieve reranks automatically (no noul hard-drop). Dream Mode always creates a proposal for each heuristic cluster; Jev may override the keeper and the auto-accept signal. Missing key fail-opens to hybrid retrieve / heuristic merge (no 422). HTTP/SDK retrieve may pass `judge: "off"` for labelled ablation; LoCoMo CLI uses `LOCOMO_IR_JUDGE`. Live MCP retrieve does not expose that flag. Enablement notes live in `packages/backend/tests/memory/jev-retrieve-gate.md`.
 
 There is **no** `NEO4J_*` or `MCP_JWT_SECRET` on current `main`.
 

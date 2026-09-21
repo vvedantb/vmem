@@ -339,17 +339,6 @@ export const skillVersionFields = {
   createdAt: v.number(),
 };
 
-export const userEnvVarFields = {
-  userId: v.id("users"),
-  vars: v.array(
-    v.object({
-      key: v.string(),
-      value: v.string(),
-    }),
-  ),
-  updatedAt: v.number(),
-};
-
 export const openRouterLogRecordFields = {
   userId: v.id("users"),
   profileId: v.optional(v.string()),

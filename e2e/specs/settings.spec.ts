@@ -16,7 +16,6 @@ test.describe("settings", { tag: ["@settings", "@smoke"] }, () => {
     await expect(nav.getByText("Integrations", { exact: true })).toBeVisible();
     await expect(nav.getByRole("link", { name: "Profiles" })).toBeVisible();
     await expect(nav.getByRole("link", { name: "API" })).toBeVisible();
-    await expect(nav.getByRole("link", { name: "Secrets" })).toBeVisible();
     await expect(nav.getByRole("link", { name: "Connectors" })).toBeVisible();
     await expect(nav.getByRole("link", { name: "Extension" })).toBeVisible();
     await expect(
@@ -76,19 +75,6 @@ test.describe("settings", { tag: ["@settings", "@smoke"] }, () => {
     await expect(page.getByRole("heading", { name: "API keys" })).toBeVisible();
     await gotoSettings(page, "/api/keys");
     await expect(page.getByRole("button", { name: "New Key" })).toBeVisible();
-  });
-
-  test("secrets", async ({ page }) => {
-    await gotoSettings(page, "/secrets");
-    await expect(
-      page.getByRole("heading", { name: "Secrets", exact: true }),
-    ).toBeVisible({
-      timeout: 20_000,
-    });
-    await expect(
-      page.getByRole("button", { name: "Add Variable" }),
-    ).toBeVisible();
-    await expect(page.getByText(/encrypted at rest/i)).toBeVisible();
   });
 
   test("connectors", async ({ page }) => {
