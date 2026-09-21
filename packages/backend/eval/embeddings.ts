@@ -1,13 +1,13 @@
 import { validateEmbeddingItems } from "../engine/llm/embeddingResponse";
-import { createOpenRouterClient } from "../engine/llm/openRouterClient";
-import pRetry from "p-retry";
+import {
+  AI_GATEWAY_EMBEDDING_MODEL,
+  embedGatewayTexts,
+} from "../engine/llm/aiGateway";
 
-const EMBEDDING_MODEL = "openai/text-embedding-3-small";
+const EMBEDDING_MODEL = AI_GATEWAY_EMBEDDING_MODEL;
 export const EVAL_EMBEDDING_DIMENSIONS = 1536;
 const EMBEDDING_BATCH_SIZE = 20;
 const EMBEDDING_MAX_INPUT_CHARS = 6000;
-const EMBEDDING_MAX_ATTEMPTS = 5;
-const EMBEDDING_RETRY_BASE_MS = 800;
 
 function rollingHash(text: string, multiplier: number): number {
   let hash = 0;
@@ -86,64 +86,51 @@ function requireFilledVectors(
   return result;
 }
 
-async function generateOpenRouterEmbeddings(
-  texts: string[],
-): Promise<number[][]> {
-  const apiKey = process.env.OPENROUTER_API_KEY;
+function readGatewayApiKey(): string | undefined {
+  const key = process.env.AI_GATEWAY_API_KEY?.trim();
+  return key && key.length > 0 ? key : undefined;
+}
+
+async function generateGatewayEmbeddings(texts: string[]): Promise<number[][]> {
+  const apiKey = readGatewayApiKey();
   if (!apiKey) {
-    throw new Error("OPENROUTER_API_KEY is not set");
+    throw new Error("AI_GATEWAY_API_KEY is not set");
   }
 
-  const client = createOpenRouterClient(apiKey);
   const result: number[][] = [];
   for (let offset = 0; offset < texts.length; offset += EMBEDDING_BATCH_SIZE) {
     const input = texts
       .slice(offset, offset + EMBEDDING_BATCH_SIZE)
       .map((text) => text.slice(0, EMBEDDING_MAX_INPUT_CHARS));
-    const vectors = await generateBatchWithRetry(client, input);
+    const vectors = await generateBatch(input);
     result.push(...vectors);
   }
 
   return result;
 }
 
-async function generateBatchWithRetry(
-  client: ReturnType<typeof createOpenRouterClient>,
-  input: string[],
-): Promise<number[][]> {
-  return pRetry(
-    async () => {
-      const response = await client.embeddings.generate({
-        requestBody: { model: EMBEDDING_MODEL, input },
-      });
-      if (typeof response === "string") {
-        throw new Error("embedding response: unexpected string body");
-      }
-      const slots: (number[] | undefined)[] = Array.from({
-        length: input.length,
-      });
-      for (const item of validateEmbeddingItems(
-        response.data,
-        input.length,
-        EVAL_EMBEDDING_DIMENSIONS,
-      )) {
-        slots[item.index] = item.embedding;
-      }
-      return requireFilledVectors(slots, "embedding response");
-    },
-    {
-      retries: EMBEDDING_MAX_ATTEMPTS - 1,
-      factor: 1,
-      randomize: true,
-      minTimeout: EMBEDDING_RETRY_BASE_MS,
-    },
-  );
+async function generateBatch(input: string[]): Promise<number[][]> {
+  const response = await embedGatewayTexts({
+    model: EMBEDDING_MODEL,
+    values: input,
+  });
+  const slots: (number[] | undefined)[] = Array.from({
+    length: input.length,
+  });
+  for (const item of validateEmbeddingItems(
+    response.embeddings.map((embedding, index) => ({ embedding, index })),
+    input.length,
+    EVAL_EMBEDDING_DIMENSIONS,
+  )) {
+    slots[item.index] = item.embedding;
+  }
+  return requireFilledVectors(slots, "embedding response");
 }
 
 let syntheticWarningShown = false;
 
-export function embeddingMode(): "openrouter" | "synthetic" {
-  return process.env.OPENROUTER_API_KEY ? "openrouter" : "synthetic";
+export function embeddingMode(): "gateway" | "synthetic" {
+  return readGatewayApiKey() ? "gateway" : "synthetic";
 }
 
 export async function generateEvalEmbeddings(
@@ -151,13 +138,13 @@ export async function generateEvalEmbeddings(
 ): Promise<number[][]> {
   if (texts.length === 0) return [];
 
-  if (embeddingMode() === "openrouter") {
-    return generateOpenRouterEmbeddings(texts);
+  if (embeddingMode() === "gateway") {
+    return generateGatewayEmbeddings(texts);
   }
 
   if (!syntheticWarningShown) {
     console.warn(
-      "OPENROUTER_API_KEY not set — using deterministic synthetic embeddings for eval",
+      "AI_GATEWAY_API_KEY not set — using deterministic synthetic embeddings for eval",
     );
     syntheticWarningShown = true;
   }

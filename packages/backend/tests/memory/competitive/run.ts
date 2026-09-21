@@ -211,7 +211,7 @@ export async function runCompetitive(
     answerable: answerable.length,
     abstention: abstention.length,
     queryCount: corpus.queries.length,
-    embeddingNote: `vmem ${embeddingMode()} (OpenRouter text-embedding-3-small when OPENROUTER_API_KEY is set; else synthetic). Mem0/SuperMemory use their hosted embedders.`,
+    embeddingNote: `vmem ${embeddingMode()} (AI Gateway openai/text-embedding-3-small when AI_GATEWAY_API_KEY is set; else synthetic). Mem0/SuperMemory use their hosted embedders.`,
     subsetNote,
     rows,
   });

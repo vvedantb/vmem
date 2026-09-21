@@ -14,14 +14,14 @@ description: "What happens after a memory is written"
 After a memory is created (web, MCP `memory_add`, HTTP, Chrome extension, import):
 
 1. The row is stored in the Convex `memories` table
-2. If an OpenRouter key is available, vmem **embeds** the memory so later retrieve can blend vector similarity
+2. If an AI Gateway key is available, vmem **embeds** the memory so later retrieve can blend vector similarity
 3. Context prompt regeneration is scheduled (60s debounce)
 
 There is no separate client-side enrichment queue.
 
 ## Instruction extraction
 
-Agentic `save()` / `memory_add_instruction` / HTTP `{ "instruction": "..." }` still call OpenRouter for **fact extraction** (`feature: "fact-extraction"`). That path is gated: missing key → HTTP `422 openrouter_required`. It creates new memories; it does not currently enqueue conflict proposals.
+Agentic `save()` / `memory_add_instruction` / HTTP `{ "instruction": "..." }` call Vercel AI Gateway for **fact extraction** (`feature: "fact-extraction"`). That path is gated: missing key → HTTP `422 openrouter_required`. It creates new memories; it does not currently enqueue conflict proposals.
 
 ## Related memories
 
@@ -29,4 +29,4 @@ Agentic `save()` / `memory_add_instruction` / HTTP `{ "instruction": "..." }` st
 
 ## Requirements
 
-Embeddings and fact extraction need `OPENROUTER_API_KEY` on the Convex deployment (dashboard Environment Variables or `npx convex env set`). If the key is missing, structured creates still succeed; instruction writes fail with `openrouter_required`.
+Embeddings and fact extraction need `AI_GATEWAY_API_KEY` on the Convex deployment (dashboard Environment Variables or `npx convex env set`). If the key is missing, structured creates still succeed; instruction writes fail with `openrouter_required`.

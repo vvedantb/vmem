@@ -162,7 +162,7 @@ Store a new memory.
 
 ## memory_add_instruction
 
-Store memories from natural language. The server uses OpenRouter to extract atomic facts and creates memories (same pipeline as `POST /api/v1/memories` with `{ "instruction": "..." }`).
+Store memories from natural language. The server uses Vercel AI Gateway to extract atomic facts and creates memories (same pipeline as `POST /api/v1/memories` with `{ "instruction": "..." }`). Requires `AI_GATEWAY_API_KEY`; missing key returns `openrouter_required`.
 
 <ParamField body="instruction" type="string" required>
   What to remember (conversation summary, preferences, decisions, etc.)
@@ -171,7 +171,7 @@ Store memories from natural language. The server uses OpenRouter to extract atom
   Profile to add to (defaults to active MCP profile)
 </ParamField>
 
-**Returns:** `{ created: Memory[], summary: string }` or an error if OpenRouter is not configured.
+**Returns:** `{ created: Memory[], summary: string }` or `openrouter_required` if `AI_GATEWAY_API_KEY` is not configured.
 
 ---
 

@@ -41,7 +41,7 @@ export function hasTrendActivity(trend: number[]): boolean {
   return trend.some((value) => value > 0);
 }
 
-// format a USD amount with the precision OpenRouter quotes (4dp)
+// format a USD amount to 4 decimal places
 export function formatCostUsd(amount: number): string {
   if (amount === 0) return "$0";
   if (amount < 0.0001) return "<$0.0001";

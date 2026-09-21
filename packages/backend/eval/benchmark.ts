@@ -413,7 +413,7 @@ ${vsNeo4j}
 - Legs: \`vector-only\` / \`bm25-only\` are naive single-channel baselines (temporal off). \`hybrid (no graph)\` is lexical+vector+recency+temporal. \`hybrid (no temporal)\` is full hybrid without the event-window leg. \`full hybrid\` adds stored memory links (up to 2 hops) as a second pass.
 - Query types: **single-fact / preference** one clear answer. **exact-match** distinctive codes among lookalikes. **project** sibling facts that never repeat the codename. **lexical-trap** repeats a query keyword in a different sense (graded 0). **update** stale vs current, recency separates them. **multi-hop** gold is one stored link from a bridge that shares the query entity. **temporal** event windows / currently vs same-age stale, not list order.
 - Pure retrieval metrics + latency. No LLM judge. Neo4j is not used.
-- Convex numbers in this environment use deterministic synthetic embeddings unless \`OPENROUTER_API_KEY\` is set. The Neo4j 2026-07-18 bar used OpenRouter \`text-embedding-3-small\`.
+- Convex numbers in this environment use deterministic synthetic embeddings unless \`AI_GATEWAY_API_KEY\` is set. The Neo4j 2026-07-18 bar used OpenRouter \`text-embedding-3-small\`.
 `;
 }
 
@@ -1138,7 +1138,7 @@ ${dropLines}
 - Default-on over-fetches 20 hits, Jev annotates and reranks that head, eval slices to k=10. noul **0.5** is diagnostic only (live smoke gold 0.66 vs traps 0.03); low-noul hits stay in the list.
 - Jev is weak at date math — temporal windows still come from \`temporal.ts\`.
 - Missing \`TYPESAFE_API_KEY\` on retrieve in prod fail-opens to hybrid. This labelled comparison **requires** a live key.
-- Embeddings are synthetic unless \`OPENROUTER_API_KEY\` is set. Jev judges title/content, so the embedder only changes the hybrid head it sees.
+- Embeddings are synthetic unless \`AI_GATEWAY_API_KEY\` is set. Jev judges title/content, so the embedder only changes the hybrid head it sees.
 - Token usage is whatever System One returned; dollar cost is not inferred.
 `;
 }

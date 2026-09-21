@@ -26,7 +26,7 @@ export VMEM_API_KEY="vmem_sk_..."
 export VMEM_BASE_URL="https://<your-deployment>.convex.site"
 ```
 
-Agentic `save()` and `update()` require an **OpenRouter API key** in vmem (dashboard secret or deployment env). Missing key → HTTP `422` `{ error: "openrouter_required" }`.
+Agentic `save()` and `update()` require **`AI_GATEWAY_API_KEY`** on the Convex deployment. Missing key → HTTP `422` `{ error: "openrouter_required" }`.
 
 ## Usage
 
@@ -57,8 +57,8 @@ const vmem = new VMemory({
 
 | Method                    | HTTP                             | Description                                                                                      |
 | ------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `save(instruction)`       | `POST /api/v1/memories`          | Extract facts and create memories (OpenRouter)                                                   |
-| `update(instruction)`     | `PATCH /api/v1/memories`         | Same OpenRouter gate as `save()`                                                                 |
+| `save(instruction)`       | `POST /api/v1/memories`          | Extract facts and create memories (AI Gateway)                                                   |
+| `update(instruction)`     | `PATCH /api/v1/memories`         | Same AI Gateway gate as `save()`                                                                 |
 | `search(query, options?)` | `POST /api/v1/memories/retrieve` | Hybrid retrieve; `type` / `tags` / `status` / `threshold` / `rerank` / `judge` / `referenceDate` |
 | `createMemory(body)`      | `POST /api/v1/memories`          | Structured create (escape hatch)                                                                 |
 | `patchMemory(body)`       | `PATCH /api/v1/memories`         | Structured update by `id`                                                                        |
@@ -92,7 +92,7 @@ try {
   await vmem.save("...");
 } catch (error) {
   if (isVMemoryError(error) && error.code === "openrouter_required") {
-    // Set OPENROUTER_API_KEY on the Convex deployment
+    // Set AI_GATEWAY_API_KEY on the Convex deployment
   }
 }
 ```

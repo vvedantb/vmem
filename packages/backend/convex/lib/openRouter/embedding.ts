@@ -1,10 +1,12 @@
-import pRetry from "p-retry";
 import {
   validateEmbeddingItems,
   type EmbeddingItem,
 } from "../../../engine/llm/embeddingResponse";
 import { MEMORY_EMBEDDING_DIMENSIONS } from "../../../engine/memory/searchableText";
-import { createOpenRouterClient } from "../../../engine/llm/openRouterClient";
+import {
+  AI_GATEWAY_EMBEDDING_MODEL,
+  embedGatewayTexts,
+} from "../../../engine/llm/aiGateway";
 import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
 import {
@@ -15,7 +17,7 @@ import {
   type OpenRouterFeature,
 } from "./shared";
 
-const EMBEDDING_MODEL = "openai/text-embedding-3-small";
+const EMBEDDING_MODEL = AI_GATEWAY_EMBEDDING_MODEL;
 const EMBEDDING_DIMENSIONS = MEMORY_EMBEDDING_DIMENSIONS;
 
 const EMBEDDING_PRICE_USD_PER_1K: Record<string, number> = {
@@ -23,7 +25,6 @@ const EMBEDDING_PRICE_USD_PER_1K: Record<string, number> = {
 };
 
 const EMBEDDING_BATCH_SIZE = 20;
-const EMBEDDING_MAX_RETRY_ATTEMPTS = 4;
 const EMBEDDING_MAX_INPUT_CHARS = 6000;
 
 interface EmbeddingCallArgs {
@@ -56,7 +57,7 @@ export async function generateEmbeddings(
     const slice = args.texts
       .slice(offset, offset + EMBEDDING_BATCH_SIZE)
       .map((text) => truncate(text, EMBEDDING_MAX_INPUT_CHARS));
-    const response = await postEmbeddingChunkWithRetry({
+    const response = await postEmbeddingChunk({
       ctx: args.ctx,
       apiKey: args.apiKey,
       userId: args.userId,
@@ -80,74 +81,57 @@ interface EmbeddingChunkArgs {
   input: string[];
 }
 
-async function postEmbeddingChunkWithRetry(
+async function postEmbeddingChunk(
   args: EmbeddingChunkArgs,
 ): Promise<EmbeddingItem[]> {
-  return pRetry(
-    async () => {
-      const previews = previewsEnabled();
-      const promptPreview = previews
-        ? truncate(args.input.join("\n---\n"), PROMPT_PREVIEW_BYTES)
-        : undefined;
+  const previews = previewsEnabled();
+  const promptPreview = previews
+    ? truncate(args.input.join("\n---\n"), PROMPT_PREVIEW_BYTES)
+    : undefined;
 
-      try {
-        const client = createOpenRouterClient(args.apiKey);
-        const response = await client.embeddings.generate({
-          requestBody: {
-            model: EMBEDDING_MODEL,
-            input: args.input,
-          },
-        });
+  try {
+    if (args.apiKey.length === 0) {
+      throw new Error("AI_GATEWAY_API_KEY is not set");
+    }
+    const response = await embedGatewayTexts({
+      model: EMBEDDING_MODEL,
+      values: args.input,
+    });
+    const items = validateEmbeddingItems(
+      response.embeddings.map((embedding, index) => ({ embedding, index })),
+      args.input.length,
+      EMBEDDING_DIMENSIONS,
+    );
+    const promptTokens = response.tokens;
+    const totalTokens = response.tokens;
+    const costUsd = response.costUsd ?? computeEmbeddingCost(totalTokens);
 
-        if (typeof response === "string") {
-          throw new Error("embedding response: unexpected string body");
-        }
+    await scheduleLog(args.ctx, {
+      userId: args.userId,
+      profileId: args.profileId,
+      feature: args.feature,
+      endpoint: "embedding",
+      model: EMBEDDING_MODEL,
+      promptTokens,
+      totalTokens,
+      costUsd,
+      promptPreview,
+    });
 
-        const items = validateEmbeddingItems(
-          response.data,
-          args.input.length,
-          EMBEDDING_DIMENSIONS,
-        );
-        const promptTokens = response.usage?.promptTokens ?? undefined;
-        const totalTokens = response.usage?.totalTokens ?? undefined;
-        const costUsd =
-          response.usage?.cost ?? computeEmbeddingCost(totalTokens);
-
-        await scheduleLog(args.ctx, {
-          userId: args.userId,
-          profileId: args.profileId,
-          feature: args.feature,
-          endpoint: "embedding",
-          model: EMBEDDING_MODEL,
-          generationId: response.id,
-          promptTokens,
-          totalTokens,
-          costUsd,
-          promptPreview,
-        });
-
-        return items;
-      } catch (e) {
-        const errorMessage = e instanceof Error ? e.message : String(e);
-        await scheduleLog(args.ctx, {
-          userId: args.userId,
-          profileId: args.profileId,
-          feature: args.feature,
-          endpoint: "embedding",
-          model: EMBEDDING_MODEL,
-          errorMessage,
-          promptPreview,
-        });
-        throw e instanceof Error ? e : new Error(errorMessage);
-      }
-    },
-    {
-      retries: EMBEDDING_MAX_RETRY_ATTEMPTS,
-      minTimeout: 500,
-      factor: 2,
-      randomize: true,
-    },
-  );
+    return items;
+  } catch (e) {
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    await scheduleLog(args.ctx, {
+      userId: args.userId,
+      profileId: args.profileId,
+      feature: args.feature,
+      endpoint: "embedding",
+      model: EMBEDDING_MODEL,
+      errorMessage,
+      promptPreview,
+    });
+    throw e instanceof Error ? e : new Error(errorMessage);
+  }
 }
 
 function computeEmbeddingCost(

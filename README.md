@@ -17,7 +17,7 @@ This repo is the source tree. It does not include `.env.local` or other secrets.
 
 vmem is a memory layer for AI tools. LLMs forget between sessions and across providers. This project keeps a shared, inspectable graph of what the user knows and cares about, and exposes it over MCP, HTTP, and a small SDK.
 
-Memories live in Convex. Convex also handles auth, profiles, teams, the web/API surface, and scheduled work. The web app and Chrome extension are clients on top of that. Retrieval ranks memories with Convex full-text search, lexical/synonym overlap, recency, temporal windows, and optional vector similarity when an OpenRouter embedding key is configured. When `TYPESAFE_API_KEY` is set, TypeSafe Jev reranks the top 20 hits (score / best; no noul hard-drop); missing key leaves hybrid ranking as-is. Pass `judge: "off"` to skip Jev for ablation. List and retrieve honor `type`, `tags`, and `status` filters (tags are normalized to lowercase-hyphenated). Agentic instruction store/update requires `OPENROUTER_API_KEY` and returns HTTP 422 `openrouter_required` without it. `summarize: true` joins ranked titles and does not call an LLM. Each hit still explains itself in a Context Trace.
+Memories live in Convex. Convex also handles auth, profiles, teams, the web/API surface, and scheduled work. The web app and Chrome extension are clients on top of that. Retrieval ranks memories with Convex full-text search, lexical/synonym overlap, recency, temporal windows, and optional vector similarity when an AI Gateway key is configured. When `TYPESAFE_API_KEY` is set, TypeSafe Jev reranks the top 20 hits (score / best; no noul hard-drop); missing key leaves hybrid ranking as-is. Pass `judge: "off"` to skip Jev for ablation. List and retrieve honor `type`, `tags`, and `status` filters (tags are normalized to lowercase-hyphenated). Agentic instruction store/update requires `AI_GATEWAY_API_KEY` and returns HTTP 422 `openrouter_required` without it. `summarize: true` joins ranked titles and does not call an LLM. Each hit still explains itself in a Context Trace.
 
 Other bits worth knowing: conflicting updates become proposals instead of silent overwrites, team workspaces share one profile graph, Dream Mode synthesises higher-level memories in the background.
 
@@ -117,7 +117,7 @@ CLERK_PUBLISHABLE_KEY
 ENCRYPTION_KEY              # base64
 CONVEX_SITE_URL
 WEB_APP_URL
-OPENROUTER_API_KEY          # embeddings + instruction extraction (deployment env only)
+AI_GATEWAY_API_KEY          # embeddings + instruction extraction (deployment env only)
 ```
 
 Optional: `GOOGLE_CLIENT_*`, `NOTION_CLIENT_*`, `TYPESAFE_API_KEY` (Jev retrieve rerank and Dream Mode merge metadata; see [`packages/backend/tests/memory/jev-retrieve-gate.md`](packages/backend/tests/memory/jev-retrieve-gate.md)). There is no in-app Secrets page — set provider keys with `npx convex env set` or the Convex dashboard Environment Variables.

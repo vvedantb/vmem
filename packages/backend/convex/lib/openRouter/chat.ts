@@ -1,7 +1,6 @@
-import type { ChatResult as SdkChatResult } from "@openrouter/sdk/models";
 import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
-import { createOpenRouterClient } from "../../../engine/llm/openRouterClient";
+import { generateGatewayText } from "../../../engine/llm/aiGateway";
 import {
   COMPLETION_PREVIEW_BYTES,
   PROMPT_PREVIEW_BYTES,
@@ -46,38 +45,27 @@ export async function callOpenRouterChat(
   let cacheWriteTokens: number | undefined;
   let reasoningTokens: number | undefined;
   let costUsd: number | undefined;
-  let upstreamCostUsd: number | undefined;
-  let isByok: boolean | undefined;
 
   try {
-    const client = createOpenRouterClient(args.apiKey);
-    const json = await client.chat.send({
-      chatRequest: {
-        model: args.model,
-        messages: args.messages,
-        temperature: args.temperature ?? 0.1,
-        stream: false,
-      },
+    if (args.apiKey.length === 0) {
+      throw new Error("AI_GATEWAY_API_KEY is not set");
+    }
+    const json = await generateGatewayText({
+      model: args.model,
+      messages: args.messages,
+      temperature: args.temperature ?? 0.1,
     });
 
-    content = extractChatContent(json);
-    generationId = json.id;
-    const finishReasonRaw = json.choices.at(0)?.finishReason;
-    finishReason =
-      typeof finishReasonRaw === "string" ? finishReasonRaw : undefined;
-
-    const usage = json.usage;
-    promptTokens = usage?.promptTokens ?? undefined;
-    completionTokens = usage?.completionTokens ?? undefined;
-    totalTokens = usage?.totalTokens ?? undefined;
-    cachedTokens = usage?.promptTokensDetails?.cachedTokens ?? undefined;
-    cacheWriteTokens =
-      usage?.promptTokensDetails?.cacheWriteTokens ?? undefined;
-    reasoningTokens =
-      usage?.completionTokensDetails?.reasoningTokens ?? undefined;
-    costUsd = usage?.cost ?? undefined;
-    upstreamCostUsd = usage?.costDetails?.upstreamInferenceCost ?? undefined;
-    isByok = usage?.isByok;
+    content = json.text.length > 0 ? json.text : null;
+    generationId = json.responseId;
+    finishReason = json.finishReason;
+    promptTokens = json.promptTokens;
+    completionTokens = json.completionTokens;
+    totalTokens = json.totalTokens;
+    cachedTokens = json.cachedTokens;
+    cacheWriteTokens = json.cacheWriteTokens;
+    reasoningTokens = json.reasoningTokens;
+    costUsd = json.costUsd;
 
     if (content === null) {
       errorMessage = "no string content in choices[0].message";
@@ -107,8 +95,6 @@ export async function callOpenRouterChat(
     cacheWriteTokens,
     reasoningTokens,
     costUsd,
-    upstreamCostUsd,
-    isByok,
     promptPreview,
     completionPreview,
   });
@@ -118,9 +104,4 @@ export async function callOpenRouterChat(
 
 function joinMessagesForPreview(messages: ChatMessage[]): string {
   return messages.map((m) => `${m.role}: ${m.content}`).join("\n\n");
-}
-
-function extractChatContent(json: SdkChatResult): string | null {
-  const messageContent = json.choices.at(0)?.message?.content;
-  return typeof messageContent === "string" ? messageContent : null;
 }

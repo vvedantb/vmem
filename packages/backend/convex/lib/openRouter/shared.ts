@@ -1,11 +1,12 @@
 import type { FunctionArgs } from "convex/server";
 import type { ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
+import { AI_GATEWAY_CHAT_MODEL } from "../../../engine/llm/aiGateway";
 import type { OpenRouterFeature } from "./schemas";
 
 export type { OpenRouterFeature };
 
-export const LLM_MODEL = "qwen/qwen3-235b-a22b-2507";
+export const LLM_MODEL = AI_GATEWAY_CHAT_MODEL;
 
 export const PROMPT_PREVIEW_BYTES = 4096;
 export const COMPLETION_PREVIEW_BYTES = 2048;

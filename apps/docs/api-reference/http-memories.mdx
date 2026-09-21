@@ -13,7 +13,7 @@ Use the [`@vmem/sdk`](/sdk/quickstart) package for the agentic interface (`save`
 
 All successful responses use `{ "data": ... }`. Errors return `{ "error": "..." }` (validation errors include `issues`).
 
-Agentic modes (`instruction` body) require an **OpenRouter API key** (dashboard secret or deployment env). Missing key returns `422` with `{ "error": "openrouter_required" }`.
+Agentic modes (`instruction` body) require **`AI_GATEWAY_API_KEY`** on the Convex deployment. Missing key returns `422` with `{ "error": "openrouter_required" }`.
 
 ---
 
@@ -196,16 +196,16 @@ curl -X DELETE "https://<deployment>.convex.site/api/v1/memories" \
 
 ## Errors
 
-| Status | `error`               | Meaning                                     |
-| ------ | --------------------- | ------------------------------------------- |
-| `401`  | `unauthorized`        | Missing/invalid Bearer token or revoked key |
-| `400`  | `invalid_json`        | Body is not JSON                            |
-| `400`  | `invalid_request`     | Zod validation failed (`issues` present)    |
-| `403`  | `forbidden`           | No access to the given `profileId`          |
-| `404`  | `not_found`           | Memory not found                            |
-| `422`  | `openrouter_required` | Instruction write without an OpenRouter key |
-| `500`  | `internal_error`      | Server error (generic message)              |
+| Status | `error`               | Meaning                                        |
+| ------ | --------------------- | ---------------------------------------------- |
+| `401`  | `unauthorized`        | Missing/invalid Bearer token or revoked key    |
+| `400`  | `invalid_json`        | Body is not JSON                               |
+| `400`  | `invalid_request`     | Zod validation failed (`issues` present)       |
+| `403`  | `forbidden`           | No access to the given `profileId`             |
+| `404`  | `not_found`           | Memory not found                               |
+| `422`  | `openrouter_required` | Instruction write without `AI_GATEWAY_API_KEY` |
+| `500`  | `internal_error`      | Server error (generic message)                 |
 
-`summarize: true` does **not** require OpenRouter.
+`summarize: true` does **not** require an AI Gateway key.
 
 Usage is recorded per request (`requestCount`, `lastUsedAt` on the key). See [API Keys](/features/api-keys).

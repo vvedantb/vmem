@@ -67,7 +67,7 @@ Sources: `engine/memory/extractFacts.ts`, `entities.ts`, `temporal.ts`, `factDec
 
 ### 2.1 Write path (instruction)
 
-1. **Fact split.** `buildFactExtractionPrompt` asks OpenRouter for atomic, durable, first-person facts. JSON parse via Zod. Missing `OPENROUTER_API_KEY` → HTTP `422 openrouter_required`. Empty extract falls back to the raw instruction as one fact.
+1. **Fact split.** `buildFactExtractionPrompt` asks AI Gateway for atomic, durable, first-person facts. JSON parse via Zod. Missing `AI_GATEWAY_API_KEY` → HTTP `422 openrouter_required`. Empty extract falls back to the raw instruction as one fact.
 2. **Temporal on the fact.** Prompt also asks for `temporalKind` (`event` / `state` / `plan` / `preference`) and `eventStart` / `eventEnd`. Store copies those onto the new row; `inferTemporalFields` fills gaps from title/content (`yesterday`, ISO dates, `currently`, `prefer`, …).
 3. **Supersede (#178).** Exact content-hash → `NONE`. Jaccard ≥ 0.6 → `UPDATE` (new row, prior `suppressed`, `reason: "updates"`). Instruction **update** can additionally call the LLM ADD/UPDATE/DELETE/NONE judge (`factDecision.ts`) then the same deterministic override.
 4. **Row insert.** Convex `memories` with `eventStart` / `eventEnd` / `temporalKind`. Facts extracted together get an `origin: extract` clique link (`"extracted together"`).
@@ -204,7 +204,7 @@ Where the key lives (names only — never print or commit the value):
 | Where                           | What to do                                                                                                                                                                                                                                                                                    |
 | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Engineer box (local spikes)** | `TYPESAFE_API_KEY` is already stored. `curl` / `typesafe-sdk` against the official API with no further access step.                                                                                                                                                                           |
-| **Cloud-agent spikes**          | Add `TYPESAFE_API_KEY` to the **saved Cursor environment / secret store**. Do **not** put the value in the PR, this markdown, `.env.example`, or chat. Until that secret is on the environment, live Jev tests must skip (same pattern as unset `OPENROUTER_API_KEY` → synthetic embeddings). |
+| **Cloud-agent spikes**          | Add `TYPESAFE_API_KEY` to the **saved Cursor environment / secret store**. Do **not** put the value in the PR, this markdown, `.env.example`, or chat. Until that secret is on the environment, live Jev tests must skip (same pattern as unset `AI_GATEWAY_API_KEY` → synthetic embeddings). |
 | **This repo / PR**              | No secrets. Do not request the key. Do not embed it.                                                                                                                                                                                                                                          |
 
 Optional SDK mapping: `typesafe-sdk` / `typeSafeAi.evaluationModel('jev-latest')` may expect `TYPESAFE_AI_API_KEY` — alias from `TYPESAFE_API_KEY` in the spike; do not invent a second secret.
@@ -224,7 +224,7 @@ Resolution for scripts: `TYPESAFE_API_KEY` → else `TYPESAFE_AI_API_KEY` → el
 
 Do **not** paste keys into issues, PRs, logs, or this markdown.
 
-Production later (only if the spike wins): set `TYPESAFE_API_KEY` on the Convex deployment the same way as `OPENROUTER_API_KEY` (`npx convex env set` / dashboard Environment Variables), not in the repo.
+Production later (only if the spike wins): set `TYPESAFE_API_KEY` on the Convex deployment the same way as `AI_GATEWAY_API_KEY` (`npx convex env set` / dashboard Environment Variables), not in the repo.
 
 ### 4.3 Fit vs current retrieve
 

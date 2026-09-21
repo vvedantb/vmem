@@ -24,11 +24,11 @@ Sources: `packages/backend/engine/memory/rank.ts`, `retrieve.ts`, `list.ts`, `ex
 
 ### Surfaces
 
-| Surface | Auth | Memory ops |
-| --- | --- | --- |
+| Surface                    | Auth                                                                           | Memory ops                                                                                                                                             |
+| -------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | MCP `/mcp` and `/mcp/team` | Clerk OAuth only (`acceptsToken: "oauth_token"`). API keys / session JWTs 401. | `memory_search`, `memory_retrieve`, `memory_add`, `memory_add_instruction`, `memory_update`, `memory_delete`, `memory_related`, MCP App `memory_graph` |
-| HTTP `/api/v1/memories` | Bearer `vmem_sk_…` | store / retrieve / patch / delete; instruction body on POST/PATCH |
-| `@vmem/sdk` (`VMemory`) | API key | `save` / `update` / `search` + structured CRUD. JS only |
+| HTTP `/api/v1/memories`    | Bearer `vmem_sk_…`                                                             | store / retrieve / patch / delete; instruction body on POST/PATCH                                                                                      |
+| `@vmem/sdk` (`VMemory`)    | API key                                                                        | `save` / `update` / `search` + structured CRUD. JS only                                                                                                |
 
 Personal MCP also exposes `vmem://context_prompt` (and `context_prompt_get`): about, preferences, pinned memories, profile summary, skills. Skills / wiki / files tools are personal-only.
 
@@ -49,7 +49,7 @@ Filters on retrieve: equality on `type` / `status` / `source`, **AND** on tags. 
 ### Write path
 
 - Structured create: Convex row; embed if OpenRouter key exists.
-- Instruction create (`memory_add_instruction` / HTTP `{ instruction }`): one OpenRouter fact-extract call, then **create new rows**. Missing key → `422 openrouter_required`.
+- Instruction create (`memory_add_instruction` / HTTP `{ instruction }`): one AI Gateway fact-extract call, then **create new rows**. Missing key → `422 openrouter_required`.
 - Instruction **update reuses the same create pipeline** (`{ created, summary }`). It does not patch, supersede, or emit inbox proposals (`apps/docs/api-reference/http-memories.mdx`, `apps/docs/concepts/proposed-updates.mdx`).
 - `memoryLinks` exist and the ranker uses them, but **writes are UI/manual** (`relationshipApi` + `LinkMemoryModal`). Extraction does not auto-link. Dream Mode handlers are **no-ops** (`convex/dreamMode.ts` returns empty `"ok"`). Proposed-update list is empty.
 
@@ -59,31 +59,31 @@ Corpus (`packages/backend/eval/corpus.ts`): **488 memories, 36 relationships, 84
 
 Neo4j full-hybrid bar, 2026-07-18, OpenRouter `text-embedding-3-small` (`eval/benchmark.ts` `NEO4J_FULL_HYBRID`):
 
-| Metric | Neo4j full hybrid |
-| --- | --- |
-| recall@1 | 72.4% |
-| recall@5 | 92.0% |
-| recall@10 | 93.3% |
-| MRR | 0.974 |
-| nDCG@10 | 0.857 |
+| Metric    | Neo4j full hybrid |
+| --------- | ----------------- |
+| recall@1  | 72.4%             |
+| recall@5  | 92.0%             |
+| recall@10 | 93.3%             |
+| MRR       | 0.974             |
+| nDCG@10   | 0.857             |
 
 Convex full hybrid, 2026-09-16, **synthetic embeddings** (no OpenRouter in that agent), same ranker as MCP/HTTP retrieve (`tests/mcp/RESULTS.md`):
 
-| Metric | Convex full hybrid | vs Neo4j bar |
-| --- | --- | --- |
-| recall@1 | 75.6% | pass |
-| recall@3 | 97.1% | pass |
-| recall@5 | **99.4%** | pass |
-| recall@10 | 100.0% | pass |
-| MRR | **0.994** | pass |
-| nDCG@10 | **0.968** | pass |
+| Metric    | Convex full hybrid | vs Neo4j bar |
+| --------- | ------------------ | ------------ |
+| recall@1  | 75.6%              | pass         |
+| recall@3  | 97.1%              | pass         |
+| recall@5  | **99.4%**          | pass         |
+| recall@10 | 100.0%             | pass         |
+| MRR       | **0.994**          | pass         |
+| nDCG@10   | **0.968**          | pass         |
 
 Ablation on that run: full hybrid nDCG@10 **0.968** vs hybrid-without-graph **0.854** (multi-hop / project). CI (`tests/memory/eval.test.ts`) requires full hybrid ≥ Neo4j on R@5, MRR, nDCG@10; full hybrid nDCG > no-graph / vector-only / bm25-only; lexical-trap and update nDCG@10 > 0.7.
 
 **Caveats (do not hide these):**
 
 - Labelled corpus is ~488 docs and **plants** the 36 links. Production retrieve often has **zero** auto-links, FTS/vector caps of 32, and only 200 recent rows in the lexical pool. Beating the Neo4j bar in-process ≠ beating SuperMemory/Mem0 on 1M–10M-token conversations.
-- Synthetic embeddings inflate vector-leg quality vs `text-embedding-3-small`. Re-run with `OPENROUTER_API_KEY` before quoting Convex numbers externally.
+- Synthetic embeddings inflate vector-leg quality vs `text-embedding-3-small`. Re-run with `AI_GATEWAY_API_KEY` before quoting Convex numbers externally.
 - Smaller smoke bench (`tests/memory/benchmark/retrieve.bench.test.ts`) is a tiny synonym/paraphrase set; treat it as a regression canary, not a competitor score.
 
 ---
@@ -94,17 +94,17 @@ Positioning: “context infrastructure” — ingest anything, extract a **fact 
 
 ### Product
 
-| Area | What they ship |
-| --- | --- |
-| Ingest | `POST /v3/documents`: text, URL, file, conversation; `customId` for upsert/diff billing; multimodal (PDF, audio, video, images). Async statuses: queued → extracting → chunking → embedding → indexing → done. |
-| Dual retrieve | `POST /v4/search` `searchMode`: `memories` \| `documents` \| **`hybrid`** (facts + chunks). |
-| Graph | Typed edges: **updates / extends / derives**. `isLatest` keeps current truth. `include.relatedMemories` on search. Dreaming: `dynamic` (default, groups related docs) vs `instant` (extra operation). |
-| Profiles | `POST /v4/profile`: static + dynamic (+ buckets). Can combine with `q` so profile + search is one call. |
-| Forget | Soft-forget + agentic mass-forget (`dryRun`). Forgotten excluded unless `include.forgottenMemories`. |
-| Connectors | Drive, Notion, Gmail, OneDrive, S3, Granola, GitHub, web crawler (plan-gated). |
-| MCP | `https://mcp.supermemory.ai/mcp`, OAuth, no API key. Tools: `search_memory`, `get_profile`, `add_memory` (save **or forget**), `list_documents`, `get_document`, `list_memories`, `list_spaces`, `who_am_i`. MCP Apps: space picker, guided-save, upload, memory-graph. Resources: `supermemory://profile`, `supermemory://spaces`. Prompt: `context`. |
-| DX | TS + Python SDK (`supermemory`). One-line `client.add` / `client.search`. AI SDK / LangChain / Convex **their** plugin, Claude memory tool, SMFS (`smfs.ai`) as a mountable memory filesystem. Self-host binary documented. |
-| Ops | Threshold, `rerank` (~+100ms), `rewriteQuery` (multi-rewrite merge, billed as an operation; docs also say “no extra cost” on the search page — treat as **metered operation** per pricing). AND/OR metadata filters. Recency bias composes with rewrite. |
+| Area          | What they ship                                                                                                                                                                                                                                                                                                                                         |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Ingest        | `POST /v3/documents`: text, URL, file, conversation; `customId` for upsert/diff billing; multimodal (PDF, audio, video, images). Async statuses: queued → extracting → chunking → embedding → indexing → done.                                                                                                                                         |
+| Dual retrieve | `POST /v4/search` `searchMode`: `memories` \| `documents` \| **`hybrid`** (facts + chunks).                                                                                                                                                                                                                                                            |
+| Graph         | Typed edges: **updates / extends / derives**. `isLatest` keeps current truth. `include.relatedMemories` on search. Dreaming: `dynamic` (default, groups related docs) vs `instant` (extra operation).                                                                                                                                                  |
+| Profiles      | `POST /v4/profile`: static + dynamic (+ buckets). Can combine with `q` so profile + search is one call.                                                                                                                                                                                                                                                |
+| Forget        | Soft-forget + agentic mass-forget (`dryRun`). Forgotten excluded unless `include.forgottenMemories`.                                                                                                                                                                                                                                                   |
+| Connectors    | Drive, Notion, Gmail, OneDrive, S3, Granola, GitHub, web crawler (plan-gated).                                                                                                                                                                                                                                                                         |
+| MCP           | `https://mcp.supermemory.ai/mcp`, OAuth, no API key. Tools: `search_memory`, `get_profile`, `add_memory` (save **or forget**), `list_documents`, `get_document`, `list_memories`, `list_spaces`, `who_am_i`. MCP Apps: space picker, guided-save, upload, memory-graph. Resources: `supermemory://profile`, `supermemory://spaces`. Prompt: `context`. |
+| DX            | TS + Python SDK (`supermemory`). One-line `client.add` / `client.search`. AI SDK / LangChain / Convex **their** plugin, Claude memory tool, SMFS (`smfs.ai`) as a mountable memory filesystem. Self-host binary documented.                                                                                                                            |
+| Ops           | Threshold, `rerank` (~+100ms), `rewriteQuery` (multi-rewrite merge, billed as an operation; docs also say “no extra cost” on the search page — treat as **metered operation** per pricing). AND/OR metadata filters. Recency bias composes with rewrite.                                                                                               |
 
 ### Retrieval (as documented)
 
@@ -112,14 +112,14 @@ Hybrid vector + keyword, graph traversal in the same search call, optional reran
 
 ### Claimed benches / scale (vendor numbers)
 
-| Claim | Source |
-| --- | --- |
-| LongMemEval-S **85.4%** overall; temporal 82.0%; multi-session 76.7% | [Supermemory vs Zep, 2026-04-06](https://supermemory.ai/blog/supermemory-vs-zep) |
-| LoCoMo **#1**; P@1 **59.7%**, R@10 **83.5%** (same post; P@1 is IR-like, unlike Mem0’s QA %) | same |
-| ConvoMem **#1** | same + [research](https://supermemory.ai/research) |
-| SWE-ContextBench (Feb 2026): FAIL_TO_PASS **55.95%**, resolution **30.30%** “best overall” | [research](https://supermemory.ai/research) |
-| Search **187 ms** server / **356 ms** e2e median; 100B–1T+ tokens/month marketing | [pricing](https://supermemory.ai/pricing/) / research |
-| Open eval: [MemoryBench](https://github.com/supermemoryai/memorybench) (LoCoMo, LongMemEval, ConvoMem; providers supermemory / mem0 / zep) | [docs](https://supermemory.ai/docs/memorybench/overview) |
+| Claim                                                                                                                                      | Source                                                                           |
+| ------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| LongMemEval-S **85.4%** overall; temporal 82.0%; multi-session 76.7%                                                                       | [Supermemory vs Zep, 2026-04-06](https://supermemory.ai/blog/supermemory-vs-zep) |
+| LoCoMo **#1**; P@1 **59.7%**, R@10 **83.5%** (same post; P@1 is IR-like, unlike Mem0’s QA %)                                               | same                                                                             |
+| ConvoMem **#1**                                                                                                                            | same + [research](https://supermemory.ai/research)                               |
+| SWE-ContextBench (Feb 2026): FAIL_TO_PASS **55.95%**, resolution **30.30%** “best overall”                                                 | [research](https://supermemory.ai/research)                                      |
+| Search **187 ms** server / **356 ms** e2e median; 100B–1T+ tokens/month marketing                                                          | [pricing](https://supermemory.ai/pricing/) / research                            |
+| Open eval: [MemoryBench](https://github.com/supermemoryai/memorybench) (LoCoMo, LongMemEval, ConvoMem; providers supermemory / mem0 / zep) | [docs](https://supermemory.ai/docs/memorybench/overview)                         |
 
 Do not treat 85.4% vs our 99.4% R@5 as a comparison. Different task. MemoryBench is the **fair** way to compete on their terms.
 
@@ -135,16 +135,16 @@ Positioning: **the** memory layer for agents. Two products: Platform (managed, v
 
 ### Product
 
-| Area | Platform | OSS |
-| --- | --- | --- |
-| Add | `POST /v3/memories/add/` conversation messages, async `event_id`, ADD-only (no overwrite). `infer: false` stores verbatim. | Same loop, sync library or self-hosted server |
-| Search | `POST /v3/memories/search/` hybrid semantic + BM25 + entity; optional temporal + decay + rerank | Hybrid + entity boost; **no** temporal, decay, or native graph |
-| Graph | Native entity linking, always on, folded into `score`. Dashboard graph view on Pro+ | External Neo4j/etc. **removed** in v3; entity boost only, no `relations` |
-| Dream | Supersede + merge on add (all plans); synthesis weekly/daily on Pro+ | None |
-| Filters | `filters` **required** with `user_id` / `agent_id` / `app_id` / `run_id`. AND/OR/NOT, `in`/`gte`/`lte`/`contains`/`*`. `top_k` 1–1000 (default 10), `threshold` default **0.1**, `rerank` default false, `reference_date`, `show_expired` | Filters exist; operators depend on your vector store |
-| MCP | `https://mcp.mem0.ai/mcp` — OAuth **or** API key bearer | n/a (talk to self-hosted API) |
-| MCP tools | `add_memory`, `search_memories`, `get_memories`, `get_memory`, `update_memory`, `delete_memory`, `delete_all_memories`, `delete_entities`, `list_entities`, `list_events`, `get_event_status` | — |
-| Extra | Webhooks, schema export, batch update/delete (1000), feedback, `get_summary`, custom categories | Bring-your-own embedder/LLM/vector DB |
+| Area      | Platform                                                                                                                                                                                                                                  | OSS                                                                      |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Add       | `POST /v3/memories/add/` conversation messages, async `event_id`, ADD-only (no overwrite). `infer: false` stores verbatim.                                                                                                                | Same loop, sync library or self-hosted server                            |
+| Search    | `POST /v3/memories/search/` hybrid semantic + BM25 + entity; optional temporal + decay + rerank                                                                                                                                           | Hybrid + entity boost; **no** temporal, decay, or native graph           |
+| Graph     | Native entity linking, always on, folded into `score`. Dashboard graph view on Pro+                                                                                                                                                       | External Neo4j/etc. **removed** in v3; entity boost only, no `relations` |
+| Dream     | Supersede + merge on add (all plans); synthesis weekly/daily on Pro+                                                                                                                                                                      | None                                                                     |
+| Filters   | `filters` **required** with `user_id` / `agent_id` / `app_id` / `run_id`. AND/OR/NOT, `in`/`gte`/`lte`/`contains`/`*`. `top_k` 1–1000 (default 10), `threshold` default **0.1**, `rerank` default false, `reference_date`, `show_expired` | Filters exist; operators depend on your vector store                     |
+| MCP       | `https://mcp.mem0.ai/mcp` — OAuth **or** API key bearer                                                                                                                                                                                   | n/a (talk to self-hosted API)                                            |
+| MCP tools | `add_memory`, `search_memories`, `get_memories`, `get_memory`, `update_memory`, `delete_memory`, `delete_all_memories`, `delete_entities`, `list_entities`, `list_events`, `get_event_status`                                             | —                                                                        |
+| Extra     | Webhooks, schema export, batch update/delete (1000), feedback, `get_summary`, custom categories                                                                                                                                           | Bring-your-own embedder/LLM/vector DB                                    |
 
 **No implicit MCP resource.** Agents must call `search_memories`. Implicit-memory docs for vmem already call this out (`apps/docs/mcp/implicit-memory.mdx`). SuperMemory is closer to us here (`supermemory://profile` + `context` prompt).
 
@@ -156,12 +156,12 @@ Parallel signals: vector, BM25 (lemmatized), entity-graph boost, temporal intent
 
 From [Memory Evaluation](https://docs.mem0.ai/core-concepts/memory-evaluation) and [README](https://github.com/mem0ai/mem0):
 
-| Benchmark | Score | Mean tokens / query |
-| --- | --- | --- |
-| LoCoMo | **92.5** (single-hop 91.2, multi-hop 91.3, open-domain 72.7, temporal 92.0) | 6,956 |
-| LongMemEval | **94.4** (knowledge update 93.6, temporal 97.0, multi-session 88.0) | 6,787 |
-| BEAM 1M | **64.1** | 6,719 |
-| BEAM 10M | **48.6** (temporal 16.3, event ordering 20.2, multi-session 26.1, contradiction 32.5, abstention 40.0) | 6,914 |
+| Benchmark   | Score                                                                                                  | Mean tokens / query |
+| ----------- | ------------------------------------------------------------------------------------------------------ | ------------------- |
+| LoCoMo      | **92.5** (single-hop 91.2, multi-hop 91.3, open-domain 72.7, temporal 92.0)                            | 6,956               |
+| LongMemEval | **94.4** (knowledge update 93.6, temporal 97.0, multi-session 88.0)                                    | 6,787               |
+| BEAM 1M     | **64.1**                                                                                               | 6,719               |
+| BEAM 10M    | **48.6** (temporal 16.3, event ordering 20.2, multi-session 26.1, contradiction 32.5, abstention 40.0) | 6,914               |
 
 OSS “directionally similar, not identical.” Repro: [mem0ai/memory-benchmarks](https://github.com/mem0ai/memory-benchmarks).
 
@@ -179,36 +179,36 @@ DX win vs vmem: `client.add(messages, user_id=…)` then `client.search(q, filte
 
 Legend: **Y** ships · **P** partial / shell / manual · **N** no.
 
-| Capability | vmem Convex | SuperMemory | Mem0 Platform |
-| --- | --- | --- | --- |
-| Hybrid lexical + vector | Y (BM25 + FTS + vectors + RRF) | Y (vector + keyword + graph in one call) | Y (semantic + BM25 + entity) |
-| Stored chunk index (doc RAG) | P (files → memories; no `searchMode`) | Y SuperRAG + `searchMode` | N (facts, not a RAG product) |
-| Cross-encoder / managed rerank | N | Y (`rerank`, ~+100ms) | Y (`rerank=true`) |
-| Query rewrite / multi-query | P (hardcoded synonym clusters) | Y (`rewriteQuery`) | N as a flag (temporal classifies intent) |
-| Similarity threshold | N | Y (default 0.5) | Y (default 0.1) |
-| Score breakdown | **Y Context Trace** (fulltext/vector/chunk/entity/rrf/recency/graphPath) | P (`similarity` + timing; related opt-in) | Y `score_breakdown` semantic/bm25/entity |
-| Auto entity graph at write | N (manual `memoryLinks`) | Y updates/extends/derives | Y entity linking |
-| 1-hop graph in rank | Y **if links exist** | Y | Y (boost, not a payload) |
-| Temporal event metadata | N (updatedAt recency only) | Y (`isLatest`, forgetAfter, dreaming) | Y (write-time temporal pass + `reference_date`) |
-| Knowledge update / supersede | N (instruction update **creates**) | Y UPDATES edge | Y Dream supersede + `latest_only` |
-| Dedup / merge | N | Y | Y Dream merge |
-| Forget / soft delete | N (hard delete) | Y | P (`expiration_date`, superseded kept) |
-| Background dream/synthesis | **N (no-op)** | Y dynamic/instant dreaming | Y synthesis on Pro+ |
-| Conversation ingest | P (one instruction string) | Y documents + `customId` sessions | Y `messages[]` async |
-| Profile injection without search | Y MCP resource + HTTP `userContext` | Y `/v4/profile` + MCP resource | N (tool search only; profiles “being finalized”) |
-| MCP OAuth | Y (Clerk; CF bot-fight on hosted portal) | Y (their hosted IdP) | Y |
-| MCP API key for headless | **N** | N (OAuth) | **Y** |
-| Implicit context resource | **Y** `vmem://context_prompt` | Y `supermemory://profile` | N |
-| MCP Apps graph widget | Y `memory_graph` | Y `memory-graph` | N |
-| Skills / wiki / files as tools | **Y** | P (docs list/get, upload widget) | N |
-| Filter DSL (AND/OR/NOT, dates) | N (flat type/tags/status) | Y | Y |
-| Multi-tenant scope | profiles + teams | `containerTag` + scoped keys | `user_id`/`agent_id`/`app_id`/`run_id` |
-| Python SDK | N | Y | Y |
-| Framework plugins | N | Many | Many |
-| Public QA harness | N (IR only) | MemoryBench | memory-benchmarks + BEAM |
-| Connectors | Drive + Notion | Broad, plan-gated | Not their wedge |
-| Chrome extension | Y | N | N |
-| Inspectable self-host of **our** ranker | Y (this repo) | Local binary (closed engine) | OSS (weaker than Platform) |
+| Capability                              | vmem Convex                                                              | SuperMemory                               | Mem0 Platform                                    |
+| --------------------------------------- | ------------------------------------------------------------------------ | ----------------------------------------- | ------------------------------------------------ |
+| Hybrid lexical + vector                 | Y (BM25 + FTS + vectors + RRF)                                           | Y (vector + keyword + graph in one call)  | Y (semantic + BM25 + entity)                     |
+| Stored chunk index (doc RAG)            | P (files → memories; no `searchMode`)                                    | Y SuperRAG + `searchMode`                 | N (facts, not a RAG product)                     |
+| Cross-encoder / managed rerank          | N                                                                        | Y (`rerank`, ~+100ms)                     | Y (`rerank=true`)                                |
+| Query rewrite / multi-query             | P (hardcoded synonym clusters)                                           | Y (`rewriteQuery`)                        | N as a flag (temporal classifies intent)         |
+| Similarity threshold                    | N                                                                        | Y (default 0.5)                           | Y (default 0.1)                                  |
+| Score breakdown                         | **Y Context Trace** (fulltext/vector/chunk/entity/rrf/recency/graphPath) | P (`similarity` + timing; related opt-in) | Y `score_breakdown` semantic/bm25/entity         |
+| Auto entity graph at write              | N (manual `memoryLinks`)                                                 | Y updates/extends/derives                 | Y entity linking                                 |
+| 1-hop graph in rank                     | Y **if links exist**                                                     | Y                                         | Y (boost, not a payload)                         |
+| Temporal event metadata                 | N (updatedAt recency only)                                               | Y (`isLatest`, forgetAfter, dreaming)     | Y (write-time temporal pass + `reference_date`)  |
+| Knowledge update / supersede            | N (instruction update **creates**)                                       | Y UPDATES edge                            | Y Dream supersede + `latest_only`                |
+| Dedup / merge                           | N                                                                        | Y                                         | Y Dream merge                                    |
+| Forget / soft delete                    | N (hard delete)                                                          | Y                                         | P (`expiration_date`, superseded kept)           |
+| Background dream/synthesis              | **N (no-op)**                                                            | Y dynamic/instant dreaming                | Y synthesis on Pro+                              |
+| Conversation ingest                     | P (one instruction string)                                               | Y documents + `customId` sessions         | Y `messages[]` async                             |
+| Profile injection without search        | Y MCP resource + HTTP `userContext`                                      | Y `/v4/profile` + MCP resource            | N (tool search only; profiles “being finalized”) |
+| MCP OAuth                               | Y (Clerk; CF bot-fight on hosted portal)                                 | Y (their hosted IdP)                      | Y                                                |
+| MCP API key for headless                | **N**                                                                    | N (OAuth)                                 | **Y**                                            |
+| Implicit context resource               | **Y** `vmem://context_prompt`                                            | Y `supermemory://profile`                 | N                                                |
+| MCP Apps graph widget                   | Y `memory_graph`                                                         | Y `memory-graph`                          | N                                                |
+| Skills / wiki / files as tools          | **Y**                                                                    | P (docs list/get, upload widget)          | N                                                |
+| Filter DSL (AND/OR/NOT, dates)          | N (flat type/tags/status)                                                | Y                                         | Y                                                |
+| Multi-tenant scope                      | profiles + teams                                                         | `containerTag` + scoped keys              | `user_id`/`agent_id`/`app_id`/`run_id`           |
+| Python SDK                              | N                                                                        | Y                                         | Y                                                |
+| Framework plugins                       | N                                                                        | Many                                      | Many                                             |
+| Public QA harness                       | N (IR only)                                                              | MemoryBench                               | memory-benchmarks + BEAM                         |
+| Connectors                              | Drive + Notion                                                           | Broad, plan-gated                         | Not their wedge                                  |
+| Chrome extension                        | Y                                                                        | N                                         | N                                                |
+| Inspectable self-host of **our** ranker | Y (this repo)                                                            | Local binary (closed engine)              | OSS (weaker than Platform)                       |
 
 ---
 
@@ -245,18 +245,18 @@ Cite the labelled bench in §2 and the code.
 
 ### 6.3 Extreme cases (design against BEAM 10M + our own traps)
 
-| Extreme case | Competitor evidence | vmem today | Convex-only fix |
-| --- | --- | --- | --- |
-| Gold memory older than 200 / outside 32 FTS/vector hits | Mem0 searches with `top_k` up to 1000; SuperMemory indexes all chunks | Silent miss | Raise/union index hits; don’t require recency list membership |
-| Multi-hop (“Alice → project → teammate”) | Mem0 entity graph; SuperMemory derive/extend; our labelled graph **helps when linked** | Fail unless UI link exists | Auto `memoryLinks` or entity table at write |
-| Knowledge update (Helix → Zed) | SuperMemory UPDATES; Mem0 LongMemEval KU 93.6 with ADD-only + supersede | Two live facts, recency weakly ranked | Supersede link + `latest` bias; keep history |
-| Temporal (“last week”, “currently”) | Mem0 temporal 97.0 LME / **16.3** BEAM 10M | Recency only | Event timestamps on write; query-time temporal class |
-| Lexical trap (same keyword, wrong sense) | SuperMemory rerank; our labelled trap nDCG>0.7 on tiny corpus | Synonym clusters can **hurt** (pnpm/npm/yarn same cluster) | Rerank + narrower synonym lists; don’t expand competitors into one bucket |
-| Contradiction | Mem0 BEAM 10M **32.5** | No detector | Proposed-update path that actually writes; ranker prefers `isLatest` |
-| Abstention | Mem0 52.5 / 40.0; we have 6 labelled abstentions, **not gated** in CI | Always returns something if any lexical leak | Threshold + “no relevant memories” when top score low |
-| Near-dup facts | Mem0 merge; SuperMemory dreaming | Duplicates all rank | Content-hash + merge-on-add |
-| Long document vs fact | SuperMemory hybrid searchMode | File becomes one/few memories | Optional chunk table in Convex, retrieve can return chunk hits with trace |
-| Headless eval / CI MCP | Mem0 API key MCP | OAuth + Cloudflare | Bearer `vmem_sk_` on `/mcp` or a CI OAuth client |
+| Extreme case                                            | Competitor evidence                                                                    | vmem today                                                 | Convex-only fix                                                           |
+| ------------------------------------------------------- | -------------------------------------------------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Gold memory older than 200 / outside 32 FTS/vector hits | Mem0 searches with `top_k` up to 1000; SuperMemory indexes all chunks                  | Silent miss                                                | Raise/union index hits; don’t require recency list membership             |
+| Multi-hop (“Alice → project → teammate”)                | Mem0 entity graph; SuperMemory derive/extend; our labelled graph **helps when linked** | Fail unless UI link exists                                 | Auto `memoryLinks` or entity table at write                               |
+| Knowledge update (Helix → Zed)                          | SuperMemory UPDATES; Mem0 LongMemEval KU 93.6 with ADD-only + supersede                | Two live facts, recency weakly ranked                      | Supersede link + `latest` bias; keep history                              |
+| Temporal (“last week”, “currently”)                     | Mem0 temporal 97.0 LME / **16.3** BEAM 10M                                             | Recency only                                               | Event timestamps on write; query-time temporal class                      |
+| Lexical trap (same keyword, wrong sense)                | SuperMemory rerank; our labelled trap nDCG>0.7 on tiny corpus                          | Synonym clusters can **hurt** (pnpm/npm/yarn same cluster) | Rerank + narrower synonym lists; don’t expand competitors into one bucket |
+| Contradiction                                           | Mem0 BEAM 10M **32.5**                                                                 | No detector                                                | Proposed-update path that actually writes; ranker prefers `isLatest`      |
+| Abstention                                              | Mem0 52.5 / 40.0; we have 6 labelled abstentions, **not gated** in CI                  | Always returns something if any lexical leak               | Threshold + “no relevant memories” when top score low                     |
+| Near-dup facts                                          | Mem0 merge; SuperMemory dreaming                                                       | Duplicates all rank                                        | Content-hash + merge-on-add                                               |
+| Long document vs fact                                   | SuperMemory hybrid searchMode                                                          | File becomes one/few memories                              | Optional chunk table in Convex, retrieve can return chunk hits with trace |
+| Headless eval / CI MCP                                  | Mem0 API key MCP                                                                       | OAuth + Cloudflare                                         | Bearer `vmem_sk_` on `/mcp` or a CI OAuth client                          |
 
 ---
 
@@ -290,9 +290,10 @@ Accept: new labelled temporal queries; recency-only ablation loses; full hybrid 
 API/MCP: `threshold`, `rerank` (OpenRouter cross-encoder or small rerank model on top 20), keep `summarize` as title-join. Optional later: `rewriteQuery` as P1.  
 Accept: threshold 0.8 abstains on the 6 labelled abstentions; rerank does not drop Context Trace legs (add `rerank` as an extra breakdown field).
 
-**P0.6 Make the labelled bench honest.**  
-- Persist `eval:bench` markdown under `packages/backend/eval/` or `internal/bench/` **in git** when numbers change (today it writes a local path that is gitignored/missing).  
-- CI job or documented nightly with `OPENROUTER_API_KEY` so Convex vs Neo4j bar uses the **same embedder**.  
+**P0.6 Make the labelled bench honest.**
+
+- Persist `eval:bench` markdown under `packages/backend/eval/` or `internal/bench/` **in git** when numbers change (today it writes a local path that is gitignored/missing).
+- CI job or documented nightly with `AI_GATEWAY_API_KEY` so Convex vs Neo4j bar uses the **same embedder**.
 - Add corpus slices for P0.1–P0.4 (tail gold, unplanted multi-hop, same-day update, temporal). Keep synthetic-embedding tests as the fast gate.
 
 ### P1 — robustness + comparable numbers
@@ -329,11 +330,11 @@ Accept: threshold 0.8 abstains on the 6 labelled abstentions; rerank does not dr
 
 ## 8. Suggested 6-step sequence for the next engineering PRs
 
-1. P0.1 candidate pool + tail-gold test (pure retrieve, no LLM).  
-2. P0.6 OpenRouter labelled run committed so we know the real vector-leg number.  
-3. P0.2 auto-links/entities so the graph leg exists in prod.  
-4. P0.3 supersede on instruction update.  
-5. P0.4 temporal + P0.5 threshold/rerank.  
+1. P0.1 candidate pool + tail-gold test (pure retrieve, no LLM).
+2. P0.6 OpenRouter labelled run committed so we know the real vector-leg number.
+3. P0.2 auto-links/entities so the graph leg exists in prod.
+4. P0.3 supersede on instruction update.
+5. P0.4 temporal + P0.5 threshold/rerank.
 6. P1.1 MemoryBench LoCoMo-50 against staging HTTP.
 
 Stop and re-score after 3 and after 5. If MemoryBench LoCoMo is still far from SuperMemory/Mem0 after 5, the remaining gap is **extraction** (conversation ingest, dreaming), not `rank.ts` weights.
@@ -344,37 +345,37 @@ Stop and re-score after 3 and after 5. If MemoryBench LoCoMo is still far from S
 
 ### SuperMemory
 
-- MCP: https://supermemory.ai/docs/supermemory-mcp/mcp · https://supermemory.ai/mcp/ · https://supermemory.ai/docs/supermemory-mcp/setup  
-- Search: https://supermemory.ai/docs/memory-api/searching/searching-memories · https://supermemory.ai/docs/recall/search  
-- Graph / dreaming: https://supermemory.ai/docs/concepts/graph-memory · https://supermemory.ai/docs/concepts/how-it-works · https://supermemory.ai/memory-graph/  
-- SuperRAG: https://supermemory.ai/docs/concepts/super-rag  
-- Profiles: https://supermemory.ai/docs/recall/user-profiles  
-- API map: https://supermemory.ai/docs/api-reference/overview · https://supermemory.ai/docs/llms.txt  
-- Pricing: https://supermemory.ai/pricing/  
-- Comparison / benches: https://supermemory.ai/docs/overview/comparison · https://supermemory.ai/blog/supermemory-vs-zep · https://supermemory.ai/research  
-- MemoryBench: https://supermemory.ai/docs/memorybench/overview · https://github.com/supermemoryai/memorybench · https://supermemory.ai/docs/memorybench/memscore  
+- MCP: https://supermemory.ai/docs/supermemory-mcp/mcp · https://supermemory.ai/mcp/ · https://supermemory.ai/docs/supermemory-mcp/setup
+- Search: https://supermemory.ai/docs/memory-api/searching/searching-memories · https://supermemory.ai/docs/recall/search
+- Graph / dreaming: https://supermemory.ai/docs/concepts/graph-memory · https://supermemory.ai/docs/concepts/how-it-works · https://supermemory.ai/memory-graph/
+- SuperRAG: https://supermemory.ai/docs/concepts/super-rag
+- Profiles: https://supermemory.ai/docs/recall/user-profiles
+- API map: https://supermemory.ai/docs/api-reference/overview · https://supermemory.ai/docs/llms.txt
+- Pricing: https://supermemory.ai/pricing/
+- Comparison / benches: https://supermemory.ai/docs/overview/comparison · https://supermemory.ai/blog/supermemory-vs-zep · https://supermemory.ai/research
+- MemoryBench: https://supermemory.ai/docs/memorybench/overview · https://github.com/supermemoryai/memorybench · https://supermemory.ai/docs/memorybench/memscore
 
 ### Mem0
 
-- MCP: https://docs.mem0.ai/platform/mem0-mcp  
-- Search v3: https://docs.mem0.ai/api-reference/memory/search-memories  
-- Graph: https://docs.mem0.ai/platform/features/graph-memory  
-- Temporal: https://docs.mem0.ai/platform/features/temporal-reasoning  
-- Eval / benches: https://docs.mem0.ai/core-concepts/memory-evaluation · https://github.com/mem0ai/memory-benchmarks  
-- Dream: https://docs.mem0.ai/platform/features/dream · https://mem0.ai/blog/dream-background-memory-consolidation-for-ai-agents  
-- Add: https://docs.mem0.ai/api-reference/memory/add-memories  
-- Platform vs OSS: https://docs.mem0.ai/platform/platform-vs-oss  
-- Embeddings blog: https://mem0.ai/blog/how-mem0-uses-embeddings-and-why-we-are-evaluating-nvidia-nemotron-3-embed  
-- Pricing: https://mem0.ai/pricing  
-- Index: https://docs.mem0.ai/llms.txt · https://github.com/mem0ai/mem0  
+- MCP: https://docs.mem0.ai/platform/mem0-mcp
+- Search v3: https://docs.mem0.ai/api-reference/memory/search-memories
+- Graph: https://docs.mem0.ai/platform/features/graph-memory
+- Temporal: https://docs.mem0.ai/platform/features/temporal-reasoning
+- Eval / benches: https://docs.mem0.ai/core-concepts/memory-evaluation · https://github.com/mem0ai/memory-benchmarks
+- Dream: https://docs.mem0.ai/platform/features/dream · https://mem0.ai/blog/dream-background-memory-consolidation-for-ai-agents
+- Add: https://docs.mem0.ai/api-reference/memory/add-memories
+- Platform vs OSS: https://docs.mem0.ai/platform/platform-vs-oss
+- Embeddings blog: https://mem0.ai/blog/how-mem0-uses-embeddings-and-why-we-are-evaluating-nvidia-nemotron-3-embed
+- Pricing: https://mem0.ai/pricing
+- Index: https://docs.mem0.ai/llms.txt · https://github.com/mem0ai/mem0
 
 ### vmem (this repo)
 
-- Ranker: `packages/backend/engine/memory/rank.ts`  
-- Runtime retrieve caps: `packages/backend/convex/memoryRuntime.ts` (`RETRIEVE_RECENT_CAP`, `VECTOR_CANDIDATE_LIMIT`)  
-- FTS cap: `packages/backend/convex/memoryStore/helpers.ts` (`FTS_TAKE`)  
-- Labelled eval: `packages/backend/eval/benchmark.ts`, `eval/corpus.ts`, `tests/memory/eval.test.ts`  
-- Live numbers vs Neo4j bar: `packages/backend/tests/mcp/RESULTS.md` (2026-09-16)  
-- MCP catalog: `packages/backend/tests/mcp/catalog.ts`, `apps/docs/mcp/tools.mdx`  
-- Dream no-op: `packages/backend/convex/dreamMode.ts`  
-- Proposed updates empty: `apps/docs/concepts/proposed-updates.mdx`  
+- Ranker: `packages/backend/engine/memory/rank.ts`
+- Runtime retrieve caps: `packages/backend/convex/memoryRuntime.ts` (`RETRIEVE_RECENT_CAP`, `VECTOR_CANDIDATE_LIMIT`)
+- FTS cap: `packages/backend/convex/memoryStore/helpers.ts` (`FTS_TAKE`)
+- Labelled eval: `packages/backend/eval/benchmark.ts`, `eval/corpus.ts`, `tests/memory/eval.test.ts`
+- Live numbers vs Neo4j bar: `packages/backend/tests/mcp/RESULTS.md` (2026-09-16)
+- MCP catalog: `packages/backend/tests/mcp/catalog.ts`, `apps/docs/mcp/tools.mdx`
+- Dream no-op: `packages/backend/convex/dreamMode.ts`
+- Proposed updates empty: `apps/docs/concepts/proposed-updates.mdx`
