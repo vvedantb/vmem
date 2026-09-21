@@ -108,3 +108,27 @@ EVAL_JEV=1 pnpm --filter @vmem/backend eval:jev
 Requires `TYPESAFE_API_KEY` (or `TYPESAFE_AI_API_KEY` / `JEV_API_KEY`). The eval fails closed if the key is missing — it does not mock System One or copy hybrid numbers. `pnpm test` / `eval:bench` stay hybrid-only.
 
 Results: [`benchmark/jev-gate-results.md`](./benchmark/jev-gate-results.md). Optional `EVAL_JEV_CONCURRENCY` (default 4).
+
+## Dream Mode merge gate
+
+Same TypeSafe client (`evaluateSystemOne` / `TYPESAFE_API_KEY`) as retrieve. Dream Mode still **clusters heuristically** (`clusterNearDuplicateMemories` / `pickClusterKeeper`) and still uses **OpenRouter** for dream portraits and other prose. Jev only **decides** whether a near-duplicate cluster becomes a merge proposal.
+
+The dream pass already runs as a Convex **action**, so the gate `fetch`es from there (mutations still cannot). Per cluster, Jev answers:
+
+1. **noul `merge`** — true near-duplicates worth merging?
+2. **choice `keeper`** — which memory is current truth?
+3. **noul `auto_accept`** — safe to materialize without inbox review?
+
+Thresholds (in `engine/memory/jevMergeGate.ts`):
+
+| Signal                           | Threshold                        | Effect                                                             |
+| -------------------------------- | -------------------------------- | ------------------------------------------------------------------ |
+| merge noul ≥ `0.65`              | `JEV_MERGE_APPROVE_NOUL`         | Create a proposal (keeper from Jev or heuristic)                   |
+| merge noul ≤ `0.35`              | `JEV_MERGE_REJECT_NOUL`          | Skip (`jevRejected`)                                               |
+| `0.35` < merge noul < `0.65`     | abstain band                     | Skip (`jevSkipped`)                                                |
+| keeper choice confidence ≥ `0.6` | `JEV_KEEPER_OVERRIDE_CONFIDENCE` | Honor Jev's keeper; otherwise keep `pickClusterKeeper`             |
+| auto-accept noul ≥ `0.7`         | `JEV_AUTO_ACCEPT_NOUL`           | When user auto-accept is on, materialize; otherwise leave in inbox |
+
+**Fail-open:** missing `TYPESAFE_API_KEY` or Jev HTTP/parse errors keep today's heuristic (create the proposal; auto-accept still materializes). Jev never writes merged title/content.
+
+`DreamRunResult` counts `clustersScanned`, `jevApproved`, `jevRejected`, `jevSkipped` (abstain), and `failOpen`.

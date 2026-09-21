@@ -40,11 +40,8 @@ import {
   wantsLocalRerank,
   type RetrieveJudgeOptions,
 } from "../engine/memory/jevGate";
-import {
-  readSystemOneApiKey,
-  SYSTEMONE_API_KEY_ENV_NAMES,
-} from "../engine/llm/systemOneClient";
 import { tryUserAndApiKeyByClerkId } from "./lib/envVars";
+import { resolveSystemOneApiKey } from "./lib/systemOneKey";
 import { bestEffortEmbedOne } from "./lib/openRouter/bestEffortEmbed";
 import { callJsonChat } from "./lib/openRouter/jsonChat";
 import { scheduleContextPromptInvalidationByClerkId } from "./lib/contextPromptInvalidate";
@@ -426,21 +423,6 @@ async function listRecentForRetrieve(
     offset: 0,
   });
   return listed.memories;
-}
-
-async function resolveSystemOneApiKey(
-  ctx: ActionCtx,
-  clerkId: string | undefined,
-): Promise<string | undefined> {
-  if (clerkId !== undefined) {
-    for (const name of SYSTEMONE_API_KEY_ENV_NAMES) {
-      const found = await tryUserAndApiKeyByClerkId(ctx, clerkId, name);
-      if (found === null) continue;
-      const trimmed = found.apiKey.trim();
-      if (trimmed.length > 0) return trimmed;
-    }
-  }
-  return readSystemOneApiKey();
 }
 
 async function maybeApplyJevRetrieveGate(

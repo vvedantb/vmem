@@ -120,4 +120,4 @@ WEB_APP_URL
 OPENROUTER_API_KEY
 ```
 
-Optional: `GOOGLE_CLIENT_*`, `NOTION_CLIENT_*`, `TYPESAFE_API_KEY` (Jev retrieve-gate; see [`packages/backend/tests/memory/jev-retrieve-gate.md`](packages/backend/tests/memory/jev-retrieve-gate.md)).
+Optional: `GOOGLE_CLIENT_*`, `NOTION_CLIENT_*`, `TYPESAFE_API_KEY` (Jev retrieve-gate and Dream Mode merge gate; see [`packages/backend/tests/memory/jev-retrieve-gate.md`](packages/backend/tests/memory/jev-retrieve-gate.md)).

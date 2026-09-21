@@ -18,20 +18,20 @@ Create `apps/web/.env.local`:
 
 Set these in the **Convex dashboard** (Settings → Environment Variables). The same names are in `packages/backend/.env.example` for local CLI tests.
 
-| Variable                 | Required | Description                                       |
-| ------------------------ | -------- | ------------------------------------------------- |
-| `CLERK_FRONTEND_API_URL` | Yes      | Clerk JWKS domain for Convex auth                 |
-| `CLERK_SECRET_KEY`       | Yes      | Clerk secret key (MCP OAuth token verify)         |
-| `CLERK_PUBLISHABLE_KEY`  | Yes      | Clerk publishable key (MCP token verify)          |
-| `ENCRYPTION_KEY`         | Yes      | Base64-encoded AES-256 key for API key encryption |
-| `CONVEX_SITE_URL`        | Yes      | Your `.convex.site` URL (OAuth redirects)         |
-| `WEB_APP_URL`            | Yes      | Web app origin (MCP OAuth callbacks)              |
-| `OPENROUTER_API_KEY`     | No       | Deployment-level embeddings / fact extraction     |
-| `TYPESAFE_API_KEY`       | No       | TypeSafe Jev retrieve-gate (on when set)          |
+| Variable                 | Required | Description                                                        |
+| ------------------------ | -------- | ------------------------------------------------------------------ |
+| `CLERK_FRONTEND_API_URL` | Yes      | Clerk JWKS domain for Convex auth                                  |
+| `CLERK_SECRET_KEY`       | Yes      | Clerk secret key (MCP OAuth token verify)                          |
+| `CLERK_PUBLISHABLE_KEY`  | Yes      | Clerk publishable key (MCP token verify)                           |
+| `ENCRYPTION_KEY`         | Yes      | Base64-encoded AES-256 key for API key encryption                  |
+| `CONVEX_SITE_URL`        | Yes      | Your `.convex.site` URL (OAuth redirects)                          |
+| `WEB_APP_URL`            | Yes      | Web app origin (MCP OAuth callbacks)                               |
+| `OPENROUTER_API_KEY`     | No       | Deployment-level embeddings / fact extraction                      |
+| `TYPESAFE_API_KEY`       | No       | TypeSafe Jev retrieve-gate and Dream Mode merge gate (on when set) |
 
 Per-user OpenRouter keys can also be stored in dashboard **Settings → Secrets**. Instruction `save` / `update` over HTTP return `422 openrouter_required` when neither source has a key.
 
-Optional Jev retrieve-gate: set `TYPESAFE_API_KEY` in the Convex dashboard (or a per-user secret with the same name). Retrieve runs the gate automatically. Missing key skips the gate; retrieve does not 422. Pass `judge: "off"` to skip for ablation. Enablement notes live in `packages/backend/tests/memory/jev-retrieve-gate.md`.
+Optional Jev retrieve-gate and Dream Mode near-duplicate merge gate: set `TYPESAFE_API_KEY` in the Convex dashboard (or a per-user secret with the same name). Retrieve reranks automatically; Dream Mode asks Jev whether a heuristic cluster is a true merge. Missing key skips both gates (fail-open); retrieve does not 422. Pass `judge: "off"` to skip Jev on retrieve for ablation. Enablement notes live in `packages/backend/tests/memory/jev-retrieve-gate.md`.
 
 There is **no** `NEO4J_*` or `MCP_JWT_SECRET` on current `main`.
 
