@@ -6,6 +6,7 @@ import {
   type ConfigRun,
 } from "../benchmark";
 import { embeddingMode } from "../embeddings";
+import type { EvalJudge } from "../retrieve";
 import { loadLocomo10, type LoadLocomo10Options } from "./load";
 import {
   convertLocomoDataset,
@@ -15,7 +16,9 @@ import {
 import type { LocomoIrSample, LocomoSkippedQuery } from "./types";
 
 export const DEFAULT_LOCOMO_IR_LIMIT = 8;
+export const DEFAULT_LOCOMO_IR_JUDGE: EvalJudge = "off";
 export const EVAL_LOCOMO_IR_ENV = "EVAL_LOCOMO_IR";
+export const LOCOMO_IR_JUDGE_ENV = "LOCOMO_IR_JUDGE";
 
 export function evalLocomoIrEnabled(
   env: Record<string, string | undefined> = process.env,
@@ -74,9 +77,41 @@ export function parseLocomoIrLimit(
   return DEFAULT_LOCOMO_IR_LIMIT;
 }
 
+function parseLocomoIrJudgeValue(raw: string, source: string): EvalJudge {
+  const value = raw.trim().toLowerCase();
+  if (value === "off" || value === "jev") return value;
+  throw new Error(`${source} must be "off" or "jev"`);
+}
+
+/** Default `off`. `jev` reranks retrieve candidates like prod (`judge: "jev"`). */
+export function parseLocomoIrJudge(
+  argv: readonly string[] = process.argv,
+  env: Record<string, string | undefined> = process.env,
+): EvalJudge {
+  const envRaw = env[LOCOMO_IR_JUDGE_ENV]?.trim();
+  if (envRaw !== undefined && envRaw.length > 0) {
+    return parseLocomoIrJudgeValue(envRaw, LOCOMO_IR_JUDGE_ENV);
+  }
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (arg === "--judge") {
+      const next = argv[i + 1];
+      if (next === undefined) {
+        throw new Error(`${arg} requires "off" or "jev"`);
+      }
+      return parseLocomoIrJudgeValue(next, arg);
+    }
+    if (arg?.startsWith("--judge=")) {
+      return parseLocomoIrJudgeValue(arg.slice("--judge=".length), "--judge");
+    }
+  }
+  return DEFAULT_LOCOMO_IR_JUDGE;
+}
+
 export interface RunLocomoIrOptions extends LoadLocomo10Options {
   limit?: number;
   ablation?: boolean;
+  judge?: EvalJudge;
   items?: Parameters<typeof convertLocomoDataset>[0];
 }
 
@@ -128,6 +163,7 @@ export function buildLocomoIrReport(args: {
   skipped: readonly LocomoSkippedQuery[];
   memoryCount: number;
   answerable: number;
+  judge?: EvalJudge;
 }): string {
   const today = new Date().toISOString().slice(0, 10);
   const sampleIds = args.samples.map((sample) => sample.sampleId).join(", ");
@@ -192,11 +228,17 @@ export function buildLocomoIrReport(args: {
   const world = queries.filter((query) => query.needsWorldKnowledge).length;
   const adversarial = queries.filter((query) => query.adversarial).length;
 
-  return `# vmem LoCoMo-IR (no LLM judge)
+  const judge = args.judge ?? DEFAULT_LOCOMO_IR_JUDGE;
+  const jevNote =
+    judge === "jev"
+      ? " Optional TypeSafe Jev (`LOCOMO_IR_JUDGE=jev`) reranks the hybrid head before IR metrics (same as prod retrieve). Missing `TYPESAFE_API_KEY` or Jev HTTP failure fail-opens to hybrid. Gold `dia_id` scoring stays deterministic (no MemScore / LLM answer judge)."
+      : " Retrieve judge is off (`LOCOMO_IR_JUDGE=off`, default). No OpenAI, Mem0, SuperMemory, or answer-judge calls.";
 
-Generated: ${today} · Samples: ${sampleIds} · Utterance memories: ${String(args.memoryCount)} · IR queries: ${String(args.answerable)} · Skipped (no gold hit set): ${String(args.skipped.length)} · Embeddings: ${embeddingMode()}
+  return `# vmem LoCoMo-IR (labelled retrieval)
 
-This is **labelled retrieval** (recall@k / MRR / nDCG@10) on gold \`dia_id\` evidence. It is **not** MemoryBench MemScore / answer accuracy. No OpenAI, Mem0, SuperMemory, or judge calls.
+Generated: ${today} · Samples: ${sampleIds} · Utterance memories: ${String(args.memoryCount)} · IR queries: ${String(args.answerable)} · Skipped (no gold hit set): ${String(args.skipped.length)} · Embeddings: ${embeddingMode()} · retrieve judge: \`${judge}\`
+
+This is **labelled retrieval** (recall@k / MRR / nDCG@10) on gold \`dia_id\` evidence. It is **not** MemoryBench MemScore / answer accuracy.${jevNote}
 
 Scored IR gold includes multi-hop (${String(synthesis)}), world-knowledge (${String(world)}), and adversarial (${String(adversarial)}) when evidence IDs resolve. Those still need synthesis or an LLM to *answer*; only span retrieval is scored.
 
@@ -216,6 +258,7 @@ ${skippedLines}
 
 - One episodic memory per dialog turn. Gold titles are \`{sample_id}/{dia_id}\`.
 - Default smoke: \`-l\` / \`LOCOMO_IR_LIMIT\` (default 8) on the first conversation haystack. Full 1986-Q: \`LOCOMO_IR_LIMIT=all\`.
+- Retrieve judge: \`LOCOMO_IR_JUDGE=off|jev\` (default \`off\`). \`jev\` needs \`TYPESAFE_API_KEY\` to actually rerank; fail-open matches prod.
 - Category IDs follow LoCoMo \`evaluation.py\` (1 multi-hop, 2 temporal, 3 world-knowledge, 4 single-hop, 5 adversarial), not MemoryBench's swapped map.
 `;
 }
@@ -229,9 +272,10 @@ export async function runLocomoIr(
   if (samples.length === 0) {
     throw new Error("LoCoMo-IR: no samples after applying limit");
   }
+  const judge = options.judge ?? parseLocomoIrJudge();
   const configs = options.ablation
     ? undefined
-    : [{ name: "full hybrid" as const, legs: {}, judge: "off" as const }];
+    : [{ name: "full hybrid" as const, legs: {}, judge }];
   const perSample: ConfigRun[][] = [];
   let memoryCount = 0;
   for (const sample of samples) {
@@ -239,7 +283,7 @@ export async function runLocomoIr(
     const { runs } = await runCorpusAblation(sampleToCorpus(sample), {
       configs,
       nowMs: sample.nowMs,
-      judge: "off",
+      judge,
     });
     perSample.push(runs);
   }
@@ -257,6 +301,7 @@ export async function runLocomoIr(
     skipped,
     memoryCount,
     answerable,
+    judge,
   });
   const hybrid = runs.find((run) => run.name === "full hybrid") ?? runs[0];
   const metrics = aggregate(hybrid?.outcomes ?? []);
@@ -277,7 +322,11 @@ const isDirectRun =
 
 if (isDirectRun) {
   const limit = parseLocomoIrLimit();
-  runLocomoIr({ limit, ablation: locomoIrWantsAblation() })
+  runLocomoIr({
+    limit,
+    ablation: locomoIrWantsAblation(),
+    judge: parseLocomoIrJudge(),
+  })
     .then((result) => {
       console.log(result.report);
     })

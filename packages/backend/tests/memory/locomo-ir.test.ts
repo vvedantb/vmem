@@ -16,6 +16,7 @@ import { loadLocomo10 } from "../../eval/locomo/load";
 import {
   evalLocomoIrEnabled,
   locomoIrWantsAblation,
+  parseLocomoIrJudge,
   parseLocomoIrLimit,
   runLocomoIr,
 } from "../../eval/locomo/run";
@@ -147,7 +148,7 @@ describe("LoCoMo-IR retrieve on fixture haystack", () => {
   });
 });
 
-describe("LoCoMo-IR CLI limit parsing", () => {
+describe("LoCoMo-IR CLI parsing", () => {
   it("defaults to 8, honors -l / env, and treats all as unlimited", () => {
     expect(parseLocomoIrLimit(["node", "run.ts"], {})).toBe(8);
     expect(parseLocomoIrLimit(["node", "run.ts", "-l", "4"], {})).toBe(4);
@@ -159,6 +160,30 @@ describe("LoCoMo-IR CLI limit parsing", () => {
     expect(locomoIrWantsAblation(["node"], {})).toBe(false);
     expect(locomoIrWantsAblation(["node", "--ablation"], {})).toBe(true);
   });
+
+  it("selects retrieve judge off vs jev from env (default off)", () => {
+    expect(parseLocomoIrJudge(["node", "run.ts"], {})).toBe("off");
+    expect(
+      parseLocomoIrJudge(["node", "run.ts"], { LOCOMO_IR_JUDGE: "off" }),
+    ).toBe("off");
+    expect(
+      parseLocomoIrJudge(["node", "run.ts"], { LOCOMO_IR_JUDGE: "jev" }),
+    ).toBe("jev");
+    expect(
+      parseLocomoIrJudge(["node", "run.ts"], { LOCOMO_IR_JUDGE: "JEV" }),
+    ).toBe("jev");
+    expect(
+      parseLocomoIrJudge(["node", "run.ts", "--judge", "jev"], {}),
+    ).toBe("jev");
+    expect(
+      parseLocomoIrJudge(["node", "run.ts", "--judge=off"], {
+        LOCOMO_IR_JUDGE: "jev",
+      }),
+    ).toBe("jev");
+    expect(() =>
+      parseLocomoIrJudge(["node", "run.ts"], { LOCOMO_IR_JUDGE: "gliner" }),
+    ).toThrow(/LOCOMO_IR_JUDGE must be "off" or "jev"/);
+  });
 });
 
 describe.skipIf(!evalLocomoIrEnabled())(
@@ -169,6 +194,7 @@ describe.skipIf(!evalLocomoIrEnabled())(
       const result = await runLocomoIr({
         limit: limit ?? 8,
         ablation: locomoIrWantsAblation(),
+        judge: parseLocomoIrJudge(),
       });
       console.log(`\n${result.report}\n`);
       expect(result.memoryCount).toBeGreaterThan(0);
