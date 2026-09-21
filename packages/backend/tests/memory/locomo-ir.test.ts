@@ -16,6 +16,7 @@ import { loadLocomo10 } from "../../eval/locomo/load";
 import {
   evalLocomoIrEnabled,
   locomoIrWantsAblation,
+  parseLocomoIrJudge,
   parseLocomoIrLimit,
   runLocomoIr,
 } from "../../eval/locomo/run";
@@ -88,6 +89,8 @@ describe("LoCoMo-IR mapping", () => {
     const sliced = sliceLocomoSamples([sample], 2);
     expect(sliced[0]?.queries).toHaveLength(2);
     expect(sliced[0]?.memories).toHaveLength(sample.memories.length);
+    const unlimited = sliceLocomoSamples([sample], undefined);
+    expect(unlimited[0]?.queries).toHaveLength(sample.queries.length);
   });
 });
 
@@ -147,7 +150,7 @@ describe("LoCoMo-IR retrieve on fixture haystack", () => {
   });
 });
 
-describe("LoCoMo-IR CLI limit parsing", () => {
+describe("LoCoMo-IR CLI parsing", () => {
   it("defaults to 8, honors -l / env, and treats all as unlimited", () => {
     expect(parseLocomoIrLimit(["node", "run.ts"], {})).toBe(8);
     expect(parseLocomoIrLimit(["node", "run.ts", "-l", "4"], {})).toBe(4);
@@ -159,26 +162,57 @@ describe("LoCoMo-IR CLI limit parsing", () => {
     expect(locomoIrWantsAblation(["node"], {})).toBe(false);
     expect(locomoIrWantsAblation(["node", "--ablation"], {})).toBe(true);
   });
+
+  it("selects retrieve judge off vs jev from env (default off)", () => {
+    expect(parseLocomoIrJudge(["node", "run.ts"], {})).toBe("off");
+    expect(
+      parseLocomoIrJudge(["node", "run.ts"], { LOCOMO_IR_JUDGE: "off" }),
+    ).toBe("off");
+    expect(
+      parseLocomoIrJudge(["node", "run.ts"], { LOCOMO_IR_JUDGE: "jev" }),
+    ).toBe("jev");
+    expect(
+      parseLocomoIrJudge(["node", "run.ts"], { LOCOMO_IR_JUDGE: "JEV" }),
+    ).toBe("jev");
+    expect(parseLocomoIrJudge(["node", "run.ts", "--judge", "jev"], {})).toBe(
+      "jev",
+    );
+    expect(
+      parseLocomoIrJudge(["node", "run.ts", "--judge=off"], {
+        LOCOMO_IR_JUDGE: "jev",
+      }),
+    ).toBe("jev");
+    expect(() =>
+      parseLocomoIrJudge(["node", "run.ts"], { LOCOMO_IR_JUDGE: "gliner" }),
+    ).toThrow(/LOCOMO_IR_JUDGE must be "off" or "jev"/);
+  });
 });
 
 describe.skipIf(!evalLocomoIrEnabled())(
-  "LoCoMo-IR live smoke (download locomo10, no LLM)",
+  "LoCoMo-IR live smoke (download locomo10, no LLM answer judge)",
   () => {
-    it("runs a -l subset through the labelled retrieve path", async () => {
-      const limit = parseLocomoIrLimit();
-      const result = await runLocomoIr({
-        limit: limit ?? 8,
-        ablation: locomoIrWantsAblation(),
-      });
-      console.log(`\n${result.report}\n`);
-      expect(result.memoryCount).toBeGreaterThan(0);
-      expect(result.answerable).toBeGreaterThan(0);
-      expect(result.answerable).toBeLessThanOrEqual(limit ?? 8);
-      expect(result.metrics.recall5).toBeGreaterThanOrEqual(0);
-      expect(result.metrics.recall5).toBeLessThanOrEqual(1);
-      expect(result.metrics.mrr).toBeGreaterThanOrEqual(0);
-      expect(result.metrics.ndcg10).toBeGreaterThanOrEqual(0);
-      expect(result.metrics.ndcg10).toBeLessThanOrEqual(1);
-    }, 180_000);
+    const limit = parseLocomoIrLimit();
+    it(
+      "runs a -l subset through the labelled retrieve path",
+      async () => {
+        const result = await runLocomoIr({
+          limit,
+          ablation: locomoIrWantsAblation(),
+          judge: parseLocomoIrJudge(),
+        });
+        console.log(`\n${result.report}\n`);
+        expect(result.memoryCount).toBeGreaterThan(0);
+        expect(result.answerable).toBeGreaterThan(0);
+        expect(result.answerable).toBeLessThanOrEqual(
+          limit ?? Number.POSITIVE_INFINITY,
+        );
+        expect(result.metrics.recall5).toBeGreaterThanOrEqual(0);
+        expect(result.metrics.recall5).toBeLessThanOrEqual(1);
+        expect(result.metrics.mrr).toBeGreaterThanOrEqual(0);
+        expect(result.metrics.ndcg10).toBeGreaterThanOrEqual(0);
+        expect(result.metrics.ndcg10).toBeLessThanOrEqual(1);
+      },
+      limit === undefined ? 3_600_000 : 180_000,
+    );
   },
 );
