@@ -15,27 +15,40 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
+function mockFetch(body: unknown, status = 200) {
+  return vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
+    jsonResponse(body, status),
+  );
+}
+
+function postedCall(fetchImpl: ReturnType<typeof mockFetch>): {
+  url: string;
+  init: RequestInit;
+} {
+  const call = fetchImpl.mock.calls[0];
+  if (!call?.[1]) throw new Error("fetch was not called");
+  return { url: String(call[0]), init: call[1] };
+}
+
 describe("AI Gateway client", () => {
   it("posts chat completions to the gateway with bearer auth", async () => {
-    const fetchImpl = vi.fn(async () =>
-      jsonResponse({
-        id: "gen_1",
-        choices: [
-          {
-            finish_reason: "stop",
-            message: { role: "assistant", content: '{"ok":true}' },
-          },
-        ],
-        usage: {
-          prompt_tokens: 11,
-          completion_tokens: 4,
-          total_tokens: 15,
-          prompt_tokens_details: { cached_tokens: 2 },
-          completion_tokens_details: { reasoning_tokens: 1 },
+    const fetchImpl = mockFetch({
+      id: "gen_1",
+      choices: [
+        {
+          finish_reason: "stop",
+          message: { role: "assistant", content: '{"ok":true}' },
         },
-        providerMetadata: { gateway: { cost: "0.00021" } },
-      }),
-    );
+      ],
+      usage: {
+        prompt_tokens: 11,
+        completion_tokens: 4,
+        total_tokens: 15,
+        prompt_tokens_details: { cached_tokens: 2 },
+        completion_tokens_details: { reasoning_tokens: 1 },
+      },
+      providerMetadata: { gateway: { cost: "0.00021" } },
+    });
 
     const result = await createGatewayChatCompletion({
       apiKey: "gw-test",
@@ -45,7 +58,7 @@ describe("AI Gateway client", () => {
     });
 
     expect(fetchImpl).toHaveBeenCalledOnce();
-    const [url, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
+    const { url, init } = postedCall(fetchImpl);
     expect(url).toBe(`${AI_GATEWAY_BASE_URL}/chat/completions`);
     expect(init.method).toBe("POST");
     expect(new Headers(init.headers).get("Authorization")).toBe(
@@ -73,14 +86,12 @@ describe("AI Gateway client", () => {
   });
 
   it("posts embeddings to the gateway and keeps the embedding model", async () => {
-    const fetchImpl = vi.fn(async () =>
-      jsonResponse({
-        id: "emb_1",
-        data: [{ index: 0, embedding: [0.1, 0.2] }],
-        usage: { prompt_tokens: 3, total_tokens: 3 },
-        providerMetadata: { gateway: { cost: "0.00000006" } },
-      }),
-    );
+    const fetchImpl = mockFetch({
+      id: "emb_1",
+      data: [{ index: 0, embedding: [0.1, 0.2] }],
+      usage: { prompt_tokens: 3, total_tokens: 3 },
+      providerMetadata: { gateway: { cost: "0.00000006" } },
+    });
 
     const result = await createGatewayEmbeddings({
       apiKey: "gw-test",
@@ -90,7 +101,7 @@ describe("AI Gateway client", () => {
       fetchImpl,
     });
 
-    const [url, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
+    const { url, init } = postedCall(fetchImpl);
     expect(url).toBe(`${AI_GATEWAY_BASE_URL}/embeddings`);
     expect(new Headers(init.headers).get("Authorization")).toBe(
       "Bearer gw-test",
@@ -107,9 +118,7 @@ describe("AI Gateway client", () => {
   });
 
   it("surfaces gateway error messages and omits missing usage fields", async () => {
-    const fetchImpl = vi.fn(async () =>
-      jsonResponse({ error: { message: "Invalid API key" } }, 401),
-    );
+    const fetchImpl = mockFetch({ error: { message: "Invalid API key" } }, 401);
     await expect(
       createGatewayChatCompletion({
         apiKey: "bad",
