@@ -137,6 +137,7 @@ const schema = defineSchema({
     // reverse lookup for the index cleanup guard, is any surviving file still pointing at this derived memory? (identical content files share one)
     .index("by_memory", ["memoryId"]),
 
+  // leftover from the removed Settings → Secrets UI; runtime does not read it
   userEnvVars: defineTable(userEnvVarFields).index("by_user", ["userId"]),
 
   // one row per openRouter api call

@@ -5,7 +5,7 @@ import {
   buildEntityExtractionPrompt,
   parseEntityExtractionResponse,
 } from "../engine/memory/entities";
-import { tryUserAndApiKeyByClerkId } from "./lib/envVars";
+import { resolveOpenRouterAuth } from "./lib/openRouterKey";
 import { callJsonChat } from "./lib/openRouter/jsonChat";
 
 export const extractMemoryEntitiesInternal = internalAction({
@@ -23,11 +23,7 @@ export const extractMemoryEntitiesInternal = internalAction({
     );
     if (!memory || memory.updatedAt !== args.updatedAt) return false;
 
-    const openRouter = await tryUserAndApiKeyByClerkId(
-      ctx,
-      args.clerkId,
-      "OPENROUTER_API_KEY",
-    );
+    const openRouter = await resolveOpenRouterAuth(ctx, args.clerkId);
     if (!openRouter) return false;
 
     const [known, candidates] = await Promise.all([

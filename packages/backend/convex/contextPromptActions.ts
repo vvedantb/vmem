@@ -7,7 +7,7 @@ import type { Id } from "./_generated/dataModel";
 import type { MemoryWithTags } from "./memoryApi/types";
 import { buildSkillsIndexAddition } from "@vmem/shared";
 import { toSkillIndexEntry } from "./skills";
-import { tryUserAndApiKeyByClerkId } from "./lib/envVars";
+import { readOpenRouterApiKey } from "./lib/openRouterKey";
 import { callOpenRouterChat, LLM_MODEL } from "./lib/openRouter";
 import { listMemoriesForClerk } from "./memoryRuntime";
 
@@ -122,13 +122,9 @@ export const regenerateContextPromptInternal = internalAction({
     }));
 
     // profile summary is best-effort. without an openRouter key we still produce a useful prompt (about/preferences/pinned)
-    const auth = await tryUserAndApiKeyByClerkId(
-      ctx,
-      args.clerkId,
-      "OPENROUTER_API_KEY",
-    );
-    const summary = auth
-      ? await callSummarizer(ctx, auth.apiKey, auth.userId, recentSnippets)
+    const apiKey = readOpenRouterApiKey();
+    const summary = apiKey
+      ? await callSummarizer(ctx, apiKey, userId, recentSnippets)
       : null;
 
     // dream maintained portrait of the mcp active profile

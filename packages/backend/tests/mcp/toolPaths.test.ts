@@ -218,7 +218,7 @@ describe("in-process MCP memory tools", () => {
     expect(deleted.deleted).toBe(true);
   });
 
-  it("add_instruction fails with openrouter_required without a user OpenRouter key", async () => {
+  it("add_instruction fails with openrouter_required without OPENROUTER_API_KEY", async () => {
     const client = new InProcessMcpClient({ token: MOCK_MCP_TOKEN });
     const result = await client.callTool("memory_add_instruction", {
       instruction: "Remember the user prefers dark mode",

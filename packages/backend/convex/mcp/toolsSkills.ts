@@ -80,7 +80,7 @@ export const skillsToolSpecs = {
         internal.skills.listEffectiveByClerkIdInternal,
         scopedClerk(h),
       );
-      const apiKey = await resolveSystemOneApiKey(h.ctx, h.clerkUserId);
+      const apiKey = resolveSystemOneApiKey();
       return recommendSkills({
         query: params.query,
         skills: rows.map(toSkillIndexEntry),

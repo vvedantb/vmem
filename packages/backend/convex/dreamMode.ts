@@ -316,7 +316,7 @@ async function runDreamForClerk(
   }
 
   const autoAccept = config.dreamModeAutoAccept;
-  const apiKey = await resolveSystemOneApiKey(ctx, args.clerkId);
+  const apiKey = resolveSystemOneApiKey();
   let aggregate = emptyDreamResult("ok");
 
   if (args.profileId !== undefined) {

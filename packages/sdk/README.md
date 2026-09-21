@@ -74,7 +74,7 @@ try {
   await vmem.save("...");
 } catch (error) {
   if (isVMemoryError(error) && error.code === "openrouter_required") {
-    // Set OPENROUTER_API_KEY in the vmem dashboard
+    // Set OPENROUTER_API_KEY on the Convex deployment
   }
 }
 ```
