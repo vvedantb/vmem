@@ -40,7 +40,7 @@ import {
   wantsLocalRerank,
   type RetrieveJudgeOptions,
 } from "../engine/memory/jevGate";
-import { tryUserAndApiKeyByClerkId } from "./lib/envVars";
+import { resolveOpenRouterAuth } from "./lib/openRouterKey";
 import { resolveSystemOneApiKey } from "./lib/systemOneKey";
 import { bestEffortEmbedOne } from "./lib/openRouter/bestEffortEmbed";
 import { callJsonChat } from "./lib/openRouter/jsonChat";
@@ -426,7 +426,6 @@ async function listRecentForRetrieve(
 }
 
 async function maybeApplyJevRetrieveGate(
-  ctx: ActionCtx,
   args: {
     clerkId?: string;
     query: string;
@@ -439,8 +438,7 @@ async function maybeApplyJevRetrieveGate(
   if (!wantsJevJudge(args)) return ranked;
   if (ranked.length === 0) return ranked;
   if (args.query.trim().length === 0) return ranked;
-  const apiKey =
-    args.apiKey ?? (await resolveSystemOneApiKey(ctx, args.clerkId));
+  const apiKey = args.apiKey ?? resolveSystemOneApiKey();
   if (apiKey === undefined) return ranked;
   return applyJevRetrieveGate({
     query: args.query,
@@ -452,7 +450,6 @@ async function maybeApplyJevRetrieveGate(
 }
 
 async function finishRetrieve(
-  ctx: ActionCtx,
   args: {
     clerkId?: string;
     query: string;
@@ -462,7 +459,7 @@ async function finishRetrieve(
   } & RetrieveJudgeOptions,
   ranked: MemoryCandidate[],
 ): Promise<MemoryCandidate[]> {
-  const gated = await maybeApplyJevRetrieveGate(ctx, args, ranked);
+  const gated = await maybeApplyJevRetrieveGate(args, ranked);
   return gated.slice(0, Math.max(0, args.limit));
 }
 
@@ -516,7 +513,7 @@ async function retrieveRanked(
           { userId: args.clerkId },
         ),
     wantsJevJudge(args)
-      ? resolveSystemOneApiKey(ctx, args.clerkId)
+      ? Promise.resolve(resolveSystemOneApiKey())
       : Promise.resolve(undefined),
   ]);
   const jev = apiKey !== undefined;
@@ -601,7 +598,6 @@ async function retrieveRanked(
   if (byId.size === 0) {
     const recent = await listRecentForRetrieve(ctx, args);
     return finishRetrieve(
-      ctx,
       { ...args, apiKey },
       retrieveMemoriesFromPool(recent, args.query, {
         ...rankOpts,
@@ -613,7 +609,6 @@ async function retrieveRanked(
   }
 
   return finishRetrieve(
-    ctx,
     { ...args, apiKey },
     retrieveMemoriesFromPool([...byId.values()], args.query, {
       ...rankOpts,
@@ -827,11 +822,7 @@ async function extractInstructionFacts(
   ctx: ActionCtx,
   args: { clerkId: string; instruction: string; profileId?: string },
 ): Promise<{ facts: ExtractedFact[]; extracted: boolean }> {
-  const openRouter = await tryUserAndApiKeyByClerkId(
-    ctx,
-    args.clerkId,
-    "OPENROUTER_API_KEY",
-  );
+  const openRouter = await resolveOpenRouterAuth(ctx, args.clerkId);
   if (!openRouter) throw new OpenRouterRequiredError();
 
   const instruction = args.instruction.trim();
@@ -973,11 +964,7 @@ async function decideInstructionFact(
     }
   }
   const candidates = [...byId.values()];
-  const openRouter = await tryUserAndApiKeyByClerkId(
-    ctx,
-    args.clerkId,
-    "OPENROUTER_API_KEY",
-  );
+  const openRouter = await resolveOpenRouterAuth(ctx, args.clerkId);
   let llmDecision: FactDecision | null = null;
   if (openRouter) {
     const raw = await callJsonChat(ctx, {

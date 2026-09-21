@@ -16,11 +16,11 @@ GLiNER does **not** judge retrieve. Jev does **not** generate fact text. The age
 
 **Shipped on `main` before this note:**
 
-| PR | What landed |
-| --- | --- |
-| [#176](https://github.com/vvedantb/vmem/pull/176) | Retrieve candidate pool = FTS + vector indexes (not last-200-only) |
-| [#177](https://github.com/vvedantb/vmem/pull/177) | Auto-extract entities + write `memoryLinks` on Convex store |
-| [#178](https://github.com/vvedantb/vmem/pull/178) | Supersede prior rows on instruction update |
+| PR                                                | What landed                                                                                                                    |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| [#176](https://github.com/vvedantb/vmem/pull/176) | Retrieve candidate pool = FTS + vector indexes (not last-200-only)                                                             |
+| [#177](https://github.com/vvedantb/vmem/pull/177) | Auto-extract entities + write `memoryLinks` on Convex store                                                                    |
+| [#178](https://github.com/vvedantb/vmem/pull/178) | Supersede prior rows on instruction update                                                                                     |
 | [#179](https://github.com/vvedantb/vmem/pull/179) | `eventStart` / `eventEnd` / `temporalKind`, query temporal class, additive temporal leg, `threshold`, optional top-20 `rerank` |
 
 IR numbers after #179 (synthetic embeddings): labelled R@5 **99.7–100%**, nDCG@10 **0.974–0.975**, temporal nDCG **0.780 → 1.000**, all 6 abstentions score **< 0.8**. Tables: `packages/backend/eval/RESULTS.md`.
@@ -51,11 +51,11 @@ ingest / instruction
    Agent consumes KB / RAG  (MCP tools, HTTP /api/v1/memories, SDK, vmem://context_prompt)
 ```
 
-| Layer | Job in vmem | Can emit fact text? |
-| --- | --- | --- |
-| **GLiNER2.5** | Write extract: spans, typed entities, relations, attributes, records into Convex | No (spans / labels / graphs) |
-| **Jev** | Retrieve judge: relevance, confidence, abstention; later ADD/UPDATE/DELETE/NONE | No (Choice / Score / Boolean only) |
-| **Agent** | Consume ranked memories as KB/RAG. Search, cite, follow links. Do not re-extract. | Uses generative models for the user, not for memory rows |
+| Layer         | Job in vmem                                                                       | Can emit fact text?                                      |
+| ------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| **GLiNER2.5** | Write extract: spans, typed entities, relations, attributes, records into Convex  | No (spans / labels / graphs)                             |
+| **Jev**       | Retrieve judge: relevance, confidence, abstention; later ADD/UPDATE/DELETE/NONE   | No (Choice / Score / Boolean only)                       |
+| **Agent**     | Consume ranked memories as KB/RAG. Search, cite, follow links. Do not re-extract. | Uses generative models for the user, not for memory rows |
 
 Today’s OpenRouter `extractFacts.ts` first-person split stays until GLiNER records (or a small generative rewrite) prove they can replace it. Structure on write is GLiNER’s job; judging hits is Jev’s; talking to the user is the agent’s.
 
@@ -136,12 +136,12 @@ Span attributes can carry `temporalKind` or negation on the mention. Record mode
 
 Write mapping (Convex stays source of truth):
 
-| GLiNER output | Convex table |
-| --- | --- |
+| GLiNER output                   | Convex table                                                    |
+| ------------------------------- | --------------------------------------------------------------- |
 | entity mention + type + offsets | `memoryEntities` / `memoryEntityMentions` (keep fallback merge) |
-| typed relation | `memoryLinks` with `origin: entity`, `reason` = relation type |
-| span attribute | optional fields or mention metadata; do not invent a graph DB |
-| document classification | `temporalKind` only if it beats `inferTemporalFields` |
+| typed relation                  | `memoryLinks` with `origin: entity`, `reason` = relation type   |
+| span attribute                  | optional fields or mention metadata; do not invent a graph DB   |
+| document classification         | `temporalKind` only if it beats `inferTemporalFields`           |
 
 ### 3.3 Hosting (the actual P0 blocker)
 
@@ -177,11 +177,11 @@ Jev is a **System One** model: unstructured `state` + a map of typed `questions`
 
 Primitives (TypeSafe names → AI SDK / Gateway names):
 
-| TypeSafe | Gateway / AI SDK | Returns |
-| --- | --- | --- |
-| Noul | `boolean` | P(true) in `[0, 1]` |
-| Choice | `choice` | selected option + full distribution (≤255 options) |
-| Score | `score` | 2–10 ordered levels; probability-weighted mean |
+| TypeSafe | Gateway / AI SDK | Returns                                            |
+| -------- | ---------------- | -------------------------------------------------- |
+| Noul     | `boolean`        | P(true) in `[0, 1]`                                |
+| Choice   | `choice`         | selected option + full distribution (≤255 options) |
+| Score    | `score`          | 2–10 ordered levels; probability-weighted mean     |
 
 Training: RLCD (calibrated decisions), parallel sampler. Vendor claims (their workflow evals, caveats on the blog): ~70–500ms, **$0.042 / 1M input tokens**, output unmetered, homepage multipliers **193.6× faster / 444.6× cheaper** called “higher end of real-world gains.” Context: 64k tokens for state+questions together; 32k for state + longest question. Pack many questions per call.
 
@@ -201,11 +201,11 @@ Body: `{ "state": …, "model": "jev-latest", "questions": { … } }`. Read the 
 
 Where the key lives (names only — never print or commit the value):
 
-| Where | What to do |
-| --- | --- |
-| **Engineer box (local spikes)** | `TYPESAFE_API_KEY` is already stored. `curl` / `typesafe-sdk` against the official API with no further access step. |
-| **Cloud-agent spikes** | Add `TYPESAFE_API_KEY` to the **saved Cursor environment / secret store**. Do **not** put the value in the PR, this markdown, `.env.example`, or chat. Until that secret is on the environment, live Jev tests must skip (same pattern as unset `OPENROUTER_API_KEY` → synthetic embeddings). |
-| **This repo / PR** | No secrets. Do not request the key. Do not embed it. |
+| Where                           | What to do                                                                                                                                                                                                                                                                                    |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Engineer box (local spikes)** | `TYPESAFE_API_KEY` is already stored. `curl` / `typesafe-sdk` against the official API with no further access step.                                                                                                                                                                           |
+| **Cloud-agent spikes**          | Add `TYPESAFE_API_KEY` to the **saved Cursor environment / secret store**. Do **not** put the value in the PR, this markdown, `.env.example`, or chat. Until that secret is on the environment, live Jev tests must skip (same pattern as unset `OPENROUTER_API_KEY` → synthetic embeddings). |
+| **This repo / PR**              | No secrets. Do not request the key. Do not embed it.                                                                                                                                                                                                                                          |
 
 Optional SDK mapping: `typesafe-sdk` / `typeSafeAi.evaluationModel('jev-latest')` may expect `TYPESAFE_AI_API_KEY` — alias from `TYPESAFE_API_KEY` in the spike; do not invent a second secret.
 
@@ -213,18 +213,18 @@ Optional SDK mapping: `typesafe-sdk` / `typeSafeAi.evaluationModel('jev-latest')
 
 Env names a spike may **read** (never commit values):
 
-| Name | Role |
-| --- | --- |
-| `TYPESAFE_API_KEY` | **Canonical.** Engineer box now; Cursor environment for cloud agents. Bearer for `POST /v1/systemone`. |
-| `TYPESAFE_AI_API_KEY` | `@ai-sdk/typesafe-ai` default. Alias from `TYPESAFE_API_KEY` if needed. |
-| `AI_GATEWAY_API_KEY` | Optional. Gateway `typesafe-ai/jev` and `ai evaluate` only. |
-| `JEV_API_KEY` | Optional local alias for `TYPESAFE_API_KEY`. Do not add a Convex dashboard secret under this name unless we later productize it. |
+| Name                  | Role                                                                                                                             |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `TYPESAFE_API_KEY`    | **Canonical.** Engineer box now; Cursor environment for cloud agents. Bearer for `POST /v1/systemone`.                           |
+| `TYPESAFE_AI_API_KEY` | `@ai-sdk/typesafe-ai` default. Alias from `TYPESAFE_API_KEY` if needed.                                                          |
+| `AI_GATEWAY_API_KEY`  | Optional. Gateway `typesafe-ai/jev` and `ai evaluate` only.                                                                      |
+| `JEV_API_KEY`         | Optional local alias for `TYPESAFE_API_KEY`. Do not add a Convex dashboard secret under this name unless we later productize it. |
 
 Resolution for scripts: `TYPESAFE_API_KEY` → else `TYPESAFE_AI_API_KEY` → else `JEV_API_KEY`. If none is set, skip the live Jev test. Do not 422 production retrieve if Jev is missing; the heuristic `#179` threshold stays the floor.
 
 Do **not** paste keys into issues, PRs, logs, or this markdown.
 
-Production later (only if the spike wins): store `TYPESAFE_API_KEY` the same way as `OPENROUTER_API_KEY` (`userEnvVars` + `tryUserAndApiKeyByClerkId`), not in the repo.
+Production later (only if the spike wins): set `TYPESAFE_API_KEY` on the Convex deployment the same way as `OPENROUTER_API_KEY` (`npx convex env set` / dashboard Environment Variables), not in the repo.
 
 ### 4.3 Fit vs current retrieve
 
@@ -264,19 +264,19 @@ Use whichever path is keyed to freeze instructions + `t` on labelled query/hit p
 
 ## 5. Side-by-side vs current extract
 
-| Need | vmem today | GLiNER2.5 | Jev |
-| --- | --- | --- | --- |
-| Atomic durable fact text | OpenRouter JSON chat | No | No |
-| Person/org/project mentions | Regex + optional LLM JSON | Schema NER + offsets + confidence | Choice over **pre-extracted** candidates only |
-| Typed relations | Undirected same-entity clique | JointIE, schema-valid graph | No (cannot emit new edge labels as text) |
-| Temporal fields | LLM optional + `inferTemporalFields` | Span attributes / classify | Do **not** compare dates in-model |
-| ADD/UPDATE/DELETE | Hash + Jaccard + LLM judge | No | Yes (Choice / Boolean) — P1 after retrieve gate |
-| Retrieve abstention | Heuristic `threshold` | No | Boolean P(relevant) + code threshold |
-| Lexical-trap demotion | Local rerank extra | No | Boolean / Score on `{query, hit}` |
-| Latency budget | Sync regex; async LLM enrich | Tens–hundreds of ms on CPU if hosted | 70–500ms vendor; pack questions |
-| Convex-native | Yes | **Hosting TBD** | Gateway or TypeSafe HTTP from an action |
-| Failure mode | Fallback / 422 on fact extract | Fallback if sidecar down | Skip gate if key missing |
-| License / lock-in | OpenRouter | Apache 2.0 weights | Hosted early-access model; price may be subsidized |
+| Need                        | vmem today                           | GLiNER2.5                            | Jev                                                |
+| --------------------------- | ------------------------------------ | ------------------------------------ | -------------------------------------------------- |
+| Atomic durable fact text    | OpenRouter JSON chat                 | No                                   | No                                                 |
+| Person/org/project mentions | Regex + optional LLM JSON            | Schema NER + offsets + confidence    | Choice over **pre-extracted** candidates only      |
+| Typed relations             | Undirected same-entity clique        | JointIE, schema-valid graph          | No (cannot emit new edge labels as text)           |
+| Temporal fields             | LLM optional + `inferTemporalFields` | Span attributes / classify           | Do **not** compare dates in-model                  |
+| ADD/UPDATE/DELETE           | Hash + Jaccard + LLM judge           | No                                   | Yes (Choice / Boolean) — P1 after retrieve gate    |
+| Retrieve abstention         | Heuristic `threshold`                | No                                   | Boolean P(relevant) + code threshold               |
+| Lexical-trap demotion       | Local rerank extra                   | No                                   | Boolean / Score on `{query, hit}`                  |
+| Latency budget              | Sync regex; async LLM enrich         | Tens–hundreds of ms on CPU if hosted | 70–500ms vendor; pack questions                    |
+| Convex-native               | Yes                                  | **Hosting TBD**                      | Gateway or TypeSafe HTTP from an action            |
+| Failure mode                | Fallback / 422 on fact extract       | Fallback if sidecar down             | Skip gate if key missing                           |
+| License / lock-in           | OpenRouter                           | Apache 2.0 weights                   | Hosted early-access model; price may be subsidized |
 
 ---
 
@@ -284,11 +284,11 @@ Use whichever path is keyed to freeze instructions + `t` on labelled query/hit p
 
 **Lock:** GLiNER (write extract) + Jev (retrieve judge) + Agent (consume KB/RAG). Convex remains the store. No graph DB. No second extract on the agent path.
 
-| Layer | Owns | Does not own |
-| --- | --- | --- |
-| **GLiNER** | On write: mentions, typed relations, attributes, records → `memoryEntities` / `memoryLinks` / optional record fields. Regex fallback until the sidecar/API is up. | Retrieve scoring. User-facing prose. |
-| **Jev** | After `rank.ts`: P(relevant), trap/stale flags, calibrated abstention on top-k. Call `POST https://api.typesafe.ai/v1/systemone` (`jev-latest`, Bearer `TYPESAFE_API_KEY`). | Fact-text generation. Date math (`temporal.ts` stays in code). |
-| **Agent** | MCP `memory_retrieve` / HTTP / SDK / `vmem://context_prompt`. Cite traces, follow `memoryLinks`. | Re-running extract on every turn. |
+| Layer      | Owns                                                                                                                                                                        | Does not own                                                   |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| **GLiNER** | On write: mentions, typed relations, attributes, records → `memoryEntities` / `memoryLinks` / optional record fields. Regex fallback until the sidecar/API is up.           | Retrieve scoring. User-facing prose.                           |
+| **Jev**    | After `rank.ts`: P(relevant), trap/stale flags, calibrated abstention on top-k. Call `POST https://api.typesafe.ai/v1/systemone` (`jev-latest`, Bearer `TYPESAFE_API_KEY`). | Fact-text generation. Date math (`temporal.ts` stays in code). |
+| **Agent**  | MCP `memory_retrieve` / HTTP / SDK / `vmem://context_prompt`. Cite traces, follow `memoryLinks`.                                                                            | Re-running extract on every turn.                              |
 
 Implementation can proceed in parallel without changing the vision:
 

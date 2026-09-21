@@ -24,6 +24,8 @@ describe("MCP retrieve uses the labelled Convex hybrid ranker", () => {
     expect(runtime).toContain("wantsJevJudge");
     expect(runtime).toContain("wantsLocalRerank");
     expect(runtime).toContain("resolveSystemOneApiKey");
+    expect(runtime).toContain("resolveOpenRouterAuth");
+    expect(runtime).not.toContain("tryUserAndApiKeyByClerkId");
     const pool = read("engine/memory/retrieve.ts");
     expect(pool).toContain("return rankMemories(pool, query, options)");
     const evalRetrieve = read("eval/retrieve.ts");

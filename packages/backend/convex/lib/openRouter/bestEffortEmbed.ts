@@ -2,7 +2,7 @@
 
 import type { ActionCtx } from "../../_generated/server";
 import type { Id } from "../../_generated/dataModel";
-import { tryUserAndApiKeyByClerkId } from "../envVars";
+import { resolveOpenRouterAuth } from "../openRouterKey";
 import { generateEmbeddings } from "./embedding";
 import type { OpenRouterFeature } from "./shared";
 
@@ -23,7 +23,7 @@ export async function resolveBestEffortEmbedAuth(
   ctx: ActionCtx,
   clerkId: string,
 ): Promise<BestEffortEmbedAuth | null> {
-  return tryUserAndApiKeyByClerkId(ctx, clerkId, "OPENROUTER_API_KEY");
+  return resolveOpenRouterAuth(ctx, clerkId);
 }
 
 export async function bestEffortEmbedOne(

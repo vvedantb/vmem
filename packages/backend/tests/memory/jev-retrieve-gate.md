@@ -19,13 +19,13 @@ export TYPESAFE_API_KEY="…"
 # JEV_API_KEY   # local alias only — do not add this name as a Convex dashboard secret
 ```
 
-2. Convex **action** env (dashboard → Settings → Environment Variables):
+2. Convex **action** env (dashboard → Settings → Environment Variables, or `npx convex env set`):
 
 ```
 TYPESAFE_API_KEY
 ```
 
-Per-user override: dashboard **Settings → Secrets** with the same key name (`userEnvVars`). Lookup is user secret first, then deployment `process.env`.
+Lookup is **deployment `process.env` only**. There is no in-app Secrets page and no per-user override.
 
 3. Call retrieve as usual. HTTP / SDK / MCP / Convex / dashboard / Chrome extension all get Jev when the key is present:
 
