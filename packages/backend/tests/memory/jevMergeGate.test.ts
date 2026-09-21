@@ -4,8 +4,6 @@ import { JEV_BEST_NONE } from "../../engine/memory/jevGate";
 import {
   JEV_AUTO_ACCEPT_NOUL,
   JEV_KEEPER_OVERRIDE_CONFIDENCE,
-  JEV_MERGE_APPROVE_NOUL,
-  JEV_MERGE_REJECT_NOUL,
   applyJevMergeGate,
   buildJevMergeQuestions,
   clusterSourceKey,
@@ -76,7 +74,7 @@ describe("buildJevMergeQuestions", () => {
 });
 
 describe("applyJevMergeGate", () => {
-  it("rejects a cluster when merge noul is at or below the reject floor", async () => {
+  it("still scores a cluster when merge noul is low (no hard-drop)", async () => {
     const evaluate = vi.fn(async () => mergeResponse({ merge: 0.2 }));
     const decision = await applyJevMergeGate({
       memories: [shortMem, longMem],
@@ -86,14 +84,13 @@ describe("applyJevMergeGate", () => {
       evaluate,
     });
     expect(evaluate).toHaveBeenCalledOnce();
-    expect(decision.outcome).toBe("reject");
+    expect(decision.outcome).toBe("jev");
     expect(decision.keeperId).toBe(longMem.id);
     expect(decision.safeToAutoAccept).toBe(false);
     expect(decision.mergeNoul).toBe(0.2);
-    expect(JEV_MERGE_REJECT_NOUL).toBe(0.35);
   });
 
-  it("skips as abstain when merge noul sits between reject and approve", async () => {
+  it("still scores a cluster when merge noul sits in the mid band", async () => {
     const decision = await applyJevMergeGate({
       memories: [shortMem, longMem],
       heuristicKeeperId: longMem.id,
@@ -101,12 +98,12 @@ describe("applyJevMergeGate", () => {
       apiKey: "test-key",
       evaluate: async () => mergeResponse({ merge: 0.5 }),
     });
-    expect(decision.outcome).toBe("abstain");
+    expect(decision.outcome).toBe("jev");
     expect(decision.safeToAutoAccept).toBe(false);
-    expect(JEV_MERGE_APPROVE_NOUL).toBe(0.65);
+    expect(decision.mergeNoul).toBe(0.5);
   });
 
-  it("honors Jev's keeper when confidence is high enough", async () => {
+  it("honors Jev's keeper when confidence is high enough, even on mid merge noul", async () => {
     const decision = await applyJevMergeGate({
       memories: [shortMem, longMem],
       heuristicKeeperId: longMem.id,
@@ -114,12 +111,12 @@ describe("applyJevMergeGate", () => {
       apiKey: "test-key",
       evaluate: async () =>
         mergeResponse({
-          merge: 0.88,
+          merge: 0.5,
           keeper: "h0",
           keeperConfidence: 0.72,
         }),
     });
-    expect(decision.outcome).toBe("approve");
+    expect(decision.outcome).toBe("jev");
     expect(decision.keeperId).toBe(shortMem.id);
     expect(decision.keeperConfidence).toBe(0.72);
     expect(JEV_KEEPER_OVERRIDE_CONFIDENCE).toBe(0.6);
@@ -138,7 +135,7 @@ describe("applyJevMergeGate", () => {
           keeperConfidence: 0.4,
         }),
     });
-    expect(decision.outcome).toBe("approve");
+    expect(decision.outcome).toBe("jev");
     expect(decision.keeperId).toBe(longMem.id);
   });
 
@@ -162,6 +159,20 @@ describe("applyJevMergeGate", () => {
     expect(unsafe.safeToAutoAccept).toBe(false);
     expect(safe.safeToAutoAccept).toBe(true);
     expect(JEV_AUTO_ACCEPT_NOUL).toBe(0.7);
+  });
+
+  it("does not require high merge noul for auto-accept — auto_accept noul is the signal", async () => {
+    const decision = await applyJevMergeGate({
+      memories: [shortMem, longMem],
+      heuristicKeeperId: longMem.id,
+      autoAccept: true,
+      apiKey: "test-key",
+      evaluate: async () =>
+        mergeResponse({ merge: 0.2, keeper: "h1", autoAccept: 0.85 }),
+    });
+    expect(decision.outcome).toBe("jev");
+    expect(decision.safeToAutoAccept).toBe(true);
+    expect(decision.mergeNoul).toBe(0.2);
   });
 
   it("fail-opens to the heuristic keeper when Jev throws", async () => {
@@ -226,6 +237,24 @@ describe("judgeDreamMergeClusters", () => {
         safeToAutoAccept: true,
       },
     ]);
+  });
+
+  it("calls Jev for every cluster when the TypeSafe key is present", async () => {
+    const evaluate = vi.fn(async () => mergeResponse({ merge: 0.2 }));
+    const decisions = await judgeDreamMergeClusters({
+      clusters: [
+        {
+          memories: [shortMem, longMem],
+          heuristicKeeperId: longMem.id,
+        },
+      ],
+      autoAccept: false,
+      apiKey: "test-key",
+      evaluate,
+    });
+    expect(evaluate).toHaveBeenCalledOnce();
+    expect(decisions[0]?.outcome).toBe("jev");
+    expect(decisions[0]?.mergeNoul).toBe(0.2);
   });
 
   it("stable-keys a cluster by sorted source ids", () => {

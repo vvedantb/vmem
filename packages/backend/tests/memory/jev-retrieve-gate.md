@@ -27,7 +27,7 @@ TYPESAFE_API_KEY
 
 Per-user override: dashboard **Settings → Secrets** with the same key name (`userEnvVars`). Lookup is user secret first, then deployment `process.env`.
 
-3. Call retrieve as usual. HTTP / SDK / MCP / Convex / dashboard / Chrome extension all get the gate when the key is present:
+3. Call retrieve as usual. HTTP / SDK / MCP / Convex / dashboard / Chrome extension all get Jev when the key is present:
 
 ```json
 {
@@ -44,7 +44,7 @@ await vmem.search("What package manager does the user prefer?", {
 });
 ```
 
-Ablation / labelled IR (skip Jev): `judge: "off"`. `judge: "jev"` and `rerank: "jev"` are accepted no-ops. `rerank: true` is the local #179 top-20 extra (not a cross-encoder); it is skipped when Jev actually runs.
+Ablation / labelled IR (skip Jev): HTTP/SDK/Convex `judge: "off"`, or LoCoMo CLI `LOCOMO_IR_JUDGE=off`. Live MCP retrieve does not expose `judge`. `judge: "jev"` and `rerank: "jev"` are accepted no-ops on HTTP/SDK. `rerank: true` is the local #179 top-20 extra (not a cross-encoder); it is skipped when Jev actually runs.
 
 ## What it does
 
@@ -109,26 +109,23 @@ Requires `TYPESAFE_API_KEY` (or `TYPESAFE_AI_API_KEY` / `JEV_API_KEY`). The eval
 
 Results: [`benchmark/jev-gate-results.md`](./benchmark/jev-gate-results.md). Optional `EVAL_JEV_CONCURRENCY` (default 4).
 
-## Dream Mode merge gate
+## Dream Mode merge (always-on, no hard-drop)
 
-Same TypeSafe client (`evaluateSystemOne` / `TYPESAFE_API_KEY`) as retrieve. Dream Mode still **clusters heuristically** (`clusterNearDuplicateMemories` / `pickClusterKeeper`) and still uses **OpenRouter** for dream portraits and other prose. Jev only **decides** whether a near-duplicate cluster becomes a merge proposal.
+Same TypeSafe client (`evaluateSystemOne` / `TYPESAFE_API_KEY`) as retrieve. Dream Mode still **clusters heuristically** (`clusterNearDuplicateMemories` / `pickClusterKeeper`) and still uses **OpenRouter** for dream portraits and other prose. Jev annotates each heuristic near-dup cluster; it does **not** drop clusters.
 
-The dream pass already runs as a Convex **action**, so the gate `fetch`es from there (mutations still cannot). Per cluster, Jev answers:
+The dream pass already runs as a Convex **action**, so Jev `fetch`es from there (mutations still cannot). Per cluster, Jev answers:
 
-1. **noul `merge`** — true near-duplicates worth merging?
+1. **noul `merge`** — metadata only (how duplicate-like); never a skip
 2. **choice `keeper`** — which memory is current truth?
 3. **noul `auto_accept`** — safe to materialize without inbox review?
 
-Thresholds (in `engine/memory/jevMergeGate.ts`):
+Every heuristic near-dup cluster still becomes a merge proposal. Thresholds (in `engine/memory/jevMergeGate.ts`):
 
-| Signal                           | Threshold                        | Effect                                                             |
-| -------------------------------- | -------------------------------- | ------------------------------------------------------------------ |
-| merge noul ≥ `0.65`              | `JEV_MERGE_APPROVE_NOUL`         | Create a proposal (keeper from Jev or heuristic)                   |
-| merge noul ≤ `0.35`              | `JEV_MERGE_REJECT_NOUL`          | Skip (`jevRejected`)                                               |
-| `0.35` < merge noul < `0.65`     | abstain band                     | Skip (`jevSkipped`)                                                |
-| keeper choice confidence ≥ `0.6` | `JEV_KEEPER_OVERRIDE_CONFIDENCE` | Honor Jev's keeper; otherwise keep `pickClusterKeeper`             |
-| auto-accept noul ≥ `0.7`         | `JEV_AUTO_ACCEPT_NOUL`           | When user auto-accept is on, materialize; otherwise leave in inbox |
+| Signal                           | Threshold                        | Effect                                                 |
+| -------------------------------- | -------------------------------- | ------------------------------------------------------ |
+| keeper choice confidence ≥ `0.6` | `JEV_KEEPER_OVERRIDE_CONFIDENCE` | Honor Jev's keeper; otherwise keep `pickClusterKeeper` |
+| auto-accept noul ≥ `0.7`         | `JEV_AUTO_ACCEPT_NOUL`           | When user auto-accept is on, materialize; else inbox   |
 
 **Fail-open:** missing `TYPESAFE_API_KEY` or Jev HTTP/parse errors keep today's heuristic (create the proposal; auto-accept still materializes). Jev never writes merged title/content.
 
-`DreamRunResult` counts `clustersScanned`, `jevApproved`, `jevRejected`, `jevSkipped` (abstain), and `failOpen`.
+`DreamRunResult` counts `clustersScanned`, `jevScored` (Jev returned metadata), and `failOpen`.

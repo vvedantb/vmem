@@ -65,17 +65,17 @@ import { authQuery, authMutation, authAction } from "./auth";
 
 Use `.env.example` as the complete template. Copy it to `.env.local` for local CLI scripts/tests, and set the Convex runtime variables in the Convex dashboard:
 
-| Variable                          | Purpose                                                                                  |
-| --------------------------------- | ---------------------------------------------------------------------------------------- |
-| `ENCRYPTION_KEY`                  | AES-256 key for API keys and OAuth tokens                                                |
-| `CLERK_FRONTEND_API_URL`          | Clerk JWKS + MCP AS discovery                                                            |
-| `CLERK_SECRET_KEY`                | Clerk Backend API / MCP token verify                                                     |
-| `CLERK_PUBLISHABLE_KEY`           | MCP OAuth token verify (`authenticateRequest`)                                           |
-| `CONVEX_SITE_URL` / `WEB_APP_URL` | OAuth redirects / resource docs                                                          |
-| `OPENROUTER_API_KEY`              | Embeddings and context prompt generation                                                 |
-| `TYPESAFE_API_KEY`                | Jev retrieve-gate and Dream Mode merge gate (on when set; retrieve `judge: "off"` skips) |
-| `MEM0_API_KEY`                    | Optional labelled IR vs Mem0 (`eval:competitive`)                                        |
-| `SUPERMEMORY_API_KEY`             | Optional labelled IR vs SuperMemory (`eval:competitive`)                                 |
+| Variable                          | Purpose                                                                                                   |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `ENCRYPTION_KEY`                  | AES-256 key for API keys and OAuth tokens                                                                 |
+| `CLERK_FRONTEND_API_URL`          | Clerk JWKS + MCP AS discovery                                                                             |
+| `CLERK_SECRET_KEY`                | Clerk Backend API / MCP token verify                                                                      |
+| `CLERK_PUBLISHABLE_KEY`           | MCP OAuth token verify (`authenticateRequest`)                                                            |
+| `CONVEX_SITE_URL` / `WEB_APP_URL` | OAuth redirects / resource docs                                                                           |
+| `OPENROUTER_API_KEY`              | Embeddings and context prompt generation                                                                  |
+| `TYPESAFE_API_KEY`                | Jev retrieve rerank and Dream Mode merge metadata (on when set; HTTP/SDK `judge: "off"` is ablation-only) |
+| `MEM0_API_KEY`                    | Optional labelled IR vs Mem0 (`eval:competitive`)                                                         |
+| `SUPERMEMORY_API_KEY`             | Optional labelled IR vs SuperMemory (`eval:competitive`)                                                  |
 
 Live HTTP tests use `packages/backend/.env.local`.
 

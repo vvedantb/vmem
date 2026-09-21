@@ -17,8 +17,8 @@ import {
 import {
   clusterSourceKey,
   judgeDreamMergeClusters,
-  type JevMergeGateDecision,
-  type JevMergeGateOutcome,
+  type JevMergeDecision,
+  type JevMergeOutcome,
 } from "../engine/memory/jevMergeGate";
 import { isVisibleStatus } from "../engine/memory/scope";
 import { collectScopedMemories } from "./memoryStore/helpers";
@@ -34,9 +34,7 @@ export interface DreamRunResult {
   memoriesMaterialized: number;
   clustersScanned: number;
   reweighted: number;
-  jevSkipped: number;
-  jevApproved: number;
-  jevRejected: number;
+  jevScored: number;
   failOpen: number;
   reason: "ok" | "no-key" | "no-recent-memories" | "rate-limited";
 }
@@ -45,13 +43,11 @@ const MANUAL_RATE_LIMIT_MS = 60 * 60 * 1000;
 const DEFAULT_MERGE_CLUSTERS = 8;
 
 const jevMergeOutcomeValidator = v.union(
-  v.literal("approve"),
-  v.literal("reject"),
-  v.literal("abstain"),
+  v.literal("jev"),
   v.literal("fail-open"),
 );
 
-const clusterGateValidator = v.object({
+const clusterDecisionValidator = v.object({
   sourceMemoryIds: v.array(v.string()),
   outcome: jevMergeOutcomeValidator,
   keeperId: v.string(),
@@ -67,9 +63,7 @@ function emptyDreamResult(reason: DreamRunResult["reason"]): DreamRunResult {
     memoriesMaterialized: 0,
     clustersScanned: 0,
     reweighted: 0,
-    jevSkipped: 0,
-    jevApproved: 0,
-    jevRejected: 0,
+    jevScored: 0,
     failOpen: 0,
     reason,
   };
@@ -85,9 +79,7 @@ function addDreamResults(
       target.memoriesMaterialized + next.memoriesMaterialized,
     clustersScanned: target.clustersScanned + next.clustersScanned,
     reweighted: target.reweighted + next.reweighted,
-    jevSkipped: target.jevSkipped + next.jevSkipped,
-    jevApproved: target.jevApproved + next.jevApproved,
-    jevRejected: target.jevRejected + next.jevRejected,
+    jevScored: target.jevScored + next.jevScored,
     failOpen: target.failOpen + next.failOpen,
     reason: target.reason === "ok" ? next.reason : target.reason,
   };
@@ -100,56 +92,48 @@ function isRateLimited(lastRunAt: number | null | undefined): boolean {
   );
 }
 
-function gateBySourceIds(
-  gates: readonly JevMergeGateDecision[] | undefined,
-): Map<string, JevMergeGateDecision> {
-  const map = new Map<string, JevMergeGateDecision>();
-  if (gates === undefined) return map;
-  for (const gate of gates) {
-    const key = clusterSourceKey(gate.sourceMemoryIds);
-    if (!map.has(key)) map.set(key, gate);
+function decisionBySourceIds(
+  decisions: readonly JevMergeDecision[] | undefined,
+): Map<string, JevMergeDecision> {
+  const map = new Map<string, JevMergeDecision>();
+  if (decisions === undefined) return map;
+  for (const decision of decisions) {
+    const key = clusterSourceKey(decision.sourceMemoryIds);
+    if (!map.has(key)) map.set(key, decision);
   }
   return map;
 }
 
 function resolveClusterKeeper(
   cluster: MemoryWithTags[],
-  gate: JevMergeGateDecision | undefined,
+  decision: JevMergeDecision | undefined,
 ): MemoryWithTags {
   const heuristic = pickClusterKeeper(cluster);
-  if (gate === undefined || gate.outcome !== "approve") return heuristic;
-  const override = cluster.find((memory) => memory.id === gate.keeperId);
+  if (decision === undefined) return heuristic;
+  const override = cluster.find((memory) => memory.id === decision.keeperId);
   return override ?? heuristic;
 }
 
-function recordGateOutcome(
+function recordMergeOutcome(
   result: DreamRunResult,
-  outcome: JevMergeGateOutcome,
+  outcome: JevMergeOutcome,
 ): void {
-  switch (outcome) {
-    case "approve":
-      result.jevApproved += 1;
-      return;
-    case "reject":
-      result.jevRejected += 1;
-      return;
-    case "abstain":
-      result.jevSkipped += 1;
-      return;
-    case "fail-open":
-      result.failOpen += 1;
+  if (outcome === "fail-open") {
+    result.failOpen += 1;
+    return;
   }
+  result.jevScored += 1;
 }
 
 function shouldAutoAccept(args: {
   autoAccept: boolean;
-  gate: JevMergeGateDecision | undefined;
+  decision: JevMergeDecision | undefined;
 }): boolean {
   if (!args.autoAccept) return false;
-  if (args.gate === undefined || args.gate.outcome === "fail-open") {
+  if (args.decision === undefined || args.decision.outcome === "fail-open") {
     return true;
   }
-  return args.gate.safeToAutoAccept;
+  return args.decision.safeToAutoAccept;
 }
 
 async function insertClusterProposal(
@@ -159,10 +143,10 @@ async function insertClusterProposal(
     profileId: string;
     autoAccept: boolean;
     cluster: { memories: MemoryWithTags[]; score: number };
-    gate: JevMergeGateDecision | undefined;
+    decision: JevMergeDecision | undefined;
   },
 ): Promise<"proposal" | "materialized"> {
-  const keeper = resolveClusterKeeper(args.cluster.memories, args.gate);
+  const keeper = resolveClusterKeeper(args.cluster.memories, args.decision);
   const ids = args.cluster.memories.map((memory) => memory.id);
   const proposal = await insertProposedUpdate(ctx, {
     userId: args.clerkId,
@@ -184,7 +168,9 @@ async function insertClusterProposal(
     })),
   });
 
-  if (shouldAutoAccept({ autoAccept: args.autoAccept, gate: args.gate })) {
+  if (
+    shouldAutoAccept({ autoAccept: args.autoAccept, decision: args.decision })
+  ) {
     const resolved = await resolveProposedUpdate(ctx, {
       clerkId: args.clerkId,
       proposalId: proposal.id,
@@ -202,7 +188,7 @@ export const runDreamPassInternal = internalMutation({
     kind: v.union(v.literal("personal"), v.literal("team")),
     autoAccept: v.boolean(),
     maxClusters: v.optional(v.number()),
-    clusterGates: v.optional(v.array(clusterGateValidator)),
+    clusterDecisions: v.optional(v.array(clusterDecisionValidator)),
   },
   handler: async (ctx, args): Promise<DreamRunResult> => {
     const memories =
@@ -224,7 +210,7 @@ export const runDreamPassInternal = internalMutation({
     });
     const result = emptyDreamResult("ok");
     result.clustersScanned = clusters.length;
-    const gates = gateBySourceIds(args.clusterGates);
+    const decisions = decisionBySourceIds(args.clusterDecisions);
 
     for (const cluster of clusters) {
       const ids = cluster.memories.map((memory) => memory.id);
@@ -235,17 +221,16 @@ export const runDreamPassInternal = internalMutation({
       });
       if (overlapping) continue;
 
-      const gate = gates.get(clusterSourceKey(ids));
-      const outcome: JevMergeGateOutcome = gate?.outcome ?? "fail-open";
-      recordGateOutcome(result, outcome);
-      if (outcome === "reject" || outcome === "abstain") continue;
+      const decision = decisions.get(clusterSourceKey(ids));
+      const outcome: JevMergeOutcome = decision?.outcome ?? "fail-open";
+      recordMergeOutcome(result, outcome);
 
       const inserted = await insertClusterProposal(ctx, {
         clerkId: args.clerkId,
         profileId: args.profileId,
         autoAccept: args.autoAccept,
         cluster,
-        gate,
+        decision,
       });
       if (inserted === "materialized") result.memoriesMaterialized += 1;
       else result.proposalsCreated += 1;
@@ -293,7 +278,7 @@ async function runDreamPassForProfile(
   const clusters = clusterNearDuplicateMemories(visible, {
     limit: DEFAULT_MERGE_CLUSTERS,
   });
-  const clusterGates = await judgeDreamMergeClusters({
+  const clusterDecisions = await judgeDreamMergeClusters({
     clusters: clusters.map((cluster) => ({
       memories: cluster.memories,
       heuristicKeeperId: pickClusterKeeper(cluster.memories).id,
@@ -306,7 +291,7 @@ async function runDreamPassForProfile(
     profileId: args.profileId,
     kind: args.kind,
     autoAccept: args.autoAccept,
-    clusterGates,
+    clusterDecisions,
   });
 }
 
@@ -368,12 +353,10 @@ async function runDreamForClerk(
     if (!anyMemories) aggregate.reason = "no-recent-memories";
   }
 
-  console.info("[dream-mode] jev merge gate", {
+  console.info("[dream-mode] jev merge", {
     reason: aggregate.reason,
     clustersScanned: aggregate.clustersScanned,
-    jevApproved: aggregate.jevApproved,
-    jevRejected: aggregate.jevRejected,
-    jevSkipped: aggregate.jevSkipped,
+    jevScored: aggregate.jevScored,
     failOpen: aggregate.failOpen,
     keyed: apiKey !== undefined,
   });
@@ -430,9 +413,7 @@ export const runDreamForUser = authAction({
         memoriesMaterialized: result.memoriesMaterialized,
         clustersScanned: result.clustersScanned,
         reweighted: result.reweighted,
-        jevSkipped: result.jevSkipped,
-        jevApproved: result.jevApproved,
-        jevRejected: result.jevRejected,
+        jevScored: result.jevScored,
         failOpen: result.failOpen,
       },
       severity: "info",
