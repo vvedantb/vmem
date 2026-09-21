@@ -15,6 +15,7 @@ import { WikiSidebarNav } from "./WikiSidebarNav";
 import { MemoriesSidebarNav } from "./MemoriesSidebarNav";
 import { HomeSidebarNav } from "./HomeSidebarNav";
 import { InboxSidebarNav } from "./InboxSidebarNav";
+import { SourcesSidebarNav } from "./SourcesSidebarNav";
 import { SettingsSidebar } from "./SettingsSidebar";
 import { SharedLayoutBackground } from "./SharedLayoutBackground";
 import { NavSection } from "./NavSection";
@@ -172,6 +173,17 @@ export function SidebarNavigation({
     return (
       <InboxSidebarNav
         key="inbox"
+        pathname={pathname}
+        profileId={profileId}
+        isMobile={isMobile}
+        onNavigate={onNavigate}
+      />
+    );
+  }
+  if (navView === "sources") {
+    return (
+      <SourcesSidebarNav
+        key="sources"
         pathname={pathname}
         profileId={profileId}
         isMobile={isMobile}

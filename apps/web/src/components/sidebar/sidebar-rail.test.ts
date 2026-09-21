@@ -29,6 +29,9 @@ describe("railSectionFromPathname", () => {
     expect(railSectionFromPathname("/p1/wiki/abc")).toBe("wiki");
     expect(railSectionFromPathname("/p1/skills/hub")).toBe("skills");
     expect(railSectionFromPathname("/p1/files")).toBe("files");
+    expect(railSectionFromPathname("/p1/sources")).toBe("sources");
+    expect(railSectionFromPathname("/p1/sources/connectors")).toBe("sources");
+    expect(railSectionFromPathname("/p1/sources/import")).toBe("sources");
     expect(railSectionFromPathname("/p1/inbox/proposals")).toBe("inbox");
     expect(railSectionFromPathname("/p1/activity/events")).toBe("home");
     expect(railSectionFromPathname("/p1/activity/usage")).toBe("home");
@@ -46,6 +49,8 @@ describe("railSectionFromPathname", () => {
     expect(navViewFromPathname("/p1/activity/events")).toBe("home");
     expect(navViewFromPathname("/p1/inbox/proposals")).toBe("inbox");
     expect(navViewFromPathname("/p1/inbox/notifications")).toBe("inbox");
+    expect(navViewFromPathname("/p1/sources")).toBe("sources");
+    expect(navViewFromPathname("/p1/sources/import")).toBe("sources");
   });
 });
 
@@ -65,11 +70,19 @@ describe("rail destinations cover the previous sidebar nav", () => {
         "/$profileId/wiki",
         "/$profileId/skills",
         "/$profileId/files",
+        "/$profileId/sources",
         "/$profileId/inbox",
         "/$profileId/team/members",
         "/settings",
       ]),
     );
+    expect(railLibraryItems.map((item) => item.label)).toEqual([
+      "Memories",
+      "Wiki",
+      "Skills",
+      "Files",
+      "Sources",
+    ]);
     expect(hrefs).not.toContain("/$profileId/activity");
   });
 
@@ -107,7 +120,7 @@ describe("shell uses a rail + panel + drawer", () => {
     expect(sidebar).not.toContain("DialogPortal");
   });
 
-  it("keeps settings / skills / wiki / memories / home / inbox as panel modes", () => {
+  it("keeps settings / skills / wiki / memories / home / inbox / sources as panel modes", () => {
     const navigation = read("SidebarNavigation.tsx");
     expect(navigation).toContain("SettingsSidebar");
     expect(navigation).toContain("SkillsSidebarNav");
@@ -115,6 +128,7 @@ describe("shell uses a rail + panel + drawer", () => {
     expect(navigation).toContain("MemoriesSidebarNav");
     expect(navigation).toContain("HomeSidebarNav");
     expect(navigation).toContain("InboxSidebarNav");
+    expect(navigation).toContain("SourcesSidebarNav");
     expect(navigation).not.toContain("ActivitySidebarNav");
     expect(navigation).toContain('section === "team"');
   });
@@ -150,7 +164,7 @@ describe("shell uses a rail + panel + drawer", () => {
 });
 
 describe("nested sidebar chrome", () => {
-  it("hosts memory, home, and inbox views as stacked sidebar rows", () => {
+  it("hosts memory, home, inbox, and sources views as stacked sidebar rows", () => {
     const memories = read("MemoriesSidebarNav.tsx");
     expect(memories).toContain("StackedSidebarNav");
     expect(memories).toContain("Graph");
@@ -191,6 +205,13 @@ describe("nested sidebar chrome", () => {
     expect(inbox).toContain('aria-label="Inbox views"');
     expect(inbox).not.toContain("RouteTabs");
     expect(inbox).not.toContain("fullWidth");
+
+    const sources = read("SourcesSidebarNav.tsx");
+    expect(sources).toContain("StackedSidebarNav");
+    expect(sources).toContain("sourcesNavItems");
+    expect(sources).toContain('aria-label="Source views"');
+    expect(sources).not.toContain("RouteTabs");
+    expect(sources).not.toContain("fullWidth");
 
     const stacked = read("StackedSidebarNav.tsx");
     expect(stacked).toContain("NavLink");

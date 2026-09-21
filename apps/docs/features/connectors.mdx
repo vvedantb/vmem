@@ -5,7 +5,7 @@ description: "Sync data from external services into vmem"
 
 ## Overview
 
-Connectors integrate external data sources with vmem. Connect services from **Settings → Connectors** (`/settings/connectors`).
+Connectors integrate external data sources with vmem. Connect services from **Sources → Connectors** (`/{workspace}/sources/connectors`). `/settings/connectors` redirects there.
 
 ## Available Connectors
 
@@ -27,7 +27,7 @@ Also required: `CONVEX_SITE_URL` for OAuth callback redirects.
 
 ## How Connectors Work
 
-1. User initiates OAuth from the connectors settings page
+1. User initiates OAuth from Sources → Connectors
 2. Convex handles the OAuth flow
 3. Tokens are encrypted at rest (AES-GCM, same as API keys)
 4. Sync jobs pull data from the connected service

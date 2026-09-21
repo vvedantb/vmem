@@ -30,6 +30,7 @@ import { Route as MainSettingsDataControlsRouteRouteImport } from './routes/_mai
 import { Route as MainSettingsApiRouteRouteImport } from './routes/_main/settings/api/route'
 import { Route as MainProfileIdWikiRouteRouteImport } from './routes/_main/$profileId/wiki/route'
 import { Route as MainProfileIdTeamRouteRouteImport } from './routes/_main/$profileId/team/route'
+import { Route as MainProfileIdSourcesRouteRouteImport } from './routes/_main/$profileId/sources/route'
 import { Route as MainProfileIdSkillsRouteRouteImport } from './routes/_main/$profileId/skills/route'
 import { Route as MainProfileIdMemoriesRouteRouteImport } from './routes/_main/$profileId/memories/route'
 import { Route as MainProfileIdInboxRouteRouteImport } from './routes/_main/$profileId/inbox/route'
@@ -38,6 +39,7 @@ import { Route as MainSettingsDataControlsIndexRouteImport } from './routes/_mai
 import { Route as MainSettingsApiIndexRouteImport } from './routes/_main/settings/api/index'
 import { Route as MainProfileIdWikiIndexRouteImport } from './routes/_main/$profileId/wiki/index'
 import { Route as MainProfileIdTeamIndexRouteImport } from './routes/_main/$profileId/team/index'
+import { Route as MainProfileIdSourcesIndexRouteImport } from './routes/_main/$profileId/sources/index'
 import { Route as MainProfileIdSkillsIndexRouteImport } from './routes/_main/$profileId/skills/index'
 import { Route as MainProfileIdMemoriesIndexRouteImport } from './routes/_main/$profileId/memories/index'
 import { Route as MainProfileIdInboxIndexRouteImport } from './routes/_main/$profileId/inbox/index'
@@ -50,6 +52,8 @@ import { Route as MainSettingsApiKeysRouteImport } from './routes/_main/settings
 import { Route as MainProfileIdWikiDocIdRouteImport } from './routes/_main/$profileId/wiki/$docId'
 import { Route as MainProfileIdTeamSettingsRouteImport } from './routes/_main/$profileId/team/settings'
 import { Route as MainProfileIdTeamMembersRouteImport } from './routes/_main/$profileId/team/members'
+import { Route as MainProfileIdSourcesImportRouteImport } from './routes/_main/$profileId/sources/import'
+import { Route as MainProfileIdSourcesConnectorsRouteImport } from './routes/_main/$profileId/sources/connectors'
 import { Route as MainProfileIdSkillsHubRouteImport } from './routes/_main/$profileId/skills/hub'
 import { Route as MainProfileIdSkillsIdRouteImport } from './routes/_main/$profileId/skills/$id'
 import { Route as MainProfileIdMemoriesTimelineRouteImport } from './routes/_main/$profileId/memories/timeline'
@@ -170,6 +174,12 @@ const MainProfileIdTeamRouteRoute = MainProfileIdTeamRouteRouteImport.update({
   path: '/team',
   getParentRoute: () => MainProfileIdRouteRoute,
 } as any)
+const MainProfileIdSourcesRouteRoute =
+  MainProfileIdSourcesRouteRouteImport.update({
+    id: '/sources',
+    path: '/sources',
+    getParentRoute: () => MainProfileIdRouteRoute,
+  } as any)
 const MainProfileIdSkillsRouteRoute =
   MainProfileIdSkillsRouteRouteImport.update({
     id: '/skills',
@@ -214,6 +224,12 @@ const MainProfileIdTeamIndexRoute = MainProfileIdTeamIndexRouteImport.update({
   path: '/',
   getParentRoute: () => MainProfileIdTeamRouteRoute,
 } as any)
+const MainProfileIdSourcesIndexRoute =
+  MainProfileIdSourcesIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => MainProfileIdSourcesRouteRoute,
+  } as any)
 const MainProfileIdSkillsIndexRoute =
   MainProfileIdSkillsIndexRouteImport.update({
     id: '/',
@@ -281,6 +297,18 @@ const MainProfileIdTeamMembersRoute =
     id: '/members',
     path: '/members',
     getParentRoute: () => MainProfileIdTeamRouteRoute,
+  } as any)
+const MainProfileIdSourcesImportRoute =
+  MainProfileIdSourcesImportRouteImport.update({
+    id: '/import',
+    path: '/import',
+    getParentRoute: () => MainProfileIdSourcesRouteRoute,
+  } as any)
+const MainProfileIdSourcesConnectorsRoute =
+  MainProfileIdSourcesConnectorsRouteImport.update({
+    id: '/connectors',
+    path: '/connectors',
+    getParentRoute: () => MainProfileIdSourcesRouteRoute,
   } as any)
 const MainProfileIdSkillsHubRoute = MainProfileIdSkillsHubRouteImport.update({
   id: '/hub',
@@ -369,6 +397,7 @@ export interface FileRoutesByFullPath {
   '/$profileId/inbox': typeof MainProfileIdInboxRouteRouteWithChildren
   '/$profileId/memories': typeof MainProfileIdMemoriesRouteRouteWithChildren
   '/$profileId/skills': typeof MainProfileIdSkillsRouteRouteWithChildren
+  '/$profileId/sources': typeof MainProfileIdSourcesRouteRouteWithChildren
   '/$profileId/team': typeof MainProfileIdTeamRouteRouteWithChildren
   '/$profileId/wiki': typeof MainProfileIdWikiRouteRouteWithChildren
   '/settings/api': typeof MainSettingsApiRouteRouteWithChildren
@@ -394,6 +423,8 @@ export interface FileRoutesByFullPath {
   '/$profileId/memories/timeline': typeof MainProfileIdMemoriesTimelineRoute
   '/$profileId/skills/$id': typeof MainProfileIdSkillsIdRoute
   '/$profileId/skills/hub': typeof MainProfileIdSkillsHubRoute
+  '/$profileId/sources/connectors': typeof MainProfileIdSourcesConnectorsRoute
+  '/$profileId/sources/import': typeof MainProfileIdSourcesImportRoute
   '/$profileId/team/members': typeof MainProfileIdTeamMembersRoute
   '/$profileId/team/settings': typeof MainProfileIdTeamSettingsRoute
   '/$profileId/wiki/$docId': typeof MainProfileIdWikiDocIdRoute
@@ -406,6 +437,7 @@ export interface FileRoutesByFullPath {
   '/$profileId/inbox/': typeof MainProfileIdInboxIndexRoute
   '/$profileId/memories/': typeof MainProfileIdMemoriesIndexRoute
   '/$profileId/skills/': typeof MainProfileIdSkillsIndexRoute
+  '/$profileId/sources/': typeof MainProfileIdSourcesIndexRoute
   '/$profileId/team/': typeof MainProfileIdTeamIndexRoute
   '/$profileId/wiki/': typeof MainProfileIdWikiIndexRoute
   '/settings/api/': typeof MainSettingsApiIndexRoute
@@ -439,6 +471,8 @@ export interface FileRoutesByTo {
   '/$profileId/memories/timeline': typeof MainProfileIdMemoriesTimelineRoute
   '/$profileId/skills/$id': typeof MainProfileIdSkillsIdRoute
   '/$profileId/skills/hub': typeof MainProfileIdSkillsHubRoute
+  '/$profileId/sources/connectors': typeof MainProfileIdSourcesConnectorsRoute
+  '/$profileId/sources/import': typeof MainProfileIdSourcesImportRoute
   '/$profileId/team/members': typeof MainProfileIdTeamMembersRoute
   '/$profileId/team/settings': typeof MainProfileIdTeamSettingsRoute
   '/$profileId/wiki/$docId': typeof MainProfileIdWikiDocIdRoute
@@ -451,6 +485,7 @@ export interface FileRoutesByTo {
   '/$profileId/inbox': typeof MainProfileIdInboxIndexRoute
   '/$profileId/memories': typeof MainProfileIdMemoriesIndexRoute
   '/$profileId/skills': typeof MainProfileIdSkillsIndexRoute
+  '/$profileId/sources': typeof MainProfileIdSourcesIndexRoute
   '/$profileId/team': typeof MainProfileIdTeamIndexRoute
   '/$profileId/wiki': typeof MainProfileIdWikiIndexRoute
   '/settings/api': typeof MainSettingsApiIndexRoute
@@ -471,6 +506,7 @@ export interface FileRoutesById {
   '/_main/$profileId/inbox': typeof MainProfileIdInboxRouteRouteWithChildren
   '/_main/$profileId/memories': typeof MainProfileIdMemoriesRouteRouteWithChildren
   '/_main/$profileId/skills': typeof MainProfileIdSkillsRouteRouteWithChildren
+  '/_main/$profileId/sources': typeof MainProfileIdSourcesRouteRouteWithChildren
   '/_main/$profileId/team': typeof MainProfileIdTeamRouteRouteWithChildren
   '/_main/$profileId/wiki': typeof MainProfileIdWikiRouteRouteWithChildren
   '/_main/settings/api': typeof MainSettingsApiRouteRouteWithChildren
@@ -496,6 +532,8 @@ export interface FileRoutesById {
   '/_main/$profileId/memories/timeline': typeof MainProfileIdMemoriesTimelineRoute
   '/_main/$profileId/skills/$id': typeof MainProfileIdSkillsIdRoute
   '/_main/$profileId/skills/hub': typeof MainProfileIdSkillsHubRoute
+  '/_main/$profileId/sources/connectors': typeof MainProfileIdSourcesConnectorsRoute
+  '/_main/$profileId/sources/import': typeof MainProfileIdSourcesImportRoute
   '/_main/$profileId/team/members': typeof MainProfileIdTeamMembersRoute
   '/_main/$profileId/team/settings': typeof MainProfileIdTeamSettingsRoute
   '/_main/$profileId/wiki/$docId': typeof MainProfileIdWikiDocIdRoute
@@ -508,6 +546,7 @@ export interface FileRoutesById {
   '/_main/$profileId/inbox/': typeof MainProfileIdInboxIndexRoute
   '/_main/$profileId/memories/': typeof MainProfileIdMemoriesIndexRoute
   '/_main/$profileId/skills/': typeof MainProfileIdSkillsIndexRoute
+  '/_main/$profileId/sources/': typeof MainProfileIdSourcesIndexRoute
   '/_main/$profileId/team/': typeof MainProfileIdTeamIndexRoute
   '/_main/$profileId/wiki/': typeof MainProfileIdWikiIndexRoute
   '/_main/settings/api/': typeof MainSettingsApiIndexRoute
@@ -528,6 +567,7 @@ export interface FileRouteTypes {
     | '/$profileId/inbox'
     | '/$profileId/memories'
     | '/$profileId/skills'
+    | '/$profileId/sources'
     | '/$profileId/team'
     | '/$profileId/wiki'
     | '/settings/api'
@@ -553,6 +593,8 @@ export interface FileRouteTypes {
     | '/$profileId/memories/timeline'
     | '/$profileId/skills/$id'
     | '/$profileId/skills/hub'
+    | '/$profileId/sources/connectors'
+    | '/$profileId/sources/import'
     | '/$profileId/team/members'
     | '/$profileId/team/settings'
     | '/$profileId/wiki/$docId'
@@ -565,6 +607,7 @@ export interface FileRouteTypes {
     | '/$profileId/inbox/'
     | '/$profileId/memories/'
     | '/$profileId/skills/'
+    | '/$profileId/sources/'
     | '/$profileId/team/'
     | '/$profileId/wiki/'
     | '/settings/api/'
@@ -598,6 +641,8 @@ export interface FileRouteTypes {
     | '/$profileId/memories/timeline'
     | '/$profileId/skills/$id'
     | '/$profileId/skills/hub'
+    | '/$profileId/sources/connectors'
+    | '/$profileId/sources/import'
     | '/$profileId/team/members'
     | '/$profileId/team/settings'
     | '/$profileId/wiki/$docId'
@@ -610,6 +655,7 @@ export interface FileRouteTypes {
     | '/$profileId/inbox'
     | '/$profileId/memories'
     | '/$profileId/skills'
+    | '/$profileId/sources'
     | '/$profileId/team'
     | '/$profileId/wiki'
     | '/settings/api'
@@ -629,6 +675,7 @@ export interface FileRouteTypes {
     | '/_main/$profileId/inbox'
     | '/_main/$profileId/memories'
     | '/_main/$profileId/skills'
+    | '/_main/$profileId/sources'
     | '/_main/$profileId/team'
     | '/_main/$profileId/wiki'
     | '/_main/settings/api'
@@ -654,6 +701,8 @@ export interface FileRouteTypes {
     | '/_main/$profileId/memories/timeline'
     | '/_main/$profileId/skills/$id'
     | '/_main/$profileId/skills/hub'
+    | '/_main/$profileId/sources/connectors'
+    | '/_main/$profileId/sources/import'
     | '/_main/$profileId/team/members'
     | '/_main/$profileId/team/settings'
     | '/_main/$profileId/wiki/$docId'
@@ -666,6 +715,7 @@ export interface FileRouteTypes {
     | '/_main/$profileId/inbox/'
     | '/_main/$profileId/memories/'
     | '/_main/$profileId/skills/'
+    | '/_main/$profileId/sources/'
     | '/_main/$profileId/team/'
     | '/_main/$profileId/wiki/'
     | '/_main/settings/api/'
@@ -831,6 +881,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MainProfileIdTeamRouteRouteImport
       parentRoute: typeof MainProfileIdRouteRoute
     }
+    '/_main/$profileId/sources': {
+      id: '/_main/$profileId/sources'
+      path: '/sources'
+      fullPath: '/$profileId/sources'
+      preLoaderRoute: typeof MainProfileIdSourcesRouteRouteImport
+      parentRoute: typeof MainProfileIdRouteRoute
+    }
     '/_main/$profileId/skills': {
       id: '/_main/$profileId/skills'
       path: '/skills'
@@ -886,6 +943,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/$profileId/team/'
       preLoaderRoute: typeof MainProfileIdTeamIndexRouteImport
       parentRoute: typeof MainProfileIdTeamRouteRoute
+    }
+    '/_main/$profileId/sources/': {
+      id: '/_main/$profileId/sources/'
+      path: '/'
+      fullPath: '/$profileId/sources/'
+      preLoaderRoute: typeof MainProfileIdSourcesIndexRouteImport
+      parentRoute: typeof MainProfileIdSourcesRouteRoute
     }
     '/_main/$profileId/skills/': {
       id: '/_main/$profileId/skills/'
@@ -970,6 +1034,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/$profileId/team/members'
       preLoaderRoute: typeof MainProfileIdTeamMembersRouteImport
       parentRoute: typeof MainProfileIdTeamRouteRoute
+    }
+    '/_main/$profileId/sources/import': {
+      id: '/_main/$profileId/sources/import'
+      path: '/import'
+      fullPath: '/$profileId/sources/import'
+      preLoaderRoute: typeof MainProfileIdSourcesImportRouteImport
+      parentRoute: typeof MainProfileIdSourcesRouteRoute
+    }
+    '/_main/$profileId/sources/connectors': {
+      id: '/_main/$profileId/sources/connectors'
+      path: '/connectors'
+      fullPath: '/$profileId/sources/connectors'
+      preLoaderRoute: typeof MainProfileIdSourcesConnectorsRouteImport
+      parentRoute: typeof MainProfileIdSourcesRouteRoute
     }
     '/_main/$profileId/skills/hub': {
       id: '/_main/$profileId/skills/hub'
@@ -1161,6 +1239,24 @@ const MainProfileIdSkillsRouteRouteWithChildren =
     MainProfileIdSkillsRouteRouteChildren,
   )
 
+interface MainProfileIdSourcesRouteRouteChildren {
+  MainProfileIdSourcesConnectorsRoute: typeof MainProfileIdSourcesConnectorsRoute
+  MainProfileIdSourcesImportRoute: typeof MainProfileIdSourcesImportRoute
+  MainProfileIdSourcesIndexRoute: typeof MainProfileIdSourcesIndexRoute
+}
+
+const MainProfileIdSourcesRouteRouteChildren: MainProfileIdSourcesRouteRouteChildren =
+  {
+    MainProfileIdSourcesConnectorsRoute: MainProfileIdSourcesConnectorsRoute,
+    MainProfileIdSourcesImportRoute: MainProfileIdSourcesImportRoute,
+    MainProfileIdSourcesIndexRoute: MainProfileIdSourcesIndexRoute,
+  }
+
+const MainProfileIdSourcesRouteRouteWithChildren =
+  MainProfileIdSourcesRouteRoute._addFileChildren(
+    MainProfileIdSourcesRouteRouteChildren,
+  )
+
 interface MainProfileIdTeamRouteRouteChildren {
   MainProfileIdTeamMembersRoute: typeof MainProfileIdTeamMembersRoute
   MainProfileIdTeamSettingsRoute: typeof MainProfileIdTeamSettingsRoute
@@ -1200,6 +1296,7 @@ interface MainProfileIdRouteRouteChildren {
   MainProfileIdInboxRouteRoute: typeof MainProfileIdInboxRouteRouteWithChildren
   MainProfileIdMemoriesRouteRoute: typeof MainProfileIdMemoriesRouteRouteWithChildren
   MainProfileIdSkillsRouteRoute: typeof MainProfileIdSkillsRouteRouteWithChildren
+  MainProfileIdSourcesRouteRoute: typeof MainProfileIdSourcesRouteRouteWithChildren
   MainProfileIdTeamRouteRoute: typeof MainProfileIdTeamRouteRouteWithChildren
   MainProfileIdWikiRouteRoute: typeof MainProfileIdWikiRouteRouteWithChildren
   MainProfileIdFilesRoute: typeof MainProfileIdFilesRoute
@@ -1214,6 +1311,7 @@ const MainProfileIdRouteRouteChildren: MainProfileIdRouteRouteChildren = {
   MainProfileIdInboxRouteRoute: MainProfileIdInboxRouteRouteWithChildren,
   MainProfileIdMemoriesRouteRoute: MainProfileIdMemoriesRouteRouteWithChildren,
   MainProfileIdSkillsRouteRoute: MainProfileIdSkillsRouteRouteWithChildren,
+  MainProfileIdSourcesRouteRoute: MainProfileIdSourcesRouteRouteWithChildren,
   MainProfileIdTeamRouteRoute: MainProfileIdTeamRouteRouteWithChildren,
   MainProfileIdWikiRouteRoute: MainProfileIdWikiRouteRouteWithChildren,
   MainProfileIdFilesRoute: MainProfileIdFilesRoute,

@@ -7,7 +7,7 @@ description: "Bring memories in from ChatGPT, Claude, and other AI exports"
 
 Import past conversations and data into vmem as episodic memories. Parsing runs entirely client-side — your export files never leave your browser until individual memories are created via Convex.
 
-Route: **Settings → Data Controls → Import** (`/settings/data-controls/import`)
+Route: **Sources → Import** (`/{workspace}/sources/import`). `/settings/data-controls/import` redirects there.
 
 ## Supported Providers
 
@@ -50,6 +50,6 @@ Other data control routes:
 
 | Route                            | Description                           |
 | -------------------------------- | ------------------------------------- |
-| `/settings/data-controls/import` | Import from AI exports                |
+| `/{workspace}/sources/import`    | Import from AI exports                |
 | `/settings/data-controls/export` | Export placeholder                    |
 | `/settings/data-controls/danger` | Delete all memories (type-to-confirm) |

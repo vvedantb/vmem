@@ -28,6 +28,7 @@ import {
   navGroups,
   navHrefToPath,
   settingsNavGroups,
+  sourcesNavItems,
 } from "@/components/sidebar/nav-config";
 import { useActiveProfileId } from "@/components/workspace/active-profile";
 import { workspacePathFor } from "@/components/workspace/workspace-paths";
@@ -156,6 +157,26 @@ export function CommandPalette({
             })}
           </CommandGroup>
         ))}
+
+        <CommandGroup heading="Sources">
+          {sourcesNavItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <CommandItem
+                key={item.href}
+                value={`sources ${item.label}`}
+                onSelect={() =>
+                  runAndClose(() =>
+                    navigate({ to: navHrefToPath(item.href, workspaceId) }),
+                  )
+                }
+              >
+                <Icon />
+                <span>{item.label}</span>
+              </CommandItem>
+            );
+          })}
+        </CommandGroup>
 
         {settingsNavGroups.map((group) => (
           <CommandGroup key={group.title} heading={`Settings · ${group.title}`}>
