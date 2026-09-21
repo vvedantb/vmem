@@ -121,15 +121,14 @@ The dream pass already runs as a Convex **action**, so the gate `fetch`es from t
 
 Thresholds (in `engine/memory/jevMergeGate.ts`):
 
-| Signal | Threshold | Effect |
-| --- | --- | --- |
-| merge noul ≥ `0.65` | `JEV_MERGE_APPROVE_NOUL` | Create a proposal (keeper from Jev or heuristic) |
-| merge noul ≤ `0.35` | `JEV_MERGE_REJECT_NOUL` | Skip (`jevRejected`) |
-| `0.35` < merge noul < `0.65` | abstain band | Skip (`jevSkipped`) |
-| keeper choice confidence ≥ `0.6` | `JEV_KEEPER_OVERRIDE_CONFIDENCE` | Honor Jev's keeper; otherwise keep `pickClusterKeeper` |
-| auto-accept noul ≥ `0.7` | `JEV_AUTO_ACCEPT_NOUL` | When user auto-accept is on, materialize; otherwise leave in inbox |
+| Signal                           | Threshold                        | Effect                                                             |
+| -------------------------------- | -------------------------------- | ------------------------------------------------------------------ |
+| merge noul ≥ `0.65`              | `JEV_MERGE_APPROVE_NOUL`         | Create a proposal (keeper from Jev or heuristic)                   |
+| merge noul ≤ `0.35`              | `JEV_MERGE_REJECT_NOUL`          | Skip (`jevRejected`)                                               |
+| `0.35` < merge noul < `0.65`     | abstain band                     | Skip (`jevSkipped`)                                                |
+| keeper choice confidence ≥ `0.6` | `JEV_KEEPER_OVERRIDE_CONFIDENCE` | Honor Jev's keeper; otherwise keep `pickClusterKeeper`             |
+| auto-accept noul ≥ `0.7`         | `JEV_AUTO_ACCEPT_NOUL`           | When user auto-accept is on, materialize; otherwise leave in inbox |
 
 **Fail-open:** missing `TYPESAFE_API_KEY` or Jev HTTP/parse errors keep today's heuristic (create the proposal; auto-accept still materializes). Jev never writes merged title/content.
 
 `DreamRunResult` counts `clustersScanned`, `jevApproved`, `jevRejected`, `jevSkipped` (abstain), and `failOpen`.
-

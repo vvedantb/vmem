@@ -50,7 +50,7 @@ export function clusterSourceKey(ids: readonly string[]): string {
   return [...ids].sort().join("\0");
 }
 
-export function failOpenMergeDecision(args: {
+function failOpenMergeDecision(args: {
   sourceMemoryIds: readonly string[];
   heuristicKeeperId: string;
   autoAccept: boolean;
@@ -122,7 +122,8 @@ export function buildJevMergeQuestions(
         "Are these memories true near-duplicates of the same fact, worth merging into one record?",
       criteria: {
         true: "Same fact or current truth vs a stale copy; merging would not drop a distinct belief",
-        false: "Different facts, different time windows, or only lexical overlap",
+        false:
+          "Different facts, different time windows, or only lexical overlap",
       },
     },
     keeper: {
