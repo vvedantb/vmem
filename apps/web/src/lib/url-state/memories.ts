@@ -13,9 +13,6 @@ import {
   parseAsSanitizedSearchQuery,
 } from "./sanitized-parsers";
 
-const LIST_VIEW_MODES = ["memories", "tags"] as const;
-export type ListViewMode = (typeof LIST_VIEW_MODES)[number];
-
 const memoriesSearchParams = {
   // when set, load that node's neighbourhood (2-hop) — absent → global graph
   focus: parseAsSanitizedOptionalString,
@@ -25,7 +22,6 @@ const memoriesSearchParams = {
   sources: createSanitizedArrayParser(parseAsString),
   types: createSanitizedArrayParser(parseAsStringLiteral(MEMORY_TYPES)),
   kinds: createSanitizedArrayParser(parseAsStringLiteral(LIST_ITEM_KINDS)),
-  view: parseAsStringLiteral(LIST_VIEW_MODES).withDefault("memories"),
   span: parseAsStringLiteral(TIMELINE_SPANS).withDefault("week"),
 };
 
@@ -35,3 +31,17 @@ export const memoriesNuqsOptions = { history: "replace" } as const;
 
 export { memoriesSearchParams };
 export { isNullishQueryValue } from "./sanitized-parsers";
+
+// `/memories/list?view=tags` used to host the tags list; keep those deep links
+export function memoriesTagsViewRedirectHref(
+  profileId: string,
+  searchStr: string,
+): string | null {
+  const query = new URLSearchParams(
+    searchStr.startsWith("?") ? searchStr.slice(1) : searchStr,
+  );
+  if (query.get("view") !== "tags") return null;
+  query.delete("view");
+  const qs = query.toString();
+  return `/${profileId}/memories/tags${qs.length > 0 ? `?${qs}` : ""}`;
+}

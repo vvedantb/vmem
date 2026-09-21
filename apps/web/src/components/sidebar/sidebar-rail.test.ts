@@ -155,10 +155,24 @@ describe("nested sidebar chrome", () => {
     expect(memories).toContain("StackedSidebarNav");
     expect(memories).toContain("Graph");
     expect(memories).toContain("List");
+    expect(memories).toContain("Tags");
+    expect(memories).toContain("/$profileId/memories/tags");
     expect(memories).toContain("Timeline");
     expect(memories).toContain('aria-label="Memory views"');
     expect(memories).not.toContain("RouteTabs");
     expect(memories).not.toContain("fullWidth");
+    expect(read("../../routes/_main/$profileId/memories/tags.tsx")).toContain(
+      "TagsListView",
+    );
+    expect(
+      read("../../routes/_main/$profileId/memories/tags.tsx"),
+    ).not.toContain("redirect");
+    expect(
+      read("../../routes/_main/$profileId/memories/list/route.tsx"),
+    ).toContain("memoriesTagsViewRedirectHref");
+    expect(
+      read("../../routes/_main/$profileId/memories/list/route.tsx"),
+    ).not.toContain("isTagsView");
 
     const home = read("HomeSidebarNav.tsx");
     expect(home).toContain("StackedSidebarNav");

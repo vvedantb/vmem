@@ -48,12 +48,20 @@ function ListMemoriesLayout() {
   );
 }
 
-function TimelineMemoriesLayout() {
+function TagsMemoriesLayout() {
   return (
     <MemoriesPageShell
-      rightSection={<MemoryListHeaderControls hideViewSwitcher />}
+      rightSection={
+        <MemoryListHeaderControls searchPlaceholder="Search tags..." />
+      }
       noScroll
     />
+  );
+}
+
+function TimelineMemoriesLayout() {
+  return (
+    <MemoriesPageShell rightSection={<MemoryListHeaderControls />} noScroll />
   );
 }
 
@@ -69,13 +77,16 @@ function MemoriesLayoutShell() {
   if (matchRoute({ to: "/$profileId/memories/list", fuzzy: true })) {
     return <ListMemoriesLayout />;
   }
+  if (matchRoute({ to: "/$profileId/memories/tags" })) {
+    return <TagsMemoriesLayout />;
+  }
   if (matchRoute({ to: "/$profileId/memories/timeline" })) {
     return <TimelineMemoriesLayout />;
   }
   return <DefaultMemoriesLayout />;
 }
 
-// Graph/List/Timeline tabs live in the memories sidebar; this layout stays
+// Graph/List/Tags/Timeline tabs live in the memories sidebar; this layout stays
 // mounted across those subroutes so graph controller + URL cleanup persist.
 function MemoriesLayout() {
   const matchRoute = useMatchRoute();

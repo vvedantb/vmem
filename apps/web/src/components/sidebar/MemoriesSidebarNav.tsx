@@ -1,5 +1,10 @@
 import type { MouseEventHandler } from "react";
-import { IconList, IconTimeline, IconTopologyStar3 } from "@tabler/icons-react";
+import {
+  IconHash,
+  IconList,
+  IconTimeline,
+  IconTopologyStar3,
+} from "@tabler/icons-react";
 import type { NavItem } from "./types";
 import { StackedSidebarNav } from "./StackedSidebarNav";
 
@@ -10,6 +15,7 @@ const memoriesNavItems: NavItem[] = [
     icon: IconTopologyStar3,
   },
   { href: "/$profileId/memories/list", label: "List", icon: IconList },
+  { href: "/$profileId/memories/tags", label: "Tags", icon: IconHash },
   {
     href: "/$profileId/memories/timeline",
     label: "Timeline",

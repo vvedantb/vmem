@@ -12,6 +12,7 @@ test.describe(
         timeout: 20_000,
       });
       await expect(sidebarViewLink(page, "List")).toBeVisible();
+      await expect(sidebarViewLink(page, "Tags")).toBeVisible();
       await expect(sidebarViewLink(page, "Timeline")).toBeVisible();
       await expect(
         page.getByRole("textbox", { name: "Search nodes" }),

@@ -24,6 +24,17 @@ export async function openMemoriesList(page: Page): Promise<void> {
   });
 }
 
+export async function openMemoriesTags(page: Page): Promise<void> {
+  await page
+    .locator("[data-sidebar-layout]")
+    .getByRole("link", { name: "Tags", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/memories\/tags/);
+  await expect(page.getByRole("textbox", { name: "Search" })).toBeVisible({
+    timeout: 20_000,
+  });
+}
+
 export async function searchMemories(page: Page, query: string): Promise<void> {
   const search = page.getByRole("textbox", { name: "Search" });
   await search.fill(query);

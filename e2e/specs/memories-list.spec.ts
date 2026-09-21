@@ -29,6 +29,14 @@ test.describe("memories list", { tag: ["@memories", "@smoke"] }, () => {
       await searchMemories(page, title);
       const row = memoryTitle(page, title);
       await expect(row).toBeVisible({ timeout: 20_000 });
+      await row.click();
+      await expect(
+        page.getByRole("heading", { name: title, exact: true }),
+      ).toBeVisible({ timeout: 20_000 });
+      await expect(page.getByRole("textbox", { name: "Search" })).toHaveValue(
+        title,
+      );
+      await expect(page).toHaveURL(/[?&]q=/);
       await deleteMemoryByTitle(page, title);
       await expect(row).toHaveCount(0);
     } catch (error) {

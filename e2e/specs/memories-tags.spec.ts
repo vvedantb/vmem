@@ -1,12 +1,15 @@
 import { expect, test } from "../fixtures";
 import { gotoWorkspace } from "../helpers/nav";
+import { sidebarViewLink } from "../helpers/shell";
 import {
   createDisposableMemory,
   deleteMemoryByTitle,
   disposableMemoryTitle,
   disposableTag,
   expectMemoryVisible,
+  gotoMemoriesListWithParams,
   openMemoriesList,
+  openMemoriesTags,
   searchMemories,
 } from "../helpers/memories";
 
@@ -14,17 +17,22 @@ test.describe(
   "memories tags",
   { tag: ["@memories", "@tags", "@smoke"] },
   () => {
-    test("tags view is reachable from the list chrome", async ({ page }) => {
+    test("tags view is a stacked memories sidebar tab", async ({ page }) => {
       await gotoWorkspace(page, "/memories/list");
-      await expect(page.getByRole("textbox", { name: "Search" })).toBeVisible({
+      await expect(sidebarViewLink(page, "Tags")).toBeVisible({
         timeout: 20_000,
       });
-      await page.getByRole("button", { name: /Change view/ }).click();
-      await page.getByRole("menuitem", { name: "Tags" }).click();
-      await expect(page).toHaveURL(/view=tags/);
+      await openMemoriesTags(page);
       await expect(
         page.getByRole("textbox", { name: "Search" }),
       ).toHaveAttribute("placeholder", /Search tags/i);
+
+      const profileId = await gotoMemoriesListWithParams(page, {
+        view: "tags",
+        q: "legacy",
+      });
+      await expect(page).toHaveURL(new RegExp(`/${profileId}/memories/tags`));
+      await expect(page).toHaveURL(/[?&]q=legacy/);
     });
   },
 );
@@ -42,9 +50,7 @@ test.describe("memories tags data", { tag: ["@memories", "@tags"] }, () => {
     try {
       await createDisposableMemory(page, title, `${title} tagged body`, tag);
 
-      await page.getByRole("button", { name: /Change view/ }).click();
-      await page.getByRole("menuitem", { name: "Tags" }).click();
-      await expect(page).toHaveURL(/view=tags/);
+      await openMemoriesTags(page);
       await searchMemories(page, tag);
       await expect(
         page.getByTestId("tag-row").filter({ hasText: tag }),
@@ -53,18 +59,10 @@ test.describe("memories tags data", { tag: ["@memories", "@tags"] }, () => {
       await page.getByText(tag, { exact: true }).first().click();
       await expectMemoryVisible(page, title);
 
-      await page.getByRole("button", { name: /Change view/ }).click();
-      await page.getByRole("menuitem", { name: "Memories" }).click();
+      await openMemoriesList(page);
       await deleteMemoryByTitle(page, title);
     } catch (error) {
-      await page
-        .getByRole("button", { name: /Change view/ })
-        .click()
-        .catch(() => undefined);
-      await page
-        .getByRole("menuitem", { name: "Memories" })
-        .click()
-        .catch(() => undefined);
+      await openMemoriesList(page).catch(() => undefined);
       await deleteMemoryByTitle(page, title).catch(() => undefined);
       throw error;
     }

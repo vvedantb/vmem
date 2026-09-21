@@ -202,6 +202,7 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
     void navigate({
       to: "/$profileId/memories/list",
       params: { profileId: list.activeProfileId },
+      search: true,
     });
   }, [
     list.activeProfileId,
@@ -221,6 +222,7 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
     void navigate({
       to: "/$profileId/memories/list/$id",
       params: { profileId: list.activeProfileId, id },
+      search: true,
     });
   }
 
@@ -228,6 +230,7 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
     void navigate({
       to: "/$profileId/memories/list",
       params: { profileId: list.activeProfileId },
+      search: true,
     });
   }
 

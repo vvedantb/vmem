@@ -1,9 +1,13 @@
-import { createFileRoute, Outlet, useParams } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Outlet,
+  redirect,
+  useParams,
+} from "@tanstack/react-router";
 import { Suspense } from "react";
 import MemorySearch from "@/components/memories/MemorySearch";
-import TagsListView from "@/components/_components/TagsListView";
 import { VmemSpinner } from "@/components/icons/animations";
-import { useMemoriesSearchParams } from "@/hooks/useMemoriesSearchParams";
+import { memoriesTagsViewRedirectHref } from "@/lib/url-state/memories";
 
 // bare Suspense renders NOTHING while suspended — stuck query looks like empty workspace
 const suspenseFallback = (
@@ -13,6 +17,15 @@ const suspenseFallback = (
 );
 
 export const Route = createFileRoute("/_main/$profileId/memories/list")({
+  beforeLoad: ({ params, location }) => {
+    const href = memoriesTagsViewRedirectHref(
+      params.profileId,
+      location.searchStr,
+    );
+    if (href !== null) {
+      throw redirect({ href, replace: true });
+    }
+  },
   component: MemoriesListLayout,
 });
 
@@ -24,20 +37,9 @@ function listMemoryIdFromParams(
   return id;
 }
 
-// tag rows (`?view=tags`) share the list tab but have no per-memory route
 function MemoriesListLayout() {
-  const [params] = useMemoriesSearchParams();
   const routeParams = useParams({ strict: false });
   const memoryId = listMemoryIdFromParams(routeParams);
-  const isTagsView = params.view === "tags";
-
-  if (isTagsView) {
-    return (
-      <Suspense fallback={suspenseFallback}>
-        <TagsListView />
-      </Suspense>
-    );
-  }
 
   return (
     <Suspense fallback={suspenseFallback}>
