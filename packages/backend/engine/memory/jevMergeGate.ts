@@ -10,10 +10,6 @@ import { JEV_BEST_NONE } from "./jevGate";
 const JEV_MEMORY_CONTENT_CHARS = 500;
 const JEV_MEMORY_CRITERIA_CHARS = 160;
 
-/** Noul at or above this → create a merge proposal. */
-export const JEV_MERGE_APPROVE_NOUL = 0.65;
-/** Noul at or below this → skip (confident not a merge). */
-export const JEV_MERGE_REJECT_NOUL = 0.35;
 /** Honor Jev's keeper over `pickClusterKeeper` when choice confidence is at least this. */
 export const JEV_KEEPER_OVERRIDE_CONFIDENCE = 0.6;
 /** When `autoAccept` is true, require this noul before materializing without inbox review. */
@@ -26,15 +22,12 @@ export type MergeGateMemory = {
   updatedAt: string;
 };
 
-export type JevMergeGateOutcome =
-  | "approve"
-  | "reject"
-  | "abstain"
-  | "fail-open";
+/** `"jev"` = System One returned merge metadata. Never a skip/drop. */
+export type JevMergeOutcome = "jev" | "fail-open";
 
-export interface JevMergeGateDecision {
+export interface JevMergeDecision {
   sourceMemoryIds: string[];
-  outcome: JevMergeGateOutcome;
+  outcome: JevMergeOutcome;
   keeperId: string;
   safeToAutoAccept: boolean;
   mergeNoul?: number;
@@ -54,7 +47,7 @@ function failOpenMergeDecision(args: {
   sourceMemoryIds: readonly string[];
   heuristicKeeperId: string;
   autoAccept: boolean;
-}): JevMergeGateDecision {
+}): JevMergeDecision {
   return {
     sourceMemoryIds: [...args.sourceMemoryIds],
     outcome: "fail-open",
@@ -91,13 +84,6 @@ function keeperChoice(
     }
   }
   return { keeperId: undefined, confidence: answer.confidence };
-}
-
-function mergeOutcome(noul: number | undefined): JevMergeGateOutcome {
-  if (noul === undefined) return "fail-open";
-  if (noul >= JEV_MERGE_APPROVE_NOUL) return "approve";
-  if (noul <= JEV_MERGE_REJECT_NOUL) return "reject";
-  return "abstain";
 }
 
 export function buildJevMergeQuestions(
@@ -174,11 +160,10 @@ function applyMergeAnswers(
   heuristicKeeperId: string,
   autoAccept: boolean,
   response: SystemOneResponse,
-): JevMergeGateDecision {
+): JevMergeDecision {
   const sourceMemoryIds = memories.map((memory) => memory.id);
   const mergeNoul = noulAnswer(response.answers, "merge");
-  const outcome = mergeOutcome(mergeNoul);
-  if (outcome === "fail-open") {
+  if (mergeNoul === undefined) {
     return failOpenMergeDecision({
       sourceMemoryIds,
       heuristicKeeperId,
@@ -187,7 +172,6 @@ function applyMergeAnswers(
   }
   const choice = keeperChoice(response.answers, memories);
   const honorKeeper =
-    outcome === "approve" &&
     choice.keeperId !== undefined &&
     (choice.confidence ?? 0) >= JEV_KEEPER_OVERRIDE_CONFIDENCE;
   const keeperId = honorKeeper
@@ -196,12 +180,11 @@ function applyMergeAnswers(
   const autoAcceptNoul = noulAnswer(response.answers, "auto_accept");
   const safeToAutoAccept =
     autoAccept &&
-    outcome === "approve" &&
     autoAcceptNoul !== undefined &&
     autoAcceptNoul >= JEV_AUTO_ACCEPT_NOUL;
   return {
     sourceMemoryIds,
-    outcome,
+    outcome: "jev",
     keeperId,
     safeToAutoAccept,
     mergeNoul,
@@ -216,7 +199,7 @@ export async function applyJevMergeGate(args: {
   autoAccept: boolean;
   apiKey: string;
   evaluate?: (args: EvaluateSystemOneArgs) => Promise<SystemOneResponse>;
-}): Promise<JevMergeGateDecision> {
+}): Promise<JevMergeDecision> {
   const sourceMemoryIds = args.memories.map((memory) => memory.id);
   const fallback = failOpenMergeDecision({
     sourceMemoryIds,
@@ -250,8 +233,8 @@ export async function judgeDreamMergeClusters(args: {
   autoAccept: boolean;
   apiKey: string | undefined;
   evaluate?: (args: EvaluateSystemOneArgs) => Promise<SystemOneResponse>;
-}): Promise<JevMergeGateDecision[]> {
-  const decisions: JevMergeGateDecision[] = [];
+}): Promise<JevMergeDecision[]> {
+  const decisions: JevMergeDecision[] = [];
   for (const cluster of args.clusters) {
     const sourceMemoryIds = cluster.memories.map((memory) => memory.id);
     if (args.apiKey === undefined) {

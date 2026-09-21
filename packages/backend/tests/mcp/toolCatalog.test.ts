@@ -89,7 +89,7 @@ describe("MCP tool catalog", () => {
     expect(retrieveBlock).toContain("source: params.source");
     expect(retrieveBlock).toContain("threshold: params.threshold");
     expect(retrieveBlock).toContain("rerank: params.rerank");
-    expect(retrieveBlock).toContain("judge: params.judge");
+    expect(retrieveBlock).not.toContain("judge: params.judge");
     expect(retrieveBlock).toContain("referenceDate: params.referenceDate");
     expect(source).toContain("Max results (default 10)");
     expect(

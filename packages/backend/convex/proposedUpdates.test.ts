@@ -49,8 +49,7 @@ describe("proposed updates and dream merge", () => {
     expect(pass.clustersScanned).toBeGreaterThanOrEqual(1);
     expect(pass.proposalsCreated).toBeGreaterThanOrEqual(1);
     expect(pass.failOpen).toBeGreaterThanOrEqual(1);
-    expect(pass.jevApproved).toBe(0);
-    expect(pass.jevRejected).toBe(0);
+    expect(pass.jevScored).toBe(0);
 
     const pending = await t.query(
       internal.proposedUpdateApi.listPendingInternal,
@@ -148,7 +147,7 @@ describe("proposed updates and dream merge", () => {
     ]);
   });
 
-  it("skips creating a proposal when Jev rejects the cluster", async () => {
+  it("still creates a proposal when Jev merge noul is low", async () => {
     const t = convexTest(schema, modules);
     await seedNearDup(t);
 
@@ -157,10 +156,10 @@ describe("proposed updates and dream merge", () => {
       profileId: PROFILE,
       kind: "personal",
       autoAccept: false,
-      clusterGates: [
+      clusterDecisions: [
         {
           sourceMemoryIds: ["dup_a", "dup_b"],
-          outcome: "reject",
+          outcome: "jev",
           keeperId: "dup_a",
           safeToAutoAccept: false,
           mergeNoul: 0.12,
@@ -168,19 +167,43 @@ describe("proposed updates and dream merge", () => {
       ],
     });
     expect(pass.clustersScanned).toBeGreaterThanOrEqual(1);
-    expect(pass.proposalsCreated).toBe(0);
+    expect(pass.proposalsCreated).toBeGreaterThanOrEqual(1);
     expect(pass.memoriesMaterialized).toBe(0);
-    expect(pass.jevRejected).toBeGreaterThanOrEqual(1);
+    expect(pass.jevScored).toBeGreaterThanOrEqual(1);
     expect(pass.failOpen).toBe(0);
 
     const pending = await t.query(
       internal.proposedUpdateApi.listPendingInternal,
       { userId: USER, profileId: PROFILE },
     );
-    expect(pending).toEqual([]);
+    expect(pending.some((proposal) => proposal.kind === "merge")).toBe(true);
   });
 
-  it("uses Jev's keeper when the gate approves an override", async () => {
+  it("still creates a proposal when Jev merge noul is in the mid band", async () => {
+    const t = convexTest(schema, modules);
+    await seedNearDup(t);
+
+    const pass = await t.mutation(internal.dreamMode.runDreamPassInternal, {
+      clerkId: USER,
+      profileId: PROFILE,
+      kind: "personal",
+      autoAccept: false,
+      clusterDecisions: [
+        {
+          sourceMemoryIds: ["dup_a", "dup_b"],
+          outcome: "jev",
+          keeperId: "dup_b",
+          safeToAutoAccept: false,
+          mergeNoul: 0.5,
+        },
+      ],
+    });
+    expect(pass.proposalsCreated).toBeGreaterThanOrEqual(1);
+    expect(pass.jevScored).toBeGreaterThanOrEqual(1);
+    expect(pass.failOpen).toBe(0);
+  });
+
+  it("uses Jev's keeper when the decision includes an override", async () => {
     const t = convexTest(schema, modules);
     await t.mutation(internal.memoryStore.functions.createMemoryInternal, {
       memoryId: "dup_a",
@@ -210,10 +233,10 @@ describe("proposed updates and dream merge", () => {
       profileId: PROFILE,
       kind: "personal",
       autoAccept: false,
-      clusterGates: [
+      clusterDecisions: [
         {
           sourceMemoryIds: ["dup_b", "dup_a"],
-          outcome: "approve",
+          outcome: "jev",
           keeperId: "dup_a",
           safeToAutoAccept: false,
           mergeNoul: 0.9,
@@ -221,7 +244,7 @@ describe("proposed updates and dream merge", () => {
         },
       ],
     });
-    expect(pass.jevApproved).toBeGreaterThanOrEqual(1);
+    expect(pass.jevScored).toBeGreaterThanOrEqual(1);
     expect(pass.failOpen).toBe(0);
 
     const pending = await t.query(
@@ -233,7 +256,7 @@ describe("proposed updates and dream merge", () => {
     expect(merge?.proposedContent).toBe("Use pnpm");
   });
 
-  it("leaves an approved merge in the inbox when Jev says it is not safe to auto-accept", async () => {
+  it("leaves a merge in the inbox when Jev says it is not safe to auto-accept", async () => {
     const t = convexTest(schema, modules);
     await seedNearDup(t);
 
@@ -242,10 +265,10 @@ describe("proposed updates and dream merge", () => {
       profileId: PROFILE,
       kind: "personal",
       autoAccept: true,
-      clusterGates: [
+      clusterDecisions: [
         {
           sourceMemoryIds: ["dup_a", "dup_b"],
-          outcome: "approve",
+          outcome: "jev",
           keeperId: "dup_a",
           safeToAutoAccept: false,
           mergeNoul: 0.88,
@@ -255,7 +278,7 @@ describe("proposed updates and dream merge", () => {
     });
     expect(pass.proposalsCreated).toBeGreaterThanOrEqual(1);
     expect(pass.memoriesMaterialized).toBe(0);
-    expect(pass.jevApproved).toBeGreaterThanOrEqual(1);
+    expect(pass.jevScored).toBeGreaterThanOrEqual(1);
 
     const pending = await t.query(
       internal.proposedUpdateApi.listPendingInternal,

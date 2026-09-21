@@ -113,7 +113,6 @@ describe("MCP memory tool surfaces", () => {
         tags: ["pnpm"],
         status: "pinned",
         source: "mcp",
-        judge: "jev",
         rerank: "jev",
       }).success,
     ).toBe(true);
@@ -123,10 +122,11 @@ describe("MCP memory tool surfaces", () => {
         judge: "off",
       }).success,
     ).toBe(true);
+    expect("judge" in memoryToolSpecs.memory_retrieve.schema.shape).toBe(false);
     expect(memoryToolSpecs.memory_retrieve.description).toContain(
       "TYPESAFE_API_KEY",
     );
-    expect(memoryToolSpecs.memory_retrieve.description).toContain(
+    expect(memoryToolSpecs.memory_retrieve.description).not.toContain(
       'judge: "off"',
     );
   });
