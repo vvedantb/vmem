@@ -28,11 +28,6 @@ function buildUrlCleanupPatch(
     patch.q = "";
   }
 
-  const rawView = search.get("view");
-  if (rawView !== null && isNullishQueryValue(rawView)) {
-    patch.view = "memories";
-  }
-
   const rawSpan = search.get("span");
   if (rawSpan !== null && isNullishQueryValue(rawSpan)) {
     patch.span = "week";

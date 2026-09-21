@@ -28,6 +28,7 @@ test.describe(
       ).toBeVisible();
       await expect(sidebarViewLink(page, "Graph")).toBeVisible();
       await expect(sidebarViewLink(page, "List")).toBeVisible();
+      await expect(sidebarViewLink(page, "Tags")).toBeVisible();
 
       const empty = page.getByRole("heading", { name: "Nothing here yet" });
       const slider = page.getByRole("slider", {
@@ -117,9 +118,8 @@ test.describe(
         await sidebarViewLink(page, "List").click();
         await expect(page).toHaveURL(/\/memories\/list/);
         await expect(memoryTitle(page, title)).toBeVisible({ timeout: 20_000 });
-        await page.getByRole("button", { name: /Change view/ }).click();
-        await page.getByRole("menuitem", { name: "Tags" }).click();
-        await expect(page).toHaveURL(/view=tags/);
+        await sidebarViewLink(page, "Tags").click();
+        await expect(page).toHaveURL(/\/memories\/tags/);
         await sidebarViewLink(page, "Timeline").click();
         await expect(page).toHaveURL(/\/memories\/timeline/);
         await expect(slider).toBeVisible({ timeout: 20_000 });

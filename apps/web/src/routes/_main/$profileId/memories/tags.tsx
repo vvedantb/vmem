@@ -1,12 +1,27 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { lazy, Suspense } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { VmemSpinner } from "@/components/icons/animations";
 
-// legacy redirect the dedicated Tags route folded into the list route as `?view=tags`
+const TagsListView = lazy(
+  () => import("@/components/_components/TagsListView"),
+);
+
 export const Route = createFileRoute("/_main/$profileId/memories/tags")({
-  beforeLoad: ({ params }) => {
-    throw redirect({
-      to: "/$profileId/memories/list",
-      params,
-      search: { view: "tags" },
-    });
-  },
+  component: MemoriesTagsPage,
 });
+
+function MemoriesTagsPage() {
+  return (
+    <div className="h-full min-h-0">
+      <Suspense
+        fallback={
+          <div className="flex h-full min-h-0 items-center justify-center">
+            <VmemSpinner size={24} className="text-muted" />
+          </div>
+        }
+      >
+        <TagsListView />
+      </Suspense>
+    </div>
+  );
+}
