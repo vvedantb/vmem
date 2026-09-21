@@ -20,13 +20,12 @@ describe("settings chrome mirrors Eva", () => {
         "/settings/preferences",
         "/settings/profiles",
         "/settings/api",
+        "/settings/secrets",
         "/settings/connectors",
         "/settings/extension",
         "/settings/data-controls",
       ]),
     );
-    expect(hrefs).not.toContain("/settings/secrets");
-    expect(read("../../routeTree.gen.ts")).not.toContain("/settings/secrets");
   });
 
   it("keeps SettingsPage / SettingsSection / SettingsSidebar as the chrome", () => {
@@ -54,6 +53,7 @@ describe("settings chrome mirrors Eva", () => {
     const sources = [
       read("preferences/PreferencesPage.tsx"),
       read("ExtensionSettingsClient.tsx"),
+      read("SecretsClient.tsx"),
       read("ConnectorsClient.tsx"),
       read("../profiles/ProfilesPage.tsx"),
     ];

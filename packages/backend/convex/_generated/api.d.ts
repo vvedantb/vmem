@@ -53,6 +53,7 @@ import type * as lib_contextPromptInvalidate from "../lib/contextPromptInvalidat
 import type * as lib_crypto from "../lib/crypto.js";
 import type * as lib_dreamTriggerDecision from "../lib/dreamTriggerDecision.js";
 import type * as lib_dreamTriggerInvalidate from "../lib/dreamTriggerInvalidate.js";
+import type * as lib_envVars from "../lib/envVars.js";
 import type * as lib_openRouter from "../lib/openRouter.js";
 import type * as lib_openRouter_bestEffortEmbed from "../lib/openRouter/bestEffortEmbed.js";
 import type * as lib_openRouter_chat from "../lib/openRouter/chat.js";
@@ -119,6 +120,8 @@ import type * as teams_handlers from "../teams/handlers.js";
 import type * as teams_lifecycle from "../teams/lifecycle.js";
 import type * as teams_membership from "../teams/membership.js";
 import type * as timelineApi from "../timelineApi.js";
+import type * as userEnvVars from "../userEnvVars.js";
+import type * as userEnvVarsActions from "../userEnvVarsActions.js";
 import type * as users from "../users.js";
 import type * as userSettings from "../userSettings.js";
 import type * as validators from "../validators.js";
@@ -179,6 +182,7 @@ declare const fullApi: ApiFromModules<{
   "lib/crypto": typeof lib_crypto;
   "lib/dreamTriggerDecision": typeof lib_dreamTriggerDecision;
   "lib/dreamTriggerInvalidate": typeof lib_dreamTriggerInvalidate;
+  "lib/envVars": typeof lib_envVars;
   "lib/openRouter": typeof lib_openRouter;
   "lib/openRouter/bestEffortEmbed": typeof lib_openRouter_bestEffortEmbed;
   "lib/openRouter/chat": typeof lib_openRouter_chat;
@@ -245,6 +249,8 @@ declare const fullApi: ApiFromModules<{
   "teams/lifecycle": typeof teams_lifecycle;
   "teams/membership": typeof teams_membership;
   timelineApi: typeof timelineApi;
+  userEnvVars: typeof userEnvVars;
+  userEnvVarsActions: typeof userEnvVarsActions;
   users: typeof users;
   userSettings: typeof userSettings;
   validators: typeof validators;

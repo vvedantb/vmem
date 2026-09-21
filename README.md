@@ -117,7 +117,7 @@ CLERK_PUBLISHABLE_KEY
 ENCRYPTION_KEY              # base64
 CONVEX_SITE_URL
 WEB_APP_URL
-OPENROUTER_API_KEY          # embeddings + instruction extraction (deployment env only)
+OPENROUTER_API_KEY          # embeddings + instruction extraction (Convex deployment env only)
 ```
 
-Optional: `GOOGLE_CLIENT_*`, `NOTION_CLIENT_*`, `TYPESAFE_API_KEY` (Jev retrieve rerank and Dream Mode merge metadata; see [`packages/backend/tests/memory/jev-retrieve-gate.md`](packages/backend/tests/memory/jev-retrieve-gate.md)). There is no in-app Secrets page — set provider keys with `npx convex env set` or the Convex dashboard Environment Variables.
+Optional: `GOOGLE_CLIENT_*`, `NOTION_CLIENT_*`, `TYPESAFE_API_KEY` (Jev retrieve rerank and Dream Mode merge metadata; Settings → Secrets can override TypeSafe keys — see [`packages/backend/tests/memory/jev-retrieve-gate.md`](packages/backend/tests/memory/jev-retrieve-gate.md)).

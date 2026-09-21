@@ -689,6 +689,9 @@ async function dispatch(
       clerkIdArgsSchema.parse(args);
       return null;
     }
+    case "userEnvVars:getAllInternal": {
+      return [];
+    }
     default:
       throw new Error(`unmocked Convex function: ${name}`);
   }

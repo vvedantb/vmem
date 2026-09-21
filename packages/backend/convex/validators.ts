@@ -339,7 +339,6 @@ export const skillVersionFields = {
   createdAt: v.number(),
 };
 
-// leftover table fields from the removed Settings → Secrets UI
 export const userEnvVarFields = {
   userId: v.id("users"),
   vars: v.array(

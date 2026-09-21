@@ -7,6 +7,7 @@ import {
   IconPuzzle,
   IconFileImport,
   IconUsers,
+  IconLock,
 } from "@tabler/icons-react";
 import {
   IconMemories,
@@ -162,7 +163,10 @@ export const settingsNavGroups: SettingsNavGroup[] = [
   },
   {
     title: "Developer",
-    items: [{ href: "/settings/api", label: "API", icon: IconKey }],
+    items: [
+      { href: "/settings/api", label: "API", icon: IconKey },
+      { href: "/settings/secrets", label: "Secrets", icon: IconLock },
+    ],
   },
   {
     title: "Integrations",

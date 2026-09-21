@@ -224,7 +224,7 @@ Resolution for scripts: `TYPESAFE_API_KEY` → else `TYPESAFE_AI_API_KEY` → el
 
 Do **not** paste keys into issues, PRs, logs, or this markdown.
 
-Production later (only if the spike wins): set `TYPESAFE_API_KEY` on the Convex deployment the same way as `OPENROUTER_API_KEY` (`npx convex env set` / dashboard Environment Variables), not in the repo.
+Production later (only if the spike wins): store `TYPESAFE_API_KEY` in Settings → Secrets (`userEnvVars` + `tryUserAndApiKeyByClerkId`) or on the Convex deployment. `OPENROUTER_API_KEY` is Convex deployment env only, not a user secret.
 
 ### 4.3 Fit vs current retrieve
 

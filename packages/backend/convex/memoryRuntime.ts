@@ -426,6 +426,7 @@ async function listRecentForRetrieve(
 }
 
 async function maybeApplyJevRetrieveGate(
+  ctx: ActionCtx,
   args: {
     clerkId?: string;
     query: string;
@@ -438,7 +439,8 @@ async function maybeApplyJevRetrieveGate(
   if (!wantsJevJudge(args)) return ranked;
   if (ranked.length === 0) return ranked;
   if (args.query.trim().length === 0) return ranked;
-  const apiKey = args.apiKey ?? resolveSystemOneApiKey();
+  const apiKey =
+    args.apiKey ?? (await resolveSystemOneApiKey(ctx, args.clerkId));
   if (apiKey === undefined) return ranked;
   return applyJevRetrieveGate({
     query: args.query,
@@ -450,6 +452,7 @@ async function maybeApplyJevRetrieveGate(
 }
 
 async function finishRetrieve(
+  ctx: ActionCtx,
   args: {
     clerkId?: string;
     query: string;
@@ -459,7 +462,7 @@ async function finishRetrieve(
   } & RetrieveJudgeOptions,
   ranked: MemoryCandidate[],
 ): Promise<MemoryCandidate[]> {
-  const gated = await maybeApplyJevRetrieveGate(args, ranked);
+  const gated = await maybeApplyJevRetrieveGate(ctx, args, ranked);
   return gated.slice(0, Math.max(0, args.limit));
 }
 
@@ -513,7 +516,7 @@ async function retrieveRanked(
           { userId: args.clerkId },
         ),
     wantsJevJudge(args)
-      ? Promise.resolve(resolveSystemOneApiKey())
+      ? resolveSystemOneApiKey(ctx, args.clerkId)
       : Promise.resolve(undefined),
   ]);
   const jev = apiKey !== undefined;
@@ -598,6 +601,7 @@ async function retrieveRanked(
   if (byId.size === 0) {
     const recent = await listRecentForRetrieve(ctx, args);
     return finishRetrieve(
+      ctx,
       { ...args, apiKey },
       retrieveMemoriesFromPool(recent, args.query, {
         ...rankOpts,
@@ -609,6 +613,7 @@ async function retrieveRanked(
   }
 
   return finishRetrieve(
+    ctx,
     { ...args, apiKey },
     retrieveMemoriesFromPool([...byId.values()], args.query, {
       ...rankOpts,

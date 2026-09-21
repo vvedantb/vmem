@@ -12,7 +12,7 @@ interface SettingsPageProps {
   tabs?: ReactNode;
   /**
    * Wrap children in the standard settings section stack. Set false when the
-   * child already owns its own vertical rhythm.
+   * child already owns its own vertical rhythm (e.g. EnvVarsTable).
    */
   stack?: boolean;
   /** Fill the remaining shell height instead of scrolling the page. */

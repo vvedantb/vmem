@@ -157,6 +157,15 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
         },
       },
       {
+        name: "Secrets",
+        url: /\/settings\/secrets/,
+        check: async () => {
+          await expect(
+            page.getByRole("heading", { name: "Secrets", exact: true }),
+          ).toBeVisible();
+        },
+      },
+      {
         name: "Connectors",
         url: /\/settings\/connectors/,
         check: async () => {

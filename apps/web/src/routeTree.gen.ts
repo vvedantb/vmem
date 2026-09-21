@@ -18,6 +18,7 @@ import { Route as MainProfileIdRouteRouteImport } from './routes/_main/$profileI
 import { Route as MainSettingsIndexRouteImport } from './routes/_main/settings/index'
 import { Route as MainProfileIdIndexRouteImport } from './routes/_main/$profileId/index'
 import { Route as MainSettingsUsageRouteImport } from './routes/_main/settings/usage'
+import { Route as MainSettingsSecretsRouteImport } from './routes/_main/settings/secrets'
 import { Route as MainSettingsProfilesRouteImport } from './routes/_main/settings/profiles'
 import { Route as MainSettingsPreferencesRouteImport } from './routes/_main/settings/preferences'
 import { Route as MainSettingsExtensionRouteImport } from './routes/_main/settings/extension'
@@ -106,6 +107,11 @@ const MainProfileIdIndexRoute = MainProfileIdIndexRouteImport.update({
 const MainSettingsUsageRoute = MainSettingsUsageRouteImport.update({
   id: '/settings/usage',
   path: '/settings/usage',
+  getParentRoute: () => MainRouteRoute,
+} as any)
+const MainSettingsSecretsRoute = MainSettingsSecretsRouteImport.update({
+  id: '/settings/secrets',
+  path: '/settings/secrets',
   getParentRoute: () => MainRouteRoute,
 } as any)
 const MainSettingsProfilesRoute = MainSettingsProfilesRouteImport.update({
@@ -381,6 +387,7 @@ export interface FileRoutesByFullPath {
   '/settings/extension': typeof MainSettingsExtensionRoute
   '/settings/preferences': typeof MainSettingsPreferencesRoute
   '/settings/profiles': typeof MainSettingsProfilesRoute
+  '/settings/secrets': typeof MainSettingsSecretsRoute
   '/settings/usage': typeof MainSettingsUsageRoute
   '/$profileId/': typeof MainProfileIdIndexRoute
   '/settings/': typeof MainSettingsIndexRoute
@@ -427,6 +434,7 @@ export interface FileRoutesByTo {
   '/settings/extension': typeof MainSettingsExtensionRoute
   '/settings/preferences': typeof MainSettingsPreferencesRoute
   '/settings/profiles': typeof MainSettingsProfilesRoute
+  '/settings/secrets': typeof MainSettingsSecretsRoute
   '/settings/usage': typeof MainSettingsUsageRoute
   '/$profileId': typeof MainProfileIdIndexRoute
   '/settings': typeof MainSettingsIndexRoute
@@ -483,6 +491,7 @@ export interface FileRoutesById {
   '/_main/settings/extension': typeof MainSettingsExtensionRoute
   '/_main/settings/preferences': typeof MainSettingsPreferencesRoute
   '/_main/settings/profiles': typeof MainSettingsProfilesRoute
+  '/_main/settings/secrets': typeof MainSettingsSecretsRoute
   '/_main/settings/usage': typeof MainSettingsUsageRoute
   '/_main/$profileId/': typeof MainProfileIdIndexRoute
   '/_main/settings/': typeof MainSettingsIndexRoute
@@ -540,6 +549,7 @@ export interface FileRouteTypes {
     | '/settings/extension'
     | '/settings/preferences'
     | '/settings/profiles'
+    | '/settings/secrets'
     | '/settings/usage'
     | '/$profileId/'
     | '/settings/'
@@ -586,6 +596,7 @@ export interface FileRouteTypes {
     | '/settings/extension'
     | '/settings/preferences'
     | '/settings/profiles'
+    | '/settings/secrets'
     | '/settings/usage'
     | '/$profileId'
     | '/settings'
@@ -641,6 +652,7 @@ export interface FileRouteTypes {
     | '/_main/settings/extension'
     | '/_main/settings/preferences'
     | '/_main/settings/profiles'
+    | '/_main/settings/secrets'
     | '/_main/settings/usage'
     | '/_main/$profileId/'
     | '/_main/settings/'
@@ -745,6 +757,13 @@ declare module '@tanstack/react-router' {
       path: '/settings/usage'
       fullPath: '/settings/usage'
       preLoaderRoute: typeof MainSettingsUsageRouteImport
+      parentRoute: typeof MainRouteRoute
+    }
+    '/_main/settings/secrets': {
+      id: '/_main/settings/secrets'
+      path: '/settings/secrets'
+      fullPath: '/settings/secrets'
+      preLoaderRoute: typeof MainSettingsSecretsRouteImport
       parentRoute: typeof MainRouteRoute
     }
     '/_main/settings/profiles': {
@@ -1270,6 +1289,7 @@ interface MainRouteRouteChildren {
   MainSettingsExtensionRoute: typeof MainSettingsExtensionRoute
   MainSettingsPreferencesRoute: typeof MainSettingsPreferencesRoute
   MainSettingsProfilesRoute: typeof MainSettingsProfilesRoute
+  MainSettingsSecretsRoute: typeof MainSettingsSecretsRoute
   MainSettingsUsageRoute: typeof MainSettingsUsageRoute
   MainSettingsIndexRoute: typeof MainSettingsIndexRoute
 }
@@ -1284,6 +1304,7 @@ const MainRouteRouteChildren: MainRouteRouteChildren = {
   MainSettingsExtensionRoute: MainSettingsExtensionRoute,
   MainSettingsPreferencesRoute: MainSettingsPreferencesRoute,
   MainSettingsProfilesRoute: MainSettingsProfilesRoute,
+  MainSettingsSecretsRoute: MainSettingsSecretsRoute,
   MainSettingsUsageRoute: MainSettingsUsageRoute,
   MainSettingsIndexRoute: MainSettingsIndexRoute,
 }
