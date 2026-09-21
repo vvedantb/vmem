@@ -502,6 +502,9 @@ importers:
 
   packages/backend:
     dependencies:
+      '@ai-sdk/gateway':
+        specifier: ^4.0.85
+        version: 4.0.88(zod@3.25.76)
       '@clerk/backend':
         specifier: 'catalog:'
         version: 2.33.2(react-dom@19.2.5(react@19.2.5))(react@19.2.5)

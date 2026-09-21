@@ -1,6 +1,6 @@
-# Jev retrieve-gate (TypeSafe System One)
+# Jev retrieve-gate (AI Gateway `typesafe-ai/jev`)
 
-Second-stage score / best **rerank** after hybrid retrieve (no noul hard-drop). **On by default** when `TYPESAFE_API_KEY` is set. No client flag required. Missing key or Jev HTTP failure → hybrid hits only (no 422).
+Second-stage score / best **rerank** after hybrid retrieve (no noul hard-drop). **On by default** when `AI_GATEWAY_API_KEY` is set. No client flag required. Missing key or a Jev error → hybrid hits only (no 422).
 
 What to drop now that this is live: [jev-simplify.md](./jev-simplify.md).
 
@@ -8,24 +8,19 @@ What to drop now that this is live: [jev-simplify.md](./jev-simplify.md).
 
 ## Enable
 
-1. Set a TypeSafe key (never commit the value):
+1. Set the AI Gateway key (never commit the value). The same key covers chat, embeddings, and Jev:
 
 ```bash
-# local CLI / unit-adjacent scripts
-export TYPESAFE_API_KEY="…"
-
-# aliases, same resolution order as the client
-# TYPESAFE_AI_API_KEY
-# JEV_API_KEY   # local alias only — do not add this name as a Convex dashboard secret
+export AI_GATEWAY_API_KEY="…"
 ```
 
 2. Convex **action** env (dashboard → Settings → Environment Variables, or `npx convex env set`):
 
 ```
-TYPESAFE_API_KEY
+AI_GATEWAY_API_KEY
 ```
 
-Lookup is **deployment `process.env` only**. There is no in-app Secrets page and no per-user override.
+Lookup is **deployment `process.env` only**. The AI SDK reads it. There is no in-app Secrets page and no per-user override. `TYPESAFE_API_KEY` is not read.
 
 3. Call retrieve as usual. HTTP / SDK / MCP / Convex / dashboard / Chrome extension all get Jev when the key is present:
 
@@ -50,9 +45,9 @@ Ablation / labelled IR (skip Jev): HTTP/SDK/Convex `judge: "off"`, or LoCoMo CLI
 
 After FTS / vector / graph / rank (hybrid candidate generation is unchanged):
 
-1. Over-fetch up to 20 hits (only when a TypeSafe key resolved).
-2. One `POST https://api.typesafe.ai/v1/systemone` (`model: jev-latest`, `Authorization: Bearer $TYPESAFE_API_KEY`).
-3. Question `type` values are only `noul`, `choice`, and `score` (never `boolean`). **`criteria` is top-level** on the question: noul `{ true, false }`, choice object map, score ordered string array. Retrieve-gate sends:
+1. Over-fetch up to 20 hits (only when `AI_GATEWAY_API_KEY` resolved).
+2. One `experimental_evaluate` call (`model: typesafe-ai/jev`, 30s timeout, one retry, zero data retention, tag `retrieve`). The SDK authenticates with `AI_GATEWAY_API_KEY`.
+3. In-process questions stay `noul`, `choice`, and `score`. The client sends each noul question as a gateway **boolean** and stores `probability` back as `noul`. **`criteria` is top-level** on the question: noul `{ true, false }`, choice object map, score ordered string array. Retrieve-gate sends:
    - per-hit **noul** keep?
    - per-hit **score** with `criteria`: `irrelevant` / `weakly related` / `directly answers`
    - **choice** over hit ids plus `none`
@@ -65,25 +60,21 @@ Jev 1.13 is weak at date math — `temporal.ts` still owns windows. State includ
 
 Retrieve already runs as an **action**:
 
-| Surface                                | Convex primitive    | `fetch`                             |
-| -------------------------------------- | ------------------- | ----------------------------------- |
-| Dashboard `memoryApi.retrieveMemories` | `authAction`        | yes                                 |
-| `POST /api/v1/memories/retrieve`       | `httpAction`        | yes (same as AI Gateway embeddings) |
-| MCP `memory_retrieve`                  | `/mcp` `httpAction` | yes                                 |
+| Surface                                | Convex primitive    | Jev                            |
+| -------------------------------------- | ------------------- | ------------------------------ |
+| Dashboard `memoryApi.retrieveMemories` | `authAction`        | AI SDK `experimental_evaluate` |
+| `POST /api/v1/memories/retrieve`       | `httpAction`        | same client as embeddings      |
+| MCP `memory_retrieve`                  | `/mcp` `httpAction` | same client                    |
 
-Queries and mutations **cannot** `fetch`. Do not move this call onto a query.
-
-`"use node"` is **not** required for `fetch`. HTTP handlers cannot be `"use node"` themselves. If a future TypeSafe SDK needs Node built-ins, wrap `evaluateSystemOne` in an `internalAction` with `"use node"` and `ctx.runAction` it from retrieve.
+Queries and mutations **cannot** call Jev. Do not move this call onto a query. HTTP handlers cannot be `"use node"`; the AI SDK evaluate path stays in the shared engine module.
 
 ## Env names (no values)
 
-| Name                  | Use                                               |
-| --------------------- | ------------------------------------------------- |
-| `TYPESAFE_API_KEY`    | TypeSafe docs / curl. **This is the one to set.** |
-| `TYPESAFE_AI_API_KEY` | `@ai-sdk/typesafe-ai` alias                       |
-| `JEV_API_KEY`         | Local alias only                                  |
+| Name                 | Use                                                                  |
+| -------------------- | -------------------------------------------------------------------- |
+| `AI_GATEWAY_API_KEY` | **This is the one to set.** Chat, embeddings, and `typesafe-ai/jev`. |
 
-`AI_GATEWAY_API_KEY` is for Vercel AI Gateway `typesafe-ai/jev`, not `api.typesafe.ai`. This gate talks to TypeSafe directly.
+The client does not call `api.typesafe.ai` and does not read `TYPESAFE_API_KEY`.
 
 ## Rerank, no hard-drop
 
@@ -95,25 +86,25 @@ So the gate **only reranks**. Every head hit is annotated and sorted (`compareKe
 
 ## Calibrate later
 
-Freeze questions with `ai evaluate` (default model `typesafe-ai/jev`) on labelled abstentions + lexical traps before treating noul as a drop again. Live System One calls are skipped in CI; unit tests mock HTTP. No API keys in the repo.
+Freeze questions with `ai evaluate` (model `typesafe-ai/jev`) on labelled abstentions + lexical traps before treating noul as a drop again. Live Jev calls are skipped in CI; unit tests inject the evaluate function. No API keys in the repo.
 
 ## Labelled IR comparison
 
-Default-on Jev vs hybrid-only (`judge: "off"`) on the real labelled harness (`packages/backend/eval/*`, 493 memories, 81 answerable, 6 abstentions). Main result is **default (Jev on)** — the always-on path. Product retrieve is default-on when `TYPESAFE_API_KEY` is set (PR #183). Hybrid-only is the control.
+Default-on Jev vs hybrid-only (`judge: "off"`) on the real labelled harness (`packages/backend/eval/*`, 493 memories, 81 answerable, 6 abstentions). Main result is **default (Jev on)** — the always-on path. Product retrieve is default-on when `AI_GATEWAY_API_KEY` is set (PR #183). Hybrid-only is the control.
 
 ```bash
 EVAL_JEV=1 pnpm --filter @vmem/backend eval:jev
 ```
 
-Requires `TYPESAFE_API_KEY` (or `TYPESAFE_AI_API_KEY` / `JEV_API_KEY`). The eval fails closed if the key is missing — it does not mock System One or copy hybrid numbers. `pnpm test` / `eval:bench` stay hybrid-only.
+Requires `AI_GATEWAY_API_KEY`. The eval fails closed if the key is missing — it does not mock Jev or copy hybrid numbers. `pnpm test` / `eval:bench` stay hybrid-only.
 
 Results: [`benchmark/jev-gate-results.md`](./benchmark/jev-gate-results.md). Optional `EVAL_JEV_CONCURRENCY` (default 4).
 
 ## Dream Mode merge (always-on, no hard-drop)
 
-Same TypeSafe client (`evaluateSystemOne` / `TYPESAFE_API_KEY`) as retrieve. Dream Mode still **clusters heuristically** (`clusterNearDuplicateMemories` / `pickClusterKeeper`) and still uses **AI Gateway** for dream portraits and other prose. Jev annotates each heuristic near-dup cluster; it does **not** drop clusters.
+Same Jev client (`evaluateSystemOne` / `AI_GATEWAY_API_KEY`, tag `dream-merge`) as retrieve. Dream Mode still **clusters heuristically** (`clusterNearDuplicateMemories` / `pickClusterKeeper`). Jev annotates each heuristic near-dup cluster; it does **not** drop clusters. Dream portraits stay on the chat model.
 
-The dream pass already runs as a Convex **action**, so Jev `fetch`es from there (mutations still cannot). Per cluster, Jev answers:
+The dream pass already runs as a Convex **action** (mutations still cannot call Jev). Per cluster, Jev answers:
 
 1. **noul `merge`** — metadata only (how duplicate-like); never a skip
 2. **choice `keeper`** — which memory is current truth?
@@ -126,6 +117,6 @@ Every heuristic near-dup cluster still becomes a merge proposal. Thresholds (in 
 | keeper choice confidence ≥ `0.6` | `JEV_KEEPER_OVERRIDE_CONFIDENCE` | Honor Jev's keeper; otherwise keep `pickClusterKeeper` |
 | auto-accept noul ≥ `0.7`         | `JEV_AUTO_ACCEPT_NOUL`           | When user auto-accept is on, materialize; else inbox   |
 
-**Fail-open:** missing `TYPESAFE_API_KEY` or Jev HTTP/parse errors keep today's heuristic (create the proposal; auto-accept still materializes). Jev never writes merged title/content.
+**Fail-open:** missing `AI_GATEWAY_API_KEY` or a Jev error keeps today's heuristic (create the proposal; auto-accept still materializes). Jev never writes merged title/content. Keeper choice confidence is the selected option's gateway probability.
 
 `DreamRunResult` counts `clustersScanned`, `jevScored` (Jev returned metadata), and `failOpen`.

@@ -14,7 +14,7 @@ export const EVAL_COMPETITIVE_KEYS_REQUIRED = [
   `  ${SUPERMEMORY_API_KEY_ENV}  (SuperMemory — ${SUPERMEMORY_SIGNUP_URL} → API keys)`,
   "Signup is interactive (email/GitHub/Google). There is no public signup API.",
   "Do not invent recall/MRR/nDCG numbers. Leave table cells as — until a live run.",
-  "Optional vmem Jev column: TYPESAFE_API_KEY (or TYPESAFE_AI_API_KEY / JEV_API_KEY) from https://platform.typesafe.ai.",
+  "Optional vmem Jev column: AI_GATEWAY_API_KEY (Vercel AI Gateway model typesafe-ai/jev).",
 ].join("\n");
 
 export function evalCompetitiveEnabled(

@@ -215,7 +215,7 @@ describe("applyJevMergeGate", () => {
 });
 
 describe("judgeDreamMergeClusters", () => {
-  it("skips Jev and fail-opens every cluster when the TypeSafe key is missing", async () => {
+  it("skips Jev and fail-opens every cluster when the gateway key is missing", async () => {
     const evaluate = vi.fn(async () => mergeResponse({ merge: 0.2 }));
     const decisions = await judgeDreamMergeClusters({
       clusters: [
@@ -239,7 +239,7 @@ describe("judgeDreamMergeClusters", () => {
     ]);
   });
 
-  it("calls Jev for every cluster when the TypeSafe key is present", async () => {
+  it("calls Jev for every cluster when the gateway key is present", async () => {
     const evaluate = vi.fn(async () => mergeResponse({ merge: 0.2 }));
     const decisions = await judgeDreamMergeClusters({
       clusters: [

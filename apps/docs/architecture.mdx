@@ -55,14 +55,14 @@ A native Expo app and GitHub codebase indexer used to live in this repo. They ar
 
 1. Client calls `memoryApi.retrieveMemories` or `POST /api/v1/memories/retrieve`
 2. Hybrid ranking: Convex full-text + lexical overlap + optional vector similarity + tag/entity overlap + 1-hop `memoryLinks` neighbours + recency + temporal
-3. TypeSafe Jev reranks the top 20 hits when `TYPESAFE_API_KEY` is set on the Convex action (HTTP/SDK `judge: "off"` is ablation-only; MCP retrieve does not expose that flag). This uses `fetch` from the retrieve **action** / **httpAction** — not from a query.
+3. Jev (`typesafe-ai/jev` through the AI SDK) reranks the top 20 hits when `AI_GATEWAY_API_KEY` is set on the Convex action (HTTP/SDK `judge: "off"` is ablation-only; MCP retrieve does not expose that flag). This runs from the retrieve **action** / **httpAction** — not from a query.
 4. Each result includes a **context trace** explaining the score
 5. User settings (`aboutMe`, `preferences`) are merged in parallel as `userContext`
 
 ### Dream Mode
 
 1. The dream pass (Convex **action**) clusters visible memories with `clusterNearDuplicateMemories`
-2. When `TYPESAFE_API_KEY` is set, TypeSafe Jev annotates each cluster (merge noul, keeper, auto-accept). Missing key or Jev errors **fail-open** to the heuristic (same spirit as retrieve). Jev never skips creating a proposal.
+2. When `AI_GATEWAY_API_KEY` is set, Jev annotates each cluster (merge noul, keeper, auto-accept). Missing key or Jev errors **fail-open** to the heuristic (same spirit as retrieve). Jev never skips creating a proposal.
 3. Every heuristic cluster becomes an inbox **merge** proposal. Auto-accept still materializes only when Jev marks the merge safe (or when Jev fail-opens)
 4. Jev does not write merged title/content or dream portraits — AI Gateway / the existing generative path still owns prose
 

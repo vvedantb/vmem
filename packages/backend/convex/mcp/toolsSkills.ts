@@ -73,7 +73,7 @@ export const skillsToolSpecs = {
     name: "skills_recommend",
     schema: skillsRecommendSchema,
     description:
-      "Shortlist enabled skills that fit a short task/query. Uses TypeSafe Jev when TYPESAFE_API_KEY is configured (fail-open to lexical name/description ranking if the key or Jev is unavailable). Returns name + description only; call skills_get for full markdown. Respects personal vs team MCP grants.",
+      "Shortlist enabled skills that fit a short task/query. Uses Jev on the AI Gateway when AI_GATEWAY_API_KEY is configured (fail-open to lexical name/description ranking if the key or Jev is unavailable). Returns name + description only; call skills_get for full markdown. Respects personal vs team MCP grants.",
     errorLabel: "Recommend skills failed",
     async run(h, params): Promise<unknown> {
       const rows = await h.ctx.runQuery(

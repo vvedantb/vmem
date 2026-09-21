@@ -90,7 +90,7 @@ const memoryRetrieveSchema = retrieveBodySchema
       .union([z.boolean(), z.literal("jev")])
       .optional()
       .describe(
-        'true = local #179 top-20 extra (ignored when Jev runs). "jev" is accepted and ignored — Jev is on by default when TYPESAFE_API_KEY is set.',
+        'true = local #179 top-20 extra (ignored when Jev runs). "jev" is accepted and ignored — Jev is on by default when AI_GATEWAY_API_KEY is set.',
       ),
     referenceDate: z
       .string()
@@ -224,7 +224,7 @@ export const memoryToolSpecs = {
     name: "memory_retrieve",
     schema: memoryRetrieveSchema,
     description:
-      "Retrieve the most relevant memories for a query using hybrid full-text, synonym, recency, temporal, and optional vector ranking. type, tags, status, and source filters are applied before ranking. Optional threshold drops low hybrid scores. TypeSafe Jev reranks the top 20 when TYPESAFE_API_KEY is set (fail-open without the key; no noul hard-drop). Defaults to the active profile unless profileId is specified.",
+      "Retrieve the most relevant memories for a query using hybrid full-text, synonym, recency, temporal, and optional vector ranking. type, tags, status, and source filters are applied before ranking. Optional threshold drops low hybrid scores. Jev reranks the top 20 when AI_GATEWAY_API_KEY is set (fail-open without the key; no noul hard-drop). Defaults to the active profile unless profileId is specified.",
     errorLabel: "Retrieve failed",
     async run(h, params): Promise<unknown> {
       return withMcpMemoryScope(

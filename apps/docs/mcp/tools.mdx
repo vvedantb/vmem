@@ -117,7 +117,7 @@ Retrieve the most relevant memories for a natural language query. Returns scored
   legs stay on the hit. `"jev"` is an accepted no-op.
 </ParamField>
 <ParamField body="judge" type="string">
-  Jev keep/best is on when `TYPESAFE_API_KEY` is set. Pass `off` to skip for
+  Jev keep/best is on when `AI_GATEWAY_API_KEY` is set. Pass `off` to skip for
   ablation. Does not 422 without the key.
 </ParamField>
 <ParamField body="referenceDate" type="string">
@@ -254,7 +254,7 @@ Personal `/mcp` returns the caller's personal skills. Team `/mcp/team` returns o
 
 ## skills_recommend
 
-Shortlist enabled skills that fit a short task. Uses TypeSafe Jev when `TYPESAFE_API_KEY` is set (same client as retrieve). Fail-open to lexical name/description ranking if the key or Jev is unavailable — the tool does not hard-fail.
+Shortlist enabled skills that fit a short task. Uses Jev on the AI Gateway when `AI_GATEWAY_API_KEY` is set (same client as retrieve). Fail-open to lexical name/description ranking if the key or Jev is unavailable — the tool does not hard-fail.
 
 <ParamField body="query" type="string" required>
   Short task or question to match against enabled skills

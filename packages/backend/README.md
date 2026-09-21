@@ -62,19 +62,18 @@ import { authQuery, authMutation, authAction } from "./auth";
 
 ## Environment
 
-Use `.env.example` as the complete template. Copy it to `.env.local` for local CLI scripts/tests, and set the Convex runtime variables on the **Convex deployment** (dashboard → Settings → Environment Variables, or `npx convex env set`). There is no in-app Secrets page; AI Gateway and TypeSafe/Jev keys are deployment env only:
+Use `.env.example` as the complete template. Copy it to `.env.local` for local CLI scripts/tests, and set the Convex runtime variables on the **Convex deployment** (dashboard → Settings → Environment Variables, or `npx convex env set`). There is no in-app Secrets page; the AI Gateway key is deployment env only:
 
-| Variable                          | Purpose                                                                                                   |
-| --------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `ENCRYPTION_KEY`                  | AES-256 key for API keys and OAuth tokens                                                                 |
-| `CLERK_FRONTEND_API_URL`          | Clerk JWKS + MCP AS discovery                                                                             |
-| `CLERK_SECRET_KEY`                | Clerk Backend API / MCP token verify                                                                      |
-| `CLERK_PUBLISHABLE_KEY`           | MCP OAuth token verify (`authenticateRequest`)                                                            |
-| `CONVEX_SITE_URL` / `WEB_APP_URL` | OAuth redirects / resource docs                                                                           |
-| `AI_GATEWAY_API_KEY`              | Embeddings, fact extraction, and context prompt generation (Vercel AI Gateway)                            |
-| `TYPESAFE_API_KEY`                | Jev retrieve rerank and Dream Mode merge metadata (on when set; HTTP/SDK `judge: "off"` is ablation-only) |
-| `MEM0_API_KEY`                    | Optional labelled IR vs Mem0 (`eval:competitive`)                                                         |
-| `SUPERMEMORY_API_KEY`             | Optional labelled IR vs SuperMemory (`eval:competitive`)                                                  |
+| Variable                          | Purpose                                                                                               |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `ENCRYPTION_KEY`                  | AES-256 key for API keys and OAuth tokens                                                             |
+| `CLERK_FRONTEND_API_URL`          | Clerk JWKS + MCP AS discovery                                                                         |
+| `CLERK_SECRET_KEY`                | Clerk Backend API / MCP token verify                                                                  |
+| `CLERK_PUBLISHABLE_KEY`           | MCP OAuth token verify (`authenticateRequest`)                                                        |
+| `CONVEX_SITE_URL` / `WEB_APP_URL` | OAuth redirects / resource docs                                                                       |
+| `AI_GATEWAY_API_KEY`              | Chat, embeddings, fact extraction, and Jev (`typesafe-ai/jev`) retrieve rerank / Dream merge metadata |
+| `MEM0_API_KEY`                    | Optional labelled IR vs Mem0 (`eval:competitive`)                                                     |
+| `SUPERMEMORY_API_KEY`             | Optional labelled IR vs SuperMemory (`eval:competitive`)                                              |
 
 Live HTTP tests use `packages/backend/.env.local`.
 
@@ -90,4 +89,4 @@ Typecheck without a running dev server:
 cd packages/backend && npx convex codegen --typecheck enable
 ```
 
-Labelled retrieve eval (IR, no LLM judge): `pnpm --filter @vmem/backend eval:bench`. Default-on Jev vs hybrid-only (`judge: "off"`) on that harness: `EVAL_JEV=1 pnpm --filter @vmem/backend eval:jev` (needs `TYPESAFE_API_KEY`; does not mock). Labelled IR vs Mem0 / SuperMemory: `EVAL_COMPETITIVE=1 pnpm --filter @vmem/backend eval:competitive` (needs `MEM0_API_KEY` + `SUPERMEMORY_API_KEY`; see `tests/memory/competitive/vmem-vs-mem0-supermemory.md`). LoCoMo utterance-IR (download `locomo10.json`, gold `dia_id` IR, no answer/MemScore judge): `pnpm --filter @vmem/backend eval:locomo-ir` (default `-l` 8, `LOCOMO_IR_JUDGE=off`; `LOCOMO_IR_JUDGE=jev` reranks retrieve candidates like prod when `TYPESAFE_API_KEY` is set — see `tests/memory/competitive/memorybench-ir-port.md`). SuperMemory / Mem0 gap analysis and Convex-only roadmap: `tests/memory/competitive-brief.md`. TypeSafe Jev retrieve-gate: `tests/memory/jev-retrieve-gate.md`.
+Labelled retrieve eval (IR, no LLM judge): `pnpm --filter @vmem/backend eval:bench`. Default-on Jev vs hybrid-only (`judge: "off"`) on that harness: `EVAL_JEV=1 pnpm --filter @vmem/backend eval:jev` (needs `AI_GATEWAY_API_KEY`; does not mock). Labelled IR vs Mem0 / SuperMemory: `EVAL_COMPETITIVE=1 pnpm --filter @vmem/backend eval:competitive` (needs `MEM0_API_KEY` + `SUPERMEMORY_API_KEY`; see `tests/memory/competitive/vmem-vs-mem0-supermemory.md`). LoCoMo utterance-IR (download `locomo10.json`, gold `dia_id` IR, no answer/MemScore judge): `pnpm --filter @vmem/backend eval:locomo-ir` (default `-l` 8, `LOCOMO_IR_JUDGE=off`; `LOCOMO_IR_JUDGE=jev` reranks retrieve candidates like prod when `AI_GATEWAY_API_KEY` is set — see `tests/memory/competitive/memorybench-ir-port.md`). SuperMemory / Mem0 gap analysis and Convex-only roadmap: `tests/memory/competitive-brief.md`. Jev retrieve-gate: `tests/memory/jev-retrieve-gate.md`.
