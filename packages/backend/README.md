@@ -73,7 +73,7 @@ Use `.env.example` as the complete template. Copy it to `.env.local` for local C
 | `CLERK_PUBLISHABLE_KEY`           | MCP OAuth token verify (`authenticateRequest`)           |
 | `CONVEX_SITE_URL` / `WEB_APP_URL` | OAuth redirects / resource docs                          |
 | `OPENROUTER_API_KEY`              | Embeddings and context prompt generation                 |
-| `TYPESAFE_API_KEY`                | Jev retrieve-gate (on when set; `judge: "off"` skips)    |
+| `TYPESAFE_API_KEY`                | Jev retrieve-gate and Dream Mode merge gate (on when set; retrieve `judge: "off"` skips) |
 | `MEM0_API_KEY`                    | Optional labelled IR vs Mem0 (`eval:competitive`)        |
 | `SUPERMEMORY_API_KEY`             | Optional labelled IR vs SuperMemory (`eval:competitive`) |
 

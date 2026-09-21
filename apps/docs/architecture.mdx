@@ -59,6 +59,13 @@ A native Expo app and GitHub codebase indexer used to live in this repo. They ar
 4. Each result includes a **context trace** explaining the score
 5. User settings (`aboutMe`, `preferences`) are merged in parallel as `userContext`
 
+### Dream Mode
+
+1. The dream pass (Convex **action**) clusters visible memories with `clusterNearDuplicateMemories`
+2. When `TYPESAFE_API_KEY` is set, TypeSafe Jev decides whether each cluster is a true near-duplicate, which row is the keeper, and whether auto-accept is safe. Missing key or Jev errors **fail-open** to the heuristic (same spirit as retrieve)
+3. Approved clusters become inbox **merge** proposals. Auto-accept still materializes only when Jev marks the merge safe (or when the gate fail-opens)
+4. Jev does not write merged title/content or dream portraits — OpenRouter / the existing generative path still owns prose
+
 ### MCP Implicit Memory
 
 1. MCP client reads `vmem://context_prompt` at conversation start (personal connector only)

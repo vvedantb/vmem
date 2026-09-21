@@ -48,6 +48,9 @@ describe("proposed updates and dream merge", () => {
     expect(pass.reason).toBe("ok");
     expect(pass.clustersScanned).toBeGreaterThanOrEqual(1);
     expect(pass.proposalsCreated).toBeGreaterThanOrEqual(1);
+    expect(pass.failOpen).toBeGreaterThanOrEqual(1);
+    expect(pass.jevApproved).toBe(0);
+    expect(pass.jevRejected).toBe(0);
 
     const pending = await t.query(
       internal.proposedUpdateApi.listPendingInternal,
@@ -143,5 +146,121 @@ describe("proposed updates and dream merge", () => {
       "dup_a",
       "dup_b",
     ]);
+  });
+
+  it("skips creating a proposal when Jev rejects the cluster", async () => {
+    const t = convexTest(schema, modules);
+    await seedNearDup(t);
+
+    const pass = await t.mutation(internal.dreamMode.runDreamPassInternal, {
+      clerkId: USER,
+      profileId: PROFILE,
+      kind: "personal",
+      autoAccept: false,
+      clusterGates: [
+        {
+          sourceMemoryIds: ["dup_a", "dup_b"],
+          outcome: "reject",
+          keeperId: "dup_a",
+          safeToAutoAccept: false,
+          mergeNoul: 0.12,
+        },
+      ],
+    });
+    expect(pass.clustersScanned).toBeGreaterThanOrEqual(1);
+    expect(pass.proposalsCreated).toBe(0);
+    expect(pass.memoriesMaterialized).toBe(0);
+    expect(pass.jevRejected).toBeGreaterThanOrEqual(1);
+    expect(pass.failOpen).toBe(0);
+
+    const pending = await t.query(
+      internal.proposedUpdateApi.listPendingInternal,
+      { userId: USER, profileId: PROFILE },
+    );
+    expect(pending).toEqual([]);
+  });
+
+  it("uses Jev's keeper when the gate approves an override", async () => {
+    const t = convexTest(schema, modules);
+    await t.mutation(internal.memoryStore.functions.createMemoryInternal, {
+      memoryId: "dup_a",
+      userId: USER,
+      profileId: PROFILE,
+      title: "Use pnpm for vmem",
+      content: "Use pnpm",
+      type: "knowledge",
+      source: "api",
+      tags: ["tooling"],
+      confidence: 0.9,
+    });
+    await t.mutation(internal.memoryStore.functions.createMemoryInternal, {
+      memoryId: "dup_b",
+      userId: USER,
+      profileId: PROFILE,
+      title: "Use pnpm for vmem",
+      content: "Use pnpm for vmem",
+      type: "knowledge",
+      source: "api",
+      tags: ["tooling"],
+      confidence: 0.9,
+    });
+
+    const pass = await t.mutation(internal.dreamMode.runDreamPassInternal, {
+      clerkId: USER,
+      profileId: PROFILE,
+      kind: "personal",
+      autoAccept: false,
+      clusterGates: [
+        {
+          sourceMemoryIds: ["dup_b", "dup_a"],
+          outcome: "approve",
+          keeperId: "dup_a",
+          safeToAutoAccept: false,
+          mergeNoul: 0.9,
+          keeperConfidence: 0.8,
+        },
+      ],
+    });
+    expect(pass.jevApproved).toBeGreaterThanOrEqual(1);
+    expect(pass.failOpen).toBe(0);
+
+    const pending = await t.query(
+      internal.proposedUpdateApi.listPendingInternal,
+      { userId: USER, profileId: PROFILE },
+    );
+    const merge = pending.find((proposal) => proposal.kind === "merge");
+    expect(merge?.memoryId).toBe("dup_a");
+    expect(merge?.proposedContent).toBe("Use pnpm");
+  });
+
+  it("leaves an approved merge in the inbox when Jev says it is not safe to auto-accept", async () => {
+    const t = convexTest(schema, modules);
+    await seedNearDup(t);
+
+    const pass = await t.mutation(internal.dreamMode.runDreamPassInternal, {
+      clerkId: USER,
+      profileId: PROFILE,
+      kind: "personal",
+      autoAccept: true,
+      clusterGates: [
+        {
+          sourceMemoryIds: ["dup_a", "dup_b"],
+          outcome: "approve",
+          keeperId: "dup_a",
+          safeToAutoAccept: false,
+          mergeNoul: 0.88,
+          autoAcceptNoul: 0.2,
+        },
+      ],
+    });
+    expect(pass.proposalsCreated).toBeGreaterThanOrEqual(1);
+    expect(pass.memoriesMaterialized).toBe(0);
+    expect(pass.jevApproved).toBeGreaterThanOrEqual(1);
+
+    const pending = await t.query(
+      internal.proposedUpdateApi.listPendingInternal,
+      { userId: USER, profileId: PROFILE },
+    );
+    expect(pending.some((proposal) => proposal.kind === "merge")).toBe(true);
   });
 });
