@@ -55,8 +55,8 @@ export function toSkillIndexEntry(skill: SkillIndexSlice): SkillIndexSlice {
 }
 
 export function skillMatchesMcpGrant(
-  skill: { teamId?: Id<"teams"> },
-  grant: SkillMcpGrant,
+  skill: { teamId?: string },
+  grant: { teamId?: string },
 ): boolean {
   return skill.teamId === grant.teamId;
 }

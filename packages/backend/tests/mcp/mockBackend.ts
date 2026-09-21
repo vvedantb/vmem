@@ -75,6 +75,10 @@ const collectScopedArgsSchema = z.object({
   profileId: z.string().optional(),
 });
 const userIdArgsSchema = z.object({ userId: z.string() });
+const skillListArgsSchema = z.object({
+  clerkId: z.string(),
+  scope: z.enum(["personal", "team"]).optional(),
+});
 const skillNameArgsSchema = z.object({
   clerkId: z.string(),
   name: z.string(),
@@ -496,12 +500,7 @@ async function dispatch(
       ).memories;
     }
     case "skills:listEffectiveByClerkIdInternal": {
-      const parsed = z
-        .object({
-          clerkId: z.string(),
-          scope: z.enum(["personal", "team"]).optional(),
-        })
-        .parse(args);
+      const parsed = skillListArgsSchema.parse(args);
       return mockSkillsForScope(store, parsed.scope).filter(
         (skill) => skill.enabled,
       );

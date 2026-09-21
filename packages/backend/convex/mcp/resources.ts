@@ -61,6 +61,18 @@ export function skillResourceDescriptors(
   }));
 }
 
+export function listedMcpResourceUris(
+  scope: McpScope,
+  skills: readonly SkillIndexSlice[],
+): string[] {
+  const uris: string[] = [];
+  if (scope !== "team") uris.push(CONTEXT_PROMPT_URI);
+  for (const skill of skills) {
+    uris.push(skillResourceUri(skill.name));
+  }
+  return uris;
+}
+
 function registerSkillResource(server: McpServer, skill: EffectiveSkill): void {
   const uri = skillResourceUri(skill.name);
   server.registerResource(

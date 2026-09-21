@@ -25,22 +25,13 @@ function asUser(
 describe("MCP skill grants", () => {
   it("treats personal vs team teamId as the MCP grant boundary", () => {
     expect(
-      skillMatchesMcpGrant(
-        { teamId: undefined },
-        { userId: "users_a" as never, teamId: undefined },
-      ),
+      skillMatchesMcpGrant({ teamId: undefined }, { teamId: undefined }),
     ).toBe(true);
     expect(
-      skillMatchesMcpGrant(
-        { teamId: "teams_1" as never },
-        { userId: "users_a" as never, teamId: "teams_1" as never },
-      ),
+      skillMatchesMcpGrant({ teamId: "teams_1" }, { teamId: "teams_1" }),
     ).toBe(true);
     expect(
-      skillMatchesMcpGrant(
-        { teamId: "teams_1" as never },
-        { userId: "users_a" as never, teamId: undefined },
-      ),
+      skillMatchesMcpGrant({ teamId: "teams_1" }, { teamId: undefined }),
     ).toBe(false);
   });
 

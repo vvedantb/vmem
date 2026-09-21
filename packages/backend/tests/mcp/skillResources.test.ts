@@ -1,7 +1,9 @@
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { describe, expect, it } from "vitest";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
+  CONTEXT_PROMPT_URI,
   formatSkillResourceMarkdown,
+  listedMcpResourceUris,
   parseSkillResourceName,
   registerResources,
   skillResourceDescriptors,
@@ -12,14 +14,6 @@ import {
   createMockStore,
   MOCK_CLERK_ID,
 } from "./mockBackend";
-
-function captureResourceServer(uris: string[]): McpServer {
-  return {
-    registerResource: (_name: string, uri: string) => {
-      uris.push(String(uri));
-    },
-  } as unknown as McpServer;
-}
 
 describe("MCP skill resources", () => {
   it("builds vmem://skills/<name> URIs and round-trips encoded names", () => {
@@ -75,26 +69,34 @@ describe("MCP skill resources", () => {
       grant: "team",
     });
 
-    const personalUris: string[] = [];
+    const personalSkills = store.skills.filter(
+      (skill) => skill.grant === "personal" && skill.enabled,
+    );
+    const teamSkills = store.skills.filter(
+      (skill) => skill.grant === "team" && skill.enabled,
+    );
+
+    const personalUris = listedMcpResourceUris("personal", personalSkills);
+    expect(personalUris).toContain(CONTEXT_PROMPT_URI);
+    expect(personalUris).toContain("vmem://skills/wiki-writeup");
+    expect(personalUris).not.toContain("vmem://skills/team-runbook");
+
+    const teamUris = listedMcpResourceUris("team", teamSkills);
+    expect(teamUris).not.toContain(CONTEXT_PROMPT_URI);
+    expect(teamUris).toContain("vmem://skills/team-runbook");
+    expect(teamUris).not.toContain("vmem://skills/wiki-writeup");
+
     await registerResources(
-      captureResourceServer(personalUris),
+      new McpServer({ name: "vmem-mcp", version: "0.0.0" }),
       MOCK_CLERK_ID,
       createMockActionCtx(store),
       "personal",
     );
-    expect(personalUris).toContain("vmem://context_prompt");
-    expect(personalUris).toContain("vmem://skills/wiki-writeup");
-    expect(personalUris).not.toContain("vmem://skills/team-runbook");
-
-    const teamUris: string[] = [];
     await registerResources(
-      captureResourceServer(teamUris),
+      new McpServer({ name: "vmem-mcp-team", version: "0.0.0" }),
       MOCK_CLERK_ID,
       createMockActionCtx(store),
       "team",
     );
-    expect(teamUris).not.toContain("vmem://context_prompt");
-    expect(teamUris).toContain("vmem://skills/team-runbook");
-    expect(teamUris).not.toContain("vmem://skills/wiki-writeup");
   });
 });
