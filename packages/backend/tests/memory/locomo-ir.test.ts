@@ -203,9 +203,9 @@ describe.skipIf(!evalLocomoIrEnabled())(
         console.log(`\n${result.report}\n`);
         expect(result.memoryCount).toBeGreaterThan(0);
         expect(result.answerable).toBeGreaterThan(0);
-        if (limit !== undefined) {
-          expect(result.answerable).toBeLessThanOrEqual(limit);
-        }
+        expect(result.answerable).toBeLessThanOrEqual(
+          limit ?? Number.POSITIVE_INFINITY,
+        );
         expect(result.metrics.recall5).toBeGreaterThanOrEqual(0);
         expect(result.metrics.recall5).toBeLessThanOrEqual(1);
         expect(result.metrics.mrr).toBeGreaterThanOrEqual(0);
