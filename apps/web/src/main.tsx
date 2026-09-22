@@ -5,6 +5,7 @@ import { ClerkProvider, useAuth } from "@clerk/clerk-react";
 import { routeTree } from "./routeTree.gen";
 import { env } from "./env";
 import { convex } from "./lib/convex-client";
+import { slidesPublicBoot } from "./lib/slides-public-boot";
 import { AppSkeleton } from "./components/shell/AppSkeleton";
 import { isChunkLoadError } from "./lib/utils/isChunkLoadError";
 import "./globals.css";
@@ -65,13 +66,19 @@ const rootElement = document.getElementById("root");
 if (rootElement) {
   createRoot(rootElement).render(
     <StrictMode>
-      <ClerkProvider
-        publishableKey={env.VITE_CLERK_PUBLISHABLE_KEY}
-        signInFallbackRedirectUrl="/home"
-        signUpFallbackRedirectUrl="/home"
-      >
-        <InnerApp />
-      </ClerkProvider>
+      {slidesPublicBoot ? (
+        // Preview hosts often are not in Clerk's allowlist — skip ClerkProvider
+        // (and its `/v1/client` call) so the public deck still loads.
+        <RouterProvider router={router} context={{ isSignedIn: false }} />
+      ) : (
+        <ClerkProvider
+          publishableKey={env.VITE_CLERK_PUBLISHABLE_KEY}
+          signInFallbackRedirectUrl="/home"
+          signUpFallbackRedirectUrl="/home"
+        >
+          <InnerApp />
+        </ClerkProvider>
+      )}
     </StrictMode>,
   );
 }
