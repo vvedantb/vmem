@@ -3,6 +3,13 @@ import { embedMany, generateText, type ProviderMetadata } from "ai";
 export const AI_GATEWAY_CHAT_MODEL = "alibaba/qwen3.7-flash";
 export const AI_GATEWAY_EMBEDDING_MODEL = "openai/text-embedding-3-small";
 
+/** Cheapest AI Gateway service tier. No-op when the provider/model does not support tiers. */
+export const FLEX_GATEWAY_PROVIDER_OPTIONS = {
+  gateway: {
+    serviceTier: "flex" as const,
+  },
+};
+
 const CHAT_MAX_RETRIES = 0;
 const EMBEDDING_MAX_RETRIES = 4;
 
@@ -58,6 +65,9 @@ async function generateWithSdk(
     temperature: call.temperature,
     maxRetries: CHAT_MAX_RETRIES,
     allowSystemInMessages: true,
+    providerOptions: {
+      ...FLEX_GATEWAY_PROVIDER_OPTIONS,
+    },
   });
   return {
     text: result.text,
@@ -82,6 +92,9 @@ export async function embedGatewayTexts(args: {
     model: args.model,
     values: args.values,
     maxRetries: args.maxRetries ?? EMBEDDING_MAX_RETRIES,
+    providerOptions: {
+      ...FLEX_GATEWAY_PROVIDER_OPTIONS,
+    },
   });
   return {
     embeddings: result.embeddings,
