@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -54,4 +54,55 @@ describe("slides boot skips Clerk on preview domains", () => {
     expect(root).toContain("shouldFullLoadClerkOnNavigate");
     expect(root).toContain("window.location.assign");
   });
+
+  it("ClientProvider does not mount EnsureUser on the slides public boot path", () => {
+    const client = readFileSync(
+      join(webSrc, "providers/ClientProvider.tsx"),
+      "utf8",
+    );
+    expect(client).toContain("slidesPublicBoot");
+    expect(client).toMatch(/!slidesPublicBoot\s*&&\s*<EnsureUser/);
+  });
+
+  it("EnsureUser is a no-op on slidesPublicBoot without calling useConvexAuth", () => {
+    const ensureUser = readFileSync(
+      join(webSrc, "providers/EnsureUser.tsx"),
+      "utf8",
+    );
+    const exported = ensureUser.match(
+      /export function EnsureUser\(\) \{[\s\S]*?(?=\nfunction |\nexport )/,
+    );
+    expect(exported?.[0]).toContain("slidesPublicBoot");
+    expect(exported?.[0]).toContain("return null");
+    expect(exported?.[0]).not.toContain("useConvexAuth");
+    expect(ensureUser).toMatch(
+      /function EnsureUserWhenAuth[\s\S]*useConvexAuth/,
+    );
+  });
+
+  it("slides tree does not run useConvexAuth / Authenticated / Unauthenticated", () => {
+    const AUTH_HOOK =
+      /\b(useConvexAuth|Authenticated|Unauthenticated|AuthLoading)\b/;
+    const files = [
+      join(webSrc, "routes/slides.tsx"),
+      ...listTsx(join(webSrc, "routes/_components/slides")),
+    ];
+    for (const file of files) {
+      const src = readFileSync(file, "utf8");
+      expect(src, file).not.toMatch(AUTH_HOOK);
+    }
+  });
 });
+
+function listTsx(dir: string): string[] {
+  const out: string[] = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      out.push(...listTsx(path));
+    } else if (entry.name.endsWith(".ts") || entry.name.endsWith(".tsx")) {
+      out.push(path);
+    }
+  }
+  return out;
+}
