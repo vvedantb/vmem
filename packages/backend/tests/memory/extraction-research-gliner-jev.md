@@ -25,7 +25,7 @@ GLiNER does **not** judge retrieve. Jev does **not** generate fact text. The age
 
 IR numbers after #179 (synthetic embeddings): labelled R@5 **99.7–100%**, nDCG@10 **0.974–0.975**, temporal nDCG **0.780 → 1.000**, all 6 abstentions score **< 0.8**. Tables: `packages/backend/eval/RESULTS.md`.
 
-**Jev API (live key, no waitlist):** `POST https://api.typesafe.ai/v1/systemone` with `Authorization: Bearer $TYPESAFE_API_KEY`, model **`jev-latest`**. `TYPESAFE_API_KEY` is on the engineer box for local spikes. Do not request, print, or embed the key. Cloud-agent spikes need the same name in the **saved Cursor environment / secret store** — never in the PR. Details: §4.2.
+**Jev (product):** AI SDK `experimental_evaluate`, model **`typesafe-ai/jev`**, auth **`AI_GATEWAY_API_KEY`** only. Do not call `api.typesafe.ai` and do not read `TYPESAFE_API_KEY`. Details: §4.
 
 GLiNER hosting is still a write-path decision (sidecar vs API). It does not block the Jev retrieve-judge spike (separate agent). Jev access does not host GLiNER.
 
@@ -167,7 +167,7 @@ Keep regex fallback as the write-path floor (same contract as today’s LLM enri
 
 **Primary:** [Introducing System One Models & Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) (Diogo Almeida, 2026-09-15).  
 **Gateway:** model id **`typesafe-ai/jev`** — [Vercel model page](https://vercel.com/ai-gateway/models/jev), [changelog](https://vercel.com/changelog/typesafe-ai-jev-now-available-on-ai-gateway) (2026-09-16).  
-**Direct API:** `POST https://api.typesafe.ai/v1/systemone`, model `jev-latest` (alias; reported as `jev-1.13.0` on the announcement window).  
+**Product client:** `experimental_evaluate` from `ai`, model `typesafe-ai/jev`. An earlier spike called `POST https://api.typesafe.ai/v1/systemone` with model `jev-latest` (alias; reported as `jev-1.13.0` on the announcement window). That direct path is not used.  
 **SDK:** AI SDK 7 `experimental_evaluate` (`ai@7.0.105+`); `@ai-sdk/typesafe-ai`; Python `typesafe-sdk`.  
 **Jaggedness:** [Jev 1.13](https://docs.typesafe.ai/model-jaggedness/jev-1.13) (reviewed 2026-09-16).
 
@@ -197,34 +197,28 @@ Authorization: Bearer <TYPESAFE_API_KEY>
 Content-Type: application/json
 ```
 
-Body: `{ "state": …, "model": "jev-latest", "questions": { … } }`. Read the bearer from env **`TYPESAFE_API_KEY`**. Never print it.
+Body: `{ "state": …, "model": "jev-latest", "questions": { … } }`. That request is the retired spike. Product code does not send it.
 
 Where the key lives (names only — never print or commit the value):
 
-| Where                           | What to do                                                                                                                                                                                                                                                                                    |
-| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Engineer box (local spikes)** | `TYPESAFE_API_KEY` is already stored. `curl` / `typesafe-sdk` against the official API with no further access step.                                                                                                                                                                           |
-| **Cloud-agent spikes**          | Add `TYPESAFE_API_KEY` to the **saved Cursor environment / secret store**. Do **not** put the value in the PR, this markdown, `.env.example`, or chat. Until that secret is on the environment, live Jev tests must skip (same pattern as unset `AI_GATEWAY_API_KEY` → synthetic embeddings). |
-| **This repo / PR**              | No secrets. Do not request the key. Do not embed it.                                                                                                                                                                                                                                          |
+| Where                           | What to do                                                                                                                  |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| **Engineer box / cloud agents** | `AI_GATEWAY_API_KEY` in the saved environment. Live Jev tests skip when it is unset (same pattern as synthetic embeddings). |
+| **This repo / PR**              | No secrets. Do not request the key. Do not embed it.                                                                        |
 
-Optional SDK mapping: `typesafe-sdk` / `typeSafeAi.evaluationModel('jev-latest')` may expect `TYPESAFE_AI_API_KEY` — alias from `TYPESAFE_API_KEY` in the spike; do not invent a second secret.
+Product Jev is Vercel AI Gateway `typesafe-ai/jev` via `experimental_evaluate`. [vercel-labs/ai-cli](https://github.com/vercel-labs/ai-cli) `ai evaluate` uses the same model id and `AI_GATEWAY_API_KEY`.
 
-**Optional extra**, only if a Gateway key is also present: Vercel AI Gateway `typesafe-ai/jev` via `experimental_evaluate`, and [vercel-labs/ai-cli](https://github.com/vercel-labs/ai-cli) `ai evaluate`. Gateway is **not** required for P0/P1 while `TYPESAFE_API_KEY` is set.
+Env name scripts **read** (never commit values):
 
-Env names a spike may **read** (never commit values):
+| Name                 | Role                                                                           |
+| -------------------- | ------------------------------------------------------------------------------ |
+| `AI_GATEWAY_API_KEY` | **Canonical.** Chat, embeddings, and `typesafe-ai/jev`. Convex deployment env. |
 
-| Name                  | Role                                                                                                                             |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `TYPESAFE_API_KEY`    | **Canonical.** Engineer box now; Cursor environment for cloud agents. Bearer for `POST /v1/systemone`.                           |
-| `TYPESAFE_AI_API_KEY` | `@ai-sdk/typesafe-ai` default. Alias from `TYPESAFE_API_KEY` if needed.                                                          |
-| `AI_GATEWAY_API_KEY`  | Optional. Gateway `typesafe-ai/jev` and `ai evaluate` only.                                                                      |
-| `JEV_API_KEY`         | Optional local alias for `TYPESAFE_API_KEY`. Do not add a Convex dashboard secret under this name unless we later productize it. |
-
-Resolution for scripts: `TYPESAFE_API_KEY` → else `TYPESAFE_AI_API_KEY` → else `JEV_API_KEY`. If none is set, skip the live Jev test. Do not 422 production retrieve if Jev is missing; the heuristic `#179` threshold stays the floor.
+Resolution for scripts: `AI_GATEWAY_API_KEY`. If it is unset, skip the live Jev test. Do not 422 production retrieve if Jev is missing; the heuristic `#179` threshold stays the floor.
 
 Do **not** paste keys into issues, PRs, logs, or this markdown.
 
-Production later (only if the spike wins): set `TYPESAFE_API_KEY` on the Convex deployment the same way as `AI_GATEWAY_API_KEY` (`npx convex env set` / dashboard Environment Variables), not in the repo.
+Production Jev uses the same `AI_GATEWAY_API_KEY` already set for chat and embeddings (`npx convex env set` / dashboard Environment Variables), not a second secret and not in the repo.
 
 ### 4.3 Fit vs current retrieve
 
@@ -256,7 +250,7 @@ Optional later (after the retrieve gate): replace or shadow `factDecision.ts` AD
 - Stdin → `state`; `--boolean` / `--choice` / `--score` or `--questions triage.json`.
 - stdout is the SDK JSON (`answers`, `usage`, `providerMetadata`). Thresholds live in `jq`, not the CLI (`jq -e '.answers.refund.probability >= 0.9'`).
 - `ai models --type evaluation` / `ai models typesafe-ai/jev` for catalog + pricing.
-- Needs **`AI_GATEWAY_API_KEY`**. The engineer box’s `TYPESAFE_API_KEY` does **not** satisfy this CLI. If only `TYPESAFE_API_KEY` is set, iterate questions with TypeSafe’s official API / `typesafe-sdk` instead.
+- Needs **`AI_GATEWAY_API_KEY`**. A leftover `TYPESAFE_API_KEY` does not authenticate this CLI or the product client.
 
 Use whichever path is keyed to freeze instructions + `t` on labelled query/hit pairs **before** wiring a Convex action. Convex retrieve should call the SDK/API directly, not shell out to `ai`.
 
@@ -284,15 +278,15 @@ Use whichever path is keyed to freeze instructions + `t` on labelled query/hit p
 
 **Lock:** GLiNER (write extract) + Jev (retrieve judge) + Agent (consume KB/RAG). Convex remains the store. No graph DB. No second extract on the agent path.
 
-| Layer      | Owns                                                                                                                                                                        | Does not own                                                   |
-| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| **GLiNER** | On write: mentions, typed relations, attributes, records → `memoryEntities` / `memoryLinks` / optional record fields. Regex fallback until the sidecar/API is up.           | Retrieve scoring. User-facing prose.                           |
-| **Jev**    | After `rank.ts`: P(relevant), trap/stale flags, calibrated abstention on top-k. Call `POST https://api.typesafe.ai/v1/systemone` (`jev-latest`, Bearer `TYPESAFE_API_KEY`). | Fact-text generation. Date math (`temporal.ts` stays in code). |
-| **Agent**  | MCP `memory_retrieve` / HTTP / SDK / `vmem://context_prompt`. Cite traces, follow `memoryLinks`.                                                                            | Re-running extract on every turn.                              |
+| Layer      | Owns                                                                                                                                                              | Does not own                                                   |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| **GLiNER** | On write: mentions, typed relations, attributes, records → `memoryEntities` / `memoryLinks` / optional record fields. Regex fallback until the sidecar/API is up. | Retrieve scoring. User-facing prose.                           |
+| **Jev**    | After `rank.ts`: P(relevant), trap/stale flags, calibrated abstention on top-k. `experimental_evaluate` model `typesafe-ai/jev` with `AI_GATEWAY_API_KEY`.        | Fact-text generation. Date math (`temporal.ts` stays in code). |
+| **Agent**  | MCP `memory_retrieve` / HTTP / SDK / `vmem://context_prompt`. Cite traces, follow `memoryLinks`.                                                                  | Re-running extract on every turn.                              |
 
 Implementation can proceed in parallel without changing the vision:
 
-1. **Jev retrieve-judge spike — separate agent, not this PR.** Official API + `TYPESAFE_API_KEY`. Top-20 hits in, keep/drop/abstain out. Skip if the env is unset. Productize only if labelled R@5 stays ≥ Neo4j 92% and the 6 abstentions drop. Keep Context Trace; add `jevRelevant` / `jevConfidence`.
+1. **Jev retrieve-judge.** AI Gateway `typesafe-ai/jev` + `AI_GATEWAY_API_KEY`. Top-20 hits in, rerank out (no noul hard-drop). Skip if the env is unset. Keep Context Trace; `jevRelevant` / `jevConfidence` stay annotations.
 2. **GLiNER write-extract spike.** Offline JointIE vs `extractEntitiesFallback`, then sidecar vs hosted API. Merge with fallback; never 422. OpenRouter `extractFacts.ts` remains until records/rewrite are proven.
 3. **Agent consume.** No new extract. Once Jev gates retrieve, MCP/HTTP/SDK already feed the agent. Optional later: expose entity nodes more clearly on `memory_graph` / related.
 
@@ -300,7 +294,7 @@ Implementation can proceed in parallel without changing the vision:
 
 **Goal:** calibrated relevance / abstention on top of #179.
 
-1. `POST https://api.typesafe.ai/v1/systemone`, model `jev-latest`, Bearer `TYPESAFE_API_KEY`.
+1. `experimental_evaluate`, model `typesafe-ai/jev`, auth `AI_GATEWAY_API_KEY`.
 2. State = `{ query, referenceDate, hits: [{ id, title, content, … }] }`; questions = per-hit `boolean` relevant (+ optional stale / trap).
 3. Calibrate `t` on labelled abstentions + lexical traps. Never print the key. Skip when unset.
 4. Accept: R@5 ≥ 92% **and** all 6 abstentions dropped, no large trap regression. Else keep #179 heuristics.
@@ -327,7 +321,7 @@ Implementation can proceed in parallel without changing the vision:
 - Running GLiNER inside the Convex isolate.
 - New graph database.
 - Agent-side re-extract (the agent consumes the KB).
-- Committing, requesting, printing, or embedding API keys (including in PRs). Cloud-agent Jev needs `TYPESAFE_API_KEY` in the saved Cursor environment, not in git.
+- Committing, requesting, printing, or embedding API keys (including in PRs). Cloud-agent Jev needs `AI_GATEWAY_API_KEY` in the saved Cursor environment, not in git.
 - Blocking retrieve on either model being configured.
 - Implementing the Jev spike in this research PR.
 
@@ -335,9 +329,9 @@ Implementation can proceed in parallel without changing the vision:
 
 ## 7. Spike checklist
 
-**Jev retrieve judge (separate agent; `TYPESAFE_API_KEY` on the engineer box; no waitlist)**
+**Jev retrieve judge (`AI_GATEWAY_API_KEY`)**
 
-- [ ] `POST https://api.typesafe.ai/v1/systemone` with Bearer `TYPESAFE_API_KEY`, model `jev-latest` (do not print the key).
+- [ ] `experimental_evaluate` with model `typesafe-ai/jev` (do not print the key).
 - [ ] Cloud-agent: same env name in the saved Cursor environment; skip live calls if unset. Do not add the value to a PR.
 - [ ] Hand-label ~30 `{query, hit, relevant}` rows (6 abstentions + traps).
 - [ ] Lock `t` in code; skip-when-unset; no secrets in logs.
