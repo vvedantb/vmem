@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   AI_GATEWAY_CHAT_MODEL,
   AI_GATEWAY_EMBEDDING_MODEL,
+  FLEX_GATEWAY_PROVIDER_OPTIONS,
   generateGatewayText,
   type GatewayTextCall,
   type GatewayTextResult,
@@ -26,6 +27,11 @@ describe("AI Gateway SDK client", () => {
     expect(gatewaySource).toContain("embedMany(");
     expect(gatewaySource).toContain(AI_GATEWAY_CHAT_MODEL);
     expect(gatewaySource).toContain(AI_GATEWAY_EMBEDDING_MODEL);
+    expect(gatewaySource).toContain("FLEX_GATEWAY_PROVIDER_OPTIONS");
+    expect(gatewaySource).toContain('serviceTier: "flex"');
+    expect(FLEX_GATEWAY_PROVIDER_OPTIONS).toEqual({
+      gateway: { serviceTier: "flex" },
+    });
     expect(gatewaySource).not.toContain("ai-gateway.vercel.sh");
     expect(gatewaySource).not.toContain("baseURL");
     expect(gatewaySource).not.toContain("Authorization");
