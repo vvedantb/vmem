@@ -35,6 +35,7 @@ import RelatedMemories from "@/components/_components/RelatedMemories";
 import { MemorySourceLabel } from "@/components/_components/MemorySourceLabel";
 import DestructiveConfirmDialog from "@/components/settings/DestructiveConfirmDialog";
 import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
+import { VIEW_TRANSITION_TARGET } from "@/lib/view-transitions";
 
 type PanelTab = "details" | "history" | "connections";
 
@@ -121,7 +122,10 @@ export default function MemoryDetailPanel({
         <div className="mb-3 shrink-0">
           <div className="flex items-start gap-2">
             <div className="min-w-0 flex-1">
-              <h3 className="truncate text-lg font-semibold leading-snug text-foreground">
+              <h3
+                data-vt={VIEW_TRANSITION_TARGET.memoryTitle}
+                className="truncate text-lg font-semibold leading-snug text-foreground"
+              >
                 {memory.title}
               </h3>
               <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">

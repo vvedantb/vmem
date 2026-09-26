@@ -9,6 +9,11 @@
   --modal-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --tabs-dur: 200ms;
   --tabs-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  /* view transitions, mirror motionEase / motionDuration in @vmem/ui */
+  --vt-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --vt-fast: 220ms;
+  --vt-base: 300ms;
+  --vt-distance: 12px;
 
   /* Height of the fixed below-`md` app header in `Sidebar.tsx`, including the
      notch inset (`viewport-fit=cover` in index.html makes it non-zero). Every
@@ -580,5 +585,155 @@
     color: var(--muted);
     pointer-events: none;
     height: 0;
+  }
+}
+
+/*
+ * View transitions — see src/lib/view-transitions.ts.
+ *
+ * Browsers without the View Transitions API or transition types
+ * (`:active-view-transition-type`) never start one, so pages swap instantly
+ * as before. Names are only assigned while a typed transition is running, so
+ * they stay unique and never leak into unrelated transitions.
+ */
+
+/* the page itself stays instant unless a transition type below opts in */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+
+@keyframes vmem-vt-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes vmem-vt-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes vmem-vt-panel-in {
+  from {
+    opacity: 0;
+    transform: translateX(var(--vt-distance));
+  }
+}
+
+@keyframes vmem-vt-panel-out {
+  to {
+    opacity: 0;
+    transform: translateX(var(--vt-distance));
+  }
+}
+
+@keyframes vmem-vt-row-out {
+  to {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+
+/* route change (router `viewTransition`): crossfade the page */
+:root:active-view-transition-type(vmem-route)::view-transition-old(root) {
+  animation: vmem-vt-fade-out var(--vt-fast) var(--vt-ease) both;
+}
+
+:root:active-view-transition-type(vmem-route)::view-transition-new(root) {
+  animation: vmem-vt-fade-in var(--vt-base) var(--vt-ease) both;
+}
+
+/* sidebar and route tabs stay live so their own pill animations (Motion
+   layoutId, tabs slider) play once instead of leaving a fading ghost */
+:root:active-view-transition-type(vmem-route) [data-vt="sidebar"] {
+  view-transition-name: vmem-sidebar;
+}
+
+:root:active-view-transition-type(vmem-route) [data-vt="route-tabs"] {
+  view-transition-name: vmem-route-tabs;
+}
+
+::view-transition-group(vmem-sidebar),
+::view-transition-group(vmem-route-tabs),
+::view-transition-new(vmem-sidebar),
+::view-transition-new(vmem-route-tabs) {
+  animation: none;
+}
+
+::view-transition-old(vmem-sidebar),
+::view-transition-old(vmem-route-tabs) {
+  animation: none;
+  opacity: 0;
+}
+
+/* route tabs that appear or disappear follow the page fade */
+::view-transition-old(vmem-route-tabs):only-child {
+  opacity: 1;
+  animation: vmem-vt-fade-out var(--vt-fast) var(--vt-ease) both;
+}
+
+::view-transition-new(vmem-route-tabs):only-child {
+  animation: vmem-vt-fade-in var(--vt-base) var(--vt-ease) both;
+}
+
+/* memory list ↔ detail: the row title morphs into the panel header */
+:root:active-view-transition-type(vmem-memory-detail) [data-vt="memory-panel"] {
+  view-transition-name: vmem-memory-panel;
+}
+
+:root:active-view-transition-type(vmem-memory-detail) [data-vt="memory-title"] {
+  view-transition-name: vmem-memory-title;
+}
+
+::view-transition-group(vmem-memory-panel),
+::view-transition-old(vmem-memory-panel),
+::view-transition-new(vmem-memory-panel),
+::view-transition-group(vmem-memory-title),
+::view-transition-old(vmem-memory-title),
+::view-transition-new(vmem-memory-title) {
+  animation-duration: var(--vt-base);
+  animation-timing-function: var(--vt-ease);
+}
+
+/* panel is also named by React's <ViewTransition> for preview changes */
+::view-transition-new(vmem-memory-panel):only-child {
+  animation: vmem-vt-panel-in var(--vt-base) var(--vt-ease) both;
+}
+
+::view-transition-old(vmem-memory-panel):only-child {
+  animation: vmem-vt-panel-out var(--vt-fast) var(--vt-ease) both;
+}
+
+/* scale the title with the box height so it grows from row to heading size */
+::view-transition-old(vmem-memory-title),
+::view-transition-new(vmem-memory-title) {
+  height: 100%;
+  width: auto;
+}
+
+/* list removal (React <ViewTransition> exit / update classes) */
+::view-transition-old(.vmem-list-exit):only-child {
+  animation: vmem-vt-row-out var(--vt-fast) var(--vt-ease) both;
+}
+
+::view-transition-group(.vmem-list-move) {
+  animation-duration: var(--vt-base);
+  animation-timing-function: var(--vt-ease);
+}
+
+/* the row's closing action menu would otherwise paint under the moving rows;
+   hide it rather than cancel its animation so Radix still unmounts it */
+:root:active-view-transition-type(vmem-list-remove)
+  [role="menu"][data-state="closed"] {
+  visibility: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
   }
 }

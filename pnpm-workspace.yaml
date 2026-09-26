@@ -26,15 +26,15 @@ catalog:
   "@radix-ui/react-tooltip": ^1.2.8
   "@radix-ui/react-use-controllable-state": ^1.2.2
   "@tabler/icons-react": ^3.35.0
-  "@types/react": ^19
-  "@types/react-dom": ^19
+  "@types/react": ^19.3.0
+  "@types/react-dom": ^19.3.0
   class-variance-authority: ^0.7.1
   clsx: ^2.1.1
   cmdk: ^1.1.1
   convex: ^1.40.0
   convex-helpers: ^0.1.112
-  react: 19.2.0
-  react-dom: 19.2.0
+  react: 19.3.0
+  react-dom: 19.3.0
   shadow-plugin: ^1.2.4
   sonner: ^2.0.3
   tailwind-merge: ^2.6.0

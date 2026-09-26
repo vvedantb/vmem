@@ -8,6 +8,7 @@ import { convex } from "./lib/convex-client";
 import { slidesPublicBoot } from "./lib/slides-public-boot";
 import { AppSkeleton } from "./components/shell/AppSkeleton";
 import { isChunkLoadError } from "./lib/utils/isChunkLoadError";
+import { defaultRouterViewTransition } from "./lib/view-transitions";
 import "./globals.css";
 
 // reload when deploy serves stale chunk hashes
@@ -39,6 +40,7 @@ window.addEventListener("unhandledrejection", (event) => {
 const router = createRouter({
   routeTree,
   context: { isSignedIn: false },
+  defaultViewTransition: defaultRouterViewTransition(),
 });
 
 declare module "@tanstack/react-router" {

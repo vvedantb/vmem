@@ -1,6 +1,7 @@
 import { Link, useMatchRoute, type LinkProps } from "@tanstack/react-router";
 import { Tabs, TabsList, TabsTrigger } from "@vmem/ui";
 import type { ReactNode } from "react";
+import { VIEW_TRANSITION_TARGET } from "@/lib/view-transitions";
 
 interface RouteTabItem {
   value: string;
@@ -32,7 +33,7 @@ export function RouteTabs({
 
   return (
     <Tabs value={activeValue}>
-      <TabsList>
+      <TabsList data-vt={VIEW_TRANSITION_TARGET.routeTabs}>
         {tabs.map((tab) => (
           <TabsTrigger key={tab.value} value={tab.value} asChild>
             <Link

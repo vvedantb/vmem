@@ -14,6 +14,7 @@ interface MemoryVirtuosoListHandlers {
 
 interface MemoryVirtuosoListContext {
   selectedItemId: string | null;
+  transitionSourceId: string | null;
   trailMap: Map<string, TrailEntry>;
   isDark: boolean;
   handlers: MemoryVirtuosoListHandlers;
@@ -22,6 +23,8 @@ interface MemoryVirtuosoListContext {
 interface MemoryVirtuosoListProps {
   entries: MemoryListEntry[];
   selectedItemId: string | null;
+  // row whose title morphs with the detail panel header
+  transitionSourceId?: string | null;
   trailMap: Map<string, TrailEntry>;
   isDark: boolean;
   handlers: MemoryVirtuosoListHandlers;
@@ -44,6 +47,7 @@ function MemoryVirtuosoRow({
         relevanceScore={entry.score}
         trace={entry.trace}
         isSelected={context.selectedItemId === entry.item.id}
+        isTransitionSource={context.transitionSourceId === entry.item.id}
         trailEntry={context.trailMap.get(entry.item.id)}
         isDark={context.isDark}
         onMemoryClick={context.handlers.onMemoryClick}
@@ -66,6 +70,7 @@ function renderMemoryVirtuosoRow(
 export function MemoryVirtuosoList({
   entries,
   selectedItemId,
+  transitionSourceId = null,
   trailMap,
   isDark,
   handlers,
@@ -78,6 +83,7 @@ export function MemoryVirtuosoList({
       className={className}
       context={{
         selectedItemId,
+        transitionSourceId,
         trailMap,
         isDark,
         handlers,

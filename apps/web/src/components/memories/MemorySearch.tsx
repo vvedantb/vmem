@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { startTransition, useState, useEffect, ViewTransition } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAction } from "convex/react";
 import { useQuery } from "@tanstack/react-query";
@@ -21,6 +21,11 @@ import { useThemeContext } from "@/contexts/ThemeContext";
 import { useTrailData } from "@/hooks/useTrailData";
 import { useMemoryListEntries } from "@/hooks/useMemoryListEntries";
 import { useMemoriesSearchParams } from "@/hooks/useMemoriesSearchParams";
+import {
+  MEMORY_PANEL_TRANSITION_NAME,
+  VIEW_TRANSITION_TARGET,
+  memoryDetailViewTransition,
+} from "@/lib/view-transitions";
 
 function MemoryListStatus({
   variant,
@@ -166,6 +171,10 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
     null,
   );
   const [previewItem, setPreviewItem] = useState<ListItem | null>(null);
+  // row whose title morphs into / out of the detail panel header
+  const [transitionSourceId, setTransitionSourceId] = useState<string | null>(
+    null,
+  );
 
   const memoryFromList =
     memoryId === null
@@ -219,29 +228,38 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
 
   function openMemory(id: string) {
     setPreviewItem(null);
+    setTransitionSourceId(id);
     void navigate({
       to: "/$profileId/memories/list/$id",
       params: { profileId: list.activeProfileId, id },
       search: true,
+      viewTransition: memoryDetailViewTransition(),
     });
   }
 
-  function closeMemory() {
+  function closeMemory({ animate = true }: { animate?: boolean } = {}) {
+    setTransitionSourceId(animate ? memoryId : null);
     void navigate({
       to: "/$profileId/memories/list",
       params: { profileId: list.activeProfileId },
       search: true,
+      viewTransition: animate ? memoryDetailViewTransition() : false,
     });
   }
 
   function handleItemSelect(item: ListItem) {
     setPanelAction(null);
     if (previewItem?.id === item.id) {
-      setPreviewItem(null);
+      startTransition(() => setPreviewItem(null));
       return;
     }
-    if (memoryId !== null) closeMemory();
-    setPreviewItem(item);
+    if (memoryId !== null) {
+      // preview replaces the memory synchronously, skip the panel morph
+      closeMemory({ animate: false });
+      setPreviewItem(item);
+      return;
+    }
+    startTransition(() => setPreviewItem(item));
   }
 
   function handleMemoryClick(memory: Memory) {
@@ -321,6 +339,7 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
             <MemoryVirtuosoList
               entries={list.displayItems}
               selectedItemId={selectedItemId}
+              transitionSourceId={memoryId === null ? transitionSourceId : null}
               trailMap={trailMap}
               isDark={isDark}
               onEndReached={handleEndReached}
@@ -340,22 +359,31 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
           </div>
 
           {hasSidePanel ? (
-            <div className="flex h-full min-h-0 w-full flex-col overflow-hidden lg:min-w-0 lg:flex-1">
-              <MemoryListSidePanel
-                previewItem={previewItem}
-                selectedMemory={selectedMemory}
-                memoryId={memoryId}
-                isPanelLoading={isPanelLoading}
-                panelAction={panelAction}
-                onClosePreview={() => setPreviewItem(null)}
-                onCloseMemory={closeMemory}
-                onMemoryDelete={(deletedId) => {
-                  if (memoryId === deletedId) closeMemory();
-                }}
-                onSelectRelated={(memory) => openMemory(memory.id)}
-                onConsumeAction={() => setPanelAction(null)}
-              />
-            </div>
+            // React animates preview changes, the router rule in globals.css
+            // animates memory open/close under the same name
+            <ViewTransition name={MEMORY_PANEL_TRANSITION_NAME}>
+              <div
+                data-vt={VIEW_TRANSITION_TARGET.memoryPanel}
+                className="flex h-full min-h-0 w-full flex-col overflow-hidden lg:min-w-0 lg:flex-1"
+              >
+                <MemoryListSidePanel
+                  previewItem={previewItem}
+                  selectedMemory={selectedMemory}
+                  memoryId={memoryId}
+                  isPanelLoading={isPanelLoading}
+                  panelAction={panelAction}
+                  onClosePreview={() =>
+                    startTransition(() => setPreviewItem(null))
+                  }
+                  onCloseMemory={() => closeMemory()}
+                  onMemoryDelete={(deletedId) => {
+                    if (memoryId === deletedId) closeMemory();
+                  }}
+                  onSelectRelated={(memory) => openMemory(memory.id)}
+                  onConsumeAction={() => setPanelAction(null)}
+                />
+              </div>
+            </ViewTransition>
           ) : null}
         </div>
       </div>
