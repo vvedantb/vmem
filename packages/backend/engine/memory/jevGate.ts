@@ -104,10 +104,31 @@ function choiceConfidence(
   return answer.confidence;
 }
 
-function appendJevReason(reason: string, noul: number | undefined): string {
-  if (noul === undefined) return reason;
-  if (reason.includes("Jev relevant")) return reason;
-  return `${reason}; Jev relevant`;
+export type JevItemScore = {
+  jevRelevant?: number;
+  jevScore?: number;
+  jevBest?: boolean;
+};
+
+/** Short human reason for UI traces. Undefined when Jev said nothing useful. */
+export function jevExplain(
+  score: JevItemScore | undefined,
+): string | undefined {
+  if (score === undefined) return undefined;
+  if (score.jevBest === true) return "Jev top pick";
+  if (score.jevRelevant === undefined) return undefined;
+  return score.jevRelevant >= DEFAULT_JEV_RELEVANCE_THRESHOLD
+    ? "Jev relevant"
+    : "Jev weak match";
+}
+
+export function appendJevExplain(
+  reason: string,
+  score: JevItemScore | undefined,
+): string {
+  const label = jevExplain(score);
+  if (label === undefined || reason.includes(label)) return reason;
+  return reason.length === 0 ? label : `${reason}; ${label}`;
 }
 
 function annotateHit(
@@ -121,7 +142,10 @@ function annotateHit(
     ...hit,
     trace: {
       ...hit.trace,
-      reason: appendJevReason(hit.trace.reason, noul),
+      reason: appendJevExplain(hit.trace.reason, {
+        jevRelevant: noul,
+        jevBest: isBest,
+      }),
       scoreBreakdown: {
         ...hit.trace.scoreBreakdown,
         ...(noul === undefined

@@ -362,7 +362,7 @@ export const memoryToolSpecs = {
     name: "memory_related",
     schema: memoryRelatedSchema,
     description:
-      "List memories related to a given memory by shared tags and similar title or content.",
+      "List memories related to a given memory by shared tags and similar title or content. TypeSafe Jev reorders the top 20 when TYPESAFE_API_KEY is set (fail-open to lexical order; never drops hits).",
     errorLabel: "Related memories failed",
     async run(h, params): Promise<unknown> {
       return withMcpMemoryScope(h.ctx, scopedMemory(h), async (scope) => {
