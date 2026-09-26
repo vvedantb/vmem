@@ -36,6 +36,7 @@ import {
 } from "@/components/sidebar/nav-config";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import { useActiveProfileId } from "@/components/workspace/active-profile";
+import { VIEW_TRANSITION_TARGET } from "@/lib/view-transitions";
 
 type SidebarProps = {
   isCollapsed: boolean;
@@ -197,6 +198,7 @@ export default function Sidebar({
       <motion.aside
         id={mobileMenuId}
         data-sidebar-layout={layout}
+        data-vt={VIEW_TRANSITION_TARGET.sidebar}
         inert={!isDesktopViewport && !mobileMenuOpen}
         onKeyDown={closeOnEscape}
         className={cn(

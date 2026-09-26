@@ -13,6 +13,7 @@ import {
   IconEyeOff,
   IconTrash,
 } from "@tabler/icons-react";
+import { ViewTransition } from "react";
 import { useMutation } from "convex/react";
 import { toast } from "sonner";
 import { api } from "@vmem/backend";
@@ -24,6 +25,7 @@ import { useNotifications } from "@/contexts/NotificationContext";
 import type { NotificationType } from "@/contexts/NotificationContext";
 import { formatRelativeTime } from "@vmem/shared";
 import { tempId } from "@/lib/convex-optimistic";
+import { startListRemoveTransition } from "@/lib/view-transitions";
 
 function getIconBackground(type: NotificationType) {
   switch (type) {
@@ -88,78 +90,87 @@ export function NotificationsPanel() {
   return (
     <div className="flex flex-col gap-1">
       {notifications.map((notification) => (
-        <div
+        // deleted rows fade out, the rest glide into place (globals.css)
+        <ViewTransition
           key={notification._id}
-          className="rounded-lg px-3 py-2.5 transition-[background-color] hover:bg-surface-tertiary/50 sm:px-4 sm:py-3"
+          default="none"
+          exit="vmem-list-exit"
+          update="vmem-list-move"
         >
-          <div className="flex items-start gap-3 sm:gap-4">
-            <div
-              className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg sm:h-10 sm:w-10 sm:rounded-lg ${getIconBackground(
-                notification.type,
-              )}`}
-            >
-              <AnimatedNotificationIcon type={notification.type} size={20} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-start justify-between gap-2 sm:items-center sm:gap-4">
-                <h3
-                  className={cn(
-                    "text-sm font-medium sm:text-base",
-                    notification.read ? "text-muted" : "text-foreground",
-                  )}
-                >
-                  {notification.title}
-                </h3>
-                <span className="flex-shrink-0 text-xs text-muted sm:text-sm tabular-nums">
-                  {formatRelativeTime(notification.createdAt)}
-                </span>
+          <div className="rounded-lg px-3 py-2.5 transition-[background-color] hover:bg-surface-tertiary/50 sm:px-4 sm:py-3">
+            <div className="flex items-start gap-3 sm:gap-4">
+              <div
+                className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg sm:h-10 sm:w-10 sm:rounded-lg ${getIconBackground(
+                  notification.type,
+                )}`}
+              >
+                <AnimatedNotificationIcon type={notification.type} size={20} />
               </div>
-              <p className="mt-1 text-xs text-muted sm:text-sm">
-                {notification.description}
-              </p>
-            </div>
-            <div className="flex items-center gap-1 sm:gap-2">
-              {!notification.read && (
-                <div className="h-2 w-2 flex-shrink-0 rounded-full bg-surface-tertiary" />
-              )}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    className="text-muted hover:text-foreground"
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-2 sm:items-center sm:gap-4">
+                  <h3
+                    className={cn(
+                      "text-sm font-medium sm:text-base",
+                      notification.read ? "text-muted" : "text-foreground",
+                    )}
                   >
-                    <IconDotsVertical size={18} stroke={1.5} />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {notification.read ? (
-                    <DropdownMenuItem
-                      onClick={() => markAsUnread(notification._id)}
+                    {notification.title}
+                  </h3>
+                  <span className="flex-shrink-0 text-xs text-muted sm:text-sm tabular-nums">
+                    {formatRelativeTime(notification.createdAt)}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-muted sm:text-sm">
+                  {notification.description}
+                </p>
+              </div>
+              <div className="flex items-center gap-1 sm:gap-2">
+                {!notification.read && (
+                  <div className="h-2 w-2 flex-shrink-0 rounded-full bg-surface-tertiary" />
+                )}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      className="text-muted hover:text-foreground"
                     >
-                      <IconEyeOff size={16} stroke={1.5} />
-                      Mark as unread
-                    </DropdownMenuItem>
-                  ) : (
+                      <IconDotsVertical size={18} stroke={1.5} />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {notification.read ? (
+                      <DropdownMenuItem
+                        onClick={() => markAsUnread(notification._id)}
+                      >
+                        <IconEyeOff size={16} stroke={1.5} />
+                        Mark as unread
+                      </DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem
+                        onClick={() => markAsRead(notification._id)}
+                      >
+                        <IconEye size={16} stroke={1.5} />
+                        Mark as read
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem
-                      onClick={() => markAsRead(notification._id)}
+                      className="text-danger focus:text-danger data-[highlighted]:text-danger"
+                      onClick={() =>
+                        startListRemoveTransition(() =>
+                          deleteNotification(notification._id),
+                        )
+                      }
                     >
-                      <IconEye size={16} stroke={1.5} />
-                      Mark as read
+                      <IconTrash size={16} stroke={1.5} />
+                      Delete
                     </DropdownMenuItem>
-                  )}
-                  <DropdownMenuItem
-                    className="text-danger focus:text-danger data-[highlighted]:text-danger"
-                    onClick={() => deleteNotification(notification._id)}
-                  >
-                    <IconTrash size={16} stroke={1.5} />
-                    Delete
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
           </div>
-        </div>
+        </ViewTransition>
       ))}
     </div>
   );

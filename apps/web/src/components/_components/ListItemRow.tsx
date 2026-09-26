@@ -22,6 +22,7 @@ import MemoryTraceHover from "./MemoryTraceHover";
 import { MemorySourceIcon } from "./MemorySourceIcon";
 import { nodeColor } from "./graph-colors";
 import ShapeIndicator from "./ShapeIndicator";
+import { VIEW_TRANSITION_TARGET } from "@/lib/view-transitions";
 
 interface ListItemRowProps {
   item: ListItem;
@@ -29,6 +30,8 @@ interface ListItemRowProps {
   // context trace for hybrid search memory hits
   trace?: MemoryTrace;
   isSelected: boolean;
+  // title morphs into / out of the memory detail panel header
+  isTransitionSource?: boolean;
   trailEntry?: TrailEntry;
   isDark: boolean;
   onMemoryClick: (memory: Memory) => void;
@@ -44,6 +47,7 @@ export default function ListItemRow({
   relevanceScore,
   trace,
   isSelected,
+  isTransitionSource = false,
   trailEntry,
   isDark,
   onMemoryClick,
@@ -92,7 +96,12 @@ export default function ListItemRow({
         ) : (
           <KindMeta item={item} isSelected={isSelected} />
         )}
-        <span className="text-sm font-medium text-foreground truncate min-w-0 flex-1">
+        <span
+          data-vt={
+            isTransitionSource ? VIEW_TRANSITION_TARGET.memoryTitle : undefined
+          }
+          className="text-sm font-medium text-foreground truncate min-w-0 flex-1"
+        >
           {item.title}
         </span>
         <div className="flex items-center gap-2 shrink-0">
