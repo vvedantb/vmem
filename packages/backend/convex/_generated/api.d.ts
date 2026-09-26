@@ -76,6 +76,7 @@ import type * as mcp_nodeActions from "../mcp/nodeActions.js";
 import type * as mcp_resources from "../mcp/resources.js";
 import type * as mcp_toolCatalog from "../mcp/toolCatalog.js";
 import type * as mcp_tools from "../mcp/tools.js";
+import type * as mcp_toolsContext from "../mcp/toolsContext.js";
 import type * as mcp_toolsCore from "../mcp/toolsCore.js";
 import type * as mcp_toolsFiles from "../mcp/toolsFiles.js";
 import type * as mcp_toolsMemory from "../mcp/toolsMemory.js";
@@ -202,6 +203,7 @@ declare const fullApi: ApiFromModules<{
   "mcp/resources": typeof mcp_resources;
   "mcp/toolCatalog": typeof mcp_toolCatalog;
   "mcp/tools": typeof mcp_tools;
+  "mcp/toolsContext": typeof mcp_toolsContext;
   "mcp/toolsCore": typeof mcp_toolsCore;
   "mcp/toolsFiles": typeof mcp_toolsFiles;
   "mcp/toolsMemory": typeof mcp_toolsMemory;

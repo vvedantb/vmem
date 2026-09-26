@@ -156,3 +156,19 @@ export async function hasOverlappingPendingProposal(
     sourceIdsOverlap(proposal.sourceMemoryIds, params.sourceMemoryIds),
   );
 }
+
+// source id sets of dream merges the user rejected on this profile
+export async function listRejectedDreamMergeSourceSets(
+  ctx: QueryCtx | MutationCtx,
+  params: { profileId: string },
+): Promise<string[][]> {
+  const rows = await ctx.db
+    .query("proposedUpdates")
+    .withIndex("by_profile_status", (q) =>
+      q.eq("profileId", params.profileId).eq("status", "rejected"),
+    )
+    .collect();
+  return rows
+    .filter((row) => row.kind === "merge" && row.source === "dream-mode")
+    .map((row) => row.sourceMemoryIds);
+}

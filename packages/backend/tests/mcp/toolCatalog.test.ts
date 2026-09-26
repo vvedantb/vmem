@@ -6,6 +6,7 @@ import { memoryToolSpecs } from "../../convex/mcp/toolsMemory";
 import { toolSpecs } from "../../convex/mcp/toolCatalog";
 import {
   catalogNamesForScope,
+  CONTEXT_TOOL_NAMES,
   CORE_TOOL_NAMES,
   FILES_TOOL_NAMES,
   MEMORY_GRAPH_TOOL,
@@ -21,6 +22,7 @@ describe("MCP tool catalog", () => {
     expect(names).toEqual(
       expect.arrayContaining([
         ...CORE_TOOL_NAMES,
+        ...CONTEXT_TOOL_NAMES,
         ...MEMORY_TOOL_NAMES,
         ...SKILLS_TOOL_NAMES,
         ...WIKI_TOOL_NAMES,
@@ -29,6 +31,7 @@ describe("MCP tool catalog", () => {
     );
     expect(names).toHaveLength(
       CORE_TOOL_NAMES.length +
+        CONTEXT_TOOL_NAMES.length +
         MEMORY_TOOL_NAMES.length +
         SKILLS_TOOL_NAMES.length +
         WIKI_TOOL_NAMES.length +
@@ -53,6 +56,8 @@ describe("MCP tool catalog", () => {
     expect(team).toEqual(expect.arrayContaining([...MEMORY_TOOL_NAMES]));
     expect(team).toEqual(expect.arrayContaining([...SKILLS_TOOL_NAMES]));
     expect(team).toContain("ping");
+    expect(personal).toContain("context_pack");
+    expect(team).toContain("context_pack");
     expect(team).toContain(MEMORY_GRAPH_TOOL);
     expect(team).not.toContain("context_prompt_get");
     expect(team.some((name) => name.startsWith("wiki_"))).toBe(false);

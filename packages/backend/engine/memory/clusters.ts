@@ -50,9 +50,26 @@ function clusterScore(group: readonly MemoryWithTags[]): number {
   return pairs === 0 ? 1 : total / pairs;
 }
 
+// Curator feedback: a cluster the user already rejected as a merge stays
+// rejected until a new memory joins it. Checked before the limit so rejected
+// clusters do not starve fresh ones of Dream slots.
+export function isRejectedMerge(
+  memoryIds: readonly string[],
+  rejectedSourceSets: readonly (readonly string[])[],
+): boolean {
+  return rejectedSourceSets.some((rejected) => {
+    const ids = new Set(rejected);
+    return memoryIds.every((id) => ids.has(id));
+  });
+}
+
 export function clusterNearDuplicateMemories(
   memories: readonly MemoryWithTags[],
-  options?: { jaccard?: number; limit?: number },
+  options?: {
+    jaccard?: number;
+    limit?: number;
+    rejectedSourceSets?: readonly (readonly string[])[];
+  },
 ): MemoryCluster[] {
   const threshold = options?.jaccard ?? MERGE_JACCARD;
   const visible = memories.filter((memory) => isVisibleStatus(memory.status));
@@ -82,9 +99,18 @@ export function clusterNearDuplicateMemories(
     else groups.set(root, [memory]);
   }
 
+  const rejected = options?.rejectedSourceSets ?? [];
   const clusters: MemoryCluster[] = [];
   for (const group of groups.values()) {
     if (group.length < 2) continue;
+    if (
+      isRejectedMerge(
+        group.map((memory) => memory.id),
+        rejected,
+      )
+    ) {
+      continue;
+    }
     clusters.push({ memories: group, score: clusterScore(group) });
   }
 
