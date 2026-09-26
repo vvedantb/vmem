@@ -249,8 +249,10 @@ describe("applyJevRetrieveGate", () => {
     expect(gated[0]?.trace.scoreBreakdown.jevScore).toBe(2);
     expect(gated[0]?.trace.scoreBreakdown.jevBest).toBe(true);
     expect(gated[0]?.trace.scoreBreakdown.fulltext).toBe(0.9);
-    expect(gated[0]?.trace.reason).toContain("Jev relevant");
+    expect(gated[0]?.trace.reason).toContain("Jev top pick");
     expect(gated[1]?.trace.scoreBreakdown.jevRelevant).toBe(0.12);
+    expect(gated[1]?.trace.reason).toContain("Jev weak match");
+    expect(gated[1]?.trace.reason).not.toContain("Jev relevant");
     expect(gated[1]?.trace.scoreBreakdown.jevScore).toBe(0);
     expect(gated[1]?.id).toBe("mem_coffee");
   });

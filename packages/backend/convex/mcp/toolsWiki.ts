@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { internal } from "../_generated/api";
+import { jevRankItems } from "../../engine/memory/jevRank";
+import { resolveSystemOneApiKey } from "../lib/systemOneKey";
 import {
   createWiki,
   toWikiGetResult,
@@ -106,7 +108,7 @@ export const wikiToolSpecs = {
     name: "wiki_search",
     schema: wikiSearchSchema,
     description:
-      "Full-text search wiki titles and document/artifact bodies. Returns id, title, kind, and excerpt.",
+      "Full-text search wiki titles and document/artifact bodies. Returns id, title, kind, and excerpt. TypeSafe Jev reorders the top 20 when TYPESAFE_API_KEY is set (fail-open to full-text order; never drops hits).",
     errorLabel: "Wiki search failed",
     scopes: ["personal"],
     async run(h, params): Promise<unknown> {
@@ -114,7 +116,19 @@ export const wikiToolSpecs = {
         clerkId: h.clerkUserId,
         queryText: params.query,
       });
-      return rows.map(toWikiSearchItem);
+      const ranked = await jevRankItems({
+        query: params.query,
+        items: rows.map(toWikiSearchItem),
+        toItem: (item) => ({
+          id: item.id,
+          title: item.title,
+          content: item.excerpt,
+        }),
+        subject: "wiki page",
+        task: "wiki-search",
+        apiKey: resolveSystemOneApiKey(),
+      });
+      return ranked.items;
     },
   }),
   wiki_create: toolSpec({

@@ -28,6 +28,7 @@ import { buildSearchableText } from "../engine/memory/searchableText";
 import { parseReferenceMs } from "../engine/memory/temporal";
 import { OpenRouterRequiredError } from "../engine/memory/openRouterRequired";
 import { relatedMemories } from "../engine/memory/rank";
+import { jevRankRelatedMemories } from "../engine/memory/jevRank";
 import {
   retrieveMemoriesFromPool,
   summarizeRetrievedMemories,
@@ -674,6 +675,25 @@ async function vectorScoresForQuery(
   return { memories, scores };
 }
 
+/** Lexical related pool, then Jev rerank of the head (fail-open, no drop). */
+async function rankRelatedMemories(
+  seed: MemoryWithTags,
+  pool: readonly MemoryWithTags[],
+  limit: number,
+): Promise<Array<{ memory: MemoryWithTags; reason: string }>> {
+  const apiKey = resolveSystemOneApiKey();
+  return jevRankRelatedMemories({
+    seed,
+    hits: relatedMemories(
+      seed,
+      pool,
+      jevRankPoolLimit(limit, apiKey !== undefined),
+    ),
+    limit,
+    apiKey,
+  });
+}
+
 export async function relatedMemoriesForClerk(
   ctx: Pick<ActionCtx, "runQuery" | "runMutation">,
   args: {
@@ -691,12 +711,7 @@ export async function relatedMemoriesForClerk(
     limit: RETRIEVE_RECENT_CAP,
     offset: 0,
   });
-  return relatedMemories(seed, listed.memories, args.limit ?? 10).map(
-    (hit) => ({
-      memory: hit.memory,
-      reason: hit.reason,
-    }),
-  );
+  return rankRelatedMemories(seed, listed.memories, args.limit ?? 10);
 }
 
 export async function relatedMemoriesForTeamProfile(
@@ -713,12 +728,7 @@ export async function relatedMemoriesForTeamProfile(
     limit: RETRIEVE_RECENT_CAP,
     offset: 0,
   });
-  return relatedMemories(seed, listed.memories, args.limit ?? 10).map(
-    (hit) => ({
-      memory: hit.memory,
-      reason: hit.reason,
-    }),
-  );
+  return rankRelatedMemories(seed, listed.memories, args.limit ?? 10);
 }
 
 async function instructionWriteScope(
