@@ -3,6 +3,7 @@ import { authAction, requireClerkId } from "./auth";
 import {
   internalAction,
   internalMutation,
+  internalQuery,
   type ActionCtx,
 } from "./_generated/server";
 import { internal } from "./_generated/api";
@@ -25,6 +26,7 @@ import { collectScopedMemories } from "./memoryStore/helpers";
 import {
   hasOverlappingPendingProposal,
   insertProposedUpdate,
+  listRejectedDreamMergeSourceSets,
 } from "./proposedUpdateStore";
 import { resolveProposedUpdate } from "./proposedUpdateApi";
 import type { MemoryWithTags } from "@vmem/sdk";
@@ -207,6 +209,9 @@ export const runDreamPassInternal = internalMutation({
 
     const clusters = clusterNearDuplicateMemories(visible, {
       limit: args.maxClusters ?? DEFAULT_MERGE_CLUSTERS,
+      rejectedSourceSets: await listRejectedDreamMergeSourceSets(ctx, {
+        profileId: args.profileId,
+      }),
     });
     const result = emptyDreamResult("ok");
     result.clustersScanned = clusters.length;
@@ -248,6 +253,13 @@ export const runDreamPassInternal = internalMutation({
   },
 });
 
+export const listRejectedMergeSourceSetsInternal = internalQuery({
+  args: { profileId: v.string() },
+  returns: v.array(v.array(v.string())),
+  handler: async (ctx, args): Promise<string[][]> =>
+    listRejectedDreamMergeSourceSets(ctx, { profileId: args.profileId }),
+});
+
 async function runDreamPassForProfile(
   ctx: ActionCtx,
   args: {
@@ -275,8 +287,13 @@ async function runDreamPassForProfile(
   const visible = memories.filter((memory) => isVisibleStatus(memory.status));
   if (visible.length === 0) return emptyDreamResult("no-recent-memories");
 
+  const rejectedSourceSets = await ctx.runQuery(
+    internal.dreamMode.listRejectedMergeSourceSetsInternal,
+    { profileId: args.profileId },
+  );
   const clusters = clusterNearDuplicateMemories(visible, {
     limit: DEFAULT_MERGE_CLUSTERS,
+    rejectedSourceSets,
   });
   const clusterDecisions = await judgeDreamMergeClusters({
     clusters: clusters.map((cluster) => ({

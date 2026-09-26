@@ -3,6 +3,8 @@ import type { McpScope } from "../../convex/profiles/mcpAccess";
 
 export const MEMORY_GRAPH_TOOL = "memory_graph";
 
+export const CONTEXT_TOOL_NAMES = ["context_pack"] as const;
+
 export const MEMORY_TOOL_NAMES = [
   "memory_search",
   "memory_retrieve",

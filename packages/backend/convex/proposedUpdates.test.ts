@@ -147,6 +147,56 @@ describe("proposed updates and dream merge", () => {
     ]);
   });
 
+  it("does not re-propose or auto-accept a merge the user rejected", async () => {
+    const t = convexTest(schema, modules);
+    await seedNearDup(t);
+    await t.mutation(internal.dreamMode.runDreamPassInternal, {
+      clerkId: USER,
+      profileId: PROFILE,
+      kind: "personal",
+      autoAccept: false,
+    });
+    const pending = await t.query(
+      internal.proposedUpdateApi.listPendingInternal,
+      { userId: USER, profileId: PROFILE },
+    );
+    const merge = pending.find((proposal) => proposal.kind === "merge");
+    expect(merge).toBeDefined();
+    if (merge === undefined) return;
+    await t.mutation(internal.proposedUpdateApi.resolveInternal, {
+      clerkId: USER,
+      proposalId: merge.id,
+      action: "reject",
+    });
+
+    const rejectedSets = await t.query(
+      internal.dreamMode.listRejectedMergeSourceSetsInternal,
+      { profileId: PROFILE },
+    );
+    expect(rejectedSets.map((ids) => [...ids].sort())).toEqual([
+      ["dup_a", "dup_b"],
+    ]);
+
+    const rerun = await t.mutation(internal.dreamMode.runDreamPassInternal, {
+      clerkId: USER,
+      profileId: PROFILE,
+      kind: "personal",
+      autoAccept: true,
+    });
+    expect(rerun.clustersScanned).toBe(0);
+    expect(rerun.proposalsCreated).toBe(0);
+    expect(rerun.memoriesMaterialized).toBe(0);
+
+    const listed = await t.query(
+      internal.memoryStore.functions.listMemoriesInternal,
+      { userId: USER, profileId: PROFILE, limit: 20, offset: 0 },
+    );
+    expect(listed.memories.map((memory) => memory.id).sort()).toEqual([
+      "dup_a",
+      "dup_b",
+    ]);
+  });
+
   it("still creates a proposal when Jev merge noul is low", async () => {
     const t = convexTest(schema, modules);
     await seedNearDup(t);

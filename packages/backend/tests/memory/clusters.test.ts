@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { MemoryWithTags } from "@vmem/sdk";
 import {
   clusterNearDuplicateMemories,
+  isRejectedMerge,
   pickClusterKeeper,
 } from "../../engine/memory/clusters";
 
@@ -74,6 +75,44 @@ describe("clusterNearDuplicateMemories", () => {
       status: "suppressed",
     });
     expect(clusterNearDuplicateMemories([a, hidden])).toEqual([]);
+  });
+
+  it("skips clusters the user already rejected before applying the limit", () => {
+    const a = memory({ id: "a", title: "Use pnpm", content: "Use pnpm" });
+    const b = memory({ id: "b", title: "Use pnpm", content: "Use pnpm" });
+    const c = memory({ id: "c", title: "Lives in London", content: "London" });
+    const d = memory({ id: "d", title: "Lives in London", content: "London" });
+    const clusters = clusterNearDuplicateMemories([a, b, c, d], {
+      limit: 1,
+      rejectedSourceSets: [["b", "a"]],
+    });
+    expect(clusters).toHaveLength(1);
+    expect(clusters[0]?.memories.map((row) => row.id).sort()).toEqual([
+      "c",
+      "d",
+    ]);
+  });
+
+  it("re-proposes a rejected cluster once a new memory joins it", () => {
+    const a = memory({ id: "a", title: "Use pnpm", content: "Use pnpm" });
+    const b = memory({ id: "b", title: "Use pnpm", content: "Use pnpm" });
+    const fresh = memory({ id: "e", title: "Use pnpm", content: "Use pnpm" });
+    const clusters = clusterNearDuplicateMemories([a, b, fresh], {
+      rejectedSourceSets: [["a", "b"]],
+    });
+    expect(clusters[0]?.memories.map((row) => row.id).sort()).toEqual([
+      "a",
+      "b",
+      "e",
+    ]);
+  });
+});
+
+describe("isRejectedMerge", () => {
+  it("matches when every id sits inside one rejected set", () => {
+    expect(isRejectedMerge(["a", "b"], [["a", "b", "c"]])).toBe(true);
+    expect(isRejectedMerge(["a", "b"], [["a"], ["b"]])).toBe(false);
+    expect(isRejectedMerge(["a", "b"], [])).toBe(false);
   });
 });
 

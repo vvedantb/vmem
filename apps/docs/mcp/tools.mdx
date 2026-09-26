@@ -57,6 +57,35 @@ Personal connector only. Returns the same markdown as `vmem://context_prompt` (a
 
 ---
 
+## context_pack
+
+One call at task start. Returns a markdown pack with the memories that best fit the task, the best-fit skills, and the user profile. Works on `/mcp` and `/mcp/team`; the profile section is personal-only.
+
+Sections fill in priority order until `maxChars`: relevant memories (same retrieve and Jev rerank as `memory_retrieve`), suggested skills (same as `skills_recommend`), then the profile from `context_prompt_get` without its skills index. The top memory is always included. If the skills or profile lookup fails, that section is left out and the pack still returns.
+
+<ParamField body="task" type="string" required>
+  The user's current task or question
+</ParamField>
+<ParamField body="profileId" type="string">
+  Profile to pack memories from (defaults to active profile)
+</ParamField>
+<ParamField body="memoryLimit" type="number">
+  Max memories, 1–20 (default 8)
+</ParamField>
+<ParamField body="skillLimit" type="number">
+  Max suggested skills, 0–8 (default 3; 0 skips skills)
+</ParamField>
+<ParamField body="maxChars" type="number">
+  Character budget, 1000–32000 (default 8000)
+</ParamField>
+<ParamField body="referenceDate" type="string">
+  ISO date used as “now” for temporal scoring
+</ParamField>
+
+**Returns:** `{ markdown, memoryIds, skillNames, includesProfile, truncated, skillSource }`. `truncated` is `true` when the budget cut a memory, skill, or the profile. `skillSource` is `jev`, `lexical`, or `null` when skills were skipped.
+
+---
+
 ## memory_search
 
 Search memories by query text, type, tags, or source.
