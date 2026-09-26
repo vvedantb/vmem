@@ -88,7 +88,7 @@ async function runVmemRows(
           status: "missing",
           name: JEV_NAME,
           reason:
-            "TODO: TYPESAFE_API_KEY (rerank-only after #187; do not copy pre-#187 hard-drop 84.6% R@5)",
+            "TODO: AI_GATEWAY_API_KEY (rerank-only after #187; do not copy pre-#187 hard-drop 84.6% R@5)",
         });
       }
       continue;
@@ -100,7 +100,7 @@ async function runVmemRows(
       notes:
         name === HYBRID_NAME
           ? `local harness · ${embeddingMode()} embeddings · judge off`
-          : "live System One jev-latest · rerank only (no noul hard-drop)",
+          : "AI Gateway typesafe-ai/jev · rerank only (no noul hard-drop)",
     });
   }
   return rows;

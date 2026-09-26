@@ -77,7 +77,7 @@ function noulForIndex(
 function scoreForIndex(
   answers: SystemOneResponse["answers"],
   index: number,
-): { score: number; confidence: number } | undefined {
+): { score: number; confidence?: number } | undefined {
   const answer = answers[scoreKey(index)];
   if (answer === undefined || answer.type !== "score") return undefined;
   return { score: answer.score, confidence: answer.confidence };
@@ -134,7 +134,7 @@ export function appendJevExplain(
 function annotateHit(
   hit: MemoryCandidate,
   noul: number | undefined,
-  jevScore: { score: number; confidence: number } | undefined,
+  jevScore: { score: number } | undefined,
   isBest: boolean,
   bestConfidence: number | undefined,
 ): MemoryCandidate {
@@ -310,6 +310,7 @@ export async function applyJevRetrieveGate(args: {
       apiKey: args.apiKey,
       state: buildJevRetrieveState(args.query, head, args.referenceDate),
       questions: buildJevRetrieveQuestions(head),
+      tag: "retrieve",
     });
     return applyAnswers(args.hits, response).slice(0, Math.max(0, limit));
   } catch {

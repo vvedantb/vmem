@@ -124,7 +124,7 @@ describe("MCP memory tool surfaces", () => {
     ).toBe(true);
     expect("judge" in memoryToolSpecs.memory_retrieve.schema.shape).toBe(false);
     expect(memoryToolSpecs.memory_retrieve.description).toContain(
-      "TYPESAFE_API_KEY",
+      "AI_GATEWAY_API_KEY",
     );
     expect(memoryToolSpecs.memory_retrieve.description).not.toContain(
       'judge: "off"',

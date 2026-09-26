@@ -4,13 +4,13 @@ Generated: 2026-09-17 · Corpus: 493 memories · Answerable: 81 · Abstention: 6
 
 Main result is **default (Jev on)** — the always-on retrieve path. Hybrid-only is the control (`judge: "off"`).
 
-Re-run (needs `TYPESAFE_API_KEY`):
+Re-run (needs `AI_GATEWAY_API_KEY`):
 
 ```bash
 EVAL_JEV=1 pnpm --filter @vmem/backend eval:jev
 ```
 
-CI `eval:bench` / `pnpm test` stay hybrid-only. `EVAL_JEV=1` without a TypeSafe key fails closed (no mock numbers).
+CI `eval:bench` / `pnpm test` stay hybrid-only. `EVAL_JEV=1` without `AI_GATEWAY_API_KEY` fails closed (no mock numbers).
 
 ## Side-by-side
 
@@ -102,9 +102,9 @@ CI `eval:bench` / `pnpm test` stay hybrid-only. `EVAL_JEV=1` without a TypeSafe 
 ## Notes / caveats
 
 - Same labelled harness as `eval:bench` (`packages/backend/eval/*`). Not the synthetic `tests/memory/benchmark/retrieve.bench.test.ts` toy.
-- Product retrieve is default-on when `TYPESAFE_API_KEY` is set (PR #183). Eval disables with harness-only `judge: "off"`.
+- Product retrieve is default-on when `AI_GATEWAY_API_KEY` is set (PR #183). Eval disables with harness-only `judge: "off"`.
 - Default-on over-fetches 20 hits, Jev judges that head, eval slices to k=10. Threshold **0.5** keeps near-ties; live smoke gold was 0.66 and traps 0.03.
 - Jev is weak at date math — temporal windows still come from `temporal.ts`.
-- Missing `TYPESAFE_API_KEY` on retrieve in prod fail-opens to hybrid. This labelled comparison **requires** a live key.
+- Missing `AI_GATEWAY_API_KEY` on retrieve in prod fail-opens to hybrid. This labelled comparison **requires** a live key.
 - Embeddings are synthetic unless `AI_GATEWAY_API_KEY` is set. Jev judges title/content, so the embedder only changes the hybrid head it sees.
 - Token usage is whatever System One returned; dollar cost is not inferred.

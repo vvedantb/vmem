@@ -147,7 +147,7 @@ describe("labelled eval retrieve Jev wiring", () => {
 });
 
 describe.skipIf(!evalJevEnabled())(
-  "labelled default (Jev on) vs hybrid-only (live System One)",
+  "labelled default (Jev on) vs hybrid-only (live AI Gateway Jev)",
   () => {
     it("reports side-by-side IR metrics from real Jev calls", async () => {
       const { hybrid, gated, report } = await runJevGateComparison();

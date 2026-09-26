@@ -107,7 +107,7 @@ curl -X POST "https://<deployment>.convex.site/api/v1/memories/retrieve" \
 | `summarize`     | boolean            | no — joins ranked titles (no LLM)                                                      |
 | `threshold`     | number             | no — drop hits below this hybrid score                                                 |
 | `rerank`        | boolean or `"jev"` | no — `true` = local top-20 extra (skipped when Jev runs); `"jev"` is an accepted no-op |
-| `judge`         | `"jev"` or `"off"` | no — Jev is on when `TYPESAFE_API_KEY` is set; `"off"` skips it for ablation           |
+| `judge`         | `"jev"` or `"off"` | no — Jev is on when `AI_GATEWAY_API_KEY` is set; `"off"` skips it for ablation         |
 | `referenceDate` | string             | no — ISO date for temporal scoring                                                     |
 
 **Returns:**
@@ -120,7 +120,7 @@ curl -X POST "https://<deployment>.convex.site/api/v1/memories/retrieve" \
 }
 ```
 
-Jev runs automatically when `TYPESAFE_API_KEY` is set. Omit the flag, or leave the key unset, and retrieve stays on the hybrid ranker (no 422). Pass `judge: "off"` to skip Jev for ablation.
+Jev runs automatically when `AI_GATEWAY_API_KEY` is set. Omit the flag, or leave the key unset, and retrieve stays on the hybrid ranker (no 422). Pass `judge: "off"` to skip Jev for ablation.
 
 ---
 

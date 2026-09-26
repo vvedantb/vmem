@@ -79,7 +79,7 @@ const result = await vmem.search("What stack do I use?", {
 
 When `summarize: true`, the response includes a `summary` field that joins ranked titles (no LLM, no 422).
 
-TypeSafe Jev runs on the top 20 hits when the Convex deployment has `TYPESAFE_API_KEY`. Without the key, search stays on the hybrid ranker. Pass `judge: "off"` to skip Jev.
+Jev runs on the top 20 hits when the Convex deployment has `AI_GATEWAY_API_KEY`. Without the key, search stays on the hybrid ranker. Pass `judge: "off"` to skip Jev.
 
 ## Errors
 

@@ -231,7 +231,7 @@ export function buildLocomoIrReport(args: {
   const judge = args.judge ?? DEFAULT_LOCOMO_IR_JUDGE;
   const jevNote =
     judge === "jev"
-      ? " Optional TypeSafe Jev (`LOCOMO_IR_JUDGE=jev`) reranks the hybrid head before IR metrics (same as prod retrieve). Missing `TYPESAFE_API_KEY` or Jev HTTP failure fail-opens to hybrid. Gold `dia_id` scoring stays deterministic (no MemScore / LLM answer judge)."
+      ? " Optional Jev (`LOCOMO_IR_JUDGE=jev`) reranks the hybrid head before IR metrics (same as prod retrieve, via AI Gateway `typesafe-ai/jev`). Missing `AI_GATEWAY_API_KEY` or a Jev error fail-opens to hybrid. Gold `dia_id` scoring stays deterministic (no MemScore / LLM answer judge)."
       : " Retrieve judge is off (`LOCOMO_IR_JUDGE=off`, default). No OpenAI, Mem0, SuperMemory, or answer-judge calls.";
 
   return `# vmem LoCoMo-IR (labelled retrieval)
@@ -258,7 +258,7 @@ ${skippedLines}
 
 - One episodic memory per dialog turn. Gold titles are \`{sample_id}/{dia_id}\`.
 - Default smoke: \`-l\` / \`LOCOMO_IR_LIMIT\` (default 8) on the first conversation haystack. Full 1986-Q: \`LOCOMO_IR_LIMIT=all\`.
-- Retrieve judge: \`LOCOMO_IR_JUDGE=off|jev\` (default \`off\`). \`jev\` needs \`TYPESAFE_API_KEY\` to actually rerank; fail-open matches prod.
+- Retrieve judge: \`LOCOMO_IR_JUDGE=off|jev\` (default \`off\`). \`jev\` needs \`AI_GATEWAY_API_KEY\` to actually rerank; fail-open matches prod.
 - Category IDs follow LoCoMo \`evaluation.py\` (1 multi-hop, 2 temporal, 3 world-knowledge, 4 single-hop, 5 adversarial), not MemoryBench's swapped map.
 `;
 }

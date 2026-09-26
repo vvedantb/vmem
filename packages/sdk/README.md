@@ -54,16 +54,16 @@ const vmem = new VMemory({
 
 ## API
 
-| Method                    | Description                                                                                                                                                              |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `save(instruction)`       | Requires `AI_GATEWAY_API_KEY`; 422 `openrouter_required` without it                                                                                                      |
-| `update(instruction)`     | Same AI Gateway gate as `save()`                                                                                                                                         |
-| `search(query, options?)` | Hybrid retrieve; `type`/`tags`/`status` filters; `summarize: true` joins titles; Jev rerank when the deployment has `TYPESAFE_API_KEY` (`judge: "off"` is ablation-only) |
-| `createMemory(body)`      | Structured create (escape hatch)                                                                                                                                         |
-| `patchMemory(body)`       | Structured update by `id`                                                                                                                                                |
-| `deleteMemory(body)`      | Structured delete by `id`                                                                                                                                                |
-| `searchMemories(body)`    | Structured search                                                                                                                                                        |
-| `health()`                | `GET /health` (unauthenticated liveness check)                                                                                                                           |
+| Method                    | Description                                                                                                                                                                |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `save(instruction)`       | Requires `AI_GATEWAY_API_KEY`; 422 `openrouter_required` without it                                                                                                        |
+| `update(instruction)`     | Same AI Gateway gate as `save()`                                                                                                                                           |
+| `search(query, options?)` | Hybrid retrieve; `type`/`tags`/`status` filters; `summarize: true` joins titles; Jev rerank when the deployment has `AI_GATEWAY_API_KEY` (`judge: "off"` is ablation-only) |
+| `createMemory(body)`      | Structured create (escape hatch)                                                                                                                                           |
+| `patchMemory(body)`       | Structured update by `id`                                                                                                                                                  |
+| `deleteMemory(body)`      | Structured delete by `id`                                                                                                                                                  |
+| `searchMemories(body)`    | Structured search                                                                                                                                                          |
+| `health()`                | `GET /health` (unauthenticated liveness check)                                                                                                                             |
 
 ## Errors
 
