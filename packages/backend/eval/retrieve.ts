@@ -30,7 +30,7 @@ import type {
 export const EVAL_K = 10;
 
 export const EVAL_JEV_KEY_REQUIRED =
-  "EVAL_JEV requires TYPESAFE_API_KEY (or TYPESAFE_AI_API_KEY / JEV_API_KEY). Mocking System One is not valid for labelled Jev numbers.";
+  "EVAL_JEV requires AI_GATEWAY_API_KEY. Mocking Jev is not valid for labelled Jev numbers.";
 
 export function evalJevEnabled(
   env: Record<string, string | undefined> = process.env,

@@ -1077,17 +1077,17 @@ function buildJevGateReport(args: {
 
   return `# vmem labelled retrieve: default (Jev on) vs hybrid-only
 
-Generated: ${today} · Corpus: ${String(args.stats.memoryCount)} memories · Answerable: ${String(args.answerable.length)} · Abstention: ${String(args.abstention.length)} · Embeddings: ${embeddingMode()} · Jev: live System One \`jev-latest\` · Rerank only (no noul hard-drop; diagnostic floor ${String(DEFAULT_JEV_RELEVANCE_THRESHOLD)})
+Generated: ${today} · Corpus: ${String(args.stats.memoryCount)} memories · Answerable: ${String(args.answerable.length)} · Abstention: ${String(args.abstention.length)} · Embeddings: ${embeddingMode()} · Jev: AI Gateway \`typesafe-ai/jev\` · Rerank only (no noul hard-drop; diagnostic floor ${String(DEFAULT_JEV_RELEVANCE_THRESHOLD)})
 
 Main result is **default (Jev on)** — the always-on retrieve path. Hybrid-only is the control (\`judge: "off"\`).
 
-Re-run (needs \`TYPESAFE_API_KEY\`):
+Re-run (needs \`AI_GATEWAY_API_KEY\`):
 
 \`\`\`bash
 EVAL_JEV=1 pnpm --filter @vmem/backend eval:jev
 \`\`\`
 
-CI \`eval:bench\` / \`pnpm test\` stay hybrid-only. \`EVAL_JEV=1\` without a TypeSafe key fails closed (no mock numbers).
+CI \`eval:bench\` / \`pnpm test\` stay hybrid-only. \`EVAL_JEV=1\` without \`AI_GATEWAY_API_KEY\` fails closed (no mock numbers).
 
 ## Side-by-side
 
@@ -1134,10 +1134,10 @@ ${dropLines}
 ## Notes / caveats
 
 - Same labelled harness as \`eval:bench\` (\`packages/backend/eval/*\`). Not the synthetic \`tests/memory/benchmark/retrieve.bench.test.ts\` toy.
-- Product retrieve is default-on when \`TYPESAFE_API_KEY\` is set (PR #183). Eval disables with harness-only \`judge: "off"\`.
+- Product retrieve is default-on when \`AI_GATEWAY_API_KEY\` is set (PR #183). Eval disables with harness-only \`judge: "off"\`.
 - Default-on over-fetches 20 hits, Jev annotates and reranks that head, eval slices to k=10. noul **0.5** is diagnostic only (live smoke gold 0.66 vs traps 0.03); low-noul hits stay in the list.
 - Jev is weak at date math — temporal windows still come from \`temporal.ts\`.
-- Missing \`TYPESAFE_API_KEY\` on retrieve in prod fail-opens to hybrid. This labelled comparison **requires** a live key.
+- Missing \`AI_GATEWAY_API_KEY\` on retrieve in prod fail-opens to hybrid. This labelled comparison **requires** a live key.
 - Embeddings are synthetic unless \`AI_GATEWAY_API_KEY\` is set. Jev judges title/content, so the embedder only changes the hybrid head it sees.
 - Token usage is whatever System One returned; dollar cost is not inferred.
 `;

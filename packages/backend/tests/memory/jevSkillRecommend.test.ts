@@ -77,7 +77,7 @@ describe("lexicalSkillScore", () => {
 });
 
 describe("recommendSkills fail-open", () => {
-  it("returns lexical ranking when the TypeSafe key is missing", async () => {
+  it("returns lexical ranking when the gateway key is missing", async () => {
     const result = await recommendSkills({
       query: "write a wiki explainer to read later",
       skills: [deploy, wiki, teach],

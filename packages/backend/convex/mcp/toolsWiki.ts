@@ -108,7 +108,7 @@ export const wikiToolSpecs = {
     name: "wiki_search",
     schema: wikiSearchSchema,
     description:
-      "Full-text search wiki titles and document/artifact bodies. Returns id, title, kind, and excerpt. TypeSafe Jev reorders the top 20 when TYPESAFE_API_KEY is set (fail-open to full-text order; never drops hits).",
+      "Full-text search wiki titles and document/artifact bodies. Returns id, title, kind, and excerpt. Jev reorders the top 20 when AI_GATEWAY_API_KEY is set (fail-open to full-text order; never drops hits).",
     errorLabel: "Wiki search failed",
     scopes: ["personal"],
     async run(h, params): Promise<unknown> {

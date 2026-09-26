@@ -213,6 +213,7 @@ export async function applyJevMergeGate(args: {
       apiKey: args.apiKey,
       state: buildJevMergeState(args.memories, args.heuristicKeeperId),
       questions: buildJevMergeQuestions(args.memories),
+      tag: "dream-merge",
     });
     return applyMergeAnswers(
       args.memories,

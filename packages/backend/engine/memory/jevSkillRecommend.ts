@@ -220,6 +220,7 @@ export async function recommendSkills(args: {
         })),
       },
       questions: buildJevSkillQuestions(head),
+      tag: "skills",
     });
     return {
       query: args.query,

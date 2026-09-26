@@ -25,7 +25,7 @@ Skills appear in the **Available Skills** section of the `vmem://context_prompt`
 | Tool               | Description                                                                                                         |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------- |
 | `skills_list`      | List enabled skills granted to this connector (name + description only)                                             |
-| `skills_recommend` | Shortlist skills for a task/query via TypeSafe Jev (fail-open to lexical match if the key is missing)               |
+| `skills_recommend` | Shortlist skills for a task/query via Jev on the AI Gateway (fail-open to lexical match if the key is missing)      |
 | `skills_get`       | Fetch a single skill by exact name, including full markdown instructions                                            |
 | `skills_create`    | Create a skill when a repeatable problem or automatable workflow was identified and no existing skill covers it yet |
 | `skills_update`    | Update an existing skill when its playbook should change (refinement, rename, disable)                              |

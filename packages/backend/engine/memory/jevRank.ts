@@ -161,6 +161,7 @@ export async function jevRankItems<T>(args: {
         })),
       },
       questions: buildJevRankQuestions(described, args.subject),
+      tag: args.task,
     });
   } catch {
     return original;
