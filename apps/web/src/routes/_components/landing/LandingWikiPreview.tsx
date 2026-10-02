@@ -49,7 +49,7 @@ export function LandingWikiPreview() {
             <p className="mb-3 text-xs text-muted">
               Final year project / {active.title}
             </p>
-            <h3 className="text-[1.875rem] leading-tight text-foreground text-balance">
+            <h3 className="text-[1.875rem] font-semibold leading-tight tracking-tight text-foreground text-balance">
               {active.heading}
             </h3>
             <div className="mt-5 space-y-4">

@@ -19,7 +19,7 @@ const Breadcrumb = React.forwardRef<
       ref={ref}
       aria-label="breadcrumb"
       className={cn(
-        "flex min-w-0 items-center gap-1.5 text-2xl leading-tight",
+        "flex min-w-0 items-center gap-1.5 text-xl font-semibold leading-tight tracking-tight",
         className,
       )}
       {...props}
@@ -35,9 +35,10 @@ const Breadcrumb = React.forwardRef<
 });
 Breadcrumb.displayName = "Breadcrumb";
 
-// clickable breadcrumb segment (parent routes) muted by default, shifts to
-// foreground on hover pass `aschild` to render as your router's link
-// component while keeping the styling, preserves type, safe routing
+// clickable breadcrumb segment (parent routes) muted + medium weight, one
+// step quieter than the current page, shifts to foreground on hover pass
+// `aschild` to render as your router's link component while keeping the
+// styling, preserves type, safe routing
 const BreadcrumbLink = React.forwardRef<
   HTMLAnchorElement,
   React.AnchorHTMLAttributes<HTMLAnchorElement> & { asChild?: boolean }
@@ -47,7 +48,7 @@ const BreadcrumbLink = React.forwardRef<
     <Comp
       ref={ref}
       className={cn(
-        "min-w-0 truncate text-muted transition-colors hover:text-foreground",
+        "min-w-0 truncate font-medium text-muted transition-colors hover:text-foreground",
         className,
       )}
       {...props}
@@ -56,8 +57,8 @@ const BreadcrumbLink = React.forwardRef<
 });
 BreadcrumbLink.displayName = "BreadcrumbLink";
 
-// current page segment (last in the trail) same font weight as parent links
-// but at foreground colour, and not clickable, signals "you are here"
+// current page segment (last in the trail) inherits the page-title weight
+// (semibold) at foreground colour, and not clickable, signals "you are here"
 const BreadcrumbPage = React.forwardRef<
   HTMLSpanElement,
   React.HTMLAttributes<HTMLSpanElement>

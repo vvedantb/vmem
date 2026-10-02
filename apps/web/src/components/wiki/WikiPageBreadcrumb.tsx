@@ -44,7 +44,7 @@ export function WikiPageBreadcrumb({
           }}
           placeholder="Untitled"
           aria-label="Document title"
-          className="h-auto min-w-0 rounded-none border-0 bg-transparent px-0 py-0 text-2xl shadow-none focus-visible:ring-0 placeholder:text-muted/50"
+          className="h-auto min-w-0 rounded-none border-0 bg-transparent px-0 py-0 text-xl font-semibold tracking-tight shadow-none sm:text-xl focus-visible:ring-0 placeholder:text-muted/50"
         />
       </BreadcrumbPage>
     </Breadcrumb>
