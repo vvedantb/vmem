@@ -5,10 +5,13 @@ import { connectorSyncPool } from "../workpools";
 
 type ProviderSyncRef =
   | typeof internal.connectors.providerSync.syncGoogleDriveInternal
-  | typeof internal.connectors.providerSync.syncNotionInternal;
+  | typeof internal.connectors.providerSync.syncNotionInternal
+  | typeof internal.connectors.providerSync.syncGmailInternal
+  | typeof internal.connectors.providerSync.syncFigmaInternal
+  | typeof internal.connectors.providerSync.syncGitHubInternal;
 
 // AI-generated (Claude), prompt: "dispatch connector provider sync through workpool enqueue or direct action execution"
-// Modified by me: retry only on thrown failures for google drive and notion
+// Modified by me: retry only on thrown failures for every oauth provider
 export async function runConnectorProviderSync(
   ctx: ActionCtx,
   params: {
@@ -36,6 +39,15 @@ export async function runConnectorProviderSync(
       break;
     case "notion":
       syncRef = internal.connectors.providerSync.syncNotionInternal;
+      break;
+    case "gmail":
+      syncRef = internal.connectors.providerSync.syncGmailInternal;
+      break;
+    case "figma":
+      syncRef = internal.connectors.providerSync.syncFigmaInternal;
+      break;
+    case "github":
+      syncRef = internal.connectors.providerSync.syncGitHubInternal;
       break;
     default:
       throw new Error(`Unsupported provider: ${String(provider)}`);

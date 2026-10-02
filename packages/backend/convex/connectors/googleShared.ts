@@ -1,8 +1,12 @@
 import type { Id } from "../_generated/dataModel";
 
 const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.readonly";
+const GOOGLE_GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
 
 export const GOOGLE_OAUTH_SCOPES = [GOOGLE_DRIVE_SCOPE];
+
+// gmail is a separate google grant with its own token row, never shared with drive
+export const GMAIL_OAUTH_SCOPES = [GOOGLE_GMAIL_SCOPE];
 
 export type GoogleProvider = "google_drive";
 

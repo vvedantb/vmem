@@ -205,6 +205,9 @@ export const apiKeyFields = {
 export const connectorProviderValidator = v.union(
   v.literal("google_drive"),
   v.literal("notion"),
+  v.literal("gmail"),
+  v.literal("figma"),
+  v.literal("github"),
 );
 
 export const connectorConnectionStatusValidator = v.union(

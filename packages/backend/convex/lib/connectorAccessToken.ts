@@ -1,21 +1,26 @@
 import type { ActionCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
-import { createGoogleOAuth, oauthTokenType } from "./arcticOAuth";
+import { oauthTokenType } from "./arcticOAuth";
 import { decryptToken, encryptToken, getEnvOrThrow } from "./crypto";
 import { pickGoogleTokenConnectorId } from "../connectors/googleShared";
+import {
+  refreshConnectorAccessToken,
+  tokenNeedsRefresh,
+} from "../connectors/oauthProviders";
 
 type ConnectorAccessTokenResult =
   | { ok: true; accessToken: string; tokenConnectorId: Id<"connectors"> }
   | { ok: false; message: string };
 
-function isGoogleProvider(
+// only drive looks up a shared google token row, gmail keeps its own row
+function sharesGoogleTokenRow(
   provider: Doc<"connectors">["provider"],
 ): provider is "google_drive" {
   return provider === "google_drive";
 }
 
-function googleCallbackRedirectUri(): string {
+function connectorCallbackRedirectUri(): string {
   return `${getEnvOrThrow("CONVEX_SITE_URL")}/api/auth/connector/callback`;
 }
 
@@ -27,13 +32,14 @@ export async function resolveConnectorAccessToken(
     return { ok: false, message: "Connector does not support sync" };
   }
 
+  const provider = connector.provider;
   let tokenConnectorId = connector._id;
-  if (isGoogleProvider(connector.provider)) {
+  if (sharesGoogleTokenRow(provider)) {
     const googleRows = await ctx.runQuery(
       internal.connectors.crud.listGoogleConnectorsForUserInternal,
       { userId: connector.userId },
     );
-    const picked = pickGoogleTokenConnectorId(googleRows, connector.provider);
+    const picked = pickGoogleTokenConnectorId(googleRows, provider);
     if (!picked) {
       return { ok: false, message: "No tokens found — please reconnect" };
     }
@@ -50,8 +56,8 @@ export async function resolveConnectorAccessToken(
 
   let accessToken = await decryptToken(tokens.accessToken);
 
-  // google is the only provider that issues refreshable oauth tokens
-  if (isGoogleProvider(connector.provider) && tokens.expiresAt < Date.now()) {
+  // google (drive, gmail), figma and expiring github tokens refresh, notion never expires
+  if (tokenNeedsRefresh(provider, tokens.expiresAt, Date.now())) {
     if (!tokens.refreshToken) {
       return {
         ok: false,
@@ -63,9 +69,10 @@ export async function resolveConnectorAccessToken(
 
     let refreshed;
     try {
-      refreshed = await createGoogleOAuth(
-        googleCallbackRedirectUri(),
-      ).refreshAccessToken(refreshToken);
+      refreshed = await refreshConnectorAccessToken(provider, {
+        redirectUri: connectorCallbackRedirectUri(),
+        refreshToken,
+      });
     } catch {
       await ctx.runMutation(internal.connectors.crud.markDisconnectedInternal, {
         id: tokenConnectorId,
