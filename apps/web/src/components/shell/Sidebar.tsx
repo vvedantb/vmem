@@ -173,7 +173,7 @@ export default function Sidebar({
           <MorphingMenuIcon isOpen={mobileMenuOpen} size={20} />
         </Button>
         {pageTitle ? (
-          <h1 className="pointer-events-none absolute inset-x-14 top-[env(safe-area-inset-top,0px)] bottom-0 flex items-center justify-center truncate text-center text-xl leading-none font-instrumentSerif text-foreground text-balance">
+          <h1 className="pointer-events-none absolute inset-x-14 top-[env(safe-area-inset-top,0px)] bottom-0 flex items-center justify-center truncate text-center text-xl leading-none text-foreground text-balance">
             {pageTitle}
           </h1>
         ) : null}

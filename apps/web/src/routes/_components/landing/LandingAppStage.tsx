@@ -106,7 +106,7 @@ export function LandingAppStage() {
             </div>
             <div className="flex w-40 flex-col bg-background">
               <div className="flex h-12 items-center justify-center px-3">
-                <h2 className="truncate font-instrumentSerif text-lg leading-none text-foreground">
+                <h2 className="truncate text-lg leading-none text-foreground">
                   {pageTitle[view]}
                 </h2>
               </div>
@@ -126,7 +126,7 @@ export function LandingAppStage() {
           <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-surface md:rounded-lg">
             <div className="flex shrink-0 flex-col gap-3 px-3 pt-3 md:px-4 md:pt-4">
               <div className="flex min-h-10 items-center justify-between gap-3">
-                <h2 className="font-instrumentSerif text-2xl leading-tight text-foreground text-balance">
+                <h2 className="text-2xl leading-tight text-foreground text-balance">
                   {pageTitle[view]}
                 </h2>
                 {view === "memories" ? (

@@ -161,7 +161,6 @@
   --color-separator: var(--separator);
 
   --font-sans: "Instrument Sans", system-ui, -apple-system, sans-serif;
-  --font-serif: "Instrument Serif", Georgia, serif;
 
   --radius-lg: var(--radius);
   --radius-field: var(--field-radius);
