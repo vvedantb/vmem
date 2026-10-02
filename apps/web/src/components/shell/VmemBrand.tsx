@@ -2,7 +2,7 @@ import { cn } from "@vmem/ui";
 import { VmemDrawInIcon } from "@/components/icons/animations";
 
 const brandTextClassName =
-  "text-xl leading-none font-instrumentSerif text-foreground";
+  "text-xl leading-none text-foreground";
 
 export function VmemBrandText({ className }: { className?: string }) {
   return (

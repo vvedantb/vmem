@@ -47,7 +47,7 @@ function MetricSummaryCardContent({
         </div>
         <p
           className={cn(
-            "font-instrumentSerif text-3xl leading-none tabular-nums text-foreground",
+            "text-3xl leading-none tabular-nums text-foreground",
             valueClassName,
           )}
         >

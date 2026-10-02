@@ -128,7 +128,7 @@ export default function PageContainer({
                   </motion.div>
                 ) : (
                   showTitleInHeader && (
-                    <h1 className="hidden min-w-0 flex-1 truncate text-2xl leading-tight font-instrumentSerif text-foreground text-balance md:block">
+                    <h1 className="hidden min-w-0 flex-1 truncate text-2xl leading-tight text-foreground text-balance md:block">
                       {title}
                     </h1>
                   )

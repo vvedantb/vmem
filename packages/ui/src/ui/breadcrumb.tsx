@@ -19,7 +19,7 @@ const Breadcrumb = React.forwardRef<
       ref={ref}
       aria-label="breadcrumb"
       className={cn(
-        "flex min-w-0 items-center gap-1.5 text-2xl font-instrumentSerif leading-tight",
+        "flex min-w-0 items-center gap-1.5 text-2xl leading-tight",
         className,
       )}
       {...props}

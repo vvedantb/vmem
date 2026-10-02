@@ -156,7 +156,7 @@ export function App() {
       <header className="flex items-center justify-between bg-surface px-5 py-3.5">
         <span className="flex items-center gap-2">
           <VmemLogo />
-          <span className="font-serif text-lg tracking-tight">
+          <span className="text-lg tracking-tight">
             v<span className="italic">mem</span>
           </span>
         </span>

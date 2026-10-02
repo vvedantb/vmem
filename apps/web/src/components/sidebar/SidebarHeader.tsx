@@ -41,7 +41,7 @@ export function SidebarHeader({
   if (titleAlign === "start") {
     return (
       <div className="flex h-11 items-center gap-1 px-1">
-        <h1 className="min-w-0 flex-1 truncate text-left text-xl leading-none font-instrumentSerif text-foreground">
+        <h1 className="min-w-0 flex-1 truncate text-left text-xl leading-none text-foreground">
           {title}
         </h1>
         {trailing}
@@ -52,7 +52,7 @@ export function SidebarHeader({
   return (
     <div className="grid h-11 grid-cols-[2.5rem_1fr_2.5rem] items-center">
       <div />
-      <h1 className="min-w-0 truncate text-center text-xl leading-none font-instrumentSerif text-foreground">
+      <h1 className="min-w-0 truncate text-center text-xl leading-none text-foreground">
         {title}
       </h1>
       {trailing}
