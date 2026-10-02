@@ -6,8 +6,14 @@ const NO_POINT_IMAGE_INDEX = -1;
 
 const ATLAS_PIXEL_SIZE = 32;
 
-// atlas order matches connector, logos loader (google_drive, notion)
-const ATLAS_SOURCE_TYPES = ["google_drive", "notion"] as const;
+// atlas order matches connector, logos loader
+const ATLAS_SOURCE_TYPES = [
+  "google_drive",
+  "notion",
+  "gmail",
+  "figma",
+  "github",
+] as const;
 
 export interface CosmosLogoAtlas {
   images: ImageData[];

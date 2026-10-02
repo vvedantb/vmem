@@ -57,6 +57,24 @@ const DEFAULT_CONNECTORS: DefaultConnector[] = [
     icon: "IconBrandNotion",
     provider: "notion",
   },
+  {
+    name: "Gmail",
+    description: "Sync recent emails from Gmail",
+    icon: "IconBrandGmail",
+    provider: "gmail",
+  },
+  {
+    name: "Figma",
+    description: "Sync files, pages, and comments from Figma",
+    icon: "IconBrandFigma",
+    provider: "figma",
+  },
+  {
+    name: "GitHub",
+    description: "Sync issues and pull requests from GitHub",
+    icon: "IconBrandGithub",
+    provider: "github",
+  },
 ];
 
 export const listMy = authQuery({
@@ -176,6 +194,9 @@ export const getByIdInternal = internalQuery({
 const DAILY_SYNC_PROVIDERS = new Set<ConnectorProvider>([
   "google_drive",
   "notion",
+  "gmail",
+  "figma",
+  "github",
 ]);
 
 export const listForDailyConnectorSyncInternal = internalQuery({

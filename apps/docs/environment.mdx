@@ -38,12 +38,15 @@ There is **no** `NEO4J_*` or `MCP_JWT_SECRET` on current `main`.
 
 ### Connector OAuth (optional)
 
-| Variable                                    | Integration  |
-| ------------------------------------------- | ------------ |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google Drive |
-| `NOTION_CLIENT_ID` / `NOTION_CLIENT_SECRET` | Notion       |
+| Variable                                    | Integration                              |
+| ------------------------------------------- | ---------------------------------------- |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google Drive and Gmail                   |
+| `NOTION_CLIENT_ID` / `NOTION_CLIENT_SECRET` | Notion                                   |
+| `FIGMA_CLIENT_ID` / `FIGMA_CLIENT_SECRET`   | Figma                                    |
+| `FIGMA_TEAM_IDS`                            | Figma team IDs to sync (comma-separated) |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | GitHub                                   |
 
-Also required for OAuth callbacks: `CONVEX_SITE_URL`.
+Also required for OAuth callbacks: `CONVEX_SITE_URL`. The callback URL for every provider is `https://<CONVEX_SITE_URL>/api/auth/connector/callback`. See [Connectors](/features/connectors) for provider setup.
 
 ## Chrome Extension
 

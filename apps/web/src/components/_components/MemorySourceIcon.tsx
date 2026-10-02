@@ -7,6 +7,9 @@ import {
 import {
   ChromeIcon,
   CursorIcon,
+  FigmaIcon,
+  GitHubIcon,
+  GmailIcon,
   GoogleDriveIcon,
   NotionIcon,
 } from "@/components/icons/logos";
@@ -27,6 +30,12 @@ export function MemorySourceIcon({
       return <GoogleDriveIcon size={size} className={className} />;
     case "notion":
       return <NotionIcon size={size} className={className} />;
+    case "gmail":
+      return <GmailIcon size={size} className={className} />;
+    case "figma":
+      return <FigmaIcon size={size} className={className} />;
+    case "github":
+      return <GitHubIcon size={size} className={className} />;
     case "browser-extension":
       return <ChromeIcon size={size} className={className} />;
     case "youtube":

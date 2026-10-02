@@ -120,4 +120,4 @@ WEB_APP_URL
 AI_GATEWAY_API_KEY          # embeddings + instruction extraction (deployment env only)
 ```
 
-Optional: `GOOGLE_CLIENT_*`, `NOTION_CLIENT_*`. The same `AI_GATEWAY_API_KEY` also enables Jev retrieve rerank and Dream Mode merge metadata (see [`packages/backend/tests/memory/jev-retrieve-gate.md`](packages/backend/tests/memory/jev-retrieve-gate.md)). There is no in-app Secrets page — set provider keys with `npx convex env set` or the Convex dashboard Environment Variables.
+Optional connectors: `GOOGLE_CLIENT_*` (Google Drive and Gmail), `NOTION_CLIENT_*`, `FIGMA_CLIENT_*` plus `FIGMA_TEAM_IDS`, and `GITHUB_CLIENT_*`. All use the callback `https://<CONVEX_SITE_URL>/api/auth/connector/callback`. Setup steps are in [`apps/docs/features/connectors.mdx`](apps/docs/features/connectors.mdx). The same `AI_GATEWAY_API_KEY` also enables Jev retrieve rerank and Dream Mode merge metadata (see [`packages/backend/tests/memory/jev-retrieve-gate.md`](packages/backend/tests/memory/jev-retrieve-gate.md)). There is no in-app Secrets page — set provider keys with `npx convex env set` or the Convex dashboard Environment Variables.

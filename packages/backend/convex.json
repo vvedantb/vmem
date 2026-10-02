@@ -5,6 +5,7 @@
     "externalPackages": [
       "@modelcontextprotocol/sdk",
       "@googleapis/drive",
+      "@googleapis/gmail",
       "@notionhq/client"
     ]
   }

@@ -1,6 +1,12 @@
 // connector logo registry/loader for graph memory provenance stamps
 
-const CONNECTOR_SOURCE_TYPES = ["google_drive", "notion"] as const;
+const CONNECTOR_SOURCE_TYPES = [
+  "google_drive",
+  "notion",
+  "gmail",
+  "figma",
+  "github",
+] as const;
 
 type ConnectorSourceType = (typeof CONNECTOR_SOURCE_TYPES)[number];
 
@@ -9,6 +15,9 @@ export type ConnectorLogoMap = Map<ConnectorSourceType, HTMLImageElement>;
 const LOGO_PATHS: Record<ConnectorSourceType, string> = {
   google_drive: "/connector-logos/google_drive.svg",
   notion: "/connector-logos/notion.svg",
+  gmail: "/connector-logos/gmail.svg",
+  figma: "/connector-logos/figma.svg",
+  github: "/connector-logos/github.svg",
 };
 
 let cachedPromise: Promise<ConnectorLogoMap> | null = null;

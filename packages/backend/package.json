@@ -31,6 +31,7 @@
     "@convex-dev/crons": "^0.2.0",
     "@convex-dev/workpool": "^0.4.7",
     "@googleapis/drive": "^20.0.0",
+    "@googleapis/gmail": "^22.0.1",
     "@modelcontextprotocol/ext-apps": "1.7.2",
     "@modelcontextprotocol/sdk": "catalog:",
     "@notionhq/client": "^5.23.0",

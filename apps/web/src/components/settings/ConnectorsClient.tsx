@@ -62,7 +62,7 @@ export function ConnectorsClient({
       >
         <SettingsSection
           title="Connected"
-          description="Sync Google Drive or Notion into your memories."
+          description="Sync Google Drive, Notion, Gmail, Figma, or GitHub into your memories."
           bodyVariant={connectedConnectors.length === 0 ? "form" : undefined}
           bodyClassName={
             connectedConnectors.length === 0
@@ -74,7 +74,7 @@ export function ConnectorsClient({
             <SettingsEmptyState
               icon={IconPlug}
               title="No connectors connected"
-              description="Connect Google Drive or Notion to sync content into your memories."
+              description="Connect Google Drive, Notion, Gmail, Figma, or GitHub to sync content into your memories."
               action={<BrowseButton onClick={() => setShowBrowse(true)} />}
             />
           ) : (

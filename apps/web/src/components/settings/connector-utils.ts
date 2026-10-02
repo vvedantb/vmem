@@ -1,7 +1,13 @@
 import type { ComponentType } from "react";
 import type { FunctionReturnType } from "convex/server";
 import type { api } from "@vmem/backend";
-import { GoogleDriveIcon, NotionIcon } from "@/components/icons/logos";
+import {
+  FigmaIcon,
+  GitHubIcon,
+  GmailIcon,
+  GoogleDriveIcon,
+  NotionIcon,
+} from "@/components/icons/logos";
 
 export type Connector = FunctionReturnType<
   typeof api.connectors.crud.listMy
@@ -13,6 +19,9 @@ type ConnectorIcon = ComponentType<ConnectorIconProps>;
 const connectorIcons = new Map<string, ConnectorIcon>([
   ["IconBrandGoogleDrive", GoogleDriveIcon],
   ["IconBrandNotion", NotionIcon],
+  ["IconBrandGmail", GmailIcon],
+  ["IconBrandFigma", FigmaIcon],
+  ["IconBrandGithub", GitHubIcon],
 ]);
 
 export function resolveConnectorIcon(iconName: string): ConnectorIcon {

@@ -5,26 +5,18 @@ import type { Id } from "../_generated/dataModel";
 import { internalAction, type ActionCtx } from "../_generated/server";
 import { authAction } from "../auth";
 import { auditLog, ResourceTypes } from "../auditLog";
-import {
-  createGoogleOAuth,
-  createNotionOAuth,
-  oauthScopeString,
-  oauthTokenType,
-} from "../lib/arcticOAuth";
+import { oauthScopeString, oauthTokenType } from "../lib/arcticOAuth";
 import { decryptToken, encryptToken, getEnvOrThrow } from "../lib/crypto";
+import { pickGoogleTokenConnectorId, scopeIncludesDrive } from "./googleShared";
 import {
-  GOOGLE_OAUTH_SCOPES,
-  pickGoogleTokenConnectorId,
-  scopeIncludesDrive,
-} from "./googleShared";
-
-type ConnectorOAuthProvider = "google_drive" | "notion";
-
-function isConnectorOAuthProvider(
-  value: string,
-): value is ConnectorOAuthProvider {
-  return value === "google_drive" || value === "notion";
-}
+  buildConnectorAuthorizationUrl,
+  connectorTokenPolicy,
+  exchangeConnectorAuthorizationCode,
+  isConnectorOAuthProvider,
+  providerUsesPkce,
+  revokeConnectorAccessToken,
+  type StoreOAuthTokensOptions,
+} from "./oauthProviders";
 
 async function revokeTokenBestEffort(
   revoke: () => Promise<unknown>,
@@ -34,22 +26,6 @@ async function revokeTokenBestEffort(
   } catch {
     // best-effort, continue even if revocation fails
   }
-}
-
-type StoreOAuthTokensOptions = {
-  refreshToken: string;
-  expiresAt: number;
-};
-
-function googleTokenPolicy(tokens: OAuth2Tokens): StoreOAuthTokensOptions {
-  return {
-    refreshToken: tokens.hasRefreshToken() ? tokens.refreshToken() : "",
-    expiresAt: tokens.accessTokenExpiresAt().getTime(),
-  };
-}
-
-function notionTokenPolicy(): StoreOAuthTokensOptions {
-  return { refreshToken: "", expiresAt: 0 };
 }
 
 async function encryptAndStoreOAuthTokens(
@@ -133,28 +109,9 @@ export const startOAuth = authAction({
     const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
     const redirectUri = connectorCallbackRedirectUri();
 
-    if (provider === "google_drive") {
-      const codeVerifier = generateCodeVerifier();
-      await ctx.runMutation(internal.oauthState.insertOAuthStateInternal, {
-        state,
-        userId: ctx.userId,
-        returnUrl: args.returnUrl,
-        expiresAt,
-        connectorId: args.connectorId,
-        provider,
-        codeVerifier,
-      });
-
-      const authUrl = createGoogleOAuth(redirectUri).createAuthorizationURL(
-        state,
-        codeVerifier,
-        [...GOOGLE_OAUTH_SCOPES],
-      );
-      authUrl.searchParams.set("access_type", "offline");
-      authUrl.searchParams.set("prompt", "consent");
-      return { authUrl: authUrl.toString(), alreadyConnected: false };
-    }
-
+    const codeVerifier = providerUsesPkce(provider)
+      ? generateCodeVerifier()
+      : undefined;
     await ctx.runMutation(internal.oauthState.insertOAuthStateInternal, {
       state,
       userId: ctx.userId,
@@ -162,10 +119,14 @@ export const startOAuth = authAction({
       expiresAt,
       connectorId: args.connectorId,
       provider,
+      codeVerifier,
     });
 
-    const authUrl =
-      createNotionOAuth(redirectUri).createAuthorizationURL(state);
+    const authUrl = buildConnectorAuthorizationUrl(provider, {
+      redirectUri,
+      state,
+      codeVerifier,
+    });
     return { authUrl: authUrl.toString(), alreadyConnected: false };
   },
 });
@@ -188,12 +149,14 @@ export const disconnect = authAction({
       { connectorId: args.connectorId },
     );
 
-    if (tokens && connector.provider === "google_drive") {
+    const provider = connector.provider;
+    if (tokens && provider && isConnectorOAuthProvider(provider)) {
       await revokeTokenBestEffort(async () => {
         const accessToken = await decryptToken(tokens.accessToken);
-        await createGoogleOAuth(connectorCallbackRedirectUri()).revokeToken(
+        await revokeConnectorAccessToken(provider, {
+          redirectUri: connectorCallbackRedirectUri(),
           accessToken,
-        );
+        });
       });
     }
 
@@ -270,21 +233,17 @@ export const handleCallbackInternal = internalAction({
     const fail = (error: string): OAuthCallbackResult =>
       oauthCallbackError(error, stateEntry.returnUrl, connectorId);
 
+    if (providerUsesPkce(provider) && !stateEntry.codeVerifier) {
+      return fail("invalid_state");
+    }
+
     let tokens: OAuth2Tokens;
     try {
-      if (provider === "google_drive") {
-        if (!stateEntry.codeVerifier) {
-          return fail("invalid_state");
-        }
-        tokens = await createGoogleOAuth(redirectUri).validateAuthorizationCode(
-          args.code,
-          stateEntry.codeVerifier,
-        );
-      } else {
-        tokens = await createNotionOAuth(redirectUri).validateAuthorizationCode(
-          args.code,
-        );
-      }
+      tokens = await exchangeConnectorAuthorizationCode(provider, {
+        redirectUri,
+        code: args.code,
+        codeVerifier: stateEntry.codeVerifier,
+      });
     } catch {
       return fail("token_exchange_failed");
     }
@@ -293,9 +252,7 @@ export const handleCallbackInternal = internalAction({
       ctx,
       connectorId,
       tokens,
-      provider === "google_drive"
-        ? googleTokenPolicy(tokens)
-        : notionTokenPolicy(),
+      connectorTokenPolicy(provider, tokens),
     );
 
     await ctx.runMutation(internal.connectors.crud.markConnectedInternal, {
