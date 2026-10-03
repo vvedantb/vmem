@@ -1,5 +1,6 @@
 import { expect, test } from "../fixtures";
 import { gotoSettings } from "../helpers/nav";
+import { pageTab } from "../helpers/shell";
 
 test.describe("settings", { tag: ["@settings", "@smoke"] }, () => {
   test("redirects /settings to preferences with grouped nav", async ({
@@ -81,7 +82,7 @@ test.describe("settings", { tag: ["@settings", "@smoke"] }, () => {
     await gotoSettings(page, "/connectors");
     await expect(page).toHaveURL(/\/sources\/connectors/, { timeout: 20_000 });
     await expect(
-      page.getByRole("heading", { name: "Connectors", exact: true }),
+      page.getByRole("heading", { name: "Sources", exact: true }),
     ).toBeVisible({
       timeout: 20_000,
     });
@@ -94,8 +95,12 @@ test.describe("settings", { tag: ["@settings", "@smoke"] }, () => {
     await gotoSettings(page, "/data-controls/import");
     await expect(page).toHaveURL(/\/sources\/import/, { timeout: 20_000 });
     await expect(
-      page.getByRole("heading", { name: "Import", exact: true }),
-    ).toBeVisible();
+      page.getByRole("heading", { name: "Sources", exact: true }),
+    ).toBeVisible({ timeout: 20_000 });
+    await expect(pageTab(page, "Import")).toHaveAttribute(
+      "data-state",
+      "active",
+    );
     await expect(
       page.getByRole("button", { name: "Import", exact: true }).first(),
     ).toBeVisible();

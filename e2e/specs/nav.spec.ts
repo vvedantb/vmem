@@ -4,7 +4,9 @@ import { mainContent } from "../helpers/memories";
 import {
   assertNoFatalChrome,
   clickRail,
+  openHomeSection,
   openWorkspaceSwitcher,
+  pageTab,
   sidebarPanel,
   sidebarViewLink,
 } from "../helpers/shell";
@@ -18,12 +20,18 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
     await expect(page.getByRole("link", { name: "Wiki" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Skills" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Files" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Sources" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Inbox" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Settings" })).toBeVisible();
     await expect(
       page.getByRole("link", { name: "Home", exact: true }),
     ).toBeVisible();
+    // Sources and Inbox moved off the rail onto Home page tabs.
+    const shell = sidebarPanel(page);
+    await expect(
+      shell.getByRole("link", { name: "Sources", exact: true }),
+    ).toHaveCount(0);
+    await expect(
+      shell.getByRole("link", { name: "Inbox", exact: true }),
+    ).toHaveCount(0);
     await expect(
       page.getByRole("link", { name: "Activity", exact: true }),
     ).toHaveCount(0);
@@ -37,6 +45,9 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
 
     await gotoWorkspace(page, "/home");
     await expect(page).toHaveURL(new RegExp(`/${profileId}/home`));
+    await expect(pageTab(page, "Dashboard")).toBeVisible({ timeout: 20_000 });
+    await expect(pageTab(page, "Inbox")).toBeVisible();
+    await expect(pageTab(page, "Sources")).toBeVisible();
   });
 
   test("left rail reaches every primary destination", async ({
@@ -83,14 +94,18 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
     });
     await assertNoFatalChrome(page);
 
-    await clickRail(page, "Sources");
+    await openHomeSection(page, "Sources");
     await expect(page).toHaveURL(new RegExp(`/${profileId}/sources`));
-    await expect(sidebarViewLink(page, "Connectors")).toBeVisible({
+    await expect(pageTab(page, "Sources")).toHaveAttribute(
+      "data-state",
+      "active",
+    );
+    await expect(pageTab(page, "Connectors")).toBeVisible({
       timeout: 20_000,
     });
-    await expect(sidebarViewLink(page, "Import")).toBeVisible();
+    await expect(pageTab(page, "Import")).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: "Connectors", exact: true }),
+      page.getByRole("heading", { name: "Sources", exact: true }),
     ).toBeVisible();
     await assertNoFatalChrome(page);
 
@@ -116,12 +131,16 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
     ).toHaveAttribute("aria-current", "page");
     await assertNoFatalChrome(page);
 
-    await clickRail(page, "Inbox");
+    await openHomeSection(page, "Inbox");
     await expect(page).toHaveURL(new RegExp(`/${profileId}/inbox`));
-    await expect(sidebarViewLink(page, "Proposals")).toBeVisible({
+    await expect(pageTab(page, "Inbox")).toHaveAttribute(
+      "data-state",
+      "active",
+    );
+    await expect(pageTab(page, "Proposals")).toBeVisible({
       timeout: 20_000,
     });
-    await expect(sidebarViewLink(page, "Notifications")).toBeVisible();
+    await expect(pageTab(page, "Notifications")).toBeVisible();
     await assertNoFatalChrome(page);
 
     await clickRail(page, "Settings");
