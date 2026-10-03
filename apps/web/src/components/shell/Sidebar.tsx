@@ -53,7 +53,8 @@ export default function Sidebar({
   const { pathname } = useLocation();
   const activeProfileId = useActiveProfileId();
   const section = railSectionFromPathname(pathname);
-  // Not persisted: leaving Inbox/Sources restores the stored collapse state.
+  // Not persisted: leaving Home/Usage/Inbox/Sources restores the stored
+  // collapse state.
   const hidePanel = railSectionHidesPanel(section);
   const panelSection = hidePanel ? null : section;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);

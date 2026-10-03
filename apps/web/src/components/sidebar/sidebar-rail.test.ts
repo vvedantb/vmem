@@ -181,25 +181,22 @@ describe("shell uses a rail + panel + drawer", () => {
     expect(rail).toContain("!isPanelHidden");
   });
 
-  it("drops the sidebar panel column on inbox and sources", () => {
-    expect(railSectionHidesPanel("inbox")).toBe(true);
-    expect(railSectionHidesPanel("sources")).toBe(true);
+  it("drops the sidebar panel column on home, usage, inbox and sources", () => {
+    for (const section of ["home", "usage", "inbox", "sources"] as const) {
+      expect(railSectionHidesPanel(section)).toBe(true);
+      expect(Object.keys(panelTitleBySection)).not.toContain(section);
+    }
     for (const section of [
-      "home",
       "memories",
       "wiki",
       "skills",
       "files",
-      "usage",
       "team",
       "settings",
     ] as const) {
       expect(railSectionHidesPanel(section)).toBe(false);
     }
-    expect(Object.keys(panelTitleBySection)).not.toContain("inbox");
-    expect(Object.keys(panelTitleBySection)).not.toContain("sources");
     expect(panelTitleBySection.files).toBe("Files");
-    expect(panelTitleBySection.usage).toBe("Usage");
 
     const sidebar = read("../shell/Sidebar.tsx");
     expect(sidebar).toContain("railSectionHidesPanel(section)");

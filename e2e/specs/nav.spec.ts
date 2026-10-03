@@ -118,9 +118,10 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
     await expect(
       page.getByRole("heading", { name: "Dashboard" }),
     ).toBeVisible();
+    // Home has no sidebar panel: the page sits beside the rail.
     await expect(
       sidebarPanel(page).getByRole("heading", { name: "Home" }),
-    ).toBeVisible();
+    ).toHaveCount(0);
     // Usage is a rail tile now, so Home has no stacked Usage / Events rows.
     await expect(
       sidebarPanel(page).getByRole("navigation", { name: "Home views" }),
@@ -134,10 +135,10 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
       "aria-current",
       "page",
     );
+    await expect(page.getByText("Total cost")).toBeVisible({ timeout: 20_000 });
     await expect(
       sidebarPanel(page).getByRole("heading", { name: "Usage" }),
-    ).toBeVisible();
-    await expect(page.getByText("Total cost")).toBeVisible({ timeout: 20_000 });
+    ).toHaveCount(0);
     await assertNoFatalChrome(page);
 
     await clickRail(page, "Inbox");
@@ -234,7 +235,8 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
   });
 
   test("workspace switcher lists the current profile", async ({ page }) => {
-    await gotoWorkspace(page, "/home");
+    // Home and Usage have no sidebar panel; Files keeps the switcher.
+    await gotoWorkspace(page, "/files");
     const menu = await openWorkspaceSwitcher(page);
     await expect(
       menu.getByRole("menuitem", { name: "Personal" }),
@@ -270,18 +272,24 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
     ).toHaveCount(0);
     await assertNoFatalChrome(page);
 
+    // Home hides the panel by route, so round-trip collapse on Wiki.
+    await clickRail(page, "Wiki");
+    await expect(page).toHaveURL(new RegExp(`/${profileId}/wiki`));
+    const wikiHeading = sidebarPanel(page).getByRole("heading", {
+      name: "Wiki",
+    });
+    await expect(wikiHeading).toBeVisible({ timeout: 20_000 });
     await page.getByRole("button", { name: "Hide sidebar" }).click();
     await expect(
       page.getByRole("button", { name: "Show sidebar" }),
     ).toBeVisible();
+    await expect(wikiHeading).toBeHidden();
     await expect(mainContent(page)).toBeVisible();
-    await expect(page).toHaveURL(new RegExp(`/${profileId}/home`));
+    await expect(page).toHaveURL(new RegExp(`/${profileId}/wiki`));
     await page.getByRole("button", { name: "Show sidebar" }).click();
     await expect(
       page.getByRole("button", { name: "Hide sidebar" }),
     ).toBeVisible();
-    await expect(
-      sidebarPanel(page).getByRole("heading", { name: "Home" }),
-    ).toBeVisible();
+    await expect(wikiHeading).toBeVisible();
   });
 });

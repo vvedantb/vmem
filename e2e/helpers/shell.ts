@@ -56,6 +56,8 @@ export async function expectNoStackedSidebarRows(
   }
 }
 
+// Callers must be on a page with a sidebar panel that shows the switcher
+// (Files or Team). Home, Usage, Inbox and Sources have no panel.
 export async function openWorkspaceSwitcher(page: Page): Promise<Locator> {
   const trigger = sidebarPanel(page)
     .locator("button")
