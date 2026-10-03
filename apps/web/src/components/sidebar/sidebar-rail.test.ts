@@ -237,6 +237,7 @@ describe("nested sidebar chrome", () => {
     expect(read("SkillsSidebarNav.tsx")).toContain("SidebarHeaderTrailing");
     expect(read("WikiSidebarNav.tsx")).toContain("SidebarHeaderTrailing");
     expect(read("SidebarHeader.tsx")).toContain("text-left");
+    expect(read("SidebarHeader.tsx")).toContain("pl-3 pr-1");
     expect(read("SidebarHeader.tsx")).not.toContain("text-center");
 
     const addMenu = read("../shell/FeatureAddMenu.tsx");
