@@ -28,7 +28,7 @@ export default function BreadcrumbNav({
               type="button"
               variant="link"
               onClick={() => onNavigate(crumb.id)}
-              className="h-auto p-0 font-normal text-inherit active:scale-[0.96]"
+              className="h-auto p-0 text-[length:inherit] font-medium tracking-[inherit] text-muted hover:text-foreground active:scale-[0.96]"
             >
               {crumb.name}
             </Button>
