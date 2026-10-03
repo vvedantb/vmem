@@ -1,11 +1,9 @@
 import { expect, type Page } from "@playwright/test";
-import { profileIdFromUrl, waitForAppShell } from "./nav";
+import { gotoWorkspace, waitForAppShell } from "./nav";
 
 export async function openWorkspaceSwitcher(page: Page): Promise<void> {
-  if (profileIdFromUrl(page.url()) === undefined) {
-    await page.goto("/home");
-    await waitForAppShell(page);
-  }
+  // Home and Usage have no sidebar panel; Files keeps the switcher.
+  await gotoWorkspace(page, "/files");
   const showSidebar = page.getByRole("button", { name: "Show sidebar" });
   if (await showSidebar.isVisible().catch(() => false)) {
     await showSidebar.click();
