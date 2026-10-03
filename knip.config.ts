@@ -77,6 +77,7 @@ const config: KnipConfig = {
         "tailwindcss",
         "tailwindcss-animate",
         "shadow-plugin",
+        "@vv/tokens",
       ],
     },
     "packages/backend": {
@@ -111,10 +112,6 @@ const config: KnipConfig = {
     "packages/sdk": {
       entry: ["src/index.ts!"],
       project: ["src/**/*.ts"],
-    },
-    "packages/ui": {
-      entry: ["src/index.ts!", "src/utils/cn.ts!"],
-      project: ["src/**/*.{ts,tsx}"],
     },
   },
   ignore: ["apps/docs/**", "internal/**"],

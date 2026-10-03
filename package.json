@@ -20,7 +20,7 @@
     "check": "pnpm lint && pnpm typecheck:all && pnpm knip && pnpm test:oxlint-plugin && pnpm compiler:check && pnpm test && pnpm format:check",
     "typecheck": "pnpm --filter web typecheck",
     "typecheck:e2e": "tsc -p e2e/tsconfig.json",
-    "typecheck:all": "pnpm --parallel --filter web --filter @vmem/backend --filter @vmem/sdk --filter @vmem/shared --filter @vmem/ui --filter @vmem/chrome-extension typecheck && pnpm typecheck:e2e",
+    "typecheck:all": "pnpm --parallel --filter web --filter @vmem/backend --filter @vmem/sdk --filter @vmem/shared --filter @vmem/chrome-extension typecheck && pnpm typecheck:e2e",
     "test:e2e": "playwright test --config e2e/playwright.config.ts",
     "test:e2e:headed": "playwright test --config e2e/playwright.config.ts --headed",
     "test:e2e:smoke": "playwright test --config e2e/playwright.config.ts --grep @smoke",

@@ -26,7 +26,7 @@ import {
   CardContent,
   Spinner,
   fadeUp,
-} from "@vmem/ui";
+} from "@vv/ui";
 import { api } from "@vmem/backend";
 import { SettingsForm } from "./_components/SettingsForm";
 import { VmemLogo } from "./_components/VmemLogo";

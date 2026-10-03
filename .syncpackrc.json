@@ -18,21 +18,6 @@
       "isIgnored": true
     },
     {
-      "label": "Loose peer deps in @vmem/ui — intentionally wide ranges",
-      "dependencies": [
-        "react",
-        "react-dom",
-        "ai",
-        "motion",
-        "nanoid",
-        "streamdown",
-        "@streamdown/*",
-        "use-stick-to-bottom"
-      ],
-      "packages": ["@vmem/ui"],
-      "isIgnored": true
-    },
-    {
       "label": "All other deps should use default catalog or highest semver",
       "dependencies": ["**"],
       "packages": ["**"],
