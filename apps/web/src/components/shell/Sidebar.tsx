@@ -32,6 +32,7 @@ import {
 import {
   panelTitleBySection,
   railSectionFromPathname,
+  railSectionHidesPanel,
   type SidebarLayout,
 } from "@/components/sidebar/nav-config";
 import { usePageTitle } from "@/contexts/PageTitleContext";
@@ -52,6 +53,9 @@ export default function Sidebar({
   const { pathname } = useLocation();
   const activeProfileId = useActiveProfileId();
   const section = railSectionFromPathname(pathname);
+  // Not persisted: leaving Inbox/Sources restores the stored collapse state.
+  const hidePanel = railSectionHidesPanel(section);
+  const panelSection = hidePanel ? null : section;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [headerTrailing, setHeaderTrailing] = useState<HTMLDivElement | null>(
     null,
@@ -147,9 +151,7 @@ export default function Sidebar({
     section !== "settings" &&
     section !== "skills" &&
     section !== "wiki" &&
-    section !== "memories" &&
-    section !== "inbox" &&
-    section !== "sources";
+    section !== "memories";
   const showStats = showWorkspaceSwitcher;
 
   return (
@@ -201,8 +203,10 @@ export default function Sidebar({
         onKeyDown={closeOnEscape}
         className={cn(
           "fixed inset-y-0 left-0 z-50 flex bg-background pb-[env(safe-area-inset-bottom,0px)] pt-[env(safe-area-inset-top,0px)] md:py-0",
-          "w-[min(var(--vmem-sidebar-width),calc(100vw-1.5rem))]",
-          sidebarRailWidthClass(isCollapsed),
+          hidePanel
+            ? "w-[var(--vmem-sidebar-rail-width)]"
+            : "w-[min(var(--vmem-sidebar-width),calc(100vw-1.5rem))]",
+          sidebarRailWidthClass(isCollapsed || hidePanel),
           "md:transition-[width] md:[transition-duration:280ms] md:[transition-timing-function:cubic-bezier(0.22,1,0.36,1)]",
         )}
         initial={false}
@@ -222,51 +226,54 @@ export default function Sidebar({
           unreadCount={unreadCount}
           proposalsCount={proposalsCount}
           isCollapsed={isCollapsed}
+          isPanelHidden={hidePanel}
           isAuthLoading={isAuthLoading}
           onToggleCollapse={onToggleCollapse}
           onOpenSearch={onOpenSearch}
           onNavigate={closeMobileMenu}
         />
-        <div
-          className={cn(
-            // No border-r: MainShell floats the content card (md:p-2 + radius)
-            // beside this panel, so a right edge line reads as a hard divider.
-            "relative flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-background",
-            isCollapsed && "md:hidden",
-          )}
-        >
-          <SidebarHeaderTrailingProvider target={headerTrailing}>
-            <div className="px-2 pt-3">
-              <SidebarHeader
-                title={panelTitleBySection[section]}
-                isMobile={!isDesktopViewport}
-                onClose={closeMobileMenu}
-                trailingRef={setHeaderTrailing}
-              />
-            </div>
-            {showWorkspaceSwitcher ? (
-              <div className="mb-4 px-4">
-                <SidebarWorkspaceSwitcher
-                  collapsed={false}
+        {panelSection === null ? null : (
+          <div
+            className={cn(
+              // No border-r: MainShell floats the content card (md:p-2 + radius)
+              // beside this panel, so a right edge line reads as a hard divider.
+              "relative flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-background",
+              isCollapsed && "md:hidden",
+            )}
+          >
+            <SidebarHeaderTrailingProvider target={headerTrailing}>
+              <div className="px-2 pt-3">
+                <SidebarHeader
+                  title={panelTitleBySection[panelSection]}
+                  isMobile={!isDesktopViewport}
+                  onClose={closeMobileMenu}
+                  trailingRef={setHeaderTrailing}
+                />
+              </div>
+              {showWorkspaceSwitcher ? (
+                <div className="mb-4 px-4">
+                  <SidebarWorkspaceSwitcher
+                    collapsed={false}
+                    onNavigate={closeMobileMenu}
+                  />
+                </div>
+              ) : null}
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-2">
+                <SidebarNavigation
+                  pathname={pathname}
+                  profileId={activeProfileId}
+                  isMobile={!isDesktopViewport}
                   onNavigate={closeMobileMenu}
                 />
               </div>
-            ) : null}
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-2">
-              <SidebarNavigation
-                pathname={pathname}
-                profileId={activeProfileId}
+              <SidebarFooter
                 isMobile={!isDesktopViewport}
-                onNavigate={closeMobileMenu}
+                stats={stats ?? { addedToday: 0, total: 0 }}
+                showStats={showStats && stats !== null}
               />
-            </div>
-            <SidebarFooter
-              isMobile={!isDesktopViewport}
-              stats={stats ?? { addedToday: 0, total: 0 }}
-              showStats={showStats && stats !== null}
-            />
-          </SidebarHeaderTrailingProvider>
-        </div>
+            </SidebarHeaderTrailingProvider>
+          </div>
+        )}
       </motion.aside>
     </>
   );

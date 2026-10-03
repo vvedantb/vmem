@@ -1,16 +1,25 @@
 import { useState } from "react";
 import { useLocalStorage } from "usehooks-ts";
 import { useHotkey } from "@tanstack/react-hotkeys";
+import { useLocation } from "@tanstack/react-router";
 import Sidebar from "@/components/shell/Sidebar";
 import { CommandPalette } from "@/components/shell/CommandPalette";
 import { PageTitleProvider } from "@/contexts/PageTitleContext";
 import { WikiSidebarProvider } from "@/components/wiki/WikiSidebarContext";
+import {
+  railSectionFromPathname,
+  railSectionHidesPanel,
+} from "@/components/sidebar/nav-config";
 
 export default function MainShell({ children }: { children: React.ReactNode }) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useLocalStorage(
     "sidebar-collapsed",
     false,
   );
+  const pathname = useLocation({ select: (location) => location.pathname });
+  const isPanelHidden =
+    isSidebarCollapsed ||
+    railSectionHidesPanel(railSectionFromPathname(pathname));
   const [commandOpen, setCommandOpen] = useState(false);
   const toggleSidebar = () => setIsSidebarCollapsed((prev) => !prev);
 
@@ -40,7 +49,7 @@ export default function MainShell({ children }: { children: React.ReactNode }) {
             id="main-content"
             tabIndex={-1}
             className={`relative z-10 flex h-full min-h-0 outline-none md:p-2 ${
-              isSidebarCollapsed
+              isPanelHidden
                 ? "md:ml-[var(--vmem-sidebar-rail-width)]"
                 : "md:ml-[var(--vmem-sidebar-width)]"
             } md:transition-[margin-left] md:[transition-duration:280ms] md:[transition-timing-function:cubic-bezier(0.22,1,0.36,1)]`}

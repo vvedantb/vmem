@@ -3,7 +3,6 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  homeSectionTabFromPathname,
   inboxTabFromPathname,
   sourcesTabFromPathname,
 } from "./HomeSectionTabs";
@@ -15,18 +14,6 @@ function read(rel: string): string {
 }
 
 const routes = "../../routes/_main/$profileId";
-
-describe("homeSectionTabFromPathname", () => {
-  it("selects the section from the workspace path", () => {
-    expect(homeSectionTabFromPathname("/p1/home")).toBe("dashboard");
-    expect(homeSectionTabFromPathname("/p1/inbox")).toBe("inbox");
-    expect(homeSectionTabFromPathname("/p1/inbox/proposals")).toBe("inbox");
-    expect(homeSectionTabFromPathname("/p1/inbox/notifications")).toBe("inbox");
-    expect(homeSectionTabFromPathname("/p1/sources")).toBe("sources");
-    expect(homeSectionTabFromPathname("/p1/sources/import")).toBe("sources");
-    expect(homeSectionTabFromPathname("/p1/inboxes")).toBe("dashboard");
-  });
-});
 
 describe("nested inbox and sources tabs", () => {
   it("selects proposals unless on notifications", () => {
@@ -48,12 +35,9 @@ describe("nested inbox and sources tabs", () => {
 });
 
 describe("page tabs replace the inbox and sources sidebars", () => {
-  it("labels the section and nested tabs", () => {
+  it("labels only the nested tabs", () => {
     const tabs = read("HomeSectionTabs.tsx");
     for (const label of [
-      'label: "Dashboard"',
-      'label: "Inbox"',
-      'label: "Sources"',
       'label: "Proposals"',
       'label: "Notifications"',
       'label: "Connectors"',
@@ -61,31 +45,37 @@ describe("page tabs replace the inbox and sources sidebars", () => {
     ]) {
       expect(tabs).toContain(label);
     }
+    for (const label of [
+      'label: "Dashboard"',
+      'label: "Inbox"',
+      'label: "Sources"',
+    ]) {
+      expect(tabs).not.toContain(label);
+    }
+    expect(tabs).not.toContain("HomeSectionTabRows");
     expect(tabs).toContain("RouteTabs");
-    expect(tabs).toContain('"/$profileId/home"');
+    expect(tabs).not.toContain('"/$profileId/home"');
     expect(tabs).toContain('"/$profileId/inbox/proposals"');
     expect(tabs).toContain('"/$profileId/inbox/notifications"');
     expect(tabs).toContain('"/$profileId/sources/connectors"');
     expect(tabs).toContain('"/$profileId/sources/import"');
   });
 
-  it("renders the tabs under the title on home, inbox, and sources pages", () => {
+  it("renders nested tabs on inbox and sources, and none on home", () => {
     const home = read(`${routes}/home.tsx`);
-    expect(home).toContain("tabs={<HomeSectionTabRows />}");
+    expect(home).toContain('title="Dashboard"');
+    expect(home).not.toContain("tabs=");
+    expect(home).not.toContain("HomeSectionTabs");
 
     const inbox = read(`${routes}/inbox/route.tsx`);
-    expect(inbox).toContain(
-      "tabs={<HomeSectionTabRows nested={<InboxTabs />} />}",
-    );
+    expect(inbox).toContain('title="Inbox"');
+    expect(inbox).toContain("tabs={<InboxTabs />}");
 
     const connectors = read(`${routes}/sources/connectors.tsx`);
-    expect(connectors).toContain(
-      "tabs={<HomeSectionTabRows nested={<SourcesTabs />} />}",
-    );
+    expect(connectors).toContain("tabs={<SourcesTabs />}");
     const importPage = read(`${routes}/sources/import.tsx`);
-    expect(importPage).toContain(
-      "tabs={<HomeSectionTabRows nested={<SourcesTabs />} />}",
-    );
+    expect(importPage).toContain('title="Sources"');
+    expect(importPage).toContain("tabs={<SourcesTabs />}");
     expect(read("../settings/ConnectorsClient.tsx")).toContain("tabs={tabs}");
   });
 

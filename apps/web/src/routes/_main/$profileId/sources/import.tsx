@@ -1,10 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import ImportPageClient from "@/components/settings/ImportPageClient";
 import { SettingsPage } from "@/components/settings/SettingsPage";
-import {
-  HomeSectionTabRows,
-  SourcesTabs,
-} from "@/components/dashboard/HomeSectionTabs";
+import { SourcesTabs } from "@/components/dashboard/HomeSectionTabs";
 
 export const Route = createFileRoute("/_main/$profileId/sources/import")({
   component: ImportRoute,
@@ -12,11 +9,7 @@ export const Route = createFileRoute("/_main/$profileId/sources/import")({
 
 function ImportRoute() {
   return (
-    <SettingsPage
-      title="Sources"
-      stack={false}
-      tabs={<HomeSectionTabRows nested={<SourcesTabs />} />}
-    >
+    <SettingsPage title="Sources" stack={false} tabs={<SourcesTabs />}>
       <ImportPageClient />
     </SettingsPage>
   );

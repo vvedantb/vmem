@@ -35,16 +35,16 @@ export function sidebarViewLink(page: Page, name: string): Locator {
     .or(page.getByRole("tab", { name, exact: true }));
 }
 
-// Inbox, Sources and their nested views are page tabs in the main panel, not
-// sidebar rows. Inbox carries a trailing pending count, so match by prefix.
+// Nested Inbox and Sources views are page tabs in the main panel, not sidebar
+// rows. Allow an optional trailing count, so match by prefix.
 export function pageTab(page: Page, name: string): Locator {
   return mainContent(page).getByRole("tab", {
     name: new RegExp(`^${name}(\\s+\\d+\\+?)?$`),
   });
 }
 
-// Inbox and Sources are rail tiles with no stacked sidebar content: their
-// nested views must stay page tabs, never sidebar rows.
+// Inbox and Sources are rail tiles with no sidebar panel: their nested views
+// must stay page tabs, never sidebar rows.
 export async function expectNoStackedSidebarRows(
   page: Page,
   names: string[],
@@ -54,16 +54,6 @@ export async function expectNoStackedSidebarRows(
       sidebarPanel(page).getByRole("link", { name, exact: true }),
     ).toHaveCount(0);
   }
-}
-
-// Alternate path to Inbox / Sources via the Home page pills; primary nav
-// uses the rail tiles.
-export async function openHomeSection(
-  page: Page,
-  name: "Inbox" | "Sources",
-): Promise<void> {
-  await clickRail(page, "Home");
-  await pageTab(page, name).click();
 }
 
 export async function openWorkspaceSwitcher(page: Page): Promise<Locator> {
