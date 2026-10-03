@@ -211,7 +211,8 @@ export default function PageContainer({
               : "flex-1 space-y-8",
             centeredMaxWidth && "max-w-5xl mx-auto w-full",
             hasHeader
-              ? "px-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] sm:px-4 md:pb-4"
+              ? // breathing room between the title row and the page body
+                "px-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] pt-2 sm:px-4 md:pb-4 md:pt-3"
               : "px-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] pt-3 sm:px-4 md:pb-4 md:pt-4",
           )}
         >

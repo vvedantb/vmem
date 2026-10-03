@@ -10,6 +10,7 @@ import {
   gotoMemoriesListWithParams,
   openMemoriesList,
   openMemoriesTags,
+  openMemorySearch,
   searchMemories,
 } from "../helpers/memories";
 
@@ -23,9 +24,11 @@ test.describe(
         timeout: 20_000,
       });
       await openMemoriesTags(page);
-      await expect(
-        page.getByRole("textbox", { name: "Search" }),
-      ).toHaveAttribute("placeholder", /Search tags/i);
+      await expect(await openMemorySearch(page)).toHaveAttribute(
+        "placeholder",
+        /Search tags/i,
+      );
+      await page.keyboard.press("Escape");
 
       const profileId = await gotoMemoriesListWithParams(page, {
         view: "tags",

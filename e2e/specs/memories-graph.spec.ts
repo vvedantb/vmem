@@ -14,9 +14,13 @@ test.describe(
       await expect(sidebarViewLink(page, "List")).toBeVisible();
       await expect(sidebarViewLink(page, "Tags")).toBeVisible();
       await expect(sidebarViewLink(page, "Timeline")).toBeVisible();
+      const searchButton = page.getByRole("button", { name: "Search nodes" });
+      await expect(searchButton).toBeVisible();
+      await searchButton.click();
       await expect(
         page.getByRole("textbox", { name: "Search nodes" }),
       ).toBeVisible();
+      await page.keyboard.press("Escape");
       await expect(
         page.getByRole("button", { name: "Add memory" }),
       ).toBeVisible();

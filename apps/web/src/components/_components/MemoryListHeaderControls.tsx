@@ -1,7 +1,7 @@
 // list view controls rendered in the page header
 
 import AddMemoryIconTrigger from "@/components/memories/AddMemoryIconTrigger";
-import HeaderSearchInput from "./HeaderSearchInput";
+import HeaderSearchPopover from "./HeaderSearchPopover";
 import { MemoryFiltersButton } from "@/routes/_main/$profileId/memories/_components/MemoryFiltersButton";
 import { CLEARED_MEMORY_VIEW_FILTERS } from "@/lib/memory-view-filters";
 import { useThemeContext } from "@/contexts/ThemeContext";
@@ -10,8 +10,10 @@ import { useMemoriesSearchParams } from "@/hooks/useMemoriesSearchParams";
 
 export default function MemoryListHeaderControls({
   searchPlaceholder = "Search memories, wiki, and skills...",
+  searchLabel = "Search memories",
 }: {
   searchPlaceholder?: string;
+  searchLabel?: string;
 }) {
   const [params, setParams] = useMemoriesSearchParams();
   const {
@@ -26,11 +28,12 @@ export default function MemoryListHeaderControls({
 
   return (
     <div className="flex items-center gap-1.5">
-      <HeaderSearchInput
+      <HeaderSearchPopover
         value={params.q}
         onChange={(q) => setParams({ q: q.trim().length === 0 ? null : q })}
         placeholder={searchPlaceholder}
-        label="Search"
+        label={searchLabel}
+        inputLabel="Search"
       />
       <MemoryFiltersButton
         filters={filters}

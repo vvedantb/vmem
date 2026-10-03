@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { api } from "@vmem/backend";
@@ -20,6 +21,7 @@ import {
 } from "@/components/workspace/active-profile";
 import { SubSidebarShell } from "./SubSidebarShell";
 import { SidebarHeaderTrailing } from "./SidebarHeaderTrailing";
+import { featureHeaderIconClassName } from "@/components/shell/FeatureAddMenu";
 
 export type WikiSidebarNavProps = {
   isIconOnly: boolean;
@@ -37,6 +39,7 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
       : null;
 
   const nodes = useQuery(api.wiki.listTree, { teamId });
+  const [searchQuery, setSearchQuery] = useState("");
   const createNode = useCreateWikiNode();
 
   const tree = nodes ? buildTree(nodes) : [];
@@ -98,23 +101,37 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
     />
   );
 
-  const selectButton = (
-    <Button
-      type="button"
-      variant="outline"
-      size="icon-sm"
-      aria-label="Select"
-      className="shrink-0"
-      onClick={() => setSelectionMode(true)}
-    >
-      <IconListCheck size={16} />
-    </Button>
-  );
+  const hasNodes = tree.length > 0;
 
+  // search + select + add share the title row (ghost icon-sm)
   return (
     <SubSidebarShell isMobile={isMobile}>
       {!isIconOnly ? (
-        <SidebarHeaderTrailing>{toolbarAddMenu}</SidebarHeaderTrailing>
+        <SidebarHeaderTrailing>
+          <div className="flex items-center gap-0.5">
+            {hasNodes && !selectionMode ? (
+              <>
+                <WikiSearch
+                  query={searchQuery}
+                  onQueryChange={setSearchQuery}
+                  onSelect={handleSelectNode}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Select"
+                  title="Select"
+                  className={featureHeaderIconClassName}
+                  onClick={() => setSelectionMode(true)}
+                >
+                  <IconListCheck size={16} />
+                </Button>
+              </>
+            ) : null}
+            {toolbarAddMenu}
+          </div>
+        </SidebarHeaderTrailing>
       ) : null}
       <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden px-1">
         {nodes === undefined ? (
@@ -130,13 +147,6 @@ export function WikiSidebarNav({ isIconOnly, isMobile }: WikiSidebarNavProps) {
           </div>
         ) : (
           <>
-            {!isIconOnly && !selectionMode ? (
-              <WikiSearch
-                onSelect={handleSelectNode}
-                className="shrink-0"
-                actions={selectButton}
-              />
-            ) : null}
             {!isIconOnly && selectionMode ? (
               <WikiBulkDeleteBar
                 selectedIds={selectedIds}

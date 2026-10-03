@@ -8,8 +8,10 @@ test.describe("files", { tag: ["@files", "@smoke"] }, () => {
       timeout: 20_000,
     });
     await expect(
-      page.getByRole("heading", { name: "No files yet" }),
+      page.getByText(
+        "No files yet. Use Add to upload a file or create a folder.",
+        { exact: true },
+      ),
     ).toBeVisible();
-    await expect(page.getByRole("button", { name: "Upload" })).toBeVisible();
   });
 });

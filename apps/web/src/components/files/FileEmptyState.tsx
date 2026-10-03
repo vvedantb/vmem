@@ -1,48 +1,23 @@
-import { IconFolder, IconUpload } from "@tabler/icons-react";
-import { Button } from "@vmem/ui";
+import { IconFolder } from "@tabler/icons-react";
 
-interface FileEmptyStateLayoutProps {
-  title: string;
-  description: string;
-  onUpload: () => void;
-}
-
-function FileEmptyStateLayout({
-  title,
-  description,
-  onUpload,
-}: FileEmptyStateLayoutProps) {
+// mirrors the skills index empty: centred icon + one muted sentence
+function FileEmptyStateLayout({ message }: { message: string }) {
   return (
-    <div className="flex flex-col items-center justify-center py-20 px-4">
-      <IconFolder size={40} stroke={1.2} className="text-muted/60 mb-3" />
-      <h3 className="text-base font-medium text-foreground mb-1 text-balance">
-        {title}
-      </h3>
-      <p className="text-sm text-muted mb-4">{description}</p>
-      <Button onClick={onUpload} size="sm">
-        <IconUpload size={16} stroke={1.5} />
-        Upload
-      </Button>
+    <div className="flex h-full flex-col items-center justify-center px-4 py-20 text-center">
+      <IconFolder size={40} className="mb-3 text-muted" />
+      <p className="text-sm text-muted">{message}</p>
     </div>
   );
 }
 
-export function FileEmptyStateRoot({ onUpload }: { onUpload: () => void }) {
+export function FileEmptyStateRoot() {
   return (
-    <FileEmptyStateLayout
-      title="No files yet"
-      description="Upload files or create a folder to get started"
-      onUpload={onUpload}
-    />
+    <FileEmptyStateLayout message="No files yet. Use Add to upload a file or create a folder." />
   );
 }
 
-export function FileEmptyStateFolder({ onUpload }: { onUpload: () => void }) {
+export function FileEmptyStateFolder() {
   return (
-    <FileEmptyStateLayout
-      title="This folder is empty"
-      description="Upload files or create a folder"
-      onUpload={onUpload}
-    />
+    <FileEmptyStateLayout message="This folder is empty. Use Add to upload a file or create a folder." />
   );
 }

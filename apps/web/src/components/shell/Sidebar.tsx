@@ -151,8 +151,6 @@ export default function Sidebar({
     section !== "inbox" &&
     section !== "sources";
   const showStats = showWorkspaceSwitcher;
-  const titleAlign =
-    section === "skills" || section === "wiki" ? "start" : "center";
 
   return (
     <>
@@ -243,7 +241,6 @@ export default function Sidebar({
                 title={panelTitleBySection[section]}
                 isMobile={!isDesktopViewport}
                 onClose={closeMobileMenu}
-                titleAlign={titleAlign}
                 trailingRef={setHeaderTrailing}
               />
             </div>

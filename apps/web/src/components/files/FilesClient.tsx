@@ -186,9 +186,9 @@ export default function FilesClient() {
           <div className="h-full overflow-y-auto scrollbar-thin">
             {showEmpty ? (
               isRoot ? (
-                <FileEmptyStateRoot onUpload={actions.openUpload} />
+                <FileEmptyStateRoot />
               ) : (
-                <FileEmptyStateFolder onUpload={actions.openUpload} />
+                <FileEmptyStateFolder />
               )
             ) : params.view === "grid" ? (
               <FileGrid {...sharedItemViewProps} />

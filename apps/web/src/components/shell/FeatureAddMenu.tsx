@@ -7,6 +7,10 @@ import {
 } from "@vmem/ui";
 import type { ReactNode } from "react";
 
+// ghost icon-sm chrome shared by sidebar title-row controls (add, search)
+export const featureHeaderIconClassName =
+  "shrink-0 rounded-lg text-muted transition-colors hover:bg-surface-tertiary/50 hover:text-foreground";
+
 interface FeatureAddMenuProps {
   children: ReactNode;
 }
@@ -20,7 +24,7 @@ export function FeatureAddMenu({ children }: FeatureAddMenuProps) {
           size="icon-sm"
           aria-label="Add"
           title="Add"
-          className="shrink-0 rounded-lg text-muted transition-colors hover:bg-surface-tertiary/50 hover:text-foreground"
+          className={featureHeaderIconClassName}
         >
           <IconPlus size={16} />
         </Button>

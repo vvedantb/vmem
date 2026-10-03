@@ -3,10 +3,13 @@ import { gotoWorkspace } from "../helpers/nav";
 import { sidebarViewLink } from "../helpers/shell";
 import {
   cleanupDisposableMemories,
+  clearSearch,
   createDisposableMemory,
   deleteMemoryByTitle,
   disposableMemoryTitle,
+  memorySearchButton,
   memoryTitle,
+  searchMemories,
 } from "../helpers/memories";
 
 test.describe(
@@ -22,7 +25,7 @@ test.describe(
       });
       await sidebarViewLink(page, "Timeline").click();
       await expect(page).toHaveURL(/\/memories\/timeline/);
-      await expect(page.getByRole("textbox", { name: "Search" })).toBeVisible();
+      await expect(memorySearchButton(page)).toBeVisible();
       await expect(
         page.getByRole("button", { name: "Add memory" }),
       ).toBeVisible();
@@ -45,11 +48,11 @@ test.describe(
       const content = `${title} disposable e2e body`;
 
       await gotoWorkspace(page, "/memories/timeline");
-      await expect(page.getByRole("textbox", { name: "Search" })).toBeVisible({
+      await expect(memorySearchButton(page)).toBeVisible({
         timeout: 20_000,
       });
       await cleanupDisposableMemories(page, "e2e-timeline-");
-      await page.getByRole("textbox", { name: "Search" }).fill("");
+      await clearSearch(page);
 
       try {
         await createDisposableMemory(page, title, content);
@@ -102,17 +105,15 @@ test.describe(
         ).toBeVisible();
         await page.getByRole("button", { name: "Close panel" }).click();
 
-        await page.getByRole("textbox", { name: "Search" }).fill(title);
+        await searchMemories(page, title);
         await expect(memoryTitle(page, title)).toBeVisible();
-        await page
-          .getByRole("textbox", { name: "Search" })
-          .fill("zzz-no-such-e2e-xyz");
+        await searchMemories(page, "zzz-no-such-e2e-xyz");
         const noResults = page.getByRole("heading", {
           name: "No results found",
         });
         // prod retrieve still returns semantic neighbors until this PR deploys
         await expect(noResults.or(slider)).toBeVisible();
-        await page.getByRole("textbox", { name: "Search" }).fill("");
+        await clearSearch(page);
         await expect(slider).toBeVisible();
 
         await sidebarViewLink(page, "List").click();
