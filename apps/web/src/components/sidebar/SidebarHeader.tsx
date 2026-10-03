@@ -16,7 +16,7 @@ export function SidebarHeader({
   trailingRef,
 }: SidebarHeaderProps) {
   return (
-    <div className="flex h-11 items-center gap-1 px-1">
+    <div className="flex h-11 items-center gap-1 pl-3 pr-1">
       <h1 className="min-w-0 flex-1 truncate text-left text-base font-semibold leading-none tracking-tight text-foreground">
         {title}
       </h1>
