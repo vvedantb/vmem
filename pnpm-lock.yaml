@@ -208,10 +208,16 @@ importers:
         version: https://codeload.github.com/vvedantb/vv-ui/tar.gz/68406d7f0bc72a162789742c871fbf0b3df51ec1#path:packages/tokens
       '@vv/ui':
         specifier: github:vvedantb/vv-ui#main&path:packages/ui
-        version: https://codeload.github.com/vvedantb/vv-ui/tar.gz/68406d7f0bc72a162789742c871fbf0b3df51ec1#path:packages/ui(76390d66c804f57e4a9e7396f19bad6d)
+        version: https://codeload.github.com/vvedantb/vv-ui/tar.gz/68406d7f0bc72a162789742c871fbf0b3df51ec1#path:packages/ui(146c0acae7f8ca91b7fde30284723dd8)
       '@webext-core/messaging':
         specifier: ^2.3.0
         version: 2.3.0
+      class-variance-authority:
+        specifier: 'catalog:'
+        version: 0.7.1
+      clsx:
+        specifier: 'catalog:'
+        version: 2.1.1
       convex:
         specifier: 'catalog:'
         version: 1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6)
@@ -233,6 +239,9 @@ importers:
       shadow-plugin:
         specifier: 'catalog:'
         version: 1.2.7
+      tailwind-merge:
+        specifier: 'catalog:'
+        version: 2.6.1
       turndown:
         specifier: ^7.2.4
         version: 7.2.4
@@ -14179,7 +14188,7 @@ snapshots:
 
   '@vv/tokens@https://codeload.github.com/vvedantb/vv-ui/tar.gz/68406d7f0bc72a162789742c871fbf0b3df51ec1#path:packages/tokens': {}
 
-  '@vv/ui@https://codeload.github.com/vvedantb/vv-ui/tar.gz/68406d7f0bc72a162789742c871fbf0b3df51ec1#path:packages/ui(76390d66c804f57e4a9e7396f19bad6d)':
+  '@vv/ui@https://codeload.github.com/vvedantb/vv-ui/tar.gz/68406d7f0bc72a162789742c871fbf0b3df51ec1#path:packages/ui(146c0acae7f8ca91b7fde30284723dd8)':
     dependencies:
       '@radix-ui/react-accordion': 1.2.20(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@radix-ui/react-checkbox': 1.3.11(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -14219,7 +14228,7 @@ snapshots:
       shiki: 4.5.0
       sonner: 2.0.7(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       streamdown: 2.7.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      tailwind-merge: 3.7.0
+      tailwind-merge: 2.6.1
       use-stick-to-bottom: 1.1.6(react@19.3.0)
       vaul: 1.1.2(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
 
