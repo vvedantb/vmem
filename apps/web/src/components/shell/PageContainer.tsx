@@ -99,9 +99,12 @@ export default function PageContainer({
             centeredMaxWidth && "mx-auto w-full max-w-5xl",
           )}
         >
+          {/* min-h-10 matches the right-action slot so the title row keeps
+              the same height with or without rightSection (no layout shift) */}
           <div
+            data-page-header-row
             className={cn(
-              "relative items-center gap-2 sm:gap-3",
+              "relative items-center gap-2 sm:gap-3 min-h-10",
               hasHeaderRight && hasLeftChrome
                 ? "grid grid-cols-[minmax(0,1fr)_minmax(0,auto)] md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]"
                 : hasHeaderRight
