@@ -1,6 +1,6 @@
 # Playwright E2E (web)
 
-Durable browser suite for the vmem web app. Default target is production so CI and other agents do not need a local Convex/Clerk stack.
+Durable browser suite for the vmem web app. Default target is production so agents do not need a local Convex/Clerk stack.
 
 **App:** https://vmem.vedantb.com  
 **Convex prod:** clear-bear-690  
@@ -21,8 +21,6 @@ Never commit passwords. Copy `e2e/.env.example` to `e2e/.env.local` or export:
 | `E2E_WEB_SERVER`    | no                          | unset. Set `1` to boot `pnpm --filter web dev` |
 
 Without `E2E_USER_PASSWORD`, only the signed-out `unauth` project (landing, public SEO, docs skip) runs.
-
-GitHub Actions: set repository secrets `E2E_USER_EMAIL` and `E2E_USER_PASSWORD`. The `e2e.yml` workflow already wires them through.
 
 ## Commands
 
@@ -88,15 +86,6 @@ HTML report: `e2e/playwright-report/` (open with `pnpm exec playwright show-repo
 | `e2e/specs/`               | one file per product area (`auth.spec.ts` session restore; `sign-out.spec.ts` last) |
 
 Authenticated tests depend on the `setup` project. Landing runs without storage so signed-in redirects cannot hide the marketing page. **Sign-out is a separate `signout` project that depends on `chromium`** — Clerk invalidates the shared Eva session, so it must not run in parallel with other authenticated specs. The sign-out spec signs back in and rewrites `e2e/.auth/user.json`.
-
-## CI
-
-`.github/workflows/e2e.yml`:
-
-- **PRs / pushes to main+staging:** `@smoke`
-- **Nightly cron + workflow_dispatch `full`:** entire suite
-
-Unit CI in `test.yml` is unchanged.
 
 ## Known flakes
 
