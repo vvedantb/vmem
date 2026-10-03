@@ -1,13 +1,19 @@
-import { readFileSync, readdirSync } from "node:fs";
-import { createRequire } from "node:module";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 const webSrc = dirname(fileURLToPath(import.meta.url));
 const webApp = join(webSrc, "..");
-const require = createRequire(import.meta.url);
-const uiSrc = join(dirname(require.resolve("@vv/ui/package.json")), "src");
+const uiSrcCandidates = [
+  join(webApp, "node_modules/@vv/ui/src"),
+  join(webApp, "../../node_modules/@vv/ui/src"),
+];
+const uiSrc = uiSrcCandidates.find((dir) => existsSync(dir));
+if (uiSrc === undefined) {
+  throw new Error("@vv/ui source not installed");
+}
+const sharedUiSrc: string = uiSrc;
 
 const cssRules = stripComments(
   readFileSync(join(webSrc, "globals.css"), "utf8").replaceAll("\r\n", "\n"),
@@ -39,7 +45,7 @@ function styledSources(): Array<{ path: string; source: string }> {
     }
   };
   walk(webSrc);
-  walk(uiSrc);
+  walk(sharedUiSrc);
   expect(files.length, "no sources found").toBeGreaterThan(50);
   return files;
 }
@@ -96,7 +102,7 @@ describe("the reveal-on-hover utility", () => {
 describe("small Button sizes", () => {
   function sizeDeclaration(size: string): string {
     const button = stripComments(
-      readFileSync(join(uiSrc, "ui", "button.tsx"), "utf8"),
+      readFileSync(join(sharedUiSrc, "ui", "button.tsx"), "utf8"),
     ).replaceAll(/\/\/.*$/gm, "");
     const variants = button.slice(
       button.indexOf("size:"),
@@ -125,7 +131,7 @@ describe("small Button sizes", () => {
 describe("the TabsList primitive", () => {
   it("scrolls its own overflow on a phone, and only there", () => {
     const tabs = stripComments(
-      readFileSync(join(uiSrc, "ui", "tabs.tsx"), "utf8"),
+      readFileSync(join(sharedUiSrc, "ui", "tabs.tsx"), "utf8"),
     ).replaceAll(/\/\/.*$/gm, "");
     expect(tabs).toContain("max-sm:overflow-x-auto");
     expect(tabs).toContain("max-sm:max-w-full");
@@ -137,7 +143,7 @@ describe("the TabsList primitive", () => {
 describe("the Table primitive", () => {
   it("scrolls wide tables inside their own box on a phone", () => {
     const table = stripComments(
-      readFileSync(join(uiSrc, "ui", "table.tsx"), "utf8"),
+      readFileSync(join(sharedUiSrc, "ui", "table.tsx"), "utf8"),
     ).replaceAll(/\/\/.*$/gm, "");
     const wrapper = table.slice(0, table.indexOf("<table"));
     expect(wrapper, "the wrapper has to be able to scroll").toMatch(
@@ -159,7 +165,7 @@ describe("floating overlays", () => {
   ] as const;
 
   it.each(overlays)("%s caps its width against the viewport", (file) => {
-    const source = readFileSync(join(uiSrc, "ui", file), "utf8");
+    const source = readFileSync(join(sharedUiSrc, "ui", file), "utf8");
     expect(source, "an overlay can be wider than a 320px screen").toMatch(
       /\bmax-w-\[calc\(100vw-|\bw-\[calc\(100vw-/,
     );
