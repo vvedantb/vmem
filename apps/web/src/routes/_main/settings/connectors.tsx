@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@vmem/backend";
@@ -7,7 +7,7 @@ import { WorkspaceEntryRedirect } from "@/components/workspace/WorkspaceEntryRed
 
 // Seed-on-visit stays in this grandfathered file (useEffect allowlist).
 // Sources → Connectors renders `ConnectorsScreen`; this route only redirects.
-export function ConnectorsScreen() {
+export function ConnectorsScreen({ tabs }: { tabs?: ReactNode }) {
   const connectors = useQuery(api.connectors.crud.listMy);
   const seedDefaults = useMutation(api.connectors.crud.seedDefaults);
   const seededRef = useRef(false);
@@ -19,7 +19,7 @@ export function ConnectorsScreen() {
     }
   }, [connectors, seedDefaults]);
 
-  return <ConnectorsClient connectors={connectors} />;
+  return <ConnectorsClient connectors={connectors} tabs={tabs} />;
 }
 
 export const Route = createFileRoute("/_main/settings/connectors")({

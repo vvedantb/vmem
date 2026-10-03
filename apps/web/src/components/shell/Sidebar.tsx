@@ -13,8 +13,6 @@ import { Button, cn, motionEase, motionTiming } from "@vmem/ui";
 import { useUser } from "@clerk/clerk-react";
 import { useConvexAuth, useAction, useQuery } from "convex/react";
 import { api } from "@vmem/backend";
-import { useNotifications } from "@/contexts/NotificationContext";
-import { useProposals } from "@/hooks/useProposals";
 import { useMemoryEvents } from "@/hooks/useMemoryEvents";
 import { MorphingMenuIcon } from "@/components/icons/animations";
 import { SidebarNavigation } from "@/components/sidebar/SidebarNavigation";
@@ -59,8 +57,6 @@ export default function Sidebar({
   const mobileMenuId = useId();
   const { isLoaded } = useUser();
   const isAuthLoading = !isLoaded;
-  const { unreadCount } = useNotifications();
-  const { pendingCount: proposalsCount } = useProposals();
   const { pageTitle } = usePageTitle();
 
   const { isAuthenticated } = useConvexAuth();
@@ -147,9 +143,7 @@ export default function Sidebar({
     section !== "settings" &&
     section !== "skills" &&
     section !== "wiki" &&
-    section !== "memories" &&
-    section !== "inbox" &&
-    section !== "sources";
+    section !== "memories";
   const showStats = showWorkspaceSwitcher;
 
   return (
@@ -219,8 +213,6 @@ export default function Sidebar({
           pathname={pathname}
           profileId={activeProfileId}
           isTeamWorkspace={isTeamWorkspace}
-          unreadCount={unreadCount}
-          proposalsCount={proposalsCount}
           isCollapsed={isCollapsed}
           isAuthLoading={isAuthLoading}
           onToggleCollapse={onToggleCollapse}

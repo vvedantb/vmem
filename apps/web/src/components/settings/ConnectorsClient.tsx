@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Skeleton, Button } from "@vmem/ui";
 import { IconPlug, IconPlus } from "@tabler/icons-react";
 import type { FunctionReturnType } from "convex/server";
@@ -24,14 +24,17 @@ function BrowseButton({ onClick }: { onClick: () => void }) {
 
 export function ConnectorsClient({
   connectors,
+  tabs,
 }: {
   connectors: Connector[] | undefined;
+  /** Section tabs (Dashboard | Inbox | Sources, Connectors | Import). */
+  tabs?: ReactNode;
 }) {
   const [showBrowse, setShowBrowse] = useState(false);
 
   if (connectors === undefined) {
     return (
-      <SettingsPage title="Connectors">
+      <SettingsPage title="Sources" tabs={tabs}>
         <SettingsSection
           title="Connected"
           bodyClassName="grid gap-4 md:grid-cols-2"
@@ -57,7 +60,8 @@ export function ConnectorsClient({
   return (
     <>
       <SettingsPage
-        title="Connectors"
+        title="Sources"
+        tabs={tabs}
         headerRight={<BrowseButton onClick={() => setShowBrowse(true)} />}
       >
         <SettingsSection

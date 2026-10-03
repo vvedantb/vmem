@@ -4,7 +4,6 @@ import { Button, cn } from "@vmem/ui";
 import type { NavHref, NavItem } from "./types";
 import {
   homeRailHref,
-  inboxRailItem,
   isRailItemActive,
   navHrefToPath,
   railLibraryItems,
@@ -13,25 +12,19 @@ import {
   type SidebarLayout,
 } from "./nav-config";
 import { SidebarIconTooltip } from "./SidebarIconTooltip";
-import {
-  RAIL_BADGE_CLASS,
-  RAIL_TILE_CLASS,
-  railTileStateClass,
-} from "./sidebar-nav-row";
+import { RAIL_TILE_CLASS, railTileStateClass } from "./sidebar-nav-row";
 import { VmemDrawInIcon } from "../icons/animations";
 
 export function RailLinkTile({
   label,
   to,
   active,
-  badge,
   onNavigate,
   children,
 }: {
   label: string;
   to: string;
   active: boolean;
-  badge?: ReactNode;
   onNavigate?: MouseEventHandler<HTMLAnchorElement>;
   children: ReactNode;
 }) {
@@ -45,7 +38,6 @@ export function RailLinkTile({
         className={cn(RAIL_TILE_CLASS, "group", railTileStateClass(active))}
       >
         {children}
-        {badge}
       </Link>
     </SidebarIconTooltip>
   );
@@ -87,15 +79,11 @@ function RailNavItem({
   item,
   pathname,
   profileId,
-  unreadCount,
-  proposalsCount,
   onNavigate,
 }: {
   item: NavItem;
   pathname: string;
   profileId: string | undefined;
-  unreadCount: number;
-  proposalsCount: number;
   onNavigate?: MouseEventHandler<HTMLAnchorElement>;
 }) {
   const Icon = item.icon;
@@ -105,9 +93,6 @@ function RailNavItem({
     item.href === teamRailItem.href
       ? section === "team"
       : isRailItemActive(item.href, pathname, profileId);
-  const badgeCount = item.href.endsWith("/inbox")
-    ? proposalsCount + unreadCount
-    : 0;
 
   return (
     <RailLinkTile
@@ -115,13 +100,6 @@ function RailNavItem({
       to={resolvedPath}
       active={active}
       onNavigate={onNavigate}
-      badge={
-        badgeCount > 0 ? (
-          <span className={RAIL_BADGE_CLASS}>
-            {badgeCount > 99 ? "99+" : badgeCount}
-          </span>
-        ) : null
-      }
     >
       <Icon size={22} stroke={1.7} />
     </RailLinkTile>
@@ -133,8 +111,6 @@ export type SidebarRailNavProps = {
   pathname: string;
   profileId: string | undefined;
   isTeamWorkspace: boolean;
-  unreadCount: number;
-  proposalsCount: number;
   onNavigate?: MouseEventHandler<HTMLAnchorElement>;
 };
 
@@ -142,8 +118,6 @@ export function SidebarRailNav({
   pathname,
   profileId,
   isTeamWorkspace,
-  unreadCount,
-  proposalsCount,
   onNavigate,
 }: SidebarRailNavProps) {
   const homePath = navHrefToPath(homeRailHref satisfies NavHref, profileId);
@@ -160,14 +134,6 @@ export function SidebarRailNav({
         >
           <VmemDrawInIcon size={22} className="text-current" />
         </RailLinkTile>
-        <RailNavItem
-          item={inboxRailItem}
-          pathname={pathname}
-          profileId={profileId}
-          unreadCount={unreadCount}
-          proposalsCount={proposalsCount}
-          onNavigate={onNavigate}
-        />
         <RailDivider />
       </div>
       <div className="flex w-full flex-1 flex-col items-center gap-1.5 overflow-y-auto py-2 scrollbar-thin">
@@ -177,8 +143,6 @@ export function SidebarRailNav({
             item={item}
             pathname={pathname}
             profileId={profileId}
-            unreadCount={unreadCount}
-            proposalsCount={proposalsCount}
             onNavigate={onNavigate}
           />
         ))}
@@ -189,8 +153,6 @@ export function SidebarRailNav({
               item={teamRailItem}
               pathname={pathname}
               profileId={profileId}
-              unreadCount={unreadCount}
-              proposalsCount={proposalsCount}
               onNavigate={onNavigate}
             />
           </>

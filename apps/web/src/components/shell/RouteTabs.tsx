@@ -8,6 +8,8 @@ interface RouteTabItem {
   to: LinkProps["to"];
   label: string;
   icon?: ReactNode;
+  // trailing count or status after the label (e.g. Inbox pending total)
+  badge?: ReactNode;
 }
 
 type MatchRoute = ReturnType<typeof useMatchRoute>;
@@ -44,6 +46,7 @@ export function RouteTabs({
             >
               {tab.icon}
               <span>{tab.label}</span>
+              {tab.badge}
             </Link>
           </TabsTrigger>
         ))}

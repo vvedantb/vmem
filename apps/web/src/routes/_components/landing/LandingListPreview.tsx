@@ -105,7 +105,7 @@ function DetailPanel({ memory }: { memory: DemoMemory }) {
         }}
         className="mt-3 flex min-h-0 flex-1 flex-col"
       >
-        <TabsList>
+        <TabsList variant="segmented">
           <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="connections">Connections</TabsTrigger>
         </TabsList>

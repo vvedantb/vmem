@@ -133,6 +133,7 @@
     --tabs-text-active: var(--segment-foreground);
     --tabs-bar-bg: var(--default);
     --tabs-pill-bg: var(--segment);
+    --tabs-pill-active-bg: var(--default);
   }
 
   .dark,
@@ -188,6 +189,7 @@
     --tabs-text-active: var(--segment-foreground);
     --tabs-bar-bg: var(--default);
     --tabs-pill-bg: var(--segment);
+    --tabs-pill-active-bg: var(--default);
   }
 }
 
@@ -339,11 +341,21 @@
     position: relative;
     display: inline-flex;
     align-items: center;
+    max-width: 100%;
+  }
+  /* Connected segmented bar with a sliding pill — marketing only. */
+  .t-tabs--segmented {
     gap: 3px;
     padding: 3px;
     border-radius: 48px;
     background: var(--tabs-bar-bg);
-    max-width: 100%;
+  }
+  /* Isolated pills — product default. No shared track; each tab owns its
+     outline and the selected tab takes a light fill. */
+  .t-tabs--pills {
+    gap: 6px;
+    padding: 0;
+    background: transparent;
   }
   @media (max-width: 639px) {
     .t-tabs {
@@ -372,6 +384,28 @@
   .t-tab[aria-selected="true"],
   .t-tab[data-state="active"] {
     color: var(--tabs-text-active);
+  }
+  .t-tabs--pills .t-tab {
+    flex-shrink: 0;
+    height: 32px;
+    padding: 4px 14px;
+    border: 1px solid var(--border);
+    transition:
+      color var(--tabs-dur) var(--tabs-ease),
+      background-color var(--tabs-dur) var(--tabs-ease),
+      border-color var(--tabs-dur) var(--tabs-ease);
+  }
+  .t-tabs--pills
+    .t-tab:not([aria-selected="true"]):not([data-state="active"]):hover {
+    background: color-mix(
+      in oklch,
+      var(--tabs-pill-active-bg) 50%,
+      transparent
+    );
+  }
+  .t-tabs--pills .t-tab[aria-selected="true"],
+  .t-tabs--pills .t-tab[data-state="active"] {
+    background: var(--tabs-pill-active-bg);
   }
   .t-tabs-pill {
     position: absolute;

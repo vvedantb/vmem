@@ -35,6 +35,22 @@ export function sidebarViewLink(page: Page, name: string): Locator {
     .or(page.getByRole("tab", { name, exact: true }));
 }
 
+// Inbox, Sources and their nested views are page tabs in the main panel, not
+// sidebar rows. Inbox carries a trailing pending count, so match by prefix.
+export function pageTab(page: Page, name: string): Locator {
+  return mainContent(page).getByRole("tab", {
+    name: new RegExp(`^${name}(\\s+\\d+\\+?)?$`),
+  });
+}
+
+export async function openHomeSection(
+  page: Page,
+  name: "Inbox" | "Sources",
+): Promise<void> {
+  await clickRail(page, "Home");
+  await pageTab(page, name).click();
+}
+
 export async function openWorkspaceSwitcher(page: Page): Promise<Locator> {
   const trigger = sidebarPanel(page)
     .locator("button")

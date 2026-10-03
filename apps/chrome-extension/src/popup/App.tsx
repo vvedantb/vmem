@@ -73,7 +73,7 @@ function SignedInContent() {
       <EnsureUser />
       <TokenSync />
       <Tabs defaultValue="save" className="flex min-h-0 flex-1 flex-col">
-        <TabsList className="mx-5 mt-4 w-auto shrink-0">
+        <TabsList variant="segmented" className="mx-5 mt-4 w-auto shrink-0">
           <TabsTrigger value="save" className="flex-1 gap-1.5">
             <IconDeviceFloppy size={16} stroke={1.8} />
             Save
