@@ -14,7 +14,7 @@ import {
   DialogDescription,
   DialogFooter,
   cn,
-} from "@vmem/ui";
+} from "@vv/ui";
 import { useUser, useClerk } from "@clerk/clerk-react";
 import {
   IconUserCog,

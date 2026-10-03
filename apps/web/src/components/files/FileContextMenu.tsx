@@ -6,7 +6,7 @@ import {
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
-} from "@vmem/ui";
+} from "@vv/ui";
 import type { FileNodeAction } from "./fileItemActions";
 
 interface FileContextMenuProps {

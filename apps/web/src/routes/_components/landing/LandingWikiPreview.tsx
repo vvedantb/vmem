@@ -4,7 +4,7 @@ import {
   IconFileText,
   IconFolder,
 } from "@tabler/icons-react";
-import { Button, cn } from "@vmem/ui";
+import { Button, cn } from "@vv/ui";
 import { demoWikiTree, type DemoWikiNode } from "./landing-preview-data";
 
 function flattenDocs(node: DemoWikiNode): DemoWikiNode[] {

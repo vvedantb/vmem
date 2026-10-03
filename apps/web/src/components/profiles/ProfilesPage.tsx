@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useAction } from "convex/react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Button, Skeleton } from "@vmem/ui";
+import { Button, Skeleton } from "@vv/ui";
 import { IconPlus } from "@tabler/icons-react";
 import { api, type Id } from "@vmem/backend";
 import { tempId } from "@/lib/convex-optimistic";

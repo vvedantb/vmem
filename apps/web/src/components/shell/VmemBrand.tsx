@@ -1,4 +1,4 @@
-import { cn } from "@vmem/ui";
+import { cn } from "@vv/ui";
 import { VmemDrawInIcon } from "@/components/icons/animations";
 
 const brandTextClassName =

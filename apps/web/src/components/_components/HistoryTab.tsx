@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { IconClockHour4 } from "@tabler/icons-react";
-import { Button, cn } from "@vmem/ui";
+import { Button, cn } from "@vv/ui";
 import { formatDateTime } from "@vmem/shared";
 import { useMemoryTimeline } from "@/hooks/useMemoryTimeline";
 import { buildVersionChain, type VersionEntry } from "@/lib/timeline";

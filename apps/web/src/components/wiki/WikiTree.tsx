@@ -20,7 +20,7 @@ import DeleteConfirmDialog from "./DeleteConfirmDialog";
 import { WikiTreeRow } from "./WikiTreeItem";
 import { defaultWikiNodeTitle, useCreateWikiNode } from "./useCreateWikiNode";
 import { useActiveTeamId } from "@/components/workspace/active-profile";
-import { cn } from "@vmem/ui";
+import { cn } from "@vv/ui";
 import {
   removeWikiNodesFromLists,
   renameWikiNodeInLists,

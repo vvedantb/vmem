@@ -1,11 +1,13 @@
 import { readFileSync, readdirSync } from "node:fs";
+import { createRequire } from "node:module";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 const webSrc = dirname(fileURLToPath(import.meta.url));
 const webApp = join(webSrc, "..");
-const uiSrc = join(webSrc, "..", "..", "..", "packages", "ui", "src");
+const require = createRequire(import.meta.url);
+const uiSrc = join(dirname(require.resolve("@vv/ui/package.json")), "src");
 
 const cssRules = stripComments(
   readFileSync(join(webSrc, "globals.css"), "utf8").replaceAll("\r\n", "\n"),

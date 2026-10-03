@@ -3,7 +3,7 @@ import { useQuery } from "convex/react";
 import { useDebounceValue } from "usehooks-ts";
 import { IconCode, IconFileText, IconFolder } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
-import { Button } from "@vmem/ui";
+import { Button } from "@vv/ui";
 import HeaderSearchPopover from "@/components/_components/HeaderSearchPopover";
 import { featureHeaderIconClassName } from "@/components/shell/FeatureAddMenu";
 import { useActiveTeamId } from "@/components/workspace/active-profile";

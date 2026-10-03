@@ -5,7 +5,7 @@ import {
   TableBody,
   TableRow,
   TableHead,
-} from "@vmem/ui";
+} from "@vv/ui";
 import type { Id } from "@vmem/backend";
 import type { FileTreeNode } from "./-types";
 import FileListRow from "./FileListRow";

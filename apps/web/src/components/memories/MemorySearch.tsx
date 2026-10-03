@@ -2,7 +2,7 @@ import { startTransition, useState, useEffect, ViewTransition } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAction } from "convex/react";
 import { useQuery } from "@tanstack/react-query";
-import { Button, cn } from "@vmem/ui";
+import { Button, cn } from "@vv/ui";
 import {
   IconAlertCircle,
   IconMoodEmpty,

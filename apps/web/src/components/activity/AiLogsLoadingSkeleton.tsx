@@ -1,4 +1,4 @@
-import { Card, CardContent, Skeleton } from "@vmem/ui";
+import { Card, CardContent, Skeleton } from "@vv/ui";
 
 export function AiLogsLoadingSkeleton() {
   return (

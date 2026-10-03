@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Button, Input, Textarea, Badge } from "@vmem/ui";
+import { Button, Input, Textarea, Badge } from "@vv/ui";
 import { toast } from "sonner";
 import { IconCheck, IconLoader2 } from "@tabler/icons-react";
 import type { Memory } from "@/lib/memories";

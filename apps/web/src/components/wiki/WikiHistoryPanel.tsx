@@ -11,7 +11,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@vmem/ui";
+} from "@vv/ui";
 import { IconHistory, IconLoader2 } from "@tabler/icons-react";
 import { formatRelativeTime } from "@vmem/shared";
 import { wikiEditorExtensions } from "./_editorExtensions";

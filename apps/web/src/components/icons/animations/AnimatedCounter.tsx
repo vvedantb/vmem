@@ -4,7 +4,7 @@
 
 import { motion, useSpring, useTransform, useInView } from "motion/react";
 import { useEffect, useRef } from "react";
-import { cn } from "@vmem/ui";
+import { cn } from "@vv/ui";
 
 interface AnimatedCounterProps {
   // target value to count up to

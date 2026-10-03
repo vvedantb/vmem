@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ComponentType } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Button } from "@vmem/ui";
+import { Button } from "@vv/ui";
 import {
   IconAlertTriangle,
   IconGitMerge,

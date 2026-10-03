@@ -6,7 +6,7 @@ import {
   TableHead,
   TableBody,
   TableRow,
-} from "@vmem/ui";
+} from "@vv/ui";
 import { IconPlus } from "@tabler/icons-react";
 import { AnimatedKeyIcon, VmemSpinner } from "@/components/icons/animations";
 import ApiKeyModal from "@/components/api-keys/ApiKeyModal";

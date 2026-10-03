@@ -1,6 +1,6 @@
 import type { KeyboardEvent, ReactNode } from "react";
 import type { Doc } from "@vmem/backend";
-import { Checkbox, cn } from "@vmem/ui";
+import { Checkbox, cn } from "@vv/ui";
 import { sidebarListRowClass } from "@/components/sidebar/sidebar-nav-row";
 
 interface SkillCardShellProps {

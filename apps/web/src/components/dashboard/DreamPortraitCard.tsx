@@ -1,4 +1,4 @@
-import { Card, CardContent } from "@vmem/ui";
+import { Card, CardContent } from "@vv/ui";
 import { IconMoonStars } from "@tabler/icons-react";
 import { useActiveProfile } from "../workspace/active-profile";
 import { formatRelativeTime } from "@vmem/shared";

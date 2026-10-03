@@ -1,6 +1,6 @@
 import { motion } from "motion/react";
 import type { Variants } from "motion/react";
-import { motionEase } from "@vmem/ui";
+import { motionEase } from "@vv/ui";
 import { VmemBrand } from "@/components/shell/VmemBrand";
 import { SlideAmbientGraph } from "../_components/SlideAmbientGraph";
 import { SlideReveal, SlideShell } from "../_components/SlideShell";

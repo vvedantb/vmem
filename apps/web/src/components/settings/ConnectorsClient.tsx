@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Skeleton, Button } from "@vmem/ui";
+import { Skeleton, Button } from "@vv/ui";
 import { IconPlug, IconPlus } from "@tabler/icons-react";
 import type { FunctionReturnType } from "convex/server";
 import type { api } from "@vmem/backend";

@@ -2,7 +2,7 @@
 // Modified by me: mobile padding and motion duration
 import type { ReactNode } from "react";
 import { motion } from "motion/react";
-import { cn, motionDuration, motionEase } from "@vmem/ui";
+import { cn, motionDuration, motionEase } from "@vv/ui";
 
 type SubSidebarShellProps = {
   isMobile: boolean;

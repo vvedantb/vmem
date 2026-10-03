@@ -1,7 +1,7 @@
 import { useContext } from "react";
 import { IconSearch } from "@tabler/icons-react";
 import { motion } from "motion/react";
-import { motionDuration, motionEase } from "@vmem/ui";
+import { motionDuration, motionEase } from "@vv/ui";
 import { SlideStepContext } from "./SlideShell";
 
 export interface TraceMatchRow {

@@ -9,7 +9,8 @@
     "typecheck": "tsc -p tsconfig.json",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "postinstall": "node ./scripts/build-vv-shell.mjs"
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.22.4",
@@ -19,6 +20,7 @@
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-checkbox": "catalog:",
     "@radix-ui/react-collapsible": "catalog:",
+    "@radix-ui/react-context-menu": "catalog:",
     "@radix-ui/react-dialog": "catalog:",
     "@radix-ui/react-dropdown-menu": "catalog:",
     "@radix-ui/react-hover-card": "catalog:",
@@ -43,7 +45,9 @@
     "@tiptap/starter-kit": "^3.22.3",
     "@vmem/backend": "workspace:*",
     "@vmem/shared": "workspace:*",
-    "@vmem/ui": "workspace:*",
+    "@vv/shell": "github:vvedantb/vv-ui#main&path:packages/shell",
+    "@vv/tokens": "github:vvedantb/vv-ui#main&path:packages/tokens",
+    "@vv/ui": "github:vvedantb/vv-ui#main&path:packages/ui",
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",
     "cmdk": "catalog:",

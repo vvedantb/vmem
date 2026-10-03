@@ -2,7 +2,7 @@ import { useContext } from "react";
 import type { ComponentType } from "react";
 import { IconMoonStars, IconCheck } from "@tabler/icons-react";
 import { motion } from "motion/react";
-import { motionDuration, motionEase } from "@vmem/ui";
+import { motionDuration, motionEase } from "@vv/ui";
 import { SlideStepContext } from "./SlideShell";
 
 interface IconProps {

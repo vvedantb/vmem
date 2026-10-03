@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Button, Checkbox, cn, TabsPrimitive } from "@vmem/ui";
+import { Button, Checkbox, cn, TabsPrimitive } from "@vv/ui";
 import { Virtuoso } from "react-virtuoso";
 import { isCheckedByDefault, toggleCheckedByDefault } from "./shared";
 

@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "motion/react";
-import { Button, motionEase, motionDuration } from "@vmem/ui";
+import { Button, motionEase, motionDuration } from "@vv/ui";
 import {
   IconDownload,
   IconFolderSymlink,

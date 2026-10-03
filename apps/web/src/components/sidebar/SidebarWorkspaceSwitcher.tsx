@@ -14,7 +14,7 @@ import {
   DropdownMenuSeparator,
   Skeleton,
   cn,
-} from "@vmem/ui";
+} from "@vv/ui";
 import {
   IconCheck,
   IconPlus,

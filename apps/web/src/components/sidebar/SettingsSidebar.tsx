@@ -1,6 +1,6 @@
 import type { MouseEventHandler } from "react";
 import { motion } from "motion/react";
-import { cn, motionDuration, motionEase } from "@vmem/ui";
+import { cn, motionDuration, motionEase } from "@vv/ui";
 import { settingsNavGroups } from "./nav-config";
 import { NavLink } from "./NavLink";
 import { SharedLayoutBackground } from "./SharedLayoutBackground";

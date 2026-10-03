@@ -1,6 +1,6 @@
 // AI-generated (Claude), prompt: "vmem logo spinner as a branded loading indicator"
 // Modified by me: size prop and currentcolor styling
-import { cn } from "@vmem/ui";
+import { cn } from "@vv/ui";
 import { VmemPaths } from "./VmemPaths";
 
 interface VmemSpinnerProps {

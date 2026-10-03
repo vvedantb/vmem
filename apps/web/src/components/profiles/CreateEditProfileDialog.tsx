@@ -9,7 +9,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@vmem/ui";
+} from "@vv/ui";
 import { IconLoader2 } from "@tabler/icons-react";
 import type { Doc } from "@vmem/backend";
 import { convexErrorMessage } from "@/lib/convex-error";

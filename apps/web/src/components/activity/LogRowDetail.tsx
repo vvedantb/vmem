@@ -4,7 +4,7 @@ import {
   DialogHeader,
   DialogTitle,
   Badge,
-} from "@vmem/ui";
+} from "@vv/ui";
 import { formatDateTime } from "@vmem/shared";
 import type { AiLogRow, ProfileListItem } from "./types";
 import { featureLabelFor, formatLogCost } from "./_aiLogsUtils";

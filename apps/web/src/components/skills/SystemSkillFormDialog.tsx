@@ -11,7 +11,7 @@ import {
   Input,
   Label,
   Switch,
-} from "@vmem/ui";
+} from "@vv/ui";
 import { toast } from "sonner";
 import type { SystemSkillEntry } from "@/components/skills/_utils";
 import { SkillFormShell } from "@/components/skills/SkillFormShell";

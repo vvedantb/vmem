@@ -6,7 +6,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@vmem/ui";
+} from "@vv/ui";
 import type { ExportImportRow } from "@/lib/chat-export/importRows";
 
 type SelectImportRowsModalProps = {

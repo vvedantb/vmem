@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "convex/react";
 import { api } from "@vmem/backend";
 import type { Doc } from "@vmem/backend";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@vmem/ui";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@vv/ui";
 import { toast } from "sonner";
 import { SkillFormShell } from "@/components/skills/SkillFormShell";
 import {

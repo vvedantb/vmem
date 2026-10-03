@@ -1,4 +1,4 @@
-import { Skeleton } from "@vmem/ui";
+import { Skeleton } from "@vv/ui";
 import { SettingsPage } from "@/components/settings/SettingsPage";
 import { SettingsSection } from "@/components/settings/SettingsSection";
 

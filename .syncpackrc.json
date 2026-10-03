@@ -13,6 +13,11 @@
       "pinVersion": "catalog:tailwind4"
     },
     {
+      "label": "Shared vv-ui packages install from GitHub, not npm",
+      "dependencies": ["@vv/tokens", "@vv/shell", "@vv/ui"],
+      "isIgnored": true
+    },
+    {
       "label": "Loose peer deps in @vmem/ui — intentionally wide ranges",
       "dependencies": [
         "react",

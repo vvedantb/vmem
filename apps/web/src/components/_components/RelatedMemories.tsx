@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@vmem/ui";
+} from "@vv/ui";
 import {
   IconAlertTriangle,
   IconLink,

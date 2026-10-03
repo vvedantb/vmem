@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { IconSearch } from "@tabler/icons-react";
-import { Button, Popover, PopoverContent, PopoverTrigger, cn } from "@vmem/ui";
+import { Button, Popover, PopoverContent, PopoverTrigger, cn } from "@vv/ui";
 import { FacetedFilterBadge } from "./FacetedFilter";
 import HeaderSearchInput from "./HeaderSearchInput";
 

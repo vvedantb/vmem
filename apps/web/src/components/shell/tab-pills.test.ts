@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const webSrc = path.join(here, "../..");
-const uiSrc = path.join(webSrc, "../../../packages/ui/src");
+const require = createRequire(import.meta.url);
+const uiSrc = path.join(
+  path.dirname(require.resolve("@vv/ui/package.json")),
+  "src",
+);
 
 function read(file: string): string {
   return readFileSync(file, "utf8");

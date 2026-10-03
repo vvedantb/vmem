@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Card, CardContent, cn } from "@vmem/ui";
+import { Card, CardContent, cn } from "@vv/ui";
 import { formatRelativeTime } from "@vmem/shared";
 
 export function ProposalFieldLabel({ children }: { children: ReactNode }) {

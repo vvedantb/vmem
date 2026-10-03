@@ -1,70 +1,13 @@
 @import "tailwindcss";
+@import "@vv/tokens";
 @import "shadow-plugin";
 @plugin "tailwindcss-animate";
 
-/* shared UI package classes (Vite scans apps/web itself) */
-@source "../../../packages/ui/src/**/*.{ts,tsx}";
-
-/* next-themes uses `attribute="class"` */
-@custom-variant dark (&:where(.dark, .dark *));
+/* Tailwind does not scan node_modules; include shared UI + compiled shell. */
+@source "../../../node_modules/@vv/ui/src/**/*.{ts,tsx}";
+@source "../../../node_modules/@vv/shell/dist/**/*.js";
 
 @theme {
-  --color-border: var(--border);
-  --color-backdrop: var(--backdrop);
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-danger: var(--danger);
-  --color-danger-foreground: var(--danger-foreground);
-  --color-danger-ring: var(--danger-ring);
-  --color-danger-border: var(--danger-border);
-  --color-default: var(--default);
-  --color-default-foreground: var(--default-foreground);
-  --color-field-background: var(--field-background);
-  --color-field-border: var(--field-border);
-  --color-field-foreground: var(--field-foreground);
-  --color-field-placeholder: var(--field-placeholder);
-  --color-focus: var(--focus);
-  --color-focus-ring: var(--focus-ring);
-  --color-focus-border: var(--focus-border);
-  --color-muted: var(--muted);
-  --color-overlay: var(--overlay);
-  --color-overlay-foreground: var(--overlay-foreground);
-  --color-scrollbar: var(--scrollbar);
-  --color-segment: var(--segment);
-  --color-segment-foreground: var(--segment-foreground);
-  --color-separator: var(--separator);
-  --color-success: var(--success);
-  --color-success-foreground: var(--success-foreground);
-  --color-surface: var(--surface);
-  --color-surface-foreground: var(--surface-foreground);
-  --color-surface-secondary: var(--surface-secondary);
-  --color-surface-secondary-foreground: var(--surface-secondary-foreground);
-  --color-surface-tertiary: var(--surface-tertiary);
-  --color-surface-tertiary-foreground: var(--surface-tertiary-foreground);
-  --color-surface-card: var(--surface-card);
-  --color-warning: var(--warning);
-  --color-warning-foreground: var(--warning-foreground);
-
-  --radius-lg: var(--radius);
-  --radius-field: var(--field-radius);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-sm: calc(var(--radius) - 4px);
-
-  --shadow-overlay: var(--overlay-shadow);
-  --shadow-soft:
-    0 1px 2px rgba(16, 24, 40, 0.06), 0 10px 28px rgba(16, 24, 40, 0.06);
-  --shadow-panel:
-    0 1px 2px rgba(16, 24, 40, 0.05), 0 16px 44px rgba(16, 24, 40, 0.1);
-  --shadow-insetSoft:
-    inset 0 1px 0 rgba(255, 255, 255, 0.72),
-    inset 0 -1px 0 rgba(16, 24, 40, 0.04);
-
-  --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
-
-  --font-sans: "Instrument Sans", system-ui, sans-serif;
-  --font-instrumentSans: "Instrument Sans", system-ui, sans-serif;
   --font-instrumentSerif: "Instrument Serif", Georgia, serif;
   --font-inter: "Inter", system-ui, sans-serif;
 
@@ -127,7 +70,7 @@
   --modal-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --tabs-dur: 200ms;
   --tabs-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  /* view transitions, mirror motionEase / motionDuration in @vmem/ui */
+  /* view transitions, mirror motionEase / motionDuration in @vv/ui */
   --vt-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --vt-fast: 220ms;
   --vt-base: 300ms;
@@ -145,43 +88,8 @@
 }
 
 /*
- * HeroUI theme (source of truth)
- * @see https://heroui.com/docs/react/getting-started/theming
- *
- * TOKEN GUIDE — how surfaces stack (light → dark relative order preserved):
- *
- * Layout chrome
- *   --background     Page canvas + sidebar (darkest in dark mode)
- *   --surface        Main content panel (elevated card in MainShell)
- *
- * Nested UI (inside --surface)
- *   --surface-card        <Card> component surface (decoupled from the ladder so
- *                         it can stay near-white on the white panel in light mode
- *                         without dragging the sidebar's surface-tertiary states)
- *   --surface-secondary   Stat tiles, grouped blocks
- *   --surface-tertiary    Hover / subtle emphasis on secondary; sidebar active/hover
- *
- * Floating UI
- *   --overlay        Dialogs, popovers, dropdowns, tooltips
- *   --overlay-shadow Legacy elevation token; floating overlays use
- *                    `smooth-shadow-ring-*` from shadow-plugin instead
- *                    (never `border` + `shadow` on the same overlay)
- *   --backdrop       Modal scrim (black + opacity); pair with backdrop-blur on overlay
- *
- * Controls
- *   --segment        Segmented control track (tabs toggle background)
- *   --default        Secondary buttons, inactive control fills
- *   --field-*        Inputs, selects, textareas only
- *
- * Lines & text
- *   --separator      Dividers (modal headers, table rows, menu separators)
- *   --border         Form control outlines only — not layout dividers
- *   --foreground     Primary text
- *   --muted          Secondary text only — never use as a resting background
- *
- * Brand & status
- *   --accent         Primary actions (black light / white dark)
- *   --danger / --success / --warning / --focus (= accent)
+ * Colour, radius, shadow and font tokens live in @vv/tokens.
+ * Tab chrome vars stay here — they are app modal/tab CSS, not the token set.
  */
 @layer base {
   html {
@@ -194,55 +102,6 @@
   .default,
   [data-theme="light"],
   [data-theme="default"] {
-    color-scheme: light;
-
-    --accent: oklch(21.03% 0 0);
-    --accent-foreground: oklch(99.11% 0 0);
-    --backdrop: rgb(0 0 0 / 0.5);
-    --background: oklch(97.02% 0 0);
-    --border: oklch(90% 0 0);
-    --danger: oklch(65.32% 0.2335 25.74);
-    --danger-foreground: oklch(99.11% 0 0);
-    --default: oklch(94% 0 0);
-    --default-foreground: oklch(21.03% 0 0);
-    --field-background: oklch(100% 0 0);
-    --field-border: transparent;
-    --field-foreground: oklch(21.03% 0 0);
-    --field-placeholder: oklch(55.17% 0 0);
-    --focus: var(--accent);
-    --focus-ring: color-mix(in oklch, var(--foreground) 16%, transparent);
-    --focus-border: color-mix(in oklch, var(--foreground) 28%, var(--border));
-    --danger-ring: color-mix(in oklch, var(--danger) 22%, transparent);
-    --danger-border: color-mix(in oklch, var(--danger) 55%, var(--border));
-    --foreground: oklch(21.03% 0 0);
-    --muted: oklch(55.17% 0 0);
-    --overlay: oklch(100% 0 0);
-    --overlay-foreground: oklch(21.03% 0 0);
-    --overlay-shadow:
-      0 2px 8px 0 rgb(0 0 0 / 0.06), 0 -6px 12px 0 rgb(0 0 0 / 0.03),
-      0 14px 28px 0 rgb(0 0 0 / 0.12);
-    --scrollbar: oklch(87.1% 0 0);
-    --segment: oklch(100% 0 0);
-    --segment-foreground: oklch(21.03% 0 0);
-    --separator: oklch(92% 0 0);
-    --success: oklch(73.29% 0.1941 150.81);
-    --success-foreground: oklch(21.03% 0.0059 150.81);
-    --surface: oklch(100% 0 0);
-    --surface-foreground: oklch(21.03% 0 0);
-    --surface-secondary: oklch(95.24% 0 0);
-    --surface-secondary-foreground: oklch(21.03% 0 0);
-    --surface-tertiary: oklch(93.73% 0 0);
-    --surface-tertiary-foreground: oklch(21.03% 0 0);
-    /* Card surface — sits on the white --surface panel, so it's kept a whisper
-       off-white (vs. the heavier surface-secondary) to avoid reading as a gray
-       block. Decoupled from the shared ladder so the sidebar (surface-tertiary)
-       is unaffected. */
-    --surface-card: oklch(98% 0 0);
-    --warning: oklch(78.19% 0.159 72.33);
-    --warning-foreground: oklch(21.03% 0.0059 72.33);
-
-    --radius: 1rem;
-    --field-radius: 1.25rem;
     --tabs-text-muted: var(--muted);
     --tabs-text-active: var(--segment-foreground);
     --tabs-bar-bg: var(--default);
@@ -252,53 +111,6 @@
 
   .dark,
   [data-theme="dark"] {
-    color-scheme: dark;
-
-    --accent: oklch(99.11% 0 0);
-    --accent-foreground: oklch(21.03% 0 0);
-    --backdrop: rgb(0 0 0 / 0.6);
-    --background: oklch(12% 0 0);
-    --border: oklch(28% 0 0);
-    --danger: oklch(59.4% 0.1973 24.63);
-    --danger-foreground: oklch(99.11% 0 0);
-    --default: oklch(27.4% 0 0);
-    --default-foreground: oklch(99.11% 0 0);
-    --field-background: oklch(21.03% 0 0);
-    --field-border: transparent;
-    --field-foreground: oklch(99.11% 0 0);
-    --field-placeholder: oklch(70.5% 0 0);
-    --focus: var(--accent);
-    --focus-ring: color-mix(in oklch, var(--foreground) 16%, transparent);
-    --focus-border: color-mix(in oklch, var(--foreground) 28%, var(--border));
-    --danger-ring: color-mix(in oklch, var(--danger) 22%, transparent);
-    --danger-border: color-mix(in oklch, var(--danger) 55%, var(--border));
-    --foreground: oklch(99.11% 0 0);
-    --muted: oklch(70.5% 0 0);
-    --overlay: oklch(21.03% 0 0);
-    --overlay-foreground: oklch(99.11% 0 0);
-    --overlay-shadow:
-      0 0 0 1px rgb(255 255 255 / 0.08), 0 2px 8px 0 rgb(0 0 0 / 0.35),
-      0 14px 28px 0 rgb(0 0 0 / 0.5);
-    --scrollbar: oklch(70.5% 0 0);
-    --segment: oklch(39.64% 0 0);
-    --segment-foreground: oklch(99.11% 0 0);
-    --separator: oklch(25% 0 0);
-    --success: oklch(73.29% 0.1941 150.81);
-    --success-foreground: oklch(21.03% 0.0059 150.81);
-    --surface: oklch(21.03% 0 0);
-    --surface-foreground: oklch(99.11% 0 0);
-    --surface-secondary: oklch(25.7% 0.0023 0);
-    --surface-secondary-foreground: oklch(99.11% 0 0);
-    --surface-tertiary: oklch(27.21% 0.0023 0);
-    --surface-tertiary-foreground: oklch(99.11% 0 0);
-    /* Card surface — matches surface-secondary in dark mode (cards already read
-       as gently elevated above the panel), so dark mode is visually unchanged. */
-    --surface-card: oklch(25.7% 0.0023 0);
-    --warning: oklch(82.03% 0.1392 76.34);
-    --warning-foreground: oklch(21.03% 0.0059 76.34);
-
-    --radius: 1rem;
-    --field-radius: 1.25rem;
     --tabs-text-muted: var(--muted);
     --tabs-text-active: var(--segment-foreground);
     --tabs-bar-bg: var(--default);
@@ -308,17 +120,6 @@
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
-
-  body {
-    @apply bg-background text-foreground antialiased;
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-
   ::selection {
     background-color: color-mix(in oklch, var(--accent) 18%, transparent);
     color: var(--foreground);

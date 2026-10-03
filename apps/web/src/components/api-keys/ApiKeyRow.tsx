@@ -1,4 +1,4 @@
-import { TableRow, TableCell, Badge, Button } from "@vmem/ui";
+import { TableRow, TableCell, Badge, Button } from "@vv/ui";
 import {
   IconCopy,
   IconCheck,

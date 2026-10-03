@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { IconX } from "@tabler/icons-react";
-import { Button } from "@vmem/ui";
+import { Button } from "@vv/ui";
 
 interface SlideOverPanelProps {
   open: boolean;
