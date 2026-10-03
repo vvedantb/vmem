@@ -26,7 +26,7 @@ export function LandingNav() {
           className="group min-w-0 shrink-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           aria-label="vmem home"
         >
-          <VmemBrand />
+          <VmemBrand textClassName="font-instrumentSerif" />
         </a>
 
         <nav className="hidden items-center gap-1 md:flex" aria-label="Page">
