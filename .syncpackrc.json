@@ -7,16 +7,10 @@
       "isIgnored": true
     },
     {
-      "label": "Tailwind 4 in chrome-extension",
+      "label": "Tailwind 4 in web and chrome-extension",
       "dependencies": ["tailwindcss", "@tailwindcss/*"],
-      "packages": ["@vmem/chrome-extension"],
+      "packages": ["web", "@vmem/chrome-extension"],
       "pinVersion": "catalog:tailwind4"
-    },
-    {
-      "label": "Tailwind 3 in web",
-      "dependencies": ["tailwindcss"],
-      "packages": ["web"],
-      "pinVersion": "catalog:tailwind3"
     },
     {
       "label": "Loose peer deps in @vmem/ui — intentionally wide ranges",
