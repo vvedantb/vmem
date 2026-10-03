@@ -13,7 +13,6 @@ import { NavLink } from "./NavLink";
 import { SkillsSidebarNav } from "./SkillsSidebarNav";
 import { WikiSidebarNav } from "./WikiSidebarNav";
 import { MemoriesSidebarNav } from "./MemoriesSidebarNav";
-import { HomeSidebarNav } from "./HomeSidebarNav";
 import { SettingsSidebar } from "./SettingsSidebar";
 import { SharedLayoutBackground } from "./SharedLayoutBackground";
 import { NavSection } from "./NavSection";
@@ -149,17 +148,6 @@ export function SidebarNavigation({
     return (
       <MemoriesSidebarNav
         key="memories"
-        pathname={pathname}
-        profileId={profileId}
-        isMobile={isMobile}
-        onNavigate={onNavigate}
-      />
-    );
-  }
-  if (navView === "home") {
-    return (
-      <HomeSidebarNav
-        key="home"
         pathname={pathname}
         profileId={profileId}
         isMobile={isMobile}

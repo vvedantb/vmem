@@ -45,7 +45,7 @@ function useAiLogsScope(params: {
   return { scope: "personal" as const, teamIdParam: "" };
 }
 
-// lLM usage panel for `/activity/usage`
+// lLM usage panel for `/usage`
 export function AiLogsPanel() {
   const [params, setParams] = useQueryStates(aiLogsSearchParams);
   const { scope, teamIdParam } = useAiLogsScope(params);

@@ -7,6 +7,7 @@ import {
   IconPuzzle,
   IconFileImport,
   IconUsers,
+  IconReceipt2,
 } from "@tabler/icons-react";
 import {
   IconMemories,
@@ -25,6 +26,7 @@ export type RailSection =
   | "wiki"
   | "skills"
   | "files"
+  | "usage"
   | "sources"
   | "inbox"
   | "team"
@@ -37,6 +39,7 @@ export const railLibraryItems: NavItem[] = [
   { href: "/$profileId/wiki", label: "Wiki", icon: IconWiki },
   { href: "/$profileId/skills", label: "Skills", icon: IconSkills },
   { href: "/$profileId/files", label: "Files", icon: IconFiles },
+  { href: "/$profileId/usage", label: "Usage", icon: IconReceipt2 },
   { href: "/$profileId/sources", label: "Sources", icon: IconPlugConnected },
 ];
 
@@ -105,6 +108,7 @@ export const panelTitleBySection: Record<PanelSection, string> = {
   wiki: "Wiki",
   skills: "Skills",
   files: "Files",
+  usage: "Usage",
   team: "Team",
   settings: "Settings",
 };
@@ -115,6 +119,7 @@ export function railSectionFromPathname(pathname: string): RailSection {
   if (sub.startsWith("/wiki")) return "wiki";
   if (sub.startsWith("/skills")) return "skills";
   if (sub.startsWith("/files")) return "files";
+  if (sub.startsWith("/usage")) return "usage";
   if (sub.startsWith("/sources")) return "sources";
   if (
     sub.startsWith("/inbox") ||
@@ -123,21 +128,12 @@ export function railSectionFromPathname(pathname: string): RailSection {
   ) {
     return "inbox";
   }
-  // Usage / Events stay at `/activity/*` so existing deep links work; they
-  // belong to the Home rail section rather than a separate Activity item.
-  if (sub.startsWith("/activity")) return "home";
   if (sub.startsWith("/team")) return "team";
   if (sub.startsWith("/memories")) return "memories";
   return "home";
 }
 
-type SidebarNavView =
-  | "main"
-  | "settings"
-  | "skills"
-  | "wiki"
-  | "memories"
-  | "home";
+type SidebarNavView = "main" | "settings" | "skills" | "wiki" | "memories";
 
 export function navViewFromPathname(pathname: string): SidebarNavView {
   const section = railSectionFromPathname(pathname);
@@ -145,8 +141,7 @@ export function navViewFromPathname(pathname: string): SidebarNavView {
     section === "settings" ||
     section === "skills" ||
     section === "wiki" ||
-    section === "memories" ||
-    section === "home"
+    section === "memories"
   ) {
     return section;
   }

@@ -13,14 +13,6 @@ type StatsResult = {
   growthData: { isoDate: string; total: number; new: number }[];
 };
 
-type ActivityItem = {
-  id: string;
-  type: string;
-  title: string;
-  description: string;
-  timestamp: string;
-};
-
 function startOfUtcDay(ms: number): number {
   const date = new Date(ms);
   return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
@@ -77,22 +69,6 @@ function computeStats(memories: MemoryWithTags[]): StatsResult {
   };
 }
 
-function recentActivity(
-  memories: MemoryWithTags[],
-  limit: number,
-): ActivityItem[] {
-  return [...memories]
-    .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
-    .slice(0, limit)
-    .map((memory) => ({
-      id: memory.id,
-      type: "memory_updated",
-      title: "Memory",
-      description: `Updated "${memory.title}"`,
-      timestamp: memory.updatedAt,
-    }));
-}
-
 async function loadScopedMemories(
   ctx: AuthActionCtx,
   clerkId: string,
@@ -126,23 +102,5 @@ export const getStats = authAction({
       teamId,
     );
     return computeStats(memories);
-  },
-});
-
-export const getRecentActivity = authAction({
-  args: {
-    profileId: v.optional(v.string()),
-    limit: v.optional(v.number()),
-  },
-  handler: async (ctx, args): Promise<ActivityItem[]> => {
-    const clerkId = await requireClerkId(ctx);
-    const { teamId } = await resolveAccessibleTeamScope(ctx, args.profileId);
-    const memories = await loadScopedMemories(
-      ctx,
-      clerkId,
-      args.profileId,
-      teamId,
-    );
-    return recentActivity(memories, args.limit ?? 10);
   },
 });

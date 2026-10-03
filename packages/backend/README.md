@@ -44,7 +44,7 @@ Audit trails (memory lifecycle, API key events, proposed-update resolutions) liv
 | `auth.ts`                                | `ensureUserExists`, `me`, `authQuery` / `authMutation` / `authAction` |
 | `memoryApi.ts`                           | Personal + team memory CRUD, search, retrieve, events                 |
 | `proposedUpdateApi.ts`                   | List and resolve memory proposals                                     |
-| `dashboardApi.ts`                        | Stats and recent activity                                             |
+| `dashboardApi.ts`                        | Stats                                                                 |
 | `profiles.ts` / `teams.ts` / `skills.ts` | Profile, team, and skill management                                   |
 | `fileImport.ts`                          | PDF/text/image memory import                                          |
 | `contextPromptApi.ts`                    | Synthesized user profile for MCP                                      |

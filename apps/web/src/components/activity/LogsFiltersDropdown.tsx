@@ -54,7 +54,7 @@ import {
   toggleArrayItem,
 } from "@/components/_components/FacetedFilter";
 
-// filters dropdown for `/activity/usage`
+// filters dropdown for `/usage`
 const RANGE_OPTIONS: Range[] = ["today", "7d", "30d", "all"];
 
 const RANGE_ICONS: Record<Range, typeof IconSun> = {
