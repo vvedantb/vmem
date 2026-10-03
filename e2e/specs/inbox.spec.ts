@@ -1,6 +1,10 @@
 import { expect, test } from "../fixtures";
 import { gotoWorkspace } from "../helpers/nav";
-import { pageTab, sidebarPanel } from "../helpers/shell";
+import {
+  expectNoStackedSidebarRows,
+  pageTab,
+  railLink,
+} from "../helpers/shell";
 
 test.describe("inbox", { tag: ["@inbox", "@smoke"] }, () => {
   test("proposals and notifications tabs load", async ({ page }) => {
@@ -12,9 +16,11 @@ test.describe("inbox", { tag: ["@inbox", "@smoke"] }, () => {
     );
     await expect(pageTab(page, "Proposals")).toBeVisible();
     await expect(pageTab(page, "Notifications")).toBeVisible();
-    await expect(
-      sidebarPanel(page).getByRole("link", { name: "Proposals", exact: true }),
-    ).toHaveCount(0);
+    await expect(railLink(page, "Inbox")).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    await expectNoStackedSidebarRows(page, ["Proposals", "Notifications"]);
 
     const awaiting = page.getByRole("heading", { name: "Awaiting review" });
     const noProposals = page.getByRole("heading", {

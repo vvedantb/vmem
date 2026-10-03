@@ -4,9 +4,10 @@ import { mainContent } from "../helpers/memories";
 import {
   assertNoFatalChrome,
   clickRail,
-  openHomeSection,
+  expectNoStackedSidebarRows,
   openWorkspaceSwitcher,
   pageTab,
+  railLink,
   sidebarPanel,
   sidebarViewLink,
 } from "../helpers/shell";
@@ -20,18 +21,12 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
     await expect(page.getByRole("link", { name: "Wiki" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Skills" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Files" })).toBeVisible();
+    await expect(railLink(page, "Sources")).toBeVisible();
+    await expect(railLink(page, "Inbox")).toBeVisible();
     await expect(page.getByRole("link", { name: "Settings" })).toBeVisible();
     await expect(
       page.getByRole("link", { name: "Home", exact: true }),
     ).toBeVisible();
-    // Sources and Inbox moved off the rail onto Home page tabs.
-    const shell = sidebarPanel(page);
-    await expect(
-      shell.getByRole("link", { name: "Sources", exact: true }),
-    ).toHaveCount(0);
-    await expect(
-      shell.getByRole("link", { name: "Inbox", exact: true }),
-    ).toHaveCount(0);
     await expect(
       page.getByRole("link", { name: "Activity", exact: true }),
     ).toHaveCount(0);
@@ -94,8 +89,12 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
     });
     await assertNoFatalChrome(page);
 
-    await openHomeSection(page, "Sources");
+    await clickRail(page, "Sources");
     await expect(page).toHaveURL(new RegExp(`/${profileId}/sources`));
+    await expect(railLink(page, "Sources")).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
     await expect(pageTab(page, "Sources")).toHaveAttribute(
       "data-state",
       "active",
@@ -107,6 +106,7 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
     await expect(
       page.getByRole("heading", { name: "Sources", exact: true }),
     ).toBeVisible();
+    await expectNoStackedSidebarRows(page, ["Connectors", "Import"]);
     await assertNoFatalChrome(page);
 
     await clickRail(page, "Home");
@@ -131,8 +131,12 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
     ).toHaveAttribute("aria-current", "page");
     await assertNoFatalChrome(page);
 
-    await openHomeSection(page, "Inbox");
+    await clickRail(page, "Inbox");
     await expect(page).toHaveURL(new RegExp(`/${profileId}/inbox`));
+    await expect(railLink(page, "Inbox")).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
     await expect(pageTab(page, "Inbox")).toHaveAttribute(
       "data-state",
       "active",
@@ -141,6 +145,7 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
       timeout: 20_000,
     });
     await expect(pageTab(page, "Notifications")).toBeVisible();
+    await expectNoStackedSidebarRows(page, ["Proposals", "Notifications"]);
     await assertNoFatalChrome(page);
 
     await clickRail(page, "Settings");

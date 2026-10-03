@@ -1,6 +1,10 @@
 import { expect, test } from "../fixtures";
 import { gotoSettings } from "../helpers/nav";
-import { pageTab } from "../helpers/shell";
+import {
+  expectNoStackedSidebarRows,
+  pageTab,
+  railLink,
+} from "../helpers/shell";
 
 test.describe("settings", { tag: ["@settings", "@smoke"] }, () => {
   test("redirects /settings to preferences with grouped nav", async ({
@@ -86,6 +90,15 @@ test.describe("settings", { tag: ["@settings", "@smoke"] }, () => {
     ).toBeVisible({
       timeout: 20_000,
     });
+    await expect(pageTab(page, "Connectors")).toHaveAttribute(
+      "data-state",
+      "active",
+    );
+    await expect(railLink(page, "Sources")).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    await expectNoStackedSidebarRows(page, ["Connectors", "Import"]);
     await expect(
       page.getByRole("button", { name: "Browse Connectors" }).first(),
     ).toBeVisible();
@@ -100,6 +113,10 @@ test.describe("settings", { tag: ["@settings", "@smoke"] }, () => {
     await expect(pageTab(page, "Import")).toHaveAttribute(
       "data-state",
       "active",
+    );
+    await expect(railLink(page, "Sources")).toHaveAttribute(
+      "aria-current",
+      "page",
     );
     await expect(
       page.getByRole("button", { name: "Import", exact: true }).first(),
