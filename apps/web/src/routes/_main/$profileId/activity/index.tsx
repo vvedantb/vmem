@@ -1,9 +1,9 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
-// `/activity` redirects to the default tab (`/activity/usage`)
+// legacy `/activity` route preserved as a redirect after Usage moved to `/usage`
 export const Route = createFileRoute("/_main/$profileId/activity/")({
   beforeLoad: ({ params }) => {
-    throw redirect({ to: "/$profileId/activity/usage", params });
+    throw redirect({ to: "/$profileId/usage", params, search: true });
   },
   component: () => null,
 });

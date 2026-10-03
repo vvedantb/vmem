@@ -1,10 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { AiLogsPanel } from "@/components/activity/AiLogsPanel";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
+// legacy `/activity/usage` route preserved as a redirect after the move to `/usage`
 export const Route = createFileRoute("/_main/$profileId/activity/usage")({
-  component: UsageRoute,
+  beforeLoad: ({ params }) => {
+    throw redirect({ to: "/$profileId/usage", params, search: true });
+  },
+  component: () => null,
 });
-
-function UsageRoute() {
-  return <AiLogsPanel />;
-}

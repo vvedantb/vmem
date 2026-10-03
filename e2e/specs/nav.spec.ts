@@ -21,6 +21,7 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
     await expect(page.getByRole("link", { name: "Wiki" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Skills" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Files" })).toBeVisible();
+    await expect(railLink(page, "Usage")).toBeVisible();
     await expect(railLink(page, "Sources")).toBeVisible();
     await expect(railLink(page, "Inbox")).toBeVisible();
     await expect(page.getByRole("link", { name: "Settings" })).toBeVisible();
@@ -120,18 +121,23 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
     await expect(
       sidebarPanel(page).getByRole("heading", { name: "Home" }),
     ).toBeVisible();
-    await expect(sidebarViewLink(page, "Usage")).toBeVisible();
-    await expect(sidebarViewLink(page, "Events")).toBeVisible();
+    // Usage is a rail tile now, so Home has no stacked Usage / Events rows.
+    await expect(
+      sidebarPanel(page).getByRole("navigation", { name: "Home views" }),
+    ).toHaveCount(0);
+    await expect(sidebarViewLink(page, "Events")).toHaveCount(0);
     await assertNoFatalChrome(page);
 
-    await sidebarViewLink(page, "Usage").click();
-    await expect(page).toHaveURL(new RegExp(`/${profileId}/activity/usage`));
+    await clickRail(page, "Usage");
+    await expect(page).toHaveURL(new RegExp(`/${profileId}/usage$`));
+    await expect(railLink(page, "Usage")).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
     await expect(
-      sidebarPanel(page).getByRole("heading", { name: "Home" }),
+      sidebarPanel(page).getByRole("heading", { name: "Usage" }),
     ).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: "Home", exact: true }),
-    ).toHaveAttribute("aria-current", "page");
+    await expect(page.getByText("Total cost")).toBeVisible({ timeout: 20_000 });
     await assertNoFatalChrome(page);
 
     await clickRail(page, "Inbox");

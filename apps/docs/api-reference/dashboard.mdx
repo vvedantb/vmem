@@ -1,6 +1,6 @@
 ---
 title: "Dashboard"
-description: "Memory statistics and activity data"
+description: "Memory statistics"
 ---
 
 Convex `authAction`s in `dashboardApi`.
@@ -18,21 +18,5 @@ await client.action(api.dashboardApi.getStats, {});
 ```
 
 **Returns:** counts such as `totalMemories`, period totals, tag totals, and a `growthData` series.
-
----
-
-## Get Recent Activity
-
-Returns recent memory activity for the authenticated user.
-
-<ParamField body="limit" type="number">
-  Max items to return
-</ParamField>
-
-```typescript
-await client.action(api.dashboardApi.getRecentActivity, { limit: 20 });
-```
-
-**Returns:** `ActivityItem[]` with `id`, `type`, `title`, `description`, `timestamp`, `relativeTime`.
 
 Dashboard stats in the sidebar always show user-wide totals, not filtered by the active profile.

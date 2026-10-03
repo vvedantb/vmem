@@ -252,7 +252,6 @@
         "apps/web/src/hooks/useMemoryTimeline.ts",
         "apps/web/src/hooks/useStableAuth.ts",
         "apps/web/src/hooks/useTrailData.ts",
-        "apps/web/src/components/activity/EventsPanel.tsx",
         "apps/web/src/routes/_main/$profileId/route.tsx",
         "apps/web/src/routes/_main/$profileId/skills/index.tsx",
         "apps/web/src/routes/_main/$profileId/skills/route.tsx",

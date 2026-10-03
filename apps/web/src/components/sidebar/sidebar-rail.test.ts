@@ -32,8 +32,7 @@ describe("railSectionFromPathname", () => {
     expect(railSectionFromPathname("/p1/wiki/abc")).toBe("wiki");
     expect(railSectionFromPathname("/p1/skills/hub")).toBe("skills");
     expect(railSectionFromPathname("/p1/files")).toBe("files");
-    expect(railSectionFromPathname("/p1/activity/events")).toBe("home");
-    expect(railSectionFromPathname("/p1/activity/usage")).toBe("home");
+    expect(railSectionFromPathname("/p1/usage")).toBe("usage");
     expect(railSectionFromPathname("/p1/team/settings")).toBe("team");
     expect(railSectionFromPathname("/settings/preferences")).toBe("settings");
   });
@@ -55,8 +54,8 @@ describe("railSectionFromPathname", () => {
     expect(navViewFromPathname("/p1/wiki/abc")).toBe("wiki");
     expect(navViewFromPathname("/p1/memories")).toBe("memories");
     expect(navViewFromPathname("/p1/memories/graph")).toBe("memories");
-    expect(navViewFromPathname("/p1/home")).toBe("home");
-    expect(navViewFromPathname("/p1/activity/events")).toBe("home");
+    expect(navViewFromPathname("/p1/home")).toBe("main");
+    expect(navViewFromPathname("/p1/usage")).toBe("main");
   });
 
   it("opens no stacked sidebar panel for inbox or sources", () => {
@@ -84,6 +83,7 @@ describe("rail destinations cover the previous sidebar nav", () => {
         "/$profileId/wiki",
         "/$profileId/skills",
         "/$profileId/files",
+        "/$profileId/usage",
         "/$profileId/sources",
         "/$profileId/team/members",
         "/settings",
@@ -94,9 +94,11 @@ describe("rail destinations cover the previous sidebar nav", () => {
       "Wiki",
       "Skills",
       "Files",
+      "Usage",
       "Sources",
     ]);
     expect(hrefs).not.toContain("/$profileId/activity");
+    expect(hrefs.some((href) => href.includes("activity"))).toBe(false);
   });
 
   it("puts inbox and sources back on the rail", () => {
@@ -149,13 +151,13 @@ describe("shell uses a rail + panel + drawer", () => {
     expect(sidebar).not.toContain("DialogPortal");
   });
 
-  it("keeps settings / skills / wiki / memories / home as panel modes", () => {
+  it("keeps settings / skills / wiki / memories as panel modes", () => {
     const navigation = read("SidebarNavigation.tsx");
     expect(navigation).toContain("SettingsSidebar");
     expect(navigation).toContain("SkillsSidebarNav");
     expect(navigation).toContain("WikiSidebarNav");
     expect(navigation).toContain("MemoriesSidebarNav");
-    expect(navigation).toContain("HomeSidebarNav");
+    expect(navigation).not.toContain("HomeSidebarNav");
     expect(navigation).not.toContain("InboxSidebarNav");
     expect(navigation).not.toContain("SourcesSidebarNav");
     expect(navigation).not.toContain('navView === "inbox"');
@@ -188,6 +190,7 @@ describe("shell uses a rail + panel + drawer", () => {
       "wiki",
       "skills",
       "files",
+      "usage",
       "team",
       "settings",
     ] as const) {
@@ -196,6 +199,7 @@ describe("shell uses a rail + panel + drawer", () => {
     expect(Object.keys(panelTitleBySection)).not.toContain("inbox");
     expect(Object.keys(panelTitleBySection)).not.toContain("sources");
     expect(panelTitleBySection.files).toBe("Files");
+    expect(panelTitleBySection.usage).toBe("Usage");
 
     const sidebar = read("../shell/Sidebar.tsx");
     expect(sidebar).toContain("railSectionHidesPanel(section)");
@@ -237,7 +241,7 @@ describe("shell uses a rail + panel + drawer", () => {
 });
 
 describe("nested sidebar chrome", () => {
-  it("hosts memory and home views as stacked sidebar rows", () => {
+  it("hosts memory views as stacked sidebar rows", () => {
     const memories = read("MemoriesSidebarNav.tsx");
     expect(memories).toContain("StackedSidebarNav");
     expect(memories).toContain("Graph");
@@ -261,16 +265,7 @@ describe("nested sidebar chrome", () => {
       read("../../routes/_main/$profileId/memories/list/route.tsx"),
     ).not.toContain("isTagsView");
 
-    const home = read("HomeSidebarNav.tsx");
-    expect(home).toContain("StackedSidebarNav");
-    expect(home).toContain("Usage");
-    expect(home).toContain("Events");
-    expect(home).toContain("/$profileId/activity/usage");
-    expect(home).toContain("/$profileId/activity/events");
-    expect(home).toContain('aria-label="Home views"');
-    expect(home).not.toContain("RouteTabs");
-    expect(home).not.toContain("fullWidth");
-
+    expect(() => read("HomeSidebarNav.tsx")).toThrow();
     expect(() => read("InboxSidebarNav.tsx")).toThrow();
     expect(() => read("SourcesSidebarNav.tsx")).toThrow();
 
@@ -283,9 +278,9 @@ describe("nested sidebar chrome", () => {
     expect(
       read("../../routes/_main/$profileId/memories/route.tsx"),
     ).not.toContain("leftSection");
-    expect(
-      read("../../routes/_main/$profileId/activity/route.tsx"),
-    ).not.toContain("leftSection");
+    expect(read("../../routes/_main/$profileId/usage.tsx")).not.toContain(
+      "leftSection",
+    );
     expect(read("../../routes/_main/$profileId/inbox/route.tsx")).not.toContain(
       "leftSection",
     );
@@ -306,5 +301,29 @@ describe("nested sidebar chrome", () => {
     expect(addMenu).toContain("IconPlus");
     expect(addMenu).not.toContain("IconChevronDown");
     expect(addMenu).not.toMatch(/>\s*Add\s*</);
+  });
+});
+
+describe("usage lives on the rail at /usage", () => {
+  const routes = "../../routes/_main/$profileId";
+
+  it("serves usage from /usage inside the shared page container", () => {
+    const usage = read(`${routes}/usage.tsx`);
+    expect(usage).toContain('createFileRoute("/_main/$profileId/usage")');
+    expect(usage).toContain("PageContainer");
+    expect(usage).toContain("AiLogsPanel");
+    expect(usage).toContain("AiLogsRightSection");
+  });
+
+  it("redirects the old /activity URLs and drops the events page", () => {
+    for (const rel of ["activity/index.tsx", "activity/usage.tsx"]) {
+      const route = read(`${routes}/${rel}`);
+      expect(route).toContain("redirect");
+      expect(route).toContain('to: "/$profileId/usage"');
+    }
+    expect(() => read(`${routes}/activity/route.tsx`)).toThrow();
+    expect(() => read(`${routes}/activity/events.tsx`)).toThrow();
+    expect(() => read("../activity/EventsPanel.tsx")).toThrow();
+    expect(read("../../routeTree.gen.ts")).not.toContain("activity/events");
   });
 });
