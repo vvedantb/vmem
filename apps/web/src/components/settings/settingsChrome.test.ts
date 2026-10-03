@@ -15,24 +15,23 @@ describe("settings chrome mirrors Eva", () => {
     const hrefs = settingsNavGroups.flatMap((group) =>
       group.items.map((item) => item.href),
     );
-    expect(hrefs).toEqual(
-      expect.arrayContaining([
-        "/settings/preferences",
-        "/settings/profiles",
-        "/settings/api",
-        "/settings/extension",
-        "/settings/data-controls",
-      ]),
-    );
+    expect(hrefs).toEqual([
+      "/settings/preferences",
+      "/settings/profiles",
+      "/settings/api",
+      "/settings/extension",
+      "/settings/data-controls",
+    ]);
     expect(hrefs).not.toContain("/settings/connectors");
     expect(hrefs).not.toContain("/settings/secrets");
     expect(read("../../routeTree.gen.ts")).not.toContain("/settings/secrets");
   });
 
   it("keeps SettingsPage / SettingsSection / SettingsSidebar as the chrome", () => {
-    expect(read("../sidebar/SettingsSidebar.tsx")).toContain(
-      'layoutId="settings-nav"',
-    );
+    const sidebar = read("../sidebar/SettingsSidebar.tsx");
+    expect(sidebar).toContain('layoutId="settings-nav"');
+    expect(sidebar).not.toContain("NavSection");
+    expect(sidebar).not.toContain("group.title");
     expect(read("SettingsPage.tsx")).toContain("insetHeader");
     expect(read("SettingsSection.tsx")).toContain('bodyVariant = "form"');
     expect(read("SettingsToggleRow.tsx")).toContain("min-h-10");

@@ -4,7 +4,6 @@ import { cn, motionDuration, motionEase } from "@vmem/ui";
 import { settingsNavGroups } from "./nav-config";
 import { NavLink } from "./NavLink";
 import { SharedLayoutBackground } from "./SharedLayoutBackground";
-import { NavSection } from "./NavSection";
 
 interface SettingsSidebarProps {
   pathname: string;
@@ -13,9 +12,11 @@ interface SettingsSidebarProps {
   onNavigate?: MouseEventHandler<HTMLAnchorElement>;
 }
 
+const settingsNavItems = settingsNavGroups.flatMap((group) => group.items);
+
 /**
  * Second sidebar column for `/settings/*`.
- * Mirrors Eva `SettingsSidebar`: grouped sections, compact rows, shared-layout pill.
+ * Compact rows, shared-layout pill, one flat list of settings tabs.
  */
 export function SettingsSidebar({
   pathname,
@@ -26,7 +27,7 @@ export function SettingsSidebar({
   return (
     <motion.nav
       className={cn(
-        "flex-1 space-y-4 overflow-y-auto scrollbar-thin",
+        "flex-1 space-y-1 overflow-y-auto scrollbar-thin",
         isMobile ? "pb-2" : "pr-1",
       )}
       initial={{ opacity: 0, x: 12 }}
@@ -35,37 +36,29 @@ export function SettingsSidebar({
     >
       <SharedLayoutBackground.Root
         layoutId="settings-nav"
-        className="space-y-4"
+        className="space-y-1"
       >
-        {settingsNavGroups.map((group) => (
-          <NavSection
-            key={group.title}
-            title={group.title}
-            isIconOnly={isIconOnly}
-          >
-            {group.items.map((item) => {
-              const isActive =
-                pathname === item.href || pathname.startsWith(`${item.href}/`);
-              return (
-                <SharedLayoutBackground.Item
-                  key={item.href}
-                  id={item.href}
-                  isActive={isActive}
-                >
-                  <NavLink
-                    item={item}
-                    pathname={pathname}
-                    profileId={undefined}
-                    isIconOnly={isIconOnly}
-                    unreadCount={0}
-                    proposalsCount={0}
-                    onNavigate={onNavigate}
-                  />
-                </SharedLayoutBackground.Item>
-              );
-            })}
-          </NavSection>
-        ))}
+        {settingsNavItems.map((item) => {
+          const isActive =
+            pathname === item.href || pathname.startsWith(`${item.href}/`);
+          return (
+            <SharedLayoutBackground.Item
+              key={item.href}
+              id={item.href}
+              isActive={isActive}
+            >
+              <NavLink
+                item={item}
+                pathname={pathname}
+                profileId={undefined}
+                isIconOnly={isIconOnly}
+                unreadCount={0}
+                proposalsCount={0}
+                onNavigate={onNavigate}
+              />
+            </SharedLayoutBackground.Item>
+          );
+        })}
       </SharedLayoutBackground.Root>
     </motion.nav>
   );

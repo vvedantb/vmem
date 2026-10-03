@@ -171,7 +171,7 @@ export function navHrefToPath(
   return href.replace("$profileId", profileId);
 }
 
-// settings sub nav, grouped into 3 sections rendered with headers in the settings
+// settings sub nav. Groups are command-palette headings only; the sidebar is a flat list.
 export const settingsNavGroups: SettingsNavGroup[] = [
   {
     title: "General",
