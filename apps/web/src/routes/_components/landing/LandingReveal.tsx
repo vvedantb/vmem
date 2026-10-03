@@ -103,7 +103,7 @@ export function LandingSectionHeading({
   return (
     <div className={cn("max-w-2xl", className)}>
       <LandingSectionEyebrow>{eyebrow}</LandingSectionEyebrow>
-      <h2 className="text-balance font-instrumentSerif text-3xl leading-[1.08] tracking-tight text-foreground sm:text-5xl">
+      <h2 className="text-balance font-semibold text-3xl leading-[1.08] tracking-[-0.03em] text-foreground sm:text-5xl">
         {heading}
       </h2>
       {intro ? (

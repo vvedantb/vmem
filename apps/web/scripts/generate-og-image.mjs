@@ -38,7 +38,7 @@ async function generateOgImage() {
       <circle cx="200" cy="500" r="200" fill="rgba(168,85,247,0.06)"/>
       
       <!-- Content -->
-      <text x="80" y="220" font-family="Georgia, serif" font-size="72" font-style="italic" fill="white">vmem</text>
+      <text x="80" y="220" font-family="Instrument Sans, system-ui, sans-serif" font-size="72" font-weight="600" fill="white">v<tspan font-style="italic">mem</tspan></text>
       
       <text x="80" y="320" font-family="system-ui, sans-serif" font-size="48" font-weight="600" fill="white">Memory engine for AI agents</text>
       

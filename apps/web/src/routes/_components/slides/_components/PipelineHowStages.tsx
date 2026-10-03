@@ -92,7 +92,7 @@ function PipelineStageCard({
       transition={{ duration: motionDuration.base, ease: motionEase }}
     >
       <div className="mb-3 flex items-center justify-between">
-        <span className="font-instrumentSerif text-2xl tabular-nums text-foreground/70">
+        <span className="text-2xl font-medium tabular-nums text-foreground/70">
           {stage.index}
         </span>
         <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-foreground text-background">

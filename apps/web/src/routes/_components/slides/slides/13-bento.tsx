@@ -141,7 +141,7 @@ function BentoTile({
         ) : null}
         <div className="min-w-0">
           <h3
-            className={`font-instrumentSerif text-2xl font-normal leading-tight tracking-tight ${titleColor}`}
+            className={`text-2xl font-semibold leading-tight tracking-tight ${titleColor}`}
           >
             {title}
           </h3>
@@ -182,7 +182,7 @@ function BentoTile({
       ) : null}
 
       <h3
-        className={`font-instrumentSerif text-2xl font-normal leading-tight tracking-tight ${titleColor}`}
+        className={`text-2xl font-semibold leading-tight tracking-tight ${titleColor}`}
       >
         {title}
       </h3>

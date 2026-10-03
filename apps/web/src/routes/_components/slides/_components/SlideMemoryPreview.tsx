@@ -103,7 +103,7 @@ export function SlideMemoryPreview({ loop = true }: SlideMemoryPreviewProps) {
         <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted sm:tracking-[0.2em]">
           Memory graph
         </p>
-        <p className="font-instrumentSerif text-sm tabular-nums text-muted/80">
+        <p className="text-sm font-medium tabular-nums text-muted/80">
           <motion.span>{displayCount}</motion.span> nodes
         </p>
       </div>

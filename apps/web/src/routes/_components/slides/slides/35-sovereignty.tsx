@@ -80,7 +80,7 @@ export function Slide35Sovereignty() {
         step={2}
         className="mt-8 max-w-4xl border-l-2 border-foreground/20 pl-6"
       >
-        <p className="font-instrumentSerif text-2xl leading-snug text-foreground">
+        <p className="text-2xl font-medium leading-snug tracking-tight text-foreground">
           “Switch out a <span className="italic">generalist</span> model without
           losing the <span className="italic">company veteran</span> expertise
           built into their learning system.”
