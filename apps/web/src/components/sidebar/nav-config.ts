@@ -25,8 +25,6 @@ export type RailSection =
   | "wiki"
   | "skills"
   | "files"
-  | "sources"
-  | "inbox"
   | "team"
   | "settings";
 
@@ -37,7 +35,6 @@ export const railLibraryItems: NavItem[] = [
   { href: "/$profileId/wiki", label: "Wiki", icon: IconWiki },
   { href: "/$profileId/skills", label: "Skills", icon: IconSkills },
   { href: "/$profileId/files", label: "Files", icon: IconFiles },
-  { href: "/$profileId/sources", label: "Sources", icon: IconPlugConnected },
 ];
 
 export const sourcesNavItems: NavItem[] = [
@@ -53,10 +50,18 @@ export const sourcesNavItems: NavItem[] = [
   },
 ];
 
-export const inboxRailItem: NavItem = {
+// Inbox and Sources are not rail tiles: they live as page tabs beside the
+// Home dashboard (see `HomePageTabs`). Kept here for the command palette.
+export const inboxNavItem: NavItem = {
   href: "/$profileId/inbox",
   label: "Inbox",
   icon: IconInbox,
+};
+
+export const sourcesNavItem: NavItem = {
+  href: "/$profileId/sources",
+  label: "Sources",
+  icon: IconPlugConnected,
 };
 
 export const homeRailHref = "/$profileId/home" satisfies NavHref;
@@ -78,12 +83,12 @@ export const navGroups: NavGroup[] = [
   {
     title: "Library",
     icon: IconStack2,
-    items: railLibraryItems,
+    items: [...railLibraryItems, sourcesNavItem],
   },
   {
     title: "Account",
     icon: IconUserCircle,
-    items: [inboxRailItem, settingsRailItem],
+    items: [inboxNavItem, settingsRailItem],
   },
 ];
 
@@ -93,8 +98,6 @@ export const panelTitleBySection: Record<RailSection, string> = {
   wiki: "Wiki",
   skills: "Skills",
   files: "Files",
-  sources: "Sources",
-  inbox: "Inbox",
   team: "Team",
   settings: "Settings",
 };
@@ -105,17 +108,18 @@ export function railSectionFromPathname(pathname: string): RailSection {
   if (sub.startsWith("/wiki")) return "wiki";
   if (sub.startsWith("/skills")) return "skills";
   if (sub.startsWith("/files")) return "files";
-  if (sub.startsWith("/sources")) return "sources";
+  // Inbox and Sources are page tabs next to the Home dashboard, and Usage /
+  // Events stay at `/activity/*` so existing deep links work. All of them
+  // belong to the Home rail section, so Home stays lit and its panel shows.
   if (
+    sub.startsWith("/sources") ||
     sub.startsWith("/inbox") ||
     sub.startsWith("/notifications") ||
-    sub.startsWith("/proposals")
+    sub.startsWith("/proposals") ||
+    sub.startsWith("/activity")
   ) {
-    return "inbox";
+    return "home";
   }
-  // Usage / Events stay at `/activity/*` so existing deep links work; they
-  // belong to the Home rail section rather than a separate Activity item.
-  if (sub.startsWith("/activity")) return "home";
   if (sub.startsWith("/team")) return "team";
   if (sub.startsWith("/memories")) return "memories";
   return "home";
@@ -127,9 +131,7 @@ type SidebarNavView =
   | "skills"
   | "wiki"
   | "memories"
-  | "inbox"
-  | "home"
-  | "sources";
+  | "home";
 
 export function navViewFromPathname(pathname: string): SidebarNavView {
   const section = railSectionFromPathname(pathname);
@@ -138,9 +140,7 @@ export function navViewFromPathname(pathname: string): SidebarNavView {
     section === "skills" ||
     section === "wiki" ||
     section === "memories" ||
-    section === "inbox" ||
-    section === "home" ||
-    section === "sources"
+    section === "home"
   ) {
     return section;
   }

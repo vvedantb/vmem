@@ -6,10 +6,16 @@ import { syncTabsPill } from "./tabsSliding";
 
 const Tabs = TabsPrimitive.Root;
 
+// `pills` (default): isolated rounded pills with a gap, no shared track.
+// `segmented`: connected bar with a sliding pill, kept for marketing surfaces.
+type TabsListVariant = "pills" | "segmented";
+
 const TabsList = React.forwardRef<
   React.ComponentRef<typeof TabsPrimitive.List>,
-  React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
->(({ className, children, ...props }, ref) => {
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.List> & {
+    variant?: TabsListVariant;
+  }
+>(({ className, children, variant = "pills", ...props }, ref) => {
   const listRef = React.useRef<React.ComponentRef<
     typeof TabsPrimitive.List
   > | null>(null);
@@ -73,18 +79,22 @@ const TabsList = React.forwardRef<
       resizeObserver.disconnect();
       mutationObserver.disconnect();
     };
-  }, []);
+  }, [variant]);
 
   return (
     <TabsPrimitive.List
       ref={mergedRef}
       className={cn(
         "t-tabs max-sm:max-w-full max-sm:justify-center-safe max-sm:overflow-x-auto max-sm:scrollbar-none",
+        variant === "segmented" ? "t-tabs--segmented" : "t-tabs--pills",
         className,
       )}
+      data-variant={variant}
       {...props}
     >
-      <span ref={pillRef} className="t-tabs-pill" aria-hidden="true" />
+      {variant === "segmented" ? (
+        <span ref={pillRef} className="t-tabs-pill" aria-hidden="true" />
+      ) : null}
       {children}
     </TabsPrimitive.List>
   );

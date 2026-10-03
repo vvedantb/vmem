@@ -20,8 +20,6 @@ export type SidebarRailProps = {
   pathname: string;
   profileId: string | undefined;
   isTeamWorkspace: boolean;
-  unreadCount: number;
-  proposalsCount: number;
   isCollapsed: boolean;
   isAuthLoading: boolean;
   onToggleCollapse: () => void;
@@ -34,8 +32,6 @@ export function SidebarRail({
   pathname,
   profileId,
   isTeamWorkspace,
-  unreadCount,
-  proposalsCount,
   isCollapsed,
   isAuthLoading,
   onToggleCollapse,
@@ -66,8 +62,6 @@ export function SidebarRail({
         pathname={pathname}
         profileId={profileId}
         isTeamWorkspace={isTeamWorkspace}
-        unreadCount={unreadCount}
-        proposalsCount={proposalsCount}
         onNavigate={onNavigate}
       />
       <div className="flex w-full flex-col items-center gap-1.5 border-t border-separator py-3">

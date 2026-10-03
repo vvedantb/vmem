@@ -104,11 +104,19 @@ export default function FileToolbar({
           if (v === "grid" || v === "list") onViewChange(v);
         }}
       >
-        <TabsList className="h-8">
-          <TabsTrigger value="grid" className="h-6 px-2" aria-label="Grid view">
+        <TabsList>
+          <TabsTrigger
+            value="grid"
+            className="h-8 px-2.5"
+            aria-label="Grid view"
+          >
             <IconLayoutGrid size={15} />
           </TabsTrigger>
-          <TabsTrigger value="list" className="h-6 px-2" aria-label="List view">
+          <TabsTrigger
+            value="list"
+            className="h-8 px-2.5"
+            aria-label="List view"
+          >
             <IconList size={15} />
           </TabsTrigger>
         </TabsList>

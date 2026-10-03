@@ -65,7 +65,7 @@ export default function MemoryTimelineScrubber({
           role="group"
           aria-label="Time window size"
         >
-          <div className="flex gap-0.5 rounded-full bg-segment p-0.5">
+          <div className="flex gap-1.5">
             {TIMELINE_SPANS.map((value) => {
               const active = value === span;
               return (
@@ -77,7 +77,7 @@ export default function MemoryTimelineScrubber({
                   aria-pressed={active}
                   onClick={() => onSpanChange(value)}
                   className={cn(
-                    "h-8 shrink-0 rounded-full px-2.5",
+                    "h-8 shrink-0 rounded-full border border-border px-2.5",
                     active ? "text-foreground" : "text-muted",
                   )}
                 >

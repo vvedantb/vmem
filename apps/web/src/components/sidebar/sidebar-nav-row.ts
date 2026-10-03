@@ -37,6 +37,3 @@ export function railTileStateClass(active: boolean): string {
     ? railTileActiveClass
     : "border-transparent text-muted opacity-75 hover:bg-surface-tertiary/50 hover:opacity-100 hover:text-foreground";
 }
-
-export const RAIL_BADGE_CLASS =
-  "absolute -bottom-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-semibold leading-none text-accent-foreground";
