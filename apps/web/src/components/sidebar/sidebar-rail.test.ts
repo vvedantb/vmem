@@ -4,14 +4,13 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   homeRailHref,
-  inboxNavItem,
+  inboxRailItem,
   isRailItemActive,
   navGroups,
   navHrefToPath,
   railLibraryItems,
   railSectionFromPathname,
   settingsRailItem,
-  sourcesNavItem,
   teamRailItem,
   navViewFromPathname,
 } from "./nav-config";
@@ -37,15 +36,15 @@ describe("railSectionFromPathname", () => {
     expect(railSectionFromPathname("/settings/preferences")).toBe("settings");
   });
 
-  it("folds inbox and sources into the home section", () => {
-    expect(railSectionFromPathname("/p1/inbox")).toBe("home");
-    expect(railSectionFromPathname("/p1/inbox/proposals")).toBe("home");
-    expect(railSectionFromPathname("/p1/inbox/notifications")).toBe("home");
-    expect(railSectionFromPathname("/p1/proposals")).toBe("home");
-    expect(railSectionFromPathname("/p1/notifications")).toBe("home");
-    expect(railSectionFromPathname("/p1/sources")).toBe("home");
-    expect(railSectionFromPathname("/p1/sources/connectors")).toBe("home");
-    expect(railSectionFromPathname("/p1/sources/import")).toBe("home");
+  it("gives inbox and sources their own rail sections", () => {
+    expect(railSectionFromPathname("/p1/inbox")).toBe("inbox");
+    expect(railSectionFromPathname("/p1/inbox/proposals")).toBe("inbox");
+    expect(railSectionFromPathname("/p1/inbox/notifications")).toBe("inbox");
+    expect(railSectionFromPathname("/p1/proposals")).toBe("inbox");
+    expect(railSectionFromPathname("/p1/notifications")).toBe("inbox");
+    expect(railSectionFromPathname("/p1/sources")).toBe("sources");
+    expect(railSectionFromPathname("/p1/sources/connectors")).toBe("sources");
+    expect(railSectionFromPathname("/p1/sources/import")).toBe("sources");
   });
 
   it("folds nested sidebars into panel modes", () => {
@@ -56,10 +55,15 @@ describe("railSectionFromPathname", () => {
     expect(navViewFromPathname("/p1/memories/graph")).toBe("memories");
     expect(navViewFromPathname("/p1/home")).toBe("home");
     expect(navViewFromPathname("/p1/activity/events")).toBe("home");
-    expect(navViewFromPathname("/p1/inbox/proposals")).toBe("home");
-    expect(navViewFromPathname("/p1/inbox/notifications")).toBe("home");
-    expect(navViewFromPathname("/p1/sources")).toBe("home");
-    expect(navViewFromPathname("/p1/sources/import")).toBe("home");
+  });
+
+  it("opens no stacked sidebar panel for inbox or sources", () => {
+    expect(navViewFromPathname("/p1/inbox")).toBe("main");
+    expect(navViewFromPathname("/p1/inbox/proposals")).toBe("main");
+    expect(navViewFromPathname("/p1/inbox/notifications")).toBe("main");
+    expect(navViewFromPathname("/p1/sources")).toBe("main");
+    expect(navViewFromPathname("/p1/sources/import")).toBe("main");
+    expect(navViewFromPathname("/p1/files")).toBe("main");
   });
 });
 
@@ -78,6 +82,7 @@ describe("rail destinations cover the previous sidebar nav", () => {
         "/$profileId/wiki",
         "/$profileId/skills",
         "/$profileId/files",
+        "/$profileId/sources",
         "/$profileId/team/members",
         "/settings",
       ]),
@@ -87,29 +92,25 @@ describe("rail destinations cover the previous sidebar nav", () => {
       "Wiki",
       "Skills",
       "Files",
+      "Sources",
     ]);
     expect(hrefs).not.toContain("/$profileId/activity");
   });
 
-  it("keeps inbox and sources off the rail", () => {
-    const railHrefs = railLibraryItems.map((item) => item.href);
-    expect(railHrefs).not.toContain("/$profileId/sources");
-    expect(railHrefs).not.toContain("/$profileId/inbox");
+  it("puts inbox and sources back on the rail", () => {
+    expect(inboxRailItem.href).toBe("/$profileId/inbox");
+    expect(railLibraryItems.at(-1)?.href).toBe("/$profileId/sources");
 
     const railNav = read("SidebarRailNav.tsx");
-    expect(railNav).not.toContain("inboxNavItem");
-    expect(railNav).not.toContain("sourcesNavItem");
-    expect(railNav).not.toContain("/inbox");
+    expect(railNav).toContain("item={inboxRailItem}");
   });
 
   it("still lists inbox and sources in the command palette groups", () => {
     const paletteHrefs = navGroups.flatMap((group) =>
       group.items.map((item) => item.href),
     );
-    expect(inboxNavItem.href).toBe("/$profileId/inbox");
-    expect(sourcesNavItem.href).toBe("/$profileId/sources");
-    expect(paletteHrefs).toContain(inboxNavItem.href);
-    expect(paletteHrefs).toContain(sourcesNavItem.href);
+    expect(paletteHrefs).toContain("/$profileId/inbox");
+    expect(paletteHrefs).toContain("/$profileId/sources");
   });
 
   it("does not advertise codebases", () => {
@@ -175,16 +176,19 @@ describe("shell uses a rail + panel + drawer", () => {
     expect(rail).toContain('layout === "desktop" && isCollapsed');
   });
 
-  it("places the divider directly under home, and no inbox or activity rail tile", () => {
+  it("places inbox under home, then the divider, and no activity rail tile", () => {
     const railNav = read("SidebarRailNav.tsx");
     const homeIdx = railNav.indexOf('label="Home"');
-    const dividerIdx = railNav.indexOf("<RailDivider />", homeIdx);
+    const inboxIdx = railNav.indexOf("item={inboxRailItem}", homeIdx);
+    const dividerIdx = railNav.indexOf("<RailDivider />", inboxIdx);
     const libraryIdx = railNav.indexOf("railLibraryItems.map", dividerIdx);
     expect(homeIdx).toBeGreaterThan(-1);
-    expect(dividerIdx).toBeGreaterThan(homeIdx);
+    expect(inboxIdx).toBeGreaterThan(homeIdx);
+    expect(dividerIdx).toBeGreaterThan(inboxIdx);
     expect(libraryIdx).toBeGreaterThan(dividerIdx);
-    expect(railNav).not.toContain("inboxRailItem");
-    expect(railNav).not.toContain("RAIL_BADGE_CLASS");
+    expect(railNav).toContain("RAIL_BADGE_CLASS");
+    expect(railNav).toContain("proposalsCount + unreadCount");
+    expect(read("../shell/Sidebar.tsx")).toContain("unreadCount={unreadCount}");
     expect(railNav).not.toContain("railAccountItems");
     expect(railNav).not.toContain("IconActivity");
     expect(railNav).not.toMatch(/label:\s*"Activity"/);

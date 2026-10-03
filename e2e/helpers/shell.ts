@@ -43,6 +43,21 @@ export function pageTab(page: Page, name: string): Locator {
   });
 }
 
+// Inbox and Sources are rail tiles with no stacked sidebar content: their
+// nested views must stay page tabs, never sidebar rows.
+export async function expectNoStackedSidebarRows(
+  page: Page,
+  names: string[],
+): Promise<void> {
+  for (const name of names) {
+    await expect(
+      sidebarPanel(page).getByRole("link", { name, exact: true }),
+    ).toHaveCount(0);
+  }
+}
+
+// Alternate path to Inbox / Sources via the Home page pills; primary nav
+// uses the rail tiles.
 export async function openHomeSection(
   page: Page,
   name: "Inbox" | "Sources",
