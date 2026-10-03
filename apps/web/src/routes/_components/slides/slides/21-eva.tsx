@@ -101,14 +101,14 @@ function PartnershipLockup({ settled }: { settled: boolean }) {
         >
           <motion.div variants={lockupItem} className="flex items-center gap-4">
             <VmemLockupIcon size={LOCKUP_ICON_SIZE} />
-            <span className="font-instrumentSerif text-7xl text-foreground">
+            <span className="text-7xl font-semibold tracking-[-0.03em] text-foreground">
               v<span className="italic">mem</span>
             </span>
           </motion.div>
 
           <motion.span
             variants={lockupItem}
-            className="font-instrumentSerif text-5xl text-muted"
+            className="text-5xl font-light text-muted"
             aria-hidden
           >
             |

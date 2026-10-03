@@ -91,7 +91,7 @@ export function BlurWordsTitle({
 
   return (
     <motion.h1
-      className={`font-instrumentSerif ${sizeClass} font-normal leading-tight tracking-tight text-foreground`}
+      className={`${sizeClass} font-semibold leading-tight tracking-[-0.03em] text-foreground`}
       variants={containerVariants}
       // Always mount hidden: with step=0 the title is visible immediately, and
       // initial="show" would skip the entrance entirely (no word animation).

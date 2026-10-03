@@ -190,7 +190,7 @@ export function SlideTitle({ children, size = "2xl" }: SlideTitleProps) {
     size === "xl" ? "text-5xl" : size === "2xl" ? "text-6xl" : "text-7xl";
   return (
     <h1
-      className={`font-instrumentSerif ${sizeClass} font-normal leading-tight tracking-tight text-foreground`}
+      className={`${sizeClass} font-semibold leading-tight tracking-[-0.03em] text-foreground`}
     >
       {children}
     </h1>

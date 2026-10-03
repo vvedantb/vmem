@@ -222,7 +222,7 @@ export function SlideFragmentCollapse() {
         <At l={CENTER.l} t={CENTER.t}>
           <div className="inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-foreground px-5 py-2.5 text-background">
             <VmemDrawInIcon size={20} className="shrink-0 text-background" />
-            <span className="font-instrumentSerif text-xl leading-none text-background">
+            <span className="text-xl font-semibold leading-none text-background">
               v<span className="italic">mem</span>
             </span>
           </div>

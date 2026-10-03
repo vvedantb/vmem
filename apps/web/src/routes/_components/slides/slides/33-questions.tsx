@@ -34,7 +34,7 @@ export function Slide33Questions() {
         {QUESTIONS.map((q) => (
           <SlideItem key={q}>
             <div className="flex items-center gap-3 rounded-2xl bg-surface-secondary/60 px-4 py-3">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-foreground font-instrumentSerif text-sm text-background">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-foreground text-sm font-semibold text-background">
                 ?
               </span>
               <p className="text-sm leading-snug text-foreground">{q}</p>

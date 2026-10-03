@@ -47,7 +47,7 @@ export function Slide14Questions() {
         }}
       >
         <motion.h1
-          className="font-instrumentSerif text-8xl font-normal leading-tight tracking-tight text-foreground"
+          className="text-8xl font-semibold leading-tight tracking-[-0.035em] text-foreground"
           variants={containerVariants}
           initial="hidden"
           animate="show"

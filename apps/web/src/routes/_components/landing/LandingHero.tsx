@@ -35,7 +35,7 @@ export function LandingHero() {
         </motion.p>
 
         <motion.h1
-          className="text-balance font-instrumentSerif text-[2.35rem] leading-[1] tracking-tight text-foreground min-[400px]:text-[2.85rem] sm:text-6xl lg:text-[4.85rem]"
+          className="text-balance font-semibold text-[2.35rem] leading-[1] tracking-[-0.035em] text-foreground min-[400px]:text-[2.85rem] sm:text-6xl lg:text-[4.85rem]"
           variants={landingItemVariants}
           transition={{ duration: motionDuration.slow, ease: motionEase }}
         >
