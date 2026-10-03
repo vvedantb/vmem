@@ -13,6 +13,8 @@ import {
   settingsRailItem,
   teamRailItem,
   navViewFromPathname,
+  panelTitleBySection,
+  railSectionHidesPanel,
 } from "./nav-config";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -174,6 +176,45 @@ describe("shell uses a rail + panel + drawer", () => {
     expect(rail).toContain("showRailPanelDivider");
     expect(rail).toContain("border-r border-separator");
     expect(rail).toContain('layout === "desktop" && isCollapsed');
+    expect(rail).toContain("!isPanelHidden");
+  });
+
+  it("drops the sidebar panel column on inbox and sources", () => {
+    expect(railSectionHidesPanel("inbox")).toBe(true);
+    expect(railSectionHidesPanel("sources")).toBe(true);
+    for (const section of [
+      "home",
+      "memories",
+      "wiki",
+      "skills",
+      "files",
+      "team",
+      "settings",
+    ] as const) {
+      expect(railSectionHidesPanel(section)).toBe(false);
+    }
+    expect(Object.keys(panelTitleBySection)).not.toContain("inbox");
+    expect(Object.keys(panelTitleBySection)).not.toContain("sources");
+    expect(panelTitleBySection.files).toBe("Files");
+
+    const sidebar = read("../shell/Sidebar.tsx");
+    expect(sidebar).toContain("railSectionHidesPanel(section)");
+    expect(sidebar).toContain(
+      "sidebarRailWidthClass(isCollapsed || hidePanel)",
+    );
+    expect(sidebar).toContain("panelSection === null ? null");
+    expect(sidebar).toContain("isPanelHidden={hidePanel}");
+
+    const shell = read("../shell/MainShell.tsx");
+    expect(shell).toContain(
+      "railSectionHidesPanel(railSectionFromPathname(pathname))",
+    );
+    expect(shell).toMatch(
+      /isPanelHidden\s*\?\s*"md:ml-\[var\(--vmem-sidebar-rail-width\)\]"/,
+    );
+    // Route-driven hiding never writes the stored collapse preference.
+    expect(shell).toContain('"sidebar-collapsed"');
+    expect(shell).not.toMatch(/setIsSidebarCollapsed\(\s*true/);
   });
 
   it("places inbox under home, then the divider, and no activity rail tile", () => {

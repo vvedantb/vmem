@@ -89,14 +89,22 @@ export const navGroups: NavGroup[] = [
   },
 ];
 
-export const panelTitleBySection: Record<RailSection, string> = {
+// Inbox and Sources have no sidebar panel: the main page sits beside the
+// rail and nested views are page tabs.
+type PanelSection = Exclude<RailSection, "inbox" | "sources">;
+
+export function railSectionHidesPanel(
+  section: RailSection,
+): section is "inbox" | "sources" {
+  return section === "inbox" || section === "sources";
+}
+
+export const panelTitleBySection: Record<PanelSection, string> = {
   home: "Home",
   memories: "Memories",
   wiki: "Wiki",
   skills: "Skills",
   files: "Files",
-  sources: "Sources",
-  inbox: "Inbox",
   team: "Team",
   settings: "Settings",
 };

@@ -40,9 +40,12 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
 
     await gotoWorkspace(page, "/home");
     await expect(page).toHaveURL(new RegExp(`/${profileId}/home`));
-    await expect(pageTab(page, "Dashboard")).toBeVisible({ timeout: 20_000 });
-    await expect(pageTab(page, "Inbox")).toBeVisible();
-    await expect(pageTab(page, "Sources")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible({
+      timeout: 20_000,
+    });
+    for (const name of ["Dashboard", "Inbox", "Sources"]) {
+      await expect(pageTab(page, name)).toHaveCount(0);
+    }
   });
 
   test("left rail reaches every primary destination", async ({
@@ -95,17 +98,17 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
       "aria-current",
       "page",
     );
-    await expect(pageTab(page, "Sources")).toHaveAttribute(
-      "data-state",
-      "active",
-    );
     await expect(pageTab(page, "Connectors")).toBeVisible({
       timeout: 20_000,
     });
     await expect(pageTab(page, "Import")).toBeVisible();
+    await expect(pageTab(page, "Sources")).toHaveCount(0);
     await expect(
-      page.getByRole("heading", { name: "Sources", exact: true }),
+      mainContent(page).getByRole("heading", { name: "Sources", exact: true }),
     ).toBeVisible();
+    await expect(
+      sidebarPanel(page).getByRole("heading", { name: "Sources" }),
+    ).toHaveCount(0);
     await expectNoStackedSidebarRows(page, ["Connectors", "Import"]);
     await assertNoFatalChrome(page);
 
@@ -137,14 +140,17 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
       "aria-current",
       "page",
     );
-    await expect(pageTab(page, "Inbox")).toHaveAttribute(
-      "data-state",
-      "active",
-    );
     await expect(pageTab(page, "Proposals")).toBeVisible({
       timeout: 20_000,
     });
     await expect(pageTab(page, "Notifications")).toBeVisible();
+    await expect(pageTab(page, "Inbox")).toHaveCount(0);
+    await expect(
+      mainContent(page).getByRole("heading", { name: "Inbox", exact: true }),
+    ).toBeVisible();
+    await expect(
+      sidebarPanel(page).getByRole("heading", { name: "Inbox" }),
+    ).toHaveCount(0);
     await expectNoStackedSidebarRows(page, ["Proposals", "Notifications"]);
     await assertNoFatalChrome(page);
 

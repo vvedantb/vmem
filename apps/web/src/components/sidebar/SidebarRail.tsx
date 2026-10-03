@@ -23,6 +23,7 @@ export type SidebarRailProps = {
   unreadCount: number;
   proposalsCount: number;
   isCollapsed: boolean;
+  isPanelHidden: boolean;
   isAuthLoading: boolean;
   onToggleCollapse: () => void;
   onOpenSearch: () => void;
@@ -37,6 +38,7 @@ export function SidebarRail({
   unreadCount,
   proposalsCount,
   isCollapsed,
+  isPanelHidden,
   isAuthLoading,
   onToggleCollapse,
   onOpenSearch,
@@ -50,7 +52,8 @@ export function SidebarRail({
   );
   const collapseLabel = isCollapsed ? "Show sidebar" : "Hide sidebar";
 
-  const showRailPanelDivider = !(layout === "desktop" && isCollapsed);
+  const showRailPanelDivider =
+    !isPanelHidden && !(layout === "desktop" && isCollapsed);
 
   return (
     <div

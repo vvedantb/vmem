@@ -1,10 +1,7 @@
 import type { ReactNode } from "react";
 import { createFileRoute, Outlet, useMatchRoute } from "@tanstack/react-router";
 import PageContainer from "@/components/shell/PageContainer";
-import {
-  HomeSectionTabRows,
-  InboxTabs,
-} from "@/components/dashboard/HomeSectionTabs";
+import { InboxTabs } from "@/components/dashboard/HomeSectionTabs";
 import { NotificationsRightSection } from "./-components/NotificationsPanel";
 import { ProposalsRightSection } from "./-components/ProposalsPanel";
 
@@ -20,7 +17,7 @@ function InboxShell({ rightSection }: { rightSection: ReactNode }) {
       centeredMaxWidth
       insetHeader
       rightSection={rightSection}
-      tabs={<HomeSectionTabRows nested={<InboxTabs />} />}
+      tabs={<InboxTabs />}
     >
       <Outlet />
     </PageContainer>

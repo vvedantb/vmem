@@ -9,12 +9,7 @@ import {
 test.describe("inbox", { tag: ["@inbox", "@smoke"] }, () => {
   test("proposals and notifications tabs load", async ({ page }) => {
     await gotoWorkspace(page, "/inbox");
-    await expect(pageTab(page, "Inbox")).toHaveAttribute(
-      "data-state",
-      "active",
-      { timeout: 20_000 },
-    );
-    await expect(pageTab(page, "Proposals")).toBeVisible();
+    await expect(pageTab(page, "Proposals")).toBeVisible({ timeout: 20_000 });
     await expect(pageTab(page, "Notifications")).toBeVisible();
     await expect(railLink(page, "Inbox")).toHaveAttribute(
       "aria-current",
