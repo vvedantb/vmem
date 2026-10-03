@@ -7,7 +7,7 @@ import {
 } from "../helpers/shell";
 
 test.describe("settings", { tag: ["@settings", "@smoke"] }, () => {
-  test("redirects /settings to preferences with grouped nav", async ({
+  test("redirects /settings to preferences with a flat nav", async ({
     page,
   }) => {
     await page.goto("/settings");
@@ -16,9 +16,10 @@ test.describe("settings", { tag: ["@settings", "@smoke"] }, () => {
     });
     await expect(page.locator("#main-content")).toBeVisible();
     const nav = page.locator("nav").filter({ hasText: "Preferences" });
-    await expect(nav.getByText("General", { exact: true })).toBeVisible();
-    await expect(nav.getByText("Developer", { exact: true })).toBeVisible();
-    await expect(nav.getByText("Integrations", { exact: true })).toBeVisible();
+    await expect(nav.getByText("General", { exact: true })).toHaveCount(0);
+    await expect(nav.getByText("Developer", { exact: true })).toHaveCount(0);
+    await expect(nav.getByText("Integrations", { exact: true })).toHaveCount(0);
+    await expect(nav.getByRole("link", { name: "Preferences" })).toBeVisible();
     await expect(nav.getByRole("link", { name: "Profiles" })).toBeVisible();
     await expect(nav.getByRole("link", { name: "API" })).toBeVisible();
     await expect(nav.getByRole("link", { name: "Connectors" })).toHaveCount(0);
@@ -192,13 +193,13 @@ test.describe("settings", { tag: ["@settings", "@smoke"] }, () => {
 test.describe("settings mobile", { tag: ["@settings", "@mobile"] }, () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
-  test("drawer lists grouped settings and keeps toggles usable", async ({
+  test("drawer lists a flat settings nav and keeps toggles usable", async ({
     page,
   }) => {
     await gotoSettings(page, "/preferences");
     await page.getByRole("button", { name: "Open navigation menu" }).click();
     const nav = page.locator("nav").filter({ hasText: "Preferences" });
-    await expect(nav.getByText("General", { exact: true })).toBeVisible();
+    await expect(nav.getByText("General", { exact: true })).toHaveCount(0);
     await expect(nav.getByRole("link", { name: "Extension" })).toBeVisible();
     await nav.getByRole("link", { name: "API" }).click();
     await expect(page.getByRole("tab", { name: "Usage" })).toBeVisible({
