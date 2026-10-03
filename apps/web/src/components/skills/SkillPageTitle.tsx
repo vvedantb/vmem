@@ -1,4 +1,4 @@
-import { Breadcrumb, BreadcrumbPage, Input } from "@vmem/ui";
+import { Breadcrumb, BreadcrumbPage, Input } from "@vv/ui";
 
 interface SkillPageTitleProps {
   name: string;

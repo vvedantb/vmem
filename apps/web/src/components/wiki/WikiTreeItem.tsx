@@ -18,7 +18,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
   cn,
-} from "@vmem/ui";
+} from "@vv/ui";
 
 type WikiCreateKind = "folder" | "document" | "artifact";
 

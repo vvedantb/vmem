@@ -1,4 +1,4 @@
-import { cn } from "@vmem/ui";
+import { cn } from "@vv/ui";
 
 type SettingsSectionBodyVariant = "form" | "list" | "compact";
 

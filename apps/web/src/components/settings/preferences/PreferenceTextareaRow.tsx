@@ -1,4 +1,4 @@
-import { Label, Textarea } from "@vmem/ui";
+import { Label, Textarea } from "@vv/ui";
 
 export function PreferenceTextareaRow({
   id,

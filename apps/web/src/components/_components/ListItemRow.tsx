@@ -10,7 +10,7 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@vmem/ui";
+} from "@vv/ui";
 import { IconEdit, IconMoon, IconTrash } from "@tabler/icons-react";
 import { IconSkills, IconWiki } from "@/components/icons/sidebar";
 import { formatCompactRelativeTime } from "@vmem/shared";

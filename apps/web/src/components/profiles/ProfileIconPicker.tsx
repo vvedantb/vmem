@@ -1,4 +1,4 @@
-import { Button, cn } from "@vmem/ui";
+import { Button, cn } from "@vv/ui";
 import { PROFILE_ICON_OPTIONS } from "./profile-icon";
 
 export function ProfileIconPicker({

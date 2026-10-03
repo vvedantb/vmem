@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@vmem/ui";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@vv/ui";
 import type { MemoryTrace } from "./memory-trace";
 import MemoryScoreBar from "./MemoryScoreBar";
 

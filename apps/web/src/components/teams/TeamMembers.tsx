@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { useNavigate } from "@tanstack/react-router";
 import { api, type Id } from "@vmem/backend";
-import { Badge, Button } from "@vmem/ui";
+import { Badge, Button } from "@vv/ui";
 import { useUser } from "@clerk/clerk-react";
 import {
   IconPlus,

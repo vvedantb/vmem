@@ -1,5 +1,5 @@
 import { useQuery } from "convex/react";
-import { Skeleton, Switch } from "@vmem/ui";
+import { Skeleton, Switch } from "@vv/ui";
 import { api } from "@vmem/backend";
 import { SettingsPage } from "@/components/settings/SettingsPage";
 import { SettingsSection } from "@/components/settings/SettingsSection";

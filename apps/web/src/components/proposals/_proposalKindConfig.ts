@@ -1,4 +1,4 @@
-import type { BadgeProps } from "@vmem/ui";
+import type { BadgeProps } from "@vv/ui";
 import type { TablerIcon } from "@tabler/icons-react";
 import {
   IconAlertTriangle,

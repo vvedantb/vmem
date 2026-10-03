@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Button } from "@vmem/ui";
+import { Button } from "@vv/ui";
 import {
   IconChevronLeft,
   IconChevronRight,

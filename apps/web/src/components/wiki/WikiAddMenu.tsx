@@ -1,5 +1,5 @@
 import { IconCode, IconFileText, IconFolderPlus } from "@tabler/icons-react";
-import { DropdownMenuItem } from "@vmem/ui";
+import { DropdownMenuItem } from "@vv/ui";
 import { FeatureAddMenu } from "@/components/shell/FeatureAddMenu";
 
 interface WikiAddMenuProps {

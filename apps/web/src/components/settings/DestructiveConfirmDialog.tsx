@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
   Input,
-} from "@vmem/ui";
+} from "@vv/ui";
 import { IconLoader2 } from "@tabler/icons-react";
 
 type DestructiveConfirmDialogProps = {

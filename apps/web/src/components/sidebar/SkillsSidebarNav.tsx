@@ -4,7 +4,7 @@ import { useQuery } from "convex/react";
 import { useQueryStates } from "nuqs";
 import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
-import { Button, Spinner, cn } from "@vmem/ui";
+import { Button, Spinner, cn } from "@vv/ui";
 import { IconApps, IconBolt, IconListCheck } from "@tabler/icons-react";
 import { SkillCard } from "@/components/skills/SkillCard";
 import { SkillBulkDeleteBar } from "@/components/skills/SkillBulkDeleteBar";

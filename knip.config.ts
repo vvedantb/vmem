@@ -43,14 +43,20 @@ const config: KnipConfig = {
         "src/routes/**/*.tsx!",
         "vite.config.ts!",
         "scripts/generate-og-image.mjs!",
+        "scripts/build-vv-shell.mjs!",
       ],
-      project: ["src/**/*.{ts,tsx}", "scripts/generate-og-image.mjs"],
+      project: [
+        "src/**/*.{ts,tsx}",
+        "scripts/generate-og-image.mjs",
+        "scripts/build-vv-shell.mjs",
+      ],
       // tailwindcss / tailwindcss-animate / shadow-plugin: used by globals.css
       // `@import`/`@plugin`; knip does not trace stylesheet imports.
       ignoreDependencies: [
         "tailwindcss",
         "tailwindcss-animate",
         "shadow-plugin",
+        "@vv/tokens",
       ],
     },
     "apps/chrome-extension": {

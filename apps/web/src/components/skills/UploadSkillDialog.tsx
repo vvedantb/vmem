@@ -9,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
   Input,
-} from "@vmem/ui";
+} from "@vv/ui";
 import { IconLoader2, IconUpload } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { useActiveTeamId } from "@/components/workspace/active-profile";

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAction } from "convex/react";
 import { api } from "@vmem/backend";
-import { Button } from "@vmem/ui";
+import { Button } from "@vv/ui";
 import { toast } from "sonner";
 import UploadImportModal from "./UploadImportModal";
 import SelectImportRowsModal from "./SelectImportRowsModal";

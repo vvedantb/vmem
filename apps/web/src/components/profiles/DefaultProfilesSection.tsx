@@ -6,7 +6,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@vmem/ui";
+} from "@vv/ui";
 import { IconBrandChrome } from "@tabler/icons-react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@vmem/backend";

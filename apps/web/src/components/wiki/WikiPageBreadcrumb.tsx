@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import type { WikiListNode, WikiNodeDoc } from "./-types";
-import { Breadcrumb, BreadcrumbLink, BreadcrumbPage, Input } from "@vmem/ui";
+import { Breadcrumb, BreadcrumbLink, BreadcrumbPage, Input } from "@vv/ui";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 
 interface WikiPageBreadcrumbProps {

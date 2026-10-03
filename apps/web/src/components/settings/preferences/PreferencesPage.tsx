@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { toast } from "sonner";
-import { Switch, TimePicker } from "@vmem/ui";
+import { Switch, TimePicker } from "@vv/ui";
 import { api } from "@vmem/backend";
 import {
   DEFAULT_LOCAL_TIME,

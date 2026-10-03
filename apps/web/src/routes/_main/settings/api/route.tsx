@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, useLocation } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import { Button } from "@vmem/ui";
+import { Button } from "@vv/ui";
 import { IconPlus } from "@tabler/icons-react";
 import { SettingsPage } from "@/components/settings/SettingsPage";
 import { ApiTabs, apiTabFromPathname } from "./-components/ApiTabs";

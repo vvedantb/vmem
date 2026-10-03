@@ -8,7 +8,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
-} from "@vmem/ui";
+} from "@vv/ui";
 import { IconSortDescending, IconSortAscending } from "@tabler/icons-react";
 import { api, type Id } from "@vmem/backend";
 import { useActiveProfile } from "@/components/workspace/active-profile";

@@ -1,5 +1,5 @@
 import { useEffect, useRef, type RefObject } from "react";
-import { Button, cn } from "@vmem/ui";
+import { Button, cn } from "@vv/ui";
 import type { OutlineHeading } from "./_utils";
 
 interface WikiOutlineProps {

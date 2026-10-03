@@ -1,6 +1,6 @@
 import { useState, type ComponentType } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { Button, cn, motionDuration, motionEase } from "@vmem/ui";
+import { Button, cn, motionDuration, motionEase } from "@vv/ui";
 import {
   IconMemories,
   IconWiki,

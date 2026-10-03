@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import { IconArrowBack } from "@tabler/icons-react";
-import { Button } from "@vmem/ui";
+import { Button } from "@vv/ui";
 import { useMemoryContext } from "@/contexts/MemoryContext";
 import GraphCanvas from "@/components/_components/GraphCanvas";
 import type { GraphCanvasHandle } from "@/components/_components/GraphCanvas";

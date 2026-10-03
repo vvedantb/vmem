@@ -1,11 +1,5 @@
 import { useState } from "react";
-import {
-  Button,
-  Input,
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@vmem/ui";
+import { Button, Input, Popover, PopoverContent, PopoverTrigger } from "@vv/ui";
 import { IconCopy, IconCheck, IconPlayerStop } from "@tabler/icons-react";
 import { toast } from "sonner";
 import type { PresentationSync } from "../usePresentationSync";

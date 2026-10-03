@@ -1,4 +1,4 @@
-import { Card, CardContent, Skeleton } from "@vmem/ui";
+import { Card, CardContent, Skeleton } from "@vv/ui";
 
 const SUMMARY_CARD_INDICES = [0, 1, 2];
 const TABLE_ROW_INDICES = [0, 1, 2, 3, 4];

@@ -8,7 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   Switch,
-} from "@vmem/ui";
+} from "@vv/ui";
 
 interface WikiDocActionsMenuProps {
   outlineVisible: boolean;

@@ -9,7 +9,9 @@ import {
 } from "react";
 import { useMediaQuery } from "usehooks-ts";
 import { AnimatePresence, motion, type PanInfo } from "motion/react";
-import { Button, cn, motionEase, motionTiming } from "@vmem/ui";
+import { Button, cn, motionEase, motionTiming } from "@vv/ui";
+import { SidebarHeader } from "@vv/shell";
+import { IconX } from "@tabler/icons-react";
 import { useUser } from "@clerk/clerk-react";
 import { useConvexAuth, useAction, useQuery } from "convex/react";
 import { api } from "@vmem/backend";
@@ -18,7 +20,6 @@ import { useProposals } from "@/hooks/useProposals";
 import { useMemoryEvents } from "@/hooks/useMemoryEvents";
 import { MorphingMenuIcon } from "@/components/icons/animations";
 import { SidebarNavigation } from "@/components/sidebar/SidebarNavigation";
-import { SidebarHeader } from "@/components/sidebar/SidebarHeader";
 import { SidebarHeaderTrailingProvider } from "@/components/sidebar/SidebarHeaderTrailing";
 import {
   SidebarFooter,
@@ -246,9 +247,28 @@ export default function Sidebar({
               <div className="px-2 pt-3">
                 <SidebarHeader
                   title={panelTitleBySection[panelSection]}
-                  isMobile={!isDesktopViewport}
-                  onClose={closeMobileMenu}
-                  trailingRef={setHeaderTrailing}
+                  trailing={
+                    <>
+                      <div
+                        ref={setHeaderTrailing}
+                        className="flex items-center"
+                      />
+                      {isDesktopViewport ? null : (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={closeMobileMenu}
+                          aria-label="Close navigation"
+                          className={cn(
+                            "rounded-lg text-muted transition-colors hover:bg-surface-tertiary/50 hover:text-foreground",
+                          )}
+                        >
+                          <IconX className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </>
+                  }
                 />
               </div>
               {showWorkspaceSwitcher ? (

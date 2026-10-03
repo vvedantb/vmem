@@ -1,4 +1,4 @@
-import { Checkbox, cn } from "@vmem/ui";
+import { Checkbox, cn } from "@vv/ui";
 import {
   formatFileSize,
   formatItemCount,

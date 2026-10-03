@@ -9,7 +9,7 @@ import {
   cn,
   motionDuration,
   motionEase,
-} from "@vmem/ui";
+} from "@vv/ui";
 import { formatCompactRelativeTime } from "@vmem/shared";
 import { MemorySourceIcon } from "@/components/_components/MemorySourceIcon";
 import ShapeIndicator from "@/components/_components/ShapeIndicator";

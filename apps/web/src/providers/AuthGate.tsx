@@ -1,7 +1,7 @@
 import { AuthLoading, Authenticated, Unauthenticated } from "convex/react";
 import { useTheme } from "next-themes";
 import { Navigate } from "@tanstack/react-router";
-import { SonnerToaster, TooltipProvider } from "@vmem/ui";
+import { SonnerToaster, TooltipProvider } from "@vv/ui";
 import { AppSkeleton } from "@/components/shell/AppSkeleton";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";

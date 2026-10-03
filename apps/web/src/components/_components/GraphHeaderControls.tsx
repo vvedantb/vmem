@@ -8,7 +8,7 @@ import {
   PopoverTrigger,
   Switch,
   Separator,
-} from "@vmem/ui";
+} from "@vv/ui";
 import AddMemoryIconTrigger from "@/components/memories/AddMemoryIconTrigger";
 import HeaderSearchPopover from "./HeaderSearchPopover";
 import GraphLegend from "./GraphLegend";

@@ -2,7 +2,7 @@ import { useContext } from "react";
 import type { ReactNode } from "react";
 import { motion } from "motion/react";
 import type { Variants } from "motion/react";
-import { motionEase } from "@vmem/ui";
+import { motionEase } from "@vv/ui";
 import { SlideStepContext } from "./SlideShell";
 
 // Matches the brand word "vmem" (case-insensitive) with optional trailing

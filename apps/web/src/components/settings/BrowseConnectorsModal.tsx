@@ -6,7 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
   Button,
-} from "@vmem/ui";
+} from "@vv/ui";
 import {
   isConnectorConnected,
   isConnectorConnectable,

@@ -13,7 +13,7 @@ import {
   Popover,
   PopoverTrigger,
   PopoverContent,
-} from "@vmem/ui";
+} from "@vv/ui";
 import {
   IconPlus,
   IconX,

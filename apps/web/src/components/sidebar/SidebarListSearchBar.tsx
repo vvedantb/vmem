@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { cn } from "@vmem/ui";
+import { cn } from "@vv/ui";
 import HeaderSearchInput from "@/components/_components/HeaderSearchInput";
 import { sidebarSearchInputClassName } from "./sidebar-search-input";
 

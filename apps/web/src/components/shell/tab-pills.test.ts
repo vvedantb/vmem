@@ -1,11 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const webSrc = path.join(here, "../..");
-const uiSrc = path.join(webSrc, "../../../packages/ui/src");
+const uiSrc = [
+  path.join(webSrc, "../node_modules/@vv/ui/src"),
+  path.join(webSrc, "../../../node_modules/@vv/ui/src"),
+].find((dir) => existsSync(dir));
+if (!uiSrc) {
+  throw new Error("@vv/ui source not installed");
+}
 
 function read(file: string): string {
   return readFileSync(file, "utf8");
@@ -16,6 +22,13 @@ function cssRule(css: string, selector: string): string {
   expect(start, `${selector} rule exists`).toBeGreaterThan(-1);
   return css.slice(start, css.indexOf("}", start));
 }
+
+describe("shared shell pills live in @vv/shell", () => {
+  it("does not keep a second PillTabs in this app", () => {
+    expect(existsSync(path.join(here, "PillTabs.tsx"))).toBe(false);
+    expect(read(path.join(here, "Sidebar.tsx"))).toContain('from "@vv/shell"');
+  });
+});
 
 describe("product tabs are isolated pills", () => {
   const tabs = read(path.join(uiSrc, "ui/tabs.tsx"));

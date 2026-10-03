@@ -9,7 +9,7 @@ import {
   Button,
   Input,
   Progress,
-} from "@vmem/ui";
+} from "@vv/ui";
 import { toast } from "sonner";
 import {
   IconUpload,

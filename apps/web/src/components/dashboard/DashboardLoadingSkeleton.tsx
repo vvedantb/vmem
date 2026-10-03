@@ -1,4 +1,4 @@
-import { Card, CardContent, Skeleton } from "@vmem/ui";
+import { Card, CardContent, Skeleton } from "@vv/ui";
 
 const STAT_CARD_SKELETON_KEYS = [0, 1, 2, 3] as const;
 

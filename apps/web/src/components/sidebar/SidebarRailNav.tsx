@@ -1,6 +1,6 @@
 import type { MouseEventHandler, ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { Button, cn } from "@vmem/ui";
+import { Button, cn } from "@vv/ui";
 import type { NavHref, NavItem } from "./types";
 import {
   homeRailHref,

@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { useAction, useMutation } from "convex/react";
 import { useNavigate } from "@tanstack/react-router";
 import { api } from "@vmem/backend";
-import { Button, Input } from "@vmem/ui";
+import { Button, Input } from "@vv/ui";
 import { IconAlertTriangle, IconTrash, IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { convexErrorMessage } from "@/lib/convex-error";

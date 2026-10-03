@@ -1,4 +1,4 @@
-import { Input, Label } from "@vmem/ui";
+import { Input, Label } from "@vv/ui";
 
 interface ConfidenceThresholdSliderProps {
   value: number;

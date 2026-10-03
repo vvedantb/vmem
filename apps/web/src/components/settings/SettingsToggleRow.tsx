@@ -1,4 +1,4 @@
-import { cn } from "@vmem/ui";
+import { cn } from "@vv/ui";
 
 interface SettingsToggleRowProps {
   title: React.ReactNode;

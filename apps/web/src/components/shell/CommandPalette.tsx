@@ -12,7 +12,7 @@ import {
   CommandList,
   CommandSeparator,
   CommandShortcut,
-} from "@vmem/ui";
+} from "@vv/ui";
 import {
   IconBolt,
   IconBrain,

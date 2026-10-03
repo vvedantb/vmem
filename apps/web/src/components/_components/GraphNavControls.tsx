@@ -3,7 +3,7 @@ import {
   IconZoomOut,
   IconFocusCentered,
 } from "@tabler/icons-react";
-import { Button, cn } from "@vmem/ui";
+import { Button, cn } from "@vv/ui";
 
 interface GraphNavControlsProps {
   onZoomIn: () => void;

@@ -1,7 +1,7 @@
 import { SignInButton, SignUpButton } from "@clerk/clerk-react";
 import { IconBrandGithub } from "@tabler/icons-react";
 import { motion } from "motion/react";
-import { Button, cn, motionDuration, motionEase } from "@vmem/ui";
+import { Button, cn, motionDuration, motionEase } from "@vv/ui";
 import { VmemBrand } from "@/components/shell/VmemBrand";
 import { LANDING_NAV_LINKS, VMEM_GITHUB_URL } from "./landingContent";
 import { LandingNavMenu } from "./LandingNavMenu";

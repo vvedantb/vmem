@@ -5,7 +5,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@vmem/ui";
+} from "@vv/ui";
 import { IconArrowsSort } from "@tabler/icons-react";
 import type { TagSortMode, TagStats } from "@/lib/memories";
 import {
