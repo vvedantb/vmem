@@ -1,12 +1,11 @@
-import type { ReactNode } from "react";
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { useDebounceValue } from "usehooks-ts";
 import { IconCode, IconFileText, IconFolder } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
-import { Button, cn } from "@vmem/ui";
-import HeaderSearchInput from "@/components/_components/HeaderSearchInput";
-import { sidebarSearchInputClassName } from "@/components/sidebar/sidebar-search-input";
+import { Button } from "@vmem/ui";
+import HeaderSearchPopover from "@/components/_components/HeaderSearchPopover";
+import { featureHeaderIconClassName } from "@/components/shell/FeatureAddMenu";
 import { useActiveTeamId } from "@/components/workspace/active-profile";
 import type { WikiNodeId, WikiSearchHit } from "./-types";
 
@@ -60,20 +59,20 @@ function WikiSearchResultItem({
 }
 
 interface WikiSearchProps {
+  query: string;
+  onQueryChange: (query: string) => void;
   onSelect: (id: WikiNodeId) => void;
-  // trailing chrome (add, select) beside the input
-  actions?: ReactNode;
-  className?: string;
 }
 
-// debounced wiki search (title + contentText, workspace scoped)
+// icon search button + popover with debounced wiki results (title +
+// contentText, workspace scoped)
 export default function WikiSearch({
+  query,
+  onQueryChange,
   onSelect,
-  actions,
-  className,
 }: WikiSearchProps) {
-  const [raw, setRaw] = useState("");
-  const [debounced] = useDebounceValue(raw, 200);
+  const [open, setOpen] = useState(false);
+  const [debounced] = useDebounceValue(query, 200);
   const teamId = useActiveTeamId();
 
   const trimmed = debounced.trim();
@@ -82,23 +81,21 @@ export default function WikiSearch({
     trimmed.length > 0 ? { queryText: trimmed, teamId } : "skip",
   );
 
-  const isSearching = raw.trim().length > 0;
+  const isSearching = query.trim().length > 0;
 
   return (
-    <div className={cn("flex min-w-0 flex-col gap-1.5", className)}>
-      <div className="flex min-w-0 items-center gap-1">
-        <HeaderSearchInput
-          value={raw}
-          onChange={setRaw}
-          placeholder="Search"
-          label="Search wiki"
-          className="min-w-0 flex-1 sm:flex-1"
-          inputClassName={sidebarSearchInputClassName}
-        />
-        {actions}
-      </div>
+    <HeaderSearchPopover
+      value={query}
+      onChange={onQueryChange}
+      label="Search wiki"
+      placeholder="Search"
+      variant="ghost"
+      triggerClassName={featureHeaderIconClassName}
+      open={open}
+      onOpenChange={setOpen}
+    >
       {isSearching ? (
-        <div className="max-h-48 overflow-y-auto rounded-md scrollbar-thin">
+        <div className="max-h-64 overflow-y-auto rounded-md scrollbar-thin">
           {results === undefined ? (
             <p className="px-2 py-1.5 text-xs text-muted">Searching…</p>
           ) : results.length === 0 ? (
@@ -110,13 +107,16 @@ export default function WikiSearch({
                   key={node._id}
                   node={node}
                   onSelect={onSelect}
-                  onClear={() => setRaw("")}
+                  onClear={() => {
+                    onQueryChange("");
+                    setOpen(false);
+                  }}
                 />
               ))}
             </ul>
           )}
         </div>
       ) : null}
-    </div>
+    </HeaderSearchPopover>
   );
 }

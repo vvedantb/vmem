@@ -52,7 +52,10 @@ function TagsMemoriesLayout() {
   return (
     <MemoriesPageShell
       rightSection={
-        <MemoryListHeaderControls searchPlaceholder="Search tags..." />
+        <MemoryListHeaderControls
+          searchPlaceholder="Search tags..."
+          searchLabel="Search tags"
+        />
       }
       noScroll
     />

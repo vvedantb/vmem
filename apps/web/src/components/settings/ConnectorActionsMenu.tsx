@@ -51,7 +51,7 @@ export default function ConnectorActionsMenu({
       <DropdownMenuTrigger asChild>
         <Button
           variant="secondary"
-          size="sm"
+          size="icon-sm"
           disabled={isBusy}
           aria-label={`${connectorName} options`}
         >
@@ -60,7 +60,6 @@ export default function ConnectorActionsMenu({
           ) : (
             <IconDots size={14} />
           )}
-          Options
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">

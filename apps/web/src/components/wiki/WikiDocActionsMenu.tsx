@@ -34,14 +34,13 @@ export function WikiDocActionsMenu({
       <DropdownMenuTrigger asChild>
         <Button
           type="button"
-          variant="secondary"
-          size="sm"
-          className="shrink-0 gap-1.5"
+          variant="ghost"
+          size="icon-sm"
+          className="shrink-0 text-muted"
           aria-label="Document options"
           disabled={copyDisabled}
         >
           <IconDots size={16} />
-          Options
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-52 w-52">

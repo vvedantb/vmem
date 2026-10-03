@@ -11,7 +11,10 @@ test.describe("wiki", { tag: ["@wiki", "@smoke"] }, () => {
       timeout: 20_000,
     });
     await expect(
-      page.getByText("No documents yet", { exact: true }),
+      page.getByText(
+        "Select a document from the sidebar, or use Add to create one.",
+        { exact: true },
+      ),
     ).toBeVisible();
   });
 });

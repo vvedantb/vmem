@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 import { gotoWorkspace } from "./nav";
 
 export function disposableMemoryTitle(area = "list"): string {
@@ -19,7 +19,7 @@ export async function openMemoriesList(page: Page): Promise<void> {
     .getByRole("link", { name: "List", exact: true })
     .or(page.getByRole("tab", { name: "List", exact: true }))
     .click();
-  await expect(page.getByRole("textbox", { name: "Search" })).toBeVisible({
+  await expect(memorySearchButton(page)).toBeVisible({
     timeout: 20_000,
   });
 }
@@ -30,23 +30,35 @@ export async function openMemoriesTags(page: Page): Promise<void> {
     .getByRole("link", { name: "Tags", exact: true })
     .click();
   await expect(page).toHaveURL(/\/memories\/tags/);
-  await expect(page.getByRole("textbox", { name: "Search" })).toBeVisible({
+  await expect(memorySearchButton(page)).toBeVisible({
     timeout: 20_000,
   });
 }
 
+// header search is an icon button that opens the field in a popover
+export function memorySearchButton(page: Page): Locator {
+  return page.getByRole("button", { name: /^Search (memories|tags)$/ });
+}
+
+export async function openMemorySearch(page: Page): Promise<Locator> {
+  const search = page.getByRole("textbox", { name: "Search", exact: true });
+  if (!(await search.isVisible().catch(() => false))) {
+    await memorySearchButton(page).click();
+  }
+  await expect(search).toBeVisible();
+  return search;
+}
+
 export async function searchMemories(page: Page, query: string): Promise<void> {
-  const search = page.getByRole("textbox", { name: "Search" });
+  const search = await openMemorySearch(page);
   await search.fill(query);
+  await page.keyboard.press("Escape");
 }
 
 export async function clearSearch(page: Page): Promise<void> {
-  const search = page.getByRole("textbox", { name: "Search" });
+  const search = await openMemorySearch(page);
   await search.fill("");
-  const clear = page.getByRole("button", { name: "Clear search" });
-  if (await clear.isVisible().catch(() => false)) {
-    await clear.click();
-  }
+  await page.keyboard.press("Escape");
 }
 
 export async function gotoMemoriesListWithParams(
@@ -64,7 +76,7 @@ export async function gotoMemoriesListWithParams(
     await page.goto(dest);
   }
   await expect(page.locator("#main-content")).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByRole("textbox", { name: "Search" })).toBeVisible({
+  await expect(memorySearchButton(page)).toBeVisible({
     timeout: 20_000,
   });
   return profileId;

@@ -4,6 +4,7 @@ import { useMediaQuery } from "usehooks-ts";
 import { toast } from "sonner";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 import { api } from "@vmem/backend";
+import { IconBook } from "@tabler/icons-react";
 import { Dialog, DialogContent, DialogTitle, Spinner } from "@vmem/ui";
 import PageContainer from "@/components/shell/PageContainer";
 import { wikiKindHasContent } from "@vmem/shared";
@@ -49,17 +50,14 @@ function WikiSpinner() {
   );
 }
 
+// one select-or-create empty for both "no docs" and "none selected"
+// (mirrors the skills index empty)
 const wikiEmptyState = (
   <div className="flex flex-1 flex-col items-center justify-center text-center">
+    <IconBook size={40} className="mb-3 text-muted" />
     <p className="text-sm text-muted">
-      No documents yet. Use Add in the sidebar to create one.
+      Select a document from the sidebar, or use Add to create one.
     </p>
-  </div>
-);
-
-const wikiPickDocState = (
-  <div className="flex flex-1 items-center justify-center">
-    <p className="text-sm text-muted">Select a document from the sidebar</p>
   </div>
 );
 
@@ -137,11 +135,8 @@ function WikiWorkspaceBody(props: WikiWorkspaceBodyProps) {
   if (props.phase === "loading-tree") {
     return <WikiSpinner />;
   }
-  if (props.phase === "empty") {
+  if (props.phase === "empty" || props.phase === "pick-doc") {
     return wikiEmptyState;
-  }
-  if (props.phase === "pick-doc") {
-    return wikiPickDocState;
   }
   const { phase, ...editingProps } = props;
   return <WikiWorkspaceEditing phase={phase} {...editingProps} />;

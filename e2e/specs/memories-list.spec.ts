@@ -12,6 +12,8 @@ import {
   memoryTitle,
   openMemoriesList,
   openMemoryByTitle,
+  memorySearchButton,
+  openMemorySearch,
   searchMemories,
 } from "../helpers/memories";
 
@@ -33,9 +35,8 @@ test.describe("memories list", { tag: ["@memories", "@smoke"] }, () => {
       await expect(
         page.getByRole("heading", { name: title, exact: true }),
       ).toBeVisible({ timeout: 20_000 });
-      await expect(page.getByRole("textbox", { name: "Search" })).toHaveValue(
-        title,
-      );
+      await expect(await openMemorySearch(page)).toHaveValue(title);
+      await page.keyboard.press("Escape");
       await expect(page).toHaveURL(/[?&]q=/);
       await deleteMemoryByTitle(page, title);
       await expect(row).toHaveCount(0);
@@ -75,7 +76,7 @@ test.describe("memories crud", { tag: ["@memories"] }, () => {
       await expect(page.getByText(tag, { exact: true })).toBeVisible();
 
       await page.reload();
-      await expect(page.getByRole("textbox", { name: "Search" })).toBeVisible({
+      await expect(memorySearchButton(page)).toBeVisible({
         timeout: 20_000,
       });
       await searchMemories(page, updatedTitle);
