@@ -2,8 +2,9 @@
  * Ban deep imports into packages that only expose a root export.
  *
  * Apps/packages must import `@vmem/backend` and `@vmem/shared` at the package
- * root — never `@vmem/backend/…` or `@vmem/shared/…`. `@vmem/ui/cn` is allowed
- * (it is a published subpath export), as are the specifiers in ALLOWED below.
+ * root — never `@vmem/backend/…` or `@vmem/shared/…`. Published subpath
+ * exports such as `@vv/ui/cn` are allowed, as are the specifiers in ALLOWED
+ * below.
  */
 
 const ROOT_ONLY = new Set(["@vmem/backend", "@vmem/shared", "@vmem/sdk"]);

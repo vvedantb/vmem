@@ -32,7 +32,6 @@ pnpm workspace, Node 20+, pnpm 10.15.1.
 | `apps/docs`             | Mintlify docs (`pnpm docs:dev`)                   |
 | `packages/backend`      | Convex functions + memory helpers under `engine/` |
 | `packages/shared`       | shared helpers                                    |
-| `packages/ui`           | shared UI                                         |
 | `packages/sdk`          | `@vmem/sdk`                                       |
 
 `.env.example` files live at the root and under `apps/*` / `packages/*`.

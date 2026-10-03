@@ -4,7 +4,7 @@ import {
   SelectValue,
   SelectContent,
   SelectItem,
-} from "@vmem/ui";
+} from "@vv/ui";
 import type { Profile } from "@/types/api";
 
 export function ProfileSelect({
