@@ -17,7 +17,8 @@ import type { AnyRouter, NavigateOptions } from "@tanstack/react-router";
  * instantly. Without transition types (`:active-view-transition-type`) the
  * router skips transitions too, since globals.css scopes names by type.
  * `prefers-reduced-motion: reduce` skips router transitions and zeroes every
- * view transition animation in CSS.
+ * view transition animation in CSS. The Experimental "Disable page animations"
+ * flag (`html[data-page-motion=off]`) does the same for signed-in users.
  */
 
 // AnyRouter: the registered router's type depends on this module
@@ -59,6 +60,18 @@ function prefersReducedMotion(): boolean {
   );
 }
 
+/** Convex experimental `disablePageMotion` stamped by `PageMotionProvider`. */
+export function pageMotionDisabled(): boolean {
+  return (
+    typeof document !== "undefined" &&
+    document.documentElement.dataset.pageMotion === "off"
+  );
+}
+
+function skipPageMotion(): boolean {
+  return prefersReducedMotion() || pageMotionDisabled();
+}
+
 function supportsViewTransitionTypes(): boolean {
   return (
     typeof document !== "undefined" &&
@@ -82,7 +95,7 @@ function isShellPath(pathname: string): boolean {
 // search-only updates like filters and view toggles)
 export function routeTransitionTypes(
   change: LocationChange,
-  reducedMotion: boolean = prefersReducedMotion(),
+  reducedMotion: boolean = skipPageMotion(),
 ): string[] | false {
   const from = change.fromLocation;
   if (from === undefined || !change.pathChanged || reducedMotion) return false;
@@ -105,12 +118,16 @@ export function memoryDetailViewTransition(): RouterViewTransition | false {
   if (!supportsViewTransitionTypes()) return false;
   return {
     types: () =>
-      prefersReducedMotion() ? false : [VIEW_TRANSITION_TYPE.memoryDetail],
+      skipPageMotion() ? false : [VIEW_TRANSITION_TYPE.memoryDetail],
   };
 }
 
 // optimistic list removals, lets `<ViewTransition>` rows exit and reflow
 export function startListRemoveTransition(update: () => void): void {
+  if (skipPageMotion()) {
+    update();
+    return;
+  }
   startTransition(() => {
     addTransitionType(VIEW_TRANSITION_TYPE.listRemove);
     update();

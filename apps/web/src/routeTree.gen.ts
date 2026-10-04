@@ -21,6 +21,7 @@ import { Route as MainSettingsUsageRouteImport } from './routes/_main/settings/u
 import { Route as MainSettingsProfilesRouteImport } from './routes/_main/settings/profiles'
 import { Route as MainSettingsPreferencesRouteImport } from './routes/_main/settings/preferences'
 import { Route as MainSettingsExtensionRouteImport } from './routes/_main/settings/extension'
+import { Route as MainSettingsExperimentalRouteImport } from './routes/_main/settings/experimental'
 import { Route as MainSettingsConnectorsRouteImport } from './routes/_main/settings/connectors'
 import { Route as MainProfileIdUsageRouteImport } from './routes/_main/$profileId/usage'
 import { Route as MainProfileIdProposalsRouteImport } from './routes/_main/$profileId/proposals'
@@ -126,6 +127,12 @@ const MainSettingsExtensionRoute = MainSettingsExtensionRouteImport.update({
   path: '/settings/extension',
   getParentRoute: () => MainRouteRoute,
 } as any)
+const MainSettingsExperimentalRoute =
+  MainSettingsExperimentalRouteImport.update({
+    id: '/settings/experimental',
+    path: '/settings/experimental',
+    getParentRoute: () => MainRouteRoute,
+  } as any)
 const MainSettingsConnectorsRoute = MainSettingsConnectorsRouteImport.update({
   id: '/settings/connectors',
   path: '/settings/connectors',
@@ -399,6 +406,7 @@ export interface FileRoutesByFullPath {
   '/$profileId/proposals': typeof MainProfileIdProposalsRoute
   '/$profileId/usage': typeof MainProfileIdUsageRoute
   '/settings/connectors': typeof MainSettingsConnectorsRoute
+  '/settings/experimental': typeof MainSettingsExperimentalRoute
   '/settings/extension': typeof MainSettingsExtensionRoute
   '/settings/preferences': typeof MainSettingsPreferencesRoute
   '/settings/profiles': typeof MainSettingsProfilesRoute
@@ -448,6 +456,7 @@ export interface FileRoutesByTo {
   '/$profileId/proposals': typeof MainProfileIdProposalsRoute
   '/$profileId/usage': typeof MainProfileIdUsageRoute
   '/settings/connectors': typeof MainSettingsConnectorsRoute
+  '/settings/experimental': typeof MainSettingsExperimentalRoute
   '/settings/extension': typeof MainSettingsExtensionRoute
   '/settings/preferences': typeof MainSettingsPreferencesRoute
   '/settings/profiles': typeof MainSettingsProfilesRoute
@@ -507,6 +516,7 @@ export interface FileRoutesById {
   '/_main/$profileId/proposals': typeof MainProfileIdProposalsRoute
   '/_main/$profileId/usage': typeof MainProfileIdUsageRoute
   '/_main/settings/connectors': typeof MainSettingsConnectorsRoute
+  '/_main/settings/experimental': typeof MainSettingsExperimentalRoute
   '/_main/settings/extension': typeof MainSettingsExtensionRoute
   '/_main/settings/preferences': typeof MainSettingsPreferencesRoute
   '/_main/settings/profiles': typeof MainSettingsProfilesRoute
@@ -567,6 +577,7 @@ export interface FileRouteTypes {
     | '/$profileId/proposals'
     | '/$profileId/usage'
     | '/settings/connectors'
+    | '/settings/experimental'
     | '/settings/extension'
     | '/settings/preferences'
     | '/settings/profiles'
@@ -616,6 +627,7 @@ export interface FileRouteTypes {
     | '/$profileId/proposals'
     | '/$profileId/usage'
     | '/settings/connectors'
+    | '/settings/experimental'
     | '/settings/extension'
     | '/settings/preferences'
     | '/settings/profiles'
@@ -674,6 +686,7 @@ export interface FileRouteTypes {
     | '/_main/$profileId/proposals'
     | '/_main/$profileId/usage'
     | '/_main/settings/connectors'
+    | '/_main/settings/experimental'
     | '/_main/settings/extension'
     | '/_main/settings/preferences'
     | '/_main/settings/profiles'
@@ -804,6 +817,13 @@ declare module '@tanstack/react-router' {
       path: '/settings/extension'
       fullPath: '/settings/extension'
       preLoaderRoute: typeof MainSettingsExtensionRouteImport
+      parentRoute: typeof MainRouteRoute
+    }
+    '/_main/settings/experimental': {
+      id: '/_main/settings/experimental'
+      path: '/settings/experimental'
+      fullPath: '/settings/experimental'
+      preLoaderRoute: typeof MainSettingsExperimentalRouteImport
       parentRoute: typeof MainRouteRoute
     }
     '/_main/settings/connectors': {
@@ -1332,6 +1352,7 @@ interface MainRouteRouteChildren {
   MainSettingsApiRouteRoute: typeof MainSettingsApiRouteRouteWithChildren
   MainSettingsDataControlsRouteRoute: typeof MainSettingsDataControlsRouteRouteWithChildren
   MainSettingsConnectorsRoute: typeof MainSettingsConnectorsRoute
+  MainSettingsExperimentalRoute: typeof MainSettingsExperimentalRoute
   MainSettingsExtensionRoute: typeof MainSettingsExtensionRoute
   MainSettingsPreferencesRoute: typeof MainSettingsPreferencesRoute
   MainSettingsProfilesRoute: typeof MainSettingsProfilesRoute
@@ -1346,6 +1367,7 @@ const MainRouteRouteChildren: MainRouteRouteChildren = {
   MainSettingsDataControlsRouteRoute:
     MainSettingsDataControlsRouteRouteWithChildren,
   MainSettingsConnectorsRoute: MainSettingsConnectorsRoute,
+  MainSettingsExperimentalRoute: MainSettingsExperimentalRoute,
   MainSettingsExtensionRoute: MainSettingsExtensionRoute,
   MainSettingsPreferencesRoute: MainSettingsPreferencesRoute,
   MainSettingsProfilesRoute: MainSettingsProfilesRoute,

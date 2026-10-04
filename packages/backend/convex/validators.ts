@@ -249,6 +249,23 @@ export const defaultProfilesFields = {
   mcpTeam: v.optional(v.id("profiles")),
 };
 
+/** Known per-user experimental opt-in keys (settings → Experimental). */
+export const experimentalFlagKeyValidator = v.union(
+  v.literal("disablePageMotion"),
+);
+
+/** Stored shape on `userSettings.experimentalFlags` — missing key means off. */
+export const experimentalFlagsFields = {
+  disablePageMotion: v.optional(v.boolean()),
+};
+
+export const experimentalFlagsValidator = v.object(experimentalFlagsFields);
+
+/** Fully resolved flags for clients (every key present, default false). */
+export const resolvedExperimentalFlagsValidator = v.object({
+  disablePageMotion: v.boolean(),
+});
+
 export const userSettingsFields = {
   userId: v.id("users"),
   theme: v.optional(userSettingsThemeValidator),
@@ -271,6 +288,7 @@ export const userSettingsFields = {
   dreamModeScheduleTime: v.optional(v.string()),
   dreamModeAutomatic: v.optional(v.boolean()),
   lastDreamRunAt: v.optional(v.number()),
+  experimentalFlags: v.optional(experimentalFlagsValidator),
 };
 
 export const userSettingsPatchFields = omit(userSettingsFields, [
@@ -279,6 +297,7 @@ export const userSettingsPatchFields = omit(userSettingsFields, [
   "dreamModeScheduleEnabled",
   "dreamModeScheduleTime",
   "lastDreamRunAt",
+  "experimentalFlags",
 ]);
 
 export const oauthStateFields = {

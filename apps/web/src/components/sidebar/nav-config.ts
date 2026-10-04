@@ -8,6 +8,7 @@ import {
   IconFileImport,
   IconUsers,
   IconReceipt2,
+  IconFlask,
 } from "@tabler/icons-react";
 import {
   IconMemories,
@@ -196,6 +197,16 @@ export const settingsNavGroups: SettingsNavGroup[] = [
         href: "/settings/data-controls",
         label: "Data Controls",
         icon: IconFileImport,
+      },
+    ],
+  },
+  {
+    title: "Experimental",
+    items: [
+      {
+        href: "/settings/experimental",
+        label: "Experimental",
+        icon: IconFlask,
       },
     ],
   },

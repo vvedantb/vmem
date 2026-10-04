@@ -27,6 +27,7 @@ test.describe("settings", { tag: ["@settings", "@smoke"] }, () => {
     await expect(
       nav.getByRole("link", { name: "Data Controls" }),
     ).toBeVisible();
+    await expect(nav.getByRole("link", { name: "Experimental" })).toBeVisible();
   });
 
   test("preferences", async ({ page }) => {
@@ -141,6 +142,39 @@ test.describe("settings", { tag: ["@settings", "@smoke"] }, () => {
     await autoSync.click();
     await expect(page.getByText("Saved!").first()).toBeVisible();
     await expect(autoSync).toBeChecked({ checked: wasChecked });
+  });
+
+  test("experimental disable page animations", async ({ page }) => {
+    await gotoSettings(page, "/experimental");
+    await expect(
+      page.getByRole("heading", { name: "Experimental", exact: true }),
+    ).toBeVisible({ timeout: 20_000 });
+    const toggle = page.getByRole("switch", {
+      name: "Disable page animations",
+    });
+    await expect(toggle).toBeVisible();
+    await expect(toggle).not.toBeChecked();
+    await toggle.click();
+    await expect(page.locator("html")).toHaveAttribute(
+      "data-page-motion",
+      "off",
+    );
+    await page.reload();
+    await expect(page.locator("#main-content")).toBeVisible({
+      timeout: 30_000,
+    });
+    await expect(
+      page.getByRole("switch", { name: "Disable page animations" }),
+    ).toBeChecked();
+    await expect(page.locator("html")).toHaveAttribute(
+      "data-page-motion",
+      "off",
+    );
+    await page.getByRole("switch", { name: "Disable page animations" }).click();
+    await expect(page.locator("html")).toHaveAttribute(
+      "data-page-motion",
+      "on",
+    );
   });
 
   test("command palette opens extension settings", async ({ page }) => {
