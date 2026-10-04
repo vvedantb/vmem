@@ -3,6 +3,7 @@ import {
   VIEW_TRANSITION_TYPE,
   defaultRouterViewTransition,
   memoryDetailViewTransition,
+  pageMotionDisabled,
   routeTransitionTypes,
 } from "./view-transitions";
 
@@ -53,6 +54,10 @@ describe("routeTransitionTypes", () => {
     expect(routeTransitionTypes(change("/p1/home", "/p1/wiki"), true)).toBe(
       false,
     );
+  });
+
+  it("does not skip page motion without the html flag", () => {
+    expect(pageMotionDisabled()).toBe(false);
   });
 });
 

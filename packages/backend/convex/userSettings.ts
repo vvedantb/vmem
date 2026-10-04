@@ -15,9 +15,15 @@ import {
 import { getMembershipOrNull } from "./teams/auth";
 import { userFacingError } from "./lib/userFacingError";
 import {
+  experimentalFlagKeyValidator,
+  resolvedExperimentalFlagsValidator,
   userSettingsPatchFields,
   type userSettingsThemeValidator,
 } from "./validators";
+import {
+  resolveExperimentalFlags,
+  type ExperimentalFlagKey,
+} from "./experimentalFlags";
 
 type ThemeValue = Infer<typeof userSettingsThemeValidator>;
 type DefaultProfilesValue = Doc<"userSettings">["defaultProfiles"] | null;
@@ -121,6 +127,47 @@ export const get = authQuery({
   handler: async (ctx) => {
     const doc = await getSettingsDoc(ctx, ctx.userId);
     return resolveSettings(ctx.userId, doc);
+  },
+});
+
+/**
+ * All experimental opt-in flags for the current user. Missing / unset keys are
+ * false.
+ */
+export const getExperimentalFlags = authQuery({
+  args: {},
+  returns: resolvedExperimentalFlagsValidator,
+  handler: async (ctx) => {
+    const doc = await getSettingsDoc(ctx, ctx.userId);
+    return resolveExperimentalFlags(doc);
+  },
+});
+
+/** Updates one experimental flag on the current user. */
+export const setExperimentalFlag = authMutation({
+  args: {
+    key: experimentalFlagKeyValidator,
+    enabled: v.boolean(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const existing = await getSettingsDoc(ctx, ctx.userId);
+    const key: ExperimentalFlagKey = args.key;
+    const experimentalFlags = {
+      ...existing?.experimentalFlags,
+      [key]: args.enabled,
+    };
+
+    if (existing) {
+      await ctx.db.patch(existing._id, { experimentalFlags });
+      return null;
+    }
+
+    await ctx.db.insert("userSettings", {
+      userId: ctx.userId,
+      experimentalFlags,
+    });
+    return null;
   },
 });
 

@@ -21,6 +21,7 @@ describe("settings chrome mirrors Eva", () => {
       "/settings/api",
       "/settings/extension",
       "/settings/data-controls",
+      "/settings/experimental",
     ]);
     expect(hrefs).not.toContain("/settings/connectors");
     expect(hrefs).not.toContain("/settings/secrets");
@@ -35,6 +36,9 @@ describe("settings chrome mirrors Eva", () => {
     expect(read("SettingsPage.tsx")).toContain("insetHeader");
     expect(read("SettingsSection.tsx")).toContain('bodyVariant = "form"');
     expect(read("SettingsToggleRow.tsx")).toContain("min-h-10");
+    expect(read("ExperimentalSettingsClient.tsx")).toContain(
+      "disablePageMotion",
+    );
     expect(read("SettingsEmptyState.tsx")).toContain("<h4");
     expect(read("../teams/TeamSettings.tsx")).toContain("SettingsSection");
     expect(read("../teams/TeamMembers.tsx")).toContain("SettingsSection");
@@ -53,6 +57,7 @@ describe("settings chrome mirrors Eva", () => {
     const sources = [
       read("preferences/PreferencesPage.tsx"),
       read("ExtensionSettingsClient.tsx"),
+      read("ExperimentalSettingsClient.tsx"),
       read("ConnectorsClient.tsx"),
       read("../profiles/ProfilesPage.tsx"),
     ];

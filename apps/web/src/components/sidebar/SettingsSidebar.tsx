@@ -1,6 +1,7 @@
 import type { MouseEventHandler } from "react";
 import { motion } from "motion/react";
 import { cn, motionDuration, motionEase } from "@vv/ui";
+import { useDisablePageMotion } from "@/providers/PageMotionProvider";
 import { settingsNavGroups } from "./nav-config";
 import { NavLink } from "./NavLink";
 import { SharedLayoutBackground } from "./SharedLayoutBackground";
@@ -24,13 +25,14 @@ export function SettingsSidebar({
   isMobile,
   onNavigate,
 }: SettingsSidebarProps) {
+  const skipEnter = useDisablePageMotion();
   return (
     <motion.nav
       className={cn(
         "flex-1 space-y-1 overflow-y-auto scrollbar-thin",
         isMobile ? "pb-2" : "pr-1",
       )}
-      initial={{ opacity: 0, x: 12 }}
+      initial={skipEnter ? false : { opacity: 0, x: 12 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: motionDuration.fast, ease: motionEase }}
     >

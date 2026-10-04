@@ -2,6 +2,7 @@ import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { NuqsAdapter } from "nuqs/adapters/tanstack-router";
 import { useRouterState } from "@tanstack/react-router";
 import { MotionProvider } from "@/providers/MotionProvider";
+import { PageMotionProvider } from "@/providers/PageMotionProvider";
 import { QueryProvider } from "@/providers/QueryProvider";
 import { ConvexClientProvider } from "@/providers/ConvexClientProvider";
 import { EnsureUser } from "@/providers/EnsureUser";
@@ -26,7 +27,9 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
         >
           {!slidesPublicBoot && <EnsureUser />}
           <MotionProvider>
-            <QueryProvider>{children}</QueryProvider>
+            <PageMotionProvider>
+              <QueryProvider>{children}</QueryProvider>
+            </PageMotionProvider>
           </MotionProvider>
         </NextThemesProvider>
       </NuqsAdapter>
