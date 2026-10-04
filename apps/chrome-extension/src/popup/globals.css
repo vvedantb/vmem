@@ -3,8 +3,15 @@
 @import "shadow-plugin";
 @plugin "tailwindcss-animate";
 
-/* Tailwind does not scan node_modules; include shared UI. */
-@source "../../node_modules/@vv/ui/src/**/*.{ts,tsx}";
+/*
+ * Tailwind does not scan node_modules. @source is relative to this file.
+ * The popup stylesheet lives one directory deeper than apps/web/src/globals.css,
+ * and this repo uses a hoisted node_modules at the workspace root — so this
+ * needs four `../` segments, not the two that used to work for a nested
+ * @vmem/ui symlink. Without this scan, @vv primitives (card, input, select,
+ * dropdown menus, overlays) ship with no utility classes.
+ */
+@source "../../../../node_modules/@vv/ui/src/**/*.{ts,tsx}";
 
 /* tab animation timing matches apps/web/src/globals.css */
 :root {
