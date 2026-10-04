@@ -3,7 +3,7 @@
 // Modified by me: signed-in tabs, auto-sync switches, codebase-free settings
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -39,6 +39,40 @@ const dashboardExtensionPage = readRepo(
   "apps/web/src/components/settings/ExtensionSettingsClient.tsx",
 );
 const navConfig = readRepo("apps/web/src/components/sidebar/nav-config.ts");
+
+await test("extension pages ship Instrument Sans locally, not Google Fonts", () => {
+  const popupHtml = readRepo(
+    "apps/chrome-extension/src/entrypoints/popup/index.html",
+  );
+  const welcomeHtml = readRepo(
+    "apps/chrome-extension/src/entrypoints/welcome.html",
+  );
+  const globalsCss = readRepo("apps/chrome-extension/src/popup/globals.css");
+  const fontCss = readRepo(
+    "apps/chrome-extension/public/fonts/instrument-sans.css",
+  );
+  const fontsDir = path.join(repoRoot, "apps/chrome-extension/public/fonts");
+
+  for (const src of [popupHtml, welcomeHtml, globalsCss, fontCss]) {
+    assert.doesNotMatch(src, /fonts\.googleapis\.com/);
+    assert.doesNotMatch(src, /fonts\.gstatic\.com/);
+  }
+  assert.match(popupHtml, /href="\/fonts\/instrument-sans\.css"/);
+  assert.match(welcomeHtml, /href="\/fonts\/instrument-sans\.css"/);
+  assert.match(fontCss, /font-family:\s*"Instrument Sans"/);
+  assert.match(fontCss, /InstrumentSans-latin\.woff2/);
+  assert.match(fontCss, /InstrumentSans-Italic-latin\.woff2/);
+
+  for (const file of [
+    "InstrumentSans-latin.woff2",
+    "InstrumentSans-latin-ext.woff2",
+    "InstrumentSans-Italic-latin.woff2",
+    "InstrumentSans-Italic-latin-ext.woff2",
+    "OFL.txt",
+  ]) {
+    assert.equal(existsSync(path.join(fontsDir, file)), true, file);
+  }
+});
 
 await test("popup has distinct signed-out and signed-in states", () => {
   assert.match(popupApp, /Sign in to start saving memories/);

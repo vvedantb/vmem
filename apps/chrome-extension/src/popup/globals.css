@@ -14,6 +14,8 @@
 
 /*
  * Colour, radius, shadow and font tokens live in @vv/tokens.
+ * Tokens only name "Instrument Sans"; the typeface is loaded from
+ * public/fonts on extension pages (MV3 CSP blocks Google Fonts).
  * Tab chrome vars stay here — they are app tab CSS, not the token set.
  */
 @layer base {
