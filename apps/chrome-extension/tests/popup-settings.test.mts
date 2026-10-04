@@ -40,6 +40,31 @@ const dashboardExtensionPage = readRepo(
 );
 const navConfig = readRepo("apps/web/src/components/sidebar/nav-config.ts");
 
+await test("popup Tailwind scans hoisted @vv/ui so overlay primitives get CSS", () => {
+  const globalsCss = readRepo("apps/chrome-extension/src/popup/globals.css");
+  const webGlobalsCss = readRepo("apps/web/src/globals.css");
+  const popupCssDir = path.join(repoRoot, "apps/chrome-extension/src/popup");
+  const webCssDir = path.join(repoRoot, "apps/web/src");
+  const expectedUiSrc = path.join(repoRoot, "node_modules/@vv/ui/src");
+
+  function sourceRoots(css: string, fromDir: string): string[] {
+    return [...css.matchAll(/@source "([^"]+)"/g)].map((match) => {
+      const rel = match[1].replace(/\/\*\*\/\*.*$/, "");
+      return path.resolve(fromDir, rel);
+    });
+  }
+
+  assert.equal(
+    sourceRoots(globalsCss, popupCssDir).includes(expectedUiSrc),
+    true,
+  );
+  assert.equal(
+    sourceRoots(webGlobalsCss, webCssDir).includes(expectedUiSrc),
+    true,
+  );
+  assert.doesNotMatch(globalsCss, /@source "\.\.\/\.\.\/node_modules\/@vv\/ui/);
+});
+
 await test("extension pages ship Instrument Sans locally, not Google Fonts", () => {
   const popupHtml = readRepo(
     "apps/chrome-extension/src/entrypoints/popup/index.html",
