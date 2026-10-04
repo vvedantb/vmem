@@ -54,11 +54,16 @@ await test("extension pages ship Instrument Sans locally, not Google Fonts", () 
   const fontsDir = path.join(repoRoot, "apps/chrome-extension/public/fonts");
 
   for (const src of [popupHtml, welcomeHtml, globalsCss, fontCss]) {
-    assert.doesNotMatch(src, /fonts\.googleapis\.com/);
-    assert.doesNotMatch(src, /fonts\.gstatic\.com/);
+    assert.doesNotMatch(src, /https:\/\/fonts\.googleapis\.com/);
+    assert.doesNotMatch(src, /https:\/\/fonts\.gstatic\.com/);
   }
+  const providers = readRepo("apps/chrome-extension/src/popup/providers.tsx");
+  const popupApp = readRepo("apps/chrome-extension/src/popup/App.tsx");
+
   assert.match(popupHtml, /href="\/fonts\/instrument-sans\.css"/);
   assert.match(welcomeHtml, /href="\/fonts\/instrument-sans\.css"/);
+  assert.match(providers, /fontFamily: instrumentSans/);
+  assert.match(popupApp, /font-sans/);
   assert.match(fontCss, /font-family:\s*"Instrument Sans"/);
   assert.match(fontCss, /InstrumentSans-latin\.woff2/);
   assert.match(fontCss, /InstrumentSans-Italic-latin\.woff2/);

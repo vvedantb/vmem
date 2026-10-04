@@ -41,6 +41,13 @@ html {
   accent-color: var(--accent);
 }
 
+/* Clerk injects unlayered `body { font-family: Inter }` which beats
+ * `@layer base` from @vv/tokens. Keep extension pages on Instrument Sans. */
+html,
+body {
+  font-family: var(--font-sans);
+}
+
 ::selection {
   background-color: color-mix(in oklch, var(--accent) 18%, transparent);
   color: var(--foreground);
