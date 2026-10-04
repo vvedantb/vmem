@@ -11,6 +11,8 @@ import {
 const convex = new ConvexReactClient(CONVEX_URL);
 const POPUP_URL = chrome.runtime.getURL("popup.html");
 
+const instrumentSans = '"Instrument Sans", system-ui, sans-serif';
+
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider
@@ -20,6 +22,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       signUpFallbackRedirectUrl={POPUP_URL}
       syncHost={CLERK_COOKIE_SYNC_HOST}
       __experimental_syncHostListener
+      appearance={{ variables: { fontFamily: instrumentSans } }}
     >
       <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
         <TooltipProvider delayDuration={300}>{children}</TooltipProvider>

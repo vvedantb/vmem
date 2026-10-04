@@ -152,7 +152,7 @@ export function App() {
   const { isLoaded } = useAuth();
 
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-background text-foreground">
+    <div className="flex h-full flex-col overflow-hidden bg-background font-sans text-foreground">
       <header className="flex items-center justify-between bg-surface px-5 py-3.5">
         <span className="flex items-center gap-2">
           <VmemLogo />
