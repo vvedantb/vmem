@@ -14,6 +14,13 @@ export function parseIsoMillis(value: string): number {
   return ms;
 }
 
+export function toMemoryStatRow(doc: Doc<"memories">): {
+  createdAt: number;
+  tags: string[];
+} {
+  return { createdAt: doc.createdAt, tags: doc.tags };
+}
+
 export function toMemoryWithTags(doc: Doc<"memories">): MemoryWithTags {
   return {
     id: doc.memoryId,

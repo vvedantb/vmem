@@ -89,6 +89,23 @@ export interface MemoryListStoreResult {
   total: number;
 }
 
+export function memoryReadScopeFromArgs(args: {
+  kind: "personal" | "team";
+  userId?: string;
+  profileId?: string;
+}): MemoryReadScope | null {
+  if (args.kind === "team") {
+    if (args.profileId === undefined) return null;
+    return { kind: "team", profileId: args.profileId };
+  }
+  if (args.userId === undefined) return null;
+  return {
+    kind: "personal",
+    userId: args.userId,
+    profileId: args.profileId,
+  };
+}
+
 function resolveTemporalStore(args: {
   title: string;
   content: string;
@@ -126,6 +143,65 @@ async function findByMemoryId(
     .query("memories")
     .withIndex("by_memory_id", (q) => q.eq("memoryId", memoryId))
     .first();
+}
+
+export const SCOPED_MEMORY_PAGE_SIZE = 24;
+
+export type ScopedMemoryPaginationOpts = {
+  numItems: number;
+  cursor: string | null;
+};
+
+export type ScopedMemoryDocPage = {
+  page: Array<Doc<"memories">>;
+  isDone: boolean;
+  continueCursor: string;
+  splitCursor?: string | null;
+  pageStatus?: "SplitRecommended" | "SplitRequired" | null;
+};
+
+function asScopedDocPage(
+  result: {
+    isDone: boolean;
+    continueCursor: string;
+    splitCursor?: string | null;
+    pageStatus?: "SplitRecommended" | "SplitRequired" | null;
+  },
+  page: Array<Doc<"memories">>,
+): ScopedMemoryDocPage {
+  return {
+    page,
+    isDone: result.isDone,
+    continueCursor: result.continueCursor,
+    splitCursor: result.splitCursor,
+    pageStatus: result.pageStatus,
+  };
+}
+
+export async function paginateScopedDocs(
+  ctx: QueryCtx | MutationCtx,
+  scope: MemoryReadScope,
+  paginationOpts: ScopedMemoryPaginationOpts,
+): Promise<ScopedMemoryDocPage> {
+  const result =
+    scope.kind === "team"
+      ? await ctx.db
+          .query("memories")
+          .withIndex("by_profile_created", (q) =>
+            q.eq("profileId", scope.profileId),
+          )
+          .order("desc")
+          .paginate(paginationOpts)
+      : await ctx.db
+          .query("memories")
+          .withIndex("by_user_created", (q) => q.eq("userId", scope.userId))
+          .order("desc")
+          .paginate(paginationOpts);
+  const page =
+    scope.kind === "personal"
+      ? result.page.filter((row) => memoryMatchesScope(row, scope))
+      : result.page;
+  return asScopedDocPage(result, page);
 }
 
 async function listScopedDocs(

@@ -33,6 +33,7 @@ export const getTopicTimeline = authAction({
       tags: [tag],
       limit: page.limit,
       offset: page.offset,
+      countAll: false,
     });
     return listed.memories.map((memory) =>
       timelineEventFromMemory(memory, { connectionType: "tag" }),
@@ -56,6 +57,7 @@ export const getSearchTimeline = authAction({
       searchQuery: query,
       limit: page.limit,
       offset: page.offset,
+      countAll: false,
     });
     return listed.memories.map((memory) => timelineEventFromMemory(memory));
   },
