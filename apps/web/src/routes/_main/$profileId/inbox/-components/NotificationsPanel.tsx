@@ -6,7 +6,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   cn,
-} from "@vv/ui";
+} from "@vvedantb/ui";
 import {
   IconDotsVertical,
   IconEye,

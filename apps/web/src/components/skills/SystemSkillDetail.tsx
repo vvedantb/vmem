@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
   Spinner,
   Switch,
-} from "@vv/ui";
+} from "@vvedantb/ui";
 import { IconDots, IconPencil, IconPlus, IconTrash } from "@tabler/icons-react";
 import { toast } from "sonner";
 import PageContainer from "@/components/shell/PageContainer";

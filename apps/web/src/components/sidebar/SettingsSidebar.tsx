@@ -1,6 +1,6 @@
 import type { MouseEventHandler } from "react";
 import { motion } from "motion/react";
-import { cn, motionDuration, motionEase } from "@vv/ui";
+import { cn, motionDuration, motionEase } from "@vvedantb/ui";
 import { useDisablePageMotion } from "@/providers/PageMotionProvider";
 import { settingsNavGroups } from "./nav-config";
 import { NavLink } from "./NavLink";

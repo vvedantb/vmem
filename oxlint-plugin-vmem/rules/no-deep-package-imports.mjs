@@ -3,7 +3,7 @@
  *
  * Apps/packages must import `@vmem/backend` and `@vmem/shared` at the package
  * root — never `@vmem/backend/…` or `@vmem/shared/…`. Published subpath
- * exports such as `@vv/ui/cn` are allowed, as are the specifiers in ALLOWED
+ * exports such as `@vvedantb/ui/cn` are allowed, as are the specifiers in ALLOWED
  * below.
  */
 

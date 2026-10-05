@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@vmem/backend";
-import { Button, Spinner } from "@vv/ui";
+import { Button, Spinner } from "@vvedantb/ui";
 import { IconApps, IconPlus } from "@tabler/icons-react";
 import { SystemSkillCard } from "@/components/skills/SystemSkillCard";
 import { SystemSkillFormDialog } from "@/components/skills/SystemSkillFormDialog";

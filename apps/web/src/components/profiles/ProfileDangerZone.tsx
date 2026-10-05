@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
   cn,
-} from "@vv/ui";
+} from "@vvedantb/ui";
 import { IconCheck, IconLoader2, IconTrash } from "@tabler/icons-react";
 import type { FunctionReturnType } from "convex/server";
 import type { api, Id } from "@vmem/backend";

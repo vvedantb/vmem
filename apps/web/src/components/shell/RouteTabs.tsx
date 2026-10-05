@@ -1,5 +1,5 @@
 import { Link, useMatchRoute, type LinkProps } from "@tanstack/react-router";
-import { Tabs, TabsList, TabsTrigger } from "@vv/ui";
+import { Tabs, TabsList, TabsTrigger } from "@vvedantb/ui";
 import type { ReactNode } from "react";
 import { VIEW_TRANSITION_TARGET } from "@/lib/view-transitions";
 

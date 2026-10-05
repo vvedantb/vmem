@@ -25,7 +25,10 @@ assertValid(
   `import { api } from "@vmem/backend";\n`,
 );
 
-assertValid("no-deep-package-imports", `import { cn } from "@vv/ui/cn";\n`);
+assertValid(
+  "no-deep-package-imports",
+  `import { cn } from "@vvedantb/ui/cn";\n`,
+);
 
 assertValid(
   "no-deep-package-imports",

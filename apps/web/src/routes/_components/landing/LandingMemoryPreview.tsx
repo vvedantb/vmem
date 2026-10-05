@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { cn } from "@vv/ui";
+import { cn } from "@vvedantb/ui";
 import {
   edgeTouchesNode,
   previewEdges,

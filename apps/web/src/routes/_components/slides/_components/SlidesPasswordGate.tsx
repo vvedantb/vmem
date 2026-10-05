@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button, Input } from "@vv/ui";
+import { Button, Input } from "@vvedantb/ui";
 import { unlockPresenter } from "../slidesGate";
 
 interface SlidesPasswordGateProps {

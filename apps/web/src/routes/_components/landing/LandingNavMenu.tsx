@@ -6,7 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@vv/ui";
+} from "@vvedantb/ui";
 import { LANDING_NAV_LINKS, VMEM_GITHUB_URL } from "./landingContent";
 
 const MENU_ITEM_CLASS = "max-sm:py-2.5";

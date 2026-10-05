@@ -11,7 +11,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
   cn,
-} from "@vv/ui";
+} from "@vvedantb/ui";
 import {
   IconCheck,
   IconChevronDown,

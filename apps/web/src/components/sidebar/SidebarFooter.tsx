@@ -1,5 +1,5 @@
 import { formatCompactNumber } from "@vmem/shared";
-import { cn } from "@vv/ui";
+import { cn } from "@vvedantb/ui";
 
 export interface SidebarStats {
   addedToday: number;

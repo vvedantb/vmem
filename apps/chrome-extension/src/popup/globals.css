@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@import "@vv/tokens";
+@import "@vvedantb/tokens";
 @import "shadow-plugin";
 @plugin "tailwindcss-animate";
 
@@ -8,10 +8,10 @@
  * The popup stylesheet lives one directory deeper than apps/web/src/globals.css,
  * and this repo uses a hoisted node_modules at the workspace root — so this
  * needs four `../` segments, not the two that used to work for a nested
- * @vmem/ui symlink. Without this scan, @vv primitives (card, input, select,
+ * @vmem/ui symlink. Without this scan, @vvedantb/ui primitives (card, input, select,
  * dropdown menus, overlays) ship with no utility classes.
  */
-@source "../../../../node_modules/@vv/ui/src/**/*.{ts,tsx}";
+@source "../../../../node_modules/@vvedantb/ui/src/**/*.{ts,tsx}";
 
 /* tab animation timing matches apps/web/src/globals.css */
 :root {
@@ -20,7 +20,7 @@
 }
 
 /*
- * Colour, radius, shadow and font tokens live in @vv/tokens.
+ * Colour, radius, shadow and font tokens live in @vvedantb/tokens.
  * Tokens only name "Instrument Sans"; the typeface is loaded from
  * public/fonts on extension pages (MV3 CSP blocks Google Fonts).
  * Tab chrome vars stay here — they are app tab CSS, not the token set.
@@ -49,7 +49,7 @@ html {
 }
 
 /* Clerk injects unlayered `body { font-family: Inter }` which beats
- * `@layer base` from @vv/tokens. Keep extension pages on Instrument Sans. */
+ * `@layer base` from @vvedantb/tokens. Keep extension pages on Instrument Sans. */
 html,
 body {
   font-family: var(--font-sans);

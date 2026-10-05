@@ -24,7 +24,7 @@ import {
   SelectContent,
   SelectItem,
   LabeledSwitchRow,
-} from "@vv/ui";
+} from "@vvedantb/ui";
 import { api } from "@vmem/backend";
 import { isTheme } from "@vmem/shared";
 import { getStorage, setStorage } from "@/lib/storage";

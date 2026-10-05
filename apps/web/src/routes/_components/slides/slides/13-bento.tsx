@@ -14,7 +14,7 @@ import {
   IconPlugConnected,
   IconBinaryTree2,
 } from "@tabler/icons-react";
-import { motionEase } from "@vv/ui";
+import { motionEase } from "@vvedantb/ui";
 import {
   GoogleDriveIcon,
   OneDriveIcon,

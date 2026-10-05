@@ -1,4 +1,4 @@
-import { Breadcrumb, BreadcrumbPage, Input } from "@vv/ui";
+import { Breadcrumb, BreadcrumbPage, Input } from "@vvedantb/ui";
 
 interface SkillPageTitleProps {
   name: string;

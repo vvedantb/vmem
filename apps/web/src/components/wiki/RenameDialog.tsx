@@ -9,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
   Input,
-} from "@vv/ui";
+} from "@vvedantb/ui";
 
 interface RenameDialogProps {
   target: WikiListNode | null;

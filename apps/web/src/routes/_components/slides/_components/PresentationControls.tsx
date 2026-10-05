@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import { Button, cn } from "@vv/ui";
+import { Button, cn } from "@vvedantb/ui";
 import {
   IconShare2,
   IconLoader2,

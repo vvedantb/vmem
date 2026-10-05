@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
   Skeleton,
-} from "@vv/ui";
+} from "@vvedantb/ui";
 import { IconUsers } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 import { useActiveProfileId } from "@/components/workspace/active-profile";

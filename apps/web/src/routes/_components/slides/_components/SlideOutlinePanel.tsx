@@ -3,7 +3,7 @@ import {
   IconLayoutSidebarLeftCollapse,
   IconLayoutSidebarLeftExpandFilled,
 } from "@tabler/icons-react";
-import { Button, cn } from "@vv/ui";
+import { Button, cn } from "@vvedantb/ui";
 import { SLIDES } from "../slides/index";
 
 interface SlideOutlinePanelProps {

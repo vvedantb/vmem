@@ -6,12 +6,12 @@ import { describe, expect, it } from "vitest";
 const webSrc = dirname(fileURLToPath(import.meta.url));
 const webApp = join(webSrc, "..");
 const uiSrcCandidates = [
-  join(webApp, "node_modules/@vv/ui/src"),
-  join(webApp, "../../node_modules/@vv/ui/src"),
+  join(webApp, "node_modules/@vvedantb/ui/src"),
+  join(webApp, "../../node_modules/@vvedantb/ui/src"),
 ];
 const uiSrc = uiSrcCandidates.find((dir) => existsSync(dir));
 if (uiSrc === undefined) {
-  throw new Error("@vv/ui source not installed");
+  throw new Error("@vvedantb/ui source not installed");
 }
 const sharedUiSrc: string = uiSrc;
 

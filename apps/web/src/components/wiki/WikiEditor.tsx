@@ -1,4 +1,4 @@
-import { Spinner } from "@vv/ui";
+import { Spinner } from "@vvedantb/ui";
 import type { OutlineHeading } from "./_utils";
 import type { WikiNodeDoc } from "./-types";
 import WikiArtifactEditor from "./WikiArtifactEditor";

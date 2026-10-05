@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Button, cn } from "@vv/ui";
+import { Button, cn } from "@vvedantb/ui";
 import { formatCompactRelativeTime } from "@vmem/shared";
 import { MemorySourceIcon } from "@/components/_components/MemorySourceIcon";
 import ShapeIndicator from "@/components/_components/ShapeIndicator";

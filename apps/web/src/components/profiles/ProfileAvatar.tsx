@@ -1,4 +1,4 @@
-import { cn } from "@vv/ui";
+import { cn } from "@vvedantb/ui";
 import { getProfileIcon } from "./profile-icon";
 
 // coloured icon chip used in workspace switcher / profile cards

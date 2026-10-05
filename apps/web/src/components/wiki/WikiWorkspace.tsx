@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 import { api } from "@vmem/backend";
 import { IconBook } from "@tabler/icons-react";
-import { Dialog, DialogContent, DialogTitle, Spinner } from "@vv/ui";
+import { Dialog, DialogContent, DialogTitle, Spinner } from "@vvedantb/ui";
 import PageContainer from "@/components/shell/PageContainer";
 import { wikiKindHasContent } from "@vmem/shared";
 import { buildTree, findAncestors } from "./_utils";

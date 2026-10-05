@@ -12,7 +12,7 @@ import {
   SelectItem,
   Progress,
   LabeledSwitchRow,
-} from "@vv/ui";
+} from "@vvedantb/ui";
 import { formatRelativeTime, formatTimeUntil } from "@vmem/shared";
 import { sendMessage, onMessage } from "@/lib/messaging";
 import { getStorage, setStorage } from "@/lib/storage";

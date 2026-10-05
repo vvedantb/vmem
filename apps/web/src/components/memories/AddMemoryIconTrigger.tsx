@@ -1,5 +1,5 @@
 import { IconPlus } from "@tabler/icons-react";
-import { Button } from "@vv/ui";
+import { Button } from "@vvedantb/ui";
 import AddMemoryModal from "@/components/memories/AddMemoryModal";
 
 // shared icon-sm AddMemoryModal trigger used by graph + list header chrome

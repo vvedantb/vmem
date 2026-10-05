@@ -1,4 +1,4 @@
-import { Button } from "@vv/ui";
+import { Button } from "@vvedantb/ui";
 import { useConvexAuth, useAction } from "convex/react";
 import { useQuery as useTanstackQuery } from "@tanstack/react-query";
 import { IconAlertCircle, IconRefresh } from "@tabler/icons-react";

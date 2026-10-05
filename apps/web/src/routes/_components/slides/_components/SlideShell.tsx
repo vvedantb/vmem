@@ -1,7 +1,7 @@
 import { createContext, useContext } from "react";
 import type { ReactNode } from "react";
 import { motion } from "motion/react";
-import { motionDuration, motionEase } from "@vv/ui";
+import { motionDuration, motionEase } from "@vvedantb/ui";
 
 // ---------------------------------------------------------------------------
 // Step context — provided by SlideDeck, consumed by reveal primitives

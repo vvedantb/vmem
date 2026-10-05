@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button, TabsPrimitive } from "@vv/ui";
+import { Button, TabsPrimitive } from "@vvedantb/ui";
 import {
   IconCategory,
   IconPlug,

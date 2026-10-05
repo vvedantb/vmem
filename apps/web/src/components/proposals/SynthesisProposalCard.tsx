@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useActiveProfile } from "@/components/workspace/active-profile";
-import { Badge, Button, Progress } from "@vv/ui";
+import { Badge, Button, Progress } from "@vvedantb/ui";
 import { IconCheck, IconX } from "@tabler/icons-react";
 import {
   getProposalKindConfig,

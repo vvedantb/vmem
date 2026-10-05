@@ -7,7 +7,7 @@ import {
   DialogFooter,
   Button,
   Input,
-} from "@vv/ui";
+} from "@vvedantb/ui";
 import { IconPencil } from "@tabler/icons-react";
 
 interface RenameDialogProps {

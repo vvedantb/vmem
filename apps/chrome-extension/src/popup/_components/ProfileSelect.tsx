@@ -4,7 +4,7 @@ import {
   SelectValue,
   SelectContent,
   SelectItem,
-} from "@vv/ui";
+} from "@vvedantb/ui";
 import type { Profile } from "@/types/api";
 
 export function ProfileSelect({

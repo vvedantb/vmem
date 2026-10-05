@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button } from "@vv/ui";
+import { Button } from "@vvedantb/ui";
 import { IconAlertTriangle, IconTrash } from "@tabler/icons-react";
 import DeleteAllMemoriesDialog from "./DeleteAllMemoriesDialog";
 import { SettingsSection } from "@/components/settings/SettingsSection";

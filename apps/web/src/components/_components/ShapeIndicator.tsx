@@ -1,4 +1,4 @@
-import { cn } from "@vv/ui";
+import { cn } from "@vvedantb/ui";
 import type { ListItemKind } from "@/lib/list-items";
 
 // flat-topped hexagon clip path

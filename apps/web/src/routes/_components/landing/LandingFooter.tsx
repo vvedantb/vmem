@@ -1,6 +1,6 @@
 import { SignInButton } from "@clerk/clerk-react";
 import { IconBrandGithub } from "@tabler/icons-react";
-import { Button } from "@vv/ui";
+import { Button } from "@vvedantb/ui";
 import { VmemBrand } from "@/components/shell/VmemBrand";
 import { AGENT_LOGIN_PATH } from "@/lib/dev-agent-login";
 import { LANDING_NAV_LINKS, VMEM_GITHUB_URL } from "./landingContent";

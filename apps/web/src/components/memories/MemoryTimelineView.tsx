@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Button, cn } from "@vv/ui";
+import { Button, cn } from "@vvedantb/ui";
 import {
   IconAlertCircle,
   IconMoodEmpty,

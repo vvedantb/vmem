@@ -1,4 +1,4 @@
-import { Progress } from "@vv/ui";
+import { Progress } from "@vvedantb/ui";
 
 interface StorageStatusBarProps {
   itemCount: number;

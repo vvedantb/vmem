@@ -1,5 +1,5 @@
 import { formatDate, formatDateTime } from "@vmem/shared";
-import { Button, Input, cn } from "@vv/ui";
+import { Button, Input, cn } from "@vvedantb/ui";
 import {
   TIMELINE_DENSITY_BUCKETS,
   TIMELINE_SCRUBBER_STEPS,

@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   Switch,
-} from "@vv/ui";
+} from "@vvedantb/ui";
 import {
   IconCopy,
   IconDots,

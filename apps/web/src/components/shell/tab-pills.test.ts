@@ -6,11 +6,11 @@ import { fileURLToPath } from "node:url";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const webSrc = path.join(here, "../..");
 const uiSrc = [
-  path.join(webSrc, "../node_modules/@vv/ui/src"),
-  path.join(webSrc, "../../../node_modules/@vv/ui/src"),
+  path.join(webSrc, "../node_modules/@vvedantb/ui/src"),
+  path.join(webSrc, "../../../node_modules/@vvedantb/ui/src"),
 ].find((dir) => existsSync(dir));
 if (!uiSrc) {
-  throw new Error("@vv/ui source not installed");
+  throw new Error("@vvedantb/ui source not installed");
 }
 
 function read(file: string): string {
@@ -23,10 +23,12 @@ function cssRule(css: string, selector: string): string {
   return css.slice(start, css.indexOf("}", start));
 }
 
-describe("shared shell pills live in @vv/shell", () => {
+describe("shared shell pills live in @vvedantb/shell", () => {
   it("does not keep a second PillTabs in this app", () => {
     expect(existsSync(path.join(here, "PillTabs.tsx"))).toBe(false);
-    expect(read(path.join(here, "Sidebar.tsx"))).toContain('from "@vv/shell"');
+    expect(read(path.join(here, "Sidebar.tsx"))).toContain(
+      'from "@vvedantb/shell"',
+    );
   });
 });
 

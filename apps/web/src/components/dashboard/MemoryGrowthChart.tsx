@@ -3,7 +3,7 @@ import { motion } from "motion/react";
 import type { FunctionReturnType } from "convex/server";
 import type { api } from "@vmem/backend";
 import { formatMonthDay } from "@vmem/shared";
-import { Card, CardContent } from "@vv/ui";
+import { Card, CardContent } from "@vvedantb/ui";
 
 type GrowthData = FunctionReturnType<
   typeof api.dashboardApi.getStats

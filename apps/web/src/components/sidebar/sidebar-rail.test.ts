@@ -289,7 +289,7 @@ describe("nested sidebar chrome", () => {
   it("parks a plus-only add control on the skills and wiki title row", () => {
     expect(read("SkillsSidebarNav.tsx")).toContain("SidebarHeaderTrailing");
     expect(read("WikiSidebarNav.tsx")).toContain("SidebarHeaderTrailing");
-    expect(read("../shell/Sidebar.tsx")).toContain('from "@vv/shell"');
+    expect(read("../shell/Sidebar.tsx")).toContain('from "@vvedantb/shell"');
     expect(read("../shell/Sidebar.tsx")).toContain("SidebarHeader");
 
     const addMenu = read("../shell/FeatureAddMenu.tsx");

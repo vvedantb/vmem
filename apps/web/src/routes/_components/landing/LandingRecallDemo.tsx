@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Button, cn, motionDuration, motionEase } from "@vv/ui";
+import { Button, cn, motionDuration, motionEase } from "@vvedantb/ui";
 import MemoryScoreBar from "@/components/_components/MemoryScoreBar";
 import {
   demoQueries,

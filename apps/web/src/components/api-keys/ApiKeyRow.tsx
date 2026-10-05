@@ -1,4 +1,4 @@
-import { TableRow, TableCell, Badge, Button } from "@vv/ui";
+import { TableRow, TableCell, Badge, Button } from "@vvedantb/ui";
 import {
   IconCopy,
   IconCheck,

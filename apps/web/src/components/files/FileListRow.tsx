@@ -6,7 +6,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-} from "@vv/ui";
+} from "@vvedantb/ui";
 import { IconDotsVertical } from "@tabler/icons-react";
 import { formatDate } from "@vmem/shared";
 import {

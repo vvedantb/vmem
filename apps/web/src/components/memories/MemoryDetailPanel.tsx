@@ -13,7 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@vv/ui";
+} from "@vvedantb/ui";
 import { formatDate } from "@vmem/shared";
 import { IconTrash, IconX, IconDots, IconPencil } from "@tabler/icons-react";
 import { api } from "@vmem/backend";

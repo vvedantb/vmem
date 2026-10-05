@@ -2,7 +2,7 @@ import { Fragment, useContext } from "react";
 import type { ComponentType } from "react";
 import { motion } from "motion/react";
 import { IconArrowRight } from "@tabler/icons-react";
-import { motionDuration, motionEase } from "@vv/ui";
+import { motionDuration, motionEase } from "@vvedantb/ui";
 import { SlideStepContext } from "./SlideShell";
 import { StageVisual, type StageVisualKind } from "./PipelineStageVisuals";
 

@@ -1,4 +1,4 @@
-import { Button } from "@vv/ui";
+import { Button } from "@vvedantb/ui";
 import { IconCheck, IconX } from "@tabler/icons-react";
 import {
   getProposalKindConfig,

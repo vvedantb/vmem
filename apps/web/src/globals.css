@@ -1,11 +1,11 @@
 @import "tailwindcss";
-@import "@vv/tokens";
+@import "@vvedantb/tokens";
 @import "shadow-plugin";
 @plugin "tailwindcss-animate";
 
 /* Tailwind does not scan node_modules; include shared UI + compiled shell. */
-@source "../../../node_modules/@vv/ui/src/**/*.{ts,tsx}";
-@source "../../../node_modules/@vv/shell/dist/**/*.js";
+@source "../../../node_modules/@vvedantb/ui/src/**/*.{ts,tsx}";
+@source "../../../node_modules/@vvedantb/shell/dist/**/*.js";
 
 @theme {
   --font-instrumentSerif: "Instrument Serif", Georgia, serif;
@@ -70,7 +70,7 @@
   --modal-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --tabs-dur: 200ms;
   --tabs-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  /* view transitions, mirror motionEase / motionDuration in @vv/ui */
+  /* view transitions, mirror motionEase / motionDuration in @vvedantb/ui */
   --vt-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --vt-fast: 220ms;
   --vt-base: 300ms;
@@ -88,7 +88,7 @@
 }
 
 /*
- * Colour, radius, shadow and font tokens live in @vv/tokens.
+ * Colour, radius, shadow and font tokens live in @vvedantb/tokens.
  * Tab chrome vars stay here — they are app modal/tab CSS, not the token set.
  */
 @layer base {

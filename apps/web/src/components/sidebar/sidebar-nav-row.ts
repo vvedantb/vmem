@@ -1,4 +1,4 @@
-import { cn } from "@vv/ui";
+import { cn } from "@vvedantb/ui";
 
 // Eva SharedLayoutNav.sidebarSectionLabelClass — static section chrome,
 // sentence case (no uppercase), padded to match nav rows so items sit flush.

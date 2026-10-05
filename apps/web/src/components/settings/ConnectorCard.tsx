@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAction } from "convex/react";
-import { Card, CardContent, Button, Badge, Progress } from "@vv/ui";
+import { Card, CardContent, Button, Badge, Progress } from "@vvedantb/ui";
 import { toast } from "sonner";
 import { IconLoader2, IconAlertCircle, IconClock } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
