@@ -3,6 +3,7 @@ import type { ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import type { McpScope } from "../profiles/mcpAccess";
 import { withMcpMemoryScope, runForMcpScope } from "./memoryScope";
+import { collectScopedMemoriesPaged } from "../memoryStore/walk";
 
 type MemoryGraphNode = {
   id: string;
@@ -67,15 +68,13 @@ export async function getMemoryGraphForMcp(
   const memories = await withMcpMemoryScope(ctx, args, (scope) =>
     runForMcpScope(scope, {
       team: (profileId) =>
-        ctx.runQuery(
-          internal.memoryStore.functions.collectScopedMemoriesInternal,
-          { kind: "team", profileId },
-        ),
+        collectScopedMemoriesPaged(ctx, { kind: "team", profileId }),
       personal: ({ clerkId, profileId }) =>
-        ctx.runQuery(
-          internal.memoryStore.functions.collectScopedMemoriesInternal,
-          { kind: "personal", userId: clerkId, profileId },
-        ),
+        collectScopedMemoriesPaged(ctx, {
+          kind: "personal",
+          userId: clerkId,
+          profileId,
+        }),
     }),
   );
 

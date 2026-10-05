@@ -3,6 +3,7 @@ import { authAction, requireClerkId } from "./auth";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import type { MemoryType, MemoryWithTags } from "./memoryApi/types";
+import { collectScopedMemoriesPaged } from "./memoryStore/walk";
 
 const WIKI_PREFIX = "wiki:";
 const SKILL_PREFIX = "skill:";
@@ -83,25 +84,22 @@ export const getGraphData = authAction({
       );
       if (scope.kind === "team") {
         teamId = scope.teamId;
-        memories = await ctx.runQuery(
-          internal.memoryStore.functions.collectScopedMemoriesInternal,
-          { kind: "team", profileId: args.profileId },
-        );
+        memories = await collectScopedMemoriesPaged(ctx, {
+          kind: "team",
+          profileId: args.profileId,
+        });
       } else {
-        memories = await ctx.runQuery(
-          internal.memoryStore.functions.collectScopedMemoriesInternal,
-          {
-            kind: "personal",
-            userId: clerkId,
-            profileId: args.profileId,
-          },
-        );
+        memories = await collectScopedMemoriesPaged(ctx, {
+          kind: "personal",
+          userId: clerkId,
+          profileId: args.profileId,
+        });
       }
     } else {
-      memories = await ctx.runQuery(
-        internal.memoryStore.functions.collectScopedMemoriesInternal,
-        { kind: "personal", userId: clerkId },
-      );
+      memories = await collectScopedMemoriesPaged(ctx, {
+        kind: "personal",
+        userId: clerkId,
+      });
     }
 
     if (args.focus !== undefined) {

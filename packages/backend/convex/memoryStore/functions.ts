@@ -23,6 +23,8 @@ import {
   listMemories,
   listMemoriesForTeam,
   listMemoryLinksForUser,
+  memoryReadScopeFromArgs,
+  paginateScopedDocs,
   patchMemoryEmbedding,
   reassignMemoriesProfile,
   searchMemoriesText,
@@ -31,6 +33,7 @@ import {
   upsertMemoryFromSource,
   supersedeMemories,
 } from "./helpers";
+import { toMemoryStatRow, toMemoryWithTags } from "./mappers";
 import {
   applyLlmEntityExtraction,
   listEntitiesForGraph,
@@ -170,19 +173,92 @@ export const collectScopedMemoriesInternal = internalQuery({
   },
   returns: v.array(memoryWithTagsValidator),
   handler: async (ctx, args) => {
-    if (args.kind === "team") {
-      if (args.profileId === undefined) return [];
-      return collectScopedMemories(ctx, {
-        kind: "team",
-        profileId: args.profileId,
-      });
+    const scope = memoryReadScopeFromArgs(args);
+    if (scope === null) return [];
+    return collectScopedMemories(ctx, scope);
+  },
+});
+
+const scopedPageArgs = {
+  kind: v.union(v.literal("personal"), v.literal("team")),
+  userId: v.optional(v.string()),
+  profileId: v.optional(v.string()),
+  cursor: v.union(v.string(), v.null()),
+  numItems: v.number(),
+};
+
+const scopedPageMeta = {
+  isDone: v.boolean(),
+  continueCursor: v.string(),
+  splitCursor: v.optional(v.union(v.string(), v.null())),
+  pageStatus: v.optional(
+    v.union(
+      v.null(),
+      v.literal("SplitRecommended"),
+      v.literal("SplitRequired"),
+    ),
+  ),
+};
+
+function emptyScopedPage(cursor: string | null) {
+  return {
+    isDone: true,
+    continueCursor: cursor ?? "",
+  };
+}
+
+export const paginateScopedMemoriesInternal = internalQuery({
+  args: scopedPageArgs,
+  returns: v.object({
+    memories: v.array(memoryWithTagsValidator),
+    ...scopedPageMeta,
+  }),
+  handler: async (ctx, args) => {
+    const scope = memoryReadScopeFromArgs(args);
+    if (scope === null) {
+      return { memories: [], ...emptyScopedPage(args.cursor) };
     }
-    if (args.userId === undefined) return [];
-    return collectScopedMemories(ctx, {
-      kind: "personal",
-      userId: args.userId,
-      profileId: args.profileId,
+    const page = await paginateScopedDocs(ctx, scope, {
+      numItems: args.numItems,
+      cursor: args.cursor,
     });
+    return {
+      memories: page.page.map(toMemoryWithTags),
+      isDone: page.isDone,
+      continueCursor: page.continueCursor,
+      splitCursor: page.splitCursor,
+      pageStatus: page.pageStatus,
+    };
+  },
+});
+
+export const paginateScopedMemoryStatsInternal = internalQuery({
+  args: scopedPageArgs,
+  returns: v.object({
+    rows: v.array(
+      v.object({
+        createdAt: v.number(),
+        tags: v.array(v.string()),
+      }),
+    ),
+    ...scopedPageMeta,
+  }),
+  handler: async (ctx, args) => {
+    const scope = memoryReadScopeFromArgs(args);
+    if (scope === null) {
+      return { rows: [], ...emptyScopedPage(args.cursor) };
+    }
+    const page = await paginateScopedDocs(ctx, scope, {
+      numItems: args.numItems,
+      cursor: args.cursor,
+    });
+    return {
+      rows: page.page.map(toMemoryStatRow),
+      isDone: page.isDone,
+      continueCursor: page.continueCursor,
+      splitCursor: page.splitCursor,
+      pageStatus: page.pageStatus,
+    };
   },
 });
 

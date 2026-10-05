@@ -69,10 +69,12 @@ const searchTextArgsSchema = z.object({
   query: z.string(),
 });
 const memoryIdsArgsSchema = z.object({ ids: z.array(z.string()) });
-const collectScopedArgsSchema = z.object({
+const paginateScopedArgsSchema = z.object({
   kind: z.enum(["personal", "team"]),
   userId: z.string().optional(),
   profileId: z.string().optional(),
+  cursor: z.string().nullable(),
+  numItems: z.number(),
 });
 const userIdArgsSchema = z.object({ userId: z.string() });
 const skillListArgsSchema = z.object({
@@ -259,28 +261,33 @@ export function createMockStore(): MockStore {
   };
 }
 
-function listMemories(
+function scopedMemories(
   store: MockStore,
-  args: z.infer<typeof listMemoriesArgsSchema>,
+  args: { userId?: string; profileId?: string },
   kind: "personal" | "team",
-): { memories: MemoryWithTags[]; total: number } {
+): MemoryWithTags[] {
   const profileId =
     args.profileId ??
     (kind === "team"
       ? store.activeTeamProfileId
       : store.activePersonalProfileId);
-  const filtered = store.memories.filter((memory) => {
-    if (kind === "team") {
-      if (memory.profileId !== profileId) return false;
-    } else if (
-      memory.userId !== (args.userId ?? store.clerkId) ||
-      (memory.profileId !== profileId && memory.profileId !== null)
-    ) {
-      return false;
-    }
-    if (!memoryMatchesListFilter(memory, args)) return false;
-    return true;
+  return store.memories.filter((memory) => {
+    if (kind === "team") return memory.profileId === profileId;
+    return (
+      memory.userId === (args.userId ?? store.clerkId) &&
+      (memory.profileId === profileId || memory.profileId === null)
+    );
   });
+}
+
+function listMemories(
+  store: MockStore,
+  args: z.infer<typeof listMemoriesArgsSchema>,
+  kind: "personal" | "team",
+): { memories: MemoryWithTags[]; total: number } {
+  const filtered = scopedMemories(store, args, kind).filter((memory) =>
+    memoryMatchesListFilter(memory, args),
+  );
   const sliced = filtered.slice(args.offset, args.offset + args.limit);
   return { memories: sliced, total: filtered.length };
 }
@@ -487,17 +494,29 @@ async function dispatch(
       return store.links.filter((_link) => parsed.userId === store.clerkId);
     }
     case "memoryStore/functions:collectScopedMemoriesInternal": {
-      const parsed = collectScopedArgsSchema.parse(args);
-      return listMemories(
-        store,
-        {
-          userId: parsed.userId,
-          profileId: parsed.profileId,
-          limit: 1000,
-          offset: 0,
-        },
-        parsed.kind,
-      ).memories;
+      const parsed = paginateScopedArgsSchema
+        .pick({ kind: true, userId: true, profileId: true })
+        .parse(args);
+      return scopedMemories(store, parsed, parsed.kind);
+    }
+    case "memoryStore/functions:paginateScopedMemoriesInternal": {
+      const parsed = paginateScopedArgsSchema.parse(args);
+      return {
+        memories: scopedMemories(store, parsed, parsed.kind),
+        isDone: true,
+        continueCursor: "",
+      };
+    }
+    case "memoryStore/functions:paginateScopedMemoryStatsInternal": {
+      const parsed = paginateScopedArgsSchema.parse(args);
+      return {
+        rows: scopedMemories(store, parsed, parsed.kind).map((memory) => ({
+          createdAt: Date.parse(memory.createdAt),
+          tags: memory.tags,
+        })),
+        isDone: true,
+        continueCursor: "",
+      };
     }
     case "skills:listEffectiveByClerkIdInternal": {
       const parsed = skillListArgsSchema.parse(args);

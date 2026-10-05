@@ -23,6 +23,7 @@ import {
 } from "../engine/memory/jevMergeGate";
 import { isVisibleStatus } from "../engine/memory/scope";
 import { collectScopedMemories } from "./memoryStore/helpers";
+import { collectScopedMemoriesPaged } from "./memoryStore/walk";
 import {
   hasOverlappingPendingProposal,
   insertProposedUpdate,
@@ -272,18 +273,15 @@ async function runDreamPassForProfile(
 ): Promise<DreamRunResult> {
   const memories =
     args.kind === "team"
-      ? await ctx.runQuery(
-          internal.memoryStore.functions.collectScopedMemoriesInternal,
-          { kind: "team", profileId: args.profileId },
-        )
-      : await ctx.runQuery(
-          internal.memoryStore.functions.collectScopedMemoriesInternal,
-          {
-            kind: "personal",
-            userId: args.clerkId,
-            profileId: args.profileId,
-          },
-        );
+      ? await collectScopedMemoriesPaged(ctx, {
+          kind: "team",
+          profileId: args.profileId,
+        })
+      : await collectScopedMemoriesPaged(ctx, {
+          kind: "personal",
+          userId: args.clerkId,
+          profileId: args.profileId,
+        });
   const visible = memories.filter((memory) => isVisibleStatus(memory.status));
   if (visible.length === 0) return emptyDreamResult("no-recent-memories");
 

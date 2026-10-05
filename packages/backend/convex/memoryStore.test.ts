@@ -983,4 +983,68 @@ describe("convex memoryStore", () => {
     );
     expect(graph.mentions.length).toBeGreaterThanOrEqual(2);
   });
+
+  it("paginates scoped memories and stats without collecting the full set", async () => {
+    const t = convexTest(schema, modules);
+    const titles = ["one", "two", "three", "four", "five"];
+    for (const title of titles) {
+      await t.mutation(
+        internal.memoryStore.functions.createMemoryInternal,
+        createArgs({
+          memoryId: `mem-${title}`,
+          title,
+          content: `${title} body`,
+          tags: [title],
+        }),
+      );
+    }
+
+    const memories: string[] = [];
+    let cursor: string | null = null;
+    let pages = 0;
+    const personalScope = {
+      kind: "personal" as const,
+      userId: USER_A,
+      profileId: PERSONAL_PROFILE,
+      numItems: 2,
+    };
+    for (;;) {
+      const page: {
+        memories: Array<{ title: string }>;
+        isDone: boolean;
+        continueCursor: string;
+      } = await t.query(
+        internal.memoryStore.functions.paginateScopedMemoriesInternal,
+        { ...personalScope, cursor },
+      );
+      pages += 1;
+      for (const memory of page.memories) memories.push(memory.title);
+      if (page.isDone) break;
+      cursor = page.continueCursor;
+    }
+    expect(pages).toBeGreaterThan(1);
+    expect(memories.sort()).toEqual([...titles].sort());
+
+    const tags = new Set<string>();
+    let statsCursor: string | null = null;
+    let rowCount = 0;
+    for (;;) {
+      const page: {
+        rows: Array<{ tags: string[] }>;
+        isDone: boolean;
+        continueCursor: string;
+      } = await t.query(
+        internal.memoryStore.functions.paginateScopedMemoryStatsInternal,
+        { ...personalScope, cursor: statsCursor },
+      );
+      rowCount += page.rows.length;
+      for (const row of page.rows) {
+        for (const tag of row.tags) tags.add(tag);
+      }
+      if (page.isDone) break;
+      statsCursor = page.continueCursor;
+    }
+    expect(rowCount).toBe(5);
+    expect(tags).toEqual(new Set(titles));
+  });
 });
