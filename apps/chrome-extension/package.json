@@ -29,6 +29,7 @@
     "es-toolkit": "^1.49.0",
     "jwt-decode": "^4.0.0",
     "motion": "^12.34.0",
+    "nanoid": "^5.1.0",
     "react": "catalog:",
     "react-dom": "catalog:",
     "shadow-plugin": "catalog:",

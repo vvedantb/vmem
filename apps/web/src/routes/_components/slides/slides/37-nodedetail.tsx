@@ -2,7 +2,14 @@ import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { IconClockHour4, IconLink, IconX } from "@tabler/icons-react";
-import { Badge, Card, Tabs, TabsContent, TabsList, TabsTrigger } from "@vvedantb/ui";
+import {
+  Badge,
+  Card,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@vvedantb/ui";
 import { BlurWordsTitle } from "../_components/BlurWordsTitle";
 import {
   SlideKicker,
