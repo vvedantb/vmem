@@ -12,7 +12,7 @@ import {
   DialogFooter,
   Button,
   Input,
-} from "@vv/ui";
+} from "@vvedantb/ui";
 import { IconLoader2, IconCheck, IconCopy, IconKey } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { api } from "@vmem/backend";

@@ -15,7 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
   Input,
-} from "@vv/ui";
+} from "@vvedantb/ui";
 import {
   IconCheck,
   IconEdit,

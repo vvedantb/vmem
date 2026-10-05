@@ -3,6 +3,11 @@
   - packages/*
 
 minimumReleaseAge: 10080
+# Newly published scoped UI packages; the 7-day age gate would block install.
+minimumReleaseAgeExclude:
+  - "@vvedantb/ui"
+  - "@vvedantb/tokens"
+  - "@vvedantb/shell"
 
 catalog:
   "@clerk/backend": ^2.30.1

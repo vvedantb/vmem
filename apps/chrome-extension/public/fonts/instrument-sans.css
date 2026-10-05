@@ -1,6 +1,6 @@
 /*
  * Instrument Sans for chrome-extension pages (popup, welcome).
- * @vv/tokens only names the family; MV3 extension-page CSP cannot load
+ * @vvedantb/tokens only names the family; MV3 extension-page CSP cannot load
  * remote webfont stylesheets, so the files ship here.
  */
 @font-face {

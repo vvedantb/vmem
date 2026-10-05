@@ -1,6 +1,6 @@
 import { diffWords } from "diff";
 import type { Change } from "diff";
-import { cn } from "@vv/ui";
+import { cn } from "@vvedantb/ui";
 
 interface DiffDisplayProps {
   oldText: string;

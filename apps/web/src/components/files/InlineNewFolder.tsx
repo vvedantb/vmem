@@ -1,5 +1,5 @@
 import { useRef, useEffect } from "react";
-import { Input } from "@vv/ui";
+import { Input } from "@vvedantb/ui";
 import { IconFolder } from "@tabler/icons-react";
 
 interface NewFolderInputProps {

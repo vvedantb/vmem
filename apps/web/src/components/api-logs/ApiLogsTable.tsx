@@ -1,5 +1,5 @@
 import { IconChartBar } from "@tabler/icons-react";
-import { Card, CardContent, cn } from "@vv/ui";
+import { Card, CardContent, cn } from "@vvedantb/ui";
 import { formatRelativeTime } from "@vmem/shared";
 import { formatDuration } from "@/lib/formatters";
 import { isSuccessStatus, type ApiRequestEntry } from "./_utils";

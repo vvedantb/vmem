@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { useDropzone } from "react-dropzone";
 import { AnimatePresence, motion } from "motion/react";
-import { Input, motionDuration, motionEase } from "@vv/ui";
+import { Input, motionDuration, motionEase } from "@vvedantb/ui";
 import { IconUpload } from "@tabler/icons-react";
 
 interface FileDropZoneProps {

@@ -1,5 +1,5 @@
 import { IconFilter } from "@tabler/icons-react";
-import { Button, Popover, PopoverContent, PopoverTrigger } from "@vv/ui";
+import { Button, Popover, PopoverContent, PopoverTrigger } from "@vvedantb/ui";
 import { FacetedFilterBadge } from "@/components/_components/FacetedFilter";
 import UnifiedFilterPanel from "@/components/_components/UnifiedFilterPanel";
 import type { Memory, MemoryType, TagStats } from "@/lib/memories";

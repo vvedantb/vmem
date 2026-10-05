@@ -1,7 +1,7 @@
 import { motion } from "motion/react";
 import { useMutation, useQuery } from "convex/react";
 import { IconCheck } from "@tabler/icons-react";
-import { Button, cn, motionDuration, motionEase } from "@vv/ui";
+import { Button, cn, motionDuration, motionEase } from "@vvedantb/ui";
 import { api } from "@vmem/backend";
 import { SlideShell, SlideKicker, SlideTitle, SlideReveal } from "./SlideShell";
 import { usePresentationDeck } from "./PresentationDeckContext";

@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Button, Input, Badge, cn, floatingSurfaceClass } from "@vv/ui";
+import { Button, Input, Badge, cn, floatingSurfaceClass } from "@vvedantb/ui";
 import { IconX } from "@tabler/icons-react";
 import { buildTagStats } from "@/lib/memories";
 import { useRecentMemories } from "@/hooks/useRecentMemories";

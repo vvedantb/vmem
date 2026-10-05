@@ -8,7 +8,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@vv/ui";
+} from "@vvedantb/ui";
 import { IconTrash, IconX } from "@tabler/icons-react";
 
 interface BulkSelectionDeleteBarProps {

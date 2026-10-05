@@ -1,6 +1,6 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@vmem/backend";
-import { Skeleton, Switch } from "@vv/ui";
+import { Skeleton, Switch } from "@vvedantb/ui";
 import { SettingsPage } from "@/components/settings/SettingsPage";
 import { SettingsSection } from "@/components/settings/SettingsSection";
 import { SettingsToggleRow } from "@/components/settings/SettingsToggleRow";

@@ -1,4 +1,4 @@
-import { cn } from "@vv/ui";
+import { cn } from "@vvedantb/ui";
 
 /**
  * Vertical rhythm for every settings page body — one gap, no page-local freelancing.

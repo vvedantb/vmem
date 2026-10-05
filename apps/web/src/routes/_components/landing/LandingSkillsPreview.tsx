@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button, cn } from "@vv/ui";
+import { Button, cn } from "@vvedantb/ui";
 import ShapeIndicator from "@/components/_components/ShapeIndicator";
 import { demoSkills, skillAt } from "./landing-preview-data";
 import { LANDING_MONO } from "./landingContent";

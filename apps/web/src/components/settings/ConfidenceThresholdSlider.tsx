@@ -1,4 +1,4 @@
-import { Input, Label } from "@vv/ui";
+import { Input, Label } from "@vvedantb/ui";
 
 interface ConfidenceThresholdSliderProps {
   value: number;

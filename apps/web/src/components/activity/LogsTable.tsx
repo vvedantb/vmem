@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Virtuoso } from "react-virtuoso";
-import { Badge, Button, Card, CardContent, cn } from "@vv/ui";
+import { Badge, Button, Card, CardContent, cn } from "@vvedantb/ui";
 import { IconReceipt2 } from "@tabler/icons-react";
 import type { AiLogRow, ProfileListItem } from "./types";
 import {

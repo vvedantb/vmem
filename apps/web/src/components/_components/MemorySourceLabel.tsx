@@ -1,4 +1,4 @@
-import { cn } from "@vv/ui";
+import { cn } from "@vvedantb/ui";
 import { formatMemorySourceLabel } from "@/lib/memories";
 import { MemorySourceIcon } from "./MemorySourceIcon";
 

@@ -9,7 +9,7 @@ import { useMutation, useQuery } from "convex/react";
 import { useQueryStates } from "nuqs";
 import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
-import { Spinner } from "@vv/ui";
+import { Spinner } from "@vvedantb/ui";
 import { IconBolt } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import PageContainer from "@/components/shell/PageContainer";

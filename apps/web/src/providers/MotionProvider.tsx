@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { MotionConfig } from "motion/react";
-import { defaultTransition } from "@vv/ui";
+import { defaultTransition } from "@vvedantb/ui";
 
 interface MotionProviderProps {
   children: ReactNode;

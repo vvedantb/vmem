@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button, Card } from "@vv/ui";
+import { Button, Card } from "@vvedantb/ui";
 import { IconMoodEmpty, IconX } from "@tabler/icons-react";
 import type { Memory } from "@/lib/memories";
 import { memoryToListItem } from "@/lib/list-items";

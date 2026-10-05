@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { Button } from "@vv/ui";
+import { Button } from "@vvedantb/ui";
 import { IconArrowRight, IconX } from "@tabler/icons-react";
 import { IconSkills, IconWiki } from "@/components/icons/sidebar";
 import { useActiveProfile } from "@/components/workspace/active-profile";

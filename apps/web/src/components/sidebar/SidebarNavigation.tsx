@@ -1,6 +1,6 @@
 import type { MouseEventHandler, ReactNode } from "react";
 import { motion } from "motion/react";
-import { cn, motionDuration, motionEase } from "@vv/ui";
+import { cn, motionDuration, motionEase } from "@vvedantb/ui";
 import { IconUsers } from "@tabler/icons-react";
 import { IconTeams, IconSettings } from "../icons/sidebar";
 import type { NavGroup, NavItem } from "./types";

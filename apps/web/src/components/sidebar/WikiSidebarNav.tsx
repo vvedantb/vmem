@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
-import { Button, Spinner } from "@vv/ui";
+import { Button, Spinner } from "@vvedantb/ui";
 import { IconBook, IconListCheck } from "@tabler/icons-react";
 import WikiTree from "@/components/wiki/WikiTree";
 import WikiSearch from "@/components/wiki/WikiSearch";

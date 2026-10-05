@@ -1,4 +1,4 @@
-import { Badge, Card, CardContent, Skeleton } from "@vv/ui";
+import { Badge, Card, CardContent, Skeleton } from "@vvedantb/ui";
 import { IconSparkles } from "@tabler/icons-react";
 import { toast } from "sonner";
 import RunDreamModeButton from "@/components/proposals/RunDreamModeButton";

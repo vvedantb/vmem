@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Label } from "@vv/ui";
+import { Label } from "@vvedantb/ui";
 
 interface SettingsSliderRowProps {
   id: string;

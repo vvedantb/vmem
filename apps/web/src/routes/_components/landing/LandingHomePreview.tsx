@@ -5,7 +5,7 @@ import {
   IconSparkles,
   IconTags,
 } from "@tabler/icons-react";
-import { Card, CardContent } from "@vv/ui";
+import { Card, CardContent } from "@vvedantb/ui";
 import { AnimatedCounter } from "@/components/icons/animations";
 import { MetricSummaryCard } from "@/components/metrics/MetricSummaryCard";
 import { demoDashboard } from "./landing-preview-data";

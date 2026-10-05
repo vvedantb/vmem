@@ -1,6 +1,6 @@
 import type { FormEvent, ReactNode } from "react";
 import type { UseFormRegisterReturn } from "react-hook-form";
-import { Button, Input, Textarea } from "@vv/ui";
+import { Button, Input, Textarea } from "@vvedantb/ui";
 import { IconLoader2 } from "@tabler/icons-react";
 import {
   SkillDescriptionSection,

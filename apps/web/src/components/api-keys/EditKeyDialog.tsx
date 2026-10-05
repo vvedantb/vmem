@@ -11,7 +11,7 @@ import {
   DialogDescription,
   DialogFooter,
   Input,
-} from "@vv/ui";
+} from "@vvedantb/ui";
 import { IconLoader2 } from "@tabler/icons-react";
 import type { ApiKey } from "./types";
 

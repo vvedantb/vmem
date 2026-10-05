@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { IconTrash, IconFocusCentered, IconLoader2 } from "@tabler/icons-react";
-import { Badge, Button } from "@vv/ui";
+import { Badge, Button } from "@vvedantb/ui";
 import { formatDate } from "@/lib/formatters";
 import type { RelatedNode } from "@/lib/graph/types";
 import type { GraphDetailNode } from "@/lib/graph/graph-types";

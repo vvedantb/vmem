@@ -157,23 +157,23 @@
             "forbid": [
               {
                 "element": "button",
-                "message": "Use Button from @vv/ui"
+                "message": "Use Button from @vvedantb/ui"
               },
               {
                 "element": "input",
-                "message": "Use Input from @vv/ui"
+                "message": "Use Input from @vvedantb/ui"
               },
               {
                 "element": "textarea",
-                "message": "Use Textarea from @vv/ui"
+                "message": "Use Textarea from @vvedantb/ui"
               },
               {
                 "element": "select",
-                "message": "Use Select from @vv/ui"
+                "message": "Use Select from @vvedantb/ui"
               },
               {
                 "element": "table",
-                "message": "Use Table from @vv/ui"
+                "message": "Use Table from @vvedantb/ui"
               }
             ]
           }

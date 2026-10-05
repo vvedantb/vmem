@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useTheme } from "next-themes";
-import { motionDuration, motionEase } from "@vv/ui";
+import { motionDuration, motionEase } from "@vvedantb/ui";
 import { getSlide, SLIDES } from "./slides/index";
 import { SlideStepContext, SlideThemeContext } from "./_components/SlideShell";
 import { SlideOutlinePanel } from "./_components/SlideOutlinePanel";

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { useEffect } from "react";
 import { motion } from "motion/react";
-import { cn, motionDuration, motionEase, motionDistance } from "@vv/ui";
+import { cn, motionDuration, motionEase, motionDistance } from "@vvedantb/ui";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 
 interface PageContainerProps {

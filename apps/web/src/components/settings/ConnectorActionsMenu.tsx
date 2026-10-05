@@ -5,7 +5,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@vv/ui";
+} from "@vvedantb/ui";
 import {
   IconDots,
   IconLoader2,

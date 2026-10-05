@@ -1,7 +1,7 @@
 import { useAction } from "convex/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Button } from "@vv/ui";
+import { Button } from "@vvedantb/ui";
 import { IconSparkles, IconLoader2 } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";

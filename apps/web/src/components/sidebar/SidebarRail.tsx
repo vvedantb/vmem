@@ -4,7 +4,7 @@ import {
   IconLayoutSidebarLeftExpandFilled,
   IconSearch,
 } from "@tabler/icons-react";
-import { Skeleton, cn } from "@vv/ui";
+import { Skeleton, cn } from "@vvedantb/ui";
 import {
   isRailItemActive,
   navHrefToPath,

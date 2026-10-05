@@ -1,6 +1,6 @@
 import { SignUpButton } from "@clerk/clerk-react";
 import { IconArrowRight } from "@tabler/icons-react";
-import { Button } from "@vv/ui";
+import { Button } from "@vvedantb/ui";
 import { LandingReveal, landingShellClass } from "./LandingReveal";
 
 export function LandingCta() {

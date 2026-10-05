@@ -8,7 +8,7 @@ import {
   DialogFooter,
   Button,
   cn,
-} from "@vv/ui";
+} from "@vvedantb/ui";
 import { IconFolder, IconFolderSymlink, IconHome } from "@tabler/icons-react";
 import type { FileTreeNode } from "./-types";
 

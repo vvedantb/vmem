@@ -1,5 +1,5 @@
 import { IconSearch, IconX } from "@tabler/icons-react";
-import { Button, Input, cn } from "@vv/ui";
+import { Button, Input, cn } from "@vvedantb/ui";
 
 interface HeaderSearchInputProps {
   value: string;

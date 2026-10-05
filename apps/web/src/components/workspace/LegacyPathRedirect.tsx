@@ -5,7 +5,7 @@ import { useEffect } from "react";
 import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "@vmem/backend";
 import { IconLoader2 } from "@tabler/icons-react";
-import { Button } from "@vv/ui";
+import { Button } from "@vvedantb/ui";
 import { isLegacyFirstSegment } from "./workspace-paths";
 import { WorkspaceEntryRedirect } from "./WorkspaceEntryRedirect";
 

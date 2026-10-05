@@ -1,7 +1,7 @@
 import { useContext, useEffect, useRef, type ReactNode } from "react";
 import { IconCheck } from "@tabler/icons-react";
 import { motion } from "motion/react";
-import { motionDuration, motionEase } from "@vv/ui";
+import { motionDuration, motionEase } from "@vvedantb/ui";
 import ClaudeLogo from "@/components/settings/ClaudeLogo";
 import {
   LinearIcon,

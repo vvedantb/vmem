@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@vv/ui";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@vvedantb/ui";
 
 type SidebarIconTooltipProps = {
   label: string;

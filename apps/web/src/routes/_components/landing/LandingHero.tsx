@@ -1,7 +1,7 @@
 import { SignInButton, SignUpButton } from "@clerk/clerk-react";
 import { IconArrowRight } from "@tabler/icons-react";
 import { motion } from "motion/react";
-import { Button, motionDuration, motionEase } from "@vv/ui";
+import { Button, motionDuration, motionEase } from "@vvedantb/ui";
 import { LANDING_HERO_CAPABILITIES } from "./landingContent";
 import { landingItemVariants, landingShellClass } from "./LandingReveal";
 

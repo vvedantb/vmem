@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogFooter,
   Button,
-} from "@vv/ui";
+} from "@vvedantb/ui";
 import {
   IconLoader2,
   IconCheck,

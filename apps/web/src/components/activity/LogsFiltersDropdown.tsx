@@ -11,7 +11,7 @@ import {
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
-} from "@vv/ui";
+} from "@vvedantb/ui";
 import {
   IconCalendar,
   IconCalendarMonth,

@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
   cn,
-} from "@vv/ui";
+} from "@vvedantb/ui";
 import { IconHistory, IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import type { SkillVersionListEntry } from "@/components/skills/_utils";

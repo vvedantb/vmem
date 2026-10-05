@@ -1,4 +1,4 @@
-import { Card, CardContent, Skeleton } from "@vv/ui";
+import { Card, CardContent, Skeleton } from "@vvedantb/ui";
 
 export function AiLogsLoadingSkeleton() {
   return (

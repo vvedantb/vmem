@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { motion, type Variants } from "motion/react";
-import { cn, motionDuration, motionEase } from "@vv/ui";
+import { cn, motionDuration, motionEase } from "@vvedantb/ui";
 
 export const landingShellClass =
   "relative mx-auto w-full max-w-6xl px-5 sm:px-8 lg:px-10";

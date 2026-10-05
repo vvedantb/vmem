@@ -13,8 +13,9 @@
       "pinVersion": "catalog:tailwind4"
     },
     {
-      "label": "Shared vv-ui packages install from GitHub, not npm",
-      "dependencies": ["@vv/tokens", "@vv/shell", "@vv/ui"],
+      "label": "Published vv-ui packages stay pinned to npm",
+      "dependencies": ["@vvedantb/tokens", "@vvedantb/shell", "@vvedantb/ui"],
+      "packages": ["web", "@vmem/chrome-extension"],
       "isIgnored": true
     },
     {

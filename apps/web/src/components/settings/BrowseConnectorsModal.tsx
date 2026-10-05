@@ -6,7 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
   Button,
-} from "@vv/ui";
+} from "@vvedantb/ui";
 import {
   isConnectorConnected,
   isConnectorConnectable,

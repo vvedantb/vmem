@@ -8,7 +8,7 @@ import {
 } from "@tabler/icons-react";
 import type { ComponentType } from "react";
 import { motion } from "motion/react";
-import { motionDuration, motionEase } from "@vv/ui";
+import { motionDuration, motionEase } from "@vvedantb/ui";
 import { EvaIcon } from "../_components/brand-icons";
 import { BlurWordsTitle } from "../_components/BlurWordsTitle";
 import {

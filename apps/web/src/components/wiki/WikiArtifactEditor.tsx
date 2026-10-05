@@ -2,7 +2,7 @@ import { useDeferredValue, useEffect, useRef, useState } from "react";
 import { useCopyToClipboard } from "usehooks-ts";
 import { toast } from "sonner";
 import { IconPlayerPlay } from "@tabler/icons-react";
-import { Button, Textarea, cn } from "@vv/ui";
+import { Button, Textarea, cn } from "@vvedantb/ui";
 import type { WikiNodeDoc } from "./-types";
 import { formatWikiDocForClipboard, type OutlineHeading } from "./_utils";
 import { useWikiAutosave } from "./useWikiAutosave";

@@ -6,7 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
   Input,
-} from "@vv/ui";
+} from "@vvedantb/ui";
 import type { ImportProvider } from "./importProviders";
 
 type UploadImportModalProps = {

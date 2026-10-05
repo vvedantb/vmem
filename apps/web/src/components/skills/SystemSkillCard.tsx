@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Badge, Card, CardContent } from "@vv/ui";
+import { Badge, Card, CardContent } from "@vvedantb/ui";
 import type { SystemSkillEntry } from "@/components/skills/_utils";
 
 interface SystemSkillCardProps {

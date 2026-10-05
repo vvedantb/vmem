@@ -4,7 +4,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
-} from "@vv/ui";
+} from "@vvedantb/ui";
 import type { ReactNode } from "react";
 
 // ghost icon-sm chrome shared by sidebar title-row controls (add, search)

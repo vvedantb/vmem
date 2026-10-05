@@ -9,8 +9,8 @@ import {
 } from "react";
 import { useMediaQuery } from "usehooks-ts";
 import { AnimatePresence, motion, type PanInfo } from "motion/react";
-import { Button, cn, motionEase, motionTiming } from "@vv/ui";
-import { SidebarHeader } from "@vv/shell";
+import { Button, cn, motionEase, motionTiming } from "@vvedantb/ui";
+import { SidebarHeader } from "@vvedantb/shell";
 import { IconX } from "@tabler/icons-react";
 import { useUser } from "@clerk/clerk-react";
 import { useConvexAuth, useAction, useQuery } from "convex/react";

@@ -10,7 +10,7 @@ import {
   Badge,
   Button,
   cn,
-} from "@vv/ui";
+} from "@vvedantb/ui";
 import { IconLink, IconLoader2, IconSearch } from "@tabler/icons-react";
 import { Virtuoso } from "react-virtuoso";
 import { toast } from "sonner";

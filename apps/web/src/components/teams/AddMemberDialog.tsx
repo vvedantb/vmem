@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
   Input,
-} from "@vv/ui";
+} from "@vvedantb/ui";
 import { IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";

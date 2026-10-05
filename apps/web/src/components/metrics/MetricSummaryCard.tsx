@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { TablerIcon } from "@tabler/icons-react";
 import { motion } from "motion/react";
-import { Card, CardContent, cn } from "@vv/ui";
+import { Card, CardContent, cn } from "@vvedantb/ui";
 import { Sparkline } from "@/components/charts/Sparkline";
 
 const CARD_SPACER = <div className="mt-auto" />;

@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import type { MouseEventHandler } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { cn, motionDuration, motionEase } from "@vv/ui";
+import { cn, motionDuration, motionEase } from "@vvedantb/ui";
 import { IconChevronRight } from "@tabler/icons-react";
 import type { NavItem } from "./types";
 import { navHrefToPath } from "./nav-config";

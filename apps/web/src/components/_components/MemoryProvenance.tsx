@@ -1,4 +1,4 @@
-import { Badge } from "@vv/ui";
+import { Badge } from "@vvedantb/ui";
 import { formatDateTime } from "@vmem/shared";
 import { IconExternalLink } from "@tabler/icons-react";
 import type { Memory } from "@/lib/memories";

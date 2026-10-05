@@ -1,4 +1,4 @@
-import { Breadcrumb, BreadcrumbLink, BreadcrumbPage, Button } from "@vv/ui";
+import { Breadcrumb, BreadcrumbLink, BreadcrumbPage, Button } from "@vvedantb/ui";
 import type { Id } from "@vmem/backend";
 import type { FolderBreadcrumb } from "./-types";
 

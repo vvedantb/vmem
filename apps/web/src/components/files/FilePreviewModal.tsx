@@ -6,7 +6,7 @@ import {
   DialogTitle,
   DialogFooter,
   Button,
-} from "@vv/ui";
+} from "@vvedantb/ui";
 import { toast } from "sonner";
 import {
   IconDownload,

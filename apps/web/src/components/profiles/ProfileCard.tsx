@@ -1,4 +1,4 @@
-import { Button, Card, CardContent } from "@vv/ui";
+import { Button, Card, CardContent } from "@vvedantb/ui";
 import { formatDate } from "@vmem/shared";
 import { IconEdit, IconTrash } from "@tabler/icons-react";
 import type { FunctionReturnType } from "convex/server";
