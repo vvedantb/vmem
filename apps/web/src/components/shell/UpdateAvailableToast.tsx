@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { toast } from "sonner";
 import { convex } from "@/lib/convex-client";
 import { fetchDeployFingerprint } from "@/lib/utils/deployFingerprint";
@@ -34,49 +33,43 @@ function showUpdateToast() {
 }
 
 /**
- * In the signed-in app shell, poll the live index HTML for a new Vite asset
- * fingerprint (and re-check when the tab becomes visible). Surfaces a sticky
- * toast with Refresh when a newer deploy is serving.
+ * Poll the live index HTML for a new Vite asset fingerprint (and re-check
+ * when the tab becomes visible). Surfaces a sticky toast with Refresh when a
+ * newer deploy is serving.
  */
-export function UpdateAvailableToast() {
-  useEffect(() => {
-    if (import.meta.env.DEV) return;
+export function startUpdateAvailableWatcher(): () => void {
+  let cancelled = false;
+  let baseline: string | null = null;
 
-    let cancelled = false;
-    let baseline: string | null = null;
+  const check = async () => {
+    if (cancelled || updateToastShown) return;
+    const next = await fetchDeployFingerprint(window.location.origin);
+    if (cancelled || next === null) return;
+    if (baseline === null) {
+      baseline = next;
+      return;
+    }
+    if (next !== baseline) {
+      showUpdateToast();
+    }
+  };
 
-    const check = async () => {
-      if (cancelled || updateToastShown) return;
-      const next = await fetchDeployFingerprint(window.location.origin);
-      if (cancelled || next === null) return;
-      if (baseline === null) {
-        baseline = next;
-        return;
-      }
-      if (next !== baseline) {
-        showUpdateToast();
-      }
-    };
-
+  void check();
+  const intervalId = window.setInterval(() => {
+    if (document.visibilityState !== "visible") return;
     void check();
-    const intervalId = window.setInterval(() => {
-      if (document.visibilityState !== "visible") return;
+  }, POLL_MS);
+
+  const onVisibility = () => {
+    if (document.visibilityState === "visible") {
       void check();
-    }, POLL_MS);
+    }
+  };
+  document.addEventListener("visibilitychange", onVisibility);
 
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") {
-        void check();
-      }
-    };
-    document.addEventListener("visibilitychange", onVisibility);
-
-    return () => {
-      cancelled = true;
-      window.clearInterval(intervalId);
-      document.removeEventListener("visibilitychange", onVisibility);
-    };
-  }, []);
-
-  return null;
+  return () => {
+    cancelled = true;
+    window.clearInterval(intervalId);
+    document.removeEventListener("visibilitychange", onVisibility);
+  };
 }
