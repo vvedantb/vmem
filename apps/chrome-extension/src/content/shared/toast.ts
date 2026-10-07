@@ -1,4 +1,4 @@
-// shadow-dom toasts for any host page, stack bottom-right, auto-dismiss
+// shadow-dom toasts for any host page, stack top-right, auto-dismiss
 
 import { escape } from "es-toolkit";
 import { createShadowHost } from "./dom-utils";
@@ -34,7 +34,7 @@ const STYLES = `
 
   #toast-list {
     position: fixed;
-    bottom: 16px;
+    top: 16px;
     right: 16px;
     display: flex;
     flex-direction: column-reverse;

@@ -82,9 +82,19 @@
      `pt-14`, or the header overlaps content on a notched phone. */
   --vmem-mobile-header-height: calc(3.5rem + env(safe-area-inset-top, 0px));
 
+  /* Sonner top-right: sit below the mobile header; desktop has no top chrome. */
+  --vmem-toast-offset-top: max(1rem, env(safe-area-inset-top, 0px));
+  --vmem-toast-offset-right: max(1rem, env(safe-area-inset-right, 0px));
+
   /* Eva/vibot shell: always-on icon rail + expandable panel. */
   --vmem-sidebar-rail-width: 4rem;
   --vmem-sidebar-width: 20rem;
+}
+
+@media (width < 48rem) {
+  :root {
+    --vmem-toast-offset-top: calc(var(--vmem-mobile-header-height) + 0.5rem);
+  }
 }
 
 /*

@@ -14,6 +14,14 @@ function ThemedSonnerToaster() {
   return (
     <SonnerToaster
       position="top-right"
+      offset={{
+        top: "var(--vmem-toast-offset-top)",
+        right: "var(--vmem-toast-offset-right)",
+      }}
+      mobileOffset={{
+        top: "var(--vmem-toast-offset-top)",
+        right: "var(--vmem-toast-offset-right)",
+      }}
       theme={resolvedTheme === "dark" ? "dark" : "light"}
     />
   );
