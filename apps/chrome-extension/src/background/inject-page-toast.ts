@@ -19,7 +19,7 @@ export async function injectPageToast(
       const el = document.createElement("div");
       Object.assign(el.style, {
         position: "fixed",
-        bottom: "24px",
+        top: "24px",
         right: "24px",
         background: "rgba(24,24,28,0.95)",
         backdropFilter: "blur(16px)",
@@ -32,7 +32,7 @@ export async function injectPageToast(
         zIndex: "2147483647",
         boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
         opacity: "0",
-        transform: "translateY(8px)",
+        transform: "translateY(-8px)",
         transition: "opacity 200ms ease, transform 200ms ease",
       });
       el.textContent = toastMessage;
@@ -43,7 +43,7 @@ export async function injectPageToast(
       });
       setTimeout(() => {
         el.style.opacity = "0";
-        el.style.transform = "translateY(8px)";
+        el.style.transform = "translateY(-8px)";
         setTimeout(() => el.remove(), 200);
       }, 2500);
     },
