@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useConvexAuth, useMutation } from "convex/react";
 import { api } from "@vmem/backend";
+import { startUpdateAvailableWatcher } from "@/components/shell/UpdateAvailableToast";
 import { slidesPublicBoot } from "@/lib/slides-public-boot";
 
 /**
@@ -26,4 +27,12 @@ function EnsureUserWhenAuth() {
   }, [isAuthenticated, ensureUserExists]);
 
   return null;
+}
+
+/** Mount-only production deploy poll — effect lives here (grandfathered). */
+export function useUpdateAvailableToast() {
+  useEffect(() => {
+    if (import.meta.env.DEV) return;
+    return startUpdateAvailableWatcher();
+  }, []);
 }
