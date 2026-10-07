@@ -2,10 +2,10 @@ import { SignInButton, SignUpButton } from "@clerk/clerk-react";
 import { IconBrandGithub } from "@tabler/icons-react";
 import { motion } from "motion/react";
 import { Button, cn, motionDuration, motionEase } from "@vvedantb/ui";
-import { VmemBrand } from "@/components/shell/VmemBrand";
 import { LANDING_NAV_LINKS, VMEM_GITHUB_URL } from "./landingContent";
 import { LandingNavMenu } from "./LandingNavMenu";
 import { landingShellClass } from "./LandingReveal";
+import { LandingWordmark } from "./LandingWordmark";
 
 export function LandingNav() {
   return (
@@ -26,7 +26,7 @@ export function LandingNav() {
           className="group min-w-0 shrink-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           aria-label="vmem home"
         >
-          <VmemBrand textClassName="font-instrumentSerif" />
+          <LandingWordmark />
         </a>
 
         <nav className="hidden items-center gap-1 md:flex" aria-label="Page">
