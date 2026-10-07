@@ -1,3 +1,10 @@
+/* Instrument Serif ships only regular (+ italic). Disable faux-bold. */
+.landing-wordmark-text {
+  font-family: var(--font-instrumentSerif);
+  font-weight: 400;
+  font-synthesis: none;
+}
+
 @keyframes landing-graph-dash {
   to {
     stroke-dashoffset: -20;
