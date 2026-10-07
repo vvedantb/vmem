@@ -7,6 +7,7 @@ import {
   useLayoutEffect,
   type ReactNode,
 } from "react";
+import { slidesPublicBoot } from "@/lib/slides-public-boot";
 
 const PageMotionContext = createContext(false);
 
@@ -29,6 +30,15 @@ export function useDisablePageMotion(): boolean {
  * never falls through to Motion's `user` / OS preference.
  */
 export function PageMotionProvider({ children }: { children: ReactNode }) {
+  // `/slides` boots with anonymous ConvexProvider (no Clerk /
+  // ConvexProviderWithAuth). Auth hooks throw without that provider.
+  if (slidesPublicBoot) {
+    return children;
+  }
+  return <PageMotionProviderWhenAuth>{children}</PageMotionProviderWhenAuth>;
+}
+
+function PageMotionProviderWhenAuth({ children }: { children: ReactNode }) {
   const { isAuthenticated } = useConvexAuth();
   const flags = useQuery(
     api.userSettings.getExperimentalFlags,
