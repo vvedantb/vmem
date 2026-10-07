@@ -3,6 +3,7 @@ import { useTheme } from "next-themes";
 import { Navigate } from "@tanstack/react-router";
 import { SonnerToaster, TooltipProvider } from "@vvedantb/ui";
 import { AppSkeleton } from "@/components/shell/AppSkeleton";
+import { UpdateAvailableToast } from "@/components/shell/UpdateAvailableToast";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { MemoryProvider } from "@/contexts/MemoryContext";
@@ -35,6 +36,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             </NotificationProvider>
           </TooltipProvider>
           <ThemedSonnerToaster />
+          <UpdateAvailableToast />
         </ThemeProvider>
       </Authenticated>
     </>
