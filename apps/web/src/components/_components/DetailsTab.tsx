@@ -100,7 +100,7 @@ export function DetailsTabEdit({ memory, onCancel }: DetailsTabEditProps) {
           defaultValue={memory.title}
           placeholder="Memory title"
           disabled={isSubmitting}
-          className="h-10 rounded-field border-border bg-field-background text-foreground text-base font-semibold placeholder:text-field-placeholder"
+          className="h-10 border-border bg-field-background text-foreground text-base font-semibold placeholder:text-field-placeholder"
         />
         {titleError ? (
           <p className="text-sm text-danger">{titleError}</p>
@@ -111,7 +111,7 @@ export function DetailsTabEdit({ memory, onCancel }: DetailsTabEditProps) {
           placeholder="Memory content"
           rows={8}
           disabled={isSubmitting}
-          className="min-h-[160px] rounded-field border-border bg-field-background text-foreground placeholder:text-field-placeholder"
+          className="min-h-[160px] border-border bg-field-background text-foreground placeholder:text-field-placeholder"
         />
         {contentError ? (
           <p className="text-sm text-danger">{contentError}</p>

@@ -311,7 +311,7 @@ export default function AddMemoryModal({
                           }
                         }}
                         placeholder="Add or search tags…"
-                        className="h-8 rounded-field border-border bg-field-background px-2 text-sm text-foreground placeholder:text-field-placeholder"
+                        className="h-8 border-border bg-field-background px-2 text-sm text-foreground placeholder:text-field-placeholder"
                       />
                       <div className="mt-2 flex max-h-56 flex-col gap-0.5 overflow-y-auto">
                         {filteredSuggestions.slice(0, 10).map((item) => (

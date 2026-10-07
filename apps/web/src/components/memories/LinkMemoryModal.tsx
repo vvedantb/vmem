@@ -213,7 +213,7 @@ export default function LinkMemoryModal({
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search by title, content, or tag…"
-                className="h-10 rounded-field border-border bg-field-background pl-9 text-foreground placeholder:text-field-placeholder"
+                className="h-10 border-border bg-field-background pl-9 text-foreground placeholder:text-field-placeholder"
                 autoFocus
               />
             </div>

@@ -89,7 +89,7 @@ export default function TagInputWithSuggestions({
           }}
           placeholder="Add a tag and press Enter"
           disabled={disabled}
-          className="h-8 rounded-field border-border bg-field-background text-foreground placeholder:text-field-placeholder hover:bg-field-background focus-visible:border-focus"
+          className="h-8 border-border bg-field-background text-foreground placeholder:text-field-placeholder hover:bg-field-background focus-visible:border-focus"
         />
         {showSuggestions && filteredSuggestions.length > 0 ? (
           <div

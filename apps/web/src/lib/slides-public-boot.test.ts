@@ -64,6 +64,22 @@ describe("slides boot skips Clerk on preview domains", () => {
     expect(client).toMatch(/!slidesPublicBoot\s*&&\s*<EnsureUser/);
   });
 
+  it("PageMotionProvider is a no-op on slidesPublicBoot without calling useConvexAuth", () => {
+    const provider = readFileSync(
+      join(webSrc, "providers/PageMotionProvider.tsx"),
+      "utf8",
+    );
+    const exported = provider.match(
+      /export function PageMotionProvider\([\s\S]*?(?=\nfunction |\nexport )/,
+    );
+    expect(exported?.[0]).toContain("slidesPublicBoot");
+    expect(exported?.[0]).toContain("return children");
+    expect(exported?.[0]).not.toContain("useConvexAuth");
+    expect(provider).toMatch(
+      /function PageMotionProviderWhenAuth[\s\S]*useConvexAuth/,
+    );
+  });
+
   it("EnsureUser is a no-op on slidesPublicBoot without calling useConvexAuth", () => {
     const ensureUser = readFileSync(
       join(webSrc, "providers/EnsureUser.tsx"),

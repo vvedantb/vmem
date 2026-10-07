@@ -156,7 +156,7 @@ export default function ApiKeyModal({ isOpen, onClose }: ApiKeyModalProps) {
                 <Input
                   value={createdKey.key}
                   readOnly
-                  className="font-mono text-sm rounded-field border-border bg-field-background"
+                  className="font-mono text-sm border-border bg-field-background"
                 />
                 <Button
                   variant="ghost"
