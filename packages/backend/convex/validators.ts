@@ -401,6 +401,8 @@ export const openRouterLogFields = {
   profileId: v.optional(v.id("profiles")),
   teamId: v.optional(v.id("teams")),
   createdAt: v.number(),
+  // true until the scheduled drain has folded the row into the aggregates
+  aggregatePending: v.optional(v.boolean()),
 };
 
 export const wikiNodeFields = {

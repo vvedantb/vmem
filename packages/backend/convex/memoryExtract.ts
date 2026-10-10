@@ -63,6 +63,8 @@ export const extractMemoryEntitiesInternal = internalAction({
         memoryId: args.memoryId,
         entities: parsed.entities,
         relatedMemoryIds: parsed.relatedMemoryIds,
+        candidates,
+        knownEntities: known,
       },
     );
     return written > 0;
