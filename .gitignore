@@ -13,9 +13,16 @@ build
 .tanstack
 
 # Local agent / IDE config (not shared)
-.claude/
+.claude/*
 .cursor/
-.agents/
+.agents/*
+# Convex agent skills are tracked (npx skills add get-convex/agent-skills)
+!.agents/skills/
+.agents/skills/*
+!.agents/skills/convex*/
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/convex*
 
 # Local project context (not shared)
 FYP-PROJECT-CONTEXT.md
@@ -26,7 +33,6 @@ CLAUDE.md
 DESIRES.md
 LEARNINGS.md
 MISTAKES.md
-skills-lock.json
 skills-lock.json.bak
 
 # Internal docs, plans, dissertation — local only
