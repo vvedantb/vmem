@@ -224,6 +224,18 @@
   }
 }
 
+/*
+ * @vvedantb/ui 0.1.5 presents Dialog as a bottom sheet at max-width 639px or
+ * max-height 500px (DialogContent sets data-compact="true"). Per-dialog
+ * max-w-* / max-h-* utilities would otherwise shrink and left-align that sheet
+ * or stop it following the visual viewport (keyboard). Unlayered, so it wins.
+ */
+[role="dialog"][data-compact="true"],
+[role="alertdialog"][data-compact="true"] {
+  max-width: none;
+  max-height: var(--overlay-vv-height, 100dvh);
+}
+
 @layer components {
   /* Transitions.dev — Modal open / close */
   .t-modal {
