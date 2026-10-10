@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { useAction } from "convex/react";
+import { useMutation } from "convex/react";
 import { api } from "@vmem/backend";
+import { insertMemoryInLists } from "@/lib/convex-optimistic";
 import { Button } from "@vvedantb/ui";
 import { toast } from "sonner";
 import UploadImportModal from "./UploadImportModal";
@@ -48,7 +49,11 @@ function ImportProviderCard({
 
 // panel body for Sources → Import (`/$profileId/sources/import`)
 export default function ImportPageClient() {
-  const createMemory = useAction(api.memoryApi.createMemory);
+  const createMemory = useMutation(
+    api.memoryApi.createMemory,
+  ).withOptimisticUpdate((localStore, args) => {
+    insertMemoryInLists(localStore, args);
+  });
   const [step, setStep] = useState<ImportStep>({ phase: "idle" });
   const [parsing, setParsing] = useState(false);
   const [importing, setImporting] = useState(false);

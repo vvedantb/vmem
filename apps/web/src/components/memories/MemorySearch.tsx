@@ -1,7 +1,6 @@
 import { startTransition, useState, useEffect, ViewTransition } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { useAction } from "convex/react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "convex/react";
 import { Button, cn } from "@vvedantb/ui";
 import {
   IconAlertCircle,
@@ -159,7 +158,6 @@ interface MemorySearchProps {
 export default function MemorySearch({ memoryId }: MemorySearchProps) {
   const navigate = useNavigate();
   const [params] = useMemoriesSearchParams();
-  const getMemory = useAction(api.memoryApi.getMemory);
   const list = useMemoryListEntries();
   const { isDark } = useThemeContext();
 
@@ -181,14 +179,14 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
       ? null
       : (list.memoryResults.find((memory) => memory.id === memoryId) ?? null);
 
-  const { data: fetchedMemory, isLoading: isFetchingMemory } = useQuery({
-    queryKey: ["memory", memoryId],
-    enabled: memoryId !== null && memoryFromList === null,
-    queryFn: async () => {
-      if (memoryId === null) return null;
-      return getMemory({ memoryId, profileId: list.activeProfileId });
-    },
-  });
+  const fetchedMemory = useQuery(
+    api.memoryApi.getMemory,
+    memoryId !== null && memoryFromList === null
+      ? { memoryId, profileId: list.activeProfileId }
+      : "skip",
+  );
+  const isFetchingMemory =
+    memoryId !== null && memoryFromList === null && fetchedMemory === undefined;
 
   const selectedMemory =
     memoryId === null

@@ -20,11 +20,14 @@ export function updateAllCachedQueries<
 >(
   localStore: OptimisticLocalStore,
   query: Query,
-  mapFn: (value: FunctionReturnType<Query>) => FunctionReturnType<Query>,
+  mapFn: (
+    value: FunctionReturnType<Query>,
+    args: FunctionArgs<Query>,
+  ) => FunctionReturnType<Query>,
 ): void {
   for (const entry of localStore.getAllQueries(query)) {
     if (entry.value === undefined) continue;
-    localStore.setQuery(query, entry.args, mapFn(entry.value));
+    localStore.setQuery(query, entry.args, mapFn(entry.value, entry.args));
   }
 }
 
@@ -201,4 +204,344 @@ export function removeWikiNodesFromLists(
       localStore.setQuery(api.wiki.getNode, entry.args, undefined);
     }
   }
+}
+
+type MemoryListArgs = FunctionArgs<typeof api.memoryApi.listMemories>;
+type MemoryRow = FunctionReturnType<
+  typeof api.memoryApi.listMemories
+>["memories"][number];
+type MemoryCreateArgs = FunctionArgs<typeof api.memoryApi.createMemory>;
+type MemoryUpdateArgs = FunctionArgs<typeof api.memoryApi.updateMemory>;
+
+function visibleMemoryStatus(status: string | undefined): boolean {
+  return status === undefined || status === "active" || status === "pinned";
+}
+
+function memoryMatchesListArgs(
+  memory: Pick<
+    MemoryRow,
+    "profileId" | "type" | "source" | "status" | "tags" | "title" | "content"
+  >,
+  args: MemoryListArgs,
+): boolean {
+  if (
+    args.profileId !== undefined &&
+    memory.profileId !== null &&
+    memory.profileId !== args.profileId
+  ) {
+    return false;
+  }
+  if (args.type !== undefined && memory.type !== args.type) return false;
+  if (args.source !== undefined && memory.source !== args.source) return false;
+  if (args.status !== undefined) {
+    if (memory.status !== args.status) return false;
+  } else if (!visibleMemoryStatus(memory.status)) {
+    return false;
+  }
+  if (args.tags !== undefined && args.tags.length > 0) {
+    const have = new Set(memory.tags);
+    if (!args.tags.every((tag) => have.has(tag))) return false;
+  }
+  const needle = args.searchQuery?.trim().toLowerCase();
+  if (needle !== undefined && needle.length > 0) {
+    const haystack =
+      `${memory.title} ${memory.content} ${memory.tags.join(" ")}`.toLowerCase();
+    if (!haystack.includes(needle)) return false;
+  }
+  return true;
+}
+
+function optimisticMemoryFromCreate(args: MemoryCreateArgs): MemoryRow {
+  const now = new Date().toISOString();
+  return {
+    id: crypto.randomUUID(),
+    userId: "",
+    profileId: args.profileId ?? null,
+    title: args.title,
+    content: args.content,
+    type: args.type,
+    source: args.source,
+    sourceType: args.sourceType ?? args.source,
+    sourceId: args.externalId ?? null,
+    sourceUrl: null,
+    sourceSyncedAt: null,
+    confidence: args.confidence,
+    status: "active",
+    createdAt: now,
+    updatedAt: now,
+    expiresAt: args.expiresAt ?? null,
+    tags: args.tags,
+  };
+}
+
+export function insertMemoryInLists(
+  localStore: OptimisticLocalStore,
+  args: MemoryCreateArgs,
+): void {
+  const created = optimisticMemoryFromCreate(args);
+  for (const entry of localStore.getAllQueries(api.memoryApi.listMemories)) {
+    if (entry.value === undefined) continue;
+    if (!memoryMatchesListArgs(created, entry.args)) continue;
+    const offset = entry.args.offset;
+    const nextMemories =
+      offset === 0
+        ? [created, ...entry.value.memories].slice(0, entry.args.limit)
+        : entry.value.memories;
+    localStore.setQuery(api.memoryApi.listMemories, entry.args, {
+      memories: nextMemories,
+      total: entry.value.total + 1,
+    });
+  }
+}
+
+export function patchMemoryInLists(
+  localStore: OptimisticLocalStore,
+  args: MemoryUpdateArgs,
+): void {
+  const patchRow = (row: MemoryRow): MemoryRow =>
+    row.id !== args.memoryId
+      ? row
+      : {
+          ...row,
+          ...(args.title !== undefined ? { title: args.title } : {}),
+          ...(args.content !== undefined ? { content: args.content } : {}),
+          ...(args.type !== undefined ? { type: args.type } : {}),
+          ...(args.status !== undefined ? { status: args.status } : {}),
+          ...(args.tags !== undefined ? { tags: args.tags } : {}),
+          ...(args.confidence !== undefined
+            ? { confidence: args.confidence }
+            : {}),
+          ...(args.expiresAt !== undefined
+            ? { expiresAt: args.expiresAt }
+            : {}),
+          updatedAt: new Date().toISOString(),
+        };
+
+  updateAllCachedQueries(
+    localStore,
+    api.memoryApi.listMemories,
+    (page, args) => {
+      const memories = page.memories
+        .map(patchRow)
+        .filter((row) => memoryMatchesListArgs(row, args));
+      const removed = page.memories.length - memories.length;
+      return {
+        memories,
+        total: Math.max(0, page.total - removed),
+      };
+    },
+  );
+
+  for (const entry of localStore.getAllQueries(api.memoryApi.getMemory)) {
+    if (entry.value == null || entry.value.id !== args.memoryId) continue;
+    localStore.setQuery(
+      api.memoryApi.getMemory,
+      entry.args,
+      patchRow(entry.value),
+    );
+  }
+}
+
+export function removeMemoryFromLists(
+  localStore: OptimisticLocalStore,
+  memoryId: string,
+): void {
+  updateAllCachedQueries(localStore, api.memoryApi.listMemories, (page) => {
+    const memories = page.memories.filter((row) => row.id !== memoryId);
+    const removed = page.memories.length - memories.length;
+    return {
+      memories,
+      total: Math.max(0, page.total - removed),
+    };
+  });
+  for (const entry of localStore.getAllQueries(api.memoryApi.getMemory)) {
+    if (entry.args.memoryId === memoryId || entry.value?.id === memoryId) {
+      localStore.setQuery(api.memoryApi.getMemory, entry.args, null);
+    }
+  }
+}
+
+type PollResults = FunctionReturnType<typeof api.presentations.pollResults>;
+
+function bumpPollOption(
+  results: PollResults,
+  optionId: string,
+  delta: number,
+): PollResults {
+  const options = results.options.map((option) =>
+    option.optionId === optionId
+      ? { ...option, count: Math.max(0, option.count + delta) }
+      : option,
+  );
+  if (!options.some((option) => option.optionId === optionId) && delta > 0) {
+    options.push({ optionId, count: delta });
+  }
+  return {
+    options: options.filter((option) => option.count > 0),
+    total: Math.max(0, results.total + delta),
+  };
+}
+
+export function applySendVoteOptimistic(
+  localStore: OptimisticLocalStore,
+  args: FunctionArgs<typeof api.presentations.sendVote>,
+): void {
+  const selectionArgs = {
+    code: args.code,
+    pollId: args.pollId,
+    participantKey: args.participantKey,
+  };
+  const previous = localStore.getQuery(
+    api.presentations.getMyPollSelections,
+    selectionArgs,
+  );
+  if (previous !== undefined) {
+    localStore.setQuery(api.presentations.getMyPollSelections, selectionArgs, [
+      args.optionId,
+    ]);
+  }
+  const resultArgs = { code: args.code, pollId: args.pollId };
+  const results = localStore.getQuery(
+    api.presentations.pollResults,
+    resultArgs,
+  );
+  if (results === undefined) return;
+  let next = results;
+  for (const optionId of previous ?? []) {
+    next = bumpPollOption(next, optionId, -1);
+  }
+  next = bumpPollOption(next, args.optionId, 1);
+  localStore.setQuery(api.presentations.pollResults, resultArgs, next);
+}
+
+export function applyTogglePollOptionOptimistic(
+  localStore: OptimisticLocalStore,
+  args: FunctionArgs<typeof api.presentations.togglePollOption>,
+): void {
+  const selectionArgs = {
+    code: args.code,
+    pollId: args.pollId,
+    participantKey: args.participantKey,
+  };
+  const previous = localStore.getQuery(
+    api.presentations.getMyPollSelections,
+    selectionArgs,
+  );
+  const selected = new Set(previous ?? []);
+  const turningOff = selected.has(args.optionId);
+  if (previous !== undefined) {
+    if (turningOff) selected.delete(args.optionId);
+    else selected.add(args.optionId);
+    localStore.setQuery(api.presentations.getMyPollSelections, selectionArgs, [
+      ...selected,
+    ]);
+  }
+  const resultArgs = { code: args.code, pollId: args.pollId };
+  const results = localStore.getQuery(
+    api.presentations.pollResults,
+    resultArgs,
+  );
+  if (results === undefined) return;
+  localStore.setQuery(
+    api.presentations.pollResults,
+    resultArgs,
+    bumpPollOption(results, args.optionId, turningOff ? -1 : 1),
+  );
+}
+
+export function applyClearPollVotesOptimistic(
+  localStore: OptimisticLocalStore,
+  args: FunctionArgs<typeof api.presentations.clearPollVotes>,
+): void {
+  const resultArgs = { code: args.code, pollId: args.pollId };
+  if (
+    localStore.getQuery(api.presentations.pollResults, resultArgs) !== undefined
+  ) {
+    localStore.setQuery(api.presentations.pollResults, resultArgs, {
+      options: [],
+      total: 0,
+    });
+  }
+  for (const entry of localStore.getAllQueries(
+    api.presentations.getMyPollSelections,
+  )) {
+    if (entry.args.code !== args.code || entry.args.pollId !== args.pollId) {
+      continue;
+    }
+    localStore.setQuery(api.presentations.getMyPollSelections, entry.args, []);
+  }
+}
+
+export function applySetSlideOptimistic(
+  localStore: OptimisticLocalStore,
+  args: FunctionArgs<typeof api.presentations.setSlide>,
+): void {
+  const current = localStore.getQuery(api.presentations.getSession, {
+    code: args.code,
+  });
+  if (current == null) return;
+  localStore.setQuery(
+    api.presentations.getSession,
+    { code: args.code },
+    { ...current, slide: args.slide },
+  );
+}
+
+export function applyStopSharingOptimistic(
+  localStore: OptimisticLocalStore,
+  args: FunctionArgs<typeof api.presentations.stopSharing>,
+): void {
+  const current = localStore.getQuery(api.presentations.getSession, {
+    code: args.code,
+  });
+  if (current == null) return;
+  localStore.setQuery(
+    api.presentations.getSession,
+    { code: args.code },
+    { ...current, status: "ended" },
+  );
+}
+
+export function insertCreatedTeamInLists(
+  localStore: OptimisticLocalStore,
+  args: FunctionArgs<typeof api.teams.create>,
+): void {
+  const now = Date.now();
+  const teamId = tempId<"teams">();
+  const profileId = tempId<"profiles">();
+  const profiles = localStore.getQuery(api.profiles.list, {});
+  const userId = profiles?.[0]?.userId ?? tempId<"users">();
+  const profile = {
+    _id: profileId,
+    _creationTime: now,
+    userId,
+    name: args.name,
+    color: "#8B5CF6",
+    icon: "briefcase",
+    isDefault: false as const,
+    teamId,
+    createdAt: now,
+    updatedAt: now,
+  };
+  if (profiles !== undefined) {
+    localStore.setQuery(api.profiles.list, {}, [...profiles, profile]);
+  }
+  const teams = localStore.getQuery(api.teams.list, {});
+  if (teams === undefined) return;
+  localStore.setQuery(api.teams.list, {}, [
+    ...teams,
+    {
+      team: {
+        _id: teamId,
+        _creationTime: now,
+        name: args.name,
+        createdBy: userId,
+        createdAt: now,
+        updatedAt: now,
+      },
+      role: "owner" as const,
+      profile,
+      memberCount: 1,
+    },
+  ]);
 }

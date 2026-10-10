@@ -37,7 +37,7 @@ export async function createMemory(
 ): Promise<MemoryWithTags> {
   const client = await requireAuthenticatedClient();
 
-  return await client.action(api.memoryApi.createMemory, {
+  return await client.mutation(api.memoryApi.createMemory, {
     title: params.title,
     content: params.content,
     type: params.type,
@@ -53,7 +53,7 @@ export async function getMemory(
   memoryId: string,
 ): Promise<MemoryWithTags | null> {
   const client = await requireAuthenticatedClient();
-  return await client.action(api.memoryApi.getMemory, { memoryId });
+  return await client.query(api.memoryApi.getMemory, { memoryId });
 }
 
 export async function listMemories(args: {
@@ -63,7 +63,7 @@ export async function listMemories(args: {
   offset?: number;
 }): Promise<{ memories: MemoryWithTags[]; total: number }> {
   const client = await requireAuthenticatedClient();
-  return await client.action(api.memoryApi.listMemories, {
+  return await client.query(api.memoryApi.listMemories, {
     searchQuery: args.searchQuery,
     source: args.source,
     limit: args.limit ?? 20,
@@ -73,7 +73,7 @@ export async function listMemories(args: {
 
 export async function deleteMemory(memoryId: string): Promise<boolean> {
   const client = await requireAuthenticatedClient();
-  return await client.action(api.memoryApi.deleteMemory, { memoryId });
+  return await client.mutation(api.memoryApi.deleteMemory, { memoryId });
 }
 
 export async function retrieveMemories(

@@ -3,6 +3,13 @@ import { useMutation, useQuery } from "convex/react";
 import { IconCheck } from "@tabler/icons-react";
 import { Button, cn, motionDuration, motionEase } from "@vvedantb/ui";
 import { api } from "@vmem/backend";
+import { toast } from "sonner";
+import { convexErrorMessage } from "@/lib/convex-error";
+import {
+  applyClearPollVotesOptimistic,
+  applySendVoteOptimistic,
+  applyTogglePollOptionOptimistic,
+} from "@/lib/convex-optimistic";
 import { SlideShell, SlideKicker, SlideTitle, SlideReveal } from "./SlideShell";
 import { usePresentationDeck } from "./PresentationDeckContext";
 
@@ -44,9 +51,21 @@ export function SlidePoll({
     api.presentations.getMyPollSelections,
     sessionCode ? { code: sessionCode, pollId, participantKey } : "skip",
   );
-  const sendVote = useMutation(api.presentations.sendVote);
-  const togglePollOption = useMutation(api.presentations.togglePollOption);
-  const clearPollVotes = useMutation(api.presentations.clearPollVotes);
+  const sendVote = useMutation(api.presentations.sendVote).withOptimisticUpdate(
+    (localStore, args) => {
+      applySendVoteOptimistic(localStore, args);
+    },
+  );
+  const togglePollOption = useMutation(
+    api.presentations.togglePollOption,
+  ).withOptimisticUpdate((localStore, args) => {
+    applyTogglePollOptionOptimistic(localStore, args);
+  });
+  const clearPollVotes = useMutation(
+    api.presentations.clearPollVotes,
+  ).withOptimisticUpdate((localStore, args) => {
+    applyClearPollVotesOptimistic(localStore, args);
+  });
 
   const selectedSet = new Set(mySelections ?? []);
 
@@ -57,7 +76,9 @@ export function SlidePoll({
       pollId,
       participantKey,
       optionId,
-    }).catch(() => undefined);
+    }).catch((err: unknown) => {
+      toast.error(convexErrorMessage(err, "Could not save vote"));
+    });
   };
 
   const voteMulti = (optionId: string) => {
@@ -67,7 +88,9 @@ export function SlidePoll({
       pollId,
       participantKey,
       optionId,
-    }).catch(() => undefined);
+    }).catch((err: unknown) => {
+      toast.error(convexErrorMessage(err, "Could not save vote"));
+    });
   };
 
   const resetPoll = () => {
@@ -76,7 +99,9 @@ export function SlidePoll({
       code: sessionCode,
       hostKey,
       pollId,
-    }).catch(() => undefined);
+    }).catch((err: unknown) => {
+      toast.error(convexErrorMessage(err, "Could not reset poll"));
+    });
   };
 
   const countByOption = new Map(

@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
+import { toast } from "sonner";
 import { api } from "@vmem/backend";
+import { convexErrorMessage } from "@/lib/convex-error";
+import {
+  applySetSlideOptimistic,
+  applyStopSharingOptimistic,
+} from "@/lib/convex-optimistic";
 
 /**
  * Live "follow the presenter" sync for the `/slides` deck (Teams-style, no
@@ -83,8 +89,16 @@ export function usePresentationSync({
   );
 
   const createSessionMut = useMutation(api.presentations.createSession);
-  const setSlideMut = useMutation(api.presentations.setSlide);
-  const stopSharingMut = useMutation(api.presentations.stopSharing);
+  const setSlideMut = useMutation(
+    api.presentations.setSlide,
+  ).withOptimisticUpdate((localStore, args) => {
+    applySetSlideOptimistic(localStore, args);
+  });
+  const stopSharingMut = useMutation(
+    api.presentations.stopSharing,
+  ).withOptimisticUpdate((localStore, args) => {
+    applyStopSharingOptimistic(localStore, args);
+  });
 
   const [isStarting, setIsStarting] = useState(false);
 
@@ -110,7 +124,9 @@ export function usePresentationSync({
       if (isHost && hostKey && sessionCode) {
         updateSearch({ slide: target });
         void setSlideMut({ code: sessionCode, hostKey, slide: target }).catch(
-          () => undefined,
+          (err: unknown) => {
+            toast.error(convexErrorMessage(err, "Could not sync slide"));
+          },
         );
         return;
       }
@@ -135,15 +151,19 @@ export function usePresentationSync({
       }
       setHostKey(result.hostKey);
       updateSearch({ session: result.code });
-    } catch {
-      // Convex surfaces the mutation error; still clear the spinner.
+    } catch (err: unknown) {
+      toast.error(convexErrorMessage(err, "Could not start sharing"));
     }
     setIsStarting(false);
   }, [createSessionMut, slide, updateSearch]);
 
   const stopSharing = useCallback(async () => {
     if (!sessionCode || !hostKey) return;
-    await stopSharingMut({ code: sessionCode, hostKey }).catch(() => undefined);
+    await stopSharingMut({ code: sessionCode, hostKey }).catch(
+      (err: unknown) => {
+        toast.error(convexErrorMessage(err, "Could not stop sharing"));
+      },
+    );
     if (typeof window !== "undefined") {
       window.localStorage.removeItem(hostKeyStorage(sessionCode));
     }

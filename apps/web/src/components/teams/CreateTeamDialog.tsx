@@ -15,6 +15,7 @@ import {
 import { IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
+import { insertCreatedTeamInLists } from "@/lib/convex-optimistic";
 
 interface CreateTeamDialogProps {
   open: boolean;
@@ -25,7 +26,11 @@ export function CreateTeamDialog({
   open,
   onOpenChange,
 }: CreateTeamDialogProps) {
-  const createTeam = useMutation(api.teams.create);
+  const createTeam = useMutation(api.teams.create).withOptimisticUpdate(
+    (localStore, args) => {
+      insertCreatedTeamInLists(localStore, args);
+    },
+  );
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const { submitting, run } = useAsyncSubmit();

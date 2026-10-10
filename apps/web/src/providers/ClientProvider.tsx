@@ -1,6 +1,7 @@
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { NuqsAdapter } from "nuqs/adapters/tanstack-router";
 import { useRouterState } from "@tanstack/react-router";
+import { SonnerToaster } from "@vvedantb/ui";
 import { MotionProvider } from "@/providers/MotionProvider";
 import { PageMotionProvider } from "@/providers/PageMotionProvider";
 import { QueryProvider } from "@/providers/QueryProvider";
@@ -28,7 +29,12 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
           {!slidesPublicBoot && <EnsureUser />}
           <MotionProvider>
             <PageMotionProvider>
-              <QueryProvider>{children}</QueryProvider>
+              <QueryProvider>
+                {children}
+                {slidesPublicBoot ? (
+                  <SonnerToaster position="top-right" />
+                ) : null}
+              </QueryProvider>
             </PageMotionProvider>
           </MotionProvider>
         </NextThemesProvider>

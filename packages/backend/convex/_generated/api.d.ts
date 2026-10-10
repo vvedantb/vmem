@@ -94,6 +94,7 @@ import type * as mcp_toolsSkills from "../mcp/toolsSkills.js";
 import type * as mcp_toolsWiki from "../mcp/toolsWiki.js";
 import type * as mcp_wikiOps from "../mcp/wikiOps.js";
 import type * as memoryApi from "../memoryApi.js";
+import type * as memoryApi_client from "../memoryApi/client.js";
 import type * as memoryApi_routing from "../memoryApi/routing.js";
 import type * as memoryApi_team from "../memoryApi/team.js";
 import type * as memoryApi_timelineEvents from "../memoryApi/timelineEvents.js";
@@ -234,6 +235,7 @@ declare const fullApi: ApiFromModules<{
   "mcp/toolsWiki": typeof mcp_toolsWiki;
   "mcp/wikiOps": typeof mcp_wikiOps;
   memoryApi: typeof memoryApi;
+  "memoryApi/client": typeof memoryApi_client;
   "memoryApi/routing": typeof memoryApi_routing;
   "memoryApi/team": typeof memoryApi_team;
   "memoryApi/timelineEvents": typeof memoryApi_timelineEvents;

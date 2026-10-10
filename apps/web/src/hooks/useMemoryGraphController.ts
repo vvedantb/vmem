@@ -1,6 +1,5 @@
 import { useDeferredValue, useMemo, useState } from "react";
-import { useAction } from "convex/react";
-import { useQuery as useTanstackQuery } from "@tanstack/react-query";
+import { useQuery } from "convex/react";
 import { api } from "@vmem/backend";
 import { getGraphSettings, setGraphSettings } from "@/lib/graph-cookies";
 import { useGraphData } from "@/hooks/useGraphData";
@@ -36,8 +35,6 @@ export function useMemoryGraphController({
   const [params, setParams] = useMemoriesSearchParams();
   const activeProfileId = useActiveProfile()._id;
 
-  const listMemoriesAction = useAction(api.memoryApi.listMemories);
-
   const {
     apiNodes,
     apiTagEdges,
@@ -59,18 +56,17 @@ export function useMemoryGraphController({
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const isSearchActive = searchQuery.length > 0;
 
-  const { data: memorySearchResult } = useTanstackQuery({
-    queryKey: ["graph-memory-search", deferredSearchQuery, activeProfileId],
-    queryFn: () =>
-      listMemoriesAction({
-        searchQuery: deferredSearchQuery,
-        profileId: activeProfileId,
-        limit: 500,
-        offset: 0,
-      }),
-    enabled: enabled && deferredSearchQuery.length > 0,
-    staleTime: 30_000,
-  });
+  const memorySearchResult = useQuery(
+    api.memoryApi.listMemories,
+    enabled && deferredSearchQuery.length > 0
+      ? {
+          searchQuery: deferredSearchQuery,
+          profileId: activeProfileId,
+          limit: 500,
+          offset: 0,
+        }
+      : "skip",
+  );
 
   // display prefs live in cookies because they are not shareable URL state
   const [graphSettings, setGraphSettingsState] =
