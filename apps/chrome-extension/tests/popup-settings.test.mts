@@ -224,25 +224,26 @@ await test("wxt manifest maps Alt+S / Alt+Shift+S and prod Clerk host permission
   assert.match(wxt, /default: "Alt\+S"/);
   assert.match(wxt, /"take-screenshot"/);
   assert.match(wxt, /default: "Alt\+Shift\+S"/);
+  assert.match(wxt, /https:\/\/vmem\.projectv\.uk\/\*/);
   assert.match(wxt, /https:\/\/vmem\.vedantb\.com\/\*/);
-  assert.match(wxt, /https:\/\/clerk\.vedantb\.com\/\*/);
+  assert.match(wxt, /https:\/\/clerk\.projectv\.uk\/\*/);
 });
 
 await test("live Clerk cookie sync host is the FAPI origin, not the web app", () => {
   assert.equal(
-    clerkFrontendApiHost("pk_live_Y2xlcmsudmVkYW50Yi5jb20k"),
-    "clerk.vedantb.com",
+    clerkFrontendApiHost("pk_live_Y2xlcmsucHJvamVjdHYudWsk"),
+    "clerk.projectv.uk",
   );
   assert.equal(
     clerkCookieSyncHost(
-      "pk_live_Y2xlcmsudmVkYW50Yi5jb20k",
-      "https://vmem.vedantb.com",
+      "pk_live_Y2xlcmsucHJvamVjdHYudWsk",
+      "https://vmem.projectv.uk",
     ),
-    "https://clerk.vedantb.com",
+    "https://clerk.projectv.uk",
   );
   assert.equal(
     clerkCookieSyncHost(
-      "pk_test_ZmxleGlibGUtZHVja2xpbmctNzQuY2xlcmsuYWNjb3VudHMuZGV2JA",
+      "pk_test_YWxsb3dpbmctY295b3RlLTgwLmNsZXJrLmFjY291bnRzLmRldiQ",
       "http://localhost:5173",
     ),
     "http://localhost:5173",

@@ -5,7 +5,7 @@ const e2eDir = resolve(process.cwd(), "e2e");
 
 export const AUTH_STATE_PATH = resolve(e2eDir, ".auth/user.json");
 export const DEFAULT_E2E_EMAIL = "eva@vedantb.com";
-export const DEFAULT_E2E_BASE_URL = "https://vmem.vedantb.com";
+export const DEFAULT_E2E_BASE_URL = "https://vmem.projectv.uk";
 
 export type E2ECredentials = {
   email: string;

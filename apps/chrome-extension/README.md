@@ -43,7 +43,7 @@ pnpm --filter @vmem/chrome-extension test:e2e  # headed Chrome load of dist/chro
 pnpm --filter @vmem/chrome-extension test:e2e:live  # signed-in matrix (needs env)
 ```
 
-Live signed-in coverage is opt-in so CI never sees the test password. Export `VMEM_TEST_EMAIL` and `VMEM_TEST_PASSWORD` in the shell (do not put them in git) then run `test:e2e:live`. The harness signs in on `https://vmem.vedantb.com` in the same Chrome profile as the unpacked extension, checks signed-out then signed-in popup, harvests a Convex JWT from the web Clerk session, saves via the same path as **Alt+S**, confirms the row in Convex `listMemories`, and deletes it. Headed-pass notes live in `tests/e2e/RESULTS.md`.
+Live signed-in coverage is opt-in so CI never sees the test password. Export `VMEM_TEST_EMAIL` and `VMEM_TEST_PASSWORD` in the shell (do not put them in git) then run `test:e2e:live`. The harness signs in on `https://vmem.projectv.uk` in the same Chrome profile as the unpacked extension, checks signed-out then signed-in popup, harvests a Convex JWT from the web Clerk session, saves via the same path as **Alt+S**, confirms the row in Convex `listMemories`, and deletes it. Headed-pass notes live in `tests/e2e/RESULTS.md`.
 
 Unit tests cover popup copy, save-page toasts, screenshot permission-block, ChatGPT/Claude fixture inject, bookmark/history import cancel, and background handlers. The e2e script is optional: CI does not require Google Chrome, and a blocked MV3 load is recorded rather than treated as a unit-test failure.
 
@@ -51,7 +51,7 @@ Load unpacked from **exactly** `apps/chrome-extension/dist/chrome-mv3/` (product
 
 ### Manual checklist (when MV3 load-extension is blocked)
 
-Sign in on `https://vmem.vedantb.com` in the same Chrome profile, then:
+Sign in on `https://vmem.projectv.uk` in the same Chrome profile, then:
 
 1. Popup signed-out vs signed-in (Save / Import / Settings tabs only when signed in)
 2. Save page via popup, context menu, and **Alt+S** — toast matches success/failure; memory appears in the dashboard
@@ -59,7 +59,7 @@ Sign in on `https://vmem.vedantb.com` in the same Chrome profile, then:
 4. ChatGPT: Export to vmem + Use vmem inject next to the composer
 5. Claude: same
 6. Import bookmarks / history (small range) and Cancel — no hang
-7. Settings deep-link `https://vmem.vedantb.com/settings/extension` has auto-sync + selection popup, no codebase prompts
+7. Settings deep-link `https://vmem.projectv.uk/settings/extension` has auto-sync + selection popup, no codebase prompts
 8. Delete any memories created during the check
 
 ## Features

@@ -106,7 +106,7 @@ async function probeLivePages(
   const settings = await probePage(
     browser,
     "settings_extension",
-    "https://vmem.vedantb.com/settings/extension",
+    "https://vmem.projectv.uk/settings/extension",
     async (page) => {
       const text = await page.evaluate(() => document.body.innerText);
       return {
