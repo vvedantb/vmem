@@ -1,5 +1,34 @@
 {
   "installCommand": "cd ../.. && HUSKY=0 pnpm install --frozen-lockfile --filter web...",
   "buildCommand": "cd ../.. && pnpm sdk:build && pnpm --filter web build",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "vmem.vedantb.com"
+        }
+      ],
+      "destination": "https://vmem.projectv.uk/$1",
+      "permanent": true
+    },
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.vmem.vedantb.com"
+        }
+      ],
+      "destination": "https://vmem.projectv.uk/$1",
+      "permanent": true
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
 }
