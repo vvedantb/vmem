@@ -63,8 +63,8 @@ export function useMemoryListEntries(options?: { fetchAll?: boolean }) {
     type: exclusiveType,
     source: exclusiveSource,
     tags: params.tags,
-    searchQuery:
-      fetchAll || isHybridSearch ? undefined : normalizedQuery || undefined,
+    // the server matches against full content; rows only carry a preview
+    searchQuery: isHybridSearch ? undefined : normalizedQuery || undefined,
     enabled: !isHybridSearch,
     fetchAll,
   });
@@ -100,10 +100,6 @@ export function useMemoryListEntries(options?: { fetchAll?: boolean }) {
         .map(memoryToListItem)
         .filter((item) => listItemPassesFilters(item, filters))
     : [];
-  const searchedMemories =
-    fetchAll && isShowingSearchResults
-      ? searchListItems(memories, normalizedQuery).map((result) => result.item)
-      : memories;
 
   const nonMemory = supplementaryItems.filter((item) =>
     listItemPassesFilters(item, filters),
@@ -120,7 +116,7 @@ export function useMemoryListEntries(options?: { fetchAll?: boolean }) {
     maxScore = max > 0 ? max : 1;
   }
 
-  const memoryEntries: MemoryListEntry[] = searchedMemories.map((item) => {
+  const memoryEntries: MemoryListEntry[] = memories.map((item) => {
     const trace = traceById.get(item.id);
     if (!trace) return unscoredEntry(item);
     return {
@@ -160,6 +156,7 @@ export function useMemoryListEntries(options?: { fetchAll?: boolean }) {
     isMemoriesError,
     refetchMemories,
     hasNextPage: memoryPage.hasNextPage,
+    needsFill: memoryPage.needsFill,
     fetchNextPage: memoryPage.fetchNextPage,
     isFetchingNextPage: memoryPage.isFetchingNextPage,
   };

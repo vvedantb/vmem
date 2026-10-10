@@ -48,3 +48,47 @@ export function toMemoryWithTags(doc: Doc<"memories">): MemoryWithTags {
     tags: doc.tags,
   };
 }
+
+// slim list row: no content/searchableText, only a short single-line preview
+export const MEMORY_PREVIEW_CHARS = 200;
+
+export type MemorySummary = {
+  id: string;
+  title: string;
+  preview: string;
+  type: Doc<"memories">["type"];
+  status: Doc<"memories">["status"];
+  source: string;
+  sourceUrl: string | null;
+  sourceSyncedAt: string | null;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+  profileId: string | null;
+};
+
+export function memoryPreview(content: string): string {
+  return content
+    .slice(0, MEMORY_PREVIEW_CHARS * 2)
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, MEMORY_PREVIEW_CHARS);
+}
+
+export function toMemorySummary(doc: Doc<"memories">): MemorySummary {
+  return {
+    id: doc.memoryId,
+    title: doc.title,
+    preview: memoryPreview(doc.content),
+    type: doc.type,
+    status: doc.status,
+    source: doc.source,
+    sourceUrl: doc.sourceUrl ?? null,
+    sourceSyncedAt:
+      doc.sourceSyncedAt === undefined ? null : toIso(doc.sourceSyncedAt),
+    tags: doc.tags,
+    createdAt: toIso(doc.createdAt),
+    updatedAt: toIso(doc.updatedAt),
+    profileId: doc.profileId ?? null,
+  };
+}

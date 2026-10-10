@@ -5,7 +5,7 @@ import {
 } from "convex/react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@vmem/backend";
-import { memoryFromApi, type Memory } from "@/lib/memories";
+import { memoryFromApi, summaryFromApi, type Memory } from "@/lib/memories";
 import { parseConvexStorageUpload } from "@/lib/schemas";
 import { useActiveProfileId } from "@/components/workspace/active-profile";
 import {
@@ -13,6 +13,12 @@ import {
   patchMemoryInLists,
   removeMemoryFromLists,
 } from "@/lib/convex-optimistic";
+import {
+  addMemoryToFacets,
+  patchMemoryInFacets,
+  removeMemoryFromFacets,
+  scheduleFacetsRefetch,
+} from "@/lib/memory-facets-cache";
 
 export interface CreateMemoryInput {
   title: string;
@@ -64,6 +70,7 @@ export function useMemoryMutations() {
     void queryClient.invalidateQueries({ queryKey: ["retrieveMemories"] });
     void queryClient.invalidateQueries({ queryKey: ["graph"] });
     void queryClient.invalidateQueries({ queryKey: ["graph-memory-search"] });
+    scheduleFacetsRefetch(queryClient);
   };
 
   const uploadMutation = useMutation({
@@ -107,6 +114,7 @@ export function useMemoryMutations() {
       confidence: 1.0,
       profileId: input.profileId ?? activeProfileId,
     });
+    addMemoryToFacets(queryClient, summaryFromApi(created));
     invalidateMemories();
     return memoryFromApi(created);
   };
@@ -123,6 +131,12 @@ export function useMemoryMutations() {
     if (apiMemory === null) {
       throw new Error("Memory not found");
     }
+    patchMemoryInFacets(queryClient, apiMemory.id, {
+      title: apiMemory.title,
+      tags: apiMemory.tags,
+      type: apiMemory.type,
+      status: apiMemory.status,
+    });
     invalidateMemories();
     return memoryFromApi(apiMemory);
   };
@@ -133,6 +147,7 @@ export function useMemoryMutations() {
       memoryId: id,
       profileId: activeProfileId,
     });
+    removeMemoryFromFacets(queryClient, id);
     invalidateMemories();
     return true;
   };

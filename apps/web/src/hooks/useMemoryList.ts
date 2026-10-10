@@ -1,13 +1,12 @@
-import { useState } from "react";
-import { useConvexAuth, useQuery } from "convex/react";
-import {
-  memoryFromApi,
-  type Memory,
-  type MemoryListResult,
-} from "@/lib/memories";
+import { useAction, useConvexAuth, usePaginatedQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
 import { api } from "@vmem/backend";
+import { memoryFromSummary, type Memory } from "@/lib/memories";
 
-const MEMORY_LIST_PAGE_SIZE = 100;
+// Small pages: every page is its own reactive query, so a write only re-runs
+// (and re-reads) the one page it landed in instead of the whole loaded list.
+const MEMORY_LIST_PAGE_SIZE = 40;
+const MIN_ROWS_BEFORE_IDLE = 20;
 const MEMORY_LIST_ALL_CAP = 10_000;
 
 interface MemoryListFilters {
@@ -16,16 +15,24 @@ interface MemoryListFilters {
   source?: string;
   tags?: string[];
   searchQuery?: string;
-  // false skips paginated fetch when hybrid retrieve handles search
+  // false skips the fetch when hybrid retrieve handles search
   enabled?: boolean;
-  // one shot: walk listMemories offsets until every matching row is loaded
+  // one shot: walk every matching row (non-reactive) for the timeline
   fetchAll?: boolean;
+}
+
+interface NormalizedFilters {
+  profileId?: string;
+  type?: string;
+  source?: string;
+  tags?: string[];
+  searchQuery?: string;
 }
 
 function normalizeMemoryListFilters(
   filters: MemoryListFilters,
-): MemoryListFilters {
-  const normalized: MemoryListFilters = {};
+): NormalizedFilters {
+  const normalized: NormalizedFilters = {};
   if (filters.profileId !== undefined && filters.profileId !== null) {
     normalized.profileId = filters.profileId;
   }
@@ -36,73 +43,61 @@ function normalizeMemoryListFilters(
   }
   const trimmed = filters.searchQuery?.trim();
   if (trimmed) normalized.searchQuery = trimmed;
-  if (filters.fetchAll) normalized.fetchAll = true;
   return normalized;
-}
-
-function listFilterKey(filters: MemoryListFilters): string {
-  return JSON.stringify({
-    profileId: filters.profileId ?? null,
-    type: filters.type ?? null,
-    source: filters.source ?? null,
-    tags: filters.tags ?? [],
-    searchQuery: filters.searchQuery ?? null,
-    fetchAll: filters.fetchAll === true,
-  });
-}
-
-function listMemoriesArgs(filters: MemoryListFilters, limit: number) {
-  return {
-    profileId: filters.profileId ?? undefined,
-    type: filters.type,
-    source: filters.source,
-    tags: filters.tags,
-    searchQuery: filters.searchQuery,
-    limit,
-    offset: 0,
-  };
 }
 
 export function useMemoryListFlat(filters: MemoryListFilters) {
   const { isAuthenticated } = useConvexAuth();
-  const normalizedFilters = normalizeMemoryListFilters(filters);
+  const normalized = normalizeMemoryListFilters(filters);
   const fetchAll = filters.fetchAll === true;
-  const filterKey = listFilterKey(normalizedFilters);
-  const [limitState, setLimitState] = useState({
-    key: filterKey,
-    limit: fetchAll ? MEMORY_LIST_ALL_CAP : MEMORY_LIST_PAGE_SIZE,
-  });
-  const limit =
-    limitState.key === filterKey
-      ? limitState.limit
-      : fetchAll
-        ? MEMORY_LIST_ALL_CAP
-        : MEMORY_LIST_PAGE_SIZE;
-
   const enabled = isAuthenticated && filters.enabled !== false;
-  const data: MemoryListResult | undefined = useQuery(
-    api.memoryApi.list,
-    enabled ? listMemoriesArgs(normalizedFilters, limit) : "skip",
+
+  const paginated = usePaginatedQuery(
+    api.memoryApi.listSummaries,
+    enabled && !fetchAll ? normalized : "skip",
+    { initialNumItems: MEMORY_LIST_PAGE_SIZE },
   );
 
-  const memories: Memory[] =
-    data === undefined ? [] : data.memories.map(memoryFromApi);
-  const hasNextPage =
-    !fetchAll && data !== undefined && data.memories.length < data.total;
+  // timeline: a cached, non-reactive full walk (re-fetched after writes)
+  const listAll = useAction(api.memoryApi.listAllSummaries);
+  const allQuery = useQuery({
+    queryKey: ["memories", "list-all", normalized],
+    enabled: enabled && fetchAll,
+    // local writes invalidate ["memories"], which refetches this walk
+    staleTime: 60_000,
+    queryFn: async () => {
+      const result = await listAll({
+        ...normalized,
+        limit: MEMORY_LIST_ALL_CAP,
+      });
+      return result.memories;
+    },
+  });
+
+  const canLoadMore = paginated.status === "CanLoadMore";
+  // Filters run after each page is read, so a sparse filter can return short or
+  // empty pages; the list view keeps paging while this is set (see MemorySearch).
+  const needsFill =
+    !fetchAll && canLoadMore && paginated.results.length < MIN_ROWS_BEFORE_IDLE;
+
+  const memories: Memory[] = (
+    fetchAll ? (allQuery.data ?? []) : paginated.results
+  ).map(memoryFromSummary);
 
   return {
     memories,
-    isLoading: enabled && data === undefined,
-    isError: false,
-    refetch: async () => undefined,
-    isFetchingNextPage: false,
-    hasNextPage,
+    isLoading: fetchAll
+      ? enabled && allQuery.isLoading
+      : enabled && paginated.status === "LoadingFirstPage",
+    isError: fetchAll && allQuery.isError,
+    refetch: async () => {
+      if (fetchAll) await allQuery.refetch();
+    },
+    isFetchingNextPage: !fetchAll && paginated.status === "LoadingMore",
+    hasNextPage: !fetchAll && canLoadMore,
+    needsFill,
     fetchNextPage: async () => {
-      if (!hasNextPage) return;
-      setLimitState({
-        key: filterKey,
-        limit: limit + MEMORY_LIST_PAGE_SIZE,
-      });
+      if (!fetchAll && canLoadMore) paginated.loadMore(MEMORY_LIST_PAGE_SIZE);
     },
   };
 }

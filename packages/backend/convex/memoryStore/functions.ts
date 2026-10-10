@@ -5,6 +5,8 @@ import { internalMutation, internalQuery } from "../_generated/server";
 import {
   memoryEntityTypeValidator,
   memoryStatusValidator,
+  memorySummaryFilterFields,
+  memorySummaryValidator,
   memoryTypeValidator,
 } from "../validators";
 import {
@@ -24,6 +26,7 @@ import {
   listMemoryLinksAround,
   listMemoryLinksForUser,
   memoryReadScopeFromArgs,
+  paginateMemorySummaries,
   paginateScopedDocs,
   patchMemoryEmbedding,
   reassignMemoriesProfile,
@@ -224,6 +227,37 @@ export const paginateScopedMemoriesInternal = internalQuery({
     });
     return {
       memories: page.page.map(toMemoryWithTags),
+      isDone: page.isDone,
+      continueCursor: page.continueCursor,
+      splitCursor: page.splitCursor,
+      pageStatus: page.pageStatus,
+    };
+  },
+});
+
+// slim rows for non-reactive full-scope walks (facets, timeline)
+export const paginateScopedMemorySummariesInternal = internalQuery({
+  args: { ...scopedPageArgs, ...memorySummaryFilterFields },
+  returns: v.object({
+    rows: v.array(memorySummaryValidator),
+    ...scopedPageMeta,
+  }),
+  handler: async (ctx, args) => {
+    const scope = memoryReadScopeFromArgs(args);
+    if (scope === null) return { rows: [], ...emptyScopedPage(args.cursor) };
+    const page = await paginateMemorySummaries(
+      ctx,
+      scope,
+      { numItems: args.numItems, cursor: args.cursor },
+      {
+        type: args.type,
+        source: args.source,
+        tags: args.tags,
+        searchQuery: args.searchQuery,
+      },
+    );
+    return {
+      rows: page.page,
       isDone: page.isDone,
       continueCursor: page.continueCursor,
       splitCursor: page.splitCursor,
