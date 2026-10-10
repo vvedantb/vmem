@@ -507,7 +507,7 @@ async function retrieveRanked(
     }).slice(0, Math.max(0, args.limit));
   }
 
-  const [ftsHits, vectorHits, links, apiKey] = await Promise.all([
+  const [ftsHits, vectorHits, apiKey] = await Promise.all([
     ctx.runQuery(internal.memoryStore.functions.searchMemoriesTextInternal, {
       kind: args.kind,
       userId: args.clerkId,
@@ -515,12 +515,6 @@ async function retrieveRanked(
       query: args.query,
     }),
     vectorScoresForQuery(ctx, args),
-    args.clerkId === undefined
-      ? Promise.resolve([])
-      : ctx.runQuery(
-          internal.memoryStore.functions.listMemoryLinksForUserInternal,
-          { userId: args.clerkId },
-        ),
     wantsJevJudge(args)
       ? Promise.resolve(resolveSystemOneApiKey())
       : Promise.resolve(undefined),
@@ -553,6 +547,18 @@ async function retrieveRanked(
       byId.set(hit.id, hit);
     }
   }
+
+  const links =
+    args.clerkId === undefined || byId.size === 0
+      ? []
+      : await ctx.runQuery(
+          internal.memoryStore.functions.listMemoryLinksAroundInternal,
+          {
+            userId: args.clerkId,
+            seedIds: [...byId.keys()],
+            hops: RETRIEVE_GRAPH_MAX_HOPS + 1,
+          },
+        );
 
   if (links.length > 0 && byId.size > 0 && byId.size < RETRIEVE_RANK_POOL_CAP) {
     const seedTitleById = new Map(

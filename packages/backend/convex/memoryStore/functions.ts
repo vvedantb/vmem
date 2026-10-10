@@ -23,6 +23,7 @@ import {
   linkMemories,
   listMemories,
   listMemoriesForTeam,
+  listMemoryLinksAround,
   listMemoryLinksForUser,
   memoryReadScopeFromArgs,
   paginateScopedDocs,
@@ -552,6 +553,18 @@ export const listMemoryLinksForUserInternal = internalQuery({
   args: { userId: v.string() },
   returns: v.array(memoryLinkEdgeValidator),
   handler: async (ctx, args) => listMemoryLinksForUser(ctx, args.userId),
+});
+
+export const listMemoryLinksAroundInternal = internalQuery({
+  args: {
+    userId: v.string(),
+    seedIds: v.array(v.string()),
+    hops: v.number(),
+    perNode: v.optional(v.number()),
+    maxEdges: v.optional(v.number()),
+  },
+  returns: v.array(memoryLinkEdgeValidator),
+  handler: async (ctx, args) => listMemoryLinksAround(ctx, args),
 });
 
 const extractedEntityValidator = v.object({

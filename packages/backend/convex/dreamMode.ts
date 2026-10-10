@@ -5,6 +5,7 @@ import {
   internalMutation,
   internalQuery,
   type ActionCtx,
+  type MutationCtx,
 } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
@@ -14,6 +15,7 @@ import { resolveSystemOneApiKey } from "./lib/systemOneKey";
 import {
   clusterNearDuplicateMemories,
   pickClusterKeeper,
+  type MemoryCluster,
 } from "../engine/memory/clusters";
 import {
   clusterSourceKey,
@@ -21,8 +23,9 @@ import {
   type JevMergeDecision,
   type JevMergeOutcome,
 } from "../engine/memory/jevMergeGate";
-import { isVisibleStatus } from "../engine/memory/scope";
+import { isVisibleStatus, memoryMatchesScope } from "../engine/memory/scope";
 import { collectScopedMemories } from "./memoryStore/helpers";
+import { toMemoryWithTags } from "./memoryStore/mappers";
 import { collectScopedMemoriesPaged } from "./memoryStore/walk";
 import {
   hasOverlappingPendingProposal,
@@ -184,6 +187,85 @@ async function insertClusterProposal(
   return "proposal";
 }
 
+const clusterPlanValidator = v.object({
+  memoryIds: v.array(v.string()),
+  score: v.number(),
+});
+
+type DreamPassScope = {
+  clerkId: string;
+  profileId: string;
+  kind: "personal" | "team";
+  maxClusters?: number;
+};
+
+// Reads the whole scope inside one mutation, so it only suits small scopes
+// (tests, ad-hoc runs). The scheduled path plans clusters in the action.
+async function clusterWholeScope(
+  ctx: MutationCtx,
+  args: DreamPassScope,
+): Promise<MemoryCluster[] | null> {
+  const memories =
+    args.kind === "team"
+      ? await collectScopedMemories(ctx, {
+          kind: "team",
+          profileId: args.profileId,
+        })
+      : await collectScopedMemories(ctx, {
+          kind: "personal",
+          userId: args.clerkId,
+          profileId: args.profileId,
+        });
+  const visible = memories.filter((memory) => isVisibleStatus(memory.status));
+  if (visible.length === 0) return null;
+  return clusterNearDuplicateMemories(visible, {
+    limit: args.maxClusters ?? DEFAULT_MERGE_CLUSTERS,
+    rejectedSourceSets: await listRejectedDreamMergeSourceSets(ctx, {
+      profileId: args.profileId,
+    }),
+  });
+}
+
+// The action already clustered the scope with paged reads; the mutation only
+// re-reads the handful of memories those clusters name and drops any cluster
+// whose members changed or disappeared since planning.
+async function loadPlannedClusters(
+  ctx: MutationCtx,
+  args: DreamPassScope,
+  plans: ReadonlyArray<{ memoryIds: string[]; score: number }>,
+): Promise<MemoryCluster[]> {
+  const out: MemoryCluster[] = [];
+  for (const plan of plans) {
+    const docs = await Promise.all(
+      plan.memoryIds.map((memoryId) =>
+        ctx.db
+          .query("memories")
+          .withIndex("by_memory_id", (q) => q.eq("memoryId", memoryId))
+          .first(),
+      ),
+    );
+    const members: MemoryWithTags[] = [];
+    for (const doc of docs) {
+      if (doc === null) break;
+      const inScope =
+        args.kind === "team"
+          ? doc.profileId === args.profileId
+          : memoryMatchesScope(doc, {
+              kind: "personal",
+              userId: args.clerkId,
+              profileId: args.profileId,
+            });
+      if (!inScope || !isVisibleStatus(doc.status)) break;
+      members.push(toMemoryWithTags(doc));
+    }
+    if (members.length !== plan.memoryIds.length || members.length < 2) {
+      continue;
+    }
+    out.push({ memories: members, score: plan.score });
+  }
+  return out;
+}
+
 export const runDreamPassInternal = internalMutation({
   args: {
     clerkId: v.string(),
@@ -192,28 +274,14 @@ export const runDreamPassInternal = internalMutation({
     autoAccept: v.boolean(),
     maxClusters: v.optional(v.number()),
     clusterDecisions: v.optional(v.array(clusterDecisionValidator)),
+    clusters: v.optional(v.array(clusterPlanValidator)),
   },
   handler: async (ctx, args): Promise<DreamRunResult> => {
-    const memories =
-      args.kind === "team"
-        ? await collectScopedMemories(ctx, {
-            kind: "team",
-            profileId: args.profileId,
-          })
-        : await collectScopedMemories(ctx, {
-            kind: "personal",
-            userId: args.clerkId,
-            profileId: args.profileId,
-          });
-    const visible = memories.filter((memory) => isVisibleStatus(memory.status));
-    if (visible.length === 0) return emptyDreamResult("no-recent-memories");
-
-    const clusters = clusterNearDuplicateMemories(visible, {
-      limit: args.maxClusters ?? DEFAULT_MERGE_CLUSTERS,
-      rejectedSourceSets: await listRejectedDreamMergeSourceSets(ctx, {
-        profileId: args.profileId,
-      }),
-    });
+    const clusters =
+      args.clusters === undefined
+        ? await clusterWholeScope(ctx, args)
+        : await loadPlannedClusters(ctx, args, args.clusters);
+    if (clusters === null) return emptyDreamResult("no-recent-memories");
     const result = emptyDreamResult("ok");
     result.clustersScanned = clusters.length;
     const decisions = decisionBySourceIds(args.clusterDecisions);
@@ -307,6 +375,10 @@ async function runDreamPassForProfile(
     kind: args.kind,
     autoAccept: args.autoAccept,
     clusterDecisions,
+    clusters: clusters.map((cluster) => ({
+      memoryIds: cluster.memories.map((memory) => memory.id),
+      score: cluster.score,
+    })),
   });
 }
 
