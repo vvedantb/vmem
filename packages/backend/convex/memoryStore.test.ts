@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { internal } from "./_generated/api";
 import schema from "./schema";
 import { toMemoryCandidate } from "../engine/memory/retrieve";
@@ -1152,22 +1152,17 @@ describe("convex memoryStore", () => {
         }
       });
 
-      let cursor: string | null = null;
-      let migrated = 0;
-      for (;;) {
-        const res: { migrated: number; isDone: boolean } = await t.mutation(
+      vi.useFakeTimers();
+      try {
+        // batchSize 2 forces several self-rescheduled pages
+        await t.mutation(
           internal.memoryStore.functions.backfillMemoryEmbeddingsInternal,
-          { cursor, batchSize: 2 },
+          { batchSize: 2 },
         );
-        // drive pages by hand: a scheduled follow-up would also run
-        migrated += res.migrated;
-        if (res.isDone) break;
-        const page = await t.run(async (ctx) =>
-          ctx.db.query("memories").paginate({ cursor, numItems: 2 }),
-        );
-        cursor = page.continueCursor;
+        await t.finishAllScheduledFunctions(vi.runAllTimers);
+      } finally {
+        vi.useRealTimers();
       }
-      expect(migrated).toBe(4);
       expect(await embeddingRows(t)).toHaveLength(4);
       const left = await t.run(async (ctx) =>
         (await ctx.db.query("memories").collect()).filter(
@@ -1183,6 +1178,59 @@ describe("convex memoryStore", () => {
       );
       expect(rerun.migrated).toBe(0);
       expect(await embeddingRows(t)).toHaveLength(4);
+    });
+  });
+
+  describe("bounded reads", () => {
+    it("upserts by source id per user and source type without collisions", async () => {
+      const t = convexTest(schema, modules);
+      const base = {
+        profileId: PERSONAL_PROFILE,
+        title: "Doc",
+        content: "body",
+        sourceId: "same-id",
+        sourceUrl: "https://example.com/x",
+      };
+      const drive = await t.mutation(
+        internal.memoryStore.functions.upsertMemoryFromSourceInternal,
+        { ...base, userId: USER_A, sourceType: "google_drive" },
+      );
+      const notion = await t.mutation(
+        internal.memoryStore.functions.upsertMemoryFromSourceInternal,
+        { ...base, userId: USER_A, sourceType: "notion" },
+      );
+      const otherUser = await t.mutation(
+        internal.memoryStore.functions.upsertMemoryFromSourceInternal,
+        { ...base, userId: USER_B, sourceType: "google_drive" },
+      );
+      expect(new Set([drive.id, notion.id, otherUser.id]).size).toBe(3);
+      const again = await t.mutation(
+        internal.memoryStore.functions.upsertMemoryFromSourceInternal,
+        { ...base, userId: USER_A, sourceType: "notion", title: "Doc v2" },
+      );
+      expect(again.id).toBe(notion.id);
+      expect(again.title).toBe("Doc v2");
+    });
+
+    it("caps memory link reads instead of exceeding the documents limit", async () => {
+      const t = convexTest(schema, modules);
+      await t.run(async (ctx) => {
+        for (let i = 0; i < 10_050; i += 1) {
+          await ctx.db.insert("memoryLinks", {
+            userId: USER_A,
+            sourceId: `s-${String(i)}`,
+            targetId: `t-${String(i)}`,
+            reason: "r",
+            createdAt: i,
+          });
+        }
+      });
+      const listed = await t.query(
+        internal.memoryStore.functions.listMemoryLinksForUserInternal,
+        { userId: USER_A },
+      );
+      expect(listed).toHaveLength(10_000);
+      expect(listed[0]?.sourceId).toBe("s-0");
     });
   });
 });

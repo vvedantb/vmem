@@ -709,14 +709,18 @@ export async function upsertMemoryFromSource(
   ctx: MutationCtx,
   params: CreateMemoryStoreParams & { sourceId: string; sourceType: string },
 ): Promise<MemoryWithTags> {
-  const docs = await ctx.db
+  // indexed lookup: this used to collect() the user's whole memories table for
+  // every synced item, which is O(table) reads per item and made every sync
+  // write conflict with all other writes to the user's memories
+  const existing = await ctx.db
     .query("memories")
-    .withIndex("by_user_created", (q) => q.eq("userId", params.userId))
-    .collect();
-  const existing = docs.find(
-    (doc) =>
-      doc.sourceType === params.sourceType && doc.sourceId === params.sourceId,
-  );
+    .withIndex("by_user_source", (q) =>
+      q
+        .eq("userId", params.userId)
+        .eq("sourceType", params.sourceType)
+        .eq("sourceId", params.sourceId),
+    )
+    .first();
   if (existing) {
     const updated = await updateMemory(ctx, params.userId, existing.memoryId, {
       title: params.title,
@@ -904,6 +908,11 @@ export async function unlinkMemories(
   return true;
 }
 
+// Hard cap on edges read per call. Below the cap this is identical to the old
+// unbounded collect(); a user above it used to blow the 32k documents-read
+// limit (failing retrieve/graph outright), now they get the oldest edges.
+export const MAX_MEMORY_LINKS_READ = 10_000;
+
 export async function listMemoryLinksForUser(
   ctx: QueryCtx | MutationCtx,
   userId: string,
@@ -911,7 +920,7 @@ export async function listMemoryLinksForUser(
   const rows = await ctx.db
     .query("memoryLinks")
     .withIndex("by_user", (q) => q.eq("userId", userId))
-    .collect();
+    .take(MAX_MEMORY_LINKS_READ);
   return rows.map((row) => ({
     sourceId: row.sourceId,
     targetId: row.targetId,
