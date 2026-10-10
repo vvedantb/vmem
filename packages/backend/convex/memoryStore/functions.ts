@@ -1,7 +1,6 @@
 import { v } from "convex/values";
 import { zodToConvex } from "convex-helpers/server/zod";
 import { memoryWithTagsSchema } from "@vmem/sdk";
-import { internal } from "../_generated/api";
 import { internalMutation, internalQuery } from "../_generated/server";
 import {
   memoryEntityTypeValidator,
@@ -16,7 +15,6 @@ import {
   deleteMemoriesForUser,
   deleteMemory,
   deleteTeamMemoryAsOwner,
-  getMemoriesByDocIds,
   getMemoriesByMemoryIds,
   getMemory,
   getMemoryForTeam,
@@ -28,7 +26,6 @@ import {
   memoryReadScopeFromArgs,
   paginateScopedDocs,
   patchMemoryEmbedding,
-  upsertMemoryEmbedding,
   reassignMemoriesProfile,
   searchMemoriesText,
   unlinkMemories,
@@ -437,12 +434,6 @@ export const searchMemoriesTextInternal = internalQuery({
   },
 });
 
-export const getMemoriesByDocIdsInternal = internalQuery({
-  args: { ids: v.array(v.id("memories")) },
-  returns: v.array(v.union(memoryWithTagsValidator, v.null())),
-  handler: async (ctx, args) => getMemoriesByDocIds(ctx, args.ids),
-});
-
 export const getMemoriesByEmbeddingIdsInternal = internalQuery({
   args: { ids: v.array(v.id("memoryEmbeddings")) },
   returns: v.array(v.union(memoryWithTagsValidator, v.null())),
@@ -454,51 +445,6 @@ export const getMemoriesByEmbeddingIdsInternal = internalQuery({
       out.push(doc ? toMemoryWithTags(doc) : null);
     }
     return out;
-  },
-});
-
-const EMBEDDING_BACKFILL_BATCH = 20;
-
-// ONE-OFF backfill: moves `memories.embedding` into `memoryEmbeddings`, one
-// bounded page at a time, and reschedules itself until the table is done.
-// Idempotent and atomic per row (a memory is only ever in one vector index).
-//   npx convex run memoryStore/functions:backfillMemoryEmbeddingsInternal '{}'
-export const backfillMemoryEmbeddingsInternal = internalMutation({
-  args: {
-    cursor: v.optional(v.union(v.string(), v.null())),
-    batchSize: v.optional(v.number()),
-    migratedSoFar: v.optional(v.number()),
-  },
-  returns: v.object({ migrated: v.number(), isDone: v.boolean() }),
-  handler: async (ctx, args) => {
-    const size = Math.max(
-      1,
-      Math.min(args.batchSize ?? EMBEDDING_BACKFILL_BATCH, 50),
-    );
-    const page = await ctx.db
-      .query("memories")
-      .paginate({ cursor: args.cursor ?? null, numItems: size });
-    let migrated = 0;
-    for (const doc of page.page) {
-      if (doc.embedding === undefined) continue;
-      await upsertMemoryEmbedding(ctx, doc, doc.embedding);
-      migrated += 1;
-    }
-    const total = (args.migratedSoFar ?? 0) + migrated;
-    if (!page.isDone) {
-      await ctx.scheduler.runAfter(
-        0,
-        internal.memoryStore.functions.backfillMemoryEmbeddingsInternal,
-        {
-          cursor: page.continueCursor,
-          batchSize: size,
-          migratedSoFar: total,
-        },
-      );
-    } else {
-      console.log(`memory embedding backfill done: ${String(total)} migrated`);
-    }
-    return { migrated, isDone: page.isDone };
   },
 });
 
