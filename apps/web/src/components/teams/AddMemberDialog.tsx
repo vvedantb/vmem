@@ -14,6 +14,7 @@ import {
 import { IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
+import { insertTeamMemberOptimistic } from "@/lib/convex-optimistic";
 
 interface AddMemberDialogProps {
   teamId: Id<"teams">;
@@ -26,7 +27,9 @@ export function AddMemberDialog({
   open,
   onOpenChange,
 }: AddMemberDialogProps) {
-  const addMember = useMutation(api.teams.addMember);
+  const addMember = useMutation(api.teams.addMember).withOptimisticUpdate(
+    insertTeamMemberOptimistic,
+  );
   const [email, setEmail] = useState("");
   const { submitting, run } = useAsyncSubmit();
 

@@ -2,9 +2,7 @@ import type { FunctionReturnType } from "convex/server";
 import { orderBy, startCase, uniqBy } from "es-toolkit";
 import type { api } from "@vmem/backend";
 
-export type MemoryListResult = FunctionReturnType<
-  typeof api.memoryApi.listMemories
->;
+export type MemoryListResult = FunctionReturnType<typeof api.memoryApi.list>;
 // single memory row from list / retrieve / getMemory api payloads
 export type MemoryApiFields = MemoryListResult["memories"][number];
 
