@@ -220,6 +220,7 @@ export const searchMemories = authAction({
           searchQuery: args.query,
           limit: args.limit,
           offset: args.offset,
+          countAll: false,
         }),
     }),
 });

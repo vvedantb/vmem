@@ -21,8 +21,7 @@ import {
   deleteTeamMemoryAsOwner,
   getMemory,
   getMemoryForTeam,
-  listMemories,
-  listMemoriesForTeam,
+  listMemoriesBounded,
   updateMemory,
 } from "../memoryStore/helpers";
 import type { MemoryListResult } from "./types";
@@ -165,12 +164,17 @@ async function listForCaller(
   });
   const params = listParams(args);
   if (scope.kind === "team") {
-    return listMemoriesForTeam(ctx, scope.profileId, params);
+    return listMemoriesBounded(
+      ctx,
+      { kind: "team", profileId: scope.profileId },
+      params,
+    );
   }
-  return listMemories(ctx, scope.clerkId, {
-    ...params,
-    profileId: args.profileId,
-  });
+  return listMemoriesBounded(
+    ctx,
+    { kind: "personal", userId: scope.clerkId, profileId: args.profileId },
+    params,
+  );
 }
 
 type MemoryCallerCtx = AuthQueryCtx | AuthMutationCtx;
