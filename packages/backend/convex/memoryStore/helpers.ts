@@ -908,10 +908,10 @@ export async function unlinkMemories(
   return true;
 }
 
-// Hard cap on edges read per call. Below the cap this is identical to the old
-// unbounded collect(); a user above it used to blow the 32k documents-read
-// limit (failing retrieve/graph outright), now they get the oldest edges.
-export const MAX_MEMORY_LINKS_READ = 10_000;
+// Hard cap on edges read per call. Stays below Convex's 8192 array-length
+// limit on return values: at 10k edges the query read fine but its result was
+// rejected, so graph views failed outright for users with that many links.
+export const MAX_MEMORY_LINKS_READ = 8_000;
 
 export async function listMemoryLinksForUser(
   ctx: QueryCtx | MutationCtx,

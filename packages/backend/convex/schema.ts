@@ -143,7 +143,8 @@ const schema = defineSchema({
     .index("by_user_createdAt", ["userId", "createdAt"])
     .index("by_user_feature", ["userId", "feature"])
     .index("by_profile_createdAt", ["profileId", "createdAt"])
-    .index("by_team_createdAt", ["teamId", "createdAt"]),
+    .index("by_team_createdAt", ["teamId", "createdAt"])
+    .index("by_aggregate_pending", ["aggregatePending", "createdAt"]),
 
   // cached "user profile" prose for the mcp vmem,//context_prompt resource
   contextPromptCache: defineTable(contextPromptCacheFields).index("by_user", [

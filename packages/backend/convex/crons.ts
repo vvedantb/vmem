@@ -19,4 +19,12 @@ crons.cron(
   {},
 );
 
+// folds append-only openRouter log rows into the cost/token aggregates
+crons.interval(
+  "drain openRouter log aggregates",
+  { minutes: 1 },
+  internal.openRouterLogs.drainAggregatesInternal,
+  {},
+);
+
 export default crons;

@@ -1212,10 +1212,10 @@ describe("convex memoryStore", () => {
       expect(again.title).toBe("Doc v2");
     });
 
-    it("caps memory link reads instead of exceeding the documents limit", async () => {
+    it("caps memory link reads below the return array-length limit", async () => {
       const t = convexTest(schema, modules);
       await t.run(async (ctx) => {
-        for (let i = 0; i < 10_050; i += 1) {
+        for (let i = 0; i < 8_050; i += 1) {
           await ctx.db.insert("memoryLinks", {
             userId: USER_A,
             sourceId: `s-${String(i)}`,
@@ -1229,7 +1229,7 @@ describe("convex memoryStore", () => {
         internal.memoryStore.functions.listMemoryLinksForUserInternal,
         { userId: USER_A },
       );
-      expect(listed).toHaveLength(10_000);
+      expect(listed).toHaveLength(8_000);
       expect(listed[0]?.sourceId).toBe("s-0");
     });
   });

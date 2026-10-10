@@ -343,6 +343,10 @@ export async function applyLlmEntityExtraction(
     memoryId: string;
     entities: ExtractedEntity[];
     relatedMemoryIds: string[];
+    // snapshot the extraction action already read; skipping the re-read keeps
+    // this mutation off the hot by_user_created / by_user index ranges
+    candidates?: Array<{ id: string; title: string; tags: string[] }>;
+    knownEntities?: KnownEntity[];
   },
 ): Promise<number> {
   const doc = await ctx.db
@@ -351,7 +355,8 @@ export async function applyLlmEntityExtraction(
     .first();
   if (!doc || doc.userId !== params.userId) return 0;
 
-  const known = await listKnownEntities(ctx, doc.userId);
+  const known =
+    params.knownEntities ?? (await listKnownEntities(ctx, doc.userId));
   const fallback = extractEntitiesFallback({
     title: doc.title,
     content: doc.content,
@@ -359,7 +364,8 @@ export async function applyLlmEntityExtraction(
     knownEntities: known,
   });
   const entities = mergeExtractedEntities(params.entities, fallback);
-  const candidates = await listRecentCandidates(ctx, doc);
+  const candidates =
+    params.candidates ?? (await listRecentCandidates(ctx, doc));
   const allowed = new Set(candidates.map((candidate) => candidate.id));
   const related = [
     ...suggestRelatedMemoryIds({

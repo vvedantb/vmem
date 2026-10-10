@@ -580,6 +580,12 @@ const knownEntityValidator = v.object({
   type: v.string(),
 });
 
+const recentCandidateValidator = v.object({
+  id: v.string(),
+  title: v.string(),
+  tags: v.array(v.string()),
+});
+
 export const listKnownEntitiesInternal = internalQuery({
   args: { userId: v.string() },
   returns: v.array(knownEntityValidator),
@@ -592,13 +598,7 @@ export const listRecentMemoryCandidatesInternal = internalQuery({
     profileId: v.optional(v.string()),
     excludeMemoryId: v.string(),
   },
-  returns: v.array(
-    v.object({
-      id: v.string(),
-      title: v.string(),
-      tags: v.array(v.string()),
-    }),
-  ),
+  returns: v.array(recentCandidateValidator),
   handler: async (ctx, args) =>
     listRecentMemoryCandidates(
       ctx,
@@ -614,6 +614,8 @@ export const applyLlmEntityExtractionInternal = internalMutation({
     memoryId: v.string(),
     entities: v.array(extractedEntityValidator),
     relatedMemoryIds: v.array(v.string()),
+    candidates: v.optional(v.array(recentCandidateValidator)),
+    knownEntities: v.optional(v.array(knownEntityValidator)),
   },
   returns: v.number(),
   handler: async (ctx, args) => applyLlmEntityExtraction(ctx, args),

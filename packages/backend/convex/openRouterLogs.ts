@@ -1,5 +1,6 @@
 ﻿import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 import { internalMutation, type QueryCtx } from "./_generated/server";
 import { authQuery } from "./auth";
 import { openRouterLogFields, openRouterLogRecordFields } from "./validators";
@@ -29,17 +30,41 @@ export const recordInternal = internalMutation({
       const profile = await ctx.db.get(profileId);
       if (profile?.teamId) teamId = profile.teamId;
     }
-    const id = await ctx.db.insert("openRouterLogs", {
+    await ctx.db.insert("openRouterLogs", {
       ...rest,
       profileId,
       teamId,
       createdAt: Date.now(),
+      aggregatePending: true,
     });
-    const doc = await ctx.db.get(id);
-    if (doc) {
-      await insertOpenRouterLogAggregates(ctx, doc);
-    }
     return null;
+  },
+});
+
+const AGGREGATE_DRAIN_BATCH = 25;
+
+// Log writes stay append-only so concurrent LLM calls never contend on the
+// aggregate btree roots; this folds pending rows in, one writer at a time.
+export const drainAggregatesInternal = internalMutation({
+  args: {},
+  returns: v.number(),
+  handler: async (ctx) => {
+    const pending = await ctx.db
+      .query("openRouterLogs")
+      .withIndex("by_aggregate_pending", (q) => q.eq("aggregatePending", true))
+      .take(AGGREGATE_DRAIN_BATCH);
+    for (const doc of pending) {
+      await insertOpenRouterLogAggregates(ctx, doc);
+      await ctx.db.patch(doc._id, { aggregatePending: undefined });
+    }
+    if (pending.length === AGGREGATE_DRAIN_BATCH) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.openRouterLogs.drainAggregatesInternal,
+        {},
+      );
+    }
+    return pending.length;
   },
 });
 
