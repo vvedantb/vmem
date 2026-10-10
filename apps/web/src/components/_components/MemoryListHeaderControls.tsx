@@ -1,5 +1,6 @@
 // list view controls rendered in the page header
 
+import { useState } from "react";
 import AddMemoryIconTrigger from "@/components/memories/AddMemoryIconTrigger";
 import HeaderSearchPopover from "./HeaderSearchPopover";
 import { MemoryFiltersButton } from "@/routes/_main/$profileId/memories/_components/MemoryFiltersButton";
@@ -16,6 +17,8 @@ export default function MemoryListHeaderControls({
   searchLabel?: string;
 }) {
   const [params, setParams] = useMemoriesSearchParams();
+  // facets (tag/source/type counts) load on first open of the filter panel
+  const [filtersOpened, setFiltersOpened] = useState(false);
   const {
     allMemories,
     allItems,
@@ -23,7 +26,7 @@ export default function MemoryListHeaderControls({
     filters,
     filteredCount,
     totalCount,
-  } = useMemoryListFilterStats();
+  } = useMemoryListFilterStats({ enabled: filtersOpened });
   const { isDark } = useThemeContext();
 
   return (
@@ -49,6 +52,9 @@ export default function MemoryListHeaderControls({
         totalCount={totalCount}
         isDark={isDark}
         ariaLabel="Filter list"
+        onOpenChange={(open) => {
+          if (open) setFiltersOpened(true);
+        }}
       />
       <AddMemoryIconTrigger className="h-11 w-11 shrink-0 md:h-8 md:w-8" />
     </div>

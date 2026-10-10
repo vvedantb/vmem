@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useAction } from "convex/react";
+import { useAction, useQuery as useConvexQuery } from "convex/react";
 import { useQuery as useTanstackQuery } from "@tanstack/react-query";
 import {
   Button,
@@ -20,6 +20,7 @@ import { api } from "@vmem/backend";
 import {
   countUniqueRelated,
   formatMemoryTypeLabel,
+  memoryFromApi,
   relatedMemoriesQueryKey,
   uniqueRelated,
   type Memory,
@@ -36,6 +37,8 @@ import { MemorySourceLabel } from "@/components/_components/MemorySourceLabel";
 import DestructiveConfirmDialog from "@/components/settings/DestructiveConfirmDialog";
 import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
 import { VIEW_TRANSITION_TARGET } from "@/lib/view-transitions";
+import { useActiveProfileId } from "@/components/workspace/active-profile";
+import { VmemSpinner } from "@/components/icons/animations";
 
 type PanelTab = "details" | "history" | "connections";
 
@@ -52,7 +55,32 @@ interface MemoryDetailPanelProps {
   onConsumeAction?: () => void;
 }
 
-export default function MemoryDetailPanel({
+// List rows are slim (preview, no content), so the panel always reads the full
+// memory itself: one reactive single-doc query, patched by optimistic updates.
+// The `memory` prop only identifies which row was opened.
+export default function MemoryDetailPanel(props: MemoryDetailPanelProps) {
+  const activeProfileId = useActiveProfileId();
+  const { onClose } = props;
+  const full = useConvexQuery(api.memoryApi.get, {
+    memoryId: props.memory.id,
+    profileId: activeProfileId,
+  });
+
+  useEffect(() => {
+    if (full === null) onClose();
+  }, [full, onClose]);
+
+  if (!full) {
+    return (
+      <div className="flex h-full items-center justify-center rounded-lg bg-surface-secondary">
+        <VmemSpinner size={20} className="text-muted" />
+      </div>
+    );
+  }
+  return <MemoryDetailPanelBody {...props} memory={memoryFromApi(full)} />;
+}
+
+function MemoryDetailPanelBody({
   memory,
   onClose,
   onMemoryDelete,

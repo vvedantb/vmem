@@ -22,7 +22,11 @@ import {
   getMemory,
   getMemoryForTeam,
   listMemoriesBounded,
+  paginateMemorySummaries,
   updateMemory,
+  type MemorySummaryFilter,
+  type MemorySummaryPage,
+  type ScopedMemoryPaginationOpts,
 } from "../memoryStore/helpers";
 import type { MemoryListResult } from "./types";
 
@@ -313,4 +317,39 @@ export async function runRemove(
   }
   if (args.profileId === undefined) return false;
   return deleteTeamMemoryAsOwner(ctx, args.profileId, args.memoryId);
+}
+
+// Reactive, paginated, slim list for the memories page. Page size is chosen by
+// the client; each page is an independent reactive range.
+export async function runListSummaries(
+  ctx: AuthQueryCtx,
+  args: MemorySummaryFilter & {
+    profileId?: string;
+    paginationOpts: ScopedMemoryPaginationOpts;
+  },
+): Promise<MemorySummaryPage> {
+  const scope = await runResolveMemoryScopeInternal(ctx, {
+    userId: ctx.userId,
+    profileId: args.profileId,
+  });
+  const filter: MemorySummaryFilter = {
+    type: args.type,
+    source: args.source,
+    tags: args.tags,
+    searchQuery: args.searchQuery,
+  };
+  if (scope.kind === "team") {
+    return paginateMemorySummaries(
+      ctx,
+      { kind: "team", profileId: scope.profileId },
+      args.paginationOpts,
+      filter,
+    );
+  }
+  return paginateMemorySummaries(
+    ctx,
+    { kind: "personal", userId: scope.clerkId, profileId: args.profileId },
+    args.paginationOpts,
+    filter,
+  );
 }

@@ -21,7 +21,7 @@ import {
   formatMemoryTypeLabel,
   type Memory,
 } from "@/lib/memories";
-import { useRecentMemories } from "@/hooks/useRecentMemories";
+import { useMemoryFacets } from "@/hooks/useMemoryFacets";
 import { DetailEmptyState } from "@/components/_components/detail-panel/DetailEmptyState";
 
 const TAGS_PREVIEW = 2;
@@ -148,7 +148,7 @@ export default function LinkMemoryModal({
   onLinked,
 }: LinkMemoryModalProps) {
   const linkMemories = useAction(api.relationshipApi.linkMemories);
-  const { memories } = useRecentMemories();
+  const { memories } = useMemoryFacets({ enabled: open });
   const [search, setSearch] = useState("");
   const [linkingId, setLinkingId] = useState<string | null>(null);
 

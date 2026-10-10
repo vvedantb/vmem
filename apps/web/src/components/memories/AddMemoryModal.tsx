@@ -24,6 +24,7 @@ import {
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { useMemoryContext } from "@/contexts/MemoryContext";
+import { useMemoryFacets } from "@/hooks/useMemoryFacets";
 import { memorySchema, type MemoryFormValues } from "@/lib/schemas";
 import { ProfileDropdown } from "@/components/profiles/ProfileDropdown";
 import { useActiveProfile } from "@/components/workspace/active-profile";
@@ -52,9 +53,10 @@ export default function AddMemoryModal({
 }: {
   trigger?: React.ReactNode;
 }) {
-  const { memories, createMemory, uploadMemoryFile } = useMemoryContext();
+  const { createMemory, uploadMemoryFile } = useMemoryContext();
   const activeProfileId = useActiveProfile()._id;
   const [open, setOpen] = useState(false);
+  const { memories } = useMemoryFacets({ enabled: open });
   const [tagInput, setTagInput] = useState("");
   const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
   const [selectedProfileId, setSelectedProfileId] = useState<
@@ -77,7 +79,7 @@ export default function AddMemoryModal({
   });
 
   const currentTags = watch("tags");
-  const allTags = buildTagStats(memories ?? []);
+  const allTags = buildTagStats(memories);
   const normalizedTagInput = tagInput.trim().toLowerCase();
 
   // hide tags already on this memory, filter suggestions by typed substring

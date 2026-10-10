@@ -2,9 +2,10 @@ import type { FunctionReturnType } from "convex/server";
 import { orderBy, startCase, uniqBy } from "es-toolkit";
 import type { api } from "@vmem/backend";
 
-export type MemoryListResult = FunctionReturnType<typeof api.memoryApi.list>;
-// single memory row from list / retrieve / getMemory api payloads
-export type MemoryApiFields = MemoryListResult["memories"][number];
+// single memory row from get / retrieve / getMemory api payloads
+export type MemoryApiFields = NonNullable<
+  FunctionReturnType<typeof api.memoryApi.get>
+>;
 
 export type MemoryType = MemoryApiFields["type"];
 
@@ -47,6 +48,53 @@ export function memoryFromApi(m: MemoryApiFields) {
 }
 
 export type Memory = ReturnType<typeof memoryFromApi>;
+
+const SUMMARY_PREVIEW_CHARS = 200;
+
+// full api row -> slim row, same shape the server builds for summaries
+export function summaryFromApi(m: MemoryApiFields): MemorySummary {
+  return {
+    id: m.id,
+    title: m.title,
+    preview: m.content
+      .slice(0, SUMMARY_PREVIEW_CHARS * 2)
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, SUMMARY_PREVIEW_CHARS),
+    type: m.type,
+    status: m.status,
+    source: m.source,
+    sourceUrl: m.sourceUrl,
+    sourceSyncedAt: m.sourceSyncedAt,
+    tags: m.tags,
+    createdAt: m.createdAt,
+    updatedAt: m.updatedAt,
+    profileId: m.profileId,
+  };
+}
+
+// slim list row (preview instead of content) from listSummaries / listAllSummaries
+export type MemorySummary = FunctionReturnType<
+  typeof api.memoryApi.listAllSummaries
+>["memories"][number];
+
+// Summary rows carry a short preview, never the body. `content` here is that
+// preview, so it is safe for rows, filters, and suggestions but must not seed an
+// editor: open the memory via memoryApi.get for the real content.
+export function memoryFromSummary(m: MemorySummary): Memory {
+  return {
+    id: m.id,
+    title: m.title,
+    content: m.preview,
+    type: isMemoryType(m.type) ? m.type : ("knowledge" satisfies MemoryType),
+    source: m.source,
+    sourceUrl: m.sourceUrl,
+    sourceSyncedAt: m.sourceSyncedAt,
+    tags: m.tags,
+    createdAt: m.createdAt,
+    ...(m.profileId !== null ? { profileId: m.profileId } : {}),
+  };
+}
 
 const MEMORY_SOURCE_LABELS: Record<string, string> = {
   web: "Web",

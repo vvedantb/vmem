@@ -26,6 +26,7 @@ interface MemoryFiltersButtonProps {
   tagStats?: TagStats[];
   distinctSources?: string[];
   typeCounts?: Record<MemoryType, number>;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function MemoryFiltersButton({
@@ -45,11 +46,12 @@ export function MemoryFiltersButton({
   tagStats,
   distinctSources,
   typeCounts,
+  onOpenChange,
 }: MemoryFiltersButtonProps) {
   const activeFilterCount = countActiveMemoryViewFilters(filters);
 
   return (
-    <Popover>
+    <Popover onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"

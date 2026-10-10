@@ -1,3 +1,4 @@
+import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { authAction, authMutation, authQuery, requireClerkId } from "./auth";
@@ -8,12 +9,21 @@ import {
   runListTeamMemories,
   runUpdateTeamMemory,
 } from "./memoryApi/team";
-import { assertAccessibleProfileIfPresent } from "./profiles/accessibleProfile";
+import {
+  assertAccessibleProfileIfPresent,
+  resolveAccessibleTeamScope,
+} from "./profiles/accessibleProfile";
 import type {
   MemoryListResult,
   MemoryWithTags,
   RetrieveMemoriesResult,
 } from "./memoryApi/types";
+import {
+  memorySummaryFilterFields,
+  memorySummaryValidator,
+} from "./validators";
+import { listMemorySummariesPaged } from "./memoryStore/walk";
+import type { MemorySummary } from "./memoryStore/mappers";
 import {
   createMemoryFields,
   listMemoriesFields,
@@ -27,6 +37,7 @@ import {
   runCreate,
   runGet,
   runList,
+  runListSummaries,
   runRemove,
   runUpdate,
 } from "./memoryApi/client";
@@ -44,6 +55,62 @@ export const list = authQuery({
   args: listMemoriesFields,
   returns: memoryListResultValidator,
   handler: async (ctx, args) => runList(ctx, args),
+});
+
+// Slim, reactive, paginated list (usePaginatedQuery). Prefer this over `list`
+// for anything shown in a long list: pages are independent reactive ranges and
+// rows carry a preview, not content.
+export const listSummaries = authQuery({
+  args: {
+    profileId: profileIdOptional,
+    ...memorySummaryFilterFields,
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, args) => runListSummaries(ctx, args),
+});
+
+const MAX_ALL_SUMMARIES = 10_000;
+
+// Non-reactive: every matching slim row in scope (capped), for facets (tag /
+// source / type counts, tag suggestions) and the timeline. One scope walk per
+// call, so callers cache it and only fetch on demand.
+export const listAllSummaries = authAction({
+  args: {
+    profileId: profileIdOptional,
+    ...memorySummaryFilterFields,
+    limit: v.optional(v.number()),
+  },
+  returns: v.object({
+    memories: v.array(memorySummaryValidator),
+    truncated: v.boolean(),
+  }),
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{ memories: MemorySummary[]; truncated: boolean }> => {
+    const clerkId = await requireClerkId(ctx);
+    const { teamId } = await resolveAccessibleTeamScope(ctx, args.profileId);
+    const scope =
+      teamId !== undefined && args.profileId !== undefined
+        ? ({ kind: "team", profileId: args.profileId } as const)
+        : ({
+            kind: "personal",
+            userId: clerkId,
+            profileId: args.profileId,
+          } as const);
+    const { rows, truncated } = await listMemorySummariesPaged(
+      ctx,
+      scope,
+      {
+        type: args.type,
+        source: args.source,
+        tags: args.tags,
+        searchQuery: args.searchQuery,
+      },
+      Math.min(Math.max(1, args.limit ?? MAX_ALL_SUMMARIES), MAX_ALL_SUMMARIES),
+    );
+    return { memories: rows, truncated };
+  },
 });
 
 export const get = authQuery({

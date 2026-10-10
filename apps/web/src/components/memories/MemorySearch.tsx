@@ -174,35 +174,20 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
     null,
   );
 
-  const memoryFromList =
-    memoryId === null
-      ? null
-      : (list.memoryResults.find((memory) => memory.id === memoryId) ?? null);
-
-  const shouldFetchMemory = memoryId !== null && memoryFromList === null;
+  // the list only holds slim rows, so the open memory is always read in full
+  // (a single-doc reactive query, optimistic updates patch it too)
   const fetchedMemory = useQuery(
     api.memoryApi.get,
-    shouldFetchMemory ? { memoryId, profileId: list.activeProfileId } : "skip",
+    memoryId === null ? "skip" : { memoryId, profileId: list.activeProfileId },
   );
-  const isFetchingMemory = shouldFetchMemory && fetchedMemory === undefined;
+  const isFetchingMemory = memoryId !== null && fetchedMemory === undefined;
 
   const selectedMemory =
-    memoryId === null
-      ? null
-      : (memoryFromList ??
-        (fetchedMemory ? memoryFromApi(fetchedMemory) : null));
+    memoryId === null || !fetchedMemory ? null : memoryFromApi(fetchedMemory);
 
-  // drop stale /$id routes once list + fetch settle empty
+  // drop stale /$id routes once the fetch settles empty
   useEffect(() => {
-    if (memoryId === null || isFetchingMemory) return;
-
-    if (list.isMemoriesLoading) return;
-    if (!list.isHybridSearch && (list.isFetchingNextPage || list.hasNextPage)) {
-      return;
-    }
-
-    const inList = list.memoryResults.some((memory) => memory.id === memoryId);
-    if (inList || fetchedMemory !== null) return;
+    if (memoryId === null || isFetchingMemory || fetchedMemory !== null) return;
 
     void navigate({
       to: "/$profileId/memories/list",
@@ -212,15 +197,16 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
   }, [
     list.activeProfileId,
     memoryId,
-    list.memoryResults,
     fetchedMemory,
-    list.isHybridSearch,
-    list.isMemoriesLoading,
-    list.isFetchingNextPage,
-    list.hasNextPage,
     isFetchingMemory,
     navigate,
   ]);
+
+  // sparse filters can leave the first pages short or empty: keep paging
+  const { needsFill, fetchNextPage } = list;
+  useEffect(() => {
+    if (needsFill) void fetchNextPage();
+  }, [needsFill, fetchNextPage]);
 
   function openMemory(id: string) {
     setPreviewItem(null);
@@ -282,12 +268,7 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
 
   const hasSidePanel = memoryId !== null || previewItem !== null;
   const selectedItemId = memoryId ?? previewItem?.id ?? null;
-  const isPanelLoading =
-    memoryId !== null &&
-    selectedMemory === null &&
-    (isFetchingMemory ||
-      list.isMemoriesLoading ||
-      (!list.isHybridSearch && list.isFetchingNextPage));
+  const isPanelLoading = memoryId !== null && isFetchingMemory;
 
   if (list.isMemoriesLoading && list.memoryResults.length === 0) {
     return <MemoryListStatus variant="loading" />;

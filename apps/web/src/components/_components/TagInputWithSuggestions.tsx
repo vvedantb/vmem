@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { Button, Input, Badge, cn, floatingSurfaceClass } from "@vvedantb/ui";
 import { IconX } from "@tabler/icons-react";
 import { buildTagStats } from "@/lib/memories";
-import { useRecentMemories } from "@/hooks/useRecentMemories";
+import { useMemoryFacets } from "@/hooks/useMemoryFacets";
 
 interface TagInputWithSuggestionsProps {
   tags: string[];
@@ -18,7 +18,7 @@ export default function TagInputWithSuggestions({
   const [newTag, setNewTag] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const tagInputRef = useRef<HTMLInputElement>(null);
-  const { memories } = useRecentMemories();
+  const { memories } = useMemoryFacets({ enabled: true });
   const allTags = buildTagStats(memories);
   const selectedTagSet = new Set(tags);
 

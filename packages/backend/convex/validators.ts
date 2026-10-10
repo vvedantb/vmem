@@ -541,3 +541,26 @@ export const presentationVoteFields = {
   participantKey: v.string(),
   optionId: v.string(),
 };
+
+// slim memory row for lists: preview instead of content
+export const memorySummaryValidator = v.object({
+  id: v.string(),
+  title: v.string(),
+  preview: v.string(),
+  type: memoryTypeValidator,
+  status: memoryStatusValidator,
+  source: v.string(),
+  sourceUrl: v.union(v.string(), v.null()),
+  sourceSyncedAt: v.union(v.string(), v.null()),
+  tags: v.array(v.string()),
+  createdAt: v.string(),
+  updatedAt: v.string(),
+  profileId: v.union(v.string(), v.null()),
+});
+
+export const memorySummaryFilterFields = {
+  type: v.optional(v.string()),
+  source: v.optional(v.string()),
+  tags: v.optional(v.array(v.string())),
+  searchQuery: v.optional(v.string()),
+};

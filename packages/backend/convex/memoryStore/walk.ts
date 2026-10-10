@@ -7,6 +7,7 @@ import {
 } from "../../engine/memory/dashboardStats";
 import { internal } from "../_generated/api";
 import type { ActionCtx } from "../_generated/server";
+import type { MemorySummary } from "./mappers";
 import {
   SCOPED_MEMORY_PAGE_SIZE,
   type ListMemoryStoreParams,
@@ -45,9 +46,10 @@ async function walkPages<T>(
     numItems: number;
   }) => Promise<PageMeta & { items: T[] }>,
   onItems: (items: T[]) => boolean | void,
+  pageSize: number = SCOPED_MEMORY_PAGE_SIZE,
 ): Promise<void> {
   let cursor: string | null = null;
-  let numItems = SCOPED_MEMORY_PAGE_SIZE;
+  let numItems = pageSize;
   for (let i = 0; i < MAX_SCOPED_PAGES; i++) {
     const page = await load({ cursor, numItems });
     if (
@@ -148,4 +150,44 @@ export async function foldScopedMemoryStats(
       for (const row of items) addDashboardStatRow(acc, row);
     },
   );
+}
+
+const SUMMARY_WALK_PAGE_SIZE = 200;
+
+// Every matching slim summary in scope (newest first), capped at `max`. Meant
+// for on-demand, non-reactive reads: the cost is one scope walk per call.
+export async function listMemorySummariesPaged(
+  ctx: RunQueryCtx,
+  scope: MemoryReadScope,
+  filter: {
+    type?: string;
+    source?: string;
+    tags?: string[];
+    searchQuery?: string;
+  },
+  max: number,
+): Promise<{ rows: MemorySummary[]; truncated: boolean }> {
+  const rows: MemorySummary[] = [];
+  let truncated = false;
+  await walkPages(
+    async ({ cursor, numItems }) => {
+      const page = await ctx.runQuery(
+        internal.memoryStore.functions.paginateScopedMemorySummariesInternal,
+        { ...scopeArgs(scope), ...filter, cursor, numItems },
+      );
+      return { ...page, items: page.rows };
+    },
+    (items) => {
+      for (const row of items) {
+        if (rows.length >= max) {
+          truncated = true;
+          return false;
+        }
+        rows.push(row);
+      }
+      return undefined;
+    },
+    SUMMARY_WALK_PAGE_SIZE,
+  );
+  return { rows, truncated };
 }

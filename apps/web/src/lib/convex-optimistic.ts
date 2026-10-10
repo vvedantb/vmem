@@ -203,14 +203,17 @@ export function removeWikiNodesFromLists(
   }
 }
 
-type MemoryList = FunctionReturnType<typeof api.memoryApi.list>;
-type MemoryRow = MemoryList["memories"][number];
+type MemoryApiRow = NonNullable<FunctionReturnType<typeof api.memoryApi.get>>;
+type MemorySummaryPage = FunctionReturnType<typeof api.memoryApi.listSummaries>;
+type MemorySummaryRow = MemorySummaryPage["page"][number];
 type MemoryCreateArgs = FunctionArgs<typeof api.memoryApi.create>;
 type MemoryUpdateArgs = FunctionArgs<typeof api.memoryApi.update>;
+type SummaryListArgs = FunctionArgs<typeof api.memoryApi.listSummaries>;
 
-function memoryMatchesListArgs(
-  memory: Pick<MemoryRow, "type" | "source" | "tags" | "title" | "content">,
-  args: FunctionArgs<typeof api.memoryApi.list>,
+// type/source/tag criteria only; list rows hold a preview, never the body
+function summaryMatchesFilterArgs(
+  memory: Pick<MemorySummaryRow, "type" | "source" | "tags">,
+  args: SummaryListArgs,
 ): boolean {
   if (args.type !== undefined && args.type !== memory.type) return false;
   if (args.source !== undefined && args.source !== memory.source) return false;
@@ -218,48 +221,49 @@ function memoryMatchesListArgs(
     const have = new Set(memory.tags);
     if (!args.tags.every((tag) => have.has(tag))) return false;
   }
-  const q = args.searchQuery?.trim().toLowerCase();
-  if (q !== undefined && q.length > 0) {
-    const haystack =
-      `${memory.title} ${memory.content} ${memory.tags.join(" ")}`.toLowerCase();
-    if (!haystack.includes(q)) return false;
-  }
   return true;
 }
 
-function optimisticMemoryRow(args: MemoryCreateArgs): MemoryRow {
+function newMemoryMatchesSearch(
+  args: Pick<MemoryCreateArgs, "title" | "content" | "tags">,
+  searchQuery: string | undefined,
+): boolean {
+  const q = searchQuery?.trim().toLowerCase();
+  if (q === undefined || q.length === 0) return true;
+  const haystack =
+    `${args.title} ${args.content} ${args.tags.join(" ")}`.toLowerCase();
+  return haystack.includes(q);
+}
+
+function optimisticSummaryRow(args: MemoryCreateArgs): MemorySummaryRow {
   const now = new Date().toISOString();
   return {
     id: crypto.randomUUID(),
-    userId: "optimistic",
-    profileId: args.profileId ?? null,
     title: args.title,
-    content: args.content,
+    preview: args.content.replace(/\s+/g, " ").trim().slice(0, 200),
     type: args.type,
+    status: "active",
     source: args.source,
-    sourceType: args.sourceType ?? args.source,
-    sourceId: args.externalId ?? null,
     sourceUrl: args.url ?? null,
     sourceSyncedAt: null,
-    confidence: args.confidence,
-    status: "active",
+    tags: args.tags,
     createdAt: now,
     updatedAt: now,
-    expiresAt: args.expiresAt ?? null,
-    eventStart: null,
-    eventEnd: null,
-    temporalKind: null,
-    tags: args.tags,
+    profileId: args.profileId ?? null,
   };
 }
 
+// Each loaded page of a paginated list is its own cached query entry (args
+// carry paginationOpts.cursor). New rows belong at the head of the first page
+// (cursor === null); the server result replaces it once the mutation lands.
 export function insertMemoryInLists(
   localStore: OptimisticLocalStore,
   args: MemoryCreateArgs,
 ): void {
-  const row = optimisticMemoryRow(args);
-  for (const entry of localStore.getAllQueries(api.memoryApi.list)) {
+  const row = optimisticSummaryRow(args);
+  for (const entry of localStore.getAllQueries(api.memoryApi.listSummaries)) {
     if (entry.value === undefined) continue;
+    if (entry.args.paginationOpts.cursor !== null) continue;
     if (
       args.profileId !== undefined &&
       entry.args.profileId !== undefined &&
@@ -267,14 +271,11 @@ export function insertMemoryInLists(
     ) {
       continue;
     }
-    if (!memoryMatchesListArgs(row, entry.args)) continue;
-    const offset = entry.args.offset;
-    const nextMemories =
-      offset === 0 ? [row, ...entry.value.memories] : entry.value.memories;
-    const limit = entry.args.limit;
-    localStore.setQuery(api.memoryApi.list, entry.args, {
-      memories: nextMemories.slice(0, limit),
-      total: entry.value.total + 1,
+    if (!summaryMatchesFilterArgs(row, entry.args)) continue;
+    if (!newMemoryMatchesSearch(args, entry.args.searchQuery)) continue;
+    localStore.setQuery(api.memoryApi.listSummaries, entry.args, {
+      ...entry.value,
+      page: [row, ...entry.value.page],
     });
   }
 }
@@ -283,7 +284,24 @@ export function patchMemoryInLists(
   localStore: OptimisticLocalStore,
   args: MemoryUpdateArgs,
 ): void {
-  const patch = (row: MemoryRow): MemoryRow =>
+  const now = new Date().toISOString();
+  const patchSummary = (row: MemorySummaryRow): MemorySummaryRow =>
+    row.id !== args.memoryId
+      ? row
+      : {
+          ...row,
+          ...(args.title !== undefined ? { title: args.title } : {}),
+          ...(args.content !== undefined
+            ? {
+                preview: args.content.replace(/\s+/g, " ").trim().slice(0, 200),
+              }
+            : {}),
+          ...(args.type !== undefined ? { type: args.type } : {}),
+          ...(args.status !== undefined ? { status: args.status } : {}),
+          ...(args.tags !== undefined ? { tags: args.tags } : {}),
+          updatedAt: now,
+        };
+  const patchRow = (row: MemoryApiRow): MemoryApiRow =>
     row.id !== args.memoryId
       ? row
       : {
@@ -299,24 +317,29 @@ export function patchMemoryInLists(
           ...(args.expiresAt !== undefined
             ? { expiresAt: args.expiresAt }
             : {}),
-          updatedAt: new Date().toISOString(),
+          updatedAt: now,
         };
 
-  for (const entry of localStore.getAllQueries(api.memoryApi.list)) {
+  for (const entry of localStore.getAllQueries(api.memoryApi.listSummaries)) {
     if (entry.value === undefined) continue;
-    const memories = entry.value.memories
-      .map(patch)
-      .filter((row) => memoryMatchesListArgs(row, entry.args));
-    localStore.setQuery(api.memoryApi.list, entry.args, {
-      memories,
-      total:
-        entry.value.total - (entry.value.memories.length - memories.length),
+    if (!entry.value.page.some((row) => row.id === args.memoryId)) continue;
+    // a row edited out of a filtered list (e.g. tag removed) drops out of it;
+    // text search is left to the server since rows hold only a preview
+    const page = entry.value.page
+      .map(patchSummary)
+      .filter(
+        (row) =>
+          row.id !== args.memoryId || summaryMatchesFilterArgs(row, entry.args),
+      );
+    localStore.setQuery(api.memoryApi.listSummaries, entry.args, {
+      ...entry.value,
+      page,
     });
   }
 
   for (const entry of localStore.getAllQueries(api.memoryApi.get)) {
     if (entry.value == null || entry.value.id !== args.memoryId) continue;
-    localStore.setQuery(api.memoryApi.get, entry.args, patch(entry.value));
+    localStore.setQuery(api.memoryApi.get, entry.args, patchRow(entry.value));
   }
 }
 
@@ -324,12 +347,11 @@ export function removeMemoryFromLists(
   localStore: OptimisticLocalStore,
   memoryId: string,
 ): void {
-  updateAllCachedQueries(localStore, api.memoryApi.list, (page) => ({
-    memories: page.memories.filter((row) => row.id !== memoryId),
-    total: page.memories.some((row) => row.id === memoryId)
-      ? Math.max(0, page.total - 1)
-      : page.total,
-  }));
+  updateAllCachedQueries(localStore, api.memoryApi.listSummaries, (page) =>
+    page.page.some((row) => row.id === memoryId)
+      ? { ...page, page: page.page.filter((row) => row.id !== memoryId) }
+      : page,
+  );
   for (const entry of localStore.getAllQueries(api.memoryApi.get)) {
     if (entry.args.memoryId === memoryId) {
       localStore.setQuery(api.memoryApi.get, entry.args, null);

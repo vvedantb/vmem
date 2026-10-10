@@ -27,6 +27,7 @@ import {
 import { buildTagStats } from "@/lib/memories";
 import { IconMemories } from "@/components/icons/sidebar";
 import { useMemoryContext } from "@/contexts/MemoryContext";
+import { useMemoryFacets } from "@/hooks/useMemoryFacets";
 import { useMemoriesSearchParams } from "@/hooks/useMemoriesSearchParams";
 import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
 import { DetailEmptyState } from "@/components/_components/detail-panel/DetailEmptyState";
@@ -35,7 +36,8 @@ import { VmemSpinner } from "@/components/icons/animations";
 
 // tag rows view for /memories/tags
 export default function TagsListView() {
-  const { memories, isLoading, updateMemory } = useMemoryContext();
+  const { updateMemory } = useMemoryContext();
+  const { memories, isLoading } = useMemoryFacets({ enabled: true });
   const [params] = useMemoriesSearchParams();
 
   // the route already scopes memories to the active workspace

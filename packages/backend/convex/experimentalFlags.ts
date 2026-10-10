@@ -1,6 +1,6 @@
 import type { Doc } from "./_generated/dataModel";
 import type { Infer } from "convex/values";
-import {
+import type {
   experimentalFlagKeyValidator,
   resolvedExperimentalFlagsValidator,
 } from "./validators";

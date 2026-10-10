@@ -61,7 +61,7 @@ export function ExperimentalSettingsClient() {
           description="Skip page and list enters, chart draws, and panel motion. Hover marquees and loading UI stay on."
           action={
             <Switch
-              checked={flags.disablePageMotion === true}
+              checked={flags.disablePageMotion}
               onCheckedChange={(checked) =>
                 toggle("disablePageMotion", checked)
               }

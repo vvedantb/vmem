@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { OptimisticLocalStore } from "convex/browser";
-import { getFunctionName, type FunctionReference } from "convex/server";
+import {
+  getFunctionName,
+  type FunctionReference,
+  type FunctionReturnType,
+} from "convex/server";
 import { api } from "@vmem/backend";
 import {
   applyClearPollVotesOptimistic,
@@ -72,71 +76,159 @@ const sampleMemory = {
   tags: ["keep"],
 };
 
+const sampleSummary = {
+  id: "mem-1",
+  title: "Alpha",
+  preview: "hello world",
+  type: "knowledge" as const,
+  status: "active" as const,
+  source: "web",
+  sourceUrl: null,
+  sourceSyncedAt: null,
+  tags: ["keep"],
+  createdAt: "2026-01-01T00:00:00.000Z",
+  updatedAt: "2026-01-01T00:00:00.000Z",
+  profileId: "profile-1",
+};
+
+function summaryPage(
+  page: (typeof sampleSummary)[],
+): FunctionReturnType<typeof api.memoryApi.listSummaries> {
+  return { page, isDone: false, continueCursor: "c1" };
+}
+
 describe("memory list optimistic updates", () => {
-  const listArgs = {
+  const firstPageArgs = {
     profileId: "profile-1",
-    limit: 100,
-    offset: 0,
+    paginationOpts: { numItems: 40, cursor: null },
+  };
+  const secondPageArgs = {
+    profileId: "profile-1",
+    paginationOpts: { numItems: 40, cursor: "c1" },
+  };
+  const secondRow = { ...sampleSummary, id: "mem-2", title: "Beta" };
+  const newMemory = {
+    title: "New",
+    content: "body",
+    type: "knowledge" as const,
+    source: "web",
+    tags: [] as string[],
+    confidence: 1,
+    profileId: "profile-1",
   };
 
-  it("inserts a matching memory at offset 0 and bumps total", () => {
+  it("inserts a matching memory at the head of the first page only", () => {
     const store = createStore([
       {
-        query: api.memoryApi.list,
-        args: listArgs,
-        value: { memories: [sampleMemory], total: 1 },
+        query: api.memoryApi.listSummaries,
+        args: firstPageArgs,
+        value: summaryPage([sampleSummary]),
+      },
+      {
+        query: api.memoryApi.listSummaries,
+        args: secondPageArgs,
+        value: summaryPage([secondRow]),
       },
     ]);
-    insertMemoryInLists(store, {
-      title: "New",
-      content: "body",
-      type: "knowledge",
-      source: "web",
-      tags: [],
-      confidence: 1,
-      profileId: "profile-1",
-    });
-    const page = store.getQuery(api.memoryApi.list, listArgs);
-    expect(page?.total).toBe(2);
-    expect(page?.memories).toHaveLength(2);
-    expect(page?.memories[0]?.title).toBe("New");
+    insertMemoryInLists(store, newMemory);
+    const first = store.getQuery(api.memoryApi.listSummaries, firstPageArgs);
+    expect(first?.page.map((r) => r.title)).toEqual(["New", "Alpha"]);
+    expect(first?.page[0]?.preview).toBe("body");
+    const second = store.getQuery(api.memoryApi.listSummaries, secondPageArgs);
+    expect(second?.page).toHaveLength(1);
   });
 
-  it("patches title on list and get queries", () => {
+  it("skips lists whose filters the new memory does not match", () => {
+    const tagged = { ...firstPageArgs, tags: ["other"] };
+    const searched = { ...firstPageArgs, searchQuery: "zzz" };
+    const otherProfile = { ...firstPageArgs, profileId: "profile-2" };
     const store = createStore([
       {
-        query: api.memoryApi.list,
-        args: listArgs,
-        value: { memories: [sampleMemory], total: 1 },
+        query: api.memoryApi.listSummaries,
+        args: tagged,
+        value: summaryPage([]),
+      },
+      {
+        query: api.memoryApi.listSummaries,
+        args: searched,
+        value: summaryPage([]),
+      },
+      {
+        query: api.memoryApi.listSummaries,
+        args: otherProfile,
+        value: summaryPage([]),
+      },
+    ]);
+    insertMemoryInLists(store, newMemory);
+    for (const args of [tagged, searched, otherProfile]) {
+      expect(
+        store.getQuery(api.memoryApi.listSummaries, args)?.page,
+      ).toHaveLength(0);
+    }
+  });
+
+  it("patches title and tags on any loaded page and on get", () => {
+    const fullRow = { ...sampleMemory };
+    const store = createStore([
+      {
+        query: api.memoryApi.listSummaries,
+        args: secondPageArgs,
+        value: summaryPage([secondRow, sampleSummary]),
       },
       {
         query: api.memoryApi.get,
         args: { memoryId: "mem-1", profileId: "profile-1" },
-        value: sampleMemory,
+        value: fullRow,
       },
     ]);
     patchMemoryInLists(store, {
       memoryId: "mem-1",
       title: "Renamed",
+      content: "new   body",
+      tags: ["keep", "extra"],
       profileId: "profile-1",
     });
-    expect(
-      store.getQuery(api.memoryApi.list, listArgs)?.memories[0]?.title,
-    ).toBe("Renamed");
+    const page = store.getQuery(api.memoryApi.listSummaries, secondPageArgs);
+    expect(page?.page[1]).toMatchObject({
+      title: "Renamed",
+      preview: "new body",
+      tags: ["keep", "extra"],
+    });
+    expect(page?.page[0]?.title).toBe("Beta");
     expect(
       store.getQuery(api.memoryApi.get, {
         memoryId: "mem-1",
         profileId: "profile-1",
-      })?.title,
-    ).toBe("Renamed");
+      }),
+    ).toMatchObject({ title: "Renamed", content: "new   body" });
   });
 
-  it("removes a memory from list and get", () => {
+  it("drops an edited row out of a tag-filtered list", () => {
+    const tagged = { ...firstPageArgs, tags: ["keep"] };
     const store = createStore([
       {
-        query: api.memoryApi.list,
-        args: listArgs,
-        value: { memories: [sampleMemory], total: 1 },
+        query: api.memoryApi.listSummaries,
+        args: tagged,
+        value: summaryPage([sampleSummary]),
+      },
+    ]);
+    patchMemoryInLists(store, { memoryId: "mem-1", tags: ["other"] });
+    expect(store.getQuery(api.memoryApi.listSummaries, tagged)?.page).toEqual(
+      [],
+    );
+  });
+
+  it("removes a memory from every page and from get", () => {
+    const store = createStore([
+      {
+        query: api.memoryApi.listSummaries,
+        args: firstPageArgs,
+        value: summaryPage([sampleSummary]),
+      },
+      {
+        query: api.memoryApi.listSummaries,
+        args: secondPageArgs,
+        value: summaryPage([secondRow]),
       },
       {
         query: api.memoryApi.get,
@@ -145,10 +237,12 @@ describe("memory list optimistic updates", () => {
       },
     ]);
     removeMemoryFromLists(store, "mem-1");
-    expect(store.getQuery(api.memoryApi.list, listArgs)).toEqual({
-      memories: [],
-      total: 0,
-    });
+    expect(
+      store.getQuery(api.memoryApi.listSummaries, firstPageArgs)?.page,
+    ).toEqual([]);
+    expect(
+      store.getQuery(api.memoryApi.listSummaries, secondPageArgs)?.page,
+    ).toHaveLength(1);
     expect(store.getQuery(api.memoryApi.get, { memoryId: "mem-1" })).toBeNull();
   });
 });

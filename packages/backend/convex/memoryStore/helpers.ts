@@ -31,7 +31,12 @@ import {
   deleteEntitiesForMemory,
   deleteEntitiesForUser,
 } from "./entities";
-import { parseIsoMillis, toMemoryWithTags } from "./mappers";
+import {
+  parseIsoMillis,
+  toMemorySummary,
+  toMemoryWithTags,
+  type MemorySummary,
+} from "./mappers";
 import { trackMemoryChange, trackMemoryChanges } from "./stats";
 
 export interface CreateMemoryStoreParams {
@@ -254,6 +259,36 @@ export async function paginateScopedDocs(
       ? result.page.filter((row) => memoryMatchesScope(row, scope))
       : result.page;
   return asScopedDocPage(result, page);
+}
+
+export type MemorySummaryFilter = {
+  type?: string;
+  source?: string;
+  tags?: string[];
+  searchQuery?: string;
+};
+
+export type MemorySummaryPage = Omit<ScopedMemoryDocPage, "page"> & {
+  page: MemorySummary[];
+};
+
+// One bounded page of slim summaries, newest first. Filters run after the page
+// is read, so a filtered page can come back short (isDone tells the caller
+// whether to keep paging). Each page is its own reactive range, so a write only
+// re-runs the page it landed in.
+export async function paginateMemorySummaries(
+  ctx: QueryCtx | MutationCtx,
+  scope: MemoryReadScope,
+  paginationOpts: ScopedMemoryPaginationOpts,
+  filter: MemorySummaryFilter,
+): Promise<MemorySummaryPage> {
+  const result = await paginateScopedDocs(ctx, scope, paginationOpts);
+  return {
+    ...result,
+    page: result.page
+      .filter((doc) => memoryMatchesListFilter(doc, filter))
+      .map(toMemorySummary),
+  };
 }
 
 // Reactive list queries re-run on every write inside the range they read, so

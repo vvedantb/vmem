@@ -1,5 +1,6 @@
 import { useDeferredValue, useMemo, useState } from "react";
-import { useQuery } from "convex/react";
+import { useAction } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
 import { api } from "@vmem/backend";
 import { getGraphSettings, setGraphSettings } from "@/lib/graph-cookies";
 import { useGraphData } from "@/hooks/useGraphData";
@@ -56,17 +57,22 @@ export function useMemoryGraphController({
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const isSearchActive = searchQuery.length > 0;
 
-  const memorySearchResult = useQuery(
-    api.memoryApi.list,
-    enabled && deferredSearchQuery.length > 0
-      ? {
-          searchQuery: deferredSearchQuery,
-          profileId: activeProfileId,
-          limit: 500,
-          offset: 0,
-        }
-      : "skip",
-  );
+  // ids of memories whose full text matches; a one-shot slim read, not a
+  // reactive 500-row query (graph nodes carry no body to match against)
+  const listAllSummaries = useAction(api.memoryApi.listAllSummaries);
+  const memorySearchResult = useQuery({
+    queryKey: ["graph-memory-search", activeProfileId, deferredSearchQuery],
+    enabled: enabled && deferredSearchQuery.length > 0,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const result = await listAllSummaries({
+        searchQuery: deferredSearchQuery,
+        profileId: activeProfileId,
+        limit: 500,
+      });
+      return result.memories;
+    },
+  });
 
   // display prefs live in cookies because they are not shareable URL state
   const [graphSettings, setGraphSettingsState] =
@@ -131,7 +137,7 @@ export function useMemoryGraphController({
       }
     }
 
-    const memories = memorySearchResult?.memories;
+    const memories = memorySearchResult.data;
     if (memories) {
       for (const memory of memories) {
         if (visibleNodeIds.has(memory.id)) {

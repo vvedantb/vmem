@@ -4,13 +4,15 @@ import {
   memoryToListItem,
   type ListItem,
 } from "@/lib/list-items";
-import { useRecentMemories } from "@/hooks/useRecentMemories";
+import { useMemoryFacets } from "@/hooks/useMemoryFacets";
 import { useMemoryListSupplementaryItems } from "@/hooks/useMemoryListSupplementaryItems";
 import { useMemoriesSearchParams } from "@/hooks/useMemoriesSearchParams";
 
-export function useMemoryListFilterStats() {
+// `enabled` gates the (non-reactive) full-scope facet fetch: callers pass true
+// once the filter panel is opened, so the page never pays for it up front.
+export function useMemoryListFilterStats({ enabled }: { enabled: boolean }) {
   const [params] = useMemoriesSearchParams();
-  const { memories: allMemories } = useRecentMemories();
+  const { memories: allMemories } = useMemoryFacets({ enabled });
   const supplementaryItems = useMemoryListSupplementaryItems();
 
   const filters: MemoryViewFilterParams = {
