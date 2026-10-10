@@ -493,6 +493,36 @@ async function dispatch(
       const parsed = userIdArgsSchema.parse(args);
       return store.links.filter((_link) => parsed.userId === store.clerkId);
     }
+    case "memoryStore/functions:listMemoryLinksAroundInternal": {
+      const parsed = z
+        .object({
+          userId: z.string(),
+          seedIds: z.array(z.string()),
+          hops: z.number(),
+        })
+        .parse(args);
+      if (parsed.userId !== store.clerkId) return [];
+      const visited = new Set(parsed.seedIds);
+      const edges = new Set<(typeof store.links)[number]>();
+      let frontier = [...visited];
+      for (let hop = 0; hop < parsed.hops && frontier.length > 0; hop += 1) {
+        const next: string[] = [];
+        for (const link of store.links) {
+          const touches =
+            frontier.includes(link.sourceId) ||
+            frontier.includes(link.targetId);
+          if (!touches) continue;
+          edges.add(link);
+          for (const id of [link.sourceId, link.targetId]) {
+            if (visited.has(id)) continue;
+            visited.add(id);
+            next.push(id);
+          }
+        }
+        frontier = next;
+      }
+      return [...edges];
+    }
     case "memoryStore/functions:collectScopedMemoriesInternal": {
       const parsed = paginateScopedArgsSchema
         .pick({ kind: true, userId: true, profileId: true })

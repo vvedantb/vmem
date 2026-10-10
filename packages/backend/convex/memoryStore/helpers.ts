@@ -927,3 +927,86 @@ export async function listMemoryLinksForUser(
     reason: row.reason,
   }));
 }
+
+export const LINK_EXPANSION_PER_NODE = 16;
+export const LINK_EXPANSION_MAX_EDGES = 1_000;
+export const LINK_EXPANSION_MAX_SEEDS = 400;
+export const LINK_EXPANSION_MAX_HOPS = 3;
+
+type LinkEdgeRow = Pick<Doc<"memoryLinks">, "sourceId" | "targetId" | "reason">;
+
+async function listIncidentLinks(
+  ctx: QueryCtx | MutationCtx,
+  userId: string,
+  memoryId: string,
+  perNode: number,
+): Promise<LinkEdgeRow[]> {
+  const [asSource, asTarget] = await Promise.all([
+    ctx.db
+      .query("memoryLinks")
+      .withIndex("by_user_source", (q) =>
+        q.eq("userId", userId).eq("sourceId", memoryId),
+      )
+      .take(perNode),
+    ctx.db
+      .query("memoryLinks")
+      .withIndex("by_user_target", (q) =>
+        q.eq("userId", userId).eq("targetId", memoryId),
+      )
+      .take(perNode),
+  ]);
+  return [...asSource, ...asTarget];
+}
+
+// Bounded replacement for listMemoryLinksForUser on the retrieve path: walks
+// outward from the seed memories with indexed per-node lookups, so the bytes
+// read scale with the neighbourhood of the hits, not with the user's total
+// number of links.
+export async function listMemoryLinksAround(
+  ctx: QueryCtx | MutationCtx,
+  params: {
+    userId: string;
+    seedIds: readonly string[];
+    hops: number;
+    perNode?: number;
+    maxEdges?: number;
+  },
+): Promise<MemoryLinkEdge[]> {
+  const perNode = Math.max(1, params.perNode ?? LINK_EXPANSION_PER_NODE);
+  const maxEdges = Math.max(1, params.maxEdges ?? LINK_EXPANSION_MAX_EDGES);
+  const hops = Math.min(Math.max(0, params.hops), LINK_EXPANSION_MAX_HOPS);
+  const visited = new Set<string>(
+    params.seedIds.slice(0, LINK_EXPANSION_MAX_SEEDS),
+  );
+  const edges = new Map<string, MemoryLinkEdge>();
+  let frontier = [...visited];
+  for (let hop = 0; hop < hops && frontier.length > 0; hop += 1) {
+    const next: string[] = [];
+    for (const memoryId of frontier) {
+      if (edges.size >= maxEdges) return [...edges.values()];
+      const rows = await listIncidentLinks(
+        ctx,
+        params.userId,
+        memoryId,
+        perNode,
+      );
+      for (const row of rows) {
+        const key = `${row.sourceId}|${row.targetId}`;
+        if (edges.has(key)) continue;
+        if (edges.size >= maxEdges) break;
+        edges.set(key, {
+          sourceId: row.sourceId,
+          targetId: row.targetId,
+          reason: row.reason,
+        });
+        for (const neighbor of [row.sourceId, row.targetId]) {
+          if (visited.has(neighbor)) continue;
+          visited.add(neighbor);
+          next.push(neighbor);
+        }
+      }
+    }
+    frontier = next;
+  }
+  return [...edges.values()];
+}
