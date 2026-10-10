@@ -155,6 +155,8 @@ const schema = defineSchema({
     .index("by_memory_id", ["memoryId"])
     .index("by_user_created", ["userId", "createdAt"])
     .index("by_profile_created", ["profileId", "createdAt"])
+    // connector upserts look a memory up by its external source id
+    .index("by_user_source", ["userId", "sourceType", "sourceId"])
     .searchIndex("search_text", {
       searchField: "searchableText",
       filterFields: ["userId", "profileId"],
