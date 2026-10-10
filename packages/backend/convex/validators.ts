@@ -60,6 +60,34 @@ export const memoryEmbeddingFields = {
   embedding: v.array(v.float64()),
 };
 
+export const memoryStatKindValidator = v.union(
+  v.literal("total"),
+  v.literal("day"),
+  v.literal("tag"),
+);
+
+// Incrementally maintained dashboard counters. One row per
+// (userId, profileId, kind, key, shard); `key` is "" for totals, the UTC ISO
+// date for days and the tag for tags. Shards spread concurrent writers so a
+// bulk import does not serialise on a single counter row.
+export const memoryStatCounterFields = {
+  userId: v.string(),
+  profileId: v.optional(v.string()),
+  kind: memoryStatKindValidator,
+  key: v.string(),
+  shard: v.number(),
+  count: v.number(),
+};
+
+// Single row. Counters only track a memory once it is covered: docs created
+// after `trackingSince` are tracked live, older docs once the backfill has
+// passed them (`backfilledThrough`), and everything once `ready`.
+export const memoryStatsMetaFields = {
+  trackingSince: v.number(),
+  backfilledThrough: v.number(),
+  ready: v.boolean(),
+};
+
 export const memoryLinkOriginValidator = v.union(
   v.literal("manual"),
   v.literal("entity"),

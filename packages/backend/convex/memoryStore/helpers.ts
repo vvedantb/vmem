@@ -32,6 +32,7 @@ import {
   deleteEntitiesForUser,
 } from "./entities";
 import { parseIsoMillis, toMemoryWithTags } from "./mappers";
+import { trackMemoryChange, trackMemoryChanges } from "./stats";
 
 export interface CreateMemoryStoreParams {
   memoryId?: string;
@@ -258,6 +259,70 @@ export async function paginateScopedDocs(
   return asScopedDocPage(result, page);
 }
 
+// Reactive list queries re-run on every write inside the range they read, so
+// they must never read the whole scope. Bounds: at most this many rows scanned
+// and this many (approximate) bytes read per evaluation.
+export const BOUNDED_LIST_MAX_SCAN = 6_000;
+export const BOUNDED_LIST_MAX_BYTES = 8 * 1024 * 1024;
+
+function approxDocBytes(doc: Doc<"memories">): number {
+  return (
+    doc.title.length +
+    doc.content.length +
+    (doc.searchableText?.length ?? 0) +
+    doc.tags.join(",").length +
+    512
+  );
+}
+
+// Newest-first scan that stops as soon as `offset + limit + 1` rows pass the
+// filter, so cost follows the page requested rather than the table size.
+// `total` is exact when the scope is exhausted and otherwise a lower bound of
+// `offset + limit + 1` (enough for "is there another page" checks).
+export async function listMemoriesBounded(
+  ctx: QueryCtx | MutationCtx,
+  scope: MemoryReadScope,
+  params: ListMemoryStoreParams,
+): Promise<MemoryListStoreResult> {
+  const offset = Math.max(0, params.offset);
+  const limit = Math.max(0, params.limit);
+  const want = offset + limit + 1;
+  const ordered =
+    scope.kind === "team"
+      ? ctx.db
+          .query("memories")
+          .withIndex("by_profile_created", (q) =>
+            q.eq("profileId", scope.profileId),
+          )
+          .order("desc")
+      : ctx.db
+          .query("memories")
+          .withIndex("by_user_created", (q) => q.eq("userId", scope.userId))
+          .order("desc");
+
+  const matched: Array<Doc<"memories">> = [];
+  let scanned = 0;
+  let bytes = 0;
+  for await (const doc of ordered) {
+    scanned += 1;
+    bytes += approxDocBytes(doc);
+    if (
+      memoryMatchesScope(doc, scope) &&
+      memoryMatchesListFilter(doc, params)
+    ) {
+      matched.push(doc);
+      if (matched.length >= want) break;
+    }
+    if (scanned >= BOUNDED_LIST_MAX_SCAN || bytes >= BOUNDED_LIST_MAX_BYTES) {
+      break;
+    }
+  }
+  return {
+    memories: matched.slice(offset, offset + limit).map(toMemoryWithTags),
+    total: matched.length,
+  };
+}
+
 async function listScopedDocs(
   ctx: QueryCtx | MutationCtx,
   scope: MemoryReadScope,
@@ -361,6 +426,7 @@ export async function createMemory(
 
   const created = await ctx.db.get(id);
   if (!created) throw new Error("Failed to create memory");
+  await trackMemoryChange(ctx, null, created);
   await applyFallbackEntityExtraction(ctx, created);
   return toMemoryWithTags(created);
 }
@@ -409,6 +475,10 @@ export async function listMemoriesForTeam(
 ): Promise<MemoryListStoreResult> {
   const docs = await listScopedDocs(ctx, { kind: "team", profileId });
   return pageFiltered(docs, params);
+}
+
+function sameTags(a: readonly string[], b: readonly string[]): boolean {
+  return a.length === b.length && a.every((tag, index) => tag === b[index]);
 }
 
 async function applyMemoryUpdates(
@@ -489,6 +559,9 @@ async function applyMemoryUpdates(
 
   const updated = await findByMemoryId(ctx, doc.memoryId);
   if (!updated) return null;
+  if (!sameTags(doc.tags, updated.tags)) {
+    await trackMemoryChange(ctx, doc, updated);
+  }
   if (contentChanged) {
     await applyFallbackEntityExtraction(ctx, updated);
   }
@@ -616,6 +689,7 @@ export async function deleteMemory(
   await deleteEntitiesForMemory(ctx, userId, memoryId);
   await deleteLinksForMemory(ctx, userId, memoryId);
   await deleteMemoryEmbedding(ctx, doc._id);
+  await trackMemoryChange(ctx, doc, null);
   await ctx.db.delete(doc._id);
   return true;
 }
@@ -632,6 +706,7 @@ export async function deleteTeamMemoryAsOwner(
   await deleteEntitiesForMemory(ctx, doc.userId, memoryId);
   await deleteLinksForMemory(ctx, doc.userId, memoryId);
   await deleteMemoryEmbedding(ctx, doc._id);
+  await trackMemoryChange(ctx, doc, null);
   await ctx.db.delete(doc._id);
   return true;
 }
@@ -646,6 +721,10 @@ export async function deleteMemoriesForUser(
     .collect();
   await deleteEntitiesForUser(ctx, userId);
   await deleteLinksForUser(ctx, userId);
+  await trackMemoryChanges(
+    ctx,
+    docs.map((doc) => ({ before: doc, after: null })),
+  );
   for (const doc of docs) {
     await deleteMemoryEmbedding(ctx, doc._id);
     await ctx.db.delete(doc._id);
@@ -661,6 +740,10 @@ export async function deleteMemoriesByProfile(
     .query("memories")
     .withIndex("by_profile_created", (q) => q.eq("profileId", profileId))
     .collect();
+  await trackMemoryChanges(
+    ctx,
+    docs.map((doc) => ({ before: doc, after: null })),
+  );
   for (const doc of docs) {
     await deleteMemoryEmbedding(ctx, doc._id);
     await ctx.db.delete(doc._id);
@@ -677,6 +760,13 @@ export async function reassignMemoriesProfile(
     .query("memories")
     .withIndex("by_profile_created", (q) => q.eq("profileId", fromProfileId))
     .collect();
+  await trackMemoryChanges(
+    ctx,
+    docs.map((doc) => ({
+      before: doc,
+      after: { ...doc, profileId: toProfileId },
+    })),
+  );
   for (const doc of docs) {
     await ctx.db.patch(doc._id, { profileId: toProfileId });
     await syncEmbeddingScope(ctx, doc._id, { profileId: toProfileId });
@@ -695,14 +785,18 @@ export async function deleteMemoriesBySourceTypes(
     .query("memories")
     .withIndex("by_user_created", (q) => q.eq("userId", userId))
     .collect();
-  let deleted = 0;
-  for (const doc of docs) {
-    if (doc.sourceType === undefined || !wanted.has(doc.sourceType)) continue;
+  const doomed = docs.filter(
+    (doc) => doc.sourceType !== undefined && wanted.has(doc.sourceType),
+  );
+  await trackMemoryChanges(
+    ctx,
+    doomed.map((doc) => ({ before: doc, after: null })),
+  );
+  for (const doc of doomed) {
     await deleteMemoryEmbedding(ctx, doc._id);
     await ctx.db.delete(doc._id);
-    deleted += 1;
   }
-  return deleted;
+  return doomed.length;
 }
 
 export async function upsertMemoryFromSource(

@@ -108,3 +108,49 @@ export function computeDashboardStats(
   for (const row of rows) addDashboardStatRow(acc, row);
   return finishDashboardStats(acc);
 }
+
+export type DashboardStatCounts = {
+  total: number;
+  // memories created per UTC day (ISO date), only days inside the 30 day window
+  // plus any future-dated ones are required
+  days: ReadonlyMap<string, number>;
+  tags: ReadonlySet<string>;
+};
+
+export const STATS_WINDOW_DAYS = 30;
+
+// first ISO day a counter read has to cover so every window below is exact
+export function statsWindowStartIso(now: number): string {
+  const todayStart = startOfUtcDay(now);
+  return isoDateUtc(todayStart - (STATS_WINDOW_DAYS - 1) * 24 * 60 * 60 * 1000);
+}
+
+// Same result shape as the row walk, built from maintained counters. "This
+// week" / "this month" are the last 7 / 30 UTC days including today (the same
+// window the growth chart uses) rather than a rolling 168h / 720h.
+export function dashboardStatsFromCounts(
+  counts: DashboardStatCounts,
+  now: number = Date.now(),
+): DashboardStatsResult {
+  const acc = createDashboardStatsAcc(now);
+  const dayMs = 24 * 60 * 60 * 1000;
+  const todayIso = isoDateUtc(acc.todayStart);
+  const weekIso = isoDateUtc(acc.todayStart - 6 * dayMs);
+  const monthIso = statsWindowStartIso(now);
+  let inGrowthWindow = 0;
+  for (const [iso, count] of counts.days) {
+    if (count <= 0) continue;
+    if (iso >= todayIso) acc.memoriesAddedToday += count;
+    if (iso >= weekIso) acc.memoriesThisWeek += count;
+    if (iso >= monthIso) acc.memoriesThisMonth += count;
+    if (iso >= isoDateUtc(acc.dayStart)) {
+      inGrowthWindow += count;
+      const current = acc.dailyNew.get(iso);
+      if (current !== undefined) acc.dailyNew.set(iso, current + count);
+    }
+  }
+  acc.totalMemories = counts.total;
+  acc.baseline = Math.max(0, counts.total - inGrowthWindow);
+  acc.tags = new Set(counts.tags);
+  return finishDashboardStats(acc);
+}

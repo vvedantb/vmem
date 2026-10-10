@@ -77,6 +77,11 @@ const paginateScopedArgsSchema = z.object({
   numItems: z.number(),
 });
 const userIdArgsSchema = z.object({ userId: z.string() });
+const linksAroundArgsSchema = z.object({
+  userId: z.string(),
+  seedIds: z.array(z.string()),
+  hops: z.number(),
+});
 const skillListArgsSchema = z.object({
   clerkId: z.string(),
   scope: z.enum(["personal", "team"]).optional(),
@@ -494,13 +499,7 @@ async function dispatch(
       return store.links.filter((_link) => parsed.userId === store.clerkId);
     }
     case "memoryStore/functions:listMemoryLinksAroundInternal": {
-      const parsed = z
-        .object({
-          userId: z.string(),
-          seedIds: z.array(z.string()),
-          hops: z.number(),
-        })
-        .parse(args);
+      const parsed = linksAroundArgsSchema.parse(args);
       if (parsed.userId !== store.clerkId) return [];
       const visited = new Set(parsed.seedIds);
       const edges = new Set<(typeof store.links)[number]>();

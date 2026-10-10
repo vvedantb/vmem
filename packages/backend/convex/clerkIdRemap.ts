@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { internalMutation } from "./_generated/server";
+import { trackMemoryChanges } from "./memoryStore/stats";
 
 // ONE-OFF: remap a Clerk user id after switching Clerk instances.
 // Memory data is keyed by the Clerk id string (not users._id), so patching only
@@ -49,6 +50,13 @@ export const remapClerkId = internalMutation({
       .take(BATCH);
     moved.memories = memories.length;
     if (!dryRun) {
+      await trackMemoryChanges(
+        ctx,
+        memories.map((r) => ({
+          before: r,
+          after: { ...r, userId: toClerkId },
+        })),
+      );
       for (const r of memories) {
         await ctx.db.patch(r._id, { userId: toClerkId });
         const emb = await ctx.db

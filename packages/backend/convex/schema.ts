@@ -22,6 +22,8 @@ import {
   contextPromptCacheFields,
   memoryFields,
   memoryEmbeddingFields,
+  memoryStatCounterFields,
+  memoryStatsMetaFields,
   memoryLinkFields,
   memoryEntityFields,
   memoryEntityMentionFields,
@@ -177,6 +179,13 @@ const schema = defineSchema({
       dimensions: MEMORY_EMBEDDING_DIMENSIONS,
       filterFields: ["userId", "profileId"],
     }),
+
+  memoryStatCounters: defineTable(memoryStatCounterFields)
+    .index("by_bucket", ["userId", "profileId", "kind", "key", "shard"])
+    .index("by_user_kind_key", ["userId", "kind", "key"])
+    .index("by_profile_kind_key", ["profileId", "kind", "key"]),
+
+  memoryStatsMeta: defineTable(memoryStatsMetaFields),
 
   memoryLinks: defineTable(memoryLinkFields)
     .index("by_user", ["userId"])

@@ -103,6 +103,7 @@ import type * as memoryEmbed from "../memoryEmbed.js";
 import type * as memoryEvents from "../memoryEvents.js";
 import type * as memoryExtract from "../memoryExtract.js";
 import type * as memoryRuntime from "../memoryRuntime.js";
+import type * as memoryStats from "../memoryStats.js";
 import type * as memoryScope from "../memoryScope.js";
 import type * as memoryStore_entities from "../memoryStore/entities.js";
 import type * as memoryStore_functions from "../memoryStore/functions.js";
@@ -243,6 +244,7 @@ declare const fullApi: ApiFromModules<{
   memoryEvents: typeof memoryEvents;
   memoryExtract: typeof memoryExtract;
   memoryRuntime: typeof memoryRuntime;
+  memoryStats: typeof memoryStats;
   memoryScope: typeof memoryScope;
   "memoryStore/entities": typeof memoryStore_entities;
   "memoryStore/functions": typeof memoryStore_functions;
