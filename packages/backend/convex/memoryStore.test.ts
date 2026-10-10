@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { internal } from "./_generated/api";
 import schema from "./schema";
 import { toMemoryCandidate } from "../engine/memory/retrieve";
@@ -1131,53 +1131,6 @@ describe("convex memoryStore", () => {
         { profileId: "profile_moved" },
       );
       expect(await embeddingRows(t)).toHaveLength(0);
-    });
-
-    it("backfills legacy inline embeddings in batches", async () => {
-      const t = convexTest(schema, modules);
-      for (let i = 0; i < 5; i += 1) {
-        await t.mutation(internal.memoryStore.functions.createMemoryInternal, {
-          ...createArgs({
-            memoryId: `legacy-${String(i)}`,
-            title: `L${String(i)}`,
-          }),
-        });
-      }
-      await t.run(async (ctx) => {
-        const docs = await ctx.db.query("memories").collect();
-        for (const [i, doc] of docs.entries()) {
-          // leave one row without a vector to prove it is skipped
-          if (i === 0) continue;
-          await ctx.db.patch(doc._id, { embedding: vec(i) });
-        }
-      });
-
-      vi.useFakeTimers();
-      try {
-        // batchSize 2 forces several self-rescheduled pages
-        await t.mutation(
-          internal.memoryStore.functions.backfillMemoryEmbeddingsInternal,
-          { batchSize: 2 },
-        );
-        await t.finishAllScheduledFunctions(vi.runAllTimers);
-      } finally {
-        vi.useRealTimers();
-      }
-      expect(await embeddingRows(t)).toHaveLength(4);
-      const left = await t.run(async (ctx) =>
-        (await ctx.db.query("memories").collect()).filter(
-          (d) => d.embedding !== undefined,
-        ),
-      );
-      expect(left).toHaveLength(0);
-
-      // idempotent re-run
-      const rerun = await t.mutation(
-        internal.memoryStore.functions.backfillMemoryEmbeddingsInternal,
-        { cursor: null, batchSize: 50 },
-      );
-      expect(rerun.migrated).toBe(0);
-      expect(await embeddingRows(t)).toHaveLength(4);
     });
   });
 

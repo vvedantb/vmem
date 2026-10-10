@@ -171,7 +171,8 @@ const schema = defineSchema({
     }),
 
   // embedding vectors live here (not on `memories`) so reads of memory rows
-  // stay small; `memories.embedding` is legacy and only read until backfilled
+  // stay small; `memories.embedding` is legacy: no code reads or writes it and
+  // no row carries it (field + index are removed in the follow-up schema PR)
   memoryEmbeddings: defineTable(memoryEmbeddingFields)
     .index("by_memory_doc", ["memoryDocId"])
     .vectorIndex("by_embedding", {

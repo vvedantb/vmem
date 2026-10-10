@@ -156,8 +156,8 @@ async function findEmbeddingRow(
     .first();
 }
 
-/** Writes the vector to `memoryEmbeddings` and clears the legacy inline copy. */
-export async function upsertMemoryEmbedding(
+/** Writes the vector to `memoryEmbeddings` (the only home for vectors). */
+async function upsertMemoryEmbedding(
   ctx: MutationCtx,
   doc: Doc<"memories">,
   embedding: number[],
@@ -176,9 +176,6 @@ export async function upsertMemoryEmbedding(
       ...(doc.profileId === undefined ? {} : { profileId: doc.profileId }),
       embedding,
     });
-  }
-  if (doc.embedding !== undefined) {
-    await ctx.db.patch(doc._id, { embedding: undefined });
   }
 }
 
@@ -880,18 +877,6 @@ export async function searchMemoriesText(
       out.push({ memory: toMemoryWithTags(doc), rank: out.length + 1 });
       if (out.length >= limit) return out;
     }
-  }
-  return out;
-}
-
-export async function getMemoriesByDocIds(
-  ctx: QueryCtx,
-  ids: Array<Id<"memories">>,
-): Promise<Array<MemoryWithTags | null>> {
-  const out: Array<MemoryWithTags | null> = [];
-  for (const id of ids) {
-    const doc = await ctx.db.get(id);
-    out.push(doc ? toMemoryWithTags(doc) : null);
   }
   return out;
 }
