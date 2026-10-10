@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { authAction, authMutation, requireClerkId } from "./auth";
+import { authAction, authMutation, authQuery, requireClerkId } from "./auth";
 import { routeMemoryByProfile } from "./memoryApi/routing";
 import {
   runDeleteTeamMemory,
@@ -22,6 +22,15 @@ import {
   updateMemoryFields,
 } from "./memoryApi/validators";
 import {
+  memoryListResultValidator,
+  memoryWithTagsValidator,
+  runCreate,
+  runGet,
+  runList,
+  runRemove,
+  runUpdate,
+} from "./memoryApi/client";
+import {
   createMemoryForClerk,
   deleteMemoryForClerk,
   getMemoryForClerk,
@@ -30,6 +39,42 @@ import {
   retrieveMemoriesForTeamProfile,
   updateMemoryForClerk,
 } from "./memoryRuntime";
+
+export const list = authQuery({
+  args: listMemoriesFields,
+  returns: memoryListResultValidator,
+  handler: async (ctx, args) => runList(ctx, args),
+});
+
+export const get = authQuery({
+  args: {
+    memoryId: v.string(),
+    profileId: profileIdOptional,
+  },
+  returns: v.union(memoryWithTagsValidator, v.null()),
+  handler: async (ctx, args) => runGet(ctx, args),
+});
+
+export const create = authMutation({
+  args: createMemoryFields,
+  returns: memoryWithTagsValidator,
+  handler: async (ctx, args) => runCreate(ctx, args),
+});
+
+export const update = authMutation({
+  args: updateMemoryFields,
+  returns: v.union(memoryWithTagsValidator, v.null()),
+  handler: async (ctx, args) => runUpdate(ctx, args),
+});
+
+export const remove = authMutation({
+  args: {
+    memoryId: v.string(),
+    profileId: profileIdOptional,
+  },
+  returns: v.boolean(),
+  handler: async (ctx, args) => runRemove(ctx, args),
+});
 
 export const generateMemoryUploadUrl = authMutation({
   args: {},

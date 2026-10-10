@@ -8,6 +8,11 @@ import { api } from "@vmem/backend";
 import { memoryFromApi, type Memory } from "@/lib/memories";
 import { parseConvexStorageUpload } from "@/lib/schemas";
 import { useActiveProfileId } from "@/components/workspace/active-profile";
+import {
+  insertMemoryInLists,
+  patchMemoryInLists,
+  removeMemoryFromLists,
+} from "@/lib/convex-optimistic";
 
 export interface CreateMemoryInput {
   title: string;
@@ -33,9 +38,21 @@ export function useMemoryMutations() {
   const { isAuthenticated } = useConvexAuth();
   const queryClient = useQueryClient();
   const activeProfileId = useActiveProfileId();
-  const createMemoryAction = useAction(api.memoryApi.createMemory);
-  const updateMemoryAction = useAction(api.memoryApi.updateMemory);
-  const deleteMemoryAction = useAction(api.memoryApi.deleteMemory);
+  const createMemoryMutation = useConvexMutation(
+    api.memoryApi.create,
+  ).withOptimisticUpdate((localStore, args) => {
+    insertMemoryInLists(localStore, args);
+  });
+  const updateMemoryMutation = useConvexMutation(
+    api.memoryApi.update,
+  ).withOptimisticUpdate((localStore, args) => {
+    patchMemoryInLists(localStore, args);
+  });
+  const deleteMemoryMutation = useConvexMutation(
+    api.memoryApi.remove,
+  ).withOptimisticUpdate((localStore, args) => {
+    removeMemoryFromLists(localStore, args.memoryId);
+  });
   const generateUploadUrl = useConvexMutation(
     api.memoryApi.generateMemoryUploadUrl,
   );
@@ -48,41 +65,6 @@ export function useMemoryMutations() {
     void queryClient.invalidateQueries({ queryKey: ["graph"] });
     void queryClient.invalidateQueries({ queryKey: ["graph-memory-search"] });
   };
-
-  const createMutation = useMutation({
-    mutationFn: async (input: CreateMemoryInput): Promise<Memory> => {
-      const created = await createMemoryAction({
-        title: input.title.trim(),
-        content: input.content.trim(),
-        type: "knowledge",
-        source: "web",
-        tags: input.tags ?? [],
-        confidence: 1.0,
-        profileId: input.profileId ?? activeProfileId,
-      });
-      return memoryFromApi(created);
-    },
-    onSettled: invalidateMemories,
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async (
-      input: UpdateMemoryInput,
-    ): Promise<{ memory: Memory; id: string }> => {
-      const apiMemory = await updateMemoryAction({
-        memoryId: input.id,
-        title: input.title,
-        content: input.content,
-        tags: input.tags,
-        profileId: input.profileId ?? activeProfileId,
-      });
-      if (apiMemory === null) {
-        throw new Error("Memory not found");
-      }
-      return { memory: memoryFromApi(apiMemory), id: input.id };
-    },
-    onSettled: invalidateMemories,
-  });
 
   const uploadMutation = useMutation({
     mutationFn: async (input: UploadMemoryFileInput): Promise<Memory> => {
@@ -114,31 +96,44 @@ export function useMemoryMutations() {
     onSettled: invalidateMemories,
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string): Promise<string> => {
-      await deleteMemoryAction({
-        memoryId: id,
-        profileId: activeProfileId,
-      });
-      return id;
-    },
-    onSettled: invalidateMemories,
-  });
-
   const createMemory = async (input: CreateMemoryInput): Promise<Memory> => {
     if (!isAuthenticated) throw new Error("Not authenticated");
-    return createMutation.mutateAsync(input);
+    const created = await createMemoryMutation({
+      title: input.title.trim(),
+      content: input.content.trim(),
+      type: "knowledge",
+      source: "web",
+      tags: input.tags ?? [],
+      confidence: 1.0,
+      profileId: input.profileId ?? activeProfileId,
+    });
+    invalidateMemories();
+    return memoryFromApi(created);
   };
 
   const updateMemory = async (input: UpdateMemoryInput): Promise<Memory> => {
     if (!isAuthenticated) throw new Error("Not authenticated");
-    const result = await updateMutation.mutateAsync(input);
-    return result.memory;
+    const apiMemory = await updateMemoryMutation({
+      memoryId: input.id,
+      title: input.title,
+      content: input.content,
+      tags: input.tags,
+      profileId: input.profileId ?? activeProfileId,
+    });
+    if (apiMemory === null) {
+      throw new Error("Memory not found");
+    }
+    invalidateMemories();
+    return memoryFromApi(apiMemory);
   };
 
   const deleteMemory = async (id: string): Promise<boolean> => {
     if (!isAuthenticated) throw new Error("Not authenticated");
-    await deleteMutation.mutateAsync(id);
+    await deleteMemoryMutation({
+      memoryId: id,
+      profileId: activeProfileId,
+    });
+    invalidateMemories();
     return true;
   };
 
