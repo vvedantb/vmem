@@ -145,6 +145,60 @@ async function findByMemoryId(
     .first();
 }
 
+async function findEmbeddingRow(
+  ctx: QueryCtx | MutationCtx,
+  memoryDocId: Id<"memories">,
+): Promise<Doc<"memoryEmbeddings"> | null> {
+  return await ctx.db
+    .query("memoryEmbeddings")
+    .withIndex("by_memory_doc", (q) => q.eq("memoryDocId", memoryDocId))
+    .first();
+}
+
+/** Writes the vector to `memoryEmbeddings` and clears the legacy inline copy. */
+export async function upsertMemoryEmbedding(
+  ctx: MutationCtx,
+  doc: Doc<"memories">,
+  embedding: number[],
+): Promise<void> {
+  const existing = await findEmbeddingRow(ctx, doc._id);
+  if (existing) {
+    await ctx.db.patch(existing._id, {
+      embedding,
+      userId: doc.userId,
+      profileId: doc.profileId,
+    });
+  } else {
+    await ctx.db.insert("memoryEmbeddings", {
+      memoryDocId: doc._id,
+      userId: doc.userId,
+      ...(doc.profileId === undefined ? {} : { profileId: doc.profileId }),
+      embedding,
+    });
+  }
+  if (doc.embedding !== undefined) {
+    await ctx.db.patch(doc._id, { embedding: undefined });
+  }
+}
+
+async function deleteMemoryEmbedding(
+  ctx: MutationCtx,
+  memoryDocId: Id<"memories">,
+): Promise<void> {
+  const row = await findEmbeddingRow(ctx, memoryDocId);
+  if (row) await ctx.db.delete(row._id);
+}
+
+/** Keeps the vector index scope filters in step with the memory row. */
+async function syncEmbeddingScope(
+  ctx: MutationCtx,
+  memoryDocId: Id<"memories">,
+  scope: { userId?: string; profileId?: string },
+): Promise<void> {
+  const row = await findEmbeddingRow(ctx, memoryDocId);
+  if (row) await ctx.db.patch(row._id, scope);
+}
+
 export const SCOPED_MEMORY_PAGE_SIZE = 24;
 
 export type ScopedMemoryPaginationOpts = {
@@ -561,6 +615,7 @@ export async function deleteMemory(
   if (!doc || doc.userId !== userId) return false;
   await deleteEntitiesForMemory(ctx, userId, memoryId);
   await deleteLinksForMemory(ctx, userId, memoryId);
+  await deleteMemoryEmbedding(ctx, doc._id);
   await ctx.db.delete(doc._id);
   return true;
 }
@@ -576,6 +631,7 @@ export async function deleteTeamMemoryAsOwner(
   }
   await deleteEntitiesForMemory(ctx, doc.userId, memoryId);
   await deleteLinksForMemory(ctx, doc.userId, memoryId);
+  await deleteMemoryEmbedding(ctx, doc._id);
   await ctx.db.delete(doc._id);
   return true;
 }
@@ -591,6 +647,7 @@ export async function deleteMemoriesForUser(
   await deleteEntitiesForUser(ctx, userId);
   await deleteLinksForUser(ctx, userId);
   for (const doc of docs) {
+    await deleteMemoryEmbedding(ctx, doc._id);
     await ctx.db.delete(doc._id);
   }
   return docs.length;
@@ -605,6 +662,7 @@ export async function deleteMemoriesByProfile(
     .withIndex("by_profile_created", (q) => q.eq("profileId", profileId))
     .collect();
   for (const doc of docs) {
+    await deleteMemoryEmbedding(ctx, doc._id);
     await ctx.db.delete(doc._id);
   }
   return docs.length;
@@ -621,6 +679,7 @@ export async function reassignMemoriesProfile(
     .collect();
   for (const doc of docs) {
     await ctx.db.patch(doc._id, { profileId: toProfileId });
+    await syncEmbeddingScope(ctx, doc._id, { profileId: toProfileId });
   }
   return docs.length;
 }
@@ -639,6 +698,7 @@ export async function deleteMemoriesBySourceTypes(
   let deleted = 0;
   for (const doc of docs) {
     if (doc.sourceType === undefined || !wanted.has(doc.sourceType)) continue;
+    await deleteMemoryEmbedding(ctx, doc._id);
     await ctx.db.delete(doc._id);
     deleted += 1;
   }
@@ -757,7 +817,7 @@ export async function patchMemoryEmbedding(
 ): Promise<boolean> {
   const doc = await findByMemoryId(ctx, memoryId);
   if (!doc) return false;
-  await ctx.db.patch(doc._id, { embedding });
+  await upsertMemoryEmbedding(ctx, doc, embedding);
   return true;
 }
 

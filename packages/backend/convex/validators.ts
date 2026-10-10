@@ -49,6 +49,17 @@ export const memoryFields = {
   temporalKind: v.optional(v.union(zodToConvex(temporalKindSchema), v.null())),
 };
 
+// Vector payload split out of `memories`: a 1536-dim float64 array is ~85% of a
+// memory row's bytes, and every list/stats/dream walk of `memories` was billed
+// for it. One row per memory, keyed by `memoryDocId`. userId/profileId are
+// copied from the memory so the vector index can filter on scope.
+export const memoryEmbeddingFields = {
+  memoryDocId: v.id("memories"),
+  userId: v.string(),
+  profileId: v.optional(v.string()),
+  embedding: v.array(v.float64()),
+};
+
 export const memoryLinkOriginValidator = v.union(
   v.literal("manual"),
   v.literal("entity"),
