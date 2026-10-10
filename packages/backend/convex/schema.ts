@@ -163,16 +163,10 @@ const schema = defineSchema({
     .searchIndex("search_text", {
       searchField: "searchableText",
       filterFields: ["userId", "profileId"],
-    })
-    .vectorIndex("by_embedding", {
-      vectorField: "embedding",
-      dimensions: MEMORY_EMBEDDING_DIMENSIONS,
-      filterFields: ["userId", "profileId"],
     }),
 
   // embedding vectors live here (not on `memories`) so reads of memory rows
-  // stay small; `memories.embedding` is legacy: no code reads or writes it and
-  // no row carries it (field + index are removed in the follow-up schema PR)
+  // stay small
   memoryEmbeddings: defineTable(memoryEmbeddingFields)
     .index("by_memory_doc", ["memoryDocId"])
     .vectorIndex("by_embedding", {

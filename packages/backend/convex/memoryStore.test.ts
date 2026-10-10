@@ -1076,7 +1076,7 @@ describe("convex memoryStore", () => {
       const memoryDocs = await t.run(async (ctx) =>
         ctx.db.query("memories").collect(),
       );
-      expect(memoryDocs[0]?.embedding).toBeUndefined();
+      expect(memoryDocs[0]).not.toHaveProperty("embedding");
 
       // re-embedding updates in place instead of adding a second row
       await t.mutation(

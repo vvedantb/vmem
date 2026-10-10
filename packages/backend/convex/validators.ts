@@ -43,7 +43,6 @@ export const memoryFields = {
   firstVisitAt: v.number(),
   lastVisitAt: v.number(),
   searchableText: v.optional(v.string()),
-  embedding: v.optional(v.array(v.float64())),
   eventStart: v.optional(v.union(v.number(), v.null())),
   eventEnd: v.optional(v.union(v.number(), v.null())),
   temporalKind: v.optional(v.union(zodToConvex(temporalKindSchema), v.null())),
