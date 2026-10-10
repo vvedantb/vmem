@@ -21,6 +21,7 @@ import {
   oauthStateFields,
   contextPromptCacheFields,
   memoryFields,
+  memoryEmbeddingFields,
   memoryLinkFields,
   memoryEntityFields,
   memoryEntityMentionFields,
@@ -158,6 +159,16 @@ const schema = defineSchema({
       searchField: "searchableText",
       filterFields: ["userId", "profileId"],
     })
+    .vectorIndex("by_embedding", {
+      vectorField: "embedding",
+      dimensions: MEMORY_EMBEDDING_DIMENSIONS,
+      filterFields: ["userId", "profileId"],
+    }),
+
+  // embedding vectors live here (not on `memories`) so reads of memory rows
+  // stay small; `memories.embedding` is legacy and only read until backfilled
+  memoryEmbeddings: defineTable(memoryEmbeddingFields)
+    .index("by_memory_doc", ["memoryDocId"])
     .vectorIndex("by_embedding", {
       vectorField: "embedding",
       dimensions: MEMORY_EMBEDDING_DIMENSIONS,

@@ -13,6 +13,7 @@ import { Button, cn, motionEase, motionTiming } from "@vvedantb/ui";
 import { SidebarHeader } from "@vvedantb/shell";
 import { IconX } from "@tabler/icons-react";
 import { useUser } from "@clerk/clerk-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useConvexAuth, useAction, useQuery } from "convex/react";
 import { api } from "@vmem/backend";
 import { useNotifications } from "@/contexts/NotificationContext";
@@ -71,19 +72,28 @@ export default function Sidebar({
 
   const { isAuthenticated } = useConvexAuth();
   const getStats = useAction(api.dashboardApi.getStats);
+  const queryClient = useQueryClient();
   const [stats, setStats] = useState<SidebarStats | null>(null);
 
   const profiles = useQuery(api.profiles.list, isAuthenticated ? {} : "skip");
   const isTeamWorkspace =
     profiles?.find((p) => p._id === activeProfileId)?.teamId !== undefined;
 
+  // shares the ["dashboard-stats", profileId] cache entry with the dashboard
+  // page, so the sidebar and dashboard reuse one whole-table stats walk
+  // (in-flight dedupe + 30s staleTime) instead of each running their own
   const refreshStats = useCallback(
     async (fresh: boolean) => {
       const args = fresh
         ? { fresh: true, profileId: activeProfileId }
         : { profileId: activeProfileId };
+      const staleTime = fresh ? 0 : 30_000;
       try {
-        const data = await getStats(args);
+        const data = await queryClient.fetchQuery({
+          queryKey: ["dashboard-stats", activeProfileId],
+          queryFn: async () => await getStats(args),
+          staleTime,
+        });
         setStats({
           addedToday: data.memoriesAddedToday,
           total: data.totalMemories,
@@ -92,7 +102,7 @@ export default function Sidebar({
         // silently fail — sidebar stats are non-critical
       }
     },
-    [getStats, activeProfileId],
+    [getStats, queryClient, activeProfileId],
   );
 
   useEffect(() => {

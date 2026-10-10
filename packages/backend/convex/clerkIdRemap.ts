@@ -49,8 +49,14 @@ export const remapClerkId = internalMutation({
       .take(BATCH);
     moved.memories = memories.length;
     if (!dryRun) {
-      for (const r of memories)
+      for (const r of memories) {
         await ctx.db.patch(r._id, { userId: toClerkId });
+        const emb = await ctx.db
+          .query("memoryEmbeddings")
+          .withIndex("by_memory_doc", (q) => q.eq("memoryDocId", r._id))
+          .first();
+        if (emb) await ctx.db.patch(emb._id, { userId: toClerkId });
+      }
     }
 
     const links = await ctx.db

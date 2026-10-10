@@ -655,30 +655,65 @@ async function vectorScoresForQuery(
 
   const clerkId = args.clerkId;
   const profileId = args.profileId;
-  const hits =
-    args.kind === "team" && profileId !== undefined
-      ? await ctx.vectorSearch("memories", "by_embedding", {
+  const vectorLimit = clampVectorLimit(VECTOR_CANDIDATE_LIMIT);
+  const teamScope = args.kind === "team" && profileId !== undefined;
+  // vectors live in memoryEmbeddings; rows not yet backfilled still carry the
+  // legacy inline `memories.embedding`, so search both indexes and merge
+  const [legacyHits, splitHits] = await Promise.all([
+    teamScope
+      ? ctx.vectorSearch("memories", "by_embedding", {
           vector: embedding,
-          limit: clampVectorLimit(VECTOR_CANDIDATE_LIMIT),
+          limit: vectorLimit,
           filter: (q) => q.eq("profileId", profileId),
         })
-      : await ctx.vectorSearch("memories", "by_embedding", {
+      : ctx.vectorSearch("memories", "by_embedding", {
           vector: embedding,
-          limit: clampVectorLimit(VECTOR_CANDIDATE_LIMIT),
+          limit: vectorLimit,
           filter: (q) => q.eq("userId", clerkId),
-        });
-  if (hits.length === 0) return empty;
+        }),
+    teamScope
+      ? ctx.vectorSearch("memoryEmbeddings", "by_embedding", {
+          vector: embedding,
+          limit: vectorLimit,
+          filter: (q) => q.eq("profileId", profileId),
+        })
+      : ctx.vectorSearch("memoryEmbeddings", "by_embedding", {
+          vector: embedding,
+          limit: vectorLimit,
+          filter: (q) => q.eq("userId", clerkId),
+        }),
+  ]);
+  if (legacyHits.length === 0 && splitHits.length === 0) return empty;
 
-  const docs = await ctx.runQuery(
-    internal.memoryStore.functions.getMemoriesByDocIdsInternal,
-    { ids: hits.map((hit) => hit._id) },
-  );
-  for (let i = 0; i < hits.length; i += 1) {
-    const memory = docs[i];
-    const hit = hits[i];
-    if (memory === null || memory === undefined || hit === undefined) continue;
+  const [legacyDocs, splitDocs] = await Promise.all([
+    legacyHits.length === 0
+      ? Promise.resolve([])
+      : ctx.runQuery(
+          internal.memoryStore.functions.getMemoriesByDocIdsInternal,
+          { ids: legacyHits.map((hit) => hit._id) },
+        ),
+    splitHits.length === 0
+      ? Promise.resolve([])
+      : ctx.runQuery(
+          internal.memoryStore.functions.getMemoriesByEmbeddingIdsInternal,
+          { ids: splitHits.map((hit) => hit._id) },
+        ),
+  ]);
+  const hits = [
+    ...legacyHits.map((hit, i) => ({
+      memory: legacyDocs[i],
+      score: hit._score,
+    })),
+    ...splitHits.map((hit, i) => ({
+      memory: splitDocs[i],
+      score: hit._score,
+    })),
+  ].sort((a, b) => b.score - a.score);
+  for (const hit of hits.slice(0, vectorLimit)) {
+    const memory = hit.memory;
+    if (memory === null || memory === undefined) continue;
     memories.push(memory);
-    scores.set(memory.id, Math.max(0, hit._score));
+    scores.set(memory.id, Math.max(0, hit.score));
   }
   return { memories, scores };
 }

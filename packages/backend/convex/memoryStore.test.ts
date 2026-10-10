@@ -1047,4 +1047,142 @@ describe("convex memoryStore", () => {
     expect(rowCount).toBe(5);
     expect(tags).toEqual(new Set(titles));
   });
+
+  describe("embedding split", () => {
+    const vec = (seed: number) =>
+      Array.from({ length: 1536 }, (_, i) => (i === seed ? 1 : 0));
+
+    async function embeddingRows(t: ReturnType<typeof convexTest>) {
+      return await t.run(async (ctx) =>
+        ctx.db.query("memoryEmbeddings").collect(),
+      );
+    }
+
+    it("stores vectors in memoryEmbeddings, not on the memory row", async () => {
+      const t = convexTest(schema, modules);
+      const created = await t.mutation(
+        internal.memoryStore.functions.createMemoryInternal,
+        createArgs(),
+      );
+      const ok = await t.mutation(
+        internal.memoryStore.functions.patchMemoryEmbeddingInternal,
+        { memoryId: created.id, embedding: vec(1) },
+      );
+      expect(ok).toBe(true);
+      const rows = await embeddingRows(t);
+      expect(rows).toHaveLength(1);
+      expect(rows[0]?.userId).toBe(USER_A);
+      expect(rows[0]?.profileId).toBe(PERSONAL_PROFILE);
+      const memoryDocs = await t.run(async (ctx) =>
+        ctx.db.query("memories").collect(),
+      );
+      expect(memoryDocs[0]?.embedding).toBeUndefined();
+
+      // re-embedding updates in place instead of adding a second row
+      await t.mutation(
+        internal.memoryStore.functions.patchMemoryEmbeddingInternal,
+        { memoryId: created.id, embedding: vec(2) },
+      );
+      const again = await embeddingRows(t);
+      expect(again).toHaveLength(1);
+      expect(again[0]?.embedding[2]).toBe(1);
+
+      const joined = await t.query(
+        internal.memoryStore.functions.getMemoriesByEmbeddingIdsInternal,
+        { ids: again.map((r) => r._id) },
+      );
+      expect(joined[0]?.id).toBe(created.id);
+    });
+
+    it("deletes the embedding row with the memory and follows profile moves", async () => {
+      const t = convexTest(schema, modules);
+      const a = await t.mutation(
+        internal.memoryStore.functions.createMemoryInternal,
+        createArgs({ memoryId: "mem-a" }),
+      );
+      const b = await t.mutation(
+        internal.memoryStore.functions.createMemoryInternal,
+        createArgs({ memoryId: "mem-b", title: "Other", content: "Other" }),
+      );
+      for (const m of [a, b]) {
+        await t.mutation(
+          internal.memoryStore.functions.patchMemoryEmbeddingInternal,
+          { memoryId: m.id, embedding: vec(3) },
+        );
+      }
+      await t.mutation(
+        internal.memoryStore.functions.reassignMemoriesProfileInternal,
+        { fromProfileId: PERSONAL_PROFILE, toProfileId: "profile_moved" },
+      );
+      const moved = await embeddingRows(t);
+      expect(moved.map((r) => r.profileId)).toEqual([
+        "profile_moved",
+        "profile_moved",
+      ]);
+
+      await t.mutation(internal.memoryStore.functions.deleteMemoryInternal, {
+        userId: USER_A,
+        memoryId: a.id,
+      });
+      expect(await embeddingRows(t)).toHaveLength(1);
+
+      await t.mutation(
+        internal.memoryStore.functions.deleteMemoriesByProfileInternal,
+        { profileId: "profile_moved" },
+      );
+      expect(await embeddingRows(t)).toHaveLength(0);
+    });
+
+    it("backfills legacy inline embeddings in batches", async () => {
+      const t = convexTest(schema, modules);
+      for (let i = 0; i < 5; i += 1) {
+        await t.mutation(internal.memoryStore.functions.createMemoryInternal, {
+          ...createArgs({
+            memoryId: `legacy-${String(i)}`,
+            title: `L${String(i)}`,
+          }),
+        });
+      }
+      await t.run(async (ctx) => {
+        const docs = await ctx.db.query("memories").collect();
+        for (const [i, doc] of docs.entries()) {
+          // leave one row without a vector to prove it is skipped
+          if (i === 0) continue;
+          await ctx.db.patch(doc._id, { embedding: vec(i) });
+        }
+      });
+
+      let cursor: string | null = null;
+      let migrated = 0;
+      for (;;) {
+        const res: { migrated: number; isDone: boolean } = await t.mutation(
+          internal.memoryStore.functions.backfillMemoryEmbeddingsInternal,
+          { cursor, batchSize: 2 },
+        );
+        // drive pages by hand: a scheduled follow-up would also run
+        migrated += res.migrated;
+        if (res.isDone) break;
+        const page = await t.run(async (ctx) =>
+          ctx.db.query("memories").paginate({ cursor, numItems: 2 }),
+        );
+        cursor = page.continueCursor;
+      }
+      expect(migrated).toBe(4);
+      expect(await embeddingRows(t)).toHaveLength(4);
+      const left = await t.run(async (ctx) =>
+        (await ctx.db.query("memories").collect()).filter(
+          (d) => d.embedding !== undefined,
+        ),
+      );
+      expect(left).toHaveLength(0);
+
+      // idempotent re-run
+      const rerun = await t.mutation(
+        internal.memoryStore.functions.backfillMemoryEmbeddingsInternal,
+        { cursor: null, batchSize: 50 },
+      );
+      expect(rerun.migrated).toBe(0);
+      expect(await embeddingRows(t)).toHaveLength(4);
+    });
+  });
 });
