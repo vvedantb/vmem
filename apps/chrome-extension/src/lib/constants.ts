@@ -1,6 +1,6 @@
 export const CLERK_PUBLISHABLE_KEY =
   import.meta.env?.VITE_CLERK_PUBLISHABLE_KEY ??
-  "pk_test_ZmxleGlibGUtZHVja2xpbmctNzQuY2xlcmsuYWNjb3VudHMuZGV2JA";
+  "pk_test_YWxsb3dpbmctY295b3RlLTgwLmNsZXJrLmFjY291bnRzLmRldiQ";
 
 export const CONVEX_URL =
   import.meta.env?.VITE_CONVEX_URL ??

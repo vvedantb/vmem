@@ -1,7 +1,7 @@
 /**
  * `/slides` is public (password only for presenter pop-out). Vercel preview
  * hosts are often missing from Clerk's allowed domains, so mounting
- * `ClerkProvider` calls `clerk.vedantb.com/v1/client`, gets 400, and breaks
+ * `ClerkProvider` calls `clerk.projectv.uk/v1/client`, gets 400, and breaks
  * the deck. Detect the path once at boot and skip Clerk entirely — live share
  * / polls use anonymous Convex (`presentations.*` is unauthenticated).
  */

@@ -11,6 +11,7 @@
 import type * as apiKeys from "../apiKeys.js";
 import type * as auditLog from "../auditLog.js";
 import type * as auth from "../auth.js";
+import type * as clerkIdRemap from "../clerkIdRemap.js";
 import type * as connectors_crud from "../connectors/crud.js";
 import type * as connectors_figma from "../connectors/figma.js";
 import type * as connectors_github from "../connectors/github.js";
@@ -143,6 +144,7 @@ declare const fullApi: ApiFromModules<{
   apiKeys: typeof apiKeys;
   auditLog: typeof auditLog;
   auth: typeof auth;
+  clerkIdRemap: typeof clerkIdRemap;
   "connectors/crud": typeof connectors_crud;
   "connectors/figma": typeof connectors_figma;
   "connectors/github": typeof connectors_github;

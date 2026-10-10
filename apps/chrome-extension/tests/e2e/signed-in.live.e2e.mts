@@ -238,9 +238,9 @@ async function popupCookieProbe(page: Page): Promise<{
       return cookie ? cookie.domain : null;
     };
     return {
-      vmemClient: await slice("https://vmem.vedantb.com/", "__client"),
-      clerkClient: await slice("https://clerk.vedantb.com/", "__client"),
-      vmemSession: await slice("https://vmem.vedantb.com/", "__session"),
+      vmemClient: await slice("https://vmem.projectv.uk/", "__client"),
+      clerkClient: await slice("https://clerk.projectv.uk/", "__client"),
+      vmemSession: await slice("https://vmem.projectv.uk/", "__session"),
     };
   });
 }
@@ -278,7 +278,7 @@ async function signInOnVmem(page: Page): Promise<void> {
   await page.emulateMediaFeatures([
     { name: "prefers-reduced-motion", value: "reduce" },
   ]);
-  await page.goto("https://vmem.vedantb.com", {
+  await page.goto("https://vmem.projectv.uk", {
     waitUntil: "domcontentloaded",
     timeout: 30_000,
   });
@@ -295,7 +295,7 @@ async function signInOnVmem(page: Page): Promise<void> {
     return true;
   });
   if (!clicked) {
-    throw new Error("Sign in button not found on vmem.vedantb.com");
+    throw new Error("Sign in button not found on vmem.projectv.uk");
   }
   await sleep(1_500);
   await screenshot(page, "live_web_clerk_modal.png");

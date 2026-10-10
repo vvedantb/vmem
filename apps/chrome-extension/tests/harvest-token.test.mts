@@ -25,7 +25,7 @@ await test("isWebAppSyncUrl matches the Clerk web sync origin only", () => {
   assert.equal(
     isWebAppSyncUrl(
       "https://vmem.vedantb.com/home",
-      "https://clerk.vedantb.com",
+      "https://clerk.projectv.uk",
     ),
     false,
   );

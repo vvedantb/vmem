@@ -2,7 +2,7 @@
 
 Durable browser suite for the vmem web app. Default target is production so agents do not need a local Convex/Clerk stack.
 
-**App:** https://vmem.vedantb.com  
+**App:** https://vmem.projectv.uk  
 **Convex prod:** clear-bear-690  
 **Auth:** Clerk test user `eva@vedantb.com` via Playwright `storageState` (one login in the `setup` project).
 
@@ -16,7 +16,7 @@ Never commit passwords. Copy `e2e/.env.example` to `e2e/.env.local` or export:
 | ------------------- | --------------------------- | ---------------------------------------------- |
 | `E2E_USER_EMAIL`    | recommended                 | `eva@vedantb.com`                              |
 | `E2E_USER_PASSWORD` | yes for authenticated specs | —                                              |
-| `E2E_BASE_URL`      | no                          | `https://vmem.vedantb.com`                     |
+| `E2E_BASE_URL`      | no                          | `https://vmem.projectv.uk`                     |
 | `E2E_DOCS_URL`      | no                          | `http://localhost:3001` (skipped if down)      |
 | `E2E_WEB_SERVER`    | no                          | unset. Set `1` to boot `pnpm --filter web dev` |
 

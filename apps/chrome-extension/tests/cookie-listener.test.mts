@@ -27,14 +27,14 @@ await test("syncHostCookieDomain strips www", () => {
 await test("prod __client cookie on the FAPI host matches cookie sync host", () => {
   assert.equal(
     isSessionCookieOnSyncHost(
-      { name: "__client", domain: ".clerk.vedantb.com" },
-      "https://clerk.vedantb.com",
+      { name: "__client", domain: ".clerk.projectv.uk" },
+      "https://clerk.projectv.uk",
     ),
     true,
   );
   assert.equal(
     isSessionCookieOnSyncHost(
-      { name: "__client", domain: ".clerk.vedantb.com" },
+      { name: "__client", domain: ".clerk.projectv.uk" },
       "https://vmem.vedantb.com",
     ),
     false,
