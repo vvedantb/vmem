@@ -98,6 +98,17 @@ const skillCreateArgsSchema = z.object({
   instructions: z.string(),
   scope: z.enum(["personal", "team"]).optional(),
 });
+const skillImportArgsSchema = z.object({
+  clerkId: z.string(),
+  items: z.array(
+    z.object({
+      name: z.string(),
+      description: z.string(),
+      instructions: z.string(),
+    }),
+  ),
+  scope: z.enum(["personal", "team"]).optional(),
+});
 const skillUpdateArgsSchema = z.object({
   clerkId: z.string(),
   name: z.string(),
@@ -571,9 +582,65 @@ async function dispatch(
         enabled: true,
         source: "personal",
         grant: skillGrantForScope(parsed.scope),
+        updatedAt: nowMs(),
       };
       store.skills.push(created);
       return created;
+    }
+    case "skills:importByClerkIdInternal": {
+      const parsed = skillImportArgsSchema.parse(args);
+      if (parsed.scope === "team") {
+        throw new Error("skills_import is personal only");
+      }
+      if (parsed.items.length > 25) {
+        throw new Error("skills_import accepts at most 25 items");
+      }
+      const names: string[] = [];
+      let created = 0;
+      let updated = 0;
+      let skipped = 0;
+      for (const item of parsed.items) {
+        const name = item.name.trim();
+        if (
+          name.length === 0 ||
+          item.description.trim().length === 0 ||
+          item.instructions.trim().length === 0
+        ) {
+          skipped += 1;
+          continue;
+        }
+        const existing = mockSkillsForScope(store, "personal").find(
+          (row) => row.name === name,
+        );
+        if (existing) {
+          if (
+            existing.description === item.description &&
+            existing.instructions === item.instructions
+          ) {
+            skipped += 1;
+            names.push(name);
+            continue;
+          }
+          existing.description = item.description;
+          existing.instructions = item.instructions;
+          existing.updatedAt = nowMs();
+          updated += 1;
+          names.push(name);
+          continue;
+        }
+        store.skills.push({
+          name,
+          description: item.description,
+          instructions: item.instructions,
+          enabled: true,
+          source: "personal",
+          grant: "personal",
+          updatedAt: nowMs(),
+        });
+        created += 1;
+        names.push(name);
+      }
+      return { created, updated, skipped, names };
     }
     case "skills:updateByClerkIdInternal": {
       const parsed = skillUpdateArgsSchema.parse(args);

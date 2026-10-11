@@ -69,7 +69,7 @@ Web (Clerk)  Chrome extension (Clerk)  SDK / HTTP (vmem_sk_)  MCP clients
         ▼                                           ▼
 Convex tables + functions                 MCP HTTP on .convex.site
 (memories, embeddings, wiki,              /mcp  and  /mcp/team
-files, skills, teams, proposals)          Clerk oauth_token (Project V)
+files, skills, teams, proposals)          Clerk oauth_token or session_token
         │
         ├── connectors → Drive / Gmail / Notion / Figma / GitHub
         └── AI Gateway (chat, embeddings, extract, Jev)
@@ -253,13 +253,13 @@ Configure from the web app at `/settings/extension` (auto-sync, selection popup)
 
 Graph client perf bench (synthetic, no Convex): `/memories?bench=5000`.
 
-| Command | What |
-| --- | --- |
-| `pnpm --filter @vmem/backend test:memory-bench` | Retrieval quality bench |
-| `pnpm --filter @vmem/backend eval:bench` | Labelled IR eval |
-| `EVAL_JEV=1 pnpm --filter @vmem/backend eval:jev` | Default-on Jev vs hybrid-only (`judge: "off"`); needs `AI_GATEWAY_API_KEY`; does not mock |
+| Command                                                           | What                                                                                                               |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `pnpm --filter @vmem/backend test:memory-bench`                   | Retrieval quality bench                                                                                            |
+| `pnpm --filter @vmem/backend eval:bench`                          | Labelled IR eval                                                                                                   |
+| `EVAL_JEV=1 pnpm --filter @vmem/backend eval:jev`                 | Default-on Jev vs hybrid-only (`judge: "off"`); needs `AI_GATEWAY_API_KEY`; does not mock                          |
 | `EVAL_COMPETITIVE=1 pnpm --filter @vmem/backend eval:competitive` | Labelled IR vs Mem0 / SuperMemory ([notes](packages/backend/tests/memory/competitive/vmem-vs-mem0-supermemory.md)) |
-| `pnpm --filter @vmem/backend eval:locomo-ir` | LoCoMo-IR, no LLM answer judge ([port notes](packages/backend/tests/memory/competitive/memorybench-ir-port.md)) |
+| `pnpm --filter @vmem/backend eval:locomo-ir`                      | LoCoMo-IR, no LLM answer judge ([port notes](packages/backend/tests/memory/competitive/memorybench-ir-port.md))    |
 
 Jev retrieve-gate: [`packages/backend/tests/memory/jev-retrieve-gate.md`](packages/backend/tests/memory/jev-retrieve-gate.md). Competitive brief: [`packages/backend/tests/memory/competitive-brief.md`](packages/backend/tests/memory/competitive-brief.md).
 
@@ -267,16 +267,16 @@ Jev retrieve-gate: [`packages/backend/tests/memory/jev-retrieve-gate.md`](packag
 
 pnpm workspace, Node 20+, pnpm 10.15.1.
 
-| Package | Name | Description |
-| --- | --- | --- |
-| `apps/web` | `web` | Dashboard: memories, wiki, files, skills, sources, inbox, settings |
-| `apps/chrome-extension` | `@vmem/chrome-extension` | MV3 extension (WXT) — save pages, inject ChatGPT/Claude |
-| `apps/docs` | `docs` | Mintlify docs (`pnpm docs:dev` → http://localhost:3001) |
-| `packages/backend` | `@vmem/backend` | Convex functions, memory engine, MCP HTTP |
-| `packages/shared` | `@vmem/shared` | Shared constants and client-safe helpers |
-| `packages/sdk` | `@vmem/sdk` | Published HTTP SDK |
-| `e2e/` | — | Playwright web suite (see [`e2e/README.md`](e2e/README.md)) |
-| `oxlint-plugin-vmem/` | — | Custom oxlint rules |
+| Package                 | Name                     | Description                                                        |
+| ----------------------- | ------------------------ | ------------------------------------------------------------------ |
+| `apps/web`              | `web`                    | Dashboard: memories, wiki, files, skills, sources, inbox, settings |
+| `apps/chrome-extension` | `@vmem/chrome-extension` | MV3 extension (WXT) — save pages, inject ChatGPT/Claude            |
+| `apps/docs`             | `docs`                   | Mintlify docs (`pnpm docs:dev` → http://localhost:3001)            |
+| `packages/backend`      | `@vmem/backend`          | Convex functions, memory engine, MCP HTTP                          |
+| `packages/shared`       | `@vmem/shared`           | Shared constants and client-safe helpers                           |
+| `packages/sdk`          | `@vmem/sdk`              | Published HTTP SDK                                                 |
+| `e2e/`                  | —                        | Playwright web suite (see [`e2e/README.md`](e2e/README.md))        |
+| `oxlint-plugin-vmem/`   | —                        | Custom oxlint rules                                                |
 
 `.env.example` files live at the root and under `apps/*` / `packages/*`. Shared UI is the published `@vvedantb/ui` package, not an in-repo `packages/ui`.
 

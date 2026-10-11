@@ -377,6 +377,12 @@ export const teamMemberFields = {
   joinedAt: v.number(),
 };
 
+export const skillOriginValidator = v.union(
+  v.literal("web"),
+  v.literal("mcp"),
+  v.literal("vibot"),
+);
+
 export const skillFields = {
   userId: v.id("users"),
   teamId: v.optional(v.id("teams")),
@@ -386,7 +392,21 @@ export const skillFields = {
   enabled: v.optional(v.boolean()),
   createdAt: v.number(),
   updatedAt: v.number(),
+  origin: v.optional(skillOriginValidator),
 };
+
+export const skillImportItemValidator = v.object({
+  name: v.string(),
+  description: v.string(),
+  instructions: v.string(),
+});
+
+export const skillImportResultValidator = v.object({
+  created: v.number(),
+  updated: v.number(),
+  skipped: v.number(),
+  names: v.array(v.string()),
+});
 
 export const skillVersionFields = {
   skillId: v.id("skills"),

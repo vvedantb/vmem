@@ -26,6 +26,7 @@ import {
   relatedMemoriesResultSchema,
   skillCreatedSchema,
   skillFetchedSchema,
+  skillsImportResultSchema,
   skillsIndexEntrySchema,
   skillUpdatedSchema,
   whoamiResultSchema,
@@ -72,6 +73,7 @@ describe("in-process MCP auth gate", () => {
     const personal = new InProcessMcpClient({ token: MOCK_MCP_TOKEN });
     const personalInit = await personal.initialize();
     expect(personalInit.serverInfo.name).toBe("vmem-mcp");
+    expect(personalInit.serverInfo.version).toBe("1.1.0");
 
     const team = new InProcessMcpClient({
       session: createInProcessSession("team"),
@@ -310,6 +312,8 @@ describe("in-process MCP core, skills, wiki, and files tools", () => {
       parseToolPayload(await client.callTool("skills_list")),
     );
     expect(listed.map((skill) => skill.name)).toContain("harness-skill");
+    const listedSkill = listed.find((skill) => skill.name === "harness-skill");
+    expect(listedSkill?.updatedAt).toEqual(expect.any(Number));
 
     const fetched = skillFetchedSchema.parse(
       parseToolPayload(
@@ -332,6 +336,83 @@ describe("in-process MCP core, skills, wiki, and files tools", () => {
       name: "harness-skill",
     });
     expect(deleted.isError ?? false).toBe(false);
+  });
+
+  it("imports personal skills idempotently and rejects team import", async () => {
+    const personalSession = createInProcessSession("personal");
+    const personal = new InProcessMcpClient({
+      session: personalSession,
+      token: MOCK_MCP_TOKEN,
+    });
+    const team = new InProcessMcpClient({
+      session: { store: personalSession.store, scope: "team" },
+      token: MOCK_MCP_TOKEN,
+    });
+
+    const first = skillsImportResultSchema.parse(
+      parseToolPayload(
+        await personal.callTool("skills_import", {
+          items: [
+            {
+              name: " vibot-note ",
+              description: "When taking notes",
+              instructions: "Write the note",
+            },
+            { name: "", description: "x", instructions: "y" },
+          ],
+        }),
+      ),
+    );
+    expect(first.created).toBe(1);
+    expect(first.updated).toBe(0);
+    expect(first.skipped).toBe(1);
+    expect(first.names).toEqual(["vibot-note"]);
+
+    const again = skillsImportResultSchema.parse(
+      parseToolPayload(
+        await personal.callTool("skills_import", {
+          items: [
+            {
+              name: "vibot-note",
+              description: "When taking notes",
+              instructions: "Write the note",
+            },
+          ],
+        }),
+      ),
+    );
+    expect(again.created).toBe(0);
+    expect(again.updated).toBe(0);
+    expect(again.skipped).toBe(1);
+    expect(again.names).toEqual(["vibot-note"]);
+
+    const changed = skillsImportResultSchema.parse(
+      parseToolPayload(
+        await personal.callTool("skills_import", {
+          items: [
+            {
+              name: "vibot-note",
+              description: "When taking notes",
+              instructions: "Write a better note",
+            },
+          ],
+        }),
+      ),
+    );
+    expect(changed.created).toBe(0);
+    expect(changed.updated).toBe(1);
+    expect(changed.names).toEqual(["vibot-note"]);
+
+    const teamImport = await team.callTool("skills_import", {
+      items: [
+        {
+          name: "team-import",
+          description: "no",
+          instructions: "no",
+        },
+      ],
+    });
+    expect(teamImport.isError).toBe(true);
   });
 
   it("recommends skills with lexical fail-open and isolates personal vs team grants", async () => {
@@ -498,6 +579,7 @@ describe("in-process MCP core, skills, wiki, and files tools", () => {
       { name: "skills_get", args: {} },
       { name: "skills_recommend", args: {} },
       { name: "skills_create", args: { name: "x" } },
+      { name: "skills_import", args: {} },
       { name: "skills_update", args: {} },
       { name: "skills_delete", args: {} },
       { name: "wiki_get", args: {} },

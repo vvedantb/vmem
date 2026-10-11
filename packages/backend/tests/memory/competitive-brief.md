@@ -24,11 +24,11 @@ Sources: `packages/backend/engine/memory/rank.ts`, `retrieve.ts`, `list.ts`, `ex
 
 ### Surfaces
 
-| Surface                    | Auth                                                                           | Memory ops                                                                                                                                             |
-| -------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| MCP `/mcp` and `/mcp/team` | Clerk OAuth only (`acceptsToken: "oauth_token"`). API keys / session JWTs 401. | `memory_search`, `memory_retrieve`, `memory_add`, `memory_add_instruction`, `memory_update`, `memory_delete`, `memory_related`, MCP App `memory_graph` |
-| HTTP `/api/v1/memories`    | Bearer `vmem_sk_…`                                                             | store / retrieve / patch / delete; instruction body on POST/PATCH                                                                                      |
-| `@vmem/sdk` (`VMemory`)    | API key                                                                        | `save` / `update` / `search` + structured CRUD. JS only                                                                                                |
+| Surface                    | Auth                                                                | Memory ops                                                                                                                                             |
+| -------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| MCP `/mcp` and `/mcp/team` | Clerk `oauth_token` or `session_token`. API keys / Convex JWTs 401. | `memory_search`, `memory_retrieve`, `memory_add`, `memory_add_instruction`, `memory_update`, `memory_delete`, `memory_related`, MCP App `memory_graph` |
+| HTTP `/api/v1/memories`    | Bearer `vmem_sk_…`                                                  | store / retrieve / patch / delete; instruction body on POST/PATCH                                                                                      |
+| `@vmem/sdk` (`VMemory`)    | API key                                                             | `save` / `update` / `search` + structured CRUD. JS only                                                                                                |
 
 Personal MCP also exposes `vmem://context_prompt` (and `context_prompt_get`): about, preferences, pinned memories, profile summary, skills. Skills / wiki / files tools are personal-only.
 

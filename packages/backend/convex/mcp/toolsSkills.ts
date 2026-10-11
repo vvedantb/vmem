@@ -2,7 +2,7 @@ import { z } from "zod";
 import { internal } from "../_generated/api";
 import { recommendSkills } from "../../engine/memory/jevSkillRecommend";
 import { resolveSystemOneApiKey } from "../lib/systemOneKey";
-import { toSkillIndexEntry } from "../skills";
+import { SKILLS_IMPORT_MAX, toSkillIndexEntry } from "../skills";
 import { emptyInputSchema, scopedClerk, toolSpec } from "./toolTypes";
 
 const skillsGetSchema = z.object({
@@ -41,6 +41,21 @@ const skillsDeleteSchema = z.object({
   name: z.string().describe("Exact skill name to delete"),
 });
 
+const skillsImportSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        name: z.string().describe("Exact skill name (trimmed, unique)"),
+        description: z
+          .string()
+          .describe("When-to-use line for the skills index"),
+        instructions: z.string().describe("Full markdown playbook"),
+      }),
+    )
+    .max(SKILLS_IMPORT_MAX)
+    .describe("Up to 25 personal skills to upsert (vibot import)"),
+});
+
 const skillsRecommendSchema = z.object({
   query: z
     .string()
@@ -59,7 +74,7 @@ export const skillsToolSpecs = {
     name: "skills_list",
     schema: emptyInputSchema,
     description:
-      "List enabled skills granted to this MCP connector (name + description only). Personal `/mcp` sees the caller's personal skills; team `/mcp/team` sees only that team's skills. Same index as Available Skills in context_prompt_get / vmem://context_prompt on personal. When a task matches, call skills_recommend or skills_get with the exact name before following a playbook.",
+      "List enabled skills granted to this MCP connector (name + description + updatedAt). No instructions. Personal `/mcp` sees the caller's personal skills; team `/mcp/team` sees only that team's skills. Same index as Available Skills in context_prompt_get / vmem://context_prompt on personal. When a task matches, call skills_recommend or skills_get with the exact name before following a playbook.",
     errorLabel: "List skills failed",
     async run(h): Promise<unknown> {
       const rows = await h.ctx.runQuery(
@@ -67,6 +82,19 @@ export const skillsToolSpecs = {
         scopedClerk(h),
       );
       return rows.map(toSkillIndexEntry);
+    },
+  }),
+  skills_import: toolSpec({
+    name: "skills_import",
+    schema: skillsImportSchema,
+    description:
+      "Upsert up to 25 personal skills by exact trimmed name. Idempotent. Sets origin to vibot. Personal `/mcp` only — team `/mcp/team` rejects. Empty name/description/instructions rows are skipped. Installed system skill names are skipped. Returns created, updated, skipped counts and the names that exist after the batch.",
+    errorLabel: "Import skills failed",
+    async run(h, params): Promise<unknown> {
+      return h.ctx.runMutation(internal.skills.importByClerkIdInternal, {
+        ...scopedClerk(h),
+        items: params.items,
+      });
     },
   }),
   skills_recommend: toolSpec({

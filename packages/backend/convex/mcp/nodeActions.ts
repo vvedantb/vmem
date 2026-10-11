@@ -8,17 +8,8 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { registerTools } from "./tools";
 import { registerResources } from "./resources";
 import { registerMemoryGraphApp } from "./memoryGraphApp";
-import { mcpScopeValidator, type McpScope } from "../profiles/mcpAccess";
-
-function mcpServerInfo(scope: McpScope): {
-  name: string;
-  version: string;
-} {
-  return {
-    name: scope === "team" ? "vmem-mcp-team" : "vmem-mcp",
-    version: "1.0.0",
-  };
-}
+import { mcpScopeValidator } from "../profiles/mcpAccess";
+import { isMcpAcceptedTokenType, mcpServerInfo } from "./serverInfo";
 
 function getClerkClient() {
   const secretKey = process.env.CLERK_SECRET_KEY;
@@ -40,7 +31,7 @@ export const verifyAccessToken = internalAction({
         headers: { Authorization: `Bearer ${token}` },
       });
       const state = await clerk.authenticateRequest(request, {
-        acceptsToken: "oauth_token",
+        acceptsToken: ["oauth_token", "session_token"],
       });
       if (!state.isAuthenticated) {
         console.error(
@@ -52,7 +43,7 @@ export const verifyAccessToken = internalAction({
       }
 
       const auth = state.toAuth();
-      if (!auth.isAuthenticated || auth.tokenType !== "oauth_token") {
+      if (!auth.isAuthenticated || !isMcpAcceptedTokenType(auth.tokenType)) {
         return null;
       }
       if (typeof auth.userId !== "string" || auth.userId.length === 0) {

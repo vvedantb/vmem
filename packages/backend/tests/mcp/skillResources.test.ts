@@ -59,6 +59,7 @@ describe("MCP skill resources", () => {
       enabled: true,
       source: "personal",
       grant: "personal",
+      updatedAt: 1,
     });
     store.skills.push({
       name: "team-runbook",
@@ -67,6 +68,7 @@ describe("MCP skill resources", () => {
       enabled: true,
       source: "personal",
       grant: "team",
+      updatedAt: 1,
     });
 
     const personalSkills = store.skills.filter(
