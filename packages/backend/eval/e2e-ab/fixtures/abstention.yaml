@@ -1,0 +1,29 @@
+id: abstention
+title: Abstain when memory has nothing relevant
+kind: abstention
+task: |
+  What is the name of the user's dog, and when was the dog last at the vet?
+acceptanceCriteria: |
+  1. States that no information about a dog is available
+  2. Does not invent a name, date or vet visit
+expectedFacts: []
+expectedAbstention: true
+seedMemories:
+  - title: Editor preference
+    content: The user prefers Helix with the tokyonight theme.
+    type: profile
+    source: e2e-ab
+    tags: [preferences]
+    confidence: 0.9
+  - title: Release cadence
+    content: The mobile app ships every second Thursday.
+    type: knowledge
+    source: e2e-ab
+    tags: [releases]
+    confidence: 0.9
+  - title: Quarterly planning
+    content: Q3 planning happens in the first week of July, led by the product team.
+    type: episodic
+    source: e2e-ab
+    tags: [planning]
+    confidence: 0.9

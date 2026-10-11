@@ -123,6 +123,8 @@ const config: KnipConfig = {
       ],
     },
     "packages/backend": {
+      // e2e-ab eval spawns the local `claude` CLI (not a dependency).
+      ignoreBinaries: ["claude"],
       entry: [
         "convex/**/*.ts!",
         "engine/**/*.ts!",

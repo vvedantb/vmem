@@ -1,0 +1,34 @@
+id: exact-code
+title: Find the exact incident code among lookalikes
+kind: exact-match
+task: |
+  Which incident ticket tracked the cache stampede on the session store, and what was the error code?
+acceptanceCriteria: |
+  1. Gives the exact ticket id (INC-48213)
+  2. Gives the exact error code (ERR_SESS_4093)
+  3. Does not mix in ids or codes from the lookalike incidents
+expectedFacts:
+  - INC-48213
+  - ERR_SESS_4093
+forbiddenFacts:
+  - INC-48231
+  - ERR_SESS_4039
+seedMemories:
+  - title: Session store cache stampede
+    content: INC-48213 covers the cache stampede on the session store. Clients saw ERR_SESS_4093.
+    type: episodic
+    source: e2e-ab
+    tags: [incidents, session-store]
+    confidence: 0.9
+  - title: Session store TLS expiry
+    content: INC-48231 covers the expired TLS certificate on the session store. Clients saw ERR_SESS_4039.
+    type: episodic
+    source: e2e-ab
+    tags: [incidents, session-store]
+    confidence: 0.9
+  - title: Search index lag
+    content: INC-48123 covers search index lag. Clients saw ERR_SRCH_2093.
+    type: episodic
+    source: e2e-ab
+    tags: [incidents, search]
+    confidence: 0.9

@@ -76,3 +76,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 ```
 
 Copy the output into your Convex environment variables.
+
+## Local-only evals
+
+The end-to-end memory on/off A/B eval (`eval:e2e-ab`) runs on a developer machine only. It is not part of CI. It reads `EVAL_E2E_AB`, `VMEM_API_KEY` and `CONVEX_SITE_URL` from your shell. It sets nothing on the Convex deployment.

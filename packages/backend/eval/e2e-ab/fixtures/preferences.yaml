@@ -1,0 +1,33 @@
+id: preferences
+title: Recall user editor preference
+kind: preference
+task: |
+  What editor does the user prefer, and which colour theme do they use in it?
+acceptanceCriteria: |
+  1. Names the current preferred editor
+  2. Names the colour theme
+  3. Does not invent extra preferences
+expectedFacts:
+  - Helix
+  - tokyonight
+forbiddenFacts:
+  - Neovim
+seedMemories:
+  - title: Editor preference
+    content: The user prefers Helix as their daily editor, with the tokyonight theme.
+    type: profile
+    source: e2e-ab
+    tags: [preferences, editor]
+    confidence: 0.95
+  - title: Terminal font
+    content: The user runs their terminal in JetBrains Mono at 13pt.
+    type: profile
+    source: e2e-ab
+    tags: [preferences, terminal]
+    confidence: 0.9
+  - title: Standup time
+    content: The platform team standup is at 09:45 UK time on weekdays.
+    type: episodic
+    source: e2e-ab
+    tags: [calendar]
+    confidence: 0.9

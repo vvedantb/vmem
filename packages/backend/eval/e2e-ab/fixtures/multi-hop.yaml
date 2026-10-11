@@ -1,0 +1,33 @@
+id: multi-hop
+title: Join person to project to stack
+kind: multi-hop
+task: |
+  Priya Raman is picking up a ticket from Marta Kowalski's team. Which database does the project that Marta leads run on?
+acceptanceCriteria: |
+  1. Identifies the project Marta Kowalski leads (Harbour Billing)
+  2. Names the database that project runs on (PostgreSQL 16)
+  3. Does not attribute another project's stack to Marta
+expectedFacts:
+  - Harbour Billing
+  - PostgreSQL 16
+forbiddenFacts:
+  - DynamoDB
+seedMemories:
+  - title: Marta Kowalski role
+    content: Marta Kowalski is the tech lead for the Harbour Billing project.
+    type: knowledge
+    source: e2e-ab
+    tags: [people, harbour-billing]
+    confidence: 0.9
+  - title: Harbour Billing stack
+    content: Harbour Billing is a Kotlin service backed by PostgreSQL 16 on managed RDS.
+    type: knowledge
+    source: e2e-ab
+    tags: [projects, harbour-billing]
+    confidence: 0.9
+  - title: Lantern Search stack
+    content: Lantern Search is a Go service backed by DynamoDB. Tomasz Idowu leads it.
+    type: knowledge
+    source: e2e-ab
+    tags: [projects, lantern-search]
+    confidence: 0.9

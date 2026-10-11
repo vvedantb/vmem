@@ -258,6 +258,7 @@ Graph client perf bench (synthetic, no Convex): `/memories?bench=5000`.
 | `EVAL_JEV=1 pnpm --filter @vmem/backend eval:jev`                 | Default-on Jev vs hybrid-only (`judge: "off"`); needs `AI_GATEWAY_API_KEY`; does not mock                          |
 | `EVAL_COMPETITIVE=1 pnpm --filter @vmem/backend eval:competitive` | Labelled IR vs Mem0 / SuperMemory ([notes](packages/backend/tests/memory/competitive/vmem-vs-mem0-supermemory.md)) |
 | `pnpm --filter @vmem/backend eval:locomo-ir`                      | LoCoMo-IR, no LLM answer judge ([port notes](packages/backend/tests/memory/competitive/memorybench-ir-port.md))    |
+| `EVAL_E2E_AB=1 pnpm --filter @vmem/backend eval:e2e-ab`           | Local-only memory on/off A/B with headless `claude -p` ([notes](docs/e2e-ab-eval.md)); add `--dry-run` for no LLM  |
 
 Jev retrieve-gate: [`packages/backend/tests/memory/jev-retrieve-gate.md`](packages/backend/tests/memory/jev-retrieve-gate.md). Competitive brief: [`packages/backend/tests/memory/competitive-brief.md`](packages/backend/tests/memory/competitive-brief.md).
 
