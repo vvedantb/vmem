@@ -1,0 +1,28 @@
+id: stale-vs-updated
+title: Use the corrected deploy window
+kind: update
+task: |
+  When is the weekly production deploy window for the payments service?
+acceptanceCriteria: |
+  1. States the current window (Wednesday 14:00 UK time)
+  2. Does not present the old Tuesday window as current
+expectedFacts:
+  - Wednesday
+  - "14:00"
+forbiddenFacts:
+  - Tuesday 10:00
+seedMemories:
+  - title: Payments deploy window
+    content: The payments service deploys weekly on Tuesday 10:00 UK time.
+    type: knowledge
+    source: e2e-ab
+    tags: [payments, deploys]
+    confidence: 0.8
+    createdAt: "2026-01-12T09:00:00Z"
+  - title: Payments deploy window (corrected)
+    content: Correction. The payments deploy window moved to Wednesday 14:00 UK time. The Tuesday 10:00 slot no longer applies.
+    type: knowledge
+    source: e2e-ab
+    tags: [payments, deploys]
+    confidence: 0.95
+    createdAt: "2026-04-20T09:00:00Z"

@@ -19,20 +19,20 @@ Public HTTP routes (MCP, OAuth, health) are registered in `convex/http.ts` on th
 
 Memories are stored in Convex (`memories`). Convex also holds metadata, auth, and app state:
 
-| Table                            | Description                            |
-| -------------------------------- | -------------------------------------- |
-| `users`                          | Clerk-linked user records              |
-| `apiKeys`                        | API keys — AES-GCM encrypted at rest   |
-| `profiles`                       | Personal and team memory profiles      |
-| `teams` / `teamMembers`          | Team membership                        |
-| `skills`                         | Reusable instruction modules           |
-| `memories`                       | Memory CRUD, search, and retrieve      |
-| `proposedUpdates`                | Inbox merge/update proposals           |
-| `connectors` / `connectorTokens` | External service integrations          |
-| `userSettings`                   | Preferences, about me, active profile  |
-| `contextPromptCache`             | Cached MCP context prompt markdown     |
-| `notifications`                  | In-app notifications                   |
-| `openRouterLogs`                 | LLM/embedding call audit trail         |
+| Table                            | Description                           |
+| -------------------------------- | ------------------------------------- |
+| `users`                          | Clerk-linked user records             |
+| `apiKeys`                        | API keys — AES-GCM encrypted at rest  |
+| `profiles`                       | Personal and team memory profiles     |
+| `teams` / `teamMembers`          | Team membership                       |
+| `skills`                         | Reusable instruction modules          |
+| `memories`                       | Memory CRUD, search, and retrieve     |
+| `proposedUpdates`                | Inbox merge/update proposals          |
+| `connectors` / `connectorTokens` | External service integrations         |
+| `userSettings`                   | Preferences, about me, active profile |
+| `contextPromptCache`             | Cached MCP context prompt markdown    |
+| `notifications`                  | In-app notifications                  |
+| `openRouterLogs`                 | LLM/embedding call audit trail        |
 
 Audit trails (memory lifecycle, API key events, proposed-update resolutions) live in the `convex-audit-log` component — see `auditLog.ts`.
 
@@ -88,4 +88,4 @@ Typecheck without a running dev server:
 cd packages/backend && npx convex codegen --typecheck enable
 ```
 
-Labelled retrieve eval (IR, no LLM judge): `pnpm --filter @vmem/backend eval:bench`. Default-on Jev vs hybrid-only (`judge: "off"`) on that harness: `EVAL_JEV=1 pnpm --filter @vmem/backend eval:jev` (needs `AI_GATEWAY_API_KEY`; does not mock). Labelled IR vs Mem0 / SuperMemory: `EVAL_COMPETITIVE=1 pnpm --filter @vmem/backend eval:competitive` (needs `MEM0_API_KEY` + `SUPERMEMORY_API_KEY`; see `tests/memory/competitive/vmem-vs-mem0-supermemory.md`). LoCoMo utterance-IR (download `locomo10.json`, gold `dia_id` IR, no answer/MemScore judge): `pnpm --filter @vmem/backend eval:locomo-ir` (default `-l` 8, `LOCOMO_IR_JUDGE=off`; `LOCOMO_IR_JUDGE=jev` reranks retrieve candidates like prod when `AI_GATEWAY_API_KEY` is set — see `tests/memory/competitive/memorybench-ir-port.md`). SuperMemory / Mem0 gap analysis and Convex-only roadmap: `tests/memory/competitive-brief.md`. Jev retrieve-gate: `tests/memory/jev-retrieve-gate.md`.
+Labelled retrieve eval (IR, no LLM judge): `pnpm --filter @vmem/backend eval:bench`. Default-on Jev vs hybrid-only (`judge: "off"`) on that harness: `EVAL_JEV=1 pnpm --filter @vmem/backend eval:jev` (needs `AI_GATEWAY_API_KEY`; does not mock). Labelled IR vs Mem0 / SuperMemory: `EVAL_COMPETITIVE=1 pnpm --filter @vmem/backend eval:competitive` (needs `MEM0_API_KEY` + `SUPERMEMORY_API_KEY`; see `tests/memory/competitive/vmem-vs-mem0-supermemory.md`). LoCoMo utterance-IR (download `locomo10.json`, gold `dia_id` IR, no answer/MemScore judge): `pnpm --filter @vmem/backend eval:locomo-ir` (default `-l` 8, `LOCOMO_IR_JUDGE=off`; `LOCOMO_IR_JUDGE=jev` reranks retrieve candidates like prod when `AI_GATEWAY_API_KEY` is set — see `tests/memory/competitive/memorybench-ir-port.md`). End-to-end memory on/off A/B with headless `claude -p` (local only, never CI, uses LLM calls): `EVAL_E2E_AB=1 pnpm --filter @vmem/backend eval:e2e-ab`; `--dry-run` exercises the pipeline with no LLM or HTTP (see `eval/e2e-ab/README.md`; index of all evals in `eval/README.md`). SuperMemory / Mem0 gap analysis and Convex-only roadmap: `tests/memory/competitive-brief.md`. Jev retrieve-gate: `tests/memory/jev-retrieve-gate.md`.

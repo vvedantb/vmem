@@ -27,3 +27,5 @@ Hybrid vs Jev on the same labelled harness (main result = default-on Jev; contro
 Same labelled corpus vs Mem0 / SuperMemory (fail-closed without keys; no invented numbers): `tests/memory/competitive/vmem-vs-mem0-supermemory.md`. Re-run: `EVAL_COMPETITIVE=1 pnpm --filter @vmem/backend eval:competitive`.
 
 LoCoMo utterance-IR (MemoryBench datasets, no answer/judge LLM): `tests/memory/competitive/memorybench-ir-port.md`. Re-run: `pnpm --filter @vmem/backend eval:locomo-ir`.
+
+End-to-end memory on/off A/B (headless `claude -p` with and without vmem MCP, LLM-judged on the `ANSWER:` text; local only, never CI): `docs/e2e-ab-eval.md`. Live scores: — (not yet run; this repo records the method only). Re-run: `EVAL_E2E_AB=1 pnpm --filter @vmem/backend eval:e2e-ab`; pipeline check without LLM: `pnpm --filter @vmem/backend eval:e2e-ab -- --dry-run`.

@@ -1,0 +1,39 @@
+id: project-codename
+title: Retrieve the right project without its codename
+kind: project
+task: |
+  Which team owns the migration from the legacy invoicing database, and what is its cut-over date?
+acceptanceCriteria: |
+  1. Identifies the owning team (Ledger Platform)
+  2. Gives the cut-over date (14 November 2026)
+  3. Does not use the date or owner of the other migration
+expectedFacts:
+  - Ledger Platform
+  - 14 November 2026
+forbiddenFacts:
+  - 6 December 2026
+seedMemories:
+  - title: Project Kestrel scope
+    content: Project Kestrel is the migration off the legacy invoicing database. It moves invoice history to the new ledger service.
+    type: knowledge
+    source: e2e-ab
+    tags: [projects, kestrel]
+    confidence: 0.9
+  - title: Project Kestrel owner
+    content: The Ledger Platform team owns Project Kestrel.
+    type: knowledge
+    source: e2e-ab
+    tags: [projects, kestrel]
+    confidence: 0.9
+  - title: Project Kestrel schedule
+    content: Project Kestrel cuts over on 14 November 2026.
+    type: knowledge
+    source: e2e-ab
+    tags: [projects, kestrel]
+    confidence: 0.9
+  - title: Project Osprey
+    content: Project Osprey migrates the CRM export jobs. The Data Services team owns it and cuts over on 6 December 2026.
+    type: knowledge
+    source: e2e-ab
+    tags: [projects, osprey]
+    confidence: 0.9
