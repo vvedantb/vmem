@@ -31,11 +31,11 @@ const memoryItem: ListItem = {
   profileId: "profile-a",
 };
 
-const wikiDoc: ListItem = {
-  kind: "wiki-document",
-  id: "wiki:doc-1",
-  wikiId: "doc-1",
-  title: "Wiki page",
+const skillItem: ListItem = {
+  kind: "skill",
+  id: "skill:skill-1",
+  skillId: "skill-1",
+  title: "Skill",
   content: "Notes",
   tags: [],
   createdAt: "2026-01-01T00:00:00.000Z",
@@ -44,13 +44,13 @@ const wikiDoc: ListItem = {
 describe("memory view filter predicates", () => {
   it("passes all items when no kind filter is selected", () => {
     expect(kindPassesFilter(memoryItem.kind, [])).toBe(true);
-    expect(kindPassesFilter(wikiDoc.kind, [])).toBe(true);
+    expect(kindPassesFilter(skillItem.kind, [])).toBe(true);
   });
 
   it("filters by selected kinds only", () => {
     expect(kindPassesFilter(memoryItem.kind, ["memory"])).toBe(true);
-    expect(kindPassesFilter(wikiDoc.kind, ["memory"])).toBe(false);
-    expect(kindPassesFilter(wikiDoc.kind, ["wiki-document"])).toBe(true);
+    expect(kindPassesFilter(skillItem.kind, ["memory"])).toBe(false);
+    expect(kindPassesFilter(skillItem.kind, ["skill"])).toBe(true);
   });
 
   it("requires every selected tag on memories and ignores non-memory items", () => {
@@ -64,27 +64,31 @@ describe("memory view filter predicates", () => {
     expect(tagsPassFilter(memoryItem.tags, ["graphql"], memoryItem.kind)).toBe(
       false,
     );
-    expect(tagsPassFilter(wikiDoc.tags, ["graphql"], wikiDoc.kind)).toBe(true);
+    expect(tagsPassFilter(skillItem.tags, ["graphql"], skillItem.kind)).toBe(
+      true,
+    );
   });
 
-  it("filters memory sources without hiding wiki items", () => {
+  it("filters memory sources without hiding skill items", () => {
     expect(
       sourcePassesFilter(memoryItem.source, ["web"], memoryItem.kind),
     ).toBe(true);
     expect(
       sourcePassesFilter(memoryItem.source, ["mcp"], memoryItem.kind),
     ).toBe(false);
-    expect(sourcePassesFilter(undefined, ["mcp"], wikiDoc.kind)).toBe(true);
+    expect(sourcePassesFilter(undefined, ["mcp"], skillItem.kind)).toBe(true);
   });
 
-  it("filters memory types without hiding wiki items", () => {
+  it("filters memory types without hiding skill items", () => {
     expect(
       typePassesFilter(memoryItem.type, ["knowledge"], memoryItem.kind),
     ).toBe(true);
     expect(
       typePassesFilter(memoryItem.type, ["episodic"], memoryItem.kind),
     ).toBe(false);
-    expect(typePassesFilter(undefined, ["episodic"], wikiDoc.kind)).toBe(true);
+    expect(typePassesFilter(undefined, ["episodic"], skillItem.kind)).toBe(
+      true,
+    );
   });
 
   it("combines predicates via apiGraphNodePassesFilters", () => {
@@ -113,7 +117,7 @@ describe("memory view filter predicates", () => {
           type: memoryItem.type,
         },
         {
-          kinds: ["wiki-document"],
+          kinds: ["skill"],
           tags: [],
           sources: [],
           types: [],
@@ -122,7 +126,7 @@ describe("memory view filter predicates", () => {
     ).toBe(false);
     expect(
       apiGraphNodePassesFilters(
-        { kind: wikiDoc.kind, tags: wikiDoc.tags },
+        { kind: skillItem.kind, tags: skillItem.tags },
         {
           kinds: [],
           tags: ["graphql"],
@@ -144,14 +148,14 @@ describe("memory view filter predicates", () => {
     ).toBe(true);
     expect(
       listItemPassesFilters(memoryItem, {
-        kinds: ["wiki-document"],
+        kinds: ["skill"],
         tags: [],
         sources: [],
         types: [],
       }),
     ).toBe(false);
     expect(
-      listItemPassesFilters(wikiDoc, {
+      listItemPassesFilters(skillItem, {
         kinds: [],
         tags: ["graphql"],
         sources: ["mcp"],
@@ -180,8 +184,8 @@ describe("listItemToMemory", () => {
 
 describe("searchListItems", () => {
   it("scores title matches above content and returns sorted results", () => {
-    const wikiMatch: ListItem = {
-      ...wikiDoc,
+    const skillMatch: ListItem = {
+      ...skillItem,
       title: "React notes",
       content: "misc",
       tags: [],
@@ -193,8 +197,8 @@ describe("searchListItems", () => {
       tags: [],
     };
 
-    const results = searchListItems([wikiMatch, memoryMatch], "react");
-    expect(results.map((r) => r.item.id)).toEqual(["wiki:doc-1", "mem-1"]);
+    const results = searchListItems([skillMatch, memoryMatch], "react");
+    expect(results.map((r) => r.item.id)).toEqual(["skill:skill-1", "mem-1"]);
     expect(results[0]?.relevanceScore).toBeGreaterThan(
       results[1]?.relevanceScore ?? 0,
     );

@@ -45,6 +45,8 @@ docs/superpowers/
 scripts/*
 !scripts/compiler-check.mjs
 !scripts/compiler-check-baseline.json
+# one-off wiki export for the Verve import; remove with convex/wikiExport.ts
+!scripts/export-wiki.ts
 
 # Chrome extension build + live-verification scripts — local only
 apps/chrome-extension/scripts/

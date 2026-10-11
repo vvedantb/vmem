@@ -30,9 +30,6 @@ import {
   skillsIndexEntrySchema,
   skillUpdatedSchema,
   whoamiResultSchema,
-  wikiDeletedSchema,
-  wikiNodeResultSchema,
-  wikiSearchResultSchema,
 } from "./schemas";
 
 const unknownJsonSchema = z.unknown();
@@ -42,7 +39,6 @@ const skillsRecommendSchema = z.object({
   source: z.enum(["jev", "lexical"]),
   skills: z.array(skillsIndexEntrySchema.extend({ score: z.number() })),
 });
-const wikiListSchema = z.array(wikiNodeResultSchema);
 
 function parseToolPayload(result: McpToolContent): unknown {
   expect(result.isError ?? false).toBe(false);
@@ -73,7 +69,7 @@ describe("in-process MCP auth gate", () => {
     const personal = new InProcessMcpClient({ token: MOCK_MCP_TOKEN });
     const personalInit = await personal.initialize();
     expect(personalInit.serverInfo.name).toBe("vmem-mcp");
-    expect(personalInit.serverInfo.version).toBe("1.1.0");
+    expect(personalInit.serverInfo.version).toBe("2.0.0");
 
     const team = new InProcessMcpClient({
       session: createInProcessSession("team"),
@@ -93,7 +89,7 @@ describe("in-process MCP catalog", () => {
     expect(names.some((name) => name.includes("codebase"))).toBe(false);
   });
 
-  it("omits wiki, files, and context_prompt on the team connector", async () => {
+  it("omits files and context_prompt on the team connector", async () => {
     const client = new InProcessMcpClient({
       session: createInProcessSession("team"),
       token: MOCK_MCP_TOKEN,
@@ -260,7 +256,7 @@ describe("in-process MCP memory tools", () => {
   });
 });
 
-describe("in-process MCP core, skills, wiki, and files tools", () => {
+describe("in-process MCP core, skills, and files tools", () => {
   it("smokes ping, whoami, profiles, and context_prompt_get", async () => {
     const client = new InProcessMcpClient({ token: MOCK_MCP_TOKEN });
     const ping = pingResultSchema.parse(
@@ -428,8 +424,8 @@ describe("in-process MCP core, skills, wiki, and files tools", () => {
 
     await personal.callTool("skills_create", {
       name: "wiki-writeup",
-      description: "Chapter-style wiki explainer to read later",
-      instructions: "Write the wiki",
+      description: "Chapter-style explainer to read later",
+      instructions: "Write the note",
     });
     await personal.callTool("skills_create", {
       name: "deploy-vercel",
@@ -445,7 +441,7 @@ describe("in-process MCP core, skills, wiki, and files tools", () => {
     const recommended = skillsRecommendSchema.parse(
       parseToolPayload(
         await personal.callTool("skills_recommend", {
-          query: "write a wiki explainer to read later",
+          query: "write an explainer to read later",
         }),
       ),
     );
@@ -488,54 +484,6 @@ describe("in-process MCP core, skills, wiki, and files tools", () => {
     ).toContain("team-runbook");
   });
 
-  it("creates, reads, searches, updates, and deletes a wiki document", async () => {
-    const client = new InProcessMcpClient({ token: MOCK_MCP_TOKEN });
-    const created = wikiNodeResultSchema.parse(
-      parseToolPayload(
-        await client.callTool("wiki_create", {
-          kind: "document",
-          title: "Harness notes",
-          contentMarkdown: "MCP harness coverage",
-        }),
-      ),
-    );
-    expect(created.kind).toBe("document");
-
-    const listed = wikiListSchema.parse(
-      parseToolPayload(await client.callTool("wiki_list")),
-    );
-    expect(listed.map((node) => node.title)).toContain("Harness notes");
-
-    const fetched = wikiNodeResultSchema.parse(
-      parseToolPayload(await client.callTool("wiki_get", { id: created.id })),
-    );
-    expect(fetched.id).toBe(created.id);
-
-    const searched = wikiSearchResultSchema.parse(
-      parseToolPayload(
-        await client.callTool("wiki_search", { query: "harness" }),
-      ),
-    );
-    expect(searched.map((node) => node.id)).toContain(created.id);
-
-    const updated = wikiNodeResultSchema.parse(
-      parseToolPayload(
-        await client.callTool("wiki_update", {
-          id: created.id,
-          title: "Harness notes v2",
-        }),
-      ),
-    );
-    expect(updated.title).toBe("Harness notes v2");
-
-    const deleted = wikiDeletedSchema.parse(
-      parseToolPayload(
-        await client.callTool("wiki_delete", { id: created.id }),
-      ),
-    );
-    expect(deleted.deletedCount).toBeGreaterThan(0);
-  });
-
   it("uploads, lists, reads, and deletes a text file", async () => {
     const client = new InProcessMcpClient({ token: MOCK_MCP_TOKEN });
     const uploaded = fileUploadResultSchema.parse(
@@ -572,7 +520,7 @@ describe("in-process MCP core, skills, wiki, and files tools", () => {
     expect(deleted.deletedCount).toBeGreaterThan(0);
   });
 
-  it("rejects bad arguments on core, skills, wiki, and files tools", async () => {
+  it("rejects bad arguments on core, skills, and files tools", async () => {
     const client = new InProcessMcpClient({ token: MOCK_MCP_TOKEN });
     const cases: Array<{ name: string; args: Record<string, unknown> }> = [
       { name: "set_active_profile", args: {} },
@@ -582,11 +530,6 @@ describe("in-process MCP core, skills, wiki, and files tools", () => {
       { name: "skills_import", args: {} },
       { name: "skills_update", args: {} },
       { name: "skills_delete", args: {} },
-      { name: "wiki_get", args: {} },
-      { name: "wiki_search", args: {} },
-      { name: "wiki_create", args: { kind: "document" } },
-      { name: "wiki_update", args: {} },
-      { name: "wiki_delete", args: {} },
       { name: "files_get", args: {} },
       { name: "files_upload", args: { path: "a.txt" } },
       { name: "files_delete", args: {} },

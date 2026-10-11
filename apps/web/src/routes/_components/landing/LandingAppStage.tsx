@@ -3,7 +3,6 @@ import { motion, useReducedMotion } from "motion/react";
 import { Button, cn, motionDuration, motionEase } from "@vvedantb/ui";
 import {
   IconMemories,
-  IconWiki,
   IconSkills,
   IconFiles,
   IconInbox,
@@ -20,15 +19,13 @@ import { LandingHomePreview } from "./LandingHomePreview";
 import { LandingMemoryPreview } from "./LandingMemoryPreview";
 import { LandingListPreview } from "./LandingListPreview";
 import { LandingTimelinePreview } from "./LandingTimelinePreview";
-import { LandingWikiPreview } from "./LandingWikiPreview";
 import { LandingSkillsPreview } from "./LandingSkillsPreview";
 
-export type LandingStageView = "home" | "memories" | "wiki" | "skills";
+export type LandingStageView = "home" | "memories" | "skills";
 type MemoriesTab = "graph" | "list" | "timeline";
 
 const libraryItems = [
   { id: "memories", label: "Memories", icon: IconMemories, interactive: true },
-  { id: "wiki", label: "Wiki", icon: IconWiki, interactive: true },
   { id: "skills", label: "Skills", icon: IconSkills, interactive: true },
   { id: "files", label: "Files", icon: IconFiles, interactive: false },
 ] as const;
@@ -40,7 +37,6 @@ const accountItems = [
 const pageTitle: Record<LandingStageView, string> = {
   home: "Dashboard",
   memories: "Memories",
-  wiki: "Wiki",
   skills: "Skills",
 };
 
@@ -82,11 +78,7 @@ export function LandingAppStage() {
                     isActive={item.interactive && view === item.id}
                     disabled={!item.interactive}
                     onClick={() => {
-                      if (
-                        item.id === "memories" ||
-                        item.id === "wiki" ||
-                        item.id === "skills"
-                      ) {
+                      if (item.id === "memories" || item.id === "skills") {
                         setView(item.id);
                       }
                     }}
@@ -169,7 +161,6 @@ function StageBody({
   memoriesTab: MemoriesTab;
 }) {
   if (view === "home") return <LandingHomePreview />;
-  if (view === "wiki") return <LandingWikiPreview />;
   if (view === "skills") return <LandingSkillsPreview />;
   if (memoriesTab === "list") return <LandingListPreview />;
   if (memoriesTab === "timeline") return <LandingTimelinePreview />;
@@ -265,7 +256,7 @@ function MobileViewSwitch({
   value: LandingStageView;
   onChange: (view: LandingStageView) => void;
 }) {
-  const views: LandingStageView[] = ["home", "memories", "wiki", "skills"];
+  const views: LandingStageView[] = ["home", "memories", "skills"];
   return (
     <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-thin md:hidden">
       {views.map((view) => (

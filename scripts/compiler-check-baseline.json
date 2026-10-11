@@ -1,6 +1,5 @@
 [
   "apps/web/src/components/icons/animations/AnimatedCounter.tsx :: (BuildHIR::node.lowerReorderableExpression) Expression type `ArrowFunctionExpression` cannot be safely reordered",
   "apps/web/src/components/memories/AddMemoryModal.tsx :: Use of incompatible library",
-  "apps/web/src/components/wiki/WikiDocumentEditor.tsx :: Cannot access refs during render",
   "apps/web/src/providers/ConvexClientProvider.tsx :: Hooks may not be referenced as normal values; they must be called"
 ]

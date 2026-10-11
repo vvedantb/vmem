@@ -65,8 +65,8 @@ function rank(
     query: "how do we ship a release?",
     items: rows,
     toItem,
-    subject: "wiki page",
-    task: "wiki-search",
+    subject: "related memory",
+    task: "related-memories",
     apiKey,
     evaluate,
   });
@@ -100,7 +100,7 @@ describe("buildJevRankQuestions", () => {
   it("asks noul + score per item and one best choice", () => {
     const questions = buildJevRankQuestions(
       [toItem(alpha), toItem(beta)],
-      "wiki page",
+      "related memory",
     );
     expect(Object.keys(questions).sort()).toEqual(
       ["best", "rel_0", "rel_1", "sc_0", "sc_1"].sort(),
@@ -170,8 +170,8 @@ describe("jevRankItems", () => {
       query: "   ",
       items: [alpha, beta],
       toItem,
-      subject: "wiki page",
-      task: "wiki-search",
+      subject: "related memory",
+      task: "related-memories",
       apiKey: "test-key",
       evaluate: unused,
     });

@@ -4,7 +4,6 @@ export type PreviewNodeId =
   | "knowledge"
   | "tool"
   | "entity"
-  | "wiki"
   | "skill";
 
 export type DemoMemoryId = PreviewNodeId;
@@ -18,7 +17,7 @@ export interface PreviewNode {
   labelY: number;
   snippet: string;
   tags: string[];
-  kind: "memory" | "entity" | "wiki-document" | "skill";
+  kind: "memory" | "entity" | "skill";
   isCenter?: boolean;
 }
 
@@ -65,15 +64,6 @@ export interface DemoQuery {
   label: string;
   query: string;
   hits: readonly DemoQueryHit[];
-}
-
-export interface DemoWikiNode {
-  id: string;
-  title: string;
-  kind: "folder" | "document";
-  children?: readonly DemoWikiNode[];
-  heading?: string;
-  paragraphs?: readonly string[];
 }
 
 export interface DemoSkill {
@@ -142,17 +132,6 @@ export const previewNodes: PreviewNode[] = [
     kind: "entity",
   },
   {
-    id: "wiki",
-    cx: 400,
-    cy: 300,
-    r: 7,
-    label: "wiki",
-    labelY: 322,
-    snippet: "Graph recall notes: hybrid search, then one hop of expansion.",
-    tags: ["docs"],
-    kind: "wiki-document",
-  },
-  {
     id: "skill",
     cx: 248,
     cy: 64,
@@ -172,7 +151,6 @@ export const previewEdges: PreviewEdge[] = [
   { from: "entity", to: "episodic", d: "M536 248 L320 176" },
   { from: "profile", to: "tool", d: "M168 92 L112 248" },
   { from: "knowledge", to: "entity", d: "M508 108 L536 248" },
-  { from: "wiki", to: "knowledge", d: "M400 300 L508 108" },
   { from: "skill", to: "profile", d: "M248 64 L168 92" },
   { from: "skill", to: "episodic", d: "M248 64 L320 176" },
 ];
@@ -211,10 +189,6 @@ export const demoMemories: DemoMemory[] = [
       {
         title: "Convex retrieve lag during memory refactor",
         reason: "same stack",
-      },
-      {
-        title: "Graph recall notes",
-        reason: "documents this",
       },
     ],
   },
@@ -263,22 +237,6 @@ export const demoMemories: DemoMemory[] = [
       {
         title: "Convex retrieve lag during memory refactor",
         reason: "same session",
-      },
-    ],
-  },
-  {
-    id: "wiki",
-    title: "Graph recall notes",
-    content:
-      "Hybrid search first, then one hop of graph expansion. Every hit ships a Context Trace so the match is inspectable.",
-    type: "knowledge",
-    source: "web",
-    tags: ["docs"],
-    createdAt: daysAgo(7),
-    connections: [
-      {
-        title: "vmem stores memories in Convex",
-        reason: "documents this",
       },
     ],
   },
@@ -424,35 +382,6 @@ export const demoQueries: DemoQuery[] = [
     ],
   },
 ];
-
-export const demoWikiTree: DemoWikiNode = {
-  id: "fyp",
-  title: "Final year project",
-  kind: "folder",
-  children: [
-    {
-      id: "recall",
-      title: "Graph recall",
-      kind: "document",
-      heading: "Graph recall",
-      paragraphs: [
-        "Agents forget between sessions and across tools. vmem keeps a shared graph of what you know, then retrieves a slice when something asks.",
-        "Retrieval is hybrid: fulltext, vectors, chunks, entities, then one hop of graph expansion. The Context Trace is the score breakdown — not a black-box rank.",
-        "Conflicting updates become proposals instead of silent overwrites. Dream Mode synthesises higher-level memories in the background.",
-      ],
-    },
-    {
-      id: "stack",
-      title: "Stack notes",
-      kind: "document",
-      heading: "Stack notes",
-      paragraphs: [
-        "Memories live in Convex. Convex also handles auth, profiles, teams, and scheduled work.",
-        "The web app, Chrome extension, MCP server, HTTP API, and SDK are clients on the same graph.",
-      ],
-    },
-  ],
-};
 
 export const demoSkills: DemoSkill[] = [
   { name: "memory.retrieve", hint: "Scored recall with a Context Trace" },

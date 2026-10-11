@@ -16,7 +16,7 @@ interface ShapeIndicatorProps {
   className?: string;
 }
 
-// tiny shape swatch circle for memories, diamond for wiki documents, square for
+// tiny shape swatch: circle for memories, hexagon for skills, star for entities
 export default function ShapeIndicator({
   kind,
   color,
@@ -31,26 +31,6 @@ export default function ShapeIndicator({
           style={{ backgroundColor: color }}
           aria-hidden
         />
-      );
-    case "wiki-document":
-      return (
-        <span
-          className={cn(base, "rotate-45")}
-          style={{ backgroundColor: color }}
-          aria-hidden
-        />
-      );
-    case "wiki-artifact":
-      return (
-        <span
-          className={cn(base, "rounded-sm")}
-          style={{ backgroundColor: color }}
-          aria-hidden
-        />
-      );
-    case "wiki-folder":
-      return (
-        <span className={base} style={{ backgroundColor: color }} aria-hidden />
       );
     case "skill":
       return (

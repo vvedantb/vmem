@@ -11,7 +11,6 @@ import {
 } from "./nav-config";
 import { NavLink } from "./NavLink";
 import { SkillsSidebarNav } from "./SkillsSidebarNav";
-import { WikiSidebarNav } from "./WikiSidebarNav";
 import { MemoriesSidebarNav } from "./MemoriesSidebarNav";
 import { SettingsSidebar } from "./SettingsSidebar";
 import { SharedLayoutBackground } from "./SharedLayoutBackground";
@@ -140,9 +139,6 @@ export function SidebarNavigation({
     return (
       <SkillsSidebarNav key="skills" isIconOnly={false} isMobile={isMobile} />
     );
-  }
-  if (navView === "wiki") {
-    return <WikiSidebarNav key="wiki" isIconOnly={false} isMobile={isMobile} />;
   }
   if (navView === "memories") {
     return (

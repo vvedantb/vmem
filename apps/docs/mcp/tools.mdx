@@ -3,7 +3,7 @@ title: "MCP Tools"
 description: "Complete reference for all vmem MCP tools"
 ---
 
-Tools are registered from `packages/backend/convex/mcp/tools*.ts`. Auth accepts a Clerk `oauth_token` or `session_token` bearer (MCP server `1.1.0`). Memory tools work on `/mcp` and `/mcp/team`. Skills tools also work on both connectors (personal skills on `/mcp`, team-granted skills on `/mcp/team`), except `skills_import` which is personal `/mcp` only. Wiki, files, and `context_prompt_get` are personal-only.
+Tools are registered from `packages/backend/convex/mcp/tools*.ts`. Auth accepts a Clerk `oauth_token` or `session_token` bearer (MCP server `2.0.0`). Memory tools work on `/mcp` and `/mcp/team`. Skills tools also work on both connectors (personal skills on `/mcp`, team-granted skills on `/mcp/team`), except `skills_import` which is personal `/mcp` only. Files and `context_prompt_get` are personal-only.
 
 ## ping
 
@@ -361,68 +361,6 @@ At least one of `newName`, `description`, `instructions`, or `enabled` is requir
 </ParamField>
 
 **Returns:** `{ deleted: true }`
-
----
-
-## wiki_list
-
-Flat index of all wiki folders and documents (no body). Personal connector only.
-
-**Parameters:** none
-
-**Returns:** Array of `{ id, title, kind, parentId, order, updatedAt }`
-
----
-
-## wiki_get
-
-<ParamField body="id" type="string" required>
-  Wiki node id from `wiki_list`
-</ParamField>
-
----
-
-## wiki_search
-
-<ParamField body="query" type="string" required>
-  Search text
-</ParamField>
-
-**Returns:** Array of `{ id, title, kind, excerpt }`
-
----
-
-## wiki_create
-
-<ParamField body="kind" type="string" required>
-  `folder` or `document`
-</ParamField>
-<ParamField body="title" type="string" required />
-<ParamField body="parentId" type="string">
-  Parent folder id (omit for root)
-</ParamField>
-<ParamField body="contentMarkdown" type="string">
-  Initial markdown body (documents only)
-</ParamField>
-
----
-
-## wiki_update
-
-<ParamField body="id" type="string" required />
-<ParamField body="title" type="string" />
-<ParamField body="contentMarkdown" type="string" />
-<ParamField body="contentMode" type="string">
-  `replace` (default) or `append` when `contentMarkdown` is set
-</ParamField>
-
----
-
-## wiki_delete
-
-<ParamField body="id" type="string" required />
-
-**Returns:** `{ deletedCount: number }` — includes the root node and all descendants.
 
 ---
 

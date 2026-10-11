@@ -118,31 +118,6 @@ const skillUpdateArgsSchema = z.object({
   enabled: z.boolean().optional(),
   scope: z.enum(["personal", "team"]).optional(),
 });
-const wikiIdArgsSchema = z.object({
-  clerkId: z.string(),
-  id: z.string(),
-});
-const wikiSearchArgsSchema = z.object({
-  clerkId: z.string(),
-  queryText: z.string(),
-});
-const wikiCreateArgsSchema = z.object({
-  clerkId: z.string(),
-  parentId: z.string().optional(),
-  kind: z.enum(["folder", "document", "artifact"]),
-  title: z.string(),
-  content: z.string().optional(),
-  contentText: z.string().optional(),
-  language: z.string().optional(),
-});
-const wikiUpdateArgsSchema = z.object({
-  clerkId: z.string(),
-  id: z.string(),
-  title: z.string().optional(),
-  content: z.string().optional(),
-  contentText: z.string().optional(),
-  language: z.string().optional(),
-});
 const fileUpsertArgsSchema = z.object({
   clerkId: z.string(),
   segments: z.array(z.string()),
@@ -173,21 +148,6 @@ type MockProfile = {
   updatedAt: number;
 };
 
-type MockWikiNode = {
-  _id: string;
-  _creationTime: number;
-  userId: string;
-  parentId?: string;
-  kind: "folder" | "document" | "artifact";
-  title: string;
-  content?: string;
-  contentText?: string;
-  language?: string;
-  order: number;
-  createdAt: number;
-  updatedAt: number;
-};
-
 type MockFileNode = {
   _id: string;
   _creationTime: number;
@@ -211,7 +171,6 @@ export type MockStore = {
   memories: MemoryWithTags[];
   links: Array<{ sourceId: string; targetId: string; reason: string }>;
   skills: MockSkill[];
-  wiki: MockWikiNode[];
   files: MockFileNode[];
   blobs: Map<string, Blob>;
   nextId: number;
@@ -270,7 +229,6 @@ export function createMockStore(): MockStore {
     memories: [],
     links: [],
     skills: [],
-    wiki: [],
     files: [],
     blobs: new Map(),
     nextId: 0,
@@ -335,10 +293,6 @@ function makeMemory(
 }
 
 type ConvexFnRef = Parameters<typeof getFunctionName>[0];
-
-function wikiById(store: MockStore, id: string): MockWikiNode | null {
-  return store.wiki.find((node) => node._id === id) ?? null;
-}
 
 function skillGrantForScope(
   scope: "personal" | "team" | undefined,
@@ -667,66 +621,6 @@ async function dispatch(
       if (index < 0) throw new Error("Skill not found");
       store.skills.splice(index, 1);
       return null;
-    }
-    case "wiki:listByClerkIdInternal": {
-      clerkIdArgsSchema.parse(args);
-      return [...store.wiki];
-    }
-    case "wiki:getByIdInternal": {
-      const parsed = wikiIdArgsSchema.parse(args);
-      return wikiById(store, parsed.id);
-    }
-    case "wiki:searchByClerkIdInternal": {
-      const parsed = wikiSearchArgsSchema.parse(args);
-      const query = parsed.queryText.trim().toLowerCase();
-      if (query.length === 0) return [];
-      return store.wiki.filter((node) => {
-        const body = `${node.title}\n${node.content ?? ""}`.toLowerCase();
-        return body.includes(query);
-      });
-    }
-    case "wiki:createByClerkIdInternal": {
-      const parsed = wikiCreateArgsSchema.parse(args);
-      const createdAt = nowMs();
-      const node: MockWikiNode = {
-        _id: allocId(store, "wiki"),
-        _creationTime: createdAt,
-        userId: MOCK_USER_ID,
-        parentId: parsed.parentId,
-        kind: parsed.kind,
-        title: parsed.title,
-        content: parsed.content,
-        contentText: parsed.contentText,
-        language: parsed.language,
-        order: store.wiki.length,
-        createdAt,
-        updatedAt: createdAt,
-      };
-      store.wiki.push(node);
-      return node._id;
-    }
-    case "wiki:updateByClerkIdInternal": {
-      const parsed = wikiUpdateArgsSchema.parse(args);
-      const node = wikiById(store, parsed.id);
-      if (!node) throw new Error("Not found");
-      if (parsed.title !== undefined) node.title = parsed.title;
-      if (parsed.content !== undefined) node.content = parsed.content;
-      if (parsed.contentText !== undefined)
-        node.contentText = parsed.contentText;
-      if (parsed.language !== undefined) node.language = parsed.language;
-      node.updatedAt = nowMs();
-      return node._id;
-    }
-    case "wiki:deleteByClerkIdInternal": {
-      const parsed = wikiIdArgsSchema.parse(args);
-      const root = wikiById(store, parsed.id);
-      if (!root) throw new Error("Not found");
-      const before = store.wiki.length;
-      store.wiki = store.wiki.filter((node) => {
-        if (node._id === root._id) return false;
-        return node.parentId !== root._id;
-      });
-      return before - store.wiki.length;
     }
     case "files:listByClerkIdInternal": {
       clerkIdArgsSchema.parse(args);

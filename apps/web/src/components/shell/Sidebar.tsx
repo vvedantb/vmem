@@ -160,10 +160,7 @@ export default function Sidebar({
   };
 
   const showWorkspaceSwitcher =
-    section !== "settings" &&
-    section !== "skills" &&
-    section !== "wiki" &&
-    section !== "memories";
+    section !== "settings" && section !== "skills" && section !== "memories";
   const showStats = showWorkspaceSwitcher;
 
   return (

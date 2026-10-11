@@ -13,8 +13,8 @@ export interface SystemSkillSeed {
 
 const WIKI_WRITEUP_INSTRUCTIONS = `# wiki-writeup — Async learning (read later)
 
-User invokes: \`/wiki-writeup <topic, link, or resource>\` — one line. They want a **wiki
-writeup to read later**, not a lecture in chat.
+User invokes: \`/wiki-writeup <topic, link, or resource>\` — one line. They want a **written
+note to read later** in Verve, not a lecture in chat.
 
 ## Know the learner first (do not ask)
 
@@ -28,29 +28,35 @@ level" or "what you already know" if this data exists:
 Calibrate depth, jargon, and skipped prerequisites from that context only. Ask the user
 only if context is genuinely empty for the domain.
 
-## vmem tools
+## Tools
+
+vmem:
 
 - \`skills_get\` with name \`wiki-writeup\` when you need this playbook mid-session.
-- \`wiki_search\` (optional) — avoid duplicate titles under \`Learning/\`.
-- \`wiki_create\` with \`parentPath: "Learning"\` — full markdown writeup **before** chat reply (server creates \`Learning\` if missing; never omit or the doc lands at wiki root).
-- \`wiki_update\` — revise an existing writeup.
-- \`memory_add\` (optional) — stub with URL + pointer to wiki doc.
+- \`memory_add\` (optional) — stub with URL + pointer to the Verve page.
+
+Verve MCP (notes live here, not in vmem):
+
+- \`search_pages\` (optional) — avoid duplicate titles under \`Learning/\`.
+- \`create_folder\` — create \`Learning\` if it is missing.
+- \`create_page\` — full markdown writeup in \`Learning/\` **before** chat reply.
+- \`update_page\` / \`append_to_page\` — revise or extend an existing writeup.
 
 ## Teaching rules
 
 1. Fetch or read the resource (WebFetch, pasted text). If unreadable, ask for a paste.
-2. Teach step by step — each step a **chapter** in the wiki doc.
-3. **Write the entire explainer into wiki at once** via \`wiki_create\` (\`kind: "document"\`, \`parentPath: "Learning"\`, \`contentMarkdown\` = full doc). Do not call \`wiki_create\` without \`parentPath\`.
+2. Teach step by step — each step a **chapter** in the page.
+3. **Write the entire explainer into Verve at once** with \`create_page\` under \`Learning/\`. Never create the page at the Verve root.
 4. Hard concepts: subdivide + concrete examples.
 5. Fix poor source prose; optimize for clarity.
 
-## Wiki doc structure
+## Page structure
 
 - **TL;DR**, numbered **Chapters**, **Key takeaways**, **Source** link/citation.
 
 ## Chat response
 
-ONLY: wiki title/path, 2-sentence teaser, estimated read time. **No full writeup in chat.**`;
+ONLY: Verve page title/path, 2-sentence teaser, estimated read time. **No full writeup in chat.**`;
 
 const TEACH_ME_INSTRUCTIONS = `# teach-me — Interactive deep learning
 
@@ -63,9 +69,9 @@ Can span days or weeks.
 1. \`skills_get\` with name \`teach-me\` when you need this playbook mid-session.
 2. Read \`context_prompt_get\` or \`vmem://context_prompt\` + optional \`memory_retrieve\` for the topic **before** step 1.
 3. **One teaching step per chat turn** — validate understanding before advancing.
-4. Checkpoint validated steps to wiki under \`Learning/<topic-slug>/\`.
+4. Checkpoint validated steps to Verve pages under \`Learning/<topic-slug>/\`.
 
-**Not this skill:** One-shot dumping the full course to wiki or chat — that is \`wiki-writeup\`.
+**Not this skill:** One-shot dumping the full course to Verve or chat — that is \`wiki-writeup\`.
 
 ## Know the learner first (do not ask)
 
@@ -73,10 +79,17 @@ Same as \`wiki-writeup\`: \`context_prompt_get\` or \`vmem://context_prompt\` + 
 \`memory_retrieve\` for the topic **before** step 1. Infer presumed knowledge and goals
 from vmem — do not ask the user to state their background unless context is empty.
 
-## vmem tools
+## Tools
 
-- \`wiki_list\` / \`wiki_search\` / \`wiki_get\` — course under \`Learning/<topic-slug>/\`.
-- \`wiki_create\` with \`parentPath: "Learning/<topic-slug>"\` / \`wiki_update\` — syllabus, validated chapters, progress markers.
+Verve MCP (course notes):
+
+- \`search_pages\` — find the course under \`Learning/<topic-slug>/\`.
+- \`create_folder\` — create \`Learning/<topic-slug>\` on the first checkpoint.
+- \`create_page\` — syllabus and each validated chapter.
+- \`update_page\` / \`append_to_page\` — progress markers and new chapters.
+
+vmem:
+
 - \`memory_add\` (optional) — durable facts after validation.
 
 ## Session rules
@@ -85,19 +98,19 @@ from vmem — do not ask the user to state their background unless context is em
 2. Teach the current step; use examples for subtle points.
 3. **Validate** before the next step (explain back, short scenario, or spot-the-error).
 4. Weak understanding → re-teach; do not advance.
-5. Solid understanding → checkpoint to wiki, then next step.
+5. Solid understanding → checkpoint to Verve, then next step.
 6. Ground claims in user-supplied resources + fetch where needed; no invented citations.
 
-## Wiki notebook
+## Verve notebook
 
-Folder \`Learning/<topic-slug>/\`: index (syllabus, resources, current step), chapter docs
+Folder \`Learning/<topic-slug>/\`: index (syllabus, resources, current step), chapter pages
 for each **validated** step only.
 
 ## Do NOT
 
-- One-shot the whole course to wiki (that is \`wiki-writeup\`).
+- One-shot the whole course to Verve (that is \`wiki-writeup\`).
 - Skip validation on "just continue".
-- Save wrong explanations as canonical wiki text.`;
+- Save wrong explanations as canonical notes.`;
 
 const SEARCH_SKILLS_FIRST_INSTRUCTIONS = `# search-skills-first — Look up the matching playbook before acting
 
@@ -132,7 +145,7 @@ export const SYSTEM_SKILL_SEEDS: SystemSkillSeed[] = [
     name: "wiki-writeup",
     category: "Learning",
     description:
-      "/wiki-writeup <topic> — chapter-style wiki explainer in Learning/ to read later; chat = path + 2-sentence teaser only.",
+      "/wiki-writeup <topic> — chapter-style explainer written to Verve under Learning/ to read later; chat = path + 2-sentence teaser only.",
     instructions: WIKI_WRITEUP_INSTRUCTIONS,
     previousNames: ["writeup", "read-quick-dont-validate"],
   },
@@ -140,7 +153,7 @@ export const SYSTEM_SKILL_SEEDS: SystemSkillSeed[] = [
     name: "teach-me",
     category: "Learning",
     description:
-      "/teach-me <topic> — interactive tutor: one step per turn, validate before advancing; checkpoint progress to Learning/ wiki. Not one-shot wiki-writeup.",
+      "/teach-me <topic> — interactive tutor: one step per turn, validate before advancing; checkpoint progress to Verve pages under Learning/. Not one-shot wiki-writeup.",
     instructions: TEACH_ME_INSTRUCTIONS,
     previousNames: ["validate-my-understanding-and-teach-me"],
   },

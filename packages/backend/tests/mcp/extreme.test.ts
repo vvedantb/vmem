@@ -6,7 +6,6 @@ import {
   MEMORY_GRAPH_TOOL,
   MEMORY_TOOL_NAMES,
   SKILLS_TOOL_NAMES,
-  WIKI_TOOL_NAMES,
 } from "./catalog";
 import { parseToolJson, toolText } from "./client";
 import { InProcessMcpClient, MOCK_MCP_TOKEN } from "./inProcess";
@@ -19,7 +18,7 @@ import {
 } from "./schemas";
 
 describe("in-process MCP extreme catalog", () => {
-  it("personal catalog is every core/memory/skills/wiki/files tool plus graph, no neo4j", async () => {
+  it("personal catalog is every core/memory/skills/files tool plus graph, no wiki or neo4j", async () => {
     const client = new InProcessMcpClient({ token: MOCK_MCP_TOKEN });
     const names = await client.listTools();
     expect(names.sort()).toEqual(catalogNamesForScope("personal").sort());
@@ -28,12 +27,11 @@ describe("in-process MCP extreme catalog", () => {
         ...CORE_TOOL_NAMES,
         ...MEMORY_TOOL_NAMES,
         ...SKILLS_TOOL_NAMES,
-        ...WIKI_TOOL_NAMES,
         ...FILES_TOOL_NAMES,
         MEMORY_GRAPH_TOOL,
       ]),
     );
-    expect(names.some((name) => /codebase|github|neo4j/i.test(name))).toBe(
+    expect(names.some((name) => /codebase|github|neo4j|wiki/i.test(name))).toBe(
       false,
     );
   });
@@ -345,13 +343,10 @@ describe("in-process MCP extreme memory", () => {
 });
 
 describe("in-process MCP extreme non-memory tools", () => {
-  it("skills/wiki/files missing ids and graph limit 0", async () => {
+  it("skills/files missing ids and graph limit 0", async () => {
     const client = new InProcessMcpClient({ token: MOCK_MCP_TOKEN });
     expect(
       (await client.callTool("skills_get", { name: "no-such-skill" })).isError,
-    ).toBe(true);
-    expect(
-      (await client.callTool("wiki_get", { id: "wiki_missing" })).isError,
     ).toBe(true);
     expect(
       (await client.callTool("files_get", { path: "no/such.txt" })).isError,

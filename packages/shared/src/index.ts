@@ -20,4 +20,3 @@ export {
   type SkillIndexEntry,
 } from "./prompts/memoryRagPrompt";
 export { isTheme, type Theme } from "./theme";
-export { type WikiNodeKind, wikiKindHasContent, wikiKindLabel } from "./wiki";

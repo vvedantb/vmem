@@ -4,13 +4,11 @@ import type { ListItemKind } from "@/lib/list-items";
 // node shapes the renderer dispatches per kind (colour comes from first tag)
 const NODE_LEGEND: { kind: ListItemKind; label: string }[] = [
   { kind: "memory", label: "Memory" },
-  { kind: "wiki-document", label: "Wiki document" },
-  { kind: "wiki-folder", label: "Wiki folder" },
   { kind: "skill", label: "Skill" },
   { kind: "entity", label: "Entity" },
 ];
 
-// edge categories grouped by the renderer's four colour buckets
+// edge categories grouped by the renderer's colour buckets
 const EDGE_LEGEND: {
   label: string;
   swatchClass: string;
@@ -18,7 +16,6 @@ const EDGE_LEGEND: {
 }[] = [
   { label: "Tag", swatchClass: "bg-surface-tertiary/40" },
   { label: "Relates-to", swatchClass: "bg-warning/70", thick: true },
-  { label: "Wiki / structural", swatchClass: "bg-foreground/45", thick: true },
   { label: "Mentions", swatchClass: "bg-success/70", thick: true },
 ];
 

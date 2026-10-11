@@ -7,7 +7,7 @@ export function Slide34Surfaces() {
       title="Built for your whole workflow."
       panels={[
         { src: "/slides/app-skills.png", label: "Skills" },
-        { src: "/slides/app-wiki.png", label: "Wiki" },
+        { src: "/slides/app-home.png", label: "Dashboard" },
         { src: "/slides/app-connectors.png", label: "Connectors" },
       ]}
     />

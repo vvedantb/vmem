@@ -123,16 +123,6 @@ export const deletedFlagSchema = z.object({
   deleted: z.boolean(),
 });
 
-export const wikiNodeResultSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  kind: z.enum(["folder", "document", "artifact"]),
-});
-
-export const wikiDeletedSchema = z.object({
-  deletedCount: z.number(),
-});
-
 export const fileUploadResultSchema = z.object({
   path: z.string(),
   kind: z.literal("file"),
@@ -196,10 +186,6 @@ export const skillUpdatedSchema = z.object({
   name: z.string(),
   enabled: z.boolean(),
 });
-
-export const wikiSearchResultSchema = z.array(
-  z.object({ id: z.string(), title: z.string() }),
-);
 
 export const fileListSchema = z.array(
   z.object({ path: z.string(), kind: z.string() }),

@@ -11,7 +11,6 @@ const MIN_LABEL_SCREEN_R = 6;
 export const COSMOS_EDGE_LABEL: Record<GraphEdgeType, string> = {
   tag: "tagged",
   relates_to: "relates to",
-  wiki_parent: "parent of",
   mentions: "mentions",
 };
 

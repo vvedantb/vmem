@@ -10,7 +10,7 @@ import { useMemoryListFilterStats } from "@/hooks/useMemoryListFilterStats";
 import { useMemoriesSearchParams } from "@/hooks/useMemoriesSearchParams";
 
 export default function MemoryListHeaderControls({
-  searchPlaceholder = "Search memories, wiki, and skills...",
+  searchPlaceholder = "Search memories and skills...",
   searchLabel = "Search memories",
 }: {
   searchPlaceholder?: string;

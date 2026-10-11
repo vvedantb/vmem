@@ -12,12 +12,11 @@ import {
   MEMORY_GRAPH_TOOL,
   MEMORY_TOOL_NAMES,
   SKILLS_TOOL_NAMES,
-  WIKI_TOOL_NAMES,
 } from "./catalog";
 import { assertServerToolRegistrationCompiles } from "./inProcess";
 
 describe("MCP tool catalog", () => {
-  it("registers every memory, core, skills, wiki, and files tool and no codebase tools", () => {
+  it("registers every memory, core, skills, and files tool and no codebase or wiki tools", () => {
     const names = Object.keys(toolSpecs);
     expect(names).toEqual(
       expect.arrayContaining([
@@ -25,7 +24,6 @@ describe("MCP tool catalog", () => {
         ...CONTEXT_TOOL_NAMES,
         ...MEMORY_TOOL_NAMES,
         ...SKILLS_TOOL_NAMES,
-        ...WIKI_TOOL_NAMES,
         ...FILES_TOOL_NAMES,
       ]),
     );
@@ -34,10 +32,10 @@ describe("MCP tool catalog", () => {
         CONTEXT_TOOL_NAMES.length +
         MEMORY_TOOL_NAMES.length +
         SKILLS_TOOL_NAMES.length +
-        WIKI_TOOL_NAMES.length +
         FILES_TOOL_NAMES.length,
     );
     expect(names.some((name) => name.includes("codebase"))).toBe(false);
+    expect(names.some((name) => name.startsWith("wiki_"))).toBe(false);
     expect(names.some((name) => name.includes("github"))).toBe(false);
     expect(names.some((name) => name.toLowerCase().includes("neo4j"))).toBe(
       false,
@@ -45,11 +43,10 @@ describe("MCP tool catalog", () => {
     expect(toolSpecs.memory_search).toBe(memoryToolSpecs.memory_search);
   });
 
-  it("exposes skills on both scopes and hides wiki/files/context_prompt on team", () => {
+  it("exposes skills on both scopes and hides files/context_prompt on team", () => {
     const personal = catalogNamesForScope("personal");
     const team = catalogNamesForScope("team");
     expect(personal).toEqual(expect.arrayContaining([...SKILLS_TOOL_NAMES]));
-    expect(personal).toEqual(expect.arrayContaining([...WIKI_TOOL_NAMES]));
     expect(personal).toEqual(expect.arrayContaining([...FILES_TOOL_NAMES]));
     expect(personal).toContain("context_prompt_get");
     expect(personal).toContain(MEMORY_GRAPH_TOOL);
@@ -60,7 +57,6 @@ describe("MCP tool catalog", () => {
     expect(team).toContain("context_pack");
     expect(team).toContain(MEMORY_GRAPH_TOOL);
     expect(team).not.toContain("context_prompt_get");
-    expect(team.some((name) => name.startsWith("wiki_"))).toBe(false);
     expect(team.some((name) => name.startsWith("files_"))).toBe(false);
   });
 

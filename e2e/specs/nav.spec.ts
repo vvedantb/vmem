@@ -18,7 +18,7 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
     profileId,
   }) => {
     await expect(page.getByRole("link", { name: "Memories" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Wiki" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Wiki" })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Skills" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Files" })).toBeVisible();
     await expect(railLink(page, "Usage")).toBeVisible();
@@ -63,17 +63,6 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
     await expect(sidebarViewLink(page, "List")).toBeVisible();
     await expect(sidebarViewLink(page, "Tags")).toBeVisible();
     await expect(sidebarViewLink(page, "Timeline")).toBeVisible();
-    await assertNoFatalChrome(page);
-
-    await clickRail(page, "Wiki");
-    await expect(page).toHaveURL(new RegExp(`/${profileId}/wiki`));
-    await expect(
-      sidebarPanel(page).getByRole("heading", { name: "Wiki" }),
-    ).toBeVisible();
-    await expect(
-      sidebarPanel(page).getByRole("button", { name: "Add" }),
-    ).toBeVisible();
-    await expect(main).toBeVisible();
     await assertNoFatalChrome(page);
 
     await clickRail(page, "Skills");
@@ -257,6 +246,17 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
     ).toBeVisible({ timeout: 20_000 });
   });
 
+  test("legacy /wiki paths redirect to workspace home", async ({
+    page,
+    profileId,
+  }) => {
+    await gotoWorkspace(page, "/wiki");
+    await expect(page).toHaveURL(new RegExp(`/${profileId}/home`));
+    await gotoWorkspace(page, "/wiki/some-doc");
+    await expect(page).toHaveURL(new RegExp(`/${profileId}/home`));
+    await assertNoFatalChrome(page);
+  });
+
   test("search palette and sidebar collapse stay on the shell", async ({
     page,
     profileId,
@@ -264,32 +264,32 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
     await gotoWorkspace(page, "/home");
     await page.getByRole("button", { name: "Search" }).click();
     await expect(
-      page.getByPlaceholder(/Search memories, wiki, skills/),
+      page.getByPlaceholder(/Search memories, skills/),
     ).toBeVisible();
     await page.keyboard.press("Escape");
-    await expect(
-      page.getByPlaceholder(/Search memories, wiki, skills/),
-    ).toHaveCount(0);
+    await expect(page.getByPlaceholder(/Search memories, skills/)).toHaveCount(
+      0,
+    );
     await assertNoFatalChrome(page);
 
-    // Home hides the panel by route, so round-trip collapse on Wiki.
-    await clickRail(page, "Wiki");
-    await expect(page).toHaveURL(new RegExp(`/${profileId}/wiki`));
-    const wikiHeading = sidebarPanel(page).getByRole("heading", {
-      name: "Wiki",
+    // Home hides the panel by route, so round-trip collapse on Skills.
+    await clickRail(page, "Skills");
+    await expect(page).toHaveURL(new RegExp(`/${profileId}/skills`));
+    const skillsHeading = sidebarPanel(page).getByRole("heading", {
+      name: "Skills",
     });
-    await expect(wikiHeading).toBeVisible({ timeout: 20_000 });
+    await expect(skillsHeading).toBeVisible({ timeout: 20_000 });
     await page.getByRole("button", { name: "Hide sidebar" }).click();
     await expect(
       page.getByRole("button", { name: "Show sidebar" }),
     ).toBeVisible();
-    await expect(wikiHeading).toBeHidden();
+    await expect(skillsHeading).toBeHidden();
     await expect(mainContent(page)).toBeVisible();
-    await expect(page).toHaveURL(new RegExp(`/${profileId}/wiki`));
+    await expect(page).toHaveURL(new RegExp(`/${profileId}/skills`));
     await page.getByRole("button", { name: "Show sidebar" }).click();
     await expect(
       page.getByRole("button", { name: "Hide sidebar" }),
     ).toBeVisible();
-    await expect(wikiHeading).toBeVisible();
+    await expect(skillsHeading).toBeVisible();
   });
 });

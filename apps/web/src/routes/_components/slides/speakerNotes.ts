@@ -107,7 +107,7 @@ And there's a full history of every change, so you can always see what happened 
 So the whole point is nothing happens to your memory that you didn't approve yourself.`,
   "10": `So a quick word on privacy, since this is a big one for everyone.
 By default, everything you capture is personal — it's yours, and nobody else sees it.
-But you can also have team spaces, where a group shares the same skills, a shared wiki, and shared files.
+But you can also have team spaces, where a group shares the same skills and shared files.
 So the stuff that's meant to be shared across the team is shared — but your personal memories always stay private to you.
 You're never accidentally exposing your own notes to everyone.`,
 
@@ -195,7 +195,6 @@ So the memory is the constant — it's yours — and the model is just the voice
 You can swap the model whenever you like and lose nothing.`,
   "34": `So there's a fair bit more to the app than just memories.
 There are skills — basically reusable sets of instructions you can hand to any model, so you're not re-explaining how you want things done every time.
-There's a wiki, for shared team knowledge.
 And there are connectors, which pull your data in automatically from other places you already use.
 So it's not just a memory store — it's the whole ecosystem for memory and context management, in one platform.`,
 
@@ -261,7 +260,7 @@ You just connect it to vmem, and your whole self is already there, ready to go.
 So the memory outlives every device and every model — it's the one thing that carries forward.`,
   "13": `So this is everything vmem is, all on one board.
 Down the left is how your data gets in: the MCP connector that plugs into any AI, the browser extension pulling your history and bookmarks, and connectors for the tools you already use — Google Drive, OneDrive, Dropbox, Gmail, Notion, Linear, GitHub.
-Then there's how you actually use it: the web app to browse and search your memory, the mobile app for private access on the go, a wiki for long-form docs, and codebases so it understands how your code fits together.
+Then there's how you actually use it: the web app to browse and search your memory, the mobile app for private access on the go, and codebases so it understands how your code fits together.
 And the capabilities on top: skills you define once and use everywhere, files that act as a proper file system for your agents, profiles to keep personal and work separate, and a developer SDK to drop memory into your own agents.
 So the point is this isn't one narrow feature — it's a whole platform, everything you need for memory in one place.`,
   "16": `So one last thought to leave you with.

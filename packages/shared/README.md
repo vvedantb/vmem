@@ -42,7 +42,6 @@ packages/shared/src/
 ├── sync.ts
 ├── theme.ts
 ├── time.ts
-├── wiki.ts
 └── prompts/
     └── memoryRagPrompt.ts
 ```

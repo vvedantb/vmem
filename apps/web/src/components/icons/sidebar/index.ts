@@ -5,7 +5,6 @@ export { IconMemories } from "./IconMemories";
 export { IconTeams } from "./IconTeams";
 export { IconFiles } from "./IconFiles";
 export { IconSkills } from "./IconSkills";
-export { IconWiki } from "./IconWiki";
 export { IconActivity } from "./IconActivity";
 export { IconInbox } from "./IconInbox";
 export { IconSettings } from "./IconSettings";

@@ -1,7 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@vvedantb/ui";
 import { IconArrowRight, IconX } from "@tabler/icons-react";
-import { IconSkills, IconWiki } from "@/components/icons/sidebar";
+import { IconSkills } from "@/components/icons/sidebar";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 import type { ListItem } from "@/lib/list-items";
 import { formatListItemKindLabel } from "@/lib/list-items";
@@ -13,12 +13,6 @@ interface ListItemPreviewPanelProps {
 
 function kindLabel(item: ListItem): string {
   switch (item.kind) {
-    case "wiki-document":
-      return "Wiki";
-    case "wiki-artifact":
-      return "Artifact";
-    case "wiki-folder":
-      return "Folder";
     case "skill":
       return "Skill";
     case "memory":
@@ -27,16 +21,11 @@ function kindLabel(item: ListItem): string {
 }
 
 function KindIcon({ item }: { item: ListItem }) {
-  if (item.kind === "skill") {
-    return <IconSkills size={16} stroke={1.7} className="text-muted" />;
-  }
-  return <IconWiki size={16} stroke={1.7} className="text-muted" />;
+  if (item.kind !== "skill") return null;
+  return <IconSkills size={16} stroke={1.7} className="text-muted" />;
 }
 
 function glimpseText(item: ListItem): string {
-  if (item.kind === "wiki-folder") {
-    return `${item.childCount} ${item.childCount === 1 ? "item" : "items"} in this folder.`;
-  }
   const trimmed = item.content.trim();
   if (trimmed.length === 0) {
     return item.kind === "skill" ? "No description yet." : "No content yet.";
@@ -46,11 +35,6 @@ function glimpseText(item: ListItem): string {
 
 function jumpLabel(item: ListItem): string {
   switch (item.kind) {
-    case "wiki-document":
-    case "wiki-artifact":
-      return "Open in Wiki";
-    case "wiki-folder":
-      return "Open Wiki";
     case "skill":
       return "Open skill";
     case "memory":
@@ -67,19 +51,6 @@ export default function ListItemPreviewPanel({
 
   const handleJump = () => {
     switch (item.kind) {
-      case "wiki-document":
-      case "wiki-artifact":
-        void navigate({
-          to: "/$profileId/wiki/$docId",
-          params: { profileId: activeProfile._id, docId: item.wikiId },
-        });
-        return;
-      case "wiki-folder":
-        void navigate({
-          to: "/$profileId/wiki",
-          params: { profileId: activeProfile._id },
-        });
-        return;
       case "skill":
         void navigate({
           to: "/$profileId/skills/$id",

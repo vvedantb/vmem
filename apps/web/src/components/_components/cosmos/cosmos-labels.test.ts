@@ -51,12 +51,7 @@ describe("shouldShowCosmosLabel", () => {
 
 describe("COSMOS_EDGE_LABEL", () => {
   it("covers every GraphEdgeType", () => {
-    const edgeTypes: GraphEdgeType[] = [
-      "tag",
-      "relates_to",
-      "wiki_parent",
-      "mentions",
-    ];
+    const edgeTypes: GraphEdgeType[] = ["tag", "relates_to", "mentions"];
     for (const edgeType of edgeTypes) {
       expect(COSMOS_EDGE_LABEL[edgeType].length).toBeGreaterThan(0);
     }

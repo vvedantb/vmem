@@ -33,7 +33,7 @@ function unscoredEntry(item: ListItem): MemoryListEntry {
 
 // hybrid list uses retrieve when search is active, otherwise paginated list
 // AI-generated (Claude), prompt: "hybrid memory list that retrieves when query is active"
-// Modified by me: supplementary wiki skill merge and relative relevance scores
+// Modified by me: supplementary skill merge and relative relevance scores
 export function useMemoryListEntries(options?: { fetchAll?: boolean }) {
   const activeProfile = useActiveProfile();
   const [params] = useMemoriesSearchParams();

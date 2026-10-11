@@ -5,7 +5,6 @@ import type {
   FunctionReturnType,
 } from "convex/server";
 import { api, type Id, type TableNames } from "@vmem/backend";
-import { collectSubtreeIds } from "@/components/wiki/_utils";
 
 // branded id has no public constructor so optimistic inserts need a cast here
 // this is the only place in the app that fabricates placeholder ids
@@ -160,47 +159,6 @@ export function setSystemSkillInstallState(
   updateAllCachedQueries(localStore, api.systemSkills.listCatalog, (list) =>
     list.map((s) => (s._id === systemSkillId ? { ...s, ...patch } : s)),
   );
-}
-
-// rename and subtree delete each have two callers so they live here
-// moveNode has one caller and inlines updateAllCachedQueries at its site
-type WikiRenameArgs = FunctionArgs<typeof api.wiki.renameNode>;
-
-export function renameWikiNodeInLists(
-  localStore: OptimisticLocalStore,
-  args: WikiRenameArgs,
-): void {
-  updateAllCachedQueries(localStore, api.wiki.listTree, (nodes) =>
-    nodes.map((n) => (n._id === args.id ? { ...n, title: args.title } : n)),
-  );
-  for (const entry of localStore.getAllQueries(api.wiki.getNode)) {
-    if (entry.value == null || entry.value._id !== args.id) continue;
-    localStore.setQuery(api.wiki.getNode, entry.args, {
-      ...entry.value,
-      title: args.title,
-    });
-  }
-}
-
-export function removeWikiNodesFromLists(
-  localStore: OptimisticLocalStore,
-  ids: Iterable<Id<"wikiNodes">>,
-): void {
-  const idList = [...ids];
-  for (const entry of localStore.getAllQueries(api.wiki.listTree)) {
-    if (entry.value === undefined) continue;
-    const remove = collectSubtreeIds(entry.value, idList);
-    localStore.setQuery(
-      api.wiki.listTree,
-      entry.args,
-      entry.value.filter((n) => !remove.has(n._id)),
-    );
-  }
-  for (const entry of localStore.getAllQueries(api.wiki.getNode)) {
-    if (idList.some((id) => id === entry.args.id)) {
-      localStore.setQuery(api.wiki.getNode, entry.args, undefined);
-    }
-  }
 }
 
 type MemoryApiRow = NonNullable<FunctionReturnType<typeof api.memoryApi.get>>;

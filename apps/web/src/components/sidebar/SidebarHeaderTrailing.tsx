@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 
 const SidebarHeaderTrailingContext = createContext<HTMLElement | null>(null);
 
-// Parks a control (usually the skills/wiki plus) at the right end of the
+// Parks a control (usually the skills plus) at the right end of the
 // panel title row, matching Eva ContextSidebarHeaderAction.
 export function SidebarHeaderTrailingProvider({
   target,

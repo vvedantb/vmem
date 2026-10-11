@@ -15,7 +15,7 @@ import {
 } from "./jevGate";
 import type { RelatedMemoryHit } from "./rank";
 
-// Generic Jev rerank for non-retrieve surfaces (related memories, wiki search).
+// Generic Jev rerank for non-retrieve surfaces (related memories).
 // Order + explain only: every input item comes back, whatever Jev says.
 
 const JEV_ITEM_CONTENT_CHARS = 500;

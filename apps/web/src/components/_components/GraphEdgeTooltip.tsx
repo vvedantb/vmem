@@ -14,7 +14,6 @@ interface GraphEdgeTooltipProps {
 const EDGE_TYPE_LABEL: Record<GraphEdgeType, string> = {
   tag: "Shared tags",
   relates_to: "Related",
-  wiki_parent: "Parent folder",
   mentions: "Mentions",
 };
 

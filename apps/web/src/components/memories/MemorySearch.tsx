@@ -76,7 +76,7 @@ function MemoryListStatus({
           Nothing here yet
         </h3>
         <p className="text-sm text-muted">
-          Add a memory, wiki doc, or skill to get started
+          Add a memory or skill to get started
         </p>
       </div>
     );
@@ -157,7 +157,7 @@ interface MemorySearchProps {
   memoryId: string | null;
 }
 
-// /memories list view browse + hybrid retrieve, wiki/skills merged in
+// /memories list view browse + hybrid retrieve, skills merged in
 export default function MemorySearch({ memoryId }: MemorySearchProps) {
   const navigate = useNavigate();
   const [params] = useMemoriesSearchParams();

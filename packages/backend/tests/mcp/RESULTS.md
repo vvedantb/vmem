@@ -37,9 +37,9 @@ RUN_HTTP_API_TEST=1 VMEM_API_KEY='vmem_sk_…' VMEM_REVOKE_API_KEY='…' VMEM_RE
 
 Live `tools/list` cannot run without `oauth_token`. In-process client uses the same `toolSpecs`.
 
-Personal (28): `ping`, `whoami`, `list_profiles`, `set_active_profile`, `context_prompt_get`, `memory_search`, `memory_retrieve`, `memory_add`, `memory_add_instruction`, `memory_update`, `memory_delete`, `memory_related`, `skills_list`, `skills_get`, `skills_create`, `skills_update`, `skills_delete`, `wiki_list`, `wiki_get`, `wiki_search`, `wiki_create`, `wiki_update`, `wiki_delete`, `files_list`, `files_get`, `files_upload`, `files_delete`, `memory_graph`.
+Personal (22): `ping`, `whoami`, `list_profiles`, `set_active_profile`, `context_prompt_get`, `memory_search`, `memory_retrieve`, `memory_add`, `memory_add_instruction`, `memory_update`, `memory_delete`, `memory_related`, `skills_list`, `skills_get`, `skills_create`, `skills_update`, `skills_delete`, `files_list`, `files_get`, `files_upload`, `files_delete`, `memory_graph`.
 
-Team: memory + core (except `context_prompt_get`) + `memory_graph`. No skills/wiki/files.
+Team: memory + core (except `context_prompt_get`) + `memory_graph`. No files.
 
 No `codebase` / `github` / `neo4j` tool names. `tests/memory/neo4jGone.test.ts` + `codebaseGone.test.ts` + catalog asserts remain green.
 
@@ -58,7 +58,7 @@ No `codebase` / `github` / `neo4j` tool names. `tests/memory/neo4jGone.test.ts` 
 | Update missing id, related missing id, second delete → `isError`                                    | pass   |
 | Wrong `profileId` on add is an error (not a silent write)                                           | pass   |
 | Long document still retrieved; tiny `zz` does not dump corpus                                       | pass   |
-| `skills_get` / `wiki_get` / `files_get` missing; `memory_graph` limit 0 error                       | pass   |
+| `skills_get` / `files_get` missing; `memory_graph` limit 0 error                                    | pass   |
 
 ### Live HTTP `/api/v1/memories` baseline — **13/13 pass**
 

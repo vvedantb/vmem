@@ -1,5 +1,7 @@
 # Audit: vmem Wiki vs Verve
 
+> Update: the owner chose immediate removal with no MCP stub window. The tables stay, deprecated, until `wikiExport:exportAll` output is imported into Verve.
+
 **Date:** 2026-10-11  
 **Scope:** read-only. No app code changed.  
 **Question:** Now that Verve exists (notes app, repo `vvedantb/verve`, Convex prod `agreeable-hornet-875`), does vmem still need Wiki, or can it use Verve?
@@ -20,18 +22,18 @@ Only two tables (`packages/backend/convex/schema.ts`, fields in `validators.ts`)
 
 #### `wikiNodes`
 
-| Field | Type | Notes |
-| --- | --- | --- |
-| `userId` | `Id<"users">` | Owner |
-| `teamId` | optional `Id<"teams">` | Set for **web team wiki**; MCP rejects these rows |
-| `parentId` | optional `Id<"wikiNodes">` | Folder parent |
-| `kind` | `"folder" \| "document" \| "artifact"` | Folders have no body |
-| `title` | string | FTS `search_title` |
-| `content` | optional string | Markdown (docs) or source (artifacts) |
-| `contentText` | optional string | Plain-text FTS mirror (`search_content`) |
-| `language` | optional string | Artifacts only (`html`, `svg`, `tsx`, `sql`, …) |
-| `order` | number | Sibling sort |
-| `createdAt` / `updatedAt` | number | Epoch ms |
+| Field                     | Type                                   | Notes                                             |
+| ------------------------- | -------------------------------------- | ------------------------------------------------- |
+| `userId`                  | `Id<"users">`                          | Owner                                             |
+| `teamId`                  | optional `Id<"teams">`                 | Set for **web team wiki**; MCP rejects these rows |
+| `parentId`                | optional `Id<"wikiNodes">`             | Folder parent                                     |
+| `kind`                    | `"folder" \| "document" \| "artifact"` | Folders have no body                              |
+| `title`                   | string                                 | FTS `search_title`                                |
+| `content`                 | optional string                        | Markdown (docs) or source (artifacts)             |
+| `contentText`             | optional string                        | Plain-text FTS mirror (`search_content`)          |
+| `language`                | optional string                        | Artifacts only (`html`, `svg`, `tsx`, `sql`, …)   |
+| `order`                   | number                                 | Sibling sort                                      |
+| `createdAt` / `updatedAt` | number                                 | Epoch ms                                          |
 
 Indexes: `by_user`, `by_user_parent`, `by_team`, `by_team_parent`. Search indexes filter on `userId` / `teamId`.
 
@@ -43,14 +45,14 @@ Shared kinds: `@vmem/shared` `packages/shared/src/wiki.ts` (`WikiNodeKind`, `wik
 
 Immutable pre-overwrite snapshots (`lib/versionSnapshot.ts`). Burst window 15 minutes for web; MCP writes always `force: true`.
 
-| Field | Type |
-| --- | --- |
-| `nodeId` | `Id<"wikiNodes">` |
-| `title`, `content`, `contentText` | snapshot body |
-| `language` | optional |
-| `authorUserId` | `Id<"users">` |
-| `source` | `"web" \| "mcp"` |
-| `createdAt` | number |
+| Field                             | Type              |
+| --------------------------------- | ----------------- |
+| `nodeId`                          | `Id<"wikiNodes">` |
+| `title`, `content`, `contentText` | snapshot body     |
+| `language`                        | optional          |
+| `authorUserId`                    | `Id<"users">`     |
+| `source`                          | `"web" \| "mcp"`  |
+| `createdAt`                       | number            |
 
 Index: `by_node`. Web restore writes the snapshot markdown back through `wiki.updateContent` with `forceSnapshot` (`WikiHistoryPanel`). There is no dedicated restore mutation.
 
@@ -58,19 +60,19 @@ Index: `by_node`. Web restore writes the snapshot markdown back through `wiki.up
 
 There is no `wikiApi.ts`. Public surface is `api.wiki.*` and `api.wikiVersions.*`.
 
-| Function | Kind | Role |
-| --- | --- | --- |
-| `wiki.listTree` | query | Scoped tree (`teamId?`) |
-| `wiki.getNode` | query | ACL via `isContentReadable` |
-| `wiki.createNode` | mutation | folder / document / artifact |
-| `wiki.renameNode` | mutation | |
-| `wiki.updateContent` | mutation | body + optional force snapshot |
-| `wiki.deleteNode` / `deleteNodes` | mutation | subtree + versions |
-| `wiki.moveNode` | mutation | cycle guard |
-| `wiki.search` | query | FTS title+content, max 20 |
-| `wikiVersions.list` / `get` | query | history |
-| `internal.wiki.listForGraphInternal` | query | web graph |
-| `internal.wiki.*ByClerkIdInternal` | query/mutation | MCP personal only |
+| Function                             | Kind           | Role                           |
+| ------------------------------------ | -------------- | ------------------------------ |
+| `wiki.listTree`                      | query          | Scoped tree (`teamId?`)        |
+| `wiki.getNode`                       | query          | ACL via `isContentReadable`    |
+| `wiki.createNode`                    | mutation       | folder / document / artifact   |
+| `wiki.renameNode`                    | mutation       |                                |
+| `wiki.updateContent`                 | mutation       | body + optional force snapshot |
+| `wiki.deleteNode` / `deleteNodes`    | mutation       | subtree + versions             |
+| `wiki.moveNode`                      | mutation       | cycle guard                    |
+| `wiki.search`                        | query          | FTS title+content, max 20      |
+| `wikiVersions.list` / `get`          | query          | history                        |
+| `internal.wiki.listForGraphInternal` | query          | web graph                      |
+| `internal.wiki.*ByClerkIdInternal`   | query/mutation | MCP personal only              |
 
 Helpers: `wiki/path.ts` (`parentPath` auto-creates folders), `lib/wikiContent.ts`, `lib/versionSnapshot.ts`.
 
@@ -82,14 +84,14 @@ No server job auto-generates wiki pages. Writes from agents go through MCP + sys
 
 Registered in `packages/backend/convex/mcp/toolsWiki.ts`, catalog `toolCatalog.ts`. All six have `scopes: ["personal"]`. Team connector `/mcp/team` does not expose them (`apps/docs/mcp/overview.mdx`, `features/teams.mdx`).
 
-| Tool | Args | Behaviour |
-| --- | --- | --- |
-| `wiki_list` | none | Flat index, no body |
-| `wiki_get` | `id` | + `contentMarkdown` |
-| `wiki_search` | `query` | `{ id, title, kind, excerpt }` + optional Jev |
-| `wiki_create` | `kind`, `title`, optional `parentId` **or** `parentPath`, `contentMarkdown`, `language` | Missing folders on `parentPath` are created |
-| `wiki_update` | `id`, optional title/body/`contentMode` (`replace`\|`append`)/`language` | MCP always snapshots first |
-| `wiki_delete` | `id` | `{ deletedCount }` including subtree |
+| Tool          | Args                                                                                    | Behaviour                                     |
+| ------------- | --------------------------------------------------------------------------------------- | --------------------------------------------- |
+| `wiki_list`   | none                                                                                    | Flat index, no body                           |
+| `wiki_get`    | `id`                                                                                    | + `contentMarkdown`                           |
+| `wiki_search` | `query`                                                                                 | `{ id, title, kind, excerpt }` + optional Jev |
+| `wiki_create` | `kind`, `title`, optional `parentId` **or** `parentPath`, `contentMarkdown`, `language` | Missing folders on `parentPath` are created   |
+| `wiki_update` | `id`, optional title/body/`contentMode` (`replace`\|`append`)/`language`                | MCP always snapshots first                    |
+| `wiki_delete` | `id`                                                                                    | `{ deletedCount }` including subtree          |
 
 Docs in `apps/docs/mcp/tools.mdx` are slightly stale: they omit `artifact`, `parentPath`, and `language`.
 
@@ -108,27 +110,27 @@ Web supports **team** wiki (`teamId` on create/list/search). MCP cannot see thos
 
 ### 1.5 Other clients
 
-| Surface | Wiki? |
-| --- | --- |
-| Chrome extension | No |
-| `@vmem/sdk` | No |
-| HTTP `/api/v1/memories/*` | No |
-| Mobile on `main` | Archived; not present |
-| CLI package | None in this repo |
+| Surface                   | Wiki?                 |
+| ------------------------- | --------------------- |
+| Chrome extension          | No                    |
+| `@vmem/sdk`               | No                    |
+| HTTP `/api/v1/memories/*` | No                    |
+| Mobile on `main`          | Archived; not present |
+| CLI package               | None in this repo     |
 
 ### 1.6 Agent / LLM features
 
-| Feature | Touches wiki? |
-| --- | --- |
-| MCP `wiki_*` | Yes — CRUD/search |
-| System skills `wiki-writeup`, `teach-me` | Yes — write under `Learning/` |
-| Retired seeds `setup-wiki`, `update-wiki` | Already retired names |
-| Jev `wiki-search` | Yes — reorder only |
-| `context_prompt` / `context_pack` | **No** (skills index may still *name* wiki-writeup) |
-| Memory retrieve / embeddings | **No** |
-| Dream Mode | **No** |
-| MCP `memory_graph` | **No** |
-| Web `graphApi.getGraphData` | **Yes** — account atoms, first page, non-local |
+| Feature                                   | Touches wiki?                                       |
+| ----------------------------------------- | --------------------------------------------------- |
+| MCP `wiki_*`                              | Yes — CRUD/search                                   |
+| System skills `wiki-writeup`, `teach-me`  | Yes — write under `Learning/`                       |
+| Retired seeds `setup-wiki`, `update-wiki` | Already retired names                               |
+| Jev `wiki-search`                         | Yes — reorder only                                  |
+| `context_prompt` / `context_pack`         | **No** (skills index may still _name_ wiki-writeup) |
+| Memory retrieve / embeddings              | **No**                                              |
+| Dream Mode                                | **No**                                              |
+| MCP `memory_graph`                        | **No**                                              |
+| Web `graphApi.getGraphData`               | **Yes** — account atoms, first page, non-local      |
 
 `wiki-writeup` may `memory_add` a stub with a pointer to the wiki doc. That is a string in memory content, not a schema link.
 
@@ -193,10 +195,10 @@ No `CONVEX_DEPLOY_KEY` in the agent environment. `packages/backend` had no `.env
 
 vmem `whoami`: Clerk `user_2y2nYffNuI7BwVs9zNblXIVFZTf`, personal profile. Verve `get_me`: same Clerk id, email `vedantbhopatrao15@gmail.com`.
 
-| Store | What we saw | Recency |
-| --- | --- | --- |
-| vmem `wiki_list` | **2 nodes**: folder `Velth` + document `manual-dogfood-REPORT 2026-10-02` | `updatedAt` 2026-10-02T20:00:38Z |
-| Verve `count_table` (user-scoped) | **302 pages**, **68 folders** | live MCP, 2026-10-11 |
+| Store                             | What we saw                                                               | Recency                          |
+| --------------------------------- | ------------------------------------------------------------------------- | -------------------------------- |
+| vmem `wiki_list`                  | **2 nodes**: folder `Velth` + document `manual-dogfood-REPORT 2026-10-02` | `updatedAt` 2026-10-02T20:00:38Z |
+| Verve `count_table` (user-scoped) | **302 pages**, **68 folders**                                             | live MCP, 2026-10-11             |
 
 That is **one user**, not the fleet. It shows this owner already treats Verve as the notes app and barely uses vmem Wiki.
 
@@ -292,16 +294,16 @@ Sources: live Verve MCP (this session) against prod `agreeable-hornet-875` via t
 
 ### 4.1 Verve already covers (notes core)
 
-| Need | vmem Wiki | Verve |
-| --- | --- | --- |
-| Nested folders | `wikiNodes` kind folder | `folders` (`parentId`, `create_folder` / `list_folders` / `move_folder`) |
-| Documents | kind `document` + markdown | `pages` + `create_page` / `update_page` / `get_page` (`content_markdown` GFM) |
-| Search | FTS title+`contentText`, max 20, optional Jev | `search_pages` FTS title+content, no embeddings |
-| List / get / delete | MCP + web | MCP + app |
-| Append vs replace | `contentMode` | `append_to_page` (collab-safe) vs `update_page` |
-| Versions | `wikiNodeVersions` (web restore) | `pageVersions`, `list_page_versions`, `get_page_version`, `save_page_version` |
-| Move / rename | yes | `move_page(s)`, `rename_page`, `rename_folder` |
-| Path-like create | `parentPath` auto folders | `create_folder` then `create_page` with `folder_id` (no single path arg) |
+| Need                | vmem Wiki                                     | Verve                                                                         |
+| ------------------- | --------------------------------------------- | ----------------------------------------------------------------------------- |
+| Nested folders      | `wikiNodes` kind folder                       | `folders` (`parentId`, `create_folder` / `list_folders` / `move_folder`)      |
+| Documents           | kind `document` + markdown                    | `pages` + `create_page` / `update_page` / `get_page` (`content_markdown` GFM) |
+| Search              | FTS title+`contentText`, max 20, optional Jev | `search_pages` FTS title+content, no embeddings                               |
+| List / get / delete | MCP + web                                     | MCP + app                                                                     |
+| Append vs replace   | `contentMode`                                 | `append_to_page` (collab-safe) vs `update_page`                               |
+| Versions            | `wikiNodeVersions` (web restore)              | `pageVersions`, `list_page_versions`, `get_page_version`, `save_page_version` |
+| Move / rename       | yes                                           | `move_page(s)`, `rename_page`, `rename_folder`                                |
+| Path-like create    | `parentPath` auto folders                     | `create_folder` then `create_page` with `folder_id` (no single path arg)      |
 
 ### 4.2 Verve extras Wiki does not have
 
@@ -311,16 +313,16 @@ Backlinks (`pageLinks`, `list_backlinks`, `get_local_graph`), tags, aliases, fav
 
 ### 4.3 Wiki-specific gaps in Verve
 
-| Wiki feature | In Verve? | Notes |
-| --- | --- | --- |
-| Auto-generated pages | Neither has a server cron | Both rely on agent skills (`wiki-writeup` / `teach-me` today) |
-| Memory-linked citations | No FK in vmem either | Optional `memory_add` text pointer; Verve would use the same pattern or a URL |
-| Public unauthenticated pages | **Neither** | Wiki routes sit behind the signed-in shell |
-| Team-scoped tree | **Wiki web yes; MCP no** | Verve MCP is “pages you own”. Confirm `pageOwners` before claiming team parity |
-| Artifact kind (HTML/SVG live preview, TSX/SQL source) | **Gap** | Verve pages are editor documents; `upload_file` can attach source but there is no iframe preview kind |
-| Jev rerank on wiki search | Wiki MCP only | Verve search is FTS only |
-| In-dashboard graph atoms | Wiki yes | Verve has `get_local_graph` **inside Verve**, not on the vmem memory graph |
-| Single MCP for memory + notes | Wiki sits on vmem `/mcp` | Agents would need **two** connectors (vmem + Verve) unless wiki stubs proxy |
+| Wiki feature                                          | In Verve?                 | Notes                                                                                                 |
+| ----------------------------------------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Auto-generated pages                                  | Neither has a server cron | Both rely on agent skills (`wiki-writeup` / `teach-me` today)                                         |
+| Memory-linked citations                               | No FK in vmem either      | Optional `memory_add` text pointer; Verve would use the same pattern or a URL                         |
+| Public unauthenticated pages                          | **Neither**               | Wiki routes sit behind the signed-in shell                                                            |
+| Team-scoped tree                                      | **Wiki web yes; MCP no**  | Verve MCP is “pages you own”. Confirm `pageOwners` before claiming team parity                        |
+| Artifact kind (HTML/SVG live preview, TSX/SQL source) | **Gap**                   | Verve pages are editor documents; `upload_file` can attach source but there is no iframe preview kind |
+| Jev rerank on wiki search                             | Wiki MCP only             | Verve search is FTS only                                                                              |
+| In-dashboard graph atoms                              | Wiki yes                  | Verve has `get_local_graph` **inside Verve**, not on the vmem memory graph                            |
+| Single MCP for memory + notes                         | Wiki sits on vmem `/mcp`  | Agents would need **two** connectors (vmem + Verve) unless wiki stubs proxy                           |
 
 ### 4.4 Verve MCP tools useful for migration
 
@@ -358,16 +360,16 @@ Only if team wiki or artifacts are load-bearing after the prod count, or if you 
 
 Each step is its own PR. Dry-run first. Idempotent mapping `wikiNodeId → vervePageId/folderId`.
 
-| PR | Change | Data |
-| --- | --- | --- |
-| 0 (this) | Audit doc only | none |
-| 1 | Operator run of §3.3 + optional `npx convex export` zip of `wikiNodes` / `wikiNodeVersions` (backup, not delete) | read / export |
-| 2 | Offline migrator: dry-run JSON report (counts, path collisions, artifact list); then apply via Verve MCP `create_folder` + `create_page` with alias `vmem-wiki:<id>` and tag `vmem-wiki`. Skip already-aliased ids | Verve writes; **vmem wiki rows unchanged** |
-| 3 | Rewrite `wiki-writeup` / `teach-me` seeds to Verve tools (`create_folder` `Learning`, `create_page`). Keep skill **names** | skills only |
-| 4 | MCP deprecation window: `wiki_list/get/search` still read vmem; `wiki_create/update/delete` return a stable error/body: `{ deprecated: true, use: "Verve MCP", folderHint: "vmem wiki" }` (or proxy create into Verve if you want zero agent breakage). Changelog + docs | no vmem deletes |
-| 5 | Web: hide Wiki nav or show read-only + “open in Verve” copy; strip wiki from command palette, list supplementary items, landing/slides | UI |
-| 6 | After N days (suggest 14–30) and a second dry-run diff: remove MCP tools, `api.wiki*`, graph wiki atoms, web routes, tests, docs | still **no table drop** |
-| 7 | Confirm Verve page counts vs migrator report. Then schema PR: drop `wikiNodes` / `wikiNodeVersions` | delete only after sign-off |
+| PR       | Change                                                                                                                                                                                                                                                                   | Data                                       |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------ |
+| 0 (this) | Audit doc only                                                                                                                                                                                                                                                           | none                                       |
+| 1        | Operator run of §3.3 + optional `npx convex export` zip of `wikiNodes` / `wikiNodeVersions` (backup, not delete)                                                                                                                                                         | read / export                              |
+| 2        | Offline migrator: dry-run JSON report (counts, path collisions, artifact list); then apply via Verve MCP `create_folder` + `create_page` with alias `vmem-wiki:<id>` and tag `vmem-wiki`. Skip already-aliased ids                                                       | Verve writes; **vmem wiki rows unchanged** |
+| 3        | Rewrite `wiki-writeup` / `teach-me` seeds to Verve tools (`create_folder` `Learning`, `create_page`). Keep skill **names**                                                                                                                                               | skills only                                |
+| 4        | MCP deprecation window: `wiki_list/get/search` still read vmem; `wiki_create/update/delete` return a stable error/body: `{ deprecated: true, use: "Verve MCP", folderHint: "vmem wiki" }` (or proxy create into Verve if you want zero agent breakage). Changelog + docs | no vmem deletes                            |
+| 5        | Web: hide Wiki nav or show read-only + “open in Verve” copy; strip wiki from command palette, list supplementary items, landing/slides                                                                                                                                   | UI                                         |
+| 6        | After N days (suggest 14–30) and a second dry-run diff: remove MCP tools, `api.wiki*`, graph wiki atoms, web routes, tests, docs                                                                                                                                         | still **no table drop**                    |
+| 7        | Confirm Verve page counts vs migrator report. Then schema PR: drop `wikiNodes` / `wikiNodeVersions`                                                                                                                                                                      | delete only after sign-off                 |
 
 **Migration rules**
 
@@ -385,19 +387,19 @@ Keep tool **names** for one window so hosts do not fail schema load. Return a po
 
 ### Risk list
 
-| Risk | Severity | Mitigation |
-| --- | --- | --- |
-| Unknown fleet usage (no admin query this session) | High until §3.3 | Block table drop on counts |
-| Team wiki has no proven Verve home | Medium | Count `teamId` rows; skip or copy |
-| Artifacts / live HTML preview lost | Medium | Inventory `kind=artifact`; accept gap or keep a tiny preview later |
-| Agents still calling `wiki_*` | Medium | Stub period + skill rewrite |
-| Two MCPs for “notes + memory” | Medium | Document Verve URL; optional later proxy |
-| Dual-write during stub+proxy | Low | Prefer stub-with-pointer over proxy unless breakage is high |
-| Migrator duplicates | Low | aliases + dry-run |
-| Convex bandwidth on full-table collect | Low if paged | 100-row paginate; no `collect()` |
-| Wiki restore history not copied | Low | export zip; current body in Verve |
-| Graph UI loses wiki atoms | Low | Memory graph stays; notes graph lives in Verve |
-| Landing/slides still show Wiki | Low | PR 5 copy |
+| Risk                                              | Severity        | Mitigation                                                         |
+| ------------------------------------------------- | --------------- | ------------------------------------------------------------------ |
+| Unknown fleet usage (no admin query this session) | High until §3.3 | Block table drop on counts                                         |
+| Team wiki has no proven Verve home                | Medium          | Count `teamId` rows; skip or copy                                  |
+| Artifacts / live HTML preview lost                | Medium          | Inventory `kind=artifact`; accept gap or keep a tiny preview later |
+| Agents still calling `wiki_*`                     | Medium          | Stub period + skill rewrite                                        |
+| Two MCPs for “notes + memory”                     | Medium          | Document Verve URL; optional later proxy                           |
+| Dual-write during stub+proxy                      | Low             | Prefer stub-with-pointer over proxy unless breakage is high        |
+| Migrator duplicates                               | Low             | aliases + dry-run                                                  |
+| Convex bandwidth on full-table collect            | Low if paged    | 100-row paginate; no `collect()`                                   |
+| Wiki restore history not copied                   | Low             | export zip; current body in Verve                                  |
+| Graph UI loses wiki atoms                         | Low             | Memory graph stays; notes graph lives in Verve                     |
+| Landing/slides still show Wiki                    | Low             | PR 5 copy                                                          |
 
 ---
 

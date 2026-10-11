@@ -19,21 +19,21 @@ Public HTTP routes (MCP, OAuth, health) are registered in `convex/http.ts` on th
 
 Memories are stored in Convex (`memories`). Convex also holds metadata, auth, and app state:
 
-| Table                            | Description                           |
-| -------------------------------- | ------------------------------------- |
-| `users`                          | Clerk-linked user records             |
-| `apiKeys`                        | API keys — AES-GCM encrypted at rest  |
-| `profiles`                       | Personal and team memory profiles     |
-| `teams` / `teamMembers`          | Team membership                       |
-| `skills`                         | Reusable instruction modules          |
-| `wikiNodes`                      | Personal wiki tree                    |
-| `memories`                       | Memory CRUD, search, and retrieve     |
-| `proposedUpdates`                | Inbox merge/update proposals          |
-| `connectors` / `connectorTokens` | External service integrations         |
-| `userSettings`                   | Preferences, about me, active profile |
-| `contextPromptCache`             | Cached MCP context prompt markdown    |
-| `notifications`                  | In-app notifications                  |
-| `openRouterLogs`                 | LLM/embedding call audit trail        |
+| Table                            | Description                            |
+| -------------------------------- | -------------------------------------- |
+| `users`                          | Clerk-linked user records              |
+| `apiKeys`                        | API keys — AES-GCM encrypted at rest   |
+| `profiles`                       | Personal and team memory profiles      |
+| `teams` / `teamMembers`          | Team membership                        |
+| `skills`                         | Reusable instruction modules           |
+| `wikiNodes`                      | Deprecated (wiki removed), export only |
+| `memories`                       | Memory CRUD, search, and retrieve      |
+| `proposedUpdates`                | Inbox merge/update proposals           |
+| `connectors` / `connectorTokens` | External service integrations          |
+| `userSettings`                   | Preferences, about me, active profile  |
+| `contextPromptCache`             | Cached MCP context prompt markdown     |
+| `notifications`                  | In-app notifications                   |
+| `openRouterLogs`                 | LLM/embedding call audit trail         |
 
 Audit trails (memory lifecycle, API key events, proposed-update resolutions) live in the `convex-audit-log` component — see `auditLog.ts`.
 

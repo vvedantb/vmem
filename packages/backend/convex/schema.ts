@@ -112,6 +112,9 @@ const schema = defineSchema({
     .index("by_team_systemSkill", ["teamId", "systemSkillId"])
     .index("by_systemSkill", ["systemSkillId"]),
 
+  // DEPRECATED: the wiki feature is removed and nothing in the app reads or
+  // writes this table. It stays until the owner confirms the export
+  // (wikiExport.ts) and Verve import, then a follow-up PR drops it.
   wikiNodes: defineTable(wikiNodeFields)
     .index("by_user", ["userId"])
     .index("by_user_parent", ["userId", "parentId"])
@@ -126,7 +129,7 @@ const schema = defineSchema({
       filterFields: ["userId", "teamId"],
     }),
 
-  // immutable pre-overwrite snapshots of wiki docs (see lib/versionSnapshot.ts)
+  // DEPRECATED with wikiNodes: dropped in the same follow-up PR
   wikiNodeVersions: defineTable(wikiNodeVersionFields).index("by_node", [
     "nodeId",
   ]),
