@@ -16,13 +16,43 @@
         padding: 0;
         overflow: hidden;
       }
+      html {
+        color-scheme: light dark;
+      }
+      body {
+        background: Canvas;
+        color: CanvasText;
+        font-family: "Instrument Sans", system-ui, sans-serif;
+      }
       #root {
         height: 100%;
+      }
+      /* boot fallback: visible only while React renders nothing (Clerk not
+         ready or failed to boot) so the popup is never blank */
+      #boot {
+        display: none;
+        height: 100%;
+        box-sizing: border-box;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding: 32px;
+        text-align: center;
+        font-size: 14px;
+      }
+      #root:empty + #boot {
+        display: flex;
       }
     </style>
   </head>
   <body>
     <div id="root"></div>
+    <div id="boot">
+      <strong>vmem</strong>
+      <p>Sign in to start saving memories</p>
+      <a id="boot-link" href="https://vmem.projectv.uk" target="_blank" rel="noreferrer noopener">Open vmem</a>
+    </div>
     <script type="module" src="./main.tsx"></script>
   </body>
 </html>

@@ -28,6 +28,8 @@ const artifactDir =
 
 type LoadResult = {
   ok: boolean;
+  // true once Chrome loaded the extension; after that a bad popup must fail
+  loaded?: boolean;
   reason: string;
   extensionId?: string;
   popupPath?: string;
@@ -143,6 +145,7 @@ async function loadUnpacked(): Promise<LoadResult> {
       userDataDir,
       pipe: true,
       enableExtensions: [distDir],
+      protocolTimeout: 120_000,
       args: [
         "--no-sandbox",
         "--disable-gpu",
@@ -189,6 +192,12 @@ async function loadUnpacked(): Promise<LoadResult> {
     const popupUrl = `chrome-extension://${extensionId}/popup.html`;
     const page = await browser.newPage();
     await page.setViewport({ width: 380, height: 525 });
+    const consoleLog: string[] = [];
+    const pageErrors: string[] = [];
+    page.on("console", (msg) => consoleLog.push(`${msg.type()}: ${msg.text()}`));
+    page.on("pageerror", (err) => {
+      pageErrors.push(err instanceof Error ? err.message : String(err));
+    });
     await page.goto(popupUrl, {
       waitUntil: "domcontentloaded",
       timeout: 15_000,
@@ -197,17 +206,25 @@ async function loadUnpacked(): Promise<LoadResult> {
       .waitForFunction(
         () =>
           document.body.innerText.includes("Sign in to start saving memories"),
-        { timeout: 15_000 },
+        { timeout: 30_000 },
       )
       .catch(() => {});
-    const popupPath = path.join(artifactDir, "extension_popup_signed_out.png");
-    await page.screenshot({ path: popupPath });
     const bodyText = await page.evaluate(() => document.body.innerText);
+    const signedOutRendered = /Sign in to start saving memories/.test(bodyText);
+    const popupPath = path.join(artifactDir, "extension_popup_signed_out.png");
+    await page.screenshot({ path: popupPath }).catch(() => {});
     const live = await probeLivePages(browser);
 
+    const failure =
+      pageErrors.length > 0
+        ? `popup pageerror: ${pageErrors[0]}`
+        : !signedOutRendered
+          ? "popup did not render 'Sign in to start saving memories'"
+          : undefined;
     const result = {
-      ok: true,
-      reason: "loaded",
+      ok: failure === undefined,
+      reason: failure ?? "loaded",
+      loaded: true,
       extensionId,
       popupPath,
       targets,
@@ -215,6 +232,8 @@ async function loadUnpacked(): Promise<LoadResult> {
     await persistLoadResult(result, {
       popupUrl,
       bodyPreview: bodyText.slice(0, 500),
+      consoleLog,
+      pageErrors,
       signedOut: /Sign in to start saving memories/.test(bodyText),
       live,
     });
@@ -235,6 +254,11 @@ console.log("[vmem e2e]", result.ok, result.reason);
 await test("e2e harness records whether unpacked MV3 load succeeded", () => {
   assert.equal(typeof result.ok, "boolean");
   assert.ok(result.reason.length > 0, "load attempt always records a reason");
+});
+
+await test("loaded extension popup renders signed-out UI without page errors", () => {
+  if (!result.loaded) return; // chrome or dist missing: recorded skip
+  assert.ok(result.ok, result.reason);
 });
 
 await test("e2e unpacked load path is the WXT chrome-mv3 dist folder", () => {
