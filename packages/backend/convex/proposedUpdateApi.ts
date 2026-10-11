@@ -8,12 +8,7 @@ import { UPDATES_LINK_REASON } from "../engine/memory/supersede";
 import { auditLog, ResourceTypes } from "./auditLog";
 import type { ProposedUpdateNode } from "./memoryApi/types";
 import {
-  proposedUpdateKindValidator,
-  proposedUpdateSourceValidator,
-} from "./validators";
-import {
   getProposedUpdate,
-  insertProposedUpdate,
   listPendingProposedUpdates,
   markProposedUpdateResolved,
 } from "./proposedUpdateStore";
@@ -165,33 +160,6 @@ export const listPendingInternal = internalQuery({
   },
   handler: async (ctx, args): Promise<ProposedUpdateNode[]> =>
     listPendingProposedUpdates(ctx, args),
-});
-
-export const insertInternal = internalMutation({
-  args: {
-    userId: v.string(),
-    profileId: v.optional(v.string()),
-    memoryId: v.string(),
-    proposedContent: v.string(),
-    proposedTitle: v.optional(v.string()),
-    reason: v.string(),
-    kind: proposedUpdateKindValidator,
-    sourceMemoryIds: v.array(v.string()),
-    confidence: v.optional(v.number()),
-    source: proposedUpdateSourceValidator,
-    memorySnapshot: v.optional(
-      v.object({ title: v.string(), content: v.string() }),
-    ),
-    sourceMemorySnapshots: v.array(
-      v.object({
-        id: v.string(),
-        title: v.string(),
-        content: v.string(),
-      }),
-    ),
-  },
-  handler: async (ctx, args): Promise<ProposedUpdateNode> =>
-    insertProposedUpdate(ctx, args),
 });
 
 export const resolveInternal = internalMutation({

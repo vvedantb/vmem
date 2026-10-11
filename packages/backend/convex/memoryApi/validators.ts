@@ -23,14 +23,6 @@ export const createMemoryFields = {
   sourceType: v.optional(v.string()),
 };
 
-export const createMemoryInternalFields = {
-  clerkId: v.string(),
-  ...createMemoryFields,
-  storageId: v.optional(v.string()),
-  mimeType: v.optional(v.string()),
-  originalFilename: v.optional(v.string()),
-};
-
 export const listMemoriesFilterFields = {
   profileId: profileIdOptional,
   type: v.optional(v.string()),
@@ -90,49 +82,8 @@ export const teamListMemoriesFields = {
   ...paginationFields,
 };
 
-export const teamSearchMemoriesFields = {
-  profileId: v.string(),
-  query: v.optional(v.string()),
-  type: v.optional(v.string()),
-  tags: v.optional(v.array(v.string())),
-  source: v.optional(v.string()),
-  ...paginationFields,
-};
-
-// clerkId is the calling member: openRouter auth and attribution only, never a filter. the team profile alone scopes retrieval.
-export const teamRetrieveMemoriesFields = {
-  clerkId: v.string(),
-  profileId: v.string(),
-  query: v.string(),
-  type: v.optional(v.string()),
-  tags: v.optional(v.array(v.string())),
-  status: v.optional(v.string()),
-  source: v.optional(v.string()),
-  limit: v.number(),
-};
-
-export const createMemoryInternalArgs = v.object(createMemoryInternalFields);
-export type CreateMemoryInternalArgs = Infer<typeof createMemoryInternalArgs>;
-
-export const listMemoriesInternalArgs = v.object({
-  clerkId: v.string(),
-  ...listMemoriesFields,
-});
-export type ListMemoriesInternalArgs = Infer<typeof listMemoriesInternalArgs>;
-
-export const searchMemoriesInternalArgs = v.object({
-  clerkId: v.string(),
-  ...searchMemoriesFields,
-});
-export type SearchMemoriesInternalArgs = Infer<
-  typeof searchMemoriesInternalArgs
->;
-
 export const updateMemoryInternalArgs = v.object(updateMemoryInternalFields);
 export type UpdateMemoryInternalArgs = Infer<typeof updateMemoryInternalArgs>;
 
 export const teamListMemoriesArgs = v.object(teamListMemoriesFields);
 export type TeamListMemoriesArgs = Infer<typeof teamListMemoriesArgs>;
-
-export const teamSearchMemoriesArgs = v.object(teamSearchMemoriesFields);
-export type TeamSearchMemoriesArgs = Infer<typeof teamSearchMemoriesArgs>;

@@ -320,13 +320,6 @@ export const listByClerkIdInternal = internalQuery({
   },
 });
 
-export const getStorageUrlInternal = internalQuery({
-  args: { storageId: v.id("_storage") },
-  handler: async (ctx, args): Promise<string | null> => {
-    return await ctx.storage.getUrl(args.storageId);
-  },
-});
-
 export const upsertFileByPathInternal = internalMutation({
   args: {
     clerkId: v.string(),

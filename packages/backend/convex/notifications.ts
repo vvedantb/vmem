@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import { internalMutation } from "./_generated/server";
-import { authMutation, authQuery, getUserByClerkId } from "./auth";
+import { authMutation, authQuery } from "./auth";
 import { notificationFields, notificationTypeValidator } from "./validators";
 
 async function requireOwnedNotification(
@@ -122,27 +122,6 @@ export const pushInternal = internalMutation({
       args.description,
       args.type,
     ),
-});
-
-export const pushForClerkIdInternal = internalMutation({
-  args: {
-    clerkId: v.string(),
-    title: v.string(),
-    description: v.string(),
-    type: notificationTypeValidator,
-  },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    const user = await getUserByClerkId(ctx, args.clerkId);
-    if (!user) return null;
-    return await insertNotification(
-      ctx,
-      user._id,
-      args.title,
-      args.description,
-      args.type,
-    );
-  },
 });
 
 // emit one notification per real producer shape so the inbox can be exercised without
