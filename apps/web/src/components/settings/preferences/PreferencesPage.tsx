@@ -11,8 +11,7 @@ import {
 } from "@vmem/shared";
 import ConfidenceThresholdSlider from "@/components/settings/ConfidenceThresholdSlider";
 import { SettingsPage } from "@/components/settings/SettingsPage";
-import { SettingsSection } from "@/components/settings/SettingsSection";
-import { SettingsToggleRow } from "@/components/settings/SettingsToggleRow";
+import { SettingsSection, SettingsToggleRow } from "@vvedantb/app-kit";
 import { useUserSettingsSave } from "@/hooks/useUserSettingsSave";
 import { convexErrorMessage } from "@/lib/convex-error";
 import { PreferenceTextareaRow } from "./PreferenceTextareaRow";

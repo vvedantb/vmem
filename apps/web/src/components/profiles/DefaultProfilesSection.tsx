@@ -12,8 +12,7 @@ import type { FunctionReturnType } from "convex/server";
 import { api } from "@vmem/backend";
 import { patchDefaultProfile } from "@/lib/convex-optimistic";
 import { convexErrorMessage } from "@/lib/convex-error";
-import { SettingsSection } from "@/components/settings/SettingsSection";
-import { SettingsField } from "@/components/settings/SettingsField";
+import { SettingsField, SettingsSection } from "@vvedantb/app-kit";
 
 type Profile = FunctionReturnType<typeof api.profiles.list>[number];
 

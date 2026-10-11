@@ -1,3 +1,4 @@
+import { assertMcpTools } from "@vvedantb/convex-kit";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { memoryToolSpecs } from "../../convex/mcp/toolsMemory";
@@ -84,7 +85,7 @@ describe("in-process MCP catalog", () => {
   it("lists every personal tool including memory_graph and no codebase tools", async () => {
     const client = new InProcessMcpClient({ token: MOCK_MCP_TOKEN });
     const names = await client.listTools();
-    expect(names.sort()).toEqual(catalogNamesForScope("personal").sort());
+    assertMcpTools(names, catalogNamesForScope("personal"));
     expect(names).toContain(MEMORY_GRAPH_TOOL);
     expect(names.some((name) => name.includes("codebase"))).toBe(false);
   });
@@ -95,7 +96,7 @@ describe("in-process MCP catalog", () => {
       token: MOCK_MCP_TOKEN,
     });
     const names = await client.listTools();
-    expect(names.sort()).toEqual(catalogNamesForScope("team").sort());
+    assertMcpTools(names, catalogNamesForScope("team"));
     expect(names).not.toContain("context_prompt_get");
     expect(names.some((name) => name.startsWith("skills_"))).toBe(true);
     expect(names).toContain("skills_recommend");

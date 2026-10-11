@@ -3,7 +3,7 @@ import {
   createAltHeldStore,
   type AltHeldSignals,
   type AltHeldStore,
-} from "./useAltHeld";
+} from "@vvedantb/app-kit";
 
 /**
  * The Alt-held store decides whether a destructive action skips its

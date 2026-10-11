@@ -7,7 +7,7 @@ import UploadImportModal from "./UploadImportModal";
 import SelectImportRowsModal from "./SelectImportRowsModal";
 import { importProviders, type ImportProvider } from "./importProviders";
 import type { ExportImportRow } from "@/lib/chat-export/importRows";
-import { SettingsSection } from "@/components/settings/SettingsSection";
+import { SettingsSection } from "@vvedantb/app-kit";
 
 type ImportStep =
   | { phase: "idle" }

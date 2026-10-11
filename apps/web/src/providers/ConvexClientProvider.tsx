@@ -1,7 +1,7 @@
+import { useStableAuth } from "@vvedantb/app-kit";
 import { ConvexProvider } from "convex/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { convex } from "@/lib/convex-client";
-import { useStableAuth } from "@/hooks/useStableAuth";
 import { slidesPublicBoot } from "@/lib/slides-public-boot";
 
 export function ConvexClientProvider({

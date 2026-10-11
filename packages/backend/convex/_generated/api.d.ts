@@ -53,7 +53,6 @@ import type * as http_v1Memories_update from "../http/v1Memories/update.js";
 import type * as lib_accountEmail from "../lib/accountEmail.js";
 import type * as lib_arcticOAuth from "../lib/arcticOAuth.js";
 import type * as lib_base64 from "../lib/base64.js";
-import type * as lib_bearerToken from "../lib/bearerToken.js";
 import type * as lib_clerkUser from "../lib/clerkUser.js";
 import type * as lib_connectorAccessToken from "../lib/connectorAccessToken.js";
 import type * as lib_contextPromptInvalidate from "../lib/contextPromptInvalidate.js";
@@ -191,7 +190,6 @@ declare const fullApi: ApiFromModules<{
   "lib/accountEmail": typeof lib_accountEmail;
   "lib/arcticOAuth": typeof lib_arcticOAuth;
   "lib/base64": typeof lib_base64;
-  "lib/bearerToken": typeof lib_bearerToken;
   "lib/clerkUser": typeof lib_clerkUser;
   "lib/connectorAccessToken": typeof lib_connectorAccessToken;
   "lib/contextPromptInvalidate": typeof lib_contextPromptInvalidate;

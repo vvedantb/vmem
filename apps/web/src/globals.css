@@ -6,6 +6,7 @@
 /* Tailwind does not scan node_modules; include shared UI + compiled shell. */
 @source "../../../node_modules/@vvedantb/ui/src/**/*.{ts,tsx}";
 @source "../../../node_modules/@vvedantb/shell/dist/**/*.js";
+@source "../../../node_modules/@vvedantb/app-kit/dist/**/*.js";
 
 @theme {
   --font-instrumentSerif: "Instrument Serif", Georgia, serif;

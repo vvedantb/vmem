@@ -1,7 +1,7 @@
 // AI-generated (Claude), prompt: "unit tests for bearer token header parsing"
 // Modified by me: covered missing malformed and case insensitive bearer
 import { describe, expect, it } from "vitest";
-import { extractBearerToken } from "../../convex/lib/bearerToken";
+import { extractBearerToken } from "@vvedantb/convex-kit";
 
 describe("extractBearerToken", () => {
   it("returns null when the header is missing or malformed", () => {

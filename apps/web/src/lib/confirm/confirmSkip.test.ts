@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { requestConfirm, shouldSkipConfirm } from "./confirmSkip";
+import { requestConfirm, shouldSkipConfirm } from "@vvedantb/app-kit";
 
 describe("shouldSkipConfirm", () => {
   it("is false when Alt is not held and the event has no altKey", () => {

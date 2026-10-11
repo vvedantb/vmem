@@ -13,16 +13,16 @@ import {
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { convexErrorMessage } from "@/lib/convex-error";
-import { SettingsSection } from "@/components/settings/SettingsSection";
+import {
+  ConfirmSkipHint,
+  SettingsSection,
+  skipConfirmTitle,
+  useRequestConfirm,
+} from "@vvedantb/app-kit";
 import { useTeamWorkspace, type TeamMember } from "./team-context";
 import { AddMemberDialog } from "./AddMemberDialog";
 import { RemoveMemberDialog } from "./RemoveMemberDialog";
 import { LeaveTeamDialog } from "./LeaveTeamDialog";
-import {
-  ConfirmSkipHint,
-  skipConfirmTitle,
-  useRequestConfirm,
-} from "@/lib/confirm";
 
 type PendingRemoval = {
   userId: Id<"users">;

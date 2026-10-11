@@ -6,7 +6,7 @@ import { bindToolSpec } from "../../convex/mcp/toolTypes";
 import { toMcpContent } from "../../convex/mcp/content";
 import { getMemoryGraphForMcp } from "../../convex/mcp/graph";
 import type { McpScope } from "../../convex/profiles/mcpAccess";
-import { extractBearerToken } from "../../convex/lib/bearerToken";
+import { extractBearerToken } from "@vvedantb/convex-kit";
 import { mcpServerInfo } from "../../convex/mcp/serverInfo";
 import { catalogNamesForScope, MEMORY_GRAPH_TOOL } from "./catalog";
 import type { McpHttpResponse } from "./client";

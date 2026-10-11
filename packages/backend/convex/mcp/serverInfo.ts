@@ -1,3 +1,4 @@
+import { defineMcpServerInfo } from "@vvedantb/convex-kit";
 import type { McpScope } from "../profiles/mcpAccess";
 
 export const MCP_SERVER_VERSION = "2.0.0";
@@ -24,8 +25,8 @@ export function mcpServerInfo(scope: McpScope): {
   name: string;
   version: string;
 } {
-  return {
+  return defineMcpServerInfo({
     name: scope === "team" ? "vmem-mcp-team" : "vmem-mcp",
     version: MCP_SERVER_VERSION,
-  };
+  });
 }

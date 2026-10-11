@@ -17,8 +17,7 @@ import { useApiKeyActions } from "@/components/api-keys/useApiKeyActions";
 import type { ApiKey } from "@/components/api-keys/types";
 import { api } from "@vmem/backend";
 import { useApiCreateKeyModal } from "./ApiCreateKeyContext";
-import { SettingsSection } from "@/components/settings/SettingsSection";
-import { SettingsEmptyState } from "@/components/settings/SettingsEmptyState";
+import { SettingsEmptyState, SettingsSection } from "@vvedantb/app-kit";
 
 export function KeysPanel() {
   const { isCreateModalOpen, setIsCreateModalOpen } = useApiCreateKeyModal();

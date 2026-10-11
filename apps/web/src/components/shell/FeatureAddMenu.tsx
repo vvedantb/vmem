@@ -8,7 +8,7 @@ import {
 import type { ReactNode } from "react";
 
 // ghost icon-sm chrome shared by sidebar title-row controls (add, search)
-export const featureHeaderIconClassName =
+const featureHeaderIconClassName =
   "shrink-0 rounded-lg text-muted transition-colors hover:bg-surface-tertiary/50 hover:text-foreground";
 
 interface FeatureAddMenuProps {

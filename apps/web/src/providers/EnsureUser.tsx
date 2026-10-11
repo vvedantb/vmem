@@ -1,7 +1,9 @@
 import { useEffect } from "react";
 import { useConvexAuth, useMutation } from "convex/react";
 import { api } from "@vmem/backend";
-import { startUpdateAvailableWatcher } from "@/components/shell/UpdateAvailableToast";
+import { startUpdateAvailableWatcher } from "@vvedantb/app-kit";
+import { toast } from "sonner";
+import { convex } from "@/lib/convex-client";
 import { slidesPublicBoot } from "@/lib/slides-public-boot";
 
 /**
@@ -32,7 +34,11 @@ function EnsureUserWhenAuth() {
 /** Mount-only production deploy poll — effect lives here (grandfathered). */
 export function useUpdateAvailableToast() {
   useEffect(() => {
-    if (import.meta.env.DEV) return;
-    return startUpdateAvailableWatcher();
+    return startUpdateAvailableWatcher({
+      origin: window.location.origin,
+      toast,
+      closeConvex: () => void convex.close(),
+      enabled: !import.meta.env.DEV,
+    });
   }, []);
 }

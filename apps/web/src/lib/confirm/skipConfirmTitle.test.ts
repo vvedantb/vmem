@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { skipConfirmTitle } from "./ConfirmSkipHint";
+import { skipConfirmTitle } from "@vvedantb/app-kit";
 
 describe("skipConfirmTitle", () => {
   it("names the Alt-click skip, with an optional action label", () => {
