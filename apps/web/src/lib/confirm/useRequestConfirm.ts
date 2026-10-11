@@ -1,20 +1,20 @@
 import { requestConfirm } from "./confirmSkip";
-import { useAltHeld } from "./useAltHeld";
+import { getAltHeld } from "./useAltHeld";
 
 /**
- * Binds `useAltHeld` once so callers do not pass the store flag on every
- * confirmable control.
+ * Confirm helper for menu owners. It must not subscribe to Alt: a re-render of
+ * the owner when Alt goes down remounts the open Radix menu and closes it.
+ * `ConfirmSkipHint` is the only subscriber and lives inside the open menu.
+ * The Alt state is read when the request happens.
  */
 export function useRequestConfirm() {
-  const altHeld = useAltHeld();
   return {
-    altHeld,
     request: (
       open: () => void,
       confirm: () => void,
       event?: { altKey?: boolean } | null,
     ) => {
-      requestConfirm(altHeld, open, confirm, event);
+      requestConfirm(getAltHeld(), open, confirm, event);
     },
   };
 }

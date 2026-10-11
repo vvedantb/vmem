@@ -77,9 +77,23 @@ export function createAltHeldStore(bind: AltHeldBinding): AltHeldStore {
   };
 }
 
+function isInOpenMenu(target: EventTarget | null): boolean {
+  return (
+    target instanceof Element &&
+    target.closest("[role='menu'], [data-radix-menu-content]") !== null
+  );
+}
+
 const bindToWindow: AltHeldBinding = (signals) => {
   if (typeof window === "undefined") return () => {};
-  const onKeyDown = (event: KeyboardEvent): void => signals.keyDown(event);
+  const onKeyDown = (event: KeyboardEvent): void => {
+    // A bare Alt press can steal focus to the browser menu bar and dismiss an
+    // open Radix menu. Cancel it only when it lands inside one.
+    if (event.key === "Alt" && isInOpenMenu(event.target)) {
+      event.preventDefault();
+    }
+    signals.keyDown(event);
+  };
   const onKeyUp = (event: KeyboardEvent): void => signals.keyUp(event);
   const onBlur = (): void => signals.clear();
   const onVisibilityChange = (): void => {
@@ -98,6 +112,11 @@ const bindToWindow: AltHeldBinding = (signals) => {
 };
 
 const altHeldStore = createAltHeldStore(bindToWindow);
+
+/** Current value without subscribing. Safe to read inside event handlers. */
+export function getAltHeld(): boolean {
+  return altHeldStore.getSnapshot();
+}
 
 export function useAltHeld(): boolean {
   return useSyncExternalStore(
