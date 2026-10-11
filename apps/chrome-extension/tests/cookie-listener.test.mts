@@ -41,6 +41,23 @@ await test("prod __client cookie on the FAPI host matches cookie sync host", () 
   );
 });
 
+await test("prod __client cookie on the web host matches web origin", () => {
+  assert.equal(
+    isSessionCookieOnSyncHost(
+      { name: "__client", domain: "vmem.projectv.uk" },
+      "https://vmem.projectv.uk",
+    ),
+    true,
+  );
+  assert.equal(
+    isSessionCookieOnSyncHost(
+      { name: "__client", domain: ".clerk.projectv.uk" },
+      "https://vmem.projectv.uk",
+    ),
+    false,
+  );
+});
+
 await test("dev __clerk_db_jwt cookie on a dotted domain matches", () => {
   assert.equal(
     isSessionCookieOnSyncHost(
