@@ -15,6 +15,7 @@ build
 # Local agent / IDE config (not shared)
 .claude/*
 .cursor/
+!.cursor/environment.json
 .agents/*
 # Convex agent skills are tracked (npx skills add get-convex/agent-skills)
 !.agents/skills/
