@@ -145,6 +145,7 @@ async function loadUnpacked(): Promise<LoadResult> {
       userDataDir,
       pipe: true,
       enableExtensions: [distDir],
+      protocolTimeout: 120_000,
       args: [
         "--no-sandbox",
         "--disable-gpu",
@@ -208,10 +209,10 @@ async function loadUnpacked(): Promise<LoadResult> {
         { timeout: 30_000 },
       )
       .catch(() => {});
-    const popupPath = path.join(artifactDir, "extension_popup_signed_out.png");
-    await page.screenshot({ path: popupPath });
     const bodyText = await page.evaluate(() => document.body.innerText);
     const signedOutRendered = /Sign in to start saving memories/.test(bodyText);
+    const popupPath = path.join(artifactDir, "extension_popup_signed_out.png");
+    await page.screenshot({ path: popupPath }).catch(() => {});
     const live = await probeLivePages(browser);
 
     const failure =
