@@ -11,7 +11,6 @@ import {
   runCreate,
   runDeleteTeam,
   runFinalizeDeleteTeamInternal,
-  runGetTeamMemberClerkIdsInternal,
   runPrepareDeleteTeamInternal,
   runUpdateTeam,
 } from "./teams/lifecycle";
@@ -71,11 +70,6 @@ export const prepareDeleteTeamInternal = internalMutation({
 export const finalizeDeleteTeamInternal = internalMutation({
   args: { teamId: v.string(), actorUserId: v.id("users") },
   handler: async (ctx, args) => runFinalizeDeleteTeamInternal(ctx, args),
-});
-
-export const getTeamMemberClerkIdsInternal = internalQuery({
-  args: { teamId: v.string() },
-  handler: async (ctx, args) => runGetTeamMemberClerkIdsInternal(ctx, args),
 });
 
 export const assertProfileAccessInternal = internalQuery({

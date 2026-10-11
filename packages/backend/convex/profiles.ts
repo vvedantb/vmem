@@ -16,7 +16,6 @@ import {
   getActiveProfileForMcpScope,
   listProfilesByClerkIdAndScope,
   mcpScopeValidator,
-  resolveMcpMemoryScope,
   resolveProfileIdForMcpScope,
 } from "./profiles/mcpAccess";
 
@@ -118,19 +117,6 @@ export const resolveProfileIdForMcpScopeInternal = internalQuery({
   },
 });
 
-// mcp memory scope: profileId plus whether the profile is team. reuses resolveProfileIdForMcpScope authz so membership checks cannot drift.
-export const resolveMcpMemoryScopeInternal = internalQuery({
-  args: {
-    clerkId: v.string(),
-    scope: mcpScopeValidator,
-    profileId: v.optional(v.string()),
-  },
-  returns: v.object({ profileId: v.string(), team: v.boolean() }),
-  handler: async (ctx, args) => {
-    return resolveMcpMemoryScope(ctx, args.clerkId, args.scope, args.profileId);
-  },
-});
-
 export const getOrCreateDefaultByClerkIdInternal = internalMutation({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
@@ -169,39 +155,6 @@ export const getByTeamInternal = internalQuery({
       .query("profiles")
       .withIndex("by_team", (q) => q.eq("teamId", args.teamId))
       .first();
-  },
-});
-
-export const setLastDreamRunAtInternal = internalMutation({
-  args: {
-    profileId: v.id("profiles"),
-    timestamp: v.number(),
-  },
-  handler: async (ctx, args) => {
-    const profile = await ctx.db.get(args.profileId);
-    if (!profile) return null;
-    await ctx.db.patch(args.profileId, { lastDreamRunAt: args.timestamp });
-    return null;
-  },
-});
-
-export const setDreamPortraitInternal = internalMutation({
-  args: {
-    profileId: v.id("profiles"),
-    portrait: v.string(),
-    sourceMemoryIds: v.array(v.string()),
-  },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    const profile = await ctx.db.get(args.profileId);
-    if (!profile) return null;
-    await ctx.db.patch(args.profileId, {
-      dreamPortrait: args.portrait,
-      dreamPortraitUpdatedAt: Date.now(),
-      dreamPortraitSources: args.sourceMemoryIds,
-      updatedAt: Date.now(),
-    });
-    return null;
   },
 });
 

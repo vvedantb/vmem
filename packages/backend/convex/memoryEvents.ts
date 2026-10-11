@@ -1,8 +1,7 @@
-import { internalMutation, query } from "./_generated/server";
+import { query } from "./_generated/server";
 import { v } from "convex/values";
-import { zodToConvex } from "convex-helpers/server/zod";
 import { z } from "zod";
-import { auditLog, ResourceTypes } from "./auditLog";
+import { auditLog } from "./auditLog";
 
 const memoryEventMetadataSchema = z.object({
   payload: z.string().optional(),
@@ -34,8 +33,6 @@ const memoryEventTypeSchema = z.enum([
 
 export type MemoryEventType = z.infer<typeof memoryEventTypeSchema>;
 
-const eventTypeValidator = zodToConvex(memoryEventTypeSchema);
-
 // maps change feed event types to audit log action strings
 export const ACTION_FOR_EVENT: Record<MemoryEventType, string> = {
   memory_created: "memory.created",
@@ -46,27 +43,6 @@ export const ACTION_FOR_EVENT: Record<MemoryEventType, string> = {
   dream_synthesis_proposed: "memory.dream.synthesis_proposed",
   dream_synthesis_materialized: "memory.dream.synthesis_materialized",
 };
-
-export const pushEventInternal = internalMutation({
-  args: {
-    clerkId: v.string(),
-    eventType: eventTypeValidator,
-    memoryId: v.string(),
-    payload: v.string(),
-  },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    await auditLog.log(ctx, {
-      action: ACTION_FOR_EVENT[args.eventType],
-      actorId: args.clerkId,
-      resourceType: ResourceTypes.MEMORY,
-      resourceId: args.memoryId,
-      metadata: { payload: args.payload },
-      severity: "info",
-    });
-    return null;
-  },
-});
 
 export const getRecentEvents = query({
   args: {

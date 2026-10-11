@@ -37,7 +37,6 @@ Do not use `@vmem/backend/*` subpaths from client code.
 ```
 packages/shared/src/
 ├── index.ts              # public barrel
-├── envParse.ts
 ├── graph.ts
 ├── sync.ts
 ├── theme.ts

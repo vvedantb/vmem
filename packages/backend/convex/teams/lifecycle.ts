@@ -1,5 +1,5 @@
 import type { Id } from "../_generated/dataModel";
-import type { MutationCtx, QueryCtx } from "../_generated/server";
+import type { MutationCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { auditLog, ResourceTypes } from "../auditLog";
 import { userFacingError } from "../lib/userFacingError";
@@ -7,7 +7,6 @@ import {
   type AuthActionCtx,
   type AuthMutationCtx,
   getMembershipOrNull,
-  getTeamMemberClerkIds,
   getTeamProfileOrNull,
   requireTeamRole,
 } from "./auth";
@@ -163,14 +162,4 @@ export async function runFinalizeDeleteTeamInternal(
     await ctx.db.delete(profile._id);
   }
   await ctx.db.delete(teamId);
-}
-
-export async function runGetTeamMemberClerkIdsInternal(
-  ctx: QueryCtx,
-  args: { teamId: string },
-): Promise<string[]> {
-  const teamId = ctx.db.normalizeId("teams", args.teamId);
-  if (!teamId) return [];
-
-  return getTeamMemberClerkIds(ctx, teamId);
 }
