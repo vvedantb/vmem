@@ -30,6 +30,7 @@ export const SKILLS_TOOL_NAMES = [
   "skills_create",
   "skills_update",
   "skills_delete",
+  "skills_import",
 ] as const;
 
 export const WIKI_TOOL_NAMES = [

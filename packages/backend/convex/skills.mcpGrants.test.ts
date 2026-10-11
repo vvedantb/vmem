@@ -117,4 +117,119 @@ describe("MCP skill grants", () => {
       }),
     ).rejects.toThrow(/Skill not found/);
   });
+
+  it("imports personal skills by name, sets origin vibot, and rejects team scope", async () => {
+    const t = testConvex();
+    const owner = asUser(t, "clerk_import_owner", "import@example.com");
+    await owner.mutation(api.auth.ensureUserExists, {});
+    await owner.mutation(api.teams.create, { name: "ImportCo" });
+
+    const created = await t.mutation(internal.skills.importByClerkIdInternal, {
+      clerkId: "clerk_import_owner",
+      scope: "personal",
+      items: [
+        {
+          name: "from-vibot",
+          description: "When importing",
+          instructions: "Keep this playbook",
+        },
+        { name: "  ", description: "x", instructions: "y" },
+      ],
+    });
+    expect(created.created).toBe(1);
+    expect(created.updated).toBe(0);
+    expect(created.skipped).toBe(1);
+    expect(created.names).toEqual(["from-vibot"]);
+
+    const listed = await t.query(
+      internal.skills.listEffectiveByClerkIdInternal,
+      {
+        clerkId: "clerk_import_owner",
+        scope: "personal",
+      },
+    );
+    const imported = listed.find((skill) => skill.name === "from-vibot");
+    expect(imported?.updatedAt).toBeGreaterThan(0);
+
+    const mine = await owner.query(api.skills.listMy, {});
+    const row = mine.find((skill) => skill.name === "from-vibot");
+    expect(row?.origin).toBe("vibot");
+
+    const again = await t.mutation(internal.skills.importByClerkIdInternal, {
+      clerkId: "clerk_import_owner",
+      scope: "personal",
+      items: [
+        {
+          name: "from-vibot",
+          description: "When importing",
+          instructions: "Keep this playbook",
+        },
+      ],
+    });
+    expect(again.created).toBe(0);
+    expect(again.updated).toBe(0);
+    expect(again.skipped).toBe(1);
+
+    const changed = await t.mutation(internal.skills.importByClerkIdInternal, {
+      clerkId: "clerk_import_owner",
+      scope: "personal",
+      items: [
+        {
+          name: "from-vibot",
+          description: "When importing",
+          instructions: "Updated playbook",
+        },
+      ],
+    });
+    expect(changed.updated).toBe(1);
+
+    await owner.mutation(api.skills.createSkill, {
+      name: "web-one",
+      description: "From dashboard",
+      instructions: "Keep body",
+    });
+    const stamped = await t.mutation(internal.skills.importByClerkIdInternal, {
+      clerkId: "clerk_import_owner",
+      scope: "personal",
+      items: [
+        {
+          name: "web-one",
+          description: "From dashboard",
+          instructions: "Keep body",
+        },
+      ],
+    });
+    expect(stamped.created).toBe(0);
+    expect(stamped.updated).toBe(1);
+    const stampedRow = (await owner.query(api.skills.listMy, {})).find(
+      (skill) => skill.name === "web-one",
+    );
+    expect(stampedRow?.origin).toBe("vibot");
+
+    await expect(
+      t.mutation(internal.skills.importByClerkIdInternal, {
+        clerkId: "clerk_import_owner",
+        scope: "team",
+        items: [
+          {
+            name: "team-import",
+            description: "no",
+            instructions: "no",
+          },
+        ],
+      }),
+    ).rejects.toThrow(/personal only/);
+
+    await expect(
+      t.mutation(internal.skills.importByClerkIdInternal, {
+        clerkId: "clerk_import_owner",
+        scope: "personal",
+        items: Array.from({ length: 26 }, (_, index) => ({
+          name: `skill-${index}`,
+          description: "d",
+          instructions: "i",
+        })),
+      }),
+    ).rejects.toThrow(/at most 25/);
+  });
 });

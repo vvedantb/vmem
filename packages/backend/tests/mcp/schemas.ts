@@ -148,6 +148,14 @@ export const fileDeleteResultSchema = z.object({
 export const skillsIndexEntrySchema = z.object({
   name: z.string(),
   description: z.string(),
+  updatedAt: z.number().optional(),
+});
+
+export const skillsImportResultSchema = z.object({
+  created: z.number(),
+  updated: z.number(),
+  skipped: z.number(),
+  names: z.array(z.string()),
 });
 
 export const contextPromptResultSchema = z.object({

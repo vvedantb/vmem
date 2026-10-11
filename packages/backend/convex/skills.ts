@@ -22,6 +22,14 @@ import {
   assertContentEditable,
   requireContentScopeAccess,
 } from "./teams/auth";
+import {
+  skillImportItemValidator,
+  skillImportResultValidator,
+} from "./validators";
+
+export const SKILLS_IMPORT_MAX = 25;
+
+type SkillOrigin = "web" | "mcp" | "vibot";
 
 // missing enabled is treated as enabled for existing rows
 function isSkillEnabled(skill: { enabled?: boolean }): boolean {
@@ -42,16 +50,29 @@ export interface EffectiveSkill {
   source: "personal" | "system";
   // personal MCP vs the granting team. never mixed across connectors.
   grant: "personal" | "team";
+  updatedAt: number;
   // the personal skill's id, present only for source === "personal"
   skillId?: Id<"skills">;
   // present only for source === "system"
   systemSkillId?: Id<"systemSkills">;
 }
 
-export type SkillIndexSlice = Pick<EffectiveSkill, "name" | "description">;
+export type SkillIndexSlice = {
+  name: string;
+  description: string;
+  updatedAt?: number;
+};
 
-export function toSkillIndexEntry(skill: SkillIndexSlice): SkillIndexSlice {
-  return { name: skill.name, description: skill.description };
+export function toSkillIndexEntry(skill: {
+  name: string;
+  description: string;
+  updatedAt: number;
+}): SkillIndexSlice {
+  return {
+    name: skill.name,
+    description: skill.description,
+    updatedAt: skill.updatedAt,
+  };
 }
 
 export function skillMatchesMcpGrant(
@@ -107,6 +128,7 @@ async function appendBootstrapSkills(
       enabled: true,
       source: "system",
       grant: grantLabel(teamId),
+      updatedAt: row?.updatedAt ?? 0,
       systemSkillId: row?._id,
     });
   }
@@ -138,6 +160,7 @@ async function resolveEffectiveSkills(
         enabled: true,
         source: "personal",
         grant,
+        updatedAt: skill.updatedAt,
         skillId: skill._id,
       });
     }
@@ -160,6 +183,7 @@ async function resolveEffectiveSkills(
         enabled: true,
         source: "system",
         grant,
+        updatedAt: sys.updatedAt,
         systemSkillId: sys._id,
       });
     }
@@ -185,6 +209,7 @@ async function resolveEffectiveSkills(
       enabled: true,
       source: "personal",
       grant: "personal",
+      updatedAt: skill.updatedAt,
       skillId: skill._id,
     });
   }
@@ -208,6 +233,7 @@ async function resolveEffectiveSkills(
       enabled: true,
       source: "system",
       grant: "personal",
+      updatedAt: sys.updatedAt,
       systemSkillId: sys._id,
     });
   }
@@ -360,6 +386,7 @@ async function createSkillRecord(
     name: string;
     description: string;
     instructions: string;
+    origin: SkillOrigin;
   },
 ): Promise<Id<"skills">> {
   const trimmedName = args.name.trim();
@@ -384,6 +411,7 @@ async function createSkillRecord(
     enabled: true,
     createdAt: now,
     updatedAt: now,
+    origin: args.origin,
   });
 }
 
@@ -453,6 +481,7 @@ export const createSkill = authMutation({
       name: args.name,
       description: args.description,
       instructions: args.instructions,
+      origin: "web",
     });
     await invalidateContextPromptIfPersonal(ctx, ctx.userId, args.teamId);
     return id;
@@ -630,6 +659,7 @@ export const createByClerkIdInternal = internalMutation({
       name: args.name,
       description: args.description,
       instructions: args.instructions,
+      origin: "mcp",
     });
     await invalidateContextPromptIfPersonal(ctx, grant.userId, grant.teamId);
 
@@ -638,6 +668,112 @@ export const createByClerkIdInternal = internalMutation({
       throw new Error("Failed to create skill");
     }
     return created;
+  },
+});
+
+export const importByClerkIdInternal = internalMutation({
+  args: {
+    clerkId: v.string(),
+    items: v.array(skillImportItemValidator),
+    scope: v.optional(mcpScopeValidator),
+  },
+  returns: skillImportResultValidator,
+  handler: async (ctx, args) => {
+    if (args.items.length > SKILLS_IMPORT_MAX) {
+      throw new Error(
+        `skills_import accepts at most ${SKILLS_IMPORT_MAX} items`,
+      );
+    }
+    const grant = await resolveMcpSkillGrant(ctx, args.clerkId, args.scope);
+    if (!grant) {
+      throw new Error("User not found");
+    }
+    if (grant.teamId !== undefined) {
+      throw new Error("skills_import is personal only");
+    }
+
+    const names: string[] = [];
+    let created = 0;
+    let updated = 0;
+    let skipped = 0;
+    let wrote = false;
+
+    for (const item of args.items) {
+      const name = item.name.trim();
+      if (
+        name.length === 0 ||
+        item.description.trim().length === 0 ||
+        item.instructions.trim().length === 0
+      ) {
+        skipped += 1;
+        continue;
+      }
+      if (
+        await scopeHasInstalledSystemSkillNamed(
+          ctx,
+          grant.userId,
+          undefined,
+          name,
+        )
+      ) {
+        skipped += 1;
+        continue;
+      }
+
+      const existing = await findSkillByNameInScope(
+        ctx,
+        grant.userId,
+        undefined,
+        name,
+      );
+      if (existing) {
+        const sameBody =
+          existing.description === item.description &&
+          existing.instructions === item.instructions;
+        if (sameBody) {
+          if (existing.origin !== "vibot") {
+            await ctx.db.patch(existing._id, { origin: "vibot" });
+            updated += 1;
+            wrote = true;
+          } else {
+            skipped += 1;
+          }
+          names.push(name);
+          continue;
+        }
+        const patch = await buildSkillUpdatePatch(ctx, existing, {
+          description: item.description,
+          instructions: item.instructions,
+        });
+        await applySkillUpdate(ctx, existing, patch, {
+          source: "mcp",
+          authorUserId: grant.userId,
+          force: true,
+        });
+        await ctx.db.patch(existing._id, { origin: "vibot" });
+        updated += 1;
+        wrote = true;
+        names.push(name);
+        continue;
+      }
+
+      await createSkillRecord(ctx, {
+        userId: grant.userId,
+        name,
+        description: item.description,
+        instructions: item.instructions,
+        origin: "vibot",
+      });
+      created += 1;
+      wrote = true;
+      names.push(name);
+    }
+
+    if (wrote) {
+      await invalidateContextPromptIfPersonal(ctx, grant.userId, undefined);
+    }
+
+    return { created, updated, skipped, names };
   },
 });
 

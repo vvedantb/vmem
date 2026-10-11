@@ -3,7 +3,7 @@ title: "MCP Tools"
 description: "Complete reference for all vmem MCP tools"
 ---
 
-Tools are registered from `packages/backend/convex/mcp/tools*.ts` and require a Clerk OAuth bearer token. Memory tools work on `/mcp` and `/mcp/team`. Skills tools also work on both connectors (personal skills on `/mcp`, team-granted skills on `/mcp/team`). Wiki, files, and `context_prompt_get` are personal-only.
+Tools are registered from `packages/backend/convex/mcp/tools*.ts`. Auth accepts a Clerk `oauth_token` or `session_token` bearer (MCP server `1.1.0`). Memory tools work on `/mcp` and `/mcp/team`. Skills tools also work on both connectors (personal skills on `/mcp`, team-granted skills on `/mcp/team`), except `skills_import` which is personal `/mcp` only. Wiki, files, and `context_prompt_get` are personal-only.
 
 ## ping
 
@@ -273,11 +273,23 @@ MCP App: interactive memory graph. Requires an MCP Apps–capable host.
 
 ## skills_list
 
-List enabled skills granted to this connector (name + description only).
+List enabled skills granted to this connector (name + description + `updatedAt`). No instructions.
 
 **Parameters:** none
 
 Personal `/mcp` returns the caller's personal skills. Team `/mcp/team` returns only that team's skills.
+
+---
+
+## skills_import
+
+Personal `/mcp` only. Upsert up to 25 personal skills by exact trimmed name. Idempotent. Sets `origin` to `vibot`. Empty name/description/instructions rows and installed system skill names are skipped.
+
+<ParamField body="items" type="object[]" required>
+  `{ name, description, instructions }` rows (max 25)
+</ParamField>
+
+**Returns:** `{ created, updated, skipped, names }`
 
 ---
 

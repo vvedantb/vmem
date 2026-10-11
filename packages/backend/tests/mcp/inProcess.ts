@@ -7,6 +7,7 @@ import { toMcpContent } from "../../convex/mcp/content";
 import { getMemoryGraphForMcp } from "../../convex/mcp/graph";
 import type { McpScope } from "../../convex/profiles/mcpAccess";
 import { extractBearerToken } from "../../convex/lib/bearerToken";
+import { mcpServerInfo } from "../../convex/mcp/serverInfo";
 import { catalogNamesForScope, MEMORY_GRAPH_TOOL } from "./catalog";
 import type { McpHttpResponse } from "./client";
 import { parseMcpHttpError, requireJsonRpcResult } from "./client";
@@ -169,10 +170,7 @@ export async function handleInProcessMcpRequest(args: {
     return jsonRpcResult(id, {
       protocolVersion: "2025-03-26",
       capabilities: { tools: {} },
-      serverInfo: {
-        name: args.session.scope === "team" ? "vmem-mcp-team" : "vmem-mcp",
-        version: "1.0.0",
-      },
+      serverInfo: mcpServerInfo(args.session.scope),
     });
   }
   if (method === "tools/list") {
