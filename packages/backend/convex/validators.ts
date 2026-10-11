@@ -452,6 +452,7 @@ export const openRouterLogFields = {
   aggregatePending: v.optional(v.boolean()),
 };
 
+// DEPRECATED: schema-only, kept while wikiNodes stays. See schema.ts.
 export const wikiNodeFields = {
   userId: v.id("users"),
   teamId: v.optional(v.id("teams")),

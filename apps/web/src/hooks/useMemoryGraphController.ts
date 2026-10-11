@@ -40,7 +40,6 @@ export function useMemoryGraphController({
     apiNodes,
     apiTagEdges,
     allRelatesToEdges,
-    apiWikiParentEdges,
     apiMentionsEdges,
     resolvedFocusNodeId,
     isFocused,
@@ -102,7 +101,6 @@ export function useMemoryGraphController({
         apiNodes,
         apiTagEdges,
         allRelatesToEdges,
-        apiWikiParentEdges,
         apiMentionsEdges,
         {
           kinds: params.kinds,
@@ -115,7 +113,6 @@ export function useMemoryGraphController({
       apiNodes,
       apiTagEdges,
       allRelatesToEdges,
-      apiWikiParentEdges,
       apiMentionsEdges,
       params.kinds,
       params.tags,
@@ -152,10 +149,7 @@ export function useMemoryGraphController({
   const loadedMemoryCount = apiNodes.filter((n) => n.kind === "memory").length;
 
   const loadedRelationshipCount =
-    apiTagEdges.length +
-    allRelatesToEdges.length +
-    apiWikiParentEdges.length +
-    apiMentionsEdges.length;
+    apiTagEdges.length + allRelatesToEdges.length + apiMentionsEdges.length;
 
   const canLoadMore =
     !isFocused && hasNextPage && loadedMemoryCount < GLOBAL_GRAPH_MAX_NODES;

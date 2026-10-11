@@ -38,12 +38,12 @@ FOLLOW ALL OF THESE RULES
 - vmem is a universal LLM memory layer: one shared, inspectable memory graph across sessions and providers. Not a sandbox/codebase runner. Not an agent OS.
 - Stack: pnpm workspace (pnpm 10.15.1, Node 20+). Shared types in `@vmem/shared`. SDK is `@vmem/sdk`.
 - Clients: `apps/web` dashboard; `apps/chrome-extension` (WXT MV3: save pages, inject context); MCP at `https://<deployment>.convex.site/mcp` (Clerk OAuth; team at `/mcp/team`; personal also `vmem://context_prompt`); HTTP `/api/v1/memories/*` with Bearer `vmem_sk_…`.
-- Backend: `packages/backend` Convex (memories, auth, profiles, teams, skills, wiki, connectors, MCP HTTP). Memory runtime is Convex only — no Neo4j on main.
+- Backend: `packages/backend` Convex (memories, auth, profiles, teams, skills, connectors, MCP HTTP). Memory runtime is Convex only — no Neo4j on main.
 - Hosting: prod web `https://vmem.projectv.uk` (on Vercel); `vmem.vedantb.com` permanently redirects there. Staging: `https://vmem-staging.vedantb.com`.
 - Convex prod: `clear-bear-690` (`https://clear-bear-690.eu-west-1.convex.cloud` / `.convex.site`). The extension source fallback is `outgoing-reindeer-268` (not prod); production extension env must use `clear-bear-690`.
 - Auth: Project V Clerk. Prod `clerk.projectv.uk` (`pk_live_Y2xlcmsucHJvamVjdHYudWsk`). Preview/dev `allowing-coyote-80.clerk.accounts.dev`.
 - UI packages: npm `@vvedantb/ui`, `@vvedantb/shell`, `@vvedantb/tokens`. No `@vvedantb/native-ui` on main; Expo mobile is archived (`archive/mobile`). `packages/ui` in README.txt is stale.
-- Web surfaces: memories (list/graph/timeline/tags), inbox (proposals + notifications), wiki, skills, sources/connectors/import, files, teams, settings (API keys, extension, profiles, preferences).
+- Web surfaces: memories (list/graph/timeline/tags), inbox (proposals + notifications), skills, sources/connectors/import, files, teams, settings (API keys, extension, profiles, preferences).
 - `/slides` is public (password for presenter pop-out). It skips ClerkProvider because Vercel preview hosts often return 400 on `clerk.projectv.uk`.
 - Landing has "Continue without an account". Dev: `/?agent` auto sign-in.
 - Memory list is paginated and bounded. Do not reintroduce app-wide 1000-row reactive memory queries.

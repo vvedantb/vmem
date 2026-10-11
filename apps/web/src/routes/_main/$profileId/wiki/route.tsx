@@ -1,15 +1,11 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router";
-import { WikiDocRouteRedirect } from "./-components/WikiDocRouteRedirect";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
+// the vmem wiki is gone: `/wiki` and every `/wiki/...` path land on workspace home
 export const Route = createFileRoute("/_main/$profileId/wiki")({
-  component: WikiLayout,
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: "/$profileId/home",
+      params: { profileId: params.profileId },
+    });
+  },
 });
-
-function WikiLayout() {
-  return (
-    <>
-      <WikiDocRouteRedirect />
-      <Outlet />
-    </>
-  );
-}

@@ -1,7 +1,6 @@
 interface EdgeColorsByType {
   tag: string;
   relates_to: string;
-  wiki_parent: string;
   mentions: string;
 }
 
@@ -45,7 +44,6 @@ const DEFAULT_DARK: GraphViewTheme = {
     normalByType: {
       tag: "rgba(180,180,200,0.18)",
       relates_to: "rgba(255,170,110,0.55)",
-      wiki_parent: "rgba(130,170,255,0.5)",
       mentions: "rgba(100,200,160,0.45)",
     },
     connected: "rgba(255,255,255,0.85)",
@@ -80,7 +78,6 @@ const DEFAULT_LIGHT: GraphViewTheme = {
     normalByType: {
       tag: "rgba(60,70,90,0.22)",
       relates_to: "rgba(200,90,30,0.65)",
-      wiki_parent: "rgba(60,100,200,0.55)",
       mentions: "rgba(30,140,100,0.55)",
     },
     connected: "rgba(0,0,0,0.75)",

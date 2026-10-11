@@ -84,12 +84,6 @@ describe("buildCosmosGraphBuffers", () => {
 
   it("maps graph node kinds to Cosmos point shapes", () => {
     expect(cosmosPointShapeForKind("memory")).toBe(COSMOS_POINT_SHAPE.Circle);
-    expect(cosmosPointShapeForKind("wiki-folder")).toBe(
-      COSMOS_POINT_SHAPE.Square,
-    );
-    expect(cosmosPointShapeForKind("wiki-document")).toBe(
-      COSMOS_POINT_SHAPE.Diamond,
-    );
     expect(cosmosPointShapeForKind("skill")).toBe(COSMOS_POINT_SHAPE.Hexagon);
     expect(cosmosPointShapeForKind("entity")).toBe(COSMOS_POINT_SHAPE.Star);
   });

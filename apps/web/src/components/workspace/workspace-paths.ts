@@ -1,6 +1,7 @@
 // pure path helpers for the workspace prefixed route tree (`/$profileId/...`)
 
 // first path segments that belonged to the pre-workspace route tree
+// ("wiki" stays: it lands on `/$profileId/wiki`, which redirects to home)
 const LEGACY_FIRST_SEGMENTS = [
   "memories",
   "files",
@@ -18,7 +19,7 @@ export function isLegacyFirstSegment(segment: string): boolean {
 }
 
 // sections whose immediate child segment is a detail id we drop on switch
-const DETAIL_PARENTS = new Set(["skills", "wiki"]);
+const DETAIL_PARENTS = new Set(["skills"]);
 
 // compute the path for "this same page in another workspace
 // first segments of user level (non workspace) routes

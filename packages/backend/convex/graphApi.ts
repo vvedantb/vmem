@@ -5,7 +5,6 @@ import type { Id } from "./_generated/dataModel";
 import type { MemoryType, MemoryWithTags } from "./memoryApi/types";
 import { collectScopedMemoriesPaged } from "./memoryStore/walk";
 
-const WIKI_PREFIX = "wiki:";
 const SKILL_PREFIX = "skill:";
 
 interface GraphNodeEntry {
@@ -13,7 +12,7 @@ interface GraphNodeEntry {
   title: string;
   tags: string[];
   createdAt: string;
-  kind: "memory" | "wiki-document" | "wiki-folder" | "skill" | "entity";
+  kind: "memory" | "skill" | "entity";
   source?: string;
   sourceType: string | null;
   type?: MemoryType;
@@ -35,7 +34,6 @@ interface GraphResult {
     weight: number;
     sharedTags: string[];
   }[];
-  wikiParentEdges: { source: string; target: string }[];
   mentionsEdges: { source: string; target: string }[];
   focusNodeId?: string;
   totalMemoryCount?: number;
@@ -106,33 +104,6 @@ export const getGraphData = authAction({
       memories = memories.filter((memory) => memory.id === args.focus);
     }
 
-    const wikiRows = includeAccountAtoms
-      ? await ctx.runQuery(internal.wiki.listForGraphInternal, {
-          userId: ctx.userId,
-          teamId,
-        })
-      : [];
-
-    const wikiNodes: GraphNodeEntry[] = wikiRows.map((w) => ({
-      id: `${WIKI_PREFIX}${w._id}`,
-      title: w.title,
-      content:
-        w.kind === "document" || w.kind === "artifact"
-          ? (w.contentText ?? "")
-          : "",
-      tags: [],
-      createdAt: new Date(w.createdAt).toISOString(),
-      kind: w.kind === "folder" ? "wiki-folder" : "wiki-document",
-      sourceType: null,
-    }));
-
-    const wikiParentEdges: { source: string; target: string }[] = wikiRows
-      .filter((w) => w.parentId !== undefined)
-      .map((w) => ({
-        source: `${WIKI_PREFIX}${w.parentId}`,
-        target: `${WIKI_PREFIX}${w._id}`,
-      }));
-
     const skillRows = includeAccountAtoms
       ? await ctx.runQuery(internal.skills.listForGraphInternal, {
           userId: ctx.userId,
@@ -193,15 +164,9 @@ export const getGraphData = authAction({
       }));
 
     return {
-      nodes: [
-        ...memoryNodes(memories),
-        ...entityNodes,
-        ...wikiNodes,
-        ...skillNodes,
-      ],
+      nodes: [...memoryNodes(memories), ...entityNodes, ...skillNodes],
       relatesToEdges,
       tagEdges: [],
-      wikiParentEdges,
       mentionsEdges: mentionsEdges.map((edge) => ({
         source: edge.memoryId,
         target: edge.entityId,

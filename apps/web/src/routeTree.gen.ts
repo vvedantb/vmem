@@ -50,7 +50,7 @@ import { Route as MainSettingsDataControlsExportRouteImport } from './routes/_ma
 import { Route as MainSettingsDataControlsDangerRouteImport } from './routes/_main/settings/data-controls/danger'
 import { Route as MainSettingsApiUsageRouteImport } from './routes/_main/settings/api/usage'
 import { Route as MainSettingsApiKeysRouteImport } from './routes/_main/settings/api/keys'
-import { Route as MainProfileIdWikiDocIdRouteImport } from './routes/_main/$profileId/wiki/$docId'
+import { Route as MainProfileIdWikiSplatRouteImport } from './routes/_main/$profileId/wiki/$'
 import { Route as MainProfileIdTeamSettingsRouteImport } from './routes/_main/$profileId/team/settings'
 import { Route as MainProfileIdTeamMembersRouteImport } from './routes/_main/$profileId/team/members'
 import { Route as MainProfileIdSourcesImportRouteImport } from './routes/_main/$profileId/sources/import'
@@ -286,9 +286,9 @@ const MainSettingsApiKeysRoute = MainSettingsApiKeysRouteImport.update({
   path: '/keys',
   getParentRoute: () => MainSettingsApiRouteRoute,
 } as any)
-const MainProfileIdWikiDocIdRoute = MainProfileIdWikiDocIdRouteImport.update({
-  id: '/$docId',
-  path: '/$docId',
+const MainProfileIdWikiSplatRoute = MainProfileIdWikiSplatRouteImport.update({
+  id: '/$',
+  path: '/$',
   getParentRoute: () => MainProfileIdWikiRouteRoute,
 } as any)
 const MainProfileIdTeamSettingsRoute =
@@ -426,7 +426,7 @@ export interface FileRoutesByFullPath {
   '/$profileId/sources/import': typeof MainProfileIdSourcesImportRoute
   '/$profileId/team/members': typeof MainProfileIdTeamMembersRoute
   '/$profileId/team/settings': typeof MainProfileIdTeamSettingsRoute
-  '/$profileId/wiki/$docId': typeof MainProfileIdWikiDocIdRoute
+  '/$profileId/wiki/$': typeof MainProfileIdWikiSplatRoute
   '/settings/api/keys': typeof MainSettingsApiKeysRoute
   '/settings/api/usage': typeof MainSettingsApiUsageRoute
   '/settings/data-controls/danger': typeof MainSettingsDataControlsDangerRoute
@@ -475,7 +475,7 @@ export interface FileRoutesByTo {
   '/$profileId/sources/import': typeof MainProfileIdSourcesImportRoute
   '/$profileId/team/members': typeof MainProfileIdTeamMembersRoute
   '/$profileId/team/settings': typeof MainProfileIdTeamSettingsRoute
-  '/$profileId/wiki/$docId': typeof MainProfileIdWikiDocIdRoute
+  '/$profileId/wiki/$': typeof MainProfileIdWikiSplatRoute
   '/settings/api/keys': typeof MainSettingsApiKeysRoute
   '/settings/api/usage': typeof MainSettingsApiUsageRoute
   '/settings/data-controls/danger': typeof MainSettingsDataControlsDangerRoute
@@ -536,7 +536,7 @@ export interface FileRoutesById {
   '/_main/$profileId/sources/import': typeof MainProfileIdSourcesImportRoute
   '/_main/$profileId/team/members': typeof MainProfileIdTeamMembersRoute
   '/_main/$profileId/team/settings': typeof MainProfileIdTeamSettingsRoute
-  '/_main/$profileId/wiki/$docId': typeof MainProfileIdWikiDocIdRoute
+  '/_main/$profileId/wiki/$': typeof MainProfileIdWikiSplatRoute
   '/_main/settings/api/keys': typeof MainSettingsApiKeysRoute
   '/_main/settings/api/usage': typeof MainSettingsApiUsageRoute
   '/_main/settings/data-controls/danger': typeof MainSettingsDataControlsDangerRoute
@@ -597,7 +597,7 @@ export interface FileRouteTypes {
     | '/$profileId/sources/import'
     | '/$profileId/team/members'
     | '/$profileId/team/settings'
-    | '/$profileId/wiki/$docId'
+    | '/$profileId/wiki/$'
     | '/settings/api/keys'
     | '/settings/api/usage'
     | '/settings/data-controls/danger'
@@ -646,7 +646,7 @@ export interface FileRouteTypes {
     | '/$profileId/sources/import'
     | '/$profileId/team/members'
     | '/$profileId/team/settings'
-    | '/$profileId/wiki/$docId'
+    | '/$profileId/wiki/$'
     | '/settings/api/keys'
     | '/settings/api/usage'
     | '/settings/data-controls/danger'
@@ -706,7 +706,7 @@ export interface FileRouteTypes {
     | '/_main/$profileId/sources/import'
     | '/_main/$profileId/team/members'
     | '/_main/$profileId/team/settings'
-    | '/_main/$profileId/wiki/$docId'
+    | '/_main/$profileId/wiki/$'
     | '/_main/settings/api/keys'
     | '/_main/settings/api/usage'
     | '/_main/settings/data-controls/danger'
@@ -1022,11 +1022,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MainSettingsApiKeysRouteImport
       parentRoute: typeof MainSettingsApiRouteRoute
     }
-    '/_main/$profileId/wiki/$docId': {
-      id: '/_main/$profileId/wiki/$docId'
-      path: '/$docId'
-      fullPath: '/$profileId/wiki/$docId'
-      preLoaderRoute: typeof MainProfileIdWikiDocIdRouteImport
+    '/_main/$profileId/wiki/$': {
+      id: '/_main/$profileId/wiki/$'
+      path: '/$'
+      fullPath: '/$profileId/wiki/$'
+      preLoaderRoute: typeof MainProfileIdWikiSplatRouteImport
       parentRoute: typeof MainProfileIdWikiRouteRoute
     }
     '/_main/$profileId/team/settings': {
@@ -1259,13 +1259,13 @@ const MainProfileIdTeamRouteRouteWithChildren =
   )
 
 interface MainProfileIdWikiRouteRouteChildren {
-  MainProfileIdWikiDocIdRoute: typeof MainProfileIdWikiDocIdRoute
+  MainProfileIdWikiSplatRoute: typeof MainProfileIdWikiSplatRoute
   MainProfileIdWikiIndexRoute: typeof MainProfileIdWikiIndexRoute
 }
 
 const MainProfileIdWikiRouteRouteChildren: MainProfileIdWikiRouteRouteChildren =
   {
-    MainProfileIdWikiDocIdRoute: MainProfileIdWikiDocIdRoute,
+    MainProfileIdWikiSplatRoute: MainProfileIdWikiSplatRoute,
     MainProfileIdWikiIndexRoute: MainProfileIdWikiIndexRoute,
   }
 

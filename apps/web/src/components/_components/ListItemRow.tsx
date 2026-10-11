@@ -12,7 +12,7 @@ import {
   TooltipTrigger,
 } from "@vvedantb/ui";
 import { IconEdit, IconMoon, IconTrash } from "@tabler/icons-react";
-import { IconSkills, IconWiki } from "@/components/icons/sidebar";
+import { IconSkills } from "@/components/icons/sidebar";
 import { formatCompactRelativeTime } from "@vmem/shared";
 import { formatMemorySourceLabel, type Memory } from "@/lib/memories";
 import { listItemToMemory, type ListItem } from "@/lib/list-items";
@@ -36,7 +36,7 @@ interface ListItemRowProps {
   trailEntry?: TrailEntry;
   isDark: boolean;
   onMemoryClick: (memory: Memory) => void;
-  // wiki/skill/folder → preview panel (not navigate)
+  // skill → preview panel (not navigate)
   onItemSelect: (item: ListItem) => void;
   onContextEdit: (memory: Memory) => void;
   onContextDelete: (memory: Memory) => void;
@@ -56,12 +56,7 @@ export default function ListItemRow({
   onContextEdit,
   onContextDelete,
 }: ListItemRowProps) {
-  const color = nodeColor(
-    item.tags,
-    item.kind === "wiki-artifact" ? "wiki-document" : item.kind,
-    isDark,
-    null,
-  );
+  const color = nodeColor(item.tags, item.kind, isDark, null);
   // dynamic Dreaming indicator
   const settings = useQuery(api.userSettings.get);
   const awaitingDream =
@@ -88,15 +83,7 @@ export default function ListItemRow({
       onClick={handleClick}
     >
       <div className="flex items-center gap-2 min-w-0 w-full">
-        {item.kind === "wiki-folder" ? (
-          <ShapeIndicator
-            kind={item.kind}
-            color={color}
-            className="w-2.5 h-2.5"
-          />
-        ) : (
-          <KindMeta item={item} isSelected={isSelected} />
-        )}
+        <KindMeta item={item} isSelected={isSelected} />
         <span
           data-vt={
             isTransitionSource ? VIEW_TRANSITION_TARGET.memoryTitle : undefined
@@ -143,20 +130,11 @@ export default function ListItemRow({
                 </TooltipContent>
               </Tooltip>
             )}
-            {item.kind === "wiki-folder" ? (
-              <Badge
-                variant="outline"
-                className="text-[10px] px-1.5 py-0 h-4 shrink-0 font-normal text-muted whitespace-nowrap"
-              >
-                {item.childCount} {item.childCount === 1 ? "item" : "items"}
-              </Badge>
-            ) : (
-              <ShapeIndicator
-                kind={item.kind}
-                color={color}
-                className="w-2.5 h-2.5"
-              />
-            )}
+            <ShapeIndicator
+              kind={item.kind}
+              color={color}
+              className="w-2.5 h-2.5"
+            />
             <span
               className={cn(
                 "text-xs tabular-nums whitespace-nowrap",
@@ -229,34 +207,6 @@ function KindMeta({
           </TooltipContent>
         </Tooltip>
       );
-    case "wiki-document":
-      return (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span className={iconWrapClass} aria-label="Wiki">
-              <IconWiki size={14} stroke={1.7} />
-            </span>
-          </TooltipTrigger>
-          <TooltipContent side="top" sideOffset={6}>
-            Wiki
-          </TooltipContent>
-        </Tooltip>
-      );
-    case "wiki-artifact":
-      return (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span className={iconWrapClass} aria-label="Artifact">
-              <IconWiki size={14} stroke={1.7} />
-            </span>
-          </TooltipTrigger>
-          <TooltipContent side="top" sideOffset={6}>
-            Artifact
-          </TooltipContent>
-        </Tooltip>
-      );
-    case "wiki-folder":
-      return null;
     case "skill":
       return (
         <Tooltip>

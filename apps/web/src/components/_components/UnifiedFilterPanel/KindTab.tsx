@@ -31,15 +31,7 @@ export default function KindTab({
       formatLabel={formatListItemKindLabel}
       counts={kindCounts}
       renderLeading={(kind) => (
-        <ShapeIndicator
-          kind={kind}
-          color={nodeColor(
-            [],
-            kind === "wiki-artifact" ? "wiki-document" : kind,
-            isDark,
-            null,
-          )}
-        />
+        <ShapeIndicator kind={kind} color={nodeColor([], kind, isDark, null)} />
       )}
     />
   );

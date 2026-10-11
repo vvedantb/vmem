@@ -106,30 +106,6 @@
   animation: sb-bolt-flash 0.9s ease-in-out infinite;
 }
 
-.sb-wiki-line {
-  stroke-dasharray: 100;
-  stroke-dashoffset: 0;
-}
-@keyframes sb-wiki-draw {
-  0%,
-  10% {
-    stroke-dashoffset: 100;
-  }
-  55%,
-  100% {
-    stroke-dashoffset: 0;
-  }
-}
-.group:hover .sb-wiki-line-1 {
-  animation: sb-wiki-draw 1.6s ease-out infinite;
-}
-.group:hover .sb-wiki-line-2 {
-  animation: sb-wiki-draw 1.6s ease-out 0.15s infinite;
-}
-.group:hover .sb-wiki-line-3 {
-  animation: sb-wiki-draw 1.6s ease-out 0.3s infinite;
-}
-
 .sb-activity-line {
   stroke-dasharray: 100;
   stroke-dashoffset: 0;

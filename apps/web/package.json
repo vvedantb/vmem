@@ -14,8 +14,6 @@
   "dependencies": {
     "@clerk/clerk-react": "^5.22.4",
     "@cosmos.gl/graph": "catalog:",
-    "@headless-tree/core": "^1.7.0",
-    "@headless-tree/react": "^1.7.0",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-checkbox": "catalog:",
     "@radix-ui/react-collapsible": "catalog:",
@@ -38,10 +36,6 @@
     "@tanstack/react-hotkeys": "^0.9.1",
     "@tanstack/react-query": "^5.91.2",
     "@tanstack/react-router": "^1.120.3",
-    "@tiptap/extension-table-of-contents": "3.22.3",
-    "@tiptap/pm": "^3.22.3",
-    "@tiptap/react": "^3.22.3",
-    "@tiptap/starter-kit": "^3.22.3",
     "@vmem/backend": "workspace:*",
     "@vmem/shared": "workspace:*",
     "@vvedantb/shell": "0.1.2",
@@ -67,7 +61,6 @@
     "sonner": "catalog:",
     "tailwind-merge": "catalog:",
     "tailwindcss-animate": "^1.0.7",
-    "tiptap-markdown": "^0.9.0",
     "usehooks-ts": "^3.1.1",
     "zod": "catalog:"
   },

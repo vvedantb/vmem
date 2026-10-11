@@ -45,7 +45,7 @@
               "features/import",
               "features/teams",
               "features/skills",
-              "features/wiki-and-files",
+              "features/files",
               "features/connectors",
               "features/api-keys",
               "features/codebases",

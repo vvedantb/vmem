@@ -33,15 +33,6 @@ export const SKILLS_TOOL_NAMES = [
   "skills_import",
 ] as const;
 
-export const WIKI_TOOL_NAMES = [
-  "wiki_list",
-  "wiki_get",
-  "wiki_search",
-  "wiki_create",
-  "wiki_update",
-  "wiki_delete",
-] as const;
-
 export const FILES_TOOL_NAMES = [
   "files_list",
   "files_get",

@@ -16,17 +16,11 @@ function kindColor(
   kind: Exclude<GraphNodeKind, "memory">,
   isDark: boolean,
 ): string {
-  if (kind === "wiki-folder") {
-    return isDark ? hslToHex(220, 15, 65) : hslToHex(220, 20, 45);
-  }
   if (kind === "skill") {
     return isDark ? hslToHex(285, 55, 72) : hslToHex(285, 60, 50);
   }
-  if (kind === "entity") {
-    return isDark ? hslToHex(45, 70, 65) : hslToHex(45, 75, 45);
-  }
-  // wiki document fallback
-  return isDark ? hslToHex(35, 55, 70) : hslToHex(35, 60, 50);
+  // entity
+  return isDark ? hslToHex(45, 70, 65) : hslToHex(45, 75, 45);
 }
 
 // memory first tag hue other kinds fixed theme override wins

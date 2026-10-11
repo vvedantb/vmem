@@ -18,7 +18,6 @@ import {
   IconBrain,
   IconLayoutSidebar,
   IconMoon,
-  IconNotebook,
   IconSun,
   IconUsers,
 } from "@tabler/icons-react";
@@ -81,13 +80,6 @@ export function CommandPalette({
     isAuthenticated && open ? {} : "skip",
   );
 
-  const wikiHits = useQuery(
-    api.wiki.search,
-    isAuthenticated && open && debouncedQuery.length >= 2
-      ? { queryText: debouncedQuery }
-      : "skip",
-  );
-
   const searchMemories = useAction(api.memoryApi.searchMemories);
   const [memoryHits, setMemoryHits] = useState<MemoryHit[]>([]);
 
@@ -129,7 +121,7 @@ export function CommandPalette({
   return (
     <CommandDialog open={open} onOpenChange={handleOpenChange}>
       <CommandInput
-        placeholder="Search memories, wiki, skills, or jump to a page…"
+        placeholder="Search memories, skills, or jump to a page…"
         value={query}
         onValueChange={setQuery}
       />
@@ -270,25 +262,6 @@ export function CommandPalette({
               ))}
             </CommandGroup>
           </>
-        )}
-
-        {wikiHits && wikiHits.length > 0 && (
-          <CommandGroup heading="Wiki">
-            {wikiHits.map((w) => (
-              <CommandItem
-                key={w._id}
-                value={`wiki ${w.title} ${w._id}`}
-                onSelect={() =>
-                  runAndClose(() =>
-                    navigate({ to: workspaceTo(`/wiki/${w._id}`) }),
-                  )
-                }
-              >
-                <IconNotebook />
-                <span className="truncate">{w.title}</span>
-              </CommandItem>
-            ))}
-          </CommandGroup>
         )}
 
         {filteredSkills.length > 0 && (

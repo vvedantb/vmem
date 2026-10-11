@@ -51,7 +51,7 @@ describe("routeTransitionTypes", () => {
   });
 
   it("respects reduced motion", () => {
-    expect(routeTransitionTypes(change("/p1/home", "/p1/wiki"), true)).toBe(
+    expect(routeTransitionTypes(change("/p1/home", "/p1/skills"), true)).toBe(
       false,
     );
   });

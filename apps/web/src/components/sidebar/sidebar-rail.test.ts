@@ -29,7 +29,6 @@ describe("railSectionFromPathname", () => {
     expect(railSectionFromPathname("/p1/home")).toBe("home");
     expect(railSectionFromPathname("/p1/memories")).toBe("memories");
     expect(railSectionFromPathname("/p1/memories/graph")).toBe("memories");
-    expect(railSectionFromPathname("/p1/wiki/abc")).toBe("wiki");
     expect(railSectionFromPathname("/p1/skills/hub")).toBe("skills");
     expect(railSectionFromPathname("/p1/files")).toBe("files");
     expect(railSectionFromPathname("/p1/usage")).toBe("usage");
@@ -51,7 +50,6 @@ describe("railSectionFromPathname", () => {
   it("folds nested sidebars into panel modes", () => {
     expect(navViewFromPathname("/settings/api")).toBe("settings");
     expect(navViewFromPathname("/p1/skills/hub")).toBe("skills");
-    expect(navViewFromPathname("/p1/wiki/abc")).toBe("wiki");
     expect(navViewFromPathname("/p1/memories")).toBe("memories");
     expect(navViewFromPathname("/p1/memories/graph")).toBe("memories");
     expect(navViewFromPathname("/p1/home")).toBe("main");
@@ -80,7 +78,6 @@ describe("rail destinations cover the previous sidebar nav", () => {
       expect.arrayContaining([
         "/$profileId/home",
         "/$profileId/memories",
-        "/$profileId/wiki",
         "/$profileId/skills",
         "/$profileId/files",
         "/$profileId/usage",
@@ -91,7 +88,6 @@ describe("rail destinations cover the previous sidebar nav", () => {
     );
     expect(railLibraryItems.map((item) => item.label)).toEqual([
       "Memories",
-      "Wiki",
       "Skills",
       "Files",
       "Usage",
@@ -125,9 +121,9 @@ describe("rail destinations cover the previous sidebar nav", () => {
 
 describe("isRailItemActive", () => {
   it("matches nested routes under a destination", () => {
-    expect(isRailItemActive("/$profileId/wiki", "/abc/wiki/doc", "abc")).toBe(
-      true,
-    );
+    expect(
+      isRailItemActive("/$profileId/skills", "/abc/skills/doc", "abc"),
+    ).toBe(true);
     expect(isRailItemActive("/settings", "/settings/api", undefined)).toBe(
       true,
     );
@@ -151,11 +147,10 @@ describe("shell uses a rail + panel + drawer", () => {
     expect(sidebar).not.toContain("DialogPortal");
   });
 
-  it("keeps settings / skills / wiki / memories as panel modes", () => {
+  it("keeps settings / skills / memories as panel modes", () => {
     const navigation = read("SidebarNavigation.tsx");
     expect(navigation).toContain("SettingsSidebar");
     expect(navigation).toContain("SkillsSidebarNav");
-    expect(navigation).toContain("WikiSidebarNav");
     expect(navigation).toContain("MemoriesSidebarNav");
     expect(navigation).not.toContain("HomeSidebarNav");
     expect(navigation).not.toContain("InboxSidebarNav");
@@ -163,6 +158,7 @@ describe("shell uses a rail + panel + drawer", () => {
     expect(navigation).not.toContain('navView === "inbox"');
     expect(navigation).not.toContain('navView === "sources"');
     expect(navigation).not.toContain("ActivitySidebarNav");
+    expect(navigation).not.toContain("WikiSidebarNav");
     expect(navigation).toContain('section === "team"');
   });
 
@@ -188,7 +184,6 @@ describe("shell uses a rail + panel + drawer", () => {
     }
     for (const section of [
       "memories",
-      "wiki",
       "skills",
       "files",
       "team",
@@ -286,9 +281,8 @@ describe("nested sidebar chrome", () => {
     );
   });
 
-  it("parks a plus-only add control on the skills and wiki title row", () => {
+  it("parks a plus-only add control on the skills title row", () => {
     expect(read("SkillsSidebarNav.tsx")).toContain("SidebarHeaderTrailing");
-    expect(read("WikiSidebarNav.tsx")).toContain("SidebarHeaderTrailing");
     expect(read("../shell/Sidebar.tsx")).toContain('from "@vvedantb/shell"');
     expect(read("../shell/Sidebar.tsx")).toContain("SidebarHeader");
 

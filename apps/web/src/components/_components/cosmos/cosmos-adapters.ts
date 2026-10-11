@@ -16,8 +16,6 @@ type EdgePaletteSlot = keyof GraphViewTheme["edge"]["normalByType"];
 // do not import the WebGPU bundle in Vitest.
 export const COSMOS_POINT_SHAPE = {
   Circle: 0,
-  Square: 1,
-  Diamond: 3,
   Hexagon: 5,
   Star: 6,
 } as const;
@@ -25,7 +23,6 @@ export const COSMOS_POINT_SHAPE = {
 const EDGE_SLOT: Record<GraphEdgeType, EdgePaletteSlot> = {
   tag: "tag",
   relates_to: "relates_to",
-  wiki_parent: "wiki_parent",
   mentions: "mentions",
 };
 
@@ -105,8 +102,6 @@ function paintNodeColor(
 }
 
 export function cosmosPointShapeForKind(kind: GraphNodeKind): number {
-  if (kind === "wiki-folder") return COSMOS_POINT_SHAPE.Square;
-  if (kind === "wiki-document") return COSMOS_POINT_SHAPE.Diamond;
   if (kind === "skill") return COSMOS_POINT_SHAPE.Hexagon;
   if (kind === "entity") return COSMOS_POINT_SHAPE.Star;
   return COSMOS_POINT_SHAPE.Circle;

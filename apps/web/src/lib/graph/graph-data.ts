@@ -13,7 +13,6 @@ export type GraphResponse = FunctionReturnType<
 export type ApiGraphNode = GraphResponse["nodes"][number];
 export type ApiRelatesToEdge = GraphResponse["relatesToEdges"][number];
 export type ApiTagEdge = GraphResponse["tagEdges"][number];
-export type ApiWikiParentEdge = GraphResponse["wikiParentEdges"][number];
 export type ApiMentionsEdge = GraphResponse["mentionsEdges"][number];
 
 type ApiGraphNodeKind = ApiGraphNode["kind"];
@@ -39,13 +38,7 @@ export interface TypeStat {
 }
 
 // canonical display order for kinds never shuffle regardless of data
-const KIND_ORDER: ApiGraphNodeKind[] = [
-  "memory",
-  "entity",
-  "wiki-document",
-  "wiki-folder",
-  "skill",
-];
+const KIND_ORDER: ApiGraphNodeKind[] = ["memory", "entity", "skill"];
 
 export function getGraphFacets(apiNodes: ApiGraphNode[]): {
   tags: TagStat[];
@@ -102,12 +95,11 @@ function addEdgeDegrees(
 
 // transforms API data into simulation-ready nodes + edges
 // AI-generated (Claude), prompt: "build canvas graph from api nodes with degree sized hubs"
-// Modified by me: tag relates wiki parent mentions merge without duplicate pairs
+// Modified by me: tag relates mentions merge without duplicate pairs
 export function buildGraphData(
   apiNodes: ApiGraphNode[],
   apiTagEdges: ApiTagEdge[],
   allRelatesToEdges: ApiRelatesToEdge[],
-  apiWikiParentEdges: ApiWikiParentEdge[],
   apiMentionsEdges: ApiMentionsEdge[],
   filters: {
     kinds: readonly ListItemKind[];
@@ -127,7 +119,6 @@ export function buildGraphData(
   const degreeCount = new Map<string, number>();
   addEdgeDegrees(degreeCount, apiTagEdges);
   addEdgeDegrees(degreeCount, allRelatesToEdges);
-  addEdgeDegrees(degreeCount, apiWikiParentEdges);
   addEdgeDegrees(degreeCount, apiMentionsEdges);
 
   const nodeSet = new Set(filteredNodes.map((n) => n.id));
@@ -196,21 +187,8 @@ export function buildGraphData(
     }
   }
 
-  // wiki parent→child edges (folder hierarchy). Always a distinct pair from
-  // tag/relates_to edges since wiki ids are namespaced with "wiki "
-  for (const wpe of apiWikiParentEdges) {
-    if (nodeSet.has(wpe.source) && nodeSet.has(wpe.target)) {
-      graphEdges.push({
-        source: wpe.source,
-        target: wpe.target,
-        weight: 1,
-        edgeType: "wiki_parent",
-      });
-    }
-  }
-
   // memory→Entity MENTIONS edges. Entity ids are namespaced with "entity "
-  // so they never collide with memory/wiki/skill ids
+  // so they never collide with memory/skill ids
   for (const me of apiMentionsEdges) {
     if (nodeSet.has(me.source) && nodeSet.has(me.target)) {
       graphEdges.push({

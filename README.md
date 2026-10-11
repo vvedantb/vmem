@@ -10,7 +10,7 @@ Vedant Bhopatrao (220057806)
 
 LLMs forget between sessions and across providers. vmem keeps a shared, inspectable graph of what a user knows and cares about, and exposes it over MCP, HTTP, and a small SDK.
 
-Memories live in Convex. Convex also handles auth, profiles, teams, wiki/files/skills, connectors, scheduled work, and the public HTTP/MCP surface. The web dashboard and Chrome extension are clients on that backend. Retrieval ranks with Convex full-text search, lexical/synonym overlap, recency, temporal windows, entity/graph neighbours, and optional vector similarity when `AI_GATEWAY_API_KEY` is set. With that key, Jev reranks the top 20 hits (score / best; no hard-drop). Missing key leaves hybrid ranking as-is. Pass `judge: "off"` on HTTP/SDK retrieve to skip Jev for ablation. List and retrieve honor `type`, `tags`, and `status` (tags are lowercase-hyphenated). Agentic instruction store/update requires the gateway key and returns HTTP 422 `openrouter_required` without it. `summarize: true` joins ranked titles and does not call an LLM. Each hit still explains itself in a Context Trace.
+Memories live in Convex. Convex also handles auth, profiles, teams, files/skills, connectors, scheduled work, and the public HTTP/MCP surface. The web dashboard and Chrome extension are clients on that backend. Retrieval ranks with Convex full-text search, lexical/synonym overlap, recency, temporal windows, entity/graph neighbours, and optional vector similarity when `AI_GATEWAY_API_KEY` is set. With that key, Jev reranks the top 20 hits (score / best; no hard-drop). Missing key leaves hybrid ranking as-is. Pass `judge: "off"` on HTTP/SDK retrieve to skip Jev for ablation. List and retrieve honor `type`, `tags`, and `status` (tags are lowercase-hyphenated). Agentic instruction store/update requires the gateway key and returns HTTP 422 `openrouter_required` without it. `summarize: true` joins ranked titles and does not call an LLM. Each hit still explains itself in a Context Trace.
 
 Conflicting updates become inbox proposals instead of silent overwrites. Team workspaces share one profile graph. Dream Mode clusters near-duplicates in the background and proposes merges.
 
@@ -28,7 +28,6 @@ This repo is the source tree. It does not include `.env.local` or other secrets.
 ### Capture
 
 - **Memories** — `profile`, `episodic`, and `knowledge` rows with `active` / `pinned` / `suppressed` / `expired` status. Create from the dashboard, HTTP, MCP, SDK, import, files, or connectors.
-- **Wiki** — folder/doc tree with markdown editing and version snapshots.
 - **Files** — folders, upload/preview, and PDF/text indexing into memories.
 - **Import** — client-side ChatGPT, Claude, Grok, and DeepSeek export ZIP/JSON (Sources → Import). Gemini and Perplexity are coming later.
 - **Chrome extension** — save page (popup, context menu, **Alt+S**), region screenshot (**Alt+Shift+S**), ChatGPT/Claude export + inject, bookmark/history import and auto-sync.
@@ -68,7 +67,7 @@ Web (Clerk)  Chrome extension (Clerk)  SDK / HTTP (vmem_sk_)  MCP clients
         │                                           │
         ▼                                           ▼
 Convex tables + functions                 MCP HTTP on .convex.site
-(memories, embeddings, wiki,              /mcp  and  /mcp/team
+(memories, embeddings,                    /mcp  and  /mcp/team
 files, skills, teams, proposals)          Clerk oauth_token or session_token
         │
         ├── connectors → Drive / Gmail / Notion / Figma / GitHub
@@ -164,7 +163,7 @@ There is no in-app Secrets page.
 
 **Optional:**
 
-- `AI_GATEWAY_API_KEY` — chat, embeddings, instruction extract, Jev retrieve rerank, Dream merge metadata, skill recommend, wiki search reorder. Missing key fail-opens hybrid retrieve; instruction `save`/`update` return `422 openrouter_required`
+- `AI_GATEWAY_API_KEY` — chat, embeddings, instruction extract, Jev retrieve rerank, Dream merge metadata, skill recommend. Missing key fail-opens hybrid retrieve; instruction `save`/`update` return `422 openrouter_required`
 - `OPENROUTER_LOG_PROMPTS` — set `1` to store prompt/completion previews in usage logs
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` — Drive and Gmail (`drive.readonly`, `gmail.readonly`)
 - `NOTION_CLIENT_ID`, `NOTION_CLIENT_SECRET`
@@ -215,12 +214,11 @@ Claude Desktop / Claude.ai: Settings → Connectors → add the `/mcp` URL → s
 - `vmem://skills/<name>` — enabled skill playbook (grant-scoped)
 - `ui://vmem/memory-graph` — MCP App HTML for the interactive graph
 
-**Tools** (personal `/mcp` unless noted; team `/mcp/team` shares memory/skill/graph tools but not wiki/files/context_prompt)
+**Tools** (personal `/mcp` unless noted; team `/mcp/team` shares memory/skill/graph tools but not files/context_prompt)
 
 - **Core** — `ping`, `whoami`, `list_profiles`, `set_active_profile`, `context_prompt_get` (personal), `context_pack`
 - **Memory** — `memory_search`, `memory_retrieve`, `memory_add`, `memory_add_instruction`, `memory_update`, `memory_delete`, `memory_related`, `memory_graph`
 - **Skills** — `skills_list`, `skills_recommend`, `skills_get`, `skills_create`, `skills_update`, `skills_delete`
-- **Wiki** (personal) — `wiki_list`, `wiki_get`, `wiki_search`, `wiki_create`, `wiki_update`, `wiki_delete`
 - **Files** (personal) — `files_list`, `files_get`, `files_upload`, `files_delete`
 
 `memory_add_instruction` needs `AI_GATEWAY_API_KEY`. `memory_graph` needs an MCP Apps–capable host. Rebuild the bundled graph UI with `pnpm --filter @vmem/backend build:mcp-graph-ui` before deploy (already part of `pnpm convex:deploy`).
@@ -267,16 +265,16 @@ Jev retrieve-gate: [`packages/backend/tests/memory/jev-retrieve-gate.md`](packag
 
 pnpm workspace, Node 20+, pnpm 10.15.1.
 
-| Package                 | Name                     | Description                                                        |
-| ----------------------- | ------------------------ | ------------------------------------------------------------------ |
-| `apps/web`              | `web`                    | Dashboard: memories, wiki, files, skills, sources, inbox, settings |
-| `apps/chrome-extension` | `@vmem/chrome-extension` | MV3 extension (WXT) — save pages, inject ChatGPT/Claude            |
-| `apps/docs`             | `docs`                   | Mintlify docs (`pnpm docs:dev` → http://localhost:3001)            |
-| `packages/backend`      | `@vmem/backend`          | Convex functions, memory engine, MCP HTTP                          |
-| `packages/shared`       | `@vmem/shared`           | Shared constants and client-safe helpers                           |
-| `packages/sdk`          | `@vmem/sdk`              | Published HTTP SDK                                                 |
-| `e2e/`                  | —                        | Playwright web suite (see [`e2e/README.md`](e2e/README.md))        |
-| `oxlint-plugin-vmem/`   | —                        | Custom oxlint rules                                                |
+| Package                 | Name                     | Description                                                  |
+| ----------------------- | ------------------------ | ------------------------------------------------------------ |
+| `apps/web`              | `web`                    | Dashboard: memories, files, skills, sources, inbox, settings |
+| `apps/chrome-extension` | `@vmem/chrome-extension` | MV3 extension (WXT) — save pages, inject ChatGPT/Claude      |
+| `apps/docs`             | `docs`                   | Mintlify docs (`pnpm docs:dev` → http://localhost:3001)      |
+| `packages/backend`      | `@vmem/backend`          | Convex functions, memory engine, MCP HTTP                    |
+| `packages/shared`       | `@vmem/shared`           | Shared constants and client-safe helpers                     |
+| `packages/sdk`          | `@vmem/sdk`              | Published HTTP SDK                                           |
+| `e2e/`                  | —                        | Playwright web suite (see [`e2e/README.md`](e2e/README.md))  |
+| `oxlint-plugin-vmem/`   | —                        | Custom oxlint rules                                          |
 
 `.env.example` files live at the root and under `apps/*` / `packages/*`. Shared UI is the published `@vvedantb/ui` package, not an in-repo `packages/ui`.
 

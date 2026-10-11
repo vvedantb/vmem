@@ -3,7 +3,6 @@ import { motion } from "motion/react";
 import type { Variants } from "motion/react";
 import {
   IconBolt,
-  IconBook2,
   IconBrowser,
   IconCode,
   IconDeviceMobile,
@@ -27,7 +26,6 @@ import {
 import { SlideShell } from "../_components/SlideShell";
 import {
   HistoryMockup,
-  WikiMockup,
   FileTreeMockup,
   McpMockup,
   WebMockup,
@@ -256,21 +254,13 @@ export function Slide13Bento() {
           </BentoCell>
           <BentoCell
             from={{ y: 220, x: -60 }}
-            className="col-span-1 row-span-2"
+            className="col-span-2 row-span-2"
           >
             <BentoTile
               title="Web"
               description="Browse, search, and curate."
               icon={IconLayoutDashboard}
               preview={<WebMockup />}
-            />
-          </BentoCell>
-          <BentoCell from={{ y: 220, x: 60 }} className="col-span-1 row-span-2">
-            <BentoTile
-              title="Wiki"
-              description="Long-form docs for your agent."
-              icon={IconBook2}
-              preview={<WikiMockup />}
             />
           </BentoCell>
           <BentoCell from={{ x: -240 }} className="col-span-1 row-span-2">

@@ -56,7 +56,6 @@ pnpm test:e2e -- --grep @memories
 pnpm test:e2e -- --grep @graph
 pnpm test:e2e -- --grep @tags
 pnpm test:e2e -- --grep @skills
-pnpm test:e2e -- --grep @wiki
 pnpm test:e2e -- --grep @files
 pnpm test:e2e -- --grep @inbox
 pnpm test:e2e -- --grep @activity

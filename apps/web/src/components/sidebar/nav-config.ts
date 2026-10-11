@@ -14,7 +14,6 @@ import {
   IconMemories,
   IconFiles,
   IconSkills,
-  IconWiki,
   IconInbox,
   IconSettings,
   IconTeams,
@@ -24,7 +23,6 @@ import type { NavGroup, NavHref, NavItem, SettingsNavGroup } from "./types";
 export type RailSection =
   | "home"
   | "memories"
-  | "wiki"
   | "skills"
   | "files"
   | "usage"
@@ -37,7 +35,6 @@ export type SidebarLayout = "desktop" | "drawer";
 
 export const railLibraryItems: NavItem[] = [
   { href: "/$profileId/memories", label: "Memories", icon: IconMemories },
-  { href: "/$profileId/wiki", label: "Wiki", icon: IconWiki },
   { href: "/$profileId/skills", label: "Skills", icon: IconSkills },
   { href: "/$profileId/files", label: "Files", icon: IconFiles },
   { href: "/$profileId/usage", label: "Usage", icon: IconReceipt2 },
@@ -111,7 +108,6 @@ export function railSectionHidesPanel(
 
 export const panelTitleBySection: Record<PanelSection, string> = {
   memories: "Memories",
-  wiki: "Wiki",
   skills: "Skills",
   files: "Files",
   team: "Team",
@@ -121,7 +117,6 @@ export const panelTitleBySection: Record<PanelSection, string> = {
 export function railSectionFromPathname(pathname: string): RailSection {
   if (pathname.startsWith("/settings")) return "settings";
   const sub = pathname.replace(/^\/[^/]+/, "");
-  if (sub.startsWith("/wiki")) return "wiki";
   if (sub.startsWith("/skills")) return "skills";
   if (sub.startsWith("/files")) return "files";
   if (sub.startsWith("/usage")) return "usage";
@@ -138,14 +133,13 @@ export function railSectionFromPathname(pathname: string): RailSection {
   return "home";
 }
 
-type SidebarNavView = "main" | "settings" | "skills" | "wiki" | "memories";
+type SidebarNavView = "main" | "settings" | "skills" | "memories";
 
 export function navViewFromPathname(pathname: string): SidebarNavView {
   const section = railSectionFromPathname(pathname);
   if (
     section === "settings" ||
     section === "skills" ||
-    section === "wiki" ||
     section === "memories"
   ) {
     return section;

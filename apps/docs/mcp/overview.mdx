@@ -28,7 +28,7 @@ POST https://<your-deployment>.convex.site/mcp/team
 
 Authenticated via Clerk OAuth. See [MCP Setup](/mcp/setup).
 
-Skills, wiki, files, and `vmem://context_prompt` used to be personal-only. **Skills tools and `vmem://skills/<name>` resources now work on both connectors**, scoped by grant (personal skills on `/mcp`, team skills on `/mcp/team`). Wiki, files, and `vmem://context_prompt` stay personal. Memory tools work on both connectors.
+Skills, files, and `vmem://context_prompt` used to be personal-only. **Skills tools and `vmem://skills/<name>` resources now work on both connectors**, scoped by grant (personal skills on `/mcp`, team skills on `/mcp/team`). Files and `vmem://context_prompt` stay personal. Memory tools work on both connectors.
 
 ## Quick Tool Reference
 
@@ -48,7 +48,7 @@ Skills, wiki, files, and `vmem://context_prompt` used to be personal-only. **Ski
 | `memory_related`         | Neighbours by shared tags / similar text                   | both     |
 | `memory_graph`           | Interactive MCP App graph                                  | both     |
 | `skills_*`               | list / recommend / get / create / update / delete          | both     |
-| `wiki_*`                 | list / get / search / create / update / delete             | personal |
+| `skills_import`          | Upsert playbooks by name (`origin: vibot`)                 | personal |
 | `files_*`                | list / get / upload / delete                               | personal |
 
 There are **no** `codebase_*` tools on `main`. See [Codebases (removed)](/features/codebases).

@@ -18,7 +18,7 @@ export const TAG_SORT_OPTIONS: TagSortMode[] = [
 export interface UnifiedFilterPanelProps {
   // all memories for tag/source/type counts (list view)
   allMemories?: Memory[];
-  // all items (memories + wiki + skills) for kind counts (list view)
+  // all items (memories + skills) for kind counts (list view)
   allItems?: ListItem[];
 
   // kinds supports both array (list) and Set (graph) styles

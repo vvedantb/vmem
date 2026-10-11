@@ -6,34 +6,21 @@ import {
   type MemoryViewFilterParams,
 } from "./memory-view-filters";
 
-type WikiRows = FunctionReturnType<typeof api.wiki.listTree>;
 type SkillRows = FunctionReturnType<typeof api.skills.listMy>;
 
-// unified /memories list item (memory | wiki | skill) mirroring graph node kinds
-export type ListItemKind =
-  | "memory"
-  | "wiki-document"
-  | "wiki-artifact"
-  | "wiki-folder"
-  | "skill"
-  | "entity";
+// unified /memories list item (memory | entity | skill) mirroring graph node kinds
+export type ListItemKind = "memory" | "skill" | "entity";
 
 // kind order for filter ui fixed, never shuffle
 export const LIST_ITEM_KINDS: readonly ListItemKind[] = [
   "memory",
   "entity",
-  "wiki-document",
-  "wiki-artifact",
-  "wiki-folder",
   "skill",
 ];
 
 const LIST_ITEM_KIND_LABELS: Record<ListItemKind, string> = {
   memory: "Memories",
   entity: "Entities",
-  "wiki-document": "Wiki docs",
-  "wiki-artifact": "Artifacts",
-  "wiki-folder": "Folders",
   skill: "Skills",
 };
 
@@ -42,7 +29,7 @@ export function formatListItemKindLabel(kind: ListItemKind): string {
 }
 
 interface BaseListItem {
-  // namespaced id (wiki/skill or raw memory id)
+  // namespaced id (skill or raw memory id)
   id: string;
   title: string;
   // body for search scoring empty for folders
@@ -61,35 +48,12 @@ type MemoryRowItem = BaseListItem &
     kind: "memory";
   };
 
-type WikiDocumentItem = BaseListItem & {
-  kind: "wiki-document";
-  // convex id for /wiki/<wikiId> (string form of WikiRows[number]["_id"])
-  wikiId: string;
-};
-
-type WikiArtifactItem = BaseListItem & {
-  kind: "wiki-artifact";
-  wikiId: string;
-};
-
-type WikiFolderItem = BaseListItem & {
-  kind: "wiki-folder";
-  wikiId: string;
-  // direct child count for row meta
-  childCount: number;
-};
-
 type SkillItem = BaseListItem & {
   kind: "skill";
   skillId: string;
 };
 
-export type ListItem =
-  | MemoryRowItem
-  | WikiDocumentItem
-  | WikiArtifactItem
-  | WikiFolderItem
-  | SkillItem;
+export type ListItem = MemoryRowItem | SkillItem;
 
 // filter helpers: memory filters pass non-memory items through, kind is cross-cutting
 
@@ -108,7 +72,6 @@ export function listItemPassesFilters(
   );
 }
 
-const WIKI_PREFIX = "wiki:";
 const SKILL_PREFIX = "skill:";
 
 export function memoryToListItem(memory: Memory): ListItem {
@@ -142,51 +105,6 @@ export function listItemToMemory(
     sourceSyncedAt: item.sourceSyncedAt,
     ...(item.profileId !== undefined ? { profileId: item.profileId } : {}),
   };
-}
-
-// wiki rows → list items one pass for folder child counts
-export function wikiRowsToListItems(rows: WikiRows): ListItem[] {
-  const childCount = new Map<string, number>();
-  for (const row of rows) {
-    if (row.parentId !== undefined) {
-      childCount.set(row.parentId, (childCount.get(row.parentId) ?? 0) + 1);
-    }
-  }
-  return rows.map((row): ListItem => {
-    const createdAt = new Date(row.createdAt).toISOString();
-    if (row.kind === "folder") {
-      return {
-        kind: "wiki-folder",
-        id: `${WIKI_PREFIX}${row._id}`,
-        wikiId: row._id,
-        title: row.title,
-        content: "",
-        tags: [],
-        createdAt,
-        childCount: childCount.get(row._id) ?? 0,
-      };
-    }
-    if (row.kind === "artifact") {
-      return {
-        kind: "wiki-artifact",
-        id: `${WIKI_PREFIX}${row._id}`,
-        wikiId: row._id,
-        title: row.title,
-        content: row.contentText ?? "",
-        tags: [],
-        createdAt,
-      };
-    }
-    return {
-      kind: "wiki-document",
-      id: `${WIKI_PREFIX}${row._id}`,
-      wikiId: row._id,
-      title: row.title,
-      content: row.contentText ?? "",
-      tags: [],
-      createdAt,
-    };
-  });
 }
 
 export function skillRowsToListItems(rows: SkillRows): ListItem[] {

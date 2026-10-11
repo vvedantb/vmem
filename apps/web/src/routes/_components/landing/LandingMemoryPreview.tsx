@@ -16,7 +16,6 @@ const defaultSnippet =
 function nodeFill(node: PreviewNode): string {
   if (node.kind === "entity") return LANDING_MONO.bright;
   if (node.kind === "skill") return LANDING_MONO.mid;
-  if (node.kind === "wiki-document") return LANDING_MONO.dim;
   return LANDING_MONO.mid;
 }
 

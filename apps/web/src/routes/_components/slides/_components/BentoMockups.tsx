@@ -84,32 +84,6 @@ export function HistoryMockup() {
   );
 }
 
-/** Scrolling doc list for the Wiki tile. */
-export function WikiMockup() {
-  const docs = [
-    "Onboarding guide",
-    "API reference",
-    "Deploy runbook",
-    "Architecture notes",
-    "Style guide",
-  ];
-  return (
-    <Reel
-      duration={15}
-      items={docs.map((d) => (
-        <PillRow key={d}>
-          <IconFileText
-            size={14}
-            stroke={1.5}
-            className="shrink-0 text-muted"
-          />
-          <span className="truncate text-sm text-muted">{d}</span>
-        </PillRow>
-      ))}
-    />
-  );
-}
-
 /**
  * Connected-clients panel for the inverted MCP Connector hero (static). The hero
  * tile is white, so this is intentionally dark-on-white rather than token-based.

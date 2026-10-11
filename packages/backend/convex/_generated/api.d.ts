@@ -73,7 +73,6 @@ import type * as lib_scopedTree from "../lib/scopedTree.js";
 import type * as lib_systemOneKey from "../lib/systemOneKey.js";
 import type * as lib_userFacingError from "../lib/userFacingError.js";
 import type * as lib_versionSnapshot from "../lib/versionSnapshot.js";
-import type * as lib_wikiContent from "../lib/wikiContent.js";
 import type * as mcp_bundled_memoryGraphHtml from "../mcp/bundled/memoryGraphHtml.js";
 import type * as mcp_content from "../mcp/content.js";
 import type * as mcp_fileOps from "../mcp/fileOps.js";
@@ -91,8 +90,6 @@ import type * as mcp_toolsCore from "../mcp/toolsCore.js";
 import type * as mcp_toolsFiles from "../mcp/toolsFiles.js";
 import type * as mcp_toolsMemory from "../mcp/toolsMemory.js";
 import type * as mcp_toolsSkills from "../mcp/toolsSkills.js";
-import type * as mcp_toolsWiki from "../mcp/toolsWiki.js";
-import type * as mcp_wikiOps from "../mcp/wikiOps.js";
 import type * as memoryApi from "../memoryApi.js";
 import type * as memoryApi_client from "../memoryApi/client.js";
 import type * as memoryApi_routing from "../memoryApi/routing.js";
@@ -139,9 +136,7 @@ import type * as timelineApi from "../timelineApi.js";
 import type * as userSettings from "../userSettings.js";
 import type * as users from "../users.js";
 import type * as validators from "../validators.js";
-import type * as wiki from "../wiki.js";
-import type * as wiki_path from "../wiki/path.js";
-import type * as wikiVersions from "../wikiVersions.js";
+import type * as wikiExport from "../wikiExport.js";
 import type * as workpools from "../workpools.js";
 
 import type {
@@ -216,7 +211,6 @@ declare const fullApi: ApiFromModules<{
   "lib/systemOneKey": typeof lib_systemOneKey;
   "lib/userFacingError": typeof lib_userFacingError;
   "lib/versionSnapshot": typeof lib_versionSnapshot;
-  "lib/wikiContent": typeof lib_wikiContent;
   "mcp/bundled/memoryGraphHtml": typeof mcp_bundled_memoryGraphHtml;
   "mcp/content": typeof mcp_content;
   "mcp/fileOps": typeof mcp_fileOps;
@@ -234,8 +228,6 @@ declare const fullApi: ApiFromModules<{
   "mcp/toolsFiles": typeof mcp_toolsFiles;
   "mcp/toolsMemory": typeof mcp_toolsMemory;
   "mcp/toolsSkills": typeof mcp_toolsSkills;
-  "mcp/toolsWiki": typeof mcp_toolsWiki;
-  "mcp/wikiOps": typeof mcp_wikiOps;
   memoryApi: typeof memoryApi;
   "memoryApi/client": typeof memoryApi_client;
   "memoryApi/routing": typeof memoryApi_routing;
@@ -282,9 +274,7 @@ declare const fullApi: ApiFromModules<{
   userSettings: typeof userSettings;
   users: typeof users;
   validators: typeof validators;
-  wiki: typeof wiki;
-  "wiki/path": typeof wiki_path;
-  wikiVersions: typeof wikiVersions;
+  wikiExport: typeof wikiExport;
   workpools: typeof workpools;
 }>;
 

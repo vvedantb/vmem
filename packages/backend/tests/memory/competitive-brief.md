@@ -30,7 +30,7 @@ Sources: `packages/backend/engine/memory/rank.ts`, `retrieve.ts`, `list.ts`, `ex
 | HTTP `/api/v1/memories`    | Bearer `vmem_sk_…`                                                  | store / retrieve / patch / delete; instruction body on POST/PATCH                                                                                      |
 | `@vmem/sdk` (`VMemory`)    | API key                                                             | `save` / `update` / `search` + structured CRUD. JS only                                                                                                |
 
-Personal MCP also exposes `vmem://context_prompt` (and `context_prompt_get`): about, preferences, pinned memories, profile summary, skills. Skills / wiki / files tools are personal-only.
+Personal MCP also exposes `vmem://context_prompt` (and `context_prompt_get`): about, preferences, pinned memories, profile summary, skills. Files tools are personal-only; skills tools work on both connectors.
 
 ### Retrieve path (production)
 
@@ -200,7 +200,7 @@ Legend: **Y** ships · **P** partial / shell / manual · **N** no.
 | MCP API key for headless                | **N**                                                                    | N (OAuth)                                 | **Y**                                            |
 | Implicit context resource               | **Y** `vmem://context_prompt`                                            | Y `supermemory://profile`                 | N                                                |
 | MCP Apps graph widget                   | Y `memory_graph`                                                         | Y `memory-graph`                          | N                                                |
-| Skills / wiki / files as tools          | **Y**                                                                    | P (docs list/get, upload widget)          | N                                                |
+| Skills / files as tools                 | **Y**                                                                    | P (docs list/get, upload widget)          | N                                                |
 | Filter DSL (AND/OR/NOT, dates)          | N (flat type/tags/status)                                                | Y                                         | Y                                                |
 | Multi-tenant scope                      | profiles + teams                                                         | `containerTag` + scoped keys              | `user_id`/`agent_id`/`app_id`/`run_id`           |
 | Python SDK                              | N                                                                        | Y                                         | Y                                                |
@@ -240,7 +240,7 @@ Cite the labelled bench in §2 and the code.
 3. **Implicit MCP memory.** `vmem://context_prompt` means the model does not have to remember to search. SuperMemory has a profile resource; Mem0 does not. Keep implicit **and** explicit retrieve — implicit is not a substitute for query-specific ranking.
 4. **Honest summarize.** Title-join, no fake LLM summary, no 422. SuperMemory/Mem0 summaries are extra model calls (Mem0 Platform `get_summary`; SuperMemory `include.summaries`).
 5. **Convex-native hybrid without a second database.** Same argument Mem0 now makes after dropping Neo4j. We already did that. Ranker + FTS + vector index + `memoryLinks` table is the right shape; it is **under-fed**, not wrong.
-6. **Agent workspace, not only facts.** Skills, wiki, files, Chrome save, team `/mcp/team`, profiles. Neither competitor is a skills/wiki host. Don’t starve retrieve to copy SuperRAG, but don’t delete this wedge.
+6. **Agent workspace, not only facts.** Skills, files, Chrome save, team `/mcp/team`, profiles. Neither competitor is a skills host. Don’t starve retrieve to copy SuperRAG, but don’t delete this wedge.
 7. **Inspectable ranking constants.** BM25 k1=1.4, RRF_k=20, blend weights in `rank.ts`. We can A/B a weight and re-run `eval:bench` in seconds.
 
 ### 6.3 Extreme cases (design against BEAM 10M + our own traps)
@@ -317,7 +317,7 @@ Accept: threshold 0.8 abstains on the 6 labelled abstentions; rerank does not dr
 - JS SDK: `threshold` / `rerank` / `referenceDate`; Python only if a customer asks.
 - SuperMemory-style `profile + q` in one HTTP call (we already return `userContext` with retrieve — document it; add static/dynamic split if context_prompt already has the pieces).
 - Connectors beyond Drive/Notion: only as ingest into the same extract→link pipeline.
-- Do **not** build SMFS. We already have wiki + files MCP.
+- Do **not** build SMFS. We already have files MCP.
 
 ### Explicit non-goals
 

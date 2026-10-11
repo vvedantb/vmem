@@ -1,17 +1,12 @@
 // kind of node shown on the graph
-export type GraphNodeKind =
-  | "memory"
-  | "wiki-document"
-  | "wiki-folder"
-  | "skill"
-  | "entity";
+export type GraphNodeKind = "memory" | "skill" | "entity";
 
-export type GraphEdgeType = "tag" | "relates_to" | "wiki_parent" | "mentions";
+export type GraphEdgeType = "tag" | "relates_to" | "mentions";
 
 export interface GraphNode {
   id: string;
   title: string;
-  // inline content — only wiki documents and skills carry this through the graph payload
+  // inline content — only skills carry this through the graph payload
   content?: string;
   tags: string[];
   createdAt: string;

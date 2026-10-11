@@ -46,7 +46,6 @@
     "json-from-llm": "^0.2.6",
     "jsonrepair": "^3.15.0",
     "p-retry": "^8.0.0",
-    "remove-markdown": "^0.6.4",
     "unpdf": "^1.6.2",
     "zod": "catalog:"
   },
@@ -54,7 +53,6 @@
     "@cosmos.gl/graph": "catalog:",
     "@edge-runtime/vm": "^5.0.0",
     "@types/node": "catalog:node-types-22",
-    "@types/remove-markdown": "^0.3.4",
     "convex-test": "^0.0.38",
     "esbuild": "0.25.0",
     "gl-bench": "^1.0.42",

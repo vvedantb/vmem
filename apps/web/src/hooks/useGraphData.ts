@@ -8,7 +8,6 @@ import type {
   ApiGraphNode,
   ApiTagEdge,
   ApiRelatesToEdge,
-  ApiWikiParentEdge,
   ApiMentionsEdge,
   GraphResponse,
 } from "@/lib/graph/graph-data";
@@ -23,7 +22,6 @@ const FOCUS_GRAPH_DEPTH = 2;
 // stable empty refs avoid useless rerenders while loading
 const EMPTY_NODES: ApiGraphNode[] = [];
 const EMPTY_TAG_EDGES: ApiTagEdge[] = [];
-const EMPTY_WIKI_PARENT_EDGES: ApiWikiParentEdge[] = [];
 const EMPTY_MENTIONS_EDGES: ApiMentionsEdge[] = [];
 const NOOP = () => {};
 
@@ -38,7 +36,6 @@ interface MergedGraph {
   nodes: ApiGraphNode[];
   tagEdges: ApiTagEdge[];
   relatesToEdges: ApiRelatesToEdge[];
-  wikiParentEdges: ApiWikiParentEdge[];
   mentionsEdges: ApiMentionsEdge[];
   focusNodeId: string | null;
   totalMemoryCount: number | null;
@@ -51,7 +48,6 @@ function mergePages(pages: GraphResponse[]): MergedGraph {
       nodes: EMPTY_NODES,
       tagEdges: EMPTY_TAG_EDGES,
       relatesToEdges: [],
-      wikiParentEdges: EMPTY_WIKI_PARENT_EDGES,
       mentionsEdges: EMPTY_MENTIONS_EDGES,
       focusNodeId: null,
       totalMemoryCount: null,
@@ -79,7 +75,6 @@ function mergePages(pages: GraphResponse[]): MergedGraph {
     nodes: [...nodeById.values()],
     tagEdges: first.tagEdges,
     relatesToEdges,
-    wikiParentEdges: first.wikiParentEdges,
     mentionsEdges,
     focusNodeId: first.focusNodeId ?? null,
     totalMemoryCount: first.totalMemoryCount ?? null,
@@ -183,7 +178,6 @@ export function useGraphData(
       apiNodes: benchData.nodes,
       apiTagEdges: benchData.tagEdges,
       allRelatesToEdges,
-      apiWikiParentEdges: EMPTY_WIKI_PARENT_EDGES,
       apiMentionsEdges: EMPTY_MENTIONS_EDGES,
       resolvedFocusNodeId: null,
       isFocused: false,
@@ -201,7 +195,6 @@ export function useGraphData(
     apiNodes: merged?.nodes ?? EMPTY_NODES,
     apiTagEdges: merged?.tagEdges ?? EMPTY_TAG_EDGES,
     allRelatesToEdges,
-    apiWikiParentEdges: merged?.wikiParentEdges ?? EMPTY_WIKI_PARENT_EDGES,
     apiMentionsEdges: merged?.mentionsEdges ?? EMPTY_MENTIONS_EDGES,
     resolvedFocusNodeId: merged?.focusNodeId ?? focusNodeId,
     isFocused,
