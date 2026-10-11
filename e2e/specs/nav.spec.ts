@@ -53,8 +53,6 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
     page,
     profileId,
   }) => {
-    const main = mainContent(page);
-
     await clickRail(page, "Memories");
     await expect(page).toHaveURL(new RegExp(`/${profileId}/memories`));
     await expect(sidebarViewLink(page, "Graph")).toBeVisible({
