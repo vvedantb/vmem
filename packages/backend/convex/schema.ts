@@ -2,8 +2,6 @@
 import { v } from "convex/values";
 import { MEMORY_EMBEDDING_DIMENSIONS } from "../engine/memory/searchableText";
 import {
-  wikiNodeFields,
-  wikiNodeVersionFields,
   fileNodeFields,
   profileFields,
   skillFields,
@@ -111,28 +109,6 @@ const schema = defineSchema({
     .index("by_team", ["teamId"])
     .index("by_team_systemSkill", ["teamId", "systemSkillId"])
     .index("by_systemSkill", ["systemSkillId"]),
-
-  // DEPRECATED: the wiki feature is removed. Rows are drained with
-  // internal.wikiCleanup:deleteAllWikiRows. Drop the table in the next PR
-  // after prod remaining counts are 0.
-  wikiNodes: defineTable(wikiNodeFields)
-    .index("by_user", ["userId"])
-    .index("by_user_parent", ["userId", "parentId"])
-    .index("by_team", ["teamId"])
-    .index("by_team_parent", ["teamId", "parentId"])
-    .searchIndex("search_title", {
-      searchField: "title",
-      filterFields: ["userId", "teamId"],
-    })
-    .searchIndex("search_content", {
-      searchField: "contentText",
-      filterFields: ["userId", "teamId"],
-    }),
-
-  // DEPRECATED with wikiNodes: dropped in the same follow-up PR
-  wikiNodeVersions: defineTable(wikiNodeVersionFields).index("by_node", [
-    "nodeId",
-  ]),
 
   fileNodes: defineTable(fileNodeFields)
     .index("by_user", ["userId"])

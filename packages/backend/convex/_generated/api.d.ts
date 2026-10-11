@@ -136,8 +136,6 @@ import type * as timelineApi from "../timelineApi.js";
 import type * as userSettings from "../userSettings.js";
 import type * as users from "../users.js";
 import type * as validators from "../validators.js";
-import type * as wikiCleanup from "../wikiCleanup.js";
-import type * as wikiExport from "../wikiExport.js";
 import type * as workpools from "../workpools.js";
 
 import type {
@@ -275,8 +273,6 @@ declare const fullApi: ApiFromModules<{
   userSettings: typeof userSettings;
   users: typeof users;
   validators: typeof validators;
-  wikiCleanup: typeof wikiCleanup;
-  wikiExport: typeof wikiExport;
   workpools: typeof workpools;
 }>;
 
