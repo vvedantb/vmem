@@ -11,12 +11,10 @@ interface DisconnectConnectorDialogProps {
   connectorName: string;
 }
 
-export default function DisconnectConnectorDialog({
-  open,
-  onClose,
-  connectorId,
-  connectorName,
-}: DisconnectConnectorDialogProps) {
+export function useDisconnectConnector(
+  connectorId: Id<"connectors">,
+  connectorName: string,
+) {
   const disconnectOAuth = useAction(api.connectors.oauth.disconnect);
   const markDisconnected = useMutation(
     api.connectors.crud.disconnect,
@@ -41,7 +39,7 @@ export default function DisconnectConnectorDialog({
   });
   const [submitting, setSubmitting] = useState(false);
 
-  const handleConfirm = async () => {
+  const disconnect = async (): Promise<boolean> => {
     setSubmitting(true);
     try {
       await Promise.all([
@@ -49,13 +47,32 @@ export default function DisconnectConnectorDialog({
         disconnectOAuth({ connectorId }),
       ]);
       toast(`Disconnected from ${connectorName}`);
-      onClose();
+      setSubmitting(false);
+      return true;
     } catch {
       toast.error("Failed to disconnect");
+      setSubmitting(false);
+      return false;
     }
-    // after the try rather than in a `finally` React Compiler bails on the
-    // whole file when it meets one. The catch swallows, so this always runs.
-    setSubmitting(false);
+  };
+
+  return { disconnect, submitting };
+}
+
+export default function DisconnectConnectorDialog({
+  open,
+  onClose,
+  connectorId,
+  connectorName,
+}: DisconnectConnectorDialogProps) {
+  const { disconnect, submitting } = useDisconnectConnector(
+    connectorId,
+    connectorName,
+  );
+
+  const handleConfirm = async () => {
+    const ok = await disconnect();
+    if (ok) onClose();
   };
 
   return (

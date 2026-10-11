@@ -19,6 +19,7 @@ import {
   ContextMenuTrigger,
   cn,
 } from "@vvedantb/ui";
+import { ConfirmSkipHint, skipConfirmTitle } from "@/lib/confirm";
 
 type WikiCreateKind = "folder" | "document" | "artifact";
 
@@ -82,9 +83,11 @@ function WikiNodeActionMenuItems({
       <ContextMenuItem
         onSelect={() => onRequestDelete(node)}
         className="text-danger focus:text-danger data-[highlighted]:text-danger"
+        title={skipConfirmTitle("Delete")}
       >
         <IconTrash size={16} />
         Delete
+        <ConfirmSkipHint />
       </ContextMenuItem>
     </>
   );

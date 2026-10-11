@@ -25,6 +25,11 @@ import {
 } from "@/components/files/_utils";
 import DestructiveConfirmDialog from "@/components/settings/DestructiveConfirmDialog";
 import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
+import {
+  ConfirmSkipHint,
+  skipConfirmTitle,
+  useRequestConfirm,
+} from "@/lib/confirm";
 
 interface FilePreviewModalProps {
   isOpen: boolean;
@@ -41,6 +46,7 @@ export default function FilePreviewModal({
 }: FilePreviewModalProps) {
   const { submitting: isDeleting, run: runDelete } = useAsyncSubmit();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const { request } = useRequestConfirm();
 
   const handleDelete = async () => {
     if (!node) return;
@@ -162,11 +168,21 @@ export default function FilePreviewModal({
           <DialogFooter className="border-t border-separator pt-4 flex justify-between sm:justify-between">
             <Button
               variant="ghost"
-              onClick={() => setShowDeleteConfirm(true)}
+              title={skipConfirmTitle("Delete")}
+              onClick={(event) =>
+                request(
+                  () => setShowDeleteConfirm(true),
+                  () => {
+                    void handleDelete();
+                  },
+                  event,
+                )
+              }
               className="text-danger hover:text-danger hover:bg-danger/10"
             >
               <IconTrash size={16} />
               Delete
+              <ConfirmSkipHint />
             </Button>
             <Button onClick={handleDownload}>
               <IconDownload size={16} />

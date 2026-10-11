@@ -11,6 +11,7 @@ import {
 } from "@tabler/icons-react";
 import { formatRelativeTime } from "@vmem/shared";
 import { formatDate, formatNumber } from "@/lib/formatters";
+import { skipConfirmTitle } from "@/lib/confirm";
 import type { ApiKey } from "./types";
 
 function ApiKeyActiveBadge() {
@@ -102,8 +103,8 @@ interface ApiKeyRowProps {
   onToggleReveal: (id: ApiKey["id"]) => void;
   onCopy: (id: ApiKey["id"]) => void;
   onEdit: (id: ApiKey["id"]) => void;
-  onRevoke: (id: ApiKey["id"]) => void;
-  onDelete: (id: ApiKey["id"]) => void;
+  onRevoke: (id: ApiKey["id"], event?: { altKey?: boolean }) => void;
+  onDelete: (id: ApiKey["id"], event?: { altKey?: boolean }) => void;
 }
 
 export function ApiKeyRow({
@@ -176,8 +177,8 @@ export function ApiKeyRow({
             <Button
               size="icon-sm"
               variant="ghost"
-              onClick={() => onRevoke(apiKey.id)}
-              title="Revoke key"
+              onClick={(event) => onRevoke(apiKey.id, event)}
+              title={skipConfirmTitle("Revoke key")}
               className="text-danger hover:text-danger"
             >
               <IconBan size={14} />
@@ -186,8 +187,8 @@ export function ApiKeyRow({
           <Button
             size="icon-sm"
             variant="ghost"
-            onClick={() => onDelete(apiKey.id)}
-            title="Delete key"
+            onClick={(event) => onDelete(apiKey.id, event)}
+            title={skipConfirmTitle("Delete key")}
             className="text-danger hover:text-danger"
           >
             <IconTrash size={14} />

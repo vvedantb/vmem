@@ -4,6 +4,7 @@ import { useCopyToClipboard, useTimeout } from "usehooks-ts";
 import { toast } from "sonner";
 import { api } from "@vmem/backend";
 import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
+import { useRequestConfirm } from "@/lib/confirm";
 import type { ApiKey } from "./types";
 
 export function useApiKeyActions() {
@@ -34,6 +35,7 @@ export function useApiKeyActions() {
   const revealApiKey = useAction(api.apiKeys.revealMy);
   const [, copyToClipboard] = useCopyToClipboard();
 
+  const { request } = useRequestConfirm();
   const [revokeKeyId, setRevokeKeyId] = useState<ApiKey["id"] | null>(null);
   const [deleteKeyId, setDeleteKeyId] = useState<ApiKey["id"] | null>(null);
   const [editKeyId, setEditKeyId] = useState<ApiKey["id"] | null>(null);
@@ -101,11 +103,9 @@ export function useApiKeyActions() {
     setRevealingKeyId(null);
   };
 
-  const handleRevoke = async () => {
-    if (!revokeKeyId) return;
-
+  const revokeById = async (id: ApiKey["id"]) => {
     await runRevoke(async () => {
-      const revoked = await revokeApiKey({ id: revokeKeyId });
+      const revoked = await revokeApiKey({ id });
       if (!revoked) {
         throw new Error("Failed to revoke API key");
       }
@@ -114,23 +114,57 @@ export function useApiKeyActions() {
     }, "Failed to revoke API key");
   };
 
-  const handleDelete = async () => {
-    if (!deleteKeyId) return;
-
+  const deleteById = async (id: ApiKey["id"]) => {
     await runDelete(async () => {
-      const deleted = await deleteApiKey({ id: deleteKeyId });
+      const deleted = await deleteApiKey({ id });
       if (!deleted) {
         throw new Error("Failed to delete API key");
       }
       toast.success("The API key has been deleted");
       setDeleteKeyId(null);
       setRevealedKeys((prev) => {
-        if (!(deleteKeyId in prev)) return prev;
+        if (!(id in prev)) return prev;
         const next = { ...prev };
-        delete next[deleteKeyId];
+        delete next[id];
         return next;
       });
     }, "Failed to delete API key");
+  };
+
+  const handleRevoke = async () => {
+    if (!revokeKeyId) return;
+    await revokeById(revokeKeyId);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteKeyId) return;
+    await deleteById(deleteKeyId);
+  };
+
+  const requestRevoke = (
+    id: ApiKey["id"],
+    event?: { altKey?: boolean } | null,
+  ) => {
+    request(
+      () => setRevokeKeyId(id),
+      () => {
+        void revokeById(id);
+      },
+      event,
+    );
+  };
+
+  const requestDelete = (
+    id: ApiKey["id"],
+    event?: { altKey?: boolean } | null,
+  ) => {
+    request(
+      () => setDeleteKeyId(id),
+      () => {
+        void deleteById(id);
+      },
+      event,
+    );
   };
 
   return {
@@ -150,5 +184,7 @@ export function useApiKeyActions() {
     handleToggleReveal,
     handleRevoke,
     handleDelete,
+    requestRevoke,
+    requestDelete,
   };
 }

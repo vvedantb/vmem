@@ -26,6 +26,9 @@ import {
 } from "@/lib/memory-timeline-view";
 import type { ListItem } from "@/lib/list-items";
 import type { Memory } from "@/lib/memories";
+import { useMemoryContext } from "@/contexts/MemoryContext";
+import { useRequestConfirm } from "@/lib/confirm";
+import { toast } from "sonner";
 
 function TimelineStatus({
   variant,
@@ -138,6 +141,8 @@ function MemoryTimelineBody() {
   const [panelAction, setPanelAction] = useState<"edit" | "delete" | null>(
     null,
   );
+  const { request } = useRequestConfirm();
+  const { deleteMemory } = useMemoryContext();
 
   const createdAts = useMemo(
     () => list.displayItems.map((entry) => entry.item.createdAt),
@@ -265,8 +270,25 @@ function MemoryTimelineBody() {
                   setPanelAction("edit");
                 },
                 onContextDelete: (memory) => {
-                  openMemory(memory);
-                  setPanelAction("delete");
+                  request(
+                    () => {
+                      openMemory(memory);
+                      setPanelAction("delete");
+                    },
+                    () => {
+                      void deleteMemory(memory.id)
+                        .then(() => {
+                          toast.success("Memory deleted successfully");
+                        })
+                        .catch((err: unknown) => {
+                          toast.error(
+                            err instanceof Error
+                              ? err.message
+                              : "Failed to delete memory",
+                          );
+                        });
+                    },
+                  );
                 },
               }}
             />

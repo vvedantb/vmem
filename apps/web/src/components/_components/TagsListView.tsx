@@ -33,6 +33,11 @@ import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
 import { DetailEmptyState } from "@/components/_components/detail-panel/DetailEmptyState";
 import { TagMemoriesPanel } from "@/components/_components/TagMemoriesPanel";
 import { VmemSpinner } from "@/components/icons/animations";
+import {
+  ConfirmSkipHint,
+  skipConfirmTitle,
+  useRequestConfirm,
+} from "@/lib/confirm";
 
 // tag rows view for /memories/tags
 export default function TagsListView() {
@@ -62,6 +67,7 @@ export default function TagsListView() {
 
   const [deleteTag, setDeleteTag] = useState<string | null>(null);
   const { submitting: isDeleting, run: runDeleteTag } = useAsyncSubmit();
+  const { request } = useRequestConfirm();
 
   const handleTagClick = (tag: string) => {
     setSelectedTag((current) => (current === tag ? null : tag));
@@ -125,11 +131,9 @@ export default function TagsListView() {
     }, "Failed to rename tag");
   };
 
-  const handleDeleteTag = async () => {
-    if (!deleteTag) return;
-
+  const deleteTagNamed = async (tag: string) => {
     const affectedMemories = memories.filter((memory) =>
-      memory.tags.includes(deleteTag),
+      memory.tags.includes(tag),
     );
     if (affectedMemories.length === 0) {
       setDeleteTag(null);
@@ -141,18 +145,23 @@ export default function TagsListView() {
         affectedMemories.map((memory) =>
           updateMemory({
             id: memory.id,
-            tags: memory.tags.filter((tag) => tag !== deleteTag),
+            tags: memory.tags.filter((name) => name !== tag),
           }),
         ),
       );
 
-      if (selectedTag === deleteTag) {
+      if (selectedTag === tag) {
         setSelectedTag(null);
       }
 
-      toast.success(`Tag "${deleteTag}" deleted from all memories`);
+      toast.success(`Tag "${tag}" deleted from all memories`);
       setDeleteTag(null);
     }, "Failed to delete tag");
+  };
+
+  const handleDeleteTag = async () => {
+    if (!deleteTag) return;
+    await deleteTagNamed(deleteTag);
   };
 
   if (isLoading && tags.length === 0) {
@@ -215,7 +224,14 @@ export default function TagsListView() {
                       isSelected={isSelected}
                       onClick={() => handleTagClick(item.tag)}
                       onRename={() => startEditing(item.tag)}
-                      onDelete={() => setDeleteTag(item.tag)}
+                      onDelete={() =>
+                        request(
+                          () => setDeleteTag(item.tag),
+                          () => {
+                            void deleteTagNamed(item.tag);
+                          },
+                        )
+                      }
                     />
                   )}
                 </div>
@@ -336,10 +352,12 @@ function TagRow({
         </ContextMenuItem>
         <ContextMenuItem
           className="text-danger focus:text-danger data-[highlighted]:text-danger"
+          title={skipConfirmTitle("Delete")}
           onClick={onDelete}
         >
           <IconTrash size={16} stroke={1.5} />
           Delete
+          <ConfirmSkipHint />
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>

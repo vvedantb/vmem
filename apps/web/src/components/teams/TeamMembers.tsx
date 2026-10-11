@@ -18,6 +18,11 @@ import { useTeamWorkspace, type TeamMember } from "./team-context";
 import { AddMemberDialog } from "./AddMemberDialog";
 import { RemoveMemberDialog } from "./RemoveMemberDialog";
 import { LeaveTeamDialog } from "./LeaveTeamDialog";
+import {
+  ConfirmSkipHint,
+  skipConfirmTitle,
+  useRequestConfirm,
+} from "@/lib/confirm";
 
 type PendingRemoval = {
   userId: Id<"users">;
@@ -68,14 +73,14 @@ export function TeamMembers() {
   );
   const currentUser = useQuery(api.users.getMe);
   const { user: clerkUser } = useUser();
+  const { request } = useRequestConfirm();
 
-  const handleRemoveConfirm = async () => {
-    if (!pendingRemoval) return;
-    setRemoving(pendingRemoval.userId);
+  const removeMemberNow = async (userId: Id<"users">) => {
+    setRemoving(userId);
     try {
       await removeMember({
         teamId: data.team._id,
-        userId: pendingRemoval.userId,
+        userId,
       });
       toast.success("Member removed");
       setPendingRemoval(null);
@@ -85,6 +90,11 @@ export function TeamMembers() {
     // after the try rather than in a `finally` React Compiler bails on the
     // whole file when it meets one. The catch swallows, so this always runs.
     setRemoving(null);
+  };
+
+  const handleRemoveConfirm = async () => {
+    if (!pendingRemoval) return;
+    await removeMemberNow(pendingRemoval.userId);
   };
 
   const handleLeaveConfirm = async () => {
@@ -136,7 +146,12 @@ export function TeamMembers() {
                 clerkImageUrl={clerkUser?.imageUrl}
                 removingUserId={removing}
                 onRemove={(userId, label) =>
-                  setPendingRemoval({ userId, label })
+                  request(
+                    () => setPendingRemoval({ userId, label }),
+                    () => {
+                      void removeMemberNow(userId);
+                    },
+                  )
                 }
               />
             ))}
@@ -151,12 +166,22 @@ export function TeamMembers() {
         >
           <Button
             variant="outline"
-            onClick={() => setLeaveOpen(true)}
+            title={skipConfirmTitle("Leave team")}
+            onClick={(event) =>
+              request(
+                () => setLeaveOpen(true),
+                () => {
+                  void handleLeaveConfirm();
+                },
+                event,
+              )
+            }
             disabled={leaving}
             className="text-danger hover:text-danger"
           >
             <IconLogout size={14} className="mr-1.5" />
             Leave team
+            <ConfirmSkipHint />
           </Button>
         </SettingsSection>
       )}
@@ -236,6 +261,7 @@ function MemberRow({
             variant="ghost"
             size="sm"
             aria-label={`Remove ${name}`}
+            title={skipConfirmTitle(`Remove ${name}`)}
             onClick={() => onRemove(member.userId, name)}
             disabled={isRemoving}
             className="text-muted hover:text-danger"

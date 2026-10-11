@@ -25,6 +25,11 @@ import {
   IconLoader2,
 } from "@tabler/icons-react";
 import { useThemeContext } from "@/contexts/ThemeContext";
+import {
+  ConfirmSkipHint,
+  skipConfirmTitle,
+  useRequestConfirm,
+} from "@/lib/confirm";
 import { RAIL_TILE_CLASS, railTileStateClass } from "./sidebar-nav-row";
 
 export function SidebarUserMenu() {
@@ -33,6 +38,7 @@ export function SidebarUserMenu() {
   const { isDark, toggleTheme } = useThemeContext();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const { request } = useRequestConfirm();
 
   if (!user) return null;
 
@@ -97,11 +103,20 @@ export function SidebarUserMenu() {
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
-            onSelect={() => setConfirmOpen(true)}
+            onSelect={() =>
+              request(
+                () => setConfirmOpen(true),
+                () => {
+                  void handleSignOut();
+                },
+              )
+            }
             className="text-danger focus:text-danger data-[highlighted]:text-danger"
+            title={skipConfirmTitle("Sign out")}
           >
             <IconLogout />
             Sign out
+            <ConfirmSkipHint />
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

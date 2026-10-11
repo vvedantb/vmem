@@ -41,6 +41,8 @@ export function KeysPanel() {
     handleToggleReveal,
     handleRevoke,
     handleDelete,
+    requestRevoke,
+    requestDelete,
   } = useApiKeyActions();
 
   const isLoading = apiKeys === undefined;
@@ -113,8 +115,8 @@ export function KeysPanel() {
                   onToggleReveal={handleToggleReveal}
                   onCopy={handleCopyKey}
                   onEdit={setEditKeyId}
-                  onRevoke={setRevokeKeyId}
-                  onDelete={setDeleteKeyId}
+                  onRevoke={requestRevoke}
+                  onDelete={requestDelete}
                 />
               ))}
             </TableBody>

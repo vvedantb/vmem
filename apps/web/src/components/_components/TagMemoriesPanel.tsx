@@ -6,6 +6,9 @@ import { memoryToListItem } from "@/lib/list-items";
 import { MemoryVirtuosoList } from "@/components/_components/MemoryVirtuosoList";
 import MemoryDetailPanel from "@/components/memories/MemoryDetailPanel";
 import { useThemeContext } from "@/contexts/ThemeContext";
+import { useMemoryContext } from "@/contexts/MemoryContext";
+import { useRequestConfirm } from "@/lib/confirm";
+import { toast } from "sonner";
 import { useTrailData } from "@/hooks/useTrailData";
 
 interface TagMemoriesPanelProps {
@@ -26,6 +29,8 @@ export function TagMemoriesPanel({
   const [panelAction, setPanelAction] = useState<"edit" | "delete" | null>(
     null,
   );
+  const { request } = useRequestConfirm();
+  const { deleteMemory } = useMemoryContext();
 
   const sortedMemories = [...memories].sort((a, b) =>
     b.createdAt.localeCompare(a.createdAt),
@@ -60,8 +65,24 @@ export function TagMemoriesPanel({
   };
 
   const handleContextDelete = (memory: Memory) => {
-    setSelectedMemoryId(memory.id);
-    setPanelAction("delete");
+    request(
+      () => {
+        setSelectedMemoryId(memory.id);
+        setPanelAction("delete");
+      },
+      () => {
+        void deleteMemory(memory.id)
+          .then(() => {
+            toast.success("Memory deleted successfully");
+            handleMemoryDelete(memory.id);
+          })
+          .catch((err: unknown) => {
+            toast.error(
+              err instanceof Error ? err.message : "Failed to delete memory",
+            );
+          });
+      },
+    );
   };
 
   const handleConsumeAction = () => {

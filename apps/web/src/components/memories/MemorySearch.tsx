@@ -14,6 +14,9 @@ import { MemoryVirtuosoList } from "@/components/_components/MemoryVirtuosoList"
 import AnimatedSearchIcon from "@/components/_components/AnimatedSearchIcon";
 import { VmemSpinner } from "@/components/icons/animations";
 import { memoryFromApi, type Memory } from "@/lib/memories";
+import { useMemoryContext } from "@/contexts/MemoryContext";
+import { useRequestConfirm } from "@/lib/confirm";
+import { toast } from "sonner";
 import type { ListItem } from "@/lib/list-items";
 import { countActiveMemoryViewFilters } from "@/lib/memory-view-filters";
 import { useThemeContext } from "@/contexts/ThemeContext";
@@ -168,6 +171,8 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
   const [panelAction, setPanelAction] = useState<"edit" | "delete" | null>(
     null,
   );
+  const { request } = useRequestConfirm();
+  const { deleteMemory } = useMemoryContext();
   const [previewItem, setPreviewItem] = useState<ListItem | null>(null);
   // row whose title morphs into / out of the detail panel header
   const [transitionSourceId, setTransitionSourceId] = useState<string | null>(
@@ -328,8 +333,25 @@ export default function MemorySearch({ memoryId }: MemorySearchProps) {
                   setPanelAction("edit");
                 },
                 onContextDelete: (memory) => {
-                  openMemory(memory.id);
-                  setPanelAction("delete");
+                  request(
+                    () => {
+                      openMemory(memory.id);
+                      setPanelAction("delete");
+                    },
+                    () => {
+                      void deleteMemory(memory.id)
+                        .then(() => {
+                          toast.success("Memory deleted successfully");
+                        })
+                        .catch((err: unknown) => {
+                          toast.error(
+                            err instanceof Error
+                              ? err.message
+                              : "Failed to delete memory",
+                          );
+                        });
+                    },
+                  );
                 },
               }}
             />

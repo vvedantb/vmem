@@ -37,6 +37,11 @@ import { MemorySourceLabel } from "@/components/_components/MemorySourceLabel";
 import DestructiveConfirmDialog from "@/components/settings/DestructiveConfirmDialog";
 import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
 import { VIEW_TRANSITION_TARGET } from "@/lib/view-transitions";
+import {
+  ConfirmSkipHint,
+  skipConfirmTitle,
+  useRequestConfirm,
+} from "@/lib/confirm";
 import { useActiveProfileId } from "@/components/workspace/active-profile";
 import { VmemSpinner } from "@/components/icons/animations";
 
@@ -92,6 +97,7 @@ function MemoryDetailPanelBody({
   const [isEditing, setIsEditing] = useState(false);
   const { submitting: isDeleting, run: runDelete } = useAsyncSubmit();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const { request } = useRequestConfirm();
 
   const { deleteMemory } = useMemoryContext();
   const getRelatedMemories = useAction(api.relationshipApi.getRelatedMemories);
@@ -193,10 +199,19 @@ function MemoryDetailPanelBody({
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className="text-danger focus:text-danger data-[highlighted]:text-danger"
-                    onSelect={() => setShowDeleteConfirm(true)}
+                    title={skipConfirmTitle("Delete")}
+                    onSelect={() =>
+                      request(
+                        () => setShowDeleteConfirm(true),
+                        () => {
+                          void handleDelete();
+                        },
+                      )
+                    }
                   >
                     <IconTrash size={14} />
                     Delete
+                    <ConfirmSkipHint />
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

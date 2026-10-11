@@ -5,6 +5,11 @@ import { formatDate } from "@/lib/formatters";
 import type { RelatedNode } from "@/lib/graph/types";
 import type { GraphDetailNode } from "@/lib/graph/graph-types";
 import { SlideOverPanel } from "./detail-panel/SlideOverPanel";
+import {
+  ConfirmSkipHint,
+  skipConfirmTitle,
+  useRequestConfirm,
+} from "@/lib/confirm";
 
 interface GraphDetailPanelProps {
   nodeData: GraphDetailNode | null;
@@ -36,6 +41,7 @@ export default function GraphDetailPanel({
 }: GraphDetailPanelProps) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const { request } = useRequestConfirm();
 
   return (
     <SlideOverPanel
@@ -123,11 +129,32 @@ export default function GraphDetailPanel({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setConfirmingDelete(true)}
+                title={skipConfirmTitle("Delete")}
+                onClick={(event) =>
+                  request(
+                    () => setConfirmingDelete(true),
+                    () => {
+                      void (async () => {
+                        setIsDeleting(true);
+                        const deleted = await runGraphDelete(
+                          onDelete,
+                          nodeData.id,
+                        );
+                        setIsDeleting(false);
+                        if (deleted) {
+                          setConfirmingDelete(false);
+                          onClose();
+                        }
+                      })();
+                    },
+                    event,
+                  )
+                }
                 className="text-danger hover:text-danger hover:bg-danger/10"
               >
                 <IconTrash size={14} />
                 Delete
+                <ConfirmSkipHint />
               </Button>
             )}
           </div>

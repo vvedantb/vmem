@@ -13,6 +13,7 @@ import {
   IconRefresh,
   IconTrash,
 } from "@tabler/icons-react";
+import { ConfirmSkipHint, skipConfirmTitle } from "@/lib/confirm";
 
 type ConnectorMenuAction = "sync" | "disconnect" | "delete-data";
 
@@ -73,11 +74,13 @@ export default function ConnectorActionsMenu({
         {showDisconnect ? (
           <DropdownMenuItem
             className="text-danger focus:text-danger data-[highlighted]:text-danger"
+            title={skipConfirmTitle("Disconnect")}
             onSelect={onDisconnect}
             disabled={isBusy}
           >
             <IconUnlink size={14} />
             Disconnect
+            <ConfirmSkipHint />
           </DropdownMenuItem>
         ) : null}
         {showDeleteData ? (
