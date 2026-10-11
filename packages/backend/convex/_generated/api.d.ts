@@ -126,6 +126,7 @@ import type * as proposedUpdateStore from "../proposedUpdateStore.js";
 import type * as relationshipApi from "../relationshipApi.js";
 import type * as skillVersions from "../skillVersions.js";
 import type * as skills from "../skills.js";
+import type * as skillsAdminImport from "../skillsAdminImport.js";
 import type * as systemSkills from "../systemSkills.js";
 import type * as teams from "../teams.js";
 import type * as teams_auth from "../teams/auth.js";
@@ -263,6 +264,7 @@ declare const fullApi: ApiFromModules<{
   relationshipApi: typeof relationshipApi;
   skillVersions: typeof skillVersions;
   skills: typeof skills;
+  skillsAdminImport: typeof skillsAdminImport;
   systemSkills: typeof systemSkills;
   teams: typeof teams;
   "teams/auth": typeof teams_auth;
