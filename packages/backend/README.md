@@ -26,7 +26,6 @@ Memories are stored in Convex (`memories`). Convex also holds metadata, auth, an
 | `profiles`                       | Personal and team memory profiles      |
 | `teams` / `teamMembers`          | Team membership                        |
 | `skills`                         | Reusable instruction modules           |
-| `wikiNodes`                      | Deprecated (wiki removed), export only |
 | `memories`                       | Memory CRUD, search, and retrieve      |
 | `proposedUpdates`                | Inbox merge/update proposals           |
 | `connectors` / `connectorTokens` | External service integrations          |

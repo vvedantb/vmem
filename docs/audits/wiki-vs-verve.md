@@ -1,6 +1,6 @@
 # Audit: vmem Wiki vs Verve
 
-> Update: the owner chose immediate removal with no MCP stub window. The tables stay, deprecated, until `wikiExport:exportAll` output is imported into Verve.
+> Update: Wiki UI/MCP are gone. Prod rows were drained (`wikiNodesDeleted` 14, remaining 0). Schema tables `wikiNodes` / `wikiNodeVersions` are dropped. Notes live in Verve.
 
 **Date:** 2026-10-11  
 **Scope:** read-only. No app code changed.  

@@ -452,37 +452,6 @@ export const openRouterLogFields = {
   aggregatePending: v.optional(v.boolean()),
 };
 
-// DEPRECATED: schema-only, kept while wikiNodes stays. See schema.ts.
-export const wikiNodeFields = {
-  userId: v.id("users"),
-  teamId: v.optional(v.id("teams")),
-  parentId: v.optional(v.id("wikiNodes")),
-  kind: v.union(
-    v.literal("folder"),
-    v.literal("document"),
-    v.literal("artifact"),
-  ),
-  title: v.string(),
-  content: v.optional(v.string()),
-  contentText: v.optional(v.string()),
-  // artifact source language (html | svg | tsx | sql | …). absent on folders/docs
-  language: v.optional(v.string()),
-  order: v.number(),
-  createdAt: v.number(),
-  updatedAt: v.number(),
-};
-
-export const wikiNodeVersionFields = {
-  nodeId: v.id("wikiNodes"),
-  title: v.string(),
-  content: v.string(),
-  contentText: v.string(),
-  language: v.optional(v.string()),
-  authorUserId: v.id("users"),
-  source: v.union(v.literal("web"), v.literal("mcp")),
-  createdAt: v.number(),
-};
-
 export const fileNodeFields = {
   userId: v.id("users"),
   teamId: v.optional(v.id("teams")),
