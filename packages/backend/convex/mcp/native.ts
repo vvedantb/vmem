@@ -1,15 +1,6 @@
 ﻿import { httpAction, type ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
-import { extractBearerToken } from "../lib/bearerToken";
-
-// read a required env var, stripping any trailing slash (used as a url prefix)
-function requiredEnvUrl(name: string): string {
-  const url = process.env[name];
-  if (!url) {
-    throw new Error(`${name} is not set in Convex env`);
-  }
-  return url.replace(/\/$/, "");
-}
+import { extractBearerToken, requiredEnvUrl } from "@vvedantb/convex-kit";
 
 function requestOrigin(request: Request): string {
   return new URL(request.url).origin;

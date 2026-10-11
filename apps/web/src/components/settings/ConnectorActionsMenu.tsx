@@ -13,7 +13,7 @@ import {
   IconRefresh,
   IconTrash,
 } from "@tabler/icons-react";
-import { ConfirmSkipHint, skipConfirmTitle } from "@/lib/confirm";
+import { ConfirmSkipHint, skipConfirmTitle } from "@vvedantb/app-kit";
 
 type ConnectorMenuAction = "sync" | "disconnect" | "delete-data";
 

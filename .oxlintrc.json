@@ -1,5 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "extends": ["./node_modules/@vvedantb/config/oxlint/base.json"],
   "options": {
     "typeAware": true
   },
@@ -242,7 +243,6 @@
         "apps/web/src/components/workspace/WorkspaceEntryRedirect.tsx",
         "apps/web/src/hooks/useMemoryEvents.ts",
         "apps/web/src/hooks/useMemoryTimeline.ts",
-        "apps/web/src/hooks/useStableAuth.ts",
         "apps/web/src/hooks/useTrailData.ts",
         "apps/web/src/routes/_main/$profileId/route.tsx",
         "apps/web/src/routes/_main/$profileId/skills/index.tsx",

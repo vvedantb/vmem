@@ -34,12 +34,14 @@ describe("settings chrome mirrors Eva", () => {
     expect(sidebar).not.toContain("NavSection");
     expect(sidebar).not.toContain("group.title");
     expect(read("SettingsPage.tsx")).toContain("insetHeader");
-    expect(read("SettingsSection.tsx")).toContain('bodyVariant = "form"');
-    expect(read("SettingsToggleRow.tsx")).toContain("min-h-10");
+    expect(read("SettingsPage.tsx")).toContain("centeredMaxWidth");
+    expect(read("SettingsPage.tsx")).toContain("noScroll={fillHeight}");
+    expect(read("ExtensionSettingsClient.tsx")).toContain(
+      'from "@vvedantb/app-kit"',
+    );
     expect(read("ExperimentalSettingsClient.tsx")).toContain(
       "disablePageMotion",
     );
-    expect(read("SettingsEmptyState.tsx")).toContain("<h4");
     expect(read("../teams/TeamSettings.tsx")).toContain("SettingsSection");
     expect(read("../teams/TeamMembers.tsx")).toContain("SettingsSection");
     expect(read("../teams/TeamSettings.tsx")).not.toMatch(

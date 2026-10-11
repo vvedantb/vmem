@@ -5,19 +5,12 @@ import { internalAction } from "../_generated/server";
 import { createClerkClient } from "@clerk/backend";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
+import { getClerkClient } from "@vvedantb/convex-kit";
 import { registerTools } from "./tools";
 import { registerResources } from "./resources";
 import { registerMemoryGraphApp } from "./memoryGraphApp";
 import { mcpScopeValidator } from "../profiles/mcpAccess";
 import { isMcpAcceptedTokenType, mcpServerInfo } from "./serverInfo";
-
-function getClerkClient() {
-  const secretKey = process.env.CLERK_SECRET_KEY;
-  if (!secretKey) throw new Error("CLERK_SECRET_KEY is required");
-  const publishableKey = process.env.CLERK_PUBLISHABLE_KEY;
-  if (!publishableKey) throw new Error("CLERK_PUBLISHABLE_KEY is required");
-  return createClerkClient({ secretKey, publishableKey });
-}
 
 // AI-generated (Claude), prompt: "verify clerk oauth access tokens and handle mcp json rpc via streamable http transport with registered tools"
 // Modified by me: scope aware server naming and tool registration wiring
@@ -26,7 +19,7 @@ export const verifyAccessToken = internalAction({
   returns: v.union(v.object({ clerkUserId: v.string() }), v.null()),
   handler: async (_ctx, { token }) => {
     try {
-      const clerk = getClerkClient();
+      const clerk = getClerkClient(createClerkClient);
       const request = new Request("https://mcp.local/", {
         headers: { Authorization: `Bearer ${token}` },
       });

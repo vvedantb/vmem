@@ -1,8 +1,10 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { ConfirmSkipHint } from "./ConfirmSkipHint";
-import { getAltHeld } from "./useAltHeld";
-import { useRequestConfirm } from "./useRequestConfirm";
+import {
+  ConfirmSkipHint,
+  getAltHeld,
+  useRequestConfirm,
+} from "@vvedantb/app-kit";
 
 describe("ConfirmSkipHint", () => {
   it("keeps the kbd mounted but hidden while Alt is not held", () => {

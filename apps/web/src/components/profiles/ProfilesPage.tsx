@@ -7,12 +7,11 @@ import { api, type Id } from "@vmem/backend";
 import { tempId } from "@/lib/convex-optimistic";
 import { convexErrorMessage } from "@/lib/convex-error";
 import { SettingsPage } from "@/components/settings/SettingsPage";
-import { SettingsSection } from "@/components/settings/SettingsSection";
+import { SettingsSection, useRequestConfirm } from "@vvedantb/app-kit";
 import { CreateEditProfileDialog } from "./CreateEditProfileDialog";
 import { DefaultProfilesSection } from "./DefaultProfilesSection";
 import { ProfileCard } from "./ProfileCard";
 import { ProfileDangerZone } from "./ProfileDangerZone";
-import { useRequestConfirm } from "@/lib/confirm";
 
 export function ProfilesPage() {
   const profiles = useQuery(api.profiles.list);

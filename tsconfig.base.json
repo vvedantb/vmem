@@ -1,12 +1,3 @@
 {
-  "compilerOptions": {
-    "strict": true,
-    "skipLibCheck": true,
-    "isolatedModules": true,
-    "moduleDetection": "force",
-    "noFallthroughCasesInSwitch": true,
-    "noImplicitOverride": true,
-    "forceConsistentCasingInFileNames": true,
-    "noUncheckedIndexedAccess": true
-  }
+  "extends": "@vvedantb/config/tsconfig/base.json"
 }

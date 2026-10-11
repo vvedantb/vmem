@@ -25,7 +25,7 @@ import {
   ConfirmSkipHint,
   skipConfirmTitle,
   useRequestConfirm,
-} from "@/lib/confirm";
+} from "@vvedantb/app-kit";
 import type { SystemSkillEntry } from "@/components/skills/_utils";
 import { useActiveTeamId } from "@/components/workspace/active-profile";
 import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";

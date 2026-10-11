@@ -145,6 +145,9 @@ importers:
       '@types/node':
         specifier: catalog:node-types-22
         version: 22.19.17
+      '@vvedantb/config':
+        specifier: 0.1.0
+        version: 0.1.0
       baseline-browser-mapping:
         specifier: ^2.9.19
         version: 2.10.20
@@ -382,6 +385,9 @@ importers:
       '@vmem/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@vvedantb/app-kit':
+        specifier: 0.1.0
+        version: 0.1.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@tanstack/react-hotkeys@0.9.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(zod@3.25.76)
       '@vvedantb/shell':
         specifier: 0.1.2
         version: 0.1.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -545,6 +551,9 @@ importers:
       '@vmem/shared':
         specifier: workspace:*
         version: link:../shared
+      '@vvedantb/convex-kit':
+        specifier: 0.1.0
+        version: 0.1.0(@clerk/backend@2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))
       ai:
         specifier: ^7.0.108
         version: 7.0.108(zod@3.25.76)
@@ -4912,6 +4921,27 @@ packages:
 
   '@vitest/utils@3.2.4':
     resolution: {integrity: sha512-fB2V0JFrQSMsCo9HiSq3Ezpdv4iYaXRG1Sx8edX3MwxfyNn83mKiGzOcH+Fkxt4MHxr3y42fQi1oeAInqgX2QA==}
+
+  '@vvedantb/app-kit@0.1.0':
+    resolution: {integrity: sha512-DrtcdYFinoQMyQy9zGcYXaPyVh27YXxyM7Mm9TVANNMSehuXfug7mutUBKQQiWM5fcqqUHZw0gX1Xc7awD3PqQ==}
+    peerDependencies:
+      '@clerk/clerk-react': '>=5'
+      '@tanstack/react-hotkeys': '*'
+      react: '>=19'
+      react-dom: '>=19'
+      zod: '>=3'
+
+  '@vvedantb/config@0.1.0':
+    resolution: {integrity: sha512-D3qeuH/Fn6729+CEW+aFHYMgOJaUJUNRgpkm+RH9yWch2rruxww1yTViFDDA8FsQWU5FTuDudnF1IwmtcwRF+A==}
+    hasBin: true
+
+  '@vvedantb/convex-kit@0.1.0':
+    resolution: {integrity: sha512-g1s/uGiFkNZtLzuTzeL2WshqRxOdrZExpid4pNb8lhFqIZNaie2vAQUQBoxGJ9YUcr720WBwK3Yuro+wfjnYWg==}
+    peerDependencies:
+      '@clerk/backend': '>=1'
+    peerDependenciesMeta:
+      '@clerk/backend':
+        optional: true
 
   '@vvedantb/shell@0.1.2':
     resolution: {integrity: sha512-O8jlgiMA82nOLAxExvbyq9abzxoq+9HzqwqTKHtsj9Y5bH0JA6OXpmwupyeGdam2j9zSP49ZPf7SjXuu+LNVrw==}
@@ -13671,6 +13701,20 @@ snapshots:
       '@vitest/pretty-format': 3.2.4
       loupe: 3.2.1
       tinyrainbow: 2.0.0
+
+  '@vvedantb/app-kit@0.1.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@tanstack/react-hotkeys@0.9.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(zod@3.25.76)':
+    dependencies:
+      '@clerk/clerk-react': 5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@tanstack/react-hotkeys': 0.9.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react: 19.3.0
+      react-dom: 19.3.0(react@19.3.0)
+      zod: 3.25.76
+
+  '@vvedantb/config@0.1.0': {}
+
+  '@vvedantb/convex-kit@0.1.0(@clerk/backend@2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))':
+    optionalDependencies:
+      '@clerk/backend': 2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
 
   '@vvedantb/shell@0.1.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:

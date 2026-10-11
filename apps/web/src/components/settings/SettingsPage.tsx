@@ -1,39 +1,18 @@
-import type { ReactNode } from "react";
+import {
+  SettingsPage as AppKitSettingsPage,
+  type SettingsLayoutProps,
+  type SettingsPageProps,
+} from "@vvedantb/app-kit";
 import PageContainer from "@/components/shell/PageContainer";
-import { SettingsStack } from "@/components/settings/SettingsStack";
 
-interface SettingsPageProps {
-  title: string;
-  /** Sparse primary action(s) in the title row (e.g. Add, Delete). */
-  headerRight?: ReactNode;
-  /** Filters / search / segmented controls — sits under the title. */
-  toolbar?: ReactNode;
-  /** Route tabs — sits under the title (and under toolbar if both exist). */
-  tabs?: ReactNode;
-  /**
-   * Wrap children in the standard settings section stack. Set false when the
-   * child already owns its own vertical rhythm.
-   */
-  stack?: boolean;
-  /** Fill the remaining shell height instead of scrolling the page. */
-  fillHeight?: boolean;
-  children: ReactNode;
-}
-
-/**
- * Shared chrome for settings: comfortable reading width, title row, optional
- * refine toolbar / tabs, then a consistent section stack.
- * Mirrors Eva `SettingsPage`.
- */
-export function SettingsPage({
+function layout({
   title,
   headerRight,
   toolbar,
   tabs,
-  stack = true,
-  fillHeight = false,
+  fillHeight,
   children,
-}: SettingsPageProps) {
+}: SettingsLayoutProps) {
   return (
     <PageContainer
       title={title}
@@ -45,7 +24,12 @@ export function SettingsPage({
       tabs={tabs}
       noScroll={fillHeight}
     >
-      {stack ? <SettingsStack>{children}</SettingsStack> : children}
+      {children}
     </PageContainer>
   );
+}
+
+/** App-kit settings chrome mapped onto the vmem `PageContainer`. */
+export function SettingsPage(props: Omit<SettingsPageProps, "layout">) {
+  return <AppKitSettingsPage {...props} layout={layout} />;
 }

@@ -8,6 +8,9 @@ minimumReleaseAgeExclude:
   - "@vvedantb/ui"
   - "@vvedantb/tokens"
   - "@vvedantb/shell"
+  - "@vvedantb/app-kit"
+  - "@vvedantb/config"
+  - "@vvedantb/convex-kit"
 
 # npm packument for @vvedantb/ui omits peerDependencies; restore them
 # from the published tarball so autoInstallPeers can satisfy typecheck.

@@ -29,7 +29,7 @@ import {
   ConfirmSkipHint,
   skipConfirmTitle,
   useRequestConfirm,
-} from "@/lib/confirm";
+} from "@vvedantb/app-kit";
 
 interface FilePreviewModalProps {
   isOpen: boolean;

@@ -38,6 +38,7 @@
     "@tanstack/react-router": "^1.120.3",
     "@vmem/backend": "workspace:*",
     "@vmem/shared": "workspace:*",
+    "@vvedantb/app-kit": "0.1.0",
     "@vvedantb/shell": "0.1.2",
     "@vvedantb/tokens": "0.1.0",
     "@vvedantb/ui": "0.1.5",

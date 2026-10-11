@@ -2,8 +2,7 @@ import { useQuery } from "convex/react";
 import { Skeleton, Switch } from "@vvedantb/ui";
 import { api } from "@vmem/backend";
 import { SettingsPage } from "@/components/settings/SettingsPage";
-import { SettingsSection } from "@/components/settings/SettingsSection";
-import { SettingsToggleRow } from "@/components/settings/SettingsToggleRow";
+import { SettingsSection, SettingsToggleRow } from "@vvedantb/app-kit";
 import { useUserSettingsSave } from "@/hooks/useUserSettingsSave";
 
 export function ExtensionSettingsClient() {

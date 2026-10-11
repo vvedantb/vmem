@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fingerprintFromHtml } from "./deployFingerprint";
+import { fingerprintFromHtml } from "@vvedantb/app-kit";
 
 describe("fingerprintFromHtml", () => {
   it("joins unique hashed asset urls", () => {

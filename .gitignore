@@ -14,6 +14,8 @@ build
 
 # Local agent / IDE config (not shared)
 .claude/*
+!.claude/commands/
+!.claude/commands/*.md
 .cursor/
 !.cursor/environment.json
 .agents/*
