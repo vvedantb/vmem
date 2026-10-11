@@ -12,6 +12,7 @@ import { CreateEditProfileDialog } from "./CreateEditProfileDialog";
 import { DefaultProfilesSection } from "./DefaultProfilesSection";
 import { ProfileCard } from "./ProfileCard";
 import { ProfileDangerZone } from "./ProfileDangerZone";
+import { useRequestConfirm } from "@/lib/confirm";
 
 export function ProfilesPage() {
   const profiles = useQuery(api.profiles.list);
@@ -66,6 +67,7 @@ export function ProfilesPage() {
     useState<Id<"profiles"> | null>(null);
   const [deletingProfileId, setDeletingProfileId] =
     useState<Id<"profiles"> | null>(null);
+  const { request } = useRequestConfirm();
 
   const editingProfile =
     editingProfileId !== null && profiles !== undefined
@@ -132,7 +134,28 @@ export function ProfilesPage() {
                 canEdit ? () => setEditingProfileId(profile._id) : undefined
               }
               onDelete={
-                canDelete ? () => setDeletingProfileId(profile._id) : undefined
+                canDelete
+                  ? () =>
+                      request(
+                        () => setDeletingProfileId(profile._id),
+                        () => {
+                          void removeProfileWithMemories({
+                            profileId: profile._id,
+                          })
+                            .then(() => {
+                              toast.success(`Deleted ${profile.name}`);
+                            })
+                            .catch((err: unknown) => {
+                              toast.error(
+                                convexErrorMessage(
+                                  err,
+                                  "Failed to delete profile",
+                                ),
+                              );
+                            });
+                        },
+                      )
+                  : undefined
               }
             />
           );

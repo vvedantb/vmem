@@ -21,6 +21,11 @@ import PageContainer from "@/components/shell/PageContainer";
 import { ViewSkillPanel } from "@/components/skills/ViewSkillPanel";
 import { SystemSkillFormDialog } from "@/components/skills/SystemSkillFormDialog";
 import DestructiveConfirmDialog from "@/components/settings/DestructiveConfirmDialog";
+import {
+  ConfirmSkipHint,
+  skipConfirmTitle,
+  useRequestConfirm,
+} from "@/lib/confirm";
 import type { SystemSkillEntry } from "@/components/skills/_utils";
 import { useActiveTeamId } from "@/components/workspace/active-profile";
 import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
@@ -117,10 +122,12 @@ function SystemSkillDetailActions({
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className="text-danger focus:text-danger data-[highlighted]:text-danger"
+                  title={skipConfirmTitle("Delete")}
                   onSelect={onDelete}
                 >
                   <IconTrash size={14} />
                   Delete
+                  <ConfirmSkipHint />
                 </DropdownMenuItem>
               </>
             ) : null}
@@ -181,6 +188,7 @@ export function SystemSkillDetail({
   const [editing, setEditing] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const { submitting: deleting, run: runDelete } = useAsyncSubmit();
+  const { request } = useRequestConfirm();
 
   const entry = catalog?.find((e) => e._id === systemSkillId);
 
@@ -270,7 +278,14 @@ export function SystemSkillDetail({
             )
           }
           onEdit={() => setEditing(true)}
-          onDelete={() => setDeleteOpen(true)}
+          onDelete={() =>
+            request(
+              () => setDeleteOpen(true),
+              () => {
+                void handleDelete();
+              },
+            )
+          }
         />
       }
     >

@@ -21,6 +21,11 @@ import {
 import { toast } from "sonner";
 import { useCopyToClipboard } from "usehooks-ts";
 import DestructiveConfirmDialog from "@/components/settings/DestructiveConfirmDialog";
+import {
+  ConfirmSkipHint,
+  skipConfirmTitle,
+  useRequestConfirm,
+} from "@/lib/confirm";
 import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
 import {
   patchSkillInLists,
@@ -42,6 +47,7 @@ export function SkillHeaderActions({
 }: SkillHeaderActionsProps) {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const { submitting: deleting, run } = useAsyncSubmit();
+  const { request } = useRequestConfirm();
   const [historyOpen, setHistoryOpen] = useState(false);
 
   const deleteSkill = useMutation(api.skills.deleteSkill).withOptimisticUpdate(
@@ -135,10 +141,19 @@ export function SkillHeaderActions({
           <DropdownMenuSeparator />
           <DropdownMenuItem
             className="text-danger focus:text-danger data-[highlighted]:text-danger"
-            onSelect={() => setDeleteConfirmOpen(true)}
+            title={skipConfirmTitle("Delete")}
+            onSelect={() =>
+              request(
+                () => setDeleteConfirmOpen(true),
+                () => {
+                  void handleDelete();
+                },
+              )
+            }
           >
             <IconTrash size={14} />
             Delete
+            <ConfirmSkipHint />
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

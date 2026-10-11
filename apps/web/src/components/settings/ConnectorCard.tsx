@@ -6,7 +6,10 @@ import { IconLoader2, IconAlertCircle, IconClock } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 import OAuthModal from "./OAuthModal";
 import DeleteConnectorDataDialog from "./DeleteConnectorDataDialog";
-import DisconnectConnectorDialog from "./DisconnectConnectorDialog";
+import DisconnectConnectorDialog, {
+  useDisconnectConnector,
+} from "./DisconnectConnectorDialog";
+import { useRequestConfirm } from "@/lib/confirm";
 import ConnectorActionsMenu from "./ConnectorActionsMenu";
 import {
   isConnectorConnected,
@@ -24,6 +27,8 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
   const [showOAuthModal, setShowOAuthModal] = useState(false);
   const [showDeleteDataDialog, setShowDeleteDataDialog] = useState(false);
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
+  const { request } = useRequestConfirm();
+  const { disconnect } = useDisconnectConnector(connector._id, connector.name);
 
   const startSyncAction = useAction(api.connectors.sync.startSync);
 
@@ -126,7 +131,14 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
                     : ["sync", "disconnect"]
                 }
                 onSync={handleSync}
-                onDisconnect={() => setShowDisconnectDialog(true)}
+                onDisconnect={() =>
+                  request(
+                    () => setShowDisconnectDialog(true),
+                    () => {
+                      void disconnect();
+                    },
+                  )
+                }
                 onDeleteData={() => setShowDeleteDataDialog(true)}
               />
             ) : (
@@ -138,7 +150,14 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
                     isBusy={false}
                     actions={["delete-data"]}
                     onSync={handleSync}
-                    onDisconnect={() => setShowDisconnectDialog(true)}
+                    onDisconnect={() =>
+                      request(
+                        () => setShowDisconnectDialog(true),
+                        () => {
+                          void disconnect();
+                        },
+                      )
+                    }
                     onDeleteData={() => setShowDeleteDataDialog(true)}
                   />
                 ) : null}

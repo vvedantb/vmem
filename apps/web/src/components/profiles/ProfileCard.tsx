@@ -4,6 +4,7 @@ import { IconEdit, IconTrash } from "@tabler/icons-react";
 import type { FunctionReturnType } from "convex/server";
 import type { api } from "@vmem/backend";
 import { ProfileAvatar } from "./ProfileAvatar";
+import { skipConfirmTitle } from "@/lib/confirm";
 
 type Profile = FunctionReturnType<typeof api.profiles.list>[number];
 
@@ -66,6 +67,7 @@ export function ProfileCard({
                 variant="ghost"
                 size="icon-sm"
                 aria-label={`Delete ${profile.name}`}
+                title={skipConfirmTitle(`Delete ${profile.name}`)}
                 onClick={onDelete}
                 className="text-danger hover:text-danger"
               >

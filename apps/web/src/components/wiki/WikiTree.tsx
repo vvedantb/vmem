@@ -21,6 +21,7 @@ import { WikiTreeRow } from "./WikiTreeItem";
 import { defaultWikiNodeTitle, useCreateWikiNode } from "./useCreateWikiNode";
 import { useActiveTeamId } from "@/components/workspace/active-profile";
 import { cn } from "@vvedantb/ui";
+import { useRequestConfirm } from "@/lib/confirm";
 import {
   removeWikiNodesFromLists,
   renameWikiNodeInLists,
@@ -85,6 +86,7 @@ export default function WikiTree({
 
   const [renameTarget, setRenameTarget] = useState<WikiListNode | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<WikiListNode | null>(null);
+  const { request } = useRequestConfirm();
 
   const byId = (() => {
     const map = new Map<string, WikiListNode>();
@@ -304,7 +306,16 @@ export default function WikiTree({
                     }}
                     onCreateInside={handleCreateInFolder}
                     onRequestRename={setRenameTarget}
-                    onRequestDelete={setDeleteTarget}
+                    onRequestDelete={(node) =>
+                      request(
+                        () => setDeleteTarget(node),
+                        () => {
+                          void deleteNode({ id: node._id }).then(() => {
+                            if (selectedId === node._id) onSelect("");
+                          });
+                        },
+                      )
+                    }
                   />
                 </div>
               );

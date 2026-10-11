@@ -23,6 +23,7 @@ import { MemorySourceIcon } from "./MemorySourceIcon";
 import { nodeColor } from "./graph-colors";
 import ShapeIndicator from "./ShapeIndicator";
 import { VIEW_TRANSITION_TARGET } from "@/lib/view-transitions";
+import { ConfirmSkipHint, skipConfirmTitle } from "@/lib/confirm";
 
 interface ListItemRowProps {
   item: ListItem;
@@ -186,10 +187,12 @@ export default function ListItemRow({
         </ContextMenuItem>
         <ContextMenuItem
           className="text-danger focus:text-danger data-[highlighted]:text-danger"
+          title={skipConfirmTitle("Delete")}
           onClick={() => onContextDelete(memory)}
         >
           <IconTrash size={16} stroke={1.5} />
           Delete
+          <ConfirmSkipHint />
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>

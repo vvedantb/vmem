@@ -32,6 +32,7 @@ import {
   type RelatedMemoryEntry,
 } from "@/lib/memories";
 import LinkMemoryModal from "@/components/memories/LinkMemoryModal";
+import { skipConfirmTitle, useRequestConfirm } from "@/lib/confirm";
 import { DetailEmptyState } from "./detail-panel/DetailEmptyState";
 import { VmemSpinner } from "@/components/icons/animations";
 
@@ -60,6 +61,7 @@ export default function RelatedMemories({
   const [unlinkingId, setUnlinkingId] = useState<string | null>(null);
   const [confirmUnlinkId, setConfirmUnlinkId] = useState<string | null>(null);
   const [linkModalOpen, setLinkModalOpen] = useState(false);
+  const { request } = useRequestConfirm();
 
   const unlinkMutation = useMutation({
     mutationFn: async (relatedId: string) => {
@@ -174,7 +176,16 @@ export default function RelatedMemories({
                 <Button
                   variant="ghost"
                   size="icon-sm"
-                  onClick={() => setConfirmUnlinkId(entry.memory.id)}
+                  title={skipConfirmTitle(`Unlink ${entry.memory.title}`)}
+                  onClick={(event) =>
+                    request(
+                      () => setConfirmUnlinkId(entry.memory.id),
+                      () => {
+                        void handleUnlink(entry.memory.id);
+                      },
+                      event,
+                    )
+                  }
                   disabled={unlinkingId === entry.memory.id}
                   className="shrink-0 text-muted hover:bg-danger/10 hover:text-danger"
                   aria-label={`Unlink ${entry.memory.title}`}

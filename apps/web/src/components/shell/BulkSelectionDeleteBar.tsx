@@ -10,6 +10,11 @@ import {
   DialogTitle,
 } from "@vvedantb/ui";
 import { IconTrash, IconX } from "@tabler/icons-react";
+import {
+  ConfirmSkipHint,
+  skipConfirmTitle,
+  useRequestConfirm,
+} from "@/lib/confirm";
 
 interface BulkSelectionDeleteBarProps {
   count: number;
@@ -30,6 +35,7 @@ export function BulkSelectionDeleteBar({
 }: BulkSelectionDeleteBarProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const { request } = useRequestConfirm();
 
   const handleDelete = async () => {
     if (count === 0) return;
@@ -57,10 +63,19 @@ export function BulkSelectionDeleteBar({
           size="sm"
           className="ml-auto text-danger hover:text-danger"
           disabled={count === 0}
-          onClick={() => setConfirmOpen(true)}
+          title={skipConfirmTitle("Delete")}
+          onClick={() =>
+            request(
+              () => setConfirmOpen(true),
+              () => {
+                void handleDelete();
+              },
+            )
+          }
         >
           <IconTrash size={14} />
           Delete
+          <ConfirmSkipHint />
         </Button>
         <Button
           variant="ghost"
