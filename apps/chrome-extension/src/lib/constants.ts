@@ -1,14 +1,23 @@
 export const CLERK_PUBLISHABLE_KEY =
   import.meta.env?.VITE_CLERK_PUBLISHABLE_KEY ??
-  "pk_test_YWxsb3dpbmctY295b3RlLTgwLmNsZXJrLmFjY291bnRzLmRldiQ";
+  "pk_live_Y2xlcmsucHJvamVjdHYudWsk";
 
 export const CONVEX_URL =
   import.meta.env?.VITE_CONVEX_URL ??
-  "https://outgoing-reindeer-268.eu-west-1.convex.cloud";
+  "https://clear-bear-690.eu-west-1.convex.cloud";
 
 export const CLERK_SYNC_HOST =
   import.meta.env?.VITE_CLERK_SYNC_HOST ??
-  "https://vmem-git-staging-vedantb.vercel.app";
+  "https://vmem.projectv.uk";
+
+// Official web origins. The extension reads the signed-in session from any of them.
+export const WEB_APP_ORIGINS: readonly string[] = [
+  ...new Set([
+    CLERK_SYNC_HOST,
+    "https://vmem.projectv.uk",
+    "https://vmem.vedantb.com",
+  ]),
+];
 
 // Clerk publishable keys encode the Frontend API host in base64 after pk_live_/pk_test_.
 export function clerkFrontendApiHost(publishableKey: string): string | null {

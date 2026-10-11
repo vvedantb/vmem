@@ -1,4 +1,4 @@
-import { CLERK_SYNC_HOST } from "@/lib/constants";
+import { WEB_APP_ORIGINS } from "@/lib/constants";
 import { errorMessage } from "@/lib/error";
 import { setAuthToken } from "@/lib/storage";
 
@@ -34,11 +34,12 @@ function sleep(ms: number): Promise<void> {
 
 export function isWebAppSyncUrl(
   url: string | undefined,
-  syncHost: string = CLERK_SYNC_HOST,
+  webOrigins: readonly string[] = WEB_APP_ORIGINS,
 ): boolean {
   if (!url) return false;
   try {
-    return new URL(url).origin === new URL(syncHost).origin;
+    const origin = new URL(url).origin;
+    return webOrigins.some((web) => new URL(web).origin === origin);
   } catch {
     return false;
   }

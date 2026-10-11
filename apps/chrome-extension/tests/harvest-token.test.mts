@@ -14,26 +14,16 @@ const {
   registerWebClerkTokenHarvest,
 } = await import("../src/background/harvest-web-clerk-token.ts");
 
-await test("isWebAppSyncUrl matches the Clerk web sync origin only", () => {
+await test("isWebAppSyncUrl matches official web origins only", () => {
+  assert.equal(isWebAppSyncUrl("https://vmem.projectv.uk/home"), true);
+  assert.equal(isWebAppSyncUrl("https://vmem.vedantb.com/home"), true);
+  assert.equal(isWebAppSyncUrl("https://clerk.projectv.uk/"), false);
+  assert.equal(isWebAppSyncUrl("https://example.com/"), false);
+  assert.equal(isWebAppSyncUrl(undefined), false);
   assert.equal(
-    isWebAppSyncUrl(
-      "https://vmem.vedantb.com/home",
-      "https://vmem.vedantb.com",
-    ),
+    isWebAppSyncUrl("http://localhost:5173/x", ["http://localhost:5173"]),
     true,
   );
-  assert.equal(
-    isWebAppSyncUrl(
-      "https://vmem.vedantb.com/home",
-      "https://clerk.projectv.uk",
-    ),
-    false,
-  );
-  assert.equal(
-    isWebAppSyncUrl("https://example.com/", "https://vmem.vedantb.com"),
-    false,
-  );
-  assert.equal(isWebAppSyncUrl(undefined, "https://vmem.vedantb.com"), false);
 });
 
 await test("harvestConvexTokenFromTab records no-inject-result when scripting returns empty", async () => {

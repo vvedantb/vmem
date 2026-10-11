@@ -12,6 +12,7 @@ The vmem Chrome extension connects your browser to your vmem account. Save pages
 ```bash
 cp apps/chrome-extension/.env.example apps/chrome-extension/.env.local
 # VITE_CONVEX_URL, VITE_CLERK_PUBLISHABLE_KEY, VITE_CLERK_SYNC_HOST
+# Omit them to use Project V Clerk, prod Convex, and https://vmem.projectv.uk.
 pnpm ext:build
 ```
 
