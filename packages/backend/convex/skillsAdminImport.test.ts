@@ -167,6 +167,31 @@ describe("skillsAdminImport.importForClerkUser", () => {
     expect(profiles[0]?.isDefault).toBe(true);
   });
 
+  it("rejects duplicate names and email collisions", async () => {
+    const t = testConvex();
+    await t.run(async (ctx) => {
+      await ctx.db.insert("users", {
+        clerkId: "user_a",
+        email: "a@example.com",
+      });
+    });
+    await expect(
+      t.mutation(internal.skillsAdminImport.importForClerkUser, {
+        clerkUserId: "user_a",
+        items: [ALPHA, { ...ALPHA, name: " alpha " }],
+        dryRun: true,
+      }),
+    ).rejects.toThrow(/duplicate/);
+    await expect(
+      t.mutation(internal.skillsAdminImport.importForClerkUser, {
+        clerkUserId: "user_b",
+        items: [ALPHA],
+        dryRun: false,
+        createMissingUser: { email: "A@example.com" },
+      }),
+    ).rejects.toThrow(/email/);
+  });
+
   it("rejects batches over 25", async () => {
     const t = testConvex();
     const items = Array.from({ length: 26 }, (_, i) => ({

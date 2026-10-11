@@ -47,6 +47,17 @@ export const importForClerkUser = internalMutation({
         `importForClerkUser accepts at most ${SKILLS_IMPORT_MAX} items`,
       );
     }
+    // A real run sees its own writes but a dry run does not, so repeated names
+    // would make the dry-run counts diverge. Callers dedupe first.
+    const seen = new Set<string>();
+    for (const item of args.items) {
+      const name = item.name.trim();
+      if (name.length === 0) continue;
+      if (seen.has(name)) {
+        throw new Error("items contain duplicate names");
+      }
+      seen.add(name);
+    }
     const clerkUserId = args.clerkUserId.trim();
     if (clerkUserId.length === 0) {
       throw new Error("clerkUserId is required");
@@ -81,9 +92,19 @@ export const importForClerkUser = internalMutation({
           skipped: args.items.length - valid,
         };
       }
+      const email = normalizeAccountEmail(profile.email);
+      if (email !== undefined) {
+        const sameEmail = await ctx.db
+          .query("users")
+          .withIndex("by_email", (q) => q.eq("email", email))
+          .first();
+        if (sameEmail) {
+          throw new Error("Another user already has this email");
+        }
+      }
       const userId = await ctx.db.insert("users", {
         clerkId: clerkUserId,
-        email: normalizeAccountEmail(profile.email),
+        email,
         firstName: profile.firstName,
         lastName: profile.lastName,
         fullName: profile.fullName,
