@@ -1,4 +1,4 @@
 {
   "name": "vmem",
-  "install": "(command -v claude >/dev/null || npm i -g @anthropic-ai/claude-code) && corepack enable && corepack prepare pnpm@10.15.1 --activate && HUSKY=0 pnpm install --frozen-lockfile"
+  "install": "(command -v claude >/dev/null || npm i -g @anthropic-ai/claude-code || sudo -n npm i -g @anthropic-ai/claude-code || npm i -g --prefix \"$HOME/.local\" @anthropic-ai/claude-code || true) && corepack enable && corepack prepare pnpm@10.15.1 --activate && HUSKY=0 pnpm install --frozen-lockfile"
 }
