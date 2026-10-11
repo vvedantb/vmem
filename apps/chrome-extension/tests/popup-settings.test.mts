@@ -294,3 +294,16 @@ await test("popup QuickSave reports success and failure from the save result", (
   assert.match(quickSave, /Page saved to vmem/);
   assert.match(quickSave, /Failed to extract page/);
 });
+
+await test("popup never renders blank when Clerk boot fails or is delayed", () => {
+  const providers = readRepo("apps/chrome-extension/src/popup/providers.tsx");
+  assert.match(providers, /getDerivedStateFromError/);
+  assert.match(providers, /<BootBoundary>/);
+  const html = readRepo(
+    "apps/chrome-extension/src/entrypoints/popup/index.html",
+  );
+  assert.match(html, /id="boot"/);
+  assert.match(html, /#root:empty \+ #boot/);
+  assert.match(html, /Sign in to start saving memories/);
+  assert.match(html, /Open vmem/);
+});
