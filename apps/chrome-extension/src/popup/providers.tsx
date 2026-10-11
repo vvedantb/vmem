@@ -20,17 +20,20 @@ class BootBoundary extends Component<
   { children: ReactNode },
   { failed: boolean }
 > {
-  state = { failed: false };
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { failed: false };
+  }
 
   static getDerivedStateFromError(): { failed: boolean } {
     return { failed: true };
   }
 
-  componentDidCatch(error: Error): void {
+  override componentDidCatch(error: Error): void {
     console.error("[vmem popup] boot failed", error);
   }
 
-  render(): ReactNode {
+  override render(): ReactNode {
     return this.state.failed ? null : this.props.children;
   }
 }
