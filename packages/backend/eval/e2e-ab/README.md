@@ -45,7 +45,7 @@ The judge model defaults to `sonnet`, or `opus` when the agent model contains `s
 ## Arms
 
 - `off`: `--strict-mcp-config` with `{ "mcpServers": {} }`. Built-in tools off (`--tools ""`).
-- `on`: `--strict-mcp-config` with only the `vmem` HTTP server. Built-in tools off. Only `mcp__vmem` is allowed.
+- `on`: `--strict-mcp-config` with only the `vmem` HTTP server. `--tools ""` is not passed, so MCP tools stay available.
 
 Both arms get the same task prompt, an empty temp working directory, and must end with an `ANSWER:` block. That block is the artifact.
 

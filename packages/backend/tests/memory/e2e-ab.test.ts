@@ -212,6 +212,40 @@ describe("guard", () => {
     expect(seen[0]?.server).toBe("vmem");
   });
 
+  it("keeps MCP tools on the on arm and disables tools on the off arm", async () => {
+    const captured: string[][] = [];
+    const spawn: SpawnClaude = async (request) => {
+      captured.push(request.args);
+      return {
+        stdout: `${JSON.stringify({ type: "result", result: "ANSWER: x" })}\n`,
+        stderr: "",
+        exitCode: 0,
+        timedOut: false,
+        aborted: false,
+      };
+    };
+    await runAgent({
+      arm: "on",
+      prompt: "q",
+      vmemMcpUrl: "https://example.convex.site/mcp",
+      timeoutMs: 1000,
+      spawn,
+    });
+    await runAgent({
+      arm: "off",
+      prompt: "q",
+      vmemMcpUrl: "https://example.convex.site/mcp",
+      timeoutMs: 1000,
+      spawn,
+    });
+    const onArgs = captured[0] ?? [];
+    const offArgs = captured[1] ?? [];
+    const toolsIndex = (args: string[]): number => args.indexOf("--tools");
+    expect(onArgs).toContain("--strict-mcp-config");
+    expect(toolsIndex(onArgs)).toBe(-1);
+    expect(offArgs[toolsIndex(offArgs) + 1]).toBe("");
+  });
+
   it("throws ContaminationError from runAgent when a banned server is invoked", async () => {
     const line = JSON.stringify({
       type: "assistant",

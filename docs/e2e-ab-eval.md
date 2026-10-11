@@ -18,8 +18,8 @@ Fixtures cover a durable preference, a multi-hop join, a stale fact with a later
 ## Fair A/B rules
 
 - Same task prompt in both arms. It names no memory tool.
-- `--strict-mcp-config` in both arms. `off` has an empty server list. `on` has vmem only.
-- Built-in tools are off and the working directory is an empty temp directory. The agent cannot read the fixture files.
+- `--strict-mcp-config` in both arms. `off` has an empty server list and `--tools ""`. `on` has vmem only and does not pass `--tools ""` (that flag would strip MCP).
+- The working directory is an empty temp directory. The agent cannot read the fixture files.
 - The judge scores the `ANSWER:` text only. It has no tools and no MCP.
 - Other memory servers are banned in both arms. `vmem` is also banned in `off`. A banned call aborts the trial as a `ContaminationError`. The trial is flagged and not scored.
 - Judge output that fails the schema gives no score. Nothing is invented.

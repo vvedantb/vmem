@@ -125,6 +125,8 @@ export async function runAgent(options: RunAgentOptions): Promise<AgentRun> {
       ? { vmem: { type: "http", url: options.vmemMcpUrl } }
       : {};
   return withSandbox(mcpServers, async (cwd, configPath) => {
+    // Off arm: no tools, empty MCP. On arm: do not pass `--tools ""` — that
+    // would strip MCP. `--strict-mcp-config` already limits servers to vmem.
     const args = [
       "-p",
       "--output-format",
@@ -133,9 +135,7 @@ export async function runAgent(options: RunAgentOptions): Promise<AgentRun> {
       "--strict-mcp-config",
       "--mcp-config",
       configPath,
-      "--tools",
-      "",
-      ...(options.arm === "on" ? ["--allowedTools", "mcp__vmem"] : []),
+      ...(options.arm === "off" ? ["--tools", ""] : []),
       ...(options.model ? ["--model", options.model] : []),
     ];
     const guard = createContaminationGuard(options.arm);
