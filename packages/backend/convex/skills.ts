@@ -671,6 +671,110 @@ export const createByClerkIdInternal = internalMutation({
   },
 });
 
+export type SkillImportItem = {
+  name: string;
+  description: string;
+  instructions: string;
+};
+
+export type SkillImportResult = {
+  created: number;
+  updated: number;
+  skipped: number;
+  names: string[];
+};
+
+// Personal-scope upsert by exact trimmed name, shared by the MCP skills_import
+// tool and the owner-level admin import. With dryRun it computes the same
+// counts without writing anything.
+export async function importPersonalSkills(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  items: SkillImportItem[],
+  options: { dryRun: boolean },
+): Promise<SkillImportResult> {
+  if (items.length > SKILLS_IMPORT_MAX) {
+    throw new Error(`skills_import accepts at most ${SKILLS_IMPORT_MAX} items`);
+  }
+  const { dryRun } = options;
+  const names: string[] = [];
+  let created = 0;
+  let updated = 0;
+  let skipped = 0;
+  let wrote = false;
+
+  for (const item of items) {
+    const name = item.name.trim();
+    if (
+      name.length === 0 ||
+      item.description.trim().length === 0 ||
+      item.instructions.trim().length === 0
+    ) {
+      skipped += 1;
+      continue;
+    }
+    if (await scopeHasInstalledSystemSkillNamed(ctx, userId, undefined, name)) {
+      skipped += 1;
+      continue;
+    }
+
+    const existing = await findSkillByNameInScope(ctx, userId, undefined, name);
+    if (existing) {
+      const sameBody =
+        existing.description === item.description &&
+        existing.instructions === item.instructions;
+      if (sameBody) {
+        if (existing.origin !== "vibot") {
+          if (!dryRun) {
+            await ctx.db.patch(existing._id, { origin: "vibot" });
+          }
+          updated += 1;
+          wrote = true;
+        } else {
+          skipped += 1;
+        }
+        names.push(name);
+        continue;
+      }
+      if (!dryRun) {
+        const patch = await buildSkillUpdatePatch(ctx, existing, {
+          description: item.description,
+          instructions: item.instructions,
+        });
+        await applySkillUpdate(ctx, existing, patch, {
+          source: "mcp",
+          authorUserId: userId,
+          force: true,
+        });
+        await ctx.db.patch(existing._id, { origin: "vibot" });
+      }
+      updated += 1;
+      wrote = true;
+      names.push(name);
+      continue;
+    }
+
+    if (!dryRun) {
+      await createSkillRecord(ctx, {
+        userId,
+        name,
+        description: item.description,
+        instructions: item.instructions,
+        origin: "vibot",
+      });
+    }
+    created += 1;
+    wrote = true;
+    names.push(name);
+  }
+
+  if (wrote && !dryRun) {
+    await invalidateContextPromptIfPersonal(ctx, userId, undefined);
+  }
+
+  return { created, updated, skipped, names };
+}
+
 export const importByClerkIdInternal = internalMutation({
   args: {
     clerkId: v.string(),
@@ -691,89 +795,9 @@ export const importByClerkIdInternal = internalMutation({
     if (grant.teamId !== undefined) {
       throw new Error("skills_import is personal only");
     }
-
-    const names: string[] = [];
-    let created = 0;
-    let updated = 0;
-    let skipped = 0;
-    let wrote = false;
-
-    for (const item of args.items) {
-      const name = item.name.trim();
-      if (
-        name.length === 0 ||
-        item.description.trim().length === 0 ||
-        item.instructions.trim().length === 0
-      ) {
-        skipped += 1;
-        continue;
-      }
-      if (
-        await scopeHasInstalledSystemSkillNamed(
-          ctx,
-          grant.userId,
-          undefined,
-          name,
-        )
-      ) {
-        skipped += 1;
-        continue;
-      }
-
-      const existing = await findSkillByNameInScope(
-        ctx,
-        grant.userId,
-        undefined,
-        name,
-      );
-      if (existing) {
-        const sameBody =
-          existing.description === item.description &&
-          existing.instructions === item.instructions;
-        if (sameBody) {
-          if (existing.origin !== "vibot") {
-            await ctx.db.patch(existing._id, { origin: "vibot" });
-            updated += 1;
-            wrote = true;
-          } else {
-            skipped += 1;
-          }
-          names.push(name);
-          continue;
-        }
-        const patch = await buildSkillUpdatePatch(ctx, existing, {
-          description: item.description,
-          instructions: item.instructions,
-        });
-        await applySkillUpdate(ctx, existing, patch, {
-          source: "mcp",
-          authorUserId: grant.userId,
-          force: true,
-        });
-        await ctx.db.patch(existing._id, { origin: "vibot" });
-        updated += 1;
-        wrote = true;
-        names.push(name);
-        continue;
-      }
-
-      await createSkillRecord(ctx, {
-        userId: grant.userId,
-        name,
-        description: item.description,
-        instructions: item.instructions,
-        origin: "vibot",
-      });
-      created += 1;
-      wrote = true;
-      names.push(name);
-    }
-
-    if (wrote) {
-      await invalidateContextPromptIfPersonal(ctx, grant.userId, undefined);
-    }
-
-    return { created, updated, skipped, names };
+    return await importPersonalSkills(ctx, grant.userId, args.items, {
+      dryRun: false,
+    });
   },
 });
 
