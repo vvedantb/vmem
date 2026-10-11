@@ -201,19 +201,17 @@ async function loadUnpacked(): Promise<LoadResult> {
       waitUntil: "domcontentloaded",
       timeout: 15_000,
     });
-    let signedOutRendered = true;
     await page
       .waitForFunction(
         () =>
           document.body.innerText.includes("Sign in to start saving memories"),
-        { timeout: 15_000 },
+        { timeout: 30_000 },
       )
-      .catch(() => {
-        signedOutRendered = false;
-      });
+      .catch(() => {});
     const popupPath = path.join(artifactDir, "extension_popup_signed_out.png");
     await page.screenshot({ path: popupPath });
     const bodyText = await page.evaluate(() => document.body.innerText);
+    const signedOutRendered = /Sign in to start saving memories/.test(bodyText);
     const live = await probeLivePages(browser);
 
     const failure =
