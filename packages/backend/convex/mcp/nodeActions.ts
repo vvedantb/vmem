@@ -6,6 +6,7 @@ import { createClerkClient } from "@clerk/backend";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { getClerkClient } from "@vvedantb/convex-kit";
+import { runSdkMcpRequest } from "@vvedantb/mcp-kit";
 import { registerTools } from "./tools";
 import { registerResources } from "./resources";
 import { registerMemoryGraphApp } from "./memoryGraphApp";
@@ -63,54 +64,18 @@ export const handleMcpRequest = internalAction({
     status: v.number(),
     body: v.string(),
   }),
-  handler: async (ctx, { clerkUserId, body, scope }) => {
-    try {
-      const parsedBody: unknown = JSON.parse(body);
-
-      const server = new McpServer(mcpServerInfo(scope));
-
-      registerTools(server, clerkUserId, ctx, scope);
-      registerMemoryGraphApp(server, clerkUserId, ctx, scope);
-      await registerResources(server, clerkUserId, ctx, scope);
-
-      const transport = new WebStandardStreamableHTTPServerTransport({
-        sessionIdGenerator: undefined,
-        enableJsonResponse: true,
-      });
-
-      await server.connect(transport);
-
-      const req = new Request(
+  handler: async (ctx, { clerkUserId, body, scope }) =>
+    runSdkMcpRequest({
+      body,
+      url:
         scope === "team" ? "http://localhost/mcp/team" : "http://localhost/mcp",
-        {
-          method: "POST",
-          headers: {
-            "content-type": "application/json",
-            accept: "application/json, text/event-stream",
-          },
-          body,
-        },
-      );
-
-      const response = await transport.handleRequest(req, { parsedBody });
-      const responseBody = await response.text();
-
-      return {
-        status: response.status,
-        body: responseBody,
-      };
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Internal server error";
-      console.error("[MCP][handleMcpRequest] threw:", message, err);
-      return {
-        status: 500,
-        body: JSON.stringify({
-          jsonrpc: "2.0",
-          error: { code: -32603, message },
-          id: null,
-        }),
-      };
-    }
-  },
+      Transport: WebStandardStreamableHTTPServerTransport,
+      createServer: async () => {
+        const server = new McpServer(mcpServerInfo(scope));
+        registerTools(server, clerkUserId, ctx, scope);
+        registerMemoryGraphApp(server, clerkUserId, ctx, scope);
+        await registerResources(server, clerkUserId, ctx, scope);
+        return server;
+      },
+    }),
 });
