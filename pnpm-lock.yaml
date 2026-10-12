@@ -554,6 +554,9 @@ importers:
       '@vvedantb/convex-kit':
         specifier: 0.1.0
         version: 0.1.0(@clerk/backend@2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))
+      '@vvedantb/mcp-kit':
+        specifier: 0.1.0
+        version: 0.1.0(@clerk/backend@2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(zod@3.25.76)
       ai:
         specifier: ^7.0.108
         version: 7.0.108(zod@3.25.76)
@@ -4941,6 +4944,14 @@ packages:
       '@clerk/backend': '>=1'
     peerDependenciesMeta:
       '@clerk/backend':
+        optional: true
+
+  '@vvedantb/mcp-kit@0.1.0':
+    resolution: {integrity: sha512-/vKnM5nyd9HVcsND/n3o+6p8j6otNHM1+wKxTyBInpIq6SWvF4sEHWu28ontgPhE4tktUrYLSt5NHYnWE9PEBw==}
+    peerDependencies:
+      zod: ^3.25.0 || ^4.0.0
+    peerDependenciesMeta:
+      zod:
         optional: true
 
   '@vvedantb/shell@0.1.2':
@@ -13715,6 +13726,14 @@ snapshots:
   '@vvedantb/convex-kit@0.1.0(@clerk/backend@2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))':
     optionalDependencies:
       '@clerk/backend': 2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+
+  '@vvedantb/mcp-kit@0.1.0(@clerk/backend@2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(zod@3.25.76)':
+    dependencies:
+      '@vvedantb/convex-kit': 0.1.0(@clerk/backend@2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))
+    optionalDependencies:
+      zod: 3.25.76
+    transitivePeerDependencies:
+      - '@clerk/backend'
 
   '@vvedantb/shell@0.1.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:

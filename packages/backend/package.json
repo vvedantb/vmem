@@ -40,6 +40,7 @@
     "@vmem/sdk": "workspace:*",
     "@vmem/shared": "workspace:*",
     "@vvedantb/convex-kit": "0.1.0",
+    "@vvedantb/mcp-kit": "0.1.0",
     "ai": "^7.0.108",
     "arctic": "~3.7.0",
     "convex": "catalog:",
