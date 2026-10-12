@@ -1,3 +1,4 @@
+import { requiredEnv } from "@vvedantb/convex-kit";
 import { generateCodeVerifier, generateState, type OAuth2Tokens } from "arctic";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
@@ -6,7 +7,7 @@ import { internalAction, type ActionCtx } from "../_generated/server";
 import { authAction } from "../auth";
 import { auditLog, ResourceTypes } from "../auditLog";
 import { oauthScopeString, oauthTokenType } from "../lib/arcticOAuth";
-import { decryptToken, encryptToken, getEnvOrThrow } from "../lib/crypto";
+import { decryptToken, encryptToken } from "../lib/crypto";
 import { pickGoogleTokenConnectorId, scopeIncludesDrive } from "./googleShared";
 import {
   buildConnectorAuthorizationUrl,
@@ -47,7 +48,7 @@ async function encryptAndStoreOAuthTokens(
 }
 
 function connectorCallbackRedirectUri(): string {
-  return `${getEnvOrThrow("CONVEX_SITE_URL")}/api/auth/connector/callback`;
+  return `${requiredEnv("CONVEX_SITE_URL")}/api/auth/connector/callback`;
 }
 
 const startOAuthResult = v.object({

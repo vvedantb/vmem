@@ -1,3 +1,4 @@
+import { requiredEnv } from "@vvedantb/convex-kit";
 import type { OAuth2Tokens } from "arctic";
 import type { Doc } from "../_generated/dataModel";
 import {
@@ -6,7 +7,6 @@ import {
   createGoogleOAuth,
   createNotionOAuth,
 } from "../lib/arcticOAuth";
-import { getEnvOrThrow } from "../lib/crypto";
 import { GMAIL_OAUTH_SCOPES, GOOGLE_OAUTH_SCOPES } from "./googleShared";
 
 // pure provider policy for connector oauth, kept free of convex ctx so tests can import it
@@ -193,8 +193,8 @@ export async function refreshConnectorAccessToken(
 }
 
 async function revokeGitHubGrant(accessToken: string): Promise<void> {
-  const clientId = getEnvOrThrow("GITHUB_CLIENT_ID");
-  const clientSecret = getEnvOrThrow("GITHUB_CLIENT_SECRET");
+  const clientId = requiredEnv("GITHUB_CLIENT_ID");
+  const clientSecret = requiredEnv("GITHUB_CLIENT_SECRET");
   const response = await fetch(
     `https://api.github.com/applications/${encodeURIComponent(clientId)}/grant`,
     {

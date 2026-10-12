@@ -1,3 +1,4 @@
+import { expectMcpToolCount } from "@vvedantb/convex-kit";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -27,7 +28,8 @@ describe("MCP tool catalog", () => {
         ...FILES_TOOL_NAMES,
       ]),
     );
-    expect(names).toHaveLength(
+    expectMcpToolCount(
+      names,
       CORE_TOOL_NAMES.length +
         CONTEXT_TOOL_NAMES.length +
         MEMORY_TOOL_NAMES.length +

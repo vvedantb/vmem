@@ -1,8 +1,9 @@
+import { requiredEnv } from "@vvedantb/convex-kit";
 import type { ActionCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import { oauthTokenType } from "./arcticOAuth";
-import { decryptToken, encryptToken, getEnvOrThrow } from "./crypto";
+import { decryptToken, encryptToken } from "./crypto";
 import { pickGoogleTokenConnectorId } from "../connectors/googleShared";
 import {
   refreshConnectorAccessToken,
@@ -21,7 +22,7 @@ function sharesGoogleTokenRow(
 }
 
 function connectorCallbackRedirectUri(): string {
-  return `${getEnvOrThrow("CONVEX_SITE_URL")}/api/auth/connector/callback`;
+  return `${requiredEnv("CONVEX_SITE_URL")}/api/auth/connector/callback`;
 }
 
 export async function resolveConnectorAccessToken(
