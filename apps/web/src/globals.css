@@ -8,58 +8,13 @@
 @source "../../../node_modules/@vvedantb/shell/dist/**/*.js";
 @source "../../../node_modules/@vvedantb/app-kit/dist/**/*.js";
 
+@import "@vvedantb/tokens/css/animations.css";
+
 @theme {
   --font-instrumentSerif: "Instrument Serif", Georgia, serif;
   --font-inter: "Inter", system-ui, sans-serif;
 
   --breakpoint-xs: 475px;
-
-  --animate-aurora: aurora 8s ease-in-out infinite alternate;
-  --animate-fade-in-up: fade-in-up 0.4s ease-out forwards;
-  --animate-indeterminate: indeterminate 1.5s ease-in-out infinite;
-
-  @keyframes aurora {
-    0% {
-      background-position: 0% 50%;
-      transform: rotate(-5deg) scale(0.9);
-    }
-    25% {
-      background-position: 50% 100%;
-      transform: rotate(5deg) scale(1.1);
-    }
-    50% {
-      background-position: 100% 50%;
-      transform: rotate(-3deg) scale(0.95);
-    }
-    75% {
-      background-position: 50% 0%;
-      transform: rotate(3deg) scale(1.05);
-    }
-    100% {
-      background-position: 0% 50%;
-      transform: rotate(-5deg) scale(0.9);
-    }
-  }
-
-  @keyframes fade-in-up {
-    0% {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    100% {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @keyframes indeterminate {
-    0% {
-      transform: translateX(-100%);
-    }
-    100% {
-      transform: translateX(400%);
-    }
-  }
 }
 
 /* transitions-dev — modal + tabs (see .claude/skills/transitions-dev/) */
@@ -100,61 +55,12 @@
 
 /*
  * Colour, radius, shadow and font tokens live in @vvedantb/tokens.
- * Tab chrome vars stay here — they are app modal/tab CSS, not the token set.
+ * Base element rules and tab chrome vars come from the shared CSS files.
  */
-@layer base {
-  html {
-    touch-action: manipulation;
-    accent-color: var(--accent);
-  }
-
-  :root,
-  .light,
-  .default,
-  [data-theme="light"],
-  [data-theme="default"] {
-    --tabs-text-muted: var(--muted);
-    --tabs-text-active: var(--segment-foreground);
-    --tabs-bar-bg: var(--default);
-    --tabs-pill-bg: var(--segment);
-    --tabs-pill-active-bg: var(--default);
-  }
-
-  .dark,
-  [data-theme="dark"] {
-    --tabs-text-muted: var(--muted);
-    --tabs-text-active: var(--segment-foreground);
-    --tabs-bar-bg: var(--default);
-    --tabs-pill-bg: var(--segment);
-    --tabs-pill-active-bg: var(--default);
-  }
-}
+@import "@vvedantb/tokens/css/base.css";
+@import "@vvedantb/tokens/css/tabs-pills.css";
 
 @layer base {
-  ::selection {
-    background-color: color-mix(in oklch, var(--accent) 18%, transparent);
-    color: var(--foreground);
-  }
-
-  button,
-  a,
-  input,
-  textarea,
-  [role="button"] {
-    transition-property:
-      background-color, border-color, color, box-shadow, transform, opacity;
-    transition-duration: 240ms;
-    transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
-  }
-
-  /* Tailwind v4 preflight sets `cursor: default` on buttons — restore the
-     pointer affordance for enabled interactive controls. */
-  button:not(:disabled),
-  [role="button"]:not(:disabled),
-  a[href] {
-    cursor: pointer;
-  }
-
   /* Radix menu items render as divs with menu roles, not buttons. */
   [role="menuitem"]:not([data-disabled]),
   [role="menuitemcheckbox"]:not([data-disabled]),
@@ -168,10 +74,6 @@
   [role="menuitemradio"][data-disabled],
   [role="option"][data-disabled] {
     cursor: not-allowed;
-  }
-
-  input[type="range"] {
-    accent-color: var(--accent);
   }
 
   input[type="range"].timeline-scrubber {
@@ -225,102 +127,16 @@
   }
 }
 
-/*
- * @vvedantb/ui 0.1.5 presents Dialog as a bottom sheet at max-width 639px or
- * max-height 500px (DialogContent sets data-compact="true"). Per-dialog
- * max-w-* utilities would otherwise shrink and left-align that sheet.
- * Unlayered, so it wins over Tailwind utilities.
- */
-[role="dialog"][data-compact="true"],
-[role="alertdialog"][data-compact="true"] {
-  max-width: none;
-}
+@import "@vvedantb/tokens/css/dialog.css";
+@import "@vvedantb/tokens/css/modal.css";
+@import "@vvedantb/tokens/css/tabs.css";
 
 @layer components {
-  /* Transitions.dev — Modal open / close */
-  .t-modal {
-    transform-origin: center;
-    transform: translate(-50%, -50%) scale(var(--modal-scale));
-    opacity: 0;
-    pointer-events: none;
-    transition:
-      transform var(--modal-open-dur) var(--modal-ease),
-      opacity var(--modal-open-dur) var(--modal-ease);
-    will-change: transform, opacity;
-  }
-  .t-modal.is-open {
-    transform: translate(-50%, -50%) scale(1);
-    opacity: 1;
-    pointer-events: auto;
-  }
-  .t-modal.is-closing {
-    transform: translate(-50%, -50%) scale(var(--modal-scale-close));
-    opacity: 0;
-    pointer-events: none;
-    transition:
-      transform var(--modal-close-dur) var(--modal-ease),
-      opacity var(--modal-close-dur) var(--modal-ease);
-    /* Radix Presence waits on animationend, not transitionend */
-    animation: t-modal-presence-wait var(--modal-close-dur) linear forwards;
-  }
-
-  @keyframes t-modal-presence-wait {
-    from {
-      clip-path: inset(0);
-    }
-    to {
-      clip-path: inset(0);
-    }
-  }
-
-  /* Transitions.dev — Tabs sliding */
   .t-tabs {
     position: relative;
     display: inline-flex;
     align-items: center;
     max-width: 100%;
-  }
-  /* Connected segmented bar with a sliding pill — marketing only. */
-  .t-tabs--segmented {
-    gap: 3px;
-    padding: 3px;
-    border-radius: 48px;
-    background: var(--tabs-bar-bg);
-  }
-  /* Isolated pills — product default. No shared track; each tab owns its
-     outline and the selected tab takes a light fill. */
-  .t-tabs--pills {
-    gap: 6px;
-    padding: 0;
-    background: transparent;
-  }
-  @media (max-width: 639px) {
-    .t-tabs {
-      justify-content: safe center;
-      overflow-x: auto;
-      scrollbar-width: none;
-    }
-    .t-tabs::-webkit-scrollbar {
-      display: none;
-    }
-  }
-  .t-tab {
-    position: relative;
-    appearance: none;
-    border: 0;
-    background: transparent;
-    height: 30px;
-    padding: 4px 12px;
-    color: var(--tabs-text-muted);
-    cursor: pointer;
-    border-radius: 48px;
-    z-index: 1;
-    transition: color var(--tabs-dur) var(--tabs-ease);
-  }
-  .t-tab:not([aria-selected="true"]):not([data-state="active"]):hover,
-  .t-tab[aria-selected="true"],
-  .t-tab[data-state="active"] {
-    color: var(--tabs-text-active);
   }
   .t-tabs--pills .t-tab {
     flex-shrink: 0;
@@ -331,36 +147,6 @@
       color var(--tabs-dur) var(--tabs-ease),
       background-color var(--tabs-dur) var(--tabs-ease),
       border-color var(--tabs-dur) var(--tabs-ease);
-  }
-  .t-tabs--pills
-    .t-tab:not([aria-selected="true"]):not([data-state="active"]):hover {
-    background: color-mix(
-      in oklch,
-      var(--tabs-pill-active-bg) 50%,
-      transparent
-    );
-  }
-  .t-tabs--pills .t-tab[aria-selected="true"],
-  .t-tabs--pills .t-tab[data-state="active"] {
-    background: var(--tabs-pill-active-bg);
-  }
-  .t-tabs-pill {
-    position: absolute;
-    top: 3px;
-    left: 0;
-    height: 30px;
-    width: 0;
-    background: var(--tabs-pill-bg);
-    border-radius: 48px;
-    transform: translateX(0);
-    transition:
-      transform var(--tabs-dur) var(--tabs-ease),
-      width var(--tabs-dur) var(--tabs-ease),
-      top var(--tabs-dur) var(--tabs-ease),
-      height var(--tabs-dur) var(--tabs-ease);
-    will-change: transform, width;
-    z-index: 0;
-    pointer-events: none;
   }
 
   .glass-panel-strong {
@@ -434,40 +220,9 @@
   .scrollbar-none::-webkit-scrollbar {
     display: none;
   }
-
-  /* Firefox-only fallback: standard scrollbar properties are ignored by Chrome
-     121+ when webkit rules exist, so gate them with @supports to give webkit
-     precedence. Chrome gets the instant 6px thumb; Firefox gets thin themed. */
-  @supports not selector(::-webkit-scrollbar) {
-    .scrollbar-thin {
-      scrollbar-width: thin;
-      scrollbar-color: color-mix(in oklch, var(--scrollbar) 80%, transparent)
-        transparent;
-    }
-
-    .scrollbar-thin:hover {
-      scrollbar-color: color-mix(in oklch, var(--scrollbar) 100%, transparent)
-        transparent;
-    }
-  }
-
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: color-mix(in oklch, var(--scrollbar) 80%, transparent);
-    border-radius: 3px;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background-color: color-mix(in oklch, var(--scrollbar) 100%, transparent);
-  }
 }
+
+@import "@vvedantb/tokens/css/scrollbar-thin.css";
 
 /*
  * View transitions — see src/lib/view-transitions.ts.

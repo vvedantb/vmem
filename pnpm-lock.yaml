@@ -209,11 +209,11 @@ importers:
         specifier: workspace:*
         version: link:../../packages/shared
       '@vvedantb/tokens':
-        specifier: 0.1.0
-        version: 0.1.0
+        specifier: ^0.2.0
+        version: 0.2.0
       '@vvedantb/ui':
         specifier: 0.1.5
-        version: 0.1.5(658014f60abb40b5790ae658b22c8871)
+        version: 0.1.5(2583f054703d59878ca9848d2c94a048)
       '@webext-core/messaging':
         specifier: ^2.3.0
         version: 2.3.0
@@ -392,11 +392,11 @@ importers:
         specifier: 0.1.2
         version: 0.1.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@vvedantb/tokens':
-        specifier: 0.1.0
-        version: 0.1.0
+        specifier: ^0.2.0
+        version: 0.2.0
       '@vvedantb/ui':
         specifier: 0.1.5
-        version: 0.1.5(cc67b7c0671601ce1719fc912ec68831)
+        version: 0.1.5(7c605982004aa9dda820f4713d10f4fa)
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1
@@ -4949,8 +4949,8 @@ packages:
       react: '>=19'
       react-dom: '>=19'
 
-  '@vvedantb/tokens@0.1.0':
-    resolution: {integrity: sha512-4gmNVQJrI/8eNTi4J1qhYCpl0JpMQIdiZxzcfFAFrXjbuEbvql98ZKgsnnPeVN+/lz6KClUpomjGbxB4UUO8/Q==}
+  '@vvedantb/tokens@0.2.0':
+    resolution: {integrity: sha512-vhFTGHKt5I6gz/+ZWeSfj24/oFqJ0oTFVQD1CZn9Mytjab8HdIfbxXdLPTL12o6ajkNoO8OK1uvlCYtZAMGYYg==}
 
   '@vvedantb/ui@0.1.5':
     resolution: {integrity: sha512-iYKk7Sv2aU+QzmgHAmYVKOFKaxnJ2m3KfrYM+bR6uGq5Qn4pgbgoa3Y443Dzfq0EhlV1n7XkyIM0CEwisf40gw==}
@@ -13721,9 +13721,9 @@ snapshots:
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
 
-  '@vvedantb/tokens@0.1.0': {}
+  '@vvedantb/tokens@0.2.0': {}
 
-  '@vvedantb/ui@0.1.5(658014f60abb40b5790ae658b22c8871)':
+  '@vvedantb/ui@0.1.5(2583f054703d59878ca9848d2c94a048)':
     dependencies:
       '@radix-ui/react-accordion': 1.2.20(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@radix-ui/react-checkbox': 1.3.11(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -13749,7 +13749,7 @@ snapshots:
       '@streamdown/math': 1.0.3(react@19.3.0)
       '@streamdown/mermaid': 1.0.3(react@19.3.0)
       '@tabler/icons-react': 3.41.1(react@19.3.0)
-      '@vvedantb/tokens': 0.1.0
+      '@vvedantb/tokens': 0.2.0
       ai: 7.0.108(zod@3.25.76)
       class-variance-authority: 0.7.1
       clsx: 2.1.1
@@ -13767,7 +13767,7 @@ snapshots:
       use-stick-to-bottom: 1.1.6(react@19.3.0)
       vaul: 1.1.2(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
 
-  '@vvedantb/ui@0.1.5(cc67b7c0671601ce1719fc912ec68831)':
+  '@vvedantb/ui@0.1.5(7c605982004aa9dda820f4713d10f4fa)':
     dependencies:
       '@radix-ui/react-accordion': 1.2.20(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@radix-ui/react-checkbox': 1.3.3(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -13793,7 +13793,7 @@ snapshots:
       '@streamdown/math': 1.0.3(react@19.3.0)
       '@streamdown/mermaid': 1.0.3(react@19.3.0)
       '@tabler/icons-react': 3.41.1(react@19.3.0)
-      '@vvedantb/tokens': 0.1.0
+      '@vvedantb/tokens': 0.2.0
       ai: 7.0.108(zod@3.25.76)
       class-variance-authority: 0.7.1
       clsx: 2.1.1
