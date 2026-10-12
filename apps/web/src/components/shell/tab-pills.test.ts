@@ -12,6 +12,13 @@ const uiSrc = [
 if (!uiSrc) {
   throw new Error("@vvedantb/ui source not installed");
 }
+const tokensCss = [
+  path.join(webSrc, "../node_modules/@vvedantb/tokens/src/css"),
+  path.join(webSrc, "../../../node_modules/@vvedantb/tokens/src/css"),
+].find((dir) => existsSync(dir));
+if (!tokensCss) {
+  throw new Error("@vvedantb/tokens CSS not installed");
+}
 
 function read(file: string): string {
   return readFileSync(file, "utf8");
@@ -34,7 +41,12 @@ describe("shared shell pills live in @vvedantb/shell", () => {
 
 describe("product tabs are isolated pills", () => {
   const tabs = read(path.join(uiSrc, "ui/tabs.tsx"));
-  const css = read(path.join(webSrc, "globals.css"));
+  const globals = read(path.join(webSrc, "globals.css"));
+  const css = [
+    globals,
+    read(path.join(tokensCss, "tabs.css")),
+    read(path.join(tokensCss, "tabs-pills.css")),
+  ].join("\n");
 
   it("defaults TabsList to the pills variant", () => {
     expect(tabs).toContain('variant = "pills"');
@@ -51,6 +63,9 @@ describe("product tabs are isolated pills", () => {
   });
 
   it("gives pills a gap and no shared track", () => {
+    expect(globals).toContain('@import "@vvedantb/tokens/css/tabs.css"');
+    expect(globals).toContain('@import "@vvedantb/tokens/css/tabs-pills.css"');
+
     const base = cssRule(css, ".t-tabs");
     expect(base).not.toContain("background");
     expect(base).not.toContain("padding");
