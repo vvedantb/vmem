@@ -1,3 +1,4 @@
+import { assertMcpTools } from "@vvedantb/convex-kit";
 import { describe, expect, it } from "vitest";
 import {
   catalogNamesForScope,
@@ -21,7 +22,7 @@ describe("in-process MCP extreme catalog", () => {
   it("personal catalog is every core/memory/skills/files tool plus graph, no wiki or neo4j", async () => {
     const client = new InProcessMcpClient({ token: MOCK_MCP_TOKEN });
     const names = await client.listTools();
-    expect(names.sort()).toEqual(catalogNamesForScope("personal").sort());
+    assertMcpTools(names, catalogNamesForScope("personal"));
     expect(names).toEqual(
       expect.arrayContaining([
         ...CORE_TOOL_NAMES,

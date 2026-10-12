@@ -1,15 +1,8 @@
+import { requiredEnv } from "@vvedantb/convex-kit";
 import { decodeBase64Bytes, encodeBase64Bytes } from "./base64";
 
-export function getEnvOrThrow(name: string): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`Missing ${name} environment variable`);
-  }
-  return value;
-}
-
 async function getEncryptionKey(): Promise<CryptoKey> {
-  const keyBytes = decodeBase64Bytes(getEnvOrThrow("ENCRYPTION_KEY"));
+  const keyBytes = decodeBase64Bytes(requiredEnv("ENCRYPTION_KEY"));
   return crypto.subtle.importKey("raw", keyBytes, { name: "AES-GCM" }, false, [
     "encrypt",
     "decrypt",
