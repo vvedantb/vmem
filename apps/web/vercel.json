@@ -23,6 +23,16 @@
       ],
       "destination": "https://vmem.projectv.uk/$1",
       "permanent": true
+    },
+    {
+      "source": "/slides",
+      "destination": "https://openwork.vedantb.com/slides/intro-to-vmem",
+      "permanent": false
+    },
+    {
+      "source": "/slides/(.*)",
+      "destination": "https://openwork.vedantb.com/slides/intro-to-vmem",
+      "permanent": false
     }
   ],
   "rewrites": [
