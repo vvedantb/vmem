@@ -26,8 +26,6 @@ import {
   memoryEntityFields,
   memoryEntityMentionFields,
   proposedUpdateFields,
-  presentationSessionFields,
-  presentationVoteFields,
 } from "./validators";
 
 const schema = defineSchema({
@@ -180,21 +178,6 @@ const schema = defineSchema({
     .index("by_proposal_id", ["proposalId"])
     .index("by_user_status", ["userId", "status"])
     .index("by_profile_status", ["profileId", "status"]),
-
-  presentationSessions: defineTable(presentationSessionFields).index(
-    "by_code",
-    ["code"],
-  ),
-
-  presentationVotes: defineTable(presentationVoteFields)
-    .index("by_code_poll", ["code", "pollId"])
-    .index("by_code_poll_participant", ["code", "pollId", "participantKey"])
-    .index("by_code_poll_participant_option", [
-      "code",
-      "pollId",
-      "participantKey",
-      "optionId",
-    ]),
 });
 
 export default schema;

@@ -6,7 +6,6 @@ import { PageMotionProvider } from "@/providers/PageMotionProvider";
 import { QueryProvider } from "@/providers/QueryProvider";
 import { ConvexClientProvider } from "@/providers/ConvexClientProvider";
 import { EnsureUser } from "@/providers/EnsureUser";
-import { slidesPublicBoot } from "@/lib/slides-public-boot";
 
 export function ClientProvider({ children }: { children: React.ReactNode }) {
   // Public marketing page is dark-only, matching vibot/verve. Do not persist
@@ -25,7 +24,7 @@ export function ClientProvider({ children }: { children: React.ReactNode }) {
           forcedTheme={isLanding ? "dark" : undefined}
           disableTransitionOnChange
         >
-          {!slidesPublicBoot && <EnsureUser />}
+          <EnsureUser />
           <MotionProvider>
             <PageMotionProvider>
               <QueryProvider>{children}</QueryProvider>

@@ -82,13 +82,9 @@ function supportsViewTransitionTypes(): boolean {
   );
 }
 
-// landing, public slides and the agent callback keep instant swaps
+// landing and the agent callback keep instant swaps
 function isShellPath(pathname: string): boolean {
-  return (
-    pathname !== "/" &&
-    !pathname.startsWith("/slides") &&
-    !pathname.startsWith("/agent-callback")
-  );
+  return pathname !== "/" && !pathname.startsWith("/agent-callback");
 }
 
 // crossfade only real page changes inside the app shell (not first load or

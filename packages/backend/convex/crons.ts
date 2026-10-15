@@ -10,15 +10,6 @@ crons.cron(
   {},
 );
 
-// 05:00 UTC daily — drop ended / long-idle live slide-share sessions and
-// their presence rows so the presentation tables stay small.
-crons.cron(
-  "prune presentation sessions",
-  "0 5 * * *",
-  internal.presentations.pruneStaleInternal,
-  {},
-);
-
 // folds append-only openRouter log rows into the cost/token aggregates
 crons.interval(
   "drain openRouter log aggregates",

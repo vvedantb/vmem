@@ -42,9 +42,6 @@ describe("routeTransitionTypes", () => {
 
   it("skips pages outside the shell", () => {
     expect(routeTransitionTypes(change("/", "/home"), false)).toBe(false);
-    expect(routeTransitionTypes(change("/p1/home", "/slides"), false)).toBe(
-      false,
-    );
     expect(
       routeTransitionTypes(change("/agent-callback", "/home"), false),
     ).toBe(false);
