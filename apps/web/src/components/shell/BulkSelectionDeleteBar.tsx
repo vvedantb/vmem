@@ -14,7 +14,7 @@ import {
   ConfirmSkipHint,
   skipConfirmTitle,
   useRequestConfirm,
-} from "@vvedantb/app-kit";
+} from "@vvedantb/ui/app";
 
 interface BulkSelectionDeleteBarProps {
   count: number;

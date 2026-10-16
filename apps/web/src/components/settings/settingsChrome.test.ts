@@ -37,7 +37,7 @@ describe("settings chrome mirrors Eva", () => {
     expect(read("SettingsPage.tsx")).toContain("centeredMaxWidth");
     expect(read("SettingsPage.tsx")).toContain("noScroll={fillHeight}");
     expect(read("ExtensionSettingsClient.tsx")).toContain(
-      'from "@vvedantb/app-kit"',
+      'from "@vvedantb/ui/app"',
     );
     expect(read("ExperimentalSettingsClient.tsx")).toContain(
       "disablePageMotion",

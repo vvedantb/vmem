@@ -1,14 +1,14 @@
 @import "tailwindcss";
-@import "@vvedantb/tokens";
+@import "@vvedantb/ui/tokens";
 @import "shadow-plugin";
 @plugin "tailwindcss-animate";
 
-/* Tailwind does not scan node_modules; include shared UI + compiled shell. */
+/* Tailwind does not scan node_modules; include shared UI, shell and app sources. */
 @source "../../../node_modules/@vvedantb/ui/src/**/*.{ts,tsx}";
-@source "../../../node_modules/@vvedantb/shell/dist/**/*.js";
-@source "../../../node_modules/@vvedantb/app-kit/dist/**/*.js";
+@source "../../../node_modules/@vvedantb/ui/shell/src/**/*.{ts,tsx}";
+@source "../../../node_modules/@vvedantb/ui/app/src/**/*.{ts,tsx}";
 
-@import "@vvedantb/tokens/css/animations.css";
+@import "@vvedantb/ui/tokens/css/animations.css";
 
 @theme {
   --font-instrumentSerif: "Instrument Serif", Georgia, serif;
@@ -54,11 +54,11 @@
 }
 
 /*
- * Colour, radius, shadow and font tokens live in @vvedantb/tokens.
+ * Colour, radius, shadow and font tokens live in @vvedantb/ui/tokens.
  * Base element rules and tab chrome vars come from the shared CSS files.
  */
-@import "@vvedantb/tokens/css/base.css";
-@import "@vvedantb/tokens/css/tabs-pills.css";
+@import "@vvedantb/ui/tokens/css/base.css";
+@import "@vvedantb/ui/tokens/css/tabs-pills.css";
 
 @layer base {
   /* Radix menu items render as divs with menu roles, not buttons. */
@@ -127,9 +127,9 @@
   }
 }
 
-@import "@vvedantb/tokens/css/dialog.css";
-@import "@vvedantb/tokens/css/modal.css";
-@import "@vvedantb/tokens/css/tabs.css";
+@import "@vvedantb/ui/tokens/css/dialog.css";
+@import "@vvedantb/ui/tokens/css/modal.css";
+@import "@vvedantb/ui/tokens/css/tabs.css";
 
 @layer components {
   .t-tabs {
@@ -222,7 +222,7 @@
   }
 }
 
-@import "@vvedantb/tokens/css/scrollbar-thin.css";
+@import "@vvedantb/ui/tokens/css/scrollbar-thin.css";
 
 /*
  * View transitions — see src/lib/view-transitions.ts.

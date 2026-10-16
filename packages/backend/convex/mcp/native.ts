@@ -6,7 +6,7 @@ import {
   createHealthHandler,
   createMcpHttpHandler,
   createProtectedResourceMetadata,
-} from "@vvedantb/mcp-kit";
+} from "@vvedantb/server/mcp";
 import type { McpScope } from "../profiles/mcpAccess";
 
 // proxies clerk as metadata for older mcp clients that hit this host's well, known

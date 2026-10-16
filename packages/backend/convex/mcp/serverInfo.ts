@@ -1,4 +1,4 @@
-import { defineMcpServerInfo } from "@vvedantb/convex-kit";
+import { defineMcpServerInfo } from "@vvedantb/server/convex";
 import type { McpScope } from "../profiles/mcpAccess";
 
 export const MCP_SERVER_VERSION = "2.0.0";

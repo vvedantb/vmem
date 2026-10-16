@@ -25,7 +25,7 @@ import {
   ConfirmSkipHint,
   skipConfirmTitle,
   useRequestConfirm,
-} from "@vvedantb/app-kit";
+} from "@vvedantb/ui/app";
 import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
 import {
   patchSkillInLists,

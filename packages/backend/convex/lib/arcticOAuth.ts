@@ -1,4 +1,4 @@
-import { requiredEnv } from "@vvedantb/convex-kit";
+import { requiredEnv } from "@vvedantb/server/convex";
 import { Figma, GitHub, Google, Notion, type OAuth2Tokens } from "arctic";
 
 export function createGoogleOAuth(redirectURI: string): Google {

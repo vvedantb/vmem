@@ -9,7 +9,7 @@ import DeleteConnectorDataDialog from "./DeleteConnectorDataDialog";
 import DisconnectConnectorDialog, {
   useDisconnectConnector,
 } from "./DisconnectConnectorDialog";
-import { useRequestConfirm } from "@vvedantb/app-kit";
+import { useRequestConfirm } from "@vvedantb/ui/app";
 import ConnectorActionsMenu from "./ConnectorActionsMenu";
 import {
   isConnectorConnected,

@@ -1,7 +1,7 @@
 import { httpAction, type ActionCtx } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import { hashApiKey } from "../../apiKeys";
-import { extractBearerToken } from "@vvedantb/convex-kit";
+import { extractBearerToken } from "@vvedantb/server/convex";
 import type { Id } from "../../_generated/dataModel";
 import { getAccessibleProfileForUser } from "../../profiles/accessibleProfile";
 import type { z } from "zod";

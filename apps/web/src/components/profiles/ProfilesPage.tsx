@@ -7,7 +7,7 @@ import { api, type Id } from "@vmem/backend";
 import { tempId } from "@/lib/convex-optimistic";
 import { convexErrorMessage } from "@/lib/convex-error";
 import { SettingsPage } from "@/components/settings/SettingsPage";
-import { SettingsSection, useRequestConfirm } from "@vvedantb/app-kit";
+import { SettingsSection, useRequestConfirm } from "@vvedantb/ui/app";
 import { CreateEditProfileDialog } from "./CreateEditProfileDialog";
 import { DefaultProfilesSection } from "./DefaultProfilesSection";
 import { ProfileCard } from "./ProfileCard";

@@ -4,7 +4,7 @@ import { useCopyToClipboard, useTimeout } from "usehooks-ts";
 import { toast } from "sonner";
 import { api } from "@vmem/backend";
 import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
-import { useRequestConfirm } from "@vvedantb/app-kit";
+import { useRequestConfirm } from "@vvedantb/ui/app";
 import type { ApiKey } from "./types";
 
 export function useApiKeyActions() {

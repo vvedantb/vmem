@@ -14,7 +14,7 @@
     },
     {
       "label": "Published vv-ui packages stay pinned to npm",
-      "dependencies": ["@vvedantb/tokens", "@vvedantb/shell", "@vvedantb/ui"],
+      "dependencies": ["@vvedantb/ui"],
       "packages": ["web", "@vmem/chrome-extension"],
       "isIgnored": true
     },

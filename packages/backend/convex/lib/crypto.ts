@@ -1,4 +1,4 @@
-import { requiredEnv } from "@vvedantb/convex-kit";
+import { requiredEnv } from "@vvedantb/server/convex";
 import { decodeBase64Bytes, encodeBase64Bytes } from "./base64";
 
 async function getEncryptionKey(): Promise<CryptoKey> {

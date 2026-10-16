@@ -81,7 +81,7 @@ Public routes are registered in `packages/backend/convex/http.ts` on the deploym
 
 ## Tech stack
 
-- **Frontend**: Vite, TanStack Router, React 19, Tailwind CSS v4, `@vvedantb/ui` / `@vvedantb/tokens` / `@vvedantb/shell`
+- **Frontend**: Vite, TanStack Router, React 19, Tailwind CSS v4, `@vvedantb/ui` (incl. `/shell`, `/app`, `/tokens`)
 - **Backend**: Convex (functions, HTTP, `@convex-dev/crons`, workpool, action-cache, aggregate, `convex-audit-log`)
 - **Auth**: Clerk — production uses the Project V instance (`clerk.projectv.uk`); preview/dev uses the Project V Clerk development instance
 - **LLM**: Vercel AI Gateway (`alibaba/qwen3.7-flash`, `openai/text-embedding-3-small`, `typesafe-ai/jev`)

@@ -9,7 +9,7 @@ import {
   ConfirmSkipHint,
   skipConfirmTitle,
   useRequestConfirm,
-} from "@vvedantb/app-kit";
+} from "@vvedantb/ui/app";
 
 interface GraphDetailPanelProps {
   nodeData: GraphDetailNode | null;

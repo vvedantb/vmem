@@ -7,7 +7,7 @@ import ConnectorCard from "@/components/settings/ConnectorCard";
 import BrowseConnectorsModal from "@/components/settings/BrowseConnectorsModal";
 import { isConnectorConnected } from "@/components/settings/connector-utils";
 import { SettingsPage } from "@/components/settings/SettingsPage";
-import { SettingsEmptyState, SettingsSection } from "@vvedantb/app-kit";
+import { SettingsEmptyState, SettingsSection } from "@vvedantb/ui/app";
 
 type Connector = FunctionReturnType<typeof api.connectors.crud.listMy>[number];
 

@@ -1,3 +1,3 @@
-import { clerkAuthConfig } from "@vvedantb/convex-kit";
+import { clerkAuthConfig } from "@vvedantb/server/convex";
 
 export default clerkAuthConfig();

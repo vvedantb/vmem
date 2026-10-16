@@ -37,7 +37,7 @@ import {
   ConfirmSkipHint,
   skipConfirmTitle,
   useRequestConfirm,
-} from "@vvedantb/app-kit";
+} from "@vvedantb/ui/app";
 
 // tag rows view for /memories/tags
 export default function TagsListView() {

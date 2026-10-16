@@ -23,7 +23,7 @@ import { MemorySourceIcon } from "./MemorySourceIcon";
 import { nodeColor } from "./graph-colors";
 import ShapeIndicator from "./ShapeIndicator";
 import { VIEW_TRANSITION_TARGET } from "@/lib/view-transitions";
-import { ConfirmSkipHint, skipConfirmTitle } from "@vvedantb/app-kit";
+import { ConfirmSkipHint, skipConfirmTitle } from "@vvedantb/ui/app";
 
 interface ListItemRowProps {
   item: ListItem;
