@@ -1,4 +1,4 @@
-import { requiredEnv } from "@vvedantb/convex-kit";
+import { requiredEnv } from "@vvedantb/server/convex";
 import { generateCodeVerifier, generateState, type OAuth2Tokens } from "arctic";
 import { v } from "convex/values";
 import { internal } from "../_generated/api";

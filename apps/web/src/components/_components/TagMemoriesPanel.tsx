@@ -7,7 +7,7 @@ import { MemoryVirtuosoList } from "@/components/_components/MemoryVirtuosoList"
 import MemoryDetailPanel from "@/components/memories/MemoryDetailPanel";
 import { useThemeContext } from "@/contexts/ThemeContext";
 import { useMemoryContext } from "@/contexts/MemoryContext";
-import { useRequestConfirm } from "@vvedantb/app-kit";
+import { useRequestConfirm } from "@vvedantb/ui/app";
 import { toast } from "sonner";
 import { useTrailData } from "@/hooks/useTrailData";
 

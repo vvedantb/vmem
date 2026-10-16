@@ -11,7 +11,7 @@ import {
 } from "@tabler/icons-react";
 import { formatRelativeTime } from "@vmem/shared";
 import { formatDate, formatNumber } from "@/lib/formatters";
-import { skipConfirmTitle } from "@vvedantb/app-kit";
+import { skipConfirmTitle } from "@vvedantb/ui/app";
 import type { ApiKey } from "./types";
 
 function ApiKeyActiveBadge() {

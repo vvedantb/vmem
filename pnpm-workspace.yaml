@@ -6,12 +6,8 @@ minimumReleaseAge: 10080
 # Newly published scoped UI packages; the 7-day age gate would block install.
 minimumReleaseAgeExclude:
   - "@vvedantb/ui"
-  - "@vvedantb/tokens"
-  - "@vvedantb/shell"
-  - "@vvedantb/app-kit"
   - "@vvedantb/config"
-  - "@vvedantb/convex-kit"
-  - "@vvedantb/mcp-kit"
+  - "@vvedantb/server"
 
 # npm packument for @vvedantb/ui omits peerDependencies; restore them
 # from the published tarball so autoInstallPeers can satisfy typecheck.
@@ -42,7 +38,6 @@ packageExtensions:
       "@streamdown/math": "*"
       "@streamdown/mermaid": "*"
       "@tabler/icons-react": "^3.35.0"
-      "@vvedantb/tokens": "*"
       ai: ">=5.0.0"
       class-variance-authority: "^0.7.1"
       clsx: "^2.1.1"

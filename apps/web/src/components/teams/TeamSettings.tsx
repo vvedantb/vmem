@@ -6,7 +6,7 @@ import { Button, Input } from "@vvedantb/ui";
 import { IconAlertTriangle, IconTrash, IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { convexErrorMessage } from "@/lib/convex-error";
-import { SettingsField, SettingsSection } from "@vvedantb/app-kit";
+import { SettingsField, SettingsSection } from "@vvedantb/ui/app";
 import { useTeamDetail } from "./team-context";
 import { DeleteTeamDialog } from "./DeleteTeamDialog";
 

@@ -29,7 +29,7 @@ import {
   ConfirmSkipHint,
   skipConfirmTitle,
   useRequestConfirm,
-} from "@vvedantb/app-kit";
+} from "@vvedantb/ui/app";
 import { RAIL_TILE_CLASS, railTileStateClass } from "./sidebar-nav-row";
 
 export function SidebarUserMenu() {

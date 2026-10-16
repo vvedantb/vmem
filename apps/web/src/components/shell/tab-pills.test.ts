@@ -13,11 +13,11 @@ if (!uiSrc) {
   throw new Error("@vvedantb/ui source not installed");
 }
 const tokensCss = [
-  path.join(webSrc, "../node_modules/@vvedantb/tokens/src/css"),
-  path.join(webSrc, "../../../node_modules/@vvedantb/tokens/src/css"),
+  path.join(webSrc, "../node_modules/@vvedantb/ui/tokens/src/css"),
+  path.join(webSrc, "../../../node_modules/@vvedantb/ui/tokens/src/css"),
 ].find((dir) => existsSync(dir));
 if (!tokensCss) {
-  throw new Error("@vvedantb/tokens CSS not installed");
+  throw new Error("@vvedantb/ui tokens CSS not installed");
 }
 
 function read(file: string): string {
@@ -30,11 +30,11 @@ function cssRule(css: string, selector: string): string {
   return css.slice(start, css.indexOf("}", start));
 }
 
-describe("shared shell pills live in @vvedantb/shell", () => {
+describe("shared shell pills live in @vvedantb/ui/shell", () => {
   it("does not keep a second PillTabs in this app", () => {
     expect(existsSync(path.join(here, "PillTabs.tsx"))).toBe(false);
     expect(read(path.join(here, "Sidebar.tsx"))).toContain(
-      'from "@vvedantb/shell"',
+      'from "@vvedantb/ui/shell"',
     );
   });
 });
@@ -63,8 +63,10 @@ describe("product tabs are isolated pills", () => {
   });
 
   it("gives pills a gap and no shared track", () => {
-    expect(globals).toContain('@import "@vvedantb/tokens/css/tabs.css"');
-    expect(globals).toContain('@import "@vvedantb/tokens/css/tabs-pills.css"');
+    expect(globals).toContain('@import "@vvedantb/ui/tokens/css/tabs.css"');
+    expect(globals).toContain(
+      '@import "@vvedantb/ui/tokens/css/tabs-pills.css"',
+    );
 
     const base = cssRule(css, ".t-tabs");
     expect(base).not.toContain("background");

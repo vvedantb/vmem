@@ -18,7 +18,7 @@ import {
   SettingsSection,
   skipConfirmTitle,
   useRequestConfirm,
-} from "@vvedantb/app-kit";
+} from "@vvedantb/ui/app";
 import { useTeamWorkspace, type TeamMember } from "./team-context";
 import { AddMemberDialog } from "./AddMemberDialog";
 import { RemoveMemberDialog } from "./RemoveMemberDialog";

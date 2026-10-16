@@ -2,7 +2,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@vmem/backend";
 import { Skeleton, Switch } from "@vvedantb/ui";
 import { SettingsPage } from "@/components/settings/SettingsPage";
-import { SettingsSection, SettingsToggleRow } from "@vvedantb/app-kit";
+import { SettingsSection, SettingsToggleRow } from "@vvedantb/ui/app";
 import { convexErrorMessage } from "@/lib/convex-error";
 import { toast } from "sonner";
 

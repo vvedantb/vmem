@@ -130,7 +130,7 @@ catalogs:
       specifier: ^4.3.3
       version: 4.3.3
 
-packageExtensionsChecksum: sha256-Jj0fJQNrGNxwWgR+M6/Ev7YBfykbQOMaDeDY8l9wtto=
+packageExtensionsChecksum: sha256-RgTWntSSAkoVZmd+FCemF5lt4FVzA7j2MdwJHiguwTQ=
 
 importers:
 
@@ -208,12 +208,9 @@ importers:
       '@vmem/shared':
         specifier: workspace:*
         version: link:../../packages/shared
-      '@vvedantb/tokens':
-        specifier: ^0.2.0
-        version: 0.2.0
       '@vvedantb/ui':
-        specifier: 0.1.5
-        version: 0.1.5(2583f054703d59878ca9848d2c94a048)
+        specifier: 0.2.0
+        version: 0.2.0(c462d1eecec34e45a6046f0f202797ba)
       '@webext-core/messaging':
         specifier: ^2.3.0
         version: 2.3.0
@@ -385,18 +382,9 @@ importers:
       '@vmem/shared':
         specifier: workspace:*
         version: link:../../packages/shared
-      '@vvedantb/app-kit':
-        specifier: 0.1.0
-        version: 0.1.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@tanstack/react-hotkeys@0.9.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(zod@3.25.76)
-      '@vvedantb/shell':
-        specifier: 0.1.2
-        version: 0.1.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@vvedantb/tokens':
-        specifier: ^0.2.0
-        version: 0.2.0
       '@vvedantb/ui':
-        specifier: 0.1.5
-        version: 0.1.5(7c605982004aa9dda820f4713d10f4fa)
+        specifier: 0.2.0
+        version: 0.2.0(51e690c7a322c6ba0f2e34f86db22d4a)
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1
@@ -551,10 +539,7 @@ importers:
       '@vmem/shared':
         specifier: workspace:*
         version: link:../shared
-      '@vvedantb/convex-kit':
-        specifier: 0.1.0
-        version: 0.1.0(@clerk/backend@2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))
-      '@vvedantb/mcp-kit':
+      '@vvedantb/server':
         specifier: 0.1.0
         version: 0.1.0(@clerk/backend@2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(zod@3.25.76)
       ai:
@@ -4925,47 +4910,25 @@ packages:
   '@vitest/utils@3.2.4':
     resolution: {integrity: sha512-fB2V0JFrQSMsCo9HiSq3Ezpdv4iYaXRG1Sx8edX3MwxfyNn83mKiGzOcH+Fkxt4MHxr3y42fQi1oeAInqgX2QA==}
 
-  '@vvedantb/app-kit@0.1.0':
-    resolution: {integrity: sha512-DrtcdYFinoQMyQy9zGcYXaPyVh27YXxyM7Mm9TVANNMSehuXfug7mutUBKQQiWM5fcqqUHZw0gX1Xc7awD3PqQ==}
-    peerDependencies:
-      '@clerk/clerk-react': '>=5'
-      '@tanstack/react-hotkeys': '*'
-      react: '>=19'
-      react-dom: '>=19'
-      zod: '>=3'
-
   '@vvedantb/config@0.1.0':
     resolution: {integrity: sha512-D3qeuH/Fn6729+CEW+aFHYMgOJaUJUNRgpkm+RH9yWch2rruxww1yTViFDDA8FsQWU5FTuDudnF1IwmtcwRF+A==}
     hasBin: true
 
-  '@vvedantb/convex-kit@0.1.0':
-    resolution: {integrity: sha512-g1s/uGiFkNZtLzuTzeL2WshqRxOdrZExpid4pNb8lhFqIZNaie2vAQUQBoxGJ9YUcr720WBwK3Yuro+wfjnYWg==}
+  '@vvedantb/server@0.1.0':
+    resolution: {integrity: sha512-9s8I/GMvtDsRq0sX5BA91qtwvFkf82ezjNSK+iQzYSOTN1vkUPAkBJVH0F6a/XQaDGsoL8C+lyxD2jZhavRhIA==}
     peerDependencies:
       '@clerk/backend': '>=1'
+      zod: ^3.25.0 || ^4.0.0
     peerDependenciesMeta:
       '@clerk/backend':
         optional: true
-
-  '@vvedantb/mcp-kit@0.1.0':
-    resolution: {integrity: sha512-/vKnM5nyd9HVcsND/n3o+6p8j6otNHM1+wKxTyBInpIq6SWvF4sEHWu28ontgPhE4tktUrYLSt5NHYnWE9PEBw==}
-    peerDependencies:
-      zod: ^3.25.0 || ^4.0.0
-    peerDependenciesMeta:
       zod:
         optional: true
 
-  '@vvedantb/shell@0.1.2':
-    resolution: {integrity: sha512-O8jlgiMA82nOLAxExvbyq9abzxoq+9HzqwqTKHtsj9Y5bH0JA6OXpmwupyeGdam2j9zSP49ZPf7SjXuu+LNVrw==}
+  '@vvedantb/ui@0.2.0':
+    resolution: {integrity: sha512-tyDbw+8Q90nsJfU4kUM+COtxkpl2ClnBgQ5+wdtfsCLMxbj8fwJ5rYYeinXOWpMvtzZnlH5c/O8V5kP/RcwfBg==}
     peerDependencies:
-      react: '>=19'
-      react-dom: '>=19'
-
-  '@vvedantb/tokens@0.2.0':
-    resolution: {integrity: sha512-vhFTGHKt5I6gz/+ZWeSfj24/oFqJ0oTFVQD1CZn9Mytjab8HdIfbxXdLPTL12o6ajkNoO8OK1uvlCYtZAMGYYg==}
-
-  '@vvedantb/ui@0.1.5':
-    resolution: {integrity: sha512-iYKk7Sv2aU+QzmgHAmYVKOFKaxnJ2m3KfrYM+bR6uGq5Qn4pgbgoa3Y443Dzfq0EhlV1n7XkyIM0CEwisf40gw==}
-    peerDependencies:
+      '@clerk/clerk-react': '>=5'
       '@radix-ui/react-accordion': ^1.2.12
       '@radix-ui/react-checkbox': ^1.3.3
       '@radix-ui/react-collapsible': ^1.1.12
@@ -4990,7 +4953,7 @@ packages:
       '@streamdown/math': '*'
       '@streamdown/mermaid': '*'
       '@tabler/icons-react': ^3.35.0
-      '@vvedantb/tokens': '*'
+      '@tanstack/react-hotkeys': '*'
       ai: '>=5.0.0'
       class-variance-authority: ^0.7.1
       clsx: ^2.1.1
@@ -5007,6 +4970,14 @@ packages:
       tailwind-merge: ^2.6.0
       use-stick-to-bottom: ^1.1.0
       vaul: ^1.1.0
+      zod: ^3.25.0 || ^4.0.0
+    peerDependenciesMeta:
+      '@clerk/clerk-react':
+        optional: true
+      '@tanstack/react-hotkeys':
+        optional: true
+      zod:
+        optional: true
 
   '@wallet-standard/app@1.1.0':
     resolution: {integrity: sha512-3CijvrO9utx598kjr45hTbbeeykQrQfKmSnxeWOgU25TOEpvcipD/bYDQWIqUv1Oc6KK4YStokSMu/FBNecGUQ==}
@@ -13713,80 +13684,14 @@ snapshots:
       loupe: 3.2.1
       tinyrainbow: 2.0.0
 
-  '@vvedantb/app-kit@0.1.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@tanstack/react-hotkeys@0.9.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(zod@3.25.76)':
-    dependencies:
-      '@clerk/clerk-react': 5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@tanstack/react-hotkeys': 0.9.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      react: 19.3.0
-      react-dom: 19.3.0(react@19.3.0)
-      zod: 3.25.76
-
   '@vvedantb/config@0.1.0': {}
 
-  '@vvedantb/convex-kit@0.1.0(@clerk/backend@2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))':
+  '@vvedantb/server@0.1.0(@clerk/backend@2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(zod@3.25.76)':
     optionalDependencies:
       '@clerk/backend': 2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-
-  '@vvedantb/mcp-kit@0.1.0(@clerk/backend@2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(zod@3.25.76)':
-    dependencies:
-      '@vvedantb/convex-kit': 0.1.0(@clerk/backend@2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))
-    optionalDependencies:
       zod: 3.25.76
-    transitivePeerDependencies:
-      - '@clerk/backend'
 
-  '@vvedantb/shell@0.1.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
-    dependencies:
-      react: 19.3.0
-      react-dom: 19.3.0(react@19.3.0)
-
-  '@vvedantb/tokens@0.2.0': {}
-
-  '@vvedantb/ui@0.1.5(2583f054703d59878ca9848d2c94a048)':
-    dependencies:
-      '@radix-ui/react-accordion': 1.2.20(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@radix-ui/react-checkbox': 1.3.11(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@radix-ui/react-collapsible': 1.1.20(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@radix-ui/react-context-menu': 2.3.7(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@radix-ui/react-dialog': 1.1.23(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@radix-ui/react-dropdown-menu': 2.1.24(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@radix-ui/react-hover-card': 1.1.23(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@radix-ui/react-label': 2.1.15(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@radix-ui/react-popover': 1.1.23(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@radix-ui/react-progress': 1.1.16(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@radix-ui/react-scroll-area': 1.2.18(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@radix-ui/react-select': 2.3.7(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@radix-ui/react-separator': 1.1.15(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@radix-ui/react-slot': 1.3.3(@types/react@19.3.0)(react@19.3.0)
-      '@radix-ui/react-switch': 1.3.7(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@radix-ui/react-tabs': 1.1.21(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@radix-ui/react-tooltip': 1.2.16(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@radix-ui/react-use-controllable-state': 1.2.6(@types/react@19.3.0)(react@19.3.0)
-      '@radix-ui/react-visually-hidden': 1.2.11(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@streamdown/cjk': 1.0.4(@types/mdast@4.0.4)(micromark-util-types@2.0.3)(micromark@4.0.3)(react@19.3.0)(unified@11.0.5)
-      '@streamdown/code': 2.0.0(react@19.3.0)
-      '@streamdown/math': 1.0.3(react@19.3.0)
-      '@streamdown/mermaid': 1.0.3(react@19.3.0)
-      '@tabler/icons-react': 3.41.1(react@19.3.0)
-      '@vvedantb/tokens': 0.2.0
-      ai: 7.0.108(zod@3.25.76)
-      class-variance-authority: 0.7.1
-      clsx: 2.1.1
-      cmdk: 1.1.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      embla-carousel-react: 8.6.0(react@19.3.0)
-      motion: 12.38.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      nanoid: 5.1.16
-      radix-ui: 1.6.7(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      react: 19.3.0
-      react-dom: 19.3.0(react@19.3.0)
-      shiki: 4.5.0
-      sonner: 2.0.7(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      streamdown: 2.7.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      tailwind-merge: 2.6.1
-      use-stick-to-bottom: 1.1.6(react@19.3.0)
-      vaul: 1.1.2(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-
-  '@vvedantb/ui@0.1.5(7c605982004aa9dda820f4713d10f4fa)':
+  '@vvedantb/ui@0.2.0(51e690c7a322c6ba0f2e34f86db22d4a)':
     dependencies:
       '@radix-ui/react-accordion': 1.2.20(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@radix-ui/react-checkbox': 1.3.3(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -13812,7 +13717,6 @@ snapshots:
       '@streamdown/math': 1.0.3(react@19.3.0)
       '@streamdown/mermaid': 1.0.3(react@19.3.0)
       '@tabler/icons-react': 3.41.1(react@19.3.0)
-      '@vvedantb/tokens': 0.2.0
       ai: 7.0.108(zod@3.25.76)
       class-variance-authority: 0.7.1
       clsx: 2.1.1
@@ -13829,6 +13733,57 @@ snapshots:
       tailwind-merge: 2.6.1
       use-stick-to-bottom: 1.1.6(react@19.3.0)
       vaul: 1.1.2(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+    optionalDependencies:
+      '@clerk/clerk-react': 5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@tanstack/react-hotkeys': 0.9.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      zod: 3.25.76
+
+  '@vvedantb/ui@0.2.0(c462d1eecec34e45a6046f0f202797ba)':
+    dependencies:
+      '@radix-ui/react-accordion': 1.2.20(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@radix-ui/react-checkbox': 1.3.11(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@radix-ui/react-collapsible': 1.1.20(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@radix-ui/react-context-menu': 2.3.7(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@radix-ui/react-dialog': 1.1.23(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@radix-ui/react-dropdown-menu': 2.1.24(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@radix-ui/react-hover-card': 1.1.23(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@radix-ui/react-label': 2.1.15(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@radix-ui/react-popover': 1.1.23(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@radix-ui/react-progress': 1.1.16(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@radix-ui/react-scroll-area': 1.2.18(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@radix-ui/react-select': 2.3.7(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@radix-ui/react-separator': 1.1.15(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@radix-ui/react-slot': 1.3.3(@types/react@19.3.0)(react@19.3.0)
+      '@radix-ui/react-switch': 1.3.7(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@radix-ui/react-tabs': 1.1.21(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@radix-ui/react-tooltip': 1.2.16(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@radix-ui/react-use-controllable-state': 1.2.6(@types/react@19.3.0)(react@19.3.0)
+      '@radix-ui/react-visually-hidden': 1.2.11(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@streamdown/cjk': 1.0.4(@types/mdast@4.0.4)(micromark-util-types@2.0.3)(micromark@4.0.3)(react@19.3.0)(unified@11.0.5)
+      '@streamdown/code': 2.0.0(react@19.3.0)
+      '@streamdown/math': 1.0.3(react@19.3.0)
+      '@streamdown/mermaid': 1.0.3(react@19.3.0)
+      '@tabler/icons-react': 3.41.1(react@19.3.0)
+      ai: 7.0.108(zod@3.25.76)
+      class-variance-authority: 0.7.1
+      clsx: 2.1.1
+      cmdk: 1.1.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      embla-carousel-react: 8.6.0(react@19.3.0)
+      motion: 12.38.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      nanoid: 5.1.16
+      radix-ui: 1.6.7(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react: 19.3.0
+      react-dom: 19.3.0(react@19.3.0)
+      shiki: 4.5.0
+      sonner: 2.0.7(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      streamdown: 2.7.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      tailwind-merge: 2.6.1
+      use-stick-to-bottom: 1.1.6(react@19.3.0)
+      vaul: 1.1.2(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+    optionalDependencies:
+      '@clerk/clerk-react': 5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@tanstack/react-hotkeys': 0.9.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      zod: 3.25.76
 
   '@wallet-standard/app@1.1.0':
     dependencies:

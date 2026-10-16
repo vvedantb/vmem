@@ -4,7 +4,7 @@ import { IconEdit, IconTrash } from "@tabler/icons-react";
 import type { FunctionReturnType } from "convex/server";
 import type { api } from "@vmem/backend";
 import { ProfileAvatar } from "./ProfileAvatar";
-import { skipConfirmTitle } from "@vvedantb/app-kit";
+import { skipConfirmTitle } from "@vvedantb/ui/app";
 
 type Profile = FunctionReturnType<typeof api.profiles.list>[number];
 

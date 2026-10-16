@@ -1,4 +1,4 @@
-import { requiredEnv } from "@vvedantb/convex-kit";
+import { requiredEnv } from "@vvedantb/server/convex";
 import type { ActionCtx } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";

@@ -41,7 +41,7 @@ import {
   ConfirmSkipHint,
   skipConfirmTitle,
   useRequestConfirm,
-} from "@vvedantb/app-kit";
+} from "@vvedantb/ui/app";
 import { useActiveProfileId } from "@/components/workspace/active-profile";
 import { VmemSpinner } from "@/components/icons/animations";
 

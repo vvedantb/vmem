@@ -283,7 +283,7 @@ describe("nested sidebar chrome", () => {
 
   it("parks a plus-only add control on the skills title row", () => {
     expect(read("SkillsSidebarNav.tsx")).toContain("SidebarHeaderTrailing");
-    expect(read("../shell/Sidebar.tsx")).toContain('from "@vvedantb/shell"');
+    expect(read("../shell/Sidebar.tsx")).toContain('from "@vvedantb/ui/shell"');
     expect(read("../shell/Sidebar.tsx")).toContain("SidebarHeader");
 
     const addMenu = read("../shell/FeatureAddMenu.tsx");
