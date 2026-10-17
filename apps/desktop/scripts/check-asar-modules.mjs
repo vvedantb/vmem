@@ -38,7 +38,9 @@ function bareSpecifiers(source) {
 function jsFiles(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const path = join(dir, entry.name);
-    if (entry.isDirectory()) return jsFiles(path);
+    // dist/renderer is browser code for the settings window. It is not loaded by Node.
+    if (entry.isDirectory())
+      return entry.name === "renderer" ? [] : jsFiles(path);
     return /\.(c|m)?js$/.test(entry.name) ? [path] : [];
   });
 }

@@ -1,12 +1,22 @@
 appId: uk.projectv.vmem.desktop
-productName: vmem Desktop
-# `name` keeps the Linux binary at vmem-desktop. `productName` keeps Electron's
-# userData folder at "vmem Desktop" (Electron prefers it over `name`).
+productName: vmem
+# Names and updates. Users see "vmem" (installer, Start Menu, Applications,
+# About). Three things stay stable so existing installs and CI keep working:
+# - appId stays uk.projectv.vmem.desktop, so a future updater still matches
+#   installed copies.
+# - extraMetadata.name and linux.executableName stay vmem-desktop, so the Linux
+#   binary is release/linux-unpacked/vmem-desktop (the CI smoke test runs it).
+# - artifactName stays vmem-desktop-${version}-${os}-${arch}.${ext}, so GitHub
+#   release asset names do not change.
+# There is no electron-updater, `publish` block or latest*.yml in this repo.
+# Releases are GitHub artifacts from .github/workflows/desktop-release.yml, so
+# the productName change renames no update feed. The userData folder is still
+# "vmem Desktop": main.ts sets it explicitly after app.setName("vmem").
 # `dependencies: {}` stops electron-builder from collecting get-windows and zod
-# from node_modules: scripts/build.mjs bundles both into dist/main.js.
+# from node_modules: scripts/build.mjs bundles the main process into dist/.
 extraMetadata:
   name: vmem-desktop
-  productName: vmem Desktop
+  productName: vmem
   dependencies: {}
 directories:
   output: release
@@ -24,18 +34,18 @@ asarUnpack:
 beforeBuild: scripts/skip-node-modules.mjs
 win:
   target: nsis
-  icon: assets/icon.png
+  icon: assets/icon.ico
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
 mac:
   category: public.app-category.productivity
-  icon: assets/icon.png
+  icon: assets/icon.icns
   target:
     - target: dmg
       arch: [x64, arm64]
   extendInfo:
-    NSAppleEventsUsageDescription: vmem Desktop reads the active window title.
+    NSAppleEventsUsageDescription: vmem reads the active window title.
 linux:
   executableName: vmem-desktop
   target: dir

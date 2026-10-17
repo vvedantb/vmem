@@ -1,5 +1,11 @@
 import type { ActionCtx, MutationCtx, QueryCtx } from "./_generated/server";
-import { action, internalQuery, mutation, query } from "./_generated/server";
+import {
+  action,
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
+} from "./_generated/server";
 import {
   customAction,
   customMutation,
@@ -92,6 +98,32 @@ export async function requireClerkId(ctx: AuthActionCtx): Promise<string> {
   return clerkId;
 }
 
+async function insertUserWithPersonalProfile(
+  ctx: MutationCtx,
+  fields: {
+    clerkId: string;
+    email?: string;
+    firstName?: string;
+    lastName?: string;
+    fullName?: string;
+  },
+): Promise<Id<"users">> {
+  const userId = await ctx.db.insert("users", fields);
+
+  // auto create default "personal" profile for new users
+  const now = Date.now();
+  await ctx.db.insert("profiles", {
+    userId,
+    name: "Personal",
+    color: DEFAULT_PROFILE_COLOR,
+    icon: "user",
+    isDefault: true,
+    createdAt: now,
+    updatedAt: now,
+  });
+  return userId;
+}
+
 export const ensureUserExists = mutation({
   args: {},
   returns: v.object({
@@ -118,34 +150,51 @@ export const ensureUserExists = mutation({
       }
       return { userId: existingUser._id, wasCreated: false };
     }
-    const firstName =
-      typeof identity.givenName === "string" ? identity.givenName : undefined;
-    const lastName =
-      typeof identity.familyName === "string" ? identity.familyName : undefined;
-    const fullName =
-      typeof identity.name === "string" ? identity.name : undefined;
-
-    const userId = await ctx.db.insert("users", {
+    const userId = await insertUserWithPersonalProfile(ctx, {
       clerkId: clerkUserId,
       email,
-      firstName,
-      lastName,
-      fullName,
-    });
-
-    // auto create default "personal" profile for new users
-    const now = Date.now();
-    await ctx.db.insert("profiles", {
-      userId,
-      name: "Personal",
-      color: DEFAULT_PROFILE_COLOR,
-      icon: "user",
-      isDefault: true,
-      createdAt: now,
-      updatedAt: now,
+      firstName:
+        typeof identity.givenName === "string" ? identity.givenName : undefined,
+      lastName:
+        typeof identity.familyName === "string"
+          ? identity.familyName
+          : undefined,
+      fullName: typeof identity.name === "string" ? identity.name : undefined,
     });
 
     return { userId, wasCreated: true };
+  },
+});
+
+// HTTP routes have no Convex identity: they resolve the user from a verified Clerk id.
+export const getUserIdByClerkIdInternal = internalQuery({
+  args: { clerkId: v.string() },
+  returns: v.union(v.id("users"), v.null()),
+  handler: async (ctx, args) => {
+    const user = await getUserByClerkId(ctx, args.clerkId);
+    return user?._id ?? null;
+  },
+});
+
+export const ensureUserForClerkIdInternal = internalMutation({
+  args: {
+    clerkId: v.string(),
+    email: v.optional(v.string()),
+    firstName: v.optional(v.string()),
+    lastName: v.optional(v.string()),
+    fullName: v.optional(v.string()),
+  },
+  returns: v.object({ userId: v.id("users") }),
+  handler: async (ctx, args) => {
+    const existing = await getUserByClerkId(ctx, args.clerkId);
+    if (existing) {
+      return { userId: existing._id };
+    }
+    const userId = await insertUserWithPersonalProfile(ctx, {
+      ...args,
+      email: normalizeAccountEmail(args.email),
+    });
+    return { userId };
   },
 });
 

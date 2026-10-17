@@ -62,5 +62,6 @@ describe("memory surface inventory", () => {
       "utf8",
     );
     expect(auth).toContain("recordUsage failed");
+    expect(auth).toContain("resolveBearerAuth");
   });
 });
