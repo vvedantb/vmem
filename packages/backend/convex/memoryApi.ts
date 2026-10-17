@@ -50,6 +50,7 @@ import {
   retrieveMemoriesForTeamProfile,
   updateMemoryForClerk,
 } from "./memoryRuntime";
+import { enqueueMemoryAccess } from "./memoryUsefulness";
 
 export const list = authQuery({
   args: listMemoriesFields,
@@ -265,8 +266,8 @@ export const deleteAllMemories = authAction({
 
 export const searchMemories = authAction({
   args: searchMemoriesFields,
-  handler: async (ctx, args): Promise<MemoryListResult> =>
-    routeMemoryByProfile(ctx, args.profileId, {
+  handler: async (ctx, args): Promise<MemoryListResult> => {
+    const result = await routeMemoryByProfile(ctx, args.profileId, {
       team: (teamProfile) =>
         runListTeamMemories(ctx, {
           profileId: teamProfile._id,
@@ -289,7 +290,14 @@ export const searchMemories = authAction({
           offset: args.offset,
           countAll: false,
         }),
-    }),
+    });
+    await enqueueMemoryAccess(
+      ctx,
+      result.memories.map((memory) => memory.id),
+      "search",
+    );
+    return result;
+  },
 });
 
 export const retrieveMemories = authAction({

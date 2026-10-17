@@ -18,4 +18,20 @@ crons.interval(
   {},
 );
 
+// folds pending retrieve/search/context-pack hits into memory usefulness
+crons.interval(
+  "flush memory access",
+  { minutes: 2 },
+  internal.memoryUsefulness.flushAccessPending,
+  {},
+);
+
+// scores a small batch of new or changed memories with TypeSafe Jev
+crons.interval(
+  "score memory usefulness",
+  { minutes: 10 },
+  internal.memoryUsefulness.kickJevQuality,
+  {},
+);
+
 export default crons;

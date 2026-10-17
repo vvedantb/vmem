@@ -108,6 +108,7 @@ import type * as memoryStore_helpers from "../memoryStore/helpers.js";
 import type * as memoryStore_mappers from "../memoryStore/mappers.js";
 import type * as memoryStore_stats from "../memoryStore/stats.js";
 import type * as memoryStore_walk from "../memoryStore/walk.js";
+import type * as memoryUsefulness from "../memoryUsefulness.js";
 import type * as notifications from "../notifications.js";
 import type * as oauthState from "../oauthState.js";
 import type * as openRouterAggregates from "../openRouterAggregates.js";
@@ -244,6 +245,7 @@ declare const fullApi: ApiFromModules<{
   "memoryStore/mappers": typeof memoryStore_mappers;
   "memoryStore/stats": typeof memoryStore_stats;
   "memoryStore/walk": typeof memoryStore_walk;
+  memoryUsefulness: typeof memoryUsefulness;
   notifications: typeof notifications;
   oauthState: typeof oauthState;
   openRouterAggregates: typeof openRouterAggregates;

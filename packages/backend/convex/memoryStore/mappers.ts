@@ -1,6 +1,24 @@
 import type { MemoryWithTags } from "@vmem/sdk";
 import type { Doc } from "../_generated/dataModel";
 import { temporalFieldsFromStore } from "../../engine/memory/temporal";
+import { computeUsefulness } from "../../engine/memory/usefulness";
+
+/** Heuristic (+ Jev) usefulness for a stored row, with the clock supplied. */
+export function usefulnessOfDoc(doc: Doc<"memories">, nowMs: number): number {
+  return computeUsefulness({
+    source: doc.source,
+    sourceType: doc.sourceType,
+    pinned: doc.status === "pinned",
+    updatedAt: doc.updatedAt,
+    createdAt: doc.createdAt,
+    nowMs,
+    retrieveHits: doc.usefulnessRetrieveHits,
+    searchHits: doc.usefulnessSearchHits,
+    contextPackHits: doc.usefulnessContextPackHits,
+    userEdits: doc.usefulnessEditCount,
+    jevQuality: doc.usefulnessJevScore,
+  });
+}
 
 function toIso(ms: number): string {
   return new Date(ms).toISOString();
@@ -46,7 +64,30 @@ export function toMemoryWithTags(doc: Doc<"memories">): MemoryWithTags {
       temporalKind: doc.temporalKind,
     }),
     tags: doc.tags,
+    ...(hasUsefulnessSignals(doc)
+      ? {
+          usefulness: {
+            score: doc.usefulnessScore,
+            retrieveHits: doc.usefulnessRetrieveHits,
+            searchHits: doc.usefulnessSearchHits,
+            contextPackHits: doc.usefulnessContextPackHits,
+            userEdits: doc.usefulnessEditCount,
+            jevQuality: doc.usefulnessJevScore,
+          },
+        }
+      : {}),
   };
+}
+
+function hasUsefulnessSignals(doc: Doc<"memories">): boolean {
+  return (
+    doc.usefulnessScore !== undefined ||
+    doc.usefulnessRetrieveHits !== undefined ||
+    doc.usefulnessSearchHits !== undefined ||
+    doc.usefulnessContextPackHits !== undefined ||
+    doc.usefulnessEditCount !== undefined ||
+    doc.usefulnessJevScore !== undefined
+  );
 }
 
 // slim list row: no content/searchableText, only a short single-line preview
@@ -65,6 +106,7 @@ export type MemorySummary = {
   createdAt: string;
   updatedAt: string;
   profileId: string | null;
+  usefulnessScore?: number | null;
 };
 
 export function memoryPreview(content: string): string {
@@ -90,5 +132,6 @@ export function toMemorySummary(doc: Doc<"memories">): MemorySummary {
     createdAt: toIso(doc.createdAt),
     updatedAt: toIso(doc.updatedAt),
     profileId: doc.profileId ?? null,
+    usefulnessScore: doc.usefulnessScore ?? null,
   };
 }

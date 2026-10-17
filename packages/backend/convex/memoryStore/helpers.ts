@@ -5,6 +5,7 @@ import type {
   TemporalKind,
 } from "@vmem/sdk";
 import { computeContentHash } from "../../engine/memory/hash";
+import { computeUsefulness } from "../../engine/memory/usefulness";
 import {
   memoryMatchesListFilter,
   pageMemoryList,
@@ -34,6 +35,7 @@ import {
 import {
   parseIsoMillis,
   toMemorySummary,
+  usefulnessOfDoc,
   toMemoryWithTags,
   type MemorySummary,
 } from "./mappers";
@@ -88,6 +90,8 @@ export interface UpdateMemoryStoreParams {
   eventStart?: string | null;
   eventEnd?: string | null;
   temporalKind?: TemporalKind | null;
+  /** Set for system writes (sync, supersede) so they do not count as user edits. */
+  skipEditCount?: boolean;
 }
 
 export interface MemoryListStoreResult {
@@ -420,6 +424,15 @@ export async function createMemory(
     temporalKind: params.temporalKind,
   });
 
+  const heuristicAtCreate = computeUsefulness({
+    source: params.source,
+    sourceType: params.sourceType,
+    pinned: params.status === "pinned",
+    updatedAt,
+    createdAt,
+    nowMs: now,
+  });
+
   const id = await ctx.db.insert("memories", {
     memoryId,
     userId: params.userId,
@@ -454,6 +467,11 @@ export async function createMemory(
     eventStart: temporal.eventStart,
     eventEnd: temporal.eventEnd,
     temporalKind: temporal.temporalKind,
+    usefulnessScore: heuristicAtCreate,
+    usefulnessScoredAt: now,
+    // Convex skips docs missing any indexed field; 0 sorts never-tried first
+    usefulnessNeedsJev: true,
+    usefulnessJevAt: 0,
   });
 
   const created = await ctx.db.get(id);
@@ -550,6 +568,28 @@ async function applyMemoryUpdates(
         temporalKind: updates.temporalKind,
       })
     : undefined;
+  const nextStatus = updates.status ?? doc.status;
+  const editCount =
+    (doc.usefulnessEditCount ?? 0) + (updates.skipEditCount === true ? 0 : 1);
+  const usefulnessFields = {
+    usefulnessEditCount: editCount,
+    usefulnessScore: usefulnessOfDoc(
+      {
+        ...doc,
+        status: nextStatus,
+        updatedAt: now,
+        usefulnessEditCount: editCount,
+      },
+      now,
+    ),
+    usefulnessScoredAt: now,
+    ...(textChanged
+      ? {
+          usefulnessNeedsJev: true,
+          usefulnessJevAt: doc.usefulnessJevAt ?? 0,
+        }
+      : {}),
+  };
   if (updates.expiresAt === null) {
     const {
       _id,
@@ -567,12 +607,14 @@ async function applyMemoryUpdates(
       contentHash,
       searchableText,
       updatedAt: now,
+      ...usefulnessFields,
       ...(temporal === undefined ? {} : temporal),
     };
     await ctx.db.replace(_id, fields);
   } else {
     await ctx.db.patch(doc._id, {
       updatedAt: now,
+      ...usefulnessFields,
       ...(updates.title !== undefined ? { title: updates.title } : {}),
       ...(updates.content !== undefined ? { content: updates.content } : {}),
       ...(updates.type !== undefined ? { type: updates.type } : {}),
@@ -652,7 +694,7 @@ export async function supersedeMemories(
       ctx,
       params.scope,
       predecessorId,
-      { status: "suppressed" },
+      { status: "suppressed", skipEditCount: true },
     );
     if (!updated) continue;
     count += 1;
@@ -851,6 +893,7 @@ export async function upsertMemoryFromSource(
     const updated = await updateMemory(ctx, params.userId, existing.memoryId, {
       title: params.title,
       content: params.content,
+      skipEditCount: true,
     });
     if (updated) {
       await ctx.db.patch(existing._id, {

@@ -41,6 +41,9 @@ export function memoryFromApi(m: MemoryApiFields) {
     sourceSyncedAt: m.sourceSyncedAt ?? null,
     tags: m.tags,
     createdAt: m.createdAt,
+    ...(m.usefulness?.score !== undefined
+      ? { usefulnessScore: m.usefulness.score }
+      : {}),
     ...(m.profileId !== null && m.profileId !== undefined
       ? { profileId: m.profileId }
       : {}),
@@ -70,6 +73,7 @@ export function summaryFromApi(m: MemoryApiFields): MemorySummary {
     createdAt: m.createdAt,
     updatedAt: m.updatedAt,
     profileId: m.profileId,
+    usefulnessScore: m.usefulness?.score ?? null,
   };
 }
 
@@ -92,6 +96,9 @@ export function memoryFromSummary(m: MemorySummary): Memory {
     sourceSyncedAt: m.sourceSyncedAt,
     tags: m.tags,
     createdAt: m.createdAt,
+    ...(m.usefulnessScore !== undefined && m.usefulnessScore !== null
+      ? { usefulnessScore: m.usefulnessScore }
+      : {}),
     ...(m.profileId !== null ? { profileId: m.profileId } : {}),
   };
 }

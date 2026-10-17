@@ -52,8 +52,19 @@ export const memoryNodeSchema = z.object({
   temporalKind: temporalKindSchema.nullable().optional(),
 });
 
+/** Usefulness inputs stored on a memory. All fields are optional. */
+export const memoryUsefulnessSchema = z.object({
+  score: z.number().optional(),
+  retrieveHits: z.number().optional(),
+  searchHits: z.number().optional(),
+  contextPackHits: z.number().optional(),
+  userEdits: z.number().optional(),
+  jevQuality: z.number().optional(),
+});
+
 export const memoryWithTagsSchema = memoryNodeSchema.extend({
   tags: z.array(z.string()),
+  usefulness: memoryUsefulnessSchema.optional(),
 });
 
 export const graphPathTraceSchema = z.object({
@@ -71,6 +82,7 @@ export const scoreBreakdownSchema = z.object({
   recency: z.number(),
   confidence: z.number(),
   temporal: z.number().optional(),
+  usefulness: z.number().optional(),
   graphPath: graphPathTraceSchema.optional(),
   rerankerScore: z.number().optional(),
   jevRelevant: z.number().optional(),
@@ -109,6 +121,7 @@ export const agentProposalSchema = z.object({
 
 export type MemoryNode = z.infer<typeof memoryNodeSchema>;
 export type MemoryWithTags = z.infer<typeof memoryWithTagsSchema>;
+export type MemoryUsefulness = z.infer<typeof memoryUsefulnessSchema>;
 export type GraphPathTrace = z.infer<typeof graphPathTraceSchema>;
 export type ScoreBreakdown = z.infer<typeof scoreBreakdownSchema>;
 export type MatchedChunk = z.infer<typeof matchedChunkSchema>;

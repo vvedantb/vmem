@@ -43,7 +43,7 @@ describe("rankMemories", () => {
     tags: ["food"],
   });
 
-  it("down-weights desktop-sourced memories against an api twin", () => {
+  it("ranks desktop-sourced memories below an api twin via the usefulness prior", () => {
     const twin = { title: "Prefers pnpm", content: "Use pnpm for vmem" };
     const api = memory({ id: "mem_api", ...twin });
     const bySource = memory({ id: "mem_src", ...twin, source: "desktop" });

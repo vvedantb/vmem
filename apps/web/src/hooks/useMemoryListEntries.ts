@@ -1,5 +1,6 @@
 import { useAction } from "convex/react";
 import { useQuery } from "@tanstack/react-query";
+import { orderBy } from "es-toolkit";
 import { api } from "@vmem/backend";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 import { useMemoryListFlat } from "@/hooks/useMemoryList";
@@ -126,8 +127,24 @@ export function useMemoryListEntries(options?: { fetchAll?: boolean }) {
     };
   });
 
+  // best effort: sorts the rows loaded so far, not the whole table
+  const sortedMemoryEntries =
+    params.sort === "usefulness" && !isShowingSearchResults
+      ? orderBy(
+          memoryEntries,
+          [
+            (entry) =>
+              entry.item.kind === "memory"
+                ? (entry.item.usefulnessScore ?? 0)
+                : 0,
+            (entry) => entry.item.createdAt,
+          ],
+          ["desc", "desc"],
+        )
+      : memoryEntries;
+
   const displayItems: MemoryListEntry[] = !isShowingSearchResults
-    ? [...memoryEntries, ...nonMemory.map(unscoredEntry)]
+    ? [...sortedMemoryEntries, ...nonMemory.map(unscoredEntry)]
     : [
         ...memoryEntries,
         ...searchListItems(nonMemory, normalizedQuery).map((r) => ({

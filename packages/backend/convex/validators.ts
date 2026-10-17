@@ -46,6 +46,31 @@ export const memoryFields = {
   eventStart: v.optional(v.union(v.number(), v.null())),
   eventEnd: v.optional(v.union(v.number(), v.null())),
   temporalKind: v.optional(v.union(zodToConvex(temporalKindSchema), v.null())),
+  // usefulness ranking (see engine/memory/usefulness.ts); all optional
+  usefulnessScore: v.optional(v.number()),
+  usefulnessScoredAt: v.optional(v.number()),
+  usefulnessJevScore: v.optional(v.number()),
+  usefulnessJevAt: v.optional(v.number()),
+  usefulnessContentHash: v.optional(v.string()),
+  usefulnessNeedsJev: v.optional(v.boolean()),
+  usefulnessRetrieveHits: v.optional(v.number()),
+  usefulnessSearchHits: v.optional(v.number()),
+  usefulnessContextPackHits: v.optional(v.number()),
+  usefulnessEditCount: v.optional(v.number()),
+};
+
+export const memoryAccessKindValidator = v.union(
+  v.literal("retrieve"),
+  v.literal("search"),
+  v.literal("contextPack"),
+);
+
+// Pending access hits. One row per memory per call, folded into the memory
+// counters in batches so a retrieve never writes to memory rows.
+export const memoryAccessPendingFields = {
+  memoryId: v.string(),
+  kind: memoryAccessKindValidator,
+  createdAt: v.number(),
 };
 
 // Vector payload split out of `memories`: a 1536-dim float64 array is ~85% of a
@@ -508,6 +533,7 @@ export const memorySummaryValidator = v.object({
   createdAt: v.string(),
   updatedAt: v.string(),
   profileId: v.union(v.string(), v.null()),
+  usefulnessScore: v.optional(v.union(v.number(), v.null())),
 });
 
 export const memorySummaryFilterFields = {
