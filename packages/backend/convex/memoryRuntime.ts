@@ -7,6 +7,7 @@ import type {
 import { internal } from "./_generated/api";
 import type { ActionCtx } from "./_generated/server";
 import type { MemoryListResult } from "./memoryApi/types";
+import type { SearchMemoriesPage } from "./memoryStore/helpers";
 import { getProfileKind, resolveProfileIdForClerkId } from "./memoryScope";
 import {
   toMemoryStatusOrUndefined,
@@ -15,8 +16,11 @@ import {
 import { expandGraphNeighbors } from "../engine/memory/links";
 import { memoryMatchesListFilter } from "../engine/memory/list";
 import { memoryMatchesScope } from "../engine/memory/scope";
+import { ftsQueryTexts } from "../engine/memory/candidates";
 import {
   clampVectorLimit,
+  CONVEX_FTS_SCAN_MAX,
+  FTS_PAGE_SIZE,
   RETRIEVE_GRAPH_MAX_HOPS,
   RETRIEVE_GRAPH_NEIGHBOR_LIMIT,
   RETRIEVE_RANK_POOL_CAP,
@@ -173,6 +177,66 @@ export async function createMemoryForClerk(
   return created;
 }
 
+type SearchPageScope =
+  | { kind: "personal"; userId: string; profileId?: string }
+  | { kind: "team"; profileId: string };
+
+/**
+ * Text list/search. Convex allows one `.paginate()` per query function, so this
+ * action walks search-index cursors, one internal query per page. It stops at
+ * `offset + limit + 1` matches or CONVEX_FTS_SCAN_MAX scanned rows, so `total`
+ * is a lower bound.
+ */
+async function searchMemoryListPaged(
+  ctx: Pick<ActionCtx, "runQuery">,
+  scope: SearchPageScope,
+  args: Omit<ListMemoryRuntimeArgs, "clerkId" | "profileId"> & {
+    searchQuery: string;
+  },
+): Promise<MemoryListResult> {
+  const queries = ftsQueryTexts(args.searchQuery);
+  const offset = Math.max(0, args.offset);
+  const limit = Math.max(0, args.limit);
+  const want = offset + limit + 1;
+  const seen = new Set<string>();
+  const matches: MemoryWithTags[] = [];
+  let scanned = 0;
+
+  for (const [index, search] of queries.entries()) {
+    let cursor: string | null = null;
+    while (matches.length < want && scanned < CONVEX_FTS_SCAN_MAX) {
+      const page: SearchMemoriesPage = await ctx.runQuery(
+        internal.memoryStore.functions.searchMemoriesPageInternal,
+        {
+          ...scope,
+          search,
+          // synonym batches must still contain a term the caller typed
+          requireTerms: index > 0 ? queries[0] : undefined,
+          type: args.type,
+          status: args.status,
+          source: args.source,
+          tags: args.tags,
+          numItems: Math.min(FTS_PAGE_SIZE, CONVEX_FTS_SCAN_MAX - scanned),
+          cursor,
+        },
+      );
+      scanned += page.scanned;
+      for (const memory of page.memories) {
+        if (seen.has(memory.id)) continue;
+        seen.add(memory.id);
+        matches.push(memory);
+      }
+      if (page.isDone) break;
+      cursor = page.continueCursor;
+    }
+    if (matches.length >= want) break;
+  }
+  return {
+    memories: matches.slice(offset, offset + limit),
+    total: matches.length,
+  };
+}
+
 export async function listMemoriesForClerk(
   ctx: Pick<ActionCtx, "runQuery" | "runMutation">,
   args: ListMemoryRuntimeArgs,
@@ -182,6 +246,18 @@ export async function listMemoriesForClerk(
     args.clerkId,
     args.profileId,
   );
+  const searchQuery = args.searchQuery?.trim() ?? "";
+  if (searchQuery.length > 0) {
+    return await searchMemoryListPaged(
+      ctx,
+      {
+        kind: "personal",
+        userId: args.clerkId,
+        profileId: profileId ?? undefined,
+      },
+      { ...args, searchQuery },
+    );
+  }
   return await ctx.runQuery(
     internal.memoryStore.functions.listMemoriesInternal,
     {
@@ -191,7 +267,6 @@ export async function listMemoriesForClerk(
       status: args.status,
       source: args.source,
       tags: args.tags,
-      searchQuery: args.searchQuery,
       limit: args.limit,
       offset: args.offset,
     },
@@ -202,6 +277,14 @@ export async function listMemoriesForTeamProfile(
   ctx: Pick<ActionCtx, "runQuery">,
   args: Omit<ListMemoryRuntimeArgs, "clerkId"> & { profileId: string },
 ): Promise<MemoryListResult> {
+  const searchQuery = args.searchQuery?.trim() ?? "";
+  if (searchQuery.length > 0) {
+    return await searchMemoryListPaged(
+      ctx,
+      { kind: "team", profileId: args.profileId },
+      { ...args, searchQuery },
+    );
+  }
   return await ctx.runQuery(
     internal.memoryStore.functions.listMemoriesForTeamInternal,
     {
@@ -210,7 +293,6 @@ export async function listMemoriesForTeamProfile(
       status: args.status,
       source: args.source,
       tags: args.tags,
-      searchQuery: args.searchQuery,
       limit: args.limit,
       offset: args.offset,
     },
@@ -521,6 +603,7 @@ async function retrieveRanked(
       userId: args.clerkId,
       profileId: args.profileId,
       query: args.query,
+      ...listFilter,
     }),
     vectorScoresForQuery(ctx, args),
     wantsJevJudge(args)

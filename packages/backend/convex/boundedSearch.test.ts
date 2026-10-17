@@ -6,6 +6,10 @@ import { internal } from "./_generated/api";
 import type { ActionCtx } from "./_generated/server";
 import { listMemoriesForClerk } from "./memoryRuntime";
 import schema from "./schema";
+import {
+  CONVEX_FTS_SCAN_MAX,
+  FTS_PAGE_SIZE,
+} from "../engine/memory/retrieveCaps";
 
 const modules = import.meta.glob("./**/*.ts");
 
@@ -58,7 +62,7 @@ function recordingCtx(t: Harness) {
 }
 
 describe("bounded memory search and list", () => {
-  it("text search runs one index query and never pages the profile", async () => {
+  it("text search reads one index page when it fills the budget", async () => {
     const t = convexTest(schema, modules);
     await seed(t);
     const { ctx, queries } = recordingCtx(t);
@@ -72,7 +76,10 @@ describe("bounded memory search and list", () => {
     });
 
     expect(result.memories).toHaveLength(5);
-    expect(queries).toEqual(["memoryStore/functions:listMemoriesInternal"]);
+    // the first page fills the budget, so the cursor loop stops after one query
+    expect(queries).toEqual([
+      "memoryStore/functions:searchMemoriesPageInternal",
+    ]);
     expect(
       queries.filter((name) => name.includes("paginateScoped")),
     ).toHaveLength(0);
@@ -116,6 +123,124 @@ describe("bounded memory search and list", () => {
     });
 
     expect(result).toEqual({ memories: [], total: 0 });
+  });
+});
+
+describe("filtered search beyond the first 256 hits", () => {
+  const FILL = 300;
+  const SUBSET = 40;
+
+  async function seedFiltered(t: Harness) {
+    await t.run(async (ctx) => {
+      // the subset goes in last so it ranks outside the first 256 hits
+      for (let i = 0; i < FILL + SUBSET; i += 1) {
+        const inSubset = i >= FILL;
+        const content = "vmem";
+        await ctx.db.insert("memories", {
+          memoryId: `f${String(i)}`,
+          userId: USER,
+          profileId: PROFILE,
+          title: `Row ${String(i)}`,
+          content,
+          searchableText: `Row ${String(i)}\n${content}`,
+          type: "knowledge",
+          source: inSubset ? "grok-bot-seed" : "browsing-history",
+          confidence: 0.9,
+          status: "active",
+          tags: inSubset ? ["seed"] : [],
+          createdAt: BASE + i * 1000,
+          updatedAt: BASE + i * 1000,
+          contentHash: `fh${String(i)}`,
+          visitCount: 1,
+          firstVisitAt: BASE,
+          lastVisitAt: BASE,
+        });
+      }
+    });
+  }
+
+  it("returns the whole filtered subset and pages through it", async () => {
+    const t = convexTest(schema, modules);
+    await seedFiltered(t);
+    const { ctx } = recordingCtx(t);
+    const base = {
+      clerkId: USER,
+      profileId: PROFILE,
+      searchQuery: "vmem",
+      source: "grok-bot-seed",
+    };
+
+    const all = await listMemoriesForClerk(ctx, {
+      ...base,
+      limit: SUBSET,
+      offset: 0,
+    });
+    expect(all.memories).toHaveLength(SUBSET);
+    expect(all.memories.every((m) => m.source === "grok-bot-seed")).toBe(true);
+
+    const first = await listMemoriesForClerk(ctx, {
+      ...base,
+      limit: 15,
+      offset: 0,
+    });
+    const last = await listMemoriesForClerk(ctx, {
+      ...base,
+      limit: 15,
+      offset: 30,
+    });
+    expect(first.memories).toHaveLength(15);
+    expect(first.total).toBeGreaterThan(15);
+    expect(last.memories).toHaveLength(SUBSET - 30);
+    expect(last.total).toBe(SUBSET);
+    const ids = new Set([...first.memories, ...last.memories].map((m) => m.id));
+    expect(ids.size).toBe(15 + SUBSET - 30);
+  });
+
+  it("post-filters tags past the first 256 hits", async () => {
+    const t = convexTest(schema, modules);
+    await seedFiltered(t);
+    const { ctx } = recordingCtx(t);
+
+    const result = await listMemoriesForClerk(ctx, {
+      clerkId: USER,
+      profileId: PROFILE,
+      searchQuery: "vmem",
+      tags: ["seed"],
+      limit: SUBSET,
+      offset: 0,
+    });
+    expect(result.memories).toHaveLength(SUBSET);
+    expect(result.memories.every((m) => m.tags.includes("seed"))).toBe(true);
+  });
+
+  it("walks cursors only until the page budget is met", async () => {
+    const t = convexTest(schema, modules);
+    await seedFiltered(t);
+    const { ctx, queries } = recordingCtx(t);
+
+    await listMemoriesForClerk(ctx, {
+      clerkId: USER,
+      profileId: PROFILE,
+      searchQuery: "vmem",
+      limit: 5,
+      offset: 0,
+    });
+    expect(queries).toHaveLength(1);
+
+    queries.length = 0;
+    await listMemoriesForClerk(ctx, {
+      clerkId: USER,
+      profileId: PROFILE,
+      searchQuery: "vmem",
+      tags: ["seed"],
+      limit: SUBSET,
+      offset: 0,
+    });
+    // 300 untagged hits come first, so several pages are needed, not one take
+    expect(queries.length).toBeGreaterThan(1);
+    expect(queries.length).toBeLessThanOrEqual(
+      Math.ceil(CONVEX_FTS_SCAN_MAX / FTS_PAGE_SIZE),
+    );
   });
 });
 

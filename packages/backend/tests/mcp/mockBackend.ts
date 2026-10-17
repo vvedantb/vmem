@@ -68,6 +68,16 @@ const searchTextArgsSchema = z.object({
   profileId: z.string().optional(),
   query: z.string(),
 });
+const searchPageArgsSchema = z.object({
+  kind: z.enum(["personal", "team"]),
+  userId: z.string().optional(),
+  profileId: z.string().optional(),
+  search: z.string(),
+  type: z.string().optional(),
+  source: z.string().optional(),
+  status: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+});
 const memoryIdsArgsSchema = z.object({ ids: z.array(z.string()) });
 const paginateScopedArgsSchema = z.object({
   kind: z.enum(["personal", "team"]),
@@ -452,6 +462,23 @@ async function dispatch(
         )
         .map(({ memory, index }) => ({ memory, rank: index + 1 }));
       return hits;
+    }
+    case "memoryStore/functions:searchMemoriesPageInternal": {
+      const parsed = searchPageArgsSchema.parse(args);
+      // one page holds every match: the mock store is small
+      const memories = scopedMemories(store, parsed, parsed.kind).filter(
+        (memory) =>
+          memoryMatchesListFilter(memory, {
+            ...parsed,
+            searchQuery: parsed.search,
+          }),
+      );
+      return {
+        memories,
+        continueCursor: "",
+        isDone: true,
+        scanned: memories.length,
+      };
     }
     case "memoryStore/functions:getMemoriesByMemoryIdsInternal": {
       const parsed = memoryIdsArgsSchema.parse(args);
