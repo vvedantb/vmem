@@ -30,6 +30,7 @@ import {
   paginateScopedDocs,
   patchMemoryEmbedding,
   reassignMemoriesProfile,
+  searchMemoriesPage,
   searchMemoriesText,
   unlinkMemories,
   updateMemory,
@@ -439,6 +440,10 @@ export const searchMemoriesTextInternal = internalQuery({
     userId: v.optional(v.string()),
     profileId: v.optional(v.string()),
     query: v.string(),
+    type: v.optional(v.string()),
+    source: v.optional(v.string()),
+    status: v.optional(v.string()),
+    tags: v.optional(v.array(v.string())),
   },
   returns: v.array(
     v.object({
@@ -447,12 +452,19 @@ export const searchMemoriesTextInternal = internalQuery({
     }),
   ),
   handler: async (ctx, args) => {
+    const filter = {
+      type: args.type,
+      source: args.source,
+      status: args.status,
+      tags: args.tags,
+    };
     if (args.kind === "team") {
       if (args.profileId === undefined) return [];
       return searchMemoriesText(
         ctx,
         { kind: "team", profileId: args.profileId },
         args.query,
+        { filter },
       );
     }
     if (args.userId === undefined) return [];
@@ -464,7 +476,48 @@ export const searchMemoriesTextInternal = internalQuery({
         profileId: args.profileId,
       },
       args.query,
+      { filter },
     );
+  },
+});
+
+export const searchMemoriesPageInternal = internalQuery({
+  args: {
+    kind: v.union(v.literal("personal"), v.literal("team")),
+    userId: v.optional(v.string()),
+    profileId: v.optional(v.string()),
+    search: v.string(),
+    requireTerms: v.optional(v.string()),
+    type: v.optional(v.string()),
+    source: v.optional(v.string()),
+    status: v.optional(v.string()),
+    tags: v.optional(v.array(v.string())),
+    numItems: v.number(),
+    cursor: v.union(v.string(), v.null()),
+  },
+  returns: v.object({
+    memories: v.array(memoryWithTagsValidator),
+    continueCursor: v.string(),
+    isDone: v.boolean(),
+    scanned: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    const scope = memoryReadScopeFromArgs(args);
+    if (scope === null) {
+      return { memories: [], continueCursor: "", isDone: true, scanned: 0 };
+    }
+    return await searchMemoriesPage(ctx, scope, {
+      search: args.search,
+      requireTerms: args.requireTerms,
+      filter: {
+        type: args.type,
+        source: args.source,
+        status: args.status,
+        tags: args.tags,
+      },
+      numItems: args.numItems,
+      cursor: args.cursor,
+    });
   },
 });
 

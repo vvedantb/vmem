@@ -1,5 +1,4 @@
 import type { MemoryWithTags } from "@vmem/sdk";
-import { memoryMatchesListFilter } from "../../engine/memory/list";
 import type { MemoryReadScope } from "../../engine/memory/scope";
 import {
   addDashboardStatRow,
@@ -8,11 +7,7 @@ import {
 import { internal } from "../_generated/api";
 import type { ActionCtx } from "../_generated/server";
 import type { MemorySummary } from "./mappers";
-import {
-  SCOPED_MEMORY_PAGE_SIZE,
-  type ListMemoryStoreParams,
-  type MemoryListStoreResult,
-} from "./helpers";
+import { SCOPED_MEMORY_PAGE_SIZE } from "./helpers";
 
 type RunQueryCtx = Pick<ActionCtx, "runQuery">;
 
@@ -86,51 +81,6 @@ export async function collectScopedMemoriesPaged(
     },
   );
   return out;
-}
-
-export async function listMemoriesPaged(
-  ctx: RunQueryCtx,
-  scope: MemoryReadScope,
-  params: ListMemoryStoreParams & { countAll?: boolean },
-): Promise<MemoryListStoreResult> {
-  const start = Math.max(0, params.offset);
-  const size = Math.max(0, params.limit);
-  const memories: MemoryWithTags[] = [];
-  let total = 0;
-  let hasExtra = false;
-  const countAll = params.countAll !== false;
-
-  await walkPages(
-    async ({ cursor, numItems }) => {
-      const page = await ctx.runQuery(
-        internal.memoryStore.functions.paginateScopedMemoriesInternal,
-        { ...scopeArgs(scope), cursor, numItems },
-      );
-      return { ...page, items: page.memories };
-    },
-    (items) => {
-      for (const memory of items) {
-        if (!memoryMatchesListFilter(memory, params)) continue;
-        if (countAll) {
-          if (total >= start && memories.length < size) memories.push(memory);
-          total += 1;
-          continue;
-        }
-        if (memories.length >= size && total >= start + size) {
-          hasExtra = true;
-          return false;
-        }
-        if (total >= start && memories.length < size) memories.push(memory);
-        total += 1;
-      }
-      return undefined;
-    },
-  );
-
-  return {
-    memories,
-    total: countAll ? total : hasExtra ? start + memories.length + 1 : total,
-  };
 }
 
 export async function foldScopedMemoryStats(

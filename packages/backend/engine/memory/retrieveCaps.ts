@@ -8,6 +8,9 @@ export const CONVEX_FTS_TERM_LIMIT = 16;
 /** Docs to take from each Convex FTS query (under the 1024 scan cap). */
 export const FTS_TAKE = 256;
 
+/** Index rows per page when a list/search action walks search-index cursors. */
+export const FTS_PAGE_SIZE = 128;
+
 /** Extra FTS searches for synonym terms beyond the original query. */
 export const FTS_MAX_QUERIES = 2;
 

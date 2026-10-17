@@ -105,13 +105,11 @@ export const regenerateContextPromptInternal = internalAction({
       status: "pinned",
       limit: PINNED_LIMIT,
       offset: 0,
-      countAll: false,
     });
     const recentPage = await listMemoriesForClerk(ctx, {
       clerkId: args.clerkId,
       limit: RECENT_LIMIT,
       offset: 0,
-      countAll: false,
     });
 
     const pinnedSnippets = pinnedPage.memories.map((m) => ({

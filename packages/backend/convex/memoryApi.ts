@@ -319,7 +319,6 @@ export const searchMemories = authAction({
           searchQuery: args.query,
           limit: args.limit,
           offset: args.offset,
-          countAll: false,
         }),
     });
     // no access tracking: this runs on every palette keystroke (debounced)

@@ -147,7 +147,9 @@ const schema = defineSchema({
     ])
     .searchIndex("search_text", {
       searchField: "searchableText",
-      filterFields: ["userId", "profileId"],
+      // source/type/status are required scalars, so every row stays indexed.
+      // sourceType is optional: Convex would drop rows missing it.
+      filterFields: ["userId", "profileId", "source", "type", "status"],
     }),
 
   // embedding vectors live here (not on `memories`) so reads of memory rows

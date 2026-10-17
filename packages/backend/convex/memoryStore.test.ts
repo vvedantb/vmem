@@ -246,7 +246,8 @@ describe("convex memoryStore", () => {
       internal.memoryStore.functions.listMemoriesInternal,
       {
         userId: USER_A,
-        searchQuery: "visible",
+        // convex-test search matches one lowercase word prefix
+        searchQuery: "pnpm",
         tags: ["pnpm"],
         limit: 10,
         offset: 0,
@@ -525,7 +526,7 @@ describe("convex memoryStore", () => {
       {
         userId: USER_A,
         profileId: PERSONAL_PROFILE,
-        searchQuery: "package manager",
+        searchQuery: "pnpm",
         limit: 10,
         offset: 0,
       },
@@ -717,7 +718,7 @@ describe("convex memoryStore", () => {
       {
         userId: USER_A,
         profileId: PERSONAL_PROFILE,
-        searchQuery: "dark mode",
+        searchQuery: "dark",
         limit: 10,
         offset: 0,
       },

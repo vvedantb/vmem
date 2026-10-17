@@ -1,8 +1,10 @@
-import type {
-  MemoryStatus,
-  MemoryType,
-  MemoryWithTags,
-  TemporalKind,
+import {
+  memoryStatusSchema,
+  memoryTypeSchema,
+  type MemoryStatus,
+  type MemoryType,
+  type MemoryWithTags,
+  type TemporalKind,
 } from "@vmem/sdk";
 import { computeContentHash } from "../../engine/memory/hash";
 import {
@@ -13,13 +15,18 @@ import {
 import {
   memoryMatchesListFilter,
   pageMemoryList,
+  type MemoryListFilter,
 } from "../../engine/memory/list";
 import {
   memoryMatchesScope,
   type MemoryReadScope,
 } from "../../engine/memory/scope";
 import { ftsQueryTexts } from "../../engine/memory/candidates";
-import { clampFtsTake, FTS_TAKE } from "../../engine/memory/retrieveCaps";
+import {
+  clampFtsTake,
+  CONVEX_FTS_SCAN_MAX,
+  FTS_TAKE,
+} from "../../engine/memory/retrieveCaps";
 import { buildSearchableText } from "../../engine/memory/searchableText";
 import { normalizeTags } from "../../engine/memory/tags";
 import type { MemoryLinkEdge } from "../../engine/memory/links";
@@ -40,6 +47,7 @@ import {
   parseIsoMillis,
   toMemorySummary,
   usefulnessOfDoc,
+  toMemoryWithHits,
   toMemoryWithTags,
   type MemorySummary,
 } from "./mappers";
@@ -99,6 +107,13 @@ export interface UpdateMemoryStoreParams {
   skipEditCount?: boolean;
 }
 
+/**
+ * `total` is a lower bound, not a table count. Empty query: matches seen while
+ * scanning newest first, stopped at `offset + limit + 1` (enough to know whether
+ * another page exists). Text query: matches among the search index hits, with
+ * source/type/status applied inside the index and the rest (tags) applied to up
+ * to CONVEX_FTS_SCAN_MAX hits. `total > offset + limit` means "more pages exist".
+ */
 export interface MemoryListStoreResult {
   memories: MemoryWithTags[];
   total: number;
@@ -385,16 +400,29 @@ async function listScopedDocs(
   return rows.filter((row) => memoryMatchesScope(row, scope));
 }
 
-function pageFiltered(
-  docs: Array<Doc<"memories">>,
+// Text queries use the search index (never a table scan). Source, type and
+// status filter inside the index; tags filter the hits afterwards. Empty
+// queries use the bounded newest-first scan.
+async function listMemoriesInScope(
+  ctx: QueryCtx,
+  scope: MemoryReadScope,
   params: ListMemoryStoreParams,
-): MemoryListStoreResult {
-  const matched = docs.filter((doc) => memoryMatchesListFilter(doc, params));
+): Promise<MemoryListStoreResult> {
+  const query = params.searchQuery?.trim() ?? "";
+  if (query.length === 0) return await listMemoriesBounded(ctx, scope, params);
+  const offset = Math.max(0, params.offset);
+  const limit = Math.max(0, params.limit);
+  const hits = await searchMemoriesText(ctx, scope, query, {
+    want: offset + limit + 1,
+    filter: params,
+  });
   return {
-    memories: pageMemoryList(matched, params.limit, params.offset).map(
-      toMemoryWithTags,
+    memories: pageMemoryList(
+      hits.map((hit) => hit.memory),
+      limit,
+      offset,
     ),
-    total: matched.length,
+    total: hits.length,
   };
 }
 
@@ -504,7 +532,7 @@ export async function getMemory(
   if (!doc || !memoryMatchesScope(doc, { kind: "personal", userId })) {
     return null;
   }
-  return toMemoryWithTags(doc);
+  return toMemoryWithHits(doc, await loadUsageHits(ctx, doc));
 }
 
 export async function getMemoryForTeam(
@@ -516,29 +544,27 @@ export async function getMemoryForTeam(
   if (!doc || !memoryMatchesScope(doc, { kind: "team", profileId })) {
     return null;
   }
-  return toMemoryWithTags(doc);
+  return toMemoryWithHits(doc, await loadUsageHits(ctx, doc));
 }
 
 export async function listMemories(
-  ctx: QueryCtx | MutationCtx,
+  ctx: QueryCtx,
   userId: string,
   params: ListMemoryStoreParams & { profileId?: string | null },
 ): Promise<MemoryListStoreResult> {
-  const docs = await listScopedDocs(ctx, {
-    kind: "personal",
-    userId,
-    profileId: params.profileId,
-  });
-  return pageFiltered(docs, params);
+  return await listMemoriesInScope(
+    ctx,
+    { kind: "personal", userId, profileId: params.profileId },
+    params,
+  );
 }
 
 export async function listMemoriesForTeam(
-  ctx: QueryCtx | MutationCtx,
+  ctx: QueryCtx,
   profileId: string,
   params: ListMemoryStoreParams,
 ): Promise<MemoryListStoreResult> {
-  const docs = await listScopedDocs(ctx, { kind: "team", profileId });
-  return pageFiltered(docs, params);
+  return await listMemoriesInScope(ctx, { kind: "team", profileId }, params);
 }
 
 function sameTags(a: readonly string[], b: readonly string[]): boolean {
@@ -946,41 +972,167 @@ export async function collectScopedMemories(
   return docs.map(toMemoryWithTags);
 }
 
+function trimmedOrUndefined(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed === undefined || trimmed.length === 0 ? undefined : trimmed;
+}
+
+// Rows found only through synonym terms must still contain a term the caller
+// typed, otherwise a query plus filter returns synonym-only noise.
+function containsAnyTerm(memory: MemoryWithTags, terms: string): boolean {
+  const haystack =
+    `${memory.title} ${memory.content} ${memory.tags.join(" ")}`.toLowerCase();
+  return terms.split(" ").some((term) => haystack.includes(term));
+}
+
+interface IndexFilter {
+  source?: string;
+  type?: MemoryType;
+  status?: MemoryStatus;
+}
+
+// source/type/status run inside the search index. An unknown type or status
+// cannot match any row, so it returns null.
+function parseIndexFilter(filter: MemoryListFilter): IndexFilter | null {
+  const typeText = trimmedOrUndefined(filter.type);
+  const statusText = trimmedOrUndefined(filter.status);
+  const type =
+    typeText === undefined ? undefined : memoryTypeSchema.safeParse(typeText);
+  const status =
+    statusText === undefined
+      ? undefined
+      : memoryStatusSchema.safeParse(statusText);
+  if (type?.success === false || status?.success === false) return null;
+  return {
+    source: trimmedOrUndefined(filter.source),
+    type: type?.data,
+    status: status?.data,
+  };
+}
+
+function searchIndexQuery(
+  ctx: QueryCtx,
+  scope: MemoryReadScope,
+  search: string,
+  index: IndexFilter,
+) {
+  return ctx.db.query("memories").withSearchIndex("search_text", (q) => {
+    // personal scope filters profileId in JS: legacy rows have none
+    let scoped = q.search("searchableText", search);
+    scoped =
+      scope.kind === "team"
+        ? scoped.eq("profileId", scope.profileId)
+        : scoped.eq("userId", scope.userId);
+    if (index.source !== undefined) scoped = scoped.eq("source", index.source);
+    if (index.type !== undefined) scoped = scoped.eq("type", index.type);
+    if (index.status !== undefined) scoped = scoped.eq("status", index.status);
+    return scoped;
+  });
+}
+
+// Post-filter shared by the take path and the page path.
+function acceptSearchHit(
+  doc: Doc<"memories">,
+  scope: MemoryReadScope,
+  filter: MemoryListFilter,
+  requireTerms: string | undefined,
+): MemoryWithTags | null {
+  if (!memoryMatchesScope(doc, scope)) return null;
+  const memory = toMemoryWithTags(doc);
+  if (!memoryMatchesListFilter(memory, filter)) return null;
+  if (requireTerms !== undefined && !containsAnyTerm(memory, requireTerms)) {
+    return null;
+  }
+  return memory;
+}
+
+export interface SearchMemoriesPage {
+  memories: MemoryWithTags[];
+  continueCursor: string;
+  isDone: boolean;
+  /** Index rows read for this page, before post-filtering. */
+  scanned: number;
+}
+
+/**
+ * One page of search-index hits for one search string, post-filtered.
+ * Convex allows one `.paginate()` per query function, so the caller loops over
+ * cursors from an action (see `searchMemoryListPaged` in memoryRuntime).
+ */
+export async function searchMemoriesPage(
+  ctx: QueryCtx,
+  scope: MemoryReadScope,
+  args: {
+    search: string;
+    filter: MemoryListFilter;
+    requireTerms?: string;
+    numItems: number;
+    cursor: string | null;
+  },
+): Promise<SearchMemoriesPage> {
+  const index = parseIndexFilter(args.filter);
+  if (index === null) {
+    return { memories: [], continueCursor: "", isDone: true, scanned: 0 };
+  }
+  const filter = { ...args.filter, searchQuery: undefined };
+  const page = await searchIndexQuery(ctx, scope, args.search, index).paginate({
+    numItems: args.numItems,
+    cursor: args.cursor,
+  });
+  const memories: MemoryWithTags[] = [];
+  for (const doc of page.page) {
+    const memory = acceptSearchHit(doc, scope, filter, args.requireTerms);
+    if (memory !== null) memories.push(memory);
+  }
+  return {
+    memories,
+    continueCursor: page.continueCursor,
+    isDone: page.isDone,
+    scanned: page.page.length,
+  };
+}
+
+/**
+ * Search-index hits in rank order that match `filter`, from one bounded take
+ * per search string. Used for the retrieve candidate pool and for direct store
+ * calls. List paging goes through `searchMemoriesPage` instead.
+ * - source/type/status run inside the index, so the take cap applies after them.
+ * - Tags and hidden statuses run on the hits. With tags the take is
+ *   CONVEX_FTS_SCAN_MAX, else FTS_TAKE.
+ */
 export async function searchMemoriesText(
   ctx: QueryCtx,
   scope: MemoryReadScope,
   query: string,
-  take: number = FTS_TAKE,
+  options: { want?: number; filter?: MemoryListFilter } = {},
 ): Promise<Array<{ memory: MemoryWithTags; rank: number }>> {
   const queries = ftsQueryTexts(query);
   if (queries.length === 0) return [];
-  const limit = clampFtsTake(take);
+  const want = clampFtsTake(options.want ?? FTS_TAKE);
+  const filter = { ...options.filter, searchQuery: undefined };
+  const index = parseIndexFilter(filter);
+  if (index === null) return [];
+  const scan =
+    filter.tags !== undefined && filter.tags.length > 0
+      ? CONVEX_FTS_SCAN_MAX
+      : clampFtsTake(Math.max(want, FTS_TAKE));
   const seen = new Set<string>();
   const out: Array<{ memory: MemoryWithTags; rank: number }> = [];
 
-  for (const search of queries) {
-    const hits =
-      scope.kind === "team"
-        ? await ctx.db
-            .query("memories")
-            .withSearchIndex("search_text", (q) =>
-              q
-                .search("searchableText", search)
-                .eq("profileId", scope.profileId),
-            )
-            .take(limit)
-        : await ctx.db
-            .query("memories")
-            .withSearchIndex("search_text", (q) =>
-              q.search("searchableText", search).eq("userId", scope.userId),
-            )
-            .take(limit);
+  for (const [i, search] of queries.entries()) {
+    const hits = await searchIndexQuery(ctx, scope, search, index).take(scan);
     for (const doc of hits) {
       if (seen.has(doc.memoryId)) continue;
-      if (!memoryMatchesScope(doc, scope)) continue;
+      const memory = acceptSearchHit(
+        doc,
+        scope,
+        filter,
+        i > 0 ? queries[0] : undefined,
+      );
+      if (memory === null) continue;
       seen.add(doc.memoryId);
-      out.push({ memory: toMemoryWithTags(doc), rank: out.length + 1 });
-      if (out.length >= limit) return out;
+      out.push({ memory, rank: out.length + 1 });
+      if (out.length >= want) return out;
     }
   }
   return out;
