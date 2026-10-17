@@ -10,14 +10,19 @@ export interface TrackerDeps {
   getIdleSeconds: () => number;
   getSettings: () => Settings;
   record: (event: ActivityEvent) => void;
+  /** Receives native window API failures, at most once per `ERROR_LOG_INTERVAL_MS`. */
+  logError?: (message: string) => void;
   now?: () => number;
 }
+
+const ERROR_LOG_INTERVAL_MS = 30_000;
 
 /** Polls the active window and records an event only when the state changes. */
 export class Tracker {
   private state = "";
   private lastAt = 0;
   private active: ActiveWindow | null = null;
+  private lastErrorLogAt: number | null = null;
 
   constructor(private readonly deps: TrackerDeps) {}
 
@@ -45,8 +50,12 @@ export class Tracker {
     let window: ActiveWindow | null = null;
     try {
       window = await this.deps.getActiveWindow();
-    } catch {
-      // Native window APIs can fail (headless CI, missing permission).
+    } catch (error) {
+      // Native window APIs can fail. Log it, then split the session below.
+      this.logError(
+        error instanceof Error ? error.message : String(error),
+        now,
+      );
     }
     if (window === null) {
       this.gap("unknown", now);
@@ -70,6 +79,13 @@ export class Tracker {
   /** Ends the open session, for example before quit. */
   stop(): void {
     this.gap("shutdown", (this.deps.now ?? Date.now)());
+  }
+
+  private logError(reason: string, now: number): void {
+    const last = this.lastErrorLogAt;
+    if (last !== null && now - last < ERROR_LOG_INTERVAL_MS) return;
+    this.lastErrorLogAt = now;
+    this.deps.logError?.(`active window failed: ${reason}`);
   }
 
   private gap(reason: GapReason, at: number): void {

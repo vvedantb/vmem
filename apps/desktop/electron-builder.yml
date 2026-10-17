@@ -1,19 +1,27 @@
 appId: uk.projectv.vmem.desktop
 productName: vmem Desktop
-# electron-builder names the Linux binary after package.json `name`.
-# Override it so the binary is exactly vmem-desktop.
+# `name` keeps the Linux binary at vmem-desktop. `productName` keeps Electron's
+# userData folder at "vmem Desktop" (Electron prefers it over `name`).
+# `dependencies: {}` stops electron-builder from collecting get-windows and zod
+# from node_modules: scripts/build.mjs bundles both into dist/main.js.
 extraMetadata:
   name: vmem-desktop
+  productName: vmem Desktop
+  dependencies: {}
 directories:
   output: release
 files:
   - dist/**
   - assets/**
   - package.json
-# The SDK and zod are bundled into dist/main.js by scripts/build.mjs.
-# electron and get-windows stay external and are packaged from node_modules.
+# Native files that build.mjs copies into dist/native must be real files.
 asarUnpack:
-  - node_modules/get-windows/**
+  - dist/native/**
+# Returns false: electron-builder neither collects nor rebuilds node_modules.
+# This replaces `npmRebuild: false`, which returns before beforeBuild runs and
+# so still collects node_modules from the pnpm tree. Natives are copied by
+# build.mjs, so no rebuild is needed.
+beforeBuild: scripts/skip-node-modules.mjs
 win:
   target: nsis
   icon: assets/icon.png

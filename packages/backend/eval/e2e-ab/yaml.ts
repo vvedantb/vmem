@@ -9,6 +9,8 @@
 
 import { z } from "zod";
 
+const quotedStringSchema = z.string();
+
 export type Json =
   | string
   | number
@@ -42,7 +44,7 @@ function stripComment(value: string): string {
 
 function parseScalar(raw: string): Json {
   const value = raw.trim();
-  if (value.startsWith('"')) return z.string().parse(JSON.parse(value));
+  if (value.startsWith('"')) return quotedStringSchema.parse(JSON.parse(value));
   if (value.startsWith("'")) {
     const end = value.lastIndexOf("'");
     if (end > 0) return value.slice(1, end).replace(/''/g, "'");

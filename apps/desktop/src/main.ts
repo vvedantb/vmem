@@ -16,16 +16,22 @@ import { BatchStore, flushBatch } from "./batch";
 import type { ActivityEvent } from "./events";
 import { allowClipboard, allowScreenshot, clipboardSnippet } from "./privacy";
 import { SettingsStore } from "./settings";
+import { runPackagedTest, runSmoke } from "./self-test";
 import { Tracker } from "./tracker";
 import { createPoster, resolveClientConfig } from "./vmem-client";
 
 const SMOKE = process.env["VMEM_DESKTOP_SMOKE"] === "1";
+const PACKAGED_TEST = process.env["VMEM_DESKTOP_PACKAGED_TEST"] === "1";
+const SELF_TEST = SMOKE || PACKAGED_TEST;
 const POLL_MS = 2_000;
 const SCREENSHOT_INTERVAL_MS = 10 * 60_000;
 const QUIT_FLUSH_TIMEOUT_MS = 10_000;
 
 const here = import.meta.dirname;
 const iconPath = join(here, "..", "assets", "icon.png");
+
+// Fixes the userData folder name: extraMetadata.name is `vmem-desktop`.
+app.setName("vmem Desktop");
 
 function log(message: string): void {
   process.stderr.write(`[vmem-desktop] ${message}\n`);
@@ -38,8 +44,13 @@ async function start(): Promise<void> {
   const batch = SMOKE ? null : new BatchStore(userData);
 
   const record = (event: ActivityEvent): void => batch?.append(event);
+  const trackerFailures: string[] = [];
   const tracker = new Tracker({
     getActiveWindow,
+    logError: (message) => {
+      log(message);
+      if (SELF_TEST) trackerFailures.push(message);
+    },
     getIdleSeconds: () => powerMonitor.getSystemIdleTime(),
     getSettings: () => settings.get(),
     record,
@@ -134,23 +145,36 @@ async function start(): Promise<void> {
     return next;
   }
 
-  // Tray and tracker first: smoke mode must reach OK even if either fails.
   try {
     tray = new Tray(nativeImage.createFromPath(iconPath).resize({ width: 16 }));
     refreshTray();
   } catch (error) {
     log(`tray unavailable: ${String(error)}`);
   }
+
+  if (SMOKE) {
+    // Any native failure throws to main(), which exits non-zero.
+    await runSmoke(tracker, trackerFailures);
+    process.stdout.write("VMEM_DESKTOP_SMOKE_OK\n");
+    app.exit(0);
+    return;
+  }
+
+  if (PACKAGED_TEST) {
+    const config = resolveClientConfig(settings.get(), process.env);
+    if (batch === null || config === null) {
+      throw new Error("Packaged test needs VMEM_API_KEY and VMEM_BASE_URL.");
+    }
+    await runPackagedTest(tracker, batch, createPoster(config));
+    process.stdout.write("VMEM_DESKTOP_PACKAGED_TEST_OK\n");
+    app.exit(0);
+    return;
+  }
+
   try {
     await tracker.tick();
   } catch (error) {
     log(`tracker failed: ${String(error)}`);
-  }
-
-  if (SMOKE) {
-    process.stdout.write("VMEM_DESKTOP_SMOKE_OK\n");
-    app.exit(0);
-    return;
   }
 
   app.dock?.hide();
@@ -246,7 +270,7 @@ async function captureScreenshot(
 }
 
 async function main(): Promise<void> {
-  if (!SMOKE && !app.requestSingleInstanceLock()) {
+  if (!SELF_TEST && !app.requestSingleInstanceLock()) {
     app.quit();
     return;
   }
@@ -254,9 +278,7 @@ async function main(): Promise<void> {
     await start();
   } catch (error) {
     log(`fatal: ${String(error)}`);
-    // Smoke mode only proves the binary starts; native failures stay in the log.
-    if (SMOKE) process.stdout.write("VMEM_DESKTOP_SMOKE_OK\n");
-    app.exit(SMOKE ? 0 : 1);
+    app.exit(1);
   }
 }
 
