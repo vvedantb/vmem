@@ -46,6 +46,12 @@ export default function MemoryTraceHover({
             label="Confidence"
             value={scoreBreakdown.confidence}
           />
+          {scoreBreakdown.usefulness !== undefined ? (
+            <MemoryScoreBar
+              label="Usefulness"
+              value={scoreBreakdown.usefulness}
+            />
+          ) : null}
           {scoreBreakdown.chunk > 0 ? (
             <MemoryScoreBar label="Chunk match" value={scoreBreakdown.chunk} />
           ) : null}

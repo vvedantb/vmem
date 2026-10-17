@@ -6,14 +6,12 @@ import {
   hasTemporalIntent,
   temporalScore,
 } from "./temporal";
+import { blendRelevanceWithUsefulness, computeUsefulness } from "./usefulness";
 import { contentTokens, hasWholeWord, tokenize } from "./tokens";
 
 const BM25_K1 = 1.4;
 const BM25_B = 0.6;
 const RRF_K = 24;
-/** Passive desktop activity is noisy; rank it below deliberate memories. */
-const DESKTOP_SOURCE = "desktop";
-const DESKTOP_SCORE_MULTIPLIER = 0.85;
 const TITLE_WEIGHT = 3;
 const TAG_WEIGHT = 2;
 const RECENCY_HALFLIFE_DAYS = 365;
@@ -439,6 +437,26 @@ function recencyScore(memory: MemoryWithTags, nowMs: number): number {
   if (!Number.isFinite(ts)) return 0.5;
   const ageDays = Math.max(0, (nowMs - ts) / MS_PER_DAY);
   return Math.exp(-ageDays / RECENCY_HALFLIFE_DAYS);
+}
+
+/** Live score from stored signals, so decay stays current between rescoring. */
+function memoryUsefulness(memory: MemoryWithTags, nowMs: number): number {
+  const stored = memory.usefulness;
+  const updatedAt = Date.parse(memory.updatedAt);
+  const createdAt = Date.parse(memory.createdAt);
+  return computeUsefulness({
+    source: memory.source,
+    sourceType: memory.sourceType,
+    pinned: memory.status === "pinned",
+    updatedAt: Number.isFinite(updatedAt) ? updatedAt : undefined,
+    createdAt: Number.isFinite(createdAt) ? createdAt : undefined,
+    nowMs,
+    retrieveHits: stored?.retrieveHits,
+    searchHits: stored?.searchHits,
+    contextPackHits: stored?.contextPackHits,
+    userEdits: stored?.userEdits,
+    jevQuality: stored?.jevQuality,
+  });
 }
 
 function rrfFromScores(
@@ -885,10 +903,12 @@ export function rankMemories(
     }
   }
 
+  // 0.85 * relevance + 0.15 * usefulness. Passive sources (desktop,
+  // bookmarks) are handled by their low prior and fast decay.
   for (const hit of scored) {
-    if (hit.source === DESKTOP_SOURCE || hit.sourceType === DESKTOP_SOURCE) {
-      hit.trace.score *= DESKTOP_SCORE_MULTIPLIER;
-    }
+    const usefulness = memoryUsefulness(hit, nowMs);
+    hit.trace.score = blendRelevanceWithUsefulness(hit.trace.score, usefulness);
+    hit.trace.scoreBreakdown = { ...hit.trace.scoreBreakdown, usefulness };
   }
 
   scored.sort((a, b) => {

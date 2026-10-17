@@ -13,6 +13,8 @@ import {
   parseAsSanitizedSearchQuery,
 } from "./sanitized-parsers";
 
+export const MEMORY_LIST_SORTS = ["recent", "usefulness"] as const;
+
 const memoriesSearchParams = {
   // when set, load that node's neighbourhood (2-hop) — absent → global graph
   focus: parseAsSanitizedOptionalString,
@@ -23,6 +25,8 @@ const memoriesSearchParams = {
   types: createSanitizedArrayParser(parseAsStringLiteral(MEMORY_TYPES)),
   kinds: createSanitizedArrayParser(parseAsStringLiteral(LIST_ITEM_KINDS)),
   span: parseAsStringLiteral(TIMELINE_SPANS).withDefault("week"),
+  // "usefulness" sorts the loaded list rows (best effort: loaded pages only)
+  sort: parseAsStringLiteral(MEMORY_LIST_SORTS).withDefault("recent"),
 };
 
 export type MemoriesSearchParams = inferParserType<typeof memoriesSearchParams>;

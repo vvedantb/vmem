@@ -1,6 +1,8 @@
 // list view controls rendered in the page header
 
 import { useState } from "react";
+import { IconSortDescending } from "@tabler/icons-react";
+import { Button, Tooltip, TooltipContent, TooltipTrigger } from "@vvedantb/ui";
 import AddMemoryIconTrigger from "@/components/memories/AddMemoryIconTrigger";
 import HeaderSearchPopover from "./HeaderSearchPopover";
 import { MemoryFiltersButton } from "@/routes/_main/$profileId/memories/_components/MemoryFiltersButton";
@@ -56,6 +58,31 @@ export default function MemoryListHeaderControls({
           if (open) setFiltersOpened(true);
         }}
       />
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="outline"
+            size="icon-sm"
+            aria-label="Sort by usefulness"
+            aria-pressed={params.sort === "usefulness"}
+            className={
+              params.sort === "usefulness"
+                ? "h-11 w-11 shrink-0 bg-surface-secondary md:h-8 md:w-8"
+                : "h-11 w-11 shrink-0 md:h-8 md:w-8"
+            }
+            onClick={() =>
+              setParams({
+                sort: params.sort === "usefulness" ? null : "usefulness",
+              })
+            }
+          >
+            <IconSortDescending size={16} />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" sideOffset={6}>
+          Sort by usefulness (loaded memories)
+        </TooltipContent>
+      </Tooltip>
       <AddMemoryIconTrigger className="h-11 w-11 shrink-0 md:h-8 md:w-8" />
     </div>
   );

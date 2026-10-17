@@ -43,7 +43,12 @@ interface BaseListItem {
 type MemoryRowItem = BaseListItem &
   Pick<
     Memory,
-    "type" | "source" | "sourceUrl" | "sourceSyncedAt" | "profileId"
+    | "type"
+    | "source"
+    | "sourceUrl"
+    | "sourceSyncedAt"
+    | "profileId"
+    | "usefulnessScore"
   > & {
     kind: "memory";
   };
@@ -87,6 +92,7 @@ export function memoryToListItem(memory: Memory): ListItem {
     sourceUrl: memory.sourceUrl,
     sourceSyncedAt: memory.sourceSyncedAt,
     profileId: memory.profileId,
+    usefulnessScore: memory.usefulnessScore,
   };
 }
 
@@ -103,6 +109,9 @@ export function listItemToMemory(
     source: item.source,
     sourceUrl: item.sourceUrl,
     sourceSyncedAt: item.sourceSyncedAt,
+    ...(item.usefulnessScore !== undefined
+      ? { usefulnessScore: item.usefulnessScore }
+      : {}),
     ...(item.profileId !== undefined ? { profileId: item.profileId } : {}),
   };
 }

@@ -63,6 +63,7 @@ import {
   type DecisionCandidate,
   type FactDecision,
 } from "../engine/memory/supersede";
+import { enqueueMemoryAccess } from "./memoryUsefulness";
 import { scheduleDreamTriggerCheck } from "./lib/dreamTriggerInvalidate";
 import type { MemoryReadScope } from "../engine/memory/scope";
 import {
@@ -345,7 +346,7 @@ export async function retrieveMemoriesForClerk(
     referenceDate?: string;
   } & RetrieveJudgeOptions,
 ): Promise<MemoryCandidate[]> {
-  return retrieveRanked(ctx, {
+  return retrieveAndTrack(ctx, {
     kind: "personal",
     clerkId: args.clerkId,
     profileId: args.profileId,
@@ -377,7 +378,7 @@ export async function retrieveMemoriesForTeamProfile(
     referenceDate?: string;
   } & RetrieveJudgeOptions,
 ): Promise<MemoryCandidate[]> {
-  return retrieveRanked(ctx, {
+  return retrieveAndTrack(ctx, {
     kind: "team",
     clerkId: args.clerkId,
     profileId: args.profileId,
@@ -392,6 +393,19 @@ export async function retrieveMemoriesForTeamProfile(
     judge: args.judge,
     referenceDate: args.referenceDate,
   });
+}
+
+async function retrieveAndTrack(
+  ctx: ActionCtx,
+  args: Parameters<typeof retrieveRanked>[1],
+): Promise<MemoryCandidate[]> {
+  const hits = await retrieveRanked(ctx, args);
+  await enqueueMemoryAccess(
+    ctx,
+    hits.map((hit) => hit.id),
+    "retrieve",
+  );
+  return hits;
 }
 
 async function listRecentForRetrieve(

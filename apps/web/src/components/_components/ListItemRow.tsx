@@ -114,6 +114,9 @@ export default function ListItemRow({
               </span>
             )
           ) : null}
+          {item.kind === "memory" && item.usefulnessScore !== undefined ? (
+            <UsefulnessMeter score={item.usefulnessScore} />
+          ) : null}
           <div className="flex items-center gap-1.5 shrink-0">
             {awaitingDream && (
               <Tooltip>
@@ -174,6 +177,32 @@ export default function ListItemRow({
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>
+  );
+}
+
+// muted bar + 0-100 value, hover says what it is
+function UsefulnessMeter({ score }: { score: number }) {
+  const pct = Math.round(Math.max(0, Math.min(1, score)) * 100);
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span
+          className="flex shrink-0 items-center gap-1 text-[10px] tabular-nums text-muted/70"
+          aria-label={`Usefulness ${String(pct)}`}
+        >
+          <span className="h-1 w-6 overflow-hidden rounded-full bg-surface-secondary">
+            <span
+              className="block h-full rounded-full bg-foreground/40"
+              style={{ width: `${String(pct)}%` }}
+            />
+          </span>
+          {pct}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent side="top" sideOffset={6}>
+        Usefulness
+      </TooltipContent>
+    </Tooltip>
   );
 }
 

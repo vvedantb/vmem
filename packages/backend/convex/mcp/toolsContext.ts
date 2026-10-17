@@ -15,6 +15,7 @@ import {
   retrieveMemoriesForClerk,
   retrieveMemoriesForTeamProfile,
 } from "../memoryRuntime";
+import { enqueueMemoryAccess } from "../memoryUsefulness";
 import { toSkillIndexEntry } from "../skills";
 import { runForMcpScope, withMcpMemoryScope } from "./memoryScope";
 import {
@@ -145,6 +146,7 @@ export const contextToolSpecs = {
             profile,
             maxChars: params.maxChars ?? CONTEXT_PACK_DEFAULT_CHARS,
           });
+          await enqueueMemoryAccess(h.ctx, pack.memoryIds, "contextPack");
           return { ...pack, skillSource: skills?.source ?? null };
         },
       );
