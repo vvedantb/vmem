@@ -66,10 +66,7 @@ import {
 import { enqueueMemoryAccess } from "./memoryUsefulness";
 import { scheduleDreamTriggerCheck } from "./lib/dreamTriggerInvalidate";
 import type { MemoryReadScope } from "../engine/memory/scope";
-import {
-  listMemoriesPaged,
-  collectScopedMemoriesPaged,
-} from "./memoryStore/walk";
+import { collectScopedMemoriesPaged } from "./memoryStore/walk";
 
 type MemoryCtx = Pick<ActionCtx, "runQuery" | "runMutation" | "scheduler">;
 
@@ -98,6 +95,7 @@ export interface CreateMemoryRuntimeArgs {
   temporalKind?: TemporalKind | null;
 }
 
+/** Reads are bounded: `total` is a lower bound (see MemoryListStoreResult). */
 export interface ListMemoryRuntimeArgs {
   clerkId: string;
   profileId?: string;
@@ -108,7 +106,6 @@ export interface ListMemoryRuntimeArgs {
   searchQuery?: string;
   limit: number;
   offset: number;
-  countAll?: boolean;
 }
 
 export interface UpdateMemoryRuntimeArgs {
@@ -185,10 +182,11 @@ export async function listMemoriesForClerk(
     args.clerkId,
     args.profileId,
   );
-  return await listMemoriesPaged(
-    ctx,
-    { kind: "personal", userId: args.clerkId, profileId },
+  return await ctx.runQuery(
+    internal.memoryStore.functions.listMemoriesInternal,
     {
+      userId: args.clerkId,
+      profileId,
       type: args.type,
       status: args.status,
       source: args.source,
@@ -196,7 +194,6 @@ export async function listMemoriesForClerk(
       searchQuery: args.searchQuery,
       limit: args.limit,
       offset: args.offset,
-      countAll: args.countAll,
     },
   );
 }
@@ -205,10 +202,10 @@ export async function listMemoriesForTeamProfile(
   ctx: Pick<ActionCtx, "runQuery">,
   args: Omit<ListMemoryRuntimeArgs, "clerkId"> & { profileId: string },
 ): Promise<MemoryListResult> {
-  return await listMemoriesPaged(
-    ctx,
-    { kind: "team", profileId: args.profileId },
+  return await ctx.runQuery(
+    internal.memoryStore.functions.listMemoriesForTeamInternal,
     {
+      profileId: args.profileId,
       type: args.type,
       status: args.status,
       source: args.source,
@@ -216,7 +213,6 @@ export async function listMemoriesForTeamProfile(
       searchQuery: args.searchQuery,
       limit: args.limit,
       offset: args.offset,
-      countAll: args.countAll,
     },
   );
 }
@@ -429,7 +425,6 @@ async function listRecentForRetrieve(
       source: args.source,
       limit: RETRIEVE_RECENT_CAP,
       offset: 0,
-      countAll: false,
     });
     return listed.memories;
   }
@@ -443,7 +438,6 @@ async function listRecentForRetrieve(
     source: args.source,
     limit: RETRIEVE_RECENT_CAP,
     offset: 0,
-    countAll: false,
   });
   return listed.memories;
 }
@@ -742,7 +736,6 @@ export async function relatedMemoriesForClerk(
     profileId: args.profileId ?? seed.profileId ?? undefined,
     limit: RETRIEVE_RECENT_CAP,
     offset: 0,
-    countAll: false,
   });
   return rankRelatedMemories(seed, listed.memories, args.limit ?? 10);
 }
@@ -760,7 +753,6 @@ export async function relatedMemoriesForTeamProfile(
     profileId: args.profileId,
     limit: RETRIEVE_RECENT_CAP,
     offset: 0,
-    countAll: false,
   });
   return rankRelatedMemories(seed, listed.memories, args.limit ?? 10);
 }

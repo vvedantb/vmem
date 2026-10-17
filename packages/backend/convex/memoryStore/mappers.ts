@@ -61,7 +61,19 @@ export function toMemoryStatRow(doc: Doc<"memories">): {
   return { createdAt: doc.createdAt, tags: doc.tags };
 }
 
+/**
+ * Row to API shape for list, search and retrieve. Hit counts live in
+ * `memoryUsage`, so these rows omit them. Single reads use `toMemoryWithHits`.
+ */
 export function toMemoryWithTags(doc: Doc<"memories">): MemoryWithTags {
+  return toMemoryWithHits(doc, undefined);
+}
+
+/** Single-row read: `hits` come from `loadUsageHits`. */
+export function toMemoryWithHits(
+  doc: Doc<"memories">,
+  hits: UsageHits | undefined,
+): MemoryWithTags {
   return {
     id: doc.memoryId,
     userId: doc.userId,
@@ -86,13 +98,13 @@ export function toMemoryWithTags(doc: Doc<"memories">): MemoryWithTags {
       temporalKind: doc.temporalKind,
     }),
     tags: doc.tags,
-    ...(hasUsefulnessSignals(doc)
+    ...(hasUsefulnessSignals(doc, hits)
       ? {
           usefulness: {
             score: doc.usefulnessScore,
-            retrieveHits: doc.usefulnessRetrieveHits,
-            searchHits: doc.usefulnessSearchHits,
-            contextPackHits: doc.usefulnessContextPackHits,
+            retrieveHits: hits?.retrieveHits,
+            searchHits: hits?.searchHits,
+            contextPackHits: hits?.contextPackHits,
             userEdits: doc.usefulnessEditCount,
             jevQuality: doc.usefulnessJevScore,
           },
@@ -101,12 +113,15 @@ export function toMemoryWithTags(doc: Doc<"memories">): MemoryWithTags {
   };
 }
 
-function hasUsefulnessSignals(doc: Doc<"memories">): boolean {
+function hasUsefulnessSignals(
+  doc: Doc<"memories">,
+  hits: UsageHits | undefined,
+): boolean {
   return (
     doc.usefulnessScore !== undefined ||
-    doc.usefulnessRetrieveHits !== undefined ||
-    doc.usefulnessSearchHits !== undefined ||
-    doc.usefulnessContextPackHits !== undefined ||
+    hits?.retrieveHits !== undefined ||
+    hits?.searchHits !== undefined ||
+    hits?.contextPackHits !== undefined ||
     doc.usefulnessEditCount !== undefined ||
     doc.usefulnessJevScore !== undefined
   );

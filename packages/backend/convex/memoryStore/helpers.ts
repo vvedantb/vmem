@@ -40,6 +40,7 @@ import {
   parseIsoMillis,
   toMemorySummary,
   usefulnessOfDoc,
+  toMemoryWithHits,
   toMemoryWithTags,
   type MemorySummary,
 } from "./mappers";
@@ -99,6 +100,12 @@ export interface UpdateMemoryStoreParams {
   skipEditCount?: boolean;
 }
 
+/**
+ * `total` is a lower bound, not a table count. Empty query: matches seen while
+ * scanning newest first, stopped at `offset + limit + 1` (enough to know whether
+ * another page exists). Text query: matches among the search index hits (at most
+ * FTS_TAKE). `total > offset + limit` means "more pages exist".
+ */
 export interface MemoryListStoreResult {
   memories: MemoryWithTags[];
   total: number;
@@ -385,15 +392,23 @@ async function listScopedDocs(
   return rows.filter((row) => memoryMatchesScope(row, scope));
 }
 
-function pageFiltered(
-  docs: Array<Doc<"memories">>,
+// Text queries use the search index (never a table scan). Other filters apply
+// to the index hits, in index rank order. Empty queries use the bounded
+// newest-first scan.
+async function listMemoriesInScope(
+  ctx: QueryCtx,
+  scope: MemoryReadScope,
   params: ListMemoryStoreParams,
-): MemoryListStoreResult {
-  const matched = docs.filter((doc) => memoryMatchesListFilter(doc, params));
+): Promise<MemoryListStoreResult> {
+  const query = params.searchQuery?.trim() ?? "";
+  if (query.length === 0) return await listMemoriesBounded(ctx, scope, params);
+  const hits = await searchMemoriesText(ctx, scope, query, FTS_TAKE);
+  const filter = { ...params, searchQuery: undefined };
+  const matched = hits
+    .map((hit) => hit.memory)
+    .filter((memory) => memoryMatchesListFilter(memory, filter));
   return {
-    memories: pageMemoryList(matched, params.limit, params.offset).map(
-      toMemoryWithTags,
-    ),
+    memories: pageMemoryList(matched, params.limit, params.offset),
     total: matched.length,
   };
 }
@@ -504,7 +519,7 @@ export async function getMemory(
   if (!doc || !memoryMatchesScope(doc, { kind: "personal", userId })) {
     return null;
   }
-  return toMemoryWithTags(doc);
+  return toMemoryWithHits(doc, await loadUsageHits(ctx, doc));
 }
 
 export async function getMemoryForTeam(
@@ -516,29 +531,27 @@ export async function getMemoryForTeam(
   if (!doc || !memoryMatchesScope(doc, { kind: "team", profileId })) {
     return null;
   }
-  return toMemoryWithTags(doc);
+  return toMemoryWithHits(doc, await loadUsageHits(ctx, doc));
 }
 
 export async function listMemories(
-  ctx: QueryCtx | MutationCtx,
+  ctx: QueryCtx,
   userId: string,
   params: ListMemoryStoreParams & { profileId?: string | null },
 ): Promise<MemoryListStoreResult> {
-  const docs = await listScopedDocs(ctx, {
-    kind: "personal",
-    userId,
-    profileId: params.profileId,
-  });
-  return pageFiltered(docs, params);
+  return await listMemoriesInScope(
+    ctx,
+    { kind: "personal", userId, profileId: params.profileId },
+    params,
+  );
 }
 
 export async function listMemoriesForTeam(
-  ctx: QueryCtx | MutationCtx,
+  ctx: QueryCtx,
   profileId: string,
   params: ListMemoryStoreParams,
 ): Promise<MemoryListStoreResult> {
-  const docs = await listScopedDocs(ctx, { kind: "team", profileId });
-  return pageFiltered(docs, params);
+  return await listMemoriesInScope(ctx, { kind: "team", profileId }, params);
 }
 
 function sameTags(a: readonly string[], b: readonly string[]): boolean {
