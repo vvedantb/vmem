@@ -8,6 +8,7 @@ import {
   structuredStoreBodySchema,
   structuredUpdateBodySchema,
 } from "@vmem/sdk";
+import type { MemoryListResult } from "../memoryApi/types";
 import { scopedMemory, toolSpec } from "./toolTypes";
 import {
   loadMemoryForMcpScope,
@@ -184,7 +185,7 @@ export const memoryToolSpecs = {
     name: "memory_search",
     schema: memorySearchSchema,
     description:
-      "Search your memories by query text, type, tags, or source. Returns matching memories with metadata. Defaults to the active profile unless profileId is specified.",
+      "Search your memories by query text, type, tags, or source. Returns matching memories with metadata. total is a lower bound, not an exact count (reads are bounded): totalIsLowerBound is always true and hasMore says whether more results exist after this page. Do not treat total as an exact count. Defaults to the active profile unless profileId is specified.",
     errorLabel: "Search failed",
     async run(h, params): Promise<unknown> {
       return withMcpMemoryScope(
@@ -193,28 +194,37 @@ export const memoryToolSpecs = {
         (scope) => {
           const limit = params.limit ?? 20;
           const offset = params.offset ?? 0;
+          const withBound = (result: MemoryListResult) => ({
+            ...result,
+            totalIsLowerBound: true,
+            hasMore: result.total > offset + result.memories.length,
+          });
           return runForMcpScope(scope, {
-            team: (profileId) =>
-              listMemoriesForTeamProfile(h.ctx, {
-                profileId,
-                type: params.type,
-                tags: params.tags,
-                source: params.source,
-                searchQuery: params.query,
-                limit,
-                offset,
-              }),
-            personal: ({ clerkId, profileId }) =>
-              listMemoriesForClerk(h.ctx, {
-                clerkId,
-                profileId,
-                type: params.type,
-                tags: params.tags,
-                source: params.source,
-                searchQuery: params.query,
-                limit,
-                offset,
-              }),
+            team: async (profileId) =>
+              withBound(
+                await listMemoriesForTeamProfile(h.ctx, {
+                  profileId,
+                  type: params.type,
+                  tags: params.tags,
+                  source: params.source,
+                  searchQuery: params.query,
+                  limit,
+                  offset,
+                }),
+              ),
+            personal: async ({ clerkId, profileId }) =>
+              withBound(
+                await listMemoriesForClerk(h.ctx, {
+                  clerkId,
+                  profileId,
+                  type: params.type,
+                  tags: params.tags,
+                  source: params.source,
+                  searchQuery: params.query,
+                  limit,
+                  offset,
+                }),
+              ),
           });
         },
       );

@@ -9,6 +9,7 @@ import schema from "./schema";
 import {
   CONVEX_FTS_SCAN_MAX,
   FTS_PAGE_SIZE,
+  ftsScanBudget,
 } from "../engine/memory/retrieveCaps";
 
 const modules = import.meta.glob("./**/*.ts");
@@ -51,14 +52,19 @@ async function seed(t: Harness) {
 // Records the name of every query the runtime helper sends to the backend.
 function recordingCtx(t: Harness) {
   const queries: string[] = [];
+  const numItems: number[] = [];
   const ctx: Pick<ActionCtx, "runQuery" | "runMutation"> = {
     runQuery: async (ref, ...args) => {
       queries.push(getFunctionName(ref));
+      const arg = args[0];
+      if (arg && typeof arg === "object" && "numItems" in arg) {
+        if (typeof arg.numItems === "number") numItems.push(arg.numItems);
+      }
       return await t.query(ref, ...args);
     },
     runMutation: async (ref, ...args) => await t.mutation(ref, ...args),
   };
-  return { ctx, queries };
+  return { ctx, queries, numItems };
 }
 
 describe("bounded memory search and list", () => {
@@ -83,6 +89,22 @@ describe("bounded memory search and list", () => {
     expect(
       queries.filter((name) => name.includes("paginateScoped")),
     ).toHaveLength(0);
+  });
+
+  it("palette-sized search reads only offset + limit + 1 index rows", async () => {
+    const t = convexTest(schema, modules);
+    await seed(t);
+    const { ctx, numItems } = recordingCtx(t);
+
+    await listMemoriesForClerk(ctx, {
+      clerkId: USER,
+      profileId: PROFILE,
+      searchQuery: "alpha",
+      limit: 8,
+      offset: 0,
+    });
+
+    expect(numItems).toEqual([9]);
   });
 
   it("empty query stops after offset + limit + 1 matches", async () => {
@@ -241,6 +263,49 @@ describe("filtered search beyond the first 256 hits", () => {
     expect(queries.length).toBeLessThanOrEqual(
       Math.ceil(CONVEX_FTS_SCAN_MAX / FTS_PAGE_SIZE),
     );
+  });
+
+  it("starts tag-filtered paging small, then grows to the page size", async () => {
+    const t = convexTest(schema, modules);
+    await seedFiltered(t);
+    const { ctx, numItems } = recordingCtx(t);
+
+    await listMemoriesForClerk(ctx, {
+      clerkId: USER,
+      profileId: PROFILE,
+      searchQuery: "vmem",
+      tags: ["seed"],
+      limit: 8,
+      offset: 0,
+    });
+
+    expect(numItems[0]).toBe(9);
+    expect(numItems.length).toBeGreaterThan(1);
+    expect(numItems.slice(1).every((n) => n === FTS_PAGE_SIZE)).toBe(true);
+  });
+
+  it("tag-filtered text search still finds rows past the first take", async () => {
+    const t = convexTest(schema, modules);
+    await seedFiltered(t);
+
+    const hits = await t.query(
+      internal.memoryStore.functions.searchMemoriesTextInternal,
+      {
+        kind: "personal",
+        userId: USER,
+        profileId: PROFILE,
+        query: "vmem",
+        tags: ["seed"],
+      },
+    );
+    expect(hits).toHaveLength(SUBSET);
+  });
+
+  it("shares one scan budget across tagged passes", () => {
+    expect(ftsScanBudget(0)).toBe(CONVEX_FTS_SCAN_MAX);
+    expect(ftsScanBudget(300)).toBe(CONVEX_FTS_SCAN_MAX - 300);
+    expect(ftsScanBudget(CONVEX_FTS_SCAN_MAX)).toBe(0);
+    expect(ftsScanBudget(CONVEX_FTS_SCAN_MAX + 5)).toBe(0);
   });
 });
 

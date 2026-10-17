@@ -183,6 +183,8 @@ describe("in-process MCP memory tools", () => {
     expect(searched.memories.map((memory) => memory.title)).toContain(
       "Prefers pnpm",
     );
+    expect(searched.totalIsLowerBound).toBe(true);
+    expect(searched.hasMore).toBe(false);
 
     const retrieved = memoryCandidateListSchema.parse(
       parseToolPayload(

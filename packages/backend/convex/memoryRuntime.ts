@@ -216,7 +216,13 @@ async function searchMemoryListPaged(
           status: args.status,
           source: args.source,
           tags: args.tags,
-          numItems: Math.min(FTS_PAGE_SIZE, CONVEX_FTS_SCAN_MAX - scanned),
+          // first page asks for only what the caller needs; later pages
+          // (post-filters left `want` unmet) grow to FTS_PAGE_SIZE
+          numItems: Math.min(
+            scanned === 0 ? want : FTS_PAGE_SIZE,
+            FTS_PAGE_SIZE,
+            CONVEX_FTS_SCAN_MAX - scanned,
+          ),
           cursor,
         },
       );

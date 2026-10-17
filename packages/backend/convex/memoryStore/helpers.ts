@@ -24,6 +24,7 @@ import {
 import { ftsQueryTexts } from "../../engine/memory/candidates";
 import {
   clampFtsTake,
+  ftsScanBudget,
   CONVEX_FTS_SCAN_MAX,
   FTS_TAKE,
 } from "../../engine/memory/retrieveCaps";
@@ -1097,8 +1098,8 @@ export async function searchMemoriesPage(
  * per search string. Used for the retrieve candidate pool and for direct store
  * calls. List paging goes through `searchMemoriesPage` instead.
  * - source/type/status run inside the index, so the take cap applies after them.
- * - Tags and hidden statuses run on the hits. With tags the take is
- *   CONVEX_FTS_SCAN_MAX, else FTS_TAKE.
+ * - Tags and hidden statuses run on the hits. With tags the passes share one
+ *   CONVEX_FTS_SCAN_MAX budget (`ftsScanBudget`), else each takes FTS_TAKE.
  */
 export async function searchMemoriesText(
   ctx: QueryCtx,
@@ -1112,15 +1113,18 @@ export async function searchMemoriesText(
   const filter = { ...options.filter, searchQuery: undefined };
   const index = parseIndexFilter(filter);
   if (index === null) return [];
-  const scan =
-    filter.tags !== undefined && filter.tags.length > 0
-      ? CONVEX_FTS_SCAN_MAX
-      : clampFtsTake(Math.max(want, FTS_TAKE));
+  const tagged = filter.tags !== undefined && filter.tags.length > 0;
+  const perPass = clampFtsTake(Math.max(want, FTS_TAKE));
+  let taken = 0;
   const seen = new Set<string>();
   const out: Array<{ memory: MemoryWithTags; rank: number }> = [];
 
   for (const [i, search] of queries.entries()) {
+    // tagged: all passes share one CONVEX_FTS_SCAN_MAX budget
+    const scan = tagged ? ftsScanBudget(taken) : perPass;
+    if (scan === 0) break;
     const hits = await searchIndexQuery(ctx, scope, search, index).take(scan);
+    taken += hits.length;
     for (const doc of hits) {
       if (seen.has(doc.memoryId)) continue;
       const memory = acceptSearchHit(
