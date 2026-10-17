@@ -25,7 +25,6 @@ import { ftsQueryTexts } from "../../engine/memory/candidates";
 import {
   clampFtsTake,
   ftsScanBudget,
-  CONVEX_FTS_SCAN_MAX,
   FTS_TAKE,
 } from "../../engine/memory/retrieveCaps";
 import { buildSearchableText } from "../../engine/memory/searchableText";
