@@ -7,6 +7,7 @@ import { Tracker } from "../src/tracker";
 
 function setup(overrides: Partial<Settings> = {}) {
   const events: ActivityEvent[] = [];
+  const errors: string[] = [];
   const state: {
     now: number;
     idle: number;
@@ -28,9 +29,10 @@ function setup(overrides: Partial<Settings> = {}) {
     getIdleSeconds: () => state.idle,
     getSettings: () => state.settings,
     record: (event) => events.push(event),
+    logError: (message) => errors.push(message),
     now: () => state.now,
   });
-  return { tracker, events, state };
+  return { tracker, events, errors, state };
 }
 
 describe("Tracker", () => {
@@ -94,6 +96,29 @@ describe("Tracker", () => {
     state.throws = true;
     await tracker.tick();
     assert.equal(events[0]?.kind === "gap" && events[0].reason, "unknown");
+  });
+
+  it("logs native failures at most once per 30 s", async () => {
+    const { tracker, errors, state } = setup();
+    state.throws = true;
+    await tracker.tick();
+    state.now += 29_000;
+    await tracker.tick();
+    assert.deepEqual(errors, ["active window failed: native failure"]);
+    state.now += 1_000;
+    await tracker.tick();
+    assert.equal(errors.length, 2);
+  });
+
+  it("splits the session when the native call fails after a focus", async () => {
+    const { tracker, events, state } = setup();
+    await tracker.tick();
+    state.throws = true;
+    await tracker.tick();
+    assert.deepEqual(
+      events.map((e) => e.kind),
+      ["focus", "gap"],
+    );
   });
 
   it("sanitises secret-looking titles", async () => {

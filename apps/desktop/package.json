@@ -16,7 +16,9 @@
     "package": "pnpm build && electron-builder",
     "package:linux": "pnpm build && electron-builder --linux dir",
     "package:win": "pnpm build && electron-builder --win nsis",
-    "package:mac": "pnpm build && electron-builder --mac dmg --x64 --arm64"
+    "package:mac": "pnpm build && electron-builder --mac dmg --x64 --arm64",
+    "check:asar": "node scripts/check-asar-modules.mjs",
+    "test:packaged": "xvfb-run -a node scripts/packaged-test.mjs"
   },
   "dependencies": {
     "@vmem/sdk": "workspace:*",
