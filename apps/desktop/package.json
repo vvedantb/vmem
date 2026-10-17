@@ -18,19 +18,39 @@
     "package:win": "pnpm build && electron-builder --win nsis",
     "package:mac": "pnpm build && electron-builder --mac dmg --x64 --arm64",
     "check:asar": "node scripts/check-asar-modules.mjs",
-    "test:packaged": "xvfb-run -a node scripts/packaged-test.mjs"
+    "test:packaged": "xvfb-run -a node scripts/packaged-test.mjs",
+    "icons": "node scripts/generate-icons.mjs"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "catalog:",
     "@vmem/sdk": "workspace:*",
     "get-windows": "^9.2.0",
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@radix-ui/react-label": "catalog:",
+    "@radix-ui/react-slot": "catalog:",
+    "@radix-ui/react-switch": "catalog:",
+    "@tabler/icons-react": "catalog:",
+    "@tailwindcss/vite": "catalog:tailwind4",
     "@types/node": "catalog:node-types-22",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react": "^4.4.0",
+    "@vvedantb/ui": "0.2.0",
+    "class-variance-authority": "catalog:",
+    "clsx": "catalog:",
     "electron": "43.8.0",
     "electron-builder": "^26.8.0",
     "esbuild": "0.25.0",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "sharp": "^0.35.4",
+    "sonner": "catalog:",
+    "tailwind-merge": "catalog:",
+    "tailwindcss": "catalog:tailwind4",
     "tsx": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vite": "^6.0.0"
   }
 }

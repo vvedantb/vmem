@@ -8,17 +8,28 @@ import {
   Menu,
   nativeImage,
   powerMonitor,
+  safeStorage,
+  shell,
   Tray,
 } from "electron";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { getActiveWindow } from "./active-window";
+import { AuthService } from "./auth";
+import { OAuthStateStorage, type SecretCrypto } from "./auth-storage";
 import { BatchStore, flushBatch } from "./batch";
+import { recordingSettings } from "./can-record";
 import type { ActivityEvent } from "./events";
 import { allowClipboard, allowScreenshot, clipboardSnippet } from "./privacy";
 import { SettingsStore } from "./settings";
+import { formSettingsPatchSchema } from "./settings-schema";
 import { runPackagedTest, runSmoke } from "./self-test";
 import { Tracker } from "./tracker";
-import { createPoster, resolveClientConfig } from "./vmem-client";
+import type { ActionResult, ViewState } from "./view-state";
+import {
+  createPoster,
+  resolveBaseUrl,
+  resolveClientConfig,
+} from "./vmem-client";
 
 const SMOKE = process.env["VMEM_DESKTOP_SMOKE"] === "1";
 const PACKAGED_TEST = process.env["VMEM_DESKTOP_PACKAGED_TEST"] === "1";
@@ -28,10 +39,43 @@ const SCREENSHOT_INTERVAL_MS = 10 * 60_000;
 const QUIT_FLUSH_TIMEOUT_MS = 10_000;
 
 const here = import.meta.dirname;
-const iconPath = join(here, "..", "assets", "icon.png");
+const assets = join(here, "..", "assets");
+const iconPath = join(assets, "icon.png");
 
-// Fixes the userData folder name: extraMetadata.name is `vmem-desktop`.
-app.setName("vmem Desktop");
+// The name shown to users (About, menus) is vmem. Earlier builds used
+// "vmem Desktop" as the name, so their settings, events and sign-in live in
+// that userData folder. Keep it, or existing installs would start empty.
+// `--user-data-dir` (packaged test) still wins.
+app.setName("vmem");
+if (!app.commandLine.hasSwitch("user-data-dir")) {
+  app.setPath("userData", join(app.getPath("appData"), "vmem Desktop"));
+}
+app.setAboutPanelOptions({ applicationName: "vmem" });
+
+function secretCrypto(): SecretCrypto {
+  return {
+    // Linux without a keyring falls back to a hard-coded key. That is not secret, so treat it as unavailable.
+    available: () =>
+      safeStorage.isEncryptionAvailable() &&
+      !(
+        process.platform === "linux" &&
+        safeStorage.getSelectedStorageBackend() === "basic_text"
+      ),
+    encrypt: (plain) => safeStorage.encryptString(plain).toString("base64"),
+    decrypt: (cipher) =>
+      safeStorage.decryptString(Buffer.from(cipher, "base64")),
+  };
+}
+
+/** The tray icon: a template image on macOS (the menu bar recolours it), a colour tile elsewhere. */
+function trayImage(): Electron.NativeImage {
+  const mac = process.platform === "darwin";
+  const image = nativeImage.createFromPath(
+    join(assets, mac ? "trayTemplate.png" : "tray.png"),
+  );
+  if (mac) image.setTemplateImage(true);
+  return image;
+}
 
 function log(message: string): void {
   process.stderr.write(`[vmem-desktop] ${message}\n`);
@@ -42,6 +86,25 @@ async function start(): Promise<void> {
   const userData = app.getPath("userData");
   const settings = new SettingsStore(userData);
   const batch = SMOKE ? null : new BatchStore(userData);
+  const auth = new AuthService({
+    storage: new OAuthStateStorage(settings, secretCrypto()),
+    mcpUrl: `${resolveBaseUrl(process.env)}/mcp`,
+    openExternal: async (url) => {
+      const { protocol } = new URL(url);
+      if (protocol !== "https:" && protocol !== "http:") {
+        throw new Error("Unexpected sign-in URL");
+      }
+      await shell.openExternal(url);
+    },
+    dropLegacyApiKey: () => {
+      if (settings.get().apiKey !== "") settings.update({ apiKey: "" });
+    },
+  });
+  const currentConfig = () =>
+    resolveClientConfig(settings.get(), process.env, auth.currentAccessToken());
+  /** Signed out counts as paused for the tracker and the capture gates. */
+  const gatedSettings = () =>
+    recordingSettings(settings.get(), currentConfig() !== null);
 
   const record = (event: ActivityEvent): void => batch?.append(event);
   const trackerFailures: string[] = [];
@@ -52,7 +115,7 @@ async function start(): Promise<void> {
       if (SELF_TEST) trackerFailures.push(message);
     },
     getIdleSeconds: () => powerMonitor.getSystemIdleTime(),
-    getSettings: () => settings.get(),
+    getSettings: gatedSettings,
     record,
   });
 
@@ -68,9 +131,10 @@ async function start(): Promise<void> {
       return;
     }
     const win = new BrowserWindow({
-      width: 520,
-      height: 780,
-      title: "vmem Desktop settings",
+      width: 480,
+      height: 880,
+      title: "vmem",
+      icon: iconPath,
       webPreferences: {
         preload: join(here, "preload.cjs"),
         contextIsolation: true,
@@ -86,8 +150,13 @@ async function start(): Promise<void> {
   function refreshTray(): void {
     if (tray === null) return;
     const paused = settings.get().paused;
+    const signedOut = currentConfig() === null;
     tray.setToolTip(
-      paused ? "vmem Desktop (paused)" : "vmem Desktop (recording)",
+      signedOut
+        ? "vmem (sign in needed)"
+        : paused
+          ? "vmem (paused)"
+          : "vmem (recording)",
     );
     tray.setContextMenu(
       Menu.buildFromTemplate([
@@ -104,7 +173,9 @@ async function start(): Promise<void> {
 
   async function runFlush(): Promise<void> {
     if (batch === null) return;
-    const config = resolveClientConfig(settings.get(), process.env);
+    // Refresh an expiring Clerk token before posting. A saved key or the test key needs no refresh.
+    await auth.freshAccessToken();
+    const config = currentConfig();
     if (config === null) return;
     try {
       const { posted } = await flushBatch(
@@ -134,7 +205,44 @@ async function start(): Promise<void> {
     );
   }
 
-  function applySettings(patch: object): ReturnType<SettingsStore["get"]> {
+  function viewState(): ViewState {
+    const current = settings.get();
+    const {
+      paused,
+      idleThresholdMinutes,
+      flushIntervalMinutes,
+      clipboardEnabled,
+      screenshotsEnabled,
+      blocklist,
+      launchAtLogin,
+    } = current;
+    const signedIn = auth.isSignedIn();
+    return {
+      settings: {
+        paused,
+        idleThresholdMinutes,
+        flushIntervalMinutes,
+        clipboardEnabled,
+        screenshotsEnabled,
+        blocklist,
+        launchAtLogin,
+      },
+      auth: {
+        signedIn,
+        signingIn: auth.isSigningIn(),
+        usingSavedKey: !signedIn && currentConfig() !== null,
+        ...auth.identity(),
+      },
+    };
+  }
+
+  function pushState(): void {
+    if (settingsWindow !== null && !settingsWindow.isDestroyed()) {
+      settingsWindow.webContents.send("state:changed", viewState());
+    }
+  }
+
+  function applySettings(patch: object): void {
     const next = settings.update(patch);
     if (app.isPackaged) {
       app.setLoginItemSettings({ openAtLogin: next.launchAtLogin });
@@ -142,11 +250,31 @@ async function start(): Promise<void> {
     refreshTray();
     scheduleFlush();
     void tracker.tick();
-    return next;
+    pushState();
+  }
+
+  auth.onChange(() => {
+    refreshTray();
+    void tracker.tick();
+    pushState();
+  });
+
+  async function runAuthAction(
+    action: () => Promise<void>,
+  ): Promise<ActionResult> {
+    try {
+      await action();
+      return { ok: true };
+    } catch (error) {
+      return {
+        ok: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
   }
 
   try {
-    tray = new Tray(nativeImage.createFromPath(iconPath).resize({ width: 16 }));
+    tray = new Tray(trayImage());
     refreshTray();
   } catch (error) {
     log(`tray unavailable: ${String(error)}`);
@@ -161,7 +289,7 @@ async function start(): Promise<void> {
   }
 
   if (PACKAGED_TEST) {
-    const config = resolveClientConfig(settings.get(), process.env);
+    const config = currentConfig();
     if (batch === null || config === null) {
       throw new Error("Packaged test needs VMEM_API_KEY and VMEM_BASE_URL.");
     }
@@ -183,8 +311,12 @@ async function start(): Promise<void> {
   });
   app.on("second-instance", openSettings);
 
-  ipcMain.handle("settings:get", () => settings.get());
-  ipcMain.handle("settings:set", (_event, patch) => applySettings(patch));
+  ipcMain.handle("state:get", () => viewState());
+  ipcMain.handle("settings:set", (_event, patch: object) => {
+    applySettings(formSettingsPatchSchema.parse(patch));
+  });
+  ipcMain.handle("auth:sign-in", () => runAuthAction(() => auth.signIn()));
+  ipcMain.handle("auth:sign-out", () => runAuthAction(() => auth.signOut()));
 
   // A previous run may have ended mid-session: close it at its last event.
   const last = batch?.last();
@@ -193,7 +325,8 @@ async function start(): Promise<void> {
   }
 
   scheduleFlush();
-  if (resolveClientConfig(settings.get(), process.env) === null) openSettings();
+  // Signed out: recording stays off until the user signs in.
+  if (currentConfig() === null) openSettings();
 
   let busy = false;
   let lastClip: string | null = null;
@@ -203,7 +336,7 @@ async function start(): Promise<void> {
     void tracker
       .tick()
       .then(() => {
-        const current = settings.get();
+        const current = gatedSettings();
         if (!current.clipboardEnabled || current.paused) {
           lastClip = null;
           return;
@@ -227,7 +360,7 @@ async function start(): Promise<void> {
   }, POLL_MS);
 
   setInterval(() => {
-    if (!allowScreenshot(settings.get(), tracker.activeWindow())) return;
+    if (!allowScreenshot(gatedSettings(), tracker.activeWindow())) return;
     void captureScreenshot(userData, record);
   }, SCREENSHOT_INTERVAL_MS);
 

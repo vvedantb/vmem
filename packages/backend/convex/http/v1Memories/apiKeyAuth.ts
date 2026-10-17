@@ -5,13 +5,13 @@ import { extractBearerToken } from "@vvedantb/server/convex";
 import type { Id } from "../../_generated/dataModel";
 import { getAccessibleProfileForUser } from "../../profiles/accessibleProfile";
 import type { z } from "zod";
-
-const API_KEY_PREFIX = "vmem_sk_";
+import { resolveBearerAuth } from "./bearerToken";
 
 export type ApiKeyAuth = {
   userId: Id<"users">;
   clerkId: string;
-  keyHash: string;
+  // Set only for API keys. Clerk OAuth tokens have no key to account usage to.
+  keyHash?: string;
 };
 
 function unauthorized(): Response {
@@ -22,10 +22,6 @@ async function resolveApiKeyAuth(
   ctx: ActionCtx,
   rawToken: string,
 ): Promise<ApiKeyAuth | null> {
-  if (!rawToken.startsWith(API_KEY_PREFIX)) {
-    return null;
-  }
-
   const keyHash = await hashApiKey(rawToken);
   const resolved = await ctx.runQuery(
     internal.apiKeys.resolveByKeyHashInternal,
@@ -41,6 +37,40 @@ async function resolveApiKeyAuth(
     clerkId: resolved.clerkId,
     keyHash,
   };
+}
+
+async function resolveClerkAuth(
+  ctx: ActionCtx,
+  token: string,
+): Promise<ApiKeyAuth | null> {
+  const verified = await ctx.runAction(
+    internal.mcp.nodeActions.verifyAccessToken,
+    { token },
+  );
+  if (!verified) {
+    return null;
+  }
+  const { clerkUserId } = verified;
+  const existing = await ctx.runQuery(
+    internal.auth.getUserIdByClerkIdInternal,
+    {
+      clerkId: clerkUserId,
+    },
+  );
+  if (existing) {
+    return { userId: existing, clerkId: clerkUserId };
+  }
+  // First request from this account: HTTP has no Convex identity, so create the
+  // same user and Personal profile that ensureUserExists makes.
+  const profile = await ctx.runAction(
+    internal.mcp.nodeActions.fetchClerkUserProfile,
+    { clerkUserId },
+  );
+  const created = await ctx.runMutation(
+    internal.auth.ensureUserForClerkIdInternal,
+    { clerkId: clerkUserId, ...profile },
+  );
+  return { userId: created.userId, clerkId: clerkUserId };
 }
 
 // checks profile access only when a profileId is present. no-op otherwise
@@ -74,12 +104,18 @@ export function withApiKeyAuth<T>(
       return unauthorized();
     }
 
-    const auth = await resolveApiKeyAuth(ctx, token);
+    const auth = await resolveBearerAuth(token, {
+      apiKey: (key) => resolveApiKeyAuth(ctx, key),
+      clerk: (jwt) => resolveClerkAuth(ctx, jwt),
+    });
     if (!auth) {
       return unauthorized();
     }
 
     const respond = async (response: Response): Promise<Response> => {
+      if (auth.keyHash === undefined) {
+        return response;
+      }
       try {
         await ctx.runMutation(internal.apiKeys.recordUsageInternal, {
           keyHash: auth.keyHash,

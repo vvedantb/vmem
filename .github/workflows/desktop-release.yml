@@ -89,7 +89,7 @@ jobs:
       - run: pnpm --filter @vmem/desktop package:win
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
-      - run: pnpm --filter @vmem/desktop check:asar "release/win-unpacked/vmem Desktop.exe"
+      - run: pnpm --filter @vmem/desktop check:asar "release/win-unpacked/vmem.exe"
       - uses: actions/upload-artifact@v4
         with:
           name: desktop-windows
@@ -150,5 +150,5 @@ jobs:
             gh release upload "$TAG" artifacts/* --clobber --repo "$GITHUB_REPOSITORY"
           else
             gh release create "$TAG" artifacts/* --repo "$GITHUB_REPOSITORY" \
-              --target "$GITHUB_SHA" --title "vmem Desktop $TAG" --generate-notes
+              --target "$GITHUB_SHA" --title "vmem desktop $TAG" --generate-notes
           fi

@@ -54,6 +54,38 @@ export const verifyAccessToken = internalAction({
   },
 });
 
+// Used by HTTP ingest to create a user row for a Clerk account that has not opened the web app.
+export const fetchClerkUserProfile = internalAction({
+  args: { clerkUserId: v.string() },
+  returns: v.object({
+    email: v.optional(v.string()),
+    firstName: v.optional(v.string()),
+    lastName: v.optional(v.string()),
+    fullName: v.optional(v.string()),
+  }),
+  handler: async (_ctx, { clerkUserId }) => {
+    try {
+      const clerk = getClerkClient(createClerkClient);
+      const user = await clerk.users.getUser(clerkUserId);
+      const firstName = user.firstName ?? undefined;
+      const lastName = user.lastName ?? undefined;
+      const fullName = [firstName, lastName].filter(Boolean).join(" ");
+      return {
+        email: user.primaryEmailAddress?.emailAddress,
+        firstName,
+        lastName,
+        fullName: fullName.length > 0 ? fullName : undefined,
+      };
+    } catch (err) {
+      console.error(
+        "[HTTP][fetchClerkUserProfile]",
+        err instanceof Error ? err.message : err,
+      );
+      return {};
+    }
+  },
+});
+
 export const handleMcpRequest = internalAction({
   args: {
     clerkUserId: v.string(),

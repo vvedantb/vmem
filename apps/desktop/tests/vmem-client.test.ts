@@ -4,7 +4,11 @@ import { describe, it } from "node:test";
 import { z } from "zod";
 import { defaultSettings } from "../src/settings-schema";
 import { summarise } from "../src/summarise";
-import { createPoster, resolveClientConfig } from "../src/vmem-client";
+import {
+  createPoster,
+  resolveBaseUrl,
+  resolveClientConfig,
+} from "../src/vmem-client";
 
 const memoryResponse = {
   data: {
@@ -113,16 +117,76 @@ describe("vmem client", () => {
 });
 
 describe("resolveClientConfig", () => {
-  it("returns null without a key and prefers env over settings", () => {
-    const settings = { ...defaultSettings(), apiKey: "saved" };
+  const prod = "https://clear-bear-690.eu-west-1.convex.site";
+
+  it("returns null with no key and no sign-in", () => {
     assert.equal(resolveClientConfig(defaultSettings(), {}), null);
+    assert.equal(resolveClientConfig(defaultSettings(), {}, null), null);
+  });
+
+  it("uses a saved API key until the user signs in", () => {
+    const settings = { ...defaultSettings(), apiKey: "saved" };
     assert.deepEqual(resolveClientConfig(settings, {}), {
       apiKey: "saved",
-      baseUrl: "https://clear-bear-690.eu-west-1.convex.site",
+      baseUrl: prod,
     });
+  });
+
+  it("prefers the OAuth access token over a saved key", () => {
+    const settings = { ...defaultSettings(), apiKey: "saved" };
+    assert.deepEqual(resolveClientConfig(settings, {}, "clerk-access"), {
+      apiKey: "clerk-access",
+      baseUrl: prod,
+    });
+  });
+
+  it("lets VMEM_API_KEY win over everything", () => {
+    const settings = { ...defaultSettings(), apiKey: "saved" };
     assert.equal(
-      resolveClientConfig(settings, { VMEM_API_KEY: "env" })?.apiKey,
+      resolveClientConfig(settings, { VMEM_API_KEY: "env" }, "clerk-access")
+        ?.apiKey,
       "env",
     );
+  });
+
+  it("lets VMEM_BASE_URL override the production host", () => {
+    const config = resolveClientConfig(
+      defaultSettings(),
+      { VMEM_BASE_URL: "http://127.0.0.1:1234" },
+      "clerk-access",
+    );
+    assert.equal(config?.baseUrl, "http://127.0.0.1:1234");
+    assert.equal(resolveBaseUrl({}), prod);
+  });
+
+  it("posts the OAuth access token as the Bearer token", async () => {
+    const auths: (string | undefined)[] = [];
+    const server = createServer((req, res) => {
+      void readBody(req).then(() => {
+        auths.push(req.headers.authorization);
+        res.setHeader("content-type", "application/json");
+        res.end(JSON.stringify(memoryResponse));
+      });
+    });
+    await new Promise<void>((resolve) =>
+      server.listen(0, "127.0.0.1", resolve),
+    );
+    try {
+      const { port } = portSchema.parse(server.address());
+      const config = resolveClientConfig(
+        { ...defaultSettings(), apiKey: "saved" },
+        { VMEM_BASE_URL: `http://127.0.0.1:${String(port)}` },
+        "clerk-access",
+      );
+      assert.ok(config);
+      await createPoster(config)({
+        title: "t",
+        content: "c",
+        tags: [],
+      });
+      assert.deepEqual(auths, ["Bearer clerk-access"]);
+    } finally {
+      server.close();
+    }
   });
 });

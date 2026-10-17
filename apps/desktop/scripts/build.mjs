@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { build } from "esbuild";
+import { build as viteBuild } from "vite";
 
 const common = { bundle: true, sourcemap: false, logLevel: "warning" };
 
@@ -34,7 +35,7 @@ const getWindowsShims = {
 };
 
 await rm("dist", { recursive: true, force: true });
-await mkdir("dist/renderer", { recursive: true });
+await mkdir("dist", { recursive: true });
 
 await Promise.all([
   build({
@@ -62,17 +63,10 @@ await Promise.all([
     target: "node22",
     external: ["electron"],
   }),
-  build({
-    ...common,
-    entryPoints: ["renderer/settings.ts"],
-    outfile: "dist/renderer/settings.js",
-    platform: "browser",
-    format: "iife",
-    target: "chrome130",
-  }),
+  // The settings window: React, Tailwind and @vvedantb/ui (see vite.config.ts).
+  viteBuild({ logLevel: "warn" }),
 ]);
 
-await cp("renderer/index.html", "dist/renderer/index.html");
 await copyNatives();
 
 /**
