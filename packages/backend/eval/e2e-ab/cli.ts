@@ -101,7 +101,7 @@ if (
 ) {
   main().then(
     (code) => process.exit(code),
-    (error) => {
+    (error: unknown) => {
       console.error(error instanceof Error ? error.message : "e2e-ab failed");
       process.exit(1);
     },

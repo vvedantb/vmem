@@ -11,6 +11,9 @@ import { contentTokens, hasWholeWord, tokenize } from "./tokens";
 const BM25_K1 = 1.4;
 const BM25_B = 0.6;
 const RRF_K = 24;
+/** Passive desktop activity is noisy; rank it below deliberate memories. */
+const DESKTOP_SOURCE = "desktop";
+const DESKTOP_SCORE_MULTIPLIER = 0.85;
 const TITLE_WEIGHT = 3;
 const TAG_WEIGHT = 2;
 const RECENCY_HALFLIFE_DAYS = 365;
@@ -879,6 +882,12 @@ export function rankMemories(
       if (!existing.trace.reason.includes("related via stored link")) {
         existing.trace.reason = `${existing.trace.reason}; related via stored link`;
       }
+    }
+  }
+
+  for (const hit of scored) {
+    if (hit.source === DESKTOP_SOURCE || hit.sourceType === DESKTOP_SOURCE) {
+      hit.trace.score *= DESKTOP_SCORE_MULTIPLIER;
     }
   }
 

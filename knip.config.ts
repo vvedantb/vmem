@@ -119,6 +119,29 @@ const config: KnipConfig = {
         "nanoid",
       ],
     },
+    "apps/desktop": {
+      entry: [
+        "src/main.ts!",
+        "src/preload.ts!",
+        "renderer/settings.ts!",
+        "scripts/*.mjs!",
+        // Swapped in for get-windows native loaders by scripts/build.mjs.
+        "src/native/get-windows-*.ts!",
+        "tests/**/*.ts!",
+      ],
+      project: [
+        "src/**/*.ts",
+        "renderer/**/*.ts",
+        "scripts/**/*.mjs",
+        "tests/**/*.ts",
+      ],
+      // electron: launched via the `dev`/`start` scripts and electron-builder.
+      // electron-builder: runs from the `package*` scripts and CI. The build
+      // script bundles @vmem/sdk, zod and get-windows JS.
+      ignoreDependencies: ["electron", "electron-builder", "get-windows"],
+      // Linux window manager and terminal that scripts/packaged-test.mjs spawns.
+      ignoreBinaries: ["openbox", "xterm"],
+    },
     "packages/backend": {
       // e2e-ab eval spawns the local `claude` CLI (not a dependency).
       ignoreBinaries: ["claude"],

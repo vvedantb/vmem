@@ -1,0 +1,44 @@
+appId: uk.projectv.vmem.desktop
+productName: vmem Desktop
+# `name` keeps the Linux binary at vmem-desktop. `productName` keeps Electron's
+# userData folder at "vmem Desktop" (Electron prefers it over `name`).
+# `dependencies: {}` stops electron-builder from collecting get-windows and zod
+# from node_modules: scripts/build.mjs bundles both into dist/main.js.
+extraMetadata:
+  name: vmem-desktop
+  productName: vmem Desktop
+  dependencies: {}
+directories:
+  output: release
+files:
+  - dist/**
+  - assets/**
+  - package.json
+# Native files that build.mjs copies into dist/native must be real files.
+asarUnpack:
+  - dist/native/**
+# Returns false: electron-builder neither collects nor rebuilds node_modules.
+# This replaces `npmRebuild: false`, which returns before beforeBuild runs and
+# so still collects node_modules from the pnpm tree. Natives are copied by
+# build.mjs, so no rebuild is needed.
+beforeBuild: scripts/skip-node-modules.mjs
+win:
+  target: nsis
+  icon: assets/icon.png
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+mac:
+  category: public.app-category.productivity
+  icon: assets/icon.png
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+  extendInfo:
+    NSAppleEventsUsageDescription: vmem Desktop reads the active window title.
+linux:
+  executableName: vmem-desktop
+  target: dir
+  category: Utility
+  icon: assets/icon.png
+artifactName: vmem-desktop-${version}-${os}-${arch}.${ext}

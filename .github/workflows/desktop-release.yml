@@ -1,0 +1,154 @@
+name: Desktop
+
+on:
+  pull_request:
+    paths:
+      - "apps/desktop/**"
+      - "packages/sdk/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/desktop-release.yml"
+  push:
+    tags:
+      - "desktop-v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to create or update (for example desktop-v0.1.0)
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # PR check: unit tests, Linux package and a packaged-app smoke run.
+  linux:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @vmem/desktop typecheck
+      - run: pnpm --filter @vmem/desktop test
+      - run: pnpm --filter @vmem/desktop package:linux
+      - name: Install display tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb openbox x11-utils xterm
+      # Opens the packaged app.asar inside the packaged binary and fails on any
+      # missing module, including the bundled get-windows path.
+      - run: pnpm --filter @vmem/desktop check:asar
+      - name: Smoke test packaged app
+        run: |
+          out="$(VMEM_DESKTOP_SMOKE=1 xvfb-run -a apps/desktop/release/linux-unpacked/vmem-desktop --no-sandbox)"
+          echo "$out"
+          echo "$out" | grep -qx VMEM_DESKTOP_SMOKE_OK
+      # Real window: openbox + xterm under xvfb, mock vmem API. The packaged app
+      # must record a focus event and post a desktop memory about the window.
+      - name: Packaged focus test
+        run: xvfb-run -a node scripts/packaged-test.mjs
+        working-directory: apps/desktop
+
+  windows:
+    if: github.event_name != 'pull_request'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @vmem/desktop test
+      # pnpm skips get-windows install scripts, so fetch the addon here. It is
+      # N-API (ABI stable), so one build works for Electron. Fall back to a
+      # source build for the Electron version in package.json, same arch as the
+      # runner (x64). scripts/build.mjs copies the .node into dist/native and
+      # fails if none exists.
+      - name: Fetch get-windows native addon
+        shell: bash
+        working-directory: apps/desktop
+        run: |
+          dir="$(node -p "require('node:path').dirname(require.resolve('get-windows'))")"
+          electron="$(node -p "require('electron/package.json').version")"
+          cd "$dir"
+          npx node-pre-gyp install --fallback-to-build \
+            --runtime=electron --target="$electron" --target_arch=x64 \
+            --dist-url=https://electronjs.org/headers
+          ls -l lib/binding/*/*.node build/Release/*.node || true
+      - run: pnpm --filter @vmem/desktop package:win
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      - run: pnpm --filter @vmem/desktop check:asar "release/win-unpacked/vmem Desktop.exe"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-windows
+          path: apps/desktop/release/*.exe
+          if-no-files-found: error
+
+  macos:
+    if: github.event_name != 'pull_request'
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @vmem/desktop test
+      # get-windows ships a universal Swift binary (`main`). The macOS code does
+      # not use the .node addon, so nothing is rebuilt per arch. Fail early if
+      # the binary lacks either arch.
+      - name: Check get-windows universal binary
+        working-directory: apps/desktop
+        run: |
+          dir="$(node -p "require('node:path').dirname(require.resolve('get-windows'))")"
+          archs="$(lipo -archs "$dir/main")"
+          echo "$archs"
+          echo "$archs" | grep -q x86_64
+          echo "$archs" | grep -q arm64
+      # Builds x64 and arm64 dmg files (see package:mac). build.mjs copies
+      # `main` into dist/native once, and both arches use it.
+      - run: pnpm --filter @vmem/desktop package:mac
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-macos
+          path: apps/desktop/release/*.dmg
+          if-no-files-found: error
+
+  publish:
+    needs: [windows, macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: Publish GitHub Release
+        run: |
+          ls -l artifacts
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" artifacts/* --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" artifacts/* --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" --title "vmem Desktop $TAG" --generate-notes
+          fi

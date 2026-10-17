@@ -146,6 +146,11 @@
       }
     },
     {
+      // node:test `describe` / `it` return promises that the runner awaits.
+      "files": ["apps/desktop/tests/**"],
+      "rules": { "typescript/no-floating-promises": "off" }
+    },
+    {
       "files": ["apps/web/src/**"],
       "rules": { "vmem/no-value-block-in-try": "error" }
     },

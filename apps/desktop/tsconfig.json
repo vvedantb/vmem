@@ -1,0 +1,22 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "noEmit": true,
+    "esModuleInterop": true,
+    "types": ["node"],
+    "paths": {
+      "@vmem/sdk": ["../../packages/sdk/src/index.ts"]
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "renderer/**/*.ts",
+    "tests/**/*.ts",
+    "scripts/**/*.mjs"
+  ],
+  "exclude": ["node_modules", "dist", "release"]
+}

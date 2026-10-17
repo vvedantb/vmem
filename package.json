@@ -8,6 +8,7 @@
     "build": "pnpm --filter web build",
     "ext:dev": "pnpm --filter @vmem/chrome-extension dev",
     "ext:build": "pnpm --filter @vmem/chrome-extension build",
+    "desktop:dev": "pnpm --filter @vmem/desktop dev",
     "docs:dev": "pnpm --filter docs dev",
     "lint": "oxlint --type-aware --deny-warnings && eslint . --max-warnings 0",
     "lint:oxlint": "oxlint --type-aware",
@@ -20,7 +21,7 @@
     "check": "pnpm lint && pnpm typecheck:all && pnpm knip && pnpm test:oxlint-plugin && pnpm compiler:check && pnpm test && pnpm format:check",
     "typecheck": "pnpm --filter web typecheck",
     "typecheck:e2e": "tsc -p e2e/tsconfig.json",
-    "typecheck:all": "pnpm --parallel --filter web --filter @vmem/backend --filter @vmem/sdk --filter @vmem/shared --filter @vmem/chrome-extension typecheck && pnpm typecheck:e2e",
+    "typecheck:all": "pnpm --parallel --filter web --filter @vmem/backend --filter @vmem/sdk --filter @vmem/shared --filter @vmem/chrome-extension --filter @vmem/desktop typecheck && pnpm typecheck:e2e",
     "test:e2e": "playwright test --config e2e/playwright.config.ts",
     "test:e2e:headed": "playwright test --config e2e/playwright.config.ts --headed",
     "test:e2e:smoke": "playwright test --config e2e/playwright.config.ts --grep @smoke",
@@ -33,7 +34,7 @@
     "fix:deps": "syncpack fix-mismatches",
     "sdk:build": "pnpm --filter @vmem/sdk build",
     "sdk:typecheck": "pnpm --filter @vmem/sdk typecheck",
-    "test": "pnpm --filter @vmem/backend test && pnpm --filter web test && pnpm --filter @vmem/chrome-extension test"
+    "test": "pnpm --filter @vmem/backend test && pnpm --filter web test && pnpm --filter @vmem/chrome-extension test && pnpm --filter @vmem/desktop test"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx,mjs,cjs,json,css,md,mdx,html,yml,yaml}": "prettier --write"
