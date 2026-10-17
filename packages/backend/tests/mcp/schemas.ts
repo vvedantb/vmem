@@ -117,6 +117,8 @@ export const memoryIdResultSchema = z.object({
 export const memoryListResultSchema = z.object({
   memories: z.array(z.object({ id: z.string(), title: z.string() })),
   total: z.number(),
+  totalIsLowerBound: z.boolean().optional(),
+  hasMore: z.boolean().optional(),
 });
 
 export const deletedFlagSchema = z.object({

@@ -69,3 +69,8 @@ export function clampFtsTake(take: number): number {
 export function clampVectorLimit(limit: number): number {
   return Math.max(1, Math.min(VECTOR_CANDIDATE_LIMIT, Math.floor(limit)));
 }
+
+/** Tag-filtered text search: rows still allowed across all passes, never below 0. */
+export function ftsScanBudget(alreadyScanned: number): number {
+  return Math.max(0, CONVEX_FTS_SCAN_MAX - alreadyScanned);
+}
