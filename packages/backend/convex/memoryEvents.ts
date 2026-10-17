@@ -21,17 +21,14 @@ function payloadFromMetadata(metadata: unknown): string {
   return parsed.data.payload ?? "{}";
 }
 
-const memoryEventTypeSchema = z.enum([
-  "memory_created",
-  "memory_updated",
-  "memory_deleted",
-  "relationship_created",
-  "relationship_deleted",
-  "dream_synthesis_proposed",
-  "dream_synthesis_materialized",
-]);
-
-export type MemoryEventType = z.infer<typeof memoryEventTypeSchema>;
+export type MemoryEventType =
+  | "memory_created"
+  | "memory_updated"
+  | "memory_deleted"
+  | "relationship_created"
+  | "relationship_deleted"
+  | "dream_synthesis_proposed"
+  | "dream_synthesis_materialized";
 
 // maps change feed event types to audit log action strings
 export const ACTION_FOR_EVENT: Record<MemoryEventType, string> = {

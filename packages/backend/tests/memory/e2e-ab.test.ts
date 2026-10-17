@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -52,6 +53,19 @@ function trial(overrides: Partial<Trial>): Trial {
     ...overrides,
   };
 }
+
+const writtenTrialSchema = z.object({
+  fixtureId: z.string(),
+  arm: z.string(),
+  repeat: z.number(),
+  dryRun: z.boolean(),
+  score: z.number().nullable(),
+});
+
+const writtenReportSchema = z.object({
+  trials: z.array(writtenTrialSchema),
+  dryRun: z.boolean(),
+});
 
 describe("fixtures", () => {
   it("loads all starter fixtures with unique ids", () => {
@@ -412,7 +426,9 @@ describe("runE2eAb", () => {
     expect(result.trials).toHaveLength(6 * 2 * 2);
     expect(result.trials.every((t) => t.dryRun && t.score === null)).toBe(true);
     expect(result.delta).toBeNull();
-    const written = JSON.parse(readFileSync(outPath, "utf8"));
+    const written = writtenReportSchema.parse(
+      JSON.parse(readFileSync(outPath, "utf8")),
+    );
     expect(written.trials).toHaveLength(24);
     expect(written.dryRun).toBe(true);
   });

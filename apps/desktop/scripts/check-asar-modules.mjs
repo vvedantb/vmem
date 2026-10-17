@@ -17,7 +17,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { builtinModules, createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const CHILD = "VMEM_CHECK_ASAR_CHILD";
 const IMPORT_SPECIFIER =
@@ -111,7 +111,7 @@ if (process.env[CHILD] === "1") {
     console.error(`No asar at ${asar}. Package the app first.`);
     process.exit(1);
   }
-  const result = spawnSync(binary, [new URL(import.meta.url).pathname, asar], {
+  const result = spawnSync(binary, [fileURLToPath(import.meta.url), asar], {
     stdio: "inherit",
     env: { ...process.env, ELECTRON_RUN_AS_NODE: "1", [CHILD]: "1" },
   });

@@ -5,7 +5,11 @@ import type {
   TemporalKind,
 } from "@vmem/sdk";
 import { computeContentHash } from "../../engine/memory/hash";
-import { computeUsefulness } from "../../engine/memory/usefulness";
+import {
+  computeUsefulness,
+  jevEligible,
+  jevPriority,
+} from "../../engine/memory/usefulness";
 import {
   memoryMatchesListFilter,
   pageMemoryList,
@@ -40,6 +44,7 @@ import {
   type MemorySummary,
 } from "./mappers";
 import { trackMemoryChange, trackMemoryChanges } from "./stats";
+import { deleteMemoryUsage, loadUsageHits } from "./usage";
 
 export interface CreateMemoryStoreParams {
   memoryId?: string;
@@ -469,9 +474,18 @@ export async function createMemory(
     temporalKind: temporal.temporalKind,
     usefulnessScore: heuristicAtCreate,
     usefulnessScoredAt: now,
-    // Convex skips docs missing any indexed field; 0 sorts never-tried first
-    usefulnessNeedsJev: true,
-    usefulnessJevAt: 0,
+    ...(jevEligible(params.source, params.sourceType)
+      ? {
+          // Convex skips docs missing any indexed field; 0 sorts never-tried first
+          usefulnessNeedsJev: true,
+          usefulnessJevPriority: jevPriority(
+            params.source,
+            params.sourceType,
+            "live",
+          ),
+          usefulnessJevAt: 0,
+        }
+      : {}),
   });
 
   const created = await ctx.db.get(id);
@@ -581,12 +595,20 @@ async function applyMemoryUpdates(
         usefulnessEditCount: editCount,
       },
       now,
+      await loadUsageHits(ctx, doc),
     ),
     usefulnessScoredAt: now,
-    ...(textChanged
+    ...(textChanged && jevEligible(doc.source, doc.sourceType)
       ? {
+          // an edit restarts Jev: new content, fresh attempts, front of queue
           usefulnessNeedsJev: true,
-          usefulnessJevAt: doc.usefulnessJevAt ?? 0,
+          usefulnessJevPriority: jevPriority(
+            doc.source,
+            doc.sourceType,
+            "live",
+          ),
+          usefulnessJevAttempts: 0,
+          usefulnessJevAt: 0,
         }
       : {}),
   };
@@ -764,6 +786,7 @@ export async function deleteMemory(
   await deleteLinksForMemory(ctx, userId, memoryId);
   await deleteMemoryEmbedding(ctx, doc._id);
   await trackMemoryChange(ctx, doc, null);
+  await deleteMemoryUsage(ctx, memoryId);
   await ctx.db.delete(doc._id);
   return true;
 }
@@ -781,6 +804,7 @@ export async function deleteTeamMemoryAsOwner(
   await deleteLinksForMemory(ctx, doc.userId, memoryId);
   await deleteMemoryEmbedding(ctx, doc._id);
   await trackMemoryChange(ctx, doc, null);
+  await deleteMemoryUsage(ctx, memoryId);
   await ctx.db.delete(doc._id);
   return true;
 }
@@ -801,6 +825,7 @@ export async function deleteMemoriesForUser(
   );
   for (const doc of docs) {
     await deleteMemoryEmbedding(ctx, doc._id);
+    await deleteMemoryUsage(ctx, doc.memoryId);
     await ctx.db.delete(doc._id);
   }
   return docs.length;
@@ -820,6 +845,7 @@ export async function deleteMemoriesByProfile(
   );
   for (const doc of docs) {
     await deleteMemoryEmbedding(ctx, doc._id);
+    await deleteMemoryUsage(ctx, doc.memoryId);
     await ctx.db.delete(doc._id);
   }
   return docs.length;
@@ -868,6 +894,7 @@ export async function deleteMemoriesBySourceTypes(
   );
   for (const doc of doomed) {
     await deleteMemoryEmbedding(ctx, doc._id);
+    await deleteMemoryUsage(ctx, doc.memoryId);
     await ctx.db.delete(doc._id);
   }
   return doomed.length;
