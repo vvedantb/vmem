@@ -54,7 +54,10 @@ describe("SettingsStore", () => {
     store.update({ paused: true });
     const saved = readFileSync(file, "utf8");
     assert.equal(saved.includes("baseUrl"), false);
-    assert.equal(statSync(file).mode & 0o777, 0o600);
+    // Windows has no POSIX permission bits: stat reports 0o666 there.
+    if (process.platform !== "win32") {
+      assert.equal(statSync(file).mode & 0o777, 0o600);
+    }
   });
 
   it("drops the saved key after sign-in", () => {
