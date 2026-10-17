@@ -1,0 +1,36 @@
+appId: uk.projectv.vmem.desktop
+productName: vmem Desktop
+# electron-builder names the Linux binary after package.json `name`.
+# Override it so the binary is exactly vmem-desktop.
+extraMetadata:
+  name: vmem-desktop
+directories:
+  output: release
+files:
+  - dist/**
+  - assets/**
+  - package.json
+# The SDK and zod are bundled into dist/main.js by scripts/build.mjs.
+# electron and get-windows stay external and are packaged from node_modules.
+asarUnpack:
+  - node_modules/get-windows/**
+win:
+  target: nsis
+  icon: assets/icon.png
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+mac:
+  category: public.app-category.productivity
+  icon: assets/icon.png
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+  extendInfo:
+    NSAppleEventsUsageDescription: vmem Desktop reads the active window title.
+linux:
+  executableName: vmem-desktop
+  target: dir
+  category: Utility
+  icon: assets/icon.png
+artifactName: vmem-desktop-${version}-${os}-${arch}.${ext}

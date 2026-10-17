@@ -65,3 +65,6 @@ test-results/
 
 # e2e A/B eval output
 packages/backend/eval/e2e-ab/results/
+
+# Desktop app packaging output
+apps/desktop/release

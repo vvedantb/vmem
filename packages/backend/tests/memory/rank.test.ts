@@ -43,6 +43,23 @@ describe("rankMemories", () => {
     tags: ["food"],
   });
 
+  it("down-weights desktop-sourced memories against an api twin", () => {
+    const twin = { title: "Prefers pnpm", content: "Use pnpm for vmem" };
+    const api = memory({ id: "mem_api", ...twin });
+    const bySource = memory({ id: "mem_src", ...twin, source: "desktop" });
+    const byType = memory({
+      id: "mem_type",
+      ...twin,
+      sourceType: "desktop",
+    });
+    const ranked = rankMemories([bySource, byType, api], "pnpm", { limit: 5 });
+    const score = (id: string) =>
+      ranked.find((hit) => hit.id === id)?.trace.score ?? 0;
+    expect(ranked[0]?.id).toBe("mem_api");
+    expect(score("mem_src")).toBeLessThan(score("mem_api"));
+    expect(score("mem_type")).toBeLessThan(score("mem_api"));
+  });
+
   it("ranks an exact title hit first and fills trace channels", () => {
     const ranked = rankMemories([coffee, pnpm], "pnpm", { limit: 5 });
     expect(ranked[0]?.id).toBe("mem_pnpm");

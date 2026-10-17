@@ -3,6 +3,10 @@
   - packages/*
 
 minimumReleaseAge: 10080
+
+# Electron downloads its binary in a postinstall script.
+onlyBuiltDependencies:
+  - electron
 # Newly published scoped UI packages; the 7-day age gate would block install.
 minimumReleaseAgeExclude:
   - "@vvedantb/ui"

@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'"
+    />
+    <title>vmem Desktop settings</title>
+    <style>
+      body {
+        font:
+          14px system-ui,
+          sans-serif;
+        margin: 0;
+        padding: 20px;
+        color: #1c1c1e;
+      }
+      h1 {
+        font-size: 18px;
+        margin: 0 0 16px;
+      }
+      label {
+        display: block;
+        margin: 12px 0 4px;
+        font-weight: 600;
+      }
+      .check {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        font-weight: 400;
+      }
+      input[type="text"],
+      input[type="password"],
+      input[type="number"],
+      textarea {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 6px 8px;
+      }
+      small {
+        color: #6c6c70;
+      }
+      button {
+        margin-top: 20px;
+        padding: 8px 16px;
+      }
+      #status {
+        margin-left: 12px;
+        color: #2e7d32;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>vmem Desktop</h1>
+    <form id="form">
+      <label for="apiKey">API key</label>
+      <input id="apiKey" type="password" autocomplete="off" />
+      <label for="baseUrl">Base URL</label>
+      <input id="baseUrl" type="text" />
+
+      <label class="check"
+        ><input id="paused" type="checkbox" /> Pause recording</label
+      >
+      <label for="idleThresholdMinutes">Idle threshold (minutes)</label>
+      <input id="idleThresholdMinutes" type="number" min="1" max="240" />
+      <label for="flushIntervalMinutes">Summary interval (minutes)</label>
+      <input id="flushIntervalMinutes" type="number" min="1" max="240" />
+
+      <label class="check">
+        <input id="clipboardEnabled" type="checkbox" /> Capture clipboard text
+      </label>
+      <label class="check">
+        <input id="screenshotsEnabled" type="checkbox" /> Capture screenshots
+        (stored locally)
+      </label>
+      <label class="check">
+        <input id="launchAtLogin" type="checkbox" /> Launch at login
+      </label>
+
+      <label for="blocklist"
+        >Blocklist (one app or title fragment per line)</label
+      >
+      <textarea id="blocklist" rows="6"></textarea>
+      <small>
+        Password managers and private browsing windows are always blocked.
+      </small>
+
+      <div><button type="submit">Save</button><span id="status"></span></div>
+    </form>
+    <script src="settings.js"></script>
+  </body>
+</html>
