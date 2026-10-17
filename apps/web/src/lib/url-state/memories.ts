@@ -13,7 +13,7 @@ import {
   parseAsSanitizedSearchQuery,
 } from "./sanitized-parsers";
 
-export const MEMORY_LIST_SORTS = ["recent", "usefulness"] as const;
+const MEMORY_LIST_SORTS = ["recent", "usefulness"] as const;
 
 const memoriesSearchParams = {
   // when set, load that node's neighbourhood (2-hop) — absent → global graph

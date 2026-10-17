@@ -1,7 +1,13 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { authAction, authMutation, authQuery, requireClerkId } from "./auth";
+import {
+  authAction,
+  authMutation,
+  authQuery,
+  requireClerkId,
+  type AuthActionCtx,
+} from "./auth";
 import { routeMemoryByProfile } from "./memoryApi/routing";
 import {
   runDeleteTeamMemory,
@@ -173,20 +179,45 @@ export const createMemory = authAction({
   },
 });
 
+const openMemoryFields = {
+  memoryId: v.string(),
+  profileId: profileIdOptional,
+};
+
+async function readMemory(
+  ctx: AuthActionCtx,
+  args: { memoryId: string; profileId?: string },
+): Promise<MemoryWithTags | null> {
+  return await routeMemoryByProfile(ctx, args.profileId, {
+    team: (teamProfile) =>
+      runGetTeamMemory(ctx, {
+        profileId: teamProfile._id,
+        memoryId: args.memoryId,
+      }),
+    personal: (clerkId) => getMemoryForClerk(ctx, clerkId, args.memoryId),
+  });
+}
+
+// Opening a memory counts as access ("search" kind in memoryUsage).
 export const getMemory = authAction({
-  args: {
-    memoryId: v.string(),
-    profileId: profileIdOptional,
+  args: openMemoryFields,
+  handler: async (ctx, args): Promise<MemoryWithTags | null> => {
+    const memory = await readMemory(ctx, args);
+    if (memory !== null) await enqueueMemoryAccess(ctx, [memory.id], "search");
+    return memory;
   },
-  handler: async (ctx, args): Promise<MemoryWithTags | null> =>
-    routeMemoryByProfile(ctx, args.profileId, {
-      team: (teamProfile) =>
-        runGetTeamMemory(ctx, {
-          profileId: teamProfile._id,
-          memoryId: args.memoryId,
-        }),
-      personal: (clerkId) => getMemoryForClerk(ctx, clerkId, args.memoryId),
-    }),
+});
+
+// Dashboard: the user picked a memory in the command palette. The reactive
+// `get` query cannot count, and counts on every rerender would be wrong.
+export const recordMemoryOpen = authAction({
+  args: openMemoryFields,
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const memory = await readMemory(ctx, args);
+    if (memory !== null) await enqueueMemoryAccess(ctx, [memory.id], "search");
+    return null;
+  },
 });
 
 export const listMemories = authAction({
@@ -291,11 +322,7 @@ export const searchMemories = authAction({
           countAll: false,
         }),
     });
-    await enqueueMemoryAccess(
-      ctx,
-      result.memories.map((memory) => memory.id),
-      "search",
-    );
+    // no access tracking: this runs on every palette keystroke (debounced)
     return result;
   },
 });

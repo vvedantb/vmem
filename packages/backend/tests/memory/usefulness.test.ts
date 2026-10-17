@@ -6,6 +6,8 @@ import {
   classifySource,
   computeUsefulness,
   heuristicUsefulness,
+  jevEligible,
+  jevPriority,
   sourcePrior,
   usageScore,
   type UsefulnessInput,
@@ -56,6 +58,7 @@ describe("source prior", () => {
     expect(sourcePrior("file-upload")).toBe(0.62);
     expect(sourcePrior("bookmarks")).toBe(0.34);
     expect(sourcePrior("desktop")).toBe(0.34);
+    expect(sourcePrior("browsing-history")).toBe(0.34);
     expect(sourcePrior("Chrome ")).toBe(0.34);
   });
 
@@ -63,6 +66,17 @@ describe("source prior", () => {
     expect(classifySource("api", "desktop")).toBe("low");
     expect(classifySource("something-new")).toBe("medium");
     expect(classifySource("import:chatgpt")).toBe("medium");
+    expect(classifySource("browsing-history")).toBe("low");
+  });
+
+  it("skips Jev for low-prior sources and tiers the rest", () => {
+    for (const source of ["browsing-history", "bookmarks", "desktop", "chrome"])
+      expect(jevEligible(source)).toBe(false);
+    expect(jevEligible("mcp")).toBe(true);
+    expect(jevEligible("notion")).toBe(true);
+    expect(jevPriority("mcp", null, "backfill")).toBe(0);
+    expect(jevPriority("notion", null, "live")).toBe(1);
+    expect(jevPriority("notion", null, "backfill")).toBe(2);
   });
 });
 

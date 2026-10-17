@@ -20,6 +20,7 @@ import {
   contextPromptCacheFields,
   memoryFields,
   memoryAccessPendingFields,
+  memoryUsageFields,
   memoryEmbeddingFields,
   memoryStatCounterFields,
   memoryStatsMetaFields,
@@ -139,7 +140,11 @@ const schema = defineSchema({
     // connector upserts look a memory up by its external source id
     .index("by_user_source", ["userId", "sourceType", "sourceId"])
     // Jev quality cron: pending rows first, never-tried before oldest-tried
-    .index("by_needs_jev", ["usefulnessNeedsJev", "usefulnessJevAt"])
+    .index("by_needs_jev", [
+      "usefulnessNeedsJev",
+      "usefulnessJevPriority",
+      "usefulnessJevAt",
+    ])
     .searchIndex("search_text", {
       searchField: "searchableText",
       filterFields: ["userId", "profileId"],
@@ -155,10 +160,13 @@ const schema = defineSchema({
       filterFields: ["userId", "profileId"],
     }),
 
-  memoryAccessPending: defineTable(memoryAccessPendingFields).index(
-    "by_created",
-    ["createdAt"],
-  ),
+  memoryAccessPending: defineTable(memoryAccessPendingFields)
+    .index("by_created", ["createdAt"])
+    .index("by_memory_kind", ["memoryId", "kind"]),
+
+  memoryUsage: defineTable(memoryUsageFields).index("by_memory_id", [
+    "memoryId",
+  ]),
 
   memoryStatCounters: defineTable(memoryStatCounterFields)
     .index("by_bucket", ["userId", "profileId", "kind", "key", "shard"])

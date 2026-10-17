@@ -18,7 +18,9 @@ crons.interval(
   {},
 );
 
-// folds pending retrieve/search/context-pack hits into memory usefulness
+// folds pending retrieve, context-pack and result-open hits into memoryUsage
+// (typeahead searches never count); the memory row is rescored only on a real
+// change, at most daily
 crons.interval(
   "flush memory access",
   { minutes: 2 },
@@ -26,7 +28,8 @@ crons.interval(
   {},
 );
 
-// scores a small batch of new or changed memories with TypeSafe Jev
+// scores a small batch of new or changed memories with TypeSafe Jev (skips
+// low-prior sources, backs off failures, stops on a bad key)
 crons.interval(
   "score memory usefulness",
   { minutes: 10 },

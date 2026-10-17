@@ -3,8 +3,30 @@ import type { Doc } from "../_generated/dataModel";
 import { temporalFieldsFromStore } from "../../engine/memory/temporal";
 import { computeUsefulness } from "../../engine/memory/usefulness";
 
-/** Heuristic (+ Jev) usefulness for a stored row, with the clock supplied. */
-export function usefulnessOfDoc(doc: Doc<"memories">, nowMs: number): number {
+export interface UsageHits {
+  retrieveHits?: number;
+  searchHits?: number;
+  contextPackHits?: number;
+}
+
+/** Hits from the legacy counters on the memory row (pre memoryUsage). */
+export function legacyHitsOf(doc: Doc<"memories">): UsageHits {
+  return {
+    retrieveHits: doc.usefulnessRetrieveHits,
+    searchHits: doc.usefulnessSearchHits,
+    contextPackHits: doc.usefulnessContextPackHits,
+  };
+}
+
+/**
+ * Heuristic (+ Jev) usefulness for a stored row, with the clock supplied.
+ * `hits` come from memoryUsage; without them the legacy row counters apply.
+ */
+export function usefulnessOfDoc(
+  doc: Doc<"memories">,
+  nowMs: number,
+  hits: UsageHits = legacyHitsOf(doc),
+): number {
   return computeUsefulness({
     source: doc.source,
     sourceType: doc.sourceType,
@@ -12,9 +34,9 @@ export function usefulnessOfDoc(doc: Doc<"memories">, nowMs: number): number {
     updatedAt: doc.updatedAt,
     createdAt: doc.createdAt,
     nowMs,
-    retrieveHits: doc.usefulnessRetrieveHits,
-    searchHits: doc.usefulnessSearchHits,
-    contextPackHits: doc.usefulnessContextPackHits,
+    retrieveHits: hits.retrieveHits,
+    searchHits: hits.searchHits,
+    contextPackHits: hits.contextPackHits,
     userEdits: doc.usefulnessEditCount,
     jevQuality: doc.usefulnessJevScore,
   });

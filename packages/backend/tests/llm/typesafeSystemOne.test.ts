@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { z } from "zod";
 import {
   TYPESAFE_JEV_MODEL,
   TYPESAFE_SYSTEMONE_URL,
@@ -13,6 +14,20 @@ const memory = {
   sourceType: "mcp",
   tags: ["tooling"],
 };
+
+const requestBodySchema = z.object({
+  model: z.string(),
+  state: z.object({
+    content: z.string(),
+    tags: z.array(z.string()),
+  }),
+  questions: z.object({
+    useful: z.object({
+      type: z.string(),
+      criteria: z.array(z.string()),
+    }),
+  }),
+});
 
 function jsonResponse(body: object, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -36,7 +51,8 @@ describe("scoreMemoryUsefulness", () => {
       memory,
       fetchImpl,
     });
-    expect(quality).toBeCloseTo(0.7, 10);
+    expect(quality.status).toBe("ok");
+    expect(quality.status === "ok" ? quality.quality : -1).toBeCloseTo(0.7, 10);
     const [url, init] = fetchImpl.mock.calls[0] ?? [];
     expect(url).toBe("https://api.typesafe.ai/v1/systemone");
     expect(TYPESAFE_SYSTEMONE_URL).toBe(url);
@@ -45,7 +61,7 @@ describe("scoreMemoryUsefulness", () => {
       Authorization: "Bearer tsk_test",
       "Content-Type": "application/json",
     });
-    const body = JSON.parse(String(init?.body));
+    const body = requestBodySchema.parse(await new Response(init?.body).json());
     expect(body.model).toBe("jev-1.14.0");
     expect(TYPESAFE_JEV_MODEL).toBe("jev-1.14.0");
     expect(body.questions.useful.type).toBe("score");
@@ -60,33 +76,56 @@ describe("scoreMemoryUsefulness", () => {
     );
     expect(
       await scoreMemoryUsefulness({ apiKey: "k", memory, fetchImpl }),
-    ).toBe(1);
+    ).toEqual({ status: "ok", quality: 1 });
   });
 
   it("skips when the key is missing or blank", async () => {
     const fetchImpl = vi.fn<typeof fetch>();
     expect(
       await scoreMemoryUsefulness({ apiKey: undefined, memory, fetchImpl }),
-    ).toBeUndefined();
+    ).toEqual({ status: "skipped" });
     expect(
       await scoreMemoryUsefulness({ apiKey: "  ", memory, fetchImpl }),
-    ).toBeUndefined();
+    ).toEqual({ status: "skipped" });
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
-  it("fails open on 401, 500, bad JSON shape and network errors", async () => {
+  it("reports 401 and 403 as auth errors so the batch can stop", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => undefined);
-    for (const fetchImpl of [
-      vi.fn<typeof fetch>(async () => jsonResponse({}, 401)),
-      vi.fn<typeof fetch>(async () => jsonResponse({}, 500)),
-      vi.fn<typeof fetch>(async () => jsonResponse({ answers: {} })),
-      vi.fn<typeof fetch>(async () => {
-        throw new Error("network down");
-      }),
-    ]) {
+    for (const httpStatus of [401, 403]) {
+      const fetchImpl = vi.fn<typeof fetch>(async () =>
+        jsonResponse({}, httpStatus),
+      );
       expect(
         await scoreMemoryUsefulness({ apiKey: "k", memory, fetchImpl }),
-      ).toBeUndefined();
+      ).toEqual({ status: "auth_error", httpStatus });
+    }
+  });
+
+  it("fails open on 500, bad JSON shape and network errors", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const cases = [
+      {
+        fetchImpl: vi.fn<typeof fetch>(async () => jsonResponse({}, 500)),
+        expected: { status: "failed", httpStatus: 500 },
+      },
+      {
+        fetchImpl: vi.fn<typeof fetch>(async () =>
+          jsonResponse({ answers: {} }),
+        ),
+        expected: { status: "failed" },
+      },
+      {
+        fetchImpl: vi.fn<typeof fetch>(async () => {
+          throw new Error("network down");
+        }),
+        expected: { status: "failed" },
+      },
+    ];
+    for (const { fetchImpl, expected } of cases) {
+      expect(
+        await scoreMemoryUsefulness({ apiKey: "k", memory, fetchImpl }),
+      ).toEqual(expected);
     }
   });
 });

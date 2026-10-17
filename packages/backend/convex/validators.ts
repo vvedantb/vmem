@@ -53,24 +53,40 @@ export const memoryFields = {
   usefulnessJevAt: v.optional(v.number()),
   usefulnessContentHash: v.optional(v.string()),
   usefulnessNeedsJev: v.optional(v.boolean()),
+  usefulnessJevPriority: v.optional(v.number()),
+  usefulnessJevAttempts: v.optional(v.number()),
+  // legacy counters: no longer written, copied into memoryUsage by backfill
   usefulnessRetrieveHits: v.optional(v.number()),
   usefulnessSearchHits: v.optional(v.number()),
   usefulnessContextPackHits: v.optional(v.number()),
   usefulnessEditCount: v.optional(v.number()),
 };
 
+// "search" means a result open (get / palette select), not a typeahead query.
 export const memoryAccessKindValidator = v.union(
   v.literal("retrieve"),
   v.literal("search"),
   v.literal("contextPack"),
 );
 
-// Pending access hits. One row per memory per call, folded into the memory
-// counters in batches so a retrieve never writes to memory rows.
+// Pending access hits. One row per memory and kind, `count` incremented on
+// enqueue (absent on legacy rows = 1). Folded into memoryUsage in batches so a
+// retrieve never writes to memory rows.
 export const memoryAccessPendingFields = {
   memoryId: v.string(),
   kind: memoryAccessKindValidator,
   createdAt: v.number(),
+  count: v.optional(v.number()),
+};
+
+// Access counters, split out of `memories` so a flush does not rewrite the
+// memory row (search index, list subscriptions). One row per memory.
+export const memoryUsageFields = {
+  memoryId: v.string(),
+  retrieveHits: v.number(),
+  searchHits: v.number(),
+  contextPackHits: v.number(),
+  lastAccessedAt: v.number(),
 };
 
 // Vector payload split out of `memories`: a 1536-dim float64 array is ~85% of a

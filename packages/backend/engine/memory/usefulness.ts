@@ -34,7 +34,13 @@ const HIGH_SOURCES = new Set([
   "user",
   "web",
 ]);
-const LOW_SOURCES = new Set(["bookmarks", "desktop", "history", "chrome"]);
+const LOW_SOURCES = new Set([
+  "bookmarks",
+  "browsing-history",
+  "desktop",
+  "history",
+  "chrome",
+]);
 const MEDIUM_SOURCES = new Set([
   "google_drive",
   "notion",
@@ -154,4 +160,25 @@ export function blendRelevanceWithUsefulness(
   return clamp01(
     (1 - USEFULNESS_BLEND) * relevance + USEFULNESS_BLEND * usefulness,
   );
+}
+
+/** Low-prior sources are high volume and passive: heuristic only, no Jev. */
+export function jevEligible(
+  source: string,
+  sourceType?: string | null,
+): boolean {
+  return classifySource(source, sourceType) !== "low";
+}
+
+/**
+ * Jev queue tier, lowest first: 0 high-prior source, 1 new or edited medium
+ * source, 2 medium source reached only by a backfill.
+ */
+export function jevPriority(
+  source: string,
+  sourceType: string | null | undefined,
+  origin: "live" | "backfill",
+): number {
+  if (classifySource(source, sourceType) === "high") return 0;
+  return origin === "live" ? 1 : 2;
 }

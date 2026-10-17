@@ -81,6 +81,7 @@ export function CommandPalette({
   );
 
   const searchMemories = useAction(api.memoryApi.searchMemories);
+  const recordMemoryOpen = useAction(api.memoryApi.recordMemoryOpen);
   const [memoryHits, setMemoryHits] = useState<MemoryHit[]>([]);
 
   useEffect(() => {
@@ -247,14 +248,21 @@ export function CommandPalette({
                 <CommandItem
                   key={m.id}
                   value={`memory ${m.title} ${m.id}`}
-                  onSelect={() =>
+                  onSelect={() => {
+                    // fire and forget: a failed count must not block navigation
+                    void recordMemoryOpen({
+                      memoryId: m.id,
+                      ...(workspaceId === undefined
+                        ? {}
+                        : { profileId: workspaceId }),
+                    }).catch(() => undefined);
                     runAndClose(() =>
                       navigate({
                         to: workspaceTo("/memories/graph"),
                         search: (prev) => ({ ...prev, focus: m.id }),
                       }),
-                    )
-                  }
+                    );
+                  }}
                 >
                   <IconBrain />
                   <span className="truncate">{m.title}</span>

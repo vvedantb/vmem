@@ -50,16 +50,23 @@ export function readTypesafeApiKey(): string | undefined {
 }
 
 /**
- * Returns quality in 0..1, or undefined when the key is missing or the call
- * fails (fail-open: the caller keeps the heuristic score).
+ * Outcome of one Jev call. `auth_error` (401/403) means the key is bad: the
+ * caller must stop the whole batch. `failed` is per-row and may be retried.
  */
+type JevResult =
+  | { status: "ok"; quality: number }
+  | { status: "skipped" }
+  | { status: "auth_error"; httpStatus: number }
+  | { status: "failed"; httpStatus?: number };
+
+/** Scores one memory in 0..1. Never throws (fail-open: heuristic stays). */
 export async function scoreMemoryUsefulness(args: {
   apiKey: string | undefined;
   memory: UsefulnessMemoryState;
   fetchImpl?: typeof fetch;
-}): Promise<number | undefined> {
+}): Promise<JevResult> {
   if (args.apiKey === undefined || args.apiKey.trim().length === 0) {
-    return undefined;
+    return { status: "skipped" };
   }
   const doFetch = args.fetchImpl ?? fetch;
   try {
@@ -84,18 +91,24 @@ export async function scoreMemoryUsefulness(args: {
     });
     if (!response.ok) {
       console.warn(`[usefulness] TypeSafe HTTP ${String(response.status)}`);
-      return undefined;
+      if (response.status === 401 || response.status === 403) {
+        return { status: "auth_error", httpStatus: response.status };
+      }
+      return { status: "failed", httpStatus: response.status };
     }
     const parsed = responseSchema.safeParse(await response.json());
     if (!parsed.success) {
       console.warn("[usefulness] TypeSafe response did not parse");
-      return undefined;
+      return { status: "failed" };
     }
     const score = parsed.data.answers[USEFUL_QUESTION_NAME].score;
-    return clamp01(score / (USEFUL_CRITERIA.length - 1));
+    return {
+      status: "ok",
+      quality: clamp01(score / (USEFUL_CRITERIA.length - 1)),
+    };
   } catch (err) {
     const message = err instanceof Error ? err.message : "unknown error";
     console.warn("[usefulness] TypeSafe request failed:", message);
-    return undefined;
+    return { status: "failed" };
   }
 }
