@@ -4,18 +4,13 @@ import { useQuery } from "convex/react";
 import { useQueryStates } from "nuqs";
 import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
-import { Button, ClearInputAlt, Spinner, cn } from "@vvedantb/ui";
-import {
-  IconApps,
-  IconBolt,
-  IconListCheck,
-  IconSearch,
-} from "@tabler/icons-react";
+import { Button, Spinner, cn } from "@vvedantb/ui";
+import { IconApps, IconBolt, IconListCheck } from "@tabler/icons-react";
 import { SkillCard } from "@/components/skills/SkillCard";
 import { SkillBulkDeleteBar } from "@/components/skills/SkillBulkDeleteBar";
 import { SkillsAddMenu } from "@/components/skills/SkillsAddMenu";
 import { skillsSearchParams } from "@/lib/url-state/skills";
-import { sidebarSearchInputClassName } from "./sidebar-search-input";
+import { SidebarListSearchBar } from "./SidebarListSearchBar";
 import { SharedLayoutBackground } from "./SharedLayoutBackground";
 import { sidebarListRowClass } from "./sidebar-nav-row";
 import { SidebarHeaderTrailing } from "./SidebarHeaderTrailing";
@@ -221,27 +216,15 @@ export function SkillsSidebarNav({
             {!isIconOnly && !selectionMode ? (
               <>
                 <div className="shrink-0">
-                  <div className="flex min-w-0 items-center gap-1">
-                    <ClearInputAlt
-                      leading={
-                        <IconSearch
-                          size={16}
-                          className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 shrink-0 text-muted-foreground"
-                        />
-                      }
-                      value={searchQuery}
-                      onChange={(value) => {
-                        void setSearchParams({ q: value });
-                      }}
-                      placeholder="Search skills"
-                      aria-label="Search skills"
-                      clearLabel="Clear search"
-                      enterKeyHint="search"
-                      wrapperClassName="relative min-w-0 flex-1"
-                      className={sidebarSearchInputClassName}
-                    />
-                    {selectButton}
-                  </div>
+                  <SidebarListSearchBar
+                    value={searchQuery}
+                    onChange={(value) => {
+                      void setSearchParams({ q: value });
+                    }}
+                    placeholder="Search skills"
+                    aria-label="Search skills"
+                    actions={selectButton}
+                  />
                 </div>
                 {hubSection}
               </>
