@@ -25,7 +25,6 @@ import {
   SelectItem,
   LabeledSwitchRow,
 } from "@vvedantb/ui";
-import { SettingsField } from "@vvedantb/ui/app";
 import { api } from "@vmem/backend";
 import { isTheme } from "@vmem/shared";
 import { getStorage, setStorage } from "@/lib/storage";
@@ -38,6 +37,7 @@ import {
 } from "@/lib/constants";
 import { useExtensionUserSettings } from "@/popup/useExtensionUserSettings";
 import { useBrowserDefaultProfile } from "@/popup/useBrowserDefaultProfile";
+import { SettingsSelectRow } from "./SettingsSelectRow";
 import { SettingsSliderRow } from "./SettingsSliderRow";
 import { ProfileSelect } from "./ProfileSelect";
 
@@ -111,7 +111,7 @@ export function SettingsForm() {
         <h3 className="text-base font-medium text-foreground">Appearance</h3>
         <Card className="shadow-none">
           <CardContent className="space-y-6 p-4">
-            <SettingsField label="Theme">
+            <SettingsSelectRow label="Theme">
               <Select
                 value={settings?.theme ?? "system"}
                 onValueChange={handleThemeChange}
@@ -141,9 +141,9 @@ export function SettingsForm() {
                   </SelectItem>
                 </SelectContent>
               </Select>
-            </SettingsField>
+            </SettingsSelectRow>
 
-            <SettingsField
+            <SettingsSelectRow
               label="Active profile"
               description="Default profile for saving memories from this extension. Synced across browsers when signed in."
             >
@@ -157,7 +157,7 @@ export function SettingsForm() {
                   disabled={profiles.length === 0}
                 />
               )}
-            </SettingsField>
+            </SettingsSelectRow>
           </CardContent>
         </Card>
       </section>
