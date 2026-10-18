@@ -5,12 +5,12 @@ import {
   Button,
   ConfirmSkipHint,
   skipConfirmTitle,
+  SlideOverPanel,
   useRequestConfirm,
 } from "@vvedantb/ui";
 import { formatDate } from "@/lib/formatters";
 import type { RelatedNode } from "@/lib/graph/types";
 import type { GraphDetailNode } from "@/lib/graph/graph-types";
-import { SlideOverPanel } from "./detail-panel/SlideOverPanel";
 
 interface GraphDetailPanelProps {
   nodeData: GraphDetailNode | null;
