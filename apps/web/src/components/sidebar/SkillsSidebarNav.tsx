@@ -4,13 +4,13 @@ import { useQuery } from "convex/react";
 import { useQueryStates } from "nuqs";
 import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
-import { Button, Spinner, cn } from "@vvedantb/ui";
+import { Button, SearchInput, Spinner, cn } from "@vvedantb/ui";
 import { IconApps, IconBolt, IconListCheck } from "@tabler/icons-react";
 import { SkillCard } from "@/components/skills/SkillCard";
 import { SkillBulkDeleteBar } from "@/components/skills/SkillBulkDeleteBar";
 import { SkillsAddMenu } from "@/components/skills/SkillsAddMenu";
 import { skillsSearchParams } from "@/lib/url-state/skills";
-import { SidebarListSearchBar } from "./SidebarListSearchBar";
+import { sidebarSearchInputClassName } from "./sidebar-search-input";
 import { SharedLayoutBackground } from "./SharedLayoutBackground";
 import { sidebarListRowClass } from "./sidebar-nav-row";
 import { SidebarHeaderTrailing } from "./SidebarHeaderTrailing";
@@ -216,15 +216,21 @@ export function SkillsSidebarNav({
             {!isIconOnly && !selectionMode ? (
               <>
                 <div className="shrink-0">
-                  <SidebarListSearchBar
-                    value={searchQuery}
-                    onChange={(value) => {
-                      void setSearchParams({ q: value });
-                    }}
-                    placeholder="Search skills"
-                    aria-label="Search skills"
-                    actions={selectButton}
-                  />
+                  <div className="flex min-w-0 items-center gap-1">
+                    <SearchInput
+                      value={searchQuery}
+                      onChange={(value) => {
+                        void setSearchParams({ q: value });
+                      }}
+                      placeholder="Search skills"
+                      aria-label="Search skills"
+                      clearLabel="Clear search"
+                      enterKeyHint="search"
+                      wrapperClassName="relative min-w-0 flex-1"
+                      className={sidebarSearchInputClassName}
+                    />
+                    {selectButton}
+                  </div>
                 </div>
                 {hubSection}
               </>
