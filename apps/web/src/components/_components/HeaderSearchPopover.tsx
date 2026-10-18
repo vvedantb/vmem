@@ -5,7 +5,7 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-  SearchInput,
+  ClearInputAlt,
   cn,
 } from "@vvedantb/ui";
 import { FacetedFilterBadge } from "./FacetedFilter";
@@ -60,7 +60,13 @@ export default function HeaderSearchPopover({
         align="end"
         className="flex w-[calc(100vw-1rem)] max-w-72 flex-col gap-1.5 p-2 sm:w-72"
       >
-        <SearchInput
+        <ClearInputAlt
+          leading={
+            <IconSearch
+              size={16}
+              className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 shrink-0 text-muted-foreground"
+            />
+          }
           value={value}
           onChange={onChange}
           placeholder={placeholder}

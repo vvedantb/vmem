@@ -4,8 +4,13 @@ import { useQuery } from "convex/react";
 import { useQueryStates } from "nuqs";
 import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
-import { Button, SearchInput, Spinner, cn } from "@vvedantb/ui";
-import { IconApps, IconBolt, IconListCheck } from "@tabler/icons-react";
+import { Button, ClearInputAlt, Spinner, cn } from "@vvedantb/ui";
+import {
+  IconApps,
+  IconBolt,
+  IconListCheck,
+  IconSearch,
+} from "@tabler/icons-react";
 import { SkillCard } from "@/components/skills/SkillCard";
 import { SkillBulkDeleteBar } from "@/components/skills/SkillBulkDeleteBar";
 import { SkillsAddMenu } from "@/components/skills/SkillsAddMenu";
@@ -217,7 +222,13 @@ export function SkillsSidebarNav({
               <>
                 <div className="shrink-0">
                   <div className="flex min-w-0 items-center gap-1">
-                    <SearchInput
+                    <ClearInputAlt
+                      leading={
+                        <IconSearch
+                          size={16}
+                          className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 shrink-0 text-muted-foreground"
+                        />
+                      }
                       value={searchQuery}
                       onChange={(value) => {
                         void setSearchParams({ q: value });
