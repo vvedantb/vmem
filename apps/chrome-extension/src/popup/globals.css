@@ -12,6 +12,7 @@
  * dropdown menus, overlays) ship with no utility classes.
  */
 @source "../../../../node_modules/@vvedantb/ui/src/**/*.{ts,tsx}";
+@source "../../../../node_modules/@vvedantb/ui/app/src/**/*.{ts,tsx}";
 
 /* tab animation timing matches apps/web/src/globals.css */
 :root {

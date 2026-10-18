@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
-import { cn } from "@vvedantb/ui";
-import HeaderSearchInput from "@/components/_components/HeaderSearchInput";
+import { ToolbarSearchInput, cn } from "@vvedantb/ui";
 import { sidebarSearchInputClassName } from "./sidebar-search-input";
 
 interface SidebarListSearchBarProps {
@@ -24,7 +23,7 @@ export function SidebarListSearchBar({
   return (
     <div className={cn("flex min-w-0 flex-col gap-1.5", className)}>
       <div className="flex min-w-0 items-center gap-1">
-        <HeaderSearchInput
+        <ToolbarSearchInput
           value={value}
           onChange={onChange}
           placeholder={placeholder}

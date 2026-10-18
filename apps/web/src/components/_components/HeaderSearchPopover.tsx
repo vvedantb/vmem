@@ -5,10 +5,10 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
+  ToolbarSearchInput,
   cn,
 } from "@vvedantb/ui";
 import { FacetedFilterBadge } from "./FacetedFilter";
-import HeaderSearchInput from "./HeaderSearchInput";
 
 interface HeaderSearchPopoverProps {
   value: string;
@@ -60,7 +60,7 @@ export default function HeaderSearchPopover({
         align="end"
         className="flex w-[calc(100vw-1rem)] max-w-72 flex-col gap-1.5 p-2 sm:w-72"
       >
-        <HeaderSearchInput
+        <ToolbarSearchInput
           value={value}
           onChange={onChange}
           placeholder={placeholder}
