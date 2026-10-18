@@ -65,7 +65,7 @@ export default function HeaderSearchPopover({
           onChange={onChange}
           placeholder={placeholder}
           label={inputLabel}
-          className="w-full flex-none sm:flex-none"
+          className="w-full sm:flex-1"
           inputClassName="sm:w-full md:w-full"
         />
         {children}

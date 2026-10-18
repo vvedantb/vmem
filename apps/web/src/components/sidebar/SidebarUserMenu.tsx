@@ -14,6 +14,9 @@ import {
   DialogDescription,
   DialogFooter,
   cn,
+  ConfirmSkipHint,
+  skipConfirmTitle,
+  useRequestConfirm,
 } from "@vvedantb/ui";
 import { useUser, useClerk } from "@clerk/clerk-react";
 import {
@@ -25,11 +28,6 @@ import {
   IconLoader2,
 } from "@tabler/icons-react";
 import { useThemeContext } from "@/contexts/ThemeContext";
-import {
-  ConfirmSkipHint,
-  skipConfirmTitle,
-  useRequestConfirm,
-} from "@vvedantb/ui/app";
 import { RAIL_TILE_CLASS, railTileStateClass } from "./sidebar-nav-row";
 
 export function SidebarUserMenu() {

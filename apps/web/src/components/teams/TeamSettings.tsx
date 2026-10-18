@@ -2,11 +2,10 @@ import { useRef, useState } from "react";
 import { useAction, useMutation } from "convex/react";
 import { useNavigate } from "@tanstack/react-router";
 import { api } from "@vmem/backend";
-import { Button, Input } from "@vvedantb/ui";
+import { Button, Input, SettingsField, SettingsSection } from "@vvedantb/ui";
 import { IconAlertTriangle, IconTrash, IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { convexErrorMessage } from "@/lib/convex-error";
-import { SettingsField, SettingsSection } from "@vvedantb/ui/app";
 import { useTeamDetail } from "./team-context";
 import { DeleteTeamDialog } from "./DeleteTeamDialog";
 

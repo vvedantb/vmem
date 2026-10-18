@@ -14,6 +14,9 @@ import {
   DropdownMenuTrigger,
   Spinner,
   Switch,
+  ConfirmSkipHint,
+  skipConfirmTitle,
+  useRequestConfirm,
 } from "@vvedantb/ui";
 import { IconDots, IconPencil, IconPlus, IconTrash } from "@tabler/icons-react";
 import { toast } from "sonner";
@@ -21,11 +24,6 @@ import PageContainer from "@/components/shell/PageContainer";
 import { ViewSkillPanel } from "@/components/skills/ViewSkillPanel";
 import { SystemSkillFormDialog } from "@/components/skills/SystemSkillFormDialog";
 import DestructiveConfirmDialog from "@/components/settings/DestructiveConfirmDialog";
-import {
-  ConfirmSkipHint,
-  skipConfirmTitle,
-  useRequestConfirm,
-} from "@vvedantb/ui/app";
 import type { SystemSkillEntry } from "@/components/skills/_utils";
 import { useActiveTeamId } from "@/components/workspace/active-profile";
 import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";

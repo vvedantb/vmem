@@ -4,7 +4,7 @@ import { useQuery } from "convex/react";
 import { api } from "@vmem/backend";
 import { IconLoader2 } from "@tabler/icons-react";
 import PageContainer from "@/components/shell/PageContainer";
-import { SettingsStack } from "@vvedantb/ui/app";
+import { SettingsStack } from "@vvedantb/ui";
 import { TeamDetailProvider } from "@/components/teams/team-context";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 import { TeamWorkspaceTabs } from "./-components/TeamTabs";

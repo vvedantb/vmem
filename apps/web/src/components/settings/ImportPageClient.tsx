@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { useAction } from "convex/react";
 import { api } from "@vmem/backend";
-import { Button } from "@vvedantb/ui";
+import { Button, SettingsSection } from "@vvedantb/ui";
 import { toast } from "sonner";
 import UploadImportModal from "./UploadImportModal";
 import SelectImportRowsModal from "./SelectImportRowsModal";
 import { importProviders, type ImportProvider } from "./importProviders";
 import type { ExportImportRow } from "@/lib/chat-export/importRows";
-import { SettingsSection } from "@vvedantb/ui/app";
 
 type ImportStep =
   | { phase: "idle" }

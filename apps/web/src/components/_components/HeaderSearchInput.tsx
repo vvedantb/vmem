@@ -36,7 +36,7 @@ export default function HeaderSearchInput({
         enterKeyHint="search"
         className={cn(
           // match outline toolbar buttons beside it (view / filters / add)
-          "h-8 w-full min-w-0 rounded-lg border border-border bg-transparent pl-8 pr-8 text-xs shadow-none sm:w-44 md:w-52",
+          "h-8 w-full min-w-0 rounded-lg border border-border bg-transparent pl-8 pr-8 text-sm shadow-none sm:w-44 md:w-52",
           "placeholder:text-muted/70 hover:bg-default",
           "focus-visible:border-border focus-visible:bg-default focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
           inputClassName,

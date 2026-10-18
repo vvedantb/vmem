@@ -10,6 +10,8 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
+  ConfirmSkipHint,
+  skipConfirmTitle,
 } from "@vvedantb/ui";
 import { IconEdit, IconMoon, IconTrash } from "@tabler/icons-react";
 import { IconSkills } from "@/components/icons/sidebar";
@@ -23,7 +25,6 @@ import { MemorySourceIcon } from "./MemorySourceIcon";
 import { nodeColor } from "./graph-colors";
 import ShapeIndicator from "./ShapeIndicator";
 import { VIEW_TRANSITION_TARGET } from "@/lib/view-transitions";
-import { ConfirmSkipHint, skipConfirmTitle } from "@vvedantb/ui/app";
 
 interface ListItemRowProps {
   item: ListItem;

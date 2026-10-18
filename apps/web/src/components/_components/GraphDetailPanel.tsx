@@ -1,15 +1,16 @@
 import { useState } from "react";
 import { IconTrash, IconFocusCentered, IconLoader2 } from "@tabler/icons-react";
-import { Badge, Button } from "@vvedantb/ui";
+import {
+  Badge,
+  Button,
+  ConfirmSkipHint,
+  skipConfirmTitle,
+  useRequestConfirm,
+} from "@vvedantb/ui";
 import { formatDate } from "@/lib/formatters";
 import type { RelatedNode } from "@/lib/graph/types";
 import type { GraphDetailNode } from "@/lib/graph/graph-types";
 import { SlideOverPanel } from "./detail-panel/SlideOverPanel";
-import {
-  ConfirmSkipHint,
-  skipConfirmTitle,
-  useRequestConfirm,
-} from "@vvedantb/ui/app";
 
 interface GraphDetailPanelProps {
   nodeData: GraphDetailNode | null;

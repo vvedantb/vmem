@@ -5,6 +5,8 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  ConfirmSkipHint,
+  skipConfirmTitle,
 } from "@vvedantb/ui";
 import {
   IconDots,
@@ -13,7 +15,6 @@ import {
   IconRefresh,
   IconTrash,
 } from "@tabler/icons-react";
-import { ConfirmSkipHint, skipConfirmTitle } from "@vvedantb/ui/app";
 
 type ConnectorMenuAction = "sync" | "disconnect" | "delete-data";
 

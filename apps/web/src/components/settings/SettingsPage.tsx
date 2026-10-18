@@ -2,7 +2,7 @@ import {
   SettingsPage as AppKitSettingsPage,
   type SettingsLayoutProps,
   type SettingsPageProps,
-} from "@vvedantb/ui/app";
+} from "@vvedantb/ui";
 import PageContainer from "@/components/shell/PageContainer";
 
 function layout({

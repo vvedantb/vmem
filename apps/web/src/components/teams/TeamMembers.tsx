@@ -2,7 +2,14 @@ import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { useNavigate } from "@tanstack/react-router";
 import { api, type Id } from "@vmem/backend";
-import { Badge, Button } from "@vvedantb/ui";
+import {
+  Badge,
+  Button,
+  ConfirmSkipHint,
+  SettingsSection,
+  skipConfirmTitle,
+  useRequestConfirm,
+} from "@vvedantb/ui";
 import { useUser } from "@clerk/clerk-react";
 import {
   IconPlus,
@@ -13,12 +20,6 @@ import {
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { convexErrorMessage } from "@/lib/convex-error";
-import {
-  ConfirmSkipHint,
-  SettingsSection,
-  skipConfirmTitle,
-  useRequestConfirm,
-} from "@vvedantb/ui/app";
 import { useTeamWorkspace, type TeamMember } from "./team-context";
 import { AddMemberDialog } from "./AddMemberDialog";
 import { RemoveMemberDialog } from "./RemoveMemberDialog";

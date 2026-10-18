@@ -6,13 +6,14 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SettingsField,
+  SettingsSection,
 } from "@vvedantb/ui";
 import { IconBrandChrome } from "@tabler/icons-react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@vmem/backend";
 import { patchDefaultProfile } from "@/lib/convex-optimistic";
 import { convexErrorMessage } from "@/lib/convex-error";
-import { SettingsField, SettingsSection } from "@vvedantb/ui/app";
 
 type Profile = FunctionReturnType<typeof api.profiles.list>[number];
 
