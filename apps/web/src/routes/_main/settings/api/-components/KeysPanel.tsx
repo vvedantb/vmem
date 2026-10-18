@@ -6,6 +6,8 @@ import {
   TableHead,
   TableBody,
   TableRow,
+  SettingsEmptyState,
+  SettingsSection,
 } from "@vvedantb/ui";
 import { IconPlus } from "@tabler/icons-react";
 import { AnimatedKeyIcon, VmemSpinner } from "@/components/icons/animations";
@@ -17,7 +19,6 @@ import { useApiKeyActions } from "@/components/api-keys/useApiKeyActions";
 import type { ApiKey } from "@/components/api-keys/types";
 import { api } from "@vmem/backend";
 import { useApiCreateKeyModal } from "./ApiCreateKeyContext";
-import { SettingsEmptyState, SettingsSection } from "@vvedantb/ui/app";
 
 export function KeysPanel() {
   const { isCreateModalOpen, setIsCreateModalOpen } = useApiCreateKeyModal();

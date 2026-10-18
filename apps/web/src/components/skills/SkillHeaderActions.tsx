@@ -10,6 +10,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   Switch,
+  ConfirmSkipHint,
+  skipConfirmTitle,
+  useRequestConfirm,
 } from "@vvedantb/ui";
 import {
   IconCopy,
@@ -21,11 +24,6 @@ import {
 import { toast } from "sonner";
 import { useCopyToClipboard } from "usehooks-ts";
 import DestructiveConfirmDialog from "@/components/settings/DestructiveConfirmDialog";
-import {
-  ConfirmSkipHint,
-  skipConfirmTitle,
-  useRequestConfirm,
-} from "@vvedantb/ui/app";
 import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
 import {
   patchSkillInLists,

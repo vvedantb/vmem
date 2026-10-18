@@ -1,8 +1,12 @@
 import { useQuery } from "convex/react";
-import { Skeleton, Switch } from "@vvedantb/ui";
+import {
+  Skeleton,
+  Switch,
+  SettingsSection,
+  SettingsToggleRow,
+} from "@vvedantb/ui";
 import { api } from "@vmem/backend";
 import { SettingsPage } from "@/components/settings/SettingsPage";
-import { SettingsSection, SettingsToggleRow } from "@vvedantb/ui/app";
 import { useUserSettingsSave } from "@/hooks/useUserSettingsSave";
 
 export function ExtensionSettingsClient() {

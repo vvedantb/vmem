@@ -14,6 +14,8 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
+  skipConfirmTitle,
+  useRequestConfirm,
 } from "@vvedantb/ui";
 import {
   IconAlertTriangle,
@@ -32,7 +34,6 @@ import {
   type RelatedMemoryEntry,
 } from "@/lib/memories";
 import LinkMemoryModal from "@/components/memories/LinkMemoryModal";
-import { skipConfirmTitle, useRequestConfirm } from "@vvedantb/ui/app";
 import { DetailEmptyState } from "./detail-panel/DetailEmptyState";
 import { VmemSpinner } from "@/components/icons/animations";
 

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { IconFileExport } from "@tabler/icons-react";
-import { SettingsEmptyState, SettingsSection } from "@vvedantb/ui/app";
+import { SettingsEmptyState, SettingsSection } from "@vvedantb/ui";
 
 export const Route = createFileRoute("/_main/settings/data-controls/export")({
   component: ExportRoute,

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button, Card } from "@vvedantb/ui";
+import { Button, Card, useRequestConfirm } from "@vvedantb/ui";
 import { IconMoodEmpty, IconX } from "@tabler/icons-react";
 import type { Memory } from "@/lib/memories";
 import { memoryToListItem } from "@/lib/list-items";
@@ -7,7 +7,6 @@ import { MemoryVirtuosoList } from "@/components/_components/MemoryVirtuosoList"
 import MemoryDetailPanel from "@/components/memories/MemoryDetailPanel";
 import { useThemeContext } from "@/contexts/ThemeContext";
 import { useMemoryContext } from "@/contexts/MemoryContext";
-import { useRequestConfirm } from "@vvedantb/ui/app";
 import { toast } from "sonner";
 import { useTrailData } from "@/hooks/useTrailData";
 

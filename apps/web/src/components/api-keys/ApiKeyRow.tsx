@@ -1,4 +1,10 @@
-import { TableRow, TableCell, Badge, Button } from "@vvedantb/ui";
+import {
+  TableRow,
+  TableCell,
+  Badge,
+  Button,
+  skipConfirmTitle,
+} from "@vvedantb/ui";
 import {
   IconCopy,
   IconCheck,
@@ -11,7 +17,6 @@ import {
 } from "@tabler/icons-react";
 import { formatRelativeTime } from "@vmem/shared";
 import { formatDate, formatNumber } from "@/lib/formatters";
-import { skipConfirmTitle } from "@vvedantb/ui/app";
 import type { ApiKey } from "./types";
 
 function ApiKeyActiveBadge() {

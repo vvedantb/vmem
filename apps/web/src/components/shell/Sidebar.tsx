@@ -9,8 +9,13 @@ import {
 } from "react";
 import { useMediaQuery } from "usehooks-ts";
 import { AnimatePresence, motion, type PanInfo } from "motion/react";
-import { Button, cn, motionEase, motionTiming } from "@vvedantb/ui";
-import { SidebarHeader } from "@vvedantb/ui/shell";
+import {
+  Button,
+  cn,
+  motionEase,
+  motionTiming,
+  SidebarHeader,
+} from "@vvedantb/ui";
 import { IconX } from "@tabler/icons-react";
 import { useUser } from "@clerk/clerk-react";
 import { useQueryClient } from "@tanstack/react-query";

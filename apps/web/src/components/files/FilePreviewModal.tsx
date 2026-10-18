@@ -6,6 +6,9 @@ import {
   DialogTitle,
   DialogFooter,
   Button,
+  ConfirmSkipHint,
+  skipConfirmTitle,
+  useRequestConfirm,
 } from "@vvedantb/ui";
 import { toast } from "sonner";
 import {
@@ -25,11 +28,6 @@ import {
 } from "@/components/files/_utils";
 import DestructiveConfirmDialog from "@/components/settings/DestructiveConfirmDialog";
 import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
-import {
-  ConfirmSkipHint,
-  skipConfirmTitle,
-  useRequestConfirm,
-} from "@vvedantb/ui/app";
 
 interface FilePreviewModalProps {
   isOpen: boolean;

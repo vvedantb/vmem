@@ -1,7 +1,12 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { toast } from "sonner";
-import { Switch, TimePicker } from "@vvedantb/ui";
+import {
+  Switch,
+  TimePicker,
+  SettingsSection,
+  SettingsToggleRow,
+} from "@vvedantb/ui";
 import { api } from "@vmem/backend";
 import {
   DEFAULT_LOCAL_TIME,
@@ -11,7 +16,6 @@ import {
 } from "@vmem/shared";
 import ConfidenceThresholdSlider from "@/components/settings/ConfidenceThresholdSlider";
 import { SettingsPage } from "@/components/settings/SettingsPage";
-import { SettingsSection, SettingsToggleRow } from "@vvedantb/ui/app";
 import { useUserSettingsSave } from "@/hooks/useUserSettingsSave";
 import { convexErrorMessage } from "@/lib/convex-error";
 import { PreferenceTextareaRow } from "./PreferenceTextareaRow";

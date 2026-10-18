@@ -13,6 +13,9 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  ConfirmSkipHint,
+  skipConfirmTitle,
+  useRequestConfirm,
 } from "@vvedantb/ui";
 import { formatDate } from "@vmem/shared";
 import { IconTrash, IconX, IconDots, IconPencil } from "@tabler/icons-react";
@@ -37,11 +40,6 @@ import { MemorySourceLabel } from "@/components/_components/MemorySourceLabel";
 import DestructiveConfirmDialog from "@/components/settings/DestructiveConfirmDialog";
 import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
 import { VIEW_TRANSITION_TARGET } from "@/lib/view-transitions";
-import {
-  ConfirmSkipHint,
-  skipConfirmTitle,
-  useRequestConfirm,
-} from "@vvedantb/ui/app";
 import { useActiveProfileId } from "@/components/workspace/active-profile";
 import { VmemSpinner } from "@/components/icons/animations";
 

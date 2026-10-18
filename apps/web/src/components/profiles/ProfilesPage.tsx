@@ -1,13 +1,17 @@
 import { useQuery, useMutation, useAction } from "convex/react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Button, Skeleton } from "@vvedantb/ui";
+import {
+  Button,
+  Skeleton,
+  SettingsSection,
+  useRequestConfirm,
+} from "@vvedantb/ui";
 import { IconPlus } from "@tabler/icons-react";
 import { api, type Id } from "@vmem/backend";
 import { tempId } from "@/lib/convex-optimistic";
 import { convexErrorMessage } from "@/lib/convex-error";
 import { SettingsPage } from "@/components/settings/SettingsPage";
-import { SettingsSection, useRequestConfirm } from "@vvedantb/ui/app";
 import { CreateEditProfileDialog } from "./CreateEditProfileDialog";
 import { DefaultProfilesSection } from "./DefaultProfilesSection";
 import { ProfileCard } from "./ProfileCard";

@@ -15,6 +15,9 @@ import {
   DialogHeader,
   DialogTitle,
   Input,
+  ConfirmSkipHint,
+  skipConfirmTitle,
+  useRequestConfirm,
 } from "@vvedantb/ui";
 import {
   IconCheck,
@@ -33,11 +36,6 @@ import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
 import { DetailEmptyState } from "@/components/_components/detail-panel/DetailEmptyState";
 import { TagMemoriesPanel } from "@/components/_components/TagMemoriesPanel";
 import { VmemSpinner } from "@/components/icons/animations";
-import {
-  ConfirmSkipHint,
-  skipConfirmTitle,
-  useRequestConfirm,
-} from "@vvedantb/ui/app";
 
 // tag rows view for /memories/tags
 export default function TagsListView() {

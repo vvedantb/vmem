@@ -1,6 +1,5 @@
-import { Skeleton } from "@vvedantb/ui";
+import { Skeleton, SettingsSection } from "@vvedantb/ui";
 import { SettingsPage } from "@/components/settings/SettingsPage";
-import { SettingsSection } from "@vvedantb/ui/app";
 
 export function PreferencesPageSkeleton() {
   return (

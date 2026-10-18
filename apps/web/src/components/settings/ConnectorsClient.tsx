@@ -1,5 +1,10 @@
 import { useState, type ReactNode } from "react";
-import { Skeleton, Button } from "@vvedantb/ui";
+import {
+  Skeleton,
+  Button,
+  SettingsEmptyState,
+  SettingsSection,
+} from "@vvedantb/ui";
 import { IconPlug, IconPlus } from "@tabler/icons-react";
 import type { FunctionReturnType } from "convex/server";
 import type { api } from "@vmem/backend";
@@ -7,7 +12,6 @@ import ConnectorCard from "@/components/settings/ConnectorCard";
 import BrowseConnectorsModal from "@/components/settings/BrowseConnectorsModal";
 import { isConnectorConnected } from "@/components/settings/connector-utils";
 import { SettingsPage } from "@/components/settings/SettingsPage";
-import { SettingsEmptyState, SettingsSection } from "@vvedantb/ui/app";
 
 type Connector = FunctionReturnType<typeof api.connectors.crud.listMy>[number];
 

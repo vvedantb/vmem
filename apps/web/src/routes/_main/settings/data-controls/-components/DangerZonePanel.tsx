@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { Button } from "@vvedantb/ui";
+import { Button, SettingsSection } from "@vvedantb/ui";
 import { IconAlertTriangle, IconTrash } from "@tabler/icons-react";
 import DeleteAllMemoriesDialog from "./DeleteAllMemoriesDialog";
-import { SettingsSection } from "@vvedantb/ui/app";
 
 export function DangerZonePanel() {
   const [confirmOpen, setConfirmOpen] = useState(false);

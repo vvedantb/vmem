@@ -30,11 +30,11 @@ function cssRule(css: string, selector: string): string {
   return css.slice(start, css.indexOf("}", start));
 }
 
-describe("shared shell pills live in @vvedantb/ui/shell", () => {
+describe("shared shell pills live in @vvedantb/ui", () => {
   it("does not keep a second PillTabs in this app", () => {
     expect(existsSync(path.join(here, "PillTabs.tsx"))).toBe(false);
     expect(read(path.join(here, "Sidebar.tsx"))).toContain(
-      'from "@vvedantb/ui/shell"',
+      'from "@vvedantb/ui"',
     );
   });
 });

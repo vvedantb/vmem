@@ -1,4 +1,4 @@
-import { useStableAuth } from "@vvedantb/ui/app";
+import { useStableAuth } from "@vvedantb/ui";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { convex } from "@/lib/convex-client";
 

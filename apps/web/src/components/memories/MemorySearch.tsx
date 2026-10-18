@@ -1,7 +1,7 @@
 import { startTransition, useState, useEffect, ViewTransition } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
-import { Button, cn } from "@vvedantb/ui";
+import { Button, cn, useRequestConfirm } from "@vvedantb/ui";
 import {
   IconAlertCircle,
   IconMoodEmpty,
@@ -15,7 +15,6 @@ import AnimatedSearchIcon from "@/components/_components/AnimatedSearchIcon";
 import { VmemSpinner } from "@/components/icons/animations";
 import { memoryFromApi, type Memory } from "@/lib/memories";
 import { useMemoryContext } from "@/contexts/MemoryContext";
-import { useRequestConfirm } from "@vvedantb/ui/app";
 import { toast } from "sonner";
 import type { ListItem } from "@/lib/list-items";
 import { countActiveMemoryViewFilters } from "@/lib/memory-view-filters";

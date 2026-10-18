@@ -8,13 +8,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@vvedantb/ui";
-import { IconTrash, IconX } from "@tabler/icons-react";
-import {
   ConfirmSkipHint,
   skipConfirmTitle,
   useRequestConfirm,
-} from "@vvedantb/ui/app";
+} from "@vvedantb/ui";
+import { IconTrash, IconX } from "@tabler/icons-react";
 
 interface BulkSelectionDeleteBarProps {
   count: number;

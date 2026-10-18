@@ -1,6 +1,13 @@
 import { useState } from "react";
 import { useAction } from "convex/react";
-import { Card, CardContent, Button, Badge, Progress } from "@vvedantb/ui";
+import {
+  Card,
+  CardContent,
+  Button,
+  Badge,
+  Progress,
+  useRequestConfirm,
+} from "@vvedantb/ui";
 import { toast } from "sonner";
 import { IconLoader2, IconAlertCircle, IconClock } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
@@ -9,7 +16,6 @@ import DeleteConnectorDataDialog from "./DeleteConnectorDataDialog";
 import DisconnectConnectorDialog, {
   useDisconnectConnector,
 } from "./DisconnectConnectorDialog";
-import { useRequestConfirm } from "@vvedantb/ui/app";
 import ConnectorActionsMenu from "./ConnectorActionsMenu";
 import {
   isConnectorConnected,
