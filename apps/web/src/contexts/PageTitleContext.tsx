@@ -1,25 +1,11 @@
-import { createContext, use, useState, type ReactNode } from "react";
+import { createPageTitleContext } from "@vvedantb/ui";
 
-type PageTitleContextValue = {
-  pageTitle: string;
-  setPageTitle: (title: string) => void;
-};
+const kit = createPageTitleContext();
 
-const PageTitleContext = createContext<PageTitleContextValue>({
-  pageTitle: "",
-  setPageTitle: () => {},
-});
+export const { PageTitleProvider, usePageTitleSync } = kit;
 
-export function PageTitleProvider({ children }: { children: ReactNode }) {
-  const [pageTitle, setPageTitle] = useState("");
-
-  return (
-    <PageTitleContext value={{ pageTitle, setPageTitle }}>
-      {children}
-    </PageTitleContext>
-  );
-}
-
+// consumers see only the title pair, not the kit's mobile actions slot
 export function usePageTitle() {
-  return use(PageTitleContext);
+  const { pageTitle, setPageTitle } = kit.usePageTitle();
+  return { pageTitle, setPageTitle };
 }

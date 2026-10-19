@@ -1,5 +1,4 @@
 import { AuthLoading, Authenticated, Unauthenticated } from "convex/react";
-import { useTheme } from "next-themes";
 import { Navigate } from "@tanstack/react-router";
 import { SonnerToaster, TooltipProvider } from "@vvedantb/ui";
 import { AppSkeleton } from "@/components/shell/AppSkeleton";
@@ -7,8 +6,9 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { MemoryProvider } from "@/contexts/MemoryContext";
 import { useUpdateAvailableToast } from "@/providers/EnsureUser";
+import { useTheme } from "@/providers/theme";
 
-// forward resolved theme to sonner (light until next themes hydrates)
+// forward resolved theme to sonner (light until the theme provider hydrates)
 function ThemedSonnerToaster() {
   const { resolvedTheme } = useTheme();
   return (

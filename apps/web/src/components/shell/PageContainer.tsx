@@ -1,8 +1,7 @@
 import type { ReactNode } from "react";
-import { useEffect } from "react";
 import { motion } from "motion/react";
 import { cn, motionDuration, motionEase, motionDistance } from "@vvedantb/ui";
-import { usePageTitle } from "@/contexts/PageTitleContext";
+import { usePageTitleSync } from "@/contexts/PageTitleContext";
 
 interface PageContainerProps {
   title?: string;
@@ -51,12 +50,7 @@ export default function PageContainer({
   scrollRef,
   children,
 }: PageContainerProps) {
-  const { setPageTitle } = usePageTitle();
-
-  useEffect(() => {
-    setPageTitle(title ?? "");
-    return () => setPageTitle("");
-  }, [title, setPageTitle]);
+  usePageTitleSync(title);
 
   const hasSections = Boolean(leftSection || centerSection || rightSection);
   const hasToolbar = toolbar != null;

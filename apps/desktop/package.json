@@ -39,7 +39,7 @@
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "^4.4.0",
     "@vvedantb/config": "0.2.0",
-    "@vvedantb/ui": "^0.7.2",
+    "@vvedantb/ui": "^0.8.0",
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",
     "electron": "43.8.0",
