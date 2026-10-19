@@ -1,14 +1,6 @@
 import { useState } from "react";
 import type { Id } from "@vmem/backend";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  Button,
-  cn,
-} from "@vvedantb/ui";
+import { Button, ConfirmDialog, cn } from "@vvedantb/ui";
 import { IconFolder, IconFolderSymlink, IconHome } from "@tabler/icons-react";
 import type { FileTreeNode } from "./-types";
 
@@ -47,16 +39,20 @@ export default function MoveFolderDialog({
   );
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-sm" hideCloseButton>
-        <DialogHeader className="border-b border-separator pb-4">
-          <DialogTitle className="flex items-center gap-2 text-foreground">
+    <ConfirmDialog.Root
+      alert={false}
+      open={isOpen}
+      onOpenChange={handleOpenChange}
+    >
+      <ConfirmDialog.Content className="max-w-sm" hideCloseButton>
+        <ConfirmDialog.Header className="border-b border-separator pb-4">
+          <ConfirmDialog.Title className="flex items-center gap-2 text-foreground">
             <IconFolderSymlink size={18} stroke={1.5} />
             Move {itemCount} {itemCount === 1 ? "item" : "items"}
-          </DialogTitle>
-        </DialogHeader>
+          </ConfirmDialog.Title>
+        </ConfirmDialog.Header>
 
-        <div className="py-2 max-h-64 overflow-y-auto space-y-1">
+        <ConfirmDialog.Body className="py-2 max-h-64 overflow-y-auto space-y-1">
           <Button
             type="button"
             variant="ghost"
@@ -95,15 +91,15 @@ export default function MoveFolderDialog({
               No other folders available
             </p>
           )}
-        </div>
+        </ConfirmDialog.Body>
 
-        <DialogFooter className="border-t border-separator pt-4">
-          <Button variant="ghost" onClick={onClose} className="text-muted">
-            Cancel
-          </Button>
-          <Button onClick={handleConfirm}>Move here</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        <ConfirmDialog.Footer className="border-t border-separator pt-4">
+          <ConfirmDialog.Cancel className="text-muted" />
+          <ConfirmDialog.Action onClick={handleConfirm}>
+            Move here
+          </ConfirmDialog.Action>
+        </ConfirmDialog.Footer>
+      </ConfirmDialog.Content>
+    </ConfirmDialog.Root>
   );
 }

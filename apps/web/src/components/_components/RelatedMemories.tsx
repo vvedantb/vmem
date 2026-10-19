@@ -8,12 +8,7 @@ import {
 import {
   Badge,
   Button,
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
+  ConfirmDialog,
   skipConfirmTitle,
   useRequestConfirm,
 } from "@vvedantb/ui";
@@ -203,20 +198,24 @@ export default function RelatedMemories({
         </div>
       )}
 
-      <Dialog
+      <ConfirmDialog.Root
+        alert={false}
+        pending={unlinkingId !== null}
         open={confirmUnlinkId !== null}
         onOpenChange={(open) => {
-          if (!open && unlinkingId === null) setConfirmUnlinkId(null);
+          if (!open) setConfirmUnlinkId(null);
         }}
       >
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="text-foreground">Unlink memory</DialogTitle>
-            <DialogDescription className="sr-only">
+        <ConfirmDialog.Content className="sm:max-w-sm">
+          <ConfirmDialog.Header>
+            <ConfirmDialog.Title className="text-foreground">
+              Unlink memory
+            </ConfirmDialog.Title>
+            <ConfirmDialog.Description className="sr-only">
               Confirm unlinking a related memory
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex items-start gap-3 py-4">
+            </ConfirmDialog.Description>
+          </ConfirmDialog.Header>
+          <ConfirmDialog.Body className="flex items-start gap-3 py-4">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-danger/10">
               <IconAlertTriangle size={20} className="text-danger" />
             </div>
@@ -232,37 +231,24 @@ export default function RelatedMemories({
                 This removes the relationship between these two memories.
               </p>
             </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="ghost"
-              onClick={() => setConfirmUnlinkId(null)}
-              disabled={unlinkingId !== null}
-              className="text-muted"
-            >
-              Cancel
-            </Button>
-            <Button
+          </ConfirmDialog.Body>
+          <ConfirmDialog.Footer>
+            <ConfirmDialog.Cancel className="text-muted" />
+            <ConfirmDialog.Action
               variant="destructive"
               onClick={async () => {
                 if (confirmUnlinkId === null) return;
                 await handleUnlink(confirmUnlinkId);
                 setConfirmUnlinkId(null);
               }}
-              disabled={unlinkingId !== null}
+              pendingLabel="Unlinking..."
+              spinnerSize={16}
             >
-              {unlinkingId !== null ? (
-                <>
-                  <IconLoader2 size={16} className="animate-spin" />
-                  Unlinking...
-                </>
-              ) : (
-                "Unlink"
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              Unlink
+            </ConfirmDialog.Action>
+          </ConfirmDialog.Footer>
+        </ConfirmDialog.Content>
+      </ConfirmDialog.Root>
 
       <LinkMemoryModal
         open={linkModalOpen}

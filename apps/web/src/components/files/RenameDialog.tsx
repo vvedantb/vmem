@@ -1,13 +1,5 @@
 import { useRef } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  Button,
-  Input,
-} from "@vvedantb/ui";
+import { ConfirmDialog, Input } from "@vvedantb/ui";
 import { IconPencil } from "@tabler/icons-react";
 
 interface RenameDialogProps {
@@ -48,16 +40,20 @@ export default function RenameDialog({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-sm" hideCloseButton>
-        <DialogHeader className="border-b border-separator pb-4">
-          <DialogTitle className="flex items-center gap-2 text-foreground">
+    <ConfirmDialog.Root
+      alert={false}
+      open={isOpen}
+      onOpenChange={handleOpenChange}
+    >
+      <ConfirmDialog.Content className="max-w-sm" hideCloseButton>
+        <ConfirmDialog.Header className="border-b border-separator pb-4">
+          <ConfirmDialog.Title className="flex items-center gap-2 text-foreground">
             <IconPencil size={18} stroke={1.5} />
             Rename
-          </DialogTitle>
-        </DialogHeader>
+          </ConfirmDialog.Title>
+        </ConfirmDialog.Header>
 
-        <div className="py-2">
+        <ConfirmDialog.Body className="py-2">
           <Input
             ref={inputRef}
             type="text"
@@ -65,15 +61,13 @@ export default function RenameDialog({
             onKeyDown={handleKeyDown}
             autoFocus
           />
-        </div>
+        </ConfirmDialog.Body>
 
-        <DialogFooter className="border-t border-separator pt-4">
-          <Button variant="ghost" onClick={onClose} className="text-muted">
-            Cancel
-          </Button>
-          <Button onClick={submit}>Rename</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        <ConfirmDialog.Footer className="border-t border-separator pt-4">
+          <ConfirmDialog.Cancel className="text-muted" />
+          <ConfirmDialog.Action onClick={submit}>Rename</ConfirmDialog.Action>
+        </ConfirmDialog.Footer>
+      </ConfirmDialog.Content>
+    </ConfirmDialog.Root>
   );
 }
