@@ -6,6 +6,8 @@ import {
   runAblation,
   runPooledComparison,
 } from "../../eval/benchmark";
+import { INDEX_RETRIEVE_CAPS } from "../../engine/memory/retrieveCaps";
+import { useDeterministicEval } from "./evalHarness";
 import { parseFactExtractionResponse } from "../../engine/memory/extractFacts";
 import { recallAtK, reciprocalRank } from "../../eval/metrics";
 
@@ -61,6 +63,8 @@ describe("labelled benchmark corpus invariants", () => {
 });
 
 describe("Convex labelled ablation", () => {
+  useDeterministicEval();
+
   it("full hybrid beats single legs and hybrid-without-graph", async () => {
     const { runs, report } = await runAblation();
     if (process.env.EVAL_VERBOSE) {
@@ -136,7 +140,9 @@ describe("Convex labelled ablation", () => {
     expect(widened.mrr).toBeGreaterThanOrEqual(legacy.mrr);
     expect(widened.ndcg10).toBeGreaterThanOrEqual(legacy.ndcg10);
     expect(widened.recall5).toBeGreaterThanOrEqual(NEO4J_FULL_HYBRID.recall5);
-    expect(widened.latencyP95).toBeLessThan(100);
+    // Ranker work per query is bounded by the pool cap (wall clock: eval-perf).
+    expect(widened.poolMax).toBeGreaterThan(0);
+    expect(widened.poolMax).toBeLessThanOrEqual(INDEX_RETRIEVE_CAPS.rankPool);
   }, 60_000);
 });
 

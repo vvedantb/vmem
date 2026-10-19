@@ -40,6 +40,8 @@ export function outcomeFromTitles(args: {
       0,
     ),
     latencyMs: args.latencyMs,
+    // Third-party APIs do not expose how many memories they ranked.
+    poolSize: 0,
     topScore: args.topScore ?? 0,
     jevFailOpen: false,
     empty: titles.length === 0,

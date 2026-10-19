@@ -43,6 +43,7 @@ import {
   retrieveEval,
   rankEvalRetrieve,
   toEvalMemory,
+  vectorScoresForQuery,
   type EvalJudge,
   type RetrieveEvalRerank,
 } from "./retrieve";
@@ -172,6 +173,7 @@ export interface QueryOutcome {
   ndcg10: number;
   ctxTokens: number;
   latencyMs: number;
+  poolSize: number;
   topScore: number;
   jevFailOpen: boolean;
   empty: boolean;
@@ -205,6 +207,8 @@ export interface AggMetrics {
   meanCtxTokens: number;
   latencyP50: number;
   latencyP95: number;
+  /** Largest per-query rank pool. Deterministic stand-in for latency. */
+  poolMax: number;
 }
 
 export function aggregate(outcomes: QueryOutcome[]): AggMetrics {
@@ -220,6 +224,7 @@ export function aggregate(outcomes: QueryOutcome[]): AggMetrics {
     meanCtxTokens: mean(outcomes.map((o) => o.ctxTokens)),
     latencyP50: percentile(latencies, 50),
     latencyP95: percentile(latencies, 95),
+    poolMax: Math.max(0, ...outcomes.map((o) => o.poolSize)),
   };
 }
 
@@ -542,6 +547,24 @@ export async function runCorpusAblation(
     }
     queryEmbeddings.set(query, vector);
   }
+  // Same memories and query vector for every leg, so score each query once.
+  const vectorScoresByQuery = new Map<string, Map<string, number>>();
+  const queryInputs = (query: string) => {
+    const queryEmbedding = queryEmbeddings.get(query);
+    if (queryEmbedding === undefined) {
+      throw new Error(`missing embedding for ${query}`);
+    }
+    let vectorScores = vectorScoresByQuery.get(query);
+    if (vectorScores === undefined) {
+      vectorScores = vectorScoresForQuery(
+        memories,
+        queryEmbedding,
+        memoryEmbeddings,
+      );
+      vectorScoresByQuery.set(query, vectorScores);
+    }
+    return { queryEmbedding, vectorScores };
+  };
 
   const configs = options.configs ?? EVAL_CONFIGS;
   const nowMs = options.nowMs ?? Date.now();
@@ -576,36 +599,30 @@ export async function runCorpusAblation(
     const concurrency = options.concurrency ?? evalJevConcurrency();
     const rows = jev
       ? await mapPool(corpus.queries, concurrency, async (query) => {
-          const queryEmbedding = queryEmbeddings.get(query.query);
-          if (queryEmbedding === undefined) {
-            throw new Error(`missing embedding for ${query.query}`);
-          }
+          const inputs = queryInputs(query.query);
           const started = performance.now();
-          const candidates = await retrieveEval(memories, query.query, {
+          const result = await retrieveEval(memories, query.query, {
             ...evalOpts,
-            queryEmbedding,
+            ...inputs,
             filter: query.filter,
           });
           return {
             query,
-            candidates,
+            ...result,
             latencyMs: performance.now() - started,
           };
         })
       : corpus.queries.map((query) => {
-          const queryEmbedding = queryEmbeddings.get(query.query);
-          if (queryEmbedding === undefined) {
-            throw new Error(`missing embedding for ${query.query}`);
-          }
+          const inputs = queryInputs(query.query);
           const started = performance.now();
-          const candidates = rankEvalRetrieve(memories, query.query, {
+          const result = rankEvalRetrieve(memories, query.query, {
             ...evalOpts,
-            queryEmbedding,
+            ...inputs,
             filter: query.filter,
           });
           return {
             query,
-            candidates,
+            ...result,
             latencyMs: performance.now() - started,
           };
         });
@@ -645,6 +662,7 @@ export async function runCorpusAblation(
           0,
         ),
         latencyMs: row.latencyMs,
+        poolSize: row.poolSize,
         topScore: row.candidates[0]?.trace.score ?? 0,
         jevFailOpen,
         empty: row.candidates.length === 0,
@@ -684,13 +702,21 @@ export async function runAblation(): Promise<{
   return { runs, report, answerable };
 }
 
+// The auto-link check only compares graph on vs off; other legs are wasted work.
+const AUTO_LINK_EVAL_NAMES = new Set(["full hybrid", "hybrid (no graph)"]);
+
 export async function runAutoLinkAblation(): Promise<{
   runs: ConfigRun[];
   autoLinkCount: number;
 }> {
   const corpus = generateBenchmarkCorpus();
   const autoLinks = autoLinksFromCorpus(corpus);
-  const { runs } = await runCorpusAblation(corpus, { links: autoLinks });
+  const { runs } = await runCorpusAblation(corpus, {
+    links: autoLinks,
+    configs: EVAL_CONFIGS.filter((config) =>
+      AUTO_LINK_EVAL_NAMES.has(config.name),
+    ),
+  });
   return { runs, autoLinkCount: autoLinks.length };
 }
 

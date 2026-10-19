@@ -64,6 +64,8 @@ export interface RetrieveEvalOptions {
   legs: RetrievalLegs;
   queryEmbedding: readonly number[];
   memoryEmbeddings: ReadonlyMap<string, number[]>;
+  /** Precomputed `vectorScoresForQuery` result, shared across ablation legs. */
+  vectorScores?: ReadonlyMap<string, number>;
   links: readonly MemoryLinkEdge[];
   limit?: number;
   nowMs?: number;
@@ -158,22 +160,29 @@ function resolvedEvalApiKey(options: RetrieveEvalOptions): string | undefined {
   return readSystemOneApiKey();
 }
 
+export interface RankEvalResult {
+  candidates: MemoryCandidate[];
+  /** Memories the ranker scored: the deterministic per-query work unit. */
+  poolSize: number;
+}
+
 export function rankEvalRetrieve(
   memories: readonly MemoryWithTags[],
   query: string,
   options: RetrieveEvalOptions,
-): MemoryCandidate[] {
+): RankEvalResult {
   const jev = evalWantsJev(options);
   const userLimit = options.limit ?? EVAL_K;
   const rankLimit = jevRankPoolLimit(userLimit, jev);
   const useVector = options.legs.vector !== false;
   const useFulltext = options.legs.fulltext !== false;
   const allVectorScores = useVector
-    ? vectorScoresForQuery(
+    ? (options.vectorScores ??
+      vectorScoresForQuery(
         memories,
         options.queryEmbedding,
         options.memoryEmbeddings,
-      )
+      ))
     : new Map<string, number>();
   const rankOpts = {
     limit: rankLimit,
@@ -189,6 +198,7 @@ export function rankEvalRetrieve(
   };
 
   let ranked: MemoryCandidate[];
+  let poolSize = memories.length;
   if (options.caps !== undefined) {
     const selected = selectRetrieveCandidates(memories, query, {
       caps: options.caps,
@@ -196,6 +206,7 @@ export function rankEvalRetrieve(
       links: options.links,
       filter: options.filter,
     });
+    poolSize = selected.pool.length;
     ranked = retrieveMemoriesFromPool(selected.pool, query, {
       ...rankOpts,
       vectorScores: useVector ? selected.vectorScores : undefined,
@@ -211,7 +222,10 @@ export function rankEvalRetrieve(
           : undefined,
     });
   }
-  return jev ? ranked : ranked.slice(0, userLimit);
+  return {
+    candidates: jev ? ranked : ranked.slice(0, userLimit),
+    poolSize,
+  };
 }
 
 async function finishEvalRetrieve(
@@ -248,9 +262,18 @@ export async function retrieveEval(
   memories: readonly MemoryWithTags[],
   query: string,
   options: RetrieveEvalOptions,
-): Promise<MemoryCandidate[]> {
+): Promise<RankEvalResult> {
   const jev = evalWantsJev(options);
   const userLimit = options.limit ?? EVAL_K;
-  const ranked = rankEvalRetrieve(memories, query, options);
-  return finishEvalRetrieve(query, ranked, options, userLimit, jev);
+  const { candidates, poolSize } = rankEvalRetrieve(memories, query, options);
+  return {
+    candidates: await finishEvalRetrieve(
+      query,
+      candidates,
+      options,
+      userLimit,
+      jev,
+    ),
+    poolSize,
+  };
 }
