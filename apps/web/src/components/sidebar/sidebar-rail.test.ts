@@ -101,7 +101,7 @@ describe("rail destinations cover the previous sidebar nav", () => {
     expect(inboxRailItem.href).toBe("/$profileId/inbox");
     expect(railLibraryItems.at(-1)?.href).toBe("/$profileId/sources");
 
-    const railNav = read("SidebarRailNav.tsx");
+    const railNav = read("SidebarRail.tsx");
     expect(railNav).toContain("item={inboxRailItem}");
   });
 
@@ -140,8 +140,9 @@ describe("isRailItemActive", () => {
 describe("shell uses a rail + panel + drawer", () => {
   it("composes SidebarRail in both desktop and drawer layouts", () => {
     const sidebar = read("../shell/Sidebar.tsx");
-    expect(sidebar).toContain("SidebarRail");
-    expect(sidebar).toContain("data-sidebar-layout={layout}");
+    expect(sidebar).toContain("AppSidebar");
+    expect(sidebar).toContain("VmemSidebarRail");
+    expect(sidebar).toContain("isDesktop={isDesktopViewport}");
     expect(sidebar).toContain('"desktop"');
     expect(sidebar).toContain('"drawer"');
     expect(sidebar).not.toContain("DialogPortal");
@@ -165,14 +166,14 @@ describe("shell uses a rail + panel + drawer", () => {
   it("does not draw a right border on the panel against floating content", () => {
     const sidebar = read("../shell/Sidebar.tsx");
     expect(sidebar).not.toMatch(/overflow-hidden border-r border-separator/);
-    expect(read("../shell/MainShell.tsx")).toContain("md:rounded-lg");
-    expect(read("../shell/MainShell.tsx")).toContain("md:p-2");
+    // AppShell floats the content card (md:p-2 + md:rounded-lg).
+    expect(read("../shell/MainShell.tsx")).toContain("<AppShell");
   });
 
   it("keeps the rail/panel divider only while the panel is open", () => {
     const rail = read("SidebarRail.tsx");
     expect(rail).toContain("showRailPanelDivider");
-    expect(rail).toContain("border-r border-separator");
+    expect(rail).toContain("showDivider={showRailPanelDivider}");
     expect(rail).toContain('layout === "desktop" && isCollapsed');
     expect(rail).toContain("!isPanelHidden");
   });
@@ -195,9 +196,8 @@ describe("shell uses a rail + panel + drawer", () => {
 
     const sidebar = read("../shell/Sidebar.tsx");
     expect(sidebar).toContain("railSectionHidesPanel(section)");
-    expect(sidebar).toContain(
-      "sidebarRailWidthClass(isCollapsed || hidePanel)",
-    );
+    expect(sidebar).toContain("collapsed={isCollapsed}");
+    expect(sidebar).toContain("panelHidden={hidePanel}");
     expect(sidebar).toContain("panelSection === null ? null");
     expect(sidebar).toContain("isPanelHidden={hidePanel}");
 
@@ -205,8 +205,11 @@ describe("shell uses a rail + panel + drawer", () => {
     expect(shell).toContain(
       "railSectionHidesPanel(railSectionFromPathname(pathname))",
     );
-    expect(shell).toMatch(
-      /isPanelHidden\s*\?\s*"md:ml-\[var\(--vmem-sidebar-rail-width\)\]"/,
+    expect(shell).toContain("panelHidden={isPanelHidden}");
+    expect(shell).toContain('railWidth="var(--vmem-sidebar-rail-width)"');
+    expect(shell).toContain('sidebarWidth="var(--vmem-sidebar-width)"');
+    expect(shell).toContain(
+      'mobileHeaderHeight="var(--vmem-mobile-header-height)"',
     );
     // Route-driven hiding never writes the stored collapse preference.
     expect(shell).toContain('"sidebar-collapsed"');
@@ -214,7 +217,7 @@ describe("shell uses a rail + panel + drawer", () => {
   });
 
   it("places inbox under home, then the divider, and no activity rail tile", () => {
-    const railNav = read("SidebarRailNav.tsx");
+    const railNav = read("SidebarRail.tsx");
     const homeIdx = railNav.indexOf('label="Home"');
     const inboxIdx = railNav.indexOf("item={inboxRailItem}", homeIdx);
     const dividerIdx = railNav.indexOf("<RailDivider />", inboxIdx);
@@ -223,7 +226,7 @@ describe("shell uses a rail + panel + drawer", () => {
     expect(inboxIdx).toBeGreaterThan(homeIdx);
     expect(dividerIdx).toBeGreaterThan(inboxIdx);
     expect(libraryIdx).toBeGreaterThan(dividerIdx);
-    expect(railNav).toContain("RAIL_BADGE_CLASS");
+    expect(railNav).toContain("railBadgeClass");
     expect(railNav).toContain("proposalsCount + unreadCount");
     expect(read("../shell/Sidebar.tsx")).toContain("unreadCount={unreadCount}");
     expect(railNav).not.toContain("railAccountItems");

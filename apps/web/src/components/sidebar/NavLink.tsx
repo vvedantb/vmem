@@ -1,12 +1,17 @@
 import { Link } from "@tanstack/react-router";
 import type { MouseEventHandler } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { cn, motionDuration, motionEase } from "@vvedantb/ui";
+import {
+  cn,
+  motionDuration,
+  motionEase,
+  SidebarIconTooltip,
+  sidebarNavLinkTextClass,
+  sidebarNavRowClass,
+} from "@vvedantb/ui";
 import { IconChevronRight } from "@tabler/icons-react";
 import type { NavItem } from "./types";
 import { navHrefToPath } from "./nav-config";
-import { SidebarIconTooltip } from "./SidebarIconTooltip";
-import { sidebarNavRowClass, sidebarNavLinkTextClass } from "./sidebar-nav-row";
 
 // sidebar nav link
 export function NavLink({

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { sidebarSectionLabelClass } from "./sidebar-nav-row";
+import { sidebarSectionLabelClass } from "@vvedantb/ui";
 
 type NavSectionProps = {
   title: string;

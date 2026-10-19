@@ -1,22 +1,7 @@
 import { useLocation } from "@tanstack/react-router";
-import {
-  useCallback,
-  useEffect,
-  useId,
-  useRef,
-  useState,
-  type KeyboardEvent,
-} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useMediaQuery } from "usehooks-ts";
-import { AnimatePresence, motion, type PanInfo } from "motion/react";
-import {
-  Button,
-  cn,
-  motionEase,
-  motionTiming,
-  SidebarHeader,
-} from "@vvedantb/ui";
-import { IconX } from "@tabler/icons-react";
+import { AppSidebar, SidebarPanel } from "@vvedantb/ui";
 import { useUser } from "@clerk/clerk-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useConvexAuth, useAction, useQuery } from "convex/react";
@@ -32,10 +17,7 @@ import {
   type SidebarStats,
 } from "@/components/sidebar/SidebarFooter";
 import { SidebarWorkspaceSwitcher } from "@/components/sidebar/SidebarWorkspaceSwitcher";
-import {
-  SidebarRail,
-  sidebarRailWidthClass,
-} from "@/components/sidebar/SidebarRail";
+import { VmemSidebarRail } from "@/components/sidebar/SidebarRail";
 import {
   panelTitleBySection,
   railSectionFromPathname,
@@ -45,6 +27,10 @@ import {
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import { useActiveProfileId } from "@/components/workspace/active-profile";
 import { VIEW_TRANSITION_TARGET } from "@/lib/view-transitions";
+
+function renderMobileMenuIcon(open: boolean) {
+  return <MorphingMenuIcon isOpen={open} size={20} />;
+}
 
 type SidebarProps = {
   isCollapsed: boolean;
@@ -68,7 +54,6 @@ export default function Sidebar({
   const [headerTrailing, setHeaderTrailing] = useState<HTMLDivElement | null>(
     null,
   );
-  const mobileMenuId = useId();
   const { isLoaded } = useUser();
   const isAuthLoading = !isLoaded;
   const { unreadCount } = useNotifications();
@@ -142,97 +127,24 @@ export default function Sidebar({
     if (mobileMenuOpen) setMobileMenuOpen(false);
   }
 
-  useEffect(() => {
-    if (isDesktopViewport) setMobileMenuOpen(false);
-  }, [isDesktopViewport]);
-
   const closeMobileMenu = () => setMobileMenuOpen(false);
-
-  const handleDrawerDragEnd = (
-    _event: MouseEvent | TouchEvent | PointerEvent,
-    info: PanInfo,
-  ) => {
-    if (isDesktopViewport || !mobileMenuOpen) return;
-    if (info.offset.x < -72 || info.velocity.x < -500) {
-      closeMobileMenu();
-    }
-  };
-
-  const closeOnEscape = (event: KeyboardEvent) => {
-    if (event.key === "Escape" && !isDesktopViewport && mobileMenuOpen) {
-      closeMobileMenu();
-    }
-  };
 
   const showWorkspaceSwitcher =
     section !== "settings" && section !== "skills" && section !== "memories";
   const showStats = showWorkspaceSwitcher;
 
   return (
-    <>
-      <header
-        onKeyDown={closeOnEscape}
-        className="fixed inset-x-0 top-0 z-30 flex h-[var(--vmem-mobile-header-height)] items-center gap-2 bg-background/80 px-3 pt-[env(safe-area-inset-top,0px)] pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] backdrop-blur-md md:hidden"
-      >
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          onClick={() => setMobileMenuOpen(true)}
-          aria-label="Open navigation menu"
-          aria-expanded={mobileMenuOpen}
-          aria-controls={mobileMenuId}
-          className="-ml-1 h-11 w-11 shrink-0 rounded-lg text-muted hover:bg-surface-tertiary/50 hover:text-foreground"
-        >
-          <MorphingMenuIcon isOpen={mobileMenuOpen} size={20} />
-        </Button>
-        {pageTitle ? (
-          <h1 className="pointer-events-none absolute inset-x-14 top-[env(safe-area-inset-top,0px)] bottom-0 flex items-center justify-center truncate text-center text-base font-semibold leading-none tracking-tight text-foreground text-balance">
-            {pageTitle}
-          </h1>
-        ) : null}
-        <div className="ml-auto h-11 w-11 shrink-0" aria-hidden="true" />
-      </header>
-
-      <AnimatePresence initial={false}>
-        {mobileMenuOpen && !isDesktopViewport ? (
-          <motion.button
-            type="button"
-            aria-label="Close navigation"
-            className="fixed inset-0 z-40 bg-backdrop/80 md:hidden"
-            onClick={closeMobileMenu}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: motionTiming.sidebar, ease: motionEase }}
-          />
-        ) : null}
-      </AnimatePresence>
-
-      <motion.aside
-        id={mobileMenuId}
-        data-sidebar-layout={layout}
-        data-vt={VIEW_TRANSITION_TARGET.sidebar}
-        inert={!isDesktopViewport && !mobileMenuOpen}
-        onKeyDown={closeOnEscape}
-        className={cn(
-          "fixed inset-y-0 left-0 z-50 flex bg-background pb-[env(safe-area-inset-bottom,0px)] pt-[env(safe-area-inset-top,0px)] md:py-0",
-          hidePanel
-            ? "w-[var(--vmem-sidebar-rail-width)]"
-            : "w-[min(var(--vmem-sidebar-width),calc(100vw-1.5rem))]",
-          sidebarRailWidthClass(isCollapsed || hidePanel),
-          "md:transition-[width] md:[transition-duration:280ms] md:[transition-timing-function:cubic-bezier(0.22,1,0.36,1)]",
-        )}
-        initial={false}
-        animate={{ x: isDesktopViewport || mobileMenuOpen ? 0 : "-100%" }}
-        transition={{ duration: motionTiming.sidebar, ease: motionEase }}
-        drag={!isDesktopViewport && mobileMenuOpen ? "x" : false}
-        dragDirectionLock
-        dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={{ left: 0.45, right: 0.08 }}
-        onDragEnd={handleDrawerDragEnd}
-      >
-        <SidebarRail
+    <AppSidebar
+      isDesktop={isDesktopViewport}
+      collapsed={isCollapsed}
+      panelHidden={hidePanel}
+      mobileOpen={mobileMenuOpen}
+      onMobileOpenChange={setMobileMenuOpen}
+      asideProps={{ "data-vt": VIEW_TRANSITION_TARGET.sidebar }}
+      mobileTitle={pageTitle}
+      mobileMenuIcon={renderMobileMenuIcon}
+      rail={
+        <VmemSidebarRail
           layout={layout}
           pathname={pathname}
           profileId={activeProfileId}
@@ -246,43 +158,19 @@ export default function Sidebar({
           onOpenSearch={onOpenSearch}
           onNavigate={closeMobileMenu}
         />
-        {panelSection === null ? null : (
-          <div
-            className={cn(
-              // No border-r: MainShell floats the content card (md:p-2 + radius)
-              // beside this panel, so a right edge line reads as a hard divider.
-              "relative flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-background",
-              isCollapsed && "md:hidden",
-            )}
-          >
-            <SidebarHeaderTrailingProvider target={headerTrailing}>
-              <div className="px-2 pt-3">
-                <SidebarHeader
-                  title={panelTitleBySection[panelSection]}
-                  trailing={
-                    <>
-                      <div
-                        ref={setHeaderTrailing}
-                        className="flex items-center"
-                      />
-                      {isDesktopViewport ? null : (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-sm"
-                          onClick={closeMobileMenu}
-                          aria-label="Close navigation"
-                          className={cn(
-                            "rounded-lg text-muted transition-colors hover:bg-surface-tertiary/50 hover:text-foreground",
-                          )}
-                        >
-                          <IconX className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </>
-                  }
-                />
-              </div>
+      }
+      panel={
+        panelSection === null ? null : (
+          <SidebarHeaderTrailingProvider target={headerTrailing}>
+            <SidebarPanel
+              title={panelTitleBySection[panelSection]}
+              collapsed={isCollapsed}
+              headerTrailing={
+                <div ref={setHeaderTrailing} className="flex items-center" />
+              }
+              onClose={isDesktopViewport ? undefined : closeMobileMenu}
+              closeButtonClassName="transition-colors"
+            >
               {showWorkspaceSwitcher ? (
                 <div className="mb-4 px-4">
                   <SidebarWorkspaceSwitcher
@@ -304,10 +192,10 @@ export default function Sidebar({
                 stats={stats ?? { addedToday: 0, total: 0 }}
                 showStats={showStats && stats !== null}
               />
-            </SidebarHeaderTrailingProvider>
-          </div>
-        )}
-      </motion.aside>
-    </>
+            </SidebarPanel>
+          </SidebarHeaderTrailingProvider>
+        )
+      }
+    />
   );
 }

@@ -1,6 +1,13 @@
 import { useState, type ComponentType } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { Button, cn, motionDuration, motionEase } from "@vvedantb/ui";
+import {
+  Button,
+  cn,
+  motionDuration,
+  motionEase,
+  railTileClass,
+  railTileStateClass,
+} from "@vvedantb/ui";
 import {
   IconMemories,
   IconSkills,
@@ -10,10 +17,6 @@ import {
 } from "@/components/icons/sidebar";
 import { VmemBrandText } from "@/components/shell/VmemBrand";
 import { VmemDrawInIcon } from "@/components/icons/animations";
-import {
-  RAIL_TILE_CLASS,
-  railTileStateClass,
-} from "@/components/sidebar/sidebar-nav-row";
 import { landingShellClass } from "./LandingReveal";
 import { LandingHomePreview } from "./LandingHomePreview";
 import { LandingMemoryPreview } from "./LandingMemoryPreview";
@@ -189,7 +192,7 @@ function LandingRailTile({
       aria-label={label}
       aria-current={isActive ? "page" : undefined}
       className={cn(
-        RAIL_TILE_CLASS,
+        railTileClass,
         "group h-11 w-11 p-0",
         railTileStateClass(isActive),
         disabled && "cursor-default",
