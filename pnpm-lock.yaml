@@ -208,9 +208,6 @@ importers:
       '@vmem/shared':
         specifier: workspace:*
         version: link:../../packages/shared
-      '@vvedantb/convex-client':
-        specifier: 0.1.0
-        version: 0.1.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(convex@1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6))(react@19.3.0)(zod@3.25.76)
       '@vvedantb/ui':
         specifier: ^0.7.2
         version: 0.7.2(c462d1eecec34e45a6046f0f202797ba)

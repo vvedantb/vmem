@@ -1,7 +1,7 @@
 import { Component, type ReactNode } from "react";
 import { ClerkProvider, useAuth } from "@clerk/chrome-extension";
+import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { ConvexReactClient } from "convex/react";
-import { ConvexClerkProvider } from "@vvedantb/convex-client";
 import { TooltipProvider } from "@vvedantb/ui";
 import {
   CLERK_COOKIE_SYNC_HOST,
@@ -50,9 +50,9 @@ export function Providers({ children }: { children: ReactNode }) {
         __experimental_syncHostListener
         appearance={{ variables: { fontFamily: instrumentSans } }}
       >
-        <ConvexClerkProvider client={convex} useAuth={useAuth}>
+        <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
           <TooltipProvider delayDuration={300}>{children}</TooltipProvider>
-        </ConvexClerkProvider>
+        </ConvexProviderWithClerk>
       </ClerkProvider>
     </BootBoundary>
   );
