@@ -1,30 +1,17 @@
 import type { OptimisticLocalStore } from "convex/browser";
-import type {
-  FunctionArgs,
-  FunctionReference,
-  FunctionReturnType,
-} from "convex/server";
+import type { FunctionArgs, FunctionReturnType } from "convex/server";
+import {
+  tempId as packageTempId,
+  updateAllCachedQueries,
+} from "@vvedantb/convex-client";
 import { api, type Id, type TableNames } from "@vmem/backend";
 
-// branded id has no public constructor so optimistic inserts need a cast here
-// this is the only place in the app that fabricates placeholder ids
-export function tempId<T extends TableNames>(): Id<T> {
-  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Id<T> is a branded string; there is no way to construct one without a cast
-  return crypto.randomUUID() as Id<T>;
-}
-
 // patches every cached copy of a query, add named wrappers only at 2+ call sites
-export function updateAllCachedQueries<
-  Query extends FunctionReference<"query">,
->(
-  localStore: OptimisticLocalStore,
-  query: Query,
-  mapFn: (value: FunctionReturnType<Query>) => FunctionReturnType<Query>,
-): void {
-  for (const entry of localStore.getAllQueries(query)) {
-    if (entry.value === undefined) continue;
-    localStore.setQuery(query, entry.args, mapFn(entry.value));
-  }
+export { updateAllCachedQueries };
+
+// uuid placeholder id; the only place in the app that fabricates ids
+export function tempId<T extends TableNames>(): Id<T> {
+  return packageTempId<T>();
 }
 
 type UserSettingsPatch = FunctionArgs<typeof api.userSettings.update>;

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { OptimisticLocalStore } from "convex/browser";
 import {
   getFunctionName,
@@ -10,6 +10,8 @@ import {
   insertMemoryInLists,
   patchMemoryInLists,
   removeMemoryFromLists,
+  tempId,
+  updateAllCachedQueries,
 } from "./convex-optimistic";
 
 type QueryRef = FunctionReference<"query">;
@@ -239,5 +241,50 @@ describe("memory list optimistic updates", () => {
       store.getQuery(api.memoryApi.listSummaries, secondPageArgs)?.page,
     ).toHaveLength(1);
     expect(store.getQuery(api.memoryApi.get, { memoryId: "mem-1" })).toBeNull();
+  });
+});
+
+describe("tempId", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("returns a v4 uuid string", () => {
+    const id = tempId<"skills">();
+    expect(id).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+    );
+    expect(tempId<"skills">()).not.toBe(id);
+  });
+
+  it("returns crypto.randomUUID() unchanged", () => {
+    const spy = vi
+      .spyOn(crypto, "randomUUID")
+      .mockReturnValue("00000000-0000-4000-8000-000000000000");
+    expect(tempId<"users">()).toBe("00000000-0000-4000-8000-000000000000");
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("updateAllCachedQueries", () => {
+  it("maps every loaded entry's value and skips loading ones", () => {
+    const loadedA = { memoryId: "mem-a" };
+    const loadedB = { memoryId: "mem-b" };
+    const loading = { memoryId: "mem-c" };
+    const store = createStore([
+      { query: api.memoryApi.get, args: loadedA, value: { title: "a" } },
+      { query: api.memoryApi.get, args: loadedB, value: { title: "b" } },
+      { query: api.memoryApi.get, args: loading, value: undefined },
+    ]);
+    const seen: (string | undefined)[] = [];
+    updateAllCachedQueries(store, api.memoryApi.get, (row) => {
+      seen.push(row?.title);
+      return null;
+    });
+    expect(seen).toEqual(["a", "b"]);
+    expect(store.getQuery(api.memoryApi.get, loadedA)).toBeNull();
+    expect(store.getQuery(api.memoryApi.get, loadedB)).toBeNull();
+    expect(store.getQuery(api.memoryApi.get, loading)).toBeUndefined();
+    expect(store.getAllQueries(api.memoryApi.get)).toHaveLength(3);
   });
 });

@@ -1,20 +1,12 @@
 import { useEffect } from "react";
-import { useConvexAuth, useMutation } from "convex/react";
 import { api } from "@vmem/backend";
+import { useEnsureUser } from "@vvedantb/convex-client";
 import { startUpdateAvailableWatcher } from "@vvedantb/ui";
 import { toast } from "sonner";
 import { convex } from "@/lib/convex-client";
 
 export function EnsureUser() {
-  const { isAuthenticated } = useConvexAuth();
-  const ensureUserExists = useMutation(api.auth.ensureUserExists);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      ensureUserExists({}).catch(console.error);
-    }
-  }, [isAuthenticated, ensureUserExists]);
-
+  useEnsureUser(api.auth.ensureUserExists);
   return null;
 }
 

@@ -12,6 +12,7 @@ minimumReleaseAgeExclude:
   - "@vvedantb/ui"
   - "@vvedantb/config"
   - "@vvedantb/server"
+  - "@vvedantb/convex-client"
 
 # npm packument for @vvedantb/ui omits peerDependencies; restore them
 # from the published tarball so autoInstallPeers can satisfy typecheck.
