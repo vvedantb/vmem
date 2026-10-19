@@ -3,7 +3,7 @@ import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import {
   tempId as packageTempId,
   updateAllCachedQueries,
-} from "@vvedantb/convex-client";
+} from "@vvedantb/server";
 import { api, type Id, type TableNames } from "@vmem/backend";
 
 // patches every cached copy of a query, add named wrappers only at 2+ call sites

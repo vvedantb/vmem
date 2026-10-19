@@ -1,5 +1,4 @@
-import { ConvexClerkProvider } from "@vvedantb/convex-client";
-import { useStableAuth } from "@vvedantb/ui";
+import { ConvexClerkProvider, useStableAuth } from "@vvedantb/ui";
 import { convex } from "@/lib/convex-client";
 
 export function ConvexClientProvider({

@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { api } from "@vmem/backend";
-import { useEnsureUser } from "@vvedantb/convex-client";
-import { startUpdateAvailableWatcher } from "@vvedantb/ui";
+import { startUpdateAvailableWatcher, useEnsureUser } from "@vvedantb/ui";
 import { toast } from "sonner";
 import { convex } from "@/lib/convex-client";
 

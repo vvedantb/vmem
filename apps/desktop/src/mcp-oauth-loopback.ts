@@ -1,7 +1,7 @@
 import {
   startLoopback as startSharedLoopback,
   type Loopback,
-} from "@vvedantb/mcp-client";
+} from "@vvedantb/server";
 
 // The redirect target for sign-in: a one-shot HTTP server on 127.0.0.1 with a random port, with vmem's pages.
 
@@ -20,4 +20,4 @@ export {
   LOOPBACK_PATH,
   LOOPBACK_TIMEOUT_MS,
   type Loopback,
-} from "@vvedantb/mcp-client";
+} from "@vvedantb/server";

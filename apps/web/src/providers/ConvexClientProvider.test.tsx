@@ -19,7 +19,11 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock("@vvedantb/ui", () => ({ useStableAuth: mocks.useStableAuth }));
+// Keep the real ConvexClerkProvider; mock only the auth hook it is driven by.
+vi.mock("@vvedantb/ui", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  useStableAuth: mocks.useStableAuth,
+}));
 vi.mock("@/lib/convex-client", () => {
   const convex = new ConvexReactClient("https://pin-test.convex.cloud");
   mocks.client.current = convex;
