@@ -4,16 +4,11 @@ import { cn, motionDuration, motionEase } from "@vvedantb/ui";
 import { IconUsers } from "@tabler/icons-react";
 import { IconTeams, IconSettings } from "../icons/sidebar";
 import type { NavGroup, NavItem } from "./types";
-import {
-  navHrefToPath,
-  navViewFromPathname,
-  railSectionFromPathname,
-} from "./nav-config";
+import { navViewFromPathname, railSectionFromPathname } from "./nav-config";
 import { NavLink } from "./NavLink";
 import { SkillsSidebarNav } from "./SkillsSidebarNav";
 import { MemoriesSidebarNav } from "./MemoriesSidebarNav";
 import { SettingsSidebar } from "./SettingsSidebar";
-import { SharedLayoutBackground } from "./SharedLayoutBackground";
 import { NavSection } from "./NavSection";
 
 export type SidebarNavigationProps = {
@@ -39,13 +34,11 @@ const teamNavGroup: NavGroup = {
 function NavGroupList({
   groups,
   isMobile,
-  layoutId,
   slideDirection,
   renderItem,
 }: {
   groups: { title: string; items: NavItem[] }[];
   isMobile: boolean;
-  layoutId: string;
   slideDirection: number;
   renderItem: (item: NavItem) => ReactNode;
 }) {
@@ -59,13 +52,11 @@ function NavGroupList({
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: motionDuration.fast, ease: motionEase }}
     >
-      <SharedLayoutBackground.Root layoutId={layoutId} className="space-y-4">
-        {groups.map((group) => (
-          <NavSection key={group.title} title={group.title} isIconOnly={false}>
-            {group.items.map(renderItem)}
-          </NavSection>
-        ))}
-      </SharedLayoutBackground.Root>
+      {groups.map((group) => (
+        <NavSection key={group.title} title={group.title} isIconOnly={false}>
+          {group.items.map(renderItem)}
+        </NavSection>
+      ))}
     </motion.nav>
   );
 }
@@ -82,25 +73,17 @@ function TeamNav({
   onNavigate?: MouseEventHandler<HTMLAnchorElement>;
 }) {
   function renderItem(item: NavItem) {
-    const resolvedPath = navHrefToPath(item.href, profileId);
-    const isActive =
-      pathname === resolvedPath || pathname.startsWith(`${resolvedPath}/`);
     return (
-      <SharedLayoutBackground.Item
+      <NavLink
         key={item.href}
-        id={item.href}
-        isActive={isActive}
-      >
-        <NavLink
-          item={item}
-          pathname={pathname}
-          profileId={profileId}
-          isIconOnly={false}
-          unreadCount={0}
-          proposalsCount={0}
-          onNavigate={onNavigate}
-        />
-      </SharedLayoutBackground.Item>
+        item={item}
+        pathname={pathname}
+        profileId={profileId}
+        isIconOnly={false}
+        unreadCount={0}
+        proposalsCount={0}
+        onNavigate={onNavigate}
+      />
     );
   }
 
@@ -108,7 +91,6 @@ function TeamNav({
     <NavGroupList
       groups={[teamNavGroup]}
       isMobile={isMobile}
-      layoutId="team-nav"
       slideDirection={-12}
       renderItem={renderItem}
     />

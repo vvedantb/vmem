@@ -1,18 +1,20 @@
 import type { KeyboardEvent, ReactNode } from "react";
 import type { Doc } from "@vmem/backend";
-import { Checkbox, cn } from "@vvedantb/ui";
-import { sidebarListRowClass } from "@/components/sidebar/sidebar-nav-row";
+import { Checkbox, Sidebar, cn } from "@vvedantb/ui";
 
 interface SkillCardShellProps {
   skill: Doc<"skills">;
-  highlighted: boolean;
+  // navigate: current skill route (fill + font-medium); bulk: checked (fill only)
+  active: boolean;
+  selected: boolean;
   onActivate: () => void;
   leading: ReactNode;
 }
 
 function SkillCardShell({
   skill,
-  highlighted,
+  active,
+  selected,
   onActivate,
   leading,
 }: SkillCardShellProps) {
@@ -25,22 +27,21 @@ function SkillCardShell({
     }
   };
 
+  // div row (not <button>): the bulk-select leading Checkbox is itself a button
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      aria-label={`${skill.name}, ${isEnabled ? "active" : "disabled"}`}
-      onClick={onActivate}
-      onKeyDown={handleKeyDown}
-      className={cn(
-        "flex min-w-0 items-center rounded-lg text-left text-sm cursor-pointer transition-[color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring",
-        sidebarListRowClass,
-        highlighted ? "text-foreground" : "text-muted hover:text-foreground",
-      )}
-    >
-      {leading}
-      <span className="min-w-0 truncate">{skill.name}</span>
-    </div>
+    <Sidebar.NavItem asChild active={active} selected={selected}>
+      <div
+        role="button"
+        tabIndex={0}
+        aria-label={`${skill.name}, ${isEnabled ? "active" : "disabled"}`}
+        onClick={onActivate}
+        onKeyDown={handleKeyDown}
+        className="min-w-0 cursor-pointer text-left"
+      >
+        <Sidebar.NavItemLeading>{leading}</Sidebar.NavItemLeading>
+        <Sidebar.NavItemLabel>{skill.name}</Sidebar.NavItemLabel>
+      </div>
+    </Sidebar.NavItem>
   );
 }
 
@@ -60,13 +61,14 @@ function NavigateSkillCard({
   return (
     <SkillCardShell
       skill={skill}
-      highlighted={selected ?? false}
+      active={selected ?? false}
+      selected={false}
       onActivate={onSelect}
       leading={
         <span
           aria-hidden
           className={cn(
-            "size-2 shrink-0 rounded-full",
+            "size-2 rounded-full",
             isEnabled ? "bg-success" : "bg-default",
           )}
         />
@@ -89,14 +91,15 @@ function BulkSelectSkillCard({
   return (
     <SkillCardShell
       skill={skill}
-      highlighted={checked}
+      active={false}
+      selected={checked}
       onActivate={onToggleSelect}
       leading={
         <Checkbox
           checked={checked}
           tabIndex={-1}
           aria-hidden
-          className="pointer-events-none shrink-0"
+          className="pointer-events-none"
         />
       }
     />

@@ -266,7 +266,10 @@ describe("nested sidebar chrome", () => {
 
     const stacked = read("StackedSidebarNav.tsx");
     expect(stacked).toContain("NavLink");
-    expect(stacked).toContain("SharedLayoutBackground");
+    // package static fill only: no sliding pill under rows that paint their own fill
+    expect(stacked).not.toContain("SharedLayoutBackground");
+    expect(() => read("SharedLayoutBackground.tsx")).toThrow();
+    expect(() => read("sidebar-nav-row.ts")).toThrow();
     expect(stacked).not.toContain("RouteTabs");
 
     expect(read("../shell/RouteTabs.tsx")).not.toContain("fullWidth");
@@ -286,6 +289,8 @@ describe("nested sidebar chrome", () => {
 
   it("parks a plus-only add control on the skills title row", () => {
     expect(read("SkillsSidebarNav.tsx")).toContain("SidebarHeaderTrailing");
+    expect(read("SkillsSidebarNav.tsx")).toContain("Sidebar.NavItem");
+    expect(read("../skills/SkillCard.tsx")).toContain("Sidebar.NavItem");
     expect(read("../shell/Sidebar.tsx")).toContain('from "@vvedantb/ui"');
     expect(read("../shell/Sidebar.tsx")).toContain("SidebarHeader");
 

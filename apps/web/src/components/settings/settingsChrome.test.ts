@@ -30,7 +30,8 @@ describe("settings chrome mirrors Eva", () => {
 
   it("keeps SettingsPage / SettingsSection / SettingsSidebar as the chrome", () => {
     const sidebar = read("../sidebar/SettingsSidebar.tsx");
-    expect(sidebar).toContain('layoutId="settings-nav"');
+    expect(sidebar).toContain("NavLink");
+    expect(sidebar).not.toContain("layoutId");
     expect(sidebar).not.toContain("NavSection");
     expect(sidebar).not.toContain("group.title");
     expect(read("SettingsPage.tsx")).toContain("insetHeader");
