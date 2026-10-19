@@ -27,6 +27,34 @@ describe("tokenize", () => {
     expect(tokenize("K8S-ERR-9f3a")).toContain("9f3a");
     expect(tokenize("E2001")).toEqual(["e2001", "2001"]);
   });
+
+  it("splits only at lower→Upper, ACRONYM→Word and letter↔digit boundaries", () => {
+    expect(tokenize("XMLHttpRequest")).toEqual([
+      "xmlhttprequest",
+      "xml",
+      "http",
+      "request",
+    ]);
+    expect(tokenize("HTTP2Server iOS17 GPT4o")).toEqual([
+      "http2server",
+      "http",
+      "server",
+      "ios17",
+      "os",
+      "17",
+      "gpt4o",
+      "gpt",
+    ]);
+    expect(tokenize("ABCdef")).toEqual(["abcdef", "ab", "cdef"]);
+    expect(tokenize("Prefers PNPM workspace ÄÖüx İstanbul")).toEqual([
+      "prefers",
+      "pnpm",
+      "workspace",
+      "äöüx",
+      "i̇stanbul",
+    ]);
+    expect(tokenize("9f3aZZ")).toEqual(["9f3azz", "zz"]);
+  });
 });
 
 describe("hasWholeWord", () => {
