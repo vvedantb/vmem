@@ -20,6 +20,7 @@
     "@tabler/icons-react": "catalog:",
     "@vmem/backend": "workspace:*",
     "@vmem/shared": "workspace:*",
+    "@vvedantb/convex-client": "0.1.0",
     "@vvedantb/ui": "^0.7.2",
     "@webext-core/messaging": "^2.3.0",
     "class-variance-authority": "catalog:",

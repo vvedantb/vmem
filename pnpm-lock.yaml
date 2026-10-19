@@ -208,6 +208,9 @@ importers:
       '@vmem/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@vvedantb/convex-client':
+        specifier: 0.1.0
+        version: 0.1.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(convex@1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6))(react@19.3.0)(zod@3.25.76)
       '@vvedantb/ui':
         specifier: ^0.7.2
         version: 0.7.2(c462d1eecec34e45a6046f0f202797ba)
@@ -470,6 +473,9 @@ importers:
       '@vmem/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@vvedantb/convex-client':
+        specifier: 0.1.0
+        version: 0.1.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(convex@1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6))(react@19.3.0)(zod@3.25.76)
       '@vvedantb/ui':
         specifier: ^0.7.2
         version: 0.7.2(51e690c7a322c6ba0f2e34f86db22d4a)
@@ -628,8 +634,8 @@ importers:
         specifier: workspace:*
         version: link:../shared
       '@vvedantb/server':
-        specifier: 0.2.0
-        version: 0.2.0(@clerk/backend@2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(zod@3.25.76)
+        specifier: 0.3.0
+        version: 0.3.0(@clerk/backend@2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(zod@3.25.76)
       ai:
         specifier: ^7.0.108
         version: 7.0.108(zod@3.25.76)
@@ -4959,8 +4965,19 @@ packages:
     resolution: {integrity: sha512-D3qeuH/Fn6729+CEW+aFHYMgOJaUJUNRgpkm+RH9yWch2rruxww1yTViFDDA8FsQWU5FTuDudnF1IwmtcwRF+A==}
     hasBin: true
 
-  '@vvedantb/server@0.2.0':
-    resolution: {integrity: sha512-WrA7EExrQahakMjtccE+C0DSz+n/4pBYX7Wh0ktQebAUTpeycS9Ykb5omgmClUqix9Q0U2KtTWmgrSEcqR9yJQ==}
+  '@vvedantb/convex-client@0.1.0':
+    resolution: {integrity: sha512-OwcGAb+Ql3q2CibTbBx3JGuyNwABZORVTPZgN58r2M9YBsQd/BtO6hV+ye9kPrKUPhhaOXIFvbrilAsYSeTddQ==}
+    peerDependencies:
+      '@clerk/clerk-react': '>=5'
+      convex: ^1.24.0
+      react: ^18.0.0 || ^19.0.0
+      zod: ^3.25.0 || ^4.0.0
+    peerDependenciesMeta:
+      zod:
+        optional: true
+
+  '@vvedantb/server@0.3.0':
+    resolution: {integrity: sha512-tt032LamDT8qrx5wELmyPZ90dNm1j00vm8KwlXkIoyUGFjPvXWwWioYIE7m3Ewlty+traMyjUbOgzRxZt3I1rg==}
     peerDependencies:
       '@clerk/backend': '>=1'
       zod: ^3.25.0 || ^4.0.0
@@ -14562,7 +14579,15 @@ snapshots:
 
   '@vvedantb/config@0.1.0': {}
 
-  '@vvedantb/server@0.2.0(@clerk/backend@2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(zod@3.25.76)':
+  '@vvedantb/convex-client@0.1.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(convex@1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6))(react@19.3.0)(zod@3.25.76)':
+    dependencies:
+      '@clerk/clerk-react': 5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      convex: 1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6)
+      react: 19.3.0
+    optionalDependencies:
+      zod: 3.25.76
+
+  '@vvedantb/server@0.3.0(@clerk/backend@2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(zod@3.25.76)':
     optionalDependencies:
       '@clerk/backend': 2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       zod: 3.25.76
