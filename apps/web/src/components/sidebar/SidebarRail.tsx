@@ -1,11 +1,8 @@
 import type { MouseEventHandler } from "react";
 import { Link } from "@tanstack/react-router";
+import { IconSearch } from "@tabler/icons-react";
 import {
-  IconLayoutSidebarLeftCollapse,
-  IconLayoutSidebarLeftExpandFilled,
-  IconSearch,
-} from "@tabler/icons-react";
-import {
+  RailCollapseTile,
   RailDivider,
   RailTile,
   SidebarRail,
@@ -113,7 +110,6 @@ export function VmemSidebarRail({
     pathname,
     profileId,
   );
-  const collapseLabel = isCollapsed ? "Show sidebar" : "Hide sidebar";
 
   // Internal rail/panel divider only. When the panel is hidden this would
   // sit on the outer edge against the floating main content.
@@ -146,13 +142,10 @@ export function VmemSidebarRail({
       footer={
         <>
           {layout === "desktop" ? (
-            <RailTile label={collapseLabel} onClick={onToggleCollapse}>
-              {isCollapsed ? (
-                <IconLayoutSidebarLeftExpandFilled className="size-[22px]" />
-              ) : (
-                <IconLayoutSidebarLeftCollapse className="size-[22px]" />
-              )}
-            </RailTile>
+            <RailCollapseTile
+              collapsed={isCollapsed}
+              onToggle={onToggleCollapse}
+            />
           ) : null}
           <RailTile label="Search" onClick={onOpenSearch}>
             <IconSearch className="size-[22px]" />

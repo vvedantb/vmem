@@ -209,8 +209,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/shared
       '@vvedantb/ui':
-        specifier: ^0.8.0
-        version: 0.8.0(c462d1eecec34e45a6046f0f202797ba)
+        specifier: ^0.9.0
+        version: 0.9.0(c462d1eecec34e45a6046f0f202797ba)
       '@webext-core/messaging':
         specifier: ^2.3.0
         version: 2.3.0
@@ -349,8 +349,8 @@ importers:
         specifier: 0.3.0
         version: 0.3.0(@electron/asar@3.4.1)
       '@vvedantb/ui':
-        specifier: ^0.8.0
-        version: 0.8.0(e2590338ab5f46447406b9c2c755e64d)
+        specifier: ^0.9.0
+        version: 0.9.0(e2590338ab5f46447406b9c2c755e64d)
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1
@@ -480,8 +480,8 @@ importers:
         specifier: 0.1.0
         version: 0.1.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(convex@1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6))(react@19.3.0)(zod@3.25.76)
       '@vvedantb/ui':
-        specifier: ^0.8.0
-        version: 0.8.0(51e690c7a322c6ba0f2e34f86db22d4a)
+        specifier: ^0.9.0
+        version: 0.9.0(51e690c7a322c6ba0f2e34f86db22d4a)
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1
@@ -5005,8 +5005,8 @@ packages:
       zod:
         optional: true
 
-  '@vvedantb/ui@0.8.0':
-    resolution: {integrity: sha512-jPeC20cFaCmcS46wkeVkIGjrKbOIkyrL/XQAzigguaI0eTqmBg0yXPlRr04zLU9wY5DozsqUcT4BrlFjjpQf2g==}
+  '@vvedantb/ui@0.9.0':
+    resolution: {integrity: sha512-6kdaYSB4shh/9h7F8FtKdt53hyZ49/sdANh8RQUl86L52W5gTPNJ9T+HMGKgmODpBMVYgAVPM5+kLjOzqgdHNQ==}
     peerDependencies:
       '@clerk/clerk-react': '>=5'
       '@radix-ui/react-accordion': ^1.2.12
@@ -14612,7 +14612,7 @@ snapshots:
       '@clerk/backend': 2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       zod: 3.25.76
 
-  '@vvedantb/ui@0.8.0(51e690c7a322c6ba0f2e34f86db22d4a)':
+  '@vvedantb/ui@0.9.0(51e690c7a322c6ba0f2e34f86db22d4a)':
     dependencies:
       '@radix-ui/react-accordion': 1.2.20(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@radix-ui/react-checkbox': 1.3.3(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -14659,7 +14659,7 @@ snapshots:
       motion: 12.38.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       zod: 3.25.76
 
-  '@vvedantb/ui@0.8.0(c462d1eecec34e45a6046f0f202797ba)':
+  '@vvedantb/ui@0.9.0(c462d1eecec34e45a6046f0f202797ba)':
     dependencies:
       '@radix-ui/react-accordion': 1.2.20(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@radix-ui/react-checkbox': 1.3.11(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -14706,7 +14706,7 @@ snapshots:
       motion: 12.38.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       zod: 3.25.76
 
-  '@vvedantb/ui@0.8.0(e2590338ab5f46447406b9c2c755e64d)':
+  '@vvedantb/ui@0.9.0(e2590338ab5f46447406b9c2c755e64d)':
     dependencies:
       '@radix-ui/react-accordion': 1.2.20(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@radix-ui/react-checkbox': 1.3.11(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
