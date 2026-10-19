@@ -146,8 +146,8 @@ importers:
         specifier: catalog:node-types-22
         version: 22.19.17
       '@vvedantb/config':
-        specifier: 0.1.0
-        version: 0.1.0
+        specifier: 0.2.0
+        version: 0.2.0(@electron/asar@3.4.1)
       baseline-browser-mapping:
         specifier: ^2.9.19
         version: 2.10.20
@@ -308,6 +308,9 @@ importers:
       '@vmem/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
+      '@vvedantb/mcp-client':
+        specifier: 0.1.0
+        version: 0.1.0(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))(zod@3.25.76)
       get-windows:
         specifier: ^9.2.0
         version: 9.3.0(encoding@0.1.13)
@@ -342,6 +345,9 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^4.4.0
         version: 4.7.0(vite@6.4.2(@types/node@22.19.17)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.9.0))
+      '@vvedantb/config':
+        specifier: 0.2.0
+        version: 0.2.0(@electron/asar@3.4.1)
       '@vvedantb/ui':
         specifier: ^0.7.2
         version: 0.7.2(e2590338ab5f46447406b9c2c755e64d)
@@ -4958,9 +4964,14 @@ packages:
   '@vitest/utils@3.2.4':
     resolution: {integrity: sha512-fB2V0JFrQSMsCo9HiSq3Ezpdv4iYaXRG1Sx8edX3MwxfyNn83mKiGzOcH+Fkxt4MHxr3y42fQi1oeAInqgX2QA==}
 
-  '@vvedantb/config@0.1.0':
-    resolution: {integrity: sha512-D3qeuH/Fn6729+CEW+aFHYMgOJaUJUNRgpkm+RH9yWch2rruxww1yTViFDDA8FsQWU5FTuDudnF1IwmtcwRF+A==}
+  '@vvedantb/config@0.2.0':
+    resolution: {integrity: sha512-s6Dpj6QYZO/EAtLMufrE3FtwCy8ubruWLfmAO1smO9Un4y9pXVdFDugsFje0HC2+2ENVPXD5GVLZgH8Qcu87tg==}
     hasBin: true
+    peerDependencies:
+      '@electron/asar': ^3.2.0 || ^4.0.0
+    peerDependenciesMeta:
+      '@electron/asar':
+        optional: true
 
   '@vvedantb/convex-client@0.1.0':
     resolution: {integrity: sha512-OwcGAb+Ql3q2CibTbBx3JGuyNwABZORVTPZgN58r2M9YBsQd/BtO6hV+ye9kPrKUPhhaOXIFvbrilAsYSeTddQ==}
@@ -4968,6 +4979,16 @@ packages:
       '@clerk/clerk-react': '>=5'
       convex: ^1.24.0
       react: ^18.0.0 || ^19.0.0
+      zod: ^3.25.0 || ^4.0.0
+    peerDependenciesMeta:
+      zod:
+        optional: true
+
+  '@vvedantb/mcp-client@0.1.0':
+    resolution: {integrity: sha512-AkqRpoY6FlNm87V/7NlBe/NFCHuCM/sprU0Net/r2bKeEyif+8AX18+ORDUZkm4D6ztsMfQk2D96gzTntRjTmQ==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      '@modelcontextprotocol/sdk': ^1.29.0
       zod: ^3.25.0 || ^4.0.0
     peerDependenciesMeta:
       zod:
@@ -14574,13 +14595,21 @@ snapshots:
       loupe: 3.2.1
       tinyrainbow: 2.0.0
 
-  '@vvedantb/config@0.1.0': {}
+  '@vvedantb/config@0.2.0(@electron/asar@3.4.1)':
+    optionalDependencies:
+      '@electron/asar': 3.4.1
 
   '@vvedantb/convex-client@0.1.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(convex@1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6))(react@19.3.0)(zod@3.25.76)':
     dependencies:
       '@clerk/clerk-react': 5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       convex: 1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6)
       react: 19.3.0
+    optionalDependencies:
+      zod: 3.25.76
+
+  '@vvedantb/mcp-client@0.1.0(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))(zod@3.25.76)':
+    dependencies:
+      '@modelcontextprotocol/sdk': 1.29.0(zod@3.25.76)
     optionalDependencies:
       zod: 3.25.76
 
