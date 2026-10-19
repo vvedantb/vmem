@@ -1,4 +1,4 @@
-import { requiredEnv } from "@vvedantb/server/convex";
+import { requiredEnv } from "@vvedantb/server";
 import type { OAuth2Tokens } from "arctic";
 import type { Doc } from "../_generated/dataModel";
 import {

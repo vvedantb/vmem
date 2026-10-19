@@ -1,4 +1,4 @@
-import { assertMcpTools } from "@vvedantb/server/convex";
+import { assertMcpTools } from "@vvedantb/server";
 import { describe, expect, it } from "vitest";
 import {
   catalogNamesForScope,

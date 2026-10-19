@@ -8,7 +8,5 @@ export default defineConfig({
       ["tests/**", "node"],
     ],
     disableConsoleIntercept: true,
-    // @vvedantb/server 0.1.0 dist/mcp has extensionless imports Node ESM cannot load.
-    server: { deps: { inline: ["@vvedantb/server"] } },
   },
 });
