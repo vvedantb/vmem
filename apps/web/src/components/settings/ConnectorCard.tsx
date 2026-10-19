@@ -6,10 +6,11 @@ import {
   Button,
   Badge,
   Progress,
+  Spinner,
   useRequestConfirm,
 } from "@vvedantb/ui";
 import { toast } from "sonner";
-import { IconLoader2, IconAlertCircle, IconClock } from "@tabler/icons-react";
+import { IconAlertCircle, IconClock } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 import OAuthModal from "./OAuthModal";
 import DeleteConnectorDataDialog from "./DeleteConnectorDataDialog";
@@ -76,16 +77,12 @@ export default function ConnectorCard({ connector }: ConnectorCardProps) {
                 </h3>
                 {isSyncing && (
                   <Badge className="bg-accent/10 text-accent gap-1">
-                    <IconLoader2
-                      size={12}
-                      stroke={2}
-                      className="animate-spin"
-                    />
+                    <Spinner size={12} tone="inherit" decorative />
                     Syncing
                   </Badge>
                 )}
                 {connector.syncStatus === "error" && (
-                  <Badge className="bg-danger/10 text-danger gap-1">
+                  <Badge variant="destructive-soft">
                     <IconAlertCircle size={12} stroke={2} />
                     Error
                   </Badge>

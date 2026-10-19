@@ -10,8 +10,8 @@ import {
   DialogHeader,
   DialogTitle,
   Input,
+  Spinner,
 } from "@vvedantb/ui";
-import { IconLoader2 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
 import { insertTeamMemberOptimistic } from "@/lib/convex-optimistic";
@@ -96,7 +96,7 @@ export function AddMemberDialog({
           </Button>
           <Button onClick={handleSubmit} disabled={!canSubmit}>
             {submitting ? (
-              <IconLoader2 size={14} className="mr-1.5 animate-spin" />
+              <Spinner size={14} tone="inherit" decorative className="mr-1.5" />
             ) : null}
             Add
           </Button>

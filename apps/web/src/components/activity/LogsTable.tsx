@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Virtuoso } from "react-virtuoso";
-import { Badge, Button, Card, CardContent, cn } from "@vvedantb/ui";
+import { Badge, Button, Card, CardContent, cn, Skeleton } from "@vvedantb/ui";
 import { IconReceipt2 } from "@tabler/icons-react";
 import type { AiLogRow, ProfileListItem } from "./types";
 import {
@@ -172,15 +172,15 @@ function AiLogsTableLoadingSkeleton() {
   return (
     <section className="flex min-h-0 flex-1 flex-col gap-3">
       <div className="flex shrink-0 items-center justify-between gap-3 px-0.5">
-        <div className="h-4 w-28 animate-pulse rounded bg-surface-tertiary/60" />
-        <div className="h-3 w-24 animate-pulse rounded bg-surface-tertiary/60" />
+        <Skeleton className="h-4 w-28 rounded bg-surface-tertiary/60" />
+        <Skeleton className="h-3 w-24 rounded bg-surface-tertiary/60" />
       </div>
       <Card className="flex min-h-0 flex-1 flex-col shadow-none">
         <CardContent className="min-h-0 flex-1 space-y-1 overflow-y-auto p-2 scrollbar-thin">
           {[0, 1, 2, 3, 4, 5].map((index) => (
-            <div
+            <Skeleton
               key={index}
-              className="h-14 animate-pulse rounded-lg bg-surface-tertiary/40"
+              className="h-14 rounded-lg bg-surface-tertiary/40"
             />
           ))}
         </CardContent>

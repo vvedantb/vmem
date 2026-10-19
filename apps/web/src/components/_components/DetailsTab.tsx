@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
-import { Button, Input, Textarea, Badge } from "@vvedantb/ui";
+import { Button, Input, Textarea, Badge, Spinner } from "@vvedantb/ui";
 import { toast } from "sonner";
-import { IconCheck, IconLoader2 } from "@tabler/icons-react";
+import { IconCheck } from "@tabler/icons-react";
 import type { Memory } from "@/lib/memories";
 import { useMemoryContext } from "@/contexts/MemoryContext";
 import { memorySchema } from "@/lib/schemas";
@@ -140,7 +140,7 @@ export function DetailsTabEdit({ memory, onCancel }: DetailsTabEditProps) {
         </Button>
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? (
-            <IconLoader2 size={16} className="animate-spin" />
+            <Spinner size={16} tone="inherit" decorative />
           ) : (
             <IconCheck size={16} />
           )}

@@ -2,8 +2,14 @@ import { useRef, useState } from "react";
 import { useAction, useMutation } from "convex/react";
 import { useNavigate } from "@tanstack/react-router";
 import { api } from "@vmem/backend";
-import { Button, Input, SettingsField, SettingsSection } from "@vvedantb/ui";
-import { IconAlertTriangle, IconTrash, IconLoader2 } from "@tabler/icons-react";
+import {
+  Button,
+  Input,
+  SettingsField,
+  SettingsSection,
+  Spinner,
+} from "@vvedantb/ui";
+import { IconAlertTriangle, IconTrash } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { convexErrorMessage } from "@/lib/convex-error";
 import { useTeamDetail } from "./team-context";
@@ -125,7 +131,7 @@ export function TeamSettings() {
           className="text-danger hover:text-danger"
         >
           {deleting ? (
-            <IconLoader2 size={14} className="mr-1.5 animate-spin" />
+            <Spinner size={14} tone="inherit" decorative className="mr-1.5" />
           ) : (
             <IconTrash size={14} className="mr-1.5" />
           )}

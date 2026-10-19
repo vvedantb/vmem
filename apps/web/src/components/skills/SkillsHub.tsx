@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@vmem/backend";
-import { Button, Spinner } from "@vvedantb/ui";
+import { Button, EmptyState, Spinner } from "@vvedantb/ui";
 import { IconApps, IconPlus } from "@tabler/icons-react";
 import { SystemSkillCard } from "@/components/skills/SystemSkillCard";
 import { SystemSkillFormDialog } from "@/components/skills/SystemSkillFormDialog";
@@ -15,10 +15,12 @@ const skillsHubSpinner = (
 );
 
 const skillsHubEmpty = (
-  <div className="flex flex-col items-center justify-center py-20 text-center">
-    <IconApps size={40} className="mb-3 text-muted" />
-    <p className="text-sm text-muted">No system skills available yet.</p>
-  </div>
+  <EmptyState.Root className="px-0">
+    <EmptyState.Icon icon={IconApps} />
+    <EmptyState.Description>
+      No system skills available yet.
+    </EmptyState.Description>
+  </EmptyState.Root>
 );
 
 function groupCatalogByCategory(

@@ -8,6 +8,7 @@ import {
   DialogClose,
   Button,
   Input,
+  Spinner,
   Textarea,
   Badge,
   Popover,
@@ -19,7 +20,6 @@ import {
   IconX,
   IconPaperclip,
   IconHash,
-  IconLoader2,
   IconFileText,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
@@ -402,7 +402,7 @@ export default function AddMemoryModal({
                   className="h-7 gap-1.5 px-3 text-xs"
                 >
                   {isUploading && (
-                    <IconLoader2 size={12} className="animate-spin" />
+                    <Spinner size={12} tone="inherit" decorative />
                   )}
                   {isUploading ? "Importing…" : "Import file"}
                 </Button>
@@ -414,7 +414,7 @@ export default function AddMemoryModal({
                   className="h-7 gap-1.5 px-3 text-xs"
                 >
                   {isSubmitting && (
-                    <IconLoader2 size={12} className="animate-spin" />
+                    <Spinner size={12} tone="inherit" decorative />
                   )}
                   {isSubmitting ? "Saving…" : "Save memory"}
                 </Button>

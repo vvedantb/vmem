@@ -6,12 +6,14 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  EmptyState,
   Input,
   Badge,
   Button,
   cn,
+  Spinner,
 } from "@vvedantb/ui";
-import { IconLink, IconLoader2, IconSearch } from "@tabler/icons-react";
+import { IconLink, IconSearch } from "@tabler/icons-react";
 import { Virtuoso } from "react-virtuoso";
 import { toast } from "sonner";
 import { api } from "@vmem/backend";
@@ -22,7 +24,6 @@ import {
   type Memory,
 } from "@/lib/memories";
 import { useMemoryFacets } from "@/hooks/useMemoryFacets";
-import { DetailEmptyState } from "@/components/_components/detail-panel/DetailEmptyState";
 
 const TAGS_PREVIEW = 2;
 const ROW_HEIGHT = 84;
@@ -101,10 +102,7 @@ function LinkMemoryRow({
             </p>
           </div>
           {isLinking ? (
-            <IconLoader2
-              size={16}
-              className="mt-0.5 shrink-0 animate-spin text-muted"
-            />
+            <Spinner size={16} decorative className="mt-0.5 shrink-0" />
           ) : (
             <IconLink
               size={16}
@@ -229,17 +227,21 @@ export default function LinkMemoryModal({
           </div>
 
           {linkableMemories.length === 0 ? (
-            <DetailEmptyState
-              icon={IconLink}
-              title="All set"
-              description="Every other memory is already linked to this one."
-            />
+            <EmptyState.Root variant="panel">
+              <EmptyState.Icon icon={IconLink} />
+              <EmptyState.Title>All set</EmptyState.Title>
+              <EmptyState.Description>
+                Every other memory is already linked to this one.
+              </EmptyState.Description>
+            </EmptyState.Root>
           ) : filteredMemories.length === 0 ? (
-            <DetailEmptyState
-              icon={IconSearch}
-              title="No matches"
-              description="Try a different title, tag, or phrase from the memory body."
-            />
+            <EmptyState.Root variant="panel">
+              <EmptyState.Icon icon={IconSearch} />
+              <EmptyState.Title>No matches</EmptyState.Title>
+              <EmptyState.Description>
+                Try a different title, tag, or phrase from the memory body.
+              </EmptyState.Description>
+            </EmptyState.Root>
           ) : (
             <div className="min-h-0 flex-1 rounded-lg bg-surface p-2">
               <Virtuoso

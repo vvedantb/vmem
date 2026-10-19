@@ -1,4 +1,6 @@
 import { useQueryStates } from "nuqs";
+import { IconFolder } from "@tabler/icons-react";
+import { EmptyState } from "@vvedantb/ui";
 import type { Id } from "@vmem/backend";
 import { VmemSpinner } from "@/components/icons/animations";
 import type { FolderBreadcrumb, FileTreeNode } from "./-types";
@@ -16,7 +18,6 @@ import BulkActionBar from "./BulkActionBar";
 import FileDropZone from "./FileDropZone";
 import FileGrid from "./FileGrid";
 import FileListView from "./FileListView";
-import { FileEmptyStateFolder, FileEmptyStateRoot } from "./FileEmptyState";
 import StorageStatusBar from "./StorageStatusBar";
 import MoveFolderDialog from "./MoveFolderDialog";
 import RenameDialog from "./RenameDialog";
@@ -185,11 +186,14 @@ export default function FilesClient() {
         <FileDropZone onFilesDropped={actions.handleFilesDropped}>
           <div className="h-full overflow-y-auto scrollbar-thin">
             {showEmpty ? (
-              isRoot ? (
-                <FileEmptyStateRoot />
-              ) : (
-                <FileEmptyStateFolder />
-              )
+              <EmptyState.Root className="h-full">
+                <EmptyState.Icon icon={IconFolder} />
+                <EmptyState.Description>
+                  {isRoot
+                    ? "No files yet. Use Add to upload a file or create a folder."
+                    : "This folder is empty. Use Add to upload a file or create a folder."}
+                </EmptyState.Description>
+              </EmptyState.Root>
             ) : params.view === "grid" ? (
               <FileGrid {...sharedItemViewProps} />
             ) : (

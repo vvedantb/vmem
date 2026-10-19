@@ -4,15 +4,14 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "@vmem/backend";
-import { IconLoader2 } from "@tabler/icons-react";
-import { Button } from "@vvedantb/ui";
+import { Button, Spinner } from "@vvedantb/ui";
 import { isLegacyFirstSegment } from "./workspace-paths";
 import { WorkspaceEntryRedirect } from "./WorkspaceEntryRedirect";
 
 function CenteredSpinner() {
   return (
     <div className="flex h-full min-h-[60dvh] items-center justify-center">
-      <IconLoader2 size={20} className="animate-spin text-muted" />
+      <Spinner size={20} />
     </div>
   );
 }

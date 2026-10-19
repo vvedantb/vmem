@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
 import { IconClockHour4 } from "@tabler/icons-react";
-import { Button, cn } from "@vvedantb/ui";
+import { Button, cn, EmptyState } from "@vvedantb/ui";
 import { formatDateTime } from "@vmem/shared";
 import { useMemoryTimeline } from "@/hooks/useMemoryTimeline";
 import { buildVersionChain, type VersionEntry } from "@/lib/timeline";
 import DiffDisplay from "./DiffDisplay";
 import { VmemSpinner } from "@/components/icons/animations";
-import { DetailEmptyState } from "./detail-panel/DetailEmptyState";
 
 interface HistoryTabProps {
   memoryId: string;
@@ -174,11 +173,13 @@ export default function HistoryTab({ memoryId }: HistoryTabProps) {
 
   if (isEmpty || selectedEntry === null) {
     return (
-      <DetailEmptyState
-        icon={IconClockHour4}
-        title="No history yet"
-        description="Edits and imports will appear here as versions you can browse."
-      />
+      <EmptyState.Root variant="panel">
+        <EmptyState.Icon icon={IconClockHour4} />
+        <EmptyState.Title>No history yet</EmptyState.Title>
+        <EmptyState.Description>
+          Edits and imports will appear here as versions you can browse.
+        </EmptyState.Description>
+      </EmptyState.Root>
     );
   }
 

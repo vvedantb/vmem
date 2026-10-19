@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@vmem/backend";
-import { IconLoader2 } from "@tabler/icons-react";
+import { Spinner } from "@vvedantb/ui";
 import { useLastActiveProfileId } from "./active-profile";
 
 export function WorkspaceEntryRedirect({
@@ -61,7 +61,7 @@ export function WorkspaceEntryRedirect({
 
   return (
     <div className="flex h-full items-center justify-center py-20">
-      <IconLoader2 size={20} className="animate-spin text-muted" />
+      <Spinner size={20} />
     </div>
   );
 }

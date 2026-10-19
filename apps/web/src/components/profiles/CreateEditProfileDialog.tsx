@@ -9,8 +9,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  Spinner,
 } from "@vvedantb/ui";
-import { IconLoader2 } from "@tabler/icons-react";
 import type { Doc } from "@vmem/backend";
 import { convexErrorMessage } from "@/lib/convex-error";
 import { PROFILE_COLORS } from "./profile-icon";
@@ -88,7 +88,7 @@ function CreateProfileFormContent({
         </Button>
         <Button onClick={handleSave} disabled={saving}>
           {saving ? (
-            <IconLoader2 size={16} className="mr-2 animate-spin" />
+            <Spinner size={16} tone="inherit" decorative className="mr-2" />
           ) : null}
           Create Profile
         </Button>

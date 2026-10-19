@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { TablerIcon } from "@tabler/icons-react";
 import { motion } from "motion/react";
-import { Card, CardContent, cn } from "@vvedantb/ui";
+import { Card, CardContent, cn, Skeleton } from "@vvedantb/ui";
 import { Sparkline } from "@/components/charts/Sparkline";
 
 const CARD_SPACER = <div className="mt-auto" />;
@@ -101,7 +101,7 @@ export function MetricSummaryCardSkeleton({ count = 1 }: { count?: number }) {
       {Array.from({ length: count }, (_, skeletonIndex) => (
         <Card key={skeletonIndex} className="shadow-none">
           <CardContent className="flex min-h-[9.5rem] flex-col gap-3 p-5">
-            <div className="h-16 animate-pulse rounded-lg bg-surface-tertiary/60" />
+            <Skeleton className="h-16 rounded-lg bg-surface-tertiary/60" />
           </CardContent>
         </Card>
       ))}
