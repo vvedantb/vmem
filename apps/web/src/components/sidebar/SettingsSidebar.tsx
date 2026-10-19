@@ -4,7 +4,6 @@ import { cn, motionDuration, motionEase } from "@vvedantb/ui";
 import { useDisablePageMotion } from "@/providers/PageMotionProvider";
 import { settingsNavGroups } from "./nav-config";
 import { NavLink } from "./NavLink";
-import { SharedLayoutBackground } from "./SharedLayoutBackground";
 
 interface SettingsSidebarProps {
   pathname: string;
@@ -17,7 +16,7 @@ const settingsNavItems = settingsNavGroups.flatMap((group) => group.items);
 
 /**
  * Second sidebar column for `/settings/*`.
- * Compact rows, shared-layout pill, one flat list of settings tabs.
+ * Compact rows with the package static fill, one flat list of settings tabs.
  */
 export function SettingsSidebar({
   pathname,
@@ -36,32 +35,18 @@ export function SettingsSidebar({
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: motionDuration.fast, ease: motionEase }}
     >
-      <SharedLayoutBackground.Root
-        layoutId="settings-nav"
-        className="space-y-1"
-      >
-        {settingsNavItems.map((item) => {
-          const isActive =
-            pathname === item.href || pathname.startsWith(`${item.href}/`);
-          return (
-            <SharedLayoutBackground.Item
-              key={item.href}
-              id={item.href}
-              isActive={isActive}
-            >
-              <NavLink
-                item={item}
-                pathname={pathname}
-                profileId={undefined}
-                isIconOnly={isIconOnly}
-                unreadCount={0}
-                proposalsCount={0}
-                onNavigate={onNavigate}
-              />
-            </SharedLayoutBackground.Item>
-          );
-        })}
-      </SharedLayoutBackground.Root>
+      {settingsNavItems.map((item) => (
+        <NavLink
+          key={item.href}
+          item={item}
+          pathname={pathname}
+          profileId={undefined}
+          isIconOnly={isIconOnly}
+          unreadCount={0}
+          proposalsCount={0}
+          onNavigate={onNavigate}
+        />
+      ))}
     </motion.nav>
   );
 }

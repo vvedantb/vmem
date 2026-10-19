@@ -43,7 +43,6 @@ export function MemoriesSidebarNav({
       profileId={profileId}
       isMobile={isMobile}
       onNavigate={onNavigate}
-      layoutId="memories-nav"
       aria-label="Memory views"
       preserveSearch
     />

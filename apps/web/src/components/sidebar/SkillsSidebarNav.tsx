@@ -4,15 +4,13 @@ import { useQuery } from "convex/react";
 import { useQueryStates } from "nuqs";
 import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
-import { Button, Spinner, cn } from "@vvedantb/ui";
+import { Button, Sidebar, Spinner, cn } from "@vvedantb/ui";
 import { IconApps, IconBolt, IconListCheck } from "@tabler/icons-react";
 import { SkillCard } from "@/components/skills/SkillCard";
 import { SkillBulkDeleteBar } from "@/components/skills/SkillBulkDeleteBar";
 import { SkillsAddMenu } from "@/components/skills/SkillsAddMenu";
 import { skillsSearchParams } from "@/lib/url-state/skills";
 import { SidebarListSearchBar } from "./SidebarListSearchBar";
-import { SharedLayoutBackground } from "./SharedLayoutBackground";
-import { sidebarListRowClass } from "./sidebar-nav-row";
 import { SidebarHeaderTrailing } from "./SidebarHeaderTrailing";
 import { useIdSelection } from "@/hooks/useIdSelection";
 import {
@@ -126,21 +124,15 @@ export function SkillsSidebarNav({
   };
 
   const hubButton = (
-    <Button
-      type="button"
-      variant="ghost"
+    <Sidebar.NavItem
+      active={onHub}
       onClick={goHub}
-      className={cn(
-        "h-auto w-full min-w-0 justify-start rounded-lg text-left text-sm font-normal transition-[color] active:scale-100",
-        sidebarListRowClass,
-        onHub
-          ? "bg-surface-tertiary text-foreground hover:bg-surface-tertiary"
-          : "text-muted hover:bg-transparent hover:text-foreground",
-      )}
+      icon={<IconApps size={19} stroke={1.7} />}
     >
-      <IconApps size={16} className="shrink-0" />
-      Skills Hub
-    </Button>
+      <Sidebar.NavItemLabel className="text-left">
+        Skills Hub
+      </Sidebar.NavItemLabel>
+    </Sidebar.NavItem>
   );
 
   const hubSection = !isIconOnly ? (
@@ -151,43 +143,31 @@ export function SkillsSidebarNav({
   const installedSection =
     !isIconOnly && !selectionMode && installedSystemSkills.length > 0 ? (
       <div className="mt-3 space-y-1">
-        <p className="px-3 py-1 text-xs font-medium text-muted">
+        <p className="px-4 py-1 text-xs font-medium text-muted">
           Installed system skills
         </p>
-        <SharedLayoutBackground.Root
-          layoutId="skills-system"
-          className="gap-0.5"
-        >
+        <div className="flex flex-col gap-0.5">
           {installedSystemSkills.map((entry) => (
-            <SharedLayoutBackground.Item
+            <Sidebar.NavItem
               key={entry._id}
-              id={entry._id}
-              isActive={activeSystemSkillId === entry._id}
+              active={activeSystemSkillId === entry._id}
+              onClick={() => goSystemSkill(entry._id)}
             >
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => goSystemSkill(entry._id)}
-                className={cn(
-                  "h-auto w-full min-w-0 justify-start rounded-lg text-left text-sm font-normal transition-[color] active:scale-100",
-                  sidebarListRowClass,
-                  activeSystemSkillId === entry._id
-                    ? "text-foreground hover:bg-transparent"
-                    : "text-muted hover:bg-transparent hover:text-foreground",
-                )}
-              >
+              <Sidebar.NavItemLeading>
                 <span
                   aria-hidden
                   className={cn(
-                    "size-2 shrink-0 rounded-full",
+                    "size-2 rounded-full",
                     entry.installEnabled ? "bg-success" : "bg-default",
                   )}
                 />
-                <span className="min-w-0 truncate">{entry.name}</span>
-              </Button>
-            </SharedLayoutBackground.Item>
+              </Sidebar.NavItemLeading>
+              <Sidebar.NavItemLabel className="text-left">
+                {entry.name}
+              </Sidebar.NavItemLabel>
+            </Sidebar.NavItem>
           ))}
-        </SharedLayoutBackground.Root>
+        </div>
       </div>
     ) : null;
 
@@ -242,31 +222,21 @@ export function SkillsSidebarNav({
                 </p>
               ) : null
             ) : (
-              <SharedLayoutBackground.Root
-                layoutId="skills-nav"
-                className="gap-0.5"
-              >
+              <div className="flex flex-col gap-0.5">
                 {filteredSkills.map((skill) => (
-                  <SharedLayoutBackground.Item
+                  <SkillCard
                     key={skill._id}
-                    id={skill._id}
-                    isActive={!selectionMode && skillId === skill._id}
-                  >
-                    <SkillCard
-                      skill={skill}
-                      selected={skillId === skill._id}
-                      onSelect={() => openSkill(skill._id)}
-                      mode={
-                        selectionMode && !isIconOnly
-                          ? "bulk-select"
-                          : "navigate"
-                      }
-                      checked={selectedIds.has(skill._id)}
-                      onToggleSelect={() => toggle(skill._id)}
-                    />
-                  </SharedLayoutBackground.Item>
+                    skill={skill}
+                    selected={skillId === skill._id}
+                    onSelect={() => openSkill(skill._id)}
+                    mode={
+                      selectionMode && !isIconOnly ? "bulk-select" : "navigate"
+                    }
+                    checked={selectedIds.has(skill._id)}
+                    onToggleSelect={() => toggle(skill._id)}
+                  />
                 ))}
-              </SharedLayoutBackground.Root>
+              </div>
             )}
           </>
         )}
