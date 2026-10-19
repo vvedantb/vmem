@@ -1,25 +1,12 @@
-import { defineMcpServerInfo } from "@vvedantb/server";
+import { defineMcpServerInfo, type ClerkTokenType } from "@vvedantb/server";
 import type { McpScope } from "../profiles/mcpAccess";
 
 export const MCP_SERVER_VERSION = "2.0.0";
 
-export const MCP_ACCEPTED_TOKEN_TYPES = [
+export const MCP_ACCEPTED_TOKEN_TYPES: readonly ClerkTokenType[] = [
   "oauth_token",
   "session_token",
-] as const;
-
-export type McpAcceptedTokenType = (typeof MCP_ACCEPTED_TOKEN_TYPES)[number];
-
-export function isMcpAcceptedTokenType(
-  tokenType: string,
-): tokenType is McpAcceptedTokenType {
-  for (const allowed of MCP_ACCEPTED_TOKEN_TYPES) {
-    if (tokenType === allowed) {
-      return true;
-    }
-  }
-  return false;
-}
+];
 
 export function mcpServerInfo(scope: McpScope): {
   name: string;

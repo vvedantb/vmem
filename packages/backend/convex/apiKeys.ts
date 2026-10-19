@@ -5,22 +5,17 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { authAction, authMutation, authQuery } from "./auth";
 import { auditLog, ResourceTypes, severityForStatus } from "./auditLog";
-import { hex } from "@scure/base";
-import { encodeBase64UrlBytes } from "./lib/base64";
+import { randomToken, sha256Hex } from "@vvedantb/server";
 import { decryptToken, encryptToken } from "./lib/crypto";
 import { apiKeyFields } from "./validators";
 
+// 24 bytes encode to 32 base64url chars with no padding.
 function generateApiKey(): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(24));
-  return `vmem_sk_${encodeBase64UrlBytes(bytes)}`;
+  return `vmem_sk_${randomToken(24, "base64url")}`;
 }
 
-export async function hashApiKey(rawKey: string): Promise<string> {
-  const hashBuffer = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(rawKey),
-  );
-  return hex.encode(new Uint8Array(hashBuffer));
+export function hashApiKey(rawKey: string): Promise<string> {
+  return sha256Hex(rawKey);
 }
 
 function maskApiKey(rawKey: string): string {

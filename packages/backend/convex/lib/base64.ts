@@ -1,5 +1,7 @@
-import { base64, base64url } from "@scure/base";
+import { base64 } from "@scure/base";
+import { bytesToBase64 } from "@vvedantb/server";
 
+// Stays on @scure/base: files_upload returns its error messages to MCP clients.
 export function decodeBase64Bytes(value: string): Uint8Array<ArrayBuffer> {
   const decoded = base64.decode(value);
   const bytes = new Uint8Array(decoded.length);
@@ -8,11 +10,7 @@ export function decodeBase64Bytes(value: string): Uint8Array<ArrayBuffer> {
 }
 
 export function encodeBase64Bytes(bytes: Uint8Array): string {
-  return base64.encode(bytes);
-}
-
-export function encodeBase64UrlBytes(bytes: Uint8Array): string {
-  return base64url.encode(bytes);
+  return bytesToBase64(bytes);
 }
 
 export function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {

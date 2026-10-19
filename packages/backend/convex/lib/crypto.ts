@@ -1,4 +1,4 @@
-import { requiredEnv } from "@vvedantb/server";
+import { aesGcmDecrypt, aesGcmEncrypt, requiredEnv } from "@vvedantb/server";
 import { decodeBase64Bytes, encodeBase64Bytes } from "./base64";
 
 async function getEncryptionKey(): Promise<CryptoKey> {
@@ -10,14 +10,11 @@ async function getEncryptionKey(): Promise<CryptoKey> {
 }
 
 export async function encryptToken(token: string): Promise<string> {
-  const key = await getEncryptionKey();
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const encrypted = await crypto.subtle.encrypt(
-    { name: "AES-GCM", iv },
-    key,
-    new TextEncoder().encode(token),
+  const { iv, ciphertext } = await aesGcmEncrypt(
+    await getEncryptionKey(),
+    token,
   );
-  return `v1:${encodeBase64Bytes(iv)}:${encodeBase64Bytes(new Uint8Array(encrypted))}`;
+  return `v1:${encodeBase64Bytes(iv)}:${encodeBase64Bytes(ciphertext)}`;
 }
 
 export async function decryptToken(encryptedToken: string): Promise<string> {
@@ -26,10 +23,9 @@ export async function decryptToken(encryptedToken: string): Promise<string> {
     throw new Error("Invalid encrypted token format");
   }
   const key = await getEncryptionKey();
-  const decrypted = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: decodeBase64Bytes(ivB64) },
-    key,
-    decodeBase64Bytes(encB64),
-  );
+  const decrypted = await aesGcmDecrypt(key, {
+    iv: decodeBase64Bytes(ivB64),
+    ciphertext: decodeBase64Bytes(encB64),
+  });
   return new TextDecoder().decode(decrypted);
 }
