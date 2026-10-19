@@ -90,7 +90,12 @@ export function tokenize(text: string): string[] {
   return tokens;
 }
 
+// Any boundary the replaces below split on. Inserting \0 never creates a new
+// boundary, so a part with none of them always splits to itself.
+const COMPOUND_BOUNDARY = /[a-z][A-Z]|[A-Z][A-Z][a-z]|[a-zA-Z]\d|\d[a-zA-Z]/;
+
 function splitCompound(part: string): string[] {
+  if (!COMPOUND_BOUNDARY.test(part)) return [part];
   return part
     .replace(/([a-z])([A-Z])/g, "$1\0$2")
     .replace(/([A-Z]+)([A-Z][a-z])/g, "$1\0$2")
