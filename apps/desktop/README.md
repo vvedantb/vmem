@@ -93,7 +93,7 @@ pnpm --filter @vmem/desktop test:packaged   # needs xvfb, openbox, xterm, x11-ut
 
 `scripts/packaged-test.mjs` starts `openbox`, an `xterm` with a known title and a mock vmem API. It runs the packaged binary with `VMEM_DESKTOP_PACKAGED_TEST=1`, `--user-data-dir` set to a temp folder and `VMEM_API_KEY` and `VMEM_BASE_URL` set. The app ticks the tracker, writes `events.json`, posts the summarised memories and exits 0 only if it recorded a focus event. The script then checks that the mock got `POST /api/v1/memories` with `source: "desktop"` and `sourceType: "desktop"` that names the xterm window. A run with only `gap` events fails.
 
-`pnpm --filter @vmem/desktop check:asar` runs the packaged binary with `ELECTRON_RUN_AS_NODE=1`, opens `app.asar`, resolves every unbundled import, checks the unpacked native files and imports and calls the bundled `get-windows` path (`dist/active-window.js`). Use it after packaging. Pass a binary and asar path to check a Windows or macOS build.
+`pnpm --filter @vmem/desktop check:asar` runs `vvedantb-check-asar resolve` (from `@vvedantb/config`). It runs the packaged binary with `ELECTRON_RUN_AS_NODE=1`, opens `app.asar` and resolves every unbundled import. Then `scripts/check-asar-hook.mjs` checks the unpacked native files and imports and calls the bundled `get-windows` path (`dist/active-window.js`). Use it after packaging. Pass a binary and asar path to check a Windows or macOS build.
 
 ## Tests and packaging
 

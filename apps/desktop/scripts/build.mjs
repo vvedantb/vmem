@@ -34,13 +34,35 @@ const getWindowsShims = {
   },
 };
 
+// @vvedantb/mcp-client imports the SDK's MCP client for its `connectAs` sign-in,
+// which vmem does not use. The SDK declares no `sideEffects`, so esbuild would
+// keep that module and the ajv it loads. Mark it side-effect free so it drops.
+const sdkClientEntries =
+  /^@modelcontextprotocol\/sdk\/client\/(index|streamableHttp)\.js$/;
+const skipSdkClientEntries = Symbol("skip");
+const dropUnusedSdkClient = {
+  name: "drop-unused-sdk-client",
+  setup(b) {
+    b.onResolve({ filter: sdkClientEntries }, async (args) => {
+      if (args.pluginData === skipSdkClientEntries) return undefined;
+      const result = await b.resolve(args.path, {
+        kind: args.kind,
+        importer: args.importer,
+        resolveDir: args.resolveDir,
+        pluginData: skipSdkClientEntries,
+      });
+      return { ...result, sideEffects: false };
+    });
+  },
+};
+
 await rm("dist", { recursive: true, force: true });
 await mkdir("dist", { recursive: true });
 
 await Promise.all([
   build({
     ...common,
-    // active-window is a second entry so scripts/check-asar-modules.mjs can
+    // active-window is a second entry so scripts/check-asar-hook.mjs can
     // import the exact tracker path that main.js uses (Electron is not needed).
     entryPoints: ["src/main.ts", "src/active-window.ts"],
     outdir: "dist",
@@ -49,7 +71,7 @@ await Promise.all([
     format: "esm",
     target: "node22",
     external: ["electron"],
-    plugins: [getWindowsShims],
+    plugins: [getWindowsShims, dropUnusedSdkClient],
     banner: {
       js: "import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);",
     },

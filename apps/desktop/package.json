@@ -17,13 +17,14 @@
     "package:linux": "pnpm build && electron-builder --linux dir",
     "package:win": "pnpm build && electron-builder --win nsis",
     "package:mac": "pnpm build && electron-builder --mac dmg --x64 --arm64",
-    "check:asar": "node scripts/check-asar-modules.mjs",
+    "check:asar": "vvedantb-check-asar resolve --default-binary release/linux-unpacked/vmem-desktop --scan dist --skip-dir renderer --hook scripts/check-asar-hook.mjs",
     "test:packaged": "xvfb-run -a node scripts/packaged-test.mjs",
     "icons": "node scripts/generate-icons.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "catalog:",
     "@vmem/sdk": "workspace:*",
+    "@vvedantb/mcp-client": "0.1.0",
     "get-windows": "^9.2.0",
     "zod": "catalog:"
   },
@@ -37,6 +38,7 @@
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "^4.4.0",
+    "@vvedantb/config": "0.2.0",
     "@vvedantb/ui": "^0.7.2",
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",
