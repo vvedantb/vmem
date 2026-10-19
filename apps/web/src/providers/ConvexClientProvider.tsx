@@ -1,5 +1,5 @@
+import { ConvexClerkProvider } from "@vvedantb/convex-client";
 import { useStableAuth } from "@vvedantb/ui";
-import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { convex } from "@/lib/convex-client";
 
 export function ConvexClientProvider({
@@ -8,8 +8,8 @@ export function ConvexClientProvider({
   children: React.ReactNode;
 }) {
   return (
-    <ConvexProviderWithClerk client={convex} useAuth={useStableAuth}>
+    <ConvexClerkProvider client={convex} useAuth={useStableAuth}>
       {children}
-    </ConvexProviderWithClerk>
+    </ConvexClerkProvider>
   );
 }
