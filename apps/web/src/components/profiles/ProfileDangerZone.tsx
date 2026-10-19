@@ -1,15 +1,6 @@
 import { useState } from "react";
-import {
-  Button,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  cn,
-} from "@vvedantb/ui";
-import { IconCheck, IconLoader2, IconTrash } from "@tabler/icons-react";
+import { Button, ConfirmDialog, cn } from "@vvedantb/ui";
+import { IconCheck, IconTrash } from "@tabler/icons-react";
 import type { FunctionReturnType } from "convex/server";
 import type { api, Id } from "@vmem/backend";
 import { ProfileAvatar } from "./ProfileAvatar";
@@ -52,16 +43,16 @@ export function ProfileDangerZone({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Delete Profile</DialogTitle>
-          <DialogDescription>
+    <ConfirmDialog.Root alert={false} open={open} onOpenChange={onOpenChange}>
+      <ConfirmDialog.Content>
+        <ConfirmDialog.Header>
+          <ConfirmDialog.Title>Delete Profile</ConfirmDialog.Title>
+          <ConfirmDialog.Description>
             Are you sure you want to delete "{profile.name}"? This action cannot
             be undone.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="py-4 space-y-4">
+          </ConfirmDialog.Description>
+        </ConfirmDialog.Header>
+        <ConfirmDialog.Body className="py-4 space-y-4">
           <p className="text-sm text-muted">
             What should happen to the memories in this profile?
           </p>
@@ -119,23 +110,21 @@ export function ProfileDangerZone({
               </Button>
             ))}
           </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button
+        </ConfirmDialog.Body>
+        <ConfirmDialog.Footer>
+          <ConfirmDialog.Cancel variant="outline" />
+          <ConfirmDialog.Action
             variant="destructive"
             onClick={handleDelete}
-            disabled={deleting}
+            pending={deleting}
+            pendingLabel="Delete Profile"
+            spinnerSize={16}
+            spinnerClassName="mr-2"
           >
-            {deleting && (
-              <IconLoader2 size={16} className="mr-2 animate-spin" />
-            )}
             Delete Profile
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          </ConfirmDialog.Action>
+        </ConfirmDialog.Footer>
+      </ConfirmDialog.Content>
+    </ConfirmDialog.Root>
   );
 }

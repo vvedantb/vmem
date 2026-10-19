@@ -4,16 +4,11 @@ import { AnimatePresence, motion } from "motion/react";
 import {
   Button,
   cn,
+  ConfirmDialog,
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuTrigger,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
   Input,
   ConfirmSkipHint,
   skipConfirmTitle,
@@ -258,41 +253,35 @@ export default function TagsListView() {
         </AnimatePresence>
       </div>
 
-      <Dialog
+      <ConfirmDialog.Root
+        alert={false}
+        pending={isDeleting}
+        dismissibleWhilePending
         open={!!deleteTag}
         onOpenChange={(open) => !open && setDeleteTag(null)}
       >
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Delete tag</DialogTitle>
-            <DialogDescription>
+        <ConfirmDialog.Content className="sm:max-w-sm">
+          <ConfirmDialog.Header>
+            <ConfirmDialog.Title>Delete tag</ConfirmDialog.Title>
+            <ConfirmDialog.Description>
               Remove the tag &quot;{deleteTag}&quot; from every memory it is
               attached to. The memories themselves stay; only the tag goes away.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="ghost"
-              onClick={() => setDeleteTag(null)}
-              disabled={isDeleting}
-            >
-              Cancel
-            </Button>
-            <Button
+            </ConfirmDialog.Description>
+          </ConfirmDialog.Header>
+          <ConfirmDialog.Footer>
+            <ConfirmDialog.Cancel />
+            <ConfirmDialog.Action
               variant="destructive"
               onClick={handleDeleteTag}
-              disabled={isDeleting}
+              pendingLabel="Deleting…"
+              spinnerSize={16}
             >
-              {isDeleting ? (
-                <IconLoader2 size={16} className="animate-spin" />
-              ) : (
-                <IconTrash size={16} />
-              )}
-              {isDeleting ? "Deleting…" : "Delete"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              <IconTrash size={16} />
+              Delete
+            </ConfirmDialog.Action>
+          </ConfirmDialog.Footer>
+        </ConfirmDialog.Content>
+      </ConfirmDialog.Root>
     </div>
   );
 }
