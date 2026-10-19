@@ -71,6 +71,7 @@
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "^6.1.0",
     "gl-bench": "^1.0.42",
+    "happy-dom": "^20.0.2",
     "oxc-transform-react": "^0.147.0",
     "rollup-plugin-visualizer": "^7.0.1",
     "sharp": "^0.35.4",
