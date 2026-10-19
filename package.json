@@ -43,7 +43,7 @@
     "@eslint/js": "^10.0.1",
     "@playwright/test": "1.63.0",
     "@types/node": "catalog:node-types-22",
-    "@vvedantb/config": "0.2.0",
+    "@vvedantb/config": "0.3.0",
     "baseline-browser-mapping": "^2.9.19",
     "eslint": "^10.7.0",
     "globals": "^17.7.0",

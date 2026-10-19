@@ -1,18 +1,13 @@
-import path from "node:path";
 import react from "@vitejs/plugin-react";
+import { defineWebVitestConfig, srcAlias } from "@vvedantb/config";
 import { defineConfig } from "vitest/config";
 
-export default defineConfig({
-  plugins: [react()],
-  esbuild: { jsx: "automatic" },
-  resolve: {
-    alias: {
-      "@": path.resolve(import.meta.dirname, "./src"),
-    },
-  },
-  test: {
+export default defineConfig(
+  defineWebVitestConfig({
+    plugins: [react()],
+    automaticJsx: true,
+    alias: srcAlias(import.meta.dirname),
     include: ["src/**/*.test.{ts,tsx}"],
-    environment: "node",
-    server: { deps: { inline: ["@vvedantb/ui"] } },
-  },
-});
+    inline: ["@vvedantb/ui"],
+  }),
+);
