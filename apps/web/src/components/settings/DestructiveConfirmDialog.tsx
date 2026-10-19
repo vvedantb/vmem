@@ -1,15 +1,5 @@
-import { useId, useState, type ReactNode } from "react";
-import {
-  Button,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  Input,
-} from "@vvedantb/ui";
-import { IconLoader2 } from "@tabler/icons-react";
+import type { ReactNode } from "react";
+import { ConfirmDialog } from "@vvedantb/ui";
 
 type DestructiveConfirmDialogProps = {
   open: boolean;
@@ -39,85 +29,48 @@ export default function DestructiveConfirmDialog({
   children,
   confirmPhrase,
 }: DestructiveConfirmDialogProps) {
-  const confirmInputId = useId();
-  const [typedConfirm, setTypedConfirm] = useState("");
-  // reset the typed phrase whenever the dialog transitions to open, without an
-  // effect adjust state during render (see react.dev "Adjusting state when a
-  // prop changes"), tracked against the previously seen `open` value
-  const [prevOpen, setPrevOpen] = useState(open);
-  if (open !== prevOpen) {
-    setPrevOpen(open);
-    if (open) setTypedConfirm("");
-  }
-
-  const phraseRequired = confirmPhrase !== undefined;
-  const phraseMatches =
-    !phraseRequired ||
-    typedConfirm.trim().toLowerCase() === confirmPhrase.trim().toLowerCase();
-  const confirmDisabled = submitting || !phraseMatches;
-
   return (
-    <Dialog
+    <ConfirmDialog.Root
+      alert={false}
+      pending={submitting}
+      confirmPhrase={confirmPhrase}
       open={open}
       onOpenChange={(nextOpen) => {
-        if (!nextOpen && !submitting) onClose();
+        if (!nextOpen) onClose();
       }}
     >
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+      <ConfirmDialog.Content className="sm:max-w-md">
+        <ConfirmDialog.Header>
+          <ConfirmDialog.Title>{title}</ConfirmDialog.Title>
           {children ? (
             <>
-              <DialogDescription className="sr-only">{title}</DialogDescription>
+              <ConfirmDialog.Description className="sr-only">
+                {title}
+              </ConfirmDialog.Description>
               <div className="text-sm">
                 <p className="text-foreground">{children}</p>
                 <p className="mt-1 text-muted">{description}</p>
               </div>
             </>
           ) : (
-            <DialogDescription>{description}</DialogDescription>
+            <ConfirmDialog.Description>{description}</ConfirmDialog.Description>
           )}
-        </DialogHeader>
-        {phraseRequired ? (
-          <div className="space-y-2">
-            <label htmlFor={confirmInputId} className="text-sm text-muted">
-              Type{" "}
-              <span className="font-mono text-foreground">{confirmPhrase}</span>{" "}
-              to confirm
-            </label>
-            <Input
-              id={confirmInputId}
-              autoComplete="off"
-              autoFocus
-              value={typedConfirm}
-              onChange={(e) => setTypedConfirm(e.target.value)}
-              disabled={submitting}
-              placeholder={confirmPhrase}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && phraseMatches && !submitting) {
-                  e.preventDefault();
-                  onConfirm();
-                }
-              }}
-            />
-          </div>
+        </ConfirmDialog.Header>
+        {confirmPhrase !== undefined ? (
+          <ConfirmDialog.Field onEnter={onConfirm} />
         ) : null}
-        <DialogFooter>
-          <Button variant="ghost" onClick={onClose} disabled={submitting}>
-            Cancel
-          </Button>
-          <Button
+        <ConfirmDialog.Footer>
+          <ConfirmDialog.Cancel />
+          <ConfirmDialog.Action
             variant="destructive"
+            pendingLabel={submittingLabel}
+            spinnerSize={14}
             onClick={onConfirm}
-            disabled={confirmDisabled}
           >
-            {submitting ? (
-              <IconLoader2 size={14} className="animate-spin" />
-            ) : null}
-            {submitting ? submittingLabel : confirmLabel}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+            {confirmLabel}
+          </ConfirmDialog.Action>
+        </ConfirmDialog.Footer>
+      </ConfirmDialog.Content>
+    </ConfirmDialog.Root>
   );
 }
