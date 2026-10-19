@@ -6,6 +6,8 @@ import {
   runHardAblation,
   runPooledComparison,
 } from "../../eval/benchmark";
+import { INDEX_RETRIEVE_CAPS } from "../../engine/memory/retrieveCaps";
+import { useDeterministicEval } from "./evalHarness";
 
 describe("hard labelled corpus invariants", () => {
   const corpus = generateHardCorpus();
@@ -33,6 +35,8 @@ describe("hard labelled corpus invariants", () => {
 });
 
 describe("Convex hard labelled ablation", () => {
+  useDeterministicEval();
+
   it("full hybrid beats the previous hard-suite bar", async () => {
     const { runs, report } = await runHardAblation(HARD_FULL_HYBRID_BEFORE);
     if (process.env.EVAL_VERBOSE) {
@@ -75,6 +79,8 @@ describe("Convex hard labelled ablation", () => {
     expect(widened.recall10).toBeGreaterThanOrEqual(legacy.recall10);
     expect(widened.recall5).toBeGreaterThanOrEqual(0.9);
     expect(widened.ndcg10).toBeGreaterThanOrEqual(0.9);
-    expect(widened.latencyP95).toBeLessThan(100);
+    // Ranker work per query is bounded by the pool cap (wall clock: eval-perf).
+    expect(widened.poolMax).toBeGreaterThan(0);
+    expect(widened.poolMax).toBeLessThanOrEqual(INDEX_RETRIEVE_CAPS.rankPool);
   }, 60_000);
 });

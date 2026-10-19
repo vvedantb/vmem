@@ -75,22 +75,27 @@ async function ranked(
   judge: EvalJudge | undefined,
   extras: Partial<RetrieveEvalOptions> = {},
 ) {
-  return retrieveEval([pnpm, coffee], "what package manager?", {
-    legs: {
-      vector: false,
-      graph: false,
-      recency: false,
-      temporal: false,
-      chunk: false,
-      entity: false,
+  const { candidates } = await retrieveEval(
+    [pnpm, coffee],
+    "what package manager?",
+    {
+      legs: {
+        vector: false,
+        graph: false,
+        recency: false,
+        temporal: false,
+        chunk: false,
+        entity: false,
+      },
+      queryEmbedding: [],
+      memoryEmbeddings: new Map(),
+      links: [],
+      limit: 10,
+      judge,
+      ...extras,
     },
-    queryEmbedding: [],
-    memoryEmbeddings: new Map(),
-    links: [],
-    limit: 10,
-    judge,
-    ...extras,
-  });
+  );
+  return candidates;
 }
 
 describe("labelled eval retrieve Jev wiring", () => {

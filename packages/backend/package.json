@@ -16,6 +16,7 @@
     "test:memory-eval": "vitest run tests/memory/eval.test.ts",
     "eval:bench": "vitest run tests/memory/eval.test.ts",
     "eval:hard": "vitest run tests/memory/hard-eval.test.ts",
+    "eval:perf": "EVAL_PERF=1 vitest run tests/memory/eval-perf.test.ts",
     "eval:jev": "EVAL_JEV=1 vitest run tests/memory/jev-eval.test.ts",
     "eval:competitive": "EVAL_COMPETITIVE=1 vitest run tests/memory/competitive/competitive.test.ts",
     "eval:locomo-ir": "EVAL_LOCOMO_IR=1 vitest run tests/memory/locomo-ir.test.ts",

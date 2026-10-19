@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { aggregate, runAutoLinkAblation } from "../../eval/benchmark";
+import { useDeterministicEval } from "./evalHarness";
 
 describe("auto-extracted links (no planted relationships)", () => {
+  useDeterministicEval();
+
   it("recovers multi-hop and project-fact graph gains", async () => {
     const { runs, autoLinkCount } = await runAutoLinkAblation();
     expect(autoLinkCount).toBeGreaterThan(30);
