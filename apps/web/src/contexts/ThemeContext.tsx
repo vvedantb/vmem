@@ -1,5 +1,5 @@
 import { createContext, use, useEffect, useState } from "react";
-import { useTheme } from "next-themes";
+import { useTheme } from "@/providers/theme";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@vmem/backend";
 import { isTheme, type Theme } from "@vmem/shared";
