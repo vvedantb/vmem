@@ -13,32 +13,29 @@ import {
 } from "convex-helpers/server/customFunctions";
 import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
-import type { Doc, Id } from "./_generated/dataModel";
+import { createClerkUserAuth } from "@vvedantb/server";
+import type { DataModel, Doc, Id } from "./_generated/dataModel";
 import { DEFAULT_PROFILE_COLOR } from "./profiles/helpers";
 import { normalizeAccountEmail } from "./lib/accountEmail";
+
+const userAuth = createClerkUserAuth<DataModel>()({
+  table: "users",
+  index: "by_clerk_id",
+  field: "clerkId",
+});
 
 export async function getUserByClerkId(
   ctx: QueryCtx | MutationCtx,
   clerkId: string,
 ): Promise<Doc<"users"> | null> {
-  return await ctx.db
-    .query("users")
-    .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId))
-    .first();
+  return await userAuth.getUserByClerkId(ctx, clerkId);
 }
 
+// throws "Not authenticated" for no identity, an empty subject or no users row
 export async function getCurrentUserId(
   ctx: QueryCtx | MutationCtx,
 ): Promise<Id<"users">> {
-  const identity = await ctx.auth.getUserIdentity();
-  if (!identity) throw new Error("Not authenticated");
-  const clerkUserId = identity.subject;
-  if (!clerkUserId) throw new Error("Not authenticated");
-
-  const user = await getUserByClerkId(ctx, clerkUserId);
-  if (!user) throw new Error("Not authenticated");
-
-  return user._id;
+  return await userAuth.requireCurrentUserId(ctx);
 }
 
 async function requireCurrentUserIdFromAction(
@@ -98,6 +95,23 @@ export async function requireClerkId(ctx: AuthActionCtx): Promise<string> {
   return clerkId;
 }
 
+// auto create default "personal" profile for new users
+async function insertPersonalProfile(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+): Promise<void> {
+  const now = Date.now();
+  await ctx.db.insert("profiles", {
+    userId,
+    name: "Personal",
+    color: DEFAULT_PROFILE_COLOR,
+    icon: "user",
+    isDefault: true,
+    createdAt: now,
+    updatedAt: now,
+  });
+}
+
 async function insertUserWithPersonalProfile(
   ctx: MutationCtx,
   fields: {
@@ -109,18 +123,7 @@ async function insertUserWithPersonalProfile(
   },
 ): Promise<Id<"users">> {
   const userId = await ctx.db.insert("users", fields);
-
-  // auto create default "personal" profile for new users
-  const now = Date.now();
-  await ctx.db.insert("profiles", {
-    userId,
-    name: "Personal",
-    color: DEFAULT_PROFILE_COLOR,
-    icon: "user",
-    isDefault: true,
-    createdAt: now,
-    updatedAt: now,
-  });
+  await insertPersonalProfile(ctx, userId);
   return userId;
 }
 
@@ -131,38 +134,34 @@ export const ensureUserExists = mutation({
     wasCreated: v.boolean(),
   }),
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
+    const result = await userAuth.ensureUser(
+      ctx,
+      (identity) => ({
+        clerkId: identity.subject,
+        email: normalizeAccountEmail(identity.email),
+        firstName:
+          typeof identity.givenName === "string"
+            ? identity.givenName
+            : undefined,
+        lastName:
+          typeof identity.familyName === "string"
+            ? identity.familyName
+            : undefined,
+        fullName: typeof identity.name === "string" ? identity.name : undefined,
+      }),
+      {
+        patch: (existing, identity) => {
+          const email = normalizeAccountEmail(identity.email);
+          return email !== undefined && existing.email !== email
+            ? { email }
+            : undefined;
+        },
+      },
+    );
+    if (result.wasCreated) {
+      await insertPersonalProfile(ctx, result.userId);
     }
-
-    const clerkUserId = identity.subject;
-    if (!clerkUserId) {
-      throw new Error("Clerk user ID is required");
-    }
-
-    const existingUser = await getUserByClerkId(ctx, clerkUserId);
-    const email = normalizeAccountEmail(identity.email);
-
-    if (existingUser) {
-      if (email !== undefined && existingUser.email !== email) {
-        await ctx.db.patch(existingUser._id, { email });
-      }
-      return { userId: existingUser._id, wasCreated: false };
-    }
-    const userId = await insertUserWithPersonalProfile(ctx, {
-      clerkId: clerkUserId,
-      email,
-      firstName:
-        typeof identity.givenName === "string" ? identity.givenName : undefined,
-      lastName:
-        typeof identity.familyName === "string"
-          ? identity.familyName
-          : undefined,
-      fullName: typeof identity.name === "string" ? identity.name : undefined,
-    });
-
-    return { userId, wasCreated: true };
+    return result;
   },
 });
 
