@@ -2,12 +2,7 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import {
   Button,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+  ConfirmDialog,
   ConfirmSkipHint,
   skipConfirmTitle,
   useRequestConfirm,
@@ -86,37 +81,30 @@ export function BulkSelectionDeleteBar({
         </Button>
       </div>
 
-      <Dialog
+      <ConfirmDialog.Root
+        alert={false}
+        pending={deleting}
         open={confirmOpen}
-        onOpenChange={(open) => {
-          if (!deleting) setConfirmOpen(open);
-        }}
+        onOpenChange={setConfirmOpen}
       >
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>
+        <ConfirmDialog.Content className="sm:max-w-sm">
+          <ConfirmDialog.Header>
+            <ConfirmDialog.Title>
               Delete {count} {itemWord}?
-            </DialogTitle>
-            <DialogDescription>{description}</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="ghost"
-              onClick={() => setConfirmOpen(false)}
-              disabled={deleting}
-            >
-              Cancel
-            </Button>
-            <Button
+            </ConfirmDialog.Title>
+            <ConfirmDialog.Description>{description}</ConfirmDialog.Description>
+          </ConfirmDialog.Header>
+          <ConfirmDialog.Footer>
+            <ConfirmDialog.Cancel />
+            <ConfirmDialog.Action
               variant="destructive"
               onClick={() => void handleDelete()}
-              disabled={deleting}
             >
               Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </ConfirmDialog.Action>
+          </ConfirmDialog.Footer>
+        </ConfirmDialog.Content>
+      </ConfirmDialog.Root>
     </>
   );
 }
