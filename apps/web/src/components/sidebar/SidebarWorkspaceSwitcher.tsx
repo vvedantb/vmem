@@ -12,6 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  SidebarIconTooltip,
   Skeleton,
   cn,
 } from "@vvedantb/ui";
@@ -30,7 +31,6 @@ import {
   useLastActiveProfileId,
 } from "@/components/workspace/active-profile";
 import { workspacePathFor } from "@/components/workspace/workspace-paths";
-import { SidebarIconTooltip } from "./SidebarIconTooltip";
 
 function WorkspaceRow({
   profile,

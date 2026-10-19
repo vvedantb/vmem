@@ -32,7 +32,7 @@
   --vt-base: 300ms;
   --vt-distance: 12px;
 
-  /* Height of the fixed below-`md` app header in `Sidebar.tsx`, including the
+  /* Height of the fixed below-`md` app header (`AppSidebar`, via `MainShell`), including the
      notch inset (`viewport-fit=cover` in index.html makes it non-zero). Every
      layout that offsets content for that header must use this, not a literal
      `pt-14`, or the header overlaps content on a notched phone. */
