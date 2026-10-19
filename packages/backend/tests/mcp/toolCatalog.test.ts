@@ -1,4 +1,4 @@
-import { expectMcpToolCount } from "@vvedantb/server/convex";
+import { expectMcpToolCount } from "@vvedantb/server";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";

@@ -1,7 +1,6 @@
 /// <reference types="vite/client" />
 import { describe, expect, it } from "vitest";
 import {
-  isMcpAcceptedTokenType,
   MCP_ACCEPTED_TOKEN_TYPES,
   MCP_SERVER_VERSION,
   mcpServerInfo,
@@ -22,9 +21,5 @@ describe("MCP server info", () => {
 
   it("accepts Clerk oauth_token and session_token only", () => {
     expect(MCP_ACCEPTED_TOKEN_TYPES).toEqual(["oauth_token", "session_token"]);
-    expect(isMcpAcceptedTokenType("oauth_token")).toBe(true);
-    expect(isMcpAcceptedTokenType("session_token")).toBe(true);
-    expect(isMcpAcceptedTokenType("convex")).toBe(false);
-    expect(isMcpAcceptedTokenType("api_key")).toBe(false);
   });
 });

@@ -1,4 +1,5 @@
 ﻿import { httpRouter } from "convex/server";
+import { registerMcpRoutes } from "@vvedantb/server";
 import { connectorCallback } from "./http/auth/connectorCallback";
 import { deleteMemory } from "./http/v1Memories/delete";
 import { retrieveMemories } from "./http/v1Memories/retrieve";
@@ -45,64 +46,18 @@ http.route({
   handler: deleteMemory,
 });
 
-http.route({
-  path: "/.well-known/oauth-authorization-server",
-  method: "GET",
-  handler: oauthMetadata,
-});
-
-http.route({
-  path: "/.well-known/oauth-protected-resource",
-  method: "GET",
-  handler: protectedResourceMetadata,
-});
-
-http.route({
-  path: "/.well-known/oauth-protected-resource/mcp/team",
-  method: "GET",
-  handler: protectedResourceMetadataTeam,
-});
-
-http.route({
-  path: "/mcp",
-  method: "POST",
-  handler: mcpHandler,
-});
-
-http.route({
-  path: "/mcp",
-  method: "GET",
-  handler: mcpHandler,
-});
-
-http.route({
-  path: "/mcp",
-  method: "DELETE",
-  handler: mcpHandler,
-});
-
-http.route({
-  path: "/mcp/team",
-  method: "POST",
-  handler: mcpTeamHandler,
-});
-
-http.route({
-  path: "/mcp/team",
-  method: "GET",
-  handler: mcpTeamHandler,
-});
-
-http.route({
-  path: "/mcp/team",
-  method: "DELETE",
-  handler: mcpTeamHandler,
-});
-
-http.route({
-  path: "/health",
-  method: "GET",
-  handler: mcpHealth,
+registerMcpRoutes(http, {
+  authorizationServerMetadata: oauthMetadata,
+  protectedResourceMetadata,
+  endpoints: [
+    { handler: mcpHandler },
+    {
+      path: "/mcp/team",
+      handler: mcpTeamHandler,
+      protectedResourceMetadata: protectedResourceMetadataTeam,
+    },
+  ],
+  health: { handler: mcpHealth },
 });
 
 export default http;
