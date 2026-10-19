@@ -1,4 +1,7 @@
-import { auth } from "@modelcontextprotocol/sdk/client/auth.js";
+import {
+  auth,
+  UnauthorizedError,
+} from "@modelcontextprotocol/sdk/client/auth.js";
 import type { FetchLike } from "@modelcontextprotocol/sdk/shared/transport.js";
 import {
   createMcpOAuthProvider as createSharedMcpOAuthProvider,
@@ -6,12 +9,12 @@ import {
   type McpOAuthIdentity,
   type McpOAuthProvider,
   type McpOAuthProviderOptions as SharedMcpOAuthProviderOptions,
-} from "@vvedantb/mcp-client";
+} from "@vvedantb/server";
 import { z } from "zod";
 
 // vmem sign-in: MCP authorization (OAuth 2.1, PKCE, dynamic client registration)
 // against the vmem MCP server, which accepts Clerk OAuth tokens. The provider,
-// refresh and revoke come from @vvedantb/mcp-client; this module fixes the vmem
+// refresh and revoke come from @vvedantb/server; this module fixes the vmem
 // client identity. No Electron imports: main supplies the storage, the redirect and the browser.
 
 export const CLIENT_NAME = "vmem";
@@ -50,6 +53,12 @@ export function createMcpOAuthProvider(
       return clientInformation ? save(clientInformation) : undefined;
     };
   }
+  // Throw synchronously when not interactive, as vmem always has; the package version returns a rejected promise.
+  if (!options.redirectUrl || !options.redirectToAuthorization) {
+    provider.redirectToAuthorization = () => {
+      throw new UnauthorizedError(SIGN_IN_REQUIRED_MESSAGE);
+    };
+  }
   return provider;
 }
 
@@ -83,4 +92,4 @@ export {
   type McpOAuthProvider,
   type McpOAuthState,
   type McpOAuthStorage,
-} from "@vvedantb/mcp-client";
+} from "@vvedantb/server";

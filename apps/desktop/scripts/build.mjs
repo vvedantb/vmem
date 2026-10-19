@@ -34,25 +34,22 @@ const getWindowsShims = {
   },
 };
 
-// @vvedantb/mcp-client imports the SDK's MCP client for its `connectAs` sign-in,
-// which vmem does not use. The SDK declares no `sideEffects`, so esbuild would
-// keep that module and the ajv it loads. Mark it side-effect free so it drops.
+// @vvedantb/server lazily imports the SDK's MCP client for its `connectAs`
+// sign-in, which vmem does not use (see src/mcp-oauth.ts). esbuild always keeps
+// a dynamic import, so that client and the ajv it loads would ship as a chunk
+// whose bare specifiers fail `check:asar`. Resolve it to a stub that throws.
 const sdkClientEntries =
   /^@modelcontextprotocol\/sdk\/client\/(index|streamableHttp)\.js$/;
-const skipSdkClientEntries = Symbol("skip");
 const dropUnusedSdkClient = {
   name: "drop-unused-sdk-client",
   setup(b) {
-    b.onResolve({ filter: sdkClientEntries }, async (args) => {
-      if (args.pluginData === skipSdkClientEntries) return undefined;
-      const result = await b.resolve(args.path, {
-        kind: args.kind,
-        importer: args.importer,
-        resolveDir: args.resolveDir,
-        pluginData: skipSdkClientEntries,
-      });
-      return { ...result, sideEffects: false };
-    });
+    b.onResolve({ filter: sdkClientEntries }, (args) => ({
+      path: args.path,
+      namespace: "unused-sdk-client",
+    }));
+    b.onLoad({ filter: /.*/, namespace: "unused-sdk-client" }, (args) => ({
+      contents: `throw new Error(${JSON.stringify(`${args.path} is not bundled`)});`,
+    }));
   },
 };
 

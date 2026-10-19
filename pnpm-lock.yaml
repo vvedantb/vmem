@@ -209,8 +209,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/shared
       '@vvedantb/ui':
-        specifier: ^0.9.0
-        version: 0.9.0(c462d1eecec34e45a6046f0f202797ba)
+        specifier: ^0.10.0
+        version: 0.10.0(210c8245d96e4b74f14c755c9ce7ca7d)
       '@webext-core/messaging':
         specifier: ^2.3.0
         version: 2.3.0
@@ -308,9 +308,9 @@ importers:
       '@vmem/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
-      '@vvedantb/mcp-client':
-        specifier: 0.1.0
-        version: 0.1.0(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))(zod@3.25.76)
+      '@vvedantb/server':
+        specifier: ^0.4.0
+        version: 0.4.0(@clerk/backend@2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))(convex@1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6))(zod@3.25.76)
       get-windows:
         specifier: ^9.2.0
         version: 9.3.0(encoding@0.1.13)
@@ -349,8 +349,8 @@ importers:
         specifier: 0.3.0
         version: 0.3.0(@electron/asar@3.4.1)
       '@vvedantb/ui':
-        specifier: ^0.9.0
-        version: 0.9.0(e2590338ab5f46447406b9c2c755e64d)
+        specifier: ^0.10.0
+        version: 0.10.0(5f9be7c3e34239fa1faaf70409e3f195)
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1
@@ -476,12 +476,12 @@ importers:
       '@vmem/shared':
         specifier: workspace:*
         version: link:../../packages/shared
-      '@vvedantb/convex-client':
-        specifier: 0.1.0
-        version: 0.1.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(convex@1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6))(react@19.3.0)(zod@3.25.76)
+      '@vvedantb/server':
+        specifier: ^0.4.0
+        version: 0.4.0(@clerk/backend@2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))(convex@1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6))(zod@3.25.76)
       '@vvedantb/ui':
-        specifier: ^0.9.0
-        version: 0.9.0(51e690c7a322c6ba0f2e34f86db22d4a)
+        specifier: ^0.10.0
+        version: 0.10.0(d855569db3679dc4dc608f366ec151e5)
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1
@@ -637,8 +637,8 @@ importers:
         specifier: workspace:*
         version: link:../shared
       '@vvedantb/server':
-        specifier: 0.3.0
-        version: 0.3.0(@clerk/backend@2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(zod@3.25.76)
+        specifier: 0.4.0
+        version: 0.4.0(@clerk/backend@2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))(convex@1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6))(zod@3.25.76)
       ai:
         specifier: ^7.0.108
         version: 7.0.108(zod@3.25.76)
@@ -4973,40 +4973,25 @@ packages:
       '@electron/asar':
         optional: true
 
-  '@vvedantb/convex-client@0.1.0':
-    resolution: {integrity: sha512-OwcGAb+Ql3q2CibTbBx3JGuyNwABZORVTPZgN58r2M9YBsQd/BtO6hV+ye9kPrKUPhhaOXIFvbrilAsYSeTddQ==}
-    peerDependencies:
-      '@clerk/clerk-react': '>=5'
-      convex: ^1.24.0
-      react: ^18.0.0 || ^19.0.0
-      zod: ^3.25.0 || ^4.0.0
-    peerDependenciesMeta:
-      zod:
-        optional: true
-
-  '@vvedantb/mcp-client@0.1.0':
-    resolution: {integrity: sha512-AkqRpoY6FlNm87V/7NlBe/NFCHuCM/sprU0Net/r2bKeEyif+8AX18+ORDUZkm4D6ztsMfQk2D96gzTntRjTmQ==}
-    engines: {node: '>=20'}
-    peerDependencies:
-      '@modelcontextprotocol/sdk': ^1.29.0
-      zod: ^3.25.0 || ^4.0.0
-    peerDependenciesMeta:
-      zod:
-        optional: true
-
-  '@vvedantb/server@0.3.0':
-    resolution: {integrity: sha512-tt032LamDT8qrx5wELmyPZ90dNm1j00vm8KwlXkIoyUGFjPvXWwWioYIE7m3Ewlty+traMyjUbOgzRxZt3I1rg==}
+  '@vvedantb/server@0.4.0':
+    resolution: {integrity: sha512-y5dL9FIImAbLnOBtGkGYAGySrS1+uQYNGDVM6/Itutb04Rv7Iu509PRySMAJ6/7qnG7IIwB9jZGvn/NvsglCkQ==}
     peerDependencies:
       '@clerk/backend': '>=1'
+      '@modelcontextprotocol/sdk': ^1.29.0
+      convex: ^1.24.0
       zod: ^3.25.0 || ^4.0.0
     peerDependenciesMeta:
       '@clerk/backend':
         optional: true
+      '@modelcontextprotocol/sdk':
+        optional: true
+      convex:
+        optional: true
       zod:
         optional: true
 
-  '@vvedantb/ui@0.9.0':
-    resolution: {integrity: sha512-6kdaYSB4shh/9h7F8FtKdt53hyZ49/sdANh8RQUl86L52W5gTPNJ9T+HMGKgmODpBMVYgAVPM5+kLjOzqgdHNQ==}
+  '@vvedantb/ui@0.10.0':
+    resolution: {integrity: sha512-mEr0hmR9GIvaPF6sre/frau4/V8KPnSWZnjuRPRQckQ29FS0sCbD/IkVDC8aUYg2uoRtMXaXTR0HSRI34lQM/A==}
     peerDependencies:
       '@clerk/clerk-react': '>=5'
       '@radix-ui/react-accordion': ^1.2.12
@@ -5038,6 +5023,7 @@ packages:
       class-variance-authority: ^0.7.1
       clsx: ^2.1.1
       cmdk: ^1.1.1
+      convex: ^1.24.0
       embla-carousel-react: ^8.6.0
       motion: '>=12.0.0'
       nanoid: ^5.1.0
@@ -5055,6 +5041,8 @@ packages:
       '@clerk/clerk-react':
         optional: true
       '@tanstack/react-hotkeys':
+        optional: true
+      convex:
         optional: true
       motion:
         optional: true
@@ -14593,73 +14581,14 @@ snapshots:
     optionalDependencies:
       '@electron/asar': 3.4.1
 
-  '@vvedantb/convex-client@0.1.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(convex@1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6))(react@19.3.0)(zod@3.25.76)':
-    dependencies:
-      '@clerk/clerk-react': 5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      convex: 1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6)
-      react: 19.3.0
-    optionalDependencies:
-      zod: 3.25.76
-
-  '@vvedantb/mcp-client@0.1.0(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))(zod@3.25.76)':
-    dependencies:
-      '@modelcontextprotocol/sdk': 1.29.0(zod@3.25.76)
-    optionalDependencies:
-      zod: 3.25.76
-
-  '@vvedantb/server@0.3.0(@clerk/backend@2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(zod@3.25.76)':
+  '@vvedantb/server@0.4.0(@clerk/backend@2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))(convex@1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6))(zod@3.25.76)':
     optionalDependencies:
       '@clerk/backend': 2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@modelcontextprotocol/sdk': 1.29.0(zod@3.25.76)
+      convex: 1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6)
       zod: 3.25.76
 
-  '@vvedantb/ui@0.9.0(51e690c7a322c6ba0f2e34f86db22d4a)':
-    dependencies:
-      '@radix-ui/react-accordion': 1.2.20(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@radix-ui/react-checkbox': 1.3.3(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@radix-ui/react-collapsible': 1.1.12(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@radix-ui/react-context-menu': 2.2.16(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@radix-ui/react-dialog': 1.1.15(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@radix-ui/react-dropdown-menu': 2.1.16(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@radix-ui/react-hover-card': 1.1.15(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@radix-ui/react-label': 2.1.8(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@radix-ui/react-popover': 1.1.15(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@radix-ui/react-progress': 1.1.8(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@radix-ui/react-scroll-area': 1.2.18(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@radix-ui/react-select': 2.2.6(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@radix-ui/react-separator': 1.1.8(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@radix-ui/react-slot': 1.2.4(@types/react@19.3.0)(react@19.3.0)
-      '@radix-ui/react-switch': 1.2.6(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@radix-ui/react-tabs': 1.1.13(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@radix-ui/react-tooltip': 1.2.8(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@radix-ui/react-use-controllable-state': 1.2.2(@types/react@19.3.0)(react@19.3.0)
-      '@radix-ui/react-visually-hidden': 1.2.11(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@streamdown/cjk': 1.0.4(@types/mdast@4.0.4)(micromark-util-types@2.0.3)(micromark@4.0.3)(react@19.3.0)(unified@11.0.5)
-      '@streamdown/code': 2.0.0(react@19.3.0)
-      '@streamdown/math': 1.0.3(react@19.3.0)
-      '@streamdown/mermaid': 1.0.3(react@19.3.0)
-      '@tabler/icons-react': 3.41.1(react@19.3.0)
-      ai: 7.0.108(zod@3.25.76)
-      class-variance-authority: 0.7.1
-      clsx: 2.1.1
-      cmdk: 1.1.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      embla-carousel-react: 8.6.0(react@19.3.0)
-      nanoid: 5.1.16
-      radix-ui: 1.6.7(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      react: 19.3.0
-      react-dom: 19.3.0(react@19.3.0)
-      shiki: 4.5.0
-      sonner: 2.0.7(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      streamdown: 2.7.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      tailwind-merge: 2.6.1
-      use-stick-to-bottom: 1.1.6(react@19.3.0)
-      vaul: 1.1.2(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-    optionalDependencies:
-      '@clerk/clerk-react': 5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@tanstack/react-hotkeys': 0.9.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      motion: 12.38.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      zod: 3.25.76
-
-  '@vvedantb/ui@0.9.0(c462d1eecec34e45a6046f0f202797ba)':
+  '@vvedantb/ui@0.10.0(210c8245d96e4b74f14c755c9ce7ca7d)':
     dependencies:
       '@radix-ui/react-accordion': 1.2.20(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@radix-ui/react-checkbox': 1.3.11(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -14703,10 +14632,11 @@ snapshots:
     optionalDependencies:
       '@clerk/clerk-react': 5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@tanstack/react-hotkeys': 0.9.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      convex: 1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6)
       motion: 12.38.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       zod: 3.25.76
 
-  '@vvedantb/ui@0.9.0(e2590338ab5f46447406b9c2c755e64d)':
+  '@vvedantb/ui@0.10.0(5f9be7c3e34239fa1faaf70409e3f195)':
     dependencies:
       '@radix-ui/react-accordion': 1.2.20(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@radix-ui/react-checkbox': 1.3.11(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -14750,6 +14680,55 @@ snapshots:
     optionalDependencies:
       '@clerk/clerk-react': 5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@tanstack/react-hotkeys': 0.9.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      convex: 1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6)
+      motion: 12.38.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      zod: 3.25.76
+
+  '@vvedantb/ui@0.10.0(d855569db3679dc4dc608f366ec151e5)':
+    dependencies:
+      '@radix-ui/react-accordion': 1.2.20(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@radix-ui/react-checkbox': 1.3.3(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@radix-ui/react-collapsible': 1.1.12(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@radix-ui/react-context-menu': 2.2.16(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@radix-ui/react-dialog': 1.1.15(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@radix-ui/react-dropdown-menu': 2.1.16(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@radix-ui/react-hover-card': 1.1.15(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@radix-ui/react-label': 2.1.8(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@radix-ui/react-popover': 1.1.15(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@radix-ui/react-progress': 1.1.8(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@radix-ui/react-scroll-area': 1.2.18(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@radix-ui/react-select': 2.2.6(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@radix-ui/react-separator': 1.1.8(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@radix-ui/react-slot': 1.2.4(@types/react@19.3.0)(react@19.3.0)
+      '@radix-ui/react-switch': 1.2.6(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@radix-ui/react-tabs': 1.1.13(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@radix-ui/react-tooltip': 1.2.8(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@radix-ui/react-use-controllable-state': 1.2.2(@types/react@19.3.0)(react@19.3.0)
+      '@radix-ui/react-visually-hidden': 1.2.11(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@streamdown/cjk': 1.0.4(@types/mdast@4.0.4)(micromark-util-types@2.0.3)(micromark@4.0.3)(react@19.3.0)(unified@11.0.5)
+      '@streamdown/code': 2.0.0(react@19.3.0)
+      '@streamdown/math': 1.0.3(react@19.3.0)
+      '@streamdown/mermaid': 1.0.3(react@19.3.0)
+      '@tabler/icons-react': 3.41.1(react@19.3.0)
+      ai: 7.0.108(zod@3.25.76)
+      class-variance-authority: 0.7.1
+      clsx: 2.1.1
+      cmdk: 1.1.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      embla-carousel-react: 8.6.0(react@19.3.0)
+      nanoid: 5.1.16
+      radix-ui: 1.6.7(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react: 19.3.0
+      react-dom: 19.3.0(react@19.3.0)
+      shiki: 4.5.0
+      sonner: 2.0.7(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      streamdown: 2.7.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      tailwind-merge: 2.6.1
+      use-stick-to-bottom: 1.1.6(react@19.3.0)
+      vaul: 1.1.2(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+    optionalDependencies:
+      '@clerk/clerk-react': 5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@tanstack/react-hotkeys': 0.9.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      convex: 1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6)
       motion: 12.38.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       zod: 3.25.76
 
