@@ -7,6 +7,8 @@
 @source "../../../node_modules/@vvedantb/ui/src/**/*.{ts,tsx}";
 @source "../../../node_modules/@vvedantb/ui/shell/src/**/*.{ts,tsx}";
 @source "../../../node_modules/@vvedantb/ui/app/src/**/*.{ts,tsx}";
+/* Keeps theme vars the landing stylesheet reads, e.g. --font-instrumentSerif. */
+@source "../../../node_modules/@vvedantb/ui/src/marketing/landing.css";
 
 @import "@vvedantb/ui/tokens/css/animations.css";
 

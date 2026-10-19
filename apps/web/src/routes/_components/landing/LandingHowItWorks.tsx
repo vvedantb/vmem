@@ -1,6 +1,6 @@
 import { IconBolt, IconBrain, IconTopologyStar3 } from "@tabler/icons-react";
-import { LandingFeatureCard } from "./LandingFeatureCard";
 import {
+  LandingFeatureCard,
   LandingLattice,
   LandingReveal,
   LandingRevealItem,

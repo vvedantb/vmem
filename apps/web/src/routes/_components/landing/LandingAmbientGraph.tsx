@@ -1,5 +1,5 @@
 // decorative graph atmosphere presentational only, no interaction
-// CSS loaded via LandingPage (`./landing.css`)
+// CSS loaded via LandingPage (`@vvedantb/ui/landing.css`)
 
 const ambientGraphSvg = (
   <svg

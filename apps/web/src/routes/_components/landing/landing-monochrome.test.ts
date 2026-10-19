@@ -1,10 +1,14 @@
 import { readdirSync, readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { LANDING_MONO, LANDING_NAV_LINKS } from "./landingContent";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
+const landingCssPath = createRequire(import.meta.url).resolve(
+  "@vvedantb/ui/landing.css",
+);
 
 describe("landing is monochrome", () => {
   it("does not use danger/red tokens in marketing chrome", () => {
@@ -17,6 +21,7 @@ describe("landing is monochrome", () => {
       expect(source, name).not.toMatch(/\bdanger\b/);
       expect(source, name).not.toMatch(/tagToColor/);
     }
+    expect(readFileSync(landingCssPath, "utf8")).not.toMatch(/\bdanger\b/);
   });
 
   it("uses gray fills for product mocks", () => {
@@ -41,7 +46,7 @@ describe("landing wordmark", () => {
     expect(wordmark).toContain("landing-wordmark-text");
     expect(wordmark).not.toMatch(/font-semibold|font-bold/);
 
-    const css = read("landing.css");
+    const css = readFileSync(landingCssPath, "utf8");
     expect(css).toMatch(/\.landing-wordmark-text[\s\S]*font-weight:\s*400/);
     expect(css).toMatch(/\.landing-wordmark-text[\s\S]*font-synthesis:\s*none/);
 
