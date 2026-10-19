@@ -12,8 +12,9 @@ import {
   DialogFooter,
   Button,
   Input,
+  Spinner,
 } from "@vvedantb/ui";
-import { IconLoader2, IconCheck, IconCopy, IconKey } from "@tabler/icons-react";
+import { IconCheck, IconCopy, IconKey } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { api } from "@vmem/backend";
 import { apiKeySchema, type ApiKeyFormValues } from "@/lib/schemas";
@@ -133,10 +134,7 @@ export default function ApiKeyModal({ isOpen, onClose }: ApiKeyModalProps) {
 
         {isSubmitting && (
           <div className="py-8 space-y-4 text-center">
-            <IconLoader2
-              size={32}
-              className="animate-spin text-muted mx-auto"
-            />
+            <Spinner size={32} className="mx-auto" />
             <div className="space-y-2">
               <p className="text-foreground font-medium">Creating API Key...</p>
               <p className="text-sm text-muted">

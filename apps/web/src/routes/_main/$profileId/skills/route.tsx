@@ -9,7 +9,7 @@ import { useMutation, useQuery } from "convex/react";
 import { useQueryStates } from "nuqs";
 import { api } from "@vmem/backend";
 import type { Id } from "@vmem/backend";
-import { Spinner } from "@vvedantb/ui";
+import { EmptyState, Spinner } from "@vvedantb/ui";
 import { IconBolt } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import PageContainer from "@/components/shell/PageContainer";
@@ -190,12 +190,12 @@ function SkillsLayout() {
             <Spinner size="sm" />
           </div>
         ) : skills.length === 0 ? (
-          <div className="flex flex-1 flex-col items-center justify-center text-center">
-            <IconBolt size={40} className="mb-3 text-muted" />
-            <p className="text-sm text-muted">
+          <EmptyState.Root className="flex-1 px-0 py-0">
+            <EmptyState.Icon icon={IconBolt} />
+            <EmptyState.Description>
               No skills yet. Use Add in the sidebar to get started.
-            </p>
-          </div>
+            </EmptyState.Description>
+          </EmptyState.Root>
         ) : (
           <div className="flex flex-1 items-center justify-center">
             <p className="text-sm text-muted">

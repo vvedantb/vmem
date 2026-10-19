@@ -1,7 +1,6 @@
 import type { FormEvent, ReactNode } from "react";
 import type { UseFormRegisterReturn } from "react-hook-form";
-import { Button, Input, Textarea } from "@vvedantb/ui";
-import { IconLoader2 } from "@tabler/icons-react";
+import { Button, Input, Textarea, Spinner } from "@vvedantb/ui";
 import {
   SkillDescriptionSection,
   SkillInstructionsSection,
@@ -100,9 +99,7 @@ export function SkillFormShell({
           Cancel
         </Button>
         <Button type="submit" size="sm" disabled={submitting}>
-          {submitting ? (
-            <IconLoader2 size={14} className="animate-spin" />
-          ) : null}
+          {submitting ? <Spinner size={14} tone="inherit" decorative /> : null}
           {submitLabel}
         </Button>
       </div>

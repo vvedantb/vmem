@@ -1,8 +1,8 @@
 import { useAction } from "convex/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Button } from "@vvedantb/ui";
-import { IconSparkles, IconLoader2 } from "@tabler/icons-react";
+import { Button, Spinner } from "@vvedantb/ui";
+import { IconSparkles } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
 
@@ -85,7 +85,7 @@ function DreamModeButtonIdle() {
 function DreamModeButtonRunning() {
   return (
     <>
-      <IconLoader2 size={14} className="animate-spin" />
+      <Spinner size={14} tone="inherit" decorative />
       Dreaming…
     </>
   );

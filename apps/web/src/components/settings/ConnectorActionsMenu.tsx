@@ -7,10 +7,10 @@ import {
   DropdownMenuTrigger,
   ConfirmSkipHint,
   skipConfirmTitle,
+  Spinner,
 } from "@vvedantb/ui";
 import {
   IconDots,
-  IconLoader2,
   IconUnlink,
   IconRefresh,
   IconTrash,
@@ -58,7 +58,7 @@ export default function ConnectorActionsMenu({
           aria-label={`${connectorName} options`}
         >
           {isSyncing ? (
-            <IconLoader2 size={14} className="animate-spin" />
+            <Spinner size={14} tone="inherit" decorative />
           ) : (
             <IconDots size={14} />
           )}

@@ -10,8 +10,9 @@ import {
   DialogHeader,
   DialogTitle,
   cn,
+  Spinner,
 } from "@vvedantb/ui";
-import { IconHistory, IconLoader2 } from "@tabler/icons-react";
+import { IconHistory } from "@tabler/icons-react";
 import { toast } from "sonner";
 import type { SkillVersionListEntry } from "@/components/skills/_utils";
 import { formatRelativeTime } from "@vmem/shared";
@@ -144,7 +145,7 @@ export function SkillHistoryPanel({
           <div className="flex w-56 shrink-0 flex-col overflow-y-auto rounded-lg bg-surface-secondary/40 p-1 scrollbar-thin">
             {versions === undefined ? (
               <div className="flex flex-1 items-center justify-center">
-                <IconLoader2 size={16} className="animate-spin text-muted" />
+                <Spinner size={16} />
               </div>
             ) : versions.length === 0 ? (
               <div className="flex flex-1 flex-col items-center justify-center gap-2 px-3 py-6 text-center">
@@ -171,7 +172,7 @@ export function SkillHistoryPanel({
           <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto rounded-lg bg-surface-secondary/40 px-4 py-3 scrollbar-thin">
             {selected === undefined && activeVersionId !== null ? (
               <div className="flex flex-1 items-center justify-center">
-                <IconLoader2 size={16} className="animate-spin text-muted" />
+                <Spinner size={16} />
               </div>
             ) : selected ? (
               <>
@@ -220,9 +221,7 @@ export function SkillHistoryPanel({
             disabled={!selected || restoring}
             onClick={() => void handleRestore()}
           >
-            {restoring ? (
-              <IconLoader2 size={14} className="animate-spin" />
-            ) : null}
+            {restoring ? <Spinner size={14} tone="inherit" decorative /> : null}
             Restore this version
           </Button>
         </div>

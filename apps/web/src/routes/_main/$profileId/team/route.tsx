@@ -2,9 +2,8 @@ import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@vmem/backend";
-import { IconLoader2 } from "@tabler/icons-react";
 import PageContainer from "@/components/shell/PageContainer";
-import { SettingsStack } from "@vvedantb/ui";
+import { SettingsStack, Spinner } from "@vvedantb/ui";
 import { TeamDetailProvider } from "@/components/teams/team-context";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 import { TeamWorkspaceTabs } from "./-components/TeamTabs";
@@ -48,7 +47,7 @@ function TeamWorkspaceLayout() {
     return (
       <PageContainer title="Team" centeredMaxWidth>
         <div className="flex items-center justify-center py-20">
-          <IconLoader2 size={20} className="animate-spin text-muted" />
+          <Spinner size={20} />
         </div>
       </PageContainer>
     );

@@ -11,8 +11,8 @@ import {
   DialogDescription,
   DialogFooter,
   Input,
+  Spinner,
 } from "@vvedantb/ui";
-import { IconLoader2 } from "@tabler/icons-react";
 import type { ApiKey } from "./types";
 
 interface EditKeyDialogProps {
@@ -98,7 +98,7 @@ export function EditKeyDialog({ apiKey, isOpen, onClose }: EditKeyDialogProps) {
                 className="text-muted"
               >
                 {isSubmitting ? (
-                  <IconLoader2 size={14} className="animate-spin" />
+                  <Spinner size={14} tone="inherit" decorative />
                 ) : null}
                 Done
               </Button>

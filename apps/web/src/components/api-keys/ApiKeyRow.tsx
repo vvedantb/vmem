@@ -1,4 +1,5 @@
 import {
+  Spinner,
   TableRow,
   TableCell,
   Badge,
@@ -10,7 +11,6 @@ import {
   IconCheck,
   IconEye,
   IconEyeOff,
-  IconLoader2,
   IconPencil,
   IconBan,
   IconTrash,
@@ -18,18 +18,6 @@ import {
 import { formatRelativeTime } from "@vmem/shared";
 import { formatDate, formatNumber } from "@/lib/formatters";
 import type { ApiKey } from "./types";
-
-function ApiKeyActiveBadge() {
-  return (
-    <Badge className="border-success/25 bg-success/12 text-success text-xs">
-      Active
-    </Badge>
-  );
-}
-
-function ApiKeyRevokedBadge() {
-  return <Badge className="bg-danger/10 text-danger text-xs">Revoked</Badge>;
-}
 
 function ApiKeySecretCellRevoked({ maskedKey }: { maskedKey: string }) {
   return (
@@ -73,7 +61,7 @@ function ApiKeySecretCellActive({
         title={isRevealed ? "Hide key" : "Reveal key"}
       >
         {isRevealing ? (
-          <IconLoader2 size={14} className="animate-spin" />
+          <Spinner size={14} tone="inherit" decorative />
         ) : isRevealed ? (
           <IconEyeOff size={14} />
         ) : (
@@ -88,7 +76,7 @@ function ApiKeySecretCellActive({
         title={isCopied ? "Copied!" : "Copy key"}
       >
         {isCopying ? (
-          <IconLoader2 size={14} className="animate-spin" />
+          <Spinner size={14} tone="inherit" decorative />
         ) : isCopied ? (
           <IconCheck size={14} className="text-accent" />
         ) : (
@@ -139,7 +127,11 @@ export function ApiKeyRow({
         </p>
       </TableCell>
       <TableCell className="hidden sm:table-cell py-4">
-        {isActive ? <ApiKeyActiveBadge /> : <ApiKeyRevokedBadge />}
+        {isActive ? (
+          <Badge variant="success">Active</Badge>
+        ) : (
+          <Badge variant="destructive-soft">Revoked</Badge>
+        )}
       </TableCell>
       <TableCell className="hidden md:table-cell py-4">
         {isActive ? (

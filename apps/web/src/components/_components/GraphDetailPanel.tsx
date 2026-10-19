@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { IconTrash, IconFocusCentered, IconLoader2 } from "@tabler/icons-react";
+import { IconTrash, IconFocusCentered } from "@tabler/icons-react";
 import {
   Badge,
   Button,
   ConfirmSkipHint,
   skipConfirmTitle,
   SlideOverPanel,
+  Spinner,
   useRequestConfirm,
 } from "@vvedantb/ui";
 import { formatDate } from "@/lib/formatters";
@@ -66,7 +67,7 @@ export default function GraphDetailPanel({
         <div className="px-4 py-2 flex-1 min-h-0">
           {nodeData.content === undefined ? (
             <div className="flex items-center gap-2 text-xs text-muted">
-              <IconLoader2 size={12} className="animate-spin" />
+              <Spinner size={12} tone="inherit" decorative />
               Loading content…
             </div>
           ) : (
@@ -111,7 +112,7 @@ export default function GraphDetailPanel({
                   }}
                 >
                   {isDeleting ? (
-                    <IconLoader2 size={14} className="animate-spin" />
+                    <Spinner size={14} tone="inherit" decorative />
                   ) : (
                     <IconTrash size={14} />
                   )}

@@ -9,15 +9,12 @@ import {
   Badge,
   Button,
   ConfirmDialog,
+  EmptyState,
   skipConfirmTitle,
+  Spinner,
   useRequestConfirm,
 } from "@vvedantb/ui";
-import {
-  IconAlertTriangle,
-  IconLink,
-  IconLoader2,
-  IconUnlink,
-} from "@tabler/icons-react";
+import { IconAlertTriangle, IconLink, IconUnlink } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { api } from "@vmem/backend";
 import {
@@ -29,7 +26,6 @@ import {
   type RelatedMemoryEntry,
 } from "@/lib/memories";
 import LinkMemoryModal from "@/components/memories/LinkMemoryModal";
-import { DetailEmptyState } from "./detail-panel/DetailEmptyState";
 import { VmemSpinner } from "@/components/icons/animations";
 
 interface RelatedMemoriesProps {
@@ -120,17 +116,19 @@ export default function RelatedMemories({
           <VmemSpinner size={20} className="text-muted" />
         </div>
       ) : entries.length === 0 ? (
-        <DetailEmptyState
-          icon={IconLink}
-          title="No connections yet"
-          description="Link related memories to build a graph of how ideas connect."
-          action={
+        <EmptyState.Root variant="panel">
+          <EmptyState.Icon icon={IconLink} />
+          <EmptyState.Title>No connections yet</EmptyState.Title>
+          <EmptyState.Description>
+            Link related memories to build a graph of how ideas connect.
+          </EmptyState.Description>
+          <EmptyState.Actions>
             <Button size="sm" onClick={() => setLinkModalOpen(true)}>
               <IconLink size={14} />
               Link a memory
             </Button>
-          }
-        />
+          </EmptyState.Actions>
+        </EmptyState.Root>
       ) : (
         <div className="flex flex-col gap-0.5">
           {entries.map((entry) => {
@@ -187,7 +185,7 @@ export default function RelatedMemories({
                   aria-label={`Unlink ${entry.memory.title}`}
                 >
                   {unlinkingId === entry.memory.id ? (
-                    <IconLoader2 size={14} className="animate-spin" />
+                    <Spinner size={14} tone="inherit" decorative />
                   ) : (
                     <IconUnlink size={14} />
                   )}

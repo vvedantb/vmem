@@ -9,15 +9,10 @@ import {
   Button,
   Input,
   Progress,
+  Spinner,
 } from "@vvedantb/ui";
 import { toast } from "sonner";
-import {
-  IconUpload,
-  IconX,
-  IconLoader2,
-  IconCheck,
-  IconTrash,
-} from "@tabler/icons-react";
+import { IconUpload, IconX, IconCheck, IconTrash } from "@tabler/icons-react";
 import { formatFileSize, getFileIconForMime } from "@/components/files/_utils";
 
 interface FileUploadModalProps {
@@ -270,10 +265,7 @@ export default function FileUploadModal({
                           </Button>
                         )}
                         {queuedFile.status === "uploading" && (
-                          <IconLoader2
-                            size={20}
-                            className="text-muted animate-spin"
-                          />
+                          <Spinner size={20} />
                         )}
                         {queuedFile.status === "complete" && (
                           <IconCheck size={20} className="text-success" />
@@ -312,7 +304,7 @@ export default function FileUploadModal({
               disabled={isUploading || pendingCount === 0}
             >
               {isUploading ? (
-                <IconLoader2 size={16} className="animate-spin" />
+                <Spinner size={16} tone="inherit" decorative />
               ) : (
                 <IconUpload size={16} />
               )}

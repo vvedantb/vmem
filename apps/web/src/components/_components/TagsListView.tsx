@@ -9,15 +9,16 @@ import {
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuTrigger,
+  EmptyState,
   Input,
   ConfirmSkipHint,
   skipConfirmTitle,
+  Spinner,
   useRequestConfirm,
 } from "@vvedantb/ui";
 import {
   IconCheck,
   IconEdit,
-  IconLoader2,
   IconMoodEmpty,
   IconTrash,
   IconX,
@@ -28,7 +29,6 @@ import { useMemoryContext } from "@/contexts/MemoryContext";
 import { useMemoryFacets } from "@/hooks/useMemoryFacets";
 import { useMemoriesSearchParams } from "@/hooks/useMemoriesSearchParams";
 import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
-import { DetailEmptyState } from "@/components/_components/detail-panel/DetailEmptyState";
 import { TagMemoriesPanel } from "@/components/_components/TagMemoriesPanel";
 import { VmemSpinner } from "@/components/icons/animations";
 
@@ -168,15 +168,17 @@ export default function TagsListView() {
   if (tags.length === 0) {
     const isFiltering = params.q.trim().length > 0;
     return (
-      <DetailEmptyState
-        icon={IconMoodEmpty}
-        title={isFiltering ? "No tags match" : "No tags yet"}
-        description={
-          isFiltering
+      <EmptyState.Root variant="panel">
+        <EmptyState.Icon icon={IconMoodEmpty} />
+        <EmptyState.Title>
+          {isFiltering ? "No tags match" : "No tags yet"}
+        </EmptyState.Title>
+        <EmptyState.Description>
+          {isFiltering
             ? "Try a different search."
-            : "Add tags to memories to start grouping them."
-        }
-      />
+            : "Add tags to memories to start grouping them."}
+        </EmptyState.Description>
+      </EmptyState.Root>
     );
   }
 
@@ -389,7 +391,7 @@ function RenameRow({
         aria-label="Save tag rename"
       >
         {isSaving ? (
-          <IconLoader2 size={16} className="animate-spin" />
+          <Spinner size={16} tone="inherit" decorative />
         ) : (
           <IconCheck size={16} />
         )}

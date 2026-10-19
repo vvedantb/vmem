@@ -8,16 +8,11 @@ import {
   ConfirmSkipHint,
   SettingsSection,
   skipConfirmTitle,
+  Spinner,
   useRequestConfirm,
 } from "@vvedantb/ui";
 import { useUser } from "@clerk/clerk-react";
-import {
-  IconPlus,
-  IconTrash,
-  IconLoader2,
-  IconUser,
-  IconLogout,
-} from "@tabler/icons-react";
+import { IconPlus, IconTrash, IconUser, IconLogout } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { convexErrorMessage } from "@/lib/convex-error";
 import { useTeamWorkspace, type TeamMember } from "./team-context";
@@ -268,7 +263,7 @@ function MemberRow({
             className="text-muted hover:text-danger"
           >
             {isRemoving ? (
-              <IconLoader2 size={14} className="animate-spin" />
+              <Spinner size={14} tone="inherit" decorative />
             ) : (
               <IconTrash size={14} />
             )}

@@ -8,9 +8,9 @@ import {
   DialogTitle,
   DialogFooter,
   Button,
+  Spinner,
 } from "@vvedantb/ui";
 import {
-  IconLoader2,
   IconCheck,
   IconLock,
   IconExternalLink,
@@ -229,10 +229,7 @@ export default function OAuthModal({
 
         {step === "connecting" ? (
           <div className="py-8 space-y-4 text-center">
-            <IconLoader2
-              size={32}
-              className="animate-spin text-muted mx-auto"
-            />
+            <Spinner size={32} className="mx-auto" />
             <div className="space-y-2">
               <p className="text-foreground font-medium">
                 Connecting to {connectorName}...
