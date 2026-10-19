@@ -6,8 +6,8 @@ import {
   motionDuration,
   motionEase,
   SidebarIconTooltip,
-  sidebarNavLinkTextClass,
-  sidebarNavRowClass,
+  sidebarNavIconClass,
+  sidebarNavItemClass,
 } from "@vvedantb/ui";
 import { IconChevronRight } from "@tabler/icons-react";
 import type { NavItem } from "./types";
@@ -56,15 +56,16 @@ export function NavLink({
         search={preserveSearch ? true : undefined}
         onClick={onNavigate}
         className={cn(
-          "group relative flex w-full items-center rounded-lg text-sm font-medium tracking-normal transition-colors duration-200 ease-smooth",
-          sidebarNavRowClass(isIconOnly),
-          sidebarNavLinkTextClass(isActive),
+          "relative",
+          sidebarNavItemClass({ active: isActive, iconOnly: isIconOnly }),
           showChevron ? "h-auto" : null,
         )}
       >
-        <span className="flex h-5 w-5 items-center justify-center text-current">
-          <Icon size={18} stroke={1.7} />
-        </span>
+        <Icon
+          size={19}
+          stroke={1.7}
+          className={sidebarNavIconClass(isActive)}
+        />
         <AnimatePresence initial={false}>
           {!isIconOnly ? (
             <motion.span
