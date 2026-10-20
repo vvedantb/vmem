@@ -3,7 +3,9 @@ title: "MCP Tools"
 description: "Complete reference for all vmem MCP tools"
 ---
 
-Tools are registered from `packages/backend/convex/mcp/tools*.ts`. Auth accepts a Clerk `oauth_token` or `session_token` bearer (MCP server `2.0.0`). Memory tools work on `/mcp` and `/mcp/team`. Skills tools also work on both connectors (personal skills on `/mcp`, team-granted skills on `/mcp/team`), except `skills_import` which is personal `/mcp` only. Files and `context_prompt_get` are personal-only.
+Tools are registered from `packages/backend/convex/mcp/tools*.ts`. Auth accepts a Clerk `oauth_token` or `session_token` bearer (MCP server `2.1.0`). Memory tools work on `/mcp` and `/mcp/team`. Skills tools also work on both connectors (personal skills on `/mcp`, team-granted skills on `/mcp/team`), except `skills_import` which is personal `/mcp` only. `proposals_list` and `proposals_resolve` work on both connectors. Files, `context_prompt_get`, `dream_run` and the `notifications_*` tools are personal-only.
+
+Every tool acts as the signed-in user from the bearer token. No tool takes a user ID. IDs that belong to another user, or to a profile outside the connector, return "not found".
 
 ## ping
 
@@ -29,7 +31,7 @@ Returns the authenticated user ID and active profile.
 
 ## list_profiles
 
-List all profiles available to the user. Returns profile IDs, names, colors, and icons.
+List all profiles available to the user. Returns profile IDs, names, colors, icons, `isDefault`, and the Dream Mode portrait (`dreamPortrait`, `dreamPortraitUpdatedAt`, both `null` until Dream Mode writes one).
 
 **Parameters:** none
 
@@ -88,7 +90,7 @@ Sections fill in priority order until `maxChars`: relevant memories (same retrie
 
 ## memory_search
 
-Search memories by query text, type, tags, or source.
+Search or list memories (newest first) by query text, type, tags, source, status, and created date.
 
 <ParamField body="query" type="string">
   Text to search for
@@ -96,11 +98,27 @@ Search memories by query text, type, tags, or source.
 <ParamField body="type" type="string">
   Filter: `profile`, `episodic`, or `knowledge`
 </ParamField>
+<ParamField body="types" type="string[]">
+  Several types (any of)
+</ParamField>
 <ParamField body="tags" type="string[]">
-  Filter by tags
+  Filter by tags (every tag must match)
 </ParamField>
 <ParamField body="source" type="string">
   Filter by source
+</ParamField>
+<ParamField body="sources" type="string[]">
+  Several sources (any of)
+</ParamField>
+<ParamField body="status" type="string">
+  `active`, `pinned`, `suppressed`, or `expired`. The default shows active and
+  pinned.
+</ParamField>
+<ParamField body="createdAfter" type="string">
+  ISO date or date-time. Only memories created at or after it.
+</ParamField>
+<ParamField body="createdBefore" type="string">
+  ISO date or date-time. Only memories created at or before it.
 </ParamField>
 <ParamField body="profileId" type="string">
   Profile to search in (defaults to active profile)
@@ -189,6 +207,37 @@ Store a new memory.
 
 ---
 
+## memory_add_batch
+
+Store up to 50 memories in one call, for example a ChatGPT or Claude export. Items are stored in order. A failed item does not undo the others.
+
+<ParamField body="items" type="object[]" required>
+  1–50 items, each with the `memory_add` fields (`title`, `content`, `type`,
+  `source`, optional `tags`, `confidence`)
+</ParamField>
+<ParamField body="profileId" type="string">
+  Profile to add to (defaults to active profile)
+</ParamField>
+
+**Returns:** `{ profileId, created: [{ index, id, title }], failed: [{ index, error }] }`
+
+---
+
+## memory_get
+
+Fetch one memory by ID, with full content, tags, status, provenance (`source`, `sourceUrl`, `sourceSyncedAt`) and timestamps. It counts as opening the memory, as in the web app.
+
+<ParamField body="id" type="string" required>
+  Memory ID
+</ParamField>
+<ParamField body="profileId" type="string">
+  Profile the memory is in (defaults to active profile)
+</ParamField>
+
+**Returns:** Memory object.
+
+---
+
 ## memory_add_instruction
 
 Store memories from natural language. The server uses Vercel AI Gateway to extract atomic facts and creates memories (same pipeline as `POST /api/v1/memories` with `{ "instruction": "..." }`). Requires `AI_GATEWAY_API_KEY`; missing key returns `openrouter_required`.
@@ -252,6 +301,142 @@ List memories related to a given memory by shared tags and similar title or cont
 
 ---
 
+## memory_facets
+
+Tag, source and type counts for every visible memory in a profile (the web Tags page). Reads up to 10,000 memories.
+
+<ParamField body="tagSort" type="string">
+  `a-z` (default), `most-used`, or `most-recent`
+</ParamField>
+<ParamField body="profileId" type="string">
+  Profile (defaults to active profile)
+</ParamField>
+
+**Returns:** `{ profileId, totalMemories, truncated, tags: [{ tag, count, lastUsedAt }], sources: [{ source, count }], types: [{ type, count }] }`
+
+---
+
+## memory_tag_rename
+
+Rename a tag on every memory that has it. `newTag` is trimmed and lowercased. The call fails if `newTag` already exists.
+
+<ParamField body="tag" type="string" required>
+  Existing tag, as `memory_facets` lists it
+</ParamField>
+<ParamField body="newTag" type="string" required>
+  New tag name
+</ParamField>
+<ParamField body="profileId" type="string" />
+
+**Returns:** `{ tag, newTag, updated, truncated }`
+
+---
+
+## memory_tag_delete
+
+Remove a tag from every memory that has it. The memories stay.
+
+<ParamField body="tag" type="string" required>
+  Tag to remove
+</ParamField>
+<ParamField body="confirm" type="boolean" required>
+  Must be `true`
+</ParamField>
+<ParamField body="profileId" type="string" />
+
+**Returns:** `{ tag, updated, truncated }`
+
+---
+
+## memory_link
+
+Link two memories in the same profile. The link shows in the Connections tab and the graph.
+
+<ParamField body="memoryIdA" type="string" required />
+<ParamField body="memoryIdB" type="string" required />
+<ParamField body="reason" type="string">
+  Up to 200 characters (default `agent linked`)
+</ParamField>
+<ParamField body="profileId" type="string" />
+
+**Returns:** `{ linked: boolean }`
+
+---
+
+## memory_unlink
+
+Remove the link between two memories. On a team profile any member can remove a link.
+
+<ParamField body="memoryIdA" type="string" required />
+<ParamField body="memoryIdB" type="string" required />
+<ParamField body="profileId" type="string" />
+
+**Returns:** `{ unlinked: boolean }`
+
+---
+
+## memory_history
+
+Version history of one memory, as in the web History tab.
+
+<ParamField body="memoryId" type="string" required />
+<ParamField body="profileId" type="string" />
+
+**Returns:** Timeline events: `{ id, action, snapshot, createdAt, memoryId, memoryTitle }`.
+
+---
+
+## memory_topic_timeline
+
+Tag trail: the memories that have one tag, newest first.
+
+<ParamField body="tag" type="string" required />
+<ParamField body="limit" type="number">
+  1–500 (default 50)
+</ParamField>
+<ParamField body="offset" type="number">
+  Default 0
+</ParamField>
+<ParamField body="profileId" type="string" />
+
+**Returns:** Timeline events with `connectionType: "tag"`.
+
+---
+
+## memory_stats
+
+Dashboard stats for a profile.
+
+<ParamField body="profileId" type="string" />
+
+**Returns:** `{ totalMemories, memoriesAddedToday, memoriesThisWeek, memoriesThisMonth, totalTags, growthData: [{ isoDate, total, new }] }`
+
+---
+
+## memory_import_file
+
+Create one memory from a PDF or text-like file (`.pdf`, `.txt`, `.md`, JSON, XML), as the web upload does. The memory is tagged `pdf` or `text`, plus `upload`.
+
+<ParamField body="filename" type="string" required>
+  File name with extension
+</ParamField>
+<ParamField body="contentBase64" type="string">
+  Base64 bytes (data: URL prefix allowed). Provide this **or** `sourceUrl`.
+</ParamField>
+<ParamField body="sourceUrl" type="string">
+  URL the server fetches
+</ParamField>
+<ParamField body="mimeType" type="string" />
+<ParamField body="profileId" type="string">
+  Profile to add to (defaults to active profile)
+</ParamField>
+
+Max 10 MB over MCP (the web upload allows 25 MB).
+
+**Returns:** Created memory object.
+
+---
+
 ## memory_graph
 
 MCP App: interactive memory graph. Requires an MCP Apps–capable host.
@@ -260,22 +445,110 @@ MCP App: interactive memory graph. Requires an MCP Apps–capable host.
   Profile ID (defaults to active MCP profile)
 </ParamField>
 <ParamField body="focus" type="string">
-  Center on one memory id and its neighbourhood
+  One memory id: that memory plus every memory one link away
 </ParamField>
 <ParamField body="memoryIds" type="string[]">
   Memory ids from a prior search; those nodes plus one-hop neighbours
+</ParamField>
+<ParamField body="types" type="string[]">
+  Only these memory types (any of)
+</ParamField>
+<ParamField body="tags" type="string[]">
+  Only memories with every one of these tags
+</ParamField>
+<ParamField body="sources" type="string[]">
+  Only these sources (any of)
+</ParamField>
+<ParamField body="cursor" type="string">
+  `nextCursor` from the previous call
 </ParamField>
 <ParamField body="limit" type="number">
   Max memory nodes (default 80, max 100)
 </ParamField>
 
+**Returns (structuredContent):** `{ nodes, relatesToEdges, tagEdges: [{ source, target, weight, sharedTags }], entities, mentionsEdges, focusNodeId, truncated, nextCursor, stats }`. On team profiles, links made by any member are included.
+
+---
+
+## proposals_list
+
+Pending inbox proposals for a profile, newest first: Dream Mode merges and update, delete, insight, connection, contradiction and anomaly suggestions.
+
+<ParamField body="profileId" type="string">
+  Profile (defaults to active profile)
+</ParamField>
+
+**Returns:** Array of `{ id, kind, reason, proposedTitle, proposedContent, sourceMemoryIds, memorySnapshot, sourceMemorySnapshots, createdAt, ... }`
+
+---
+
+## proposals_resolve
+
+Approve or reject one pending proposal.
+
+<ParamField body="proposalId" type="string" required />
+<ParamField body="action" type="string" required>
+  `approve` or `reject`
+</ParamField>
+<ParamField body="winnerMemoryId" type="string">
+  Contradictions only: the source memory to keep
+</ParamField>
+<ParamField body="profileId" type="string" />
+
+**Returns:** `{ status, materializedMemoryId? }`
+
+---
+
+## dream_run
+
+Personal connector only. Run Dream Mode now over every personal profile, as the web button does. It is rate limited in the same way.
+
+**Parameters:** none
+
+**Returns:** `{ reason, proposalsCreated, memoriesMaterialized, clustersScanned, ... }`. `reason` is `rate-limited` when Dream Mode ran too recently.
+
+---
+
+## notifications_list
+
+Personal connector only. Inbox notifications, newest first.
+
+<ParamField body="unreadOnly" type="boolean" />
+
+**Returns:** `{ unreadCount, notifications: [{ id, title, description, type, read, createdAt }] }`
+
+---
+
+## notifications_mark
+
+Personal connector only.
+
+<ParamField body="id" type="string" required />
+<ParamField body="read" type="boolean" required />
+
+---
+
+## notifications_mark_all_read
+
+Personal connector only. Marks every notification read.
+
+---
+
+## notifications_delete
+
+Personal connector only.
+
+<ParamField body="id" type="string" required />
+
 ---
 
 ## skills_list
 
-List enabled skills granted to this connector (name + description + `updatedAt`). No instructions.
+List skills granted to this connector: `name`, `description`, `enabled`, `source` (`personal` or `system`), `origin`, `createdAt` and `updatedAt`. No instructions.
 
-**Parameters:** none
+<ParamField body="includeDisabled" type="boolean">
+  Also list disabled skills and installs (default `false`)
+</ParamField>
 
 Personal `/mcp` returns the caller's personal skills. Team `/mcp/team` returns only that team's skills.
 
@@ -316,6 +589,9 @@ Fetch a single skill by exact name, including full markdown instructions.
 
 <ParamField body="name" type="string" required>
   Exact skill name (case sensitive)
+</ParamField>
+<ParamField body="includeDisabled" type="boolean">
+  Also find a disabled skill (default `false`)
 </ParamField>
 
 ---
@@ -361,6 +637,61 @@ At least one of `newName`, `description`, `instructions`, or `enabled` is requir
 </ParamField>
 
 **Returns:** `{ deleted: true }`
+
+---
+
+## skills_history
+
+Saved versions of a skill, newest first. A version is saved before each overwrite.
+
+<ParamField body="name" type="string" required />
+
+**Returns:** `{ name, versions: [{ versionId, createdAt, source, authorLabel }] }`
+
+---
+
+## skills_version_get
+
+<ParamField body="versionId" type="string" required />
+
+**Returns:** `{ versionId, name, description, instructions, enabled, createdAt, source, authorLabel }`
+
+---
+
+## skills_restore_version
+
+Restore a skill to a saved version. The current content is saved as a version first.
+
+<ParamField body="versionId" type="string" required />
+
+**Returns:** The restored skill.
+
+---
+
+## skills_catalog_list
+
+Browse the system skill hub for this connector's workspace (personal on `/mcp`, the active team on `/mcp/team`). Unpublished skills are visible to admins only.
+
+<ParamField body="includeInstructions" type="boolean">
+  Include full markdown (default `false`)
+</ParamField>
+
+**Returns:** Array of `{ systemSkillId, name, description, category, installed, installEnabled, ... }`
+
+---
+
+## skills_catalog_install / skills_catalog_uninstall
+
+<ParamField body="systemSkillId" type="string" required />
+
+Install is idempotent. It fails if the workspace already has a skill with the same name.
+
+---
+
+## skills_catalog_set_enabled
+
+<ParamField body="systemSkillId" type="string" required />
+<ParamField body="enabled" type="boolean" required />
 
 ---
 

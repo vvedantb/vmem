@@ -285,7 +285,7 @@ async function scopeHasInstalledSystemSkillNamed(
   return false;
 }
 
-export async function findSkillByNameInScope(
+async function findSkillByNameInScope(
   ctx: QueryCtx | MutationCtx,
   userId: Id<"users">,
   teamId: Id<"teams"> | undefined,

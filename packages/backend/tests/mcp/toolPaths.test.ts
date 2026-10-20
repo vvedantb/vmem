@@ -1,6 +1,7 @@
 import { assertMcpTools } from "@vvedantb/server";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
+import { MCP_SERVER_VERSION } from "../../convex/mcp/serverInfo";
 import { memoryToolSpecs } from "../../convex/mcp/toolsMemory";
 import { catalogNamesForScope, MEMORY_GRAPH_TOOL } from "./catalog";
 import { parseMcpHttpError, parseToolJson, toolText } from "./client";
@@ -70,7 +71,7 @@ describe("in-process MCP auth gate", () => {
     const personal = new InProcessMcpClient({ token: MOCK_MCP_TOKEN });
     const personalInit = await personal.initialize();
     expect(personalInit.serverInfo.name).toBe("vmem-mcp");
-    expect(personalInit.serverInfo.version).toBe("2.0.0");
+    expect(personalInit.serverInfo.version).toBe(MCP_SERVER_VERSION);
 
     const team = new InProcessMcpClient({
       session: createInProcessSession("team"),

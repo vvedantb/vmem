@@ -121,7 +121,7 @@ function withOneHopNeighbours(
 }
 
 // one edge per pair of memories that share a tag, strongest first
-export function buildTagEdges(
+function buildTagEdges(
   nodes: readonly { id: string; tags: readonly string[] }[],
   maxEdges: number = MAX_TAG_EDGES,
 ): TagEdge[] {

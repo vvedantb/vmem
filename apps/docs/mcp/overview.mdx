@@ -32,24 +32,37 @@ Skills, files, and `vmem://context_prompt` used to be personal-only. **Skills to
 
 ## Quick Tool Reference
 
-| Tool                     | Description                                                | Scope    |
-| ------------------------ | ---------------------------------------------------------- | -------- |
-| `ping`                   | Health check                                               | both     |
-| `whoami`                 | Authenticated user ID and active profile                   | both     |
-| `list_profiles`          | List available profiles                                    | both     |
-| `set_active_profile`     | Set default profile for MCP memory tools                   | both     |
-| `context_prompt_get`     | Same markdown as `vmem://context_prompt`                   | personal |
-| `memory_search`          | Search memories by query, type, tags                       | both     |
-| `memory_retrieve`        | Hybrid retrieval with context trace                        | both     |
-| `memory_add`             | Store a new memory                                         | both     |
-| `memory_add_instruction` | Extract and store facts from natural language (AI Gateway) | both     |
-| `memory_update`          | Update an existing memory                                  | both     |
-| `memory_delete`          | Delete a memory                                            | both     |
-| `memory_related`         | Neighbours by shared tags / similar text                   | both     |
-| `memory_graph`           | Interactive MCP App graph                                  | both     |
-| `skills_*`               | list / recommend / get / create / update / delete          | both     |
-| `skills_import`          | Upsert playbooks by name (`origin: vibot`)                 | personal |
-| `files_*`                | list / get / upload / delete                               | personal |
+| Tool                                                               | Description                                                   | Scope    |
+| ------------------------------------------------------------------ | ------------------------------------------------------------- | -------- |
+| `ping`                                                             | Health check                                                  | both     |
+| `whoami`                                                           | Authenticated user ID and active profile                      | both     |
+| `list_profiles`                                                    | List available profiles                                       | both     |
+| `set_active_profile`                                               | Set default profile for MCP memory tools                      | both     |
+| `context_prompt_get`                                               | Same markdown as `vmem://context_prompt`                      | personal |
+| `memory_search`                                                    | Search memories by query, types, tags, sources, status, dates | both     |
+| `memory_get`                                                       | One memory by ID                                              | both     |
+| `memory_add_batch`                                                 | Store up to 50 memories                                       | both     |
+| `memory_retrieve`                                                  | Hybrid retrieval with context trace                           | both     |
+| `memory_add`                                                       | Store a new memory                                            | both     |
+| `memory_add_instruction`                                           | Extract and store facts from natural language (AI Gateway)    | both     |
+| `memory_update`                                                    | Update an existing memory                                     | both     |
+| `memory_delete`                                                    | Delete a memory                                               | both     |
+| `memory_related`                                                   | Neighbours by shared tags / similar text                      | both     |
+| `memory_facets`                                                    | Tag, source and type counts                                   | both     |
+| `memory_tag_rename` / `memory_tag_delete`                          | Rename or remove a tag on every memory                        | both     |
+| `memory_link` / `memory_unlink`                                    | Add or remove a link between two memories                     | both     |
+| `memory_history` / `memory_topic_timeline`                         | Version history; tag trail                                    | both     |
+| `memory_stats`                                                     | Dashboard stats                                               | both     |
+| `memory_import_file`                                               | One memory from a PDF or text file                            | both     |
+| `memory_graph`                                                     | Interactive MCP App graph                                     | both     |
+| `proposals_list` / `proposals_resolve`                             | Inbox proposals                                               | both     |
+| `dream_run`                                                        | Run Dream Mode now                                            | personal |
+| `notifications_*`                                                  | list / mark / mark_all_read / delete                          | personal |
+| `skills_*`                                                         | list / recommend / get / create / update / delete             | both     |
+| `skills_import`                                                    | Upsert playbooks by name (`origin: vibot`)                    | personal |
+| `skills_history` / `skills_version_get` / `skills_restore_version` | Skill versions                                                | both     |
+| `skills_catalog_*`                                                 | list / install / uninstall / set_enabled system skills        | both     |
+| `files_*`                                                          | list / get / upload / delete                                  | personal |
 
 There are **no** `codebase_*` tools on `main`. See [Codebases (removed)](/features/codebases).
 

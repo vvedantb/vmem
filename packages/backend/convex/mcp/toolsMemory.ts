@@ -171,7 +171,7 @@ const memoryAddSchema = structuredStoreBodySchema
       .describe("Profile ID to add memory to (defaults to active profile)"),
   });
 
-export const MEMORY_ADD_BATCH_MAX = 50;
+const MEMORY_ADD_BATCH_MAX = 50;
 
 const memoryAddBatchSchema = z.object({
   items: z
