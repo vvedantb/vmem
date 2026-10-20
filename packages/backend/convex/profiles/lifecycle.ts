@@ -10,6 +10,8 @@ interface RemoveArgs {
   moveMemoriesToProfileId?: Id<"profiles">;
 }
 
+// Every check runs before any memory is moved or deleted: the memory
+// mutations below do not check the user.
 export async function runRemoveWithMemories(
   ctx: AuthActionCtx,
   args: RemoveArgs,
@@ -17,8 +19,26 @@ export async function runRemoveWithMemories(
   const profile = await ctx.runQuery(internal.profiles.getByIdInternal, {
     profileId: args.profileId,
   });
-  if (profile?.teamId) {
+  if (!profile || profile.userId !== ctx.userId) {
+    throw new Error("Profile not found");
+  }
+  if (profile.teamId) {
     throw new Error("Use teams.deleteTeam to remove a team profile");
+  }
+  if (profile.isDefault) {
+    throw new Error("Cannot delete the default profile");
+  }
+
+  if (args.moveMemoriesToProfileId) {
+    if (args.moveMemoriesToProfileId === args.profileId) {
+      throw new Error("Choose a different profile to move memories to");
+    }
+    const target = await ctx.runQuery(internal.profiles.getByIdInternal, {
+      profileId: args.moveMemoriesToProfileId,
+    });
+    if (!target || target.userId !== ctx.userId || target.teamId) {
+      throw new Error("Target profile not found");
+    }
   }
 
   if (args.moveMemoriesToProfileId) {
@@ -56,7 +76,9 @@ export async function runRemoveInternalMutation(
   args: RemoveInternalArgs,
 ): Promise<{ deleted: true }> {
   const profile = await ctx.db.get(args.profileId);
-  if (!profile) throw new Error("Profile not found");
+  if (!profile || profile.userId !== args.actorUserId) {
+    throw new Error("Profile not found");
+  }
 
   if (profile.isDefault) {
     throw new Error("Cannot delete the default profile");
