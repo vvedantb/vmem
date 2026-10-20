@@ -2,7 +2,6 @@ import { z } from "zod";
 import type { MemoryType } from "@vmem/sdk";
 import { internal } from "../_generated/api";
 import { memoryStatsForScope } from "../dashboardApi";
-import { importMemoryFromStoredFile } from "../fileImport";
 import { memoryTimeline, topicTimeline } from "../memoryApi/timelineEvents";
 import type { MemorySummary } from "../memoryStore/mappers";
 import {
@@ -401,13 +400,16 @@ export const memoryManageToolSpecs = {
         const { blob, mimeType } = await readUploadBlob(params);
         const storageId = await h.ctx.storage.store(blob);
         try {
-          return await importMemoryFromStoredFile(h.ctx, {
-            clerkId: scope.clerkId,
-            profileId: scope.profileId,
-            storageId,
-            filename: params.filename,
-            mimeType,
-          });
+          return await h.ctx.runAction(
+            internal.fileImport.importStoredFileForMcp,
+            {
+              clerkId: scope.clerkId,
+              profileId: scope.profileId,
+              storageId,
+              filename: params.filename,
+              mimeType,
+            },
+          );
         } catch (err) {
           await h.ctx.storage.delete(storageId);
           throw err;
