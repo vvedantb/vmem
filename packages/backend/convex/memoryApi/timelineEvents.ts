@@ -1,5 +1,5 @@
 import type { MemoryWithTags } from "@vmem/sdk";
-import type { TimelineEvent } from "./types";
+import type { MemoryListResult, TimelineEvent } from "./types";
 
 export const TIMELINE_ACTOR = "You";
 
@@ -52,4 +52,29 @@ export function timelineEventFromMemory(
     event.connectionType = options.connectionType;
   }
   return event;
+}
+
+// History tab: one event for the memory's current version. Callers load the
+// memory through their own scope check.
+export function memoryTimeline(memory: MemoryWithTags | null): TimelineEvent[] {
+  return memory === null ? [] : [timelineEventFromMemory(memory)];
+}
+
+// Tag trail: memories carrying `tag`, newest first, one page at a time.
+// `list` runs the caller's scoped memory list.
+export async function topicTimeline(
+  list: (args: {
+    tags: string[];
+    limit: number;
+    offset: number;
+  }) => Promise<MemoryListResult>,
+  args: { tag: string; limit: number; offset: number },
+): Promise<TimelineEvent[]> {
+  const tag = args.tag.trim();
+  if (tag.length === 0) return [];
+  const page = clampTimelinePage(args.limit, args.offset);
+  const listed = await list({ tags: [tag], ...page });
+  return listed.memories.map((memory) =>
+    timelineEventFromMemory(memory, { connectionType: "tag" }),
+  );
 }

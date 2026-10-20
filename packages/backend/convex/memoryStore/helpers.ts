@@ -36,6 +36,7 @@ import {
   parseMillis,
   toTemporalStoreFields,
 } from "../../engine/memory/temporal";
+import type { IndexRange } from "convex/server";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import {
@@ -82,12 +83,7 @@ export interface CreateMemoryStoreParams {
   temporalKind?: TemporalKind | null;
 }
 
-export interface ListMemoryStoreParams {
-  type?: string;
-  status?: string;
-  source?: string;
-  tags?: string[];
-  searchQuery?: string;
+export interface ListMemoryStoreParams extends MemoryListFilter {
   limit: number;
   offset: number;
 }
@@ -331,6 +327,28 @@ function approxDocBytes(doc: Doc<"memories">): number {
   );
 }
 
+// the parts of a `[..., "createdAt"]` index range builder used below
+interface CreatedAtUpperBound extends IndexRange {
+  lte(field: "createdAt", value: number): IndexRange;
+}
+interface CreatedAtRange extends CreatedAtUpperBound {
+  gte(field: "createdAt", value: number): CreatedAtUpperBound;
+}
+
+// Narrows a `[..., "createdAt"]` index to the inclusive createdAt window.
+function createdRange(
+  range: CreatedAtRange,
+  after: number | undefined,
+  before: number | undefined,
+): IndexRange {
+  if (after !== undefined && before !== undefined) {
+    return range.gte("createdAt", after).lte("createdAt", before);
+  }
+  if (after !== undefined) return range.gte("createdAt", after);
+  if (before !== undefined) return range.lte("createdAt", before);
+  return range;
+}
+
 // Newest-first scan that stops as soon as `offset + limit + 1` rows pass the
 // filter, so cost follows the page requested rather than the table size.
 // `total` is exact when the scope is exhausted and otherwise a lower bound of
@@ -343,17 +361,21 @@ export async function listMemoriesBounded(
   const offset = Math.max(0, params.offset);
   const limit = Math.max(0, params.limit);
   const want = offset + limit + 1;
+  const after = params.createdAfter;
+  const before = params.createdBefore;
   const ordered =
     scope.kind === "team"
       ? ctx.db
           .query("memories")
           .withIndex("by_profile_created", (q) =>
-            q.eq("profileId", scope.profileId),
+            createdRange(q.eq("profileId", scope.profileId), after, before),
           )
           .order("desc")
       : ctx.db
           .query("memories")
-          .withIndex("by_user_created", (q) => q.eq("userId", scope.userId))
+          .withIndex("by_user_created", (q) =>
+            createdRange(q.eq("userId", scope.userId), after, before),
+          )
           .order("desc");
 
   const matched: Array<Doc<"memories">> = [];
@@ -1228,9 +1250,17 @@ export async function linkMemories(
   return true;
 }
 
+// The link's author may unlink. With profileId (team scope, membership
+// checked by the caller) any member may unlink two memories of that profile,
+// mirroring linkMemories.
 export async function unlinkMemories(
   ctx: MutationCtx,
-  params: { userId: string; memoryIdA: string; memoryIdB: string },
+  params: {
+    userId: string;
+    profileId?: string;
+    memoryIdA: string;
+    memoryIdB: string;
+  },
 ): Promise<boolean> {
   const { sourceId, targetId } = orderedLinkIds(
     params.memoryIdA,
@@ -1242,7 +1272,18 @@ export async function unlinkMemories(
       q.eq("sourceId", sourceId).eq("targetId", targetId),
     )
     .first();
-  if (!existing || existing.userId !== params.userId) return false;
+  if (!existing) return false;
+  if (existing.userId !== params.userId) {
+    if (params.profileId === undefined) return false;
+    const a = await findByMemoryId(ctx, sourceId);
+    const b = await findByMemoryId(ctx, targetId);
+    if (
+      a?.profileId !== params.profileId ||
+      b?.profileId !== params.profileId
+    ) {
+      return false;
+    }
+  }
   await ctx.db.delete(existing._id);
   return true;
 }

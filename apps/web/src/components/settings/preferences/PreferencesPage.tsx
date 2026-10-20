@@ -12,6 +12,7 @@ import {
   DEFAULT_LOCAL_TIME,
   formatRelativeTime,
   localTimeToUtc,
+  SETTINGS_TEXT_MAX_LENGTH,
   utcTimeToLocal,
 } from "@vmem/shared";
 import ConfidenceThresholdSlider from "@/components/settings/ConfidenceThresholdSlider";
@@ -129,7 +130,7 @@ export function PreferencesPage() {
             label="About me"
             placeholder="A few lines on who you are, what you do, and what you're working toward."
             value={aboutMeValue}
-            maxLength={500}
+            maxLength={SETTINGS_TEXT_MAX_LENGTH}
             rows={4}
             onFocus={() => {
               setAboutMeDraft(settings.aboutMe);
@@ -151,7 +152,7 @@ export function PreferencesPage() {
             label="Preferences"
             placeholder="How do you like AI to communicate with you? Tone, depth, formatting, things to avoid."
             value={preferencesValue}
-            maxLength={500}
+            maxLength={SETTINGS_TEXT_MAX_LENGTH}
             rows={4}
             onFocus={() => {
               setPreferencesDraft(settings.preferences);

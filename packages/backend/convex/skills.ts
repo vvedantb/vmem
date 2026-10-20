@@ -9,8 +9,12 @@ import {
   maybeSnapshotSkillVersion,
 } from "./lib/versionSnapshot";
 import {
+  getSkillVersionForViewer,
+  listSkillVersionsForViewer,
+} from "./skillVersions";
+import {
   mcpScopeValidator,
-  getActiveProfileForMcpScope,
+  resolveMcpTeamId,
   type McpScope,
 } from "./profiles/mcpAccess";
 import {
@@ -20,6 +24,7 @@ import {
 import {
   assertContentDeletable,
   assertContentEditable,
+  isContentReadable,
   requireContentScopeAccess,
 } from "./teams/auth";
 import {
@@ -51,6 +56,10 @@ export interface EffectiveSkill {
   // personal MCP vs the granting team. never mixed across connectors.
   grant: "personal" | "team";
   updatedAt: number;
+  // absent for built-in seeds that have no catalogue row yet
+  createdAt?: number;
+  // how a personal skill was made; absent for system skills
+  origin?: SkillOrigin;
   // the personal skill's id, present only for source === "personal"
   skillId?: Id<"skills">;
   // present only for source === "system"
@@ -90,21 +99,53 @@ function bootstrapSeeds(): SystemSkillSeed[] {
   return SYSTEM_SKILL_SEEDS.filter((seed) => seed.alwaysInclude === true);
 }
 
-async function resolveMcpSkillGrant(
+export async function resolveMcpSkillGrant(
   ctx: QueryCtx | MutationCtx,
   clerkId: string,
   scope: McpScope | undefined,
 ): Promise<SkillMcpGrant | null> {
   const user = await getUserByClerkId(ctx, clerkId);
   if (!user) return null;
-  if (scope !== "team") {
-    return { userId: user._id, teamId: undefined };
-  }
-  const profile = await getActiveProfileForMcpScope(ctx, clerkId, "team");
-  if (!profile?.teamId) {
-    throw new Error("No team profiles available. Join or create a team first.");
-  }
-  return { userId: user._id, teamId: profile.teamId };
+  return {
+    userId: user._id,
+    teamId: await resolveMcpTeamId(ctx, clerkId, scope ?? "personal"),
+  };
+}
+
+function effectiveFromSkillRow(
+  skill: Doc<"skills">,
+  grant: "personal" | "team",
+): EffectiveSkill {
+  return {
+    name: skill.name,
+    description: skill.description,
+    instructions: skill.instructions,
+    enabled: isSkillEnabled(skill),
+    source: "personal",
+    grant,
+    updatedAt: skill.updatedAt,
+    createdAt: skill.createdAt,
+    origin: skill.origin,
+    skillId: skill._id,
+  };
+}
+
+function effectiveFromSystemRow(
+  sys: Doc<"systemSkills">,
+  enabled: boolean,
+  grant: "personal" | "team",
+): EffectiveSkill {
+  return {
+    name: sys.name,
+    description: sys.description,
+    instructions: sys.instructions,
+    enabled,
+    source: "system",
+    grant,
+    updatedAt: sys.updatedAt,
+    createdAt: sys.createdAt,
+    systemSkillId: sys._id,
+  };
 }
 
 async function appendBootstrapSkills(
@@ -129,16 +170,21 @@ async function appendBootstrapSkills(
       source: "system",
       grant: grantLabel(teamId),
       updatedAt: row?.updatedAt ?? 0,
+      createdAt: row?.createdAt,
       systemSkillId: row?._id,
     });
   }
 }
 
+// includeDisabled adds disabled skills and installs (enabled: false), as the
+// web Skills page lists them
 async function resolveEffectiveSkills(
   ctx: QueryCtx | MutationCtx,
   userId: Id<"users">,
   teamId?: Id<"teams">,
+  options: { includeDisabled?: boolean } = {},
 ): Promise<EffectiveSkill[]> {
+  const wanted = (enabled: boolean) => enabled || options.includeDisabled;
   const out: EffectiveSkill[] = [];
   const seen = new Set<string>();
   const grant = grantLabel(teamId);
@@ -149,20 +195,11 @@ async function resolveEffectiveSkills(
       .withIndex("by_team", (q) => q.eq("teamId", teamId))
       .collect();
     for (const skill of teamRows) {
-      if (!isSkillEnabled(skill)) continue;
+      if (!wanted(isSkillEnabled(skill))) continue;
       const key = skill.name.toLowerCase();
       if (seen.has(key)) continue;
       seen.add(key);
-      out.push({
-        name: skill.name,
-        description: skill.description,
-        instructions: skill.instructions,
-        enabled: true,
-        source: "personal",
-        grant,
-        updatedAt: skill.updatedAt,
-        skillId: skill._id,
-      });
+      out.push(effectiveFromSkillRow(skill, grant));
     }
 
     const installs = await ctx.db
@@ -170,22 +207,13 @@ async function resolveEffectiveSkills(
       .withIndex("by_team", (q) => q.eq("teamId", teamId))
       .collect();
     for (const install of installs) {
-      if (!install.enabled) continue;
+      if (!wanted(install.enabled)) continue;
       const sys = await ctx.db.get(install.systemSkillId);
       if (!sys) continue;
       const key = sys.name.toLowerCase();
       if (seen.has(key)) continue;
       seen.add(key);
-      out.push({
-        name: sys.name,
-        description: sys.description,
-        instructions: sys.instructions,
-        enabled: true,
-        source: "system",
-        grant,
-        updatedAt: sys.updatedAt,
-        systemSkillId: sys._id,
-      });
+      out.push(effectiveFromSystemRow(sys, install.enabled, grant));
     }
 
     await appendBootstrapSkills(ctx, teamId, out, seen);
@@ -198,20 +226,11 @@ async function resolveEffectiveSkills(
     .collect();
 
   for (const skill of personalRows) {
-    if (skill.teamId !== undefined || !isSkillEnabled(skill)) continue;
+    if (skill.teamId !== undefined || !wanted(isSkillEnabled(skill))) continue;
     const key = skill.name.toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);
-    out.push({
-      name: skill.name,
-      description: skill.description,
-      instructions: skill.instructions,
-      enabled: true,
-      source: "personal",
-      grant: "personal",
-      updatedAt: skill.updatedAt,
-      skillId: skill._id,
-    });
+    out.push(effectiveFromSkillRow(skill, "personal"));
   }
 
   const installs = await ctx.db
@@ -220,22 +239,13 @@ async function resolveEffectiveSkills(
     .collect();
 
   for (const install of installs) {
-    if (install.teamId !== undefined || !install.enabled) continue;
+    if (install.teamId !== undefined || !wanted(install.enabled)) continue;
     const sys = await ctx.db.get(install.systemSkillId);
     if (!sys) continue; // catalog row was deleted
     const key = sys.name.toLowerCase();
     if (seen.has(key)) continue; // personal (or an earlier install) wins
     seen.add(key);
-    out.push({
-      name: sys.name,
-      description: sys.description,
-      instructions: sys.instructions,
-      enabled: true,
-      source: "system",
-      grant: "personal",
-      updatedAt: sys.updatedAt,
-      systemSkillId: sys._id,
-    });
+    out.push(effectiveFromSystemRow(sys, install.enabled, "personal"));
   }
 
   await appendBootstrapSkills(ctx, undefined, out, seen);
@@ -542,41 +552,64 @@ export const deleteSkills = authMutation({
   },
 });
 
+// Snapshot the current skill, then copy the version back. Shared by the web
+// history panel and the MCP skills_restore_version tool.
+async function restoreSkillVersion(
+  ctx: MutationCtx,
+  actorUserId: Id<"users">,
+  versionId: Id<"skillVersions">,
+  source: "web" | "mcp",
+  grant?: SkillMcpGrant,
+): Promise<Doc<"skills">> {
+  const version = await ctx.db.get(versionId);
+  if (!version) throw new Error("Version not found");
+  const skill = await ctx.db.get(version.skillId);
+  if (!skill) throw new Error("Skill not found");
+  // MCP: a skill outside the connector's grant reads as a missing version
+  if (
+    grant !== undefined &&
+    (!skillMatchesMcpGrant(skill, grant) ||
+      !(await isContentReadable(ctx, skill, actorUserId)))
+  ) {
+    throw new Error("Version not found");
+  }
+  await assertContentEditable(ctx, skill, actorUserId);
+
+  if (version.name !== skill.name) {
+    const duplicate = await findSkillByNameInScope(
+      ctx,
+      skill.userId,
+      skill.teamId,
+      version.name,
+    );
+    if (duplicate) {
+      throw new Error("A skill with this name already exists");
+    }
+  }
+
+  await maybeSnapshotSkillVersion(ctx, skill, {
+    source,
+    authorUserId: actorUserId,
+    force: true,
+  });
+
+  await ctx.db.patch(skill._id, {
+    name: version.name,
+    description: version.description,
+    instructions: version.instructions,
+    enabled: version.enabled,
+    updatedAt: Date.now(),
+  });
+  await invalidateContextPromptIfPersonal(ctx, actorUserId, skill.teamId);
+  const restored = await ctx.db.get(skill._id);
+  if (!restored) throw new Error("Skill not found");
+  return restored;
+}
+
 export const restoreVersion = authMutation({
   args: { versionId: v.id("skillVersions") },
   handler: async (ctx, args) => {
-    const version = await ctx.db.get(args.versionId);
-    if (!version) throw new Error("Version not found");
-    const skill = await ctx.db.get(version.skillId);
-    if (!skill) throw new Error("Skill not found");
-    await assertContentEditable(ctx, skill, ctx.userId);
-
-    if (version.name !== skill.name) {
-      const duplicate = await findSkillByNameInScope(
-        ctx,
-        skill.userId,
-        skill.teamId,
-        version.name,
-      );
-      if (duplicate) {
-        throw new Error("A skill with this name already exists");
-      }
-    }
-
-    await maybeSnapshotSkillVersion(ctx, skill, {
-      source: "web",
-      authorUserId: ctx.userId,
-      force: true,
-    });
-
-    await ctx.db.patch(skill._id, {
-      name: version.name,
-      description: version.description,
-      instructions: version.instructions,
-      enabled: version.enabled,
-      updatedAt: Date.now(),
-    });
-    await invalidateContextPromptIfPersonal(ctx, ctx.userId, skill.teamId);
+    await restoreSkillVersion(ctx, ctx.userId, args.versionId, "web");
   },
 });
 
@@ -586,11 +619,14 @@ export const listEffectiveByClerkIdInternal = internalQuery({
   args: {
     clerkId: v.string(),
     scope: v.optional(mcpScopeValidator),
+    includeDisabled: v.optional(v.boolean()),
   },
   handler: async (ctx, args): Promise<EffectiveSkill[]> => {
     const grant = await resolveMcpSkillGrant(ctx, args.clerkId, args.scope);
     if (!grant) return [];
-    return await resolveEffectiveSkills(ctx, grant.userId, grant.teamId);
+    return await resolveEffectiveSkills(ctx, grant.userId, grant.teamId, {
+      includeDisabled: args.includeDisabled,
+    });
   },
 });
 
@@ -600,6 +636,7 @@ export const getEffectiveByNameInternal = internalQuery({
     clerkId: v.string(),
     name: v.string(),
     scope: v.optional(mcpScopeValidator),
+    includeDisabled: v.optional(v.boolean()),
   },
   handler: async (ctx, args): Promise<EffectiveSkill | null> => {
     const grant = await resolveMcpSkillGrant(ctx, args.clerkId, args.scope);
@@ -609,6 +646,7 @@ export const getEffectiveByNameInternal = internalQuery({
       ctx,
       grant.userId,
       grant.teamId,
+      { includeDisabled: args.includeDisabled },
     );
     return effective.find((s) => s.name.toLowerCase() === lookup) ?? null;
   },
@@ -888,5 +926,106 @@ export const deleteByClerkIdInternal = internalMutation({
     await deleteSkillRecord(ctx, skill._id);
     await invalidateContextPromptIfPersonal(ctx, grant.userId, skill.teamId);
     return null;
+  },
+});
+
+async function requireMcpSkillGrant(
+  ctx: QueryCtx | MutationCtx,
+  clerkId: string,
+  scope: McpScope | undefined,
+): Promise<SkillMcpGrant> {
+  const grant = await resolveMcpSkillGrant(ctx, clerkId, scope);
+  if (!grant) throw new Error("User not found");
+  return grant;
+}
+
+// MCP passes ids as plain strings: a malformed id is just "not found"
+function requireVersionId(
+  ctx: QueryCtx,
+  versionId: string,
+): Id<"skillVersions"> {
+  const id = ctx.db.normalizeId("skillVersions", versionId);
+  if (id === null) throw new Error("Version not found");
+  return id;
+}
+
+export const listVersionsByClerkIdInternal = internalQuery({
+  args: {
+    clerkId: v.string(),
+    name: v.string(),
+    scope: v.optional(mcpScopeValidator),
+  },
+  handler: async (ctx, args) => {
+    const grant = await requireMcpSkillGrant(ctx, args.clerkId, args.scope);
+    const skill = await findSkillByNameInScope(
+      ctx,
+      grant.userId,
+      grant.teamId,
+      args.name.trim(),
+    );
+    if (!skill || !skillMatchesMcpGrant(skill, grant)) {
+      throw new Error("Skill not found");
+    }
+    const versions = await listSkillVersionsForViewer(
+      ctx,
+      grant.userId,
+      skill._id,
+    );
+    return {
+      name: skill.name,
+      versions: versions.map((version) => ({
+        versionId: version._id,
+        createdAt: new Date(version.createdAt).toISOString(),
+        source: version.source,
+        authorLabel: version.authorLabel,
+      })),
+    };
+  },
+});
+
+export const getVersionByClerkIdInternal = internalQuery({
+  args: {
+    clerkId: v.string(),
+    versionId: v.string(),
+    scope: v.optional(mcpScopeValidator),
+  },
+  handler: async (ctx, args) => {
+    const grant = await requireMcpSkillGrant(ctx, args.clerkId, args.scope);
+    const versionId = requireVersionId(ctx, args.versionId);
+    const version = await ctx.db.get(versionId);
+    const skill = version ? await ctx.db.get(version.skillId) : null;
+    if (!skill || !skillMatchesMcpGrant(skill, grant)) {
+      throw new Error("Version not found");
+    }
+    const found = await getSkillVersionForViewer(ctx, grant.userId, versionId);
+    if (!found) throw new Error("Version not found");
+    return {
+      versionId: found._id,
+      name: found.name,
+      description: found.description,
+      instructions: found.instructions,
+      enabled: found.enabled !== false,
+      createdAt: new Date(found.createdAt).toISOString(),
+      source: found.source,
+      authorLabel: found.authorLabel,
+    };
+  },
+});
+
+export const restoreVersionByClerkIdInternal = internalMutation({
+  args: {
+    clerkId: v.string(),
+    versionId: v.string(),
+    scope: v.optional(mcpScopeValidator),
+  },
+  handler: async (ctx, args) => {
+    const grant = await requireMcpSkillGrant(ctx, args.clerkId, args.scope);
+    return await restoreSkillVersion(
+      ctx,
+      grant.userId,
+      requireVersionId(ctx, args.versionId),
+      "mcp",
+      grant,
+    );
   },
 });

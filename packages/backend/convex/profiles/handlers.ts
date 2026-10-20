@@ -1,5 +1,7 @@
+import { isProfileColor, isProfileIconName } from "@vmem/shared";
 import type { Doc, Id } from "../_generated/dataModel";
 import { auditLog, ResourceTypes } from "../auditLog";
+import { userFacingError } from "../lib/userFacingError";
 import {
   getMembershipOrNull,
   type AuthMutationCtx,
@@ -22,10 +24,28 @@ export async function runGetOrCreateDefault(
   return getOrCreateDefaultProfile(ctx, ctx.userId);
 }
 
+// the same choices as the web profile dialog (name required, 8 colours, 12 icons)
+function assertProfileFields(args: {
+  name?: string;
+  color?: string;
+  icon?: string;
+}): void {
+  if (args.name !== undefined && args.name.trim().length === 0) {
+    userFacingError("Name is required");
+  }
+  if (args.color !== undefined && !isProfileColor(args.color)) {
+    userFacingError("Pick one of the profile colours");
+  }
+  if (args.icon !== undefined && !isProfileIconName(args.icon)) {
+    userFacingError("Pick one of the profile icons");
+  }
+}
+
 export async function runCreate(
   ctx: AuthMutationCtx,
   args: { name: string; color: string; icon: string },
 ): Promise<Doc<"profiles"> | null> {
+  assertProfileFields(args);
   const existing = await ctx.db
     .query("profiles")
     .withIndex("by_user_name", (q) =>
@@ -71,6 +91,7 @@ export async function runUpdate(
   ctx: AuthMutationCtx,
   args: UpdateArgs,
 ): Promise<Doc<"profiles"> | null> {
+  assertProfileFields(args);
   const profile = await ctx.db.get(args.profileId);
   if (!profile) throw new Error("Profile not found");
 

@@ -28,28 +28,51 @@ POST https://<your-deployment>.convex.site/mcp/team
 
 Authenticated via Clerk OAuth. See [MCP Setup](/mcp/setup).
 
-Skills, files, and `vmem://context_prompt` used to be personal-only. **Skills tools and `vmem://skills/<name>` resources now work on both connectors**, scoped by grant (personal skills on `/mcp`, team skills on `/mcp/team`). Files and `vmem://context_prompt` stay personal. Memory tools work on both connectors.
+Skills, files, and `vmem://context_prompt` used to be personal-only. **Skills tools and `vmem://skills/<name>` resources now work on both connectors**, scoped by grant (personal skills on `/mcp`, team skills on `/mcp/team`). Files tools now work on both connectors too (the active team profile's drive on `/mcp/team`). `vmem://context_prompt` stays personal. Memory tools work on both connectors.
 
 ## Quick Tool Reference
 
-| Tool                     | Description                                                | Scope    |
-| ------------------------ | ---------------------------------------------------------- | -------- |
-| `ping`                   | Health check                                               | both     |
-| `whoami`                 | Authenticated user ID and active profile                   | both     |
-| `list_profiles`          | List available profiles                                    | both     |
-| `set_active_profile`     | Set default profile for MCP memory tools                   | both     |
-| `context_prompt_get`     | Same markdown as `vmem://context_prompt`                   | personal |
-| `memory_search`          | Search memories by query, type, tags                       | both     |
-| `memory_retrieve`        | Hybrid retrieval with context trace                        | both     |
-| `memory_add`             | Store a new memory                                         | both     |
-| `memory_add_instruction` | Extract and store facts from natural language (AI Gateway) | both     |
-| `memory_update`          | Update an existing memory                                  | both     |
-| `memory_delete`          | Delete a memory                                            | both     |
-| `memory_related`         | Neighbours by shared tags / similar text                   | both     |
-| `memory_graph`           | Interactive MCP App graph                                  | both     |
-| `skills_*`               | list / recommend / get / create / update / delete          | both     |
-| `skills_import`          | Upsert playbooks by name (`origin: vibot`)                 | personal |
-| `files_*`                | list / get / upload / delete                               | personal |
+| Tool                                                               | Description                                                                | Scope    |
+| ------------------------------------------------------------------ | -------------------------------------------------------------------------- | -------- |
+| `ping`                                                             | Health check                                                               | both     |
+| `whoami`                                                           | Authenticated user (ID, email, name) and active profile                    | both     |
+| `list_profiles`                                                    | List available profiles                                                    | both     |
+| `set_active_profile`                                               | Set default profile for MCP, web or extension                              | both     |
+| `context_prompt_get`                                               | Same markdown as `vmem://context_prompt`                                   | personal |
+| `memory_search`                                                    | Search memories by query, types, tags, sources, status, dates              | both     |
+| `memory_get`                                                       | One memory by ID                                                           | both     |
+| `memory_add_batch`                                                 | Store up to 50 memories                                                    | both     |
+| `memory_retrieve`                                                  | Hybrid retrieval with context trace                                        | both     |
+| `memory_add`                                                       | Store a new memory                                                         | both     |
+| `memory_add_instruction`                                           | Extract and store facts from natural language (AI Gateway)                 | both     |
+| `memory_update`                                                    | Update an existing memory                                                  | both     |
+| `memory_delete`                                                    | Delete a memory                                                            | both     |
+| `memory_related`                                                   | Neighbours by shared tags / similar text                                   | both     |
+| `memory_facets`                                                    | Tag, source and type counts                                                | both     |
+| `memory_tag_rename` / `memory_tag_delete`                          | Rename or remove a tag on every memory                                     | both     |
+| `memory_link` / `memory_unlink`                                    | Add or remove a link between two memories                                  | both     |
+| `memory_history` / `memory_topic_timeline`                         | Version history; tag trail                                                 | both     |
+| `memory_stats`                                                     | Dashboard stats                                                            | both     |
+| `memory_import_file`                                               | One memory from a PDF or text file                                         | both     |
+| `memory_graph`                                                     | Interactive MCP App graph                                                  | both     |
+| `proposals_list` / `proposals_resolve`                             | Inbox proposals                                                            | both     |
+| `dream_run`                                                        | Run Dream Mode now                                                         | personal |
+| `notifications_*`                                                  | list / mark / mark_all_read / delete                                       | personal |
+| `skills_*`                                                         | list / recommend / get / create / update / delete                          | both     |
+| `skills_import`                                                    | Upsert playbooks by name (`origin: vibot`)                                 | personal |
+| `skills_history` / `skills_version_get` / `skills_restore_version` | Skill versions                                                             | both     |
+| `skills_catalog_*`                                                 | list / install / uninstall / set_enabled system skills                     | both     |
+| `files_*`                                                          | list / get / upload / delete / create_folder / rename / move               | both     |
+| `profiles_create` / `profiles_delete`                              | Create or delete a personal profile                                        | personal |
+| `profiles_update`                                                  | Rename, recolour or change a profile icon                                  | both     |
+| `teams_*`                                                          | list / get / create / rename / leave / add_member / remove_member / delete | both     |
+| `settings_get` / `settings_update`                                 | Read or change settings                                                    | personal |
+| `dream_schedule_set`                                               | Daily Dream Mode schedule                                                  | personal |
+| `settings_set_experimental_flag`                                   | Experimental options                                                       | personal |
+| `memory_delete_all`                                                | Delete every memory (typed confirmation)                                   | personal |
+| `connectors_*`                                                     | list / sync / disconnect / delete_data                                     | personal |
+| `usage_ai_logs` / `usage_ai_summary` / `usage_ai_models`           | AI usage log, totals and models                                            | both     |
+| `usage_api_requests`                                               | HTTP API request log                                                       | personal |
 
 There are **no** `codebase_*` tools on `main`. See [Codebases (removed)](/features/codebases).
 

@@ -104,6 +104,9 @@ export async function foldScopedMemoryStats(
 
 const SUMMARY_WALK_PAGE_SIZE = 200;
 
+// cap for one full-scope summary walk (facets, timeline, bulk tag edits)
+export const MAX_SCOPE_SUMMARIES = 10_000;
+
 // Every matching slim summary in scope (newest first), capped at `max`. Meant
 // for on-demand, non-reactive reads: the cost is one scope walk per call.
 export async function listMemorySummariesPaged(

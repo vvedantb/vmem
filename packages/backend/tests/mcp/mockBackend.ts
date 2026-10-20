@@ -490,6 +490,10 @@ async function dispatch(
       const parsed = userIdArgsSchema.parse(args);
       return store.links.filter((_link) => parsed.userId === store.clerkId);
     }
+    case "memoryStore/functions:listEntitiesForGraphInternal": {
+      userIdArgsSchema.parse(args);
+      return { nodes: [], mentions: [] };
+    }
     case "memoryStore/functions:listMemoryLinksAroundInternal": {
       const parsed = linksAroundArgsSchema.parse(args);
       if (parsed.userId !== store.clerkId) return [];
@@ -651,7 +655,14 @@ async function dispatch(
     }
     case "files:listByClerkIdInternal": {
       clerkIdArgsSchema.parse(args);
-      return [...store.files];
+      return {
+        nodes: [...store.files],
+        totalBytes: store.files.reduce(
+          (sum, node) => sum + (node.size ?? 0),
+          0,
+        ),
+        storageLimit: 10 * 1024 * 1024 * 1024,
+      };
     }
     case "files:upsertFileByPathInternal": {
       const parsed = fileUpsertArgsSchema.parse(args);
@@ -763,7 +774,7 @@ export function createMockActionCtx(store: MockStore): ActionCtx {
   return requireActionCtx(ctx);
 }
 
-function requireActionCtx(value: unknown): ActionCtx {
+export function requireActionCtx(value: unknown): ActionCtx {
   if (typeof value !== "object" || value === null) {
     throw new Error("mock ActionCtx must be an object");
   }

@@ -1,4 +1,6 @@
 import { v } from "convex/values";
+import type { Id } from "./_generated/dataModel";
+import type { QueryCtx } from "./_generated/server";
 import { authQuery } from "./auth";
 import { isContentReadable } from "./teams/auth";
 import {
@@ -7,6 +9,58 @@ import {
 } from "./lib/versionSnapshot";
 
 const sourceValidator = v.union(v.literal("web"), v.literal("mcp"));
+
+// Version list for a skill the viewer can read (owner or team member), else
+// empty. Shared by the web history panel and the MCP skills_history tool.
+export async function listSkillVersionsForViewer(
+  ctx: QueryCtx,
+  viewerUserId: Id<"users">,
+  skillId: Id<"skills">,
+) {
+  const skill = await ctx.db.get(skillId);
+  if (!skill || !(await isContentReadable(ctx, skill, viewerUserId))) {
+    return [];
+  }
+
+  const versions = await ctx.db
+    .query("skillVersions")
+    .withIndex("by_skill", (q) => q.eq("skillId", skillId))
+    .order("desc")
+    .collect();
+
+  return await mapVersionAuthorSummaries(ctx, viewerUserId, versions);
+}
+
+// One version of a skill the viewer can read, else null.
+export async function getSkillVersionForViewer(
+  ctx: QueryCtx,
+  viewerUserId: Id<"users">,
+  versionId: Id<"skillVersions">,
+) {
+  const version = await ctx.db.get(versionId);
+  if (!version) return null;
+  const skill = await ctx.db.get(version.skillId);
+  if (!skill || !(await isContentReadable(ctx, skill, viewerUserId))) {
+    return null;
+  }
+
+  return {
+    _id: version._id,
+    skillId: version.skillId,
+    name: version.name,
+    description: version.description,
+    instructions: version.instructions,
+    enabled: version.enabled,
+    createdAt: version.createdAt,
+    source: version.source,
+    authorLabel: await resolveVersionAuthorLabel(
+      ctx,
+      viewerUserId,
+      version.authorUserId,
+      version.source,
+    ),
+  };
+}
 
 export const list = authQuery({
   args: { skillId: v.id("skills") },
@@ -18,18 +72,8 @@ export const list = authQuery({
       authorLabel: v.string(),
     }),
   ),
-  handler: async (ctx, args) => {
-    const skill = await ctx.db.get(args.skillId);
-    if (!skill || !(await isContentReadable(ctx, skill, ctx.userId))) return [];
-
-    const versions = await ctx.db
-      .query("skillVersions")
-      .withIndex("by_skill", (q) => q.eq("skillId", args.skillId))
-      .order("desc")
-      .collect();
-
-    return await mapVersionAuthorSummaries(ctx, ctx.userId, versions);
-  },
+  handler: async (ctx, args) =>
+    listSkillVersionsForViewer(ctx, ctx.userId, args.skillId),
 });
 
 export const get = authQuery({
@@ -48,29 +92,6 @@ export const get = authQuery({
     }),
     v.null(),
   ),
-  handler: async (ctx, args) => {
-    const version = await ctx.db.get(args.versionId);
-    if (!version) return null;
-    const skill = await ctx.db.get(version.skillId);
-    if (!skill || !(await isContentReadable(ctx, skill, ctx.userId))) {
-      return null;
-    }
-
-    return {
-      _id: version._id,
-      skillId: version.skillId,
-      name: version.name,
-      description: version.description,
-      instructions: version.instructions,
-      enabled: version.enabled,
-      createdAt: version.createdAt,
-      source: version.source,
-      authorLabel: await resolveVersionAuthorLabel(
-        ctx,
-        ctx.userId,
-        version.authorUserId,
-        version.source,
-      ),
-    };
-  },
+  handler: async (ctx, args) =>
+    getSkillVersionForViewer(ctx, ctx.userId, args.versionId),
 });

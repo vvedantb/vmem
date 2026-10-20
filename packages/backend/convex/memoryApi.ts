@@ -1,6 +1,7 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
+import type { ActionCtx } from "./_generated/server";
 import {
   authAction,
   authMutation,
@@ -28,7 +29,10 @@ import {
   memorySummaryFilterFields,
   memorySummaryValidator,
 } from "./validators";
-import { listMemorySummariesPaged } from "./memoryStore/walk";
+import {
+  listMemorySummariesPaged,
+  MAX_SCOPE_SUMMARIES,
+} from "./memoryStore/walk";
 import type { MemorySummary } from "./memoryStore/mappers";
 import {
   createMemoryFields,
@@ -76,8 +80,6 @@ export const listSummaries = authQuery({
   handler: async (ctx, args) => runListSummaries(ctx, args),
 });
 
-const MAX_ALL_SUMMARIES = 10_000;
-
 // Non-reactive: every matching slim row in scope (capped), for facets (tag /
 // source / type counts, tag suggestions) and the timeline. One scope walk per
 // call, so callers cache it and only fetch on demand.
@@ -114,7 +116,10 @@ export const listAllSummaries = authAction({
         tags: args.tags,
         searchQuery: args.searchQuery,
       },
-      Math.min(Math.max(1, args.limit ?? MAX_ALL_SUMMARIES), MAX_ALL_SUMMARIES),
+      Math.min(
+        Math.max(1, args.limit ?? MAX_SCOPE_SUMMARIES),
+        MAX_SCOPE_SUMMARIES,
+      ),
     );
     return { memories: rows, truncated };
   },
@@ -284,15 +289,21 @@ export const deleteMemory = authAction({
     }),
 });
 
+// Settings > Data controls wipe, shared with MCP memory_delete_all
+export async function deleteAllMemoriesForClerk(
+  ctx: ActionCtx,
+  clerkId: string,
+): Promise<number> {
+  return await ctx.runMutation(
+    internal.memoryStore.functions.deleteMemoriesForUserInternal,
+    { userId: clerkId },
+  );
+}
+
 export const deleteAllMemories = authAction({
   args: {},
-  handler: async (ctx): Promise<number> => {
-    const clerkId = await requireClerkId(ctx);
-    return await ctx.runMutation(
-      internal.memoryStore.functions.deleteMemoriesForUserInternal,
-      { userId: clerkId },
-    );
-  },
+  handler: async (ctx): Promise<number> =>
+    deleteAllMemoriesForClerk(ctx, await requireClerkId(ctx)),
 });
 
 export const searchMemories = authAction({

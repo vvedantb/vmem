@@ -1,6 +1,7 @@
 import type { ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
-import type { Doc } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
+import type { McpScope } from "../profiles/mcpAccess";
 import {
   normalizePathSegments,
   nodePath,
@@ -19,12 +20,25 @@ const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB (Convex 16 MiB action-arg li
 const MAX_INLINE_IMAGE_BYTES = 4 * 1024 * 1024; // return image bytes inline up to 4 MB
 const MAX_INLINE_TEXT_BYTES = 100 * 1024; // return text inline up to 100 KB
 
+// the drive a file tool acts on: personal files, or the active team's drive
+export type McpFileScope = { clerkId: string; scope: McpScope };
+
 export type FileListItem = {
   path: string;
   kind: "folder" | "file";
   size: number | null;
   mimeType: string | null;
+  // memory indexing of PDF / text files: pending, indexed, skipped or failed
+  indexStatus: Doc<"fileNodes">["indexStatus"] | null;
+  // the memory the file was indexed into
+  memoryId: string | null;
   updatedAt: number;
+};
+
+export type FileListResult = {
+  items: FileListItem[];
+  totalBytes: number;
+  storageLimit: number;
 };
 
 export type FileGetResult = {
@@ -49,6 +63,21 @@ export type FileUploadResult = {
 export type FileDeleteResult = {
   path: string;
   deletedCount: number;
+};
+
+export type FileFolderResult = {
+  path: string;
+  kind: "folder";
+  created: boolean;
+};
+
+export type FileRenameResult = {
+  path: string;
+  previousPath: string;
+};
+
+export type FileMoveResult = {
+  moved: Array<{ from: string; to: string }>;
 };
 
 // decode base64 (tolerating a data-url prefix) into a backing ArrayBuffer
@@ -78,15 +107,45 @@ function toListItem(
     kind: node.kind,
     size: node.kind === "file" ? (node.size ?? 0) : null,
     mimeType: node.kind === "file" ? (node.mimeType ?? null) : null,
+    indexStatus: node.indexStatus ?? null,
+    memoryId: node.memoryId ?? null,
     updatedAt: node.updatedAt,
   };
 }
 
+async function listFileTree(ctx: ActionCtx, scope: McpFileScope) {
+  return ctx.runQuery(internal.files.listByClerkIdInternal, scope);
+}
+
 async function listFileNodes(
   ctx: ActionCtx,
-  clerkId: string,
+  scope: McpFileScope,
 ): Promise<Array<Doc<"fileNodes">>> {
-  return ctx.runQuery(internal.files.listByClerkIdInternal, { clerkId });
+  return (await listFileTree(ctx, scope)).nodes;
+}
+
+function requireSegments(path: string): string[] {
+  const segments = normalizePathSegments(path);
+  if (segments.length === 0) {
+    throw new Error("Path is required");
+  }
+  return segments;
+}
+
+// paths address nodes by name, so one folder must not hold two equal names
+function assertNameFree(
+  nodes: Array<Doc<"fileNodes">>,
+  parentId: Id<"fileNodes"> | undefined,
+  name: string,
+  exceptId?: Id<"fileNodes">,
+): void {
+  const taken = nodes.some(
+    (node) =>
+      node.parentId === parentId && node.name === name && node._id !== exceptId,
+  );
+  if (taken) {
+    throw new Error(`"${name}" already exists in the destination folder`);
+  }
 }
 
 function requireNodeAtPath(
@@ -101,36 +160,45 @@ function requireNodeAtPath(
   return { node, segments };
 }
 
-export async function listFiles(
-  ctx: ActionCtx,
-  clerkId: string,
-  path: string | undefined,
-): Promise<FileListItem[]> {
-  const nodes = await listFileNodes(ctx, clerkId);
-
-  const segments = path !== undefined ? normalizePathSegments(path) : [];
-  if (segments.length === 0) {
-    return nodes.map((node) => toListItem(nodes, node));
-  }
-
-  const folder = resolveByPath(nodes, segments);
-  if (!folder) {
-    throw new Error(`Path not found: ${segments.join("/")}`);
-  }
-  if (folder.kind !== "folder") {
+function requireFolderAtPath(
+  nodes: Array<Doc<"fileNodes">>,
+  path: string,
+): Doc<"fileNodes"> {
+  const { node } = requireNodeAtPath(nodes, path);
+  if (node.kind !== "folder") {
     throw new Error("Path is a file, not a folder");
   }
-  return nodes
-    .filter((node) => node.parentId === folder._id)
-    .map((node) => toListItem(nodes, node));
+  return node;
+}
+
+export async function listFiles(
+  ctx: ActionCtx,
+  scope: McpFileScope,
+  path: string | undefined,
+): Promise<FileListResult> {
+  const { nodes, totalBytes, storageLimit } = await listFileTree(ctx, scope);
+
+  const folder =
+    path !== undefined && normalizePathSegments(path).length > 0
+      ? requireFolderAtPath(nodes, path)
+      : undefined;
+  const listed =
+    folder === undefined
+      ? nodes
+      : nodes.filter((node) => node.parentId === folder._id);
+  return {
+    items: listed.map((node) => toListItem(nodes, node)),
+    totalBytes,
+    storageLimit,
+  };
 }
 
 export async function getFile(
   ctx: ActionCtx,
-  clerkId: string,
+  scope: McpFileScope,
   path: string,
 ): Promise<FileGetResult> {
-  const nodes = await listFileNodes(ctx, clerkId);
+  const nodes = await listFileNodes(ctx, scope);
   const { node } = requireNodeAtPath(nodes, path);
   if (node.kind !== "file") {
     throw new Error("Path is a folder, not a file");
@@ -168,20 +236,12 @@ export async function getFile(
   return result;
 }
 
-export async function uploadFile(
-  ctx: ActionCtx,
-  args: {
-    clerkId: string;
-    path: string;
-    contentBase64?: string;
-    sourceUrl?: string;
-    mimeType?: string;
-  },
-): Promise<FileUploadResult> {
-  const segments = normalizePathSegments(args.path);
-  if (segments.length === 0) {
-    throw new Error("Path is required");
-  }
+// Bytes for an MCP upload: exactly one of base64 or a URL, at most 10 MB.
+export async function readUploadBlob(args: {
+  contentBase64?: string;
+  sourceUrl?: string;
+  mimeType?: string;
+}): Promise<{ blob: Blob; mimeType: string }> {
   const contentBase64 = args.contentBase64;
   const sourceUrl = args.sourceUrl;
   const hasBase64 = contentBase64 !== undefined && contentBase64.length > 0;
@@ -220,12 +280,27 @@ export async function uploadFile(
       `File too large (${blob.size} bytes); max is ${MAX_UPLOAD_BYTES} bytes`,
     );
   }
+  return { blob, mimeType };
+}
+
+export async function uploadFile(
+  ctx: ActionCtx,
+  args: McpFileScope & {
+    path: string;
+    contentBase64?: string;
+    sourceUrl?: string;
+    mimeType?: string;
+  },
+): Promise<FileUploadResult> {
+  const segments = requireSegments(args.path);
+  const { blob, mimeType } = await readUploadBlob(args);
 
   const storageId = await ctx.storage.store(blob);
 
   try {
     await ctx.runMutation(internal.files.upsertFileByPathInternal, {
       clerkId: args.clerkId,
+      scope: args.scope,
       segments,
       storageId,
       mimeType,
@@ -249,15 +324,89 @@ export async function uploadFile(
 
 export async function deleteFile(
   ctx: ActionCtx,
-  clerkId: string,
+  scope: McpFileScope,
   path: string,
 ): Promise<FileDeleteResult> {
-  const nodes = await listFileNodes(ctx, clerkId);
+  const nodes = await listFileNodes(ctx, scope);
   const { node } = requireNodeAtPath(nodes, path);
   const resolvedPath = nodePath(nodes, node);
   const { deletedCount } = await ctx.runMutation(
     internal.files.deleteByIdForClerkInternal,
-    { clerkId, nodeId: node._id },
+    { ...scope, nodeId: node._id },
   );
   return { path: resolvedPath, deletedCount };
+}
+
+// mkdir -p: missing parent folders are created too
+export async function createFolder(
+  ctx: ActionCtx,
+  scope: McpFileScope,
+  path: string,
+): Promise<FileFolderResult> {
+  const segments = requireSegments(path);
+  const { created } = await ctx.runMutation(
+    internal.files.createFolderByPathInternal,
+    { ...scope, segments },
+  );
+  return { path: segments.join("/"), kind: "folder", created };
+}
+
+export async function renameNode(
+  ctx: ActionCtx,
+  scope: McpFileScope,
+  path: string,
+  newName: string,
+): Promise<FileRenameResult> {
+  const name = newName.trim();
+  if (name.length === 0 || name.includes("/")) {
+    throw new Error("newName must be a non-empty name without '/'");
+  }
+  const nodes = await listFileNodes(ctx, scope);
+  const { node } = requireNodeAtPath(nodes, path);
+  assertNameFree(nodes, node.parentId, name, node._id);
+  const previousPath = nodePath(nodes, node);
+  await ctx.runMutation(internal.files.renameByClerkIdInternal, {
+    ...scope,
+    nodeId: node._id,
+    name,
+  });
+  return {
+    path: nodePath(nodes, { ...node, name }),
+    previousPath,
+  };
+}
+
+export async function moveNodes(
+  ctx: ActionCtx,
+  scope: McpFileScope,
+  paths: string[],
+  targetFolderPath: string | undefined,
+): Promise<FileMoveResult> {
+  const nodes = await listFileNodes(ctx, scope);
+  const target =
+    targetFolderPath !== undefined &&
+    normalizePathSegments(targetFolderPath).length > 0
+      ? requireFolderAtPath(nodes, targetFolderPath)
+      : undefined;
+  const moving = paths.map((path) => requireNodeAtPath(nodes, path).node);
+  const names = new Set<string>();
+  for (const node of moving) {
+    if (names.has(node.name)) {
+      throw new Error(`Two of the paths are both named "${node.name}"`);
+    }
+    names.add(node.name);
+    assertNameFree(nodes, target?._id, node.name, node._id);
+  }
+  await ctx.runMutation(internal.files.moveByClerkIdInternal, {
+    ...scope,
+    nodeIds: moving.map((node) => node._id),
+    targetParentId: target?._id,
+  });
+  const targetPath = target === undefined ? "" : `${nodePath(nodes, target)}/`;
+  return {
+    moved: moving.map((node) => ({
+      from: nodePath(nodes, node),
+      to: `${targetPath}${node.name}`,
+    })),
+  };
 }

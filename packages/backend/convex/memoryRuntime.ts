@@ -104,10 +104,15 @@ export interface ListMemoryRuntimeArgs {
   clerkId: string;
   profileId?: string;
   type?: string;
+  types?: string[];
   status?: string;
   source?: string;
+  sources?: string[];
   tags?: string[];
   searchQuery?: string;
+  // inclusive createdAt window, epoch ms
+  createdAfter?: number;
+  createdBefore?: number;
   limit: number;
   offset: number;
 }
@@ -213,9 +218,13 @@ async function searchMemoryListPaged(
           // synonym batches must still contain a term the caller typed
           requireTerms: index > 0 ? queries[0] : undefined,
           type: args.type,
+          types: args.types,
           status: args.status,
           source: args.source,
+          sources: args.sources,
           tags: args.tags,
+          createdAfter: args.createdAfter,
+          createdBefore: args.createdBefore,
           // first page asks for only what the caller needs; later pages
           // (post-filters left `want` unmet) grow to FTS_PAGE_SIZE
           numItems: Math.min(
@@ -270,9 +279,13 @@ export async function listMemoriesForClerk(
       userId: args.clerkId,
       profileId,
       type: args.type,
+      types: args.types,
       status: args.status,
       source: args.source,
+      sources: args.sources,
       tags: args.tags,
+      createdAfter: args.createdAfter,
+      createdBefore: args.createdBefore,
       limit: args.limit,
       offset: args.offset,
     },
@@ -296,9 +309,13 @@ export async function listMemoriesForTeamProfile(
     {
       profileId: args.profileId,
       type: args.type,
+      types: args.types,
       status: args.status,
       source: args.source,
+      sources: args.sources,
       tags: args.tags,
+      createdAfter: args.createdAfter,
+      createdBefore: args.createdBefore,
       limit: args.limit,
       offset: args.offset,
     },

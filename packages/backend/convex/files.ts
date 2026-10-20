@@ -17,14 +17,15 @@ import {
   assertContentEditable,
   requireContentScopeAccess,
 } from "./teams/auth";
+import { mcpScopeValidator, resolveMcpTeamId } from "./profiles/mcpAccess";
 
 interface FileNodeWithUrl extends Doc<"fileNodes"> {
   // convex serving url for files. null for folders or missing storage
   url: string | null;
 }
 
-interface ListTreeResult {
-  nodes: Array<FileNodeWithUrl>;
+interface ScopeTree<Node> {
+  nodes: Array<Node>;
   totalBytes: number;
   storageLimit: number;
 }
@@ -48,18 +49,34 @@ async function listScopeNodes(
   return nodes.filter((n) => n.teamId === undefined);
 }
 
+function sumFileBytes(nodes: Array<Doc<"fileNodes">>): number {
+  return nodes.reduce(
+    (sum, node) => sum + (node.kind === "file" ? (node.size ?? 0) : 0),
+    0,
+  );
+}
+
+// a scope's nodes plus storage used and the limit (files page + files_list)
+async function listScopeTree(
+  ctx: QueryCtx,
+  userId: Id<"users">,
+  teamId: Id<"teams"> | undefined,
+): Promise<ScopeTree<Doc<"fileNodes">>> {
+  await requireContentScopeAccess(ctx, userId, teamId);
+  const nodes = await listScopeNodes(ctx, userId, teamId);
+  return {
+    nodes,
+    totalBytes: sumFileBytes(nodes),
+    storageLimit: FILE_STORAGE_LIMIT_BYTES,
+  };
+}
+
 export const listTree = authQuery({
   args: { teamId: v.optional(v.id("teams")) },
-  handler: async (ctx, args): Promise<ListTreeResult> => {
-    await requireContentScopeAccess(ctx, ctx.userId, args.teamId);
-    const nodes = await listScopeNodes(ctx, ctx.userId, args.teamId);
-
-    const totalBytes = nodes.reduce(
-      (sum, node) => sum + (node.kind === "file" ? (node.size ?? 0) : 0),
-      0,
-    );
+  handler: async (ctx, args): Promise<ScopeTree<FileNodeWithUrl>> => {
+    const tree = await listScopeTree(ctx, ctx.userId, args.teamId);
     const withUrls: Array<FileNodeWithUrl> = await Promise.all(
-      nodes.map(async (node) => {
+      tree.nodes.map(async (node) => {
         const url =
           node.kind === "file" && node.storageId
             ? await ctx.storage.getUrl(node.storageId)
@@ -67,12 +84,7 @@ export const listTree = authQuery({
         return { ...node, url };
       }),
     );
-
-    return {
-      nodes: withUrls,
-      totalBytes,
-      storageLimit: FILE_STORAGE_LIMIT_BYTES,
-    };
+    return { ...tree, nodes: withUrls };
   },
 });
 
@@ -88,19 +100,26 @@ async function totalBytesForScope(
   userId: Id<"users">,
   teamId: Id<"teams"> | undefined,
 ): Promise<number> {
-  const nodes = await listScopeNodes(ctx, userId, teamId);
-  return nodes.reduce(
-    (sum, node) => sum + (node.kind === "file" ? (node.size ?? 0) : 0),
-    0,
-  );
+  return sumFileBytes(await listScopeNodes(ctx, userId, teamId));
 }
 
-async function findPersonalSibling(
+// a child of parentId with this name, in the personal or the team drive
+async function findSibling(
   ctx: MutationCtx,
   userId: Id<"users">,
+  teamId: Id<"teams"> | undefined,
   parentId: Id<"fileNodes"> | undefined,
   name: string,
 ): Promise<Doc<"fileNodes"> | undefined> {
+  if (teamId !== undefined) {
+    const siblings = await ctx.db
+      .query("fileNodes")
+      .withIndex("by_team_parent", (q) =>
+        q.eq("teamId", teamId).eq("parentId", parentId),
+      )
+      .collect();
+    return siblings.find((s) => s.name === name);
+  }
   const siblings = await ctx.db
     .query("fileNodes")
     .withIndex("by_user_parent", (q) =>
@@ -180,6 +199,25 @@ export const createFile = authMutation({
   },
 });
 
+async function insertFolder(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  teamId: Id<"teams"> | undefined,
+  parentId: Id<"fileNodes"> | undefined,
+  name: string,
+): Promise<Id<"fileNodes">> {
+  const now = Date.now();
+  return await ctx.db.insert("fileNodes", {
+    userId,
+    teamId,
+    parentId,
+    kind: "folder",
+    name,
+    createdAt: now,
+    updatedAt: now,
+  });
+}
+
 export const createFolder = authMutation({
   args: {
     name: v.string(),
@@ -189,73 +227,86 @@ export const createFolder = authMutation({
   handler: async (ctx, args): Promise<Id<"fileNodes">> => {
     await requireContentScopeAccess(ctx, ctx.userId, args.teamId);
     await assertParentFolder(ctx, ctx.userId, args.teamId, args.parentId);
-    const now = Date.now();
-    return await ctx.db.insert("fileNodes", {
-      userId: ctx.userId,
-      teamId: args.teamId,
-      parentId: args.parentId,
-      kind: "folder",
-      name: args.name,
-      createdAt: now,
-      updatedAt: now,
-    });
+    return await insertFolder(
+      ctx,
+      ctx.userId,
+      args.teamId,
+      args.parentId,
+      args.name,
+    );
   },
 });
+
+async function renameFileNode(
+  ctx: MutationCtx,
+  actorUserId: Id<"users">,
+  nodeId: Id<"fileNodes">,
+  name: string,
+): Promise<void> {
+  const node = await ctx.db.get(nodeId);
+  if (!node) throw new Error("Not found");
+  await assertContentEditable(ctx, node, actorUserId);
+  await ctx.db.patch(nodeId, { name, updatedAt: Date.now() });
+
+  // keep the derived memory's title in sync (content is unchanged, so a cheap title patch
+  if (node.kind === "file" && node.memoryId) {
+    const creator = await ctx.db.get(node.userId);
+    if (creator?.clerkId) {
+      await updateMemory(ctx, creator.clerkId, node.memoryId, {
+        title: name,
+      });
+    }
+  }
+}
 
 export const renameNode = authMutation({
   args: { nodeId: v.id("fileNodes"), name: v.string() },
-  handler: async (ctx, args): Promise<void> => {
-    const node = await ctx.db.get(args.nodeId);
-    if (!node) throw new Error("Not found");
-    await assertContentEditable(ctx, node, ctx.userId);
-    await ctx.db.patch(args.nodeId, { name: args.name, updatedAt: Date.now() });
-
-    // keep the derived memory's title in sync (content is unchanged, so a cheap title patch
-    if (node.kind === "file" && node.memoryId) {
-      const creator = await ctx.db.get(node.userId);
-      if (creator?.clerkId) {
-        await updateMemory(ctx, creator.clerkId, node.memoryId, {
-          title: args.name,
-        });
-      }
-    }
-  },
+  handler: async (ctx, args): Promise<void> =>
+    renameFileNode(ctx, ctx.userId, args.nodeId, args.name),
 });
+
+async function moveFileNodes(
+  ctx: MutationCtx,
+  actorUserId: Id<"users">,
+  nodeIds: Array<Id<"fileNodes">>,
+  targetParentId: Id<"fileNodes"> | undefined,
+): Promise<void> {
+  const firstId = nodeIds[0];
+  if (firstId === undefined) return;
+  const first = await ctx.db.get(firstId);
+  if (!first) throw new Error("Not found");
+  const scopeTeamId = first.teamId;
+
+  await requireContentScopeAccess(ctx, actorUserId, scopeTeamId);
+  await assertParentFolder(ctx, actorUserId, scopeTeamId, targetParentId);
+
+  const allNodes = await listScopeNodes(ctx, first.userId, scopeTeamId);
+
+  const now = Date.now();
+  for (const nodeId of nodeIds) {
+    const node = allNodes.find((n) => n._id === nodeId);
+    if (!node) throw new Error("Not found");
+    await assertContentEditable(ctx, node, actorUserId);
+    if (
+      targetParentId !== undefined &&
+      isAncestorOrSelf(allNodes, nodeId, targetParentId)
+    ) {
+      throw new Error("Cannot move a folder into its own descendant");
+    }
+    await ctx.db.patch(nodeId, {
+      parentId: targetParentId,
+      updatedAt: now,
+    });
+  }
+}
 
 export const moveNodes = authMutation({
   args: {
     nodeIds: v.array(v.id("fileNodes")),
     targetParentId: v.optional(v.id("fileNodes")),
   },
-  handler: async (ctx, args): Promise<void> => {
-    const firstId = args.nodeIds[0];
-    if (firstId === undefined) return;
-    const first = await ctx.db.get(firstId);
-    if (!first) throw new Error("Not found");
-    const scopeTeamId = first.teamId;
-
-    await requireContentScopeAccess(ctx, ctx.userId, scopeTeamId);
-    await assertParentFolder(ctx, ctx.userId, scopeTeamId, args.targetParentId);
-
-    const allNodes = await listScopeNodes(ctx, first.userId, scopeTeamId);
-
-    const now = Date.now();
-    for (const nodeId of args.nodeIds) {
-      const node = allNodes.find((n) => n._id === nodeId);
-      if (!node) throw new Error("Not found");
-      await assertContentEditable(ctx, node, ctx.userId);
-      if (
-        args.targetParentId !== undefined &&
-        isAncestorOrSelf(allNodes, nodeId, args.targetParentId)
-      ) {
-        throw new Error("Cannot move a folder into its own descendant");
-      }
-      await ctx.db.patch(nodeId, {
-        parentId: args.targetParentId,
-        updatedAt: now,
-      });
-    }
-  },
+  handler: async (ctx, args): Promise<void> =>
+    moveFileNodes(ctx, ctx.userId, args.nodeIds, args.targetParentId),
 });
 
 async function deleteSubtree(
@@ -312,17 +363,114 @@ export const deleteNodes = authMutation({
   },
 });
 
+// MCP file tools: the drive is the caller's personal files, or on the team
+// connector the active team profile's drive (never a teamId param)
+const mcpFileScopeArgs = { clerkId: v.string(), scope: mcpScopeValidator };
+
+async function resolveMcpFileScope(
+  ctx: QueryCtx,
+  args: { clerkId: string; scope: "personal" | "team" },
+): Promise<{ userId: Id<"users">; teamId: Id<"teams"> | undefined }> {
+  const userId = await getUserIdByClerkId(ctx, args.clerkId);
+  const teamId = await resolveMcpTeamId(ctx, args.clerkId, args.scope);
+  await requireContentScopeAccess(ctx, userId, teamId);
+  return { userId, teamId };
+}
+
+async function requireNodeInMcpScope(
+  ctx: QueryCtx,
+  scope: { userId: Id<"users">; teamId: Id<"teams"> | undefined },
+  nodeId: Id<"fileNodes">,
+): Promise<Doc<"fileNodes">> {
+  const node = await ctx.db.get(nodeId);
+  if (
+    !node ||
+    node.teamId !== scope.teamId ||
+    (scope.teamId === undefined && node.userId !== scope.userId)
+  ) {
+    throw new Error("Not found");
+  }
+  return node;
+}
+
+// walk the folder segments, creating missing ones; returns the last folder
+async function ensureFolderPath(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  teamId: Id<"teams"> | undefined,
+  segments: string[],
+): Promise<{ folderId: Id<"fileNodes"> | undefined; created: boolean }> {
+  let parentId: Id<"fileNodes"> | undefined;
+  let created = false;
+  for (const name of segments) {
+    const existing = await findSibling(ctx, userId, teamId, parentId, name);
+    if (existing) {
+      if (existing.kind !== "folder") {
+        throw new Error(`Path segment "${name}" is a file, not a folder`);
+      }
+      parentId = existing._id;
+      created = false;
+    } else {
+      parentId = await insertFolder(ctx, userId, teamId, parentId, name);
+      created = true;
+    }
+  }
+  return { folderId: parentId, created };
+}
+
 export const listByClerkIdInternal = internalQuery({
-  args: { clerkId: v.string() },
-  handler: async (ctx, args): Promise<Array<Doc<"fileNodes">>> => {
-    const userId = await getUserIdByClerkId(ctx, args.clerkId);
-    return await listScopeNodes(ctx, userId, undefined);
+  args: mcpFileScopeArgs,
+  handler: async (ctx, args): Promise<ScopeTree<Doc<"fileNodes">>> => {
+    const { userId, teamId } = await resolveMcpFileScope(ctx, args);
+    return await listScopeTree(ctx, userId, teamId);
+  },
+});
+
+export const createFolderByPathInternal = internalMutation({
+  args: { ...mcpFileScopeArgs, segments: v.array(v.string()) },
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{ nodeId: Id<"fileNodes">; created: boolean }> => {
+    const { userId, teamId } = await resolveMcpFileScope(ctx, args);
+    const { folderId, created } = await ensureFolderPath(
+      ctx,
+      userId,
+      teamId,
+      args.segments,
+    );
+    if (folderId === undefined) throw new Error("Path is required");
+    return { nodeId: folderId, created };
+  },
+});
+
+export const renameByClerkIdInternal = internalMutation({
+  args: { ...mcpFileScopeArgs, nodeId: v.id("fileNodes"), name: v.string() },
+  handler: async (ctx, args): Promise<void> => {
+    const scope = await resolveMcpFileScope(ctx, args);
+    await requireNodeInMcpScope(ctx, scope, args.nodeId);
+    await renameFileNode(ctx, scope.userId, args.nodeId, args.name);
+  },
+});
+
+export const moveByClerkIdInternal = internalMutation({
+  args: {
+    ...mcpFileScopeArgs,
+    nodeIds: v.array(v.id("fileNodes")),
+    targetParentId: v.optional(v.id("fileNodes")),
+  },
+  handler: async (ctx, args): Promise<void> => {
+    const scope = await resolveMcpFileScope(ctx, args);
+    for (const nodeId of args.nodeIds) {
+      await requireNodeInMcpScope(ctx, scope, nodeId);
+    }
+    await moveFileNodes(ctx, scope.userId, args.nodeIds, args.targetParentId);
   },
 });
 
 export const upsertFileByPathInternal = internalMutation({
   args: {
-    clerkId: v.string(),
+    ...mcpFileScopeArgs,
     segments: v.array(v.string()),
     storageId: v.id("_storage"),
     mimeType: v.string(),
@@ -332,41 +480,28 @@ export const upsertFileByPathInternal = internalMutation({
     if (args.segments.length === 0) {
       throw new Error("Path is required");
     }
-    const userId = await getUserIdByClerkId(ctx, args.clerkId);
+    const { userId, teamId } = await resolveMcpFileScope(ctx, args);
 
-    const used = await totalBytesForScope(ctx, userId, undefined);
+    const used = await totalBytesForScope(ctx, userId, teamId);
     if (used + args.size > FILE_STORAGE_LIMIT_BYTES) {
       await ctx.storage.delete(args.storageId);
       throw new Error("Storage limit exceeded");
     }
 
     const now = Date.now();
-    // walk/auto create folder segments (all but the last). personal scope only, team nodes are filtered out so the mcp namespace stays clean
-    let parentId: Id<"fileNodes"> | undefined;
-    for (const name of args.segments.slice(0, -1)) {
-      const existing = await findPersonalSibling(ctx, userId, parentId, name);
-      if (existing) {
-        if (existing.kind !== "folder") {
-          throw new Error(`Path segment "${name}" is a file, not a folder`);
-        }
-        parentId = existing._id;
-      } else {
-        parentId = await ctx.db.insert("fileNodes", {
-          userId,
-          parentId,
-          kind: "folder",
-          name,
-          createdAt: now,
-          updatedAt: now,
-        });
-      }
-    }
+    // walk/auto create folder segments (all but the last), inside the one drive
+    const { folderId: parentId } = await ensureFolderPath(
+      ctx,
+      userId,
+      teamId,
+      args.segments.slice(0, -1),
+    );
 
     const fileName = args.segments.at(-1);
     if (fileName === undefined) {
       throw new Error("Path is required");
     }
-    const existing = await findPersonalSibling(ctx, userId, parentId, fileName);
+    const existing = await findSibling(ctx, userId, teamId, parentId, fileName);
 
     const indexable = detectFileKind(fileName, args.mimeType) !== null;
 
@@ -374,6 +509,7 @@ export const upsertFileByPathInternal = internalMutation({
       if (existing.kind !== "file") {
         throw new Error(`A folder already exists at "${fileName}"`);
       }
+      await assertContentEditable(ctx, existing, userId);
       if (existing.storageId) {
         await ctx.storage.delete(existing.storageId);
       }
@@ -394,6 +530,7 @@ export const upsertFileByPathInternal = internalMutation({
 
     const nodeId = await ctx.db.insert("fileNodes", {
       userId,
+      teamId,
       parentId,
       kind: "file",
       name: fileName,
@@ -412,15 +549,11 @@ export const upsertFileByPathInternal = internalMutation({
 });
 
 export const deleteByIdForClerkInternal = internalMutation({
-  args: { clerkId: v.string(), nodeId: v.id("fileNodes") },
+  args: { ...mcpFileScopeArgs, nodeId: v.id("fileNodes") },
   handler: async (ctx, args): Promise<{ deletedCount: number }> => {
-    const userId = await getUserIdByClerkId(ctx, args.clerkId);
-    const node = await ctx.db.get(args.nodeId);
-    // mcp is personal only, team nodes are invisible here
-    if (!node || node.userId !== userId || node.teamId !== undefined) {
-      throw new Error("Not found");
-    }
-    const deletedCount = await deleteSubtree(ctx, userId, args.nodeId);
+    const scope = await resolveMcpFileScope(ctx, args);
+    await requireNodeInMcpScope(ctx, scope, args.nodeId);
+    const deletedCount = await deleteSubtree(ctx, scope.userId, args.nodeId);
     return { deletedCount };
   },
 });

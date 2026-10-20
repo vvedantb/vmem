@@ -479,33 +479,42 @@ async function runDreamForClerk(
   return aggregate;
 }
 
+// "Run Dream Mode now": rate limited, no notification, audited. Shared by
+// the inbox button and the MCP dream_run tool.
+export async function runManualDream(
+  ctx: ActionCtx,
+  args: { clerkId: string; userId: Id<"users"> },
+): Promise<DreamRunResult> {
+  const result = await runDreamForClerk(ctx, {
+    clerkId: args.clerkId,
+    userId: args.userId,
+    rateLimit: true,
+    notify: false,
+  });
+  await auditLog.log(ctx, {
+    action: "dream_mode.manual_run",
+    actorId: args.userId,
+    resourceType: ResourceTypes.USER,
+    resourceId: args.userId,
+    metadata: {
+      reason: result.reason,
+      proposalsCreated: result.proposalsCreated,
+      memoriesMaterialized: result.memoriesMaterialized,
+      clustersScanned: result.clustersScanned,
+      reweighted: result.reweighted,
+      jevScored: result.jevScored,
+      failOpen: result.failOpen,
+    },
+    severity: "info",
+  });
+  return result;
+}
+
 export const runDreamForUser = authAction({
   args: {},
   handler: async (ctx): Promise<DreamRunResult> => {
     const clerkId = await requireClerkId(ctx);
-    const result = await runDreamForClerk(ctx, {
-      clerkId,
-      userId: ctx.userId,
-      rateLimit: true,
-      notify: false,
-    });
-    await auditLog.log(ctx, {
-      action: "dream_mode.manual_run",
-      actorId: ctx.userId,
-      resourceType: ResourceTypes.USER,
-      resourceId: ctx.userId,
-      metadata: {
-        reason: result.reason,
-        proposalsCreated: result.proposalsCreated,
-        memoriesMaterialized: result.memoriesMaterialized,
-        clustersScanned: result.clustersScanned,
-        reweighted: result.reweighted,
-        jevScored: result.jevScored,
-        failOpen: result.failOpen,
-      },
-      severity: "info",
-    });
-    return result;
+    return runManualDream(ctx, { clerkId, userId: ctx.userId });
   },
 });
 

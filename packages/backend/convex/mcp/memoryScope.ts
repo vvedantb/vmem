@@ -3,6 +3,11 @@ import { internal } from "../_generated/api";
 import type { ActionCtx } from "../_generated/server";
 import type { McpScope } from "../profiles/mcpAccess";
 import { resolveProfileIdForMcpScope } from "../memoryScope";
+import type { MemoryReadScope } from "../../engine/memory/scope";
+import {
+  updateMemoryForClerk,
+  type UpdateMemoryRuntimeArgs,
+} from "../memoryRuntime";
 
 export type McpResolvedScope =
   | { clerkId: string; mcpScope: "team"; profileId: string }
@@ -39,6 +44,21 @@ export async function runForMcpScope<T>(
     clerkId: scope.clerkId,
     profileId: scope.profileId,
   });
+}
+
+// store read scope for a resolved MCP scope (personal keeps legacy
+// profile-less rows, team is strict on the profile)
+export function memoryReadScopeForMcp(
+  scope: McpResolvedScope,
+): MemoryReadScope {
+  if (scope.mcpScope === "team") {
+    return { kind: "team", profileId: scope.profileId };
+  }
+  return {
+    kind: "personal",
+    userId: scope.clerkId,
+    profileId: scope.profileId,
+  };
 }
 
 export function memoryMatchesMcpScope(
@@ -83,4 +103,20 @@ export async function loadMemoryForMcpScope(
     throw new Error("Memory not found");
   }
   return memory;
+}
+
+// Ownership check plus update, as memory_update and the bulk tag tools do it.
+// Team memories are written as their author, like the web team update path.
+export async function updateMemoryInMcpScope(
+  ctx: ActionCtx,
+  scope: McpResolvedScope,
+  memoryId: string,
+  patch: Omit<UpdateMemoryRuntimeArgs, "clerkId" | "memoryId">,
+): Promise<MemoryWithTags | null> {
+  const memory = await loadMemoryForMcpScope(ctx, { ...scope, memoryId });
+  return updateMemoryForClerk(ctx, {
+    ...patch,
+    clerkId: memory.userId,
+    memoryId,
+  });
 }

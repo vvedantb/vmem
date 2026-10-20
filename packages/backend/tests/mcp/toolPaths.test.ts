@@ -1,6 +1,7 @@
 import { assertMcpTools } from "@vvedantb/server";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
+import { MCP_SERVER_VERSION } from "../../convex/mcp/serverInfo";
 import { memoryToolSpecs } from "../../convex/mcp/toolsMemory";
 import { catalogNamesForScope, MEMORY_GRAPH_TOOL } from "./catalog";
 import { parseMcpHttpError, parseToolJson, toolText } from "./client";
@@ -70,7 +71,7 @@ describe("in-process MCP auth gate", () => {
     const personal = new InProcessMcpClient({ token: MOCK_MCP_TOKEN });
     const personalInit = await personal.initialize();
     expect(personalInit.serverInfo.name).toBe("vmem-mcp");
-    expect(personalInit.serverInfo.version).toBe("2.0.0");
+    expect(personalInit.serverInfo.version).toBe(MCP_SERVER_VERSION);
 
     const team = new InProcessMcpClient({
       session: createInProcessSession("team"),
@@ -90,7 +91,7 @@ describe("in-process MCP catalog", () => {
     expect(names.some((name) => name.includes("codebase"))).toBe(false);
   });
 
-  it("omits files and context_prompt on the team connector", async () => {
+  it("omits context_prompt and keeps team files on the team connector", async () => {
     const client = new InProcessMcpClient({
       session: createInProcessSession("team"),
       token: MOCK_MCP_TOKEN,
@@ -101,7 +102,7 @@ describe("in-process MCP catalog", () => {
     expect(names.some((name) => name.startsWith("skills_"))).toBe(true);
     expect(names).toContain("skills_recommend");
     expect(names.some((name) => name.startsWith("wiki_"))).toBe(false);
-    expect(names.some((name) => name.startsWith("files_"))).toBe(false);
+    expect(names).toContain("files_list");
   });
 });
 
@@ -503,9 +504,10 @@ describe("in-process MCP core, skills, and files tools", () => {
     const listed = fileListSchema.parse(
       parseToolPayload(await client.callTool("files_list")),
     );
-    expect(listed.some((entry) => entry.path === "harness/note.txt")).toBe(
-      true,
-    );
+    expect(
+      listed.items.some((entry) => entry.path === "harness/note.txt"),
+    ).toBe(true);
+    expect(listed.totalBytes).toBeGreaterThan(0);
 
     const fetched = fileGetResultSchema.parse(
       parseToolPayload(

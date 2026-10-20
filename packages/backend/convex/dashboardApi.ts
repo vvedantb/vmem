@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { authAction, requireClerkId, type AuthActionCtx } from "./auth";
+import type { ActionCtx } from "./_generated/server";
+import { authAction, requireClerkId } from "./auth";
 import {
   createDashboardStatsAcc,
   finishDashboardStats,
@@ -10,22 +11,25 @@ import type { MemoryReadScope } from "../engine/memory/scope";
 import { foldScopedMemoryStats } from "./memoryStore/walk";
 import { resolveAccessibleTeamScope } from "./profiles/accessibleProfile";
 
-async function foldScopedStats(
-  ctx: AuthActionCtx,
-  clerkId: string,
-  profileId: string | undefined,
-  teamId: string | undefined,
-  acc: ReturnType<typeof createDashboardStatsAcc>,
-): Promise<void> {
-  if (teamId !== undefined && profileId !== undefined) {
-    await foldScopedMemoryStats(ctx, { kind: "team", profileId }, acc);
-    return;
-  }
-  await foldScopedMemoryStats(
-    ctx,
-    { kind: "personal", userId: clerkId, profileId },
-    acc,
+// Live counters first, else one scope walk. Callers resolve and check the
+// scope; shared by the dashboard and the MCP memory_stats tool.
+export async function memoryStatsForScope(
+  ctx: Pick<ActionCtx, "runQuery">,
+  scope: MemoryReadScope,
+): Promise<DashboardStatsResult> {
+  const counted = await ctx.runQuery(
+    internal.memoryStats.getMemoryStatsInternal,
+    {
+      kind: scope.kind,
+      userId: scope.kind === "personal" ? scope.userId : undefined,
+      profileId: scope.profileId ?? undefined,
+      now: Date.now(),
+    },
   );
+  if (counted !== null) return counted;
+  const acc = createDashboardStatsAcc();
+  await foldScopedMemoryStats(ctx, scope, acc);
+  return finishDashboardStats(acc);
 }
 
 export const getStats = authAction({
@@ -40,18 +44,6 @@ export const getStats = authAction({
       teamId !== undefined && args.profileId !== undefined
         ? { kind: "team", profileId: args.profileId }
         : { kind: "personal", userId: clerkId, profileId: args.profileId };
-    const counted = await ctx.runQuery(
-      internal.memoryStats.getMemoryStatsInternal,
-      {
-        kind: scope.kind,
-        userId: scope.kind === "personal" ? scope.userId : undefined,
-        profileId: scope.profileId ?? undefined,
-        now: Date.now(),
-      },
-    );
-    if (counted !== null) return counted;
-    const acc = createDashboardStatsAcc();
-    await foldScopedStats(ctx, clerkId, args.profileId, teamId, acc);
-    return finishDashboardStats(acc);
+    return await memoryStatsForScope(ctx, scope);
   },
 });

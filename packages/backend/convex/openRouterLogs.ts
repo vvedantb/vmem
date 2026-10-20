@@ -1,11 +1,21 @@
-﻿import { paginationOptsValidator } from "convex/server";
-import { v } from "convex/values";
+﻿import { paginationOptsValidator, type PaginationOptions } from "convex/server";
+import { v, type Infer, type ObjectType } from "convex/values";
 import { internal } from "./_generated/api";
-import { internalMutation, type QueryCtx } from "./_generated/server";
+import {
+  internalMutation,
+  internalQuery,
+  type QueryCtx,
+} from "./_generated/server";
 import { authQuery } from "./auth";
 import { openRouterLogFields, openRouterLogRecordFields } from "./validators";
 import type { Id } from "./_generated/dataModel";
 import { getMembershipOrNull } from "./teams/auth";
+import { getUserIdByClerkId } from "./lib/clerkUser";
+import {
+  mcpScopeValidator,
+  requireProfileForMcpScope,
+  resolveMcpTeamId,
+} from "./profiles/mcpAccess";
 import {
   insertOpenRouterLogAggregates,
   openRouterCost,
@@ -82,7 +92,9 @@ const logRowValidator = v.object({
   ...openRouterLogFields,
 });
 
-function rangeCutoff(range: "today" | "7d" | "30d" | "all"): number | null {
+type Range = Infer<typeof rangeValidator>;
+
+function rangeCutoff(range: Range): number | null {
   const now = Date.now();
   switch (range) {
     case "today":
@@ -168,15 +180,65 @@ async function resolveOwnerNamespace(
   return teamLogNamespace(teamId);
 }
 
+const listMineFilterArgs = {
+  profileId: v.optional(v.id("profiles")),
+  features: v.optional(v.array(openRouterLogFields.feature)),
+  models: v.optional(v.array(v.string())),
+  range: v.optional(rangeValidator),
+};
+
+type LogOwner = {
+  userId: Id<"users">;
+  scope: "personal" | "team";
+  teamId?: Id<"teams">;
+};
+
+async function listLogsPage(
+  ctx: QueryCtx,
+  owner: LogOwner,
+  args: ObjectType<typeof listMineFilterArgs> & {
+    paginationOpts: PaginationOptions;
+  },
+) {
+  const features = args.features ?? [];
+  const models = args.models ?? [];
+  const range = args.range ?? "all";
+  const cutoff = rangeCutoff(range);
+
+  let q = await scopedOpenRouterLogsQuery(ctx, {
+    ...owner,
+    cutoff,
+    onDenied: "throw",
+  });
+  if (!q) {
+    throw new Error("Not authorized for this team");
+  }
+
+  // optional profile filter, works for both scopes
+  if (args.profileId) {
+    const profileId = args.profileId;
+    q = q.filter((f) => f.eq(f.field("profileId"), profileId));
+  }
+
+  // multi value filters, features[], models[]
+  if (features.length > 0) {
+    q = q.filter((f) =>
+      f.or(...features.map((feat) => f.eq(f.field("feature"), feat))),
+    );
+  }
+  if (models.length > 0) {
+    q = q.filter((f) => f.or(...models.map((m) => f.eq(f.field("model"), m))));
+  }
+
+  return await q.paginate(args.paginationOpts);
+}
+
 export const listMine = authQuery({
   args: {
     paginationOpts: paginationOptsValidator,
     scope: v.optional(scopeValidator),
     teamId: v.optional(v.id("teams")),
-    profileId: v.optional(v.id("profiles")),
-    features: v.optional(v.array(openRouterLogFields.feature)),
-    models: v.optional(v.array(v.string())),
-    range: v.optional(rangeValidator),
+    ...listMineFilterArgs,
   },
   returns: v.object({
     page: v.array(logRowValidator),
@@ -191,44 +253,12 @@ export const listMine = authQuery({
     ),
     splitCursor: v.optional(v.union(v.null(), v.string())),
   }),
-  handler: async (ctx, args) => {
-    const scope = args.scope ?? "personal";
-    const features = args.features ?? [];
-    const models = args.models ?? [];
-    const range = args.range ?? "all";
-    const cutoff = rangeCutoff(range);
-
-    let q = await scopedOpenRouterLogsQuery(ctx, {
-      userId: ctx.userId,
-      scope,
-      teamId: args.teamId,
-      cutoff,
-      onDenied: "throw",
-    });
-    if (!q) {
-      throw new Error("Not authorized for this team");
-    }
-
-    // optional profile filter, works for both scopes
-    if (args.profileId) {
-      const profileId = args.profileId;
-      q = q.filter((f) => f.eq(f.field("profileId"), profileId));
-    }
-
-    // multi value filters, features[], models[]
-    if (features.length > 0) {
-      q = q.filter((f) =>
-        f.or(...features.map((feat) => f.eq(f.field("feature"), feat))),
-      );
-    }
-    if (models.length > 0) {
-      q = q.filter((f) =>
-        f.or(...models.map((m) => f.eq(f.field("model"), m))),
-      );
-    }
-
-    return await q.paginate(args.paginationOpts);
-  },
+  handler: async (ctx, { scope, teamId, ...args }) =>
+    listLogsPage(
+      ctx,
+      { userId: ctx.userId, scope: scope ?? "personal", teamId },
+      args,
+    ),
 });
 
 const summaryReturnValidator = v.object({
@@ -244,32 +274,44 @@ export const summaryMine = authQuery({
     range: v.optional(rangeValidator),
   },
   returns: summaryReturnValidator,
-  handler: async (ctx, args) => {
-    const scope = args.scope ?? "personal";
-    const range = args.range ?? "today";
-    const cutoff = rangeCutoff(range);
-    const namespace = await resolveOwnerNamespace(ctx, {
-      userId: ctx.userId,
-      scope,
-      teamId: args.teamId,
-      onDenied: "throw",
-    });
-    if (namespace === null) {
-      throw new Error("Not authorized for this team");
-    }
-
-    const bounds =
-      cutoff === null ? undefined : { lower: { key: cutoff, inclusive: true } };
-
-    const [totalCalls, totalCostUsd, totalTokens] = await Promise.all([
-      openRouterCost.count(ctx, { namespace, bounds }),
-      openRouterCost.sum(ctx, { namespace, bounds }),
-      openRouterTokens.sum(ctx, { namespace, bounds }),
-    ]);
-
-    return { totalCalls, totalCostUsd, totalTokens };
-  },
+  handler: async (ctx, args) =>
+    summarizeLogs(
+      ctx,
+      {
+        userId: ctx.userId,
+        scope: args.scope ?? "personal",
+        teamId: args.teamId,
+      },
+      args.range,
+    ),
 });
+
+async function summarizeLogs(
+  ctx: QueryCtx,
+  owner: LogOwner,
+  rangeArg: Range | undefined,
+) {
+  const range = rangeArg ?? "today";
+  const cutoff = rangeCutoff(range);
+  const namespace = await resolveOwnerNamespace(ctx, {
+    ...owner,
+    onDenied: "throw",
+  });
+  if (namespace === null) {
+    throw new Error("Not authorized for this team");
+  }
+
+  const bounds =
+    cutoff === null ? undefined : { lower: { key: cutoff, inclusive: true } };
+
+  const [totalCalls, totalCostUsd, totalTokens] = await Promise.all([
+    openRouterCost.count(ctx, { namespace, bounds }),
+    openRouterCost.sum(ctx, { namespace, bounds }),
+    openRouterTokens.sum(ctx, { namespace, bounds }),
+  ]);
+
+  return { totalCalls, totalCostUsd, totalTokens };
+}
 
 export const distinctModelsMine = authQuery({
   args: {
@@ -277,20 +319,75 @@ export const distinctModelsMine = authQuery({
     teamId: v.optional(v.id("teams")),
   },
   returns: v.array(v.string()),
-  handler: async (ctx, args) => {
-    const scope = args.scope ?? "personal";
-    const namespace = await resolveOwnerNamespace(ctx, {
+  handler: async (ctx, args) =>
+    distinctModels(ctx, {
       userId: ctx.userId,
-      scope,
+      scope: args.scope ?? "personal",
       teamId: args.teamId,
-      onDenied: "empty",
-    });
-    if (namespace === null) return [];
+    }),
+});
 
-    const models: string[] = [];
-    for await (const item of openRouterModels.iter(ctx, { namespace })) {
-      models.push(item.key);
-    }
-    return models.sort();
+async function distinctModels(
+  ctx: QueryCtx,
+  owner: LogOwner,
+): Promise<string[]> {
+  const namespace = await resolveOwnerNamespace(ctx, {
+    ...owner,
+    onDenied: "empty",
+  });
+  if (namespace === null) return [];
+
+  const models: string[] = [];
+  for await (const item of openRouterModels.iter(ctx, { namespace })) {
+    models.push(item.key);
+  }
+  return models.sort();
+}
+
+// MCP usage_ai_*: personal logs, or on the team connector the active team
+// profile's team (never a teamId param)
+async function mcpLogOwner(
+  ctx: QueryCtx,
+  args: { clerkId: string; scope: "personal" | "team" },
+): Promise<LogOwner> {
+  return {
+    userId: await getUserIdByClerkId(ctx, args.clerkId),
+    scope: args.scope,
+    teamId: await resolveMcpTeamId(ctx, args.clerkId, args.scope),
+  };
+}
+
+const mcpLogScopeArgs = { clerkId: v.string(), scope: mcpScopeValidator };
+
+export const listByClerkIdInternal = internalQuery({
+  args: {
+    ...mcpLogScopeArgs,
+    paginationOpts: paginationOptsValidator,
+    profileId: v.optional(v.string()),
+    features: listMineFilterArgs.features,
+    models: listMineFilterArgs.models,
+    range: listMineFilterArgs.range,
   },
+  handler: async (ctx, { clerkId, scope, profileId, ...args }) => {
+    const profile =
+      profileId === undefined
+        ? undefined
+        : await requireProfileForMcpScope(ctx, clerkId, scope, profileId);
+    return listLogsPage(ctx, await mcpLogOwner(ctx, { clerkId, scope }), {
+      ...args,
+      profileId: profile?._id,
+    });
+  },
+});
+
+export const summaryByClerkIdInternal = internalQuery({
+  args: { ...mcpLogScopeArgs, range: v.optional(rangeValidator) },
+  handler: async (ctx, args) =>
+    summarizeLogs(ctx, await mcpLogOwner(ctx, args), args.range),
+});
+
+export const distinctModelsByClerkIdInternal = internalQuery({
+  args: mcpLogScopeArgs,
+  handler: async (ctx, args) =>
+    distinctModels(ctx, await mcpLogOwner(ctx, args)),
 });

@@ -8,12 +8,16 @@ import {
   structuredStoreBodySchema,
   structuredUpdateBodySchema,
 } from "@vmem/sdk";
-import type { MemoryListResult } from "../memoryApi/types";
+import type { ActionCtx } from "../_generated/server";
+import type { MemoryListResult, MemoryWithTags } from "../memoryApi/types";
+import { enqueueMemoryAccess } from "../memoryUsefulness";
 import { scopedMemory, toolSpec } from "./toolTypes";
 import {
   loadMemoryForMcpScope,
   runForMcpScope,
+  updateMemoryInMcpScope,
   withMcpMemoryScope,
+  type McpResolvedScope,
 } from "./memoryScope";
 import {
   createMemoryForClerk,
@@ -27,17 +31,48 @@ import {
   storeMemoryFromInstruction,
   toMemoryStatus,
   toMemoryType,
-  updateMemoryForClerk,
 } from "../memoryRuntime";
+
+const isoDateSchema = z
+  .string()
+  .refine((value) => Number.isFinite(Date.parse(value)), {
+    message: "Expected an ISO 8601 date or date-time",
+  });
+
+function isoToMs(value: string | undefined): number | undefined {
+  return value === undefined ? undefined : Date.parse(value);
+}
 
 const memorySearchSchema = z.object({
   query: z.string().optional().describe("Text to search for"),
   type: memoryTypeSchema.optional().describe("Filter by memory type"),
-  tags: z.array(z.string()).optional().describe("Filter by tags"),
+  types: z
+    .array(memoryTypeSchema)
+    .optional()
+    .describe("Filter by several memory types (any of)"),
+  tags: z
+    .array(z.string())
+    .optional()
+    .describe("Filter by tags (memories must carry every tag)"),
   source: z
     .string()
     .optional()
     .describe("Filter by source (e.g. notion, google_drive, claude, mcp)"),
+  sources: z
+    .array(z.string())
+    .optional()
+    .describe("Filter by several sources (any of)"),
+  status: memoryStatusSchema
+    .optional()
+    .describe(
+      "Filter by status. Default shows active and pinned; pass suppressed or expired to see hidden memories",
+    ),
+  createdAfter: isoDateSchema
+    .optional()
+    .describe("Only memories created at or after this ISO date/time"),
+  createdBefore: isoDateSchema
+    .optional()
+    .describe("Only memories created at or before this ISO date/time"),
   profileId: z
     .string()
     .optional()
@@ -136,6 +171,30 @@ const memoryAddSchema = structuredStoreBodySchema
       .describe("Profile ID to add memory to (defaults to active profile)"),
   });
 
+const MEMORY_ADD_BATCH_MAX = 50;
+
+const memoryAddBatchSchema = z.object({
+  items: z
+    .array(memoryAddSchema.omit({ profileId: true }))
+    .min(1)
+    .max(MEMORY_ADD_BATCH_MAX)
+    .describe(
+      "Up to 50 memories, each shaped like memory_add (title, content, type, source?, tags?, confidence?)",
+    ),
+  profileId: z
+    .string()
+    .optional()
+    .describe("Profile ID to add every memory to (defaults to active profile)"),
+});
+
+const memoryGetSchema = z.object({
+  id: z.string().describe("Memory ID from memory_search or memory_retrieve"),
+  profileId: z
+    .string()
+    .optional()
+    .describe("Profile ID the memory lives in (defaults to active profile)"),
+});
+
 const memoryAddInstructionSchema = instructionStoreBodySchema.extend({
   instruction: instructionStoreBodySchema.shape.instruction.describe(
     "What to remember, e.g. 'User prefers dark mode and uses pnpm for vmem'",
@@ -180,12 +239,31 @@ const memoryRelatedSchema = z.object({
     .describe("Memory ID from memory_search or memory_retrieve"),
 });
 
+type MemoryAddFields = Omit<z.infer<typeof memoryAddSchema>, "profileId">;
+
+function addMemoryInScope(
+  ctx: ActionCtx,
+  scope: McpResolvedScope,
+  fields: MemoryAddFields,
+): Promise<MemoryWithTags> {
+  return createMemoryForClerk(ctx, {
+    clerkId: scope.clerkId,
+    profileId: scope.profileId,
+    title: fields.title,
+    content: fields.content,
+    type: toMemoryType(fields.type) ?? "knowledge",
+    source: fields.source ?? "mcp",
+    tags: fields.tags ?? [],
+    confidence: fields.confidence ?? 1.0,
+  });
+}
+
 export const memoryToolSpecs = {
   memory_search: toolSpec({
     name: "memory_search",
     schema: memorySearchSchema,
     description:
-      "Search your memories by query text, type, tags, or source. Returns matching memories with metadata. total is a lower bound, not an exact count (reads are bounded): totalIsLowerBound is always true and hasMore says whether more results exist after this page. Do not treat total as an exact count. Defaults to the active profile unless profileId is specified.",
+      "Search or list your memories (newest first) by query text, type(s), tags, source(s), status, and created date window (createdAfter / createdBefore, ISO). Returns matching memories with metadata. total is a lower bound, not an exact count (reads are bounded): totalIsLowerBound is always true and hasMore says whether more results exist after this page. Do not treat total as an exact count. Defaults to the active profile unless profileId is specified.",
     errorLabel: "Search failed",
     async run(h, params): Promise<unknown> {
       return withMcpMemoryScope(
@@ -199,17 +277,25 @@ export const memoryToolSpecs = {
             totalIsLowerBound: true,
             hasMore: result.total > offset + result.memories.length,
           });
+          const filter = {
+            type: params.type,
+            types: params.types,
+            tags: params.tags,
+            source: params.source,
+            sources: params.sources,
+            status: params.status,
+            createdAfter: isoToMs(params.createdAfter),
+            createdBefore: isoToMs(params.createdBefore),
+            searchQuery: params.query,
+            limit,
+            offset,
+          };
           return runForMcpScope(scope, {
             team: async (profileId) =>
               withBound(
                 await listMemoriesForTeamProfile(h.ctx, {
                   profileId,
-                  type: params.type,
-                  tags: params.tags,
-                  source: params.source,
-                  searchQuery: params.query,
-                  limit,
-                  offset,
+                  ...filter,
                 }),
               ),
             personal: async ({ clerkId, profileId }) =>
@@ -217,12 +303,7 @@ export const memoryToolSpecs = {
                 await listMemoriesForClerk(h.ctx, {
                   clerkId,
                   profileId,
-                  type: params.type,
-                  tags: params.tags,
-                  source: params.source,
-                  searchQuery: params.query,
-                  limit,
-                  offset,
+                  ...filter,
                 }),
               ),
           });
@@ -286,17 +367,58 @@ export const memoryToolSpecs = {
       return withMcpMemoryScope(
         h.ctx,
         { ...scopedMemory(h), profileId: params.profileId },
-        (scope) =>
-          createMemoryForClerk(h.ctx, {
-            clerkId: scope.clerkId,
-            profileId: scope.profileId,
-            title: params.title,
-            content: params.content,
-            type: toMemoryType(params.type) ?? "knowledge",
-            source: params.source ?? "mcp",
-            tags: params.tags ?? [],
-            confidence: params.confidence ?? 1.0,
-          }),
+        (scope) => addMemoryInScope(h.ctx, scope, params),
+      );
+    },
+  }),
+  memory_add_batch: toolSpec({
+    name: "memory_add_batch",
+    schema: memoryAddBatchSchema,
+    description:
+      "Store up to 50 memories in one call (bulk import, e.g. a ChatGPT or Claude export). Each item takes the same fields as memory_add. Items are stored one by one in order; returns created ids and per-item errors, so a failed item does not undo the others. Adds to the active profile unless profileId is specified.",
+    errorLabel: "Add memory batch failed",
+    async run(h, params): Promise<unknown> {
+      return withMcpMemoryScope(
+        h.ctx,
+        { ...scopedMemory(h), profileId: params.profileId },
+        async (scope) => {
+          const created: Array<{ index: number; id: string; title: string }> =
+            [];
+          const failed: Array<{ index: number; error: string }> = [];
+          for (const [index, item] of params.items.entries()) {
+            try {
+              const memory = await addMemoryInScope(h.ctx, scope, item);
+              created.push({ index, id: memory.id, title: memory.title });
+            } catch (err) {
+              failed.push({
+                index,
+                error: err instanceof Error ? err.message : "Unknown error",
+              });
+            }
+          }
+          return { profileId: scope.profileId, created, failed };
+        },
+      );
+    },
+  }),
+  memory_get: toolSpec({
+    name: "memory_get",
+    schema: memoryGetSchema,
+    description:
+      "Fetch one memory by ID with full content, tags, type, status, provenance (source, sourceUrl, sourceSyncedAt) and timestamps. Counts as opening the memory (usefulness signal), like opening it in the web app. Returns 'Memory not found' for IDs outside the active (or given) profile.",
+    errorLabel: "Get memory failed",
+    async run(h, params): Promise<unknown> {
+      return withMcpMemoryScope(
+        h.ctx,
+        { ...scopedMemory(h), profileId: params.profileId },
+        async (scope) => {
+          const memory = await loadMemoryForMcpScope(h.ctx, {
+            ...scope,
+            memoryId: params.id,
+          });
+          await enqueueMemoryAccess(h.ctx, [memory.id], "search");
+          return memory;
+        },
       );
     },
   }),
@@ -326,24 +448,16 @@ export const memoryToolSpecs = {
       "Update an existing memory by ID. Only include fields you want to change.",
     errorLabel: "Update failed",
     async run(h, params): Promise<unknown> {
-      return withMcpMemoryScope(h.ctx, scopedMemory(h), async (scope) => {
-        const memory = await loadMemoryForMcpScope(h.ctx, {
-          clerkId: scope.clerkId,
-          mcpScope: scope.mcpScope,
-          profileId: scope.profileId,
-          memoryId: params.id,
-        });
-        return updateMemoryForClerk(h.ctx, {
-          clerkId: memory.userId,
-          memoryId: params.id,
+      return withMcpMemoryScope(h.ctx, scopedMemory(h), (scope) =>
+        updateMemoryInMcpScope(h.ctx, scope, params.id, {
           title: params.title,
           content: params.content,
           type: toMemoryType(params.type),
           status: toMemoryStatus(params.status),
           tags: params.tags,
           confidence: params.confidence,
-        });
-      });
+        }),
+      );
     },
   }),
   memory_delete: toolSpec({

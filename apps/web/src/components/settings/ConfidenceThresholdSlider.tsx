@@ -1,4 +1,8 @@
 import { Input, Label } from "@vvedantb/ui";
+import {
+  CONFIDENCE_THRESHOLD_MAX,
+  CONFIDENCE_THRESHOLD_MIN,
+} from "@vmem/shared";
 
 interface ConfidenceThresholdSliderProps {
   value: number;
@@ -20,8 +24,8 @@ export default function ConfidenceThresholdSlider({
       <Input
         id="confidence-threshold"
         type="range"
-        min={0}
-        max={100}
+        min={CONFIDENCE_THRESHOLD_MIN}
+        max={CONFIDENCE_THRESHOLD_MAX}
         step={5}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}

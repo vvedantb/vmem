@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { internalMutation } from "./_generated/server";
+import { internalMutation, internalQuery } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { authQuery, authMutation } from "./auth";
@@ -9,6 +9,8 @@ import {
   SYSTEM_SKILL_SEEDS,
 } from "./prompts/systemSkillSeeds";
 import { requireContentScopeAccess } from "./teams/auth";
+import { mcpScopeValidator, type McpScope } from "./profiles/mcpAccess";
+import { resolveMcpSkillGrant } from "./skills";
 
 async function isAdminUser(
   ctx: QueryCtx | MutationCtx,
@@ -91,34 +93,132 @@ export const amIAdmin = authQuery({
   },
 });
 
+// Catalogue with install state for the personal or team workspace. Drafts
+// are visible to admins only. Shared by the skills hub and MCP.
+async function listCatalogForUser(
+  ctx: QueryCtx,
+  userId: Id<"users">,
+  teamId: Id<"teams"> | undefined,
+) {
+  await requireContentScopeAccess(ctx, userId, teamId);
+  const admin = await isAdminUser(ctx, userId);
+  const all = await ctx.db.query("systemSkills").collect();
+  const visible = admin ? all : all.filter((s) => s.published);
+
+  const installs = await listScopeInstalls(ctx, userId, teamId);
+  const installBySkill = new Map(installs.map((i) => [i.systemSkillId, i]));
+
+  return visible
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((s) => {
+      const install = installBySkill.get(s._id);
+      return {
+        _id: s._id,
+        name: s.name,
+        description: s.description,
+        instructions: s.instructions,
+        category: s.category,
+        published: s.published,
+        updatedAt: s.updatedAt,
+        installed: install !== undefined,
+        installEnabled: install ? install.enabled : false,
+      };
+    });
+}
+
+async function installSystemSkill(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  systemSkillId: Id<"systemSkills">,
+  teamId: Id<"teams"> | undefined,
+): Promise<Id<"userSystemSkills">> {
+  await requireContentScopeAccess(ctx, userId, teamId);
+  const sys = await ctx.db.get(systemSkillId);
+  // hide drafts from nonadmins (treat as not found)
+  if (!sys || (!sys.published && !(await isAdminUser(ctx, userId)))) {
+    throw new Error("System skill not found");
+  }
+
+  const existing = await findInstall(ctx, userId, systemSkillId, teamId);
+  if (existing) return existing._id; // already installed — idempotent
+
+  // skills and installs share one effective namespace per workspace
+  if (teamId !== undefined) {
+    const teamClash = await ctx.db
+      .query("skills")
+      .withIndex("by_team_name", (q) =>
+        q.eq("teamId", teamId).eq("name", sys.name),
+      )
+      .first();
+    if (teamClash) {
+      throw new Error(
+        `This team already has a skill named "${sys.name}". Rename it before installing this system skill.`,
+      );
+    }
+  } else {
+    const personalClash = await ctx.db
+      .query("skills")
+      .withIndex("by_user_name", (q) =>
+        q.eq("userId", userId).eq("name", sys.name),
+      )
+      .filter((q) => q.eq(q.field("teamId"), undefined))
+      .first();
+    if (personalClash) {
+      throw new Error(
+        `You already have a personal skill named "${sys.name}". Rename it before installing this system skill.`,
+      );
+    }
+  }
+
+  const id = await ctx.db.insert("userSystemSkills", {
+    userId,
+    teamId,
+    systemSkillId,
+    enabled: true,
+    installedAt: Date.now(),
+  });
+  if (teamId === undefined) {
+    await scheduleContextPromptInvalidationForUser(ctx, userId);
+  }
+  return id;
+}
+
+async function uninstallSystemSkill(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  systemSkillId: Id<"systemSkills">,
+  teamId: Id<"teams"> | undefined,
+): Promise<boolean> {
+  await requireContentScopeAccess(ctx, userId, teamId);
+  const existing = await findInstall(ctx, userId, systemSkillId, teamId);
+  if (!existing) return false;
+  await ctx.db.delete(existing._id);
+  if (teamId === undefined) {
+    await scheduleContextPromptInvalidationForUser(ctx, userId);
+  }
+  return true;
+}
+
+async function setSystemSkillInstallEnabled(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  systemSkillId: Id<"systemSkills">,
+  enabled: boolean,
+  teamId: Id<"teams"> | undefined,
+): Promise<void> {
+  await requireContentScopeAccess(ctx, userId, teamId);
+  const existing = await findInstall(ctx, userId, systemSkillId, teamId);
+  if (!existing) throw new Error("Not installed");
+  await ctx.db.patch(existing._id, { enabled });
+  if (teamId === undefined) {
+    await scheduleContextPromptInvalidationForUser(ctx, userId);
+  }
+}
+
 export const listCatalog = authQuery({
   args: { teamId: v.optional(v.id("teams")) },
-  handler: async (ctx, args) => {
-    await requireContentScopeAccess(ctx, ctx.userId, args.teamId);
-    const admin = await isAdminUser(ctx, ctx.userId);
-    const all = await ctx.db.query("systemSkills").collect();
-    const visible = admin ? all : all.filter((s) => s.published);
-
-    const installs = await listScopeInstalls(ctx, ctx.userId, args.teamId);
-    const installBySkill = new Map(installs.map((i) => [i.systemSkillId, i]));
-
-    return visible
-      .sort((a, b) => a.name.localeCompare(b.name))
-      .map((s) => {
-        const install = installBySkill.get(s._id);
-        return {
-          _id: s._id,
-          name: s.name,
-          description: s.description,
-          instructions: s.instructions,
-          category: s.category,
-          published: s.published,
-          updatedAt: s.updatedAt,
-          installed: install !== undefined,
-          installEnabled: install ? install.enabled : false,
-        };
-      });
-  },
+  handler: async (ctx, args) =>
+    listCatalogForUser(ctx, ctx.userId, args.teamId),
 });
 
 export const install = authMutation({
@@ -126,62 +226,8 @@ export const install = authMutation({
     systemSkillId: v.id("systemSkills"),
     teamId: v.optional(v.id("teams")),
   },
-  handler: async (ctx, args) => {
-    await requireContentScopeAccess(ctx, ctx.userId, args.teamId);
-    const sys = await ctx.db.get(args.systemSkillId);
-    // hide drafts from nonadmins (treat as not found)
-    if (!sys || (!sys.published && !(await isAdminUser(ctx, ctx.userId)))) {
-      throw new Error("System skill not found");
-    }
-
-    const existing = await findInstall(
-      ctx,
-      ctx.userId,
-      args.systemSkillId,
-      args.teamId,
-    );
-    if (existing) return existing._id; // already installed — idempotent
-
-    // skills and installs share one effective namespace per workspace
-    if (args.teamId !== undefined) {
-      const teamClash = await ctx.db
-        .query("skills")
-        .withIndex("by_team_name", (q) =>
-          q.eq("teamId", args.teamId).eq("name", sys.name),
-        )
-        .first();
-      if (teamClash) {
-        throw new Error(
-          `This team already has a skill named "${sys.name}". Rename it before installing this system skill.`,
-        );
-      }
-    } else {
-      const personalClash = await ctx.db
-        .query("skills")
-        .withIndex("by_user_name", (q) =>
-          q.eq("userId", ctx.userId).eq("name", sys.name),
-        )
-        .filter((q) => q.eq(q.field("teamId"), undefined))
-        .first();
-      if (personalClash) {
-        throw new Error(
-          `You already have a personal skill named "${sys.name}". Rename it before installing this system skill.`,
-        );
-      }
-    }
-
-    const id = await ctx.db.insert("userSystemSkills", {
-      userId: ctx.userId,
-      teamId: args.teamId,
-      systemSkillId: args.systemSkillId,
-      enabled: true,
-      installedAt: Date.now(),
-    });
-    if (args.teamId === undefined) {
-      await scheduleContextPromptInvalidationForUser(ctx, ctx.userId);
-    }
-    return id;
-  },
+  handler: async (ctx, args) =>
+    installSystemSkill(ctx, ctx.userId, args.systemSkillId, args.teamId),
 });
 
 export const uninstall = authMutation({
@@ -190,18 +236,12 @@ export const uninstall = authMutation({
     teamId: v.optional(v.id("teams")),
   },
   handler: async (ctx, args) => {
-    await requireContentScopeAccess(ctx, ctx.userId, args.teamId);
-    const existing = await findInstall(
+    await uninstallSystemSkill(
       ctx,
       ctx.userId,
       args.systemSkillId,
       args.teamId,
     );
-    if (!existing) return;
-    await ctx.db.delete(existing._id);
-    if (args.teamId === undefined) {
-      await scheduleContextPromptInvalidationForUser(ctx, ctx.userId);
-    }
   },
 });
 
@@ -211,19 +251,91 @@ export const setInstalledEnabled = authMutation({
     enabled: v.boolean(),
     teamId: v.optional(v.id("teams")),
   },
-  handler: async (ctx, args) => {
-    await requireContentScopeAccess(ctx, ctx.userId, args.teamId);
-    const existing = await findInstall(
+  handler: async (ctx, args) =>
+    setSystemSkillInstallEnabled(
       ctx,
       ctx.userId,
       args.systemSkillId,
+      args.enabled,
       args.teamId,
+    ),
+});
+
+// MCP: the workspace comes from the connector grant (personal, or the active
+// team profile), never from a tool param.
+
+// a malformed id is just "not found"
+function requireSystemSkillId(
+  ctx: QueryCtx,
+  systemSkillId: string,
+): Id<"systemSkills"> {
+  const id = ctx.db.normalizeId("systemSkills", systemSkillId);
+  if (id === null) throw new Error("System skill not found");
+  return id;
+}
+
+async function requireGrant(
+  ctx: QueryCtx,
+  clerkId: string,
+  scope: McpScope | undefined,
+) {
+  const grant = await resolveMcpSkillGrant(ctx, clerkId, scope);
+  if (!grant) throw new Error("User not found");
+  return grant;
+}
+
+const mcpCatalogArgs = {
+  clerkId: v.string(),
+  scope: v.optional(mcpScopeValidator),
+};
+
+export const listCatalogByClerkIdInternal = internalQuery({
+  args: mcpCatalogArgs,
+  handler: async (ctx, args) => {
+    const grant = await requireGrant(ctx, args.clerkId, args.scope);
+    return listCatalogForUser(ctx, grant.userId, grant.teamId);
+  },
+});
+
+export const installByClerkIdInternal = internalMutation({
+  args: { ...mcpCatalogArgs, systemSkillId: v.string() },
+  handler: async (ctx, args) => {
+    const grant = await requireGrant(ctx, args.clerkId, args.scope);
+    await installSystemSkill(
+      ctx,
+      grant.userId,
+      requireSystemSkillId(ctx, args.systemSkillId),
+      grant.teamId,
     );
-    if (!existing) throw new Error("Not installed");
-    await ctx.db.patch(existing._id, { enabled: args.enabled });
-    if (args.teamId === undefined) {
-      await scheduleContextPromptInvalidationForUser(ctx, ctx.userId);
-    }
+    return null;
+  },
+});
+
+export const uninstallByClerkIdInternal = internalMutation({
+  args: { ...mcpCatalogArgs, systemSkillId: v.string() },
+  handler: async (ctx, args) => {
+    const grant = await requireGrant(ctx, args.clerkId, args.scope);
+    return uninstallSystemSkill(
+      ctx,
+      grant.userId,
+      requireSystemSkillId(ctx, args.systemSkillId),
+      grant.teamId,
+    );
+  },
+});
+
+export const setInstalledEnabledByClerkIdInternal = internalMutation({
+  args: { ...mcpCatalogArgs, systemSkillId: v.string(), enabled: v.boolean() },
+  handler: async (ctx, args) => {
+    const grant = await requireGrant(ctx, args.clerkId, args.scope);
+    await setSystemSkillInstallEnabled(
+      ctx,
+      grant.userId,
+      requireSystemSkillId(ctx, args.systemSkillId),
+      args.enabled,
+      grant.teamId,
+    );
+    return null;
   },
 });
 

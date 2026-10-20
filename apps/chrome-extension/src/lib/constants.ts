@@ -7,8 +7,7 @@ export const CONVEX_URL =
   "https://clear-bear-690.eu-west-1.convex.cloud";
 
 export const CLERK_SYNC_HOST =
-  import.meta.env?.VITE_CLERK_SYNC_HOST ??
-  "https://vmem.projectv.uk";
+  import.meta.env?.VITE_CLERK_SYNC_HOST ?? "https://vmem.projectv.uk";
 
 // Official web origins. The extension reads the signed-in session from any of them.
 export const WEB_APP_ORIGINS: readonly string[] = [
@@ -66,8 +65,10 @@ export const VMEM_AI_SYSTEM_PROMPT_COPY_SUCCESS =
   "Copied — paste into your AI agent's system prompt";
 
 // sync interval presets shared by popup and background
-export const MIN_SYNC_INTERVAL_MINUTES = 15;
-export const MAX_SYNC_INTERVAL_MINUTES = 1440; // one day
+export {
+  MAX_SYNC_INTERVAL_MINUTES,
+  MIN_SYNC_INTERVAL_MINUTES,
+} from "@vmem/shared";
 export const DEFAULT_SYNC_INTERVAL_MINUTES = 30;
 
 // selectable sync periods in minutes

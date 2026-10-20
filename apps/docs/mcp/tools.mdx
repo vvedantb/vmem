@@ -3,7 +3,9 @@ title: "MCP Tools"
 description: "Complete reference for all vmem MCP tools"
 ---
 
-Tools are registered from `packages/backend/convex/mcp/tools*.ts`. Auth accepts a Clerk `oauth_token` or `session_token` bearer (MCP server `2.0.0`). Memory tools work on `/mcp` and `/mcp/team`. Skills tools also work on both connectors (personal skills on `/mcp`, team-granted skills on `/mcp/team`), except `skills_import` which is personal `/mcp` only. Files and `context_prompt_get` are personal-only.
+Tools are registered from `packages/backend/convex/mcp/tools*.ts`. Auth accepts a Clerk `oauth_token` or `session_token` bearer (MCP server `2.2.0`). Memory tools work on `/mcp` and `/mcp/team`. Skills tools also work on both connectors (personal skills on `/mcp`, team-granted skills on `/mcp/team`), except `skills_import` which is personal `/mcp` only. `proposals_list` and `proposals_resolve` work on both connectors. Files tools work on both connectors: personal Files on `/mcp`, the active team profile's drive on `/mcp/team`. The `teams_*`, `profiles_update` and `usage_ai_*` tools also work on both. `context_prompt_get`, `dream_run`, the `notifications_*`, `settings_*`, `connectors_*` tools, `dream_schedule_set`, `memory_delete_all`, `profiles_create`, `profiles_delete` and `usage_api_requests` are personal-only.
+
+Every tool acts as the signed-in user from the bearer token. No tool takes a user ID. IDs that belong to another user, or to a profile outside the connector, return "not found".
 
 ## ping
 
@@ -21,7 +23,7 @@ Health check for connector validation.
 
 ## whoami
 
-Returns the authenticated user ID and active profile.
+Returns the authenticated user (`clerkUserId`, `email`, `name`), the active profile and the profiles on this connector.
 
 **Parameters:** none
 
@@ -29,7 +31,7 @@ Returns the authenticated user ID and active profile.
 
 ## list_profiles
 
-List all profiles available to the user. Returns profile IDs, names, colors, and icons.
+List all profiles available to the user. Returns profile IDs, names, colors, icons, `isDefault`, and the Dream Mode portrait (`dreamPortrait`, `dreamPortraitUpdatedAt`, both `null` until Dream Mode writes one).
 
 **Parameters:** none
 
@@ -39,13 +41,16 @@ Use `set_active_profile` to choose the default profile for MCP memory tools, or 
 
 ## set_active_profile
 
-Set the default profile for MCP memory tools (`memory_add`, `memory_search`, `memory_retrieve` when `profileId` is omitted). Does not change web or extension defaults.
+Set the default profile for MCP memory tools (`memory_add`, `memory_search`, `memory_retrieve` when `profileId` is omitted). With `source` `web` or `extension`, set the default profile the web dashboard or the Chrome extension opens instead.
 
 <ParamField body="profileId" type="string" required>
   Profile ID from `list_profiles`
 </ParamField>
+<ParamField body="source" type="'mcp' | 'web' | 'extension'">
+  Which default to set (default `mcp`)
+</ParamField>
 
-**Returns:** `{ id, name, color, icon }` for the active profile.
+**Returns:** `{ id, name, color, icon }` for the profile (plus `source` for web / extension).
 
 ---
 
@@ -88,7 +93,7 @@ Sections fill in priority order until `maxChars`: relevant memories (same retrie
 
 ## memory_search
 
-Search memories by query text, type, tags, or source.
+Search or list memories (newest first) by query text, type, tags, source, status, and created date.
 
 <ParamField body="query" type="string">
   Text to search for
@@ -96,11 +101,27 @@ Search memories by query text, type, tags, or source.
 <ParamField body="type" type="string">
   Filter: `profile`, `episodic`, or `knowledge`
 </ParamField>
+<ParamField body="types" type="string[]">
+  Several types (any of)
+</ParamField>
 <ParamField body="tags" type="string[]">
-  Filter by tags
+  Filter by tags (every tag must match)
 </ParamField>
 <ParamField body="source" type="string">
   Filter by source
+</ParamField>
+<ParamField body="sources" type="string[]">
+  Several sources (any of)
+</ParamField>
+<ParamField body="status" type="string">
+  `active`, `pinned`, `suppressed`, or `expired`. The default shows active and
+  pinned.
+</ParamField>
+<ParamField body="createdAfter" type="string">
+  ISO date or date-time. Only memories created at or after it.
+</ParamField>
+<ParamField body="createdBefore" type="string">
+  ISO date or date-time. Only memories created at or before it.
 </ParamField>
 <ParamField body="profileId" type="string">
   Profile to search in (defaults to active profile)
@@ -189,6 +210,37 @@ Store a new memory.
 
 ---
 
+## memory_add_batch
+
+Store up to 50 memories in one call, for example a ChatGPT or Claude export. Items are stored in order. A failed item does not undo the others.
+
+<ParamField body="items" type="object[]" required>
+  1–50 items, each with the `memory_add` fields (`title`, `content`, `type`,
+  `source`, optional `tags`, `confidence`)
+</ParamField>
+<ParamField body="profileId" type="string">
+  Profile to add to (defaults to active profile)
+</ParamField>
+
+**Returns:** `{ profileId, created: [{ index, id, title }], failed: [{ index, error }] }`
+
+---
+
+## memory_get
+
+Fetch one memory by ID, with full content, tags, status, provenance (`source`, `sourceUrl`, `sourceSyncedAt`) and timestamps. It counts as opening the memory, as in the web app.
+
+<ParamField body="id" type="string" required>
+  Memory ID
+</ParamField>
+<ParamField body="profileId" type="string">
+  Profile the memory is in (defaults to active profile)
+</ParamField>
+
+**Returns:** Memory object.
+
+---
+
 ## memory_add_instruction
 
 Store memories from natural language. The server uses Vercel AI Gateway to extract atomic facts and creates memories (same pipeline as `POST /api/v1/memories` with `{ "instruction": "..." }`). Requires `AI_GATEWAY_API_KEY`; missing key returns `openrouter_required`.
@@ -252,6 +304,142 @@ List memories related to a given memory by shared tags and similar title or cont
 
 ---
 
+## memory_facets
+
+Tag, source and type counts for every visible memory in a profile (the web Tags page). Reads up to 10,000 memories.
+
+<ParamField body="tagSort" type="string">
+  `a-z` (default), `most-used`, or `most-recent`
+</ParamField>
+<ParamField body="profileId" type="string">
+  Profile (defaults to active profile)
+</ParamField>
+
+**Returns:** `{ profileId, totalMemories, truncated, tags: [{ tag, count, lastUsedAt }], sources: [{ source, count }], types: [{ type, count }] }`
+
+---
+
+## memory_tag_rename
+
+Rename a tag on every memory that has it. `newTag` is trimmed and lowercased. The call fails if `newTag` already exists.
+
+<ParamField body="tag" type="string" required>
+  Existing tag, as `memory_facets` lists it
+</ParamField>
+<ParamField body="newTag" type="string" required>
+  New tag name
+</ParamField>
+<ParamField body="profileId" type="string" />
+
+**Returns:** `{ tag, newTag, updated, truncated }`
+
+---
+
+## memory_tag_delete
+
+Remove a tag from every memory that has it. The memories stay.
+
+<ParamField body="tag" type="string" required>
+  Tag to remove
+</ParamField>
+<ParamField body="confirm" type="boolean" required>
+  Must be `true`
+</ParamField>
+<ParamField body="profileId" type="string" />
+
+**Returns:** `{ tag, updated, truncated }`
+
+---
+
+## memory_link
+
+Link two memories in the same profile. The link shows in the Connections tab and the graph.
+
+<ParamField body="memoryIdA" type="string" required />
+<ParamField body="memoryIdB" type="string" required />
+<ParamField body="reason" type="string">
+  Up to 200 characters (default `agent linked`)
+</ParamField>
+<ParamField body="profileId" type="string" />
+
+**Returns:** `{ linked: boolean }`
+
+---
+
+## memory_unlink
+
+Remove the link between two memories. On a team profile any member can remove a link.
+
+<ParamField body="memoryIdA" type="string" required />
+<ParamField body="memoryIdB" type="string" required />
+<ParamField body="profileId" type="string" />
+
+**Returns:** `{ unlinked: boolean }`
+
+---
+
+## memory_history
+
+Version history of one memory, as in the web History tab.
+
+<ParamField body="memoryId" type="string" required />
+<ParamField body="profileId" type="string" />
+
+**Returns:** Timeline events: `{ id, action, snapshot, createdAt, memoryId, memoryTitle }`.
+
+---
+
+## memory_topic_timeline
+
+Tag trail: the memories that have one tag, newest first.
+
+<ParamField body="tag" type="string" required />
+<ParamField body="limit" type="number">
+  1–500 (default 50)
+</ParamField>
+<ParamField body="offset" type="number">
+  Default 0
+</ParamField>
+<ParamField body="profileId" type="string" />
+
+**Returns:** Timeline events with `connectionType: "tag"`.
+
+---
+
+## memory_stats
+
+Dashboard stats for a profile.
+
+<ParamField body="profileId" type="string" />
+
+**Returns:** `{ totalMemories, memoriesAddedToday, memoriesThisWeek, memoriesThisMonth, totalTags, growthData: [{ isoDate, total, new }] }`
+
+---
+
+## memory_import_file
+
+Create one memory from a PDF or text-like file (`.pdf`, `.txt`, `.md`, JSON, XML), as the web upload does. The memory is tagged `pdf` or `text`, plus `upload`.
+
+<ParamField body="filename" type="string" required>
+  File name with extension
+</ParamField>
+<ParamField body="contentBase64" type="string">
+  Base64 bytes (data: URL prefix allowed). Provide this **or** `sourceUrl`.
+</ParamField>
+<ParamField body="sourceUrl" type="string">
+  URL the server fetches
+</ParamField>
+<ParamField body="mimeType" type="string" />
+<ParamField body="profileId" type="string">
+  Profile to add to (defaults to active profile)
+</ParamField>
+
+Max 10 MB over MCP (the web upload allows 25 MB).
+
+**Returns:** Created memory object.
+
+---
+
 ## memory_graph
 
 MCP App: interactive memory graph. Requires an MCP Apps–capable host.
@@ -260,22 +448,110 @@ MCP App: interactive memory graph. Requires an MCP Apps–capable host.
   Profile ID (defaults to active MCP profile)
 </ParamField>
 <ParamField body="focus" type="string">
-  Center on one memory id and its neighbourhood
+  One memory id: that memory plus every memory one link away
 </ParamField>
 <ParamField body="memoryIds" type="string[]">
   Memory ids from a prior search; those nodes plus one-hop neighbours
+</ParamField>
+<ParamField body="types" type="string[]">
+  Only these memory types (any of)
+</ParamField>
+<ParamField body="tags" type="string[]">
+  Only memories with every one of these tags
+</ParamField>
+<ParamField body="sources" type="string[]">
+  Only these sources (any of)
+</ParamField>
+<ParamField body="cursor" type="string">
+  `nextCursor` from the previous call
 </ParamField>
 <ParamField body="limit" type="number">
   Max memory nodes (default 80, max 100)
 </ParamField>
 
+**Returns (structuredContent):** `{ nodes, relatesToEdges, tagEdges: [{ source, target, weight, sharedTags }], entities, mentionsEdges, focusNodeId, truncated, nextCursor, stats }`. On team profiles, links made by any member are included.
+
+---
+
+## proposals_list
+
+Pending inbox proposals for a profile, newest first: Dream Mode merges and update, delete, insight, connection, contradiction and anomaly suggestions.
+
+<ParamField body="profileId" type="string">
+  Profile (defaults to active profile)
+</ParamField>
+
+**Returns:** Array of `{ id, kind, reason, proposedTitle, proposedContent, sourceMemoryIds, memorySnapshot, sourceMemorySnapshots, createdAt, ... }`
+
+---
+
+## proposals_resolve
+
+Approve or reject one pending proposal.
+
+<ParamField body="proposalId" type="string" required />
+<ParamField body="action" type="string" required>
+  `approve` or `reject`
+</ParamField>
+<ParamField body="winnerMemoryId" type="string">
+  Contradictions only: the source memory to keep
+</ParamField>
+<ParamField body="profileId" type="string" />
+
+**Returns:** `{ status, materializedMemoryId? }`
+
+---
+
+## dream_run
+
+Personal connector only. Run Dream Mode now over every personal profile, as the web button does. It is rate limited in the same way.
+
+**Parameters:** none
+
+**Returns:** `{ reason, proposalsCreated, memoriesMaterialized, clustersScanned, ... }`. `reason` is `rate-limited` when Dream Mode ran too recently.
+
+---
+
+## notifications_list
+
+Personal connector only. Inbox notifications, newest first.
+
+<ParamField body="unreadOnly" type="boolean" />
+
+**Returns:** `{ unreadCount, notifications: [{ id, title, description, type, read, createdAt }] }`
+
+---
+
+## notifications_mark
+
+Personal connector only.
+
+<ParamField body="id" type="string" required />
+<ParamField body="read" type="boolean" required />
+
+---
+
+## notifications_mark_all_read
+
+Personal connector only. Marks every notification read.
+
+---
+
+## notifications_delete
+
+Personal connector only.
+
+<ParamField body="id" type="string" required />
+
 ---
 
 ## skills_list
 
-List enabled skills granted to this connector (name + description + `updatedAt`). No instructions.
+List skills granted to this connector: `name`, `description`, `enabled`, `source` (`personal` or `system`), `origin`, `createdAt` and `updatedAt`. No instructions.
 
-**Parameters:** none
+<ParamField body="includeDisabled" type="boolean">
+  Also list disabled skills and installs (default `false`)
+</ParamField>
 
 Personal `/mcp` returns the caller's personal skills. Team `/mcp/team` returns only that team's skills.
 
@@ -316,6 +592,9 @@ Fetch a single skill by exact name, including full markdown instructions.
 
 <ParamField body="name" type="string" required>
   Exact skill name (case sensitive)
+</ParamField>
+<ParamField body="includeDisabled" type="boolean">
+  Also find a disabled skill (default `false`)
 </ParamField>
 
 ---
@@ -364,9 +643,64 @@ At least one of `newName`, `description`, `instructions`, or `enabled` is requir
 
 ---
 
+## skills_history
+
+Saved versions of a skill, newest first. A version is saved before each overwrite.
+
+<ParamField body="name" type="string" required />
+
+**Returns:** `{ name, versions: [{ versionId, createdAt, source, authorLabel }] }`
+
+---
+
+## skills_version_get
+
+<ParamField body="versionId" type="string" required />
+
+**Returns:** `{ versionId, name, description, instructions, enabled, createdAt, source, authorLabel }`
+
+---
+
+## skills_restore_version
+
+Restore a skill to a saved version. The current content is saved as a version first.
+
+<ParamField body="versionId" type="string" required />
+
+**Returns:** The restored skill.
+
+---
+
+## skills_catalog_list
+
+Browse the system skill hub for this connector's workspace (personal on `/mcp`, the active team on `/mcp/team`). Unpublished skills are visible to admins only.
+
+<ParamField body="includeInstructions" type="boolean">
+  Include full markdown (default `false`)
+</ParamField>
+
+**Returns:** Array of `{ systemSkillId, name, description, category, installed, installEnabled, ... }`
+
+---
+
+## skills_catalog_install / skills_catalog_uninstall
+
+<ParamField body="systemSkillId" type="string" required />
+
+Install is idempotent. It fails if the workspace already has a skill with the same name.
+
+---
+
+## skills_catalog_set_enabled
+
+<ParamField body="systemSkillId" type="string" required />
+<ParamField body="enabled" type="boolean" required />
+
+---
+
 ## files_list
 
-List files and folders in the shared filesystem. Personal connector only.
+List files and folders. On `/mcp` this is your personal Files; on `/mcp/team` it is the active team profile's drive. Returns `{ items, totalBytes, storageLimit }`; each item has `path`, `kind`, `size`, `mimeType`, `indexStatus`, `memoryId` and `updatedAt`.
 
 <ParamField body="path" type="string">
   Folder path (omit to list the entire tree)
@@ -408,4 +742,189 @@ Max 10 MB. PDF and text-like files are indexed into memories and appear in `memo
 
 <ParamField body="path" type="string" required>
   File or folder path. Folders delete recursively.
+</ParamField>
+
+---
+
+## files_create_folder
+
+Create an empty folder. Missing parent folders are created too. Returns `{ path, kind: "folder", created }`; `created` is `false` when the folder already existed.
+
+<ParamField body="path" type="string" required>
+  Folder path, e.g. `projects/2026`
+</ParamField>
+
+---
+
+## files_rename
+
+Rename a file or folder in place. A linked memory's title follows the new name.
+
+<ParamField body="path" type="string" required />
+<ParamField body="newName" type="string" required>
+  New last segment, no `/`. Fails when the folder already holds that name.
+</ParamField>
+
+---
+
+## files_move
+
+Move files or folders into another folder. A folder cannot move into its own subfolders.
+
+<ParamField body="paths" type="string[]" required>
+  1–100 paths from `files_list`
+</ParamField>
+<ParamField body="targetFolderPath" type="string">
+  Existing destination folder (omit for the top level)
+</ParamField>
+
+**Returns:** `{ moved: [{ from, to }] }`
+
+---
+
+## profiles_create
+
+Personal connector only. Create a personal profile, as in the web Create Profile dialog.
+
+<ParamField body="name" type="string" required />
+<ParamField body="color" type="string">
+  One of `#171717` (default), `#10B981`, `#F59E0B`, `#EF4444`, `#8B5CF6`,
+  `#EC4899`, `#06B6D4`, `#6B7280`
+</ParamField>
+<ParamField body="icon" type="string">
+  One of `user` (default), `briefcase`, `home`, `code`, `book`, `heart`, `star`,
+  `rocket`, `lightbulb`, `music`, `camera`, `gamepad`
+</ParamField>
+
+---
+
+## profiles_update
+
+Rename a profile on this connector or change its colour or icon (same lists as `profiles_create`). Team profiles need the team owner role; renaming one renames the team.
+
+<ParamField body="profileId" type="string" required />
+<ParamField body="name" type="string" />
+<ParamField body="color" type="string" />
+<ParamField body="icon" type="string" />
+
+---
+
+## profiles_delete
+
+Personal connector only. Delete a personal profile. Its memories move to `moveMemoriesToProfileId`, or are deleted when it is omitted. The default profile cannot be deleted.
+
+<ParamField body="profileId" type="string" required />
+<ParamField body="moveMemoriesToProfileId" type="string" />
+<ParamField body="confirm" type="true" required />
+
+---
+
+## teams_list / teams_get
+
+`teams_list` returns your teams: `teamId`, `name`, `role`, `memberCount`, `profileId`. `teams_get` returns one team with its members (`userId`, `email`, `name`, `role`, `joinedAt`). On `/mcp/team`, `teamId` defaults to the active team profile.
+
+<ParamField body="teamId" type="string" />
+
+---
+
+## teams_create / teams_rename / teams_leave
+
+`teams_create { name }` makes a team with you as owner, plus its team profile. `teams_rename { teamId, name }` is owner only. `teams_leave { teamId }` fails for the last owner.
+
+---
+
+## teams_add_member / teams_remove_member / teams_delete
+
+Owner only. `teams_add_member { teamId, email }` adds an existing vmem account with the `member` role. `teams_remove_member { teamId, userId, confirm: true }` cannot remove the last owner. `teams_delete { teamId, confirm: true }` deletes the team, its profile and every team memory.
+
+---
+
+## settings_get
+
+Personal connector only. All resolved settings: `aboutMe`, `preferences`, memory extraction, Dream Mode (automatic, auto-accept, schedule, `lastDreamRunAt`), notifications, theme, extension sync, `defaultProfiles` and `experimentalFlags`.
+
+**Parameters:** none
+
+---
+
+## settings_update
+
+Personal connector only. Change one or more settings; omitted fields are unchanged. Limits match the settings UIs and are also checked on the backend.
+
+<ParamField body="aboutMe" type="string">
+  Max 500 characters
+</ParamField>
+<ParamField body="preferences" type="string">
+  Max 500 characters
+</ParamField>
+<ParamField body="memoryConfidenceThreshold" type="integer">
+  0–100
+</ParamField>
+<ParamField body="extensionAutoSyncIntervalMinutes" type="integer">
+  15–1440
+</ParamField>
+<ParamField body="theme" type="'light' | 'dark' | 'system'" />
+
+Boolean fields: `memoryAutoExtract`, `memoryAutoTag`, `dreamModeAutomatic`, `dreamModeAutoAccept`, `notificationsEnabled`, `notifyMemoryConflicts`, `notifyNewMemories`, `notifyMemoriesExpiring`, `extensionAutoSyncEnabled`, `extensionSelectionPopupEnabled`. Also `language` (2–35 characters).
+
+**Returns:** the settings after the change (as `settings_get`).
+
+---
+
+## dream_schedule_set
+
+Personal connector only. Turn the daily Dream Mode run on or off.
+
+<ParamField body="enabled" type="boolean" required />
+<ParamField body="time" type="string">
+  `HH:MM` in UTC; required when `enabled` is true
+</ParamField>
+
+---
+
+## settings_set_experimental_flag
+
+Personal connector only.
+
+<ParamField body="key" type="'disablePageMotion'" required />
+<ParamField body="enabled" type="boolean" required />
+
+---
+
+## memory_delete_all
+
+Personal connector only. Permanently deletes all of your memories, like Settings > Data controls.
+
+<ParamField body="confirm" type="string" required>
+  Exactly `delete all memories`
+</ParamField>
+
+**Returns:** `{ deleted }`
+
+---
+
+## connectors_list / connectors_sync / connectors_disconnect / connectors_delete_data
+
+Personal connector only. `connectors_list` returns each connector with `connectionStatus`, `syncStatus`, `syncProgress`, `itemsSynced`, `lastSyncAt` and `errorMessage`. `connectors_sync { connectorId }` starts a sync. `connectors_disconnect { connectorId }` revokes the tokens; imported memories stay. `connectors_delete_data { connectorId, confirm: true }` deletes the imported memories. Connecting a new connector needs the browser OAuth flow.
+
+---
+
+## usage_ai_logs / usage_ai_summary / usage_ai_models
+
+AI model calls made for you (personal on `/mcp`, the active team on `/mcp/team`).
+
+- `usage_ai_logs { profileId?, features?, models?, range?, limit? (1–100, default 50), cursor? }` returns `{ logs, isDone, nextCursor }`.
+- `usage_ai_summary { range? }` returns `{ totalCalls, totalCostUsd, totalTokens }` (default range `today`).
+- `usage_ai_models {}` returns the distinct model ids.
+
+`range` is `today`, `7d`, `30d` or `all`.
+
+---
+
+## usage_api_requests
+
+Personal connector only. Recent HTTP API requests made with your API keys: `endpoint`, `status`, `durationMs`, `timestamp`.
+
+<ParamField body="limit" type="integer">
+  1–1000 (default 1000)
 </ParamField>

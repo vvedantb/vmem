@@ -13,6 +13,9 @@ type ActiveProfileResult = {
 
 type ProfileListItem = ActiveProfileResult & {
   isDefault: boolean;
+  // Dream Mode profile summary (web dashboard portrait card)
+  dreamPortrait: string | null;
+  dreamPortraitUpdatedAt: string | null;
 };
 
 type WhoamiProfileListItem = {
@@ -32,10 +35,15 @@ function mapActiveProfile(profile: Doc<"profiles">): ActiveProfileResult {
   };
 }
 
-function mapProfileListItem(profile: Doc<"profiles">): ProfileListItem {
+export function mapProfileListItem(profile: Doc<"profiles">): ProfileListItem {
   return {
     ...mapActiveProfile(profile),
     isDefault: profile.isDefault,
+    dreamPortrait: profile.dreamPortrait ?? null,
+    dreamPortraitUpdatedAt:
+      profile.dreamPortraitUpdatedAt === undefined
+        ? null
+        : new Date(profile.dreamPortraitUpdatedAt).toISOString(),
   };
 }
 
@@ -52,7 +60,19 @@ function mapWhoamiProfileListItem(
 
 const setActiveProfileSchema = z.object({
   profileId: z.string().describe("Profile ID from list_profiles"),
+  source: z
+    .enum(["mcp", "web", "extension"])
+    .optional()
+    .describe(
+      "Which default to set: mcp (default) for these MCP tools, web for the dashboard, extension for the Chrome extension",
+    ),
 });
+
+function displayName(user: Doc<"users"> | null): string | null {
+  if (user === null) return null;
+  const parts = [user.firstName, user.lastName].filter(Boolean).join(" ");
+  return user.fullName ?? (parts || null);
+}
 
 export const coreToolSpecs = {
   ping: toolSpec({
@@ -72,7 +92,7 @@ export const coreToolSpecs = {
     name: "whoami",
     schema: emptyInputSchema,
     description: (scopeLabel) =>
-      `Returns the authenticated user, active ${scopeLabel} profile, and profiles visible on this ${scopeLabel} MCP connector.`,
+      `Returns the authenticated user (clerkUserId, email, name), active ${scopeLabel} profile, and profiles visible on this ${scopeLabel} MCP connector.`,
     errorLabel: "Whoami failed",
     async run(h): Promise<unknown> {
       const profiles = await h.ctx.runQuery(
@@ -92,9 +112,15 @@ export const coreToolSpecs = {
         );
       }
 
+      const user = await h.ctx.runQuery(internal.users.getByClerkIdInternal, {
+        clerkId: h.clerkUserId,
+      });
+
       return {
         authenticated: true,
         clerkUserId: h.clerkUserId,
+        email: user?.email ?? null,
+        name: displayName(user),
         scope: h.scope,
         activeProfile: activeProfile ? mapActiveProfile(activeProfile) : null,
         profiles: profiles.map(mapWhoamiProfileListItem),
@@ -105,7 +131,7 @@ export const coreToolSpecs = {
     name: "list_profiles",
     schema: emptyInputSchema,
     description: (scopeLabel) =>
-      `List ${scopeLabel} profiles available on this MCP connector. Returns profile IDs, names, colors, and icons. Use set_active_profile to choose the default profile for memory tools, or pass profileId on memory_add / memory_search / memory_retrieve.`,
+      `List ${scopeLabel} profiles available on this MCP connector. Returns profile IDs, names, colors, icons, isDefault, and the Dream Mode portrait (dreamPortrait, dreamPortraitUpdatedAt) when one exists. Use set_active_profile to choose the default profile for memory tools, or pass profileId on memory_add / memory_search / memory_retrieve.`,
     errorLabel: "List profiles failed",
     async run(h): Promise<unknown> {
       const profiles = await h.ctx.runQuery(
@@ -119,9 +145,22 @@ export const coreToolSpecs = {
     name: "set_active_profile",
     schema: setActiveProfileSchema,
     description: (scopeLabel) =>
-      `Set the default ${scopeLabel} profile for MCP memory tools (memory_add, memory_search, memory_retrieve when profileId is omitted). Call list_profiles first to get valid profile IDs.`,
+      `Set the default ${scopeLabel} profile for MCP memory tools (memory_add, memory_search, memory_retrieve when profileId is omitted). With source web or extension, set the default profile the web dashboard or the Chrome extension opens instead. Call list_profiles first to get valid profile IDs.`,
     errorLabel: "Set active profile failed",
     async run(h, params): Promise<unknown> {
+      const source = params.source ?? "mcp";
+      if (source !== "mcp") {
+        await h.ctx.runMutation(
+          internal.userSettings.setDefaultProfileByClerkIdInternal,
+          { ...scopedClerk(h), source, profileId: params.profileId },
+        );
+        const profile = await h.ctx.runQuery(
+          internal.profiles.requireForMcpScopeInternal,
+          { ...scopedClerk(h), profileId: params.profileId },
+        );
+        return { ...mapActiveProfile(profile), source };
+      }
+
       await h.ctx.runMutation(
         internal.userSettings.setMcpDefaultProfileByClerkIdInternal,
         {
