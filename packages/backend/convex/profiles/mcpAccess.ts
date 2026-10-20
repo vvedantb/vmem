@@ -126,12 +126,27 @@ export async function getActiveProfileForMcpScope(
   return personalProfiles[0] ?? null;
 }
 
-async function requireAccessibleProfileId(
+// team for team-scope MCP tools: always the active team profile's team, never
+// a tool param. Personal scope has no team.
+export async function resolveMcpTeamId(
+  ctx: QueryCtx,
+  clerkId: string,
+  scope: McpScope,
+): Promise<Id<"teams"> | undefined> {
+  if (scope !== "team") return undefined;
+  const profile = await getActiveProfileForMcpScope(ctx, clerkId, "team");
+  if (!profile?.teamId) {
+    throw new Error("No team profiles available. Join or create a team first.");
+  }
+  return profile.teamId;
+}
+
+async function requireAccessibleProfile(
   ctx: QueryCtx | MutationCtx,
   userId: Id<"users">,
   profileId: string,
   scope: McpScope,
-): Promise<Id<"profiles">> {
+): Promise<Doc<"profiles">> {
   const normalizedProfileId = ctx.db.normalizeId("profiles", profileId);
   if (!normalizedProfileId) {
     throw new Error("Invalid profile id");
@@ -143,7 +158,30 @@ async function requireAccessibleProfileId(
   ) {
     throw new Error("Profile not found");
   }
-  return normalizedProfileId;
+  return profile;
+}
+
+async function requireAccessibleProfileId(
+  ctx: QueryCtx | MutationCtx,
+  userId: Id<"users">,
+  profileId: string,
+  scope: McpScope,
+): Promise<Id<"profiles">> {
+  return (await requireAccessibleProfile(ctx, userId, profileId, scope))._id;
+}
+
+// a profile this MCP connector may see; anything else is "Profile not found"
+export async function requireProfileForMcpScope(
+  ctx: QueryCtx,
+  clerkId: string,
+  scope: McpScope,
+  profileId: string,
+): Promise<Doc<"profiles">> {
+  const user = await getUserByClerkId(ctx, clerkId);
+  if (!user) {
+    throw new Error("User not found");
+  }
+  return requireAccessibleProfile(ctx, user._id, profileId, scope);
 }
 
 export async function resolveProfileIdForMcpScope(

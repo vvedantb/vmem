@@ -3,9 +3,11 @@ import { Crons } from "@convex-dev/crons";
 import type { FunctionArgs, SchedulableFunctionReference } from "convex/server";
 import { parseHHMM } from "@vmem/shared";
 import { components, internal } from "./_generated/api";
-import type { MutationCtx } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
+import { internalMutation, type MutationCtx } from "./_generated/server";
 import { authMutation, authQuery } from "./auth";
 import { auditLog, ResourceTypes } from "./auditLog";
+import { getUserIdByClerkId } from "./lib/clerkUser";
 
 export const dreamCrons = new Crons(components.crons);
 
@@ -57,54 +59,68 @@ async function replaceDailyCron<F extends SchedulableFunctionReference>(
   }
 }
 
+const dreamScheduleArgs = {
+  enabled: v.boolean(),
+  // "hh,mm" in utc
+  time: v.optional(v.string()),
+};
+
+async function setDreamScheduleForUser(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  args: { enabled: boolean; time?: string },
+): Promise<null> {
+  const parsed = requireParsedSchedule(args.enabled, args.time);
+  const name = userCronName(userId);
+
+  // persist on userSettings so the ui shows the saved value on refresh
+  const settings = await ctx.db
+    .query("userSettings")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .first();
+  const patch = {
+    dreamModeScheduleEnabled: args.enabled,
+    dreamModeScheduleTime: args.enabled ? args.time : undefined,
+  };
+  if (settings) {
+    await ctx.db.patch(settings._id, patch);
+  } else {
+    await ctx.db.insert("userSettings", { userId, ...patch });
+  }
+
+  await replaceDailyCron(
+    ctx,
+    name,
+    parsed,
+    internal.dreamMode.runDreamForUserById,
+    { userId },
+  );
+
+  await auditLog.log(ctx, {
+    action: "user.dream_mode_schedule_updated",
+    actorId: userId,
+    resourceType: ResourceTypes.USER,
+    resourceId: userId,
+    metadata: {
+      enabled: args.enabled,
+      time: args.time ?? null,
+    },
+    severity: "info",
+  });
+
+  return null;
+}
+
 // set or clear the user's daily dream mode schedule
 export const setDreamSchedule = authMutation({
-  args: {
-    enabled: v.boolean(),
-    // "hh,mm" in utc
-    time: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    const parsed = requireParsedSchedule(args.enabled, args.time);
-    const name = userCronName(ctx.userId);
+  args: dreamScheduleArgs,
+  handler: async (ctx, args) => setDreamScheduleForUser(ctx, ctx.userId, args),
+});
 
-    // persist on userSettings so the ui shows the saved value on refresh
-    const settings = await ctx.db
-      .query("userSettings")
-      .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
-      .first();
-    const patch = {
-      dreamModeScheduleEnabled: args.enabled,
-      dreamModeScheduleTime: args.enabled ? args.time : undefined,
-    };
-    if (settings) {
-      await ctx.db.patch(settings._id, patch);
-    } else {
-      await ctx.db.insert("userSettings", { userId: ctx.userId, ...patch });
-    }
-
-    await replaceDailyCron(
-      ctx,
-      name,
-      parsed,
-      internal.dreamMode.runDreamForUserById,
-      { userId: ctx.userId },
-    );
-
-    await auditLog.log(ctx, {
-      action: "user.dream_mode_schedule_updated",
-      actorId: ctx.userId,
-      resourceType: ResourceTypes.USER,
-      resourceId: ctx.userId,
-      metadata: {
-        enabled: args.enabled,
-        time: args.time ?? null,
-      },
-      severity: "info",
-    });
-
-    return null;
-  },
+export const setDreamScheduleByClerkIdInternal = internalMutation({
+  args: { clerkId: v.string(), ...dreamScheduleArgs },
+  handler: async (ctx, { clerkId, ...args }) =>
+    setDreamScheduleForUser(ctx, await getUserIdByClerkId(ctx, clerkId), args),
 });
 
 // per-team profile schedule (kept from v1)

@@ -213,7 +213,7 @@ describe.skipIf(!runLive || !hasToken)("live MCP authenticated tools", () => {
     expect(names.some((name) => name.startsWith("skills_"))).toBe(true);
     expect(names).toContain("skills_recommend");
     expect(names.some((name) => name.startsWith("wiki_"))).toBe(false);
-    expect(names.some((name) => name.startsWith("files_"))).toBe(false);
+    expect(names).toContain("files_list");
     expect(names.some((name) => name.toLowerCase().includes("neo4j"))).toBe(
       false,
     );

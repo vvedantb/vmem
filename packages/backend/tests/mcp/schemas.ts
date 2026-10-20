@@ -189,9 +189,18 @@ export const skillUpdatedSchema = z.object({
   enabled: z.boolean(),
 });
 
-export const fileListSchema = z.array(
-  z.object({ path: z.string(), kind: z.string() }),
-);
+export const fileListSchema = z.object({
+  items: z.array(
+    z.object({
+      path: z.string(),
+      kind: z.string(),
+      indexStatus: z.string().nullable(),
+      memoryId: z.string().nullable(),
+    }),
+  ),
+  totalBytes: z.number(),
+  storageLimit: z.number(),
+});
 
 export const fileGetResultSchema = z.object({
   path: z.string(),

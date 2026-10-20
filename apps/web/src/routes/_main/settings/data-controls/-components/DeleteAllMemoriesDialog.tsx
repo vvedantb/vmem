@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAction } from "convex/react";
 import { api } from "@vmem/backend";
+import { DELETE_ALL_MEMORIES_PHRASE } from "@vmem/shared";
 import { toast } from "sonner";
 import DestructiveConfirmDialog from "@/components/settings/DestructiveConfirmDialog";
 
@@ -8,8 +9,6 @@ interface Props {
   open: boolean;
   onClose: () => void;
 }
-
-const CONFIRM_PHRASE = "delete all memories";
 
 // type to confirm dialog for the wipe all action
 export default function DeleteAllMemoriesDialog({ open, onClose }: Props) {
@@ -46,7 +45,7 @@ export default function DeleteAllMemoriesDialog({ open, onClose }: Props) {
       submittingLabel="Deleting…"
       submitting={submitting}
       onConfirm={() => void handleConfirm()}
-      confirmPhrase={CONFIRM_PHRASE}
+      confirmPhrase={DELETE_ALL_MEMORIES_PHRASE}
     />
   );
 }

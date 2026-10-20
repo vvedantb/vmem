@@ -4,7 +4,7 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { internalAction, type ActionCtx } from "../_generated/server";
-import { authAction } from "../auth";
+import { authAction, type AuthActionCtx } from "../auth";
 import { auditLog, ResourceTypes } from "../auditLog";
 import { oauthScopeString, oauthTokenType } from "../lib/arcticOAuth";
 import { decryptToken, encryptToken } from "../lib/crypto";
@@ -132,54 +132,64 @@ export const startOAuth = authAction({
   },
 });
 
+// revoke + drop tokens + mark disconnected; shared by the web dialog and the
+// MCP connectors_disconnect tool
+export async function runDisconnect(
+  ctx: AuthActionCtx,
+  connectorId: Id<"connectors">,
+): Promise<null> {
+  const connector = await ctx.runQuery(
+    internal.connectors.crud.getByIdInternal,
+    {
+      id: connectorId,
+    },
+  );
+  if (!connector || connector.userId !== ctx.userId) {
+    throw new Error("Connector not found");
+  }
+
+  const tokens = await ctx.runQuery(
+    internal.connectors.tokens.getEncryptedTokensInternal,
+    { connectorId },
+  );
+
+  const provider = connector.provider;
+  if (tokens && provider && isConnectorOAuthProvider(provider)) {
+    await revokeTokenBestEffort(async () => {
+      const accessToken = await decryptToken(tokens.accessToken);
+      await revokeConnectorAccessToken(provider, {
+        redirectUri: connectorCallbackRedirectUri(),
+        accessToken,
+      });
+    });
+  }
+
+  await ctx.runMutation(internal.connectors.tokens.deleteTokensInternal, {
+    connectorId,
+  });
+  await ctx.runMutation(internal.connectors.crud.markDisconnectedInternal, {
+    id: connectorId,
+  });
+
+  await auditLog.log(ctx, {
+    action: "connector.disconnected",
+    actorId: ctx.userId,
+    resourceType: ResourceTypes.CONNECTOR,
+    resourceId: connectorId,
+    metadata: {
+      name: connector.name,
+      provider: connector.provider ?? null,
+      via: "oauth_revoke",
+    },
+    severity: "warning",
+  });
+  return null;
+}
+
 export const disconnect = authAction({
   args: { connectorId: v.id("connectors") },
   handler: async (ctx, args) => {
-    const connector = await ctx.runQuery(
-      internal.connectors.crud.getByIdInternal,
-      {
-        id: args.connectorId,
-      },
-    );
-    if (!connector || connector.userId !== ctx.userId) {
-      throw new Error("Connector not found");
-    }
-
-    const tokens = await ctx.runQuery(
-      internal.connectors.tokens.getEncryptedTokensInternal,
-      { connectorId: args.connectorId },
-    );
-
-    const provider = connector.provider;
-    if (tokens && provider && isConnectorOAuthProvider(provider)) {
-      await revokeTokenBestEffort(async () => {
-        const accessToken = await decryptToken(tokens.accessToken);
-        await revokeConnectorAccessToken(provider, {
-          redirectUri: connectorCallbackRedirectUri(),
-          accessToken,
-        });
-      });
-    }
-
-    await ctx.runMutation(internal.connectors.tokens.deleteTokensInternal, {
-      connectorId: args.connectorId,
-    });
-    await ctx.runMutation(internal.connectors.crud.markDisconnectedInternal, {
-      id: args.connectorId,
-    });
-
-    await auditLog.log(ctx, {
-      action: "connector.disconnected",
-      actorId: ctx.userId,
-      resourceType: ResourceTypes.CONNECTOR,
-      resourceId: args.connectorId,
-      metadata: {
-        name: connector.name,
-        provider: connector.provider ?? null,
-        via: "oauth_revoke",
-      },
-      severity: "warning",
-    });
+    await runDisconnect(ctx, args.connectorId);
   },
 });
 

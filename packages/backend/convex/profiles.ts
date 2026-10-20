@@ -16,8 +16,10 @@ import {
   getActiveProfileForMcpScope,
   listProfilesByClerkIdAndScope,
   mcpScopeValidator,
+  requireProfileForMcpScope,
   resolveProfileIdForMcpScope,
 } from "./profiles/mcpAccess";
+import { withClerkUser } from "./lib/clerkUser";
 
 export const list = authQuery({
   args: {},
@@ -55,6 +57,54 @@ export const removeWithMemories = authAction({
     moveMemoriesToProfileId: v.optional(v.id("profiles")),
   },
   handler: async (ctx, args) => runRemoveWithMemories(ctx, args),
+});
+
+// MCP profiles_create: a personal profile, via the same handler as the web
+export const createByClerkIdInternal = internalMutation({
+  args: {
+    clerkId: v.string(),
+    name: v.string(),
+    color: v.string(),
+    icon: v.string(),
+  },
+  handler: async (ctx, { clerkId, ...args }) =>
+    runCreate(await withClerkUser(ctx, clerkId), args),
+});
+
+// MCP profiles_update: only profiles this connector can see; the handler
+// keeps the owner check (team profiles need the team owner role)
+export const updateByClerkIdInternal = internalMutation({
+  args: {
+    clerkId: v.string(),
+    scope: mcpScopeValidator,
+    profileId: v.string(),
+    name: v.optional(v.string()),
+    color: v.optional(v.string()),
+    icon: v.optional(v.string()),
+  },
+  handler: async (ctx, { clerkId, scope, profileId, ...fields }) => {
+    const profile = await requireProfileForMcpScope(
+      ctx,
+      clerkId,
+      scope,
+      profileId,
+    );
+    return runUpdate(await withClerkUser(ctx, clerkId), {
+      profileId: profile._id,
+      ...fields,
+    });
+  },
+});
+
+// a profile visible on the MCP connector, or "Profile not found"
+export const requireForMcpScopeInternal = internalQuery({
+  args: {
+    clerkId: v.string(),
+    scope: mcpScopeValidator,
+    profileId: v.string(),
+  },
+  handler: async (ctx, args) =>
+    requireProfileForMcpScope(ctx, args.clerkId, args.scope, args.profileId),
 });
 
 export const removeInternalMutation = internalMutation({

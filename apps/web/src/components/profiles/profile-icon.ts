@@ -13,8 +13,15 @@ import {
   IconStar,
   IconUser,
 } from "@tabler/icons-react";
+import {
+  isProfileIconName,
+  PROFILE_ICON_NAMES,
+  type ProfileIconName,
+} from "@vmem/shared";
 
-const PROFILE_ICON_MAP: Record<string, TablerIcon> = {
+export { PROFILE_COLORS } from "@vmem/shared";
+
+const PROFILE_ICON_MAP: Record<ProfileIconName, TablerIcon> = {
   user: IconUser,
   briefcase: IconBriefcase,
   home: IconHome,
@@ -30,23 +37,9 @@ const PROFILE_ICON_MAP: Record<string, TablerIcon> = {
 };
 
 export function getProfileIcon(iconName: string): TablerIcon {
-  const icon = PROFILE_ICON_MAP[iconName];
-  if (icon) return icon;
-  return IconUser;
+  return isProfileIconName(iconName) ? PROFILE_ICON_MAP[iconName] : IconUser;
 }
 
 // ordered icon choices for the profile create/edit picker
 export const PROFILE_ICON_OPTIONS: { name: string; icon: TablerIcon }[] =
-  Object.entries(PROFILE_ICON_MAP).map(([name, icon]) => ({ name, icon }));
-
-// colour swatches for the profile create/edit picker
-export const PROFILE_COLORS = [
-  "#171717", // black (brand default)
-  "#10B981", // emerald
-  "#F59E0B", // amber
-  "#EF4444", // red
-  "#8B5CF6", // violet
-  "#EC4899", // pink
-  "#06B6D4", // cyan
-  "#6B7280", // grey
-] as const;
+  PROFILE_ICON_NAMES.map((name) => ({ name, icon: PROFILE_ICON_MAP[name] }));

@@ -2,6 +2,8 @@
 import { convexTest } from "convex-test";
 import { z } from "zod";
 import { register as registerAuditLog } from "convex-audit-log/test";
+import aggregateTest from "@convex-dev/aggregate/test";
+import cronsTest from "@convex-dev/crons/test";
 import type {
   FunctionReference,
   FunctionReturnType,
@@ -33,6 +35,15 @@ export type ConvexTestBackend = ReturnType<typeof convexTest>;
 export function createConvexBackend(): ConvexTestBackend {
   const t = convexTest(schema, modules);
   registerAuditLog(t);
+  // dream schedule crons and the AI usage aggregates
+  cronsTest.register(t);
+  for (const name of [
+    "openRouterLogCost",
+    "openRouterLogTokens",
+    "openRouterModels",
+  ]) {
+    aggregateTest.register(t, name);
+  }
   return t;
 }
 

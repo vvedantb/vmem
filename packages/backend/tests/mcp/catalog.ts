@@ -78,6 +78,57 @@ export const FILES_TOOL_NAMES = [
   "files_get",
   "files_upload",
   "files_delete",
+  "files_create_folder",
+  "files_rename",
+  "files_move",
+] as const;
+
+export const PROFILES_TOOL_NAMES = [
+  "profiles_create",
+  "profiles_update",
+  "profiles_delete",
+] as const;
+
+export const TEAMS_TOOL_NAMES = [
+  "teams_list",
+  "teams_get",
+  "teams_create",
+  "teams_rename",
+  "teams_leave",
+  "teams_add_member",
+  "teams_remove_member",
+  "teams_delete",
+] as const;
+
+export const SETTINGS_TOOL_NAMES = [
+  "settings_get",
+  "settings_update",
+  "dream_schedule_set",
+  "settings_set_experimental_flag",
+  "memory_delete_all",
+] as const;
+
+export const CONNECTORS_TOOL_NAMES = [
+  "connectors_list",
+  "connectors_sync",
+  "connectors_disconnect",
+  "connectors_delete_data",
+] as const;
+
+export const USAGE_TOOL_NAMES = [
+  "usage_ai_logs",
+  "usage_ai_summary",
+  "usage_ai_models",
+  "usage_api_requests",
+] as const;
+
+// user-wide tools (not tied to a profile or team): personal connector only
+export const PERSONAL_ONLY_ACCOUNT_TOOL_NAMES = [
+  "profiles_create",
+  "profiles_delete",
+  ...SETTINGS_TOOL_NAMES,
+  ...CONNECTORS_TOOL_NAMES,
+  "usage_api_requests",
 ] as const;
 
 export function catalogNamesForScope(scope: McpScope): string[] {

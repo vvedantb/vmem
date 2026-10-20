@@ -65,7 +65,7 @@ async function setup() {
   );
   const ownerWork = await owner.mutation(api.profiles.create, {
     name: "Work",
-    color: "blue",
+    color: "#10B981",
     icon: "briefcase",
   });
   const otherDefault = await other.mutation(
@@ -74,7 +74,7 @@ async function setup() {
   );
   const otherSide = await other.mutation(api.profiles.create, {
     name: "Side",
-    color: "green",
+    color: "#F59E0B",
     icon: "star",
   });
   if (!ownerWork || !otherSide) throw new Error("profile create failed");

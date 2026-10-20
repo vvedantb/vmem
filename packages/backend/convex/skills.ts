@@ -14,7 +14,7 @@ import {
 } from "./skillVersions";
 import {
   mcpScopeValidator,
-  getActiveProfileForMcpScope,
+  resolveMcpTeamId,
   type McpScope,
 } from "./profiles/mcpAccess";
 import {
@@ -106,14 +106,10 @@ export async function resolveMcpSkillGrant(
 ): Promise<SkillMcpGrant | null> {
   const user = await getUserByClerkId(ctx, clerkId);
   if (!user) return null;
-  if (scope !== "team") {
-    return { userId: user._id, teamId: undefined };
-  }
-  const profile = await getActiveProfileForMcpScope(ctx, clerkId, "team");
-  if (!profile?.teamId) {
-    throw new Error("No team profiles available. Join or create a team first.");
-  }
-  return { userId: user._id, teamId: profile.teamId };
+  return {
+    userId: user._id,
+    teamId: await resolveMcpTeamId(ctx, clerkId, scope ?? "personal"),
+  };
 }
 
 function effectiveFromSkillRow(

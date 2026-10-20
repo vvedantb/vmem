@@ -1,14 +1,13 @@
 import { z } from "zod";
 import { internal } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
 import { runManualDream } from "../dreamMode";
 import { resolveProposalWithAudit } from "../proposedUpdateApi";
 import { withMcpMemoryScope } from "./memoryScope";
 import {
   emptyInputSchema,
+  requireUserId,
   scopedMemory,
   toolSpec,
-  type ToolHandlerContext,
 } from "./toolTypes";
 
 const profileIdParam = z
@@ -49,15 +48,6 @@ const notificationsMarkSchema = z.object({
 });
 
 const notificationsDeleteSchema = z.object({ id: notificationIdParam });
-
-async function requireUserId(h: ToolHandlerContext): Promise<Id<"users">> {
-  const userId = await h.ctx.runQuery(
-    internal.auth.getUserIdByClerkIdInternal,
-    { clerkId: h.clerkUserId },
-  );
-  if (userId === null) throw new Error("User not found");
-  return userId;
-}
 
 export const inboxToolSpecs = {
   proposals_list: toolSpec({

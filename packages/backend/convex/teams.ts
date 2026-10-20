@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { authQuery, authMutation, authAction } from "./auth";
 import { internalQuery, internalMutation } from "./_generated/server";
+import { withClerkUser } from "./lib/clerkUser";
 import { runGet, runList } from "./teams/handlers";
 import {
   runAddMember,
@@ -59,6 +60,48 @@ export const leaveTeam = authMutation({
 export const deleteTeam = authAction({
   args: { teamId: v.string() },
   handler: async (ctx, args) => runDeleteTeam(ctx, args),
+});
+
+// MCP teams_* tools: the same handlers, run as the verified clerk user
+export const listByClerkIdInternal = internalQuery({
+  args: { clerkId: v.string() },
+  handler: async (ctx, args) => runList(await withClerkUser(ctx, args.clerkId)),
+});
+
+export const getByClerkIdInternal = internalQuery({
+  args: { clerkId: v.string(), teamId: v.string() },
+  handler: async (ctx, { clerkId, ...args }) =>
+    runGet(await withClerkUser(ctx, clerkId), args),
+});
+
+export const createByClerkIdInternal = internalMutation({
+  args: { clerkId: v.string(), name: v.string() },
+  handler: async (ctx, { clerkId, ...args }) =>
+    runCreate(await withClerkUser(ctx, clerkId), args),
+});
+
+export const updateTeamByClerkIdInternal = internalMutation({
+  args: { clerkId: v.string(), teamId: v.string(), name: v.string() },
+  handler: async (ctx, { clerkId, ...args }) =>
+    runUpdateTeam(await withClerkUser(ctx, clerkId), args),
+});
+
+export const addMemberByClerkIdInternal = internalMutation({
+  args: { clerkId: v.string(), teamId: v.string(), email: v.string() },
+  handler: async (ctx, { clerkId, ...args }) =>
+    runAddMember(await withClerkUser(ctx, clerkId), args),
+});
+
+export const removeMemberByClerkIdInternal = internalMutation({
+  args: { clerkId: v.string(), teamId: v.string(), userId: v.string() },
+  handler: async (ctx, { clerkId, ...args }) =>
+    runRemoveMember(await withClerkUser(ctx, clerkId), args),
+});
+
+export const leaveTeamByClerkIdInternal = internalMutation({
+  args: { clerkId: v.string(), teamId: v.string() },
+  handler: async (ctx, { clerkId, ...args }) =>
+    runLeaveTeam(await withClerkUser(ctx, clerkId), args),
 });
 
 export const prepareDeleteTeamInternal = internalMutation({

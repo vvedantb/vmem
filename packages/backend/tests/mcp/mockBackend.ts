@@ -655,7 +655,14 @@ async function dispatch(
     }
     case "files:listByClerkIdInternal": {
       clerkIdArgsSchema.parse(args);
-      return [...store.files];
+      return {
+        nodes: [...store.files],
+        totalBytes: store.files.reduce(
+          (sum, node) => sum + (node.size ?? 0),
+          0,
+        ),
+        storageLimit: 10 * 1024 * 1024 * 1024,
+      };
     }
     case "files:upsertFileByPathInternal": {
       const parsed = fileUpsertArgsSchema.parse(args);

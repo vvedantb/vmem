@@ -1,5 +1,8 @@
 import { z } from "zod";
+import { internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
+import type { AuthActionCtx } from "../auth";
 import type { McpScope } from "../profiles/mcpAccess";
 import type { McpToolContent, ToolHandlerResult } from "./content";
 
@@ -18,6 +21,29 @@ export function scopedClerk(ctx: ToolHandlerContext) {
 export function scopedMemory(ctx: ToolHandlerContext) {
   return { clerkId: ctx.clerkUserId, mcpScope: ctx.scope };
 }
+
+export async function requireUserId(
+  h: ToolHandlerContext,
+): Promise<Id<"users">> {
+  const userId = await h.ctx.runQuery(
+    internal.auth.getUserIdByClerkIdInternal,
+    { clerkId: h.clerkUserId },
+  );
+  if (userId === null) throw new Error("User not found");
+  return userId;
+}
+
+// the ctx an authAction handler gets, for tools that reuse action handlers
+export async function authActionCtx(
+  h: ToolHandlerContext,
+): Promise<AuthActionCtx> {
+  return { ...h.ctx, userId: await requireUserId(h) };
+}
+
+// destructive tools take confirm: true so an agent has to opt in explicitly
+export const confirmParam = z
+  .literal(true)
+  .describe("Must be true: this action is permanent");
 
 export interface ToolSpec<Shape extends z.ZodRawShape> {
   readonly name: string;

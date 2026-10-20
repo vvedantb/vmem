@@ -91,7 +91,7 @@ describe("in-process MCP catalog", () => {
     expect(names.some((name) => name.includes("codebase"))).toBe(false);
   });
 
-  it("omits files and context_prompt on the team connector", async () => {
+  it("omits context_prompt and keeps team files on the team connector", async () => {
     const client = new InProcessMcpClient({
       session: createInProcessSession("team"),
       token: MOCK_MCP_TOKEN,
@@ -102,7 +102,7 @@ describe("in-process MCP catalog", () => {
     expect(names.some((name) => name.startsWith("skills_"))).toBe(true);
     expect(names).toContain("skills_recommend");
     expect(names.some((name) => name.startsWith("wiki_"))).toBe(false);
-    expect(names.some((name) => name.startsWith("files_"))).toBe(false);
+    expect(names).toContain("files_list");
   });
 });
 
@@ -504,9 +504,10 @@ describe("in-process MCP core, skills, and files tools", () => {
     const listed = fileListSchema.parse(
       parseToolPayload(await client.callTool("files_list")),
     );
-    expect(listed.some((entry) => entry.path === "harness/note.txt")).toBe(
-      true,
-    );
+    expect(
+      listed.items.some((entry) => entry.path === "harness/note.txt"),
+    ).toBe(true);
+    expect(listed.totalBytes).toBeGreaterThan(0);
 
     const fetched = fileGetResultSchema.parse(
       parseToolPayload(

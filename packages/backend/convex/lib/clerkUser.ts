@@ -12,3 +12,12 @@ export async function getUserIdByClerkId(
   }
   return user._id;
 }
+
+// The ctx an authQuery / authMutation handler gets, built from a verified
+// clerk id. MCP *ByClerkIdInternal functions use it to call the same handler.
+export async function withClerkUser<Ctx extends QueryCtx | MutationCtx>(
+  ctx: Ctx,
+  clerkId: string,
+): Promise<Ctx & { userId: Id<"users"> }> {
+  return { ...ctx, userId: await getUserIdByClerkId(ctx, clerkId) };
+}
