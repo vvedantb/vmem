@@ -63,7 +63,7 @@ export function NavLink({
       >
         <Icon
           size={19}
-          stroke={1.7}
+          strokeWidth={1.7}
           className={sidebarNavIconClass(isActive)}
         />
         <AnimatePresence initial={false}>

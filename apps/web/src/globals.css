@@ -11,6 +11,7 @@
 @source "../../../node_modules/@vvedantb/ui/src/marketing/landing.css";
 
 @import "@vvedantb/ui/tokens/css/animations.css";
+@import "@vvedantb/ui/tokens/css/nav-icons.css";
 
 @theme {
   --font-instrumentSerif: "Instrument Serif", Georgia, serif;

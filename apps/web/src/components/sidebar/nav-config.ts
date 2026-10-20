@@ -11,13 +11,13 @@ import {
   IconFlask,
 } from "@tabler/icons-react";
 import {
-  IconMemories,
-  IconFiles,
-  IconSkills,
-  IconInbox,
-  IconSettings,
-  IconTeams,
-} from "../icons/sidebar";
+  BoltIcon,
+  BuildingIcon,
+  FilesIcon,
+  InboxIcon,
+  MemoryIcon,
+  SettingsIcon,
+} from "@vvedantb/ui";
 import type { NavGroup, NavHref, NavItem, SettingsNavGroup } from "./types";
 
 export type RailSection =
@@ -34,9 +34,9 @@ export type RailSection =
 export type SidebarLayout = "desktop" | "drawer";
 
 export const railLibraryItems: NavItem[] = [
-  { href: "/$profileId/memories", label: "Memories", icon: IconMemories },
-  { href: "/$profileId/skills", label: "Skills", icon: IconSkills },
-  { href: "/$profileId/files", label: "Files", icon: IconFiles },
+  { href: "/$profileId/memories", label: "Memories", icon: MemoryIcon },
+  { href: "/$profileId/skills", label: "Skills", icon: BoltIcon },
+  { href: "/$profileId/files", label: "Files", icon: FilesIcon },
   { href: "/$profileId/usage", label: "Usage", icon: IconReceipt2 },
   { href: "/$profileId/sources", label: "Sources", icon: IconPlugConnected },
 ];
@@ -59,7 +59,7 @@ export const sourcesNavItems: NavItem[] = [
 export const inboxRailItem: NavItem = {
   href: "/$profileId/inbox",
   label: "Inbox",
-  icon: IconInbox,
+  icon: InboxIcon,
 };
 
 export const homeRailHref = "/$profileId/home" satisfies NavHref;
@@ -67,13 +67,13 @@ export const homeRailHref = "/$profileId/home" satisfies NavHref;
 export const teamRailItem: NavItem = {
   href: "/$profileId/team/members",
   label: "Team",
-  icon: IconTeams,
+  icon: BuildingIcon,
 };
 
 export const settingsRailItem: NavItem = {
   href: "/settings",
   label: "Settings",
-  icon: IconSettings,
+  icon: SettingsIcon,
 };
 
 // workspace scoped nav items use the `$profileId` placeholder resolve them with

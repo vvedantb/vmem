@@ -2,6 +2,7 @@ import { useQuery } from "convex/react";
 import { api } from "@vmem/backend";
 import {
   Badge,
+  BoltIcon,
   cn,
   ContextMenu,
   ContextMenuTrigger,
@@ -14,7 +15,6 @@ import {
   skipConfirmTitle,
 } from "@vvedantb/ui";
 import { IconEdit, IconMoon, IconTrash } from "@tabler/icons-react";
-import { IconSkills } from "@/components/icons/sidebar";
 import { formatCompactRelativeTime } from "@vmem/shared";
 import { formatMemorySourceLabel, type Memory } from "@/lib/memories";
 import { listItemToMemory, type ListItem } from "@/lib/list-items";
@@ -242,7 +242,7 @@ function KindMeta({
         <Tooltip>
           <TooltipTrigger asChild>
             <span className={iconWrapClass} aria-label="Skill">
-              <IconSkills size={14} stroke={1.7} />
+              <BoltIcon size={14} />
             </span>
           </TooltipTrigger>
           <TooltipContent side="top" sideOffset={6}>
