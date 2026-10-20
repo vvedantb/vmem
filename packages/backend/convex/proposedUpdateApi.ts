@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { authAction, requireClerkId } from "./auth";
+import { authAction, getUserByClerkId, requireClerkId } from "./auth";
 import { internalMutation, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { ActionCtx, MutationCtx } from "./_generated/server";
@@ -14,6 +14,7 @@ import {
   markProposedUpdateResolved,
 } from "./proposedUpdateStore";
 import { assertAccessibleProfileIfPresent } from "./profiles/accessibleProfile";
+import { canAccessProfileForMcpScope } from "./profiles/mcpAccess";
 import { createMemory, supersedeMemories } from "./memoryStore/helpers";
 
 export type ResolveResult = {
@@ -121,6 +122,30 @@ async function applyApproval(
   return created.id;
 }
 
+// The caller must be able to use the proposal's profile, with the same check
+// MCP proposals_resolve gets from its scoped profile: a team profile needs
+// team membership; a personal proposal needs its owner (or the profile owner).
+async function callerMayResolve(
+  ctx: MutationCtx,
+  clerkId: string,
+  proposal: { userId: string; profileId?: string },
+): Promise<boolean> {
+  const profileId =
+    proposal.profileId === undefined
+      ? null
+      : ctx.db.normalizeId("profiles", proposal.profileId);
+  const profile = profileId === null ? null : await ctx.db.get(profileId);
+  if (profile?.teamId === undefined && proposal.userId === clerkId) return true;
+  const user = await getUserByClerkId(ctx, clerkId);
+  if (!profile || !user) return false;
+  return canAccessProfileForMcpScope(
+    ctx,
+    user._id,
+    profile,
+    profile.teamId === undefined ? "personal" : "team",
+  );
+}
+
 export async function resolveProposedUpdate(
   ctx: MutationCtx,
   args: {
@@ -132,13 +157,7 @@ export async function resolveProposedUpdate(
 ): Promise<ResolveResult | null> {
   const proposal = await getProposedUpdate(ctx, args.proposalId);
   if (!proposal || proposal.status !== "pending") return null;
-  if (proposal.userId !== args.clerkId) {
-    if (proposal.profileId === undefined) return null;
-    const profileId = ctx.db.normalizeId("profiles", proposal.profileId);
-    if (!profileId) return null;
-    const profile = await ctx.db.get(profileId);
-    if (!profile) return null;
-  }
+  if (!(await callerMayResolve(ctx, args.clerkId, proposal))) return null;
 
   if (args.action !== "approve") {
     await markProposedUpdateResolved(ctx, args.proposalId, "rejected");

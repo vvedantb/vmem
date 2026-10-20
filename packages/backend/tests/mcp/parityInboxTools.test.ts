@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { internal } from "../../convex/_generated/api";
+import { api, internal } from "../../convex/_generated/api";
 import { inboxToolSpecs } from "../../convex/mcp/toolsInbox";
 import {
+  asUser,
   createConvexBackend,
   mcpCaller,
   signUp,
@@ -101,6 +102,50 @@ describe("MCP inbox parity tools (convex-test backend)", () => {
         .parse(await aliceMcp.call("proposals_list"))
         .some((proposal) => proposal.id === merge.id),
     ).toBe(false);
+  });
+
+  it("web resolveProposal refuses a proposal in another user's profile", async () => {
+    const t = createConvexBackend();
+    const alice = await signUp(t, ALICE, "alice@example.com");
+    const bob = await signUp(t, BOB, "bob@example.com");
+    await seedNearDuplicates(t, ALICE, alice.profileId);
+    const merge = proposalListSchema
+      .parse(await mcpCaller(t, ALICE).call("proposals_list"))
+      .find((proposal) => proposal.kind === "merge");
+    if (merge === undefined) throw new Error("expected a merge proposal");
+
+    const bobWeb = asUser(t, BOB, "bob@example.com");
+    // before the fix any existing profile id passed: bob approved alice's merge
+    for (const profileId of [undefined, bob.profileId]) {
+      expect(
+        await bobWeb.action(api.proposedUpdateApi.resolveProposal, {
+          proposalId: merge.id,
+          action: "approve",
+          profileId,
+        }),
+      ).toBeNull();
+    }
+    await expect(
+      bobWeb.action(api.proposedUpdateApi.resolveProposal, {
+        proposalId: merge.id,
+        action: "approve",
+        profileId: alice.profileId,
+      }),
+    ).rejects.toThrow(/not accessible/);
+    expect(
+      proposalListSchema
+        .parse(await mcpCaller(t, ALICE).call("proposals_list"))
+        .some((proposal) => proposal.id === merge.id),
+    ).toBe(true);
+
+    const aliceWeb = asUser(t, ALICE, "alice@example.com");
+    expect(
+      await aliceWeb.action(api.proposedUpdateApi.resolveProposal, {
+        proposalId: merge.id,
+        action: "reject",
+        profileId: alice.profileId,
+      }),
+    ).toEqual({ status: "rejected" });
   });
 
   it("dream_run uses the rate-limited manual path", async () => {
