@@ -64,6 +64,13 @@ export const SKILLS_TOOL_NAMES = [
   "skills_update",
   "skills_delete",
   "skills_import",
+  "skills_history",
+  "skills_version_get",
+  "skills_restore_version",
+  "skills_catalog_list",
+  "skills_catalog_install",
+  "skills_catalog_uninstall",
+  "skills_catalog_set_enabled",
 ] as const;
 
 export const FILES_TOOL_NAMES = [

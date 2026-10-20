@@ -3,10 +3,46 @@ import { internal } from "../_generated/api";
 import { recommendSkills } from "../../engine/memory/jevSkillRecommend";
 import { resolveSystemOneApiKey } from "../lib/systemOneKey";
 import { SKILLS_IMPORT_MAX, toSkillIndexEntry } from "../skills";
-import { emptyInputSchema, scopedClerk, toolSpec } from "./toolTypes";
+import { scopedClerk, toolSpec } from "./toolTypes";
+
+const includeDisabledParam = z
+  .boolean()
+  .optional()
+  .describe("Also include disabled skills and installs (default false)");
+
+const skillsListSchema = z.object({ includeDisabled: includeDisabledParam });
 
 const skillsGetSchema = z.object({
   name: z.string().describe("Exact skill name (case sensitive)"),
+  includeDisabled: includeDisabledParam,
+});
+
+const skillsHistorySchema = z.object({
+  name: z.string().describe("Exact skill name (case sensitive)"),
+});
+
+const skillVersionSchema = z.object({
+  versionId: z.string().describe("Version id from skills_history"),
+});
+
+const catalogListSchema = z.object({
+  includeInstructions: z
+    .boolean()
+    .optional()
+    .describe(
+      "Include each skill's full markdown instructions (default false)",
+    ),
+});
+
+const systemSkillIdParam = z
+  .string()
+  .describe("System skill id from skills_catalog_list");
+
+const catalogSkillSchema = z.object({ systemSkillId: systemSkillIdParam });
+
+const catalogSetEnabledSchema = z.object({
+  systemSkillId: systemSkillIdParam,
+  enabled: z.boolean().describe("true enables the install, false disables it"),
 });
 
 const skillsCreateSchema = z.object({
@@ -72,16 +108,22 @@ const skillsRecommendSchema = z.object({
 export const skillsToolSpecs = {
   skills_list: toolSpec({
     name: "skills_list",
-    schema: emptyInputSchema,
+    schema: skillsListSchema,
     description:
-      "List enabled skills granted to this MCP connector (name + description + updatedAt). No instructions. Personal `/mcp` sees the caller's personal skills; team `/mcp/team` sees only that team's skills. Same index as Available Skills in context_prompt_get / vmem://context_prompt on personal. When a task matches, call skills_recommend or skills_get with the exact name before following a playbook.",
+      "List skills granted to this MCP connector: name, description, enabled, source (personal or system), origin (web, mcp or vibot), createdAt and updatedAt. No instructions. Enabled only unless includeDisabled is true (the web Skills page shows both). Personal `/mcp` sees the caller's personal skills; team `/mcp/team` sees only that team's skills. Same index as Available Skills in context_prompt_get / vmem://context_prompt on personal. When a task matches, call skills_recommend or skills_get with the exact name before following a playbook.",
     errorLabel: "List skills failed",
-    async run(h): Promise<unknown> {
+    async run(h, params): Promise<unknown> {
       const rows = await h.ctx.runQuery(
         internal.skills.listEffectiveByClerkIdInternal,
-        scopedClerk(h),
+        { ...scopedClerk(h), includeDisabled: params.includeDisabled },
       );
-      return rows.map(toSkillIndexEntry);
+      return rows.map((row) => ({
+        ...toSkillIndexEntry(row),
+        enabled: row.enabled,
+        source: row.source,
+        origin: row.origin ?? null,
+        createdAt: row.createdAt ?? null,
+      }));
     },
   }),
   skills_import: toolSpec({
@@ -121,7 +163,7 @@ export const skillsToolSpecs = {
     name: "skills_get",
     schema: skillsGetSchema,
     description:
-      "Fetch a single enabled skill granted to this MCP connector by exact name, including full markdown instructions. Call after identifying a matching skill from skills_recommend, skills_list, context_prompt_get, or vmem://skills/<name>.",
+      "Fetch a single skill granted to this MCP connector by exact name, including full markdown instructions. Enabled skills only unless includeDisabled is true. Call after identifying a matching skill from skills_recommend, skills_list, context_prompt_get, or vmem://skills/<name>.",
     errorLabel: "Get skill failed",
     async run(h, params): Promise<unknown> {
       const skill = await h.ctx.runQuery(
@@ -129,6 +171,7 @@ export const skillsToolSpecs = {
         {
           ...scopedClerk(h),
           name: params.name,
+          includeDisabled: params.includeDisabled,
         },
       );
       if (!skill) {
@@ -181,6 +224,117 @@ export const skillsToolSpecs = {
         name: params.name,
       });
       return { deleted: true };
+    },
+  }),
+  skills_history: toolSpec({
+    name: "skills_history",
+    schema: skillsHistorySchema,
+    description:
+      "List saved versions of a skill, newest first (the web History panel): versionId, createdAt, source (web or mcp) and authorLabel. A version is saved before each overwrite. Read one with skills_version_get; roll back with skills_restore_version.",
+    errorLabel: "Skill history failed",
+    async run(h, params): Promise<unknown> {
+      return h.ctx.runQuery(internal.skills.listVersionsByClerkIdInternal, {
+        ...scopedClerk(h),
+        name: params.name,
+      });
+    },
+  }),
+  skills_version_get: toolSpec({
+    name: "skills_version_get",
+    schema: skillVersionSchema,
+    description:
+      "Read one saved skill version from skills_history: name, description, instructions and enabled as they were then.",
+    errorLabel: "Get skill version failed",
+    async run(h, params): Promise<unknown> {
+      return h.ctx.runQuery(internal.skills.getVersionByClerkIdInternal, {
+        ...scopedClerk(h),
+        versionId: params.versionId,
+      });
+    },
+  }),
+  skills_restore_version: toolSpec({
+    name: "skills_restore_version",
+    schema: skillVersionSchema,
+    description:
+      "Restore a skill to a saved version from skills_history (name, description, instructions, enabled). The current content is saved as a new version first, so a restore can be undone. Fails if the old name is now used by another skill.",
+    errorLabel: "Restore skill version failed",
+    async run(h, params): Promise<unknown> {
+      return h.ctx.runMutation(
+        internal.skills.restoreVersionByClerkIdInternal,
+        { ...scopedClerk(h), versionId: params.versionId },
+      );
+    },
+  }),
+  skills_catalog_list: toolSpec({
+    name: "skills_catalog_list",
+    schema: catalogListSchema,
+    description:
+      "Browse the vmem system skill hub (curated skills): id, name, description, category, installed and installEnabled for this connector's workspace (personal on `/mcp`, the active team on `/mcp/team`). Install with skills_catalog_install.",
+    errorLabel: "List skill catalog failed",
+    async run(h, params): Promise<unknown> {
+      const rows = await h.ctx.runQuery(
+        internal.systemSkills.listCatalogByClerkIdInternal,
+        scopedClerk(h),
+      );
+      return rows.map((row) => ({
+        systemSkillId: row._id,
+        name: row.name,
+        description: row.description,
+        category: row.category ?? null,
+        published: row.published,
+        updatedAt: row.updatedAt,
+        installed: row.installed,
+        installEnabled: row.installEnabled,
+        ...(params.includeInstructions === true
+          ? { instructions: row.instructions }
+          : {}),
+      }));
+    },
+  }),
+  skills_catalog_install: toolSpec({
+    name: "skills_catalog_install",
+    schema: catalogSkillSchema,
+    description:
+      "Install a system skill from skills_catalog_list into this connector's workspace (enabled). Idempotent. Fails if a skill with the same name already exists there.",
+    errorLabel: "Install system skill failed",
+    async run(h, params): Promise<unknown> {
+      await h.ctx.runMutation(internal.systemSkills.installByClerkIdInternal, {
+        ...scopedClerk(h),
+        systemSkillId: params.systemSkillId,
+      });
+      return { systemSkillId: params.systemSkillId, installed: true };
+    },
+  }),
+  skills_catalog_uninstall: toolSpec({
+    name: "skills_catalog_uninstall",
+    schema: catalogSkillSchema,
+    description:
+      "Uninstall a system skill from this connector's workspace. Returns uninstalled: false when it was not installed.",
+    errorLabel: "Uninstall system skill failed",
+    async run(h, params): Promise<unknown> {
+      const uninstalled = await h.ctx.runMutation(
+        internal.systemSkills.uninstallByClerkIdInternal,
+        { ...scopedClerk(h), systemSkillId: params.systemSkillId },
+      );
+      return { systemSkillId: params.systemSkillId, uninstalled };
+    },
+  }),
+  skills_catalog_set_enabled: toolSpec({
+    name: "skills_catalog_set_enabled",
+    schema: catalogSetEnabledSchema,
+    description:
+      "Enable or disable an installed system skill in this connector's workspace without uninstalling it.",
+    errorLabel: "Set system skill enabled failed",
+    async run(h, params): Promise<unknown> {
+      await h.ctx.runMutation(
+        internal.systemSkills.setInstalledEnabledByClerkIdInternal,
+        {
+          ...scopedClerk(h),
+          systemSkillId: params.systemSkillId,
+          enabled: params.enabled,
+        },
+      );
+      return { systemSkillId: params.systemSkillId, enabled: params.enabled };
     },
   }),
 };
