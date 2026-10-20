@@ -2,7 +2,8 @@ import { v } from "convex/values";
 import { authAction, requireClerkId } from "./auth";
 import { internalMutation, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
-import type { MutationCtx } from "./_generated/server";
+import type { ActionCtx, MutationCtx } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 import type { MemoryReadScope } from "../engine/memory/scope";
 import { UPDATES_LINK_REASON } from "../engine/memory/supersede";
 import { auditLog, ResourceTypes } from "./auditLog";
@@ -15,7 +16,7 @@ import {
 import { assertAccessibleProfileIfPresent } from "./profiles/accessibleProfile";
 import { createMemory, supersedeMemories } from "./memoryStore/helpers";
 
-type ResolveResult = {
+export type ResolveResult = {
   status: "approved" | "rejected";
   materializedMemoryId?: string;
 };
@@ -187,6 +188,43 @@ export const listProposedUpdates = authAction({
   },
 });
 
+// Resolve plus the audit entry, shared by the inbox and the MCP
+// proposals_resolve tool. Callers check the proposal is in their scope.
+export async function resolveProposalWithAudit(
+  ctx: ActionCtx,
+  args: {
+    clerkId: string;
+    actorUserId: Id<"users">;
+    proposalId: string;
+    action: string;
+    winnerMemoryId?: string;
+  },
+): Promise<ResolveResult | null> {
+  const result = await ctx.runMutation(
+    internal.proposedUpdateApi.resolveInternal,
+    {
+      clerkId: args.clerkId,
+      proposalId: args.proposalId,
+      action: args.action,
+      winnerMemoryId: args.winnerMemoryId,
+    },
+  );
+  if (result) {
+    await auditLog.log(ctx, {
+      action: "proposed_update.resolved",
+      actorId: args.actorUserId,
+      resourceType: ResourceTypes.PROPOSED_UPDATE,
+      resourceId: args.proposalId,
+      metadata: {
+        status: result.status,
+        materializedMemoryId: result.materializedMemoryId ?? null,
+      },
+      severity: "info",
+    });
+  }
+  return result;
+}
+
 export const resolveProposal = authAction({
   args: {
     proposalId: v.string(),
@@ -197,28 +235,12 @@ export const resolveProposal = authAction({
   handler: async (ctx, args): Promise<ResolveResult | null> => {
     const clerkId = await requireClerkId(ctx);
     await assertAccessibleProfileIfPresent(ctx, args.profileId);
-    const result = await ctx.runMutation(
-      internal.proposedUpdateApi.resolveInternal,
-      {
-        clerkId,
-        proposalId: args.proposalId,
-        action: args.action,
-        winnerMemoryId: args.winnerMemoryId,
-      },
-    );
-    if (result) {
-      await auditLog.log(ctx, {
-        action: "proposed_update.resolved",
-        actorId: ctx.userId,
-        resourceType: ResourceTypes.PROPOSED_UPDATE,
-        resourceId: args.proposalId,
-        metadata: {
-          status: result.status,
-          materializedMemoryId: result.materializedMemoryId ?? null,
-        },
-        severity: "info",
-      });
-    }
-    return result;
+    return await resolveProposalWithAudit(ctx, {
+      clerkId,
+      actorUserId: ctx.userId,
+      proposalId: args.proposalId,
+      action: args.action,
+      winnerMemoryId: args.winnerMemoryId,
+    });
   },
 });

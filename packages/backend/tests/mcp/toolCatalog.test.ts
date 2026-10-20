@@ -10,9 +10,11 @@ import {
   CONTEXT_TOOL_NAMES,
   CORE_TOOL_NAMES,
   FILES_TOOL_NAMES,
+  INBOX_TOOL_NAMES,
   MEMORY_GRAPH_TOOL,
   MEMORY_MANAGE_TOOL_NAMES,
   MEMORY_TOOL_NAMES,
+  PERSONAL_ONLY_INBOX_TOOL_NAMES,
   SKILLS_TOOL_NAMES,
 } from "./catalog";
 import { assertServerToolRegistrationCompiles } from "./inProcess";
@@ -26,6 +28,7 @@ describe("MCP tool catalog", () => {
         ...CONTEXT_TOOL_NAMES,
         ...MEMORY_TOOL_NAMES,
         ...MEMORY_MANAGE_TOOL_NAMES,
+        ...INBOX_TOOL_NAMES,
         ...SKILLS_TOOL_NAMES,
         ...FILES_TOOL_NAMES,
       ]),
@@ -36,6 +39,7 @@ describe("MCP tool catalog", () => {
         CONTEXT_TOOL_NAMES.length +
         MEMORY_TOOL_NAMES.length +
         MEMORY_MANAGE_TOOL_NAMES.length +
+        INBOX_TOOL_NAMES.length +
         SKILLS_TOOL_NAMES.length +
         FILES_TOOL_NAMES.length,
     );
@@ -63,6 +67,12 @@ describe("MCP tool catalog", () => {
     expect(team).toContain("context_pack");
     expect(team).toContain(MEMORY_GRAPH_TOOL);
     expect(team).not.toContain("context_prompt_get");
+    expect(personal).toEqual(expect.arrayContaining([...INBOX_TOOL_NAMES]));
+    expect(team).toContain("proposals_list");
+    expect(team).toContain("proposals_resolve");
+    for (const name of PERSONAL_ONLY_INBOX_TOOL_NAMES) {
+      expect(team).not.toContain(name);
+    }
     expect(team.some((name) => name.startsWith("files_"))).toBe(false);
   });
 

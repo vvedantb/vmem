@@ -29,6 +29,25 @@ export const MEMORY_MANAGE_TOOL_NAMES = [
   "memory_import_file",
 ] as const;
 
+export const INBOX_TOOL_NAMES = [
+  "proposals_list",
+  "proposals_resolve",
+  "dream_run",
+  "notifications_list",
+  "notifications_mark",
+  "notifications_mark_all_read",
+  "notifications_delete",
+] as const;
+
+// inbox tools that act on the user, not a profile: personal connector only
+export const PERSONAL_ONLY_INBOX_TOOL_NAMES = [
+  "dream_run",
+  "notifications_list",
+  "notifications_mark",
+  "notifications_mark_all_read",
+  "notifications_delete",
+] as const;
+
 export const CORE_TOOL_NAMES = [
   "ping",
   "whoami",

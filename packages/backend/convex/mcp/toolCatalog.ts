@@ -1,6 +1,7 @@
 import { contextToolSpecs } from "./toolsContext";
 import { coreToolSpecs } from "./toolsCore";
 import { filesToolSpecs } from "./toolsFiles";
+import { inboxToolSpecs } from "./toolsInbox";
 import { memoryToolSpecs } from "./toolsMemory";
 import { memoryManageToolSpecs } from "./toolsMemoryManage";
 import { skillsToolSpecs } from "./toolsSkills";
@@ -10,6 +11,7 @@ export const toolSpecs = {
   ...contextToolSpecs,
   ...memoryToolSpecs,
   ...memoryManageToolSpecs,
+  ...inboxToolSpecs,
   ...skillsToolSpecs,
   ...filesToolSpecs,
 };
