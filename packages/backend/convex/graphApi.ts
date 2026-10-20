@@ -2,12 +2,13 @@ import { v } from "convex/values";
 import { authAction, requireClerkId } from "./auth";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
+import type { ActionCtx } from "./_generated/server";
 import type { MemoryType, MemoryWithTags } from "./memoryApi/types";
 import { collectScopedMemoriesPaged } from "./memoryStore/walk";
 
 const SKILL_PREFIX = "skill:";
 
-interface GraphNodeEntry {
+export interface GraphNodeEntry {
   id: string;
   title: string;
   tags: string[];
@@ -20,28 +21,47 @@ interface GraphNodeEntry {
   content?: string;
 }
 
+export interface GraphRelatesToEdge {
+  source: string;
+  target: string;
+  reason: string;
+  score?: number;
+}
+
+export interface GraphMentionsEdge {
+  source: string;
+  target: string;
+}
+
 interface GraphResult {
   nodes: GraphNodeEntry[];
-  relatesToEdges: {
-    source: string;
-    target: string;
-    reason: string;
-    score?: number;
-  }[];
+  relatesToEdges: GraphRelatesToEdge[];
   tagEdges: {
     source: string;
     target: string;
     weight: number;
     sharedTags: string[];
   }[];
-  mentionsEdges: { source: string; target: string }[];
+  mentionsEdges: GraphMentionsEdge[];
   focusNodeId?: string;
   totalMemoryCount?: number;
   nextCursorCreatedAt?: string;
   nextCursorId?: string;
 }
 
-function memoryNodes(memories: MemoryWithTags[]): GraphNodeEntry[] {
+// link and entity rows are keyed on the author, so read them for every
+// author of the memories on screen (team graphs span several members)
+const MAX_GRAPH_AUTHORS = 50;
+
+function graphAuthors(memories: readonly MemoryWithTags[]): string[] {
+  return [...new Set(memories.map((memory) => memory.userId))]
+    .sort()
+    .slice(0, MAX_GRAPH_AUTHORS);
+}
+
+export function memoryGraphNodes(
+  memories: readonly MemoryWithTags[],
+): GraphNodeEntry[] {
   return memories.map((memory) => ({
     id: memory.id,
     title: memory.title,
@@ -52,6 +72,79 @@ function memoryNodes(memories: MemoryWithTags[]): GraphNodeEntry[] {
     sourceType: memory.sourceType,
     type: memory.type,
   }));
+}
+
+// RELATES_TO links with both ends inside `memories`. Callers load
+// `memories` through their own scope check, so no edge leaves the scope.
+export async function loadGraphLinks(
+  ctx: Pick<ActionCtx, "runQuery">,
+  memories: readonly MemoryWithTags[],
+): Promise<GraphRelatesToEdge[]> {
+  const memoryIds = new Set(memories.map((memory) => memory.id));
+  const edges = new Map<string, GraphRelatesToEdge>();
+  for (const userId of graphAuthors(memories)) {
+    const links = await ctx.runQuery(
+      internal.memoryStore.functions.listMemoryLinksForUserInternal,
+      { userId },
+    );
+    for (const link of links) {
+      if (!memoryIds.has(link.sourceId) || !memoryIds.has(link.targetId)) {
+        continue;
+      }
+      const key = `${link.sourceId}|${link.targetId}`;
+      if (edges.has(key)) continue;
+      edges.set(key, {
+        source: link.sourceId,
+        target: link.targetId,
+        reason: link.reason,
+      });
+    }
+  }
+  return [...edges.values()];
+}
+
+// Entity nodes mentioned by `memories`, plus the memory→entity edges.
+export async function loadGraphEntities(
+  ctx: Pick<ActionCtx, "runQuery">,
+  memories: readonly MemoryWithTags[],
+): Promise<{
+  entityNodes: GraphNodeEntry[];
+  mentionsEdges: GraphMentionsEdge[];
+}> {
+  const memoryIds = new Set(memories.map((memory) => memory.id));
+  const entityNodes = new Map<string, GraphNodeEntry>();
+  const mentionsEdges = new Map<string, GraphMentionsEdge>();
+  for (const userId of graphAuthors(memories)) {
+    const entityGraph = await ctx.runQuery(
+      internal.memoryStore.functions.listEntitiesForGraphInternal,
+      { userId },
+    );
+    const mentioned = new Set<string>();
+    for (const edge of entityGraph.mentions) {
+      if (!memoryIds.has(edge.memoryId)) continue;
+      mentioned.add(edge.entityId);
+      mentionsEdges.set(`${edge.memoryId}|${edge.entityId}`, {
+        source: edge.memoryId,
+        target: edge.entityId,
+      });
+    }
+    for (const node of entityGraph.nodes) {
+      if (!mentioned.has(node.id) || entityNodes.has(node.id)) continue;
+      entityNodes.set(node.id, {
+        id: node.id,
+        title: node.name,
+        tags: [],
+        createdAt: new Date(node.createdAt).toISOString(),
+        kind: "entity",
+        sourceType: null,
+        entityType: node.type,
+      });
+    }
+  }
+  return {
+    entityNodes: [...entityNodes.values()],
+    mentionsEdges: [...mentionsEdges.values()],
+  };
 }
 
 export const getGraphData = authAction({
@@ -123,54 +216,20 @@ export const getGraphData = authAction({
         sourceType: null,
       }));
 
-    const [links, entityGraph] = await Promise.all([
-      ctx.runQuery(
-        internal.memoryStore.functions.listMemoryLinksForUserInternal,
-        { userId: clerkId },
-      ),
-      ctx.runQuery(
-        internal.memoryStore.functions.listEntitiesForGraphInternal,
-        { userId: clerkId },
-      ),
+    const [relatesToEdges, entities] = await Promise.all([
+      loadGraphLinks(ctx, memories),
+      loadGraphEntities(ctx, memories),
     ]);
 
-    const memoryIds = new Set(memories.map((memory) => memory.id));
-    const relatesToEdges = links
-      .filter(
-        (link) => memoryIds.has(link.sourceId) && memoryIds.has(link.targetId),
-      )
-      .map((link) => ({
-        source: link.sourceId,
-        target: link.targetId,
-        reason: link.reason,
-      }));
-
-    const mentionsEdges = entityGraph.mentions.filter((edge) =>
-      memoryIds.has(edge.memoryId),
-    );
-    const mentionedEntityIds = new Set(
-      mentionsEdges.map((edge) => edge.entityId),
-    );
-    const entityNodes: GraphNodeEntry[] = entityGraph.nodes
-      .filter((node) => mentionedEntityIds.has(node.id))
-      .map((node) => ({
-        id: node.id,
-        title: node.name,
-        tags: [],
-        createdAt: new Date(node.createdAt).toISOString(),
-        kind: "entity",
-        sourceType: null,
-        entityType: node.type,
-      }));
-
     return {
-      nodes: [...memoryNodes(memories), ...entityNodes, ...skillNodes],
+      nodes: [
+        ...memoryGraphNodes(memories),
+        ...entities.entityNodes,
+        ...skillNodes,
+      ],
       relatesToEdges,
       tagEdges: [],
-      mentionsEdges: mentionsEdges.map((edge) => ({
-        source: edge.memoryId,
-        target: edge.entityId,
-      })),
+      mentionsEdges: entities.mentionsEdges,
       focusNodeId: args.focus,
       totalMemoryCount: memories.length,
     };

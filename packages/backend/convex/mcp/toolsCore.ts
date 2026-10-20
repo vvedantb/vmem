@@ -13,6 +13,9 @@ type ActiveProfileResult = {
 
 type ProfileListItem = ActiveProfileResult & {
   isDefault: boolean;
+  // Dream Mode profile summary (web dashboard portrait card)
+  dreamPortrait: string | null;
+  dreamPortraitUpdatedAt: string | null;
 };
 
 type WhoamiProfileListItem = {
@@ -36,6 +39,11 @@ function mapProfileListItem(profile: Doc<"profiles">): ProfileListItem {
   return {
     ...mapActiveProfile(profile),
     isDefault: profile.isDefault,
+    dreamPortrait: profile.dreamPortrait ?? null,
+    dreamPortraitUpdatedAt:
+      profile.dreamPortraitUpdatedAt === undefined
+        ? null
+        : new Date(profile.dreamPortraitUpdatedAt).toISOString(),
   };
 }
 
@@ -105,7 +113,7 @@ export const coreToolSpecs = {
     name: "list_profiles",
     schema: emptyInputSchema,
     description: (scopeLabel) =>
-      `List ${scopeLabel} profiles available on this MCP connector. Returns profile IDs, names, colors, and icons. Use set_active_profile to choose the default profile for memory tools, or pass profileId on memory_add / memory_search / memory_retrieve.`,
+      `List ${scopeLabel} profiles available on this MCP connector. Returns profile IDs, names, colors, icons, isDefault, and the Dream Mode portrait (dreamPortrait, dreamPortraitUpdatedAt) when one exists. Use set_active_profile to choose the default profile for memory tools, or pass profileId on memory_add / memory_search / memory_retrieve.`,
     errorLabel: "List profiles failed",
     async run(h): Promise<unknown> {
       const profiles = await h.ctx.runQuery(

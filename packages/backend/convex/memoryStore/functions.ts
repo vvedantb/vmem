@@ -52,12 +52,22 @@ const memoryListResultValidator = v.object({
   total: v.number(),
 });
 
+// OR-lists and the inclusive createdAt window (epoch ms) on top of the
+// single-value filters
+const extraListFilterFields = {
+  types: v.optional(v.array(v.string())),
+  sources: v.optional(v.array(v.string())),
+  createdAfter: v.optional(v.number()),
+  createdBefore: v.optional(v.number()),
+};
+
 const listFilterFields = {
   type: v.optional(v.string()),
   status: v.optional(v.string()),
   source: v.optional(v.string()),
   tags: v.optional(v.array(v.string())),
   searchQuery: v.optional(v.string()),
+  ...extraListFilterFields,
   limit: v.number(),
   offset: v.number(),
 };
@@ -142,10 +152,14 @@ export const listMemoriesInternal = internalQuery({
     listMemories(ctx, args.userId, {
       profileId: args.profileId,
       type: args.type,
+      types: args.types,
       status: args.status,
       source: args.source,
+      sources: args.sources,
       tags: args.tags,
       searchQuery: args.searchQuery,
+      createdAfter: args.createdAfter,
+      createdBefore: args.createdBefore,
       limit: args.limit,
       offset: args.offset,
     }),
@@ -160,10 +174,14 @@ export const listMemoriesForTeamInternal = internalQuery({
   handler: async (ctx, args) =>
     listMemoriesForTeam(ctx, args.profileId, {
       type: args.type,
+      types: args.types,
       status: args.status,
       source: args.source,
+      sources: args.sources,
       tags: args.tags,
       searchQuery: args.searchQuery,
+      createdAfter: args.createdAfter,
+      createdBefore: args.createdBefore,
       limit: args.limit,
       offset: args.offset,
     }),
@@ -492,6 +510,7 @@ export const searchMemoriesPageInternal = internalQuery({
     source: v.optional(v.string()),
     status: v.optional(v.string()),
     tags: v.optional(v.array(v.string())),
+    ...extraListFilterFields,
     numItems: v.number(),
     cursor: v.union(v.string(), v.null()),
   },
@@ -511,9 +530,13 @@ export const searchMemoriesPageInternal = internalQuery({
       requireTerms: args.requireTerms,
       filter: {
         type: args.type,
+        types: args.types,
         source: args.source,
+        sources: args.sources,
         status: args.status,
         tags: args.tags,
+        createdAfter: args.createdAfter,
+        createdBefore: args.createdBefore,
       },
       numItems: args.numItems,
       cursor: args.cursor,
@@ -575,6 +598,7 @@ export const linkMemoriesInternal = internalMutation({
 export const unlinkMemoriesInternal = internalMutation({
   args: {
     userId: v.string(),
+    profileId: v.optional(v.string()),
     memoryIdA: v.string(),
     memoryIdB: v.string(),
   },

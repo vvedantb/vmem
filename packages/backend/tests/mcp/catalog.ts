@@ -9,10 +9,24 @@ export const MEMORY_TOOL_NAMES = [
   "memory_search",
   "memory_retrieve",
   "memory_add",
+  "memory_add_batch",
+  "memory_get",
   "memory_add_instruction",
   "memory_update",
   "memory_delete",
   "memory_related",
+] as const;
+
+export const MEMORY_MANAGE_TOOL_NAMES = [
+  "memory_facets",
+  "memory_tag_rename",
+  "memory_tag_delete",
+  "memory_link",
+  "memory_unlink",
+  "memory_history",
+  "memory_topic_timeline",
+  "memory_stats",
+  "memory_import_file",
 ] as const;
 
 export const CORE_TOOL_NAMES = [

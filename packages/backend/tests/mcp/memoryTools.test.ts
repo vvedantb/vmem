@@ -4,18 +4,11 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { memoryToolSpecs } from "../../convex/mcp/toolsMemory";
 import { toolSpecs } from "../../convex/mcp/toolCatalog";
+import { MEMORY_TOOL_NAMES } from "./catalog";
 
 describe("MCP memory tool surfaces", () => {
-  it("registers search retrieve add instruction update delete related", () => {
-    expect(Object.keys(memoryToolSpecs)).toEqual([
-      "memory_search",
-      "memory_retrieve",
-      "memory_add",
-      "memory_add_instruction",
-      "memory_update",
-      "memory_delete",
-      "memory_related",
-    ]);
+  it("registers search retrieve add batch get instruction update delete related", () => {
+    expect(Object.keys(memoryToolSpecs)).toEqual([...MEMORY_TOOL_NAMES]);
     expect(toolSpecs.memory_search).toBe(memoryToolSpecs.memory_search);
   });
 

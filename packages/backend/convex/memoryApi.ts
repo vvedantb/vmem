@@ -28,7 +28,10 @@ import {
   memorySummaryFilterFields,
   memorySummaryValidator,
 } from "./validators";
-import { listMemorySummariesPaged } from "./memoryStore/walk";
+import {
+  listMemorySummariesPaged,
+  MAX_SCOPE_SUMMARIES,
+} from "./memoryStore/walk";
 import type { MemorySummary } from "./memoryStore/mappers";
 import {
   createMemoryFields,
@@ -76,8 +79,6 @@ export const listSummaries = authQuery({
   handler: async (ctx, args) => runListSummaries(ctx, args),
 });
 
-const MAX_ALL_SUMMARIES = 10_000;
-
 // Non-reactive: every matching slim row in scope (capped), for facets (tag /
 // source / type counts, tag suggestions) and the timeline. One scope walk per
 // call, so callers cache it and only fetch on demand.
@@ -114,7 +115,10 @@ export const listAllSummaries = authAction({
         tags: args.tags,
         searchQuery: args.searchQuery,
       },
-      Math.min(Math.max(1, args.limit ?? MAX_ALL_SUMMARIES), MAX_ALL_SUMMARIES),
+      Math.min(
+        Math.max(1, args.limit ?? MAX_SCOPE_SUMMARIES),
+        MAX_SCOPE_SUMMARIES,
+      ),
     );
     return { memories: rows, truncated };
   },

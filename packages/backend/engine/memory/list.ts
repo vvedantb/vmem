@@ -4,10 +4,17 @@ import { sanitizeTag } from "./tags";
 
 export interface MemoryListFilter {
   type?: string;
+  // any of these types (OR), on top of `type`
+  types?: readonly string[];
   status?: string;
   source?: string;
+  // any of these sources (OR), on top of `source`
+  sources?: readonly string[];
   tags?: string[];
   searchQuery?: string;
+  // inclusive createdAt bounds, epoch ms
+  createdAfter?: number;
+  createdBefore?: number;
 }
 
 export interface MemoryListable {
@@ -17,6 +24,8 @@ export interface MemoryListable {
   tags: readonly string[];
   title: string;
   content: string;
+  // docs carry epoch ms, API rows carry an ISO string
+  createdAt?: number | string;
 }
 
 function matchesSearchQuery(
@@ -44,16 +53,51 @@ function normalizedOrUndefined(value: string | undefined): string | undefined {
   return trimmed === undefined || trimmed.length === 0 ? undefined : trimmed;
 }
 
+function matchesAnyOf(
+  value: string,
+  wanted: readonly string[] | undefined,
+): boolean {
+  if (wanted === undefined) return true;
+  const values = wanted
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+  return values.length === 0 || values.includes(value);
+}
+
+function createdAtMs(createdAt: number | string | undefined): number | null {
+  if (createdAt === undefined) return null;
+  const ms = typeof createdAt === "number" ? createdAt : Date.parse(createdAt);
+  return Number.isFinite(ms) ? ms : null;
+}
+
+function matchesCreatedWindow(
+  memory: Pick<MemoryListable, "createdAt">,
+  filter: Pick<MemoryListFilter, "createdAfter" | "createdBefore">,
+): boolean {
+  if (filter.createdAfter === undefined && filter.createdBefore === undefined) {
+    return true;
+  }
+  const ms = createdAtMs(memory.createdAt);
+  if (ms === null) return false;
+  if (filter.createdAfter !== undefined && ms < filter.createdAfter) {
+    return false;
+  }
+  return filter.createdBefore === undefined || ms <= filter.createdBefore;
+}
+
 export function memoryMatchesListFilter(
   memory: MemoryListable,
   filter: MemoryListFilter,
 ): boolean {
   const type = normalizedOrUndefined(filter.type);
   if (type !== undefined && memory.type !== type) return false;
+  if (!matchesAnyOf(memory.type, filter.types)) return false;
   const source = normalizedOrUndefined(filter.source);
   if (source !== undefined && memory.source !== source) {
     return false;
   }
+  if (!matchesAnyOf(memory.source, filter.sources)) return false;
+  if (!matchesCreatedWindow(memory, filter)) return false;
   const status = normalizedOrUndefined(filter.status);
   if (status !== undefined) {
     if (memory.status !== status) return false;

@@ -89,6 +89,7 @@ import type * as mcp_toolsContext from "../mcp/toolsContext.js";
 import type * as mcp_toolsCore from "../mcp/toolsCore.js";
 import type * as mcp_toolsFiles from "../mcp/toolsFiles.js";
 import type * as mcp_toolsMemory from "../mcp/toolsMemory.js";
+import type * as mcp_toolsMemoryManage from "../mcp/toolsMemoryManage.js";
 import type * as mcp_toolsSkills from "../mcp/toolsSkills.js";
 import type * as memoryApi from "../memoryApi.js";
 import type * as memoryApi_client from "../memoryApi/client.js";
@@ -228,6 +229,7 @@ declare const fullApi: ApiFromModules<{
   "mcp/toolsCore": typeof mcp_toolsCore;
   "mcp/toolsFiles": typeof mcp_toolsFiles;
   "mcp/toolsMemory": typeof mcp_toolsMemory;
+  "mcp/toolsMemoryManage": typeof mcp_toolsMemoryManage;
   "mcp/toolsSkills": typeof mcp_toolsSkills;
   memoryApi: typeof memoryApi;
   "memoryApi/client": typeof memoryApi_client;

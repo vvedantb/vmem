@@ -168,20 +168,12 @@ export async function getFile(
   return result;
 }
 
-export async function uploadFile(
-  ctx: ActionCtx,
-  args: {
-    clerkId: string;
-    path: string;
-    contentBase64?: string;
-    sourceUrl?: string;
-    mimeType?: string;
-  },
-): Promise<FileUploadResult> {
-  const segments = normalizePathSegments(args.path);
-  if (segments.length === 0) {
-    throw new Error("Path is required");
-  }
+// Bytes for an MCP upload: exactly one of base64 or a URL, at most 10 MB.
+export async function readUploadBlob(args: {
+  contentBase64?: string;
+  sourceUrl?: string;
+  mimeType?: string;
+}): Promise<{ blob: Blob; mimeType: string }> {
   const contentBase64 = args.contentBase64;
   const sourceUrl = args.sourceUrl;
   const hasBase64 = contentBase64 !== undefined && contentBase64.length > 0;
@@ -220,6 +212,24 @@ export async function uploadFile(
       `File too large (${blob.size} bytes); max is ${MAX_UPLOAD_BYTES} bytes`,
     );
   }
+  return { blob, mimeType };
+}
+
+export async function uploadFile(
+  ctx: ActionCtx,
+  args: {
+    clerkId: string;
+    path: string;
+    contentBase64?: string;
+    sourceUrl?: string;
+    mimeType?: string;
+  },
+): Promise<FileUploadResult> {
+  const segments = normalizePathSegments(args.path);
+  if (segments.length === 0) {
+    throw new Error("Path is required");
+  }
+  const { blob, mimeType } = await readUploadBlob(args);
 
   const storageId = await ctx.storage.store(blob);
 

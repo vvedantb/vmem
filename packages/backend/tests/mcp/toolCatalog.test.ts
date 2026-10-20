@@ -11,6 +11,7 @@ import {
   CORE_TOOL_NAMES,
   FILES_TOOL_NAMES,
   MEMORY_GRAPH_TOOL,
+  MEMORY_MANAGE_TOOL_NAMES,
   MEMORY_TOOL_NAMES,
   SKILLS_TOOL_NAMES,
 } from "./catalog";
@@ -24,6 +25,7 @@ describe("MCP tool catalog", () => {
         ...CORE_TOOL_NAMES,
         ...CONTEXT_TOOL_NAMES,
         ...MEMORY_TOOL_NAMES,
+        ...MEMORY_MANAGE_TOOL_NAMES,
         ...SKILLS_TOOL_NAMES,
         ...FILES_TOOL_NAMES,
       ]),
@@ -33,6 +35,7 @@ describe("MCP tool catalog", () => {
       CORE_TOOL_NAMES.length +
         CONTEXT_TOOL_NAMES.length +
         MEMORY_TOOL_NAMES.length +
+        MEMORY_MANAGE_TOOL_NAMES.length +
         SKILLS_TOOL_NAMES.length +
         FILES_TOOL_NAMES.length,
     );
@@ -53,6 +56,7 @@ describe("MCP tool catalog", () => {
     expect(personal).toContain("context_prompt_get");
     expect(personal).toContain(MEMORY_GRAPH_TOOL);
     expect(team).toEqual(expect.arrayContaining([...MEMORY_TOOL_NAMES]));
+    expect(team).toEqual(expect.arrayContaining([...MEMORY_MANAGE_TOOL_NAMES]));
     expect(team).toEqual(expect.arrayContaining([...SKILLS_TOOL_NAMES]));
     expect(team).toContain("ping");
     expect(personal).toContain("context_pack");

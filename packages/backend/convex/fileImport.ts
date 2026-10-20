@@ -6,6 +6,7 @@ import { authAction, requireClerkId } from "./auth";
 import { extractFileContent } from "../engine/parsers/extractFileContent";
 import { detectFileKind } from "./files/lib";
 import type { Id } from "./_generated/dataModel";
+import type { ActionCtx } from "./_generated/server";
 import type { MemoryWithTags } from "./memoryApi/types";
 import { assertAccessibleProfileIfPresent } from "./profiles/accessibleProfile";
 import { createMemoryForClerk } from "./memoryRuntime";
@@ -64,6 +65,58 @@ async function loadUploadedBlob(
   return blob;
 }
 
+// Turn a stored PDF or text file into one memory. Callers check the profile;
+// shared by the web upload and the MCP memory_import_file tool.
+export async function importMemoryFromStoredFile(
+  ctx: ActionCtx,
+  args: {
+    clerkId: string;
+    profileId?: string;
+    storageId: Id<"_storage">;
+    filename: string;
+    mimeType: string;
+  },
+): Promise<MemoryWithTags> {
+  const kind = detectFileKind(args.filename, args.mimeType);
+  if (kind === null) {
+    throw new Error(
+      `Unsupported file type: ${args.filename}. Only PDF and text-like files (.txt, .md, json, xml) are supported.`,
+    );
+  }
+
+  // pull the blob from storage. returns null if storageId is invalid or the file was deleted before we got to it
+  const blob = await loadUploadedBlob(ctx, args.storageId, "file");
+
+  const content = await extractFileContent(blob, kind);
+
+  if (content.trim().length === 0) {
+    throw new Error(
+      "Could not extract any text from the file. Is it a scanned image PDF?",
+    );
+  }
+
+  // content hash to stable externalId
+  const externalId = crypto.createHash("sha256").update(content).digest("hex");
+
+  const title = chooseTitle(content, args.filename);
+
+  return await createMemoryForClerk(ctx, {
+    clerkId: args.clerkId,
+    profileId: args.profileId,
+    title,
+    content,
+    type: "knowledge",
+    source: "file-upload",
+    tags: [kind === "pdf" ? "pdf" : "text", "upload"],
+    confidence: 1.0,
+    externalId,
+    sourceType: "file-upload",
+    storageId: args.storageId,
+    mimeType: args.mimeType,
+    originalFilename: args.filename,
+  });
+}
+
 // process an uploaded file (already in convex storage), 1
 export const importMemoryFromFile = authAction({
   args: {
@@ -75,48 +128,7 @@ export const importMemoryFromFile = authAction({
   handler: async (ctx, args): Promise<MemoryWithTags> => {
     const clerkId = await requireClerkId(ctx);
     await assertAccessibleProfileIfPresent(ctx, args.profileId);
-
-    const kind = detectFileKind(args.filename, args.mimeType);
-    if (kind === null) {
-      throw new Error(
-        `Unsupported file type: ${args.filename}. Only PDF and text-like files (.txt, .md, json, xml) are supported.`,
-      );
-    }
-
-    // pull the blob from storage. returns null if storageId is invalid or the file was deleted before we got to it
-    const blob = await loadUploadedBlob(ctx, args.storageId, "file");
-
-    const content = await extractFileContent(blob, kind);
-
-    if (content.trim().length === 0) {
-      throw new Error(
-        "Could not extract any text from the file. Is it a scanned image PDF?",
-      );
-    }
-
-    // content hash to stable externalId
-    const externalId = crypto
-      .createHash("sha256")
-      .update(content)
-      .digest("hex");
-
-    const title = chooseTitle(content, args.filename);
-
-    return await createMemoryForClerk(ctx, {
-      clerkId,
-      profileId: args.profileId,
-      title,
-      content,
-      type: "knowledge",
-      source: "file-upload",
-      tags: [kind === "pdf" ? "pdf" : "text", "upload"],
-      confidence: 1.0,
-      externalId,
-      sourceType: "file-upload",
-      storageId: args.storageId,
-      mimeType: args.mimeType,
-      originalFilename: args.filename,
-    });
+    return await importMemoryFromStoredFile(ctx, { clerkId, ...args });
   },
 });
 
