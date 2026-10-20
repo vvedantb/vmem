@@ -3,7 +3,7 @@ title: "MCP Tools"
 description: "Complete reference for all vmem MCP tools"
 ---
 
-Tools are registered from `packages/backend/convex/mcp/tools*.ts`. Auth accepts a Clerk `oauth_token` or `session_token` bearer (MCP server `2.1.0`). Memory tools work on `/mcp` and `/mcp/team`. Skills tools also work on both connectors (personal skills on `/mcp`, team-granted skills on `/mcp/team`), except `skills_import` which is personal `/mcp` only. `proposals_list` and `proposals_resolve` work on both connectors. Files, `context_prompt_get`, `dream_run` and the `notifications_*` tools are personal-only.
+Tools are registered from `packages/backend/convex/mcp/tools*.ts`. Auth accepts a Clerk `oauth_token` or `session_token` bearer (MCP server `2.2.0`). Memory tools work on `/mcp` and `/mcp/team`. Skills tools also work on both connectors (personal skills on `/mcp`, team-granted skills on `/mcp/team`), except `skills_import` which is personal `/mcp` only. `proposals_list` and `proposals_resolve` work on both connectors. Files tools work on both connectors: personal Files on `/mcp`, the active team profile's drive on `/mcp/team`. The `teams_*`, `profiles_update` and `usage_ai_*` tools also work on both. `context_prompt_get`, `dream_run`, the `notifications_*`, `settings_*`, `connectors_*` tools, `dream_schedule_set`, `memory_delete_all`, `profiles_create`, `profiles_delete` and `usage_api_requests` are personal-only.
 
 Every tool acts as the signed-in user from the bearer token. No tool takes a user ID. IDs that belong to another user, or to a profile outside the connector, return "not found".
 
@@ -23,7 +23,7 @@ Health check for connector validation.
 
 ## whoami
 
-Returns the authenticated user ID and active profile.
+Returns the authenticated user (`clerkUserId`, `email`, `name`), the active profile and the profiles on this connector.
 
 **Parameters:** none
 
@@ -41,13 +41,16 @@ Use `set_active_profile` to choose the default profile for MCP memory tools, or 
 
 ## set_active_profile
 
-Set the default profile for MCP memory tools (`memory_add`, `memory_search`, `memory_retrieve` when `profileId` is omitted). Does not change web or extension defaults.
+Set the default profile for MCP memory tools (`memory_add`, `memory_search`, `memory_retrieve` when `profileId` is omitted). With `source` `web` or `extension`, set the default profile the web dashboard or the Chrome extension opens instead.
 
 <ParamField body="profileId" type="string" required>
   Profile ID from `list_profiles`
 </ParamField>
+<ParamField body="source" type="'mcp' | 'web' | 'extension'">
+  Which default to set (default `mcp`)
+</ParamField>
 
-**Returns:** `{ id, name, color, icon }` for the active profile.
+**Returns:** `{ id, name, color, icon }` for the profile (plus `source` for web / extension).
 
 ---
 
@@ -697,7 +700,7 @@ Install is idempotent. It fails if the workspace already has a skill with the sa
 
 ## files_list
 
-List files and folders in the shared filesystem. Personal connector only.
+List files and folders. On `/mcp` this is your personal Files; on `/mcp/team` it is the active team profile's drive. Returns `{ items, totalBytes, storageLimit }`; each item has `path`, `kind`, `size`, `mimeType`, `indexStatus`, `memoryId` and `updatedAt`.
 
 <ParamField body="path" type="string">
   Folder path (omit to list the entire tree)
@@ -739,4 +742,189 @@ Max 10 MB. PDF and text-like files are indexed into memories and appear in `memo
 
 <ParamField body="path" type="string" required>
   File or folder path. Folders delete recursively.
+</ParamField>
+
+---
+
+## files_create_folder
+
+Create an empty folder. Missing parent folders are created too. Returns `{ path, kind: "folder", created }`; `created` is `false` when the folder already existed.
+
+<ParamField body="path" type="string" required>
+  Folder path, e.g. `projects/2026`
+</ParamField>
+
+---
+
+## files_rename
+
+Rename a file or folder in place. A linked memory's title follows the new name.
+
+<ParamField body="path" type="string" required />
+<ParamField body="newName" type="string" required>
+  New last segment, no `/`. Fails when the folder already holds that name.
+</ParamField>
+
+---
+
+## files_move
+
+Move files or folders into another folder. A folder cannot move into its own subfolders.
+
+<ParamField body="paths" type="string[]" required>
+  1–100 paths from `files_list`
+</ParamField>
+<ParamField body="targetFolderPath" type="string">
+  Existing destination folder (omit for the top level)
+</ParamField>
+
+**Returns:** `{ moved: [{ from, to }] }`
+
+---
+
+## profiles_create
+
+Personal connector only. Create a personal profile, as in the web Create Profile dialog.
+
+<ParamField body="name" type="string" required />
+<ParamField body="color" type="string">
+  One of `#171717` (default), `#10B981`, `#F59E0B`, `#EF4444`, `#8B5CF6`,
+  `#EC4899`, `#06B6D4`, `#6B7280`
+</ParamField>
+<ParamField body="icon" type="string">
+  One of `user` (default), `briefcase`, `home`, `code`, `book`, `heart`, `star`,
+  `rocket`, `lightbulb`, `music`, `camera`, `gamepad`
+</ParamField>
+
+---
+
+## profiles_update
+
+Rename a profile on this connector or change its colour or icon (same lists as `profiles_create`). Team profiles need the team owner role; renaming one renames the team.
+
+<ParamField body="profileId" type="string" required />
+<ParamField body="name" type="string" />
+<ParamField body="color" type="string" />
+<ParamField body="icon" type="string" />
+
+---
+
+## profiles_delete
+
+Personal connector only. Delete a personal profile. Its memories move to `moveMemoriesToProfileId`, or are deleted when it is omitted. The default profile cannot be deleted.
+
+<ParamField body="profileId" type="string" required />
+<ParamField body="moveMemoriesToProfileId" type="string" />
+<ParamField body="confirm" type="true" required />
+
+---
+
+## teams_list / teams_get
+
+`teams_list` returns your teams: `teamId`, `name`, `role`, `memberCount`, `profileId`. `teams_get` returns one team with its members (`userId`, `email`, `name`, `role`, `joinedAt`). On `/mcp/team`, `teamId` defaults to the active team profile.
+
+<ParamField body="teamId" type="string" />
+
+---
+
+## teams_create / teams_rename / teams_leave
+
+`teams_create { name }` makes a team with you as owner, plus its team profile. `teams_rename { teamId, name }` is owner only. `teams_leave { teamId }` fails for the last owner.
+
+---
+
+## teams_add_member / teams_remove_member / teams_delete
+
+Owner only. `teams_add_member { teamId, email }` adds an existing vmem account with the `member` role. `teams_remove_member { teamId, userId, confirm: true }` cannot remove the last owner. `teams_delete { teamId, confirm: true }` deletes the team, its profile and every team memory.
+
+---
+
+## settings_get
+
+Personal connector only. All resolved settings: `aboutMe`, `preferences`, memory extraction, Dream Mode (automatic, auto-accept, schedule, `lastDreamRunAt`), notifications, theme, extension sync, `defaultProfiles` and `experimentalFlags`.
+
+**Parameters:** none
+
+---
+
+## settings_update
+
+Personal connector only. Change one or more settings; omitted fields are unchanged. Limits match the settings UIs and are also checked on the backend.
+
+<ParamField body="aboutMe" type="string">
+  Max 500 characters
+</ParamField>
+<ParamField body="preferences" type="string">
+  Max 500 characters
+</ParamField>
+<ParamField body="memoryConfidenceThreshold" type="integer">
+  0–100
+</ParamField>
+<ParamField body="extensionAutoSyncIntervalMinutes" type="integer">
+  15–1440
+</ParamField>
+<ParamField body="theme" type="'light' | 'dark' | 'system'" />
+
+Boolean fields: `memoryAutoExtract`, `memoryAutoTag`, `dreamModeAutomatic`, `dreamModeAutoAccept`, `notificationsEnabled`, `notifyMemoryConflicts`, `notifyNewMemories`, `notifyMemoriesExpiring`, `extensionAutoSyncEnabled`, `extensionSelectionPopupEnabled`. Also `language` (2–35 characters).
+
+**Returns:** the settings after the change (as `settings_get`).
+
+---
+
+## dream_schedule_set
+
+Personal connector only. Turn the daily Dream Mode run on or off.
+
+<ParamField body="enabled" type="boolean" required />
+<ParamField body="time" type="string">
+  `HH:MM` in UTC; required when `enabled` is true
+</ParamField>
+
+---
+
+## settings_set_experimental_flag
+
+Personal connector only.
+
+<ParamField body="key" type="'disablePageMotion'" required />
+<ParamField body="enabled" type="boolean" required />
+
+---
+
+## memory_delete_all
+
+Personal connector only. Permanently deletes all of your memories, like Settings > Data controls.
+
+<ParamField body="confirm" type="string" required>
+  Exactly `delete all memories`
+</ParamField>
+
+**Returns:** `{ deleted }`
+
+---
+
+## connectors_list / connectors_sync / connectors_disconnect / connectors_delete_data
+
+Personal connector only. `connectors_list` returns each connector with `connectionStatus`, `syncStatus`, `syncProgress`, `itemsSynced`, `lastSyncAt` and `errorMessage`. `connectors_sync { connectorId }` starts a sync. `connectors_disconnect { connectorId }` revokes the tokens; imported memories stay. `connectors_delete_data { connectorId, confirm: true }` deletes the imported memories. Connecting a new connector needs the browser OAuth flow.
+
+---
+
+## usage_ai_logs / usage_ai_summary / usage_ai_models
+
+AI model calls made for you (personal on `/mcp`, the active team on `/mcp/team`).
+
+- `usage_ai_logs { profileId?, features?, models?, range?, limit? (1–100, default 50), cursor? }` returns `{ logs, isDone, nextCursor }`.
+- `usage_ai_summary { range? }` returns `{ totalCalls, totalCostUsd, totalTokens }` (default range `today`).
+- `usage_ai_models {}` returns the distinct model ids.
+
+`range` is `today`, `7d`, `30d` or `all`.
+
+---
+
+## usage_api_requests
+
+Personal connector only. Recent HTTP API requests made with your API keys: `endpoint`, `status`, `durationMs`, `timestamp`.
+
+<ParamField body="limit" type="integer">
+  1–1000 (default 1000)
 </ParamField>

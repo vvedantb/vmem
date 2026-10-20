@@ -7,15 +7,15 @@ import {
 } from "./serverInfo";
 
 describe("MCP server info", () => {
-  it("is 2.1.0 and names personal vs team servers", () => {
-    expect(MCP_SERVER_VERSION).toBe("2.1.0");
+  it("is 2.2.0 and names personal vs team servers", () => {
+    expect(MCP_SERVER_VERSION).toBe("2.2.0");
     expect(mcpServerInfo("personal")).toEqual({
       name: "vmem-mcp",
-      version: "2.1.0",
+      version: "2.2.0",
     });
     expect(mcpServerInfo("team")).toEqual({
       name: "vmem-mcp-team",
-      version: "2.1.0",
+      version: "2.2.0",
     });
   });
 
