@@ -6,7 +6,7 @@ import { authAction, requireClerkId } from "./auth";
 import { extractFileContent } from "../engine/parsers/extractFileContent";
 import { detectFileKind } from "./files/lib";
 import type { Id } from "./_generated/dataModel";
-import type { ActionCtx } from "./_generated/server";
+import { internalAction, type ActionCtx } from "./_generated/server";
 import type { MemoryWithTags } from "./memoryApi/types";
 import { assertAccessibleProfileIfPresent } from "./profiles/accessibleProfile";
 import { createMemoryForClerk } from "./memoryRuntime";
@@ -67,7 +67,7 @@ async function loadUploadedBlob(
 
 // Turn a stored PDF or text file into one memory. Callers check the profile;
 // shared by the web upload and the MCP memory_import_file tool.
-export async function importMemoryFromStoredFile(
+async function importMemoryFromStoredFile(
   ctx: ActionCtx,
   args: {
     clerkId: string;
@@ -116,6 +116,20 @@ export async function importMemoryFromStoredFile(
     originalFilename: args.filename,
   });
 }
+
+// MCP memory_import_file entry point. Non-"use node" modules must call this
+// through ctx.runAction, never import this file. The MCP scope checks the profile.
+export const importStoredFileForMcp = internalAction({
+  args: {
+    clerkId: v.string(),
+    profileId: v.optional(v.string()),
+    storageId: v.id("_storage"),
+    filename: v.string(),
+    mimeType: v.string(),
+  },
+  handler: async (ctx, args): Promise<MemoryWithTags> =>
+    await importMemoryFromStoredFile(ctx, args),
+});
 
 // process an uploaded file (already in convex storage), 1
 export const importMemoryFromFile = authAction({
