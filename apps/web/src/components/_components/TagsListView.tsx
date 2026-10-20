@@ -11,6 +11,7 @@ import {
   ContextMenuTrigger,
   EmptyState,
   Input,
+  MemoryIcon,
   ConfirmSkipHint,
   skipConfirmTitle,
   Spinner,
@@ -24,7 +25,6 @@ import {
   IconX,
 } from "@tabler/icons-react";
 import { buildTagStats } from "@/lib/memories";
-import { IconMemories } from "@/components/icons/sidebar";
 import { useMemoryContext } from "@/contexts/MemoryContext";
 import { useMemoryFacets } from "@/hooks/useMemoryFacets";
 import { useMemoriesSearchParams } from "@/hooks/useMemoriesSearchParams";
@@ -323,7 +323,7 @@ function TagRow({
           )}
         >
           <span className="flex h-4 w-4 items-center justify-center">
-            <IconMemories size={14} stroke={1.7} />
+            <MemoryIcon size={14} />
           </span>
           {count}
         </span>

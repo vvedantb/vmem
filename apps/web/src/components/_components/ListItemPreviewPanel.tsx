@@ -1,7 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
-import { Button } from "@vvedantb/ui";
+import { BoltIcon, Button } from "@vvedantb/ui";
 import { IconArrowRight, IconX } from "@tabler/icons-react";
-import { IconSkills } from "@/components/icons/sidebar";
 import { useActiveProfile } from "@/components/workspace/active-profile";
 import type { ListItem } from "@/lib/list-items";
 import { formatListItemKindLabel } from "@/lib/list-items";
@@ -22,7 +21,7 @@ function kindLabel(item: ListItem): string {
 
 function KindIcon({ item }: { item: ListItem }) {
   if (item.kind !== "skill") return null;
-  return <IconSkills size={16} stroke={1.7} className="text-muted" />;
+  return <BoltIcon size={16} className="text-muted" />;
 }
 
 function glimpseText(item: ListItem): string {

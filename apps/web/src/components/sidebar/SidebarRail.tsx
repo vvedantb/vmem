@@ -5,6 +5,7 @@ import {
   RailCollapseTile,
   RailDivider,
   RailTile,
+  SettingsIcon,
   SidebarRail,
   Skeleton,
   railBadgeClass,
@@ -22,7 +23,6 @@ import {
   type SidebarLayout,
 } from "./nav-config";
 import { SidebarUserMenu } from "./SidebarUserMenu";
-import { IconSettings } from "../icons/sidebar";
 import { VmemDrawInIcon } from "../icons/animations";
 
 function RailNavItem({
@@ -67,7 +67,7 @@ function RailNavItem({
       }
     >
       <Link to={resolvedPath} onClick={onNavigate}>
-        <Icon size={22} stroke={1.7} />
+        <Icon size={22} strokeWidth={1.7} />
       </Link>
     </RailTile>
   );
@@ -161,7 +161,7 @@ export function VmemSidebarRail({
             active={settingsActive}
           >
             <Link to={settingsPath} onClick={onNavigate}>
-              <IconSettings size={22} stroke={1.7} />
+              <SettingsIcon size={22} />
             </Link>
           </RailTile>
         </>

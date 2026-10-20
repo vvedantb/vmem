@@ -4,7 +4,7 @@ import type { FileRouteTypes } from "@/routeTree.gen";
 type NavIcon = ComponentType<{
   className?: string;
   size?: number;
-  stroke?: number;
+  strokeWidth?: number;
 }>;
 
 // verified route target

@@ -1,8 +1,13 @@
 import type { MouseEventHandler, ReactNode } from "react";
 import { motion } from "motion/react";
-import { cn, motionDuration, motionEase } from "@vvedantb/ui";
+import {
+  BuildingIcon,
+  cn,
+  motionDuration,
+  motionEase,
+  SettingsIcon,
+} from "@vvedantb/ui";
 import { IconUsers } from "@tabler/icons-react";
-import { IconTeams, IconSettings } from "../icons/sidebar";
 import type { NavGroup, NavItem } from "./types";
 import { navViewFromPathname, railSectionFromPathname } from "./nav-config";
 import { NavLink } from "./NavLink";
@@ -20,13 +25,13 @@ export type SidebarNavigationProps = {
 
 const teamNavGroup: NavGroup = {
   title: "Team",
-  icon: IconTeams,
+  icon: BuildingIcon,
   items: [
     { href: "/$profileId/team/members", label: "Members", icon: IconUsers },
     {
       href: "/$profileId/team/settings",
       label: "Team settings",
-      icon: IconSettings,
+      icon: SettingsIcon,
     },
   ],
 };

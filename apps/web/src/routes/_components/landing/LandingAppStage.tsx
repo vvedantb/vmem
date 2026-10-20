@@ -1,20 +1,18 @@
 import { useState, type ComponentType } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import {
+  BoltIcon,
   Button,
   cn,
+  FilesIcon,
+  InboxIcon,
+  MemoryIcon,
   motionDuration,
   motionEase,
   railTileClass,
   railTileStateClass,
+  SettingsIcon,
 } from "@vvedantb/ui";
-import {
-  IconMemories,
-  IconSkills,
-  IconFiles,
-  IconInbox,
-  IconSettings,
-} from "@/components/icons/sidebar";
 import { VmemBrandText } from "@/components/shell/VmemBrand";
 import { VmemDrawInIcon } from "@/components/icons/animations";
 import { landingShellClass } from "./LandingReveal";
@@ -28,13 +26,13 @@ export type LandingStageView = "home" | "memories" | "skills";
 type MemoriesTab = "graph" | "list" | "timeline";
 
 const libraryItems = [
-  { id: "memories", label: "Memories", icon: IconMemories, interactive: true },
-  { id: "skills", label: "Skills", icon: IconSkills, interactive: true },
-  { id: "files", label: "Files", icon: IconFiles, interactive: false },
+  { id: "memories", label: "Memories", icon: MemoryIcon, interactive: true },
+  { id: "skills", label: "Skills", icon: BoltIcon, interactive: true },
+  { id: "files", label: "Files", icon: FilesIcon, interactive: false },
 ] as const;
 
 const accountItems = [
-  { id: "settings", label: "Settings", icon: IconSettings },
+  { id: "settings", label: "Settings", icon: SettingsIcon },
 ] as const;
 
 const pageTitle: Record<LandingStageView, string> = {
@@ -66,7 +64,7 @@ export function LandingAppStage() {
                 />
                 <LandingRailTile
                   label="Inbox"
-                  icon={IconInbox}
+                  icon={InboxIcon}
                   isActive={false}
                   disabled
                 />
