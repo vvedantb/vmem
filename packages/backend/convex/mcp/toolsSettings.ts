@@ -2,13 +2,11 @@ import { z } from "zod";
 import {
   CONFIDENCE_THRESHOLD_MAX,
   CONFIDENCE_THRESHOLD_MIN,
-  DELETE_ALL_MEMORIES_PHRASE,
   MAX_SYNC_INTERVAL_MINUTES,
   MIN_SYNC_INTERVAL_MINUTES,
   SETTINGS_TEXT_MAX_LENGTH,
 } from "@vmem/shared";
 import { internal } from "../_generated/api";
-import { deleteAllMemoriesForClerk } from "../memoryApi";
 import { emptyInputSchema, toolSpec } from "./toolTypes";
 
 // Settings are user-wide, so these tools are on the personal connector only.
@@ -89,12 +87,6 @@ const experimentalFlagSchema = z.object({
   enabled: z.boolean(),
 });
 
-const memoryDeleteAllSchema = z.object({
-  confirm: z
-    .literal(DELETE_ALL_MEMORIES_PHRASE)
-    .describe(`Type exactly "${DELETE_ALL_MEMORIES_PHRASE}" to confirm`),
-});
-
 export const settingsToolSpecs = {
   settings_get: toolSpec({
     name: "settings_get",
@@ -160,16 +152,6 @@ export const settingsToolSpecs = {
         { clerkId: h.clerkUserId, ...params },
       );
       return params;
-    },
-  }),
-  memory_delete_all: toolSpec({
-    name: "memory_delete_all",
-    schema: memoryDeleteAllSchema,
-    description: `Permanently delete ALL of your memories, as Settings > Data controls > Delete all memories does. Cannot be undone. Requires confirm: "${DELETE_ALL_MEMORIES_PHRASE}".`,
-    errorLabel: "Delete all memories failed",
-    scopes: ["personal"],
-    async run(h): Promise<unknown> {
-      return { deleted: await deleteAllMemoriesForClerk(h.ctx, h.clerkUserId) };
     },
   }),
 };

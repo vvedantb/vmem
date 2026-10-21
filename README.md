@@ -214,12 +214,12 @@ Claude Desktop / Claude.ai: Settings → Connectors → add the `/mcp` URL → s
 - `vmem://skills/<name>` — enabled skill playbook (grant-scoped)
 - `ui://vmem/memory-graph` — MCP App HTML for the interactive graph
 
-**Tools** (personal `/mcp` unless noted; team `/mcp/team` shares memory/skill/graph tools but not files/context_prompt)
+**Tools** (personal `/mcp` unless noted; team `/mcp/team` shares memory/skill/graph/files tools but not context_prompt)
 
 - **Core** — `ping`, `whoami`, `list_profiles`, `set_active_profile`, `context_prompt_get` (personal), `context_pack`
 - **Memory** — `memory_search`, `memory_retrieve`, `memory_add`, `memory_add_instruction`, `memory_update`, `memory_delete`, `memory_related`, `memory_graph`
 - **Skills** — `skills_list`, `skills_recommend`, `skills_get`, `skills_create`, `skills_update`, `skills_delete`
-- **Files** (personal) — `files_list`, `files_get`, `files_upload`, `files_delete`
+- **Files** (personal and team drive) — `files_list`, `files_storage`, `files_get`, `files_upload`, `files_delete`, `files_create_folder`, `files_rename`, `files_move`
 
 `memory_add_instruction` needs `AI_GATEWAY_API_KEY`. `memory_graph` needs an MCP Apps–capable host. Rebuild the bundled graph UI with `pnpm --filter @vmem/backend build:mcp-graph-ui` before deploy (already part of `pnpm convex:deploy`).
 

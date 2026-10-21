@@ -18,6 +18,7 @@ import {
   fileDeleteResultSchema,
   fileGetResultSchema,
   fileListSchema,
+  fileStorageSchema,
   fileUploadResultSchema,
   memoryCandidateListSchema,
   memoryIdResultSchema,
@@ -153,6 +154,24 @@ describe("in-process MCP memory tools", () => {
         memoryId: "mem_1",
       }).success,
     ).toBe(true);
+  });
+
+  it("memory_delete_all is not an MCP tool and deletes nothing", async () => {
+    const client = new InProcessMcpClient({ token: MOCK_MCP_TOKEN });
+    for (const title of ["Keep one", "Keep two"]) {
+      seedMemory(client.session.store, { title, content: `${title} body` });
+    }
+    await expect(
+      client.callTool("memory_delete_all", { confirm: "delete all memories" }),
+    ).rejects.toThrow(/Unknown tool: memory_delete_all/);
+    expect(client.session.store.memories).toHaveLength(2);
+    const searched = memoryListResultSchema.parse(
+      parseToolPayload(await client.callTool("memory_search")),
+    );
+    expect(searched.memories.map((memory) => memory.title).sort()).toEqual([
+      "Keep one",
+      "Keep two",
+    ]);
   });
 
   it("add, search, retrieve, related, update, and delete on the happy path", async () => {
@@ -504,10 +523,18 @@ describe("in-process MCP core, skills, and files tools", () => {
     const listed = fileListSchema.parse(
       parseToolPayload(await client.callTool("files_list")),
     );
-    expect(
-      listed.items.some((entry) => entry.path === "harness/note.txt"),
-    ).toBe(true);
-    expect(listed.totalBytes).toBeGreaterThan(0);
+    expect(listed.some((entry) => entry.path === "harness/note.txt")).toBe(
+      true,
+    );
+    const storage = fileStorageSchema.parse(
+      parseToolPayload(await client.callTool("files_storage")),
+    );
+    expect(storage).toEqual({
+      totalBytes: "hello mcp".length,
+      storageLimit: expect.any(Number),
+      fileCount: 1,
+    });
+    expect(storage.storageLimit).toBeGreaterThan(0);
 
     const fetched = fileGetResultSchema.parse(
       parseToolPayload(

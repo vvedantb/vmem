@@ -11,18 +11,19 @@ import {
 const ALICE = "clerk_files_alice";
 const BOB = "clerk_files_bob";
 
-const fileListSchema = z.object({
-  items: z.array(
-    z.object({
-      path: z.string(),
-      kind: z.enum(["file", "folder"]),
-      size: z.number().nullable(),
-      indexStatus: z.string().nullable(),
-      memoryId: z.string().nullable(),
-    }),
-  ),
+const fileListSchema = z.array(
+  z.object({
+    path: z.string(),
+    kind: z.enum(["file", "folder"]),
+    size: z.number().nullable(),
+    indexStatus: z.string().nullable(),
+    memoryId: z.string().nullable(),
+  }),
+);
+const fileStorageSchema = z.object({
   totalBytes: z.number(),
   storageLimit: z.number(),
+  fileCount: z.number(),
 });
 const teamCreatedSchema = z.object({ teamId: z.string() });
 
@@ -30,7 +31,7 @@ async function listPaths(caller: McpCaller, path?: string): Promise<string[]> {
   const listed = fileListSchema.parse(
     await caller.call("files_list", path === undefined ? {} : { path }),
   );
-  return listed.items.map((item) => item.path).sort();
+  return listed.map((item) => item.path).sort();
 }
 
 function upload(caller: McpCaller, path: string, text: string) {
@@ -58,10 +59,15 @@ describe("MCP files parity tools (convex-test backend)", () => {
     await upload(alice, "inbox/a.bin", "aaaa");
     await upload(alice, "inbox/b.bin", "bb");
 
-    const listed = fileListSchema.parse(await alice.call("files_list"));
-    expect(listed.totalBytes).toBe(6);
-    expect(listed.storageLimit).toBeGreaterThan(0);
-    expect(listed.items.find((item) => item.path === "inbox/a.bin")).toEqual(
+    const listed = await alice.call("files_list");
+    expect(Array.isArray(listed)).toBe(true);
+    const storage = fileStorageSchema.parse(await alice.call("files_storage"));
+    expect(storage.totalBytes).toBe(6);
+    expect(storage.fileCount).toBe(2);
+    expect(storage.storageLimit).toBeGreaterThan(0);
+    expect(
+      fileListSchema.parse(listed).find((item) => item.path === "inbox/a.bin"),
+    ).toEqual(
       expect.objectContaining({ indexStatus: "skipped", memoryId: null }),
     );
 
@@ -160,6 +166,9 @@ describe("MCP files parity tools (convex-test backend)", () => {
     await expect(aliceTeam.call("files_list")).rejects.toThrow(
       /No team profiles available/,
     );
+    await expect(aliceTeam.call("files_storage")).rejects.toThrow(
+      /No team profiles available/,
+    );
     const { teamId } = teamCreatedSchema.parse(
       await alicePersonal.call("teams_create", { name: "Crew" }),
     );
@@ -168,9 +177,23 @@ describe("MCP files parity tools (convex-test backend)", () => {
     await upload(alicePersonal, "mine.bin", "mine");
     expect(await listPaths(aliceTeam)).toEqual(["shared", "shared/plan.bin"]);
     expect(await listPaths(alicePersonal)).toEqual(["mine.bin"]);
+    // storage is counted per drive
+    expect(
+      fileStorageSchema.parse(await aliceTeam.call("files_storage")),
+    ).toMatchObject({ totalBytes: 4, fileCount: 1 });
+    expect(
+      fileStorageSchema.parse(await alicePersonal.call("files_storage")),
+    ).toMatchObject({ totalBytes: 4, fileCount: 1 });
+    await upload(alicePersonal, "more.bin", "more!");
+    expect(
+      fileStorageSchema.parse(await aliceTeam.call("files_storage")),
+    ).toMatchObject({ totalBytes: 4, fileCount: 1 });
 
     // bob is not a member yet: no team drive at all
     await expect(bobTeam.call("files_list")).rejects.toThrow(
+      /No team profiles available/,
+    );
+    await expect(bobTeam.call("files_storage")).rejects.toThrow(
       /No team profiles available/,
     );
 
@@ -190,6 +213,6 @@ describe("MCP files parity tools (convex-test backend)", () => {
     expect(
       await aliceTeam.call("files_delete", { path: "shared" }),
     ).toMatchObject({ path: "shared", deletedCount: 2 });
-    expect(await listPaths(alicePersonal)).toEqual(["mine.bin"]);
+    expect(await listPaths(alicePersonal)).toEqual(["mine.bin", "more.bin"]);
   });
 });

@@ -4,12 +4,13 @@ import {
   createFolder,
   deleteFile,
   getFile,
+  getFileStorage,
   listFiles,
   moveNodes,
   renameNode,
   uploadFile,
 } from "./fileOps";
-import { scopedClerk, toolSpec } from "./toolTypes";
+import { emptyInputSchema, scopedClerk, toolSpec } from "./toolTypes";
 
 const DRIVE_NOTE =
   "On the personal connector this is your personal Files; on the team connector it is the active team profile's shared drive.";
@@ -97,10 +98,19 @@ export const filesToolSpecs = {
   files_list: toolSpec({
     name: "files_list",
     schema: filesListSchema,
-    description: `List files and folders in the shared filesystem. Paths are '/'-separated (e.g. 'ai-images/cat.png'). Omit path to list the entire tree; pass a folder path to list its direct children. Returns items (path, kind, size, mimeType, indexStatus, memoryId, updatedAt) plus totalBytes used and storageLimit in bytes. ${DRIVE_NOTE}`,
+    description: `List files and folders in the shared filesystem. Paths are '/'-separated (e.g. 'ai-images/cat.png'). Omit path to list the entire tree; pass a folder path to list its direct children. Returns an array of items (path, kind, size, mimeType, indexStatus, memoryId, updatedAt). Use files_storage for bytes used and the storage limit. ${DRIVE_NOTE}`,
     errorLabel: "Files list failed",
     async run(h, params): Promise<unknown> {
       return listFiles(h.ctx, scopedClerk(h), params.path);
+    },
+  }),
+  files_storage: toolSpec({
+    name: "files_storage",
+    schema: emptyInputSchema,
+    description: `Read storage use for the shared filesystem: totalBytes used, storageLimit in bytes and fileCount. Read-only. ${DRIVE_NOTE}`,
+    errorLabel: "Files storage failed",
+    async run(h): Promise<unknown> {
+      return getFileStorage(h.ctx, scopedClerk(h));
     },
   }),
   files_get: toolSpec({

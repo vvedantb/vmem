@@ -4,7 +4,10 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { memoryToolSpecs } from "../../convex/mcp/toolsMemory";
-import { toolSpecs } from "../../convex/mcp/toolCatalog";
+import {
+  MCP_EXCLUDED_TOOL_NAMES,
+  toolSpecs,
+} from "../../convex/mcp/toolCatalog";
 import {
   catalogNamesForScope,
   CONNECTORS_TOOL_NAMES,
@@ -38,7 +41,12 @@ const ALL_TOOL_GROUPS = [
   CONNECTORS_TOOL_NAMES,
   USAGE_TOOL_NAMES,
 ] as const;
-import { assertServerToolRegistrationCompiles } from "./inProcess";
+import {
+  assertServerToolRegistrationCompiles,
+  createInProcessSession,
+  InProcessMcpClient,
+  MOCK_MCP_TOKEN,
+} from "./inProcess";
 
 describe("MCP tool catalog", () => {
   it("registers every catalogued tool and no codebase or wiki tools", () => {
@@ -84,6 +92,25 @@ describe("MCP tool catalog", () => {
     for (const name of PERSONAL_ONLY_ACCOUNT_TOOL_NAMES) {
       expect(personal).toContain(name);
       expect(team).not.toContain(name);
+    }
+  });
+
+  it("never registers or lists the web-UI-only excluded tools", async () => {
+    expect(MCP_EXCLUDED_TOOL_NAMES).toContain("memory_delete_all");
+    const specNames = Object.values(toolSpecs).map((spec) => spec.name);
+    const catalogued: string[] = ALL_TOOL_GROUPS.flat();
+    for (const scope of ["personal", "team"] as const) {
+      const listed = await new InProcessMcpClient({
+        session: createInProcessSession(scope),
+        token: MOCK_MCP_TOKEN,
+      }).listTools();
+      for (const name of MCP_EXCLUDED_TOOL_NAMES) {
+        expect(Object.keys(toolSpecs)).not.toContain(name);
+        expect(specNames).not.toContain(name);
+        expect(catalogued).not.toContain(name);
+        expect(catalogNamesForScope(scope)).not.toContain(name);
+        expect(listed, `${scope} tools/list`).not.toContain(name);
+      }
     }
   });
 

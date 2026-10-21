@@ -117,7 +117,7 @@ describe("MCP settings parity tools (convex-test backend)", () => {
     ).rejects.toThrow(/not available on team/);
   });
 
-  it("memory_delete_all needs the UI phrase and deletes only the caller's memories", async () => {
+  it("memory_delete_all is web UI only: MCP refuses it, the web action still wipes", async () => {
     const t = createConvexBackend();
     await signUp(t, ALICE, "alice@example.com");
     await signUp(t, BOB, "bob@example.com");
@@ -128,12 +128,16 @@ describe("MCP settings parity tools (convex-test backend)", () => {
     await addMemory(bob, "Bob one");
 
     await expect(
-      alice.call("memory_delete_all", { confirm: "yes" }),
-    ).rejects.toThrow();
-    await expect(alice.call("memory_delete_all")).rejects.toThrow();
+      alice.call("memory_delete_all", { confirm: "delete all memories" }),
+    ).rejects.toThrow(/Unknown tool: memory_delete_all/);
+    expect(await memoryCount(alice)).toBe(2);
+
     expect(
-      await alice.call("memory_delete_all", { confirm: "delete all memories" }),
-    ).toEqual({ deleted: 2 });
+      await asUser(t, ALICE, "alice@example.com").action(
+        api.memoryApi.deleteAllMemories,
+        {},
+      ),
+    ).toBe(2);
     expect(await memoryCount(alice)).toBe(0);
     expect(await memoryCount(bob)).toBe(1);
   });
