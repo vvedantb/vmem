@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
+import { afterEach, vi } from "vitest";
 import { z } from "zod";
 import { register as registerAuditLog } from "convex-audit-log/test";
 import aggregateTest from "@convex-dev/aggregate/test";
@@ -27,12 +28,22 @@ const memoryGraphParamsSchema = z.object(memoryGraphInputSchema);
 
 // Real backend (convex-test) behind the real MCP tool specs. Tool calls run
 // as the given clerk user, exactly as nodeActions passes the verified token's
-// subject. Scheduled work (embeddings, entity extraction) is dropped.
+// subject. Scheduled work (embeddings, entity extraction) is dropped:
+// convex-test starts each scheduled job on setTimeout, so a faked setTimeout
+// keeps the jobs queued and afterEach discards them. With real timers a job
+// can still run after its test ends and fail with "Write outside of
+// transaction".
 const modules = import.meta.glob("../../convex/**/*.ts");
+
+afterEach(() => {
+  vi.clearAllTimers();
+  vi.useRealTimers();
+});
 
 export type ConvexTestBackend = ReturnType<typeof convexTest>;
 
 export function createConvexBackend(): ConvexTestBackend {
+  vi.useFakeTimers({ toFake: ["setTimeout"] });
   const t = convexTest(schema, modules);
   registerAuditLog(t);
   // dream schedule crons and the AI usage aggregates
