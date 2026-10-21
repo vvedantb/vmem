@@ -25,3 +25,9 @@ export const toolSpecs = {
   ...connectorsToolSpecs,
   ...usageToolSpecs,
 };
+
+// tools that stay web UI only and must never be registered on MCP
+export const MCP_EXCLUDED_TOOL_NAMES = [
+  // memory_delete_all: destructive account-wide wipe, web UI only
+  "memory_delete_all",
+] as const;

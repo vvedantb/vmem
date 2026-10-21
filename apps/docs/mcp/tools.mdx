@@ -3,7 +3,7 @@ title: "MCP Tools"
 description: "Complete reference for all vmem MCP tools"
 ---
 
-Tools are registered from `packages/backend/convex/mcp/tools*.ts`. Auth accepts a Clerk `oauth_token` or `session_token` bearer (MCP server `2.2.0`). Memory tools work on `/mcp` and `/mcp/team`. Skills tools also work on both connectors (personal skills on `/mcp`, team-granted skills on `/mcp/team`), except `skills_import` which is personal `/mcp` only. `proposals_list` and `proposals_resolve` work on both connectors. Files tools work on both connectors: personal Files on `/mcp`, the active team profile's drive on `/mcp/team`. The `teams_*`, `profiles_update` and `usage_ai_*` tools also work on both. `context_prompt_get`, `dream_run`, the `notifications_*`, `settings_*`, `connectors_*` tools, `dream_schedule_set`, `memory_delete_all`, `profiles_create`, `profiles_delete` and `usage_api_requests` are personal-only.
+Tools are registered from `packages/backend/convex/mcp/tools*.ts`. Auth accepts a Clerk `oauth_token` or `session_token` bearer (MCP server `2.3.0`). Memory tools work on `/mcp` and `/mcp/team`. Skills tools also work on both connectors (personal skills on `/mcp`, team-granted skills on `/mcp/team`), except `skills_import` which is personal `/mcp` only. `proposals_list` and `proposals_resolve` work on both connectors. Files tools work on both connectors: personal Files on `/mcp`, the active team profile's drive on `/mcp/team`. The `teams_*`, `profiles_update` and `usage_ai_*` tools also work on both. `context_prompt_get`, `dream_run`, the `notifications_*`, `settings_*`, `connectors_*` tools, `dream_schedule_set`, `profiles_create`, `profiles_delete` and `usage_api_requests` are personal-only.
 
 Every tool acts as the signed-in user from the bearer token. No tool takes a user ID. IDs that belong to another user, or to a profile outside the connector, return "not found".
 
@@ -700,11 +700,19 @@ Install is idempotent. It fails if the workspace already has a skill with the sa
 
 ## files_list
 
-List files and folders. On `/mcp` this is your personal Files; on `/mcp/team` it is the active team profile's drive. Returns `{ items, totalBytes, storageLimit }`; each item has `path`, `kind`, `size`, `mimeType`, `indexStatus`, `memoryId` and `updatedAt`.
+List files and folders. On `/mcp` this is your personal Files; on `/mcp/team` it is the active team profile's drive. Returns a plain array of items; each item has `path`, `kind`, `size`, `mimeType`, `indexStatus`, `memoryId` and `updatedAt`. Use `files_storage` for storage use.
 
 <ParamField body="path" type="string">
   Folder path (omit to list the entire tree)
 </ParamField>
+
+---
+
+## files_storage
+
+Read-only storage use for the same drive as `files_list` (personal Files on `/mcp`, the active team profile's drive on `/mcp/team`). No parameters.
+
+**Returns:** `{ totalBytes, storageLimit, fileCount }` (bytes, bytes, files)
 
 ---
 
@@ -891,18 +899,6 @@ Personal connector only.
 
 ---
 
-## memory_delete_all
-
-Personal connector only. Permanently deletes all of your memories, like Settings > Data controls.
-
-<ParamField body="confirm" type="string" required>
-  Exactly `delete all memories`
-</ParamField>
-
-**Returns:** `{ deleted }`
-
----
-
 ## connectors_list / connectors_sync / connectors_disconnect / connectors_delete_data
 
 Personal connector only. `connectors_list` returns each connector with `connectionStatus`, `syncStatus`, `syncProgress`, `itemsSynced`, `lastSyncAt` and `errorMessage`. `connectors_sync { connectorId }` starts a sync. `connectors_disconnect { connectorId }` revokes the tokens; imported memories stay. `connectors_delete_data { connectorId, confirm: true }` deletes the imported memories. Connecting a new connector needs the browser OAuth flow.
@@ -928,3 +924,11 @@ Personal connector only. Recent HTTP API requests made with your API keys: `endp
 <ParamField body="limit" type="integer">
   1–1000 (default 1000)
 </ParamField>
+
+---
+
+## Not on MCP
+
+Some actions stay in the web app only and are never registered as MCP tools (`MCP_EXCLUDED_TOOL_NAMES` in `packages/backend/convex/mcp/toolCatalog.ts`):
+
+- `memory_delete_all` — destructive account-wide wipe. Use Settings > Data controls > Delete all memories.

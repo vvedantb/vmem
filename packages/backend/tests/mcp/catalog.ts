@@ -75,6 +75,7 @@ export const SKILLS_TOOL_NAMES = [
 
 export const FILES_TOOL_NAMES = [
   "files_list",
+  "files_storage",
   "files_get",
   "files_upload",
   "files_delete",
@@ -105,7 +106,6 @@ export const SETTINGS_TOOL_NAMES = [
   "settings_update",
   "dream_schedule_set",
   "settings_set_experimental_flag",
-  "memory_delete_all",
 ] as const;
 
 export const CONNECTORS_TOOL_NAMES = [

@@ -1,7 +1,6 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import type { ActionCtx } from "./_generated/server";
 import {
   authAction,
   authMutation,
@@ -289,21 +288,14 @@ export const deleteMemory = authAction({
     }),
 });
 
-// Settings > Data controls wipe, shared with MCP memory_delete_all
-export async function deleteAllMemoriesForClerk(
-  ctx: ActionCtx,
-  clerkId: string,
-): Promise<number> {
-  return await ctx.runMutation(
-    internal.memoryStore.functions.deleteMemoriesForUserInternal,
-    { userId: clerkId },
-  );
-}
-
+// Settings > Data controls wipe (web UI only, not exposed on MCP)
 export const deleteAllMemories = authAction({
   args: {},
   handler: async (ctx): Promise<number> =>
-    deleteAllMemoriesForClerk(ctx, await requireClerkId(ctx)),
+    await ctx.runMutation(
+      internal.memoryStore.functions.deleteMemoriesForUserInternal,
+      { userId: await requireClerkId(ctx) },
+    ),
 });
 
 export const searchMemories = authAction({

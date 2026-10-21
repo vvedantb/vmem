@@ -35,10 +35,10 @@ export type FileListItem = {
   updatedAt: number;
 };
 
-export type FileListResult = {
-  items: FileListItem[];
+export type FileStorageResult = {
   totalBytes: number;
   storageLimit: number;
+  fileCount: number;
 };
 
 export type FileGetResult = {
@@ -175,8 +175,8 @@ export async function listFiles(
   ctx: ActionCtx,
   scope: McpFileScope,
   path: string | undefined,
-): Promise<FileListResult> {
-  const { nodes, totalBytes, storageLimit } = await listFileTree(ctx, scope);
+): Promise<FileListItem[]> {
+  const nodes = await listFileNodes(ctx, scope);
 
   const folder =
     path !== undefined && normalizePathSegments(path).length > 0
@@ -186,10 +186,18 @@ export async function listFiles(
     folder === undefined
       ? nodes
       : nodes.filter((node) => node.parentId === folder._id);
+  return listed.map((node) => toListItem(nodes, node));
+}
+
+export async function getFileStorage(
+  ctx: ActionCtx,
+  scope: McpFileScope,
+): Promise<FileStorageResult> {
+  const { nodes, totalBytes, storageLimit } = await listFileTree(ctx, scope);
   return {
-    items: listed.map((node) => toListItem(nodes, node)),
     totalBytes,
     storageLimit,
+    fileCount: nodes.filter((node) => node.kind === "file").length,
   };
 }
 

@@ -56,7 +56,7 @@ function sumFileBytes(nodes: Array<Doc<"fileNodes">>): number {
   );
 }
 
-// a scope's nodes plus storage used and the limit (files page + files_list)
+// a scope's nodes plus storage used and the limit (files page + files_storage)
 async function listScopeTree(
   ctx: QueryCtx,
   userId: Id<"users">,
