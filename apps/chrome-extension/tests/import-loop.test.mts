@@ -17,10 +17,15 @@ const {
   acquireHistoryLock,
   releaseHistoryLock,
 } = await import("../src/background/sync-lock.ts");
-const { flattenBookmarks } =
+const { bookmarkToCreateParams, flattenBookmarks } =
   await import("../src/background/import-bookmarks.ts");
-const { isImportableHistoryUrl } =
-  await import("../src/background/import-history.ts");
+const {
+  dedupeHistoryEntries,
+  historyEntryToCreateParams,
+  isImportableHistoryUrl,
+} = await import("../src/background/import-history.ts");
+
+const VHUB_TITLE = "vhub — your own hub for mcp connections and agent secrets";
 
 await test("runLockedImportLoop returns locked when the lock is held", async () => {
   const result = await runLockedImportLoop({
@@ -184,4 +189,107 @@ await test("isImportableHistoryUrl skips browser-internal schemes", () => {
   );
   assert.equal(isImportableHistoryUrl("about:blank"), false);
   assert.equal(isImportableHistoryUrl("edge://settings"), false);
+});
+
+await test("history params send externalId and sourceType, no visit count", () => {
+  const params = historyEntryToCreateParams(
+    {
+      url: "https://www.example.com/a?utm_source=x",
+      title: "(2) Example Page",
+    },
+    "profile-1",
+  );
+  assert.deepEqual(params, {
+    title: "Example Page",
+    content: "Example Page\nexample.com",
+    type: "episodic",
+    source: "browsing-history",
+    sourceType: "browsing-history",
+    externalId: "example.com|example page",
+    tags: ["example.com"],
+    confidence: 0.6,
+    url: "https://www.example.com/a?utm_source=x",
+    profileId: "profile-1",
+  });
+  assert.doesNotMatch(params?.content ?? "", /Visited/);
+});
+
+await test("history params use the canonical url when the title is missing", () => {
+  const params = historyEntryToCreateParams(
+    { url: "https://example.com/a?b=2&a=1#x", title: "" },
+    undefined,
+  );
+  assert.equal(params?.externalId, "url|https://example.com/a?a=1&b=2");
+  assert.equal(params?.title, "https://example.com/a?a=1&b=2");
+  assert.equal(params?.content, "https://example.com/a?a=1&b=2");
+  assert.equal(params?.url, "https://example.com/a?b=2&a=1#x");
+});
+
+await test("revisits with a new url send identical title and content", () => {
+  const first = historyEntryToCreateParams(
+    { url: "https://vhub.projectv.uk/", title: VHUB_TITLE },
+    undefined,
+  );
+  const second = historyEntryToCreateParams(
+    { url: "https://vhub.projectv.uk/connectors?view=mine", title: VHUB_TITLE },
+    undefined,
+  );
+  assert.equal(first?.externalId, second?.externalId);
+  assert.equal(first?.title, second?.title);
+  assert.equal(first?.content, second?.content);
+  assert.equal(second?.url, "https://vhub.projectv.uk/connectors?view=mine");
+});
+
+await test("same-title SPA routes in one batch create one memory", async () => {
+  const entries = dedupeHistoryEntries([
+    { url: "https://vhub.projectv.uk/connectors?view=mine", title: VHUB_TITLE },
+    { url: "https://vhub.projectv.uk/connectors", title: VHUB_TITLE },
+    { url: "https://vhub.projectv.uk/", title: VHUB_TITLE },
+    { url: "chrome://extensions", title: "Extensions" },
+    { url: "https://example.com/", title: "Example" },
+  ]);
+  const created: Array<{ externalId?: string; url?: string }> = [];
+  const result = await runLockedImportLoop({
+    acquireLock: () => true,
+    releaseLock: () => {},
+    silent: true,
+    loadItems: async () => entries,
+    toCreateParams: (entry) => historyEntryToCreateParams(entry, undefined),
+    persistSyncTimestamp: async () => {},
+    createItem: async (params) => {
+      created.push({ externalId: params.externalId, url: params.url });
+    },
+    itemDelayMs: 0,
+  });
+  assert.equal(result.imported, 2);
+  assert.deepEqual(created, [
+    {
+      externalId: `vhub.projectv.uk|${VHUB_TITLE}`,
+      url: "https://vhub.projectv.uk/connectors?view=mine",
+    },
+    { externalId: "example.com|example", url: "https://example.com/" },
+  ]);
+});
+
+await test("bookmark params key on the canonical url", () => {
+  const params = bookmarkToCreateParams(
+    {
+      title: "Spec",
+      url: "https://www.example.com/spec/?utm_campaign=x#intro",
+      folderPath: ["Bar"],
+    },
+    "profile-1",
+  );
+  assert.deepEqual(params, {
+    title: "Spec",
+    content: "Spec\nhttps://example.com/spec",
+    type: "knowledge",
+    source: "bookmarks",
+    sourceType: "bookmarks",
+    externalId: "bookmark|https://example.com/spec",
+    tags: ["Bar"],
+    confidence: 0.8,
+    url: "https://www.example.com/spec/?utm_campaign=x#intro",
+    profileId: "profile-1",
+  });
 });

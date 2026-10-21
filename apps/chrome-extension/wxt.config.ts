@@ -19,7 +19,7 @@ export default defineConfig({
   manifest: {
     name: "vmem",
     description: "Memory layer for your browser",
-    version: "0.1.0",
+    version: "0.2.0",
     content_security_policy: {
       extension_pages: "script-src 'self'; object-src 'self'",
     },

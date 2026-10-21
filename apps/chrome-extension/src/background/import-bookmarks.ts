@@ -1,9 +1,11 @@
+import { canonicalUrl } from "@vmem/shared";
 import { createMemory } from "./api-client";
 import { hasActiveClerkSession } from "./auth";
 import { runLockedImportLoop, type ImportResult } from "./import-loop";
 import { acquireBookmarkLock, releaseBookmarkLock } from "./sync-lock";
 import { getSyncProfileId } from "./sync-profile";
 import { getStorage, setStorage } from "@/lib/storage";
+import type { CreateMemoryParams } from "@/types/api";
 
 export type { ImportResult };
 
@@ -36,6 +38,28 @@ export function flattenBookmarks(
   }
 
   return result;
+}
+
+// one row per canonical url; content skips tracking params so a re-save
+// with the same title sends identical content
+export function bookmarkToCreateParams(
+  bookmark: Pick<FlatBookmark, "title" | "url" | "folderPath">,
+  profileId: string | undefined,
+): CreateMemoryParams {
+  const canonical = canonicalUrl(bookmark.url);
+  const title = bookmark.title.trim() || canonical;
+  return {
+    title,
+    content: `${title}\n${canonical}`,
+    type: "knowledge",
+    source: "bookmarks",
+    sourceType: "bookmarks",
+    externalId: `bookmark|${canonical}`,
+    tags: bookmark.folderPath,
+    confidence: 0.8,
+    url: bookmark.url,
+    profileId,
+  };
 }
 
 async function getBookmarkPath(
@@ -73,16 +97,7 @@ export async function importBookmarks(silent = false): Promise<ImportResult> {
         (b) => b.dateAdded > lastBookmarkSync,
       );
     },
-    toCreateParams: (bookmark) => ({
-      title: bookmark.title || bookmark.url,
-      content: `${bookmark.title}\n${bookmark.url}`,
-      type: "knowledge",
-      source: "bookmarks",
-      tags: bookmark.folderPath,
-      confidence: 0.8,
-      url: bookmark.url,
-      profileId,
-    }),
+    toCreateParams: (bookmark) => bookmarkToCreateParams(bookmark, profileId),
   });
 }
 
@@ -102,16 +117,12 @@ export async function syncSingleBookmark(
     const folderPath = await getBookmarkPath(bookmark);
     const profileId = await getSyncProfileId();
 
-    await createMemory({
-      title: bookmark.title || bookmark.url,
-      content: `${bookmark.title}\n${bookmark.url}`,
-      type: "knowledge",
-      source: "bookmarks",
-      tags: folderPath,
-      confidence: 0.8,
-      url: bookmark.url,
-      profileId,
-    });
+    await createMemory(
+      bookmarkToCreateParams(
+        { title: bookmark.title, url: bookmark.url, folderPath },
+        profileId,
+      ),
+    );
 
     await setStorage({ lastBookmarkSync: Date.now() });
   } catch {

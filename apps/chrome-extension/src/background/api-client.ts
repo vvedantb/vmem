@@ -45,6 +45,8 @@ export async function createMemory(
     tags: params.tags,
     confidence: params.confidence,
     url: params.url,
+    externalId: params.externalId,
+    sourceType: params.sourceType,
     profileId: params.profileId,
   });
 }

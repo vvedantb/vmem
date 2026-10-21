@@ -1,7 +1,9 @@
+import { browseParts } from "@vmem/shared";
 import { runLockedImportLoop, type ImportResult } from "./import-loop";
 import { acquireHistoryLock, releaseHistoryLock } from "./sync-lock";
 import { getSyncProfileId } from "./sync-profile";
 import { getStorage, setStorage } from "@/lib/storage";
+import type { CreateMemoryParams } from "@/types/api";
 
 export type { ImportResult };
 
@@ -14,6 +16,46 @@ const SKIP_HISTORY_URL_PREFIXES = [
 
 export function isImportableHistoryUrl(url: string): boolean {
   return !SKIP_HISTORY_URL_PREFIXES.some((prefix) => url.startsWith(prefix));
+}
+
+type HistoryEntry = Pick<chrome.history.HistoryItem, "url" | "title">;
+
+// one item per browseKey; chrome returns newest first, so the latest url wins
+export function dedupeHistoryEntries(entries: HistoryEntry[]): HistoryEntry[] {
+  const seen = new Set<string>();
+  return entries.filter((entry) => {
+    if (!entry.url || !isImportableHistoryUrl(entry.url)) return false;
+    const key = browseParts({ url: entry.url, title: entry.title }).key;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+// content uses only the key's stable parts, so a revisit sends identical
+// title+content and the backend upsert just bumps visitCount
+export function historyEntryToCreateParams(
+  entry: HistoryEntry,
+  profileId: string | undefined,
+): CreateMemoryParams | null {
+  if (!entry.url) return null;
+  const parts = browseParts({ url: entry.url, title: entry.title });
+  const [title, content] =
+    parts.kind === "title"
+      ? [parts.title, `${parts.title}\n${parts.host}`]
+      : [parts.canonicalUrl, parts.canonicalUrl];
+  return {
+    title,
+    content,
+    type: "episodic",
+    source: "browsing-history",
+    sourceType: "browsing-history",
+    externalId: parts.key,
+    tags: parts.host ? [parts.host] : [],
+    confidence: 0.6,
+    url: entry.url,
+    profileId,
+  };
 }
 
 // import history since last sync, manual-sync can pass a day-lookback
@@ -50,34 +92,9 @@ export async function importHistory(
         startTime,
       });
 
-      const filtered = entries.filter((entry) => {
-        if (!entry.url) return false;
-        return isImportableHistoryUrl(entry.url);
-      });
-
-      const seen = new Set<string>();
-      const deduplicated = filtered.filter((entry) => {
-        if (!entry.url || seen.has(entry.url)) return false;
-        seen.add(entry.url);
-        return true;
-      });
-
       profileId = await getSyncProfileId();
-      return deduplicated;
+      return dedupeHistoryEntries(entries);
     },
-    toCreateParams: (entry) => {
-      if (!entry.url) return null;
-      const hostname = new URL(entry.url).hostname;
-      return {
-        title: entry.title || entry.url,
-        content: `${entry.title || ""}\n${entry.url}\nVisited ${entry.visitCount ?? 1} times`,
-        type: "episodic",
-        source: "browsing-history",
-        tags: [hostname],
-        confidence: 0.6,
-        url: entry.url,
-        profileId,
-      };
-    },
+    toCreateParams: (entry) => historyEntryToCreateParams(entry, profileId),
   });
 }

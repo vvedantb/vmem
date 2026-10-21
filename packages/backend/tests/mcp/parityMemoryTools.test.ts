@@ -1,3 +1,4 @@
+import { setTimeout as sleep } from "node:timers/promises";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { api, internal } from "../../convex/_generated/api";
@@ -419,6 +420,25 @@ describe("MCP memory parity tools (convex-test backend)", () => {
       dreamPortrait: null,
       dreamPortraitUpdatedAt: null,
     });
+  });
+
+  it("harness keeps scheduled jobs queued so none outlive the test", async () => {
+    const t = createConvexBackend();
+    await t.run((ctx) =>
+      ctx.scheduler.runAfter(
+        0,
+        internal.contextPromptActions.regenerateIfPendingInternal,
+        { clerkId: ALICE },
+      ),
+    );
+    // real timers would start the 0 ms job during this unfaked wait
+    await sleep(20);
+    const states = await t.run(async (ctx) =>
+      (await ctx.db.system.query("_scheduled_functions").collect()).map(
+        (job) => job.state.kind,
+      ),
+    );
+    expect(states).toEqual(["pending"]);
   });
 
   it("team scope: links made by one member show in another member's graph", async () => {
