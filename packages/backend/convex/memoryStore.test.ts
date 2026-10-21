@@ -449,7 +449,7 @@ describe("convex memoryStore", () => {
     expect(searched.total).toBe(1);
     expect(searched.memories[0]?.title).toBe("Prefers pnpm");
 
-    const first = await t.mutation(
+    const { memory: first } = await t.mutation(
       internal.memoryStore.functions.upsertMemoryFromSourceInternal,
       {
         userId: USER_A,
@@ -461,7 +461,7 @@ describe("convex memoryStore", () => {
         sourceUrl: "https://drive.google.com/file/d/doc-1",
       },
     );
-    const second = await t.mutation(
+    const { memory: second } = await t.mutation(
       internal.memoryStore.functions.upsertMemoryFromSourceInternal,
       {
         userId: USER_A,
@@ -1135,6 +1135,151 @@ describe("convex memoryStore", () => {
     });
   });
 
+  describe("source upsert by externalId", () => {
+    const BROWSE = {
+      userId: USER_A,
+      profileId: PERSONAL_PROFILE,
+      title: "vhub",
+      content: "vhub hub page",
+      type: "knowledge" as const,
+      source: "browser-extension",
+      tags: [],
+      confidence: 0.5,
+      sourceType: "browsing-history",
+      sourceId: "vhub.projectv.uk|vhub",
+      url: "https://vhub.projectv.uk/",
+      visibleOnly: true,
+    };
+
+    async function memoryDocs(t: ReturnType<typeof convexTest>) {
+      const docs = await t.run(async (ctx) =>
+        ctx.db.query("memories").collect(),
+      );
+      return docs.filter((doc) => doc.sourceId === BROWSE.sourceId);
+    }
+
+    it("bumps visits and keeps updatedAt and hash on identical content", async () => {
+      const t = convexTest(schema, modules);
+      const first = await t.mutation(
+        internal.memoryStore.functions.upsertMemoryFromSourceInternal,
+        BROWSE,
+      );
+      expect(first.created).toBe(true);
+      const [before] = await memoryDocs(t);
+      if (!before) throw new Error("missing row");
+
+      const second = await t.mutation(
+        internal.memoryStore.functions.upsertMemoryFromSourceInternal,
+        { ...BROWSE, url: "https://vhub.projectv.uk/connectors" },
+      );
+      expect(second.created).toBe(false);
+      expect(second.contentChanged).toBe(false);
+      expect(second.memory.id).toBe(first.memory.id);
+      expect(second.memory.updatedAt).toBe(first.memory.updatedAt);
+
+      const docs = await memoryDocs(t);
+      expect(docs).toHaveLength(1);
+      const [after] = docs;
+      expect(after?.visitCount).toBe(2);
+      expect(after?.firstVisitAt).toBe(before.firstVisitAt);
+      expect(after?.lastVisitAt).toBeGreaterThanOrEqual(before.lastVisitAt);
+      expect(after?.updatedAt).toBe(before.updatedAt);
+      expect(after?.contentHash).toBe(before.contentHash);
+      expect(after?.url).toBe("https://vhub.projectv.uk/connectors");
+    });
+
+    it("patches title and content when they change", async () => {
+      const t = convexTest(schema, modules);
+      const first = await t.mutation(
+        internal.memoryStore.functions.upsertMemoryFromSourceInternal,
+        BROWSE,
+      );
+      const [before] = await memoryDocs(t);
+      const second = await t.mutation(
+        internal.memoryStore.functions.upsertMemoryFromSourceInternal,
+        { ...BROWSE, title: "vhub — connectors" },
+      );
+      expect(second.created).toBe(false);
+      expect(second.contentChanged).toBe(true);
+      expect(second.memory.id).toBe(first.memory.id);
+      expect(second.memory.title).toBe("vhub — connectors");
+      const [doc] = await memoryDocs(t);
+      expect(doc?.visitCount).toBe(2);
+      expect(doc?.contentHash).not.toBe(before?.contentHash);
+    });
+
+    it("keeps rows separate per profile", async () => {
+      const t = convexTest(schema, modules);
+      const personal = await t.mutation(
+        internal.memoryStore.functions.upsertMemoryFromSourceInternal,
+        BROWSE,
+      );
+      const other = await t.mutation(
+        internal.memoryStore.functions.upsertMemoryFromSourceInternal,
+        { ...BROWSE, profileId: "profile_work_a" },
+      );
+      expect(other.created).toBe(true);
+      expect(other.memory.id).not.toBe(personal.memory.id);
+      expect(await memoryDocs(t)).toHaveLength(2);
+    });
+
+    it("inserts a new row when the only match is hidden", async () => {
+      const t = convexTest(schema, modules);
+      const first = await t.mutation(
+        internal.memoryStore.functions.upsertMemoryFromSourceInternal,
+        BROWSE,
+      );
+      await t.mutation(internal.memoryStore.functions.updateMemoryInternal, {
+        userId: USER_A,
+        memoryId: first.memory.id,
+        status: "suppressed",
+      });
+      const second = await t.mutation(
+        internal.memoryStore.functions.upsertMemoryFromSourceInternal,
+        BROWSE,
+      );
+      expect(second.created).toBe(true);
+      expect(second.memory.id).not.toBe(first.memory.id);
+
+      // expired by date counts as hidden too
+      await t.run(async (ctx) => {
+        const doc = await ctx.db
+          .query("memories")
+          .withIndex("by_memory_id", (q) => q.eq("memoryId", second.memory.id))
+          .first();
+        if (!doc) throw new Error("missing row");
+        await ctx.db.patch(doc._id, { expiresAt: Date.now() - 1_000 });
+      });
+      const third = await t.mutation(
+        internal.memoryStore.functions.upsertMemoryFromSourceInternal,
+        BROWSE,
+      );
+      expect(third.created).toBe(true);
+      expect(await memoryDocs(t)).toHaveLength(3);
+    });
+
+    it("connector upserts still match a suppressed row", async () => {
+      const t = convexTest(schema, modules);
+      const { visibleOnly: _visibleOnly, ...connector } = BROWSE;
+      const first = await t.mutation(
+        internal.memoryStore.functions.upsertMemoryFromSourceInternal,
+        connector,
+      );
+      await t.mutation(internal.memoryStore.functions.updateMemoryInternal, {
+        userId: USER_A,
+        memoryId: first.memory.id,
+        status: "suppressed",
+      });
+      const second = await t.mutation(
+        internal.memoryStore.functions.upsertMemoryFromSourceInternal,
+        connector,
+      );
+      expect(second.created).toBe(false);
+      expect(second.memory.id).toBe(first.memory.id);
+      expect(second.memory.status).toBe("suppressed");
+    });
+  });
+
   describe("bounded reads", () => {
     it("upserts by source id per user and source type without collisions", async () => {
       const t = convexTest(schema, modules);
@@ -1145,20 +1290,20 @@ describe("convex memoryStore", () => {
         sourceId: "same-id",
         sourceUrl: "https://example.com/x",
       };
-      const drive = await t.mutation(
+      const { memory: drive } = await t.mutation(
         internal.memoryStore.functions.upsertMemoryFromSourceInternal,
         { ...base, userId: USER_A, sourceType: "google_drive" },
       );
-      const notion = await t.mutation(
+      const { memory: notion } = await t.mutation(
         internal.memoryStore.functions.upsertMemoryFromSourceInternal,
         { ...base, userId: USER_A, sourceType: "notion" },
       );
-      const otherUser = await t.mutation(
+      const { memory: otherUser } = await t.mutation(
         internal.memoryStore.functions.upsertMemoryFromSourceInternal,
         { ...base, userId: USER_B, sourceType: "google_drive" },
       );
       expect(new Set([drive.id, notion.id, otherUser.id]).size).toBe(3);
-      const again = await t.mutation(
+      const { memory: again } = await t.mutation(
         internal.memoryStore.functions.upsertMemoryFromSourceInternal,
         { ...base, userId: USER_A, sourceType: "notion", title: "Doc v2" },
       );

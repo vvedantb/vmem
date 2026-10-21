@@ -138,29 +138,42 @@ export async function createMemoryForClerk(
     args.clerkId,
     args.profileId,
   );
-  const created = await ctx.runMutation(
-    internal.memoryStore.functions.createMemoryInternal,
-    {
-      userId: args.clerkId,
-      profileId,
-      title: args.title,
-      content: args.content,
-      type: args.type,
-      source: args.source,
-      tags: args.tags,
-      confidence: args.confidence,
-      expiresAt: args.expiresAt,
-      url: args.url,
-      sourceType: args.sourceType ?? args.source,
-      sourceId: args.externalId,
-      storageId: args.storageId,
-      mimeType: args.mimeType,
-      originalFilename: args.originalFilename,
-      eventStart: args.eventStart,
-      eventEnd: args.eventEnd,
-      temporalKind: args.temporalKind,
-    },
-  );
+  const externalId = args.externalId?.trim();
+  const fields = {
+    userId: args.clerkId,
+    profileId,
+    title: args.title,
+    content: args.content,
+    type: args.type,
+    source: args.source,
+    tags: args.tags,
+    confidence: args.confidence,
+    expiresAt: args.expiresAt,
+    url: args.url,
+    sourceType: args.sourceType ?? args.source,
+    storageId: args.storageId,
+    mimeType: args.mimeType,
+    originalFilename: args.originalFilename,
+    eventStart: args.eventStart,
+    eventEnd: args.eventEnd,
+    temporalKind: args.temporalKind,
+  };
+  // externalId: one row per (user, profile, sourceType, externalId); a
+  // repeat with the same title and content only bumps visits, so it skips
+  // the follow-up jobs below
+  const { memory: created, contentChanged } = externalId
+    ? await ctx.runMutation(
+        internal.memoryStore.functions.upsertMemoryFromSourceInternal,
+        { ...fields, sourceId: externalId, visibleOnly: true },
+      )
+    : {
+        memory: await ctx.runMutation(
+          internal.memoryStore.functions.createMemoryInternal,
+          fields,
+        ),
+        contentChanged: true,
+      };
+  if (!contentChanged) return created;
   await scheduleContextPromptInvalidationByClerkId(ctx, args.clerkId);
   if (args.source !== "dream-merge") {
     await scheduleDreamTriggerCheck(ctx, args.clerkId);
