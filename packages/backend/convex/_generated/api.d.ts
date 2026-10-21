@@ -45,6 +45,7 @@ import type * as http from "../http.js";
 import type * as http_auth_connectorCallback from "../http/auth/connectorCallback.js";
 import type * as http_auth_connectorCallbackHtml from "../http/auth/connectorCallbackHtml.js";
 import type * as http_v1Memories_apiKeyAuth from "../http/v1Memories/apiKeyAuth.js";
+import type * as http_v1Memories_bearerToken from "../http/v1Memories/bearerToken.js";
 import type * as http_v1Memories_delete from "../http/v1Memories/delete.js";
 import type * as http_v1Memories_retrieve from "../http/v1Memories/retrieve.js";
 import type * as http_v1Memories_store from "../http/v1Memories/store.js";
@@ -191,6 +192,7 @@ declare const fullApi: ApiFromModules<{
   "http/auth/connectorCallback": typeof http_auth_connectorCallback;
   "http/auth/connectorCallbackHtml": typeof http_auth_connectorCallbackHtml;
   "http/v1Memories/apiKeyAuth": typeof http_v1Memories_apiKeyAuth;
+  "http/v1Memories/bearerToken": typeof http_v1Memories_bearerToken;
   "http/v1Memories/delete": typeof http_v1Memories_delete;
   "http/v1Memories/retrieve": typeof http_v1Memories_retrieve;
   "http/v1Memories/store": typeof http_v1Memories_store;

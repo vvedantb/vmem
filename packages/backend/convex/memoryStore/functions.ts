@@ -82,42 +82,44 @@ const updateContentFields = {
   expiresAt: v.optional(v.union(v.string(), v.null())),
 };
 
-export const createMemoryInternal = internalMutation({
-  args: {
-    memoryId: v.optional(v.string()),
-    userId: v.string(),
-    profileId: v.optional(v.string()),
-    title: v.string(),
-    content: v.string(),
-    type: memoryTypeValidator,
-    source: v.string(),
-    tags: v.array(v.string()),
-    confidence: v.number(),
-    contentHash: v.optional(v.string()),
-    status: v.optional(memoryStatusValidator),
-    createdAt: v.optional(v.number()),
-    updatedAt: v.optional(v.number()),
-    expiresAt: v.optional(v.string()),
-    url: v.optional(v.string()),
-    sourceType: v.optional(v.string()),
-    sourceId: v.optional(v.string()),
-    sourceUrl: v.optional(v.string()),
-    sourceSyncedAt: v.optional(v.string()),
-    storageId: v.optional(v.string()),
-    mimeType: v.optional(v.string()),
-    originalFilename: v.optional(v.string()),
-    eventStart: v.optional(v.union(v.string(), v.null())),
-    eventEnd: v.optional(v.union(v.string(), v.null())),
-    temporalKind: v.optional(
-      v.union(
-        v.literal("event"),
-        v.literal("state"),
-        v.literal("plan"),
-        v.literal("preference"),
-        v.null(),
-      ),
+const createMemoryArgs = {
+  memoryId: v.optional(v.string()),
+  userId: v.string(),
+  profileId: v.optional(v.string()),
+  title: v.string(),
+  content: v.string(),
+  type: memoryTypeValidator,
+  source: v.string(),
+  tags: v.array(v.string()),
+  confidence: v.number(),
+  contentHash: v.optional(v.string()),
+  status: v.optional(memoryStatusValidator),
+  createdAt: v.optional(v.number()),
+  updatedAt: v.optional(v.number()),
+  expiresAt: v.optional(v.string()),
+  url: v.optional(v.string()),
+  sourceType: v.optional(v.string()),
+  sourceId: v.optional(v.string()),
+  sourceUrl: v.optional(v.string()),
+  sourceSyncedAt: v.optional(v.string()),
+  storageId: v.optional(v.string()),
+  mimeType: v.optional(v.string()),
+  originalFilename: v.optional(v.string()),
+  eventStart: v.optional(v.union(v.string(), v.null())),
+  eventEnd: v.optional(v.union(v.string(), v.null())),
+  temporalKind: v.optional(
+    v.union(
+      v.literal("event"),
+      v.literal("state"),
+      v.literal("plan"),
+      v.literal("preference"),
+      v.null(),
     ),
-  },
+  ),
+};
+
+export const createMemoryInternal = internalMutation({
+  args: createMemoryArgs,
   returns: memoryWithTagsValidator,
   handler: async (ctx, args) => createMemory(ctx, args),
 });
@@ -425,30 +427,32 @@ export const deleteMemoriesBySourceTypesInternal = internalMutation({
     deleteMemoriesBySourceTypes(ctx, args.userId, args.sourceTypes),
 });
 
+// connectors pass only the source fields; the runtime externalId path passes
+// the full create args plus visibleOnly
 export const upsertMemoryFromSourceInternal = internalMutation({
   args: {
-    userId: v.string(),
+    ...createMemoryArgs,
     profileId: v.string(),
-    title: v.string(),
-    content: v.string(),
+    type: v.optional(memoryTypeValidator),
+    source: v.optional(v.string()),
+    tags: v.optional(v.array(v.string())),
+    confidence: v.optional(v.number()),
     sourceType: v.string(),
     sourceId: v.string(),
-    sourceUrl: v.string(),
+    visibleOnly: v.optional(v.boolean()),
   },
-  returns: memoryWithTagsValidator,
+  returns: v.object({
+    memory: memoryWithTagsValidator,
+    created: v.boolean(),
+    contentChanged: v.boolean(),
+  }),
   handler: async (ctx, args) =>
     upsertMemoryFromSource(ctx, {
-      userId: args.userId,
-      profileId: args.profileId,
-      title: args.title,
-      content: args.content,
-      type: "knowledge",
-      source: args.sourceType,
-      tags: [],
-      confidence: 1,
-      sourceType: args.sourceType,
-      sourceId: args.sourceId,
-      sourceUrl: args.sourceUrl,
+      ...args,
+      type: args.type ?? "knowledge",
+      source: args.source ?? args.sourceType,
+      tags: args.tags ?? [],
+      confidence: args.confidence ?? 1,
     }),
 });
 

@@ -33,7 +33,7 @@ describe("upsertMemoryFromSourceInternal for new connectors", () => {
     async ({ sourceType, sourceId, sourceUrl }) => {
       const t = convexTest(schema, modules);
 
-      const first = await t.mutation(
+      const { memory: first } = await t.mutation(
         internal.memoryStore.functions.upsertMemoryFromSourceInternal,
         {
           userId: USER,
@@ -48,7 +48,7 @@ describe("upsertMemoryFromSourceInternal for new connectors", () => {
       expect(first.source).toBe(sourceType);
       expect(first.title).toBe(`${sourceType} item`);
 
-      const second = await t.mutation(
+      const { memory: second } = await t.mutation(
         internal.memoryStore.functions.upsertMemoryFromSourceInternal,
         {
           userId: USER,

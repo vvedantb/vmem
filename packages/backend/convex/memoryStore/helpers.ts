@@ -18,6 +18,7 @@ import {
   type MemoryListFilter,
 } from "../../engine/memory/list";
 import {
+  isVisibleStatus,
   memoryMatchesScope,
   type MemoryReadScope,
 } from "../../engine/memory/scope";
@@ -948,14 +949,34 @@ export async function deleteMemoriesBySourceTypes(
   return doomed.length;
 }
 
-export async function upsertMemoryFromSource(
+export interface SourceUpsertResult {
+  memory: MemoryWithTags;
+  created: boolean;
+  /** False when an existing row kept the same title and content. */
+  contentChanged: boolean;
+}
+
+function isLiveDoc(doc: Doc<"memories">, nowMs: number): boolean {
+  return (
+    isVisibleStatus(doc.status) &&
+    (doc.expiresAt === undefined || doc.expiresAt > nowMs)
+  );
+}
+
+async function findSourceMatch(
   ctx: MutationCtx,
-  params: CreateMemoryStoreParams & { sourceId: string; sourceType: string },
-): Promise<MemoryWithTags> {
-  // indexed lookup: this used to collect() the user's whole memories table for
-  // every synced item, which is O(table) reads per item and made every sync
-  // write conflict with all other writes to the user's memories
-  const existing = await ctx.db
+  params: {
+    userId: string;
+    profileId?: string;
+    sourceType: string;
+    sourceId: string;
+  },
+  visibleOnly: boolean,
+): Promise<Doc<"memories"> | null> {
+  const now = Date.now();
+  // index narrows to one source key; the loop stops at the newest row in the
+  // same profile, so it reads only the few rows that share the key
+  const rows = ctx.db
     .query("memories")
     .withIndex("by_user_source", (q) =>
       q
@@ -963,27 +984,63 @@ export async function upsertMemoryFromSource(
         .eq("sourceType", params.sourceType)
         .eq("sourceId", params.sourceId),
     )
-    .first();
-  if (existing) {
-    const updated = await updateMemory(ctx, params.userId, existing.memoryId, {
+    .order("desc");
+  for await (const doc of rows) {
+    if (doc.profileId !== params.profileId) continue;
+    if (visibleOnly && !isLiveDoc(doc, now)) continue;
+    return doc;
+  }
+  return null;
+}
+
+/**
+ * One row per (user, profile, sourceType, sourceId). A repeat write bumps the
+ * visit fields; title/content edits go through applyMemoryUpdates. Same title and
+ * content leaves updatedAt and contentHash alone so callers can skip embedding
+ * and enrichment. `visibleOnly` makes a suppressed/expired match insert a new
+ * row; connectors leave it off so a user's suppression survives a re-sync.
+ */
+export async function upsertMemoryFromSource(
+  ctx: MutationCtx,
+  params: CreateMemoryStoreParams & {
+    sourceId: string;
+    sourceType: string;
+    visibleOnly?: boolean;
+  },
+): Promise<SourceUpsertResult> {
+  const { visibleOnly, ...createParams } = params;
+  const existing = await findSourceMatch(ctx, params, visibleOnly === true);
+  if (!existing) {
+    const memory = await createMemory(ctx, {
+      ...createParams,
+      sourceSyncedAt: params.sourceSyncedAt ?? new Date().toISOString(),
+    });
+    return { memory, created: true, contentChanged: true };
+  }
+  const contentChanged =
+    existing.title !== params.title || existing.content !== params.content;
+  if (contentChanged) {
+    await applyMemoryUpdates(ctx, existing, {
       title: params.title,
       content: params.content,
       skipEditCount: true,
     });
-    if (updated) {
-      await ctx.db.patch(existing._id, {
-        sourceUrl: params.sourceUrl,
-        sourceSyncedAt: Date.now(),
-      });
-      const refreshed = await findByMemoryId(ctx, existing.memoryId);
-      if (refreshed) return toMemoryWithTags(refreshed);
-      return updated;
-    }
   }
-  return await createMemory(ctx, {
-    ...params,
-    sourceSyncedAt: params.sourceSyncedAt ?? new Date().toISOString(),
+  const now = Date.now();
+  await ctx.db.patch(existing._id, {
+    visitCount: existing.visitCount + 1,
+    lastVisitAt: now,
+    sourceSyncedAt: now,
+    ...(params.url === undefined ? {} : { url: params.url }),
+    ...(params.sourceUrl === undefined ? {} : { sourceUrl: params.sourceUrl }),
   });
+  const refreshed = await ctx.db.get(existing._id);
+  if (!refreshed) throw new Error("Failed to upsert memory");
+  return {
+    memory: toMemoryWithTags(refreshed),
+    created: false,
+    contentChanged,
+  };
 }
 
 export async function collectScopedMemories(
