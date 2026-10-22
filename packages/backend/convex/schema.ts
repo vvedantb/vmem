@@ -30,6 +30,7 @@ import {
   memoryEntityFields,
   memoryEntityMentionFields,
   proposedUpdateFields,
+  rollupFields,
 } from "./validators";
 
 const schema = defineSchema({
@@ -137,6 +138,13 @@ const schema = defineSchema({
   mcpTraceDetails: defineTable(mcpTraceDetailFields)
     .index("by_trace", ["traceId"])
     .index("by_created", ["createdAt"]),
+
+  // nightly day/week/month summaries per user and profile
+  rollups: defineTable(rollupFields)
+    .index("by_profile_period", ["profileId", "period", "startMs"])
+    .index("by_user_period", ["userId", "period", "startMs"])
+    // upsert key; team profiles hold one row per member, so filter on userId
+    .index("by_profile_periodKey", ["profileId", "period", "periodKey"]),
 
   // cached "user profile" prose for the mcp vmem,//context_prompt resource
   contextPromptCache: defineTable(contextPromptCacheFields).index("by_user", [

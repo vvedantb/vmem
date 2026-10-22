@@ -12,6 +12,7 @@ const app = defineApp();
 app.use(actionCache);
 app.use(crons);
 app.use(workpool, { name: "connectorSyncPool" });
+app.use(workpool, { name: "nightlyPool" });
 app.use(auditLog);
 // openRouter usage: cost/tokens by createdAt + distinct models (namespaced u,/t,)
 app.use(aggregate, { name: "openRouterLogCost" });

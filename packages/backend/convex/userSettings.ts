@@ -354,12 +354,25 @@ export const getRollupsEnabledInternal = internalQuery({
   },
 });
 
-// rollups opt-in for one user (CLI only until the timeline UI toggle lands)
-export const setRollupsEnabledByClerkIdInternal = internalMutation({
-  args: { clerkId: v.string(), enabled: v.boolean() },
+// rollups opt-in for one user, by clerk id or user id (CLI only until the
+// timeline UI toggle lands):
+//   npx convex run userSettings:setRollupsEnabledInternal '{"clerkId":"user_…","enabled":true}'
+export const setRollupsEnabledInternal = internalMutation({
+  args: {
+    clerkId: v.optional(v.string()),
+    userId: v.optional(v.id("users")),
+    enabled: v.boolean(),
+  },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const userId = await getUserIdByClerkId(ctx, args.clerkId);
+    const userId =
+      args.userId ??
+      (args.clerkId === undefined
+        ? null
+        : await getUserIdByClerkId(ctx, args.clerkId));
+    if (userId === null || (await ctx.db.get(userId)) === null) {
+      throw new Error("User not found");
+    }
     const existing = await getSettingsDoc(ctx, userId);
     if (existing) {
       await ctx.db.patch(existing._id, { rollupsEnabled: args.enabled });
