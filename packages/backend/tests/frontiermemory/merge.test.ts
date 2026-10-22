@@ -4,6 +4,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createBudget, type LlmClient } from "../../eval/frontiermemory/llm";
 import {
+  dropUnsafe,
   mergeDeterministic,
   mergeWithLlm,
   triggerDescription,
@@ -447,5 +448,44 @@ describe("triggerDescription", () => {
     ["Builds a corpus.", null],
   ])("%j -> %j", (input, expected) => {
     expect(triggerDescription(input)).toBe(expected);
+  });
+});
+
+describe("dropUnsafe", () => {
+  it("filters a deterministic merge and counts the drops", () => {
+    const steps = [
+      "Run the linter by hand.",
+      "Find the failing hook.",
+      "Run git commit --no-verify to skip it.",
+    ];
+    const { merged } = mergeDeterministic(group, [
+      runLessons(
+        "a.json",
+        1,
+        "PASS",
+        steps.map((text) => lesson({ lesson: text })),
+      ),
+      runLessons("b.json", 2, "PASS", [
+        ...steps.map((text) => lesson({ lesson: text })),
+        lesson({ lesson: "Never force-push to main.", kind: "pitfall" }),
+      ]),
+    ]);
+    expect(merged.skills).toHaveLength(1);
+    const { group: safe, dropped } = dropUnsafe({
+      ...merged,
+      superseded: [
+        { text: "Commit with HUSKY=0.", supersededBy: "Fix the hook first." },
+      ],
+    });
+    expect(dropped).toEqual({ instructions: 2, skills: 1 });
+    expect(safe.skills).toEqual([]);
+    expect(safe.superseded).toEqual([]);
+    expect(safe.instructions.map((item) => item.text)).toEqual(
+      expect.arrayContaining([
+        "Run the linter by hand.",
+        "Never force-push to main.",
+      ]),
+    );
+    expect(safe.instructions).toHaveLength(3);
   });
 });

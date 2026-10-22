@@ -186,7 +186,8 @@ function fitIndex(
 
 /**
  * Pure: merged groups to memory files. Every topic and skill gets one
- * MEMORY.md line while it fits, skill names are unique, secrets are redacted,
+ * MEMORY.md line while it fits, skill names are unique, a skill object shared
+ * by several groups is written once and linked from each, secrets are redacted,
  * and no file passes `maxFileBytes`. MEMORY.md lists the most useful groups
  * first (see `byIndexPriority`) and drops the rest with a "N more" note.
  */
@@ -198,6 +199,8 @@ export function buildMemoryFiles(
   const topicLines: string[] = [];
   const skillLines: string[] = [];
   const usedSkillNames = new Set<string>();
+  // A skill shared by several groups (see skillDedupe.ts) is written once.
+  const skillNameOf = new Map<SkillDefinition, string>();
   const usedTopics = new Set<string>();
 
   for (const group of [...groups].sort(byIndexPriority)) {
@@ -205,14 +208,19 @@ export function buildMemoryFiles(
       continue;
     }
     const skills = group.skills.map((skill) => {
+      const shared = skillNameOf.get(skill);
       const base = slugify(skill.name, 48);
       let name = base;
       for (let n = 2; usedSkillNames.has(name); n += 1) name = `${base}-${n}`;
-      usedSkillNames.add(name);
+      if (shared === undefined) {
+        usedSkillNames.add(name);
+        skillNameOf.set(skill, name);
+      }
       return {
-        name,
+        name: shared ?? name,
         description: toUseWhen(skill.description),
         steps: skill.steps,
+        written: shared !== undefined,
       };
     });
     const skillPaths = skills.map((skill) => ({
@@ -231,6 +239,7 @@ export function buildMemoryFiles(
       `- [${topicLabel(group)}](${topicPath}): ${taskNote}${group.runs} runs (${group.pass} PASS, ${group.fail} FAIL)`,
     );
     skills.forEach((skill, i) => {
+      if (skill.written) return;
       const file = skillPaths[i]?.file ?? `skills/${skill.name}/SKILL.md`;
       files.push({ path: file, content: skillContent(skill) });
       skillLines.push(

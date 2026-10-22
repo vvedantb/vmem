@@ -15,11 +15,14 @@ import {
   type Prices,
 } from "./llm.ts";
 import {
+  dropUnsafe,
   MERGE_CALL_ESTIMATE,
   mergeDeterministic,
   mergeWithLlm,
+  type UnsafeDrops,
 } from "./merge.ts";
 import { normalizeRuns, parseTrajectory } from "./normalize.ts";
+import { dedupeSkills } from "./skillDedupe.ts";
 import { parseJsonString } from "../../engine/llm/extractJsonString.ts";
 import {
   taskSpecSchema,
@@ -84,8 +87,13 @@ interface PipelineSummary {
     groupId: string;
     source: MergedGroup["source"];
     instructions: number;
+    /** Skills of this group before the cross-group dedupe. */
     skills: number;
+    droppedUnsafe: UnsafeDrops;
   }[];
+  droppedUnsafe: UnsafeDrops;
+  skillsBeforeDedupe: number;
+  skillsAfterDedupe: number;
 }
 
 function loadTasks(tasksPath: string): TaskSpec[] {
@@ -199,6 +207,9 @@ export async function runPipeline(
     llm: null,
     output: null,
     merged: [],
+    droppedUnsafe: { instructions: 0, skills: 0 },
+    skillsBeforeDedupe: 0,
+    skillsAfterDedupe: 0,
   };
   if (options.dryRun) return summary;
 
@@ -238,14 +249,28 @@ export async function runPipeline(
         });
       },
     );
-    summary.merged = merged.map((group) => ({
+    // Export-only passes: cached lesson and merge results stay valid.
+    const safe = merged.map(dropUnsafe);
+    summary.merged = safe.map(({ group, dropped }) => ({
       groupId: group.groupId,
       source: group.source,
       instructions: group.instructions.length,
       skills: group.skills.length,
+      droppedUnsafe: dropped,
+    }));
+    summary.droppedUnsafe = {
+      instructions: safe.reduce((sum, s) => sum + s.dropped.instructions, 0),
+      skills: safe.reduce((sum, s) => sum + s.dropped.skills, 0),
+    };
+    const deduped = dedupeSkills(safe.map(({ group }) => group.skills));
+    summary.skillsBeforeDedupe = deduped.before;
+    summary.skillsAfterDedupe = deduped.after;
+    const exported = safe.map(({ group }, i) => ({
+      ...group,
+      skills: deduped.lists[i] ?? [],
     }));
 
-    const files = buildMemoryFiles(merged, options.maxFileBytes);
+    const files = buildMemoryFiles(exported, options.maxFileBytes);
     writeMemoryFolder(options.outDir, files);
     summary.output = {
       dir: options.outDir,

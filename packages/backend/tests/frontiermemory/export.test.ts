@@ -57,6 +57,37 @@ describe("toUseWhen", () => {
 });
 
 describe("buildMemoryFiles", () => {
+  it("writes a skill shared by two groups once and links it from both", () => {
+    const shared = {
+      name: "omit-aware-corpus",
+      description: "Use when a task names omit files.",
+      steps: ["Read omit.txt", "Filter paths", "Train"],
+    };
+    const files = buildMemoryFiles([
+      group({ skills: [shared] }),
+      group({
+        groupId: "cluster-2-corpus",
+        taskId: null,
+        label: "Build a corpus",
+        skills: [shared],
+      }),
+    ]);
+    expect(files.map((file) => file.path)).toEqual([
+      "MEMORY.md",
+      "topics/build-word2vec-pipeline.md",
+      "skills/omit-aware-corpus/SKILL.md",
+      "topics/cluster-2-corpus.md",
+    ]);
+    const cluster = files.find(
+      (file) => file.path === "topics/cluster-2-corpus.md",
+    );
+    expect(cluster?.content).toContain(
+      "(../skills/omit-aware-corpus/SKILL.md)",
+    );
+    const index = files[0]?.content ?? "";
+    expect(index.match(/skills\/omit-aware-corpus\//g)).toHaveLength(1);
+  });
+
   it("indexes every topic and skill file in MEMORY.md", () => {
     const files = buildMemoryFiles([
       group({}),

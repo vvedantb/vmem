@@ -130,8 +130,17 @@ describe("runPipeline", () => {
       "topics/build-word2vec-pipeline.md",
       "skills/omit-aware-corpus/SKILL.md",
       "topics/cattrs-compositional-changelog.md",
-      "skills/omit-aware-corpus-2/SKILL.md",
     ]);
+    // Both groups wrote the same skill: one file, linked from both topics.
+    expect(summary).toMatchObject({
+      skillsBeforeDedupe: 2,
+      skillsAfterDedupe: 1,
+    });
+    const cattrsTopic = readFileSync(
+      path.join(tmp, "memory", "topics", "cattrs-compositional-changelog.md"),
+      "utf8",
+    );
+    expect(cattrsTopic).toContain("(../skills/omit-aware-corpus/SKILL.md)");
     const skill = readFileSync(
       path.join(tmp, "memory", "skills", "omit-aware-corpus", "SKILL.md"),
       "utf8",
@@ -179,6 +188,7 @@ describe("runPipeline", () => {
         source: "deterministic",
         instructions: 1,
         skills: 0,
+        droppedUnsafe: { instructions: 0, skills: 0 },
       },
     ]);
     const topic = readFileSync(
@@ -188,6 +198,57 @@ describe("runPipeline", () => {
     expect(topic).toContain(
       "- Write each changelog entry as one line, newest first.",
     );
+  });
+
+  it("drops unsafe merge output before export", async () => {
+    const unsafeClient: LlmClient = (call) => {
+      const prompt = call.messages.at(-1)?.content ?? "";
+      if (!prompt.startsWith("# Topic:")) return fakeClient(call);
+      return Promise.resolve({
+        text: JSON.stringify({
+          instructions: [
+            { text: "Read the omit file before training.", kind: "procedure" },
+            { text: "Never use --no-verify; fix the hook.", kind: "pitfall" },
+            {
+              text: "Use git commit --no-verify when the hook fails.",
+              kind: "procedure",
+            },
+          ],
+          skills: [
+            {
+              name: "bypass-precommit-hooks",
+              description: "Use when a task asks to commit and a hook fails.",
+              steps: [
+                "Run lint and tests by hand.",
+                "Find the failing hook.",
+                "Run git commit --no-verify.",
+              ],
+            },
+          ],
+        }),
+        costUsd: 0.001,
+      });
+    };
+    const summary = await runPipeline(
+      options(["--tasks", "build-word2vec-pipeline"]),
+      unsafeClient,
+    );
+    expect(summary.merged[0]).toMatchObject({
+      instructions: 2,
+      skills: 0,
+      droppedUnsafe: { instructions: 1, skills: 1 },
+    });
+    expect(summary.droppedUnsafe).toEqual({ instructions: 1, skills: 1 });
+    expect(summary.output?.files).toEqual([
+      "MEMORY.md",
+      "topics/build-word2vec-pipeline.md",
+    ]);
+    const topic = readFileSync(
+      path.join(tmp, "memory", "topics", "build-word2vec-pipeline.md"),
+      "utf8",
+    );
+    expect(topic).toContain("- Never use --no-verify; fix the hook.");
+    expect(topic).not.toContain("when the hook fails");
   });
 
   it("records spend when the export fails", async () => {
