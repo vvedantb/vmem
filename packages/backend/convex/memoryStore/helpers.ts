@@ -82,6 +82,8 @@ export interface CreateMemoryStoreParams {
   eventStart?: string | null;
   eventEnd?: string | null;
   temporalKind?: TemporalKind | null;
+  /** Instruction and dream-merge writes run their own dedupe. */
+  skipHashDedupe?: boolean;
 }
 
 export interface ListMemoryStoreParams extends MemoryListFilter {
@@ -457,11 +459,17 @@ export async function createMemory(
   const existing = await findByMemoryId(ctx, memoryId);
   if (existing) return toMemoryWithTags(existing);
 
+  const contentHash =
+    params.contentHash ?? computeContentHash(params.title, params.content);
+  // source-keyed writes dedupe on sourceId (upsertMemoryFromSource) instead
+  if (params.sourceId === undefined && params.skipHashDedupe !== true) {
+    const match = await findHashMatch(ctx, { ...params, contentHash });
+    if (match) return absorbHashDuplicate(ctx, match, params);
+  }
+
   const now = Date.now();
   const createdAt = params.createdAt ?? now;
   const updatedAt = params.updatedAt ?? now;
-  const contentHash =
-    params.contentHash ?? computeContentHash(params.title, params.content);
   const expiresAt =
     params.expiresAt === undefined
       ? undefined
@@ -544,6 +552,68 @@ export async function createMemory(
   await trackMemoryChange(ctx, null, created);
   await applyFallbackEntityExtraction(ctx, created);
   return toMemoryWithTags(created);
+}
+
+const MAX_MEMORY_SOURCES = 10;
+
+/** Newest live row with the same content hash in the same user + profile. */
+async function findHashMatch(
+  ctx: MutationCtx,
+  params: { userId: string; profileId?: string; contentHash: string },
+): Promise<Doc<"memories"> | null> {
+  const now = Date.now();
+  const rows = ctx.db
+    .query("memories")
+    .withIndex("by_user_profile_hash", (q) =>
+      q
+        .eq("userId", params.userId)
+        .eq("profileId", params.profileId)
+        .eq("contentHash", params.contentHash),
+    )
+    .order("desc");
+  for await (const doc of rows) {
+    if (isLiveDoc(doc, now)) return doc;
+  }
+  return null;
+}
+
+/**
+ * A repeat of a live row bumps its visits and merges tags, confidence and
+ * sources. Title, content, updatedAt and contentHash stay, so callers skip
+ * embedding and enrichment. A pinned row only gets the visit bump.
+ */
+async function absorbHashDuplicate(
+  ctx: MutationCtx,
+  doc: Doc<"memories">,
+  params: Pick<CreateMemoryStoreParams, "source" | "tags" | "confidence">,
+): Promise<MemoryWithTags> {
+  const visits = { visitCount: doc.visitCount + 1, lastVisitAt: Date.now() };
+  if (doc.status === "pinned") {
+    await ctx.db.patch(doc._id, visits);
+  } else {
+    const tags = normalizeTags([...doc.tags, ...params.tags]);
+    const sources = doc.sources ?? [doc.source];
+    await ctx.db.patch(doc._id, {
+      ...visits,
+      confidence: Math.max(doc.confidence, params.confidence),
+      ...(sources.includes(params.source) ||
+      sources.length >= MAX_MEMORY_SOURCES
+        ? { sources }
+        : { sources: [...sources, params.source] }),
+      ...(sameTags(doc.tags, tags)
+        ? {}
+        : {
+            tags,
+            searchableText: buildSearchableText(doc.title, doc.content, tags),
+          }),
+    });
+  }
+  const updated = await ctx.db.get(doc._id);
+  if (!updated) throw new Error("Failed to dedupe memory");
+  if (!sameTags(doc.tags, updated.tags)) {
+    await trackMemoryChange(ctx, doc, updated);
+  }
+  return { ...toMemoryWithTags(updated), deduped: true };
 }
 
 export async function getMemory(
@@ -1041,6 +1111,31 @@ export async function upsertMemoryFromSource(
     created: false,
     contentChanged,
   };
+}
+
+/**
+ * Caller-facing create (web, MCP, HTTP, SDK). A non-empty externalId upserts
+ * one live row per (user, profile, sourceType, externalId); without it an
+ * exact-hash repeat comes back `deduped`. `needsFollowUp` is false for a
+ * visit-only repeat and for a dedupe, so callers skip embed and enrichment.
+ */
+export async function createOrUpsertMemory(
+  ctx: MutationCtx,
+  params: Omit<CreateMemoryStoreParams, "sourceId"> & { externalId?: string },
+): Promise<{ memory: MemoryWithTags; needsFollowUp: boolean }> {
+  const { externalId, ...fields } = params;
+  const sourceId = externalId?.trim();
+  if (sourceId) {
+    const { memory, contentChanged } = await upsertMemoryFromSource(ctx, {
+      ...fields,
+      sourceType: fields.sourceType ?? fields.source,
+      sourceId,
+      visibleOnly: true,
+    });
+    return { memory, needsFollowUp: contentChanged };
+  }
+  const memory = await createMemory(ctx, fields);
+  return { memory, needsFollowUp: memory.deduped !== true };
 }
 
 export async function collectScopedMemories(

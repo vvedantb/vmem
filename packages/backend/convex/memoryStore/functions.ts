@@ -12,6 +12,7 @@ import {
 import {
   collectScopedMemories,
   createMemory,
+  createOrUpsertMemory,
   deleteMemoriesByProfile,
   deleteMemoriesBySourceTypes,
   deleteMemoriesForUser,
@@ -116,12 +117,24 @@ const createMemoryArgs = {
       v.null(),
     ),
   ),
+  skipHashDedupe: v.optional(v.boolean()),
 };
 
 export const createMemoryInternal = internalMutation({
   args: createMemoryArgs,
   returns: memoryWithTagsValidator,
   handler: async (ctx, args) => createMemory(ctx, args),
+});
+
+const { sourceId: _sourceId, ...createOrUpsertBaseArgs } = createMemoryArgs;
+
+export const createOrUpsertMemoryInternal = internalMutation({
+  args: { ...createOrUpsertBaseArgs, externalId: v.optional(v.string()) },
+  returns: v.object({
+    memory: memoryWithTagsValidator,
+    needsFollowUp: v.boolean(),
+  }),
+  handler: async (ctx, args) => createOrUpsertMemory(ctx, args),
 });
 
 export const getMemoryInternal = internalQuery({
@@ -427,8 +440,8 @@ export const deleteMemoriesBySourceTypesInternal = internalMutation({
     deleteMemoriesBySourceTypes(ctx, args.userId, args.sourceTypes),
 });
 
-// connectors pass only the source fields; the runtime externalId path passes
-// the full create args plus visibleOnly
+// connectors pass only the source fields; caller creates with an externalId
+// go through createOrUpsertMemory (visibleOnly)
 export const upsertMemoryFromSourceInternal = internalMutation({
   args: {
     ...createMemoryArgs,

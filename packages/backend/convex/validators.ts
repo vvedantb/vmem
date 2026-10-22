@@ -24,6 +24,8 @@ export const memoryFields = {
   content: v.string(),
   type: memoryTypeValidator,
   source: v.string(),
+  // every source that wrote this exact content (hash dedupe), capped
+  sources: v.optional(v.array(v.string())),
   confidence: v.number(),
   status: memoryStatusValidator,
   tags: v.array(v.string()),

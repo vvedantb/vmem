@@ -53,6 +53,8 @@ curl -X POST "https://<deployment>.convex.site/api/v1/memories" \
 
 **Returns:** `MemoryWithTags`
 
+**Dedupe:** with `externalId`, a repeat of the same `sourceType` + `externalId` in the profile updates that row. Without it, an exact repeat (same title and content, ignoring case and spacing) of a visible memory in the profile is not stored again. The existing memory comes back with `"deduped": true`. Its visit count goes up, and its tags and confidence are merged. A pinned memory only gets the visit count. A suppressed or expired match does not count, so a new row is stored.
+
 ### Instruction mode (SDK `save()`)
 
 ```bash

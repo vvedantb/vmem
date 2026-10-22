@@ -97,6 +97,8 @@ export interface CreateMemoryRuntimeArgs {
   eventStart?: string | null;
   eventEnd?: string | null;
   temporalKind?: TemporalKind | null;
+  /** Instruction writes run their own dedupe (exact skip + supersede). */
+  skipHashDedupe?: boolean;
 }
 
 /** Reads are bounded: `total` is a lower bound (see MemoryListStoreResult). */
@@ -138,42 +140,33 @@ export async function createMemoryForClerk(
     args.clerkId,
     args.profileId,
   );
-  const externalId = args.externalId?.trim();
-  const fields = {
-    userId: args.clerkId,
-    profileId,
-    title: args.title,
-    content: args.content,
-    type: args.type,
-    source: args.source,
-    tags: args.tags,
-    confidence: args.confidence,
-    expiresAt: args.expiresAt,
-    url: args.url,
-    sourceType: args.sourceType ?? args.source,
-    storageId: args.storageId,
-    mimeType: args.mimeType,
-    originalFilename: args.originalFilename,
-    eventStart: args.eventStart,
-    eventEnd: args.eventEnd,
-    temporalKind: args.temporalKind,
-  };
-  // externalId: one row per (user, profile, sourceType, externalId); a
-  // repeat with the same title and content only bumps visits, so it skips
-  // the follow-up jobs below
-  const { memory: created, contentChanged } = externalId
-    ? await ctx.runMutation(
-        internal.memoryStore.functions.upsertMemoryFromSourceInternal,
-        { ...fields, sourceId: externalId, visibleOnly: true },
-      )
-    : {
-        memory: await ctx.runMutation(
-          internal.memoryStore.functions.createMemoryInternal,
-          fields,
-        ),
-        contentChanged: true,
-      };
-  if (!contentChanged) return created;
+  // externalId upserts; a visit-only repeat or an exact-hash dedupe skips the
+  // follow-up jobs below
+  const { memory: created, needsFollowUp } = await ctx.runMutation(
+    internal.memoryStore.functions.createOrUpsertMemoryInternal,
+    {
+      userId: args.clerkId,
+      profileId,
+      title: args.title,
+      content: args.content,
+      type: args.type,
+      source: args.source,
+      tags: args.tags,
+      confidence: args.confidence,
+      expiresAt: args.expiresAt,
+      url: args.url,
+      sourceType: args.sourceType ?? args.source,
+      storageId: args.storageId,
+      mimeType: args.mimeType,
+      originalFilename: args.originalFilename,
+      eventStart: args.eventStart,
+      eventEnd: args.eventEnd,
+      temporalKind: args.temporalKind,
+      skipHashDedupe: args.skipHashDedupe,
+      externalId: args.externalId,
+    },
+  );
+  if (!needsFollowUp) return created;
   await scheduleContextPromptInvalidationByClerkId(ctx, args.clerkId);
   if (args.source !== "dream-merge") {
     await scheduleDreamTriggerCheck(ctx, args.clerkId);
@@ -958,6 +951,7 @@ async function writeInstructionMemory(
     tags: [source],
     confidence: 0.9,
     sourceType: source,
+    skipHashDedupe: true,
     temporalKind: args.temporalKind,
     eventStart: args.eventStart,
     eventEnd: args.eventEnd,

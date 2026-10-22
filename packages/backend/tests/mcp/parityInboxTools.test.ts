@@ -40,6 +40,8 @@ async function seedNearDuplicates(
       source: "api",
       tags: ["tooling"],
       confidence: 0.9,
+      // dream fixtures seed exact duplicates on purpose
+      skipHashDedupe: true,
     });
   }
   await t.mutation(internal.dreamMode.runDreamPassInternal, {

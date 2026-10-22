@@ -93,6 +93,7 @@ async function applyApproval(
       source: "instruction",
       tags: ["instruction"],
       confidence: proposal.confidence ?? 0.9,
+      skipHashDedupe: true,
     });
     await supersedeMemories(ctx, {
       scope,
@@ -112,6 +113,7 @@ async function applyApproval(
     source: "dream-merge",
     tags: ["dream-merge"],
     confidence: proposal.confidence ?? 0.8,
+    skipHashDedupe: true,
   });
   await supersedeMemories(ctx, {
     scope,

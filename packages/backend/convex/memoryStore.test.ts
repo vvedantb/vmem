@@ -37,6 +37,8 @@ function createArgs(
     tags: overrides.tags ?? ["Tooling"],
     confidence: 0.9,
     contentHash: "test-hash",
+    // fixtures share one hash on purpose; hash dedupe has its own tests
+    skipHashDedupe: true,
   };
 }
 

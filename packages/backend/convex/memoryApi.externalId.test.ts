@@ -81,7 +81,7 @@ describe("memoryApi.createMemory with externalId", () => {
     expect(listed.memories).toHaveLength(1);
   });
 
-  it("still inserts every write without externalId", async () => {
+  it("falls back to hash dedupe without externalId", async () => {
     const { user, profileId } = await setup();
     const args = {
       title: "note",
@@ -94,6 +94,47 @@ describe("memoryApi.createMemory with externalId", () => {
     };
     const first = await user.action(api.memoryApi.createMemory, args);
     const second = await user.action(api.memoryApi.createMemory, args);
-    expect(second.id).not.toBe(first.id);
+    expect(second.id).toBe(first.id);
+    expect(second.deduped).toBe(true);
+  });
+
+  it("web create mutation upserts on externalId and skips no-op follow-ups", async () => {
+    const { t, user, profileId } = await setup();
+    const args = {
+      title: "vhub",
+      content: "vhub hub page",
+      type: "knowledge" as const,
+      source: "web",
+      tags: [],
+      confidence: 0.5,
+      externalId: " web-key ",
+      profileId,
+    };
+
+    const first = await user.mutation(api.memoryApi.create, args);
+    expect(await followUpCount(t)).toBe(2);
+
+    const repeat = await user.mutation(api.memoryApi.create, {
+      ...args,
+      externalId: "web-key",
+    });
+    expect(repeat.id).toBe(first.id);
+    expect(repeat.updatedAt).toBe(first.updatedAt);
+    expect(await followUpCount(t)).toBe(2);
+
+    const changed = await user.mutation(api.memoryApi.create, {
+      ...args,
+      content: "vhub hub page, edited",
+    });
+    expect(changed.id).toBe(first.id);
+    expect(changed.content).toBe("vhub hub page, edited");
+    expect(await followUpCount(t)).toBe(4);
+
+    const listed = await user.action(api.memoryApi.listMemories, {
+      profileId,
+      limit: 10,
+      offset: 0,
+    });
+    expect(listed.memories).toHaveLength(1);
   });
 });

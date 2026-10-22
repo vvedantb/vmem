@@ -20,6 +20,7 @@ async function seedNearDup(t: ReturnType<typeof convexTest>) {
     source: "api",
     tags: ["tooling"],
     confidence: 0.9,
+    skipHashDedupe: true,
   });
   await t.mutation(internal.memoryStore.functions.createMemoryInternal, {
     memoryId: "dup_b",
@@ -31,6 +32,7 @@ async function seedNearDup(t: ReturnType<typeof convexTest>) {
     source: "api",
     tags: ["tooling"],
     confidence: 0.9,
+    skipHashDedupe: true,
   });
 }
 

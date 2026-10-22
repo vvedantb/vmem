@@ -208,11 +208,13 @@ Store a new memory.
 
 **Returns:** Created memory object.
 
+An exact repeat (same title and content, ignoring case and spacing) of a visible memory in the same profile is not stored again. The tool returns the existing memory with `deduped: true`, bumps its visit count, and merges its tags and confidence. A pinned memory only gets the visit count. A suppressed or expired match does not count.
+
 ---
 
 ## memory_add_batch
 
-Store up to 50 memories in one call, for example a ChatGPT or Claude export. Items are stored in order. A failed item does not undo the others.
+Store up to 50 memories in one call, for example a ChatGPT or Claude export. Items are stored in order. A failed item does not undo the others. Each item is deduped like `memory_add`, also against earlier items in the same batch.
 
 <ParamField body="items" type="object[]" required>
   1–50 items, each with the `memory_add` fields (`title`, `content`, `type`,
@@ -222,7 +224,7 @@ Store up to 50 memories in one call, for example a ChatGPT or Claude export. Ite
   Profile to add to (defaults to active profile)
 </ParamField>
 
-**Returns:** `{ profileId, created: [{ index, id, title }], failed: [{ index, error }] }`
+**Returns:** `{ profileId, created: [{ index, id, title, deduped? }], failed: [{ index, error }] }`
 
 ---
 
