@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { internal } from "../_generated/api";
-import { runManualDream } from "../dreamMode";
+import { runManualDream } from "../dreaming";
 import { resolveProposalWithAudit } from "../proposedUpdateApi";
 import { withMcpMemoryScope } from "./memoryScope";
 import {
@@ -108,14 +108,11 @@ export const inboxToolSpecs = {
     name: "dream_run",
     schema: emptyInputSchema,
     description:
-      "Run Dream Mode now over every personal profile, like the web Run Dream Mode button: clusters near-duplicate memories into merge proposals (see proposals_list), or applies them when auto-accept is on. Rate limited like the web button; returns reason rate-limited when it ran too recently.",
+      "Run Dream Mode now, like the web Start Dreaming button: the nightly pass over your personal profiles and the team profiles you own. Merges exact and same-page duplicates, expires rows past expiresAt and archives stale browsing history (each change undoable for 30 days). Returns reason, runIds (one dreaming log row per profile) and counts. Rate limited to once an hour; returns reason rate-limited when it ran too recently.",
     errorLabel: "Dream run failed",
     scopes: ["personal"],
     async run(h): Promise<unknown> {
-      return runManualDream(h.ctx, {
-        clerkId: h.clerkUserId,
-        userId: await requireUserId(h),
-      });
+      return runManualDream(h.ctx, { userId: await requireUserId(h) });
     },
   }),
   notifications_list: toolSpec({

@@ -69,7 +69,6 @@ import {
 } from "../engine/memory/supersede";
 import { enqueueMemoryAccess } from "./memoryUsefulness";
 import { isLowPriorSource } from "../engine/memory/usefulness";
-import { scheduleDreamTriggerCheck } from "./lib/dreamTriggerInvalidate";
 import type { MemoryReadScope } from "../engine/memory/scope";
 import { collectScopedMemoriesPaged } from "./memoryStore/walk";
 
@@ -169,9 +168,6 @@ export async function createMemoryForClerk(
   );
   if (!needsFollowUp) return created;
   await scheduleContextPromptInvalidationByClerkId(ctx, args.clerkId);
-  if (args.source !== "dream-merge") {
-    await scheduleDreamTriggerCheck(ctx, args.clerkId);
-  }
   await scheduleMemoryEmbedding(ctx, {
     clerkId: args.clerkId,
     memoryId: created.id,

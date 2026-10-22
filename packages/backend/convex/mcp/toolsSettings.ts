@@ -36,7 +36,10 @@ const settingsUpdateSchema = z.object({
     ),
   memoryAutoTag: settingsFlagSchema.describe("Auto-tag new memories"),
   dreamModeAutomatic: settingsFlagSchema.describe(
-    "Automatic dreaming as memories change",
+    "Nightly dreaming (02:30 UTC): merge duplicates, expire, archive",
+  ),
+  dreamModeDecay: settingsFlagSchema.describe(
+    "Nightly dreaming archives stale browsing history, bookmarks and desktop rows",
   ),
   dreamModeAutoAccept: settingsFlagSchema.describe(
     "Apply Dream Mode merges without an inbox proposal",
@@ -73,15 +76,6 @@ const settingsUpdateSchema = z.object({
   ),
 });
 
-const dreamScheduleSetSchema = z.object({
-  enabled: z.boolean().describe("true turns the daily Dream Mode run on"),
-  time: z
-    .string()
-    .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
-    .optional()
-    .describe("Daily run time in UTC, HH:MM (required when enabled)"),
-});
-
 const experimentalFlagSchema = z.object({
   key: z.enum(["disablePageMotion"]).describe("Experimental flag key"),
   enabled: z.boolean(),
@@ -92,7 +86,7 @@ export const settingsToolSpecs = {
     name: "settings_get",
     schema: emptyInputSchema,
     description:
-      "Read all your vmem settings (the web Preferences and Extension pages): aboutMe, preferences, memory extraction, Dream Mode (automatic, auto-accept, daily schedule, lastDreamRunAt), notifications, theme, extension sync, default profiles per source and experimentalFlags.",
+      "Read all your vmem settings (the web Preferences and Extension pages): aboutMe, preferences, memory extraction, Dream Mode (nightly, decay, auto-accept, lastDreamRunAt), notifications, theme, extension sync, default profiles per source and experimentalFlags.",
     errorLabel: "Get settings failed",
     scopes: ["personal"],
     async run(h): Promise<unknown> {
@@ -105,7 +99,7 @@ export const settingsToolSpecs = {
     name: "settings_update",
     schema: settingsUpdateSchema,
     description:
-      "Change one or more settings; omitted fields stay as they are. Use dream_schedule_set for the daily Dream Mode time and set_active_profile for default profiles.",
+      "Change one or more settings; omitted fields stay as they are. Use set_active_profile for default profiles.",
     errorLabel: "Update settings failed",
     scopes: ["personal"],
     async run(h, params): Promise<unknown> {
@@ -119,24 +113,6 @@ export const settingsToolSpecs = {
       return h.ctx.runQuery(internal.userSettings.getByClerkIdInternal, {
         clerkId: h.clerkUserId,
       });
-    },
-  }),
-  dream_schedule_set: toolSpec({
-    name: "dream_schedule_set",
-    schema: dreamScheduleSetSchema,
-    description:
-      "Turn the daily Dream Mode run on at a UTC time (HH:MM), or off, as on the web Preferences page.",
-    errorLabel: "Set dream schedule failed",
-    scopes: ["personal"],
-    async run(h, params): Promise<unknown> {
-      await h.ctx.runMutation(
-        internal.dreamSchedule.setDreamScheduleByClerkIdInternal,
-        { clerkId: h.clerkUserId, ...params },
-      );
-      return {
-        enabled: params.enabled,
-        time: params.enabled ? (params.time ?? null) : null,
-      };
     },
   }),
   settings_set_experimental_flag: toolSpec({

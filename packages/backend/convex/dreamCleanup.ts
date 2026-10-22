@@ -7,6 +7,7 @@ import {
   aiEligibleRows,
   buildCandidateGroups,
   buildDeterministicGroups,
+  deterministicReason,
   deterministicStats,
   entityEdges,
   NEIGHBOUR_MIN_SCORE,
@@ -14,11 +15,12 @@ import {
   planTitle,
   PLAN_LOSER_TITLES,
   SAMPLE_DETERMINISTIC_GROUPS,
+  toPlanRow,
   type CandidateEdge,
   type DeterministicGroup,
-  type DeterministicRule,
   type PlanRow,
 } from "../engine/memory/dream/plan";
+import { emptyDreamCounts } from "../engine/memory/dream/nightly";
 import { SYSTEMONE_DEFAULT_MODEL } from "../engine/llm/systemOneClient";
 import { isVisibleStatus } from "../engine/memory/scope";
 import { internal } from "./_generated/api";
@@ -125,19 +127,6 @@ const runRowValidator = v.object({
   ...dreamRunFields,
 });
 
-function emptyCounts(): Doc<"dreamRuns">["counts"] {
-  return {
-    exactMerged: 0,
-    keyMerged: 0,
-    nearDupMerged: 0,
-    superseded: 0,
-    proposals: 0,
-    expired: 0,
-    archived: 0,
-    aiFlagged: 0,
-  };
-}
-
 function emptyCleanup(): CleanupCounts {
   return {
     scannedRows: 0,
@@ -159,13 +148,6 @@ function startOfUtcDay(now: number): number {
   return Math.floor(now / DAY_MS) * DAY_MS;
 }
 
-function ruleReason(rules: readonly DeterministicRule[]): string {
-  if (rules.includes("exact") && rules.includes("key")) {
-    return "Same content and same page";
-  }
-  return rules.includes("exact") ? "Same content" : "Same page";
-}
-
 function toPlanGroup(group: DeterministicGroup<MemoryId>): PlanGroupInput {
   return {
     tier: "deterministic",
@@ -177,7 +159,7 @@ function toPlanGroup(group: DeterministicGroup<MemoryId>): PlanGroupInput {
     ...(group.sourceKey === undefined ? {} : { sourceKey: group.sourceKey }),
     keeperTitle: group.keeperTitle,
     loserTitles: group.loserTitles,
-    reason: ruleReason(group.rules),
+    reason: deterministicReason(group.rules),
   };
 }
 
@@ -192,7 +174,7 @@ function deterministicSample(group: DeterministicGroup<MemoryId>): SampleItem {
     loserTitles: group.loserTitles,
     count: group.loserIds.length + 1,
     memoryIds: [group.keeperId, ...group.loserIds].slice(0, SAMPLE_MAX_IDS),
-    reason: ruleReason(group.rules),
+    reason: deterministicReason(group.rules),
   };
 }
 
@@ -212,7 +194,7 @@ async function insertRun(
     dryRun: args.dryRun,
     status: "running",
     startedAt: Date.now(),
-    counts: emptyCounts(),
+    counts: emptyDreamCounts(),
     aiCalls: 0,
     costUsd: 0,
     cleanup: emptyCleanup(),
@@ -270,20 +252,7 @@ export const pagePlanRowsInternal = internalQuery({
     return {
       rows: page.page
         .filter((doc) => isVisibleStatus(doc.status))
-        .map((doc) => ({
-          _id: doc._id,
-          memoryId: doc.memoryId,
-          title: doc.title,
-          contentLength: doc.content.length,
-          contentHash: doc.contentHash,
-          ...(doc.url === undefined ? {} : { url: doc.url }),
-          source: doc.source,
-          ...(doc.sourceType === undefined
-            ? {}
-            : { sourceType: doc.sourceType }),
-          status: doc.status,
-          createdAt: doc.createdAt,
-        })),
+        .map(toPlanRow),
       isDone: page.isDone,
       continueCursor: page.continueCursor,
       splitCursor: page.splitCursor,
@@ -393,19 +362,6 @@ export const recordScanInternal = internalMutation({
       cleanup: args.cleanup,
       sample: args.sample,
       ...(args.error === undefined ? {} : { error: args.error }),
-    });
-    return null;
-  },
-});
-
-export const failRunInternal = internalMutation({
-  args: { runId: v.id("dreamRuns"), error: v.string() },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    await ctx.db.patch(args.runId, {
-      status: "failed",
-      error: args.error,
-      finishedAt: Date.now(),
     });
     return null;
   },
@@ -556,7 +512,7 @@ export const planInternal = internalAction({
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : "plan failed";
-      await ctx.runMutation(internal.dreamCleanup.failRunInternal, {
+      await ctx.runMutation(internal.dream.failRunInternal, {
         runId,
         error: message,
       });

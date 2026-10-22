@@ -254,21 +254,13 @@ export const profileFields = {
   updatedAt: v.number(),
   dreamModeAutoAccept: v.optional(v.boolean()),
   lastDreamRunAt: v.optional(v.number()),
+  // deprecated: the per-profile dream schedule is gone (nightly run). Kept
+  // until dreamMigrations.clearDreamScheduleFields has cleared prod rows.
   dreamModeScheduleEnabled: v.optional(v.boolean()),
   dreamModeScheduleTime: v.optional(v.string()),
   dreamPortrait: v.optional(v.string()),
   dreamPortraitUpdatedAt: v.optional(v.number()),
   dreamPortraitSources: v.optional(v.array(v.string())),
-};
-
-export const dreamTriggerStateFields = {
-  userId: v.id("users"),
-  newMemoryCount: v.number(),
-  lastWriteAt: v.number(),
-  checkPending: v.boolean(),
-  lastAutoRunAt: v.optional(v.number()),
-  runsToday: v.number(),
-  dayKey: v.string(),
 };
 
 export const notificationTypeValidator = zodToConvex(
@@ -384,9 +376,13 @@ export const userSettingsFields = {
   preferences: v.optional(v.string()),
   defaultProfiles: v.optional(v.object(defaultProfilesFields)),
   dreamModeAutoAccept: v.optional(v.boolean()),
+  // deprecated: see profileFields
   dreamModeScheduleEnabled: v.optional(v.boolean()),
   dreamModeScheduleTime: v.optional(v.string()),
+  // nightly dreaming on (default true)
   dreamModeAutomatic: v.optional(v.boolean()),
+  // nightly archive of stale browsing history, bookmarks, desktop (default true)
+  dreamModeDecay: v.optional(v.boolean()),
   lastDreamRunAt: v.optional(v.number()),
   experimentalFlags: v.optional(experimentalFlagsValidator),
   // nightly rollups opt-in (Settings › Preferences)
@@ -651,6 +647,10 @@ export const dreamRunFields = {
   planRunId: v.optional(v.id("dreamRuns")),
   // one-off cleanup (dreamCleanup) plan and apply counts
   cleanup: v.optional(v.object(dreamCleanupCountsFields)),
+  // nightly / manual runs: the next run's change window starts here
+  // (updatedAt), and its decay scan here (lastVisitAt)
+  windowThrough: v.optional(v.number()),
+  decayThrough: v.optional(v.number()),
 };
 
 // dry run of the one-off cleanup: one row per planned group. Deterministic

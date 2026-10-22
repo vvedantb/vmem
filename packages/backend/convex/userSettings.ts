@@ -54,9 +54,8 @@ const defaults: {
   preferences: string;
   defaultProfiles: DefaultProfilesValue;
   dreamModeAutoAccept: boolean;
-  dreamModeScheduleEnabled: boolean;
-  dreamModeScheduleTime: string | null;
   dreamModeAutomatic: boolean;
+  dreamModeDecay: boolean;
   lastDreamRunAt: number | null;
   rollupsEnabled: boolean;
 } = {
@@ -76,10 +75,9 @@ const defaults: {
   preferences: "",
   defaultProfiles: null,
   dreamModeAutoAccept: false,
-  dreamModeScheduleEnabled: false,
-  dreamModeScheduleTime: null,
-  // dynamic dreaming is on by default, soft-fails without an api key
+  // nightly dreaming and its decay step are on by default
   dreamModeAutomatic: true,
+  dreamModeDecay: true,
   lastDreamRunAt: null,
   rollupsEnabled: false,
 };
@@ -124,11 +122,8 @@ function resolveSettings(userId: Id<"users">, doc: Doc<"userSettings"> | null) {
     defaultProfiles: doc?.defaultProfiles ?? defaults.defaultProfiles,
     dreamModeAutoAccept:
       doc?.dreamModeAutoAccept ?? defaults.dreamModeAutoAccept,
-    dreamModeScheduleEnabled:
-      doc?.dreamModeScheduleEnabled ?? defaults.dreamModeScheduleEnabled,
-    dreamModeScheduleTime:
-      doc?.dreamModeScheduleTime ?? defaults.dreamModeScheduleTime,
     dreamModeAutomatic: doc?.dreamModeAutomatic ?? defaults.dreamModeAutomatic,
+    dreamModeDecay: doc?.dreamModeDecay ?? defaults.dreamModeDecay,
     lastDreamRunAt: doc?.lastDreamRunAt ?? defaults.lastDreamRunAt,
     rollupsEnabled: doc?.rollupsEnabled ?? defaults.rollupsEnabled,
   };
@@ -330,20 +325,18 @@ export const setLastDreamRunAtInternal = internalMutation({
   },
 });
 
-export const getDreamConfigInternal = internalQuery({
-  args: { userId: v.id("users") },
-  returns: v.object({
-    dreamModeAutoAccept: v.boolean(),
-    lastDreamRunAt: v.union(v.number(), v.null()),
-  }),
-  handler: async (ctx, args) => {
-    const doc = await getSettingsDoc(ctx, args.userId);
-    return {
-      dreamModeAutoAccept: doc?.dreamModeAutoAccept ?? false,
-      lastDreamRunAt: doc?.lastDreamRunAt ?? null,
-    };
-  },
-});
+// the settings nightly and manual dreaming read
+export function dreamSettingsOf(doc: Doc<"userSettings"> | null): {
+  automatic: boolean;
+  decay: boolean;
+  lastDreamRunAt: number | null;
+} {
+  return {
+    automatic: doc?.dreamModeAutomatic ?? defaults.dreamModeAutomatic,
+    decay: doc?.dreamModeDecay ?? defaults.dreamModeDecay,
+    lastDreamRunAt: doc?.lastDreamRunAt ?? defaults.lastDreamRunAt,
+  };
+}
 
 export const getRollupsEnabledInternal = internalQuery({
   args: { userId: v.id("users") },

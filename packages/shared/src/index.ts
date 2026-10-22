@@ -1,6 +1,5 @@
 export { STALE_SYNCING_MS } from "./sync";
 export {
-  DEFAULT_LOCAL_TIME,
   formatCompactNumber,
   formatCompactRelativeTime,
   formatDate,
@@ -10,9 +9,6 @@ export {
   formatRelativeTime,
   formatSameDayOrDateTime,
   formatTimeUntil,
-  localTimeToUtc,
-  parseHHMM,
-  utcTimeToLocal,
 } from "./time";
 export {
   buildSkillsIndexAddition,

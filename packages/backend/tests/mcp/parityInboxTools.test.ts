@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { api, internal } from "../../convex/_generated/api";
 import { inboxToolSpecs } from "../../convex/mcp/toolsInbox";
+import { insertProposedUpdate } from "../../convex/proposedUpdateStore";
 import {
   asUser,
   createConvexBackend,
@@ -22,7 +23,11 @@ const notificationListSchema = z.object({
     z.object({ id: z.string(), title: z.string(), read: z.boolean() }),
   ),
 });
-const dreamResultSchema = z.object({ reason: z.string() });
+const dreamResultSchema = z.object({
+  reason: z.string(),
+  runIds: z.array(z.string()),
+  counts: z.object({ exactMerged: z.number() }),
+});
 
 async function seedNearDuplicates(
   t: ConvexTestBackend,
@@ -44,11 +49,24 @@ async function seedNearDuplicates(
       skipHashDedupe: true,
     });
   }
-  await t.mutation(internal.dreamMode.runDreamPassInternal, {
-    clerkId,
-    profileId,
-    kind: "personal",
-    autoAccept: false,
+  const ids = ["dup_a", "dup_b"].map((id) => `${clerkId}_${id}`);
+  await t.run(async (ctx) => {
+    await insertProposedUpdate(ctx, {
+      userId: clerkId,
+      profileId,
+      memoryId: `${clerkId}_dup_a`,
+      proposedTitle: "Use pnpm for vmem",
+      proposedContent: "Use pnpm for vmem",
+      reason: "Near-duplicate records of the same information",
+      kind: "merge",
+      sourceMemoryIds: ids,
+      source: "dream-mode",
+      sourceMemorySnapshots: ids.map((id) => ({
+        id,
+        title: "Use pnpm for vmem",
+        content: "Use pnpm for vmem",
+      })),
+    });
   });
 }
 
@@ -150,15 +168,30 @@ describe("MCP inbox parity tools (convex-test backend)", () => {
     ).toEqual({ status: "rejected" });
   });
 
-  it("dream_run uses the rate-limited manual path", async () => {
+  it("dream_run runs the nightly pass, returns the run id and is rate limited", async () => {
     const t = createConvexBackend();
-    await signUp(t, ALICE, "alice@example.com");
+    const alice = await signUp(t, ALICE, "alice@example.com");
+    await seedNearDuplicates(t, ALICE, alice.profileId);
     const aliceMcp = mcpCaller(t, ALICE);
 
     const first = dreamResultSchema.parse(await aliceMcp.call("dream_run"));
-    expect(first.reason).not.toBe("rate-limited");
+    expect(first.reason).toBe("ok");
+    expect(first.runIds).toHaveLength(1);
+    expect(first.counts.exactMerged).toBe(1);
+    const runs = await t.run(async (ctx) =>
+      ctx.db.query("dreamRuns").collect(),
+    );
+    expect(runs).toEqual([
+      expect.objectContaining({
+        _id: first.runIds[0],
+        userId: alice.userId,
+        trigger: "manual",
+        status: "ok",
+      }),
+    ]);
     const second = dreamResultSchema.parse(await aliceMcp.call("dream_run"));
     expect(second.reason).toBe("rate-limited");
+    expect(second.runIds).toEqual([]);
     await expect(mcpCaller(t, ALICE, "team").call("dream_run")).rejects.toThrow(
       /not available on team/,
     );

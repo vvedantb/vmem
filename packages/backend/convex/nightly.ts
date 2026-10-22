@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { internalAction, internalMutation } from "./_generated/server";
+import { runDreamForUser } from "./dreaming";
 import { nightlyPool } from "./workpools";
 import { runRollupDay, runRollupPeriod } from "./rollupActions";
 import { periodsClosingAfter, yesterdayDayKey } from "@vmem/shared";
@@ -43,21 +44,16 @@ export const kick = internalMutation({
   },
 });
 
-// DREAMING PR: fill in. Placeholder for the nightly dream step (item 4 §3c).
-// It runs before the rollup so the day summary reads cleaned data, and gets
-// its own opt-in. Leave dreamTrigger / dreamSchedule alone until then.
-async function runDreamStep(): Promise<void> {}
-
-// steps in order: dream, then the day rollup if the user opted in, then the
-// week (day was a Sunday) and month (day was the last) built from stored
-// rows. A failed dream step is logged and does not block the rollup.
+// steps in order: dream (dreaming.ts, own opt-in) so the day summary reads
+// cleaned data, then the day rollup if the user opted in, then the week (day
+// was a Sunday) and month (day was the last) built from stored rows. A failed dream step is logged and does not block the rollup.
 export const runUser = internalAction({
   args: { userId: v.id("users"), dayKey: v.string() },
   returns: v.null(),
   handler: async (ctx, args) => {
     if (nightlyDisabled()) return null;
     try {
-      await runDreamStep();
+      await runDreamForUser(ctx, { userId: args.userId, trigger: "nightly" });
     } catch (err) {
       console.error("[nightly][dream]", args.userId, err);
     }
