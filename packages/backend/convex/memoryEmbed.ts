@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { internalAction } from "./_generated/server";
+import { recordDreamCandidates } from "./dreamCandidates";
 import { bestEffortEmbedOne } from "./lib/openRouter/bestEffortEmbed";
 
 export const embedMemoryInternal = internalAction({
@@ -21,9 +22,17 @@ export const embedMemoryInternal = internalAction({
       text: args.text,
     });
     if (!embedding) return false;
-    return await ctx.runMutation(
+    const stored = await ctx.runMutation(
       internal.memoryStore.functions.patchMemoryEmbeddingInternal,
       { memoryId: args.memoryId, embedding },
     );
+    if (!stored) return false;
+    // best effort: a failed candidate lookup never fails the write
+    try {
+      await recordDreamCandidates(ctx, { memoryId: args.memoryId, embedding });
+    } catch (error) {
+      console.warn("[memoryEmbed] dream candidates failed", error);
+    }
+    return true;
   },
 });

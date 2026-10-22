@@ -33,6 +33,7 @@ import type * as contextPromptCache from "../contextPromptCache.js";
 import type * as crons from "../crons.js";
 import type * as dashboardApi from "../dashboardApi.js";
 import type * as dream from "../dream.js";
+import type * as dreamCandidates from "../dreamCandidates.js";
 import type * as dreamCleanup from "../dreamCleanup.js";
 import type * as dreamMigrations from "../dreamMigrations.js";
 import type * as dreaming from "../dreaming.js";
@@ -185,6 +186,7 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   dashboardApi: typeof dashboardApi;
   dream: typeof dream;
+  dreamCandidates: typeof dreamCandidates;
   dreamCleanup: typeof dreamCleanup;
   dreamMigrations: typeof dreamMigrations;
   dreaming: typeof dreaming;
