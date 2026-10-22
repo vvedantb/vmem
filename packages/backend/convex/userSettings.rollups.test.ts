@@ -21,7 +21,7 @@ describe("rollupsEnabled", () => {
       }),
     ).toBe(false);
 
-    await t.mutation(internal.userSettings.setRollupsEnabledByClerkIdInternal, {
+    await t.mutation(internal.userSettings.setRollupsEnabledInternal, {
       clerkId,
       enabled: true,
     });

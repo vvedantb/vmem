@@ -37,6 +37,13 @@ const THINKING_OFF_FEATURES: ReadonlySet<OpenRouterFeature> = new Set([
   "dream",
 ]);
 
+export interface ChatResult {
+  content: string | null;
+  promptTokens?: number;
+  completionTokens?: number;
+  costUsd?: number;
+}
+
 export function resolveThinking(
   feature: OpenRouterFeature,
   thinking: ChatThinking | undefined,
@@ -47,7 +54,7 @@ export function resolveThinking(
 export async function callOpenRouterChat(
   ctx: ActionCtx,
   args: ChatArgs,
-): Promise<{ content: string | null }> {
+): Promise<ChatResult> {
   const previews = previewsEnabled();
   const promptPreview = previews
     ? truncate(joinMessagesForPreview(args.messages), PROMPT_PREVIEW_BYTES)
@@ -122,7 +129,7 @@ export async function callOpenRouterChat(
     completionPreview,
   });
 
-  return { content };
+  return { content, promptTokens, completionTokens, costUsd };
 }
 
 function joinMessagesForPreview(messages: ChatMessage[]): string {

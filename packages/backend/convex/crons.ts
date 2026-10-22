@@ -3,6 +3,10 @@ import { internal } from "./_generated/api";
 
 const crons = cronJobs();
 
+// 02:30 utc, before the connector sync: per user, dream step then the day
+// rollup for yesterday (NIGHTLY_DISABLED=1 stops it)
+crons.cron("nightly maintenance", "30 2 * * *", internal.nightly.kick, {});
+
 crons.cron(
   "daily connector sync",
   "0 4 * * *",

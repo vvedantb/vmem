@@ -519,6 +519,39 @@ export const mcpTraceFields = {
   createdAt: v.number(),
 };
 
+export const rollupPeriodValidator = v.union(
+  v.literal("day"),
+  v.literal("week"),
+  v.literal("month"),
+);
+
+// one summary per user, profile and UTC period. periodKey: 2026-10-19,
+// 2026-W42 (ISO week) or 2026-10. failed/skipped rows keep empty text.
+export const rollupFields = {
+  userId: v.id("users"),
+  profileId: v.optional(v.id("profiles")),
+  teamId: v.optional(v.id("teams")),
+  period: rollupPeriodValidator,
+  periodKey: v.string(),
+  startMs: v.number(),
+  endMs: v.number(),
+  summary: v.string(),
+  highlights: v.array(v.string()),
+  memoryIds: v.array(v.string()),
+  stats: v.object({
+    created: v.number(),
+    updated: v.number(),
+    suppressed: v.number(),
+    toolCalls: v.number(),
+  }),
+  model: v.string(),
+  inputTokens: v.number(),
+  outputTokens: v.number(),
+  costUsd: v.number(),
+  createdAt: v.number(),
+  status: v.union(v.literal("ok"), v.literal("skipped"), v.literal("failed")),
+};
+
 // the heavy half of a trace, read only when one trace is opened
 export const mcpTraceDetailFields = {
   traceId: v.id("mcpTraces"),
