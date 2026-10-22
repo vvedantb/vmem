@@ -9,6 +9,9 @@
  */
 
 import type * as apiKeys from "../apiKeys.js";
+import type * as artifacts_api from "../artifacts/api.js";
+import type * as artifacts_internal from "../artifacts/internal.js";
+import type * as artifacts_store from "../artifacts/store.js";
 import type * as auditLog from "../auditLog.js";
 import type * as auth from "../auth.js";
 import type * as clerkIdRemap from "../clerkIdRemap.js";
@@ -162,6 +165,9 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   apiKeys: typeof apiKeys;
+  "artifacts/api": typeof artifacts_api;
+  "artifacts/internal": typeof artifacts_internal;
+  "artifacts/store": typeof artifacts_store;
   auditLog: typeof auditLog;
   auth: typeof auth;
   clerkIdRemap: typeof clerkIdRemap;

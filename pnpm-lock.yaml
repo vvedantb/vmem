@@ -309,8 +309,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/sdk
       '@vvedantb/server':
-        specifier: ^0.4.0
-        version: 0.4.0(@clerk/backend@2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))(convex@1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6))(zod@3.25.76)
+        specifier: ^0.6.0
+        version: 0.6.0(@clerk/backend@2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))(convex@1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6))(zod@3.25.76)
       get-windows:
         specifier: ^9.2.0
         version: 9.3.0(encoding@0.1.13)
@@ -477,8 +477,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/shared
       '@vvedantb/server':
-        specifier: ^0.4.0
-        version: 0.4.0(@clerk/backend@2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))(convex@1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6))(zod@3.25.76)
+        specifier: ^0.6.0
+        version: 0.6.0(@clerk/backend@2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))(convex@1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6))(zod@3.25.76)
       '@vvedantb/ui':
         specifier: ^0.11.0
         version: 0.11.0(d855569db3679dc4dc608f366ec151e5)
@@ -637,8 +637,8 @@ importers:
         specifier: workspace:*
         version: link:../shared
       '@vvedantb/server':
-        specifier: 0.4.0
-        version: 0.4.0(@clerk/backend@2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))(convex@1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6))(zod@3.25.76)
+        specifier: 0.6.0
+        version: 0.6.0(@clerk/backend@2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))(convex@1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6))(zod@3.25.76)
       ai:
         specifier: ^7.0.108
         version: 7.0.108(zod@3.25.76)
@@ -4973,19 +4973,25 @@ packages:
       '@electron/asar':
         optional: true
 
-  '@vvedantb/server@0.4.0':
-    resolution: {integrity: sha512-y5dL9FIImAbLnOBtGkGYAGySrS1+uQYNGDVM6/Itutb04Rv7Iu509PRySMAJ6/7qnG7IIwB9jZGvn/NvsglCkQ==}
+  '@vvedantb/server@0.6.0':
+    resolution: {integrity: sha512-lBlHRZAZwBHAYUzWKozpsAVDhtvMQ2CgtaWHatx4JjU62lMBXUtaBwBXMqUG2PU+J+GLWeG7Woeseo1owQWApA==}
     peerDependencies:
       '@clerk/backend': '>=1'
+      '@jitl/quickjs-singlefile-cjs-release-sync': ^0.32.0
       '@modelcontextprotocol/sdk': ^1.29.0
       convex: ^1.24.0
+      quickjs-emscripten-core: ^0.32.0
       zod: ^3.25.0 || ^4.0.0
     peerDependenciesMeta:
       '@clerk/backend':
         optional: true
+      '@jitl/quickjs-singlefile-cjs-release-sync':
+        optional: true
       '@modelcontextprotocol/sdk':
         optional: true
       convex:
+        optional: true
+      quickjs-emscripten-core:
         optional: true
       zod:
         optional: true
@@ -14581,7 +14587,7 @@ snapshots:
     optionalDependencies:
       '@electron/asar': 3.4.1
 
-  '@vvedantb/server@0.4.0(@clerk/backend@2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))(convex@1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6))(zod@3.25.76)':
+  '@vvedantb/server@0.6.0(@clerk/backend@2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))(convex@1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6))(zod@3.25.76)':
     optionalDependencies:
       '@clerk/backend': 2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@modelcontextprotocol/sdk': 1.29.0(zod@3.25.76)

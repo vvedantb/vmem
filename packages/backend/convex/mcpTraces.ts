@@ -16,6 +16,7 @@ import {
   getActiveProfileForMcpScope,
   type McpScope,
 } from "./profiles/mcpAccess";
+import { purgeDeletedArtifactsBatch } from "./artifacts/store";
 import type { McpTraceBody } from "./mcp/traceSummary";
 import { mcpTraceDetailFields, mcpTraceFields } from "./validators";
 
@@ -197,12 +198,14 @@ export const getDetail = authQuery({
   },
 });
 
-// hourly ttl sweep; trace and detail share createdAt, so both age out together
+// hourly ttl sweep; trace and detail share createdAt, so both age out together.
+// Second step: one batch of the 30-day artifact trash purge.
 export const purgeExpired = internalMutation({
   args: {},
   returns: v.number(),
   handler: async (ctx) => {
-    const cutoff = Date.now() - TRACE_RETENTION_MS;
+    const now = Date.now();
+    const cutoff = now - TRACE_RETENTION_MS;
     const traces = await ctx.db
       .query("mcpTraces")
       .withIndex("by_created", (idx) => idx.lt("createdAt", cutoff))
@@ -214,7 +217,12 @@ export const purgeExpired = internalMutation({
     for (const doc of [...traces, ...details]) {
       await ctx.db.delete(doc._id);
     }
-    if (traces.length === PURGE_BATCH || details.length === PURGE_BATCH) {
+    const artifactsLeft = await purgeDeletedArtifactsBatch(ctx, now);
+    if (
+      traces.length === PURGE_BATCH ||
+      details.length === PURGE_BATCH ||
+      artifactsLeft
+    ) {
       await ctx.scheduler.runAfter(0, internal.mcpTraces.purgeExpired, {});
     }
     return traces.length + details.length;

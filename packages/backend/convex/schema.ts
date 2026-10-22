@@ -34,6 +34,11 @@ import {
   dreamActionFields,
   dreamPlanGroupFields,
   dreamCandidateFields,
+  artifactFields,
+  artifactBodyFields,
+  artifactVersionFields,
+  artifactStateFields,
+  artifactRefFields,
 } from "./validators";
 
 const schema = defineSchema({
@@ -261,6 +266,35 @@ const schema = defineSchema({
     .index("by_proposal_id", ["proposalId"])
     .index("by_user_status", ["userId", "status"])
     .index("by_profile_status", ["profileId", "status"]),
+
+  // artifacts: metadata rows; bodies, versions, state and refs hang off them
+  artifacts: defineTable(artifactFields)
+    .index("by_user_updated", ["userId", "updatedAt"])
+    .index("by_team_updated", ["teamId", "updatedAt"])
+    .index("by_user_type_updated", ["userId", "type", "updatedAt"])
+    // idempotent imports and old-id lookups
+    .index("by_user_origin", ["userId", "origin.client", "origin.externalId"])
+    // trash purge (artifacts/api.purgeDeletedInternal)
+    .index("by_deleted", ["deletedAt"])
+    .searchIndex("search_text", {
+      searchField: "searchText",
+      filterFields: ["userId", "teamId", "type"],
+    }),
+  // immutable bodies; the sha256 suffix is the per-artifact dedupe lookup
+  artifactBodies: defineTable(artifactBodyFields).index("by_artifact", [
+    "artifactId",
+    "sha256",
+  ]),
+  artifactVersions: defineTable(artifactVersionFields).index(
+    "by_artifact_version",
+    ["artifactId", "version"],
+  ),
+  artifactState: defineTable(artifactStateFields)
+    .index("by_artifact_user", ["artifactId", "userId"])
+    .index("by_user_updated", ["userId", "updatedAt"]),
+  artifactRefs: defineTable(artifactRefFields)
+    .index("by_artifact", ["artifactId"])
+    .index("by_user_ref", ["userId", "refKey", "createdAt"]),
 });
 
 export default schema;
