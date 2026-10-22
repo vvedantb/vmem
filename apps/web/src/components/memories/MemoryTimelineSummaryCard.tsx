@@ -2,7 +2,7 @@ import { useQuery } from "convex/react";
 import { useQueryStates } from "nuqs";
 import { Link } from "@tanstack/react-router";
 import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
-import { Button, Input, Skeleton, cn } from "@vvedantb/ui";
+import { Button, DatePicker, Skeleton, cn } from "@vvedantb/ui";
 import { api } from "@vmem/backend";
 import type { Doc } from "@vmem/backend";
 import { parseDayKey, ROLLUP_PERIODS, utcDayKey } from "@vmem/shared";
@@ -150,14 +150,12 @@ export default function MemoryTimelineSummaryCard() {
           </Button>
         </div>
         <div className="flex min-w-0 items-center gap-1.5 max-sm:max-w-full max-sm:overflow-x-auto max-sm:scrollbar-none">
-          <Input
-            type="date"
-            aria-label="Jump to date (UTC)"
+          <DatePicker
+            ariaLabel="Jump to date (UTC)"
             value={view.dayKey}
             max={utcDayKey(nowMs)}
-            className="h-8 w-auto shrink-0"
-            onChange={(event) => {
-              const next = event.target.value;
+            className="shrink-0"
+            onChange={(next) => {
               if (parseDayKey(next) !== null) void setParams({ on: next });
             }}
           />
