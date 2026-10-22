@@ -691,7 +691,7 @@ export function sameTags(a: readonly string[], b: readonly string[]): boolean {
   return a.length === b.length && a.every((tag, index) => tag === b[index]);
 }
 
-async function applyMemoryUpdates(
+export async function applyMemoryUpdates(
   ctx: MutationCtx,
   doc: Doc<"memories">,
   updates: UpdateMemoryStoreParams,
@@ -1161,14 +1161,14 @@ export interface SourceUpsertResult {
   contentChanged: boolean;
 }
 
-function isLiveDoc(doc: Doc<"memories">, nowMs: number): boolean {
+export function isLiveDoc(doc: Doc<"memories">, nowMs: number): boolean {
   return (
     isVisibleStatus(doc.status) &&
     (doc.expiresAt === undefined || doc.expiresAt > nowMs)
   );
 }
 
-async function findSourceMatch(
+export async function findSourceMatch(
   ctx: MutationCtx,
   params: {
     userId: string;
@@ -1246,31 +1246,6 @@ export async function upsertMemoryFromSource(
     created: false,
     contentChanged,
   };
-}
-
-/**
- * Caller-facing create (web, MCP, HTTP, SDK). A non-empty externalId upserts
- * one live row per (user, profile, sourceType, externalId); without it an
- * exact-hash repeat comes back `deduped`. `needsFollowUp` is false for a
- * visit-only repeat and for a dedupe, so callers skip embed and enrichment.
- */
-export async function createOrUpsertMemory(
-  ctx: MutationCtx,
-  params: Omit<CreateMemoryStoreParams, "sourceId"> & { externalId?: string },
-): Promise<{ memory: MemoryWithTags; needsFollowUp: boolean }> {
-  const { externalId, ...fields } = params;
-  const sourceId = externalId?.trim();
-  if (sourceId) {
-    const { memory, contentChanged } = await upsertMemoryFromSource(ctx, {
-      ...fields,
-      sourceType: fields.sourceType ?? fields.source,
-      sourceId,
-      visibleOnly: true,
-    });
-    return { memory, needsFollowUp: contentChanged };
-  }
-  const memory = await createMemory(ctx, fields);
-  return { memory, needsFollowUp: memory.deduped !== true };
 }
 
 export async function collectScopedMemories(

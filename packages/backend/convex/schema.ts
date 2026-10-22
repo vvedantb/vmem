@@ -211,6 +211,13 @@ const schema = defineSchema({
     .index("by_superseded_by", ["supersededBy"])
     // connector upserts look a memory up by its external source id
     .index("by_user_source", ["userId", "sourceType", "sourceId"])
+    // browse write gate: recent rows of one source in one user + profile
+    .index("by_user_profile_source_visit", [
+      "userId",
+      "profileId",
+      "sourceType",
+      "lastVisitAt",
+    ])
     // exact-content write dedupe within one user + profile
     .index("by_user_profile_hash", ["userId", "profileId", "contentHash"])
     // Jev quality cron: pending rows first, never-tried before oldest-tried

@@ -11,7 +11,6 @@ import {
 } from "../teams/auth";
 import { getOrCreateDefaultProfile } from "../profiles/helpers";
 import {
-  createOrUpsertMemory,
   deleteMemory,
   deleteTeamMemoryAsOwner,
   getMemory,
@@ -24,6 +23,7 @@ import {
   type MemorySummaryPage,
   type ScopedMemoryPaginationOpts,
 } from "../memoryStore/helpers";
+import { createOrUpsertMemory } from "../memoryStore/upsert";
 import type { MemoryVersion } from "../validators";
 import type { MemoryListResult } from "./types";
 
