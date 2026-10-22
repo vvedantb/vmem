@@ -7,7 +7,10 @@ import { toMcpContent } from "../../convex/mcp/content";
 import { getMemoryGraphForMcp } from "../../convex/mcp/graph";
 import type { McpScope } from "../../convex/profiles/mcpAccess";
 import { extractBearerToken } from "@vvedantb/server";
-import { mcpServerInfo } from "../../convex/mcp/serverInfo";
+import {
+  MCP_SERVER_INSTRUCTIONS,
+  mcpServerInfo,
+} from "../../convex/mcp/serverInfo";
 import { catalogNamesForScope, MEMORY_GRAPH_TOOL } from "./catalog";
 import type { McpHttpResponse } from "./client";
 import { parseMcpHttpError, requireJsonRpcResult } from "./client";
@@ -171,6 +174,7 @@ export async function handleInProcessMcpRequest(args: {
       protocolVersion: "2025-03-26",
       capabilities: { tools: {} },
       serverInfo: mcpServerInfo(args.session.scope),
+      instructions: MCP_SERVER_INSTRUCTIONS,
     });
   }
   if (method === "tools/list") {

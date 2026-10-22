@@ -1,3 +1,4 @@
+import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
@@ -45,6 +46,8 @@ export const confirmParam = z
   .literal(true)
   .describe("Must be true: this action is permanent");
 
+export const READ_ONLY_TOOL: ToolAnnotations = { readOnlyHint: true };
+
 export interface ToolSpec<Shape extends z.ZodRawShape> {
   readonly name: string;
   readonly schema: z.ZodObject<Shape>;
@@ -52,6 +55,8 @@ export interface ToolSpec<Shape extends z.ZodRawShape> {
   readonly errorLabel: string;
   // omit to register on every mcp scope
   readonly scopes?: readonly McpScope[];
+  // mcp tool hints, e.g. readOnlyHint for tools that never write
+  readonly annotations?: ToolAnnotations;
   readonly toContent?: (result: ToolHandlerResult) => McpToolContent;
   // method syntax, bivariant params so toolspec<> erases into erasedtoolspec
   run(

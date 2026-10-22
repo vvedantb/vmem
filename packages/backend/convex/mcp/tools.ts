@@ -42,10 +42,13 @@ function registerMcpTool(
   const toContent: (result: ToolHandlerResult) => McpToolContent =
     meta.toContent ?? ((result) => toMcpContent(result, meta.errorLabel));
 
-  server.tool(
+  server.registerTool(
     bindable.name,
-    description,
-    bindable.schema.shape,
+    {
+      description,
+      inputSchema: bindable.schema.shape,
+      annotations: meta.annotations,
+    },
     async (params) => {
       const startedAt = Date.now();
       let result: ToolHandlerResult;

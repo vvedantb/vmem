@@ -5,7 +5,6 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { updateMemory } from "./memoryStore/helpers";
-import { getUserIdByClerkId } from "./lib/clerkUser";
 import {
   FILE_STORAGE_LIMIT_BYTES,
   collectSubtreeIds,
@@ -17,7 +16,10 @@ import {
   assertContentEditable,
   requireContentScopeAccess,
 } from "./teams/auth";
-import { mcpScopeValidator, resolveMcpTeamId } from "./profiles/mcpAccess";
+import {
+  mcpContentScopeArgs,
+  resolveMcpContentScope,
+} from "./profiles/mcpAccess";
 
 interface FileNodeWithUrl extends Doc<"fileNodes"> {
   // convex serving url for files. null for folders or missing storage
@@ -364,19 +366,7 @@ export const deleteNodes = authMutation({
 });
 
 // MCP file tools: the drive is the caller's personal files, or on the team
-// connector the active team profile's drive (never a teamId param)
-const mcpFileScopeArgs = { clerkId: v.string(), scope: mcpScopeValidator };
-
-async function resolveMcpFileScope(
-  ctx: QueryCtx,
-  args: { clerkId: string; scope: "personal" | "team" },
-): Promise<{ userId: Id<"users">; teamId: Id<"teams"> | undefined }> {
-  const userId = await getUserIdByClerkId(ctx, args.clerkId);
-  const teamId = await resolveMcpTeamId(ctx, args.clerkId, args.scope);
-  await requireContentScopeAccess(ctx, userId, teamId);
-  return { userId, teamId };
-}
-
+// connector the active team profile's drive
 async function requireNodeInMcpScope(
   ctx: QueryCtx,
   scope: { userId: Id<"users">; teamId: Id<"teams"> | undefined },
@@ -419,20 +409,20 @@ async function ensureFolderPath(
 }
 
 export const listByClerkIdInternal = internalQuery({
-  args: mcpFileScopeArgs,
+  args: mcpContentScopeArgs,
   handler: async (ctx, args): Promise<ScopeTree<Doc<"fileNodes">>> => {
-    const { userId, teamId } = await resolveMcpFileScope(ctx, args);
+    const { userId, teamId } = await resolveMcpContentScope(ctx, args);
     return await listScopeTree(ctx, userId, teamId);
   },
 });
 
 export const createFolderByPathInternal = internalMutation({
-  args: { ...mcpFileScopeArgs, segments: v.array(v.string()) },
+  args: { ...mcpContentScopeArgs, segments: v.array(v.string()) },
   handler: async (
     ctx,
     args,
   ): Promise<{ nodeId: Id<"fileNodes">; created: boolean }> => {
-    const { userId, teamId } = await resolveMcpFileScope(ctx, args);
+    const { userId, teamId } = await resolveMcpContentScope(ctx, args);
     const { folderId, created } = await ensureFolderPath(
       ctx,
       userId,
@@ -445,9 +435,9 @@ export const createFolderByPathInternal = internalMutation({
 });
 
 export const renameByClerkIdInternal = internalMutation({
-  args: { ...mcpFileScopeArgs, nodeId: v.id("fileNodes"), name: v.string() },
+  args: { ...mcpContentScopeArgs, nodeId: v.id("fileNodes"), name: v.string() },
   handler: async (ctx, args): Promise<void> => {
-    const scope = await resolveMcpFileScope(ctx, args);
+    const scope = await resolveMcpContentScope(ctx, args);
     await requireNodeInMcpScope(ctx, scope, args.nodeId);
     await renameFileNode(ctx, scope.userId, args.nodeId, args.name);
   },
@@ -455,12 +445,12 @@ export const renameByClerkIdInternal = internalMutation({
 
 export const moveByClerkIdInternal = internalMutation({
   args: {
-    ...mcpFileScopeArgs,
+    ...mcpContentScopeArgs,
     nodeIds: v.array(v.id("fileNodes")),
     targetParentId: v.optional(v.id("fileNodes")),
   },
   handler: async (ctx, args): Promise<void> => {
-    const scope = await resolveMcpFileScope(ctx, args);
+    const scope = await resolveMcpContentScope(ctx, args);
     for (const nodeId of args.nodeIds) {
       await requireNodeInMcpScope(ctx, scope, nodeId);
     }
@@ -470,7 +460,7 @@ export const moveByClerkIdInternal = internalMutation({
 
 export const upsertFileByPathInternal = internalMutation({
   args: {
-    ...mcpFileScopeArgs,
+    ...mcpContentScopeArgs,
     segments: v.array(v.string()),
     storageId: v.id("_storage"),
     mimeType: v.string(),
@@ -480,7 +470,7 @@ export const upsertFileByPathInternal = internalMutation({
     if (args.segments.length === 0) {
       throw new Error("Path is required");
     }
-    const { userId, teamId } = await resolveMcpFileScope(ctx, args);
+    const { userId, teamId } = await resolveMcpContentScope(ctx, args);
 
     const used = await totalBytesForScope(ctx, userId, teamId);
     if (used + args.size > FILE_STORAGE_LIMIT_BYTES) {
@@ -549,9 +539,9 @@ export const upsertFileByPathInternal = internalMutation({
 });
 
 export const deleteByIdForClerkInternal = internalMutation({
-  args: { ...mcpFileScopeArgs, nodeId: v.id("fileNodes") },
+  args: { ...mcpContentScopeArgs, nodeId: v.id("fileNodes") },
   handler: async (ctx, args): Promise<{ deletedCount: number }> => {
-    const scope = await resolveMcpFileScope(ctx, args);
+    const scope = await resolveMcpContentScope(ctx, args);
     await requireNodeInMcpScope(ctx, scope, args.nodeId);
     const deletedCount = await deleteSubtree(ctx, scope.userId, args.nodeId);
     return { deletedCount };

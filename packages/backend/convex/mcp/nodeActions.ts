@@ -15,7 +15,11 @@ import { registerTools } from "./tools";
 import { registerResources } from "./resources";
 import { registerMemoryGraphApp } from "./memoryGraphApp";
 import { mcpScopeValidator } from "../profiles/mcpAccess";
-import { MCP_ACCEPTED_TOKEN_TYPES, mcpServerInfo } from "./serverInfo";
+import {
+  MCP_ACCEPTED_TOKEN_TYPES,
+  MCP_SERVER_INSTRUCTIONS,
+  mcpServerInfo,
+} from "./serverInfo";
 
 // AI-generated (Claude), prompt: "verify clerk oauth access tokens and handle mcp json rpc via streamable http transport with registered tools"
 // Modified by me: scope aware server naming and tool registration wiring
@@ -84,7 +88,9 @@ export const handleMcpRequest = internalAction({
         scope === "team" ? "http://localhost/mcp/team" : "http://localhost/mcp",
       Transport: WebStandardStreamableHTTPServerTransport,
       createServer: async () => {
-        const server = new McpServer(mcpServerInfo(scope));
+        const server = new McpServer(mcpServerInfo(scope), {
+          instructions: MCP_SERVER_INSTRUCTIONS,
+        });
         registerTools(server, clerkUserId, ctx, scope);
         registerMemoryGraphApp(server, clerkUserId, ctx, scope);
         await registerResources(server, clerkUserId, ctx, scope);

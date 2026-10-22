@@ -1,3 +1,4 @@
+import { artifactsToolSpecs } from "./toolsArtifacts";
 import { connectorsToolSpecs } from "./toolsConnectors";
 import { contextToolSpecs } from "./toolsContext";
 import { coreToolSpecs } from "./toolsCore";
@@ -19,6 +20,7 @@ export const toolSpecs = {
   ...inboxToolSpecs,
   ...skillsToolSpecs,
   ...filesToolSpecs,
+  ...artifactsToolSpecs,
   ...profilesToolSpecs,
   ...teamsToolSpecs,
   ...settingsToolSpecs,

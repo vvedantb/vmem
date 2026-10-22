@@ -13,8 +13,10 @@ export const TRACE_RESULT_IDS_MAX = 20;
 const TRACE_ARRAY_MAX_ITEMS = 20;
 const LABEL_MAX_CHARS = 40;
 
-// keys dropped from args and previews: secrets and inline file bodies
-const DROPPED_KEY = /token|secret|password|api[_-]?key|authorization|base64/i;
+// keys dropped from args and previews: secrets, inline file bodies and
+// artifact bodies
+const DROPPED_KEY =
+  /token|secret|password|api[_-]?key|authorization|base64|^body$/i;
 // string values that look like credentials or inline file bytes
 const REDACTED_VALUE =
   /^(vmem_sk_|sk-[A-Za-z0-9_-]{20,}|Bearer\s|data:[\w/+.-]+;base64,)/;
@@ -56,6 +58,7 @@ export function sanitizeTraceJson(value: object, max: number): string {
 }
 
 const optionalString = z.string().optional().catch(undefined);
+const optionalNumber = z.number().optional().catch(undefined);
 
 const labelArgsSchema = z
   .object({
@@ -104,7 +107,10 @@ const resultShapeSchema = z
     title: optionalString,
     deduped: z.boolean().optional().catch(undefined),
     profileId: optionalString,
+    version: optionalNumber,
+    bodyChars: optionalNumber,
     memories: optionalRows,
+    artifacts: optionalRows,
     created: optionalRows,
     applied: optionalRows,
     failed: optionalRows,
@@ -130,7 +136,14 @@ function parseResultShape(data: ToolHandlerResult): {
 }
 
 function resultRows(shape: ResultShape, list?: ResultRow[]): ResultRow[] {
-  return list ?? shape.memories ?? shape.created ?? shape.applied ?? [];
+  return (
+    list ??
+    shape.memories ??
+    shape.artifacts ??
+    shape.created ??
+    shape.applied ??
+    []
+  );
 }
 
 function extractResultIds(shape: ResultShape, list?: ResultRow[]): string[] {
@@ -153,6 +166,7 @@ function resultCount(
   return (
     list?.length ??
     shape.memories?.length ??
+    shape.artifacts?.length ??
     shape.created?.length ??
     shape.applied?.length ??
     shape.memoryIds?.length ??
@@ -173,6 +187,17 @@ function withLabel(label: string | undefined, outcome: string): string {
 function plural(count: number, noun: string): string {
   return `${count} ${noun}${count === 1 ? "" : "s"}`;
 }
+
+// artifact reads: version and full body length (bodies are never traced)
+const artifactReadSummary: SummaryFormatter = ({ args, shape }) => {
+  if (shape.version === undefined) return withLabel(args.id, "not found");
+  const chars =
+    shape.bodyChars === undefined ? "" : `, ${plural(shape.bodyChars, "char")}`;
+  return withLabel(shape.title ?? args.id, `v${shape.version}${chars}`);
+};
+
+const artifactVersionSummary: SummaryFormatter = ({ args, shape }) =>
+  withLabel(args.id, `v${shape.version ?? "?"}`);
 
 // per-tool text after the tool name, on success. others use genericBody.
 const SUMMARY_FORMATTERS = new Map<string, SummaryFormatter>([
@@ -215,6 +240,16 @@ const SUMMARY_FORMATTERS = new Map<string, SummaryFormatter>([
       );
     },
   ],
+  ["artifacts_list", ({ count }) => `→ ${plural(count ?? 0, "artifact")}`],
+  [
+    "artifacts_search",
+    ({ args, count }) => withLabel(args.query, plural(count ?? 0, "result")),
+  ],
+  ["artifacts_get", artifactReadSummary],
+  ["artifacts_version_get", artifactReadSummary],
+  ["artifacts_save", ({ args }) => withLabel(args.title, "saved")],
+  ["artifacts_update", artifactVersionSummary],
+  ["artifacts_restore_version", artifactVersionSummary],
 ]);
 
 function genericBody(args: LabelArgs, count: number | undefined): string {

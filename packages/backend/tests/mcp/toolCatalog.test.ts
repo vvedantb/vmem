@@ -9,6 +9,7 @@ import {
   toolSpecs,
 } from "../../convex/mcp/toolCatalog";
 import {
+  ARTIFACTS_TOOL_NAMES,
   catalogNamesForScope,
   CONNECTORS_TOOL_NAMES,
   CONTEXT_TOOL_NAMES,
@@ -35,6 +36,7 @@ const ALL_TOOL_GROUPS = [
   INBOX_TOOL_NAMES,
   SKILLS_TOOL_NAMES,
   FILES_TOOL_NAMES,
+  ARTIFACTS_TOOL_NAMES,
   PROFILES_TOOL_NAMES,
   TEAMS_TOOL_NAMES,
   SETTINGS_TOOL_NAMES,
@@ -63,7 +65,7 @@ describe("MCP tool catalog", () => {
     expect(toolSpecs.memory_search).toBe(memoryToolSpecs.memory_search);
   });
 
-  it("exposes skills, files and teams on both scopes and keeps user-wide tools personal", () => {
+  it("exposes skills, files, artifacts and teams on both scopes and keeps user-wide tools personal", () => {
     const personal = catalogNamesForScope("personal");
     const team = catalogNamesForScope("team");
     expect(personal).toEqual(expect.arrayContaining([...SKILLS_TOOL_NAMES]));
@@ -85,6 +87,8 @@ describe("MCP tool catalog", () => {
       expect(team).not.toContain(name);
     }
     expect(team).toEqual(expect.arrayContaining([...FILES_TOOL_NAMES]));
+    expect(personal).toEqual(expect.arrayContaining([...ARTIFACTS_TOOL_NAMES]));
+    expect(team).toEqual(expect.arrayContaining([...ARTIFACTS_TOOL_NAMES]));
     expect(team).toEqual(expect.arrayContaining([...TEAMS_TOOL_NAMES]));
     expect(personal).toEqual(expect.arrayContaining([...TEAMS_TOOL_NAMES]));
     expect(team).toContain("profiles_update");
