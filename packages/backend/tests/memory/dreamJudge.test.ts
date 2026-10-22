@@ -9,9 +9,11 @@ import {
   DREAM_DAILY_BUDGET_USD,
   dreamPairAction,
   fullAiAllowance,
+  newestWins,
   sameSourceFamily,
   spendAiCall,
   type DreamAiAllowance,
+  type DreamAiStep,
 } from "../../engine/memory/dream/nightly";
 
 const CREATED = Date.parse("2026-10-01T09:00:00Z");
@@ -85,6 +87,30 @@ describe("buildDreamJudgePrompt", () => {
     ]);
     expect(prompt.length).toBeLessThan(2_500);
   });
+
+  it("is unchanged when no memory carries an outcome", () => {
+    const [first, second] = UPDATE_PAIR;
+    const plain = buildDreamJudgePrompt(UPDATE_PAIR);
+    expect(
+      buildDreamJudgePrompt([
+        { ...first, outcome: null },
+        { ...second, outcome: null },
+      ]),
+    ).toBe(plain);
+    expect(plain).not.toContain("outcome");
+  });
+
+  it("labels outcomes and prefers what worked when one is known", () => {
+    const [first, second] = UPDATE_PAIR;
+    const prompt = buildDreamJudgePrompt([
+      { ...first, outcome: "worked" },
+      { ...second, outcome: null },
+    ]);
+    expect(prompt).toContain('"outcome": "worked"');
+    expect(prompt).toContain('"outcome": "unknown"');
+    expect(prompt).toContain("Prefer what worked");
+    expect(prompt).toContain("never replaces one that worked");
+  });
 });
 
 describe("parseDreamJudgeReply", () => {
@@ -157,7 +183,12 @@ describe("parseDreamJudgeReply", () => {
 });
 
 describe("dreamPairAction", () => {
-  const base = { confidence: 0.95, autoAccept: true, sameFamily: true };
+  const base = {
+    confidence: 0.95,
+    autoAccept: true,
+    sameFamily: true,
+    keeperIsNewer: true,
+  };
 
   it("applies confident duplicates and updates only with auto-accept", () => {
     expect(dreamPairAction({ ...base, relation: "duplicate" })).toEqual({
@@ -187,6 +218,12 @@ describe("dreamPairAction", () => {
     ).toEqual({ kind: "supersede", apply: false });
   });
 
+  it("never auto-supersedes when the judge kept the older row", () => {
+    expect(
+      dreamPairAction({ ...base, relation: "update", keeperIsNewer: false }),
+    ).toEqual({ kind: "supersede", apply: false });
+  });
+
   it("queues contradictions, drops unrelated, ignores none", () => {
     expect(dreamPairAction({ ...base, relation: "contradiction" })).toEqual({
       kind: "contradiction",
@@ -196,6 +233,36 @@ describe("dreamPairAction", () => {
     });
     expect(dreamPairAction({ ...base, relation: "none" })).toEqual({
       kind: "none",
+    });
+  });
+});
+
+describe("newestWins", () => {
+  const older = { id: "old", createdAt: CREATED };
+  const newer = { id: "new", createdAt: CREATED + 1000 };
+
+  it("keeps the judge's keeper when it is the newer row", () => {
+    expect(newestWins(newer, older)).toEqual({
+      keeper: newer,
+      older,
+      agreed: true,
+    });
+  });
+
+  it("swaps when the judge kept the older row, and flags it", () => {
+    expect(newestWins(older, newer)).toEqual({
+      keeper: newer,
+      older,
+      agreed: false,
+    });
+  });
+
+  it("keeps the judge's choice on the same createdAt", () => {
+    const twin = { id: "twin", createdAt: CREATED };
+    expect(newestWins(twin, older)).toEqual({
+      keeper: twin,
+      older,
+      agreed: true,
     });
   });
 });
@@ -220,7 +287,7 @@ describe("sameSourceFamily", () => {
 describe("AI call caps and budget", () => {
   function spend(
     allowance: DreamAiAllowance,
-    kind: "near_dup" | "maybe_conflict",
+    kind: DreamAiStep,
     count: number,
   ): DreamAiAllowance {
     let next = allowance;
@@ -228,23 +295,26 @@ describe("AI call caps and budget", () => {
     return next;
   }
 
-  it("allows 25 near-dup and 15 conflict calls, 40 in total", () => {
+  it("allows 25 near-dup, 15 conflict and 2 skill-draft calls, 42 in total", () => {
     const full = fullAiAllowance();
     expect(full).toEqual({
-      byKind: { near_dup: 25, maybe_conflict: 15 },
-      total: 40,
+      byKind: { near_dup: 25, maybe_conflict: 15, skill_draft: 2 },
+      total: 42,
     });
     const afterNearDup = spend(full, "near_dup", 25);
     expect(aiCallStop(afterNearDup, "near_dup", 0)).toBe("cap");
     expect(aiCallStop(afterNearDup, "maybe_conflict", 0)).toBeNull();
     const afterAll = spend(afterNearDup, "maybe_conflict", 15);
-    expect(afterAll.total).toBe(0);
+    expect(afterAll.total).toBe(2);
     expect(aiCallStop(afterAll, "maybe_conflict", 0)).toBe("cap");
+    const afterSkills = spend(afterAll, "skill_draft", 2);
+    expect(afterSkills.total).toBe(0);
+    expect(aiCallStop(afterSkills, "skill_draft", 0)).toBe("cap");
   });
 
   it("stops at the per-user total even with kind calls left", () => {
     const allowance: DreamAiAllowance = {
-      byKind: { near_dup: 5, maybe_conflict: 5 },
+      byKind: { near_dup: 5, maybe_conflict: 5, skill_draft: 1 },
       total: 0,
     };
     expect(aiCallStop(allowance, "near_dup", 0)).toBe("cap");

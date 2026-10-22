@@ -629,3 +629,289 @@ describe("nightly AI judge: switches, caps and budget", () => {
     expect(evaluate).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("nightly AI judge: newest wins and outcomes", () => {
+  it("keeps the newer row when the judge names the older one, and waits for the user", async () => {
+    const t = setupT();
+    const owner = await addUser(t, "clerk_ai_newest");
+    await setAutoAccept(owner, true);
+    // m1 (mem_2) is the newer row, but the judge keeps m0 (mem_1)
+    generateText.mockResolvedValue(
+      qwenReply({ relation: "update", keeperId: "m0", confidence: 0.97 }),
+    );
+    const { a, b } = await addPair(t, owner, "maybe_conflict");
+
+    await runNightly(t, owner);
+
+    expect((await getDoc(t, a)).status).toBe("active");
+    expect((await getDoc(t, b)).status).toBe("active");
+    const run = await lastRun(t, owner);
+    expect(run.counts).toMatchObject({ superseded: 0, proposals: 1 });
+    const [proposal] = await proposalsOf(t, owner);
+    // the older row is the one the proposal would hide
+    expect(proposal).toMatchObject({
+      kind: "update",
+      memoryId: "mem_1",
+      sourceMemoryIds: ["mem_1", "mem_2"],
+      proposedTitle: "Title mem_2",
+    });
+  });
+
+  it("sends outcomes to the conflict judge only when a row carries one", async () => {
+    const t = setupT();
+    const owner = await addUser(t, "clerk_ai_outcome");
+    await addPair(
+      t,
+      owner,
+      "maybe_conflict",
+      { content: "Pinning zod to 3.23 worked." },
+      { content: "Upgrading zod to 4 failed: the schema types broke." },
+    );
+    await addPair(t, owner, "maybe_conflict");
+
+    await runNightly(t, owner);
+
+    const prompts = generateText.mock.calls.map(
+      (call) => call[0].messages[1]?.content ?? "",
+    );
+    expect(prompts).toHaveLength(2);
+    const [withOutcome, plain] = prompts;
+    expect(withOutcome).toContain('"outcome": "worked"');
+    expect(withOutcome).toContain('"outcome": "failed"');
+    expect(withOutcome).toContain("Prefer what worked");
+    expect(plain).not.toContain("outcome");
+  });
+});
+
+describe("nightly skill drafts", () => {
+  const HOUR = 60 * 60 * 1000;
+  const SKILL = {
+    name: "deploy-convex-preview",
+    description:
+      "Use when a task asks to deploy the Convex backend to a preview",
+    steps: [
+      "Install dependencies with pnpm install.",
+      "Run pnpm typecheck and fix every error.",
+      "Deploy with npx convex deploy --preview.",
+    ],
+    pitfalls: ["Do not deploy with stale generated types; regenerate first."],
+    sourceIds: ["m0", "m1"],
+  };
+
+  // the skill call gets the drafts, any judge call "unrelated"
+  function mockSkillReply(skills: object[]) {
+    generateText.mockImplementation(async (call) =>
+      call.messages[1]?.content.startsWith("Draft at most")
+        ? { ...qwenReply({}), text: JSON.stringify({ skills }) }
+        : qwenReply({ relation: "unrelated", keeperId: null, confidence: 0.9 }),
+    );
+  }
+
+  // fresh rows inside the first run's one-day window
+  async function addOutcomeRows(t: T, owner: Owner) {
+    const worked = await addMemory(t, owner, {
+      title: "Convex preview deploy",
+      content:
+        "Ran pnpm install, pnpm typecheck, then npx convex deploy --preview. It worked.",
+      createdAt: NOW - 2 * HOUR,
+      updatedAt: NOW - 2 * HOUR,
+    });
+    const failed = await addMemory(t, owner, {
+      title: "Convex deploy attempt",
+      content: "The deploy failed: the generated types were stale.",
+      createdAt: NOW - 3 * HOUR,
+      updatedAt: NOW - 3 * HOUR,
+    });
+    return { worked, failed };
+  }
+
+  function skillRows(t: T) {
+    return t.run(async (ctx) => ctx.db.query("skills").collect());
+  }
+
+  it("proposes a skill from what worked and does not publish it", async () => {
+    const t = setupT();
+    const owner = await addUser(t, "clerk_skill_propose");
+    await setAutoAccept(owner, true);
+    mockSkillReply([SKILL]);
+    await addOutcomeRows(t, owner);
+
+    await runNightly(t, owner);
+
+    expect(generateText).toHaveBeenCalledTimes(1);
+    const call = generateText.mock.calls[0]?.[0];
+    expect(call?.providerOptions).toMatchObject({
+      alibaba: { enableThinking: false },
+    });
+    expect(call?.messages[1]?.content).toContain('"outcome": "worked"');
+    expect(call?.messages[1]?.content).toContain('"outcome": "failed"');
+    // auto-accept never publishes a drafted skill
+    expect(await skillRows(t)).toEqual([]);
+    const [proposal] = await proposalsOf(t, owner);
+    expect(proposal).toMatchObject({
+      kind: "skill",
+      source: "dream-mode",
+      proposedTitle: "deploy-convex-preview",
+      sourceMemoryIds: ["mem_1", "mem_2"],
+      memoryId: "mem_1",
+      skill: {
+        name: "deploy-convex-preview",
+        description:
+          "Use when a task asks to deploy the Convex backend to a preview",
+        instructions:
+          "1. Install dependencies with pnpm install.\n2. Run pnpm typecheck and fix every error.\n3. Deploy with npx convex deploy --preview.\n\nPitfalls (from approaches that failed):\n- Do not deploy with stale generated types; regenerate first.",
+      },
+    });
+    const run = await lastRun(t, owner);
+    expect(run.counts.proposals).toBe(1);
+    expect(run.aiCalls).toBe(1);
+    expect(run.costUsd).toBeCloseTo(0.0001);
+  });
+
+  it("creates the skill when the proposal is approved, and nothing on reject", async () => {
+    const t = setupT();
+    const owner = await addUser(t, "clerk_skill_accept");
+    mockSkillReply([SKILL]);
+    await addOutcomeRows(t, owner);
+    await runNightly(t, owner);
+    const [proposal] = await proposalsOf(t, owner);
+    if (!proposal) throw new Error("proposal missing");
+
+    const result = await t.mutation(
+      internal.proposedUpdateApi.resolveInternal,
+      {
+        clerkId: owner.clerkId,
+        proposalId: proposal.proposalId,
+        action: "approve",
+      },
+    );
+
+    expect(result).toEqual({ status: "approved" });
+    const [skill] = await skillRows(t);
+    expect(skill?.teamId).toBeUndefined();
+    expect(skill).toMatchObject({
+      userId: owner.userId,
+      name: "deploy-convex-preview",
+      description: SKILL.description,
+      instructions: proposal.skill?.instructions,
+      enabled: true,
+      origin: "dream",
+    });
+    // the source memories are left as they were
+    const rows = await t.run(async (ctx) => ctx.db.query("memories").collect());
+    expect(rows.map((row) => row.status)).toEqual(["active", "active"]);
+    expect(await proposalsOf(t, owner)).toEqual([]);
+
+    // a second draft, rejected: no skill
+    const other = await addUser(t, "clerk_skill_reject");
+    await addOutcomeRows(t, other);
+    await runNightly(t, other);
+    const [rejected] = await proposalsOf(t, other);
+    if (!rejected) throw new Error("proposal missing");
+    await t.mutation(internal.proposedUpdateApi.resolveInternal, {
+      clerkId: other.clerkId,
+      proposalId: rejected.proposalId,
+      action: "reject",
+    });
+    expect(await skillRows(t)).toHaveLength(1);
+  });
+
+  it("creates a team skill when a team profile's proposal is approved", async () => {
+    const t = setupT();
+    const owner = await addUser(t, "clerk_skill_team");
+    const team = await owner.user.mutation(api.teams.create, { name: "Acme" });
+    mockSkillReply([SKILL]);
+    await addOutcomeRows(t, { ...owner, profileId: team.profileId });
+
+    await runNightly(t, owner);
+
+    const [proposal] = await proposalsOf(t, owner);
+    expect(proposal?.profileId).toBe(team.profileId);
+    if (!proposal) throw new Error("proposal missing");
+    await t.mutation(internal.proposedUpdateApi.resolveInternal, {
+      clerkId: owner.clerkId,
+      proposalId: proposal.proposalId,
+      action: "approve",
+    });
+    const [skill] = await skillRows(t);
+    expect(skill).toMatchObject({
+      teamId: team.teamId,
+      name: "deploy-convex-preview",
+      origin: "dream",
+    });
+  });
+
+  it("does not propose a near-duplicate of an existing skill", async () => {
+    const t = setupT();
+    const owner = await addUser(t, "clerk_skill_dupe");
+    await owner.user.mutation(api.skills.createSkill, {
+      name: "deploy-convex-preview-2",
+      description: "Use when a task asks to deploy Convex to a preview.",
+      instructions: "1. Run pnpm typecheck.\n2. Deploy with npx convex deploy.",
+    });
+    mockSkillReply([SKILL]);
+    await addOutcomeRows(t, owner);
+
+    await runNightly(t, owner);
+
+    expect(generateText).toHaveBeenCalledTimes(1);
+    expect(generateText.mock.calls[0]?.[0].messages[1]?.content).toContain(
+      "Existing skills: deploy-convex-preview-2",
+    );
+    expect(await proposalsOf(t, owner)).toEqual([]);
+    expect((await lastRun(t, owner)).aiCalls).toBe(1);
+  });
+
+  it("drops an unsafe draft", async () => {
+    const t = setupT();
+    const owner = await addUser(t, "clerk_skill_unsafe");
+    mockSkillReply([
+      {
+        ...SKILL,
+        steps: [...SKILL.steps, "Push with git push --force to main."],
+      },
+    ]);
+    await addOutcomeRows(t, owner);
+    await runNightly(t, owner);
+    expect(await proposalsOf(t, owner)).toEqual([]);
+  });
+
+  it("makes no skill call when no memory in the window worked", async () => {
+    const t = setupT();
+    const owner = await addUser(t, "clerk_skill_none");
+    mockSkillReply([SKILL]);
+    await addMemory(t, owner, {
+      content: "Prefers short commit messages.",
+      createdAt: NOW - HOUR,
+      updatedAt: NOW - HOUR,
+    });
+    await addMemory(t, owner, {
+      content: "The deploy failed: the generated types were stale.",
+      createdAt: NOW - HOUR,
+      updatedAt: NOW - HOUR,
+    });
+    await runNightly(t, owner);
+    expect(generateText).not.toHaveBeenCalled();
+    expect((await lastRun(t, owner)).aiCalls).toBe(0);
+  });
+
+  it("makes at most 2 skill calls per user per night across profiles", async () => {
+    const t = setupT();
+    const owner = await addUser(t, "clerk_skill_cap");
+    mockSkillReply([]);
+    await addOutcomeRows(t, owner);
+    for (const name of ["Work", "Side", "Lab"]) {
+      const profile = await owner.user.mutation(api.profiles.create, {
+        name,
+        color: "#10B981",
+        icon: "briefcase",
+      });
+      if (!profile) throw new Error("profile missing");
+      await addOutcomeRows(t, { ...owner, profileId: profile._id });
+    }
+    await runNightly(t, owner);
+    // personal profiles share the user's rows: each run sees a row that
+    // worked, but only two may call
+    expect(generateText).toHaveBeenCalledTimes(2);
+  });
+});

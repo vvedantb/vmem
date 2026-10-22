@@ -43,8 +43,9 @@ The types below describe the proposal shape.
 | `contradiction` | Two rows disagree; you pick the one to keep (Dream Mode) |
 | `anomaly`       | Surface unusual patterns in memory data                  |
 | `merge`         | Collapse duplicate rows into one keeper (Dream Mode)     |
+| `skill`         | A drafted skill; approving creates it (Dream Mode)       |
 
-On `main`, only Dream Mode creates proposals (`merge`, `update` and `contradiction`). The other kinds stay in the schema.
+On `main`, only Dream Mode creates proposals (`merge`, `update`, `contradiction` and `skill`). The other kinds stay in the schema. A `skill` proposal carries `skill: { name, description, instructions }`; it changes no memory, so it never blocks another proposal on the same rows.
 
 ## Managing Proposals
 

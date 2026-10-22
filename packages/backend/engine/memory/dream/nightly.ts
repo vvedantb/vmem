@@ -20,12 +20,13 @@ export const DECAY_IDLE_MS = 30 * DAY_MS;
 const DECAY_MAX_VISITS = 2;
 const DECAY_MAX_USEFULNESS = 0.2;
 
-// AI steps (near-dup judge, conflict judge): calls per user per night, all
-// profiles together
-export const DREAM_MAX_AI_CALLS_BY_KIND: Readonly<
-  Record<DreamCandidateKind, number>
-> = { near_dup: 25, maybe_conflict: 15 };
-export const DREAM_MAX_AI_CALLS = 40;
+// AI steps (near-dup judge, conflict judge, skill drafts): calls per user
+// per night, all profiles together. A profile run makes at most one
+// skill_draft call, and only when its window holds a memory that worked.
+export type DreamAiStep = DreamCandidateKind | "skill_draft";
+export const DREAM_MAX_AI_CALLS_BY_KIND: Readonly<Record<DreamAiStep, number>> =
+  { near_dup: 25, maybe_conflict: 15, skill_draft: 2 };
+export const DREAM_MAX_AI_CALLS = 42;
 // all users together, per UTC day, summed from openRouterLogs feature "dream";
 // shared with the one-off cleanup
 export const DREAM_DAILY_BUDGET_USD = 0.5;
@@ -39,7 +40,7 @@ export function startOfUtcDay(now: number): number {
 
 // calls left for one user tonight
 export interface DreamAiAllowance {
-  byKind: Record<DreamCandidateKind, number>;
+  byKind: Record<DreamAiStep, number>;
   total: number;
 }
 
@@ -51,13 +52,13 @@ export function fullAiAllowance(): DreamAiAllowance {
 }
 
 /**
- * Why the next judge call of this kind may not run: "cap" when the kind's or
+ * Why the next AI call of this kind may not run: "cap" when the kind's or
  * the user's nightly calls are used up, "budget" once today's dream spend
  * (all users) reached the daily budget. Null means call.
  */
 export function aiCallStop(
   allowance: DreamAiAllowance,
-  kind: DreamCandidateKind,
+  kind: DreamAiStep,
   spentTodayUsd: number,
 ): "cap" | "budget" | null {
   if (allowance.total <= 0 || allowance.byKind[kind] <= 0) return "cap";
@@ -67,7 +68,7 @@ export function aiCallStop(
 
 export function spendAiCall(
   allowance: DreamAiAllowance,
-  kind: DreamCandidateKind,
+  kind: DreamAiStep,
 ): DreamAiAllowance {
   return {
     byKind: { ...allowance.byKind, [kind]: allowance.byKind[kind] - 1 },
@@ -100,24 +101,43 @@ export type DreamPairAction =
   | { kind: "none" };
 
 /**
+ * Newest wins for an "update": the newer row (createdAt) is the keeper and
+ * the older one is superseded. When the judge named the older row as the
+ * keeper, the rows swap and `agreed` is false, so the change waits for the
+ * user. Same createdAt: the judge's choice stands.
+ */
+export function newestWins<T extends { createdAt: number }>(
+  keeper: T,
+  older: T,
+): { keeper: T; older: T; agreed: boolean } {
+  return older.createdAt > keeper.createdAt
+    ? { keeper: older, older: keeper, agreed: false }
+    : { keeper, older, agreed: true };
+}
+
+/**
  * duplicate → merge, applied only with auto-accept and confidence >= 0.9;
  * update → supersede the older row, applied only with auto-accept,
- * confidence >= 0.9 and the same source family; contradiction → always a
- * proposal; unrelated → drop the candidate; none (not a duplicate, or the
- * call failed) → nothing.
+ * confidence >= 0.9, the same source family and a judge keeper that is the
+ * newer row (newestWins); contradiction → always a proposal; unrelated →
+ * drop the candidate; none (not a duplicate, or the call failed) → nothing.
  */
 export function dreamPairAction(input: {
   relation: "duplicate" | "update" | "contradiction" | "unrelated" | "none";
   confidence: number;
   autoAccept: boolean;
   sameFamily: boolean;
+  keeperIsNewer: boolean;
 }): DreamPairAction {
   const confident = input.autoAccept && input.confidence >= DREAM_AI_APPLY_MIN;
   switch (input.relation) {
     case "duplicate":
       return { kind: "merge", apply: confident };
     case "update":
-      return { kind: "supersede", apply: confident && input.sameFamily };
+      return {
+        kind: "supersede",
+        apply: confident && input.sameFamily && input.keeperIsNewer,
+      };
     case "contradiction":
       return { kind: "contradiction" };
     case "unrelated":

@@ -68,7 +68,7 @@ const actionRowValidator = v.object({
 // personal runs see the owner's rows (and legacy rows with no profile), team
 // runs every row of the shared profile
 export async function runScope(
-  ctx: MutationCtx,
+  ctx: QueryCtx,
   run: Doc<"dreamRuns">,
 ): Promise<MemoryReadScope> {
   const profile = run.profileId ? await ctx.db.get(run.profileId) : null;
@@ -385,6 +385,44 @@ export async function proposeDreamChange(
       content: doc.content,
     })),
     ...(args.kind === "contradiction" ? {} : { dreamRunId: args.runId }),
+  });
+  return true;
+}
+
+/**
+ * Inbox proposal for a skill Dream drafted (see skillDraft.ts). Nothing is
+ * published: approving creates the skill (proposedUpdateApi), rejecting
+ * drops it. `memoryId` is the newest source; the sources are not changed.
+ */
+export async function proposeDreamSkill(
+  ctx: MutationCtx,
+  args: {
+    clerkId: string;
+    profileId: string;
+    runId: Id<"dreamRuns">;
+    skill: { name: string; description: string; instructions: string };
+    sources: readonly Doc<"memories">[];
+  },
+): Promise<boolean> {
+  const [newest] = [...args.sources].sort((a, b) => b.createdAt - a.createdAt);
+  if (newest === undefined) return false;
+  await insertProposedUpdate(ctx, {
+    userId: args.clerkId,
+    profileId: args.profileId,
+    memoryId: newest.memoryId,
+    proposedTitle: args.skill.name,
+    proposedContent: args.skill.instructions,
+    reason: `Drafted from ${String(args.sources.length)} ${args.sources.length === 1 ? "memory" : "memories"} that record what worked (and what failed). Not active until you approve it.`,
+    kind: "skill",
+    skill: args.skill,
+    sourceMemoryIds: args.sources.map((doc) => doc.memoryId),
+    source: "dream-mode",
+    sourceMemorySnapshots: args.sources.map((doc) => ({
+      id: doc.memoryId,
+      title: doc.title,
+      content: doc.content,
+    })),
+    dreamRunId: args.runId,
   });
   return true;
 }

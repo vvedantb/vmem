@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { parseJsonString } from "../../llm/extractJsonString";
 import { truncateAtWord } from "../../llm/truncateAtWord";
+import type { MemoryOutcome } from "./outcome";
 
 // Qwen judge for one maybe-conflict pair (nightly dreaming step 4): same
 // fact, newer version, contradiction, or unrelated. Pure: the caller makes
@@ -27,6 +28,8 @@ export interface DreamJudgeMemory {
   content: string;
   source: string;
   createdAt: number;
+  // see outcome.ts; null or absent: the memory says nothing about an outcome
+  outcome?: MemoryOutcome | null;
 }
 
 export type DreamJudgePair = readonly [DreamJudgeMemory, DreamJudgeMemory];
@@ -36,13 +39,21 @@ function keyOf(index: number): string {
   return `m${String(index)}`;
 }
 
+// only when a memory carries an outcome; without one the prompt is unchanged
+const OUTCOME_RULES = [
+  'outcome: whether the approach a memory records "worked" or "failed" ("mixed": both, "unknown": it does not say).',
+  'Prefer what worked. A memory whose approach failed never replaces one that worked: pick "unrelated" so the failure stays as a pitfall, unless the newer memory says that the same approach stopped working (then it is an update).',
+];
+
 export function buildDreamJudgePrompt(pair: DreamJudgePair): string {
+  const withOutcome = pair.some((memory) => (memory.outcome ?? null) !== null);
   const memories = pair.map((memory, i) => ({
     id: keyOf(i),
     title: memory.title,
     content: truncateAtWord(memory.content, CONTENT_CHARS),
     source: memory.source,
     createdAt: new Date(memory.createdAt).toISOString(),
+    ...(withOutcome ? { outcome: memory.outcome ?? "unknown" } : {}),
   }));
   return [
     "Decide how memory m0 and memory m1 relate. Pick one relation:",
@@ -51,6 +62,7 @@ export function buildDreamJudgePrompt(pair: DreamJudgePair): string {
     '- "contradiction": the same subject, and the memories disagree with no clear newer truth.',
     '- "unrelated": anything else.',
     "Memories about different projects, products, repositories, people or time windows are unrelated, even when their wording is almost the same.",
+    ...(withOutcome ? OUTCOME_RULES : []),
     "keeperId: the id (m0 or m1) of the memory to keep: the complete one for a duplicate, the newer one for an update. Use null for unrelated.",
     "confidence: 0 to 1. reason: one short sentence.",
     'Reply as JSON: {"relation": "...", "keeperId": "m0" | "m1" | null, "confidence": 0.0, "reason": "..."}',

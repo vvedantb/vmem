@@ -198,6 +198,7 @@ export const proposedUpdateKindValidator = v.union(
   v.literal("contradiction"),
   v.literal("anomaly"),
   v.literal("merge"),
+  v.literal("skill"),
 );
 
 export const proposedUpdateStatusValidator = v.union(
@@ -210,6 +211,12 @@ export const proposedUpdateSourceValidator = v.union(
   v.literal("v2-extraction"),
   v.literal("dream-mode"),
 );
+
+export const proposedSkillFields = {
+  name: v.string(),
+  description: v.string(),
+  instructions: v.string(),
+};
 
 const proposedMemorySnapshotFields = {
   title: v.string(),
@@ -242,6 +249,8 @@ export const proposedUpdateFields = {
   // AI-judged dream merge or update: approving suppresses under this run
   // (undo for 30 days) instead of writing a new memory
   dreamRunId: v.optional(v.id("dreamRuns")),
+  // kind "skill": the drafted skill; approving creates it in skills
+  skill: v.optional(v.object(proposedSkillFields)),
 };
 
 // table field validators, used in schema.ts and return validators
@@ -446,6 +455,8 @@ export const skillOriginValidator = v.union(
   v.literal("web"),
   v.literal("mcp"),
   v.literal("vibot"),
+  // an accepted Dream Mode skill proposal
+  v.literal("dream"),
 );
 
 export const skillFields = {

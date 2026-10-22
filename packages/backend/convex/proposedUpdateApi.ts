@@ -10,6 +10,7 @@ import { LLM_MODEL } from "./lib/openRouter/shared";
 import type { MemoryReadScope } from "../engine/memory/scope";
 import { UPDATES_LINK_REASON } from "../engine/memory/supersede";
 import { auditLog, ResourceTypes } from "./auditLog";
+import { createDreamSkill } from "./skills";
 import type { ProposedUpdateNode } from "./memoryApi/types";
 import {
   getProposedUpdate,
@@ -108,6 +109,30 @@ async function applyDreamUpdateProposal(
   return newer.memoryId;
 }
 
+// Dream Mode skill draft: approving creates the skill in the proposal's
+// scope (the team's skills for a team profile). Its sources stay as they are.
+async function applySkillProposal(
+  ctx: MutationCtx,
+  clerkId: string,
+  proposal: Doc<"proposedUpdates">,
+): Promise<void> {
+  if (proposal.skill === undefined) {
+    throw new Error("Skill proposal has no skill");
+  }
+  const user = await getUserByClerkId(ctx, clerkId);
+  if (!user) throw new Error("User not found");
+  const profileId =
+    proposal.profileId === undefined
+      ? null
+      : ctx.db.normalizeId("profiles", proposal.profileId);
+  const profile = profileId === null ? null : await ctx.db.get(profileId);
+  await createDreamSkill(ctx, {
+    userId: user._id,
+    ...(profile?.teamId === undefined ? {} : { teamId: profile.teamId }),
+    ...proposal.skill,
+  });
+}
+
 async function applyApproval(
   ctx: MutationCtx,
   params: {
@@ -141,6 +166,11 @@ async function applyApproval(
       });
       return winnerMemoryId;
     }
+    return undefined;
+  }
+
+  if (proposal.kind === "skill") {
+    await applySkillProposal(ctx, clerkId, proposal);
     return undefined;
   }
 

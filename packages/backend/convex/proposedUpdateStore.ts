@@ -28,6 +28,7 @@ export function toProposedUpdateNode(
     source: doc.source,
     memorySnapshot: doc.memorySnapshot ?? null,
     sourceMemorySnapshots: doc.sourceMemorySnapshots,
+    skill: doc.skill ?? null,
   };
 }
 
@@ -83,6 +84,7 @@ export async function insertProposedUpdate(
       content: string;
     }>;
     dreamRunId?: Id<"dreamRuns">;
+    skill?: { name: string; description: string; instructions: string };
   },
 ): Promise<ProposedUpdateNode> {
   const proposalId = crypto.randomUUID();
@@ -112,6 +114,7 @@ export async function insertProposedUpdate(
     ...(params.dreamRunId === undefined
       ? {}
       : { dreamRunId: params.dreamRunId }),
+    ...(params.skill === undefined ? {} : { skill: params.skill }),
   });
   const created = await findByProposalId(ctx, proposalId);
   if (!created) throw new Error("Failed to create proposed update");
@@ -156,7 +159,10 @@ export async function hasOverlappingPendingProposal(
     userId: params.userId,
     profileId: params.profileId,
   });
-  return pending.some((proposal) =>
-    sourceIdsOverlap(proposal.sourceMemoryIds, params.sourceMemoryIds),
+  // a skill proposal changes no memory, so it never blocks one that does
+  return pending.some(
+    (proposal) =>
+      proposal.kind !== "skill" &&
+      sourceIdsOverlap(proposal.sourceMemoryIds, params.sourceMemoryIds),
   );
 }

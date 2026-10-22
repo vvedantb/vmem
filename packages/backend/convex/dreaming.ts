@@ -17,6 +17,7 @@ import {
   changedRows,
   dreamPairAction,
   fullAiAllowance,
+  newestWins,
   sameSourceFamily,
   spendAiCall,
   type DreamAiAllowance,
@@ -30,6 +31,15 @@ import {
   isDecayCandidate,
   type DreamCounts,
 } from "../engine/memory/dream/nightly";
+import { memoryOutcome } from "../engine/memory/dream/outcome";
+import {
+  buildDreamSkillPrompt,
+  DREAM_SKILL_ROLE,
+  existingSkillForDedupe,
+  parseDreamSkillReply,
+  pickSkillSources,
+  skillInstructions,
+} from "../engine/memory/dream/skillDraft";
 import {
   buildDeterministicGroups,
   deterministicReason,
@@ -48,6 +58,7 @@ import {
   internalQuery,
   type ActionCtx,
   type MutationCtx,
+  type QueryCtx,
 } from "./_generated/server";
 import { auditLog, ResourceTypes } from "./auditLog";
 import { authAction } from "./auth";
@@ -56,6 +67,7 @@ import {
   mergeGroup,
   patchDreamFields,
   proposeDreamChange,
+  proposeDreamSkill,
   runScope,
   supersedeRow,
 } from "./dream";
@@ -68,6 +80,7 @@ import {
   dreamCandidateFields,
   dreamRunFields,
   memoryStatusValidator,
+  proposedSkillFields,
 } from "./validators";
 
 // Nightly dreaming (plan §3c). Per profile, in bounded batches: exact and
@@ -119,7 +132,7 @@ function result(
   };
 }
 
-async function requireRun(ctx: MutationCtx, runId: RunId) {
+async function requireRun(ctx: QueryCtx, runId: RunId) {
   const run = await ctx.db.get(runId);
   if (!run?.profileId) throw new Error("Dream run not found");
   return { ...run, profileId: run.profileId };
@@ -303,6 +316,32 @@ async function visiblePeers(
   );
 }
 
+// the rows of the change window, by updatedAt (scope still to be checked
+// per row: a personal scope reads every profile of the user)
+function windowQuery(
+  ctx: QueryCtx,
+  scope: MemoryReadScope,
+  window: { from: number; until: number },
+) {
+  return scope.kind === "team"
+    ? ctx.db
+        .query("memories")
+        .withIndex("by_profile_updated", (q) =>
+          q
+            .eq("profileId", scope.profileId)
+            .gte("updatedAt", window.from)
+            .lte("updatedAt", window.until),
+        )
+    : ctx.db
+        .query("memories")
+        .withIndex("by_user_updated", (q) =>
+          q
+            .eq("userId", scope.userId)
+            .gte("updatedAt", window.from)
+            .lte("updatedAt", window.until),
+        );
+}
+
 /**
  * One page of the change window. Each visible row pulls in its exact-hash
  * and source-key peers, the batch is bucketed like the one-off cleanup
@@ -326,25 +365,7 @@ export const dedupeBatchInternal = internalMutation({
   handler: async (ctx, args) => {
     const run = await requireRun(ctx, args.runId);
     const scope = await runScope(ctx, run);
-    const query =
-      scope.kind === "team"
-        ? ctx.db
-            .query("memories")
-            .withIndex("by_profile_updated", (q) =>
-              q
-                .eq("profileId", scope.profileId)
-                .gte("updatedAt", args.from)
-                .lte("updatedAt", args.until),
-            )
-        : ctx.db
-            .query("memories")
-            .withIndex("by_user_updated", (q) =>
-              q
-                .eq("userId", scope.userId)
-                .gte("updatedAt", args.from)
-                .lte("updatedAt", args.until),
-            );
-    const page = await query.paginate({
+    const page = await windowQuery(ctx, scope, args).paginate({
       cursor: args.cursor,
       numItems: args.numItems,
     });
@@ -388,6 +409,13 @@ export const dedupeBatchInternal = internalMutation({
 
 const JUDGE_CONTENT_CHARS = 600;
 
+// memoryOutcome of a row
+const outcomeValidator = v.union(
+  v.literal("worked"),
+  v.literal("failed"),
+  v.literal("mixed"),
+);
+
 const judgeMemberValidator = v.object({
   _id: v.id("memories"),
   title: v.string(),
@@ -395,6 +423,8 @@ const judgeMemberValidator = v.object({
   status: memoryStatusValidator,
   source: v.string(),
   createdAt: v.number(),
+  // null: no outcome signal
+  outcome: v.union(outcomeValidator, v.null()),
 });
 type JudgeMember = Infer<typeof judgeMemberValidator>;
 
@@ -446,6 +476,7 @@ export const openCandidatesInternal = internalMutation({
                 status: doc.status,
                 source: doc.source,
                 createdAt: doc.createdAt,
+                outcome: memoryOutcome(doc),
               },
             ]
           : [],
@@ -523,7 +554,17 @@ export const recordJudgedInternal = internalMutation({
             verdict.keeperId,
             ...verdict.otherIds,
           ]);
-    const [keeperDoc, ...others] = docs ?? [];
+    const [judgedKeeper, ...judgedOthers] = docs ?? [];
+    // an update keeps the newer row, whatever the judge named
+    const [olderDoc] = judgedOthers;
+    const newest =
+      verdict.relation === "update" &&
+      judgedKeeper !== undefined &&
+      olderDoc !== undefined
+        ? newestWins(judgedKeeper, olderDoc)
+        : null;
+    const keeperDoc = newest?.keeper ?? judgedKeeper;
+    const others = newest === null ? judgedOthers : [newest.older];
     const settings = dreamSettingsOf(await getSettingsDoc(ctx, run.userId));
     const action = dreamPairAction({
       relation: verdict.relation,
@@ -532,6 +573,7 @@ export const recordJudgedInternal = internalMutation({
       sameFamily:
         keeperDoc !== undefined &&
         others.every((doc) => sameSourceFamily(keeperDoc, doc)),
+      keeperIsNewer: newest?.agreed ?? true,
     });
     const user = await ctx.db.get(run.userId);
     if (
@@ -795,6 +837,223 @@ async function runAiDreamSteps(
   return stopped;
 }
 
+// ------------------------------------------------- step 4b (AI skills)
+
+// newest window rows read for skill sources, and skills / skill proposals
+// read for the dedupe
+const SKILL_SCAN_ROWS = 200;
+const SKILL_COMPARE_ROWS = 200;
+// the prompt cuts each source at a word inside this
+const SKILL_CONTENT_CHARS = 1_000;
+
+const skillSourceValidator = v.object({
+  _id: v.id("memories"),
+  title: v.string(),
+  content: v.string(),
+  createdAt: v.number(),
+  outcome: outcomeValidator,
+});
+
+const existingSkillValidator = v.object(proposedSkillFields);
+
+// the skills of the run's scope (a team profile: the team's skills), and the
+// skills already proposed there, pending or rejected
+async function skillsToCompare(
+  ctx: QueryCtx,
+  run: Doc<"dreamRuns"> & { profileId: Id<"profiles"> },
+  scope: MemoryReadScope,
+): Promise<Infer<typeof existingSkillValidator>[]> {
+  const teamId =
+    scope.kind === "team" ? (await ctx.db.get(run.profileId))?.teamId : null;
+  const skills =
+    teamId === null || teamId === undefined
+      ? (
+          await ctx.db
+            .query("skills")
+            .withIndex("by_user", (q) => q.eq("userId", run.userId))
+            .take(SKILL_COMPARE_ROWS)
+        ).filter((skill) => skill.teamId === undefined)
+      : await ctx.db
+          .query("skills")
+          .withIndex("by_team", (q) => q.eq("teamId", teamId))
+          .take(SKILL_COMPARE_ROWS);
+  const proposed = [];
+  for (const status of ["pending", "rejected"] as const) {
+    const rows = await ctx.db
+      .query("proposedUpdates")
+      .withIndex("by_profile_status", (q) =>
+        q.eq("profileId", run.profileId).eq("status", status),
+      )
+      .order("desc")
+      .take(SKILL_COMPARE_ROWS);
+    for (const row of rows) if (row.skill) proposed.push(row.skill);
+  }
+  return [
+    ...skills.map((skill) => ({
+      name: skill.name,
+      description: skill.description,
+      instructions: skill.instructions,
+    })),
+    ...proposed,
+  ];
+}
+
+/**
+ * Inputs of the skill step: the newest window rows of the run's scope that
+ * carry an outcome (pickSkillSources: empty when none worked), the skills to
+ * dedupe against, and today's dream spend. Skills are read only when there
+ * is something to draft.
+ */
+export const skillSourcesInternal = internalQuery({
+  args: { runId: v.id("dreamRuns"), from: v.number(), until: v.number() },
+  returns: v.object({
+    spentTodayUsd: v.number(),
+    sources: v.array(skillSourceValidator),
+    existing: v.array(existingSkillValidator),
+  }),
+  handler: async (ctx, args) => {
+    const run = await requireRun(ctx, args.runId);
+    const scope = await runScope(ctx, run);
+    const rows = await windowQuery(ctx, scope, args)
+      .order("desc")
+      .take(SKILL_SCAN_ROWS);
+    const withOutcome = rows.flatMap((doc) => {
+      const outcome = memoryOutcome(doc);
+      return outcome !== null &&
+        isVisibleStatus(doc.status) &&
+        memoryMatchesScope(doc, scope)
+        ? [{ ...doc, id: doc._id, outcome }]
+        : [];
+    });
+    const picked = pickSkillSources(withOutcome);
+    if (picked.length === 0) {
+      return { spentTodayUsd: 0, sources: [], existing: [] };
+    }
+    return {
+      spentTodayUsd: await dreamSpentTodayUsd(ctx),
+      sources: picked.map((doc) => ({
+        _id: doc._id,
+        title: doc.title,
+        content: doc.content.slice(0, SKILL_CONTENT_CHARS),
+        createdAt: doc.createdAt,
+        outcome: doc.outcome,
+      })),
+      existing: await skillsToCompare(ctx, run, scope),
+    };
+  },
+});
+
+/**
+ * Stores the step's drafts as "skill" proposals (never published skills)
+ * and adds the call and its cost to the run. A draft whose sources are gone
+ * or out of scope is skipped.
+ */
+export const recordSkillDraftsInternal = internalMutation({
+  args: {
+    runId: v.id("dreamRuns"),
+    drafts: v.array(
+      v.object({
+        ...proposedSkillFields,
+        sourceIds: v.array(v.id("memories")),
+      }),
+    ),
+    costUsd: v.optional(v.number()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const run = await requireRun(ctx, args.runId);
+    const scope = await runScope(ctx, run);
+    const user = await ctx.db.get(run.userId);
+    let proposals = 0;
+    for (const draft of args.drafts) {
+      const sources = await visibleDocs(ctx, scope, draft.sourceIds);
+      if (sources === null || user?.clerkId === undefined) continue;
+      const proposed = await proposeDreamSkill(ctx, {
+        clerkId: user.clerkId,
+        profileId: run.profileId,
+        runId: run._id,
+        skill: {
+          name: draft.name,
+          description: draft.description,
+          instructions: draft.instructions,
+        },
+        sources,
+      });
+      if (proposed) proposals += 1;
+    }
+    await ctx.db.patch(run._id, {
+      counts: addDreamCounts(run.counts, { proposals }),
+      aiCalls: run.aiCalls + 1,
+      costUsd: run.costUsd + (args.costUsd ?? 0),
+    });
+    return null;
+  },
+});
+
+/**
+ * Step 4b: at most one call for the profile, only when the change window
+ * holds a memory that worked, and only within the skill_draft cap, the
+ * user's nightly total and the daily budget. The drafts that pass the shared
+ * safety filter and dedupe (skillDraft.ts) become proposals.
+ */
+async function runSkillDraftStep(
+  ctx: ActionCtx,
+  args: {
+    runId: RunId;
+    userId: Id<"users">;
+    profileId: Id<"profiles">;
+    ai: DreamAi;
+    from: number;
+    until: number;
+  },
+): Promise<void> {
+  const { ai } = args;
+  if (aiCallStop(ai.allowance, "skill_draft", 0) !== null) return;
+  const input = await ctx.runQuery(internal.dreaming.skillSourcesInternal, {
+    runId: args.runId,
+    from: args.from,
+    until: args.until,
+  });
+  if (input.sources.length === 0) return;
+  if (aiCallStop(ai.allowance, "skill_draft", input.spentTodayUsd) !== null) {
+    return;
+  }
+  ai.allowance = spendAiCall(ai.allowance, "skill_draft");
+  const memories = input.sources.map((source) => ({
+    ...source,
+    id: source._id,
+  }));
+  const reply = await callJsonChatWithUsage(ctx, {
+    apiKey: ai.apiKey,
+    userId: args.userId,
+    profileId: args.profileId,
+    feature: "dream",
+    role: DREAM_SKILL_ROLE,
+    prompt: buildDreamSkillPrompt(
+      memories,
+      input.existing.map((skill) => skill.name),
+    ),
+    thinking: "off",
+  });
+  const parsed = parseDreamSkillReply(
+    memories,
+    reply.content,
+    input.existing.map(existingSkillForDedupe),
+  );
+  await ctx.runMutation(internal.dreaming.recordSkillDraftsInternal, {
+    runId: args.runId,
+    drafts: (parsed?.drafts ?? []).map((draft) => ({
+      name: draft.name,
+      description: draft.description,
+      instructions: skillInstructions(draft),
+      sourceIds: memories.flatMap((memory) =>
+        draft.sourceIds.includes(memory.id) ? [memory._id] : [],
+      ),
+    })),
+    ...(reply.costUsd === undefined ? {} : { costUsd: reply.costUsd }),
+  });
+}
+
 // ------------------------------------------------------- steps 5 and 6
 
 // one undoable action for a batch of status changes
@@ -1030,6 +1289,15 @@ async function dreamProfile(
         ai: args.ai,
       });
       if (stopped) truncated = true;
+      // step 4b: skill drafts from what worked, as proposals
+      await runSkillDraftStep(ctx, {
+        runId,
+        userId: args.userId,
+        profileId: args.profileId,
+        ai: args.ai,
+        from: start.windowFrom,
+        until: start.until,
+      });
     }
 
     // step 5: expire

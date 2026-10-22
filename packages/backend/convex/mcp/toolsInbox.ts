@@ -54,7 +54,7 @@ export const inboxToolSpecs = {
     name: "proposals_list",
     schema: proposalsListSchema,
     description:
-      "List pending inbox proposals for a profile, newest first (the web Dreaming page Proposals tab): Dream Mode merges and update, delete, insight, connection, contradiction and anomaly suggestions. Each has id, kind, reason, proposedTitle / proposedContent, sourceMemoryIds and snapshots. Resolve with proposals_resolve.",
+      "List pending inbox proposals for a profile, newest first (the web Dreaming page Proposals tab): Dream Mode merges, skill drafts, and update, delete, insight, connection, contradiction and anomaly suggestions. Each has id, kind, reason, proposedTitle / proposedContent, sourceMemoryIds and snapshots. Resolve with proposals_resolve.",
     errorLabel: "List proposals failed",
     async run(h, params): Promise<unknown> {
       return withMcpMemoryScope(
@@ -72,7 +72,7 @@ export const inboxToolSpecs = {
     name: "proposals_resolve",
     schema: proposalsResolveSchema,
     description:
-      "Approve or reject one pending proposal from proposals_list, as on the web Dreaming page. Approving a merge or update writes a new memory and supersedes the sources; approving a delete supersedes the memory; for a contradiction pass winnerMemoryId to keep that memory. Returns status and materializedMemoryId.",
+      "Approve or reject one pending proposal from proposals_list, as on the web Dreaming page. Approving a merge or update writes a new memory and supersedes the sources; approving a delete supersedes the memory; for a contradiction pass winnerMemoryId to keep that memory; approving a skill creates that skill. Returns status and materializedMemoryId.",
     errorLabel: "Resolve proposal failed",
     async run(h, params): Promise<unknown> {
       return withMcpMemoryScope(

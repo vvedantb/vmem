@@ -16,6 +16,7 @@ const SYNTHESIS_KINDS = new Set<ProposedUpdateKind>([
   "contradiction",
   "anomaly",
   "merge",
+  "skill",
 ]);
 
 export function isSynthesisKind(kind: ProposedUpdateKind): boolean {

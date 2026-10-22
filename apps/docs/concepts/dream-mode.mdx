@@ -19,9 +19,10 @@ The pass runs per profile, in batches of 100 rows. It reads at most 2,000 rows p
 1. **Exact and same-page dedupe (deterministic).** Rows created or updated since the last run are grouped with their exact-hash and source-key peers (same page, same connector item). Each group merges into one keeper: a pinned row wins, else the oldest row. These merges apply at once, with undo.
 2. **Near-duplicate judge (AI).** Open `near_dup` candidates go to Jev (`typesafe-ai/jev`).
 3. **Conflict judge (AI).** Open `maybe_conflict` candidates go to Qwen, with thinking off.
-4. **Expire.** Active rows past `expiresAt` become `expired`. Pinned rows are not touched.
-5. **Decay.** Stale browsing rows are archived (see [Decay](#decay)).
-6. **Log.** The run and each change are stored in `dreamRuns` and `dreamActions`. After a nightly run that changed something, you get an inbox notification.
+4. **Skill drafts (AI).** When a row of the change window records something that worked, one Qwen call may draft reusable skills. They wait as `skill` proposals (see [Skill drafts](#skill-drafts)).
+5. **Expire.** Active rows past `expiresAt` become `expired`. Pinned rows are not touched.
+6. **Decay.** Stale browsing rows are archived (see [Decay](#decay)).
+7. **Log.** The run and each change are stored in `dreamRuns` and `dreamActions`. After a nightly run that changed something, you get an inbox notification.
 
 ### First run of a profile
 
@@ -42,14 +43,26 @@ Candidates older than 30 days, or whose rows are gone or hidden, are purged hour
 
 ### What a verdict does
 
-| Verdict         | Result                                                                                                                                                                                                |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `duplicate`     | Merge. Applied at once only with `dreamModeAutoAccept` and confidence ≥ 0.9, else a `merge` proposal.                                                                                                 |
-| `update`        | The newer row replaces the older one. Applied at once only with auto-accept, confidence ≥ 0.9 and the same source family (so a browsing row never replaces an agent fact), else an `update` proposal. |
-| `contradiction` | Always a `contradiction` proposal. You pick the row to keep.                                                                                                                                          |
-| `unrelated`     | The candidate is dropped.                                                                                                                                                                             |
+| Verdict         | Result                                                                                                                                                                                                                                                                                                                                          |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `duplicate`     | Merge. Applied at once only with `dreamModeAutoAccept` and confidence ≥ 0.9, else a `merge` proposal.                                                                                                                                                                                                                                           |
+| `update`        | The newer row replaces the older one (newest wins, by `createdAt`). Applied at once only with auto-accept, confidence ≥ 0.9 and the same source family (so a browsing row never replaces an agent fact), else an `update` proposal. When the judge names the older row as the keeper, the newer row is kept and the change waits as a proposal. |
+| `contradiction` | Always a `contradiction` proposal. You pick the row to keep.                                                                                                                                                                                                                                                                                    |
+| `unrelated`     | The candidate is dropped.                                                                                                                                                                                                                                                                                                                       |
 
 A failed call changes nothing. A new proposal is not created when a pending proposal already covers one of the rows. Approving a dream `merge` or `update` proposal runs under the same dream run, with undo. See [Proposed Updates](/concepts/proposed-updates).
+
+### Outcomes
+
+Dream Mode reads an outcome from each row: tags such as `success`, `fixed`, `failed`, `reverted` (also with an `outcome:` prefix), else the text (`PASS` / `FAIL`, "worked", "failed", "did not work", `Error:`, "reverted", "rolled back"). When a row of a conflict pair has an outcome, the judge sees it and prefers what worked: a row whose approach failed does not replace one that worked, unless it says that the same approach stopped working. With no outcome, the prompt is the same as before.
+
+### Skill drafts
+
+When the change window holds a row whose approach worked, one call per profile reads up to 12 rows with an outcome (what worked first) and may draft at most 2 skills. A draft needs a direct trigger ("Use when a task names …" / "Use when a task asks to …"), 3 to 10 imperative, general steps and at least one source that worked. What failed becomes a labelled **Pitfalls** list in the skill.
+
+Before a draft is proposed, it goes through the same rules as the frontiermemory eval (`engine/memory/skills/`): the safety filter drops a skill that recommends bypassing a safeguard (hooks, tests, lint, CI, TLS, secrets, force-push, broad deletes), and the dedupe drops a near-duplicate of your skills, of pending or rejected skill proposals, or of an earlier draft.
+
+A draft is never published, also with auto-accept. It waits on the Proposals tab as a `skill` proposal. **Create skill** adds it to your skills (the team's skills for a team profile, origin `dream`). Reject drops it. The source rows are not changed.
 
 ### Caps and budget
 
@@ -57,7 +70,8 @@ A failed call changes nothing. A new proposal is not created when a pending prop
 | ------------------------------------------ | ----- |
 | `near_dup` calls per user per night        | 25    |
 | `maybe_conflict` calls per user per night  | 15    |
-| AI calls per user per night (all profiles) | 40    |
+| Skill draft calls per user per night       | 2     |
+| AI calls per user per night (all profiles) | 42    |
 | Dream AI budget per UTC day (all users)    | $0.50 |
 
 The budget guard sums today's `openRouterLogs` cost for feature `dream`. The one-off cleanup spends from the same budget. When a cap or the budget is reached, the AI steps stop, the run is `partial` and the open candidates wait for the next night.
@@ -118,11 +132,11 @@ See [Environment Variables](/environment#nightly-jobs-optional).
 
 Every AI call is logged to `openRouterLogs` and shows on the Usage page:
 
-| Usage label | Calls                                                                             |
-| ----------- | --------------------------------------------------------------------------------- |
-| Dreaming    | Nightly near-duplicate and conflict judges, one-off cleanup Jev calls             |
-| Rollups     | Day, week and month rollup summaries                                              |
-| Jev         | Jev calls from retrieve, context pack, related memories and skill recommendations |
+| Usage label | Calls                                                                               |
+| ----------- | ----------------------------------------------------------------------------------- |
+| Dreaming    | Nightly near-duplicate and conflict judges, skill drafts, one-off cleanup Jev calls |
+| Rollups     | Day, week and month rollup summaries                                                |
+| Jev         | Jev calls from retrieve, context pack, related memories and skill recommendations   |
 
 Jev calls go through the Vercel AI Gateway with `disallowPromptTraining`, so they only route to providers that do not train on prompts. They do not ask for request-level zero data retention, because that needs a Vercel Pro or Enterprise plan. `dataPolicy: "zdr"` stays opt-in in `engine/llm/systemOneClient.ts`.
 
