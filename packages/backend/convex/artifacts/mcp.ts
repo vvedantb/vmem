@@ -19,12 +19,12 @@ import {
   getDetail,
   getState,
   linkRef,
-  listArtifactRefs,
   listArtifacts,
   listVersions,
   requireDeletableArtifact,
   requireEditableArtifact,
   requireReadableArtifact,
+  resolveArtifactRefs,
   restoreFromTrash,
   restoreVersion,
   searchArtifacts,
@@ -117,7 +117,7 @@ export const getByClerkIdInternal = internalQuery({
     if (!detail) return null;
     return {
       ...toMcpDetail(detail, args),
-      refs: await listArtifactRefs(ctx, doc._id),
+      refs: await resolveArtifactRefs(ctx, doc, userId),
     };
   },
 });
@@ -304,6 +304,9 @@ export const linkByClerkIdInternal = internalMutation({
     for (const ref of args.add ?? []) {
       await linkRef(ctx, doc, userId, ref.kind, ref.target);
     }
-    return { id: doc._id, refs: await listArtifactRefs(ctx, doc._id) };
+    return {
+      id: doc._id,
+      refs: await resolveArtifactRefs(ctx, doc, userId),
+    };
   },
 });

@@ -18,7 +18,8 @@ import { api } from "@vmem/backend";
 import { convexErrorMessage } from "@/lib/convex-error";
 import { artifactViewerSearchParams } from "@/lib/url-state/artifacts";
 import {
-  artifactRefLabel,
+  ARTIFACT_DELETE_DESCRIPTION,
+  artifactRefText,
   createArtifactStateStore,
   sortArtifactRefs,
   toVersionSummaries,
@@ -165,6 +166,7 @@ export function ArtifactDetailPanel({
         onRename={
           inTrash ? undefined : (title) => actions.rename(artifactId, title)
         }
+        deleteDescription={ARTIFACT_DELETE_DESCRIPTION}
         onDelete={
           inTrash
             ? undefined
@@ -207,11 +209,12 @@ function ArtifactLinksMenu({
         className="max-w-80"
       >
         <DropdownMenuLabel>Linked</DropdownMenuLabel>
-        {sortArtifactRefs(refs).map((ref) =>
-          ref.kind === "memory" ? (
+        {sortArtifactRefs(refs).map((ref) => {
+          const { label, description } = artifactRefText(ref);
+          return ref.kind === "memory" ? (
             <DropdownMenuItem
               key={`${ref.kind}:${ref.target}`}
-              description={ref.target}
+              description={description}
               onClick={() =>
                 void navigate({
                   to: "/$profileId/memories/list/$id",
@@ -219,18 +222,18 @@ function ArtifactLinksMenu({
                 })
               }
             >
-              {artifactRefLabel(ref)}
+              {label}
             </DropdownMenuItem>
           ) : (
             <DropdownMenuItem
               key={`${ref.kind}:${ref.target}`}
               disabled
-              description={ref.target}
+              description={description}
             >
-              {artifactRefLabel(ref)}
+              {label}
             </DropdownMenuItem>
-          ),
-        )}
+          );
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   );

@@ -197,7 +197,7 @@ export const artifactsToolSpecs = {
   artifacts_get: toolSpec({
     name: "artifacts_get",
     schema: artifactsGetSchema,
-    description: `Read one artifact by id, or by origin client + externalId: metadata, refs and the body (bodyChars is the full length; maxChars cuts it; includeBody false skips it). Pass version for an older version. Returns null when not found. ${DATA_NOTE}`,
+    description: `Read one artifact by id, or by origin client + externalId: metadata, refs (memory refs add exists and a short title when you can read the memory) and the body (bodyChars is the full length; maxChars cuts it; includeBody false skips it). Pass version for an older version. Returns null when not found. ${DATA_NOTE}`,
     errorLabel: "Get artifact failed",
     annotations: READ_ONLY_TOOL,
     async run(h, params): Promise<unknown> {
@@ -355,7 +355,7 @@ export const artifactsToolSpecs = {
   artifacts_link: toolSpec({
     name: "artifacts_link",
     schema: artifactsLinkSchema,
-    description: `Add or remove an artifact's links to memories, files, sources, skills or apps. Returns { id, refs }. artifacts_list with ref lists the artifacts linked to a target.`,
+    description: `Add or remove an artifact's links to memories, files, sources, skills or apps. Returns { id, refs }; memory refs add exists and a short title like artifacts_get. artifacts_list with ref lists the artifacts linked to a target.`,
     errorLabel: "Link artifact failed",
     async run(h, params): Promise<unknown> {
       return h.ctx.runMutation(internal.artifacts.mcp.linkByClerkIdInternal, {

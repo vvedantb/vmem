@@ -3,7 +3,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
 import {
+  ARTIFACT_DELETE_DESCRIPTION,
   artifactRefLabel,
+  artifactRefText,
   createArtifactStateStore,
   sortArtifactRefs,
   toVersionSummaries,
@@ -100,6 +102,23 @@ describe("artifact refs", () => {
     ]);
   });
 
+  it("shows a readable memory's title, else the kind and the id", () => {
+    expect(
+      artifactRefText({
+        ...ref("memory", "m1", 1),
+        exists: true,
+        title: "Exam dates",
+      }),
+    ).toEqual({ label: "Exam dates", description: "Memory" });
+    expect(
+      artifactRefText({ ...ref("memory", "m2", 1), exists: false }),
+    ).toEqual({ label: "Memory", description: "m2" });
+    expect(artifactRefText(ref("file", "f1", 1))).toEqual({
+      label: "File",
+      description: "f1",
+    });
+  });
+
   it("labels every ref kind", () => {
     expect(artifactRefLabel({ kind: "memory" })).toBe("Memory");
     expect(artifactRefLabel({ kind: "app" })).toBe("App");
@@ -147,6 +166,18 @@ describe("artifacts page / MCP parity", () => {
     }
     expect(
       read("../../../../../packages/backend/convex/artifacts/mcp.ts"),
-    ).toContain("refs: await listArtifactRefs");
+    ).toContain("refs: await resolveArtifactRefs");
+  });
+});
+
+// delete is a soft delete, so the dialog must not say "cannot be undone"
+describe("artifact delete dialog text", () => {
+  it("tells the user they can undo or restore", () => {
+    expect(ARTIFACT_DELETE_DESCRIPTION).toContain("undo or restore");
+    for (const file of ["ArtifactsPanel.tsx", "ArtifactDetailPanel.tsx"]) {
+      expect(read(file)).toContain(
+        "deleteDescription={ARTIFACT_DELETE_DESCRIPTION}",
+      );
+    }
   });
 });

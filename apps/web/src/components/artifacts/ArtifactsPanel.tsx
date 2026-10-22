@@ -10,6 +10,7 @@ import {
 } from "@vvedantb/ui";
 import { api, type Id } from "@vmem/backend";
 import { artifactsSearchParams } from "@/lib/url-state/artifacts";
+import { ARTIFACT_DELETE_DESCRIPTION } from "./_artifactsUtils";
 import { useArtifactActions } from "./useArtifactActions";
 
 const PAGE_SIZE = 50;
@@ -76,6 +77,7 @@ export function ArtifactsPanel({
           getBody={(artifact) => actions.getBody(artifact.id)}
           onRename={(artifact, title) => actions.rename(artifact.id, title)}
           onDelete={(artifact) => actions.deleteArtifact(artifact.id)}
+          deleteDescription={ARTIFACT_DELETE_DESCRIPTION}
           emptyTitle={
             searching || type
               ? "No matching artifacts"

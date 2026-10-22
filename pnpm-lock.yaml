@@ -480,8 +480,8 @@ importers:
         specifier: ^0.6.1
         version: 0.6.1(@clerk/backend@2.33.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@modelcontextprotocol/sdk@1.29.0(zod@3.25.76))(convex@1.40.0(@clerk/clerk-react@5.61.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6))(zod@3.25.76)
       '@vvedantb/ui':
-        specifier: ^0.13.0
-        version: 0.13.0(c240dfa8597f39e519c2ca02806b4923)
+        specifier: ^0.13.1
+        version: 0.13.1(c240dfa8597f39e519c2ca02806b4923)
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1
@@ -5055,8 +5055,8 @@ packages:
       zod:
         optional: true
 
-  '@vvedantb/ui@0.13.0':
-    resolution: {integrity: sha512-P1wuVpZRoMiAd+V00zXAuQLDdFDaGxxpKCtz1z+uI2xKvac3XRJpc+eDkeYQWqoQL5aTZMfu8ZvE9F/TEssaUw==}
+  '@vvedantb/ui@0.13.1':
+    resolution: {integrity: sha512-EufFJux08mdhBnsOlI8gpeBX/i0BPh6kAq1MCxmGonY23q0R6n12DvGki+YfpUIwNi+SaGNTChX+v3hToEU0sQ==}
     peerDependencies:
       '@clerk/clerk-react': '>=5'
       '@radix-ui/react-accordion': ^1.2.12
@@ -14752,7 +14752,7 @@ snapshots:
       motion: 12.38.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       zod: 3.25.76
 
-  '@vvedantb/ui@0.13.0(c240dfa8597f39e519c2ca02806b4923)':
+  '@vvedantb/ui@0.13.1(c240dfa8597f39e519c2ca02806b4923)':
     dependencies:
       '@radix-ui/react-accordion': 1.2.20(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@radix-ui/react-checkbox': 1.3.3(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)

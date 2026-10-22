@@ -40,6 +40,11 @@ export function toVersionSummaries(
   }));
 }
 
+// delete is a soft delete: Undo on the toast, Restore for 30 days
+// (ARTIFACT_TRASH_MS in the backend)
+export const ARTIFACT_DELETE_DESCRIPTION =
+  "It moves to the trash; you can undo or restore it for 30 days.";
+
 const REF_KIND_LABELS: Record<ArtifactRef["kind"], string> = {
   memory: "Memory",
   file: "File",
@@ -50,6 +55,17 @@ const REF_KIND_LABELS: Record<ArtifactRef["kind"], string> = {
 
 export function artifactRefLabel(ref: Pick<ArtifactRef, "kind">): string {
   return REF_KIND_LABELS[ref.kind];
+}
+
+// a readable memory shows its title; anything else shows the kind and the id
+export function artifactRefText(ref: ArtifactRef): {
+  label: string;
+  description: string;
+} {
+  if (ref.kind === "memory" && ref.title) {
+    return { label: ref.title, description: artifactRefLabel(ref) };
+  }
+  return { label: artifactRefLabel(ref), description: ref.target };
 }
 
 // memory refs first (they link to the memory), then the rest by kind

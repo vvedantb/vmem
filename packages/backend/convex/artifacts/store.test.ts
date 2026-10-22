@@ -545,3 +545,177 @@ describe("artifacts trash", () => {
     });
   });
 });
+
+async function seedMemory(
+  t: Backend,
+  memory: {
+    memoryId: string;
+    userId: string;
+    title: string;
+    profileId?: string;
+  },
+) {
+  await t.run(async (ctx) => {
+    await ctx.db.insert("memories", {
+      ...memory,
+      content: `${memory.title} body`,
+      type: "knowledge",
+      source: "api",
+      confidence: 0.9,
+      status: "active",
+      tags: [],
+      createdAt: START,
+      updatedAt: START,
+      contentHash: memory.memoryId,
+      visitCount: 1,
+      firstVisitAt: START,
+      lastVisitAt: START,
+    });
+  });
+}
+
+describe("artifact memory refs", () => {
+  it("adds titles for readable memories only (web and mcp)", async () => {
+    const t = setup();
+    await seedUsers(t, ["clerk_a", "clerk_b"]);
+    await seedMemory(t, { memoryId: "m_a", userId: "clerk_a", title: "Mine" });
+    await seedMemory(t, {
+      memoryId: "m_b",
+      userId: "clerk_b",
+      title: "Secret of B",
+    });
+    const a = as(t, "clerk_a");
+    const { id } = await a.mutation(api.artifacts.api.create, htmlArgs("x"));
+    for (const target of ["m_a", "m_b", "m_gone"]) {
+      await a.mutation(api.artifacts.api.link, {
+        id,
+        kind: "memory",
+        target,
+      });
+    }
+    await a.mutation(api.artifacts.api.link, {
+      id,
+      kind: "file",
+      target: "f1",
+    });
+
+    const byTarget = (
+      refs: Array<{ target: string; exists?: boolean; title?: string }>,
+    ) =>
+      Object.fromEntries(
+        refs.map((ref) => [
+          ref.target,
+          { exists: ref.exists, title: ref.title },
+        ]),
+      );
+    const expected = {
+      m_a: { exists: true, title: "Mine" },
+      m_b: { exists: false, title: undefined },
+      m_gone: { exists: false, title: undefined },
+      f1: { exists: undefined, title: undefined },
+    };
+
+    const refs = await a.query(api.artifacts.api.refs, { id });
+    expect(byTarget(refs)).toEqual(expected);
+    expect(JSON.stringify(refs)).not.toContain("Secret of B");
+
+    const got = await t.query(internal.artifacts.mcp.getByClerkIdInternal, {
+      clerkId: "clerk_a",
+      scope: "personal",
+      id,
+      includeBody: false,
+    });
+    expect(byTarget(got?.refs ?? [])).toEqual(expected);
+    expect(JSON.stringify(got)).not.toContain("Secret of B");
+
+    const linked = await t.mutation(
+      internal.artifacts.mcp.linkByClerkIdInternal,
+      {
+        clerkId: "clerk_a",
+        scope: "personal",
+        id,
+        remove: [{ kind: "file", target: "f1" }],
+      },
+    );
+    expect(byTarget(linked.refs)).toEqual({
+      m_a: expected.m_a,
+      m_b: expected.m_b,
+      m_gone: expected.m_gone,
+    });
+  });
+
+  it("resolves team artifacts against the team profile", async () => {
+    const t = setup();
+    const [ownerId, memberId] = await seedUsers(t, ["clerk_a", "clerk_b"]);
+    if (ownerId === undefined || memberId === undefined)
+      throw new Error("seed failed");
+    const teamId = await seedTeam(t, [ownerId, memberId]);
+    const teamProfileId = await t.run(async (ctx) =>
+      ctx.db.insert("profiles", {
+        userId: ownerId,
+        name: "Team",
+        color: "#3B82F6",
+        icon: "users",
+        isDefault: false,
+        teamId,
+        createdAt: START,
+        updatedAt: START,
+      }),
+    );
+    await seedMemory(t, {
+      memoryId: "m_team",
+      userId: "clerk_a",
+      profileId: teamProfileId,
+      title: "Team note",
+    });
+    // the owner's personal memory must not show on a team artifact
+    await seedMemory(t, {
+      memoryId: "m_personal",
+      userId: "clerk_a",
+      title: "Private note",
+    });
+    const a = as(t, "clerk_a");
+    const { id } = await a.mutation(api.artifacts.api.create, {
+      ...htmlArgs("x"),
+      teamId,
+    });
+    for (const target of ["m_team", "m_personal"]) {
+      await a.mutation(api.artifacts.api.link, {
+        id,
+        kind: "memory",
+        target,
+      });
+    }
+
+    const refs = await as(t, "clerk_b").query(api.artifacts.api.refs, { id });
+    expect(
+      Object.fromEntries(refs.map((ref) => [ref.target, ref.title ?? null])),
+    ).toEqual({ m_team: "Team note", m_personal: null });
+
+    const got = await t.query(internal.artifacts.mcp.getByClerkIdInternal, {
+      clerkId: "clerk_b",
+      scope: "team",
+      id,
+      includeBody: false,
+    });
+    expect(JSON.stringify(got)).toContain("Team note");
+    expect(JSON.stringify(got)).not.toContain("Private note");
+  });
+
+  it("resolves at most 50 memory refs per read", async () => {
+    const t = setup();
+    await seedUsers(t, ["clerk_a"]);
+    const a = as(t, "clerk_a");
+    const { id } = await a.mutation(api.artifacts.api.create, htmlArgs("x"));
+    for (let i = 0; i < 52; i += 1) {
+      await a.mutation(api.artifacts.api.link, {
+        id,
+        kind: "memory",
+        target: `m${String(i)}`,
+      });
+    }
+    const refs = await a.query(api.artifacts.api.refs, { id });
+    expect(refs).toHaveLength(52);
+    expect(refs.filter((ref) => ref.exists !== undefined)).toHaveLength(50);
+  });
+});
