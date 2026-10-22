@@ -15,7 +15,7 @@ const MAX_LINKS_PER_WRITE = 32;
 
 type MemoryLinkOrigin = "manual" | "entity" | "extract";
 
-interface GraphEntityNode {
+export interface GraphEntityNode {
   id: string;
   name: string;
   normalizedName: string;
@@ -51,35 +51,47 @@ export async function listKnownEntities(
   }));
 }
 
-export async function listEntitiesForGraph(
+interface GraphPage {
+  cursor: string | null;
+  numItems: number;
+}
+
+// one page of the user's entities, in creation order
+export async function paginateEntitiesForGraph(
   ctx: QueryCtx,
   userId: string,
-): Promise<{ nodes: GraphEntityNode[]; mentions: GraphMentionEdge[] }> {
-  const entities = await ctx.db
+  page: GraphPage,
+) {
+  const result = await ctx.db
     .query("memoryEntities")
     .withIndex("by_user", (q) => q.eq("userId", userId))
-    .collect();
-  const nodes: GraphEntityNode[] = entities.map((row) => ({
+    .paginate(page);
+  const rows: GraphEntityNode[] = result.page.map((row) => ({
     id: graphEntityId(row.normalizedName),
     name: row.name,
     normalizedName: row.normalizedName,
     type: row.type,
     createdAt: row.createdAt,
   }));
-  const mentions: GraphMentionEdge[] = [];
-  for (const entity of entities) {
-    const rows = await ctx.db
-      .query("memoryEntityMentions")
-      .withIndex("by_entity", (q) => q.eq("entityId", entity._id))
-      .collect();
-    for (const row of rows) {
-      mentions.push({
-        memoryId: row.memoryId,
-        entityId: graphEntityId(entity.normalizedName),
-      });
-    }
-  }
-  return { nodes, mentions };
+  return { ...result, page: rows };
+}
+
+// one page of the user's mentions; each row carries normalizedName, so the
+// graph entity id needs no entity lookup
+export async function paginateEntityMentionsForGraph(
+  ctx: QueryCtx,
+  userId: string,
+  page: GraphPage,
+) {
+  const result = await ctx.db
+    .query("memoryEntityMentions")
+    .withIndex("by_user_normalized", (q) => q.eq("userId", userId))
+    .paginate(page);
+  const rows: GraphMentionEdge[] = result.page.map((row) => ({
+    memoryId: row.memoryId,
+    entityId: graphEntityId(row.normalizedName),
+  }));
+  return { ...result, page: rows };
 }
 
 async function listRecentCandidates(
