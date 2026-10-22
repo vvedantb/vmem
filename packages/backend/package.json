@@ -40,7 +40,7 @@
     "@scure/base": "^2.2.0",
     "@vmem/sdk": "workspace:*",
     "@vmem/shared": "workspace:*",
-    "@vvedantb/server": "0.6.0",
+    "@vvedantb/server": "0.6.1",
     "ai": "^7.0.108",
     "arctic": "~3.7.0",
     "convex": "catalog:",
