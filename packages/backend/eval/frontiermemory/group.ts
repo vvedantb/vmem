@@ -2,111 +2,65 @@ import { head, jaccard, slugify, tokenize } from "./text.ts";
 import type { NormalizedRun, TaskGroup, TaskSpec } from "./types.ts";
 
 interface GroupOptions {
-  /** Weighted share of a task's tokens that a prompt must contain. */
-  minTaskScore: number;
+  /** Raw-run mentions of a task keyword that count as working on that task. */
+  minBodyMentions: number;
   /** Shingle Jaccard at which two prompts are the same task. */
   clusterThreshold: number;
 }
 
 const DEFAULT_GROUP_OPTIONS: GroupOptions = {
-  minTaskScore: 0.35,
+  // Runs set in a task's world name it dozens of times; a passing mention
+  // (a pinned dependency, a directory listing) is 1 or 2.
+  minBodyMentions: 20,
   clusterThreshold: 0.4,
 };
 
 const SHINGLE_WORDS = 3;
 const SHINGLE_PROMPT_TOKENS = 400;
 
-interface TaskIndex {
-  task: TaskSpec;
-  /** id + title tokens: the strongest signal. */
-  nameTokens: Set<string>;
-  descriptionTokens: Set<string>;
-  phrases: string[];
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-/** Share of the score from id/title tokens; the rest from the description. */
-const NAME_WEIGHT = 0.6;
-
-/** idf over the task list, so tokens shared by many tasks count less. */
-function buildTaskIndex(tasks: readonly TaskSpec[]): {
-  entries: TaskIndex[];
-  idf: Map<string, number>;
-} {
-  const entries = tasks.map((task) => ({
-    task,
-    nameTokens: new Set(tokenize(`${task.id} ${task.title}`)),
-    descriptionTokens: new Set(tokenize(task.description)),
-    phrases: [task.id, task.title].map((phrase) => phrase.toLowerCase()),
-  }));
-  const df = new Map<string, number>();
-  for (const entry of entries) {
-    for (const token of new Set([
-      ...entry.nameTokens,
-      ...entry.descriptionTokens,
-    ])) {
-      df.set(token, (df.get(token) ?? 0) + 1);
-    }
-  }
-  const idf = new Map<string, number>();
-  for (const [token, count] of df) {
-    idf.set(token, Math.log(1 + entries.length / count));
-  }
-  return { entries, idf };
+function keywordHits(lowerPrompt: string, keyword: string): number {
+  const pattern = new RegExp(
+    `(?<![a-z0-9])${escapeRegExp(keyword)}(?![a-z0-9])`,
+    "g",
+  );
+  return lowerPrompt.match(pattern)?.length ?? 0;
 }
 
-/** Best public task for a prompt, or null under the score threshold. */
+/**
+ * Best public task for a run, or null. The prompt naming a task keyword
+ * wins (most hits); else the keyword most mentioned in the whole run, if it
+ * reaches `minBodyMentions`. Ties go to the earlier task.
+ */
 export function matchTask(
   prompt: string,
   tasks: readonly TaskSpec[],
-  minScore = DEFAULT_GROUP_OPTIONS.minTaskScore,
-): { taskId: string; score: number } | null {
-  const { entries, idf } = buildTaskIndex(tasks);
-  return matchWithIndex(prompt, entries, idf, minScore);
-}
-
-function weightedShare(
-  tokens: ReadonlySet<string>,
-  promptTokens: ReadonlySet<string>,
-  idf: ReadonlyMap<string, number>,
-): number {
-  let hit = 0;
-  let total = 0;
-  for (const token of tokens) {
-    const weight = idf.get(token) ?? 0;
-    total += weight;
-    if (promptTokens.has(token)) hit += weight;
-  }
-  return total > 0 ? hit / total : 0;
-}
-
-/** 1 for a literal id/title hit, else idf-weighted name and description overlap. */
-function taskScore(
-  entry: TaskIndex,
-  lowerPrompt: string,
-  promptTokens: ReadonlySet<string>,
-  idf: ReadonlyMap<string, number>,
-): number {
-  if (entry.phrases.some((phrase) => lowerPrompt.includes(phrase))) return 1;
-  return (
-    NAME_WEIGHT * weightedShare(entry.nameTokens, promptTokens, idf) +
-    (1 - NAME_WEIGHT) *
-      weightedShare(entry.descriptionTokens, promptTokens, idf)
-  );
-}
-
-function matchWithIndex(
-  prompt: string,
-  entries: readonly TaskIndex[],
-  idf: ReadonlyMap<string, number>,
-  minScore: number,
-): { taskId: string; score: number } | null {
+  mentions: Readonly<Record<string, number>> = {},
+  minBodyMentions = DEFAULT_GROUP_OPTIONS.minBodyMentions,
+): { taskId: string; via: "prompt" | "body"; score: number } | null {
   const lower = prompt.toLowerCase();
-  const promptTokens = new Set(tokenize(prompt));
-  let best: { taskId: string; score: number } | null = null;
-  for (const entry of entries) {
-    const score = taskScore(entry, lower, promptTokens, idf);
-    if (score >= minScore && (best === null || score > best.score)) {
-      best = { taskId: entry.task.id, score };
+  let best: { taskId: string; via: "prompt" | "body"; score: number } | null =
+    null;
+  for (const task of tasks) {
+    const score = task.keywords.reduce(
+      (sum, keyword) => sum + keywordHits(lower, keyword),
+      0,
+    );
+    if (score > 0 && (best === null || score > best.score)) {
+      best = { taskId: task.id, via: "prompt", score };
+    }
+  }
+  if (best) return best;
+  for (const task of tasks) {
+    const score = Math.max(
+      0,
+      ...task.keywords.map((keyword) => mentions[keyword] ?? 0),
+    );
+    if (score >= minBodyMentions && (best === null || score > best.score)) {
+      best = { taskId: task.id, via: "body", score };
     }
   }
   return best;
@@ -184,10 +138,9 @@ export function groupRuns(
   tasks: readonly TaskSpec[],
   options: GroupOptions = DEFAULT_GROUP_OPTIONS,
 ): TaskGroup[] {
-  const { entries, idf } = buildTaskIndex(tasks);
   const matches = runs.map(
     (run) =>
-      matchWithIndex(run.taskPrompt, entries, idf, options.minTaskScore)
+      matchTask(run.taskPrompt, tasks, run.mentions, options.minBodyMentions)
         ?.taskId ?? null,
   );
   const shingleSets = runs.map((run) => shingles(run.taskPrompt));

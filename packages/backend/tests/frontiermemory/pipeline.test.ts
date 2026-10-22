@@ -74,8 +74,8 @@ describe("runPipeline", () => {
     const summary = await runPipeline(options(["--dry-run"]), () =>
       Promise.reject(new Error("must not be called")),
     );
-    expect(summary.runs).toBe(6);
-    expect(summary.estimate.lessonCalls).toBe(6);
+    expect(summary.runs).toBe(8);
+    expect(summary.estimate.lessonCalls).toBe(8);
     expect(summary.estimate.costUsd).toBeGreaterThan(0);
     expect(summary.llm).toBeNull();
     expect(existsSync(path.join(tmp, "memory"))).toBe(false);
@@ -97,7 +97,7 @@ describe("runPipeline", () => {
       "cattrs-compositional-changelog",
     ]);
     expect(summary.llm).toMatchObject({
-      calls: 6,
+      calls: 7,
       skippedCalls: 0,
       budgetHit: false,
     });
@@ -119,7 +119,7 @@ describe("runPipeline", () => {
       path.join(tmp, "memory.work", "episodes.jsonl"),
       "utf8",
     );
-    expect(episodes.trim().split("\n")).toHaveLength(4);
+    expect(episodes.trim().split("\n")).toHaveLength(5);
   });
 
   it("falls back to the deterministic merge with --no-llm-merge", async () => {

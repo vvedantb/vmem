@@ -17,7 +17,7 @@ import { approxTokens } from "./text.ts";
 import { lessonSchema, type Lesson } from "./types.ts";
 
 /** Bump when the prompt changes so cached lessons are not reused. */
-const LESSONS_PROMPT_VERSION = 1;
+const LESSONS_PROMPT_VERSION = 2;
 const EXPECTED_OUTPUT_TOKENS = 800;
 const MAX_LESSONS_PER_RUN = 8;
 
@@ -25,7 +25,7 @@ export const DEFAULT_LESSON_MODEL = AI_GATEWAY_CHAT_MODEL;
 
 const SYSTEM_PROMPT = `You turn one past AI-agent run into reusable lessons for a memory folder. A future agent reads that folder before it does the same or a similar task. It has no other access to this run.
 
-You see the task prompt, later user messages, the final assistant turns and the verifier result (PASS or FAIL).
+You see the task prompt, later user messages, the trajectory (assistant text, thinking, tool calls, tool results and errors; long runs omit middle steps) and the verifier result (PASS or FAIL).
 
 Rules:
 - Be outcome-aware. If the run FAILED, find what most likely caused the failure and write it as a pitfall ("Do not X; do Y instead"). Do not record a failed run's approach as a procedure unless it is clearly not related to the failure. If the run PASSED, record the steps and checks that made it pass as procedures.

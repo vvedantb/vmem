@@ -57,6 +57,14 @@ export function tail(text: string, maxChars: number): string {
   return `…${text.slice(text.length - Math.max(0, maxChars - 1))}`;
 }
 
+/** Keeps both ends: two thirds head, one third tail. */
+export function clip(text: string, maxChars: number): string {
+  if (text.length <= maxChars) return text;
+  const keep = Math.max(0, maxChars - 1);
+  const headChars = Math.ceil((keep * 2) / 3);
+  return `${text.slice(0, headChars)}…${text.slice(text.length - (keep - headChars))}`;
+}
+
 export function approxTokens(chars: number): number {
   return Math.ceil(chars / 4);
 }
