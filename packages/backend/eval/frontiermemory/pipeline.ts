@@ -229,9 +229,8 @@ export async function runPipeline(
         }));
         const deterministic = mergeDeterministic(group, runLessons);
         if (!options.llmMerge) return deterministic.merged;
-        const description =
-          tasks.find((task) => task.id === group.taskId)?.description ?? null;
-        return mergeWithLlm(group, deterministic, description, {
+        // tasks.json is for matching only: no title or description is sent.
+        return mergeWithLlm(group, deterministic, {
           client,
           budget,
           model: options.model,

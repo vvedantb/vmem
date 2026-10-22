@@ -162,6 +162,39 @@ describe("buildMemoryFiles", () => {
   });
 });
 
+describe("topic labels", () => {
+  it("never writes raw JSON as a label and uses one title everywhere", () => {
+    const files = buildMemoryFiles([
+      group({
+        groupId: "cluster-1-grid",
+        taskId: null,
+        label: "[[7, 7, 0], [1, 2]] Map each input grid to its output grid.",
+        skills: [],
+      }),
+      group({
+        groupId: "cluster-2-numbers",
+        taskId: null,
+        label: "[[1, 2], [3, 4]]",
+        skills: [],
+      }),
+    ]);
+    const index = files[0]?.content ?? "";
+    expect(index).toContain(
+      "- [Map each input grid to its output grid](topics/cluster-1-grid.md)",
+    );
+    expect(index).toContain(
+      "- [cluster-2-numbers](topics/cluster-2-numbers.md)",
+    );
+    expect(index).not.toContain("[[");
+    const topic = files.find(
+      (file) => file.path === "topics/cluster-1-grid.md",
+    );
+    expect(topic?.content).toMatch(
+      /^# Map each input grid to its output grid\n/,
+    );
+  });
+});
+
 describe("MEMORY.md cap", () => {
   const many = Array.from({ length: 204 }, (_, i) =>
     group({

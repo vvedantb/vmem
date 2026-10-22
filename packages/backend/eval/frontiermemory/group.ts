@@ -1,4 +1,4 @@
-import { head, jaccard, slugify, tokenize } from "./text.ts";
+import { jaccard, slugify, tokenize, topicTitle } from "./text.ts";
 import type { NormalizedRun, TaskGroup, TaskSpec } from "./types.ts";
 
 interface GroupOptions {
@@ -227,13 +227,11 @@ export function groupRuns(
     clusterNumber += 1;
     const prompts = members.map((run) => run.taskPrompt);
     const keywords = topKeywords(prompts, 3);
-    const firstLine = (prompts[0] ?? "")
-      .split("\n")
-      .find((line) => line.trim());
+    const title = prompts.map((prompt) => topicTitle(prompt)).find(Boolean);
     return {
       id: `cluster-${clusterNumber}-${slugify(keywords.join(" "), 32)}`,
       taskId: null,
-      label: head(firstLine?.trim() ?? keywords.join(" "), 80),
+      label: title ?? `Runs about ${keywords.join(", ") || "an unknown task"}`,
       files,
     };
   });

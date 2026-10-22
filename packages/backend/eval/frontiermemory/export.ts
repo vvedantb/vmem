@@ -6,7 +6,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import path from "node:path";
-import { head, redactSecrets, slugify } from "./text.ts";
+import { head, redactSecrets, slugify, topicTitle } from "./text.ts";
 import type { LessonKind, MergedGroup, SkillDefinition } from "./types.ts";
 
 interface MemoryFile {
@@ -40,6 +40,11 @@ export function toUseWhen(description: string): string {
   return `Use when ${body || "this procedure applies."}`;
 }
 
+/** Readable label for MEMORY.md and the topic heading. Never raw JSON. */
+function topicLabel(group: MergedGroup): string {
+  return topicTitle(group.label) || group.groupId;
+}
+
 function capSize(content: string, maxBytes: number): string {
   if (Buffer.byteLength(content) <= maxBytes) return content;
   const budget = maxBytes - Buffer.byteLength(TRUNCATED_NOTE);
@@ -60,7 +65,7 @@ function topicContent(
   skillPaths: readonly { name: string; file: string }[],
 ): string {
   const lines = [
-    `# ${oneLine(group.label)}`,
+    `# ${topicLabel(group)}`,
     "",
     group.taskId
       ? `Task id: \`${group.taskId}\`.`
@@ -223,7 +228,7 @@ export function buildMemoryFiles(
     files.push({ path: topicPath, content: topicContent(group, skillPaths) });
     const taskNote = group.taskId ? `task \`${group.taskId}\`, ` : "";
     topicLines.push(
-      `- [${head(oneLine(group.label), 80)}](${topicPath}): ${taskNote}${group.runs} runs (${group.pass} PASS, ${group.fail} FAIL)`,
+      `- [${topicLabel(group)}](${topicPath}): ${taskNote}${group.runs} runs (${group.pass} PASS, ${group.fail} FAIL)`,
     );
     skills.forEach((skill, i) => {
       const file = skillPaths[i]?.file ?? `skills/${skill.name}/SKILL.md`;

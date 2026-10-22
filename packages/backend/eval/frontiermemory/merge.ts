@@ -12,8 +12,10 @@ import {
   approxTokens,
   jaccard,
   lessonKey,
+  plainTitle,
   shortHash,
   slugify,
+  tokenize,
 } from "./text.ts";
 import {
   lessonSchema,
@@ -33,17 +35,27 @@ const SUPERSEDES_MATCH_THRESHOLD = 0.5;
 const MAX_INSTRUCTIONS = 20;
 const MAX_SKILLS = 3;
 const MIN_SKILL_STEPS = 3;
+const MAX_SKILL_STEPS = 10;
 const EXPECTED_MERGE_OUTPUT_TOKENS = 1500;
-const MERGE_PROMPT_VERSION = 1;
+const MERGE_PROMPT_VERSION = 2;
 
 // uuids, long hex, temp paths, ISO times, long numbers: true for one run only.
 const RUN_SPECIFIC_PATTERN =
   /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b|\b[0-9a-f]{10,}\b|\/tmp\/|\/var\/folders\/|\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}|\b\d{6,}\b/i;
+// Sizes, counts and precise values a skill step must not carry from one run.
+const RUN_NUMBER_PATTERN =
+  /\b\d+\.\d{3,}\b|\b\d[\d,.]*\s*(?:bytes?|[kmgt]i?b|rows?|lines?|records?|entries|items?|samples?|tokens?|files?|seconds?|ms|%)(?![a-z])/i;
+// A step that opens with an article or pronoun is a statement, not a command.
+const NOT_IMPERATIVE =
+  /^(?:the|this|that|these|those|it|its|there|i|we|you|they|my|our|a|an|is|are|was|were)\b/i;
 
 interface Candidate {
   lesson: Lesson;
   file: string;
+  outcome: RunLessons["outcome"];
   order: number | null;
+  /** Index of the lesson in its run's list: the step order the run used. */
+  position: number;
   weight: number;
 }
 
@@ -83,10 +95,12 @@ function newer(a: number | null, b: number | null): boolean {
 
 function clusterLessons(runs: readonly RunLessons[]): Cluster[] {
   const candidates: Candidate[] = runs.flatMap((run) =>
-    run.lessons.map((lesson) => ({
+    run.lessons.map((lesson, position) => ({
       lesson,
       file: run.file,
+      outcome: run.outcome,
       order: run.orderHint,
+      position,
       weight: outcomeWeight(lesson, run.outcome),
     })),
   );
@@ -166,9 +180,15 @@ function applySupersession(clusters: readonly Cluster[]): void {
   }
 }
 
-/** A kept cluster. `order` lets the LLM pass resolve preference conflicts. */
+/**
+ * A kept cluster. `order` lets the LLM pass resolve preference conflicts.
+ * `passBacked`: a PASS run gave it without linking it to a failure.
+ */
 interface Survivor extends MergedInstruction {
   order: number | null;
+  passBacked: boolean;
+  /** Earliest step position of any member, to order skill steps. */
+  position: number;
 }
 
 function toSurvivor(cluster: Cluster): Survivor {
@@ -177,30 +197,126 @@ function toSurvivor(cluster: Cluster): Survivor {
     kind: cluster.kind,
     support: cluster.files.size,
     order: cluster.order,
+    passBacked: cluster.members.some(
+      (member) =>
+        member.outcome === "PASS" &&
+        member.lesson.outcome_link !== "led_to_fail",
+    ),
+    position: Math.min(...cluster.members.map((member) => member.position)),
   };
 }
 
-function deterministicSkills(
-  group: TaskGroup,
-  procedures: readonly Cluster[],
-): SkillDefinition[] {
-  const steps = procedures
-    .filter((cluster) => cluster.members.some((member) => member.weight >= 1.5))
-    .map((cluster) => cluster.text);
-  if (steps.length < MIN_SKILL_STEPS) return [];
-  return [
-    {
-      name: `${slugify(group.id, 40)}-workflow`,
-      description: `Use when working on "${group.label}": follow the steps that passing runs used.`,
-      steps,
-    },
-  ];
+/** One imperative step that holds for any future run, else null. */
+function skillStep(text: string): string | null {
+  const step = text
+    .replace(/^\s*(?:step\s*\d+\s*[:.)-]?|\d+[.)])\s*/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (
+    step.length === 0 ||
+    NOT_IMPERATIVE.test(step) ||
+    RUN_SPECIFIC_PATTERN.test(step) ||
+    RUN_NUMBER_PATTERN.test(step)
+  ) {
+    return null;
+  }
+  return step;
+}
+
+function skillSteps(texts: readonly string[]): string[] {
+  const steps: string[] = [];
+  for (const text of texts) {
+    const step = skillStep(text);
+    if (step === null) continue;
+    const key = lessonKey(step);
+    if (
+      steps.some((kept) => jaccard(lessonKey(kept), key) >= DUPLICATE_THRESHOLD)
+    ) {
+      continue;
+    }
+    steps.push(step);
+  }
+  return steps.slice(0, MAX_SKILL_STEPS);
+}
+
+const TRIGGER_PATTERN = /^use when a task (names|asks to)\s+(.+)$/i;
+/** Near-miss openers the model writes, and the trigger verb they mean. */
+const TRIGGER_REPAIRS: readonly [RegExp, "names" | "asks to"][] = [
+  [
+    /^use when (?:a |the )?(?:task|user|prompt|request)s?\s+(?:names?|mentions?|references?|is about|involves)\s+/i,
+    "names",
+  ],
+  [
+    /^use when (?:a |the )?(?:task|user|prompt|request)s?\s+(?:asks?|wants?|needs?|requires?|tells?)\s+(?:you\s+)?to\s+/i,
+    "asks to",
+  ],
+  [
+    /^use when (?:you\s+)?(?:need|want|are asked|have|must|are required)\s+to\s+/i,
+    "asks to",
+  ],
+  [/^use when (?:asked|needing|required)\s+to\s+/i, "asks to"],
+];
+// Triggers that name no concrete task, product, file, tool or action.
+const VAGUE_TRIGGER =
+  /^(?:work(?:ing)?\s+on|deal(?:ing)?\s+with|help(?:ing)?\s+with|handl(?:e|ing)|do(?:ing)?|perform(?:ing)?|this|these|that|it|similar|related|any|something|(?:a|the|this)\s+(?:same\s+|similar\s+|current\s+|given\s+)?task)\b/i;
+
+/**
+ * A direct trigger ("Use when a task names X" / "Use when a task asks to
+ * X"), repaired from a near miss. Null when vague or another shape.
+ */
+export function triggerDescription(description: string): string | null {
+  const text = description
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/^["']+|["']+$/g, "");
+  let verb: "names" | "asks to" | null = null;
+  let rest = "";
+  const direct = TRIGGER_PATTERN.exec(text);
+  if (direct) {
+    verb = direct[1]?.toLowerCase() === "names" ? "names" : "asks to";
+    rest = direct[2] ?? "";
+  } else {
+    for (const [pattern, repaired] of TRIGGER_REPAIRS) {
+      if (!pattern.test(text)) continue;
+      verb = repaired;
+      rest = text.replace(pattern, "");
+      break;
+    }
+  }
+  if (
+    verb === null ||
+    VAGUE_TRIGGER.test(rest) ||
+    tokenize(rest).length === 0
+  ) {
+    return null;
+  }
+  return `Use when a task ${verb} ${rest}`;
+}
+
+function fallbackDescription(title: string): string {
+  return `Use when a task names ${title.replace(/[.…]+$/, "")}.`;
+}
+
+/** Deterministic skill from the PASS-backed procedure steps. */
+function fallbackSkill(
+  title: string,
+  steps: readonly string[],
+): SkillDefinition {
+  return {
+    name: `${slugify(title, 40)}-workflow`,
+    description: fallbackDescription(title),
+    steps: [...steps],
+  };
 }
 
 interface DeterministicMerge {
   merged: MergedGroup;
   /** Surviving clusters, strongest first. Input to the LLM pass. */
   survivors: Survivor[];
+  /** Generalisable steps from PASS-backed procedures, for the fallback skill. */
+  skillSteps: string[];
+  /** At least one PASS run and enough steps: a skill must be written. */
+  skillRequired: boolean;
 }
 
 /** Pure first pass: dedupe, outcome weighting, support filter, supersession. */
@@ -223,14 +339,24 @@ export function mergeDeterministic(
     )
     .slice(0, MAX_INSTRUCTIONS);
   const survivors = kept.map((cluster) => toSurvivor(cluster));
+  const pass = runs.filter((run) => run.outcome === "PASS").length;
+  const steps = skillSteps(
+    survivors
+      .filter((item) => item.kind === "procedure" && item.passBacked)
+      .sort((a, b) => a.position - b.position)
+      .map((item) => item.text),
+  );
+  const skillRequired = pass >= 1 && steps.length >= MIN_SKILL_STEPS;
   return {
     survivors,
+    skillSteps: steps,
+    skillRequired,
     merged: {
       groupId: group.id,
       taskId: group.taskId,
       label: group.label,
       runs: runs.length,
-      pass: runs.filter((run) => run.outcome === "PASS").length,
+      pass,
       fail: runs.filter((run) => run.outcome === "FAIL").length,
       instructions: survivors.map((item) => ({
         text: item.text,
@@ -242,26 +368,27 @@ export function mergeDeterministic(
           ? []
           : [{ text: cluster.text, supersededBy: cluster.supersededBy }],
       ),
-      skills: deterministicSkills(
-        group,
-        kept.filter((cluster) => cluster.kind === "procedure"),
-      ),
+      skills: skillRequired ? [fallbackSkill(group.label, steps)] : [],
       source: "deterministic",
     },
   };
 }
 
-const MERGE_SYSTEM_PROMPT = `You write the memory a future AI agent reads before it does a task. You get candidate lessons mined from past runs of that task, ranked strongest first, with how many runs support each and the run outcomes.
+const MERGE_SYSTEM_PROMPT = `You write the memory a future AI agent reads before it does a task. You get candidate lessons mined from past runs of one topic, ranked strongest first, with how many runs support each, whether a passing run backs it, and the run outcomes.
 
 Rules:
-- Rewrite them as at most ${MAX_INSTRUCTIONS} concise imperative instructions. Each starts with a verb. Merge overlaps. Keep the exact formats, file names, config keys and commands the lessons name.
+- title: a short plain-words title for the topic, at most 60 characters, that names the task, product, file or tool. No brackets, quotes, JSON, code, or numbers from one run.
+- instructions: rewrite the lessons as at most ${MAX_INSTRUCTIONS} concise imperative instructions. Each starts with a verb. Merge overlaps. Keep the exact formats, file names, config keys and commands the lessons name.
 - Prefer instructions backed by passing runs and pitfalls backed by failing runs. Drop vague or contradictory items.
 - Keep every user preference that is still in force. If two preferences conflict, keep only the newer one (listed first). Never include a superseded preference.
 - Do not add run-specific ids, hashes, temp paths or one-off numbers. Do not invent facts that are not in the lessons.
-- Define 0 to ${MAX_SKILLS} skills, only for reusable multi-step procedures. Each skill: a kebab-case name, a description that starts with "Use when" and names the situation that should trigger it, and 3 to 10 imperative steps.
+- skills: follow the "Skill rule" line of the input. A skill is a reusable multi-step procedure taken from the PASS-backed procedure lessons. Each skill has:
+  - name: kebab-case, names the procedure.
+  - description: a direct trigger in one of two forms: "Use when a task names <concrete task, product, file or tool>..." or "Use when a task asks to <concrete action>...". Never a vague trigger such as "Use when working on this task" or "Use when doing similar tasks".
+  - steps: ${MIN_SKILL_STEPS} to ${MAX_SKILL_STEPS} imperative steps. Each starts with a verb and holds for any future run: no ids, hashes, paths, sizes, counts or other numbers from one past run.
 
 Reply with only JSON:
-{"instructions": [{"text": "...", "kind": "procedure|preference|pitfall|fact"}], "skills": [{"name": "...", "description": "Use when ...", "steps": ["..."]}]}`;
+{"title": "...", "instructions": [{"text": "...", "kind": "procedure|preference|pitfall|fact"}], "skills": [{"name": "...", "description": "Use when a task names ...", "steps": ["..."]}]}`;
 
 /** Rough tokens for one merge call (full lesson list), for --dry-run. */
 export const MERGE_CALL_ESTIMATE = {
@@ -270,39 +397,51 @@ export const MERGE_CALL_ESTIMATE = {
   completionTokens: EXPECTED_MERGE_OUTPUT_TOKENS,
 };
 
+const rawSkillSchema = z.object({
+  name: z.string().trim().min(1),
+  description: z.string().trim().catch(""),
+  steps: z.array(z.string()),
+});
+
+// Lenient: a bad title or skill is dropped, not the whole reply.
 const mergeResponseSchema = z.object({
+  title: z.string().nullish().catch(null),
   instructions: z.array(
     z.object({
       text: z.string().trim().min(1),
       kind: lessonSchema.shape.kind.catch("procedure"),
     }),
   ),
-  skills: z
-    .array(
-      z.object({
-        name: z.string().trim().min(1),
-        description: z.string().trim().min(1),
-        steps: z.array(z.string().trim().min(1)).min(1),
-      }),
-    )
-    .catch([]),
+  skills: z.array(rawSkillSchema.nullable().catch(null)).catch([]),
 });
 type MergeResponse = z.infer<typeof mergeResponseSchema>;
 
-function mergePrompt(
-  base: MergedGroup,
-  survivors: readonly Survivor[],
-  taskDescription: string | null,
-): string {
+function skillRule(deterministic: DeterministicMerge): string {
+  const { pass } = deterministic.merged;
+  if (pass === 0)
+    return 'Skill rule: no run passed. Define no skills ("skills": []).';
+  if (deterministic.skillRequired) {
+    return `Skill rule: ${pass} runs passed and ${deterministic.skillSteps.length} PASS-backed procedure lessons exist. Define at least 1 and at most ${MAX_SKILLS} skills.`;
+  }
+  return `Skill rule: define 0 to ${MAX_SKILLS} skills, only for a reusable multi-step procedure that a passing run used.`;
+}
+
+/**
+ * The user message. It names the topic by task id (clusters by their
+ * corpus-derived title) and never holds tasks.json titles or descriptions.
+ */
+function mergePrompt(deterministic: DeterministicMerge): string {
+  const base = deterministic.merged;
   const line = (item: Survivor) =>
-    `- [${item.kind}; ${item.support} runs] ${item.text}`;
+    `- [${item.kind}; ${item.support} runs${item.passBacked ? "; PASS-backed" : ""}] ${item.text}`;
+  const survivors = deterministic.survivors;
   const preferences = survivors
     .filter((item) => item.kind === "preference")
     .sort((a, b) => (b.order ?? -Infinity) - (a.order ?? -Infinity));
-  const lines = [
-    `# Task: ${base.label}`,
-    taskDescription ? `Description: ${taskDescription}` : null,
+  return [
+    `# Topic: ${base.taskId ?? base.label}`,
     `Runs: ${base.runs} (${base.pass} PASS, ${base.fail} FAIL)`,
+    skillRule(deterministic),
     "",
     "## Candidate lessons (strongest first)",
     ...survivors.filter((item) => item.kind !== "preference").map(line),
@@ -316,8 +455,42 @@ function mergePrompt(
           (item) => `- "${item.text}" replaced by "${item.supersededBy}"`,
         )
       : ["(none)"]),
-  ];
-  return lines.filter((line) => line !== null).join("\n");
+  ].join("\n");
+}
+
+/** A model skill with a direct trigger (repaired if vague) and general steps. */
+function validSkill(
+  skill: z.infer<typeof rawSkillSchema>,
+  title: string,
+): SkillDefinition | null {
+  const steps = skillSteps(skill.steps);
+  if (steps.length < MIN_SKILL_STEPS) return null;
+  return {
+    name: slugify(skill.name, 48),
+    description:
+      triggerDescription(skill.description) ?? fallbackDescription(title),
+    steps,
+  };
+}
+
+/**
+ * Model skills that pass validation. No PASS run means no skills. When a
+ * skill is required and none is valid, the deterministic fallback is used.
+ */
+function finalSkills(
+  raw: MergeResponse["skills"],
+  title: string,
+  deterministic: DeterministicMerge,
+): SkillDefinition[] {
+  if (deterministic.merged.pass === 0) return [];
+  const valid = raw
+    .flatMap((item) => {
+      const skill = item === null ? null : validSkill(item, title);
+      return skill ? [skill] : [];
+    })
+    .slice(0, MAX_SKILLS);
+  if (valid.length > 0 || !deterministic.skillRequired) return valid;
+  return [fallbackSkill(title, deterministic.skillSteps)];
 }
 
 interface LlmMergeOptions {
@@ -330,16 +503,17 @@ interface LlmMergeOptions {
 /**
  * One optional LLM call that generalises the deterministic survivors. Any
  * failure (budget cap, bad JSON, empty reply) keeps the deterministic result.
+ * Clusters take the model title when it is plain words; known tasks keep
+ * their tasks.json title.
  */
 export async function mergeWithLlm(
   group: TaskGroup,
   deterministic: DeterministicMerge,
-  taskDescription: string | null,
   options: LlmMergeOptions,
 ): Promise<MergedGroup> {
   const base = deterministic.merged;
   if (deterministic.survivors.length === 0) return base;
-  const prompt = mergePrompt(base, deterministic.survivors, taskDescription);
+  const prompt = mergePrompt(deterministic);
   const key = `merge-${shortHash(`${options.model}\n${MERGE_PROMPT_VERSION}\n${prompt}`)}`;
   let response: MergeResponse | null = readCache(
     options.cacheDir,
@@ -379,14 +553,15 @@ export async function mergeWithLlm(
     )
     .slice(0, MAX_INSTRUCTIONS)
     .map((item) => ({ text: item.text, kind: item.kind, support: 0 }));
+  const title =
+    base.taskId === null
+      ? (plainTitle(response.title ?? "") ?? base.label)
+      : base.label;
   return {
     ...base,
+    label: title,
     instructions,
-    skills: response.skills.slice(0, MAX_SKILLS).map((skill) => ({
-      name: slugify(skill.name, 48),
-      description: skill.description,
-      steps: skill.steps,
-    })),
+    skills: finalSkills(response.skills, title, deterministic),
     source: "llm",
   };
 }
