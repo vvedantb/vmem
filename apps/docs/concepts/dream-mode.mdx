@@ -3,7 +3,7 @@ title: "Dream Mode"
 description: "Nightly cleanup of duplicates, outdated facts and stale browsing history"
 ---
 
-Dream Mode cleans your memory while you sleep. It merges duplicates, expires old rows, archives stale browsing history and asks an AI judge about rows that look alike or disagree. Every change it makes can be undone for 30 days. After that, duplicate copies hidden by a merge are permanently deleted; other hidden rows are kept.
+Dream Mode cleans your memory while you sleep. It merges duplicates, expires old rows, archives stale browsing history and asks an AI judge about rows that look alike or disagree. Every change it makes can be undone for 30 days. After that, duplicate copies hidden by a merge or an AI-judged update are permanently deleted; archived and expired rows are kept.
 
 ## When it runs
 
@@ -83,7 +83,7 @@ Decay runs only after the profile has a previous successful run (`ok` or `partia
 
 The **Dreaming** page (`/{profileId}/dreaming`) has two tabs. **Proposals** is the default and lists pending [proposals](/concepts/proposed-updates) to approve or reject; its label shows the pending count. **History** lists the runs with their counts. The page header has **Scan for duplicates** and **Run dream mode**. You can undo one action or a whole run for **30 days**. Undo restores the before-snapshot of each row.
 
-After the 30 days, an hourly sweep permanently deletes the duplicate copies a deterministic merge hid (`suppressedBy: "dream"`). AI-judged merges, archived and expired rows are kept hidden. Once a hidden copy is gone, undo refuses the whole action or run and changes nothing. The log rows are purged 90 days after the undo window closes. Hidden rows never count in the dashboard stats. MCP [`dream_history`](/mcp/tools) reads the last 10 runs (counts only).
+After the 30 days, an hourly sweep permanently deletes the duplicate copies a merge hid (`suppressedBy: "dream"`) and the rows an AI-judged merge or update hid (`suppressedBy: "dream-ai"`). Archived (`"dream-decay"`) and expired rows are kept hidden. Once a hidden copy is gone, undo refuses the whole action or run and changes nothing. The log rows are purged 90 days after the undo window closes. Hidden rows never count in the dashboard stats. MCP [`dream_history`](/mcp/tools) reads the last 10 runs (counts only).
 
 Merged rows show where they came from ("merged from") on the memory.
 

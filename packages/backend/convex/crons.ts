@@ -69,7 +69,8 @@ crons.interval(
 );
 
 // permanently deletes duplicates a dream merge hid once their 30-day undo
-// window has passed (suppressedBy "dream" only), 100 rows a batch
+// window has passed (suppressedBy "dream" and "dream-ai", never
+// "dream-decay"), 100 rows a batch
 crons.interval(
   "sweep expired dream duplicates",
   { hours: 1 },

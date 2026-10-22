@@ -247,6 +247,7 @@ describe("nightly AI judge: near-duplicates (Jev)", () => {
       status: "suppressed",
       mergedInto: a,
       suppressedBy: "dream-ai",
+      suppressedAt: expect.any(Number),
     });
     expect((await getDoc(t, candidateId)).status).toBe("judged");
     const run = await lastRun(t, owner);
@@ -297,6 +298,7 @@ describe("nightly AI judge: near-duplicates (Jev)", () => {
       status: "suppressed",
       mergedInto: a,
       suppressedBy: "dream-ai",
+      suppressedAt: expect.any(Number),
     });
   });
 
@@ -412,6 +414,7 @@ describe("nightly AI judge: conflicts (Qwen)", () => {
       status: "suppressed",
       mergedInto: b,
       suppressedBy: "dream-ai",
+      suppressedAt: expect.any(Number),
     });
     expect((await getDoc(t, b)).status).toBe("active");
     const run = await lastRun(t, owner);
@@ -468,6 +471,8 @@ describe("nightly AI judge: conflicts (Qwen)", () => {
     expect(await getDoc(t, a)).toMatchObject({
       status: "suppressed",
       mergedInto: b,
+      suppressedBy: "dream-ai",
+      suppressedAt: expect.any(Number),
     });
     // no new memory is written for a dream update
     const rows = await t.run(async (ctx) => ctx.db.query("memories").collect());

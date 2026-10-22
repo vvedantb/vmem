@@ -38,8 +38,8 @@ import { trackMemoryChange } from "./memoryStore/stats";
 import { dreamActionFields, dreamRunFields } from "./validators";
 
 // dreaming log: merge with a before-snapshot, undo inside 30 days, purge the
-// log 90 days after that. Duplicates a merge hid ("dream") are deleted once
-// their undo window has passed.
+// log 90 days after that. Duplicates a merge hid ("dream" or "dream-ai") are
+// deleted once their undo window has passed.
 
 const RETENTION_AFTER_UNDO_MS = 90 * 24 * 60 * 60 * 1000;
 const PURGE_BATCH = 500;
@@ -396,7 +396,7 @@ export const applyMerge = internalMutation({
 });
 
 const UNDO_ROWS_GONE =
-  "This merge can no longer be undone: the hidden copies were permanently deleted after the 30-day undo window.";
+  "This dream action can no longer be undone: the hidden memories were permanently deleted after the 30-day undo window.";
 
 // undo writes the hidden rows back, so it refuses (and changes nothing) once
 // one of them was deleted
@@ -723,18 +723,25 @@ async function hiddenBefore(
   return run?.finishedAt !== undefined && run.finishedAt < cutoff;
 }
 
-// hourly: permanently deletes duplicates a dream merge hid ("dream") once the
-// 30-day undo window has passed, with their links, mentions, embedding, usage
-// and counters. 100 rows a batch, then the next page.
+// hourly: permanently deletes duplicates a dream merge hid ("dream", then
+// "dream-ai") once the 30-day undo window has passed, with their links,
+// mentions, embedding, usage and counters. Archived stale rows ("dream-decay")
+// are never deleted. 100 rows a batch, then the next page or the next kind.
 export const sweepExpiredDuplicates = internalMutation({
-  args: { cursor: v.optional(v.string()) },
+  args: {
+    suppressedBy: v.optional(
+      v.union(v.literal("dream"), v.literal("dream-ai")),
+    ),
+    cursor: v.optional(v.string()),
+  },
   returns: v.number(),
   handler: async (ctx, args) => {
     const cutoff = Date.now() - DREAM_UNDO_WINDOW_MS;
+    const suppressedBy = args.suppressedBy ?? "dream";
     const page = await ctx.db
       .query("memories")
       .withIndex("by_suppressed_by_at", (q) =>
-        q.eq("suppressedBy", "dream").lt("suppressedAt", cutoff),
+        q.eq("suppressedBy", suppressedBy).lt("suppressedAt", cutoff),
       )
       .paginate({ cursor: args.cursor ?? null, numItems: SWEEP_BATCH });
     let deleted = 0;
@@ -743,9 +750,15 @@ export const sweepExpiredDuplicates = internalMutation({
       if (!(await hiddenBefore(ctx, doc, cutoff))) continue;
       if (await deleteMemory(ctx, doc.userId, doc.memoryId)) deleted += 1;
     }
+    // one paginated query per function: the next kind runs as its own call
     if (!page.isDone) {
       await ctx.scheduler.runAfter(0, internal.dream.sweepExpiredDuplicates, {
+        suppressedBy,
         cursor: page.continueCursor,
+      });
+    } else if (suppressedBy === "dream") {
+      await ctx.scheduler.runAfter(0, internal.dream.sweepExpiredDuplicates, {
+        suppressedBy: "dream-ai",
       });
     }
     return deleted;

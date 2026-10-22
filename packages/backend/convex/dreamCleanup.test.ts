@@ -545,6 +545,7 @@ describe("dreamCleanup Jev pass", () => {
       status: "suppressed",
       mergedInto: n1,
       suppressedBy: "dream-ai",
+      suppressedAt: expect.any(Number),
     });
     await t.mutation(internal.dream.undoRunInternal, { runId: applyId });
     expect((await getDoc(t, n2)).status).toBe("active");
@@ -566,6 +567,7 @@ describe("dreamCleanup Jev pass", () => {
       status: "suppressed",
       mergedInto: n1,
       suppressedBy: "dream-ai",
+      suppressedAt: expect.any(Number),
     });
     expect(await summary(t, applyId)).toMatchObject({
       counts: { nearDupMerged: 2, proposals: 0 },
