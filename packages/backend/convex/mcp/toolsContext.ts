@@ -10,6 +10,10 @@ import {
   recommendSkills,
   type SkillRecommendResult,
 } from "../../engine/memory/jevSkillRecommend";
+import {
+  classifyQueryTemporal,
+  parseReferenceMs,
+} from "../../engine/memory/temporal";
 import { resolveSystemOneApiKey } from "../lib/systemOneKey";
 import {
   retrieveMemoriesForClerk,
@@ -17,7 +21,12 @@ import {
 } from "../memoryRuntime";
 import { enqueueMemoryAccess } from "../memoryUsefulness";
 import { toSkillIndexEntry } from "../skills";
-import { runForMcpScope, withMcpMemoryScope } from "./memoryScope";
+import {
+  runForMcpScope,
+  withMcpMemoryScope,
+  type McpResolvedScope,
+} from "./memoryScope";
+import { toPeriodSummary } from "./toolsMemory";
 import {
   scopedClerk,
   scopedMemory,
@@ -104,12 +113,46 @@ async function packProfile(h: ToolHandlerContext): Promise<string | null> {
   }
 }
 
+const PERIOD_SUMMARY_CAP = 3;
+
+// stored rollups for a task that names a time ("last week", a date); one
+// indexed read, no LLM. Null for other tasks, so the pack keeps its shape.
+async function packPeriodSummaries(
+  h: ToolHandlerContext,
+  scope: McpResolvedScope,
+  task: string,
+  referenceDate: string | undefined,
+): Promise<ReturnType<typeof toPeriodSummary>[] | null> {
+  const intent = classifyQueryTemporal(
+    task,
+    parseReferenceMs(referenceDate, Date.now()),
+  );
+  if (intent.kind !== "window") return null;
+  try {
+    const { rollups } = await h.ctx.runQuery(
+      internal.rollups.getRollupsInternal,
+      {
+        clerkId: scope.clerkId,
+        profileId: scope.profileId,
+        startMs: intent.startMs,
+        endMs: intent.endMs,
+        limit: PERIOD_SUMMARY_CAP,
+      },
+    );
+    return rollups.length === 0 ? null : rollups.map(toPeriodSummary);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "unknown error";
+    console.warn("[MCP][context_pack] period summaries failed:", message);
+    return null;
+  }
+}
+
 export const contextToolSpecs = {
   context_pack: toolSpec({
     name: "context_pack",
     schema: contextPackSchema,
     description:
-      "One call at task start: returns a budgeted markdown pack with the memories most relevant to the task (same retrieve + Jev rerank as memory_retrieve), the best-fit skills (same as skills_recommend), and the user profile from context_prompt_get (personal connector only). Sections fill in that order until maxChars; memoryIds / skillNames list what was included and truncated flags a cut. Call skills_get before following a suggested skill.",
+      "One call at task start: returns a budgeted markdown pack with the memories most relevant to the task (same retrieve + Jev rerank as memory_retrieve), the best-fit skills (same as skills_recommend), and the user profile from context_prompt_get (personal connector only). When the task names a time window (yesterday, last week, a date), periodSummaries adds up to 3 stored rollup summaries for it (see memory_timeline). Sections fill in that order until maxChars; memoryIds / skillNames list what was included and truncated flags a cut. Call skills_get before following a suggested skill.",
     errorLabel: "Context pack failed",
     async run(h, params): Promise<unknown> {
       return withMcpMemoryScope(
@@ -117,28 +160,30 @@ export const contextToolSpecs = {
         { ...scopedMemory(h), profileId: params.profileId },
         async (scope) => {
           const limit = params.memoryLimit ?? 8;
-          const [memories, skills, profile] = await Promise.all([
-            runForMcpScope(scope, {
-              team: (profileId) =>
-                retrieveMemoriesForTeamProfile(h.ctx, {
-                  clerkId: scope.clerkId,
-                  profileId,
-                  query: params.task,
-                  limit,
-                  referenceDate: params.referenceDate,
-                }),
-              personal: ({ clerkId, profileId }) =>
-                retrieveMemoriesForClerk(h.ctx, {
-                  clerkId,
-                  profileId,
-                  query: params.task,
-                  limit,
-                  referenceDate: params.referenceDate,
-                }),
-            }),
-            packSkills(h, params.task, params.skillLimit ?? 3),
-            packProfile(h),
-          ]);
+          const [memories, skills, profile, periodSummaries] =
+            await Promise.all([
+              runForMcpScope(scope, {
+                team: (profileId) =>
+                  retrieveMemoriesForTeamProfile(h.ctx, {
+                    clerkId: scope.clerkId,
+                    profileId,
+                    query: params.task,
+                    limit,
+                    referenceDate: params.referenceDate,
+                  }),
+                personal: ({ clerkId, profileId }) =>
+                  retrieveMemoriesForClerk(h.ctx, {
+                    clerkId,
+                    profileId,
+                    query: params.task,
+                    limit,
+                    referenceDate: params.referenceDate,
+                  }),
+              }),
+              packSkills(h, params.task, params.skillLimit ?? 3),
+              packProfile(h),
+              packPeriodSummaries(h, scope, params.task, params.referenceDate),
+            ]);
           const pack = buildContextPack({
             task: params.task,
             memories,
@@ -147,7 +192,11 @@ export const contextToolSpecs = {
             maxChars: params.maxChars ?? CONTEXT_PACK_DEFAULT_CHARS,
           });
           await enqueueMemoryAccess(h.ctx, pack.memoryIds, "contextPack");
-          return { ...pack, skillSource: skills?.source ?? null };
+          return {
+            ...pack,
+            skillSource: skills?.source ?? null,
+            ...(periodSummaries === null ? {} : { periodSummaries }),
+          };
         },
       );
     },

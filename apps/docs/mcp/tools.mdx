@@ -3,7 +3,7 @@ title: "MCP Tools"
 description: "Complete reference for all vmem MCP tools"
 ---
 
-Tools are registered from `packages/backend/convex/mcp/tools*.ts`. Auth accepts a Clerk `oauth_token` or `session_token` bearer (MCP server `2.3.0`). Memory tools work on `/mcp` and `/mcp/team`. Skills tools also work on both connectors (personal skills on `/mcp`, team-granted skills on `/mcp/team`), except `skills_import` which is personal `/mcp` only. `proposals_list` and `proposals_resolve` work on both connectors. Files tools work on both connectors: personal Files on `/mcp`, the active team profile's drive on `/mcp/team`. The `teams_*`, `profiles_update` and `usage_ai_*` tools also work on both. `context_prompt_get`, `dream_run`, the `notifications_*`, `settings_*`, `connectors_*` tools, `dream_schedule_set`, `profiles_create`, `profiles_delete` and `usage_api_requests` are personal-only.
+Tools are registered from `packages/backend/convex/mcp/tools*.ts`. Auth accepts a Clerk `oauth_token` or `session_token` bearer (MCP server `2.4.0`). Memory tools work on `/mcp` and `/mcp/team`. Skills tools also work on both connectors (personal skills on `/mcp`, team-granted skills on `/mcp/team`), except `skills_import` which is personal `/mcp` only. `proposals_list` and `proposals_resolve` work on both connectors. Files tools work on both connectors: personal Files on `/mcp`, the active team profile's drive on `/mcp/team`. The `teams_*`, `profiles_update` and `usage_ai_*` tools also work on both. `context_prompt_get`, `dream_run`, the `notifications_*`, `settings_*`, `connectors_*` tools, `dream_schedule_set`, `profiles_create`, `profiles_delete` and `usage_api_requests` are personal-only.
 
 Every tool acts as the signed-in user from the bearer token. No tool takes a user ID. IDs that belong to another user, or to a profile outside the connector, return "not found".
 
@@ -87,7 +87,7 @@ Sections fill in priority order until `maxChars`: relevant memories (same retrie
   ISO date used as “now” for temporal scoring
 </ParamField>
 
-**Returns:** `{ markdown, memoryIds, skillNames, includesProfile, truncated, skillSource }`. `truncated` is `true` when the budget cut a memory, skill, or the profile. `skillSource` is `jev`, `lexical`, or `null` when skills were skipped.
+**Returns:** `{ markdown, memoryIds, skillNames, includesProfile, truncated, skillSource, periodSummaries? }`. `truncated` is `true` when the budget cut a memory, skill, or the profile. `skillSource` is `jev`, `lexical`, or `null` when skills were skipped. `periodSummaries` is present only when the task names a time window (“yesterday”, “last week”, a date) and stored rollups exist for it: up to 3 rows shaped like `memory_timeline` summaries. It is not part of `markdown`.
 
 ---
 
@@ -303,6 +303,35 @@ List memories related to a given memory by shared tags and similar title or cont
 </ParamField>
 
 **Returns:** Array of `{ memory, linkReason }`.
+
+---
+
+## memory_timeline
+
+Time travel over stored activity summaries (rollups). Rollups are written nightly per UTC day, ISO week and month for opted-in users. This tool only reads them: it never calls an LLM. Works on `/mcp` and `/mcp/team`; on a team profile you see your own rollups.
+
+- **Window** (`start` / `end`): the summaries that overlap the window, oldest first, at most 31. Without `period`, the tool picks the coarsest period with one whole UTC period inside the window: month, then week, then day.
+- **Known at** (`date`): the newest summaries that ended at or before the date (up to 3 months, 4 weeks and 7 days), plus the newest 20 memories created before it. Rollups are frozen snapshots. Memories have no version history, so they show today's text; suppressed memories are left out.
+- **Neither**: the last 7 days.
+
+<ParamField body="date" type="string">
+  ISO date/time for “what was known then”. A bare date (`2026-10-19`) means the
+  end of that UTC day. Do not combine with `start` / `end`
+</ParamField>
+<ParamField body="start" type="string">
+  Window start, ISO date/time (default 7 days before `end`)
+</ParamField>
+<ParamField body="end" type="string">
+  Window end, ISO date/time; a bare date includes that UTC day (default now)
+</ParamField>
+<ParamField body="period" type="string">
+  `day`, `week` or `month` for a window (default: coarsest that fits)
+</ParamField>
+<ParamField body="profileId" type="string">
+  Profile to read (defaults to active profile)
+</ParamField>
+
+**Returns:** Window: `{ start, end, period, summaries }`. Date: `{ at, summaries, memories }`. Each summary is `{ period, periodKey, start, end, summary, highlights, memoryIds, stats }`; open the cited `memoryIds` with `memory_get`. `memories` are slim rows (`id`, `title`, `preview`, `type`, `status`, `tags`, timestamps). An empty `summaries` list means no rollup ran for that time.
 
 ---
 

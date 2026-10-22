@@ -131,3 +131,25 @@ export function summaryPeriodSources(
   }
   return { weekKeys, dayKeys };
 }
+
+export type RollupPeriod = "day" | SummaryPeriod;
+
+/** The longest period (a 31-day month), to find rows that overlap a window. */
+export const MAX_PERIOD_MS = 31 * MS_PER_DAY;
+
+/**
+ * The coarsest period with at least one whole UTC period inside the window:
+ * month, then week, then day. Day when nothing fits (a short window).
+ */
+export function coarsestFittingPeriod(window: PeriodWindow): RollupPeriod {
+  // first month that starts at or after the window start
+  const start = new Date(window.startMs);
+  const year = start.getUTCFullYear();
+  const month = start.getUTCMonth();
+  const skip = Date.UTC(year, month, 1) < window.startMs ? 1 : 0;
+  if (Date.UTC(year, month + skip + 1, 1) <= window.endMs) return "month";
+  const dayStart = Math.ceil(window.startMs / MS_PER_DAY) * MS_PER_DAY;
+  const monday = dayStart + ((7 - isoWeekday(dayStart)) % 7) * MS_PER_DAY;
+  if (monday + MS_PER_WEEK <= window.endMs) return "week";
+  return "day";
+}
