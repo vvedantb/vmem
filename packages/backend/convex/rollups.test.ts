@@ -311,6 +311,142 @@ describe("rollups.listForProfile", () => {
   });
 });
 
+async function insertRollup(
+  t: T,
+  args: {
+    userId: Id<"users">;
+    profileId: Id<"profiles">;
+    period: "day" | "week" | "month";
+    periodKey: string;
+    startMs: number;
+    endMs: number;
+    status?: "ok" | "failed";
+  },
+) {
+  await t.run(async (ctx) => {
+    await ctx.db.insert("rollups", {
+      userId: args.userId,
+      profileId: args.profileId,
+      period: args.period,
+      periodKey: args.periodKey,
+      startMs: args.startMs,
+      endMs: args.endMs,
+      summary: `Summary ${args.periodKey}`,
+      highlights: [],
+      memoryIds: [],
+      stats: { created: 1, updated: 0, suppressed: 0, toolCalls: 0 },
+      model: "test",
+      inputTokens: 0,
+      outputTokens: 0,
+      costUsd: 0,
+      createdAt: args.endMs,
+      status: args.status ?? "ok",
+    });
+  });
+}
+
+describe("rollups.getRollups", () => {
+  const DAY = 86_400_000;
+  const OCT = Date.parse("2026-10-01T00:00:00Z");
+  const NOV = Date.parse("2026-11-01T00:00:00Z");
+  const W43 = Date.parse("2026-10-19T00:00:00Z");
+
+  async function seed(t: T) {
+    const owner = await addUser(t, "clerk_reader");
+    const rows = { userId: owner.userId, profileId: owner.profileId };
+    await insertRollup(t, {
+      ...rows,
+      period: "month",
+      periodKey: "2026-10",
+      startMs: OCT,
+      endMs: NOV,
+    });
+    await insertRollup(t, {
+      ...rows,
+      period: "week",
+      periodKey: "2026-W43",
+      startMs: W43,
+      endMs: W43 + 7 * DAY,
+    });
+    for (const [key, status] of [
+      ["2026-10-18", "ok"],
+      ["2026-10-19", "ok"],
+      ["2026-10-20", "failed"],
+      ["2026-10-21", "ok"],
+      ["2026-10-22", "ok"],
+    ] as const) {
+      const startMs = Date.parse(`${key}T00:00:00Z`);
+      await insertRollup(t, {
+        ...rows,
+        period: "day",
+        periodKey: key,
+        startMs,
+        endMs: startMs + DAY,
+        status,
+      });
+    }
+    return owner;
+  }
+
+  it("picks the coarsest period that fits and reads only that period", async () => {
+    const t = setupT();
+    const owner = await seed(t);
+    const month = await owner.user.query(api.rollups.getRollups, {
+      profileId: owner.profileId,
+      startMs: OCT,
+      endMs: NOV,
+    });
+    expect(month.period).toBe("month");
+    expect(month.rollups.map((r) => r.periodKey)).toEqual(["2026-10"]);
+
+    const week = await owner.user.query(api.rollups.getRollups, {
+      profileId: owner.profileId,
+      startMs: W43,
+      endMs: W43 + 7 * DAY,
+    });
+    expect(week.period).toBe("week");
+    expect(week.rollups.map((r) => r.periodKey)).toEqual(["2026-W43"]);
+  });
+
+  it("returns ok rows that overlap the window, oldest first", async () => {
+    const t = setupT();
+    const owner = await seed(t);
+    // 19 Oct 12:00 to 21 Oct 12:00 overlaps the 19th, 20th and 21st
+    const days = await owner.user.query(api.rollups.getRollups, {
+      profileId: owner.profileId,
+      startMs: W43 + DAY / 2,
+      endMs: W43 + 2.5 * DAY,
+    });
+    expect(days.period).toBe("day");
+    // the failed 20th is left out; the 18th and 22nd are outside
+    expect(days.rollups.map((r) => r.periodKey)).toEqual([
+      "2026-10-19",
+      "2026-10-21",
+    ]);
+    // an explicit period wins over the auto pick
+    const forced = await owner.user.query(api.rollups.getRollups, {
+      profileId: owner.profileId,
+      startMs: OCT,
+      endMs: NOV,
+      period: "week",
+    });
+    expect(forced.rollups.map((r) => r.periodKey)).toEqual(["2026-W43"]);
+  });
+
+  it("refuses another user's profile", async () => {
+    const t = setupT();
+    const owner = await seed(t);
+    const other = await addUser(t, "clerk_snoop");
+    await expect(
+      other.user.query(api.rollups.getRollups, {
+        profileId: owner.profileId,
+        startMs: OCT,
+        endMs: NOV,
+      }),
+    ).rejects.toThrow("Profile not accessible");
+  });
+});
+
 describe("userSettings.setRollupsEnabledInternal", () => {
   it("accepts a user id and rejects a call with neither id", async () => {
     const t = setupT();

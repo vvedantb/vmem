@@ -217,7 +217,7 @@ Claude Desktop / Claude.ai: Settings → Connectors → add the `/mcp` URL → s
 **Tools** (personal `/mcp` unless noted; team `/mcp/team` shares memory/skill/graph/files tools but not context_prompt)
 
 - **Core** — `ping`, `whoami`, `list_profiles`, `set_active_profile`, `context_prompt_get` (personal), `context_pack`
-- **Memory** — `memory_search`, `memory_retrieve`, `memory_add`, `memory_add_instruction`, `memory_update`, `memory_delete`, `memory_related`, `memory_graph`
+- **Memory** — `memory_search`, `memory_retrieve`, `memory_add`, `memory_add_instruction`, `memory_update`, `memory_delete`, `memory_related`, `memory_timeline`, `memory_graph`
 - **Skills** — `skills_list`, `skills_recommend`, `skills_get`, `skills_create`, `skills_update`, `skills_delete`
 - **Files** (personal and team drive) — `files_list`, `files_storage`, `files_get`, `files_upload`, `files_delete`, `files_create_folder`, `files_rename`, `files_move`
 

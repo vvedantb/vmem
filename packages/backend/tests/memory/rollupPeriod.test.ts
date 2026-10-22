@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  coarsestFittingPeriod,
   isoWeekKey,
   monthWindow,
   periodsClosingAfter,
@@ -143,5 +144,31 @@ describe("summaryPeriodSources", () => {
     expect(sources.dayKeys.length + 7 * sources.weekKeys.length).toBe(
       (endMs - startMs) / MS_PER_DAY,
     );
+  });
+});
+
+describe("coarsestFittingPeriod", () => {
+  const window = (start: string, end: string) => ({
+    startMs: Date.parse(start),
+    endMs: Date.parse(end),
+  });
+
+  it.each([
+    // a whole calendar month inside the window
+    ["2026-10-01T00:00:00Z", "2026-11-01T00:00:00Z", "month"],
+    ["2026-09-15T00:00:00Z", "2026-11-01T00:00:00Z", "month"],
+    // 31 days, but no month starts and ends inside
+    ["2026-10-02T00:00:00Z", "2026-11-02T00:00:00Z", "week"],
+    // starts mid-day on the 1st: october does not fit
+    ["2026-10-01T10:00:00Z", "2026-11-01T00:00:00Z", "week"],
+    // Monday 19 October to Monday 26 October is one ISO week
+    ["2026-10-19T00:00:00Z", "2026-10-26T00:00:00Z", "week"],
+    // 7 days that do not hold a Monday-to-Sunday week
+    ["2026-10-20T00:00:00Z", "2026-10-27T00:00:00Z", "day"],
+    ["2026-10-08T12:00:00Z", "2026-10-15T12:00:00Z", "day"],
+    // shorter than a day still reads day rows
+    ["2026-10-19T03:00:00Z", "2026-10-19T09:00:00Z", "day"],
+  ])("%s to %s is %s", (start, end, period) => {
+    expect(coarsestFittingPeriod(window(start, end))).toBe(period);
   });
 });

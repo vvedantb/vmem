@@ -14,6 +14,7 @@ export const MEMORY_TOOL_NAMES = [
   "memory_add_instruction",
   "memory_update",
   "memory_delete",
+  "memory_timeline",
   "memory_related",
 ] as const;
 

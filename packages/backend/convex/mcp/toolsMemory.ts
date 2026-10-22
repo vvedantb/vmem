@@ -8,6 +8,8 @@ import {
   structuredStoreBodySchema,
   structuredUpdateBodySchema,
 } from "@vmem/sdk";
+import { internal } from "../_generated/api";
+import type { Doc } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import type { MemoryListResult, MemoryWithTags } from "../memoryApi/types";
 import { enqueueMemoryAccess } from "../memoryUsefulness";
@@ -41,6 +43,30 @@ const isoDateSchema = z
 
 function isoToMs(value: string | undefined): number | undefined {
   return value === undefined ? undefined : Date.parse(value);
+}
+
+const MS_PER_DAY = 86_400_000;
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+const TIMELINE_DEFAULT_DAYS = 7;
+
+// a bare date as an exclusive bound means the end of that utc day
+function isoToEndMs(value: string): number {
+  const ms = Date.parse(value);
+  return DATE_ONLY.test(value) ? ms + MS_PER_DAY : ms;
+}
+
+// the slim rollup row agents see; tokens, cost and model stay server-side
+export function toPeriodSummary(row: Doc<"rollups">) {
+  return {
+    period: row.period,
+    periodKey: row.periodKey,
+    start: new Date(row.startMs).toISOString(),
+    end: new Date(row.endMs).toISOString(),
+    summary: row.summary,
+    highlights: row.highlights,
+    memoryIds: row.memoryIds,
+    stats: row.stats,
+  };
 }
 
 const memorySearchSchema = z.object({
@@ -231,6 +257,32 @@ const memoryUpdateSchema = structuredUpdateBodySchema
 
 const memoryDeleteSchema = deleteBodySchema.extend({
   id: deleteBodySchema.shape.id.describe("Memory ID to delete"),
+});
+
+const memoryTimelineSchema = z.object({
+  date: isoDateSchema
+    .optional()
+    .describe(
+      "What was known at this ISO date/time (a bare date means the end of that UTC day). Do not combine with start / end",
+    ),
+  start: isoDateSchema
+    .optional()
+    .describe("Window start, ISO date/time (default: 7 days before end)"),
+  end: isoDateSchema
+    .optional()
+    .describe(
+      "Window end, ISO date/time; a bare date includes that UTC day (default: now)",
+    ),
+  period: z
+    .enum(["day", "week", "month"])
+    .optional()
+    .describe(
+      "Summary granularity for a window (default: the coarsest period that fits it: month, then week, then day)",
+    ),
+  profileId: z
+    .string()
+    .optional()
+    .describe("Profile ID to read (defaults to active profile)"),
 });
 
 const memoryRelatedSchema = z.object({
@@ -489,6 +541,52 @@ export const memoryToolSpecs = {
         },
       );
       return { deleted };
+    },
+  }),
+  memory_timeline: toolSpec({
+    name: "memory_timeline",
+    schema: memoryTimelineSchema,
+    description:
+      "Time travel over stored activity summaries (rollups). Rollups are written nightly per UTC day, ISO week and month; this tool only reads them and never calls an LLM. Pass start / end (ISO) for the summaries that overlap a window (oldest first, at most 31; period picks day, week or month). Pass date for what was known at that time: the newest month, week and day summaries that ended by then, plus the newest 20 memories created before it (slim rows, today's text: memories have no version history). Each summary has summary, highlights, stats and the memoryIds it cites (open them with memory_get). Omit all for the last 7 days. An empty list means no rollup ran for that time.",
+    errorLabel: "Memory timeline failed",
+    async run(h, params): Promise<unknown> {
+      return withMcpMemoryScope(
+        h.ctx,
+        { ...scopedMemory(h), profileId: params.profileId },
+        async (scope) => {
+          const reader = { clerkId: scope.clerkId, profileId: scope.profileId };
+          if (params.date !== undefined) {
+            if (params.start !== undefined || params.end !== undefined) {
+              throw new Error("Pass date, or start / end, not both");
+            }
+            const atMs = isoToEndMs(params.date);
+            const known = await h.ctx.runQuery(
+              internal.rollups.knownAtInternal,
+              { ...reader, atMs },
+            );
+            return {
+              at: new Date(atMs).toISOString(),
+              summaries: known.rollups.map(toPeriodSummary),
+              memories: known.memories,
+            };
+          }
+          const endMs =
+            params.end === undefined ? Date.now() : isoToEndMs(params.end);
+          const startMs =
+            isoToMs(params.start) ?? endMs - TIMELINE_DEFAULT_DAYS * MS_PER_DAY;
+          if (startMs >= endMs) throw new Error("start must be before end");
+          const window = await h.ctx.runQuery(
+            internal.rollups.getRollupsInternal,
+            { ...reader, startMs, endMs, period: params.period },
+          );
+          return {
+            start: new Date(startMs).toISOString(),
+            end: new Date(endMs).toISOString(),
+            period: window.period,
+            summaries: window.rollups.map(toPeriodSummary),
+          };
+        },
+      );
     },
   }),
   memory_related: toolSpec({
