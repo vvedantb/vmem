@@ -6,7 +6,10 @@ import {
   approxTokens,
   buildRecallContext,
   clampRecallTokens,
+  isPageVisit,
+  matchRecallSkills,
   profileFacts,
+  rankRecallMemories,
   skillUseWhen,
 } from "../../engine/memory/recallContext";
 import {
@@ -159,6 +162,103 @@ describe("buildRecallContext", () => {
   });
 });
 
+describe("matchRecallSkills", () => {
+  const PROD_MESSAGE =
+    "Help me plan the next vmem Dream Mode improvement and how skills should be proposed";
+  // system skills prod surfaced on common words ("skills", "plan", "dream")
+  const COMMON_WORD_SKILLS = [
+    {
+      name: "Language Tutor",
+      description: "Teaches languages and helps improve communication skills",
+    },
+    {
+      name: "Project Manager",
+      description: "Helps plan, organize, and manage projects effectively",
+    },
+    { name: "Career Dreamer", description: "Helping you find your dream job" },
+  ];
+
+  it("drops skills that share only common words with the message", () => {
+    expect(matchRecallSkills(PROD_MESSAGE, COMMON_WORD_SKILLS)).toEqual([]);
+  });
+
+  it("keeps a skill that matches meaningful words, ahead of the noise", () => {
+    const dreamSkill = {
+      name: "dream-mode-review",
+      description:
+        "Use when planning Dream Mode improvements or how vmem proposes skills",
+    };
+    expect(
+      matchRecallSkills(PROD_MESSAGE, [...COMMON_WORD_SKILLS, dreamSkill]),
+    ).toEqual([dreamSkill]);
+  });
+
+  it("keeps a single-word name match and prefers 'Use when' on a tie", () => {
+    const plain = { name: "deploy-app", description: "Ships a release" };
+    const useWhen = {
+      name: "deploy-docs",
+      description: "Use when a task asks to deploy the docs",
+    };
+    expect(
+      matchRecallSkills("how do I deploy", [plain, useWhen]).map(
+        (skill) => skill.name,
+      ),
+    ).toEqual(["deploy-docs", "deploy-app"]);
+    expect(matchRecallSkills("the and of", [plain])).toEqual([]);
+  });
+});
+
+describe("rankRecallMemories", () => {
+  const memory = (
+    id: string,
+    fields: Partial<Parameters<typeof isPageVisit>[0]> = {},
+  ) => ({
+    id,
+    title: `Title ${id}`,
+    content: `Content ${id}`,
+    source: "mcp",
+    sourceType: null,
+    sourceUrl: null,
+    tags: [],
+    ...fields,
+  });
+
+  it("detects browsing history and page visits", () => {
+    expect(isPageVisit(memory("a"))).toBe(false);
+    expect(isPageVisit(memory("b", { source: "browsing-history" }))).toBe(true);
+    expect(isPageVisit(memory("c", { sourceType: "browsing-history" }))).toBe(
+      true,
+    );
+    expect(isPageVisit(memory("d", { tags: ["page-visit"] }))).toBe(true);
+    expect(
+      isPageVisit(
+        memory("e", {
+          source: "chrome-extension",
+          sourceUrl: "https://www.reddit.com/r/LocalLLaMA",
+          content: "r/LocalLLaMA. Visited 14 times",
+        }),
+      ),
+    ).toBe(true);
+    // the words alone, without a page URL, are a normal memory
+    expect(isPageVisit(memory("f", { content: "Visited 3 times" }))).toBe(
+      false,
+    );
+  });
+
+  it("moves page visits below substantive memories and cuts to the limit", () => {
+    const ranked = rankRecallMemories(
+      [
+        memory("visit1", { source: "browsing-history" }),
+        memory("fact1"),
+        memory("visit2", { tags: ["history"] }),
+        memory("fact2"),
+      ],
+      3,
+    );
+    expect(ranked.map((row) => row.id)).toEqual(["fact1", "fact2", "visit1"]);
+  });
+});
+
 describe("version history over MCP (convex-test backend)", () => {
   it("memory_history lists prior versions newest first; superseded rows leave search and stats", async () => {
     const { t, alice } = await setup();
@@ -201,6 +301,24 @@ describe("version history over MCP (convex-test backend)", () => {
       await alice.call("memory_history", { memoryId: b }),
     );
     expect(history.priorVersions).toEqual([]);
+  });
+
+  it("a duplicate merge of a current version moves its prior versions to the survivor", async () => {
+    const { t, alice } = await setup();
+    const v1 = await add(alice, "Editor", "Uses Vim");
+    const v2 = await add(alice, "Editor", "Uses Zed");
+    const survivor = await add(alice, "Editor choice", "Uses Zed daily");
+    await supersede(t, v1, v2);
+    await t.mutation(internal.memoryStore.functions.supersedeMemoriesInternal, {
+      kind: "personal",
+      userId: ALICE,
+      predecessorIds: [v2],
+      successorId: survivor,
+    });
+    const history = historySchema.parse(
+      await alice.call("memory_history", { memoryId: survivor }),
+    );
+    expect(history.priorVersions.map((version) => version.id)).toEqual([v1]);
   });
 
   it("deleting the current version deletes its prior versions", async () => {
@@ -246,6 +364,30 @@ describe("recall_context (convex-test backend)", () => {
     expect(recall.counts.approxTokens).toBeLessThanOrEqual(1500);
     expect(evaluate).not.toHaveBeenCalled();
     expect(generateText).not.toHaveBeenCalled();
+  });
+
+  it("ranks a page visit below a substantive memory", async () => {
+    const { alice } = await setup();
+    const visit = idSchema.parse(
+      await alice.call("memory_add", {
+        title: "Kubernetes deploy guide",
+        content: "Kubernetes deploy guide\nkubernetes.io",
+        type: "episodic",
+        source: "browsing-history",
+        sourceType: "browsing-history",
+      }),
+    ).id;
+    const fact = await add(
+      alice,
+      "Deploy",
+      "We deploy to Kubernetes on Fridays",
+    );
+    const recall = recallSchema.parse(
+      await alice.call("recall_context", {
+        message: "kubernetes deploy guide",
+      }),
+    );
+    expect(recall.memoryIds).toEqual([fact, visit]);
   });
 
   it("respects a small maxTokens and rejects an empty message", async () => {

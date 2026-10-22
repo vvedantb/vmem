@@ -7,7 +7,6 @@ import {
   CONTEXT_PACK_MIN_CHARS,
 } from "../../engine/memory/contextPack";
 import {
-  rankSkillsLexically,
   recommendSkills,
   type SkillIndexSlice,
   type SkillRecommendResult,
@@ -15,11 +14,12 @@ import {
 import {
   buildRecallContext,
   clampRecallTokens,
+  matchRecallSkills,
   profileFacts,
+  rankRecallMemories,
   RECALL_MAX_TOKENS,
-  RECALL_MEMORY_LIMIT,
   RECALL_MIN_TOKENS,
-  RECALL_SKILL_LIMIT,
+  RECALL_RETRIEVE_LIMIT,
 } from "../../engine/memory/recallContext";
 import {
   classifyQueryTemporal,
@@ -178,7 +178,7 @@ const recallContextSchema = z.object({
     ),
 });
 
-// cheap lexical match on name + description: no Jev call on every turn
+// lexical match with a relevance floor: no Jev call on every turn
 async function recallSkills(
   h: ToolHandlerContext,
   message: string,
@@ -188,9 +188,7 @@ async function recallSkills(
       internal.skills.listEffectiveByClerkIdInternal,
       scopedClerk(h),
     );
-    return rankSkillsLexically(message, rows.map(toSkillIndexEntry))
-      .filter((skill) => skill.score > 0)
-      .slice(0, RECALL_SKILL_LIMIT);
+    return matchRecallSkills(message, rows.map(toSkillIndexEntry));
   } catch (err) {
     const message = err instanceof Error ? err.message : "unknown error";
     console.warn("[MCP][recall_context] skills failed:", message);
@@ -220,7 +218,7 @@ export const contextToolSpecs = {
     name: "recall_context",
     schema: recallContextSchema,
     description:
-      "Call at the start of every turn with the user's message. Returns a compact text block (default 1500 tokens, ~4 chars a token) with the most relevant memories (hybrid search, no LLM rerank), the 'Use when' lines of matching skills, and a few profile facts (personal connector only), filled in that order until maxTokens. Prior versions of changed facts are left out. counts has memories, skills, facts and approxTokens; memoryIds / skillNames list what was included and truncated flags a cut. Use context_pack for a larger pack at task start.",
+      "Call at the start of every turn with the user's message. Returns a compact text block (default 1500 tokens, ~4 chars a token) with the most relevant memories (hybrid search, no LLM rerank; browsing-history page visits rank last), the 'Use when' lines of skills that match on their name or 2+ meaningful words, and a few profile facts (personal connector only), filled in that order until maxTokens. Prior versions of changed facts are left out. counts has memories, skills, facts and approxTokens; memoryIds / skillNames list what was included and truncated flags a cut. Use context_pack for a larger pack at task start.",
     errorLabel: "Recall context failed",
     async run(h, params): Promise<unknown> {
       return withMcpMemoryScope(
@@ -230,7 +228,7 @@ export const contextToolSpecs = {
           // judge "off": no Jev gate (an LLM call) on a per-turn tool
           const retrieve: { query: string; limit: number; judge: "off" } = {
             query: params.message,
-            limit: RECALL_MEMORY_LIMIT,
+            limit: RECALL_RETRIEVE_LIMIT,
             judge: "off",
           };
           const [memories, skills, profile] = await Promise.all([
@@ -253,7 +251,7 @@ export const contextToolSpecs = {
           ]);
           const recall = buildRecallContext({
             message: params.message,
-            memories,
+            memories: rankRecallMemories(memories),
             skills,
             facts: profileFacts(profile),
             maxTokens: clampRecallTokens(params.maxTokens),

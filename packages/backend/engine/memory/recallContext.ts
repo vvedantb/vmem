@@ -1,6 +1,8 @@
 import type { MemoryCandidate } from "@vmem/sdk";
 import { truncateAtWord } from "../llm/truncateAtWord";
 import type { SkillIndexSlice } from "./jevSkillRecommend";
+import { contentTokens } from "./tokens";
+import { isLowPriorSource } from "./usefulness";
 
 // Proactive recall: a small, token-bounded block an agent loads at the start
 // of every turn. No LLM: the caller passes ranked memories, lexically matched
@@ -10,8 +12,10 @@ import type { SkillIndexSlice } from "./jevSkillRecommend";
 export const RECALL_DEFAULT_TOKENS = 1500;
 export const RECALL_MIN_TOKENS = 200;
 export const RECALL_MAX_TOKENS = 6000;
-export const RECALL_MEMORY_LIMIT = 8;
-export const RECALL_SKILL_LIMIT = 3;
+const RECALL_MEMORY_LIMIT = 8;
+// fetched before page visits move down, so they can drop out of the 8
+export const RECALL_RETRIEVE_LIMIT = 12;
+const RECALL_SKILL_LIMIT = 3;
 const RECALL_FACT_LIMIT = 6;
 const MEMORY_CONTENT_CHARS = 300;
 const SKILL_LINE_CHARS = 200;
@@ -52,6 +56,89 @@ function clip(text: string, maxLen: number): string {
 export function skillUseWhen(description: string): string {
   const index = description.search(/use when/iu);
   return index < 0 ? description : description.slice(index);
+}
+
+// stemmed words that match almost any skill description ("helps plan",
+// "improve your skills"): never count as evidence a skill fits
+const GENERIC_SKILL_WORDS = new Set(
+  (
+    "help assist skill improve improv improvement make find get use used " +
+    "using work task next new need want way thing good better best effectively"
+  ).split(" "),
+);
+// a skill needs this many distinct meaningful words, or one in its name
+const SKILL_MIN_TERMS = 2;
+
+function meaningfulTerms(text: string): Set<string> {
+  return new Set(
+    contentTokens(text, true).filter(
+      (token) => token.length >= 3 && !GENERIC_SKILL_WORDS.has(token),
+    ),
+  );
+}
+
+/**
+ * Lexical skill match for recall_context, no LLM. Stopwords and generic
+ * skill words are ignored; a skill is kept with a name match or at least
+ * SKILL_MIN_TERMS distinct matched words. Ties prefer a description that
+ * starts with "Use when".
+ */
+export function matchRecallSkills(
+  message: string,
+  skills: readonly SkillIndexSlice[],
+): SkillIndexSlice[] {
+  const terms = meaningfulTerms(message);
+  if (terms.size === 0) return [];
+  const scored: { skill: SkillIndexSlice; score: number }[] = [];
+  for (const skill of skills) {
+    const nameTerms = meaningfulTerms(skill.name);
+    const bodyTerms = meaningfulTerms(`${skill.name} ${skill.description}`);
+    let hits = 0;
+    let nameHits = 0;
+    for (const term of terms) {
+      if (bodyTerms.has(term)) hits += 1;
+      if (nameTerms.has(term)) nameHits += 1;
+    }
+    if (nameHits === 0 && hits < SKILL_MIN_TERMS) continue;
+    const useWhen = /^\s*use when/iu.test(skill.description) ? 0.25 : 0;
+    scored.push({ skill, score: hits + 0.5 * nameHits + useWhen });
+  }
+  return scored
+    .sort(
+      (a, b) => b.score - a.score || a.skill.name.localeCompare(b.skill.name),
+    )
+    .slice(0, RECALL_SKILL_LIMIT)
+    .map(({ skill }) => skill);
+}
+
+type RecallMemory = Pick<
+  MemoryCandidate,
+  "id" | "title" | "content" | "source" | "sourceType" | "sourceUrl" | "tags"
+>;
+
+const VISIT_TAGS = new Set(["browsing-history", "history", "page-visit"]);
+const VISIT_CONTENT = /\bvisited \d+ times?\b/iu;
+
+/** A browsing-history row or page visit, not a fact the user wrote. */
+export function isPageVisit(memory: RecallMemory): boolean {
+  return (
+    isLowPriorSource(memory.source, memory.sourceType) ||
+    memory.tags.some((tag) => VISIT_TAGS.has(tag.toLowerCase())) ||
+    (memory.sourceUrl !== null && VISIT_CONTENT.test(memory.content))
+  );
+}
+
+/**
+ * Keeps the retrieve order but moves page visits below every substantive
+ * memory, so a visit only fills slots (and budget) the rest leave free.
+ */
+export function rankRecallMemories<T extends RecallMemory>(
+  memories: readonly T[],
+  limit: number = RECALL_MEMORY_LIMIT,
+): T[] {
+  const visits = memories.filter(isPageVisit);
+  const substantive = memories.filter((memory) => !isPageVisit(memory));
+  return [...substantive, ...visits].slice(0, limit);
 }
 
 /** Bullet-sized facts from the context prompt, skills index left out. */

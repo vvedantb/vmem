@@ -193,6 +193,42 @@ describe("version history: dream supersede vs duplicate merge", () => {
     expect(await getDoc(t, keeper)).not.toBeNull();
   });
 
+  it("a current version merged away as a duplicate hands its history to the keeper", async () => {
+    const t = setupT();
+    const owner = await addUser(t, "clerk_history");
+    const runId = await addRun(t, owner);
+    const keeper = await addMemory(t, owner, "mem_keep");
+    const dup = await addMemory(t, owner, "mem_dup");
+    const prior = await addMemory(t, owner, "mem_prior");
+    const oldest = await addMemory(t, owner, "mem_oldest");
+    await dreamSupersede(t, runId, oldest, prior);
+    await dreamSupersede(t, runId, prior, dup);
+    await t.mutation(internal.dream.applyMerge, {
+      runId,
+      keeperId: keeper,
+      loserIds: [dup],
+      reason: "judge said duplicate",
+      ai: { relation: "duplicate", confidence: 0.95, model: "test" },
+    });
+    expect((await getDoc(t, prior))?.supersededBy).toBe(keeper);
+    expect((await getDoc(t, oldest))?.supersededBy).toBe(prior);
+
+    vi.setSystemTime(NOW + 31 * DAY_MS);
+    await t.mutation(internal.dream.sweepExpiredDuplicates, {});
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+
+    expect(await getDoc(t, dup)).toBeNull();
+    expect(await getDoc(t, prior)).not.toBeNull();
+    expect(await getDoc(t, oldest)).not.toBeNull();
+    const history = await owner.user.query(api.memoryApi.history, {
+      memoryId: "mem_keep",
+    });
+    expect(history.map((version) => version.id).sort()).toEqual([
+      "mem_oldest",
+      "mem_prior",
+    ]);
+  });
+
   it("undo of a supersede clears the version link", async () => {
     const t = setupT();
     const owner = await addUser(t, "clerk_history");

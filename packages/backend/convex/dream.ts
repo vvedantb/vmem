@@ -29,7 +29,12 @@ import {
   type QueryCtx,
 } from "./_generated/server";
 import { authMutation, authQuery } from "./auth";
-import { deleteMemory, linkMemories, sameTags } from "./memoryStore/helpers";
+import {
+  deleteMemory,
+  linkMemories,
+  repointPriorVersions,
+  sameTags,
+} from "./memoryStore/helpers";
 import {
   hasOverlappingPendingProposal,
   insertProposedUpdate,
@@ -247,6 +252,7 @@ export async function mergeGroup(
         now,
       ),
     );
+    await repointPriorVersions(ctx, loser._id, keeper._id);
     const linkId = await addUpdatesLink(ctx, loser, keeper);
     if (linkId) linkIds.push(linkId);
   }
