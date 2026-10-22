@@ -10,6 +10,7 @@ import { internalAction, type ActionCtx } from "./_generated/server";
 import type { MemoryWithTags } from "./memoryApi/types";
 import { assertAccessibleProfileIfPresent } from "./profiles/accessibleProfile";
 import { createMemoryForClerk } from "./memoryRuntime";
+import { truncateWellFormed } from "./lib/wellFormed";
 
 // maximum size of an uploaded file
 const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
@@ -22,11 +23,11 @@ function chooseTitle(extractedText: string, filename: string): string {
   if (!firstLine) return filename;
   const trimmed = firstLine.trim().replace(/^#+\s*/, "");
   // cap at 200 chars so we don't end up with a wall of text title
-  return trimmed.length > 200 ? trimmed.slice(0, 200) : trimmed;
+  return trimmed.length > 200 ? truncateWellFormed(trimmed, 200) : trimmed;
 }
 
 function truncateTitle(text: string, max: number): string {
-  return text.length > max ? `${text.slice(0, max)}…` : text;
+  return text.length > max ? `${truncateWellFormed(text, max)}…` : text;
 }
 
 function chooseScreenshotTitle(

@@ -10,6 +10,7 @@ import { toSkillIndexEntry } from "./skills";
 import { readOpenRouterApiKey } from "./lib/openRouterKey";
 import { callOpenRouterChat, LLM_MODEL } from "./lib/openRouter";
 import { listMemoriesForClerk } from "./memoryRuntime";
+import { truncateWellFormed } from "./lib/wellFormed";
 
 const PINNED_LIMIT = 20;
 // number of recent active memories the summarizer model sees
@@ -31,7 +32,7 @@ function buildSummaryPrompt(recent: MemorySnippet[]): string {
   const lines = recent.map((m) => {
     const trimmed =
       m.content.length > RECENT_CONTENT_CHAR_CAP
-        ? `${m.content.slice(0, RECENT_CONTENT_CHAR_CAP)}…`
+        ? `${truncateWellFormed(m.content, RECENT_CONTENT_CHAR_CAP)}…`
         : m.content;
     return `- ${m.title}: ${trimmed}`;
   });

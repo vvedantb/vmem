@@ -8,6 +8,7 @@ import {
   type ConnectorPage,
   type SyncedDoc,
 } from "./syncShared";
+import { truncateWellFormed } from "../lib/wellFormed";
 
 export interface FigmaSyncArgs {
   clerkId: string;
@@ -182,7 +183,7 @@ export function figmaFileToDoc(
 
   return {
     title,
-    content: lines.join("\n").slice(0, EMBED_CONTENT_CAP),
+    content: truncateWellFormed(lines.join("\n"), EMBED_CONTENT_CAP),
     sourceType: "figma",
     sourceId: ref.key,
     sourceUrl: figmaFileUrl(ref.key),

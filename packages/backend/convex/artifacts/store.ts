@@ -36,6 +36,7 @@ import {
   assertContentEditable,
   isContentReadable,
 } from "../teams/auth";
+import { truncateWellFormed } from "../lib/wellFormed";
 
 // artifact store helpers, shared by artifacts/api.ts, artifacts/mcp.ts (the
 // mcp tools) and the vibot import (artifacts/internal.ts). Bodies are immutable rows; versions point at them.
@@ -969,7 +970,7 @@ function memoryRefTitle(memory: Doc<"memories">): string {
     .replace(/\s+/g, " ")
     .trim();
   return text.length > MEMORY_REF_TITLE_MAX_CHARS
-    ? `${text.slice(0, MEMORY_REF_TITLE_MAX_CHARS - 1)}…`
+    ? `${truncateWellFormed(text, MEMORY_REF_TITLE_MAX_CHARS - 1)}…`
     : text;
 }
 

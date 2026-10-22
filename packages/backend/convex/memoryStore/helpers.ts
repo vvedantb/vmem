@@ -56,6 +56,7 @@ import {
 import { trackMemoryChange, trackMemoryChanges } from "./stats";
 import { deleteMemoryUsage, loadUsageHits } from "./usage";
 import type { MemoryVersion } from "../validators";
+import { truncateWellFormed } from "../lib/wellFormed";
 
 export interface CreateMemoryStoreParams {
   memoryId?: string;
@@ -695,7 +696,7 @@ export async function getMemoryHistory(
   return versions.map((version) => ({
     id: version.memoryId,
     title: version.title,
-    content: version.content.slice(0, MEMORY_HISTORY_CONTENT_CHARS),
+    content: truncateWellFormed(version.content, MEMORY_HISTORY_CONTENT_CHARS),
     createdAt: new Date(version.createdAt).toISOString(),
     supersededAt:
       version.supersededAt === undefined

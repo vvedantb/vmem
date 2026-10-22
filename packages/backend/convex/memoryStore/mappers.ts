@@ -2,6 +2,7 @@ import type { MemoryWithTags } from "@vmem/sdk";
 import type { Doc } from "../_generated/dataModel";
 import { temporalFieldsFromStore } from "../../engine/memory/temporal";
 import { computeUsefulness } from "../../engine/memory/usefulness";
+import { toWellFormed, truncateWellFormed } from "../lib/wellFormed";
 
 export interface UsageHits {
   retrieveHits?: number;
@@ -154,17 +155,16 @@ export type MemorySummary = {
 };
 
 export function memoryPreview(content: string): string {
-  return content
-    .slice(0, MEMORY_PREVIEW_CHARS * 2)
+  const flat = truncateWellFormed(content, MEMORY_PREVIEW_CHARS * 2)
     .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, MEMORY_PREVIEW_CHARS);
+    .trim();
+  return truncateWellFormed(flat, MEMORY_PREVIEW_CHARS);
 }
 
 export function toMemorySummary(doc: Doc<"memories">): MemorySummary {
   return {
     id: doc.memoryId,
-    title: doc.title,
+    title: toWellFormed(doc.title),
     preview: memoryPreview(doc.content),
     type: doc.type,
     status: doc.status,
