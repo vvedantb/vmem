@@ -5,7 +5,8 @@ import { internal } from "./_generated/api";
 import type { ActionCtx, MutationCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { SYSTEMONE_DEFAULT_MODEL } from "../engine/llm/systemOneClient";
-import { mergeGroup } from "./dream";
+import { mergeGroup, supersedeRow } from "./dream";
+import { LLM_MODEL } from "./lib/openRouter/shared";
 import type { MemoryReadScope } from "../engine/memory/scope";
 import { UPDATES_LINK_REASON } from "../engine/memory/supersede";
 import { auditLog, ResourceTypes } from "./auditLog";
@@ -78,6 +79,35 @@ async function applyDreamMergeProposal(
   return keeper.memoryId;
 }
 
+// AI-judged nightly update: memoryId is the older row, the other source the
+// newer one. Approving supersedes the older row under the dream run (undo for
+// 30 days); the newer row stays as it is.
+async function applyDreamUpdateProposal(
+  ctx: MutationCtx,
+  proposal: Doc<"proposedUpdates">,
+  runId: Id<"dreamRuns">,
+): Promise<string | undefined> {
+  const older = await findByMemoryId(ctx, proposal.memoryId);
+  const newerId = proposal.sourceMemoryIds.find(
+    (id) => id !== proposal.memoryId,
+  );
+  const newer =
+    newerId === undefined ? null : await findByMemoryId(ctx, newerId);
+  if (!older || !newer) return undefined;
+  await supersedeRow(ctx, {
+    runId,
+    keeperId: newer._id,
+    olderId: older._id,
+    reason: proposal.reason,
+    ai: {
+      relation: "update",
+      confidence: proposal.confidence ?? 0,
+      model: LLM_MODEL,
+    },
+  });
+  return newer.memoryId;
+}
+
 async function applyApproval(
   ctx: MutationCtx,
   params: {
@@ -116,6 +146,10 @@ async function applyApproval(
 
   if (proposal.kind === "merge" && proposal.dreamRunId !== undefined) {
     return await applyDreamMergeProposal(ctx, proposal, proposal.dreamRunId);
+  }
+
+  if (proposal.kind === "update" && proposal.dreamRunId !== undefined) {
+    return await applyDreamUpdateProposal(ctx, proposal, proposal.dreamRunId);
   }
 
   if (proposal.kind === "update") {

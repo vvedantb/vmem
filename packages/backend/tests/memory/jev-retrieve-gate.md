@@ -100,23 +100,12 @@ Requires `AI_GATEWAY_API_KEY`. The eval fails closed if the key is missing — i
 
 Results: [`benchmark/jev-gate-results.md`](./benchmark/jev-gate-results.md). Optional `EVAL_JEV_CONCURRENCY` (default 4).
 
-## Dream Mode merge (always-on, no hard-drop)
+## Dream Mode duplicates (nightly)
 
-Same Jev client (`evaluateSystemOne` / `AI_GATEWAY_API_KEY`, tag `dream-merge`) as retrieve. Dream Mode still **clusters heuristically** (`clusterNearDuplicateMemories` / `pickClusterKeeper`). Jev annotates each heuristic near-dup cluster; it does **not** drop clusters. Dream portraits stay on the chat model.
+The all-pairs heuristic clusters and the Jev merge gate (`jevMergeGate.ts`) are gone. Dreaming now judges write-time candidates (`dreamCandidates`) at night:
 
-The dream pass already runs as a Convex **action** (mutations still cannot call Jev). Per cluster, Jev answers:
+- `near_dup` pairs go to the shared Jev duplicate judge (`engine/memory/dream/jevDuplicate.ts`, also used by the one-off cleanup).
+- `maybe_conflict` pairs go to Qwen with thinking off (`engine/memory/dream/judge.ts`).
+- With no `AI_GATEWAY_API_KEY`, both steps are skipped. Nothing is merged on a heuristic alone (no fail-open).
 
-1. **noul `merge`** — metadata only (how duplicate-like); never a skip
-2. **choice `keeper`** — which memory is current truth?
-3. **noul `auto_accept`** — safe to materialize without inbox review?
-
-Every heuristic near-dup cluster still becomes a merge proposal. Thresholds (in `engine/memory/jevMergeGate.ts`):
-
-| Signal                           | Threshold                        | Effect                                                 |
-| -------------------------------- | -------------------------------- | ------------------------------------------------------ |
-| keeper choice confidence ≥ `0.6` | `JEV_KEEPER_OVERRIDE_CONFIDENCE` | Honor Jev's keeper; otherwise keep `pickClusterKeeper` |
-| auto-accept noul ≥ `0.7`         | `JEV_AUTO_ACCEPT_NOUL`           | When user auto-accept is on, materialize; else inbox   |
-
-**Fail-open:** missing `AI_GATEWAY_API_KEY` or a Jev error keeps today's heuristic (create the proposal; auto-accept still materializes). Jev never writes merged title/content. Keeper choice confidence is the selected option's gateway probability.
-
-`DreamRunResult` counts `clustersScanned`, `jevScored` (Jev returned metadata), and `failOpen`.
+Rules and limits: `convex/dreaming.ts` and `engine/memory/dream/nightly.ts`.

@@ -11,6 +11,7 @@ import {
   restorePatch,
   snapshotRow,
 } from "../engine/memory/dream/merge";
+import { startOfUtcDay } from "../engine/memory/dream/nightly";
 import {
   isVisibleStatus,
   memoryMatchesScope,
@@ -21,9 +22,17 @@ import { UPDATES_LINK_REASON } from "../engine/memory/supersede";
 import { internal } from "./_generated/api";
 import type { WithoutSystemFields } from "convex/server";
 import type { Doc, Id } from "./_generated/dataModel";
-import { internalMutation, type MutationCtx } from "./_generated/server";
+import {
+  internalMutation,
+  type MutationCtx,
+  type QueryCtx,
+} from "./_generated/server";
 import { authMutation, authQuery } from "./auth";
 import { linkMemories, sameTags } from "./memoryStore/helpers";
+import {
+  hasOverlappingPendingProposal,
+  insertProposedUpdate,
+} from "./proposedUpdateStore";
 import { trackMemoryChange } from "./memoryStore/stats";
 import { dreamActionFields, dreamRunFields } from "./validators";
 
@@ -60,6 +69,18 @@ export async function runScope(
   const user = await ctx.db.get(run.userId);
   if (!user?.clerkId) throw new Error("Dream run user not found");
   return { kind: "personal", userId: user.clerkId, profileId: run.profileId };
+}
+
+// today's (UTC) dream AI spend, all users: the daily budget guard of the
+// nightly AI steps and the one-off cleanup
+export async function dreamSpentTodayUsd(ctx: QueryCtx): Promise<number> {
+  const logs = await ctx.db
+    .query("openRouterLogs")
+    .withIndex("by_feature_createdAt", (q) =>
+      q.eq("feature", "dream").gte("createdAt", startOfUtcDay(Date.now())),
+    )
+    .collect();
+  return logs.reduce((sum, log) => sum + (log.costUsd ?? 0), 0);
 }
 
 async function loadInScope(
@@ -230,6 +251,127 @@ export async function mergeGroup(
     undoExpiresAt: now + DREAM_UNDO_WINDOW_MS,
     createdAt: now,
   });
+}
+
+/**
+ * An AI-judged update: the older row is suppressed (suppressedBy "dream-ai",
+ * mergedInto the newer row) and linked to it, with undo. The newer row is not
+ * changed. Returns null when the older row is pinned or no longer active, or
+ * the newer one is hidden.
+ */
+export async function supersedeRow(
+  ctx: MutationCtx,
+  args: {
+    runId: Id<"dreamRuns">;
+    keeperId: Id<"memories">;
+    olderId: Id<"memories">;
+    reason: string;
+    ai: NonNullable<ObjectType<typeof mergeArgs>["ai"]>;
+  },
+): Promise<Id<"dreamActions"> | null> {
+  const run = await ctx.db.get(args.runId);
+  if (!run) throw new Error("Dream run not found");
+  const scope = await runScope(ctx, run);
+  const keeper = await loadInScope(ctx, scope, args.keeperId);
+  const older = await loadInScope(ctx, scope, args.olderId);
+  if (
+    keeper._id === older._id ||
+    !isVisibleStatus(keeper.status) ||
+    older.status !== "active"
+  ) {
+    return null;
+  }
+  const now = Date.now();
+  const before = [snapshotRow(older)];
+  await ctx.db.patch(
+    older._id,
+    mergeLoserPatch(keeper._id, run._id, "dream-ai"),
+  );
+  const linkId = await addUpdatesLink(ctx, older, keeper);
+  return await ctx.db.insert("dreamActions", {
+    runId: run._id,
+    userId: run.userId,
+    ...(run.profileId === undefined ? {} : { profileId: run.profileId }),
+    kind: "supersede",
+    keeperId: keeper._id,
+    memoryIds: [older._id],
+    before,
+    created: { linkIds: linkId ? [linkId] : [], mentionIds: [] },
+    reason: args.reason,
+    ai: args.ai,
+    undoExpiresAt: now + DREAM_UNDO_WINDOW_MS,
+    createdAt: now,
+  });
+}
+
+function plural(count: number, word: string): string {
+  return `${String(count)} ${word}${count === 1 ? "" : "s"}`;
+}
+
+/**
+ * Inbox proposal for an AI-judged pair or group, skipped (false) when a
+ * pending proposal already covers one of the rows. "merge": keep `keeper`,
+ * hide `others`. "update": `others[0]` is the older row the newer `keeper`
+ * replaces. Approving either runs under `runId` with undo. "contradiction":
+ * the user keeps one row in the inbox (no dream run).
+ */
+export async function proposeDreamChange(
+  ctx: MutationCtx,
+  args: {
+    clerkId: string;
+    profileId: string;
+    runId: Id<"dreamRuns">;
+    kind: "merge" | "update" | "contradiction";
+    keeper: Doc<"memories">;
+    others: readonly Doc<"memories">[];
+    reason: string;
+    confidence?: number;
+  },
+): Promise<boolean> {
+  const { keeper, others } = args;
+  const older = others[0];
+  const docs = [keeper, ...others];
+  const sourceMemoryIds = docs.map((doc) => doc.memoryId);
+  if (
+    older === undefined ||
+    (await hasOverlappingPendingProposal(ctx, {
+      userId: args.clerkId,
+      profileId: args.profileId,
+      sourceMemoryIds,
+    }))
+  ) {
+    return false;
+  }
+  const target = args.kind === "update" ? older : keeper;
+  const reason =
+    args.kind === "merge"
+      ? `${args.reason}. Keeps this memory and hides ${plural(others.length, "duplicate")} (undo for 30 days).`
+      : args.kind === "update"
+        ? `${args.reason}. Hides the older memory in favour of the newer one (undo for 30 days).`
+        : args.reason;
+  await insertProposedUpdate(ctx, {
+    userId: args.clerkId,
+    profileId: args.profileId,
+    memoryId: target.memoryId,
+    proposedTitle: keeper.title,
+    proposedContent: keeper.content,
+    reason,
+    kind: args.kind,
+    sourceMemoryIds:
+      args.kind === "update"
+        ? [older.memoryId, keeper.memoryId]
+        : sourceMemoryIds,
+    ...(args.confidence === undefined ? {} : { confidence: args.confidence }),
+    source: "dream-mode",
+    memorySnapshot: { title: target.title, content: target.content },
+    sourceMemorySnapshots: docs.map((doc) => ({
+      id: doc.memoryId,
+      title: doc.title,
+      content: doc.content,
+    })),
+    ...(args.kind === "contradiction" ? {} : { dreamRunId: args.runId }),
+  });
+  return true;
 }
 
 export const applyMerge = internalMutation({

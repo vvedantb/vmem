@@ -237,8 +237,8 @@ export const proposedUpdateFields = {
   source: proposedUpdateSourceValidator,
   memorySnapshot: v.optional(v.object(proposedMemorySnapshotFields)),
   sourceMemorySnapshots: v.array(v.object(proposedSourceSnapshotFields)),
-  // AI-judged dream cleanup merge: approving runs dream.applyMerge under
-  // this run (suppress with undo) instead of writing a consolidated memory
+  // AI-judged dream merge or update: approving suppresses under this run
+  // (undo for 30 days) instead of writing a new memory
   dreamRunId: v.optional(v.id("dreamRuns")),
 };
 
@@ -383,6 +383,9 @@ export const userSettingsFields = {
   dreamModeAutomatic: v.optional(v.boolean()),
   // nightly archive of stale browsing history, bookmarks, desktop (default true)
   dreamModeDecay: v.optional(v.boolean()),
+  // nightly AI judge for near-duplicates and conflicts (default on when the
+  // deployment has AI_GATEWAY_API_KEY)
+  dreamModeUseAi: v.optional(v.boolean()),
   lastDreamRunAt: v.optional(v.number()),
   experimentalFlags: v.optional(experimentalFlagsValidator),
   // nightly rollups opt-in (Settings › Preferences)

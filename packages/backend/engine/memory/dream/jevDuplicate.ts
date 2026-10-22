@@ -181,10 +181,15 @@ export interface JevDuplicateResult {
   costUsd?: number;
 }
 
-/** One Jev call for one group. Never throws: a failed call is "error". */
+/**
+ * One Jev call for one group. Never throws: a failed call is "error". Shared
+ * by the one-off cleanup and nightly dreaming (step 3); `tag` names the
+ * caller in the gateway logs.
+ */
 export async function judgeDuplicateGroup(args: {
   members: readonly JevGroupMember[];
   apiKey: string;
+  tag?: string;
   evaluate?: (args: EvaluateSystemOneArgs) => Promise<SystemOneResponse>;
 }): Promise<JevDuplicateResult> {
   const evaluate = args.evaluate ?? evaluateSystemOne;
@@ -193,7 +198,7 @@ export async function judgeDuplicateGroup(args: {
       apiKey: args.apiKey,
       state: buildState(args.members),
       questions: buildJevDuplicateQuestions(args.members),
-      tag: "dream-cleanup",
+      tag: args.tag ?? "dream-cleanup",
     });
     return {
       verdict: parseJevDuplicateVerdict(args.members, response.answers),

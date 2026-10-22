@@ -20,7 +20,10 @@ import {
   type DeterministicGroup,
   type PlanRow,
 } from "../engine/memory/dream/plan";
-import { emptyDreamCounts } from "../engine/memory/dream/nightly";
+import {
+  DREAM_DAILY_BUDGET_USD,
+  emptyDreamCounts,
+} from "../engine/memory/dream/nightly";
 import { SYSTEMONE_DEFAULT_MODEL } from "../engine/llm/systemOneClient";
 import { isVisibleStatus } from "../engine/memory/scope";
 import { internal } from "./_generated/api";
@@ -33,7 +36,7 @@ import {
   type MutationCtx,
 } from "./_generated/server";
 import { getUserByClerkId } from "./auth";
-import { mergeGroup } from "./dream";
+import { dreamSpentTodayUsd, mergeGroup, proposeDreamChange } from "./dream";
 import { resolveSystemOneApiKey } from "./lib/systemOneKey";
 import { scheduleLog } from "./lib/openRouter/shared";
 import {
@@ -41,10 +44,6 @@ import {
   paginateScopedDocs,
 } from "./memoryStore/helpers";
 import { walkPages } from "./memoryStore/walk";
-import {
-  hasOverlappingPendingProposal,
-  insertProposedUpdate,
-} from "./proposedUpdateStore";
 import { getSettingsDoc } from "./userSettings";
 import {
   dreamPlanGroupFields,
@@ -72,13 +71,10 @@ const JEV_DEFAULT_CALLS = 20;
 const JEV_MAX_CALLS = 200;
 const JUDGE_CHUNK = 10;
 const JUDGE_CONTENT_CHARS = 600;
-// all users together, per UTC day, summed from openRouterLogs feature "dream"
-const DREAM_DAILY_BUDGET_USD = 0.5;
 const APPLY_GROUPS = 100;
 const APPLY_ROW_BUDGET = 1_000;
 const PLAN_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 const PURGE_BATCH = 500;
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 type MemoryId = Id<"memories">;
 type RunId = Id<"dreamRuns">;
@@ -142,10 +138,6 @@ function emptyCleanup(): CleanupCounts {
     aiCostUnknown: 0,
     skippedChanged: 0,
   };
-}
-
-function startOfUtcDay(now: number): number {
-  return Math.floor(now / DAY_MS) * DAY_MS;
 }
 
 function toPlanGroup(group: DeterministicGroup<MemoryId>): PlanGroupInput {
@@ -670,16 +662,10 @@ export const pendingAiGroupsInternal = internalQuery({
       }
       groups.push({ _id: row._id, seq: row.seq, members });
     }
-    const logs = await ctx.db
-      .query("openRouterLogs")
-      .withIndex("by_feature_createdAt", (q) =>
-        q.eq("feature", "dream").gte("createdAt", startOfUtcDay(Date.now())),
-      )
-      .collect();
     return {
       userId: run.userId,
       profileId: run.profileId,
-      spentTodayUsd: logs.reduce((sum, log) => sum + (log.costUsd ?? 0), 0),
+      spentTodayUsd: await dreamSpentTodayUsd(ctx),
       groups,
     };
   },
@@ -939,46 +925,25 @@ async function proposeAiMerge(
     keeperId: MemoryId;
   },
 ): Promise<boolean> {
-  const docs: Doc<"memories">[] = [];
-  for (const id of [args.keeperId, ...args.group.loserIds]) {
-    const doc = await ctx.db.get(id);
-    if (doc) docs.push(doc);
-  }
-  const [keeper] = docs;
+  const keeper = await ctx.db.get(args.keeperId);
   if (!keeper) return false;
-  const sourceMemoryIds = docs.map((doc) => doc.memoryId);
-  if (
-    await hasOverlappingPendingProposal(ctx, {
-      userId: args.clerkId,
-      profileId: args.profileId,
-      sourceMemoryIds,
-    })
-  ) {
-    return false;
+  const others: Doc<"memories">[] = [];
+  for (const id of args.group.loserIds) {
+    const doc = await ctx.db.get(id);
+    if (doc) others.push(doc);
   }
-  const hidden = docs.length - 1;
-  await insertProposedUpdate(ctx, {
-    userId: args.clerkId,
+  return await proposeDreamChange(ctx, {
+    clerkId: args.clerkId,
     profileId: args.profileId,
-    memoryId: keeper.memoryId,
-    proposedTitle: keeper.title,
-    proposedContent: keeper.content,
-    reason: `${args.group.reason}. Keeps this memory and hides ${String(hidden)} duplicate${hidden === 1 ? "" : "s"} (undo for 30 days).`,
+    runId: args.applyRunId,
     kind: "merge",
-    sourceMemoryIds,
+    keeper,
+    others,
+    reason: args.group.reason,
     ...(args.group.aiConfidence === undefined
       ? {}
       : { confidence: args.group.aiConfidence }),
-    source: "dream-mode",
-    memorySnapshot: { title: keeper.title, content: keeper.content },
-    sourceMemorySnapshots: docs.map((doc) => ({
-      id: doc.memoryId,
-      title: doc.title,
-      content: doc.content,
-    })),
-    dreamRunId: args.applyRunId,
   });
-  return true;
 }
 
 /**
