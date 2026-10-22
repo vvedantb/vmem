@@ -1,5 +1,8 @@
 {
   "extends": "@vvedantb/config/tsconfig/convex.json",
+  "compilerOptions": {
+    "allowImportingTsExtensions": true
+  },
   "include": ["./**/*"],
   "exclude": ["./_generated", "**/*.test.ts"]
 }
