@@ -466,7 +466,7 @@ export const memoryToolSpecs = {
     name: "memory_get",
     schema: memoryGetSchema,
     description:
-      "Fetch one memory by ID with full content, tags, type, status, provenance (source, sourceUrl, sourceSyncedAt) and timestamps. Counts as opening the memory (usefulness signal), like opening it in the web app. Returns 'Memory not found' for IDs outside the active (or given) profile.",
+      "Fetch one memory by ID with full content, tags, type, status, provenance (source, sourceUrl, sourceSyncedAt) and timestamps. Prior versions of a changed fact: memory_history. Counts as opening the memory (usefulness signal), like opening it in the web app. Returns 'Memory not found' for IDs outside the active (or given) profile.",
     errorLabel: "Get memory failed",
     async run(h, params): Promise<unknown> {
       return withMcpMemoryScope(
@@ -547,7 +547,7 @@ export const memoryToolSpecs = {
     name: "memory_timeline",
     schema: memoryTimelineSchema,
     description:
-      "Time travel over stored activity summaries (rollups). Rollups are written nightly per UTC day, ISO week and month; this tool only reads them and never calls an LLM. Pass start / end (ISO) for the summaries that overlap a window (oldest first, at most 31; period picks day, week or month). Pass date for what was known at that time: the newest month, week and day summaries that ended by then, plus the newest 20 memories created before it (slim rows, today's text: memories have no version history). Each summary has summary, highlights, stats and the memoryIds it cites (open them with memory_get). Omit all for the last 7 days. An empty list means no rollup ran for that time.",
+      "Time travel over stored activity summaries (rollups). Rollups are written nightly per UTC day, ISO week and month; this tool only reads them and never calls an LLM. Pass start / end (ISO) for the summaries that overlap a window (oldest first, at most 31; period picks day, week or month). Pass date for what was known at that time: the newest month, week and day summaries that ended by then, plus the newest 20 memories created before it (slim rows, today's text; prior versions of a changed fact: memory_history). Each summary has summary, highlights, stats and the memoryIds it cites (open them with memory_get). Omit all for the last 7 days. An empty list means no rollup ran for that time.",
     errorLabel: "Memory timeline failed",
     async run(h, params): Promise<unknown> {
       return withMcpMemoryScope(

@@ -16,6 +16,7 @@ import {
   deleteTeamMemoryAsOwner,
   getMemory,
   getMemoryForTeam,
+  getMemoryHistory,
   listMemoriesBounded,
   paginateMemorySummaries,
   updateMemory,
@@ -23,6 +24,7 @@ import {
   type MemorySummaryPage,
   type ScopedMemoryPaginationOpts,
 } from "../memoryStore/helpers";
+import type { MemoryVersion } from "../validators";
 import type { MemoryListResult } from "./types";
 
 type ListArgs = {
@@ -184,6 +186,25 @@ async function getForCaller(
     return getMemoryForTeam(ctx, scope.profileId, args.memoryId);
   }
   return getMemory(ctx, scope.clerkId, args.memoryId);
+}
+
+// memory detail History: prior versions, newest first (same scope as get)
+export async function runHistory(
+  ctx: AuthQueryCtx,
+  args: { memoryId: string; profileId?: string },
+): Promise<MemoryVersion[]> {
+  const scope = await runResolveMemoryScopeInternal(ctx, {
+    userId: ctx.userId,
+    profileId: args.profileId,
+  });
+  const versions = await getMemoryHistory(
+    ctx,
+    scope.kind === "team"
+      ? { kind: "team", profileId: scope.profileId }
+      : { kind: "personal", userId: scope.clerkId },
+    args.memoryId,
+  );
+  return versions ?? [];
 }
 
 async function resolveWriteProfileId(

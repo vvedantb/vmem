@@ -28,6 +28,7 @@ import {
   memoryListResultValidator,
   memorySummaryFilterFields,
   memorySummaryValidator,
+  memoryVersionValidator,
   memoryWithTagsValidator,
 } from "./validators";
 import {
@@ -45,6 +46,7 @@ import {
 import {
   runCreate,
   runGet,
+  runHistory,
   runList,
   runListSummaries,
   runRemove,
@@ -131,6 +133,15 @@ export const get = authQuery({
   },
   returns: v.union(memoryWithTagsValidator, v.null()),
   handler: async (ctx, args) => runGet(ctx, args),
+});
+
+export const history = authQuery({
+  args: {
+    memoryId: v.string(),
+    profileId: profileIdOptional,
+  },
+  returns: v.array(memoryVersionValidator),
+  handler: async (ctx, args) => runHistory(ctx, args),
 });
 
 export const create = authMutation({

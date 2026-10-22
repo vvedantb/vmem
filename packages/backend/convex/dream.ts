@@ -268,9 +268,10 @@ export async function mergeGroup(
 }
 
 /**
- * An AI-judged update: the older row is suppressed (suppressedBy "dream-ai",
- * mergedInto the newer row) and linked to it, with undo. The newer row is not
- * changed. Returns null when the older row is pinned or no longer active, or
+ * An AI-judged update: the older row is suppressed (suppressedBy
+ * "dream-supersede", mergedInto and supersededBy the newer row) and linked to
+ * it, with undo. It stays as a prior version: the duplicate sweep skips it.
+ * The newer row is not changed. Returns null when the older row is pinned or no longer active, or
  * the newer one is hidden.
  */
 export async function supersedeRow(
@@ -297,11 +298,11 @@ export async function supersedeRow(
   }
   const now = Date.now();
   const before = [snapshotRow(older)];
-  await patchDreamFields(
-    ctx,
-    older,
-    mergeLoserPatch(keeper._id, run._id, "dream-ai", now),
-  );
+  await patchDreamFields(ctx, older, {
+    ...mergeLoserPatch(keeper._id, run._id, "dream-supersede", now),
+    supersededBy: keeper._id,
+    supersededAt: now,
+  });
   const linkId = await addUpdatesLink(ctx, older, keeper);
   return await ctx.db.insert("dreamActions", {
     runId: run._id,
@@ -458,7 +459,14 @@ async function undoOne(
   if (now > action.undoExpiresAt) throw new Error("Undo window has passed");
   for (const snapshot of action.before) {
     const doc = await ctx.db.get(snapshot.memoryId);
-    if (doc) await patchDreamFields(ctx, doc, restorePatch(snapshot));
+    // every snapshot row was visible, so it was never a prior version
+    if (doc) {
+      await patchDreamFields(ctx, doc, {
+        ...restorePatch(snapshot),
+        supersededBy: undefined,
+        supersededAt: undefined,
+      });
+    }
   }
   for (const id of [...action.created.linkIds, ...action.created.mentionIds]) {
     if (await ctx.db.get(id)) await ctx.db.delete(id);
@@ -764,7 +772,7 @@ async function hiddenBefore(
 // hourly: permanently deletes duplicates a dream merge hid ("dream", then
 // "dream-ai") once the 30-day undo window has passed, with their links,
 // mentions, embedding, usage and counters. Archived stale rows ("dream-decay")
-// are never deleted. 100 rows a batch, then the next page or the next kind.
+// and prior versions ("dream-supersede", supersededBy set) are never deleted. 100 rows a batch, then the next page or the next kind.
 export const sweepExpiredDuplicates = internalMutation({
   args: {
     suppressedBy: v.optional(
@@ -784,7 +792,9 @@ export const sweepExpiredDuplicates = internalMutation({
       .paginate({ cursor: args.cursor ?? null, numItems: SWEEP_BATCH });
     let deleted = 0;
     for (const doc of page.page) {
-      if (doc.status !== "suppressed") continue;
+      if (doc.status !== "suppressed" || doc.supersededBy !== undefined) {
+        continue;
+      }
       if (!(await hiddenBefore(ctx, doc, cutoff))) continue;
       if (await deleteMemory(ctx, doc.userId, doc.memoryId)) deleted += 1;
     }

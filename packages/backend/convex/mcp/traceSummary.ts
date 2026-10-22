@@ -64,6 +64,7 @@ const labelArgsSchema = z
   .object({
     query: optionalString,
     task: optionalString,
+    message: optionalString,
     title: optionalString,
     name: optionalString,
     path: optionalString,
@@ -228,6 +229,16 @@ const SUMMARY_FORMATTERS = new Map<string, SummaryFormatter>([
       const created = shape.created ?? [];
       const deduped = created.filter((row) => row.deduped === true).length;
       return `→ ${created.length - deduped} added, ${deduped} deduped, ${shape.failed?.length ?? 0} failed`;
+    },
+  ],
+  [
+    "recall_context",
+    ({ args, shape }) => {
+      const memories = shape.memoryIds?.length ?? 0;
+      return withLabel(
+        args.message,
+        `${memories} ${memories === 1 ? "memory" : "memories"}, ${plural(shape.skillNames?.length ?? 0, "skill")}`,
+      );
     },
   ],
   [

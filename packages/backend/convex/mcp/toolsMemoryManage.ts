@@ -339,17 +339,28 @@ export const memoryManageToolSpecs = {
     name: "memory_history",
     schema: memoryHistorySchema,
     description:
-      "Version history of one memory, as in the web History tab: timeline events with action (created or updated), a snapshot of title, content, type, status, confidence and tags, and the event time.",
+      "Version history of one memory, as in the web History tab. events: timeline events with action (created or updated), a snapshot of title, content, type, status, confidence and tags, and the event time. priorVersions: the older memories a newer fact replaced (an update or a resolved contradiction), newest first, at most 20, each with id, title, a 500-char content snippet, createdAt and supersededAt. Prior versions are hidden from search, retrieve and context tools.",
     errorLabel: "Memory history failed",
     async run(h, params): Promise<unknown> {
-      return inScope(h, params.profileId, async (scope) =>
-        memoryTimeline(
-          await loadMemoryForMcpScope(h.ctx, {
-            ...scope,
-            memoryId: params.memoryId,
-          }),
-        ),
-      );
+      return inScope(h, params.profileId, async (scope) => {
+        const memory = await loadMemoryForMcpScope(h.ctx, {
+          ...scope,
+          memoryId: params.memoryId,
+        });
+        const priorVersions = await h.ctx.runQuery(
+          internal.memoryStore.functions.getMemoryHistoryInternal,
+          {
+            kind: scope.mcpScope,
+            userId: scope.clerkId,
+            profileId: scope.profileId,
+            memoryId: memory.id,
+          },
+        );
+        return {
+          events: memoryTimeline(memory),
+          priorVersions: priorVersions ?? [],
+        };
+      });
     },
   }),
   memory_topic_timeline: toolSpec({

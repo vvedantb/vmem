@@ -965,6 +965,8 @@ async function supersedeInstructionTargets(
       predecessorIds,
       successorId,
       reason: UPDATES_LINK_REASON,
+      // an UPDATE keeps the old row as a prior version; DELETE has no successor
+      asVersion: successorId !== undefined,
     },
   );
 }

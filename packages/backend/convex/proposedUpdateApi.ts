@@ -163,6 +163,7 @@ async function applyApproval(
         predecessorIds: losers,
         successorId: winnerMemoryId,
         reason: UPDATES_LINK_REASON,
+        asVersion: true,
       });
       return winnerMemoryId;
     }
@@ -202,6 +203,7 @@ async function applyApproval(
       predecessorIds: [proposal.memoryId, ...proposal.sourceMemoryIds],
       successorId: created.id,
       reason: UPDATES_LINK_REASON,
+      asVersion: true,
     });
     return created.id;
   }

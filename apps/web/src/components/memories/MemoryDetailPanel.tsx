@@ -37,6 +37,7 @@ import {
 import HistoryTab from "@/components/_components/HistoryTab";
 import RelatedMemories from "@/components/_components/RelatedMemories";
 import MergedFromSection from "./MergedFromSection";
+import PriorVersionsSection from "./PriorVersionsSection";
 import { MemorySourceLabel } from "@/components/_components/MemorySourceLabel";
 import DestructiveConfirmDialog from "@/components/settings/DestructiveConfirmDialog";
 import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
@@ -265,6 +266,7 @@ function MemoryDetailPanelBody({
           </TabsContent>
 
           <TabsContent value="history" className={TAB_PANEL_CLASS}>
+            <PriorVersionsSection memoryId={memory.id} />
             <HistoryTab key={memory.id} memoryId={memory.id} />
           </TabsContent>
 

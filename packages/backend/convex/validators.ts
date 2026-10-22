@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { v, type Infer } from "convex/values";
 import { omit } from "convex-helpers";
 import { zodToConvex } from "convex-helpers/server/zod";
 import {
@@ -25,6 +25,8 @@ const dreamSuppressedByValidator = v.union(
   v.literal("dream"),
   v.literal("dream-decay"),
   v.literal("dream-ai"),
+  // an AI-judged update hid the older row: a kept prior version, never swept
+  v.literal("dream-supersede"),
 );
 
 // clerk id + optional profile id; tags are stored on the row
@@ -80,7 +82,21 @@ export const memoryFields = {
   suppressedRunId: v.optional(v.id("dreamRuns")),
   // when dream suppressed the row (unset on rows hidden before this field)
   suppressedAt: v.optional(v.number()),
+  // version history: a newer memory replaced this one (status "suppressed").
+  // Kept as a prior version, hidden from reads, never swept as a duplicate.
+  supersededBy: v.optional(v.id("memories")),
+  supersededAt: v.optional(v.number()),
 };
+
+// one prior version of a memory (memory detail History, MCP memory_history)
+export const memoryVersionValidator = v.object({
+  id: v.string(),
+  title: v.string(),
+  content: v.string(),
+  createdAt: v.string(),
+  supersededAt: v.union(v.string(), v.null()),
+});
+export type MemoryVersion = Infer<typeof memoryVersionValidator>;
 
 // "search" means a result open (get / palette select), not a typeahead query.
 export const memoryAccessKindValidator = v.union(

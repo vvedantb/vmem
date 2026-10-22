@@ -413,7 +413,8 @@ describe("nightly AI judge: conflicts (Qwen)", () => {
     expect(await getDoc(t, a)).toMatchObject({
       status: "suppressed",
       mergedInto: b,
-      suppressedBy: "dream-ai",
+      suppressedBy: "dream-supersede",
+      supersededBy: b,
       suppressedAt: expect.any(Number),
     });
     expect((await getDoc(t, b)).status).toBe("active");
@@ -471,7 +472,8 @@ describe("nightly AI judge: conflicts (Qwen)", () => {
     expect(await getDoc(t, a)).toMatchObject({
       status: "suppressed",
       mergedInto: b,
-      suppressedBy: "dream-ai",
+      suppressedBy: "dream-supersede",
+      supersededBy: b,
       suppressedAt: expect.any(Number),
     });
     // no new memory is written for a dream update
