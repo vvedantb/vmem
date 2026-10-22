@@ -3,7 +3,11 @@ import type { MemoryStatus, MemoryType, MemoryWithTags } from "@vmem/sdk";
 import { memoryTypeSchema } from "@vmem/sdk";
 import { z } from "zod";
 import type { ActionCtx } from "../../convex/_generated/server";
-import type { EffectiveSkill } from "../../convex/skills";
+import { toSkillIndexEntry, type EffectiveSkill } from "../../convex/skills";
+import {
+  graphNeighborIdsOutsideSeeds,
+  type MemoryLinkEdge,
+} from "../../engine/memory/links";
 import { memoryMatchesListFilter } from "../../engine/memory/list";
 import { isVisibleStatus } from "../../engine/memory/scope";
 
@@ -92,6 +96,11 @@ const linksAroundArgsSchema = z.object({
   userId: z.string(),
   seedIds: z.array(z.string()),
   hops: z.number(),
+});
+const graphAroundArgsSchema = linksAroundArgsSchema.extend({
+  neighborLimit: z.number(),
+  neighborMaxHops: z.number(),
+  neighborCap: z.number(),
 });
 const skillListArgsSchema = z.object({
   clerkId: z.string(),
@@ -323,12 +332,48 @@ function functionName(ref: ConvexFnRef): string {
   return getFunctionName(ref);
 }
 
+const MOCK_CONTEXT_PROMPT =
+  "# vmem User Profile\n\n## About\nHarness mock profile.\n\n## Available Skills\n- skip-me";
+
+function linksAround(
+  store: MockStore,
+  args: z.infer<typeof linksAroundArgsSchema>,
+): MemoryLinkEdge[] {
+  if (args.userId !== store.clerkId) return [];
+  const visited = new Set(args.seedIds);
+  const edges = new Set<(typeof store.links)[number]>();
+  let frontier = [...visited];
+  for (let hop = 0; hop < args.hops && frontier.length > 0; hop += 1) {
+    const next: string[] = [];
+    for (const link of store.links) {
+      const touches =
+        frontier.includes(link.sourceId) || frontier.includes(link.targetId);
+      if (!touches) continue;
+      edges.add(link);
+      for (const id of [link.sourceId, link.targetId]) {
+        if (visited.has(id)) continue;
+        visited.add(id);
+        next.push(id);
+      }
+    }
+    frontier = next;
+  }
+  return [...edges];
+}
+
 async function dispatch(
   store: MockStore,
   ref: ConvexFnRef,
   args: unknown,
 ): Promise<unknown> {
-  const name = functionName(ref);
+  return dispatchName(store, functionName(ref), args);
+}
+
+async function dispatchName(
+  store: MockStore,
+  name: string,
+  args: unknown,
+): Promise<unknown> {
   switch (name) {
     case "profiles:listByClerkIdAndScopeInternal": {
       const parsed = clerkScopeArgsSchema.parse(args);
@@ -383,10 +428,25 @@ async function dispatch(
     case "contextPromptCache:getByClerkIdInternal": {
       clerkIdArgsSchema.parse(args);
       return {
-        content:
-          "# vmem User Profile\n\n## About\nHarness mock profile.\n\n## Available Skills\n- skip-me",
+        content: MOCK_CONTEXT_PROMPT,
         generatedAt: 1,
         memoryCountAtGeneration: 0,
+      };
+    }
+    case "mcp/recallPrelude:getInternal": {
+      const parsed = resolveProfileArgsSchema.parse(args);
+      return {
+        profileId: await dispatchName(
+          store,
+          "profiles:resolveProfileIdForMcpScopeInternal",
+          parsed,
+        ),
+        skills: mockSkillsForScope(store, parsed.scope)
+          .filter((skill) => skill.enabled)
+          .map(toSkillIndexEntry),
+        profile: parsed.scope === "team" ? null : MOCK_CONTEXT_PROMPT,
+        embeddingHit: null,
+        userId: null,
       };
     }
     case "contextPromptCache:markPendingByClerkIdInternal": {
@@ -502,28 +562,24 @@ async function dispatch(
       return { nodes: [], mentions: [] };
     }
     case "memoryStore/functions:listMemoryLinksAroundInternal": {
-      const parsed = linksAroundArgsSchema.parse(args);
-      if (parsed.userId !== store.clerkId) return [];
-      const visited = new Set(parsed.seedIds);
-      const edges = new Set<(typeof store.links)[number]>();
-      let frontier = [...visited];
-      for (let hop = 0; hop < parsed.hops && frontier.length > 0; hop += 1) {
-        const next: string[] = [];
-        for (const link of store.links) {
-          const touches =
-            frontier.includes(link.sourceId) ||
-            frontier.includes(link.targetId);
-          if (!touches) continue;
-          edges.add(link);
-          for (const id of [link.sourceId, link.targetId]) {
-            if (visited.has(id)) continue;
-            visited.add(id);
-            next.push(id);
-          }
-        }
-        frontier = next;
-      }
-      return [...edges];
+      return linksAround(store, linksAroundArgsSchema.parse(args));
+    }
+    case "memoryStore/functions:listMemoryGraphAroundInternal": {
+      const parsed = graphAroundArgsSchema.parse(args);
+      const links = linksAround(store, parsed);
+      const ids = graphNeighborIdsOutsideSeeds(
+        parsed.seedIds,
+        links,
+        parsed.neighborLimit,
+        parsed.neighborMaxHops,
+        parsed.neighborCap,
+      );
+      return {
+        links,
+        neighbors: ids.flatMap((id) =>
+          store.memories.filter((memory) => memory.id === id),
+        ),
+      };
     }
     case "memoryStore/functions:collectScopedMemoriesInternal": {
       const parsed = paginateScopedArgsSchema

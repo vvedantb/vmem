@@ -41,23 +41,34 @@ export async function bestEffortEmbedOne(
 }
 
 // per user, so one user's cached query never answers another's
-async function queryEmbeddingCacheKey(
+export async function queryEmbeddingCacheKey(
   clerkId: string,
   text: string,
 ): Promise<string> {
   return sha256Hex(`${clerkId}\n${AI_GATEWAY_EMBEDDING_MODEL}\n${text}`);
 }
 
+/** A cache row and auth already read for `key` (see recallPrelude). */
+export interface QueryEmbeddingLookup {
+  key: string;
+  hit: { embedding: number[]; expiresAt: number } | null;
+  auth: BestEffortEmbedAuth | null;
+}
+
 /**
  * bestEffortEmbedOne behind the queryEmbeddingCache table: an identical
  * text from the same user within the TTL skips the network call. Only a
  * real vector is cached; with no API key nothing is read or written.
- * The cache lookup and the auth read run together, and the cache write is
- * returned as `cacheWrite` (never rejects) so the caller can await it after
- * the vector search instead of before.
+ * The cache lookup and the auth read run together (or come in `lookup` when
+ * its key matches), and the cache write is returned as `cacheWrite` (never
+ * rejects) so the caller can await it after the vector search instead of
+ * before.
  */
 export async function bestEffortEmbedQueryCached(
-  params: BestEffortEmbedParams & { text: string },
+  params: BestEffortEmbedParams & {
+    text: string;
+    lookup?: QueryEmbeddingLookup;
+  },
 ): Promise<{
   embedding: number[] | null;
   cached: boolean;
@@ -68,10 +79,10 @@ export async function bestEffortEmbedQueryCached(
     return { embedding: null, cached: false, cacheWrite: noWrite };
   }
   const key = await queryEmbeddingCacheKey(params.clerkId, params.text);
-  const [hit, auth] = await Promise.all([
-    params.ctx.runQuery(internal.queryEmbeddingCache.getInternal, { key }),
-    resolveBestEffortEmbedAuth(params.ctx, params.clerkId),
-  ]);
+  const { hit, auth } =
+    params.lookup?.key === key
+      ? params.lookup
+      : await readQueryEmbeddingLookup(params.ctx, params.clerkId, key);
   if (hit !== null && hit.expiresAt > Date.now()) {
     return { embedding: hit.embedding, cached: true, cacheWrite: noWrite };
   }
@@ -91,6 +102,18 @@ export async function bestEffortEmbedQueryCached(
     }
   })();
   return { embedding, cached: false, cacheWrite };
+}
+
+async function readQueryEmbeddingLookup(
+  ctx: ActionCtx,
+  clerkId: string,
+  key: string,
+): Promise<QueryEmbeddingLookup> {
+  const [hit, auth] = await Promise.all([
+    ctx.runQuery(internal.queryEmbeddingCache.getInternal, { key }),
+    resolveBestEffortEmbedAuth(ctx, clerkId),
+  ]);
+  return { key, hit, auth };
 }
 
 export async function bestEffortEmbedMany(

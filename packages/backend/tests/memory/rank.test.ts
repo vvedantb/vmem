@@ -232,6 +232,20 @@ describe("rankMemories", () => {
       { limit: 1 },
     );
     expect(ranked[0]?.matchedChunk?.content.toLowerCase()).toContain("canary");
+  });
+
+  // chunks are the title, each sentence, then 40-word windows; terms split
+  // over sentences only meet in a window, and compound / hyphenated words
+  // still yield their parts
+  it("picks a word window when no sentence holds every term", () => {
+    const content =
+      "The deployPipeline starts here. Filler words follow now. More filler text again. Then rollback-steps end it.";
+    const ranked = rankMemories(
+      [memory({ id: "mem_window", title: "Notes", content })],
+      "pipeline rollback",
+      { limit: 1 },
+    );
+    expect(ranked[0]?.matchedChunk).toEqual({ content, position: 5 });
     expect(ranked[0]?.trace.scoreBreakdown.rerankerScore).toBeGreaterThan(0);
   });
 

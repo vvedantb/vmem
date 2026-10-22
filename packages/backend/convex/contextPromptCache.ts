@@ -35,18 +35,26 @@ export const resolveUserIdByClerkIdInternal = internalQuery({
 export const getByClerkIdInternal = internalQuery({
   args: { clerkId: v.string() },
   returns: v.union(v.object(contextPromptCacheContentFields), v.null()),
-  handler: async (ctx, args) => {
-    const found = await getCacheRowByClerkId(ctx, args.clerkId);
-    if (!found?.row) return null;
-    const { row } = found;
-    return {
-      content: row.content,
-      generatedAt: row.generatedAt,
-      memoryCountAtGeneration: row.memoryCountAtGeneration,
-      pendingRegeneration: row.pendingRegeneration,
-    };
-  },
+  handler: async (ctx, args) => readContextPromptCache(ctx, args.clerkId),
 });
+
+export async function readContextPromptCache(
+  ctx: QueryCtx,
+  clerkId: string,
+): Promise<Omit<
+  Doc<"contextPromptCache">,
+  "_id" | "_creationTime" | "userId"
+> | null> {
+  const found = await getCacheRowByClerkId(ctx, clerkId);
+  if (!found?.row) return null;
+  const { row } = found;
+  return {
+    content: row.content,
+    generatedAt: row.generatedAt,
+    memoryCountAtGeneration: row.memoryCountAtGeneration,
+    pendingRegeneration: row.pendingRegeneration,
+  };
+}
 
 // mark the cache as needing regeneration
 export const markPendingByClerkIdInternal = internalMutation({

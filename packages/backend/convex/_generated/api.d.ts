@@ -86,6 +86,7 @@ import type * as mcp_memoryGraphApp from "../mcp/memoryGraphApp.js";
 import type * as mcp_memoryScope from "../mcp/memoryScope.js";
 import type * as mcp_native from "../mcp/native.js";
 import type * as mcp_nodeActions from "../mcp/nodeActions.js";
+import type * as mcp_recallPrelude from "../mcp/recallPrelude.js";
 import type * as mcp_resources from "../mcp/resources.js";
 import type * as mcp_serverInfo from "../mcp/serverInfo.js";
 import type * as mcp_tokenCache from "../mcp/tokenCache.js";
@@ -248,6 +249,7 @@ declare const fullApi: ApiFromModules<{
   "mcp/memoryScope": typeof mcp_memoryScope;
   "mcp/native": typeof mcp_native;
   "mcp/nodeActions": typeof mcp_nodeActions;
+  "mcp/recallPrelude": typeof mcp_recallPrelude;
   "mcp/resources": typeof mcp_resources;
   "mcp/serverInfo": typeof mcp_serverInfo;
   "mcp/tokenCache": typeof mcp_tokenCache;

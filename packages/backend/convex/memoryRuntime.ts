@@ -13,7 +13,6 @@ import {
   toMemoryStatusOrUndefined,
   toMemoryTypeOrUndefined,
 } from "../engine/memory/parse";
-import { expandGraphNeighbors } from "../engine/memory/links";
 import { memoryMatchesListFilter } from "../engine/memory/list";
 import { memoryMatchesScope } from "../engine/memory/scope";
 import { ftsQueryTexts } from "../engine/memory/candidates";
@@ -45,13 +44,20 @@ import {
   wantsLocalRerank,
   type RetrieveJudgeOptions,
 } from "../engine/memory/jevGate";
-import { resolveOpenRouterAuth } from "./lib/openRouterKey";
+import {
+  readOpenRouterApiKey,
+  resolveOpenRouterAuth,
+} from "./lib/openRouterKey";
 import {
   loggedJevEvaluate,
   resolveSystemOneApiKey,
   type JevLogScope,
 } from "./lib/systemOneKey";
-import { bestEffortEmbedQueryCached } from "./lib/openRouter/bestEffortEmbed";
+import {
+  bestEffortEmbedQueryCached,
+  queryEmbeddingCacheKey,
+  type QueryEmbeddingLookup,
+} from "./lib/openRouter/bestEffortEmbed";
 import { callJsonChat } from "./lib/openRouter/jsonChat";
 import { scheduleContextPromptInvalidationByClerkId } from "./lib/contextPromptInvalidate";
 import {
@@ -81,7 +87,8 @@ type MemoryCtx = Pick<ActionCtx, "runQuery" | "runMutation" | "scheduler">;
 /**
  * Stage durations (ms) a retrieve fills in when the caller passes one. Text
  * search overlaps embed -> vector -> hydrate, so searchMs is the wall-clock
- * of that whole overlapped phase, not a sum.
+ * of that whole overlapped phase, not a sum. The stages after it run one
+ * after the other, and postSearchMs is their wall-clock.
  */
 export interface RetrieveTiming {
   searchMs?: number;
@@ -90,8 +97,20 @@ export interface RetrieveTiming {
   vectorMs?: number;
   hydrateMs?: number;
   textMs?: number;
-  linksMs?: number;
+  /** pool from the text and vector hits */
+  fuseMs?: number;
+  /** one query: links around the pool and the neighbour memories */
+  graphMs?: number;
+  /** neighbour scope checks into the pool */
   neighborsMs?: number;
+  /** recent memories, only when the pool is empty */
+  recentMs?: number;
+  rankMs?: number;
+  /** Jev gate; near 0 when the judge is off */
+  gateMs?: number;
+  /** access tracking (a scheduler call) */
+  trackMs?: number;
+  postSearchMs?: number;
 }
 
 type RetrieveTimingStage = Exclude<keyof RetrieveTiming, "embedCached">;
@@ -491,6 +510,9 @@ export async function retrieveMemoriesForClerk(
     threshold?: number;
     referenceDate?: string;
     timing?: RetrieveTiming;
+    /** false: the caller enqueues the access itself */
+    track?: boolean;
+    embeddingLookup?: QueryEmbeddingLookup;
   } & RetrieveJudgeOptions,
 ): Promise<MemoryCandidate[]> {
   return retrieveAndTrack(ctx, {
@@ -508,6 +530,8 @@ export async function retrieveMemoriesForClerk(
     judge: args.judge,
     referenceDate: args.referenceDate,
     timing: args.timing,
+    track: args.track,
+    embeddingLookup: args.embeddingLookup,
   });
 }
 
@@ -525,6 +549,9 @@ export async function retrieveMemoriesForTeamProfile(
     threshold?: number;
     referenceDate?: string;
     timing?: RetrieveTiming;
+    /** false: the caller enqueues the access itself */
+    track?: boolean;
+    embeddingLookup?: QueryEmbeddingLookup;
   } & RetrieveJudgeOptions,
 ): Promise<MemoryCandidate[]> {
   return retrieveAndTrack(ctx, {
@@ -542,20 +569,38 @@ export async function retrieveMemoriesForTeamProfile(
     judge: args.judge,
     referenceDate: args.referenceDate,
     timing: args.timing,
+    track: args.track,
+    embeddingLookup: args.embeddingLookup,
   });
 }
 
 async function retrieveAndTrack(
   ctx: ActionCtx,
-  args: Parameters<typeof retrieveRanked>[1],
+  args: Parameters<typeof retrieveRanked>[1] & { track?: boolean },
 ): Promise<MemoryCandidate[]> {
   const hits = await retrieveRanked(ctx, args);
-  await enqueueMemoryAccess(
-    ctx,
-    hits.map((hit) => hit.id),
-    "retrieve",
+  if (args.track === false) return hits;
+  await timed(args.timing, "trackMs", () =>
+    enqueueMemoryAccess(
+      ctx,
+      hits.map((hit) => hit.id),
+      "retrieve",
+    ),
   );
   return hits;
+}
+
+/**
+ * The query-embedding cache key a retrieve of `query` uses, so a caller can
+ * read the cache row ahead of it. Undefined when nothing would be cached.
+ */
+export async function retrieveEmbeddingCacheKey(
+  clerkId: string,
+  query: string,
+): Promise<string | undefined> {
+  if (readOpenRouterApiKey() === undefined) return undefined;
+  if (query.trim().length === 0) return undefined;
+  return queryEmbeddingCacheKey(clerkId, queryEmbeddingText(query));
 }
 
 async function listRecentForRetrieve(
@@ -657,6 +702,7 @@ async function retrieveRanked(
     threshold?: number;
     referenceDate?: string;
     timing?: RetrieveTiming;
+    embeddingLookup?: QueryEmbeddingLookup;
   } & RetrieveJudgeOptions,
 ): Promise<MemoryCandidate[]> {
   const listFilter = {
@@ -703,6 +749,7 @@ async function retrieveRanked(
           : Promise.resolve(undefined),
       ]),
   );
+  const searchedAt = Date.now();
   const jev = apiKey !== undefined;
   const rankOpts = {
     limit: jevRankPoolLimit(args.limit, jev),
@@ -712,117 +759,100 @@ async function retrieveRanked(
     ...listFilter,
   };
 
-  const byId = new Map<string, MemoryWithTags>();
-  const ftsRanks = new Map<string, number>();
-  for (const hit of ftsHits) {
-    ftsRanks.set(hit.memory.id, 1 / hit.rank);
-    if (
-      byId.size < RETRIEVE_RANK_POOL_CAP &&
-      memoryMatchesListFilter(hit.memory, listFilter)
-    ) {
-      byId.set(hit.memory.id, hit.memory);
+  const { byId, ftsRanks } = await timed(args.timing, "fuseMs", async () => {
+    const pool = new Map<string, MemoryWithTags>();
+    const ranks = new Map<string, number>();
+    for (const hit of ftsHits) {
+      ranks.set(hit.memory.id, 1 / hit.rank);
+      if (
+        pool.size < RETRIEVE_RANK_POOL_CAP &&
+        memoryMatchesListFilter(hit.memory, listFilter)
+      ) {
+        pool.set(hit.memory.id, hit.memory);
+      }
     }
-  }
-  for (const hit of vectorHits.memories) {
-    if (
-      byId.size < RETRIEVE_RANK_POOL_CAP &&
-      memoryMatchesListFilter(hit, listFilter)
-    ) {
-      byId.set(hit.id, hit);
+    for (const hit of vectorHits.memories) {
+      if (
+        pool.size < RETRIEVE_RANK_POOL_CAP &&
+        memoryMatchesListFilter(hit, listFilter)
+      ) {
+        pool.set(hit.id, hit);
+      }
     }
-  }
+    return { byId: pool, ftsRanks: ranks };
+  });
 
+  // links and the neighbour memories they reach come back in one query
   const linkUserId = args.clerkId;
-  const links =
+  const graph =
     linkUserId === undefined || byId.size === 0
-      ? []
-      : await timed(args.timing, "linksMs", () =>
+      ? { links: [], neighbors: [] }
+      : await timed(args.timing, "graphMs", () =>
           ctx.runQuery(
-            internal.memoryStore.functions.listMemoryLinksAroundInternal,
+            internal.memoryStore.functions.listMemoryGraphAroundInternal,
             {
               userId: linkUserId,
               seedIds: [...byId.keys()],
               hops: RETRIEVE_GRAPH_MAX_HOPS + 1,
+              neighborLimit: RETRIEVE_GRAPH_NEIGHBOR_LIMIT,
+              neighborMaxHops: RETRIEVE_GRAPH_MAX_HOPS,
+              neighborCap: RETRIEVE_RANK_POOL_CAP - byId.size,
             },
           ),
         );
+  const links = graph.links;
 
-  if (links.length > 0 && byId.size > 0 && byId.size < RETRIEVE_RANK_POOL_CAP) {
-    const seedTitleById = new Map(
-      [...byId.values()].map((memory) => [memory.id, memory.title]),
-    );
-    const neighbors = expandGraphNeighbors(
-      [...byId.keys()],
-      seedTitleById,
-      links,
-      RETRIEVE_GRAPH_NEIGHBOR_LIMIT,
-      RETRIEVE_GRAPH_MAX_HOPS,
-    );
-    const missing = neighbors
-      .map((neighbor) => neighbor.id)
-      .filter((id) => !byId.has(id))
-      .slice(0, RETRIEVE_RANK_POOL_CAP - byId.size);
-    if (missing.length > 0) {
-      const docs = await timed(args.timing, "neighborsMs", () =>
-        ctx.runQuery(
-          internal.memoryStore.functions.getMemoriesByMemoryIdsInternal,
-          { ids: missing },
-        ),
-      );
-      for (const memory of docs) {
-        if (memory === null || memory === undefined) continue;
-        if (!memoryMatchesListFilter(memory, listFilter)) continue;
-        if (args.kind === "team") {
-          if (args.profileId === undefined) continue;
-          if (
-            !memoryMatchesScope(memory, {
-              kind: "team",
-              profileId: args.profileId,
-            })
-          ) {
-            continue;
-          }
-        } else if (args.clerkId !== undefined) {
-          if (
-            !memoryMatchesScope(memory, {
-              kind: "personal",
-              userId: args.clerkId,
-              profileId: args.profileId,
-            })
-          ) {
-            continue;
-          }
+  await timed(args.timing, "neighborsMs", async () => {
+    for (const memory of graph.neighbors) {
+      if (!memoryMatchesListFilter(memory, listFilter)) continue;
+      if (args.kind === "team") {
+        if (args.profileId === undefined) continue;
+        if (
+          !memoryMatchesScope(memory, {
+            kind: "team",
+            profileId: args.profileId,
+          })
+        ) {
+          continue;
         }
-        if (byId.size >= RETRIEVE_RANK_POOL_CAP) break;
-        byId.set(memory.id, memory);
+      } else if (args.clerkId !== undefined) {
+        if (
+          !memoryMatchesScope(memory, {
+            kind: "personal",
+            userId: args.clerkId,
+            profileId: args.profileId,
+          })
+        ) {
+          continue;
+        }
       }
+      if (byId.size >= RETRIEVE_RANK_POOL_CAP) break;
+      byId.set(memory.id, memory);
     }
-  }
+  });
 
-  if (byId.size === 0) {
-    const recent = await listRecentForRetrieve(ctx, args);
-    return finishRetrieve(
-      ctx,
-      { ...args, apiKey },
-      retrieveMemoriesFromPool(recent, args.query, {
-        ...rankOpts,
-        vectorScores: vectorHits.scores,
-        ftsRanks,
-        links,
-      }),
-    );
-  }
-
-  return finishRetrieve(
-    ctx,
-    { ...args, apiKey },
-    retrieveMemoriesFromPool([...byId.values()], args.query, {
+  const pool =
+    byId.size === 0
+      ? await timed(args.timing, "recentMs", () =>
+          listRecentForRetrieve(ctx, args),
+        )
+      : [...byId.values()];
+  const ranked = await timed(args.timing, "rankMs", async () =>
+    retrieveMemoriesFromPool(pool, args.query, {
       ...rankOpts,
       vectorScores: vectorHits.scores,
       ftsRanks,
       links,
     }),
   );
+  const finished = await timed(args.timing, "gateMs", () =>
+    finishRetrieve(ctx, { ...args, apiKey }, ranked),
+  );
+  if (args.timing !== undefined) {
+    args.timing.postSearchMs = Date.now() - searchedAt;
+  }
+  await vectorHits.cacheWrite;
+  return finished;
 }
 
 async function vectorScoresForQuery(
@@ -833,11 +863,16 @@ async function vectorScoresForQuery(
     profileId?: string;
     query: string;
     timing?: RetrieveTiming;
+    embeddingLookup?: QueryEmbeddingLookup;
   },
-): Promise<{ memories: MemoryWithTags[]; scores: Map<string, number> }> {
+): Promise<{
+  memories: MemoryWithTags[];
+  scores: Map<string, number>;
+  cacheWrite: Promise<void>;
+}> {
   const memories: MemoryWithTags[] = [];
   const scores = new Map<string, number>();
-  const empty = { memories, scores };
+  const empty = { memories, scores, cacheWrite: Promise.resolve() };
   if (args.query.trim().length === 0 || args.clerkId === undefined)
     return empty;
 
@@ -853,15 +888,23 @@ async function vectorScoresForQuery(
         feature: "memory-search",
         failureLog: "[memoryRuntime] query embedding failed",
         text: queryEmbeddingText(args.query),
+        lookup: args.embeddingLookup,
       }),
   );
   if (args.timing !== undefined) args.timing.embedCached = cached;
   if (!embedding) return empty;
-  // the cache write runs alongside the vector search and hydration
+  // the cache write (never rejects) runs on through the rest of the
+  // retrieve; the caller awaits it last
   try {
-    return await vectorHitsForEmbedding(ctx, { ...args, clerkId }, embedding);
-  } finally {
+    const hits = await vectorHitsForEmbedding(
+      ctx,
+      { ...args, clerkId },
+      embedding,
+    );
+    return { ...hits, cacheWrite };
+  } catch (err) {
     await cacheWrite;
+    throw err;
   }
 }
 
