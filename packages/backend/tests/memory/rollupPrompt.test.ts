@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildPeriodRollupBody,
   buildRollupBody,
   estimateTokens,
   groupActivityByProfile,
@@ -10,7 +11,9 @@ import {
   SUMMARY_MAX_CHARS,
   TRACE_DIGEST_MAX_LINES,
   traceDigest,
+  unionMemoryIds,
   type RollupMemoryInput,
+  type RollupSourceInput,
   type RollupTraceInput,
 } from "../../engine/memory/rollupPrompt";
 import {
@@ -288,5 +291,95 @@ describe("parseRollupReply", () => {
     expect(parseRollupReply('{"summary":"  "}', allowed)).toBeNull();
     expect(parseRollupReply('{"highlights":[]}', allowed)).toBeNull();
     expect(parseRollupReply("not json at all", allowed)).toBeNull();
+  });
+});
+
+function source(
+  periodKey: string,
+  overrides: Partial<RollupSourceInput> = {},
+): RollupSourceInput {
+  return {
+    period: "day",
+    periodKey,
+    startMs: overrides.startMs ?? dayWindow(periodKey).startMs,
+    summary: `summary ${periodKey}`,
+    highlights: [`highlight ${periodKey}`],
+    memoryIds: [`m_${periodKey}`],
+    stats: { created: 2, updated: 1, suppressed: 1, toolCalls: 4 },
+    ...overrides,
+  };
+}
+
+describe("unionMemoryIds", () => {
+  it("takes ids rank by rank across sources, deduped, capped", () => {
+    const sources = [
+      source("2026-10-19", { memoryIds: ["a1", "a2", "a3"] }),
+      source("2026-10-20", { memoryIds: ["b1", "a1"] }),
+      source("2026-10-21", { memoryIds: [] }),
+    ];
+    expect(unionMemoryIds(sources)).toEqual(["a1", "b1", "a2", "a3"]);
+    expect(unionMemoryIds(sources, 3)).toEqual(["a1", "b1", "a2"]);
+  });
+
+  it("keeps at most MEMORY_IDS_MAX, with ids from every source", () => {
+    const sources = ["19", "20", "21", "22", "23", "24", "25"].map((d) =>
+      source(`2026-10-${d}`, {
+        memoryIds: Array.from({ length: 30 }, (_, i) => `d${d}_${i}`),
+      }),
+    );
+    const ids = unionMemoryIds(sources);
+    expect(ids).toHaveLength(MEMORY_IDS_MAX);
+    for (const d of ["19", "25"]) expect(ids).toContain(`d${d}_0`);
+  });
+});
+
+describe("buildPeriodRollupBody", () => {
+  it("lists sources in time order with summaries and highlights only", () => {
+    const { body, memoryIds, stats } = buildPeriodRollupBody({
+      period: "month",
+      periodKey: "2026-10",
+      sources: [
+        source("2026-10-26"),
+        source("2026-W41", {
+          period: "week",
+          startMs: dayWindow("2026-10-05").startMs,
+        }),
+        source("2026-10-01"),
+      ],
+    });
+    expect(body.split("\n")).toEqual([
+      "# Month 2026-10 (UTC)",
+      "Created 6, updated 3, suppressed 3, tool calls 12.",
+      "",
+      "## Day 2026-10-01",
+      "summary 2026-10-01",
+      "- highlight 2026-10-01",
+      "",
+      "## Week 2026-W41",
+      "summary 2026-W41",
+      "- highlight 2026-W41",
+      "",
+      "## Day 2026-10-26",
+      "summary 2026-10-26",
+      "- highlight 2026-10-26",
+    ]);
+    expect(memoryIds).toEqual(["m_2026-10-01", "m_2026-W41", "m_2026-10-26"]);
+    expect(stats).toEqual({
+      created: 6,
+      updated: 3,
+      suppressed: 3,
+      toolCalls: 12,
+    });
+    // ids are not shown to the model
+    expect(body).not.toContain("m_2026");
+  });
+
+  it("titles a week", () => {
+    const { body } = buildPeriodRollupBody({
+      period: "week",
+      periodKey: "2026-W43",
+      sources: [source("2026-10-19")],
+    });
+    expect(body.startsWith("# Week 2026-W43 (UTC)")).toBe(true);
   });
 });

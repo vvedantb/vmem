@@ -235,6 +235,81 @@ export function buildRollupBody(args: {
   };
 }
 
+export interface RollupSourceInput {
+  period: "day" | "week";
+  periodKey: string;
+  startMs: number;
+  summary: string;
+  highlights: string[];
+  memoryIds: string[];
+  stats: RollupStats;
+}
+
+/** Plain sum; "updated" can count one memory on more than one day. */
+export function sumRollupStats(
+  sources: readonly RollupSourceInput[],
+): RollupStats {
+  const total = { created: 0, updated: 0, suppressed: 0, toolCalls: 0 };
+  for (const { stats } of sources) {
+    total.created += stats.created;
+    total.updated += stats.updated;
+    total.suppressed += stats.suppressed;
+    total.toolCalls += stats.toolCalls;
+  }
+  return total;
+}
+
+/**
+ * Cited ids of the sources, at most `max`. Takes the first id of each
+ * source, then the second, and so on, so each source keeps some of its ids.
+ */
+export function unionMemoryIds(
+  sources: readonly RollupSourceInput[],
+  max = MEMORY_IDS_MAX,
+): string[] {
+  const ids = new Set<string>();
+  const longest = Math.max(0, ...sources.map((s) => s.memoryIds.length));
+  for (let rank = 0; rank < longest && ids.size < max; rank++) {
+    for (const source of sources) {
+      const id = source.memoryIds[rank];
+      if (id !== undefined && ids.size < max) ids.add(id);
+    }
+  }
+  return [...ids];
+}
+
+/**
+ * Prompt data for one profile-week or profile-month: the stored summaries
+ * and highlights of its sources, in time order. No raw memories and no ids,
+ * so the input stays small; `memoryIds` is the union of the sources' ids.
+ */
+export function buildPeriodRollupBody(args: {
+  period: "week" | "month";
+  periodKey: string;
+  sources: readonly RollupSourceInput[];
+}): { body: string; memoryIds: string[]; stats: RollupStats } {
+  const sources = [...args.sources].sort((a, b) => a.startMs - b.startMs);
+  const stats = sumRollupStats(sources);
+  const { created, updated, suppressed, toolCalls } = stats;
+  const lines = [
+    `# ${args.period === "week" ? "Week" : "Month"} ${args.periodKey} (UTC)`,
+    `Created ${created}, updated ${updated}, suppressed ${suppressed}, tool calls ${toolCalls}.`,
+  ];
+  for (const source of sources) {
+    lines.push(
+      "",
+      `## ${source.period === "week" ? "Week" : "Day"} ${source.periodKey}`,
+      source.summary.trim(),
+      ...source.highlights.map((h) => `- ${clip(h, HIGHLIGHT_MAX_CHARS)}`),
+    );
+  }
+  return {
+    body: lines.join("\n"),
+    memoryIds: unionMemoryIds(sources),
+    stats,
+  };
+}
+
 const rollupReplySchema = z.object({
   summary: z.string(),
   highlights: z.array(z.string()).catch([]),

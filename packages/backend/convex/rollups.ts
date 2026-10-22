@@ -9,13 +9,23 @@ import { authQuery } from "./auth";
 import { runAssertProfileAccessInternal } from "./teams/auth";
 import { rollupFields, rollupPeriodValidator } from "./validators";
 import { MEMORY_SNIPPET_CHARS } from "../engine/memory/rollupPrompt";
-import { yesterdayDayKey } from "../engine/memory/rollupPeriod";
-import { rollupDayResultValidator, runRollupDay } from "./rollupActions";
+import {
+  summaryPeriodSources,
+  summaryPeriodWindow,
+  yesterdayDayKey,
+} from "../engine/memory/rollupPeriod";
+import {
+  rollupResultValidator,
+  runRollupDay,
+  runRollupPeriod,
+} from "./rollupActions";
 
 const WINDOW_MEMORY_CAP = 200;
 const WINDOW_TRACE_CAP = 500;
 const TRACE_SUMMARY_CHARS = 120;
 const LIST_CAP = 31;
+// day + week rows one user can have in a month, across all profiles
+const SOURCE_ROW_CAP = 1_000;
 
 const rollupMemoryValidator = v.object({
   memoryId: v.string(),
@@ -154,6 +164,73 @@ export const loadDayActivityInternal = internalQuery({
   },
 });
 
+const summaryPeriodValidator = v.union(v.literal("week"), v.literal("month"));
+
+const periodSourceValidator = v.object({
+  profileId: v.id("profiles"),
+  teamId: v.optional(v.id("teams")),
+  period: v.union(v.literal("day"), v.literal("week")),
+  periodKey: v.string(),
+  startMs: v.number(),
+  summary: v.string(),
+  highlights: v.array(v.string()),
+  memoryIds: v.array(v.string()),
+  stats: rollupFields.stats,
+});
+
+// the user's ok day / week rows a week or month is built from
+// (summaryPeriodSources). Reads rollups only, never memories.
+export const loadPeriodSourcesInternal = internalQuery({
+  args: {
+    userId: v.id("users"),
+    period: summaryPeriodValidator,
+    periodKey: v.string(),
+  },
+  returns: v.array(periodSourceValidator),
+  handler: async (ctx, args) => {
+    const window = summaryPeriodWindow(args.period, args.periodKey);
+    const { weekKeys, dayKeys } = summaryPeriodSources(
+      args.period,
+      args.periodKey,
+    );
+    const rowsOf = async (period: "day" | "week", keys: string[]) => {
+      if (keys.length === 0) return [];
+      const wanted = new Set(keys);
+      const rows = await ctx.db
+        .query("rollups")
+        .withIndex("by_user_period", (q) =>
+          q
+            .eq("userId", args.userId)
+            .eq("period", period)
+            .gte("startMs", window.startMs)
+            .lt("startMs", window.endMs),
+        )
+        .take(SOURCE_ROW_CAP);
+      return rows.flatMap((row) =>
+        row.status === "ok" && row.profileId && wanted.has(row.periodKey)
+          ? [
+              {
+                profileId: row.profileId,
+                teamId: row.teamId,
+                period,
+                periodKey: row.periodKey,
+                startMs: row.startMs,
+                summary: row.summary,
+                highlights: row.highlights,
+                memoryIds: row.memoryIds,
+                stats: row.stats,
+              },
+            ]
+          : [],
+      );
+    };
+    return [
+      ...(await rowsOf("week", weekKeys)),
+      ...(await rowsOf("day", dayKeys)),
+    ];
+  },
+});
+
 // idempotent per (user, profile, period, periodKey). A failed rerun never
 // overwrites an ok row.
 export const upsertInternal = internalMutation({
@@ -220,10 +297,24 @@ export const listForProfile = authQuery({
 //   npx convex run rollups:runDayForUserInternal '{"userId":"…","dayKey":"2026-10-21"}'
 export const runDayForUserInternal = internalAction({
   args: { userId: v.id("users"), dayKey: v.optional(v.string()) },
-  returns: rollupDayResultValidator,
-  handler: async (ctx, args): Promise<Infer<typeof rollupDayResultValidator>> =>
+  returns: rollupResultValidator,
+  handler: async (ctx, args): Promise<Infer<typeof rollupResultValidator>> =>
     await runRollupDay(ctx, {
       userId: args.userId,
       dayKey: args.dayKey ?? yesterdayDayKey(Date.now()),
     }),
+});
+
+// manual (re)build of one week or month from stored rows, e.g. a backfill
+// after day rows exist; ignores the opt-in and NIGHTLY_DISABLED:
+//   npx convex run rollups:runPeriodForUserInternal '{"userId":"…","period":"week","periodKey":"2026-W43"}'
+export const runPeriodForUserInternal = internalAction({
+  args: {
+    userId: v.id("users"),
+    period: summaryPeriodValidator,
+    periodKey: v.string(),
+  },
+  returns: rollupResultValidator,
+  handler: async (ctx, args): Promise<Infer<typeof rollupResultValidator>> =>
+    await runRollupPeriod(ctx, args),
 });

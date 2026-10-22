@@ -2,8 +2,11 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { internalAction, internalMutation } from "./_generated/server";
 import { nightlyPool } from "./workpools";
-import { runRollupDay } from "./rollupActions";
-import { yesterdayDayKey } from "../engine/memory/rollupPeriod";
+import { runRollupDay, runRollupPeriod } from "./rollupActions";
+import {
+  periodsClosingAfter,
+  yesterdayDayKey,
+} from "../engine/memory/rollupPeriod";
 
 // shared 02:30 utc run (crons.ts): kick pages users, runUser does each one
 const USER_PAGE = 50;
@@ -48,8 +51,9 @@ export const kick = internalMutation({
 // its own opt-in. Leave dreamTrigger / dreamSchedule alone until then.
 async function runDreamStep(): Promise<void> {}
 
-// steps in order: dream, then the day rollup if the user opted in. A failed
-// dream step is logged and does not block the rollup.
+// steps in order: dream, then the day rollup if the user opted in, then the
+// week (day was a Sunday) and month (day was the last) built from stored
+// rows. A failed dream step is logged and does not block the rollup.
 export const runUser = internalAction({
   args: { userId: v.id("users"), dayKey: v.string() },
   returns: v.null(),
@@ -64,7 +68,11 @@ export const runUser = internalAction({
       internal.userSettings.getRollupsEnabledInternal,
       { userId: args.userId },
     );
-    if (rollupsEnabled) await runRollupDay(ctx, args);
+    if (!rollupsEnabled) return null;
+    await runRollupDay(ctx, args);
+    for (const closing of periodsClosingAfter(args.dayKey)) {
+      await runRollupPeriod(ctx, { userId: args.userId, ...closing });
+    }
     return null;
   },
 });
