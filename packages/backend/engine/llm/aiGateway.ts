@@ -127,10 +127,20 @@ export async function embedGatewayTexts(args: {
   };
 }
 
+/**
+ * Gateway cost in USD: `gateway.cost` (what was billed), else
+ * `gateway.marketCost` (list price), so budget guards still see a value.
+ */
 export function readGatewayCost(
   metadata: ProviderMetadata | undefined,
 ): number | undefined {
-  const cost = metadata?.gateway?.cost;
+  return (
+    parseCost(metadata?.gateway?.cost) ??
+    parseCost(metadata?.gateway?.marketCost)
+  );
+}
+
+function parseCost(cost: JSONValue | undefined): number | undefined {
   if (typeof cost === "number" && Number.isFinite(cost)) return cost;
   if (typeof cost !== "string" || cost.trim().length === 0) return undefined;
   const parsed = Number(cost);

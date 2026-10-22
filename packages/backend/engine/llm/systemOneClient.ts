@@ -25,6 +25,19 @@ export const JEV_API_KEY_ENV = "AI_GATEWAY_API_KEY";
 const REQUEST_TIMEOUT_MS = 30_000;
 const MAX_RETRIES = 1;
 const DEFAULT_TAG = "vmem-jev";
+const ERROR_DETAIL_CHARS = 200;
+
+/**
+ * Gateway data handling. "zdr" needs request-level ZDR (Vercel Pro or
+ * Enterprise); without it the gateway answers 403 before routing.
+ * "no-training" only routes to providers that do not train on prompts.
+ */
+export type JevDataPolicy = "zdr" | "no-training";
+
+const DATA_POLICY_OPTIONS = {
+  zdr: { zeroDataRetention: true },
+  "no-training": { disallowPromptTraining: true },
+} as const;
 
 export const SYSTEMONE_QUESTION_TYPES = ["noul", "choice", "score"] as const;
 
@@ -125,8 +138,13 @@ export type SystemOneResponse = z.infer<typeof systemOneResponseSchema>;
 export class SystemOneHttpError extends Error {
   readonly status: number;
 
-  constructor(status: number) {
-    super(`systemone http ${String(status)}`);
+  /** `detail` is the gateway error text, already redacted and truncated. */
+  constructor(status: number, detail?: string) {
+    super(
+      detail === undefined || detail.length === 0
+        ? `systemone http ${String(status)}`
+        : `systemone http ${String(status)}: ${detail}`,
+    );
     this.name = "SystemOneHttpError";
     this.status = status;
   }
@@ -157,7 +175,8 @@ export interface GatewayEvaluateCall {
   providerOptions: {
     gateway: {
       serviceTier: "flex";
-      zeroDataRetention: true;
+      zeroDataRetention?: true;
+      disallowPromptTraining?: true;
       tags: string[];
     };
   };
@@ -178,6 +197,8 @@ export interface EvaluateSystemOneArgs {
   model?: string;
   timeoutMs?: number;
   tag?: string;
+  /** Defaults to "zdr". */
+  dataPolicy?: JevDataPolicy;
 }
 
 export async function evaluateSystemOne(
@@ -203,7 +224,7 @@ export async function evaluateSystemOne(
     providerOptions: {
       gateway: {
         ...FLEX_GATEWAY_PROVIDER_OPTIONS.gateway,
-        zeroDataRetention: true,
+        ...DATA_POLICY_OPTIONS[args.dataPolicy ?? "zdr"],
         tags: [
           args.tag && args.tag.trim().length > 0
             ? args.tag.trim()
@@ -346,7 +367,10 @@ function classifyError(error: unknown, apiKey: string): Error {
     return new SystemOneParseError();
   }
   if (GatewayAuthenticationError.isInstance(error)) {
-    return new SystemOneHttpError(error.statusCode);
+    return new SystemOneHttpError(
+      error.statusCode,
+      errorDetail(error.message, apiKey),
+    );
   }
   if (
     NoSuchModelError.isInstance(error) ||
@@ -358,7 +382,10 @@ function classifyError(error: unknown, apiKey: string): Error {
     GatewayRateLimitError.isInstance(error) ||
     GatewayError.isInstance(error)
   ) {
-    return new SystemOneHttpError(error.statusCode);
+    return new SystemOneHttpError(
+      error.statusCode,
+      errorDetail(error.message, apiKey),
+    );
   }
   const message =
     error instanceof Error ? error.message : "jev evaluate failed";
@@ -366,4 +393,11 @@ function classifyError(error: unknown, apiKey: string): Error {
     return new Error(message.replaceAll(apiKey, "[redacted]"));
   }
   return error instanceof Error ? error : new Error(message);
+}
+
+// one line, no key, short enough for openRouterLogs.errorMessage
+function errorDetail(message: string, apiKey: string): string {
+  const redacted =
+    apiKey.length > 0 ? message.replaceAll(apiKey, "[redacted]") : message;
+  return redacted.replace(/\s+/g, " ").trim().slice(0, ERROR_DETAIL_CHARS);
 }

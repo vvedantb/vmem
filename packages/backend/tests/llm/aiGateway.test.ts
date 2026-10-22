@@ -10,6 +10,7 @@ import {
   buildChatProviderOptions,
   FLEX_GATEWAY_PROVIDER_OPTIONS,
   generateGatewayText,
+  readGatewayCost,
   THINKING_OFF,
   type GatewayTextCall,
   type GatewayTextResult,
@@ -109,6 +110,29 @@ describe("AI Gateway SDK client", () => {
       gateway: { serviceTier: "flex" },
       alibaba: { enableThinking: false },
     });
+  });
+});
+
+describe("readGatewayCost", () => {
+  it("reads gateway.cost as a number or a string", () => {
+    expect(readGatewayCost({ gateway: { cost: 0.0003 } })).toBe(0.0003);
+    expect(
+      readGatewayCost({
+        gateway: { cost: "0.00021", marketCost: "0.0009", generationId: "g" },
+      }),
+    ).toBe(0.00021);
+  });
+
+  it("falls back to marketCost when cost is missing", () => {
+    expect(readGatewayCost({ gateway: { marketCost: "0.0004" } })).toBe(0.0004);
+  });
+
+  it("returns undefined without a usable cost", () => {
+    expect(readGatewayCost(undefined)).toBeUndefined();
+    expect(readGatewayCost({})).toBeUndefined();
+    expect(
+      readGatewayCost({ gateway: { cost: "", marketCost: "n/a" } }),
+    ).toBeUndefined();
   });
 });
 
