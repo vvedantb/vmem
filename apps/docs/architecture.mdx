@@ -77,14 +77,14 @@ Write-time candidates come from the embed step (`convex/dreamCandidates.ts`): on
 
 ### Retention crons
 
-| Cron                             | Deletes                                                                                          |
-| -------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `purge expired traces`           | MCP traces and their details older than 7 days                                                   |
-| `purge expired openRouter logs`  | AI log rows older than `OPENROUTER_LOG_RETENTION_DAYS` (no-op while unset)                       |
-| `purge expired dream actions`    | Dream log rows 90 days after their 30-day undo window closed                                     |
-| `sweep expired dream duplicates` | Duplicates a dream merge hid (`suppressedBy: "dream"`), once their 30-day undo window has passed |
-| `purge old dream cleanup plans`  | One-off cleanup plans 30 days after the dry run                                                  |
-| `purge dream candidates`         | Write-time candidates older than 30 days, or whose rows are gone or hidden                       |
+| Cron                             | Deletes                                                                                                          |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `purge expired traces`           | MCP traces and their details older than 7 days                                                                   |
+| `purge expired openRouter logs`  | AI log rows older than `OPENROUTER_LOG_RETENTION_DAYS` (no-op while unset)                                       |
+| `purge expired dream actions`    | Dream log rows 90 days after their 30-day undo window closed                                                     |
+| `sweep expired dream duplicates` | Duplicates a dream merge hid (`suppressedBy: "dream"` or `"dream-ai"`), once their 30-day undo window has passed |
+| `purge old dream cleanup plans`  | One-off cleanup plans 30 days after the dry run                                                                  |
+| `purge dream candidates`         | Write-time candidates older than 30 days, or whose rows are gone or hidden                                       |
 
 All run hourly, 500 rows a batch (candidates: 200; duplicate sweep: 100). Only the duplicate sweep hard-deletes memories, through the normal delete path (links, mentions, embedding, usage and stat counters go too).
 
