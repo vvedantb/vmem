@@ -1,0 +1,137 @@
+---
+title: "Dream Mode"
+description: "Nightly cleanup of duplicates, outdated facts and stale browsing history"
+---
+
+Dream Mode cleans your memory while you sleep. It merges duplicates, expires old rows, archives stale browsing history and asks an AI judge about rows that look alike or disagree. Every change it makes can be undone for 30 days. Memories are never hard-deleted.
+
+## When it runs
+
+- **Nightly.** One cron, `nightly maintenance`, runs at **02:30 UTC** for every user (`convex/crons.ts`, `convex/nightly.ts`). For each user it runs the dream step first, then [rollups](#rollups), so the day summary reads cleaned data. A failed dream step is logged and does not stop the rollups. There is no per-user schedule time.
+- **Now.** **Start Dreaming** in the inbox and the MCP [`dream_run`](/mcp/tools) tool run the same pass. Manual runs are limited to one per hour and send no notification.
+
+A run covers your personal profiles and the team profiles where you are the team owner (the owner's settings apply). Decay runs on personal profiles only.
+
+## What one run does
+
+The pass runs per profile, in batches of 100 rows. It reads at most 2,000 rows per profile per run. When it stops at a limit, the run is `partial` and the next run continues from where it stopped.
+
+1. **Exact and same-page dedupe (deterministic).** Rows created or updated since the last run are grouped with their exact-hash and source-key peers (same page, same connector item). Each group merges into one keeper: a pinned row wins, else the oldest row. These merges apply at once, with undo.
+2. **Near-duplicate judge (AI).** Open `near_dup` candidates go to Jev (`typesafe-ai/jev`).
+3. **Conflict judge (AI).** Open `maybe_conflict` candidates go to Qwen, with thinking off.
+4. **Expire.** Active rows past `expiresAt` become `expired`. Pinned rows are not touched.
+5. **Decay.** Stale browsing rows are archived (see [Decay](#decay)).
+6. **Log.** The run and each change are stored in `dreamRuns` and `dreamActions`. After a nightly run that changed something, you get an inbox notification.
+
+### First run of a profile
+
+The first run of a profile only reads rows created or updated in the **last 24 hours**. It does not backfill the whole profile. Older duplicates wait for the [one-off cleanup](#one-off-cleanup), which needs the owner's approval.
+
+## AI judge
+
+### Write-time candidates
+
+When a memory gets its embedding, one vector query finds its 3 nearest rows in the same profile. Nothing merges at this point. The pair is stored as a candidate in `dreamCandidates`:
+
+| Kind             | Rule                                                       | Judge |
+| ---------------- | ---------------------------------------------------------- | ----- |
+| `near_dup`       | cosine similarity ≥ 0.97 and the same memory type          | Jev   |
+| `maybe_conflict` | cosine similarity 0.88–0.97 and at least one shared entity | Qwen  |
+
+Candidates older than 30 days, or whose rows are gone or hidden, are purged hourly.
+
+### What a verdict does
+
+| Verdict         | Result                                                                                                                                                                                                |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `duplicate`     | Merge. Applied at once only with `dreamModeAutoAccept` and confidence ≥ 0.9, else a `merge` inbox proposal.                                                                                           |
+| `update`        | The newer row replaces the older one. Applied at once only with auto-accept, confidence ≥ 0.9 and the same source family (so a browsing row never replaces an agent fact), else an `update` proposal. |
+| `contradiction` | Always a `contradiction` inbox proposal. You pick the row to keep.                                                                                                                                    |
+| `unrelated`     | The candidate is dropped.                                                                                                                                                                             |
+
+A failed call changes nothing. A new proposal is not created when a pending proposal already covers one of the rows. Approving a dream `merge` or `update` proposal runs under the same dream run, with undo. See [Proposed Updates](/concepts/proposed-updates).
+
+### Caps and budget
+
+| Limit                                      | Value |
+| ------------------------------------------ | ----- |
+| `near_dup` calls per user per night        | 25    |
+| `maybe_conflict` calls per user per night  | 15    |
+| AI calls per user per night (all profiles) | 40    |
+| Dream AI budget per UTC day (all users)    | $0.50 |
+
+The budget guard sums today's `openRouterLogs` cost for feature `dream`. The one-off cleanup spends from the same budget. When a cap or the budget is reached, the AI steps stop, the run is `partial` and the open candidates wait for the next night.
+
+The AI steps run only when `AI_GATEWAY_API_KEY` is set on the deployment and `dreamModeUseAi` is on. Without them, only the deterministic steps run.
+
+## Decay
+
+Decay archives browsing rows that you do not use. A row is archived only when all of these are true:
+
+- it comes from a low-prior source: browsing history, bookmarks or desktop capture
+- `lastVisitAt` is more than 30 days ago
+- `visitCount` is at most 2
+- `usefulnessScore` is below 0.2 (a row with no score yet is kept)
+- it has no retrieve, search or context-pack hits
+- it is `active` (a pinned row never decays)
+
+Archived rows get status `suppressed` with `suppressedBy: "dream-decay"`. At most 500 rows are archived per profile per night. Each archive can be undone for 30 days.
+
+Decay runs only after the profile has a previous successful run (`ok` or `partial`) or an applied one-off cleanup. So a new profile is never decayed on its first night. Decay is off for team profiles, because shared rows are not one person's history.
+
+## Undo and the Dreaming page
+
+The **Dreaming** page lists the runs with their counts. You can undo one action or a whole run for **30 days**. Undo restores the before-snapshot of each row. The log rows are purged 90 days after the undo window closes. MCP [`dream_history`](/mcp/tools) reads the last 10 runs (counts only).
+
+Merged rows show where they came from ("merged from") on the memory.
+
+## One-off cleanup
+
+Nightly runs never read the full history. Duplicates that existed before Dream Mode are handled by a one-off cleanup in two steps:
+
+1. **Dry run.** **Scan for duplicates** on the Dreaming page (your personal profile only), or an operator runs `npx convex run dreamCleanup:dryRunForUser '{"clerkUserId":"user_…"}'`. It pages the profile, groups exact-hash and same-page rows, and asks Jev about a capped number of near-duplicate groups (20 calls by default, at most 200). The web scan skips Jev when `dreamModeUseAi` is off. Nothing changes. The plan is stored in `dreamPlanGroups` for 30 days. A new scan is refused while one runs and within an hour of the last one.
+2. **Apply.** The plan shows as a card on the Dreaming page. Nothing is applied until the owner reviews it and chooses **Clean up**. Deterministic groups merge with undo. Jev-flagged groups go to the inbox as proposals.
+
+## Settings
+
+Settings → Preferences → Dream Mode. MCP `settings_update` takes the same fields.
+
+| Setting               | Default                                         | Effect                                                                                                              |
+| --------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `dreamModeAutomatic`  | on                                              | Nightly dreaming. Off: only manual runs.                                                                            |
+| `dreamModeDecay`      | on                                              | Archive stale browsing history, bookmarks and desktop rows.                                                         |
+| `dreamModeUseAi`      | on when the deployment has `AI_GATEWAY_API_KEY` | Ask the AI judge about candidates. Off: only exact and same-page merges.                                            |
+| `dreamModeAutoAccept` | off                                             | Apply AI merges and updates with confidence ≥ 0.9 at once. Off: they wait in the inbox. Contradictions always wait. |
+
+## Operator switches
+
+| Variable             | Effect                                                                                          |
+| -------------------- | ----------------------------------------------------------------------------------------------- |
+| `DREAM_DISABLED=1`   | Stops nightly and manual dreaming. `dream_run` returns `reason: "disabled"`. Rollups still run. |
+| `NIGHTLY_DISABLED=1` | Stops the whole nightly cron: dreaming and rollups. Manual dream runs still work.               |
+
+See [Environment Variables](/environment#nightly-jobs-optional).
+
+## AI usage logs
+
+Every AI call is logged to `openRouterLogs` and shows on the Usage page:
+
+| Usage label | Calls                                                                             |
+| ----------- | --------------------------------------------------------------------------------- |
+| Dreaming    | Nightly near-duplicate and conflict judges, one-off cleanup Jev calls             |
+| Rollups     | Day, week and month rollup summaries                                              |
+| Jev         | Jev calls from retrieve, context pack, related memories and skill recommendations |
+
+Jev calls go through the Vercel AI Gateway with `disallowPromptTraining`, so they only route to providers that do not train on prompts. They do not ask for request-level zero data retention, because that needs a Vercel Pro or Enterprise plan. `dataPolicy: "zdr"` stays opt-in in `engine/llm/systemOneClient.ts`.
+
+## Rollups
+
+Rollups are short activity summaries per profile. They are opt-in: Settings → Preferences → **Daily summaries (rollups)** (`rollupsEnabled`, default off). They need `AI_GATEWAY_API_KEY`.
+
+After the dream step, the nightly run writes the **day** rollup for yesterday (UTC) from that day's memories and MCP tool traces. A quiet day makes no call and writes no row. On a Sunday it also writes the **ISO week**, and on the last day of the month the **month**. Weeks and months are built only from stored rollups. A failed call is tried once more, then the row is stored as failed.
+
+MCP [`memory_timeline`](/mcp/tools) reads rollups, and `context_pack` adds them when the task names a time window. Reading never calls an LLM.
+
+## MCP traces
+
+Each MCP tool call and resource read is stored as a trace: tool, profile, status, duration, a short summary, sanitised and capped arguments, result IDs and a result preview. The **Traces** page shows them. Traces older than **7 days** are deleted by an hourly cron, 500 rows a batch.
