@@ -164,9 +164,23 @@ export function PreferencesPage() {
           }
         />
         <SettingsToggleRow
+          htmlFor="dream-use-ai"
+          title="Use AI for near-duplicates and contradictions"
+          description="Ask an AI judge about memories that look alike or disagree. Off: only exact and same-page duplicates merge."
+          action={
+            <Switch
+              id="dream-use-ai"
+              checked={settings.dreamModeUseAi}
+              onCheckedChange={(checked) => {
+                void saveSettings({ dreamModeUseAi: checked });
+              }}
+            />
+          }
+        />
+        <SettingsToggleRow
           htmlFor="dream-auto-accept"
-          title="Auto-accept high-confidence synthesis"
-          description="When on, high-confidence syntheses save as memories automatically. Otherwise they queue in your inbox for approval. Contradictions always queue regardless."
+          title="Auto-apply AI-judged merges"
+          description="Apply merges and updates the AI judge is sure about at once, with undo for 30 days. Off: they wait in your inbox. Contradictions always wait in your inbox."
           action={
             <Switch
               id="dream-auto-accept"

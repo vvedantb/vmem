@@ -115,6 +115,19 @@ export const inboxToolSpecs = {
       return runManualDream(h.ctx, { userId: await requireUserId(h) });
     },
   }),
+  dream_history: toolSpec({
+    name: "dream_history",
+    schema: emptyInputSchema,
+    description:
+      "Read-only dreaming log: your last 10 dream runs, newest first (the web Dreaming page). Each has runId, profileId, trigger (nightly, manual or backfill), dryRun, status, startedAt, finishedAt, counts (exactMerged, keyMerged, nearDupMerged, superseded, proposals, expired, archived, aiFlagged), aiCalls and costUsd. Counts only: no memory titles or content.",
+    errorLabel: "Dream history failed",
+    scopes: ["personal"],
+    async run(h): Promise<unknown> {
+      return h.ctx.runQuery(internal.dream.historyInternal, {
+        userId: await requireUserId(h),
+      });
+    },
+  }),
   notifications_list: toolSpec({
     name: "notifications_list",
     schema: notificationsListSchema,

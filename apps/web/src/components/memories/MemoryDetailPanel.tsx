@@ -36,6 +36,7 @@ import {
 } from "@/components/_components/DetailsTab";
 import HistoryTab from "@/components/_components/HistoryTab";
 import RelatedMemories from "@/components/_components/RelatedMemories";
+import MergedFromSection from "./MergedFromSection";
 import { MemorySourceLabel } from "@/components/_components/MemorySourceLabel";
 import DestructiveConfirmDialog from "@/components/settings/DestructiveConfirmDialog";
 import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
@@ -256,7 +257,10 @@ function MemoryDetailPanelBody({
                 onCancel={() => setIsEditing(false)}
               />
             ) : (
-              <DetailsTabView memory={memory} />
+              <>
+                <DetailsTabView memory={memory} />
+                <MergedFromSection memoryId={memory.id} />
+              </>
             )}
           </TabsContent>
 

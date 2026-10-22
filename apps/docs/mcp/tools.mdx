@@ -3,7 +3,7 @@ title: "MCP Tools"
 description: "Complete reference for all vmem MCP tools"
 ---
 
-Tools are registered from `packages/backend/convex/mcp/tools*.ts`. Auth accepts a Clerk `oauth_token` or `session_token` bearer (MCP server `2.4.0`). Memory tools work on `/mcp` and `/mcp/team`. Skills tools also work on both connectors (personal skills on `/mcp`, team-granted skills on `/mcp/team`), except `skills_import` which is personal `/mcp` only. `proposals_list` and `proposals_resolve` work on both connectors. Files tools work on both connectors: personal Files on `/mcp`, the active team profile's drive on `/mcp/team`. The `teams_*`, `profiles_update` and `usage_ai_*` tools also work on both. `context_prompt_get`, `dream_run`, the `notifications_*`, `settings_*`, `connectors_*` tools, `profiles_create`, `profiles_delete` and `usage_api_requests` are personal-only.
+Tools are registered from `packages/backend/convex/mcp/tools*.ts`. Auth accepts a Clerk `oauth_token` or `session_token` bearer (MCP server `2.5.0`). Memory tools work on `/mcp` and `/mcp/team`. Skills tools also work on both connectors (personal skills on `/mcp`, team-granted skills on `/mcp/team`), except `skills_import` which is personal `/mcp` only. `proposals_list` and `proposals_resolve` work on both connectors. Files tools work on both connectors: personal Files on `/mcp`, the active team profile's drive on `/mcp/team`. The `teams_*`, `profiles_update` and `usage_ai_*` tools also work on both. `context_prompt_get`, `dream_run`, `dream_history`, the `notifications_*`, `settings_*`, `connectors_*` tools, `profiles_create`, `profiles_delete` and `usage_api_requests` are personal-only.
 
 Every tool acts as the signed-in user from the bearer token. No tool takes a user ID. IDs that belong to another user, or to a profile outside the connector, return "not found".
 
@@ -540,6 +540,16 @@ Personal connector only. Run the nightly dream pass now, as the web Start Dreami
 **Parameters:** none
 
 **Returns:** `{ reason, runIds, counts: { exactMerged, keyMerged, expired, archived, ... }, failed }`. `runIds` has one dreaming log row per profile. `reason` is `rate-limited` when Dream Mode ran in the last hour, `disabled` when the deployment paused dreaming.
+
+---
+
+## dream_history
+
+Personal connector only. Read-only: your last 10 dream runs, newest first, as on the web Dreaming page. Counts only, no memory titles or content.
+
+**Parameters:** none
+
+**Returns:** `[{ runId, profileId, trigger, dryRun, status, startedAt, finishedAt, counts: { exactMerged, keyMerged, nearDupMerged, superseded, proposals, expired, archived, aiFlagged }, aiCalls, costUsd }]`. `trigger` is `nightly`, `manual` or `backfill` (one-off cleanup).
 
 ---
 

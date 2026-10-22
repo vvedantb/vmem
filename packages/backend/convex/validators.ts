@@ -823,6 +823,7 @@ export const memorySummaryValidator = v.object({
   updatedAt: v.string(),
   profileId: v.union(v.string(), v.null()),
   usefulnessScore: v.optional(v.union(v.number(), v.null())),
+  visitCount: v.optional(v.number()),
 });
 
 export const memorySummaryFilterFields = {

@@ -148,12 +148,14 @@ const schema = defineSchema({
     .index("by_profile_periodKey", ["profileId", "period", "periodKey"]),
 
   // dreaming log: one row per run, one per undoable change
-  dreamRuns: defineTable(dreamRunFields).index("by_user_started", [
-    "userId",
-    "startedAt",
-  ]),
+  dreamRuns: defineTable(dreamRunFields)
+    .index("by_user_started", ["userId", "startedAt"])
+    // the one-off cleanup card reads the latest backfill run
+    .index("by_user_trigger_started", ["userId", "trigger", "startedAt"]),
   dreamActions: defineTable(dreamActionFields)
     .index("by_run", ["runId"])
+    // memory detail "Merged from N memories"
+    .index("by_keeper", ["keeperId"])
     .index("by_user_created", ["userId", "createdAt"])
     // retention sweep (dream.purgeExpiredActions)
     .index("by_undo_expires", ["undoExpiresAt"]),

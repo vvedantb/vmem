@@ -34,6 +34,7 @@ export const INBOX_TOOL_NAMES = [
   "proposals_list",
   "proposals_resolve",
   "dream_run",
+  "dream_history",
   "notifications_list",
   "notifications_mark",
   "notifications_mark_all_read",
@@ -43,6 +44,7 @@ export const INBOX_TOOL_NAMES = [
 // inbox tools that act on the user, not a profile: personal connector only
 export const PERSONAL_ONLY_INBOX_TOOL_NAMES = [
   "dream_run",
+  "dream_history",
   "notifications_list",
   "notifications_mark",
   "notifications_mark_all_read",

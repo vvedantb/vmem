@@ -2,7 +2,7 @@ import {
   paginationOptsValidator,
   paginationResultValidator,
 } from "convex/server";
-import { v, type ObjectType } from "convex/values";
+import { v, type Infer, type ObjectType } from "convex/values";
 import {
   DREAM_UNDO_WINDOW_MS,
   mergeKeeperPatch,
@@ -24,6 +24,7 @@ import type { WithoutSystemFields } from "convex/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import {
   internalMutation,
+  internalQuery,
   type MutationCtx,
   type QueryCtx,
 } from "./_generated/server";
@@ -43,6 +44,9 @@ const RETENTION_AFTER_UNDO_MS = 90 * 24 * 60 * 60 * 1000;
 const PURGE_BATCH = 500;
 const UNDO_RUN_BATCH = 50;
 const LIST_RUNS_TAKE = 20;
+const HISTORY_TAKE = 10;
+const MERGED_FROM_ACTIONS = 20;
+const MERGED_FROM_ROWS = 100;
 
 const runRowValidator = v.object({
   _id: v.id("dreamRuns"),
@@ -50,10 +54,13 @@ const runRowValidator = v.object({
   ...dreamRunFields,
 });
 
+// keeperTitle: the Dreaming page names each action by the row it kept (the
+// first row for archive / expire)
 const actionRowValidator = v.object({
   _id: v.id("dreamActions"),
   _creationTime: v.number(),
   ...dreamActionFields,
+  keeperTitle: v.union(v.string(), v.null()),
 });
 
 // personal runs see the owner's rows (and legacy rows with no profile), team
@@ -502,10 +509,147 @@ export const listActions = authQuery({
     if (!run || run.userId !== ctx.userId) {
       throw new Error("Dream run not found");
     }
-    return await ctx.db
+    const result = await ctx.db
       .query("dreamActions")
       .withIndex("by_run", (q) => q.eq("runId", args.runId))
       .paginate(args.paginationOpts);
+    const page = [];
+    for (const action of result.page) {
+      const shownId = action.keeperId ?? action.memoryIds[0];
+      const shown = shownId ? await ctx.db.get(shownId) : null;
+      page.push({ ...action, keeperTitle: shown?.title ?? null });
+    }
+    return { ...result, page };
+  },
+});
+
+// memories list moon icon: rows created after this wait for the next run.
+// Successful = a finished non-dry run ("ok" or "partial") of this profile.
+export const lastSuccessfulRunAt = authQuery({
+  args: { profileId: v.id("profiles") },
+  returns: v.union(v.number(), v.null()),
+  handler: async (ctx, args) => {
+    const run = await ctx.db
+      .query("dreamRuns")
+      .withIndex("by_user_started", (q) => q.eq("userId", ctx.userId))
+      .order("desc")
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("profileId"), args.profileId),
+          q.eq(q.field("dryRun"), false),
+          q.or(
+            q.eq(q.field("status"), "ok"),
+            q.eq(q.field("status"), "partial"),
+          ),
+        ),
+      )
+      .first();
+    return run?.finishedAt ?? null;
+  },
+});
+
+const mergedFromValidator = v.object({
+  // rows hidden into this memory by actions not yet undone
+  total: v.number(),
+  groups: v.array(
+    v.object({
+      actionId: v.id("dreamActions"),
+      kind: dreamActionFields.kind,
+      createdAt: v.number(),
+      undoExpiresAt: v.number(),
+      rows: v.array(v.object({ id: v.string(), title: v.string() })),
+    }),
+  ),
+});
+
+/**
+ * Memory detail "Merged from N memories": the caller's open dream actions
+ * that kept this memory, newest first, each with the rows it still hides
+ * (mergedInto = this). At most 100 rows are listed; `total` counts them all.
+ */
+export const mergedFrom = authQuery({
+  args: { memoryId: v.string() },
+  returns: mergedFromValidator,
+  handler: async (ctx, args) => {
+    const keeper = await ctx.db
+      .query("memories")
+      .withIndex("by_memory_id", (q) => q.eq("memoryId", args.memoryId))
+      .first();
+    if (!keeper) return { total: 0, groups: [] };
+    const actions = await ctx.db
+      .query("dreamActions")
+      .withIndex("by_keeper", (q) => q.eq("keeperId", keeper._id))
+      .order("desc")
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("userId"), ctx.userId),
+          q.eq(q.field("undoneAt"), undefined),
+        ),
+      )
+      .take(MERGED_FROM_ACTIONS);
+    let total = 0;
+    let budget = MERGED_FROM_ROWS;
+    const groups: Infer<typeof mergedFromValidator>["groups"] = [];
+    for (const action of actions) {
+      total += action.memoryIds.length;
+      const rows: { id: string; title: string }[] = [];
+      for (const id of action.memoryIds.slice(0, budget)) {
+        const doc = await ctx.db.get(id);
+        if (doc?.mergedInto === keeper._id) {
+          rows.push({ id: doc.memoryId, title: doc.title });
+        }
+      }
+      budget = Math.max(0, budget - action.memoryIds.length);
+      groups.push({
+        actionId: action._id,
+        kind: action.kind,
+        createdAt: action.createdAt,
+        undoExpiresAt: action.undoExpiresAt,
+        rows,
+      });
+    }
+    return { total, groups };
+  },
+});
+
+const historyRowValidator = v.object({
+  runId: v.id("dreamRuns"),
+  profileId: v.union(v.id("profiles"), v.null()),
+  trigger: dreamRunFields.trigger,
+  dryRun: v.boolean(),
+  status: dreamRunFields.status,
+  startedAt: v.string(),
+  finishedAt: v.union(v.string(), v.null()),
+  counts: dreamRunFields.counts,
+  aiCalls: v.number(),
+  costUsd: v.number(),
+});
+
+// MCP dream_history: the last 10 runs, counts only (no titles or samples)
+export const historyInternal = internalQuery({
+  args: { userId: v.id("users") },
+  returns: v.array(historyRowValidator),
+  handler: async (ctx, args) => {
+    const runs = await ctx.db
+      .query("dreamRuns")
+      .withIndex("by_user_started", (q) => q.eq("userId", args.userId))
+      .order("desc")
+      .take(HISTORY_TAKE);
+    return runs.map((run) => ({
+      runId: run._id,
+      profileId: run.profileId ?? null,
+      trigger: run.trigger,
+      dryRun: run.dryRun,
+      status: run.status,
+      startedAt: new Date(run.startedAt).toISOString(),
+      finishedAt:
+        run.finishedAt === undefined
+          ? null
+          : new Date(run.finishedAt).toISOString(),
+      counts: run.counts,
+      aiCalls: run.aiCalls,
+      costUsd: run.costUsd,
+    }));
   },
 });
 

@@ -47,6 +47,7 @@ export function memoryFromApi(m: MemoryApiFields) {
     ...(m.profileId !== null && m.profileId !== undefined
       ? { profileId: m.profileId }
       : {}),
+    ...(m.visitCount !== undefined ? { visitCount: m.visitCount } : {}),
   };
 }
 
@@ -74,6 +75,7 @@ export function summaryFromApi(m: MemoryApiFields): MemorySummary {
     updatedAt: m.updatedAt,
     profileId: m.profileId,
     usefulnessScore: m.usefulness?.score ?? null,
+    ...(m.visitCount !== undefined ? { visitCount: m.visitCount } : {}),
   };
 }
 
@@ -100,6 +102,7 @@ export function memoryFromSummary(m: MemorySummary): Memory {
       ? { usefulnessScore: m.usefulnessScore }
       : {}),
     ...(m.profileId !== null ? { profileId: m.profileId } : {}),
+    ...(m.visitCount !== undefined ? { visitCount: m.visitCount } : {}),
   };
 }
 
@@ -116,6 +119,8 @@ const MEMORY_SOURCE_LABELS: Record<string, string> = {
   mcp: "MCP",
   cursor: "Cursor",
   "client-enrichment": "Enrichment",
+  "browsing-history": "Browsing history",
+  bookmarks: "Bookmarks",
 };
 
 export function formatMemorySourceLabel(source: string): string {

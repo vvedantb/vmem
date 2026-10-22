@@ -470,3 +470,152 @@ describe("dream.purgeExpiredActions", () => {
     expect((await getDoc(t, keeperId)).status).toBe("active");
   });
 });
+
+describe("dream web reads", () => {
+  it("mergedFrom lists the rows hidden into a keeper until Split out", async () => {
+    const t = setupT();
+    const owner = await addUser(t, "clerk_merged");
+    const stranger = await addUser(t, "clerk_merged_other");
+    const runId = await addRun(t, owner);
+    const keeperId = await addMemory(t, owner, "mem_keeper");
+    const loserA = await addMemory(t, owner, "mem_a");
+    const loserB = await addMemory(t, owner, "mem_b");
+    const actionId = await t.mutation(internal.dream.applyMerge, {
+      runId,
+      keeperId,
+      loserIds: [loserA, loserB],
+      reason: "dup",
+    });
+    if (!actionId) throw new Error("no action");
+
+    const merged = await owner.user.query(api.dream.mergedFrom, {
+      memoryId: "mem_keeper",
+    });
+    expect(merged.total).toBe(2);
+    expect(merged.groups).toEqual([
+      expect.objectContaining({
+        actionId,
+        kind: "merge",
+        rows: [
+          { id: "mem_a", title: "Title mem_a" },
+          { id: "mem_b", title: "Title mem_b" },
+        ],
+      }),
+    ]);
+    expect(
+      await stranger.user.query(api.dream.mergedFrom, {
+        memoryId: "mem_keeper",
+      }),
+    ).toEqual({ total: 0, groups: [] });
+
+    await owner.user.mutation(api.dream.undoAction, { actionId });
+    expect(
+      await owner.user.query(api.dream.mergedFrom, { memoryId: "mem_keeper" }),
+    ).toEqual({ total: 0, groups: [] });
+  });
+
+  it("lastSuccessfulRunAt skips dry, failed and running runs and other profiles", async () => {
+    const t = setupT();
+    const owner = await addUser(t, "clerk_moon");
+    const base = {
+      userId: owner.userId,
+      profileId: owner.profileId,
+      trigger: "nightly" as const,
+      counts: {
+        exactMerged: 0,
+        keyMerged: 0,
+        nearDupMerged: 0,
+        superseded: 0,
+        proposals: 0,
+        expired: 0,
+        archived: 0,
+        aiFlagged: 0,
+      },
+      aiCalls: 0,
+      costUsd: 0,
+    };
+    expect(
+      await owner.user.query(api.dream.lastSuccessfulRunAt, {
+        profileId: owner.profileId,
+      }),
+    ).toBeNull();
+    await t.run(async (ctx) => {
+      await ctx.db.insert("dreamRuns", {
+        ...base,
+        dryRun: false,
+        status: "ok",
+        startedAt: NOW - 3 * DAY_MS,
+        finishedAt: NOW - 3 * DAY_MS + 5,
+      });
+      await ctx.db.insert("dreamRuns", {
+        ...base,
+        dryRun: false,
+        status: "failed",
+        startedAt: NOW - 2 * DAY_MS,
+        finishedAt: NOW - 2 * DAY_MS + 5,
+      });
+      await ctx.db.insert("dreamRuns", {
+        ...base,
+        trigger: "backfill",
+        dryRun: true,
+        status: "ok",
+        startedAt: NOW - DAY_MS,
+        finishedAt: NOW - DAY_MS + 5,
+      });
+      await ctx.db.insert("dreamRuns", {
+        ...base,
+        dryRun: false,
+        status: "running",
+        startedAt: NOW,
+      });
+    });
+    expect(
+      await owner.user.query(api.dream.lastSuccessfulRunAt, {
+        profileId: owner.profileId,
+      }),
+    ).toBe(NOW - 3 * DAY_MS + 5);
+  });
+
+  it("historyInternal returns the last 10 runs, counts only", async () => {
+    const t = setupT();
+    const owner = await addUser(t, "clerk_history");
+    for (let i = 0; i < 12; i += 1) {
+      await t.run(async (ctx) =>
+        ctx.db.insert("dreamRuns", {
+          userId: owner.userId,
+          profileId: owner.profileId,
+          trigger: "nightly",
+          dryRun: false,
+          status: "ok",
+          startedAt: NOW + i,
+          finishedAt: NOW + i + 1,
+          counts: {
+            exactMerged: i,
+            keyMerged: 0,
+            nearDupMerged: 0,
+            superseded: 0,
+            proposals: 0,
+            expired: 0,
+            archived: 0,
+            aiFlagged: 0,
+          },
+          aiCalls: 0,
+          costUsd: 0,
+          sample: [
+            { rule: "exact", keeperTitle: "secret", count: 2, memoryIds: [] },
+          ],
+        }),
+      );
+    }
+    const rows = await t.query(internal.dream.historyInternal, {
+      userId: owner.userId,
+    });
+    expect(rows).toHaveLength(10);
+    expect(rows[0]).toMatchObject({
+      trigger: "nightly",
+      startedAt: new Date(NOW + 11).toISOString(),
+      counts: { exactMerged: 11 },
+    });
+    expect(JSON.stringify(rows)).not.toContain("secret");
+  });
+});
