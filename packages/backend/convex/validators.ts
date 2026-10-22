@@ -21,6 +21,12 @@ export const memoryListResultValidator = v.object({
   total: v.number(),
 });
 
+const dreamSuppressedByValidator = v.union(
+  v.literal("dream"),
+  v.literal("dream-decay"),
+  v.literal("dream-ai"),
+);
+
 // clerk id + optional profile id; tags are stored on the row
 export const memoryFields = {
   memoryId: v.string(),
@@ -68,6 +74,10 @@ export const memoryFields = {
   usefulnessSearchHits: v.optional(v.number()),
   usefulnessContextPackHits: v.optional(v.number()),
   usefulnessEditCount: v.optional(v.number()),
+  // dream suppression (status "suppressed"); unset on manual suppression
+  mergedInto: v.optional(v.id("memories")),
+  suppressedBy: v.optional(dreamSuppressedByValidator),
+  suppressedRunId: v.optional(v.id("dreamRuns")),
 };
 
 // "search" means a result open (get / palette select), not a typeahead query.
@@ -550,6 +560,106 @@ export const rollupFields = {
   costUsd: v.number(),
   createdAt: v.number(),
   status: v.union(v.literal("ok"), v.literal("skipped"), v.literal("failed")),
+};
+
+// one dreaming pass (nightly, manual or the one-off backfill) per user and
+// profile. `sample` holds the top groups for review: at most 50, each with at
+// most 20 memory ids (the writer caps both).
+export const dreamRunFields = {
+  userId: v.id("users"),
+  profileId: v.optional(v.id("profiles")),
+  trigger: v.union(
+    v.literal("nightly"),
+    v.literal("manual"),
+    v.literal("backfill"),
+  ),
+  dryRun: v.boolean(),
+  status: v.union(
+    v.literal("running"),
+    v.literal("ok"),
+    v.literal("partial"),
+    v.literal("failed"),
+  ),
+  startedAt: v.number(),
+  finishedAt: v.optional(v.number()),
+  counts: v.object({
+    exactMerged: v.number(),
+    keyMerged: v.number(),
+    nearDupMerged: v.number(),
+    superseded: v.number(),
+    proposals: v.number(),
+    expired: v.number(),
+    archived: v.number(),
+    aiFlagged: v.number(),
+  }),
+  aiCalls: v.number(),
+  costUsd: v.number(),
+  error: v.optional(v.string()),
+  sample: v.optional(
+    v.array(
+      v.object({
+        rule: v.union(
+          v.literal("exact"),
+          v.literal("key"),
+          v.literal("near_dup"),
+        ),
+        keeperTitle: v.string(),
+        count: v.number(),
+        memoryIds: v.array(v.id("memories")),
+        reason: v.optional(v.string()),
+      }),
+    ),
+  ),
+};
+
+// the memory fields a dream action may change, as they were before it.
+// Undo writes every field back; an absent optional field is cleared.
+export const dreamSnapshotValidator = v.object({
+  memoryId: v.id("memories"),
+  status: memoryStatusValidator,
+  mergedInto: v.optional(v.id("memories")),
+  suppressedBy: v.optional(dreamSuppressedByValidator),
+  suppressedRunId: v.optional(v.id("dreamRuns")),
+  visitCount: v.number(),
+  firstVisitAt: v.number(),
+  lastVisitAt: v.number(),
+  tags: v.array(v.string()),
+  sources: v.optional(v.array(v.string())),
+  url: v.optional(v.string()),
+  // externalId upserts are stored as sourceId
+  sourceId: v.optional(v.string()),
+});
+
+// one undoable change from a dream run. `created` lists the link and mention
+// rows the action inserted, so undo can remove them again.
+export const dreamActionFields = {
+  runId: v.id("dreamRuns"),
+  userId: v.id("users"),
+  profileId: v.optional(v.id("profiles")),
+  kind: v.union(
+    v.literal("merge"),
+    v.literal("supersede"),
+    v.literal("archive"),
+    v.literal("expire"),
+  ),
+  keeperId: v.optional(v.id("memories")),
+  memoryIds: v.array(v.id("memories")),
+  before: v.array(dreamSnapshotValidator),
+  created: v.object({
+    linkIds: v.array(v.id("memoryLinks")),
+    mentionIds: v.array(v.id("memoryEntityMentions")),
+  }),
+  reason: v.string(),
+  ai: v.optional(
+    v.object({
+      relation: v.string(),
+      confidence: v.number(),
+      model: v.optional(v.string()),
+    }),
+  ),
+  undoneAt: v.optional(v.number()),
+  undoExpiresAt: v.number(),
+  createdAt: v.number(),
 };
 
 // the heavy half of a trace, read only when one trace is opened

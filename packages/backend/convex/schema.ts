@@ -31,6 +31,8 @@ import {
   memoryEntityMentionFields,
   proposedUpdateFields,
   rollupFields,
+  dreamRunFields,
+  dreamActionFields,
 } from "./validators";
 
 const schema = defineSchema({
@@ -146,6 +148,17 @@ const schema = defineSchema({
     .index("by_user_period", ["userId", "period", "startMs"])
     // upsert key; team profiles hold one row per member, so filter on userId
     .index("by_profile_periodKey", ["profileId", "period", "periodKey"]),
+
+  // dreaming log: one row per run, one per undoable change
+  dreamRuns: defineTable(dreamRunFields).index("by_user_started", [
+    "userId",
+    "startedAt",
+  ]),
+  dreamActions: defineTable(dreamActionFields)
+    .index("by_run", ["runId"])
+    .index("by_user_created", ["userId", "createdAt"])
+    // retention sweep (dream.purgeExpiredActions)
+    .index("by_undo_expires", ["undoExpiresAt"]),
 
   // cached "user profile" prose for the mcp vmem,//context_prompt resource
   contextPromptCache: defineTable(contextPromptCacheFields).index("by_user", [
