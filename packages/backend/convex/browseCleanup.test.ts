@@ -63,6 +63,31 @@ async function rows(t: Harness) {
   return t.run((ctx) => ctx.db.query("memories").collect());
 }
 
+type CallResult = {
+  groups: number;
+  deleted: number;
+  isDone: boolean;
+  continueCursor: string | null;
+};
+
+// calls until isDone; returns the summed counts and the number of calls
+async function runAll(t: Harness, numItems?: number) {
+  let cursor: string | null = null;
+  const total = { groups: 0, deleted: 0, calls: 0 };
+  for (let call = 0; call < 50; call += 1) {
+    const page: CallResult = await t.mutation(
+      internal.browseCleanup.mergeBrowseDuplicates,
+      { userId: USER, dryRun: false, cursor, numItems },
+    );
+    total.groups += page.groups;
+    total.deleted += page.deleted;
+    total.calls += 1;
+    if (page.isDone) return total;
+    cursor = page.continueCursor;
+  }
+  throw new Error("cleanup did not finish");
+}
+
 describe("browseCleanup.mergeBrowseDuplicates", () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -82,9 +107,9 @@ describe("browseCleanup.mergeBrowseDuplicates", () => {
     );
     expect(result).toMatchObject({
       scanned: 8,
-      groups: 3,
-      merged: 2,
+      groups: 2,
       deleted: 3,
+      lowValueCandidates: 1,
       lowValueDeleted: 1,
       isDone: true,
     });
@@ -103,8 +128,9 @@ describe("browseCleanup.mergeBrowseDuplicates", () => {
     );
     expect(result).toMatchObject({
       scanned: 8,
-      merged: 2,
+      groups: 2,
       deleted: 3,
+      lowValueCandidates: 1,
       lowValueDeleted: 0,
     });
 
@@ -132,27 +158,74 @@ describe("browseCleanup.mergeBrowseDuplicates", () => {
       internal.browseCleanup.mergeBrowseDuplicates,
       { userId: USER, dryRun: false, deleteLowValue: true },
     );
-    expect(rerun).toMatchObject({ merged: 0, deleted: 0, lowValueDeleted: 1 });
+    expect(rerun).toMatchObject({ groups: 0, deleted: 0, lowValueDeleted: 1 });
     expect(await rows(t)).toHaveLength(4);
+  });
+
+  it("patches the keeper directly without entity extraction", async () => {
+    const t = convexTest(schema, modules);
+    await seed(t);
+    // start from no entity data, so any row the cleanup makes shows up
+    await t.run(async (ctx) => {
+      const rows = [
+        ...(await ctx.db.query("memoryEntities").collect()),
+        ...(await ctx.db.query("memoryEntityMentions").collect()),
+        ...(await ctx.db.query("memoryLinks").collect()),
+      ];
+      for (const row of rows) await ctx.db.delete(row._id);
+    });
+    const scheduledBefore = await t.run(
+      async (ctx) =>
+        (await ctx.db.system.query("_scheduled_functions").collect()).length,
+    );
+
+    await t.mutation(internal.browseCleanup.mergeBrowseDuplicates, {
+      userId: USER,
+      dryRun: false,
+    });
+
+    const unique = (await rows(t)).find((row) => row.title === "Unique page");
+    expect(unique).toMatchObject({
+      visitCount: 1,
+      sourceId: "example.com|unique page",
+      content: "Unique page\nexample.com",
+    });
+    const instagram = (await rows(t)).find(
+      (row) => row.title === "Instagram" && row.source === "browsing-history",
+    );
+    expect(instagram?.searchableText).toContain("instagram.com/p/DeteNVUiIVE");
+    expect(instagram?.searchableText).not.toContain("Visited");
+    await t.run(async (ctx) => {
+      expect(await ctx.db.query("memoryEntities").collect()).toEqual([]);
+      expect(await ctx.db.query("memoryEntityMentions").collect()).toEqual([]);
+      expect(await ctx.db.query("memoryLinks").collect()).toEqual([]);
+      expect(
+        (await ctx.db.system.query("_scheduled_functions").collect()).length,
+      ).toBe(scheduledBefore);
+    });
+  });
+
+  it("finishes a large set over several budgeted calls", async () => {
+    const t = convexTest(schema, modules);
+    for (let index = 0; index < 35; index += 1) {
+      await seedOld(t, "Instagram", `${POST}?img_index=${index}`);
+      await seedOld(t, "Unique page", `https://example.com/unique?v=${index}`);
+    }
+    const total = await runAll(t);
+    expect(total.calls).toBeGreaterThan(1);
+    expect(total.deleted).toBe(68);
+    const stored = await rows(t);
+    expect(stored).toHaveLength(2);
+    expect(stored.map((row) => row.visitCount)).toEqual([35, 35]);
+
+    const rerun = await runAll(t);
+    expect(rerun).toMatchObject({ groups: 0, deleted: 0, calls: 1 });
   });
 
   it("merges dupes split across pages through the keyed keeper", async () => {
     const t = convexTest(schema, modules);
     await seed(t);
-    let cursor: string | null = null;
-    let deleted = 0;
-    for (let call = 0; call < 20; call += 1) {
-      const page: { deleted: number; isDone: boolean; continueCursor: string } =
-        await t.mutation(internal.browseCleanup.mergeBrowseDuplicates, {
-          userId: USER,
-          dryRun: false,
-          cursor,
-          numItems: 2,
-        });
-      deleted += page.deleted;
-      if (page.isDone) break;
-      cursor = page.continueCursor;
-    }
+    const { deleted } = await runAll(t, 2);
     expect(deleted).toBe(3);
     const instagram = (await rows(t)).filter(
       (row) => row.title === "Instagram" && row.source === "browsing-history",
