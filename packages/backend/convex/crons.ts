@@ -41,7 +41,8 @@ crons.interval(
   {},
 );
 
-// drops mcp tool traces and their details older than 7 days, 500 rows a batch
+// drops mcp tool traces and their details older than 7 days, 500 rows a batch;
+// also purges artifacts 30 days in the trash, with their bodies and versions
 crons.interval(
   "purge expired traces",
   { hours: 1 },

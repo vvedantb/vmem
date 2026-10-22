@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { omit } from "convex-helpers";
 import { zodToConvex } from "convex-helpers/server/zod";
+import { ARTIFACT_FORMATS, ARTIFACT_TYPES } from "@vvedantb/server";
 import {
   memoryStatusSchema,
   memoryTypeSchema,
@@ -831,4 +832,99 @@ export const memorySummaryFilterFields = {
   source: v.optional(v.string()),
   tags: v.optional(v.array(v.string())),
   searchQuery: v.optional(v.string()),
+};
+
+// artifacts (see convex/artifacts/store.ts). type = what it is, format = how
+// the body renders; both enums come from the shared @vvedantb/server core
+export const artifactTypeValidator = zodToConvex(z.enum(ARTIFACT_TYPES));
+export const artifactFormatValidator = zodToConvex(z.enum(ARTIFACT_FORMATS));
+
+export const artifactStateSpecValidator = v.object({
+  stateVersion: v.number(),
+  keys: v.array(v.string()),
+  template: v.optional(v.union(v.literal("quiz"), v.literal("flashcards"))),
+});
+
+// free client name of the writer, plus its own id when imported
+export const artifactOriginValidator = v.object({
+  client: v.string(),
+  externalId: v.optional(v.string()),
+});
+
+// metadata only; list reads never touch the body
+export const artifactFields = {
+  userId: v.id("users"),
+  teamId: v.optional(v.id("teams")),
+  title: v.string(),
+  description: v.optional(v.string()),
+  type: artifactTypeValidator,
+  format: artifactFormatValidator,
+  language: v.optional(v.string()),
+  schemaVersion: v.number(),
+  stateSpec: v.optional(artifactStateSpecValidator),
+  currentVersion: v.number(),
+  currentBodyId: v.id("artifactBodies"),
+  // body bytes (utf-8), stored so lists do not read bodies
+  size: v.number(),
+  // title + description + body plain text, capped at 8 KB, no AI
+  searchText: v.string(),
+  origin: artifactOriginValidator,
+  createdAt: v.number(),
+  updatedAt: v.number(),
+  // soft delete; purged 30 days later
+  deletedAt: v.optional(v.number()),
+};
+
+// immutable; versions point at bodies, deduped per artifact by sha256
+export const artifactBodyFields = {
+  // unset only inside the create transaction (the artifact row needs the
+  // body id first); every committed body has it
+  artifactId: v.optional(v.id("artifacts")),
+  userId: v.id("users"),
+  body: v.string(),
+  sha256: v.string(),
+  createdAt: v.number(),
+};
+
+export const artifactVersionFields = {
+  artifactId: v.id("artifacts"),
+  userId: v.id("users"),
+  version: v.number(),
+  bodyId: v.id("artifactBodies"),
+  title: v.string(),
+  stateSpec: v.optional(artifactStateSpecValidator),
+  createdAt: v.number(),
+  // origin.client of the writer
+  createdBy: v.string(),
+};
+
+// per user, per artifact; counters back the write interval and daily cap
+export const artifactStateFields = {
+  artifactId: v.id("artifacts"),
+  userId: v.id("users"),
+  data: v.record(v.string(), v.string()),
+  stateVersion: v.number(),
+  updatedAt: v.number(),
+  lastWriteAt: v.number(),
+  dailyWriteCount: v.number(),
+  // utcDayKey of the counted day
+  dailyWriteDay: v.number(),
+};
+
+export const artifactRefKindValidator = v.union(
+  v.literal("memory"),
+  v.literal("file"),
+  v.literal("source"),
+  v.literal("skill"),
+  v.literal("app"),
+);
+
+export const artifactRefFields = {
+  artifactId: v.id("artifacts"),
+  userId: v.id("users"),
+  kind: artifactRefKindValidator,
+  target: v.string(),
+  // `${kind}:${target}`
+  refKey: v.string(),
+  createdAt: v.number(),
 };
