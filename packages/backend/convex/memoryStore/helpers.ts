@@ -55,6 +55,7 @@ import {
 } from "./mappers";
 import { trackMemoryChange, trackMemoryChanges } from "./stats";
 import { deleteMemoryUsage, loadUsageHits } from "./usage";
+import type { MemoryVersion } from "../validators";
 
 export interface CreateMemoryStoreParams {
   memoryId?: string;
@@ -628,6 +629,32 @@ export async function getMemory(
   return toMemoryWithHits(doc, await loadUsageHits(ctx, doc));
 }
 
+const MEMORY_HISTORY_CONTENT_CHARS = 500;
+
+/**
+ * Prior versions of one memory in scope, newest first; null when the memory
+ * is not in scope. Content is clipped to a snippet.
+ */
+export async function getMemoryHistory(
+  ctx: QueryCtx,
+  scope: MemoryReadScope,
+  memoryId: string,
+): Promise<MemoryVersion[] | null> {
+  const doc = await findByMemoryId(ctx, memoryId);
+  if (!doc || !memoryMatchesScope(doc, scope)) return null;
+  const versions = await listPriorVersions(ctx, doc);
+  return versions.map((version) => ({
+    id: version.memoryId,
+    title: version.title,
+    content: version.content.slice(0, MEMORY_HISTORY_CONTENT_CHARS),
+    createdAt: new Date(version.createdAt).toISOString(),
+    supersededAt:
+      version.supersededAt === undefined
+        ? null
+        : new Date(version.supersededAt).toISOString(),
+  }));
+}
+
 export async function getMemoryForTeam(
   ctx: QueryCtx | MutationCtx,
   profileId: string,
@@ -712,6 +739,8 @@ async function applyMemoryUpdates(
           suppressedBy: undefined,
           suppressedRunId: undefined,
           suppressedAt: undefined,
+          supersededBy: undefined,
+          supersededAt: undefined,
         };
   const editCount =
     (doc.usefulnessEditCount ?? 0) + (updates.skipEditCount === true ? 0 : 1);
@@ -835,10 +864,17 @@ export async function supersedeMemories(
     predecessorIds: string[];
     successorId?: string;
     reason?: string;
+    // an update or contradiction, not a merge of duplicates: keep each
+    // predecessor as a prior version of the successor
+    asVersion?: boolean;
   },
 ): Promise<number> {
   const successorId = params.successorId;
   const reason = params.reason?.trim() || UPDATES_LINK_REASON;
+  const successor =
+    params.asVersion === true && successorId !== undefined
+      ? await findByMemoryId(ctx, successorId)
+      : null;
   let count = 0;
   const seen = new Set<string>();
   for (const predecessorId of params.predecessorIds) {
@@ -852,6 +888,9 @@ export async function supersedeMemories(
     );
     if (!updated) continue;
     count += 1;
+    if (successor && docMatchesWriteScope(successor, params.scope)) {
+      await markSupersededBy(ctx, predecessorId, successor._id);
+    }
     if (successorId === undefined) continue;
     await linkMemories(ctx, {
       userId: updated.userId,
@@ -862,6 +901,52 @@ export async function supersedeMemories(
     });
   }
   return count;
+}
+
+// after the status change: applyMemoryUpdates clears supersededBy
+async function markSupersededBy(
+  ctx: MutationCtx,
+  memoryId: string,
+  successorId: Id<"memories">,
+): Promise<void> {
+  const doc = await findByMemoryId(ctx, memoryId);
+  if (!doc || doc._id === successorId) return;
+  await ctx.db.patch(doc._id, {
+    supersededBy: successorId,
+    supersededAt: Date.now(),
+  });
+}
+
+// prior versions one memory keeps, newest first (by createdAt)
+export const MEMORY_HISTORY_LIMIT = 20;
+
+/**
+ * Walks the version chain back from `doc`: the rows it replaced, then the
+ * rows those replaced. Bounded by `limit`; never collects a whole table.
+ */
+export async function listPriorVersions(
+  ctx: QueryCtx,
+  doc: Doc<"memories">,
+  limit: number = MEMORY_HISTORY_LIMIT,
+): Promise<Doc<"memories">[]> {
+  const versions: Doc<"memories">[] = [];
+  const seen = new Set<Id<"memories">>([doc._id]);
+  const queue: Id<"memories">[] = [doc._id];
+  while (queue.length > 0 && versions.length < limit) {
+    const current = queue.shift();
+    if (current === undefined) break;
+    const rows = await ctx.db
+      .query("memories")
+      .withIndex("by_superseded_by", (q) => q.eq("supersededBy", current))
+      .take(limit - versions.length);
+    for (const row of rows) {
+      if (seen.has(row._id)) continue;
+      seen.add(row._id);
+      versions.push(row);
+      queue.push(row._id);
+    }
+  }
+  return versions.sort((a, b) => b.createdAt - a.createdAt);
 }
 
 function writeProfileId(scope: MemoryReadScope): string | undefined {
@@ -907,6 +992,29 @@ async function deleteLinksForUser(
   }
 }
 
+async function deleteMemoryDoc(
+  ctx: MutationCtx,
+  doc: Doc<"memories">,
+): Promise<void> {
+  await deleteEntitiesForMemory(ctx, doc.userId, doc.memoryId);
+  await deleteLinksForMemory(ctx, doc.userId, doc.memoryId);
+  await deleteMemoryEmbedding(ctx, doc._id);
+  await trackMemoryChange(ctx, doc, null);
+  await deleteMemoryUsage(ctx, doc.memoryId);
+  await ctx.db.delete(doc._id);
+}
+
+// deleting a memory also deletes its prior versions (bounded chain)
+async function deleteMemoryWithVersions(
+  ctx: MutationCtx,
+  doc: Doc<"memories">,
+): Promise<void> {
+  for (const version of await listPriorVersions(ctx, doc)) {
+    await deleteMemoryDoc(ctx, version);
+  }
+  await deleteMemoryDoc(ctx, doc);
+}
+
 export async function deleteMemory(
   ctx: MutationCtx,
   userId: string,
@@ -914,12 +1022,7 @@ export async function deleteMemory(
 ): Promise<boolean> {
   const doc = await findByMemoryId(ctx, memoryId);
   if (!doc || doc.userId !== userId) return false;
-  await deleteEntitiesForMemory(ctx, userId, memoryId);
-  await deleteLinksForMemory(ctx, userId, memoryId);
-  await deleteMemoryEmbedding(ctx, doc._id);
-  await trackMemoryChange(ctx, doc, null);
-  await deleteMemoryUsage(ctx, memoryId);
-  await ctx.db.delete(doc._id);
+  await deleteMemoryWithVersions(ctx, doc);
   return true;
 }
 
@@ -932,12 +1035,7 @@ export async function deleteTeamMemoryAsOwner(
   if (!doc || !memoryMatchesScope(doc, { kind: "team", profileId })) {
     return false;
   }
-  await deleteEntitiesForMemory(ctx, doc.userId, memoryId);
-  await deleteLinksForMemory(ctx, doc.userId, memoryId);
-  await deleteMemoryEmbedding(ctx, doc._id);
-  await trackMemoryChange(ctx, doc, null);
-  await deleteMemoryUsage(ctx, memoryId);
-  await ctx.db.delete(doc._id);
+  await deleteMemoryWithVersions(ctx, doc);
   return true;
 }
 

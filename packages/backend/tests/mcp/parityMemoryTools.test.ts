@@ -45,9 +45,10 @@ const facetsSchema = z.object({
   tags: z.array(z.object({ tag: z.string(), count: z.number() })),
   sources: z.array(z.object({ source: z.string(), count: z.number() })),
 });
-const historySchema = z.array(
-  z.object({ memoryId: z.string(), action: z.string() }),
-);
+const historySchema = z.object({
+  events: z.array(z.object({ memoryId: z.string(), action: z.string() })),
+  priorVersions: z.array(z.object({ id: z.string() })),
+});
 const trailSchema = z.array(
   z.object({ memoryTitle: z.string(), connectionType: z.string() }),
 );
@@ -303,9 +304,10 @@ describe("MCP memory parity tools (convex-test backend)", () => {
     const history = historySchema.parse(
       await alice.call("memory_history", { memoryId: id }),
     );
-    expect(history).toEqual([
+    expect(history.events).toEqual([
       expect.objectContaining({ memoryId: id, action: "created" }),
     ]);
+    expect(history.priorVersions).toEqual([]);
     await expect(bob.call("memory_history", { memoryId: id })).rejects.toThrow(
       /Memory not found/,
     );

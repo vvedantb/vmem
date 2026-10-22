@@ -380,6 +380,15 @@ async function dispatch(
       clerkIdArgsSchema.parse(args);
       return { content: "# vmem User Profile\n\nHarness mock profile." };
     }
+    case "contextPromptCache:getByClerkIdInternal": {
+      clerkIdArgsSchema.parse(args);
+      return {
+        content:
+          "# vmem User Profile\n\n## About\nHarness mock profile.\n\n## Available Skills\n- skip-me",
+        generatedAt: 1,
+        memoryCountAtGeneration: 0,
+      };
+    }
     case "contextPromptCache:markPendingByClerkIdInternal": {
       clerkIdArgsSchema.parse(args);
       return false;

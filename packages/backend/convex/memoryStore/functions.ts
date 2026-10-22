@@ -8,6 +8,7 @@ import {
   memorySummaryFilterFields,
   memorySummaryValidator,
   memoryTypeValidator,
+  memoryVersionValidator,
   memoryWithTagsValidator,
 } from "../validators";
 import {
@@ -22,6 +23,7 @@ import {
   getMemoriesByMemoryIds,
   getMemory,
   getMemoryForTeam,
+  getMemoryHistory,
   linkMemories,
   listMemories,
   listMemoriesForTeam,
@@ -150,6 +152,22 @@ export const getMemoryForTeamInternal = internalQuery({
   returns: v.union(memoryWithTagsValidator, v.null()),
   handler: async (ctx, args) =>
     getMemoryForTeam(ctx, args.profileId, args.memoryId),
+});
+
+// prior versions newest first; null when the memory is outside the scope
+export const getMemoryHistoryInternal = internalQuery({
+  args: {
+    kind: v.union(v.literal("personal"), v.literal("team")),
+    userId: v.optional(v.string()),
+    profileId: v.optional(v.string()),
+    memoryId: v.string(),
+  },
+  returns: v.union(v.array(memoryVersionValidator), v.null()),
+  handler: async (ctx, args) => {
+    const scope = memoryReadScopeFromArgs(args);
+    if (scope === null) return null;
+    return getMemoryHistory(ctx, scope, args.memoryId);
+  },
 });
 
 export const listMemoriesInternal = internalQuery({
@@ -360,6 +378,7 @@ export const supersedeMemoriesInternal = internalMutation({
     predecessorIds: v.array(v.string()),
     successorId: v.optional(v.string()),
     reason: v.optional(v.string()),
+    asVersion: v.optional(v.boolean()),
   },
   returns: v.number(),
   handler: async (ctx, args) => {
@@ -370,6 +389,7 @@ export const supersedeMemoriesInternal = internalMutation({
         predecessorIds: args.predecessorIds,
         successorId: args.successorId,
         reason: args.reason,
+        asVersion: args.asVersion,
       });
     }
     if (args.userId === undefined) return 0;
@@ -382,6 +402,7 @@ export const supersedeMemoriesInternal = internalMutation({
       predecessorIds: args.predecessorIds,
       successorId: args.successorId,
       reason: args.reason,
+      asVersion: args.asVersion,
     });
   },
 });

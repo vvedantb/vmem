@@ -1,7 +1,11 @@
 import type { MemoryStatus } from "@vmem/sdk";
 import { normalizeTags } from "../tags";
 
-export type DreamSuppressedBy = "dream" | "dream-decay" | "dream-ai";
+export type DreamSuppressedBy =
+  | "dream"
+  | "dream-decay"
+  | "dream-ai"
+  | "dream-supersede";
 
 export const DREAM_UNDO_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_MERGED_SOURCES = 10;

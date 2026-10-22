@@ -7,9 +7,20 @@ import {
   CONTEXT_PACK_MIN_CHARS,
 } from "../../engine/memory/contextPack";
 import {
+  rankSkillsLexically,
   recommendSkills,
+  type SkillIndexSlice,
   type SkillRecommendResult,
 } from "../../engine/memory/jevSkillRecommend";
+import {
+  buildRecallContext,
+  clampRecallTokens,
+  profileFacts,
+  RECALL_MAX_TOKENS,
+  RECALL_MEMORY_LIMIT,
+  RECALL_MIN_TOKENS,
+  RECALL_SKILL_LIMIT,
+} from "../../engine/memory/recallContext";
 import {
   classifyQueryTemporal,
   parseReferenceMs,
@@ -148,7 +159,111 @@ async function packPeriodSummaries(
   }
 }
 
+const recallContextSchema = z.object({
+  message: z
+    .string()
+    .trim()
+    .min(1)
+    .describe("The user's current message or task, as written"),
+  profileId: z
+    .string()
+    .optional()
+    .describe("Profile ID to recall from (defaults to active profile)"),
+  maxTokens: z
+    .number()
+    .int()
+    .optional()
+    .describe(
+      `Token budget for the text, ~4 chars a token (default 1500, clamped to ${String(RECALL_MIN_TOKENS)}..${String(RECALL_MAX_TOKENS)})`,
+    ),
+});
+
+// cheap lexical match on name + description: no Jev call on every turn
+async function recallSkills(
+  h: ToolHandlerContext,
+  message: string,
+): Promise<SkillIndexSlice[]> {
+  try {
+    const rows = await h.ctx.runQuery(
+      internal.skills.listEffectiveByClerkIdInternal,
+      scopedClerk(h),
+    );
+    return rankSkillsLexically(message, rows.map(toSkillIndexEntry))
+      .filter((skill) => skill.score > 0)
+      .slice(0, RECALL_SKILL_LIMIT);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "unknown error";
+    console.warn("[MCP][recall_context] skills failed:", message);
+    return [];
+  }
+}
+
+// cached context prompt only: unlike context_pack, never schedules a
+// regeneration, so a per-turn call adds no LLM work
+async function recallProfile(h: ToolHandlerContext): Promise<string | null> {
+  if (h.scope === "team") return null;
+  try {
+    const cache = await h.ctx.runQuery(
+      internal.contextPromptCache.getByClerkIdInternal,
+      { clerkId: h.clerkUserId },
+    );
+    return cache === null || cache.generatedAt === 0 ? null : cache.content;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "unknown error";
+    console.warn("[MCP][recall_context] profile failed:", message);
+    return null;
+  }
+}
+
 export const contextToolSpecs = {
+  recall_context: toolSpec({
+    name: "recall_context",
+    schema: recallContextSchema,
+    description:
+      "Call at the start of every turn with the user's message. Returns a compact text block (default 1500 tokens, ~4 chars a token) with the most relevant memories (hybrid search, no LLM rerank), the 'Use when' lines of matching skills, and a few profile facts (personal connector only), filled in that order until maxTokens. Prior versions of changed facts are left out. counts has memories, skills, facts and approxTokens; memoryIds / skillNames list what was included and truncated flags a cut. Use context_pack for a larger pack at task start.",
+    errorLabel: "Recall context failed",
+    async run(h, params): Promise<unknown> {
+      return withMcpMemoryScope(
+        h.ctx,
+        { ...scopedMemory(h), profileId: params.profileId },
+        async (scope) => {
+          // judge "off": no Jev gate (an LLM call) on a per-turn tool
+          const retrieve: { query: string; limit: number; judge: "off" } = {
+            query: params.message,
+            limit: RECALL_MEMORY_LIMIT,
+            judge: "off",
+          };
+          const [memories, skills, profile] = await Promise.all([
+            runForMcpScope(scope, {
+              team: (profileId) =>
+                retrieveMemoriesForTeamProfile(h.ctx, {
+                  clerkId: scope.clerkId,
+                  profileId,
+                  ...retrieve,
+                }),
+              personal: ({ clerkId, profileId }) =>
+                retrieveMemoriesForClerk(h.ctx, {
+                  clerkId,
+                  profileId,
+                  ...retrieve,
+                }),
+            }),
+            recallSkills(h, params.message),
+            recallProfile(h),
+          ]);
+          const recall = buildRecallContext({
+            message: params.message,
+            memories,
+            skills,
+            facts: profileFacts(profile),
+            maxTokens: clampRecallTokens(params.maxTokens),
+          });
+          await enqueueMemoryAccess(h.ctx, recall.memoryIds, "contextPack");
+          return recall;
+        },
+      );
+    },
+  }),
   context_pack: toolSpec({
     name: "context_pack",
     schema: contextPackSchema,

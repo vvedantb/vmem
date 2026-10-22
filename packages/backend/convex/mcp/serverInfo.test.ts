@@ -27,6 +27,12 @@ describe("MCP server info", () => {
     );
   });
 
+  it("tells agents to call recall_context every turn", () => {
+    expect(MCP_SERVER_INSTRUCTIONS).toContain(
+      "At the start of every turn, call recall_context with the user's message.",
+    );
+  });
+
   it("accepts Clerk oauth_token and session_token only", () => {
     expect(MCP_ACCEPTED_TOKEN_TYPES).toEqual(["oauth_token", "session_token"]);
   });
