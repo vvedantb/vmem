@@ -14,6 +14,7 @@ import {
   type ConnectorPage,
   type SyncedDoc,
 } from "./syncShared";
+import { truncateWellFormed } from "../lib/wellFormed";
 
 export interface GmailSyncArgs {
   clerkId: string;
@@ -118,7 +119,7 @@ export function gmailMessageToDoc(
 
   return {
     title: subject || "(no subject)",
-    content: lines.join("\n").slice(0, EMBED_CONTENT_CAP),
+    content: truncateWellFormed(lines.join("\n"), EMBED_CONTENT_CAP),
     sourceType: "gmail",
     sourceId: id,
     sourceUrl: gmailMessageUrl(id),

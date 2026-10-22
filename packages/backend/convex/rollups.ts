@@ -28,6 +28,7 @@ import {
   runRollupDay,
   runRollupPeriod,
 } from "./rollupActions";
+import { truncateWellFormed } from "./lib/wellFormed";
 
 const WINDOW_MEMORY_CAP = 200;
 const WINDOW_TRACE_CAP = 500;
@@ -78,7 +79,7 @@ function toRollupMemory(
     memoryId: doc.memoryId,
     profileId: doc.profileId,
     title: doc.title,
-    content: doc.content.slice(0, MEMORY_SNIPPET_CHARS),
+    content: truncateWellFormed(doc.content, MEMORY_SNIPPET_CHARS),
     source: doc.source,
     sourceType: doc.sourceType,
     status: doc.status,
@@ -166,7 +167,7 @@ export const loadDayActivityInternal = internalQuery({
       traces: traceRows.map((t) => ({
         tool: t.tool,
         ok: t.ok,
-        summary: t.summary.slice(0, TRACE_SUMMARY_CHARS),
+        summary: truncateWellFormed(t.summary, TRACE_SUMMARY_CHARS),
         profileId: t.profileId,
       })),
     };

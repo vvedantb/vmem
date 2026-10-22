@@ -1,6 +1,7 @@
 import type { ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
+import { truncateWellFormed } from "../lib/wellFormed";
 
 export const EMBED_CONTENT_CAP = 50_000;
 
@@ -41,7 +42,7 @@ export async function upsertSyncedDocs(
   let totalSynced = params.totalSynced;
 
   for (const doc of params.docs) {
-    const content = doc.content.slice(0, EMBED_CONTENT_CAP);
+    const content = truncateWellFormed(doc.content, EMBED_CONTENT_CAP);
     try {
       await ctx.runMutation(
         internal.memoryStore.functions.upsertMemoryFromSourceInternal,

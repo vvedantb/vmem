@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { ToolHandlerResult } from "./content";
+import { truncateWellFormed } from "../lib/wellFormed";
 
 // pure trace builders for mcp tool calls: deterministic summary line, sanitised
 // args, result ids and preview. no llm, no db.
@@ -33,7 +34,7 @@ export type McpTraceBody = {
 };
 
 function clipText(text: string, max: number): string {
-  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+  return text.length > max ? `${truncateWellFormed(text, max - 1)}…` : text;
 }
 
 function quote(text: string): string {

@@ -8,6 +8,7 @@ import {
   mapSyncedDocs,
   runPaginatedConnectorSync,
 } from "./syncShared";
+import { truncateWellFormed } from "../lib/wellFormed";
 
 const NOTION_MARKDOWN_API_VERSION = "2026-03-11";
 
@@ -63,7 +64,10 @@ export async function runNotionSync(
 
           return {
             title,
-            content: markdownResponse.markdown.slice(0, EMBED_CONTENT_CAP),
+            content: truncateWellFormed(
+              markdownResponse.markdown,
+              EMBED_CONTENT_CAP,
+            ),
             sourceType: "notion",
             sourceId: page.id,
             sourceUrl:

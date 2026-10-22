@@ -34,6 +34,7 @@ import {
   writeState,
   type ArtifactDetail,
 } from "./store";
+import { truncateWellFormed } from "../lib/wellFormed";
 
 // *ByClerkIdInternal functions behind the artifacts_* mcp tools. The personal
 // connector sees the caller's personal artifacts; /mcp/team sees the active
@@ -61,7 +62,7 @@ export function toMcpDetail(
   if (opts.includeBody === false) return { ...meta, bodyChars };
   const cut =
     opts.maxChars !== undefined && bodyChars > opts.maxChars
-      ? body.slice(0, Math.max(0, opts.maxChars))
+      ? truncateWellFormed(body, opts.maxChars)
       : body;
   return { ...meta, bodyChars, truncated: cut.length < bodyChars, body: cut };
 }

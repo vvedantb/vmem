@@ -8,6 +8,7 @@ import {
   type ConnectorPage,
   type SyncedDoc,
 } from "./syncShared";
+import { truncateWellFormed } from "../lib/wellFormed";
 
 export interface GitHubSyncArgs {
   clerkId: string;
@@ -72,7 +73,7 @@ export function githubIssueToDoc(raw: unknown): SyncedDoc {
 
   return {
     title: `${repo}#${issue.number}: ${issue.title}`,
-    content: lines.join("\n").slice(0, EMBED_CONTENT_CAP),
+    content: truncateWellFormed(lines.join("\n"), EMBED_CONTENT_CAP),
     sourceType: "github",
     sourceId: issue.node_id,
     sourceUrl: issue.html_url,
