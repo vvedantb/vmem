@@ -16,7 +16,7 @@ import {
 } from "../teams/auth";
 import { getOrCreateDefaultProfile } from "../profiles/helpers";
 import {
-  createMemory,
+  createOrUpsertMemory,
   deleteMemory,
   deleteTeamMemoryAsOwner,
   getMemory,
@@ -248,7 +248,7 @@ export async function runCreate(
 ): Promise<MemoryWithTags> {
   const clerkId = await requireClerkId(ctx);
   const profileId = await resolveWriteProfileId(ctx, args.profileId);
-  const created = await createMemory(ctx, {
+  const { memory: created, needsFollowUp } = await createOrUpsertMemory(ctx, {
     userId: clerkId,
     profileId,
     title: args.title,
@@ -260,9 +260,9 @@ export async function runCreate(
     expiresAt: args.expiresAt,
     url: args.url,
     sourceType: args.sourceType ?? args.source,
-    sourceId: args.externalId,
+    externalId: args.externalId,
   });
-  await scheduleCreatedMemoryJobs(ctx, clerkId, created);
+  if (needsFollowUp) await scheduleCreatedMemoryJobs(ctx, clerkId, created);
   return created;
 }
 

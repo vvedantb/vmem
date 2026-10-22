@@ -387,11 +387,12 @@ async function dispatch(
       clerkIdArgsSchema.parse(args);
       return false;
     }
-    case "memoryStore/functions:createMemoryInternal": {
+    // the mock always inserts; real upsert and dedupe live in memoryStore tests
+    case "memoryStore/functions:createOrUpsertMemoryInternal": {
       const parsed = createMemoryArgsSchema.parse(args);
       const created = makeMemory(store, parsed);
       store.memories.push(created);
-      return created;
+      return { memory: created, needsFollowUp: true };
     }
     case "memoryStore/functions:listMemoriesInternal": {
       const parsed = listMemoriesArgsSchema.parse(args);

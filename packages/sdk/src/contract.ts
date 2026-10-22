@@ -65,6 +65,8 @@ export const memoryUsefulnessSchema = z.object({
 export const memoryWithTagsSchema = memoryNodeSchema.extend({
   tags: z.array(z.string()),
   usefulness: memoryUsefulnessSchema.optional(),
+  /** Set on create when an identical visible memory absorbed the write. */
+  deduped: z.boolean().optional(),
 });
 
 export const graphPathTraceSchema = z.object({

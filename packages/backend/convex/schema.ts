@@ -139,6 +139,8 @@ const schema = defineSchema({
     .index("by_profile_created", ["profileId", "createdAt"])
     // connector upserts look a memory up by its external source id
     .index("by_user_source", ["userId", "sourceType", "sourceId"])
+    // exact-content write dedupe within one user + profile
+    .index("by_user_profile_hash", ["userId", "profileId", "contentHash"])
     // Jev quality cron: pending rows first, never-tried before oldest-tried
     .index("by_needs_jev", [
       "usefulnessNeedsJev",

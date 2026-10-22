@@ -27,13 +27,15 @@ const base = {
   tags: [],
   confidence: 0.9,
 };
+// rows reuse one body on purpose; hash dedupe has its own tests
+const seedBase = { ...base, skipHashDedupe: true };
 
 describe("memory usefulness", () => {
   it("scores on create, flags Jev, and counts edits on update", async () => {
     const t = convexTest(schema, modules);
     const created = await t.mutation(
       internal.memoryStore.functions.createMemoryInternal,
-      { ...base, memoryId: "m1" },
+      { ...seedBase, memoryId: "m1" },
     );
     expect(created.usefulness?.score).toBeGreaterThan(0);
     const row = await t.run((ctx) =>
@@ -68,7 +70,7 @@ describe("memory usefulness", () => {
   it("flushes hits into memoryUsage, not onto the memory row", async () => {
     const t = convexTest(schema, modules);
     await t.mutation(internal.memoryStore.functions.createMemoryInternal, {
-      ...base,
+      ...seedBase,
       memoryId: "m1",
     });
     await t.mutation(internal.memoryUsefulness.enqueueAccess, {
@@ -97,7 +99,7 @@ describe("memory usefulness", () => {
   it("keeps one pending row per memory and kind and folds it once", async () => {
     const t = convexTest(schema, modules);
     await t.mutation(internal.memoryStore.functions.createMemoryInternal, {
-      ...base,
+      ...seedBase,
       memoryId: "m1",
     });
     for (let i = 0; i < 3; i += 1) {
@@ -131,7 +133,7 @@ describe("memory usefulness", () => {
   it("writes the score to the memory only for a real, non-recent change", async () => {
     const t = convexTest(schema, modules);
     await t.mutation(internal.memoryStore.functions.createMemoryInternal, {
-      ...base,
+      ...seedBase,
       memoryId: "m1",
     });
     const flushOne = async () => {
@@ -176,7 +178,7 @@ describe("memory usefulness", () => {
   it("deletes usage and pending rows with the memory", async () => {
     const t = convexTest(schema, modules);
     await t.mutation(internal.memoryStore.functions.createMemoryInternal, {
-      ...base,
+      ...seedBase,
       memoryId: "m1",
     });
     await t.mutation(internal.memoryUsefulness.enqueueAccess, {
@@ -266,7 +268,7 @@ describe("memory usefulness", () => {
   it("applies Jev quality only when the content hash still matches", async () => {
     const t = convexTest(schema, modules);
     await t.mutation(internal.memoryStore.functions.createMemoryInternal, {
-      ...base,
+      ...seedBase,
       memoryId: "m1",
       contentHash: "h1",
     });
@@ -309,7 +311,7 @@ describe("Jev queue", () => {
     ] as const) {
       const created = await t.mutation(
         internal.memoryStore.functions.createMemoryInternal,
-        { ...base, memoryId, source },
+        { ...seedBase, memoryId, source },
       );
       expect(created.usefulness?.score).toBeGreaterThan(0);
     }
@@ -338,7 +340,7 @@ describe("Jev queue", () => {
   it("lists high-prior sources before medium before backfill", async () => {
     const t = convexTest(schema, modules);
     await t.mutation(internal.memoryStore.functions.createMemoryInternal, {
-      ...base,
+      ...seedBase,
       memoryId: "medium",
       source: "notion",
     });
@@ -361,7 +363,7 @@ describe("Jev queue", () => {
       {},
     );
     await t.mutation(internal.memoryStore.functions.createMemoryInternal, {
-      ...base,
+      ...seedBase,
       memoryId: "high",
     });
     const ids = (
@@ -373,7 +375,7 @@ describe("Jev queue", () => {
   it("backs off failures and gives up after three", async () => {
     const t = convexTest(schema, modules);
     await t.mutation(internal.memoryStore.functions.createMemoryInternal, {
-      ...base,
+      ...seedBase,
       memoryId: "m1",
       contentHash: "h1",
     });
@@ -401,7 +403,7 @@ describe("Jev queue", () => {
     const t = convexTest(schema, modules);
     for (const memoryId of ["m1", "m2", "m3"]) {
       await t.mutation(internal.memoryStore.functions.createMemoryInternal, {
-        ...base,
+        ...seedBase,
         memoryId,
       });
     }
@@ -422,7 +424,7 @@ describe("Jev queue", () => {
     const t = convexTest(schema, modules);
     for (const memoryId of ["m1", "m2"]) {
       await t.mutation(internal.memoryStore.functions.createMemoryInternal, {
-        ...base,
+        ...seedBase,
         memoryId,
       });
     }
@@ -441,7 +443,7 @@ describe("Jev queue", () => {
   it("does not call TypeSafe or schedule work without a key", async () => {
     const t = convexTest(schema, modules);
     await t.mutation(internal.memoryStore.functions.createMemoryInternal, {
-      ...base,
+      ...seedBase,
       memoryId: "m1",
     });
     vi.stubEnv("TYPESAFE_API_KEY", "");

@@ -28,6 +28,8 @@ async function seedMemory(
     source: "api",
     tags: [],
     confidence: 0.9,
+    // dream fixtures seed exact duplicates on purpose
+    skipHashDedupe: true,
   });
 }
 

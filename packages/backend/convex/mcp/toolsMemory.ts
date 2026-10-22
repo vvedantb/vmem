@@ -361,7 +361,7 @@ export const memoryToolSpecs = {
     name: "memory_add",
     schema: memoryAddSchema,
     description:
-      "Store a new memory. Use type 'profile' for stable user facts, 'episodic' for past events/interactions, 'knowledge' for durable extracted knowledge. Adds to the active profile unless profileId is specified.",
+      "Store a new memory. Use type 'profile' for stable user facts, 'episodic' for past events/interactions, 'knowledge' for durable extracted knowledge. An exact repeat (same title and content) of a visible memory in the profile is not stored again: the existing memory comes back with deduped: true, its visit count bumped and tags merged. Adds to the active profile unless profileId is specified.",
     errorLabel: "Add memory failed",
     async run(h, params): Promise<unknown> {
       return withMcpMemoryScope(
@@ -375,20 +375,29 @@ export const memoryToolSpecs = {
     name: "memory_add_batch",
     schema: memoryAddBatchSchema,
     description:
-      "Store up to 50 memories in one call (bulk import, e.g. a ChatGPT or Claude export). Each item takes the same fields as memory_add. Items are stored one by one in order; returns created ids and per-item errors, so a failed item does not undo the others. Adds to the active profile unless profileId is specified.",
+      "Store up to 50 memories in one call (bulk import, e.g. a ChatGPT or Claude export). Each item takes the same fields as memory_add. Items are stored one by one in order; returns created ids (deduped: true when an item repeated an existing memory) and per-item errors, so a failed item does not undo the others. Adds to the active profile unless profileId is specified.",
     errorLabel: "Add memory batch failed",
     async run(h, params): Promise<unknown> {
       return withMcpMemoryScope(
         h.ctx,
         { ...scopedMemory(h), profileId: params.profileId },
         async (scope) => {
-          const created: Array<{ index: number; id: string; title: string }> =
-            [];
+          const created: Array<{
+            index: number;
+            id: string;
+            title: string;
+            deduped?: boolean;
+          }> = [];
           const failed: Array<{ index: number; error: string }> = [];
           for (const [index, item] of params.items.entries()) {
             try {
               const memory = await addMemoryInScope(h.ctx, scope, item);
-              created.push({ index, id: memory.id, title: memory.title });
+              created.push({
+                index,
+                id: memory.id,
+                title: memory.title,
+                ...(memory.deduped === true ? { deduped: true } : {}),
+              });
             } catch (err) {
               failed.push({
                 index,
