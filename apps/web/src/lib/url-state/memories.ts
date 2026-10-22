@@ -7,6 +7,7 @@ import {
 import { MEMORY_TYPES } from "@/lib/memories";
 import { LIST_ITEM_KINDS } from "@/lib/list-items";
 import { TIMELINE_SPANS } from "@/lib/memory-timeline-view";
+import { ROLLUP_PERIODS } from "@vmem/shared";
 import {
   createSanitizedArrayParser,
   parseAsSanitizedOptionalString,
@@ -27,6 +28,13 @@ const memoriesSearchParams = {
   span: parseAsStringLiteral(TIMELINE_SPANS).withDefault("week"),
   // "usefulness" sorts the loaded list rows (best effort: loaded pages only)
   sort: parseAsStringLiteral(MEMORY_LIST_SORTS).withDefault("recent"),
+};
+
+// timeline summary card: the rollup period and a UTC day key inside it
+// (absent: the last finished period)
+export const timelineSummarySearchParams = {
+  period: parseAsStringLiteral(ROLLUP_PERIODS).withDefault("day"),
+  on: parseAsSanitizedOptionalString,
 };
 
 export type MemoriesSearchParams = inferParserType<typeof memoriesSearchParams>;

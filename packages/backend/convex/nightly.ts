@@ -3,10 +3,7 @@ import { internal } from "./_generated/api";
 import { internalAction, internalMutation } from "./_generated/server";
 import { nightlyPool } from "./workpools";
 import { runRollupDay, runRollupPeriod } from "./rollupActions";
-import {
-  periodsClosingAfter,
-  yesterdayDayKey,
-} from "../engine/memory/rollupPeriod";
+import { periodsClosingAfter, yesterdayDayKey } from "@vmem/shared";
 
 // shared 02:30 utc run (crons.ts): kick pages users, runUser does each one
 const USER_PAGE = 50;

@@ -273,6 +273,27 @@ export function PreferencesPage() {
       </SettingsSection>
 
       <SettingsSection
+        title="Timeline"
+        description="Summaries of what changed in your memory, shown on the memories timeline."
+        bodyVariant="list"
+      >
+        <SettingsToggleRow
+          htmlFor="rollups-enabled"
+          title="Daily summaries (rollups)"
+          description="Each night, write a short summary of the day's memory activity per workspace, then roll days up into weeks and months. Quiet days are skipped."
+          action={
+            <Switch
+              id="rollups-enabled"
+              checked={settings.rollupsEnabled}
+              onCheckedChange={(checked) => {
+                void saveSettings({ rollupsEnabled: checked });
+              }}
+            />
+          }
+        />
+      </SettingsSection>
+
+      <SettingsSection
         title="Notification preferences"
         description="Choose which events should ping you."
         bodyVariant="list"

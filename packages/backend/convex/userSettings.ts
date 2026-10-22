@@ -354,8 +354,8 @@ export const getRollupsEnabledInternal = internalQuery({
   },
 });
 
-// rollups opt-in for one user, by clerk id or user id (CLI only until the
-// timeline UI toggle lands):
+// rollups opt-in for one user, by clerk id or user id (users set it with
+// userSettings.update from Settings › Preferences):
 //   npx convex run userSettings:setRollupsEnabledInternal '{"clerkId":"user_…","enabled":true}'
 export const setRollupsEnabledInternal = internalMutation({
   args: {

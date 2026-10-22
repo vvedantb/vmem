@@ -376,7 +376,7 @@ export const userSettingsFields = {
   dreamModeAutomatic: v.optional(v.boolean()),
   lastDreamRunAt: v.optional(v.number()),
   experimentalFlags: v.optional(experimentalFlagsValidator),
-  // nightly rollups opt-in, set internally for now
+  // nightly rollups opt-in (Settings › Preferences)
   rollupsEnabled: v.optional(v.boolean()),
 };
 
@@ -387,7 +387,6 @@ export const userSettingsPatchFields = omit(userSettingsFields, [
   "dreamModeScheduleTime",
   "lastDreamRunAt",
   "experimentalFlags",
-  "rollupsEnabled",
 ]);
 
 export const oauthStateFields = {
