@@ -32,6 +32,7 @@ describe("railSectionFromPathname", () => {
     expect(railSectionFromPathname("/p1/skills/hub")).toBe("skills");
     expect(railSectionFromPathname("/p1/files")).toBe("files");
     expect(railSectionFromPathname("/p1/usage")).toBe("usage");
+    expect(railSectionFromPathname("/p1/traces")).toBe("traces");
     expect(railSectionFromPathname("/p1/team/settings")).toBe("team");
     expect(railSectionFromPathname("/settings/preferences")).toBe("settings");
   });
@@ -54,6 +55,7 @@ describe("railSectionFromPathname", () => {
     expect(navViewFromPathname("/p1/memories/graph")).toBe("memories");
     expect(navViewFromPathname("/p1/home")).toBe("main");
     expect(navViewFromPathname("/p1/usage")).toBe("main");
+    expect(navViewFromPathname("/p1/traces")).toBe("main");
   });
 
   it("opens no stacked sidebar panel for inbox or sources", () => {
@@ -81,6 +83,7 @@ describe("rail destinations cover the previous sidebar nav", () => {
         "/$profileId/skills",
         "/$profileId/files",
         "/$profileId/usage",
+        "/$profileId/traces",
         "/$profileId/sources",
         "/$profileId/team/members",
         "/settings",
@@ -91,6 +94,7 @@ describe("rail destinations cover the previous sidebar nav", () => {
       "Skills",
       "Files",
       "Usage",
+      "Traces",
       "Sources",
     ]);
     expect(hrefs).not.toContain("/$profileId/activity");
@@ -178,8 +182,14 @@ describe("shell uses a rail + panel + drawer", () => {
     expect(rail).toContain("!isPanelHidden");
   });
 
-  it("drops the sidebar panel column on home, usage, inbox and sources", () => {
-    for (const section of ["home", "usage", "inbox", "sources"] as const) {
+  it("drops the sidebar panel column on home, usage, traces, inbox and sources", () => {
+    for (const section of [
+      "home",
+      "usage",
+      "traces",
+      "inbox",
+      "sources",
+    ] as const) {
       expect(railSectionHidesPanel(section)).toBe(true);
       expect(Object.keys(panelTitleBySection)).not.toContain(section);
     }
@@ -323,5 +333,26 @@ describe("usage lives on the rail at /usage", () => {
     expect(() => read(`${routes}/activity/events.tsx`)).toThrow();
     expect(() => read("../activity/EventsPanel.tsx")).toThrow();
     expect(read("../../routeTree.gen.ts")).not.toContain("activity/events");
+  });
+});
+
+describe("traces lives on the rail at /traces", () => {
+  it("serves the trace list inside the shared page container", () => {
+    const traces = read("../../routes/_main/$profileId/traces.tsx");
+    expect(traces).toContain('createFileRoute("/_main/$profileId/traces")');
+    expect(traces).toContain("PageContainer");
+    expect(traces).toContain("TracesPanel");
+  });
+
+  it("pages the list and loads the detail only from the open dialog", () => {
+    const panel = read("../traces/TracesPanel.tsx");
+    expect(panel).toContain("api.mcpTraces.listMine");
+    expect(panel).toContain("initialNumItems: PAGE_SIZE");
+    expect(panel).toContain("Load more");
+    expect(panel).toContain("last 7 days");
+    const dialog = read("../traces/TraceDetailDialog.tsx");
+    // the detail query lives in the body, which mounts only for a selected row
+    expect(dialog).toContain("{row && <TraceDetailBody");
+    expect(dialog).toContain("api.mcpTraces.getDetail");
   });
 });

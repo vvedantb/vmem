@@ -24,7 +24,7 @@ import {
 import { LogsSummary } from "./LogsSummary";
 import { LogsFiltersDropdown } from "./LogsFiltersDropdown";
 import { LogsTable } from "./LogsTable";
-import { computeAiLogsTrends } from "./_aiLogsUtils";
+import { computeAiLogsTrends, normalizeProfileId } from "./_aiLogsUtils";
 import { AiLogsLoadingSkeleton } from "./AiLogsLoadingSkeleton";
 import type { ProfileListItem, TeamListItem } from "./types";
 
@@ -235,7 +235,7 @@ function SortDropdown({
   );
 }
 
-// helpers match a string to a typed Id by checking against the user's
+// match a string to a typed team id by checking against the user's
 // known set, so we never push a malformed id to the backend
 function normalizeTeamId(
   raw: string,
@@ -244,13 +244,4 @@ function normalizeTeamId(
   if (!teams) return undefined;
   const match = teams.find((t) => t.team._id === raw);
   return match?.team._id;
-}
-
-function normalizeProfileId(
-  raw: string,
-  profiles: ProfileListItem[] | undefined,
-): Id<"profiles"> | undefined {
-  if (!profiles) return undefined;
-  const match = profiles.find((p) => p._id === raw);
-  return match?._id;
 }

@@ -24,6 +24,7 @@ import { Route as MainSettingsExtensionRouteImport } from './routes/_main/settin
 import { Route as MainSettingsExperimentalRouteImport } from './routes/_main/settings/experimental'
 import { Route as MainSettingsConnectorsRouteImport } from './routes/_main/settings/connectors'
 import { Route as MainProfileIdUsageRouteImport } from './routes/_main/$profileId/usage'
+import { Route as MainProfileIdTracesRouteImport } from './routes/_main/$profileId/traces'
 import { Route as MainProfileIdProposalsRouteImport } from './routes/_main/$profileId/proposals'
 import { Route as MainProfileIdNotificationsRouteImport } from './routes/_main/$profileId/notifications'
 import { Route as MainProfileIdHomeRouteImport } from './routes/_main/$profileId/home'
@@ -141,6 +142,11 @@ const MainSettingsConnectorsRoute = MainSettingsConnectorsRouteImport.update({
 const MainProfileIdUsageRoute = MainProfileIdUsageRouteImport.update({
   id: '/usage',
   path: '/usage',
+  getParentRoute: () => MainProfileIdRouteRoute,
+} as any)
+const MainProfileIdTracesRoute = MainProfileIdTracesRouteImport.update({
+  id: '/traces',
+  path: '/traces',
   getParentRoute: () => MainProfileIdRouteRoute,
 } as any)
 const MainProfileIdProposalsRoute = MainProfileIdProposalsRouteImport.update({
@@ -404,6 +410,7 @@ export interface FileRoutesByFullPath {
   '/$profileId/home': typeof MainProfileIdHomeRoute
   '/$profileId/notifications': typeof MainProfileIdNotificationsRoute
   '/$profileId/proposals': typeof MainProfileIdProposalsRoute
+  '/$profileId/traces': typeof MainProfileIdTracesRoute
   '/$profileId/usage': typeof MainProfileIdUsageRoute
   '/settings/connectors': typeof MainSettingsConnectorsRoute
   '/settings/experimental': typeof MainSettingsExperimentalRoute
@@ -454,6 +461,7 @@ export interface FileRoutesByTo {
   '/$profileId/home': typeof MainProfileIdHomeRoute
   '/$profileId/notifications': typeof MainProfileIdNotificationsRoute
   '/$profileId/proposals': typeof MainProfileIdProposalsRoute
+  '/$profileId/traces': typeof MainProfileIdTracesRoute
   '/$profileId/usage': typeof MainProfileIdUsageRoute
   '/settings/connectors': typeof MainSettingsConnectorsRoute
   '/settings/experimental': typeof MainSettingsExperimentalRoute
@@ -514,6 +522,7 @@ export interface FileRoutesById {
   '/_main/$profileId/home': typeof MainProfileIdHomeRoute
   '/_main/$profileId/notifications': typeof MainProfileIdNotificationsRoute
   '/_main/$profileId/proposals': typeof MainProfileIdProposalsRoute
+  '/_main/$profileId/traces': typeof MainProfileIdTracesRoute
   '/_main/$profileId/usage': typeof MainProfileIdUsageRoute
   '/_main/settings/connectors': typeof MainSettingsConnectorsRoute
   '/_main/settings/experimental': typeof MainSettingsExperimentalRoute
@@ -575,6 +584,7 @@ export interface FileRouteTypes {
     | '/$profileId/home'
     | '/$profileId/notifications'
     | '/$profileId/proposals'
+    | '/$profileId/traces'
     | '/$profileId/usage'
     | '/settings/connectors'
     | '/settings/experimental'
@@ -625,6 +635,7 @@ export interface FileRouteTypes {
     | '/$profileId/home'
     | '/$profileId/notifications'
     | '/$profileId/proposals'
+    | '/$profileId/traces'
     | '/$profileId/usage'
     | '/settings/connectors'
     | '/settings/experimental'
@@ -684,6 +695,7 @@ export interface FileRouteTypes {
     | '/_main/$profileId/home'
     | '/_main/$profileId/notifications'
     | '/_main/$profileId/proposals'
+    | '/_main/$profileId/traces'
     | '/_main/$profileId/usage'
     | '/_main/settings/connectors'
     | '/_main/settings/experimental'
@@ -838,6 +850,13 @@ declare module '@tanstack/react-router' {
       path: '/usage'
       fullPath: '/$profileId/usage'
       preLoaderRoute: typeof MainProfileIdUsageRouteImport
+      parentRoute: typeof MainProfileIdRouteRoute
+    }
+    '/_main/$profileId/traces': {
+      id: '/_main/$profileId/traces'
+      path: '/traces'
+      fullPath: '/$profileId/traces'
+      preLoaderRoute: typeof MainProfileIdTracesRouteImport
       parentRoute: typeof MainProfileIdRouteRoute
     }
     '/_main/$profileId/proposals': {
@@ -1285,6 +1304,7 @@ interface MainProfileIdRouteRouteChildren {
   MainProfileIdHomeRoute: typeof MainProfileIdHomeRoute
   MainProfileIdNotificationsRoute: typeof MainProfileIdNotificationsRoute
   MainProfileIdProposalsRoute: typeof MainProfileIdProposalsRoute
+  MainProfileIdTracesRoute: typeof MainProfileIdTracesRoute
   MainProfileIdUsageRoute: typeof MainProfileIdUsageRoute
   MainProfileIdIndexRoute: typeof MainProfileIdIndexRoute
   MainProfileIdActivityUsageRoute: typeof MainProfileIdActivityUsageRoute
@@ -1302,6 +1322,7 @@ const MainProfileIdRouteRouteChildren: MainProfileIdRouteRouteChildren = {
   MainProfileIdHomeRoute: MainProfileIdHomeRoute,
   MainProfileIdNotificationsRoute: MainProfileIdNotificationsRoute,
   MainProfileIdProposalsRoute: MainProfileIdProposalsRoute,
+  MainProfileIdTracesRoute: MainProfileIdTracesRoute,
   MainProfileIdUsageRoute: MainProfileIdUsageRoute,
   MainProfileIdIndexRoute: MainProfileIdIndexRoute,
   MainProfileIdActivityUsageRoute: MainProfileIdActivityUsageRoute,
