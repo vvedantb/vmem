@@ -2,7 +2,8 @@ import { v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { getUserByClerkId } from "../auth";
-import { getMembershipOrNull } from "../teams/auth";
+import { getUserIdByClerkId } from "../lib/clerkUser";
+import { getMembershipOrNull, requireContentScopeAccess } from "../teams/auth";
 
 export const mcpScopeValidator = v.union(
   v.literal("personal"),
@@ -10,6 +11,12 @@ export const mcpScopeValidator = v.union(
 );
 
 export type McpScope = "personal" | "team";
+
+// args of *ByClerkIdInternal functions that act on scoped content
+export const mcpContentScopeArgs = {
+  clerkId: v.string(),
+  scope: mcpScopeValidator,
+};
 
 export async function listPersonalProfiles(
   ctx: QueryCtx,
@@ -139,6 +146,19 @@ export async function resolveMcpTeamId(
     throw new Error("No team profiles available. Join or create a team first.");
   }
   return profile.teamId;
+}
+
+// scoped content (files, artifacts) for an mcp connector: the caller's
+// personal rows, or on the team connector the active team profile's team
+// (never a teamId param)
+export async function resolveMcpContentScope(
+  ctx: QueryCtx,
+  args: { clerkId: string; scope: McpScope },
+): Promise<{ userId: Id<"users">; teamId: Id<"teams"> | undefined }> {
+  const userId = await getUserIdByClerkId(ctx, args.clerkId);
+  const teamId = await resolveMcpTeamId(ctx, args.clerkId, args.scope);
+  await requireContentScopeAccess(ctx, userId, teamId);
+  return { userId, teamId };
 }
 
 async function requireAccessibleProfile(

@@ -162,6 +162,73 @@ describe("result ids", () => {
     expect(trace.resultCount).toBe(2);
   });
 
+  it("formats artifact tools without bodies", () => {
+    const list = buildToolTrace(
+      "artifacts_list",
+      { type: "quiz" },
+      {
+        ok: true,
+        data: {
+          artifacts: [
+            { id: "a1", title: "Quiz 1" },
+            { id: "a2", title: "Quiz 2" },
+          ],
+          nextCursor: null,
+        },
+      },
+    );
+    expect(list.summary).toBe("artifacts_list → 2 artifacts");
+    expect(list.resultIds).toEqual(["a1", "a2"]);
+
+    const search = buildToolTrace(
+      "artifacts_search",
+      { query: "convex" },
+      { ok: true, data: [{ id: "a1", title: "Convex notes" }] },
+    );
+    expect(search.summary).toBe('artifacts_search "convex" → 1 result');
+
+    const get = buildToolTrace(
+      "artifacts_get",
+      { id: "a1", maxChars: 10 },
+      {
+        ok: true,
+        data: {
+          id: "a1",
+          title: "Report",
+          version: 3,
+          bodyChars: 1200,
+          truncated: true,
+          body: "<h1>secret report</h1>",
+        },
+      },
+    );
+    expect(get.summary).toBe('artifacts_get "Report" → v3, 1200 chars');
+    expect(get.resultPreview).not.toContain("secret report");
+    expect(
+      buildToolTrace("artifacts_get", { id: "a9" }, { ok: true, data: null })
+        .summary,
+    ).toBe('artifacts_get "a9" → not found');
+
+    const save = buildToolTrace(
+      "artifacts_save",
+      { title: "Plan", type: "document", format: "html", body: "<p>hi</p>" },
+      { ok: true, data: { id: "a3", created: true } },
+    );
+    expect(save.summary).toBe('artifacts_save "Plan" → saved');
+    expect(save.args).toBe(
+      '{"title":"Plan","type":"document","format":"html"}',
+    );
+    expect(save.resultIds).toEqual(["a3"]);
+
+    expect(
+      buildToolTrace(
+        "artifacts_update",
+        { id: "a3", body: "<p>new</p>" },
+        { ok: true, data: { id: "a3", version: 2, versioned: true } },
+      ).summary,
+    ).toBe('artifacts_update "a3" → v2');
+  });
+
   it("tolerates results with unexpected shapes", () => {
     const trace = buildToolTrace(
       "settings_get",
@@ -174,10 +241,11 @@ describe("result ids", () => {
 });
 
 describe("sanitizeTraceJson", () => {
-  it("drops secret-looking keys and inline file bodies", () => {
+  it("drops secret-looking keys and inline file and artifact bodies", () => {
     const json = sanitizeTraceJson(
       {
         path: "a.png",
+        body: "<html>artifact</html>",
         contentBase64: "iVBORw0KGgo",
         apiKey: "k",
         api_key: "k",

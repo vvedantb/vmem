@@ -11,6 +11,7 @@
 import type * as apiKeys from "../apiKeys.js";
 import type * as artifacts_api from "../artifacts/api.js";
 import type * as artifacts_internal from "../artifacts/internal.js";
+import type * as artifacts_mcp from "../artifacts/mcp.js";
 import type * as artifacts_store from "../artifacts/store.js";
 import type * as auditLog from "../auditLog.js";
 import type * as auth from "../auth.js";
@@ -89,6 +90,7 @@ import type * as mcp_serverInfo from "../mcp/serverInfo.js";
 import type * as mcp_toolCatalog from "../mcp/toolCatalog.js";
 import type * as mcp_toolTypes from "../mcp/toolTypes.js";
 import type * as mcp_tools from "../mcp/tools.js";
+import type * as mcp_toolsArtifacts from "../mcp/toolsArtifacts.js";
 import type * as mcp_toolsConnectors from "../mcp/toolsConnectors.js";
 import type * as mcp_toolsContext from "../mcp/toolsContext.js";
 import type * as mcp_toolsCore from "../mcp/toolsCore.js";
@@ -167,6 +169,7 @@ declare const fullApi: ApiFromModules<{
   apiKeys: typeof apiKeys;
   "artifacts/api": typeof artifacts_api;
   "artifacts/internal": typeof artifacts_internal;
+  "artifacts/mcp": typeof artifacts_mcp;
   "artifacts/store": typeof artifacts_store;
   auditLog: typeof auditLog;
   auth: typeof auth;
@@ -245,6 +248,7 @@ declare const fullApi: ApiFromModules<{
   "mcp/toolCatalog": typeof mcp_toolCatalog;
   "mcp/toolTypes": typeof mcp_toolTypes;
   "mcp/tools": typeof mcp_tools;
+  "mcp/toolsArtifacts": typeof mcp_toolsArtifacts;
   "mcp/toolsConnectors": typeof mcp_toolsConnectors;
   "mcp/toolsContext": typeof mcp_toolsContext;
   "mcp/toolsCore": typeof mcp_toolsCore;

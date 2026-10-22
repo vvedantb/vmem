@@ -24,16 +24,20 @@ import { z } from "zod";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { userFacingError } from "../lib/userFacingError";
-import { isContentReadable } from "../teams/auth";
+import {
+  assertContentDeletable,
+  assertContentEditable,
+  isContentReadable,
+} from "../teams/auth";
 
-// artifact store helpers, shared by artifacts/api.ts (and later the mcp tools
-// and the vibot import). Bodies are immutable rows; versions point at them.
+// artifact store helpers, shared by artifacts/api.ts, artifacts/mcp.ts (the
+// mcp tools) and later the vibot import. Bodies are immutable rows; versions point at them.
 
 export const artifactSchemas = createArtifactSchemas(z);
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 export const ARTIFACT_TRASH_MS = 30 * DAY_MS;
-export const ARTIFACT_LIST_PAGE_MAX = 50;
+export const ARTIFACT_LIST_PAGE_MAX = 100;
 export const ARTIFACT_SEARCH_TAKE = 20;
 export const ARTIFACT_REFS_MAX = 100;
 // vmem has no plans yet, so every user gets the free daily cap
@@ -50,6 +54,14 @@ const PURGE_CHILD_BATCH = 100;
 const PURGE_BODY_BATCH = ARTIFACT_VERSION_KEEP + 2;
 
 export type ArtifactRefKind = Doc<"artifactRefs">["kind"];
+// mirrors artifactRefKindValidator (validators.ts may not import this module)
+export const ARTIFACT_REF_KINDS = [
+  "memory",
+  "file",
+  "source",
+  "skill",
+  "app",
+] as const satisfies readonly ArtifactRefKind[];
 
 export interface ArtifactDetail extends ArtifactListRow {
   body: string;
@@ -220,6 +232,48 @@ export async function readArtifact(
   if (!artifactId) return null;
   const doc = await ctx.db.get(artifactId);
   if (!doc || !(await isContentReadable(ctx, doc, userId))) return null;
+  return doc;
+}
+
+// mcp connectors see one scope: the team's rows on /mcp/team, the caller's
+// personal rows on /mcp
+export interface ArtifactScope {
+  teamId: Id<"teams"> | undefined;
+}
+
+// readable (and in `scope` when given), else "Artifact not found"
+export async function requireReadableArtifact(
+  ctx: QueryCtx | MutationCtx,
+  userId: Id<"users">,
+  id: string,
+  scope?: ArtifactScope,
+): Promise<Doc<"artifacts">> {
+  const doc = await readArtifact(ctx, userId, id);
+  if (!doc || (scope && !inScope(doc, userId, scope.teamId))) {
+    userFacingError("Artifact not found");
+  }
+  return doc;
+}
+
+export async function requireEditableArtifact(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  id: string,
+  scope?: ArtifactScope,
+): Promise<Doc<"artifacts">> {
+  const doc = await requireReadableArtifact(ctx, userId, id, scope);
+  await assertContentEditable(ctx, doc, userId);
+  return doc;
+}
+
+export async function requireDeletableArtifact(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  id: string,
+  scope?: ArtifactScope,
+): Promise<Doc<"artifacts">> {
+  const doc = await requireReadableArtifact(ctx, userId, id, scope);
+  await assertContentDeletable(ctx, doc, userId);
   return doc;
 }
 

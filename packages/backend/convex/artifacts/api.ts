@@ -1,14 +1,9 @@
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import type { Doc } from "../_generated/dataModel";
-import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { authMutation, authQuery } from "../auth";
 import { userFacingError } from "../lib/userFacingError";
-import {
-  assertContentDeletable,
-  assertContentEditable,
-  requireContentScopeAccess,
-} from "../teams/auth";
+import { requireContentScopeAccess } from "../teams/auth";
 import {
   artifactOriginValidator,
   artifactRefKindValidator,
@@ -26,6 +21,9 @@ import {
   listArtifacts,
   listVersions,
   readArtifact,
+  requireDeletableArtifact,
+  requireEditableArtifact,
+  requireReadableArtifact,
   restoreFromTrash,
   restoreVersion as restoreArtifactVersion,
   searchArtifacts,
@@ -39,26 +37,6 @@ import {
 // have no teamId; team rows are shared with members (like files and skills).
 
 const WEB_CLIENT = "web";
-
-async function requireReadable(
-  ctx: QueryCtx | MutationCtx,
-  userId: Doc<"users">["_id"],
-  id: string,
-): Promise<Doc<"artifacts">> {
-  const doc = await readArtifact(ctx, userId, id);
-  if (!doc) userFacingError("Artifact not found");
-  return doc;
-}
-
-async function requireEditable(
-  ctx: MutationCtx,
-  userId: Doc<"users">["_id"],
-  id: string,
-): Promise<Doc<"artifacts">> {
-  const doc = await requireReadable(ctx, userId, id);
-  await assertContentEditable(ctx, doc, userId);
-  return doc;
-}
 
 const refValidator = v.object({
   kind: artifactRefKindValidator,
@@ -149,7 +127,7 @@ export const update = authMutation({
     client: v.optional(v.string()),
   },
   handler: async (ctx, { id, client, ...input }) => {
-    const doc = await requireEditable(ctx, ctx.userId, id);
+    const doc = await requireEditableArtifact(ctx, ctx.userId, id);
     return await updateArtifact(ctx, doc, ctx.userId, {
       ...input,
       client: client ?? WEB_CLIENT,
@@ -161,8 +139,7 @@ export const update = authMutation({
 export const remove = authMutation({
   args: { id: v.string() },
   handler: async (ctx, args) => {
-    const doc = await requireReadable(ctx, ctx.userId, args.id);
-    await assertContentDeletable(ctx, doc, ctx.userId);
+    const doc = await requireDeletableArtifact(ctx, ctx.userId, args.id);
     await softDelete(ctx, doc);
   },
 });
@@ -171,8 +148,7 @@ export const remove = authMutation({
 export const restore = authMutation({
   args: { id: v.string() },
   handler: async (ctx, args) => {
-    const doc = await requireReadable(ctx, ctx.userId, args.id);
-    await assertContentDeletable(ctx, doc, ctx.userId);
+    const doc = await requireDeletableArtifact(ctx, ctx.userId, args.id);
     await restoreFromTrash(ctx, doc);
   },
 });
@@ -180,7 +156,7 @@ export const restore = authMutation({
 export const history = authQuery({
   args: { id: v.string() },
   handler: async (ctx, args) => {
-    const doc = await requireReadable(ctx, ctx.userId, args.id);
+    const doc = await requireReadableArtifact(ctx, ctx.userId, args.id);
     return await listVersions(ctx, doc._id);
   },
 });
@@ -188,7 +164,7 @@ export const history = authQuery({
 export const getVersion = authQuery({
   args: { id: v.string(), version: v.number() },
   handler: async (ctx, args) => {
-    const doc = await requireReadable(ctx, ctx.userId, args.id);
+    const doc = await requireReadableArtifact(ctx, ctx.userId, args.id);
     return await getDetail(ctx, doc, args.version);
   },
 });
@@ -196,7 +172,7 @@ export const getVersion = authQuery({
 export const restoreVersion = authMutation({
   args: { id: v.string(), version: v.number(), client: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    const doc = await requireEditable(ctx, ctx.userId, args.id);
+    const doc = await requireEditableArtifact(ctx, ctx.userId, args.id);
     return await restoreArtifactVersion(
       ctx,
       doc,
@@ -211,7 +187,7 @@ export const restoreVersion = authMutation({
 export const getState = authQuery({
   args: { id: v.string() },
   handler: async (ctx, args) => {
-    const doc = await requireReadable(ctx, ctx.userId, args.id);
+    const doc = await requireReadableArtifact(ctx, ctx.userId, args.id);
     return await readState(ctx, doc, ctx.userId);
   },
 });
@@ -224,7 +200,7 @@ export const putState = authMutation({
     reset: v.optional(v.boolean()),
   },
   handler: async (ctx, { id, ...patch }) => {
-    const doc = await requireReadable(ctx, ctx.userId, id);
+    const doc = await requireReadableArtifact(ctx, ctx.userId, id);
     return await writeState(ctx, doc, ctx.userId, patch);
   },
 });
@@ -232,7 +208,7 @@ export const putState = authMutation({
 export const resetState = authMutation({
   args: { id: v.string() },
   handler: async (ctx, args) => {
-    const doc = await requireReadable(ctx, ctx.userId, args.id);
+    const doc = await requireReadableArtifact(ctx, ctx.userId, args.id);
     return await writeState(ctx, doc, ctx.userId, { reset: true });
   },
 });
@@ -240,7 +216,7 @@ export const resetState = authMutation({
 export const refs = authQuery({
   args: { id: v.string() },
   handler: async (ctx, args) => {
-    const doc = await requireReadable(ctx, ctx.userId, args.id);
+    const doc = await requireReadableArtifact(ctx, ctx.userId, args.id);
     return await listArtifactRefs(ctx, doc._id);
   },
 });
@@ -248,7 +224,7 @@ export const refs = authQuery({
 export const link = authMutation({
   args: { id: v.string(), ...refValidator.fields },
   handler: async (ctx, args) => {
-    const doc = await requireEditable(ctx, ctx.userId, args.id);
+    const doc = await requireEditableArtifact(ctx, ctx.userId, args.id);
     return await linkRef(ctx, doc, ctx.userId, args.kind, args.target);
   },
 });
@@ -256,7 +232,7 @@ export const link = authMutation({
 export const unlink = authMutation({
   args: { id: v.string(), ...refValidator.fields },
   handler: async (ctx, args) => {
-    const doc = await requireEditable(ctx, ctx.userId, args.id);
+    const doc = await requireEditableArtifact(ctx, ctx.userId, args.id);
     return await unlinkRef(ctx, doc, args.kind, args.target);
   },
 });

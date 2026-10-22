@@ -87,6 +87,32 @@ export const FILES_TOOL_NAMES = [
   "files_move",
 ] as const;
 
+export const ARTIFACTS_TOOL_NAMES = [
+  "artifacts_list",
+  "artifacts_get",
+  "artifacts_search",
+  "artifacts_save",
+  "artifacts_update",
+  "artifacts_delete",
+  "artifacts_restore",
+  "artifacts_history",
+  "artifacts_version_get",
+  "artifacts_restore_version",
+  "artifacts_state_get",
+  "artifacts_state_set",
+  "artifacts_state_reset",
+  "artifacts_link",
+] as const;
+
+export const READ_ONLY_ARTIFACTS_TOOL_NAMES = [
+  "artifacts_list",
+  "artifacts_get",
+  "artifacts_search",
+  "artifacts_history",
+  "artifacts_version_get",
+  "artifacts_state_get",
+] as const;
+
 export const PROFILES_TOOL_NAMES = [
   "profiles_create",
   "profiles_update",
