@@ -13,6 +13,7 @@ import {
   IconMoon,
 } from "@tabler/icons-react";
 import {
+  BoardIcon,
   BoltIcon,
   BuildingIcon,
   FilesIcon,
@@ -27,6 +28,7 @@ export type RailSection =
   | "memories"
   | "skills"
   | "files"
+  | "artifacts"
   | "usage"
   | "traces"
   | "dreaming"
@@ -41,6 +43,7 @@ export const railLibraryItems: NavItem[] = [
   { href: "/$profileId/memories", label: "Memories", icon: MemoryIcon },
   { href: "/$profileId/skills", label: "Skills", icon: BoltIcon },
   { href: "/$profileId/files", label: "Files", icon: FilesIcon },
+  { href: "/$profileId/artifacts", label: "Artifacts", icon: BoardIcon },
   { href: "/$profileId/usage", label: "Usage", icon: IconReceipt2 },
   { href: "/$profileId/traces", label: "Traces", icon: IconTimelineEvent },
   { href: "/$profileId/dreaming", label: "Dreaming", icon: IconMoon },
@@ -96,10 +99,11 @@ export const navGroups: NavGroup[] = [
   },
 ];
 
-// Home, Usage, Traces, Dreaming, Inbox and Sources have no sidebar panel: the
-// main page sits beside the rail and any nested views are page tabs.
+// Home, Artifacts, Usage, Traces, Dreaming, Inbox and Sources have no sidebar
+// panel: the main page sits beside the rail and any nested views are page tabs.
 type PanelHiddenSection =
   | "home"
+  | "artifacts"
   | "usage"
   | "traces"
   | "dreaming"
@@ -112,6 +116,7 @@ export function railSectionHidesPanel(
 ): section is PanelHiddenSection {
   return (
     section === "home" ||
+    section === "artifacts" ||
     section === "usage" ||
     section === "traces" ||
     section === "dreaming" ||
@@ -133,6 +138,7 @@ export function railSectionFromPathname(pathname: string): RailSection {
   const sub = pathname.replace(/^\/[^/]+/, "");
   if (sub.startsWith("/skills")) return "skills";
   if (sub.startsWith("/files")) return "files";
+  if (sub.startsWith("/artifacts")) return "artifacts";
   if (sub.startsWith("/usage")) return "usage";
   if (sub.startsWith("/traces")) return "traces";
   if (sub.startsWith("/dreaming")) return "dreaming";

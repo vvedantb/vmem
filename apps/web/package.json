@@ -39,7 +39,7 @@
     "@vmem/backend": "workspace:*",
     "@vmem/shared": "workspace:*",
     "@vvedantb/server": "^0.6.1",
-    "@vvedantb/ui": "^0.11.0",
+    "@vvedantb/ui": "^0.13.0",
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",
     "cmdk": "catalog:",

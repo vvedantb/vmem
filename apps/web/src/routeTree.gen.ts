@@ -46,6 +46,7 @@ import { Route as MainProfileIdSourcesIndexRouteImport } from './routes/_main/$p
 import { Route as MainProfileIdSkillsIndexRouteImport } from './routes/_main/$profileId/skills/index'
 import { Route as MainProfileIdMemoriesIndexRouteImport } from './routes/_main/$profileId/memories/index'
 import { Route as MainProfileIdInboxIndexRouteImport } from './routes/_main/$profileId/inbox/index'
+import { Route as MainProfileIdArtifactsIndexRouteImport } from './routes/_main/$profileId/artifacts/index'
 import { Route as MainProfileIdActivityIndexRouteImport } from './routes/_main/$profileId/activity/index'
 import { Route as MainSettingsDataControlsImportRouteImport } from './routes/_main/settings/data-controls/import'
 import { Route as MainSettingsDataControlsExportRouteImport } from './routes/_main/settings/data-controls/export'
@@ -64,6 +65,7 @@ import { Route as MainProfileIdMemoriesTagsRouteImport } from './routes/_main/$p
 import { Route as MainProfileIdMemoriesGraphRouteImport } from './routes/_main/$profileId/memories/graph'
 import { Route as MainProfileIdInboxProposalsRouteImport } from './routes/_main/$profileId/inbox/proposals'
 import { Route as MainProfileIdInboxNotificationsRouteImport } from './routes/_main/$profileId/inbox/notifications'
+import { Route as MainProfileIdArtifactsArtifactIdRouteImport } from './routes/_main/$profileId/artifacts/$artifactId'
 import { Route as MainProfileIdActivityUsageRouteImport } from './routes/_main/$profileId/activity/usage'
 import { Route as MainProfileIdMemoriesListRouteRouteImport } from './routes/_main/$profileId/memories/list/route'
 import { Route as MainProfileIdMemoriesListIndexRouteImport } from './routes/_main/$profileId/memories/list/index'
@@ -264,6 +266,12 @@ const MainProfileIdInboxIndexRoute = MainProfileIdInboxIndexRouteImport.update({
   path: '/',
   getParentRoute: () => MainProfileIdInboxRouteRoute,
 } as any)
+const MainProfileIdArtifactsIndexRoute =
+  MainProfileIdArtifactsIndexRouteImport.update({
+    id: '/artifacts/',
+    path: '/artifacts/',
+    getParentRoute: () => MainProfileIdRouteRoute,
+  } as any)
 const MainProfileIdActivityIndexRoute =
   MainProfileIdActivityIndexRouteImport.update({
     id: '/activity/',
@@ -367,6 +375,12 @@ const MainProfileIdInboxNotificationsRoute =
     path: '/notifications',
     getParentRoute: () => MainProfileIdInboxRouteRoute,
   } as any)
+const MainProfileIdArtifactsArtifactIdRoute =
+  MainProfileIdArtifactsArtifactIdRouteImport.update({
+    id: '/artifacts/$artifactId',
+    path: '/artifacts/$artifactId',
+    getParentRoute: () => MainProfileIdRouteRoute,
+  } as any)
 const MainProfileIdActivityUsageRoute =
   MainProfileIdActivityUsageRouteImport.update({
     id: '/activity/usage',
@@ -429,6 +443,7 @@ export interface FileRoutesByFullPath {
   '/settings/': typeof MainSettingsIndexRoute
   '/$profileId/memories/list': typeof MainProfileIdMemoriesListRouteRouteWithChildren
   '/$profileId/activity/usage': typeof MainProfileIdActivityUsageRoute
+  '/$profileId/artifacts/$artifactId': typeof MainProfileIdArtifactsArtifactIdRoute
   '/$profileId/inbox/notifications': typeof MainProfileIdInboxNotificationsRoute
   '/$profileId/inbox/proposals': typeof MainProfileIdInboxProposalsRoute
   '/$profileId/memories/graph': typeof MainProfileIdMemoriesGraphRoute
@@ -447,6 +462,7 @@ export interface FileRoutesByFullPath {
   '/settings/data-controls/export': typeof MainSettingsDataControlsExportRoute
   '/settings/data-controls/import': typeof MainSettingsDataControlsImportRoute
   '/$profileId/activity/': typeof MainProfileIdActivityIndexRoute
+  '/$profileId/artifacts/': typeof MainProfileIdArtifactsIndexRoute
   '/$profileId/inbox/': typeof MainProfileIdInboxIndexRoute
   '/$profileId/memories/': typeof MainProfileIdMemoriesIndexRoute
   '/$profileId/skills/': typeof MainProfileIdSkillsIndexRoute
@@ -480,6 +496,7 @@ export interface FileRoutesByTo {
   '/$profileId': typeof MainProfileIdIndexRoute
   '/settings': typeof MainSettingsIndexRoute
   '/$profileId/activity/usage': typeof MainProfileIdActivityUsageRoute
+  '/$profileId/artifacts/$artifactId': typeof MainProfileIdArtifactsArtifactIdRoute
   '/$profileId/inbox/notifications': typeof MainProfileIdInboxNotificationsRoute
   '/$profileId/inbox/proposals': typeof MainProfileIdInboxProposalsRoute
   '/$profileId/memories/graph': typeof MainProfileIdMemoriesGraphRoute
@@ -498,6 +515,7 @@ export interface FileRoutesByTo {
   '/settings/data-controls/export': typeof MainSettingsDataControlsExportRoute
   '/settings/data-controls/import': typeof MainSettingsDataControlsImportRoute
   '/$profileId/activity': typeof MainProfileIdActivityIndexRoute
+  '/$profileId/artifacts': typeof MainProfileIdArtifactsIndexRoute
   '/$profileId/inbox': typeof MainProfileIdInboxIndexRoute
   '/$profileId/memories': typeof MainProfileIdMemoriesIndexRoute
   '/$profileId/skills': typeof MainProfileIdSkillsIndexRoute
@@ -543,6 +561,7 @@ export interface FileRoutesById {
   '/_main/settings/': typeof MainSettingsIndexRoute
   '/_main/$profileId/memories/list': typeof MainProfileIdMemoriesListRouteRouteWithChildren
   '/_main/$profileId/activity/usage': typeof MainProfileIdActivityUsageRoute
+  '/_main/$profileId/artifacts/$artifactId': typeof MainProfileIdArtifactsArtifactIdRoute
   '/_main/$profileId/inbox/notifications': typeof MainProfileIdInboxNotificationsRoute
   '/_main/$profileId/inbox/proposals': typeof MainProfileIdInboxProposalsRoute
   '/_main/$profileId/memories/graph': typeof MainProfileIdMemoriesGraphRoute
@@ -561,6 +580,7 @@ export interface FileRoutesById {
   '/_main/settings/data-controls/export': typeof MainSettingsDataControlsExportRoute
   '/_main/settings/data-controls/import': typeof MainSettingsDataControlsImportRoute
   '/_main/$profileId/activity/': typeof MainProfileIdActivityIndexRoute
+  '/_main/$profileId/artifacts/': typeof MainProfileIdArtifactsIndexRoute
   '/_main/$profileId/inbox/': typeof MainProfileIdInboxIndexRoute
   '/_main/$profileId/memories/': typeof MainProfileIdMemoriesIndexRoute
   '/_main/$profileId/skills/': typeof MainProfileIdSkillsIndexRoute
@@ -606,6 +626,7 @@ export interface FileRouteTypes {
     | '/settings/'
     | '/$profileId/memories/list'
     | '/$profileId/activity/usage'
+    | '/$profileId/artifacts/$artifactId'
     | '/$profileId/inbox/notifications'
     | '/$profileId/inbox/proposals'
     | '/$profileId/memories/graph'
@@ -624,6 +645,7 @@ export interface FileRouteTypes {
     | '/settings/data-controls/export'
     | '/settings/data-controls/import'
     | '/$profileId/activity/'
+    | '/$profileId/artifacts/'
     | '/$profileId/inbox/'
     | '/$profileId/memories/'
     | '/$profileId/skills/'
@@ -657,6 +679,7 @@ export interface FileRouteTypes {
     | '/$profileId'
     | '/settings'
     | '/$profileId/activity/usage'
+    | '/$profileId/artifacts/$artifactId'
     | '/$profileId/inbox/notifications'
     | '/$profileId/inbox/proposals'
     | '/$profileId/memories/graph'
@@ -675,6 +698,7 @@ export interface FileRouteTypes {
     | '/settings/data-controls/export'
     | '/settings/data-controls/import'
     | '/$profileId/activity'
+    | '/$profileId/artifacts'
     | '/$profileId/inbox'
     | '/$profileId/memories'
     | '/$profileId/skills'
@@ -719,6 +743,7 @@ export interface FileRouteTypes {
     | '/_main/settings/'
     | '/_main/$profileId/memories/list'
     | '/_main/$profileId/activity/usage'
+    | '/_main/$profileId/artifacts/$artifactId'
     | '/_main/$profileId/inbox/notifications'
     | '/_main/$profileId/inbox/proposals'
     | '/_main/$profileId/memories/graph'
@@ -737,6 +762,7 @@ export interface FileRouteTypes {
     | '/_main/settings/data-controls/export'
     | '/_main/settings/data-controls/import'
     | '/_main/$profileId/activity/'
+    | '/_main/$profileId/artifacts/'
     | '/_main/$profileId/inbox/'
     | '/_main/$profileId/memories/'
     | '/_main/$profileId/skills/'
@@ -1018,6 +1044,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MainProfileIdInboxIndexRouteImport
       parentRoute: typeof MainProfileIdInboxRouteRoute
     }
+    '/_main/$profileId/artifacts/': {
+      id: '/_main/$profileId/artifacts/'
+      path: '/artifacts'
+      fullPath: '/$profileId/artifacts/'
+      preLoaderRoute: typeof MainProfileIdArtifactsIndexRouteImport
+      parentRoute: typeof MainProfileIdRouteRoute
+    }
     '/_main/$profileId/activity/': {
       id: '/_main/$profileId/activity/'
       path: '/activity'
@@ -1143,6 +1176,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/$profileId/inbox/notifications'
       preLoaderRoute: typeof MainProfileIdInboxNotificationsRouteImport
       parentRoute: typeof MainProfileIdInboxRouteRoute
+    }
+    '/_main/$profileId/artifacts/$artifactId': {
+      id: '/_main/$profileId/artifacts/$artifactId'
+      path: '/artifacts/$artifactId'
+      fullPath: '/$profileId/artifacts/$artifactId'
+      preLoaderRoute: typeof MainProfileIdArtifactsArtifactIdRouteImport
+      parentRoute: typeof MainProfileIdRouteRoute
     }
     '/_main/$profileId/activity/usage': {
       id: '/_main/$profileId/activity/usage'
@@ -1328,7 +1368,9 @@ interface MainProfileIdRouteRouteChildren {
   MainProfileIdUsageRoute: typeof MainProfileIdUsageRoute
   MainProfileIdIndexRoute: typeof MainProfileIdIndexRoute
   MainProfileIdActivityUsageRoute: typeof MainProfileIdActivityUsageRoute
+  MainProfileIdArtifactsArtifactIdRoute: typeof MainProfileIdArtifactsArtifactIdRoute
   MainProfileIdActivityIndexRoute: typeof MainProfileIdActivityIndexRoute
+  MainProfileIdArtifactsIndexRoute: typeof MainProfileIdArtifactsIndexRoute
 }
 
 const MainProfileIdRouteRouteChildren: MainProfileIdRouteRouteChildren = {
@@ -1347,7 +1389,9 @@ const MainProfileIdRouteRouteChildren: MainProfileIdRouteRouteChildren = {
   MainProfileIdUsageRoute: MainProfileIdUsageRoute,
   MainProfileIdIndexRoute: MainProfileIdIndexRoute,
   MainProfileIdActivityUsageRoute: MainProfileIdActivityUsageRoute,
+  MainProfileIdArtifactsArtifactIdRoute: MainProfileIdArtifactsArtifactIdRoute,
   MainProfileIdActivityIndexRoute: MainProfileIdActivityIndexRoute,
+  MainProfileIdArtifactsIndexRoute: MainProfileIdArtifactsIndexRoute,
 }
 
 const MainProfileIdRouteRouteWithChildren =
