@@ -3,7 +3,14 @@
 @import "shadow-plugin";
 @plugin "tailwindcss-animate";
 
-/* Tailwind does not scan node_modules; include shared UI, shell and app sources. */
+/* Tailwind does not scan node_modules; include shared UI, shell and app sources.
+   With node-linker=hoisted, apps/web may resolve its own @vvedantb/ui copy in
+   apps/web/node_modules while the root holds another version. Scan both; Tailwind
+   skips missing paths. */
+@source "../node_modules/@vvedantb/ui/src/**/*.{ts,tsx}";
+@source "../node_modules/@vvedantb/ui/shell/src/**/*.{ts,tsx}";
+@source "../node_modules/@vvedantb/ui/app/src/**/*.{ts,tsx}";
+@source "../node_modules/@vvedantb/ui/src/marketing/landing.css";
 @source "../../../node_modules/@vvedantb/ui/src/**/*.{ts,tsx}";
 @source "../../../node_modules/@vvedantb/ui/shell/src/**/*.{ts,tsx}";
 @source "../../../node_modules/@vvedantb/ui/app/src/**/*.{ts,tsx}";
