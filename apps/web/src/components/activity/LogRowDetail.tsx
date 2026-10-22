@@ -161,7 +161,7 @@ function LogRowDetailBody({
   );
 }
 
-function Section({
+export function Section({
   title,
   children,
 }: {
@@ -180,7 +180,7 @@ function Section({
   );
 }
 
-function KV({
+export function KV({
   label,
   value,
   mono,
@@ -205,7 +205,7 @@ function KV({
   );
 }
 
-function PreviewBlock({ label, body }: { label: string; body: string }) {
+export function PreviewBlock({ label, body }: { label: string; body: string }) {
   return (
     <div className="space-y-1">
       <p className="text-xs font-medium text-muted">{label}</p>

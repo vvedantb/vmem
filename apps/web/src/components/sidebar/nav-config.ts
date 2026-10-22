@@ -9,6 +9,7 @@ import {
   IconUsers,
   IconReceipt2,
   IconFlask,
+  IconTimelineEvent,
 } from "@tabler/icons-react";
 import {
   BoltIcon,
@@ -26,6 +27,7 @@ export type RailSection =
   | "skills"
   | "files"
   | "usage"
+  | "traces"
   | "sources"
   | "inbox"
   | "team"
@@ -38,6 +40,7 @@ export const railLibraryItems: NavItem[] = [
   { href: "/$profileId/skills", label: "Skills", icon: BoltIcon },
   { href: "/$profileId/files", label: "Files", icon: FilesIcon },
   { href: "/$profileId/usage", label: "Usage", icon: IconReceipt2 },
+  { href: "/$profileId/traces", label: "Traces", icon: IconTimelineEvent },
   { href: "/$profileId/sources", label: "Sources", icon: IconPlugConnected },
 ];
 
@@ -90,9 +93,9 @@ export const navGroups: NavGroup[] = [
   },
 ];
 
-// Home, Usage, Inbox and Sources have no sidebar panel: the main page sits
+// Home, Usage, Traces, Inbox and Sources have no sidebar panel: the main page sits
 // beside the rail and any nested views are page tabs.
-type PanelHiddenSection = "home" | "usage" | "inbox" | "sources";
+type PanelHiddenSection = "home" | "usage" | "traces" | "inbox" | "sources";
 type PanelSection = Exclude<RailSection, PanelHiddenSection>;
 
 export function railSectionHidesPanel(
@@ -101,6 +104,7 @@ export function railSectionHidesPanel(
   return (
     section === "home" ||
     section === "usage" ||
+    section === "traces" ||
     section === "inbox" ||
     section === "sources"
   );
@@ -120,6 +124,7 @@ export function railSectionFromPathname(pathname: string): RailSection {
   if (sub.startsWith("/skills")) return "skills";
   if (sub.startsWith("/files")) return "files";
   if (sub.startsWith("/usage")) return "usage";
+  if (sub.startsWith("/traces")) return "traces";
   if (sub.startsWith("/sources")) return "sources";
   if (
     sub.startsWith("/inbox") ||

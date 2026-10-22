@@ -1,6 +1,7 @@
 import { formatCompactNumber, formatSameDayOrDateTime } from "@vmem/shared";
 import { createSevenDayBuckets } from "@/lib/daily-trends";
-import type { AiLogRow } from "./types";
+import type { Id } from "@vmem/backend";
+import type { AiLogRow, ProfileListItem } from "./types";
 import { FEATURE_LABELS, FEATURES } from "@/lib/url-state/activity";
 
 type AiLogTrendRow = Pick<AiLogRow, "createdAt" | "costUsd" | "totalTokens">;
@@ -80,4 +81,15 @@ export function formatTokenPair(
   const promptCount = prompt ?? 0;
   const completionCount = completion ?? 0;
   return `${promptCount.toLocaleString()}→${completionCount.toLocaleString()}`;
+}
+
+// match a URL string to a typed profile id from the user's known set, so a
+// malformed id never reaches the backend
+export function normalizeProfileId(
+  raw: string,
+  profiles: ProfileListItem[] | undefined,
+): Id<"profiles"> | undefined {
+  if (!profiles) return undefined;
+  const match = profiles.find((p) => p._id === raw);
+  return match?._id;
 }
