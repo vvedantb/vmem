@@ -3,6 +3,28 @@
   "buildCommand": "cd ../.. && pnpm sdk:build && pnpm --filter web build",
   "redirects": [
     {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "vmem.vedantb.com"
+        }
+      ],
+      "destination": "https://vmem.projectv.uk/$1",
+      "permanent": true
+    },
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.vmem.vedantb.com"
+        }
+      ],
+      "destination": "https://vmem.projectv.uk/$1",
+      "permanent": true
+    },
+    {
       "source": "/slides",
       "destination": "https://openwork.vedantb.com/slides/intro-to-vmem",
       "permanent": false
