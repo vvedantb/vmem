@@ -871,10 +871,9 @@ export async function supersedeMemories(
 ): Promise<number> {
   const successorId = params.successorId;
   const reason = params.reason?.trim() || UPDATES_LINK_REASON;
-  const successor =
-    params.asVersion === true && successorId !== undefined
-      ? await findByMemoryId(ctx, successorId)
-      : null;
+  const survivor =
+    successorId === undefined ? null : await findByMemoryId(ctx, successorId);
+  const successor = params.asVersion === true ? survivor : null;
   let count = 0;
   const seen = new Set<string>();
   for (const predecessorId of params.predecessorIds) {
@@ -890,6 +889,9 @@ export async function supersedeMemories(
     count += 1;
     if (successor && docMatchesWriteScope(successor, params.scope)) {
       await markSupersededBy(ctx, predecessorId, successor._id);
+    } else if (survivor && docMatchesWriteScope(survivor, params.scope)) {
+      const merged = await findByMemoryId(ctx, predecessorId);
+      if (merged) await repointPriorVersions(ctx, merged._id, survivor._id);
     }
     if (successorId === undefined) continue;
     await linkMemories(ctx, {
@@ -919,6 +921,28 @@ async function markSupersededBy(
 
 // prior versions one memory keeps, newest first (by createdAt)
 export const MEMORY_HISTORY_LIMIT = 20;
+
+/**
+ * A current version merged away as a duplicate hands its prior versions to
+ * the survivor, so the duplicate sweep does not delete them with it. Moves
+ * the direct prior versions only (older ones follow the chain), up to
+ * MEMORY_HISTORY_LIMIT. Returns the count moved.
+ */
+export async function repointPriorVersions(
+  ctx: MutationCtx,
+  fromId: Id<"memories">,
+  toId: Id<"memories">,
+): Promise<number> {
+  if (fromId === toId) return 0;
+  const rows = await ctx.db
+    .query("memories")
+    .withIndex("by_superseded_by", (q) => q.eq("supersededBy", fromId))
+    .take(MEMORY_HISTORY_LIMIT);
+  for (const row of rows) {
+    if (row._id !== toId) await ctx.db.patch(row._id, { supersededBy: toId });
+  }
+  return rows.length;
+}
 
 /**
  * Walks the version chain back from `doc`: the rows it replaced, then the
