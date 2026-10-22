@@ -25,7 +25,12 @@ import { ConvexError } from "convex/values";
 import { z } from "zod";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
+import {
+  memoryMatchesScope,
+  type MemoryReadScope,
+} from "../../engine/memory/scope";
 import { userFacingError } from "../lib/userFacingError";
+import { findByMemoryId } from "../memoryStore/helpers";
 import {
   assertContentDeletable,
   assertContentEditable,
@@ -42,6 +47,9 @@ export const ARTIFACT_TRASH_MS = 30 * DAY_MS;
 export const ARTIFACT_LIST_PAGE_MAX = 100;
 export const ARTIFACT_SEARCH_TAKE = 20;
 export const ARTIFACT_REFS_MAX = 100;
+// memory refs resolved to titles per read; the rest show the bare id
+export const ARTIFACT_MEMORY_REFS_RESOLVE_MAX = 50;
+const MEMORY_REF_TITLE_MAX_CHARS = 120;
 // vmem has no plans yet, so every user gets the free daily cap
 export const ARTIFACT_STATE_DAILY_CAP = ARTIFACT_STATE_DAILY_WRITES.free;
 const SEARCH_TEXT_MAX_BYTES = 8 * 1024;
@@ -925,6 +933,73 @@ export async function listArtifactRefs(
     target: ref.target,
     createdAt: ref.createdAt,
   }));
+}
+
+export interface ArtifactRefView {
+  kind: ArtifactRefKind;
+  target: string;
+  createdAt: number;
+  // memory refs only: exists is false when the memory is gone or the caller
+  // can't read it (no title then, so nothing leaks)
+  exists?: boolean;
+  title?: string;
+}
+
+// the memory scope of the artifact's readers: the team profile for team
+// artifacts, else the caller's personal memories (like memoryApi.get)
+async function artifactMemoryScope(
+  ctx: QueryCtx | MutationCtx,
+  doc: Doc<"artifacts">,
+  userId: Id<"users">,
+): Promise<MemoryReadScope | null> {
+  const teamId = doc.teamId;
+  if (teamId !== undefined) {
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_team", (q) => q.eq("teamId", teamId))
+      .first();
+    return profile ? { kind: "team", profileId: profile._id } : null;
+  }
+  const clerkId = (await ctx.db.get(userId))?.clerkId;
+  return clerkId ? { kind: "personal", userId: clerkId } : null;
+}
+
+function memoryRefTitle(memory: Doc<"memories">): string {
+  const text = (memory.title.trim() || memory.content)
+    .replace(/\s+/g, " ")
+    .trim();
+  return text.length > MEMORY_REF_TITLE_MAX_CHARS
+    ? `${text.slice(0, MEMORY_REF_TITLE_MAX_CHARS - 1)}…`
+    : text;
+}
+
+// the artifact's refs with memory titles for memories the caller may read.
+// The caller must already have read access to `doc`.
+export async function resolveArtifactRefs(
+  ctx: QueryCtx | MutationCtx,
+  doc: Doc<"artifacts">,
+  userId: Id<"users">,
+): Promise<ArtifactRefView[]> {
+  const refs = await listArtifactRefs(ctx, doc._id);
+  const scope = refs.some((ref) => ref.kind === "memory")
+    ? await artifactMemoryScope(ctx, doc, userId)
+    : null;
+  let resolved = 0;
+  const views: ArtifactRefView[] = [];
+  for (const ref of refs) {
+    if (ref.kind !== "memory" || resolved >= ARTIFACT_MEMORY_REFS_RESOLVE_MAX) {
+      views.push(ref);
+      continue;
+    }
+    resolved += 1;
+    const memory = scope ? await findByMemoryId(ctx, ref.target) : null;
+    views.push(
+      memory && scope && memoryMatchesScope(memory, scope)
+        ? { ...ref, exists: true, title: memoryRefTitle(memory) }
+        : { ...ref, exists: false },
+    );
+  }
+  return views;
 }
 
 // ---- import (vibot migration; see artifacts/internal.ts) ----

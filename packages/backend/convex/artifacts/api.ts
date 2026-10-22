@@ -17,13 +17,13 @@ import {
   getDetail,
   getState as readState,
   linkRef,
-  listArtifactRefs,
   listArtifacts,
   listVersions,
   readArtifact,
   requireDeletableArtifact,
   requireEditableArtifact,
   requireReadableArtifact,
+  resolveArtifactRefs,
   restoreFromTrash,
   restoreVersion as restoreArtifactVersion,
   searchArtifacts,
@@ -213,11 +213,12 @@ export const resetState = authMutation({
   },
 });
 
+// memory refs carry the memory title when the caller can read it
 export const refs = authQuery({
   args: { id: v.string() },
   handler: async (ctx, args) => {
     const doc = await requireReadableArtifact(ctx, ctx.userId, args.id);
-    return await listArtifactRefs(ctx, doc._id);
+    return await resolveArtifactRefs(ctx, doc, ctx.userId);
   },
 });
 
