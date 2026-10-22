@@ -1,5 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ActionCtx } from "../_generated/server";
+import { scheduleMcpTrace } from "../mcpTraces";
 import type { McpScope } from "../profiles/mcpAccess";
 import {
   toMcpContent,
@@ -7,6 +8,7 @@ import {
   type ToolHandlerResult,
 } from "./content";
 import { toolSpecs } from "./toolCatalog";
+import { buildToolTrace } from "./traceSummary";
 import { bindToolSpec, type ToolHandlerContext } from "./toolTypes";
 
 function handlerContext(
@@ -45,6 +47,7 @@ function registerMcpTool(
     description,
     bindable.schema.shape,
     async (params) => {
+      const startedAt = Date.now();
       let result: ToolHandlerResult;
       try {
         result = { ok: true, data: await bindable.run(h, params) };
@@ -53,6 +56,17 @@ function registerMcpTool(
         console.error(`[MCP][${bindable.name}]`, message);
         result = { ok: false, error: message };
       }
+      await scheduleMcpTrace(
+        h.ctx,
+        {
+          clerkUserId: h.clerkUserId,
+          scope: h.scope,
+          tool: bindable.name,
+          ok: result.ok,
+          startedAt,
+        },
+        () => buildToolTrace(bindable.name, params, result),
+      );
       return toContent(result);
     },
   );

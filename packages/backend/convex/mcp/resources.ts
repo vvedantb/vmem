@@ -1,8 +1,10 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
+import { scheduleMcpTrace } from "../mcpTraces";
 import type { McpScope } from "../profiles/mcpAccess";
 import type { EffectiveSkill, SkillIndexSlice } from "../skills";
+import { buildResourceTrace, resourceTraceTool } from "./traceSummary";
 
 export const CONTEXT_PROMPT_URI = "vmem://context_prompt";
 export const SKILL_RESOURCE_URI_PREFIX = "vmem://skills/";
@@ -73,7 +75,36 @@ export function listedMcpResourceUris(
   return uris;
 }
 
-function registerSkillResource(server: McpServer, skill: EffectiveSkill): void {
+type ResourceTraceContext = {
+  ctx: ActionCtx;
+  clerkUserId: string;
+  scope: McpScope;
+};
+
+function traceResourceRead(
+  t: ResourceTraceContext,
+  uri: string,
+  startedAt: number,
+  outcome: { ok: true; text: string } | { ok: false; error: string },
+): Promise<void> {
+  return scheduleMcpTrace(
+    t.ctx,
+    {
+      clerkUserId: t.clerkUserId,
+      scope: t.scope,
+      tool: resourceTraceTool(uri),
+      ok: outcome.ok,
+      startedAt,
+    },
+    () => buildResourceTrace(uri, outcome),
+  );
+}
+
+function registerSkillResource(
+  server: McpServer,
+  skill: EffectiveSkill,
+  t: ResourceTraceContext,
+): void {
   const uri = skillResourceUri(skill.name);
   server.registerResource(
     skillResourceName(skill.name),
@@ -83,15 +114,16 @@ function registerSkillResource(server: McpServer, skill: EffectiveSkill): void {
       description: skill.description,
       mimeType: "text/markdown",
     },
-    async (resourceUri) => ({
-      contents: [
-        {
-          uri: resourceUri.toString(),
-          text: formatSkillResourceMarkdown(skill),
-          mimeType: "text/markdown",
-        },
-      ],
-    }),
+    async (resourceUri) => {
+      const startedAt = Date.now();
+      const text = formatSkillResourceMarkdown(skill);
+      await traceResourceRead(t, uri, startedAt, { ok: true, text });
+      return {
+        contents: [
+          { uri: resourceUri.toString(), text, mimeType: "text/markdown" },
+        ],
+      };
+    },
   );
 }
 
@@ -101,6 +133,7 @@ export async function registerResources(
   ctx: ActionCtx,
   scope: McpScope,
 ): Promise<void> {
+  const t: ResourceTraceContext = { ctx, clerkUserId, scope };
   if (scope !== "team") {
     server.registerResource(
       "context_prompt",
@@ -112,18 +145,23 @@ export async function registerResources(
         mimeType: "text/markdown",
       },
       async (uri) => {
+        const startedAt = Date.now();
         let text: string;
+        let outcome: { ok: true; text: string } | { ok: false; error: string };
         try {
           const result = await ctx.runAction(
             internal.contextPromptApi.mcpGetContextPrompt,
             { clerkId: clerkUserId },
           );
           text = result.content;
+          outcome = { ok: true, text };
         } catch (err) {
           const message = err instanceof Error ? err.message : "unknown error";
           console.error("[MCP][context_prompt] regenerate failed:", message);
           text = `# vmem User Profile\n\n_Profile temporarily unavailable._`;
+          outcome = { ok: false, error: message };
         }
+        await traceResourceRead(t, CONTEXT_PROMPT_URI, startedAt, outcome);
         return {
           contents: [
             {
@@ -143,7 +181,7 @@ export async function registerResources(
       { clerkId: clerkUserId, scope },
     );
     for (const skill of skills) {
-      registerSkillResource(server, skill);
+      registerSkillResource(server, skill, t);
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : "unknown error";
