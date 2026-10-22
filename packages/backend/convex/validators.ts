@@ -4,6 +4,7 @@ import { zodToConvex } from "convex-helpers/server/zod";
 import {
   memoryStatusSchema,
   memoryTypeSchema,
+  memoryWithTagsSchema,
   temporalKindSchema,
 } from "@vmem/sdk";
 import { z } from "zod";
@@ -14,6 +15,11 @@ import {
 
 export const memoryTypeValidator = zodToConvex(memoryTypeSchema);
 export const memoryStatusValidator = zodToConvex(memoryStatusSchema);
+export const memoryWithTagsValidator = zodToConvex(memoryWithTagsSchema);
+export const memoryListResultValidator = v.object({
+  memories: v.array(memoryWithTagsValidator),
+  total: v.number(),
+});
 
 // clerk id + optional profile id; tags are stored on the row
 export const memoryFields = {

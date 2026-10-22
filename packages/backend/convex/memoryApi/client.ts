@@ -1,10 +1,4 @@
-import { v } from "convex/values";
-import { zodToConvex } from "convex-helpers/server/zod";
-import {
-  memoryWithTagsSchema,
-  type MemoryType,
-  type MemoryWithTags,
-} from "@vmem/sdk";
+import type { MemoryType, MemoryWithTags } from "@vmem/sdk";
 import { internal } from "../_generated/api";
 import { buildSearchableText } from "../../engine/memory/searchableText";
 import {
@@ -66,12 +60,6 @@ type UpdateArgs = {
   confidence?: number;
   expiresAt?: string | null;
 };
-
-export const memoryWithTagsValidator = zodToConvex(memoryWithTagsSchema);
-export const memoryListResultValidator = v.object({
-  memories: v.array(memoryWithTagsValidator),
-  total: v.number(),
-});
 
 async function requireClerkId(
   ctx: AuthQueryCtx | AuthMutationCtx,

@@ -1,13 +1,13 @@
 import { v } from "convex/values";
-import { zodToConvex } from "convex-helpers/server/zod";
-import { memoryWithTagsSchema } from "@vmem/sdk";
 import { internalMutation, internalQuery } from "../_generated/server";
 import {
   memoryEntityTypeValidator,
+  memoryListResultValidator,
   memoryStatusValidator,
   memorySummaryFilterFields,
   memorySummaryValidator,
   memoryTypeValidator,
+  memoryWithTagsValidator,
 } from "../validators";
 import {
   collectScopedMemories,
@@ -45,13 +45,6 @@ import {
   listKnownEntities,
   listRecentMemoryCandidates,
 } from "./entities";
-
-const memoryWithTagsValidator = zodToConvex(memoryWithTagsSchema);
-
-const memoryListResultValidator = v.object({
-  memories: v.array(memoryWithTagsValidator),
-  total: v.number(),
-});
 
 // OR-lists and the inclusive createdAt window (epoch ms) on top of the
 // single-value filters
@@ -128,12 +121,14 @@ export const createMemoryInternal = internalMutation({
 
 const { sourceId: _sourceId, ...createOrUpsertBaseArgs } = createMemoryArgs;
 
+export const createOrUpsertResultValidator = v.object({
+  memory: memoryWithTagsValidator,
+  needsFollowUp: v.boolean(),
+});
+
 export const createOrUpsertMemoryInternal = internalMutation({
   args: { ...createOrUpsertBaseArgs, externalId: v.optional(v.string()) },
-  returns: v.object({
-    memory: memoryWithTagsValidator,
-    needsFollowUp: v.boolean(),
-  }),
+  returns: createOrUpsertResultValidator,
   handler: async (ctx, args) => createOrUpsertMemory(ctx, args),
 });
 

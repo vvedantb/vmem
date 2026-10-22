@@ -25,8 +25,10 @@ import type {
   RetrieveMemoriesResult,
 } from "./memoryApi/types";
 import {
+  memoryListResultValidator,
   memorySummaryFilterFields,
   memorySummaryValidator,
+  memoryWithTagsValidator,
 } from "./validators";
 import {
   listMemorySummariesPaged,
@@ -41,8 +43,6 @@ import {
   updateMemoryFields,
 } from "./memoryApi/validators";
 import {
-  memoryListResultValidator,
-  memoryWithTagsValidator,
   runCreate,
   runGet,
   runList,
