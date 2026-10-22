@@ -606,6 +606,7 @@ export const memoryToolSpecs = {
         return runForMcpScope(scope, {
           team: (profileId) =>
             relatedMemoriesForTeamProfile(h.ctx, {
+              clerkId: h.clerkUserId,
               profileId,
               memoryId: params.memoryId,
             }),

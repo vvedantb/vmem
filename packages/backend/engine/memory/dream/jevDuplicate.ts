@@ -194,8 +194,6 @@ export async function judgeDuplicateGroup(args: {
       state: buildState(args.members),
       questions: buildJevDuplicateQuestions(args.members),
       tag: "dream-cleanup",
-      // request-level ZDR is not on our gateway plan: 403 before routing
-      dataPolicy: "no-training",
     });
     return {
       verdict: parseJevDuplicateVerdict(args.members, response.answers),

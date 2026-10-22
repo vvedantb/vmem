@@ -17,6 +17,7 @@ export const FEATURES = [
   "embedding-backfill",
   "rollup",
   "dream",
+  "jev",
 ] as const;
 
 export type Feature = (typeof FEATURES)[number];
@@ -36,6 +37,7 @@ export const FEATURE_LABELS: Record<Feature, string> = {
   "embedding-backfill": "Embedding Backfill",
   rollup: "Rollups",
   dream: "Dreaming",
+  jev: "Jev",
 };
 
 const scopes = ["personal", "team"] as const;

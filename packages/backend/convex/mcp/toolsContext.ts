@@ -14,7 +14,7 @@ import {
   classifyQueryTemporal,
   parseReferenceMs,
 } from "../../engine/memory/temporal";
-import { resolveSystemOneApiKey } from "../lib/systemOneKey";
+import { loggedJevEvaluate, resolveSystemOneApiKey } from "../lib/systemOneKey";
 import {
   retrieveMemoriesForClerk,
   retrieveMemoriesForTeamProfile,
@@ -90,6 +90,7 @@ async function packSkills(
       skills: rows.map(toSkillIndexEntry),
       apiKey: resolveSystemOneApiKey(),
       limit,
+      evaluate: loggedJevEvaluate(h.ctx, { clerkId: h.clerkUserId }),
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "unknown error";

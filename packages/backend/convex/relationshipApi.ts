@@ -58,6 +58,7 @@ export const getRelatedMemories = authAction({
     const kind = await getProfileKind(ctx, args.profileId);
     if (kind === "team" && args.profileId !== undefined) {
       return relatedMemoriesForTeamProfile(ctx, {
+        clerkId,
         profileId: args.profileId,
         memoryId: args.memoryId,
       });

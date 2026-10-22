@@ -28,9 +28,10 @@ const DEFAULT_TAG = "vmem-jev";
 const ERROR_DETAIL_CHARS = 200;
 
 /**
- * Gateway data handling. "zdr" needs request-level ZDR (Vercel Pro or
- * Enterprise); without it the gateway answers 403 before routing.
- * "no-training" only routes to providers that do not train on prompts.
+ * Gateway data handling. "no-training" (the default) only routes to providers
+ * that do not train on prompts. "zdr" needs request-level ZDR (Vercel Pro or
+ * Enterprise); our gateway plan has none, so the gateway answers 403 before
+ * routing. Keep "zdr" for a plan that has it.
  */
 export type JevDataPolicy = "zdr" | "no-training";
 
@@ -197,7 +198,7 @@ export interface EvaluateSystemOneArgs {
   model?: string;
   timeoutMs?: number;
   tag?: string;
-  /** Defaults to "zdr". */
+  /** Defaults to "no-training". */
   dataPolicy?: JevDataPolicy;
 }
 
@@ -224,7 +225,7 @@ export async function evaluateSystemOne(
     providerOptions: {
       gateway: {
         ...FLEX_GATEWAY_PROVIDER_OPTIONS.gateway,
-        ...DATA_POLICY_OPTIONS[args.dataPolicy ?? "zdr"],
+        ...DATA_POLICY_OPTIONS[args.dataPolicy ?? "no-training"],
         tags: [
           args.tag && args.tag.trim().length > 0
             ? args.tag.trim()
