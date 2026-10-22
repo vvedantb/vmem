@@ -14,7 +14,6 @@ import {
 import {
   collectScopedMemories,
   createMemory,
-  createOrUpsertMemory,
   deleteMemoriesByProfile,
   deleteMemoriesBySourceTypes,
   deleteMemoriesForUser,
@@ -42,6 +41,7 @@ import {
   supersedeMemories,
 } from "./helpers";
 import { toMemoryStatRow, toMemoryWithTags } from "./mappers";
+import { createOrUpsertMemory } from "./upsert";
 import {
   applyLlmEntityExtraction,
   listEntitiesForGraph,
