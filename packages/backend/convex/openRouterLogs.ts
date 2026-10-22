@@ -1,5 +1,6 @@
 ﻿import { paginationOptsValidator, type PaginationOptions } from "convex/server";
 import { v, type Infer, type ObjectType } from "convex/values";
+import { z } from "zod";
 import { internal } from "./_generated/api";
 import {
   internalMutation,
@@ -75,6 +76,45 @@ export const drainAggregatesInternal = internalMutation({
       );
     }
     return pending.length;
+  },
+});
+
+const PURGE_BATCH = 500;
+const DAY_MS = 24 * 60 * 60 * 1000;
+const retentionDaysSchema = z.coerce.number().int().positive();
+
+// OPENROUTER_LOG_RETENTION_DAYS; unset or not a whole positive number keeps
+// rows forever
+function openRouterLogRetentionDays(): number | null {
+  const parsed = retentionDaysSchema.safeParse(
+    process.env.OPENROUTER_LOG_RETENTION_DAYS,
+  );
+  return parsed.success ? parsed.data : null;
+}
+
+// hourly ttl sweep, off unless OPENROUTER_LOG_RETENTION_DAYS is set. Only rows
+// the drain already folded in go, so the cost/token/model aggregates keep the
+// full history: Usage totals stay lifetime totals while the log list shrinks.
+export const purgeExpired = internalMutation({
+  args: {},
+  returns: v.number(),
+  handler: async (ctx) => {
+    const days = openRouterLogRetentionDays();
+    if (days === null) return 0;
+    const cutoff = Date.now() - days * DAY_MS;
+    const expired = await ctx.db
+      .query("openRouterLogs")
+      .withIndex("by_aggregate_pending", (q) =>
+        q.eq("aggregatePending", undefined).lt("createdAt", cutoff),
+      )
+      .take(PURGE_BATCH);
+    for (const doc of expired) {
+      await ctx.db.delete(doc._id);
+    }
+    if (expired.length === PURGE_BATCH) {
+      await ctx.scheduler.runAfter(0, internal.openRouterLogs.purgeExpired, {});
+    }
+    return expired.length;
   },
 });
 

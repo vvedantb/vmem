@@ -165,6 +165,7 @@ There is no in-app Secrets page.
 
 - `AI_GATEWAY_API_KEY` — chat, embeddings, instruction extract, Jev retrieve rerank, Dream merge metadata, skill recommend. Missing key fail-opens hybrid retrieve; instruction `save`/`update` return `422 openrouter_required`
 - `OPENROUTER_LOG_PROMPTS` — set `1` to store prompt/completion previews in usage logs
+- `OPENROUTER_LOG_RETENTION_DAYS` — whole days to keep usage log rows; unset keeps them forever. Usage totals keep the full history ([`apps/docs/environment.mdx`](apps/docs/environment.mdx))
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` — Drive and Gmail (`drive.readonly`, `gmail.readonly`)
 - `NOTION_CLIENT_ID`, `NOTION_CLIENT_SECRET`
 - `FIGMA_CLIENT_ID`, `FIGMA_CLIENT_SECRET`, `FIGMA_TEAM_IDS` — comma-separated team IDs (Figma cannot list teams)

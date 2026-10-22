@@ -494,6 +494,7 @@ export const openRouterLogRecordFields = {
   completionPreview: v.optional(v.string()),
 };
 
+// rows past OPENROUTER_LOG_RETENTION_DAYS are purged (openRouterLogs.purgeExpired)
 export const openRouterLogFields = {
   ...openRouterLogRecordFields,
   profileId: v.optional(v.id("profiles")),

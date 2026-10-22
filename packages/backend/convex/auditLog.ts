@@ -40,6 +40,7 @@ export const ResourceTypes = {
   MEMORY: "memory",
   PROPOSED_UPDATE: "proposed_update",
   API_KEY: "api_key",
+  // kept forever: the component cleanup cannot scope to one action (docs environment.mdx)
   API_REQUEST: "api_request",
   TEAM: "team",
   TEAM_MEMBER: "team_member",
