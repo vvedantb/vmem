@@ -1,13 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
+  adjacentPeriodKey,
   coarsestFittingPeriod,
   isoWeekKey,
   monthWindow,
+  parseDayKey,
+  periodKeyAt,
   periodsClosingAfter,
   summaryPeriodSources,
   utcDayKey,
   weekWindow,
-} from "../../engine/memory/rollupPeriod";
+} from "@vmem/shared";
 
 const MS_PER_DAY = 86_400_000;
 const at = (dayKey: string) => Date.parse(`${dayKey}T00:00:00Z`);
@@ -170,5 +173,43 @@ describe("coarsestFittingPeriod", () => {
     ["2026-10-19T03:00:00Z", "2026-10-19T09:00:00Z", "day"],
   ])("%s to %s is %s", (start, end, period) => {
     expect(coarsestFittingPeriod(window(start, end))).toBe(period);
+  });
+});
+
+describe("parseDayKey", () => {
+  it("returns the UTC start of a valid day", () => {
+    expect(parseDayKey("2026-10-19")).toBe(at("2026-10-19"));
+  });
+
+  it.each(["", "2026-10", "2026-02-30", "2026-13-01", "not-a-date"])(
+    "%s is null",
+    (key) => {
+      expect(parseDayKey(key)).toBeNull();
+    },
+  );
+});
+
+describe("periodKeyAt", () => {
+  const ms = Date.parse("2026-10-21T15:00:00Z");
+
+  it.each([
+    ["day", "2026-10-21"],
+    ["week", "2026-W43"],
+    ["month", "2026-10"],
+  ] as const)("%s is %s", (period, key) => {
+    expect(periodKeyAt(period, ms)).toBe(key);
+  });
+});
+
+describe("adjacentPeriodKey", () => {
+  it.each([
+    ["day", "2026-10-01", -1, "2026-09-30"],
+    ["day", "2026-12-31", 1, "2027-01-01"],
+    ["week", "2026-W01", -1, "2025-W52"],
+    ["week", "2026-W43", 1, "2026-W44"],
+    ["month", "2026-01", -1, "2025-12"],
+    ["month", "2026-12", 1, "2027-01"],
+  ] as const)("%s %s step %d is %s", (period, key, step, next) => {
+    expect(adjacentPeriodKey(period, key, step)).toBe(next);
   });
 });

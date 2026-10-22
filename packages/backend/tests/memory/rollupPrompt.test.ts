@@ -16,11 +16,7 @@ import {
   type RollupSourceInput,
   type RollupTraceInput,
 } from "../../engine/memory/rollupPrompt";
-import {
-  dayWindow,
-  utcDayKey,
-  yesterdayDayKey,
-} from "../../engine/memory/rollupPeriod";
+import { dayWindow, utcDayKey, yesterdayDayKey } from "@vmem/shared";
 
 const DAY = dayWindow("2026-10-19");
 

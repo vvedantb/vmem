@@ -15,7 +15,7 @@ import {
   summaryPeriodWindow,
   type PeriodWindow,
   type SummaryPeriod,
-} from "../engine/memory/rollupPeriod";
+} from "@vmem/shared";
 import {
   buildPeriodRollupBody,
   buildRollupBody,

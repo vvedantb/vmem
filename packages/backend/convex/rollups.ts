@@ -22,7 +22,7 @@ import {
   summaryPeriodSources,
   summaryPeriodWindow,
   yesterdayDayKey,
-} from "../engine/memory/rollupPeriod";
+} from "@vmem/shared";
 import {
   rollupResultValidator,
   runRollupDay,

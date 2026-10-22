@@ -27,14 +27,20 @@ export function yesterdayDayKey(nowMs: number): string {
   return utcDayKey(nowMs - MS_PER_DAY);
 }
 
-export function dayWindow(dayKey: string): PeriodWindow {
+/** The day's UTC start, or null for a malformed or impossible key. */
+export function parseDayKey(dayKey: string): number | null {
   const startMs = DAY_KEY.test(dayKey)
     ? Date.parse(`${dayKey}T00:00:00.000Z`)
     : Number.NaN;
   // round-trip the key so an impossible date (2026-02-30) never passes
-  if (Number.isNaN(startMs) || utcDayKey(startMs) !== dayKey) {
-    throw new Error(`Invalid day key: ${dayKey}`);
-  }
+  return Number.isNaN(startMs) || utcDayKey(startMs) !== dayKey
+    ? null
+    : startMs;
+}
+
+export function dayWindow(dayKey: string): PeriodWindow {
+  const startMs = parseDayKey(dayKey);
+  if (startMs === null) throw new Error(`Invalid day key: ${dayKey}`);
   return { startMs, endMs: startMs + MS_PER_DAY };
 }
 
@@ -132,7 +138,29 @@ export function summaryPeriodSources(
   return { weekKeys, dayKeys };
 }
 
-export type RollupPeriod = "day" | SummaryPeriod;
+export const ROLLUP_PERIODS = ["day", "week", "month"] as const;
+export type RollupPeriod = (typeof ROLLUP_PERIODS)[number];
+
+/** The key of the period that holds `ms`. */
+export function periodKeyAt(period: RollupPeriod, ms: number): string {
+  if (period === "day") return utcDayKey(ms);
+  if (period === "week") return isoWeekKeyAt(ms);
+  return utcDayKey(ms).slice(0, 7);
+}
+
+export function periodWindow(period: RollupPeriod, key: string): PeriodWindow {
+  return period === "day" ? dayWindow(key) : summaryPeriodWindow(period, key);
+}
+
+/** The key of the period just before (-1) or after (1) `key`. */
+export function adjacentPeriodKey(
+  period: RollupPeriod,
+  key: string,
+  step: -1 | 1,
+): string {
+  const window = periodWindow(period, key);
+  return periodKeyAt(period, step === 1 ? window.endMs : window.startMs - 1);
+}
 
 /** The longest period (a 31-day month), to find rows that overlap a window. */
 export const MAX_PERIOD_MS = 31 * MS_PER_DAY;

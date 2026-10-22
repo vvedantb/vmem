@@ -3,7 +3,7 @@ import {
   MEMORY_IDS_MAX,
   SUMMARY_MAX_CHARS,
 } from "../../engine/memory/rollupPrompt";
-import type { SummaryPeriod } from "../../engine/memory/rollupPeriod";
+import type { SummaryPeriod } from "@vmem/shared";
 
 export const ROLLUP_ROLE =
   "You write short daily, weekly and monthly summaries of one person's memory activity.";
