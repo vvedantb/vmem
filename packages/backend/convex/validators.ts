@@ -1,7 +1,6 @@
 import { v } from "convex/values";
 import { omit } from "convex-helpers";
 import { zodToConvex } from "convex-helpers/server/zod";
-import { ARTIFACT_FORMATS, ARTIFACT_TYPES } from "@vvedantb/server";
 import {
   memoryStatusSchema,
   memoryTypeSchema,
@@ -835,9 +834,28 @@ export const memorySummaryFilterFields = {
 };
 
 // artifacts (see convex/artifacts/store.ts). type = what it is, format = how
-// the body renders; both enums come from the shared @vvedantb/server core
-export const artifactTypeValidator = zodToConvex(z.enum(ARTIFACT_TYPES));
-export const artifactFormatValidator = zodToConvex(z.enum(ARTIFACT_FORMATS));
+// the body renders. Both mirror ARTIFACT_TYPES / ARTIFACT_FORMATS in
+// @vvedantb/server, but stay local: schema modules may not import npm
+// packages the bundler puts in a shared _deps chunk (validators.test.ts
+// keeps them in sync)
+export const artifactTypeValidator = v.union(
+  v.literal("document"),
+  v.literal("report"),
+  v.literal("slides"),
+  v.literal("infographic"),
+  v.literal("mindmap"),
+  v.literal("quiz"),
+  v.literal("flashcards"),
+  v.literal("diagram"),
+  v.literal("code"),
+);
+export const artifactFormatValidator = v.union(
+  v.literal("html"),
+  v.literal("markdown"),
+  v.literal("svg"),
+  v.literal("code"),
+  v.literal("json"),
+);
 
 export const artifactStateSpecValidator = v.object({
   stateVersion: v.number(),
