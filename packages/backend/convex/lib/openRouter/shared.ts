@@ -14,7 +14,7 @@ export const COMPLETION_PREVIEW_BYTES = 2048;
 type LogPayload = FunctionArgs<typeof internal.openRouterLogs.recordInternal>;
 
 export async function scheduleLog(
-  ctx: ActionCtx,
+  ctx: Pick<ActionCtx, "scheduler">,
   payload: LogPayload,
 ): Promise<void> {
   try {

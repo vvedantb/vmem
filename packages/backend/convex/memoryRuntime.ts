@@ -46,7 +46,11 @@ import {
   type RetrieveJudgeOptions,
 } from "../engine/memory/jevGate";
 import { resolveOpenRouterAuth } from "./lib/openRouterKey";
-import { resolveSystemOneApiKey } from "./lib/systemOneKey";
+import {
+  loggedJevEvaluate,
+  resolveSystemOneApiKey,
+  type JevLogScope,
+} from "./lib/systemOneKey";
 import { bestEffortEmbedOne } from "./lib/openRouter/bestEffortEmbed";
 import { callJsonChat } from "./lib/openRouter/jsonChat";
 import { scheduleContextPromptInvalidationByClerkId } from "./lib/contextPromptInvalidate";
@@ -558,8 +562,10 @@ async function listRecentForRetrieve(
 }
 
 async function maybeApplyJevRetrieveGate(
+  ctx: ActionCtx,
   args: {
     clerkId?: string;
+    profileId?: string;
     query: string;
     limit: number;
     referenceDate?: string;
@@ -578,12 +584,18 @@ async function maybeApplyJevRetrieveGate(
     apiKey,
     referenceDate: args.referenceDate,
     limit: args.limit,
+    evaluate: loggedJevEvaluate(ctx, {
+      clerkId: args.clerkId,
+      profileId: args.profileId,
+    }),
   });
 }
 
 async function finishRetrieve(
+  ctx: ActionCtx,
   args: {
     clerkId?: string;
+    profileId?: string;
     query: string;
     limit: number;
     referenceDate?: string;
@@ -591,7 +603,7 @@ async function finishRetrieve(
   } & RetrieveJudgeOptions,
   ranked: MemoryCandidate[],
 ): Promise<MemoryCandidate[]> {
-  const gated = await maybeApplyJevRetrieveGate(args, ranked);
+  const gated = await maybeApplyJevRetrieveGate(ctx, args, ranked);
   return gated.slice(0, Math.max(0, args.limit));
 }
 
@@ -737,6 +749,7 @@ async function retrieveRanked(
   if (byId.size === 0) {
     const recent = await listRecentForRetrieve(ctx, args);
     return finishRetrieve(
+      ctx,
       { ...args, apiKey },
       retrieveMemoriesFromPool(recent, args.query, {
         ...rankOpts,
@@ -748,6 +761,7 @@ async function retrieveRanked(
   }
 
   return finishRetrieve(
+    ctx,
     { ...args, apiKey },
     retrieveMemoriesFromPool([...byId.values()], args.query, {
       ...rankOpts,
@@ -819,6 +833,8 @@ async function vectorScoresForQuery(
 
 /** Lexical related pool, then Jev rerank of the head (fail-open, no drop). */
 async function rankRelatedMemories(
+  ctx: Pick<ActionCtx, "runQuery" | "scheduler">,
+  scope: JevLogScope,
   seed: MemoryWithTags,
   pool: readonly MemoryWithTags[],
   limit: number,
@@ -833,11 +849,12 @@ async function rankRelatedMemories(
     ),
     limit,
     apiKey,
+    evaluate: loggedJevEvaluate(ctx, scope),
   });
 }
 
 export async function relatedMemoriesForClerk(
-  ctx: Pick<ActionCtx, "runQuery" | "runMutation">,
+  ctx: Pick<ActionCtx, "runQuery" | "runMutation" | "scheduler">,
   args: {
     clerkId: string;
     profileId?: string;
@@ -853,12 +870,26 @@ export async function relatedMemoriesForClerk(
     limit: RETRIEVE_RECENT_CAP,
     offset: 0,
   });
-  return rankRelatedMemories(seed, listed.memories, args.limit ?? 10);
+  return rankRelatedMemories(
+    ctx,
+    {
+      clerkId: args.clerkId,
+      profileId: args.profileId ?? seed.profileId ?? undefined,
+    },
+    seed,
+    listed.memories,
+    args.limit ?? 10,
+  );
 }
 
 export async function relatedMemoriesForTeamProfile(
-  ctx: Pick<ActionCtx, "runQuery">,
-  args: { profileId: string; memoryId: string; limit?: number },
+  ctx: Pick<ActionCtx, "runQuery" | "scheduler">,
+  args: {
+    clerkId: string;
+    profileId: string;
+    memoryId: string;
+    limit?: number;
+  },
 ): Promise<Array<{ memory: MemoryWithTags; reason: string }>> {
   const seed = await ctx.runQuery(
     internal.memoryStore.functions.getMemoryForTeamInternal,
@@ -870,7 +901,13 @@ export async function relatedMemoriesForTeamProfile(
     limit: RETRIEVE_RECENT_CAP,
     offset: 0,
   });
-  return rankRelatedMemories(seed, listed.memories, args.limit ?? 10);
+  return rankRelatedMemories(
+    ctx,
+    { clerkId: args.clerkId, profileId: args.profileId },
+    seed,
+    listed.memories,
+    args.limit ?? 10,
+  );
 }
 
 async function instructionWriteScope(

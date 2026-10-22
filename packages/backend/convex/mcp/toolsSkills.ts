@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { internal } from "../_generated/api";
 import { recommendSkills } from "../../engine/memory/jevSkillRecommend";
-import { resolveSystemOneApiKey } from "../lib/systemOneKey";
+import { loggedJevEvaluate, resolveSystemOneApiKey } from "../lib/systemOneKey";
 import { SKILLS_IMPORT_MAX, toSkillIndexEntry } from "../skills";
 import { scopedClerk, toolSpec } from "./toolTypes";
 
@@ -156,6 +156,7 @@ export const skillsToolSpecs = {
         skills: rows.map(toSkillIndexEntry),
         apiKey,
         limit: params.limit ?? 8,
+        evaluate: loggedJevEvaluate(h.ctx, { clerkId: h.clerkUserId }),
       });
     },
   }),

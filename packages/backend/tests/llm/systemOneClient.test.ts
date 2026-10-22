@@ -134,7 +134,7 @@ describe("evaluateSystemOne", () => {
         providerOptions: {
           gateway: {
             serviceTier: "flex",
-            zeroDataRetention: true,
+            disallowPromptTraining: true,
             tags: ["retrieve"],
           },
         },
@@ -283,15 +283,15 @@ describe("evaluateSystemOne", () => {
     expect(String(thrown)).toContain("[redacted]");
   });
 
-  it('sends disallowPromptTraining and no ZDR for dataPolicy "no-training"', async () => {
+  it('sends zeroDataRetention and no disallowPromptTraining for dataPolicy "zdr"', async () => {
     const calls: GatewayEvaluateCall[] = [];
     await evaluateSystemOne(
       {
         apiKey: "test-key",
         state: "x",
         questions: { ok: { type: "noul", instructions: "yes?" } },
-        tag: "dream-cleanup",
-        dataPolicy: "no-training",
+        tag: "retrieve",
+        dataPolicy: "zdr",
       },
       async (call) => {
         calls.push(call);
@@ -304,8 +304,8 @@ describe("evaluateSystemOne", () => {
     expect(calls[0]?.providerOptions).toEqual({
       gateway: {
         serviceTier: "flex",
-        disallowPromptTraining: true,
-        tags: ["dream-cleanup"],
+        zeroDataRetention: true,
+        tags: ["retrieve"],
       },
     });
   });

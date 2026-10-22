@@ -19,6 +19,7 @@ export const openRouterFeatureSchema = z.enum([
   "embedding-backfill",
   "rollup",
   "dream",
+  "jev",
 ]);
 
 export type OpenRouterFeature = z.infer<typeof openRouterFeatureSchema>;

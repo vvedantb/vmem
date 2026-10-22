@@ -28,6 +28,7 @@ import {
   IconMoonStars,
   IconPlug,
   IconRefresh,
+  IconScale,
   IconSearch,
   IconSparkles,
   IconSun,
@@ -81,6 +82,7 @@ const FEATURE_ICONS: Record<Feature, typeof IconSparkles> = {
   "embedding-backfill": IconVectorBezier,
   rollup: IconTimeline,
   dream: IconMoonStars,
+  jev: IconScale,
 };
 
 interface LogsFiltersDropdownProps {
