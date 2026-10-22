@@ -25,6 +25,7 @@ import {
   memoryAccessPendingFields,
   memoryUsageFields,
   memoryEmbeddingFields,
+  embeddingRefFields,
   memoryStatCounterFields,
   memoryStatsMetaFields,
   memoryLinkFields,
@@ -252,6 +253,10 @@ const schema = defineSchema({
       dimensions: MEMORY_EMBEDDING_DIMENSIONS,
       filterFields: ["userId", "profileId"],
     }),
+
+  embeddingRefs: defineTable(embeddingRefFields).index("by_embedding", [
+    "embeddingId",
+  ]),
 
   memoryAccessPending: defineTable(memoryAccessPendingFields)
     .index("by_created", ["createdAt"])

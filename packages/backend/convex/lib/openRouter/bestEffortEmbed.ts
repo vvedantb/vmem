@@ -52,25 +52,34 @@ async function queryEmbeddingCacheKey(
  * bestEffortEmbedOne behind the queryEmbeddingCache table: an identical
  * text from the same user within the TTL skips the network call. Only a
  * real vector is cached; with no API key nothing is read or written.
+ * The cache lookup and the auth read run together, and the cache write is
+ * returned as `cacheWrite` (never rejects) so the caller can await it after
+ * the vector search instead of before.
  */
 export async function bestEffortEmbedQueryCached(
   params: BestEffortEmbedParams & { text: string },
-): Promise<{ embedding: number[] | null; cached: boolean }> {
+): Promise<{
+  embedding: number[] | null;
+  cached: boolean;
+  cacheWrite: Promise<void>;
+}> {
+  const noWrite = Promise.resolve();
   if (readOpenRouterApiKey() === undefined) {
-    return { embedding: null, cached: false };
+    return { embedding: null, cached: false, cacheWrite: noWrite };
   }
   const key = await queryEmbeddingCacheKey(params.clerkId, params.text);
-  const hit = await params.ctx.runQuery(
-    internal.queryEmbeddingCache.getInternal,
-    {
-      key,
-    },
-  );
+  const [hit, auth] = await Promise.all([
+    params.ctx.runQuery(internal.queryEmbeddingCache.getInternal, { key }),
+    resolveBestEffortEmbedAuth(params.ctx, params.clerkId),
+  ]);
   if (hit !== null && hit.expiresAt > Date.now()) {
-    return { embedding: hit.embedding, cached: true };
+    return { embedding: hit.embedding, cached: true, cacheWrite: noWrite };
   }
-  const embedding = await bestEffortEmbedOne(params);
-  if (embedding !== null) {
+  const embedding = await bestEffortEmbedOneWithAuth({ ...params, auth });
+  if (embedding === null) {
+    return { embedding, cached: false, cacheWrite: noWrite };
+  }
+  const cacheWrite = (async () => {
     try {
       await params.ctx.runMutation(internal.queryEmbeddingCache.putInternal, {
         key,
@@ -80,8 +89,8 @@ export async function bestEffortEmbedQueryCached(
     } catch (err) {
       console.warn("[embedding] query cache write failed:", err);
     }
-  }
-  return { embedding, cached: false };
+  })();
+  return { embedding, cached: false, cacheWrite };
 }
 
 export async function bestEffortEmbedMany(

@@ -19,6 +19,7 @@ import {
   deleteMemoriesForUser,
   deleteMemory,
   deleteTeamMemoryAsOwner,
+  ensureEmbeddingRef,
   getMemoriesByMemoryIds,
   getMemory,
   getMemoryForTeam,
@@ -28,6 +29,7 @@ import {
   listMemoriesForTeam,
   listMemoryLinksAround,
   listMemoryLinksForUser,
+  memoryDocIdsForEmbeddings,
   memoryReadScopeFromArgs,
   paginateMemorySummaries,
   paginateScopedDocs,
@@ -584,15 +586,55 @@ export const searchMemoriesPageInternal = internalQuery({
 export const getMemoriesByEmbeddingIdsInternal = internalQuery({
   args: { ids: v.array(v.id("memoryEmbeddings")) },
   returns: v.array(v.union(memoryWithTagsValidator, v.null())),
-  // point reads by _id, issued together (one at a time cost ~1s for 256 hits)
+  // point reads issued together (one at a time cost ~1s for 256 hits); the
+  // embedding -> memory hop reads embeddingRefs, not the 12KB vector row
   handler: async (ctx, args) => {
-    const rows = await Promise.all(args.ids.map((id) => ctx.db.get(id)));
+    const docIds = await memoryDocIdsForEmbeddings(ctx, args.ids);
     const docs = await Promise.all(
-      rows.map((row) =>
-        row ? ctx.db.get(row.memoryDocId) : Promise.resolve(null),
+      docIds.map((id) =>
+        id === null ? Promise.resolve(null) : ctx.db.get(id),
       ),
     );
     return docs.map((doc) => (doc ? toMemoryWithTags(doc) : null));
+  },
+});
+
+const EMBEDDING_REF_BACKFILL_BATCH = 100;
+const EMBEDDING_REF_BACKFILL_MAX = 500;
+
+// Adds missing embeddingRefs rows for memoryEmbeddings rows. Never deletes,
+// so it is safe to rerun. Each page reads full vector rows (~12KB each).
+// Operators: npx convex run memoryStore/functions:backfillEmbeddingRefs '{}'
+// then pass {"cursor": "<continueCursor>"} until isDone.
+export const backfillEmbeddingRefs = internalMutation({
+  args: {
+    cursor: v.optional(v.union(v.string(), v.null())),
+    numItems: v.optional(v.number()),
+  },
+  returns: v.object({
+    scanned: v.number(),
+    created: v.number(),
+    isDone: v.boolean(),
+    continueCursor: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    const numItems = Math.min(
+      Math.max(1, Math.floor(args.numItems ?? EMBEDDING_REF_BACKFILL_BATCH)),
+      EMBEDDING_REF_BACKFILL_MAX,
+    );
+    const page = await ctx.db
+      .query("memoryEmbeddings")
+      .paginate({ numItems, cursor: args.cursor ?? null });
+    let created = 0;
+    for (const row of page.page) {
+      if (await ensureEmbeddingRef(ctx, row)) created += 1;
+    }
+    return {
+      scanned: page.page.length,
+      created,
+      isDone: page.isDone,
+      continueCursor: page.continueCursor,
+    };
   },
 });
 

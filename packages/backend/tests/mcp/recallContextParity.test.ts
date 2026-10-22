@@ -246,6 +246,30 @@ describe("recall_context parity fixture", () => {
   }
 });
 
+// hydration reads embeddingRefs and falls back to the vector row, so the
+// recorded output must hold before the backfill as well
+describe("recall_context parity without embeddingRefs", () => {
+  for (const { message, expected } of CASES) {
+    it(`returns the recorded memories for "${message}"`, async () => {
+      const t = createConvexBackend();
+      const { ids, vectorSearch } = await seed(t);
+      await t.run(async (ctx) => {
+        for (const ref of await ctx.db.query("embeddingRefs").collect()) {
+          await ctx.db.delete(ref._id);
+        }
+      });
+      const keyById = new Map([...ids].map(([key, id]) => [id, key]));
+      const recall = recallSchema.parse(
+        await mcpCaller(t, ALICE, "personal", vectorSearch).call(
+          "recall_context",
+          { message },
+        ),
+      );
+      expect(recall.memoryIds.map((id) => keyById.get(id))).toEqual(expected);
+    });
+  }
+});
+
 describe("query embedding cache", () => {
   async function recall(
     t: ConvexTestBackend,

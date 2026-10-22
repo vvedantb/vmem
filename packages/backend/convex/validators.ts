@@ -136,6 +136,14 @@ export const memoryEmbeddingFields = {
   embedding: v.array(v.float64()),
 };
 
+// Slim pointer from a memoryEmbeddings row to its memory, so vector hit
+// hydration can skip reading the 1536-float vector. Written with the embedding
+// row; backfillEmbeddingRefs fills rows from before the table existed.
+export const embeddingRefFields = {
+  embeddingId: v.id("memoryEmbeddings"),
+  memoryDocId: v.id("memories"),
+};
+
 export const memoryStatKindValidator = v.union(
   v.literal("total"),
   v.literal("day"),
