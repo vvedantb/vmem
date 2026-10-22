@@ -78,8 +78,13 @@ import { collectScopedMemoriesPaged } from "./memoryStore/walk";
 
 type MemoryCtx = Pick<ActionCtx, "runQuery" | "runMutation" | "scheduler">;
 
-/** Stage durations (ms) a retrieve fills in when the caller passes one. */
+/**
+ * Stage durations (ms) a retrieve fills in when the caller passes one. Text
+ * search overlaps embed -> vector -> hydrate, so searchMs is the wall-clock
+ * of that whole overlapped phase, not a sum.
+ */
 export interface RetrieveTiming {
+  searchMs?: number;
   embedMs?: number;
   embedCached?: boolean;
   vectorMs?: number;
@@ -673,21 +678,31 @@ async function retrieveRanked(
     }).slice(0, Math.max(0, args.limit));
   }
 
-  const [ftsHits, vectorHits, apiKey] = await Promise.all([
-    timed(args.timing, "textMs", () =>
-      ctx.runQuery(internal.memoryStore.functions.searchMemoriesTextInternal, {
-        kind: args.kind,
-        userId: args.clerkId,
-        profileId: args.profileId,
-        query: args.query,
-        ...listFilter,
-      }),
-    ),
-    vectorScoresForQuery(ctx, args),
-    wantsJevJudge(args)
-      ? Promise.resolve(resolveSystemOneApiKey())
-      : Promise.resolve(undefined),
-  ]);
+  // the embedding call starts first; text search runs alongside it, and only
+  // the vector search and hydration wait on the vector
+  const [vectorHits, ftsHits, apiKey] = await timed(
+    args.timing,
+    "searchMs",
+    () =>
+      Promise.all([
+        vectorScoresForQuery(ctx, args),
+        timed(args.timing, "textMs", () =>
+          ctx.runQuery(
+            internal.memoryStore.functions.searchMemoriesTextInternal,
+            {
+              kind: args.kind,
+              userId: args.clerkId,
+              profileId: args.profileId,
+              query: args.query,
+              ...listFilter,
+            },
+          ),
+        ),
+        wantsJevJudge(args)
+          ? Promise.resolve(resolveSystemOneApiKey())
+          : Promise.resolve(undefined),
+      ]),
+  );
   const jev = apiKey !== undefined;
   const rankOpts = {
     limit: jevRankPoolLimit(args.limit, jev),
@@ -827,19 +842,43 @@ async function vectorScoresForQuery(
     return empty;
 
   const clerkId = args.clerkId;
-  const { embedding, cached } = await timed(args.timing, "embedMs", () =>
-    bestEffortEmbedQueryCached({
-      ctx,
-      clerkId,
-      profileId: args.profileId,
-      feature: "memory-search",
-      failureLog: "[memoryRuntime] query embedding failed",
-      text: queryEmbeddingText(args.query),
-    }),
+  const { embedding, cached, cacheWrite } = await timed(
+    args.timing,
+    "embedMs",
+    () =>
+      bestEffortEmbedQueryCached({
+        ctx,
+        clerkId,
+        profileId: args.profileId,
+        feature: "memory-search",
+        failureLog: "[memoryRuntime] query embedding failed",
+        text: queryEmbeddingText(args.query),
+      }),
   );
   if (args.timing !== undefined) args.timing.embedCached = cached;
   if (!embedding) return empty;
+  // the cache write runs alongside the vector search and hydration
+  try {
+    return await vectorHitsForEmbedding(ctx, { ...args, clerkId }, embedding);
+  } finally {
+    await cacheWrite;
+  }
+}
 
+async function vectorHitsForEmbedding(
+  ctx: ActionCtx,
+  args: {
+    kind: "personal" | "team";
+    clerkId: string;
+    profileId?: string;
+    timing?: RetrieveTiming;
+  },
+  embedding: number[],
+): Promise<{ memories: MemoryWithTags[]; scores: Map<string, number> }> {
+  const memories: MemoryWithTags[] = [];
+  const scores = new Map<string, number>();
+  const empty = { memories, scores };
+  const clerkId = args.clerkId;
   const profileId = args.profileId;
   const vectorLimit = clampVectorLimit(VECTOR_CANDIDATE_LIMIT);
   const teamScope = args.kind === "team" && profileId !== undefined;

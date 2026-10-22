@@ -1135,6 +1135,140 @@ describe("convex memoryStore", () => {
       );
       expect(await embeddingRows(t)).toHaveLength(0);
     });
+
+    async function refRows(t: ReturnType<typeof convexTest>) {
+      return await t.run(async (ctx) =>
+        ctx.db.query("embeddingRefs").collect(),
+      );
+    }
+
+    async function embedMemory(
+      t: ReturnType<typeof convexTest>,
+      memoryId: string,
+      seed: number,
+    ) {
+      await t.mutation(
+        internal.memoryStore.functions.patchMemoryEmbeddingInternal,
+        { memoryId, embedding: vec(seed) },
+      );
+    }
+
+    it("writes one embeddingRefs row per embedding and removes it on delete", async () => {
+      const t = convexTest(schema, modules);
+      const a = await t.mutation(
+        internal.memoryStore.functions.createMemoryInternal,
+        createArgs({ memoryId: "mem-a" }),
+      );
+      const b = await t.mutation(
+        internal.memoryStore.functions.createMemoryInternal,
+        createArgs({ memoryId: "mem-b", title: "Other", content: "Other" }),
+      );
+      await embedMemory(t, a.id, 1);
+      await embedMemory(t, b.id, 2);
+      // re-embedding keeps the same embedding row, so no second ref
+      await embedMemory(t, a.id, 3);
+      const rows = await embeddingRows(t);
+      const refs = await refRows(t);
+      expect(refs).toHaveLength(2);
+      expect(
+        new Map(refs.map((ref) => [ref.embeddingId, ref.memoryDocId])),
+      ).toEqual(new Map(rows.map((row) => [row._id, row.memoryDocId])));
+
+      await t.mutation(internal.memoryStore.functions.deleteMemoryInternal, {
+        userId: USER_A,
+        memoryId: a.id,
+      });
+      const left = await refRows(t);
+      expect(left).toHaveLength(1);
+      expect(left[0]?.embeddingId).toBe((await embeddingRows(t))[0]?._id);
+
+      await t.mutation(
+        internal.memoryStore.functions.deleteMemoriesByProfileInternal,
+        { profileId: PERSONAL_PROFILE },
+      );
+      expect(await refRows(t)).toHaveLength(0);
+    });
+
+    it("hydrates vector hits the same with or without refs", async () => {
+      const t = convexTest(schema, modules);
+      const ids: string[] = [];
+      for (const [i, key] of ["a", "b", "c"].entries()) {
+        const created = await t.mutation(
+          internal.memoryStore.functions.createMemoryInternal,
+          createArgs({ memoryId: `mem-${key}`, title: key, content: key }),
+        );
+        await embedMemory(t, created.id, i);
+        ids.push(created.id);
+      }
+      const embeddingIds = (await embeddingRows(t)).map((row) => row._id);
+      const hydrate = () =>
+        t.query(
+          internal.memoryStore.functions.getMemoriesByEmbeddingIdsInternal,
+          { ids: embeddingIds },
+        );
+      const withRefs = await hydrate();
+      expect(withRefs.map((m) => m?.id)).toEqual(ids);
+
+      // a pre-backfill embedding: drop one ref, the full row is the fallback
+      const [first] = await refRows(t);
+      if (first === undefined) throw new Error("no ref");
+      await t.run(async (ctx) => ctx.db.delete(first._id));
+      expect(await hydrate()).toEqual(withRefs);
+
+      await t.run(async (ctx) => {
+        for (const ref of await ctx.db.query("embeddingRefs").collect()) {
+          await ctx.db.delete(ref._id);
+        }
+      });
+      expect(await hydrate()).toEqual(withRefs);
+    });
+
+    it("backfills missing refs idempotently, page by page", async () => {
+      const t = convexTest(schema, modules);
+      for (const [i, key] of ["a", "b", "c"].entries()) {
+        const created = await t.mutation(
+          internal.memoryStore.functions.createMemoryInternal,
+          createArgs({ memoryId: `mem-${key}`, title: key, content: key }),
+        );
+        await embedMemory(t, created.id, i);
+      }
+      const [kept] = await refRows(t);
+      await t.run(async (ctx) => {
+        for (const ref of await ctx.db.query("embeddingRefs").collect()) {
+          if (ref._id !== kept?._id) await ctx.db.delete(ref._id);
+        }
+      });
+
+      const run = async () => {
+        let cursor: string | null = null;
+        let scanned = 0;
+        let created = 0;
+        for (;;) {
+          const page: {
+            scanned: number;
+            created: number;
+            isDone: boolean;
+            continueCursor: string;
+          } = await t.mutation(
+            internal.memoryStore.functions.backfillEmbeddingRefs,
+            { cursor, numItems: 2 },
+          );
+          scanned += page.scanned;
+          created += page.created;
+          if (page.isDone) break;
+          cursor = page.continueCursor;
+        }
+        return { scanned, created };
+      };
+      expect(await run()).toEqual({ scanned: 3, created: 2 });
+      expect(await run()).toEqual({ scanned: 3, created: 0 });
+      const rows = await embeddingRows(t);
+      const refs = await refRows(t);
+      expect(new Set(refs.map((ref) => ref.embeddingId))).toEqual(
+        new Set(rows.map((row) => row._id)),
+      );
+      expect(refs).toHaveLength(rows.length);
+    });
   });
 
   describe("source upsert by externalId", () => {

@@ -230,69 +230,72 @@ export const contextToolSpecs = {
     errorLabel: "Recall context failed",
     async run(h, params): Promise<unknown> {
       const startedAt = Date.now();
-      return withMcpMemoryScope(
-        h.ctx,
-        { ...scopedMemory(h), profileId: params.profileId },
-        async (scope) => {
-          const timing: RetrieveTiming = {};
-          // judge "off": no Jev gate (an LLM call) on a per-turn tool
-          const retrieve: {
-            query: string;
-            limit: number;
-            judge: "off";
-            timing: RetrieveTiming;
-          } = {
-            query: params.message,
-            limit: RECALL_RETRIEVE_LIMIT,
-            judge: "off",
-            timing,
-          };
-          const [
-            [memories, retrieveMs],
-            [skills, skillsMs],
-            [profile, profileMs],
-          ] = await Promise.all([
-            measured(() =>
-              runForMcpScope(scope, {
-                team: (profileId) =>
-                  retrieveMemoriesForTeamProfile(h.ctx, {
-                    clerkId: scope.clerkId,
-                    profileId,
-                    ...retrieve,
-                  }),
-                personal: ({ clerkId, profileId }) =>
-                  retrieveMemoriesForClerk(h.ctx, {
-                    clerkId,
-                    profileId,
-                    ...retrieve,
-                  }),
-              }),
+      const timing: RetrieveTiming = {};
+      let scopeMs = 0;
+      // judge "off": no Jev gate (an LLM call) on a per-turn tool
+      const retrieve: {
+        query: string;
+        limit: number;
+        judge: "off";
+        timing: RetrieveTiming;
+      } = {
+        query: params.message,
+        limit: RECALL_RETRIEVE_LIMIT,
+        judge: "off",
+        timing,
+      };
+      // skills and profile do not need the resolved profile, so they start
+      // with the scope read instead of after it
+      const [[memories, retrieveMs], [skills, skillsMs], [profile, profileMs]] =
+        await Promise.all([
+          measured(() =>
+            withMcpMemoryScope(
+              h.ctx,
+              { ...scopedMemory(h), profileId: params.profileId },
+              (scope) => {
+                scopeMs = Date.now() - startedAt;
+                return runForMcpScope(scope, {
+                  team: (profileId) =>
+                    retrieveMemoriesForTeamProfile(h.ctx, {
+                      clerkId: scope.clerkId,
+                      profileId,
+                      ...retrieve,
+                    }),
+                  personal: ({ clerkId, profileId }) =>
+                    retrieveMemoriesForClerk(h.ctx, {
+                      clerkId,
+                      profileId,
+                      ...retrieve,
+                    }),
+                });
+              },
             ),
-            measured(() => recallSkills(h, params.message)),
-            measured(() => recallProfile(h)),
-          ]);
-          const recall = buildRecallContext({
-            message: params.message,
-            memories: rankRecallMemories(memories),
-            skills,
-            facts: profileFacts(profile),
-            maxTokens: clampRecallTokens(params.maxTokens),
-          });
-          await enqueueMemoryAccess(h.ctx, recall.memoryIds, "contextPack");
-          // durations only: no query text, ids or memory content
-          console.log(
-            "[MCP][recall_context][timing]",
-            JSON.stringify({
-              ...timing,
-              retrieveMs,
-              skillsMs,
-              profileMs,
-              totalMs: Date.now() - startedAt,
-            }),
-          );
-          return recall;
-        },
+          ),
+          measured(() => recallSkills(h, params.message)),
+          measured(() => recallProfile(h)),
+        ]);
+      const recall = buildRecallContext({
+        message: params.message,
+        memories: rankRecallMemories(memories),
+        skills,
+        facts: profileFacts(profile),
+        maxTokens: clampRecallTokens(params.maxTokens),
+      });
+      await enqueueMemoryAccess(h.ctx, recall.memoryIds, "contextPack");
+      // durations only: no query text, ids or memory content. Stages overlap:
+      // retrieveMs includes scopeMs; totalMs is the wall-clock of the call
+      console.log(
+        "[MCP][recall_context][timing]",
+        JSON.stringify({
+          scopeMs,
+          ...timing,
+          retrieveMs,
+          skillsMs,
+          profileMs,
+          totalMs: Date.now() - startedAt,
+        }),
       );
+      return recall;
     },
   }),
   context_pack: toolSpec({

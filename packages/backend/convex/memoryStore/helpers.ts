@@ -185,6 +185,47 @@ async function findEmbeddingRow(
     .first();
 }
 
+async function findEmbeddingRef(
+  ctx: QueryCtx | MutationCtx,
+  embeddingId: Id<"memoryEmbeddings">,
+): Promise<Doc<"embeddingRefs"> | null> {
+  return await ctx.db
+    .query("embeddingRefs")
+    .withIndex("by_embedding", (q) => q.eq("embeddingId", embeddingId))
+    .first();
+}
+
+/** Adds the embeddingRefs row for an embedding row when it is missing. */
+export async function ensureEmbeddingRef(
+  ctx: MutationCtx,
+  row: Pick<Doc<"memoryEmbeddings">, "_id" | "memoryDocId">,
+): Promise<boolean> {
+  if ((await findEmbeddingRef(ctx, row._id)) !== null) return false;
+  await ctx.db.insert("embeddingRefs", {
+    embeddingId: row._id,
+    memoryDocId: row.memoryDocId,
+  });
+  return true;
+}
+
+/**
+ * Memory doc ids behind vector hits. Reads the slim embeddingRefs row; an
+ * embedding without one (not yet backfilled) falls back to the full row.
+ */
+export async function memoryDocIdsForEmbeddings(
+  ctx: QueryCtx,
+  ids: readonly Id<"memoryEmbeddings">[],
+): Promise<Array<Id<"memories"> | null>> {
+  return Promise.all(
+    ids.map(async (id) => {
+      const ref = await findEmbeddingRef(ctx, id);
+      if (ref !== null) return ref.memoryDocId;
+      const row = await ctx.db.get(id);
+      return row?.memoryDocId ?? null;
+    }),
+  );
+}
+
 /** Writes the vector to `memoryEmbeddings` (the only home for vectors). */
 async function upsertMemoryEmbedding(
   ctx: MutationCtx,
@@ -198,12 +239,17 @@ async function upsertMemoryEmbedding(
       userId: doc.userId,
       profileId: doc.profileId,
     });
+    await ensureEmbeddingRef(ctx, existing);
   } else {
-    await ctx.db.insert("memoryEmbeddings", {
+    const embeddingId = await ctx.db.insert("memoryEmbeddings", {
       memoryDocId: doc._id,
       userId: doc.userId,
       ...(doc.profileId === undefined ? {} : { profileId: doc.profileId }),
       embedding,
+    });
+    await ctx.db.insert("embeddingRefs", {
+      embeddingId,
+      memoryDocId: doc._id,
     });
   }
 }
@@ -213,7 +259,10 @@ async function deleteMemoryEmbedding(
   memoryDocId: Id<"memories">,
 ): Promise<void> {
   const row = await findEmbeddingRow(ctx, memoryDocId);
-  if (row) await ctx.db.delete(row._id);
+  if (!row) return;
+  const ref = await findEmbeddingRef(ctx, row._id);
+  if (ref) await ctx.db.delete(ref._id);
+  await ctx.db.delete(row._id);
 }
 
 /** Keeps the vector index scope filters in step with the memory row. */
