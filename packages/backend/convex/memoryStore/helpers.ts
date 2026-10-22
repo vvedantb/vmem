@@ -660,7 +660,7 @@ export async function listMemoriesForTeam(
   return await listMemoriesInScope(ctx, { kind: "team", profileId }, params);
 }
 
-function sameTags(a: readonly string[], b: readonly string[]): boolean {
+export function sameTags(a: readonly string[], b: readonly string[]): boolean {
   return a.length === b.length && a.every((tag, index) => tag === b[index]);
 }
 
@@ -702,6 +702,16 @@ async function applyMemoryUpdates(
       })
     : undefined;
   const nextStatus = updates.status ?? doc.status;
+  // a manual status change ends any dream suppression (suppressedBy stays
+  // unset on manual suppression)
+  const dreamCleared =
+    updates.status === undefined
+      ? {}
+      : {
+          mergedInto: undefined,
+          suppressedBy: undefined,
+          suppressedRunId: undefined,
+        };
   const editCount =
     (doc.usefulnessEditCount ?? 0) + (updates.skipEditCount === true ? 0 : 1);
   const usefulnessFields = {
@@ -743,6 +753,7 @@ async function applyMemoryUpdates(
       content: nextContent,
       type: nextType,
       status: updates.status ?? doc.status,
+      ...dreamCleared,
       tags: nextTags,
       confidence: updates.confidence ?? doc.confidence,
       contentHash,
@@ -760,6 +771,7 @@ async function applyMemoryUpdates(
       ...(updates.content !== undefined ? { content: updates.content } : {}),
       ...(updates.type !== undefined ? { type: updates.type } : {}),
       ...(updates.status !== undefined ? { status: updates.status } : {}),
+      ...dreamCleared,
       ...(updates.tags !== undefined ? { tags: nextTags } : {}),
       ...(updates.confidence !== undefined
         ? { confidence: updates.confidence }

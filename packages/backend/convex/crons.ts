@@ -58,4 +58,13 @@ crons.interval(
   {},
 );
 
+// drops dreamActions log rows 90 days after their 30-day undo window closed,
+// 500 rows a batch; memories are never deleted
+crons.interval(
+  "purge expired dream actions",
+  { hours: 1 },
+  internal.dream.purgeExpiredActions,
+  {},
+);
+
 export default crons;
