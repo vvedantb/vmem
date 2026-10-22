@@ -8,6 +8,7 @@ import {
   createProtectedResourceMetadata,
 } from "@vvedantb/server";
 import type { McpScope } from "../profiles/mcpAccess";
+import { authenticateWithTokenCache } from "./tokenCache";
 
 // proxies clerk as metadata for older mcp clients that hit this host's well, known
 export const oauthMetadata = httpAction(
@@ -29,7 +30,11 @@ function mcpEndpoint(scope: McpScope): PublicHttpAction {
           ? "/.well-known/oauth-protected-resource/mcp/team"
           : undefined,
       authenticate: ({ ctx, token }) =>
-        ctx.runAction(internal.mcp.nodeActions.verifyAccessToken, { token }),
+        authenticateWithTokenCache(ctx, token, (uncached) =>
+          ctx.runAction(internal.mcp.nodeActions.verifyAccessToken, {
+            token: uncached,
+          }),
+        ),
       handleRpc: ({ ctx, principal, body }) =>
         ctx.runAction(internal.mcp.nodeActions.handleMcpRequest, {
           clerkUserId: principal.clerkUserId,

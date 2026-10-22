@@ -41,6 +41,21 @@ crons.interval(
   {},
 );
 
+// drops expired rows of the recall_context caches (verified MCP tokens and
+// query embeddings), a bounded batch each
+crons.interval(
+  "purge expired mcp token cache",
+  { minutes: 10 },
+  internal.mcp.tokenCache.purgeExpired,
+  {},
+);
+crons.interval(
+  "purge expired query embedding cache",
+  { minutes: 10 },
+  internal.queryEmbeddingCache.purgeExpired,
+  {},
+);
+
 // drops mcp tool traces and their details older than 7 days, 500 rows a batch;
 // also purges artifacts 30 days in the trash, with their bodies and versions
 crons.interval(

@@ -51,7 +51,7 @@ import {
   resolveSystemOneApiKey,
   type JevLogScope,
 } from "./lib/systemOneKey";
-import { bestEffortEmbedOne } from "./lib/openRouter/bestEffortEmbed";
+import { bestEffortEmbedQueryCached } from "./lib/openRouter/bestEffortEmbed";
 import { callJsonChat } from "./lib/openRouter/jsonChat";
 import { scheduleContextPromptInvalidationByClerkId } from "./lib/contextPromptInvalidate";
 import {
@@ -77,6 +77,32 @@ import type { MemoryReadScope } from "../engine/memory/scope";
 import { collectScopedMemoriesPaged } from "./memoryStore/walk";
 
 type MemoryCtx = Pick<ActionCtx, "runQuery" | "runMutation" | "scheduler">;
+
+/** Stage durations (ms) a retrieve fills in when the caller passes one. */
+export interface RetrieveTiming {
+  embedMs?: number;
+  embedCached?: boolean;
+  vectorMs?: number;
+  hydrateMs?: number;
+  textMs?: number;
+  linksMs?: number;
+  neighborsMs?: number;
+}
+
+type RetrieveTimingStage = Exclude<keyof RetrieveTiming, "embedCached">;
+
+async function timed<T>(
+  timing: RetrieveTiming | undefined,
+  stage: RetrieveTimingStage,
+  run: () => Promise<T>,
+): Promise<T> {
+  const startedAt = Date.now();
+  try {
+    return await run();
+  } finally {
+    if (timing !== undefined) timing[stage] = Date.now() - startedAt;
+  }
+}
 
 export const toMemoryType = toMemoryTypeOrUndefined;
 export const toMemoryStatus = toMemoryStatusOrUndefined;
@@ -459,6 +485,7 @@ export async function retrieveMemoriesForClerk(
     limit: number;
     threshold?: number;
     referenceDate?: string;
+    timing?: RetrieveTiming;
   } & RetrieveJudgeOptions,
 ): Promise<MemoryCandidate[]> {
   return retrieveAndTrack(ctx, {
@@ -475,6 +502,7 @@ export async function retrieveMemoriesForClerk(
     rerank: args.rerank,
     judge: args.judge,
     referenceDate: args.referenceDate,
+    timing: args.timing,
   });
 }
 
@@ -491,6 +519,7 @@ export async function retrieveMemoriesForTeamProfile(
     limit: number;
     threshold?: number;
     referenceDate?: string;
+    timing?: RetrieveTiming;
   } & RetrieveJudgeOptions,
 ): Promise<MemoryCandidate[]> {
   return retrieveAndTrack(ctx, {
@@ -507,6 +536,7 @@ export async function retrieveMemoriesForTeamProfile(
     rerank: args.rerank,
     judge: args.judge,
     referenceDate: args.referenceDate,
+    timing: args.timing,
   });
 }
 
@@ -621,6 +651,7 @@ async function retrieveRanked(
     limit: number;
     threshold?: number;
     referenceDate?: string;
+    timing?: RetrieveTiming;
   } & RetrieveJudgeOptions,
 ): Promise<MemoryCandidate[]> {
   const listFilter = {
@@ -643,13 +674,15 @@ async function retrieveRanked(
   }
 
   const [ftsHits, vectorHits, apiKey] = await Promise.all([
-    ctx.runQuery(internal.memoryStore.functions.searchMemoriesTextInternal, {
-      kind: args.kind,
-      userId: args.clerkId,
-      profileId: args.profileId,
-      query: args.query,
-      ...listFilter,
-    }),
+    timed(args.timing, "textMs", () =>
+      ctx.runQuery(internal.memoryStore.functions.searchMemoriesTextInternal, {
+        kind: args.kind,
+        userId: args.clerkId,
+        profileId: args.profileId,
+        query: args.query,
+        ...listFilter,
+      }),
+    ),
     vectorScoresForQuery(ctx, args),
     wantsJevJudge(args)
       ? Promise.resolve(resolveSystemOneApiKey())
@@ -684,16 +717,19 @@ async function retrieveRanked(
     }
   }
 
+  const linkUserId = args.clerkId;
   const links =
-    args.clerkId === undefined || byId.size === 0
+    linkUserId === undefined || byId.size === 0
       ? []
-      : await ctx.runQuery(
-          internal.memoryStore.functions.listMemoryLinksAroundInternal,
-          {
-            userId: args.clerkId,
-            seedIds: [...byId.keys()],
-            hops: RETRIEVE_GRAPH_MAX_HOPS + 1,
-          },
+      : await timed(args.timing, "linksMs", () =>
+          ctx.runQuery(
+            internal.memoryStore.functions.listMemoryLinksAroundInternal,
+            {
+              userId: linkUserId,
+              seedIds: [...byId.keys()],
+              hops: RETRIEVE_GRAPH_MAX_HOPS + 1,
+            },
+          ),
         );
 
   if (links.length > 0 && byId.size > 0 && byId.size < RETRIEVE_RANK_POOL_CAP) {
@@ -712,9 +748,11 @@ async function retrieveRanked(
       .filter((id) => !byId.has(id))
       .slice(0, RETRIEVE_RANK_POOL_CAP - byId.size);
     if (missing.length > 0) {
-      const docs = await ctx.runQuery(
-        internal.memoryStore.functions.getMemoriesByMemoryIdsInternal,
-        { ids: missing },
+      const docs = await timed(args.timing, "neighborsMs", () =>
+        ctx.runQuery(
+          internal.memoryStore.functions.getMemoriesByMemoryIdsInternal,
+          { ids: missing },
+        ),
       );
       for (const memory of docs) {
         if (memory === null || memory === undefined) continue;
@@ -779,6 +817,7 @@ async function vectorScoresForQuery(
     clerkId?: string;
     profileId?: string;
     query: string;
+    timing?: RetrieveTiming;
   },
 ): Promise<{ memories: MemoryWithTags[]; scores: Map<string, number> }> {
   const memories: MemoryWithTags[] = [];
@@ -787,36 +826,43 @@ async function vectorScoresForQuery(
   if (args.query.trim().length === 0 || args.clerkId === undefined)
     return empty;
 
-  const embedding = await bestEffortEmbedOne({
-    ctx,
-    clerkId: args.clerkId,
-    profileId: args.profileId,
-    feature: "memory-search",
-    failureLog: "[memoryRuntime] query embedding failed",
-    text: queryEmbeddingText(args.query),
-  });
+  const clerkId = args.clerkId;
+  const { embedding, cached } = await timed(args.timing, "embedMs", () =>
+    bestEffortEmbedQueryCached({
+      ctx,
+      clerkId,
+      profileId: args.profileId,
+      feature: "memory-search",
+      failureLog: "[memoryRuntime] query embedding failed",
+      text: queryEmbeddingText(args.query),
+    }),
+  );
+  if (args.timing !== undefined) args.timing.embedCached = cached;
   if (!embedding) return empty;
 
-  const clerkId = args.clerkId;
   const profileId = args.profileId;
   const vectorLimit = clampVectorLimit(VECTOR_CANDIDATE_LIMIT);
   const teamScope = args.kind === "team" && profileId !== undefined;
-  const splitHits = teamScope
-    ? await ctx.vectorSearch("memoryEmbeddings", "by_embedding", {
-        vector: embedding,
-        limit: vectorLimit,
-        filter: (q) => q.eq("profileId", profileId),
-      })
-    : await ctx.vectorSearch("memoryEmbeddings", "by_embedding", {
-        vector: embedding,
-        limit: vectorLimit,
-        filter: (q) => q.eq("userId", clerkId),
-      });
+  const splitHits = await timed(args.timing, "vectorMs", () =>
+    teamScope
+      ? ctx.vectorSearch("memoryEmbeddings", "by_embedding", {
+          vector: embedding,
+          limit: vectorLimit,
+          filter: (q) => q.eq("profileId", profileId),
+        })
+      : ctx.vectorSearch("memoryEmbeddings", "by_embedding", {
+          vector: embedding,
+          limit: vectorLimit,
+          filter: (q) => q.eq("userId", clerkId),
+        }),
+  );
   if (splitHits.length === 0) return empty;
 
-  const splitDocs = await ctx.runQuery(
-    internal.memoryStore.functions.getMemoriesByEmbeddingIdsInternal,
-    { ids: splitHits.map((hit) => hit._id) },
+  const splitDocs = await timed(args.timing, "hydrateMs", () =>
+    ctx.runQuery(
+      internal.memoryStore.functions.getMemoriesByEmbeddingIdsInternal,
+      { ids: splitHits.map((hit) => hit._id) },
+    ),
   );
   const hits = splitHits.map((hit, i) => ({
     memory: splitDocs[i],
