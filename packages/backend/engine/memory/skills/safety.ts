@@ -1,6 +1,6 @@
 /**
- * Safety filter for mined skills and instructions. Pure and dependency-free,
- * so Dream Mode can share it later.
+ * Safety filter for mined skills and instructions. Pure and dependency-free;
+ * shared by Dream Mode and the frontiermemory eval.
  *
  * A text is unsafe when it recommends bypassing a safeguard: hooks, tests,
  * lint, typecheck, CI, verification, TLS, secrets, broad deletes, open

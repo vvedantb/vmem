@@ -1,6 +1,8 @@
+import { jaccard } from "./words.ts";
+
 /**
- * Cross-group skill dedupe. Pure and dependency-free, so Dream Mode can share
- * it later.
+ * Skill dedupe, shared by Dream Mode (drafts against the user's skills) and
+ * the frontiermemory eval (across groups). Pure.
  *
  * Two skills are near-identical when their normalised names match closely,
  * or match moderately and their descriptions and steps overlap.
@@ -79,13 +81,6 @@ function textKey(text: string): Set<string> {
       .filter((token) => token.length >= 3 && !BODY_STOPWORDS.has(token))
       .map(stem),
   );
-}
-
-function jaccard(a: ReadonlySet<string>, b: ReadonlySet<string>): number {
-  if (a.size === 0 && b.size === 0) return 0;
-  let shared = 0;
-  for (const item of a) if (b.has(item)) shared += 1;
-  return shared / (a.size + b.size - shared);
 }
 
 /** Share of the smaller set held by the larger. */

@@ -199,7 +199,7 @@ export function buildMemoryFiles(
   const topicLines: string[] = [];
   const skillLines: string[] = [];
   const usedSkillNames = new Set<string>();
-  // A skill shared by several groups (see skillDedupe.ts) is written once.
+  // A skill shared by several groups (see engine/memory/skills/dedupe.ts) is written once.
   const skillNameOf = new Map<SkillDefinition, string>();
   const usedTopics = new Set<string>();
 

@@ -3,7 +3,7 @@ import {
   isUnsafeSkill,
   isUnsafeText,
   unsafeReason,
-} from "../../eval/frontiermemory/skillSafety";
+} from "../../../engine/memory/skills/safety";
 
 describe("unsafeReason", () => {
   it.each([
