@@ -1,4 +1,7 @@
 import { Virtuoso } from "react-virtuoso";
+import { useQuery } from "convex/react";
+import { api } from "@vmem/backend";
+import { useActiveProfile } from "@/components/workspace/active-profile";
 import ListItemRow from "@/components/_components/ListItemRow";
 import type { MemoryListEntry } from "@/hooks/useMemoryListEntries";
 import type { TrailEntry } from "@/hooks/useTrailData";
@@ -17,6 +20,8 @@ interface MemoryVirtuosoListContext {
   transitionSourceId: string | null;
   trailMap: Map<string, TrailEntry>;
   isDark: boolean;
+  // last successful dream run (moon icon); undefined while loading
+  lastDreamAt: number | null | undefined;
   handlers: MemoryVirtuosoListHandlers;
 }
 
@@ -50,6 +55,7 @@ function MemoryVirtuosoRow({
         isTransitionSource={context.transitionSourceId === entry.item.id}
         trailEntry={context.trailMap.get(entry.item.id)}
         isDark={context.isDark}
+        lastDreamAt={context.lastDreamAt}
         onMemoryClick={context.handlers.onMemoryClick}
         onItemSelect={context.handlers.onItemSelect}
         onContextEdit={context.handlers.onContextEdit}
@@ -77,6 +83,11 @@ export function MemoryVirtuosoList({
   onEndReached,
   className = "scrollbar-thin",
 }: MemoryVirtuosoListProps) {
+  const profile = useActiveProfile();
+  // one query for the whole list, not one per row
+  const lastDreamAt = useQuery(api.dream.lastSuccessfulRunAt, {
+    profileId: profile._id,
+  });
   return (
     <Virtuoso
       data={entries}
@@ -86,6 +97,7 @@ export function MemoryVirtuosoList({
         transitionSourceId,
         trailMap,
         isDark,
+        lastDreamAt,
         handlers,
       }}
       computeItemKey={(_index, entry) => entry.item.id}

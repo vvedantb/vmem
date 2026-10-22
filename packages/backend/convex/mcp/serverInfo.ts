@@ -1,7 +1,7 @@
 import { defineMcpServerInfo, type ClerkTokenType } from "@vvedantb/server";
 import type { McpScope } from "../profiles/mcpAccess";
 
-export const MCP_SERVER_VERSION = "2.4.0";
+export const MCP_SERVER_VERSION = "2.5.0";
 
 export const MCP_ACCEPTED_TOKEN_TYPES: readonly ClerkTokenType[] = [
   "oauth_token",

@@ -1,5 +1,3 @@
-import { useQuery } from "convex/react";
-import { api } from "@vmem/backend";
 import {
   Badge,
   BoltIcon,
@@ -17,7 +15,12 @@ import {
 import { IconEdit, IconMoon, IconTrash } from "@tabler/icons-react";
 import { formatCompactRelativeTime } from "@vmem/shared";
 import { formatMemorySourceLabel, type Memory } from "@/lib/memories";
-import { listItemToMemory, type ListItem } from "@/lib/list-items";
+import {
+  awaitsNextDream,
+  listItemToMemory,
+  visitCountLabel,
+  type ListItem,
+} from "@/lib/list-items";
 import type { TrailEntry } from "@/hooks/useTrailData";
 import type { MemoryTrace } from "./memory-trace";
 import MemoryTraceHover from "./MemoryTraceHover";
@@ -36,6 +39,8 @@ interface ListItemRowProps {
   isTransitionSource?: boolean;
   trailEntry?: TrailEntry;
   isDark: boolean;
+  // last successful dream run, read once by the list
+  lastDreamAt: number | null | undefined;
   onMemoryClick: (memory: Memory) => void;
   // skill → preview panel (not navigate)
   onItemSelect: (item: ListItem) => void;
@@ -52,19 +57,17 @@ export default function ListItemRow({
   isTransitionSource = false,
   trailEntry,
   isDark,
+  lastDreamAt,
   onMemoryClick,
   onItemSelect,
   onContextEdit,
   onContextDelete,
 }: ListItemRowProps) {
   const color = nodeColor(item.tags, item.kind, isDark, null);
-  // dynamic Dreaming indicator
-  const settings = useQuery(api.userSettings.get);
   const awaitingDream =
-    item.kind === "memory" &&
-    settings !== undefined &&
-    (settings.lastDreamRunAt === null ||
-      Date.parse(item.createdAt) > settings.lastDreamRunAt);
+    item.kind === "memory" && awaitsNextDream(item.createdAt, lastDreamAt);
+  const visits =
+    item.kind === "memory" ? visitCountLabel(item.visitCount) : null;
 
   const handleClick = () => {
     if (item.kind === "memory") {
@@ -114,6 +117,11 @@ export default function ListItemRow({
                 {Math.round(relevanceScore * 100)}%
               </span>
             )
+          ) : null}
+          {visits !== null ? (
+            <span className="text-[10px] tabular-nums text-muted/70 flex-shrink-0">
+              {visits}
+            </span>
           ) : null}
           {item.kind === "memory" && item.usefulnessScore !== undefined ? (
             <UsefulnessMeter score={item.usefulnessScore} />

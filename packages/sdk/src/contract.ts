@@ -67,6 +67,8 @@ export const memoryWithTagsSchema = memoryNodeSchema.extend({
   usefulness: memoryUsefulnessSchema.optional(),
   /** Set on create when an identical visible memory absorbed the write. */
   deduped: z.boolean().optional(),
+  /** Times the page was seen (browsing history); set only when above 1. */
+  visitCount: z.number().optional(),
 });
 
 export const graphPathTraceSchema = z.object({

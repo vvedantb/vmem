@@ -584,3 +584,133 @@ describe("dreamCleanup Jev pass", () => {
     expect(proposals).toHaveLength(0);
   });
 });
+
+describe("dreamCleanup web", () => {
+  it("startDryRun -> latestForProfile -> applyCleanup -> undo one group", async () => {
+    const t = setupT();
+    const owner = await addUser(t, "clerk_web");
+    const user = t.withIdentity({ subject: owner.clerkId });
+    const [first, ...rest] = await addVhub(t, owner);
+    if (!first) throw new Error("no rows");
+    const a = await addMemory(t, owner, { contentHash: "h" });
+    const b = await addMemory(t, owner, { contentHash: "h" });
+
+    const planId = await user.mutation(api.dreamCleanup.startDryRun, {
+      profileId: owner.profileId,
+    });
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    expect(
+      await user.query(api.dreamCleanup.latestForProfile, {
+        profileId: owner.profileId,
+      }),
+    ).toMatchObject({ _id: planId, dryRun: true, status: "ok" });
+
+    const applyId = await user.mutation(api.dreamCleanup.applyCleanup, {
+      runId: planId,
+    });
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    expect(
+      await user.query(api.dreamCleanup.latestForProfile, {
+        profileId: owner.profileId,
+      }),
+    ).toMatchObject({ _id: applyId, dryRun: false, status: "ok" });
+    await expect(
+      user.mutation(api.dreamCleanup.applyCleanup, { runId: planId }),
+    ).rejects.toThrow("already applied");
+    for (const id of rest) {
+      expect((await getDoc(t, id)).status).toBe("suppressed");
+    }
+    expect((await getDoc(t, b)).mergedInto).toBe(a);
+
+    const page = await user.query(api.dream.listActions, {
+      runId: applyId,
+      paginationOpts: { numItems: 10, cursor: null },
+    });
+    const exact = page.page.find((action) => action.keeperId === a);
+    if (!exact) throw new Error("exact action missing");
+    await user.mutation(api.dream.undoAction, { actionId: exact._id });
+    expect((await getDoc(t, b)).status).toBe("active");
+    for (const id of rest) {
+      expect((await getDoc(t, id)).status).toBe("suppressed");
+    }
+  });
+
+  it("only applies the caller's own dry run and rate limits scans", async () => {
+    const t = setupT();
+    const owner = await addUser(t, "clerk_web_owner");
+    const stranger = await addUser(t, "clerk_web_stranger");
+    const asStranger = t.withIdentity({ subject: stranger.clerkId });
+    await addMemory(t, owner, { contentHash: "h" });
+    await addMemory(t, owner, { contentHash: "h" });
+    const planId = await dryRun(t, owner);
+
+    await expect(
+      asStranger.mutation(api.dreamCleanup.applyCleanup, { runId: planId }),
+    ).rejects.toThrow("Dream run not found");
+    await expect(
+      asStranger.mutation(api.dreamCleanup.startDryRun, {
+        profileId: owner.profileId,
+      }),
+    ).rejects.toThrow("Profile not found");
+    expect(
+      await asStranger.query(api.dreamCleanup.latestForProfile, {
+        profileId: owner.profileId,
+      }),
+    ).toBeNull();
+    await expect(
+      t
+        .withIdentity({ subject: owner.clerkId })
+        .mutation(api.dreamCleanup.startDryRun, {
+          profileId: owner.profileId,
+        }),
+    ).rejects.toThrow("last hour");
+  });
+
+  it("sends Jev groups to the inbox even with auto-accept on", async () => {
+    const t = setupT();
+    const owner = await addUser(t, "clerk_web_ai");
+    const n1 = await addMemory(t, owner, { title: "Uses pnpm" });
+    const n2 = await addMemory(t, owner, { title: "Prefers pnpm" });
+    await embed(t, owner, n1, vector(0));
+    await embed(t, owner, n2, vector(0, 0.1));
+    await t.run(async (ctx) => {
+      await ctx.db.insert("userSettings", {
+        userId: owner.userId,
+        dreamModeAutoAccept: true,
+      });
+    });
+    const planId = await dryRun(t, owner);
+    await t
+      .withIdentity({ subject: owner.clerkId })
+      .mutation(api.dreamCleanup.applyCleanup, { runId: planId });
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+
+    expect((await getDoc(t, n2)).status).toBe("active");
+    const proposals = await t.run(async (ctx) =>
+      ctx.db.query("proposedUpdates").collect(),
+    );
+    expect(proposals).toEqual([
+      expect.objectContaining({ kind: "merge", status: "pending" }),
+    ]);
+  });
+
+  it("skips Jev on a web scan when dreamModeUseAi is off", async () => {
+    const t = setupT();
+    const owner = await addUser(t, "clerk_web_noai");
+    const n1 = await addMemory(t, owner, { title: "Uses pnpm" });
+    const n2 = await addMemory(t, owner, { title: "Prefers pnpm" });
+    await embed(t, owner, n1, vector(0));
+    await embed(t, owner, n2, vector(0, 0.1));
+    await t.run(async (ctx) => {
+      await ctx.db.insert("userSettings", {
+        userId: owner.userId,
+        dreamModeUseAi: false,
+      });
+    });
+    await t
+      .withIdentity({ subject: owner.clerkId })
+      .mutation(api.dreamCleanup.startDryRun, { profileId: owner.profileId });
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    expect(evaluate).not.toHaveBeenCalled();
+  });
+});

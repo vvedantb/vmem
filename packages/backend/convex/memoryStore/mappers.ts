@@ -98,6 +98,7 @@ export function toMemoryWithHits(
       temporalKind: doc.temporalKind,
     }),
     tags: doc.tags,
+    ...visitCountField(doc),
     ...(hasUsefulnessSignals(doc, hits)
       ? {
           usefulness: {
@@ -111,6 +112,11 @@ export function toMemoryWithHits(
         }
       : {}),
   };
+}
+
+// only rows seen more than once carry it (list "×N visits")
+function visitCountField(doc: Doc<"memories">): { visitCount?: number } {
+  return doc.visitCount > 1 ? { visitCount: doc.visitCount } : {};
 }
 
 function hasUsefulnessSignals(
@@ -144,6 +150,7 @@ export type MemorySummary = {
   updatedAt: string;
   profileId: string | null;
   usefulnessScore?: number | null;
+  visitCount?: number;
 };
 
 export function memoryPreview(content: string): string {
@@ -170,5 +177,6 @@ export function toMemorySummary(doc: Doc<"memories">): MemorySummary {
     updatedAt: toIso(doc.updatedAt),
     profileId: doc.profileId ?? null,
     usefulnessScore: doc.usefulnessScore ?? null,
+    ...visitCountField(doc),
   };
 }

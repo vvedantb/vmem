@@ -1,4 +1,4 @@
-import { v, type Infer } from "convex/values";
+import { v, type Infer, type ObjectType } from "convex/values";
 import {
   judgeDuplicateGroup,
   type JevDuplicateVerdict,
@@ -34,8 +34,9 @@ import {
   internalQuery,
   type ActionCtx,
   type MutationCtx,
+  type QueryCtx,
 } from "./_generated/server";
-import { getUserByClerkId } from "./auth";
+import { authMutation, authQuery, getUserByClerkId } from "./auth";
 import { dreamSpentTodayUsd, mergeGroup, proposeDreamChange } from "./dream";
 import { resolveSystemOneApiKey } from "./lib/systemOneKey";
 import { scheduleLog } from "./lib/openRouter/shared";
@@ -44,7 +45,7 @@ import {
   paginateScopedDocs,
 } from "./memoryStore/helpers";
 import { walkPages } from "./memoryStore/walk";
-import { getSettingsDoc } from "./userSettings";
+import { dreamSettingsOf, getSettingsDoc } from "./userSettings";
 import {
   dreamPlanGroupFields,
   dreamPlanGroupInputFields,
@@ -74,6 +75,8 @@ const JUDGE_CONTENT_CHARS = 600;
 const APPLY_GROUPS = 100;
 const APPLY_ROW_BUDGET = 1_000;
 const PLAN_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
+// web "Scan for duplicates": at most one cleanup start per hour
+const WEB_DRY_RUN_GAP_MS = 60 * 60 * 1000;
 const PURGE_BATCH = 500;
 
 type MemoryId = Id<"memories">;
@@ -946,128 +949,137 @@ async function proposeAiMerge(
   });
 }
 
+const applyArgs = {
+  runId: v.id("dreamRuns"),
+  includeAi: v.optional(v.boolean()),
+  // Jev-flagged groups always become proposals, even with auto-accept on
+  aiAsProposals: v.optional(v.boolean()),
+  // set by the chain itself
+  applyRunId: v.optional(v.id("dreamRuns")),
+  tier: v.optional(tierValidator),
+  afterSeq: v.optional(v.number()),
+};
+
 /**
  * Applies a dry-run plan. Deterministic groups merge through dream.applyMerge
  * (undoable), 100 groups per mutation, self-rescheduling. With includeAi the
  * Jev-flagged groups then become inbox merge proposals, or merge at once
- * (suppressedBy "dream-ai") when dreamModeAutoAccept is on. A group is skipped
- * when any of its rows is gone or no longer visible. Returns the apply run.
+ * (suppressedBy "dream-ai") when dreamModeAutoAccept is on and aiAsProposals
+ * is not set. A group is skipped when any of its rows is gone or no longer
+ * visible. Returns the apply run.
  */
-export const applyInternal = internalMutation({
-  args: {
-    runId: v.id("dreamRuns"),
-    includeAi: v.optional(v.boolean()),
-    // set by the chain itself
-    applyRunId: v.optional(v.id("dreamRuns")),
-    tier: v.optional(tierValidator),
-    afterSeq: v.optional(v.number()),
-  },
-  returns: v.id("dreamRuns"),
-  handler: async (ctx, args) => {
-    const plan = await requireRun(ctx, args.runId);
-    if (!plan.dryRun || plan.trigger !== "backfill" || !plan.profileId) {
-      throw new Error("Not a cleanup dry run");
+async function applyPlanBatch(
+  ctx: MutationCtx,
+  args: ObjectType<typeof applyArgs>,
+): Promise<RunId> {
+  const plan = await requireRun(ctx, args.runId);
+  if (!plan.dryRun || plan.trigger !== "backfill" || !plan.profileId) {
+    throw new Error("Not a cleanup dry run");
+  }
+  if (plan.status !== "ok" && plan.status !== "partial") {
+    throw new Error("Dry run has not finished");
+  }
+  const profileId = plan.profileId;
+  const applyRunId =
+    args.applyRunId ??
+    (await insertRun(ctx, {
+      userId: plan.userId,
+      profileId,
+      dryRun: false,
+      planRunId: plan._id,
+    }));
+  const applyRun = await requireRun(ctx, applyRunId);
+  const tier = args.tier ?? "deterministic";
+  const afterSeq = args.afterSeq ?? -1;
+  const user = await ctx.db.get(plan.userId);
+  if (!user?.clerkId) throw new Error("Dream run user not found");
+  const autoAccept =
+    (await getSettingsDoc(ctx, plan.userId))?.dreamModeAutoAccept ?? false;
+
+  const groups = await ctx.db
+    .query("dreamPlanGroups")
+    .withIndex("by_run_tier_seq", (q) =>
+      q.eq("runId", plan._id).eq("tier", tier).gt("seq", afterSeq),
+    )
+    .take(APPLY_GROUPS);
+  const counts = { ...applyRun.counts };
+  const cleanup = applyRun.cleanup ?? emptyCleanup();
+  let lastSeq = afterSeq;
+  let rows = 0;
+  let more = groups.length === APPLY_GROUPS;
+  for (const group of groups) {
+    if (rows >= APPLY_ROW_BUDGET) {
+      more = true;
+      break;
     }
-    if (plan.status !== "ok" && plan.status !== "partial") {
-      throw new Error("Dry run has not finished");
+    lastSeq = group.seq;
+    const keeperId = group.keeperId;
+    if (keeperId === undefined) continue;
+    if (tier === "ai" && group.aiStatus !== "flagged") continue;
+    rows += group.loserIds.length + 1;
+    if (!(await groupStillVisible(ctx, [keeperId, ...group.loserIds]))) {
+      cleanup.skippedChanged += 1;
+      continue;
     }
-    const profileId = plan.profileId;
-    const applyRunId =
-      args.applyRunId ??
-      (await insertRun(ctx, {
-        userId: plan.userId,
+    if (tier === "ai" && (!autoAccept || args.aiAsProposals === true)) {
+      const proposed = await proposeAiMerge(ctx, {
+        clerkId: user.clerkId,
         profileId,
-        dryRun: false,
-        planRunId: plan._id,
-      }));
-    const applyRun = await requireRun(ctx, applyRunId);
-    const tier = args.tier ?? "deterministic";
-    const afterSeq = args.afterSeq ?? -1;
-    const user = await ctx.db.get(plan.userId);
-    if (!user?.clerkId) throw new Error("Dream run user not found");
-    const autoAccept =
-      (await getSettingsDoc(ctx, plan.userId))?.dreamModeAutoAccept ?? false;
-
-    const groups = await ctx.db
-      .query("dreamPlanGroups")
-      .withIndex("by_run_tier_seq", (q) =>
-        q.eq("runId", plan._id).eq("tier", tier).gt("seq", afterSeq),
-      )
-      .take(APPLY_GROUPS);
-    const counts = { ...applyRun.counts };
-    const cleanup = applyRun.cleanup ?? emptyCleanup();
-    let lastSeq = afterSeq;
-    let rows = 0;
-    let more = groups.length === APPLY_GROUPS;
-    for (const group of groups) {
-      if (rows >= APPLY_ROW_BUDGET) {
-        more = true;
-        break;
-      }
-      lastSeq = group.seq;
-      const keeperId = group.keeperId;
-      if (keeperId === undefined) continue;
-      if (tier === "ai" && group.aiStatus !== "flagged") continue;
-      rows += group.loserIds.length + 1;
-      if (!(await groupStillVisible(ctx, [keeperId, ...group.loserIds]))) {
-        cleanup.skippedChanged += 1;
-        continue;
-      }
-      if (tier === "ai" && !autoAccept) {
-        const proposed = await proposeAiMerge(ctx, {
-          clerkId: user.clerkId,
-          profileId,
-          applyRunId,
-          group,
-          keeperId,
-        });
-        if (proposed) counts.proposals += 1;
-        continue;
-      }
-      const actionId = await mergeGroup(ctx, {
-        runId: applyRunId,
-        keeperId,
-        loserIds: group.loserIds,
-        reason: group.reason,
-        ...(group.sourceKey === undefined
-          ? {}
-          : { sourceKey: group.sourceKey }),
-        ...(tier === "ai"
-          ? {
-              ai: {
-                relation: "duplicate",
-                confidence: group.aiConfidence ?? 0,
-                model: SYSTEMONE_DEFAULT_MODEL,
-              },
-            }
-          : {}),
-      });
-      if (actionId === null) continue;
-      if (tier === "ai") counts.nearDupMerged += 1;
-      else if (group.rules.includes("exact")) counts.exactMerged += 1;
-      else counts.keyMerged += 1;
-    }
-
-    const next: { tier: "deterministic" | "ai"; afterSeq: number } | null = more
-      ? { tier, afterSeq: lastSeq }
-      : tier === "deterministic" && args.includeAi === true
-        ? { tier: "ai", afterSeq: -1 }
-        : null;
-    await ctx.db.patch(applyRunId, {
-      counts,
-      cleanup,
-      ...(next === null ? { status: "ok", finishedAt: Date.now() } : {}),
-    });
-    if (next !== null) {
-      await ctx.scheduler.runAfter(0, internal.dreamCleanup.applyInternal, {
-        runId: plan._id,
-        includeAi: args.includeAi,
         applyRunId,
-        ...next,
+        group,
+        keeperId,
       });
+      if (proposed) counts.proposals += 1;
+      continue;
     }
-    return applyRunId;
-  },
+    const actionId = await mergeGroup(ctx, {
+      runId: applyRunId,
+      keeperId,
+      loserIds: group.loserIds,
+      reason: group.reason,
+      ...(group.sourceKey === undefined ? {} : { sourceKey: group.sourceKey }),
+      ...(tier === "ai"
+        ? {
+            ai: {
+              relation: "duplicate",
+              confidence: group.aiConfidence ?? 0,
+              model: SYSTEMONE_DEFAULT_MODEL,
+            },
+          }
+        : {}),
+    });
+    if (actionId === null) continue;
+    if (tier === "ai") counts.nearDupMerged += 1;
+    else if (group.rules.includes("exact")) counts.exactMerged += 1;
+    else counts.keyMerged += 1;
+  }
+
+  const next: { tier: "deterministic" | "ai"; afterSeq: number } | null = more
+    ? { tier, afterSeq: lastSeq }
+    : tier === "deterministic" && args.includeAi === true
+      ? { tier: "ai", afterSeq: -1 }
+      : null;
+  await ctx.db.patch(applyRunId, {
+    counts,
+    cleanup,
+    ...(next === null ? { status: "ok", finishedAt: Date.now() } : {}),
+  });
+  if (next !== null) {
+    await ctx.scheduler.runAfter(0, internal.dreamCleanup.applyInternal, {
+      runId: plan._id,
+      includeAi: args.includeAi,
+      aiAsProposals: args.aiAsProposals,
+      applyRunId,
+      ...next,
+    });
+  }
+  return applyRunId;
+}
+
+export const applyInternal = internalMutation({
+  args: applyArgs,
+  returns: v.id("dreamRuns"),
+  handler: async (ctx, args) => await applyPlanBatch(ctx, args),
 });
 
 // ------------------------------------------------------- CLI entry points
@@ -1097,23 +1109,38 @@ export const dryRunForUser = internalMutation({
     const profileId =
       args.profileId ?? (await defaultPersonalProfile(ctx, user._id));
     if (!profileId) throw new Error("No personal profile");
-    const runId = await insertRun(ctx, {
+    return await startPlan(ctx, {
       userId: user._id,
       profileId,
-      dryRun: true,
-    });
-    await ctx.scheduler.runAfter(0, internal.dreamCleanup.planInternal, {
-      userId: user._id,
-      profileId,
-      runId,
       ...(args.jevMaxCalls === undefined
         ? {}
         : { jevMaxCalls: args.jevMaxCalls }),
       ...(args.jevSample === undefined ? {} : { jevSample: args.jevSample }),
     });
-    return runId;
   },
 });
+
+// inserts the dry-run row and schedules the plan in the background
+async function startPlan(
+  ctx: MutationCtx,
+  args: {
+    userId: Id<"users">;
+    profileId: Id<"profiles">;
+    jevMaxCalls?: number;
+    jevSample?: boolean;
+  },
+): Promise<RunId> {
+  const runId = await insertRun(ctx, {
+    userId: args.userId,
+    profileId: args.profileId,
+    dryRun: true,
+  });
+  await ctx.scheduler.runAfter(0, internal.dreamCleanup.planInternal, {
+    ...args,
+    runId,
+  });
+  return runId;
+}
 
 async function defaultPersonalProfile(
   ctx: MutationCtx,
@@ -1153,6 +1180,90 @@ export const getRunSummary = internalQuery({
       run,
       costPerCallUsd: priced > 0 ? run.costUsd / priced : null,
     };
+  },
+});
+
+// ---------------------------------------------------------------- web
+
+// newest one-off cleanup run (dry run or apply) of one profile
+async function latestCleanupRun(
+  ctx: QueryCtx,
+  userId: Id<"users">,
+  profileId: Id<"profiles">,
+): Promise<Doc<"dreamRuns"> | null> {
+  return await ctx.db
+    .query("dreamRuns")
+    .withIndex("by_user_trigger_started", (q) =>
+      q.eq("userId", userId).eq("trigger", "backfill"),
+    )
+    .order("desc")
+    .filter((q) => q.eq(q.field("profileId"), profileId))
+    .first();
+}
+
+// the cleanup card: a finished dry run here is a plan not yet applied
+export const latestForProfile = authQuery({
+  args: { profileId: v.id("profiles") },
+  returns: v.union(runRowValidator, v.null()),
+  handler: async (ctx, args) =>
+    await latestCleanupRun(ctx, ctx.userId, args.profileId),
+});
+
+/**
+ * "Scan for duplicates" on the Dreaming page: a dry run of the caller's own
+ * personal profile. Jev runs only when dreamModeUseAi is on. Refused while a
+ * cleanup runs and within an hour of the last one.
+ */
+export const startDryRun = authMutation({
+  args: { profileId: v.id("profiles") },
+  returns: v.id("dreamRuns"),
+  handler: async (ctx, args) => {
+    const profile = await ctx.db.get(args.profileId);
+    if (
+      !profile ||
+      profile.userId !== ctx.userId ||
+      profile.teamId !== undefined
+    ) {
+      throw new Error("Profile not found");
+    }
+    const latest = await latestCleanupRun(ctx, ctx.userId, profile._id);
+    if (latest?.status === "running") {
+      throw new Error("A cleanup is already running");
+    }
+    if (latest && Date.now() - latest.startedAt < WEB_DRY_RUN_GAP_MS) {
+      throw new Error("A cleanup ran in the last hour. Try again later.");
+    }
+    const { useAi } = dreamSettingsOf(await getSettingsDoc(ctx, ctx.userId));
+    return await startPlan(ctx, {
+      userId: ctx.userId,
+      profileId: profile._id,
+      ...(useAi ? {} : { jevMaxCalls: 0 }),
+    });
+  },
+});
+
+/**
+ * "Clean up" on the cleanup card: applies the caller's own dry run when it is
+ * still the profile's latest cleanup run (not yet applied). Deterministic
+ * groups merge with undo; Jev-flagged groups go to the inbox as proposals.
+ */
+export const applyCleanup = authMutation({
+  args: { runId: v.id("dreamRuns") },
+  returns: v.id("dreamRuns"),
+  handler: async (ctx, args) => {
+    const plan = await ctx.db.get(args.runId);
+    if (!plan || plan.userId !== ctx.userId || !plan.profileId) {
+      throw new Error("Dream run not found");
+    }
+    const latest = await latestCleanupRun(ctx, ctx.userId, plan.profileId);
+    if (latest?._id !== plan._id) {
+      throw new Error("This cleanup was already applied");
+    }
+    return await applyPlanBatch(ctx, {
+      runId: plan._id,
+      includeAi: true,
+      aiAsProposals: true,
+    });
   },
 });
 

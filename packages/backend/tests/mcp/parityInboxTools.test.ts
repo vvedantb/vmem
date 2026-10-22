@@ -29,6 +29,16 @@ const dreamResultSchema = z.object({
   counts: z.object({ exactMerged: z.number() }),
 });
 
+const dreamHistorySchema = z.array(
+  z.object({
+    runId: z.string(),
+    trigger: z.string(),
+    dryRun: z.boolean(),
+    status: z.string(),
+    counts: z.object({ exactMerged: z.number() }),
+  }),
+);
+
 async function seedNearDuplicates(
   t: ConvexTestBackend,
   clerkId: string,
@@ -195,6 +205,35 @@ describe("MCP inbox parity tools (convex-test backend)", () => {
     await expect(mcpCaller(t, ALICE, "team").call("dream_run")).rejects.toThrow(
       /not available on team/,
     );
+  });
+
+  it("dream_history lists the caller's recent runs with counts only", async () => {
+    const t = createConvexBackend();
+    const alice = await signUp(t, ALICE, "alice@example.com");
+    await signUp(t, BOB, "bob@example.com");
+    await seedNearDuplicates(t, ALICE, alice.profileId);
+    const aliceMcp = mcpCaller(t, ALICE);
+    const run = dreamResultSchema.parse(await aliceMcp.call("dream_run"));
+
+    const history = dreamHistorySchema.parse(
+      await aliceMcp.call("dream_history"),
+    );
+    expect(history).toEqual([
+      expect.objectContaining({
+        runId: run.runIds[0],
+        trigger: "manual",
+        dryRun: false,
+        status: "ok",
+        counts: expect.objectContaining({ exactMerged: 1 }),
+      }),
+    ]);
+    expect(JSON.stringify(history)).not.toContain("Use pnpm for vmem");
+    expect(
+      dreamHistorySchema.parse(await mcpCaller(t, BOB).call("dream_history")),
+    ).toEqual([]);
+    await expect(
+      mcpCaller(t, ALICE, "team").call("dream_history"),
+    ).rejects.toThrow(/not available on team/);
   });
 
   it("notifications tools only touch the caller's notifications", async () => {

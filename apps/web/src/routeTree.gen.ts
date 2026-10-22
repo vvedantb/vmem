@@ -29,6 +29,7 @@ import { Route as MainProfileIdProposalsRouteImport } from './routes/_main/$prof
 import { Route as MainProfileIdNotificationsRouteImport } from './routes/_main/$profileId/notifications'
 import { Route as MainProfileIdHomeRouteImport } from './routes/_main/$profileId/home'
 import { Route as MainProfileIdFilesRouteImport } from './routes/_main/$profileId/files'
+import { Route as MainProfileIdDreamingRouteImport } from './routes/_main/$profileId/dreaming'
 import { Route as MainSettingsDataControlsRouteRouteImport } from './routes/_main/settings/data-controls/route'
 import { Route as MainSettingsApiRouteRouteImport } from './routes/_main/settings/api/route'
 import { Route as MainProfileIdWikiRouteRouteImport } from './routes/_main/$profileId/wiki/route'
@@ -168,6 +169,11 @@ const MainProfileIdHomeRoute = MainProfileIdHomeRouteImport.update({
 const MainProfileIdFilesRoute = MainProfileIdFilesRouteImport.update({
   id: '/files',
   path: '/files',
+  getParentRoute: () => MainProfileIdRouteRoute,
+} as any)
+const MainProfileIdDreamingRoute = MainProfileIdDreamingRouteImport.update({
+  id: '/dreaming',
+  path: '/dreaming',
   getParentRoute: () => MainProfileIdRouteRoute,
 } as any)
 const MainSettingsDataControlsRouteRoute =
@@ -406,6 +412,7 @@ export interface FileRoutesByFullPath {
   '/$profileId/wiki': typeof MainProfileIdWikiRouteRouteWithChildren
   '/settings/api': typeof MainSettingsApiRouteRouteWithChildren
   '/settings/data-controls': typeof MainSettingsDataControlsRouteRouteWithChildren
+  '/$profileId/dreaming': typeof MainProfileIdDreamingRoute
   '/$profileId/files': typeof MainProfileIdFilesRoute
   '/$profileId/home': typeof MainProfileIdHomeRoute
   '/$profileId/notifications': typeof MainProfileIdNotificationsRoute
@@ -457,6 +464,7 @@ export interface FileRoutesByTo {
   '/agent-callback': typeof AgentCallbackRoute
   '/slides': typeof SlidesRoute
   '/home': typeof MainHomeRoute
+  '/$profileId/dreaming': typeof MainProfileIdDreamingRoute
   '/$profileId/files': typeof MainProfileIdFilesRoute
   '/$profileId/home': typeof MainProfileIdHomeRoute
   '/$profileId/notifications': typeof MainProfileIdNotificationsRoute
@@ -518,6 +526,7 @@ export interface FileRoutesById {
   '/_main/$profileId/wiki': typeof MainProfileIdWikiRouteRouteWithChildren
   '/_main/settings/api': typeof MainSettingsApiRouteRouteWithChildren
   '/_main/settings/data-controls': typeof MainSettingsDataControlsRouteRouteWithChildren
+  '/_main/$profileId/dreaming': typeof MainProfileIdDreamingRoute
   '/_main/$profileId/files': typeof MainProfileIdFilesRoute
   '/_main/$profileId/home': typeof MainProfileIdHomeRoute
   '/_main/$profileId/notifications': typeof MainProfileIdNotificationsRoute
@@ -580,6 +589,7 @@ export interface FileRouteTypes {
     | '/$profileId/wiki'
     | '/settings/api'
     | '/settings/data-controls'
+    | '/$profileId/dreaming'
     | '/$profileId/files'
     | '/$profileId/home'
     | '/$profileId/notifications'
@@ -631,6 +641,7 @@ export interface FileRouteTypes {
     | '/agent-callback'
     | '/slides'
     | '/home'
+    | '/$profileId/dreaming'
     | '/$profileId/files'
     | '/$profileId/home'
     | '/$profileId/notifications'
@@ -691,6 +702,7 @@ export interface FileRouteTypes {
     | '/_main/$profileId/wiki'
     | '/_main/settings/api'
     | '/_main/settings/data-controls'
+    | '/_main/$profileId/dreaming'
     | '/_main/$profileId/files'
     | '/_main/$profileId/home'
     | '/_main/$profileId/notifications'
@@ -885,6 +897,13 @@ declare module '@tanstack/react-router' {
       path: '/files'
       fullPath: '/$profileId/files'
       preLoaderRoute: typeof MainProfileIdFilesRouteImport
+      parentRoute: typeof MainProfileIdRouteRoute
+    }
+    '/_main/$profileId/dreaming': {
+      id: '/_main/$profileId/dreaming'
+      path: '/dreaming'
+      fullPath: '/$profileId/dreaming'
+      preLoaderRoute: typeof MainProfileIdDreamingRouteImport
       parentRoute: typeof MainProfileIdRouteRoute
     }
     '/_main/settings/data-controls': {
@@ -1300,6 +1319,7 @@ interface MainProfileIdRouteRouteChildren {
   MainProfileIdSourcesRouteRoute: typeof MainProfileIdSourcesRouteRouteWithChildren
   MainProfileIdTeamRouteRoute: typeof MainProfileIdTeamRouteRouteWithChildren
   MainProfileIdWikiRouteRoute: typeof MainProfileIdWikiRouteRouteWithChildren
+  MainProfileIdDreamingRoute: typeof MainProfileIdDreamingRoute
   MainProfileIdFilesRoute: typeof MainProfileIdFilesRoute
   MainProfileIdHomeRoute: typeof MainProfileIdHomeRoute
   MainProfileIdNotificationsRoute: typeof MainProfileIdNotificationsRoute
@@ -1318,6 +1338,7 @@ const MainProfileIdRouteRouteChildren: MainProfileIdRouteRouteChildren = {
   MainProfileIdSourcesRouteRoute: MainProfileIdSourcesRouteRouteWithChildren,
   MainProfileIdTeamRouteRoute: MainProfileIdTeamRouteRouteWithChildren,
   MainProfileIdWikiRouteRoute: MainProfileIdWikiRouteRouteWithChildren,
+  MainProfileIdDreamingRoute: MainProfileIdDreamingRoute,
   MainProfileIdFilesRoute: MainProfileIdFilesRoute,
   MainProfileIdHomeRoute: MainProfileIdHomeRoute,
   MainProfileIdNotificationsRoute: MainProfileIdNotificationsRoute,

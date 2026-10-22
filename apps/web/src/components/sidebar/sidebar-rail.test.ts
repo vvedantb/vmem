@@ -33,6 +33,7 @@ describe("railSectionFromPathname", () => {
     expect(railSectionFromPathname("/p1/files")).toBe("files");
     expect(railSectionFromPathname("/p1/usage")).toBe("usage");
     expect(railSectionFromPathname("/p1/traces")).toBe("traces");
+    expect(railSectionFromPathname("/p1/dreaming")).toBe("dreaming");
     expect(railSectionFromPathname("/p1/team/settings")).toBe("team");
     expect(railSectionFromPathname("/settings/preferences")).toBe("settings");
   });
@@ -56,6 +57,7 @@ describe("railSectionFromPathname", () => {
     expect(navViewFromPathname("/p1/home")).toBe("main");
     expect(navViewFromPathname("/p1/usage")).toBe("main");
     expect(navViewFromPathname("/p1/traces")).toBe("main");
+    expect(navViewFromPathname("/p1/dreaming")).toBe("main");
   });
 
   it("opens no stacked sidebar panel for inbox or sources", () => {
@@ -84,6 +86,7 @@ describe("rail destinations cover the previous sidebar nav", () => {
         "/$profileId/files",
         "/$profileId/usage",
         "/$profileId/traces",
+        "/$profileId/dreaming",
         "/$profileId/sources",
         "/$profileId/team/members",
         "/settings",
@@ -95,6 +98,7 @@ describe("rail destinations cover the previous sidebar nav", () => {
       "Files",
       "Usage",
       "Traces",
+      "Dreaming",
       "Sources",
     ]);
     expect(hrefs).not.toContain("/$profileId/activity");
@@ -182,11 +186,12 @@ describe("shell uses a rail + panel + drawer", () => {
     expect(rail).toContain("!isPanelHidden");
   });
 
-  it("drops the sidebar panel column on home, usage, traces, inbox and sources", () => {
+  it("drops the sidebar panel column on home, usage, traces, dreaming, inbox and sources", () => {
     for (const section of [
       "home",
       "usage",
       "traces",
+      "dreaming",
       "inbox",
       "sources",
     ] as const) {

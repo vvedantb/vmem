@@ -59,6 +59,7 @@ pnpm test:e2e -- --grep @skills
 pnpm test:e2e -- --grep @files
 pnpm test:e2e -- --grep @inbox
 pnpm test:e2e -- --grep @activity
+pnpm test:e2e -- --grep @dreaming     # write test needs E2E_DREAM=1 + non-prod E2E_BASE_URL
 pnpm test:e2e -- --grep @settings
 pnpm test:e2e -- --grep @nav
 pnpm test:e2e -- --grep @auth

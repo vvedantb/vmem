@@ -49,6 +49,7 @@ type MemoryRowItem = BaseListItem &
     | "sourceSyncedAt"
     | "profileId"
     | "usefulnessScore"
+    | "visitCount"
   > & {
     kind: "memory";
   };
@@ -77,6 +78,23 @@ export function listItemPassesFilters(
   );
 }
 
+// "×N visits" on a list row, only for rows seen more than once
+export function visitCountLabel(visitCount: number | undefined): string | null {
+  return visitCount !== undefined && visitCount > 1
+    ? `×${visitCount.toLocaleString()} visits`
+    : null;
+}
+
+// moon icon: memories created after the last successful dream run. Unknown
+// (still loading) shows nothing; no run yet marks every row.
+export function awaitsNextDream(
+  createdAtIso: string,
+  lastDreamAt: number | null | undefined,
+): boolean {
+  if (lastDreamAt === undefined) return false;
+  return lastDreamAt === null || Date.parse(createdAtIso) > lastDreamAt;
+}
+
 const SKILL_PREFIX = "skill:";
 
 export function memoryToListItem(memory: Memory): ListItem {
@@ -93,6 +111,7 @@ export function memoryToListItem(memory: Memory): ListItem {
     sourceSyncedAt: memory.sourceSyncedAt,
     profileId: memory.profileId,
     usefulnessScore: memory.usefulnessScore,
+    visitCount: memory.visitCount,
   };
 }
 
@@ -113,6 +132,7 @@ export function listItemToMemory(
       ? { usefulnessScore: item.usefulnessScore }
       : {}),
     ...(item.profileId !== undefined ? { profileId: item.profileId } : {}),
+    ...(item.visitCount !== undefined ? { visitCount: item.visitCount } : {}),
   };
 }
 

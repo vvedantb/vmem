@@ -10,6 +10,7 @@ import {
   IconReceipt2,
   IconFlask,
   IconTimelineEvent,
+  IconMoon,
 } from "@tabler/icons-react";
 import {
   BoltIcon,
@@ -28,6 +29,7 @@ export type RailSection =
   | "files"
   | "usage"
   | "traces"
+  | "dreaming"
   | "sources"
   | "inbox"
   | "team"
@@ -41,6 +43,7 @@ export const railLibraryItems: NavItem[] = [
   { href: "/$profileId/files", label: "Files", icon: FilesIcon },
   { href: "/$profileId/usage", label: "Usage", icon: IconReceipt2 },
   { href: "/$profileId/traces", label: "Traces", icon: IconTimelineEvent },
+  { href: "/$profileId/dreaming", label: "Dreaming", icon: IconMoon },
   { href: "/$profileId/sources", label: "Sources", icon: IconPlugConnected },
 ];
 
@@ -93,9 +96,15 @@ export const navGroups: NavGroup[] = [
   },
 ];
 
-// Home, Usage, Traces, Inbox and Sources have no sidebar panel: the main page sits
-// beside the rail and any nested views are page tabs.
-type PanelHiddenSection = "home" | "usage" | "traces" | "inbox" | "sources";
+// Home, Usage, Traces, Dreaming, Inbox and Sources have no sidebar panel: the
+// main page sits beside the rail and any nested views are page tabs.
+type PanelHiddenSection =
+  | "home"
+  | "usage"
+  | "traces"
+  | "dreaming"
+  | "inbox"
+  | "sources";
 type PanelSection = Exclude<RailSection, PanelHiddenSection>;
 
 export function railSectionHidesPanel(
@@ -105,6 +114,7 @@ export function railSectionHidesPanel(
     section === "home" ||
     section === "usage" ||
     section === "traces" ||
+    section === "dreaming" ||
     section === "inbox" ||
     section === "sources"
   );
@@ -125,6 +135,7 @@ export function railSectionFromPathname(pathname: string): RailSection {
   if (sub.startsWith("/files")) return "files";
   if (sub.startsWith("/usage")) return "usage";
   if (sub.startsWith("/traces")) return "traces";
+  if (sub.startsWith("/dreaming")) return "dreaming";
   if (sub.startsWith("/sources")) return "sources";
   if (
     sub.startsWith("/inbox") ||

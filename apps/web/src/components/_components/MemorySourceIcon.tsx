@@ -1,5 +1,7 @@
 import {
+  IconBookmark,
   IconBrandYoutube,
+  IconHistory,
   IconMessageChatbot,
   IconSparkles,
   IconWorld,
@@ -44,6 +46,10 @@ export function MemorySourceIcon({
       );
     case "web":
       return <IconWorld size={size} stroke={1.7} className={className} />;
+    case "browsing-history":
+      return <IconHistory size={size} stroke={1.7} className={className} />;
+    case "bookmarks":
+      return <IconBookmark size={size} stroke={1.7} className={className} />;
     case "prompt-capture":
       return (
         <IconMessageChatbot size={size} stroke={1.7} className={className} />
