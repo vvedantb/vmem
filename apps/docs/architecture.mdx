@@ -58,15 +58,34 @@ A native Expo app and GitHub codebase indexer used to live in this repo. They ar
 4. Each result includes a **context trace** explaining the score
 5. User settings (`aboutMe`, `preferences`) are merged in parallel as `userContext`
 
-### Dream Mode
+### Nightly maintenance
 
-1. One cron, "nightly maintenance" at 02:30 UTC (`convex/nightly.ts`), runs per user: the dream step first, then rollups. "Start Dreaming" in the inbox and MCP `dream_run` run the same dream step (once per hour).
-2. The dream step (`convex/dreaming.ts`) runs per personal profile and per team profile the user owns, in bounded batches (at most 2,000 rows read per profile per night):
-   - exact and same-page dedupe over the rows changed since the last run (`by_user_updated`, `by_user_profile_hash`, `by_user_source`), merged into the oldest row
+One cron, `nightly maintenance` at 02:30 UTC (`convex/nightly.ts`), pages through users and runs one action per user on the `nightlyPool` workpool:
+
+1. **Dream step** (`convex/dreaming.ts`), when `dreamModeAutomatic` is on. Per personal profile and per team profile the user owns, in bounded batches (at most 2,000 rows read per profile per run):
+   - exact and same-page dedupe over the rows changed since the last run (the first run reads only the last 24 hours), merged at once into one keeper
+   - Jev judges open `near_dup` write-time candidates; Qwen (thinking off) judges open `maybe_conflict` candidates. Confident merges and updates apply only with `dreamModeAutoAccept`, else they become inbox proposals. At most 40 AI calls per user per night and $0.50 of dream AI per UTC day
    - rows past `expiresAt` become `expired`
-   - stale browsing history, bookmarks and desktop rows (30 days idle, at most 2 visits, low usefulness, never retrieved) are archived, at most 500 per night; personal profiles only, setting `dreamModeDecay`
-3. Every change is a `dreamActions` row in the run's `dreamRuns` log and can be undone for 30 days. No AI call yet; the near-duplicate and contradiction judges come later.
-4. `dreamModeAutomatic` turns the nightly run off. `DREAM_DISABLED=1` on the deployment stops nightly and manual dreaming.
+   - stale browsing history, bookmarks and desktop rows are archived (`suppressedBy: "dream-decay"`), at most 500 per night, personal profiles only
+2. **Rollups** (`convex/rollupActions.ts`), when `rollupsEnabled` is on: the day rollup for yesterday, then the ISO week on Sundays and the month on its last day.
+
+A failed dream step is logged and does not block the rollups. Every dream change is a `dreamActions` row in the run's `dreamRuns` log and can be undone for 30 days. "Start Dreaming" in the inbox and MCP `dream_run` run the same dream step (once per hour).
+
+Write-time candidates come from the embed step (`convex/dreamCandidates.ts`): one vector query per new embedding stores near pairs in `dreamCandidates`. Nothing merges at write time.
+
+`DREAM_DISABLED=1` stops nightly and manual dreaming; rollups still run. `NIGHTLY_DISABLED=1` stops the whole cron. See [Dream Mode](/concepts/dream-mode) for the full rules.
+
+### Retention crons
+
+| Cron                            | Deletes                                                                    |
+| ------------------------------- | -------------------------------------------------------------------------- |
+| `purge expired traces`          | MCP traces and their details older than 7 days                             |
+| `purge expired openRouter logs` | AI log rows older than `OPENROUTER_LOG_RETENTION_DAYS` (no-op while unset) |
+| `purge expired dream actions`   | Dream log rows 90 days after their 30-day undo window closed               |
+| `purge old dream cleanup plans` | One-off cleanup plans 30 days after the dry run                            |
+| `purge dream candidates`        | Write-time candidates older than 30 days, or whose rows are gone or hidden |
+
+All run hourly, 500 rows a batch (candidates: 200). Memories are never hard-deleted by these crons.
 
 ### MCP Implicit Memory
 

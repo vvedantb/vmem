@@ -210,6 +210,8 @@ Store a new memory.
 
 An exact repeat (same title and content, ignoring case and spacing) of a visible memory in the same profile is not stored again. The tool returns the existing memory with `deduped: true`, bumps its visit count, and merges its tags and confidence. A pinned memory only gets the visit count. A suppressed or expired match does not count.
 
+A new memory is not merged with similar rows at write time. When its embedding is stored, near pairs are saved as Dream Mode candidates, and the nightly run judges them. See [Dream Mode](/concepts/dream-mode#write-time-candidates).
+
 ---
 
 ## memory_add_batch
@@ -308,7 +310,7 @@ List memories related to a given memory by shared tags and similar title or cont
 
 ## memory_timeline
 
-Time travel over stored activity summaries (rollups). Rollups are written nightly per UTC day, ISO week and month for opted-in users. This tool only reads them: it never calls an LLM. Works on `/mcp` and `/mcp/team`; on a team profile you see your own rollups.
+Time travel over stored activity summaries (rollups). Rollups are written by the 02:30 UTC nightly run per UTC day, ISO week and month for users who turned on `rollupsEnabled` (see [Rollups](/concepts/dream-mode#rollups)). This tool only reads them: it never calls an LLM. Works on `/mcp` and `/mcp/team`; on a team profile you see your own rollups.
 
 - **Window** (`start` / `end`): the summaries that overlap the window, oldest first, at most 31. Without `period`, the tool picks the coarsest period with one whole UTC period inside the window: month, then week, then day.
 - **Known at** (`date`): the newest summaries that ended at or before the date (up to 3 months, 4 weeks and 7 days), plus the newest 20 memories created before it. Rollups are frozen snapshots. Memories have no version history, so they show today's text; suppressed memories are left out.
@@ -535,11 +537,11 @@ Approve or reject one pending proposal.
 
 ## dream_run
 
-Personal connector only. Run the nightly dream pass now, as the web Start Dreaming button does: your personal profiles and the team profiles you own. It merges exact and same-page duplicates, expires rows past `expiresAt` and archives stale browsing history. No AI call. Each change can be undone for 30 days. Limited to one run per hour.
+Personal connector only. Run the nightly [Dream Mode](/concepts/dream-mode) pass now, as the web Start Dreaming button does: your personal profiles and the team profiles you own. It merges exact and same-page duplicates, sends open write-time candidates to the AI judge (when `dreamModeUseAi` is on and the deployment has `AI_GATEWAY_API_KEY`, within the nightly AI caps and daily budget), expires rows past `expiresAt` and archives stale browsing history. Each change can be undone for 30 days. Limited to one run per hour. No notification.
 
 **Parameters:** none
 
-**Returns:** `{ reason, runIds, counts: { exactMerged, keyMerged, expired, archived, ... }, failed }`. `runIds` has one dreaming log row per profile. `reason` is `rate-limited` when Dream Mode ran in the last hour, `disabled` when the deployment paused dreaming.
+**Returns:** `{ reason, runIds, counts: { exactMerged, keyMerged, nearDupMerged, superseded, proposals, expired, archived, aiFlagged }, failed }`. `runIds` has one dreaming log row (`dreamRuns` id) per profile; `dream_history` lists the same ids. `failed` counts profiles whose run threw. `reason` is `ok`, `rate-limited` when Dream Mode ran in the last hour, `disabled` when the deployment set `DREAM_DISABLED=1`, or `no-user`.
 
 ---
 
@@ -549,7 +551,7 @@ Personal connector only. Read-only: your last 10 dream runs, newest first, as on
 
 **Parameters:** none
 
-**Returns:** `[{ runId, profileId, trigger, dryRun, status, startedAt, finishedAt, counts: { exactMerged, keyMerged, nearDupMerged, superseded, proposals, expired, archived, aiFlagged }, aiCalls, costUsd }]`. `trigger` is `nightly`, `manual` or `backfill` (one-off cleanup).
+**Returns:** `[{ runId, profileId, trigger, dryRun, status, startedAt, finishedAt, counts: { exactMerged, keyMerged, nearDupMerged, superseded, proposals, expired, archived, aiFlagged }, aiCalls, costUsd }]`. `trigger` is `nightly`, `manual` or `backfill` (one-off cleanup). `status` is `partial` when the run stopped at a nightly limit; the next run continues. `costUsd` is the AI spend of the run.
 
 ---
 
@@ -890,7 +892,7 @@ Owner only. `teams_add_member { teamId, email }` adds an existing vmem account w
 
 ## settings_get
 
-Personal connector only. All resolved settings: `aboutMe`, `preferences`, memory extraction, Dream Mode (nightly, decay, auto-accept, `lastDreamRunAt`), notifications, theme, extension sync, `defaultProfiles` and `experimentalFlags`.
+Personal connector only. All resolved settings: `aboutMe`, `preferences`, memory extraction, Dream Mode (`dreamModeAutomatic`, `dreamModeDecay`, `dreamModeUseAi`, `dreamModeAutoAccept`, `lastDreamRunAt`), `rollupsEnabled`, notifications, theme, extension sync, `defaultProfiles` and `experimentalFlags`.
 
 **Parameters:** none
 
@@ -914,7 +916,7 @@ Personal connector only. Change one or more settings; omitted fields are unchang
 </ParamField>
 <ParamField body="theme" type="'light' | 'dark' | 'system'" />
 
-Boolean fields: `memoryAutoExtract`, `memoryAutoTag`, `dreamModeAutomatic`, `dreamModeDecay`, `dreamModeAutoAccept`, `notificationsEnabled`, `notifyMemoryConflicts`, `notifyNewMemories`, `notifyMemoriesExpiring`, `extensionAutoSyncEnabled`, `extensionSelectionPopupEnabled`. Also `language` (2–35 characters).
+Boolean fields: `memoryAutoExtract`, `memoryAutoTag`, `dreamModeAutomatic`, `dreamModeDecay`, `dreamModeUseAi`, `dreamModeAutoAccept`, `notificationsEnabled`, `notifyMemoryConflicts`, `notifyNewMemories`, `notifyMemoriesExpiring`, `extensionAutoSyncEnabled`, `extensionSelectionPopupEnabled`. Also `language` (2–35 characters).
 
 **Returns:** the settings after the change (as `settings_get`).
 

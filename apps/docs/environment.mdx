@@ -30,7 +30,9 @@ Set these in the **Convex dashboard** (Settings → Environment Variables). The 
 
 There is **no** in-app Settings → Secrets page. Operators set `AI_GATEWAY_API_KEY` on the Convex deployment (dashboard Environment Variables or `npx convex env set`). Instruction `save` / `update` over HTTP return `422 openrouter_required` when `AI_GATEWAY_API_KEY` is missing from the deployment. The error code stays `openrouter_required` so existing clients keep matching it.
 
-The same key turns on Jev for retrieve rerank, Dream Mode near-duplicate merge metadata, related memories, and skill recommendations. Jev calls go through the AI Gateway only. Retrieve reranks automatically (no noul hard-drop). Dream Mode always creates a proposal for each heuristic cluster; Jev may override the keeper and the auto-accept signal. Missing key fail-opens to hybrid retrieve / heuristic merge (no 422). HTTP/SDK retrieve may pass `judge: "off"` for labelled ablation; LoCoMo CLI uses `LOCOMO_IR_JUDGE`. Live MCP retrieve does not expose that flag. Enablement notes live in `packages/backend/tests/memory/jev-retrieve-gate.md`.
+The same key turns on Jev for retrieve rerank, context pack, related memories and skill recommendations, and the [Dream Mode](/concepts/dream-mode) AI judge (Jev for near-duplicates, Qwen with thinking off for conflicts). Jev calls go through the AI Gateway only, with `disallowPromptTraining`: the gateway routes only to providers that do not train on prompts. Request-level zero data retention needs a Vercel Pro or Enterprise plan, so it is not sent; `dataPolicy: "zdr"` stays opt-in in `engine/llm/systemOneClient.ts`. Retrieve reranks automatically (no noul hard-drop). Missing key fail-opens to hybrid retrieve, and Dream Mode then runs only its deterministic steps (no 422). HTTP/SDK retrieve may pass `judge: "off"` for labelled ablation; LoCoMo CLI uses `LOCOMO_IR_JUDGE`. Live MCP retrieve does not expose that flag. Enablement notes live in `packages/backend/tests/memory/jev-retrieve-gate.md`.
+
+Every call is logged to `openRouterLogs` and shows on the Usage page: Jev calls from retrieve, context pack, related memories and skills under **Jev**, Dream Mode calls under **Dreaming**, rollup summaries under **Rollups**.
 
 Upgrading from the direct TypeSafe client: remove `TYPESAFE_API_KEY` from the Convex production deployment (`clear-bear-690`) with `npx convex env remove TYPESAFE_API_KEY`. It is no longer read. Keep `AI_GATEWAY_API_KEY`.
 
@@ -45,6 +47,17 @@ There is **no** `NEO4J_*` or `MCP_JWT_SECRET` on current `main`.
 When it is set, the hourly `purge expired openRouter logs` cron deletes rows older than that many days, 500 rows a batch, and reschedules itself while more remain. It skips rows that the aggregate drain has not folded in yet. It does not touch the cost, token and model aggregates. Usage totals and the model filter therefore keep the full history, but the log list only shows rows inside the window. A blank, zero, negative or fractional value counts as unset.
 
 There is no retention setting for `api_request` audit entries. The `convex-audit-log` component (0.2.0) only has `cleanup`, which reads the oldest rows by timestamp for every action. It can filter on `retentionCategory`, but it skips non-matching rows inside the same batch. A filtered sweep would stall behind older non-`api_request` rows, and an unfiltered sweep would also delete memory, API key and team audit history. Components keep their tables private, so the app cannot delete those rows directly.
+
+### Nightly jobs (optional)
+
+The `nightly maintenance` cron runs at 02:30 UTC: Dream Mode first, then rollups. See [Dream Mode](/concepts/dream-mode).
+
+| Variable           | Required | Description                                                                                |
+| ------------------ | -------- | ------------------------------------------------------------------------------------------ |
+| `DREAM_DISABLED`   | No       | `1` stops nightly and manual dreaming (`dream_run` returns `disabled`). Rollups still run. |
+| `NIGHTLY_DISABLED` | No       | `1` stops the whole nightly cron: dreaming and rollups. Manual dream runs still work.      |
+
+Any other value, or unset, leaves the job on. The dream AI budget ($0.50 per UTC day, all users) and the per-user caps are constants in `engine/memory/dream/nightly.ts`, not env vars.
 
 ### Connector OAuth (optional)
 
