@@ -237,6 +237,9 @@ export const proposedUpdateFields = {
   source: proposedUpdateSourceValidator,
   memorySnapshot: v.optional(v.object(proposedMemorySnapshotFields)),
   sourceMemorySnapshots: v.array(v.object(proposedSourceSnapshotFields)),
+  // AI-judged dream cleanup merge: approving runs dream.applyMerge under
+  // this run (suppress with undo) instead of writing a consolidated memory
+  dreamRunId: v.optional(v.id("dreamRuns")),
 };
 
 // table field validators, used in schema.ts and return validators
@@ -562,6 +565,34 @@ export const rollupFields = {
   status: v.union(v.literal("ok"), v.literal("skipped"), v.literal("failed")),
 };
 
+const dreamPlanRuleValidator = v.union(
+  v.literal("exact"),
+  v.literal("key"),
+  v.literal("jev"),
+);
+
+const dreamCleanupCountsFields = {
+  scannedRows: v.number(),
+  // dry run, rules A/B: groups by the rules that fired
+  exactGroups: v.number(),
+  keyGroups: v.number(),
+  bothGroups: v.number(),
+  groups: v.number(),
+  rowsToSuppress: v.number(),
+  // dry run, rule J (Jev): candidate groups found, then their verdicts
+  aiCandidates: v.number(),
+  aiNotDuplicate: v.number(),
+  aiErrors: v.number(),
+  aiSkipped: v.number(),
+  // calls whose cost the gateway did not report
+  aiCostUnknown: v.number(),
+  aiStopReason: v.optional(
+    v.union(v.literal("no_key"), v.literal("cap"), v.literal("budget")),
+  ),
+  // apply: groups left alone because a row changed since the plan
+  skippedChanged: v.number(),
+};
+
 // one dreaming pass (nightly, manual or the one-off backfill) per user and
 // profile. `sample` holds the top groups for review: at most 50, each with at
 // most 20 memory ids (the writer caps both).
@@ -605,11 +636,55 @@ export const dreamRunFields = {
         ),
         keeperTitle: v.string(),
         count: v.number(),
+        // keeper first, then the rows it would hide
         memoryIds: v.array(v.id("memories")),
         reason: v.optional(v.string()),
+        keeperId: v.optional(v.id("memories")),
+        // every rule that fired (exact and key for an A∩B union)
+        rules: v.optional(v.array(dreamPlanRuleValidator)),
+        // first few loser titles, 80 chars each
+        loserTitles: v.optional(v.array(v.string())),
       }),
     ),
   ),
+  // apply runs: the dry run whose plan they applied
+  planRunId: v.optional(v.id("dreamRuns")),
+  // one-off cleanup (dreamCleanup) plan and apply counts
+  cleanup: v.optional(v.object(dreamCleanupCountsFields)),
+};
+
+// dry run of the one-off cleanup: one row per planned group. Deterministic
+// groups (rules A/B) carry keeper + losers; AI groups start as candidates
+// (aiStatus "pending") and get keeper + losers once Jev flags them.
+export const dreamPlanGroupInputFields = {
+  tier: v.union(v.literal("deterministic"), v.literal("ai")),
+  // plan order inside the tier; apply and judge page on it
+  seq: v.number(),
+  rules: v.array(dreamPlanRuleValidator),
+  memberIds: v.array(v.id("memories")),
+  keeperId: v.optional(v.id("memories")),
+  loserIds: v.array(v.id("memories")),
+  sourceKey: v.optional(v.string()),
+  keeperTitle: v.string(),
+  loserTitles: v.array(v.string()),
+  reason: v.string(),
+  aiStatus: v.optional(
+    v.union(
+      v.literal("pending"),
+      v.literal("flagged"),
+      v.literal("not_duplicate"),
+      v.literal("error"),
+    ),
+  ),
+  aiConfidence: v.optional(v.number()),
+  // best vector score that formed an AI group (0 = entity only)
+  score: v.optional(v.number()),
+};
+
+export const dreamPlanGroupFields = {
+  runId: v.id("dreamRuns"),
+  ...dreamPlanGroupInputFields,
+  createdAt: v.number(),
 };
 
 // the memory fields a dream action may change, as they were before it.

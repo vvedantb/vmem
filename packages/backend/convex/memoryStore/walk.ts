@@ -35,7 +35,7 @@ function scopeArgs(scope: MemoryReadScope): {
   };
 }
 
-async function walkPages<T>(
+export async function walkPages<T>(
   load: (args: {
     cursor: string | null;
     numItems: number;

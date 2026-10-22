@@ -3,7 +3,9 @@ import { authAction, getUserByClerkId, requireClerkId } from "./auth";
 import { internalMutation, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { ActionCtx, MutationCtx } from "./_generated/server";
-import type { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
+import { SYSTEMONE_DEFAULT_MODEL } from "../engine/llm/systemOneClient";
+import { mergeGroup } from "./dream";
 import type { MemoryReadScope } from "../engine/memory/scope";
 import { UPDATES_LINK_REASON } from "../engine/memory/supersede";
 import { auditLog, ResourceTypes } from "./auditLog";
@@ -15,7 +17,11 @@ import {
 } from "./proposedUpdateStore";
 import { assertAccessibleProfileIfPresent } from "./profiles/accessibleProfile";
 import { canAccessProfileForMcpScope } from "./profiles/mcpAccess";
-import { createMemory, supersedeMemories } from "./memoryStore/helpers";
+import {
+  createMemory,
+  findByMemoryId,
+  supersedeMemories,
+} from "./memoryStore/helpers";
 
 export type ResolveResult = {
   status: "approved" | "rejected";
@@ -42,6 +48,34 @@ async function profileKind(
   if (!id) return "personal";
   const profile = await ctx.db.get(id);
   return profile?.teamId === undefined ? "personal" : "team";
+}
+
+// AI-judged cleanup merge: suppress the duplicates under the dream run, so
+// the merge shows in the dreaming log and can be undone for 30 days
+async function applyDreamMergeProposal(
+  ctx: MutationCtx,
+  proposal: Doc<"proposedUpdates">,
+  runId: Id<"dreamRuns">,
+): Promise<string | undefined> {
+  const keeper = await findByMemoryId(ctx, proposal.memoryId);
+  if (!keeper) return undefined;
+  const loserIds: Id<"memories">[] = [];
+  for (const memoryId of proposal.sourceMemoryIds) {
+    const doc = await findByMemoryId(ctx, memoryId);
+    if (doc && doc._id !== keeper._id) loserIds.push(doc._id);
+  }
+  await mergeGroup(ctx, {
+    runId,
+    keeperId: keeper._id,
+    loserIds,
+    reason: proposal.reason,
+    ai: {
+      relation: "duplicate",
+      confidence: proposal.confidence ?? 0,
+      model: SYSTEMONE_DEFAULT_MODEL,
+    },
+  });
+  return keeper.memoryId;
 }
 
 async function applyApproval(
@@ -78,6 +112,10 @@ async function applyApproval(
       return winnerMemoryId;
     }
     return undefined;
+  }
+
+  if (proposal.kind === "merge" && proposal.dreamRunId !== undefined) {
+    return await applyDreamMergeProposal(ctx, proposal, proposal.dreamRunId);
   }
 
   if (proposal.kind === "update") {

@@ -84,7 +84,7 @@ const defaults: {
   rollupsEnabled: false,
 };
 
-async function getSettingsDoc(
+export async function getSettingsDoc(
   ctx: QueryCtx | MutationCtx,
   userId: Id<"users">,
 ): Promise<Doc<"userSettings"> | null> {

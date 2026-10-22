@@ -67,4 +67,12 @@ crons.interval(
   {},
 );
 
+// drops one-off cleanup plans (dreamPlanGroups) 30 days after their dry run
+crons.interval(
+  "purge old dream cleanup plans",
+  { hours: 1 },
+  internal.dreamCleanup.purgeOldPlanGroups,
+  {},
+);
+
 export default crons;

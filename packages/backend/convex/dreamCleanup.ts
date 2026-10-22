@@ -1,0 +1,1259 @@
+import { v, type Infer } from "convex/values";
+import {
+  judgeDuplicateGroup,
+  type JevDuplicateVerdict,
+} from "../engine/memory/dream/jevDuplicate";
+import {
+  aiEligibleRows,
+  buildCandidateGroups,
+  buildDeterministicGroups,
+  deterministicStats,
+  entityEdges,
+  NEIGHBOUR_MIN_SCORE,
+  pickCandidateGroups,
+  planTitle,
+  PLAN_LOSER_TITLES,
+  SAMPLE_DETERMINISTIC_GROUPS,
+  type CandidateEdge,
+  type DeterministicGroup,
+  type DeterministicRule,
+  type PlanRow,
+} from "../engine/memory/dream/plan";
+import { SYSTEMONE_DEFAULT_MODEL } from "../engine/llm/systemOneClient";
+import { isVisibleStatus } from "../engine/memory/scope";
+import { internal } from "./_generated/api";
+import type { Doc, Id } from "./_generated/dataModel";
+import {
+  internalAction,
+  internalMutation,
+  internalQuery,
+  type ActionCtx,
+  type MutationCtx,
+} from "./_generated/server";
+import { getUserByClerkId } from "./auth";
+import { mergeGroup } from "./dream";
+import { resolveSystemOneApiKey } from "./lib/systemOneKey";
+import { scheduleLog } from "./lib/openRouter/shared";
+import {
+  memoryReadScopeFromArgs,
+  paginateScopedDocs,
+} from "./memoryStore/helpers";
+import { walkPages } from "./memoryStore/walk";
+import {
+  hasOverlappingPendingProposal,
+  insertProposedUpdate,
+} from "./proposedUpdateStore";
+import { getSettingsDoc } from "./userSettings";
+import {
+  dreamPlanGroupFields,
+  dreamPlanGroupInputFields,
+  dreamRunFields,
+  memoryStatusValidator,
+} from "./validators";
+
+// One-off duplicate cleanup (dreaming plan §3b). planInternal is a dry run:
+// it pages the profile, buckets rows by exact hash and browse key (rules A/B),
+// then asks Jev about a capped number of candidate groups (rule J, vector
+// neighbours / shared entity). Memories are untouched; the plan lives in
+// dreamPlanGroups. applyInternal merges the A/B groups with undo and turns
+// Jev-flagged groups into inbox proposals.
+
+const PAGE_SIZE = 200;
+const MAX_PLAN_ROWS = 20_000;
+const GROUP_WRITE_CHUNK = 100;
+const EMBEDDING_BATCH = 50;
+const MENTION_BATCH = 100;
+// the row itself plus about four neighbours
+const NEIGHBOUR_LIMIT = 5;
+const MAX_AI_SCAN_ROWS = 3_000;
+const JEV_DEFAULT_CALLS = 20;
+const JEV_MAX_CALLS = 200;
+const JUDGE_CHUNK = 10;
+const JUDGE_CONTENT_CHARS = 600;
+// all users together, per UTC day, summed from openRouterLogs feature "dream"
+const DREAM_DAILY_BUDGET_USD = 0.5;
+const APPLY_GROUPS = 100;
+const APPLY_ROW_BUDGET = 1_000;
+const PLAN_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
+const PURGE_BATCH = 500;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+type MemoryId = Id<"memories">;
+type RunId = Id<"dreamRuns">;
+type CleanupCounts = NonNullable<Doc<"dreamRuns">["cleanup"]>;
+type SampleItem = NonNullable<Doc<"dreamRuns">["sample"]>[number];
+type StopReason = NonNullable<CleanupCounts["aiStopReason"]>;
+
+const stopReasonValidator = v.union(
+  v.literal("no_key"),
+  v.literal("cap"),
+  v.literal("budget"),
+);
+
+const planRowValidator = v.object({
+  _id: v.id("memories"),
+  memoryId: v.string(),
+  title: v.string(),
+  contentLength: v.number(),
+  contentHash: v.string(),
+  url: v.optional(v.string()),
+  source: v.string(),
+  sourceType: v.optional(v.string()),
+  status: memoryStatusValidator,
+  createdAt: v.number(),
+});
+
+const pageMetaValidator = {
+  isDone: v.boolean(),
+  continueCursor: v.string(),
+  splitCursor: v.optional(v.union(v.string(), v.null())),
+  pageStatus: v.optional(
+    v.union(
+      v.null(),
+      v.literal("SplitRecommended"),
+      v.literal("SplitRequired"),
+    ),
+  ),
+};
+
+const planGroupInputValidator = v.object(dreamPlanGroupInputFields);
+type PlanGroupInput = Infer<typeof planGroupInputValidator>;
+
+const runRowValidator = v.object({
+  _id: v.id("dreamRuns"),
+  _creationTime: v.number(),
+  ...dreamRunFields,
+});
+
+function emptyCounts(): Doc<"dreamRuns">["counts"] {
+  return {
+    exactMerged: 0,
+    keyMerged: 0,
+    nearDupMerged: 0,
+    superseded: 0,
+    proposals: 0,
+    expired: 0,
+    archived: 0,
+    aiFlagged: 0,
+  };
+}
+
+function emptyCleanup(): CleanupCounts {
+  return {
+    scannedRows: 0,
+    exactGroups: 0,
+    keyGroups: 0,
+    bothGroups: 0,
+    groups: 0,
+    rowsToSuppress: 0,
+    aiCandidates: 0,
+    aiNotDuplicate: 0,
+    aiErrors: 0,
+    aiSkipped: 0,
+    aiCostUnknown: 0,
+    skippedChanged: 0,
+  };
+}
+
+function startOfUtcDay(now: number): number {
+  return Math.floor(now / DAY_MS) * DAY_MS;
+}
+
+function ruleReason(rules: readonly DeterministicRule[]): string {
+  if (rules.includes("exact") && rules.includes("key")) {
+    return "Same content and same page";
+  }
+  return rules.includes("exact") ? "Same content" : "Same page";
+}
+
+function toPlanGroup(group: DeterministicGroup<MemoryId>): PlanGroupInput {
+  return {
+    tier: "deterministic",
+    seq: 0,
+    rules: group.rules,
+    memberIds: [group.keeperId, ...group.loserIds],
+    keeperId: group.keeperId,
+    loserIds: group.loserIds,
+    ...(group.sourceKey === undefined ? {} : { sourceKey: group.sourceKey }),
+    keeperTitle: group.keeperTitle,
+    loserTitles: group.loserTitles,
+    reason: ruleReason(group.rules),
+  };
+}
+
+const SAMPLE_MAX_IDS = 20;
+
+function deterministicSample(group: DeterministicGroup<MemoryId>): SampleItem {
+  return {
+    rule: group.rules.includes("exact") ? "exact" : "key",
+    rules: group.rules,
+    keeperId: group.keeperId,
+    keeperTitle: group.keeperTitle,
+    loserTitles: group.loserTitles,
+    count: group.loserIds.length + 1,
+    memoryIds: [group.keeperId, ...group.loserIds].slice(0, SAMPLE_MAX_IDS),
+    reason: ruleReason(group.rules),
+  };
+}
+
+async function insertRun(
+  ctx: MutationCtx,
+  args: {
+    userId: Id<"users">;
+    profileId: Id<"profiles">;
+    dryRun: boolean;
+    planRunId?: RunId;
+  },
+): Promise<RunId> {
+  return await ctx.db.insert("dreamRuns", {
+    userId: args.userId,
+    profileId: args.profileId,
+    trigger: "backfill",
+    dryRun: args.dryRun,
+    status: "running",
+    startedAt: Date.now(),
+    counts: emptyCounts(),
+    aiCalls: 0,
+    costUsd: 0,
+    cleanup: emptyCleanup(),
+    ...(args.planRunId === undefined ? {} : { planRunId: args.planRunId }),
+  });
+}
+
+async function requireRun(ctx: MutationCtx, runId: RunId) {
+  const run = await ctx.db.get(runId);
+  if (!run) throw new Error("Dream run not found");
+  return run;
+}
+
+// ---------------------------------------------------------------- dry run
+
+// clerk id and scope kind for the profile the plan reads
+export const planContextInternal = internalQuery({
+  args: { userId: v.id("users"), profileId: v.id("profiles") },
+  returns: v.object({
+    clerkId: v.string(),
+    kind: v.union(v.literal("personal"), v.literal("team")),
+  }),
+  handler: async (ctx, args) => {
+    const [user, profile] = await Promise.all([
+      ctx.db.get(args.userId),
+      ctx.db.get(args.profileId),
+    ]);
+    if (!user?.clerkId || !profile) throw new Error("Profile not found");
+    const kind: "personal" | "team" =
+      profile.teamId === undefined ? "personal" : "team";
+    if (kind === "personal" && profile.userId !== args.userId) {
+      throw new Error("Profile not found");
+    }
+    return { clerkId: user.clerkId, kind };
+  },
+});
+
+// one page of slim visible rows (no content) for the planner
+export const pagePlanRowsInternal = internalQuery({
+  args: {
+    kind: v.union(v.literal("personal"), v.literal("team")),
+    userId: v.string(),
+    profileId: v.string(),
+    cursor: v.union(v.string(), v.null()),
+    numItems: v.number(),
+  },
+  returns: v.object({ rows: v.array(planRowValidator), ...pageMetaValidator }),
+  handler: async (ctx, args) => {
+    const scope = memoryReadScopeFromArgs(args);
+    if (scope === null) throw new Error("Bad plan scope");
+    const page = await paginateScopedDocs(ctx, scope, {
+      numItems: args.numItems,
+      cursor: args.cursor,
+    });
+    return {
+      rows: page.page
+        .filter((doc) => isVisibleStatus(doc.status))
+        .map((doc) => ({
+          _id: doc._id,
+          memoryId: doc.memoryId,
+          title: doc.title,
+          contentLength: doc.content.length,
+          contentHash: doc.contentHash,
+          ...(doc.url === undefined ? {} : { url: doc.url }),
+          source: doc.source,
+          ...(doc.sourceType === undefined
+            ? {}
+            : { sourceType: doc.sourceType }),
+          status: doc.status,
+          createdAt: doc.createdAt,
+        })),
+      isDone: page.isDone,
+      continueCursor: page.continueCursor,
+      splitCursor: page.splitCursor,
+      pageStatus: page.pageStatus,
+    };
+  },
+});
+
+export const embeddingsForInternal = internalQuery({
+  args: { ids: v.array(v.id("memories")) },
+  returns: v.array(
+    v.object({
+      memoryDocId: v.id("memories"),
+      embedding: v.array(v.float64()),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const out: { memoryDocId: MemoryId; embedding: number[] }[] = [];
+    for (const id of args.ids) {
+      const row = await ctx.db
+        .query("memoryEmbeddings")
+        .withIndex("by_memory_doc", (q) => q.eq("memoryDocId", id))
+        .first();
+      if (row) out.push({ memoryDocId: id, embedding: row.embedding });
+    }
+    return out;
+  },
+});
+
+// memory doc ids behind vector hits, only inside the profile
+export const embeddingOwnersInternal = internalQuery({
+  args: { ids: v.array(v.id("memoryEmbeddings")), profileId: v.string() },
+  returns: v.array(
+    v.object({
+      embeddingId: v.id("memoryEmbeddings"),
+      memoryDocId: v.id("memories"),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const out: {
+      embeddingId: Id<"memoryEmbeddings">;
+      memoryDocId: MemoryId;
+    }[] = [];
+    for (const id of args.ids) {
+      const row = await ctx.db.get(id);
+      if (row?.profileId !== args.profileId) continue;
+      out.push({ embeddingId: id, memoryDocId: row.memoryDocId });
+    }
+    return out;
+  },
+});
+
+export const mentionsForInternal = internalQuery({
+  args: { memoryIds: v.array(v.string()) },
+  returns: v.array(
+    v.object({ memoryId: v.string(), entityId: v.id("memoryEntities") }),
+  ),
+  handler: async (ctx, args) => {
+    const out: { memoryId: string; entityId: Id<"memoryEntities"> }[] = [];
+    for (const memoryId of args.memoryIds) {
+      const rows = await ctx.db
+        .query("memoryEntityMentions")
+        .withIndex("by_memory", (q) => q.eq("memoryId", memoryId))
+        .collect();
+      for (const row of rows) out.push({ memoryId, entityId: row.entityId });
+    }
+    return out;
+  },
+});
+
+export const startPlanRunInternal = internalMutation({
+  args: { userId: v.id("users"), profileId: v.id("profiles") },
+  returns: v.id("dreamRuns"),
+  handler: async (ctx, args) => await insertRun(ctx, { ...args, dryRun: true }),
+});
+
+export const insertPlanGroupsInternal = internalMutation({
+  args: {
+    runId: v.id("dreamRuns"),
+    groups: v.array(planGroupInputValidator),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    for (const group of args.groups) {
+      await ctx.db.insert("dreamPlanGroups", {
+        ...group,
+        runId: args.runId,
+        createdAt: now,
+      });
+    }
+    return null;
+  },
+});
+
+export const recordScanInternal = internalMutation({
+  args: {
+    runId: v.id("dreamRuns"),
+    cleanup: dreamRunFields.cleanup,
+    sample: dreamRunFields.sample,
+    error: v.optional(v.string()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await requireRun(ctx, args.runId);
+    await ctx.db.patch(args.runId, {
+      cleanup: args.cleanup,
+      sample: args.sample,
+      ...(args.error === undefined ? {} : { error: args.error }),
+    });
+    return null;
+  },
+});
+
+export const failRunInternal = internalMutation({
+  args: { runId: v.id("dreamRuns"), error: v.string() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.runId, {
+      status: "failed",
+      error: args.error,
+      finishedAt: Date.now(),
+    });
+    return null;
+  },
+});
+
+async function chunked<T>(
+  items: readonly T[],
+  size: number,
+  each: (chunk: T[]) => Promise<void>,
+): Promise<void> {
+  for (let i = 0; i < items.length; i += size) {
+    await each(items.slice(i, i + size));
+  }
+}
+
+async function scanRows(
+  ctx: ActionCtx,
+  scope: { kind: "personal" | "team"; userId: string; profileId: string },
+): Promise<{ rows: PlanRow<MemoryId>[]; truncated: boolean }> {
+  const rows: PlanRow<MemoryId>[] = [];
+  let truncated = false;
+  await walkPages(
+    async ({ cursor, numItems }) => {
+      const page = await ctx.runQuery(
+        internal.dreamCleanup.pagePlanRowsInternal,
+        { ...scope, cursor, numItems },
+      );
+      return { ...page, items: page.rows };
+    },
+    (items) => {
+      for (const row of items) {
+        if (rows.length >= MAX_PLAN_ROWS) {
+          truncated = true;
+          return false;
+        }
+        rows.push(row);
+      }
+      return undefined;
+    },
+    PAGE_SIZE,
+  );
+  return { rows, truncated };
+}
+
+// rule J candidate edges: vector neighbours at cosine >= 0.90 and rows that
+// share a narrow entity, both only between eligible rows
+async function candidateEdges(
+  ctx: ActionCtx,
+  profileId: string,
+  rows: readonly PlanRow<MemoryId>[],
+): Promise<CandidateEdge<MemoryId>[]> {
+  const eligible = new Set(rows.map((row) => row._id));
+  const edges: CandidateEdge<MemoryId>[] = [];
+  await chunked(rows, EMBEDDING_BATCH, async (chunk) => {
+    const embeddings = await ctx.runQuery(
+      internal.dreamCleanup.embeddingsForInternal,
+      { ids: chunk.map((row) => row._id) },
+    );
+    const hits = await Promise.all(
+      embeddings.map(async (row) => ({
+        from: row.memoryDocId,
+        hits: (
+          await ctx.vectorSearch("memoryEmbeddings", "by_embedding", {
+            vector: row.embedding,
+            limit: NEIGHBOUR_LIMIT,
+            filter: (q) => q.eq("profileId", profileId),
+          })
+        ).filter((hit) => hit._score >= NEIGHBOUR_MIN_SCORE),
+      })),
+    );
+    const owners = await ctx.runQuery(
+      internal.dreamCleanup.embeddingOwnersInternal,
+      {
+        ids: [...new Set(hits.flatMap((row) => row.hits.map((h) => h._id)))],
+        profileId,
+      },
+    );
+    const ownerOf = new Map(
+      owners.map((owner) => [owner.embeddingId, owner.memoryDocId]),
+    );
+    for (const row of hits) {
+      for (const hit of row.hits) {
+        const to = ownerOf.get(hit._id);
+        if (to === undefined || to === row.from || !eligible.has(to)) continue;
+        edges.push({ a: row.from, b: to, score: hit._score });
+      }
+    }
+  });
+
+  const docIdOf = new Map(rows.map((row) => [row.memoryId, row._id]));
+  const mentions: { rowId: MemoryId; entityId: string }[] = [];
+  await chunked(rows, MENTION_BATCH, async (chunk) => {
+    const found = await ctx.runQuery(
+      internal.dreamCleanup.mentionsForInternal,
+      {
+        memoryIds: chunk.map((row) => row.memoryId),
+      },
+    );
+    for (const mention of found) {
+      const rowId = docIdOf.get(mention.memoryId);
+      if (rowId) mentions.push({ rowId, entityId: mention.entityId });
+    }
+  });
+  return [...edges, ...entityEdges(mentions)];
+}
+
+function clampCalls(value: number | undefined): number {
+  const calls = Math.floor(value ?? JEV_DEFAULT_CALLS);
+  return Math.max(0, Math.min(JEV_MAX_CALLS, calls));
+}
+
+const planArgs = {
+  userId: v.id("users"),
+  profileId: v.id("profiles"),
+  // Jev calls for this run: default 20, at most 200
+  jevMaxCalls: v.optional(v.number()),
+  // judge an even spread of the candidate groups instead of the top ones
+  jevSample: v.optional(v.boolean()),
+};
+
+/**
+ * Dry run. Writes the plan (dreamPlanGroups) and the run summary, never a
+ * memory. Rule J needs AI_GATEWAY_API_KEY; without it J is skipped.
+ */
+export const planInternal = internalAction({
+  args: { ...planArgs, runId: v.optional(v.id("dreamRuns")) },
+  returns: v.id("dreamRuns"),
+  handler: async (ctx, args): Promise<RunId> => {
+    const context = await ctx.runQuery(
+      internal.dreamCleanup.planContextInternal,
+      { userId: args.userId, profileId: args.profileId },
+    );
+    const runId =
+      args.runId ??
+      (await ctx.runMutation(internal.dreamCleanup.startPlanRunInternal, {
+        userId: args.userId,
+        profileId: args.profileId,
+      }));
+    try {
+      await planRun(ctx, {
+        ...args,
+        runId,
+        scope: {
+          kind: context.kind,
+          userId: context.clerkId,
+          profileId: args.profileId,
+        },
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "plan failed";
+      await ctx.runMutation(internal.dreamCleanup.failRunInternal, {
+        runId,
+        error: message,
+      });
+      throw error;
+    }
+    return runId;
+  },
+});
+
+async function planRun(
+  ctx: ActionCtx,
+  args: {
+    runId: RunId;
+    scope: { kind: "personal" | "team"; userId: string; profileId: string };
+    jevMaxCalls?: number;
+    jevSample?: boolean;
+  },
+): Promise<void> {
+  const { rows, truncated } = await scanRows(ctx, args.scope);
+  const groups = buildDeterministicGroups(rows);
+  const deterministic = groups.map(toPlanGroup);
+  await chunked(
+    deterministic.map((group, seq) => ({ ...group, seq })),
+    GROUP_WRITE_CHUNK,
+    async (chunk) => {
+      await ctx.runMutation(internal.dreamCleanup.insertPlanGroupsInternal, {
+        runId: args.runId,
+        groups: chunk,
+      });
+    },
+  );
+
+  const cleanup: CleanupCounts = {
+    ...emptyCleanup(),
+    ...deterministicStats(groups),
+    scannedRows: rows.length,
+  };
+  const apiKey = resolveSystemOneApiKey();
+  let picked = 0;
+  if (apiKey === undefined) {
+    cleanup.aiStopReason = "no_key";
+  } else {
+    const eligible = aiEligibleRows(rows, groups).slice(0, MAX_AI_SCAN_ROWS);
+    const candidates = buildCandidateGroups(
+      await candidateEdges(ctx, args.scope.profileId, eligible),
+    );
+    const chosen = pickCandidateGroups(
+      candidates,
+      clampCalls(args.jevMaxCalls),
+      args.jevSample ?? false,
+    );
+    const titleOf = new Map(eligible.map((row) => [row._id, row.title]));
+    const title = (id: MemoryId | undefined) =>
+      planTitle((id && titleOf.get(id)) ?? "");
+    await chunked(
+      chosen.map(
+        (group, seq): PlanGroupInput => ({
+          tier: "ai",
+          seq,
+          rules: ["jev"],
+          memberIds: group.memberIds,
+          loserIds: [],
+          keeperTitle: title(group.memberIds[0]),
+          loserTitles: group.memberIds
+            .slice(1, PLAN_LOSER_TITLES + 1)
+            .map(title),
+          reason: "Jev candidate",
+          aiStatus: "pending",
+          score: group.score,
+        }),
+      ),
+      GROUP_WRITE_CHUNK,
+      async (chunk) => {
+        await ctx.runMutation(internal.dreamCleanup.insertPlanGroupsInternal, {
+          runId: args.runId,
+          groups: chunk,
+        });
+      },
+    );
+    picked = chosen.length;
+    cleanup.aiCandidates = candidates.length;
+    cleanup.aiSkipped = candidates.length - chosen.length;
+    if (cleanup.aiSkipped > 0) cleanup.aiStopReason = "cap";
+  }
+
+  await ctx.runMutation(internal.dreamCleanup.recordScanInternal, {
+    runId: args.runId,
+    cleanup,
+    sample: groups
+      .slice(0, SAMPLE_DETERMINISTIC_GROUPS)
+      .map(deterministicSample),
+    ...(truncated
+      ? { error: `scan stopped at ${String(MAX_PLAN_ROWS)} rows` }
+      : {}),
+  });
+  if (picked > 0) {
+    await ctx.scheduler.runAfter(0, internal.dreamCleanup.judgeInternal, {
+      runId: args.runId,
+      afterSeq: -1,
+    });
+  } else {
+    await ctx.runMutation(internal.dreamCleanup.finishPlanInternal, {
+      runId: args.runId,
+    });
+  }
+}
+
+// ------------------------------------------------------------ Jev pass
+
+const judgeMemberValidator = v.object({
+  _id: v.id("memories"),
+  title: v.string(),
+  content: v.string(),
+  status: memoryStatusValidator,
+  createdAt: v.number(),
+});
+
+// next pending AI groups with their visible members, plus today's dream spend
+export const pendingAiGroupsInternal = internalQuery({
+  args: { runId: v.id("dreamRuns"), afterSeq: v.number(), limit: v.number() },
+  returns: v.object({
+    userId: v.id("users"),
+    profileId: v.optional(v.id("profiles")),
+    spentTodayUsd: v.number(),
+    groups: v.array(
+      v.object({
+        _id: v.id("dreamPlanGroups"),
+        seq: v.number(),
+        members: v.array(judgeMemberValidator),
+      }),
+    ),
+  }),
+  handler: async (ctx, args) => {
+    const run = await ctx.db.get(args.runId);
+    if (!run) throw new Error("Dream run not found");
+    const rows = await ctx.db
+      .query("dreamPlanGroups")
+      .withIndex("by_run_tier_seq", (q) =>
+        q.eq("runId", args.runId).eq("tier", "ai").gt("seq", args.afterSeq),
+      )
+      .take(args.limit);
+    const groups = [];
+    for (const row of rows) {
+      const members = [];
+      for (const id of row.memberIds) {
+        const doc = await ctx.db.get(id);
+        if (!doc || !isVisibleStatus(doc.status)) continue;
+        members.push({
+          _id: doc._id,
+          title: doc.title,
+          content: doc.content.slice(0, JUDGE_CONTENT_CHARS),
+          status: doc.status,
+          createdAt: doc.createdAt,
+        });
+      }
+      groups.push({ _id: row._id, seq: row.seq, members });
+    }
+    const logs = await ctx.db
+      .query("openRouterLogs")
+      .withIndex("by_feature_createdAt", (q) =>
+        q.eq("feature", "dream").gte("createdAt", startOfUtcDay(Date.now())),
+      )
+      .collect();
+    return {
+      userId: run.userId,
+      profileId: run.profileId,
+      spentTodayUsd: logs.reduce((sum, log) => sum + (log.costUsd ?? 0), 0),
+      groups,
+    };
+  },
+});
+
+const verdictValidator = v.union(
+  v.object({
+    status: v.literal("flagged"),
+    keeperId: v.id("memories"),
+    removeIds: v.array(v.id("memories")),
+    reason: v.string(),
+    confidence: v.number(),
+  }),
+  v.object({
+    status: v.literal("not_duplicate"),
+    reason: v.string(),
+    confidence: v.optional(v.number()),
+  }),
+  v.object({ status: v.literal("error"), reason: v.string() }),
+);
+
+export const recordVerdictInternal = internalMutation({
+  args: {
+    runId: v.id("dreamRuns"),
+    groupId: v.id("dreamPlanGroups"),
+    verdict: verdictValidator,
+    // false when the group was dropped without a call (rows changed)
+    called: v.boolean(),
+    costUsd: v.optional(v.number()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const run = await requireRun(ctx, args.runId);
+    const group = await ctx.db.get(args.groupId);
+    if (!group || group.runId !== args.runId) {
+      throw new Error("Plan group not found");
+    }
+    const verdict = args.verdict;
+    if (verdict.status === "flagged") {
+      const titleOf = async (id: MemoryId) =>
+        planTitle((await ctx.db.get(id))?.title ?? "");
+      await ctx.db.patch(group._id, {
+        aiStatus: "flagged",
+        keeperId: verdict.keeperId,
+        loserIds: verdict.removeIds,
+        keeperTitle: await titleOf(verdict.keeperId),
+        loserTitles: await Promise.all(
+          verdict.removeIds.slice(0, PLAN_LOSER_TITLES).map(titleOf),
+        ),
+        reason: verdict.reason,
+        aiConfidence: verdict.confidence,
+      });
+    } else {
+      await ctx.db.patch(group._id, {
+        aiStatus: verdict.status,
+        reason: verdict.reason,
+        ...(verdict.status === "not_duplicate" &&
+        verdict.confidence !== undefined
+          ? { aiConfidence: verdict.confidence }
+          : {}),
+      });
+    }
+    if (!args.called) return null;
+    const cleanup = run.cleanup ?? emptyCleanup();
+    await ctx.db.patch(run._id, {
+      aiCalls: run.aiCalls + 1,
+      costUsd: run.costUsd + (args.costUsd ?? 0),
+      cleanup: {
+        ...cleanup,
+        aiCostUnknown:
+          cleanup.aiCostUnknown + (args.costUsd === undefined ? 1 : 0),
+      },
+    });
+    return null;
+  },
+});
+
+// maps Jev's string ids back to the group's typed ids
+function typedVerdict(
+  verdict: JevDuplicateVerdict,
+  members: readonly { _id: MemoryId }[],
+): Infer<typeof verdictValidator> {
+  if (verdict.status !== "flagged") return verdict;
+  const idOf = (id: string) => members.find((m) => m._id === id)?._id;
+  const keeperId = idOf(verdict.keeperId);
+  if (keeperId === undefined) {
+    return { status: "error", reason: "keeper not in group" };
+  }
+  const removeIds = verdict.removeIds.flatMap((id) => {
+    const typed = idOf(id);
+    return typed === undefined ? [] : [typed];
+  });
+  return { ...verdict, keeperId, removeIds };
+}
+
+/**
+ * Judges up to 10 pending groups, then schedules the next chunk. Stops on a
+ * missing key or once today's dream spend reaches the budget; whatever is
+ * still pending then counts as skipped.
+ */
+export const judgeInternal = internalAction({
+  args: { runId: v.id("dreamRuns"), afterSeq: v.number() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const apiKey = resolveSystemOneApiKey();
+    const batch = await ctx.runQuery(
+      internal.dreamCleanup.pendingAiGroupsInternal,
+      { runId: args.runId, afterSeq: args.afterSeq, limit: JUDGE_CHUNK },
+    );
+    let stop: StopReason | undefined =
+      apiKey === undefined ? "no_key" : undefined;
+    let spent = batch.spentTodayUsd;
+    let lastSeq = args.afterSeq;
+    for (const group of batch.groups) {
+      if (apiKey === undefined) break;
+      if (spent >= DREAM_DAILY_BUDGET_USD) {
+        stop = "budget";
+        break;
+      }
+      lastSeq = group.seq;
+      if (group.members.length < 2) {
+        await ctx.runMutation(internal.dreamCleanup.recordVerdictInternal, {
+          runId: args.runId,
+          groupId: group._id,
+          verdict: { status: "not_duplicate", reason: "Rows changed" },
+          called: false,
+        });
+        continue;
+      }
+      const result = await judgeDuplicateGroup({
+        members: group.members.map((member) => ({
+          ...member,
+          id: member._id,
+        })),
+        apiKey,
+      });
+      spent += result.costUsd ?? 0;
+      await scheduleLog(ctx, {
+        userId: batch.userId,
+        profileId: batch.profileId,
+        feature: "dream",
+        endpoint: "chat",
+        model: result.model,
+        promptTokens: result.promptTokens,
+        completionTokens: result.completionTokens,
+        costUsd: result.costUsd,
+        ...(result.verdict.status === "error"
+          ? { errorMessage: result.verdict.reason }
+          : {}),
+      });
+      await ctx.runMutation(internal.dreamCleanup.recordVerdictInternal, {
+        runId: args.runId,
+        groupId: group._id,
+        verdict: typedVerdict(result.verdict, group.members),
+        called: true,
+        costUsd: result.costUsd,
+      });
+    }
+    if (stop === undefined && batch.groups.length === JUDGE_CHUNK) {
+      await ctx.scheduler.runAfter(0, internal.dreamCleanup.judgeInternal, {
+        runId: args.runId,
+        afterSeq: lastSeq,
+      });
+      return null;
+    }
+    await ctx.runMutation(internal.dreamCleanup.finishPlanInternal, {
+      runId: args.runId,
+      ...(stop === undefined ? {} : { stop }),
+    });
+    return null;
+  },
+});
+
+/**
+ * Closes the dry run: verdict counts, sample = top deterministic groups plus
+ * every Jev-flagged group, status "partial" when anything was capped, failed
+ * or left unjudged.
+ */
+export const finishPlanInternal = internalMutation({
+  args: { runId: v.id("dreamRuns"), stop: v.optional(stopReasonValidator) },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const run = await requireRun(ctx, args.runId);
+    const aiGroups = await ctx.db
+      .query("dreamPlanGroups")
+      .withIndex("by_run_tier_seq", (q) =>
+        q.eq("runId", args.runId).eq("tier", "ai"),
+      )
+      .collect();
+    const count = (status: Doc<"dreamPlanGroups">["aiStatus"]) =>
+      aiGroups.filter((group) => group.aiStatus === status).length;
+    const flagged = aiGroups.filter((group) => group.aiStatus === "flagged");
+    const base = run.cleanup ?? emptyCleanup();
+    const cleanup: CleanupCounts = {
+      ...base,
+      aiNotDuplicate: count("not_duplicate"),
+      aiErrors: count("error"),
+      aiSkipped: base.aiSkipped + count("pending"),
+      ...(args.stop === undefined && base.aiStopReason === undefined
+        ? {}
+        : { aiStopReason: args.stop ?? base.aiStopReason }),
+    };
+    const aiSample = flagged.flatMap((group): SampleItem[] =>
+      group.keeperId === undefined
+        ? []
+        : [
+            {
+              rule: "near_dup",
+              rules: ["jev"],
+              keeperId: group.keeperId,
+              keeperTitle: group.keeperTitle,
+              loserTitles: group.loserTitles,
+              count: group.loserIds.length + 1,
+              memoryIds: [group.keeperId, ...group.loserIds],
+              reason: group.reason,
+            },
+          ],
+    );
+    const partial =
+      run.error !== undefined ||
+      cleanup.aiErrors > 0 ||
+      cleanup.aiSkipped > 0 ||
+      cleanup.aiStopReason === "budget";
+    await ctx.db.patch(run._id, {
+      status: partial ? "partial" : "ok",
+      finishedAt: Date.now(),
+      cleanup,
+      counts: { ...run.counts, aiFlagged: flagged.length },
+      sample: [...(run.sample ?? []), ...aiSample],
+    });
+    return null;
+  },
+});
+
+// ---------------------------------------------------------------- apply
+
+const tierValidator = dreamPlanGroupFields.tier;
+
+async function groupStillVisible(
+  ctx: MutationCtx,
+  ids: readonly MemoryId[],
+): Promise<boolean> {
+  for (const id of ids) {
+    const doc = await ctx.db.get(id);
+    if (!doc || !isVisibleStatus(doc.status)) return false;
+  }
+  return true;
+}
+
+async function proposeAiMerge(
+  ctx: MutationCtx,
+  args: {
+    clerkId: string;
+    profileId: string;
+    applyRunId: RunId;
+    group: Doc<"dreamPlanGroups">;
+    keeperId: MemoryId;
+  },
+): Promise<boolean> {
+  const docs: Doc<"memories">[] = [];
+  for (const id of [args.keeperId, ...args.group.loserIds]) {
+    const doc = await ctx.db.get(id);
+    if (doc) docs.push(doc);
+  }
+  const [keeper] = docs;
+  if (!keeper) return false;
+  const sourceMemoryIds = docs.map((doc) => doc.memoryId);
+  if (
+    await hasOverlappingPendingProposal(ctx, {
+      userId: args.clerkId,
+      profileId: args.profileId,
+      sourceMemoryIds,
+    })
+  ) {
+    return false;
+  }
+  const hidden = docs.length - 1;
+  await insertProposedUpdate(ctx, {
+    userId: args.clerkId,
+    profileId: args.profileId,
+    memoryId: keeper.memoryId,
+    proposedTitle: keeper.title,
+    proposedContent: keeper.content,
+    reason: `${args.group.reason}. Keeps this memory and hides ${String(hidden)} duplicate${hidden === 1 ? "" : "s"} (undo for 30 days).`,
+    kind: "merge",
+    sourceMemoryIds,
+    ...(args.group.aiConfidence === undefined
+      ? {}
+      : { confidence: args.group.aiConfidence }),
+    source: "dream-mode",
+    memorySnapshot: { title: keeper.title, content: keeper.content },
+    sourceMemorySnapshots: docs.map((doc) => ({
+      id: doc.memoryId,
+      title: doc.title,
+      content: doc.content,
+    })),
+    dreamRunId: args.applyRunId,
+  });
+  return true;
+}
+
+/**
+ * Applies a dry-run plan. Deterministic groups merge through dream.applyMerge
+ * (undoable), 100 groups per mutation, self-rescheduling. With includeAi the
+ * Jev-flagged groups then become inbox merge proposals, or merge at once
+ * (suppressedBy "dream-ai") when dreamModeAutoAccept is on. A group is skipped
+ * when any of its rows is gone or no longer visible. Returns the apply run.
+ */
+export const applyInternal = internalMutation({
+  args: {
+    runId: v.id("dreamRuns"),
+    includeAi: v.optional(v.boolean()),
+    // set by the chain itself
+    applyRunId: v.optional(v.id("dreamRuns")),
+    tier: v.optional(tierValidator),
+    afterSeq: v.optional(v.number()),
+  },
+  returns: v.id("dreamRuns"),
+  handler: async (ctx, args) => {
+    const plan = await requireRun(ctx, args.runId);
+    if (!plan.dryRun || plan.trigger !== "backfill" || !plan.profileId) {
+      throw new Error("Not a cleanup dry run");
+    }
+    if (plan.status !== "ok" && plan.status !== "partial") {
+      throw new Error("Dry run has not finished");
+    }
+    const profileId = plan.profileId;
+    const applyRunId =
+      args.applyRunId ??
+      (await insertRun(ctx, {
+        userId: plan.userId,
+        profileId,
+        dryRun: false,
+        planRunId: plan._id,
+      }));
+    const applyRun = await requireRun(ctx, applyRunId);
+    const tier = args.tier ?? "deterministic";
+    const afterSeq = args.afterSeq ?? -1;
+    const user = await ctx.db.get(plan.userId);
+    if (!user?.clerkId) throw new Error("Dream run user not found");
+    const autoAccept =
+      (await getSettingsDoc(ctx, plan.userId))?.dreamModeAutoAccept ?? false;
+
+    const groups = await ctx.db
+      .query("dreamPlanGroups")
+      .withIndex("by_run_tier_seq", (q) =>
+        q.eq("runId", plan._id).eq("tier", tier).gt("seq", afterSeq),
+      )
+      .take(APPLY_GROUPS);
+    const counts = { ...applyRun.counts };
+    const cleanup = applyRun.cleanup ?? emptyCleanup();
+    let lastSeq = afterSeq;
+    let rows = 0;
+    let more = groups.length === APPLY_GROUPS;
+    for (const group of groups) {
+      if (rows >= APPLY_ROW_BUDGET) {
+        more = true;
+        break;
+      }
+      lastSeq = group.seq;
+      const keeperId = group.keeperId;
+      if (keeperId === undefined) continue;
+      if (tier === "ai" && group.aiStatus !== "flagged") continue;
+      rows += group.loserIds.length + 1;
+      if (!(await groupStillVisible(ctx, [keeperId, ...group.loserIds]))) {
+        cleanup.skippedChanged += 1;
+        continue;
+      }
+      if (tier === "ai" && !autoAccept) {
+        const proposed = await proposeAiMerge(ctx, {
+          clerkId: user.clerkId,
+          profileId,
+          applyRunId,
+          group,
+          keeperId,
+        });
+        if (proposed) counts.proposals += 1;
+        continue;
+      }
+      const actionId = await mergeGroup(ctx, {
+        runId: applyRunId,
+        keeperId,
+        loserIds: group.loserIds,
+        reason: group.reason,
+        ...(group.sourceKey === undefined
+          ? {}
+          : { sourceKey: group.sourceKey }),
+        ...(tier === "ai"
+          ? {
+              ai: {
+                relation: "duplicate",
+                confidence: group.aiConfidence ?? 0,
+                model: SYSTEMONE_DEFAULT_MODEL,
+              },
+            }
+          : {}),
+      });
+      if (actionId === null) continue;
+      if (tier === "ai") counts.nearDupMerged += 1;
+      else if (group.rules.includes("exact")) counts.exactMerged += 1;
+      else counts.keyMerged += 1;
+    }
+
+    const next: { tier: "deterministic" | "ai"; afterSeq: number } | null = more
+      ? { tier, afterSeq: lastSeq }
+      : tier === "deterministic" && args.includeAi === true
+        ? { tier: "ai", afterSeq: -1 }
+        : null;
+    await ctx.db.patch(applyRunId, {
+      counts,
+      cleanup,
+      ...(next === null ? { status: "ok", finishedAt: Date.now() } : {}),
+    });
+    if (next !== null) {
+      await ctx.scheduler.runAfter(0, internal.dreamCleanup.applyInternal, {
+        runId: plan._id,
+        includeAi: args.includeAi,
+        applyRunId,
+        ...next,
+      });
+    }
+    return applyRunId;
+  },
+});
+
+// ------------------------------------------------------- CLI entry points
+
+/**
+ * Starts a dry run for one user; returns the run id at once (the plan runs
+ * in the background). Defaults to the user's default personal profile.
+ *   npx convex run dreamCleanup:dryRunForUser '{"clerkUserId":"user_…","jevMaxCalls":20}'
+ */
+export const dryRunForUser = internalMutation({
+  args: {
+    clerkUserId: v.optional(v.string()),
+    userId: v.optional(v.id("users")),
+    profileId: v.optional(v.id("profiles")),
+    jevMaxCalls: v.optional(v.number()),
+    jevSample: v.optional(v.boolean()),
+  },
+  returns: v.id("dreamRuns"),
+  handler: async (ctx, args) => {
+    const user =
+      args.userId !== undefined
+        ? await ctx.db.get(args.userId)
+        : args.clerkUserId !== undefined
+          ? await getUserByClerkId(ctx, args.clerkUserId)
+          : null;
+    if (!user) throw new Error("User not found");
+    const profileId =
+      args.profileId ?? (await defaultPersonalProfile(ctx, user._id));
+    if (!profileId) throw new Error("No personal profile");
+    const runId = await insertRun(ctx, {
+      userId: user._id,
+      profileId,
+      dryRun: true,
+    });
+    await ctx.scheduler.runAfter(0, internal.dreamCleanup.planInternal, {
+      userId: user._id,
+      profileId,
+      runId,
+      ...(args.jevMaxCalls === undefined
+        ? {}
+        : { jevMaxCalls: args.jevMaxCalls }),
+      ...(args.jevSample === undefined ? {} : { jevSample: args.jevSample }),
+    });
+    return runId;
+  },
+});
+
+async function defaultPersonalProfile(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+): Promise<Id<"profiles"> | null> {
+  const profiles = (
+    await ctx.db
+      .query("profiles")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect()
+  ).filter((profile) => profile.teamId === undefined);
+  const chosen =
+    profiles.find((profile) => profile.isDefault) ??
+    [...profiles].sort((a, b) => a.createdAt - b.createdAt)[0];
+  return chosen?._id ?? null;
+}
+
+/**
+ * Counts and the bounded sample (ids, 80-char titles, reasons) of one run;
+ * never memory contents.
+ *   npx convex run dreamCleanup:getRunSummary '{"runId":"…"}'
+ */
+export const getRunSummary = internalQuery({
+  args: { runId: v.id("dreamRuns") },
+  returns: v.union(
+    v.null(),
+    v.object({
+      run: runRowValidator,
+      costPerCallUsd: v.union(v.number(), v.null()),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const run = await ctx.db.get(args.runId);
+    if (!run) return null;
+    const priced = run.aiCalls - (run.cleanup?.aiCostUnknown ?? 0);
+    return {
+      run,
+      costPerCallUsd: priced > 0 ? run.costUsd / priced : null,
+    };
+  },
+});
+
+// hourly: drops plan groups 30 days after their dry run
+export const purgeOldPlanGroups = internalMutation({
+  args: {},
+  returns: v.number(),
+  handler: async (ctx) => {
+    const rows = await ctx.db
+      .query("dreamPlanGroups")
+      .withIndex("by_created", (q) =>
+        q.lt("createdAt", Date.now() - PLAN_RETENTION_MS),
+      )
+      .take(PURGE_BATCH);
+    for (const row of rows) await ctx.db.delete(row._id);
+    if (rows.length === PURGE_BATCH) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.dreamCleanup.purgeOldPlanGroups,
+        {},
+      );
+    }
+    return rows.length;
+  },
+});
