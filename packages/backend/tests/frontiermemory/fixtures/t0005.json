@@ -1,0 +1,29 @@
+{
+  "info": { "id": "ses_1", "title": "word2vec" },
+  "messages": [
+    {
+      "info": { "role": "user", "time": { "created": 1767312000000 } },
+      "parts": [
+        {
+          "type": "text",
+          "text": "Build the Word2Vec pipeline. Skip every file in the omit list when you build the corpus."
+        }
+      ]
+    },
+    {
+      "info": { "role": "assistant", "time": { "created": 1767312060000 } },
+      "parts": [
+        { "type": "step-start" },
+        { "type": "tool", "tool": "bash", "state": { "output": "ok" } },
+        {
+          "type": "text",
+          "text": "I forgot to read the omit list and trained on all files."
+        }
+      ]
+    },
+    {
+      "info": { "role": "user", "time": { "created": 1767312120000 } },
+      "parts": [{ "type": "text", "text": "# Verifier result\n\nFAIL" }]
+    }
+  ]
+}

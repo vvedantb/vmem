@@ -1,0 +1,5 @@
+{"jsonrpc":"2.0","id":1,"method":"session/prompt","params":{"sessionId":"x","prompt":[{"type":"text","text":"Write the cattrs changelog entry for the compositional hooks change."}]}}
+{"jsonrpc":"2.0","method":"session/update","params":{"sessionId":"x","update":{"sessionUpdate":"agent_message_chunk","content":{"type":"text","text":"Adding a one-line "}}}}
+{"jsonrpc":"2.0","method":"session/update","params":{"sessionId":"x","update":{"sessionUpdate":"agent_message_chunk","content":{"type":"text","text":"entry at the top."}}}}
+{"jsonrpc":"2.0","method":"session/update","params":{"sessionId":"x","update":{"sessionUpdate":"tool_call","toolCallId":"t1","title":"edit"}}}
+{"jsonrpc":"2.0","id":2,"method":"session/prompt","params":{"sessionId":"x","prompt":[{"type":"text","text":"# Verifier result\n\nPASS"}]}}

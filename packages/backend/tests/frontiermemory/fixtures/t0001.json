@@ -1,0 +1,46 @@
+{
+  "schema_version": "ATIF-v1.2",
+  "session_id": "3f2a9c1e-0000-4000-8000-000000000001",
+  "agent": { "name": "terminus", "version": "1.0", "model_name": "test-model" },
+  "steps": [
+    {
+      "step_id": 1,
+      "timestamp": "2026-03-01T10:00:00Z",
+      "source": "system",
+      "message": "You are a coding agent."
+    },
+    {
+      "step_id": 2,
+      "timestamp": "2026-03-01T10:00:01Z",
+      "source": "user",
+      "message": "Build a Word2Vec training pipeline in /app. Build the corpus from data/ and skip any file listed in the omit file."
+    },
+    {
+      "step_id": 3,
+      "timestamp": "2026-03-01T10:01:00Z",
+      "source": "agent",
+      "message": "I read omit.txt and excluded those files before tokenising.",
+      "tool_calls": [
+        {
+          "tool_call_id": "c1",
+          "function_name": "bash",
+          "arguments": { "cmd": "cat omit.txt" }
+        }
+      ],
+      "observation": {
+        "results": [{ "source_call_id": "c1", "content": "data/b.txt" }]
+      }
+    },
+    {
+      "step_id": 4,
+      "timestamp": "2026-03-01T10:02:00Z",
+      "source": "agent",
+      "message": "Training finished. The model is saved to model.bin."
+    },
+    {
+      "step_id": 5,
+      "source": "user",
+      "message": "# Verifier result\n\nPASS"
+    }
+  ]
+}
