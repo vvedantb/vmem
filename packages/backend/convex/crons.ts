@@ -49,4 +49,13 @@ crons.interval(
   {},
 );
 
+// drops drained openRouter log rows older than OPENROUTER_LOG_RETENTION_DAYS,
+// 500 rows a batch; a no-op while that env var is unset
+crons.interval(
+  "purge expired openRouter logs",
+  { hours: 1 },
+  internal.openRouterLogs.purgeExpired,
+  {},
+);
+
 export default crons;

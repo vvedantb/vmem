@@ -128,6 +128,7 @@ const schema = defineSchema({
     .index("by_user_feature", ["userId", "feature"])
     .index("by_profile_createdAt", ["profileId", "createdAt"])
     .index("by_team_createdAt", ["teamId", "createdAt"])
+    // drain queue (true) and, once drained (undefined), the retention sweep
     .index("by_aggregate_pending", ["aggregatePending", "createdAt"]),
 
   // mcp tool call traces; details split out so list reads stay small

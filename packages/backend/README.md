@@ -71,6 +71,7 @@ Use `.env.example` as the complete template. Copy it to `.env.local` for local C
 | `CLERK_PUBLISHABLE_KEY`           | MCP OAuth token verify (`authenticateRequest`)                                                        |
 | `CONVEX_SITE_URL` / `WEB_APP_URL` | OAuth redirects / resource docs                                                                       |
 | `AI_GATEWAY_API_KEY`              | Chat, embeddings, fact extraction, and Jev (`typesafe-ai/jev`) retrieve rerank / Dream merge metadata |
+| `OPENROUTER_LOG_RETENTION_DAYS`   | Optional days to keep `openRouterLogs` rows (unset = forever); see `apps/docs/environment.mdx`        |
 | `MEM0_API_KEY`                    | Optional labelled IR vs Mem0 (`eval:competitive`)                                                     |
 | `SUPERMEMORY_API_KEY`             | Optional labelled IR vs SuperMemory (`eval:competitive`)                                              |
 

@@ -36,6 +36,16 @@ Upgrading from the direct TypeSafe client: remove `TYPESAFE_API_KEY` from the Co
 
 There is **no** `NEO4J_*` or `MCP_JWT_SECRET` on current `main`.
 
+### Log retention (optional)
+
+| Variable                        | Required | Description                                                         |
+| ------------------------------- | -------- | ------------------------------------------------------------------- |
+| `OPENROUTER_LOG_RETENTION_DAYS` | No       | Whole days to keep `openRouterLogs` rows. Unset keeps them forever. |
+
+When it is set, the hourly `purge expired openRouter logs` cron deletes rows older than that many days, 500 rows a batch, and reschedules itself while more remain. It skips rows that the aggregate drain has not folded in yet. It does not touch the cost, token and model aggregates. Usage totals and the model filter therefore keep the full history, but the log list only shows rows inside the window. A blank, zero, negative or fractional value counts as unset.
+
+There is no retention setting for `api_request` audit entries. The `convex-audit-log` component (0.2.0) only has `cleanup`, which reads the oldest rows by timestamp for every action. It can filter on `retentionCategory`, but it skips non-matching rows inside the same batch. A filtered sweep would stall behind older non-`api_request` rows, and an unfiltered sweep would also delete memory, API key and team audit history. Components keep their tables private, so the app cannot delete those rows directly.
+
 ### Connector OAuth (optional)
 
 | Variable                                    | Integration                              |
