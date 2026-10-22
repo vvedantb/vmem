@@ -23,6 +23,7 @@ import {
 import { getMembershipOrNull } from "./teams/auth";
 import { userFacingError } from "./lib/userFacingError";
 import { getUserIdByClerkId } from "./lib/clerkUser";
+import { readOpenRouterApiKey } from "./lib/openRouterKey";
 import {
   experimentalFlagKeyValidator,
   resolvedExperimentalFlagsValidator,
@@ -36,6 +37,11 @@ import {
 
 type ThemeValue = Infer<typeof userSettingsThemeValidator>;
 type DefaultProfilesValue = Doc<"userSettings">["defaultProfiles"] | null;
+
+// the nightly AI judge is on by default only where the deployment has a key
+function dreamModeUseAiOf(doc: Doc<"userSettings"> | null): boolean {
+  return doc?.dreamModeUseAi ?? readOpenRouterApiKey() !== undefined;
+}
 
 const defaults: {
   theme: ThemeValue;
@@ -124,6 +130,7 @@ function resolveSettings(userId: Id<"users">, doc: Doc<"userSettings"> | null) {
       doc?.dreamModeAutoAccept ?? defaults.dreamModeAutoAccept,
     dreamModeAutomatic: doc?.dreamModeAutomatic ?? defaults.dreamModeAutomatic,
     dreamModeDecay: doc?.dreamModeDecay ?? defaults.dreamModeDecay,
+    dreamModeUseAi: dreamModeUseAiOf(doc),
     lastDreamRunAt: doc?.lastDreamRunAt ?? defaults.lastDreamRunAt,
     rollupsEnabled: doc?.rollupsEnabled ?? defaults.rollupsEnabled,
   };
@@ -329,11 +336,15 @@ export const setLastDreamRunAtInternal = internalMutation({
 export function dreamSettingsOf(doc: Doc<"userSettings"> | null): {
   automatic: boolean;
   decay: boolean;
+  useAi: boolean;
+  autoAccept: boolean;
   lastDreamRunAt: number | null;
 } {
   return {
     automatic: doc?.dreamModeAutomatic ?? defaults.dreamModeAutomatic,
     decay: doc?.dreamModeDecay ?? defaults.dreamModeDecay,
+    useAi: dreamModeUseAiOf(doc),
+    autoAccept: doc?.dreamModeAutoAccept ?? defaults.dreamModeAutoAccept,
     lastDreamRunAt: doc?.lastDreamRunAt ?? defaults.lastDreamRunAt,
   };
 }

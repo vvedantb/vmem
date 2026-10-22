@@ -166,6 +166,13 @@ const schema = defineSchema({
   // or once a row is no longer visible
   dreamCandidates: defineTable(dreamCandidateFields)
     .index("by_user_status_created", ["userId", "status", "createdAt"])
+    // nightly dreaming: open pairs of one profile and kind, oldest first
+    .index("by_profile_kind_status_created", [
+      "profileId",
+      "kind",
+      "status",
+      "createdAt",
+    ])
     .index("by_memory", ["memoryId"])
     .index("by_pair_key", ["pairKey"])
     // retention sweep (dreamCandidates.purgeInternal)

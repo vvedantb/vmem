@@ -41,8 +41,11 @@ const settingsUpdateSchema = z.object({
   dreamModeDecay: settingsFlagSchema.describe(
     "Nightly dreaming archives stale browsing history, bookmarks and desktop rows",
   ),
+  dreamModeUseAi: settingsFlagSchema.describe(
+    "Nightly dreaming asks AI about near-duplicates and conflicts",
+  ),
   dreamModeAutoAccept: settingsFlagSchema.describe(
-    "Apply Dream Mode merges without an inbox proposal",
+    "Apply high-confidence AI merges and updates without an inbox proposal",
   ),
   notificationsEnabled: settingsFlagSchema.describe("Notifications on"),
   notifyMemoryConflicts: settingsFlagSchema.describe(

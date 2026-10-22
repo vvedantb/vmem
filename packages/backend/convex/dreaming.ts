@@ -1,11 +1,25 @@
 import { v, type Infer } from "convex/values";
+import type { DreamCandidateKind } from "../engine/memory/dream/candidates";
+import { judgeDuplicateGroup } from "../engine/memory/dream/jevDuplicate";
+import {
+  buildDreamJudgePrompt,
+  DREAM_JUDGE_ROLE,
+  parseDreamJudgeReply,
+  type DreamJudgePair,
+} from "../engine/memory/dream/judge";
 import {
   DREAM_UNDO_WINDOW_MS,
   snapshotRow,
 } from "../engine/memory/dream/merge";
 import {
   addDreamCounts,
+  aiCallStop,
   changedRows,
+  dreamPairAction,
+  fullAiAllowance,
+  sameSourceFamily,
+  spendAiCall,
+  type DreamAiAllowance,
   DECAY_IDLE_MS,
   DREAM_BATCH_ROWS,
   DREAM_FIRST_WINDOW_MS,
@@ -37,14 +51,28 @@ import {
 } from "./_generated/server";
 import { auditLog, ResourceTypes } from "./auditLog";
 import { authAction } from "./auth";
-import { mergeGroup, runScope } from "./dream";
+import {
+  dreamSpentTodayUsd,
+  mergeGroup,
+  proposeDreamChange,
+  runScope,
+  supersedeRow,
+} from "./dream";
+import { readOpenRouterApiKey } from "./lib/openRouterKey";
+import { callJsonChatWithUsage } from "./lib/openRouter/jsonChat";
+import { LLM_MODEL, scheduleLog } from "./lib/openRouter/shared";
 import { runGetOwnerUserIdInternal } from "./teams/auth";
 import { dreamSettingsOf, getSettingsDoc } from "./userSettings";
-import { dreamRunFields } from "./validators";
+import {
+  dreamCandidateFields,
+  dreamRunFields,
+  memoryStatusValidator,
+} from "./validators";
 
-// Nightly dreaming (plan §3c), deterministic steps only. Per profile, in
-// bounded batches: 1+2 exact and source-key dedupe over the rows changed since
-// the last run, 3 expire, 4 decay (personal profiles only), 5 log. Every
+// Nightly dreaming (plan §3c). Per profile, in bounded batches: exact and
+// source-key dedupe over the rows changed since the last run, then the AI
+// judge over the open write-time candidates (near-dup: Jev; maybe-conflict:
+// Qwen, thinking off), expire, decay (personal profiles only), log. Every
 // change is a dreamActions row with undo. Manual "Run now" runs the same pass.
 
 const MANUAL_RATE_LIMIT_MS = 60 * 60 * 1000;
@@ -119,6 +147,8 @@ export const userPlanInternal = internalQuery({
       clerkId: v.string(),
       automatic: v.boolean(),
       decay: v.boolean(),
+      useAi: v.boolean(),
+      autoAccept: v.boolean(),
       lastDreamRunAt: v.union(v.number(), v.null()),
       profiles: v.array(
         v.object({ profileId: v.id("profiles"), kind: kindValidator }),
@@ -353,7 +383,418 @@ export const dedupeBatchInternal = internalMutation({
   },
 });
 
-// ------------------------------------------------------- steps 3 and 4
+// ------------------------------------------------- steps 3 and 4 (AI)
+
+const JUDGE_CONTENT_CHARS = 600;
+
+const judgeMemberValidator = v.object({
+  _id: v.id("memories"),
+  title: v.string(),
+  content: v.string(),
+  status: memoryStatusValidator,
+  source: v.string(),
+  createdAt: v.number(),
+});
+type JudgeMember = Infer<typeof judgeMemberValidator>;
+
+/**
+ * Up to `limit` open candidates of one kind for the run's profile, oldest
+ * first, plus today's dream spend. A pair whose rows are gone, hidden or out
+ * of scope is dropped here, without a call.
+ */
+export const openCandidatesInternal = internalMutation({
+  args: {
+    runId: v.id("dreamRuns"),
+    kind: dreamCandidateFields.kind,
+    limit: v.number(),
+  },
+  returns: v.object({
+    spentTodayUsd: v.number(),
+    candidates: v.array(
+      v.object({
+        _id: v.id("dreamCandidates"),
+        members: v.array(judgeMemberValidator),
+      }),
+    ),
+  }),
+  handler: async (ctx, args) => {
+    const run = await requireRun(ctx, args.runId);
+    const scope = await runScope(ctx, run);
+    const rows = await ctx.db
+      .query("dreamCandidates")
+      .withIndex("by_profile_kind_status_created", (q) =>
+        q
+          .eq("profileId", run.profileId)
+          .eq("kind", args.kind)
+          .eq("status", "open"),
+      )
+      .take(args.limit);
+    const candidates = [];
+    for (const row of rows) {
+      const docs = [
+        await ctx.db.get(row.memoryId),
+        await ctx.db.get(row.neighborId),
+      ];
+      const members = docs.flatMap((doc) =>
+        doc && isVisibleStatus(doc.status) && memoryMatchesScope(doc, scope)
+          ? [
+              {
+                _id: doc._id,
+                title: doc.title,
+                content: doc.content.slice(0, JUDGE_CONTENT_CHARS),
+                status: doc.status,
+                source: doc.source,
+                createdAt: doc.createdAt,
+              },
+            ]
+          : [],
+      );
+      if (members.length < 2) {
+        await ctx.db.patch(row._id, { status: "dropped" });
+        continue;
+      }
+      candidates.push({ _id: row._id, members });
+    }
+    return { spentTodayUsd: await dreamSpentTodayUsd(ctx), candidates };
+  },
+});
+
+// one judged pair, as both judges report it. "none": not a duplicate, or
+// the call failed
+const judgedVerdictValidator = v.object({
+  relation: v.union(
+    v.literal("duplicate"),
+    v.literal("update"),
+    v.literal("contradiction"),
+    v.literal("unrelated"),
+    v.literal("none"),
+  ),
+  keeperId: v.optional(v.id("memories")),
+  otherIds: v.array(v.id("memories")),
+  confidence: v.number(),
+  reason: v.string(),
+  model: v.string(),
+});
+type JudgedVerdict = Infer<typeof judgedVerdictValidator>;
+
+async function visibleDocs(
+  ctx: MutationCtx,
+  scope: MemoryReadScope,
+  ids: readonly MemoryId[],
+): Promise<Doc<"memories">[] | null> {
+  const docs: Doc<"memories">[] = [];
+  for (const id of ids) {
+    const doc = await ctx.db.get(id);
+    if (
+      !doc ||
+      !isVisibleStatus(doc.status) ||
+      !memoryMatchesScope(doc, scope)
+    ) {
+      return null;
+    }
+    docs.push(doc);
+  }
+  return docs;
+}
+
+/**
+ * Applies one verdict (dreamPairAction): an auto-accepted merge or
+ * supersede with undo, else an inbox proposal; "unrelated" drops the
+ * candidate. Rows changed by an earlier pair tonight are left alone. Adds
+ * the call and its cost to the run.
+ */
+export const recordJudgedInternal = internalMutation({
+  args: {
+    runId: v.id("dreamRuns"),
+    candidateId: v.id("dreamCandidates"),
+    verdict: judgedVerdictValidator,
+    costUsd: v.optional(v.number()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const run = await requireRun(ctx, args.runId);
+    const { verdict } = args;
+    const delta: Partial<DreamCounts> = {};
+    const docs =
+      verdict.keeperId === undefined
+        ? null
+        : await visibleDocs(ctx, await runScope(ctx, run), [
+            verdict.keeperId,
+            ...verdict.otherIds,
+          ]);
+    const [keeperDoc, ...others] = docs ?? [];
+    const settings = dreamSettingsOf(await getSettingsDoc(ctx, run.userId));
+    const action = dreamPairAction({
+      relation: verdict.relation,
+      confidence: verdict.confidence,
+      autoAccept: settings.autoAccept,
+      sameFamily:
+        keeperDoc !== undefined &&
+        others.every((doc) => sameSourceFamily(keeperDoc, doc)),
+    });
+    const user = await ctx.db.get(run.userId);
+    if (
+      keeperDoc !== undefined &&
+      others.length > 0 &&
+      user?.clerkId !== undefined &&
+      (action.kind === "merge" ||
+        action.kind === "supersede" ||
+        action.kind === "contradiction")
+    ) {
+      const ai = {
+        relation: verdict.relation,
+        confidence: verdict.confidence,
+        model: verdict.model,
+      };
+      delta.aiFlagged = 1;
+      if (action.kind === "merge" && action.apply) {
+        const actionId = await mergeGroup(ctx, {
+          runId: run._id,
+          keeperId: keeperDoc._id,
+          loserIds: others.map((doc) => doc._id),
+          reason: verdict.reason,
+          ai,
+        });
+        if (actionId !== null) delta.nearDupMerged = 1;
+      } else if (action.kind === "supersede" && action.apply) {
+        const [older] = others;
+        const actionId =
+          older === undefined
+            ? null
+            : await supersedeRow(ctx, {
+                runId: run._id,
+                keeperId: keeperDoc._id,
+                olderId: older._id,
+                reason: verdict.reason,
+                ai,
+              });
+        if (actionId !== null) delta.superseded = 1;
+      } else {
+        const proposed = await proposeDreamChange(ctx, {
+          clerkId: user.clerkId,
+          profileId: run.profileId,
+          runId: run._id,
+          kind:
+            action.kind === "merge"
+              ? "merge"
+              : action.kind === "supersede"
+                ? "update"
+                : "contradiction",
+          keeper: keeperDoc,
+          others,
+          reason: verdict.reason,
+          confidence: verdict.confidence,
+        });
+        if (proposed) delta.proposals = 1;
+      }
+    }
+    const candidate = await ctx.db.get(args.candidateId);
+    if (candidate) {
+      await ctx.db.patch(candidate._id, {
+        status: action.kind === "drop" ? "dropped" : "judged",
+      });
+    }
+    await ctx.db.patch(run._id, {
+      counts: addDreamCounts(run.counts, delta),
+      aiCalls: run.aiCalls + 1,
+      costUsd: run.costUsd + (args.costUsd ?? 0),
+    });
+    return null;
+  },
+});
+
+function memberIdOf(
+  members: readonly JudgeMember[],
+  id: string,
+): MemoryId | undefined {
+  return members.find((member) => member._id === id)?._id;
+}
+
+interface JudgeCall {
+  apiKey: string;
+  userId: Id<"users">;
+  profileId: Id<"profiles">;
+  members: JudgeMember[];
+}
+
+// step 3: the shared Jev duplicate judge (also used by the one-off cleanup)
+async function judgeNearDup(
+  ctx: ActionCtx,
+  call: JudgeCall,
+): Promise<{ verdict: JudgedVerdict; costUsd?: number }> {
+  const result = await judgeDuplicateGroup({
+    members: call.members.map((member) => ({ ...member, id: member._id })),
+    apiKey: call.apiKey,
+    tag: "dream-nightly",
+  });
+  await scheduleLog(ctx, {
+    userId: call.userId,
+    profileId: call.profileId,
+    feature: "dream",
+    endpoint: "chat",
+    model: result.model,
+    promptTokens: result.promptTokens,
+    completionTokens: result.completionTokens,
+    costUsd: result.costUsd,
+    ...(result.verdict.status === "error"
+      ? { errorMessage: result.verdict.reason }
+      : {}),
+  });
+  const { verdict } = result;
+  const keeperId =
+    verdict.status === "flagged"
+      ? memberIdOf(call.members, verdict.keeperId)
+      : undefined;
+  if (verdict.status !== "flagged" || keeperId === undefined) {
+    return {
+      costUsd: result.costUsd,
+      verdict: {
+        relation: "none",
+        otherIds: [],
+        confidence: verdict.status === "error" ? 0 : verdict.confidence,
+        reason: verdict.reason,
+        model: result.model,
+      },
+    };
+  }
+  return {
+    costUsd: result.costUsd,
+    verdict: {
+      relation: "duplicate",
+      keeperId,
+      otherIds: verdict.removeIds.flatMap((id) => {
+        const typed = memberIdOf(call.members, id);
+        return typed === undefined ? [] : [typed];
+      }),
+      confidence: verdict.confidence,
+      reason: verdict.reason,
+      model: result.model,
+    },
+  };
+}
+
+// step 4: one Qwen call (feature "dream", thinking off), logged by the chat
+// helper
+async function judgeConflict(
+  ctx: ActionCtx,
+  call: JudgeCall,
+): Promise<{ verdict: JudgedVerdict; costUsd?: number }> {
+  const [a, b] = call.members;
+  const none = (reason: string): JudgedVerdict => ({
+    relation: "none",
+    otherIds: [],
+    confidence: 0,
+    reason,
+    model: LLM_MODEL,
+  });
+  if (a === undefined || b === undefined) return { verdict: none("no pair") };
+  const toJudge = (member: JudgeMember) => ({ ...member, id: member._id });
+  const pair: DreamJudgePair = [toJudge(a), toJudge(b)];
+  const reply = await callJsonChatWithUsage(ctx, {
+    apiKey: call.apiKey,
+    userId: call.userId,
+    profileId: call.profileId,
+    feature: "dream",
+    role: DREAM_JUDGE_ROLE,
+    prompt: buildDreamJudgePrompt(pair),
+    thinking: "off",
+  });
+  const verdict = parseDreamJudgeReply(pair, reply.content);
+  const costUsd = reply.costUsd;
+  if (verdict.status === "error")
+    return { verdict: none(verdict.reason), costUsd };
+  if (verdict.status === "unrelated") {
+    return {
+      costUsd,
+      verdict: {
+        relation: "unrelated",
+        otherIds: [],
+        confidence: verdict.confidence,
+        reason: verdict.reason,
+        model: LLM_MODEL,
+      },
+    };
+  }
+  const keeperId = memberIdOf(call.members, verdict.keeperId);
+  const otherId = memberIdOf(call.members, verdict.otherId);
+  if (keeperId === undefined || otherId === undefined) {
+    return { verdict: none("keeper not in pair"), costUsd };
+  }
+  return {
+    costUsd,
+    verdict: {
+      relation: verdict.relation,
+      keeperId,
+      otherIds: [otherId],
+      confidence: verdict.confidence,
+      reason: verdict.reason,
+      model: LLM_MODEL,
+    },
+  };
+}
+
+// one user's night: the key, and the calls left. One object is shared by
+// all of the user's profiles, so a failed profile still spends its calls.
+interface DreamAi {
+  apiKey: string;
+  allowance: DreamAiAllowance;
+}
+
+/**
+ * Steps 3 (near_dup → Jev) and 4 (maybe_conflict → Qwen) for one profile.
+ * Each call spends from `ai.allowance`; calls stop at the per-kind cap, the
+ * per-user cap or the global daily budget. True when candidates were left
+ * unjudged.
+ */
+async function runAiDreamSteps(
+  ctx: ActionCtx,
+  args: {
+    runId: RunId;
+    userId: Id<"users">;
+    profileId: Id<"profiles">;
+    ai: DreamAi;
+  },
+): Promise<boolean> {
+  const { ai } = args;
+  let stopped = false;
+  const kinds: DreamCandidateKind[] = ["near_dup", "maybe_conflict"];
+  for (const kind of kinds) {
+    const limit = Math.min(ai.allowance.byKind[kind], ai.allowance.total);
+    if (limit <= 0) continue;
+    const batch = await ctx.runMutation(
+      internal.dreaming.openCandidatesInternal,
+      { runId: args.runId, kind, limit },
+    );
+    let spent = batch.spentTodayUsd;
+    for (const candidate of batch.candidates) {
+      if (aiCallStop(ai.allowance, kind, spent) !== null) {
+        stopped = true;
+        break;
+      }
+      ai.allowance = spendAiCall(ai.allowance, kind);
+      const call = {
+        apiKey: ai.apiKey,
+        userId: args.userId,
+        profileId: args.profileId,
+        members: candidate.members,
+      };
+      const judged =
+        kind === "near_dup"
+          ? await judgeNearDup(ctx, call)
+          : await judgeConflict(ctx, call);
+      spent += judged.costUsd ?? 0;
+      await ctx.runMutation(internal.dreaming.recordJudgedInternal, {
+        runId: args.runId,
+        candidateId: candidate._id,
+        verdict: judged.verdict,
+        ...(judged.costUsd === undefined ? {} : { costUsd: judged.costUsd }),
+      });
+    }
+  }
+  return stopped;
+}
+
+// ------------------------------------------------------- steps 5 and 6
 
 // one undoable action for a batch of status changes
 async function logStatusAction(
@@ -379,7 +820,7 @@ async function logStatusAction(
 }
 
 /**
- * Step 3: active rows of the profile whose expiresAt has passed become
+ * Step 5: active rows of the profile whose expiresAt has passed become
  * "expired". Pinned rows are left alone. Expired rows leave the index range,
  * so the next batch reads the next ones.
  */
@@ -422,7 +863,7 @@ async function usageHits(ctx: MutationCtx, memoryId: string): Promise<number> {
 }
 
 /**
- * Step 4: one page of active rows whose lastVisitAt falls in [from, until);
+ * Step 6: one page of active rows whose lastVisitAt falls in [from, until);
  * the rows that pass isDecayCandidate are suppressed (suppressedBy
  * "dream-decay"). Stops early once archiveLeft rows were archived;
  * lastVisitAt then marks where the next run resumes.
@@ -495,7 +936,7 @@ export const decayBatchInternal = internalMutation({
   },
 });
 
-// --------------------------------------------------------------- step 5
+// --------------------------------------------------------------- step 7
 
 export const finishProfileRunInternal = internalMutation({
   args: {
@@ -524,11 +965,6 @@ export const finishProfileRunInternal = internalMutation({
 
 // ---------------------------------------------------------- orchestration
 
-// AI steps (plan §3c steps 3–4: near-duplicate judge over dreamCandidates,
-// contradiction / outdated pass) come in later PRs and run here, after the
-// deterministic dedupe. This PR makes no AI call.
-async function runAiDreamSteps(): Promise<void> {}
-
 async function dreamProfile(
   ctx: ActionCtx,
   args: {
@@ -537,6 +973,8 @@ async function dreamProfile(
     kind: "personal" | "team";
     trigger: Trigger;
     decay: boolean;
+    // null: no key or dreamModeUseAi off, so the AI steps are skipped
+    ai: DreamAi | null;
   },
 ): Promise<{ runId: RunId; counts: DreamCounts }> {
   const start = await ctx.runMutation(
@@ -581,9 +1019,18 @@ async function dreamProfile(
       cursor = page.continueCursor;
     }
 
-    await runAiDreamSteps();
+    // AI judge over the write-time candidates; no key, no AI merge
+    if (args.ai !== null) {
+      const stopped = await runAiDreamSteps(ctx, {
+        runId,
+        userId: args.userId,
+        profileId: args.profileId,
+        ai: args.ai,
+      });
+      if (stopped) truncated = true;
+    }
 
-    // step 3: expire
+    // step 5: expire
     while (budget > 0) {
       const numItems = Math.min(DREAM_BATCH_ROWS, budget);
       const batch = await ctx.runMutation(
@@ -595,7 +1042,7 @@ async function dreamProfile(
       if (budget <= 0) truncated = true;
     }
 
-    // step 4: decay
+    // step 6: decay
     let decayThrough: number | undefined;
     if (start.decayFrom !== null) {
       let archiveLeft = DREAM_MAX_DECAY_ACTIONS;
@@ -652,11 +1099,19 @@ async function dreamProfile(
 }
 
 function describeCounts(counts: DreamCounts): string {
-  const merged = counts.exactMerged + counts.keyMerged;
+  const merged = counts.exactMerged + counts.keyMerged + counts.nearDupMerged;
   const parts: string[] = [];
   if (merged > 0) {
     parts.push(
       `merged ${String(merged)} duplicate group${merged === 1 ? "" : "s"}`,
+    );
+  }
+  if (counts.superseded > 0) {
+    parts.push(`replaced ${String(counts.superseded)} outdated`);
+  }
+  if (counts.proposals > 0) {
+    parts.push(
+      `queued ${String(counts.proposals)} proposal${counts.proposals === 1 ? "" : "s"} in your inbox`,
     );
   }
   if (counts.expired > 0) parts.push(`expired ${String(counts.expired)}`);
@@ -692,6 +1147,12 @@ export async function runDreamForUser(
   const runIds: RunId[] = [];
   let counts = emptyDreamCounts();
   let failed = 0;
+  // one AI allowance per user per night, shared by all profiles
+  const apiKey = readOpenRouterApiKey();
+  const ai: DreamAi | null =
+    apiKey !== undefined && plan.useAi
+      ? { apiKey, allowance: fullAiAllowance() }
+      : null;
   for (const profile of plan.profiles) {
     try {
       const run = await dreamProfile(ctx, {
@@ -700,6 +1161,7 @@ export async function runDreamForUser(
         kind: profile.kind,
         trigger: args.trigger,
         decay: plan.decay,
+        ai,
       });
       runIds.push(run.runId);
       counts = addDreamCounts(counts, run.counts);
