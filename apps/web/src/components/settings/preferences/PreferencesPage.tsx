@@ -1,20 +1,9 @@
 import { useState } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery } from "convex/react";
 import { toast } from "sonner";
-import {
-  Switch,
-  TimePicker,
-  SettingsSection,
-  SettingsToggleRow,
-} from "@vvedantb/ui";
+import { Switch, SettingsSection, SettingsToggleRow } from "@vvedantb/ui";
 import { api } from "@vmem/backend";
-import {
-  DEFAULT_LOCAL_TIME,
-  formatRelativeTime,
-  localTimeToUtc,
-  SETTINGS_TEXT_MAX_LENGTH,
-  utcTimeToLocal,
-} from "@vmem/shared";
+import { formatRelativeTime, SETTINGS_TEXT_MAX_LENGTH } from "@vmem/shared";
 import ConfidenceThresholdSlider from "@/components/settings/ConfidenceThresholdSlider";
 import { SettingsPage } from "@/components/settings/SettingsPage";
 import { useUserSettingsSave } from "@/hooks/useUserSettingsSave";
@@ -27,25 +16,6 @@ export function PreferencesPage() {
   const [aboutMeDraft, setAboutMeDraft] = useState<string | null>(null);
   const [preferencesDraft, setPreferencesDraft] = useState<string | null>(null);
   const { saveSettings, updateSettings } = useUserSettingsSave();
-  const setDreamSchedule = useMutation(
-    api.dreamSchedule.setDreamSchedule,
-  ).withOptimisticUpdate((localStore, args) => {
-    const current = localStore.getQuery(api.userSettings.get, {});
-    if (current === undefined) return;
-    localStore.setQuery(
-      api.userSettings.get,
-      {},
-      {
-        ...current,
-        dreamModeScheduleEnabled: args.enabled,
-        dreamModeScheduleTime:
-          args.enabled && args.time !== undefined
-            ? args.time
-            : current.dreamModeScheduleTime,
-      },
-    );
-  });
-
   const saveTextField = async (
     field: "aboutMe" | "preferences",
     draft: string | null,
@@ -62,52 +32,6 @@ export function PreferencesPage() {
       toast.success("Saved!");
     } catch (err) {
       toast.error(convexErrorMessage(err, "Failed to save"));
-    }
-  };
-
-  const handleScheduleToggle = async (enabled: boolean): Promise<void> => {
-    if (settings === undefined) return;
-    // resolved above the try React Compiler bails on the whole file for a `??`
-    // inside one. localTimeToUtc is pure, so running it on the disable path too
-    // costs nothing.
-    const utcTime =
-      settings.dreamModeScheduleTime ?? localTimeToUtc(DEFAULT_LOCAL_TIME);
-    // a single if/else chain rather than an early return plus a throw React
-    // compiler bails on the whole file for a ThrowStatement inside a try.
-    try {
-      if (!enabled) {
-        await setDreamSchedule({ enabled: false });
-        toast.success("Daily Dream Mode disabled");
-      } else if (utcTime === null) {
-        toast.error("Invalid default time");
-      } else {
-        await setDreamSchedule({ enabled: true, time: utcTime });
-        toast.success(
-          `Daily Dream Mode scheduled for ${utcTimeToLocal(utcTime)}`,
-        );
-      }
-    } catch (err) {
-      toast.error(convexErrorMessage(err, "Failed to update schedule"));
-    }
-  };
-
-  const handleScheduleTimeChange = async (localTime: string): Promise<void> => {
-    if (settings === undefined) return;
-    const utcTime = localTimeToUtc(localTime);
-    if (utcTime === null) {
-      toast.error("Invalid time");
-      return;
-    }
-    try {
-      await setDreamSchedule({
-        enabled: settings.dreamModeScheduleEnabled,
-        time: utcTime,
-      });
-      if (settings.dreamModeScheduleEnabled) {
-        toast.success(`Schedule updated to ${localTime}`);
-      }
-    } catch (err) {
-      toast.error(convexErrorMessage(err, "Failed to update schedule"));
     }
   };
 
@@ -208,19 +132,33 @@ export function PreferencesPage() {
 
       <SettingsSection
         title="Dream Mode"
-        description="How vmem consolidates memories when you go quiet."
+        description="How vmem cleans up and consolidates memories each night."
         bodyVariant="list"
       >
         <SettingsToggleRow
           htmlFor="dream-automatic"
-          title="Automatic dreaming"
-          description="Dream on its own once you go quiet after saving new memories — no schedule needed. Runs at most a few times a day, deeper when more context piled up."
+          title="Nightly dreaming"
+          description="Every night, merge duplicate memories and expire the ones past their end date. Each change can be undone for 30 days."
           action={
             <Switch
               id="dream-automatic"
               checked={settings.dreamModeAutomatic}
               onCheckedChange={(checked) => {
                 void saveSettings({ dreamModeAutomatic: checked });
+              }}
+            />
+          }
+        />
+        <SettingsToggleRow
+          htmlFor="dream-decay"
+          title="Archive stale browsing history"
+          description="Hide browsing history, bookmarks and desktop captures you have not visited for 30 days, opened at most twice and no AI has used."
+          action={
+            <Switch
+              id="dream-decay"
+              checked={settings.dreamModeDecay}
+              onCheckedChange={(checked) => {
+                void saveSettings({ dreamModeDecay: checked });
               }}
             />
           }
@@ -237,34 +175,6 @@ export function PreferencesPage() {
                 void saveSettings({ dreamModeAutoAccept: checked });
               }}
             />
-          }
-        />
-        <SettingsToggleRow
-          htmlFor="dream-schedule"
-          title="Daily schedule"
-          description="Run Dream Mode every day at this time. Stored as UTC; the local time shown shifts by an hour on DST transitions."
-          className="max-sm:flex-wrap"
-          action={
-            <div className="flex items-center gap-2">
-              <TimePicker
-                value={
-                  settings.dreamModeScheduleTime !== null
-                    ? utcTimeToLocal(settings.dreamModeScheduleTime)
-                    : DEFAULT_LOCAL_TIME
-                }
-                onChange={(next) => {
-                  void handleScheduleTimeChange(next);
-                }}
-                ariaLabel="Dream Mode schedule time"
-              />
-              <Switch
-                id="dream-schedule"
-                checked={settings.dreamModeScheduleEnabled}
-                onCheckedChange={(checked) => {
-                  void handleScheduleToggle(checked);
-                }}
-              />
-            </div>
           }
         />
         <p className="px-4 py-3 text-xs text-muted">

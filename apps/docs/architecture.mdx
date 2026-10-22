@@ -60,11 +60,13 @@ A native Expo app and GitHub codebase indexer used to live in this repo. They ar
 
 ### Dream Mode
 
-1. The dream pass (Convex **action**) clusters visible memories with `clusterNearDuplicateMemories`
-2. When `AI_GATEWAY_API_KEY` is set, Jev annotates each cluster (merge noul, keeper, auto-accept). Missing key or Jev errors **fail-open** to the heuristic (same spirit as retrieve). Jev never skips creating a proposal.
-3. Every heuristic cluster becomes an inbox **merge** proposal. Auto-accept still materializes only when Jev marks the merge safe (or when Jev fail-opens)
-4. Jev does not write merged title/content or dream portraits — AI Gateway / the existing generative path still owns prose
-5. Clusters the user already rejected are skipped before the cluster limit, so rejected merges are not re-proposed or auto-accepted. A cluster comes back once a new memory joins it. This is user feedback, not a Jev drop
+1. One cron, "nightly maintenance" at 02:30 UTC (`convex/nightly.ts`), runs per user: the dream step first, then rollups. "Start Dreaming" in the inbox and MCP `dream_run` run the same dream step (once per hour).
+2. The dream step (`convex/dreaming.ts`) runs per personal profile and per team profile the user owns, in bounded batches (at most 2,000 rows read per profile per night):
+   - exact and same-page dedupe over the rows changed since the last run (`by_user_updated`, `by_user_profile_hash`, `by_user_source`), merged into the oldest row
+   - rows past `expiresAt` become `expired`
+   - stale browsing history, bookmarks and desktop rows (30 days idle, at most 2 visits, low usefulness, never retrieved) are archived, at most 500 per night; personal profiles only, setting `dreamModeDecay`
+3. Every change is a `dreamActions` row in the run's `dreamRuns` log and can be undone for 30 days. No AI call yet; the near-duplicate and contradiction judges come later.
+4. `dreamModeAutomatic` turns the nightly run off. `DREAM_DISABLED=1` on the deployment stops nightly and manual dreaming.
 
 ### MCP Implicit Memory
 

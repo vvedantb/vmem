@@ -105,7 +105,6 @@ export const TEAMS_TOOL_NAMES = [
 export const SETTINGS_TOOL_NAMES = [
   "settings_get",
   "settings_update",
-  "dream_schedule_set",
   "settings_set_experimental_flag",
 ] as const;
 

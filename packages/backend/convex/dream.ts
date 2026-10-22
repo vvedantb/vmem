@@ -49,7 +49,7 @@ const actionRowValidator = v.object({
 
 // personal runs see the owner's rows (and legacy rows with no profile), team
 // runs every row of the shared profile
-async function runScope(
+export async function runScope(
   ctx: MutationCtx,
   run: Doc<"dreamRuns">,
 ): Promise<MemoryReadScope> {
@@ -293,6 +293,19 @@ async function undoRunBatch(
   }
   return actions.length;
 }
+
+export const failRunInternal = internalMutation({
+  args: { runId: v.id("dreamRuns"), error: v.string() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.runId, {
+      status: "failed",
+      error: args.error,
+      finishedAt: Date.now(),
+    });
+    return null;
+  },
+});
 
 export const undoActionInternal = internalMutation({
   args: { actionId: v.id("dreamActions") },

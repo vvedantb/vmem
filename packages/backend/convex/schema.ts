@@ -13,7 +13,6 @@ import {
   openRouterLogFields,
   mcpTraceFields,
   mcpTraceDetailFields,
-  dreamTriggerStateFields,
   notificationFields,
   apiKeyFields,
   connectorFields,
@@ -65,11 +64,6 @@ const schema = defineSchema({
   }).index("by_connector", ["connectorId"]),
 
   userSettings: defineTable(userSettingsFields).index("by_user", ["userId"]),
-
-  // dynamic dreaming trigger state
-  dreamTriggerState: defineTable(dreamTriggerStateFields).index("by_user", [
-    "userId",
-  ]),
 
   profiles: defineTable(profileFields)
     .index("by_user", ["userId"])
@@ -178,6 +172,14 @@ const schema = defineSchema({
     .index("by_user_created", ["userId", "createdAt"])
     // nightly rollups and dreaming find rows changed since the last run
     .index("by_user_updated", ["userId", "updatedAt"])
+    // nightly dreaming: team change window, expire and decay scans
+    .index("by_profile_updated", ["profileId", "updatedAt"])
+    .index("by_profile_status_expires", ["profileId", "status", "expiresAt"])
+    .index("by_profile_status_last_visit", [
+      "profileId",
+      "status",
+      "lastVisitAt",
+    ])
     .index("by_profile_created", ["profileId", "createdAt"])
     // connector upserts look a memory up by its external source id
     .index("by_user_source", ["userId", "sourceType", "sourceId"])

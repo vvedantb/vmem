@@ -6,49 +6,41 @@ import { IconSparkles } from "@tabler/icons-react";
 import { api } from "@vmem/backend";
 import { useAsyncSubmit } from "@/hooks/useAsyncSubmit";
 
-// inbox "start dreaming" button — one-shot personal profile synthesis
+// inbox "start dreaming" button: runs the nightly dream pass now
 export default function RunDreamModeButton() {
-  const runDreamForUser = useAction(api.dreamMode.runDreamForUser);
+  const runDreamNow = useAction(api.dreaming.runNow);
   const queryClient = useQueryClient();
   const { submitting: isRunning, run: runDream } = useAsyncSubmit();
 
   async function handleClick() {
     if (isRunning) return;
     await runDream(async () => {
-      const result = await runDreamForUser({});
+      const result = await runDreamNow({});
       switch (result.reason) {
         case "ok": {
-          const created = result.proposalsCreated;
-          const materialized = result.memoriesMaterialized;
-          if (created === 0 && materialized === 0) {
-            toast.success(
-              `Scanned ${result.clustersScanned} clusters — no new synthesis surfaced`,
+          const { counts } = result;
+          const merged = counts.exactMerged + counts.keyMerged;
+          const parts: string[] = [];
+          if (merged > 0) {
+            parts.push(
+              `${merged} duplicate group${merged === 1 ? "" : "s"} merged`,
             );
-          } else {
-            const parts: string[] = [];
-            if (created > 0) {
-              parts.push(`${created} proposal${created === 1 ? "" : "s"}`);
-            }
-            if (materialized > 0) {
-              parts.push(
-                `${materialized} auto-accepted ${
-                  materialized === 1 ? "memory" : "memories"
-                }`,
-              );
-            }
-            toast.success(`Dream Mode: ${parts.join(", ")}`);
           }
-          void queryClient.invalidateQueries({ queryKey: ["proposals"] });
+          if (counts.expired > 0) parts.push(`${counts.expired} expired`);
+          if (counts.archived > 0) parts.push(`${counts.archived} archived`);
+          toast.success(
+            parts.length > 0
+              ? `Dream Mode: ${parts.join(", ")}`
+              : "Dream Mode found nothing to clean up",
+          );
           void queryClient.invalidateQueries({ queryKey: ["memories"] });
           break;
         }
-        case "no-key":
-          toast.error("Sign in to run Dream Mode");
+        case "disabled":
+          toast.message("Dream Mode is paused right now — try later");
           break;
-        case "no-recent-memories":
-          toast.message(
-            "No recent memories to scan — Dream Mode looks at the last 7 days",
-          );
+        case "no-user":
+          toast.error("Sign in to run Dream Mode");
           break;
         case "rate-limited":
           toast.message("Dream Mode already ran in the last hour — try later");

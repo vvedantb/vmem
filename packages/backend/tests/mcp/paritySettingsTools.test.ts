@@ -16,8 +16,8 @@ const BOB = "clerk_settings_bob";
 const settingsSchema = z.object({
   aboutMe: z.string(),
   memoryConfidenceThreshold: z.number(),
-  dreamModeScheduleEnabled: z.boolean(),
-  dreamModeScheduleTime: z.string().nullable(),
+  dreamModeAutomatic: z.boolean(),
+  dreamModeDecay: z.boolean(),
   experimentalFlags: z.object({ disablePageMotion: z.boolean() }),
 });
 const connectorListSchema = z.array(
@@ -92,24 +92,21 @@ describe("MCP settings parity tools (convex-test backend)", () => {
       }),
     ).rejects.toThrow(/at most 500/);
 
-    await alice.call("dream_schedule_set", { enabled: true, time: "09:30" });
-    await expect(
-      alice.call("dream_schedule_set", { enabled: true }),
-    ).rejects.toThrow(/valid time/);
+    await alice.call("settings_update", { dreamModeDecay: false });
     await alice.call("settings_set_experimental_flag", {
       key: "disablePageMotion",
       enabled: true,
     });
     expect(await settingsOf(alice)).toMatchObject({
-      dreamModeScheduleEnabled: true,
-      dreamModeScheduleTime: "09:30",
+      dreamModeAutomatic: true,
+      dreamModeDecay: false,
       experimentalFlags: { disablePageMotion: true },
     });
 
     expect(await settingsOf(bob)).toMatchObject({
       aboutMe: "",
       memoryConfidenceThreshold: 70,
-      dreamModeScheduleEnabled: false,
+      dreamModeDecay: true,
       experimentalFlags: { disablePageMotion: false },
     });
     await expect(

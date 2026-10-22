@@ -38,6 +38,42 @@ export interface DeterministicGroup<M extends string> {
   loserTitles: string[];
 }
 
+// the planner row of a memory doc; optional fields stay absent, not undefined
+export function toPlanRow<M extends string>(doc: {
+  _id: M;
+  memoryId: string;
+  title: string;
+  content: string;
+  contentHash: string;
+  url?: string;
+  source: string;
+  sourceType?: string;
+  status: MemoryStatus;
+  createdAt: number;
+}): PlanRow<M> {
+  return {
+    _id: doc._id,
+    memoryId: doc.memoryId,
+    title: doc.title,
+    contentLength: doc.content.length,
+    contentHash: doc.contentHash,
+    ...(doc.url === undefined ? {} : { url: doc.url }),
+    source: doc.source,
+    ...(doc.sourceType === undefined ? {} : { sourceType: doc.sourceType }),
+    status: doc.status,
+    createdAt: doc.createdAt,
+  };
+}
+
+export function deterministicReason(
+  rules: readonly DeterministicRule[],
+): string {
+  if (rules.includes("exact") && rules.includes("key")) {
+    return "Same content and same page";
+  }
+  return rules.includes("exact") ? "Same content" : "Same page";
+}
+
 export function planTitle(title: string): string {
   return title.length > PLAN_TITLE_CHARS
     ? `${title.slice(0, PLAN_TITLE_CHARS - 1)}…`

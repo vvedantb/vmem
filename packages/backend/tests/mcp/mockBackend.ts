@@ -383,10 +383,6 @@ async function dispatch(
       clerkIdArgsSchema.parse(args);
       return false;
     }
-    case "dreamTrigger:bumpActivityByClerkIdInternal": {
-      clerkIdArgsSchema.parse(args);
-      return false;
-    }
     // the mock always inserts; real upsert and dedupe live in memoryStore tests
     case "memoryStore/functions:createOrUpsertMemoryInternal": {
       const parsed = createMemoryArgsSchema.parse(args);
