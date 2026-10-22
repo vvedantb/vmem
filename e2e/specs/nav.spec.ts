@@ -21,6 +21,7 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
     await expect(page.getByRole("link", { name: "Wiki" })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Skills" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Files" })).toBeVisible();
+    await expect(railLink(page, "Artifacts")).toBeVisible();
     await expect(railLink(page, "Usage")).toBeVisible();
     await expect(railLink(page, "Traces")).toBeVisible();
     await expect(railLink(page, "Sources")).toBeVisible();
@@ -79,6 +80,20 @@ test.describe("product nav", { tag: ["@nav", "@smoke"] }, () => {
     await expect(page.getByRole("button", { name: "Add" })).toBeVisible({
       timeout: 20_000,
     });
+    await assertNoFatalChrome(page);
+
+    await clickRail(page, "Artifacts");
+    await expect(page).toHaveURL(new RegExp(`/${profileId}/artifacts$`));
+    await expect(railLink(page, "Artifacts")).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    await expect(page.getByLabel("Search artifacts")).toBeVisible({
+      timeout: 20_000,
+    });
+    await expect(
+      sidebarPanel(page).getByRole("heading", { name: "Artifacts" }),
+    ).toHaveCount(0);
     await assertNoFatalChrome(page);
 
     await clickRail(page, "Sources");

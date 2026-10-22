@@ -31,6 +31,8 @@ describe("railSectionFromPathname", () => {
     expect(railSectionFromPathname("/p1/memories/graph")).toBe("memories");
     expect(railSectionFromPathname("/p1/skills/hub")).toBe("skills");
     expect(railSectionFromPathname("/p1/files")).toBe("files");
+    expect(railSectionFromPathname("/p1/artifacts")).toBe("artifacts");
+    expect(railSectionFromPathname("/p1/artifacts/a1")).toBe("artifacts");
     expect(railSectionFromPathname("/p1/usage")).toBe("usage");
     expect(railSectionFromPathname("/p1/traces")).toBe("traces");
     expect(railSectionFromPathname("/p1/dreaming")).toBe("dreaming");
@@ -57,6 +59,7 @@ describe("railSectionFromPathname", () => {
     expect(navViewFromPathname("/p1/home")).toBe("main");
     expect(navViewFromPathname("/p1/usage")).toBe("main");
     expect(navViewFromPathname("/p1/traces")).toBe("main");
+    expect(navViewFromPathname("/p1/artifacts")).toBe("main");
     expect(navViewFromPathname("/p1/dreaming")).toBe("main");
   });
 
@@ -84,6 +87,7 @@ describe("rail destinations cover the previous sidebar nav", () => {
         "/$profileId/memories",
         "/$profileId/skills",
         "/$profileId/files",
+        "/$profileId/artifacts",
         "/$profileId/usage",
         "/$profileId/traces",
         "/$profileId/dreaming",
@@ -96,6 +100,7 @@ describe("rail destinations cover the previous sidebar nav", () => {
       "Memories",
       "Skills",
       "Files",
+      "Artifacts",
       "Usage",
       "Traces",
       "Dreaming",
@@ -186,9 +191,10 @@ describe("shell uses a rail + panel + drawer", () => {
     expect(rail).toContain("!isPanelHidden");
   });
 
-  it("drops the sidebar panel column on home, usage, traces, dreaming, inbox and sources", () => {
+  it("drops the sidebar panel column on home, artifacts, usage, traces, dreaming, inbox and sources", () => {
     for (const section of [
       "home",
+      "artifacts",
       "usage",
       "traces",
       "dreaming",
@@ -359,5 +365,69 @@ describe("traces lives on the rail at /traces", () => {
     // the detail query lives in the body, which mounts only for a selected row
     expect(dialog).toContain("{row && <TraceDetailBody");
     expect(dialog).toContain("api.mcpTraces.getDetail");
+  });
+});
+
+describe("artifacts lives on the rail at /artifacts", () => {
+  it("serves the list and the viewer inside the shared page container", () => {
+    const index = read("../../routes/_main/$profileId/artifacts/index.tsx");
+    expect(index).toContain('createFileRoute("/_main/$profileId/artifacts/")');
+    expect(index).toContain("PageContainer");
+    expect(index).toContain("ArtifactsPanel");
+    // team profiles list the team's artifacts, like Files
+    expect(index).toContain("useActiveProfile().teamId");
+    const detail = read(
+      "../../routes/_main/$profileId/artifacts/$artifactId.tsx",
+    );
+    expect(detail).toContain(
+      'createFileRoute("/_main/$profileId/artifacts/$artifactId")',
+    );
+    expect(detail).toContain("ArtifactDetailPanel");
+    expect(read("../../routeTree.gen.ts")).toContain(
+      "/$profileId/artifacts/$artifactId",
+    );
+  });
+
+  it("pages the list and searches through the artifacts api", () => {
+    const panel = read("../artifacts/ArtifactsPanel.tsx");
+    expect(panel).toContain("api.artifacts.api.list");
+    expect(panel).toContain("initialNumItems: PAGE_SIZE");
+    expect(panel).toContain("const PAGE_SIZE = 50;");
+    expect(panel).toContain("api.artifacts.api.search");
+    expect(panel).toContain("Load more");
+  });
+
+  it("keeps viewer state, versions and links on the artifacts api", () => {
+    const viewer = read("../artifacts/ArtifactDetailPanel.tsx");
+    for (const fn of [
+      "getState",
+      "putState",
+      "history",
+      "getVersion",
+      "restoreVersion",
+      "refs",
+    ]) {
+      expect(viewer).toContain(`api.artifacts.api.${fn}`);
+    }
+    expect(viewer).toContain("/$profileId/memories/list/$id");
+    const actions = read("../artifacts/useArtifactActions.ts");
+    expect(actions).toContain("api.artifacts.api.remove");
+    expect(actions).toContain("api.artifacts.api.restore");
+    expect(actions).toContain('label: "Undo"');
+  });
+
+  it("renders bodies only through the shared @vvedantb/ui viewers", () => {
+    for (const file of [
+      "../artifacts/ArtifactsPanel.tsx",
+      "../artifacts/ArtifactDetailPanel.tsx",
+    ]) {
+      const source = read(file);
+      expect(source).not.toContain("dangerouslySetInnerHTML");
+      expect(source).not.toContain("<iframe");
+      expect(source).not.toContain("srcDoc");
+    }
+    expect(read("../artifacts/ArtifactDetailPanel.tsx")).toContain(
+      "ArtifactViewer",
+    );
   });
 });
