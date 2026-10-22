@@ -162,6 +162,69 @@ describe("buildMemoryFiles", () => {
   });
 });
 
+describe("MEMORY.md cap", () => {
+  const many = Array.from({ length: 204 }, (_, i) =>
+    group({
+      groupId: `cluster-${i + 1}-synthetic`,
+      taskId: null,
+      label: `Synthetic cluster number ${i + 1} with a fairly long label`,
+      runs: 1 + (i % 3),
+      pass: i % 2,
+      fail: 0,
+      skills: [],
+    }),
+  );
+  const known = group({ runs: 1, pass: 0 });
+
+  it("keeps the index under the cap and says how many topics it left out", () => {
+    const files = buildMemoryFiles([...many, known], 4000);
+    const index = files[0]?.content ?? "";
+    expect(files[0]?.path).toBe("MEMORY.md");
+    expect(Buffer.byteLength(index)).toBeLessThanOrEqual(4000);
+    // Every topic file is still written.
+    expect(
+      files.filter((file) => file.path.startsWith("topics/")),
+    ).toHaveLength(205);
+    const listed = index
+      .split("\n")
+      .filter((line) => line.includes("](topics/"));
+    const note = index.match(
+      /^- (\d+) more topics in topics\/ \(not listed\)$/m,
+    );
+    expect(Number(note?.[1])).toBe(205 - listed.length);
+    // Skill lines fill what is left after the topic lines.
+    expect(index).toContain("](skills/omit-aware-corpus/SKILL.md)");
+  });
+
+  it("lists known tasks first, then more runs, then more PASS runs", () => {
+    const index = buildMemoryFiles([...many, known], 4000)[0]?.content ?? "";
+    const listed = index
+      .split("\n")
+      .filter((line) => line.includes("](topics/"));
+    expect(listed[0]).toContain("task `build-word2vec-pipeline`");
+    const counts = listed.slice(1).map((line) => {
+      const match = line.match(/(\d+) runs \((\d+) PASS/);
+      return [Number(match?.[1]), Number(match?.[2])];
+    });
+    expect(counts.slice(0, 3)).toEqual([
+      [3, 1],
+      [3, 1],
+      [3, 1],
+    ]);
+    expect(counts.at(-1)?.[0]).toBe(3);
+  });
+
+  it("never throws, even when the header is over the cap", () => {
+    const index = buildMemoryFiles([known], 200)[0]?.content ?? "";
+    expect(Buffer.byteLength(index)).toBeLessThanOrEqual(200);
+  });
+
+  it("lists everything when it fits", () => {
+    const index = buildMemoryFiles([known])[0]?.content ?? "";
+    expect(index).not.toContain("not listed");
+  });
+});
+
 describe("writeMemoryFolder", () => {
   it("replaces a previous export but refuses a foreign folder", () => {
     const out = path.join(tmp, "memory");

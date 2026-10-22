@@ -111,11 +111,79 @@ function skillContent(skill: SkillDefinition): string {
   ].join("\n");
 }
 
+const INDEX_INTRO =
+  "Lessons mined from past agent runs on these tasks. Find the topic for your task, read it, and follow its instructions. Newer user preferences override older ones. Use a skill when its description matches your situation.";
+
+/** Known-task groups first, then more runs, then more PASS runs. Stable. */
+function byIndexPriority(a: MergedGroup, b: MergedGroup): number {
+  return (
+    Number(b.taskId !== null) - Number(a.taskId !== null) ||
+    b.runs - a.runs ||
+    b.pass - a.pass
+  );
+}
+
+function renderIndex(
+  topics: readonly string[],
+  topicTotal: number,
+  skills: readonly string[],
+  skillTotal: number,
+): string {
+  const section = (
+    title: string,
+    lines: readonly string[],
+    total: number,
+    dir: string,
+  ) => [
+    `## ${title}`,
+    "",
+    ...(total === 0 ? ["(none)"] : lines),
+    ...(lines.length < total
+      ? [`- ${total - lines.length} more ${dir} in ${dir}/ (not listed)`]
+      : []),
+    "",
+  ];
+  return [
+    "# Memory",
+    "",
+    INDEX_INTRO,
+    "",
+    ...section("Topics", topics, topicTotal, "topics"),
+    ...section("Skills", skills, skillTotal, "skills"),
+  ].join("\n");
+}
+
+/**
+ * MEMORY.md within `maxBytes`: the longest prefix of topic lines that fits,
+ * then of skill lines, each cut list ending with a "N more" note.
+ */
+function fitIndex(
+  topicLines: readonly string[],
+  skillLines: readonly string[],
+  maxBytes: number,
+): string {
+  const render = (topics: number, skills: number) =>
+    renderIndex(
+      topicLines.slice(0, topics),
+      topicLines.length,
+      skillLines.slice(0, skills),
+      skillLines.length,
+    );
+  const fits = (topics: number, skills: number) =>
+    Buffer.byteLength(render(topics, skills)) <= maxBytes;
+  let topics = 0;
+  while (topics < topicLines.length && fits(topics + 1, 0)) topics += 1;
+  let skills = 0;
+  while (skills < skillLines.length && fits(topics, skills + 1)) skills += 1;
+  // capSize only bites when the fixed header alone is over the cap.
+  return capSize(render(topics, skills), maxBytes);
+}
+
 /**
  * Pure: merged groups to memory files. Every topic and skill gets one
- * MEMORY.md line, skill names are unique, secrets are redacted, and no file
- * passes `maxFileBytes` (MEMORY.md throws instead, because truncating it
- * would drop index lines).
+ * MEMORY.md line while it fits, skill names are unique, secrets are redacted,
+ * and no file passes `maxFileBytes`. MEMORY.md lists the most useful groups
+ * first (see `byIndexPriority`) and drops the rest with a "N more" note.
  */
 export function buildMemoryFiles(
   groups: readonly MergedGroup[],
@@ -127,7 +195,7 @@ export function buildMemoryFiles(
   const usedSkillNames = new Set<string>();
   const usedTopics = new Set<string>();
 
-  for (const group of groups) {
+  for (const group of [...groups].sort(byIndexPriority)) {
     if (group.instructions.length === 0 && group.superseded.length === 0) {
       continue;
     }
@@ -166,32 +234,16 @@ export function buildMemoryFiles(
     });
   }
 
-  const index = [
-    "# Memory",
-    "",
-    "Lessons mined from past agent runs on these tasks. Find the topic for your task, read it, and follow its instructions. Newer user preferences override older ones. Use a skill when its description matches your situation.",
-    "",
-    "## Topics",
-    "",
-    ...(topicLines.length > 0 ? topicLines : ["(none)"]),
-    "",
-    "## Skills",
-    "",
-    ...(skillLines.length > 0 ? skillLines : ["(none)"]),
-    "",
-  ].join("\n");
-
   const capped = files.map((file) => ({
     path: file.path,
     content: capSize(redactSecrets(file.content), maxFileBytes),
   }));
-  const indexContent = redactSecrets(index);
-  if (Buffer.byteLength(indexContent) > maxFileBytes) {
-    throw new Error(
-      `${INDEX_FILE} is over the ${maxFileBytes} byte cap; raise --max-file-bytes or limit tasks`,
-    );
-  }
-  return [{ path: INDEX_FILE, content: indexContent }, ...capped];
+  const index = fitIndex(
+    topicLines.map(redactSecrets),
+    skillLines.map(redactSecrets),
+    maxFileBytes,
+  );
+  return [{ path: INDEX_FILE, content: index }, ...capped];
 }
 
 /**

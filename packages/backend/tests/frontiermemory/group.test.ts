@@ -1,7 +1,11 @@
 import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { groupRuns, matchTask } from "../../eval/frontiermemory/group";
+import {
+  groupRuns,
+  matchTask,
+  mentionTerms,
+} from "../../eval/frontiermemory/group";
 import {
   normalizeRuns,
   normalizeTrajectory,
@@ -9,7 +13,7 @@ import {
 } from "../../eval/frontiermemory/normalize";
 import { DEFAULT_TASKS_PATH } from "../../eval/frontiermemory/pipeline";
 import { taskSpecSchema } from "../../eval/frontiermemory/types";
-import type { NormalizedRun } from "../../eval/frontiermemory/types";
+import type { NormalizedRun, TaskSpec } from "../../eval/frontiermemory/types";
 
 const FIXTURES = path.join(import.meta.dirname, "fixtures");
 const tasks = taskSpecSchema
@@ -75,6 +79,54 @@ describe("matchTask", () => {
         cattrs: 2,
       }),
     ).toBeNull();
+  });
+
+  describe("cooccur rule", () => {
+    const widget: TaskSpec = {
+      id: "widgetlib-release-notes",
+      source: "synthetic",
+      title: "widgetlib release notes",
+      description: "",
+      keywords: ["widgetlib"],
+      cooccur: { term: "widgetlib", with: "release notes", min: 2 },
+    };
+    const withWidget = [...tasks, widget];
+
+    it("counts the cooccur terms too", () => {
+      expect(mentionTerms([widget])).toEqual(["widgetlib", "release notes"]);
+    });
+
+    it("matches a few name mentions next to the co-term", () => {
+      expect(
+        matchTask("Add a timeout option", withWidget, {
+          widgetlib: 2,
+          "release notes": 3,
+        }),
+      ).toEqual({
+        taskId: "widgetlib-release-notes",
+        via: "cooccur",
+        score: 2,
+      });
+    });
+
+    it.each([
+      ["one passing mention", { widgetlib: 1, "release notes": 3 }],
+      ["no co-term", { widgetlib: 5 }],
+    ])("ignores %s", (_name, mentions) => {
+      expect(
+        matchTask("Add a timeout option", withWidget, mentions),
+      ).toBeNull();
+    });
+
+    it("loses to a strong body match", () => {
+      expect(
+        matchTask("Add a timeout option", withWidget, {
+          widgetlib: 3,
+          "release notes": 1,
+          eurogrid: 40,
+        })?.taskId,
+      ).toBe("apex-eurogrid-curtailment");
+    });
   });
 
   it("prefers a prompt match over body mentions of another task", () => {

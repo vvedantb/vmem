@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import { toEpisode, writeEpisodes, type Episode } from "./episodes.ts";
 import { buildMemoryFiles, writeMemoryFolder } from "./export.ts";
-import { groupRuns } from "./group.ts";
+import { groupRuns, mentionTerms } from "./group.ts";
 import { estimateLessonCall, extractLessons } from "./lessons.ts";
 import {
   createBudget,
@@ -123,7 +123,7 @@ export async function runPipeline(
     );
   }
 
-  const keywords = [...new Set(tasks.flatMap((task) => task.keywords))];
+  const keywords = mentionTerms(tasks);
   // Boilerplate is learnt across the whole corpus, so parse every run first.
   const runs: NormalizedRun[] = normalizeRuns(
     listInputs(options.inputDir, options.maxRuns).map((name) =>
@@ -204,66 +204,69 @@ export async function runPipeline(
 
   const budget = createBudget(options.budgetUsd, options.prices);
   const cacheDir = path.join(options.workDir, "cache");
-  const extracted = await extractLessons(episodes, {
-    model: options.model,
-    cacheDir,
-    concurrency: options.concurrency,
-    budget,
-    client,
-  });
-  const lessonsByFile = new Map(
-    episodes.map((episode, i) => [episode.source, extracted[i] ?? []]),
-  );
+  // Spend is recorded even when a later stage throws.
+  try {
+    const extracted = await extractLessons(episodes, {
+      model: options.model,
+      cacheDir,
+      concurrency: options.concurrency,
+      budget,
+      client,
+    });
+    const lessonsByFile = new Map(
+      episodes.map((episode, i) => [episode.source, extracted[i] ?? []]),
+    );
 
-  const merged = await mapWithConcurrency(
-    groups,
-    options.concurrency,
-    async (group) => {
-      const runLessons: RunLessons[] = membersOf(group.files).map((run) => ({
-        file: run.file,
-        outcome: run.outcome,
-        orderHint: run.orderHint,
-        lessons: lessonsByFile.get(run.file) ?? [],
-      }));
-      const deterministic = mergeDeterministic(group, runLessons);
-      if (!options.llmMerge) return deterministic.merged;
-      const description =
-        tasks.find((task) => task.id === group.taskId)?.description ?? null;
-      return mergeWithLlm(group, deterministic, description, {
-        client,
-        budget,
-        model: options.model,
-        cacheDir,
-      });
-    },
-  );
+    const merged = await mapWithConcurrency(
+      groups,
+      options.concurrency,
+      async (group) => {
+        const runLessons: RunLessons[] = membersOf(group.files).map((run) => ({
+          file: run.file,
+          outcome: run.outcome,
+          orderHint: run.orderHint,
+          lessons: lessonsByFile.get(run.file) ?? [],
+        }));
+        const deterministic = mergeDeterministic(group, runLessons);
+        if (!options.llmMerge) return deterministic.merged;
+        const description =
+          tasks.find((task) => task.id === group.taskId)?.description ?? null;
+        return mergeWithLlm(group, deterministic, description, {
+          client,
+          budget,
+          model: options.model,
+          cacheDir,
+        });
+      },
+    );
+    summary.merged = merged.map((group) => ({
+      groupId: group.groupId,
+      source: group.source,
+      instructions: group.instructions.length,
+      skills: group.skills.length,
+    }));
 
-  const files = buildMemoryFiles(merged, options.maxFileBytes);
-  writeMemoryFolder(options.outDir, files);
-  writeFileSync(
-    path.join(options.workDir, "llm-calls.jsonl"),
-    budget.records.map((record) => `${JSON.stringify(record)}\n`).join(""),
-  );
-
-  summary.llm = {
-    ...budget.usage,
-    costUsd: round(budget.usage.costUsd, 6),
-    budgetUsd: options.budgetUsd,
-    budgetHit: budget.usage.skippedCalls > 0,
-  };
-  summary.output = {
-    dir: options.outDir,
-    files: files.map((file) => file.path),
-  };
-  summary.merged = merged.map((group) => ({
-    groupId: group.groupId,
-    source: group.source,
-    instructions: group.instructions.length,
-    skills: group.skills.length,
-  }));
-  writeFileSync(
-    path.join(options.workDir, "summary.json"),
-    `${JSON.stringify(summary, null, 2)}\n`,
-  );
+    const files = buildMemoryFiles(merged, options.maxFileBytes);
+    writeMemoryFolder(options.outDir, files);
+    summary.output = {
+      dir: options.outDir,
+      files: files.map((file) => file.path),
+    };
+  } finally {
+    writeFileSync(
+      path.join(options.workDir, "llm-calls.jsonl"),
+      budget.records.map((record) => `${JSON.stringify(record)}\n`).join(""),
+    );
+    summary.llm = {
+      ...budget.usage,
+      costUsd: round(budget.usage.costUsd, 6),
+      budgetUsd: options.budgetUsd,
+      budgetHit: budget.usage.skippedCalls > 0,
+    };
+    writeFileSync(
+      path.join(options.workDir, "summary.json"),
+      `${JSON.stringify(summary, null, 2)}\n`,
+    );
+  }
   return summary;
 }

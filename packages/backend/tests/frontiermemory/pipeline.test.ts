@@ -1,12 +1,25 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { z } from "zod";
 import { parseCliArgs } from "../../eval/frontiermemory/cli";
 import type { LlmClient } from "../../eval/frontiermemory/llm";
 import { runPipeline } from "../../eval/frontiermemory/pipeline";
 
 const FIXTURES = path.join(import.meta.dirname, "fixtures");
+
+const failedSummarySchema = z.object({
+  llm: z.object({ calls: z.number(), costUsd: z.number() }),
+  output: z.null(),
+});
 
 // Lesson calls get a per-task reply; merge calls get an LLM rewrite.
 const fakeClient: LlmClient = (call) => {
@@ -142,6 +155,28 @@ describe("runPipeline", () => {
     expect(topic).toContain(
       "- Write each changelog entry as one line, newest first.",
     );
+  });
+
+  it("records spend when the export fails", async () => {
+    // A foreign file in the out folder makes the export refuse to write.
+    mkdirSync(path.join(tmp, "memory"));
+    writeFileSync(path.join(tmp, "memory", "notes.txt"), "keep me");
+    await expect(
+      runPipeline(
+        options(["--tasks", "cattrs-compositional-changelog"]),
+        fakeClient,
+      ),
+    ).rejects.toThrow(/refusing/);
+    const work = path.join(tmp, "memory.work");
+    const calls = readFileSync(path.join(work, "llm-calls.jsonl"), "utf8")
+      .trim()
+      .split("\n");
+    expect(calls.length).toBeGreaterThan(0);
+    const summary = failedSummarySchema.parse(
+      JSON.parse(readFileSync(path.join(work, "summary.json"), "utf8")),
+    );
+    expect(summary.llm.calls).toBe(calls.length);
+    expect(summary.llm.costUsd).toBeGreaterThan(0);
   });
 
   it("rejects unknown task ids", async () => {
